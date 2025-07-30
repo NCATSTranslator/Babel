@@ -18,14 +18,15 @@ def pull_labels(infile,outfile):
     labels = {}
     done = set()
     with open(outfile,'w') as labelf:
+        # FIXME: first line should not be skipped
         for line in lines[1:]:
             parts = line.split('\t')
             if len(parts) < 5:
                 continue
             sf = parts[SUBFAMILY_COLUMN]
-            mf = sf.split(':')[0]
-            mfname = parts[MAINFAMILY_NAME_COLUMN]
-            sfname = parts[SUBFAMILY_NAME_COLUMN]
+            mf = sf.split(':')[0] # PTHR10845:SF155 -> PTHR10845
+            mfname = parts[MAINFAMILY_NAME_COLUMN] # REGULATOR OF G PROTEIN SIGNALING
+            sfname = parts[SUBFAMILY_NAME_COLUMN] # REGULATOR OF G-PROTEIN SIGNALING 18
             if mf not in done:
                 main_family = f'{PANTHERFAMILY}:{mf}'
                 #panther_families.append(main_family)
