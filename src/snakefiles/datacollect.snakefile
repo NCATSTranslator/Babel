@@ -56,8 +56,10 @@ rule get_EFO_labels:
     output:
         labelfile=config['download_directory'] + '/EFO/labels',
         synonymfile =config['download_directory'] + '/EFO/synonyms'
-    run:
-        efo.make_labels(output.labelfile,output.synonymfile)
+    # run:
+    #     efo.make_labels(output.labelfile,output.synonymfile) # 21 seconds
+    shell:
+        "./babel_io/target/release/create_efo_labels --input {input.infile} --labels-output {output.labelfile} --synonyms-output {output.synonymfile}"
 
 ### Complex Portal
 # https://www.ebi.ac.uk/complexportal/
@@ -74,20 +76,22 @@ rule get_complexportal_labels_and_synonyms:
     output:
         lfile = config['download_directory']+'/ComplexPortal'+'/559292_labels.tsv',
         sfile = config['download_directory']+'/ComplexPortal'+'/559292_synonyms.tsv'
-    run:
-        complexportal.make_labels_and_synonyms(input.infile, output.lfile, output.sfile)
+    # run:
+    #     complexportal.make_labels_and_synonyms(input.infile, output.lfile, output.sfile)
+    shell:
+        "./babel_io/target/release/create_complexportal_labels_and_synonyms --input {input.infile} --labels-output {output.lfile} --synonyms-output {output.sfile}"
 
 ### MODS
 
 rule get_mods:
     output:
-        expand("{download_directory}/{mod}/GENE-DESCRIPTION-JSON_{mod}.json", download_directory = config['download_directory'], mod = config['mods']),
+        expand("{download_directory}/{mod}/GENE-DESCRIPTION-JSON_{mod}_9.json", download_directory = config['download_directory'], mod = config['mods']),
     run:
         mods.pull_mods()
 
 rule get_mods_labels:
     input:
-        expand("{download_directory}/{mod}/GENE-DESCRIPTION-JSON_{mod}.json",download_directory=config['download_directory'], mod=config['mods']),
+        expand("{download_directory}/{mod}/GENE-DESCRIPTION-JSON_{mod}_9.json",download_directory=config['download_directory'], mod=config['mods']),
     output:
         expand("{download_directory}/{mod}/labels",download_directory=config['download_directory'], mod=config['mods']),
     run:
@@ -119,8 +123,10 @@ rule get_uniprotkb_labels:
         trembl_input=config['download_directory']+'/UniProtKB/uniprot_trembl.fasta',
     output:
         outfile=config['download_directory']+'/UniProtKB/labels'
-    run:
-        uniprotkb.pull_uniprot_labels(input.sprot_input,input.trembl_input,output.outfile)
+    #run:
+    #    uniprotkb.pull_uniprot_labels(input.sprot_input,input.trembl_input,output.outfile)
+    shell:
+        "./babel_io/target/release/create_uniprot_labels --sprot-input {input.sprot_input} --trembl-input {input.trembl_input} --output {output.outfile}"
 
 rule get_umls_gene_protein_mappings:
     output:
@@ -148,8 +154,10 @@ rule get_mesh_labels:
         config['download_directory']+'/MESH/mesh.nt'
     output:
         config['download_directory']+'/MESH/labels'
-    run:
-        mesh.pull_mesh_labels()
+    # run:
+    #     mesh.pull_mesh_labels()
+    shell:
+        "./babel_io/target/release/create_mesh_labels --input {input} --output {output}"
 
 rule get_mesh_synonyms:
     #We don't actually get any.  Maybe we could from the nt?
@@ -178,6 +186,8 @@ rule get_umls_labels_and_synonyms:
         config['download_directory']+'/SNOMEDCT/synonyms'
     run:
         umls.pull_umls(input.mrconso)
+    # shell:
+    #     "./babel_io/target/release/create_umls_labels_and_synonyms --input {input.mrconso}"
 
 ### OBO Ontologies
 
@@ -232,16 +242,22 @@ rule get_ncbigene_labels_synonyms_and_taxa:
         synonyms_filename=config['download_directory']+'/NCBIGene/synonyms',
         taxa_filename=config['download_directory']+'/NCBIGene/taxa',
         descriptions_filename=config['download_directory']+'/NCBIGene/descriptions',
-    run:
-        ncbigene.pull_ncbigene_labels_synonyms_and_taxa(input.gene_info_filename, output.labels_filename, output.synonyms_filename, output.taxa_filename, output.descriptions_filename)
+    # run:
+    #     ncbigene.pull_ncbigene_labels_synonyms_and_taxa(input.gene_info_filename, output.labels_filename, output.synonyms_filename, output.taxa_filename, output.descriptions_filename)
+    shell:
+        "./babel_io/target/release/create_ncbigene_labels_synonyms_and_taxa -i {input.gene_info_filename} -l {output.labels_filename} -s {output.synonyms_filename} -t {output.taxa_filename} -d {output.descriptions_filename}"
 
 ### ENSEMBL
 
 rule get_ensembl:
     output:
         outfile=config['download_directory']+'/ENSEMBL/BioMartDownloadComplete'
-    run:
-        ensembl.pull_ensembl(output.outfile)
+    params:
+        output_dir=config['download_directory']+'/ENSEMBL'
+    # run:
+    #     ensembl.pull_ensembl(output.outfile)
+    shell:
+        "./babel_io/target/release/pull_ensembl --ensembl-output-dir {params.output_dir}"
 
 ### HGNC
 
@@ -252,13 +268,15 @@ rule get_hgnc:
         hgnc.pull_hgnc()
 
 rule get_hgnc_labels_and_synonyms:
-    output:
-        config['download_directory']+'/HGNC/labels',
-        config['download_directory']+'/HGNC/synonyms'
     input:
         infile=rules.get_hgnc.output.outfile
-    run:
-        hgnc.pull_hgnc_labels_and_synonyms(input.infile)
+    output:
+        labels_filename=config['download_directory']+'/HGNC/labels',
+        synonyms_filename=config['download_directory']+'/HGNC/synonyms'
+    # run:
+    #     hgnc.pull_hgnc_labels_and_synonyms(input.infile)
+    shell:
+        "./babel_io/target/release/create_hgnc_labels_and_synonyms -i {input.infile} -l {output.labels_filename} -s {output.synonyms_filename}"
 
 ### HGNC.FAMILY
 
@@ -273,8 +291,10 @@ rule get_hgncfamily_labels:
         infile=rules.get_hgncfamily.output.outfile
     output:
         outfile = config['download_directory'] + '/HGNC.FAMILY/labels',
-    run:
-        hgncfamily.pull_labels(input.infile,output.outfile)
+    # run:
+    #     hgncfamily.pull_labels(input.infile,output.outfile)
+    shell:
+        "./babel_io/target/release/create_hgncfamily_labels -i {input.infile} -l {output.outfile}"
 
 ### PANTHER.FAMILY
 
@@ -289,8 +309,10 @@ rule get_pantherfamily_labels:
         infile=rules.get_pantherfamily.output.outfile
     output:
         outfile = config['download_directory'] + '/PANTHER.FAMILY/labels',
-    run:
-        pantherfamily.pull_labels(input.infile,output.outfile)
+    # run:
+    #     pantherfamily.pull_labels(input.infile,output.outfile)
+    shell:
+        "./babel_io/target/release/create_pantherfamily_labels -i {input.infile} -l {output.outfile}"
 
 
 ### OMIM
@@ -324,8 +346,10 @@ rule get_doid_labels_and_synonyms:
     output:
         labelfile = config['download_directory'] + '/DOID/labels',
         synonymfile = config['download_directory'] + '/DOID/synonyms'
-    run:
-        doid.pull_doid_labels_and_synonyms(input.infile, output.labelfile, output.synonymfile)
+    # run:
+    #     doid.pull_doid_labels_and_synonyms(input.infile, output.labelfile, output.synonymfile)
+    shell:
+        "./babel_io/target/release/create_doid_labels_and_synonyms -i {input.infile} -l {output.labelfile} -s {output.synonymfile}"
 
 ### Orphanet
 
@@ -357,8 +381,10 @@ rule get_reactome_labels:
         infile=config['download_directory'] + '/REACT/Events.json',
     output:
         labelfile=config['download_directory'] + '/REACT/labels',
-    run:
-        reactome.make_labels(input.infile,output.labelfile)
+    # run:
+    #     reactome.make_labels(input.infile,output.labelfile)
+    shell:
+        "./babel_io/target/release/create_reactome_labels -i {input.infile} -l {output.labelfile}"
 
 ### RHEA
 
@@ -373,8 +399,10 @@ rule get_rhea_labels:
         infile=config['download_directory'] + '/RHEA/rhea.rdf',
     output:
         labelfile=config['download_directory'] + '/RHEA/labels',
-    run:
-        rhea.make_labels(output.labelfile)
+    # run:
+    #     rhea.make_labels(output.labelfile)
+    shell:
+        "./babel_io/target/release/create_rhea_labels -i {input.infile} -l {output.labelfile}"
 
 ### EC
 
@@ -390,8 +418,10 @@ rule get_EC_labels:
     output:
         labelfile=config['download_directory'] + '/EC/labels',
         synonymfile =config['download_directory'] + '/EC/synonyms'
-    run:
-        ec.make_labels(output.labelfile,output.synonymfile)
+    # run:
+    #     ec.make_labels(output.labelfile,output.synonymfile)
+    shell:
+        "./babel_io/target/release/create_ec_labels -i {input.infile} -l {output.labelfile} -s {output.synonymfile}"
 
 ### SMPDB
 
@@ -406,8 +436,10 @@ rule get_SMPDB_labels:
         infile=config['download_directory'] + '/SMPDB/smpdb_pathways.csv'
     output:
         labelfile=config['download_directory'] + '/SMPDB/labels'
-    run:
-        smpdb.make_labels(input.infile,output.labelfile)
+    # run:
+    #     smpdb.make_labels(input.infile,output.labelfile)
+    shell:
+        "./babel_io/target/release/create_smpdb_labels -i {input.infile} -l {output.labelfile}"
 
 ### PantherPathways
 
@@ -422,8 +454,10 @@ rule get_panther_pathway_labels:
         infile=config['download_directory'] + '/PANTHER.PATHWAY/SequenceAssociationPathway3.6.8.txt'
     output:
         labelfile=config['download_directory'] + '/PANTHER.PATHWAY/labels'
-    run:
-        pantherpathways.make_pathway_labels(input.infile,output.labelfile)
+    # run:
+    #     pantherpathways.make_pathway_labels(input.infile,output.labelfile)
+    shell:
+        "./babel_io/target/release/create_pantherpathways_labels -i {input.infile} -l {output.labelfile}"
 
 ### Unichem
 
@@ -439,8 +473,10 @@ rule filter_unichem:
         reffile=config['download_directory'] + '/UNICHEM/reference.tsv.gz',
     output:
         filteredreffile=config['download_directory'] + '/UNICHEM/reference.filtered.tsv',
-    run:
-        unichem.filter_unichem(input.reffile, output.filteredreffile)
+    # run:
+    #     unichem.filter_unichem(input.reffile, output.filteredreffile)
+    shell:
+        "./babel_io/target/release/filter_unichem -i {input.reffile} -o {output.filteredreffile}"
 
 ### CHEMBL
 
@@ -458,8 +494,10 @@ rule chembl_labels_and_smiles:
     output:
         outfile=config['download_directory']+'/CHEMBL.COMPOUND/labels',
         smifile=config['download_directory']+'/CHEMBL.COMPOUND/smiles'
-    run:
-        chembl.pull_chembl_labels_and_smiles(input.infile,input.ccofile,output.outfile,output.smifile)
+    # run:
+    #     chembl.pull_chembl_labels_and_smiles(input.infile,input.ccofile,output.outfile,output.smifile)
+    shell:
+        "./babel_io/target/release/create_chembl_labels_and_smiles -i {input.infile} -c {input.ccofile} -l {output.outfile} -s {output.smifile}"
 
 ### DrugBank requires a login... but not for basic vocabulary information.
 rule get_drugbank_labels_and_synonyms:
@@ -634,3 +672,110 @@ rule get_CLO_labels:
         synonymfile =config['download_directory'] + '/CLO/synonyms'
     run:
         clo.make_labels(input.infile, output.labelfile,output.synonymfile)
+
+rule datacollect:
+    input:
+        config['download_directory'] + '/EFO/labels',
+        config['download_directory'] + '/EFO/synonyms',
+        config['download_directory'] + '/ComplexPortal/559292.tsv',
+        config['download_directory'] + '/ComplexPortal/559292_labels.tsv',
+        config['download_directory'] + '/ComplexPortal/559292_synonyms.tsv',
+        expand("{download_directory}/{mod}/GENE-DESCRIPTION-JSON_{mod}_9.json", download_directory = config['download_directory'], mod = config['mods']),
+        expand("{download_directory}/{mod}/labels",download_directory=config['download_directory'], mod=config['mods']),
+        config['download_directory'] + '/UniProtKB/idmapping.dat',
+        config['download_directory'] + '/UniProtKB/uniprot_sprot.fasta',
+        config['download_directory'] + '/UniProtKB/uniprot_trembl.fasta',
+        config['download_directory'] + '/UniProtKB/labels',
+        config['download_directory'] + '/UMLS_UniProtKB/UMLS_UniProtKB.tsv',
+        config['output_directory'] + '/intermediate/gene/concords/UMLS_NCBIGene',
+        config['output_directory'] + '/intermediate/protein/concords/UMLS_UniProtKB',
+        config['download_directory'] + '/MESH/mesh.nt',
+        config['download_directory'] + '/MESH/labels',
+        config['download_directory'] + '/MESH/synonyms',
+        config['download_directory'] + '/UMLS/MRCONSO.RRF',
+        config['download_directory'] + '/UMLS/MRSTY.RRF',
+        config['download_directory'] + '/UMLS/MRREL.RRF',
+        config['download_directory'] + '/UMLS/labels',
+        config['download_directory'] + '/UMLS/synonyms',
+        config['download_directory'] + '/SNOMEDCT/labels',
+        config['download_directory'] + '/SNOMEDCT/synonyms',
+        config['download_directory'] + '/common/ubergraph/labels',
+        config['download_directory'] + '/common/ubergraph/synonyms.jsonl',
+        config['download_directory'] + '/common/ubergraph/descriptions.jsonl',
+        config['download_directory'] + '/icRDF.tsv',
+        expand("{download_directory}/NCBIGene/{ncbi_files}", download_directory=config['download_directory'],ncbi_files=config['ncbi_files']),
+        config['download_directory'] + '/NCBIGene/labels',
+        config['download_directory'] + '/NCBIGene/synonyms',
+        config['download_directory'] + '/NCBIGene/taxa',
+        config['download_directory'] + '/NCBIGene/descriptions',
+        config['download_directory'] + '/ENSEMBL/BioMartDownloadComplete',
+        config['download_directory'] + '/HGNC/hgnc_complete_set.json',
+        config['download_directory'] + '/HGNC/labels',
+        config['download_directory'] + '/HGNC/synonyms',
+        config['download_directory'] + '/HGNC.FAMILY/family.csv',
+        config['download_directory'] + '/HGNC.FAMILY/labels',
+        config['download_directory'] + '/PANTHER.FAMILY/family.csv',
+        config['download_directory'] + '/PANTHER.FAMILY/labels',
+        config['download_directory'] + '/OMIM/mim2gene.txt',
+        config['download_directory'] + '/NCIT/NCIt-SwissProt_Mapping.txt',
+        config['download_directory'] + '/DOID/doid.json',
+        config['download_directory'] + '/DOID/labels',
+        config['download_directory'] + '/DOID/synonyms',
+        config['download_directory'] + '/Orphanet/Orphanet_Nomenclature_Pack_EN.zip',
+        config['download_directory'] + '/Orphanet/labels',
+        config['download_directory'] + '/Orphanet/synonyms',
+        config['download_directory'] + '/REACT/Events.json',
+        config['download_directory'] + '/REACT/labels',
+        config['download_directory'] + '/RHEA/rhea.rdf',
+        config['download_directory'] + '/RHEA/labels',
+        config['download_directory'] + '/EC/enzyme.rdf',
+        config['download_directory'] + '/EC/labels',
+        config['download_directory'] + '/EC/synonyms',
+        config['download_directory'] + '/SMPDB/smpdb_pathways.csv',
+        config['download_directory'] + '/SMPDB/labels',
+        config['download_directory'] + '/PANTHER.PATHWAY/SequenceAssociationPathway3.6.8.txt',
+        config['download_directory'] + '/PANTHER.PATHWAY/labels',
+        config['download_directory'] + '/UNICHEM/structure.tsv.gz',
+        config['download_directory'] + '/UNICHEM/reference.tsv.gz',
+        config['download_directory'] + '/UNICHEM/reference.filtered.tsv',
+        config['download_directory'] + '/CHEMBL.COMPOUND/chembl_latest_molecule.ttl',
+        config['download_directory'] + '/CHEMBL.COMPOUND/cco.ttl',
+        config['download_directory'] + '/CHEMBL.COMPOUND/labels',
+        config['download_directory'] + '/CHEMBL.COMPOUND/smiles',
+        config['download_directory'] + '/DRUGBANK/drugbank vocabulary.csv',
+        config['download_directory'] + '/DRUGBANK/labels',
+        config['download_directory'] + '/DRUGBANK/synonyms',
+        config['download_directory'] + '/GTOPDB/ligands.tsv',
+        config['download_directory'] + '/GTOPDB/labels',
+        config['download_directory'] + '/GTOPDB/synonyms',
+        config['download_directory'] + '/KEGG.COMPOUND/labels',
+        config['download_directory'] + '/UNII/Latest_UNII_Names.txt',
+        config['download_directory'] + '/UNII/Latest_UNII_Records.txt',
+        config['download_directory'] + '/UNII/labels',
+        config['download_directory'] + '/UNII/synonyms',
+        config['download_directory'] + '/HMDB/hmdb_metabolites.xml',
+        config['download_directory'] + '/HMDB/labels',
+        config['download_directory'] + '/HMDB/synonyms',
+        config['download_directory'] + '/HMDB/smiles',
+        config['download_directory'] + '/PUBCHEM.COMPOUND/CID-MeSH',
+        config['download_directory'] + '/PUBCHEM.COMPOUND/CID-Synonym-filtered.gz',
+        config['download_directory'] + '/PUBCHEM.COMPOUND/CID-Title.gz',
+        config['download_directory'] + '/PUBCHEM.COMPOUND/CID-InChI-Key.gz',
+        config['download_directory'] + '/PUBCHEM.COMPOUND/CID-SMILES.gz',
+        config['download_directory'] + '/PUBCHEM.COMPOUND/labels',
+        config['download_directory'] + '/PUBCHEM.COMPOUND/synonyms',
+        config['download_directory'] + '/RxNorm/RXNCONSO.RRF',
+        config['download_directory'] + '/RxNorm/RXNREL.RRF',
+        config['download_directory'] + '/PUBCHEM.COMPOUND/RXNORM.json',
+        config['download_directory'] + '/DrugCentral/structures',
+        config['download_directory'] + '/DrugCentral/labels',
+        config['download_directory'] + '/DrugCentral/xrefs',
+        config['download_directory'] + '/NCBITaxon/taxdump.tar',
+        config['download_directory'] + '/NCBITaxon/labels',
+        config['download_directory'] + '/NCBITaxon/synonyms',
+        config['download_directory'] + '/NCBITaxon/properties.tsv.gz',
+        config['download_directory'] + '/CHEBI/ChEBI_complete.sdf',
+        config['download_directory'] + '/CHEBI/database_accession.tsv',
+        config['download_directory'] + '/CLO/clo.owl',
+        config['download_directory'] + '/CLO/labels',
+        config['download_directory'] + '/CLO/synonyms'
