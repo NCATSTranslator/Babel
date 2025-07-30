@@ -27,9 +27,9 @@ class EFOgraph:
         from datetime import datetime as dt
         print('loading EFO')
         start = dt.now()
-        self.m= pyoxigraph.MemoryStore()
+        self.m= pyoxigraph.Store()
         with open(ifname,'rb') as inf:
-            self.m.load(inf,'application/rdf+xml',base_iri='http://example.org/')
+            self.m.bulk_load(input=inf,format=pyoxigraph.RdfFormat.RDF_XML,base_iri='http://example.org/')
         end = dt.now()
         print('loading complete')
         print(f'took {end-start}')
@@ -120,6 +120,7 @@ class EFOgraph:
             outfile.write(f"{iri}\tskos:exactMatch\t{otherid}\n")
             nwrite += 1
         return nwrite
+
     def get_xrefs(self, iri, outfile):
         query = f"""
          prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
