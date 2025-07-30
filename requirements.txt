@@ -13,7 +13,8 @@ pytest-cov
 python-levenshtein
 pyyaml
 requests
-snakemake
+PuLP==2.7.0
+snakemake==7.32.4
 sparqlwrapper
 # Added by Gaurav, Jan 2022
 xmltodict
