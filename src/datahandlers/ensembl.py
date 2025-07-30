@@ -1,5 +1,8 @@
 import traceback
 
+import apybiomart
+import pandas
+
 from src.babel_utils import make_local_name, get_config
 from apybiomart import find_datasets, query, find_attributes
 import os
@@ -13,14 +16,19 @@ import os
 # genes that can be gathered without downloading hundreds of gigs of other stuff.  So, we'll use biomart to pull
 # just what we need.
 def pull_ensembl(complete_file):
-    f = find_datasets()
+    dataset_df = find_datasets()
+
+    # dataset_url = "http://www.ensembl.org/biomart/martservice/biomart/martservice?type=datasets&mart=ENSEMBL_MART_ENSEMBL"
+    # dataset_df = pandas.read_csv(dataset_url, sep='\t', header=None, index_col=False)
 
     skip_dataset_ids = set(get_config()['ensembl_datasets_to_skip'])
 
     cols = {"ensembl_gene_id", "ensembl_peptide_id", "description", "external_gene_name", "external_gene_source",
             "external_synonym", "chromosome_name", "source", "gene_biotype", "entrezgene_id", "zfin_id_id", 'mgi_id',
             'rgd_id', 'flybase_gene_id', 'sgd_gene', 'wormbase_gene'}
-    for ds in f['Dataset_ID']:
+
+    # for ds in dataset_df[1]:
+    for ds in dataset_df['Dataset_ID']:
         print(ds)
         if ds in skip_dataset_ids:
             print(f'Skipping {ds} as it is included in skip_dataset_ids: {skip_dataset_ids}')
@@ -32,9 +40,18 @@ def pull_ensembl(complete_file):
         if os.path.exists(outfile):
             continue
         try:
-            atts = find_attributes(ds)
-            existingatts = set(atts['Attribute_ID'].to_list())
+
+            attributes_df = find_attributes(ds)
+            # attributes_url = f"http://www.ensembl.org/biomart/martservice/biomart/martservice?type=attributes&dataset={ds}"
+            # attributes_df = pandas.read_csv(attributes_url, sep='\t', header=None, index_col=False)
+
+            # existingatts = set(attributes_df[0].to_list())
+            existingatts = set(attributes_df['Attribute_ID'].to_list())
             attsIcanGet = cols.intersection(existingatts)
+
+            # query_url = f"http://www.ensembl.org/biomart/martservice/biomart/martservice?type=attributes&dataset={ds}"
+            # query_df = pandas.read_csv(attributes_url, sep='\t', header=None, index_col=False)
+
             df = query(attributes=list(attsIcanGet), filters={}, dataset=ds)
             df.to_csv(outfile, index=False, sep='\t')
         except Exception as exc:
@@ -48,4 +65,7 @@ def pull_ensembl(complete_file):
 
 
 if __name__ == '__main__':
-    pull_ensembl()
+    # marts = apybiomart.find_marts()
+    # print(marts.head())
+
+    pull_ensembl("/tmp/asdfasdf.txt")
