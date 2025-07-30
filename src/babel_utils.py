@@ -185,7 +185,7 @@ def pull_via_urllib(url: str, in_file_name: str, decompress = True, subpath=None
             # write out the data to the output file
             compressed_file.write(data)
 
-    if decompress:
+    if os.stat(dl_file_name).st_size > 0 and decompress:
         out_file_name = dl_file_name[:-3]
 
         # create the output text file
@@ -200,6 +200,7 @@ def pull_via_urllib(url: str, in_file_name: str, decompress = True, subpath=None
         os.remove(dl_file_name)
     else:
         out_file_name = dl_file_name
+
 
     # return the filename to the caller
     return out_file_name
