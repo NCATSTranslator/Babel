@@ -13,9 +13,9 @@ class Mesh:
         from datetime import datetime as dt
         print('loading mesh.nt')
         start = dt.now()
-        self.m= pyoxigraph.MemoryStore()
+        self.m= pyoxigraph.Store()
         with open(ifname,'rb') as inf:
-            self.m.load(inf,'application/n-triples')
+            self.m.bulk_load(input=inf,format=pyoxigraph.RdfFormat.N_TRIPLES)
         end = dt.now()
         print('loading complete')
         print(f'took {end-start}')
