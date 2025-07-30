@@ -21,6 +21,6 @@ def pull_labels(infile,outfile):
             if len(parts) < 10:
                 continue
             i = f"{HGNCFAMILY}:{parts[0][1:-1]}"
-            l = parts[2][1:-1]
+            l = parts[2][1:-1] # FIXME...this is a bug since commas are used in the fields of a line
             outf.write(f'{i}\t{l}\n')
 
