@@ -23,9 +23,9 @@ class ECgraph:
         from datetime import datetime as dt
         print('loading EC')
         start = dt.now()
-        self.m= pyoxigraph.MemoryStore()
+        self.m= pyoxigraph.Store()
         with open(ifname,'rb') as inf:
-            self.m.load(inf,'application/rdf+xml',base_iri='http://example.org/')
+            self.m.bulk_load(input=inf,format=pyoxigraph.RdfFormat.RDF_XML,base_iri='http://example.org/')
         end = dt.now()
         print('loading complete')
         print(f'took {end-start}')
