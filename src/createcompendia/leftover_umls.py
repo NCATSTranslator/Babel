@@ -4,13 +4,7 @@ import json
 import jsonlines
 from pathlib import Path
 
-<<<<<<< HEAD
 import snakemake.logging
-from bmt import Toolkit
-=======
-from snakemake.logging import Logger
->>>>>>> 80b225419bb30eafafcc82771983a66dc36156b7
-
 from src.node import NodeFactory
 from src.util import get_biolink_model_toolkit
 from src.datahandlers import umls
