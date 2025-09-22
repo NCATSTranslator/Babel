@@ -506,6 +506,9 @@ class NodeFactory:
             with open(labelfname,'r') as inf:
                 for line in inf:
                     x = line.strip().split('\t')
+                    if len(x) != 2:
+                        logger.warning(f"bad line in {labelfname}: {line.strip()}")
+                        continue
                     lbs[x[0]] = x[1]
         self.extra_labels[prefix] = lbs
 
