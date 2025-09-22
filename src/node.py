@@ -505,7 +505,7 @@ class NodeFactory:
         if os.path.exists(labelfname):
             with open(labelfname,'r') as inf:
                 for line in inf:
-                    x = line.strip().split('\t')
+                    x = line.strip().split('\t', maxsplit=1)
                     if len(x) != 2:
                         logger.warning(f"bad line in {labelfname}: {line.strip()}")
                         continue
