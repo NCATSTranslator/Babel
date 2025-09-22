@@ -510,6 +510,7 @@ def build_conflation(manual_concord_filename, rxn_concord, umls_concord, pubchem
             # Biolink types will just make the output lists more confusing. Most people will only care about the
             # clique conflation leader.
             final_conflation_id_list = []
+            clique_ics = []
             for biolink_type, ids in sorted(conflation_ids_by_type.items(), key=lambda bt: config['preferred_conflation_type_order'].get(bt[0], 100)):
                 # To sort the identifiers, we'll need to calculate a tuple for each identifier to sort on.
                 sorted_ids = {}
@@ -520,6 +521,7 @@ def build_conflation(manual_concord_filename, rxn_concord, umls_concord, pubchem
                     clique_ic = ic_factory.get_ic({
                         'identifiers': list(map(lambda c: {'identifier': c}, clique_for_id))
                     })
+                    clique_ics.append(clique_ic)
                     if clique_ic is None:
                         clique_ic = 100.0
 
@@ -546,7 +548,7 @@ def build_conflation(manual_concord_filename, rxn_concord, umls_concord, pubchem
             assert set(final_conflation_id_list) == set(normalized_conflation_id_list)
 
             # Write out all the identifiers.
-            logger.info(f"Ordered DrugChemical conflation {final_conflation_id_list}")
+            logger.info(f"Ordered DrugChemical conflation {final_conflation_id_list} with IC values {clique_ics}.")
             outf.write(final_conflation_id_list)
             written.add(fs)
 
