@@ -506,10 +506,14 @@ class NodeFactory:
             with open(labelfname,'r') as inf:
                 for line in inf:
                     x = line.strip().split('\t', maxsplit=1)
-                    if len(x) != 2:
-                        logger.warning(f"bad line in {labelfname}: {line.strip()}")
-                        continue
-                    lbs[x[0]] = x[1]
+                    if len(x) == 1:
+                        # We have an identifier, but we explicitly don't have a label.
+                        lbs[x[0]] = ''
+                    if len(x) == 2:
+                        # We have an identifier and a label.
+                        lbs[x[0]] = x[1]
+                    logger.warning(f"bad line in {labelfname}: {line.strip()}")
+                    continue
         self.extra_labels[prefix] = lbs
 
     def apply_labels(self, input_identifiers, labels):
