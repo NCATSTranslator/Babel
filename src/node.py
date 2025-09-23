@@ -72,8 +72,13 @@ class SynonymFactory:
             with open(labelfname, 'r') as inf:
                 for line in inf:
                     x = line.strip().split('\t')
-                    lbs[x[0]].add( ('http://www.geneontology.org/formats/oboInOwl#hasExactSynonym',x[1]) )
-                    count_labels += 1
+                    if len(x) == 1:
+                        lbs[x[0]].add( ('http://www.geneontology.org/formats/oboInOwl#hasExactSynonym', '') )
+                    elif len(x) == 2:
+                        lbs[x[0]].add( ('http://www.geneontology.org/formats/oboInOwl#hasExactSynonym', x[1]) )
+                        count_labels += 1
+                    else:
+                        logger.warning(f"Unexpected number of columns in {labelfname} ({len(x)}), skipping: {line.strip()}")
         synfname = os.path.join(self.synonym_dir, prefix, 'synonyms')
         if os.path.exists(synfname):
             with open(synfname, 'r') as inf:
@@ -509,11 +514,11 @@ class NodeFactory:
                     if len(x) == 1:
                         # We have an identifier, but we explicitly don't have a label.
                         lbs[x[0]] = ''
-                    if len(x) == 2:
+                    elif len(x) == 2:
                         # We have an identifier and a label.
                         lbs[x[0]] = x[1]
-                    logger.warning(f"bad line in {labelfname}: {line.strip()}")
-                    continue
+                    else:
+                        logger.warning(f"bad line in {labelfname}: {line.strip()}")
         self.extra_labels[prefix] = lbs
 
     def apply_labels(self, input_identifiers, labels):
