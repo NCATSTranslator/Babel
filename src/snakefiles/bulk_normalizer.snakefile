@@ -85,12 +85,14 @@ rule bulk_normalize_files:
             f.write("done")
 
 rule bulk_normalize_reports:
-    input:
-        bulk_normalizer_output_dir = directory(config['output_directory'] + '/bulk-normalizer'),
-        normalizer_done = config['output_directory'] + '/bulk-normalizer/done',
+    # input:
+        # bulk_normalizer_output_dir = directory(config['output_directory'] + '/bulk-normalizer'),
+        # normalizer_done = config['output_directory'] + '/bulk-normalizer/done',
     output:
         bulk_normalizer_report = config['output_directory'] + '/bulk-normalizer/report.tsv',
     run:
+        bulk_normalizer_output_dir = config['output_directory'] + '/bulk-normalizer'
+
         # Prepare to write the output file.
         with open(output.bulk_normalizer_report, 'w') as outf:
             writer = csv.DictWriter(outf, delimiter='\t', fieldnames=[
@@ -104,27 +106,27 @@ rule bulk_normalize_reports:
             writer.writeheader()
 
             # Iterate over all the files in the bulk-normalizer output directory.
-            for filename in os.listdir(input.bulk_normalizer_output_dir + '/bulk_normalizer'):
+            for filename in os.listdir(bulk_normalizer_output_dir + '/bulk_normalizer'):
                 filename_lc = filename.lower()
                 if '.txt' in filename_lc or '.tsv' in filename_lc:
                     logger.info(f"Generating report for bulk normalized file {filename} ...")
                     if '.gz' in filename_lc:
-                        file = gzip.open(input.bulk_normalizer_output_dir + '/bulk_normalizer/' + filename, 'rt')
+                        file = gzip.open(bulk_normalizer_output_dir + '/bulk_normalizer/' + filename, 'rt')
                     else:
-                        file = open(input.bulk_normalizer_output_dir + '/bulk_normalizer/' + filename, 'r')
+                        file = open(bulk_normalizer_output_dir + '/bulk_normalizer/' + filename, 'r')
 
                     # Get the number of input records and the number of normalized records.
                     row_count = 0
                     row_with_normalized_curie_count = 0
                     unique_id = set()
                     biolink_types = defaultdict(int)
-                    with csv.DictReader(file, delimiter='\t') as reader:
-                        for row in reader:
-                            row_count += 1
-                            unique_id.add(row['id'])
-                            if row['normalized_curie'] != '':
-                                row_with_normalized_curie_count += 1
-                            biolink_types[row['biolink_type']] += 1
+                    reader = csv.DictReader(file, delimiter='\t')
+                    for row in reader:
+                        row_count += 1
+                        unique_id.add(row['id'])
+                        if row['normalized_curie'] != '':
+                            row_with_normalized_curie_count += 1
+                        biolink_types[row['biolink_type']] += 1
 
                     file.close()
 
