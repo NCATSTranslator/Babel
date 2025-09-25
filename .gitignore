@@ -7,3 +7,4 @@ babel_outputs/
 .snakemake/
 .env
 .idea
+**/target/
