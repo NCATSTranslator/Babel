@@ -99,11 +99,14 @@ rule bulk_normalize_reports:
                 'unique_id_count',
                 'unique_normalized_curie_count',
                 'unique_normalized_curie_percent',
+                'unique_normalized_curie_absent',
+                'unique_normalized_curie_absent_percent',
+                'biolink_types',
+                # The following columns probably aren't very useful.
                 'rows_with_normalized_curie',
                 'rows_with_normalized_curie_percent',
                 'rows_without_normalized_curie',
-                'rows_without_normalized_curie_percent',
-                'biolink_types'
+                'rows_without_normalized_curie_percent'
             ])
             writer.writeheader()
 
@@ -145,9 +148,13 @@ rule bulk_normalize_reports:
                         'unique_id_count': len(unique_id),
                         'unique_normalized_curie_count': len(unique_normalized_curie),
                         'unique_normalized_curie_percent': round(len(unique_normalized_curie) / len(unique_id) * 100, 2),
+                        'unique_normalized_curie_absent': len(unique_id) - len(unique_normalized_curie),
+                        'unique_normalized_curie_absent_percent': round((len(unique_id) - len(unique_normalized_curie)) / len(unique_id) * 100, 2),
+                        'biolink_types': json.dumps(biolink_types),
+
+                        # The following columns probably aren't very useful.
                         'rows_with_normalized_curie': rows_with_normalized_curie_count,
                         'rows_with_normalized_curie_percent': round(rows_with_normalized_curie_count / row_count * 100, 2),
                         'rows_without_normalized_curie': rows_without_normalized_curie_count,
                         'rows_without_normalized_curie_percent': round(rows_without_normalized_curie_count / row_count * 100, 2),
-                        'biolink_types': json.dumps(biolink_types),
                     })
