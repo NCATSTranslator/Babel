@@ -101,6 +101,8 @@ rule bulk_normalize_reports:
                 'unique_id_count',
                 'rows_with_normalized_curie',
                 'rows_with_normalized_curie_percent',
+                'rows_without_normalized_curie',
+                'rows_without_normalized_curie_percent',
                 'biolink_types'
             ])
             writer.writeheader()
@@ -117,15 +119,19 @@ rule bulk_normalize_reports:
 
                     # Get the number of input records and the number of normalized records.
                     row_count = 0
-                    row_with_normalized_curie_count = 0
+                    rows_with_normalized_curie_count = 0
+                    rows_without_normalized_curie_count = 0
                     unique_id = set()
                     biolink_types = defaultdict(int)
+
                     reader = csv.DictReader(file, delimiter='\t')
                     for row in reader:
                         row_count += 1
                         unique_id.add(row['id'])
-                        if row['normalized_curie'] != '':
-                            row_with_normalized_curie_count += 1
+                        if not row['normalized_curie']:
+                            rows_without_normalized_curie_count += 1
+                        else:
+                            rows_with_normalized_curie_count += 1
                         biolink_types[row['biolink_type']] += 1
 
                     file.close()
@@ -135,7 +141,9 @@ rule bulk_normalize_reports:
                         'filename': filename,
                         'rows': row_count,
                         'unique_id_count': len(unique_id),
-                        'rows_with_normalized_curie': row_with_normalized_curie_count,
-                        'rows_with_normalized_curie_percent': round(row_with_normalized_curie_count / row_count * 100, 2),
+                        'rows_with_normalized_curie': rows_with_normalized_curie_count,
+                        'rows_with_normalized_curie_percent': round(rows_with_normalized_curie_count / row_count * 100, 2),
+                        'rows_without_normalized_curie': rows_without_normalized_curie_count,
+                        'rows_without_normalized_curie_percent': round(rows_without_normalized_curie_count / row_count * 100, 2),
                         'biolink_types': json.dumps(biolink_types),
                     })
