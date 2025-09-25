@@ -191,6 +191,8 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
             STRING_AGG(DISTINCT cliques.biolink_type, '||' ORDER BY cliques.biolink_type ASC) AS biolink_types
         FROM
             edges
+        JOIN
+            cliques ON cliques.clique_leader = edges.clique_leader
         GROUP BY
             filename, clique_leader_prefix
         ORDER BY
