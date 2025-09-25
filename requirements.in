@@ -11,7 +11,8 @@ pytest-cov
 pyyaml
 requests
 PuLP==2.7.0
-snakemake==7.32.4
+#snakemake==7.32.4
+snakemake==9.9.0
 sparqlwrapper
 # Added by Gaurav, Jan 2022
 xmltodict
