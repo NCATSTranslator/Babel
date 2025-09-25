@@ -1,3 +1,5 @@
+from snakemake_interface_executor_plugins.utils import join_cli_args
+
 import src.createcompendia.anatomy as anatomy
 import src.assess_compendia as assessments
 import src.snakefiles.util as util
@@ -67,18 +69,26 @@ rule get_anatomy_umls_relationships:
     run:
         anatomy.build_anatomy_umls_relationships(input.mrconso, input.infile, output.outfile)
 
+def add_flag(files):
+    return {'-c ': '{wildcards.token}'.format(wildcards=files)}
+
 rule anatomy_compendia:
     input:
         labels=os.path.join(config["download_directory"], 'common', config["common"]["labels"][0]),
         synonyms=os.path.join(config["download_directory"], 'common', config["common"]["synonyms"][0]),
-        concords=expand("{dd}/anatomy/concords/{ap}",dd=config['intermediate_directory'],ap=config['anatomy_concords']),
-        idlists=expand("{dd}/anatomy/ids/{ap}",dd=config['intermediate_directory'],ap=config['anatomy_ids']),
+        concords=expand("{dd}/anatomy/concords/{ap}", dd=config['intermediate_directory'], ap=config['anatomy_concords']),
+        idlists=expand("{dd}/anatomy/ids/{ap}", dd=config['intermediate_directory'], ap=config['anatomy_ids']),
         icrdf_filename=config['download_directory']+'/icRDF.tsv',
+    params:
+        flagged_concords = " ".join(["-c " + config['intermediate_directory'] + "/anatomy/concords/" + a for a in config['anatomy_concords']]),
+        flagged_ids = " ".join(["-i " + config['intermediate_directory'] + "/anatomy/ids/" + a for a in config['anatomy_ids']])
     output:
         expand("{od}/compendia/{ap}", od = config['output_directory'], ap = config['anatomy_outputs']),
         temp(expand("{od}/synonyms/{ap}", od = config['output_directory'], ap = config['anatomy_outputs']))
-    run:
-        anatomy.build_compendia(input.concords, input.idlists, input.icrdf_filename)
+    # run:
+    #     anatomy.build_compendia(input.concords, input.idlists, input.icrdf_filename)
+    shell:
+        "./babel_io/target/release/build_compendia {params.flagged_concords} {params.flagged_ids} -z {input.icrdf_filename}"
 
 rule check_anatomy_completeness:
     input:
