@@ -1,5 +1,5 @@
 from src.ubergraph import UberGraph
-from src.babel_utils import make_local_name, pull_via_ftp
+from src.babel_utils import make_local_name, pull_via_ftp, pull_via_urllib
 from collections import defaultdict
 import os, gzip
 from json import loads,dumps
