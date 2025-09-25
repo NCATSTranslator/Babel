@@ -99,6 +99,8 @@ rule bulk_normalize_reports:
                 'filename',
                 'rows',
                 'unique_id_count',
+                'unique_normalized_curie_count',
+                'unique_normalized_curie_percent',
                 'rows_with_normalized_curie',
                 'rows_with_normalized_curie_percent',
                 'rows_without_normalized_curie',
@@ -122,6 +124,7 @@ rule bulk_normalize_reports:
                     rows_with_normalized_curie_count = 0
                     rows_without_normalized_curie_count = 0
                     unique_id = set()
+                    unique_normalized_curie = set()
                     biolink_types = defaultdict(int)
 
                     reader = csv.DictReader(file, delimiter='\t')
@@ -131,6 +134,7 @@ rule bulk_normalize_reports:
                         if not row['normalized_curie']:
                             rows_without_normalized_curie_count += 1
                         else:
+                            unique_normalized_curie.add(row['normalized_curie'])
                             rows_with_normalized_curie_count += 1
                         biolink_types[row['biolink_type']] += 1
 
@@ -141,6 +145,8 @@ rule bulk_normalize_reports:
                         'filename': filename,
                         'rows': row_count,
                         'unique_id_count': len(unique_id),
+                        'unique_normalized_curie_count': len(unique_normalized_curie),
+                        'unique_normalized_curie_percent': round(len(unique_normalized_curie) / len(unique_id) * 100, 2),
                         'rows_with_normalized_curie': rows_with_normalized_curie_count,
                         'rows_with_normalized_curie_percent': round(rows_with_normalized_curie_count / row_count * 100, 2),
                         'rows_without_normalized_curie': rows_without_normalized_curie_count,
