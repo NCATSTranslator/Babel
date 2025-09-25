@@ -187,7 +187,8 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
             filename,
             split_part(clique_leader, ':', 1) AS clique_leader_prefix,
             COUNT(DISTINCT clique_leader) AS clique_count,
-            STRING_AGG(split_part(curie, ':', 1), '||' ORDER BY curie ASC) AS curie_prefixes
+            STRING_AGG(split_part(curie, ':', 1), '||' ORDER BY curie ASC) AS curie_prefixes,
+            STRING_AGG(DISTINCT cliques.biolink_type, '||' ORDER BY cliques.biolink_type ASC) AS biolink_types
         FROM
             edges
         GROUP BY
@@ -203,18 +204,25 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
         clique_leader_prefix = row[1]
         clique_count = row[2]
         curie_prefixes = row[3].split('||')
+        biolink_types = row[4].split('||')
         curie_prefix_counts = Counter(curie_prefixes)
 
         if clique_leader_prefix not in by_clique_results:
             by_clique_results[clique_leader_prefix] = {
                 'count_cliques': 0,
-                'by_file': {}
+                'by_file': {},
+                'by_biolink_type': {},
             }
 
         by_clique_results[clique_leader_prefix]['count_cliques'] += clique_count
 
         if filename not in by_clique_results[clique_leader_prefix]['by_file']:
             by_clique_results[clique_leader_prefix]['by_file'][filename] = defaultdict(int)
+
+        for biolink_type in biolink_types:
+            if biolink_type not in by_clique_results[clique_leader_prefix]['by_biolink_type']:
+                by_clique_results[clique_leader_prefix]['by_biolink_type'][biolink_type] = 0
+            by_clique_results[clique_leader_prefix]['by_biolink_type'][biolink_type] += 1
 
         for curie_prefix in curie_prefix_counts.keys():
             by_clique_results[clique_leader_prefix]['by_file'][filename][curie_prefix] += curie_prefix_counts[curie_prefix]
