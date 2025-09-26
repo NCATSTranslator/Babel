@@ -157,7 +157,7 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
             split_part(curie, ':', 1) AS curie_prefix,
             COUNT(curie) AS curie_count,
             COUNT(DISTINCT curie) AS curie_distinct_count,
-            COUNT(DISTINCT clique_leader) AS clique_distinct_count,
+            COUNT(DISTINCT edges.clique_leader) AS clique_distinct_count,
             STRING_AGG(edges.filename, '||' ORDER BY edges.filename ASC) AS filenames,
             STRING_AGG(DISTINCT cliques.biolink_type, '||' ORDER BY cliques.biolink_type ASC) AS biolink_types
         FROM
