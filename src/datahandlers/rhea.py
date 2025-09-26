@@ -17,9 +17,9 @@ class Rhea:
         from datetime import datetime as dt
         print('loading rhea')
         start = dt.now()
-        self.m= pyoxigraph.MemoryStore()
+        self.m= pyoxigraph.Store()
         with open(ifname,'rb') as inf:
-            self.m.load(inf,'application/rdf+xml')
+            self.m.bulk_load(input=inf,format=pyoxigraph.RdfFormat.RDF_XML)
         end = dt.now()
         print('loading complete')
         print(f'took {end-start}')

@@ -1,14 +1,12 @@
 biopython
 bmt
-datrie
 jsonlines
 pandas
 more-itertools
-pyoxigraph~=0.2.5
+pyoxigraph~=0.4.11
 psycopg2-binary
 pytest
 pytest-cov
-python-Levenshtein-wheels
 pyyaml
 requests
 snakemake

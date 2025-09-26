@@ -8,7 +8,6 @@ from src.prefixes import CHEMBLCOMPOUND,DRUGCENTRAL,DRUGBANK,GTOPDB,KEGGCOMPOUND
 data_sources: dict = {'1': CHEMBLCOMPOUND, '2': DRUGBANK, '4': GTOPDB, '6': KEGGCOMPOUND, '7': CHEBI, '14': UNII,
                       '18': HMDB, '22': PUBCHEMCOMPOUND, '34': DRUGCENTRAL}
 
-
 def pull_unichem():
     """ Download UniChem files. """
     pull_via_urllib('http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/', 'structure.tsv.gz', decompress=False, subpath='UNICHEM')

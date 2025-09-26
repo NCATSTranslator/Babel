@@ -10,7 +10,10 @@ modmap['WB']= WORMBASE
 def pull_mods():
     for mod in mods:
         subp = modmap[mod]
-        origname = pull_via_urllib('https://fms.alliancegenome.org/download/',f'GENE-DESCRIPTION-JSON_{mod}.json.gz',subpath=subp)
+        # https://www.alliancegenome.org/downloads#gene-descriptions
+        # https://download.alliancegenome.org/8.1.0/GENE-DESCRIPTION-JSON/SGD/GENE-DESCRIPTION-JSON_SGD_9.json.gz
+        # origname = pull_via_urllib('https://fms.alliancegenome.org/download/',f'GENE-DESCRIPTION-JSON_{mod}.json.gz',subpath=subp)
+        origname = pull_via_urllib(f'https://download.alliancegenome.org/8.1.0/GENE-DESCRIPTION-JSON/{mod}/',f'GENE-DESCRIPTION-JSON_{mod}_9.json.gz', subpath=subp)
         #This should be fine.  But for the makefile it's nice if the directory in which this goes is the same as the {mod} in the filename.
         # And we'd like it to be the names of the prefixes
         if mod != modmap[mod]:
@@ -20,7 +23,7 @@ def pull_mods():
 
 def write_labels(dd):
     for mod,prefix in modmap.items():
-        with open(f'{dd}/{prefix}/GENE-DESCRIPTION-JSON_{prefix}.json','r') as inf:
+        with open(f'{dd}/{prefix}/GENE-DESCRIPTION-JSON_{prefix}_9.json','r') as inf:
             j = json.load(inf)
         with open(f'{dd}/{prefix}/labels','w') as outf:
             for gene in j['data']:
