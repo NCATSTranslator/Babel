@@ -189,7 +189,7 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
     # Step 2. Generate a by-clique summary.
     clique_summary = db.sql("""
         SELECT
-            cliques.filename AS filename,
+            cliques.filename AS clique_filename,
             split_part(cliques.clique_leader, ':', 1) AS clique_leader_prefix,
             COUNT(DISTINCT cliques.clique_leader) AS clique_count,
             STRING_AGG(split_part(edges.curie, ':', 1), '||' ORDER BY curie ASC) AS curie_prefixes,
@@ -199,9 +199,9 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
         JOIN
             cliques ON cliques.clique_leader = edges.clique_leader
         GROUP BY
-            filename, clique_leader_prefix
+            clique_filename, clique_leader_prefix
         ORDER BY
-            filename ASC, clique_leader_prefix ASC
+            clique_filename ASC, clique_leader_prefix ASC
     """)
     rows = clique_summary.fetchall()
 
