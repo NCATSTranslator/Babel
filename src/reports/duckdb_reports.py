@@ -159,7 +159,7 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
             COUNT(DISTINCT curie) AS curie_distinct_count,
             COUNT(DISTINCT edges.clique_leader) AS clique_distinct_count,
             STRING_AGG(edges.filename, '||' ORDER BY edges.filename ASC) AS filenames,
-            STRING_AGG(DISTINCT cliques.biolink_type, '||' ORDER BY cliques.biolink_type ASC) AS biolink_types
+            STRING_AGG(cliques.biolink_type, '||' ORDER BY cliques.biolink_type ASC) AS biolink_types
         FROM
             edges
         JOIN
@@ -229,7 +229,7 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
         for biolink_type in biolink_types:
             if biolink_type not in by_clique_results[clique_leader_prefix]['by_biolink_type']:
                 by_clique_results[clique_leader_prefix]['by_biolink_type'][biolink_type] = 0
-            by_clique_results[clique_leader_prefix]['by_biolink_type'][biolink_type] += 1
+            by_clique_results[clique_leader_prefix]['by_biolink_type'][biolink_type] += clique_count
 
         for curie_prefix in curie_prefix_counts.keys():
             by_clique_results[clique_leader_prefix]['by_file'][filename][curie_prefix] += curie_prefix_counts[curie_prefix]
