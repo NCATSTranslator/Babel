@@ -138,6 +138,7 @@ rule all_duckdb_reports:
         duplicate_curies = config['output_directory'] + '/reports/duckdb/duplicate_curies.tsv',
         duplicate_clique_leaders_tsv = config['output_directory'] + '/reports/duckdb/duplicate_clique_leaders.tsv',
         prefix_report = config['output_directory'] + '/reports/duckdb/prefix_report.json',
+        synonym_report_json = config['output_directory'] + '/reports/duckdb/synonym_report.json',
     output:
         x = config['output_directory'] + '/reports/duckdb/done',
     shell:
