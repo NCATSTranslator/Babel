@@ -118,6 +118,19 @@ rule generate_prefix_report:
             output.prefix_report_json,
             output.prefix_report_tsv)
 
+rule generate_synonym_report:
+    input:
+        config['output_directory'] + '/duckdb/done',
+        config['output_directory'] + '/duckdb/compendia_done',
+    params:
+        parquet_dir = config['output_directory'] + '/duckdb/parquet/',
+    output:
+        duckdb_filename = temp(config['output_directory'] + '/duckdb/duckdbs/synonym_report.duckdb'),
+        synonym_report_json = config['output_directory'] + '/reports/duckdb/synonym_report.json'
+    run:
+        src.reports.duckdb_reports.generate_prefix_report(params.parquet_dir, output.duckdb_filename,
+            output.synonym_report_json)
+
 rule all_duckdb_reports:
     input:
         config['output_directory'] + '/duckdb/done',

@@ -128,6 +128,54 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
     ).write_csv(duplicate_clique_leaders_tsv, sep="\t")
 
 
+def generate_synonym_report(parquet_root, duckdb_filename, synonym_report_json):
+    """
+    Generate a report about all the synonyms within this system.
+
+    See thoughts at https://github.com/TranslatorSRI/Babel/issues/359
+
+    :param parquet_root: The root directory for the Parquet files. We expect these to have subdirectories named
+        e.g. `filename=AnatomicalEntity/Synonyms.parquet`, etc.
+    :param duckdb_filename: A temporary DuckDB file to use.
+    :param synonym_report_json: The synonym report as JSON.
+    """
+
+    db = setup_duckdb(duckdb_filename)
+    synonyms = db.read_parquet(
+        os.path.join(parquet_root, "**/Synonyms.parquet"),
+        hive_partitioning=True
+    )
+
+    synonym_summary = db.sql("""
+                                  SELECT
+                                      filename,
+                                      biolink_type,
+                                      COUNT(DISTINCT label_lc) AS label_distinct_count
+                                  FROM
+                                      synonyms
+                                  GROUP BY
+                                      filename, biolink_type
+                                  ORDER BY
+                                      filename ASC, biolink_type ASC, label_distinct_count DESC
+                                  """)
+    rows = synonym_summary.fetchall()
+
+    by_file_results = {}
+    for row in rows:
+        filename = row[0]
+        biolink_type = row[1]
+        label_distinct_count = row[2]
+
+        if filename not in by_file_results:
+            by_file_results[filename] = {}
+        by_file_results[filename][biolink_type] = label_distinct_count
+
+    with open(synonym_report_json, 'w') as fout:
+        json.dump({
+            'by_filename': by_file_results
+        }, fout, indent=2, sort_keys=True)
+
+
 def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, prefix_report_tsv):
     """
     Generate a report about all the prefixes within this system.
