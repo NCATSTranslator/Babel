@@ -128,7 +128,7 @@ rule generate_synonym_report:
         duckdb_filename = temp(config['output_directory'] + '/duckdb/duckdbs/synonym_report.duckdb'),
         synonym_report_json = config['output_directory'] + '/reports/duckdb/synonym_report.json'
     run:
-        src.reports.duckdb_reports.generate_prefix_report(params.parquet_dir, output.duckdb_filename,
+        src.reports.duckdb_reports.generate_synonym_report(params.parquet_dir, output.duckdb_filename,
             output.synonym_report_json)
 
 rule all_duckdb_reports:
