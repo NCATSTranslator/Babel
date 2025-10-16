@@ -128,6 +128,54 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
     ).write_csv(duplicate_clique_leaders_tsv, sep="\t")
 
 
+def generate_synonym_report(parquet_root, duckdb_filename, synonym_report_json):
+    """
+    Generate a report about all the synonyms within this system.
+
+    See thoughts at https://github.com/TranslatorSRI/Babel/issues/359
+
+    :param parquet_root: The root directory for the Parquet files. We expect these to have subdirectories named
+        e.g. `filename=AnatomicalEntity/Synonyms.parquet`, etc.
+    :param duckdb_filename: A temporary DuckDB file to use.
+    :param synonym_report_json: The synonym report as JSON.
+    """
+
+    db = setup_duckdb(duckdb_filename)
+    synonyms = db.read_parquet(
+        os.path.join(parquet_root, "**/Synonyms.parquet"),
+        hive_partitioning=True
+    )
+
+    synonym_summary = db.sql("""
+                                  SELECT
+                                      filename,
+                                      biolink_type,
+                                      COUNT(DISTINCT label_lc) AS label_distinct_count
+                                  FROM
+                                      synonyms
+                                  GROUP BY
+                                      filename, biolink_type
+                                  ORDER BY
+                                      filename ASC, biolink_type ASC, label_distinct_count DESC
+                                  """)
+    rows = synonym_summary.fetchall()
+
+    by_file_results = {}
+    for row in rows:
+        filename = row[0]
+        biolink_type = row[1]
+        label_distinct_count = row[2]
+
+        if filename not in by_file_results:
+            by_file_results[filename] = {}
+        by_file_results[filename][biolink_type] = label_distinct_count
+
+    with open(synonym_report_json, 'w') as fout:
+        json.dump({
+            'by_filename': by_file_results
+        }, fout, indent=2, sort_keys=True)
+
+
 def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, prefix_report_tsv):
     """
     Generate a report about all the prefixes within this system.
@@ -157,10 +205,12 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
             split_part(curie, ':', 1) AS curie_prefix,
             COUNT(curie) AS curie_count,
             COUNT(DISTINCT curie) AS curie_distinct_count,
-            COUNT(DISTINCT clique_leader) AS clique_distinct_count,
-            STRING_AGG(edges.filename, '||' ORDER BY edges.filename ASC) AS filenames
+            COUNT(DISTINCT edges.clique_leader) AS clique_distinct_count,
+            STRING_AGG(cliques.biolink_type, '||' ORDER BY cliques.biolink_type ASC) AS biolink_types
         FROM
             edges
+        JOIN
+            cliques ON cliques.clique_leader = edges.clique_leader
         GROUP BY
             curie_prefix
         ORDER BY
@@ -172,28 +222,34 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
     for row in rows:
         curie_prefix = row[0]
 
-        filename_counts = Counter(row[4].split('||'))
+        # STRING_AGG(edges.filename, '||' ORDER BY edges.filename ASC) AS filenames,
+        # filename_counts = Counter(row[4].split('||'))
+        biolink_types = Counter(row[4].split('||'))
 
         by_curie_prefix_results[curie_prefix] = {
             'curie_count': row[1],
             'curie_distinct_count': row[2],
             'clique_distinct_count': row[3],
-            'filenames': filename_counts,
+            # 'filenames': filename_counts,
+            'biolink_types': biolink_types
         }
 
     # Step 2. Generate a by-clique summary.
     clique_summary = db.sql("""
         SELECT
-            filename,
-            split_part(clique_leader, ':', 1) AS clique_leader_prefix,
-            COUNT(DISTINCT clique_leader) AS clique_count,
-            STRING_AGG(split_part(curie, ':', 1), '||' ORDER BY curie ASC) AS curie_prefixes
+            cliques.filename AS clique_filename,
+            split_part(cliques.clique_leader, ':', 1) AS clique_leader_prefix,
+            COUNT(DISTINCT cliques.clique_leader) AS clique_count,
+            STRING_AGG(split_part(edges.curie, ':', 1), '||' ORDER BY curie ASC) AS curie_prefixes,
+            STRING_AGG(DISTINCT cliques.biolink_type, '||' ORDER BY cliques.biolink_type ASC) AS biolink_types
         FROM
             edges
+        JOIN
+            cliques ON cliques.clique_leader = edges.clique_leader
         GROUP BY
-            filename, clique_leader_prefix
+            clique_filename, clique_leader_prefix
         ORDER BY
-            filename ASC, clique_leader_prefix ASC
+            clique_filename ASC, clique_leader_prefix ASC
     """)
     rows = clique_summary.fetchall()
 
@@ -203,18 +259,25 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
         clique_leader_prefix = row[1]
         clique_count = row[2]
         curie_prefixes = row[3].split('||')
+        biolink_types = row[4].split('||')
         curie_prefix_counts = Counter(curie_prefixes)
 
         if clique_leader_prefix not in by_clique_results:
             by_clique_results[clique_leader_prefix] = {
                 'count_cliques': 0,
-                'by_file': {}
+                'by_file': {},
+                'by_biolink_type': {},
             }
 
         by_clique_results[clique_leader_prefix]['count_cliques'] += clique_count
 
         if filename not in by_clique_results[clique_leader_prefix]['by_file']:
             by_clique_results[clique_leader_prefix]['by_file'][filename] = defaultdict(int)
+
+        for biolink_type in biolink_types:
+            if biolink_type not in by_clique_results[clique_leader_prefix]['by_biolink_type']:
+                by_clique_results[clique_leader_prefix]['by_biolink_type'][biolink_type] = 0
+            by_clique_results[clique_leader_prefix]['by_biolink_type'][biolink_type] += clique_count
 
         for curie_prefix in curie_prefix_counts.keys():
             by_clique_results[clique_leader_prefix]['by_file'][filename][curie_prefix] += curie_prefix_counts[curie_prefix]
