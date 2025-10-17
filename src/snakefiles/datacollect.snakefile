@@ -277,7 +277,7 @@ rule get_hgncfamily:
 
 rule get_hgncfamily_labels:
     input:
-        infile=rules.get_hgncfamily.output.outfile
+        infile=config['download_directory'] + '/HGNC.FAMILY/family.csv'
     output:
         outfile = config['download_directory'] + '/HGNC.FAMILY/labels',
         metadata_yaml = config['download_directory'] + '/HGNC.FAMILY/metadata.yaml',
