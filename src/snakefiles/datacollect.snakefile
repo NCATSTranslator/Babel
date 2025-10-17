@@ -279,10 +279,11 @@ rule get_hgncfamily_labels:
     input:
         infile=config['download_directory'] + '/HGNC.FAMILY/family.csv'
     output:
-        outfile = config['download_directory'] + '/HGNC.FAMILY/labels',
+        labelsfile = config['download_directory'] + '/HGNC.FAMILY/labels',
+        descriptionsfile = config['download_directory'] + '/HGNC.FAMILY/labels',
         metadata_yaml = config['download_directory'] + '/HGNC.FAMILY/metadata.yaml',
     run:
-        hgncfamily.pull_labels(input.infile,output.outfile, output.metadata_yaml)
+        hgncfamily.pull_labels(input.infile, output.labelsfile, output.descriptionsfile, output.metadata_yaml)
 
 ### PANTHER.FAMILY
 
