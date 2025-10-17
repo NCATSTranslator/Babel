@@ -294,7 +294,7 @@ rule get_pantherfamily:
 
 rule get_pantherfamily_labels:
     input:
-        infile=rules.get_pantherfamily.output.outfile
+        infile=config['download_directory'] + '/PANTHER.FAMILY/family.csv'
     output:
         outfile = config['download_directory'] + '/PANTHER.FAMILY/labels',
         metadata_yaml = config['download_directory'] + '/PANTHER.FAMILY/metadata.yaml',
