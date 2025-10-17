@@ -280,7 +280,7 @@ rule get_hgncfamily_labels:
         infile=config['download_directory'] + '/HGNC.FAMILY/family.csv'
     output:
         labelsfile = config['download_directory'] + '/HGNC.FAMILY/labels',
-        descriptionsfile = config['download_directory'] + '/HGNC.FAMILY/labels',
+        descriptionsfile = config['download_directory'] + '/HGNC.FAMILY/descriptions',
         metadata_yaml = config['download_directory'] + '/HGNC.FAMILY/metadata.yaml',
     run:
         hgncfamily.pull_labels(input.infile, output.labelsfile, output.descriptionsfile, output.metadata_yaml)
