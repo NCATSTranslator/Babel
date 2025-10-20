@@ -277,12 +277,13 @@ rule get_hgncfamily:
 
 rule get_hgncfamily_labels:
     input:
-        infile=rules.get_hgncfamily.output.outfile
+        infile=config['download_directory'] + '/HGNC.FAMILY/family.csv'
     output:
-        outfile = config['download_directory'] + '/HGNC.FAMILY/labels',
+        labelsfile = config['download_directory'] + '/HGNC.FAMILY/labels',
+        descriptionsfile = config['download_directory'] + '/HGNC.FAMILY/descriptions',
         metadata_yaml = config['download_directory'] + '/HGNC.FAMILY/metadata.yaml',
     run:
-        hgncfamily.pull_labels(input.infile,output.outfile, output.metadata_yaml)
+        hgncfamily.pull_labels(input.infile, output.labelsfile, output.descriptionsfile, output.metadata_yaml)
 
 ### PANTHER.FAMILY
 
@@ -294,7 +295,7 @@ rule get_pantherfamily:
 
 rule get_pantherfamily_labels:
     input:
-        infile=rules.get_pantherfamily.output.outfile
+        infile=config['download_directory'] + '/PANTHER.FAMILY/family.csv'
     output:
         outfile = config['download_directory'] + '/PANTHER.FAMILY/labels',
         metadata_yaml = config['download_directory'] + '/PANTHER.FAMILY/metadata.yaml',

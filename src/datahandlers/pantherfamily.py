@@ -9,24 +9,20 @@ def pull_pantherfamily():
     # - http://data.pantherdb.org/ftp/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/
 
 def pull_labels(infile,outfile, metadata_yaml):
-    with open(infile,'r') as inf:
-        data = inf.read()
-    lines = data.strip().split('\n')
     SUBFAMILY_COLUMN = 3
     MAINFAMILY_NAME_COLUMN = 4
     SUBFAMILY_NAME_COLUMN = 5
-    panther_families=[]
-    labels = {}
     done = set()
-    with open(outfile,'w') as labelf:
-        for line in lines[1:]:
+    with open(infile,'r') as inf, open(outfile,'w') as labelf:
+        for raw_line in inf:
+            line = raw_line.strip()
             parts = line.split('\t')
             if len(parts) < 5:
                 continue
             sf = parts[SUBFAMILY_COLUMN]
-            mf = sf.split(':')[0]
-            mfname = parts[MAINFAMILY_NAME_COLUMN]
-            sfname = parts[SUBFAMILY_NAME_COLUMN]
+            mf = sf.split(':')[0] # PTHR10845:SF155 -> PTHR10845
+            mfname = parts[MAINFAMILY_NAME_COLUMN] # REGULATOR OF G PROTEIN SIGNALING
+            sfname = parts[SUBFAMILY_NAME_COLUMN] # REGULATOR OF G-PROTEIN SIGNALING 18
             if mf not in done:
                 main_family = f'{PANTHERFAMILY}:{mf}'
                 #panther_families.append(main_family)
