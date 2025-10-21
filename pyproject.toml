@@ -4,7 +4,39 @@ version = "1.14"
 description = "Babel creates cliques of equivalent identifiers across many biomedical vocabularies. "
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "apybiomart",
+    "beautifulsoup4>=4.14.2",
+    "biopython>=1.85",
+    "bmt>=1.4.6",
+    "curies>=0.12.1",
+    "duckdb>=1.4.1",
+    "humanfriendly>=10.0",
+    "jsonlines>=4.0.0",
+    "more-itertools>=10.8.0",
+    "oaklib~=0.5.1",
+    "pandas>=2.3.3",
+    "psutil>=7.1.1",
+    "psycopg2-binary>=2.9.11",
+    "py-spy>=0.4.1",
+    "pyoxigraph~=0.4.11",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "python-levenshtein>=0.27.1",
+    "pyyaml>=6.0.3",
+    "requests>=2.32.5",
+    "snakemake>=9.13.3",
+    "sparqlwrapper>=2.0.0",
+    "wheel>=0.45.1",
+    "xmltodict>=1.0.2",
+]
 
 [tool.black]
 line-length = 160
+
+[tool.uv.sources]
+# We used to install apybiomart (https://github.com/robertopreste/apybiomart/tree/master) from
+# https://pypi.org/project/apybiomart/, but this hasn't been modified in five years and it depends
+# on checking if it's online via http://httpstat.us/200, which is often offline. My branch of this
+# https://github.com/gaurav/apybiomart/tree/change-check-url and changes that to https://example.org.
+apybiomart = { git = "https://github.com/gaurav/apybiomart.git", rev = "change-check-url" }
