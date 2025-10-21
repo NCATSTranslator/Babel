@@ -37,8 +37,8 @@ by creating a profile on the [UMLS Terminology Services website](https://uts.nlm
 
 ## Building Compendia
 
-To run Babel, you will need to install [uv](https://docs.astral.sh/uv/getting-started/installation/).
-uv manages the Python environment and installs dependencies for you.
+To run Babel, you will need to [install `uv`](https://docs.astral.sh/uv/getting-started/installation/).
+`uv` manages the Python environment and installs dependencies for you.
 
 Compendia building is managed by snakemake.  To build, for example, the anatomy related compendia, run
 
