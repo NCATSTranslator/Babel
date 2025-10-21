@@ -39,7 +39,7 @@ by creating a profile on the [UMLS Terminology Services website](https://uts.nlm
 
 Compendia building is managed by snakemake.  To build, for example, the anatomy related compendia, run
 
-```snakemake --cores 1 anatomy```
+```uv run snakemake --cores 1 anatomy```
 
 Currently, the following targets build compendia and synonym files:
 * anatomy
@@ -62,7 +62,7 @@ builds compendia for `biolink:AnatomicalEntity`, `biolink:Cell`, `biolink:Cellul
 
 You can also just run:
 
-```snakemake --cores 1```
+```uv run snakemake --cores 1```
 
 without a target to create all the files that are produced as part of Babel, including all reports and
 alternate exports.
