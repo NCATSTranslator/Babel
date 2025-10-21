@@ -144,7 +144,7 @@ $ docker run -it --rm --mount type=bind,source=...,target=/home/runner/babel/bab
 The download directory (`babel/babel_downloads`) is used to store data files downloaded during Babel assembly.
 
 The script `scripts/build-babel.sh` can be used to run `snakemake` with a few useful settings (although just running
-`snakemake --cores 5` should work just fine.)
+`uv run snakemake --cores 5` should work just fine.)
 
 ## Deploying with Kubernetes
 
