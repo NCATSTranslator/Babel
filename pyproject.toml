@@ -32,7 +32,7 @@ dependencies = [
     "xmltodict>=1.0.2",
 ]
 
-[tool.black]
+[tool.ruff]
 line-length = 160
 
 [tool.uv.sources]
