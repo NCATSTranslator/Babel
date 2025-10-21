@@ -7,35 +7,39 @@ import jsonlines
 
 import logging
 from src.util import LoggingUtil
+
 logger = LoggingUtil.init_logging(__name__, level=logging.ERROR)
 
-def build_uniprotkb_ncbigene_relationships(infile,outfile, metadata_yaml):
-    #The trick is that the uniprot mapping file can have more than one gene per protein.
+
+def build_uniprotkb_ncbigene_relationships(infile, outfile, metadata_yaml):
+    # The trick is that the uniprot mapping file can have more than one gene per protein.
     # Our model is 1 gene, many proteins, so this causes trouble.
     # For the moment, we will not include that have more than one gene per protein
     mappings = defaultdict(list)
-    with open(infile,'r') as inf:
+    with open(infile, "r") as inf:
         for line in inf:
             x = line.strip().split()
-            if x[1] == 'GeneID':
-                uniprot_id = f'{UNIPROTKB}:{x[0]}'
-                ncbigene_id = f'{NCBIGENE}:{x[2]}'
+            if x[1] == "GeneID":
+                uniprot_id = f"{UNIPROTKB}:{x[0]}"
+                ncbigene_id = f"{NCBIGENE}:{x[2]}"
                 mappings[uniprot_id].append(ncbigene_id)
-    with open(outfile, 'w') as outf:
+    with open(outfile, "w") as outf:
         for uniprot_id, ncbigene_ids in mappings.items():
             if len(ncbigene_ids) == 1:
                 ncbigene_id = ncbigene_ids[0]
-                outf.write(f'{uniprot_id}\trelated_to\t{ncbigene_id}\n')
+                outf.write(f"{uniprot_id}\trelated_to\t{ncbigene_id}\n")
 
     write_concord_metadata(
         metadata_yaml,
-        name='build_uniprotkb_ncbigene_relationships()',
-        description='Extract NCBIGene-UniProtKB relationships from UniProtKB id-mapping file {infile}',
-        sources=[{
-            'type': 'UniProtKB',
-            'name': 'UniProtKB idmapping file',
-            'filename': infile,
-        }],
+        name="build_uniprotkb_ncbigene_relationships()",
+        description="Extract NCBIGene-UniProtKB relationships from UniProtKB id-mapping file {infile}",
+        sources=[
+            {
+                "type": "UniProtKB",
+                "name": "UniProtKB idmapping file",
+                "filename": infile,
+            }
+        ],
         concord_filename=outfile,
     )
 
@@ -43,29 +47,34 @@ def build_uniprotkb_ncbigene_relationships(infile,outfile, metadata_yaml):
 def merge(geneproteinlist):
     """We have a gene and one or more proteins.  We want to create a combined something."""
     geneprotein = {}
-    #Use the gene's ID.
-    #The gene should be first in the list by construction
+    # Use the gene's ID.
+    # The gene should be first in the list by construction
     gene = geneproteinlist[0]
-    geneprotein['id'] = gene['id']
-    geneprotein['equivalent_identifiers'] = gene['equivalent_identifiers']
+    geneprotein["id"] = gene["id"]
+    geneprotein["equivalent_identifiers"] = gene["equivalent_identifiers"]
     for protein in geneproteinlist[1:]:
-        #there shouldn't be any overlap here, so we can just concatenate
-        geneprotein['equivalent_identifiers'] += protein['equivalent_identifiers']
-    #Now, we need to slightly modify the types. Not sure this is good, but maybe it is?
-    geneprotein['type'] = ['biolink:Gene'] + protein['type']
+        # there shouldn't be any overlap here, so we can just concatenate
+        geneprotein["equivalent_identifiers"] += protein["equivalent_identifiers"]
+    # Now, we need to slightly modify the types. Not sure this is good, but maybe it is?
+    geneprotein["type"] = ["biolink:Gene"] + protein["type"]
     return geneprotein
 
-kl={'NCBIGene':0, 'UniProtKB':1}
+
+kl = {"NCBIGene": 0, "UniProtKB": 1}
+
+
 def gpkey(curie):
     """There are only NCBIGene and UniProtKB.  I want all the NCBI first and UniProt second, and after that, lexically sorted"""
-    pref = curie.split(':')[0]
+    pref = curie.split(":")[0]
     return (kl[pref], curie)
 
+
 def collect_valid_ids(compendium_file, idset):
-    with jsonlines.open(compendium_file,'r') as inf:
+    with jsonlines.open(compendium_file, "r") as inf:
         for line in inf:
-            ids = [x['i'] for x in line['identifiers']]
+            ids = [x["i"] for x in line["identifiers"]]
             idset.update(ids)
+
 
 def build_conflation(geneprotein_concord, gene_compendium, protein_compendium, outfile):
     """
@@ -74,22 +83,23 @@ def build_conflation(geneprotein_concord, gene_compendium, protein_compendium, o
     But, there are some things in the concord that don't exist in at least the gene (maybe in the protein as well)
     """
     all_ids = set()
-    collect_valid_ids(gene_compendium,all_ids)
-    collect_valid_ids(protein_compendium,all_ids)
+    collect_valid_ids(gene_compendium, all_ids)
+    collect_valid_ids(protein_compendium, all_ids)
     conf = {}
-    pairs= []
-    with open(geneprotein_concord, 'r') as inf:
+    pairs = []
+    with open(geneprotein_concord, "r") as inf:
         for line in inf:
-            x = line.strip().split('\t')
+            x = line.strip().split("\t")
             if (x[0] in all_ids) and (x[2] in all_ids):
-                pairs.append( (x[0], x[2]) )
-    glom(conf,pairs)
+                pairs.append((x[0], x[2]))
+    glom(conf, pairs)
     conf_sets = set([frozenset(x) for x in conf.values()])
-    with jsonlines.open(outfile,'w') as outf:
+    with jsonlines.open(outfile, "w") as outf:
         for cs in conf_sets:
             lc = list(cs)
             lc.sort(key=gpkey)
             outf.write(lc)
+
 
 def build_compendium(gene_compendium, protein_compendium, geneprotein_concord, outfile):
     """Gene and Protein are both pretty big, and we want this to happen somewhat easily.
@@ -103,45 +113,45 @@ def build_compendium(gene_compendium, protein_compendium, geneprotein_concord, o
     There is one complication- the gene/protein links are not 1:1.  There are multiple UniProts associated with
     the same gene.  So we need to read until we have all of the proteins for a gene before we merge/write.
     """
-    uniprot2ncbi={}
+    uniprot2ncbi = {}
     ncbi2uniprot = defaultdict(list)
-    with open(geneprotein_concord, 'r') as inf:
+    with open(geneprotein_concord, "r") as inf:
         for line in inf:
-            x = line.strip().split('\t')
+            x = line.strip().split("\t")
             uniprot2ncbi[x[0]] = x[2]
             ncbi2uniprot[x[2]].append(x[0])
     mappable_gene_ids = set(uniprot2ncbi.values())
     mappable_genes = defaultdict(list)
-    with jsonlines.open(outfile,'w') as outf:
-        with jsonlines.open(gene_compendium,'r') as infile:
+    with jsonlines.open(outfile, "w") as outf:
+        with jsonlines.open(gene_compendium, "r") as infile:
             for gene in infile:
-                best_id = gene['id']['identifier']
+                best_id = gene["id"]["identifier"]
                 if best_id not in mappable_gene_ids:
                     outf.write(gene)
                 else:
-                    mappable_genes[best_id].append( gene )
-        with jsonlines.open(protein_compendium,'r') as infile:
+                    mappable_genes[best_id].append(gene)
+        with jsonlines.open(protein_compendium, "r") as infile:
             for protein in infile:
-                uniprot_id = protein['id']['identifier']
+                uniprot_id = protein["id"]["identifier"]
                 if uniprot_id not in uniprot2ncbi:
                     outf.write(protein)
                 else:
-                    #Found a match!
+                    # Found a match!
                     try:
                         ncbi_id = uniprot2ncbi[uniprot_id]
                         mappable_genes[ncbi_id].append(protein)
                         if len(mappable_genes[ncbi_id]) == len(ncbi2uniprot[ncbi_id]) + 1:
                             newnode = merge(mappable_genes[ncbi_id])
                             outf.write(newnode)
-                            #Remove once we've written so we can make sure to clean up at the end
+                            # Remove once we've written so we can make sure to clean up at the end
                             del mappable_genes[ncbi_id]
                     except:
-                        #What can happen is that there is an NCBI that gets discontinued, but that information hasn't
+                        # What can happen is that there is an NCBI that gets discontinued, but that information hasn't
                         # made its way into the gene/protein concord. So we might try to look up a gene record
                         # that no longer exists
                         outf.write(protein)
-            #It can happen that there is a protein-gene link where the gene doesn't exist in our data.
-            #Then we end up with proteins left over in mappable_genes that need to be written out.
+            # It can happen that there is a protein-gene link where the gene doesn't exist in our data.
+            # Then we end up with proteins left over in mappable_genes that need to be written out.
             for missing_gene in mappable_genes:
                 for protein in mappable_genes[missing_gene]:
                     outf.write(protein)

@@ -51,8 +51,8 @@ def convert_synonyms_to_sapbert(synonym_filename_gz, sapbert_filename_gzipped):
     # DrugChemicalConflatedSmaller.txt, which ignores cliques whose preferred label is
     # longer than config['demote_labels_longer_than'].
     generate_smaller_filename = None
-    if GENERATE_DRUG_CHEMICAL_SMALLER_FILE and synonym_filename_gz.endswith('/DrugChemicalConflated.txt.gz'):
-        generate_smaller_filename = sapbert_filename_gzipped.replace('.txt.gz', 'Smaller.txt.gz')
+    if GENERATE_DRUG_CHEMICAL_SMALLER_FILE and synonym_filename_gz.endswith("/DrugChemicalConflated.txt.gz"):
+        generate_smaller_filename = sapbert_filename_gzipped.replace(".txt.gz", "Smaller.txt.gz")
 
     # Make the output directories if they don't exist.
     os.makedirs(os.path.dirname(sapbert_filename_gzipped), exist_ok=True)
@@ -60,7 +60,7 @@ def convert_synonyms_to_sapbert(synonym_filename_gz, sapbert_filename_gzipped):
     # Open SmallerFile for writing if needed.
     generate_smaller_file = None
     if generate_smaller_filename:
-        generate_smaller_file = gzip.open(generate_smaller_filename, 'wt', encoding='utf-8')
+        generate_smaller_file = gzip.open(generate_smaller_filename, "wt", encoding="utf-8")
 
     # Go through all the synonyms in the input file.
     count_entry = 0
@@ -72,31 +72,31 @@ def convert_synonyms_to_sapbert(synonym_filename_gz, sapbert_filename_gzipped):
             entry = json.loads(input_line)
 
             # Read fields from the synonym.
-            curie = entry['curie']
-            preferred_name = entry.get('preferred_name', '').strip()
+            curie = entry["curie"]
+            preferred_name = entry.get("preferred_name", "").strip()
             if not preferred_name:
                 logging.warning(f"Unable to convert synonym entry for curie {curie}, skipping: {entry}")
                 continue
 
             # Is the preferred name small enough that we should ignore it from generate_smaller_file?
-            is_preferred_name_short = (len(preferred_name) <= DRUG_CHEMICAL_SMALLER_MAX_LABEL_LENGTH)
-            #if not is_preferred_name_short:
+            is_preferred_name_short = len(preferred_name) <= DRUG_CHEMICAL_SMALLER_MAX_LABEL_LENGTH
+            # if not is_preferred_name_short:
             #    logging.warning(f"CURIE {curie} (preferred name: {preferred_name}) will be excluded from the Smaller training file.")
 
             # Collect and process the list of names.
-            names = entry['names']
+            names = entry["names"]
             if LOWERCASE_ALL_NAMES:
                 names = [name.lower() for name in names]
 
             # We use '||' as a delimiter, so any occurrences of more than one pipe character
             # should be changed to a single pipe character in the SAPBERT output, so we don't
             # confuse it up with our delimiter.
-            names = [re.sub(r'\|\|+', '|', name) for name in names]
+            names = [re.sub(r"\|\|+", "|", name) for name in names]
 
             # Figure out the Biolink type to report.
-            types = entry['types']
+            types = entry["types"]
             if len(types) == 0:
-                biolink_type = 'NamedThing'
+                biolink_type = "NamedThing"
             else:
                 biolink_type = types[0]
 
@@ -135,14 +135,16 @@ def convert_synonyms_to_sapbert(synonym_filename_gz, sapbert_filename_gzipped):
                         generate_smaller_file.write(line)
                         count_smaller_rows += 1
 
-    logger.info(f"Converted {synonym_filename_gz} to SAPBERT training file {synonym_filename_gz}: " +
-                f"read {count_entry} entries and wrote out {count_training_rows} training rows.")
+    logger.info(
+        f"Converted {synonym_filename_gz} to SAPBERT training file {synonym_filename_gz}: "
+        + f"read {count_entry} entries and wrote out {count_training_rows} training rows."
+    )
 
     # Close SmallerFile if needed.
     if generate_smaller_file:
         generate_smaller_file.close()
         percentage = count_smaller_rows / float(count_training_rows) * 100
-        logger.info(f"Converted {synonym_filename_gz} to smaller SAPBERT training file {generate_smaller_filename}: " +
-                    f"read {count_entry} entries and wrote out {count_smaller_rows} training rows ({percentage:.2f}%).")
-
-
+        logger.info(
+            f"Converted {synonym_filename_gz} to smaller SAPBERT training file {generate_smaller_filename}: "
+            + f"read {count_entry} entries and wrote out {count_smaller_rows} training rows ({percentage:.2f}%)."
+        )

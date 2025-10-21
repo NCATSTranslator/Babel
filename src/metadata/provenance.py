@@ -6,10 +6,12 @@ from datetime import datetime
 
 import yaml
 
-def write_download_metadata(filename, *, name, url='', description='', sources=None, counts=None):
-    write_metadata(filename, 'download', name, url=url, description=description, sources=sources, counts=None)
 
-def write_concord_metadata(filename, *, name, concord_filename, url='', description='', sources=None, counts=None):
+def write_download_metadata(filename, *, name, url="", description="", sources=None, counts=None):
+    write_metadata(filename, "download", name, url=url, description=description, sources=sources, counts=None)
+
+
+def write_concord_metadata(filename, *, name, concord_filename, url="", description="", sources=None, counts=None):
     # Concord files should all be in the format:
     #   <curie>\t<predicate>\t<curie>
     # From this, we extract three counts:
@@ -21,9 +23,9 @@ def write_concord_metadata(filename, *, name, concord_filename, url='', descript
     distinct_curies = set()
     predicate_counts = defaultdict(int)
     curie_prefix_counts = defaultdict(int)
-    with open(concord_filename, 'r') as concordf:
+    with open(concord_filename, "r") as concordf:
         for line in concordf:
-            row = line.strip().split('\t')
+            row = line.strip().split("\t")
             if len(row) != 3:
                 logging.warning(f"Concord file {concord_filename} has a line with {len(row)} columns, not 3 -- skipping: '{line}'")
                 # raise ValueError(f"Concord file {concord_filename} has a line with {len(row)} columns, not 3: {line}")
@@ -37,42 +39,47 @@ def write_concord_metadata(filename, *, name, concord_filename, url='', descript
             distinct_curies.add(curie1)
             distinct_curies.add(curie2)
 
-            prefixes = [curie1.split(':')[0], curie2.split(':')[0]]
+            prefixes = [curie1.split(":")[0], curie2.split(":")[0]]
             sorted_prefixes = sorted(prefixes)
             curie_prefix_counts[f"{predicate}({sorted_prefixes[0]}, {sorted_prefixes[1]})"] += 1
 
     if counts is None:
         counts = {}
 
-    if 'concords' in counts:
+    if "concords" in counts:
         raise ValueError(f"Cannot add counts to concord metadata for {name} because it already has counts: {counts}")
 
-    counts['concords'] = {
-        'count_concords': count_concords,
-        'count_distinct_curies': len(distinct_curies),
-        'predicates': dict(predicate_counts),
-        'prefix_counts': dict(curie_prefix_counts),
+    counts["concords"] = {
+        "count_concords": count_concords,
+        "count_distinct_curies": len(distinct_curies),
+        "predicates": dict(predicate_counts),
+        "prefix_counts": dict(curie_prefix_counts),
     }
 
-    write_metadata(filename, 'concord', name, url=url, description=description, sources=sources, counts=counts)
+    write_metadata(filename, "concord", name, url=url, description=description, sources=sources, counts=counts)
 
-def write_combined_metadata(filename, typ, name, *, sources=None, url='', description='', counts=None, combined_from_filenames:list[str]=None, also_combined_from=None):
+
+def write_combined_metadata(
+    filename, typ, name, *, sources=None, url="", description="", counts=None, combined_from_filenames: list[str] = None, also_combined_from=None
+):
     combined_from = {}
     if combined_from_filenames is not None:
         if isinstance(combined_from_filenames, str):
-            logging.warning(f"write_combined_metadata() got a single string for combined_from_files ('{combined_from_filenames}'), converting to a single item list, at: "
-                            f"{''.join(traceback.format_stack())}")
+            logging.warning(
+                f"write_combined_metadata() got a single string for combined_from_files ('{combined_from_filenames}'), converting to a single item list, at: "
+                f"{''.join(traceback.format_stack())}"
+            )
             combined_from_filenames = [combined_from_filenames]
         for metadata_yaml in combined_from_filenames:
-            with open(metadata_yaml, 'r') as metaf:
+            with open(metadata_yaml, "r") as metaf:
                 metadata_block = yaml.safe_load(metaf)
                 if metadata_block is None or metadata_block == {}:
                     raise ValueError("Metadata file {metadata_yaml} is empty.")
 
-                if 'name' not in metadata_block:
+                if "name" not in metadata_block:
                     raise ValueError(f"Metadata file {metadata_yaml} is missing a 'name' field: {metadata_block}")
 
-                metadata_name = metadata_block['name']
+                metadata_name = metadata_block["name"]
 
                 if type(metadata_name) is not str:
                     raise ValueError(f"Metadata file {metadata_yaml} has a 'name' field that is not a string: {metadata_block}")
@@ -87,18 +94,10 @@ def write_combined_metadata(filename, typ, name, *, sources=None, url='', descri
     if also_combined_from is not None:
         combined_from.update(also_combined_from)
 
-    write_metadata(
-        filename,
-        typ=typ,
-        name=name,
-        sources=sources,
-        url=url,
-        description=description,
-        counts=counts,
-        combined_from=combined_from
-    )
+    write_metadata(filename, typ=typ, name=name, sources=sources, url=url, description=description, counts=counts, combined_from=combined_from)
 
-def write_metadata(filename, typ, name, *, sources=None, url='', description='', counts=None, combined_from=None):
+
+def write_metadata(filename, typ, name, *, sources=None, url="", description="", counts=None, combined_from=None):
     if type(typ) is not str:
         raise ValueError(f"Metadata entry type must be a string, not {type(typ)}: '{typ}'")
     if type(name) is not str:
@@ -112,14 +111,17 @@ def write_metadata(filename, typ, name, *, sources=None, url='', description='',
 
     metadata_dir = os.path.dirname(filename)
     os.makedirs(metadata_dir, exist_ok=True)
-    with open(filename, 'w') as fout:
-        yaml.dump({
-            'created_at': datetime.now().isoformat(),
-            'type': typ,
-            'name': name,
-            'url': url,
-            'description': description,
-            'sources': sources,
-            'counts': counts,
-            'combined_from': combined_from,
-        }, fout)
+    with open(filename, "w") as fout:
+        yaml.dump(
+            {
+                "created_at": datetime.now().isoformat(),
+                "type": typ,
+                "name": name,
+                "url": url,
+                "description": description,
+                "sources": sources,
+                "counts": counts,
+                "combined_from": combined_from,
+            },
+            fout,
+        )
