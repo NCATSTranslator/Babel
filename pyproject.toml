@@ -1,2 +1,10 @@
+[project]
+name = "babel"
+version = "1.14"
+description = "Babel creates cliques of equivalent identifiers across many biomedical vocabularies. "
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
 [tool.black]
 line-length = 160
