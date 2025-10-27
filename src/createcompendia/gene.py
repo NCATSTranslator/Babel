@@ -1,6 +1,5 @@
 import re
 
-from src import babel_utils
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import OMIM, ENSEMBL, NCBIGENE, WORMBASE, MGI, ZFIN, DICTYBASE, FLYBASE, RGD, SGD, HGNC, UMLS
 from src.categories import GENE

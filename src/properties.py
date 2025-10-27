@@ -11,7 +11,7 @@
 import gzip
 import json
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 #
 # SUPPORTED PROPERTIES

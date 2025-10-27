@@ -295,19 +295,19 @@ class Resource:
                 if k in overwrite_keys:
                     target[k] = copy.deepcopy(v)
                 elif type(v) == list:
-                    if not k in target:
+                    if k not in target:
                         target[k] = copy.deepcopy(v)
                     elif type(v[0]) == dict:
                         Resource.deepupdate(target[k], v, overwrite_keys)
                     else:
                         target[k].extend(v)
                 elif type(v) == dict:
-                    if not k in target:
+                    if k not in target:
                         target[k] = copy.deepcopy(v)
                     else:
                         Resource.deepupdate(target[k], v, overwrite_keys)
                 elif type(v) == set:
-                    if not k in target:
+                    if k not in target:
                         target[k] = v.copy()
                     else:
                         target[k].update(v.copy())
@@ -379,7 +379,7 @@ def get_biolink_prefix_map():
     else:
         # biolink-model v4.0.0 and beyond is in the /project directory.
         return curies.Converter.from_prefix_map(
-            f"https://raw.githubusercontent.com/biolink/biolink-model/v" + biolink_version + "/project/prefixmap/biolink_model_prefix_map.json"
+            "https://raw.githubusercontent.com/biolink/biolink-model/v" + biolink_version + "/project/prefixmap/biolink_model_prefix_map.json"
         )
 
 

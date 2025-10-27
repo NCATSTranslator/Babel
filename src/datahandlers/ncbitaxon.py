@@ -1,6 +1,5 @@
 import gzip
 import logging
-from collections import defaultdict
 
 from src.babel_utils import pull_via_ftp
 from src.prefixes import NCBITAXON

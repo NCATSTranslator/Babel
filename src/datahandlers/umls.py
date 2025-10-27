@@ -259,7 +259,7 @@ def build_sets(
             # Don't include bad mappings or bad ids
             if tup[1] in bad_mappings[tup[0]]:
                 continue
-            if (pref in acceptable_identifiers) and (not tup[1] in acceptable_identifiers[pref]):
+            if (pref in acceptable_identifiers) and (tup[1] not in acceptable_identifiers[pref]):
                 continue
             if tup not in pairs:
                 concordfile.write(f"{tup[0]}\teq\t{tup[1]}\n")
@@ -309,7 +309,7 @@ def download_umls(umls_version, download_dir):
 
     # Download umls-{umls_version}-metathesaurus-full.zip
     # As described at https://documentation.uts.nlm.nih.gov/automating-downloads.html
-    umls_url = f"https://uts-ws.nlm.nih.gov/download"
+    umls_url = "https://uts-ws.nlm.nih.gov/download"
     req = requests.get(
         umls_url,
         {"url": f"https://download.nlm.nih.gov/umls/kss/{umls_version}/umls-{umls_version}-metathesaurus-full.zip", "apiKey": umls_api_key},
@@ -358,7 +358,7 @@ def download_rxnorm(rxnorm_version, download_dir):
 
     # Download RxNorm_full_{rxnorm_version}.zip
     # As described at https://documentation.uts.nlm.nih.gov/automating-downloads.html
-    rxnorm_url = f"https://uts-ws.nlm.nih.gov/download"
+    rxnorm_url = "https://uts-ws.nlm.nih.gov/download"
     req = requests.get(
         rxnorm_url, {"url": f"https://download.nlm.nih.gov/umls/kss/rxnorm/RxNorm_full_{rxnorm_version}.zip", "apiKey": umls_api_key}, stream=True
     )

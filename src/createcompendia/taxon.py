@@ -6,7 +6,6 @@ import src.datahandlers.mesh as mesh
 import src.datahandlers.umls as umls
 
 from src.babel_utils import read_identifier_file, glom, write_compendium
-import src.eutil as eutil
 
 import logging
 from src.util import LoggingUtil

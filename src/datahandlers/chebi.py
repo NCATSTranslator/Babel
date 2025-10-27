@@ -1,4 +1,3 @@
-from src.prefixes import CHEBI, INCHIKEY
 from src.babel_utils import pull_via_ftp
 
 

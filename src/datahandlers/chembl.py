@@ -1,15 +1,13 @@
-import os.path
-import pathlib
 
 from src.prefixes import CHEMBLCOMPOUND
-from src.babel_utils import pull_via_ftp, make_local_name
+from src.babel_utils import pull_via_ftp
 import ftplib
 import pyoxigraph
 
 
 def pull_chembl(moleculefilename):
     fname = get_latest_chembl_name()
-    if not fname is None:
+    if fname is not None:
         # fname should be like chembl_28.0_molecule.ttl.gz
         # Pull via ftp is going to add the download_dir, so this is a hack until pull_via_ftp is nicer.
         mparts = moleculefilename.split("/")

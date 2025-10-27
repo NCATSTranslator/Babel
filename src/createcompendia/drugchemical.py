@@ -8,24 +8,9 @@ from humanfriendly import format_timespan
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.node import NodeFactory, InformationContentFactory
 from src.prefixes import RXCUI, PUBCHEMCOMPOUND, UMLS
-from src.categories import (
-    CHEMICAL_ENTITY,
-    DRUG,
-    MOLECULAR_MIXTURE,
-    FOOD,
-    COMPLEX_MOLECULAR_MIXTURE,
-    SMALL_MOLECULE,
-    NUCLEIC_ACID_ENTITY,
-    MOLECULAR_ENTITY,
-    FOOD_ADDITIVE,
-    ENVIRONMENTAL_FOOD_CONTAMINANT,
-    PROCESSED_MATERIAL,
-    CHEMICAL_MIXTURE,
-    POLYPEPTIDE,
-)
 from src.babel_utils import glom, get_numerical_curie_suffix
 from collections import defaultdict
-import os, json
+import json
 
 import logging
 from src.util import LoggingUtil, get_config, get_memory_usage_summary

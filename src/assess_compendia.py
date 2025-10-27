@@ -54,7 +54,7 @@ def assess(compendium, reportfile):
         sizes = list(clustersizes.keys())
         sizes.sort()
         outf.write(f"Max cluster size: {max(sizes)}\n")
-        outf.write(f"\nCluster Size Distribution\n")
+        outf.write("\nCluster Size Distribution\n")
         for s in sizes:
             outf.write(f"{s}\t{clustersizes[s]}\n")
         ct = [(v, k) for k, v in clustertypes.items()]

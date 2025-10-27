@@ -5,7 +5,6 @@ from src.metadata.provenance import write_download_metadata
 from src.prefixes import CLO
 from src.categories import CELL_LINE
 from src.babel_utils import pull_via_urllib
-from src.babel_utils import make_local_name
 from src.util import Text, LoggingUtil
 import pyoxigraph
 

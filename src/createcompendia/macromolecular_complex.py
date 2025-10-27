@@ -1,7 +1,6 @@
 from src.prefixes import COMPLEXPORTAL
 from src.categories import MACROMOLECULAR_COMPLEX
 
-import src.datahandlers.complexportal as complexportal
 from src.babel_utils import read_identifier_file, glom, write_compendium
 
 

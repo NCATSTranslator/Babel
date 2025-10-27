@@ -1,6 +1,4 @@
-import pytest
 from src.ubergraph import UberGraph
-from src.util import Text
 
 
 def test_get_subclasses():

@@ -4,7 +4,6 @@ from enum import Enum
 from ftplib import FTP
 from io import BytesIO
 import gzip
-from datetime import datetime as dt, datetime
 from datetime import timedelta
 import time
 import requests
@@ -63,7 +62,7 @@ class StateDB:
 
     def put(self, key, value):
         curr = self.connection.cursor()
-        curr.execute(f"INSERT INTO cache VALUES (?,?)", (key, value))
+        curr.execute("INSERT INTO cache VALUES (?,?)", (key, value))
         self.connection.commit()
 
 
@@ -163,7 +162,7 @@ class ThrottledRequester:
                 response, _ = self.get(url)
                 result = response.json()
                 return result
-            except Exception as e:
+            except Exception:
                 ntries += 1
 
 

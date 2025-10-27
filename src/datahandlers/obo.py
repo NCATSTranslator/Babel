@@ -3,12 +3,10 @@ import logging
 from pathlib import Path
 
 from src.ubergraph import UberGraph
-from src.babel_utils import make_local_name, pull_via_ftp
 from collections import defaultdict
-import os, gzip
-from json import loads, dumps
+import os
 
-from src.util import Text, get_config
+from src.util import Text
 
 
 def pull_uber_icRDF(icrdf_filename):

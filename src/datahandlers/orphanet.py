@@ -1,6 +1,5 @@
 from src.prefixes import OIO, ORPHANET
 from src.babel_utils import pull_via_urllib
-import json
 from zipfile import ZipFile
 
 # ugh XML

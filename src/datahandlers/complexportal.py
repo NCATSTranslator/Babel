@@ -1,10 +1,10 @@
-from src.babel_utils import pull_via_urllib, make_local_name
+from src.babel_utils import pull_via_urllib
 from src.metadata.provenance import write_metadata
 from src.prefixes import COMPLEXPORTAL
 
 
 def pull_complexportal():
-    pull_via_urllib("http://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/", f"559292.tsv", decompress=False, subpath=COMPLEXPORTAL)
+    pull_via_urllib("http://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/", "559292.tsv", decompress=False, subpath=COMPLEXPORTAL)
 
 
 def make_labels_and_synonyms(infile, labelfile, synfile, metadata_yaml):
@@ -20,7 +20,7 @@ def make_labels_and_synonyms(infile, labelfile, synfile, metadata_yaml):
             if not synonyms_str == "-":
                 synonyms = synonyms_str.split("|")
                 for syn in synonyms:
-                    if not syn in usedsyns:
+                    if syn not in usedsyns:
                         outsyn.write(f"{COMPLEXPORTAL}:{id}\t{syn}\n")
                         usedsyns.add(syn)
 

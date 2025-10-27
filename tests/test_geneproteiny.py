@@ -1,4 +1,3 @@
-import pytest
 from src.createcompendia.geneprotein import build_compendium
 import os
 

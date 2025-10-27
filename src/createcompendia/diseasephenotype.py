@@ -4,7 +4,7 @@ from collections import defaultdict
 import src.datahandlers.obo as obo
 from src.metadata.provenance import write_concord_metadata
 
-from src.prefixes import MESH, NCIT, MONDO, OMIM, HP, SNOMEDCT, MEDDRA, EFO, ORPHANET, ICD0, ICD9, ICD10, UMLS, KEGGDISEASE
+from src.prefixes import MESH, NCIT, MONDO, OMIM, HP, SNOMEDCT, MEDDRA, ORPHANET, ICD0, ICD9, ICD10, UMLS, KEGGDISEASE
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.ubergraph import build_sets
 import src.datahandlers.umls as umls

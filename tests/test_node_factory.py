@@ -1,4 +1,3 @@
-import pytest
 import os
 from src.node import NodeFactory
 from src.LabeledID import LabeledID

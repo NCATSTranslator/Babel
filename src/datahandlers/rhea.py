@@ -1,9 +1,8 @@
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import RHEA, EC
 from src.babel_utils import pull_via_urllib
-from src.babel_utils import make_local_name, pull_via_ftp
+from src.babel_utils import make_local_name
 import pyoxigraph
-from collections import defaultdict
 
 
 def pull_rhea():

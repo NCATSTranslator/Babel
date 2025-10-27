@@ -1,8 +1,7 @@
 import csv
 
-from pronto.utils.io import decompress
 
-from src.babel_utils import make_local_name, pull_via_ftp, pull_via_urllib
+from src.babel_utils import pull_via_urllib
 from src.metadata.provenance import write_metadata
 from src.prefixes import HGNCFAMILY
 

@@ -1,6 +1,7 @@
 from src.prefixes import REACT
 from src.categories import PATHWAY, BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY
-import requests, json
+import requests
+import json
 
 
 # Reactome doesn't have a great download, but it does have a decent service that lets you get the files you could have

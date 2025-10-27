@@ -1,5 +1,5 @@
 from zipfile import ZipFile
-from os import path, listdir, rename
+from os import path
 from src.prefixes import HMDB
 from src.babel_utils import pull_via_urllib
 import xmltodict

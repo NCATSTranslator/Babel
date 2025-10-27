@@ -1,7 +1,7 @@
 import re
 
 from src.metadata.provenance import write_concord_metadata
-from src.prefixes import ENSEMBL, UMLS, PR, UNIPROTKB, NCIT, NCBITAXON, MESH, DRUGBANK
+from src.prefixes import ENSEMBL, PR, UNIPROTKB, NCIT, NCBITAXON, MESH, DRUGBANK
 from src.categories import PROTEIN
 
 import src.datahandlers.umls as umls
@@ -198,7 +198,7 @@ def build_protein_compendia(concordances, metadata_yamls, identifiers, icrdf_fil
         glom(dicts, pairs, unique_prefixes=uniques)
         logger.info(f"Loaded concordance file {infile}: {get_memory_usage_summary()}")
     logger.info(f"Finished loading concordances, memory usage: {get_memory_usage_summary()}")
-    logger.info(f"Building gene sets")
+    logger.info("Building gene sets")
     gene_sets = set([frozenset(x) for x in dicts.values()])
     logger.info(f"Gene sets built, memory usage: {get_memory_usage_summary()}")
     # Try to preserve some memory here.

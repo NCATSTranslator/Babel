@@ -1,4 +1,3 @@
-from os import path
 from collections import defaultdict
 
 import src.datahandlers.obo as obo
@@ -8,7 +7,7 @@ import src.datahandlers.ec as ec
 import src.datahandlers.umls as umls
 from src.metadata.provenance import write_concord_metadata
 
-from src.prefixes import GO, REACT, WIKIPATHWAYS, RHEA, SMPDB, EC, PANTHERPATHWAY, TCDB
+from src.prefixes import GO, REACT, WIKIPATHWAYS, TCDB
 from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
 from src.ubergraph import build_sets
 

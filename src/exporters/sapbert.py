@@ -8,17 +8,15 @@
 # This file provides code for doing that, based on the code from
 # https://github.com/TranslatorSRI/babel-validation/blob/f21b1b308e54ec0af616f2c24f7e2738ac4c261c/src/main/scala/org/renci/babel/utils/converter/Converter.scala#L107-L207
 import gzip
-import hashlib
 import itertools
 import json
 import os
 import random
 import re
-from itertools import combinations
 
 import logging
 
-from src.util import LoggingUtil, get_config
+from src.util import LoggingUtil
 
 # Default logger for this file.
 logger = LoggingUtil.init_logging(__name__, level=logging.INFO)

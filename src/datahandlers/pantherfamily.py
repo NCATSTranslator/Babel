@@ -1,4 +1,4 @@
-from src.babel_utils import make_local_name, pull_via_ftp
+from src.babel_utils import pull_via_ftp
 from src.metadata.provenance import write_metadata
 from src.prefixes import PANTHERFAMILY
 

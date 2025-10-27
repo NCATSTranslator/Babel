@@ -6,12 +6,10 @@ conflation files.
 """
 
 import gzip
-import sys
 import json
 import logging
 from collections import defaultdict
 
-import click
 
 from src.babel_utils import get_numerical_curie_suffix
 

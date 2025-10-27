@@ -1,11 +1,9 @@
 # Download CC-0 licensed data from DrugBank (https://go.drugbank.com/releases/latest)
 import csv
-import gzip
 import os.path
 import shutil
 from zipfile import ZipFile
 
-from src.util import get_config
 import requests
 
 from src.prefixes import DRUGBANK

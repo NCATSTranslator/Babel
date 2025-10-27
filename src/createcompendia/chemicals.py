@@ -291,12 +291,12 @@ def parse_smifile(infile, outfile, smicol, idcol, pref, stripquotes=False):
                 ], f"SMIFile {infile} has a modified header, please update."
                 try:
                     idcol_index = header.index(idcol)
-                except ValueError as e:
+                except ValueError:
                     logging.error(f"Could not find ID column '{idcol}' in header {header} for {infile}")
                     exit(1)
                 try:
                     smicol_index = header.index(smicol)
-                except ValueError as e:
+                except ValueError:
                     logging.error(f"Could not find SMILES column '{smicol}' in header {header} for {infile}")
                     exit(1)
                 continue
@@ -846,7 +846,7 @@ def create_typed_sets(eqsets, types):
                             all_other_ids.add(eq_id)
 
                     logging.info(
-                        f"Found a clique that that contains PUBCHEM types "
+                        "Found a clique that that contains PUBCHEM types "
                         + "({'biolink:SmallMolecule', 'biolink:MolecularMixture'}). This clique will be split "
                         + f"into a biolink:MolecularMixture ({molecular_mixture_ids}) and "
                         + f"a biolink:SmallMolecule ({all_other_ids})"
