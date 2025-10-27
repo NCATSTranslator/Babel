@@ -33,16 +33,12 @@ dependencies = [
     "xmltodict>=1.0.2",
 ]
 
-<<<<<<< HEAD
-[tool.ruff]
-=======
 [project.urls]
 Homepage = "https://github.com/TranslatorSRI/Babel"
 Repository = "https://github.com/TranslatorSRI/Babel"
 Issues = "https://github.com/NCATSTranslator/Babel/issues"
 
-[tool.black]
->>>>>>> replace-requirements-with-uv
+[tool.ruff]
 line-length = 160
 
 [tool.uv.sources]
