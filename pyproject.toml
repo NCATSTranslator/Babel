@@ -56,3 +56,4 @@ line-length = 160
 
 [tool.snakefmt]
 line_length = 160
+include = '\.snakefile$|^Snakefile'
