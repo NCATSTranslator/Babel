@@ -3,6 +3,7 @@ name = "babel"
 version = "1.14"
 description = "Babel creates cliques of equivalent identifiers across many biomedical vocabularies. "
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "apybiomart",
@@ -32,7 +33,16 @@ dependencies = [
     "xmltodict>=1.0.2",
 ]
 
+<<<<<<< HEAD
 [tool.ruff]
+=======
+[project.urls]
+Homepage = "https://github.com/TranslatorSRI/Babel"
+Repository = "https://github.com/TranslatorSRI/Babel"
+Issues = "https://github.com/NCATSTranslator/Babel/issues"
+
+[tool.black]
+>>>>>>> replace-requirements-with-uv
 line-length = 160
 
 [tool.uv.sources]
