@@ -315,19 +315,20 @@ def download_umls(umls_version, umls_subset, download_dir):
     # Download umls-{umls_version}-metathesaurus-full.zip
     # As described at https://documentation.uts.nlm.nih.gov/automating-downloads.html
     umls_url = "https://uts-ws.nlm.nih.gov/download"
+    filename = f"umls-{umls_version}-metathesaurus-{umls_subset}.zip"
     req = requests.get(
         umls_url,
-        {"url": f"https://download.nlm.nih.gov/umls/kss/{umls_version}/umls-{umls_version}-metathesaurus-{umls_subset}.zip", "apiKey": umls_api_key},
+        {"url": f"https://download.nlm.nih.gov/umls/kss/{umls_version}/{filename}", "apiKey": umls_api_key},
         stream=True,
     )
     if not req.ok:
-        print(f"Unable to download UMLS from ${umls_url}: ${req}")
+        print(f"Unable to download UMLS from {umls_url}: {req}")
         exit(1)
 
     # Write file to {download_dir}/umls-{umls_version}-metathesaurus-full.zip
-    logging.info(f"Downloading umls-{umls_version}-metathesaurus-full.zip to {download_dir}")
+    logging.info(f"Downloading {filename} to {download_dir}")
     os.makedirs(download_dir, exist_ok=True)
-    umls_download_zip = os.path.join(download_dir, f"umls-{umls_version}-metathesaurus-full.zip")
+    umls_download_zip = os.path.join(download_dir, filename)
     with open(umls_download_zip, "wb") as fd:
         for chunk in req.iter_content(chunk_size=128):
             fd.write(chunk)
