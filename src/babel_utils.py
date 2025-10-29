@@ -629,7 +629,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                 # Write out the preferred name, if we have one.
                 nw["preferred_name"] = preferred_name
 
-                # Collect taxon names for this node.
+                # Collect taxon IDs for this node.
                 nw["taxa"] = list(sorted(set().union(*taxa.values()), key=get_numerical_curie_suffix))
 
                 outf.write(nw)
@@ -686,6 +686,12 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
 
                     # Collect taxon names for this node.
                     document["taxa"] = list(sorted(set().union(*taxa.values()), key=get_numerical_curie_suffix))
+                    if len(document["taxa"]) > 0:
+                        # This concept is specific to one or more particular taxa.
+                        document["taxon_specific"] = True
+                    else:
+                        # This concept is not specific to any taxa (that we know about).
+                        document["taxon_specific"] = False
 
                     sfile.write(document)
                 except Exception as ex:
