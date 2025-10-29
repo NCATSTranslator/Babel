@@ -671,7 +671,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
 
                     # Cliques with more identifiers might be better than cliques with smaller identifiers.
                     # So let's try to incorporate that here.
-                    # Note that this includes all the alternative IDs.
+                    # Note that this includes all the alternative IDs.kl
                     document["clique_identifier_count"] = len(nw["identifiers"])
 
                     # We want to see if we can use the CURIE suffix to sort concepts with similar identifiers.
