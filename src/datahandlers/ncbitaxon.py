@@ -1,15 +1,16 @@
 import gzip
 import logging
-from collections import defaultdict
 
 from src.babel_utils import pull_via_ftp
 from src.prefixes import NCBITAXON
 import tarfile
 
-def pull_ncbitaxon():
-    pull_via_ftp('ftp.ncbi.nlm.nih.gov','/pub/taxonomy','taxdump.tar.gz',decompress_data=True,outfilename=f'{NCBITAXON}/taxdump.tar')
 
-def make_labels_and_synonyms(infile,labelfile,synfile,propfilegz):
+def pull_ncbitaxon():
+    pull_via_ftp("ftp.ncbi.nlm.nih.gov", "/pub/taxonomy", "taxdump.tar.gz", decompress_data=True, outfilename=f"{NCBITAXON}/taxdump.tar")
+
+
+def make_labels_and_synonyms(infile, labelfile, synfile, propfilegz):
     """
     Generate labels and synonyms for NCBITaxon IDs.
 
@@ -24,17 +25,17 @@ def make_labels_and_synonyms(infile,labelfile,synfile,propfilegz):
     :param labelfile: The output file to write the labels to.
     :param synfile: The output file to write the synonyms to.
     """
-    taxtar = tarfile.open(infile,'r')
-    f = taxtar.extractfile('names.dmp')
+    taxtar = tarfile.open(infile, "r")
+    f = taxtar.extractfile("names.dmp")
     l = f.readlines()
 
     # It would be nice to put together the scientific name and common name(s) for a particular taxon, so
     # we put that into a dictionary and write them out separately later.
     names_by_txid = {}
 
-    with open(labelfile,'w') as labelf, open(synfile,'w') as outsyn, gzip.open(propfilegz,'wt') as propf:
+    with open(labelfile, "w") as labelf, open(synfile, "w") as outsyn, gzip.open(propfilegz, "wt") as propf:
         for line in l:
-            sline = line.decode('utf-8').strip().split('|')
+            sline = line.decode("utf-8").strip().split("|")
             parts = [x.strip() for x in sline]
 
             name_class = parts[3]
@@ -68,35 +69,41 @@ def make_labels_and_synonyms(infile,labelfile,synfile,propfilegz):
 
             match name_class:
                 # Labels: we use the scientific name and common name, which we put together afterwards.
-                case 'scientific name':
-                    if 'scientific name' not in names_by_txid[ncbi_txid]:
+                case "scientific name":
+                    if "scientific name" not in names_by_txid[ncbi_txid]:
                         # We only record the first one to use in the label.
-                        names_by_txid[ncbi_txid]['scientific name'] = name
+                        names_by_txid[ncbi_txid]["scientific name"] = name
                         # But we write all of them into the properties file.
-                        propf.write(f'{ncbi_txid}\tdwc:scientificName\t{name}\n')
+                        propf.write(f"{ncbi_txid}\tdwc:scientificName\t{name}\n")
                     else:
-                        logging.warning(f"Found additional scientific name for {ncbi_txid}: '{name}' (previously '{names_by_txid[ncbi_txid]['scientific name']}'), ignoring.")
+                        logging.warning(
+                            f"Found additional scientific name for {ncbi_txid}: '{name}' (previously '{names_by_txid[ncbi_txid]['scientific name']}'), ignoring."
+                        )
 
-                case 'common name':
-                    if 'common name' not in names_by_txid[ncbi_txid]:
+                case "common name":
+                    if "common name" not in names_by_txid[ncbi_txid]:
                         # We only write down the first one as the "official" common name.
-                        names_by_txid[ncbi_txid]['common name'] = name
+                        names_by_txid[ncbi_txid]["common name"] = name
                         # But we write all of them into the properties file.
-                        propf.write(f'{ncbi_txid}\tdwc:vernacularName\t{name}\n')
+                        propf.write(f"{ncbi_txid}\tdwc:vernacularName\t{name}\n")
                     else:
-                        logging.debug(f"Found additional common name for {ncbi_txid}: '{name}' (previously '{names_by_txid[ncbi_txid]['common name']}'), ignoring.")
+                        logging.debug(
+                            f"Found additional common name for {ncbi_txid}: '{name}' (previously '{names_by_txid[ncbi_txid]['common name']}'), ignoring."
+                        )
 
-                case 'genbank common name':
-                    if 'genbank common name' not in names_by_txid[ncbi_txid]:
+                case "genbank common name":
+                    if "genbank common name" not in names_by_txid[ncbi_txid]:
                         # We only write down the first one as the "official" common name.
-                        names_by_txid[ncbi_txid]['genbank common name'] = name
+                        names_by_txid[ncbi_txid]["genbank common name"] = name
                         # But we write all of them into the properties file.
-                        propf.write(f'{ncbi_txid}\tdwc:vernacularName\t{name}\n')
+                        propf.write(f"{ncbi_txid}\tdwc:vernacularName\t{name}\n")
                     else:
-                        logging.debug(f"Found additional GenBank common name for {ncbi_txid}: '{name}' (previously '{names_by_txid[ncbi_txid]['genbank common name']}'), ignoring.")
+                        logging.debug(
+                            f"Found additional GenBank common name for {ncbi_txid}: '{name}' (previously '{names_by_txid[ncbi_txid]['genbank common name']}'), ignoring."
+                        )
 
                 # Synonyms: we use taxonomic synonyms and equivalent names, which are directly added as a synonym.
-                case 'synonym' | 'equivalent name':
+                case "synonym" | "equivalent name":
                     # We previously uniquified the synonyms, but I don't think that's useful, because we can't really
                     # control which one gets the first synonym, so let's just add them all.
                     #
@@ -109,28 +116,28 @@ def make_labels_and_synonyms(infile,labelfile,synfile,propfilegz):
 
             # If this name should be written out as a synonym, then do so.
             if flag_write_as_synonym:
-                outsyn.write(f'{ncbi_txid}\toio:exactSynonym\t{name}\n')
+                outsyn.write(f"{ncbi_txid}\toio:exactSynonym\t{name}\n")
 
         # Now that we've read the full taxdump file, let's write out all the labels.
         for txid in names_by_txid:
-            scientific_name = names_by_txid[txid].get('scientific name', '')
-            common_name = names_by_txid[txid].get('common name', '')
-            genbank_common_name = names_by_txid[txid].get('genbank common name', '')
+            scientific_name = names_by_txid[txid].get("scientific name", "")
+            common_name = names_by_txid[txid].get("common name", "")
+            genbank_common_name = names_by_txid[txid].get("genbank common name", "")
 
             # To make these labels easier to understand, we incorporate both the
             # scientific name and the vernacular name (e.g. "Homo sapiens (human)").
             # We prefer the GenBank common name, if there is one.
             if scientific_name and genbank_common_name:
-                labelf.write(f'{txid}\t{scientific_name} ({genbank_common_name})\n')
+                labelf.write(f"{txid}\t{scientific_name} ({genbank_common_name})\n")
             # Otherwise, the first common name is fine.
             elif scientific_name and common_name:
-                labelf.write(f'{txid}\t{scientific_name} ({common_name})\n')
+                labelf.write(f"{txid}\t{scientific_name} ({common_name})\n")
             # Fall back to using whichever name is available.
             elif scientific_name:
-                labelf.write(f'{txid}\t{scientific_name}\n')
+                labelf.write(f"{txid}\t{scientific_name}\n")
             elif genbank_common_name:
-                labelf.write(f'{txid}\t{genbank_common_name}\n')
+                labelf.write(f"{txid}\t{genbank_common_name}\n")
             elif common_name:
-                labelf.write(f'{txid}\t{common_name}\n')
+                labelf.write(f"{txid}\t{common_name}\n")
             else:
                 logging.warning(f"No scientific or common name found for {txid}, skipping.")

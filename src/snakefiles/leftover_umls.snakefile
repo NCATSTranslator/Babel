@@ -18,29 +18,43 @@ import src.snakefiles.util as util
 ##    but eventually any significant gaps in UMLS should be filled in.
 ##
 
+
 configfile: "config.yaml"
+
 
 rule leftover_umls:
     input:
-        input_compendia = expand("{output}/compendia/{compendium}", output=config['output_directory'],
-            compendium=[x for x in get_all_compendia(config) if x not in {'umls.txt'}]),
-        umls_label_filename = config['download_directory'] + "/UMLS/labels",
-        mrconso = config['download_directory'] + '/UMLS/MRCONSO.RRF',
-        mrsty = config['download_directory'] + '/UMLS/MRSTY.RRF',
-        synonyms = config['download_directory'] + '/UMLS/synonyms'
+        input_compendia=expand(
+            "{output}/compendia/{compendium}", output=config["output_directory"], compendium=[x for x in get_all_compendia(config) if x not in {"umls.txt"}]
+        ),
+        umls_label_filename=config["download_directory"] + "/UMLS/labels",
+        mrconso=config["download_directory"] + "/UMLS/MRCONSO.RRF",
+        mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
+        synonyms=config["download_directory"] + "/UMLS/synonyms",
     output:
-        umls_compendium = config['output_directory'] + "/compendia/umls.txt",
-        umls_synonyms = temp(config['output_directory'] + "/synonyms/umls.txt"),
-        report = config['output_directory'] + "/reports/umls.txt",
+        umls_compendium=config["output_directory"] + "/compendia/umls.txt",
+        umls_synonyms=temp(config["output_directory"] + "/synonyms/umls.txt"),
+        report=config["output_directory"] + "/reports/umls.txt",
     run:
-        write_leftover_umls(input.input_compendia, input.umls_label_filename, input.mrconso, input.mrsty, input.synonyms, output.umls_compendium, output.umls_synonyms, output.report, config['biolink_version'])
+        write_leftover_umls(
+            input.input_compendia,
+            input.umls_label_filename,
+            input.mrconso,
+            input.mrsty,
+            input.synonyms,
+            output.umls_compendium,
+            output.umls_synonyms,
+            output.report,
+            config["biolink_version"],
+        )
+
 
 rule compress_umls:
     input:
-        umls_synonyms = config['output_directory'] + "/synonyms/umls.txt",
+        umls_synonyms=config["output_directory"] + "/synonyms/umls.txt",
     output:
-        umls_synonyms_gzipped = config['output_directory'] + "/synonyms/umls.txt.gz",
-        done = config['output_directory'] + "/reports/umls_done",
+        umls_synonyms_gzipped=config["output_directory"] + "/synonyms/umls.txt.gz",
+        done=config["output_directory"] + "/reports/umls_done",
     run:
         util.gzip_files([input.umls_synonyms])
         util.write_done(output.done)

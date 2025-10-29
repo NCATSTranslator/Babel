@@ -38,12 +38,22 @@ Homepage = "https://github.com/TranslatorSRI/Babel"
 Repository = "https://github.com/TranslatorSRI/Babel"
 Issues = "https://github.com/NCATSTranslator/Babel/issues"
 
-[tool.black]
-line-length = 160
-
 [tool.uv.sources]
 # We used to install apybiomart (https://github.com/robertopreste/apybiomart/tree/master) from
 # https://pypi.org/project/apybiomart/, but this hasn't been modified in five years and it depends
 # on checking if it's online via http://httpstat.us/200, which is often offline. My branch of this
 # https://github.com/gaurav/apybiomart/tree/change-check-url and changes that to https://example.org.
 apybiomart = { git = "https://github.com/gaurav/apybiomart.git", rev = "change-check-url" }
+
+[dependency-groups]
+dev = [
+    "snakefmt>=0.11.2",
+]
+
+# Linting/formatting configuration
+[tool.ruff]
+line-length = 160
+
+[tool.snakefmt]
+line_length = 160
+include = '\.snakefile$|^Snakefile'

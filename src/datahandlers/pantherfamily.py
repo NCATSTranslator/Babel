@@ -1,49 +1,53 @@
-from src.babel_utils import make_local_name, pull_via_ftp
+from src.babel_utils import pull_via_ftp
 from src.metadata.provenance import write_metadata
 from src.prefixes import PANTHERFAMILY
 
+
 def pull_pantherfamily():
-    outfile=f'{PANTHERFAMILY}/family.csv'
-    pull_via_ftp('ftp.pantherdb.org','/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/','PTHR19.0_human',outfilename=outfile)
+    outfile = f"{PANTHERFAMILY}/family.csv"
+    pull_via_ftp("ftp.pantherdb.org", "/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/", "PTHR19.0_human", outfilename=outfile)
     # If you need to check this quickly, it's also available on HTTP at:
     # - http://data.pantherdb.org/ftp/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/
 
-def pull_labels(infile,outfile, metadata_yaml):
+
+def pull_labels(infile, outfile, metadata_yaml):
     SUBFAMILY_COLUMN = 3
     MAINFAMILY_NAME_COLUMN = 4
     SUBFAMILY_NAME_COLUMN = 5
     done = set()
-    with open(infile,'r') as inf, open(outfile,'w') as labelf:
+    with open(infile, "r") as inf, open(outfile, "w") as labelf:
         for raw_line in inf:
             line = raw_line.strip()
-            parts = line.split('\t')
+            parts = line.split("\t")
             if len(parts) < 5:
                 continue
             sf = parts[SUBFAMILY_COLUMN]
-            mf = sf.split(':')[0] # PTHR10845:SF155 -> PTHR10845
-            mfname = parts[MAINFAMILY_NAME_COLUMN] # REGULATOR OF G PROTEIN SIGNALING
-            sfname = parts[SUBFAMILY_NAME_COLUMN] # REGULATOR OF G-PROTEIN SIGNALING 18
+            mf = sf.split(":")[0]  # PTHR10845:SF155 -> PTHR10845
+            mfname = parts[MAINFAMILY_NAME_COLUMN]  # REGULATOR OF G PROTEIN SIGNALING
+            sfname = parts[SUBFAMILY_NAME_COLUMN]  # REGULATOR OF G-PROTEIN SIGNALING 18
             if mf not in done:
-                main_family = f'{PANTHERFAMILY}:{mf}'
-                #panther_families.append(main_family)
-                #labels[main_family]=mfname
-                labelf.write(f'{main_family}\t{mfname}\n')
+                main_family = f"{PANTHERFAMILY}:{mf}"
+                # panther_families.append(main_family)
+                # labels[main_family]=mfname
+                labelf.write(f"{main_family}\t{mfname}\n")
                 done.add(mf)
             if sf not in done:
-                sub_family = f'{PANTHERFAMILY}:{sf}'
-                #panther_families.append(sub_family)
-                #labels[sub_family]=sfname
-                labelf.write(f'{sub_family}\t{sfname}\n')
+                sub_family = f"{PANTHERFAMILY}:{sf}"
+                # panther_families.append(sub_family)
+                # labels[sub_family]=sfname
+                labelf.write(f"{sub_family}\t{sfname}\n")
                 done.add(sf)
 
     write_metadata(
         metadata_yaml,
-        typ='transform',
-        name='pantherfamily.pull_labels()',
-        description='Main families and subfamily labels extracted from PANTHER Sequence Classification human.',
-        sources=[{
-            'type': 'download',
-            'name': 'PANTHER Sequence Classification: Human',
-            'url': 'ftp://ftp.pantherdb.org/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/PTHR19.0_human',
-        }]
+        typ="transform",
+        name="pantherfamily.pull_labels()",
+        description="Main families and subfamily labels extracted from PANTHER Sequence Classification human.",
+        sources=[
+            {
+                "type": "download",
+                "name": "PANTHER Sequence Classification: Human",
+                "url": "ftp://ftp.pantherdb.org/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/PTHR19.0_human",
+            }
+        ],
     )
