@@ -185,7 +185,7 @@ rule download_umls:
         config["download_directory"] + "/UMLS/MRSTY.RRF",
         config["download_directory"] + "/UMLS/MRREL.RRF",
     run:
-        umls.download_umls(config["umls_version"], config['umls']['subset'], config["download_directory"] + "/UMLS")
+        umls.download_umls(config["umls_version"], config["umls"]["subset"], config["download_directory"] + "/UMLS")
 
 
 rule get_umls_labels_and_synonyms:
