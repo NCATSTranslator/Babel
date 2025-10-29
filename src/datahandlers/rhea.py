@@ -1,30 +1,33 @@
 from src.metadata.provenance import write_concord_metadata
-from src.prefixes import RHEA,EC
+from src.prefixes import RHEA, EC
 from src.babel_utils import pull_via_urllib
-from src.babel_utils import make_local_name, pull_via_ftp
+from src.babel_utils import make_local_name
 import pyoxigraph
-from collections import defaultdict
 
 
 def pull_rhea():
-    outputfile=pull_via_urllib('https://ftp.expasy.org/databases/rhea/rdf/','rhea.rdf.gz', subpath='RHEA', decompress=True)
+    outputfile = pull_via_urllib("https://ftp.expasy.org/databases/rhea/rdf/", "rhea.rdf.gz", subpath="RHEA", decompress=True)
+
 
 class Rhea:
     """Load the mesh rdf file for querying"""
+
     def __init__(self):
-        ifname = make_local_name('rhea.rdf', subpath='RHEA')
+        ifname = make_local_name("rhea.rdf", subpath="RHEA")
         self.filename = ifname
         from datetime import datetime as dt
-        print('loading rhea')
+
+        print("loading rhea")
         start = dt.now()
-        self.m= pyoxigraph.MemoryStore()
-        with open(ifname,'rb') as inf:
-            self.m.load(inf,'application/rdf+xml')
+        self.m = pyoxigraph.Store()
+        with open(ifname, "rb") as inf:
+            self.m.bulk_load(input=inf, format=pyoxigraph.RdfFormat.RDF_XML)
         end = dt.now()
-        print('loading complete')
-        print(f'took {end-start}')
-    def pull_rhea_labels(self,ofname):
-        s="""   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        print("loading complete")
+        print(f"took {end - start}")
+
+    def pull_rhea_labels(self, ofname):
+        s = """   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                 PREFIX rh: <http://rdf.rhea-db.org/>
 
                 SELECT DISTINCT ?x ?acc ?label
@@ -32,15 +35,16 @@ class Rhea:
                         ?x rh:accession ?acc .}
         """
         qres = self.m.query(s)
-        with open(ofname, 'w', encoding='utf8') as outf:
+        with open(ofname, "w", encoding="utf8") as outf:
             for row in list(qres):
-                iterm = str(row['acc'])[1:-1] #strip "
-                label = str(row['label'])[1:-1]
-                #The rhea ids in the rdf use the currently approved prefix, but just to be sure...
-                rheaid = iterm.split(':')[-1]
-                outf.write(f'{RHEA}:{rheaid}\t{label}\n')
-    def pull_rhea_ec_concs(self,ofname, metadata_yaml):
-        s="""   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                iterm = str(row["acc"])[1:-1]  # strip "
+                label = str(row["label"])[1:-1]
+                # The rhea ids in the rdf use the currently approved prefix, but just to be sure...
+                rheaid = iterm.split(":")[-1]
+                outf.write(f"{RHEA}:{rheaid}\t{label}\n")
+
+    def pull_rhea_ec_concs(self, ofname, metadata_yaml):
+        s = """   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                 PREFIX rh: <http://rdf.rhea-db.org/>
 
                 SELECT DISTINCT ?x ?acc ?ec
@@ -48,37 +52,42 @@ class Rhea:
                         ?x rh:accession ?acc .}
         """
         qres = self.m.query(s)
-        with open(ofname, 'w', encoding='utf8') as outf:
+        with open(ofname, "w", encoding="utf8") as outf:
             for row in list(qres):
-                #<http://purl.uniprot.org/enzyme/1.14.15.16>
-                ec = f'{EC}:{str(row["ec"]).split("/")[-1][:-1]}'
-                #The rhea ids in the rdf use the currently approved prefix, but just to be sure...
-                iterm = str(row['acc'])[1:-1] #strip "
-                rheaid = iterm.split(':')[-1]
-                outf.write(f'{RHEA}:{rheaid}\toio:equivalent\t{ec}\n')
+                # <http://purl.uniprot.org/enzyme/1.14.15.16>
+                ec = f"{EC}:{str(row['ec']).split('/')[-1][:-1]}"
+                # The rhea ids in the rdf use the currently approved prefix, but just to be sure...
+                iterm = str(row["acc"])[1:-1]  # strip "
+                rheaid = iterm.split(":")[-1]
+                outf.write(f"{RHEA}:{rheaid}\toio:equivalent\t{ec}\n")
 
         write_concord_metadata(
             metadata_yaml,
-            name='Rhea.pull_rhea_ec_concs()',
-            description=f'pull_rhea_ec_concs() extracts the EC number/accession number mappings from the Rhea RDF file ({self.filename}).',
-            sources=[{
-                'type': 'rdf',
-                'name': 'rhea.rdf',
-                'filename': self.filename,
-                'sources': [{
-                    'type': 'download',
-                    'name': 'rhea.rdf',
-                    'url': 'https://ftp.expasy.org/databases/rhea/rdf/rhea.rdf.gz',
-                }]
-            }],
+            name="Rhea.pull_rhea_ec_concs()",
+            description=f"pull_rhea_ec_concs() extracts the EC number/accession number mappings from the Rhea RDF file ({self.filename}).",
+            sources=[
+                {
+                    "type": "rdf",
+                    "name": "rhea.rdf",
+                    "filename": self.filename,
+                    "sources": [
+                        {
+                            "type": "download",
+                            "name": "rhea.rdf",
+                            "url": "https://ftp.expasy.org/databases/rhea/rdf/rhea.rdf.gz",
+                        }
+                    ],
+                }
+            ],
             concord_filename=ofname,
         )
 
 
-#Ids are handled by just getting everything from the labels
+# Ids are handled by just getting everything from the labels
 def make_labels(labelfile):
     m = Rhea()
     m.pull_rhea_labels(labelfile)
+
 
 def make_concord(concfile, metadata_yaml):
     m = Rhea()

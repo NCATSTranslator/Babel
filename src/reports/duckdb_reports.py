@@ -17,10 +17,7 @@ def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identic
     """
 
     db = setup_duckdb(duckdb_filename)
-    cliques = db.read_parquet(
-        os.path.join(parquet_root, "**/Clique.parquet"),
-        hive_partitioning=True
-    )
+    cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
     db.sql("""
         WITH curie_counts AS (SELECT LOWER(preferred_name) AS preferred_name_lc, COUNT(clique_leader) AS curie_count FROM cliques
@@ -56,14 +53,8 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
     """
 
     db = setup_duckdb(duckdb_filename)
-    edges = db.read_parquet(
-        os.path.join(parquet_root, "**/Edge.parquet"),
-        hive_partitioning=True
-    )
-    cliques = db.read_parquet(
-        os.path.join(parquet_root, "**/Clique.parquet"),
-        hive_partitioning=True
-    )
+    edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
+    cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
     # Look for CURIEs that are present in different cliques.
     db.sql("""
@@ -103,14 +94,8 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
     """
 
     db = setup_duckdb(duckdb_filename)
-    edges = db.read_parquet(
-        os.path.join(parquet_root, "**/Edge.parquet"),
-        hive_partitioning=True
-    )
-    cliques = db.read_parquet(
-        os.path.join(parquet_root, "**/Clique.parquet"),
-        hive_partitioning=True
-    )
+    edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
+    cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
     # Look for CURIEs that are present in different cliques.
     db.sql(
@@ -142,14 +127,8 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
     """
 
     db = setup_duckdb(duckdb_filename)
-    edges = db.read_parquet(
-        os.path.join(parquet_root, "**/Edge.parquet"),
-        hive_partitioning=True
-    )
-    cliques = db.read_parquet(
-        os.path.join(parquet_root, "**/Clique.parquet"),
-        hive_partitioning=True
-    )
+    edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
+    cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
     # Step 1. Generate a by-prefix summary.
     curie_prefix_summary = db.sql("""
@@ -172,13 +151,13 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
     for row in rows:
         curie_prefix = row[0]
 
-        filename_counts = Counter(row[4].split('||'))
+        filename_counts = Counter(row[4].split("||"))
 
         by_curie_prefix_results[curie_prefix] = {
-            'curie_count': row[1],
-            'curie_distinct_count': row[2],
-            'clique_distinct_count': row[3],
-            'filenames': filename_counts,
+            "curie_count": row[1],
+            "curie_distinct_count": row[2],
+            "clique_distinct_count": row[3],
+            "filenames": filename_counts,
         }
 
     # Step 2. Generate a by-clique summary.
@@ -202,58 +181,53 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
         filename = row[0]
         clique_leader_prefix = row[1]
         clique_count = row[2]
-        curie_prefixes = row[3].split('||')
+        curie_prefixes = row[3].split("||")
         curie_prefix_counts = Counter(curie_prefixes)
 
         if clique_leader_prefix not in by_clique_results:
-            by_clique_results[clique_leader_prefix] = {
-                'count_cliques': 0,
-                'by_file': {}
-            }
+            by_clique_results[clique_leader_prefix] = {"count_cliques": 0, "by_file": {}}
 
-        by_clique_results[clique_leader_prefix]['count_cliques'] += clique_count
+        by_clique_results[clique_leader_prefix]["count_cliques"] += clique_count
 
-        if filename not in by_clique_results[clique_leader_prefix]['by_file']:
-            by_clique_results[clique_leader_prefix]['by_file'][filename] = defaultdict(int)
+        if filename not in by_clique_results[clique_leader_prefix]["by_file"]:
+            by_clique_results[clique_leader_prefix]["by_file"][filename] = defaultdict(int)
 
         for curie_prefix in curie_prefix_counts.keys():
-            by_clique_results[clique_leader_prefix]['by_file'][filename][curie_prefix] += curie_prefix_counts[curie_prefix]
+            by_clique_results[clique_leader_prefix]["by_file"][filename][curie_prefix] += curie_prefix_counts[curie_prefix]
 
     # Generate totals.
     total_cliques = 0
     total_curies = 0
     for curie_leader_prefix in by_clique_results.keys():
         count_curies = 0
-        total_cliques += by_clique_results[curie_leader_prefix]['count_cliques']
-        for filename in by_clique_results[curie_leader_prefix]['by_file'].keys():
-            count_curies += sum(by_clique_results[curie_leader_prefix]['by_file'][filename].values())
-        by_clique_results[curie_leader_prefix]['count_curies'] = count_curies
+        total_cliques += by_clique_results[curie_leader_prefix]["count_cliques"]
+        for filename in by_clique_results[curie_leader_prefix]["by_file"].keys():
+            count_curies += sum(by_clique_results[curie_leader_prefix]["by_file"][filename].values())
+        by_clique_results[curie_leader_prefix]["count_curies"] = count_curies
         total_curies += count_curies
 
     # Step 3. Write out prefix report in JSON.
-    with open(prefix_report_json, 'w') as fout:
-        json.dump({
-            'count_cliques': total_cliques,
-            'count_curies': total_curies,
-            'by_clique': by_clique_results,
-            'by_curie_prefix': by_curie_prefix_results
-        }, fout, indent=2, sort_keys=True)
+    with open(prefix_report_json, "w") as fout:
+        json.dump(
+            {"count_cliques": total_cliques, "count_curies": total_curies, "by_clique": by_clique_results, "by_curie_prefix": by_curie_prefix_results},
+            fout,
+            indent=2,
+            sort_keys=True,
+        )
 
     # Step 4. Write out prefix report in TSV. This is primarily based on the by-clique information, but also
     # includes totals.
-    with open(prefix_report_tsv, 'w') as fout:
-        csv_writer = csv.DictWriter(fout, dialect='excel-tab', fieldnames=[
-            'Clique prefix', 'Filename', 'Clique count', 'CURIEs'
-        ])
+    with open(prefix_report_tsv, "w") as fout:
+        csv_writer = csv.DictWriter(fout, dialect="excel-tab", fieldnames=["Clique prefix", "Filename", "Clique count", "CURIEs"])
         csv_writer.writeheader()
 
         curie_totals = defaultdict(int)
 
         for prefix in sorted(by_clique_results.keys()):
             by_clique_result = by_clique_results[prefix]
-            by_file = by_clique_result['by_file']
+            by_file = by_clique_result["by_file"]
 
-            count_cliques = by_clique_result['count_cliques']
+            count_cliques = by_clique_result["count_cliques"]
             filename_curie_counts = defaultdict(int)
 
             for filename in by_file.keys():
@@ -265,33 +239,34 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
                     filename_curie_counts[curie_prefix] += by_file[filename][curie_prefix]
                     filename_count_curies += by_file[filename][curie_prefix]
 
-                csv_writer.writerow({
-                    'Clique prefix': prefix,
-                    'Filename': filename,
-                    'Clique count': count_cliques,
-                    'CURIEs': f"{filename_count_curies}: " + ', '.join(curie_prefixes_sorted)
-                })
+                csv_writer.writerow(
+                    {
+                        "Clique prefix": prefix,
+                        "Filename": filename,
+                        "Clique count": count_cliques,
+                        "CURIEs": f"{filename_count_curies}: " + ", ".join(curie_prefixes_sorted),
+                    }
+                )
 
             filename_curie_sorted = map(lambda x: f"{x[0]}: {x[1]}", sorted(filename_curie_counts.items(), key=lambda x: x[1], reverse=True))
             count_curies = sum(filename_curie_counts.values())
 
             # Don't bother with a total for the prefix unless there are at least two files.
             if len(by_file) > 1:
-                csv_writer.writerow({
-                    'Clique prefix': prefix,
-                    'Filename': f"Total for prefix {prefix}",
-                    'Clique count': count_cliques,
-                    'CURIEs': f"{count_curies}: " + ', '.join(filename_curie_sorted)
-                })
+                csv_writer.writerow(
+                    {
+                        "Clique prefix": prefix,
+                        "Filename": f"Total for prefix {prefix}",
+                        "Clique count": count_cliques,
+                        "CURIEs": f"{count_curies}: " + ", ".join(filename_curie_sorted),
+                    }
+                )
 
         curie_totals_sorted = map(lambda x: f"{x[0]}: {x[1]}", sorted(curie_totals.items(), key=lambda x: x[1], reverse=True))
         total_curies = sum(curie_totals.values())
-        csv_writer.writerow({
-            'Clique prefix': 'Total cliques',
-            'Filename': '',
-            'Clique count': total_cliques,
-            'CURIEs': f"{total_curies}: " + ', '.join(curie_totals_sorted)
-        })
+        csv_writer.writerow(
+            {"Clique prefix": "Total cliques", "Filename": "", "Clique count": total_cliques, "CURIEs": f"{total_curies}: " + ", ".join(curie_totals_sorted)}
+        )
 
 
 def get_label_distribution(duckdb_filename, output_filename):

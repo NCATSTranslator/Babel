@@ -1,6 +1,7 @@
 """
 compendia_per_file_reports.py - Generate reports for the individual files in the compendia directory.
 """
+
 import itertools
 import json
 import logging
@@ -34,12 +35,14 @@ def assert_files_in_directory(dir, expected_files, report_file):
 
     # On Sterling, we sometimes have `.nfs*` files that represent NFS cached files that weren't properly deleted.
     # These shouldn't interfere with these tests.
-    file_list = filter(lambda fn: not fn.startswith('.nfs'), all_file_list)
+    file_list = filter(lambda fn: not fn.startswith(".nfs"), all_file_list)
 
     file_list_set = set(file_list)
     expected_files_set = set(expected_files)
-    assert file_list_set == expected_files_set, f"Expected files in directory {dir} to be equal to {expected_files_set} but found {file_list_set}: " + \
-        f"{file_list_set - expected_files_set} added, {expected_files_set - file_list_set} missing."
+    assert file_list_set == expected_files_set, (
+        f"Expected files in directory {dir} to be equal to {expected_files_set} but found {file_list_set}: "
+        + f"{file_list_set - expected_files_set} added, {expected_files_set - file_list_set} missing."
+    )
 
     # If we passed, write the output to the check_file.
     with open(report_file, "w") as f:
@@ -62,12 +65,12 @@ def generate_content_report_for_compendium(compendium_path, report_path):
             count_by_prefix = defaultdict(int)
             count_by_biolink_type = defaultdict(int)
             counters = {
-                'clique_count': 0,
-                'cliques_by_id_count': defaultdict(int),
-                'cliques_by_label_count': defaultdict(int),
-                'cliques_by_unique_label_count': defaultdict(int),
-                'cliques_by_description_count': defaultdict(int),
-                'cliques_by_unique_description_count': defaultdict(int),
+                "clique_count": 0,
+                "cliques_by_id_count": defaultdict(int),
+                "cliques_by_label_count": defaultdict(int),
+                "cliques_by_unique_label_count": defaultdict(int),
+                "cliques_by_description_count": defaultdict(int),
+                "cliques_by_unique_description_count": defaultdict(int),
             }
 
             # Since this is time-consuming, let's log a count as we go.
@@ -85,41 +88,46 @@ def generate_content_report_for_compendium(compendium_path, report_path):
                 clique = json.loads(line)
 
                 # Track the CURIEs we're looking for.
-                identifiers = clique.get('identifiers', [])
-                ids = list(map(lambda x: x['i'], identifiers))
+                identifiers = clique.get("identifiers", [])
+                ids = list(map(lambda x: x["i"], identifiers))
 
                 # Update counts by Biolink type.
-                count_by_biolink_type[clique.get('type', '')] += 1
+                count_by_biolink_type[clique.get("type", "")] += 1
 
                 # Update counts by prefix.
                 for curie in ids:
-                    prefix = curie.split(':')[0]
+                    prefix = curie.split(":")[0]
                     count_by_prefix[prefix] += 1
 
                 # Update counts by flags.
-                counters['clique_count'] += 1
-                counters['cliques_by_id_count'][len(ids)] += 1
-                labels = list(filter(lambda x: x.strip() != '', map(lambda x: x.get('l', ''), identifiers)))
-                counters['cliques_by_label_count'][len(labels)] += 1
+                counters["clique_count"] += 1
+                counters["cliques_by_id_count"][len(ids)] += 1
+                labels = list(filter(lambda x: x.strip() != "", map(lambda x: x.get("l", ""), identifiers)))
+                counters["cliques_by_label_count"][len(labels)] += 1
                 unique_labels = set(labels)
-                counters['cliques_by_unique_label_count'][len(unique_labels)] += 1
+                counters["cliques_by_unique_label_count"][len(unique_labels)] += 1
 
                 # Since descriptions are currently lists, we have to first flatten the list with
                 # itertools.chain.from_iterable() before we can count them.
-                descriptions = list(filter(lambda x: x.strip() != '', itertools.chain.from_iterable(map(lambda x: x.get('d', ''), identifiers))))
-                counters['cliques_by_description_count'][len(descriptions)] += 1
+                descriptions = list(filter(lambda x: x.strip() != "", itertools.chain.from_iterable(map(lambda x: x.get("d", ""), identifiers))))
+                counters["cliques_by_description_count"][len(descriptions)] += 1
                 unique_descriptions = set(descriptions)
-                counters['cliques_by_unique_description_count'][len(unique_descriptions)] += 1
+                counters["cliques_by_unique_description_count"][len(unique_descriptions)] += 1
 
-        json.dump({
-            'name': os.path.splitext(os.path.basename(compendium_path))[0],
-            'compendium_path': compendium_path,
-            'report_path': report_path,
-            'count_lines': count_lines,
-            'count_by_biolink_type': count_by_biolink_type,
-            'count_by_prefix': count_by_prefix,
-            'counters': counters,
-        }, report_file, sort_keys=True, indent=2)
+        json.dump(
+            {
+                "name": os.path.splitext(os.path.basename(compendium_path))[0],
+                "compendium_path": compendium_path,
+                "report_path": report_path,
+                "count_lines": count_lines,
+                "count_by_biolink_type": count_by_biolink_type,
+                "count_by_prefix": count_by_prefix,
+                "counters": counters,
+            },
+            report_file,
+            sort_keys=True,
+            indent=2,
+        )
 
 
 def summarize_content_report_for_compendia(compendia_report_paths, summary_path):
@@ -144,19 +152,19 @@ def summarize_content_report_for_compendia(compendia_report_paths, summary_path)
                 report = json.load(report_file)
 
             # name = report['name']
-            count_lines += report['count_lines']
+            count_lines += report["count_lines"]
 
             # Add up Biolink type information.
-            for biolink_type, count in report['count_by_biolink_type'].items():
+            for biolink_type, count in report["count_by_biolink_type"].items():
                 biolink_types[biolink_type] = biolink_types.get(biolink_type, 0) + count
 
             # Add up prefix information.
-            for prefix, count in report['count_by_prefix'].items():
+            for prefix, count in report["count_by_prefix"].items():
                 prefixes[prefix] = prefixes.get(prefix, 0) + count
 
             # Every counter is either an int or a dict. If a dict, we need to add up
             # all the counters.
-            for counter, value in report['counters'].items():
+            for counter, value in report["counters"].items():
                 if type(value) is int:
                     counters[counter] = counters.get(counter, 0) + value
                 elif type(value) is dict:
@@ -168,10 +176,15 @@ def summarize_content_report_for_compendia(compendia_report_paths, summary_path)
                     raise ValueError(f"Counter {counter} has unexpected value in {value}.")
 
         # Write the summary report.
-        json.dump({
-            'report_path': summary_path,
-            'biolink_types': biolink_types,
-            'prefixes': prefixes,
-            'counters': counters,
-            'count_lines': count_lines,
-        }, summaryfile, sort_keys=True, indent=2)
+        json.dump(
+            {
+                "report_path": summary_path,
+                "biolink_types": biolink_types,
+                "prefixes": prefixes,
+                "counters": counters,
+                "count_lines": count_lines,
+            },
+            summaryfile,
+            sort_keys=True,
+            indent=2,
+        )
