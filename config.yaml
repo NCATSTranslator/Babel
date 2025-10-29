@@ -15,7 +15,7 @@ drugbank_version: "5-1-13"
 # UMLS
 #
 umls:
-  subset: "level-0"
+  subset: "full"
   # Replace with "level-0" to get only the level 0 subset (https://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html).
   # subset: "level-0"
 
