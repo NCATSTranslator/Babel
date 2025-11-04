@@ -214,7 +214,11 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
                             final_conflation["taxa"].update(synonym["taxa"])
 
             # Convert the taxa into a list.
-            final_conflation["taxa"] = sorted(final_conflation["taxa"])
+            final_conflation["taxa"] = sorted(final_conflation["taxa"], key=get_numerical_curie_suffix)
+            if len(final_conflation["taxa"]) > 0:
+                final_conflation["taxon_specific"] = True
+            else:
+                final_conflation["taxon_specific"] = False
 
             # Checks
             if "curie" not in final_conflation:
