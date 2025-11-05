@@ -86,8 +86,6 @@ rule export_all_to_duckdb:
     input:
         compendia_done=config["output_directory"] + "/duckdb/compendia_done",
         synonyms_done=config["output_directory"] + "/duckdb/synonyms_done",
-        compendia_done=config['output_directory'] + '/duckdb/compendia_done',
-        synonyms_done=config['output_directory'] + '/duckdb/synonyms_done',
         conflations_done=config['output_directory'] + '/duckdb/conflations_done',
     output:
         x=config["output_directory"] + "/duckdb/done",
