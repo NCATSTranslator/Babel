@@ -1,4 +1,6 @@
 # translator_hierarchy.snakefile - Download and normalize the Ubergraph hierarchy for Translator.
+import os
+
 import curies
 import duckdb
 import pandas as pd
@@ -37,6 +39,7 @@ rule normalize_ubergraph_hierarchy:
         edge_labels_tsv = config['download_directory'] + '/UbergraphHierarchy/redundant-graph-table/edge-labels.tsv',
         edge_tsv = config['download_directory'] + '/UbergraphHierarchy/redundant-graph-table/edges.tsv',
     output:
+        duckdb_filename = temp(config['output_directory'] + '/UbergraphHierarchy/duckdb.db'),
         node_labels_harmonized = config['output_directory'] + '/UbergraphHierarchy/node-labels-harmonized.tsv',
         iris_not_transformed = config['output_directory'] + '/UbergraphHierarchy/iris-not-transformed-into-curies.txt',
         ubergraph_redundant_triples_tsv = config['output_directory'] + '/UbergraphHierarchy/ubergraph-redundant-triples-harmonized.tsv',
@@ -79,7 +82,7 @@ rule normalize_ubergraph_hierarchy:
         node_labels_df['curie'] = pd.Series(curies_column, index=node_labels_df.index)
 
         # Load the dataframe into a DuckDB table.
-        db = setup_duckdb(config['output_directory'] + '/UbergraphHierarchy/duckdb.db')
+        db = setup_duckdb(output.duckdb_filename)
         db.register('node_labels', node_labels_df)
 
         # Load the DuckDB files.
@@ -136,6 +139,15 @@ rule normalize_ubergraph_hierarchy:
         harmonized_edges.to_csv(output.ubergraph_redundant_triples_tsv, sep='\t', header=True)
 
         # TODO: make mappings non-redundant.
+
+        # Generate a report on predicates exports, their labels and counts.
+        predicate_counts = db.sql("""
+            SELECT
+                predicate_iri,
+                predicate_label,
+                COUNT(DISTINCT ) AS predicate_count
+        """)
+
 
 rule compress_ubergraph_hierarchy:
     input:
