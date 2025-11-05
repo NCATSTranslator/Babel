@@ -24,6 +24,7 @@ RUN apt install -y pipx
 # of this software on a Kubernetes cluster, but can
 # be removed if not needed.
 RUN apt-get install -y htop
+RUN apt-get install -y duckdb
 RUN apt-get install -y screen
 RUN apt-get install -y vim
 RUN apt-get install -y rsync
