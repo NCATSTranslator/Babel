@@ -21,6 +21,7 @@ dependencies = [
     "psutil>=7.1.1",
     "psycopg2-binary>=2.9.11",
     "py-spy>=0.4.1",
+    "pymarkdownlnt>=0.9.33",
     "pyoxigraph~=0.4.11",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",

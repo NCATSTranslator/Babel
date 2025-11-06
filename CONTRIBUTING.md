@@ -31,5 +31,14 @@ and if you can help get them to pass, that would be great!
 You can contribute source code by forking this repository, creating a new branch, and then submitting a pull request
 to our [GitHub repository](https://github.com/NCATSTranslator/Babel).
 
-Code submitted for review should use [ruff](https://docs.astral.sh/ruff/) to fix any style issues before submission.
-You can run ruff by running `uv run ruff check`, and you can use `uv run ruff check --fix` to automatically fix some issues.
+We use three linters to check the style of submitted code in GitHub pull requests -- don't worry if this is difficult
+to do at your end, as it is easy to fix in a pull request:
+* [ruff](https://docs.astral.sh/ruff/) for Python code
+  * You can run this locally by running `uv run ruff check`.
+  * You can use `uv run ruff check --fix` to automatically fix some issues.
+* [snakefmt](https://github.com/snakemake/snakefmt) for Snakemake files
+  * You can run this locally by running `uv run snakefmt --check --compact-diff .`.
+  * You can use `uv run snakefmt .` to automatically fix some issues.
+* [pymarkdownlnt](https://pypi.org/project/pymarkdownlnt/) for Markdown files
+  * You can run this locally by running `uv run pymarkdownlint scan .`.
+  * You can use `uv run pymarkdownlint fix .` to automatically fix some issues.
