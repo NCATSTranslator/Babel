@@ -132,6 +132,55 @@ that makes it clear that these identifiers refer to the same concept, are also v
 ability to combine cliques manually if needed urgently for some application, we prefer to find a source of mappings
 that would combine the two identifiers, allowing us to improve cliquing across Babel.
 
+## How does Babel choose a preferred identifier for a clique?
+
+After determining the equivalent identifiers that belong in a single clique, Babel sorts them in the order of CURIE
+prefixes for that Biolink type as determined by the Biolink Model. For example, for a [biolink:SmallMolecule](https://biolink.github.io/biolink-model/SmallMolecule/#valid-id-prefixes),
+any CHEBI identifiers will appear first, followed by any UNII identifiers, and so on. The first identifier in this list
+is the preferred identifier for the clique.
+
+[Conflations](./docs/Conflation.md) are lists of identifiers that are merged in that order when that conflation is applied. The preferred identifier for
+the clique is therefore the preferred identifier of the first clique being conflated.
+* For GeneProtein conflation, the preferred identifier is a gene.
+* For DrugChemical conflation, Babel uses the [following algorithm](https://github.com/NCATSTranslator/Babel/blob/f3ff2103e74bc9b6bee9483355206b32e8f9ae9b/src/createcompendia/drugchemical.py#L466-L538):
+  1. We first choose an overall Biolink type for the conflated clique. To do this, we use a ["preferred Biolink type"
+     order](https://github.com/NCATSTranslator/Babel/blob/f3ff2103e74bc9b6bee9483355206b32e8f9ae9b/config.yaml#L32-L50)
+     that can be configured in [config.yaml](./config.yaml) and choose the most preferred Biolink type that is present
+     in the conflated clique.
+  2. We then group the cliques to be conflated by the prefix of their preferred identifier, and sort them based on
+     the preferred prefix order for the chosen Biolink type.
+  3. If there are multiple cliques with the same prefix in their preferred identifier, we use the following criteria
+     to sort them:
+     1. A clique with a lower information content value will be sorted before those with a higher information content
+        or no information content at all.
+     2. A clique with more identifiers are sorted before those with fewer identifiers.
+     3. A clique whose preferred identifier has a smaller numerical suffix will be sorted before those with a larger
+        numerical suffix.
+
+## How does Babel choose a preferred label for a clique?
+
+For most Biolink types, the preferred label for a clique is the label of the preferred identifier. There is a
+[`demote_labels_longer_than`](https://github.com/NCATSTranslator/Babel/blob/master/config.yaml#L437) configuration
+parameter that -- if set -- will cause labels that are longer than the specified number of characters to be ignored
+unless no labels shorter than that length are present. This is to avoid overly long labels when a more concise
+label is available.
+
+Biolink types that are chemicals (i.e. [biolink:ChemicalEntity](https://biolink.github.io/biolink-model/ChemicalEntity/)
+and its subclasses) have a special list of [preferred name boost prefixes](https://github.com/NCATSTranslator/Babel/blob/f3ff2103e74bc9b6bee9483355206b32e8f9ae9b/config.yaml#L416-L426)
+that are used to prioritize labels. This list is currently:
+1. DRUGBANK
+2. DrugCentral
+3. CHEBI
+4. MESH
+5. CHEMBL.COMPOUND
+6. GTOPDB
+7. HMDB
+8. RXCUI
+9. PUBCHEM.COMPOUND
+
+[Conflations](./docs/Conflation.md) are lists of identifiers that are merged in that order when that conflation is applied. The preferred label for
+the conflated clique is therefore the preferred label of the first clique being conflated.
+
 ## Where do the clique descriptions come from?
 
 Currently, all descriptions for NodeNorm concepts come from [UberGraph](https://github.com/INCATools/ubergraph/). You
@@ -144,7 +193,7 @@ but the `description` flag can be used to include any descriptions when returnin
 Babel is difficult to build, primarily because of its inefficient memory handling -- we currently need around 500G of
 memory to build the largest compendia (Protein and DrugChemical conflated information), although the smaller
 compendia should be buildable with far less memory. We are working on reducing these restrictions as far as possible.
-You can read more about [Babel's build process](.docs/Running.md), and please do contact us if you run
+You can read more about [Babel's build process](./docs/Running.md), and please do contact us if you run
 into any problems or would like some assistance.
 
 ## Who should I contact for more information about Babel?
