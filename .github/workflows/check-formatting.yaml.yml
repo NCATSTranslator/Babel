@@ -7,7 +7,7 @@ jobs:
     name: Check Python formatting with ruff
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v3
       - uses: astral-sh/ruff-action@v3
 
@@ -15,7 +15,16 @@ jobs:
     name: Check Snakemake formatting with snakefmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v7
       - run: uv run snakefmt --check --compact-diff .
+
+  check-formatting-with-markdownlint-cli2:
+    name: Check Markdown formatting with markdownlint-cli2
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: DavidAnson/markdownlint-cli2-action@v20
+        with:
+          globs: '**/*.md'
