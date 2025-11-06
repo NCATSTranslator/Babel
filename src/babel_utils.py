@@ -307,13 +307,13 @@ def pull_via_wget(
     # Decompress the downloaded file if needed.
     uncompressed_filename = None
     if decompress:
-        if dl_file_name.endswith(".gz"):
+        if dl_file_name.lower().endswith(".gz"):
             uncompressed_filename = dl_file_name[:-3]
             process = subprocess.run(["gunzip", dl_file_name])
             if process.returncode != 0:
                 raise RuntimeError(f"Could not execute gunzip ['gunzip', {dl_file_name}]: {process.stderr}")
         else:
-            raise RuntimeError(f"Don't know how to decompress {in_file_name}")
+            raise RuntimeError(f"Don't know how to decompress {in_file_name}, which was downloaded as '{dl_file_name}'.")
 
         if os.path.isfile(uncompressed_filename):
             file_size = os.path.getsize(uncompressed_filename)
