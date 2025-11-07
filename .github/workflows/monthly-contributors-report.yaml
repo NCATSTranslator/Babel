@@ -36,7 +36,7 @@ jobs:
         uses: github/contributors@v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPOSITORY: NCATSTranslator/Babel,NCATSTranslator/NodeNormalizer,NCATSTranslator/NameResolution
+          REPOSITORY: NCATSTranslator/Babel
 
       - name: Create issue
         uses: peter-evans/create-issue-from-file@v5
