@@ -1,6 +1,6 @@
 #
 # This GitHub Action is intended to update a monthly contributor report.
-# Based on an xample file from https://github.com/github/contributors?tab=readme-ov-file#example-workflows
+# Based on an example file from https://github.com/github/contributors?tab=readme-ov-file#example-workflows
 #
 
 name: Monthly contributor report
@@ -36,6 +36,7 @@ jobs:
         uses: github/contributors@v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: NCATSTranslator/Babel,NCATSTranslator/NodeNormalizer,NCATSTranslator/NameResolution
 
       - name: Create issue
         uses: peter-evans/create-issue-from-file@v5
