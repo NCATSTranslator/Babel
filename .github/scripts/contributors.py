@@ -69,30 +69,31 @@ while repo_issues_url:
     response.raise_for_status()
     data = response.json()
 
-    # Is this a pull request?
-    contribution_type = "issue"
-    if "pull_request" in data and "html_url" in data["pull_request"]:
-        contribution_type = "pull_request"
+    for issue in data:
+        # Is this a pull request?
+        contribution_type = "issue"
+        if "pull_request" in issue and "html_url" in issue["pull_request"]:
+            contribution_type = "pull_request"
 
-    # Add contributions.
-    add_user_contribution(
-        user_obj=data["user"],
-        contribution_type=f"{contribution_type}_created",
-        contribution=data,
-    )
-    add_user_contribution(
-        user_obj=data["closed_by"],
-        contribution_type=f"{contribution_type}_closed",
-        contribution=data,
-    )
-    for assignee in data["assignees"]:
+        # Add contributions.
         add_user_contribution(
-            user_obj=assignee,
-            contribution_type=f"{contribution_type}_assigned",
-            contribution=data,
+            user_obj=issue["user"],
+            contribution_type=f"{contribution_type}_created",
+            contribution=issue,
         )
+        add_user_contribution(
+            user_obj=issue["closed_by"],
+            contribution_type=f"{contribution_type}_closed",
+            contribution=issue,
+        )
+        for assignee in issue["assignees"]:
+            add_user_contribution(
+                user_obj=assignee,
+                contribution_type=f"{contribution_type}_assigned",
+                contribution=issue,
+            )
 
-    # TODO: count comments.
+        # TODO: count comments.
 
     # handle pagination
     repo_issues_url = response.links.get("next", {}).get("url")
