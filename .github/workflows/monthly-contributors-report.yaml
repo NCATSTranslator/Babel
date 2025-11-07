@@ -1,3 +1,8 @@
+#
+# This GitHub Action is intended to update a monthly contributor report.
+# Based on an xample file from https://github.com/github/contributors?tab=readme-ov-file#example-workflows
+#
+
 name: Monthly contributor report
 on:
   workflow_dispatch:
