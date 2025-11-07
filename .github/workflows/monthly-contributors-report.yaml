@@ -1,8 +1,7 @@
 name: Monthly contributor report
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "3 2 1 * *"
+  push:
 
 permissions:
   contents: read
@@ -32,8 +31,6 @@ jobs:
         uses: github/contributors@v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          START_DATE: ${{ env.START_DATE }}
-          END_DATE: ${{ env.END_DATE }}
 
       - name: Create issue
         uses: peter-evans/create-issue-from-file@v5
@@ -41,4 +38,4 @@ jobs:
           title: Monthly contributor report
           token: ${{ secrets.GITHUB_TOKEN }}
           content-filepath: ./contributors.md
-          assignees: <YOUR_GITHUB_HANDLE_HERE>
+          assignees: gaurav
