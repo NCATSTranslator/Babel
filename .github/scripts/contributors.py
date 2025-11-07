@@ -45,9 +45,9 @@ def add_user_contribution(user_obj, contribution_type, contribution):
     if contribution_type not in contributions_by_username[login]["contribution_by_type"]:
         contributions_by_username[login]["contribution_by_type"][contribution_type] = set()
 
-    contributions_by_username[login]["contributions"].add(contribution)
-    contributions_by_username[login]["contribution_by_type"][contribution_type].add(contribution)
-    overall_contribution_counts[contribution_type].add(contribution)
+    contributions_by_username[login]["contributions"].add(contribution["html_url"])
+    contributions_by_username[login]["contribution_by_type"][contribution_type].add(contribution["html_url"])
+    overall_contribution_counts[contribution_type].add(contribution["html_url"])
 
 # Step 2. Collect information about all issues.
 repo_issues_url = f"https://api.github.com/repos/{repo}/issues"
