@@ -29,6 +29,9 @@ repo = os.environ["GITHUB_REPOSITORY"]  # e.g. "owner/repo"
 contributions_by_username = {}
 overall_contribution_counts = defaultdict(set)
 def add_user_contribution(user_obj, contribution_type, contribution):
+    if user_obj is None or contribution is None:
+        return
+
     login = user_obj["login"]
     login_url = user_obj["html_url"]
     avatar_url = user_obj["avatar_url"]
@@ -64,7 +67,7 @@ params = {
 }
 
 while repo_issues_url:
-    logging.debug(f"Fetching {repo_issues_url}")
+    logging.debug(f"Fetching issues from {repo_issues_url}")
     response = requests.get(repo_issues_url, headers=headers, params=params)
     response.raise_for_status()
     data = response.json()
