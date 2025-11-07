@@ -3,10 +3,6 @@ on:
   workflow_dispatch:
   push:
 
-permissions:
-  contents: read
-  issues: write
-
 jobs:
   build:
     name: Generate a contributors report
