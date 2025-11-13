@@ -135,6 +135,14 @@ rule normalize_ubergraph_hierarchy:
             JOIN result result_subj ON ubergraph_edges.subject_id = result_subj.node_id AND result_subj.normalized_conflated_curie IS NOT NULL
             JOIN result result_obj ON ubergraph_edges.object_id = result_obj.node_id AND result_obj.normalized_conflated_curie IS NOT NULL
             WHERE result_subj.normalized_curie <> result_obj.normalized_curie
+                AND predicate_iri IN (
+                    "\"http://www.w3.org/2000/01/rdf-schema#subClassOf\"",              -- subClassOf
+                    "http://purl.obolibrary.org/obo/BFO_0000051",                       -- has part
+                    "http://purl.obolibrary.org/obo/BFO_0000050",                       -- part of
+                    "http://purl.obolibrary.org/obo/RO_0001025",                        -- located in
+                    "\"http://purl.obolibrary.org/obo/emapa#part_of\"",                 -- part of
+                    "\"http://purl.obolibrary.org/obo/uberon/core#subdivision_of\""     -- subdivision of
+                )
             """)
         harmonized_edges.to_csv(output.ubergraph_redundant_triples_tsv, sep='\t', header=True)
 
