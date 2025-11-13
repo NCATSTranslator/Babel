@@ -433,9 +433,6 @@ def build_conflation(
     gloms = {}
     glom(gloms, pairs_to_be_glommed)
 
-    # Set up a NodeFactory.
-    nodefactory = NodeFactory("", get_config()["biolink_version"])
-
     # Write out all the resulting cliques.
     written = set()
     with jsonlines.open(outfilename, "w") as outf:
@@ -507,7 +504,11 @@ def build_conflation(
             # clique conflation leader.
             final_conflation_id_list = []
             clique_ics = []
-            for biolink_type, ids in sorted(conflation_ids_by_type.items(), key=lambda bt: config["preferred_conflation_type_order"].get(bt[0], 100)):
+            preferred_conflation_type_order = config["preferred_conflation_type_order"]
+
+            logger.info(f"Using preferred_conflation_type_order: {json.dumps(preferred_conflation_type_order, indent=2)}")
+
+            for biolink_type, ids in sorted(conflation_ids_by_type.items(), key=lambda bt: preferred_conflation_type_order.get(bt[0], 100)):
                 # To sort the identifiers, we'll need to calculate a tuple for each identifier to sort on.
                 sorted_ids = {}
                 for curie in ids:
