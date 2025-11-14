@@ -5,7 +5,7 @@ sbatch <<EOF
 #SBATCH --job-name=babel-${BABEL_VERSION:-current}
 #SBATCH --output=babel_outputs/sbatch-babel-${BABEL_VERSION:-current}.out
 #SBATCH --time=${BABEL_TIMEOUT:-1:00:00}
-#SBATCH --mem=2G
+#SBATCH --mem=20G
 #SBATCH -n 1
 #SBATCH --chdir=$PWD
 
