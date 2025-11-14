@@ -1,6 +1,7 @@
 #!/bin/bash
 
 sbatch <<EOF
+#!/bin/bash
 #SBATCH --job-name=babel-${BABEL_VERSION:-current}
 #SBATCH --output=babel_outputs/sbatch-babel-${BABEL_VERSION:-current}.out
 #SBATCH --time=${BABEL_TIMEOUT:-1:00:00}
