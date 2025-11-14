@@ -293,12 +293,13 @@ def read_umls_priority():
     return prid
 
 
-def download_umls(umls_version, download_dir):
+def download_umls(umls_version, umls_subset, download_dir):
     """
     Download the latest UMLS into the specified download directory. In addition to downloading
     and unzipping UMLS, this will move the files we use into the main directory.
 
     :param umls_version: The version of UMLS to download (e.g. `2023AA`).
+    :param umls_subset: The subset of UMLS to download (e.g. `full`, `level-0`).
     :param download_dir: The directory to download UMLS to (e.g. `babel_downloads/UMLS`)
     """
     umls_api_key = os.environ.get("UMLS_API_KEY")
@@ -307,22 +308,27 @@ def download_umls(umls_version, download_dir):
         print("See instructions at https://documentation.uts.nlm.nih.gov/rest/authentication.html")
         exit(1)
 
+    # Check umls_subset.
+    if umls_subset not in ["full", "level-0"]:
+        raise ValueError(f"The umls_subset parameter must be one of 'full' or 'level-0', but got: {umls_subset}.")
+
     # Download umls-{umls_version}-metathesaurus-full.zip
     # As described at https://documentation.uts.nlm.nih.gov/automating-downloads.html
     umls_url = "https://uts-ws.nlm.nih.gov/download"
+    filename = f"umls-{umls_version}-metathesaurus-{umls_subset}.zip"
     req = requests.get(
         umls_url,
-        {"url": f"https://download.nlm.nih.gov/umls/kss/{umls_version}/umls-{umls_version}-metathesaurus-full.zip", "apiKey": umls_api_key},
+        {"url": f"https://download.nlm.nih.gov/umls/kss/{umls_version}/{filename}", "apiKey": umls_api_key},
         stream=True,
     )
     if not req.ok:
-        print(f"Unable to download UMLS from ${umls_url}: ${req}")
+        print(f"Unable to download UMLS from {umls_url}: {req}")
         exit(1)
 
     # Write file to {download_dir}/umls-{umls_version}-metathesaurus-full.zip
-    logging.info(f"Downloading umls-{umls_version}-metathesaurus-full.zip to {download_dir}")
+    logging.info(f"Downloading {filename} to {download_dir}")
     os.makedirs(download_dir, exist_ok=True)
-    umls_download_zip = os.path.join(download_dir, f"umls-{umls_version}-metathesaurus-full.zip")
+    umls_download_zip = os.path.join(download_dir, filename)
     with open(umls_download_zip, "wb") as fd:
         for chunk in req.iter_content(chunk_size=128):
             fd.write(chunk)

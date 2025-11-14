@@ -5,8 +5,23 @@ import time
 import jsonlines
 from humanfriendly import format_timespan
 
+from src.categories import (
+    SMALL_MOLECULE,
+    POLYPEPTIDE,
+    CHEMICAL_ENTITY,
+    ENVIRONMENTAL_FOOD_CONTAMINANT,
+    FOOD,
+    FOOD_ADDITIVE,
+    DRUG,
+    PROCESSED_MATERIAL,
+    MOLECULAR_MIXTURE,
+    CHEMICAL_MIXTURE,
+    COMPLEX_MOLECULAR_MIXTURE,
+    MOLECULAR_ENTITY,
+    NUCLEIC_ACID_ENTITY,
+)
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
-from src.node import NodeFactory, InformationContentFactory
+from src.node import InformationContentFactory
 from src.prefixes import RXCUI, PUBCHEMCOMPOUND, UMLS
 from src.babel_utils import glom, get_numerical_curie_suffix
 from collections import defaultdict
@@ -16,6 +31,26 @@ import logging
 from src.util import LoggingUtil, get_config, get_memory_usage_summary
 
 logger = LoggingUtil.init_logging(__name__, level=logging.INFO)
+
+# When ordering cliques within a conflation, we do it in a particular order based on what types are
+# the most common for a particular application.
+#
+# I've also listed the number of entities as of 2024mar24 to give an idea of how common these are.
+PREFERRED_CONFLATION_TYPE_ORDER = {
+    SMALL_MOLECULE: 1,                      # 107,459,280 cliques
+    POLYPEPTIDE: 2,                         # 622 cliques
+    NUCLEIC_ACID_ENTITY: 3,                 # N/A
+    MOLECULAR_ENTITY: 4,                    # N/A
+    COMPLEX_MOLECULAR_MIXTURE: 5,           # 177 cliques
+    CHEMICAL_MIXTURE: 6,                    # 498 cliques
+    MOLECULAR_MIXTURE: 7,                   # 10,371,847 cliques
+    PROCESSED_MATERIAL: 8,                  # N/A
+    DRUG: 9,                                # 145,677 cliques
+    FOOD_ADDITIVE: 10,                      # N/A
+    FOOD: 11,                               # N/A
+    ENVIRONMENTAL_FOOD_CONTAMINANT: 12,     # N/A
+    CHEMICAL_ENTITY: 13,                    # 7,398,124 cliques
+}
 
 # RXNORM has lots of relationships.
 # RXNREL contains both directions of each relationship, just to make the file bigger
@@ -433,9 +468,6 @@ def build_conflation(
     gloms = {}
     glom(gloms, pairs_to_be_glommed)
 
-    # Set up a NodeFactory.
-    nodefactory = NodeFactory("", get_config()["biolink_version"])
-
     # Write out all the resulting cliques.
     written = set()
     with jsonlines.open(outfilename, "w") as outf:
@@ -496,8 +528,6 @@ def build_conflation(
                 logger.debug(f"Found a DrugChemical conflation with a single identifier, skipping: {normalized_conflation_id_list}.")
                 continue
 
-            # 3. There's a particular order we'd like to arrange the conflation in (see config.yaml: preferred_conflation_type_order)
-
             # Within each of those classes, we want to sort by:
             #   - information_content (lowest to highest, so that more general concepts are front-loaded)
             #   - clique size (largest to smallest, so that larger cliques are front-loaded)
@@ -507,7 +537,11 @@ def build_conflation(
             # clique conflation leader.
             final_conflation_id_list = []
             clique_ics = []
-            for biolink_type, ids in sorted(conflation_ids_by_type.items(), key=lambda bt: config["preferred_conflation_type_order"].get(bt[0], 100)):
+            preferred_conflation_type_order = PREFERRED_CONFLATION_TYPE_ORDER
+
+            logger.info(f"Using preferred_conflation_type_order: {json.dumps(preferred_conflation_type_order, indent=2)}")
+
+            for biolink_type, ids in sorted(conflation_ids_by_type.items(), key=lambda bt: preferred_conflation_type_order.get(bt[0], 100)):
                 # To sort the identifiers, we'll need to calculate a tuple for each identifier to sort on.
                 sorted_ids = {}
                 for curie in ids:

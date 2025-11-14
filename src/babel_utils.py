@@ -307,13 +307,13 @@ def pull_via_wget(
     # Decompress the downloaded file if needed.
     uncompressed_filename = None
     if decompress:
-        if dl_file_name.endswith(".gz"):
+        if dl_file_name.lower().endswith(".gz"):
             uncompressed_filename = dl_file_name[:-3]
             process = subprocess.run(["gunzip", dl_file_name])
             if process.returncode != 0:
                 raise RuntimeError(f"Could not execute gunzip ['gunzip', {dl_file_name}]: {process.stderr}")
         else:
-            raise RuntimeError(f"Don't know how to decompress {in_file_name}")
+            raise RuntimeError(f"Don't know how to decompress {in_file_name}, which was downloaded as '{dl_file_name}'.")
 
         if os.path.isfile(uncompressed_filename):
             file_size = os.path.getsize(uncompressed_filename)
@@ -629,7 +629,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                 # Write out the preferred name, if we have one.
                 nw["preferred_name"] = preferred_name
 
-                # Collect taxon names for this node.
+                # Collect taxon IDs for this node.
                 nw["taxa"] = list(sorted(set().union(*taxa.values()), key=get_numerical_curie_suffix))
 
                 outf.write(nw)
@@ -671,7 +671,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
 
                     # Cliques with more identifiers might be better than cliques with smaller identifiers.
                     # So let's try to incorporate that here.
-                    # Note that this includes all the alternative IDs.
+                    # Note that this includes all the alternative IDs.kl
                     document["clique_identifier_count"] = len(nw["identifiers"])
 
                     # We want to see if we can use the CURIE suffix to sort concepts with similar identifiers.
@@ -686,6 +686,12 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
 
                     # Collect taxon names for this node.
                     document["taxa"] = list(sorted(set().union(*taxa.values()), key=get_numerical_curie_suffix))
+                    if len(document["taxa"]) > 0:
+                        # This concept is specific to one or more particular taxa.
+                        document["taxon_specific"] = True
+                    else:
+                        # This concept is not specific to any taxa (that we know about).
+                        document["taxon_specific"] = False
 
                     sfile.write(document)
                 except Exception as ex:

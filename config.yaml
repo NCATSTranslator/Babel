@@ -1,3 +1,14 @@
+# Build information. Currently unstructured -- you can use this to write down any notes on what is going on with
+# this specific build of Babel.
+build:
+  branch: babel-1.14
+
+# Versions that need to be updated on every release.
+biolink_version: "4.3.2"
+umls_version: "2025AA"
+rxnorm_version: "10062025"
+drugbank_version: "5-1-13"
+
 # Overall inputs and outputs.
 input_directory: input_data
 download_directory: babel_downloads
@@ -5,11 +16,13 @@ intermediate_directory: babel_outputs/intermediate
 output_directory: babel_outputs
 tmp_directory: babel_downloads/tmp
 
-# Versions that need to be updated on every release.
-biolink_version: "4.2.6-rc5"
-umls_version: "2025AA"
-rxnorm_version: "07072025"
-drugbank_version: "5-1-13"
+#
+# UMLS
+#
+umls:
+  subset: "full"
+  # Replace with "level-0" to get only the level 0 subset (https://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html).
+  # subset: "level-0"
 
 #
 # PROTEINS
