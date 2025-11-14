@@ -146,16 +146,6 @@ rule normalize_ubergraph_hierarchy:
             """)
         harmonized_edges.to_csv(output.ubergraph_redundant_triples_tsv, sep='\t', header=True)
 
-        # TODO: make mappings non-redundant.
-
-        # Generate a report on predicates exports, their labels and counts.
-        predicate_counts = db.sql("""
-            SELECT
-                predicate_iri,
-                predicate_label,
-                COUNT(DISTINCT ) AS predicate_count
-        """)
-
 
 rule compress_ubergraph_hierarchy:
     input:
