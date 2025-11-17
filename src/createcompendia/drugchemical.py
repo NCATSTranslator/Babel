@@ -28,7 +28,7 @@ from collections import defaultdict
 import json
 
 import logging
-from src.util import LoggingUtil, get_config, get_memory_usage_summary
+from src.util import LoggingUtil, get_config, get_memory_usage_summary, get_biolink_model_toolkit
 
 logger = LoggingUtil.init_logging(__name__, level=logging.INFO)
 
@@ -271,7 +271,7 @@ def build_rxnorm_relationships(conso, relfile, outfile, metadata_yaml):
     )
 
 
-def load_cliques(compendium):
+def load_cliques_containing_rxcui(compendium):
     rx_to_clique = {}
     with open(compendium, "r") as infile:
         for line in infile:
@@ -358,7 +358,7 @@ def build_conflation(
             manual_concords_curie_prefix_counts[prefix_count_label] += 1
     logger.info(f"{len(manual_concords)} manual concords loaded.")
 
-    logger.info("load all chemical conflations so we can normalize identifiers")
+    logger.info("load all chemical compendia so we can normalize identifiers")
     preferred_curie_for_curie = {}
     type_for_preferred_curie = {}
     clique_for_preferred_curie = {}
@@ -377,13 +377,13 @@ def build_conflation(
     logger.info(f"Loaded preferred CURIEs for {len(preferred_curie_for_curie)} CURIEs from the chemical compendia: {get_memory_usage_summary()}")
 
     logger.info("load drugs")
-    drug_rxcui_to_clique = load_cliques(drug_compendium)
+    drug_rxcui_to_clique = load_cliques_containing_rxcui(drug_compendium)
     chemical_rxcui_to_clique = {}
     for chemical_compendium in chemical_compendia:
         if chemical_compendium == drug_compendium:
             continue
         logger.info(f"load {chemical_compendium}: {get_memory_usage_summary()}")
-        chemical_rxcui_to_clique.update(load_cliques(chemical_compendium))
+        chemical_rxcui_to_clique.update(load_cliques_containing_rxcui(chemical_compendium))
 
     pairs = []
     for concfile in [rxn_concord, umls_concord]:
@@ -411,6 +411,15 @@ def build_conflation(
                     subject = chemical_rxcui_to_clique[subject]
                     object = chemical_rxcui_to_clique[object]
                     pairs.append((subject, object))
+
+    biolink_model_toolkit = get_biolink_model_toolkit(config['biolink_version'])
+    biolink_chemical_types = set(biolink_model_toolkit.get_descendants(
+        CHEMICAL_ENTITY,
+        reflexive=True,
+        formatted=True,
+        mixin=True,
+    ))
+    logging.info(f"Filtering RxCUI pairs to those in these Biolink chemical types: {sorted(biolink_chemical_types)}")
     with open(pubchem_rxn_concord, "r") as infile:
         for line in infile:
             x = line.strip().split("\t")
@@ -431,8 +440,20 @@ def build_conflation(
             elif object in chemical_rxcui_to_clique:
                 object = chemical_rxcui_to_clique[object]
             else:
-                logger.warning(f"Object in subject-object pair ({subject}, {object}) isn't mapped to a RxCUI")
+                logger.warning(f"Object in subject-object pair ({subject}, {object}) isn't mapped to a RxCUI, continuing.")
                 # raise RuntimeError(f"Unknown identifier in drugchemical conflation as object: {object}")
+
+            # Either the subject or the object might not be a chemical -- for example, MESH:C415772 shows up here,
+            # but it's a gene, not a chemical.
+            subject_type = type_for_preferred_curie[preferred_curie_for_curie[subject]]
+            if CHEMICAL_ENTITY in biolink_model_toolkit.get_ancestors(subject_type, reflexive=True, formatted=True, mixin=True):
+                logger.warning(f"Subject in subject-object pair ({subject}, {object}) has type {subject_type}, which is is not a chemical type, skipping.")
+                continue
+
+            object_type = type_for_preferred_curie[preferred_curie_for_curie[object]]
+            if CHEMICAL_ENTITY in biolink_model_toolkit.get_ancestors(object_type, reflexive=True, formatted=True, mixin=True):
+                logger.warning(f"Object in subject-object pair ({subject}, {object}) has type {object_type}, which is is not a chemical type, skipping.")
+                continue
 
             pairs.append((subject, object))
 
