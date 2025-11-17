@@ -446,12 +446,12 @@ def build_conflation(
             # Either the subject or the object might not be a chemical -- for example, MESH:C415772 shows up here,
             # but it's a gene, not a chemical.
             subject_type = type_for_preferred_curie[preferred_curie_for_curie[subject]]
-            if CHEMICAL_ENTITY in biolink_model_toolkit.get_ancestors(subject_type, reflexive=True, formatted=True, mixin=True):
+            if CHEMICAL_ENTITY not in biolink_chemical_types:
                 logger.warning(f"Subject in subject-object pair ({subject}, {object}) has type {subject_type}, which is is not a chemical type, skipping.")
                 continue
 
             object_type = type_for_preferred_curie[preferred_curie_for_curie[object]]
-            if CHEMICAL_ENTITY in biolink_model_toolkit.get_ancestors(object_type, reflexive=True, formatted=True, mixin=True):
+            if CHEMICAL_ENTITY not in biolink_chemical_types:
                 logger.warning(f"Object in subject-object pair ({subject}, {object}) has type {object_type}, which is is not a chemical type, skipping.")
                 continue
 
@@ -490,6 +490,10 @@ def build_conflation(
     logger.info(f"glom: {get_memory_usage_summary()}")
     gloms = {}
     glom(gloms, pairs_to_be_glommed)
+
+    # Set up the preferred conflation type order.
+    preferred_conflation_type_order = PREFERRED_CONFLATION_TYPE_ORDER
+    logger.info(f"Using preferred_conflation_type_order: {json.dumps(preferred_conflation_type_order, indent=2)}")
 
     # Write out all the resulting cliques.
     written = set()
@@ -560,9 +564,6 @@ def build_conflation(
             # clique conflation leader.
             final_conflation_id_list = []
             clique_ics = []
-            preferred_conflation_type_order = PREFERRED_CONFLATION_TYPE_ORDER
-
-            logger.info(f"Using preferred_conflation_type_order: {json.dumps(preferred_conflation_type_order, indent=2)}")
 
             for biolink_type, ids in sorted(conflation_ids_by_type.items(), key=lambda bt: preferred_conflation_type_order.get(bt[0], 100)):
                 # To sort the identifiers, we'll need to calculate a tuple for each identifier to sort on.
