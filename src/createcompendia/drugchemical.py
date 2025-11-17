@@ -566,6 +566,11 @@ def build_conflation(
             clique_ics = []
 
             for biolink_type, ids in sorted(conflation_ids_by_type.items(), key=lambda bt: preferred_conflation_type_order.get(bt[0], 100)):
+                # Is this Biolink type a chemical type? If not, ignore it.
+                if biolink_type not in biolink_chemical_types:
+                    logger.warning(f"Skipping Biolink type {biolink_type} because it's not a chemical type, with IDs: {ids}")
+                    continue
+
                 # To sort the identifiers, we'll need to calculate a tuple for each identifier to sort on.
                 sorted_ids = {}
                 for curie in ids:
@@ -595,9 +600,12 @@ def build_conflation(
                 sorted_ids = sorted(ids, key=sorted_ids.get)
                 final_conflation_id_list.extend(sorted_ids)
 
-            # This should account for every type (including the ones not included in the PREFERRED_CONFLATION_TYPE_ORDER),
-            # but just out of paranoia, we'll double-check that here.
-            assert set(final_conflation_id_list) == set(normalized_conflation_id_list)
+            # The final conflation list won't match the initial list only if some of the Biolink types weren't
+            # chemical types, and so were skipped that way.
+            if set(final_conflation_id_list) != set(normalized_conflation_id_list):
+                logger.warning("Final conflation ID list does not match the normalized conflation ID list:\n" +
+                               f" - Final conflation ID list: {sorted(final_conflation_id_list)}\n" +
+                               f" - Normalized conflation ID list: {sorted(normalized_conflation_id_list)}")
 
             # Write out all the identifiers.
             logger.info(f"Ordered DrugChemical conflation {final_conflation_id_list} with IC values {clique_ics}.")
