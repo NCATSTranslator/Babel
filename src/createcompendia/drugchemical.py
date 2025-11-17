@@ -45,11 +45,13 @@ PREFERRED_CONFLATION_TYPE_ORDER = {
     CHEMICAL_MIXTURE: 6,                    # 498 cliques
     MOLECULAR_MIXTURE: 7,                   # 10,371,847 cliques
     PROCESSED_MATERIAL: 8,                  # N/A
-    DRUG: 9,                                # 145,677 cliques
     FOOD_ADDITIVE: 10,                      # N/A
     FOOD: 11,                               # N/A
     ENVIRONMENTAL_FOOD_CONTAMINANT: 12,     # N/A
     CHEMICAL_ENTITY: 13,                    # 7,398,124 cliques
+    DRUG: 14,                               # 145,677 cliques
+        # We have to put biolink:Drug at the bottom because otherwise we get RXCUI CURIEs appearing higher in the
+        # conflation order than chemical entities (e.g. UNII:PVI5M0M1GW "Filgrastim") which is not ideal.
 }
 
 # RXNORM has lots of relationships.
