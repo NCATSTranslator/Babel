@@ -518,7 +518,7 @@ def build_conflation(
     # prefix sort order.
     biolink_model_toolkit = get_biolink_model_toolkit(config['biolink_version'])
     biolink_chemical_entity = biolink_model_toolkit.get_element(CHEMICAL_ENTITY)
-    conflation_prefix_order = biolink_chemical_entity.get['id_prefixes']
+    conflation_prefix_order = biolink_chemical_entity['id_prefixes']
     if not conflation_prefix_order:
         raise RuntimeError(f"Biolink model {config['biolink_version']} doesn't have a ChemicalEntity prefix order: {biolink_chemical_entity}")
 
