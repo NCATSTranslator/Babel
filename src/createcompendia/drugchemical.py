@@ -28,7 +28,7 @@ from collections import defaultdict
 import json
 
 import logging
-from src.util import LoggingUtil, get_config, get_memory_usage_summary, get_biolink_model_toolkit
+from src.util import LoggingUtil, get_config, get_memory_usage_summary, get_biolink_model_toolkit, Text
 
 logger = LoggingUtil.init_logging(__name__, level=logging.INFO)
 
@@ -506,8 +506,31 @@ def build_conflation(
     glom(gloms, pairs_to_be_glommed)
 
     # Set up the preferred conflation type order.
-    preferred_conflation_type_order = PREFERRED_CONFLATION_TYPE_ORDER
-    logger.info(f"Using preferred_conflation_type_order: {json.dumps(preferred_conflation_type_order, indent=2)}")
+    # preferred_conflation_type_order = PREFERRED_CONFLATION_TYPE_ORDER
+    # logger.info(f"Using preferred_conflation_type_order: {json.dumps(preferred_conflation_type_order, indent=2)}")
+
+    # Grouping conflation IDs by type is a great idea, and almost works! Unfortunately, we're currently
+    # identifying too many things as ChemicalEntity for this to work properly -- non-ideal concepts like
+    # CHEBI:5931 "insulin human" get placed further down in the conflation list than lots of other identifiers,
+    # including UNII:AVT680JB39 "Insulin pork", which is NOT good.
+    #
+    # So, instead, I'm going to group them by prefix and then to sort it using the ChemicalEntity
+    # prefix sort order.
+    biolink_model_toolkit = get_biolink_model_toolkit(config['biolink_version'])
+    biolink_chemical_entity = biolink_model_toolkit.get_element(CHEMICAL_ENTITY)
+    conflation_prefix_order = biolink_chemical_entity.get['id_prefixes']
+    if not conflation_prefix_order:
+        raise RuntimeError(f"Biolink model {config['biolink_version']} doesn't have a ChemicalEntity prefix order: {biolink_chemical_entity}")
+
+    # Add RXCUI at the bottom.
+    conflation_prefix_order.append("RXCUI")
+
+    # Turn it into a sort order.
+    conflation_prefix_sort_order = {}
+    for i, prefix in enumerate(conflation_prefix_order):
+        conflation_prefix_sort_order[prefix] = i
+
+    logging.info(f"Using prefix sort order: {json.dumps(conflation_prefix_sort_order, indent=2)}")
 
     # Write out all the resulting cliques.
     written = set()
@@ -543,7 +566,8 @@ def build_conflation(
             conflation_id_list = list(clique)
 
             # 2. Group identifiers by Biolink type, preserving the order of the clique members.
-            conflation_ids_by_type = defaultdict(list)
+            # conflation_ids_by_type = defaultdict(list)
+            conflation_ids_by_prefix = defaultdict(list)
             normalized_conflation_id_list = list()
             for iid in conflation_id_list:
                 # Normalization shouldn't be needed here, because they're all clique leaders, but just in case.
@@ -557,10 +581,15 @@ def build_conflation(
                 # At the moment, we get these from glomming, so the order should not actually be significant.
                 # But maybe in the future it will be if that changes? And it doesn't cost us much to maintain
                 # insertion order.
-                preferred_curie_type = type_for_preferred_curie[preferred_curie]
-                if preferred_curie not in conflation_ids_by_type[preferred_curie_type]:
-                    # Don't add duplicates!
-                    conflation_ids_by_type[preferred_curie_type].append(preferred_curie)
+                # preferred_curie_type = type_for_preferred_curie[preferred_curie]
+                # if preferred_curie not in conflation_ids_by_type[preferred_curie_type]:
+                #    # Don't add duplicates!
+                #    conflation_ids_by_type[preferred_curie_type].append(preferred_curie)
+
+                # We will use the preferred CURIE prefix to sort instead.
+                preferred_curie_prefix = Text.get_prefix(preferred_curie)
+                if preferred_curie not in conflation_ids_by_prefix[preferred_curie_prefix]:
+                    conflation_ids_by_prefix[preferred_curie_prefix].append(preferred_curie)
 
             # After all the normalization, it's possible that we'll end up with a conflation that only has a
             # single identifier in it. If so, we don't need to add it to the conflation list, because it won't
@@ -569,7 +598,7 @@ def build_conflation(
                 logger.debug(f"Found a DrugChemical conflation with a single identifier, skipping: {normalized_conflation_id_list}.")
                 continue
 
-            # Within each of those classes, we want to sort by:
+            # Within each of those groups, we want to sort by:
             #   - information_content (lowest to highest, so that more general concepts are front-loaded)
             #   - clique size (largest to smallest, so that larger cliques are front-loaded)
             #   - numerical suffix (lowest to highest)
@@ -579,11 +608,16 @@ def build_conflation(
             final_conflation_id_list = []
             clique_ics = []
 
-            for biolink_type, ids in sorted(conflation_ids_by_type.items(), key=lambda bt: preferred_conflation_type_order.get(bt[0], 100)):
+            # If we want to put the biolink type order back, you can generate it with:
+            #   grouped_by_conflation_type = sorted(conflation_ids_by_type.items(), key=lambda bt: preferred_conflation_type_order.get(bt[0], 100))
+            # If you do that, please remember to sort these identifiers in the prefix order for that type,
+            # which I forgot to do in the previous implementation!
+
+            for prefix, ids in sorted(conflation_ids_by_prefix.items(), key=lambda bt: conflation_prefix_sort_order.get(bt[0], 100)):
                 # Is this Biolink type a chemical type? If not, ignore it.
-                if biolink_type not in biolink_chemical_types:
-                    logger.warning(f"Skipping Biolink type {biolink_type} because it's not a chemical type, with IDs: {ids}")
-                    continue
+                # if biolink_type not in biolink_chemical_types:
+                #     logger.warning(f"Skipping Biolink type {biolink_type} because it's not a chemical type, with IDs: {ids}")
+                #     continue
 
                 # To sort the identifiers, we'll need to calculate a tuple for each identifier to sort on.
                 sorted_ids = {}
