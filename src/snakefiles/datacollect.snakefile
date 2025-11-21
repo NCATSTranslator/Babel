@@ -214,6 +214,7 @@ rule get_obo_labels:
             download_directory=config["download_directory"],
             prefix=config["generate_dirs_for_labels_and_synonyms_prefixes"],
         ),
+    retries: 10 # Ubergraph sometimes fails mid-download, and then we need to retry.
     run:
         obo.pull_uber_labels(output.obo_labels, output.generated_labels)
 
@@ -229,6 +230,7 @@ rule get_obo_synonyms:
             download_directory=config["download_directory"],
             prefix=config["generate_dirs_for_labels_and_synonyms_prefixes"],
         ),
+    retries: 10 # Ubergraph sometimes fails mid-download, and then we need to retry.
     run:
         obo.pull_uber_synonyms(output.obo_synonyms, output.generated_synonyms)
 
@@ -236,9 +238,9 @@ rule get_obo_synonyms:
 rule get_obo_descriptions:
     output:
         obo_descriptions=config["download_directory"] + "/common/ubergraph/descriptions.jsonl",
+    retries: 10 # Ubergraph sometimes fails mid-download, and then we need to retry.
     run:
         obo.pull_uber_descriptions(output.obo_descriptions)
-
 
 rule get_icrdf:
     input:
@@ -251,6 +253,7 @@ rule get_icrdf:
         config["download_directory"] + "/common/ubergraph/descriptions.jsonl",
     output:
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
+    retries: 10 # Ubergraph sometimes fails mid-download, and then we need to retry.
     run:
         obo.pull_uber_icRDF(output.icrdf_filename)
 
