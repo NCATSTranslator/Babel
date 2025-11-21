@@ -4,8 +4,8 @@ build:
   branch: babel-1.14
 
 # Versions that need to be updated on every release.
-biolink_version: "4.3.2"
-umls_version: "2025AA"
+biolink_version: "4.3.3"
+umls_version: "2025AB"
 rxnorm_version: "10062025"
 drugbank_version: "5-1-13"
 
