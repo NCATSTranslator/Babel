@@ -1,5 +1,5 @@
 configfile: "config.yaml"
-
+configfile: "babel_outputs/config.yaml"
 
 include: "src/snakefiles/datacollect.snakefile"
 include: "src/snakefiles/anatomy.snakefile"
