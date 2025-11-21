@@ -4,7 +4,7 @@ version = "1.14"
 description = "Babel creates cliques of equivalent identifiers across many biomedical vocabularies. "
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 dependencies = [
     "apybiomart",
     "beautifulsoup4>=4.14.2",
