@@ -1,5 +1,8 @@
-configfile: "config.yaml"
-configfile: "babel_outputs/config.yaml"
+config_files = ["config.yaml"]
+if os.path.exists("babel_outputs/config.yaml"):
+    # Optionally add a run-specific config file.
+    config_files.append("babel_outputs/config.yaml")
+configfile: config_files
 
 include: "src/snakefiles/datacollect.snakefile"
 include: "src/snakefiles/anatomy.snakefile"
