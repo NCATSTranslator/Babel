@@ -1,10 +1,16 @@
+# This is a Snakemake profile (https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles) that provides
+# configuration options that should be applied when Snakemake is run on the RENCI Hatteras cluster using SLURM.
+#
+# To use this profile, run:
+#   $ snakemake --profile slurm
+#
 executor: slurm
 jobs: 50 # maximum number of parallel cluster jobs
-latency-wait: 60
+latency-wait: 60 # seconds
 rerun-incomplete: true
 
 # Default resource settings for all rules
 default-resources:
   mem_mb_per_cpu: 64G
   runtime: 120 # minutes
-  cpus_per_task: 1
+  cpus_per_task: 4
