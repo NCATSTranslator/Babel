@@ -14,3 +14,10 @@ default-resources:
   mem_mb_per_cpu: 64G
   runtime: 120 # minutes
   cpus_per_task: 4
+
+# Set up the Slurm efficiency report.
+slurm-efficiency-report: True
+slurm-efficiency-report-path: babel_outputs/reports/slurm/slurm_efficiency_report.csv
+
+# Write Slurm logs into a `logs/` directory so we can look at them later.
+slurm-logdir: babel_outputs/logs

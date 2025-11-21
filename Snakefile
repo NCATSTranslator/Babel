@@ -1,8 +1,4 @@
-config_files = ["config.yaml"]
-if os.path.exists("babel_outputs/config.yaml"):
-    # Optionally add a run-specific config file.
-    config_files.append("babel_outputs/config.yaml")
-configfile: config_files
+configfile: "config.yaml"
 
 include: "src/snakefiles/datacollect.snakefile"
 include: "src/snakefiles/anatomy.snakefile"
@@ -44,9 +40,13 @@ rule all:
         # Build all the exports.
         config["output_directory"] + "/kgx/done",
         config["output_directory"] + "/sapbert-training-data/done",
+        # Store the config.yaml file used to produce the output.
+        config_file = "config.yaml",
     output:
         x=config["output_directory"] + "/reports/all_done",
+        output_config_file=config["output_directory"] + "/config.yaml",
     shell:
+        "cp {input.config_file} {output.output_config_file}"
         "echo 'done' >> {output.x}"
 
 
