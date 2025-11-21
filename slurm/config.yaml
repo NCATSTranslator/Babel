@@ -1,28 +1,10 @@
 executor: slurm
-jobs: 5                   # number of parallel cluster jobs
+jobs: 50 # maximum number of parallel cluster jobs
 latency-wait: 60
 rerun-incomplete: true
 
 # Default resource settings for all rules
 default-resources:
-  mem_mb_per_cpu: 64000
-  runtime: 120            # minutes
+  mem_mb_per_cpu: 64G
+  runtime: 120 # minutes
   cpus_per_task: 1
-
-# Per-rule resource overrides
-set-resources:
-  get_anatomy_obo_relationships:
-    mem_mb_per_cpu: 64000
-    runtime: 150
-    cpus_per_task: 2
-
-  build_anatomy_compendium:
-    mem_mb_per_cpu: 64000
-    runtime: 140
-    cpus_per_task: 3
-
-  get_phenotype_data:
-    mem_mb_per_cpu: 64000
-    runtime: 130
-    cpus_per_task: 4
-
