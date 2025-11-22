@@ -52,12 +52,12 @@ rule get_EFO:
 
 rule get_EFO_labels:
     input:
-        infile=config["download_directory"] + "/EFO/efo.owl",
+        owlfile=config["download_directory"] + "/EFO/efo.owl",
     output:
         labelfile=config["download_directory"] + "/EFO/labels",
         synonymfile=config["download_directory"] + "/EFO/synonyms",
     run:
-        efo.make_labels(input.infile, output.labelfile, output.synonymfile)
+        efo.make_labels(input.owlfile, output.labelfile, output.synonymfile)
 
 
 ### Complex Portal

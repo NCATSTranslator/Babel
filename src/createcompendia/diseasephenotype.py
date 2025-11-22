@@ -171,8 +171,8 @@ def build_disease_obo_relationships(outdir, metadata_yamls):
     )
 
 
-def build_disease_efo_relationships(idfile, owlfile, outfile, metadata_yaml):
-    efo.make_concords(idfile, owlfile, outfile, provenance_metadata=metadata_yaml)
+def build_disease_efo_relationships(owlfile, idfile, outfile, metadata_yaml):
+    efo.make_concords(owlfile, idfile, outfile, provenance_metadata=metadata_yaml)
 
 
 def build_disease_umls_relationships(mrconso, idfile, outfile, omimfile, ncitfile, metadata_yaml):
