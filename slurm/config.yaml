@@ -12,9 +12,9 @@ rerun-incomplete: true
 # Set up Hatteras partitions as per https://renci.atlassian.net/wiki/spaces/RENCI/pages/254443570/Cluster+Info#Hardware-Information
 partitions:
   batch:
-    max_mem_mb: 191000
+    max_mem_mb: 191000 # 191 GB
   largemem:
-    max_mem_mb: 1530329
+    max_mem_mb: 1530329 # 1.5 TB
 
 # Default resource settings for all rules
 default-resources:
