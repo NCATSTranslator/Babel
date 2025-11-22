@@ -1,5 +1,3 @@
-from snakemake.linting.links import params
-
 import src.node as node
 import src.datahandlers.mesh as mesh
 import src.datahandlers.clo as clo
