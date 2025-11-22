@@ -11,7 +11,7 @@ rerun-incomplete: true
 
 # Default resource settings for all rules
 default-resources:
-  mem_mb_per_cpu: 64G
+  mem: 64G
   runtime: 120 # minutes
   cpus_per_task: 4
 
