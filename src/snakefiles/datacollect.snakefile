@@ -545,6 +545,8 @@ rule get_chembl:
 
 
 rule chembl_labels_and_smiles:
+    resources:
+        mem="128G",
     input:
         infile=config["download_directory"] + "/CHEMBL.COMPOUND/chembl_latest_molecule.ttl",
         ccofile=config["download_directory"] + "/CHEMBL.COMPOUND/cco.ttl",
