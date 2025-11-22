@@ -18,7 +18,7 @@ def pull_efo():
 class EFOgraph:
     """Load the mesh rdf file for querying"""
 
-    def __init__(self):
+    def __init__(self, efo_owl_file_path):
         """There is a problem with enzyme.rdf.  As pulled from expasy, it includes this:
 
         <owl:Ontology rdf:about="">
@@ -26,17 +26,15 @@ class EFOgraph:
         </owl:Ontology>
 
         That about='' really makes pyoxigraph annoyed. So we have to give it a base_iri on load, then its ok"""
-        ifname = make_local_name("efo.owl", subpath="EFO")
         from datetime import datetime as dt
 
-        print("loading EFO")
+        logger.info(f"Loading EFO from {efo_owl_file_path}.")
         start = dt.now()
         self.m = pyoxigraph.Store()
-        with open(ifname, "rb") as inf:
+        with open(efo_owl_file_path, "rb") as inf:
             self.m.bulk_load(input=inf, format=pyoxigraph.RdfFormat.RDF_XML, base_iri="http://example.org/")
         end = dt.now()
-        print("loading complete")
-        print(f"took {end - start}")
+        logger.info(f"EFO loading complete in {end - start}.")
 
     def pull_EFO_labels_and_synonyms(self, lname, sname):
         with open(lname, "w") as labelfile, open(sname, "w") as synfile:
@@ -112,7 +110,7 @@ class EFOgraph:
             try:
                 otherid = Text.opt_to_curie(other[1:-1])
             except ValueError as verr:
-                print(f"Could not translate {other[1:-1]} into a CURIE, will be used as-is: {verr}")
+                logger.error(f"Could not translate {other[1:-1]} into a CURIE, will be used as-is: {verr}")
                 otherid = other[1:-1]
 
             if otherid.upper().startswith(ORPHANET.upper()):
@@ -157,19 +155,19 @@ class EFOgraph:
                 logging.warning(f"Skipping xref '{other_without_brackets}' in EFOgraph.get_xrefs({iri}): " + "not a valid CURIE")
 
 
-def make_labels(labelfile, synfile):
-    m = EFOgraph()
+def make_labels(owlfile, labelfile, synfile):
+    m = EFOgraph(owlfile)
     m.pull_EFO_labels_and_synonyms(labelfile, synfile)
 
 
-def make_ids(roots, idfname):
-    m = EFOgraph()
+def make_ids(roots, owlfile, idfname):
+    m = EFOgraph(owlfile)
     m.pull_EFO_ids(roots, idfname)
 
 
-def make_concords(idfilename, outfilename, provenance_metadata=None):
+def make_concords(owlfile, idfilename, outfilename, provenance_metadata=None):
     """Given a list of identifiers, find out all of the equivalent identifiers from the owl"""
-    m = EFOgraph()
+    m = EFOgraph(owlfile)
     with open(idfilename, "r") as inf, open(outfilename, "w") as concfile:
         for line in inf:
             efo_id = line.split("\t")[0]

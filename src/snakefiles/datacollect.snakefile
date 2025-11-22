@@ -57,7 +57,7 @@ rule get_EFO_labels:
         labelfile=config["download_directory"] + "/EFO/labels",
         synonymfile=config["download_directory"] + "/EFO/synonyms",
     run:
-        efo.make_labels(output.labelfile, output.synonymfile)
+        efo.make_labels(input.infile, output.labelfile, output.synonymfile)
 
 
 ### Complex Portal
