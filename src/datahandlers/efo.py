@@ -31,7 +31,7 @@ class EFOgraph:
         logger.info(f"Loading EFO from {efo_owl_file_path}.")
         start = dt.now()
         self.m = pyoxigraph.Store()
-        with open(efo_owl_file_path, "rb") as inf:
+        with open(efo_owl_file_path, "r") as inf:
             self.m.bulk_load(input=inf, format=pyoxigraph.RdfFormat.RDF_XML, base_iri="http://example.org/")
         end = dt.now()
         logger.info(f"EFO loading complete in {end - start}.")
