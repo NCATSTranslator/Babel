@@ -287,6 +287,8 @@ rule get_ncbigene_labels_synonyms_and_taxa:
 
 
 rule get_ensembl:
+    resources:
+        runtime="4h",
     output:
         ensembl_dir=directory(config["download_directory"] + "/ENSEMBL"),
         complete_file=config["download_directory"] + "/ENSEMBL/BioMartDownloadComplete",
