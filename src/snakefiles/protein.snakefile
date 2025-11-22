@@ -62,6 +62,8 @@ rule get_protein_uniprotkb_ensembl_relationships:
 
 
 rule get_protein_pr_uniprotkb_relationships:
+    # Because we get this from UberGraph, we sometimes end up with incomplete/failed transfers and need to retry.
+    retries: 10
     output:
         outfile=config["intermediate_directory"] + "/protein/concords/PR",
         metadata_yaml=config["intermediate_directory"] + "/protein/concords/metadata-PR.yaml",
