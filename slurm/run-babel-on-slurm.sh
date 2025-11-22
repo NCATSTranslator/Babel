@@ -3,9 +3,9 @@
 sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name=babel-${BABEL_VERSION:-current}
-#SBATCH --output=babel_outputs/sbatch-${BABEL_VERSION:-babel-current}.out
-#SBATCH --error=babel_outputs/sbatch-${BABEL_VERSION:-babel-current}.err
-#SBATCH --time=${BABEL_TIMEOUT:-1:00:00}
+#SBATCH --output=babel_outputs/logs/sbatch-${BABEL_VERSION:-babel-current}.out
+#SBATCH --error=babel_outputs/logs/sbatch-${BABEL_VERSION:-babel-current}.err
+#SBATCH --time=${BABEL_TIMEOUT:-12:00:00}
 #SBATCH --mem=64G
 #SBATCH --nodes=1
 #SBATCH --chdir=$PWD
