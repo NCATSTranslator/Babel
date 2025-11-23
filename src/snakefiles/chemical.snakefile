@@ -227,6 +227,8 @@ rule get_chebi_concord:
 
 
 rule chemical_unichem_concordia:
+    resources:
+        mem="128G",
     input:
         concords=expand("{dd}/chemicals/concords/UNICHEM/UNICHEM_{ucc}", dd=config["intermediate_directory"], ucc=config["unichem_datasources"]),
     output:
