@@ -27,7 +27,7 @@ rule verify_pubmed:
 
 rule generate_pubmed_concords:
     resources:
-        runtime="6h",
+        runtime="12h",
     input:
         config["download_directory"] + "/PubMed/verified",
         baseline_dir=config["download_directory"] + "/PubMed/baseline",
