@@ -10,6 +10,11 @@ latency-wait: 60 # seconds
 slurm-delete-logfiles-older-than: 0 # Don't delete log files automatically.
 rerun-incomplete: true
 
+# Wrap Python execution with `time -v` to report on memory usage for each rule.
+python:
+  executable: "/usr/bin/time -v python"
+  log_stderr: true
+
 # Set up Hatteras partitions as per https://renci.atlassian.net/wiki/spaces/RENCI/pages/254443570/Cluster+Info#Hardware-Information
 partitions:
   batch:
