@@ -238,6 +238,8 @@ rule chemical_unichem_concordia:
 
 
 rule untyped_chemical_compendia:
+    resources:
+        mem="128G",
     input:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["chemical_labels"]),
         synonyms=expand("{dd}/{ap}/synonyms", dd=config["download_directory"], ap=config["chemical_synonyms"]),
