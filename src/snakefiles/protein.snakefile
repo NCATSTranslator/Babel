@@ -104,6 +104,8 @@ rule get_protein_umls_relationships:
 
 
 rule protein_compendia:
+    resources:
+        mem="512G",
     input:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["protein_labels"]),
         synonyms=expand("{dd}/{ap}/synonyms", dd=config["download_directory"], ap=config["protein_synonyms"]),
