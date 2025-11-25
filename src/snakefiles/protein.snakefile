@@ -105,6 +105,7 @@ rule get_protein_umls_relationships:
 
 rule protein_compendia:
     resources:
+        runtime="6h",
         mem="512G",
     input:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["protein_labels"]),
