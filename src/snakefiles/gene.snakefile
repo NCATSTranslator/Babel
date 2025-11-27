@@ -160,7 +160,7 @@ rule get_umls_gene_protein_mappings:
 rule gene_compendia:
     resources:
         runtime="6h",
-        mem="128G",
+        mem="256G",
     input:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["gene_labels"]),
         synonyms=expand("{dd}/{ap}/synonyms", dd=config["download_directory"], ap=config["gene_labels"]),
