@@ -52,6 +52,8 @@ rule generate_pubmed_concords:
 
 
 rule generate_pubmed_compendia:
+    resources:
+        mem="128G",
     input:
         pmid_id_file=config["intermediate_directory"] + "/publications/ids/PMID",
         pmid_doi_concord_file=config["intermediate_directory"] + "/publications/concords/PMID_DOI",
