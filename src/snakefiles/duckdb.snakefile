@@ -22,6 +22,9 @@ rule export_all_compendia_to_duckdb:
 
 # Generic rule for generating the Parquet files for a particular compendia file.
 rule export_compendia_to_duckdb:
+    resources:
+        runtime="6h",
+        mem="128G",
     input:
         compendium_file=config["output_directory"] + "/compendia/{filename}.txt",
     output:
