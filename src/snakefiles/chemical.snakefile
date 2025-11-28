@@ -260,6 +260,7 @@ rule untyped_chemical_compendia:
 rule chemical_compendia:
     resources:
         mem="512G",
+        runtime="6h",
     input:
         typesfile=config["intermediate_directory"] + "/chemicals/partials/types",
         untyped_file=config["intermediate_directory"] + "/chemicals/partials/untyped_compendium",
