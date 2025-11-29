@@ -144,7 +144,7 @@ rule check_protein:
 rule protein:
     resources:
         cpus_per_task=6,
-        timeout="4h",
+        runtime="6h",
     input:
         config["output_directory"] + "/reports/protein_completeness.txt",
         synonyms=expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["protein_outputs"]),
