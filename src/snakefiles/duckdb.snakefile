@@ -24,7 +24,7 @@ rule export_all_compendia_to_duckdb:
 rule export_compendia_to_duckdb:
     resources:
         runtime="6h",
-        mem="750G",
+        mem="1T",       # TODO: this can't be right... we can make this work with 500Gi of memory on Sterling!
     input:
         compendium_file=config["output_directory"] + "/compendia/{filename}.txt",
     output:
