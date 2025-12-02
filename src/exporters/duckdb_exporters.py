@@ -166,12 +166,14 @@ def export_concords_to_parquet(intermediate_directory, duckdb_filename, concords
                 logger.warning(f"Skipping empty concord file {concord_path}")
                 continue
 
-            logger.info(f"Loading concords from {concord_path}")
             filename = concord_path.name
-            if filename.lower().startswith("metadata-"):
+            if filename.lower().startswith("metadata-") or filename.lower() == "metadata.yaml":
                 # Ignore metadata.yaml files for now -- we might want to incorporate their information elsewhere
                 # in the future.
+                logger.info(f"Skipping metadata file {concord_path}")
                 continue
+
+            logger.info(f"Loading concords from {concord_path}")
             db.execute(
                 "INSERT INTO Concord SELECT ? AS filename, subj, pred, obj FROM read_csv(?, delim='\\t', header=false, " +
                 "columns={'subj': 'VARCHAR', 'pred': 'VARCHAR', 'obj': 'VARCHAR'})",
