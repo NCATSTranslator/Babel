@@ -164,10 +164,9 @@ def export_concords_to_parquet(intermediate_directory, duckdb_filename, concords
                 # Ignore metadata.yaml files for now -- we might want to incorporate their information elsewhere
                 # in the future.
                 continue
-            db.execute(f"""INSERT INTO Concord SELECT ? AS filename, subj, pred, obj FROM read_csv_auto(?, delim='\\t', header=false, columns = {
-                'subj': 'VARCHAR',
-                'pred': 'VARCHAR',
-                'obj': 'VARCHAR'
-            })""", [str(concord_path), str(concord_path)])
+            db.execute(
+                "INSERT INTO Concord SELECT ? AS filename, subj, pred, obj FROM read_csv(?, delim='\\t', header=false, " +
+                "columns={'subj': 'VARCHAR', 'pred': 'VARCHAR', 'obj': 'VARCHAR'})",
+                [str(concord_path), str(concord_path)])
 
         db.table('Concord').write_parquet(concords_parquet_filename)
