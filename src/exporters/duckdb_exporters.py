@@ -157,7 +157,7 @@ def export_concords_to_parquet(intermediate_directory, duckdb_filename, concords
         db.sql("""CREATE TABLE Concord (filename STRING, subj STRING, pred STRING, obj STRING)""")
 
         intermediate_path = Path(intermediate_directory)
-        for concord_path in intermediate_path.glob("**/concords/**"):
+        for concord_path in intermediate_path.glob("*/concords/*"):
             if os.path.isdir(concord_path):
                 logger.info(f"Skipping directory {concord_path}")
                 continue
