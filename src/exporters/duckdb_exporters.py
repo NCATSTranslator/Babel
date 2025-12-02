@@ -1,6 +1,7 @@
 # The DuckDB exporter can be used to export particular intermediate files into the
 # in-process database engine DuckDB (https://duckdb.org) for future querying.
 import os.path
+from pathlib import Path
 
 import duckdb
 
@@ -132,3 +133,36 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
 
         # Step 3. Export as Parquet files.
         db.sql("SELECT clique_leader, preferred_name, preferred_name_lc, biolink_type, label, label_lc FROM Synonym").write_parquet(synonyms_parquet_filename)
+
+
+def export_concords_to_parquet(intermediate_directory, duckdb_filename, concords_parquet_filename):
+    """
+    Export all the concords into DuckDB and Parquet files, which will be easier to download and manipulate
+    than the multiple original files.
+
+    :param intermediate_directory: The intermediate directory containing the concords.
+    :param duckdb_filename: A DuckDB file to temporarily store data in.
+    :param concords_parquet_filename: The Parquet file to store the concords in.
+    """
+
+    # Make sure that duckdb_filename doesn't exist.
+    if os.path.exists(duckdb_filename):
+        raise RuntimeError(f"Will not overwrite existing file {duckdb_filename}")
+
+    duckdb_dir = os.path.dirname(duckdb_filename)
+    os.makedirs(duckdb_dir, exist_ok=True)
+
+    with setup_duckdb(duckdb_filename) as db:
+        db.sql("""CREATE TABLE Concord (filename STRING, subj STRING, pred STRING, obj STRING)""")
+
+        intermediate_path = Path(intermediate_directory)
+        for concord_path in intermediate_path.glob("*/concord/*"):
+            filename = concord_path.name
+            if filename.lower().startswith("metadata-"):
+                # Ignore metadata.yaml files for now -- we might want to incorporate their information elsewhere
+                # in the future.
+                continue
+            db.execute(f"INSERT INTO Concord SELECT ? AS filename, subj, pred, obj FROM read_csv(?, delim='\\t')",
+                       [concord_path, concord_path])
+
+        db.table('Concord').write_parquet(concords_parquet_filename)

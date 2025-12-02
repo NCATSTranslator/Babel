@@ -58,6 +58,16 @@ rule export_synonyms_to_duckdb:
 
 # TODO: convert all conflations to Parquet via DuckDB (https://github.com/TranslatorSRI/Babel/issues/378).
 
+# Export all the concord files into a DuckDB database.
+rule export_concord_files_to_duckdb:
+    input:
+        compendia_done=config["output_directory"] + "/duckdb/compendia_done",
+        intermediate_directory=config["intermediate_directory"],
+    output:
+        duckdb_filename=config["output_directory"] + "/duckdb/concords.duckdb",
+        parquet_filename=config["output_directory"] + "/duckdb/concords.parquet",
+    run:
+        duckdb_exporters.export_concords_to_parquet(input.intermediate_directory, output.duckdb_filename, output.parquet_filename)
 
 # Create `babel_outputs/duckdb/done` once all the files have been converted.
 rule export_all_to_duckdb:
