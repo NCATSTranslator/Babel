@@ -190,3 +190,4 @@ def export_concords_to_parquet(intermediate_directory, duckdb_filename, concords
                 [str(concord_path), str(concord_path)])
 
         db.table('Concord').write_parquet(concords_parquet_filename)
+        db.table('ConcordMetadata').write_parquet(concords_metadata_parquet_filename)
