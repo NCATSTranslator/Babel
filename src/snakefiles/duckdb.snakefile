@@ -24,14 +24,16 @@ rule export_all_compendia_to_duckdb:
 rule export_compendia_to_duckdb:
     resources:
         runtime="6h",
-        mem="1T",       # TODO: this can't be right... we can make this work with 500Gi of memory on Sterling!
+        mem="512G",
     input:
         compendium_file=config["output_directory"] + "/compendia/{filename}.txt",
     output:
         duckdb_filename=config["output_directory"] + "/duckdb/duckdbs/filename={filename}/compendium.duckdb",
         clique_parquet_file=config["output_directory"] + "/duckdb/parquet/filename={filename}/Clique.parquet",
     run:
-        duckdb_exporters.export_compendia_to_parquet(input.compendium_file, output.clique_parquet_file, output.duckdb_filename)
+        duckdb_exporters.export_compendia_to_parquet(input.compendium_file, output.clique_parquet_file, output.duckdb_filename, {
+            'memory_limit': '500G',
+        })
 
 
 # Write all synonyms files to Parquet via DuckDB, then create `babel_outputs/duckdb/synonyms_done` to signal that we're done.

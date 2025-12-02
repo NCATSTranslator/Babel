@@ -7,7 +7,7 @@ import duckdb
 from src.util import get_config
 
 
-def setup_duckdb(duckdb_filename):
+def setup_duckdb(duckdb_filename, duckdb_config=None):
     """
     Set up a DuckDB instance using the settings in the config.
 
@@ -15,13 +15,25 @@ def setup_duckdb(duckdb_filename):
     """
     db = duckdb.connect(duckdb_filename, config=get_config().get("duckdb_config", {}))
 
+    # Set up some Babel-wide settings.
+    config = get_config()
+    if 'tmp_directory' in config:
+        db.execute(f"SET temp_directory = '{config['tmp_directory']}'")
+
+    # Handle DuckDB configuration items.
+    if duckdb_config is None:
+        duckdb_config = {}
+
+    if 'memory_limit' in duckdb_config:
+        db.execute(f"SET memory_limit = '{duckdb_config['memory_limit']}'")
+
     # Turn on a progress bar.
     db.sql("PRAGMA enable_progress_bar=true")
 
     return db
 
 
-def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, duckdb_filename):
+def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, duckdb_filename, duckdb_config):
     """
     Export a compendium to a Parquet file via a DuckDB.
 
@@ -44,7 +56,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
     edge_parquet_filename = os.path.join(parquet_dir, "Edge.parquet")
     node_parquet_filename = os.path.join(parquet_dir, "Node.parquet")
 
-    with setup_duckdb(duckdb_filename) as db:
+    with setup_duckdb(duckdb_filename, duckdb_config) as db:
         # Step 1. Load the entire synonyms file.
         compendium_jsonl = db.read_json(compendium_filename, format="newline_delimited")
 
