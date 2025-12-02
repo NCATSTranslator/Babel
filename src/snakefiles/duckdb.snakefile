@@ -65,9 +65,14 @@ rule export_concord_files_to_duckdb:
         intermediate_directory=config["intermediate_directory"],
     output:
         duckdb_filename=config["output_directory"] + "/duckdb/concords.duckdb",
-        parquet_filename=config["output_directory"] + "/duckdb/concords.parquet",
+        concord_parquet_filename=config["output_directory"] + "/duckdb/Concord.parquet",
+        concord_metadata_parquet_filename=config["output_directory"] + "/duckdb/ConcordMetadata.parquet",
     run:
-        duckdb_exporters.export_concords_to_parquet(input.intermediate_directory, output.duckdb_filename, output.parquet_filename)
+        duckdb_exporters.export_concords_to_parquet(
+            input.intermediate_directory,
+            output.duckdb_filename,
+            output.concord_parquet_filename,
+            output.concord_metadata_parquet_filename)
 
 # Create `babel_outputs/duckdb/done` once all the files have been converted.
 rule export_all_to_duckdb:

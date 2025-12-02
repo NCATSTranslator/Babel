@@ -136,7 +136,7 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
         db.sql("SELECT clique_leader, preferred_name, preferred_name_lc, biolink_type, label, label_lc FROM Synonym").write_parquet(synonyms_parquet_filename)
 
 
-def export_concords_to_parquet(intermediate_directory, duckdb_filename, concords_parquet_filename):
+def export_concords_to_parquet(intermediate_directory, duckdb_filename, concords_parquet_filename, concords_metadata_parquet_filename):
     """
     Export all the concords into DuckDB and Parquet files, which will be easier to download and manipulate
     than the multiple original files.
@@ -155,6 +155,7 @@ def export_concords_to_parquet(intermediate_directory, duckdb_filename, concords
 
     with setup_duckdb(duckdb_filename) as db:
         db.sql("""CREATE TABLE Concord (filename STRING, subj STRING, pred STRING, obj STRING)""")
+        db.sql("""CREATE TABLE ConcordMetadata (filename STRING, subject_filename STRING, subject_file_path STRING, metadata_json STRING)""")
 
         intermediate_path = Path(intermediate_directory)
         for concord_path in intermediate_path.glob("*/concords/*"):
@@ -168,9 +169,18 @@ def export_concords_to_parquet(intermediate_directory, duckdb_filename, concords
 
             filename = concord_path.name
             if filename.lower().startswith("metadata-") or filename.lower() == "metadata.yaml":
-                # Ignore metadata.yaml files for now -- we might want to incorporate their information elsewhere
-                # in the future.
-                logger.info(f"Skipping metadata file {concord_path}")
+                subject_filename = filename
+                if subject_filename.startswith("metadata-") and subject_filename.endswith(".yaml"):
+                    subject_filename = subject_filename[9:]
+                    subject_filename = subject_filename[:-5]
+
+                logger.info(f"Loading concord metadata from {concord_path} to subject file {subject_filename}")
+                db.execute("INSERT INTO ConcordMetadata VALUES (?, ?, ?, ?)", [
+                    str(concord_path),
+                    subject_filename,
+                    str(concord_path.parent / subject_filename),
+                    concord_path.read_text()
+                ])
                 continue
 
             logger.info(f"Loading concords from {concord_path}")
