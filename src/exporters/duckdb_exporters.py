@@ -158,6 +158,10 @@ def export_concords_to_parquet(intermediate_directory, duckdb_filename, concords
 
         intermediate_path = Path(intermediate_directory)
         for concord_path in intermediate_path.glob("*/concords/*"):
+            if os.path.getsize(concord_path) == 0:
+                logger.warning(f"Skipping empty concord file {concord_path}")
+                continue
+
             logger.info(f"Loading concords from {concord_path}")
             filename = concord_path.name
             if filename.lower().startswith("metadata-"):
