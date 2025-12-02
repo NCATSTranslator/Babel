@@ -5,8 +5,9 @@ from pathlib import Path
 
 import duckdb
 
-from src.util import get_config
+from src.util import get_config, get_logger
 
+logger = get_logger(__name__)
 
 def setup_duckdb(duckdb_filename):
     """
@@ -156,13 +157,14 @@ def export_concords_to_parquet(intermediate_directory, duckdb_filename, concords
         db.sql("""CREATE TABLE Concord (filename STRING, subj STRING, pred STRING, obj STRING)""")
 
         intermediate_path = Path(intermediate_directory)
-        for concord_path in intermediate_path.glob("*/concord/*"):
+        for concord_path in intermediate_path.glob("*/concords/*"):
+            logger.info(f"Loading concords from {concord_path}")
             filename = concord_path.name
             if filename.lower().startswith("metadata-"):
                 # Ignore metadata.yaml files for now -- we might want to incorporate their information elsewhere
                 # in the future.
                 continue
             db.execute(f"INSERT INTO Concord SELECT ? AS filename, subj, pred, obj FROM read_csv(?, delim='\\t')",
-                       [concord_path, concord_path])
+                       [str(concord_path), str(concord_path)])
 
         db.table('Concord').write_parquet(concords_parquet_filename)
