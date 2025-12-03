@@ -224,11 +224,26 @@ def export_intermediates_to_parquet(intermediate_directory, duckdb_filename, ids
 
             logger.info(f"Loading identifiers from {ids_path}")
 
-            # ID files sometimes have a single column and sometimes have two, so we turn off strict mode so we can read both.
-            db.execute(
-                "INSERT INTO Identifier SELECT $1 AS filename, curie, biolink_type FROM read_csv($1, delim='\\t', header=false, " +
-                "strict_mode = false, columns={'curie': 'VARCHAR', 'biolink_type': 'VARCHAR'})",
-                [str(ids_path)])
+            # ID files sometimes have a single column and sometimes have two, so we need to determine which one this is.
+            with open(ids_path, "r") as f:
+                first_line = f.readline()
+                second_line = f.readline()
+                num_cols = len(first_line.split("\t"))
+                if len(second_line.split("\t")) != num_cols:
+                    raise RuntimeError(f"Inconsistent number of columns in {ids_path}: {num_cols} (first line: '{first_line}', second line: '{second_line}').")
+
+            if num_cols == 1:
+                db.execute(
+                    "INSERT INTO Identifier SELECT $1 AS filename, curie, NULL AS biolink_type FROM read_csv($1, delim='\\t', header=false, " +
+                    "columns={'curie': 'VARCHAR'})",
+                    [str(ids_path)])
+            elif num_cols == 2:
+                db.execute(
+                    "INSERT INTO Identifier SELECT $1 AS filename, curie, biolink_type FROM read_csv($1, delim='\\t', header=false, " +
+                    "columns={'curie': 'VARCHAR', 'biolink_type': 'VARCHAR'})",
+                    [str(ids_path)])
+            else:
+                raise RuntimeError(f"Unexpected number of columns in {ids_path}: {num_cols} (first line: '{first_line}').")
 
         db.table('Concord').write_parquet(concords_parquet_filename)
         db.table('Identifier').write_parquet(ids_parquet_filename)
