@@ -3,33 +3,33 @@ import logging
 import os
 
 import requests
-from requests import request
 
-from src.babel_utils import pull_via_urllib, make_local_name, pull_via_wget
+from src.babel_utils import make_local_name
 
 
 def readlabels(which):
-    swissname = make_local_name(f'UniProtKB/uniprot_{which}.fasta')
+    swissname = make_local_name(f"UniProtKB/uniprot_{which}.fasta")
     swissprot_labels = {}
-    with open(swissname,'r') as inf:
+    with open(swissname, "r") as inf:
         for line in inf:
-            if line.startswith('>'):
-                #example fasta line:
-                #>sp|Q6GZX4|001R_FRG3G Putative transcription factor 001R OS=Frog virus 3 (isolate Goorha) OX=654924 GN=FV3-001R PE=4 SV=1
-                x = line.split('|')
-                uniprotid = f'UniProtKB:{x[1]}'
-                name = x[2].split(' OS=')[0]
-                swissprot_labels[uniprotid] = f'{name} ({which})'
+            if line.startswith(">"):
+                # example fasta line:
+                # >sp|Q6GZX4|001R_FRG3G Putative transcription factor 001R OS=Frog virus 3 (isolate Goorha) OX=654924 GN=FV3-001R PE=4 SV=1
+                x = line.split("|")
+                uniprotid = f"UniProtKB:{x[1]}"
+                name = x[2].split(" OS=")[0]
+                swissprot_labels[uniprotid] = f"{name} ({which})"
     return swissprot_labels
 
-def pull_uniprot_labels(sprotfile,tremblfile,fname):
-    slabels = readlabels('sprot')
-    tlabels = readlabels('trembl')
-    with open(fname,'w') as labelfile:
-        for k,v in slabels.items():
-            labelfile.write(f'{k}\t{v}\n')
-        for k,v in tlabels.items():
-            labelfile.write(f'{k}\t{v}\n')
+
+def pull_uniprot_labels(sprotfile, tremblfile, fname):
+    slabels = readlabels("sprot")
+    tlabels = readlabels("trembl")
+    with open(fname, "w") as labelfile:
+        for k, v in slabels.items():
+            labelfile.write(f"{k}\t{v}\n")
+        for k, v in tlabels.items():
+            labelfile.write(f"{k}\t{v}\n")
 
 
 def download_umls_gene_protein_mappings(umls_uniprotkb_raw_url, umls_uniprotkb_filename, umls_gene_concords, umls_protein_concords):
@@ -45,12 +45,12 @@ def download_umls_gene_protein_mappings(umls_uniprotkb_raw_url, umls_uniprotkb_f
     :param umls_uniprotkb_protein_concords: The file to write UMLS/UniProtKB protein concords to.
     """
 
-    RELATION = 'oio:closeMatch'
+    RELATION = "oio:closeMatch"
 
     # Step 1. Download the file.
     response = requests.get(umls_uniprotkb_raw_url)
     response.raise_for_status()
-    with open(umls_uniprotkb_filename, 'w') as f:
+    with open(umls_uniprotkb_filename, "w") as f:
         f.write(response.text)
 
     # Step 2. Read the file into memory.
@@ -58,13 +58,11 @@ def download_umls_gene_protein_mappings(umls_uniprotkb_raw_url, umls_uniprotkb_f
     os.makedirs(os.path.dirname(umls_protein_concords), exist_ok=True)
 
     count_rows = 0
-    with open(umls_uniprotkb_filename, 'r') as f, \
-        open(umls_gene_concords, 'w') as genef, \
-        open(umls_protein_concords, 'w') as proteinf:
-        csv_reader = csv.DictReader(f, dialect='excel-tab')
+    with open(umls_uniprotkb_filename, "r") as f, open(umls_gene_concords, "w") as genef, open(umls_protein_concords, "w") as proteinf:
+        csv_reader = csv.DictReader(f, dialect="excel-tab")
         for row in csv_reader:
             count_rows += 1
-            if row.keys() != {'UMLS_protein', 'UMLS_gene', 'NCBI_gene', 'UniProtKB'}:
+            if row.keys() != {"UMLS_protein", "UMLS_gene", "NCBI_gene", "UniProtKB"}:
                 raise RuntimeError(f"Format of the UniProtKB download from {umls_uniprotkb_raw_url} has changed: {csv_reader.fieldnames}.")
 
             genef.write(f"{row['UMLS_gene']}\t{RELATION}\t{row['NCBI_gene']}\n")

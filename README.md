@@ -37,9 +37,12 @@ by creating a profile on the [UMLS Terminology Services website](https://uts.nlm
 
 ## Building Compendia
 
+To run Babel, you will need to [install `uv`](https://docs.astral.sh/uv/getting-started/installation/).
+`uv` manages the Python environment and installs dependencies for you.
+
 Compendia building is managed by snakemake.  To build, for example, the anatomy related compendia, run
 
-```snakemake --cores 1 anatomy```
+```uv run snakemake --cores 1 anatomy```
 
 Currently, the following targets build compendia and synonym files:
 * anatomy
@@ -62,7 +65,7 @@ builds compendia for `biolink:AnatomicalEntity`, `biolink:Cell`, `biolink:Cellul
 
 You can also just run:
 
-```snakemake --cores 1```
+```uv run snakemake --cores 1```
 
 without a target to create all the files that are produced as part of Babel, including all reports and
 alternate exports.
@@ -144,7 +147,7 @@ $ docker run -it --rm --mount type=bind,source=...,target=/home/runner/babel/bab
 The download directory (`babel/babel_downloads`) is used to store data files downloaded during Babel assembly.
 
 The script `scripts/build-babel.sh` can be used to run `snakemake` with a few useful settings (although just running
-`snakemake --cores 5` should work just fine.)
+`uv run snakemake --cores 5` should work just fine.)
 
 ## Deploying with Kubernetes
 

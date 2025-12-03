@@ -1,10 +1,11 @@
-from src.babel_utils import make_local_name, pull_via_urllib
+from src.babel_utils import pull_via_urllib
 import gzip
 
 
 def pull_ncbigene(filenames):
     for fn in filenames:
-        pull_via_urllib('https://ftp.ncbi.nlm.nih.gov/gene/DATA/', fn, decompress=False, subpath='NCBIGene')
+        pull_via_urllib("https://ftp.ncbi.nlm.nih.gov/gene/DATA/", fn, decompress=False, subpath="NCBIGene")
+
 
 def get_ncbigene_field(row, header, field_name):
     """
@@ -17,9 +18,10 @@ def get_ncbigene_field(row, header, field_name):
     """
     index = header.index(field_name)
     value = row[index].strip()
-    if value == '-':
-        return ''
+    if value == "-":
+        return ""
     return value
+
 
 def pull_ncbigene_labels_synonyms_and_taxa(gene_info_filename, labels_filename, synonyms_filename, taxa_filename, descriptions_filename):
     """
@@ -41,15 +43,16 @@ def pull_ncbigene_labels_synonyms_and_taxa(gene_info_filename, labels_filename, 
     """
 
     # File format described here: https://ftp.ncbi.nlm.nih.gov/gene/DATA/README
-    bad_gene_types = {'biological-region', 'other', 'unknown'}
-    with gzip.open(gene_info_filename, 'r') as inf, \
-          open(labels_filename, 'w') as labelfile, \
-          open(synonyms_filename, 'w') as synfile, \
-          open(taxa_filename, 'w') as taxafile, \
-          open(descriptions_filename, 'w') as descriptionfile:
-
+    bad_gene_types = {"biological-region", "other", "unknown"}
+    with (
+        gzip.open(gene_info_filename, "r") as inf,
+        open(labels_filename, "w") as labelfile,
+        open(synonyms_filename, "w") as synfile,
+        open(taxa_filename, "w") as taxafile,
+        open(descriptions_filename, "w") as descriptionfile,
+    ):
         # Make sure the gene_info.gz columns haven't changed from under us.
-        header = inf.readline().decode('utf-8').strip().split("\t")
+        header = inf.readline().decode("utf-8").strip().split("\t")
         assert header == [
             "#tax_id",
             "GeneID",
@@ -66,35 +69,36 @@ def pull_ncbigene_labels_synonyms_and_taxa(gene_info_filename, labels_filename, 
             "Nomenclature_status",
             "Other_designations",
             "Modification_date",
-            "Feature_type"]
+            "Feature_type",
+        ]
 
         for line in inf:
-            sline = line.decode('utf-8')
-            row = sline.strip().split('\t')
-            gene_id = f'NCBIGene:{get_ncbigene_field(row, header, "GeneID")}'
+            sline = line.decode("utf-8")
+            row = sline.strip().split("\t")
+            gene_id = f"NCBIGene:{get_ncbigene_field(row, header, 'GeneID')}"
             gene_type = get_ncbigene_field(row, header, "type_of_gene")
             if gene_type in bad_gene_types:
                 continue
-            taxafile.write(f'{gene_id}\tNCBITaxon:{get_ncbigene_field(row, header, "#tax_id")}\n')
+            taxafile.write(f"{gene_id}\tNCBITaxon:{get_ncbigene_field(row, header, '#tax_id')}\n")
 
             # Write out all the synonyms.
-            syns = set(get_ncbigene_field(row, header, "Full_name_from_nomenclature_authority").split('|'))
-            syns.update(get_ncbigene_field(row, header, "Synonyms").split('|'))
-            syns.update(get_ncbigene_field(row, header, "Other_designations").split('|'))
+            syns = set(get_ncbigene_field(row, header, "Full_name_from_nomenclature_authority").split("|"))
+            syns.update(get_ncbigene_field(row, header, "Synonyms").split("|"))
+            syns.update(get_ncbigene_field(row, header, "Other_designations").split("|"))
             # syns.add(get_ncbigene_field(row, header, "description"))
             syns.add(get_ncbigene_field(row, header, "Symbol_from_nomenclature_authority"))
             syns.add(get_ncbigene_field(row, header, "Symbol"))
             for syn in syns:
                 # Skip empty synonym.
-                if syn.strip() == '' or syn.strip() == '-':
+                if syn.strip() == "" or syn.strip() == "-":
                     continue
 
                 # gene_info.gz uses `-` to indicate a blank field -- if we're seeing that here, that means
                 # we've misread the file somehow!
-                if syn == '-':
+                if syn == "-":
                     raise RuntimeError("Synonym '-' should not be present in NCBIGene output!")
 
-                synfile.write(f'{gene_id}\thttp://www.geneontology.org/formats/oboInOwl#hasSynonym\t{syn}\n')
+                synfile.write(f"{gene_id}\thttp://www.geneontology.org/formats/oboInOwl#hasSynonym\t{syn}\n")
 
             # Figure out the label. We would ideally go with:
             #   {Symbol_from_nomenclature_authority || Symbol}: {Full_name_from_nomenclature_authority}
@@ -107,9 +111,8 @@ def pull_ncbigene_labels_synonyms_and_taxa(gene_info_filename, labels_filename, 
                 # Fallback to the first synonym.
                 best_symbol = syns[0]
 
-            labelfile.write(f'{gene_id}\t{best_symbol}\n')
+            labelfile.write(f"{gene_id}\t{best_symbol}\n")
 
             # Write a description file for this description record.
             description = get_ncbigene_field(row, header, "description")
-            descriptionfile.write(f'{gene_id}\t{description}\n')
-
+            descriptionfile.write(f"{gene_id}\t{description}\n")
