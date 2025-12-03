@@ -58,7 +58,6 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
 
     with setup_duckdb(duckdb_filename, duckdb_config) as db:
         # Step 1. Load the entire synonyms file.
-        compendium_jsonl = db.read_json(compendium_filename, format="newline_delimited")
 
         # TODO: add props
 
@@ -66,36 +65,36 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
         db.sql("""CREATE TABLE Clique
                 (clique_leader STRING, preferred_name STRING, clique_identifier_count INT, biolink_type STRING,
                 information_content FLOAT)""")
-        db.sql("""INSERT INTO Clique SELECT
+        db.execute("""INSERT INTO Clique SELECT
                         json_extract_string(identifiers, '$[0].i') AS clique_leader,
                         preferred_name,
                         len(identifiers) AS clique_identifier_count,
                         type AS biolink_type,
                         ic AS information_content
-                    FROM compendium_jsonl""")
+                    FROM read_json(?, format='newline_delimited')""", [compendium_filename])
 
         # Step 3. Create an Edge table with all the clique/CURIE relationships from this file.
         db.sql("CREATE TABLE Edge (clique_leader STRING, curie STRING, conflation STRING)")
-        db.sql("""INSERT INTO Edge SELECT
+        db.execute("""INSERT INTO Edge SELECT
                 json_extract_string(identifiers, '$[0].i') AS clique_leader,
                 UNNEST(json_extract_string(identifiers, '$[*].i')) AS curie,
                 'None' AS conflation
-            FROM compendium_jsonl""")
+            FROM read_json(?, format='newline_delimited')""", [compendium_filename])
 
         # Step 4. Create a Nodes table with all the nodes from this file.
         db.sql("""CREATE TABLE Node (curie STRING, label STRING, label_lc STRING, description STRING[])""")
-        db.sql("""INSERT INTO Node
+        db.execute("""INSERT INTO Node
             SELECT
                 json_extract_string(identifier, '$.identifiers.i') AS curie,
                 json_extract_string(identifier, '$.identifiers.l') AS label,
                 LOWER(label) AS label_lc,
                 json_extract_string(identifier, '$.identifiers.d') AS description
-            FROM compendium_jsonl, UNNEST(identifiers) AS identifier""")
+            FROM read_json(?, format='newline_delimited'), UNNEST(identifiers) AS identifier""", [compendium_filename])
 
         # Step 5. Export as Parquet files.
-        db.sql("SELECT * FROM Clique").write_parquet(clique_parquet_filename)
-        db.sql("SELECT * FROM Edge").write_parquet(edge_parquet_filename)
-        db.sql("SELECT * FROM Node").write_parquet(node_parquet_filename)
+        db.table("Clique").write_parquet(clique_parquet_filename)
+        db.table("Edge").write_parquet(edge_parquet_filename)
+        db.table("Node").write_parquet(node_parquet_filename)
 
 
 def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_parquet_filename):
