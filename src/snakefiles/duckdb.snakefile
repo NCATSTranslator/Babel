@@ -23,7 +23,7 @@ rule export_all_compendia_to_duckdb:
 # Generic rule for generating the Parquet files for a particular compendia file.
 rule export_compendia_to_duckdb:
     resources:
-        cpus_per_task=4,
+        cpus_per_task=2,
         runtime="6h",
         mem="1024G",
     input:
@@ -34,7 +34,7 @@ rule export_compendia_to_duckdb:
     run:
         duckdb_exporters.export_compendia_to_parquet(input.compendium_file, output.clique_parquet_file, output.duckdb_filename, {
             'memory_limit': '1000GB',
-            'threads': 4,
+            'threads': 2,
         })
 
 
