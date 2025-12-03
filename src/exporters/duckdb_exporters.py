@@ -25,7 +25,13 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
         duckdb_config = {}
 
     if 'memory_limit' in duckdb_config:
-        db.execute(f"SET memory_limit = '{duckdb_config['memory_limit']}'")
+        db.execute(f"SET memory_limit = '{duckdb_config['memory_limit']}';")
+
+    if 'threads' in duckdb_config:
+        db.execute(f"SET threads = {duckdb_config['threads']};")
+
+    # We never need to preserve insertion order.
+    db.sql("SET preserve_insertion_order = false;")
 
     # Turn on a progress bar.
     db.sql("PRAGMA enable_progress_bar=true")
