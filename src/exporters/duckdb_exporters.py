@@ -223,9 +223,11 @@ def export_intermediates_to_parquet(intermediate_directory, duckdb_filename, ids
                 continue
 
             logger.info(f"Loading identifiers from {ids_path}")
+
+            # ID files sometimes have a single column and sometimes have two, so we turn off strict mode so we can read both.
             db.execute(
                 "INSERT INTO Identifier SELECT $1 AS filename, curie, biolink_type FROM read_csv($1, delim='\\t', header=false, " +
-                "columns={'curie': 'VARCHAR', 'biolink_type': 'VARCHAR'})",
+                "strict_mode = false, columns={'curie': 'VARCHAR', 'biolink_type': 'VARCHAR'})",
                 [str(ids_path)])
 
         db.table('Concord').write_parquet(concords_parquet_filename)
