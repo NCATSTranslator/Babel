@@ -136,14 +136,16 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
         db.sql("SELECT clique_leader, preferred_name, preferred_name_lc, biolink_type, label, label_lc FROM Synonym").write_parquet(synonyms_parquet_filename)
 
 
-def export_concords_to_parquet(intermediate_directory, duckdb_filename, concords_parquet_filename, concords_metadata_parquet_filename):
+def export_intermediates_to_parquet(intermediate_directory, duckdb_filename, ids_parquet_filename, concords_parquet_filename, metadata_parquet_filename):
     """
-    Export all the concords into DuckDB and Parquet files, which will be easier to download and manipulate
+    Export all the intermediate files into Parquet files, which will be easier to download and manipulate
     than the multiple original files.
 
     :param intermediate_directory: The intermediate directory containing the concords.
     :param duckdb_filename: A DuckDB file to temporarily store data in.
-    :param concords_parquet_filename: The Parquet file to store the concords in.
+    :param ids_parquet_filename: The Parquet file to store the IDs.
+    :param concords_parquet_filename: The Parquet file to store the concords.
+    :param metadata_parquet_filename: The Parquet file to store the ID and concord metadata in.
     """
 
     # Make sure that duckdb_filename doesn't exist.
@@ -155,9 +157,12 @@ def export_concords_to_parquet(intermediate_directory, duckdb_filename, concords
 
     with setup_duckdb(duckdb_filename) as db:
         db.sql("""CREATE TABLE Concord (filename STRING, subj STRING, pred STRING, obj STRING)""")
-        db.sql("""CREATE TABLE ConcordMetadata (filename STRING, subject_filename STRING, subject_file_path STRING, metadata_json STRING)""")
+        db.sql("""CREATE TABLE Identifier (filename STRING, curie STRING, biolink_type STRING)""")
+        db.sql("""CREATE TABLE Metadata (filename STRING, subject_filename STRING, subject_file_path STRING, metadata_json STRING)""")
 
         intermediate_path = Path(intermediate_directory)
+
+        # Load concord files.
         for concord_path in intermediate_path.glob("*/concords/*"):
             if os.path.isdir(concord_path):
                 logger.info(f"Skipping directory {concord_path}")
@@ -185,9 +190,44 @@ def export_concords_to_parquet(intermediate_directory, duckdb_filename, concords
 
             logger.info(f"Loading concords from {concord_path}")
             db.execute(
-                "INSERT INTO Concord SELECT ? AS filename, subj, pred, obj FROM read_csv(?, delim='\\t', header=false, " +
+                "INSERT INTO Concord SELECT $1 AS filename, subj, pred, obj FROM read_csv($1, delim='\\t', header=false, " +
                 "columns={'subj': 'VARCHAR', 'pred': 'VARCHAR', 'obj': 'VARCHAR'})",
-                [str(concord_path), str(concord_path)])
+                [str(concord_path)])
+
+        del concord_path
+
+        # Load identifier files.
+        for ids_path in intermediate_path.glob("*/ids/*"):
+            if os.path.isdir(ids_path):
+                logger.info(f"Skipping directory {ids_path}")
+                continue
+
+            if os.path.getsize(ids_path) == 0:
+                logger.warning(f"Skipping empty concord file {ids_path}")
+                continue
+
+            filename = ids_path.name
+            if filename.lower().startswith("metadata-") or filename.lower() == "metadata.yaml":
+                subject_filename = filename
+                if subject_filename.startswith("metadata-") and subject_filename.endswith(".yaml"):
+                    subject_filename = subject_filename[9:]
+                    subject_filename = subject_filename[:-5]
+
+                logger.info(f"Loading concord metadata from {ids_path} to subject file {subject_filename}")
+                db.execute("INSERT INTO Metadata VALUES (?, ?, ?, ?)", [
+                    str(ids_path),
+                    subject_filename,
+                    str(ids_path.parent / subject_filename),
+                    ids_path.read_text()
+                ])
+                continue
+
+            logger.info(f"Loading identifiers from {ids_path}")
+            db.execute(
+                "INSERT INTO Identifier SELECT $1 AS filename, curie, biolink_type FROM read_csv($1, delim='\\t', header=false, " +
+                "columns={'curie': 'VARCHAR', 'biolink_type': 'VARCHAR'})",
+                [str(ids_path)])
 
         db.table('Concord').write_parquet(concords_parquet_filename)
-        db.table('ConcordMetadata').write_parquet(concords_metadata_parquet_filename)
+        db.table('Identifier').write_parquet(ids_parquet_filename)
+        db.table('Metadata').write_parquet(metadata_parquet_filename)
