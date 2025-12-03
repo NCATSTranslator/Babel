@@ -180,7 +180,7 @@ def export_intermediates_to_parquet(intermediate_directory, duckdb_filename, ids
                     subject_filename = subject_filename[:-5]
 
                 logger.info(f"Loading concord metadata from {concord_path} to subject file {subject_filename}")
-                db.execute("INSERT INTO ConcordMetadata VALUES (?, ?, ?, ?)", [
+                db.execute("INSERT INTO Metadata VALUES (?, ?, ?, ?)", [
                     str(concord_path),
                     subject_filename,
                     str(concord_path.parent / subject_filename),
