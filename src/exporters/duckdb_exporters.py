@@ -19,6 +19,7 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
     config = get_config()
     if 'tmp_directory' in config:
         db.execute(f"SET temp_directory = '{config['tmp_directory']}'")
+        db.execute("SET max_temp_directory_size = '500GB';")
 
     # Handle DuckDB configuration items.
     if duckdb_config is None:
@@ -88,6 +89,8 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
             FROM read_json(?, format='newline_delimited')""", [compendium_filename])
 
         # Step 4. Create a Nodes table with all the nodes from this file.
+        # TODO: this is failing for large files on Slurm (SmallMolecule and Protein). A simple solution
+        # would be to split that file into chunks and load them separately.
         db.sql("""CREATE TABLE Node (curie STRING, label STRING, label_lc STRING, description STRING[])""")
         db.execute("""INSERT INTO Node
             SELECT
