@@ -25,7 +25,7 @@ rule export_compendia_to_duckdb:
     resources:
         cpus_per_task=4,
         runtime="6h",
-        mem="512G",
+        mem="1024G",
     input:
         compendium_file=config["output_directory"] + "/compendia/{filename}.txt",
     output:
@@ -33,7 +33,7 @@ rule export_compendia_to_duckdb:
         clique_parquet_file=config["output_directory"] + "/duckdb/parquet/filename={filename}/Clique.parquet",
     run:
         duckdb_exporters.export_compendia_to_parquet(input.compendium_file, output.clique_parquet_file, output.duckdb_filename, {
-            'memory_limit': '200GB',
+            'memory_limit': '1000GB',
             'threads': 4,
         })
 
