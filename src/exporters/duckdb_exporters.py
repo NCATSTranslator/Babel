@@ -168,7 +168,7 @@ def export_intermediates_to_parquet(intermediate_directory, parquet_root, duckdb
         intermediate_path = Path(intermediate_directory)
 
         # Load concord files.
-        for concord_path in intermediate_path.glob("**/concords/**"):
+        for concord_path in intermediate_path.glob("**/concords/**/*"):
             if os.path.isdir(concord_path):
                 logger.info(f"Skipping directory {concord_path}")
                 continue
@@ -202,7 +202,7 @@ def export_intermediates_to_parquet(intermediate_directory, parquet_root, duckdb
         del concord_path
 
         # Load identifier files.
-        for ids_path in intermediate_path.glob("**/ids/**"):
+        for ids_path in intermediate_path.glob("**/ids/**/*"):
             if os.path.isdir(ids_path):
                 logger.info(f"Skipping directory {ids_path}")
                 continue
