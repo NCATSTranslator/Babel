@@ -76,10 +76,10 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
         db.sql("""CREATE TABLE Node (curie STRING, label STRING, label_lc STRING, description STRING[])""")
         db.sql("""INSERT INTO Node
             SELECT
-                json_extract_string(identifier, '$.identifiers.i') AS curie,
-                json_extract_string(identifier, '$.identifiers.l') AS label,
+                json_extract_string(identifier, '$.i') AS curie,
+                json_extract_string(identifier, '$.l') AS label,
                 LOWER(label) AS label_lc,
-                json_extract_string(identifier, '$.identifiers.d') AS description
+                json_extract_string(identifier, '$.d') AS description
             FROM compendium_jsonl, UNNEST(identifiers) AS identifier""")
 
         # Step 5. Export as Parquet files.
@@ -246,7 +246,7 @@ def export_intermediates_to_parquet(intermediate_directory, parquet_root, duckdb
                 db.execute(
                     "INSERT INTO Identifier SELECT $1 AS filename, csv.curie AS curie, biolink_type, nodes.label AS label FROM read_csv($1, delim='\\t', header=false, " +
                     "columns={'curie': 'VARCHAR', 'biolink_type': 'VARCHAR'}) AS csv " +
-                    "LEFT JOIN nodes ON nodes.curie = csv.curie",
+                    "LEFT JOIN nodes ON csv.curie = nodes.curie",
                     [str(ids_path)])
             else:
                 raise RuntimeError(f"Unexpected number of columns in {ids_path}: {num_cols} (first line: '{first_line}').")
