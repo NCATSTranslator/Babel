@@ -162,7 +162,7 @@ def export_intermediates_to_parquet(intermediate_directory, parquet_root, duckdb
         # logger.info(f"Loaded {node_count} nodes from {parquet_root}/**/Node.parquet.")
 
         db.sql("""CREATE TABLE Concord (filename STRING, subj STRING, pred STRING, obj STRING)""")
-        db.sql("""CREATE TABLE Identifier (filename STRING, curie STRING, biolink_type STRING, label STRING)""")
+        db.sql("""CREATE TABLE Identifier (filename STRING, curie STRING, biolink_type STRING)""")
         db.sql("""CREATE TABLE Metadata (filename STRING, subject_filename STRING, subject_file_path STRING, metadata_json STRING)""")
 
         intermediate_path = Path(intermediate_directory)
