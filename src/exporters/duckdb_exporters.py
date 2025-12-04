@@ -235,16 +235,16 @@ def export_intermediates_to_parquet(intermediate_directory, parquet_root, duckdb
             if num_cols == 1:
                 logger.info(f"Loading identifiers from {ids_path} without a Biolink type column")
                 db.execute(
-                    "INSERT INTO Identifier SELECT $1 AS filename, curie, NULL AS biolink_type, nodes.label AS label FROM read_csv($1, delim='\\t', header=false, " +
+                    "INSERT INTO Identifier SELECT $1 AS filename, read_csv.curie, NULL AS biolink_type, nodes.label AS label FROM read_csv($1, delim='\\t', header=false, " +
                     "columns={'curie': 'VARCHAR'}) " +
-                    "LEFT OUTER JOIN nodes ON nodes.curie = curie",
+                    "LEFT OUTER JOIN nodes ON nodes.curie = read_csv.curie",
                     [str(ids_path)])
             elif num_cols == 2:
                 logger.info(f"Loading identifiers from {ids_path} with a Biolink type column")
                 db.execute(
-                    "INSERT INTO Identifier SELECT $1 AS filename, curie, biolink_type, nodes.label AS label FROM read_csv($1, delim='\\t', header=false, " +
+                    "INSERT INTO Identifier SELECT $1 AS filename, read_csv.curie, biolink_type, nodes.label AS label FROM read_csv($1, delim='\\t', header=false, " +
                     "columns={'curie': 'VARCHAR', 'biolink_type': 'VARCHAR'}) " +
-                    "LEFT OUTER JOIN nodes ON nodes.curie = curie",
+                    "LEFT OUTER JOIN nodes ON nodes.curie = read_csv.curie",
                     [str(ids_path)])
             else:
                 raise RuntimeError(f"Unexpected number of columns in {ids_path}: {num_cols} (first line: '{first_line}').")
