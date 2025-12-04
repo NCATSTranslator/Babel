@@ -136,7 +136,7 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
         db.sql("SELECT clique_leader, preferred_name, preferred_name_lc, biolink_type, label, label_lc FROM Synonym").write_parquet(synonyms_parquet_filename)
 
 
-def export_intermediates_to_parquet(intermediate_directory, duckdb_filename, ids_parquet_filename, concords_parquet_filename, metadata_parquet_filename):
+def export_intermediates_to_parquet(intermediate_directory, parquet_root, duckdb_filename, ids_parquet_filename, concords_parquet_filename, metadata_parquet_filename):
     """
     Export all the intermediate files into Parquet files, which will be easier to download and manipulate
     than the multiple original files.
@@ -156,8 +156,10 @@ def export_intermediates_to_parquet(intermediate_directory, duckdb_filename, ids
     os.makedirs(duckdb_dir, exist_ok=True)
 
     with setup_duckdb(duckdb_filename) as db:
+        nodes = db.read_parquet(os.path.join(parquet_root, "**/Node.parquet"), hive_partitioning=True)
+
         db.sql("""CREATE TABLE Concord (filename STRING, subj STRING, pred STRING, obj STRING)""")
-        db.sql("""CREATE TABLE Identifier (filename STRING, curie STRING, biolink_type STRING)""")
+        db.sql("""CREATE TABLE Identifier (filename STRING, curie STRING, biolink_type STRING, label STRING)""")
         db.sql("""CREATE TABLE Metadata (filename STRING, subject_filename STRING, subject_file_path STRING, metadata_json STRING)""")
 
         intermediate_path = Path(intermediate_directory)
@@ -233,14 +235,16 @@ def export_intermediates_to_parquet(intermediate_directory, duckdb_filename, ids
             if num_cols == 1:
                 logger.info(f"Loading identifiers from {ids_path} without a Biolink type column")
                 db.execute(
-                    "INSERT INTO Identifier SELECT $1 AS filename, curie, NULL AS biolink_type FROM read_csv($1, delim='\\t', header=false, " +
-                    "columns={'curie': 'VARCHAR'})",
+                    "INSERT INTO Identifier SELECT $1 AS filename, curie, NULL AS biolink_type, nodes.label AS label FROM read_csv($1, delim='\\t', header=false, " +
+                    "columns={'curie': 'VARCHAR'}) " +
+                    "LEFT OUTER JOIN nodes ON nodes.curie = curie",
                     [str(ids_path)])
             elif num_cols == 2:
                 logger.info(f"Loading identifiers from {ids_path} with a Biolink type column")
                 db.execute(
-                    "INSERT INTO Identifier SELECT $1 AS filename, curie, biolink_type FROM read_csv($1, delim='\\t', header=false, " +
-                    "columns={'curie': 'VARCHAR', 'biolink_type': 'VARCHAR'})",
+                    "INSERT INTO Identifier SELECT $1 AS filename, curie, biolink_type, nodes.label AS label FROM read_csv($1, delim='\\t', header=false, " +
+                    "columns={'curie': 'VARCHAR', 'biolink_type': 'VARCHAR'}) " +
+                    "LEFT OUTER JOIN nodes ON nodes.curie = curie",
                     [str(ids_path)])
             else:
                 raise RuntimeError(f"Unexpected number of columns in {ids_path}: {num_cols} (first line: '{first_line}').")

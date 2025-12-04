@@ -63,6 +63,7 @@ rule export_intermediate_files_to_duckdb:
     input:
         compendia_done=config["output_directory"] + "/duckdb/compendia_done",
         intermediate_directory=config["intermediate_directory"],
+        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     output:
         duckdb_filename=config["output_directory"] + "/duckdb/concords.duckdb",
         ids_parquet_filename=config["output_directory"] + "/duckdb/Identifiers.parquet",
@@ -71,6 +72,7 @@ rule export_intermediate_files_to_duckdb:
     run:
         duckdb_exporters.export_intermediates_to_parquet(
             input.intermediate_directory,
+            input.parquet_dir,
             output.duckdb_filename,
             output.ids_parquet_filename,
             output.concord_parquet_filename,
