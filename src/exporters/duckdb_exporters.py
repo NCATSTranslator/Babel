@@ -80,7 +80,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                               extracted_list[4] AS taxa
                           FROM extracted""", [compendium_filename])
         else:
-            logger.info(f"Loading {compendium_filename} into DuckDB (size {compendium_filesize}) in multiple chunks of {CHUNK_LINE_SIZE} lines:")
+            logger.info(f"Loading {compendium_filename} into DuckDB (size {compendium_filesize}) in multiple chunks of {CHUNK_LINE_SIZE:,} lines:")
             chunk_filenames = []
             lines_added = 0
             output_file = None
@@ -96,6 +96,9 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                         logger.info(f" - Loaded {lines_added:,} lines into {output_file.name}.")
                         output_file.close()
                         output_file = None
+
+            if output_file is not None:
+                output_file.close()
 
             logger.info(f"Loaded {len(chunk_filenames)} chunk files into DuckDB.")
             for chunk_filename in chunk_filenames:
