@@ -122,7 +122,7 @@ rule check_for_duplicate_clique_leaders:
 
 rule generate_prefix_report:
     resources:
-        mem="512G",
+        mem="1024G",
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
