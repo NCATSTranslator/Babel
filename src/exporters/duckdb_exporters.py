@@ -40,7 +40,7 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
     return db
 
 
-def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, duckdb_filename, duckdb_config):
+def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, duckdb_filename):
     """
     Export a compendium to a Parquet file via a DuckDB.
 
@@ -91,13 +91,14 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
         # Step 4. Create a Nodes table with all the nodes from this file.
         # TODO: this is failing for large files on Slurm (SmallMolecule and Protein). A simple solution
         # would be to split that file into chunks and load them separately.
-        db.sql("""CREATE TABLE Node (curie STRING, label STRING, label_lc STRING, description STRING[])""")
+        db.sql("""CREATE TABLE Node (curie STRING, label STRING, label_lc STRING, description STRING[], taxa STRING[])""")
         db.execute("""INSERT INTO Node
             SELECT
-                json_extract_string(identifier, '$.identifiers.i') AS curie,
-                json_extract_string(identifier, '$.identifiers.l') AS label,
+                json_extract_string(identifier, '$.i') AS curie,
+                json_extract_string(identifier, '$.l') AS label,
                 LOWER(label) AS label_lc,
-                json_extract_string(identifier, '$.identifiers.d') AS description
+                json_extract_string(identifier, '$.d') AS description,
+                json_extract_string(identifier, '$.t') AS taxa
             FROM read_json(?, format='newline_delimited'), UNNEST(identifiers) AS identifier""", [compendium_filename])
 
         # Step 5. Export as Parquet files.
