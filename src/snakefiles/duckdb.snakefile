@@ -77,6 +77,8 @@ rule export_all_to_duckdb:
 
 # There are some reports we want to run on the Parquet files that have been generated.
 rule check_for_identically_labeled_cliques:
+    resources:
+        mem="512G",
     input:
         config["output_directory"] + "/duckdb/done",
     params:
