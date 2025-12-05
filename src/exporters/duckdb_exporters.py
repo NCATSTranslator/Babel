@@ -125,6 +125,9 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
             node_count = db.execute('SELECT COUNT(*) FROM Node').fetchone()[0]
             logger.info(f" - Node count: {node_count:,}.")
 
+            if lines_added != node_count:
+                raise RuntimeError(f"Line count mismatch: {lines_added:,} vs {node_count:,} when generating {node_parquet_filename} from {compendium_filename}.")
+
         # Step 1. Create a Cliques table with all the cliques from this file.
         db.sql("""CREATE TABLE Clique
                 (clique_leader STRING, preferred_name STRING, clique_identifier_count INT, biolink_type STRING,
