@@ -7,7 +7,7 @@ import duckdb
 from src.util import get_config
 
 
-def setup_duckdb(duckdb_filename, duckdb_config=None):
+def setup_duckdb(duckdb_filename):
     """
     Set up a DuckDB instance using the settings in the config.
 
@@ -20,19 +20,6 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
     if 'tmp_directory' in config:
         db.execute(f"SET temp_directory = '{config['tmp_directory']}'")
         db.execute("SET max_temp_directory_size = '500GB';")
-
-    # Handle DuckDB configuration items.
-    if duckdb_config is None:
-        duckdb_config = {}
-
-    if 'memory_limit' in duckdb_config:
-        db.execute(f"SET memory_limit = '{duckdb_config['memory_limit']}';")
-
-    if 'threads' in duckdb_config:
-        db.execute(f"SET threads = {duckdb_config['threads']};")
-
-    # We never need to preserve insertion order.
-    db.sql("SET preserve_insertion_order = false;")
 
     # Turn on a progress bar.
     db.sql("PRAGMA enable_progress_bar=true")
@@ -63,12 +50,8 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
     edge_parquet_filename = os.path.join(parquet_dir, "Edge.parquet")
     node_parquet_filename = os.path.join(parquet_dir, "Node.parquet")
 
-    with setup_duckdb(duckdb_filename, duckdb_config) as db:
-        # Step 1. Load the entire synonyms file.
-
-        # TODO: add props
-
-        # Step 2. Create a Cliques table with all the cliques from this file.
+    with setup_duckdb(duckdb_filename) as db:
+        # Step 1. Create a Cliques table with all the cliques from this file.
         db.sql("""CREATE TABLE Clique
                 (clique_leader STRING, preferred_name STRING, clique_identifier_count INT, biolink_type STRING,
                 information_content FLOAT)""")
@@ -80,7 +63,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                         ic AS information_content
                     FROM read_json(?, format='newline_delimited')""", [compendium_filename])
 
-        # Step 3. Create an Edge table with all the clique/CURIE relationships from this file.
+        # Step 2. Create an Edge table with all the clique/CURIE relationships from this file.
         db.sql("CREATE TABLE Edge (clique_leader STRING, curie STRING, conflation STRING)")
         db.execute("""INSERT INTO Edge SELECT
                 json_extract_string(identifiers, '$[0].i') AS clique_leader,
@@ -88,7 +71,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                 'None' AS conflation
             FROM read_json(?, format='newline_delimited')""", [compendium_filename])
 
-        # Step 4. Create a Nodes table with all the nodes from this file.
+        # Step 3. Create a Nodes table with all the nodes from this file.
         # TODO: this is failing for large files on Slurm (SmallMolecule and Protein). A simple solution
         # would be to split that file into chunks and load them separately.
         db.sql("""CREATE TABLE Node (curie STRING, label STRING, label_lc STRING, description STRING[], taxa STRING[])""")
@@ -101,7 +84,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                 json_extract_string(identifier, '$.t') AS taxa
             FROM read_json(?, format='newline_delimited'), UNNEST(identifiers) AS identifier""", [compendium_filename])
 
-        # Step 5. Export as Parquet files.
+        # Step 4. Export as Parquet files.
         db.table("Clique").write_parquet(clique_parquet_filename)
         db.table("Edge").write_parquet(edge_parquet_filename)
         db.table("Node").write_parquet(node_parquet_filename)
