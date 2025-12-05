@@ -83,6 +83,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
             logger.info(f"Loading {compendium_filename} into DuckDB (size {compendium_filesize}) in multiple chunks of {CHUNK_LINE_SIZE:,} lines:")
             chunk_filenames = []
             lines_added = 0
+            lines_added_file = 0
             output_file = None
             with open(compendium_filename, "r", encoding="utf-8") as inf:
                 for line in inf:
@@ -92,8 +93,10 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                         logger.info(f" - Created chunk file {output_file.name}.")
                     output_file.write(line)
                     lines_added += 1
+                    lines_added_file += 1
                     if lines_added % CHUNK_LINE_SIZE == 0:
-                        logger.info(f" - Loaded {lines_added:,} lines into {output_file.name}.")
+                        logger.info(f" - Wrote {lines_added_file:,} lines into {output_file.name}.")
+                        lines_added_file = 0
                         output_file.close()
                         output_file = None
 
@@ -117,16 +120,13 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                               FROM extracted""", [chunk_filename])
                 logger.info(f" - Loaded chunk file {chunk_filename} into DuckDB.")
                 os.remove(chunk_filename)
-                logger.info(f" - Deleted chunk file {chunk_filename} into DuckDB.")
+                logger.info(f" - Deleted chunk file {chunk_filename}.")
 
             logger.info(f"Completed loading {compendium_filename} into DuckDB.")
             logger.info(f" - Line count: {lines_added:,}.")
 
             node_count = db.execute('SELECT COUNT(*) FROM Node').fetchone()[0]
-            logger.info(f" - Node count: {node_count:,}.")
-
-            if lines_added != node_count:
-                raise RuntimeError(f"Line count mismatch: {lines_added:,} vs {node_count:,} when generating {node_parquet_filename} from {compendium_filename}.")
+            logger.info(f" - Identifier count: {node_count:,}.")
 
         # Step 1. Create a Cliques table with all the cliques from this file.
         db.sql("""CREATE TABLE Clique
