@@ -100,7 +100,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
             if output_file is not None:
                 output_file.close()
 
-            logger.info(f"Loaded {len(chunk_filenames)} chunk files into DuckDB.")
+            logger.info(f"Loaded {len(chunk_filenames)} containing {lines_added:,} lines into chunk files.")
             for chunk_filename in chunk_filenames:
                 db.execute("""INSERT INTO Node
                               WITH extracted AS (
