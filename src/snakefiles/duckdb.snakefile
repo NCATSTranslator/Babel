@@ -23,19 +23,15 @@ rule export_all_compendia_to_duckdb:
 # Generic rule for generating the Parquet files for a particular compendia file.
 rule export_compendia_to_duckdb:
     resources:
-        cpus_per_task=1,
         runtime="6h",
-        mem="1500G",
+        mem="512G",
     input:
         compendium_file=config["output_directory"] + "/compendia/{filename}.txt",
     output:
         duckdb_filename=config["output_directory"] + "/duckdb/duckdbs/filename={filename}/compendium.duckdb",
         clique_parquet_file=config["output_directory"] + "/duckdb/parquet/filename={filename}/Clique.parquet",
     run:
-        duckdb_exporters.export_compendia_to_parquet(input.compendium_file, output.clique_parquet_file, output.duckdb_filename, {
-            'memory_limit': '1000GB',
-            'threads': 1,
-        })
+        duckdb_exporters.export_compendia_to_parquet(input.compendium_file, output.clique_parquet_file, output.duckdb_filename)
 
 
 # Write all synonyms files to Parquet via DuckDB, then create `babel_outputs/duckdb/synonyms_done` to signal that we're done.
