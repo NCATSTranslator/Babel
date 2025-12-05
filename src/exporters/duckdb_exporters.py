@@ -77,12 +77,15 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
         db.sql("""CREATE TABLE Node (curie STRING, label STRING, label_lc STRING, description STRING[], taxa STRING[])""")
         db.execute("""INSERT INTO Node
             SELECT
-                id.obj->>'i' AS curie,
-                id.obj->>'l' AS label,
+                fields[1] AS curie,
+                fields[2] AS label,
                 LOWER(label) AS label_lc,
-                id.obj->>'d' AS description,
-                id.obj->>'t' AS taxa
-            FROM read_json(?, format='newline_delimited') AS json, LATERAL explode(json->'identifiers') AS id(obj)""", [compendium_filename])
+                fields[3] AS description,
+                fields[4] AS taxa
+            FROM read_json(?, format='newline_delimited') AS json,
+                 json_each(json, '$.identifiers') AS identifier,
+                 json_extract_string(identifier, ['i', 'l', 'd', 't']) AS fields
+           """, [compendium_filename])
 
         # Step 4. Export as Parquet files.
         db.table("Clique").write_parquet(clique_parquet_filename)
