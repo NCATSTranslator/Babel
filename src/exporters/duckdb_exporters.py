@@ -1,11 +1,17 @@
 # The DuckDB exporter can be used to export particular intermediate files into the
 # in-process database engine DuckDB (https://duckdb.org) for future querying.
 import os.path
+import tempfile
 
 import duckdb
 
-from src.util import get_config
+from src.util import get_config, get_logger
 
+logger = get_logger(__name__)
+
+# Some configuration items for controlling loads.
+MIN_FILE_SIZE_FOR_SPLITTING_LOAD = 44_000_000_000
+CHUNK_LINE_SIZE = 60_000_000
 
 def setup_duckdb(duckdb_filename):
     """
@@ -55,19 +61,66 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
         # TODO: this is failing for large files on Slurm (SmallMolecule and Protein). A simple solution
         # would be to split that file into chunks and load them separately.
         db.sql("""CREATE TABLE Node (curie STRING, label STRING, label_lc STRING, description STRING[], taxa STRING[])""")
-        db.execute("""INSERT INTO Node
-                      WITH extracted AS (
-                          SELECT json_extract_string(identifier_row.value, ['i', 'l', 'd', 't']) AS extracted_list
-                          FROM read_json($1, format='newline_delimited') AS clique,
-                               json_each(clique.identifiers) AS identifier_row
-                      )
-                      SELECT
-                          extracted_list[1] AS curie,
-                          extracted_list[2] AS label,
-                          LOWER(label) AS label_lc,
-                          extracted_list[3] AS description,
-                          extracted_list[4] AS taxa
-                      FROM extracted""", [compendium_filename])
+
+        compendium_filesize = os.path.getsize(compendium_filename)
+        if compendium_filesize < MIN_FILE_SIZE_FOR_SPLITTING_LOAD:
+            # This seems to be around the threshold where 500G is inadequate on Hatteras. So let's try splitting it.
+            logger.info(f"Loading {compendium_filename} into DuckDB (size {compendium_filesize}) in a single direct ingest.")
+            db.execute("""INSERT INTO Node
+                          WITH extracted AS (
+                              SELECT json_extract_string(identifier_row.value, ['i', 'l', 'd', 't']) AS extracted_list
+                              FROM read_json($1, format='newline_delimited') AS clique,
+                                   json_each(clique.identifiers) AS identifier_row
+                          )
+                          SELECT
+                              extracted_list[1] AS curie,
+                              extracted_list[2] AS label,
+                              LOWER(label) AS label_lc,
+                              extracted_list[3] AS description,
+                              extracted_list[4] AS taxa
+                          FROM extracted""", [compendium_filename])
+        else:
+            logger.info(f"Loading {compendium_filename} into DuckDB (size {compendium_filesize}) in multiple chunks of {CHUNK_LINE_SIZE} lines:")
+            chunk_filenames = []
+            lines_added = 0
+            output_file = None
+            with open(compendium_filename, "r", encoding="utf-8") as inf:
+                for line in inf:
+                    if output_file is None:
+                        output_file = tempfile.NamedTemporaryFile(delete=False, mode="w", encoding="utf-8")
+                        chunk_filenames.append(output_file.name)
+                        logger.info(f" - Created chunk file {output_file.name}.")
+                    output_file.write(line)
+                    lines_added += 1
+                    if lines_added % CHUNK_LINE_SIZE == 0:
+                        logger.info(f" - Loaded {lines_added:,} lines into {output_file.name}.")
+                        output_file.close()
+                        output_file = None
+
+            logger.info(f"Loaded {len(chunk_filenames)} chunk files into DuckDB.")
+            for chunk_filename in chunk_filenames:
+                db.execute("""INSERT INTO Node
+                              WITH extracted AS (
+                                  SELECT json_extract_string(identifier_row.value, ['i', 'l', 'd', 't']) AS extracted_list
+                                  FROM read_json($1, format='newline_delimited') AS clique,
+                                       json_each(clique.identifiers) AS identifier_row
+                              )
+                              SELECT
+                                  extracted_list[1] AS curie,
+                                  extracted_list[2] AS label,
+                                  LOWER(label) AS label_lc,
+                                  extracted_list[3] AS description,
+                                  extracted_list[4] AS taxa
+                              FROM extracted""", [chunk_filename])
+                logger.info(f" - Loaded chunk file {chunk_filename} into DuckDB.")
+                os.remove(chunk_filename)
+                logger.info(f" - Deleted chunk file {chunk_filename} into DuckDB.")
+
+            logger.info(f"Completed loading {compendium_filename} into DuckDB.")
+            logger.info(f" - Line count: {lines_added:,}.")
+
+            node_count = db.execute('SELECT COUNT(*) FROM Node').fetchone()[0]
+            logger.info(f" - Node count: {node_count:,}.")
 
         # Step 1. Create a Cliques table with all the cliques from this file.
         db.sql("""CREATE TABLE Clique
