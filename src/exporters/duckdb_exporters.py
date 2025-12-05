@@ -57,9 +57,9 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
         db.sql("""CREATE TABLE Node (curie STRING, label STRING, label_lc STRING, description STRING[], taxa STRING[])""")
         db.execute("""INSERT INTO Node
                       WITH extracted AS (
-                          SELECT json_extract_string(identifier_row.json, ['i', 'l', 'd', 't']) AS extracted_list
-                          FROM read_json(?, format='newline_delimited') AS json,
-                               json_each(json, '$.identifiers') AS identifier_row
+                          SELECT json_extract_string(identifier.value, ['i', 'l', 'd', 't']) AS extracted_list
+                          FROM read_json('babel_outputs/compendia/Disease.txt', format='newline_delimited') AS clique,
+                               json_each(clique.identifiers) AS identifier
                       )
                       SELECT
                           extracted_list[1] AS curie,
