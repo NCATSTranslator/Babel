@@ -32,7 +32,7 @@ rule export_compendia_to_duckdb:
         node_parquet_file=config["output_directory"] + "/duckdb/parquet/filename={filename}/Node.parquet",
         clique_parquet_file=config["output_directory"] + "/duckdb/parquet/filename={filename}/Clique.parquet",
     run:
-        print(f"Exporting {input.compendium_file} to {output.duckdb_filename}")
+        print(f"Exporting {input.compendium_file} to {output.duckdb_filename}...")
         duckdb_exporters.export_compendia_to_parquet(input.compendium_file, output.clique_parquet_file, output.duckdb_filename)
 
 
