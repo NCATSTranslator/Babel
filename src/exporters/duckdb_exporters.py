@@ -103,6 +103,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
 
             logger.info(f"Loaded {len(chunk_filenames)} containing {lines_added:,} lines into chunk files.")
             for chunk_filename in chunk_filenames:
+                # TODO: maybe add the PREFIX in a different column here so we can SELECT on that later?
                 db.execute("""INSERT INTO Node
                               WITH extracted AS (
                                   SELECT json_extract_string(identifier_row.value, ['i', 'l', 'd', 't']) AS extracted_list
