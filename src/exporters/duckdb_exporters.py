@@ -57,9 +57,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
     node_parquet_filename = os.path.join(parquet_dir, "Node.parquet")
 
     with setup_duckdb(duckdb_filename) as db:
-        # Step 3. Create a Nodes table with all the nodes from this file.
-        # TODO: this is failing for large files on Slurm (SmallMolecule and Protein). A simple solution
-        # would be to split that file into chunks and load them separately.
+        # Step 1. Create a Nodes table with all the nodes from this file.
         db.sql("""CREATE TABLE Node (curie STRING, label STRING, label_lc STRING, description STRING[], taxa STRING[])""")
 
         compendium_filesize = os.path.getsize(compendium_filename)
@@ -128,7 +126,9 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
             node_count = db.execute('SELECT COUNT(*) FROM Node').fetchone()[0]
             logger.info(f" - Identifier count: {node_count:,}.")
 
-        # Step 1. Create a Cliques table with all the cliques from this file.
+        db.table("Node").write_parquet(node_parquet_filename)
+
+        # Step 2. Create a Cliques table with all the cliques from this file.
         db.sql("""CREATE TABLE Clique
                 (clique_leader STRING, preferred_name STRING, clique_identifier_count INT, biolink_type STRING,
                 information_content FLOAT)""")
@@ -139,6 +139,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                         type AS biolink_type,
                         ic AS information_content
                     FROM read_json(?, format='newline_delimited')""", [compendium_filename])
+        db.table("Clique").write_parquet(clique_parquet_filename)
 
         # Step 2. Create an Edge table with all the clique/CURIE relationships from this file.
         db.sql("CREATE TABLE Edge (clique_leader STRING, curie STRING, conflation STRING)")
@@ -147,11 +148,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                 UNNEST(json_extract_string(identifiers, '$[*].i')) AS curie,
                 'None' AS conflation
             FROM read_json(?, format='newline_delimited')""", [compendium_filename])
-
-        # Step 4. Export as Parquet files.
-        db.table("Clique").write_parquet(clique_parquet_filename)
         db.table("Edge").write_parquet(edge_parquet_filename)
-        db.table("Node").write_parquet(node_parquet_filename)
 
 
 def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_parquet_filename):
