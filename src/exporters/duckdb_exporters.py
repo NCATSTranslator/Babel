@@ -51,6 +51,24 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
     node_parquet_filename = os.path.join(parquet_dir, "Node.parquet")
 
     with setup_duckdb(duckdb_filename) as db:
+        # Step 3. Create a Nodes table with all the nodes from this file.
+        # TODO: this is failing for large files on Slurm (SmallMolecule and Protein). A simple solution
+        # would be to split that file into chunks and load them separately.
+        db.sql("""CREATE TABLE Node (curie STRING, label STRING, label_lc STRING, description STRING[], taxa STRING[])""")
+        db.execute("""INSERT INTO Node
+                      WITH extracted AS (
+                          SELECT json_extract_string(identifier_row.json, ['i', 'l', 'd', 't']) AS extracted_list
+                          FROM read_json(?, format='newline_delimited') AS json,
+                               json_each(json, '$.identifiers') AS identifier_row
+                      )
+                      SELECT
+                          extracted_list[1] AS curie,
+                          extracted_list[2] AS label,
+                          LOWER(label) AS label_lc,
+                          extracted_list[3] AS description,
+                          extracted_list[4] AS taxa
+                      FROM extracted""", [compendium_filename])
+
         # Step 1. Create a Cliques table with all the cliques from this file.
         db.sql("""CREATE TABLE Clique
                 (clique_leader STRING, preferred_name STRING, clique_identifier_count INT, biolink_type STRING,
@@ -70,24 +88,6 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                 UNNEST(json_extract_string(identifiers, '$[*].i')) AS curie,
                 'None' AS conflation
             FROM read_json(?, format='newline_delimited')""", [compendium_filename])
-
-        # Step 3. Create a Nodes table with all the nodes from this file.
-        # TODO: this is failing for large files on Slurm (SmallMolecule and Protein). A simple solution
-        # would be to split that file into chunks and load them separately.
-        db.sql("""CREATE TABLE Node (curie STRING, label STRING, label_lc STRING, description STRING[], taxa STRING[])""")
-        db.execute("""INSERT INTO Node
-            WITH extracted AS (
-                SELECT json_extract_string(identifier_row.json, ['i', 'l', 'd', 't']) AS extracted_list
-                FROM read_json(?, format='newline_delimited') AS json,
-                     json_each(json, '$.identifiers') AS identifier_row
-            )
-            SELECT
-                extracted_list[1] AS curie,
-                extracted_list[2] AS label,
-                LOWER(label) AS label_lc,
-                extracted_list[3] AS description,
-                extracted_list[4] AS taxa
-            FROM extracted""", [compendium_filename])
 
         # Step 4. Export as Parquet files.
         db.table("Clique").write_parquet(clique_parquet_filename)
