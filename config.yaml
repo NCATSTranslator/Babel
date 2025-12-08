@@ -17,6 +17,14 @@ output_directory: babel_outputs
 tmp_directory: babel_downloads/tmp
 
 #
+# SHARED
+#
+
+# DuckDB settings for use in all DuckDB connections:
+duckdb_config:
+  enable_progress_bar: true
+
+#
 # UMLS
 #
 umls:
@@ -412,9 +420,6 @@ ensembl_datasets_to_skip:
   - charengus_gene_ensembl
   - otshawytscha_gene_ensembl
   - aocellaris_gene_ensembl
-
-duckdb_config:
-  enable_progress_bar: true
 
 demote_labels_longer_than: 25
 
