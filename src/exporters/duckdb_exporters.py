@@ -36,7 +36,7 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
     settings = db.sql("SELECT * FROM duckdb_settings()")
     logger.info("DuckDB connected with the following settings:")
     for row in settings.fetchall():
-        logger.info(' - ' + "\t".join(row))
+        logger.info(f" - {row[0]}: {row[1]}")
 
     return db
 
