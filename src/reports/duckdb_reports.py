@@ -24,9 +24,9 @@ def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identic
         SELECT
             LOWER(preferred_name) AS preferred_name_lc,
             LIST(clique_leader ORDER BY clique_leader ASC) AS clique_leaders,
-            COUNT(*) AS clique_count
+            COUNT(clique_leader) AS clique_leader_count
         FROM cliques
-        GROUP BY LOWER(preferred_name) HAVING COUNT(*) > 1
+        GROUP BY LOWER(preferred_name) HAVING COUNT(clique_leader) > 1
         ORDER BY clique_count DESC
     """).write_csv(identically_labeled_cliques_tsv, sep="\t")
 
@@ -46,29 +46,14 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
     # Look for CURIEs that are present in different cliques.
-    db.sql("""
-        WITH curie_counts AS (SELECT DISTINCT curie, COUNT(clique_leader) AS clique_leader_count FROM edges
-            WHERE conflation = 'None'
-            GROUP BY curie HAVING COUNT(DISTINCT clique_leader) > 1
-            ORDER BY clique_leader_count DESC
-        )
-        SELECT
-            curie_counts.curie,
-            clique_leader_count,
-            STRING_AGG(DISTINCT cliques.filename, '||' ORDER BY cliques.filename ASC) AS filenames,
-            STRING_AGG(DISTINCT cliques.biolink_type, '||' ORDER BY cliques.biolink_type ASC) AS biolink_types,
-            STRING_AGG(cliques.clique_leader, '||' ORDER BY cliques.clique_leader ASC) AS clique_leaders,
-            STRING_AGG(cliques.preferred_name, '||' ORDER BY cliques.preferred_name ASC) AS clique_preferred_names,
+    db.sql("""SELECT
+            curie,
+            LIST(clique_leader ORDER BY clique_leader ASC) AS clique_leaders,
+            LIST(conflation) AS conflations,
+            COUNT(clique_leader) AS clique_leader_count
         FROM
-            curie_counts
-        JOIN edges ON edges.curie = curie_counts.curie
-        JOIN cliques ON cliques.clique_leader = edges.clique_leader
-        GROUP BY
-            curie_counts.curie,
-            curie_counts.clique_leader_count
-        ORDER BY
-            curie_counts.clique_leader_count DESC;
-
+            edges
+        GROUP BY curie HAVING COUNT(clique_leader) > 1
     """).write_csv(duplicate_curies_tsv, sep="\t")
 
 
