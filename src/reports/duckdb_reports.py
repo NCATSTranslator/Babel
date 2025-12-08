@@ -113,6 +113,7 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
     # Step 1. Generate a by-prefix summary.
+    logger.info("Generating prefix report...")
     curie_prefix_summary = db.sql("""
         SELECT
             split_part(curie, ':', 1) AS curie_prefix,
@@ -128,7 +129,9 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
         ORDER BY
             curie_prefix ASC
     """)
+    logger.info("Done generating prefix report, retrieving results...")
     all_rows = curie_prefix_summary.fetchall()
+    logger.info("Done retrieving results.")
 
     # This is split up by filename, so we need to stitch it back together again.
     # This MUST be sorted by DuckDB, but sure, let's double-check.
@@ -158,39 +161,37 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
         by_curie_prefix_results[curie_prefix]['_totals'] = totals
 
     # Step 2. Generate a by-clique summary.
+    logger.info("Generating clique report...")
     clique_summary = db.sql("""
         SELECT
             filename,
             split_part(clique_leader, ':', 1) AS clique_leader_prefix,
-            COUNT(DISTINCT clique_leader) AS clique_count,
-            STRING_AGG(split_part(curie, ':', 1), '||' ORDER BY curie ASC) AS curie_prefixes
+            split_part(curie, ':', 1) AS curie_prefix,
+            COUNT(DISTINCT clique_leader) AS clique_leader_count,
+            COUNT(*) AS clique_count
         FROM
             edges
         GROUP BY
-            filename, clique_leader_prefix
+            filename, clique_leader_prefix, curie_prefix
         ORDER BY
-            filename ASC, clique_leader_prefix ASC
+            filename ASC, clique_leader_prefix ASC, curie_prefix ASC
     """)
-    rows = clique_summary.fetchall()
+    logger.info("Done generating clique report, retrieving results...")
+    all_rows = clique_summary.fetchall()
+    logger.info("Done retrieving results.")
 
-    by_clique_results = {}
-    for row in rows:
-        filename = row[0]
-        clique_leader_prefix = row[1]
-        clique_count = row[2]
-        curie_prefixes = row[3].split("||")
-        curie_prefix_counts = Counter(curie_prefixes)
+    by_clique_results = dict()
+    sorted_rows = sorted(all_rows, key=lambda x: (x[0], x[1], x[2]))
+    for row in sorted_rows:
+        if row[0] not in by_clique_results:
+            by_clique_results[row[0]] = dict()
+        if row[1] not in by_clique_results[row[0]]:
+            by_clique_results[row[0]][row[1]] = dict()
+        if row[2] not in by_clique_results[row[0]][row[1]]:
+            by_clique_results[row[0]][row[1]][row[2]] = dict()
 
-        if clique_leader_prefix not in by_clique_results:
-            by_clique_results[clique_leader_prefix] = {"count_cliques": 0, "by_file": {}}
-
-        by_clique_results[clique_leader_prefix]["count_cliques"] += clique_count
-
-        if filename not in by_clique_results[clique_leader_prefix]["by_file"]:
-            by_clique_results[clique_leader_prefix]["by_file"][filename] = defaultdict(int)
-
-        for curie_prefix in curie_prefix_counts.keys():
-            by_clique_results[clique_leader_prefix]["by_file"][filename][curie_prefix] += curie_prefix_counts[curie_prefix]
+        by_clique_results[row[0]][row[1]][row[2]]["distinct_clique_leader_count"] = row[3]
+        by_clique_results[row[0]][row[1]][row[2]]["clique_count"] = row[4]
 
     # Generate totals.
     total_cliques = 0
