@@ -21,25 +21,13 @@ def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identic
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
     db.sql("""
-        WITH curie_counts AS (SELECT LOWER(preferred_name) AS preferred_name_lc, COUNT(clique_leader) AS curie_count FROM cliques
-            WHERE filename NOT IN ('DrugChemicalConflated', 'Publication')
-            GROUP BY preferred_name_lc HAVING COUNT(clique_leader) > 1
-            ORDER BY curie_count DESC)
-        SELECT 
-            preferred_name_lc,
-            curie_count,
-            STRING_AGG(DISTINCT cliques.filename, '||' ORDER BY cliques.filename ASC) AS filenames,
-            STRING_AGG(DISTINCT cliques.biolink_type, '||' ORDER BY cliques.biolink_type ASC) AS biolink_types,
-            STRING_AGG(cliques.clique_leader, '||' ORDER BY cliques.clique_leader ASC) AS curies
-        FROM 
-            curie_counts
-        JOIN 
-            cliques ON curie_counts.preferred_name_lc = LOWER(cliques.preferred_name)
-        GROUP BY 
-            curie_counts.preferred_name_lc, 
-            curie_counts.curie_count
-        ORDER BY 
-            curie_counts.curie_count DESC;
+        SELECT
+            LOWER(preferred_name) AS preferred_name_lc,
+            LIST(clique_leader ORDER BY clique_leader ASC) AS clique_leaders,
+            COUNT(*) AS clique_count
+        FROM cliques
+        GROUP BY LOWER(preferred_name) HAVING COUNT(*) > 1
+        ORDER BY clique_count DESC
     """).write_csv(identically_labeled_cliques_tsv, sep="\t")
 
 
@@ -64,7 +52,7 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
             GROUP BY curie HAVING COUNT(DISTINCT clique_leader) > 1
             ORDER BY clique_leader_count DESC
         )
-        SELECT 
+        SELECT
             curie_counts.curie,
             clique_leader_count,
             STRING_AGG(DISTINCT cliques.filename, '||' ORDER BY cliques.filename ASC) AS filenames,
@@ -75,12 +63,12 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
             curie_counts
         JOIN edges ON edges.curie = curie_counts.curie
         JOIN cliques ON cliques.clique_leader = edges.clique_leader
-        GROUP BY 
-            curie_counts.curie, 
+        GROUP BY
+            curie_counts.curie,
             curie_counts.clique_leader_count
-        ORDER BY 
+        ORDER BY
             curie_counts.clique_leader_count DESC;
-    
+
     """).write_csv(duplicate_curies_tsv, sep="\t")
 
 
@@ -291,30 +279,30 @@ def get_label_distribution(duckdb_filename, output_filename):
     # Thanks, ChatGPT.
     db.sql("""
        WITH Lengths AS (
-            SELECT 
+            SELECT
                 curie,
-                label, 
+                label,
                 LENGTH(label) AS label_length
-            FROM 
+            FROM
                 Cliques
         ), Examples AS (
-            SELECT 
+            SELECT
                 curie,
-                label, 
+                label,
                 label_length,
                 ROW_NUMBER() OVER (PARTITION BY label_length ORDER BY label) AS rn
-            FROM 
+            FROM
                 Lengths
         )
-        SELECT 
-            label_length, 
+        SELECT
+            label_length,
             COUNT(*) AS frequency,
             MAX(CASE WHEN rn = 1 THEN curie ELSE NULL END) AS example_curie,
             MAX(CASE WHEN rn = 1 THEN label ELSE NULL END) AS example_label
-        FROM 
+        FROM
             Examples
-        GROUP BY 
+        GROUP BY
             label_length
-        ORDER BY 
-            label_length ASC; 
+        ORDER BY
+            label_length ASC;
     """).write_csv(output_filename)
