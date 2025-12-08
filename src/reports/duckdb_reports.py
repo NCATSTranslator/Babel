@@ -76,7 +76,11 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
     db = setup_duckdb(duckdb_filename)
     db.execute("SET preserve_insertion_order=false")
     memory_result = db.sql("SELECT current_setting('memory_limit'), current_setting('threads');")
-    logger.info(f"DuckDB memory limit: {memory_result.fetchall()}")
+    logger.info(f"DuckDB original memory limit: {memory_result.fetchall()}")
+    db.execute("SET memory_limit='512G';")
+    db.execute("SET threads=2;")
+    memory_result = db.sql("SELECT current_setting('memory_limit'), current_setting('threads');")
+    logger.info(f"DuckDB updated memory limit: {memory_result.fetchall()}")
 
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
