@@ -140,7 +140,7 @@ rule generate_curie_report:
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     output:
-        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/prefix_report.duckdb"),
+        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/curie_report.duckdb"),
         curie_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
     run:
         src.reports.duckdb_reports.generate_curie_report(params.parquet_dir, output.duckdb_filename, output.curie_report_json, {
@@ -158,8 +158,8 @@ rule generate_by_clique_report:
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     output:
-        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/prefix_report.duckdb"),
-        by_clique_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
+        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/by_clique_report.duckdb"),
+        by_clique_report_json=config["output_directory"] + "/reports/duckdb/by_clique_report.json",
     run:
         src.reports.duckdb_reports.generate_by_clique_report(params.parquet_dir, output.duckdb_filename, output.by_clique_report_json, {
             'memory_limit': '1500G',
