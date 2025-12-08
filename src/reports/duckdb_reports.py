@@ -1,6 +1,7 @@
 import csv
 import json
 import os
+import itertools
 from collections import Counter, defaultdict
 
 from src.exporters.duckdb_exporters import setup_duckdb
@@ -134,31 +135,46 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
     curie_prefix_summary = db.sql("""
         SELECT
             split_part(curie, ':', 1) AS curie_prefix,
+            filename,
             COUNT(curie) AS curie_count,
             COUNT(DISTINCT curie) AS curie_distinct_count,
             COUNT(DISTINCT clique_leader) AS clique_distinct_count,
-            STRING_AGG(edges.filename, '||' ORDER BY edges.filename ASC) AS filenames
         FROM
             edges
         GROUP BY
-            curie_prefix
+            curie_prefix,
+            filename
         ORDER BY
             curie_prefix ASC
     """)
-    rows = curie_prefix_summary.fetchall()
+    all_rows = curie_prefix_summary.fetchall()
 
-    by_curie_prefix_results = {}
-    for row in rows:
-        curie_prefix = row[0]
-
-        filename_counts = Counter(row[4].split("||"))
-
-        by_curie_prefix_results[curie_prefix] = {
-            "curie_count": row[1],
-            "curie_distinct_count": row[2],
-            "clique_distinct_count": row[3],
-            "filenames": filename_counts,
+    # This is split up by filename, so we need to stitch it back together again.
+    # This MUST be sorted by DuckDB, but sure, let's double-check.
+    sorted_rows = sorted(all_rows, key=lambda x: (x[0], x[1]))
+    by_curie_prefix_results = defaultdict(dict)
+    for row in sorted_rows:
+        by_curie_prefix_results[row[0]][row[1]] = {
+            "curie_count": row[2],
+            "curie_distinct_count": row[3],
+            "clique_distinct_count": row[4],
         }
+
+    # Calculate total counts.
+    for curie_prefix in by_curie_prefix_results.keys():
+        totals = {
+            'curie_count': 0,
+            'curie_distinct_count': 0,
+            'clique_distinct_count': 0
+        }
+
+        filenames = by_curie_prefix_results[curie_prefix].keys()
+        for filename in filenames:
+            totals['curie_count'] += by_curie_prefix_results[curie_prefix][filename]['curie_count']
+            totals['curie_distinct_count'] += by_curie_prefix_results[curie_prefix][filename]['curie_distinct_count']
+            totals['clique_distinct_count'] += by_curie_prefix_results[curie_prefix][filename]['clique_distinct_count']
+
+        by_curie_prefix_results[curie_prefix]['_totals'] = totals
 
     # Step 2. Generate a by-clique summary.
     clique_summary = db.sql("""
