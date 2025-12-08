@@ -413,7 +413,8 @@ ensembl_datasets_to_skip:
   - otshawytscha_gene_ensembl
   - aocellaris_gene_ensembl
 
-duckdb_config: {}
+duckdb_config:
+  enable_progress_bar: true
 
 demote_labels_longer_than: 25
 
