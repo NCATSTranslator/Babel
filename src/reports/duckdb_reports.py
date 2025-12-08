@@ -1,11 +1,12 @@
 import csv
 import json
 import os
-import itertools
 from collections import Counter, defaultdict
 
+from src import util
 from src.exporters.duckdb_exporters import setup_duckdb
 
+logger = util.get_logger(__name__)
 
 def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identically_labeled_cliques_tsv):
     """
@@ -75,7 +76,7 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
     db = setup_duckdb(duckdb_filename)
     db.execute("SET preserve_insertion_order=false")
     memory_result = db.sql("SELECT current_setting('memory_limit'), current_setting('threads');")
-    print(f"DuckDB memory limit: {memory_result.fetchall()}")
+    logger.info(f"DuckDB memory limit: {memory_result.fetchall()}")
 
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
