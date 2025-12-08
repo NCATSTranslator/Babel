@@ -27,7 +27,6 @@ def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identic
             COUNT(clique_leader) AS clique_leader_count
         FROM cliques
         GROUP BY preferred_name_lc HAVING clique_leader_count > 1
-        ORDER BY clique_count DESC
         ORDER BY clique_leader_count DESC
     """).write_csv(identically_labeled_cliques_tsv, sep="\t")
 
