@@ -21,7 +21,7 @@ def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identic
     db.execute("SET preserve_insertion_order=false")
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
-    db.sql("""
+    results = db.sql("""
         SELECT
             LOWER(preferred_name) AS preferred_name_lc,
             LIST(clique_leader ORDER BY clique_leader ASC) AS clique_leaders,
@@ -29,7 +29,8 @@ def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identic
         FROM cliques
         GROUP BY preferred_name_lc HAVING clique_leader_count > 1
         ORDER BY clique_leader_count DESC
-    """).write_csv(identically_labeled_cliques_tsv, sep="\t")
+    """)
+    results.write_csv(identically_labeled_cliques_tsv, sep="\t")
 
 
 def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_tsv):
@@ -80,7 +81,7 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
     # We would love to include the following columns, but they take up too much memory:
     # - LIST(clique_identifier_count) AS clique_identifier_counts,
     # - LIST(biolink_type) AS biolink_types
-    db.sql(
+    results = db.sql(
         """
         SELECT
             clique_leader,
@@ -91,7 +92,8 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
         GROUP BY clique_leader HAVING clique_leader_count > 1
         ORDER BY clique_leader_count DESC
         """
-    ).write_csv(duplicate_clique_leaders_tsv, sep="\t")
+    )
+    results.write_csv(duplicate_clique_leaders_tsv, sep="\t")
 
 
 def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, prefix_report_tsv):
