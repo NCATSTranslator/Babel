@@ -78,7 +78,7 @@ rule export_all_to_duckdb:
 # There are some reports we want to run on the Parquet files that have been generated.
 rule check_for_identically_labeled_cliques:
     resources:
-        mem="1500G",
+        mem="1024G",
     input:
         config["output_directory"] + "/duckdb/done",
     params:
@@ -87,12 +87,16 @@ rule check_for_identically_labeled_cliques:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/identically_labeled_clique.duckdb"),
         identically_labeled_cliques_tsv=config["output_directory"] + "/reports/duckdb/identically_labeled_cliques.tsv",
     run:
-        src.reports.duckdb_reports.check_for_identically_labeled_cliques(params.parquet_dir, output.duckdb_filename, output.identically_labeled_cliques_tsv)
+        src.reports.duckdb_reports.check_for_identically_labeled_cliques(params.parquet_dir, output.duckdb_filename, output.identically_labeled_cliques_tsv, {
+            'memory_limit': '512G',
+            'threads': 2,
+            'preserve_insertion_order': False,
+        })
 
 
 rule check_for_duplicate_curies:
     resources:
-        mem="1500G",
+        mem="1024G",
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
@@ -102,12 +106,16 @@ rule check_for_duplicate_curies:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/duplicate_curies.duckdb"),
         duplicate_curies=config["output_directory"] + "/reports/duckdb/duplicate_curies.tsv",
     run:
-        src.reports.duckdb_reports.check_for_duplicate_curies(params.parquet_dir, output.duckdb_filename, output.duplicate_curies)
+        src.reports.duckdb_reports.check_for_duplicate_curies(params.parquet_dir, output.duckdb_filename, output.duplicate_curies, {
+            'memory_limit': '512G',
+            'threads': 2,
+            'preserve_insertion_order': False,
+        })
 
 
 rule check_for_duplicate_clique_leaders:
     resources:
-        mem="1500G",
+        mem="1024G",
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
@@ -117,12 +125,15 @@ rule check_for_duplicate_clique_leaders:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/duplicate_clique_leaders.duckdb"),
         duplicate_clique_leaders_tsv=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.tsv",
     run:
-        src.reports.duckdb_reports.check_for_duplicate_clique_leaders(params.parquet_dir, output.duckdb_filename, output.duplicate_clique_leaders_tsv)
-
+        src.reports.duckdb_reports.check_for_duplicate_clique_leaders(params.parquet_dir, output.duckdb_filename, output.duplicate_clique_leaders_tsv, {
+            'memory_limit': '512G',
+            'threads': 2,
+            'preserve_insertion_order': False,
+        })
 
 rule generate_prefix_report:
     resources:
-        mem="1500G",
+        mem="1024G",
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
@@ -133,7 +144,11 @@ rule generate_prefix_report:
         prefix_report_json=config["output_directory"] + "/reports/duckdb/prefix_report.json",
         prefix_report_tsv=config["output_directory"] + "/reports/duckdb/prefix_report.tsv",
     run:
-        src.reports.duckdb_reports.generate_prefix_report(params.parquet_dir, output.duckdb_filename, output.prefix_report_json, output.prefix_report_tsv)
+        src.reports.duckdb_reports.generate_prefix_report(params.parquet_dir, output.duckdb_filename, output.prefix_report_json, output.prefix_report_tsv, {
+            'memory_limit': '512G',
+            'threads': 2,
+            'preserve_insertion_order': False,
+        })
 
 
 rule all_duckdb_reports:

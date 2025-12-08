@@ -8,7 +8,7 @@ from src.exporters.duckdb_exporters import setup_duckdb
 
 logger = util.get_logger(__name__)
 
-def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identically_labeled_cliques_tsv):
+def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identically_labeled_cliques_tsv, duckdb_config=None):
     """
     Generate a list of identically labeled cliques.
 
@@ -18,8 +18,7 @@ def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identic
     :param identically_labeled_cliques_csv: The output file listing identically labeled cliques.
     """
 
-    db = setup_duckdb(duckdb_filename)
-    db.execute("SET preserve_insertion_order=false")
+    db = setup_duckdb(duckdb_filename, duckdb_config)
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
     results = db.sql("""
@@ -34,7 +33,7 @@ def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identic
     results.write_csv(identically_labeled_cliques_tsv, sep="\t")
 
 
-def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_tsv):
+def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_tsv, duckdb_config=None):
     """
     Generate a list of duplicate CURIEs.
 
@@ -44,7 +43,7 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
     :param duplicate_curies_tsv: The output file listing duplicate CURIEs.
     """
 
-    db = setup_duckdb(duckdb_filename)
+    db = setup_duckdb(duckdb_filename, duckdb_config)
     db.execute("SET preserve_insertion_order=false")
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
@@ -63,7 +62,7 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
     """).write_csv(duplicate_curies_tsv, sep="\t")
 
 
-def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_clique_leaders_tsv):
+def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_clique_leaders_tsv, duckdb_config=None):
     """
     Generate a list of duplicate clique leaders.
 
@@ -73,15 +72,7 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
     :param duplicate_clique_leaders_tsv: The output file listing duplicate CURIEs.
     """
 
-    db = setup_duckdb(duckdb_filename)
-    db.execute("SET preserve_insertion_order=false")
-    memory_result = db.sql("SELECT current_setting('memory_limit'), current_setting('threads');")
-    logger.info(f"DuckDB original memory limit: {memory_result.fetchall()}")
-    db.execute("SET memory_limit='512G';")
-    db.execute("SET threads=2;")
-    memory_result = db.sql("SELECT current_setting('memory_limit'), current_setting('threads');")
-    logger.info(f"DuckDB updated memory limit: {memory_result.fetchall()}")
-
+    db = setup_duckdb(duckdb_filename, duckdb_config)
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
     # Look for duplicate clique leaders.
@@ -103,7 +94,7 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
     results.write_csv(duplicate_clique_leaders_tsv, sep="\t")
 
 
-def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, prefix_report_tsv):
+def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, prefix_report_tsv, duckdb_config=None):
     """
     Generate a report about all the prefixes within this system.
 
@@ -116,7 +107,7 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
     :param prefix_report_tsv: The prefix report as TSV.
     """
 
-    db = setup_duckdb(duckdb_filename)
+    db = setup_duckdb(duckdb_filename, duckdb_config)
     db.execute("SET preserve_insertion_order=false")
 
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)

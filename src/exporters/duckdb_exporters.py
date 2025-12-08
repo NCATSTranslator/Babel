@@ -13,13 +13,18 @@ logger = get_logger(__name__)
 MIN_FILE_SIZE_FOR_SPLITTING_LOAD = 44_000_000_000
 CHUNK_LINE_SIZE = 60_000_000
 
-def setup_duckdb(duckdb_filename):
+def setup_duckdb(duckdb_filename, duckdb_config=None):
     """
     Set up a DuckDB instance using the settings in the config.
 
     :return: The DuckDB instance to be used.
     """
-    db = duckdb.connect(duckdb_filename, config=get_config().get("duckdb_config", {}))
+    if not duckdb_config:
+        duckdb_config = {}
+
+    # We want to use (1) the global duckdb_config, then (2) the duckdb_config passed to this function.
+    complete_duckdb_config = {**get_config().get("duckdb_config", {}), **duckdb_config}
+    db = duckdb.connect(duckdb_filename, config=complete_duckdb_config)
 
     # Set up some Babel-wide settings.
     config = get_config()
@@ -28,7 +33,13 @@ def setup_duckdb(duckdb_filename):
         db.execute("SET max_temp_directory_size = '500GB';")
 
     # Turn on a progress bar.
-    db.sql("PRAGMA enable_progress_bar=true")
+    db.execute("PRAGMA enable_progress_bar=true")
+
+    # Display all the settings.
+    settings = db.sql("SELECT * FROM duckdb_settings()")
+    logger.info("DuckDB connected with the following settings:")
+    for row in settings.fetchall():
+        logger.info(' - ' + "\t".join(row))
 
     return db
 
