@@ -107,8 +107,8 @@ rule check_for_duplicate_curies:
         duplicate_curies=config["output_directory"] + "/reports/duckdb/duplicate_curies.tsv",
     run:
         src.reports.duckdb_reports.check_for_duplicate_curies(params.parquet_dir, output.duckdb_filename, output.duplicate_curies, {
-            'memory_limit': '512G',
-            'threads': 2,
+            'memory_limit': '1500G',
+            'threads': 1,
             'preserve_insertion_order': False,
         })
 
@@ -145,8 +145,8 @@ rule generate_prefix_report:
         prefix_report_tsv=config["output_directory"] + "/reports/duckdb/prefix_report.tsv",
     run:
         src.reports.duckdb_reports.generate_prefix_report(params.parquet_dir, output.duckdb_filename, output.prefix_report_json, output.prefix_report_tsv, {
-            'memory_limit': '512G',
-            'threads': 2,
+            'memory_limit': '1500G',
+            'threads': 1,
             'preserve_insertion_order': False,
         })
 
