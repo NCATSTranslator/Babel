@@ -1,12 +1,12 @@
 # Build information. Currently unstructured -- you can use this to write down any notes on what is going on with
 # this specific build of Babel.
 build:
-  branch: babel-1.14
+  branch: babel-1.15
 
 # Versions that need to be updated on every release.
-biolink_version: "4.3.2"
-umls_version: "2025AA"
-rxnorm_version: "10062025"
+biolink_version: "4.3.6"
+umls_version: "2025AB"
+rxnorm_version: "12012025"
 drugbank_version: "5-1-13"
 
 # Overall inputs and outputs.
