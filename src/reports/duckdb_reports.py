@@ -18,6 +18,7 @@ def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identic
     """
 
     db = setup_duckdb(duckdb_filename)
+    db.execute("SET preserve_insertion_order=false")
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
     db.sql("""
@@ -42,6 +43,7 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
     """
 
     db = setup_duckdb(duckdb_filename)
+    db.execute("SET preserve_insertion_order=false")
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
@@ -70,6 +72,8 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
     """
 
     db = setup_duckdb(duckdb_filename)
+    db.execute("SET preserve_insertion_order=false")
+
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
     # Look for duplicate clique leaders.
@@ -104,8 +108,11 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
     """
 
     db = setup_duckdb(duckdb_filename)
+    db.execute("SET preserve_insertion_order=false")
+
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
+
 
     # Step 1. Generate a by-prefix summary.
     curie_prefix_summary = db.sql("""
