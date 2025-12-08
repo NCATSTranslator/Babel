@@ -107,8 +107,6 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
     """
 
     db = setup_duckdb(duckdb_filename, duckdb_config)
-    db.execute("SET preserve_insertion_order=false")
-
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
@@ -126,8 +124,6 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
         GROUP BY
             curie_prefix,
             filename
-        ORDER BY
-            curie_prefix ASC
     """)
     logger.info("Done generating prefix report, retrieving results...")
     all_rows = curie_prefix_summary.fetchall()
@@ -173,8 +169,6 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
             edges
         GROUP BY
             filename, clique_leader_prefix, curie_prefix
-        ORDER BY
-            filename ASC, clique_leader_prefix ASC, curie_prefix ASC
     """)
     logger.info("Done generating clique report, retrieving results...")
     all_rows = clique_summary.fetchall()
