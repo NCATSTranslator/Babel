@@ -107,7 +107,7 @@ rule check_for_duplicate_curies:
 
 rule check_for_duplicate_clique_leaders:
     resources:
-        mem="512G",
+        mem="1500G",
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",

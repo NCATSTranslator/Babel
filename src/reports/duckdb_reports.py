@@ -72,19 +72,19 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
     db = setup_duckdb(duckdb_filename)
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
-    # Look for clique leaders of different cliques.
+    # Look for duplicate clique leaders.
+    # We would love to include the following columns, but they take up too much memory:
+    # - LIST(clique_identifier_count) AS clique_identifier_counts,
+    # - LIST(biolink_type) AS biolink_types
     db.sql(
         """
         SELECT
             clique_leader,
-            LIST(clique_identifier_count) AS clique_identifier_counts,
-            LIST(biolink_type) AS biolink_types,
             LIST(filename) AS filenames,
-            COUNT(*) AS clique_leader_count
+            COUNT(clique_leader) AS clique_leader_count
         FROM
             cliques
-        GROUP BY clique_leader
-        HAVING clique_leader_count > 1
+        GROUP BY clique_leader HAVING clique_leader_count > 1
         ORDER BY clique_leader_count DESC
         """
     ).write_csv(duplicate_clique_leaders_tsv, sep="\t")
