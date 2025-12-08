@@ -32,9 +32,6 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
         db.execute(f"SET temp_directory = '{config['tmp_directory']}'")
         db.execute("SET max_temp_directory_size = '500GB';")
 
-    # Turn on a progress bar.
-    db.execute("PRAGMA enable_progress_bar=true")
-
     # Display all the settings.
     settings = db.sql("SELECT * FROM duckdb_settings()")
     logger.info("DuckDB connected with the following settings:")
