@@ -44,7 +44,6 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
     """
 
     db = setup_duckdb(duckdb_filename, duckdb_config)
-    db.execute("SET preserve_insertion_order=false")
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
