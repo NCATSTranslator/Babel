@@ -19,12 +19,14 @@ include: "src/snakefiles/duckdb.snakefile"
 include: "src/snakefiles/reports.snakefile"
 include: "src/snakefiles/exports.snakefile"
 
+# Some general imports.
+import shutil
+from src.snakefiles.util import write_done
 
 # Some global settings.
 import os
 
 os.environ["TMPDIR"] = config["tmp_directory"]
-
 
 # Top-level rules.
 rule all:
@@ -45,9 +47,9 @@ rule all:
     output:
         x=config["output_directory"] + "/reports/all_done",
         output_config_file=config["output_directory"] + "/config.yaml",
-    shell:
-        "cp {input.config_file} {output.output_config_file}"
-        "echo 'done' >> {output.x}"
+    run:
+        shutil.copyfile(input.config_file, output.output_config_file)
+        write_done(output.x)
 
 
 rule all_outputs:
@@ -68,8 +70,8 @@ rule all_outputs:
         config["output_directory"] + "/reports/publications_done",
     output:
         x=config["output_directory"] + "/reports/outputs_done",
-    shell:
-        "echo 'done' >> {output.x}"
+    run:
+        write_done(output.x)
 
 
 rule clean_compendia:
