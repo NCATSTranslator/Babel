@@ -113,7 +113,6 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, pr
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
-
     # Step 1. Generate a by-prefix summary.
     curie_prefix_summary = db.sql("""
         SELECT
