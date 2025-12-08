@@ -92,7 +92,7 @@ rule check_for_identically_labeled_cliques:
 
 rule check_for_duplicate_curies:
     resources:
-        mem="1500G",
+        mem="512G",
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
