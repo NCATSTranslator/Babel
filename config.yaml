@@ -22,7 +22,7 @@ tmp_directory: babel_downloads/tmp
 
 # DuckDB settings for use in all DuckDB connections:
 duckdb_config:
-  enable_progress_bar: true
+  enable_logging: true
 
 #
 # UMLS

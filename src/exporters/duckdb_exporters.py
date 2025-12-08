@@ -26,11 +26,14 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
     complete_duckdb_config = {**get_config().get("duckdb_config", {}), **duckdb_config}
     db = duckdb.connect(duckdb_filename, config=complete_duckdb_config)
 
-    # Set up some Babel-wide settings.
+    # Apply some Babel-wide settings to DuckDB.
     config = get_config()
     if 'tmp_directory' in config:
         db.execute(f"SET temp_directory = '{config['tmp_directory']}'")
         db.execute("SET max_temp_directory_size = '500GB';")
+
+    # We need to set local settings after the connection has been opened.
+    db.execute("SET enable_progress_bar=true")
 
     # Display all the settings.
     settings = db.sql("SELECT * FROM duckdb_settings()")
