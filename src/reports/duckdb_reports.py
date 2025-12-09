@@ -179,32 +179,30 @@ def generate_by_clique_report(parquet_root, duckdb_filename, by_clique_report_js
     logger.info("Generating clique report...")
     clique_summary = db.sql("""
         SELECT
-            filename,
             split_part(clique_leader, ':', 1) AS clique_leader_prefix,
             split_part(curie, ':', 1) AS curie_prefix,
+            LIST(DISTINCT filename) AS filenames,
             COUNT(DISTINCT clique_leader) AS distinct_clique_leader_count,
+            COUNT(DISTINCT curie) AS distinct_clique_count
             COUNT(curie) AS clique_count
         FROM
             edges
         GROUP BY
-            filename, clique_leader_prefix, curie_prefix
+            clique_leader_prefix, curie_prefix
     """)
     logger.info("Done generating clique report, retrieving results...")
     all_rows = clique_summary.fetchall()
     logger.info("Done retrieving results.")
 
-    by_clique_results = dict()
-    sorted_rows = sorted(all_rows, key=lambda x: (x[0], x[1], x[2]))
+    by_clique_results = defaultdict(dict)
+    sorted_rows = sorted(all_rows, key=lambda x: (x[0], x[1]))
     for row in sorted_rows:
-        if row[0] not in by_clique_results:
-            by_clique_results[row[0]] = dict()
-        if row[1] not in by_clique_results[row[0]]:
-            by_clique_results[row[0]][row[1]] = dict()
-        if row[2] not in by_clique_results[row[0]][row[1]]:
-            by_clique_results[row[0]][row[1]][row[2]] = dict()
-
-        by_clique_results[row[0]][row[1]][row[2]]["distinct_clique_leader_count"] = row[3]
-        by_clique_results[row[0]][row[1]][row[2]]["clique_count"] = row[4]
+        by_clique_results[row[0]][row[1]] = {
+            "filenames": row[2],
+            "distinct_clique_leader_count": row[3],
+            "distinct_clique_count": row[4],
+            "clique_count": row[5],
+        }
 
     # Step 3. Write out by-clique report in JSON.
     with open(by_clique_report_json, "w") as fout:
