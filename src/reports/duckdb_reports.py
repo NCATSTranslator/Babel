@@ -183,7 +183,7 @@ def generate_by_clique_report(parquet_root, duckdb_filename, by_clique_report_js
             split_part(curie, ':', 1) AS curie_prefix,
             LIST(DISTINCT filename) AS filenames,
             COUNT(DISTINCT clique_leader) AS distinct_clique_leader_count,
-            COUNT(DISTINCT curie) AS distinct_clique_count
+            COUNT(DISTINCT curie) AS distinct_clique_count,
             COUNT(curie) AS clique_count
         FROM
             edges
@@ -204,7 +204,7 @@ def generate_by_clique_report(parquet_root, duckdb_filename, by_clique_report_js
             "clique_count": row[5],
         }
 
-    # Step 3. Write out by-clique report in JSON.
+    # Step 2. Write out by-clique report in JSON.
     with open(by_clique_report_json, "w") as fout:
         json.dump(by_clique_results,
             fout,
