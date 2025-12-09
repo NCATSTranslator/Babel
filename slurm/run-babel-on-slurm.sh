@@ -25,6 +25,6 @@ source ~/.bashrc
 # a long-running process on login/head nodes. So a good compromise is to still use the sbatch wrapper
 # to submit the snakemake job but request minimal resources for the outer job as shown in this job script.
 
-uv run snakemake --profile slurm ${1+"$@"}
+uv run snakemake --profile slurm $@
 
 EOF
