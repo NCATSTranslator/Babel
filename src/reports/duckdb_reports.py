@@ -120,6 +120,8 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
             COUNT(DISTINCT clique_leader) AS clique_distinct_count,
         FROM
             edges
+        WHERE
+            conflation = 'None'
         GROUP BY
             curie_prefix,
             filename
