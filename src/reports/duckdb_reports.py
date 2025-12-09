@@ -27,7 +27,7 @@ def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identic
             LIST(clique_leader ORDER BY clique_leader ASC) AS clique_leaders,
             COUNT(clique_leader) AS clique_leader_count
         FROM cliques
-        WHERE preferred_name <> ''
+        WHERE preferred_name <> '' AND preferred_name <> '""'
         GROUP BY preferred_name_lc HAVING clique_leader_count > 1
         ORDER BY clique_leader_count DESC
     """)
