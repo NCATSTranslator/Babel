@@ -101,6 +101,7 @@ rule chemical_drugcentral_ids:
 
 
 rule chemical_chebi_ids:
+    retries: 10 # Ubergraph sometimes fails mid-download, and then we need to retry.
     output:
         outfile=config["intermediate_directory"] + "/chemicals/ids/CHEBI",
     run:
