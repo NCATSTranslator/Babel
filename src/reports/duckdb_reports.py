@@ -182,7 +182,7 @@ def generate_by_clique_report(parquet_root, duckdb_filename, by_clique_report_js
             filename,
             split_part(clique_leader, ':', 1) AS clique_leader_prefix,
             split_part(curie, ':', 1) AS curie_prefix,
-            COUNT(DISTINCT clique_leader) AS clique_leader_count,
+            COUNT(DISTINCT clique_leader) AS distinct_clique_leader_count,
             COUNT(curie) AS clique_count
         FROM
             edges
@@ -206,18 +206,7 @@ def generate_by_clique_report(parquet_root, duckdb_filename, by_clique_report_js
         by_clique_results[row[0]][row[1]][row[2]]["distinct_clique_leader_count"] = row[3]
         by_clique_results[row[0]][row[1]][row[2]]["clique_count"] = row[4]
 
-    # Generate totals.
-    total_cliques = 0
-    total_curies = 0
-    for curie_leader_prefix in by_clique_results.keys():
-        count_curies = 0
-        total_cliques += by_clique_results[curie_leader_prefix]["count_cliques"]
-        for filename in by_clique_results[curie_leader_prefix]["by_file"].keys():
-            count_curies += sum(by_clique_results[curie_leader_prefix]["by_file"][filename].values())
-        by_clique_results[curie_leader_prefix]["count_curies"] = count_curies
-        total_curies += count_curies
-
-    # Step 3. Write out prefix report in JSON.
+    # Step 3. Write out by-clique report in JSON.
     with open(by_clique_report_json, "w") as fout:
         json.dump(by_clique_results,
             fout,
