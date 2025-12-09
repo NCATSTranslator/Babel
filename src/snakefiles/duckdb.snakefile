@@ -85,7 +85,7 @@ rule check_for_identically_labeled_cliques:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     output:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/identically_labeled_clique.duckdb"),
-        identically_labeled_cliques_tsv=config["output_directory"] + "/reports/duckdb/identically_labeled_cliques.tsv",
+        identically_labeled_cliques_tsv=config["output_directory"] + "/reports/duckdb/identically_labeled_cliques.tsv.gz",
     run:
         src.reports.duckdb_reports.check_for_identically_labeled_cliques(params.parquet_dir, output.duckdb_filename, output.identically_labeled_cliques_tsv, {
             'memory_limit': '512G',
@@ -171,7 +171,7 @@ rule generate_by_clique_report:
 rule all_duckdb_reports:
     input:
         config["output_directory"] + "/duckdb/done",
-        identically_labeled_cliques_tsv=config["output_directory"] + "/reports/duckdb/identically_labeled_cliques.tsv",
+        identically_labeled_cliques_tsv=config["output_directory"] + "/reports/duckdb/identically_labeled_cliques.tsv.gz",
         duplicate_curies=config["output_directory"] + "/reports/duckdb/duplicate_curies.tsv",
         duplicate_clique_leaders_tsv=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.tsv",
         curie_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
