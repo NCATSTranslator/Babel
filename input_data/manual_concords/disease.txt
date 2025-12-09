@@ -127,5 +127,5 @@ EFO:1001863	oio:closeMatch	UMLS:C0042135
 
 # Diabetes (UMLS:C0011847) is mapped to ICD10CM:E11, which is specifically
 # type 2 diabetes mellitus. So we should combine it with the MONDO term.
-UMLS:C0011847 oio:exactMatch MONDO:0005148
+UMLS:C0011847	oio:exactMatch	MONDO:0005148
 
