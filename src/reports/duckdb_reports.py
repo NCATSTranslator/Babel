@@ -187,6 +187,8 @@ def generate_by_clique_report(parquet_root, duckdb_filename, by_clique_report_js
             COUNT(curie) AS clique_count
         FROM
             edges
+        WHERE
+            conflation = 'None'
         GROUP BY
             clique_leader_prefix, curie_prefix
     """)
