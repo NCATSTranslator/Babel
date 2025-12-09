@@ -175,7 +175,7 @@ rule all_duckdb_reports:
         duplicate_curies=config["output_directory"] + "/reports/duckdb/duplicate_curies.tsv",
         duplicate_clique_leaders_tsv=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.tsv",
         curie_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
-        by_clique_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
+        by_clique_report_json=config["output_directory"] + "/reports/duckdb/by_clique_report.json",
     output:
         x=config["output_directory"] + "/reports/duckdb/done",
     shell:
