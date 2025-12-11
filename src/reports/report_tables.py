@@ -83,3 +83,6 @@ def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str)
             }
 
             writer.writerow(row)
+
+def generate_cliques_table(prefix_report_json: str, prefix_report_table_csv: str):
+    pass

@@ -149,7 +149,8 @@ rule generate_curie_report:
             'preserve_insertion_order': False,
         })
 
-rule generate_by_clique_report:
+
+rule generate_clique_leader_report:
     resources:
         mem="1500G",
     input:
@@ -158,10 +159,10 @@ rule generate_by_clique_report:
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     output:
-        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/by_clique_report.duckdb"),
-        by_clique_report_json=config["output_directory"] + "/reports/duckdb/by_clique_report.json",
+        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/clique_leaders.duckdb"),
+        clique_leaders_json=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
     run:
-        src.reports.duckdb_reports.generate_by_clique_report(params.parquet_dir, output.duckdb_filename, output.by_clique_report_json, {
+        src.reports.duckdb_reports.generate_clique_leaders_report(params.parquet_dir, output.duckdb_filename, output.clique_leaders_json, {
             'memory_limit': '1500G',
             'threads': 1,
             'preserve_insertion_order': False,

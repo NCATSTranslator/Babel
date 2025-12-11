@@ -89,9 +89,18 @@ rule generate_prefix_table:
     input:
         curie_report=config["output_directory"] + "/reports/duckdb/curie_report.json",
     output:
-        table_path=config["output_directory"] + "/reports/tables/prefix_table.csv",
+        prefix_table=config["output_directory"] + "/reports/tables/prefix_table.csv",
     run:
-        report_tables.generate_prefix_table(input.curie_report, output.table_path)
+        report_tables.generate_prefix_table(input.curie_report, output.prefix_table)
+
+# Generate a cliques table.
+rule generate_cliques_table:
+    input:
+        cliques_report=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
+    output:
+        cliques_table=config["output_directory"] + "/reports/tables/cliques_table.csv",
+    run:
+        report_tables.generate_cliques_table(input.cliques_report, output.cliques_table)
 
 # Check that all the reports were built correctly.
 rule all_reports:

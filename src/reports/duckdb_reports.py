@@ -175,9 +175,9 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
         json.dump(by_curie_prefix_results, fout, indent=2, sort_keys=True)
 
 
-def generate_by_clique_report(parquet_root, duckdb_filename, by_clique_report_json, duckdb_config=None):
+def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_report_json, duckdb_config=None):
     """
-    Generate a report about all the prefixes within this system.
+    Generate a report about all the prefixes within this system, grouped by filename.
 
     See thoughts at https://github.com/TranslatorSRI/Babel/issues/359
 
@@ -189,16 +189,15 @@ def generate_by_clique_report(parquet_root, duckdb_filename, by_clique_report_js
 
     db = setup_duckdb(duckdb_filename, duckdb_config)
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
-    cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
+    # cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
     # Step 1. Generate a by-clique summary.
     logger.info("Generating clique report...")
     clique_summary = db.sql("""
         SELECT
+            filename,
             split_part(clique_leader, ':', 1) AS clique_leader_prefix,
             split_part(curie, ':', 1) AS curie_prefix,
-            LIST(DISTINCT filename) AS filenames,
-            COUNT(DISTINCT clique_leader) AS distinct_clique_leader_count,
             COUNT(DISTINCT curie) AS distinct_clique_count,
             COUNT(curie) AS clique_count
         FROM
@@ -212,19 +211,24 @@ def generate_by_clique_report(parquet_root, duckdb_filename, by_clique_report_js
     all_rows = clique_summary.fetchall()
     logger.info("Done retrieving results.")
 
-    by_clique_results = defaultdict(dict)
-    sorted_rows = sorted(all_rows, key=lambda x: (x[0], x[1]))
+    clique_leaders_by_filename = dict()
+    sorted_rows = sorted(all_rows, key=lambda x: (x[0], x[1], x[2]))
     for row in sorted_rows:
-        by_clique_results[row[0]][row[1]] = {
-            "filenames": row[2],
-            "distinct_clique_leader_count": row[3],
+        filename = row[0]
+        clique_leader_prefix = row[1]
+        curie_prefix = row[2]
+
+        if filename not in clique_leaders_by_filename:
+            clique_leaders_by_filename[filename] = defaultdict(dict)
+
+        clique_leaders_by_filename[filename][clique_leader_prefix][curie_prefix] = {
             "distinct_clique_count": row[4],
             "clique_count": row[5],
         }
 
     # Step 2. Write out by-clique report in JSON.
     with open(by_clique_report_json, "w") as fout:
-        json.dump(by_clique_results,
+        json.dump(clique_leaders_by_filename,
             fout,
             indent=2,
             sort_keys=True,
