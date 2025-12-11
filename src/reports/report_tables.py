@@ -128,7 +128,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
         },
         'Gene': {
             'description': 'Genes from all species',
-            'filename': ['Gene'],
+            'filenames': ['Gene'],
         },
         'GeneFamily': {
             'description': 'Families of genes',
@@ -144,6 +144,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
         },
         'Macromolecular Complex': {
             'description': '',
+            'filenames': [],
         },
         'ProcessActivityPathway': {
             'description': 'Biological processes, activities and pathways',
@@ -210,7 +211,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
         for pipeline, entry in pipeline_descriptions.items():
             pipeline_with_description = f"{pipeline}: {entry['description']}"
 
-            filenames = entry['filenames']
+            filenames = entry.get('filenames', [])
             if len(filenames) == 0:
                 writer.writerow({
                     'Pipeline': pipeline_with_description,
