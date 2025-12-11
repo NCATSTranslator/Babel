@@ -142,9 +142,7 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
         SELECT
             split_part(edges.curie, ':', 1) AS curie_prefix,
             cliques.biolink_type AS biolink_type,
-            COUNT(edges.curie) AS curie_count,
-            COUNT(DISTINCT edges.curie) AS curie_distinct_count,
-            COUNT(DISTINCT edges.clique_leader) AS clique_distinct_count,
+            COUNT(edges.curie) AS curie_count
         FROM
             edges
             LEFT JOIN cliques ON edges.clique_leader = cliques.clique_leader
