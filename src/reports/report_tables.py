@@ -84,5 +84,95 @@ def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str)
 
             writer.writerow(row)
 
-def generate_cliques_table(prefix_report_json: str, prefix_report_table_csv: str):
-    pass
+def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
+    with open(cliques_report_json, 'r') as f:
+        cliques_report = json.load(f)
+
+    # To improve the table somewhat, we'll include pipeline descriptions that group filenames.
+    pipeline_descriptions = {
+        'Anatomy': {
+            'description': 'Anatomical entities at all scales, from brains to endothelium to pancreatic beta cells',
+            'filenames': [
+                'AnatomicalEntity',
+                'Cell',
+                'CellularComponent',
+                'GrossAnatomicalStructure'
+            ],
+        },
+        'CellLine': {
+            'description': 'Cell lines from different species',
+            'filenames': ['CellLine'],
+        },
+        'Chemicals': {
+            'description': 'All kinds of chemicals, including drugs, small molecules, molecular mixtures, and so on',
+            'filenames': [
+                'MolecularMixture',
+                'SmallMolecule',
+                'Polypeptide',
+                'ComplexMolecularMixture',
+                'ChemicalEntity',
+                'ChemicalMixture',
+                'Drug'
+            ],
+        },
+        'DiseasePhenotype': {
+            'description': 'Conflation of drugs with their active ingredients as chemicals',
+            'filenames': [
+                'Disease',
+                'PhenotypicFeature'
+            ],
+        },
+        'DrugChemical': {
+            'description': 'Conflation of drugs with their active ingredients as chemicals',
+            'filenames': [],
+        },
+        'Gene': {
+            'description': 'Genes from all species',
+            'filename': ['Gene'],
+        },
+        'GeneFamily': {
+            'description': 'Families of genes',
+            'filenames': ['GeneFamily'],
+        },
+        'GeneProtein': {
+            'description': 'Conflation of genes with the proteins they code for.',
+            'filenames': [],
+        },
+        'Leftover UMLS': {
+            'description': 'A special pipeline that adds every UMLS concept not already added elsewhere in Babel',
+            'filenames': ['umls'],
+        },
+        'Macromolecular Complex': {
+            'description': '',
+        },
+        'ProcessActivityPathway': {
+            'description': 'Biological processes, activities and pathways',
+            'filenames': ['Pathway', 'BiologicalProcess', 'MolecularActivity'],
+        },
+        'Protein': {
+            'description': 'Proteins from all species',
+            'filenames': ['Protein'],
+        },
+        'Publications': {
+            'description': 'All publications from PubMed',
+            'filenames': ['Publication'],
+        },
+        'Taxon': {
+            'description': 'Taxonomic entities, including species, genera, families, and so on from the NCBI Taxonomy',
+            'filenames': ['Taxon'],
+        }
+    }
+
+    clique_leader_entries = []
+    for filename, inner in cliques_report.items():
+        for clique_leader_prefix, inner2 in inner.items():
+            for curie_prefix, entry in inner2.items():
+                clique_leader_entries.append({
+                    'filename': filename,
+                    'clique_leader_prefix': clique_leader_prefix,
+                    'curie_prefix': curie_prefix,
+                    'clique_count': entry['clique_count'],
+                    'distinct_clique_count': entry['distinct_clique_count'],
+                })
+
+
