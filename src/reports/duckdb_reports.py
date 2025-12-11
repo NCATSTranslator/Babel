@@ -146,12 +146,13 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
         SELECT
             curie_prefix,
             biolink_type,
-            COUNT(curie) AS curie_count,
-            COUNT(DISTINCT curie) AS curie_distinct_count,
-            COUNT(DISTINCT clique_leader) AS clique_distinct_count
+            COUNT(e.curie) AS curie_count,
+            COUNT(DISTINCT e.curie) AS curie_distinct_count,
+            COUNT(DISTINCT e.clique_leader) AS clique_distinct_count
         FROM (
              SELECT clique_leader,
-                    split_part(curie, ':', 1) AS curie_prefix
+                    split_part(curie, ':', 1) AS curie_prefix,
+                    curie
              FROM edges
         ) e
         JOIN C USING (clique_leader)

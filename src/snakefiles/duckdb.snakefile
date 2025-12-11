@@ -149,7 +149,7 @@ rule generate_curie_report:
             'preserve_insertion_order': False,
         })
 
-
+    
 rule generate_clique_leader_report:
     resources:
         mem="1500G",
