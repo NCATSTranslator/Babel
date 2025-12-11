@@ -203,7 +203,7 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
         WHERE
             conflation = 'None'
         GROUP BY
-            clique_leader_prefix, curie_prefix
+            filename, clique_leader_prefix, curie_prefix
     """)
     logger.info("Done generating clique report, retrieving results...")
     all_rows = clique_summary.fetchall()
