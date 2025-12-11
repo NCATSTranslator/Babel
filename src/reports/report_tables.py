@@ -190,7 +190,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
         if filename in clique_leader_entries:
             raise ValueError(f"Duplicate filename {filename}!")
 
-        curie_prefixes = map(lambda e: f"{e['curie_prefix']}", sorted(curie_prefix_entries, key=lambda x: x['distinct_curie_count'], reverse=True))
+        curie_prefixes = list(set(map(lambda e: f"{e['curie_prefix']}", sorted(curie_prefix_entries, key=lambda x: x['distinct_curie_count'], reverse=True))))
 
         clique_leader_entries[filename] = {
             'curie_count': totals['curie_count'],
