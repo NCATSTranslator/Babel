@@ -254,6 +254,13 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
             # Do we need to verify this gzip file?
             download_verified = True
             if verify_gzip:
+                # Is it blank/very small? If so, we immediately fail verification.
+                file_size = os.path.getsize(out_file_name)
+                if file_size < 1024:
+                    logger.warning(f"Downloaded Gzip file {out_file_name} is too small ({file_size} bytes), skipping verification.")
+                    download_verified = False
+                    continue
+
                 # To verify a Gzip file, we need to read it entirely.
                 try:
                     with gzip.open(out_file_name, "rb") as f:
