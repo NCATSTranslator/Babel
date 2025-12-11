@@ -259,7 +259,7 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
                     with gzip.open(out_file_name, "rb") as f:
                         for _ in iter(lambda: f.read(1024 * 1024), b""):
                             pass
-                    download_verified = False
+                    download_verified = True
                 except Exception as e:
                     logger.warning(f"Error while verifying downloaded Gzip file {out_file_name}: {e}")
                     download_verified = False
