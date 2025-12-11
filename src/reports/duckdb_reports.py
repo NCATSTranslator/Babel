@@ -141,7 +141,7 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
     curie_prefix_by_type = db.sql("""
         WITH C AS (
             SELECT clique_leader, biolink_type
-            FROM Cliques
+            FROM cliques
         )
         SELECT
             curie_prefix,
