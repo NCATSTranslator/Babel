@@ -176,24 +176,22 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
             for curie_prefix, entry in inner2.items():
                 curie_prefix_entries.append({
                     'curie_prefix': curie_prefix,
-                    # TODO: these should be curie_count and distinct_curie_count, but I mistyped that in the previous
-                    # data generation.
-                    'curie_count': entry['clique_count'],
-                    'distinct_curie_count': entry['distinct_clique_count']
+                    'curie_count': entry['curie_count'],
+                    'distinct_curie_count': entry['distinct_curie_count']
                 })
-                total_curies += entry['clique_count']
-                total_distinct_curies += entry['distinct_clique_count']
+                total_curies += entry['curie_count']
+                total_distinct_curies += entry['distinct_curie_count']
 
         if filename in clique_leader_entries:
             raise ValueError(f"Duplicate filename {filename}!")
 
-        curie_prefixes = map(lambda e: f"{e['curie_prefix']}", sorted(curie_prefix_entries, key=lambda x: x['distinct_clique_count'], reverse=True))
+        curie_prefixes = map(lambda e: f"{e['curie_prefix']}", sorted(curie_prefix_entries, key=lambda x: x['distinct_curie_count'], reverse=True))
 
         clique_leader_entries[filename] = {
             'total_curies': total_curies,
             'total_distinct_curies': total_distinct_curies,
             'total_synonyms': '',
-            'clique_leader_prefixs': ", ".join(sorted(clique_leader_prefixes)),
+            'clique_leader_prefixes': ", ".join(sorted(clique_leader_prefixes)),
             'curie_prefixes': ", ".join(curie_prefixes),
         }
 
@@ -232,7 +230,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                     'Biolink Types': filename,
                     'Number of CURIEs': clique_leader_entries[filename]['total_curies'],
                     'Number of distinct CURIEs': clique_leader_entries[filename]['total_distinct_curies'],
-                    'Clique leader prefixes': clique_leader_entries[filename]['clique_leader_prefixs'],
+                    'Clique leader prefixes': clique_leader_entries[filename]['clique_leader_prefixes'],
                     'CURIE prefixes': clique_leader_entries[filename]['curie_prefixes'],
                 })
 
