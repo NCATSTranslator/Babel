@@ -160,7 +160,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
         },
         'Taxon': {
             'description': 'Taxonomic entities, including species, genera, families, and so on from the NCBI Taxonomy',
-            'filenames': ['Taxon'],
+            'filenames': ['OrganismTaxon'],
         }
     }
 
