@@ -144,8 +144,8 @@ rule generate_curie_report:
         curie_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
     run:
         src.reports.duckdb_reports.generate_curie_report(params.parquet_dir, output.duckdb_filename, output.curie_report_json, {
-            'memory_limit': '1500G',
-            'threads': 1,
+            'memory_limit': '512G',
+            'threads': 2,
             'preserve_insertion_order': False,
         })
 
