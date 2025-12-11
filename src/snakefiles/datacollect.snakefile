@@ -517,6 +517,7 @@ rule get_panther_pathway_labels:
 
 
 rule get_unichem:
+    retries: 5
     output:
         config["download_directory"] + "/UNICHEM/structure.tsv.gz",
         config["download_directory"] + "/UNICHEM/reference.tsv.gz",
