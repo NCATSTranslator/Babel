@@ -201,7 +201,7 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
     cliques = db.sql("""
         SELECT
             filename,
-            split_part(clique_leader, ':', 1) AS clique_leader_prefix,
+            COUNT(DISTINCT clique_leader) AS distinct_clique_count,
             COUNT(DISTINCT curie) AS distinct_curie_count,
             COUNT(curie) AS curie_count
         FROM
@@ -215,14 +215,15 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
     clique_totals = cliques.fetchall()
     clique_totals_by_curie_prefix = defaultdict(dict)
     for row in clique_totals:
-        clique_totals_by_curie_prefix[row[0]][row[1]] = {
+        clique_totals_by_curie_prefix[row[0]] = {
+            "distinct_clique_count": row[1],
             "distinct_curie_count": row[2],
             "curie_count": row[3],
         }
     logger.info("Done retrieving results.")
 
     # Step 2. Generate a by-clique report .
-    logger.info("Generating clique report for each CURIE...")
+    logger.info("Generating clique report for each CURIE prefix...")
     clique_per_curie = db.sql("""
         SELECT
             filename,

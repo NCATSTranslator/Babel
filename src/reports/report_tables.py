@@ -180,8 +180,6 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                     'curie_count': entry['curie_count'],
                     'distinct_curie_count': entry['distinct_curie_count']
                 })
-                total_curies += entry['curie_count']
-                total_distinct_curies += entry['distinct_curie_count']
 
         if filename in clique_leader_entries:
             raise ValueError(f"Duplicate filename {filename}!")
