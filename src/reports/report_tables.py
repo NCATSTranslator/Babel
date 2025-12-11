@@ -213,12 +213,13 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
         writer.writeheader()
 
         for pipeline, entry in pipeline_descriptions.items():
-            pipeline_with_description = f"{pipeline}: {entry['description']}"
+            description = entry['description']
 
             filenames = entry.get('filenames', [])
             if len(filenames) == 0:
                 writer.writerow({
-                    'Pipeline': pipeline_with_description,
+                    'Pipeline': pipeline,
+                    'Description': description,
                     'Biolink Types': 'N/A',
                     'Number of CURIEs': '',
                     'Number of distinct CURIEs': '',
@@ -231,7 +232,8 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                     raise ValueError(f"Pipeline {pipeline} references filename {filename} that isn't in clique_leader_entries!")
 
                 writer.writerow({
-                    'Pipeline': pipeline_with_description,
+                    'Pipeline': pipeline,
+                    'Description': description,
                     'Biolink Types': filename,
                     'Number of CURIEs': clique_leader_entries[filename]['curie_count'],
                     'Number of distinct CURIEs': clique_leader_entries[filename]['distinct_curie_count'],
@@ -244,6 +246,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
         for filename in sorted(filenames_not_written):
             writer.writerow({
                 'Pipeline': '**NONE**',
+                'Description': '',
                 'Biolink Types': filename,
                 'Number of CURIEs': clique_leader_entries[filename]['curie_count'],
                 'Number of distinct CURIEs': clique_leader_entries[filename]['distinct_curie_count'],
