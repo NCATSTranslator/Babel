@@ -144,7 +144,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
         },
         'Macromolecular Complex': {
             'description': '',
-            'filenames': [],
+            'filenames': ['MacromolecularComplex'],
         },
         'ProcessActivityPathway': {
             'description': 'Biological processes, activities and pathways',
