@@ -201,8 +201,8 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
             filename,
             split_part(clique_leader, ':', 1) AS clique_leader_prefix,
             split_part(curie, ':', 1) AS curie_prefix,
-            COUNT(DISTINCT curie) AS distinct_clique_count,
-            COUNT(curie) AS clique_count
+            COUNT(DISTINCT curie) AS distinct_curie_count,
+            COUNT(curie) AS curie_count
         FROM
             edges
         WHERE
@@ -225,8 +225,8 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
             clique_leaders_by_filename[filename] = defaultdict(dict)
 
         clique_leaders_by_filename[filename][clique_leader_prefix][curie_prefix] = {
-            "distinct_clique_count": row[3],
-            "clique_count": row[4],
+            "distinct_curie_count": row[3],
+            "curie_count": row[4],
         }
 
     # Step 2. Write out by-clique report in JSON.

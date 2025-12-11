@@ -163,16 +163,87 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
         }
     }
 
-    clique_leader_entries = []
+    clique_leader_entries = {}
     for filename, inner in cliques_report.items():
+        clique_leader_prefixes = set()
+        curie_prefix_entries = []
+        total_curies = 0
+        total_distinct_curies = 0
+
         for clique_leader_prefix, inner2 in inner.items():
+            clique_leader_prefixes.add(clique_leader_prefix)
+
             for curie_prefix, entry in inner2.items():
-                clique_leader_entries.append({
-                    'filename': filename,
-                    'clique_leader_prefix': clique_leader_prefix,
+                curie_prefix_entries.append({
                     'curie_prefix': curie_prefix,
-                    'clique_count': entry['clique_count'],
-                    'distinct_clique_count': entry['distinct_clique_count'],
+                    # TODO: these should be curie_count and distinct_curie_count, but I mistyped that in the previous
+                    # data generation.
+                    'curie_count': entry['clique_count'],
+                    'distinct_curie_count': entry['distinct_clique_count']
+                })
+                total_curies += entry['clique_count']
+                total_distinct_curies += entry['distinct_clique_count']
+
+        if filename in clique_leader_entries:
+            raise ValueError(f"Duplicate filename {filename}!")
+
+        curie_prefixes = map(lambda e: f"{e['curie_prefix']}", sorted(curie_prefix_entries, key=lambda x: x['distinct_clique_count'], reverse=True))
+
+        clique_leader_entries[filename] = {
+            'total_curies': total_curies,
+            'total_distinct_curies': total_distinct_curies,
+            'total_synonyms': '',
+            'clique_leader_prefixs': ", ".join(sorted(clique_leader_prefixes)),
+            'curie_prefixes': ", ".join(curie_prefixes),
+        }
+
+    filenames_not_written = set(clique_leader_entries.keys())
+    with open(cliques_table_csv, 'w') as f:
+        writer = csv.DictWriter(f, [
+            'Pipeline',
+            'Biolink Types',
+            'Number of CURIEs',
+            'Number of distinct CURIEs',
+            'Clique leader prefixes',
+            'CURIE prefixes',
+        ])
+        writer.writeheader()
+
+        for pipeline, entry in pipeline_descriptions.items():
+            pipeline_with_description = f"{pipeline}: {entry['description']}"
+
+            filenames = entry['filenames']
+            if len(filenames) == 0:
+                writer.writerow({
+                    'Pipeline': pipeline_with_description,
+                    'Biolink Types': 'N/A',
+                    'Number of CURIEs': '',
+                    'Number of distinct CURIEs': '',
+                    'Clique leader prefixes': '',
+                    'CURIE prefixes': '',
                 })
 
+            for filename in filenames:
+                if filename not in clique_leader_entries:
+                    raise ValueError(f"Pipeline {pipeline} references filename {filename} that isn't in clique_leader_entries!")
 
+                writer.writerow({
+                    'Pipeline': pipeline_with_description,
+                    'Biolink Types': filename,
+                    'Number of CURIEs': clique_leader_entries[filename]['total_curies'],
+                    'Number of distinct CURIEs': clique_leader_entries[filename]['total_distinct_curies'],
+                    'Clique leader prefixes': clique_leader_entries[filename]['clique_leader_prefixs'],
+                    'CURIE prefixes': clique_leader_entries[filename]['curie_prefixes'],
+                })
+
+                filenames_not_written -= filename
+
+        for filename in sorted(filenames_not_written):
+            writer.writerow({
+                'Pipeline': '**NONE**',
+                'Biolink Types': filename,
+                'Number of CURIEs': clique_leader_entries[filename]['total_curies'],
+                'Number of distinct CURIEs': clique_leader_entries[filename]['total_distinct_curies'],
+                'Clique leader prefixes': clique_leader_entries[filename]['clique_leader_prefixs'],
+                'CURIE prefixes': clique_leader_entries[filename]['curie_prefixes'],
+            })
