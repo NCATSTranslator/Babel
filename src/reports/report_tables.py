@@ -204,6 +204,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
     with open(cliques_table_csv, 'w') as f:
         writer = csv.DictWriter(f, [
             'Pipeline',
+            'Description',
             'Biolink Types',
             'Number of CURIEs',
             'Number of distinct CURIEs',
