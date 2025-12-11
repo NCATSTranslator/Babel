@@ -133,7 +133,7 @@ rule check_for_duplicate_clique_leaders:
 
 rule generate_curie_report:
     resources:
-        mem="1500G",
+        mem="64G",
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
@@ -144,12 +144,12 @@ rule generate_curie_report:
         curie_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
     run:
         src.reports.duckdb_reports.generate_curie_report(params.parquet_dir, output.duckdb_filename, output.curie_report_json, {
-            'memory_limit': '1500G',
-            'threads': 1,
+            'memory_limit': '20G',
+            'threads': 3,
             'preserve_insertion_order': False,
         })
 
-    
+
 rule generate_clique_leader_report:
     resources:
         mem="1500G",
