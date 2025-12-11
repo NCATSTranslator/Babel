@@ -154,7 +154,7 @@ rule generate_curie_report:
 
 rule generate_clique_leader_report:
     resources:
-        mem="512G",
+        mem="256G",
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
@@ -165,8 +165,8 @@ rule generate_clique_leader_report:
         clique_leaders_json=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
     run:
         src.reports.duckdb_reports.generate_clique_leaders_report(params.parquet_dir, output.duckdb_filename, output.clique_leaders_json, {
-            'memory_limit': '100G',
-            'threads': 5,
+            'memory_limit': '64G',
+            'threads': 3,
             'preserve_insertion_order': False,
         })
 
