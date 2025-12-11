@@ -1,6 +1,6 @@
 import gzip
 
-from src.babel_utils import pull_via_urllib
+from src.babel_utils import pull_via_urllib, pull_via_wget
 from src.prefixes import CHEMBLCOMPOUND, DRUGCENTRAL, DRUGBANK, GTOPDB, KEGGCOMPOUND, CHEBI, UNII, HMDB, PUBCHEMCOMPOUND
 
 # global for this file
@@ -19,8 +19,8 @@ data_sources: dict = {
 
 def pull_unichem():
     """Download UniChem files."""
-    pull_via_urllib("http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/", "structure.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True)
-    pull_via_urllib("http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/", "reference.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True)
+    pull_via_wget("http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/", "structure.tsv.gz", decompress=False, subpath="UNICHEM")
+    pull_via_wget("http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/", "reference.tsv.gz", decompress=False, subpath="UNICHEM")
 
 
 def filter_unichem(ref_file, ref_filtered):
