@@ -168,11 +168,10 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
     for filename, inner in cliques_report.items():
         clique_leader_prefixes = set()
         curie_prefix_entries = []
-        total_curies = 0
-        total_distinct_curies = 0
 
         for clique_leader_prefix, inner2 in inner.items():
-            clique_leader_prefixes.add(clique_leader_prefix)
+            if clique_leader_prefix != '_totals':
+                clique_leader_prefixes.add(clique_leader_prefix)
 
             for curie_prefix, entry in inner2.items():
                 curie_prefix_entries.append({
@@ -187,8 +186,8 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
         curie_prefixes = map(lambda e: f"{e['curie_prefix']}", sorted(curie_prefix_entries, key=lambda x: x['distinct_curie_count'], reverse=True))
 
         clique_leader_entries[filename] = {
-            'total_curies': total_curies,
-            'total_distinct_curies': total_distinct_curies,
+            'curie_count': clique_leader_entries[filename]['_totals']['curie_count'],
+            'distinct_curie_count': clique_leader_entries[filename]['_totals']['distinct_curie_count'],
             'total_synonyms': '',
             'clique_leader_prefixes': ", ".join(sorted(clique_leader_prefixes)),
             'curie_prefixes': ", ".join(curie_prefixes),
