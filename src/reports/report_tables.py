@@ -233,7 +233,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                 writer.writerow({
                     'Pipeline': pipeline_with_description,
                     'Biolink Types': filename,
-                    'Number of CURIEs': clique_leader_entries[filename]['total_curies'],
+                    'Number of CURIEs': clique_leader_entries[filename]['curie_count'],
                     'Number of distinct CURIEs': clique_leader_entries[filename]['total_distinct_curies'],
                     'Clique leader prefixes': clique_leader_entries[filename]['clique_leader_prefixes'],
                     'CURIE prefixes': clique_leader_entries[filename]['curie_prefixes'],
@@ -246,7 +246,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                 'Pipeline': '**NONE**',
                 'Biolink Types': filename,
                 'Number of CURIEs': clique_leader_entries[filename]['total_curies'],
-                'Number of distinct CURIEs': clique_leader_entries[filename]['total_distinct_curies'],
+                'Number of distinct CURIEs': clique_leader_entries[filename]['distinct_curie_count'],
                 'Clique leader prefixes': clique_leader_entries[filename]['clique_leader_prefixes'],
                 'CURIE prefixes': clique_leader_entries[filename]['curie_prefixes'],
             })
