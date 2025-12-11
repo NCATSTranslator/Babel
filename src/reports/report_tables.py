@@ -190,14 +190,18 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
         if filename in clique_leader_entries:
             raise ValueError(f"Duplicate filename {filename}!")
 
-        curie_prefixes = list(set(map(lambda e: f"{e['curie_prefix']}", sorted(curie_prefix_entries, key=lambda x: x['distinct_curie_count'], reverse=True))))
+        curie_prefixes = map(lambda e: f"{e['curie_prefix']}", sorted(curie_prefix_entries, key=lambda x: x['distinct_curie_count'], reverse=True))
+        unique_curie_prefixes = []
+        for prefix in curie_prefixes:
+            if prefix not in unique_curie_prefixes:
+                unique_curie_prefixes.append(prefix)
 
         clique_leader_entries[filename] = {
             'curie_count': totals['curie_count'],
             'distinct_curie_count': totals['distinct_curie_count'],
             'total_synonyms': '',
             'clique_leader_prefixes': ", ".join(sorted(clique_leader_prefixes)),
-            'curie_prefixes': ", ".join(curie_prefixes),
+            'curie_prefixes': ", ".join(unique_curie_prefixes),
         }
 
     filenames_not_written = set(clique_leader_entries.keys())
