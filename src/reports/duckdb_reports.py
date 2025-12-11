@@ -138,22 +138,23 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
 
     # Step 2. Generate a prefix report by Biolink type.
     logger.info("Generating prefix report by Biolink type...")
-    db.execute("DROP TABLE IF EXISTS curie_clique_leaders")
-    db.execute("""CREATE TABLE curie_clique_leaders AS SELECT
-        split_part(curie, ':', 1) AS curie_prefix,
-        curie,
-        clique_leader
-    FROM edges
-    WHERE conflation = 'None'""")
-    logger.info("Created intermediate table to simplify the next step.")
     curie_prefix_by_type = db.sql("""
+        WITH C AS (
+            SELECT clique_leader, biolink_type
+            FROM Cliques
+        )
         SELECT
-            i.curie_prefix AS curie_prefix,
-            cliques.biolink_type AS biolink_type,
-            COUNT(i.curie) AS curie_count,
-            COUNT(DISTINCT i.curie) AS curie_distinct_count,
-            COUNT(DISTINCT i.clique_leader) AS clique_distinct_count
-        FROM curie_clique_leaders AS i LEFT JOIN cliques ON i.clique_leader = cliques.clique_leader
+            curie_prefix,
+            biolink_type,
+            COUNT(curie) AS curie_count,
+            COUNT(DISTINCT curie) AS curie_distinct_count,
+            COUNT(DISTINCT clique_leader) AS clique_distinct_count
+        FROM (
+             SELECT clique_leader,
+                    split_part(curie, ':', 1) AS curie_prefix
+             FROM Edge
+        ) e
+        JOIN C USING (clique_leader)
         GROUP BY curie_prefix, biolink_type
     """)
     logger.info("Done generating prefix report by Biolink type, retrieving results...")
