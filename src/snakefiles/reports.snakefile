@@ -86,13 +86,12 @@ rule generate_summary_content_report_for_compendia:
 
 # Generate a prefix table.
 rule generate_prefix_table:
-    # input:
-        # curie_report=config["output_directory"] + "/reports/duckdb/curie_report.json",
+    input:
+        curie_report=config["output_directory"] + "/reports/duckdb/curie_report.json",
     output:
         table_path=config["output_directory"] + "/reports/tables/prefix_table.csv",
     run:
-        curie_report=config["output_directory"] + "/reports/duckdb/curie_report.json"
-        report_tables.generate_prefix_table(curie_report, output.table_path)
+        report_tables.generate_prefix_table(input.curie_report, output.table_path)
 
 # Check that all the reports were built correctly.
 rule all_reports:
