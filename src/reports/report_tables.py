@@ -243,6 +243,6 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                 'Biolink Types': filename,
                 'Number of CURIEs': clique_leader_entries[filename]['total_curies'],
                 'Number of distinct CURIEs': clique_leader_entries[filename]['total_distinct_curies'],
-                'Clique leader prefixes': clique_leader_entries[filename]['clique_leader_prefixs'],
+                'Clique leader prefixes': clique_leader_entries[filename]['clique_leader_prefixes'],
                 'CURIE prefixes': clique_leader_entries[filename]['curie_prefixes'],
             })
