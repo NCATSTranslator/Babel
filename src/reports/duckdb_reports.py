@@ -152,7 +152,7 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
         FROM (
              SELECT clique_leader,
                     split_part(curie, ':', 1) AS curie_prefix
-             FROM Edge
+             FROM edges
         ) e
         JOIN C USING (clique_leader)
         GROUP BY curie_prefix, biolink_type
