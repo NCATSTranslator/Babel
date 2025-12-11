@@ -137,14 +137,17 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
     logger.info("Done retrieving prefix totals report.")
 
     # Step 2. Generate a prefix report by Biolink type.
+    logger.info("Indexing Cliques for lookups.")
+    db.execute("CREATE INDEX cliques_clique_leader ON cliques (clique_leader)")
     logger.info("Generating prefix report by Biolink type...")
-    db.execute("""CREATE TEMP DATABASE curie_clique_leaders AS SELECT
+    db.execute("DROP TABLE IF EXISTS curie_clique_leaders")
+    db.execute("""CREATE TABLE curie_clique_leaders AS SELECT
         split_part(curie, ':', 1) AS curie_prefix,
         curie,
         clique_leader
     FROM edges
     WHERE conflation = 'None'""")
-    logger.info("Created temporary cable to simplify the next step.")
+    logger.info("Created intermediate table to simplify the next step.")
     curie_prefix_by_type = db.sql("""
         SELECT
             i.curie_prefix AS curie_prefix,
