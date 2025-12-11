@@ -168,10 +168,14 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
     for filename, inner in cliques_report.items():
         clique_leader_prefixes = set()
         curie_prefix_entries = []
+        totals = {}
 
         for clique_leader_prefix, inner2 in inner.items():
-            if clique_leader_prefix != '_totals':
-                clique_leader_prefixes.add(clique_leader_prefix)
+            if clique_leader_prefix == '_totals':
+                totals = inner2
+                continue
+
+            clique_leader_prefixes.add(clique_leader_prefix)
 
             for curie_prefix, entry in inner2.items():
                 curie_prefix_entries.append({
@@ -180,14 +184,17 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                     'distinct_curie_count': entry['distinct_curie_count']
                 })
 
+        if not totals:
+            raise ValueError(f"No totals entry for filename {filename}!")
+
         if filename in clique_leader_entries:
             raise ValueError(f"Duplicate filename {filename}!")
 
         curie_prefixes = map(lambda e: f"{e['curie_prefix']}", sorted(curie_prefix_entries, key=lambda x: x['distinct_curie_count'], reverse=True))
 
         clique_leader_entries[filename] = {
-            'curie_count': clique_leader_entries[filename]['_totals']['curie_count'],
-            'distinct_curie_count': clique_leader_entries[filename]['_totals']['distinct_curie_count'],
+            'curie_count': totals['curie_count'],
+            'distinct_curie_count': totals['distinct_curie_count'],
             'total_synonyms': '',
             'clique_leader_prefixes': ", ".join(sorted(clique_leader_prefixes)),
             'curie_prefixes': ", ".join(curie_prefixes),
