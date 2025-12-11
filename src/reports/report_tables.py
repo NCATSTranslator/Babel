@@ -234,7 +234,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                     'CURIE prefixes': clique_leader_entries[filename]['curie_prefixes'],
                 })
 
-                filenames_not_written -= filename
+                filenames_not_written.remove(filename)
 
         for filename in sorted(filenames_not_written):
             writer.writerow({
