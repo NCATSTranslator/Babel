@@ -236,8 +236,8 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                     'Pipeline': pipeline,
                     'Description': description,
                     'Biolink Types': filename,
-                    'Number of CURIEs': clique_leader_entries[filename]['curie_count'],
-                    'Number of distinct CURIEs': clique_leader_entries[filename]['distinct_curie_count'],
+                    'Number of CURIEs': "{:,}".format(clique_leader_entries[filename]['curie_count']),
+                    'Number of distinct CURIEs': "{:,}".format(clique_leader_entries[filename]['distinct_curie_count']),
                     'Clique leader prefixes': clique_leader_entries[filename]['clique_leader_prefixes'],
                     'CURIE prefixes': clique_leader_entries[filename]['curie_prefixes'],
                 })
@@ -249,8 +249,8 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                 'Pipeline': '**NONE**',
                 'Description': '',
                 'Biolink Types': filename,
-                'Number of CURIEs': clique_leader_entries[filename]['curie_count'],
-                'Number of distinct CURIEs': clique_leader_entries[filename]['distinct_curie_count'],
+                'Number of CURIEs': "{:,}".format(clique_leader_entries[filename]['curie_count']),
+                'Number of distinct CURIEs': "{:,}".format(clique_leader_entries[filename]['distinct_curie_count']),
                 'Clique leader prefixes': clique_leader_entries[filename]['clique_leader_prefixes'],
                 'CURIE prefixes': clique_leader_entries[filename]['curie_prefixes'],
             })
