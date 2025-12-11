@@ -194,9 +194,34 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
     # cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
-    # Step 1. Generate a by-clique summary.
+    # Step 1. Generate a by-clique report.
     logger.info("Generating clique report...")
-    clique_summary = db.sql("""
+    cliques = db.sql("""
+        SELECT
+            filename,
+            split_part(clique_leader, ':', 1) AS clique_leader_prefix,
+            COUNT(DISTINCT curie) AS distinct_curie_count,
+            COUNT(curie) AS curie_count
+        FROM
+            edges
+        WHERE
+            conflation = 'None'
+        GROUP BY
+            filename, clique_leader_prefix
+    """)
+    logger.info("Done generating clique report, retrieving results...")
+    clique_totals = cliques.fetchall()
+    clique_totals_by_curie_prefix = defaultdict(dict)
+    for row in clique_totals:
+        clique_totals_by_curie_prefix[row[0]][row[1]] = {
+            "distinct_curie_count": row[2],
+            "curie_count": row[3],
+        }
+    logger.info("Done retrieving results.")
+
+    # Step 2. Generate a by-clique report .
+    logger.info("Generating clique report for each CURIE...")
+    clique_per_curie = db.sql("""
         SELECT
             filename,
             split_part(clique_leader, ':', 1) AS clique_leader_prefix,
@@ -211,7 +236,7 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
             filename, clique_leader_prefix, curie_prefix
     """)
     logger.info("Done generating clique report, retrieving results...")
-    all_rows = clique_summary.fetchall()
+    all_rows = clique_per_curie.fetchall()
     logger.info("Done retrieving results.")
 
     clique_leaders_by_filename = dict()
@@ -229,7 +254,12 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
             "curie_count": row[4],
         }
 
-    # Step 2. Write out by-clique report in JSON.
+    # Step 3. Add total counts back in.
+    for filename, clique_leader_prefix_entries in clique_leaders_by_filename.items():
+        if filename in clique_totals_by_curie_prefix:
+            clique_leaders_by_filename[filename]['_totals'] = clique_totals_by_curie_prefix[filename]
+
+    # Step 4. Write out by-clique report in JSON.
     with open(by_clique_report_json, "w") as fout:
         json.dump(clique_leaders_by_filename,
             fout,
