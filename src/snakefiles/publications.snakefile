@@ -1,3 +1,5 @@
+import os
+
 import src.createcompendia.publications as publications
 import src.assess_compendia as assessments
 from src.snakefiles import util
@@ -65,10 +67,11 @@ rule generate_pubmed_compendia:
         publications.generate_compendium(
             [input.pmid_doi_concord_file], [input.metadata_yaml], [input.pmid_id_file], input.titles, output.publication_compendium, input.icrdf_filename
         )
-        # generate_compendium() will generate an (empty) Publication.txt.gz file, but we need
+        # generate_compendium() will generate an (empty) Publication.txt file, but we need
         # to compress it.
         publication_synonyms = os.path.splitext(output.publication_synonyms_gz)[0]
         util.gzip_files([publication_synonyms])
+        os.remove(publication_synonyms)
 
 
 rule check_publications_completeness:
