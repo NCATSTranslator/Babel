@@ -80,9 +80,11 @@ rule generate_summary_content_report_for_compendia:
     run:
         summarize_content_report_for_compendia(input.expected_content_reports, output.report_path)
 
+
 #
 # REPORT TABLES
 #
+
 
 # Generate a prefix table.
 rule generate_prefix_table:
@@ -93,6 +95,7 @@ rule generate_prefix_table:
     run:
         report_tables.generate_prefix_table(input.curie_report, output.prefix_table)
 
+
 # Generate a cliques table.
 rule generate_cliques_table:
     input:
@@ -101,6 +104,7 @@ rule generate_cliques_table:
         cliques_table=config["output_directory"] + "/reports/tables/cliques_table.csv",
     run:
         report_tables.generate_cliques_table(input.cliques_report, output.cliques_table)
+
 
 # Check that all the reports were built correctly.
 rule all_reports:
