@@ -4,7 +4,7 @@ from enum import Enum
 from ftplib import FTP
 from io import BytesIO
 import gzip
-from datetime import timedelta
+from datetime import timedelta, datetime
 import time
 from pathlib import Path
 
@@ -144,7 +144,7 @@ class ThrottledRequester:
         self.delta = timedelta(milliseconds=delta_ms)
 
     def get(self, url):
-        now = dt.now()
+        now = datetime.now()
         throttled = False
         if self.last_time is not None:
             cdelta = now - self.last_time
@@ -152,7 +152,7 @@ class ThrottledRequester:
                 waittime = self.delta - cdelta
                 time.sleep(waittime.microseconds / 1e6)
                 throttled = True
-        self.last_time = dt.now()
+        self.last_time = datetime.now()
         response = requests.get(url)
         return response, throttled
 
