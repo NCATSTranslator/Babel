@@ -13,6 +13,7 @@ logger = get_logger(__name__)
 MIN_FILE_SIZE_FOR_SPLITTING_LOAD = 44_000_000_000
 CHUNK_LINE_SIZE = 60_000_000
 
+
 def setup_duckdb(duckdb_filename, duckdb_config=None):
     """
     Set up a DuckDB instance using the settings in the config.
@@ -28,7 +29,7 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
 
     # Apply some Babel-wide settings to DuckDB.
     config = get_config()
-    if 'tmp_directory' in config:
+    if "tmp_directory" in config:
         db.execute(f"SET temp_directory = '{config['tmp_directory']}'")
         db.execute("SET max_temp_directory_size = '500GB';")
 
@@ -75,7 +76,8 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
         if compendium_filesize < MIN_FILE_SIZE_FOR_SPLITTING_LOAD:
             # This seems to be around the threshold where 500G is inadequate on Hatteras. So let's try splitting it.
             logger.info(f"Loading {compendium_filename} into DuckDB (size {compendium_filesize}) in a single direct ingest.")
-            db.execute("""INSERT INTO Node
+            db.execute(
+                """INSERT INTO Node
                           WITH extracted AS (
                               SELECT json_extract_string(identifier_row.value, ['i', 'l', 'd', 't']) AS extracted_list
                               FROM read_json($1, format='newline_delimited') AS clique,
@@ -87,7 +89,9 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                               LOWER(label) AS label_lc,
                               extracted_list[3] AS description,
                               extracted_list[4] AS taxa
-                          FROM extracted""", [compendium_filename])
+                          FROM extracted""",
+                [compendium_filename],
+            )
         else:
             logger.info(f"Loading {compendium_filename} into DuckDB (size {compendium_filesize}) in multiple chunks of {CHUNK_LINE_SIZE:,} lines:")
             chunk_filenames = []
@@ -115,7 +119,8 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
             logger.info(f"Loaded {len(chunk_filenames)} containing {lines_added:,} lines into chunk files.")
             for chunk_filename in chunk_filenames:
                 # TODO: maybe add the PREFIX in a different column here so we can SELECT on that later?
-                db.execute("""INSERT INTO Node
+                db.execute(
+                    """INSERT INTO Node
                               WITH extracted AS (
                                   SELECT json_extract_string(identifier_row.value, ['i', 'l', 'd', 't']) AS extracted_list
                                   FROM read_json($1, format='newline_delimited') AS clique,
@@ -127,7 +132,9 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                                   LOWER(label) AS label_lc,
                                   extracted_list[3] AS description,
                                   extracted_list[4] AS taxa
-                              FROM extracted""", [chunk_filename])
+                              FROM extracted""",
+                    [chunk_filename],
+                )
                 logger.info(f" - Loaded chunk file {chunk_filename} into DuckDB.")
                 os.remove(chunk_filename)
                 logger.info(f" - Deleted chunk file {chunk_filename}.")
@@ -135,7 +142,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
             logger.info(f"Completed loading {compendium_filename} into DuckDB.")
             logger.info(f" - Line count: {lines_added:,}.")
 
-            node_count = db.execute('SELECT COUNT(*) FROM Node').fetchone()[0]
+            node_count = db.execute("SELECT COUNT(*) FROM Node").fetchone()[0]
             logger.info(f" - Identifier count: {node_count:,}.")
 
         db.table("Node").write_parquet(node_parquet_filename)
@@ -144,22 +151,28 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
         db.sql("""CREATE TABLE Clique
                 (clique_leader STRING, preferred_name STRING, clique_identifier_count INT, biolink_type STRING,
                 information_content FLOAT)""")
-        db.execute("""INSERT INTO Clique SELECT
+        db.execute(
+            """INSERT INTO Clique SELECT
                         json_extract_string(identifiers, '$[0].i') AS clique_leader,
                         preferred_name,
                         len(identifiers) AS clique_identifier_count,
                         type AS biolink_type,
                         ic AS information_content
-                    FROM read_json(?, format='newline_delimited')""", [compendium_filename])
+                    FROM read_json(?, format='newline_delimited')""",
+            [compendium_filename],
+        )
         db.table("Clique").write_parquet(clique_parquet_filename)
 
         # Step 2. Create an Edge table with all the clique/CURIE relationships from this file.
         db.sql("CREATE TABLE Edge (clique_leader STRING, curie STRING, conflation STRING)")
-        db.execute("""INSERT INTO Edge SELECT
+        db.execute(
+            """INSERT INTO Edge SELECT
                 json_extract_string(identifiers, '$[0].i') AS clique_leader,
                 UNNEST(json_extract_string(identifiers, '$[*].i')) AS curie,
                 'None' AS conflation
-            FROM read_json(?, format='newline_delimited')""", [compendium_filename])
+            FROM read_json(?, format='newline_delimited')""",
+            [compendium_filename],
+        )
         db.table("Edge").write_parquet(edge_parquet_filename)
 
 

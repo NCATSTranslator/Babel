@@ -19,8 +19,12 @@ data_sources: dict = {
 
 def pull_unichem():
     """Download UniChem files."""
-    pull_via_urllib("http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/", "structure.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True)
-    pull_via_urllib("http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/", "reference.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True)
+    pull_via_urllib(
+        "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/", "structure.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True
+    )
+    pull_via_urllib(
+        "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/", "reference.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True
+    )
 
 
 def filter_unichem(ref_file, ref_filtered):

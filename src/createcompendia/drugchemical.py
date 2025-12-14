@@ -417,13 +417,15 @@ def build_conflation(
     pairs.extend(manual_concords)
 
     # We've had some issues with non-chemical types getting conflated, so we filter those out here.
-    biolink_model_toolkit = get_biolink_model_toolkit(config['biolink_version'])
-    biolink_chemical_types = set(biolink_model_toolkit.get_descendants(
-        CHEMICAL_ENTITY,
-        reflexive=True,
-        formatted=True,
-        mixin=True,
-    ))
+    biolink_model_toolkit = get_biolink_model_toolkit(config["biolink_version"])
+    biolink_chemical_types = set(
+        biolink_model_toolkit.get_descendants(
+            CHEMICAL_ENTITY,
+            reflexive=True,
+            formatted=True,
+            mixin=True,
+        )
+    )
     logging.info(f"Filtering RxCUI pairs to those in these Biolink chemical types: {sorted(biolink_chemical_types)}")
     with open(pubchem_rxn_concord, "r") as infile:
         for line in infile:
@@ -493,9 +495,9 @@ def build_conflation(
     #
     # So, instead, I'm going to group them by prefix and then to sort it using the ChemicalEntity
     # prefix sort order.
-    biolink_model_toolkit = get_biolink_model_toolkit(config['biolink_version'])
+    biolink_model_toolkit = get_biolink_model_toolkit(config["biolink_version"])
     biolink_chemical_entity = biolink_model_toolkit.get_element(CHEMICAL_ENTITY)
-    conflation_prefix_order = biolink_chemical_entity['id_prefixes']
+    conflation_prefix_order = biolink_chemical_entity["id_prefixes"]
     if not conflation_prefix_order:
         raise RuntimeError(f"Biolink model {config['biolink_version']} doesn't have a ChemicalEntity prefix order: {biolink_chemical_entity}")
 
@@ -628,9 +630,11 @@ def build_conflation(
             # The final conflation list won't match the initial list only if some of the Biolink types weren't
             # chemical types, and so were skipped that way.
             if set(final_conflation_id_list) != set(normalized_conflation_id_list):
-                logger.warning("Final conflation ID list does not match the normalized conflation ID list:\n" +
-                               f" - Final conflation ID list: {sorted(final_conflation_id_list)}\n" +
-                               f" - Normalized conflation ID list: {sorted(normalized_conflation_id_list)}")
+                logger.warning(
+                    "Final conflation ID list does not match the normalized conflation ID list:\n"
+                    + f" - Final conflation ID list: {sorted(final_conflation_id_list)}\n"
+                    + f" - Normalized conflation ID list: {sorted(normalized_conflation_id_list)}"
+                )
 
             # Write out all the identifiers.
             logger.info(f"Ordered DrugChemical conflation {final_conflation_id_list} with IC values {clique_ics}.")

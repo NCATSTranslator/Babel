@@ -26,7 +26,7 @@ def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str)
     :param prefix_report_table_csv: The report table CSV file to generate.
     """
 
-    with open(prefix_report_json, 'r') as f:
+    with open(prefix_report_json, "r") as f:
         prefix_report = json.load(f)
 
     curie_entries = []
@@ -38,130 +38,112 @@ def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str)
                 raise ValueError(f"Duplicate filename {filename} for prefix {prefix}!")
 
             filename_entries[filename] = {
-                'prefix': prefix,
-                'curie_count': entry['curie_count'],
-                'curie_distinct_count': entry['curie_distinct_count'],
+                "prefix": prefix,
+                "curie_count": entry["curie_count"],
+                "curie_distinct_count": entry["curie_distinct_count"],
             }
 
-        if '_totals' not in filename_entries:
+        if "_totals" not in filename_entries:
             raise ValueError(f"No totals entry for prefix {prefix}!")
 
-        sorted_entries = sorted(filename_entries.items(), key=lambda x: x[1]['curie_distinct_count'], reverse=True)
+        sorted_entries = sorted(filename_entries.items(), key=lambda x: x[1]["curie_distinct_count"], reverse=True)
         filename_rows = []
         for filename, entry in sorted_entries:
-            if filename == '_totals':
+            if filename == "_totals":
                 continue
 
-            if entry['curie_count'] == entry['curie_distinct_count']:
+            if entry["curie_count"] == entry["curie_distinct_count"]:
                 filename_rows.append(f"- {filename}: {entry['curie_count']:,} CURIEs")
             else:
                 filename_rows.append(f"- {filename}: {entry['curie_count']:,} CURIEs ({entry['curie_distinct_count']:,} distinct)")
 
-        curie_entries.append({
-            'prefix': prefix,
-            'curie_count': filename_entries['_totals']['curie_count'],
-            'curie_distinct_count': filename_entries['_totals']['curie_distinct_count'],
-            'filenames': "\n".join(filename_rows),
-        })
+        curie_entries.append(
+            {
+                "prefix": prefix,
+                "curie_count": filename_entries["_totals"]["curie_count"],
+                "curie_distinct_count": filename_entries["_totals"]["curie_distinct_count"],
+                "filenames": "\n".join(filename_rows),
+            }
+        )
 
     # Before writing it out, sort by distinct CURIE count descending.
-    with open(prefix_report_table_csv, 'w') as f:
-        writer = csv.DictWriter(f, [
-            'Prefix',
-            'CURIE count',
-            'Distinct CURIE count',
-            'Filenames'
-        ])
+    with open(prefix_report_table_csv, "w") as f:
+        writer = csv.DictWriter(f, ["Prefix", "CURIE count", "Distinct CURIE count", "Filenames"])
         writer.writeheader()
 
-        for entry in sorted(curie_entries, key=lambda x: x['curie_distinct_count'], reverse=True):
+        for entry in sorted(curie_entries, key=lambda x: x["curie_distinct_count"], reverse=True):
             row = {
-                'Prefix': entry['prefix'],
-                'CURIE count': "{:,}".format(entry['curie_count']),
-                'Distinct CURIE count': "{:,}".format(entry['curie_distinct_count']),
-                'Filenames': entry['filenames'],
+                "Prefix": entry["prefix"],
+                "CURIE count": "{:,}".format(entry["curie_count"]),
+                "Distinct CURIE count": "{:,}".format(entry["curie_distinct_count"]),
+                "Filenames": entry["filenames"],
             }
 
             writer.writerow(row)
 
+
 def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
-    with open(cliques_report_json, 'r') as f:
+    with open(cliques_report_json, "r") as f:
         cliques_report = json.load(f)
 
     # To improve the table somewhat, we'll include pipeline descriptions that group filenames.
     pipeline_descriptions = {
-        'Anatomy': {
-            'description': 'Anatomical entities at all scales, from brains to endothelium to pancreatic beta cells',
-            'filenames': [
-                'AnatomicalEntity',
-                'Cell',
-                'CellularComponent',
-                'GrossAnatomicalStructure'
-            ],
+        "Anatomy": {
+            "description": "Anatomical entities at all scales, from brains to endothelium to pancreatic beta cells",
+            "filenames": ["AnatomicalEntity", "Cell", "CellularComponent", "GrossAnatomicalStructure"],
         },
-        'CellLine': {
-            'description': 'Cell lines from different species',
-            'filenames': ['CellLine'],
+        "CellLine": {
+            "description": "Cell lines from different species",
+            "filenames": ["CellLine"],
         },
-        'Chemicals': {
-            'description': 'All kinds of chemicals, including drugs, small molecules, molecular mixtures, and so on',
-            'filenames': [
-                'MolecularMixture',
-                'SmallMolecule',
-                'Polypeptide',
-                'ComplexMolecularMixture',
-                'ChemicalEntity',
-                'ChemicalMixture',
-                'Drug'
-            ],
+        "Chemicals": {
+            "description": "All kinds of chemicals, including drugs, small molecules, molecular mixtures, and so on",
+            "filenames": ["MolecularMixture", "SmallMolecule", "Polypeptide", "ComplexMolecularMixture", "ChemicalEntity", "ChemicalMixture", "Drug"],
         },
-        'DiseasePhenotype': {
-            'description': 'Conflation of drugs with their active ingredients as chemicals',
-            'filenames': [
-                'Disease',
-                'PhenotypicFeature'
-            ],
+        "DiseasePhenotype": {
+            "description": "Conflation of drugs with their active ingredients as chemicals",
+            "filenames": ["Disease", "PhenotypicFeature"],
         },
-        'DrugChemical': {
-            'description': 'Conflation of drugs with their active ingredients as chemicals',
-            'filenames': [],
+        "DrugChemical": {
+            "description": "Conflation of drugs with their active ingredients as chemicals",
+            "filenames": [],
         },
-        'Gene': {
-            'description': 'Genes from all species',
-            'filenames': ['Gene'],
+        "Gene": {
+            "description": "Genes from all species",
+            "filenames": ["Gene"],
         },
-        'GeneFamily': {
-            'description': 'Families of genes',
-            'filenames': ['GeneFamily'],
+        "GeneFamily": {
+            "description": "Families of genes",
+            "filenames": ["GeneFamily"],
         },
-        'GeneProtein': {
-            'description': 'Conflation of genes with the proteins they code for.',
-            'filenames': [],
+        "GeneProtein": {
+            "description": "Conflation of genes with the proteins they code for.",
+            "filenames": [],
         },
-        'Leftover UMLS': {
-            'description': 'A special pipeline that adds every UMLS concept not already added elsewhere in Babel',
-            'filenames': ['umls'],
+        "Leftover UMLS": {
+            "description": "A special pipeline that adds every UMLS concept not already added elsewhere in Babel",
+            "filenames": ["umls"],
         },
-        'Macromolecular Complex': {
-            'description': '',
-            'filenames': ['MacromolecularComplex'],
+        "Macromolecular Complex": {
+            "description": "",
+            "filenames": ["MacromolecularComplex"],
         },
-        'ProcessActivityPathway': {
-            'description': 'Biological processes, activities and pathways',
-            'filenames': ['Pathway', 'BiologicalProcess', 'MolecularActivity'],
+        "ProcessActivityPathway": {
+            "description": "Biological processes, activities and pathways",
+            "filenames": ["Pathway", "BiologicalProcess", "MolecularActivity"],
         },
-        'Protein': {
-            'description': 'Proteins from all species',
-            'filenames': ['Protein'],
+        "Protein": {
+            "description": "Proteins from all species",
+            "filenames": ["Protein"],
         },
-        'Publications': {
-            'description': 'All publications from PubMed',
-            'filenames': ['Publication'],
+        "Publications": {
+            "description": "All publications from PubMed",
+            "filenames": ["Publication"],
         },
-        'Taxon': {
-            'description': 'Taxonomic entities, including species, genera, families, and so on from the NCBI Taxonomy',
-            'filenames': ['OrganismTaxon'],
-        }
+        "Taxon": {
+            "description": "Taxonomic entities, including species, genera, families, and so on from the NCBI Taxonomy",
+            "filenames": ["OrganismTaxon"],
+        },
     }
 
     clique_leader_entries = {}
@@ -171,18 +153,16 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
         totals = {}
 
         for clique_leader_prefix, inner2 in inner.items():
-            if clique_leader_prefix == '_totals':
+            if clique_leader_prefix == "_totals":
                 totals = inner2
                 continue
 
             clique_leader_prefixes.add(clique_leader_prefix)
 
             for curie_prefix, entry in inner2.items():
-                curie_prefix_entries.append({
-                    'curie_prefix': curie_prefix,
-                    'curie_count': entry['curie_count'],
-                    'distinct_curie_count': entry['distinct_curie_count']
-                })
+                curie_prefix_entries.append(
+                    {"curie_prefix": curie_prefix, "curie_count": entry["curie_count"], "distinct_curie_count": entry["distinct_curie_count"]}
+                )
 
         if not totals:
             raise ValueError(f"No totals entry for filename {filename}!")
@@ -190,71 +170,80 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
         if filename in clique_leader_entries:
             raise ValueError(f"Duplicate filename {filename}!")
 
-        curie_prefixes = map(lambda e: f"{e['curie_prefix']}", sorted(curie_prefix_entries, key=lambda x: x['distinct_curie_count'], reverse=True))
+        curie_prefixes = map(lambda e: f"{e['curie_prefix']}", sorted(curie_prefix_entries, key=lambda x: x["distinct_curie_count"], reverse=True))
         unique_curie_prefixes = []
         for prefix in curie_prefixes:
             if prefix not in unique_curie_prefixes:
                 unique_curie_prefixes.append(prefix)
 
         clique_leader_entries[filename] = {
-            'curie_count': totals['curie_count'],
-            'distinct_curie_count': totals['distinct_curie_count'],
-            'total_synonyms': '',
-            'clique_leader_prefixes': ", ".join(sorted(clique_leader_prefixes)),
-            'curie_prefixes': ", ".join(unique_curie_prefixes),
+            "curie_count": totals["curie_count"],
+            "distinct_curie_count": totals["distinct_curie_count"],
+            "total_synonyms": "",
+            "clique_leader_prefixes": ", ".join(sorted(clique_leader_prefixes)),
+            "curie_prefixes": ", ".join(unique_curie_prefixes),
         }
 
     filenames_not_written = set(clique_leader_entries.keys())
-    with open(cliques_table_csv, 'w') as f:
-        writer = csv.DictWriter(f, [
-            'Pipeline',
-            'Description',
-            'Biolink Types',
-            'Number of CURIEs',
-            'Number of distinct CURIEs',
-            'Clique leader prefixes',
-            'CURIE prefixes',
-        ])
+    with open(cliques_table_csv, "w") as f:
+        writer = csv.DictWriter(
+            f,
+            [
+                "Pipeline",
+                "Description",
+                "Biolink Types",
+                "Number of CURIEs",
+                "Number of distinct CURIEs",
+                "Clique leader prefixes",
+                "CURIE prefixes",
+            ],
+        )
         writer.writeheader()
 
         for pipeline, entry in pipeline_descriptions.items():
-            description = entry['description']
+            description = entry["description"]
 
-            filenames = entry.get('filenames', [])
+            filenames = entry.get("filenames", [])
             if len(filenames) == 0:
-                writer.writerow({
-                    'Pipeline': pipeline,
-                    'Description': description,
-                    'Biolink Types': 'N/A',
-                    'Number of CURIEs': '',
-                    'Number of distinct CURIEs': '',
-                    'Clique leader prefixes': '',
-                    'CURIE prefixes': '',
-                })
+                writer.writerow(
+                    {
+                        "Pipeline": pipeline,
+                        "Description": description,
+                        "Biolink Types": "N/A",
+                        "Number of CURIEs": "",
+                        "Number of distinct CURIEs": "",
+                        "Clique leader prefixes": "",
+                        "CURIE prefixes": "",
+                    }
+                )
 
             for filename in filenames:
                 if filename not in clique_leader_entries:
                     raise ValueError(f"Pipeline {pipeline} references filename {filename} that isn't in clique_leader_entries!")
 
-                writer.writerow({
-                    'Pipeline': pipeline,
-                    'Description': description,
-                    'Biolink Types': filename,
-                    'Number of CURIEs': "{:,}".format(clique_leader_entries[filename]['curie_count']),
-                    'Number of distinct CURIEs': "{:,}".format(clique_leader_entries[filename]['distinct_curie_count']),
-                    'Clique leader prefixes': clique_leader_entries[filename]['clique_leader_prefixes'],
-                    'CURIE prefixes': clique_leader_entries[filename]['curie_prefixes'],
-                })
+                writer.writerow(
+                    {
+                        "Pipeline": pipeline,
+                        "Description": description,
+                        "Biolink Types": filename,
+                        "Number of CURIEs": "{:,}".format(clique_leader_entries[filename]["curie_count"]),
+                        "Number of distinct CURIEs": "{:,}".format(clique_leader_entries[filename]["distinct_curie_count"]),
+                        "Clique leader prefixes": clique_leader_entries[filename]["clique_leader_prefixes"],
+                        "CURIE prefixes": clique_leader_entries[filename]["curie_prefixes"],
+                    }
+                )
 
                 filenames_not_written.remove(filename)
 
         for filename in sorted(filenames_not_written):
-            writer.writerow({
-                'Pipeline': '**NONE**',
-                'Description': '',
-                'Biolink Types': filename,
-                'Number of CURIEs': "{:,}".format(clique_leader_entries[filename]['curie_count']),
-                'Number of distinct CURIEs': "{:,}".format(clique_leader_entries[filename]['distinct_curie_count']),
-                'Clique leader prefixes': clique_leader_entries[filename]['clique_leader_prefixes'],
-                'CURIE prefixes': clique_leader_entries[filename]['curie_prefixes'],
-            })
+            writer.writerow(
+                {
+                    "Pipeline": "**NONE**",
+                    "Description": "",
+                    "Biolink Types": filename,
+                    "Number of CURIEs": "{:,}".format(clique_leader_entries[filename]["curie_count"]),
+                    "Number of distinct CURIEs": "{:,}".format(clique_leader_entries[filename]["distinct_curie_count"]),
+                    "Clique leader prefixes": clique_leader_entries[filename]["clique_leader_prefixes"],
+                    "CURIE prefixes": clique_leader_entries[filename]["curie_prefixes"],
+                }
+            )

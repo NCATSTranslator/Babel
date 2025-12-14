@@ -14,6 +14,7 @@ from src.babel_utils import get_numerical_curie_suffix
 
 logger = util.get_logger(__name__)
 
+
 # click.command()
 # click.option('--conflation-file', multiple=True, type=click.Path(exists=True))
 # click.option('--output', type=click.Path(exists=False), default='-')
