@@ -34,8 +34,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/TranslatorSRI/Babel"
-Repository = "https://github.com/TranslatorSRI/Babel"
+Homepage = "https://github.com/NCATSTranslator/Babel"
+Repository = "https://github.com/NCATSTranslator/Babel"
 Issues = "https://github.com/NCATSTranslator/Babel/issues"
 
 [tool.uv.sources]
