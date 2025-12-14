@@ -412,6 +412,10 @@ def build_conflation(
                     original_object = chemical_rxcui_to_clique[original_object]
                     pairs.append((original_subject, original_object))
 
+    # Add the manual concords.
+    pairs.extend(manual_concords)
+
+    # We've had some issues with non-chemical types getting conflated, so we filter those out here.
     biolink_model_toolkit = get_biolink_model_toolkit(config['biolink_version'])
     biolink_chemical_types = set(biolink_model_toolkit.get_descendants(
         CHEMICAL_ENTITY,
@@ -456,6 +460,7 @@ def build_conflation(
 
             if subject == object:
                 logger.warning(f"Subject and object in subject-object pair ({original_subject}, {original_object}) normalize to the same identifier ({subject}), skipping.")
+                continue
 
             # Either the subject or the object might not be a chemical -- for example, MESH:C415772 shows up here,
             # but it's a gene, not a chemical.
@@ -471,39 +476,10 @@ def build_conflation(
 
             pairs.append((subject, object))
 
-    # Normalize the pairs to be glommed. We need to do this here because it may be that multiple conflations will be
-    # merged together because they share a normalized identifier. We can do this by adding pairs to indicate that every
-    # subject and object is associated with its normalized identifier.
-    pairs_to_be_glommed = []
-    pairs.extend(manual_concords)
-    for subj, obj in pairs:
-        # If either the subject or the object cannot be normalized, skip this pair entirely.
-        #
-        # This appears to happen very rarely when we have a PUBCHEM.COMPOUND that is referenced from RxNorm but
-        # hasn't made it into wherever we get PUBCHEM.COMPOUND IDs from. Not super-surprising since RxNorm is
-        # updated every month, but still, it's only happened to be once that I've noticed.
-        if subj not in preferred_curie_for_curie:
-            logger.warning(f"Pair ({subj}, {obj}) has a subject that cannot be normalized, skipping pair.")
-            continue
-
-        if obj not in preferred_curie_for_curie:
-            logger.warning(f"Pair ({subj}, {obj}) has an object that cannot be normalized, skipping pair.")
-            continue
-
-        # Add this tuple to the pairs to be glommed.
-        pairs_to_be_glommed.append((subj, obj))
-
-        # If the subject is not normalized, add a pair indicating the normalized ID.
-        if preferred_curie_for_curie[subj] != subj:
-            pairs_to_be_glommed.append((subj, preferred_curie_for_curie[subj]))
-        # If the object is not normalized, add a pair indicating the normalized ID.
-        if preferred_curie_for_curie[obj] != obj:
-            pairs_to_be_glommed.append((obj, preferred_curie_for_curie[obj]))
-
     # Glommin' time
     logger.info(f"glom: {get_memory_usage_summary()}")
     gloms = {}
-    glom(gloms, pairs_to_be_glommed)
+    glom(gloms, pairs)
 
     # Set up the preferred conflation type order.
     # preferred_conflation_type_order = PREFERRED_CONFLATION_TYPE_ORDER
