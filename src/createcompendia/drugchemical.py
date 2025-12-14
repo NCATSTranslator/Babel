@@ -5,21 +5,22 @@ import time
 import jsonlines
 from humanfriendly import format_timespan
 
-from src.categories import (
-    SMALL_MOLECULE,
-    POLYPEPTIDE,
-    CHEMICAL_ENTITY,
-    ENVIRONMENTAL_FOOD_CONTAMINANT,
-    FOOD,
-    FOOD_ADDITIVE,
-    DRUG,
-    PROCESSED_MATERIAL,
-    MOLECULAR_MIXTURE,
-    CHEMICAL_MIXTURE,
-    COMPLEX_MOLECULAR_MIXTURE,
-    MOLECULAR_ENTITY,
-    NUCLEIC_ACID_ENTITY,
-)
+# from src.categories import (
+#     SMALL_MOLECULE,
+#     POLYPEPTIDE,
+#     CHEMICAL_ENTITY,
+#     ENVIRONMENTAL_FOOD_CONTAMINANT,
+#     FOOD,
+#     FOOD_ADDITIVE,
+#     DRUG,
+#     PROCESSED_MATERIAL,
+#     MOLECULAR_MIXTURE,
+#     CHEMICAL_MIXTURE,
+#     COMPLEX_MOLECULAR_MIXTURE,
+#     MOLECULAR_ENTITY,
+#     NUCLEIC_ACID_ENTITY,
+# )
+from src.categories import CHEMICAL_ENTITY
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.node import InformationContentFactory
 from src.prefixes import RXCUI, PUBCHEMCOMPOUND, UMLS
