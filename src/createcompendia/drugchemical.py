@@ -36,23 +36,23 @@ logger = LoggingUtil.init_logging(__name__, level=logging.INFO)
 # the most common for a particular application.
 #
 # I've also listed the number of entities as of 2024mar24 to give an idea of how common these are.
-PREFERRED_CONFLATION_TYPE_ORDER = {
-    SMALL_MOLECULE: 1,                      # 107,459,280 cliques
-    POLYPEPTIDE: 2,                         # 622 cliques
-    NUCLEIC_ACID_ENTITY: 3,                 # N/A
-    MOLECULAR_ENTITY: 4,                    # N/A
-    COMPLEX_MOLECULAR_MIXTURE: 5,           # 177 cliques
-    CHEMICAL_MIXTURE: 6,                    # 498 cliques
-    MOLECULAR_MIXTURE: 7,                   # 10,371,847 cliques
-    PROCESSED_MATERIAL: 8,                  # N/A
-    FOOD_ADDITIVE: 10,                      # N/A
-    FOOD: 11,                               # N/A
-    ENVIRONMENTAL_FOOD_CONTAMINANT: 12,     # N/A
-    CHEMICAL_ENTITY: 13,                    # 7,398,124 cliques
-    DRUG: 14,                               # 145,677 cliques
-        # We have to put biolink:Drug at the bottom because otherwise we get RXCUI CURIEs appearing higher in the
-        # conflation order than chemical entities (e.g. UNII:PVI5M0M1GW "Filgrastim") which is not ideal.
-}
+# PREFERRED_CONFLATION_TYPE_ORDER = {
+#     SMALL_MOLECULE: 1,                      # 107,459,280 cliques
+#     POLYPEPTIDE: 2,                         # 622 cliques
+#     NUCLEIC_ACID_ENTITY: 3,                 # N/A
+#     MOLECULAR_ENTITY: 4,                    # N/A
+#     COMPLEX_MOLECULAR_MIXTURE: 5,           # 177 cliques
+#     CHEMICAL_MIXTURE: 6,                    # 498 cliques
+#     MOLECULAR_MIXTURE: 7,                   # 10,371,847 cliques
+#     PROCESSED_MATERIAL: 8,                  # N/A
+#     FOOD_ADDITIVE: 10,                      # N/A
+#     FOOD: 11,                               # N/A
+#     ENVIRONMENTAL_FOOD_CONTAMINANT: 12,     # N/A
+#     CHEMICAL_ENTITY: 13,                    # 7,398,124 cliques
+#     DRUG: 14,                               # 145,677 cliques
+#         # We have to put biolink:Drug at the bottom because otherwise we get RXCUI CURIEs appearing higher in the
+#         # conflation order than chemical entities (e.g. UNII:PVI5M0M1GW "Filgrastim") which is not ideal.
+# }
 
 # RXNORM has lots of relationships.
 # RXNREL contains both directions of each relationship, just to make the file bigger
