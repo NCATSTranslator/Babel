@@ -221,6 +221,7 @@ def write_leftover_umls(compendia, umls_labels_filename, mrconso, mrsty, synonym
                     "names": synonyms_list,
                     "clique_identifier_count": 1,
                     "taxa": [],
+                    "taxon_specific": False,
                     "types": [t[8:] for t in node_factory.get_ancestors(umls_type_by_id[id])],
                 }
 
