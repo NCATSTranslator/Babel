@@ -48,6 +48,7 @@ apybiomart = { git = "https://github.com/gaurav/apybiomart.git", rev = "change-c
 
 [dependency-groups]
 dev = [
+    "ruff>=0.14.9",
     "snakefmt>=0.11.2",
 ]
 
