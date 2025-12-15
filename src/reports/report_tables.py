@@ -15,7 +15,6 @@
 #
 import csv
 import json
-from collections import defaultdict
 
 
 def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str):

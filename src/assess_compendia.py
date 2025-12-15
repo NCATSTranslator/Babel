@@ -23,11 +23,11 @@ def assess_completeness(input_dir, compendia, reportfile):
                 for identifier in ids:
                     all_identifiers.discard(identifier)
     with open(reportfile, "w") as outf:
-        l = list(all_identifiers)
-        l.sort()
-        print(f"Missing identifiers: {len(l)}\n")
-        outf.write(f"Missing identifiers: {len(l)}\n")
-        for missing_id in l:
+        list_all_identifiers = list(all_identifiers)
+        list_all_identifiers.sort()
+        print(f"Missing identifiers: {len(list_all_identifiers)}\n")
+        outf.write(f"Missing identifiers: {len(list_all_identifiers)}\n")
+        for missing_id in list_all_identifiers:
             outf.write(f"{missing_id}\n")
 
 

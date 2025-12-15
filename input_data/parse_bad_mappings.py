@@ -12,7 +12,7 @@ def read_bad_hp_mappings(fn):
             hps = x[0]
             commaindex = hps.index(",")
             curie = hps[1:commaindex]
-            name = hps[commaindex + 1 : -1]
+            # name = hps[commaindex + 1 : -1]
             badset = literal_eval(x[1])
             drops[curie].update(badset)
     return drops

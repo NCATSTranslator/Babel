@@ -1,6 +1,6 @@
 import gzip
 
-from src.babel_utils import pull_via_urllib, pull_via_wget
+from src.babel_utils import pull_via_urllib
 from src.prefixes import CHEMBLCOMPOUND, DRUGCENTRAL, DRUGBANK, GTOPDB, KEGGCOMPOUND, CHEBI, UNII, HMDB, PUBCHEMCOMPOUND
 
 # global for this file

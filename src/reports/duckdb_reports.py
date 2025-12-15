@@ -1,7 +1,6 @@
-import csv
 import json
 import os
-from collections import Counter, defaultdict
+from collections import defaultdict
 
 from src import util
 from src.exporters.duckdb_exporters import setup_duckdb

@@ -4,7 +4,7 @@ from enum import Enum
 from ftplib import FTP
 from io import BytesIO
 import gzip
-from datetime import timedelta
+from datetime import timedelta, datetime
 import time
 from pathlib import Path
 
@@ -144,7 +144,7 @@ class ThrottledRequester:
         self.delta = timedelta(milliseconds=delta_ms)
 
     def get(self, url):
-        now = dt.now()
+        now = datetime.now()
         throttled = False
         if self.last_time is not None:
             cdelta = now - self.last_time
@@ -152,7 +152,7 @@ class ThrottledRequester:
                 waittime = self.delta - cdelta
                 time.sleep(waittime.microseconds / 1e6)
                 throttled = True
-        self.last_time = dt.now()
+        self.last_time = datetime.now()
         response = requests.get(url)
         return response, throttled
 
@@ -194,7 +194,6 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
     """
     # Everything goes in downloads
     download_dir = get_config()["download_directory"]
-    working_dir = download_dir
 
     # get the (local) download file name, derived from the input file name
     if subpath is None:
@@ -589,11 +588,11 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                     possible_labels = map(lambda identifier: identifier.get("label", ""), node["identifiers"])
 
                 # Step 2. Filter out any suspicious labels.
-                filtered_possible_labels = [l for l in possible_labels if l]  # Ignore blank or empty names.
+                filtered_possible_labels = [label for label in possible_labels if label]  # Ignore blank or empty names.
 
                 # Step 3. Filter out labels longer than config['demote_labels_longer_than'], but only if there is at
                 # least one label shorter than this limit.
-                labels_shorter_than_limit = [l for l in filtered_possible_labels if l and len(l) <= config["demote_labels_longer_than"]]
+                labels_shorter_than_limit = [label for label in filtered_possible_labels if label and len(label) <= config["demote_labels_longer_than"]]
                 if labels_shorter_than_limit:
                     filtered_possible_labels = labels_shorter_than_limit
 
@@ -782,7 +781,7 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
     shit_prefixes = set(["KEGG", "PUBCHEM"])
     test_id = "xUBERON:0002262"
     debugit = False
-    excised = set()
+    # excised = set()
     for xgroup in newgroups:
         if isinstance(xgroup, frozenset):
             group = set(xgroup)
@@ -802,7 +801,7 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
         existing_sets_w_x = [(conc_set[x], x) for x in group if x in conc_set]
         # All of these sets are now going to be combined through the equivalence of our new set.
         existing_sets = [es[0] for es in existing_sets_w_x]
-        x = [es[1] for es in existing_sets_w_x]
+        # x = [es[1] for es in existing_sets_w_x]
         newset = set().union(*existing_sets)
         if debugit:
             print("merges:", existing_sets)
