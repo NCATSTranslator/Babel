@@ -258,3 +258,16 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                 'Clique leader prefixes': clique_leader_entries[filename]['clique_leader_prefixes'],
                 'CURIE prefixes': clique_leader_entries[filename]['curie_prefixes'],
             })
+
+
+def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table):
+    """Generate a table of mapping sources from metadata YAML files.
+
+    Args:
+        metadata_yaml_files (list): List of metadata YAML file paths.
+        mapping_sources_table (str): Path to the output mapping sources table file.
+
+    Returns:
+        None
+    """
+    pass
