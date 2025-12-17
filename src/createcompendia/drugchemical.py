@@ -499,33 +499,10 @@ def build_conflation(
     if not conflation_prefix_order:
         raise RuntimeError(f"Biolink model {config['biolink_version']} doesn't have a ChemicalEntity prefix order: {biolink_chemical_entity}")
 
-    # Add RXCUI at the bottom.
-    conflation_prefix_order.append("RXCUI")
+    # Remove RXCUI from the prefix order if it is present.
+    conflation_prefix_order.remove("RXCUI")
 
-    # Turn it into a sort order.
-    conflation_prefix_sort_order = {}
-    for i, prefix in enumerate(conflation_prefix_order):
-        conflation_prefix_sort_order[prefix] = i
-
-    logging.info(f"Using prefix sort order: {json.dumps(conflation_prefix_sort_order, indent=2)}")
-    # Set up the preferred conflation type order.
-    # preferred_conflation_type_order = PREFERRED_CONFLATION_TYPE_ORDER
-    # logger.info(f"Using preferred_conflation_type_order: {json.dumps(preferred_conflation_type_order, indent=2)}")
-
-    # Grouping conflation IDs by type is a great idea, and almost works! Unfortunately, we're currently
-    # identifying too many things as ChemicalEntity for this to work properly -- non-ideal concepts like
-    # CHEBI:5931 "insulin human" get placed further down in the conflation list than lots of other identifiers,
-    # including UNII:AVT680JB39 "Insulin pork", which is NOT good.
-    #
-    # So, instead, I'm going to group them by prefix and then to sort it using the ChemicalEntity
-    # prefix sort order.
-    biolink_model_toolkit = get_biolink_model_toolkit(config['biolink_version'])
-    biolink_chemical_entity = biolink_model_toolkit.get_element(CHEMICAL_ENTITY)
-    conflation_prefix_order = biolink_chemical_entity['id_prefixes']
-    if not conflation_prefix_order:
-        raise RuntimeError(f"Biolink model {config['biolink_version']} doesn't have a ChemicalEntity prefix order: {biolink_chemical_entity}")
-
-    # Add RXCUI at the bottom.
+    # ... and add it to the bottom.
     conflation_prefix_order.append("RXCUI")
 
     # Turn it into a sort order.
