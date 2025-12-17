@@ -5,21 +5,22 @@ import time
 import jsonlines
 from humanfriendly import format_timespan
 
-from src.categories import (
-    SMALL_MOLECULE,
-    POLYPEPTIDE,
-    CHEMICAL_ENTITY,
-    ENVIRONMENTAL_FOOD_CONTAMINANT,
-    FOOD,
-    FOOD_ADDITIVE,
-    DRUG,
-    PROCESSED_MATERIAL,
-    MOLECULAR_MIXTURE,
-    CHEMICAL_MIXTURE,
-    COMPLEX_MOLECULAR_MIXTURE,
-    MOLECULAR_ENTITY,
-    NUCLEIC_ACID_ENTITY,
-)
+# from src.categories import (
+#     SMALL_MOLECULE,
+#     POLYPEPTIDE,
+#     CHEMICAL_ENTITY,
+#     ENVIRONMENTAL_FOOD_CONTAMINANT,
+#     FOOD,
+#     FOOD_ADDITIVE,
+#     DRUG,
+#     PROCESSED_MATERIAL,
+#     MOLECULAR_MIXTURE,
+#     CHEMICAL_MIXTURE,
+#     COMPLEX_MOLECULAR_MIXTURE,
+#     MOLECULAR_ENTITY,
+#     NUCLEIC_ACID_ENTITY,
+# )
+from src.categories import CHEMICAL_ENTITY
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.node import InformationContentFactory
 from src.prefixes import RXCUI, PUBCHEMCOMPOUND, UMLS
@@ -36,23 +37,23 @@ logger = LoggingUtil.init_logging(__name__, level=logging.INFO)
 # the most common for a particular application.
 #
 # I've also listed the number of entities as of 2024mar24 to give an idea of how common these are.
-PREFERRED_CONFLATION_TYPE_ORDER = {
-    SMALL_MOLECULE: 1,                      # 107,459,280 cliques
-    POLYPEPTIDE: 2,                         # 622 cliques
-    NUCLEIC_ACID_ENTITY: 3,                 # N/A
-    MOLECULAR_ENTITY: 4,                    # N/A
-    COMPLEX_MOLECULAR_MIXTURE: 5,           # 177 cliques
-    CHEMICAL_MIXTURE: 6,                    # 498 cliques
-    MOLECULAR_MIXTURE: 7,                   # 10,371,847 cliques
-    PROCESSED_MATERIAL: 8,                  # N/A
-    FOOD_ADDITIVE: 10,                      # N/A
-    FOOD: 11,                               # N/A
-    ENVIRONMENTAL_FOOD_CONTAMINANT: 12,     # N/A
-    CHEMICAL_ENTITY: 13,                    # 7,398,124 cliques
-    DRUG: 14,                               # 145,677 cliques
-        # We have to put biolink:Drug at the bottom because otherwise we get RXCUI CURIEs appearing higher in the
-        # conflation order than chemical entities (e.g. UNII:PVI5M0M1GW "Filgrastim") which is not ideal.
-}
+# PREFERRED_CONFLATION_TYPE_ORDER = {
+#     SMALL_MOLECULE: 1,                      # 107,459,280 cliques
+#     POLYPEPTIDE: 2,                         # 622 cliques
+#     NUCLEIC_ACID_ENTITY: 3,                 # N/A
+#     MOLECULAR_ENTITY: 4,                    # N/A
+#     COMPLEX_MOLECULAR_MIXTURE: 5,           # 177 cliques
+#     CHEMICAL_MIXTURE: 6,                    # 498 cliques
+#     MOLECULAR_MIXTURE: 7,                   # 10,371,847 cliques
+#     PROCESSED_MATERIAL: 8,                  # N/A
+#     FOOD_ADDITIVE: 10,                      # N/A
+#     FOOD: 11,                               # N/A
+#     ENVIRONMENTAL_FOOD_CONTAMINANT: 12,     # N/A
+#     CHEMICAL_ENTITY: 13,                    # 7,398,124 cliques
+#     DRUG: 14,                               # 145,677 cliques
+#         # We have to put biolink:Drug at the bottom because otherwise we get RXCUI CURIEs appearing higher in the
+#         # conflation order than chemical entities (e.g. UNII:PVI5M0M1GW "Filgrastim") which is not ideal.
+# }
 
 # RXNORM has lots of relationships.
 # RXNREL contains both directions of each relationship, just to make the file bigger
@@ -390,28 +391,32 @@ def build_conflation(
         with open(concfile, "r") as infile:
             for line in infile:
                 x = line.strip().split("\t")
-                original_subject = x[0]
-                original_object = x[2]
+                subject = x[0]
+                object = x[2]
 
                 # While we do this, we will also normalize all chemicals to their preferred clique IDs.
-                if original_subject in drug_rxcui_to_clique and original_object in chemical_rxcui_to_clique:
-                    original_subject = drug_rxcui_to_clique[original_subject]
-                    original_object = chemical_rxcui_to_clique[original_object]
-                    pairs.append((original_subject, original_object))
-                elif original_subject in chemical_rxcui_to_clique and original_object in drug_rxcui_to_clique:
-                    original_subject = chemical_rxcui_to_clique[original_subject]
-                    original_object = drug_rxcui_to_clique[original_object]
-                    pairs.append((original_subject, original_object))
+                if subject in drug_rxcui_to_clique and object in chemical_rxcui_to_clique:
+                    subject = drug_rxcui_to_clique[subject]
+                    object = chemical_rxcui_to_clique[object]
+                    pairs.append((subject, object))
+                elif subject in chemical_rxcui_to_clique and object in drug_rxcui_to_clique:
+                    subject = chemical_rxcui_to_clique[subject]
+                    object = drug_rxcui_to_clique[object]
+                    pairs.append((subject, object))
                 # OK, this is possible, and it's OK, as long as we get real clique leaders
-                elif original_subject in drug_rxcui_to_clique and original_object in drug_rxcui_to_clique:
-                    original_subject = drug_rxcui_to_clique[original_subject]
-                    original_object = drug_rxcui_to_clique[original_object]
-                    pairs.append((original_subject, original_object))
-                elif original_subject in chemical_rxcui_to_clique and original_object in chemical_rxcui_to_clique:
-                    original_subject = chemical_rxcui_to_clique[original_subject]
-                    original_object = chemical_rxcui_to_clique[original_object]
-                    pairs.append((original_subject, original_object))
+                elif subject in drug_rxcui_to_clique and object in drug_rxcui_to_clique:
+                    subject = drug_rxcui_to_clique[subject]
+                    object = drug_rxcui_to_clique[object]
+                    pairs.append((subject, object))
+                elif subject in chemical_rxcui_to_clique and object in chemical_rxcui_to_clique:
+                    subject = chemical_rxcui_to_clique[subject]
+                    object = chemical_rxcui_to_clique[object]
+                    pairs.append((subject, object))
 
+    # Add the manual concords.
+    pairs.extend(manual_concords)
+
+    # We've had some issues with non-chemical types getting conflated, so we filter those out here.
     biolink_model_toolkit = get_biolink_model_toolkit(config['biolink_version'])
     biolink_chemical_types = set(biolink_model_toolkit.get_descendants(
         CHEMICAL_ENTITY,
@@ -423,88 +428,86 @@ def build_conflation(
     with open(pubchem_rxn_concord, "r") as infile:
         for line in infile:
             x = line.strip().split("\t")
-            original_subject = x[0]
-            original_object = x[2]
+            subject = x[0]
+            object = x[2]
 
-            if original_subject in drug_rxcui_to_clique:
-                original_subject = drug_rxcui_to_clique[original_subject]
-            elif original_subject in chemical_rxcui_to_clique:
-                original_subject = chemical_rxcui_to_clique[original_subject]
+            if subject in drug_rxcui_to_clique:
+                subject = drug_rxcui_to_clique[subject]
+            elif subject in chemical_rxcui_to_clique:
+                subject = chemical_rxcui_to_clique[subject]
             else:
-                logger.warning(f"Subject in subject-object pair ({original_subject}, {original_object}) isn't mapped to a RxCUI, skipping.")
+                logger.warning(f"Subject in subject-object pair ({subject}, {object}) isn't mapped to a RxCUI, skipping.")
                 continue
                 # raise RuntimeError(f"Unknown identifier in drugchemical conflation as subject: {subject}")
 
-            if original_object in drug_rxcui_to_clique:
-                original_object = drug_rxcui_to_clique[original_object]
-            elif original_object in chemical_rxcui_to_clique:
-                original_object = chemical_rxcui_to_clique[original_object]
+            if object in drug_rxcui_to_clique:
+                object = drug_rxcui_to_clique[object]
+            elif object in chemical_rxcui_to_clique:
+                object = chemical_rxcui_to_clique[object]
             else:
-                logger.warning(f"Object in subject-object pair ({original_subject}, {original_object}) isn't mapped to a RxCUI, continuing.")
+                logger.warning(f"Object in subject-object pair ({subject}, {object}) isn't mapped to a RxCUI, continuing.")
                 # raise RuntimeError(f"Unknown identifier in drugchemical conflation as object: {object}")
 
             # Normalize both the subject and object, otherwise skip them.
-            if original_subject not in preferred_curie_for_curie:
-                logger.warning(f"Subject in subject-object pair ({original_subject}, {original_object}) has no preferred CURIE, skipping.")
+            if subject not in preferred_curie_for_curie:
+                logger.warning(f"Subject in subject-object pair ({subject}, {object}) has no preferred CURIE, skipping.")
                 continue
-            subject = preferred_curie_for_curie[original_subject]
+            subject = preferred_curie_for_curie[subject]
 
-            if original_object not in preferred_curie_for_curie:
-                logger.warning(f"Object in subject-object pair ({original_subject}, {original_object}) has no preferred CURIE, skipping.")
+            if object not in preferred_curie_for_curie:
+                logger.warning(f"Object in subject-object pair ({subject}, {object}) has no preferred CURIE, skipping.")
                 continue
-            object = preferred_curie_for_curie[original_object]
+            object = preferred_curie_for_curie[object]
 
             if subject == object:
-                logger.warning(f"Subject and object in subject-object pair ({original_subject}, {original_object}) normalize to the same identifier ({subject}), skipping.")
+                logger.warning(f"Subject and object in subject-object pair ({subject}, {object}) normalize to the same identifier ({subject}), skipping.")
+                continue
 
             # Either the subject or the object might not be a chemical -- for example, MESH:C415772 shows up here,
             # but it's a gene, not a chemical.
             subject_type = type_for_preferred_curie[subject]
             if CHEMICAL_ENTITY not in biolink_chemical_types:
-                logger.warning(f"Subject in subject-object pair ({original_subject}, {original_object}) has type {subject_type}, which is is not a chemical type, skipping.")
+                logger.warning(f"Subject in subject-object pair ({subject}, {object}) has type {subject_type}, which is is not a chemical type, skipping.")
                 continue
 
             object_type = type_for_preferred_curie[object]
             if CHEMICAL_ENTITY not in biolink_chemical_types:
-                logger.warning(f"Object in subject-object pair ({original_subject}, {original_object}) has type {object_type}, which is is not a chemical type, skipping.")
+                logger.warning(f"Object in subject-object pair ({subject}, {object}) has type {object_type}, which is is not a chemical type, skipping.")
                 continue
 
             pairs.append((subject, object))
 
-    # Normalize the pairs to be glommed. We need to do this here because it may be that multiple conflations will be
-    # merged together because they share a normalized identifier. We can do this by adding pairs to indicate that every
-    # subject and object is associated with its normalized identifier.
-    pairs_to_be_glommed = []
-    pairs.extend(manual_concords)
-    for subj, obj in pairs:
-        # If either the subject or the object cannot be normalized, skip this pair entirely.
-        #
-        # This appears to happen very rarely when we have a PUBCHEM.COMPOUND that is referenced from RxNorm but
-        # hasn't made it into wherever we get PUBCHEM.COMPOUND IDs from. Not super-surprising since RxNorm is
-        # updated every month, but still, it's only happened to be once that I've noticed.
-        if subj not in preferred_curie_for_curie:
-            logger.warning(f"Pair ({subj}, {obj}) has a subject that cannot be normalized, skipping pair.")
-            continue
-
-        if obj not in preferred_curie_for_curie:
-            logger.warning(f"Pair ({subj}, {obj}) has an object that cannot be normalized, skipping pair.")
-            continue
-
-        # Add this tuple to the pairs to be glommed.
-        pairs_to_be_glommed.append((subj, obj))
-
-        # If the subject is not normalized, add a pair indicating the normalized ID.
-        if preferred_curie_for_curie[subj] != subj:
-            pairs_to_be_glommed.append((subj, preferred_curie_for_curie[subj]))
-        # If the object is not normalized, add a pair indicating the normalized ID.
-        if preferred_curie_for_curie[obj] != obj:
-            pairs_to_be_glommed.append((obj, preferred_curie_for_curie[obj]))
-
     # Glommin' time
     logger.info(f"glom: {get_memory_usage_summary()}")
     gloms = {}
-    glom(gloms, pairs_to_be_glommed)
+    glom(gloms, pairs)
 
+    # Set up the preferred conflation type order.
+    # preferred_conflation_type_order = PREFERRED_CONFLATION_TYPE_ORDER
+    # logger.info(f"Using preferred_conflation_type_order: {json.dumps(preferred_conflation_type_order, indent=2)}")
+
+    # Grouping conflation IDs by type is a great idea, and almost works! Unfortunately, we're currently
+    # identifying too many things as ChemicalEntity for this to work properly -- non-ideal concepts like
+    # CHEBI:5931 "insulin human" get placed further down in the conflation list than lots of other identifiers,
+    # including UNII:AVT680JB39 "Insulin pork", which is NOT good.
+    #
+    # So, instead, I'm going to group them by prefix and then to sort it using the ChemicalEntity
+    # prefix sort order.
+    biolink_model_toolkit = get_biolink_model_toolkit(config['biolink_version'])
+    biolink_chemical_entity = biolink_model_toolkit.get_element(CHEMICAL_ENTITY)
+    conflation_prefix_order = biolink_chemical_entity['id_prefixes']
+    if not conflation_prefix_order:
+        raise RuntimeError(f"Biolink model {config['biolink_version']} doesn't have a ChemicalEntity prefix order: {biolink_chemical_entity}")
+
+    # Add RXCUI at the bottom.
+    conflation_prefix_order.append("RXCUI")
+
+    # Turn it into a sort order.
+    conflation_prefix_sort_order = {}
+    for i, prefix in enumerate(conflation_prefix_order):
+        conflation_prefix_sort_order[prefix] = i
+
+    logging.info(f"Using prefix sort order: {json.dumps(conflation_prefix_sort_order, indent=2)}")
     # Set up the preferred conflation type order.
     # preferred_conflation_type_order = PREFERRED_CONFLATION_TYPE_ORDER
     # logger.info(f"Using preferred_conflation_type_order: {json.dumps(preferred_conflation_type_order, indent=2)}")

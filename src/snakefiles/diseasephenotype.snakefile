@@ -171,10 +171,10 @@ rule disease_manual_concord:
             sources=[
                 {
                     "name": "Babel repository",
-                    "url": "https://github.com/TranslatorSRI/Babel",
+                    "url": "https://github.com/NCATSTranslator/Babel",
                 }
             ],
-            url="https://github.com/TranslatorSRI/Babel/blob/master/input_data/manual_concords/disease.txt",
+            url="https://github.com/NCATSTranslator/Babel/blob/master/input_data/manual_concords/disease.txt",
             concord_filename=output.outfile,
         )
 
