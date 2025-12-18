@@ -34,8 +34,9 @@ rule download_bulk_normalizer_files:
             filtered_files = [fname for fname in all_files if '.tsv' in fname or '.txt' in fname]
             f.write("\n".join(filtered_files))
 
+# Step 2. Normalize the input files.
 rule bulk_normalize_files:
-    # If I can break this up into two rules, then I'll be able to normalize all these files in parallel.
+    # TODO: If I can break this up into two rules, then I'll be able to normalize all these files in parallel.
     input:
         duckdb_done = config['output_directory'] + '/reports/duckdb/done',
         file_list = config['download_directory'] + '/bulk-normalizer/file-list.txt',
@@ -84,6 +85,7 @@ rule bulk_normalize_files:
         with open(output.normalizer_done, 'w') as f:
             f.write("done")
 
+# Generate a report for each normalized file.
 rule bulk_normalize_reports:
     input:
         bulk_normalizer_output_dir = config['output_directory'] + '/bulk-normalizer',
