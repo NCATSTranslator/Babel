@@ -839,18 +839,15 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
                     wrote.add(fs)
                 for gel in group:
                     if Text.get_prefix_or_none(gel) == pref:
-                        killer = gel
+                        # killer = gel
+                        pass
                 # for preset in wrote:
                 #    print(f'{killer}\t{set(group).intersection(preset)}\t{preset}\n')
                 # print('------------')
         NPC = sum(1 for s in newset if s.startswith("PUBCHEM.COMPOUND:"))
         if ("PUBCHEM.COMPOUND:3100" in newset) and (NPC > 3):
             if debugit:
-                l = sorted(list(newset))
-                print("bad")
-                for li in l:
-                    print(li)
-                exit()
+                raise ValueError(f"Debugging information: {sorted(list(newset))}")
         if not setok:
             # Our new group created a new set that merged stuff we didn't want to merge.
             # Previously we did a lot of fooling around at this point.  But now we're just going to say, I have a
