@@ -1,17 +1,14 @@
+import os
 import re
 
-from src.metadata.provenance import write_concord_metadata
-from src.prefixes import ENSEMBL, PR, UNIPROTKB, NCIT, NCBITAXON, MESH, DRUGBANK
-from src.categories import PROTEIN
-
-import src.datahandlers.umls as umls
 import src.datahandlers.obo as obo
+import src.datahandlers.umls as umls
+from src.babel_utils import Text, glom, read_identifier_file, write_compendium
+from src.categories import PROTEIN
+from src.metadata.provenance import write_concord_metadata
+from src.prefixes import DRUGBANK, ENSEMBL, MESH, NCBITAXON, NCIT, PR, UNIPROTKB
 from src.ubergraph import UberGraph
-
-from src.babel_utils import read_identifier_file, glom, write_compendium, Text
-
-import os
-from src.util import get_memory_usage_summary, get_logger
+from src.util import get_logger, get_memory_usage_summary
 
 logger = get_logger(__name__)
 

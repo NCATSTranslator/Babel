@@ -1,5 +1,6 @@
-import json
 import ast
+import json
+
 # Starting with a conflation file, and a set of compendia, create a new compendium merging conflated cliques.
 
 

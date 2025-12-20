@@ -1,7 +1,9 @@
 import os
-from os import path
-import jsonlines
 from collections import defaultdict
+from os import path
+
+import jsonlines
+
 from src.util import Text
 
 

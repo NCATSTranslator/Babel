@@ -1,7 +1,9 @@
-from src.prefixes import CHEMBLCOMPOUND
-from src.babel_utils import pull_via_ftp
 import ftplib
+
 import pyoxigraph
+
+from src.babel_utils import pull_via_ftp
+from src.prefixes import CHEMBLCOMPOUND
 
 
 def pull_chembl(moleculefilename):

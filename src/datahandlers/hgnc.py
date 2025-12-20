@@ -1,5 +1,6 @@
-from src.babel_utils import make_local_name, pull_via_urllib
 import json
+
+from src.babel_utils import make_local_name, pull_via_urllib
 
 
 def pull_hgnc():

@@ -1,5 +1,5 @@
-from src.prefixes import PANTHERPATHWAY
 from src.babel_utils import pull_via_urllib
+from src.prefixes import PANTHERPATHWAY
 
 
 def pull_panther_pathways():

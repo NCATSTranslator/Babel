@@ -1,3 +1,5 @@
+import ast
+import gzip
 import logging
 import os
 from collections import defaultdict
@@ -5,22 +7,18 @@ from os.path import dirname
 
 import jsonlines
 import requests
-import ast
-import gzip
-
-from src.properties import Property, HAS_ALTERNATIVE_ID
-from src.metadata.provenance import write_concord_metadata, write_combined_metadata
-from src.ubergraph import UberGraph
-from src.prefixes import MESH, CHEBI, UNII, DRUGBANK, INCHIKEY, PUBCHEMCOMPOUND, GTOPDB, KEGGCOMPOUND, DRUGCENTRAL, CHEMBLCOMPOUND, UMLS, RXCUI
-from src.categories import MOLECULAR_MIXTURE, SMALL_MOLECULE, CHEMICAL_ENTITY, POLYPEPTIDE, COMPLEX_MOLECULAR_MIXTURE, CHEMICAL_MIXTURE, DRUG
-from src.sdfreader import read_sdf
-
-from src.datahandlers.unichem import data_sources as unichem_data_sources
-from src.babel_utils import write_compendium, glom, get_prefixes, read_identifier_file, remove_overused_xrefs
 
 import src.datahandlers.mesh as mesh
 import src.datahandlers.umls as umls
-from src.util import get_memory_usage_summary, Text, get_logger
+from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.categories import CHEMICAL_ENTITY, CHEMICAL_MIXTURE, COMPLEX_MOLECULAR_MIXTURE, DRUG, MOLECULAR_MIXTURE, POLYPEPTIDE, SMALL_MOLECULE
+from src.datahandlers.unichem import data_sources as unichem_data_sources
+from src.metadata.provenance import write_combined_metadata, write_concord_metadata
+from src.prefixes import CHEBI, CHEMBLCOMPOUND, DRUGBANK, DRUGCENTRAL, GTOPDB, INCHIKEY, KEGGCOMPOUND, MESH, PUBCHEMCOMPOUND, RXCUI, UMLS, UNII
+from src.properties import HAS_ALTERNATIVE_ID, Property
+from src.sdfreader import read_sdf
+from src.ubergraph import UberGraph
+from src.util import Text, get_logger, get_memory_usage_summary
 
 logger = get_logger(__name__)
 

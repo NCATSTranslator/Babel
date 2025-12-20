@@ -4,15 +4,15 @@ import json
 import logging
 import os
 import time
+import xml.etree.ElementTree as ET
 from collections import defaultdict
 from mmap import ACCESS_READ, mmap
 from pathlib import Path
-import xml.etree.ElementTree as ET
 
-from src.babel_utils import pull_via_wget, WgetRecursionOptions, glom, read_identifier_file, write_compendium
+from src.babel_utils import WgetRecursionOptions, glom, pull_via_wget, read_identifier_file, write_compendium
 from src.categories import JOURNAL_ARTICLE, PUBLICATION
 from src.metadata.provenance import write_concord_metadata
-from src.prefixes import PMID, DOI, PMC
+from src.prefixes import DOI, PMC, PMID
 
 
 def download_pubmed(download_file, pubmed_base="ftp://ftp.ncbi.nlm.nih.gov/pubmed/", pmc_base="https://ftp.ncbi.nlm.nih.gov/pub/pmc/"):

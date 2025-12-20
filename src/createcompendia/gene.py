@@ -1,18 +1,14 @@
+import gzip
+import json
+import logging
+import os
 import re
 
-from src.metadata.provenance import write_concord_metadata
-from src.prefixes import OMIM, ENSEMBL, NCBIGENE, WORMBASE, MGI, ZFIN, DICTYBASE, FLYBASE, RGD, SGD, HGNC, UMLS
-from src.categories import GENE
-
 import src.datahandlers.umls as umls
-
-from src.babel_utils import read_identifier_file, glom, write_compendium
-
-import os
-import json
-import gzip
-
-import logging
+from src.babel_utils import glom, read_identifier_file, write_compendium
+from src.categories import GENE
+from src.metadata.provenance import write_concord_metadata
+from src.prefixes import DICTYBASE, ENSEMBL, FLYBASE, HGNC, MGI, NCBIGENE, OMIM, RGD, SGD, UMLS, WORMBASE, ZFIN
 from src.util import LoggingUtil
 
 logger = LoggingUtil.init_logging(__name__, level=logging.ERROR)

@@ -1,7 +1,7 @@
 import gzip
 
 from src.babel_utils import pull_via_urllib
-from src.prefixes import CHEMBLCOMPOUND, DRUGCENTRAL, DRUGBANK, GTOPDB, KEGGCOMPOUND, CHEBI, UNII, HMDB, PUBCHEMCOMPOUND
+from src.prefixes import CHEBI, CHEMBLCOMPOUND, DRUGBANK, DRUGCENTRAL, GTOPDB, HMDB, KEGGCOMPOUND, PUBCHEMCOMPOUND, UNII
 
 # global for this file
 data_sources: dict = {

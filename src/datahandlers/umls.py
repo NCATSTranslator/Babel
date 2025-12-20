@@ -1,15 +1,16 @@
-from src.metadata.provenance import write_concord_metadata
-from src.prefixes import UMLS, RXCUI
-from src.babel_utils import make_local_name
-from src.categories import DRUG, CHEMICAL_ENTITY, MOLECULAR_MIXTURE
-
-import shutil
-from zipfile import ZipFile
-import requests
-from collections import defaultdict
+import logging
 import os
 import re
-import logging
+import shutil
+from collections import defaultdict
+from zipfile import ZipFile
+
+import requests
+
+from src.babel_utils import make_local_name
+from src.categories import CHEMICAL_ENTITY, DRUG, MOLECULAR_MIXTURE
+from src.metadata.provenance import write_concord_metadata
+from src.prefixes import RXCUI, UMLS
 
 
 def check_mrconso_line(line):

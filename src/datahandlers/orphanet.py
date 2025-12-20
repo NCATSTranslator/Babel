@@ -1,9 +1,9 @@
-from src.prefixes import OIO, ORPHANET
-from src.babel_utils import pull_via_urllib
-from zipfile import ZipFile
-
 # ugh XML
 import xml.etree.ElementTree as ET
+from zipfile import ZipFile
+
+from src.babel_utils import pull_via_urllib
+from src.prefixes import OIO, ORPHANET
 
 
 def pull_orphanet():

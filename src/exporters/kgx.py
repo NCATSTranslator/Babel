@@ -5,10 +5,10 @@
 import gzip
 import hashlib
 import json
+import logging
 import os
 from itertools import combinations
 
-import logging
 from src.util import LoggingUtil, get_memory_usage_summary
 
 # Default logger for this file.

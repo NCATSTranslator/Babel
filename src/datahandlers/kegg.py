@@ -1,8 +1,9 @@
 import re
+import traceback
 
 import requests
-import traceback
 from more_itertools import chunked
+
 from src.prefixes import KEGGCOMPOUND
 
 ###

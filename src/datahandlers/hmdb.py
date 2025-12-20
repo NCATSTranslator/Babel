@@ -1,8 +1,10 @@
-from zipfile import ZipFile
 from os import path
-from src.prefixes import HMDB
-from src.babel_utils import pull_via_urllib
+from zipfile import ZipFile
+
 import xmltodict
+
+from src.babel_utils import pull_via_urllib
+from src.prefixes import HMDB
 
 
 def pull_hmdb():

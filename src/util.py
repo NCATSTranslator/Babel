@@ -1,22 +1,21 @@
-import logging
+import copy
 import json
+import logging
 import os
 import sys
+from collections import namedtuple
+from logging.handlers import RotatingFileHandler
 from time import gmtime
 
 import curies
-import yaml
 import psutil
-from collections import namedtuple
-import copy
-from logging.handlers import RotatingFileHandler
-
+import yaml
 from bmt import Toolkit
 from humanfriendly import format_size
 
-from src.LabeledID import LabeledID
-from src.prefixes import OMIM, OMIMPS, UMLS, SNOMEDCT, KEGGPATHWAY, KEGGREACTION, NCIT, ICD10, ICD10CM, ICD11FOUNDATION
 import src.prefixes as prefixes
+from src.LabeledID import LabeledID
+from src.prefixes import ICD10, ICD10CM, ICD11FOUNDATION, KEGGPATHWAY, KEGGREACTION, NCIT, OMIM, OMIMPS, SNOMEDCT, UMLS
 
 
 def get_logger(name, loglevel=logging.INFO):

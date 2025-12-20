@@ -1,6 +1,8 @@
-from src.babel_utils import make_local_name, pull_via_ftp
-import pyoxigraph
 from collections import defaultdict
+
+import pyoxigraph
+
+from src.babel_utils import make_local_name, pull_via_ftp
 from src.prefixes import MESH
 
 

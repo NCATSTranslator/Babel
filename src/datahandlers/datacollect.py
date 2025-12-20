@@ -1,6 +1,7 @@
-from src.babel_utils import make_local_name, pull_via_ftp, pull_via_urllib
 import gzip
 from json import loads
+
+from src.babel_utils import make_local_name, pull_via_ftp, pull_via_urllib
 
 
 def pull_pubchem_labels():

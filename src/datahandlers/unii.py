@@ -1,5 +1,5 @@
+from os import listdir, path, rename
 from zipfile import ZipFile
-from os import path, listdir, rename
 
 import requests
 

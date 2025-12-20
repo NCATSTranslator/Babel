@@ -1,11 +1,11 @@
-from src.metadata.provenance import write_concord_metadata
-from src.prefixes import UNIPROTKB, NCBIGENE
-from src.babel_utils import glom
+import logging
 from collections import defaultdict
 
 import jsonlines
 
-import logging
+from src.babel_utils import glom
+from src.metadata.provenance import write_concord_metadata
+from src.prefixes import NCBIGENE, UNIPROTKB
 from src.util import LoggingUtil
 
 logger = LoggingUtil.init_logging(__name__, level=logging.ERROR)

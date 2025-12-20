@@ -1,6 +1,7 @@
-from src.prefixes import DOID, OIO
-from src.babel_utils import pull_via_urllib, norm
 import json
+
+from src.babel_utils import norm, pull_via_urllib
+from src.prefixes import DOID, OIO
 
 
 def pull_doid():

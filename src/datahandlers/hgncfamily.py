@@ -1,6 +1,5 @@
 import csv
 
-
 from src.babel_utils import pull_via_urllib
 from src.metadata.provenance import write_metadata
 from src.prefixes import HGNCFAMILY

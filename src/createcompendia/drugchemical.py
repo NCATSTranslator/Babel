@@ -1,9 +1,14 @@
 import csv
+import json
+import logging
 import sys
 import time
+from collections import defaultdict
 
 import jsonlines
 from humanfriendly import format_timespan
+
+from src.babel_utils import get_numerical_curie_suffix, glom
 
 # from src.categories import (
 #     SMALL_MOLECULE,
@@ -23,13 +28,8 @@ from humanfriendly import format_timespan
 from src.categories import CHEMICAL_ENTITY
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.node import InformationContentFactory
-from src.prefixes import RXCUI, PUBCHEMCOMPOUND, UMLS
-from src.babel_utils import glom, get_numerical_curie_suffix
-from collections import defaultdict
-import json
-
-import logging
-from src.util import LoggingUtil, get_config, get_memory_usage_summary, get_biolink_model_toolkit, Text
+from src.prefixes import PUBCHEMCOMPOUND, RXCUI, UMLS
+from src.util import LoggingUtil, Text, get_biolink_model_toolkit, get_config, get_memory_usage_summary
 
 logger = LoggingUtil.init_logging(__name__, level=logging.INFO)
 

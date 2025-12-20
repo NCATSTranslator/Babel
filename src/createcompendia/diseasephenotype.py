@@ -1,18 +1,16 @@
-from os import path
 from collections import defaultdict
+from os import path
 
-import src.datahandlers.obo as obo
-from src.metadata.provenance import write_concord_metadata
-
-from src.prefixes import MESH, NCIT, MONDO, OMIM, HP, SNOMEDCT, MEDDRA, ORPHANET, ICD0, ICD9, ICD10, UMLS, KEGGDISEASE
-from src.categories import DISEASE, PHENOTYPIC_FEATURE
-from src.ubergraph import build_sets
-import src.datahandlers.umls as umls
 import src.datahandlers.doid as doid
-import src.datahandlers.mesh as mesh
 import src.datahandlers.efo as efo
-
-from src.babel_utils import read_identifier_file, glom, remove_overused_xrefs, get_prefixes, write_compendium
+import src.datahandlers.mesh as mesh
+import src.datahandlers.obo as obo
+import src.datahandlers.umls as umls
+from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.categories import DISEASE, PHENOTYPIC_FEATURE
+from src.metadata.provenance import write_concord_metadata
+from src.prefixes import HP, ICD0, ICD9, ICD10, KEGGDISEASE, MEDDRA, MESH, MONDO, NCIT, OMIM, ORPHANET, SNOMEDCT, UMLS
+from src.ubergraph import build_sets
 
 
 def write_obo_ids(irisandtypes, outfile, exclude=[]):

@@ -7,16 +7,16 @@ from urllib.parse import urlparse
 
 import curies
 
+from src.LabeledID import LabeledID
+from src.prefixes import PUBCHEMCOMPOUND
 from src.util import (
     Text,
-    get_config,
     get_biolink_model_toolkit,
     get_biolink_prefix_map,
+    get_config,
     get_logger,
     get_memory_usage_summary,
 )
-from src.LabeledID import LabeledID
-from src.prefixes import PUBCHEMCOMPOUND
 
 logger = get_logger(__name__)
 

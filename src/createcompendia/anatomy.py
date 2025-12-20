@@ -1,16 +1,16 @@
 from collections import defaultdict
+
 import requests
 
-import src.datahandlers.obo as obo
-from src.metadata.provenance import write_concord_metadata
-from src.util import Text
-
-from src.prefixes import MESH, NCIT, CL, GO, UBERON, SNOMEDCT, WIKIDATA, UMLS, FMA
-from src.categories import ANATOMICAL_ENTITY, GROSS_ANATOMICAL_STRUCTURE, CELL, CELLULAR_COMPONENT
-from src.ubergraph import build_sets
-from src.babel_utils import write_compendium, glom, get_prefixes, read_identifier_file, remove_overused_xrefs
-import src.datahandlers.umls as umls
 import src.datahandlers.mesh as mesh
+import src.datahandlers.obo as obo
+import src.datahandlers.umls as umls
+from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
+from src.metadata.provenance import write_concord_metadata
+from src.prefixes import CL, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
+from src.ubergraph import build_sets
+from src.util import Text
 
 
 def remove_overused_xrefs_dict(kv):

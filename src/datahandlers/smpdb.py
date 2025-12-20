@@ -1,7 +1,8 @@
-from zipfile import ZipFile
 from os import path
-from src.prefixes import SMPDB
+from zipfile import ZipFile
+
 from src.babel_utils import pull_via_urllib
+from src.prefixes import SMPDB
 
 
 def pull_smpdb():

@@ -1,27 +1,27 @@
+import gzip
+import os
+import sqlite3
 import subprocess
+import time
 import traceback
+import urllib
+from collections import defaultdict
+from datetime import datetime, timedelta
 from enum import Enum
 from ftplib import FTP
 from io import BytesIO
-import gzip
-from datetime import timedelta, datetime
-import time
 from pathlib import Path
+from typing import List, Tuple
 
-import requests
-import os
-import urllib
 import jsonlines
+import requests
 from humanfriendly import format_timespan
 
-from src.metadata.provenance import write_combined_metadata
-from src.node import NodeFactory, SynonymFactory, DescriptionFactory, InformationContentFactory, TaxonFactory
-from src.properties import PropertyList, HAS_ALTERNATIVE_ID
-from src.util import Text, get_config, get_memory_usage_summary, get_logger
 from src.LabeledID import LabeledID
-from collections import defaultdict
-import sqlite3
-from typing import List, Tuple
+from src.metadata.provenance import write_combined_metadata
+from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory
+from src.properties import HAS_ALTERNATIVE_ID, PropertyList
+from src.util import Text, get_config, get_logger, get_memory_usage_summary
 
 # Configuration items
 WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES = 1_000_000
@@ -829,7 +829,7 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
         for up in unique_prefixes:
             if test_id in group:
                 print("up?", up)
-            idents = [e if type(e) == str else e.identifier for e in newset]
+            idents = [e if isinstance(e, str) else e.identifier for e in newset]
             if len(set([e for e in idents if (e.split(":")[0] == up)])) > 1:
                 bad += 1
                 setok = False

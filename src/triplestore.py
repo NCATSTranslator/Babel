@@ -1,9 +1,10 @@
+import logging
 import os
-from src.util import LoggingUtil
-from SPARQLWrapper import SPARQLWrapper2, JSON, POSTDIRECTLY, POST
 from string import Template
 
-import logging
+from SPARQLWrapper import JSON, POST, POSTDIRECTLY, SPARQLWrapper2
+
+from src.util import LoggingUtil
 
 logger = LoggingUtil.init_logging(__name__, logging.ERROR)
 

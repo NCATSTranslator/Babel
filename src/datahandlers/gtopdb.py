@@ -1,7 +1,7 @@
-from src.prefixes import GTOPDB
-from src.babel_utils import pull_via_urllib
-
 from bs4 import BeautifulSoup
+
+from src.babel_utils import pull_via_urllib
+from src.prefixes import GTOPDB
 
 
 def pull_gtopdb_ligands():

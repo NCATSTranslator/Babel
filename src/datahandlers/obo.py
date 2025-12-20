@@ -1,11 +1,10 @@
 import json
 import logging
+import os
+from collections import defaultdict
 from pathlib import Path
 
 from src.ubergraph import UberGraph
-from collections import defaultdict
-import os
-
 from src.util import Text
 
 

@@ -1,9 +1,9 @@
 import gzip
 import logging
+import tarfile
 
 from src.babel_utils import pull_via_ftp
 from src.prefixes import NCBITAXON
-import tarfile
 
 
 def pull_ncbitaxon():

@@ -1,17 +1,15 @@
 from collections import defaultdict
 
+import src.datahandlers.ec as ec
 import src.datahandlers.obo as obo
 import src.datahandlers.reactome as reactome
 import src.datahandlers.rhea as rhea
-import src.datahandlers.ec as ec
 import src.datahandlers.umls as umls
-from src.metadata.provenance import write_concord_metadata
-
-from src.prefixes import GO, REACT, WIKIPATHWAYS, TCDB
+from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
 from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
+from src.metadata.provenance import write_concord_metadata
+from src.prefixes import GO, REACT, TCDB, WIKIPATHWAYS
 from src.ubergraph import build_sets
-
-from src.babel_utils import read_identifier_file, glom, remove_overused_xrefs, get_prefixes, write_compendium
 
 
 def write_obo_ids(irisandtypes, outfile, exclude=[]):

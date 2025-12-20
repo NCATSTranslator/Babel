@@ -1,5 +1,6 @@
-from src.babel_utils import pull_via_urllib
 import gzip
+
+from src.babel_utils import pull_via_urllib
 
 
 def pull_ncbigene(filenames):

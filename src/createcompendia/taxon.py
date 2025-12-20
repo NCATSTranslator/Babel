@@ -1,13 +1,11 @@
-from src.metadata.provenance import write_concord_metadata
-from src.prefixes import NCBITAXON, MESH, UMLS
-from src.categories import ORGANISM_TAXON
+import logging
 
 import src.datahandlers.mesh as mesh
 import src.datahandlers.umls as umls
-
-from src.babel_utils import read_identifier_file, glom, write_compendium
-
-import logging
+from src.babel_utils import glom, read_identifier_file, write_compendium
+from src.categories import ORGANISM_TAXON
+from src.metadata.provenance import write_concord_metadata
+from src.prefixes import MESH, NCBITAXON, UMLS
 from src.util import LoggingUtil
 
 logger = LoggingUtil.init_logging(__name__, level=logging.ERROR)
