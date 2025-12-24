@@ -1,10 +1,10 @@
-from collections import defaultdict
 from ast import literal_eval
+from collections import defaultdict
 
 
 def read_bad_hp_mappings(fn):
     drops = defaultdict(set)
-    with open(fn, "r") as infile:
+    with open(fn) as infile:
         for line in infile:
             if line.startswith("-"):
                 continue

@@ -138,7 +138,7 @@ def get_aui_to_cui(consofile):
     aui_to_cui = {}
     sdui_to_cui = defaultdict(set)
     # consofile = os.path.join('input_data', 'private', "RXNCONSO.RRF")
-    with open(consofile, "r") as inf:
+    with open(consofile) as inf:
         for line in inf:
             x = line.strip().split("|")
             aui = x[7]
@@ -229,7 +229,7 @@ def build_rxnorm_relationships(conso, relfile, outfile, metadata_yaml):
     one_to_one_relations = {}
     # one_to_one_relations = {"has_tradename": {"subject": defaultdict(set),
     #                                          "object": defaultdict(set)}}
-    with open(relfile, "r") as inf, open(outfile, "w") as outf:
+    with open(relfile) as inf, open(outfile, "w") as outf:
         for line in inf:
             x = line.strip().split("|")
             # UMLS always has the CUI in it, while RXNORM does not.
@@ -274,7 +274,7 @@ def build_rxnorm_relationships(conso, relfile, outfile, metadata_yaml):
 
 def load_cliques_containing_rxcui(compendium):
     rx_to_clique = {}
-    with open(compendium, "r") as infile:
+    with open(compendium) as infile:
         for line in infile:
             if RXCUI not in line:
                 continue
@@ -287,7 +287,7 @@ def load_cliques_containing_rxcui(compendium):
 
 
 def build_pubchem_relationships(infile, outfile, metadata_yaml):
-    with open(infile, "r") as inf:
+    with open(infile) as inf:
         document = json.load(inf)
     with open(outfile, "w") as outf:
         for annotation in document["Annotations"]["Annotation"]:
@@ -341,7 +341,7 @@ def build_conflation(
     manual_concords_curies = set()
     manual_concords_predicate_counts = defaultdict(int)
     manual_concords_curie_prefix_counts = defaultdict(int)
-    with open(manual_concord_filename, "r") as manualf:
+    with open(manual_concord_filename) as manualf:
         csv_reader = csv.DictReader(manualf, dialect=csv.excel_tab)
         for row in csv_reader:
             # We're only interested in two fields, so you can add additional files ('comment', 'notes', etc.) as needed.
@@ -364,7 +364,7 @@ def build_conflation(
     type_for_preferred_curie = {}
     clique_for_preferred_curie = {}
     for chemical_compendium in chemical_compendia:
-        with open(chemical_compendium, "r") as compendiumf:
+        with open(chemical_compendium) as compendiumf:
             logger.info(f"Loading {chemical_compendium}: {get_memory_usage_summary()}")
             for line in compendiumf:
                 clique = json.loads(line)
@@ -388,7 +388,7 @@ def build_conflation(
 
     pairs = []
     for concfile in [rxn_concord, umls_concord]:
-        with open(concfile, "r") as infile:
+        with open(concfile) as infile:
             for line in infile:
                 x = line.strip().split("\t")
                 subject = x[0]
@@ -427,7 +427,7 @@ def build_conflation(
         )
     )
     logging.info(f"Filtering RxCUI pairs to those in these Biolink chemical types: {sorted(biolink_chemical_types)}")
-    with open(pubchem_rxn_concord, "r") as infile:
+    with open(pubchem_rxn_concord) as infile:
         for line in infile:
             x = line.strip().split("\t")
             subject = x[0]

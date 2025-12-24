@@ -25,7 +25,7 @@ def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str)
     :param prefix_report_table_csv: The report table CSV file to generate.
     """
 
-    with open(prefix_report_json, "r") as f:
+    with open(prefix_report_json) as f:
         prefix_report = json.load(f)
 
     curie_entries = []
@@ -82,7 +82,7 @@ def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str)
 
 
 def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
-    with open(cliques_report_json, "r") as f:
+    with open(cliques_report_json) as f:
         cliques_report = json.load(f)
 
     # To improve the table somewhat, we'll include pipeline descriptions that group filenames.

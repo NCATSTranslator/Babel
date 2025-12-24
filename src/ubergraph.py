@@ -301,7 +301,7 @@ class UberGraph:
             # Sometimes we're getting back just strings that aren't curies, skip those (but complain)
             try:
                 dcurie = Text.opt_to_curie(row["descendent"])
-                results[dcurie].add((Text.opt_to_curie(row["xref"])))
+                results[dcurie].add(Text.opt_to_curie(row["xref"]))
             except ValueError as verr:
                 print(f"Bad XREF from {row['descendent']} to {row['xref']}: {verr}")
                 continue
@@ -402,7 +402,7 @@ class UberGraph:
                 results[desc] += []
             else:
                 try:
-                    results[desc].append((Text.opt_to_curie(row["match"])))
+                    results[desc].append(Text.opt_to_curie(row["match"]))
                 except ValueError as verr:
                     # Sometimes, if there are no exact_matches, we'll get some kind of blank node id
                     # like 't19830198'. Want to filter those out.

@@ -16,7 +16,7 @@ logger = LoggingUtil.init_logging(__name__, level=logging.ERROR)
 
 def write_mods_ids(dd, id, modlist):
     for mod in modlist:
-        with open(f"{dd}/{mod}/labels", "r") as inf, open(f"{id}/gene/ids/{mod}", "w") as outf:
+        with open(f"{dd}/{mod}/labels") as inf, open(f"{id}/gene/ids/{mod}", "w") as outf:
             for line in inf:
                 x = line.split("\t")[0]
                 outf.write(f"{x}\n")
@@ -44,7 +44,7 @@ def build_gene_ensembl_relationships(ensembl_dir, outfile, metadata_yaml):
                 infname = os.path.join(dlpath, "BioMart.tsv")
                 if os.path.exists(infname):
                     # open each ensembl file, find the id column, and put it in the output
-                    with open(infname, "r") as inf:
+                    with open(infname) as inf:
                         wrote = set()
                         h = inf.readline()
                         x = h[:-1].split("\t")
@@ -91,7 +91,7 @@ def build_gene_ensembl_relationships(ensembl_dir, outfile, metadata_yaml):
 
 
 def write_zfin_ids(infile, outfile):
-    with open(infile, "r") as inf, open(outfile, "w") as outf:
+    with open(infile) as inf, open(outfile, "w") as outf:
         for line in inf:
             x = line.strip().split()
             if "GENE" in x[0]:
@@ -99,7 +99,7 @@ def write_zfin_ids(infile, outfile):
 
 
 def write_hgnc_ids(infile, outfile):
-    with open(infile, "r") as inf:
+    with open(infile) as inf:
         hgnc_json = json.load(inf)
     with open(outfile, "w") as outf:
         for gene in hgnc_json["response"]["docs"]:
@@ -107,7 +107,7 @@ def write_hgnc_ids(infile, outfile):
 
 
 def write_omim_ids(infile, outfile):
-    with open(infile, "r") as inf, open(outfile, "w") as outf:
+    with open(infile) as inf, open(outfile, "w") as outf:
         for line in inf:
             if line.startswith("#"):
                 continue
@@ -133,7 +133,7 @@ def write_umls_ids(mrconso, mrsty, outfile):
         ]
     )
     umls_keepers = set()
-    with open(mrsty, "r") as inf:
+    with open(mrsty) as inf:
         for line in inf:
             x = line.strip().split("|")
             cat = x[2]
@@ -141,7 +141,7 @@ def write_umls_ids(mrconso, mrsty, outfile):
                 umls_keepers.add(x[0])
     umls_keepers.difference_update(blacklist)
     # Now filter out OMIM variants
-    with open(mrconso, "r") as inf:
+    with open(mrconso) as inf:
         for line in inf:
             x = line.strip().split("|")
             cui = x[0]
@@ -170,7 +170,7 @@ def write_umls_ids(mrconso, mrsty, outfile):
 
 def read_ncbi_idfile(ncbi_idfile):
     ncbi_ids = set()
-    with open(ncbi_idfile, "r") as inf:
+    with open(ncbi_idfile) as inf:
         for line in inf:
             x = line.strip().split("\t")[0]
             ncbi_ids.add(x)
@@ -254,7 +254,7 @@ def build_gene_ncbigene_xrefs(infile, ncbi_idfile, outfile, metadata_yaml):
 
 
 def build_gene_medgen_relationships(infile, outfile, metadata_yaml):
-    with open(infile, "r") as inf, open(outfile, "w") as outf:
+    with open(infile) as inf, open(outfile, "w") as outf:
         h = inf.readline()
         for line in inf:
             x = line.strip().split("\t")
@@ -293,7 +293,7 @@ def write_ensembl_gene_ids(ensembl_dir, outfile):
                 infname = os.path.join(dlpath, "BioMart.tsv")
                 if os.path.exists(infname):
                     # open each ensembl file, find the id column, and put it in the output
-                    with open(infname, "r") as inf:
+                    with open(infname) as inf:
                         wrote = set()
                         h = inf.readline()
                         x = h[:-1].split("\t")
@@ -332,7 +332,7 @@ def build_gene_compendia(concordances, metadata_yamls, identifiers, icrdf_filena
         print(infile)
         print("loading", infile)
         pairs = []
-        with open(infile, "r") as inf:
+        with open(infile) as inf:
             for line in inf:
                 x = line.strip().split("\t")
                 pairs.append(set([x[0], x[2]]))

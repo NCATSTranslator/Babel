@@ -15,7 +15,7 @@ def pull_labels(infile, outfile, metadata_yaml):
     MAINFAMILY_NAME_COLUMN = 4
     SUBFAMILY_NAME_COLUMN = 5
     done = set()
-    with open(infile, "r") as inf, open(outfile, "w") as labelf:
+    with open(infile) as inf, open(outfile, "w") as labelf:
         for raw_line in inf:
             line = raw_line.strip()
             parts = line.split("\t")

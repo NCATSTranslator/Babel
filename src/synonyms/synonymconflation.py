@@ -42,7 +42,7 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
     # Step 1. Load all the conflations. We only need to work on these identifiers, so that simplifies our work.
     for conflation_filename in conflation_file:
         logger.info(f"Reading conflation file {conflation_filename}")
-        with open(conflation_filename, "r") as conflationf:
+        with open(conflation_filename) as conflationf:
             count_primary = 0
             count_secondary = 0
             for line in conflationf:
@@ -75,7 +75,7 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
 
     for compendium_filename in compendia_files:
         logger.info(f"Reading compendium file {compendium_filename}")
-        with open(compendium_filename, "r") as compendiumf:
+        with open(compendium_filename) as compendiumf:
             for line in compendiumf:
                 clique = json.loads(line)
                 identifiers = clique.get("identifiers", [])

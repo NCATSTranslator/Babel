@@ -9,7 +9,7 @@ from src.util import LoggingUtil
 logger = LoggingUtil.init_logging(__name__, logging.ERROR)
 
 
-class TripleStore(object):
+class TripleStore:
     """Connect to a SPARQL endpoint and provide services for loading and executing queries."""
 
     def __init__(self, hostname):
@@ -22,8 +22,8 @@ class TripleStore(object):
     def get_template_text(self, query_name):
         """Get the text of a template given its name"""
         query = None
-        fn = os.path.join(os.path.dirname(__file__), "query", "{0}.sparql".format(query_name))
-        with open(fn, "r") as stream:
+        fn = os.path.join(os.path.dirname(__file__), "query", f"{query_name}.sparql")
+        with open(fn) as stream:
             query = stream.read()
         return query
 

@@ -11,7 +11,6 @@ from enum import Enum
 from ftplib import FTP
 from io import BytesIO
 from pathlib import Path
-from typing import List, Tuple
 
 import jsonlines
 import requests
@@ -974,7 +973,7 @@ def read_identifier_file(infile):
     a hint to the normalizer about the proper biolink type for this entity."""
     types = {}
     identifiers = list()
-    with open(infile, "r") as inf:
+    with open(infile) as inf:
         for line in inf:
             x = line.strip().split("\t")
             identifiers.append((x[0],))
@@ -983,7 +982,7 @@ def read_identifier_file(infile):
     return identifiers, types
 
 
-def remove_overused_xrefs(pairlist: List[Tuple], bothways: bool = False):
+def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
     """Given a list of tuples (id1, id2) meaning id1-[xref]->id2, remove any id2 that are associated with more
     than one id1.  The idea is that if e.g. id1 is made up of UBERONS and 2 of those have an xref to say a UMLS
     then it doesn't mean that all of those should be identified.  We don't really know what it means, so remove it."""

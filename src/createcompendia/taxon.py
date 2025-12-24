@@ -72,7 +72,7 @@ def build_taxon_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
 
 def build_relationships(outfile, mesh_ids, metadata_yaml):
     regis = mesh.pull_mesh_registry()
-    with open(mesh_ids, "r") as inf:
+    with open(mesh_ids) as inf:
         lines = inf.read().strip().split("\n")
         all_mesh_taxa = set([x.split("\t")[0] for x in lines])
     with open(outfile, "w") as outf:
@@ -116,7 +116,7 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
         print(infile)
         print("loading", infile)
         pairs = []
-        with open(infile, "r") as inf:
+        with open(infile) as inf:
             for line in inf:
                 x = line.strip().split("\t")
                 pairs.append(set([x[0], x[2]]))

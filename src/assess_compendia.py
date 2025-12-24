@@ -13,7 +13,7 @@ def assess_completeness(input_dir, compendia, reportfile):
     id_files = os.listdir(input_dir)
     all_identifiers = set()
     for idf in id_files:
-        with open(path.join(input_dir, idf), "r") as inf:
+        with open(path.join(input_dir, idf)) as inf:
             for line in inf:
                 x = line.strip().split("\t")[0]
                 all_identifiers.add(x)

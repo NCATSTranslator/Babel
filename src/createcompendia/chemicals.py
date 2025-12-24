@@ -11,10 +11,31 @@ import requests
 import src.datahandlers.mesh as mesh
 import src.datahandlers.umls as umls
 from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
-from src.categories import CHEMICAL_ENTITY, CHEMICAL_MIXTURE, COMPLEX_MOLECULAR_MIXTURE, DRUG, MOLECULAR_MIXTURE, POLYPEPTIDE, SMALL_MOLECULE
+from src.categories import (
+    CHEMICAL_ENTITY,
+    CHEMICAL_MIXTURE,
+    COMPLEX_MOLECULAR_MIXTURE,
+    DRUG,
+    MOLECULAR_MIXTURE,
+    POLYPEPTIDE,
+    SMALL_MOLECULE,
+)
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
-from src.prefixes import CHEBI, CHEMBLCOMPOUND, DRUGBANK, DRUGCENTRAL, GTOPDB, INCHIKEY, KEGGCOMPOUND, MESH, PUBCHEMCOMPOUND, RXCUI, UMLS, UNII
+from src.prefixes import (
+    CHEBI,
+    CHEMBLCOMPOUND,
+    DRUGBANK,
+    DRUGCENTRAL,
+    GTOPDB,
+    INCHIKEY,
+    KEGGCOMPOUND,
+    MESH,
+    PUBCHEMCOMPOUND,
+    RXCUI,
+    UMLS,
+    UNII,
+)
 from src.properties import HAS_ALTERNATIVE_ID, Property
 from src.sdfreader import read_sdf
 from src.ubergraph import UberGraph
@@ -94,7 +115,7 @@ def build_chemical_rxnorm_relationships(conso, idfile, outfile, metadata_yaml):
 def write_pubchem_ids(labelfile, smilesfile, outfile):
     # Trying to be memory efficient here.  We could just ingest the whole smilesfile which would make this code easier
     # but since they're already sorted, let's give it a shot
-    with open(labelfile, "r") as inlabels, gzip.open(smilesfile, "rt", encoding="utf-8") as insmiles, open(outfile, "w") as outf:
+    with open(labelfile) as inlabels, gzip.open(smilesfile, "rt", encoding="utf-8") as insmiles, open(outfile, "w") as outf:
         sn = -1
         flag_file_ended = False
         for labelline in inlabels:
@@ -194,7 +215,7 @@ def write_chebi_ids(outfile):
 def write_unii_ids(infile, outfile):
     """UNII contains a bunch of junk like leaves.   We are going to try to clean it a bit to get things
     that are actually chemicals.  In biolink 2.0 we cn revisit exactly what happens here."""
-    with open(infile, "r", encoding="windows-1252") as inf, open(outfile, "w") as outf:
+    with open(infile, encoding="windows-1252") as inf, open(outfile, "w") as outf:
         h = inf.readline().strip().split("\t")
         bad_cols = ["NCBI", "PLANTS", "GRIN", "MPNS"]
         bad_colnos = [h.index(bc) for bc in bad_cols]
@@ -218,7 +239,7 @@ def write_drugbank_ids(infile, outfile):
     drugbank_id = "2"
     assert unichem_data_sources[drugbank_id] == DRUGBANK
     written = set()
-    with open(infile, "r") as inf, open(outfile, "w") as outf:
+    with open(infile) as inf, open(outfile, "w") as outf:
         header_line = inf.readline()
         assert header_line == "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", f"Incorrect header line in {infile}: {header_line}"
         for line in inf:
@@ -233,11 +254,11 @@ def write_drugbank_ids(infile, outfile):
 
 def write_chemical_ids_from_labels_and_smiles(labelfile, smifile, outfile):
     smiles = {}
-    with open(smifile, "r") as inf:
+    with open(smifile) as inf:
         for line in inf:
             x = line.strip().split("\t")
             smiles[x[0]] = x[1]
-    with open(labelfile, "r") as inf, open(outfile, "w") as outf:
+    with open(labelfile) as inf, open(outfile, "w") as outf:
         for line in inf:
             hmdbid = line.split("\t")[0]
             if hmdbid in smiles:
@@ -250,7 +271,7 @@ def write_chemical_ids_from_labels_and_smiles(labelfile, smifile, outfile):
 def parse_smifile(infile, outfile, smicol, idcol, pref, stripquotes=False):
     idcol_index = None
     smicol_index = None
-    with open(infile, "r") as inf, open(outfile, "w") as outf:
+    with open(infile) as inf, open(outfile, "w") as outf:
         for line in inf:
             if line.startswith('"# GtoPdb Version'):
                 # Version line! Skip.
@@ -316,7 +337,7 @@ def parse_smifile(infile, outfile, smicol, idcol, pref, stripquotes=False):
 def write_drugcentral_ids(infile, outfile):
     smicol = 1
     idcol = 0
-    with open(infile, "r") as inf, open(outfile, "w") as outf:
+    with open(infile) as inf, open(outfile, "w") as outf:
         for line in inf:
             x = line.strip().split("\t")
             if x[smicol] == "None":
@@ -336,7 +357,7 @@ def write_unichem_concords(structfile, reffile, outdir):
         concname = f"{outdir}/UNICHEM_{name}"
         print(concname)
         concfiles[num] = open(concname, "w")
-    with open(reffile, "rt") as inf:
+    with open(reffile) as inf:
         header_line = inf.readline()
         assert header_line == "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", f"Incorrect header line in {reffile}: {header_line}"
         for line in inf:
@@ -378,10 +399,10 @@ def combine_unichem(concordances, output):
         # but out of paranoia we'll double-check that.
         prefixes_in_file = set()
 
-        with open(infile, "r") as inf:
+        with open(infile) as inf:
             for line in inf:
                 x = line.strip().split("\t")
-                pairs.append(([x[0], x[2]]))
+                pairs.append([x[0], x[2]])
                 # Get the prefix from the first row to determine if we need to remove overused xrefs
                 prefixes_in_file.add(Text.get_prefix(x[0]))
 
@@ -426,7 +447,7 @@ def is_cas(thing):
 
 
 def make_pubchem_cas_concord(pubchemsynonyms, outfile, metadata_yaml):
-    with open(pubchemsynonyms, "r") as inf, open(outfile, "w") as outf:
+    with open(pubchemsynonyms) as inf, open(outfile, "w") as outf:
         for line in inf:
             x = line.strip().split("\t")
             if is_cas(x[1]):
@@ -447,7 +468,7 @@ def make_pubchem_mesh_concord(pubcheminput, meshlabels, outfile, metadata_yaml):
     # MESH:D014867    Water
     # MESH:M0022883   Water
     # but we only want the ones that are MESH:D... or MESH:C....
-    with open(meshlabels, "r") as inf:
+    with open(meshlabels) as inf:
         for line in inf:
             x = line.strip().split("\t")
             if x[0].split(":")[-1][0] in ["C", "D"]:
@@ -456,7 +477,7 @@ def make_pubchem_mesh_concord(pubcheminput, meshlabels, outfile, metadata_yaml):
     # first mapping is the 'best' i.e. the one most frequently reported.
     # We will only use the first one
     used_pubchem = set()
-    with open(pubcheminput, "r") as inf, open(outfile, "w") as outf:
+    with open(pubcheminput) as inf, open(outfile, "w") as outf:
         for line in inf:
             x = line.strip().split("\t")  # x[0] = puchemid (no prefix), x[1] = mesh label
             if x[0] in used_pubchem:
@@ -492,7 +513,7 @@ def build_drugcentral_relations(infile, outfile, metadata_yaml):
     external_id_col = 1
     external_ns_col = 2
     drugcentral_id_col = 3
-    with open(infile, "r") as inf, open(outfile, "w") as outf:
+    with open(infile) as inf, open(outfile, "w") as outf:
         for line in inf:
             parts = line.strip().split("\t")
             # print(parts)
@@ -513,7 +534,7 @@ def build_drugcentral_relations(infile, outfile, metadata_yaml):
 
 
 def make_gtopdb_relations(infile, outfile, metadata_yaml):
-    with open(infile, "r") as inf, open(outfile, "w") as outf:
+    with open(infile) as inf, open(outfile, "w") as outf:
         h = inf.readline()
         # We might have a header/version line. If so, skip to the next line.
         if h.startswith('"# GtoPdb Version'):
@@ -549,7 +570,7 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
     # CHEBIs in the sdf by definition have structure (the sdf is a structure file)
     structured_chebi = set(chebi_sdf_dat.keys())
     # READ xrefs
-    with open(dbx, "r") as inf:
+    with open(dbx) as inf:
         dbxdata = inf.read()
     kk = "keggcompounddatabaselinks"
     pk = "pubchemdatabaselinks"
@@ -611,7 +632,7 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
 
 def get_mesh_relationships(mesh_id_file, cas_out, unii_out, cas_metadata, unii_metadata):
     meshes = set()
-    with open(mesh_id_file, "r") as inf:
+    with open(mesh_id_file) as inf:
         for line in inf:
             x = line.split("\t")
             meshes.add(x[0])
@@ -705,10 +726,10 @@ def build_untyped_compendia(concordances, identifiers, unichem_partial, untyped_
         print(infile)
         print("loading", infile)
         pairs = []
-        with open(infile, "r") as inf:
+        with open(infile) as inf:
             for line in inf:
                 x = line.strip().split("\t")
-                pairs.append(([x[0], x[2]]))
+                pairs.append([x[0], x[2]])
         p = False
         if DRUGCENTRAL in [n.split(":")[0] for n in pairs[0]]:
             p = True
@@ -751,14 +772,14 @@ def build_untyped_compendia(concordances, identifiers, unichem_partial, untyped_
 
 def build_compendia(type_file, untyped_compendia_file, properties_jsonl_gz_files, metadata_yamls, icrdf_filename):
     types = {}
-    with open(type_file, "r") as inf:
+    with open(type_file) as inf:
         for line in inf:
             x = line.strip().split("\t")
             types[x[0]] = x[1]
     logger.info(f"Loaded {len(types)} types from {type_file}: {get_memory_usage_summary()}")
 
     untyped_sets = set()
-    with open(untyped_compendia_file, "r") as inf:
+    with open(untyped_compendia_file) as inf:
         for line in inf:
             s = ast.literal_eval(line.strip())
             untyped_sets.add(frozenset(s))

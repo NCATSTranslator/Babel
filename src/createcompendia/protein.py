@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 
 def extract_taxon_ids_from_uniprotkb(idmapping_filename, uniprotkb_taxa_filename):
     """Extract NCBIGene identifiers from the UniProtKB mapping file."""
-    with open(idmapping_filename, "r") as inf, open(uniprotkb_taxa_filename, "w") as outf:
+    with open(idmapping_filename) as inf, open(uniprotkb_taxa_filename, "w") as outf:
         for line in inf:
             x = line.strip().split("\t")
             if x[1] == "NCBI_TaxID":
@@ -48,7 +48,7 @@ def write_ensembl_protein_ids(ensembl_dir, outfile):
                 print(f"write_ensembl_ids for input filename {infname}")
                 if os.path.exists(infname):
                     # open each ensembl file, find the id column, and put it in the output
-                    with open(infname, "r") as inf:
+                    with open(infname) as inf:
                         wrote = set()
                         h = inf.readline()
                         x = h[:-1].split("\t")
@@ -94,7 +94,7 @@ def build_pr_uniprot_relationships(outfile, ignore_list=[], metadata_yaml=None):
 
 
 def build_protein_uniprotkb_ensemble_relationships(infile, outfile, metadata_yaml):
-    with open(infile, "r") as inf, open(outfile, "w") as outf:
+    with open(infile) as inf, open(outfile, "w") as outf:
         for line in inf:
             x = line.strip().split()
             if x[1] == "Ensembl_PRO":
@@ -126,7 +126,7 @@ def build_protein_uniprotkb_ensemble_relationships(infile, outfile, metadata_yam
 
 
 def build_ncit_uniprot_relationships(infile, outfile, metadata_yaml):
-    with open(infile, "r") as inf, open(outfile, "w") as outf:
+    with open(infile) as inf, open(outfile, "w") as outf:
         for line in inf:
             # These lines are sometimes empty (I think because the
             # input file can have DOS line endings). If so, we can
@@ -185,7 +185,7 @@ def build_protein_compendia(concordances, metadata_yamls, identifiers, icrdf_fil
     for infile in concordances:
         logger.info(f"Loading concordance file {infile}")
         pairs = []
-        with open(infile, "r") as inf:
+        with open(infile) as inf:
             for line_index, line in enumerate(inf):
                 if line_index % 1000000 == 0:
                     logger.info(f"Loading concordance file {infile}: line {line_index:,}")

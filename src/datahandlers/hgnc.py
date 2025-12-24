@@ -9,7 +9,7 @@ def pull_hgnc():
 
 
 def pull_hgnc_labels_and_synonyms(infile):
-    with open(infile, "r") as data:
+    with open(infile) as data:
         hgnc_json = json.load(data)
     lname = make_local_name("labels", subpath="HGNC")
     sname = make_local_name("synonyms", subpath="HGNC")

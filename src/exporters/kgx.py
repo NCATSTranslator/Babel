@@ -46,7 +46,7 @@ def convert_compendium_to_kgx(compendium_filename, kgx_nodes_filename, kgx_edges
     os.makedirs(os.path.dirname(kgx_edges_filename), exist_ok=True)
 
     # Open the compendium file for reading.
-    with open(compendium_filename, "r", encoding="utf-8") as compendium:
+    with open(compendium_filename, encoding="utf-8") as compendium:
         # Open the nodes and edges files for writing.
         with gzip.open(kgx_nodes_filename, "wt", encoding="utf-8") as node_file, gzip.open(kgx_edges_filename, "wt", encoding="utf-8") as edge_file:
             # set the flag for suppressing the first ",\n" in the written data

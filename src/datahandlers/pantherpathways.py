@@ -9,7 +9,7 @@ def pull_panther_pathways():
 
 
 def make_pathway_labels(infile, outfile):
-    with open(infile, "r") as inf:
+    with open(infile) as inf:
         data = inf.read()
     lines = data.split("\n")
     labels = {}

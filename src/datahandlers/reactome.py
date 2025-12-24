@@ -21,7 +21,7 @@ def pull_reactome(outfile):
 
 
 def make_labels(infile, labelfile):
-    with open(infile, "r") as inf:
+    with open(infile) as inf:
         elements = json.load(inf)
     with open(labelfile, "w") as labels:
         for element in elements:
@@ -39,7 +39,7 @@ def parse_element_for_labels(e, lfile):
 
 
 def write_ids(infile, idfile):
-    with open(infile, "r") as inf:
+    with open(infile) as inf:
         elements = json.load(inf)
     with open(idfile, "w") as outf:
         for element in elements:

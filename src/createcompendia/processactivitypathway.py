@@ -100,7 +100,7 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
         # them added. So we want to limit concordances to terms that are already in the dicts. But that's ONLY for the
         # UMLS concord.  We trust the others to retrieve decent identifiers.
         pairs = []
-        with open(infile, "r") as inf:
+        with open(infile) as inf:
             for line in inf:
                 x = line.strip().split("\t")
                 if infile.endswith("UMLS"):

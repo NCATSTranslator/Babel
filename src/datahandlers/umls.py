@@ -81,7 +81,7 @@ def write_umls_ids(mrsty, category_map, umls_output, prefix=UMLS, blocklist_umls
     output_lines = defaultdict(list)
     semantic_type_trees = defaultdict(set)
     tree_names = defaultdict(set)
-    with open(mrsty, "r") as inf, open(umls_output, "w") as outf:
+    with open(mrsty) as inf, open(umls_output, "w") as outf:
         for line in inf:
             x = line.strip().split("|")
             cat = x[2]
@@ -160,7 +160,7 @@ def write_rxnorm_ids(category_map, bad_categories, infile, outfile, prefix=RXCUI
     If there is an IN or PIN TTY, then it's a ChemicalEntity, otherwise a Drug.
     """
     rxnconso = infile  # os.path.join('input_data', 'private', "RXNCONSO.RRF")
-    with open(rxnconso, "r") as inf, open(outfile, "w") as outf:
+    with open(rxnconso) as inf, open(outfile, "w") as outf:
         current_id = None
         current_ttys = set()
         has_rxnorm = False
@@ -228,7 +228,7 @@ def build_sets(
     acceptable_drugbank_tty = set(["IN", "PIN", "MIN"])
     pairs = set()
     # test_cui = 'C0026827'
-    with open(mrconso, "r") as inf, open(umls_output, "w") as concordfile:
+    with open(mrconso) as inf, open(umls_output, "w") as concordfile:
         for line in inf:
             if not check_mrconso_line(line):
                 continue
@@ -280,7 +280,7 @@ def build_sets(
 def read_umls_priority():
     mrp = os.path.join("input_data", "umls_precedence.txt")
     pris = []
-    with open(mrp, "r") as inf:
+    with open(mrp) as inf:
         h = inf.readline()
         for line in inf:
             x = line.strip().split()
@@ -399,7 +399,7 @@ def pull_umls(mrconso):
     priority = read_umls_priority()
     snomed_label_name = make_local_name("labels", subpath="SNOMEDCT")
     snomed_syn_name = make_local_name("synonyms", subpath="SNOMEDCT")
-    with open(mrconso, "r") as inf, open(snomed_label_name, "w") as snolabels, open(snomed_syn_name, "w") as snosyns:
+    with open(mrconso) as inf, open(snomed_label_name, "w") as snolabels, open(snomed_syn_name, "w") as snosyns:
         for line in inf:
             if not check_mrconso_line(line):
                 continue

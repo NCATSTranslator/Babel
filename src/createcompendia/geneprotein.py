@@ -16,7 +16,7 @@ def build_uniprotkb_ncbigene_relationships(infile, outfile, metadata_yaml):
     # Our model is 1 gene, many proteins, so this causes trouble.
     # For the moment, we will not include that have more than one gene per protein
     mappings = defaultdict(list)
-    with open(infile, "r") as inf:
+    with open(infile) as inf:
         for line in inf:
             x = line.strip().split()
             if x[1] == "GeneID":
@@ -87,7 +87,7 @@ def build_conflation(geneprotein_concord, gene_compendium, protein_compendium, o
     collect_valid_ids(protein_compendium, all_ids)
     conf = {}
     pairs = []
-    with open(geneprotein_concord, "r") as inf:
+    with open(geneprotein_concord) as inf:
         for line in inf:
             x = line.strip().split("\t")
             if (x[0] in all_ids) and (x[2] in all_ids):
@@ -115,7 +115,7 @@ def build_compendium(gene_compendium, protein_compendium, geneprotein_concord, o
     """
     uniprot2ncbi = {}
     ncbi2uniprot = defaultdict(list)
-    with open(geneprotein_concord, "r") as inf:
+    with open(geneprotein_concord) as inf:
         for line in inf:
             x = line.strip().split("\t")
             uniprot2ncbi[x[0]] = x[2]

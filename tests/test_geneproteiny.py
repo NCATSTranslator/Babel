@@ -1,5 +1,6 @@
-from src.createcompendia.geneprotein import build_compendium
 import os
+
+from src.createcompendia.geneprotein import build_compendium
 
 
 def test_gp():
@@ -9,7 +10,7 @@ def test_gp():
     geneprotein_concord = os.path.join(here, "testdata", "gp_UniProtNCBI.txt")
     outfile = os.path.join(here, "testdata", "gp_output.txt")
     build_compendium(gene_compendium, protein_compendium, geneprotein_concord, outfile)
-    with open(outfile, "r") as inf:
+    with open(outfile) as inf:
         x = inf.read()
     assert len(x) > 0
     print(x)

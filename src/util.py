@@ -45,7 +45,7 @@ def get_logger(name, loglevel=logging.INFO):
 
 
 # loggers = {}
-class LoggingUtil(object):
+class LoggingUtil:
     """Logging utility controlling format and setting initial logging level"""
 
     @staticmethod
@@ -100,7 +100,7 @@ class LoggingUtil(object):
         return logger
 
 
-class Munge(object):
+class Munge:
     @staticmethod
     def gene(gene):
         return gene.split("/")[-1:][0] if gene.startswith("http://") else gene
@@ -254,14 +254,14 @@ class Resource:
     @staticmethod
     def load_json(path):
         result = None
-        with open(path, "r") as stream:
+        with open(path) as stream:
             result = json.loads(stream.read())
         return result
 
     @staticmethod
     def load_yaml(path):
         result = None
-        with open(path, "r") as stream:
+        with open(path) as stream:
             result = yaml.load(stream.read())
         return result
 
@@ -344,7 +344,7 @@ def get_config():
         return config_yaml
 
     cname = os.path.join(os.path.dirname(__file__), "..", "config.yaml")
-    with open(cname, "r") as yaml_file:
+    with open(cname) as yaml_file:
         config_yaml = yaml.safe_load(yaml_file)
     return config_yaml
 

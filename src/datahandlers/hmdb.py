@@ -33,7 +33,7 @@ def handle_metabolite(metabolite, lfile, synfile, smifile):
 
 
 def make_labels_and_synonyms_and_smiles(inputfile, labelfile, synfile, smifile):
-    with open(inputfile, "r") as inf:
+    with open(inputfile) as inf:
         xml = inf.read()
     parsed = xmltodict.parse(xml)
     metabolites = parsed["hmdb"]["metabolite"]

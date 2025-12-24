@@ -58,7 +58,7 @@ def generate_content_report_for_compendium(compendium_path, report_path):
     """
 
     with open(report_path, "w") as report_file:
-        with open(compendium_path, "r") as compendium_file:
+        with open(compendium_path) as compendium_file:
             # This is a JSONL file, so we need to read each line as a JSON object.
 
             # Track CURIE breakdowns for this compendium.
@@ -148,7 +148,7 @@ def summarize_content_report_for_compendia(compendia_report_paths, summary_path)
 
         # Read all the summary reports -- these are small, so we can just read them all in.
         for report_path in compendia_report_paths:
-            with open(report_path, "r") as report_file:
+            with open(report_path) as report_file:
                 report = json.load(report_file)
 
             # name = report['name']

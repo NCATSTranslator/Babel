@@ -190,7 +190,7 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
         # them added. So we want to limit concordances to terms that are already in the dicts. But that's ONLY for the
         # UMLS concord.  We trust the others to retrieve decent identifiers.
         bs = frozenset([UMLS, GO])
-        with open(infile, "r") as inf:
+        with open(infile) as inf:
             for line in inf:
                 x = line.strip().split("\t")
                 prefixes = frozenset([xi.split(":")[0] for xi in x[0:3:2]])  # leave out the predicate
@@ -202,7 +202,7 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
                             use = False
                     if not use:
                         continue
-                pairs.append(([x[0], x[2]]))
+                pairs.append([x[0], x[2]])
         newpairs = remove_overused_xrefs(pairs)
         setpairs = [set(x) for x in newpairs]
         glom(dicts, setpairs, unique_prefixes=[UBERON, GO])

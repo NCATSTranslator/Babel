@@ -98,7 +98,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
             lines_added = 0
             lines_added_file = 0
             output_file = None
-            with open(compendium_filename, "r", encoding="utf-8") as inf:
+            with open(compendium_filename, encoding="utf-8") as inf:
                 for line in inf:
                     if output_file is None:
                         output_file = tempfile.NamedTemporaryFile(delete=False, mode="w", encoding="utf-8")

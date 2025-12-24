@@ -69,7 +69,7 @@ def verify_pubmed_download_against_md5(pubmed_filename, md5_filename):
         logging.warning(f"Could not verify {pubmed_filename}: no MD5 file found at {md5_filename}.")
         return False
 
-    with open(md5_filename, "r") as md5f:
+    with open(md5_filename) as md5f:
         md5_line = md5f.readline().strip()
         expected_md5 = md5_line.split("= ")[1]
         if len(expected_md5) != 32:
@@ -273,7 +273,7 @@ def generate_compendium(concordances, metadata_yamls, identifiers, titles, publi
         print(infile)
         print("loading", infile)
         pairs = []
-        with open(infile, "r") as inf:
+        with open(infile) as inf:
             for line in inf:
                 x = line.strip().split("\t")
                 pairs.append({x[0], x[2]})
@@ -283,7 +283,7 @@ def generate_compendium(concordances, metadata_yamls, identifiers, titles, publi
     labels = dict()
     for title_filename in titles:
         print("loading titles from", title_filename)
-        with open(title_filename, "r") as titlef:
+        with open(title_filename) as titlef:
             for line in titlef:
                 id, title = line.strip().split("\t")
                 if id in labels:

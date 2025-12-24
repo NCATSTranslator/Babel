@@ -65,7 +65,7 @@ def pull_prot(which, refresh):
     swissprot_labels = {}
     nlines = 0
     maxn = 1000
-    with open(swissname, "r") as inf:
+    with open(swissname) as inf:
         for line in inf:
             nlines += 1
             if line.startswith(">"):
