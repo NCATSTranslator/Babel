@@ -890,7 +890,7 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
         # Now check the 'close' dictionary to see if we've accidentally gotten to a close match becoming an exact match
         setok = True
         for cpref, closedict in close.items():
-            idents = set([e if type(e) == str else e.identifier for e in newset])
+            idents = set([e if isinstance(e, str) else e.identifier for e in newset])
             prefidents = [e for e in idents if e.startswith(cpref)]
             for pident in prefidents:
                 for cd in closedict[pident]:
