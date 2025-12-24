@@ -54,8 +54,25 @@ dev = [
 
 # Linting/formatting configuration
 [tool.ruff]
-line-length = 160
+line-length = 120
 
 [tool.snakefmt]
-line_length = 160
+line_length = 120
 include = '\.snakefile$|^Snakefile'
+
+[tool.ruff.lint]
+# Enable all rules that ruff format would normally apply
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort (import sorting)
+    "UP",  # pyupgrade
+]
+
+# Optional but common
+ignore = [
+    "E501",  # let Ruff handle wrapping consistently
+]
+
+fixable = ["ALL"]
+unfixable = []
