@@ -116,7 +116,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
             ],
         },
         'DiseasePhenotype': {
-            'description': 'Conflation of drugs with their active ingredients as chemicals',
+            'description': 'Diseases and phenotypes',
             'filenames': [
                 'Disease',
                 'PhenotypicFeature'
