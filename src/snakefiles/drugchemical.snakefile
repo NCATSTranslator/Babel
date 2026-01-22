@@ -69,6 +69,8 @@ rule drugchemical_conflation:
 
 
 rule drugchemical_conflated_synonyms:
+    resources:
+        runtime="6h",
     input:
         drugchemical_conflation=[config["output_directory"] + "/conflation/DrugChemical.txt"],
         chemical_compendia=expand("{do}/compendia/{co}", do=config["output_directory"], co=config["chemical_outputs"]),

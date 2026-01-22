@@ -39,10 +39,12 @@ rule disease_orphanet_ids:
 
 
 rule disease_efo_ids:
+    input:
+        efo_owl_file_path=config["download_directory"] + "/EFO/efo.owl",
     output:
         outfile=config["intermediate_directory"] + "/disease/ids/EFO",
     run:
-        diseasephenotype.write_efo_ids(output.outfile)
+        diseasephenotype.write_efo_ids(input.efo_owl_file_path, output.outfile)
 
 
 rule disease_ncit_ids:
@@ -112,12 +114,13 @@ rule get_disease_obo_relationships:
 
 rule get_disease_efo_relationships:
     input:
+        efo_owl_file_path=config["download_directory"] + "/EFO/efo.owl",
         infile=config["intermediate_directory"] + "/disease/ids/EFO",
     output:
         outfile=config["intermediate_directory"] + "/disease/concords/EFO",
         metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-EFO.yaml",
     run:
-        diseasephenotype.build_disease_efo_relationships(input.infile, output.outfile, output.metadata_yaml)
+        diseasephenotype.build_disease_efo_relationships(input.efo_owl_file_path, input.infile, output.outfile, output.metadata_yaml)
 
 
 rule get_disease_umls_relationships:

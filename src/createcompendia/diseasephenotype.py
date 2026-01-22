@@ -32,12 +32,12 @@ def write_mondo_ids(outfile):
     write_obo_ids([(disease_id, DISEASE), (disease_sus_id, DISEASE)], outfile)
 
 
-def write_efo_ids(outfile):
+def write_efo_ids(owlfile, outfile):
     disease_id = "EFO:0000408"
     phenotype_id = "EFO:0000651"
     measurement_id = "EFO:0001444"
     efos = [(disease_id, DISEASE), (phenotype_id, PHENOTYPIC_FEATURE), (measurement_id, PHENOTYPIC_FEATURE)]
-    efo.make_ids(efos, outfile)
+    efo.make_ids(efos, owlfile, outfile)
 
 
 def write_hp_ids(outfile):
@@ -171,8 +171,8 @@ def build_disease_obo_relationships(outdir, metadata_yamls):
     )
 
 
-def build_disease_efo_relationships(idfile, outfile, metadata_yaml):
-    efo.make_concords(idfile, outfile, provenance_metadata=metadata_yaml)
+def build_disease_efo_relationships(owlfile, idfile, outfile, metadata_yaml):
+    efo.make_concords(owlfile, idfile, outfile, provenance_metadata=metadata_yaml)
 
 
 def build_disease_umls_relationships(mrconso, idfile, outfile, omimfile, ncitfile, metadata_yaml):

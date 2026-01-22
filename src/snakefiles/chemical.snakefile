@@ -101,6 +101,7 @@ rule chemical_drugcentral_ids:
 
 
 rule chemical_chebi_ids:
+    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     output:
         outfile=config["intermediate_directory"] + "/chemicals/ids/CHEBI",
     run:
@@ -227,6 +228,8 @@ rule get_chebi_concord:
 
 
 rule chemical_unichem_concordia:
+    resources:
+        mem="128G",
     input:
         concords=expand("{dd}/chemicals/concords/UNICHEM/UNICHEM_{ucc}", dd=config["intermediate_directory"], ucc=config["unichem_datasources"]),
     output:
@@ -236,6 +239,8 @@ rule chemical_unichem_concordia:
 
 
 rule untyped_chemical_compendia:
+    resources:
+        mem="512G",
     input:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["chemical_labels"]),
         synonyms=expand("{dd}/{ap}/synonyms", dd=config["download_directory"], ap=config["chemical_synonyms"]),
@@ -254,6 +259,9 @@ rule untyped_chemical_compendia:
 
 
 rule chemical_compendia:
+    resources:
+        mem="512G",
+        runtime="6h",
     input:
         typesfile=config["intermediate_directory"] + "/chemicals/partials/types",
         untyped_file=config["intermediate_directory"] + "/chemicals/partials/untyped_compendium",

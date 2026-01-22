@@ -21,6 +21,10 @@ include: "src/snakefiles/reports.snakefile"
 include: "src/snakefiles/exports.snakefile"
 
 
+# Some general imports.
+import shutil
+from src.snakefiles.util import write_done
+
 # Some global settings.
 import os
 
@@ -41,10 +45,14 @@ rule all:
         # Build all the exports.
         config["output_directory"] + "/kgx/done",
         config["output_directory"] + "/sapbert-training-data/done",
+        # Store the config.yaml file used to produce the output.
+        config_file="config.yaml",
     output:
         x=config["output_directory"] + "/reports/all_done",
-    shell:
-        "echo 'done' >> {output.x}"
+        output_config_file=config["output_directory"] + "/config.yaml",
+    run:
+        shutil.copyfile(input.config_file, output.output_config_file)
+        write_done(output.x)
 
 
 rule all_outputs:
@@ -65,8 +73,8 @@ rule all_outputs:
         config["output_directory"] + "/reports/publications_done",
     output:
         x=config["output_directory"] + "/reports/outputs_done",
-    shell:
-        "echo 'done' >> {output.x}"
+    run:
+        write_done(output.x)
 
 
 rule clean_compendia:

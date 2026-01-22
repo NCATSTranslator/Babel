@@ -1,0 +1,18 @@
+#!/bin/bash -l
+#SBATCH --job-name=babel-test-local
+#SBATCH --output=babel-test-local.out
+#SBATCH --time=5:00:00
+#SBATCH --mem=256G
+#SBATCH -n 1
+
+source ~/.bashrc
+conda activate babel
+
+# Go to Babel project directory
+cd /projects/babel/babel-ht-test/Babel_standalone
+
+export UMLS_API_KEY="YOUR UMLS API KEY"
+export PYTHONPATH=.
+
+# Build anatomy related compendia locally using 1 core
+snakemake --cores 4 anatomy --rerun-incomplete --latency-wait 60

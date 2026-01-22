@@ -1,9 +1,12 @@
 import logging
+from time import sleep
 
 from src.triplestore import TripleStore
 from src.util import Text
 from collections import defaultdict
 from src.babel_utils import norm
+
+SLEEP_BETWEEN_UBERGRAPH_QUERIES = 5 # seconds
 
 
 class UberGraph:
@@ -40,6 +43,8 @@ class UberGraph:
 
         results = []
         for start in range(0, total_count, UberGraph.QUERY_BATCH_SIZE):
+            sleep(SLEEP_BETWEEN_UBERGRAPH_QUERIES)
+
             # end = start + UberGraph.QUERY_BATCH_SIZE if UberGraph.QUERY_BATCH_SIZE < total_count else UberGraph.QUERY_BATCH_SIZE
             print(f"Querying get_all_labels() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
 
@@ -90,6 +95,8 @@ class UberGraph:
 
         results = []
         for start in range(0, total_count, UberGraph.QUERY_BATCH_SIZE):
+            sleep(SLEEP_BETWEEN_UBERGRAPH_QUERIES)
+
             # end = start + UberGraph.QUERY_BATCH_SIZE if UberGraph.QUERY_BATCH_SIZE < total_count else UberGraph.QUERY_BATCH_SIZE
             print(f"Querying get_all_descriptions() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
 
@@ -146,6 +153,7 @@ class UberGraph:
 
         results = []
         for start in range(0, total_count, UberGraph.QUERY_BATCH_SIZE):
+            sleep(SLEEP_BETWEEN_UBERGRAPH_QUERIES)
             print(f"Querying get_all_synonyms() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
 
             text = (
