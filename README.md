@@ -1,25 +1,22 @@
 # Babel
 
+[![arXiv](https://img.shields.io/badge/arXiv-2601.10008-b31b1b.svg)](https://arxiv.org/abs/2601.10008)
+
 ## Introduction
 
-The [Biomedical Data Translator](https://ncats.nih.gov/translator) integrates data across many data sources.  One
+The [Biomedical Data Translator](https://ncats.nih.gov/translator) integrates data across many data sources. One
 source of difficulty is that different data sources use different vocabularies.
-One source may represent water as MESH:D014867, while another may use the
-identifier DRUGBANK:DB09145.   When integrating, we need to recognize that 
-both of these identifiers are identifying the same concept.
+One source may represent water as [MESH:D014867](https://meshb.nlm.nih.gov/record/ui?ui=D014867), while another
+may use the identifier [DRUGBANK:DB09145](https://go.drugbank.com/drugs/DB09145). When integrating, we need to
+recognize that both of these identifiers are identifying the same concept.
 
 Babel integrates the specific naming systems used in the Translator, 
 creating equivalent sets across multiple semantic types, and following the
-conventions established by the [Biolink Model](https://github.com/biolink/biolink-model).  It checks these conventions
-at runtime by querying the [Biolink Model service](https://github.com/TranslatorIIPrototypes/bl_lookup).  Each semantic type (such as 
-chemical substance) requires specialized processing, but in each case, a 
-JSON-formatted compendium is written to disk.  This compendium can be used 
-directly, but it can also be served by the [Node Normalization service](https://github.com/TranslatorSRI/NodeNormalization)
-or another frontend.
-
-We anticipate that the simple approach taken here will soon be overtaken by
-more advanced probabilistic procedures, so caution should be taken in building
-strong dependencies against the Babel code.
+conventions established by the [Biolink Model](https://github.com/biolink/biolink-model). It checks these conventions
+at runtime by querying the [Biolink Model service](https://github.com/TranslatorIIPrototypes/bl_lookup). Each semantic type (such as 
+[biolink:SmallMolecule](https://biolink.github.io/biolink-model/SmallMolecule/)) requires specialized processing,
+but in each case, a JSON-formatted compendium is written to disk.  This compendium can be used directly, but it can
+also be served by the [Node Normalization service](https://github.com/TranslatorSRI/NodeNormalization) or another frontend.
 
 ## Available documentation
 
