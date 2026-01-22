@@ -23,6 +23,8 @@ rule export_all_to_kgx:
 
 # Generic rule for generating the KGX files for a particular compendia file.
 rule generate_kgx:
+    resources:
+        runtime="6h",
     input:
         compendium_file=config["output_directory"] + "/compendia/{filename}.txt",
     output:
@@ -46,6 +48,8 @@ rule export_all_to_sapbert_training:
 
 # Generic rule for generating the KGX files for a particular compendia file.
 rule generate_sapbert_training_data:
+    resources:
+        runtime="6h",
     input:
         synonym_file_gz=config["output_directory"] + "/synonyms/{filename}.gz",
     output:

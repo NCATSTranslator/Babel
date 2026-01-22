@@ -1,3 +1,14 @@
+# Build information. Currently unstructured -- you can use this to write down any notes on what is going on with
+# this specific build of Babel.
+build:
+  branch: babel-1.15
+
+# Versions that need to be updated on every release.
+biolink_version: "4.3.6"
+umls_version: "2025AB"
+rxnorm_version: "12012025"
+drugbank_version: "5-1-13"
+
 # Overall inputs and outputs.
 input_directory: input_data
 download_directory: babel_downloads
@@ -5,11 +16,12 @@ intermediate_directory: babel_outputs/intermediate
 output_directory: babel_outputs
 tmp_directory: babel_downloads/tmp
 
-# Versions that need to be updated on every release.
-biolink_version: "4.2.6-rc5"
-umls_version: "2025AA"
-rxnorm_version: "07072025"
-drugbank_version: "5-1-13"
+#
+# SHARED
+#
+
+# DuckDB settings for use in all DuckDB connections:
+duckdb_config: {}
 
 #
 # UMLS
@@ -27,32 +39,8 @@ umls:
 UMLS_UniProtKB_download_raw_url: "https://raw.githubusercontent.com/cbizon/UMLS_UniProtKB/refs/heads/main/outputs/UMLS_UniProtKB.tsv"
 
 #
-# DRUG CHEMICAL CONFLATION
-#
-preferred_conflation_type_order:
-  # This is the order in which we arrange conflation identifiers: first all the SmallMolecules, then all the Polypeptides,
-  # and so on. I've also listed the number of entities as of 2024mar24 to give an idea of how common these are.
-  SMALL_MOLECULE: 1            # 107,459,280 cliques
-  POLYPEPTIDE: 2               # 622 cliques
-  NUCLEIC_ACID_ENTITY: 3       # N/A
-  MOLECULAR_ENTITY: 4          # N/A
-  COMPLEX_MOLECULAR_MIXTURE: 5 # 177 cliques
-  CHEMICAL_MIXTURE: 6          # 498 cliques
-  MOLECULAR_MIXTURE: 7         # 10,371,847 cliques
-  PROCESSED_MATERIAL: 8        # N/A
-  FOOD_ADDITIVE: 10            # N/A
-  FOOD: 11                     # N/A
-  ENVIRONMENTAL_FOOD_CONTAMINANT: 12 # N/A
-  CHEMICAL_ENTITY: 13          # 7,398,124 cliques
-  DRUG: 14,                    # 145,677 cliques -- previously at number 9, but
-                               # valid ID prefixes for Drug are not great, so
-                               # let's make it the worst option for now:
-                               # https://biolink.github.io/biolink-model/Drug/#valid-id-prefixes
-
-#
 # The rest of these configs need to be cleaned up.
 #
-
 
 ncbi_files:
   - gene2ensembl.gz
@@ -431,8 +419,6 @@ ensembl_datasets_to_skip:
   - charengus_gene_ensembl
   - otshawytscha_gene_ensembl
   - aocellaris_gene_ensembl
-
-duckdb_config: {}
 
 demote_labels_longer_than: 25
 

@@ -1,5 +1,3 @@
-from snakemake.linting.links import params
-
 import src.node as node
 import src.datahandlers.mesh as mesh
 import src.datahandlers.clo as clo
@@ -54,12 +52,12 @@ rule get_EFO:
 
 rule get_EFO_labels:
     input:
-        infile=config["download_directory"] + "/EFO/efo.owl",
+        owlfile=config["download_directory"] + "/EFO/efo.owl",
     output:
         labelfile=config["download_directory"] + "/EFO/labels",
         synonymfile=config["download_directory"] + "/EFO/synonyms",
     run:
-        efo.make_labels(output.labelfile, output.synonymfile)
+        efo.make_labels(input.owlfile, output.labelfile, output.synonymfile)
 
 
 ### Complex Portal
@@ -214,6 +212,7 @@ rule get_obo_labels:
             download_directory=config["download_directory"],
             prefix=config["generate_dirs_for_labels_and_synonyms_prefixes"],
         ),
+    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     run:
         obo.pull_uber_labels(output.obo_labels, output.generated_labels)
 
@@ -229,6 +228,7 @@ rule get_obo_synonyms:
             download_directory=config["download_directory"],
             prefix=config["generate_dirs_for_labels_and_synonyms_prefixes"],
         ),
+    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     run:
         obo.pull_uber_synonyms(output.obo_synonyms, output.generated_synonyms)
 
@@ -236,6 +236,7 @@ rule get_obo_synonyms:
 rule get_obo_descriptions:
     output:
         obo_descriptions=config["download_directory"] + "/common/ubergraph/descriptions.jsonl",
+    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     run:
         obo.pull_uber_descriptions(output.obo_descriptions)
 
@@ -251,6 +252,7 @@ rule get_icrdf:
         config["download_directory"] + "/common/ubergraph/descriptions.jsonl",
     output:
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
+    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     run:
         obo.pull_uber_icRDF(output.icrdf_filename)
 
@@ -286,6 +288,8 @@ rule get_ncbigene_labels_synonyms_and_taxa:
 
 
 rule get_ensembl:
+    resources:
+        runtime="6h",
     output:
         ensembl_dir=directory(config["download_directory"] + "/ENSEMBL"),
         complete_file=config["download_directory"] + "/ENSEMBL/BioMartDownloadComplete",
@@ -514,6 +518,7 @@ rule get_panther_pathway_labels:
 
 
 rule get_unichem:
+    retries: 5
     output:
         config["download_directory"] + "/UNICHEM/structure.tsv.gz",
         config["download_directory"] + "/UNICHEM/reference.tsv.gz",
@@ -542,6 +547,8 @@ rule get_chembl:
 
 
 rule chembl_labels_and_smiles:
+    resources:
+        mem="128G",
     input:
         infile=config["download_directory"] + "/CHEMBL.COMPOUND/chembl_latest_molecule.ttl",
         ccofile=config["download_directory"] + "/CHEMBL.COMPOUND/cco.ttl",

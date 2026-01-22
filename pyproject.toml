@@ -4,7 +4,7 @@ version = "1.14"
 description = "Babel creates cliques of equivalent identifiers across many biomedical vocabularies. "
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 dependencies = [
     "apybiomart",
     "beautifulsoup4>=4.14.2",
@@ -29,14 +29,15 @@ dependencies = [
     "pyyaml>=6.0.3",
     "requests>=2.32.5",
     "snakemake>=9.13.3",
+    "snakemake-executor-plugin-slurm>=1.9.2",
     "sparqlwrapper>=2.0.0",
     "wheel>=0.45.1",
     "xmltodict>=1.0.2",
 ]
 
 [project.urls]
-Homepage = "https://github.com/TranslatorSRI/Babel"
-Repository = "https://github.com/TranslatorSRI/Babel"
+Homepage = "https://github.com/NCATSTranslator/Babel"
+Repository = "https://github.com/NCATSTranslator/Babel"
 Issues = "https://github.com/NCATSTranslator/Babel/issues"
 
 [tool.uv.sources]

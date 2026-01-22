@@ -62,6 +62,8 @@ rule get_protein_uniprotkb_ensembl_relationships:
 
 
 rule get_protein_pr_uniprotkb_relationships:
+    # Because we get this from UberGraph, we sometimes end up with incomplete/failed transfers and need to retry.
+    retries: 10
     output:
         outfile=config["intermediate_directory"] + "/protein/concords/PR",
         metadata_yaml=config["intermediate_directory"] + "/protein/concords/metadata-PR.yaml",
@@ -102,6 +104,9 @@ rule get_protein_umls_relationships:
 
 
 rule protein_compendia:
+    resources:
+        runtime="12h",
+        mem="512G",
     input:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["protein_labels"]),
         synonyms=expand("{dd}/{ap}/synonyms", dd=config["download_directory"], ap=config["protein_synonyms"]),
@@ -137,6 +142,9 @@ rule check_protein:
 
 
 rule protein:
+    resources:
+        cpus_per_task=6,
+        runtime="6h",
     input:
         config["output_directory"] + "/reports/protein_completeness.txt",
         synonyms=expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["protein_outputs"]),
