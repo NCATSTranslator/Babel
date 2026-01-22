@@ -11,53 +11,61 @@ may use the identifier [DRUGBANK:DB09145](https://go.drugbank.com/drugs/DB09145)
 recognize that both of these identifiers are identifying the same concept.
 
 Babel integrates the specific naming systems used in the Translator, 
-creating equivalent sets across multiple semantic types, and following the
-conventions established by the [Biolink Model](https://github.com/biolink/biolink-model). It checks these conventions
-at runtime by querying the [Biolink Model service](https://github.com/TranslatorIIPrototypes/bl_lookup). Each semantic type (such as 
+creating equivalent sets across multiple semantic types following the
+conventions established by the [Biolink Model](https://github.com/biolink/biolink-model). Each semantic type (such as 
 [biolink:SmallMolecule](https://biolink.github.io/biolink-model/SmallMolecule/)) requires specialized processing,
-but in each case, a JSON-formatted compendium is written to disk.  This compendium can be used directly, but it can
+but in each case, a JSON-formatted compendium is written to disk. This compendium can be used directly, but it can
 also be served by the [Node Normalization service](https://github.com/TranslatorSRI/NodeNormalization) or another frontend.
 
-## Available documentation
-
-If you use Babel outputs, either directly or through the Node Normalization
-service, keep reading! Additional documentation about some specific
-Babel functionality is also available:
-* [Babel data formats](./docs/DataFormats.md)
-* [Conflation](./docs/Conflation.md)
-
-If you want to contribute to Babel, start with the [Contributing to Babel](./docs/CONTRIBUTING.md)
-documentation. This will provide guidance on how the source code is organized, what contributions
-are most useful, and how to run the tests.
-
-If you want to run Babel locally, start with the [Running Babel](./docs/Running.md)
-documentation. Information on [deploying Babel outputs](./docs/Deployment.md) is also available.
-
-If you would like to cite Babel, please cite our GitHub repository (https://github.com/TranslatorSRI/Babel).
-A manuscript is in progress.
-
-## What does Babel do?
-
-Babel was built as part of the [NCATS Translator project](https://ui.transltr.io/) to solve the problem
-of multiple databases using different identifiers (specifically, [CURIEs](https://en.wikipedia.org/wiki/CURIE)) to
-refer to the same concept, such as [CHEBI:15377 "water"](https://www.ebi.ac.uk/chebi/searchId.do?chebiId=15377) and
-[PUBCHEM.COMPOUND:962 "water"](https://pubchem.ncbi.nlm.nih.gov/compound/962). Babel downloads many online
-databases of identifiers and uses their cross-reference information to identify
-_cliques_ of identifiers that refer to the same concept. Each clique is assigned a
-type from the [Biolink Model](https://github.com/biolink/biolink-model), which determines which identifier prefixes are
-allowed and the order in which the identifiers are presented. One of these identifiers
-is chosen to be the _preferred identifier_ for the clique. Within Translator, this
-information is made available through the [Node Normalization service](https://github.com/TranslatorSRI/NodeNormalization).
-
-In certain contexts, differentiating between some related cliques doesn't make sense:
-for example, you might not want to differentiate between a gene and the product of that
-gene, such as a protein. Babel provides different [conflations](./Conflation.md) that group cliques
+In certain contexts, differentiating between some related concepts doesn't make sense:
+for example, you might not want to differentiate between a gene and the protein that is
+the product of that gene. Babel provides different [conflations](./Conflation.md) that group cliques
 on the basis of various criteria: for example, the GeneProtein conflation combines a
 gene with the protein that that gene encodes.
 
 While generating these cliques, Babel also collects all the synonyms for every clique,
-which can then be used by tools like [Name Resolution (NameRes)](https://github.com/TranslatorSRI/NameResolution) to provide
+which can then be used by tools like [Name Resolver (NameRes)](https://github.com/NCATSTranslator/NameResolution) to provide
 name-based lookup of concepts.
+
+## What do Babel outputs look like?
+
+Three [Babel data formats](./docs/DataFormats.md) are available:
+* Compendium files contain concepts (sets or "cliques" of equivalent identifiers), which include a preferred identifier,
+  Biolink type, list of equivalent identifiers as well as other information about the concept (such as the descriptions,
+  information content valuen and so on).
+* Synonym files, which don't include the equivalent identifiers for each concept, but do include every known synonym
+  for each concept. These files can be directly loaded into an Apache Solr database for querying. The
+  [Name Resolver](https://github.com/NCATSTranslator/NameResolution) contains scripts for loading these files and
+  provides a frontend that can be used to search for concepts by label or synonym, or to provide an autocomplete
+  service for Babel concepts.
+* Conflation files contain the lists of concepts that should be conflated when that conflation is turned on.
+
+## How can I run Babel?
+
+Babel is difficult to run, primarily because of its inefficient memory handling -- we currently need around 500G of
+memory to build the largest compendia (Protein and DrugChemical conflated information), although the smaller
+compendia should be buildable with far less memory. We are working on reducing these restrictions as far as possible.
+You can read more about [Babel's build process](./docs/Running.md), and please do contact us if you run
+into any problems or would like some assistance.
+
+We have [detailed instructions for running Babel](./docs/Running.md), but the short version is:
+* We use [uv](https://docs.astral.sh/uv/) to manage Python dependencies. You can use the
+  [Docker image](https://github.com/NCATSTranslator/Babel/pkgs/container/babel) if you run into any difficulty
+  setting up the prerequisites.
+* We use [Snakemake](https://snakemake.github.io/) to handle the dependency management.
+
+Therefore, you should be able to run Babel by cloning this repository and running:
+
+```shell
+$ uv run snakemake --cores [NUMBER OF CORES TO USE]
+```
+
+The [./slurm/run-babel-on-slurm.sh](./slurm/run-babel-on-slurm.sh) Bash script can be used to start running Babel
+as a Slurm job. You can set the BABEL_VERSION environment variable to document which version of Babel you are running.
+
+## How can I deploy Babel outputs?
+
+Information on [deploying Babel outputs](./docs/Deployment.md) is available.
 
 ## How can I access Babel cliques?
 
@@ -185,13 +193,11 @@ will note that descriptions are collected for every identifier within a clique, 
 with the most preferred identifier is provided for the preferred identifier. Descriptions are not included in NameRes,
 but the `description` flag can be used to include any descriptions when returning cliques from NodeNorm.
 
-## How can I build Babel?
+## How can I contribute to Babel?
 
-Babel is difficult to build, primarily because of its inefficient memory handling -- we currently need around 500G of
-memory to build the largest compendia (Protein and DrugChemical conflated information), although the smaller
-compendia should be buildable with far less memory. We are working on reducing these restrictions as far as possible.
-You can read more about [Babel's build process](./docs/Running.md), and please do contact us if you run
-into any problems or would like some assistance.
+If you want to contribute to Babel, start with the [Contributing to Babel](./docs/CONTRIBUTING.md)
+documentation. This will provide guidance on how the source code is organized, what contributions
+are most useful, and how to run the tests.
 
 ## Who should I contact for more information about Babel?
 
