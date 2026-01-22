@@ -14,6 +14,7 @@ dependencies = [
     "deprecated~=1.2.18",
     "duckdb>=1.4.1",
     "humanfriendly>=10.0",
+    "ipykernel>=7.1.0",
     "jsonlines>=4.0.0",
     "more-itertools>=10.8.0",
     "oaklib~=0.5.1",
