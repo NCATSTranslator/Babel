@@ -1,5 +1,6 @@
 configfile: "config.yaml"
 
+
 include: "src/snakefiles/datacollect.snakefile"
 include: "src/snakefiles/anatomy.snakefile"
 include: "src/snakefiles/cell_line.snakefile"
@@ -19,6 +20,7 @@ include: "src/snakefiles/duckdb.snakefile"
 include: "src/snakefiles/reports.snakefile"
 include: "src/snakefiles/exports.snakefile"
 
+
 # Some general imports.
 import shutil
 from src.snakefiles.util import write_done
@@ -27,6 +29,7 @@ from src.snakefiles.util import write_done
 import os
 
 os.environ["TMPDIR"] = config["tmp_directory"]
+
 
 # Top-level rules.
 rule all:
@@ -43,7 +46,7 @@ rule all:
         config["output_directory"] + "/kgx/done",
         config["output_directory"] + "/sapbert-training-data/done",
         # Store the config.yaml file used to produce the output.
-        config_file = "config.yaml",
+        config_file="config.yaml",
     output:
         x=config["output_directory"] + "/reports/all_done",
         output_config_file=config["output_directory"] + "/config.yaml",
