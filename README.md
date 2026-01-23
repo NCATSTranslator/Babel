@@ -40,6 +40,11 @@ Three [Babel data formats](./docs/DataFormats.md) are available:
   service for Babel concepts.
 * Conflation files contain the lists of concepts that should be conflated when that conflation is turned on.
 
+## How can I download Babel outputs?
+
+You can find out about [downloading Babel outputs](docs/Downloads.md).
+You can find a list of Babel releases in the [Releases list](./releases/README.md).
+
 ## How can I run Babel?
 
 Babel is difficult to run, primarily because of its inefficient memory handling -- we currently need around 500G of
