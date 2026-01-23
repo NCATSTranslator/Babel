@@ -45,10 +45,10 @@ Three [Babel data formats](./docs/DataFormats.md) are available:
 Babel is difficult to run, primarily because of its inefficient memory handling -- we currently need around 500G of
 memory to build the largest compendia (Protein and DrugChemical conflated information), although the smaller
 compendia should be buildable with far less memory. We are working on reducing these restrictions as far as possible.
-You can read more about [Babel's build process](./docs/Running.md), and please do contact us if you run
+You can read more about [Babel's build process](docs/RunningBabel.md), and please do contact us if you run
 into any problems or would like some assistance.
 
-We have [detailed instructions for running Babel](./docs/Running.md), but the short version is:
+We have [detailed instructions for running Babel](docs/RunningBabel.md), but the short version is:
 * We use [uv](https://docs.astral.sh/uv/) to manage Python dependencies. You can use the
   [Docker image](https://github.com/NCATSTranslator/Babel/pkgs/container/babel) if you run into any difficulty
   setting up the prerequisites.
@@ -72,7 +72,7 @@ Information on [deploying Babel outputs](./docs/Deployment.md) is available.
 There are several ways of accessing Babel cliques:
 * You can run the Babel pipeline to generate the cliques yourself. Note that Babel
   currently has very high memory requirements -- it requires around 500G of memory
-  in order to generate the Protein clique. Information on [running Babel](./docs/Running.md)
+  in order to generate the Protein clique. Information on [running Babel](docs/RunningBabel.md)
   is available.
 * The NCATS Translator project provides the [Node Normalization](https://nodenorm.transltr.io/docs) frontend to
   "normalize" identifiers -- any member of a particular clique will be normalized
