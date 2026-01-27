@@ -72,7 +72,7 @@ class UberGraph:
         total_count = int(rr[0]["count"])
 
         results = []
-        for start in tqdm(range(0, total_count, UberGraph.QUERY_BATCH_SIZE), desc=f"{self}.get_all_labels()"):
+        for start in tqdm(range(0, total_count, UberGraph.QUERY_BATCH_SIZE), desc=f"{self}.get_all_labels()", unit="batch"):
             sleep(SLEEP_BETWEEN_UBERGRAPH_QUERIES)
 
             # end = start + UberGraph.QUERY_BATCH_SIZE if UberGraph.QUERY_BATCH_SIZE < total_count else UberGraph.QUERY_BATCH_SIZE
@@ -125,7 +125,7 @@ class UberGraph:
         total_count = int(rr[0]["count"])
 
         results = []
-        for start in tqdm(range(0, total_count, UberGraph.QUERY_BATCH_SIZE), desc=f"{self}.get_all_descriptions()"):
+        for start in tqdm(range(0, total_count, UberGraph.QUERY_BATCH_SIZE), desc=f"{self}.get_all_descriptions()", unit="batch"):
             sleep(SLEEP_BETWEEN_UBERGRAPH_QUERIES)
 
             # end = start + UberGraph.QUERY_BATCH_SIZE if UberGraph.QUERY_BATCH_SIZE < total_count else UberGraph.QUERY_BATCH_SIZE
@@ -458,7 +458,7 @@ class UberGraph:
 
         write_count = 0
         with open(filename, "w") as ftsv:
-            for start in tqdm(range(0, total_count, UberGraph.QUERY_BATCH_SIZE), desc=f"{self}.write_normalized_information_content({filename})"):
+            for start in tqdm(range(0, total_count, UberGraph.QUERY_BATCH_SIZE), desc=f"{self}.write_normalized_information_content({filename})", unit="batch"):
                 self.logger.debug(f"Querying write_normalized_information_content() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
 
                 query = (
