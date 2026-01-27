@@ -23,10 +23,6 @@ tmp_directory: babel_downloads/tmp
 # DuckDB settings for use in all DuckDB connections:
 duckdb_config: {}
 
-# Ubergraph settings.
-ubergraph:
-  sparql_url: "https://ubergraph.apps.renci.org/sparql"
-
 #
 # UMLS
 #
