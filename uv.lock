@@ -244,6 +244,7 @@ dependencies = [
     { name = "snakemake" },
     { name = "snakemake-executor-plugin-slurm" },
     { name = "sparqlwrapper" },
+    { name = "tqdm" },
     { name = "wheel" },
     { name = "xmltodict" },
 ]
@@ -281,6 +282,7 @@ requires-dist = [
     { name = "snakemake", specifier = ">=9.13.3" },
     { name = "snakemake-executor-plugin-slurm", specifier = ">=1.9.2" },
     { name = "sparqlwrapper", specifier = ">=2.0.0" },
+    { name = "tqdm", specifier = ">=4.67.1" },
     { name = "wheel", specifier = ">=0.45.1" },
     { name = "xmltodict", specifier = ">=1.0.2" },
 ]

@@ -1,9 +1,11 @@
 from time import sleep
+from collections import defaultdict
 
 from src.triplestore import TripleStore
 from src.util import Text, get_logger
-from collections import defaultdict
 from src.babel_utils import norm
+
+from tqdm import tqdm
 
 SLEEP_BETWEEN_UBERGRAPH_QUERIES = 5 # seconds
 
@@ -70,11 +72,11 @@ class UberGraph:
         total_count = int(rr[0]["count"])
 
         results = []
-        for start in range(0, total_count, UberGraph.QUERY_BATCH_SIZE):
+        for start in tqdm(range(0, total_count, UberGraph.QUERY_BATCH_SIZE), desc=f"{self}.get_all_labels()"):
             sleep(SLEEP_BETWEEN_UBERGRAPH_QUERIES)
 
             # end = start + UberGraph.QUERY_BATCH_SIZE if UberGraph.QUERY_BATCH_SIZE < total_count else UberGraph.QUERY_BATCH_SIZE
-            self.logger.info(f"Querying get_all_labels() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
+            self.logger.debug(f"Querying get_all_labels() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
 
             text = (
                 """
@@ -123,11 +125,11 @@ class UberGraph:
         total_count = int(rr[0]["count"])
 
         results = []
-        for start in range(0, total_count, UberGraph.QUERY_BATCH_SIZE):
+        for start in tqdm(range(0, total_count, UberGraph.QUERY_BATCH_SIZE), desc=f"{self}.get_all_descriptions()"):
             sleep(SLEEP_BETWEEN_UBERGRAPH_QUERIES)
 
             # end = start + UberGraph.QUERY_BATCH_SIZE if UberGraph.QUERY_BATCH_SIZE < total_count else UberGraph.QUERY_BATCH_SIZE
-            self.logger.info(f"Querying get_all_descriptions() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
+            self.logger.debug(f"Querying get_all_descriptions() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
 
             text = (
                 """
@@ -182,9 +184,9 @@ class UberGraph:
         total_count = int(rr[0]["count"])
 
         results = []
-        for start in range(0, total_count, UberGraph.QUERY_BATCH_SIZE):
+        for start in tqdm(range(0, total_count, UberGraph.QUERY_BATCH_SIZE), desc=f"{self}.get_all_synonyms()"):
             sleep(SLEEP_BETWEEN_UBERGRAPH_QUERIES)
-            self.logger.info(f"Querying get_all_synonyms() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
+            self.logger.debug(f"Querying get_all_synonyms() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
 
             text = (
                 """
@@ -456,8 +458,8 @@ class UberGraph:
 
         write_count = 0
         with open(filename, "w") as ftsv:
-            for start in range(0, total_count, UberGraph.QUERY_BATCH_SIZE):
-                self.logger.info(f"Querying write_normalized_information_content() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
+            for start in tqdm(range(0, total_count, UberGraph.QUERY_BATCH_SIZE), desc=f"{self}.write_normalized_information_content({filename})"):
+                self.logger.debug(f"Querying write_normalized_information_content() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
 
                 query = (
                     "SELECT ?iri ?nic WHERE "
