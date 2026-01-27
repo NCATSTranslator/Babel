@@ -32,6 +32,7 @@ dependencies = [
     "snakemake>=9.13.3",
     "snakemake-executor-plugin-slurm>=1.9.2",
     "sparqlwrapper>=2.0.0",
+    "tqdm>=4.67.1",
     "wheel>=0.45.1",
     "xmltodict>=1.0.2",
 ]
