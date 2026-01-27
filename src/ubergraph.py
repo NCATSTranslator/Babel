@@ -1,8 +1,7 @@
-import logging
 from time import sleep
 
 from src.triplestore import TripleStore
-from src.util import Text
+from src.util import Text, get_logger
 from collections import defaultdict
 from src.babel_utils import norm
 
@@ -21,6 +20,7 @@ class UberGraph:
 
     def __init__(self):
         self.triplestore = TripleStore("https://ubergraph.apps.renci.org/sparql")
+        self.logger = get_logger(__name__)
 
     def get_all_labels(self):
         # Since this is a very large query, we do this in chunks.
@@ -46,7 +46,7 @@ class UberGraph:
             sleep(SLEEP_BETWEEN_UBERGRAPH_QUERIES)
 
             # end = start + UberGraph.QUERY_BATCH_SIZE if UberGraph.QUERY_BATCH_SIZE < total_count else UberGraph.QUERY_BATCH_SIZE
-            print(f"Querying get_all_labels() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
+            self.logger.info(f"Querying get_all_labels() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
 
             text = (
                 """
@@ -67,7 +67,7 @@ class UberGraph:
                 try:
                     y["iri"] = Text.opt_to_curie(x["thing"])
                 except ValueError as verr:
-                    logging.warning(f"WARNING: Unable to translate {x['thing']} to a CURIE; it will be used as-is: {verr}")
+                    self.logger.warning(f"Unable to translate {x['thing']} to a CURIE; it will be used as-is: {verr}")
                     y["iri"] = x["thing"]
                 y["label"] = x["label"]
                 results.append(y)
@@ -98,7 +98,7 @@ class UberGraph:
             sleep(SLEEP_BETWEEN_UBERGRAPH_QUERIES)
 
             # end = start + UberGraph.QUERY_BATCH_SIZE if UberGraph.QUERY_BATCH_SIZE < total_count else UberGraph.QUERY_BATCH_SIZE
-            print(f"Querying get_all_descriptions() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
+            self.logger.info(f"Querying get_all_descriptions() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
 
             text = (
                 """
@@ -121,7 +121,7 @@ class UberGraph:
                 try:
                     y["iri"] = Text.opt_to_curie(x["thing"])
                 except ValueError as verr:
-                    print(f"WARNING: Unable to translate {x['thing']} to a CURIE; it will be used as-is: {verr}")
+                    self.logger.warning(f"Unable to translate {x['thing']} to a CURIE; it will be used as-is: {verr}")
                     y["iri"] = x["thing"]
                 y["description"] = x["description"]
                 results.append(y)
@@ -154,7 +154,7 @@ class UberGraph:
         results = []
         for start in range(0, total_count, UberGraph.QUERY_BATCH_SIZE):
             sleep(SLEEP_BETWEEN_UBERGRAPH_QUERIES)
-            print(f"Querying get_all_synonyms() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
+            self.logger.info(f"Querying get_all_synonyms() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
 
             text = (
                 """
@@ -191,7 +191,7 @@ class UberGraph:
                 try:
                     cls_curie = Text.opt_to_curie(x["cls"])
                 except ValueError as verr:
-                    print(f"Unable to convert {x['cls']} to a CURIE; it will be used as-is: {verr}")
+                    self.logger.warning(f"Unable to convert {x['cls']} to a CURIE; it will be used as-is: {verr}")
                     cls_curie = x["cls"]
                 y = (cls_curie, x["pred"], x["val"])
                 results.append(y)
@@ -228,7 +228,7 @@ class UberGraph:
             try:
                 y["descendent"] = Text.opt_to_curie(x["descendent"])
             except ValueError as verr:
-                print(f"Descendent {x['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
+                self.logger.warning(f"Descendent {x['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
                 y["descendent"] = x["descendent"]
             y["descendentLabel"] = x["descendentLabel"]
             results.append(y)
@@ -265,7 +265,7 @@ class UberGraph:
             try:
                 y["descendent"] = Text.opt_to_curie(x["descendent"])
             except ValueError as verr:
-                print(f"Descendent {x['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
+                self.logger.warning(f"Descendent {x['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
                 y["descendent"] = x["descendent"]
             if x["descendentSmiles"] is not None:
                 y["SMILES"] = x["descendentSmiles"]
@@ -303,7 +303,7 @@ class UberGraph:
                 dcurie = Text.opt_to_curie(row["descendent"])
                 results[dcurie].add((Text.opt_to_curie(row["xref"])))
             except ValueError as verr:
-                print(f"Bad XREF from {row['descendent']} to {row['xref']}: {verr}")
+                self.logger.warning(f"Bad XREF from {row['descendent']} to {row['xref']}: {verr}")
                 continue
 
         return results
@@ -344,7 +344,7 @@ class UberGraph:
             try:
                 desc = Text.opt_to_curie(row["descendent"])
             except ValueError as verr:
-                print(f"Descendant {row['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
+                self.logger.warning(f"Descendant {row['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
                 desc = row["descendent"]
 
             if row["match"] is None:
@@ -355,7 +355,7 @@ class UberGraph:
                 try:
                     results[desc].append(Text.opt_to_curie(row["match"]))
                 except ValueError as verr:
-                    print(f"Row {row} could not be converted to a CURIE: {verr}")
+                    self.logger.warning(f"Row {row} could not be converted to a CURIE: {verr}")
                     continue
 
         return results
@@ -395,7 +395,7 @@ class UberGraph:
             try:
                 desc = Text.opt_to_curie(row["descendent"])
             except ValueError as verr:
-                print(f"Descendant {row['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
+                self.logger.warning(f"Descendant {row['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
                 desc = row["descendent"]
 
             if row["match"] is None:
@@ -406,7 +406,7 @@ class UberGraph:
                 except ValueError as verr:
                     # Sometimes, if there are no exact_matches, we'll get some kind of blank node id
                     # like 't19830198'. Want to filter those out.
-                    print(f"Value {row['match']} in row {row} could not be converted to a CURIE: {verr}")
+                    self.logger.warning(f"Value {row['match']} in row {row} could not be converted to a CURIE: {verr}")
                     continue
 
         return results
@@ -427,7 +427,7 @@ class UberGraph:
         write_count = 0
         with open(filename, "w") as ftsv:
             for start in range(0, total_count, UberGraph.QUERY_BATCH_SIZE):
-                print(f"Querying write_normalized_information_content() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
+                self.logger.info(f"Querying write_normalized_information_content() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
 
                 query = (
                     "SELECT ?iri ?nic WHERE "
@@ -440,7 +440,7 @@ class UberGraph:
                     ftsv.write(f"{row['iri']}\t{row['nic']}\n")
                     write_count += 1
 
-        print(f"Wrote {write_count} information content values into {filename}.")
+        self.logger.info(f"Wrote {write_count} information content values into {filename}.")
         return write_count
 
 
