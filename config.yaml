@@ -23,6 +23,10 @@ tmp_directory: babel_downloads/tmp
 # DuckDB settings for use in all DuckDB connections:
 duckdb_config: {}
 
+# Ubergraph settings.
+ubergraph:
+  sparql_url: "https://ubergraph.apps.renci.org/sparql"
+
 #
 # UMLS
 #
@@ -59,6 +63,7 @@ generate_dirs_for_labels_and_synonyms_prefixes:
   - MONDO
   - PR
 
+# TODO: This doesn't appear to be used anywhere -- but it might be neat to use this list to make sure we got all of them.
 ubergraph_ontologies:
   - UBERON
   - CL

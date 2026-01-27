@@ -18,9 +18,13 @@ class UberGraph:
     # constant controls how large each batch should be.
     QUERY_BATCH_SIZE = 200_000
 
-    def __init__(self):
-        self.triplestore = TripleStore("https://ubergraph.apps.renci.org/sparql")
-        self.logger = get_logger(__name__)
+    def __init__(self, sparql_url):
+        self.sparql_url = sparql_url
+        self.triplestore = TripleStore(self.sparql_url)
+        self.logger = get_logger(str(self))
+
+    def __str__(self):
+        return f"UberGraph({self.sparql_url})"
 
     @staticmethod
     def is_blank_node(curie):
