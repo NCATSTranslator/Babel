@@ -22,6 +22,23 @@ class UberGraph:
         self.triplestore = TripleStore("https://ubergraph.apps.renci.org/sparql")
         self.logger = get_logger(__name__)
 
+    @staticmethod
+    def is_blank_node(curie):
+        """
+        Test if the given CURIE is a blank node in UberGraph.
+
+        :param curie: A CURIE to check. Must be a string.
+        :return: True if this looks like a blank node, false otherwise.
+        """
+
+        if not isinstance(curie, str):
+            raise ValueError(f"UberGraph.is_blank_node(curie={curie}): curie must be a string.")
+
+        # For Ubergraph, blank nodes are in the form 't27502167'. If we try to convert that into a CURIE, we can ignore it.
+        if curie[0] == 't' and curie[1:].isdigit():
+            return True
+        return False
+
     def get_all_labels(self):
         # Since this is a very large query, we do this in chunks.
         query_count = """
@@ -67,7 +84,8 @@ class UberGraph:
                 try:
                     y["iri"] = Text.opt_to_curie(x["thing"])
                 except ValueError as verr:
-                    self.logger.warning(f"Unable to translate {x['thing']} to a CURIE; it will be used as-is: {verr}")
+                    if not UberGraph.is_blank_node(x["thing"]):
+                        self.logger.warning(f"Unable to translate {x['thing']} to a CURIE; it will be used as-is: {verr}")
                     y["iri"] = x["thing"]
                 y["label"] = x["label"]
                 results.append(y)
@@ -121,7 +139,8 @@ class UberGraph:
                 try:
                     y["iri"] = Text.opt_to_curie(x["thing"])
                 except ValueError as verr:
-                    self.logger.warning(f"Unable to translate {x['thing']} to a CURIE; it will be used as-is: {verr}")
+                    if not UberGraph.is_blank_node(x["thing"]):
+                        self.logger.warning(f"Unable to translate {x['thing']} to a CURIE; it will be used as-is: {verr}")
                     y["iri"] = x["thing"]
                 y["description"] = x["description"]
                 results.append(y)
