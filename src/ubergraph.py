@@ -18,7 +18,14 @@ class UberGraph:
     # constant controls how large each batch should be.
     QUERY_BATCH_SIZE = 200_000
 
-    def __init__(self, sparql_url):
+    def __init__(self, sparql_url = "https://ubergraph.apps.renci.org/sparql"):
+        """
+        Set up an UberGraph querier.
+
+        TODO: it would be great to read this from the config, but that would require a whole bunch of changes.
+
+        :param sparql_url: The SPARQL endpoint to use.
+        """
         self.sparql_url = sparql_url
         self.triplestore = TripleStore(self.sparql_url)
         self.logger = get_logger(str(self))
