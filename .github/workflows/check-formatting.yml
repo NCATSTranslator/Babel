@@ -10,8 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v3
-      - name: Run ruff and produce a SARIF output file
-        uses: astral-sh/ruff-action@v3
+      - uses: astral-sh/ruff-action@v3
         with:
           args: "check --output-format github"
 
