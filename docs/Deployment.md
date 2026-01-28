@@ -18,7 +18,8 @@ to users who aren't system administrators for these tools:
    1. Start a `validate` run that loads all the input files and generates count information.
    2. Start a `diff` run that compares this release with the previous Babel release.
 4. Deploy a new NodeNorm instance
-   1. Split the Babel outputs into smaller files to improve load times and put them on a public web server.
+   1. Split the Babel outputs into smaller files to improve load times and put them on a public web
+      server.
    2. Update the Translator-devops repo with the URL to these Babel output files.
    3. Create an [redis r3 external] instance to store identifiers.
    4. Run the [NodeNorm loader] to load the Babel outputs into the redis r3 instance.
@@ -29,13 +30,15 @@ to users who aren't system administrators for these tools:
    3. Write out a Solr backup and store it as a tarball.
    4. Copy the Solr backup to a publicly accessible URL.
    5. Update the Translator-devops repo with the new URL.
-   6. Create a NameRes instance that will download the Solr backup and start the instance with it (see [NameRes devops] for information).
+   6. Create a NameRes instance that will download the Solr backup and start the instance with it
+      (see [NameRes devops] for information).
 6. **Check with RENCI NodeNorm users before updating RENCI NodeNorm and NameRes instances**
 7. Update RENCI NodeNorm and NameRes instances.
 8. Announce on Translator and RENCI channels and ask people to try it out.
 9. Deploy to ITRB
    1. Use the bastion servers to delete all data from the ITRB CI Redis R3 server.
-   2. Update the Translator-Devops repo and create a PR for the develop branch. Once merged, the new Babel outputs should be loaded into the ITRB CI Redis R3 server.
+   2. Update the Translator-Devops repo and create a PR for the develop branch. Once merged, the new
+      Babel outputs should be loaded into the ITRB CI Redis R3 server.
    3. Use the bastion servers to delete all data from the ITRB Test Redis R3 server.
    4. Ask ITRB to run the NodeNorm loader to populate the ITRB Test Redis R3 server.
    5. **Announce upcoming downtime to NodeNorm Prod.**
