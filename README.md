@@ -2,7 +2,10 @@
 
 [![arXiv](https://img.shields.io/badge/arXiv-2601.10008-b31b1b.svg)](https://arxiv.org/abs/2601.10008)
 
-<!-- rumdl-disable MD026 -->
+<!-- 
+Because this document is written like an FAQ, I want to allow headers to
+end with punctuation, so I'm going to disable MD026.
+--><!-- rumdl-disable MD026 -->
 
 ## Introduction
 

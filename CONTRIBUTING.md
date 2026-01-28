@@ -92,9 +92,9 @@ fix in a pull request:
   - You can run this locally by running
     `uv run snakefmt --check --compact-diff .`.
   - You can use `uv run snakefmt .` to automatically fix some issues.
-- [pymarkdownlnt](https://pypi.org/project/pymarkdownlnt/) for Markdown files
-  - You can run this locally by running `uv run pymarkdownlnt scan .`.
-  - You can use `uv run pymarkdownlnt fix .` to automatically fix some issues.
+- [rumdl](https://rumdl.dev/) for Markdown files
+  - You can run this locally by running `uv run rumdl check .`.
+  - You can use `uv run rumdl fmt .` to automatically fix some issues.
 
 ### Contributing tests
 
