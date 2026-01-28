@@ -13,7 +13,7 @@ jobs:
       - name: Run ruff and produce a SARIF output file
         uses: astral-sh/ruff-action@v3
         with:
-          args: "--output-format github"
+          args: "check --output-format github"
 
   check-formatting-with-snakefmt:
     name: Check Snakemake formatting with snakefmt

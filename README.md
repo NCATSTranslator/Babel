@@ -269,7 +269,7 @@ cliques from NodeNorm.
 ## How can I contribute to Babel?
 
 If you want to contribute to Babel, start with the
-[Contributing to Babel](./docs/CONTRIBUTING.md) documentation. This will provide
+[Contributing to Babel](./CONTRIBUTING.md) documentation. This will provide
 guidance on how the source code is organized, what contributions are most
 useful, and how to run the tests.
 
