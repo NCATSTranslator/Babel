@@ -2,7 +2,7 @@
 
 [![arXiv](https://img.shields.io/badge/arXiv-2601.10008-b31b1b.svg)](https://arxiv.org/abs/2601.10008)
 
-<!-- 
+<!--
 Because this document is written like an FAQ, I want to allow headers to
 end with punctuation, so I'm going to disable MD026.
 --><!-- rumdl-disable MD026 -->
@@ -165,7 +165,7 @@ or any existential relation. They are decimal values that range from 0.0
 (high-level broad term with many subclasses) to 100.0 (very specific term with
 no subclasses).
 
-## I've found a "split" clique: two identifiers that should be considered identical are in separate cliques.
+## I've found a "split" clique: two identifiers that should be considered identical are in separate cliques
 
 Please report this as an issue to the
 [Babel GitHub repository](https://github.com/TranslatorSRI/Babel/issues). At a
@@ -177,7 +177,7 @@ very helpful: while we have some ability to combine cliques manually if needed
 urgently for some application, we prefer to find a source of mappings that would
 combine the two identifiers, allowing us to improve cliquing across Babel.
 
-## I've found a "lumped" clique: two identifiers that are combined in a single clique refer to different concepts.
+## I've found a "lumped" clique: two identifiers that are combined in a single clique refer to different concepts
 
 Please report this as an issue to the
 [Babel GitHub repository](https://github.com/TranslatorSRI/Babel/issues). At a

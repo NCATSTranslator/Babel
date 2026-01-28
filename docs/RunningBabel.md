@@ -19,11 +19,12 @@ by creating a profile on the [UMLS Terminology Services website](https://uts.nlm
 To run Babel, you will need to [install `uv`](https://docs.astral.sh/uv/getting-started/installation/).
 `uv` manages the Python environment and installs dependencies for you.
 
-Compendia building is managed by snakemake.  To build, for example, the anatomy related compendia, run
+Compendia building is managed by snakemake. To build, for example, the anatomy related compendia, run
 
 ```uv run snakemake --cores 1 anatomy```
 
 Currently, the following targets build compendia and synonym files:
+
 * anatomy
 * chemical
 * disease
@@ -36,10 +37,11 @@ Currently, the following targets build compendia and synonym files:
 * publications
 
 And these two build conflations:
+
 * geneprotein
 * drugchemical
 
-Each target builds one or more compendia corresponding to a biolink model category.  For instance, the anatomy target
+Each target builds one or more compendia corresponding to a biolink model category. For instance, the anatomy target
 builds compendia for `biolink:AnatomicalEntity`, `biolink:Cell`, `biolink:CellularComponent`, and `biolink:GrossAnatomicalStructure`.
 
 You can also just run:
@@ -53,7 +55,7 @@ If you have multiple CPUs available, you can increase the number of `--cores` to
 
 ## Build Process
 
-The information contained here is not required to create the compendia, but may be useful to understand.  The build process is
+The information contained here is not required to create the compendia, but may be useful to understand. The build process is
 divided into two parts:
 
 1. Pulling data from external sources and parsing it independent of use.
@@ -64,14 +66,14 @@ used by many downstream targets.
 
 ### Pulling Data
 
-The datacollection snakemake file coordinates pulling data from external sources into a local filesystem.  Each data source
-has a module in `src/datahandlers`.  Data goes into the `babel_downloads` directory, in subdirectories named by the curie prefix
-for that data set.  If the directory is misnamed and does not match the prefix, then labels will not be added to the identifiers
+The datacollection snakemake file coordinates pulling data from external sources into a local filesystem. Each data source
+has a module in `src/datahandlers`. Data goes into the `babel_downloads` directory, in subdirectories named by the curie prefix
+for that data set. If the directory is misnamed and does not match the prefix, then labels will not be added to the identifiers
 in the final compendium.
 
 Once data is assembled, we attempt to create two extra files for each data source: `labels` and `synonyms`. `labels` is
 a two-column tab-delimited file. The first column is a CURIE identifier from the data source, and the second column is the
-label from that data set.  Each entity should only appear once in the `labels` file. The `labels` file for a data set
+label from that data set. Each entity should only appear once in the `labels` file. The `labels` file for a data set
 does not subset the data for a specific purpose, but contains all labels for any entity in that data set.
 
 `synonyms` contains other lexical names for the entity and is a 3-column tab-delimited file, with the second column
@@ -82,7 +84,7 @@ indicating the type of synonym (exact, related, xref, etc.)
 The individual details of creating a compendium vary, but all follow the same essential pattern.
 
 First, we extract the identifiers that will be used in the compendia from each data source that will contribute, and
-place them into a directory.  For instance, in the build of the chemical compendium, these ids are placed into
+place them into a directory. For instance, in the build of the chemical compendium, these ids are placed into
 `/babel_downloads/chemical/ids`. Each file is a two-column file containing curie identifiers in column 1, and the
 Biolink type for that entity in column 2.
 
@@ -97,25 +99,25 @@ Third, the compendia is built by bringing together the ids and concords, pulling
 and the labels from the label files.
 
 Fourth, the compendia is assessed to make sure that all the ids in the id files made into one of the possibly multiple
-compendia.  The compendia are further assessed to locate large cliques and display the level of vocabulary merging.
+compendia. The compendia are further assessed to locate large cliques and display the level of vocabulary merging.
 
 ## Building with Docker
 
 You can build this repository by running the following Docker command:
 
-```
+```text
 $ docker build .
 ```
 
 It is also set up with a GitHub Action that will automatically generate and publish
-Docker images to https://github.com/NCATSTranslator/Babel/pkgs/container/babel.
+Docker images to <https://github.com/NCATSTranslator/Babel/pkgs/container/babel>.
 
 ## Running with Docker
 
 You can also run Babel with [Docker](https://www.docker.com/). There are
 two directories you need to bind or mount from outside the container:
 
-```
+```text
 $ docker run -it --rm --mount type=bind,source=...,target=/home/runner/babel/babel_downloads --entrypoint /bin/bash ggvaidya/babel
 ```
 
@@ -128,6 +130,7 @@ The script `scripts/build-babel.sh` can be used to run `snakemake` with a few us
 
 The `kubernetes/` directory has example Kubernetes scripts for deploying Babel to a Kubernetes cluster. You need to
 create three resources:
+
 * `kubernetes/babel-downloads.k8s.yaml` creates a Persistent Volume Claim (PVC) for downloading input resources from
   the internet.
 * `kubernetes/babel-outputs.k8s.yaml` creates a PVC for storing the output files generated by Babel. This includes
@@ -135,15 +138,18 @@ create three resources:
 * `kubernetes/babel.k8s.yaml` creates a pod running the latest Docker image from ggvaidya/babel. Rather than running
   the data generation automatically, you are expected to SSH into this pod and start the build process by:
     1. Edit the script `scripts/babel-build.sh` to clear the `DRY_RUN` property so that it doesn't , i.e.:
+
        ```shell
        export DRY_RUN=
        ```
+
     2. Creating a [screen](https://www.gnu.org/software/screen/) to run the program in. You can start a Screen by
        running:
 
        ```shell
        $ screen
        ```
+
     3. Starting the Babel build process by running:
 
        ```shell

@@ -1,12 +1,13 @@
 # Babel Translator May 2024 Release
 
-- Babel: [2024mar24](https://stars.renci.org/var/babel_outputs/2024mar24/) (approx
+* Babel: [2024mar24](https://stars.renci.org/var/babel_outputs/2024mar24/) (approx
   [Babel v1.5.0](https://github.com/TranslatorSRI/Babel/releases/tag/v1.5.0))
-  - [CURIE summary](./summaries/2024mar24.json)
+  * [CURIE summary](./summaries/2024mar24.json)
 
 Next release: [Translator "Fugu" July 2024](TranslatorFuguJuly2024.md)
 
 ## New features
+
 * [New identifiers] 36.9 million PubMed IDs (e.g. `PMID:25061375`) have been added as `biolink:JournalArticle`, as well as
   the mappings to PMC (e.g. `PMC:PMC4109484`) and DOIs (e.g. `doi:10.3897/zookeys.420.7089`) that are included in PubMed.
   Details in [TranslatorSRI/Babel#227](https://github.com/TranslatorSRI/Babel/pull/227).
@@ -16,6 +17,7 @@ Next release: [Translator "Fugu" July 2024](TranslatorFuguJuly2024.md)
 * Minor fixes.
 
 ## Releases since [December 2023](TranslatorDecember2023)
+
 * [Babel v1.5.0](https://github.com/TranslatorSRI/Babel/releases/tag/v1.5.0):
   * Normalize DrugChemical conflation IDs by @gaurav in #250
   * Fix DrugChemical conflation typing by @gaurav in #266

@@ -4,13 +4,14 @@ There are two main installations of NodeNorm that would be of interest
 to users who aren't system administrators for these tools:
 
 * ITRB Production
-  * NodeNorm: https://nodenorm.transltr.io/docs
-  * NameRes: https://name-lookup.transltr.io/docs
+  * NodeNorm: <https://nodenorm.transltr.io/docs>
+  * NameRes: <https://name-lookup.transltr.io/docs>
 * RENCI Development
-  * NodeNorm: https://nodenormalization-sri.renci.org/docs
-  * NameRes: https://name-resolution-sri.renci.org/docs
+  * NodeNorm: <https://nodenormalization-sri.renci.org/docs>
+  * NameRes: <https://name-resolution-sri.renci.org/docs>
 
 ## Release process and checkpoints
+
 1. Create a new Babel release (see README.md for information).
 2. Store the Babel outputs alongside other Babel releases on Hatteras.
 3. Start validating the Babel release (see [Babel Validation] for information).
