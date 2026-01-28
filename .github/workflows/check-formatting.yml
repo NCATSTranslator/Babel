@@ -10,7 +10,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v3
-      - uses: astral-sh/ruff-action@v3
+      - name: Run ruff and produce a SARIF output file
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: "--format sarif --output-file ruff-results.sarif"
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ruff-results.sarif
 
   check-formatting-with-snakefmt:
     name: Check Snakemake formatting with snakefmt
