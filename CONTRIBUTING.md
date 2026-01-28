@@ -22,36 +22,36 @@ submit the most useful bug reports and will help us triage and prioritize them c
    would also be helpful. We would also appreciate if you can include what you expect the tool to return. Any other
    details you can provide, especially anything that will be help us replicate the issue, will be very helpful.
 5. After you have reported a bug, helping to triage, prioritize and group it will be very helpful:
-    - We triage issues into one of the [milestones](https://github.com/NCATSTranslator/Babel/milestones):
-      - [Needs investigation](https://github.com/NCATSTranslator/Babel/milestone/12) refers to issues that need
-        to be investigated further -- either to figure out what is causing the issue or to communicate with the
-        user community to understand what should occur.
-      - [Immediate](https://github.com/NCATSTranslator/Babel/milestone/35) need to be fixed immediately. Issues I'm
-        currently working on will be placed here.
-      - [Needed soon](https://github.com/NCATSTranslator/Babel/milestone/30) refers to issues that should be fixed
-        in the next few months: not immediately, but sooner rather than later.
-      - [Needed later](https://github.com/NCATSTranslator/Babel/milestone/31) refers to issues that should be fixed
-        eventually, but are not needed immediately.
-    - We prioritize issues with one of the three priority tags: [Priority: Low](https://github.com/NCATSTranslator/Babel/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22Priority%3A%20Low%22),
-      [Priority: Medium](https://github.com/NCATSTranslator/Babel/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22Priority%3A%20Medium%22),
-      [Priority: High](https://github.com/NCATSTranslator/Babel/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22Priority%3A%20High%22).
-      The idea is that issues with the highest priority will determine which will be investigated/tested first, and which
-      are most likely to move from Needed later/Needed soon into Immediate for working on.
-    - We estimate effort on tasks using a series of ["T-shirt sizes"](https://asana.com/resources/t-shirt-sizing):
-      [Size: XS](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20XS%22),
-      [Size: S](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20S%22),
-      [Size: M](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20M%22),
-      [Size: L](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20L%22),
-      [Size: XL](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20XL%22). These
-      are to help distinguish between tasks that are easy to complete (extra small) and those that will require a lot of
-      thinking, programming and testing (extra large).
-    - You can group issues in two ways:
-      - GitHub lets you chose a "parent" issue for each issue, which is useful for issues that are related to each
-        other. We try to build "issues of issues" that group together similar issues that might require similar fixes
-        (e.g. [our issue tracking deprecated identifiers](https://github.com/NCATSTranslator/Babel/issues/93)). If you
-        find an issue related to yours, please feel free to add yours as a child of the existing issue or vice versa.
-      - You can use labels to group similar issues. We don't have a lot of labels for you to choose from, but feel free
-        to add any that make sense!
+   - We triage issues into one of the [milestones](https://github.com/NCATSTranslator/Babel/milestones):
+     - [Needs investigation](https://github.com/NCATSTranslator/Babel/milestone/12) refers to issues that need
+       to be investigated further -- either to figure out what is causing the issue or to communicate with the
+       user community to understand what should occur.
+     - [Immediate](https://github.com/NCATSTranslator/Babel/milestone/35) need to be fixed immediately. Issues I'm
+       currently working on will be placed here.
+     - [Needed soon](https://github.com/NCATSTranslator/Babel/milestone/30) refers to issues that should be fixed
+       in the next few months: not immediately, but sooner rather than later.
+     - [Needed later](https://github.com/NCATSTranslator/Babel/milestone/31) refers to issues that should be fixed
+       eventually, but are not needed immediately.
+   - We prioritize issues with one of the three priority tags: [Priority: Low](https://github.com/NCATSTranslator/Babel/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22Priority%3A%20Low%22),
+     [Priority: Medium](https://github.com/NCATSTranslator/Babel/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22Priority%3A%20Medium%22),
+     [Priority: High](https://github.com/NCATSTranslator/Babel/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22Priority%3A%20High%22).
+     The idea is that issues with the highest priority will determine which will be investigated/tested first, and which
+     are most likely to move from Needed later/Needed soon into Immediate for working on.
+   - We estimate effort on tasks using a series of ["T-shirt sizes"](https://asana.com/resources/t-shirt-sizing):
+     [Size: XS](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20XS%22),
+     [Size: S](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20S%22),
+     [Size: M](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20M%22),
+     [Size: L](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20L%22),
+     [Size: XL](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20XL%22). These
+     are to help distinguish between tasks that are easy to complete (extra small) and those that will require a lot of
+     thinking, programming and testing (extra large).
+   - You can group issues in two ways:
+     - GitHub lets you chose a "parent" issue for each issue, which is useful for issues that are related to each
+       other. We try to build "issues of issues" that group together similar issues that might require similar fixes
+       (e.g. [our issue tracking deprecated identifiers](https://github.com/NCATSTranslator/Babel/issues/93)). If you
+       find an issue related to yours, please feel free to add yours as a child of the existing issue or vice versa.
+     - You can use labels to group similar issues. We don't have a lot of labels for you to choose from, but feel free
+       to add any that make sense!
 
 ## Contributing source code
 
@@ -62,15 +62,15 @@ databases. These are combined into compendium files and synonyms.
 
 We use three linters to check the style of submitted code in GitHub pull requests -- don't worry if this is difficult
 to do at your end, as it is easy to fix in a pull request:
-* [ruff](https://docs.astral.sh/ruff/) for Python code
-  * You can run this locally by running `uv run ruff check`.
-  * You can use `uv run ruff check --fix` to automatically fix some issues.
-* [snakefmt](https://github.com/snakemake/snakefmt) for Snakemake files
-  * You can run this locally by running `uv run snakefmt --check --compact-diff .`.
-  * You can use `uv run snakefmt .` to automatically fix some issues.
-* [pymarkdownlnt](https://pypi.org/project/pymarkdownlnt/) for Markdown files
-  * You can run this locally by running `uv run pymarkdownlint scan .`.
-  * You can use `uv run pymarkdownlint fix .` to automatically fix some issues.
+- [ruff](https://docs.astral.sh/ruff/) for Python code
+  - You can run this locally by running `uv run ruff check`.
+  - You can use `uv run ruff check --fix` to automatically fix some issues.
+- [snakefmt](https://github.com/snakemake/snakefmt) for Snakemake files
+  - You can run this locally by running `uv run snakefmt --check --compact-diff .`.
+  - You can use `uv run snakefmt .` to automatically fix some issues.
+- [pymarkdownlnt](https://pypi.org/project/pymarkdownlnt/) for Markdown files
+  - You can run this locally by running `uv run pymarkdownlnt scan .`.
+  - You can use `uv run pymarkdownlnt fix .` to automatically fix some issues.
 
 ### Contributing tests
 TODO
@@ -84,7 +84,7 @@ and if you can help get them to pass, that would be great!
 ### Writing a new concord or compendium
 TODO
 
-### Adding a new source of identifiers, synonyms or descriptions 
+### Adding a new source of identifiers, synonyms or descriptions
 TODO
 
 ## Want to work on the frontends instead?

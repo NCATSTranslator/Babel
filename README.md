@@ -10,9 +10,9 @@ One source may represent water as [MESH:D014867](https://meshb.nlm.nih.gov/recor
 may use the identifier [DRUGBANK:DB09145](https://go.drugbank.com/drugs/DB09145). When integrating, we need to
 recognize that both of these identifiers are identifying the same concept.
 
-Babel integrates the specific naming systems used in the Translator, 
+Babel integrates the specific naming systems used in the Translator,
 creating equivalent sets across multiple semantic types following the
-conventions established by the [Biolink Model](https://github.com/biolink/biolink-model). Each semantic type (such as 
+conventions established by the [Biolink Model](https://github.com/biolink/biolink-model). Each semantic type (such as
 [biolink:SmallMolecule](https://biolink.github.io/biolink-model/SmallMolecule/)) requires specialized processing,
 but in each case, a JSON-formatted compendium is written to disk. This compendium can be used directly, but it can
 also be served by the [Node Normalization service](https://github.com/TranslatorSRI/NodeNormalization) or another frontend.
