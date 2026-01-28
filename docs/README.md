@@ -2,8 +2,8 @@
 
 This directory contains several pieces of Babel documentation.
 
-Both [Node Normalization (NodeNorm)](https://github.com/TranslatorSRI/NodeNormalization) and
-[Name Resolution (NameRes or NameLookup)](https://github.com/TranslatorSRI/NameResolution) have their own GitHub repositories
+Both [Node Normalization (NodeNorm)](https://github.com/NCATSTranslator/NodeNormalization) and
+[Name Resolution (NameRes or NameLookup)](https://github.com/NCATSTranslator/NameResolution) have their own GitHub repositories
 with their own documentation, but this directory is intended to include all the basic instructions
 needed to work with Babel and its tools.
 
@@ -18,7 +18,7 @@ _cliques_ of identifiers that refer to the same concept. Each clique is assigned
 type from the [Biolink Model](https://github.com/biolink/biolink-model), which determines which identifier prefixes are
 allowed and the order in which the identifiers are presented. One of these identifiers
 is chosen to be the _preferred identifier_ for the clique. Within Translator, this
-information is made available through the [Node Normalization service](https://github.com/TranslatorSRI/NodeNormalization).
+information is made available through the [Node Normalization service](https://github.com/NCATSTranslator/NodeNormalization).
 
 In certain contexts, differentiating between some related cliques doesn't make sense:
 for example, you might not want to differentiate between a gene and the product of that
@@ -27,7 +27,7 @@ on the basis of various criteria: for example, the GeneProtein conflation combin
 gene with the protein that that gene encodes.
 
 While generating these cliques, Babel also collects all the synonyms for every clique,
-which can then be used by tools like [Name Resolution (NameRes)](https://github.com/TranslatorSRI/NameResolution) to provide
+which can then be used by tools like [Name Resolution (NameRes)](https://github.com/NCATSTranslator/NameResolution) to provide
 name-based lookup of concepts.
 
 ## How can I access Babel cliques?
@@ -41,17 +41,17 @@ There are several ways of accessing Babel cliques:
   "normalize" identifiers -- any member of a particular clique will be normalized
   to the same preferred identifier, and the API will return all the secondary
   identifiers, Biolink type, description and other useful information.
-  You can find out more about this frontend on [its GitHub repository](https://github.com/TranslatorSRI/NodeNormalization).
+  You can find out more about this frontend on [its GitHub repository](https://github.com/NCATSTranslator/NodeNormalization).
 * The NCATS Translator project also provides the [Name Lookup (Name Resolution)](https://name-lookup.transltr.io/)
   frontends for searching for concepts by labels or synonyms. You can find out more
-  about this frontend at [its GitHub repository](https://github.com/TranslatorSRI/NameResolution).
+  about this frontend at [its GitHub repository](https://github.com/NCATSTranslator/NameResolution).
 * Members of the Translator consortium can also request access to the [Babel outputs](./BabelOutputs.md)
   (in a [custom format](./DataFormats.md)),
   which are currently available in JSONL, [Apache Parquet](https://parquet.apache.org/) or [KGX](https://github.com/biolink/kgx) formats.
 
 ## What is the Node Normalization service (NodeNorm)?
 
-The Node Normalization service, Node Normalizer or [NodeNorm](https://github.com/TranslatorSRI/NodeNormalization) is an
+The Node Normalization service, Node Normalizer or [NodeNorm](https://github.com/NCATSTranslator/NodeNormalization) is an
 NCATS Translator web service to normalize identifiers by returning a single preferred identifier for any identifier
 provided.
 
@@ -63,17 +63,17 @@ It also includes some endpoints for normalizing an entire TRAPI message and othe
 Translator users.
 
 You can find out more about NodeNorm at its [Swagger interface](https://nodenormalization-sri.renci.org/docs)
-or [in this Jupyter Notebook](https://github.com/TranslatorSRI/NodeNormalization/blob/master/documentation/NodeNormalization.ipynb).
+or [in this Jupyter Notebook](https://github.com/NCATSTranslator/NodeNormalization/blob/master/documentation/NodeNormalization.ipynb).
 
 ## What is the Name Resolution service (NameRes)?
 
-The Name Resolution service, Name Lookup or [NameRes](https://github.com/TranslatorSRI/NameResolution) is an
+The Name Resolution service, Name Lookup or [NameRes](https://github.com/NCATSTranslator/NameResolution) is an
 NCATS Translator web service for looking up preferred identifiers by search text. Although it is primarily
 designed to be used to power NCATS Translator's autocomplete text fields, it has also been used for
 named-entity linkage.
 
 You can find out more about NameRes at its [Swagger interface](https://name-resolution-sri.renci.org/docs)
-or [in this Jupyter Notebook](https://github.com/TranslatorSRI/NameResolution/blob/master/documentation/NameResolution.ipynb).
+or [in this Jupyter Notebook](https://github.com/NCATSTranslator/NameResolution/blob/master/documentation/NameResolution.ipynb).
 
 ## What are "information content" values?
 
@@ -84,7 +84,7 @@ that range from 0.0 (high-level broad term with many subclasses) to 100.0 (very 
 
 ## I've found a "split" clique: two identifiers that should be considered identical are in separate cliques.
 
-Please report this as an issue to the [Babel GitHub repository](https://github.com/TranslatorSRI/Babel/issues).
+Please report this as an issue to the [Babel GitHub repository](https://github.com/NCATSTranslator/Babel/issues).
 At a minimum, please include the identifiers (CURIEs) for the identifiers that should be combined. Links to
 a NodeNorm instance showing the two cliques are very helpful. Evidence supporting the lumping, such as a link to an
 external database that makes it clear that these identifiers refer to the same concept, are also very helpful: while we
@@ -93,7 +93,7 @@ mappings that would combine the two identifiers, allowing us to improve cliquing
 
 ## I've found a "lumped" clique: two identifiers that are combined in a single clique refer to different concepts.
 
-Please report this as an issue to the [Babel GitHub repository](https://github.com/TranslatorSRI/Babel/issues).
+Please report this as an issue to the [Babel GitHub repository](https://github.com/NCATSTranslator/Babel/issues).
 At a minimum, please include the identifiers (CURIEs) for the identifiers that should be split. Links to
 a NodeNorm instance showing the lumped clique is very helpful. Evidence, such as a link to an external database
 that makes it clear that these identifiers refer to the same concept, are also very helpful: while we have some
@@ -117,6 +117,6 @@ into any problems or would like some assistance.
 
 ## Who should I contact for more information about Babel?
 
-You can find out more about Babel by [opening an issue on this repository](https://github.com/TranslatorSRI/Babel/issues),
+You can find out more about Babel by [opening an issue on this repository](https://github.com/NCATSTranslator/Babel/issues),
 contacting one of the [Translator SRI PIs](https://ncats.nih.gov/research/research-activities/translator/projects) or
 contacting the [NCATS Translator team](https://ncats.nih.gov/research/research-activities/translator/about).

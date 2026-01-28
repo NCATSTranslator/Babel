@@ -1,36 +1,63 @@
 import src.createcompendia.geneprotein as geneprotein
-import src.assess_compendia as assessments
+from src.synonyms import synonymconflation
+from util import gzip_files
 
 ### Gene / Protein
 
+
 rule geneprotein_uniprot_relationships:
     input:
-        infile = config['download_directory'] + '/UniProtKB/idmapping.dat'
+        infile=config["download_directory"] + "/UniProtKB/idmapping.dat",
     output:
-        outfile_concords = config['intermediate_directory'] + '/geneprotein/concords/UniProtNCBI',
-        metadata_yaml = config['intermediate_directory'] + '/geneprotein/concords/metadata-UniProtNCBI.yaml'
+        outfile_concords=config["intermediate_directory"] + "/geneprotein/concords/UniProtNCBI",
+        metadata_yaml=config["intermediate_directory"] + "/geneprotein/concords/metadata-UniProtNCBI.yaml",
     run:
-        geneprotein.build_uniprotkb_ncbigene_relationships(input.infile,output.outfile_concords, output.metadata_yaml)
+        geneprotein.build_uniprotkb_ncbigene_relationships(input.infile, output.outfile_concords, output.metadata_yaml)
+
 
 rule geneprotein_conflation:
     input:
-        gene_compendium=config['output_directory']+'/compendia/'+'Gene.txt',
-        protein_compendium=config['output_directory']+'/compendia/'+'Protein.txt',
-        geneprotein_concord=config['intermediate_directory']+'/geneprotein/concords/UniProtNCBI'
+        gene_compendium=config["output_directory"] + "/compendia/" + "Gene.txt",
+        protein_compendium=config["output_directory"] + "/compendia/" + "Protein.txt",
+        geneprotein_concord=config["intermediate_directory"] + "/geneprotein/concords/UniProtNCBI",
     output:
-        outfile=config['output_directory']+'/conflation/GeneProtein.txt'
+        outfile=config["output_directory"] + "/conflation/GeneProtein.txt",
     run:
-        geneprotein.build_conflation(input.geneprotein_concord,input.gene_compendium,input.protein_compendium,output.outfile)
+        geneprotein.build_conflation(input.geneprotein_concord, input.gene_compendium, input.protein_compendium, output.outfile)
+
+
+rule geneprotein_conflated_synonyms:
+    resources:
+        mem="512G",
+        runtime="6h",
+    input:
+        geneprotein_conflations=[config["output_directory"] + "/conflation/GeneProtein.txt"],
+        gene_compendia=expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["gene_outputs"]),
+        protein_compendia=expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["protein_outputs"]),
+        gene_synonyms_gz=expand("{od}/synonyms/{ap}.gz", od=config["output_directory"], ap=config["gene_outputs"]),
+        protein_synonyms_gz=expand("{od}/synonyms/{ap}.gz", od=config["output_directory"], ap=config["protein_outputs"]),
+    output:
+        geneprotein_conflated_synonyms_gz=config["output_directory"] + "/synonyms/GeneProteinConflated.txt.gz",
+    run:
+        synonymconflation.conflate_synonyms(
+            input.gene_synonyms_gz + input.protein_synonyms_gz,
+            input.gene_compendia + input.protein_compendia,
+            input.geneprotein_conflations,
+            output.geneprotein_conflated_synonyms_gz,
+        )
+
 
 rule geneprotein:
     input:
-        config['output_directory']+'/conflation/GeneProtein.txt'
+        config["output_directory"] + "/conflation/GeneProtein.txt",
+        config["output_directory"] + "/synonyms/GeneProteinConflated.txt.gz",
     output:
-        x=config['output_directory']+'/reports/geneprotein_done'
+        x=config["output_directory"] + "/reports/geneprotein_done",
     shell:
         "echo 'done' >> {output.x}"
 
-#rule check_geneprotein_completeness:
+
+# rule check_geneprotein_completeness:
 #    input:
 #        input_compendia=[config['output_directory']+'/compendia/GeneProtein.txt']
 #    output:
@@ -38,15 +65,14 @@ rule geneprotein:
 #    run:
 #        assessments.assess_completeness(config['intermediate_directory']+'/protein/ids',input.input_compendia,output.report_file)
 #
-#rule check_geneprotein:
+# rule check_geneprotein:
 #    input:
 #        infile=config['output_directory']+'/compendia/GeneProtein.txt'
 #    output:
 #        outfile=config['output_directory']+'/reports/GeneProtein.txt'
 #    run:
 #        assessments.assess(input.infile, output.outfile)
-
-#rule geneprotein:
+# rule geneprotein:
 #    input:
 #        config['output_directory']+'/reports/geneprotein_completeness.txt',
 #        reports = expand("{od}/reports/GeneProtein.txt",od=config['output_directory'])

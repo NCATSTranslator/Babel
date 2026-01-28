@@ -1,14 +1,46 @@
+# Build information. Currently unstructured -- you can use this to write down any notes on what is going on with
+# this specific build of Babel.
+build:
+  branch: babel-1.15
+
+# Versions that need to be updated on every release.
+biolink_version: "4.3.6"
+umls_version: "2025AB"
+rxnorm_version: "12012025"
+drugbank_version: "5-1-13"
+
+# Overall inputs and outputs.
 input_directory: input_data
 download_directory: babel_downloads
 intermediate_directory: babel_outputs/intermediate
 output_directory: babel_outputs
+tmp_directory: babel_downloads/tmp
 
-biolink_version: "4.2.6-rc5"
-umls_version: "2025AA"
-rxnorm_version: "07072025"
-drugbank_version: "5-1-13"
+#
+# SHARED
+#
 
+# DuckDB settings for use in all DuckDB connections:
+duckdb_config: {}
+
+#
+# UMLS
+#
+umls:
+  subset: "full"
+  # Replace with "level-0" to get only the level 0 subset (https://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html).
+  # subset: "level-0"
+
+#
+# PROTEINS
+#
+
+# Chris Bizon prepared a list of UMLS/UniProtKB mappings which we download and use.
 UMLS_UniProtKB_download_raw_url: "https://raw.githubusercontent.com/cbizon/UMLS_UniProtKB/refs/heads/main/outputs/UMLS_UniProtKB.tsv"
+
+#
+# The rest of these configs need to be cleaned up.
+#
 
 ncbi_files:
   - gene2ensembl.gz
@@ -145,6 +177,7 @@ protein_concords:
   - PR
   - NCIT_UniProtKB
   - NCIT_UMLS
+  - UMLS
   - UMLS_UniProtKB
 
 protein_outputs:
@@ -282,6 +315,9 @@ chemical_outputs:
 drugchemicalconflated_synonym_outputs:
   - DrugChemicalConflated.txt
 
+geneproteinconflated_synonym_outputs:
+  - GeneProteinConflated.txt
+
 taxon_labels:
   - NCBITaxon
   - MESH
@@ -384,7 +420,5 @@ ensembl_datasets_to_skip:
   - otshawytscha_gene_ensembl
   - aocellaris_gene_ensembl
 
-duckdb_config: {}
-
-demote_labels_longer_than: 15
+demote_labels_longer_than: 25
 

@@ -53,21 +53,30 @@ submit the most useful bug reports and will help us triage and prioritize them c
       - You can use labels to group similar issues. We don't have a lot of labels for you to choose from, but feel free
         to add any that make sense!
 
-## Writing code
+## Contributing source code
 
 Babel is structured around its [Snakemake files](./src/snakefiles), which call into its
 [data handlers](./src/datahandlers) and [compendia creators](./src/createcompendia). The
 heart of its data are its concord files, which contain cross-references between different
 databases. These are combined into compendium files and synonyms.
 
+Code submitted for review should use [ruff](https://docs.astral.sh/ruff/) to fix any style issues before submission.
+You can run ruff by running `uv run ruff check`, and you can use `uv run ruff check --fix` to automatically fix some issues.
+
+### Contributing tests
+TODO
+
+Tests are written using [pytest](https://pytest.org/) and are present in the `tests` directory. You can run
+these tests by running `PYTHONPATH=. uv run pytest`.
+
+**Note**: not all tests currently pass! We are [working on that](https://github.com/NCATSTranslator/Babel/issues/602),
+and if you can help get them to pass, that would be great!
+
 ### Writing a new concord or compendium
-TBD
+TODO
 
 ### Adding a new source of identifiers, synonyms or descriptions 
-TBD
-
-### Submitting a PR
-TBD
+TODO
 
 ## Want to work on the frontends instead?
 

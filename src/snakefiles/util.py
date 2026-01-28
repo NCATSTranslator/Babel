@@ -6,22 +6,23 @@ import src.util
 
 logger = src.util.LoggingUtil.init_logging(__name__, level="INFO")
 
+
 def write_done(filename):
-    """ Write a file to indicate that we are done. """
-    with open(filename, 'w') as f:
+    """Write a file to indicate that we are done."""
+    with open(filename, "w") as f:
         print("done", f)
 
 
 def gzip_files(input_filenames):
-    """ Compress files using Gzip. Like with `gzip`, we compress the file by adding `.gz` to the end of the filename, but
+    """Compress files using Gzip. Like with `gzip`, we compress the file by adding `.gz` to the end of the filename, but
     we do NOT delete the original file -- we'll leave that to the user.
 
     :param input_filenames: A list of Gzip files to compress.
     """
     logger.info(f"Compressing: {input_filenames}")
     for filename in input_filenames:
-        output_filename = filename + '.gz'
-        with open(filename, 'rb') as f_in, gzip.open(output_filename, 'wb') as f_out:
+        output_filename = filename + ".gz"
+        with open(filename, "rb") as f_in, gzip.open(output_filename, "wb") as f_out:
             shutil.copyfileobj(f_in, f_out)
         logger.info(f"Compressed {filename} to {output_filename} using the gzip module.")
     logger.info(f"Done compressing: {input_filenames}")
@@ -29,18 +30,20 @@ def gzip_files(input_filenames):
 
 # List of all the compendia files that need to be converted.
 def get_all_compendia(config):
-    return (config['anatomy_outputs'] +
-            config['chemical_outputs'] +
-            config['disease_outputs'] +
-            config['gene_outputs'] +
-            config['genefamily_outputs'] +
-            config['process_outputs'] +
-            config['protein_outputs'] +
-            config['taxon_outputs'] +
-            config['cell_line_outputs'] +
-            config['umls_outputs'] +
-            config['macromolecularcomplex_outputs'] +
-            config['publication_outputs'])
+    return (
+        config["anatomy_outputs"]
+        + config["chemical_outputs"]
+        + config["disease_outputs"]
+        + config["gene_outputs"]
+        + config["genefamily_outputs"]
+        + config["process_outputs"]
+        + config["protein_outputs"]
+        + config["taxon_outputs"]
+        + config["cell_line_outputs"]
+        + config["umls_outputs"]
+        + config["macromolecularcomplex_outputs"]
+        + config["publication_outputs"]
+    )
 
 
 def get_all_synonyms(config):
@@ -52,20 +55,22 @@ def get_all_synonyms(config):
     :return: A list of filenames expected in the `synonyms/` directory.
     """
     return (
-        config['anatomy_outputs'] +
-        config['gene_outputs'] +
-        config['protein_outputs'] +
-        config['disease_outputs'] +
-        config['process_outputs'] +
-        config['chemical_outputs'] +
-        config['taxon_outputs'] +
-        config['cell_line_outputs'] +
-        config['genefamily_outputs'] +
-        config['drugchemicalconflated_synonym_outputs'] +
-        config['umls_outputs'] +
-        config['macromolecularcomplex_outputs'] +
+        config["anatomy_outputs"]
+        + config["gene_outputs"]
+        + config["protein_outputs"]
+        + config["disease_outputs"]
+        + config["process_outputs"]
+        + config["chemical_outputs"]
+        + config["taxon_outputs"]
+        + config["cell_line_outputs"]
+        + config["genefamily_outputs"]
+        + config["drugchemicalconflated_synonym_outputs"]
+        + config["geneproteinconflated_synonym_outputs"]
+        + config["umls_outputs"]
+        + config["macromolecularcomplex_outputs"]
+        +
         # Publication.txt is empty, but it's still created, so it needs to be here.
-        config['publication_outputs']
+        config["publication_outputs"]
     )
 
 
@@ -77,18 +82,20 @@ def get_all_synonyms_except_drugchemicalconflated(config):
     :return: A list of filenames expected in the `synonyms/` directory.
     """
     return (
-            config['anatomy_outputs'] +
-            config['gene_outputs'] +
-            config['protein_outputs'] +
-            config['disease_outputs'] +
-            config['process_outputs'] +
-            config['chemical_outputs'] +
-            config['taxon_outputs'] +
-            config['cell_line_outputs'] +
-            config['genefamily_outputs'] +
-            # config['drugchemicalconflated_synonym_outputs'] +
-            config['umls_outputs'] +
-            config['macromolecularcomplex_outputs']
+        config["anatomy_outputs"]
+        + config["gene_outputs"]
+        + config["protein_outputs"]
+        + config["disease_outputs"]
+        + config["process_outputs"]
+        + config["chemical_outputs"]
+        + config["taxon_outputs"]
+        + config["cell_line_outputs"]
+        + config["genefamily_outputs"]
+        +
+        # config['drugchemicalconflated_synonym_outputs'] +
+        config["geneproteinconflated_synonym_outputs"]
+        + config["umls_outputs"]
+        + config["macromolecularcomplex_outputs"]
     )
 
 
@@ -100,18 +107,20 @@ def get_all_synonyms_with_drugchemicalconflated(config):
     :return: A list of filenames expected in the `synonyms/` directory.
     """
     return (
-            config['anatomy_outputs'] +
-            config['gene_outputs'] +
-            config['protein_outputs'] +
-            config['disease_outputs'] +
-            config['process_outputs'] +
-            # config['chemical_outputs'] +
-            config['taxon_outputs'] +
-            config['cell_line_outputs'] +
-            config['genefamily_outputs'] +
-            config['drugchemicalconflated_synonym_outputs'] +
-            config['umls_outputs'] +
-            config['macromolecularcomplex_outputs']
+        config["anatomy_outputs"]
+        + config["gene_outputs"]
+        + config["protein_outputs"]
+        + config["disease_outputs"]
+        + config["process_outputs"]
+        +
+        # config['chemical_outputs'] +
+        config["taxon_outputs"]
+        + config["cell_line_outputs"]
+        + config["genefamily_outputs"]
+        + config["drugchemicalconflated_synonym_outputs"]
+        + config["geneproteinconflated_synonym_outputs"]
+        + config["umls_outputs"]
+        + config["macromolecularcomplex_outputs"]
     )
 
 
@@ -122,4 +131,4 @@ def get_all_gzipped(file_list):
     :param file_list: List of filenames.
     :return: List of filenames with '.gz' appended.
     """
-    return list(map(lambda x: x + '.gz', file_list))
+    return list(map(lambda x: x + ".gz", file_list))
