@@ -2,7 +2,7 @@
 
 [![arXiv](https://img.shields.io/badge/arXiv-2601.10008-b31b1b.svg)](https://arxiv.org/abs/2601.10008)
 
-<!-- pyml disable MD026 -->
+<!-- rumdl-disable MD026 -->
 
 ## Introduction
 
