@@ -6,7 +6,7 @@ releases are documented in the [Releases lists](../releases/README.md).
 There are several different Babel outputs that we make available for download:
 
 * The `compendia/`, `synonyms/` and `conflation/` files that are the core
-  [Babel outputs](BabelOutputs.md).
+  Babel outputs in a [custom JSON format](DataFormats.md).
 * The `duckdb/` directory contains various DuckDB databases and Apache Parquet exports that can be
   used to query the Babel outputs more efficiently than searching through the individual JSON files.
 * The `metadata/` directory contains metadata reports for every compendium file. It is generated

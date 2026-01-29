@@ -90,8 +90,7 @@ There are several ways of accessing Babel cliques:
   for searching for concepts by labels or synonyms. You can find out more about
   this frontend at
   [its GitHub repository](https://github.com/TranslatorSRI/NameResolution).
-- Members of the Translator consortium can also request access to the
-  [Babel outputs](./docs/BabelOutputs.md) (in a
+- Play around with the [Babel Downloads](./docs/Downloads.md) (in a
   [custom format](./docs/DataFormats.md)), which are currently available in
   JSONL, [Apache Parquet](https://parquet.apache.org/) or
   [KGX](https://github.com/biolink/kgx) formats.
@@ -242,7 +241,6 @@ that these identifiers refer to the same concept, are also very helpful: while
 we have some ability to combine cliques manually if needed urgently for some
 application, we prefer to find a source of mappings that would combine the two
 identifiers, allowing us to improve cliquing across Babel.
-
 
 ## Running Babel
 
