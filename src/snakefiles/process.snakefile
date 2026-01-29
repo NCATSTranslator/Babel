@@ -75,7 +75,9 @@ rule get_process_go_relationships:
         config["intermediate_directory"] + "/process/concords/GO",
         metadata_yaml=config["intermediate_directory"] + "/process/concords/metadata-GO.yaml",
     run:
-        pap.build_process_obo_relationships(config["intermediate_directory"] + "/process/concords", output.metadata_yaml)
+        pap.build_process_obo_relationships(
+            config["intermediate_directory"] + "/process/concords", output.metadata_yaml
+        )
 
 
 rule get_process_rhea_relationships:
@@ -103,8 +105,14 @@ rule process_compendia:
     input:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["process_labels"]),
         #synonyms=expand("{dd}/{ap}/synonyms",dd=config['download_directory'],ap=config['process_labelsandsynonyms']),
-        concords=expand("{dd}/process/concords/{ap}", dd=config["intermediate_directory"], ap=config["process_concords"]),
-        metadata_yamls=expand("{dd}/process/concords/metadata-{ap}.yaml", dd=config["intermediate_directory"], ap=config["process_concords"]),
+        concords=expand(
+            "{dd}/process/concords/{ap}", dd=config["intermediate_directory"], ap=config["process_concords"]
+        ),
+        metadata_yamls=expand(
+            "{dd}/process/concords/metadata-{ap}.yaml",
+            dd=config["intermediate_directory"],
+            ap=config["process_concords"],
+        ),
         idlists=expand("{dd}/process/ids/{ap}", dd=config["intermediate_directory"], ap=config["process_ids"]),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
@@ -120,7 +128,9 @@ rule check_process_completeness:
     output:
         report_file=config["output_directory"] + "/reports/process_completeness.txt",
     run:
-        assessments.assess_completeness(config["intermediate_directory"] + "/process/ids", input.input_compendia, output.report_file)
+        assessments.assess_completeness(
+            config["intermediate_directory"] + "/process/ids", input.input_compendia, output.report_file
+        )
 
 
 rule check_process:

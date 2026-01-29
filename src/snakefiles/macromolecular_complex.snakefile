@@ -24,7 +24,9 @@ rule macromolecular_complex_compendia:
         temp(config["output_directory"] + "/synonyms/MacromolecularComplex.txt"),
         output_metadata_yaml=config["output_directory"] + "/metadata/MacromolecularComplex.txt.yaml",
     run:
-        macromolecular_complex.build_compendia([input.idlists], [input.metadata_yaml], icrdf_filename=input.icrdf_filename)
+        macromolecular_complex.build_compendia(
+            [input.idlists], [input.metadata_yaml], icrdf_filename=input.icrdf_filename
+        )
 
 
 rule check_macromolecular_complex_completeness:
@@ -33,7 +35,9 @@ rule check_macromolecular_complex_completeness:
     output:
         report_file=config["output_directory"] + "/reports/macromolecular_complex_completeness.txt",
     run:
-        assessments.assess_completeness(config["intermediate_directory"] + "/macromolecular_complex/ids", input.input_compendia, output.report_file)
+        assessments.assess_completeness(
+            config["intermediate_directory"] + "/macromolecular_complex/ids", input.input_compendia, output.report_file
+        )
 
 
 rule check_macromolecular_complex:

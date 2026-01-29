@@ -58,7 +58,9 @@ rule taxon_compendia:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["taxon_labels"]),
         synonyms=expand("{dd}/{ap}/synonyms", dd=config["download_directory"], ap=config["taxon_synonyms"]),
         concords=expand("{dd}/taxon/concords/{ap}", dd=config["intermediate_directory"], ap=config["taxon_concords"]),
-        metadata_yamls=expand("{dd}/taxon/concords/metadata-{ap}.yaml", dd=config["intermediate_directory"], ap=config["taxon_concords"]),
+        metadata_yamls=expand(
+            "{dd}/taxon/concords/metadata-{ap}.yaml", dd=config["intermediate_directory"], ap=config["taxon_concords"]
+        ),
         idlists=expand("{dd}/taxon/ids/{ap}", dd=config["intermediate_directory"], ap=config["taxon_ids"]),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
@@ -75,7 +77,9 @@ rule check_taxon_completeness:
     output:
         report_file=config["output_directory"] + "/reports/taxon_completeness.txt",
     run:
-        assessments.assess_completeness(config["intermediate_directory"] + "/taxon/ids", input.input_compendia, output.report_file)
+        assessments.assess_completeness(
+            config["intermediate_directory"] + "/taxon/ids", input.input_compendia, output.report_file
+        )
 
 
 rule check_taxon:

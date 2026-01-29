@@ -25,7 +25,9 @@ configfile: "config.yaml"
 rule leftover_umls:
     input:
         input_compendia=expand(
-            "{output}/compendia/{compendium}", output=config["output_directory"], compendium=[x for x in get_all_compendia(config) if x not in {"umls.txt"}]
+            "{output}/compendia/{compendium}",
+            output=config["output_directory"],
+            compendium=[x for x in get_all_compendia(config) if x not in {"umls.txt"}],
         ),
         umls_label_filename=config["download_directory"] + "/UMLS/labels",
         mrconso=config["download_directory"] + "/UMLS/MRCONSO.RRF",
