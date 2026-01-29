@@ -14,17 +14,14 @@ to users who aren't system administrators for these tools:
 
 1. Create a new Babel release (see README.md for information).
 2. Store the Babel outputs alongside other Babel releases on Hatteras.
-3. Start validating the Babel release (see [Babel Validation] for information).
-   1. Start a `validate` run that loads all the input files and generates count information.
-   2. Start a `diff` run that compares this release with the previous Babel release.
-4. Deploy a new NodeNorm instance
+3. Deploy a new NodeNorm instance
    1. Split the Babel outputs into smaller files to improve load times and put them on a public web
       server.
    2. Update the Translator-devops repo with the URL to these Babel output files.
-   3. Create an [redis r3 external] instance to store identifiers.
+   3. Create a [Redis R3 External] instance to store identifiers.
    4. Run the [NodeNorm loader] to load the Babel outputs into the redis r3 instance.
    5. Create a [NodeNorm web server] to share the data in the redis r3 instance.
-5. Deploy a new NameRes instance
+4. Deploy a new NameRes instance
    1. Create an empty Apache Solr instance.
    2. Load it with synonym information from Babel outputs.
    3. Write out a Solr backup and store it as a tarball.
@@ -32,8 +29,10 @@ to users who aren't system administrators for these tools:
    5. Update the Translator-devops repo with the new URL.
    6. Create a NameRes instance that will download the Solr backup and start the instance with it
       (see [NameRes devops] for information).
-6. Use the [Babel Validator] to test this release and check how it performs compared to the previous
+5. Use the [Babel Validator] to test this release and check how it performs compared to the previous
    release.
+6. Use the [Babel Validator Prefix Comparator](https://translatorsri.github.io/babel-validation/prefix-comparator/)
+   to compare the prefix counts between releases.
 7. **Check with RENCI NodeNorm users before updating RENCI NodeNorm and NameRes instances**
 8. Update RENCI NodeNorm and NameRes instances.
 9. Announce on Translator and RENCI channels and ask people to try it out.
@@ -52,7 +51,7 @@ to users who aren't system administrators for these tools:
     previous release. As a side-benefit, running these tests will warm up NameRes Solr's caches.
 
 [Babel Validator]: https://github.com/TranslatorSRI/babel-validation
-  [redis r3 external]: https://github.com/helxplatform/translator-devops/tree/3e16517d6adc41db8f2156cc747b7a5ac20ee62d/helm/redis-r3-external
-  [NodeNorm loader]: https://github.com/helxplatform/translator-devops/tree/3e16517d6adc41db8f2156cc747b7a5ac20ee62d/helm/node-normalization-loader
-  [NodeNorm web server]: https://github.com/helxplatform/translator-devops/tree/3e16517d6adc41db8f2156cc747b7a5ac20ee62d/helm/node-normalization-web-server
-  [NameRes devops]: https://github.com/helxplatform/translator-devops/tree/3e16517d6adc41db8f2156cc747b7a5ac20ee62d/helm/name-lookup
+[Redis R3 External]: https://github.com/helxplatform/translator-devops/tree/ed25b5f5bfe2383ade8457da97341c90500f5291/helm/redis-r3-external
+[NodeNorm loader]: https://github.com/helxplatform/translator-devops/tree/ed25b5f5bfe2383ade8457da97341c90500f5291/helm/node-normalization-loader
+[NodeNorm web server]: https://github.com/helxplatform/translator-devops/tree/ed25b5f5bfe2383ade8457da97341c90500f5291/helm/node-normalization-web-server
+[NameRes devops]: https://github.com/helxplatform/translator-devops/tree/ed25b5f5bfe2383ade8457da97341c90500f5291/helm/name-lookup
