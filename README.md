@@ -165,9 +165,9 @@ or any existential relation. They are decimal values that range from 0.0
 (high-level broad term with many subclasses) to 100.0 (very specific term with
 no subclasses).
 
-## I've found a "split" clique: two identifiers that should be considered identical are in separate cliques
+## I've found two or more identifiers in separate cliques that should be considered identical
 
-Please report this as an issue to the
+Please report this "split" clique as an issue to the
 [Babel GitHub repository](https://github.com/TranslatorSRI/Babel/issues). At a
 minimum, please include the identifiers (CURIEs) for the identifiers that should
 be combined. Links to a NodeNorm instance showing the two cliques are very
@@ -177,9 +177,11 @@ very helpful: while we have some ability to combine cliques manually if needed
 urgently for some application, we prefer to find a source of mappings that would
 combine the two identifiers, allowing us to improve cliquing across Babel.
 
-## I've found a "lumped" clique: two identifiers that are combined in a single clique refer to different concepts
+<!-- rumdl-disable MD013 -->
+## I've found two or more identifiers combined in a single clique that actually identify different concepts
+<!-- rumdl-enable MD013 -->
 
-Please report this as an issue to the
+Please report this "lumped" clique as an issue to the
 [Babel GitHub repository](https://github.com/TranslatorSRI/Babel/issues). At a
 minimum, please include the identifiers (CURIEs) for the identifiers that should
 be split. Links to a NodeNorm instance showing the lumped clique is very
