@@ -257,7 +257,7 @@ requires-dist = [
     { name = "ipykernel", specifier = ">=7.1.0" },
     { name = "jsonlines", specifier = ">=4.0.0" },
     { name = "more-itertools", specifier = ">=10.8.0" },
-    { name = "oaklib", specifier = "~=0.5.1" },
+    { name = "oaklib", specifier = ">=0.5.1" },
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "psutil", specifier = ">=7.1.1" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
