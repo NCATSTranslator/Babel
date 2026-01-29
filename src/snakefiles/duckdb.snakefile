@@ -87,11 +87,16 @@ rule check_for_identically_labeled_cliques:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/identically_labeled_clique.duckdb"),
         identically_labeled_cliques_tsv=config["output_directory"] + "/reports/duckdb/identically_labeled_cliques.tsv.gz",
     run:
-        src.reports.duckdb_reports.check_for_identically_labeled_cliques(params.parquet_dir, output.duckdb_filename, output.identically_labeled_cliques_tsv, {
-            'memory_limit': '512G',
-            'threads': 2,
-            'preserve_insertion_order': False,
-        })
+        src.reports.duckdb_reports.check_for_identically_labeled_cliques(
+            params.parquet_dir,
+            output.duckdb_filename,
+            output.identically_labeled_cliques_tsv,
+            {
+                "memory_limit": "512G",
+                "threads": 2,
+                "preserve_insertion_order": False,
+            },
+        )
 
 
 rule check_for_duplicate_curies:
@@ -106,11 +111,16 @@ rule check_for_duplicate_curies:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/duplicate_curies.duckdb"),
         duplicate_curies=config["output_directory"] + "/reports/duckdb/duplicate_curies.tsv",
     run:
-        src.reports.duckdb_reports.check_for_duplicate_curies(params.parquet_dir, output.duckdb_filename, output.duplicate_curies, {
-            'memory_limit': '1500G',
-            'threads': 1,
-            'preserve_insertion_order': False,
-        })
+        src.reports.duckdb_reports.check_for_duplicate_curies(
+            params.parquet_dir,
+            output.duckdb_filename,
+            output.duplicate_curies,
+            {
+                "memory_limit": "1500G",
+                "threads": 1,
+                "preserve_insertion_order": False,
+            },
+        )
 
 
 rule check_for_duplicate_clique_leaders:
@@ -125,11 +135,17 @@ rule check_for_duplicate_clique_leaders:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/duplicate_clique_leaders.duckdb"),
         duplicate_clique_leaders_tsv=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.tsv",
     run:
-        src.reports.duckdb_reports.check_for_duplicate_clique_leaders(params.parquet_dir, output.duckdb_filename, output.duplicate_clique_leaders_tsv, {
-            'memory_limit': '512G',
-            'threads': 2,
-            'preserve_insertion_order': False,
-        })
+        src.reports.duckdb_reports.check_for_duplicate_clique_leaders(
+            params.parquet_dir,
+            output.duckdb_filename,
+            output.duplicate_clique_leaders_tsv,
+            {
+                "memory_limit": "512G",
+                "threads": 2,
+                "preserve_insertion_order": False,
+            },
+        )
+
 
 rule generate_curie_report:
     resources:
