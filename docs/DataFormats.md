@@ -4,9 +4,10 @@ There are three custom formats used within Babel outputs.
 
 ## Compendia files
 
-Compendia files are JSON Lines (JSONL) files in the `compendia/` directory. Each line consists of a single "clique" --
-a set of identifiers that Babel believes represents the same concept. Here is an example from `compendia/Gene.txt` for
-the [glucose-6-phosphatase catalytic subunit 1 (G6PC1)](https://www.ncbi.nlm.nih.gov/gene/2538) gene.
+Compendia files are JSON Lines (JSONL) files in the `compendia/` directory. Each line consists of a
+single "clique" -- a set of identifiers that Babel believes represents the same concept. Here is an
+example from `compendia/Gene.txt` for the
+[glucose-6-phosphatase catalytic subunit 1 (G6PC1)](https://www.ncbi.nlm.nih.gov/gene/2538) gene.
 
 ```json
 {
@@ -56,7 +57,7 @@ This entry consists of the following fields:
 
 | Field            | Value                                                       | Meaning                                                                                                                                                                                                                                                               |
 |------------------|-------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| ic               | 100                                                         | Information content value (see [the main README](./README.md#what-are-information-content-values)). They are decimal values that range from 0.0 (high-level broad term with many subclasses) to 100.0 (very specific term with no subclasses).                        |
+| ic               | 100                                                         | Information content value (see [the main README](../README.md#what-are-information-content-values)). They are decimal values that range from 0.0 (high-level broad term with many subclasses) to 100.0 (very specific term with no subclasses).                       |
 | identifiers      | _See below_                                                 | A list of identifiers for this clique. This is arranged in the same order as the valid ID prefixes for this type in the Biolink Model, e.g. [starting with NCBIGene and ENSEMBL for `biolink:Gene`](https://biolink.github.io/biolink-model/Gene/#valid-id-prefixes). |
 | identifiers[0].i | NCBIGene:2358                                               | A CURIE representing this identifier. You can use the [Biolink Model prefixmap](https://github.com/biolink/biolink-model/tree/master/project/prefixmap) to expand this into a full concept IRI.                                                                       |
 | identifiers[0].l | G6PC1                                                       | A label for this identifier. This will almost always be from the source of the CURIE (in this case, the label is from the NCBI Gene database).                                                                                                                        |
@@ -67,14 +68,16 @@ This entry consists of the following fields:
 | descriptions     | (blank in this example, but usually a list of descriptions) | A list of descriptions, created by combining descriptions from all the identifiers.                                                                                                                                                                                   |
 | type             | biolink:Gene                                                | The Biolink type of this concept. Must be a class from the [Biolink model](https://biolink.github.io/biolink-model/) with a `biolink:` prefix.                                                                                                                        |
 
-The first identifier in the `identifiers` list is considered the "clique leader" or "preferred ID" for the clique.
-When normalizing an identifier, that identifier is used to represent the entire clique. The preferred name is not
-necessarily the label for the clique leader -- another name may be chosen to clarify the meaning of the clique or
-to provide a better label for displaying in the Translator UI.
+The first identifier in the `identifiers` list is considered the "clique leader" or "preferred ID"
+for the clique. When normalizing an identifier, that identifier is used to represent the entire
+clique. The preferred name is not necessarily the label for the clique leader -- another name may be
+chosen to clarify the meaning of the clique or to provide a better label for displaying in the
+Translator UI.
 
 ## Synonym files
 
-Synonym files are JSONL files, where each entry is a JSON document describing a concept and all its synonyms.
+Synonym files are JSONL files, where each entry is a JSON document describing a concept and all its
+synonyms.
 
 ```json
 {
@@ -137,22 +140,24 @@ This entry consists of the following fields:
 | taxa                    | ["NCBITaxon:9606"]                 | The list of taxa that this concept is found in. This should be identical to the entry in the corresponding Compendia file.                                                                                                                  |
 | types                   | ["Gene", "GeneOrGeneProduct", ...] | A list of Biolink types (without the `biolink:` prefix) for this concept. This is arranged in the same order provided by the Biolink Model Toolkit, starting with the narrowest concept, expanding to the broadest, followed by mixins.     |
 
-Note that the synonym files are generated with DrugChemical conflation turned on, but GeneProtein conflation turned off.
+Note that the synonym files are generated with DrugChemical conflation turned on, but GeneProtein
+conflation turned off.
 
 ## Conflation files
 
-There are only two conflation files: `GeneProtein.txt` and `DrugChemical.txt`, corresponding to the two currently
-supported conflation methods. Both files have the same format: a JSONL file where each entry is a list of clique
-leaders (i.e. the first identifier for a clique in the [Compendia files](#compendia-files)) that should be combined
-under that conflation. For example, the following entry indicates that if either `NCBIGene:2538` or `UniProtKB:P35575`
-is queried with DrugChemical conflation turned on, then a combined clique of both identifiers should be returned.
+There are only two conflation files: `GeneProtein.txt` and `DrugChemical.txt`, corresponding to the
+two currently supported conflation methods. Both files have the same format: a JSONL file where each
+entry is a list of clique leaders (i.e. the first identifier for a clique in the
+[Compendia files](#compendia-files)) that should be combined under that conflation. For example, the
+following entry indicates that if either `NCBIGene:2538` or `UniProtKB:P35575` is queried with
+DrugChemical conflation turned on, then a combined clique of both identifiers should be returned.
 
 ```json
 ["NCBIGene:2538", "UniProtKB:P35575"]
 ```
 
-Here is the response when normalizing `UniProtKB:P35575` from NodeNorm when both DrugChemical conflation and individual
-types are turned on:
+Here is the response when normalizing `UniProtKB:P35575` from NodeNorm when both DrugChemical
+conflation and individual types are turned on:
 
 ```json
 {

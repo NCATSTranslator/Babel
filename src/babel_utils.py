@@ -6,11 +6,11 @@ import time
 import traceback
 import urllib
 from collections import defaultdict
-from datetime import datetime, timedelta
 from enum import Enum
 from ftplib import FTP
 from io import BytesIO
 from pathlib import Path
+from datetime import datetime, timedelta
 
 import jsonlines
 import requests
@@ -759,7 +759,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
             "cliques": count_cliques,
             "eq_ids": count_eq_ids,
             "synonyms": count_synonyms,
-            "property_sources": property_source_count,
+            "property_sources": dict(property_source_count),
         },
         combined_from_filenames=metadata_yamls,
     )

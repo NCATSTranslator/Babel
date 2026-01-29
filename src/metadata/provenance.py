@@ -124,4 +124,5 @@ def write_metadata(filename, typ, name, *, sources=None, url="", description="",
                 "combined_from": combined_from,
             },
             fout,
+            sort_keys=False, # Prefer the order we specified above.
         )

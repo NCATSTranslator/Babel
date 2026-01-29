@@ -1,186 +1,292 @@
 # Babel
 
+[![arXiv](https://img.shields.io/badge/arXiv-2601.10008-b31b1b.svg)](https://arxiv.org/abs/2601.10008)
+
+<!--
+Because this document is written like an FAQ, I want to allow headers to
+end with punctuation, so I'm going to disable MD026.
+--><!-- rumdl-disable MD026 -->
+
 ## Introduction
 
-The [Biomedical Data Translator](https://ncats.nih.gov/translator) integrates data across many data sources.  One
-source of difficulty is that different data sources use different vocabularies.
-One source may represent water as MESH:D014867, while another may use the
-identifier DRUGBANK:DB09145.   When integrating, we need to recognize that 
-both of these identifiers are identifying the same concept.
+The [Biomedical Data Translator](https://ncats.nih.gov/translator) integrates
+data across many data sources. One source of difficulty is that different data
+sources use different vocabularies. One source may represent water as
+[MESH:D014867](https://meshb.nlm.nih.gov/record/ui?ui=D014867), while another
+may use the identifier
+[DRUGBANK:DB09145](https://go.drugbank.com/drugs/DB09145). When integrating, we
+need to recognize that both of these identifiers are identifying the same
+concept.
 
-Babel integrates the specific naming systems used in the Translator, 
-creating equivalent sets across multiple semantic types, and following the
-conventions established by the [biolink model](https://github.com/biolink/biolink-model).  It checks these conventions
-at runtime by querying the [Biolink Model service](https://github.com/TranslatorIIPrototypes/bl_lookup).  Each semantic type (such as 
-chemical substance) requires specialized processing, but in each case, a 
-JSON-formatted compendium is written to disk.  This compendium can be used 
-directly, but it can also be served by the [Node Normalization service](https://github.com/TranslatorSRI/NodeNormalization)
+Babel integrates the specific naming systems used in the Translator, creating
+equivalent sets across multiple semantic types following the conventions
+established by the [Biolink Model](https://github.com/biolink/biolink-model).
+Each semantic type (such as
+[biolink:SmallMolecule](https://biolink.github.io/biolink-model/SmallMolecule/))
+requires specialized processing, but in each case, a JSON-formatted compendium
+is written to disk. This compendium can be used directly, but it can also be
+served by the
+[Node Normalization service](https://github.com/TranslatorSRI/NodeNormalization)
 or another frontend.
 
-We anticipate that the simple approach taken here will soon be overtaken by
-more advanced probabilistic procedures, so caution should be taken in building
-strong dependencies against the Babel code.
+In certain contexts, differentiating between some related concepts doesn't make
+sense: for example, you might not want to differentiate between a gene and the
+protein that is the product of that gene. Babel provides different
+[conflations](docs/Conflation.md) that group cliques on the basis of various
+criteria: for example, the GeneProtein conflation combines a gene with the
+protein that that gene encodes.
 
-## Configuration
+While generating these cliques, Babel also collects all the synonyms for every
+clique, which can then be used by tools like
+[Name Resolver (NameRes)](https://github.com/NCATSTranslator/NameResolution) to
+provide name-based lookup of concepts.
 
-The [`./kubernetes`](./kubernetes/README.md) directory contains Kubernetes manifest files
-that can be used to set up a Pod to run Babel in. They'll give you an idea of the disk
-space and memory requirements needed to run this pipeline.
+## Using Babel outputs
 
-Before running, read through `config.yaml` and make sure that the settings look correct.
-You will need to update the version numbers of some databases that need to be downloaded,
-or change the download and output directories.
+### What do Babel outputs look like?
 
-A UMLS API key is required in order to download UMLS and RxNorm databases. You will need
-to set the `UMLS_API_KEY` environmental variable to a UMLS API key, which you can obtain
-by creating a profile on the [UMLS Terminology Services website](https://uts.nlm.nih.gov/uts).
+Three [Babel data formats](./docs/DataFormats.md) are available:
 
-## Building Compendia
+- Compendium files contain concepts (sets or "cliques" of equivalent
+  identifiers), which include a preferred identifier, Biolink type, list of
+  equivalent identifiers as well as other information about the concept (such as
+  the descriptions, information content valuen and so on).
+- Synonym files, which don't include the equivalent identifiers for each
+  concept, but do include every known synonym for each concept. These files can
+  be directly loaded into an Apache Solr database for querying. The
+  [Name Resolver](https://github.com/NCATSTranslator/NameResolution) contains
+  scripts for loading these files and provides a frontend that can be used to
+  search for concepts by label or synonym, or to provide an autocomplete service
+  for Babel concepts.
+- Conflation files contain the lists of concepts that should be conflated when
+  that conflation is turned on.
 
-To run Babel, you will need to [install `uv`](https://docs.astral.sh/uv/getting-started/installation/).
-`uv` manages the Python environment and installs dependencies for you.
+### How can I download Babel outputs?
 
-Compendia building is managed by snakemake.  To build, for example, the anatomy related compendia, run
+You can find out about [downloading Babel outputs](docs/Downloads.md). You can
+find a list of Babel releases in the [Releases list](./releases/README.md).
 
-```uv run snakemake --cores 1 anatomy```
+### How can I deploy Babel outputs?
 
-Currently, the following targets build compendia and synonym files:
-* anatomy
-* chemical
-* disease
-* gene
-* genefamily
-* protein
-* macromolecular_complex
-* taxon
-* process
-* publications
+Information on [deploying Babel outputs](./docs/Deployment.md) is available.
 
-And these two build conflations:
-* geneprotein
-* drugchemical
+### How can I access Babel cliques?
 
-Each target builds one or more compendia corresponding to a biolink model category.  For instance, the anatomy target 
-builds compendia for `biolink:AnatomicalEntity`, `biolink:Cell`, `biolink:CellularComponent`, and `biolink:GrossAnatomicalStructure`.
+There are several ways of accessing Babel cliques:
 
-You can also just run:
+- You can run the Babel pipeline to generate the cliques yourself. Note that
+  Babel currently has very high memory requirements -- it requires around 500G
+  of memory in order to generate the Protein clique. Information on
+  [running Babel](docs/RunningBabel.md) is available.
+- The NCATS Translator project provides the
+  [Node Normalization](https://nodenorm.transltr.io/docs) frontend to
+  "normalize" identifiers -- any member of a particular clique will be
+  normalized to the same preferred identifier, and the API will return all the
+  secondary identifiers, Biolink type, description and other useful information.
+  You can find out more about this frontend on
+  [its GitHub repository](https://github.com/TranslatorSRI/NodeNormalization).
+- The NCATS Translator project also provides the
+  [Name Lookup (Name Resolution)](https://name-lookup.transltr.io/) frontends
+  for searching for concepts by labels or synonyms. You can find out more about
+  this frontend at
+  [its GitHub repository](https://github.com/TranslatorSRI/NameResolution).
+- Play around with the [Babel Downloads](./docs/Downloads.md) (in a
+  [custom format](./docs/DataFormats.md)), which are currently available in
+  JSONL, [Apache Parquet](https://parquet.apache.org/) or
+  [KGX](https://github.com/biolink/kgx) formats.
 
-```uv run snakemake --cores 1```
+### What is the Node Normalization service (NodeNorm)?
 
-without a target to create all the files that are produced as part of Babel, including all reports and
-alternate exports.
+The Node Normalization service, Node Normalizer or
+[NodeNorm](https://github.com/TranslatorSRI/NodeNormalization) is an NCATS
+Translator web service to normalize identifiers by returning a single preferred
+identifier for any identifier provided.
 
-If you have multiple CPUs available, you can increase the number of `--cores` to run multiple steps in parallel.
+In addition to returning the preferred identifier and all the secondary
+identifiers for a clique, NodeNorm will also return its Biolink type and
+["information content" score](#what-are-information-content-values), and
+optionally any descriptions we have for these identifiers.
 
-## Build Process
+It also includes some endpoints for normalizing an entire TRAPI message and
+other APIs intended primarily for Translator users.
 
-The information contained here is not required to create the compendia, but may be useful to understand.  The build process is 
-divided into two parts:
+You can find out more about NodeNorm at its
+[Swagger interface](https://nodenormalization-sri.renci.org/docs) or
+[in this Jupyter Notebook](https://github.com/TranslatorSRI/NodeNormalization/blob/master/documentation/NodeNormalization.ipynb).
 
-1. Pulling data from external sources and parsing it independent of use.
-2. Extracting and combining entities for specific types from these downloaded data sets.
+### What is the Name Resolver (NameRes)?
 
-This distinction is made because a single data set, such as MeSH or UMLS may contain entities of many different types and may be 
-used by many downstream targets.
+The Name Resolver, Name Lookup or
+[NameRes](https://github.com/TranslatorSRI/NameResolution) is an NCATS
+Translator web service for looking up preferred identifiers by search text.
+Although it is primarily designed to be used to power NCATS Translator's
+autocomplete text fields, it has also been used for named-entity linkage.
 
-### Pulling Data
+You can find out more about NameRes at its
+[Swagger interface](https://name-resolution-sri.renci.org/docs) or
+[in this Jupyter Notebook](https://github.com/TranslatorSRI/NameResolution/blob/master/documentation/NameResolution.ipynb).
 
-The datacollection snakemake file coordinates pulling data from external sources into a local filesystem.  Each data source 
-has a module in `src/datahandlers`.  Data goes into the `babel_downloads` directory, in subdirectories named by the curie prefix
-for that data set.  If the directory is misnamed and does not match the prefix, then labels will not be added to the identifiers
-in the final compendium.
+## Understanding Babel outputs
 
-Once data is assembled, we attempt to create two extra files for each data source: `labels` and `synonyms`. `labels` is
-a two-column tab-delimited file. The first column is a CURIE identifier from the data source, and the second column is the
-label from that data set.  Each entity should only appear once in the `labels` file. The `labels` file for a data set
-does not subset the data for a specific purpose, but contains all labels for any entity in that data set. 
+### How does Babel choose a preferred identifier for a clique?
 
-`synonyms` contains other lexical names for the entity and is a 3-column tab-delimited file, with the second column
-indicating the type of synonym (exact, related, xref, etc.)
+After determining the equivalent identifiers that belong in a single clique,
+Babel sorts them in the order of CURIE prefixes for that Biolink type as
+determined by the Biolink Model. For example, for a
+[biolink:SmallMolecule](https://biolink.github.io/biolink-model/SmallMolecule/#valid-id-prefixes),
+any CHEBI identifiers will appear first, followed by any UNII identifiers, and
+so on. The first identifier in this list is the preferred identifier for the
+clique.
 
-### Creating compendia
+[Conflations](./docs/Conflation.md) are lists of identifiers that are merged in
+that order when that conflation is applied. The preferred identifier for the
+clique is therefore the preferred identifier of the first clique being
+conflated.
 
-The individual details of creating a compendium vary, but all follow the same essential pattern.  
+- For GeneProtein conflation, the preferred identifier is a gene.
+- For DrugChemical conflation, Babel uses the
+  [following algorithm](https://github.com/NCATSTranslator/Babel/blob/f3ff2103e74bc9b6bee9483355206b32e8f9ae9b/src/createcompendia/drugchemical.py#L466-L538):
+    1. We first choose an overall Biolink type for the conflated clique. To do
+       this, we use a
+       ["preferred Biolink type" order](https://github.com/NCATSTranslator/Babel/blob/f3ff2103e74bc9b6bee9483355206b32e8f9ae9b/config.yaml#L32-L50)
+       that can be configured in [config.yaml](./config.yaml) and choose the most
+       preferred Biolink type that is present in the conflated clique.
+    1. We then group the cliques to be conflated by the prefix of their preferred
+       identifier, and sort them based on the preferred prefix order for the
+       chosen Biolink type.
+    1. If there are multiple cliques with the same prefix in their preferred
+       identifier, we use the following criteria to sort them:
+        1. A clique with a lower information content value will be sorted before
+           those with a higher information content or no information content at
+           all.
+        1. A clique with more identifiers are sorted before those with fewer
+           identifiers.
+        1. A clique whose preferred identifier has a smaller numerical suffix will
+           be sorted before those with a larger numerical suffix.
 
-First, we extract the identifiers that will be used in the compendia from each data source that will contribute, and
-place them into a directory.  For instance, in the build of the chemical compendium, these ids are placed into 
-`/babel_downloads/chemical/ids`. Each file is a two-column file containing curie identifiers in column 1, and the
-Biolink type for that entity in column 2.  
+### How does Babel choose a preferred label for a clique?
 
-Second, we create pairwise concords across vocabularies. These are placed in e.g. `babel_downloads/chemical/concords`. 
-Each concord is a three-column file of the format:
+For most Biolink types, the preferred label for a clique is the label of the
+preferred identifier. There is a
+[`demote_labels_longer_than`](https://github.com/NCATSTranslator/Babel/blob/master/config.yaml#L437)
+configuration parameter that -- if set -- will cause labels that are longer than
+the specified number of characters to be ignored unless no labels shorter than
+that length are present. This is to avoid overly long labels when a more concise
+label is available.
 
-`<curie1> <relation> <curie2>`
+Biolink types that are chemicals (i.e.
+[biolink:ChemicalEntity](https://biolink.github.io/biolink-model/ChemicalEntity/)
+and its subclasses) have a special list of
+[preferred name boost prefixes](https://github.com/NCATSTranslator/Babel/blob/f3ff2103e74bc9b6bee9483355206b32e8f9ae9b/config.yaml#L416-L426)
+that are used to prioritize labels. This list is currently:
 
-While the relation is currently unused, future versions of Babel may use the relation in building cliques.
+1. DRUGBANK
+1. DrugCentral
+1. CHEBI
+1. MESH
+1. CHEMBL.COMPOUND
+1. GTOPDB
+1. HMDB
+1. RXCUI
+1. PUBCHEM.COMPOUND
 
-Third, the compendia is built by bringing together the ids and concords, pulling in the categories from the id files, 
-and the labels from the label files.
+[Conflations](./docs/Conflation.md) are lists of identifiers that are merged in
+that order when that conflation is applied. The preferred label for the
+conflated clique is therefore the preferred label of the first clique being
+conflated.
 
-Fourth, the compendia is assessed to make sure that all the ids in the id files made into one of the possibly multiple 
-compendia.  The compendia are further assessed to locate large cliques and display the level of vocabulary merging.
+## Where do the clique descriptions come from?
 
-## Building with Docker
+Currently, all descriptions for NodeNorm concepts come from
+[UberGraph](https://github.com/INCATools/ubergraph/). You will note that
+descriptions are collected for every identifier within a clique, and then the
+description associated with the most preferred identifier is provided for the
+preferred identifier. Descriptions are not included in NameRes, but the
+`description` flag can be used to include any descriptions when returning
+cliques from NodeNorm.
 
-You can build this repository by running the following Docker command:
+### What are "information content" values?
 
+Babel obtains information content values for over 3.8 million concepts from
+[Ubergraph](https://github.com/INCATools/ubergraph?tab=readme-ov-file#graph-organization)
+based on the number of terms related to the specified term as either a subclass
+or any existential relation. They are decimal values that range from 0.0
+(high-level broad term with many subclasses) to 100.0 (very specific term with
+no subclasses).
+
+## Reporting incorrect Babel cliques
+
+### I've found two or more identifiers in separate cliques that should be considered identical
+
+Please report this "split" clique as an issue to the
+[Babel GitHub repository](https://github.com/TranslatorSRI/Babel/issues). At a
+minimum, please include the identifiers (CURIEs) for the identifiers that should
+be combined. Links to a NodeNorm instance showing the two cliques are very
+helpful. Evidence supporting the lumping, such as a link to an external database
+that makes it clear that these identifiers refer to the same concept, are also
+very helpful: while we have some ability to combine cliques manually if needed
+urgently for some application, we prefer to find a source of mappings that would
+combine the two identifiers, allowing us to improve cliquing across Babel.
+
+<!-- rumdl-disable MD013 -->
+### I've found two or more identifiers combined in a single clique that actually identify different concepts
+<!-- rumdl-enable MD013 -->
+
+Please report this "lumped" clique as an issue to the
+[Babel GitHub repository](https://github.com/TranslatorSRI/Babel/issues). At a
+minimum, please include the identifiers (CURIEs) for the identifiers that should
+be split. Links to a NodeNorm instance showing the lumped clique is very
+helpful. Evidence, such as a link to an external database that makes it clear
+that these identifiers refer to the same concept, are also very helpful: while
+we have some ability to combine cliques manually if needed urgently for some
+application, we prefer to find a source of mappings that would combine the two
+identifiers, allowing us to improve cliquing across Babel.
+
+## Running Babel
+
+### How can I run Babel?
+
+Babel is difficult to run, primarily because of its inefficient memory handling
+-- we currently need around 500G of memory to build the largest compendia
+(Protein and DrugChemical conflated information), although the smaller compendia
+should be buildable with far less memory. We are working on reducing these
+restrictions as far as possible. You can read more about
+[Babel's build process](docs/RunningBabel.md), and please do contact us if you
+run into any problems or would like some assistance.
+
+We have [detailed instructions for running Babel](docs/RunningBabel.md), but the
+short version is:
+
+- We use [uv](https://docs.astral.sh/uv/) to manage Python dependencies. You can
+  use the
+  [Docker image](https://github.com/NCATSTranslator/Babel/pkgs/container/babel)
+  if you run into any difficulty setting up the prerequisites.
+- We use [Snakemake](https://snakemake.github.io/) to handle the dependency
+  management.
+
+Therefore, you should be able to run Babel by cloning this repository and
+running:
+
+```shell
+$ uv run snakemake --cores [NUMBER OF CORES TO USE]
 ```
-$ docker build .
-```
 
-It is also set up with a GitHub Action that will automatically generate and publish
-Docker images to https://github.com/TranslatorSRI/Babel/pkgs/container/babel.
+The [./slurm/run-babel-on-slurm.sh](./slurm/run-babel-on-slurm.sh) Bash script
+can be used to start running Babel as a Slurm job. You can set the BABEL_VERSION
+environment variable to document which version of Babel you are running.
 
-**Known issue**: if you want to use `git fetch` from this Docker image, you need
-to manually remote the Basic authentication command from `.git/config` before it
-will work. We're tracking this at https://github.com/TranslatorSRI/Babel/issues/119.
+## Contributing to Babel
 
-## Running with Docker
+If you want to contribute to Babel, start with the
+[Contributing to Babel](./CONTRIBUTING.md) documentation. This will provide
+guidance on how the source code is organized, what contributions are most
+useful, and how to run the tests.
 
-You can also run Babel with [Docker](https://www.docker.com/). There are
-two directories you need to bind or mount from outside the container:
+## Contact information
 
-```
-$ docker run -it --rm --mount type=bind,source=...,target=/home/runner/babel/babel_downloads --entrypoint /bin/bash ggvaidya/babel
-```
-
-The download directory (`babel/babel_downloads`) is used to store data files downloaded during Babel assembly.
-
-The script `scripts/build-babel.sh` can be used to run `snakemake` with a few useful settings (although just running
-`uv run snakemake --cores 5` should work just fine.)
-
-## Deploying with Kubernetes
-
-The `kubernetes/` directory has example Kubernetes scripts for deploying Babel to a Kubernetes cluster. You need to
-create three resources:
-* `kubernetes/babel-downloads.k8s.yaml` creates a Persistent Volume Claim (PVC) for downloading input resources from
-  the internet.
-* `kubernetes/babel-outputs.k8s.yaml` creates a PVC for storing the output files generated by Babel. This includes
-  compendia, synonym files, reports and intermediate files.
-* `kubernetes/babel.k8s.yaml` creates a pod running the latest Docker image from ggvaidya/babel. Rather than running
-  the data generation automatically, you are expected to SSH into this pod and start the build process by:
-  1. Edit the script `scripts/babel-build.sh` to clear the `DRY_RUN` property so that it doesn't , i.e.:
-     ```shell
-     export DRY_RUN=
-     ```
-  2. Creating a [screen](https://www.gnu.org/software/screen/) to run the program in. You can start a Screen by
-     running:
-
-     ```shell
-     $ screen
-     ```
-  3. Starting the Babel build process by running:
-    
-     ```shell
-     $ bash scripts/babel-build.sh
-     ```
-  
-     Ideally, this should produce the entire Babel output in a single run. You can also add `--rerun-incomplete` if you
-     need to restart a partially completed job.
-
-     To help with debugging, the Babel image includes .git information. You can switch branches, or fetch new branches
-     from GitHub by running `git fetch origin-https`.
- 
-  4. Press `Ctrl+A D` to "detach" the screen. You can reconnect to a detached screen by running `screen -r`.
-     You can also see a list of all running screens by running `screen -l`.
-  5. Once the generation completes, all output files should be in the `babel_outputs` directory.
+You can find out more about Babel by
+[opening an issue on this repository](https://github.com/TranslatorSRI/Babel/issues),
+contacting one of the
+[Translator DOGSLED PIs](https://ncats.nih.gov/research/research-activities/translator/projects)
+or contacting the
+[NCATS Translator team](https://ncats.nih.gov/research/research-activities/translator/about).

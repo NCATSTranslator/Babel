@@ -16,7 +16,7 @@ dependencies = [
     "humanfriendly>=10.0",
     "jsonlines>=4.0.0",
     "more-itertools>=10.8.0",
-    "oaklib~=0.5.1",
+    "oaklib>=0.5.1",
     "pandas>=2.3.3",
     "psutil>=7.1.1",
     "psycopg2-binary>=2.9.11",
@@ -30,6 +30,7 @@ dependencies = [
     "snakemake>=9.13.3",
     "snakemake-executor-plugin-slurm>=1.9.2",
     "sparqlwrapper>=2.0.0",
+    "tqdm>=4.67.1",
     "wheel>=0.45.1",
     "xmltodict>=1.0.2",
 ]
@@ -48,17 +49,15 @@ apybiomart = { git = "https://github.com/gaurav/apybiomart.git", rev = "change-c
 
 [dependency-groups]
 dev = [
-    "ruff>=0.14.9",
+    "ipykernel>=7.1.0",
+    "ruff>=0.14.14",
+    "rumdl>=0.1.3",
     "snakefmt>=0.11.2",
 ]
 
 # Linting/formatting configuration
 [tool.ruff]
 line-length = 120
-
-[tool.snakefmt]
-line_length = 120
-include = '\.snakefile$|^Snakefile'
 
 [tool.ruff.lint]
 # Enable all rules that ruff format would normally apply
@@ -76,3 +75,19 @@ ignore = [
 
 fixable = ["ALL"]
 unfixable = []
+
+[tool.snakefmt]
+line_length = 120
+include = '\.snakefile$|^Snakefile'
+
+[tool.rumdl]
+flavor = "gfm"
+disable = [
+    "MD014",    # Allow '$ shell command' without displaying the output -- we have some long outputs!
+]
+
+[tool.rumdl.MD013]
+line-length = 100
+code-blocks = false
+tables = false
+reflow = true  # Enable automatic line wrapping (required for --fix)
