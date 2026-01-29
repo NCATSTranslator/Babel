@@ -215,7 +215,6 @@ dependencies = [
     { name = "deprecated" },
     { name = "duckdb" },
     { name = "humanfriendly" },
-    { name = "ipykernel" },
     { name = "jsonlines" },
     { name = "more-itertools" },
     { name = "oaklib" },
@@ -239,6 +238,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "ipykernel" },
     { name = "ruff" },
     { name = "rumdl" },
     { name = "snakefmt" },
@@ -254,7 +254,6 @@ requires-dist = [
     { name = "deprecated", specifier = "~=1.2.18" },
     { name = "duckdb", specifier = ">=1.4.1" },
     { name = "humanfriendly", specifier = ">=10.0" },
-    { name = "ipykernel", specifier = ">=7.1.0" },
     { name = "jsonlines", specifier = ">=4.0.0" },
     { name = "more-itertools", specifier = ">=10.8.0" },
     { name = "oaklib", specifier = ">=0.5.1" },
@@ -278,6 +277,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "ipykernel", specifier = ">=7.1.0" },
     { name = "ruff", specifier = ">=0.14.14" },
     { name = "rumdl", specifier = ">=0.1.3" },
     { name = "snakefmt", specifier = ">=0.11.2" },
