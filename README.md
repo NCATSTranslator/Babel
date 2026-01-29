@@ -41,7 +41,9 @@ clique, which can then be used by tools like
 [Name Resolver (NameRes)](https://github.com/NCATSTranslator/NameResolution) to
 provide name-based lookup of concepts.
 
-## What do Babel outputs look like?
+## Using Babel outputs
+
+### What do Babel outputs look like?
 
 Three [Babel data formats](./docs/DataFormats.md) are available:
 
@@ -59,47 +61,16 @@ Three [Babel data formats](./docs/DataFormats.md) are available:
 - Conflation files contain the lists of concepts that should be conflated when
   that conflation is turned on.
 
-## How can I download Babel outputs?
+### How can I download Babel outputs?
 
 You can find out about [downloading Babel outputs](docs/Downloads.md). You can
 find a list of Babel releases in the [Releases list](./releases/README.md).
 
-## How can I run Babel?
-
-Babel is difficult to run, primarily because of its inefficient memory handling
--- we currently need around 500G of memory to build the largest compendia
-(Protein and DrugChemical conflated information), although the smaller compendia
-should be buildable with far less memory. We are working on reducing these
-restrictions as far as possible. You can read more about
-[Babel's build process](docs/RunningBabel.md), and please do contact us if you
-run into any problems or would like some assistance.
-
-We have [detailed instructions for running Babel](docs/RunningBabel.md), but the
-short version is:
-
-- We use [uv](https://docs.astral.sh/uv/) to manage Python dependencies. You can
-  use the
-  [Docker image](https://github.com/NCATSTranslator/Babel/pkgs/container/babel)
-  if you run into any difficulty setting up the prerequisites.
-- We use [Snakemake](https://snakemake.github.io/) to handle the dependency
-  management.
-
-Therefore, you should be able to run Babel by cloning this repository and
-running:
-
-```shell
-$ uv run snakemake --cores [NUMBER OF CORES TO USE]
-```
-
-The [./slurm/run-babel-on-slurm.sh](./slurm/run-babel-on-slurm.sh) Bash script
-can be used to start running Babel as a Slurm job. You can set the BABEL_VERSION
-environment variable to document which version of Babel you are running.
-
-## How can I deploy Babel outputs?
+### How can I deploy Babel outputs?
 
 Information on [deploying Babel outputs](./docs/Deployment.md) is available.
 
-## How can I access Babel cliques?
+### How can I access Babel cliques?
 
 There are several ways of accessing Babel cliques:
 
@@ -125,7 +96,7 @@ There are several ways of accessing Babel cliques:
   JSONL, [Apache Parquet](https://parquet.apache.org/) or
   [KGX](https://github.com/biolink/kgx) formats.
 
-## What is the Node Normalization service (NodeNorm)?
+### What is the Node Normalization service (NodeNorm)?
 
 The Node Normalization service, Node Normalizer or
 [NodeNorm](https://github.com/TranslatorSRI/NodeNormalization) is an NCATS
@@ -144,9 +115,9 @@ You can find out more about NodeNorm at its
 [Swagger interface](https://nodenormalization-sri.renci.org/docs) or
 [in this Jupyter Notebook](https://github.com/TranslatorSRI/NodeNormalization/blob/master/documentation/NodeNormalization.ipynb).
 
-## What is the Name Resolution service (NameRes)?
+### What is the Name Resolver (NameRes)?
 
-The Name Resolution service, Name Lookup or
+The Name Resolver, Name Lookup or
 [NameRes](https://github.com/TranslatorSRI/NameResolution) is an NCATS
 Translator web service for looking up preferred identifiers by search text.
 Although it is primarily designed to be used to power NCATS Translator's
@@ -156,42 +127,9 @@ You can find out more about NameRes at its
 [Swagger interface](https://name-resolution-sri.renci.org/docs) or
 [in this Jupyter Notebook](https://github.com/TranslatorSRI/NameResolution/blob/master/documentation/NameResolution.ipynb).
 
-## What are "information content" values?
+## Understanding Babel outputs
 
-Babel obtains information content values for over 3.8 million concepts from
-[Ubergraph](https://github.com/INCATools/ubergraph?tab=readme-ov-file#graph-organization)
-based on the number of terms related to the specified term as either a subclass
-or any existential relation. They are decimal values that range from 0.0
-(high-level broad term with many subclasses) to 100.0 (very specific term with
-no subclasses).
-
-## I've found two or more identifiers in separate cliques that should be considered identical
-
-Please report this "split" clique as an issue to the
-[Babel GitHub repository](https://github.com/TranslatorSRI/Babel/issues). At a
-minimum, please include the identifiers (CURIEs) for the identifiers that should
-be combined. Links to a NodeNorm instance showing the two cliques are very
-helpful. Evidence supporting the lumping, such as a link to an external database
-that makes it clear that these identifiers refer to the same concept, are also
-very helpful: while we have some ability to combine cliques manually if needed
-urgently for some application, we prefer to find a source of mappings that would
-combine the two identifiers, allowing us to improve cliquing across Babel.
-
-<!-- rumdl-disable MD013 -->
-## I've found two or more identifiers combined in a single clique that actually identify different concepts
-<!-- rumdl-enable MD013 -->
-
-Please report this "lumped" clique as an issue to the
-[Babel GitHub repository](https://github.com/TranslatorSRI/Babel/issues). At a
-minimum, please include the identifiers (CURIEs) for the identifiers that should
-be split. Links to a NodeNorm instance showing the lumped clique is very
-helpful. Evidence, such as a link to an external database that makes it clear
-that these identifiers refer to the same concept, are also very helpful: while
-we have some ability to combine cliques manually if needed urgently for some
-application, we prefer to find a source of mappings that would combine the two
-identifiers, allowing us to improve cliquing across Babel.
-
-## How does Babel choose a preferred identifier for a clique?
+### How does Babel choose a preferred identifier for a clique?
 
 After determining the equivalent identifiers that belong in a single clique,
 Babel sorts them in the order of CURIE prefixes for that Biolink type as
@@ -209,25 +147,25 @@ conflated.
 - For GeneProtein conflation, the preferred identifier is a gene.
 - For DrugChemical conflation, Babel uses the
   [following algorithm](https://github.com/NCATSTranslator/Babel/blob/f3ff2103e74bc9b6bee9483355206b32e8f9ae9b/src/createcompendia/drugchemical.py#L466-L538):
-  1. We first choose an overall Biolink type for the conflated clique. To do
-     this, we use a
-     ["preferred Biolink type" order](https://github.com/NCATSTranslator/Babel/blob/f3ff2103e74bc9b6bee9483355206b32e8f9ae9b/config.yaml#L32-L50)
-     that can be configured in [config.yaml](./config.yaml) and choose the most
-     preferred Biolink type that is present in the conflated clique.
-  1. We then group the cliques to be conflated by the prefix of their preferred
-     identifier, and sort them based on the preferred prefix order for the
-     chosen Biolink type.
-  1. If there are multiple cliques with the same prefix in their preferred
-     identifier, we use the following criteria to sort them:
-     1. A clique with a lower information content value will be sorted before
-        those with a higher information content or no information content at
-        all.
-     1. A clique with more identifiers are sorted before those with fewer
-        identifiers.
-     1. A clique whose preferred identifier has a smaller numerical suffix will
-        be sorted before those with a larger numerical suffix.
+    1. We first choose an overall Biolink type for the conflated clique. To do
+       this, we use a
+       ["preferred Biolink type" order](https://github.com/NCATSTranslator/Babel/blob/f3ff2103e74bc9b6bee9483355206b32e8f9ae9b/config.yaml#L32-L50)
+       that can be configured in [config.yaml](./config.yaml) and choose the most
+       preferred Biolink type that is present in the conflated clique.
+    1. We then group the cliques to be conflated by the prefix of their preferred
+       identifier, and sort them based on the preferred prefix order for the
+       chosen Biolink type.
+    1. If there are multiple cliques with the same prefix in their preferred
+       identifier, we use the following criteria to sort them:
+        1. A clique with a lower information content value will be sorted before
+           those with a higher information content or no information content at
+           all.
+        1. A clique with more identifiers are sorted before those with fewer
+           identifiers.
+        1. A clique whose preferred identifier has a smaller numerical suffix will
+           be sorted before those with a larger numerical suffix.
 
-## How does Babel choose a preferred label for a clique?
+### How does Babel choose a preferred label for a clique?
 
 For most Biolink types, the preferred label for a clique is the label of the
 preferred identifier. There is a
@@ -268,18 +206,89 @@ preferred identifier. Descriptions are not included in NameRes, but the
 `description` flag can be used to include any descriptions when returning
 cliques from NodeNorm.
 
-## How can I contribute to Babel?
+### What are "information content" values?
+
+Babel obtains information content values for over 3.8 million concepts from
+[Ubergraph](https://github.com/INCATools/ubergraph?tab=readme-ov-file#graph-organization)
+based on the number of terms related to the specified term as either a subclass
+or any existential relation. They are decimal values that range from 0.0
+(high-level broad term with many subclasses) to 100.0 (very specific term with
+no subclasses).
+
+## Reporting incorrect Babel cliques
+
+### I've found two or more identifiers in separate cliques that should be considered identical
+
+Please report this "split" clique as an issue to the
+[Babel GitHub repository](https://github.com/TranslatorSRI/Babel/issues). At a
+minimum, please include the identifiers (CURIEs) for the identifiers that should
+be combined. Links to a NodeNorm instance showing the two cliques are very
+helpful. Evidence supporting the lumping, such as a link to an external database
+that makes it clear that these identifiers refer to the same concept, are also
+very helpful: while we have some ability to combine cliques manually if needed
+urgently for some application, we prefer to find a source of mappings that would
+combine the two identifiers, allowing us to improve cliquing across Babel.
+
+<!-- rumdl-disable MD013 -->
+### I've found two or more identifiers combined in a single clique that actually identify different concepts
+<!-- rumdl-enable MD013 -->
+
+Please report this "lumped" clique as an issue to the
+[Babel GitHub repository](https://github.com/TranslatorSRI/Babel/issues). At a
+minimum, please include the identifiers (CURIEs) for the identifiers that should
+be split. Links to a NodeNorm instance showing the lumped clique is very
+helpful. Evidence, such as a link to an external database that makes it clear
+that these identifiers refer to the same concept, are also very helpful: while
+we have some ability to combine cliques manually if needed urgently for some
+application, we prefer to find a source of mappings that would combine the two
+identifiers, allowing us to improve cliquing across Babel.
+
+
+## Running Babel
+
+### How can I run Babel?
+
+Babel is difficult to run, primarily because of its inefficient memory handling
+-- we currently need around 500G of memory to build the largest compendia
+(Protein and DrugChemical conflated information), although the smaller compendia
+should be buildable with far less memory. We are working on reducing these
+restrictions as far as possible. You can read more about
+[Babel's build process](docs/RunningBabel.md), and please do contact us if you
+run into any problems or would like some assistance.
+
+We have [detailed instructions for running Babel](docs/RunningBabel.md), but the
+short version is:
+
+- We use [uv](https://docs.astral.sh/uv/) to manage Python dependencies. You can
+  use the
+  [Docker image](https://github.com/NCATSTranslator/Babel/pkgs/container/babel)
+  if you run into any difficulty setting up the prerequisites.
+- We use [Snakemake](https://snakemake.github.io/) to handle the dependency
+  management.
+
+Therefore, you should be able to run Babel by cloning this repository and
+running:
+
+```shell
+$ uv run snakemake --cores [NUMBER OF CORES TO USE]
+```
+
+The [./slurm/run-babel-on-slurm.sh](./slurm/run-babel-on-slurm.sh) Bash script
+can be used to start running Babel as a Slurm job. You can set the BABEL_VERSION
+environment variable to document which version of Babel you are running.
+
+## Contributing to Babel
 
 If you want to contribute to Babel, start with the
 [Contributing to Babel](./CONTRIBUTING.md) documentation. This will provide
 guidance on how the source code is organized, what contributions are most
 useful, and how to run the tests.
 
-## Who should I contact for more information about Babel?
+## Contact information
 
 You can find out more about Babel by
 [opening an issue on this repository](https://github.com/TranslatorSRI/Babel/issues),
 contacting one of the
-[Translator SRI PIs](https://ncats.nih.gov/research/research-activities/translator/projects)
+[Translator DOGSLED PIs](https://ncats.nih.gov/research/research-activities/translator/projects)
 or contacting the
 [NCATS Translator team](https://ncats.nih.gov/research/research-activities/translator/about).
