@@ -32,22 +32,25 @@ to users who aren't system administrators for these tools:
    5. Update the Translator-devops repo with the new URL.
    6. Create a NameRes instance that will download the Solr backup and start the instance with it
       (see [NameRes devops] for information).
-6. **Check with RENCI NodeNorm users before updating RENCI NodeNorm and NameRes instances**
-7. Update RENCI NodeNorm and NameRes instances.
-8. Announce on Translator and RENCI channels and ask people to try it out.
-9. Deploy to ITRB
-   1. Use the bastion servers to delete all data from the ITRB CI Redis R3 server.
-   2. Update the Translator-Devops repo and create a PR for the develop branch. Once merged, the new
-      Babel outputs should be loaded into the ITRB CI Redis R3 server.
-   3. Use the bastion servers to delete all data from the ITRB Test Redis R3 server.
-   4. Ask ITRB to run the NodeNorm loader to populate the ITRB Test Redis R3 server.
-   5. **Announce upcoming downtime to NodeNorm Prod.**
-   6. Ask ITRB to take down NodeNorm Prod.
-   7. Use the bastion servers to delete all data from the ITRB Prod Redis R3 server.
-   8. Ask ITRB to run the NodeNorm loader to populate the ITRB Prod Redis R3 server.
-   9. Ask ITRB to start the NodeNorm Prod instance.
+6. Use the [Babel Validator] to test this release and check how it performs compared to the previous release.
+7. **Check with RENCI NodeNorm users before updating RENCI NodeNorm and NameRes instances**
+8. Update RENCI NodeNorm and NameRes instances.
+9. Announce on Translator and RENCI channels and ask people to try it out.
+10. Deploy to ITRB
+    1. Use the bastion servers to delete all data from the ITRB CI Redis R3 server.
+    2. Update the Translator-Devops repo and create a PR for the develop branch. Once merged, the new
+       Babel outputs should be loaded into the ITRB CI Redis R3 server.
+    3. Use the bastion servers to delete all data from the ITRB Test Redis R3 server.
+    4. Ask ITRB to run the NodeNorm loader to populate the ITRB Test Redis R3 server.
+    5. **Announce upcoming downtime to NodeNorm Prod.**
+    6. Ask ITRB to take down NodeNorm Prod.
+    7. Use the bastion servers to delete all data from the ITRB Prod Redis R3 server.
+    8. Ask ITRB to run the NodeNorm loader to populate the ITRB Prod Redis R3 server.
+    9. Ask ITRB to start the NodeNorm Prod instance.
+11. Use the [Babel Validator] to test this release and check how it performs compared to the previous release.
+    As a side-benefit, running these tests will warm up NameRes Solr's caches.
 
-  [Babel Validator]: https://github.com/TranslatorSRI/babel-validation
+[Babel Validator]: https://github.com/TranslatorSRI/babel-validation
   [redis r3 external]: https://github.com/helxplatform/translator-devops/tree/3e16517d6adc41db8f2156cc747b7a5ac20ee62d/helm/redis-r3-external
   [NodeNorm loader]: https://github.com/helxplatform/translator-devops/tree/3e16517d6adc41db8f2156cc747b7a5ac20ee62d/helm/node-normalization-loader
   [NodeNorm web server]: https://github.com/helxplatform/translator-devops/tree/3e16517d6adc41db8f2156cc747b7a5ac20ee62d/helm/node-normalization-web-server
