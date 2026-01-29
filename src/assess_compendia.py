@@ -1,7 +1,9 @@
 import os
-from os import path
-import jsonlines
 from collections import defaultdict
+from os import path
+
+import jsonlines
+
 from src.util import Text
 
 
@@ -11,7 +13,7 @@ def assess_completeness(input_dir, compendia, reportfile):
     id_files = os.listdir(input_dir)
     all_identifiers = set()
     for idf in id_files:
-        with open(path.join(input_dir, idf), "r") as inf:
+        with open(path.join(input_dir, idf)) as inf:
             for line in inf:
                 x = line.strip().split("\t")[0]
                 all_identifiers.add(x)
@@ -23,11 +25,11 @@ def assess_completeness(input_dir, compendia, reportfile):
                 for identifier in ids:
                     all_identifiers.discard(identifier)
     with open(reportfile, "w") as outf:
-        l = list(all_identifiers)
-        l.sort()
-        print(f"Missing identifiers: {len(l)}\n")
-        outf.write(f"Missing identifiers: {len(l)}\n")
-        for missing_id in l:
+        list_all_identifiers = list(all_identifiers)
+        list_all_identifiers.sort()
+        print(f"Missing identifiers: {len(list_all_identifiers)}\n")
+        outf.write(f"Missing identifiers: {len(list_all_identifiers)}\n")
+        for missing_id in list_all_identifiers:
             outf.write(f"{missing_id}\n")
 
 

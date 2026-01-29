@@ -1,6 +1,7 @@
-from src.babel_utils import make_local_name, pull_via_ftp, pull_via_urllib
 import gzip
 from json import loads
+
+from src.babel_utils import make_local_name, pull_via_ftp, pull_via_urllib
 
 
 def pull_pubchem_labels():
@@ -64,7 +65,7 @@ def pull_prot(which, refresh):
     swissprot_labels = {}
     nlines = 0
     maxn = 1000
-    with open(swissname, "r") as inf:
+    with open(swissname) as inf:
         for line in inf:
             nlines += 1
             if line.startswith(">"):

@@ -1,6 +1,7 @@
-from src.prefixes import DOID, OIO
-from src.babel_utils import pull_via_urllib, norm
 import json
+
+from src.babel_utils import norm, pull_via_urllib
+from src.prefixes import DOID, OIO
 
 
 def pull_doid():
@@ -9,7 +10,7 @@ def pull_doid():
 
 def pull_doid_labels_and_synonyms(infile, labelfile, synonymfile):
     # Everything in DOID is a disease.
-    with open(infile, "r") as inf:
+    with open(infile) as inf:
         j = json.load(inf)
     with open(labelfile, "w") as labels, open(synonymfile, "w") as syns:
         for entry in j["graphs"][0]["nodes"]:
@@ -30,7 +31,7 @@ def pull_doid_labels_and_synonyms(infile, labelfile, synonymfile):
 
 def build_xrefs(infile, xreffile, other_prefixes={}):
     # Everything in DOID is a disease.
-    with open(infile, "r") as inf:
+    with open(infile) as inf:
         j = json.load(inf)
     with open(xreffile, "w") as xrefs:
         for entry in j["graphs"][0]["nodes"]:

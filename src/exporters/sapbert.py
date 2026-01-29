@@ -10,11 +10,10 @@
 import gzip
 import itertools
 import json
+import logging
 import os
 import random
 import re
-
-import logging
 
 from src.util import LoggingUtil
 

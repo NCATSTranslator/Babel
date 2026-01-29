@@ -87,14 +87,22 @@ rule get_complexportal_labels_and_synonyms:
 
 rule get_mods:
     output:
-        expand("{download_directory}/{mod}/GENE-DESCRIPTION-JSON_{mod}.json", download_directory=config["download_directory"], mod=config["mods"]),
+        expand(
+            "{download_directory}/{mod}/GENE-DESCRIPTION-JSON_{mod}.json",
+            download_directory=config["download_directory"],
+            mod=config["mods"],
+        ),
     run:
         mods.pull_mods()
 
 
 rule get_mods_labels:
     input:
-        expand("{download_directory}/{mod}/GENE-DESCRIPTION-JSON_{mod}.json", download_directory=config["download_directory"], mod=config["mods"]),
+        expand(
+            "{download_directory}/{mod}/GENE-DESCRIPTION-JSON_{mod}.json",
+            download_directory=config["download_directory"],
+            mod=config["mods"],
+        ),
     output:
         expand("{download_directory}/{mod}/labels", download_directory=config["download_directory"], mod=config["mods"]),
     run:
@@ -109,7 +117,10 @@ rule get_uniprotkb_idmapping:
         idmapping=config["download_directory"] + "/UniProtKB/idmapping.dat",
     run:
         pull_via_wget(
-            "https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/", "idmapping.dat.gz", decompress=True, subpath="UniProtKB"
+            "https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/",
+            "idmapping.dat.gz",
+            decompress=True,
+            subpath="UniProtKB",
         )
 
 
@@ -265,7 +276,11 @@ rule get_icrdf:
 
 rule get_ncbigene:
     output:
-        getfiles=expand("{download_directory}/NCBIGene/{ncbi_files}", download_directory=config["download_directory"], ncbi_files=config["ncbi_files"]),
+        getfiles=expand(
+            "{download_directory}/NCBIGene/{ncbi_files}",
+            download_directory=config["download_directory"],
+            ncbi_files=config["ncbi_files"],
+        ),
     run:
         ncbigene.pull_ncbigene(config["ncbi_files"])
 
@@ -280,7 +295,11 @@ rule get_ncbigene_labels_synonyms_and_taxa:
         descriptions_filename=config["download_directory"] + "/NCBIGene/descriptions",
     run:
         ncbigene.pull_ncbigene_labels_synonyms_and_taxa(
-            input.gene_info_filename, output.labels_filename, output.synonyms_filename, output.taxa_filename, output.descriptions_filename
+            input.gene_info_filename,
+            output.labels_filename,
+            output.synonyms_filename,
+            output.taxa_filename,
+            output.descriptions_filename,
         )
 
 

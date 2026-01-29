@@ -23,7 +23,8 @@ rule verify_pubmed:
         done_file=config["download_directory"] + "/PubMed/verified",
     run:
         publications.verify_pubmed_downloads(
-            [config["download_directory"] + "/PubMed/baseline", config["download_directory"] + "/PubMed/updatefiles"], output.done_file
+            [config["download_directory"] + "/PubMed/baseline", config["download_directory"] + "/PubMed/updatefiles"],
+            output.done_file,
         )
 
 
@@ -70,7 +71,12 @@ rule generate_pubmed_compendia:
         publication_synonyms_gz=config["output_directory"] + "/synonyms/Publication.txt.gz",
     run:
         publications.generate_compendium(
-            [input.pmid_doi_concord_file], [input.metadata_yaml], [input.pmid_id_file], input.titles, output.publication_compendium, input.icrdf_filename
+            [input.pmid_doi_concord_file],
+            [input.metadata_yaml],
+            [input.pmid_id_file],
+            input.titles,
+            output.publication_compendium,
+            input.icrdf_filename,
         )
         # generate_compendium() will generate an (empty) Publication.txt file, but we need
         # to compress it.
@@ -85,7 +91,9 @@ rule check_publications_completeness:
     output:
         report_file=config["output_directory"] + "/reports/publication_completeness.txt",
     run:
-        assessments.assess_completeness(config["intermediate_directory"] + "/publications/ids", input.input_compendia, output.report_file)
+        assessments.assess_completeness(
+            config["intermediate_directory"] + "/publications/ids", input.input_compendia, output.report_file
+        )
 
 
 rule check_publications:

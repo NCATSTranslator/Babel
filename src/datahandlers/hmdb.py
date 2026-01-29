@@ -1,8 +1,10 @@
-from zipfile import ZipFile
 from os import path
-from src.prefixes import HMDB
-from src.babel_utils import pull_via_urllib
+from zipfile import ZipFile
+
 import xmltodict
+
+from src.babel_utils import pull_via_urllib
+from src.prefixes import HMDB
 
 
 def pull_hmdb():
@@ -31,7 +33,7 @@ def handle_metabolite(metabolite, lfile, synfile, smifile):
 
 
 def make_labels_and_synonyms_and_smiles(inputfile, labelfile, synfile, smifile):
-    with open(inputfile, "r") as inf:
+    with open(inputfile) as inf:
         xml = inf.read()
     parsed = xmltodict.parse(xml)
     metabolites = parsed["hmdb"]["metabolite"]

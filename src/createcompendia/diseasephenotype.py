@@ -1,18 +1,16 @@
-from os import path
 from collections import defaultdict
+from os import path
 
-import src.datahandlers.obo as obo
-from src.metadata.provenance import write_concord_metadata
-
-from src.prefixes import MESH, NCIT, MONDO, OMIM, HP, SNOMEDCT, MEDDRA, ORPHANET, ICD0, ICD9, ICD10, UMLS, KEGGDISEASE
-from src.categories import DISEASE, PHENOTYPIC_FEATURE
-from src.ubergraph import build_sets
-import src.datahandlers.umls as umls
 import src.datahandlers.doid as doid
-import src.datahandlers.mesh as mesh
 import src.datahandlers.efo as efo
-
-from src.babel_utils import read_identifier_file, glom, remove_overused_xrefs, get_prefixes, write_compendium
+import src.datahandlers.mesh as mesh
+import src.datahandlers.obo as obo
+import src.datahandlers.umls as umls
+from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.categories import DISEASE, PHENOTYPIC_FEATURE
+from src.metadata.provenance import write_concord_metadata
+from src.prefixes import HP, ICD0, ICD9, ICD10, KEGGDISEASE, MEDDRA, MESH, MONDO, NCIT, OMIM, ORPHANET, SNOMEDCT, UMLS
+from src.ubergraph import build_sets
 
 
 def write_obo_ids(irisandtypes, outfile, exclude=[]):
@@ -47,7 +45,7 @@ def write_hp_ids(outfile):
 
 
 def write_omim_ids(infile, outfile):
-    with open(infile, "r") as inf, open(outfile, "w") as outf:
+    with open(infile) as inf, open(outfile, "w") as outf:
         for line in inf:
             if line.startswith("#"):
                 continue
@@ -89,7 +87,7 @@ def write_mesh_ids(outfile):
 
 def write_umls_ids(mrsty, outfile, badumlsfile):
     badumls = set()
-    with open(badumlsfile, "r") as inf:
+    with open(badumlsfile) as inf:
         for line in inf:
             if line.startswith("#"):
                 continue
@@ -181,7 +179,7 @@ def build_disease_umls_relationships(mrconso, idfile, outfile, omimfile, ncitfil
     good_ids = {}
     for prefix, prefixidfile in [(OMIM, omimfile), (NCIT, ncitfile)]:
         good_ids[prefix] = set()
-        with open(prefixidfile, "r") as inf:
+        with open(prefixidfile) as inf:
             for line in inf:
                 x = line.split()[0]
                 good_ids[prefix].add(x)
@@ -229,7 +227,7 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
         glom(dicts, new_identifiers, unique_prefixes=[MONDO, HP])
         types.update(new_types)
     # Load close Mondos
-    with open(mondoclose, "r") as inf:
+    with open(mondoclose) as inf:
         close_mondos = defaultdict(set)
         for line in inf:
             x = tuple(line.strip().split("\t"))
@@ -245,7 +243,7 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
         else:
             print("no bad pairs", pref)
             bad_pairs = set()
-        with open(infile, "r") as inf:
+        with open(infile) as inf:
             for line in inf:
                 stuff = line.strip().split("\t")
                 if len(stuff) != 3:
@@ -316,7 +314,7 @@ def create_typed_sets(eqsets, types):
 
 def read_badxrefs(fn):
     morebad = set()
-    with open(fn, "r") as inf:
+    with open(fn) as inf:
         for line in inf:
             if line.startswith("#"):
                 continue

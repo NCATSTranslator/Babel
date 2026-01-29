@@ -1,8 +1,10 @@
-from src.prefixes import PUBCHEMCOMPOUND
-from src.babel_utils import pull_via_wget
 import gzip
-import requests
 import json
+
+import requests
+
+from src.babel_utils import pull_via_wget
+from src.prefixes import PUBCHEMCOMPOUND
 
 
 def pull_pubchem():

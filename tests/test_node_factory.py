@@ -1,7 +1,8 @@
 import os
-from src.node import NodeFactory
-from src.LabeledID import LabeledID
+
 import src.prefixes as pref
+from src.LabeledID import LabeledID
+from src.node import NodeFactory
 
 
 def test_get_ancestors():

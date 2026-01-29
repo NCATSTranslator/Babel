@@ -169,7 +169,9 @@ rule get_chemical_mesh_relationships:
         casout_metadata_yaml=config["intermediate_directory"] + "/chemicals/concords/metadata-mesh_cas.yaml",
         uniout_metadata_yaml=config["intermediate_directory"] + "/chemicals/concords/metadata-mesh_unii.yaml",
     run:
-        chemicals.get_mesh_relationships(input.infile, output.casout, output.uniout, output.casout_metadata_yaml, output.uniout_metadata_yaml)
+        chemicals.get_mesh_relationships(
+            input.infile, output.casout, output.uniout, output.casout_metadata_yaml, output.uniout_metadata_yaml
+        )
 
 
 # This is about a 2 hour step and requires something more than 256G of RAM.  512G works.
@@ -178,9 +180,15 @@ rule get_chemical_unichem_relationships:
         structfile=config["download_directory"] + "/UNICHEM/structure.tsv.gz",
         reffile=config["download_directory"] + "/UNICHEM/reference.filtered.tsv",
     output:
-        outfiles=expand("{dd}/chemicals/concords/UNICHEM/UNICHEM_{ucc}", dd=config["intermediate_directory"], ucc=config["unichem_datasources"]),
+        outfiles=expand(
+            "{dd}/chemicals/concords/UNICHEM/UNICHEM_{ucc}",
+            dd=config["intermediate_directory"],
+            ucc=config["unichem_datasources"],
+        ),
     run:
-        chemicals.write_unichem_concords(input.structfile, input.reffile, config["intermediate_directory"] + "/chemicals/concords/UNICHEM")
+        chemicals.write_unichem_concords(
+            input.structfile, input.reffile, config["intermediate_directory"] + "/chemicals/concords/UNICHEM"
+        )
 
 
 rule get_chemical_pubchem_mesh_concord:
@@ -224,14 +232,20 @@ rule get_chebi_concord:
         propfile=config["intermediate_directory"] + "/chemicals/properties/get_chebi_concord.jsonl.gz",
         metadata_yaml=config["intermediate_directory"] + "/chemicals/concords/metadata-CHEBI.yaml",
     run:
-        chemicals.make_chebi_relations(input.sdf, input.dbx, output.outfile, propfile_gz=output.propfile, metadata_yaml=output.metadata_yaml)
+        chemicals.make_chebi_relations(
+            input.sdf, input.dbx, output.outfile, propfile_gz=output.propfile, metadata_yaml=output.metadata_yaml
+        )
 
 
 rule chemical_unichem_concordia:
     resources:
         mem="128G",
     input:
-        concords=expand("{dd}/chemicals/concords/UNICHEM/UNICHEM_{ucc}", dd=config["intermediate_directory"], ucc=config["unichem_datasources"]),
+        concords=expand(
+            "{dd}/chemicals/concords/UNICHEM/UNICHEM_{ucc}",
+            dd=config["intermediate_directory"],
+            ucc=config["unichem_datasources"],
+        ),
     output:
         unichemgroup=config["intermediate_directory"] + "/chemicals/partials/UNICHEM",
     run:
@@ -245,8 +259,14 @@ rule untyped_chemical_compendia:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["chemical_labels"]),
         synonyms=expand("{dd}/{ap}/synonyms", dd=config["download_directory"], ap=config["chemical_synonyms"]),
         unichemgroup=config["intermediate_directory"] + "/chemicals/partials/UNICHEM",
-        concords=expand("{dd}/chemicals/concords/{cc}", dd=config["intermediate_directory"], cc=config["chemical_concords"]),
-        metadata_yamls=expand("{dd}/chemicals/concords/metadata-{cc}.yaml", dd=config["intermediate_directory"], cc=config["chemical_concords"]),
+        concords=expand(
+            "{dd}/chemicals/concords/{cc}", dd=config["intermediate_directory"], cc=config["chemical_concords"]
+        ),
+        metadata_yamls=expand(
+            "{dd}/chemicals/concords/metadata-{cc}.yaml",
+            dd=config["intermediate_directory"],
+            cc=config["chemical_concords"],
+        ),
         idlists=expand("{dd}/chemicals/ids/{ap}", dd=config["intermediate_directory"], ap=config["chemical_ids"]),
     output:
         typesfile=config["intermediate_directory"] + "/chemicals/partials/types",
@@ -254,7 +274,13 @@ rule untyped_chemical_compendia:
         untyped_meta=config["intermediate_directory"] + "/chemicals/partials/metadata-untyped_compendium.yaml",
     run:
         chemicals.build_untyped_compendia(
-            input.concords, input.idlists, input.unichemgroup, output.untyped_file, output.typesfile, output.untyped_meta, input.metadata_yamls
+            input.concords,
+            input.idlists,
+            input.unichemgroup,
+            output.untyped_file,
+            output.typesfile,
+            output.untyped_meta,
+            input.metadata_yamls,
         )
 
 
@@ -273,7 +299,9 @@ rule chemical_compendia:
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["chemical_outputs"])),
         expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["chemical_outputs"]),
     run:
-        chemicals.build_compendia(input.typesfile, input.untyped_file, input.properties_jsonl_gz, input.metadata_yamls, input.icrdf_filename)
+        chemicals.build_compendia(
+            input.typesfile, input.untyped_file, input.properties_jsonl_gz, input.metadata_yamls, input.icrdf_filename
+        )
 
 
 rule check_chemical_completeness:
@@ -282,7 +310,9 @@ rule check_chemical_completeness:
     output:
         report_file=config["output_directory"] + "/reports/chemical_completeness.txt",
     run:
-        assessments.assess_completeness(config["intermediate_directory"] + "/chemicals/ids", input.input_compendia, output.report_file)
+        assessments.assess_completeness(
+            config["intermediate_directory"] + "/chemicals/ids", input.input_compendia, output.report_file
+        )
 
 
 rule check_chemical_entity:

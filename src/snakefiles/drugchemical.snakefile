@@ -14,7 +14,9 @@ rule rxnorm_relationships:
         outfile_concords=config["intermediate_directory"] + "/drugchemical/concords/RXNORM",
         metadata_yaml=config["intermediate_directory"] + "/drugchemical/concords/metadata-RXNORM.yaml",
     run:
-        drugchemical.build_rxnorm_relationships(input.rxnconso, input.rxnrel, output.outfile_concords, output.metadata_yaml)
+        drugchemical.build_rxnorm_relationships(
+            input.rxnconso, input.rxnrel, output.outfile_concords, output.metadata_yaml
+        )
 
 
 rule umls_relationships:
@@ -25,7 +27,9 @@ rule umls_relationships:
         outfile_concords=config["intermediate_directory"] + "/drugchemical/concords/UMLS",
         metadata_yaml=config["intermediate_directory"] + "/drugchemical/concords/metadata-UMLS.yaml",
     run:
-        drugchemical.build_rxnorm_relationships(input.umlsconso, input.umlsrel, output.outfile_concords, output.metadata_yaml)
+        drugchemical.build_rxnorm_relationships(
+            input.umlsconso, input.umlsrel, output.outfile_concords, output.metadata_yaml
+        )
 
 
 rule pubchem_rxnorm_relationships:
@@ -74,12 +78,17 @@ rule drugchemical_conflated_synonyms:
     input:
         drugchemical_conflation=[config["output_directory"] + "/conflation/DrugChemical.txt"],
         chemical_compendia=expand("{do}/compendia/{co}", do=config["output_directory"], co=config["chemical_outputs"]),
-        chemical_synonyms_gz=expand("{do}/synonyms/{co}.gz", do=config["output_directory"], co=config["chemical_outputs"]),
+        chemical_synonyms_gz=expand(
+            "{do}/synonyms/{co}.gz", do=config["output_directory"], co=config["chemical_outputs"]
+        ),
     output:
         drugchemical_conflated_gz=config["output_directory"] + "/synonyms/DrugChemicalConflated.txt.gz",
     run:
         synonymconflation.conflate_synonyms(
-            input.chemical_synonyms_gz, input.chemical_compendia, input.drugchemical_conflation, output.drugchemical_conflated_gz
+            input.chemical_synonyms_gz,
+            input.chemical_compendia,
+            input.drugchemical_conflation,
+            output.drugchemical_conflated_gz,
         )
 
 

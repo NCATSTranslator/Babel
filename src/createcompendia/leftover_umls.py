@@ -1,14 +1,14 @@
 import json
 import logging
-
-import jsonlines
 from pathlib import Path
 
-from src.node import NodeFactory
-from src.util import get_biolink_model_toolkit
+import jsonlines
+
+from src.categories import ACTIVITY, AGENT, DEVICE, DRUG, FOOD, PHYSICAL_ENTITY, PROCEDURE, PUBLICATION, SMALL_MOLECULE
 from src.datahandlers import umls
+from src.node import NodeFactory
 from src.prefixes import UMLS
-from src.categories import ACTIVITY, AGENT, DEVICE, DRUG, FOOD, SMALL_MOLECULE, PHYSICAL_ENTITY, PUBLICATION, PROCEDURE
+from src.util import get_biolink_model_toolkit
 
 
 def write_leftover_umls(compendia, umls_labels_filename, mrconso, mrsty, synonyms, umls_compendium, umls_synonyms, report, biolink_version):
@@ -56,7 +56,7 @@ def write_leftover_umls(compendia, umls_labels_filename, mrconso, mrsty, synonym
             logging.info(f"Starting compendium: {compendium}")
             umls_ids = set()
 
-            with open(compendium, "r") as f:
+            with open(compendium) as f:
                 for row in f:
                     cluster = json.loads(row)
                     for id in cluster["identifiers"]:
@@ -75,7 +75,7 @@ def write_leftover_umls(compendia, umls_labels_filename, mrconso, mrsty, synonym
         preferred_name_by_id = dict()
         types_by_id = dict()
         types_by_tui = dict()
-        with open(mrsty, "r") as inf:
+        with open(mrsty) as inf:
             for line in inf:
                 x = line.strip().split("|")
                 umls_id = f"{UMLS}:{x[0]}"
@@ -104,7 +104,7 @@ def write_leftover_umls(compendia, umls_labels_filename, mrconso, mrsty, synonym
         # Create a compendium that consists solely of all MRCONSO entries that haven't been referenced.
         count_no_umls_type = 0
         count_multiple_umls_type = 0
-        with open(mrconso, "r") as inf:
+        with open(mrconso) as inf:
             for line in inf:
                 if not umls.check_mrconso_line(line):
                     continue
@@ -194,7 +194,7 @@ def write_leftover_umls(compendia, umls_labels_filename, mrconso, mrsty, synonym
 
         # Collected synonyms for all IDs in this compendium.
         synonyms_by_id = dict()
-        with open(synonyms, "r") as synonymsf:
+        with open(synonyms) as synonymsf:
             for line in synonymsf:
                 id, relation, synonym = line.rstrip().split("\t")
                 if id in umls_ids_in_this_compendium:

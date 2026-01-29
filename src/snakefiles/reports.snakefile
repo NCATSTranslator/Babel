@@ -2,7 +2,11 @@ from src.reports import report_tables
 from src.snakefiles.util import get_all_compendia, get_all_synonyms, get_all_gzipped
 import os
 
-from src.reports.compendia_per_file_reports import assert_files_in_directory, generate_content_report_for_compendium, summarize_content_report_for_compendia
+from src.reports.compendia_per_file_reports import (
+    assert_files_in_directory,
+    generate_content_report_for_compendium,
+    summarize_content_report_for_compendia,
+)
 
 # Some paths we will use at multiple times in these reports.
 compendia_path = config["output_directory"] + "/compendia"
@@ -80,9 +84,11 @@ rule generate_summary_content_report_for_compendia:
     run:
         summarize_content_report_for_compendia(input.expected_content_reports, output.report_path)
 
+
 #
 # REPORT TABLES
 #
+
 
 # Generate a prefix table.
 rule generate_prefix_table:
@@ -93,6 +99,7 @@ rule generate_prefix_table:
     run:
         report_tables.generate_prefix_table(input.curie_report, output.prefix_table)
 
+
 # Generate a cliques table.
 rule generate_cliques_table:
     input:
@@ -102,12 +109,16 @@ rule generate_cliques_table:
     run:
         report_tables.generate_cliques_table(input.cliques_report, output.cliques_table)
 
+
 # Generate a table of mapping sources.
 rule generate_mapping_sources_table:
     input:
-        metadata_yaml_files = expand(config["output_directory"] + "/metadata/{compendia_filename}.yaml", compendia_filename=get_all_compendia(config)),
+        metadata_yaml_files=expand(
+            config["output_directory"] + "/metadata/{compendia_filename}.yaml",
+            compendia_filename=get_all_compendia(config),
+        ),
     output:
-        mapping_sources_table = config["output_directory"] + "/reports/tables/mapping_sources_table.csv",
+        mapping_sources_table=config["output_directory"] + "/reports/tables/mapping_sources_table.csv",
     run:
         report_tables.generate_mapping_sources_table(input.metadata_yaml_files, output.mapping_sources_table)
 

@@ -10,10 +10,14 @@ import os
 rule export_all_to_kgx:
     input:
         nodes_files=expand(
-            "{od}/kgx/{fn}", od=config["output_directory"], fn=map(lambda fn: os.path.splitext(fn)[0] + "_nodes.jsonl.gz", get_all_compendia(config))
+            "{od}/kgx/{fn}",
+            od=config["output_directory"],
+            fn=map(lambda fn: os.path.splitext(fn)[0] + "_nodes.jsonl.gz", get_all_compendia(config)),
         ),
         edges_files=expand(
-            "{od}/kgx/{fn}", od=config["output_directory"], fn=map(lambda fn: os.path.splitext(fn)[0] + "_edges.jsonl.gz", get_all_compendia(config))
+            "{od}/kgx/{fn}",
+            od=config["output_directory"],
+            fn=map(lambda fn: os.path.splitext(fn)[0] + "_edges.jsonl.gz", get_all_compendia(config)),
         ),
     output:
         x=config["output_directory"] + "/kgx/done",
@@ -38,7 +42,9 @@ rule generate_kgx:
 rule export_all_to_sapbert_training:
     input:
         sapbert_training_file=expand(
-            "{od}/sapbert-training-data/{fn}.gz", od=config["output_directory"], fn=get_all_synonyms_with_drugchemicalconflated(config)
+            "{od}/sapbert-training-data/{fn}.gz",
+            od=config["output_directory"],
+            fn=get_all_synonyms_with_drugchemicalconflated(config),
         ),
     output:
         x=config["output_directory"] + "/sapbert-training-data/done",

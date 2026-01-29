@@ -1,6 +1,6 @@
 # Shared code used by Snakemake files
-import shutil
 import gzip
+import shutil
 
 import src.util
 

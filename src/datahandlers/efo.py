@@ -1,12 +1,12 @@
 import logging
 import re
 
+import pyoxigraph
+
+from src.babel_utils import pull_via_urllib
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import EFO, ORPHANET
-from src.babel_utils import pull_via_urllib
-from src.babel_utils import make_local_name
-from src.util import Text, LoggingUtil
-import pyoxigraph
+from src.util import LoggingUtil, Text
 
 logger = LoggingUtil.init_logging(__name__, level=logging.WARNING)
 
@@ -31,7 +31,7 @@ class EFOgraph:
         logger.info(f"Loading EFO from {efo_owl_file_path}.")
         start = dt.now()
         self.m = pyoxigraph.Store()
-        with open(efo_owl_file_path, "r") as inf:
+        with open(efo_owl_file_path) as inf:
             self.m.bulk_load(input=inf, format=pyoxigraph.RdfFormat.RDF_XML, base_iri="http://example.org/")
         end = dt.now()
         logger.info(f"EFO loading complete in {end - start}.")
@@ -168,7 +168,7 @@ def make_ids(roots, owlfile, idfname):
 def make_concords(owlfile, idfilename, outfilename, provenance_metadata=None):
     """Given a list of identifiers, find out all of the equivalent identifiers from the owl"""
     m = EFOgraph(owlfile)
-    with open(idfilename, "r") as inf, open(outfilename, "w") as concfile:
+    with open(idfilename) as inf, open(outfilename, "w") as concfile:
         for line in inf:
             efo_id = line.split("\t")[0]
             nexacts = m.get_exacts(efo_id, concfile)

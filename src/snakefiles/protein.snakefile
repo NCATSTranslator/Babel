@@ -110,8 +110,14 @@ rule protein_compendia:
     input:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["protein_labels"]),
         synonyms=expand("{dd}/{ap}/synonyms", dd=config["download_directory"], ap=config["protein_synonyms"]),
-        concords=expand("{dd}/protein/concords/{ap}", dd=config["intermediate_directory"], ap=config["protein_concords"]),
-        metadata_yamls=expand("{dd}/protein/concords/metadata-{ap}.yaml", dd=config["intermediate_directory"], ap=config["protein_concords"]),
+        concords=expand(
+            "{dd}/protein/concords/{ap}", dd=config["intermediate_directory"], ap=config["protein_concords"]
+        ),
+        metadata_yamls=expand(
+            "{dd}/protein/concords/metadata-{ap}.yaml",
+            dd=config["intermediate_directory"],
+            ap=config["protein_concords"],
+        ),
         idlists=expand("{dd}/protein/ids/{ap}", dd=config["intermediate_directory"], ap=config["protein_ids"]),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
         # Include the taxon information from UniProtKB
@@ -129,7 +135,9 @@ rule check_protein_completeness:
     output:
         report_file=config["output_directory"] + "/reports/protein_completeness.txt",
     run:
-        assessments.assess_completeness(config["intermediate_directory"] + "/protein/ids", input.input_compendia, output.report_file)
+        assessments.assess_completeness(
+            config["intermediate_directory"] + "/protein/ids", input.input_compendia, output.report_file
+        )
 
 
 rule check_protein:

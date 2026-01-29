@@ -1,6 +1,5 @@
 import csv
 
-
 from src.babel_utils import pull_via_urllib
 from src.metadata.provenance import write_metadata
 from src.prefixes import HGNCFAMILY
@@ -14,7 +13,7 @@ def pull_hgncfamily():
 
 
 def pull_labels(infile, labelsfile, descriptionsfile, metadata_yaml):
-    with open(infile, "r") as inf, open(labelsfile, "w") as labelsf, open(descriptionsfile, "w") as descriptionsf:
+    with open(infile) as inf, open(labelsfile, "w") as labelsf, open(descriptionsfile, "w") as descriptionsf:
         reader = csv.DictReader(inf)
         for row in reader:
             curie = f"{HGNCFAMILY}:{row['id']}"

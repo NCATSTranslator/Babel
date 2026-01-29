@@ -90,7 +90,9 @@ rule get_gene_ensembl_relationships:
         outfile=config["intermediate_directory"] + "/gene/concords/ENSEMBL",
         metadata_yaml=config["intermediate_directory"] + "/gene/concords/metadata-ENSEMBL.yaml",
     run:
-        gene.build_gene_ensembl_relationships(config["download_directory"] + "/ENSEMBL", output.outfile, output.metadata_yaml)
+        gene.build_gene_ensembl_relationships(
+            config["download_directory"] + "/ENSEMBL", output.outfile, output.metadata_yaml
+        )
 
 
 rule get_gene_medgen_relationships:
@@ -118,9 +120,11 @@ rule get_umls_gene_protein_mappings:
     output:
         umls_uniprotkb_filename=config["download_directory"] + "/UMLS_UniProtKB/UMLS_UniProtKB.tsv",
         umls_gene_concords=config["output_directory"] + "/intermediate/gene/concords/UMLS_NCBIGene",
-        umls_ncbigene_metadata_yaml=config["output_directory"] + "/intermediate/gene/concords/metadata-UMLS_NCBIGene.yaml",
+        umls_ncbigene_metadata_yaml=config["output_directory"]
+        + "/intermediate/gene/concords/metadata-UMLS_NCBIGene.yaml",
         umls_protein_concords=config["output_directory"] + "/intermediate/protein/concords/UMLS_UniProtKB",
-        umls_protein_metadata_yaml=config["output_directory"] + "/intermediate/protein/concords/metadata-UMLS_UniProtKB.yaml",
+        umls_protein_metadata_yaml=config["output_directory"]
+        + "/intermediate/protein/concords/metadata-UMLS_UniProtKB.yaml",
     run:
         uniprotkb.download_umls_gene_protein_mappings(
             config["UMLS_UniProtKB_download_raw_url"],
@@ -165,7 +169,9 @@ rule gene_compendia:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["gene_labels"]),
         synonyms=expand("{dd}/{ap}/synonyms", dd=config["download_directory"], ap=config["gene_labels"]),
         concords=expand("{dd}/gene/concords/{ap}", dd=config["intermediate_directory"], ap=config["gene_concords"]),
-        metadata_yamls=expand("{dd}/gene/concords/metadata-{ap}.yaml", dd=config["intermediate_directory"], ap=config["gene_concords"]),
+        metadata_yamls=expand(
+            "{dd}/gene/concords/metadata-{ap}.yaml", dd=config["intermediate_directory"], ap=config["gene_concords"]
+        ),
         idlists=expand("{dd}/gene/ids/{ap}", dd=config["intermediate_directory"], ap=config["gene_ids"]),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
@@ -181,7 +187,9 @@ rule check_gene_completeness:
     output:
         report_file=config["output_directory"] + "/reports/gene_completeness.txt",
     run:
-        assessments.assess_completeness(config["intermediate_directory"] + "/gene/ids", input.input_compendia, output.report_file)
+        assessments.assess_completeness(
+            config["intermediate_directory"] + "/gene/ids", input.input_compendia, output.report_file
+        )
 
 
 rule check_gene:
