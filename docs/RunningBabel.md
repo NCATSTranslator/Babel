@@ -2,7 +2,7 @@
 
 ## Configuration
 
-The [`./kubernetes`](./kubernetes/README.md) directory contains Kubernetes manifest files
+The [`../kubernetes`](../kubernetes) directory contains Kubernetes manifest files
 that can be used to set up a Pod to run Babel in. They'll give you an idea of the disk
 space and memory requirements needed to run this pipeline.
 

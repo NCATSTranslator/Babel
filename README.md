@@ -32,7 +32,7 @@ or another frontend.
 In certain contexts, differentiating between some related concepts doesn't make
 sense: for example, you might not want to differentiate between a gene and the
 protein that is the product of that gene. Babel provides different
-[conflations](./Conflation.md) that group cliques on the basis of various
+[conflations](docs/Conflation.md) that group cliques on the basis of various
 criteria: for example, the GeneProtein conflation combines a gene with the
 protein that that gene encodes.
 
