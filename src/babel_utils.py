@@ -761,7 +761,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
             "cliques": count_cliques,
             "eq_ids": count_eq_ids,
             "synonyms": count_synonyms,
-            "property_sources": property_source_count,
+            "property_sources": dict(property_source_count),
         },
         combined_from_filenames=metadata_yamls,
     )
