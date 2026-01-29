@@ -99,9 +99,12 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
             "description": "All kinds of chemicals, including drugs, small molecules, molecular mixtures, and so on",
             "filenames": ["MolecularMixture", "SmallMolecule", "Polypeptide", "ComplexMolecularMixture", "ChemicalEntity", "ChemicalMixture", "Drug"],
         },
-        "DiseasePhenotype": {
-            "description": "Conflation of drugs with their active ingredients as chemicals",
-            "filenames": ["Disease", "PhenotypicFeature"],
+        'DiseasePhenotype': {
+            'description': 'Diseases and phenotypes',
+            'filenames': [
+                'Disease',
+                'PhenotypicFeature'
+            ],
         },
         "DrugChemical": {
             "description": "Conflation of drugs with their active ingredients as chemicals",
@@ -246,3 +249,16 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                     "CURIE prefixes": clique_leader_entries[filename]["curie_prefixes"],
                 }
             )
+
+
+def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table):
+    """Generate a table of mapping sources from metadata YAML files.
+
+    Args:
+        metadata_yaml_files (list): List of metadata YAML file paths.
+        mapping_sources_table (str): Path to the output mapping sources table file.
+
+    Returns:
+        None
+    """
+    pass

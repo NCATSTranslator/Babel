@@ -106,6 +106,16 @@ rule generate_cliques_table:
         report_tables.generate_cliques_table(input.cliques_report, output.cliques_table)
 
 
+# Generate a table of mapping sources.
+rule generate_mapping_sources_table:
+    input:
+        metadata_yaml_files = expand(config["output_directory"] + "/metadata/{compendia_filename}.yaml", compendia_filename=get_all_compendia(config)),
+    output:
+        mapping_sources_table = config["output_directory"] + "/reports/tables/mapping_sources_table.csv",
+    run:
+        report_tables.generate_mapping_sources_table(input.metadata_yaml_files, output.mapping_sources_table)
+
+
 # Check that all the reports were built correctly.
 rule all_reports:
     input:
