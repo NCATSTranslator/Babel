@@ -408,11 +408,7 @@ preferred_name_boost_prefixes:
     - DrugCentral
     - CHEBI
     - MESH
-    - CHEMBL.COMPOUND
     - GTOPDB
-    - HMDB
-    - RXCUI
-    - PUBCHEM.COMPOUND
 
 ensembl_datasets_to_skip:
   - elucius_gene_ensembl
