@@ -1,3 +1,4 @@
+from src.reports import report_tables
 from src.snakefiles.util import get_all_compendia, get_all_synonyms, get_all_gzipped
 import os
 
@@ -78,6 +79,37 @@ rule generate_summary_content_report_for_compendia:
         report_path=config["output_directory"] + "/reports/content/compendia_report.json",
     run:
         summarize_content_report_for_compendia(input.expected_content_reports, output.report_path)
+
+#
+# REPORT TABLES
+#
+
+# Generate a prefix table.
+rule generate_prefix_table:
+    input:
+        curie_report=config["output_directory"] + "/reports/duckdb/curie_report.json",
+    output:
+        prefix_table=config["output_directory"] + "/reports/tables/prefix_table.csv",
+    run:
+        report_tables.generate_prefix_table(input.curie_report, output.prefix_table)
+
+# Generate a cliques table.
+rule generate_cliques_table:
+    input:
+        cliques_report=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
+    output:
+        cliques_table=config["output_directory"] + "/reports/tables/cliques_table.csv",
+    run:
+        report_tables.generate_cliques_table(input.cliques_report, output.cliques_table)
+
+# Generate a table of mapping sources.
+rule generate_mapping_sources_table:
+    input:
+        metadata_yaml_files = expand(config["output_directory"] + "/metadata/{compendia_filename}.yaml", compendia_filename=get_all_compendia(config)),
+    output:
+        mapping_sources_table = config["output_directory"] + "/reports/tables/mapping_sources_table.csv",
+    run:
+        report_tables.generate_mapping_sources_table(input.metadata_yaml_files, output.mapping_sources_table)
 
 
 # Check that all the reports were built correctly.
