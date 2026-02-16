@@ -15,8 +15,92 @@
 #
 import csv
 import json
+import sys
 from collections import defaultdict
+from pathlib import Path
 
+import yaml
+
+from src.util import get_logger
+
+logger = get_logger(__name__)
+
+# Descriptions of all of the Babel pipelines.
+# To improve the table somewhat, we'll include pipeline descriptions that group filenames.
+pipeline_descriptions = {
+    'Anatomy': {
+        'description': 'Anatomical entities at all scales, from brains to endothelium to pancreatic beta cells',
+        'filenames': [
+            'AnatomicalEntity',
+            'Cell',
+            'CellularComponent',
+            'GrossAnatomicalStructure'
+        ],
+    },
+    'CellLine': {
+        'description': 'Cell lines from different species',
+        'filenames': ['CellLine'],
+    },
+    'Chemicals': {
+        'description': 'All kinds of chemicals, including drugs, small molecules, molecular mixtures, and so on',
+        'filenames': [
+            'MolecularMixture',
+            'SmallMolecule',
+            'Polypeptide',
+            'ComplexMolecularMixture',
+            'ChemicalEntity',
+            'ChemicalMixture',
+            'Drug'
+        ],
+    },
+    'DiseasePhenotype': {
+        'description': 'Diseases and phenotypes',
+        'filenames': [
+            'Disease',
+            'PhenotypicFeature'
+        ],
+    },
+    'DrugChemical': {
+        'description': 'Conflation of drugs with their active ingredients as chemicals',
+        'filenames': [],
+    },
+    'Gene': {
+        'description': 'Genes from all species',
+        'filenames': ['Gene'],
+    },
+    'GeneFamily': {
+        'description': 'Families of genes',
+        'filenames': ['GeneFamily'],
+    },
+    'GeneProtein': {
+        'description': 'Conflation of genes with the proteins they code for.',
+        'filenames': [],
+    },
+    'Leftover UMLS': {
+        'description': 'A special pipeline that adds every UMLS concept not already added elsewhere in Babel',
+        'filenames': ['umls'],
+    },
+    'Macromolecular Complex': {
+        'description': '',
+        'filenames': ['MacromolecularComplex'],
+    },
+    'ProcessActivityPathway': {
+        'description': 'Biological processes, activities and pathways',
+        'filenames': ['Pathway', 'BiologicalProcess', 'MolecularActivity'],
+    },
+    'Protein': {
+        'description': 'Proteins from all species',
+        'filenames': ['Protein'],
+    },
+    'Publications': {
+        'description': 'All publications from PubMed',
+        'filenames': ['Publication'],
+    },
+    'Taxon': {
+        'description': 'Taxonomic entities, including species, genera, families, and so on from the NCBI Taxonomy',
+        'filenames': ['OrganismTaxon'],
+    }
+}
 
 def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str):
     """
@@ -87,82 +171,6 @@ def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str)
 def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
     with open(cliques_report_json, 'r') as f:
         cliques_report = json.load(f)
-
-    # To improve the table somewhat, we'll include pipeline descriptions that group filenames.
-    pipeline_descriptions = {
-        'Anatomy': {
-            'description': 'Anatomical entities at all scales, from brains to endothelium to pancreatic beta cells',
-            'filenames': [
-                'AnatomicalEntity',
-                'Cell',
-                'CellularComponent',
-                'GrossAnatomicalStructure'
-            ],
-        },
-        'CellLine': {
-            'description': 'Cell lines from different species',
-            'filenames': ['CellLine'],
-        },
-        'Chemicals': {
-            'description': 'All kinds of chemicals, including drugs, small molecules, molecular mixtures, and so on',
-            'filenames': [
-                'MolecularMixture',
-                'SmallMolecule',
-                'Polypeptide',
-                'ComplexMolecularMixture',
-                'ChemicalEntity',
-                'ChemicalMixture',
-                'Drug'
-            ],
-        },
-        'DiseasePhenotype': {
-            'description': 'Diseases and phenotypes',
-            'filenames': [
-                'Disease',
-                'PhenotypicFeature'
-            ],
-        },
-        'DrugChemical': {
-            'description': 'Conflation of drugs with their active ingredients as chemicals',
-            'filenames': [],
-        },
-        'Gene': {
-            'description': 'Genes from all species',
-            'filenames': ['Gene'],
-        },
-        'GeneFamily': {
-            'description': 'Families of genes',
-            'filenames': ['GeneFamily'],
-        },
-        'GeneProtein': {
-            'description': 'Conflation of genes with the proteins they code for.',
-            'filenames': [],
-        },
-        'Leftover UMLS': {
-            'description': 'A special pipeline that adds every UMLS concept not already added elsewhere in Babel',
-            'filenames': ['umls'],
-        },
-        'Macromolecular Complex': {
-            'description': '',
-            'filenames': ['MacromolecularComplex'],
-        },
-        'ProcessActivityPathway': {
-            'description': 'Biological processes, activities and pathways',
-            'filenames': ['Pathway', 'BiologicalProcess', 'MolecularActivity'],
-        },
-        'Protein': {
-            'description': 'Proteins from all species',
-            'filenames': ['Protein'],
-        },
-        'Publications': {
-            'description': 'All publications from PubMed',
-            'filenames': ['Publication'],
-        },
-        'Taxon': {
-            'description': 'Taxonomic entities, including species, genera, families, and so on from the NCBI Taxonomy',
-            'filenames': ['OrganismTaxon'],
-        }
-    }
 
     clique_leader_entries = {}
     for filename, inner in cliques_report.items():
@@ -275,7 +283,136 @@ def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table):
     #   - Identify all the concords across all the mapping YAML files.
     #   - Count the number of cross-references
     #   - Combine it with the description of the cross-references
-    # However, this is complicated by three things:
-    # -
+    # However, this is complicated by two facts:
+    #   1. Several of these output files duplicate each other.
+    #   2. This format is very much in motion, so this code will need to move with it.
+    # So let's do this:
+    #   1. Load all the concords from everywhere and convert them into JSON strings, mapped to a list of filenames.
+    #   2. Uniquify based on those JSON strings.
+    #   3. Load all the metadata YAML files and produce the table.
 
-    return
+    filenames_by_metadata_objects = defaultdict(list)
+    root_objects_by_filename = {}
+
+    for yaml_file in metadata_yaml_files:
+        with open(yaml_file, 'r') as f:
+            metadata = yaml.safe_load(f)
+
+            if metadata is None:
+                logger.warning(f"Metadata file {yaml_file} is empty, skipping.")
+                continue
+
+            if 'name' not in metadata:
+                # TODO: change this into an exception.
+                logger.warning(f"Metadata file {yaml_file} does not have a 'name' field at the top level, skipping.")
+                continue
+
+            # We're primarily looking for counts.
+            all_metadata_objects = extract_combined_from(metadata)
+            logger.info(f"Loaded {len(all_metadata_objects)} metadata objects from {yaml_file}: {all_metadata_objects.keys()}")
+            if yaml_file in root_objects_by_filename:
+                raise RuntimeError(f"Duplicate root object for {yaml_file}!")
+            root_objects_by_filename[yaml_file] = all_metadata_objects["root"]
+            del all_metadata_objects["root"]
+
+            # Store all the other objects (largely concords) by uniqueness, mapped to filenames.
+            for metadata_object in all_metadata_objects.values():
+                filenames_by_metadata_objects[json.dumps(metadata_object, sort_keys=True)].append(yaml_file)
+
+    # We can now produce a list of unique concords by filename.
+    filenames_already_emitted = set()
+
+    with open(mapping_sources_table, 'w') as f:
+        writer = csv.DictWriter(f, ['Biolink Types', 'Mapping Source', 'Number of Mappings'])
+        writer.writeheader()
+        for metadata_objs, filenames in filenames_by_metadata_objects.items():
+            # Note down the filenames so we don't emit them again.
+            filenames_already_emitted.update(filenames)
+            biolink_types = sorted(map(lambda fname: Path(fname).stem, filenames))
+
+            # Recreate the count objects we're trying to emit.
+            metadata_obj = json.loads(metadata_objs)
+
+            # If we don't have counts, we don't care.
+            if metadata_obj is not None and 'counts' not in metadata_obj:
+                continue
+
+            logger.debug(f"Found metadata_obj: {metadata_obj}")
+            # In some cases, counts is an empty list.
+            if isinstance(metadata_obj['counts'], list):
+                metadata_obj['counts'] = {}
+
+            concords = metadata_obj.get('counts', {}).get('concords', {})
+            logger.info(f"Found counts in {metadata_obj['name']}: {json.dumps(metadata_obj['counts'], indent=2)}")
+            logger.debug(f"Found concords in {metadata_obj['name']}: {json.dumps(concords, indent=2)}")
+
+            # Prepare an overall count.
+            description = metadata_obj.get("description", "")
+            if 'count_concords' in concords:
+                if 'count_distinct_curies' in concords:
+                    description = f"{concords['count_concords']:,} cross-references involving {concords['count_distinct_curies']:,} distinct CURIEs from {description}"
+                else:
+                    description = f"{concords['count_concords']} cross-references from {description}"
+            if description:
+                description += "\n"
+
+            # Describe the prefix count.
+            prefix_counts = {}
+            if 'prefix_counts' in concords:
+                prefix_counts = concords['prefix_counts']
+            sorted_prefix_counts = sorted(prefix_counts.items(), key=lambda kv: kv[1], reverse=True)
+            other_count = 0
+            if len(sorted_prefix_counts) > 10:
+                # Too many! Summarize.
+                sorted_prefix_counts = sorted_prefix_counts[:10]
+                other_count = sum(map(lambda kv: kv[1], sorted_prefix_counts[10:]))
+            prefix_counts_str = "\n".join(map(lambda kv: f" - {kv[0]}: {kv[1]:,}", sorted_prefix_counts))
+            if other_count:
+                prefix_counts_str += f"\n - Other: {other_count}"
+
+            writer.writerow({
+                'Biolink Types': "\n".join(biolink_types).strip(),
+                'Mapping Source': metadata_obj.get("name", ""),
+                'Number of Mappings': description + prefix_counts_str,
+            })
+
+def extract_combined_from(metadata_object, path="root"):
+    """
+    Traverse obj recursively and return a dict mapping
+    string paths to every encountered `combined_from` object.
+
+    Written by ChatGPT.
+    """
+    if metadata_object is None:
+        return {}
+
+    if isinstance(metadata_object, dict):
+        results = {
+            path: metadata_object,
+        }
+
+        if "combined_from" in metadata_object:
+            combined_from = metadata_object["combined_from"]
+            if isinstance(combined_from, dict):
+                for key, value in combined_from.items():
+                    results.update(
+                        extract_combined_from(value, f"{path}.{key}")
+                    )
+            elif isinstance(combined_from, list):
+                for i, value in enumerate(combined_from):
+                    results.update(
+                        extract_combined_from(value, f"{path}[{i}]")
+                    )
+            else:
+                raise ValueError(f"Unexpected type for combined_from: {type(combined_from)}: {combined_from}")
+
+        return results
+
+    elif isinstance(metadata_object, list):
+        results = {}
+        for i, value in enumerate(metadata_object):
+            results.update(extract_combined_from(value, f"{path}[{i}]"))
+
+        return results
+
+    raise ValueError(f"Unexpected type for metadata_object: {type(metadata_object)}: {metadata_object}")
