@@ -1,6 +1,6 @@
 # Babel
 
-[![arXiv](https://img.shields.io/badge/arXiv-2601.10008-b31b1b.svg)](https://arxiv.org/abs/2601.10008)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18489042.svg)](https://doi.org/10.5281/zenodo.18489042) [![arXiv](https://img.shields.io/badge/arXiv-2601.10008-b31b1b.svg)](https://arxiv.org/abs/2601.10008)
 
 <!--
 Because this document is written like an FAQ, I want to allow headers to
