@@ -270,4 +270,12 @@ def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table):
     Returns:
         None
     """
-    pass
+
+    # At one level, all we need to do here is to:
+    #   - Identify all the concords across all the mapping YAML files.
+    #   - Count the number of cross-references
+    #   - Combine it with the description of the cross-references
+    # However, this is complicated by three things:
+    # -
+
+    return
