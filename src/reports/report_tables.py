@@ -15,6 +15,7 @@
 #
 import csv
 import json
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -268,12 +269,12 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
             })
 
 
-def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table):
+def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table, max_prefix_count=5):
     """Generate a table of mapping sources from metadata YAML files.
 
-    Args:
-        metadata_yaml_files (list): List of metadata YAML file paths.
-        mapping_sources_table (str): Path to the output mapping sources table file.
+    :param metadata_yaml_files: List of metadata YAML file paths.
+    :param mapping_sources_table: Path to the output mapping sources table file.
+    :param max_prefix_count: Maximum number of prefixes to include in any row of this table.
 
     Returns:
         None
@@ -362,13 +363,22 @@ def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table):
                 prefix_counts = concords['prefix_counts']
             sorted_prefix_counts = sorted(prefix_counts.items(), key=lambda kv: kv[1], reverse=True)
             other_count = 0
-            if len(sorted_prefix_counts) > 10:
+            if len(sorted_prefix_counts) > max_prefix_count:
                 # Too many! Summarize.
-                sorted_prefix_counts = sorted_prefix_counts[:10]
-                other_count = sum(map(lambda kv: kv[1], sorted_prefix_counts[10:]))
-            prefix_counts_str = "\n".join(map(lambda kv: f" - {kv[0]}: {kv[1]:,}", sorted_prefix_counts))
+                other_count = len(sorted_prefix_counts) - max_prefix_count
+                other_sum = sum(map(lambda kv: kv[1], sorted_prefix_counts[max_prefix_count:]))
+                sorted_prefix_counts = sorted_prefix_counts[:max_prefix_count]
+
+        # Write out prefix_counts
+            prefix_counts_list = []
+            for key, value in sorted_prefix_counts:
+                results = re.match(r'^(.*)\((.*)\s*,\s*(.*)\)$', key)
+                if results:
+                    key = f"{results.group(2)}, {results.group(3)}"
+                prefix_counts_list.append(f" - {key}: {value:,}")
             if other_count:
-                prefix_counts_str += f"\n - Other: {other_count}"
+                prefix_counts_list.append(f" - {other_count} other prefix pairs: {other_sum:,}")
+            prefix_counts_str = "\n".join(prefix_counts_list)
 
             writer.writerow({
                 'Biolink Types': "\n".join(biolink_types).strip(),
