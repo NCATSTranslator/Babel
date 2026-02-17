@@ -326,6 +326,8 @@ def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table, m
     with open(mapping_sources_table, 'w') as f:
         writer = csv.DictWriter(f, ['Biolink Types', 'Mapping Source', 'Number of Mappings'])
         writer.writeheader()
+
+        rows = []
         for metadata_objs, filenames in filenames_by_metadata_objects.items():
             # Note down the filenames so we don't emit them again.
             filenames_already_emitted.update(filenames)
@@ -349,11 +351,13 @@ def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table, m
 
             # Prepare an overall count.
             description = metadata_obj.get("description", "")
+            count_concords = 0
             if 'count_concords' in concords:
+                count_concords = concords['count_concords']
                 if 'count_distinct_curies' in concords:
-                    description = f"{concords['count_concords']:,} cross-references involving {concords['count_distinct_curies']:,} distinct CURIEs from {description}"
+                    description = f"{count_concords:,} cross-references involving {concords['count_distinct_curies']:,} distinct CURIEs from {description}"
                 else:
-                    description = f"{concords['count_concords']} cross-references from {description}"
+                    description = f"{count_concords:,} cross-references from {description}"
             if description:
                 description += "\n"
 
@@ -369,7 +373,7 @@ def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table, m
                 other_sum = sum(map(lambda kv: kv[1], sorted_prefix_counts[max_prefix_count:]))
                 sorted_prefix_counts = sorted_prefix_counts[:max_prefix_count]
 
-        # Write out prefix_counts
+            # Write out prefix_counts
             prefix_counts_list = []
             for key, value in sorted_prefix_counts:
                 results = re.match(r'^(.*)\((.*)\s*,\s*(.*)\)$', key)
@@ -380,11 +384,17 @@ def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table, m
                 prefix_counts_list.append(f" - {other_count} other prefix pairs: {other_sum:,}")
             prefix_counts_str = "\n".join(prefix_counts_list)
 
-            writer.writerow({
+            rows.append({
                 'Biolink Types': "\n".join(biolink_types).strip(),
                 'Mapping Source': metadata_obj.get("name", ""),
                 'Number of Mappings': description + prefix_counts_str,
+                'count_concords': count_concords,
             })
+
+        sorted_rows = sorted(rows, key=lambda r: (r['Biolink Types'], -r['count_concords']))
+        for row in sorted_rows:
+            del row['count_concords']
+            writer.writerow(row)
 
 def extract_combined_from(metadata_object, path="root"):
     """
