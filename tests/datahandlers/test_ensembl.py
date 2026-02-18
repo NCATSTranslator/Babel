@@ -20,8 +20,7 @@ def read_biomart_file(biomart_file):
     :rtype: Iterator[Dict[str, str]]
     """
     reader = csv.DictReader(biomart_file, dialect="excel-tab")
-    for row in reader:
-        yield row
+    yield from reader
 
 
 def normalize_list_of_dictionaries(dict_list):
