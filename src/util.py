@@ -289,23 +289,23 @@ class Resource:
 
         If there are particular keys you want to overwrite instead of merge, send in overwrite_keys
         """
-        if type(src) == dict:
+        if isinstance(src, dict):
             for k, v in src.items():
                 if k in overwrite_keys:
                     target[k] = copy.deepcopy(v)
-                elif type(v) == list:
+                elif isinstance(v, list):
                     if k not in target:
                         target[k] = copy.deepcopy(v)
-                    elif type(v[0]) == dict:
+                    elif isinstance(v[0], dict):
                         Resource.deepupdate(target[k], v, overwrite_keys)
                     else:
                         target[k].extend(v)
-                elif type(v) == dict:
+                elif isinstance(v, dict):
                     if k not in target:
                         target[k] = copy.deepcopy(v)
                     else:
                         Resource.deepupdate(target[k], v, overwrite_keys)
-                elif type(v) == set:
+                elif isinstance(v, set):
                     if k not in target:
                         target[k] = v.copy()
                     else:
