@@ -40,7 +40,7 @@ def make_labels_and_synonyms(inputfile, labelfile, synfile):
     wrotelabels = set()
     wrotesyns = set()
     with open(inputfile, encoding="latin-1") as inf, open(labelfile, "w") as lf, open(synfile, "w") as sf:
-        h = inf.readline()
+        _header = inf.readline()
         for line in inf:
             parts = line.strip().split("\t")
             ident = f"{UNII}:{parts[idcol]}"

@@ -6,7 +6,7 @@ from src.prefixes import EC, RHEA
 
 
 def pull_rhea():
-    outputfile = pull_via_urllib("https://ftp.expasy.org/databases/rhea/rdf/", "rhea.rdf.gz", subpath="RHEA", decompress=True)
+    pull_via_urllib("https://ftp.expasy.org/databases/rhea/rdf/", "rhea.rdf.gz", subpath="RHEA", decompress=True)
 
 
 class Rhea:

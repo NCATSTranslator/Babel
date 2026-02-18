@@ -15,7 +15,7 @@ def pull_smpdb():
 def make_labels(inputfile, labelfile):
     """Get the SMPDB file.  It's not good - there are \n and commas, and commas are also the delimiter. I mean, what?"""
     with open(inputfile) as inf, open(labelfile, "w") as outf:
-        h = inf.readline()
+        _header = inf.readline()
         for line in inf:
             if "," not in line:
                 continue

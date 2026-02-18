@@ -11,7 +11,9 @@ from src.babel_utils import make_local_name
 from src.categories import CHEMICAL_ENTITY, DRUG, MOLECULAR_MIXTURE
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import RXCUI, UMLS
+from src.util import get_logger
 
+logger = get_logger(__name__)
 
 def check_mrconso_line(line):
     """
@@ -281,7 +283,7 @@ def read_umls_priority():
     mrp = os.path.join("input_data", "umls_precedence.txt")
     pris = []
     with open(mrp) as inf:
-        h = inf.readline()
+        _header = inf.readline()
         for line in inf:
             x = line.strip().split()
             if x[2] == "No":
@@ -406,7 +408,7 @@ def pull_umls(mrconso):
 
             x = line.strip().split("|")
             cui = x[0]
-            lang = x[1]
+            _lang = x[1]
             suppress = x[16]
             source = x[11]
             termtype = x[12]
@@ -423,7 +425,8 @@ def pull_umls(mrconso):
             pkey = (source, termtype, suppress)
             try:
                 pri = priority[pkey]
-            except:
+            except Exception:
+                logger.warning(f"Priority not found for key {pkey}. Defaulting to high priority (1000000).")
                 # print(pkey)
                 pri = 1000000
             rows[cui].append((pri, term, line))

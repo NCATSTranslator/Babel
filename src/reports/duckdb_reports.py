@@ -33,6 +33,8 @@ def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identic
     """)
     results.write_csv(identically_labeled_cliques_tsv, sep="\t")
 
+    cliques.close()
+
 
 def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_tsv, duckdb_config=None):
     """
@@ -62,6 +64,9 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
         GROUP BY curie HAVING clique_leader_count > 1
         ORDER BY clique_leader_count DESC
     """).write_csv(duplicate_curies_tsv, sep="\t")
+
+    edges.close()
+    cliques.close()
 
 
 def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_clique_leaders_tsv, duckdb_config=None):
@@ -94,6 +99,8 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
         """
     )
     results.write_csv(duplicate_clique_leaders_tsv, sep="\t")
+
+    cliques.close()
 
 
 def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duckdb_config=None):
@@ -182,6 +189,9 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
     with open(curie_report_json, "w") as fout:
         json.dump(by_curie_prefix_results, fout, indent=2, sort_keys=True)
 
+    edges.close()
+    cliques.close()
+
 
 def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_report_json, duckdb_config=None):
     """
@@ -196,6 +206,7 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
     """
 
     db = setup_duckdb(duckdb_filename, duckdb_config)
+
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
     # cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
@@ -274,6 +285,8 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
             sort_keys=True,
         )
 
+    edges.close()
+    # cliques.close()
 
 def get_label_distribution(duckdb_filename, output_filename):
     db = setup_duckdb(duckdb_filename)

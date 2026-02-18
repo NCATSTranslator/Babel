@@ -647,7 +647,8 @@ def pubchemsort(pc_ids, labeled_ids):
                 pclabels[lid.label.upper()] = lid.identifier
             else:
                 label_counts[lid.label.upper()] += 1
-        except:
+        except Exception:
+            logger.warning(f"No labels found for PubChem ID {lid}")
             pass
     matches = [(label_counts[pclabel], pcident) for pclabel, pcident in pclabels.items()]
     matches.sort()
@@ -669,8 +670,9 @@ def pubchemsort(pc_ids, labeled_ids):
                 just_ids = list(pclabels.values())
                 just_ids.sort()
                 best_pubchem_id = just_ids[0]
-        except:
+        except Exception:
             # Gross, there just aren't any labels
+            logger.warning(f"No PubChem labels found for {pc_ids}. Just using the first one.")
             best_pubchem_id = sorted(pc_ids)[0][0]
     for pcelement in pc_ids:
         pcid, _ = pcelement

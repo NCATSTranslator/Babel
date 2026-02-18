@@ -222,3 +222,6 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
 
         # Step 3. Export as Parquet files.
         db.sql("SELECT clique_leader, preferred_name, preferred_name_lc, biolink_type, label, label_lc FROM Synonym").write_parquet(synonyms_parquet_filename)
+
+        # Cleanup
+        synonyms_jsonl.close()
