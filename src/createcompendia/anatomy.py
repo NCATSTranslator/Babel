@@ -146,7 +146,7 @@ def build_wikidata_cell_relationships(outdir, metadata_yaml):
     pairs = []
     for row in rows:
         umls_curie = f"{UMLS}:{row['umls']['value']}"
-        wd_curie = f"{WIKIDATA}:{row['wd']['value']}"
+        # wd_curie = f"{WIKIDATA}:{row['wd']['value']}"
         cl_curie = Text.obo_to_curie(row["cl"]["value"])
         pairs.append((umls_curie, cl_curie))
         counts[umls_curie] += 1

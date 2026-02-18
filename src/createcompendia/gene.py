@@ -45,11 +45,11 @@ def build_gene_ensembl_relationships(ensembl_dir, outfile, metadata_yaml):
                 if os.path.exists(infname):
                     # open each ensembl file, find the id column, and put it in the output
                     with open(infname) as inf:
-                        wrote = set()
+                        # wrote = set()
                         h = inf.readline()
                         x = h[:-1].split("\t")
                         gene_column = x.index("Gene stable ID")
-                        protein_column = x.index("Protein stable ID")
+                        # protein_column = x.index("Protein stable ID")
                         columnno_to_prefix = {}
                         for i, v in enumerate(x):
                             if v in column_to_prefix:
@@ -180,7 +180,7 @@ def read_ncbi_idfile(ncbi_idfile):
 def build_gene_ncbi_ensembl_relationships(infile, ncbi_idfile, outfile, metadata_yaml):
     ncbi_ids = read_ncbi_idfile(ncbi_idfile)
     with gzip.open(infile, "r") as inf, open(outfile, "w") as outf:
-        h = inf.readline()
+        _header = inf.readline()
         last = ("", "")
         for line in inf:
             x = line.decode("utf-8").strip().split("\t")
@@ -222,7 +222,7 @@ def build_gene_ncbigene_xrefs(infile, ncbi_idfile, outfile, metadata_yaml):
     mappings = {"WormBase": WORMBASE, "FLYBASE": FLYBASE, "ZFIN": ZFIN, "HGNC": HGNC, "MGI": MGI, "RGD": RGD, "dictyBase": DICTYBASE, "SGD": SGD}
     ncbi_ids = read_ncbi_idfile(ncbi_idfile)
     with gzip.open(infile, "r") as inf, open(outfile, "w") as outf:
-        h = inf.readline()
+        _header = inf.readline()
         for line in inf:
             x = line.decode("utf-8").strip().split("\t")
             ncbigene_id = f"{NCBIGENE}:{x[1]}"
@@ -255,7 +255,7 @@ def build_gene_ncbigene_xrefs(infile, ncbi_idfile, outfile, metadata_yaml):
 
 def build_gene_medgen_relationships(infile, outfile, metadata_yaml):
     with open(infile) as inf, open(outfile, "w") as outf:
-        h = inf.readline()
+        _header = inf.readline()
         for line in inf:
             x = line.strip().split("\t")
             if not x[2] == "gene":
@@ -298,7 +298,7 @@ def write_ensembl_gene_ids(ensembl_dir, outfile):
                         h = inf.readline()
                         x = h[:-1].split("\t")
                         gene_column = x.index("Gene stable ID")
-                        protein_column = x.index("Protein stable ID")
+                        # protein_column = x.index("Protein stable ID")
                         for line in inf:
                             x = line[:-1].split("\t")
                             # Is it protein coding?

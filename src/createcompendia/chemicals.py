@@ -484,7 +484,7 @@ def make_pubchem_mesh_concord(pubcheminput, meshlabels, outfile, metadata_yaml):
                 continue
             try:
                 mesh_id = mesh_label_to_id[x[1]]
-            except:
+            except Exception:
                 print(f"no mesh for label {x[1]}")
                 continue
             outf.write(f"{PUBCHEMCOMPOUND}:{x[0]}\txref\t{mesh_id}\n")
@@ -605,7 +605,7 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
                 parts = v.split("SID: ")
                 for p in parts:
                     if "CID" in p:
-                        mapped = True
+                        # mapped = True
                         x = p.split("CID: ")[1]
                         outf.write(f"{cid}\txref\t{PUBCHEMCOMPOUND}:{x}\n")
         # DO THE xref stuff
@@ -694,7 +694,7 @@ def get_wikipedia_relationships(outfile, metadata_yaml):
     # cases of this type usually also have a UNII.  So we can perhaps remove ugly pairs without
     # a problem. We leave them in at this point, and they will get filtered out on reading
     with open(outfile, "w") as outf:
-        m2c = defaultdict(list)
+        # m2c = defaultdict(list)
         for m, c in pairs:
             outf.write(f"{m}\txref\t{c}\n")
 

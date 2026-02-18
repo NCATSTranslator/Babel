@@ -165,7 +165,7 @@ def get_cui(x, indicator_column, cui_column, aui_column, aui_to_cui, sdui_to_cui
         elif x[indicator_column] == "AUI":
             try:
                 return aui_to_cui[x[aui_column]]
-            except:
+            except Exception:
                 # this really shouldn't happen.  But it seems to occur for the UMLS files?
                 return None
         elif x[indicator_column] == "SDUI":
