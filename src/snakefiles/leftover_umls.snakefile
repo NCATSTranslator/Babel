@@ -36,9 +36,11 @@ rule leftover_umls:
     output:
         umls_compendium=config["output_directory"] + "/compendia/umls.txt",
         umls_synonyms=temp(config["output_directory"] + "/synonyms/umls.txt"),
+        umls_metadata_yaml=config["output_directory"] + "/metadata/umls.txt.yaml",
         report=config["output_directory"] + "/reports/umls.txt",
     run:
         write_leftover_umls(
+            output.umls_metadata_yaml,
             input.input_compendia,
             input.umls_label_filename,
             input.mrconso,

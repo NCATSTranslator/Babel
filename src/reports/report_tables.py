@@ -15,7 +15,92 @@
 #
 import csv
 import json
+import re
+from collections import defaultdict
+from pathlib import Path
 
+import yaml
+
+from src.util import get_logger
+
+logger = get_logger(__name__)
+
+# Descriptions of all of the Babel pipelines.
+# To improve the table somewhat, we'll include pipeline descriptions that group filenames.
+pipeline_descriptions = {
+    'Anatomy': {
+        'description': 'Anatomical entities at all scales, from brains to endothelium to pancreatic beta cells',
+        'filenames': [
+            'AnatomicalEntity',
+            'Cell',
+            'CellularComponent',
+            'GrossAnatomicalStructure'
+        ],
+    },
+    'CellLine': {
+        'description': 'Cell lines from different species',
+        'filenames': ['CellLine'],
+    },
+    'Chemicals': {
+        'description': 'All kinds of chemicals, including drugs, small molecules, molecular mixtures, and so on',
+        'filenames': [
+            'MolecularMixture',
+            'SmallMolecule',
+            'Polypeptide',
+            'ComplexMolecularMixture',
+            'ChemicalEntity',
+            'ChemicalMixture',
+            'Drug'
+        ],
+    },
+    'DiseasePhenotype': {
+        'description': 'Diseases and phenotypes',
+        'filenames': [
+            'Disease',
+            'PhenotypicFeature'
+        ],
+    },
+    'DrugChemical': {
+        'description': 'Conflation of drugs with their active ingredients as chemicals',
+        'filenames': [],
+    },
+    'Gene': {
+        'description': 'Genes from all species',
+        'filenames': ['Gene'],
+    },
+    'GeneFamily': {
+        'description': 'Families of genes',
+        'filenames': ['GeneFamily'],
+    },
+    'GeneProtein': {
+        'description': 'Conflation of genes with the proteins they code for.',
+        'filenames': [],
+    },
+    'Leftover UMLS': {
+        'description': 'A special pipeline that adds every UMLS concept not already added elsewhere in Babel',
+        'filenames': ['umls'],
+    },
+    'Macromolecular Complex': {
+        'description': '',
+        'filenames': ['MacromolecularComplex'],
+    },
+    'ProcessActivityPathway': {
+        'description': 'Biological processes, activities and pathways',
+        'filenames': ['Pathway', 'BiologicalProcess', 'MolecularActivity'],
+    },
+    'Protein': {
+        'description': 'Proteins from all species',
+        'filenames': ['Protein'],
+    },
+    'Publications': {
+        'description': 'All publications from PubMed',
+        'filenames': ['Publication'],
+    },
+    'Taxon': {
+        'description': 'Taxonomic entities, including species, genera, families, and so on from the NCBI Taxonomy',
+        'filenames': ['OrganismTaxon'],
+    }
+}
 
 def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str):
     """
@@ -25,7 +110,7 @@ def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str)
     :param prefix_report_table_csv: The report table CSV file to generate.
     """
 
-    with open(prefix_report_json) as f:
+    with open(prefix_report_json, 'r') as f:
         prefix_report = json.load(f)
 
     curie_entries = []
@@ -37,116 +122,56 @@ def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str)
                 raise ValueError(f"Duplicate filename {filename} for prefix {prefix}!")
 
             filename_entries[filename] = {
-                "prefix": prefix,
-                "curie_count": entry["curie_count"],
-                "curie_distinct_count": entry["curie_distinct_count"],
+                'prefix': prefix,
+                'curie_count': entry['curie_count'],
+                'curie_distinct_count': entry['curie_distinct_count'],
             }
 
-        if "_totals" not in filename_entries:
+        if '_totals' not in filename_entries:
             raise ValueError(f"No totals entry for prefix {prefix}!")
 
-        sorted_entries = sorted(filename_entries.items(), key=lambda x: x[1]["curie_distinct_count"], reverse=True)
+        sorted_entries = sorted(filename_entries.items(), key=lambda x: x[1]['curie_distinct_count'], reverse=True)
         filename_rows = []
         for filename, entry in sorted_entries:
-            if filename == "_totals":
+            if filename == '_totals':
                 continue
 
-            if entry["curie_count"] == entry["curie_distinct_count"]:
+            if entry['curie_count'] == entry['curie_distinct_count']:
                 filename_rows.append(f"- {filename}: {entry['curie_count']:,} CURIEs")
             else:
                 filename_rows.append(f"- {filename}: {entry['curie_count']:,} CURIEs ({entry['curie_distinct_count']:,} distinct)")
 
-        curie_entries.append(
-            {
-                "prefix": prefix,
-                "curie_count": filename_entries["_totals"]["curie_count"],
-                "curie_distinct_count": filename_entries["_totals"]["curie_distinct_count"],
-                "filenames": "\n".join(filename_rows),
-            }
-        )
+        curie_entries.append({
+            'prefix': prefix,
+            'curie_count': filename_entries['_totals']['curie_count'],
+            'curie_distinct_count': filename_entries['_totals']['curie_distinct_count'],
+            'filenames': "\n".join(filename_rows),
+        })
 
     # Before writing it out, sort by distinct CURIE count descending.
-    with open(prefix_report_table_csv, "w") as f:
-        writer = csv.DictWriter(f, ["Prefix", "CURIE count", "Distinct CURIE count", "Filenames"])
+    Path(prefix_report_table_csv).parent.mkdir(parents=True, exist_ok=True)
+    with open(prefix_report_table_csv, 'w') as f:
+        writer = csv.DictWriter(f, [
+            'Prefix',
+            'CURIE count',
+            'Distinct CURIE count',
+            'Filenames'
+        ])
         writer.writeheader()
 
-        for entry in sorted(curie_entries, key=lambda x: x["curie_distinct_count"], reverse=True):
+        for entry in sorted(curie_entries, key=lambda x: x['curie_distinct_count'], reverse=True):
             row = {
-                "Prefix": entry["prefix"],
-                "CURIE count": "{:,}".format(entry["curie_count"]),
-                "Distinct CURIE count": "{:,}".format(entry["curie_distinct_count"]),
-                "Filenames": entry["filenames"],
+                'Prefix': entry['prefix'],
+                'CURIE count': "{:,}".format(entry['curie_count']),
+                'Distinct CURIE count': "{:,}".format(entry['curie_distinct_count']),
+                'Filenames': entry['filenames'],
             }
 
             writer.writerow(row)
 
-
 def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
-    with open(cliques_report_json) as f:
+    with open(cliques_report_json, 'r') as f:
         cliques_report = json.load(f)
-
-    # To improve the table somewhat, we'll include pipeline descriptions that group filenames.
-    pipeline_descriptions = {
-        "Anatomy": {
-            "description": "Anatomical entities at all scales, from brains to endothelium to pancreatic beta cells",
-            "filenames": ["AnatomicalEntity", "Cell", "CellularComponent", "GrossAnatomicalStructure"],
-        },
-        "CellLine": {
-            "description": "Cell lines from different species",
-            "filenames": ["CellLine"],
-        },
-        "Chemicals": {
-            "description": "All kinds of chemicals, including drugs, small molecules, molecular mixtures, and so on",
-            "filenames": ["MolecularMixture", "SmallMolecule", "Polypeptide", "ComplexMolecularMixture", "ChemicalEntity", "ChemicalMixture", "Drug"],
-        },
-        'DiseasePhenotype': {
-            'description': 'Diseases and phenotypes',
-            'filenames': [
-                'Disease',
-                'PhenotypicFeature'
-            ],
-        },
-        "DrugChemical": {
-            "description": "Conflation of drugs with their active ingredients as chemicals",
-            "filenames": [],
-        },
-        "Gene": {
-            "description": "Genes from all species",
-            "filenames": ["Gene"],
-        },
-        "GeneFamily": {
-            "description": "Families of genes",
-            "filenames": ["GeneFamily"],
-        },
-        "GeneProtein": {
-            "description": "Conflation of genes with the proteins they code for.",
-            "filenames": [],
-        },
-        "Leftover UMLS": {
-            "description": "A special pipeline that adds every UMLS concept not already added elsewhere in Babel",
-            "filenames": ["umls"],
-        },
-        "Macromolecular Complex": {
-            "description": "",
-            "filenames": ["MacromolecularComplex"],
-        },
-        "ProcessActivityPathway": {
-            "description": "Biological processes, activities and pathways",
-            "filenames": ["Pathway", "BiologicalProcess", "MolecularActivity"],
-        },
-        "Protein": {
-            "description": "Proteins from all species",
-            "filenames": ["Protein"],
-        },
-        "Publications": {
-            "description": "All publications from PubMed",
-            "filenames": ["Publication"],
-        },
-        "Taxon": {
-            "description": "Taxonomic entities, including species, genera, families, and so on from the NCBI Taxonomy",
-            "filenames": ["OrganismTaxon"],
-        },
-    }
 
     clique_leader_entries = {}
     for filename, inner in cliques_report.items():
@@ -155,16 +180,18 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
         totals = {}
 
         for clique_leader_prefix, inner2 in inner.items():
-            if clique_leader_prefix == "_totals":
+            if clique_leader_prefix == '_totals':
                 totals = inner2
                 continue
 
             clique_leader_prefixes.add(clique_leader_prefix)
 
             for curie_prefix, entry in inner2.items():
-                curie_prefix_entries.append(
-                    {"curie_prefix": curie_prefix, "curie_count": entry["curie_count"], "distinct_curie_count": entry["distinct_curie_count"]}
-                )
+                curie_prefix_entries.append({
+                    'curie_prefix': curie_prefix,
+                    'curie_count': entry['curie_count'],
+                    'distinct_curie_count': entry['distinct_curie_count']
+                })
 
         if not totals:
             raise ValueError(f"No totals entry for filename {filename}!")
@@ -172,93 +199,239 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
         if filename in clique_leader_entries:
             raise ValueError(f"Duplicate filename {filename}!")
 
-        curie_prefixes = map(lambda e: f"{e['curie_prefix']}", sorted(curie_prefix_entries, key=lambda x: x["distinct_curie_count"], reverse=True))
+        curie_prefixes = map(lambda e: f"{e['curie_prefix']}", sorted(curie_prefix_entries, key=lambda x: x['distinct_curie_count'], reverse=True))
         unique_curie_prefixes = []
         for prefix in curie_prefixes:
             if prefix not in unique_curie_prefixes:
                 unique_curie_prefixes.append(prefix)
 
         clique_leader_entries[filename] = {
-            "curie_count": totals["curie_count"],
-            "distinct_curie_count": totals["distinct_curie_count"],
-            "total_synonyms": "",
-            "clique_leader_prefixes": ", ".join(sorted(clique_leader_prefixes)),
-            "curie_prefixes": ", ".join(unique_curie_prefixes),
+            'curie_count': totals['curie_count'],
+            'distinct_curie_count': totals['distinct_curie_count'],
+            'total_synonyms': '',
+            'clique_leader_prefixes': ", ".join(sorted(clique_leader_prefixes)),
+            'curie_prefixes': ", ".join(unique_curie_prefixes),
         }
 
     filenames_not_written = set(clique_leader_entries.keys())
-    with open(cliques_table_csv, "w") as f:
-        writer = csv.DictWriter(
-            f,
-            [
-                "Pipeline",
-                "Description",
-                "Biolink Types",
-                "Number of CURIEs",
-                "Number of distinct CURIEs",
-                "Clique leader prefixes",
-                "CURIE prefixes",
-            ],
-        )
+    with open(cliques_table_csv, 'w') as f:
+        writer = csv.DictWriter(f, [
+            'Pipeline',
+            'Description',
+            'Biolink Types',
+            'Number of CURIEs',
+            'Number of distinct CURIEs',
+            'Clique leader prefixes',
+            'CURIE prefixes',
+        ])
         writer.writeheader()
 
         for pipeline, entry in pipeline_descriptions.items():
-            description = entry["description"]
+            description = entry['description']
 
-            filenames = entry.get("filenames", [])
+            filenames = entry.get('filenames', [])
             if len(filenames) == 0:
-                writer.writerow(
-                    {
-                        "Pipeline": pipeline,
-                        "Description": description,
-                        "Biolink Types": "N/A",
-                        "Number of CURIEs": "",
-                        "Number of distinct CURIEs": "",
-                        "Clique leader prefixes": "",
-                        "CURIE prefixes": "",
-                    }
-                )
+                writer.writerow({
+                    'Pipeline': pipeline,
+                    'Description': description,
+                    'Biolink Types': 'N/A',
+                    'Number of CURIEs': '',
+                    'Number of distinct CURIEs': '',
+                    'Clique leader prefixes': '',
+                    'CURIE prefixes': '',
+                })
 
             for filename in filenames:
                 if filename not in clique_leader_entries:
                     raise ValueError(f"Pipeline {pipeline} references filename {filename} that isn't in clique_leader_entries!")
 
-                writer.writerow(
-                    {
-                        "Pipeline": pipeline,
-                        "Description": description,
-                        "Biolink Types": filename,
-                        "Number of CURIEs": "{:,}".format(clique_leader_entries[filename]["curie_count"]),
-                        "Number of distinct CURIEs": "{:,}".format(clique_leader_entries[filename]["distinct_curie_count"]),
-                        "Clique leader prefixes": clique_leader_entries[filename]["clique_leader_prefixes"],
-                        "CURIE prefixes": clique_leader_entries[filename]["curie_prefixes"],
-                    }
-                )
+                writer.writerow({
+                    'Pipeline': pipeline,
+                    'Description': description,
+                    'Biolink Types': filename,
+                    'Number of CURIEs': "{:,}".format(clique_leader_entries[filename]['curie_count']),
+                    'Number of distinct CURIEs': "{:,}".format(clique_leader_entries[filename]['distinct_curie_count']),
+                    'Clique leader prefixes': clique_leader_entries[filename]['clique_leader_prefixes'],
+                    'CURIE prefixes': clique_leader_entries[filename]['curie_prefixes'],
+                })
 
                 filenames_not_written.remove(filename)
 
         for filename in sorted(filenames_not_written):
-            writer.writerow(
-                {
-                    "Pipeline": "**NONE**",
-                    "Description": "",
-                    "Biolink Types": filename,
-                    "Number of CURIEs": "{:,}".format(clique_leader_entries[filename]["curie_count"]),
-                    "Number of distinct CURIEs": "{:,}".format(clique_leader_entries[filename]["distinct_curie_count"]),
-                    "Clique leader prefixes": clique_leader_entries[filename]["clique_leader_prefixes"],
-                    "CURIE prefixes": clique_leader_entries[filename]["curie_prefixes"],
-                }
-            )
+            writer.writerow({
+                'Pipeline': '**NONE**',
+                'Description': '',
+                'Biolink Types': filename,
+                'Number of CURIEs': "{:,}".format(clique_leader_entries[filename]['curie_count']),
+                'Number of distinct CURIEs': "{:,}".format(clique_leader_entries[filename]['distinct_curie_count']),
+                'Clique leader prefixes': clique_leader_entries[filename]['clique_leader_prefixes'],
+                'CURIE prefixes': clique_leader_entries[filename]['curie_prefixes'],
+            })
 
 
-def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table):
+def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table, max_prefix_count=5):
     """Generate a table of mapping sources from metadata YAML files.
 
-    Args:
-        metadata_yaml_files (list): List of metadata YAML file paths.
-        mapping_sources_table (str): Path to the output mapping sources table file.
+    :param metadata_yaml_files: List of metadata YAML file paths.
+    :param mapping_sources_table: Path to the output mapping sources table file.
+    :param max_prefix_count: Maximum number of prefixes to include in any row of this table.
 
     Returns:
         None
     """
-    pass
+
+    # At one level, all we need to do here is to:
+    #   - Identify all the concords across all the mapping YAML files.
+    #   - Count the number of cross-references
+    #   - Combine it with the description of the cross-references
+    # However, this is complicated by two facts:
+    #   1. Several of these output files duplicate each other.
+    #   2. This format is very much in motion, so this code will need to move with it.
+    # So let's do this:
+    #   1. Load all the concords from everywhere and convert them into JSON strings, mapped to a list of filenames.
+    #   2. Uniquify based on those JSON strings.
+    #   3. Load all the metadata YAML files and produce the table.
+
+    filenames_by_metadata_objects = defaultdict(list)
+    root_objects_by_filename = {}
+
+    for yaml_file in metadata_yaml_files:
+        with open(yaml_file, 'r') as f:
+            metadata = yaml.safe_load(f)
+
+            if metadata is None:
+                logger.warning(f"Metadata file {yaml_file} is empty, skipping.")
+                continue
+
+            if 'name' not in metadata:
+                # TODO: change this into an exception.
+                logger.warning(f"Metadata file {yaml_file} does not have a 'name' field at the top level, skipping.")
+                continue
+
+            # We're primarily looking for counts.
+            all_metadata_objects = extract_combined_from(metadata)
+            logger.info(f"Loaded {len(all_metadata_objects)} metadata objects from {yaml_file}: {all_metadata_objects.keys()}")
+            if yaml_file in root_objects_by_filename:
+                raise RuntimeError(f"Duplicate root object for {yaml_file}!")
+            root_objects_by_filename[yaml_file] = all_metadata_objects["root"]
+            del all_metadata_objects["root"]
+
+            # Store all the other objects (largely concords) by uniqueness, mapped to filenames.
+            for metadata_object in all_metadata_objects.values():
+                filenames_by_metadata_objects[json.dumps(metadata_object, sort_keys=True)].append(yaml_file)
+
+    with open(mapping_sources_table, 'w') as f:
+        writer = csv.DictWriter(f, ['Compendium Filenames', 'Mapping Source', 'Number of Mappings'])
+        writer.writeheader()
+
+        # We've now grouped metadata objects by the filenames they are found in. Write out the rows,
+        # but we write them out in memory -- we need to sort them later.
+        rows = []
+        for metadata_objs, filenames in filenames_by_metadata_objects.items():
+            biolink_types = sorted(map(lambda fname: Path(fname).stem, filenames))
+
+            # Recreate the count objects we're trying to emit.
+            metadata_obj = json.loads(metadata_objs)
+
+            # If we don't have counts, we don't care.
+            if metadata_obj is not None and 'counts' not in metadata_obj:
+                continue
+
+            logger.debug(f"Found metadata_obj: {metadata_obj}")
+            # In some cases, counts is an empty list.
+            if isinstance(metadata_obj['counts'], list):
+                metadata_obj['counts'] = {}
+
+            concords = metadata_obj.get('counts', {}).get('concords', {})
+            logger.info(f"Found counts in {metadata_obj['name']}: {json.dumps(metadata_obj['counts'], indent=2)}")
+            logger.debug(f"Found concords in {metadata_obj['name']}: {json.dumps(concords, indent=2)}")
+
+            # Prepare an overall count.
+            description = metadata_obj.get("description", "")
+            count_concords = 0
+            if 'count_concords' in concords:
+                count_concords = concords['count_concords']
+                if 'count_distinct_curies' in concords:
+                    description = f"{count_concords:,} cross-references involving {concords['count_distinct_curies']:,} distinct CURIEs from {description}"
+                else:
+                    description = f"{count_concords:,} cross-references from {description}"
+            if description:
+                description += "\n"
+
+            # Describe the prefix count.
+            prefix_counts = {}
+            if 'prefix_counts' in concords:
+                prefix_counts = concords['prefix_counts']
+            sorted_prefix_counts = sorted(prefix_counts.items(), key=lambda kv: kv[1], reverse=True)
+            other_count = 0
+            if len(sorted_prefix_counts) > max_prefix_count:
+                # Too many! Summarize.
+                other_count = len(sorted_prefix_counts) - max_prefix_count
+                other_sum = sum(map(lambda kv: kv[1], sorted_prefix_counts[max_prefix_count:]))
+                sorted_prefix_counts = sorted_prefix_counts[:max_prefix_count]
+
+            # Write out prefix_counts
+            prefix_counts_list = []
+            for key, value in sorted_prefix_counts:
+                results = re.match(r'^(.*)\((.*)\s*,\s*(.*)\)$', key)
+                if results:
+                    key = f"{results.group(2)}, {results.group(3)}"
+                prefix_counts_list.append(f" - {key}: {value:,}")
+            if other_count:
+                prefix_counts_list.append(f" - {other_count} other prefix pairs: {other_sum:,}")
+            prefix_counts_str = "\n".join(prefix_counts_list)
+
+            rows.append({
+                'Compendium Filenames': "\n".join(biolink_types).strip(),
+                'Mapping Source': metadata_obj.get("name", ""),
+                'Number of Mappings': description + prefix_counts_str,
+                'count_concords': count_concords,
+            })
+
+        # Sort table by compendium filenames and count_concords (largest to smallest)
+        sorted_rows = sorted(rows, key=lambda r: (r['Compendium Filenames'], -r['count_concords']))
+        for row in sorted_rows:
+            # We need count_concords for sorting, but we don't want it in the output.
+            del row['count_concords']
+            writer.writerow(row)
+
+def extract_combined_from(metadata_object, path="root"):
+    """
+    Traverse obj recursively and return a dict mapping
+    string paths to every encountered `combined_from` object.
+
+    Written by ChatGPT.
+    """
+    if metadata_object is None:
+        return {}
+
+    if isinstance(metadata_object, dict):
+        results = {
+            path: metadata_object,
+        }
+
+        if "combined_from" in metadata_object:
+            combined_from = metadata_object["combined_from"]
+            if isinstance(combined_from, dict):
+                for key, value in combined_from.items():
+                    results.update(
+                        extract_combined_from(value, f"{path}.{key}")
+                    )
+            elif isinstance(combined_from, list):
+                for i, value in enumerate(combined_from):
+                    results.update(
+                        extract_combined_from(value, f"{path}[{i}]")
+                    )
+            else:
+                raise ValueError(f"Unexpected type for combined_from: {type(combined_from)}: {combined_from}")
+
+        return results
+
+    elif isinstance(metadata_object, list):
+        results = {}
+        for i, value in enumerate(metadata_object):
+            results.update(extract_combined_from(value, f"{path}[{i}]"))
+
+        return results
+
+    raise ValueError(f"Unexpected type for metadata_object: {type(metadata_object)}: {metadata_object}")

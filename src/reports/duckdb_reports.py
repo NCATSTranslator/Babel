@@ -57,6 +57,8 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
             COUNT(clique_leader) AS clique_leader_count
         FROM
             edges
+        WHERE
+            edges.conflation = 'None'
         GROUP BY curie HAVING clique_leader_count > 1
         ORDER BY clique_leader_count DESC
     """).write_csv(duplicate_curies_tsv, sep="\t")
@@ -128,6 +130,7 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
                     split_part(curie, ':', 1) AS curie_prefix,
                     curie
              FROM edges
+             WHERE edges.conflation = 'None'
         ) e
         JOIN C USING (clique_leader)
         GROUP BY curie_prefix, biolink_type
@@ -157,7 +160,7 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
                                  FROM
                                      edges
                                  WHERE
-                                     conflation = 'None'
+                                     edges.conflation = 'None'
                                  GROUP BY
                                      curie_prefix
                                  """)
