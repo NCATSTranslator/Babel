@@ -160,12 +160,17 @@ rule generate_curie_report:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/curie_report.duckdb"),
         curie_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
     run:
-        src.reports.duckdb_reports.generate_curie_report(params.parquet_dir, output.duckdb_filename, output.curie_report_json, {
-            # 'memory_limit': '20G', -- this actually worked!
-            'memory_limit': '100G',
-            'threads': 5,
-            'preserve_insertion_order': False,
-        })
+        src.reports.duckdb_reports.generate_curie_report(
+            params.parquet_dir,
+            output.duckdb_filename,
+            output.curie_report_json,
+            {
+                # 'memory_limit': '20G', -- this actually worked!
+                "memory_limit": "100G",
+                "threads": 5,
+                "preserve_insertion_order": False,
+            },
+        )
 
 
 rule generate_clique_leader_report:
@@ -180,11 +185,16 @@ rule generate_clique_leader_report:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/clique_leaders.duckdb"),
         clique_leaders_json=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
     run:
-        src.reports.duckdb_reports.generate_clique_leaders_report(params.parquet_dir, output.duckdb_filename, output.clique_leaders_json, {
-            'memory_limit': '20G',
-            'threads': 3,
-            'preserve_insertion_order': False,
-        })
+        src.reports.duckdb_reports.generate_clique_leaders_report(
+            params.parquet_dir,
+            output.duckdb_filename,
+            output.clique_leaders_json,
+            {
+                "memory_limit": "20G",
+                "threads": 3,
+                "preserve_insertion_order": False,
+            },
+        )
 
 
 rule all_duckdb_reports:
