@@ -323,7 +323,7 @@ def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table, m
     filenames_already_emitted = set()
 
     with open(mapping_sources_table, 'w') as f:
-        writer = csv.DictWriter(f, ['Biolink Types', 'Mapping Source', 'Number of Mappings'])
+        writer = csv.DictWriter(f, ['Compendium Filenames', 'Mapping Source', 'Number of Mappings'])
         writer.writeheader()
 
         rows = []
@@ -384,13 +384,13 @@ def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table, m
             prefix_counts_str = "\n".join(prefix_counts_list)
 
             rows.append({
-                'Biolink Types': "\n".join(biolink_types).strip(),
+                'Compendium Filenames': "\n".join(biolink_types).strip(),
                 'Mapping Source': metadata_obj.get("name", ""),
                 'Number of Mappings': description + prefix_counts_str,
                 'count_concords': count_concords,
             })
 
-        sorted_rows = sorted(rows, key=lambda r: (r['Biolink Types'], -r['count_concords']))
+        sorted_rows = sorted(rows, key=lambda r: (r['Compendium Filenames'], -r['count_concords']))
         for row in sorted_rows:
             del row['count_concords']
             writer.writerow(row)
