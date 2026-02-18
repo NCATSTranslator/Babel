@@ -149,6 +149,7 @@ def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str)
         })
 
     # Before writing it out, sort by distinct CURIE count descending.
+    Path(prefix_report_table_csv).parent.mkdir(parents=True, exist_ok=True)
     with open(prefix_report_table_csv, 'w') as f:
         writer = csv.DictWriter(f, [
             'Prefix',
