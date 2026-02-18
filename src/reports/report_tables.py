@@ -326,6 +326,8 @@ def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table, m
         writer = csv.DictWriter(f, ['Compendium Filenames', 'Mapping Source', 'Number of Mappings'])
         writer.writeheader()
 
+        # We've now grouped metadata objects by the filenames they are found in. Write out the rows,
+        # but we write them out in memory -- we need to sort them later.
         rows = []
         for metadata_objs, filenames in filenames_by_metadata_objects.items():
             # Note down the filenames so we don't emit them again.
@@ -390,8 +392,11 @@ def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table, m
                 'count_concords': count_concords,
             })
 
+        # Sort table by compendium filenames and count_concords (largest to smallest)
         sorted_rows = sorted(rows, key=lambda r: (r['Compendium Filenames'], -r['count_concords']))
         for row in sorted_rows:
+            # We need count_concords for sorting, but we don't want it in the output.
+            del row['count_concords']
             writer.writerow(row)
 
 def extract_combined_from(metadata_object, path="root"):
