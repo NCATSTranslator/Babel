@@ -320,9 +320,6 @@ def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table, m
             for metadata_object in all_metadata_objects.values():
                 filenames_by_metadata_objects[json.dumps(metadata_object, sort_keys=True)].append(yaml_file)
 
-    # We can now produce a list of unique concords by filename.
-    filenames_already_emitted = set()
-
     with open(mapping_sources_table, 'w') as f:
         writer = csv.DictWriter(f, ['Compendium Filenames', 'Mapping Source', 'Number of Mappings'])
         writer.writeheader()
@@ -331,8 +328,6 @@ def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table, m
         # but we write them out in memory -- we need to sort them later.
         rows = []
         for metadata_objs, filenames in filenames_by_metadata_objects.items():
-            # Note down the filenames so we don't emit them again.
-            filenames_already_emitted.update(filenames)
             biolink_types = sorted(map(lambda fname: Path(fname).stem, filenames))
 
             # Recreate the count objects we're trying to emit.
