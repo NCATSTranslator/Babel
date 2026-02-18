@@ -425,7 +425,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
     :param metadata_yaml: The YAML files containing the metadata for this compendium.
     :param synonym_list:
     :param ofname: Output filename. A file with this filename will be created in both the `compendia` and `synonyms` output directories.
-    :param node_type:
+    :param node_type: The Biolink type of this compendium (including `biolink:` prefix).
     :param labels: A map of identifiers
         Not needed if each identifier will have a label in the correct directory (i.e. downloads/PMID/labels for PMID:xxx).
     :param extra_prefixes: We default to only allowing the prefixes allowed for a particular type in Biolink.

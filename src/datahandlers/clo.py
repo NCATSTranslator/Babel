@@ -6,7 +6,7 @@ import pyoxigraph
 from src.babel_utils import pull_via_urllib
 from src.categories import CELL_LINE
 from src.metadata.provenance import write_download_metadata
-from src.prefixes import CLO
+from src.prefixes import CLO, ORPHANET
 from src.util import LoggingUtil, Text
 
 logger = LoggingUtil.init_logging(__name__, level=logging.WARNING)

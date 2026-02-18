@@ -6,7 +6,7 @@ from src.prefixes import EC
 
 
 def pull_ec():
-    outputfile = pull_via_urllib("https://ftp.expasy.org/databases/enzyme/", "enzyme.rdf", subpath="EC", decompress=False)
+    pull_via_urllib("https://ftp.expasy.org/databases/enzyme/", "enzyme.rdf", subpath="EC", decompress=False)
 
 
 class ECgraph:

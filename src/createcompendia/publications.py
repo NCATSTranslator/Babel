@@ -294,5 +294,4 @@ def generate_compendium(concordances, metadata_yamls, identifiers, titles, publi
 
     # Write out the compendium.
     publication_sets = set([frozenset(x) for x in dicts.values()])
-    baretype = PUBLICATION.split(":")[-1]
     write_compendium(metadata_yamls, publication_sets, os.path.basename(publication_compendium), PUBLICATION, labels, icrdf_filename=icrdf_filename)

@@ -14,7 +14,7 @@ def pull_doid_labels_and_synonyms(infile, labelfile, synonymfile):
         j = json.load(inf)
     with open(labelfile, "w") as labels, open(synonymfile, "w") as syns:
         for entry in j["graphs"][0]["nodes"]:
-            if ("meta" in entry) and ("deprecated" in entry["meta"]) and (entry["meta"]["deprecated"] == True):
+            if ("meta" in entry) and ("deprecated" in entry["meta"]) and (entry["meta"]["deprecated"]):
                 continue
             doid_id = entry["id"]
             if not doid_id.startswith("http://purl.obolibrary.org/obo/DOID_"):
@@ -35,7 +35,7 @@ def build_xrefs(infile, xreffile, other_prefixes={}):
         j = json.load(inf)
     with open(xreffile, "w") as xrefs:
         for entry in j["graphs"][0]["nodes"]:
-            if ("meta" in entry) and ("deprecated" in entry["meta"]) and (entry["meta"]["deprecated"] == True):
+            if ("meta" in entry) and ("deprecated" in entry["meta"]) and (entry["meta"]["deprecated"]):
                 continue
             doid_id = entry["id"]
             if not doid_id.startswith("http://purl.obolibrary.org/obo/DOID_"):

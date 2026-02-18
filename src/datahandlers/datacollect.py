@@ -64,7 +64,7 @@ def pull_prot(which, refresh):
         swissname = make_local_name(f"uniprot_{which}.fasta")
     swissprot_labels = {}
     nlines = 0
-    maxn = 1000
+    # maxn = 1000
     with open(swissname) as inf:
         for line in inf:
             nlines += 1

@@ -72,9 +72,9 @@ def build_taxon_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
 
 def build_relationships(outfile, mesh_ids, metadata_yaml):
     regis = mesh.pull_mesh_registry()
-    with open(mesh_ids) as inf:
-        lines = inf.read().strip().split("\n")
-        all_mesh_taxa = set([x.split("\t")[0] for x in lines])
+    # with open(mesh_ids) as inf:
+        # lines = inf.read().strip().split("\n")
+        # all_mesh_taxa = set([x.split("\t")[0] for x in lines])
     with open(outfile, "w") as outf:
         for meshid, reg in regis:
             # The mesh->ncbi are in mesh as registration numbers that start with a "tx"

@@ -27,14 +27,14 @@ def make_labels_and_synonyms(infile, labelfile, synfile, propfilegz):
     """
     taxtar = tarfile.open(infile, "r")
     f = taxtar.extractfile("names.dmp")
-    l = f.readlines()
+    lines = f.readlines()
 
     # It would be nice to put together the scientific name and common name(s) for a particular taxon, so
     # we put that into a dictionary and write them out separately later.
     names_by_txid = {}
 
     with open(labelfile, "w") as labelf, open(synfile, "w") as outsyn, gzip.open(propfilegz, "wt") as propf:
-        for line in l:
+        for line in lines:
             sline = line.decode("utf-8").strip().split("|")
             parts = [x.strip() for x in sline]
 

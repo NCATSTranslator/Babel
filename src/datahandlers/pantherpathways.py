@@ -12,7 +12,6 @@ def make_pathway_labels(infile, outfile):
     with open(infile) as inf:
         data = inf.read()
     lines = data.split("\n")
-    labels = {}
     wrote = set()
     with open(outfile, "w") as outf:
         for line in lines:

@@ -153,11 +153,11 @@ def write_ids(meshmap, outfile, order=["biolink:CellularComponent", "biolink:Cel
             terms2type[mt].add(v)
     with open(outfile, "w") as idfile:
         for term, typeset in terms2type.items():
-            l = list(typeset)
-            l.sort(key=lambda k: order.index(k))
-            if l[0] == "EXCLUDE":
+            list_typeset = list(typeset)
+            list_typeset.sort(key=lambda x: order.index(x))
+            if list_typeset[0] == "EXCLUDE":
                 continue
-            idfile.write(f"{term}\t{l[0]}\n")
+            idfile.write(f"{term}\t{list_typeset[0]}\n")
 
 
 #    ifname = make_local_name('mesh.nt', subpath='MESH')

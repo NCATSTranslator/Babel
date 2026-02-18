@@ -39,7 +39,7 @@ def pull_rxnorm_annotations(outname):
 
 def make_labels_or_synonyms(infile, outfile):
     with gzip.open(infile, "r") as inf, open(outfile, "w") as outf:
-        for l in inf:
-            line = l.decode("latin1")
+        for undecoded_line in inf:
+            line = undecoded_line.decode("latin1")
             x = line.strip().split("\t")
             outf.write(f"{PUBCHEMCOMPOUND}:{x[0]}\t{x[1]}\n")

@@ -28,7 +28,7 @@ def make_labels_and_synonyms(inputfile, labelfile, synfile):
     labelcol = 1
     syncol = 13
     with open(inputfile) as inf, open(labelfile, "w") as lf, open(synfile, "w") as sf:
-        h = inf.readline()
+        _header = inf.readline()
         # Everything in this file is double quoted, hence all the [1:-1] stuff
         for line in inf:
             parts = line.strip().split("\t")
