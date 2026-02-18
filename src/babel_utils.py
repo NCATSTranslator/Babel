@@ -510,6 +510,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
             # Before we get started, let's estimate where we're at.
             count_slist += 1
             if (count_slist == 1) or (count_slist % WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES == 0):
+                # TODO: replace with tqdm.
                 time_elapsed_seconds = (time.time_ns() - start_time) / 1e9
                 if time_elapsed_seconds < 0.001:
                     # We don't want to divide by zero.
