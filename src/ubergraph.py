@@ -1,12 +1,11 @@
-import logging
+from collections import defaultdict
 from time import sleep
 
-from collections import defaultdict
+from tqdm import tqdm
 
+from src.babel_utils import norm
 from src.triplestore import TripleStore
 from src.util import Text, get_logger
-from src.babel_utils import norm
-from tqdm import tqdm
 
 SLEEP_BETWEEN_UBERGRAPH_QUERIES = 5 # seconds
 

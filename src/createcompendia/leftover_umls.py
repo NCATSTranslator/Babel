@@ -1,16 +1,16 @@
 import json
 import logging
 from datetime import datetime
-
-import jsonlines
 from pathlib import Path
 
+import jsonlines
+
+from src.categories import ACTIVITY, AGENT, DEVICE, DRUG, FOOD, PHYSICAL_ENTITY, PROCEDURE, PUBLICATION, SMALL_MOLECULE
+from src.datahandlers import umls
 from src.metadata.provenance import write_metadata
 from src.node import NodeFactory
-from src.util import get_biolink_model_toolkit
-from src.datahandlers import umls
 from src.prefixes import UMLS
-from src.categories import ACTIVITY, AGENT, DEVICE, DRUG, FOOD, SMALL_MOLECULE, PHYSICAL_ENTITY, PUBLICATION, PROCEDURE
+from src.util import get_biolink_model_toolkit
 
 
 def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso, mrsty, synonyms, umls_compendium, umls_synonyms, report, biolink_version):
