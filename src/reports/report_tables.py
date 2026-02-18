@@ -392,7 +392,6 @@ def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table, m
 
         sorted_rows = sorted(rows, key=lambda r: (r['Compendium Filenames'], -r['count_concords']))
         for row in sorted_rows:
-            del row['count_concords']
             writer.writerow(row)
 
 def extract_combined_from(metadata_object, path="root"):

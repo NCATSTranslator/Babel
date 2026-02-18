@@ -1,9 +1,11 @@
 import json
 import logging
+from datetime import datetime
 
 import jsonlines
 from pathlib import Path
 
+from src.metadata.provenance import write_metadata
 from src.node import NodeFactory
 from src.util import get_biolink_model_toolkit
 from src.datahandlers import umls
@@ -11,7 +13,7 @@ from src.prefixes import UMLS
 from src.categories import ACTIVITY, AGENT, DEVICE, DRUG, FOOD, SMALL_MOLECULE, PHYSICAL_ENTITY, PUBLICATION, PROCEDURE
 
 
-def write_leftover_umls(compendia, umls_labels_filename, mrconso, mrsty, synonyms, umls_compendium, umls_synonyms, report, biolink_version):
+def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso, mrsty, synonyms, umls_compendium, umls_synonyms, report, biolink_version):
     """
     Search for "leftover" UMLS concepts, i.e. those that are defined and valid in MRCONSO but are not
     mapped to a concept in Babel.
@@ -212,6 +214,7 @@ def write_leftover_umls(compendia, umls_labels_filename, mrconso, mrsty, synonym
         # Write out synonyms to synonym file.
         node_factory = NodeFactory(umls_labels_filename, biolink_version)
         count_synonym_objs = 0
+        count_synonyms = 0
         with jsonlines.open(umls_synonyms, "w") as umls_synonymsf:
             for id in synonyms_by_id:
                 synonyms_list = list(sorted(list(synonyms_by_id[id]), key=lambda syn: len(syn)))
@@ -244,8 +247,32 @@ def write_leftover_umls(compendia, umls_labels_filename, mrconso, mrsty, synonym
 
                 umls_synonymsf.write(document)
                 count_synonym_objs += 1
+                count_synonyms += len(synonyms_list)
 
         logging.info(f"Wrote out {count_synonym_objs} synonym objects into the leftover UMLS synonyms file.")
         reportf.write(f"Wrote out {count_synonym_objs} synonym objects into the leftover UMLS synonyms file.\n")
+
+        write_metadata(
+            metadata_yaml,
+            typ='compendium',
+            name='umls.txt',
+            description='Writes out a compendium of UMLS concepts that are not mapped to a concept in Babel.',
+            sources=[{
+                "created_at": datetime.now().isoformat(),
+                'name': 'leftover_umls.write_leftover_umls()',
+                'type': 'UMLS',
+                'description': 'Writes out a compendium of UMLS concepts in MRCONSO that are not mapped to a concept in Babel.',
+            }],
+            counts={
+                'concords': {
+                    'cliques': len(umls_ids_in_this_compendium),
+                    'count_concords': len(umls_ids_in_this_compendium),
+                    'count_distinct_curies': len(set(umls_ids_in_this_compendium)),
+                    'synonyms': count_synonyms,
+                },
+            }
+        )
+
+        logging.info(f"Wrote out metadata file {metadata_yaml}.")
 
     logging.info("Complete")
