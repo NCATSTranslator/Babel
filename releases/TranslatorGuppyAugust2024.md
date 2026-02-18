@@ -14,8 +14,10 @@ Previous release: [TranslatorFuguJuly2024](./TranslatorFuguJuly2024.md)
   all the compendia. Increased Babel Outputs file size to support DuckDB.
 * Added labels from DrugBank (<https://github.com/TranslatorSRI/Babel/pull/335>).
 * Improved cell anatomy concords using Wikidata (<https://github.com/TranslatorSRI/Babel/pull/329>).
-* Added manual concords for the DrugChemical conflation (<https://github.com/TranslatorSRI/Babel/pull/337>).
-* Wrote a script for comparing between two summary files (<https://github.com/TranslatorSRI/Babel/pull/320>).
+* Added manual concords for the DrugChemical conflation
+  (<https://github.com/TranslatorSRI/Babel/pull/337>).
+* Wrote a script for comparing between two summary files
+  (<https://github.com/TranslatorSRI/Babel/pull/320>).
 * Added timestamping as an option to Wget.
 * Reorganized primary label determination so that we can include it in compendia files as well.
   * This isn't currently used by the loader, but might be in the future. For now, this is only

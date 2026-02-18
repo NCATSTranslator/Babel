@@ -1,6 +1,7 @@
 # Babel
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18489042.svg)](https://doi.org/10.5281/zenodo.18489042) [![arXiv](https://img.shields.io/badge/arXiv-2601.10008-b31b1b.svg)](https://arxiv.org/abs/2601.10008)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18489042.svg)](https://doi.org/10.5281/zenodo.18489042)
+[![arXiv](https://img.shields.io/badge/arXiv-2601.10008-b31b1b.svg)](https://arxiv.org/abs/2601.10008)
 
 <!--
 Because this document is written like an FAQ, I want to allow headers to
@@ -146,11 +147,10 @@ conflated.
 - For GeneProtein conflation, the preferred identifier is a gene.
 - For DrugChemical conflation, Babel uses the
   [following algorithm](https://github.com/NCATSTranslator/Babel/blob/f3ff2103e74bc9b6bee9483355206b32e8f9ae9b/src/createcompendia/drugchemical.py#L466-L538):
-    1. We first choose an overall Biolink type for the conflated clique. To do
-       this, we use a
+    1. We first choose an overall Biolink type for the conflated clique. To do this, we use a
        ["preferred Biolink type" order](https://github.com/NCATSTranslator/Babel/blob/f3ff2103e74bc9b6bee9483355206b32e8f9ae9b/config.yaml#L32-L50)
-       that can be configured in [config.yaml](./config.yaml) and choose the most
-       preferred Biolink type that is present in the conflated clique.
+       that can be configured in [config.yaml](./config.yaml) and choose the most preferred Biolink
+       type that is present in the conflated clique.
     1. We then group the cliques to be conflated by the prefix of their preferred
        identifier, and sort them based on the preferred prefix order for the
        chosen Biolink type.
@@ -175,8 +175,8 @@ that length are present. This is to avoid overly long labels when a more concise
 label is available.
 
 Biolink types that are chemicals (i.e.
-[biolink:ChemicalEntity](https://biolink.github.io/biolink-model/ChemicalEntity/)
-and its subclasses) have a special list of
+[biolink:ChemicalEntity](https://biolink.github.io/biolink-model/ChemicalEntity/) and its
+subclasses) have a special list of
 [preferred name boost prefixes](https://github.com/NCATSTranslator/Babel/blob/f3ff2103e74bc9b6bee9483355206b32e8f9ae9b/config.yaml#L416-L426)
 that are used to prioritize labels. This list is currently:
 

@@ -229,5 +229,6 @@ conflation and individual types are turned on:
 }
 ```
 
-Note that this includes both biolink:Gene identifiers (such as [HGNC:4056](https://alliancegenome.org/gene/HGNC:4056))
-and biolink:Protein identifiers (such as [UniProtKB:P35575](http://www.uniprot.org/uniprot/P35575)).
+Note that this includes both biolink:Gene identifiers (such as
+[HGNC:4056](https://alliancegenome.org/gene/HGNC:4056)) and biolink:Protein identifiers (such as
+[UniProtKB:P35575](http://www.uniprot.org/uniprot/P35575)).

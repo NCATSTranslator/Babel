@@ -31,7 +31,8 @@ to users who aren't system administrators for these tools:
       (see [NameRes devops] for information).
 5. Use the [Babel Validator] to test this release and check how it performs compared to the previous
    release.
-6. Use the [Babel Validator Prefix Comparator](https://translatorsri.github.io/babel-validation/prefix-comparator/)
+6. Use the
+   [Babel Validator Prefix Comparator](https://translatorsri.github.io/babel-validation/prefix-comparator/)
    to compare the prefix counts between releases.
 7. **Check with RENCI NodeNorm users before updating RENCI NodeNorm and NameRes instances**
 8. Update RENCI NodeNorm and NameRes instances.
