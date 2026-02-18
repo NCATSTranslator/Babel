@@ -10,7 +10,7 @@ from src.babel_utils import make_local_name
 def readlabels(which):
     swissname = make_local_name(f"UniProtKB/uniprot_{which}.fasta")
     swissprot_labels = {}
-    with open(swissname, "r") as inf:
+    with open(swissname) as inf:
         for line in inf:
             if line.startswith(">"):
                 # example fasta line:
@@ -58,7 +58,7 @@ def download_umls_gene_protein_mappings(umls_uniprotkb_raw_url, umls_uniprotkb_f
     os.makedirs(os.path.dirname(umls_protein_concords), exist_ok=True)
 
     count_rows = 0
-    with open(umls_uniprotkb_filename, "r") as f, open(umls_gene_concords, "w") as genef, open(umls_protein_concords, "w") as proteinf:
+    with open(umls_uniprotkb_filename) as f, open(umls_gene_concords, "w") as genef, open(umls_protein_concords, "w") as proteinf:
         csv_reader = csv.DictReader(f, dialect="excel-tab")
         for row in csv_reader:
             count_rows += 1

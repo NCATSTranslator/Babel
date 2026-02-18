@@ -20,8 +20,7 @@ def read_biomart_file(biomart_file):
     :rtype: Iterator[Dict[str, str]]
     """
     reader = csv.DictReader(biomart_file, dialect="excel-tab")
-    for row in reader:
-        yield row
+    yield from reader
 
 
 def normalize_list_of_dictionaries(dict_list):
@@ -79,7 +78,7 @@ def test_pull_ensembl(tmp_path):
     split_tsv = download_as_splits / "choffmanni_gene_ensembl" / "BioMart.tsv"
     assert unsplit_tsv.exists()
     assert split_tsv.exists()
-    with open(unsplit_tsv, "r") as unsplit_file, open(split_tsv, "r") as split_file:
+    with open(unsplit_tsv) as unsplit_file, open(split_tsv) as split_file:
         # So we can't compare these files directly, because rows with the same ensembl_gene_id shows up in an
         # undetermined order. So we need to load them, group them by ENSEMBL gene ID, and then compare those sets.
         unsplit_rows = list(read_biomart_file(unsplit_file))

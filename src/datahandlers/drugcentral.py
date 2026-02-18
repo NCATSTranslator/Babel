@@ -1,5 +1,6 @@
-from src.prefixes import DRUGCENTRAL
 import psycopg2
+
+from src.prefixes import DRUGCENTRAL
 
 
 def pull_drugcentral(structfile, labelfile, xreffile):

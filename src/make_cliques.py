@@ -1,5 +1,6 @@
-import json
 import ast
+import json
+
 # Starting with a conflation file, and a set of compendia, create a new compendium merging conflated cliques.
 
 
@@ -9,7 +10,7 @@ def get_conflation_ids(conffilename):
     return a set of all the ids in the file.
     """
     ids = set()
-    with open(conffilename, "r") as inf:
+    with open(conffilename) as inf:
         for line in inf:
             ids.update(ast.literal_eval(line.strip()))
     if "RXCUI:1092396" in ids:
@@ -30,7 +31,7 @@ def get_compendia_names(cdir, compendia, ids):
     """
     id2name = {}
     for compendium in compendia:
-        with open(f"{cdir}/{compendium}", "r") as inf:
+        with open(f"{cdir}/{compendium}") as inf:
             print(compendium)
             for line in inf:
                 row = json.loads(line)
@@ -56,7 +57,7 @@ def label_cliques(conflation_fname, id2name):
     [{"i": "RXCUI:1092396", "l": "Acetinophem"}, {"i": "RXCUI:849078", "l": "100 mg Tylenol"}, ...]
     """
     print(len(id2name))
-    with open("labeled.txt", "w") as outf, open(conflation_fname, "r") as conflation:
+    with open("labeled.txt", "w") as outf, open(conflation_fname) as conflation:
         for line in conflation:
             clique = []
             ids = ast.literal_eval(line)

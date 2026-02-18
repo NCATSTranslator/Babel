@@ -2,7 +2,11 @@ from src.reports import report_tables
 from src.snakefiles.util import get_all_compendia, get_all_synonyms, get_all_gzipped
 import os
 
-from src.reports.compendia_per_file_reports import assert_files_in_directory, generate_content_report_for_compendium, summarize_content_report_for_compendia
+from src.reports.compendia_per_file_reports import (
+    assert_files_in_directory,
+    generate_content_report_for_compendium,
+    summarize_content_report_for_compendia,
+)
 
 # Some paths we will use at multiple times in these reports.
 compendia_path = config["output_directory"] + "/compendia"
@@ -109,7 +113,11 @@ rule generate_cliques_table:
 # Generate a table of mapping sources.
 rule generate_mapping_sources_table:
     input:
-        metadata_yaml_files = expand("{od}/metadata/{compendia_filename}.yaml", od=config["output_directory"], compendia_filename=get_all_compendia(config))
+        metadata_yaml_files=expand(
+            "{od}/metadata/{compendia_filename}.yaml",
+            od=config["output_directory"],
+            compendia_filename=get_all_compendia(config),
+        ),
     output:
         mapping_sources_table=config["output_directory"] + "/reports/tables/mapping_sources_table.csv",
     run:

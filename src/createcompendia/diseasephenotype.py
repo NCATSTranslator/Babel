@@ -1,18 +1,16 @@
-from os import path
 from collections import defaultdict
+from os import path
 
-import src.datahandlers.obo as obo
-from src.metadata.provenance import write_concord_metadata
-
-from src.prefixes import MESH, NCIT, MONDO, OMIM, HP, SNOMEDCT, MEDDRA, ORPHANET, ICD0, ICD9, ICD10, UMLS, KEGGDISEASE
-from src.categories import DISEASE, PHENOTYPIC_FEATURE
-from src.ubergraph import build_sets
-import src.datahandlers.umls as umls
 import src.datahandlers.doid as doid
-import src.datahandlers.mesh as mesh
 import src.datahandlers.efo as efo
-
-from src.babel_utils import read_identifier_file, glom, remove_overused_xrefs, get_prefixes, write_compendium
+import src.datahandlers.mesh as mesh
+import src.datahandlers.obo as obo
+import src.datahandlers.umls as umls
+from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.categories import DISEASE, PHENOTYPIC_FEATURE
+from src.metadata.provenance import write_concord_metadata
+from src.prefixes import HP, ICD0, ICD9, ICD10, KEGGDISEASE, MEDDRA, MESH, MONDO, NCIT, OMIM, ORPHANET, SNOMEDCT, UMLS
+from src.ubergraph import build_sets
 
 
 def write_obo_ids(irisandtypes, outfile, exclude=[]):
@@ -47,7 +45,7 @@ def write_hp_ids(outfile):
 
 
 def write_omim_ids(infile, outfile):
-    with open(infile, "r") as inf, open(outfile, "w") as outf:
+    with open(infile) as inf, open(outfile, "w") as outf:
         for line in inf:
             if line.startswith("#"):
                 continue
@@ -89,7 +87,7 @@ def write_mesh_ids(outfile):
 
 def write_umls_ids(mrsty, outfile, badumlsfile):
     badumls = set()
-    with open(badumlsfile, "r") as inf:
+    with open(badumlsfile) as inf:
         for line in inf:
             if line.startswith("#"):
                 continue
@@ -181,7 +179,7 @@ def build_disease_umls_relationships(mrconso, idfile, outfile, omimfile, ncitfil
     good_ids = {}
     for prefix, prefixidfile in [(OMIM, omimfile), (NCIT, ncitfile)]:
         good_ids[prefix] = set()
-        with open(prefixidfile, "r") as inf:
+        with open(prefixidfile) as inf:
             for line in inf:
                 x = line.split()[0]
                 good_ids[prefix].add(x)
@@ -229,7 +227,7 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
         glom(dicts, new_identifiers, unique_prefixes=[MONDO, HP])
         types.update(new_types)
     # Load close Mondos
-    with open(mondoclose, "r") as inf:
+    with open(mondoclose) as inf:
         close_mondos = defaultdict(set)
         for line in inf:
             x = tuple(line.strip().split("\t"))
@@ -245,7 +243,7 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
         else:
             print("no bad pairs", pref)
             bad_pairs = set()
-        with open(infile, "r") as inf:
+        with open(infile) as inf:
             for line in inf:
                 stuff = line.strip().split("\t")
                 if len(stuff) != 3:
@@ -260,7 +258,7 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
         glom(dicts, newpairs, unique_prefixes=[MONDO, HP], close={MONDO: close_mondos})
         try:
             print(dicts["OMIM:607644"])
-        except:
+        except Exception:
             print("notyet")
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
     for biotype, sets in typed_sets.items():
@@ -289,7 +287,7 @@ def create_typed_sets(eqsets, types):
                     mytype = types[prefixes[prefix][0]]
                     typed_sets[mytype].add(equivalent_ids)
                     found = True
-                except:
+                except Exception:
                     # This can happen if the concords are out of sync. Typically, e,g there might be an HP that
                     # doesn't exist anymroe but ist still in UMLS
                     pass
@@ -316,7 +314,7 @@ def create_typed_sets(eqsets, types):
 
 def read_badxrefs(fn):
     morebad = set()
-    with open(fn, "r") as inf:
+    with open(fn) as inf:
         for line in inf:
             if line.startswith("#"):
                 continue
@@ -325,80 +323,80 @@ def read_badxrefs(fn):
     return morebad
 
 
-def load_diseases_and_phenotypes(concords, idlists, badhpos, badhpoxrefs, icrdf_filename):
-    metadata_yamls = []
-    # print('disease/phenotype')
-    # print('get and write hp sets')
-    # bad_mappings = read_bad_hp_mappings(badhpos)
-    # more_bad_mappings = read_badxrefs(badhpoxrefs)
-    # for h,m in more_bad_mappings.items():
-    #    bad_mappings[h].update(m)
-    # hpo_sets,labels = build_sets('HP:0000118', ignore_list = ['ICD','NCIT'], bad_mappings = bad_mappings)
-    # print('filter')
-    hpo_sets = filter_out_non_unique_ids(hpo_sets)
-    # print('ok')
-    # dump_sets(hpo_sets,'hpo_sets.txt')
-    print("get and write mondo sets")
-    # MONDO has disease, and its sister disease susceptibility.  I'm putting both in disease.  Biolink q
-    # But! this is a problem right now because there are some things that go in both, and they are getting filtered out
-    bad_mondo_mappings = read_badxrefs("mondo")
-    mondo_sets_1, labels_1 = build_exact_sets("MONDO:0000001", bad_mondo_mappings)
-    mondo_sets_2, labels_2 = build_exact_sets("MONDO:0042489", bad_mondo_mappings)
-    mondo_close = get_close_matches("MONDO:0000001")
-    mondo_close2 = get_close_matches("MONDO:0042489")
-    for k, v in mondo_close2.items():
-        mondo_close[k] = v
-    dump_sets(mondo_sets_1, "mondo1.txt")
-    dump_sets(mondo_sets_2, "mondo2.txt")
-    labels.update(labels_1)
-    labels.update(labels_2)
-    # if we just add these together, then any mondo in both lists will get filtered out in the next step.
-    # so we need to put them into a set.  You can't put sets directly into a set, you have to freeze them first
-    mondo_sets = combine_id_sets(mondo_sets_1, mondo_sets_2)
-    mondo_sets = filter_out_non_unique_ids(mondo_sets)
-    dump_sets(mondo_sets, "mondo_sets.txt")
-    print("get and write umls sets")
-    bad_umls = read_badxrefs("umls")
-    meddra_umls, secondary_meddra_umls = read_meddra(bad_umls)
-    meddra_umls = filter_umls(meddra_umls, mondo_sets + hpo_sets, "filtered.txt")
-    secondary_meddra_umls = filter_umls(secondary_meddra_umls, mondo_sets + hpo_sets, "filtered_secondary.txt")
-    # Now, if we just use all the secondary links, things get too agglommed.
-    # So instead, lets filter these again.
-    meddra_umls += filter_secondaries(secondary_meddra_umls, "double_filter.txt")
-    dump_sets(meddra_umls, "meddra_umls_sets.txt")
-    dicts = {}
-    # EFO has 3 parts that we want here:
-    # Disease
-    efo_sets_1, l = build_exact_sets("EFO:0000408")
-    labels.update(l)
-    # phenotype
-    efo_sets_2, l = build_exact_sets("EFO:0000651")
-    labels.update(l)
-    # measurement
-    efo_sets_3, l = build_exact_sets("EFO:0001444")
-    labels.update(l)
-    efo_sets_a = combine_id_sets(efo_sets_1, efo_sets_2)
-    efo_sets = combine_id_sets(efo_sets_a, efo_sets_3)
-    efo_sets = filter_out_non_unique_ids(efo_sets)
-    dump_sets(efo_sets, "efo_sets.txt")
-    print("put it all together")
-    print("mondo")
-    glom(dicts, mondo_sets, unique_prefixes=["MONDO"])
-    dump_dicts(dicts, "mondo_dicts.txt")
-    print("hpo")
-    glom(dicts, hpo_sets, unique_prefixes=["MONDO"], pref="HP")
-    dump_dicts(dicts, "mondo_hpo_dicts.txt")
-    print("umls")
-    glom(dicts, meddra_umls, unique_prefixes=["MONDO", "HP"], pref="UMLS", close={"MONDO": mondo_close})
-    dump_dicts(dicts, "mondo_hpo_meddra_dicts.txt")
-    print("efo")
-    glom(dicts, efo_sets, unique_prefixes=["MONDO", "HP"], pref="EFO")
-    dump_dicts(dicts, "mondo_hpo_meddra_efo_dicts.txt")
-    print("dump it")
-    fs = set([frozenset(x) for x in dicts.values()])
-    diseases, phenotypes = create_typed_sets(fs)
-    write_compendium(metadata_yamls, diseases, "disease.txt", "biolink:Disease", labels, icrdf_filename=icrdf_filename)
-    write_compendium(metadata_yamls, phenotypes, "phenotypes.txt", "biolink:PhenotypicFeature", labels, icrdf_filename=icrdf_filename)
+# def load_diseases_and_phenotypes(concords, idlists, badhpos, badhpoxrefs, icrdf_filename):
+#     metadata_yamls = []
+#     # print('disease/phenotype')
+#     # print('get and write hp sets')
+#     # bad_mappings = read_bad_hp_mappings(badhpos)
+#     # more_bad_mappings = read_badxrefs(badhpoxrefs)
+#     # for h,m in more_bad_mappings.items():
+#     #    bad_mappings[h].update(m)
+#     # hpo_sets,labels = build_sets('HP:0000118', ignore_list = ['ICD','NCIT'], bad_mappings = bad_mappings)
+#     # print('filter')
+#     hpo_sets = filter_out_non_unique_ids(hpo_sets)
+#     # print('ok')
+#     # dump_sets(hpo_sets,'hpo_sets.txt')
+#     print("get and write mondo sets")
+#     # MONDO has disease, and its sister disease susceptibility.  I'm putting both in disease.  Biolink q
+#     # But! this is a problem right now because there are some things that go in both, and they are getting filtered out
+#     bad_mondo_mappings = read_badxrefs("mondo")
+#     mondo_sets_1, labels_1 = build_exact_sets("MONDO:0000001", bad_mondo_mappings)
+#     mondo_sets_2, labels_2 = build_exact_sets("MONDO:0042489", bad_mondo_mappings)
+#     mondo_close = get_close_matches("MONDO:0000001")
+#     mondo_close2 = get_close_matches("MONDO:0042489")
+#     for k, v in mondo_close2.items():
+#         mondo_close[k] = v
+#     dump_sets(mondo_sets_1, "mondo1.txt")
+#     dump_sets(mondo_sets_2, "mondo2.txt")
+#     labels.update(labels_1)
+#     labels.update(labels_2)
+#     # if we just add these together, then any mondo in both lists will get filtered out in the next step.
+#     # so we need to put them into a set.  You can't put sets directly into a set, you have to freeze them first
+#     mondo_sets = combine_id_sets(mondo_sets_1, mondo_sets_2)
+#     mondo_sets = filter_out_non_unique_ids(mondo_sets)
+#     dump_sets(mondo_sets, "mondo_sets.txt")
+#     print("get and write umls sets")
+#     bad_umls = read_badxrefs("umls")
+#     meddra_umls, secondary_meddra_umls = read_meddra(bad_umls)
+#     meddra_umls = filter_umls(meddra_umls, mondo_sets + hpo_sets, "filtered.txt")
+#     secondary_meddra_umls = filter_umls(secondary_meddra_umls, mondo_sets + hpo_sets, "filtered_secondary.txt")
+#     # Now, if we just use all the secondary links, things get too agglommed.
+#     # So instead, lets filter these again.
+#     meddra_umls += filter_secondaries(secondary_meddra_umls, "double_filter.txt")
+#     dump_sets(meddra_umls, "meddra_umls_sets.txt")
+#     dicts = {}
+#     # EFO has 3 parts that we want here:
+#     # Disease
+#     efo_sets_1, l = build_exact_sets("EFO:0000408")
+#     labels.update(l)
+#     # phenotype
+#     efo_sets_2, l = build_exact_sets("EFO:0000651")
+#     labels.update(l)
+#     # measurement
+#     efo_sets_3, l = build_exact_sets("EFO:0001444")
+#     labels.update(l)
+#     efo_sets_a = combine_id_sets(efo_sets_1, efo_sets_2)
+#     efo_sets = combine_id_sets(efo_sets_a, efo_sets_3)
+#     efo_sets = filter_out_non_unique_ids(efo_sets)
+#     dump_sets(efo_sets, "efo_sets.txt")
+#     print("put it all together")
+#     print("mondo")
+#     glom(dicts, mondo_sets, unique_prefixes=["MONDO"])
+#     dump_dicts(dicts, "mondo_dicts.txt")
+#     print("hpo")
+#     glom(dicts, hpo_sets, unique_prefixes=["MONDO"], pref="HP")
+#     dump_dicts(dicts, "mondo_hpo_dicts.txt")
+#     print("umls")
+#     glom(dicts, meddra_umls, unique_prefixes=["MONDO", "HP"], pref="UMLS", close={"MONDO": mondo_close})
+#     dump_dicts(dicts, "mondo_hpo_meddra_dicts.txt")
+#     print("efo")
+#     glom(dicts, efo_sets, unique_prefixes=["MONDO", "HP"], pref="EFO")
+#     dump_dicts(dicts, "mondo_hpo_meddra_efo_dicts.txt")
+#     print("dump it")
+#     fs = set([frozenset(x) for x in dicts.values()])
+#     diseases, phenotypes = create_typed_sets(fs)
+#     write_compendium(metadata_yamls, diseases, "disease.txt", "biolink:Disease", labels, icrdf_filename=icrdf_filename)
+#     write_compendium(metadata_yamls, phenotypes, "phenotypes.txt", "biolink:PhenotypicFeature", labels, icrdf_filename=icrdf_filename)
 
 
 if __name__ == "__main__":

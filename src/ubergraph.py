@@ -1,14 +1,13 @@
-from time import sleep
 from collections import defaultdict
-
-from src.triplestore import TripleStore
-from src.util import Text, get_logger
-from src.babel_utils import norm
+from time import sleep
 
 from tqdm import tqdm
 
-SLEEP_BETWEEN_UBERGRAPH_QUERIES = 5 # seconds
+from src.babel_utils import norm
+from src.triplestore import TripleStore
+from src.util import Text, get_logger
 
+SLEEP_BETWEEN_UBERGRAPH_QUERIES = 5 # seconds
 
 class UberGraph:
     # Some of these get_subclass_and_whatever things can/should be merged...
@@ -333,7 +332,7 @@ class UberGraph:
             # Sometimes we're getting back just strings that aren't curies, skip those (but complain)
             try:
                 dcurie = Text.opt_to_curie(row["descendent"])
-                results[dcurie].add((Text.opt_to_curie(row["xref"])))
+                results[dcurie].add(Text.opt_to_curie(row["xref"]))
             except ValueError as verr:
                 self.logger.warning(f"Bad XREF from {row['descendent']} to {row['xref']}: {verr}")
                 continue
@@ -341,33 +340,32 @@ class UberGraph:
         return results
 
     def get_subclasses_and_exacts(self, iri):
-        text = (
-            lambda predicate: f"""
-        prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
-        prefix CL: <http://purl.obolibrary.org/obo/CL_>
-        prefix GO: <http://purl.obolibrary.org/obo/GO_>
-        prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
-        prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
-        prefix HP: <http://purl.obolibrary.org/obo/HP_>
-        prefix EFO: <http://www.ebi.ac.uk/efo/EFO_>
-        prefix NCIT: <http://purl.obolibrary.org/obo/NCIT_>
-        PREFIX EXACT_MATCH: <http://www.w3.org/2004/02/skos/core#exactMatch>
-        PREFIX M_EXACT_MATCH: <http://purl.obolibrary.org/obo/mondo#exactMatch>
-        PREFIX EQUIVALENT_CLASS: <http://www.w3.org/2002/07/owl#equivalentClass>
-        PREFIX ID: <http://www.geneontology.org/formats/oboInOwl#id>
-        SELECT DISTINCT ?descendent ?match
-        FROM <http://reasoner.renci.org/ontology>
-        WHERE {{
-            graph <http://reasoner.renci.org/redundant> {{
-                ?descendent rdfs:subClassOf $identifier .
-            }}
-            OPTIONAL {{
-                ?descendent {predicate} ?match.
-            }}
-        }}
-        """
-        )
+        def text(predicate):
+            return (f"""
+                prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
+                prefix CL: <http://purl.obolibrary.org/obo/CL_>
+                prefix GO: <http://purl.obolibrary.org/obo/GO_>
+                prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
+                prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
+                prefix HP: <http://purl.obolibrary.org/obo/HP_>
+                prefix EFO: <http://www.ebi.ac.uk/efo/EFO_>
+                prefix NCIT: <http://purl.obolibrary.org/obo/NCIT_>
+                PREFIX EXACT_MATCH: <http://www.w3.org/2004/02/skos/core#exactMatch>
+                PREFIX M_EXACT_MATCH: <http://purl.obolibrary.org/obo/mondo#exactMatch>
+                PREFIX EQUIVALENT_CLASS: <http://www.w3.org/2002/07/owl#equivalentClass>
+                PREFIX ID: <http://www.geneontology.org/formats/oboInOwl#id>
+                SELECT DISTINCT ?descendent ?match
+                FROM <http://reasoner.renci.org/ontology>
+                WHERE {{
+                    graph <http://reasoner.renci.org/redundant> {{
+                        ?descendent rdfs:subClassOf $identifier .
+                    }}
+                    OPTIONAL {{
+                        ?descendent {predicate} ?match.
+                    }}
+                }}
+                """)
         resultmap = self.triplestore.query_template(template_text=text("EXACT_MATCH:"), inputs={"identifier": iri}, outputs=["descendent", "match"])
         resultmap += self.triplestore.query_template(template_text=text("M_EXACT_MATCH:"), inputs={"identifier": iri}, outputs=["descendent", "match"])
         resultmap += self.triplestore.query_template(template_text=text("EQUIVALENT_CLASS:"), inputs={"identifier": iri}, outputs=["descendent", "match"])
@@ -393,33 +391,32 @@ class UberGraph:
         return results
 
     def get_subclasses_and_close(self, iri):
-        text = (
-            lambda predicate: f"""
-        prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
-        prefix CL: <http://purl.obolibrary.org/obo/CL_>
-        prefix GO: <http://purl.obolibrary.org/obo/GO_>
-        prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
-        prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
-        prefix HP: <http://purl.obolibrary.org/obo/HP_>
-        prefix EFO: <http://www.ebi.ac.uk/efo/EFO_>
-        prefix NCIT: <http://purl.obolibrary.org/obo/NCIT_>
-        PREFIX CLOSE_MATCH: <http://www.w3.org/2004/02/skos/core#closeMatch>
-        PREFIX M_CLOSE_MATCH: <http://purl.obolibrary.org/obo/mondo#closeMatch>
-        PREFIX EQUIVALENT_CLASS: <http://www.w3.org/2002/07/owl#equivalentClass>
-        PREFIX ID: <http://www.geneontology.org/formats/oboInOwl#id>
-        SELECT DISTINCT ?descendent ?match
-        FROM <http://reasoner.renci.org/ontology>
-        WHERE {{
-            graph <http://reasoner.renci.org/redundant> {{
-                ?descendent rdfs:subClassOf $identifier .
-            }}
-            OPTIONAL {{
-                ?descendent {predicate} ?match.
-            }}
-        }}
-        """
-        )
+        def text(predicate):
+            return (f"""
+                prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
+                prefix CL: <http://purl.obolibrary.org/obo/CL_>
+                prefix GO: <http://purl.obolibrary.org/obo/GO_>
+                prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
+                prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
+                prefix HP: <http://purl.obolibrary.org/obo/HP_>
+                prefix EFO: <http://www.ebi.ac.uk/efo/EFO_>
+                prefix NCIT: <http://purl.obolibrary.org/obo/NCIT_>
+                PREFIX CLOSE_MATCH: <http://www.w3.org/2004/02/skos/core#closeMatch>
+                PREFIX M_CLOSE_MATCH: <http://purl.obolibrary.org/obo/mondo#closeMatch>
+                PREFIX EQUIVALENT_CLASS: <http://www.w3.org/2002/07/owl#equivalentClass>
+                PREFIX ID: <http://www.geneontology.org/formats/oboInOwl#id>
+                SELECT DISTINCT ?descendent ?match
+                FROM <http://reasoner.renci.org/ontology>
+                WHERE {{
+                    graph <http://reasoner.renci.org/redundant> {{
+                        ?descendent rdfs:subClassOf $identifier .
+                    }}
+                    OPTIONAL {{
+                        ?descendent {predicate} ?match.
+                    }}
+                }}
+                """)
         resultmap = self.triplestore.query_template(template_text=text("CLOSE_MATCH:"), inputs={"identifier": iri}, outputs=["descendent", "match"])
         resultmap += self.triplestore.query_template(template_text=text("M_CLOSE_MATCH:"), inputs={"identifier": iri}, outputs=["descendent", "match"])
         results = defaultdict(list)
@@ -434,7 +431,7 @@ class UberGraph:
                 results[desc] += []
             else:
                 try:
-                    results[desc].append((Text.opt_to_curie(row["match"])))
+                    results[desc].append(Text.opt_to_curie(row["match"]))
                 except ValueError as verr:
                     # Sometimes, if there are no exact_matches, we'll get some kind of blank node id
                     # like 't19830198'. Want to filter those out.

@@ -1,16 +1,16 @@
 from collections import defaultdict
+
 import requests
 
-import src.datahandlers.obo as obo
-from src.metadata.provenance import write_concord_metadata
-from src.util import Text
-
-from src.prefixes import MESH, NCIT, CL, GO, UBERON, SNOMEDCT, WIKIDATA, UMLS, FMA
-from src.categories import ANATOMICAL_ENTITY, GROSS_ANATOMICAL_STRUCTURE, CELL, CELLULAR_COMPONENT
-from src.ubergraph import build_sets
-from src.babel_utils import write_compendium, glom, get_prefixes, read_identifier_file, remove_overused_xrefs
-import src.datahandlers.umls as umls
 import src.datahandlers.mesh as mesh
+import src.datahandlers.obo as obo
+import src.datahandlers.umls as umls
+from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
+from src.metadata.provenance import write_concord_metadata
+from src.prefixes import CL, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
+from src.ubergraph import build_sets
+from src.util import Text
 
 
 def remove_overused_xrefs_dict(kv):
@@ -146,7 +146,7 @@ def build_wikidata_cell_relationships(outdir, metadata_yaml):
     pairs = []
     for row in rows:
         umls_curie = f"{UMLS}:{row['umls']['value']}"
-        wd_curie = f"{WIKIDATA}:{row['wd']['value']}"
+        # wd_curie = f"{WIKIDATA}:{row['wd']['value']}"
         cl_curie = Text.obo_to_curie(row["cl"]["value"])
         pairs.append((umls_curie, cl_curie))
         counts[umls_curie] += 1
@@ -190,7 +190,7 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
         # them added. So we want to limit concordances to terms that are already in the dicts. But that's ONLY for the
         # UMLS concord.  We trust the others to retrieve decent identifiers.
         bs = frozenset([UMLS, GO])
-        with open(infile, "r") as inf:
+        with open(infile) as inf:
             for line in inf:
                 x = line.strip().split("\t")
                 prefixes = frozenset([xi.split(":")[0] for xi in x[0:3:2]])  # leave out the predicate
@@ -202,7 +202,7 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
                             use = False
                     if not use:
                         continue
-                pairs.append(([x[0], x[2]]))
+                pairs.append([x[0], x[2]])
         newpairs = remove_overused_xrefs(pairs)
         setpairs = [set(x) for x in newpairs]
         glom(dicts, setpairs, unique_prefixes=[UBERON, GO])

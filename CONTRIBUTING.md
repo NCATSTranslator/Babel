@@ -49,9 +49,9 @@ us triage and prioritize them correctly.
      [Priority: Low](https://github.com/NCATSTranslator/Babel/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22Priority%3A%20Low%22),
      [Priority: Medium](https://github.com/NCATSTranslator/Babel/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22Priority%3A%20Medium%22),
      [Priority: High](https://github.com/NCATSTranslator/Babel/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22Priority%3A%20High%22).
-     The idea is that issues with the highest priority will determine which will
-     be investigated/tested first, and which are most likely to move from Needed
-     later/Needed soon into Immediate for working on.
+     The idea is that issues with the highest priority will determine which will be
+     investigated/tested first, and which are most likely to move from Needed later/Needed soon into
+     Immediate for working on.
    - We estimate effort on tasks using a series of
      ["T-shirt sizes"](https://asana.com/resources/t-shirt-sizing):
      [Size: XS](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20XS%22),
@@ -59,17 +59,15 @@ us triage and prioritize them correctly.
      [Size: M](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20M%22),
      [Size: L](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20L%22),
      [Size: XL](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20XL%22).
-     These are to help distinguish between tasks that are easy to complete
-     (extra small) and those that will require a lot of thinking, programming
-     and testing (extra large).
+     These are to help distinguish between tasks that are easy to complete (extra small) and those
+     that will require a lot of thinking, programming and testing (extra large).
    - You can group issues in two ways:
-     - GitHub lets you chose a "parent" issue for each issue, which is useful
-       for issues that are related to each other. We try to build "issues of
-       issues" that group together similar issues that might require similar
-       fixes (e.g.
+     - GitHub lets you chose a "parent" issue for each issue, which is useful for issues that are
+       related to each other. We try to build "issues of issues" that group together similar issues
+       that might require similar fixes (e.g.
        [our issue tracking deprecated identifiers](https://github.com/NCATSTranslator/Babel/issues/93)).
-       If you find an issue related to yours, please feel free to add yours as a
-       child of the existing issue or vice versa.
+       If you find an issue related to yours, please feel free to add yours as a child of the
+       existing issue or vice versa.
      - You can use labels to group similar issues. We don't have a lot of labels
        for you to choose from, but feel free to add any that make sense!
 

@@ -7,6 +7,7 @@ from src.exporters.duckdb_exporters import setup_duckdb
 
 logger = util.get_logger(__name__)
 
+
 def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identically_labeled_cliques_tsv, duckdb_config=None):
     """
     Generate a list of identically labeled cliques.
@@ -31,6 +32,8 @@ def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identic
         ORDER BY clique_leader_count DESC
     """)
     results.write_csv(identically_labeled_cliques_tsv, sep="\t")
+
+    cliques.close()
 
 
 def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_tsv, duckdb_config=None):
@@ -61,6 +64,9 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
         GROUP BY curie HAVING clique_leader_count > 1
         ORDER BY clique_leader_count DESC
     """).write_csv(duplicate_curies_tsv, sep="\t")
+
+    edges.close()
+    cliques.close()
 
 
 def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_clique_leaders_tsv, duckdb_config=None):
@@ -93,6 +99,8 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
         """
     )
     results.write_csv(duplicate_clique_leaders_tsv, sep="\t")
+
+    cliques.close()
 
 
 def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duckdb_config=None):
@@ -176,10 +184,13 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
 
     # Add total counts back in.
     for curie_prefix in by_curie_prefix_results.keys():
-        by_curie_prefix_results[curie_prefix]['_totals'] = prefix_totals_report_by_curie_prefix[curie_prefix]
+        by_curie_prefix_results[curie_prefix]["_totals"] = prefix_totals_report_by_curie_prefix[curie_prefix]
 
     with open(curie_report_json, "w") as fout:
         json.dump(by_curie_prefix_results, fout, indent=2, sort_keys=True)
+
+    edges.close()
+    cliques.close()
 
 
 def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_report_json, duckdb_config=None):
@@ -195,6 +206,7 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
     """
 
     db = setup_duckdb(duckdb_filename, duckdb_config)
+
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
     # cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
@@ -262,15 +274,19 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
     # Step 3. Add total counts back in.
     for filename, clique_leader_prefix_entries in clique_leaders_by_filename.items():
         if filename in clique_totals_by_curie_prefix:
-            clique_leaders_by_filename[filename]['_totals'] = clique_totals_by_curie_prefix[filename]
+            clique_leaders_by_filename[filename]["_totals"] = clique_totals_by_curie_prefix[filename]
 
     # Step 4. Write out by-clique report in JSON.
     with open(by_clique_report_json, "w") as fout:
-        json.dump(clique_leaders_by_filename,
+        json.dump(
+            clique_leaders_by_filename,
             fout,
             indent=2,
             sort_keys=True,
         )
+
+    edges.close()
+    # cliques.close()
 
 def get_label_distribution(duckdb_filename, output_filename):
     db = setup_duckdb(duckdb_filename)

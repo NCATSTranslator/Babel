@@ -1,7 +1,7 @@
-from src.prefixes import GTOPDB
-from src.babel_utils import pull_via_urllib
-
 from bs4 import BeautifulSoup
+
+from src.babel_utils import pull_via_urllib
+from src.prefixes import GTOPDB
 
 
 def pull_gtopdb_ligands():
@@ -27,8 +27,8 @@ def make_labels_and_synonyms(inputfile, labelfile, synfile):
     idcol = 0
     labelcol = 1
     syncol = 13
-    with open(inputfile, "r") as inf, open(labelfile, "w") as lf, open(synfile, "w") as sf:
-        h = inf.readline()
+    with open(inputfile) as inf, open(labelfile, "w") as lf, open(synfile, "w") as sf:
+        _header = inf.readline()
         # Everything in this file is double quoted, hence all the [1:-1] stuff
         for line in inf:
             parts = line.strip().split("\t")

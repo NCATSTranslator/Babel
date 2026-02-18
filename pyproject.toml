@@ -51,16 +51,33 @@ apybiomart = { git = "https://github.com/gaurav/apybiomart.git", rev = "change-c
 dev = [
     "ipykernel>=7.1.0",
     "ruff>=0.14.14",
-    "rumdl>=0.1.3",
+    "rumdl>=0.1.22",
     "snakefmt>=0.11.2",
 ]
 
 # Linting/formatting configuration
 [tool.ruff]
-line-length = 160
+line-length = 120
+
+[tool.ruff.lint]
+# Enable all rules that ruff format would normally apply
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort (import sorting)
+    "UP",  # pyupgrade
+]
+
+# Optional but common
+ignore = [
+    "E501",  # let Ruff handle wrapping consistently
+]
+
+fixable = ["ALL"]
+unfixable = []
 
 [tool.snakefmt]
-line_length = 160
+line_length = 120
 include = '\.snakefile$|^Snakefile'
 
 [tool.rumdl]

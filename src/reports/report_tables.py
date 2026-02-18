@@ -110,7 +110,7 @@ def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str)
     :param prefix_report_table_csv: The report table CSV file to generate.
     """
 
-    with open(prefix_report_json, 'r') as f:
+    with open(prefix_report_json) as f:
         prefix_report = json.load(f)
 
     curie_entries = []
@@ -170,7 +170,7 @@ def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str)
             writer.writerow(row)
 
 def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
-    with open(cliques_report_json, 'r') as f:
+    with open(cliques_report_json) as f:
         cliques_report = json.load(f)
 
     clique_leader_entries = {}
@@ -296,7 +296,7 @@ def generate_mapping_sources_table(metadata_yaml_files, mapping_sources_table, m
     root_objects_by_filename = {}
 
     for yaml_file in metadata_yaml_files:
-        with open(yaml_file, 'r') as f:
+        with open(yaml_file) as f:
             metadata = yaml.safe_load(f)
 
             if metadata is None:

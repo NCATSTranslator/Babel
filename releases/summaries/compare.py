@@ -5,10 +5,10 @@ import json
 file1 = "2024mar24.json"
 file2 = "2024jul13.json"
 
-with open(file1, "r") as f:
+with open(file1) as f:
     summary1 = json.load(f)
 
-with open(file2, "r") as f:
+with open(file2) as f:
     summary2 = json.load(f)
 
 

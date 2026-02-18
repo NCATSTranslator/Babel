@@ -120,7 +120,9 @@ rule get_disease_efo_relationships:
         outfile=config["intermediate_directory"] + "/disease/concords/EFO",
         metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-EFO.yaml",
     run:
-        diseasephenotype.build_disease_efo_relationships(input.efo_owl_file_path, input.infile, output.outfile, output.metadata_yaml)
+        diseasephenotype.build_disease_efo_relationships(
+            input.efo_owl_file_path, input.infile, output.outfile, output.metadata_yaml
+        )
 
 
 rule get_disease_umls_relationships:
@@ -133,7 +135,9 @@ rule get_disease_umls_relationships:
         outfile=config["intermediate_directory"] + "/disease/concords/UMLS",
         metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-UMLS.yaml",
     run:
-        diseasephenotype.build_disease_umls_relationships(input.mrconso, input.infile, output.outfile, input.omim, input.ncit, output.metadata_yaml)
+        diseasephenotype.build_disease_umls_relationships(
+            input.mrconso, input.infile, output.outfile, input.omim, input.ncit, output.metadata_yaml
+        )
 
 
 rule get_disease_doid_relationships:
@@ -163,7 +167,9 @@ rule disease_manual_concord:
                     # Make sure the line has three tab-delimited values, and fail otherwise.
                 elements = lstripped_line.split("\t")
                 if len(elements) != 3:
-                    raise RuntimeError(f"Found {len(elements)} elements on line {lstripped_line}, expected 3: {elements}")
+                    raise RuntimeError(
+                        f"Found {len(elements)} elements on line {lstripped_line}, expected 3: {elements}"
+                    )
                 outp.writelines(["\t".join(elements)])
                 count_manual_concords += 1
 
@@ -190,8 +196,14 @@ rule disease_compendia:
         close_matches=config["intermediate_directory"] + "/disease/concords/MONDO_close",
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["disease_labelsandsynonyms"]),
         synonyms=expand("{dd}/{ap}/synonyms", dd=config["download_directory"], ap=config["disease_labelsandsynonyms"]),
-        concords=expand("{dd}/disease/concords/{ap}", dd=config["intermediate_directory"], ap=config["disease_concords"]),
-        metadata_yamls=expand("{dd}/disease/concords/metadata-{ap}.yaml", dd=config["intermediate_directory"], ap=config["disease_concords"]),
+        concords=expand(
+            "{dd}/disease/concords/{ap}", dd=config["intermediate_directory"], ap=config["disease_concords"]
+        ),
+        metadata_yamls=expand(
+            "{dd}/disease/concords/metadata-{ap}.yaml",
+            dd=config["intermediate_directory"],
+            ap=config["disease_concords"],
+        ),
         idlists=expand("{dd}/disease/ids/{ap}", dd=config["intermediate_directory"], ap=config["disease_ids"]),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
@@ -214,7 +226,9 @@ rule check_disease_completeness:
     output:
         report_file=config["output_directory"] + "/reports/disease_completeness.txt",
     run:
-        assessments.assess_completeness(config["intermediate_directory"] + "/disease/ids", input.input_compendia, output.report_file)
+        assessments.assess_completeness(
+            config["intermediate_directory"] + "/disease/ids", input.input_compendia, output.report_file
+        )
 
 
 rule check_disease:

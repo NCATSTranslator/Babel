@@ -33,7 +33,9 @@ rule export_compendia_to_duckdb:
         clique_parquet_file=config["output_directory"] + "/duckdb/parquet/filename={filename}/Clique.parquet",
     run:
         print(f"Exporting {input.compendium_file} to {output.duckdb_filename}...")
-        duckdb_exporters.export_compendia_to_parquet(input.compendium_file, output.clique_parquet_file, output.duckdb_filename)
+        duckdb_exporters.export_compendia_to_parquet(
+            input.compendium_file, output.clique_parquet_file, output.duckdb_filename
+        )
 
 
 # Write all synonyms files to Parquet via DuckDB, then create `babel_outputs/duckdb/synonyms_done` to signal that we're done.
@@ -58,7 +60,9 @@ rule export_synonyms_to_duckdb:
         duckdb_filename=config["output_directory"] + "/duckdb/duckdbs/filename={filename}/synonyms.duckdb",
         synonyms_parquet_filename=config["output_directory"] + "/duckdb/parquet/filename={filename}/Synonyms.parquet",
     run:
-        duckdb_exporters.export_synonyms_to_parquet(input.synonyms_file, output.duckdb_filename, output.synonyms_parquet_filename)
+        duckdb_exporters.export_synonyms_to_parquet(
+            input.synonyms_file, output.duckdb_filename, output.synonyms_parquet_filename
+        )
 
 
 # TODO: convert all conflations to Parquet via DuckDB (https://github.com/TranslatorSRI/Babel/issues/378).
@@ -85,7 +89,8 @@ rule check_for_identically_labeled_cliques:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     output:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/identically_labeled_clique.duckdb"),
-        identically_labeled_cliques_tsv=config["output_directory"] + "/reports/duckdb/identically_labeled_cliques.tsv.gz",
+        identically_labeled_cliques_tsv=config["output_directory"]
+        + "/reports/duckdb/identically_labeled_cliques.tsv.gz",
     run:
         src.reports.duckdb_reports.check_for_identically_labeled_cliques(
             params.parquet_dir,
@@ -200,7 +205,8 @@ rule generate_clique_leader_report:
 rule all_duckdb_reports:
     input:
         config["output_directory"] + "/duckdb/done",
-        identically_labeled_cliques_tsv=config["output_directory"] + "/reports/duckdb/identically_labeled_cliques.tsv.gz",
+        identically_labeled_cliques_tsv=config["output_directory"]
+        + "/reports/duckdb/identically_labeled_cliques.tsv.gz",
         duplicate_curies=config["output_directory"] + "/reports/duckdb/duplicate_curies.tsv",
         duplicate_clique_leaders_tsv=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.tsv",
         curie_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",

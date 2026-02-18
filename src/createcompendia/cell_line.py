@@ -1,6 +1,5 @@
+from src.babel_utils import glom, read_identifier_file, write_compendium
 from src.categories import CELL_LINE
-
-from src.babel_utils import read_identifier_file, glom, write_compendium
 
 
 def build_compendia(ifile, metadata_yamls, icrdf_filename):

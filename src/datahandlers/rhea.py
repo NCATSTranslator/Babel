@@ -1,12 +1,12 @@
-from src.metadata.provenance import write_concord_metadata
-from src.prefixes import RHEA, EC
-from src.babel_utils import pull_via_urllib
-from src.babel_utils import make_local_name
 import pyoxigraph
+
+from src.babel_utils import make_local_name, pull_via_urllib
+from src.metadata.provenance import write_concord_metadata
+from src.prefixes import EC, RHEA
 
 
 def pull_rhea():
-    outputfile = pull_via_urllib("https://ftp.expasy.org/databases/rhea/rdf/", "rhea.rdf.gz", subpath="RHEA", decompress=True)
+    pull_via_urllib("https://ftp.expasy.org/databases/rhea/rdf/", "rhea.rdf.gz", subpath="RHEA", decompress=True)
 
 
 class Rhea:

@@ -76,7 +76,9 @@ rule get_wikidata_cell_relationships:
         config["intermediate_directory"] + "/anatomy/concords/WIKIDATA",
         wikidata_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-WIKIDATA.yaml",
     run:
-        anatomy.build_wikidata_cell_relationships(config["intermediate_directory"] + "/anatomy/concords", output.wikidata_metadata)
+        anatomy.build_wikidata_cell_relationships(
+            config["intermediate_directory"] + "/anatomy/concords", output.wikidata_metadata
+        )
 
 
 rule get_anatomy_umls_relationships:
@@ -94,8 +96,14 @@ rule anatomy_compendia:
     input:
         labels=os.path.join(config["download_directory"], "common", config["common"]["labels"][0]),
         synonyms=os.path.join(config["download_directory"], "common", config["common"]["synonyms"][0]),
-        concords=expand("{dd}/anatomy/concords/{ap}", dd=config["intermediate_directory"], ap=config["anatomy_concords"]),
-        metadata_yamls=expand("{dd}/anatomy/concords/metadata-{ap}.yaml", dd=config["intermediate_directory"], ap=config["anatomy_concords"]),
+        concords=expand(
+            "{dd}/anatomy/concords/{ap}", dd=config["intermediate_directory"], ap=config["anatomy_concords"]
+        ),
+        metadata_yamls=expand(
+            "{dd}/anatomy/concords/metadata-{ap}.yaml",
+            dd=config["intermediate_directory"],
+            ap=config["anatomy_concords"],
+        ),
         idlists=expand("{dd}/anatomy/ids/{ap}", dd=config["intermediate_directory"], ap=config["anatomy_ids"]),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
@@ -112,7 +120,9 @@ rule check_anatomy_completeness:
     output:
         report_file=config["output_directory"] + "/reports/anatomy_completeness.txt",
     run:
-        assessments.assess_completeness(config["intermediate_directory"] + "/anatomy/ids", input.input_compendia, output.report_file)
+        assessments.assess_completeness(
+            config["intermediate_directory"] + "/anatomy/ids", input.input_compendia, output.report_file
+        )
 
 
 rule check_anatomical_entity:

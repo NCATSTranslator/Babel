@@ -27,7 +27,9 @@ rule genefamily_compendia:
     input:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["genefamily_labels"]),
         idlists=expand("{dd}/genefamily/ids/{ap}", dd=config["intermediate_directory"], ap=config["genefamily_ids"]),
-        metadata_yamls=expand("{dd}/{ap}/metadata.yaml", dd=config["download_directory"], ap=config["genefamily_labels"]),
+        metadata_yamls=expand(
+            "{dd}/{ap}/metadata.yaml", dd=config["download_directory"], ap=config["genefamily_labels"]
+        ),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["genefamily_outputs"]),
@@ -43,7 +45,9 @@ rule check_genefamily_completeness:
     output:
         report_file=config["output_directory"] + "/reports/genefamily_completeness.txt",
     run:
-        assessments.assess_completeness(config["intermediate_directory"] + "/genefamily/ids", input.input_compendia, output.report_file)
+        assessments.assess_completeness(
+            config["intermediate_directory"] + "/genefamily/ids", input.input_compendia, output.report_file
+        )
 
 
 rule check_genefamily:

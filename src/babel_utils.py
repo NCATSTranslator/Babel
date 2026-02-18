@@ -1,27 +1,26 @@
+import gzip
+import os
+import sqlite3
 import subprocess
+import time
 import traceback
+import urllib
+from collections import defaultdict
+from datetime import datetime, timedelta
 from enum import Enum
 from ftplib import FTP
 from io import BytesIO
-import gzip
-from datetime import timedelta, datetime
-import time
 from pathlib import Path
 
-import requests
-import os
-import urllib
 import jsonlines
+import requests
 from humanfriendly import format_timespan
 
-from src.metadata.provenance import write_combined_metadata
-from src.node import NodeFactory, SynonymFactory, DescriptionFactory, InformationContentFactory, TaxonFactory
-from src.properties import PropertyList, HAS_ALTERNATIVE_ID
-from src.util import Text, get_config, get_memory_usage_summary, get_logger
 from src.LabeledID import LabeledID
-from collections import defaultdict
-import sqlite3
-from typing import List, Tuple
+from src.metadata.provenance import write_combined_metadata
+from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory
+from src.properties import HAS_ALTERNATIVE_ID, PropertyList
+from src.util import Text, get_config, get_logger, get_memory_usage_summary
 
 # Configuration items
 WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES = 1_000_000
@@ -194,7 +193,6 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
     """
     # Everything goes in downloads
     download_dir = get_config()["download_directory"]
-    working_dir = download_dir
 
     # get the (local) download file name, derived from the input file name
     if subpath is None:
@@ -427,7 +425,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
     :param metadata_yaml: The YAML files containing the metadata for this compendium.
     :param synonym_list:
     :param ofname: Output filename. A file with this filename will be created in both the `compendia` and `synonyms` output directories.
-    :param node_type:
+    :param node_type: The Biolink type of this compendium (including `biolink:` prefix).
     :param labels: A map of identifiers
         Not needed if each identifier will have a label in the correct directory (i.e. downloads/PMID/labels for PMID:xxx).
     :param extra_prefixes: We default to only allowing the prefixes allowed for a particular type in Biolink.
@@ -512,6 +510,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
             # Before we get started, let's estimate where we're at.
             count_slist += 1
             if (count_slist == 1) or (count_slist % WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES == 0):
+                # TODO: replace with tqdm.
                 time_elapsed_seconds = (time.time_ns() - start_time) / 1e9
                 if time_elapsed_seconds < 0.001:
                     # We don't want to divide by zero.
@@ -589,11 +588,11 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                     possible_labels = map(lambda identifier: identifier.get("label", ""), node["identifiers"])
 
                 # Step 2. Filter out any suspicious labels.
-                filtered_possible_labels = [l for l in possible_labels if l]  # Ignore blank or empty names.
+                filtered_possible_labels = [label for label in possible_labels if label]  # Ignore blank or empty names.
 
                 # Step 3. Filter out labels longer than config['demote_labels_longer_than'], but only if there is at
                 # least one label shorter than this limit.
-                labels_shorter_than_limit = [l for l in filtered_possible_labels if l and len(l) <= config["demote_labels_longer_than"]]
+                labels_shorter_than_limit = [label for label in filtered_possible_labels if label and len(label) <= config["demote_labels_longer_than"]]
                 if labels_shorter_than_limit:
                     filtered_possible_labels = labels_shorter_than_limit
 
@@ -782,7 +781,7 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
     shit_prefixes = set(["KEGG", "PUBCHEM"])
     test_id = "xUBERON:0002262"
     debugit = False
-    excised = set()
+    # excised = set()
     for xgroup in newgroups:
         if isinstance(xgroup, frozenset):
             group = set(xgroup)
@@ -802,7 +801,7 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
         existing_sets_w_x = [(conc_set[x], x) for x in group if x in conc_set]
         # All of these sets are now going to be combined through the equivalence of our new set.
         existing_sets = [es[0] for es in existing_sets_w_x]
-        x = [es[1] for es in existing_sets_w_x]
+        # x = [es[1] for es in existing_sets_w_x]
         newset = set().union(*existing_sets)
         if debugit:
             print("merges:", existing_sets)
@@ -830,7 +829,7 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
         for up in unique_prefixes:
             if test_id in group:
                 print("up?", up)
-            idents = [e if type(e) == str else e.identifier for e in newset]
+            idents = [e if isinstance(e, str) else e.identifier for e in newset]
             if len(set([e for e in idents if (e.split(":")[0] == up)])) > 1:
                 bad += 1
                 setok = False
@@ -840,18 +839,15 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
                     wrote.add(fs)
                 for gel in group:
                     if Text.get_prefix_or_none(gel) == pref:
-                        killer = gel
+                        # killer = gel
+                        pass
                 # for preset in wrote:
                 #    print(f'{killer}\t{set(group).intersection(preset)}\t{preset}\n')
                 # print('------------')
         NPC = sum(1 for s in newset if s.startswith("PUBCHEM.COMPOUND:"))
         if ("PUBCHEM.COMPOUND:3100" in newset) and (NPC > 3):
             if debugit:
-                l = sorted(list(newset))
-                print("bad")
-                for li in l:
-                    print(li)
-                exit()
+                raise ValueError(f"Debugging information: {sorted(list(newset))}")
         if not setok:
             # Our new group created a new set that merged stuff we didn't want to merge.
             # Previously we did a lot of fooling around at this point.  But now we're just going to say, I have a
@@ -894,7 +890,7 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
         # Now check the 'close' dictionary to see if we've accidentally gotten to a close match becoming an exact match
         setok = True
         for cpref, closedict in close.items():
-            idents = set([e if type(e) == str else e.identifier for e in newset])
+            idents = set([e if isinstance(e, str) else e.identifier for e in newset])
             prefidents = [e for e in idents if e.startswith(cpref)]
             for pident in prefidents:
                 for cd in closedict[pident]:
@@ -978,7 +974,7 @@ def read_identifier_file(infile):
     a hint to the normalizer about the proper biolink type for this entity."""
     types = {}
     identifiers = list()
-    with open(infile, "r") as inf:
+    with open(infile) as inf:
         for line in inf:
             x = line.strip().split("\t")
             identifiers.append((x[0],))
@@ -987,7 +983,7 @@ def read_identifier_file(infile):
     return identifiers, types
 
 
-def remove_overused_xrefs(pairlist: List[Tuple], bothways: bool = False):
+def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
     """Given a list of tuples (id1, id2) meaning id1-[xref]->id2, remove any id2 that are associated with more
     than one id1.  The idea is that if e.g. id1 is made up of UBERONS and 2 of those have an xref to say a UMLS
     then it doesn't mean that all of those should be identified.  We don't really know what it means, so remove it."""

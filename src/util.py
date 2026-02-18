@@ -1,22 +1,21 @@
-import logging
+import copy
 import json
+import logging
 import os
 import sys
+from collections import namedtuple
+from logging.handlers import RotatingFileHandler
 from time import gmtime
 
 import curies
-import yaml
 import psutil
-from collections import namedtuple
-import copy
-from logging.handlers import RotatingFileHandler
-
+import yaml
 from bmt import Toolkit
 from humanfriendly import format_size
 
-from src.LabeledID import LabeledID
-from src.prefixes import OMIM, OMIMPS, UMLS, SNOMEDCT, KEGGPATHWAY, KEGGREACTION, NCIT, ICD10, ICD10CM, ICD11FOUNDATION
 import src.prefixes as prefixes
+from src.LabeledID import LabeledID
+from src.prefixes import ICD10, ICD10CM, ICD11FOUNDATION, KEGGPATHWAY, KEGGREACTION, NCIT, OMIM, OMIMPS, SNOMEDCT, UMLS
 
 
 def get_logger(name, loglevel=logging.INFO):
@@ -46,7 +45,7 @@ def get_logger(name, loglevel=logging.INFO):
 
 
 # loggers = {}
-class LoggingUtil(object):
+class LoggingUtil:
     """Logging utility controlling format and setting initial logging level"""
 
     @staticmethod
@@ -101,7 +100,7 @@ class LoggingUtil(object):
         return logger
 
 
-class Munge(object):
+class Munge:
     @staticmethod
     def gene(gene):
         return gene.split("/")[-1:][0] if gene.startswith("http://") else gene
@@ -255,14 +254,14 @@ class Resource:
     @staticmethod
     def load_json(path):
         result = None
-        with open(path, "r") as stream:
+        with open(path) as stream:
             result = json.loads(stream.read())
         return result
 
     @staticmethod
     def load_yaml(path):
         result = None
-        with open(path, "r") as stream:
+        with open(path) as stream:
             result = yaml.load(stream.read())
         return result
 
@@ -290,23 +289,23 @@ class Resource:
 
         If there are particular keys you want to overwrite instead of merge, send in overwrite_keys
         """
-        if type(src) == dict:
+        if isinstance(src, dict):
             for k, v in src.items():
                 if k in overwrite_keys:
                     target[k] = copy.deepcopy(v)
-                elif type(v) == list:
+                elif isinstance(v, list):
                     if k not in target:
                         target[k] = copy.deepcopy(v)
-                    elif type(v[0]) == dict:
+                    elif isinstance(v[0], dict):
                         Resource.deepupdate(target[k], v, overwrite_keys)
                     else:
                         target[k].extend(v)
-                elif type(v) == dict:
+                elif isinstance(v, dict):
                     if k not in target:
                         target[k] = copy.deepcopy(v)
                     else:
                         Resource.deepupdate(target[k], v, overwrite_keys)
-                elif type(v) == set:
+                elif isinstance(v, set):
                     if k not in target:
                         target[k] = v.copy()
                     else:
@@ -345,7 +344,7 @@ def get_config():
         return config_yaml
 
     cname = os.path.join(os.path.dirname(__file__), "..", "config.yaml")
-    with open(cname, "r") as yaml_file:
+    with open(cname) as yaml_file:
         config_yaml = yaml.safe_load(yaml_file)
     return config_yaml
 

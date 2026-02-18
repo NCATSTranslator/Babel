@@ -1,7 +1,8 @@
-from src.prefixes import WORMBASE
-from src.babel_utils import pull_via_urllib
 import json
 import os
+
+from src.babel_utils import pull_via_urllib
+from src.prefixes import WORMBASE
 
 mods = ["WB", "FB", "ZFIN", "MGI", "RGD", "SGD"]
 modmap = {x: x for x in mods}
@@ -29,7 +30,7 @@ def pull_mods():
 
 def write_labels(dd):
     for mod, prefix in modmap.items():
-        with open(f"{dd}/{prefix}/GENE-DESCRIPTION-JSON_{prefix}.json", "r") as inf:
+        with open(f"{dd}/{prefix}/GENE-DESCRIPTION-JSON_{prefix}.json") as inf:
             j = json.load(inf)
         with open(f"{dd}/{prefix}/labels", "w") as outf:
             for gene in j["data"]:

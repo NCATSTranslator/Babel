@@ -1,9 +1,10 @@
 import json
-
-from src.util import get_config
-from apybiomart import find_datasets, query, find_attributes
 import logging
 import os
+
+from apybiomart import find_attributes, find_datasets, query
+
+from src.util import get_config
 
 # As per https://support.bioconductor.org/p/39744/#39751, more attributes than this result in an
 # error from BioMart: Too many attributes selected for External References

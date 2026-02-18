@@ -23,7 +23,9 @@ rule geneprotein_conflation:
     output:
         outfile=config["output_directory"] + "/conflation/GeneProtein.txt",
     run:
-        geneprotein.build_conflation(input.geneprotein_concord, input.gene_compendium, input.protein_compendium, output.outfile)
+        geneprotein.build_conflation(
+            input.geneprotein_concord, input.gene_compendium, input.protein_compendium, output.outfile
+        )
 
 
 rule geneprotein_conflated_synonyms:

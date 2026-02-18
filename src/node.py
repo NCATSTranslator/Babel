@@ -7,16 +7,16 @@ from urllib.parse import urlparse
 
 import curies
 
+from src.LabeledID import LabeledID
+from src.prefixes import PUBCHEMCOMPOUND
 from src.util import (
     Text,
-    get_config,
     get_biolink_model_toolkit,
     get_biolink_prefix_map,
+    get_config,
     get_logger,
     get_memory_usage_summary,
 )
-from src.LabeledID import LabeledID
-from src.prefixes import PUBCHEMCOMPOUND
 
 logger = get_logger(__name__)
 
@@ -52,7 +52,7 @@ class SynonymFactory:
         for common_synonyms_file in self.config["common"]["synonyms"]:
             common_synonyms_path = os.path.join(self.config["download_directory"], "common", common_synonyms_file)
             count_common_file_synonyms = 0
-            with open(common_synonyms_path, "r") as synonymsf:
+            with open(common_synonyms_path) as synonymsf:
                 # Note that these files may contain ANY prefix -- we should only fallback to this if we have no other
                 # option.
                 for line in synonymsf:
@@ -70,14 +70,14 @@ class SynonymFactory:
         count_labels = 0
         count_synonyms = 0
         if os.path.exists(labelfname):
-            with open(labelfname, "r") as inf:
+            with open(labelfname) as inf:
                 for line in inf:
                     x = line.strip().split("\t")
                     lbs[x[0]].add(("http://www.geneontology.org/formats/oboInOwl#hasExactSynonym", x[1]))
                     count_labels += 1
         synfname = os.path.join(self.synonym_dir, prefix, "synonyms")
         if os.path.exists(synfname):
-            with open(synfname, "r") as inf:
+            with open(synfname) as inf:
                 for line in inf:
                     x = line.strip().split("\t")
                     if len(x) < 3:
@@ -113,7 +113,7 @@ class DescriptionFactory:
         for common_descriptions_file in self.config["common"]["descriptions"]:
             common_descriptions_path = os.path.join(self.config["download_directory"], "common", common_descriptions_file)
             count_common_file_descriptions = 0
-            with open(common_descriptions_path, "r") as descriptionsf:
+            with open(common_descriptions_path) as descriptionsf:
                 # Note that these files may contain ANY CURIE -- we should only fallback to this if we have no other
                 # option.
                 for line in descriptionsf:
@@ -130,7 +130,7 @@ class DescriptionFactory:
         descfname = os.path.join(self.root_dir, prefix, "descriptions")
         desc_count = 0
         if os.path.exists(descfname):
-            with open(descfname, "r") as inf:
+            with open(descfname) as inf:
                 for line in inf:
                     x = line.strip().split("\t")
                     descs[x[0]].add("\t".join(x[1:]))
@@ -230,7 +230,7 @@ class TSVSQLiteLoader:
         logger.info(f"Reading records from {tsv_filename} into memory to load into SQLite: {get_memory_usage_summary()}")
         records = []
         record_count = 0
-        with open(tsv_filename, "r") as inf:
+        with open(tsv_filename) as inf:
             for line in inf:
                 x = line.strip().split("\t", maxsplit=1)
                 records.append([x[0].upper(), x[1]])
@@ -344,7 +344,7 @@ class InformationContentFactory:
         ubergraph_iri_stem_to_prefix_map = curies.Converter.from_reverse_prefix_map(config["ubergraph_iri_stem_to_prefix_map"])
 
         count_by_prefix = defaultdict(int)
-        with open(ic_file, "r") as inf:
+        with open(ic_file) as inf:
             for line in inf:
                 x = line.strip().split("\t")
                 # We talk in CURIEs, but the infores download is in URLs. We can use the Biolink
@@ -502,7 +502,7 @@ class NodeFactory:
         labelfname = os.path.join(self.label_dir, prefix, "labels")
         lbs = {}
         if os.path.exists(labelfname):
-            with open(labelfname, "r") as inf:
+            with open(labelfname) as inf:
                 for line in inf:
                     x = line.strip().split("\t")
                     lbs[x[0]] = x[1]
@@ -518,7 +518,7 @@ class NodeFactory:
             for common_labels_file in config["common"]["labels"]:
                 common_labels_path = os.path.join(config["download_directory"], "common", common_labels_file)
                 count_common_file_labels = 0
-                with open(common_labels_path, "r") as labelf:
+                with open(common_labels_path) as labelf:
                     # Note that these files may contain ANY prefix -- we should only fallback to this if we have no other
                     # option.
                     for line in labelf:
@@ -647,7 +647,8 @@ def pubchemsort(pc_ids, labeled_ids):
                 pclabels[lid.label.upper()] = lid.identifier
             else:
                 label_counts[lid.label.upper()] += 1
-        except:
+        except Exception:
+            logger.warning(f"No labels found for PubChem ID {lid}")
             pass
     matches = [(label_counts[pclabel], pcident) for pclabel, pcident in pclabels.items()]
     matches.sort()
@@ -669,8 +670,9 @@ def pubchemsort(pc_ids, labeled_ids):
                 just_ids = list(pclabels.values())
                 just_ids.sort()
                 best_pubchem_id = just_ids[0]
-        except:
+        except Exception:
             # Gross, there just aren't any labels
+            logger.warning(f"No PubChem labels found for {pc_ids}. Just using the first one.")
             best_pubchem_id = sorted(pc_ids)[0][0]
     for pcelement in pc_ids:
         pcid, _ = pcelement

@@ -9,7 +9,7 @@ def pull_complexportal():
 
 def make_labels_and_synonyms(infile, labelfile, synfile, metadata_yaml):
     usedsyns = set()
-    with open(infile, "r") as inf, open(labelfile, "w") as outl, open(synfile, "w") as outsyn:
+    with open(infile) as inf, open(labelfile, "w") as outl, open(synfile, "w") as outsyn:
         next(inf)  # skip header
         for line in inf:
             sline = line.split("\t")

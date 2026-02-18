@@ -1,9 +1,14 @@
 import csv
+import json
+import logging
 import sys
 import time
+from collections import defaultdict
 
 import jsonlines
 from humanfriendly import format_timespan
+
+from src.babel_utils import get_numerical_curie_suffix, glom
 
 # from src.categories import (
 #     SMALL_MOLECULE,
@@ -23,13 +28,8 @@ from humanfriendly import format_timespan
 from src.categories import CHEMICAL_ENTITY
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.node import InformationContentFactory
-from src.prefixes import RXCUI, PUBCHEMCOMPOUND, UMLS
-from src.babel_utils import glom, get_numerical_curie_suffix
-from collections import defaultdict
-import json
-
-import logging
-from src.util import LoggingUtil, get_config, get_memory_usage_summary, get_biolink_model_toolkit, Text
+from src.prefixes import PUBCHEMCOMPOUND, RXCUI, UMLS
+from src.util import LoggingUtil, Text, get_biolink_model_toolkit, get_config, get_memory_usage_summary
 
 logger = LoggingUtil.init_logging(__name__, level=logging.INFO)
 
@@ -138,7 +138,7 @@ def get_aui_to_cui(consofile):
     aui_to_cui = {}
     sdui_to_cui = defaultdict(set)
     # consofile = os.path.join('input_data', 'private', "RXNCONSO.RRF")
-    with open(consofile, "r") as inf:
+    with open(consofile) as inf:
         for line in inf:
             x = line.strip().split("|")
             aui = x[7]
@@ -165,7 +165,7 @@ def get_cui(x, indicator_column, cui_column, aui_column, aui_to_cui, sdui_to_cui
         elif x[indicator_column] == "AUI":
             try:
                 return aui_to_cui[x[aui_column]]
-            except:
+            except Exception:
                 # this really shouldn't happen.  But it seems to occur for the UMLS files?
                 return None
         elif x[indicator_column] == "SDUI":
@@ -229,7 +229,7 @@ def build_rxnorm_relationships(conso, relfile, outfile, metadata_yaml):
     one_to_one_relations = {}
     # one_to_one_relations = {"has_tradename": {"subject": defaultdict(set),
     #                                          "object": defaultdict(set)}}
-    with open(relfile, "r") as inf, open(outfile, "w") as outf:
+    with open(relfile) as inf, open(outfile, "w") as outf:
         for line in inf:
             x = line.strip().split("|")
             # UMLS always has the CUI in it, while RXNORM does not.
@@ -274,7 +274,7 @@ def build_rxnorm_relationships(conso, relfile, outfile, metadata_yaml):
 
 def load_cliques_containing_rxcui(compendium):
     rx_to_clique = {}
-    with open(compendium, "r") as infile:
+    with open(compendium) as infile:
         for line in infile:
             if RXCUI not in line:
                 continue
@@ -287,7 +287,7 @@ def load_cliques_containing_rxcui(compendium):
 
 
 def build_pubchem_relationships(infile, outfile, metadata_yaml):
-    with open(infile, "r") as inf:
+    with open(infile) as inf:
         document = json.load(inf)
     with open(outfile, "w") as outf:
         for annotation in document["Annotations"]["Annotation"]:
@@ -341,7 +341,7 @@ def build_conflation(
     manual_concords_curies = set()
     manual_concords_predicate_counts = defaultdict(int)
     manual_concords_curie_prefix_counts = defaultdict(int)
-    with open(manual_concord_filename, "r") as manualf:
+    with open(manual_concord_filename) as manualf:
         csv_reader = csv.DictReader(manualf, dialect=csv.excel_tab)
         for row in csv_reader:
             # We're only interested in two fields, so you can add additional files ('comment', 'notes', etc.) as needed.
@@ -364,7 +364,7 @@ def build_conflation(
     type_for_preferred_curie = {}
     clique_for_preferred_curie = {}
     for chemical_compendium in chemical_compendia:
-        with open(chemical_compendium, "r") as compendiumf:
+        with open(chemical_compendium) as compendiumf:
             logger.info(f"Loading {chemical_compendium}: {get_memory_usage_summary()}")
             for line in compendiumf:
                 clique = json.loads(line)
@@ -388,7 +388,7 @@ def build_conflation(
 
     pairs = []
     for concfile in [rxn_concord, umls_concord]:
-        with open(concfile, "r") as infile:
+        with open(concfile) as infile:
             for line in infile:
                 x = line.strip().split("\t")
                 subject = x[0]
@@ -417,15 +417,17 @@ def build_conflation(
     pairs.extend(manual_concords)
 
     # We've had some issues with non-chemical types getting conflated, so we filter those out here.
-    biolink_model_toolkit = get_biolink_model_toolkit(config['biolink_version'])
-    biolink_chemical_types = set(biolink_model_toolkit.get_descendants(
-        CHEMICAL_ENTITY,
-        reflexive=True,
-        formatted=True,
-        mixin=True,
-    ))
+    biolink_model_toolkit = get_biolink_model_toolkit(config["biolink_version"])
+    biolink_chemical_types = set(
+        biolink_model_toolkit.get_descendants(
+            CHEMICAL_ENTITY,
+            reflexive=True,
+            formatted=True,
+            mixin=True,
+        )
+    )
     logging.info(f"Filtering RxCUI pairs to those in these Biolink chemical types: {sorted(biolink_chemical_types)}")
-    with open(pubchem_rxn_concord, "r") as infile:
+    with open(pubchem_rxn_concord) as infile:
         for line in infile:
             x = line.strip().split("\t")
             subject = x[0]
@@ -493,9 +495,9 @@ def build_conflation(
     #
     # So, instead, I'm going to group them by prefix and then to sort it using the ChemicalEntity
     # prefix sort order.
-    biolink_model_toolkit = get_biolink_model_toolkit(config['biolink_version'])
+    biolink_model_toolkit = get_biolink_model_toolkit(config["biolink_version"])
     biolink_chemical_entity = biolink_model_toolkit.get_element(CHEMICAL_ENTITY)
-    conflation_prefix_order = biolink_chemical_entity['id_prefixes']
+    conflation_prefix_order = biolink_chemical_entity["id_prefixes"]
     if not conflation_prefix_order:
         raise RuntimeError(f"Biolink model {config['biolink_version']} doesn't have a ChemicalEntity prefix order: {biolink_chemical_entity}")
 
@@ -628,9 +630,11 @@ def build_conflation(
             # The final conflation list won't match the initial list only if some of the Biolink types weren't
             # chemical types, and so were skipped that way.
             if set(final_conflation_id_list) != set(normalized_conflation_id_list):
-                logger.warning("Final conflation ID list does not match the normalized conflation ID list:\n" +
-                               f" - Final conflation ID list: {sorted(final_conflation_id_list)}\n" +
-                               f" - Normalized conflation ID list: {sorted(normalized_conflation_id_list)}")
+                logger.warning(
+                    "Final conflation ID list does not match the normalized conflation ID list:\n"
+                    + f" - Final conflation ID list: {sorted(final_conflation_id_list)}\n"
+                    + f" - Normalized conflation ID list: {sorted(normalized_conflation_id_list)}"
+                )
 
             # Write out all the identifiers.
             logger.info(f"Ordered DrugChemical conflation {final_conflation_id_list} with IC values {clique_ics}.")

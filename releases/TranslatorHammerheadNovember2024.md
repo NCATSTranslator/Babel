@@ -20,4 +20,5 @@ Previous release: [Translator Guppy August 2024](./TranslatorGuppyAugust2024.md)
 
 - Upgraded RxNorm to 09032024.
 - Changed NCBIGene download from FTP to HTTP.
-- Increased DRUG_CHEMICAL_SMALLER_MAX_LABEL_LENGTH (introduced in [#330](https://github.com/TranslatorSRI/Babel/pull/330)) from 30 to 40.
+- Increased DRUG_CHEMICAL_SMALLER_MAX_LABEL_LENGTH (introduced in
+  [#330](https://github.com/TranslatorSRI/Babel/pull/330)) from 30 to 40.

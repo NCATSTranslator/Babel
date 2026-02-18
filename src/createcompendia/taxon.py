@@ -1,13 +1,11 @@
-from src.metadata.provenance import write_concord_metadata
-from src.prefixes import NCBITAXON, MESH, UMLS
-from src.categories import ORGANISM_TAXON
+import logging
 
 import src.datahandlers.mesh as mesh
 import src.datahandlers.umls as umls
-
-from src.babel_utils import read_identifier_file, glom, write_compendium
-
-import logging
+from src.babel_utils import glom, read_identifier_file, write_compendium
+from src.categories import ORGANISM_TAXON
+from src.metadata.provenance import write_concord_metadata
+from src.prefixes import MESH, NCBITAXON, UMLS
 from src.util import LoggingUtil
 
 logger = LoggingUtil.init_logging(__name__, level=logging.ERROR)
@@ -74,9 +72,9 @@ def build_taxon_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
 
 def build_relationships(outfile, mesh_ids, metadata_yaml):
     regis = mesh.pull_mesh_registry()
-    with open(mesh_ids, "r") as inf:
-        lines = inf.read().strip().split("\n")
-        all_mesh_taxa = set([x.split("\t")[0] for x in lines])
+    # with open(mesh_ids) as inf:
+        # lines = inf.read().strip().split("\n")
+        # all_mesh_taxa = set([x.split("\t")[0] for x in lines])
     with open(outfile, "w") as outf:
         for meshid, reg in regis:
             # The mesh->ncbi are in mesh as registration numbers that start with a "tx"
@@ -118,7 +116,7 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
         print(infile)
         print("loading", infile)
         pairs = []
-        with open(infile, "r") as inf:
+        with open(infile) as inf:
             for line in inf:
                 x = line.strip().split("\t")
                 pairs.append(set([x[0], x[2]]))
