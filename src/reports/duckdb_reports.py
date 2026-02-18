@@ -1,7 +1,6 @@
-import csv
 import json
 import os
-from collections import Counter, defaultdict
+from collections import defaultdict
 
 from src import util
 from src.exporters.duckdb_exporters import setup_duckdb
@@ -57,6 +56,8 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
             COUNT(clique_leader) AS clique_leader_count
         FROM
             edges
+        WHERE
+            edges.conflation = 'None'
         GROUP BY curie HAVING clique_leader_count > 1
         ORDER BY clique_leader_count DESC
     """).write_csv(duplicate_curies_tsv, sep="\t")
@@ -108,31 +109,37 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
 
     db = setup_duckdb(duckdb_filename, duckdb_config)
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
+    cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
-    # Step 1. Generate a by-prefix summary.
-    logger.info("Generating prefix report...")
-    curie_prefix_summary = db.sql("""
+    # Step 2. Generate a prefix report by Biolink type.
+    logger.info("Generating prefix report by Biolink type...")
+    curie_prefix_by_type = db.sql("""
+        WITH C AS (
+            SELECT clique_leader, biolink_type
+            FROM cliques
+        )
         SELECT
-            split_part(curie, ':', 1) AS curie_prefix,
-            filename,
-            COUNT(curie) AS curie_count,
-            COUNT(DISTINCT curie) AS curie_distinct_count,
-            COUNT(DISTINCT clique_leader) AS clique_distinct_count,
-        FROM
-            edges
-        WHERE
-            conflation = 'None'
-        GROUP BY
             curie_prefix,
-            filename
+            biolink_type,
+            COUNT(e.curie) AS curie_count,
+            COUNT(DISTINCT e.curie) AS curie_distinct_count,
+            COUNT(DISTINCT e.clique_leader) AS clique_distinct_count
+        FROM (
+             SELECT clique_leader,
+                    split_part(curie, ':', 1) AS curie_prefix,
+                    curie
+             FROM edges
+             WHERE edges.conflation = 'None'
+        ) e
+        JOIN C USING (clique_leader)
+        GROUP BY curie_prefix, biolink_type
     """)
-    logger.info("Done generating prefix report, retrieving results...")
-    all_rows = curie_prefix_summary.fetchall()
-    logger.info("Done retrieving results.")
+    logger.info("Done generating prefix report by Biolink type, retrieving results...")
+    prefix_by_type_report = curie_prefix_by_type.fetchall()
+    logger.info("Done retrieving prefix report by Biolink type.")
 
     # This is split up by filename, so we need to stitch it back together again.
-    # This MUST be sorted by DuckDB, but sure, let's double-check.
-    sorted_rows = sorted(all_rows, key=lambda x: (x[0], x[1]))
+    sorted_rows = sorted(prefix_by_type_report, key=lambda x: (x[0], x[1]))
     by_curie_prefix_results = defaultdict(dict)
     for row in sorted_rows:
         by_curie_prefix_results[row[0]][row[1]] = {
@@ -141,29 +148,43 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
             "clique_distinct_count": row[4],
         }
 
-    # Calculate total counts.
-    for curie_prefix in by_curie_prefix_results.keys():
-        totals = {
-            'curie_count': 0,
-            'curie_distinct_count': 0,
-            'clique_distinct_count': 0
+    # Step 1. Generate a prefix total report.
+    logger.info("Generating prefix totals report...")
+    curie_prefix_totals = db.sql("""
+                                 SELECT
+                                     split_part(curie, ':', 1) AS curie_prefix,
+                                     COUNT(curie) AS curie_count,
+                                     COUNT(DISTINCT curie) AS curie_distinct_count,
+                                     COUNT(DISTINCT clique_leader) AS clique_distinct_count,
+                                 FROM
+                                     edges
+                                 WHERE
+                                     edges.conflation = 'None'
+                                 GROUP BY
+                                     curie_prefix
+                                 """)
+    logger.info("Done generating prefix totals report, retrieving results...")
+    prefix_totals_report = curie_prefix_totals.fetchall()
+    prefix_totals_report_by_curie_prefix = defaultdict(dict)
+    for row in prefix_totals_report:
+        prefix_totals_report_by_curie_prefix[row[0]] = {
+            "curie_count": row[1],
+            "curie_distinct_count": row[2],
+            "clique_distinct_count": row[3],
         }
+    logger.info("Done retrieving prefix totals report.")
 
-        filenames = by_curie_prefix_results[curie_prefix].keys()
-        for filename in filenames:
-            totals['curie_count'] += by_curie_prefix_results[curie_prefix][filename]['curie_count']
-            totals['curie_distinct_count'] += by_curie_prefix_results[curie_prefix][filename]['curie_distinct_count']
-            totals['clique_distinct_count'] += by_curie_prefix_results[curie_prefix][filename]['clique_distinct_count']
-
-        by_curie_prefix_results[curie_prefix]['_totals'] = totals
+    # Add total counts back in.
+    for curie_prefix in by_curie_prefix_results.keys():
+        by_curie_prefix_results[curie_prefix]['_totals'] = prefix_totals_report_by_curie_prefix[curie_prefix]
 
     with open(curie_report_json, "w") as fout:
         json.dump(by_curie_prefix_results, fout, indent=2, sort_keys=True)
 
 
-def generate_by_clique_report(parquet_root, duckdb_filename, by_clique_report_json, duckdb_config=None):
+def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_report_json, duckdb_config=None):
     """
-    Generate a report about all the prefixes within this system.
+    Generate a report about all the prefixes within this system, grouped by filename.
 
     See thoughts at https://github.com/TranslatorSRI/Babel/issues/359
 
@@ -175,42 +196,77 @@ def generate_by_clique_report(parquet_root, duckdb_filename, by_clique_report_js
 
     db = setup_duckdb(duckdb_filename, duckdb_config)
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
-    cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
+    # cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
-    # Step 1. Generate a by-clique summary.
+    # Step 1. Generate a by-clique report.
     logger.info("Generating clique report...")
-    clique_summary = db.sql("""
+    cliques = db.sql("""
         SELECT
-            split_part(clique_leader, ':', 1) AS clique_leader_prefix,
-            split_part(curie, ':', 1) AS curie_prefix,
-            LIST(DISTINCT filename) AS filenames,
-            COUNT(DISTINCT clique_leader) AS distinct_clique_leader_count,
-            COUNT(DISTINCT curie) AS distinct_clique_count,
-            COUNT(curie) AS clique_count
+            filename,
+            COUNT(DISTINCT clique_leader) AS distinct_clique_count,
+            COUNT(DISTINCT curie) AS distinct_curie_count,
+            COUNT(curie) AS curie_count
         FROM
             edges
         WHERE
             conflation = 'None'
         GROUP BY
-            clique_leader_prefix, curie_prefix
+            filename
     """)
     logger.info("Done generating clique report, retrieving results...")
-    all_rows = clique_summary.fetchall()
+    clique_totals = cliques.fetchall()
+    clique_totals_by_curie_prefix = defaultdict(dict)
+    for row in clique_totals:
+        clique_totals_by_curie_prefix[row[0]] = {
+            "distinct_clique_count": row[1],
+            "distinct_curie_count": row[2],
+            "curie_count": row[3],
+        }
     logger.info("Done retrieving results.")
 
-    by_clique_results = defaultdict(dict)
-    sorted_rows = sorted(all_rows, key=lambda x: (x[0], x[1]))
+    # Step 2. Generate a by-clique report .
+    logger.info("Generating clique report for each CURIE prefix...")
+    clique_per_curie = db.sql("""
+        SELECT
+            filename,
+            split_part(clique_leader, ':', 1) AS clique_leader_prefix,
+            split_part(curie, ':', 1) AS curie_prefix,
+            COUNT(DISTINCT curie) AS distinct_curie_count,
+            COUNT(curie) AS curie_count
+        FROM
+            edges
+        WHERE
+            conflation = 'None'
+        GROUP BY
+            filename, clique_leader_prefix, curie_prefix
+    """)
+    logger.info("Done generating clique report, retrieving results...")
+    all_rows = clique_per_curie.fetchall()
+    logger.info("Done retrieving results.")
+
+    clique_leaders_by_filename = dict()
+    sorted_rows = sorted(all_rows, key=lambda x: (x[0], x[1], x[2]))
     for row in sorted_rows:
-        by_clique_results[row[0]][row[1]] = {
-            "filenames": row[2],
-            "distinct_clique_leader_count": row[3],
-            "distinct_clique_count": row[4],
-            "clique_count": row[5],
+        filename = row[0]
+        clique_leader_prefix = row[1]
+        curie_prefix = row[2]
+
+        if filename not in clique_leaders_by_filename:
+            clique_leaders_by_filename[filename] = defaultdict(dict)
+
+        clique_leaders_by_filename[filename][clique_leader_prefix][curie_prefix] = {
+            "distinct_curie_count": row[3],
+            "curie_count": row[4],
         }
 
-    # Step 2. Write out by-clique report in JSON.
+    # Step 3. Add total counts back in.
+    for filename, clique_leader_prefix_entries in clique_leaders_by_filename.items():
+        if filename in clique_totals_by_curie_prefix:
+            clique_leaders_by_filename[filename]['_totals'] = clique_totals_by_curie_prefix[filename]
+
+    # Step 4. Write out by-clique report in JSON.
     with open(by_clique_report_json, "w") as fout:
-        json.dump(by_clique_results,
+        json.dump(clique_leaders_by_filename,
             fout,
             indent=2,
             sort_keys=True,

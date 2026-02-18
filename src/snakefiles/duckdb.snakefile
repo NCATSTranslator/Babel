@@ -149,7 +149,8 @@ rule check_for_duplicate_clique_leaders:
 
 rule generate_curie_report:
     resources:
-        mem="1500G",
+        # mem="64G", -- this actually worked!
+        mem="512G",
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
@@ -164,32 +165,33 @@ rule generate_curie_report:
             output.duckdb_filename,
             output.curie_report_json,
             {
-                "memory_limit": "1500G",
-                "threads": 1,
+                # 'memory_limit': '20G', -- this actually worked!
+                "memory_limit": "100G",
+                "threads": 5,
                 "preserve_insertion_order": False,
             },
         )
 
 
-rule generate_by_clique_report:
+rule generate_clique_leader_report:
     resources:
-        mem="1500G",
+        mem="64G",
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     output:
-        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/by_clique_report.duckdb"),
-        by_clique_report_json=config["output_directory"] + "/reports/duckdb/by_clique_report.json",
+        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/clique_leaders.duckdb"),
+        clique_leaders_json=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
     run:
-        src.reports.duckdb_reports.generate_by_clique_report(
+        src.reports.duckdb_reports.generate_clique_leaders_report(
             params.parquet_dir,
             output.duckdb_filename,
-            output.by_clique_report_json,
+            output.clique_leaders_json,
             {
-                "memory_limit": "1500G",
-                "threads": 1,
+                "memory_limit": "20G",
+                "threads": 3,
                 "preserve_insertion_order": False,
             },
         )
@@ -202,7 +204,7 @@ rule all_duckdb_reports:
         duplicate_curies=config["output_directory"] + "/reports/duckdb/duplicate_curies.tsv",
         duplicate_clique_leaders_tsv=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.tsv",
         curie_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
-        by_clique_report_json=config["output_directory"] + "/reports/duckdb/by_clique_report.json",
+        by_clique_report_json=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
     output:
         x=config["output_directory"] + "/reports/duckdb/done",
     shell:

@@ -271,6 +271,8 @@ running:
 $ uv run snakemake --cores [NUMBER OF CORES TO USE]
 ```
 
+The number of cores can be specified as `all` in order to use all available cores on your machine.
+
 The [./slurm/run-babel-on-slurm.sh](./slurm/run-babel-on-slurm.sh) Bash script
 can be used to start running Babel as a Slurm job. You can set the BABEL_VERSION
 environment variable to document which version of Babel you are running.
