@@ -124,6 +124,8 @@ rule all_reports:
         config["output_directory"] + "/reports/check_compendia_files.done",
         config["output_directory"] + "/reports/check_synonyms_files.done",
         config["output_directory"] + "/reports/check_conflation_files.done",
+        config["output_directory"] + "/reports/tables/prefix_table.csv",
+        config["output_directory"] + "/reports/tables/cliques_table.csv",
         config["output_directory"] + "/reports/tables/mapping_sources_table.csv",
     output:
         x=config["output_directory"] + "/reports/reports_done",
