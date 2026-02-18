@@ -113,7 +113,11 @@ rule generate_cliques_table:
 # Generate a table of mapping sources.
 rule generate_mapping_sources_table:
     input:
-        metadata_yaml_files = expand("{od}/metadata/{compendia_filename}.yaml", od=config["output_directory"], compendia_filename=get_all_compendia(config))
+        metadata_yaml_files=expand(
+            "{od}/metadata/{compendia_filename}.yaml",
+            od=config["output_directory"],
+            compendia_filename=get_all_compendia(config),
+        ),
     output:
         mapping_sources_table=config["output_directory"] + "/reports/tables/mapping_sources_table.csv",
     run:
