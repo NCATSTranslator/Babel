@@ -69,8 +69,8 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
     node_parquet_filename = os.path.join(parquet_dir, "Node.parquet")
 
     with setup_duckdb(duckdb_filename) as db:
-        # Step 1. Create a Nodes table with all the nodes from this file.
-        db.sql("""CREATE TABLE Node (curie STRING, label STRING, label_lc STRING, description STRING[], taxa STRING[])""")
+        # Step 1. Create a Nodes table with all the nodes from compendium_filename.
+        db.sql("""CREATE TABLE Node (curie STRING, curie_prefix STRING, label STRING, label_lc STRING, description STRING[], taxa STRING[])""")
 
         compendium_filesize = os.path.getsize(compendium_filename)
         if compendium_filesize < MIN_FILE_SIZE_FOR_SPLITTING_LOAD:
@@ -85,6 +85,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                           )
                           SELECT
                               extracted_list[1] AS curie,
+                              split_part(extracted_list[1], ':', 1) AS curie_prefix,
                               extracted_list[2] AS label,
                               LOWER(label) AS label_lc,
                               extracted_list[3] AS description,
@@ -118,7 +119,6 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
 
             logger.info(f"Loaded {len(chunk_filenames)} containing {lines_added:,} lines into chunk files.")
             for chunk_filename in chunk_filenames:
-                # TODO: maybe add the PREFIX in a different column here so we can SELECT on that later?
                 db.execute(
                     """INSERT INTO Node
                               WITH extracted AS (
@@ -128,6 +128,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                               )
                               SELECT
                                   extracted_list[1] AS curie,
+                                  split_part(extracted_list[1], ':', 1) AS curie_prefix,
                                   extracted_list[2] AS label,
                                   LOWER(label) AS label_lc,
                                   extracted_list[3] AS description,
@@ -173,6 +174,9 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
             FROM read_json(?, format='newline_delimited')""",
             [compendium_filename],
         )
+        db.execute("ALTER TABLE Edge ADD COLUMN clique_leader_prefix STRING")
+        db.execute("ALTER TABLE Edge ADD COLUMN curie_prefix STRING")
+        db.execute("UPDATE Edge SET clique_leader_prefix = split_part(clique_leader, ':', 1), curie_prefix = split_part(curie, ':', 1)")
         db.table("Edge").write_parquet(edge_parquet_filename)
 
 
