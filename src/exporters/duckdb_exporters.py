@@ -165,18 +165,25 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
         db.table("Clique").write_parquet(clique_parquet_filename)
 
         # Step 2. Create an Edge table with all the clique/CURIE relationships from this file.
-        db.sql("CREATE TABLE Edge (clique_leader STRING, curie STRING, conflation STRING)")
+        db.sql("CREATE TABLE Edge (clique_leader STRING, curie STRING, conflation STRING, clique_leader_prefix STRING, curie_prefix STRING)")
         db.execute(
-            """INSERT INTO Edge SELECT
-                json_extract_string(identifiers, '$[0].i') AS clique_leader,
-                UNNEST(json_extract_string(identifiers, '$[*].i')) AS curie,
-                'None' AS conflation
-            FROM read_json(?, format='newline_delimited')""",
+            """INSERT INTO Edge
+                WITH unnested AS (
+                    SELECT
+                        json_extract_string(identifiers, '$[0].i') AS clique_leader,
+                        UNNEST(json_extract_string(identifiers, '$[*].i')) AS curie,
+                        'None' AS conflation
+                    FROM read_json(?, format='newline_delimited')
+                )
+                SELECT
+                    clique_leader,
+                    curie,
+                    conflation,
+                    split_part(clique_leader, ':', 1) AS clique_leader_prefix,
+                    split_part(curie, ':', 1) AS curie_prefix
+                FROM unnested""",
             [compendium_filename],
         )
-        db.execute("ALTER TABLE Edge ADD COLUMN clique_leader_prefix STRING")
-        db.execute("ALTER TABLE Edge ADD COLUMN curie_prefix STRING")
-        db.execute("UPDATE Edge SET clique_leader_prefix = split_part(clique_leader, ':', 1), curie_prefix = split_part(curie, ':', 1)")
         db.table("Edge").write_parquet(edge_parquet_filename)
 
 
