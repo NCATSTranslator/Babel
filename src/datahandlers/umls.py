@@ -344,7 +344,7 @@ def build_sets(
             provenance_metadata_yaml,
             name="umls.build_sets()",
             sources=[{"type": "UMLS", "name": "MRCONSO"}],
-            description=f"umls.build_sets() using UMLS MRCONSO with prefixes: {other_prefixes} with cui_prefix set to {cui_prefix}",
+            description=f"umls.build_sets() using UMLS MRCONSO with prefixes: {other_prefixes} with cui_prefix set to {cui_prefix}, while excluding identifiers from {exclude_ids_from}.",
             concord_filename=umls_output,
         )
 
