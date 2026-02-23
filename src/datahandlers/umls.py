@@ -205,7 +205,13 @@ def write_rxnorm_ids(category_map, bad_categories, infile, outfile, prefix=RXCUI
 
 
 def build_sets(
-    mrconso, umls_input, umls_output, other_prefixes, bad_mappings=None, acceptable_identifiers={}, cui_prefix=UMLS, provenance_metadata_yaml=None
+        mrconso, umls_input, umls_output,
+        other_prefixes,
+        bad_mappings=None,
+        exclude_ids_from=None,
+        acceptable_identifiers={},
+        cui_prefix=UMLS,
+        provenance_metadata_yaml=None
 ):
     """
     Given a list of UMLS identifiers, this function generates all concordances between UMLS
@@ -223,6 +229,8 @@ def build_sets(
         respective prefixes for generating external identifiers.
     :param bad_mappings: Dictionary mapping UMLS CUIs to sets of external identifiers that
         are considered invalid. Defaults to an empty defaultdict.
+    :param exclude_ids_from: A list of files to exclude IDs from. Identifiers from this list of
+        files will be excluded whichever side of the relationship they appear on. Defaults to an empty list.
     :param acceptable_identifiers: Dictionary where keys are prefixes and values are
         sets of acceptable external identifiers for those prefixes. Defaults to an empty
         dictionary.
@@ -235,7 +243,8 @@ def build_sets(
 
     if bad_mappings is None:
         bad_mappings = defaultdict(set)
-
+    if exclude_ids_from is None:
+        exclude_ids_from = []
 
     # I've made this more complicated than it ought to be for 2 reasons:
     # One is to keep from having to pass through the umls file more than once, but that's a bad reason
@@ -247,6 +256,29 @@ def build_sets(
             u = line.strip().split("\t")[0].split(":")[1]
             umls_ids.add(u)
     lookfor = set(other_prefixes.keys())
+
+    # Load identifiers we need to exclude.
+    exclude_ids = set()
+    for exclude_file in exclude_ids_from:
+        exclude_ids_for_file = set()
+        with open(exclude_file) as inf:
+            line_no = 0
+            for line in inf:
+                line_no += 1
+                row = re.split(r"\s+", line.strip())
+                if len(row) == 0:
+                    # Identifier only.
+                    exclude_ids_for_file.add(row[0])
+                elif len(row) == 2:
+                    # Identifier and Biolink Type, which we can ignore.
+                    exclude_ids_for_file.add(row[0])
+                else:
+                    raise RuntimeError(f"Invalid line in exclude_ids_from file {exclude_file} line {line_no}: '{line}'")
+
+        logger.info(f"Loaded {len(exclude_ids_for_file)} identifiers from {exclude_file} to exclude from build_sets()")
+        exclude_ids.update(exclude_ids_for_file)
+
+    logger.info(f"Loaded {len(exclude_ids)} identifiers to exclude from build_sets() from exclude files: {exclude_ids_from}")
 
     # On UMLS / MESH: we have been getting all UMLS / MESH relationships.   This has led to some clear mistakes
     # and logical impossibilities such as cyclical subclasses.   On further review, we can sharpen these relationships
@@ -295,7 +327,15 @@ def build_sets(
             if (pref in acceptable_identifiers) and (tup[1] not in acceptable_identifiers[pref]):
                 continue
             if tup not in pairs:
-                concordfile.write(f"{tup[0]}\teq\t{tup[1]}\n")
+                from_id = tup[0]
+                to_id = tup[1]
+                if from_id in exclude_ids:
+                    logger.debug(f"Skipping {from_id} -> {to_id} because {from_id} is in exclude_ids")
+                    continue
+                if to_id in exclude_ids:
+                    logger.debug(f"Skipping {from_id} -> {to_id} because {to_id} is in exclude_ids")
+                    continue
+                concordfile.write(f"{from_id}\teq\t{to_id}\n")
                 pairs.add(tup)
 
     # Write provenance for this build_sets() call.
