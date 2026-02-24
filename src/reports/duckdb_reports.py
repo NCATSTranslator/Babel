@@ -288,6 +288,40 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
     edges.close()
     # cliques.close()
 
+def run_sql_report(parquet_root, duckdb_filename, sql_file, output_tsv, duckdb_config=None):
+    """
+    Run a SQL file against the Parquet files and write the result as a TSV.
+    SQL files may reference pre-registered views: Edges, Cliques, Nodes, Synonyms.
+
+    An optional YAML sidecar at {sql_file_without_extension}.yaml may specify a
+    duckdb_config dict (memory_limit, threads, preserve_insertion_order) that
+    overrides the duckdb_config argument.
+    """
+    sidecar_path = os.path.splitext(sql_file)[0] + ".yaml"
+    effective_config = dict(duckdb_config or {})
+    if os.path.exists(sidecar_path):
+        import yaml
+
+        with open(sidecar_path) as f:
+            sidecar = yaml.safe_load(f) or {}
+        effective_config.update(sidecar.get("duckdb_config", {}))
+
+    logger.info(f"Running SQL report {sql_file} -> {output_tsv}")
+    db = setup_duckdb(duckdb_filename, effective_config if effective_config else None)
+    for view_name, table_file in [
+        ("Edges", "Edge.parquet"),
+        ("Cliques", "Clique.parquet"),
+        ("Nodes", "Node.parquet"),
+        ("Synonyms", "Synonyms.parquet"),
+    ]:
+        glob_path = os.path.join(parquet_root, "**", table_file)
+        db.execute(f"CREATE VIEW {view_name} AS SELECT * FROM read_parquet('{glob_path}', hive_partitioning=true)")
+    with open(sql_file) as f:
+        sql_content = f.read()
+    db.sql(sql_content).write_csv(output_tsv, sep="\t")
+    logger.info(f"SQL report complete: {output_tsv}")
+
+
 def get_label_distribution(duckdb_filename, output_filename):
     db = setup_duckdb(duckdb_filename)
 
