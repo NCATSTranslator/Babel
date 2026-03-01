@@ -5,14 +5,12 @@ from pathlib import Path
 
 import jsonlines
 
-from src.node import NodeFactory
-from src.util import get_biolink_model_toolkit, get_logger
 from src.categories import ACTIVITY, AGENT, DEVICE, DRUG, FOOD, PHYSICAL_ENTITY, PROCEDURE, PUBLICATION, SMALL_MOLECULE
 from src.datahandlers import umls
 from src.metadata.provenance import write_metadata
 from src.node import NodeFactory
 from src.prefixes import UMLS
-from src.util import get_biolink_model_toolkit
+from src.util import get_biolink_model_toolkit, get_logger
 
 logger = get_logger(__name__)
 
