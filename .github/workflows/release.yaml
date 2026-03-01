@@ -24,7 +24,7 @@ jobs:
         # with you. This also makes it possible to fetch additional branches from
         # GitHub if you need to.
         with:
-          fetch-depth: 0
+          persist-credentials: false
       - name: Get the version
         id: get_version
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}

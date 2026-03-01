@@ -1,8 +1,10 @@
 import re
+import traceback
+from collections import defaultdict
 
 import requests
-import traceback
 from more_itertools import chunked
+
 from src.prefixes import KEGGCOMPOUND
 
 ###
@@ -25,7 +27,6 @@ from src.prefixes import KEGGCOMPOUND
 
 def pull_kegg_compound_labels(outfile):
     try:
-
         request_session = requests.Session()
         request_adapter = requests.adapters.HTTPAdapter(max_retries=10)
         request_session.mount("http://", request_adapter)
@@ -155,7 +156,7 @@ def get_sequence(compound_id):
     regex = r"\((.*?)\)"
     xprime = re.sub(regex, "", x)
     # do a cleanup for things like Arg-NH2
-    xps = xprime.split()
+    # xps = xprime.split()
     c = []
     for a in xprime.split():
         q = a.split("-")
@@ -170,4 +171,5 @@ def get_sequence(compound_id):
 
 if __name__ == "__main__":
     # pull_uniprot(repull=True)
-    keggs = pull_kegg_compounds()
+    # keggs = pull_kegg_compounds()
+    pass

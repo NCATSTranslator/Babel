@@ -1,0 +1,37 @@
+# This is a Snakemake profile (https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles) that provides
+# configuration options that should be applied when Snakemake is run on the RENCI Hatteras cluster using SLURM.
+#
+# To use this profile, run:
+#   $ snakemake --profile slurm
+#
+executor: slurm
+jobs: 50 # maximum number of parallel cluster jobs
+latency-wait: 60 # seconds
+slurm-delete-logfiles-older-than: 0 # Don't delete log files automatically.
+rerun-incomplete: true  # Re-run any jobs that failed with an incomplete status previously.
+keep-going: true # Keep going with independent jobs if a job fails.
+
+# Wrap Python execution with `time -v` to report on memory usage for each rule.
+python:
+  executable: "/usr/bin/time -v python"
+  log_stderr: true
+
+# Set up Hatteras partitions as per https://renci.atlassian.net/wiki/spaces/RENCI/pages/254443570/Cluster+Info#Hardware-Information
+partitions:
+  batch:
+    max_mem_mb: 191000 # 191 GB
+  largemem:
+    max_mem_mb: 1530329 # 1.5 TB
+
+# Default resource settings for all rules
+default-resources:
+  mem: 64G
+  runtime: 120 # minutes
+  cpus_per_task: 4
+
+# Set up the Slurm efficiency report.
+slurm-efficiency-report: True
+slurm-efficiency-report-path: babel_outputs/reports/slurm/slurm_efficiency_report.csv
+
+# Write Slurm logs into a `logs/` directory so we can look at them later.
+slurm-logdir: babel_outputs/logs

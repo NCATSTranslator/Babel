@@ -1,0 +1,33 @@
+name: 'Check formatting of repository files'
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-formatting-with-ruff:
+    name: Check Python formatting with ruff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v3
+      - uses: astral-sh/ruff-action@v3
+        with:
+          args: "check --output-format github"
+
+  check-formatting-with-snakefmt:
+    name: Check Snakemake formatting with snakefmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v7
+      - run: uv run snakefmt --check --compact-diff .
+
+  check-formatting-with-rumdl:
+    name: Check Markdown formatting with rumdl
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: rvben/rumdl@v0 # v0 = latest stable
+        with:
+          report-type: annotations

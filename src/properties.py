@@ -11,7 +11,7 @@
 import gzip
 import json
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 #
 # SUPPORTED PROPERTIES
@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 # HAS_ALTERNATIVE_ID indicates that CURIE has an alternative ID that should be included in the clique, but NOT
 # treated as part of the clique for the purposes of choosing the clique leader. This is used for e.g. ChEBI secondary
 # IDs or other deprecated identifiers.
-HAS_ALTERNATIVE_ID = 'http://www.geneontology.org/formats/oboInOwl#hasAlternativeId'
+HAS_ALTERNATIVE_ID = "http://www.geneontology.org/formats/oboInOwl#hasAlternativeId"
 
 # Properties currently supported in the property store in one set for validation.
 supported_predicates = {
@@ -32,6 +32,7 @@ supported_predicates = {
 # and write these properties.
 #
 
+
 @dataclass(frozen=True)
 class Property:
     """
@@ -41,19 +42,19 @@ class Property:
     curie: str
     predicate: str
     value: str
-    source: str = ""    # TODO: making this a list would be better, but that would make a Property non-frozen, which
-                        # would make it harder to uniquify.
+    source: str = ""  # TODO: making this a list would be better, but that would make a Property non-frozen, which
+    # would make it harder to uniquify.
 
     @staticmethod
     def valid_keys():
-        return ['curie', 'predicate', 'value', 'source']
+        return ["curie", "predicate", "value", "source"]
 
     def __post_init__(self):
         """
         Make sure this Property makes sense.
         """
         if self.predicate not in supported_predicates:
-            raise ValueError(f'Predicate {self.predicate} is not supported (supported predicates: {supported_predicates})')
+            raise ValueError(f"Predicate {self.predicate} is not supported (supported predicates: {supported_predicates})")
 
     @staticmethod
     def from_dict(prop_dict, source=None):
@@ -68,7 +69,9 @@ class Property:
         # Check if this dictionary includes keys that aren't valid in a Property.
         unexpected_keys = prop_dict.keys() - Property.valid_keys()
         if len(unexpected_keys) > 0:
-            raise ValueError(f'Unexpected keys in dictionary to be converted to Property ({unexpected_keys}): {json.dumps(prop_dict, sort_keys=True, indent=2)}')
+            raise ValueError(
+                f"Unexpected keys in dictionary to be converted to Property ({unexpected_keys}): {json.dumps(prop_dict, sort_keys=True, indent=2)}"
+            )
 
         prop = Property(**prop_dict)
         return prop
@@ -82,12 +85,18 @@ class Property:
 
         :return: A string containing the JSONL line of this property.
         """
-        return json.dumps({
-            'curie': self.curie,
-            'predicate': self.predicate,
-            'value': self.value,
-            'source': self.source,
-        }) + '\n'
+        return (
+            json.dumps(
+                {
+                    "curie": self.curie,
+                    "predicate": self.predicate,
+                    "value": self.value,
+                    "source": self.source,
+                }
+            )
+            + "\n"
+        )
+
 
 #
 # The PropertyList object can be used to load and query properties from a particular source.
@@ -95,6 +104,7 @@ class Property:
 # We could write them into a DuckDB file as we load them so they can overflow onto disk as needed, but that's overkill
 # for right now, so we'll just load them all into memory.
 #
+
 
 class PropertyList:
     """
@@ -143,7 +153,7 @@ class PropertyList:
             return props
 
         if predicate not in supported_predicates:
-            raise ValueError(f'Predicate {predicate} is not supported (supported predicates: {supported_predicates})')
+            raise ValueError(f"Predicate {predicate} is not supported (supported predicates: {supported_predicates})")
 
         return set(filter(lambda p: p.predicate == predicate, props))
 
@@ -156,7 +166,7 @@ class PropertyList:
         :return: The number of unique properties added.
         """
 
-        props_to_be_added = (props - self._properties)
+        props_to_be_added = props - self._properties
 
         self._properties.update(props)
         for prop in props:
@@ -173,19 +183,20 @@ class PropertyList:
         """
 
         props_to_add = set[Property]()
-        with gzip.open(filename_gz, 'rt') as f:
+        with gzip.open(filename_gz, "rt") as f:
             for line in f:
                 props_to_add.add(Property.from_dict(json.loads(line), source=filename_gz))
 
         return self.add_properties(props_to_add)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     pl = PropertyList()
     ps = set[Property]()
-    ps.add(Property('A', HAS_ALTERNATIVE_ID, 'B', source='E and F'))
-    ps.add(Property('A', HAS_ALTERNATIVE_ID, 'C'))
-    ps.add(Property('A', HAS_ALTERNATIVE_ID, 'D'))
-    ps.add(Property('A', HAS_ALTERNATIVE_ID, 'C'))
+    ps.add(Property("A", HAS_ALTERNATIVE_ID, "B", source="E and F"))
+    ps.add(Property("A", HAS_ALTERNATIVE_ID, "C"))
+    ps.add(Property("A", HAS_ALTERNATIVE_ID, "D"))
+    ps.add(Property("A", HAS_ALTERNATIVE_ID, "C"))
     pl.add_properties(ps)
     print(pl.properties)
     assert len(pl.properties) == 3
