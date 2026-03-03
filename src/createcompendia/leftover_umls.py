@@ -36,7 +36,6 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
     logger.info(
         f"write_leftover_umls({compendia}, {umls_labels_filename}, {mrconso}, {mrsty}, {synonyms}, {umls_compendium}, {umls_synonyms}, {report}, {biolink_version})"
     )
-  
     # For now, we have many more UMLS entities in MRCONSO than in the compendia, so
     # we'll make an in-memory list of those first. Once that flips, this should be
     # switched to the other way around (or perhaps written into an in-memory database
