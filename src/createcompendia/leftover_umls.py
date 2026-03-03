@@ -279,4 +279,4 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
 
         logging.info(f"Wrote out metadata file {metadata_yaml}.")
 
-    logging.info("Complete")
+    logger.info("Complete")
