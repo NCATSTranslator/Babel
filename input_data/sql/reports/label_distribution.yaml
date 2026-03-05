@@ -1,0 +1,4 @@
+duckdb_config:
+  memory_limit: "20G"
+  threads: 2
+  preserve_insertion_order: false
