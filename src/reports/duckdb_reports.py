@@ -318,7 +318,15 @@ def run_sql_report(parquet_root, duckdb_filename, sql_file, output_tsv, duckdb_c
         db.execute(f"CREATE VIEW {view_name} AS SELECT * FROM read_parquet('{glob_path}', hive_partitioning=true)")
     with open(sql_file) as f:
         sql_content = f.read()
-    db.sql(sql_content).write_csv(output_tsv, sep="\t")
+    result = db.sql(sql_content)
+    if result is None:
+        msg = (
+            f"SQL report '{sql_file}' did not produce a result set. "
+            "Ensure the SQL ends with a SELECT query that returns rows."
+        )
+        logger.error(msg)
+        raise ValueError(msg)
+    result.write_csv(output_tsv, sep="\t")
     logger.info(f"SQL report complete: {output_tsv}")
 
 
