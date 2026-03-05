@@ -31,6 +31,14 @@ import os
 os.environ["TMPDIR"] = config["tmp_directory"]
 
 
+# Trivial done-marker rules run locally so they don't consume a SLURM slot.
+localrules:
+    all,
+    all_outputs,
+    clean_compendia,
+    clean_downloads,
+
+
 # Top-level rules.
 rule all:
     input:
@@ -98,5 +106,7 @@ rule uncompress_synonym_file:
         config["output_directory"] + "/synonyms/{synonym_file}.txt.gz",
     output:
         config["output_directory"] + "/synonyms/{synonym_file}.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/uncompress_synonym_file_{synonym_file}.tsv"
     shell:
         "gunzip {input} -c > {output}"
