@@ -78,6 +78,7 @@ uv run assess-compendium babel_outputs/compendia/AnatomicalEntity.txt
 #### 2. Compendium diff script (`src/scripts/diff_compendia.py`)
 
 A CLI script that compares two compendium files and reports:
+
 - Cliques that appear in one but not the other.
 - Cliques whose membership changed (identifiers added or removed).
 - Cliques whose preferred identifier (clique leader) changed.
