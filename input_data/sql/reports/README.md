@@ -13,7 +13,7 @@ Each SQL file may reference the following pre-registered views:
 | `Nodes` | One row per node (CURIE) with its label | `curie`, `label`, `filename` |
 | `Cliques` | One row per clique with its leader and metadata | `clique_leader`, `preferred_name`, `biolink_type`, `filename` |
 | `Edges` | One row per CURIE-to-clique membership edge | `curie`, `clique_leader`, `conflation`, `filename` |
-| `Synonyms` | One row per synonym | `curie`, `predicate`, `synonym`, `filename` |
+| `Synonyms` | One row per synonym | `clique_leader`, `preferred_name`, `biolink_type`, `label`, `filename` |
 
 All views are backed by Parquet files partitioned by `filename` (the semantic type,
 e.g. `AnatomicalEntity`, `ChemicalEntity`). DuckDB reads them lazily with
