@@ -287,7 +287,6 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
 
     edges.close()
     # cliques.close()
-
 def run_sql_report(parquet_root, duckdb_filename, sql_file, output_tsv, duckdb_config=None):
     """
     Run a SQL file against the Parquet files and write the result as a TSV.
