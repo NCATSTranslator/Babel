@@ -1,0 +1,321 @@
+# Babel Issue Triage
+
+This document describes how issues in the [Babel issue tracker] are triaged and prioritized using
+the [Babel sprints GitHub project]. It is written for two audiences:
+
+- **Part 1: For users of Babel outputs** — how to file a useful bug report, how to assign
+  priority, impact and size when you file an issue, and how to read the project board to estimate
+  when your issue is likely to be addressed.
+- **Part 2: For Babel developers** — how to triage incoming issues, how to add automated tests,
+  and how to select issues for the next sprint.
+
+---
+
+## Part 1: Reporting and tracking issues (for users)
+
+### Filing a bug report
+
+Before filing an issue, check whether a similar issue already exists in the
+[Babel issue tracker]. If it does, you can add a comment with additional examples or "+1" the
+issue to signal that it affects you too. You can also add your issue as a sub-issue of an existing
+issue if the same underlying bug seems to be the cause.
+
+When filing a new issue, please include:
+
+- The identifiers or concept names that are behaving incorrectly (ideally as a table or TSV/CSV
+  attachment).
+- What you expected Babel to return and what it actually returned.
+- Which frontend you noticed the problem in: [Node Normalizer], [Name Resolver], or direct
+  inspection of Babel output files.
+- Any additional context that will help replicate the problem.
+
+### Assigning priority, impact and size
+
+When you file an issue, please fill in three fields in the [Babel sprints GitHub project] to
+help us understand how urgently it needs to be addressed:
+
+#### Priority
+
+How urgent is this to fix?
+
+| Value | Meaning |
+|-------|---------|
+| **Critical** | Causes outright failures or produces seriously wrong results that are actively misleading downstream users right now. |
+| **High** | Significantly degrades the quality or usability of Babel outputs, but a workaround exists. |
+| **Medium** | A noticeable quality problem, but not one that breaks workflows. |
+| **Low** | A minor issue or a nice-to-have improvement. |
+
+#### Impact
+
+How widely does this issue affect users?
+
+| Value | Meaning |
+|-------|---------|
+| **Enormous** | Affects a large number of cliques or a core vocabulary (e.g., MESH, MONDO, ChEBI) and will be noticed by many downstream tools. |
+| **High** | Affects a significant subset of cliques or an important vocabulary. |
+| **Medium** | Affects a moderate number of identifiers or a less-central vocabulary. |
+| **Low** | Affects very few identifiers or an edge case. |
+
+#### Size
+
+How much effort do you think this fix will require? (This is an estimate; developers may adjust it.)
+
+| Value | Approximate effort |
+|-------|-------------------|
+| **XS** | Trivial change — a configuration tweak or a one-line fix. |
+| **S** | Small — a few hours of focused work. |
+| **M** | Medium — up to a day or two of work. |
+| **L** | Large — requires investigation and several days of implementation. |
+| **XL** | Extra large — a substantial piece of work that may span multiple sprints. |
+
+If you are unsure about any of these, leave them blank. Developers will fill them in during
+triage.
+
+### Grouping related issues
+
+If your issue looks like it may be caused by the same underlying bug as an existing issue, you
+can set the **Parent issue** field to that issue. This helps developers see patterns and fix
+related issues together.
+
+You can also add a **Component** label to identify which part of Babel is affected:
+
+| Component | What it covers |
+|-----------|----------------|
+| Process | The overall pipeline for running Babel |
+| Cliques and identifiers | What identifiers are or are not in a clique |
+| Downloaders | Code that downloads source data |
+| Metadata | Information content, taxon, or other metadata stored on nodes |
+| Biolink types | How Biolink semantic types are assigned to cliques |
+| Conflations | Gene+Protein and Drug+Chemical conflation |
+| Preferred labels | How preferred labels are chosen |
+| Synonyms | Which synonyms are included |
+| New data sources | Requests to add a new data source |
+| Validation and reports | Validating Babel output or producing a report |
+| Documentation | Improving or fixing Babel documentation |
+| NodeNorm | [Node Normalizer] frontend |
+| NameRes | [Name Resolver] frontend |
+
+### Tracking when your issue will be addressed
+
+Babel development is organized into two-week **sprints** using the
+[Babel sprints GitHub project]. You can use the project board to see:
+
+- **Backlog** — issues that have been triaged and are waiting to be scheduled.
+- **Ready** — issues that are queued for the current or next sprint.
+- **In progress** — issues being actively worked on right now.
+- **Needs review** — issues with a pull request awaiting review.
+- **Done** — issues completed in recent sprints.
+
+At the start of each sprint, leftover items from the previous sprint are carried forward, and
+then the highest-priority issues from the backlog are added. If an issue is unexpectedly large
+or is displaced by a higher-priority item, it may be deferred to a later sprint. In general, a
+**Critical + Enormous** issue will be scheduled very quickly, while a **Low + Low** issue may
+sit in the backlog for some time.
+
+To estimate when your issue is likely to be addressed, look at how many **Critical** and **High**
+priority issues are currently in the backlog ahead of yours. Issues are typically ordered by
+priority first and then impact.
+
+---
+
+## Part 2: Triage guide (for developers)
+
+### Triage checklist
+
+When a new issue arrives, work through the following steps:
+
+1. **Reproduce or understand the report.** Read the issue carefully. Can the problem be confirmed
+   from the description? If not, ask the reporter for more information (e.g. which Babel build
+   they are using, example identifiers).
+
+2. **Check for duplicates.** Search for existing issues that describe the same problem. If a
+   duplicate exists, close the new issue with a reference to the original (or add the new issue
+   as a sub-issue of the original).
+
+3. **Set the Component field.** Choose the appropriate **Component** value (see table above).
+   This is important for grouping related issues and for filtering during sprint planning.
+
+4. **Set Priority, Impact and Size.** If the reporter has filled these in, review them and adjust
+   if necessary. If they are blank, set them now based on your assessment.
+
+5. **Link to a parent issue.** If this issue is one instance of a broader known problem (e.g. a
+   deprecated identifier source, or a class of missing cliques), set the **Parent issue** field.
+
+6. **Set Status to Backlog.** Unless the issue is Critical and needs immediate scheduling, move
+   it to the **Backlog** column.
+
+7. **Add an automated test.** See the next section for how to embed tests directly in the issue
+   description.
+
+### Adding automated tests to issues
+
+The [babel-validation] project can run automated checks against live NodeNorm and NameRes
+instances that are triggered by issues. You can embed tests directly in issue descriptions or
+comments using two syntaxes.
+
+#### Wiki syntax (single assertion)
+
+```text
+{{BabelTest|AssertionType|param1|param2|...}}
+```
+
+For example, to assert that two CURIEs resolve to the same clique:
+
+```text
+{{BabelTest|ResolvesWith|MESH:D014867|DRUGBANK:DB09145}}
+```
+
+#### YAML syntax (multiple assertions)
+
+Use a fenced code block with the language tag `babel_tests:`:
+
+````text
+```babel_tests:
+- assertion: ResolvesWith
+  curies:
+    - MESH:D014867
+    - DRUGBANK:DB09145
+- assertion: HasLabel
+  curie: MESH:D014867
+  label: Water
+```
+````
+
+#### Available assertion types
+
+**NodeNorm assertions:**
+
+| Assertion | What it tests |
+|-----------|---------------|
+| `Resolves` | Each CURIE returns a non-null result from NodeNorm. |
+| `DoesNotResolve` | Each CURIE intentionally fails to normalize. |
+| `ResolvesWith` | Two or more CURIEs normalize to identical results. |
+| `DoesNotResolveWith` | Two or more CURIEs do NOT resolve to the same entity. |
+| `HasLabel` | A CURIE's primary label exactly matches the expected string (case-sensitive). |
+| `ResolvesWithType` | CURIEs resolve with a specified Biolink semantic type. |
+
+**NameRes assertions:**
+
+| Assertion | What it tests |
+|-----------|---------------|
+| `SearchByName` | A CURIE appears in the top N NameRes results for a given text string (default N=5). |
+
+**Special:**
+
+| Assertion | Meaning |
+|-----------|---------|
+| `Needed` | Placeholder marking that a test needs to be written. Always fails as a reminder. |
+
+When adding tests to an issue, use `{{BabelTest|Needed}}` as a placeholder if you know a test
+is needed but do not yet know the exact expected values.
+
+### Sprint planning
+
+Sprints are two weeks long. At the start of each sprint:
+
+1. **Carry over unfinished items.** Any issues still **In progress** or **Ready** that were not
+   completed automatically move to the next sprint.
+
+2. **Review the backlog.** Sort the backlog by Priority (descending) then Impact (descending).
+   Consider Size to avoid overloading a sprint — a sprint full of XL issues will not complete on
+   time.
+
+3. **Select issues for the sprint.** Choose the highest-priority issues that together represent a
+   realistic amount of work for two weeks. Move selected issues to **Ready**.
+
+4. **Adjust if needed.** An issue may be removed from the current sprint mid-sprint if it turns
+   out to be much larger than estimated, or if a Critical issue arrives that must take precedence.
+   In either case, the deferred issue should be the first candidate for the next sprint.
+
+#### Heuristics for issue selection
+
+- Prefer **Critical** issues regardless of impact.
+- Among **High** and **Medium** priority issues, prefer those with **Enormous** or **High** impact.
+- Prefer **XS** and **S** issues when a sprint already contains several large items — clearing
+  small issues reduces backlog pressure.
+- Issues with automated tests (see above) are easier to verify once fixed; prefer these when all
+  else is equal.
+- Group issues sharing the same **Parent issue** or **Component** — fixing a class of bugs together
+  is more efficient than fixing them one at a time across different sprints.
+
+---
+
+## Suggestions for improvement
+
+The following suggestions range from small, quickly implementable steps to larger structural
+changes.
+
+### Small improvements (low effort, high value)
+
+- **Sprint capacity tracking.** Add a numeric **Estimate** value (story points or hours) to each
+  issue during triage. Track total estimated capacity per sprint so that planners know how many
+  points can realistically be completed in two weeks. This avoids the recurring problem of
+  over-loading a sprint with XL items.
+
+- **"Affects me too" reactions.** Ask users to add a +1 (thumbs-up) reaction to issues that
+  affect them rather than leaving comments. This makes it easy to sort the backlog by community
+  impact without reading through long comment threads.
+
+- **Sprint review notes.** At the end of each sprint, write a short comment on the sprint
+  milestone (or a pinned issue) summarizing what was completed and what was deferred. This gives
+  external users a lightweight changelog without reading every individual issue.
+
+- **Triage label.** Add a `Needs triage` label that is automatically applied to new issues and
+  removed once Priority, Impact and Size have been set. This makes it easy to filter the backlog
+  for issues that still need attention.
+
+- **Roadmap view.** Use GitHub's built-in roadmap view (timeline view) in the project to show
+  issues across sprint boundaries. This lets users see at a glance which sprint their issue is
+  targeted for, without needing to understand the full sprint planning process.
+
+### Medium improvements
+
+- **Issue templates.** Create GitHub issue templates that pre-populate the description with
+  prompts for the required information (identifiers, expected vs. actual output, Component
+  suggestion). Templates reduce the back-and-forth needed to make a report actionable and make
+  it easier for reporters to fill in Priority, Impact and Size themselves.
+
+- **Automated test status in the project.** Integrate babel-validation CI results into the
+  project board. If an issue has embedded `BabelTest` assertions and those assertions still fail
+  against the latest Babel build, automatically flag the issue as "test failing" so developers
+  can quickly see which known bugs have reproducible test cases.
+
+- **Published sprint summaries.** After each sprint, publish a brief summary to a public-facing
+  location (e.g. the Babel GitHub Discussions page or a mailing list) describing what was
+  fixed. This helps downstream users who are not actively watching the issue tracker know when
+  problems affecting them have been addressed.
+
+- **SLA targets by priority.** Define soft service-level targets: e.g. Critical issues will be
+  scheduled within one sprint, High within two sprints, Medium within four sprints, Low as
+  capacity allows. Publishing these targets gives users a concrete sense of the process, even if
+  the targets are aspirational rather than guaranteed.
+
+### Large improvements
+
+- **Automated triage bot.** A GitHub Action that, when a new issue is filed, automatically
+  suggests a Component and a Priority based on the content of the issue (e.g. using an LLM or
+  keyword matching). The suggestion would appear as a comment for a developer to review and
+  confirm. This reduces the manual triage burden and ensures issues do not sit without any
+  triage for long periods.
+
+- **Public-facing status page.** A simple dashboard (possibly generated from the project API)
+  that shows: how many open issues exist at each priority level, the current sprint's contents,
+  and the expected date of the next build. This would be the primary resource for users asking
+  "when will my issue be fixed?" without requiring them to learn GitHub Projects.
+
+- **Systematic regression test suite from issues.** Establish a convention that every fixed
+  bug is accompanied by a babel-validation test assertion committed to the
+  [babel-validation repository]. Over time, this builds a regression suite that automatically
+  catches regressions in future Babel builds. The `Needed` assertion placeholder is a good
+  starting point for ensuring this happens consistently.
+
+- **Versioned issue tracking.** Record which Babel build first introduced a bug and which build
+  first fixed it. This would allow downstream users to know precisely which version of Babel
+  they need to upgrade to in order to benefit from a fix, and would make it easier to triage
+  whether a reported issue is new or a regression from an older known bug.
+
+[Babel issue tracker]: https://github.com/NCATSTranslator/Babel/issues/
+[Babel sprints GitHub project]: https://github.com/orgs/NCATSTranslator/projects/36
+[babel-validation]: https://github.com/TranslatorSRI/babel-validation
+[Name Resolver]: https://github.com/NCATSTranslator/NameResolution
+[Node Normalizer]: https://github.com/NCATSTranslator/NodeNormalization
