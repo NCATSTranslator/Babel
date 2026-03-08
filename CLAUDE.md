@@ -29,7 +29,8 @@ uv run snakemake --cores 1 chemical       # Another target
 ### Testing
 
 ```bash
-PYTHONPATH=. uv run pytest                           # All tests
+PYTHONPATH=. uv run pytest                           # All tests (with coverage)
+PYTHONPATH=. uv run pytest --no-cov                  # Without coverage (faster)
 PYTHONPATH=. uv run pytest tests/test_node_factory.py  # Single test file
 ```
 
