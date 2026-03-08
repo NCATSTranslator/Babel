@@ -121,3 +121,9 @@ and then compare it with an API lookup to see how they differ.
 
 If it is easy to add a test that will either exercise this bug or check some other relevant
 functionality, please suggest that when planning the bug fix.
+
+It is very important that two different compendia don't contain the same identifier and that we
+don't miss out on any valid identifiers without very good reason. If you're changing how
+identifiers are filtered in one compendium, think about whether that will affect which identifiers
+should be included in the other compendia to prevent any identifiers from being missed or being
+added twice.
