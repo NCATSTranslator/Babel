@@ -169,6 +169,7 @@ protein_synonyms:
 
 protein_ids:
   - ENSEMBL
+  - MESH
   - UniProtKB
   - PR
   - UMLS
