@@ -6,7 +6,7 @@ import src.datahandlers.umls as umls
 from src.babel_utils import Text, glom, read_identifier_file, write_compendium
 from src.categories import PROTEIN
 from src.metadata.provenance import write_concord_metadata
-from src.prefixes import DRUGBANK, ENSEMBL, MESH, NCBITAXON, NCIT, PR, UNIPROTKB
+from src.prefixes import DRUGBANK, ENSEMBL, NCBITAXON, NCIT, PR, UNIPROTKB
 from src.ubergraph import UberGraph
 from src.util import get_logger, get_memory_usage_summary
 
@@ -26,8 +26,19 @@ def extract_taxon_ids_from_uniprotkb(idmapping_filename, uniprotkb_taxa_filename
 
 
 def write_umls_ids(mrsty, outfile):
-    umlsmap = {}
-    umlsmap["A1.4.1.2.1.7"] = PROTEIN
+    # Compare with src/createcompendia/chemicals.py (see source code at
+    # https://github.com/NCATSTranslator/Babel/blob/c91654411923b86300cc2f6b5a21b96ea857817f/src/createcompendia/chemicals.py#L54-L76)
+    #
+    # We have to make sure we don't include UMLS identifiers both here and in chemicals.py, otherwise they'll
+    # end up in both compendia.
+    umlsmap = {
+        "A1.4.1.2.1.7": PROTEIN,    # Amino Acid, Peptide, or Protein -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T116
+        # The following should not be needed: receptors are generally proteins, and enzymes are definitionally proteins, so
+        # they should all be included in T116. But since we exclude them in chemicals.py, I think it makes sense to include
+        # them here.
+        "A1.4.1.1.3.6": PROTEIN,    # Receptor -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T192
+        "A1.4.1.1.3.3": PROTEIN,    # Enzyme -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T126
+    }
     umls.write_umls_ids(mrsty, umlsmap, outfile)
 
 
@@ -158,14 +169,14 @@ def build_umls_ncit_relationships(mrconso, idfile, outfile, metadata_yaml):
     umls.build_sets(mrconso, idfile, outfile, {"NCI": NCIT}, provenance_metadata_yaml=metadata_yaml)
 
 
-def build_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
+def build_umls_relationships(mrconso, idfile, outfile, other_prefixes, exclude_ids_from, metadata_yaml):
     # The corresponding code in chemicals also includes (1) {'RXNORM': RXCUI}, and (2) we also pull in RxNorm to
     # provide the inverse concords (i.e. RxNorm -> MESH and DRUGBANK). Doing so will probably fix some RXCUI IDs,
     # but assigning RXCUI to proteins seems like a bridge too far for me.
     #
     # TODO: we should probably add some kind of filtering so we don't include concords that point to chemicals rather
     # than proteins, which could result in duplicates (if the same ID is picked up in both chemicals and proteins).
-    umls.build_sets(mrconso, idfile, outfile, {"MSH": MESH, "DRUGBANK": DRUGBANK}, provenance_metadata_yaml=metadata_yaml)
+    umls.build_sets(mrconso, idfile, outfile, other_prefixes=other_prefixes, exclude_ids_from=exclude_ids_from, provenance_metadata_yaml=metadata_yaml)
 
 
 def build_protein_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
