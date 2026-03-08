@@ -172,8 +172,17 @@ def write_mesh_ids(outfile):
     meshmap["D12.644"] = POLYPEPTIDE
     meshmap["D13"] = POLYPEPTIDE
     meshmap["D20"] = COMPLEX_MOLECULAR_MIXTURE
-    # Also add anything from SCR_Chemical, if it doesn't have a tree map
-    mesh.write_ids(meshmap, outfile, order=["EXCLUDE", POLYPEPTIDE, COMPLEX_MOLECULAR_MIXTURE, CHEMICAL_ENTITY], extra_vocab={"SCR_Chemical": CHEMICAL_ENTITY})
+    # Also add anything from SCR_Chemical, if it doesn't have a tree map.
+    # SCR terms don't have tree numbers, so we need to separately exclude SCRs
+    # mapped to descriptors under excluded trees (proteins, macromolecules, enzymes).
+    excluded_trees = [treenum for treenum, category in meshmap.items() if category == "EXCLUDE"]
+    mesh.write_ids(
+        meshmap,
+        outfile,
+        order=["EXCLUDE", POLYPEPTIDE, COMPLEX_MOLECULAR_MIXTURE, CHEMICAL_ENTITY],
+        extra_vocab={"SCR_Chemical": CHEMICAL_ENTITY},
+        scr_exclude_trees=excluded_trees,
+    )
 
 
 # def write_obo_ids(irisandtypes,outfile,exclude=[]):
