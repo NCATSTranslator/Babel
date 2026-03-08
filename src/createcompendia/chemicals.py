@@ -144,26 +144,53 @@ def write_pubchem_ids(labelfile, smilesfile, outfile):
 
 
 def write_mesh_ids(outfile):
-    # Get the D tree,
-    # D01	Inorganic Chemicals
-    # D02	Organic Chemicals
-    # D03	Heterocyclic Compounds
-    # D04	Polycyclic Compounds
-    # D05	Macromolecular Substances  NO
-    # D06	Hormones, Hormone Substitutes, and Hormone Antagonists
-    # D08	Enzymes and Coenzymes  NO, include with ... Activities?
-    # D09	Carbohydrates
-    # D10	Lipids
-    # D12	Amino Acids, Peptides, and Proteins
-    # D12.125 AA yes
-    # D12.644 Peptides yes
-    # D12.776 proteins  NO
-    # D13	Nucleic Acids, Nucleotides, and Nucleosides
-    # D20	Complex Mixtures
-    # D23	Biological Factors
-    # D25	Biomedical and Dental Materials
-    # D26	Pharmaceutical Preparations
-    # D27	Chemical Actions and Uses NO
+    # MeSH D tree — chemical-related subtrees.
+    # Included as CHEMICAL_ENTITY:
+    #   D01  Inorganic Chemicals
+    #   D02  Organic Chemicals
+    #   D03  Heterocyclic Compounds
+    #   D04  Polycyclic Compounds
+    #   D06  Hormones, Hormone Substitutes, and Hormone Antagonists
+    #   D07  (not currently assigned in MeSH)
+    #   D09  Carbohydrates
+    #   D10  Lipids
+    #   D11  (not currently assigned in MeSH)
+    #   D12  Amino Acids, Peptides, and Proteins (partially — see below)
+    #   D14–D19  (not currently assigned in MeSH)
+    #   D21–D22  (not currently assigned in MeSH)
+    #   D23  Biological Factors
+    #   D24  (not currently assigned in MeSH)
+    #   D25  Biomedical and Dental Materials
+    #   D26  Pharmaceutical Preparations
+    #
+    # Included as POLYPEPTIDE:
+    #   D12.125  Amino Acids
+    #   D12.644  Peptides
+    #   D13      Nucleic Acids, Nucleotides, and Nucleosides
+    #
+    # Included as COMPLEX_MOLECULAR_MIXTURE:
+    #   D20  Complex Mixtures
+    #
+    # EXCLUDED (sent to protein compendium instead — see protein.write_mesh_ids):
+    #   D05      Macromolecular Substances — protein subtrees (D05.500 Multiprotein Complexes,
+    #            D05.875 Protein Aggregates) go to proteins; non-protein subtrees (D05.750
+    #            Polymers, D05.937 Smart Materials, D05.374 Micelles) are in neither compendium.
+    #   D08      Enzymes and Coenzymes — protein subtrees (D08.811 Enzymes, D08.622 Enzyme
+    #            Precursors, D08.244 Cytochromes) go to proteins; D08.211 Coenzymes (small
+    #            molecules) is in neither compendium.
+    #   D12.776  Proteins — goes to protein compendium.
+    #
+    # D27 (Chemical Actions and Uses) is implicitly excluded by the range D01-D26.
+    #
+    # TODO: The MeSH tree assignments for chemicals and proteins are currently defined
+    # independently in chemicals.write_mesh_ids() and protein.write_mesh_ids(). These
+    # should be unified into a shared mapping (e.g. in config.yaml or a dedicated module)
+    # so both compendia are derived from the same source of truth. This would also make it
+    # easier to handle edge cases like:
+    #   - D05 non-protein subtrees (Polymers, Smart Materials, Micelles) and D08.211
+    #     (Coenzymes) that currently fall into neither compendium.
+    #   - SCR_Chemical terms mapped to non-protein descriptors that are nonetheless proteins
+    #     (e.g. scorpion venom toxins classified under D23 Biological Factors).
     meshmap = {f"D{str(i).zfill(2)}": CHEMICAL_ENTITY for i in range(1, 27)}
     meshmap["D05"] = "EXCLUDE"
     meshmap["D08"] = "EXCLUDE"

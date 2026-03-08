@@ -163,27 +163,43 @@ def pull_mesh_registry():
     return m.get_registry()
 
 
-def write_ids(meshmap, outfile, order=["biolink:CellularComponent", "biolink:Cell", "biolink:AnatomicalEntity"], extra_vocab={}, scr_exclude_trees=None):
+def write_ids(meshmap, outfile, order=["biolink:CellularComponent", "biolink:Cell", "biolink:AnatomicalEntity"], extra_vocab={}, scr_exclude_trees=None, scr_include_trees=None):
     """Write the mesh identifiers from a particular set of hierarchies to an output directory.
     This might be a mixed list of types (for instance anatomy and cell).  Also, the same term
     may appear in multiple trees, perhaps with different types.
 
     scr_exclude_trees: optional list of tree numbers. SCR terms (from extra_vocab) that are
-    mapped to descriptors under these trees will be marked as EXCLUDE."""
+    mapped to descriptors under these trees will be marked as EXCLUDE.
+    scr_include_trees: optional list of tree numbers. If set, only SCR terms (from extra_vocab)
+    that are mapped to descriptors under these trees will be kept; all other SCR terms will be
+    removed. Cannot be used together with scr_exclude_trees."""
+    if scr_exclude_trees and scr_include_trees:
+        raise ValueError("scr_exclude_trees and scr_include_trees cannot both be set")
     m = Mesh()
     terms2type = defaultdict(set)
     for treenum, category in meshmap.items():
         mesh_terms = m.get_terms_in_tree(treenum)
         for mt in mesh_terms:
             terms2type[mt].add(category)
-    for k, v in extra_vocab.items():
-        mesh_terms = m.get_terms_with_type(k)
-        for mt in mesh_terms:
-            terms2type[mt].add(v)
-    if scr_exclude_trees:
-        excluded_scr_terms = m.get_scr_terms_mapped_to_trees(scr_exclude_trees)
-        for mt in excluded_scr_terms:
-            terms2type[mt].add("EXCLUDE")
+    if scr_include_trees:
+        # Only add extra_vocab terms that are mapped to descriptors under the included trees.
+        # This is the inverse of scr_exclude_trees: instead of adding all SCR terms and then
+        # marking some as EXCLUDE, we only add SCR terms that match the included trees.
+        included_scr_terms = m.get_scr_terms_mapped_to_trees(scr_include_trees)
+        for k, v in extra_vocab.items():
+            mesh_terms = m.get_terms_with_type(k)
+            for mt in mesh_terms:
+                if mt in included_scr_terms:
+                    terms2type[mt].add(v)
+    else:
+        for k, v in extra_vocab.items():
+            mesh_terms = m.get_terms_with_type(k)
+            for mt in mesh_terms:
+                terms2type[mt].add(v)
+        if scr_exclude_trees:
+            excluded_scr_terms = m.get_scr_terms_mapped_to_trees(scr_exclude_trees)
+            for mt in excluded_scr_terms:
+                terms2type[mt].add("EXCLUDE")
     with open(outfile, "w") as idfile:
         for term, typeset in terms2type.items():
             list_typeset = list(typeset)
