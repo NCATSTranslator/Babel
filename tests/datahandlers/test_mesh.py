@@ -5,7 +5,6 @@ Tests cover:
   - write_ids() SCR filtering logic (mock-based)
   - Mesh.get_scr_terms_mapped_to_trees() (inline pyoxigraph store)
 """
-import io
 from unittest.mock import MagicMock, patch
 
 import pyoxigraph
