@@ -74,14 +74,14 @@ def mesh_pipeline_outputs(mesh_nt, tmp_path_factory):
 
 @pytest.fixture(scope="session")
 def umls_rrf_files():
-    """Ensure MRCONSO.RRF and MRSTY.RRF are present; skip if UMLS_API_KEY unset or download fails."""
-    if not os.environ.get("UMLS_API_KEY"):
-        pytest.skip("UMLS_API_KEY not set; cannot download UMLS files")
-
+    """Ensure MRCONSO.RRF and MRSTY.RRF are present; skip if files are absent and download fails."""
     mrconso = make_local_name("MRCONSO.RRF", subpath="UMLS")
     mrsty = make_local_name("MRSTY.RRF", subpath="UMLS")
 
     if not os.path.exists(mrconso) or not os.path.exists(mrsty):
+        # UMLS_API_KEY is only required when the files are not yet cached.
+        if not os.environ.get("UMLS_API_KEY"):
+            pytest.skip("UMLS_API_KEY not set and UMLS files not cached; cannot download UMLS files")
         try:
             from src.datahandlers import umls as umls_handler
             from src.util import get_config
