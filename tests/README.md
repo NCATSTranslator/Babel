@@ -82,6 +82,15 @@ PYTHONPATH=. uv run pytest -n 4 -m unit                  # 4 workers, unit tests
   (the core correctness invariant); (4) the chemicals output excludes all D05/D08/D12.776
   descriptor terms, including "in-neither" subtrees like Polymers and Coenzymes.
 
+- **`pipeline/test_umls_pipeline.py`** (`pipeline`) — End-to-end tests for UMLS identifier
+  partitioning across all seven compendia that call `write_umls_ids()` (chemicals, protein,
+  anatomy, disease/phenotype, process/activity, taxon, gene). Requires `UMLS_API_KEY` to be
+  set; downloads `babel_downloads/UMLS/MRCONSO.RRF` and `MRSTY.RRF` automatically if absent,
+  skipping gracefully if the download fails or the key is unset. Nine tests: seven
+  parametrized non-empty checks (one per compendium), one mutual-exclusivity test asserting
+  no UMLS:CUI appears in more than one compendium, and one targeted test confirming chemicals
+  excludes all protein-assigned UMLS IDs (semantic type tree A1.4.1.2.1.7).
+
 ### Compendia
 
 - **`test_chemicals.py`** / **`test_uber.py`** (`network`, `xfail`) — Both test the
