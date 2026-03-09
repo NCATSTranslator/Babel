@@ -16,7 +16,7 @@ def node_factory():
     require the babel_downloads/ pipeline output directory to exist.
     """
     here = os.path.abspath(os.path.dirname(__file__))
-    labeldir = os.path.join(here, "testdata")
+    labeldir = os.path.join(here, "data")
     fac = NodeFactory(labeldir, BIOLINK_VERSION)
     fac.common_labels = {}
     return fac
