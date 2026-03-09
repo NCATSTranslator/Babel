@@ -166,3 +166,18 @@ Example tests:
   behaviour).
 - Move `test_geneproteiny.py` assertions to also check individual clique contents, not just that
   the output file is non-empty.
+
+## Out of Scope / Pipeline-only
+
+### Tests requiring the full MeSH pipeline (out of scope for unit tests)
+
+The following require loading the full MeSH RDF (~1–2 GB) and are only practical
+as `pipeline` tests once `babel_downloads/MESH/mesh.nt` is pre-populated:
+
+- **`chemicals.write_mesh_ids()` end-to-end** — Runs SPARQL over full MeSH; verify output
+  contains expected D01–D26 terms and excludes D05/D08/D12.776.
+- **`protein.write_mesh_ids()` end-to-end** — Verify D12.776, D05.500, D08.811 subtrees
+  appear in output.
+- **No-overlap invariant** — Assert chemicals and protein MeSH output files share no IDs.
+  This is the key correctness property of issue #675.
+- **`protein_mesh_ids` Snakemake rule** — End-to-end pipeline rule test.
