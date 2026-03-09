@@ -83,6 +83,12 @@ include = '\.snakefile$|^Snakefile'
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--cov=src --cov-report=term-missing --cov-report=html"
+markers = [
+    "unit: fast offline tests with no external dependencies",
+    "network: requires live internet access (use --network to run)",
+    "slow: correct but takes >30s even offline",
+    "pipeline: invokes Snakemake rules; requires babel_downloads/ (use --pipeline to run)",
+]
 
 [tool.coverage.run]
 source = ["src"]

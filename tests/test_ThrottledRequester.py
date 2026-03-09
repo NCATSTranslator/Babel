@@ -1,10 +1,12 @@
-import pytest
 from datetime import datetime as dt
 from datetime import timedelta
+
+import pytest
 
 from src.babel_utils import ThrottledRequester
 
 
+@pytest.mark.network
 def test_throttling():
     """Call a quick-returning service, but include a throttle of 1/2 second (500 ms).
     This should end up taking just a bit over 500 ms.  The service being called
@@ -25,6 +27,7 @@ def test_throttling():
     assert runtime < half_sec_plus
 
 
+@pytest.mark.network
 @pytest.mark.xfail(
     reason="mocky.io does not reliably honour the ?mocky-delay query parameter, "
     "so the first request can return in under 500 ms and the second call gets "

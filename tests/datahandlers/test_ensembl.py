@@ -42,6 +42,7 @@ def normalize_list_of_dictionaries(dict_list):
     return sorted(json.dumps(dictionary, sort_keys=True) for dictionary in dict_list)
 
 
+@pytest.mark.network
 @pytest.mark.xfail(
     reason="requires network access to the Ensembl BioMart service. "
     "To fix: record a VCR cassette or use responses/pytest-httpserver to "

@@ -1,8 +1,11 @@
 import os
 
+import pytest
+
 from src.createcompendia.geneprotein import build_compendium
 
 
+@pytest.mark.unit
 def test_gp():
     here = os.path.abspath(os.path.dirname(__file__))
     gene_compendium = os.path.join(here, "testdata", "gptest_Gene.txt")

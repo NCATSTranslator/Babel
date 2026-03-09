@@ -32,7 +32,14 @@ uv run snakemake --cores 1 chemical       # Another target
 PYTHONPATH=. uv run pytest                           # All tests (with coverage)
 PYTHONPATH=. uv run pytest --no-cov                  # Without coverage (faster)
 PYTHONPATH=. uv run pytest tests/test_node_factory.py  # Single test file
+PYTHONPATH=. uv run pytest -m unit --no-cov -q      # Unit tests only (CI default)
+PYTHONPATH=. uv run pytest --network -m "unit or network"  # Include network tests
 ```
+
+Tests use four marks: `unit` (fast, offline), `network` (requires internet, opt-in with
+`--network`), `slow` (>30s but offline), and `pipeline` (invokes Snakemake, opt-in with
+`--pipeline`). Network and pipeline tests are skipped by default. See `tests/README.md`
+for the full taxonomy.
 
 Note: not all tests currently pass (issue #602).
 
