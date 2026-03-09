@@ -35,6 +35,12 @@ def pytest_addoption(parser):
         default=False,
         help="Run tests that invoke Snakemake rules (requires babel_downloads/)",
     )
+    parser.addoption(
+        "--all",
+        action="store_true",
+        default=False,
+        help="Run all tests (equivalent to --network --pipeline)",
+    )
 
 
 def pytest_configure(config):
@@ -45,10 +51,11 @@ def pytest_configure(config):
 
 
 def pytest_collection_modifyitems(config, items):
-    skip_network = pytest.mark.skip(reason="pass --network to run")
-    skip_pipeline = pytest.mark.skip(reason="pass --pipeline to run (and ensure babel_downloads/ exists)")
+    run_all = config.getoption("--all")
+    skip_network = pytest.mark.skip(reason="pass --network (or --all) to run")
+    skip_pipeline = pytest.mark.skip(reason="pass --pipeline (or --all) to run (and ensure babel_downloads/ exists)")
     for item in items:
-        if "network" in item.keywords and not config.getoption("--network"):
+        if "network" in item.keywords and not run_all and not config.getoption("--network"):
             item.add_marker(skip_network)
-        if "pipeline" in item.keywords and not config.getoption("--pipeline"):
+        if "pipeline" in item.keywords and not run_all and not config.getoption("--pipeline"):
             item.add_marker(skip_pipeline)

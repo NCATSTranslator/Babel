@@ -27,6 +27,7 @@ Tests are tagged with marks to control which subset runs in a given context:
 - `pytest` alone: runs `unit` and `slow` tests; skips `network` and `pipeline`
 - `pytest --network`: also runs `network` tests
 - `pytest --pipeline`: also runs `pipeline` tests (ensure `babel_downloads/` exists first)
+- `pytest --all`: runs everything (equivalent to `--network --pipeline`)
 
 ### Convenience commands
 
@@ -34,6 +35,7 @@ Tests are tagged with marks to control which subset runs in a given context:
 PYTHONPATH=. uv run pytest -m unit                        # unit tests only (CI default)
 PYTHONPATH=. uv run pytest -m "unit or network" --network # unit + live-service checks
 PYTHONPATH=. uv run pytest -m "unit or slow"              # unit + slow offline tests
+PYTHONPATH=. uv run pytest --all                          # run every test
 PYTHONPATH=. uv run pytest -m pipeline --pipeline -x     # one Snakemake-triggering test at a time
 PYTHONPATH=. uv run pytest -m "not pipeline"              # everything except full pipeline runs
 ```
