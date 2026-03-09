@@ -92,3 +92,75 @@ The `testdata/` directory contains fixture files used by several tests:
 - `gptest_Gene.txt` — Sample gene compendium for gene-protein conflation tests
 - `gptest_Protein.txt` — Sample protein compendium
 - `gp_UniProtNCBI.txt` — Sample UniProt-NCBI concordance
+
+## Future Plans
+
+### Test infrastructure improvements
+
+- **`pytest-timeout`** — Add a timeout plugin (e.g. 30s for `unit`, 600s for `network`/`slow`) to
+  catch hung network tests rather than letting them block CI indefinitely.
+- **`responses` / `pytest-httpserver`** — Use HTTP mocking to test `ThrottledRequester` and other
+  HTTP-calling code without a live service. This would let `test_ThrottledRequester.py` be
+  re-marked `unit` and become reliably deterministic.
+- **`babel_config` conftest fixture** — A session fixture that patches `get_config()` to redirect
+  `download_directory` and `output_directory` to `tmp_path`. Tests that exercise `create_node()`
+  or other path-dependent code could use this instead of manually setting `common_labels = {}`.
+- **VCR cassettes** — Record real HTTP/FTP responses for BioMart and UberGraph once, commit the
+  cassette files, and replay them in CI. This would let `datahandlers/test_ensembl.py`,
+  `test_chemicals.py`, and `test_uber.py` run offline and be promoted from `network + xfail` to
+  `unit`.
+
+### New `unit` test files (parsing transforms)
+
+Create a `tests/fixtures/` directory with small golden files (10–20 rows each) per data handler,
+then add offline parsing tests:
+
+- **`tests/parsing/test_drugbank.py`** — `extract_drugbank_labels_and_synonyms` with a fixture CSV
+- **`tests/parsing/test_ncbigene.py`** — `get_ncbigene_field` and `pull_ncbigene_labels` with a
+  fixture `.gz` file
+- **`tests/parsing/test_unii.py`** — `write_unii_ids` with a small fixture TSV
+- **`tests/parsing/test_mesh.py`** — Mesh SPARQL methods with a fixture `.nt` RDF file
+
+### New `unit` test files (babel_utils and TSVSQLiteLoader)
+
+- **`tests/test_babel_utils.py`** — Cover `sort_identifiers_with_boosted_prefixes()`,
+  `get_numerical_curie_suffix()`, `clean_sets()`, `get_prefixes()`, and
+  `filter_out_non_unique_ids()`
+- **`tests/test_tsvsqliteloader.py`** — Load a small fixture TSV into `TSVSQLiteLoader`, run
+  `get_curies()` queries, verify case-insensitive lookups and missing-key handling
+
+### New `unit` test files (compendium transforms)
+
+- **`tests/compendium/test_chemicals_ids.py`** — `write_umls_ids`, `write_unii_ids`,
+  `get_type_from_smiles`
+- **`tests/compendium/test_gene_ids.py`** — `build_gene_ensembl_relationships` with a fixture
+  BioMart TSV
+- **`tests/compendium/test_make_cliques.py`** — `get_conflation_ids` parsing logic
+
+### New `network + slow` ETL tests
+
+Add a `tests/etl/` sub-package with a shared `conftest.py` that provides an `etl_output_dir`
+fixture (`tmp_path_factory`). Each file downloads and parses one data handler end-to-end and
+asserts the output file is non-empty:
+
+- `test_etl_ncbigene.py`, `test_etl_chebi.py`, `test_etl_mesh.py`, `test_etl_ensembl.py`, …
+
+### New `pipeline` tests
+
+Add a `tests/pipeline/` sub-package with a `snakemake_rule` session fixture (calls the Snakemake
+Python API, inherits dependency resolution, returns the output directory). Requires
+`babel_downloads/` to be pre-populated — document this in `tests/pipeline/README.md`.
+
+Example tests:
+
+- **`test_pipeline_chemical.py`** — Runs `chemical_umls_ids` rule, checks output file exists and
+  is non-empty
+- **`test_pipeline_gene.py`** — Runs the gene sub-pipeline, checks `NCBIGene.txt` compendium
+
+### Deduplication / cleanup
+
+- `test_chemicals.py` and `test_uber.py` are currently identical. Consolidate into one file or
+  give each a distinct focus (e.g. chemicals-specific SPARQL queries vs. general UberGraph
+  behaviour).
+- Move `test_geneproteiny.py` assertions to also check individual clique contents, not just that
+  the output file is non-empty.
