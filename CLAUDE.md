@@ -137,17 +137,17 @@ Gene+Protein and Drug+Chemical each have dedicated conflation modules (`geneprot
 - `babel_outputs/intermediate/` — intermediate build artifacts
 - `babel_outputs/` — final compendia, synonyms, reports, exports
 
-# Running Babel
+## Running Babel
 
 You may run `uv run snakemake -c all --rerun-incomplete [rulename]` to run a particular rule.
 When running a download step, it will be easier to run the job in Snakemake, but when running
 a rule that produces intermediate files, it might be easier to download the intermediate files from
-https://stars.renci.org/var/babel/2025dec11/ (which is the `babel_output` folder from a run on a
-high performance cluster)  so you don't need to download all the source files and 
+<https://stars.renci.org/var/babel/2025dec11/> (which is the `babel_output` folder from a run on a
+high performance cluster) so you don't need to download all the source files and
 rerun the entire pipeline. You can look at the resource requirements of a rule to decide which
-option would be best. 
+option would be best.
 
-# Debugging
+## Debugging
 
 When looking things up in the source databases, prefer to invoke the existing download code in
 this repository unless you suspect that it is incorrect, in which case use the existing code

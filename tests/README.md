@@ -171,6 +171,7 @@ propagates skips automatically — no plugins needed.
 To add a new datasource (e.g. ChEBI):
 
 1. Add a download fixture in `tests/pipeline/conftest.py`:
+
    ```python
    @pytest.fixture(scope="session")
    def chebi_sdf():
@@ -180,6 +181,7 @@ To add a new datasource (e.g. ChEBI):
            make_local_name("ChEBI_complete.sdf", subpath="CHEBI"),
        )
    ```
+
 2. Add a processing fixture that depends on `chebi_sdf`.
 3. Create `tests/pipeline/test_chebi_pipeline.py` whose tests depend on the processing fixture.
 
