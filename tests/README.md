@@ -20,13 +20,13 @@ Tests are tagged with marks to control which subset runs in a given context:
 | `unit`     | Pure functions, in-memory logic, small fixtures in `tests/data/`         | No        | Seconds          | 30 s    |
 | `network`  | Requires live internet (FTP, SPARQL, BioMart, external APIs)             | Yes       | Seconds–minutes  | 600 s   |
 | `slow`     | Correct but takes >30s — large fixture processing, SQLite spill, etc.    | Sometimes | >30s             | 600 s   |
-| `pipeline` | Invokes Snakemake rules; requires `babel_downloads/` to be pre-populated | Yes       | Minutes–hours    | 3600 s  |
+| `pipeline` | Invokes Snakemake rules; downloads prerequisite data automatically        | Yes       | Minutes–hours    | 3600 s  |
 
 ### Default behavior
 
 - `pytest` alone: runs `unit` and `slow` tests; skips `network` and `pipeline`
 - `pytest --network`: also runs `network` tests
-- `pytest --pipeline`: also runs `pipeline` tests (ensure `babel_downloads/` exists first)
+- `pytest --pipeline`: also runs `pipeline` tests (prerequisite data is downloaded automatically)
 - `pytest --all`: runs everything (equivalent to `--network --pipeline`)
 
 ### Convenience commands
@@ -67,6 +67,20 @@ PYTHONPATH=. uv run pytest -n 4 -m unit                  # 4 workers, unit tests
   BioMart data handler. Pulls real data from BioMart, verifies that batched downloads
   (splitting attribute lists across multiple queries) produce the same results as
   single-query downloads, and checks TSV output correctness. Uses `tmp_path`.
+
+- **`datahandlers/test_mesh.py`** (`unit`) — Unit tests for `src/datahandlers/mesh.py`.
+  Covers `write_ids()` parameter validation, SCR filtering logic (mock-based), and
+  `Mesh.get_scr_terms_mapped_to_trees()` using an inline pyoxigraph store.
+
+### Pipeline
+
+- **`pipeline/test_mesh_pipeline.py`** (`pipeline`) — End-to-end tests for MeSH
+  chemical/protein ID separation (issue #675). Downloads `babel_downloads/MESH/mesh.nt`
+  automatically if absent; skips gracefully if the download fails.
+  Four tests: (1) `chemicals.write_mesh_ids()` output is non-empty; (2)
+  `protein.write_mesh_ids()` output is non-empty; (3) the two outputs share no IDs
+  (the core correctness invariant); (4) the chemicals output excludes all D05/D08/D12.776
+  descriptor terms, including "in-neither" subtrees like Polymers and Coenzymes.
 
 ### Compendia
 
@@ -149,11 +163,29 @@ asserts the output file is non-empty:
 
 ### New `pipeline` tests
 
-Add a `tests/pipeline/` sub-package with a `snakemake_rule` session fixture (calls the Snakemake
-Python API, inherits dependency resolution, returns the output directory). Requires
-`babel_downloads/` to be pre-populated — document this in `tests/pipeline/README.md`.
+Pipeline tests follow a two-fixture layered pattern defined in `tests/pipeline/conftest.py`.
+Each datasource gets one download fixture (which calls `_download_or_skip`) and each
+compendium gets one processing fixture that depends on the download fixture. Pytest
+propagates skips automatically — no plugins needed.
 
-Example tests:
+To add a new datasource (e.g. ChEBI):
+
+1. Add a download fixture in `tests/pipeline/conftest.py`:
+
+   ```python
+   @pytest.fixture(scope="session")
+   def chebi_sdf():
+       return _download_or_skip(
+           "ChEBI SDF",
+           pull_chebi,
+           make_local_name("ChEBI_complete.sdf", subpath="CHEBI"),
+       )
+   ```
+
+2. Add a processing fixture that depends on `chebi_sdf`.
+3. Create `tests/pipeline/test_chebi_pipeline.py` whose tests depend on the processing fixture.
+
+Example tests to add next:
 
 - **`test_pipeline_chemical.py`** — Runs `chemical_umls_ids` rule, checks output file exists and
   is non-empty
@@ -166,3 +198,14 @@ Example tests:
   behaviour).
 - Move `test_geneproteiny.py` assertions to also check individual clique contents, not just that
   the output file is non-empty.
+
+## Out of Scope / Pipeline-only
+
+The MeSH pipeline tests that previously appeared here as stubs have been implemented in
+`tests/pipeline/test_mesh_pipeline.py` (see the "Pipeline" subsection of "Test Files" above).
+
+Run them with:
+
+```bash
+PYTHONPATH=. uv run pytest tests/pipeline/test_mesh_pipeline.py --pipeline --no-cov -v
+```
