@@ -59,3 +59,17 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_network)
         if "pipeline" in item.keywords and not run_all and not config.getoption("--pipeline"):
             item.add_marker(skip_pipeline)
+
+    # Per-mark timeout overrides (pytest-timeout); unit tests inherit the global timeout = 30
+    _MARK_TIMEOUTS = {
+        "network": 600,
+        "slow": 600,
+        "pipeline": 3600,
+    }
+    for item in items:
+        if item.get_closest_marker("timeout"):
+            continue  # explicit override wins
+        for mark_name, seconds in _MARK_TIMEOUTS.items():
+            if item.get_closest_marker(mark_name):
+                item.add_marker(pytest.mark.timeout(seconds))
+                break

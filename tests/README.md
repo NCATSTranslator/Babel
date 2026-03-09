@@ -15,12 +15,12 @@ browsable HTML report is written to `htmlcov/`.
 
 Tests are tagged with marks to control which subset runs in a given context:
 
-| Mark       | What it covers                                                           | Network?  | Typical duration |
-|------------|--------------------------------------------------------------------------|-----------|------------------|
-| `unit`     | Pure functions, in-memory logic, small fixtures in `tests/data/`         | No        | Seconds          |
-| `network`  | Requires live internet (FTP, SPARQL, BioMart, external APIs)             | Yes       | Seconds–minutes  |
-| `slow`     | Correct but takes >30s — large fixture processing, SQLite spill, etc.    | Sometimes | >30s             |
-| `pipeline` | Invokes Snakemake rules; requires `babel_downloads/` to be pre-populated | Yes       | Minutes–hours    |
+| Mark       | What it covers                                                           | Network?  | Typical duration | Timeout |
+|------------|--------------------------------------------------------------------------|-----------|------------------|---------|
+| `unit`     | Pure functions, in-memory logic, small fixtures in `tests/data/`         | No        | Seconds          | 30 s    |
+| `network`  | Requires live internet (FTP, SPARQL, BioMart, external APIs)             | Yes       | Seconds–minutes  | 600 s   |
+| `slow`     | Correct but takes >30s — large fixture processing, SQLite spill, etc.    | Sometimes | >30s             | 600 s   |
+| `pipeline` | Invokes Snakemake rules; requires `babel_downloads/` to be pre-populated | Yes       | Minutes–hours    | 3600 s  |
 
 ### Default behavior
 
@@ -101,8 +101,6 @@ The `test/` directory contains fixture files used by several tests:
 
 ### Test infrastructure improvements
 
-- **`pytest-timeout`** — Add a timeout plugin (e.g. 30s for `unit`, 600s for `network`/`slow`) to
-  catch hung network tests rather than letting them block CI indefinitely.
 - **`responses` / `pytest-httpserver`** — Use HTTP mocking to test `ThrottledRequester` and other
   HTTP-calling code without a live service. This would let `test_ThrottledRequester.py` be
   re-marked `unit` and become reliably deterministic.

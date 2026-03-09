@@ -24,6 +24,7 @@ dependencies = [
     "pyoxigraph~=0.4.11",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
+    "pytest-timeout>=2.3",
     "pytest-xdist>=3",
     "python-levenshtein>=0.27.1",
     "pyyaml>=6.0.3",
@@ -84,6 +85,7 @@ include = '\.snakefile$|^Snakefile'
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--cov=src --cov-report=term-missing --cov-report=html"
+timeout = 30          # global fallback (seconds); overridden per mark in conftest.py
 markers = [
     "unit: fast offline tests with no external dependencies",
     "network: requires live internet access (use --network to run)",
