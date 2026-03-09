@@ -68,6 +68,19 @@ PYTHONPATH=. uv run pytest -n 4 -m unit                  # 4 workers, unit tests
   (splitting attribute lists across multiple queries) produce the same results as
   single-query downloads, and checks TSV output correctness. Uses `tmp_path`.
 
+- **`datahandlers/test_mesh.py`** (`unit`) — Unit tests for `src/datahandlers/mesh.py`.
+  Covers `write_ids()` parameter validation, SCR filtering logic (mock-based), and
+  `Mesh.get_scr_terms_mapped_to_trees()` using an inline pyoxigraph store.
+
+### Pipeline
+
+- **`pipeline/test_mesh_pipeline.py`** (`pipeline`) — End-to-end tests for MeSH
+  chemical/protein ID separation (issue #675). Requires `babel_downloads/MESH/mesh.nt`.
+  Four tests: (1) `chemicals.write_mesh_ids()` output is non-empty; (2)
+  `protein.write_mesh_ids()` output is non-empty; (3) the two outputs share no IDs
+  (the core correctness invariant); (4) the chemicals output excludes all D05/D08/D12.776
+  descriptor terms, including "in-neither" subtrees like Polymers and Coenzymes.
+
 ### Compendia
 
 - **`test_chemicals.py`** / **`test_uber.py`** (`network`, `xfail`) — Both test the
@@ -169,15 +182,11 @@ Example tests:
 
 ## Out of Scope / Pipeline-only
 
-### Tests requiring the full MeSH pipeline (out of scope for unit tests)
+The MeSH pipeline tests that previously appeared here as stubs have been implemented in
+`tests/pipeline/test_mesh_pipeline.py` (see the "Pipeline" subsection of "Test Files" above).
 
-The following require loading the full MeSH RDF (~1–2 GB) and are only practical
-as `pipeline` tests once `babel_downloads/MESH/mesh.nt` is pre-populated:
+Run them with:
 
-- **`chemicals.write_mesh_ids()` end-to-end** — Runs SPARQL over full MeSH; verify output
-  contains expected D01–D26 terms and excludes D05/D08/D12.776.
-- **`protein.write_mesh_ids()` end-to-end** — Verify D12.776, D05.500, D08.811 subtrees
-  appear in output.
-- **No-overlap invariant** — Assert chemicals and protein MeSH output files share no IDs.
-  This is the key correctness property of issue #675.
-- **`protein_mesh_ids` Snakemake rule** — End-to-end pipeline rule test.
+```bash
+PYTHONPATH=. uv run pytest tests/pipeline/test_mesh_pipeline.py --pipeline --no-cov -v
+```
