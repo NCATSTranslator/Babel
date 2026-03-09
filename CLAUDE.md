@@ -35,6 +35,7 @@ PYTHONPATH=. uv run pytest tests/test_node_factory.py  # Single test file
 PYTHONPATH=. uv run pytest -m unit --no-cov -q      # Unit tests only (CI default)
 PYTHONPATH=. uv run pytest --network                # Include network tests
 PYTHONPATH=. uv run pytest --all                    # Run every test
+PYTHONPATH=. uv run pytest -n auto --no-cov        # Parallel (all CPUs), skip coverage
 ```
 
 Tests use four marks: `unit` (fast, offline), `network` (requires internet, opt-in with

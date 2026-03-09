@@ -38,6 +38,8 @@ PYTHONPATH=. uv run pytest -m "unit or slow"              # unit + slow offline 
 PYTHONPATH=. uv run pytest --all                          # run every test
 PYTHONPATH=. uv run pytest -m pipeline --pipeline -x     # one Snakemake-triggering test at a time
 PYTHONPATH=. uv run pytest -m "not pipeline"              # everything except full pipeline runs
+PYTHONPATH=. uv run pytest -n auto --no-cov               # parallel (all CPUs), skip coverage
+PYTHONPATH=. uv run pytest -n 4 -m unit                  # 4 workers, unit tests only
 ```
 
 ## Test Files
