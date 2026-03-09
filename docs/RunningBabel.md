@@ -175,4 +175,5 @@ cluster. You need to create three resources:
 
     4. Press `Ctrl+A D` to "detach" the screen. You can reconnect to a detached screen by running
        `screen -r`. You can also see a list of all running screens by running `screen -l`.
+
     5. Once the generation completes, all output files should be in the `babel_outputs` directory.
