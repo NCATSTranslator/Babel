@@ -93,6 +93,30 @@ semantic type plus data collection, reports, exports, and DuckDB.
 - **Concord files** are the core data structure: tab-separated `CURIE1 \t Relation \t CURIE2`
   triples expressing cross-references between vocabularies.
 
+### Biolink Model Usage
+
+The Biolink Model version is set in `config.yaml` (`biolink_version: "4.3.6"`) and is the single
+source of truth used by `NodeFactory` and `get_biolink_model_toolkit()`. The model is fetched from
+GitHub on first use (bmt may cache it locally).
+
+**Mapped class URIs** — always use the `biolink:`-prefixed form (e.g. `biolink:ChemicalEntity`),
+not the raw element name (`chemical entity`). `get_ancestors()` and `get_element()["class_uri"]`
+return these mapped forms.
+
+**Prefix ordering** — `src/prefixes.py` is the canonical registry of prefix string constants. The
+order of `id_prefixes` in the Biolink Model determines which CURIE is selected as the preferred
+identifier by `NodeFactory`. In biolink 4.3.6, for example, `CHEBI` ranks above `PUBCHEM.COMPOUND`
+for `biolink:SmallMolecule`. Update `src/prefixes.py` whenever new prefixes appear in the model.
+
+**Node output schema** — `NodeFactory.create_node()` returns:
+
+```python
+{"identifiers": [{"identifier": CURIE, "label": str}, ...], "type": "biolink:Foo"}
+```
+
+`identifiers[0]` is the preferred identifier (highest-priority prefix). Labels remain on the
+identifier that owns them and are not promoted to the first entry.
+
 ### Conflation
 
 Gene+Protein and Drug+Chemical each have dedicated conflation modules (`geneprotein.py`,
