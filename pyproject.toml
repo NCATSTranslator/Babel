@@ -24,6 +24,8 @@ dependencies = [
     "pyoxigraph~=0.4.11",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
+    "pytest-timeout>=2.3",
+    "pytest-xdist>=3",
     "python-levenshtein>=0.27.1",
     "pyyaml>=6.0.3",
     "requests>=2.32.5",
@@ -79,6 +81,28 @@ unfixable = []
 [tool.snakefmt]
 line_length = 120
 include = '\.snakefile$|^Snakefile'
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=src --cov-report=term-missing --cov-report=html"
+timeout = 30          # global fallback (seconds); overridden per mark in conftest.py
+markers = [
+    "unit: fast offline tests with no external dependencies",
+    "network: requires live internet access (use --network to run)",
+    "slow: correct but takes >30s even offline",
+    "pipeline: invokes Snakemake rules; requires babel_downloads/ (use --pipeline to run)",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+precision = 1
+
+[tool.coverage.html]
+directory = "htmlcov"
 
 [tool.rumdl]
 flavor = "gfm"
