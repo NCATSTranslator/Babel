@@ -15,12 +15,12 @@ browsable HTML report is written to `htmlcov/`.
 
 Tests are tagged with marks to control which subset runs in a given context:
 
-| Mark | What it covers | Network? | Typical duration |
-|------|---------------|----------|-----------------|
-| `unit` | Pure functions, in-memory logic, small fixtures in `tests/testdata/` | No | Seconds |
-| `network` | Requires live internet (FTP, SPARQL, BioMart, external APIs) | Yes | Seconds–minutes |
-| `slow` | Correct but takes >30s — large fixture processing, SQLite spill, etc. | Sometimes | >30s |
-| `pipeline` | Invokes Snakemake rules; requires `babel_downloads/` to be pre-populated | Yes | Minutes–hours |
+| Mark       | What it covers                                                           | Network?  | Typical duration |
+|------------|--------------------------------------------------------------------------|-----------|------------------|
+| `unit`     | Pure functions, in-memory logic, small fixtures in `tests/data/`         | No        | Seconds          |
+| `network`  | Requires live internet (FTP, SPARQL, BioMart, external APIs)             | Yes       | Seconds–minutes  |
+| `slow`     | Correct but takes >30s — large fixture processing, SQLite spill, etc.    | Sometimes | >30s             |
+| `pipeline` | Invokes Snakemake rules; requires `babel_downloads/` to be pre-populated | Yes       | Minutes–hours    |
 
 ### Default behavior
 
@@ -46,7 +46,7 @@ PYTHONPATH=. uv run pytest -m "not pipeline"              # everything except fu
   normalized nodes. Covers ancestor retrieval, prefix ordering, identifier
   normalization (selecting the best CURIE from an equivalence set), label
   application, UMLS filtering, PubChem disambiguation, and deduplication of
-  `LabeledID` objects. Uses fixture data from `testdata/`.
+  `LabeledID` objects. Uses fixture data from `data/`.
 
 - **`test_glom.py`** (`unit`) — Tests the `glom` utility, which merges pairwise identifier
   sets into equivalence cliques (union-find). Covers basic merging, iterative
@@ -73,7 +73,7 @@ PYTHONPATH=. uv run pytest -m "not pipeline"              # everything except fu
 
 - **`test_geneproteiny.py`** (`unit`) — Integration test for gene-protein conflation. Runs
   `build_compendium` with gene and protein compendia plus a concordance file from
-  `testdata/` and verifies output is produced.
+  `data/` and verifies output is produced.
 
 ### Utilities
 
@@ -87,7 +87,7 @@ PYTHONPATH=. uv run pytest -m "not pipeline"              # everything except fu
 
 ## Test Data
 
-The `testdata/` directory contains fixture files used by several tests:
+The `test/` directory contains fixture files used by several tests:
 
 - `gptest_Gene.txt` — Sample gene compendium for gene-protein conflation tests
 - `gptest_Protein.txt` — Sample protein compendium

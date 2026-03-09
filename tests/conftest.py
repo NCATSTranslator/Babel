@@ -10,7 +10,7 @@ BIOLINK_VERSION = "4.3.6"
 
 @pytest.fixture(scope="session")
 def node_factory():
-    """Session-scoped NodeFactory pointing at tests/testdata for label lookups.
+    """Session-scoped NodeFactory pointing at tests/data for label lookups.
 
     common_labels is pre-initialized to an empty dict so that tests don't
     require the babel_downloads/ pipeline output directory to exist.
