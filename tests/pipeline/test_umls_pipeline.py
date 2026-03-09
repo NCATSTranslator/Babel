@@ -12,7 +12,6 @@ download; they are skipped by default. Run with:
 """
 import pytest
 
-
 COMPENDIUM_NAMES = [
     "chemicals",
     "protein",

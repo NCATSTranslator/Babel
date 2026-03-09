@@ -106,8 +106,11 @@ def umls_rrf_files():
 def umls_pipeline_outputs(umls_rrf_files, tmp_path_factory):
     """Run write_umls_ids for all seven compendia; returns dict of output paths."""
     from src.createcompendia import (
-        anatomy, diseasephenotype, gene,
-        processactivitypathway, taxon,
+        anatomy,
+        diseasephenotype,
+        gene,
+        processactivitypathway,
+        taxon,
     )
     from src.util import get_config
 
