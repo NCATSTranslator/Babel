@@ -3,6 +3,8 @@ on:
   pull_request:
   push:
     branches: [master]
+  schedule:
+    - cron: '0 17 * * 3' # every Wednesday at 5pm UTC = 1pm EDT
 
 jobs:
   unit-tests:
