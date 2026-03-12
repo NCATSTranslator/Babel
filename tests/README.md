@@ -74,22 +74,24 @@ PYTHONPATH=. uv run pytest -n 4 -m unit                  # 4 workers, unit tests
 
 ### Pipeline
 
-- **`pipeline/test_mesh_pipeline.py`** (`pipeline`) — End-to-end tests for MeSH
-  chemical/protein ID separation (issue #675). Downloads `babel_downloads/MESH/mesh.nt`
-  automatically if absent; skips gracefully if the download fails.
-  Four tests: (1) `chemicals.write_mesh_ids()` output is non-empty; (2)
-  `protein.write_mesh_ids()` output is non-empty; (3) the two outputs share no IDs
-  (the core correctness invariant); (4) the chemicals output excludes all D05/D08/D12.776
-  descriptor terms, including "in-neither" subtrees like Polymers and Coenzymes.
+- **`pipeline/test_vocabulary_partitioning.py`** (`pipeline`) — Generic mutual-exclusivity
+  tests parametrized over all registered vocabularies. For each vocabulary, verifies that
+  (1) every compendium's `write_X_ids()` produces non-empty output and (2) no identifier
+  appears in more than one compendium. Currently covers five vocabularies: MESH (5
+  compendia), UMLS (7 compendia), OMIM (2 compendia), NCIT (2 compendia via UberGraph),
+  GO (2 compendia via UberGraph). Adding a new vocabulary requires only adding its fixtures
+  to `conftest.py` and one entry in `VOCABULARY_REGISTRY` — this file never changes.
 
-- **`pipeline/test_umls_pipeline.py`** (`pipeline`) — End-to-end tests for UMLS identifier
-  partitioning across all seven compendia that call `write_umls_ids()` (chemicals, protein,
-  anatomy, disease/phenotype, process/activity, taxon, gene). Requires `UMLS_API_KEY` to be
-  set; downloads `babel_downloads/UMLS/MRCONSO.RRF` and `MRSTY.RRF` automatically if absent,
-  skipping gracefully if the download fails or the key is unset. Nine tests: seven
-  parametrized non-empty checks (one per compendium), one mutual-exclusivity test asserting
-  no UMLS:CUI appears in more than one compendium, and one targeted test confirming chemicals
-  excludes all protein-assigned UMLS IDs (semantic type tree A1.4.1.2.1.7).
+- **`pipeline/test_mesh_pipeline.py`** (`pipeline`) — MeSH-specific targeted test (issue
+  #675). Downloads `babel_downloads/MESH/mesh.nt` automatically if absent. One test:
+  chemicals output must exclude all D05/D08/D12.776 descriptor terms, including
+  "in-neither" subtrees like Polymers and Coenzymes, even though these are not captured
+  by `protein.write_mesh_ids()`.
+
+- **`pipeline/test_umls_pipeline.py`** (`pipeline`) — UMLS-specific targeted test. Requires
+  `UMLS_API_KEY` for the initial download (or cached files). One test: chemicals must not
+  contain any UMLS IDs that the protein compendium claimed (semantic type tree
+  A1.4.1.2.1.7, Amino Acid/Peptide/Protein).
 
 ### Compendia
 
@@ -172,33 +174,31 @@ asserts the output file is non-empty:
 
 ### New `pipeline` tests
 
-Pipeline tests follow a two-fixture layered pattern defined in `tests/pipeline/conftest.py`.
-Each datasource gets one download fixture (which calls `_download_or_skip`) and each
-compendium gets one processing fixture that depends on the download fixture. Pytest
-propagates skips automatically — no plugins needed.
+The vocabulary-partitioning framework in `tests/pipeline/conftest.py` makes adding
+new multi-compendium vocabularies straightforward. Each vocabulary needs:
 
-To add a new datasource (e.g. ChEBI):
+1. A **download/connectivity fixture** in `conftest.py` — either a file download using
+   `_download_or_skip`, a credential-checked download (like UMLS), or a network health
+   check (like `ubergraph_connection` for NCIT/GO).
 
-1. Add a download fixture in `tests/pipeline/conftest.py`:
+2. A **processing fixture** in `conftest.py` that calls all `write_X_ids()` functions for
+   that vocabulary and returns a `{compendium_name: output_path}` dict.
 
-   ```python
-   @pytest.fixture(scope="session")
-   def chebi_sdf():
-       return _download_or_skip(
-           "ChEBI SDF",
-           pull_chebi,
-           make_local_name("ChEBI_complete.sdf", subpath="CHEBI"),
-       )
-   ```
+3. **One line** in `VOCABULARY_REGISTRY`: `"MYVOCAB": "my_vocab_pipeline_outputs"`.
 
-2. Add a processing fixture that depends on `chebi_sdf`.
-3. Create `tests/pipeline/test_chebi_pipeline.py` whose tests depend on the processing fixture.
+No new test file is needed for the standard non-empty and mutual-exclusivity checks —
+`test_vocabulary_partitioning.py` picks them up automatically. Add a
+`test_X_pipeline.py` only for vocabulary-specific targeted assertions.
 
-Example tests to add next:
+Vocabularies not yet covered (candidates):
 
-- **`test_pipeline_chemical.py`** — Runs `chemical_umls_ids` rule, checks output file exists and
-  is non-empty
-- **`test_pipeline_gene.py`** — Runs the gene sub-pipeline, checks `NCBIGene.txt` compendium
+- **ENSEMBL** — appears in protein (`write_ensembl_protein_ids`) and gene
+  (`write_ensembl_gene_ids`). Deferred because the download uses BioMart
+  (`pull_ensembl(ensembl_dir, complete_file, ...)`) which is more complex to invoke
+  outside Snakemake.
+- **NCBI Gene / HGNC / other single-source** — vocabularies that appear in only one
+  compendium don't need mutual-exclusivity tests, but could still get non-empty checks
+  in a per-compendium ETL test (see "New `network + slow` ETL tests" above).
 
 ### Deduplication / cleanup
 
@@ -210,8 +210,8 @@ Example tests to add next:
 
 ## Out of Scope / Pipeline-only
 
-The MeSH pipeline tests that previously appeared here as stubs have been implemented in
-`tests/pipeline/test_mesh_pipeline.py` (see the "Pipeline" subsection of "Test Files" above).
+The pipeline tests live in `tests/pipeline/`. See the "Pipeline" subsection of "Test Files"
+and "New pipeline tests" in Future Plans for the current coverage and how to extend it.
 
 Run them with:
 
