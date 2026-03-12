@@ -27,6 +27,8 @@ Tests are tagged with marks to control which subset runs in a given context:
 - `pytest` alone: runs `unit` and `slow` tests; skips `network` and `pipeline`
 - `pytest --network`: also runs `network` tests
 - `pytest --pipeline`: also runs `pipeline` tests (prerequisite data is downloaded automatically)
+- `pytest --pipeline --regenerate`: re-runs `write_X_ids()` even if intermediate files already
+  exist (useful after changing compendium filtering logic; see **Caching** below)
 - `pytest --all`: runs everything (equivalent to `--network --pipeline`)
 
 ### Convenience commands
@@ -73,6 +75,32 @@ PYTHONPATH=. uv run pytest -n 4 -m unit                  # 4 workers, unit tests
   `Mesh.get_scr_terms_mapped_to_trees()` using an inline pyoxigraph store.
 
 ### Pipeline
+
+#### Caching of intermediate files
+
+Processing fixtures write intermediate ID files to the exact paths Snakemake uses:
+
+```
+babel_outputs/intermediate/{semantic_type}/ids/{vocab}
+```
+
+For example, `anatomy.write_umls_ids()` writes to
+`babel_outputs/intermediate/anatomy/ids/UMLS`.  By default, if that file already
+exists it is reused — `write_umls_ids()` is not called again.  This means:
+
+- **Second and later runs are fast** — only the test assertions execute.
+- **A prior full Snakemake pipeline run can be reused directly** — the test fixtures
+  will pick up any files Snakemake already produced.
+- **To force re-processing**, pass `--regenerate`:
+  ```bash
+  PYTHONPATH=. uv run pytest tests/pipeline/ --pipeline --regenerate --no-cov -v
+  ```
+- **To selectively regenerate one vocabulary**, delete its files manually then run
+  without `--regenerate`:
+  ```bash
+  rm babel_outputs/intermediate/*/ids/UMLS
+  PYTHONPATH=. uv run pytest tests/pipeline/ --pipeline --no-cov -v -k UMLS
+  ```
 
 - **`pipeline/test_vocabulary_partitioning.py`** (`pipeline`) — Generic mutual-exclusivity
   tests parametrized over all registered vocabularies. For each vocabulary, verifies that

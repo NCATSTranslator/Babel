@@ -33,13 +33,23 @@ def pytest_addoption(parser):
         "--pipeline",
         action="store_true",
         default=False,
-        help="Run tests that invoke Snakemake rules (requires babel_downloads/)",
+        help="Run pipeline tests; downloads prerequisite data automatically if absent",
     )
     parser.addoption(
         "--all",
         action="store_true",
         default=False,
         help="Run all tests (equivalent to --network --pipeline)",
+    )
+    parser.addoption(
+        "--regenerate",
+        action="store_true",
+        default=False,
+        help=(
+            "Force pipeline processing fixtures to re-run write_X_ids() even when "
+            "their output files already exist in the intermediate directory. "
+            "Without this flag, existing files are treated as up-to-date and reused."
+        ),
     )
 
 

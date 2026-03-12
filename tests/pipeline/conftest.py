@@ -3,6 +3,12 @@
 Pipeline tests download their own prerequisite files (or check network connectivity).
 If a prerequisite is unavailable, all dependent tests are skipped automatically.
 
+Processing fixtures write intermediate ID files to the same stable paths that
+Snakemake uses: {intermediate_directory}/{semantic_type}/ids/{vocab}
+(e.g. babel_outputs/intermediate/anatomy/ids/UMLS).  By default, if a file
+already exists it is reused without re-running write_X_ids().  Pass --regenerate
+to force re-processing even when files are present.
+
 All tests in this package are marked `pipeline` and are skipped by default.
 Run with:  PYTHONPATH=. uv run pytest tests/pipeline/ --pipeline --no-cov -v
 
@@ -23,7 +29,7 @@ from src.createcompendia import anatomy, chemicals, diseasephenotype, protein, t
 from src.datahandlers.mesh import Mesh, pull_mesh
 
 # ---------------------------------------------------------------------------
-# Shared helper (not a fixture — importable by test files)
+# Shared helpers (not fixtures — importable by test files)
 # ---------------------------------------------------------------------------
 
 
@@ -36,6 +42,38 @@ def _read_ids(path: str) -> set[str]:
             if line:
                 ids.add(line.split("\t")[0])
     return ids
+
+
+# Fixture compendium keys whose Snakemake semantic-type directory differs from the key name.
+_COMPENDIUM_TO_SNAKEMAKE_DIR = {
+    "diseasephenotype": "disease",
+    "processactivity":  "process",
+}
+
+
+def _intermediate_id_path(compendium: str, vocab: str) -> str:
+    """Stable output path matching the Snakemake convention:
+    {intermediate_directory}/{semantic_type}/ids/{vocab}
+
+    Uses the same paths as the Snakemake pipeline so that a prior full pipeline
+    run can be reused directly without re-running write_X_ids().
+    """
+    from src.util import get_config
+    cfg = get_config()
+    snakemake_dir = _COMPENDIUM_TO_SNAKEMAKE_DIR.get(compendium, compendium)
+    return os.path.join(cfg["intermediate_directory"], snakemake_dir, "ids", vocab)
+
+
+def _maybe_run(outfile: str, fn, regenerate: bool) -> str:
+    """Run fn() to (re)generate outfile unless it exists and regenerate is False.
+
+    fn is a zero-argument callable (typically a lambda) that writes to outfile.
+    Creates parent directories as needed.  Always returns outfile.
+    """
+    if not os.path.exists(outfile) or regenerate:
+        os.makedirs(os.path.dirname(outfile), exist_ok=True)
+        fn()
+    return outfile
 
 
 # ---------------------------------------------------------------------------
@@ -54,6 +92,21 @@ def _download_or_skip(label: str, pull_fn, expected_path: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# --regenerate fixture
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def regenerate(request):
+    """True when --regenerate was passed on the command line.
+
+    Processing fixtures check this to decide whether to re-run write_X_ids()
+    even when their output file already exists at the stable intermediate path.
+    """
+    return request.config.getoption("--regenerate")
+
+
+# ---------------------------------------------------------------------------
 # MESH download + processing fixtures
 # ---------------------------------------------------------------------------
 
@@ -69,18 +122,20 @@ def mesh_nt():
 
 
 @pytest.fixture(scope="session")
-def mesh_pipeline_outputs(mesh_nt, tmp_path_factory):
-    """Run write_mesh_ids for all five compendia; skip if mesh_nt unavailable."""
-    outdir = tmp_path_factory.mktemp("mesh_ids")
+def mesh_pipeline_outputs(mesh_nt, regenerate):
+    """Run write_mesh_ids for all five compendia; skip if mesh_nt unavailable.
 
-    def out(name):
-        return str(outdir / f"{name}_MESH")
+    Output files are written to babel_outputs/intermediate/{type}/ids/MESH and
+    reused on subsequent runs unless --regenerate is passed.
+    """
+    def p(compendium):
+        return _intermediate_id_path(compendium, "MESH")
 
-    chemicals.write_mesh_ids(out("chemicals"))
-    protein.write_mesh_ids(out("protein"))
-    anatomy.write_mesh_ids(out("anatomy"))
-    diseasephenotype.write_mesh_ids(out("diseasephenotype"))
-    taxon.write_mesh_ids(out("taxon"))
+    _maybe_run(p("chemicals"),        lambda: chemicals.write_mesh_ids(p("chemicals")),              regenerate)
+    _maybe_run(p("protein"),          lambda: protein.write_mesh_ids(p("protein")),                  regenerate)
+    _maybe_run(p("anatomy"),          lambda: anatomy.write_mesh_ids(p("anatomy")),                  regenerate)
+    _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_mesh_ids(p("diseasephenotype")), regenerate)
+    _maybe_run(p("taxon"),            lambda: taxon.write_mesh_ids(p("taxon")),                      regenerate)
 
     m = Mesh()
     excluded_tree_terms = set()
@@ -88,11 +143,11 @@ def mesh_pipeline_outputs(mesh_nt, tmp_path_factory):
         excluded_tree_terms.update(m.get_terms_in_tree(tree))
 
     return {
-        "chemicals":        out("chemicals"),
-        "protein":          out("protein"),
-        "anatomy":          out("anatomy"),
-        "diseasephenotype": out("diseasephenotype"),
-        "taxon":            out("taxon"),
+        "chemicals":           p("chemicals"),
+        "protein":             p("protein"),
+        "anatomy":             p("anatomy"),
+        "diseasephenotype":    p("diseasephenotype"),
+        "taxon":               p("taxon"),
         "excluded_tree_terms": excluded_tree_terms,
     }
 
@@ -128,8 +183,12 @@ def umls_rrf_files():
 
 
 @pytest.fixture(scope="session")
-def umls_pipeline_outputs(umls_rrf_files, tmp_path_factory):
-    """Run write_umls_ids for all seven compendia; returns dict of output paths."""
+def umls_pipeline_outputs(umls_rrf_files, regenerate):
+    """Run write_umls_ids for all seven compendia; returns dict of output paths.
+
+    Output files are written to babel_outputs/intermediate/{type}/ids/UMLS and
+    reused on subsequent runs unless --regenerate is passed.
+    """
     from src.createcompendia import gene, processactivitypathway
     from src.util import get_config
 
@@ -137,28 +196,19 @@ def umls_pipeline_outputs(umls_rrf_files, tmp_path_factory):
     mrsty = umls_rrf_files["mrsty"]
     cfg = get_config()
     badumlsfile = os.path.join(cfg["input_directory"], "badumls")
-    outdir = tmp_path_factory.mktemp("umls_ids")
 
-    def out(name):
-        return str(outdir / f"{name}_UMLS")
+    def p(compendium):
+        return _intermediate_id_path(compendium, "UMLS")
 
-    chemicals.write_umls_ids(mrsty, out("chemicals"))
-    protein.write_umls_ids(mrsty, out("protein"))
-    anatomy.write_umls_ids(mrsty, out("anatomy"))
-    diseasephenotype.write_umls_ids(mrsty, out("diseasephenotype"), badumlsfile)
-    processactivitypathway.write_umls_ids(mrsty, out("processactivity"))
-    taxon.write_umls_ids(mrsty, out("taxon"))
-    gene.write_umls_ids(mrconso, mrsty, out("gene"))
+    _maybe_run(p("chemicals"),       lambda: chemicals.write_umls_ids(mrsty, p("chemicals")),                          regenerate)
+    _maybe_run(p("protein"),         lambda: protein.write_umls_ids(mrsty, p("protein")),                              regenerate)
+    _maybe_run(p("anatomy"),         lambda: anatomy.write_umls_ids(mrsty, p("anatomy")),                              regenerate)
+    _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_umls_ids(mrsty, p("diseasephenotype"), badumlsfile), regenerate)
+    _maybe_run(p("processactivity"), lambda: processactivitypathway.write_umls_ids(mrsty, p("processactivity")),       regenerate)
+    _maybe_run(p("taxon"),           lambda: taxon.write_umls_ids(mrsty, p("taxon")),                                  regenerate)
+    _maybe_run(p("gene"),            lambda: gene.write_umls_ids(mrconso, mrsty, p("gene")),                           regenerate)
 
-    return {
-        "chemicals":        out("chemicals"),
-        "protein":          out("protein"),
-        "anatomy":          out("anatomy"),
-        "diseasephenotype": out("diseasephenotype"),
-        "processactivity":  out("processactivity"),
-        "taxon":            out("taxon"),
-        "gene":             out("gene"),
-    }
+    return {name: p(name) for name in ["chemicals", "protein", "anatomy", "diseasephenotype", "processactivity", "taxon", "gene"]}
 
 
 # ---------------------------------------------------------------------------
@@ -178,22 +228,22 @@ def omim_mim2gene():
 
 
 @pytest.fixture(scope="session")
-def omim_pipeline_outputs(omim_mim2gene, tmp_path_factory):
-    """Run write_omim_ids for disease/phenotype and gene; skip if mim2gene.txt unavailable."""
+def omim_pipeline_outputs(omim_mim2gene, regenerate):
+    """Run write_omim_ids for disease/phenotype and gene; skip if mim2gene.txt unavailable.
+
+    Output files are written to babel_outputs/intermediate/{type}/ids/OMIM and
+    reused on subsequent runs unless --regenerate is passed.
+    """
     from src.createcompendia import gene
     infile = omim_mim2gene
-    outdir = tmp_path_factory.mktemp("omim_ids")
 
-    def out(name):
-        return str(outdir / f"{name}_OMIM")
+    def p(compendium):
+        return _intermediate_id_path(compendium, "OMIM")
 
-    diseasephenotype.write_omim_ids(infile, out("diseasephenotype"))
-    gene.write_omim_ids(infile, out("gene"))
+    _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_omim_ids(infile, p("diseasephenotype")), regenerate)
+    _maybe_run(p("gene"),             lambda: gene.write_omim_ids(infile, p("gene")),                         regenerate)
 
-    return {
-        "diseasephenotype": out("diseasephenotype"),
-        "gene":             out("gene"),
-    }
+    return {"diseasephenotype": p("diseasephenotype"), "gene": p("gene")}
 
 
 # ---------------------------------------------------------------------------
@@ -226,20 +276,19 @@ def ubergraph_connection():
 
 
 @pytest.fixture(scope="session")
-def ncit_pipeline_outputs(ubergraph_connection, tmp_path_factory):
-    """Run write_ncit_ids for anatomy and disease/phenotype via UberGraph."""
-    outdir = tmp_path_factory.mktemp("ncit_ids")
+def ncit_pipeline_outputs(ubergraph_connection, regenerate):
+    """Run write_ncit_ids for anatomy and disease/phenotype via UberGraph.
 
-    def out(name):
-        return str(outdir / f"{name}_NCIT")
+    Output files are written to babel_outputs/intermediate/{type}/ids/NCIT and
+    reused on subsequent runs unless --regenerate is passed.
+    """
+    def p(compendium):
+        return _intermediate_id_path(compendium, "NCIT")
 
-    anatomy.write_ncit_ids(out("anatomy"))
-    diseasephenotype.write_ncit_ids(out("diseasephenotype"))
+    _maybe_run(p("anatomy"),          lambda: anatomy.write_ncit_ids(p("anatomy")),              regenerate)
+    _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_ncit_ids(p("diseasephenotype")), regenerate)
 
-    return {
-        "anatomy":          out("anatomy"),
-        "diseasephenotype": out("diseasephenotype"),
-    }
+    return {"anatomy": p("anatomy"), "diseasephenotype": p("diseasephenotype")}
 
 
 # ---------------------------------------------------------------------------
@@ -248,21 +297,21 @@ def ncit_pipeline_outputs(ubergraph_connection, tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
-def go_pipeline_outputs(ubergraph_connection, tmp_path_factory):
-    """Run write_go_ids for anatomy and process/activity/pathway via UberGraph."""
+def go_pipeline_outputs(ubergraph_connection, regenerate):
+    """Run write_go_ids for anatomy and process/activity/pathway via UberGraph.
+
+    Output files are written to babel_outputs/intermediate/{type}/ids/GO and
+    reused on subsequent runs unless --regenerate is passed.
+    """
     from src.createcompendia import processactivitypathway
-    outdir = tmp_path_factory.mktemp("go_ids")
 
-    def out(name):
-        return str(outdir / f"{name}_GO")
+    def p(compendium):
+        return _intermediate_id_path(compendium, "GO")
 
-    anatomy.write_go_ids(out("anatomy"))
-    processactivitypathway.write_go_ids(out("processactivity"))
+    _maybe_run(p("anatomy"),         lambda: anatomy.write_go_ids(p("anatomy")),                       regenerate)
+    _maybe_run(p("processactivity"), lambda: processactivitypathway.write_go_ids(p("processactivity")), regenerate)
 
-    return {
-        "anatomy":       out("anatomy"),
-        "processactivity": out("processactivity"),
-    }
+    return {"anatomy": p("anatomy"), "processactivity": p("processactivity")}
 
 
 # ---------------------------------------------------------------------------
