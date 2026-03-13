@@ -31,17 +31,25 @@ Tests are tagged with marks to control which subset runs in a given context:
   exist (useful after changing compendium filtering logic; see **Caching** below)
 - `pytest --all`: runs everything (equivalent to `--network --pipeline`)
 
+> **Note on pipeline tests and coverage:** Always pass `--no-cov` when running pipeline tests.
+> Because `pytest-cov` and `pytest-xdist` are both installed, `pytest-cov` sets up
+> `execnet` communication channels for distributed coverage collection even when `-n` is not
+> used. When long-running pipeline fixtures (pyoxigraph RocksDB stores) are torn down,
+> their background threads can interfere with the `execnet` teardown, producing a
+> `PluggyTeardownRaisedWarning: OSError: cannot send (already closed?)` in
+> `pytest_sessionfinish`. Passing `--no-cov` disables coverage collection and avoids this.
+
 ### Convenience commands
 
 ```bash
-PYTHONPATH=. uv run pytest -m unit                        # unit tests only (CI default)
-PYTHONPATH=. uv run pytest -m "unit or network" --network # unit + live-service checks
-PYTHONPATH=. uv run pytest -m "unit or slow"              # unit + slow offline tests
-PYTHONPATH=. uv run pytest --all                          # run every test
-PYTHONPATH=. uv run pytest -m pipeline --pipeline -x     # one Snakemake-triggering test at a time
-PYTHONPATH=. uv run pytest -m "not pipeline"              # everything except full pipeline runs
-PYTHONPATH=. uv run pytest -n auto --no-cov               # parallel (all CPUs), skip coverage
-PYTHONPATH=. uv run pytest -n 4 -m unit                  # 4 workers, unit tests only
+PYTHONPATH=. uv run pytest -m unit                             # unit tests only (CI default)
+PYTHONPATH=. uv run pytest -m "unit or network" --network      # unit + live-service checks
+PYTHONPATH=. uv run pytest -m "unit or slow"                   # unit + slow offline tests
+PYTHONPATH=. uv run pytest --all --no-cov                      # run every test (no coverage)
+PYTHONPATH=. uv run pytest -m pipeline --pipeline -x --no-cov # one pipeline test at a time
+PYTHONPATH=. uv run pytest -m "not pipeline"                   # everything except full pipeline runs
+PYTHONPATH=. uv run pytest -n auto --no-cov                    # parallel (all CPUs), skip coverage
+PYTHONPATH=. uv run pytest -n 4 -m unit                        # 4 workers, unit tests only
 ```
 
 ## Test Files
@@ -89,8 +97,10 @@ For example, `anatomy.write_umls_ids()` writes to
 exists it is reused — `write_umls_ids()` is not called again. This means:
 
 - **Second and later runs are fast** — only the test assertions execute.
+
 - **A prior full Snakemake pipeline run can be reused directly** — the test fixtures
   will pick up any files Snakemake already produced.
+
 - **To force re-processing**, pass `--regenerate`:
 
   ```bash
