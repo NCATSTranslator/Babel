@@ -59,6 +59,22 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "slow: correct but takes >30s even offline")
     config.addinivalue_line("markers", "pipeline: invokes Snakemake rules; requires babel_downloads/")
 
+    # Auto-disable coverage when xdist workers are requested.
+    # Combining pytest-cov with -n causes an OSError("cannot send (already closed?)")
+    # from execnet during pytest_sessionfinish.  Setting no_cov here is equivalent to
+    # passing --no-cov and takes effect before pytest-cov starts collecting data.
+    try:
+        n_workers = config.getoption("-n", default=None)
+    except (ValueError, AttributeError):
+        n_workers = None
+    if n_workers is not None and str(n_workers) not in ("0", "no"):
+        if hasattr(config.option, "no_cov") and not config.option.no_cov:
+            config.option.no_cov = True
+            print(  # noqa: T201
+                "\nNOTE: coverage disabled automatically because -n was given "
+                "(pytest-cov + pytest-xdist causes teardown errors; use --no-cov explicitly to suppress this message)."
+            )
+
 
 def pytest_collection_modifyitems(config, items):
     run_all = config.getoption("--all")
