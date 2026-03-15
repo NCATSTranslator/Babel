@@ -122,7 +122,7 @@ prerequisites you need to copy before you can run a particular target.
 uv run check-prerequisites --target anatomy
 ```
 
-#### 6. Per-type report targets in `reports.snakefile`
+#### 6. Per-type report targets in `src/snakefiles/reports.snakefile`
 
 Currently `all_reports` requires all compendia. Adding per-type report targets (e.g.,
 `anatomy_report`, `chemical_report`) that only require the files for that semantic type would let
