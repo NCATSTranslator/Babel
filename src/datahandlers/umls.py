@@ -204,15 +204,82 @@ def write_rxnorm_ids(category_map, bad_categories, infile, outfile, prefix=RXCUI
                 outf.write(f"{prefix}:{current_id}\t{DRUG}\n")
 
 
-# I've made this more complicated than it ought to be for 2 reasons:
-# One is to keep from having to pass through the umls file more than once, but that's a bad reason
-# The second is because I want to use the UMLS as a source for some terminologies (SNOMED) even if there's another
-#  way.  I'm going to modify this to do one thing at a time, and if it takes a little longer, then so be it.
 def build_sets(
-    mrconso, umls_input, umls_output, other_prefixes, bad_mappings=defaultdict(set), acceptable_identifiers={}, cui_prefix=UMLS, provenance_metadata_yaml=None
+        mrconso, umls_input, umls_output,
+        other_prefixes,
+        bad_mappings=None,
+        exclude_ids_from=None,
+        acceptable_identifiers={},
+        cui_prefix=UMLS,
+        provenance_metadata_yaml=None
 ):
-    """Given a list of umls identifiers we want to generate all the concordances
-    between UMLS and that other entity"""
+    """
+    Given a list of UMLS identifiers, this function generates all concordances between UMLS
+    and another specified entity.
+
+    The process involves parsing UMLS data from MRCONSO, applying filters based on source
+    types and term types (TTY), and outputting relationships between UMLS identifiers and
+    corresponding external IDs. Additionally, the function captures provenance information if
+    specified.
+
+    :param mrconso: Path to the MRCONSO file, which contains UMLS relationship data.
+    :param umls_input: Path to the input file listing the UMLS identifiers of interest.
+    :param umls_output: Path to the output file where concordance results will be written.
+    :param other_prefixes: Dictionary mapping source types (e.g., MESH, DRUGBANK) to their
+        respective prefixes for generating external identifiers.
+    :param bad_mappings: Dictionary mapping UMLS CUIs to sets of external identifiers that
+        are considered invalid. Defaults to an empty defaultdict.
+    :param exclude_ids_from: A list of files to exclude IDs from. Identifiers from this list of
+        files will be excluded whichever side of the relationship they appear on. Defaults to an empty list.
+    :param acceptable_identifiers: Dictionary where keys are prefixes and values are
+        sets of acceptable external identifiers for those prefixes. Defaults to an empty
+        dictionary.
+    :param cui_prefix: Prefix for UMLS concept unique identifiers (CUIs). Defaults to "UMLS".
+    :param provenance_metadata_yaml: Path to a YAML file where provenance metadata will be
+        stored. If None, provenance metadata is not written. Defaults to None.
+
+    :return: None
+    """
+
+    if bad_mappings is None:
+        bad_mappings = defaultdict(set)
+    if exclude_ids_from is None:
+        exclude_ids_from = []
+
+    # I've made this more complicated than it ought to be for 2 reasons:
+    # One is to keep from having to pass through the umls file more than once, but that's a bad reason
+    # The second is because I want to use the UMLS as a source for some terminologies (SNOMED) even if there's another
+    #  way.  I'm going to modify this to do one thing at a time, and if it takes a little longer, then so be it.
+    umls_ids = set()
+    with open(umls_input) as inf:
+        for line in inf:
+            u = line.strip().split("\t")[0].split(":")[1]
+            umls_ids.add(u)
+    lookfor = set(other_prefixes.keys())
+
+    # Load identifiers we need to exclude.
+    exclude_ids = set()
+    for exclude_file in exclude_ids_from:
+        exclude_ids_for_file = set()
+        with open(exclude_file) as inf:
+            line_no = 0
+            for line in inf:
+                line_no += 1
+                row = re.split(r"\s+", line.strip())
+                if len(row) == 0:
+                    # Identifier only.
+                    exclude_ids_for_file.add(row[0])
+                elif len(row) == 2:
+                    # Identifier and Biolink Type, which we can ignore.
+                    exclude_ids_for_file.add(row[0])
+                else:
+                    raise RuntimeError(f"Invalid line in exclude_ids_from file {exclude_file} line {line_no}: '{line}'")
+
+        logger.info(f"Loaded {len(exclude_ids_for_file)} identifiers from {exclude_file} to exclude from build_sets()")
+        exclude_ids.update(exclude_ids_for_file)
+
+    logger.info(f"Loaded {len(exclude_ids)} identifiers to exclude from build_sets() from exclude files: {exclude_ids_from}")
+
     # On UMLS / MESH: we have been getting all UMLS / MESH relationships.   This has led to some clear mistakes
     # and logical impossibilities such as cyclical subclasses.   On further review, we can sharpen these relationships
     # by choosing the best match UMLS for each MESH.  We will make use of the TTY column (column 12) in MRCONSO.
@@ -220,14 +287,9 @@ def build_sets(
     # will be the ones that we pull, as they correspond to the "main" name or heading of the mesh entry.
     # Because drugbank IDs are for active ingredients, we only want the UMLS IDs that map to a TTY of IN (ingredient)
     # Otherwise, you get the same DBID mapping to multiple UMLS IDs in a loose way.
-    umls_ids = set()
-    with open(umls_input) as inf:
-        for line in inf:
-            u = line.strip().split("\t")[0].split(":")[1]
-            umls_ids.add(u)
-    lookfor = set(other_prefixes.keys())
     acceptable_mesh_tty = set(["MH", "NM", "HT", "QAB"])
     acceptable_drugbank_tty = set(["IN", "PIN", "MIN"])
+
     pairs = set()
     # test_cui = 'C0026827'
     with open(mrconso) as inf, open(umls_output, "w") as concordfile:
@@ -265,7 +327,15 @@ def build_sets(
             if (pref in acceptable_identifiers) and (tup[1] not in acceptable_identifiers[pref]):
                 continue
             if tup not in pairs:
-                concordfile.write(f"{tup[0]}\teq\t{tup[1]}\n")
+                from_id = tup[0]
+                to_id = tup[1]
+                if from_id in exclude_ids:
+                    logger.debug(f"Skipping {from_id} -> {to_id} because {from_id} is in exclude_ids")
+                    continue
+                if to_id in exclude_ids:
+                    logger.debug(f"Skipping {from_id} -> {to_id} because {to_id} is in exclude_ids")
+                    continue
+                concordfile.write(f"{from_id}\teq\t{to_id}\n")
                 pairs.add(tup)
 
     # Write provenance for this build_sets() call.
@@ -274,7 +344,7 @@ def build_sets(
             provenance_metadata_yaml,
             name="umls.build_sets()",
             sources=[{"type": "UMLS", "name": "MRCONSO"}],
-            description=f"umls.build_sets() using UMLS MRCONSO with prefixes: {other_prefixes} with cui_prefix set to {cui_prefix}",
+            description=f"umls.build_sets() using UMLS MRCONSO with prefixes: {other_prefixes} with cui_prefix set to {cui_prefix}, while excluding identifiers from {exclude_ids_from}.",
             concord_filename=umls_output,
         )
 

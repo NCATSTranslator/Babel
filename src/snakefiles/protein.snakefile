@@ -3,6 +3,7 @@ import src.assess_compendia as assessments
 
 # import src.filter_compendia as filter
 import src.snakefiles.util as util
+from src.prefixes import MESH, DRUGBANK
 
 ### Gene / Protein
 
@@ -96,11 +97,21 @@ rule get_protein_umls_relationships:
     input:
         mrconso=config["download_directory"] + "/UMLS/MRCONSO.RRF",
         infile=config["intermediate_directory"] + "/protein/ids/UMLS",
+        exclude_ids_from=expand("{intermediate}/chemicals/ids/{id_files}", intermediate=config["intermediate_directory"], id_files=[
+            'UMLS',
+            'MESH',
+            'DRUGBANK',
+        ]),
     output:
         outfile=config["intermediate_directory"] + "/protein/concords/UMLS",
         metadata_yaml=config["intermediate_directory"] + "/protein/concords/metadata-UMLS.yaml",
     run:
-        protein.build_umls_relationships(input.mrconso, input.infile, output.outfile, output.metadata_yaml)
+        # Since we're incorporating UMLS <-> MSH and DRUGBANK mappings, we should also make sure we exclude
+        # chemical/ids/UMLS, MESH and DRUGBANK so that we don't add the same identifier to chemicals and to proteins.
+        protein.build_umls_relationships(input.mrconso, input.infile, output.outfile, other_prefixes={
+            "MSH": MESH,
+            "DRUGBANK": DRUGBANK,
+        }, exclude_ids_from=input.exclude_ids_from, metadata_yaml=output.metadata_yaml)
 
 
 rule protein_compendia:
