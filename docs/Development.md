@@ -63,19 +63,22 @@ changes. All are worth considering.
 
 ### Small, practical improvements
 
-#### 1. Per-compendium assessment script (`src/scripts/assess_compendium.py`)
+#### 1. Proposed per-compendium assessment script (`src/scripts/assess_compendium.py`, not yet implemented)
 
-A standalone CLI script that takes a compendium JSONL file as input and prints a human-readable
+A standalone CLI script that would take a compendium JSONL file as input and print a human-readable
 summary: number of cliques, clique size distribution, identifier prefix breakdown, large-clique
-examples, and any structural validation errors. This mirrors what the pipeline's `assess` rules do
-today, but can be run against _any_ compendium file, including one built from a partial dataset,
-without needing the full pipeline to have run.
+examples, and any structural validation errors. This would mirror what the pipeline's `assess` rules do
+today, but could be run against _any_ compendium file, including one built from a partial dataset,
+without needing the full pipeline to have run. This script and its CLI entrypoint are **not** implemented yet.
+
+For example, if such a CLI were added, you might run:
 
 ```bash
+# Hypothetical example; `assess-compendium` does not exist in this repository today.
 uv run assess-compendium babel_outputs/compendia/AnatomicalEntity.txt
 ```
 
-#### 2. Compendium diff script (`src/scripts/diff_compendia.py`)
+#### 2. Proposed compendium diff script (`src/scripts/diff_compendia.py`, not yet implemented)
 
 A CLI script that compares two compendium files and reports:
 
