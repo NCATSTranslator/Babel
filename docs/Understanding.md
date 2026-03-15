@@ -49,7 +49,7 @@ conflated.
 
 For most Biolink types, the preferred label for a clique is the label of the
 preferred identifier. There is a
-[`demote_labels_longer_than`](https://github.com/NCATSTranslator/Babel/blob/master/config.yaml#L437)
+[`demote_labels_longer_than`](https://github.com/NCATSTranslator/Babel/blob/738f5e917e910847fac76ab13e847b15cf68b759/config.yaml#L420)
 configuration parameter that -- if set -- will cause labels that are longer than
 the specified number of characters to be ignored unless no labels shorter than
 that length are present. This is to avoid overly long labels when a more concise
