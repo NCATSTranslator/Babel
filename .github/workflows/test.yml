@@ -8,17 +8,25 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
-      - run: uv sync
+        with:
+          python-version: "3.11"
+      - run: uv sync --frozen
       - run: PYTHONPATH=. uv run pytest -m unit --no-cov -q
 
   network-tests:
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
-      - run: uv sync
+        with:
+          python-version: "3.11"
+      - run: uv sync --frozen
       - run: PYTHONPATH=. uv run pytest --network -m "unit or network" --no-cov -q
