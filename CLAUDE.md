@@ -76,9 +76,9 @@ semantic type plus data collection, reports, exports, and DuckDB.
 - **`snakefiles/`** — Snakemake rule definitions wiring data handlers to compendium creators.
 - **`node.py`** — Core classes: `NodeFactory`, `SynonymFactory`, `DescriptionFactory`,
   `TaxonFactory`, `InformationContentFactory`, `TSVSQLiteLoader`.
-- **`babel_utils.py`** — Download/FTP utilities, state management.
+- **`babel_utils.py`** — Download/FTP utilities, `glom()` (clique merging), `write_compendium()`
+  (compendium builder), state management.
 - **`util.py`** — Logging, config loading, Biolink Model Toolkit (bmt) access.
-- **`make_cliques.py`** — Union-find clique merging logic.
 - **`exporters/`** — Output format handlers (KGX, Parquet, JSONL).
 - **`reports/`**, **`synonyms/`**, **`metadata/`** — Report generation, synonym files, provenance.
 
@@ -90,11 +90,12 @@ semantic type plus data collection, reports, exports, and DuckDB.
 - **Biolink Model** integration via `bmt` — types, valid prefixes, and naming conventions all follow
   the Biolink Model.
 - **Concord files** are the core data structure: tab-separated `CURIE1 \t Relation \t CURIE2`
-  triples expressing cross-references between vocabularies.
+  triples expressing cross-references between vocabularies. The `glom()` function in
+  `babel_utils.py` merges them into equivalence cliques.
 
 ### Conflation
 
-Gene+Protein and Drug+Chemical each have dedicated conflation modules (`geneprotein.py`,
+GeneProtein and DrugChemical conflation each have dedicated conflation modules (`geneprotein.py`,
 `drugchemical.py`) that merge their respective cliques. See `docs/Conflation.md`.
 
 ### Directories at Runtime
@@ -102,3 +103,12 @@ Gene+Protein and Drug+Chemical each have dedicated conflation modules (`geneprot
 - `babel_downloads/` — cached source data
 - `babel_outputs/intermediate/` — intermediate build artifacts
 - `babel_outputs/` — final compendia, synonyms, reports, exports
+
+## Documentation
+
+When making a significant change, check if it affects any of the documentation
+files (`docs/*.md`, `*.md`) and update them if necessary. Suggest adding
+new documentation files if necessary.
+
+When writing documentation files, avoid using horizontal pipes unless necessary --
+section headings are sufficient for dividing up documentation.
