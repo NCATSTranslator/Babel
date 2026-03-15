@@ -8,8 +8,6 @@ For instructions on how to run and configure the pipeline, see
 [RunningBabel.md](./RunningBabel.md). For the development workflow and known challenges, see
 [Development.md](./Development.md).
 
----
-
 ## Pipeline overview
 
 Babel's pipeline has two phases, orchestrated by [Snakemake](https://snakemake.github.io/):
@@ -23,35 +21,44 @@ Babel's pipeline has two phases, orchestrated by [Snakemake](https://snakemake.g
 
 2. **Compendium building** — for each semantic type (e.g. chemicals, genes, anatomy), a compendium
    creator module reads the relevant label and synonym files, extracts the identifiers for that
-   type into `babel_outputs/intermediate/[TYPE]/ids/`, produces pairwise cross-reference files
+   type into `babel_outputs/intermediate/[PIPELINE]/ids/`, produces pairwise cross-reference files
    called **concords**, merges the concords into equivalence cliques using a union-find algorithm,
-   and writes enriched JSONL compendia to `babel_outputs/`.
+   and writes enriched JSONL compendia to `babel_outputs/compendia/[BIOLINK TYPE].txt`.
 
 The top-level `Snakefile` coordinates the whole pipeline by including ~20 specialized snakefiles
 from `src/snakefiles/` — one per semantic type, plus files for data collection, reports, exports,
 and DuckDB integration.
 
----
+## Configuration
+
+The main configuration file is [`config.yaml`](../config.yaml) at the repository root. It contains:
+
+- Directory paths for inputs and outputs
+- Version strings for the current build
+- Per-semantic-type lists of valid CURIE prefixes and their priority ordering
+- Chemical-specific settings such as `preferred_name_boost_prefixes` and `demote_labels_longer_than`
+
+The `UMLS_API_KEY` environment variable is required for downloading UMLS and RxNorm data. You
+can obtain a UMLS API key by setting up a [UMLS Terminology Services](https://uts.nlm.nih.gov/uts/)
+account and looking up your API key in [your profile](https://uts.nlm.nih.gov/uts/profile).
 
 ## Source code layout
 
 All Python and Snakemake source code lives under `src/`:
 
-| Directory / file | Purpose |
-|------------------|---------|
-| `src/datahandlers/` | ~37 modules, one per external data source. Each module downloads, parses, and normalizes data from a specific source (ChEBI, UniProt, NCBI Gene, DrugBank, MESH, etc.). |
+| Directory / file       | Purpose                                                                                                                                                                           |
+|------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `src/datahandlers/`    | ~37 modules, one per external data source. Each module downloads, parses, and normalizes data from a specific source (ChEBI, UniProt, NCBI Gene, DrugBank, MeSH, etc.).           |
 | `src/createcompendia/` | ~15 modules, one per semantic type (chemicals, genes, proteins, anatomy, disease/phenotype, etc.). These consume data handler outputs, build concords, and write final compendia. |
-| `src/snakefiles/` | Snakemake rule files that wire data handlers to compendium creators and define the full dependency graph. |
-| `src/node.py` | Core factory classes: `NodeFactory`, `SynonymFactory`, `DescriptionFactory`, `TaxonFactory`, `InformationContentFactory`, `TSVSQLiteLoader`. |
-| `src/make_cliques.py` | Union-find clique merging logic — takes concord files and produces equivalence cliques. |
-| `src/babel_utils.py` | Download and FTP utilities, state management helpers. |
-| `src/util.py` | Logging setup, config loading, Biolink Model Toolkit (`bmt`) access. |
-| `src/exporters/` | Output format handlers for KGX, Apache Parquet, and JSONL. |
-| `src/reports/` | Report generation code. |
-| `src/synonyms/` | Synonym file generation. |
-| `src/metadata/` | Provenance and metadata handling. |
-
----
+| `src/snakefiles/`      | Snakemake rule files that wire data handlers to compendium creators and define the full dependency graph.                                                                         |
+| `src/node.py`          | Core factory classes: `NodeFactory`, `SynonymFactory`, `DescriptionFactory`, `TaxonFactory`, `InformationContentFactory`, `TSVSQLiteLoader`.                                      |
+| `src/make_cliques.py`  | Union-find clique merging logic — takes concord files and produces equivalence cliques.                                                                                           |
+| `src/babel_utils.py`   | Download and FTP utilities, state management helpers.                                                                                                                             |
+| `src/util.py`          | Logging setup, config loading, [Biolink Model Toolkit](https://github.com/biolink/biolink-model-toolkit) access.                                                                  |
+| `src/exporters/`       | Output format handlers for KGX, Apache Parquet, and JSONL.                                                                                                                        |
+| `src/reports/`         | Report generation code.                                                                                                                                                           |
+| `src/synonyms/`        | Synonym file generation.                                                                                                                                                          |
+| `src/metadata/`        | Provenance and metadata handling.                                                                                                                                                 |
 
 ## Key data structures
 
@@ -66,7 +73,7 @@ CURIE1 <TAB> Relation <TAB> CURIE2
 
 Each triple expresses that `CURIE1` and `CURIE2` are related by `Relation` (typically
 `skos:exactMatch` or an equivalent). The compendium building phase reads all concord files for a
-semantic type and feeds them into the union-find algorithm (`make_cliques.py`) to produce
+semantic type and feeds them into the union-find algorithm ([`make_cliques.py`](../src/make_cliques.py)) to produce
 equivalence cliques.
 
 ### Compendium JSONL
@@ -96,51 +103,37 @@ results. This is important because many source files are gigabytes in size.
 
 ### TSVSQLiteLoader
 
-`TSVSQLiteLoader` (in `src/node.py`) loads tab-separated files into in-memory SQLite databases
+`TSVSQLiteLoader` (in [`src/node.py`](../src/node.py)) loads tab-separated files into in-memory SQLite databases
 that spill to disk when memory pressure is high. This avoids the need to hold entire large TSV
 files in RAM, which would be infeasible given Babel's data volumes.
 
 ### Union-find clique merging
 
-`src/make_cliques.py` implements a union-find (disjoint-set) data structure to merge concord
+[`src/make_cliques.py`](../src/make_cliques.py) implements a union-find (disjoint-set) data structure to merge concord
 triples into equivalence cliques. Each CURIE starts as its own set; each `CURIE1 exactMatch CURIE2`
 triple unions the two sets. At the end, each set is one clique.
 
 ### Biolink Model integration
 
 All semantic types, valid CURIE prefixes, and naming conventions follow the
-[Biolink Model](https://github.com/biolink/biolink-model). The `bmt` library (Biolink Model
-Toolkit) is accessed via `src/util.py` and is used throughout the codebase to validate types,
+[Biolink Model](https://biolink.github.io/biolink-model/). The [Biolink Model Toolkit](https://github.com/biolink/biolink-model-toolkit)
+is accessed via [`src/util.py`](../src/util.py) and is used throughout the codebase to validate types,
 look up preferred prefix orderings, and check whether a given prefix is valid for a type.
 
 ### Conflation modules
 
-Gene+Protein and Drug+Chemical each have dedicated conflation modules
-(`src/createcompendia/geneprotein.py` and `src/createcompendia/drugchemical.py`) that merge their
+GeneProtein and DrugChemical conflations each have dedicated conflation modules
+([`src/createcompendia/geneprotein.py`](../src/createcompendia/geneprotein.py) and
+[`src/createcompendia/drugchemical.py`](../src/createcompendia/drugchemical.py)) that merge their
 respective cliques after the initial compendium build. See [Conflation.md](./Conflation.md) for
 details on what conflation means and how it works.
 
----
-
-## Runtime directories
+## Output directories
 
 When the pipeline runs, it creates and populates these directories:
 
-| Directory | Contents |
-|-----------|----------|
-| `babel_downloads/` | Cached source data, organized by prefix (e.g. `babel_downloads/CHEBI/`). Can be reused across runs. |
-| `babel_outputs/intermediate/` | Intermediate build artifacts: ids files, concord files, per-type label and synonym aggregates. |
-| `babel_outputs/` | Final outputs: compendia (JSONL), synonym files, reports, and exports (Parquet, KGX). |
-
----
-
-## Configuration
-
-The main configuration file is `config.yaml` at the repository root. It contains:
-
-- Directory paths for inputs and outputs
-- Version strings for the current build
-- Per-semantic-type lists of valid CURIE prefixes and their priority ordering
-- Chemical-specific settings such as `preferred_name_boost_prefixes` and `demote_labels_longer_than`
-
-The `UMLS_API_KEY` environment variable is required for downloading UMLS and RxNorm data.
+| Directory                     | Contents                                                                                            |
+|-------------------------------|-----------------------------------------------------------------------------------------------------|
+| `babel_downloads/`            | Cached source data, organized by prefix (e.g. `babel_downloads/CHEBI/`). Can be reused across runs. |
+| `babel_outputs/intermediate/` | Intermediate build artifacts: ids files, concord files, per-type label and synonym aggregates.      |
+| `babel_outputs/`              | Final outputs: compendia (JSONL), synonym files, reports, and exports (Parquet, KGX).               |
