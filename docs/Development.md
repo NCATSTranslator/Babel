@@ -67,9 +67,10 @@ changes. All are worth considering.
 
 A standalone CLI script that would take a compendium JSONL file as input and print a human-readable
 summary: number of cliques, clique size distribution, identifier prefix breakdown, large-clique
-examples, and any structural validation errors. This would mirror what the pipeline's `assess` rules do
-today, but could be run against _any_ compendium file, including one built from a partial dataset,
-without needing the full pipeline to have run. This script and its CLI entrypoint are **not** implemented yet.
+examples, and any structural validation errors. This would mirror what the pipeline's `assess` rules
+do today, but could be run against _any_ compendium file, including one built from a partial
+dataset, without needing the full pipeline to have run. This script and its CLI entrypoint are
+**not** implemented yet.
 
 For example, if such a CLI were added, you might run:
 
