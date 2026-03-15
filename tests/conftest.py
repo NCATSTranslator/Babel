@@ -43,13 +43,6 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_configure(config):
-    config.addinivalue_line("markers", "unit: fast offline tests with no external dependencies")
-    config.addinivalue_line("markers", "network: requires live internet access")
-    config.addinivalue_line("markers", "slow: correct but takes >30s even offline")
-    config.addinivalue_line("markers", "pipeline: invokes Snakemake rules; requires babel_downloads/")
-
-
 def pytest_collection_modifyitems(config, items):
     run_all = config.getoption("--all")
     skip_network = pytest.mark.skip(reason="pass --network (or --all) to run")

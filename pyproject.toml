@@ -86,6 +86,7 @@ include = '\.snakefile$|^Snakefile'
 testpaths = ["tests"]
 addopts = ""
 timeout = 30          # global fallback (seconds); overridden per mark in conftest.py
+# Canonical marker definitions — conftest.py intentionally does NOT re-register these.
 markers = [
     "unit: fast offline tests with no external dependencies",
     "network: requires live internet access (use --network to run)",
