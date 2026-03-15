@@ -103,3 +103,12 @@ Gene+Protein and Drug+Chemical each have dedicated conflation modules (`geneprot
 - `babel_downloads/` — cached source data
 - `babel_outputs/intermediate/` — intermediate build artifacts
 - `babel_outputs/` — final compendia, synonyms, reports, exports
+
+## Documentation
+
+When making a significant change, check if it affects any of the documentation
+files (`docs/*.md`, `*.md`) and update them if necessary. Suggest adding
+new documentation files if necessary. 
+
+When writing documentation files, avoid using horizontal pipes unless necessary --
+section headings are sufficient for dividing up documentation.
