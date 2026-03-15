@@ -185,7 +185,8 @@ Having text after the fenced code block (or multiple code blocks) is fine too.
 
 #### Available assertion types
 
-You can see an up-to-date list of supported assertions [in the Babel Validation repository](https://github.com/TranslatorSRI/babel-validation/blob/3eeeccfb0d15451e45ecade7603404e096b30fb0/src/babel_validation/assertions/README.md).
+You can see an up-to-date list of supported assertions
+[in the Babel Validation repository](https://github.com/TranslatorSRI/babel-validation/blob/3eeeccfb0d15451e45ecade7603404e096b30fb0/src/babel_validation/assertions/README.md).
 
 <!-- TODO: replace with the actual URL once https://github.com/TranslatorSRI/babel-validation/pull/67 has been merged. -->
 
