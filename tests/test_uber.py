@@ -3,10 +3,9 @@ import pytest
 from src.ubergraph import UberGraph
 
 # These tests require a live connection to ubergraph.apps.renci.org.
-# They are marked xfail so the suite stays green in offline / CI environments.
-# To fix: either mock the UberGraph SPARQL endpoint, or add a pytest mark that
-# skips network tests when --no-network is passed (see pytest-socket or a custom
-# fixture).
+# They are marked with pytest.mark.network and xfail so the suite stays green
+# in offline / CI environments, and are only run when pytest is invoked with
+# --network or --all (see tests/conftest.py for CLI options).
 pytestmark = [
     pytest.mark.network,
     pytest.mark.xfail(reason="requires network access to ubergraph.apps.renci.org", strict=False),
