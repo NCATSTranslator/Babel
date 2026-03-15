@@ -76,9 +76,9 @@ semantic type plus data collection, reports, exports, and DuckDB.
 - **`snakefiles/`** — Snakemake rule definitions wiring data handlers to compendium creators.
 - **`node.py`** — Core classes: `NodeFactory`, `SynonymFactory`, `DescriptionFactory`,
   `TaxonFactory`, `InformationContentFactory`, `TSVSQLiteLoader`.
-- **`babel_utils.py`** — Download/FTP utilities, state management.
+- **`babel_utils.py`** — Download/FTP utilities, `glom()` (clique merging), `write_compendium()`
+  (compendium builder), state management.
 - **`util.py`** — Logging, config loading, Biolink Model Toolkit (bmt) access.
-- **`make_cliques.py`** — Union-find clique merging logic.
 - **`exporters/`** — Output format handlers (KGX, Parquet, JSONL).
 - **`reports/`**, **`synonyms/`**, **`metadata/`** — Report generation, synonym files, provenance.
 
@@ -90,7 +90,8 @@ semantic type plus data collection, reports, exports, and DuckDB.
 - **Biolink Model** integration via `bmt` — types, valid prefixes, and naming conventions all follow
   the Biolink Model.
 - **Concord files** are the core data structure: tab-separated `CURIE1 \t Relation \t CURIE2`
-  triples expressing cross-references between vocabularies.
+  triples expressing cross-references between vocabularies. The `glom()` function in
+  `babel_utils.py` merges them into equivalence cliques.
 
 ### Conflation
 
