@@ -1,7 +1,13 @@
+import os
+
 import pytest
 
 import src.prefixes as pref
 from src.LabeledID import LabeledID
+from src.node import NodeFactory
+from src.util import get_config
+
+BIOLINK_VERSION = get_config()["biolink_version"]
 
 # Node schema (as of the current codebase):
 #   {"identifiers": [{"identifier": CURIE, "label": str}, ...], "type": str}
@@ -191,3 +197,35 @@ def test_pubchem_ignore_CID(node_factory):
     # :999 has label "CID1" which is ignored; :111 ("longerlabel") is preferred instead
     assert node["identifiers"][1]["identifier"] == f"{pref.PUBCHEMCOMPOUND}:111"
     assert node["identifiers"][1]["label"] == "longerlabel"
+
+
+@pytest.mark.unit
+def test_load_extra_labels_single_column(tmp_path):
+    """load_extra_labels() must not raise on single-column lines (identifier with no label)."""
+    label_dir = tmp_path / "CHEMBL.COMPOUND"
+    label_dir.mkdir()
+    (label_dir / "labels").write_text(
+        "CHEMBL.COMPOUND:CHEMBL1\tWater\n"
+        "CHEMBL.COMPOUND:CHEMBL2\n"
+    )
+    fac = NodeFactory(str(tmp_path), BIOLINK_VERSION)
+    fac.common_labels = {}
+    fac.load_extra_labels("CHEMBL.COMPOUND")
+    assert fac.extra_labels["CHEMBL.COMPOUND"]["CHEMBL.COMPOUND:CHEMBL1"] == "Water"
+    assert fac.extra_labels["CHEMBL.COMPOUND"]["CHEMBL.COMPOUND:CHEMBL2"] == ""
+
+
+@pytest.mark.unit
+def test_load_extra_labels_tab_in_label(tmp_path):
+    """load_extra_labels() must preserve labels that themselves contain a tab (maxsplit=1)."""
+    label_dir = tmp_path / "CHEMBL.COMPOUND"
+    label_dir.mkdir()
+    (label_dir / "labels").write_text(
+        "CHEMBL.COMPOUND:CHEMBL1\tWater\n"
+        "CHEMBL.COMPOUND:CHEMBL2\n"
+        "CHEMBL.COMPOUND:CHEMBL3\tWater\tbottle\n"
+    )
+    fac = NodeFactory(str(tmp_path), BIOLINK_VERSION)
+    fac.common_labels = {}
+    fac.load_extra_labels("CHEMBL.COMPOUND")
+    assert fac.extra_labels["CHEMBL.COMPOUND"]["CHEMBL.COMPOUND:CHEMBL3"] == "Water\tbottle"
