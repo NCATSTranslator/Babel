@@ -2,8 +2,6 @@
 
 This folder contains reference documentation for Babel, organized by audience.
 
----
-
 ## For Babel users — understanding and using outputs
 
 | Document | Description |
@@ -12,8 +10,6 @@ This folder contains reference documentation for Babel, organized by audience.
 | [DataFormats.md](./DataFormats.md) | Compendium, synonym, and conflation file format specification. |
 | [Conflation.md](./Conflation.md) | What conflations are, how Gene+Protein and Drug+Chemical conflation work, and when to use them. |
 | [Downloads.md](./Downloads.md) | Where to download published Babel outputs and which formats are available. |
-
----
 
 ## For pipeline operators — running and deploying
 

@@ -95,7 +95,7 @@ semantic type plus data collection, reports, exports, and DuckDB.
 
 ### Conflation
 
-Gene+Protein and Drug+Chemical each have dedicated conflation modules (`geneprotein.py`,
+GeneProtein and DrugChemical conflation each have dedicated conflation modules (`geneprotein.py`,
 `drugchemical.py`) that merge their respective cliques. See `docs/Conflation.md`.
 
 ### Directories at Runtime
