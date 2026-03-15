@@ -45,7 +45,7 @@ that is slow by necessity.
   downloads that take hours. You cannot easily re-download them per experiment.
 - **Memory cost.** The chemical and protein compendia steps require 512 GB of RAM, which is not
   available on a laptop or a typical workstation.
-- **Cross-type report dependencies.** The `all_reports` target in `reports.snakefile` requires
+- **Cross-type report dependencies.** The `all_reports` target in `src/snakefiles/reports.snakefile` requires
   every compendium, synonym, and conflation file to exist before it will run. Building one semantic
   type's compendium in isolation does not satisfy these dependencies.
 - **No unit-testable seams.** The core compendium-building logic (`createcompendia/`) reads and
