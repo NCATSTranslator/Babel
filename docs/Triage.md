@@ -32,44 +32,42 @@ When filing a new issue, please include:
 ### Assigning priority, impact and size
 
 When you file an issue, please fill in three fields in the [Babel sprints GitHub project] to
-help us understand how urgently it needs to be addressed:
+help us understand how urgently it needs to be addressed. If you are unsure about any of these,
+please leave them blank. Developers will fill them in during triage.
 
 #### Priority
 
 How urgent is this to fix?
 
-| Value | Meaning |
-|-------|---------|
+| Value        | Meaning                                                                                                               |
+|--------------|-----------------------------------------------------------------------------------------------------------------------|
 | **Critical** | Causes outright failures or produces seriously wrong results that are actively misleading downstream users right now. |
-| **High** | Significantly degrades the quality or usability of Babel outputs, but a workaround exists. |
-| **Medium** | A noticeable quality problem, but not one that breaks workflows. |
-| **Low** | A minor issue or a nice-to-have improvement. |
+| **High**     | Significantly degrades the quality or usability of Babel outputs, but a workaround exists.                            |
+| **Medium**   | A noticeable quality problem, but not one that breaks workflows.                                                      |
+| **Low**      | A minor issue or a nice-to-have improvement.                                                                          |
 
 #### Impact
 
-How widely does this issue affect users?
+How beneficial will fixing this issue be to Babel users?
 
-| Value | Meaning |
-|-------|---------|
-| **Enormous** | Affects a large number of cliques or a core vocabulary (e.g., MESH, MONDO, ChEBI) and will be noticed by many downstream tools. |
-| **High** | Affects a significant subset of cliques or an important vocabulary. |
-| **Medium** | Affects a moderate number of identifiers or a less-central vocabulary. |
-| **Low** | Affects very few identifiers or an edge case. |
+| Value        | Meaning                                                                                                    |
+|--------------|------------------------------------------------------------------------------------------------------------|
+| **Enormous** | Will significantly improve clique or output quality, or will make future development substantially easier. |
+| **High**     | Will provide a large benefit to users or developers.                                                       |
+| **Medium**   | Will provide a moderate benefit to users or developers.                                                    |
+| **Low**      | Will provide a small benefit to users or developers.                                                       |
 
 #### Size
 
 How much effort do you think this fix will require? (This is an estimate; developers may adjust it.)
 
-| Value | Approximate effort |
-|-------|-------------------|
-| **XS** | Trivial change — a configuration tweak or a one-line fix. |
-| **S** | Small — a few hours of focused work. |
-| **M** | Medium — up to a day or two of work. |
-| **L** | Large — requires investigation and several days of implementation. |
+| Value  | Approximate effort                                                        |
+|--------|---------------------------------------------------------------------------|
+| **XS** | Trivial change — a configuration tweak or a one-line fix.                 |
+| **S**  | Small — a few hours of focused work.                                      |
+| **M**  | Medium — up to a day or two of work.                                      |
+| **L**  | Large — requires investigation and several days of implementation.        |
 | **XL** | Extra large — a substantial piece of work that may span multiple sprints. |
-
-If you are unsure about any of these, leave them blank. Developers will fill them in during
-triage.
 
 ### Grouping related issues
 
@@ -77,23 +75,23 @@ If your issue looks like it may be caused by the same underlying bug as an exist
 can set the **Parent issue** field to that issue. This helps developers see patterns and fix
 related issues together.
 
-You can also add a **Component** label to identify which part of Babel is affected:
+You can also set the **Component** property to identify which part of Babel is affected:
 
-| Component | What it covers |
-|-----------|----------------|
-| Process | The overall pipeline for running Babel |
-| Cliques and identifiers | What identifiers are or are not in a clique |
-| Downloaders | Code that downloads source data |
-| Metadata | Information content, taxon, or other metadata stored on nodes |
-| Biolink types | How Biolink semantic types are assigned to cliques |
-| Conflations | GeneProtein and DrugChemical conflation |
-| Preferred labels | How preferred labels are chosen |
-| Synonyms | Which synonyms are included |
-| New data sources | Requests to add a new data source |
-| Validation and reports | Validating Babel output or producing a report |
-| Documentation | Improving or fixing Babel documentation |
-| NodeNorm | [Node Normalizer] frontend |
-| NameRes | [Name Resolver] frontend |
+| Component               | What it covers                                                |
+|-------------------------|---------------------------------------------------------------|
+| Process                 | The overall pipeline for running Babel                        |
+| Cliques and identifiers | What identifiers are or are not in a clique                   |
+| Downloaders             | Code that downloads source data                               |
+| Metadata                | Information content, taxon, or other metadata stored on nodes |
+| Biolink types           | How Biolink semantic types are assigned to cliques            |
+| Conflations             | GeneProtein and DrugChemical conflation                       |
+| Preferred labels        | How preferred labels are chosen                               |
+| Synonyms                | Which synonyms are included                                   |
+| New data sources        | Requests to add a new data source                             |
+| Validation and reports  | Validating Babel output or producing a report                 |
+| Documentation           | Improving or fixing Babel documentation                       |
+| NodeNorm                | [Node Normalizer] frontend                                    |
+| NameRes                 | [Name Resolver] frontend                                      |
 
 ### Tracking when your issue will be addressed
 
@@ -110,7 +108,7 @@ At the start of each sprint, leftover items from the previous sprint are carried
 then the highest-priority issues from the backlog are added. If an issue is unexpectedly large
 or is displaced by a higher-priority item, it may be deferred to a later sprint. In general, a
 **Critical + Enormous** issue will be scheduled very quickly, while a **Low + Low** issue may
-sit in the backlog for some time.
+sit in the backlog for a long time.
 
 To estimate when your issue is likely to be addressed, look at how many **Critical** and **High**
 priority issues are currently in the backlog ahead of yours. Issues are typically ordered by
@@ -132,11 +130,13 @@ When a new issue arrives, work through the following steps:
    duplicate exists, close the new issue with a reference to the original (or add the new issue
    as a sub-issue of the original).
 
-3. **Set the Component field.** Choose the appropriate **Component** value (see table above).
-   This is important for grouping related issues and for filtering during sprint planning.
+3. **Set Priority, Impact and Size.** If the reporter has filled these in, review them and adjust
+   if necessary. If they are blank, set them now based on your assessment. Don't be shy about
+   changing them in the future if necessary.
 
-4. **Set Priority, Impact and Size.** If the reporter has filled these in, review them and adjust
-   if necessary. If they are blank, set them now based on your assessment.
+4. **Set the Component field.** Choose the appropriate **Component** value (see table above)
+   if that would be useful. This can help group together related issues and for filtering during
+   sprint planning.
 
 5. **Link to a parent issue.** If this issue is one instance of a broader known problem (e.g. a
    deprecated identifier source, or a class of missing cliques), set the **Parent issue** field.
@@ -167,44 +167,50 @@ For example, to assert that two CURIEs resolve to the same clique:
 
 #### YAML syntax (multiple assertions)
 
-Use a fenced code block with the language tag `babel_tests:`:
+Use a fenced code block with the language tag `yaml` and a top-level property `babel_tests`:
 
 ````text
-```babel_tests:
-- assertion: ResolvesWith
-  curies:
-    - MESH:D014867
-    - DRUGBANK:DB09145
-- assertion: HasLabel
-  curie: MESH:D014867
-  label: Water
+This can be inserted anywhere in the issue.
+
+```yaml
+babel_tests:
+  ResolvesWith:
+    - ['MESH:D014867', 'DRUGBANK:DB09145']
+  HasLabel:
+    - ['MESH:D014867', 'Water']
 ```
+
+Having text after the fenced code block (or multiple code blocks) is fine too.
 ````
 
 #### Available assertion types
 
+You can see an up-to-date list of supported assertions [in the Babel Validation repository](https://github.com/TranslatorSRI/babel-validation/blob/3eeeccfb0d15451e45ecade7603404e096b30fb0/src/babel_validation/assertions/README.md).
+
+<!-- TODO: replace with the actual URL once https://github.com/TranslatorSRI/babel-validation/pull/67 has been merged. -->
+
 **NodeNorm assertions:**
 
-| Assertion | What it tests |
-|-----------|---------------|
-| `Resolves` | Each CURIE returns a non-null result from NodeNorm. |
-| `DoesNotResolve` | Each CURIE intentionally fails to normalize. |
-| `ResolvesWith` | Two or more CURIEs normalize to identical results. |
-| `DoesNotResolveWith` | Two or more CURIEs do NOT resolve to the same entity. |
-| `HasLabel` | A CURIE's primary label exactly matches the expected string (case-sensitive). |
-| `ResolvesWithType` | CURIEs resolve with a specified Biolink semantic type. |
+| Assertion            | What it tests                                                                 |
+|----------------------|-------------------------------------------------------------------------------|
+| `Resolves`           | Each CURIE returns a non-null result from NodeNorm.                           |
+| `DoesNotResolve`     | Each CURIE intentionally fails to normalize.                                  |
+| `ResolvesWith`       | Two or more CURIEs normalize to identical results.                            |
+| `DoesNotResolveWith` | Two or more CURIEs do NOT resolve to the same entity.                         |
+| `HasLabel`           | A CURIE's primary label exactly matches the expected string (case-sensitive). |
+| `ResolvesWithType`   | CURIEs resolve with a specified Biolink semantic type.                        |
 
 **NameRes assertions:**
 
-| Assertion | What it tests |
-|-----------|---------------|
+| Assertion      | What it tests                                                                       |
+|----------------|-------------------------------------------------------------------------------------|
 | `SearchByName` | A CURIE appears in the top N NameRes results for a given text string (default N=5). |
 
 **Special:**
 
-| Assertion | Meaning |
-|-----------|---------|
-| `Needed` | Placeholder marking that a test needs to be written. Always fails as a reminder. |
+| Assertion | Meaning                                                                          |
+|-----------|----------------------------------------------------------------------------------|
+| `Needed`  | Placeholder marking that a test needs to be written. Always fails as a reminder. |
 
 When adding tests to an issue, use `{{BabelTest|Needed}}` as a placeholder if you know a test
 is needed but do not yet know the exact expected values.
