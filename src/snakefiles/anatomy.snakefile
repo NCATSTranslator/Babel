@@ -8,6 +8,8 @@ import src.snakefiles.util as util
 rule anatomy_uberon_ids:
     output:
         outfile=config["intermediate_directory"] + "/anatomy/ids/UBERON",
+    benchmark:
+        config["output_directory"] + "/benchmarks/anatomy_uberon_ids.tsv"
     run:
         anatomy.write_uberon_ids(output.outfile)
 
@@ -15,6 +17,8 @@ rule anatomy_uberon_ids:
 rule anatomy_cl_ids:
     output:
         outfile=config["intermediate_directory"] + "/anatomy/ids/CL",
+    benchmark:
+        config["output_directory"] + "/benchmarks/anatomy_cl_ids.tsv"
     run:
         anatomy.write_cl_ids(output.outfile)
 
@@ -22,6 +26,8 @@ rule anatomy_cl_ids:
 rule anatomy_go_ids:
     output:
         outfile=config["intermediate_directory"] + "/anatomy/ids/GO",
+    benchmark:
+        config["output_directory"] + "/benchmarks/anatomy_go_ids.tsv"
     run:
         anatomy.write_go_ids(output.outfile)
 
@@ -29,6 +35,8 @@ rule anatomy_go_ids:
 rule anatomy_ncit_ids:
     output:
         outfile=config["intermediate_directory"] + "/anatomy/ids/NCIT",
+    benchmark:
+        config["output_directory"] + "/benchmarks/anatomy_ncit_ids.tsv"
     run:
         anatomy.write_ncit_ids(output.outfile)
 
@@ -38,6 +46,8 @@ rule anatomy_mesh_ids:
         config["download_directory"] + "/MESH/mesh.nt",
     output:
         outfile=config["intermediate_directory"] + "/anatomy/ids/MESH",
+    benchmark:
+        config["output_directory"] + "/benchmarks/anatomy_mesh_ids.tsv"
     run:
         anatomy.write_mesh_ids(output.outfile)
 
@@ -47,6 +57,8 @@ rule anatomy_umls_ids:
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
     output:
         outfile=config["intermediate_directory"] + "/anatomy/ids/UMLS",
+    benchmark:
+        config["output_directory"] + "/benchmarks/anatomy_umls_ids.tsv"
     run:
         anatomy.write_umls_ids(input.mrsty, output.outfile)
 
@@ -60,6 +72,8 @@ rule get_anatomy_obo_relationships:
         uberon_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-UBERON.yaml",
         cl_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-CL.yaml",
         go_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-GO.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_anatomy_obo_relationships.tsv"
     run:
         anatomy.build_anatomy_obo_relationships(
             config["intermediate_directory"] + "/anatomy/concords",
@@ -75,6 +89,8 @@ rule get_wikidata_cell_relationships:
     output:
         config["intermediate_directory"] + "/anatomy/concords/WIKIDATA",
         wikidata_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-WIKIDATA.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_wikidata_cell_relationships.tsv"
     run:
         anatomy.build_wikidata_cell_relationships(
             config["intermediate_directory"] + "/anatomy/concords", output.wikidata_metadata
@@ -88,6 +104,8 @@ rule get_anatomy_umls_relationships:
     output:
         outfile=config["intermediate_directory"] + "/anatomy/concords/UMLS",
         umls_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-UMLS.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_anatomy_umls_relationships.tsv"
     run:
         anatomy.build_anatomy_umls_relationships(input.mrconso, input.infile, output.outfile, output.umls_metadata)
 
@@ -110,6 +128,8 @@ rule anatomy_compendia:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["anatomy_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["anatomy_outputs"])),
         expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["anatomy_outputs"]),
+    benchmark:
+        config["output_directory"] + "/benchmarks/anatomy_compendia.tsv"
     run:
         anatomy.build_compendia(input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename)
 
@@ -119,6 +139,8 @@ rule check_anatomy_completeness:
         input_compendia=expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["anatomy_outputs"]),
     output:
         report_file=config["output_directory"] + "/reports/anatomy_completeness.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_anatomy_completeness.tsv"
     run:
         assessments.assess_completeness(
             config["intermediate_directory"] + "/anatomy/ids", input.input_compendia, output.report_file
@@ -130,6 +152,8 @@ rule check_anatomical_entity:
         infile=config["output_directory"] + "/compendia/AnatomicalEntity.txt",
     output:
         outfile=config["output_directory"] + "/reports/AnatomicalEntity.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_anatomical_entity.tsv"
     run:
         assessments.assess(input.infile, output.outfile)
 
@@ -139,6 +163,8 @@ rule check_gross_anatomical_structure:
         infile=config["output_directory"] + "/compendia/GrossAnatomicalStructure.txt",
     output:
         outfile=config["output_directory"] + "/reports/GrossAnatomicalStructure.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_gross_anatomical_structure.tsv"
     run:
         assessments.assess(input.infile, output.outfile)
 
@@ -148,6 +174,8 @@ rule check_cell:
         infile=config["output_directory"] + "/compendia/Cell.txt",
     output:
         outfile=config["output_directory"] + "/reports/Cell.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_cell.tsv"
     run:
         assessments.assess(input.infile, output.outfile)
 
@@ -157,6 +185,8 @@ rule check_cellular_component:
         infile=config["output_directory"] + "/compendia/CellularComponent.txt",
     output:
         outfile=config["output_directory"] + "/reports/CellularComponent.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_cellular_component.tsv"
     run:
         assessments.assess(input.infile, output.outfile)
 
@@ -170,6 +200,8 @@ rule anatomy:
     output:
         synonyms_gzipped=expand("{od}/synonyms/{ap}.gz", od=config["output_directory"], ap=config["anatomy_outputs"]),
         x=config["output_directory"] + "/reports/anatomy_done",
+    benchmark:
+        config["output_directory"] + "/benchmarks/anatomy.tsv"
     run:
         util.gzip_files(input.synonyms)
         util.write_done(output.x)

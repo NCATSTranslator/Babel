@@ -6,6 +6,13 @@ import os
 ### Write all compendia, synonym and conflation files into DuckDB databases.
 
 
+# Trivial aggregation rules run locally so they don't consume a SLURM slot.
+localrules:
+    export_all_compendia_to_duckdb,
+    export_all_synonyms_to_duckdb,
+    export_all_to_duckdb,
+
+
 # Write all compendia files to DuckDB and Parquet, then create `babel_outputs/duckdb/compendia_done` to signal that we're done.
 rule export_all_compendia_to_duckdb:
     input:
@@ -31,6 +38,8 @@ rule export_compendia_to_duckdb:
         duckdb_filename=config["output_directory"] + "/duckdb/duckdbs/filename={filename}/compendium.duckdb",
         node_parquet_file=config["output_directory"] + "/duckdb/parquet/filename={filename}/Node.parquet",
         clique_parquet_file=config["output_directory"] + "/duckdb/parquet/filename={filename}/Clique.parquet",
+    benchmark:
+        config["output_directory"] + "/benchmarks/export_compendia_to_duckdb_{filename}.tsv"
     run:
         print(f"Exporting {input.compendium_file} to {output.duckdb_filename}...")
         duckdb_exporters.export_compendia_to_parquet(
@@ -59,6 +68,8 @@ rule export_synonyms_to_duckdb:
     output:
         duckdb_filename=config["output_directory"] + "/duckdb/duckdbs/filename={filename}/synonyms.duckdb",
         synonyms_parquet_filename=config["output_directory"] + "/duckdb/parquet/filename={filename}/Synonyms.parquet",
+    benchmark:
+        config["output_directory"] + "/benchmarks/export_synonyms_to_duckdb_{filename}.tsv"
     run:
         duckdb_exporters.export_synonyms_to_parquet(
             input.synonyms_file, output.duckdb_filename, output.synonyms_parquet_filename
@@ -91,6 +102,8 @@ rule check_for_identically_labeled_cliques:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/identically_labeled_clique.duckdb"),
         identically_labeled_cliques_tsv=config["output_directory"]
         + "/reports/duckdb/identically_labeled_cliques.tsv.gz",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_for_identically_labeled_cliques.tsv"
     run:
         src.reports.duckdb_reports.check_for_identically_labeled_cliques(
             params.parquet_dir,
@@ -115,6 +128,8 @@ rule check_for_duplicate_curies:
     output:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/duplicate_curies.duckdb"),
         duplicate_curies=config["output_directory"] + "/reports/duckdb/duplicate_curies.tsv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_for_duplicate_curies.tsv"
     run:
         src.reports.duckdb_reports.check_for_duplicate_curies(
             params.parquet_dir,
@@ -139,6 +154,8 @@ rule check_for_duplicate_clique_leaders:
     output:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/duplicate_clique_leaders.duckdb"),
         duplicate_clique_leaders_tsv=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.tsv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_for_duplicate_clique_leaders.tsv"
     run:
         src.reports.duckdb_reports.check_for_duplicate_clique_leaders(
             params.parquet_dir,
@@ -164,6 +181,8 @@ rule generate_curie_report:
     output:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/curie_report.duckdb"),
         curie_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_curie_report.tsv"
     run:
         src.reports.duckdb_reports.generate_curie_report(
             params.parquet_dir,
@@ -189,6 +208,8 @@ rule generate_clique_leader_report:
     output:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/clique_leaders.duckdb"),
         clique_leaders_json=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_clique_leader_report.tsv"
     run:
         src.reports.duckdb_reports.generate_clique_leaders_report(
             params.parquet_dir,
@@ -213,5 +234,7 @@ rule all_duckdb_reports:
         by_clique_report_json=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
     output:
         x=config["output_directory"] + "/reports/duckdb/done",
+    benchmark:
+        config["output_directory"] + "/benchmarks/all_duckdb_reports.tsv"
     shell:
         "echo 'done' >> {output.x}"

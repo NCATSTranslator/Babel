@@ -8,10 +8,15 @@ from src.snakefiles import util
 
 
 rule download_pubmed:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         baseline_dir=directory(config["download_directory"] + "/PubMed/baseline"),
         updatefiles_dir=directory(config["download_directory"] + "/PubMed/updatefiles"),
         done_file=config["download_directory"] + "/PubMed/downloaded",
+    benchmark:
+        config["output_directory"] + "/benchmarks/download_pubmed.tsv"
     run:
         publications.download_pubmed(output.done_file)
 
@@ -21,6 +26,8 @@ rule verify_pubmed:
         config["download_directory"] + "/PubMed/downloaded",
     output:
         done_file=config["download_directory"] + "/PubMed/verified",
+    benchmark:
+        config["output_directory"] + "/benchmarks/verify_pubmed.tsv"
     run:
         publications.verify_pubmed_downloads(
             [config["download_directory"] + "/PubMed/baseline", config["download_directory"] + "/PubMed/updatefiles"],
@@ -42,6 +49,8 @@ rule generate_pubmed_concords:
         pmid_id_file=config["intermediate_directory"] + "/publications/ids/PMID",
         pmid_doi_concord_file=config["intermediate_directory"] + "/publications/concords/PMID_DOI",
         metadata_yaml=config["intermediate_directory"] + "/publications/concords/metadata.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_pubmed_concords.tsv"
     run:
         publications.parse_pubmed_into_tsvs(
             input.baseline_dir,
@@ -69,6 +78,8 @@ rule generate_pubmed_compendia:
         publication_compendium=config["output_directory"] + "/compendia/Publication.txt",
         # We generate an empty Publication Synonyms files, but we still need to generate one.
         publication_synonyms_gz=config["output_directory"] + "/synonyms/Publication.txt.gz",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_pubmed_compendia.tsv"
     run:
         publications.generate_compendium(
             [input.pmid_doi_concord_file],
@@ -90,6 +101,8 @@ rule check_publications_completeness:
         input_compendia=expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["publication_outputs"]),
     output:
         report_file=config["output_directory"] + "/reports/publication_completeness.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_publications_completeness.tsv"
     run:
         assessments.assess_completeness(
             config["intermediate_directory"] + "/publications/ids", input.input_compendia, output.report_file
@@ -101,6 +114,8 @@ rule check_publications:
         infile=config["output_directory"] + "/compendia/Publication.txt",
     output:
         outfile=config["output_directory"] + "/reports/Publication.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_publications.tsv"
     run:
         assessments.assess(input.infile, output.outfile)
 
@@ -112,5 +127,7 @@ rule publications:
         reports=expand("{od}/reports/{ap}", od=config["output_directory"], ap=config["publication_outputs"]),
     output:
         x=config["output_directory"] + "/reports/publications_done",
+    benchmark:
+        config["output_directory"] + "/benchmarks/publications.tsv"
     shell:
         "echo 'done' >> {output.x}"
