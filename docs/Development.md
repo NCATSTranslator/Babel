@@ -165,7 +165,7 @@ than hours. The output would be structurally valid but not biologically complete
 #### 10. Standalone compendium builder script
 
 A script that accepts a list of concord files and id files as command-line arguments and runs
-just the union-find merge (`make_cliques.py`) to produce a compendium file, without any Snakemake
+just the clique `glom()` method to produce a compendium file, without any Snakemake
 involvement. This decouples the algorithmic core from the orchestration layer, making it easy to
 experiment with clique-merging logic on captured intermediate files.
 
