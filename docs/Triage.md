@@ -86,7 +86,7 @@ You can also add a **Component** label to identify which part of Babel is affect
 | Downloaders | Code that downloads source data |
 | Metadata | Information content, taxon, or other metadata stored on nodes |
 | Biolink types | How Biolink semantic types are assigned to cliques |
-| Conflations | Gene+Protein and Drug+Chemical conflation |
+| Conflations | GeneProtein and DrugChemical conflation |
 | Preferred labels | How preferred labels are chosen |
 | Synonyms | Which synonyms are included |
 | New data sources | Requests to add a new data source |
