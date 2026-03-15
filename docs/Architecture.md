@@ -89,8 +89,6 @@ Each line of a compendium file is a JSON object representing one clique. A cliqu
 The first identifier in `identifiers` is the preferred identifier for the clique. See
 [DataFormats.md](./DataFormats.md) for the full format specification.
 
----
-
 ## Key patterns
 
 ### Factory pattern for large datasets
