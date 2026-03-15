@@ -23,7 +23,7 @@ Babel's pipeline has two phases, orchestrated by [Snakemake](https://snakemake.g
 
 2. **Compendium building** — for each semantic type (e.g. chemicals, genes, anatomy), a compendium
    creator module reads the relevant label and synonym files, extracts the identifiers for that
-   type into `babel_outputs/intermediate/ids/[TYPE]`, produces pairwise cross-reference files
+   type into `babel_outputs/intermediate/[TYPE]/ids/`, produces pairwise cross-reference files
    called **concords**, merges the concords into equivalence cliques using a union-find algorithm,
    and writes enriched JSONL compendia to `babel_outputs/`.
 
