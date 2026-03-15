@@ -3,13 +3,13 @@
 ## Running Tests
 
 ```bash
-PYTHONPATH=. uv run pytest                           # All tests (with coverage)
-PYTHONPATH=. uv run pytest --no-cov                  # Without coverage (faster)
+PYTHONPATH=. uv run pytest                           # All tests
+PYTHONPATH=. uv run pytest --cov=src                 # With coverage report
 PYTHONPATH=. uv run pytest tests/test_glom.py        # Single test file
 ```
 
-Coverage reports are generated automatically: a summary prints in the terminal and a
-browsable HTML report is written to `htmlcov/`.
+Coverage is opt-in: pass `--cov=src` (or `--cov=src --cov-report=html`) to generate
+a report. Coverage configuration is in `pyproject.toml` under `[tool.coverage.*]`.
 
 ## Mark Taxonomy
 

@@ -29,13 +29,13 @@ uv run snakemake --cores 1 chemical       # Another target
 ### Testing
 
 ```bash
-PYTHONPATH=. uv run pytest                           # All tests (with coverage)
-PYTHONPATH=. uv run pytest --no-cov                  # Without coverage (faster)
+PYTHONPATH=. uv run pytest                           # All tests
+PYTHONPATH=. uv run pytest --cov=src                 # With coverage report
 PYTHONPATH=. uv run pytest tests/test_node_factory.py  # Single test file
-PYTHONPATH=. uv run pytest -m unit --no-cov -q      # Unit tests only (CI default)
+PYTHONPATH=. uv run pytest -m unit -q               # Unit tests only (CI default)
 PYTHONPATH=. uv run pytest --network                # Include network tests
 PYTHONPATH=. uv run pytest --all                    # Run every test
-PYTHONPATH=. uv run pytest -n auto --no-cov        # Parallel (all CPUs), skip coverage
+PYTHONPATH=. uv run pytest -n auto                  # Parallel (all CPUs)
 ```
 
 Tests use four marks: `unit` (fast, offline), `network` (requires internet, opt-in with

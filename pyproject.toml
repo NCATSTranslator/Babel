@@ -84,7 +84,7 @@ include = '\.snakefile$|^Snakefile'
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=src --cov-report=term-missing --cov-report=html"
+addopts = ""
 timeout = 30          # global fallback (seconds); overridden per mark in conftest.py
 markers = [
     "unit: fast offline tests with no external dependencies",
