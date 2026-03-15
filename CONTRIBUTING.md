@@ -76,6 +76,8 @@ and [docs/Development.md](./docs/Development.md) for the development workflow.
 
 Babel has two frontends: the [Node Normalizer] for exposing information about
 cliques, and the [Name Resolver], which lets you search by synonyms or names.
+Both of these could use help with issues that are specific to them! Please check
+their GitHub repositories to see what improvements they need.
 
 [babel issue tracker]: https://github.com/NCATSTranslator/Babel/issues/
 [name resolver]: https://github.com/NCATSTranslator/NameResolution
