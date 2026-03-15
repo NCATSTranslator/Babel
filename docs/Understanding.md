@@ -100,7 +100,7 @@ no subclasses).
 ### I've found two or more identifiers in separate cliques that should be considered identical
 
 Please report this "split" clique as an issue to the
-[Babel GitHub repository](https://github.com/TranslatorSRI/Babel/issues). At a
+[Babel GitHub repository](https://github.com/NCATSTranslator/Babel/issues). At a
 minimum, please include the identifiers (CURIEs) for the identifiers that should
 be combined. Links to a NodeNorm instance showing the two cliques are very
 helpful. Evidence supporting the lumping, such as a link to an external database
@@ -114,7 +114,7 @@ combine the two identifiers, allowing us to improve cliquing across Babel.
 <!-- rumdl-enable MD013 -->
 
 Please report this "lumped" clique as an issue to the
-[Babel GitHub repository](https://github.com/TranslatorSRI/Babel/issues). At a
+[Babel GitHub repository](https://github.com/NCATSTranslator/Babel/issues). At a
 minimum, please include the identifiers (CURIEs) for the identifiers that should
 be split. Links to a NodeNorm instance showing the lumped clique is very
 helpful. Evidence, such as a link to an external database that makes it clear
