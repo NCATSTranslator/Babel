@@ -287,21 +287,20 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
 
     edges.close()
     # cliques.close()
-def run_sql_report(parquet_root, duckdb_filename, sql_file, output_tsv, duckdb_config=None):
+def run_sql_report(parquet_root, duckdb_filename, sql_file, sql_sidecar_file, output_tsv, duckdb_config=None):
     """
     Run a SQL file against the Parquet files and write the result as a TSV.
     SQL files may reference pre-registered views: Edges, Cliques, Nodes, Synonyms.
 
-    An optional YAML sidecar at {sql_file_without_extension}.yaml may specify a
+    An optional YAML sidecar at sql_sidecar_file may specify a
     duckdb_config dict (memory_limit, threads, preserve_insertion_order) that
     overrides the duckdb_config argument.
     """
-    sidecar_path = os.path.splitext(sql_file)[0] + ".yaml"
     effective_config = dict(duckdb_config or {})
-    if os.path.exists(sidecar_path):
+    if os.path.exists(sql_sidecar_file):
         import yaml
 
-        with open(sidecar_path) as f:
+        with open(sql_sidecar_file) as f:
             sidecar = yaml.safe_load(f) or {}
         effective_config.update(sidecar.get("duckdb_config", {}))
 

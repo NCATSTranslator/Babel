@@ -212,6 +212,7 @@ rule run_sql_report:
         sql_file="input_data/sql/reports/{name}.sql",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
+        sql_sidecar_file="input_data/sql/reports/{name}.yaml",
     output:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/sql_report_{name}.duckdb"),
         report_tsv=config["output_directory"] + "/reports/sql/{name}.tsv",
@@ -220,6 +221,7 @@ rule run_sql_report:
             params.parquet_dir,
             output.duckdb_filename,
             input.sql_file,
+            params.sql_sidecar_file,
             output.report_tsv,
         )
 
