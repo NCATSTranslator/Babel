@@ -127,7 +127,7 @@ SLURM allocation. They are trivial done-marker rules (e.g. `echo 'done'` or `wri
 The following improvements are tracked here for visibility but not yet implemented:
 
 - **`uv run snakemake` vs `conda activate babel`**: The SLURM job scripts (`slurm/job`,
-  `run_babel_on_slurm.sh`) still reference the old conda environment and hardcoded paths.
+  `slurm/run-babel-on-slurm.sh`) still reference the old conda environment and hardcoded paths.
   Migrate to `uv run` for consistency with the development workflow.
 
 - **`run_babel_one_node.job` cleanup**: This job script references a hardcoded conda env
