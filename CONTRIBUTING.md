@@ -34,15 +34,13 @@ us triage and prioritize them correctly.
 
 ## Contributing source code
 
-Babel is structured around its [Snakemake files](./src/snakefiles), which call
-into its [data handlers](./src/datahandlers) and
-[compendia creators](./src/createcompendia). The heart of its data are its
-concord files, which contain cross-references between different databases. These
-are combined into compendium files and synonyms.
+For an overview of how Babel's source code is organized — including the two-phase pipeline,
+the role of concord files, and the key patterns used throughout the codebase — see
+[docs/Architecture.md](./docs/Architecture.md).
 
-For a detailed guide to the development workflow — including how to obtain
-prerequisites, build individual compendia, and ideas for making the pipeline
-easier to work with — see [Developing Babel](./docs/Development.md).
+For a detailed guide to the development workflow — including how to obtain prerequisites, build
+individual compendia, and ideas for making the pipeline easier to work with — see
+[docs/Development.md](./docs/Development.md).
 
 We use three linters to check the style of submitted code in GitHub pull
 requests -- don't worry if this is difficult to do at your end, as it is easy to
@@ -61,8 +59,6 @@ fix in a pull request:
 
 ### Contributing tests
 
-TODO
-
 Tests are written using [pytest](https://pytest.org/) and are present in the
 `tests` directory. You can run these tests by running
 `PYTHONPATH=. uv run pytest`.
@@ -71,13 +67,10 @@ Tests are written using [pytest](https://pytest.org/) and are present in the
 [working on that](https://github.com/NCATSTranslator/Babel/issues/602), and if
 you can help get them to pass, that would be great!
 
-### Writing a new concord or compendium
+### Writing a new concord, compendium, or data source
 
-TODO
-
-### Adding a new source of identifiers, synonyms or descriptions
-
-TODO
+See [docs/Architecture.md](./docs/Architecture.md) for an overview of where new code goes,
+and [docs/Development.md](./docs/Development.md) for the development workflow.
 
 ## Want to work on the frontends instead?
 
