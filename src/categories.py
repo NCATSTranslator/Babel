@@ -1,43 +1,43 @@
-#Keep all the biolink classes as constants to keep from having to handle name changes.
+# Keep all the biolink classes as constants to keep from having to handle name changes.
 # of course bigger changes will require code changes as well.
 
-ACTIVITY = 'biolink:Activity'
-AGENT = 'biolink:Agent'
-ANATOMICAL_ENTITY = 'biolink:AnatomicalEntity'
-BIOLOGICAL_PROCESS = 'biolink:BiologicalProcess'
-BIOLOGICAL_PROCESS_OR_ACTIVITY = 'biolink:BiologicalProcessOrActivity'
-CELL = 'biolink:Cell'
-CELL_LINE = 'biolink:CellLine'
-CELLULAR_COMPONENT = 'biolink:CellularComponent'
-CHEMICAL_ENTITY = 'biolink:ChemicalEntity'
-CHEMICAL_MIXTURE = 'biolink:ChemicalMixture'
-COMPLEX_MOLECULAR_MIXTURE = 'biolink:ComplexMolecularMixture'
-DEVICE = 'biolink:Device'
-DISEASE = 'biolink:Disease'
-DRUG = 'biolink:Drug'
-FOOD = 'biolink:Food'
-GENE = 'biolink:Gene'
-GENE_OR_GENE_PRODUCT = 'biolink:GeneOrGeneProduct'
-GENE_FAMILY = 'biolink:GeneFamily'
-GROSS_ANATOMICAL_STRUCTURE = 'biolink:GrossAnatomicalStructure'
-MACROMOLECULAR_COMPLEX = 'biolink:MacromolecularComplex'
-MOLECULAR_ACTIVITY = 'biolink:MolecularActivity'
-MOLECULAR_MIXTURE = 'biolink:MolecularMixture'
-ORGANISM_TAXON = 'biolink:OrganismTaxon'
-PATHWAY = 'biolink:Pathway'
-PHENOTYPIC_FEATURE = 'biolink:PhenotypicFeature'
-PHYSICAL_ENTITY = 'biolink:PhysicalEntity'
-POLYPEPTIDE = 'biolink:Polypeptide'
-PROCEDURE = 'biolink:Procedure'
-PROTEIN = 'biolink:Protein'
-PUBLICATION = 'biolink:Publication'
-JOURNAL_ARTICLE = 'biolink:JournalArticle'
-SMALL_MOLECULE = 'biolink:SmallMolecule'
+ACTIVITY = "biolink:Activity"
+AGENT = "biolink:Agent"
+ANATOMICAL_ENTITY = "biolink:AnatomicalEntity"
+BIOLOGICAL_PROCESS = "biolink:BiologicalProcess"
+BIOLOGICAL_PROCESS_OR_ACTIVITY = "biolink:BiologicalProcessOrActivity"
+CELL = "biolink:Cell"
+CELL_LINE = "biolink:CellLine"
+CELLULAR_COMPONENT = "biolink:CellularComponent"
+CHEMICAL_ENTITY = "biolink:ChemicalEntity"
+CHEMICAL_MIXTURE = "biolink:ChemicalMixture"
+COMPLEX_MOLECULAR_MIXTURE = "biolink:ComplexMolecularMixture"
+DEVICE = "biolink:Device"
+DISEASE = "biolink:Disease"
+DRUG = "biolink:Drug"
+FOOD = "biolink:Food"
+GENE = "biolink:Gene"
+GENE_OR_GENE_PRODUCT = "biolink:GeneOrGeneProduct"
+GENE_FAMILY = "biolink:GeneFamily"
+GROSS_ANATOMICAL_STRUCTURE = "biolink:GrossAnatomicalStructure"
+MACROMOLECULAR_COMPLEX = "biolink:MacromolecularComplex"
+MOLECULAR_ACTIVITY = "biolink:MolecularActivity"
+MOLECULAR_MIXTURE = "biolink:MolecularMixture"
+ORGANISM_TAXON = "biolink:OrganismTaxon"
+PATHWAY = "biolink:Pathway"
+PHENOTYPIC_FEATURE = "biolink:PhenotypicFeature"
+PHYSICAL_ENTITY = "biolink:PhysicalEntity"
+POLYPEPTIDE = "biolink:Polypeptide"
+PROCEDURE = "biolink:Procedure"
+PROTEIN = "biolink:Protein"
+PUBLICATION = "biolink:Publication"
+JOURNAL_ARTICLE = "biolink:JournalArticle"
+SMALL_MOLECULE = "biolink:SmallMolecule"
 
 # Added by Gaurav on April 16, 2024 based on ChemicalEntity children from
 # https://biolink.github.io/biolink-model/categories.html
-NUCLEIC_ACID_ENTITY = 'biolink:NucleicAcidEntity'
-MOLECULAR_ENTITY = 'biolink:MolecularEntity'
-FOOD_ADDITIVE = 'biolink:FoodAdditive'
-ENVIRONMENTAL_FOOD_CONTAMINANT = 'biolink:EnvironmentalFoodContaminant'
-PROCESSED_MATERIAL = 'biolink:ProcessedMaterial'
+NUCLEIC_ACID_ENTITY = "biolink:NucleicAcidEntity"
+MOLECULAR_ENTITY = "biolink:MolecularEntity"
+FOOD_ADDITIVE = "biolink:FoodAdditive"
+ENVIRONMENTAL_FOOD_CONTAMINANT = "biolink:EnvironmentalFoodContaminant"
+PROCESSED_MATERIAL = "biolink:ProcessedMaterial"

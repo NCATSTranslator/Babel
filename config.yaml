@@ -1,3 +1,14 @@
+# Build information. Currently unstructured -- you can use this to write down any notes on what is going on with
+# this specific build of Babel.
+build:
+  branch: babel-1.15
+
+# Versions that need to be updated on every release.
+biolink_version: "4.3.6"
+umls_version: "2025AB"
+rxnorm_version: "12012025"
+drugbank_version: "5-1-13"
+
 # Overall inputs and outputs.
 input_directory: input_data
 download_directory: babel_downloads
@@ -5,11 +16,20 @@ intermediate_directory: babel_outputs/intermediate
 output_directory: babel_outputs
 tmp_directory: babel_downloads/tmp
 
-# Versions that need to be updated on every release.
-biolink_version: "4.2.6-rc5"
-umls_version: "2025AA"
-rxnorm_version: "07072025"
-drugbank_version: "5-1-13"
+#
+# SHARED
+#
+
+# DuckDB settings for use in all DuckDB connections:
+duckdb_config: {}
+
+#
+# UMLS
+#
+umls:
+  subset: "full"
+  # Replace with "level-0" to get only the level 0 subset (https://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html).
+  # subset: "level-0"
 
 #
 # PROTEINS
@@ -21,7 +41,6 @@ UMLS_UniProtKB_download_raw_url: "https://raw.githubusercontent.com/cbizon/UMLS_
 #
 # The rest of these configs need to be cleaned up.
 #
-
 
 ncbi_files:
   - gene2ensembl.gz
@@ -40,6 +59,7 @@ generate_dirs_for_labels_and_synonyms_prefixes:
   - MONDO
   - PR
 
+# TODO: This doesn't appear to be used anywhere -- but it might be neat to use this list to make sure we got all of them.
 ubergraph_ontologies:
   - UBERON
   - CL
@@ -388,11 +408,7 @@ preferred_name_boost_prefixes:
     - DrugCentral
     - CHEBI
     - MESH
-    - CHEMBL.COMPOUND
     - GTOPDB
-    - HMDB
-    - RXCUI
-    - PUBCHEM.COMPOUND
 
 ensembl_datasets_to_skip:
   - elucius_gene_ensembl
@@ -401,7 +417,5 @@ ensembl_datasets_to_skip:
   - otshawytscha_gene_ensembl
   - aocellaris_gene_ensembl
 
-duckdb_config: {}
-
-demote_labels_longer_than: 15
+demote_labels_longer_than: 25
 
