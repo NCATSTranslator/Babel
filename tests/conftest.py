@@ -62,7 +62,6 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if item.get_closest_marker("timeout"):
             continue  # explicit override wins
-        for mark_name, seconds in _MARK_TIMEOUTS.items():
-            if item.get_closest_marker(mark_name):
-                item.add_marker(pytest.mark.timeout(seconds))
-                break
+        applicable = [seconds for mark_name, seconds in _MARK_TIMEOUTS.items() if item.get_closest_marker(mark_name)]
+        if applicable:
+            item.add_marker(pytest.mark.timeout(max(applicable)))
