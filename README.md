@@ -282,7 +282,8 @@ environment variable to document which version of Babel you are running.
 If you want to contribute to Babel, start with the
 [Contributing to Babel](./CONTRIBUTING.md) documentation. This will provide
 guidance on how the source code is organized, what contributions are most
-useful, and how to run the tests.
+useful, and how to run the tests. For a deeper look at the development
+workflow and ideas for improving it, see [Developing Babel](./docs/Development.md).
 
 ## Contact information
 

@@ -28,48 +28,9 @@ us triage and prioritize them correctly.
    would also appreciate if you can include what you expect the tool to return.
    Any other details you can provide, especially anything that will be help us
    replicate the issue, will be very helpful.
-1. After you have reported a bug, helping to triage, prioritize and group it
-   will be very helpful:
-   - We triage issues into one of the
-     [milestones](https://github.com/NCATSTranslator/Babel/milestones):
-     - [Needs investigation](https://github.com/NCATSTranslator/Babel/milestone/12)
-       refers to issues that need to be investigated further -- either to figure
-       out what is causing the issue or to communicate with the user community
-       to understand what should occur.
-     - [Immediate](https://github.com/NCATSTranslator/Babel/milestone/35) need
-       to be fixed immediately. Issues I'm currently working on will be placed
-       here.
-     - [Needed soon](https://github.com/NCATSTranslator/Babel/milestone/30)
-       refers to issues that should be fixed in the next few months: not
-       immediately, but sooner rather than later.
-     - [Needed later](https://github.com/NCATSTranslator/Babel/milestone/31)
-       refers to issues that should be fixed eventually, but are not needed
-       immediately.
-   - We prioritize issues with one of the three priority tags:
-     [Priority: Low](https://github.com/NCATSTranslator/Babel/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22Priority%3A%20Low%22),
-     [Priority: Medium](https://github.com/NCATSTranslator/Babel/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22Priority%3A%20Medium%22),
-     [Priority: High](https://github.com/NCATSTranslator/Babel/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22Priority%3A%20High%22).
-     The idea is that issues with the highest priority will determine which will be
-     investigated/tested first, and which are most likely to move from Needed later/Needed soon into
-     Immediate for working on.
-   - We estimate effort on tasks using a series of
-     ["T-shirt sizes"](https://asana.com/resources/t-shirt-sizing):
-     [Size: XS](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20XS%22),
-     [Size: S](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20S%22),
-     [Size: M](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20M%22),
-     [Size: L](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20L%22),
-     [Size: XL](https://github.com/NCATSTranslator/Babel/issues?q=state%3Aopen%20label%3A%22Size%3A%20XL%22).
-     These are to help distinguish between tasks that are easy to complete (extra small) and those
-     that will require a lot of thinking, programming and testing (extra large).
-   - You can group issues in two ways:
-     - GitHub lets you chose a "parent" issue for each issue, which is useful for issues that are
-       related to each other. We try to build "issues of issues" that group together similar issues
-       that might require similar fixes (e.g.
-       [our issue tracking deprecated identifiers](https://github.com/NCATSTranslator/Babel/issues/93)).
-       If you find an issue related to yours, please feel free to add yours as a child of the
-       existing issue or vice versa.
-     - You can use labels to group similar issues. We don't have a lot of labels
-       for you to choose from, but feel free to add any that make sense!
+1. For guidance on how to assign priority, impact and size fields, group related
+   issues, and track when your issue is likely to be addressed, see
+   [docs/Triage.md](./docs/Triage.md).
 
 ## Contributing source code
 
@@ -78,6 +39,10 @@ into its [data handlers](./src/datahandlers) and
 [compendia creators](./src/createcompendia). The heart of its data are its
 concord files, which contain cross-references between different databases. These
 are combined into compendium files and synonyms.
+
+For a detailed guide to the development workflow — including how to obtain
+prerequisites, build individual compendia, and ideas for making the pipeline
+easier to work with — see [Developing Babel](./docs/Development.md).
 
 We use three linters to check the style of submitted code in GitHub pull
 requests -- don't worry if this is difficult to do at your end, as it is easy to
@@ -118,10 +83,6 @@ TODO
 
 Babel has two frontends: the [Node Normalizer] for exposing information about
 cliques, and the [Name Resolver], which lets you search by synonyms or names.
-
--
--
--
 
 [babel issue tracker]: https://github.com/NCATSTranslator/Babel/issues/
 [name resolver]: https://github.com/NCATSTranslator/NameResolution
