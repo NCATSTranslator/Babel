@@ -10,7 +10,7 @@ from src.LabeledID import LabeledID
 # "type" is a single biolink type string, not a list of ancestors.
 
 
-@pytest.mark.unit
+@pytest.mark.network
 def test_get_ancestors(node_factory):
     """ """
     ancestors = node_factory.get_ancestors("biolink:ChemicalEntity")
@@ -26,7 +26,7 @@ def test_get_ancestors(node_factory):
     assert "biolink:ChemicalEntityOrProteinOrPolypeptide" in ancestors
 
 
-@pytest.mark.unit
+@pytest.mark.network
 def test_prefixes(node_factory):
     prefixes = node_factory.get_prefixes("biolink:SmallMolecule")
     # Prefix order and membership reflect biolink 4.3.6; update this list when the
@@ -60,7 +60,7 @@ def test_prefixes(node_factory):
     assert prefixes == expected_prefixes
 
 
-@pytest.mark.unit
+@pytest.mark.network
 def test_taxon_prefixes(node_factory):
     """There was some churn in biolink around organism, so we had it specialcased for a while"""
     prefixes = node_factory.get_prefixes("biolink:OrganismTaxon")
@@ -68,7 +68,7 @@ def test_taxon_prefixes(node_factory):
     assert prefixes == expected_prefixes
 
 
-@pytest.mark.unit
+@pytest.mark.network
 def test_normalization(node_factory):
     """Basic normalization - do we pick the right identifier?  Note that the identifiers are made up."""
     node = node_factory.create_node(["MESH:D012034", "CHEBI:1234"], "biolink:SmallMolecule")
@@ -80,7 +80,7 @@ def test_normalization(node_factory):
     assert node["type"] == "biolink:SmallMolecule"  # type is now a single string, not a list
 
 
-@pytest.mark.unit
+@pytest.mark.network
 def test_normalization_bad_prefix(node_factory):
     """When we include the prefix CHEMBL, it does not get added to the list of prefixes (it should be CHEMBL.COMPOUND)"""
     node = node_factory.create_node(["MESH:D012034", "CHEBI:1234", "CHEMBL:CHEMBL123"], "biolink:SmallMolecule")
@@ -91,7 +91,7 @@ def test_normalization_bad_prefix(node_factory):
     assert "CHEBI:1234" in ids
 
 
-@pytest.mark.unit
+@pytest.mark.network
 def test_normalization_labeled_id(node_factory):
     """Make sure that the node creator can handle labels passed as a dict"""
     labels = {"CHEBI:1234": "name"}
@@ -102,7 +102,7 @@ def test_normalization_labeled_id(node_factory):
     assert "MESH:D012034" in [x["identifier"] for x in node["identifiers"]]
 
 
-@pytest.mark.unit
+@pytest.mark.network
 def test_labeling_2(node_factory):
     """Labels remain on the identifier that owns them; they are not promoted to the preferred node.
     Here only the dictyBase identifier has a label."""
@@ -119,7 +119,7 @@ def test_labeling_2(node_factory):
     assert "label" not in node["identifiers"][0]
 
 
-@pytest.mark.unit
+@pytest.mark.network
 def test_clean_list(node_factory):
     input = frozenset({"UMLS:C1839767", "UMLS:C1853383", LabeledID("HP:0010804", "Tented upper lip vermilion"), "UMLS:C1850072", "HP:0010804"})
     output = node_factory.clean_list(input)
@@ -132,7 +132,7 @@ def test_clean_list(node_factory):
     assert lidfound
 
 
-@pytest.mark.unit
+@pytest.mark.network
 def test_losing_umls(node_factory):
     input = frozenset({"HP:0010804", "UMLS:C1839767", "UMLS:C1853383", "HP:0010804", "UMLS:C1850072"})
     node = node_factory.create_node(input, "biolink:PhenotypicFeature", {"HP:0010804": "Tented upper lip vermilion"})
@@ -141,7 +141,7 @@ def test_losing_umls(node_factory):
     assert len(node["identifiers"]) == 4  # HP + 3 UMLS
 
 
-@pytest.mark.unit
+@pytest.mark.network
 def test_same_value_different_prefix(node_factory):
     input = frozenset({"FB:FBgn0261954", "ENSEMBL:FBgn0261954", "NCBIGene:46006"})
     node = node_factory.create_node(input, "biolink:Gene", {})
@@ -149,7 +149,7 @@ def test_same_value_different_prefix(node_factory):
     assert len(set([x["identifier"] for x in node["identifiers"]])) == 3
 
 
-@pytest.mark.unit
+@pytest.mark.network
 def test_pubchem_simple(node_factory):
     """When multiple PUBCHEM.COMPOUND identifiers exist, prefer the one whose label matches other
     identifiers in the clique.  In biolink 4.3.6 CHEBI ranks above PUBCHEM.COMPOUND, so CHEBI is
@@ -165,7 +165,7 @@ def test_pubchem_simple(node_factory):
     assert node["identifiers"][1]["label"] == "water"
 
 
-@pytest.mark.unit
+@pytest.mark.network
 def test_pubchem_no_match(node_factory):
     """When no PUBCHEM label matches other identifiers, prefer the one with the shortest label."""
     node = node_factory.create_node(
@@ -179,7 +179,7 @@ def test_pubchem_no_match(node_factory):
     assert node["identifiers"][1]["label"] == "h"
 
 
-@pytest.mark.unit
+@pytest.mark.network
 def test_pubchem_ignore_CID(node_factory):
     """When choosing the shortest PUBCHEM label, skip labels that start with 'CID'."""
     node = node_factory.create_node(

@@ -46,11 +46,13 @@ PYTHONPATH=. uv run pytest -n 4 -m unit                  # 4 workers, unit tests
 
 ### Core
 
-- **`test_node_factory.py`** (`unit`) — Tests `NodeFactory`, the central class for building
+- **`test_node_factory.py`** (`network`) — Tests `NodeFactory`, the central class for building
   normalized nodes. Covers ancestor retrieval, prefix ordering, identifier
   normalization (selecting the best CURIE from an equivalence set), label
   application, UMLS filtering, PubChem disambiguation, and deduplication of
-  `LabeledID` objects. Uses fixture data from `data/`.
+  `LabeledID` objects. Marked `network` because the `node_factory` fixture calls
+  `bmt.Toolkit`, which fetches `biolink-model.yaml` and `predicate_mapping.yaml`
+  from GitHub on first use.
 
 - **`test_glom.py`** (`unit`) — Tests the `glom` utility, which merges pairwise identifier
   sets into equivalence cliques (union-find). Covers basic merging, iterative
@@ -101,6 +103,10 @@ The `test/data` directory contains fixture files used by several tests:
 
 ### Test infrastructure improvements
 
+- **Bundle the Biolink Model locally** — The `node_factory` fixture calls `bmt.Toolkit`, which
+  fetches `biolink-model.yaml` and `predicate_mapping.yaml` from GitHub on first use. Shipping a
+  pinned copy of those files with the repo (or using VCR cassettes) would let all 13 tests in
+  `test_node_factory.py` run offline and be re-marked `unit`.
 - **`responses` / `pytest-httpserver`** — Use HTTP mocking to test `ThrottledRequester` and other
   HTTP-calling code without a live service. This would let `test_ThrottledRequester.py` be
   re-marked `unit` and become reliably deterministic.
