@@ -72,19 +72,19 @@ expected_content_reports = []
 for compendium_filename in compendia_files:
     # Remove the extension from compendium_filename using os.path
     compendium_basename = os.path.splitext(compendium_filename)[0]
-    report_filename = f"{config['output_directory']}/reports/content/compendia/{compendium_basename}.json"
+    report_filename = config["output_directory"] + "/reports/content/compendia/" + compendium_basename + ".json"
 
     expected_content_reports.append(report_filename)
 
     rule:
         name:
-            f"generate_content_report_for_compendium_{compendium_basename}"
+            "generate_content_report_for_compendium_" + compendium_basename
         input:
-            compendium_file=f"{config['output_directory']}/compendia/{compendium_filename}",
+            compendium_file=config["output_directory"] + "/compendia/" + compendium_filename,
         output:
             report_file=report_filename,
         benchmark:
-            f"{config['output_directory']}/benchmarks/generate_content_report_for_compendium_{compendium_basename}.tsv"
+            config["output_directory"] + "/benchmarks/generate_content_report_for_compendium_" + compendium_basename + ".tsv"
         run:
             generate_content_report_for_compendium(input.compendium_file, output.report_file)
 
