@@ -121,8 +121,8 @@ def test_labeling_2(node_factory):
 
 @pytest.mark.network
 def test_clean_list(node_factory):
-    input = frozenset({"UMLS:C1839767", "UMLS:C1853383", LabeledID("HP:0010804", "Tented upper lip vermilion"), "UMLS:C1850072", "HP:0010804"})
-    output = node_factory.clean_list(input)
+    input_ids = frozenset({"UMLS:C1839767", "UMLS:C1853383", LabeledID("HP:0010804", "Tented upper lip vermilion"), "UMLS:C1850072", "HP:0010804"})
+    output = node_factory.clean_list(input_ids)
     assert len(output) == 4
     lidfound = False
     for x in output:
@@ -134,8 +134,8 @@ def test_clean_list(node_factory):
 
 @pytest.mark.network
 def test_losing_umls(node_factory):
-    input = frozenset({"HP:0010804", "UMLS:C1839767", "UMLS:C1853383", "HP:0010804", "UMLS:C1850072"})
-    node = node_factory.create_node(input, "biolink:PhenotypicFeature", {"HP:0010804": "Tented upper lip vermilion"})
+    input_ids = frozenset({"HP:0010804", "UMLS:C1839767", "UMLS:C1853383", "HP:0010804", "UMLS:C1850072"})
+    node = node_factory.create_node(input_ids, "biolink:PhenotypicFeature", {"HP:0010804": "Tented upper lip vermilion"})
     assert node["identifiers"][0]["identifier"] == "HP:0010804"
     assert node["identifiers"][0]["label"] == "Tented upper lip vermilion"
     assert len(node["identifiers"]) == 4  # HP + 3 UMLS
@@ -143,8 +143,8 @@ def test_losing_umls(node_factory):
 
 @pytest.mark.network
 def test_same_value_different_prefix(node_factory):
-    input = frozenset({"FB:FBgn0261954", "ENSEMBL:FBgn0261954", "NCBIGene:46006"})
-    node = node_factory.create_node(input, "biolink:Gene", {})
+    input_ids = frozenset({"FB:FBgn0261954", "ENSEMBL:FBgn0261954", "NCBIGene:46006"})
+    node = node_factory.create_node(input_ids, "biolink:Gene", {})
     assert len(node["identifiers"]) == 3
     assert len(set([x["identifier"] for x in node["identifiers"]])) == 3
 
