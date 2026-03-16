@@ -23,7 +23,10 @@ rule verify_pubmed:
         done_file=config["download_directory"] + "/PubMed/verified",
     run:
         publications.verify_pubmed_downloads(
-            [config["download_directory"] + "/PubMed/baseline", config["download_directory"] + "/PubMed/updatefiles"],
+            [
+                config["download_directory"] + "/PubMed/baseline",
+                config["download_directory"] + "/PubMed/updatefiles",
+            ],
             output.done_file,
         )
 
