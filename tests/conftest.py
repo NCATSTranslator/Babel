@@ -3,9 +3,10 @@ import os
 import pytest
 
 from src.node import NodeFactory
+from src.util import get_config
 
 # Biolink Model version used throughout the test suite.  Should match config.yaml.
-BIOLINK_VERSION = "4.3.6"
+BIOLINK_VERSION = get_config()["biolink_version"]
 
 
 @pytest.fixture(scope="session")
