@@ -84,7 +84,12 @@ for compendium_filename in compendia_files:
         output:
             report_file=report_filename,
         benchmark:
-            config["output_directory"] + "/benchmarks/generate_content_report_for_compendium_" + compendium_basename + ".tsv"
+            (
+                config["output_directory"]
+                + "/benchmarks/generate_content_report_for_compendium_"
+                + compendium_basename
+                + ".tsv"
+            )
         run:
             generate_content_report_for_compendium(input.compendium_file, output.report_file)
 
