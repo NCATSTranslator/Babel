@@ -5,6 +5,11 @@ from util import gzip_files
 ### Gene / Protein
 
 
+# Trivial done-marker rule runs locally so it doesn't consume a SLURM slot.
+localrules:
+    geneprotein,
+
+
 rule geneprotein_uniprot_relationships:
     input:
         infile=config["download_directory"] + "/UniProtKB/idmapping.dat",

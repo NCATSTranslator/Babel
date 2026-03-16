@@ -11,6 +11,7 @@ localrules:
     export_all_compendia_to_duckdb,
     export_all_synonyms_to_duckdb,
     export_all_to_duckdb,
+    all_duckdb_reports,
 
 
 # Write all compendia files to DuckDB and Parquet, then create `babel_outputs/duckdb/compendia_done` to signal that we're done.

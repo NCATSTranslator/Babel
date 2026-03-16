@@ -120,7 +120,10 @@ SLURM allocation. They are trivial done-marker rules (e.g. `echo 'done'` or `wri
 | `export_all_compendia_to_duckdb` | `duckdb.snakefile` |
 | `export_all_synonyms_to_duckdb` | `duckdb.snakefile` |
 | `export_all_to_duckdb` | `duckdb.snakefile` |
+| `all_duckdb_reports` | `duckdb.snakefile` |
 | `all_reports` | `reports.snakefile` |
+| `geneprotein` | `geneprotein.snakefile` |
+| `drugchemical` | `drugchemical.snakefile` |
 
 ## Out-of-Scope Improvements (Future Work)
 

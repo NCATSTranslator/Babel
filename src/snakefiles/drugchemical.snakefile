@@ -6,6 +6,11 @@ from src.metadata.provenance import write_concord_metadata
 ### Drug / Chemical
 
 
+# Trivial done-marker rule runs locally so it doesn't consume a SLURM slot.
+localrules:
+    drugchemical,
+
+
 rule rxnorm_relationships:
     input:
         rxnconso=config["download_directory"] + "/RxNorm/RXNCONSO.RRF",
