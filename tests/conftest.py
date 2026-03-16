@@ -8,6 +8,12 @@ from src.util import get_config
 # Biolink Model version used throughout the test suite.  Should match config.yaml.
 BIOLINK_VERSION = get_config()["biolink_version"]
 
+# Per-mark timeout overrides (pytest-timeout); unit tests inherit the global timeout = 30
+MARK_TIMEOUTS = {
+    "network": 600,
+    "slow": 600,
+    "pipeline": 3600,
+}
 
 @pytest.fixture(scope="session")
 def node_factory():
@@ -54,15 +60,9 @@ def pytest_collection_modifyitems(config, items):
         if "pipeline" in item.keywords and not run_all and not config.getoption("--pipeline"):
             item.add_marker(skip_pipeline)
 
-    # Per-mark timeout overrides (pytest-timeout); unit tests inherit the global timeout = 30
-    _MARK_TIMEOUTS = {
-        "network": 600,
-        "slow": 600,
-        "pipeline": 3600,
-    }
     for item in items:
         if item.get_closest_marker("timeout"):
             continue  # explicit override wins
-        applicable = [seconds for mark_name, seconds in _MARK_TIMEOUTS.items() if item.get_closest_marker(mark_name)]
+        applicable = [seconds for mark_name, seconds in MARK_TIMEOUTS.items() if item.get_closest_marker(mark_name)]
         if applicable:
             item.add_marker(pytest.mark.timeout(max(applicable)))

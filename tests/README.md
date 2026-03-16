@@ -22,6 +22,8 @@ Tests are tagged with marks to control which subset runs in a given context:
 | `slow`     | Correct but takes >30s — large fixture processing, SQLite spill, etc.    | Sometimes | >30s             | 600 s   |
 | `pipeline` | Invokes Snakemake rules; requires `babel_downloads/` to be pre-populated | Yes       | Minutes–hours    | 3600 s  |
 
+You can adjust the timeout for marks in [conftest.py](conftest.py).
+
 ### Default behavior
 
 - `pytest` alone: runs `unit` and `slow` tests; skips `network` and `pipeline`
