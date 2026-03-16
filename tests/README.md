@@ -11,7 +11,7 @@ PYTHONPATH=. uv run pytest tests/test_glom.py        # Single test file
 Coverage is opt-in: pass `--cov=src` (or `--cov=src --cov-report=html`) to generate
 a report. Coverage configuration is in `pyproject.toml` under `[tool.coverage.*]`.
 
-## Mark Taxonomy
+## Marks
 
 Tests are tagged with marks to control which subset runs in a given context:
 
@@ -38,10 +38,10 @@ PYTHONPATH=. uv run pytest -m unit                        # unit tests only (CI 
 PYTHONPATH=. uv run pytest -m "unit or network" --network # unit + live-service checks
 PYTHONPATH=. uv run pytest -m "unit or slow"              # unit + slow offline tests
 PYTHONPATH=. uv run pytest --all                          # run every test
-PYTHONPATH=. uv run pytest -m pipeline --pipeline -x     # one Snakemake-triggering test at a time
+PYTHONPATH=. uv run pytest -m pipeline --pipeline -x      # one Snakemake-triggering test at a time
 PYTHONPATH=. uv run pytest -m "not pipeline"              # everything except full pipeline runs
 PYTHONPATH=. uv run pytest -n auto --no-cov               # parallel (all CPUs), skip coverage
-PYTHONPATH=. uv run pytest -n 4 -m unit                  # 4 workers, unit tests only
+PYTHONPATH=. uv run pytest -n 4 -m unit                   # 4 workers, unit tests only
 ```
 
 ## Test Files
@@ -169,8 +169,5 @@ Example tests:
 
 ### Deduplication / cleanup
 
-- `test_chemicals.py` and `test_uber.py` are currently identical. Consolidate into one file or
-  give each a distinct focus (e.g. chemicals-specific SPARQL queries vs. general UberGraph
-  behaviour).
 - Move `test_geneproteiny.py` assertions to also check individual clique contents, not just that
   the output file is non-empty.
