@@ -72,10 +72,10 @@ PYTHONPATH=. uv run pytest -n 4 -m unit                  # 4 workers, unit tests
 
 ### Compendia
 
-- **`test_chemicals.py`** / **`test_uber.py`** (`network`, `xfail`) — Both test the
+- **`test_uber.py`** (`network`, `xfail`) — Tests the
   `UberGraph` class for querying ontology subclasses and cross-references via SPARQL.
-  Cover direct and indirect subclass retrieval, filtering by cross-reference presence,
-  and exact-match label queries. (These two files are currently identical.)
+  Covers direct and indirect subclass retrieval, filtering by cross-reference presence,
+  and exact-match label queries.
 
 - **`test_geneproteiny.py`** (`unit`) — Integration test for gene-protein conflation. Runs
   `build_compendium` with gene and protein compendia plus a concordance file from
