@@ -350,7 +350,11 @@ rule chemical_compendia:
         config["output_directory"] + "/benchmarks/chemical_compendia.tsv"
     run:
         chemicals.build_compendia(
-            input.typesfile, input.untyped_file, input.properties_jsonl_gz, input.metadata_yamls, input.icrdf_filename
+            input.typesfile,
+            input.untyped_file,
+            input.properties_jsonl_gz,
+            input.metadata_yamls,
+            input.icrdf_filename,
         )
 
 

@@ -1,8 +1,11 @@
-from src.babel_utils import glom
-
 """glom is a tool that looks at list of sets of values and combines them together if they share members"""
 
+import pytest
 
+from src.babel_utils import glom
+
+
+@pytest.mark.unit
 def test_uberon():
     uberon = [("UBERON:123",)]
     dict = {}
@@ -12,6 +15,7 @@ def test_uberon():
     print(dict)
 
 
+@pytest.mark.unit
 def test_simple():
     """Given 3 sets, 2 of which share a member, output 2 sets, with the sharing sets combined"""
     d = {}
@@ -23,6 +27,7 @@ def test_simple():
     assert d["4"] == d["5"] == {"4", "5"}
 
 
+@pytest.mark.unit
 def test_two_calls():
     """Test using glom iteratively. The first call joins the first two sets, then the second call joins
     the next two and the new set."""
@@ -35,6 +40,7 @@ def test_two_calls():
     assert d["4"] == d["5"] == d["6"] == d["7"] == {"4", "5", "6", "7"}
 
 
+@pytest.mark.unit
 def test_sets():
     """Test using set() as opposed to {}"""
     d = {}
@@ -46,6 +52,7 @@ def test_sets():
     assert d["4"] == d["5"] == d["6"] == d["7"] == {"4", "5", "6", "7"}
 
 
+@pytest.mark.unit
 def test_bigger_sets():
     """Test when the sets have more than two members.
     As of recent builds, we no longer expect this to work.

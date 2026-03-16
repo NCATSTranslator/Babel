@@ -42,7 +42,9 @@ rule check_macromolecular_complex_completeness:
         config["output_directory"] + "/benchmarks/check_macromolecular_complex_completeness.tsv"
     run:
         assessments.assess_completeness(
-            config["intermediate_directory"] + "/macromolecular_complex/ids", input.input_compendia, output.report_file
+            config["intermediate_directory"] + "/macromolecular_complex/ids",
+            input.input_compendia,
+            output.report_file,
         )
 
 

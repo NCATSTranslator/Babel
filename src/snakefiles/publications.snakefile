@@ -30,7 +30,10 @@ rule verify_pubmed:
         config["output_directory"] + "/benchmarks/verify_pubmed.tsv"
     run:
         publications.verify_pubmed_downloads(
-            [config["download_directory"] + "/PubMed/baseline", config["download_directory"] + "/PubMed/updatefiles"],
+            [
+                config["download_directory"] + "/PubMed/baseline",
+                config["download_directory"] + "/PubMed/updatefiles",
+            ],
             output.done_file,
         )
 

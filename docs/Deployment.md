@@ -1,4 +1,4 @@
-# Release information for Babel, NodeNorm and NameRes
+# Deployment information for Babel, NodeNorm and NameRes
 
 There are two main installations of NodeNorm that would be of interest
 to users who aren't system administrators for these tools:
@@ -19,16 +19,18 @@ to users who aren't system administrators for these tools:
       server.
    2. Update the Translator-devops repo with the URL to these Babel output files.
    3. Create a [Redis R3 External] instance to store identifiers.
-   4. Run the [NodeNorm loader] to load the Babel outputs into the redis r3 instance.
-   5. Create a [NodeNorm web server] to share the data in the redis r3 instance.
-4. Deploy a new NameRes instance
+   4. Run the [NodeNorm loader] to load the Babel outputs into a Redis instance.
+   5. Create a [NodeNorm web server] to share the data in a Redis instance.
+4. Deploy a new NameRes instance (either
+   [locally](https://github.com/NCATSTranslator/NameResolution/blob/master/documentation/Deployment.md)
+   or
+   [on Kubernetes](https://github.com/helxplatform/translator-devops/tree/ed25b5f5bfe2383ade8457da97341c90500f5291/helm/name-lookup))
    1. Create an empty Apache Solr instance.
    2. Load it with synonym information from Babel outputs.
    3. Write out a Solr backup and store it as a tarball.
    4. Copy the Solr backup to a publicly accessible URL.
    5. Update the Translator-devops repo with the new URL.
-   6. Create a NameRes instance that will download the Solr backup and start the instance with it
-      (see [NameRes devops] for information).
+   6. Create a NameRes instance that will download the Solr backup and start the instance with it.
 5. Use the [Babel Validator] to test this release and check how it performs compared to the previous
    release.
 6. Use the
@@ -55,4 +57,3 @@ to users who aren't system administrators for these tools:
 [Redis R3 External]: https://github.com/helxplatform/translator-devops/tree/ed25b5f5bfe2383ade8457da97341c90500f5291/helm/redis-r3-external
 [NodeNorm loader]: https://github.com/helxplatform/translator-devops/tree/ed25b5f5bfe2383ade8457da97341c90500f5291/helm/node-normalization-loader
 [NodeNorm web server]: https://github.com/helxplatform/translator-devops/tree/ed25b5f5bfe2383ade8457da97341c90500f5291/helm/node-normalization-web-server
-[NameRes devops]: https://github.com/helxplatform/translator-devops/tree/ed25b5f5bfe2383ade8457da97341c90500f5291/helm/name-lookup
