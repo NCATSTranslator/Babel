@@ -73,6 +73,7 @@ def test_normalization(node_factory):
     """Basic normalization - do we pick the right identifier?  Note that the identifiers are made up."""
     node = node_factory.create_node(["MESH:D012034", "CHEBI:1234"], "biolink:SmallMolecule")
     assert node["identifiers"][0]["identifier"] == "CHEBI:1234"  # CHEBI ranks above MESH
+    assert node["id"]["identifier"] == "CHEBI:1234"  # node["id"] is an alias for node["identifiers"][0]
     assert len(node["identifiers"]) == 2
     ids = [x["identifier"] for x in node["identifiers"]]
     assert "MESH:D012034" in ids
@@ -85,10 +86,12 @@ def test_normalization_bad_prefix(node_factory):
     """When we include the prefix CHEMBL, it does not get added to the list of prefixes (it should be CHEMBL.COMPOUND)"""
     node = node_factory.create_node(["MESH:D012034", "CHEBI:1234", "CHEMBL:CHEMBL123"], "biolink:SmallMolecule")
     assert node["identifiers"][0]["identifier"] == "CHEBI:1234"
+    assert node["id"]["identifier"] == "CHEBI:1234"  # node["id"] is an alias for node["identifiers"][0]
     assert len(node["identifiers"]) == 2  # CHEMBL: filtered out, only CHEBI + MESH remain
     ids = [x["identifier"] for x in node["identifiers"]]
     assert "MESH:D012034" in ids
     assert "CHEBI:1234" in ids
+    assert node["type"] == "biolink:SmallMolecule"
 
 
 @pytest.mark.network
@@ -98,8 +101,11 @@ def test_normalization_labeled_id(node_factory):
     node = node_factory.create_node(["MESH:D012034", "CHEBI:1234", "CHEMBL:CHEMBL123"], "biolink:SmallMolecule", labels)
     assert node["identifiers"][0]["identifier"] == "CHEBI:1234"
     assert node["identifiers"][0]["label"] == "name"
+    assert node["id"]["identifier"] == "CHEBI:1234"  # node["id"] is an alias for node["identifiers"][0]
+    assert node["id"]["label"] == "name"
     assert len(node["identifiers"]) == 2
     assert "MESH:D012034" in [x["identifier"] for x in node["identifiers"]]
+    assert node["type"] == "biolink:SmallMolecule"
 
 
 @pytest.mark.network
@@ -117,6 +123,9 @@ def test_labeling_2(node_factory):
     assert node["identifiers"][2]["label"] == "name"
     # The preferred identifier (NCBIGene) has no label because none was provided for it
     assert "label" not in node["identifiers"][0]
+    assert node["id"]["identifier"] == f"{pref.NCBIGENE}:123"  # node["id"] is an alias for node["identifiers"][0]
+    assert "label" not in node["id"]
+    assert node["type"] == "biolink:Gene"
 
 
 @pytest.mark.network
@@ -138,7 +147,10 @@ def test_losing_umls(node_factory):
     node = node_factory.create_node(input_ids, "biolink:PhenotypicFeature", {"HP:0010804": "Tented upper lip vermilion"})
     assert node["identifiers"][0]["identifier"] == "HP:0010804"
     assert node["identifiers"][0]["label"] == "Tented upper lip vermilion"
+    assert node["id"]["identifier"] == "HP:0010804"  # node["id"] is an alias for node["identifiers"][0]
+    assert node["id"]["label"] == "Tented upper lip vermilion"
     assert len(node["identifiers"]) == 4  # HP + 3 UMLS
+    assert node["type"] == "biolink:PhenotypicFeature"
 
 
 @pytest.mark.network
@@ -147,6 +159,8 @@ def test_same_value_different_prefix(node_factory):
     node = node_factory.create_node(input_ids, "biolink:Gene", {})
     assert len(node["identifiers"]) == 3
     assert len(set([x["identifier"] for x in node["identifiers"]])) == 3
+    assert node["id"] == node["identifiers"][0]
+    assert node["type"] == "biolink:Gene"
 
 
 @pytest.mark.network
@@ -160,9 +174,12 @@ def test_pubchem_simple(node_factory):
         {f"{pref.PUBCHEMCOMPOUND}:999": "water", f"{pref.PUBCHEMCOMPOUND}:111": "h", f"{pref.CHEBI}:XYZ": "WATER"},
     )
     assert node["identifiers"][0]["identifier"] == f"{pref.CHEBI}:XYZ"  # CHEBI wins overall
+    assert node["id"]["identifier"] == f"{pref.CHEBI}:XYZ"  # node["id"] is an alias for node["identifiers"][0]
+    assert node["id"]["label"] == "WATER"
     # Among the two PUBCHEMs, :999 ("water") matches the CHEBI label "WATER" → ranked first
     assert node["identifiers"][1]["identifier"] == f"{pref.PUBCHEMCOMPOUND}:999"
     assert node["identifiers"][1]["label"] == "water"
+    assert node["type"] == "biolink:SmallMolecule"
 
 
 @pytest.mark.network
@@ -174,9 +191,12 @@ def test_pubchem_no_match(node_factory):
         {f"{pref.PUBCHEMCOMPOUND}:999": "h", f"{pref.PUBCHEMCOMPOUND}:111": "water", f"{pref.CHEBI}:XYZ": "blahblah"},
     )
     assert node["identifiers"][0]["identifier"] == f"{pref.CHEBI}:XYZ"  # CHEBI wins overall
+    assert node["id"]["identifier"] == f"{pref.CHEBI}:XYZ"  # node["id"] is an alias for node["identifiers"][0]
+    assert node["id"]["label"] == "blahblah"
     # Among the two PUBCHEMs, :999 ("h") has the shortest label → ranked first
     assert node["identifiers"][1]["identifier"] == f"{pref.PUBCHEMCOMPOUND}:999"
     assert node["identifiers"][1]["label"] == "h"
+    assert node["type"] == "biolink:SmallMolecule"
 
 
 @pytest.mark.network
@@ -188,6 +208,9 @@ def test_pubchem_ignore_CID(node_factory):
         {f"{pref.PUBCHEMCOMPOUND}:999": "CID1", f"{pref.PUBCHEMCOMPOUND}:111": "longerlabel", f"{pref.CHEBI}:XYZ": "blahblah"},
     )
     assert node["identifiers"][0]["identifier"] == f"{pref.CHEBI}:XYZ"  # CHEBI wins overall
+    assert node["id"]["identifier"] == f"{pref.CHEBI}:XYZ"  # node["id"] is an alias for node["identifiers"][0]
+    assert node["id"]["label"] == "blahblah"
     # :999 has label "CID1" which is ignored; :111 ("longerlabel") is preferred instead
     assert node["identifiers"][1]["identifier"] == f"{pref.PUBCHEMCOMPOUND}:111"
     assert node["identifiers"][1]["label"] == "longerlabel"
+    assert node["type"] == "biolink:SmallMolecule"

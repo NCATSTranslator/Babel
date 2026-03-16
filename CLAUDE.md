@@ -121,11 +121,11 @@ for `biolink:SmallMolecule`. Update `src/prefixes.py` whenever new prefixes appe
 **Node output schema** — `NodeFactory.create_node()` returns:
 
 ```python
-{"identifiers": [{"identifier": CURIE, "label": str}, ...], "type": "biolink:Foo"}
+{"identifiers": [{"identifier": CURIE, "label": str}, ...], "type": "biolink:Foo", "id": {"identifier": CURIE, "label": str}}
 ```
 
-`identifiers[0]` is the preferred identifier (highest-priority prefix). Labels remain on the
-identifier that owns them and are not promoted to the first entry.
+`identifiers[0]` is the preferred identifier (highest-priority prefix); `id` is an alias for
+`identifiers[0]`. Labels remain on the identifier that owns them and are not promoted to the first entry.
 
 ### Conflation
 
