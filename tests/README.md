@@ -93,7 +93,7 @@ PYTHONPATH=. uv run pytest -n 4 -m unit                  # 4 workers, unit tests
 
 ## Test Data
 
-The `test/data` directory contains fixture files used by several tests:
+The `tests/data` directory contains fixture files used by several tests:
 
 - `gptest_Gene.txt` — Sample gene compendium for gene-protein conflation tests
 - `gptest_Protein.txt` — Sample protein compendium
