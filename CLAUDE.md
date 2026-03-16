@@ -30,8 +30,18 @@ uv run snakemake --cores 1 chemical       # Another target
 
 ```bash
 PYTHONPATH=. uv run pytest                           # All tests
+PYTHONPATH=. uv run pytest --cov=src                 # With coverage report
 PYTHONPATH=. uv run pytest tests/test_node_factory.py  # Single test file
+PYTHONPATH=. uv run pytest -m unit -q               # Unit tests only (CI default)
+PYTHONPATH=. uv run pytest --network                # Include network tests
+PYTHONPATH=. uv run pytest --all                    # Run every test
+PYTHONPATH=. uv run pytest -n auto                  # Parallel (all CPUs)
 ```
+
+Tests use four marks: `unit` (fast, offline), `network` (requires internet, opt-in with
+`--network`), `slow` (>30s but offline), and `pipeline` (invokes Snakemake, opt-in with
+`--pipeline`). Use `--all` to opt in to everything at once. Network and pipeline tests are
+skipped by default. See `tests/README.md` for the full taxonomy.
 
 Note: not all tests currently pass (issue #602).
 
@@ -92,6 +102,30 @@ semantic type plus data collection, reports, exports, and DuckDB.
 - **Concord files** are the core data structure: tab-separated `CURIE1 \t Relation \t CURIE2`
   triples expressing cross-references between vocabularies. The `glom()` function in
   `babel_utils.py` merges them into equivalence cliques.
+
+### Biolink Model Usage
+
+The Biolink Model version is set in `config.yaml` (`biolink_version: "4.3.6"`) and is the single
+source of truth used by `NodeFactory` and `get_biolink_model_toolkit()`. The model is fetched from
+GitHub on first use (bmt may cache it locally).
+
+**Mapped class URIs** — always use the `biolink:`-prefixed form (e.g. `biolink:ChemicalEntity`),
+not the raw element name (`chemical entity`). `get_ancestors()` and `get_element()["class_uri"]`
+return these mapped forms.
+
+**Prefix ordering** — `src/prefixes.py` is the canonical registry of prefix string constants. The
+order of `id_prefixes` in the Biolink Model determines which CURIE is selected as the preferred
+identifier by `NodeFactory`. In biolink 4.3.6, for example, `CHEBI` ranks above `PUBCHEM.COMPOUND`
+for `biolink:SmallMolecule`. Update `src/prefixes.py` whenever new prefixes appear in the model.
+
+**Node output schema** — `NodeFactory.create_node()` returns:
+
+```python
+{"identifiers": [{"identifier": CURIE, "label": str}, ...], "type": "biolink:Foo"}
+```
+
+`identifiers[0]` is the preferred identifier (highest-priority prefix). Labels remain on the
+identifier that owns them and are not promoted to the first entry.
 
 ### Conflation
 
