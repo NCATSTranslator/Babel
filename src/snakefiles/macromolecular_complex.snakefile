@@ -36,7 +36,9 @@ rule check_macromolecular_complex_completeness:
         report_file=config["output_directory"] + "/reports/macromolecular_complex_completeness.txt",
     run:
         assessments.assess_completeness(
-            config["intermediate_directory"] + "/macromolecular_complex/ids", input.input_compendia, output.report_file
+            config["intermediate_directory"] + "/macromolecular_complex/ids",
+            input.input_compendia,
+            output.report_file,
         )
 
 
