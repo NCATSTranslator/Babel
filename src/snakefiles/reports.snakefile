@@ -7,6 +7,7 @@ from src.reports.compendia_per_file_reports import (
     generate_content_report_for_compendium,
     summarize_content_report_for_compendia,
 )
+from src.reports.conflation_reports import generate_taxon_report_for_geneprotein_conflation
 
 # Some paths we will use at multiple times in these reports.
 compendia_path = config["output_directory"] + "/compendia"
@@ -124,6 +125,22 @@ rule generate_mapping_sources_table:
         report_tables.generate_mapping_sources_table(input.metadata_yaml_files, output.mapping_sources_table)
 
 
+rule generate_taxon_report_for_geneprotein_conflation:
+    input:
+        conflation_file=config["output_directory"] + "/conflation/GeneProtein.txt",
+        gene_compendium=config["output_directory"] + "/compendia/Gene.txt",
+        protein_compendium=config["output_directory"] + "/compendia/Protein.txt",
+    output:
+        report_file=config["output_directory"] + "/reports/conflation/GeneProtein_taxa.json",
+    run:
+        generate_taxon_report_for_geneprotein_conflation(
+            input.conflation_file,
+            input.gene_compendium,
+            input.protein_compendium,
+            output.report_file,
+        )
+
+
 # Check that all the reports were built correctly.
 rule all_reports:
     input:
@@ -134,6 +151,7 @@ rule all_reports:
         config["output_directory"] + "/reports/tables/prefix_table.csv",
         config["output_directory"] + "/reports/tables/cliques_table.csv",
         config["output_directory"] + "/reports/tables/mapping_sources_table.csv",
+        config["output_directory"] + "/reports/conflation/GeneProtein_taxa.json",
     output:
         x=config["output_directory"] + "/reports/reports_done",
     shell:
