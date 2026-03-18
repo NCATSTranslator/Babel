@@ -113,7 +113,5 @@ rule drugchemical:
         config["output_directory"] + "/synonyms/DrugChemicalConflated.txt.gz",
     output:
         done=config["output_directory"] + "/reports/drugchemical_done",
-    benchmark:
-        config["output_directory"] + "/benchmarks/drugchemical.tsv"
     run:
         util.write_done(output.done)

@@ -66,8 +66,6 @@ rule geneprotein:
         config["output_directory"] + "/synonyms/GeneProteinConflated.txt.gz",
     output:
         x=config["output_directory"] + "/reports/geneprotein_done",
-    benchmark:
-        config["output_directory"] + "/benchmarks/geneprotein.tsv"
     shell:
         "echo 'done' >> {output.x}"
 

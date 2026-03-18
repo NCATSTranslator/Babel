@@ -340,6 +340,9 @@ rule get_icrdf:
 
 
 rule get_ncbigene:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         getfiles=expand(
             "{download_directory}/NCBIGene/{ncbi_files}",
@@ -377,6 +380,8 @@ rule get_ncbigene_labels_synonyms_and_taxa:
 
 rule get_ensembl:
     resources:
+        mem="8G",
+        cpus_per_task=1,
         runtime="6h",
     output:
         ensembl_dir=directory(config["download_directory"] + "/ENSEMBL"),
@@ -391,6 +396,9 @@ rule get_ensembl:
 
 
 rule get_hgnc:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/HGNC/hgnc_complete_set.json",
     benchmark:
@@ -415,6 +423,9 @@ rule get_hgnc_labels_and_synonyms:
 
 
 rule get_hgncfamily:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/HGNC.FAMILY/family.csv",
     benchmark:
@@ -440,6 +451,9 @@ rule get_hgncfamily_labels:
 
 
 rule get_pantherfamily:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/PANTHER.FAMILY/family.csv",
     benchmark:
@@ -464,6 +478,9 @@ rule get_pantherfamily_labels:
 
 
 rule get_omim:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/OMIM/mim2gene.txt",
     benchmark:
@@ -476,6 +493,9 @@ rule get_omim:
 
 
 rule get_ncit:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/NCIT/NCIt-SwissProt_Mapping.txt",
     benchmark:
@@ -488,6 +508,9 @@ rule get_ncit:
 
 
 rule get_doid:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/DOID/doid.json",
     benchmark:
@@ -512,6 +535,9 @@ rule get_doid_labels_and_synonyms:
 
 
 rule get_orphanet:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/Orphanet/Orphanet_Nomenclature_Pack_EN.zip",
     benchmark:
@@ -536,6 +562,9 @@ rule get_orphanet_labels_and_synonyms:
 
 
 rule get_reactome:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/REACT/Events.json",
     benchmark:

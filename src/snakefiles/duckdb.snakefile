@@ -235,7 +235,5 @@ rule all_duckdb_reports:
         by_clique_report_json=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
     output:
         x=config["output_directory"] + "/reports/duckdb/done",
-    benchmark:
-        config["output_directory"] + "/benchmarks/all_duckdb_reports.tsv"
     shell:
         "echo 'done' >> {output.x}"
