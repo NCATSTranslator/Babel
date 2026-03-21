@@ -300,7 +300,11 @@ rule chemical_compendia:
         expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["chemical_outputs"]),
     run:
         chemicals.build_compendia(
-            input.typesfile, input.untyped_file, input.properties_jsonl_gz, input.metadata_yamls, input.icrdf_filename
+            input.typesfile,
+            input.untyped_file,
+            input.properties_jsonl_gz,
+            input.metadata_yamls,
+            input.icrdf_filename,
         )
 
 

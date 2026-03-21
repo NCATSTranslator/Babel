@@ -3,15 +3,15 @@
 ## Running Tests
 
 ```bash
-PYTHONPATH=. uv run pytest                           # All tests (with coverage)
-PYTHONPATH=. uv run pytest --no-cov                  # Without coverage (faster)
+PYTHONPATH=. uv run pytest                           # All tests
+PYTHONPATH=. uv run pytest --cov=src                 # With coverage report
 PYTHONPATH=. uv run pytest tests/test_glom.py        # Single test file
 ```
 
-Coverage reports are generated automatically: a summary prints in the terminal and a
-browsable HTML report is written to `htmlcov/`.
+Coverage is opt-in: pass `--cov=src` (or `--cov=src --cov-report=html`) to generate
+a report. Coverage configuration is in `pyproject.toml` under `[tool.coverage.*]`.
 
-## Mark Taxonomy
+## Marks
 
 Tests are tagged with marks to control which subset runs in a given context:
 
@@ -20,24 +20,18 @@ Tests are tagged with marks to control which subset runs in a given context:
 | `unit`     | Pure functions, in-memory logic, small fixtures in `tests/data/`         | No        | Seconds          | 30 s    |
 | `network`  | Requires live internet (FTP, SPARQL, BioMart, external APIs)             | Yes       | Seconds–minutes  | 600 s   |
 | `slow`     | Correct but takes >30s — large fixture processing, SQLite spill, etc.    | Sometimes | >30s             | 600 s   |
-| `pipeline` | Invokes Snakemake rules; downloads prerequisite data automatically        | Yes       | Minutes–hours    | 3600 s  |
+| `pipeline` | Invokes Snakemake rules; requires `babel_downloads/` to be pre-populated | Yes       | Minutes–hours    | 3600 s  |
+
+You can adjust the timeout for marks in [conftest.py](conftest.py).
 
 ### Default behavior
 
 - `pytest` alone: runs `unit` and `slow` tests; skips `network` and `pipeline`
 - `pytest --network`: also runs `network` tests
-- `pytest --pipeline`: also runs `pipeline` tests (prerequisite data is downloaded automatically)
+- `pytest --pipeline`: also runs `pipeline` tests (ensure `babel_downloads/` exists first)
 - `pytest --pipeline --regenerate`: re-runs `write_X_ids()` even if intermediate files already
   exist (useful after changing compendium filtering logic; see **Caching** below)
 - `pytest --all`: runs everything (equivalent to `--network --pipeline`)
-
-> **Note on pipeline tests and coverage:** Always pass `--no-cov` when running pipeline tests.
-> Because `pytest-cov` and `pytest-xdist` are both installed, `pytest-cov` sets up
-> `execnet` communication channels for distributed coverage collection even when `-n` is not
-> used. When long-running pipeline fixtures (pyoxigraph RocksDB stores) are torn down,
-> their background threads can interfere with the `execnet` teardown, producing a
-> `PluggyTeardownRaisedWarning: OSError: cannot send (already closed?)` in
-> `pytest_sessionfinish`. Passing `--no-cov` disables coverage collection and avoids this.
 
 ### Convenience commands
 
@@ -56,11 +50,13 @@ PYTHONPATH=. uv run pytest -n 4 -m unit                        # 4 workers, unit
 
 ### Core
 
-- **`test_node_factory.py`** (`unit`) — Tests `NodeFactory`, the central class for building
+- **`test_node_factory.py`** (`network`) — Tests `NodeFactory`, the central class for building
   normalized nodes. Covers ancestor retrieval, prefix ordering, identifier
   normalization (selecting the best CURIE from an equivalence set), label
   application, UMLS filtering, PubChem disambiguation, and deduplication of
-  `LabeledID` objects. Uses fixture data from `data/`.
+  `LabeledID` objects. Marked `network` because the `node_factory` fixture calls
+  `bmt.Toolkit`, which fetches `biolink-model.yaml` and `predicate_mapping.yaml`
+  from GitHub on first use.
 
 - **`test_glom.py`** (`unit`) — Tests the `glom` utility, which merges pairwise identifier
   sets into equivalence cliques (union-find). Covers basic merging, iterative
@@ -136,10 +132,10 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
 
 ### Compendia
 
-- **`test_chemicals.py`** / **`test_uber.py`** (`network`, `xfail`) — Both test the
+- **`test_uber.py`** (`network`, `xfail`) — Tests the
   `UberGraph` class for querying ontology subclasses and cross-references via SPARQL.
-  Cover direct and indirect subclass retrieval, filtering by cross-reference presence,
-  and exact-match label queries. (These two files are currently identical.)
+  Covers direct and indirect subclass retrieval, filtering by cross-reference presence,
+  and exact-match label queries.
 
 - **`test_geneproteiny.py`** (`unit`) — Integration test for gene-protein conflation. Runs
   `build_compendium` with gene and protein compendia plus a concordance file from
@@ -157,7 +153,7 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
 
 ## Test Data
 
-The `test/data` directory contains fixture files used by several tests:
+The `tests/data` directory contains fixture files used by several tests:
 
 - `gptest_Gene.txt` — Sample gene compendium for gene-protein conflation tests
 - `gptest_Protein.txt` — Sample protein compendium
@@ -167,6 +163,10 @@ The `test/data` directory contains fixture files used by several tests:
 
 ### Test infrastructure improvements
 
+- **Bundle the Biolink Model locally** — The `node_factory` fixture calls `bmt.Toolkit`, which
+  fetches `biolink-model.yaml` and `predicate_mapping.yaml` from GitHub on first use. Shipping a
+  pinned copy of those files with the repo (or using VCR cassettes) would let all 13 tests in
+  `test_node_factory.py` run offline and be re-marked `unit`.
 - **`responses` / `pytest-httpserver`** — Use HTTP mocking to test `ThrottledRequester` and other
   HTTP-calling code without a live service. This would let `test_ThrottledRequester.py` be
   re-marked `unit` and become reliably deterministic.
@@ -243,9 +243,6 @@ Vocabularies not yet covered (candidates):
 
 ### Deduplication / cleanup
 
-- `test_chemicals.py` and `test_uber.py` are currently identical. Consolidate into one file or
-  give each a distinct focus (e.g. chemicals-specific SPARQL queries vs. general UberGraph
-  behaviour).
 - Move `test_geneproteiny.py` assertions to also check individual clique contents, not just that
   the output file is non-empty.
 

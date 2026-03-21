@@ -616,7 +616,7 @@ class NodeFactory:
                     self.ignored_prefixes.add((k, node_type))
         if len(identifiers) == 0:
             return None
-        node = {"identifiers": identifiers, "type": node_type}
+        node = {"identifiers": identifiers, "type": node_type, "id": identifiers[0]}
         return node
 
 

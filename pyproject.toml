@@ -53,7 +53,7 @@ apybiomart = { git = "https://github.com/gaurav/apybiomart.git", rev = "change-c
 dev = [
     "ipykernel>=7.1.0",
     "ruff>=0.14.14",
-    "rumdl>=0.1.22",
+    "rumdl>=0.1.26",
     "snakefmt>=0.11.2",
 ]
 
@@ -84,8 +84,9 @@ include = '\.snakefile$|^Snakefile'
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=src --cov-report=term-missing --cov-report=html"
+addopts = ""
 timeout = 30          # global fallback (seconds); overridden per mark in conftest.py
+# Canonical marker definitions — conftest.py intentionally does NOT re-register these.
 markers = [
     "unit: fast offline tests with no external dependencies",
     "network: requires live internet access (use --network to run)",
