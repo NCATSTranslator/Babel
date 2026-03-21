@@ -288,7 +288,6 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
         )
 
     edges.close()
-    # cliques.close()
 
 
 def run_sql_report(parquet_root, duckdb_filename, sql_file, sql_sidecar_file, output_tsv, duckdb_config=None):
@@ -317,7 +316,7 @@ def run_sql_report(parquet_root, duckdb_filename, sql_file, sql_sidecar_file, ou
         ("Synonyms", "Synonyms.parquet"),
     ]:
         glob_path = os.path.join(parquet_root, "**", table_file)
-        db.execute(f"CREATE VIEW {view_name} AS SELECT * FROM read_parquet('{glob_path}', hive_partitioning=true)")
+        db.execute(f"CREATE OR REPLACE VIEW {view_name} AS SELECT * FROM read_parquet('{glob_path}', hive_partitioning=true)")
     with open(sql_file) as f:
         sql_content = f.read()
     result = db.sql(sql_content)

@@ -34,6 +34,13 @@ duckdb_config:
 
 If no sidecar is present, the pipeline uses built-in defaults from `setup_duckdb()`.
 
+**Note:** Snakemake cannot automatically detect changes to the YAML sidecar (because it is optional
+and not declared as a pipeline input). If you edit a sidecar, force a re-run with:
+
+```bash
+uv run snakemake --forcerun run_sql_report --cores 1 all_sql_reports
+```
+
 ## Example
 
 `label_distribution.sql` counts how often each label length appears across all nodes:
@@ -73,7 +80,7 @@ To run a specific report (e.g. `label_distribution.sql`):
 uv run snakemake --cores 1 babel_outputs/reports/sql/label_distribution.tsv
 ```
 
-To force re-run after editing a SQL file or its sidecar:
+To force re-run after editing a SQL file:
 
 ```bash
 uv run snakemake --forcerun run_sql_report --cores 1 all_sql_reports

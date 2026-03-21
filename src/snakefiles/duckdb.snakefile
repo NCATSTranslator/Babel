@@ -206,12 +206,16 @@ rule generate_clique_leader_report:
 
 rule run_sql_report:
     resources:
+        # Snakemake scheduler resource: prevents over-scheduling on memory-constrained clusters.
+        # This is separate from DuckDB's own memory_limit, which is set via the YAML sidecar.
         mem="512G",
     input:
         duckdb_done=config["output_directory"] + "/duckdb/done",
         sql_file="input_data/sql/reports/{name}.sql",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
+        # The sidecar is optional so it cannot be declared as an input (Snakemake would fail
+        # if the file is absent). If you edit the YAML sidecar, use --forcerun to re-run.
         sql_sidecar_file="input_data/sql/reports/{name}.yaml",
     output:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/sql_report_{name}.duckdb"),
