@@ -61,6 +61,10 @@ uv run rumdl fmt .                       # Markdown auto-fix
 - Line length is 160 for both Python (ruff) and Snakemake (snakefmt).
 - Main config: `config.yaml` (directory paths, version strings, prefix lists per semantic type).
 - `UMLS_API_KEY` environment variable required for UMLS/RxNorm downloads.
+- `compendium_directories` in `config.yaml` maps Python compendium names to the Snakemake
+  intermediate directory names when they differ (e.g., `diseasephenotype → disease`,
+  `processactivitypathway → process`). Update this when adding a new semantic type whose
+  directory name doesn't match its Python module name.
 
 ## Architecture
 
