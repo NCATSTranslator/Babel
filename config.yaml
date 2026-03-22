@@ -16,6 +16,14 @@ intermediate_directory: babel_outputs/intermediate
 output_directory: babel_outputs
 tmp_directory: babel_downloads/tmp
 
+# Maps Python compendium names (as used in src/createcompendia/ and tests) to the
+# directory names that Snakemake uses under intermediate_directory.
+# Compendia not listed here use their own name as the directory name.
+# Update this whenever a new semantic type uses a shortened or different directory name.
+compendium_directories:
+  diseasephenotype: disease
+  processactivitypathway: process
+
 #
 # SHARED
 #

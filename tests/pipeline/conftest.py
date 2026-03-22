@@ -44,23 +44,20 @@ def _read_ids(path: str) -> set[str]:
     return ids
 
 
-# Fixture compendium keys whose Snakemake semantic-type directory differs from the key name.
-_COMPENDIUM_TO_SNAKEMAKE_DIR = {
-    "diseasephenotype": "disease",
-    "processactivity":  "process",
-}
-
-
 def _intermediate_id_path(compendium: str, vocab: str) -> str:
     """Stable output path matching the Snakemake convention:
     {intermediate_directory}/{semantic_type}/ids/{vocab}
 
     Uses the same paths as the Snakemake pipeline so that a prior full pipeline
     run can be reused directly without re-running write_X_ids().
+
+    The compendium-to-directory mapping is read from config.yaml
+    (compendium_directories key) so there is a single authoritative source.
     """
     from src.util import get_config
     cfg = get_config()
-    snakemake_dir = _COMPENDIUM_TO_SNAKEMAKE_DIR.get(compendium, compendium)
+    directory_map = cfg.get("compendium_directories", {})
+    snakemake_dir = directory_map.get(compendium, compendium)
     return os.path.join(cfg["intermediate_directory"], snakemake_dir, "ids", vocab)
 
 
@@ -204,11 +201,11 @@ def umls_pipeline_outputs(umls_rrf_files, regenerate):
     _maybe_run(p("protein"),         lambda: protein.write_umls_ids(mrsty, p("protein")),                              regenerate)
     _maybe_run(p("anatomy"),         lambda: anatomy.write_umls_ids(mrsty, p("anatomy")),                              regenerate)
     _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_umls_ids(mrsty, p("diseasephenotype"), badumlsfile), regenerate)
-    _maybe_run(p("processactivity"), lambda: processactivitypathway.write_umls_ids(mrsty, p("processactivity")),       regenerate)
+    _maybe_run(p("processactivitypathway"), lambda: processactivitypathway.write_umls_ids(mrsty, p("processactivitypathway")),       regenerate)
     _maybe_run(p("taxon"),           lambda: taxon.write_umls_ids(mrsty, p("taxon")),                                  regenerate)
     _maybe_run(p("gene"),            lambda: gene.write_umls_ids(mrconso, mrsty, p("gene")),                           regenerate)
 
-    return {name: p(name) for name in ["chemicals", "protein", "anatomy", "diseasephenotype", "processactivity", "taxon", "gene"]}
+    return {name: p(name) for name in ["chemicals", "protein", "anatomy", "diseasephenotype", "processactivitypathway", "taxon", "gene"]}
 
 
 # ---------------------------------------------------------------------------
@@ -309,9 +306,9 @@ def go_pipeline_outputs(ubergraph_connection, regenerate):
         return _intermediate_id_path(compendium, "GO")
 
     _maybe_run(p("anatomy"),         lambda: anatomy.write_go_ids(p("anatomy")),                       regenerate)
-    _maybe_run(p("processactivity"), lambda: processactivitypathway.write_go_ids(p("processactivity")), regenerate)
+    _maybe_run(p("processactivitypathway"), lambda: processactivitypathway.write_go_ids(p("processactivitypathway")), regenerate)
 
-    return {"anatomy": p("anatomy"), "processactivity": p("processactivity")}
+    return {"anatomy": p("anatomy"), "processactivitypathway": p("processactivitypathway")}
 
 
 # ---------------------------------------------------------------------------
