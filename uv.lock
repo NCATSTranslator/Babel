@@ -145,12 +145,16 @@ wheels = [
 [[package]]
 name = "apybiomart"
 version = "0.5.3"
-source = { git = "https://github.com/gaurav/apybiomart.git?rev=change-check-url#49fab2466ca2b0fb08527501ad0416eae0eae052" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
     { name = "asyncio" },
     { name = "pandas" },
     { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8f/1b/f99ef5b60f849b6b4496947fcbda34206f2930ecd13157723467a61d5113/apybiomart-0.5.3.tar.gz", hash = "sha256:0fe723c166c52245b0b5a35d9ff977090049719b74834f365a82fc0c96736988", size = 18519, upload-time = "2020-11-30T19:47:58.1Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/56/68/4b4450b43a779083f3443149d8f981f1a399a5c04cd435a1ab13f4fa80f0/apybiomart-0.5.3-py2.py3-none-any.whl", hash = "sha256:7681e86bca6217c4987ae30ad25b3d1926e75d6d91b3a8f49e2859d990cab53c", size = 10021, upload-time = "2020-11-30T19:47:56.801Z" },
 ]
 
 [[package]]
@@ -248,7 +252,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "apybiomart", git = "https://github.com/gaurav/apybiomart.git?rev=change-check-url" },
+    { name = "apybiomart" },
     { name = "beautifulsoup4", specifier = ">=4.14.2" },
     { name = "biopython", specifier = ">=1.85" },
     { name = "bmt", specifier = ">=1.4.6" },
