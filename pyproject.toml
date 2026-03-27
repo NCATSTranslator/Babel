@@ -77,6 +77,7 @@ include = '\.snakefile$|^Snakefile'
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = ""
 timeout = 30          # global fallback (seconds); overridden per mark in conftest.py
 # Canonical marker definitions — conftest.py intentionally does NOT re-register these.

@@ -3,9 +3,9 @@
 ## Running Tests
 
 ```bash
-PYTHONPATH=. uv run pytest                           # All tests
-PYTHONPATH=. uv run pytest --cov=src                 # With coverage report
-PYTHONPATH=. uv run pytest tests/test_glom.py        # Single test file
+uv run pytest                           # All tests
+uv run pytest --cov=src                 # With coverage report
+uv run pytest tests/test_glom.py        # Single test file
 ```
 
 Coverage is opt-in: pass `--cov=src` (or `--cov=src --cov-report=html`) to generate
@@ -36,14 +36,14 @@ You can adjust the timeout for marks in [conftest.py](conftest.py).
 ### Convenience commands
 
 ```bash
-PYTHONPATH=. uv run pytest -m unit                             # unit tests only (CI default)
-PYTHONPATH=. uv run pytest -m "unit or network" --network      # unit + live-service checks
-PYTHONPATH=. uv run pytest -m "unit or slow"                   # unit + slow offline tests
-PYTHONPATH=. uv run pytest --all --no-cov                      # run every test (no coverage)
-PYTHONPATH=. uv run pytest -m pipeline --pipeline -x --no-cov # one pipeline test at a time
-PYTHONPATH=. uv run pytest -m "not pipeline"                   # everything except full pipeline runs
-PYTHONPATH=. uv run pytest -n auto --no-cov                    # parallel (all CPUs), skip coverage
-PYTHONPATH=. uv run pytest -n 4 -m unit                        # 4 workers, unit tests only
+uv run pytest -m unit                             # unit tests only (CI default)
+uv run pytest -m "unit or network" --network      # unit + live-service checks
+uv run pytest -m "unit or slow"                   # unit + slow offline tests
+uv run pytest --all --no-cov                      # run every test (no coverage)
+uv run pytest -m pipeline --pipeline -x --no-cov # one pipeline test at a time
+uv run pytest -m "not pipeline"                   # everything except full pipeline runs
+uv run pytest -n auto --no-cov                    # parallel (all CPUs), skip coverage
+uv run pytest -n 4 -m unit                        # 4 workers, unit tests only
 ```
 
 ## Test Files
@@ -100,7 +100,7 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
 - **To force re-processing**, pass `--regenerate`:
 
   ```bash
-  PYTHONPATH=. uv run pytest tests/pipeline/ --pipeline --regenerate --no-cov -v
+  uv run pytest tests/pipeline/ --pipeline --regenerate --no-cov -v
   ```
 
 - **To selectively regenerate one vocabulary**, delete its files manually then run
@@ -108,7 +108,7 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
 
   ```bash
   rm babel_outputs/intermediate/*/ids/UMLS
-  PYTHONPATH=. uv run pytest tests/pipeline/ --pipeline --no-cov -v -k UMLS
+  uv run pytest tests/pipeline/ --pipeline --no-cov -v -k UMLS
   ```
 
 - **`pipeline/test_vocabulary_partitioning.py`** (`pipeline`) — Generic mutual-exclusivity
@@ -254,5 +254,5 @@ and "New pipeline tests" in Future Plans for the current coverage and how to ext
 Run them with:
 
 ```bash
-PYTHONPATH=. uv run pytest tests/pipeline/test_mesh_pipeline.py --pipeline --no-cov -v
+uv run pytest tests/pipeline/test_mesh_pipeline.py --pipeline --no-cov -v
 ```
