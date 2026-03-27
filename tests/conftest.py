@@ -55,18 +55,16 @@ def pytest_addoption(parser):
         help=(
             "Force pipeline processing fixtures to re-run write_X_ids() even when "
             "their output files already exist in the intermediate directory. "
-            "Without this flag, existing files are treated as up-to-date and reused."
+            "Without this flag, existing files are treated as up-to-date and reused. "
+            "Pass this after changing compendium filtering logic to ensure tests "
+            "reflect the new output rather than cached files."
         ),
     )
 
 
 def pytest_configure(config):
-    config.addinivalue_line("markers", "unit: fast offline tests with no external dependencies")
-    config.addinivalue_line("markers", "network: requires live internet access")
-    config.addinivalue_line("markers", "slow: correct but takes >30s even offline")
-    config.addinivalue_line("markers", "pipeline: invokes Snakemake rules; requires babel_downloads/")
-
     # Auto-disable coverage when xdist workers are requested.
+    # Markers are registered in pyproject.toml [tool.pytest.ini_options] — not here.
     # Combining pytest-cov with -n causes an OSError("cannot send (already closed?)")
     # from execnet during pytest_sessionfinish.  Setting no_cov here is equivalent to
     # passing --no-cov and takes effect before pytest-cov starts collecting data.

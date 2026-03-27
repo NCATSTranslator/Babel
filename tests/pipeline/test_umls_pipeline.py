@@ -19,11 +19,11 @@ from tests.pipeline.conftest import _read_ids
 def test_chemicals_excludes_protein_semantic_tree(umls_pipeline_outputs):
     """Chemicals must not contain any UMLS IDs that the protein compendium claimed.
 
-    Guards against amino-acid/peptide/protein entries (semantic type tree
-    A1.4.1.2.1.7) leaking into the chemical compendium.  The mutual-exclusivity
-    test in test_vocabulary_partitioning.py also catches this, but this test
-    names the specific semantic-tree invariant explicitly so a failure message
-    is immediately actionable.
+    This is the chemicals/protein edge of the mutual-exclusivity invariant, stated
+    explicitly so that a failure message immediately names the semantic-tree involved
+    (A1.4.1.2.1.7, Amino Acid/Peptide/Protein).  Unlike test_no_id_in_multiple_compendia,
+    this test has no KNOWN_DUPLICATES carve-out — a chem/protein UMLS overlap is always
+    a hard failure here, making it a stricter sentinel for this specific pair.
     """
     chem_ids = _read_ids(umls_pipeline_outputs["chemicals"])
     prot_ids = _read_ids(umls_pipeline_outputs["protein"])

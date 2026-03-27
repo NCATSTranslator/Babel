@@ -50,7 +50,11 @@ class Mesh:
 
         SCR terms don't have tree numbers themselves, but they have meshv:mappedTo and/or
         meshv:preferredMappedTo relationships to descriptor terms that do. This method finds
-        SCR terms whose mapped descriptors fall under the specified trees."""
+        SCR terms whose mapped descriptors fall under the specified trees.
+
+        Returns an empty set if top_treenums is empty."""
+        if not top_treenums:
+            return set()
         values_clause = " ".join(f"mesh:{t}" for t in top_treenums)
         s = f"""   PREFIX meshv: <http://id.nlm.nih.gov/mesh/vocab#>
                 PREFIX mesh: <http://id.nlm.nih.gov/mesh/>

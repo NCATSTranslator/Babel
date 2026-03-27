@@ -144,6 +144,12 @@ def mesh_pipeline_outputs(mesh_nt, regenerate):
     _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_mesh_ids(p("diseasephenotype")), regenerate)
     _maybe_run(p("taxon"),            lambda: taxon.write_mesh_ids(p("taxon")),                      regenerate)
 
+    # Build excluded_tree_terms for test_mesh_pipeline.py: all descriptor terms under
+    # D05/D08/D12.776 (including non-protein subtrees like Polymers and Coenzymes that
+    # belong in neither compendium).  This constructs a second Mesh() instance because
+    # write_ids() encapsulates its own instance and there is no way to reuse it here
+    # without an API change.  This is test-only and session-scoped so the cost is paid
+    # once per test run.
     m = Mesh()
     excluded_tree_terms = set()
     for tree in ["D05", "D08", "D12.776"]:
