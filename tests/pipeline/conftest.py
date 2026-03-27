@@ -44,6 +44,16 @@ def _read_ids(path: str) -> set[str]:
     return ids
 
 
+def _output_paths(outputs: dict) -> dict[str, str]:
+    """Filter a vocab_outputs dict down to just the string-valued output paths.
+
+    Some vocabulary fixtures (e.g. MESH) include non-path entries like
+    'excluded_tree_terms' in their returned dict.  This helper strips those out
+    so test functions can iterate only over real compendium output files.
+    """
+    return {name: path for name, path in outputs.items() if isinstance(path, str)}
+
+
 def _intermediate_id_path(compendium: str, vocab: str) -> str:
     """Stable output path matching the Snakemake convention:
     {intermediate_directory}/{semantic_type}/ids/{vocab}

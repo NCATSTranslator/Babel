@@ -153,6 +153,12 @@ high performance cluster) so you don't need to download all the source files and
 rerun the entire pipeline. You can look at the resource requirements of a rule to decide which
 option would be best.
 
+## Conventions
+
+- **Error handling** — raise exceptions (`RuntimeError`, `ValueError`, etc.) rather than
+  `print(...) + exit(1)`. Exceptions are testable and propagate cleanly through Snakemake;
+  bare `exit()` calls bypass Python's exception machinery and make unit testing impossible.
+
 ## Debugging
 
 When looking things up in the source databases, prefer to invoke the existing download code in

@@ -23,7 +23,7 @@ Run a single vocabulary:
 """
 import pytest
 
-from tests.pipeline.conftest import _read_ids
+from tests.pipeline.conftest import _output_paths, _read_ids
 
 # Known cross-compendium duplicates that have not yet been resolved.
 # Each entry is a set of identifier strings that are known to appear in more
@@ -64,8 +64,7 @@ KNOWN_DUPLICATES: dict[str, set[str]] = {
 def test_ids_non_empty(vocab_outputs):
     """Every compendium in this vocabulary must produce at least one identifier."""
     vocab, outputs = vocab_outputs
-    # outputs is a dict; "excluded_tree_terms" (MESH-specific) is not an output path.
-    paths = {name: path for name, path in outputs.items() if isinstance(path, str)}
+    paths = _output_paths(outputs)
     empty = [name for name, path in paths.items() if not _read_ids(path)]
     assert not empty, f"{vocab}: these compendia produced no output: {empty}"
 
@@ -74,7 +73,7 @@ def test_ids_non_empty(vocab_outputs):
 def test_no_id_in_multiple_compendia(vocab_outputs):
     """No identifier may appear in more than one compendium for this vocabulary."""
     vocab, outputs = vocab_outputs
-    paths = {name: path for name, path in outputs.items() if isinstance(path, str)}
+    paths = _output_paths(outputs)
     seen = {}       # id -> first compendium name
     duplicates = {} # id -> list of all compendia it appeared in
     for name, path in paths.items():

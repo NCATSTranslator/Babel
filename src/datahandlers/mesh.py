@@ -51,24 +51,24 @@ class Mesh:
         SCR terms don't have tree numbers themselves, but they have meshv:mappedTo and/or
         meshv:preferredMappedTo relationships to descriptor terms that do. This method finds
         SCR terms whose mapped descriptors fall under the specified trees."""
-        terms = set()
-        for top_treenum in top_treenums:
-            s = f"""   PREFIX meshv: <http://id.nlm.nih.gov/mesh/vocab#>
-                    PREFIX mesh: <http://id.nlm.nih.gov/mesh/>
+        values_clause = " ".join(f"mesh:{t}" for t in top_treenums)
+        s = f"""   PREFIX meshv: <http://id.nlm.nih.gov/mesh/vocab#>
+                PREFIX mesh: <http://id.nlm.nih.gov/mesh/>
 
-                    SELECT DISTINCT ?term
-                    WHERE {{ VALUES ?mappingPred {{ meshv:mappedTo meshv:preferredMappedTo }}
-                             ?term ?mappingPred ?descriptor .
-                             ?descriptor meshv:treeNumber ?treenum .
-                             ?treenum meshv:parentTreeNumber* mesh:{top_treenum}
-                    }}
-                    ORDER BY ?term
-            """
-            qres = self.m.query(s)
-            for row in list(qres):
-                iterm = str(row["term"])
-                meshid = iterm[:-1].split("/")[-1]
-                terms.add(f"{MESH}:{meshid}")
+                SELECT DISTINCT ?term
+                WHERE {{ VALUES ?mappingPred {{ meshv:mappedTo meshv:preferredMappedTo }}
+                         VALUES ?topTree {{ {values_clause} }}
+                         ?term ?mappingPred ?descriptor .
+                         ?descriptor meshv:treeNumber ?treenum .
+                         ?treenum meshv:parentTreeNumber* ?topTree
+                }}
+                ORDER BY ?term
+        """
+        terms = set()
+        for row in list(self.m.query(s)):
+            iterm = str(row["term"])
+            meshid = iterm[:-1].split("/")[-1]
+            terms.add(f"{MESH}:{meshid}")
         return terms
 
     def get_terms_with_type(self, termtype):
