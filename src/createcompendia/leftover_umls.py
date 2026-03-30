@@ -164,7 +164,7 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
                         reportf.write(f"NO_UMLS_TYPE [{umls_id}]: {umls_type_results} -> {biolink_types}\n")
                     continue
                 if len(biolink_types) > 1:
-                    # We skip this CURIE, but we don't want to print multiple warnings for the same CURIE.
+                    # We skip this CURIE, but we don't want to print multiple log messages for the same CURIE.
                     if umls_id not in curies_multiple_umls_type:
                         curies_multiple_umls_type.add(umls_id)
                         logger.debug(f"Multiple UMLS types not yet supported for {umls_id}: {umls_type_results} -> {biolink_types}, skipping")
