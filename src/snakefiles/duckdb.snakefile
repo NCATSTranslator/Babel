@@ -30,9 +30,6 @@ rule export_all_compendia_to_duckdb:
 
 # Generic rule for generating the Parquet files for a particular compendia file.
 rule export_compendia_to_duckdb:
-    resources:
-        runtime="6h",
-        mem="512G",
     input:
         compendium_file=config["output_directory"] + "/compendia/{filename}.txt",
     output:
@@ -98,8 +95,6 @@ rule export_all_to_duckdb:
 rule check_for_identically_labeled_cliques:
     input:
         config["output_directory"] + "/duckdb/done",
-    params:
-        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     output:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/identically_labeled_clique.duckdb"),
         identically_labeled_cliques_tsv=config["output_directory"]
