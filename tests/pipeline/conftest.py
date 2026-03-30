@@ -10,7 +10,7 @@ already exists it is reused without re-running write_X_ids().  Pass --regenerate
 to force re-processing even when files are present.
 
 All tests in this package are marked `pipeline` and are skipped by default.
-Run with:  PYTHONPATH=. uv run pytest tests/pipeline/ --pipeline --no-cov -v
+Run with:  uv run pytest tests/pipeline/ --pipeline --no-cov -v
 
 ## Adding a new vocabulary
 
