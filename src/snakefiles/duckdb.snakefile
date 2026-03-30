@@ -41,6 +41,9 @@ rule export_compendia_to_duckdb:
         clique_parquet_file=config["output_directory"] + "/duckdb/parquet/filename={filename}/Clique.parquet",
     benchmark:
         config["output_directory"] + "/benchmarks/export_compendia_to_duckdb_{filename}.tsv"
+    resources:
+        runtime="6h",
+        mem="512G",
     run:
         print(f"Exporting {input.compendium_file} to {output.duckdb_filename}...")
         duckdb_exporters.export_compendia_to_parquet(
@@ -93,8 +96,6 @@ rule export_all_to_duckdb:
 
 # There are some reports we want to run on the Parquet files that have been generated.
 rule check_for_identically_labeled_cliques:
-    resources:
-        mem="128G",
     input:
         config["output_directory"] + "/duckdb/done",
     params:
@@ -105,6 +106,10 @@ rule check_for_identically_labeled_cliques:
         + "/reports/duckdb/identically_labeled_cliques.tsv.gz",
     benchmark:
         config["output_directory"] + "/benchmarks/check_for_identically_labeled_cliques.tsv"
+    resources:
+        mem="128G",
+    params:
+        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
         src.reports.duckdb_reports.check_for_identically_labeled_cliques(
             params.parquet_dir,
@@ -119,18 +124,18 @@ rule check_for_identically_labeled_cliques:
 
 
 rule check_for_duplicate_curies:
-    resources:
-        mem="256G",
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
-    params:
-        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     output:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/duplicate_curies.duckdb"),
         duplicate_curies=config["output_directory"] + "/reports/duckdb/duplicate_curies.tsv",
     benchmark:
         config["output_directory"] + "/benchmarks/check_for_duplicate_curies.tsv"
+    resources:
+        mem="256G",
+    params:
+        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
         src.reports.duckdb_reports.check_for_duplicate_curies(
             params.parquet_dir,
@@ -145,18 +150,18 @@ rule check_for_duplicate_curies:
 
 
 rule check_for_duplicate_clique_leaders:
-    resources:
-        mem="128G",
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
-    params:
-        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     output:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/duplicate_clique_leaders.duckdb"),
         duplicate_clique_leaders_tsv=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.tsv",
     benchmark:
         config["output_directory"] + "/benchmarks/check_for_duplicate_clique_leaders.tsv"
+    resources:
+        mem="128G",
+    params:
+        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
         src.reports.duckdb_reports.check_for_duplicate_clique_leaders(
             params.parquet_dir,
@@ -171,19 +176,19 @@ rule check_for_duplicate_clique_leaders:
 
 
 rule generate_curie_report:
-    resources:
-        # mem="64G", -- this actually worked!
-        mem="512G",
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
-    params:
-        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     output:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/curie_report.duckdb"),
         curie_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
     benchmark:
         config["output_directory"] + "/benchmarks/generate_curie_report.tsv"
+    resources:
+        # mem="64G", -- this actually worked!
+        mem="512G",
+    params:
+        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
         src.reports.duckdb_reports.generate_curie_report(
             params.parquet_dir,
@@ -199,18 +204,18 @@ rule generate_curie_report:
 
 
 rule generate_clique_leader_report:
-    resources:
-        mem="64G",
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
-    params:
-        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     output:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/clique_leaders.duckdb"),
         clique_leaders_json=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
     benchmark:
         config["output_directory"] + "/benchmarks/generate_clique_leader_report.tsv"
+    resources:
+        mem="64G",
+    params:
+        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
         src.reports.duckdb_reports.generate_clique_leaders_report(
             params.parquet_dir,

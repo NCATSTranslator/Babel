@@ -86,8 +86,6 @@ rule drugchemical_conflation:
 
 
 rule drugchemical_conflated_synonyms:
-    resources:
-        runtime="6h",
     input:
         drugchemical_conflation=[config["output_directory"] + "/conflation/DrugChemical.txt"],
         chemical_compendia=expand("{do}/compendia/{co}", do=config["output_directory"], co=config["chemical_outputs"]),
@@ -98,6 +96,8 @@ rule drugchemical_conflated_synonyms:
         drugchemical_conflated_gz=config["output_directory"] + "/synonyms/DrugChemicalConflated.txt.gz",
     benchmark:
         config["output_directory"] + "/benchmarks/drugchemical_conflated_synonyms.tsv"
+    resources:
+        runtime="6h",
     run:
         synonymconflation.conflate_synonyms(
             input.chemical_synonyms_gz,
