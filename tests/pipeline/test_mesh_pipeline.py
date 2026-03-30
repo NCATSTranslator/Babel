@@ -6,7 +6,7 @@ test_vocabulary_partitioning.py.  This file contains only the MeSH-specific
 targeted test that has no generic equivalent.
 
 All tests are skipped by default.  Run with:
-    PYTHONPATH=. uv run pytest tests/pipeline/test_mesh_pipeline.py --pipeline --no-cov -v
+    uv run pytest tests/pipeline/test_mesh_pipeline.py --pipeline --no-cov -v
 """
 import pytest
 
