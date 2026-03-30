@@ -48,7 +48,6 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
 
     db = setup_duckdb(duckdb_filename, duckdb_config)
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
-    cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
     # Look for CURIEs that are present in different cliques.
     db.sql("""SELECT
@@ -66,7 +65,6 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
     """).write_csv(duplicate_curies_tsv, sep="\t")
 
     edges.close()
-    cliques.close()
 
 
 def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_clique_leaders_tsv, duckdb_config=None):

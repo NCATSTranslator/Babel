@@ -5,12 +5,19 @@ from util import gzip_files
 ### Gene / Protein
 
 
+# Trivial done-marker rule runs locally so it doesn't consume a SLURM slot.
+localrules:
+    geneprotein,
+
+
 rule geneprotein_uniprot_relationships:
     input:
         infile=config["download_directory"] + "/UniProtKB/idmapping.dat",
     output:
         outfile_concords=config["intermediate_directory"] + "/geneprotein/concords/UniProtNCBI",
         metadata_yaml=config["intermediate_directory"] + "/geneprotein/concords/metadata-UniProtNCBI.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/geneprotein_uniprot_relationships.tsv"
     run:
         geneprotein.build_uniprotkb_ncbigene_relationships(input.infile, output.outfile_concords, output.metadata_yaml)
 
@@ -22,6 +29,8 @@ rule geneprotein_conflation:
         geneprotein_concord=config["intermediate_directory"] + "/geneprotein/concords/UniProtNCBI",
     output:
         outfile=config["output_directory"] + "/conflation/GeneProtein.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/geneprotein_conflation.tsv"
     run:
         geneprotein.build_conflation(
             input.geneprotein_concord, input.gene_compendium, input.protein_compendium, output.outfile
@@ -40,6 +49,8 @@ rule geneprotein_conflated_synonyms:
         protein_synonyms_gz=expand("{od}/synonyms/{ap}.gz", od=config["output_directory"], ap=config["protein_outputs"]),
     output:
         geneprotein_conflated_synonyms_gz=config["output_directory"] + "/synonyms/GeneProteinConflated.txt.gz",
+    benchmark:
+        config["output_directory"] + "/benchmarks/geneprotein_conflated_synonyms.tsv"
     run:
         synonymconflation.conflate_synonyms(
             input.gene_synonyms_gz + input.protein_synonyms_gz,
