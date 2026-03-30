@@ -14,15 +14,15 @@ localrules:
 
 
 rule download_pubmed:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         baseline_dir=directory(config["download_directory"] + "/PubMed/baseline"),
         updatefiles_dir=directory(config["download_directory"] + "/PubMed/updatefiles"),
         done_file=config["download_directory"] + "/PubMed/downloaded",
     benchmark:
         config["output_directory"] + "/benchmarks/download_pubmed.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         publications.download_pubmed(output.done_file)
 
@@ -45,9 +45,6 @@ rule verify_pubmed:
 
 
 rule generate_pubmed_concords:
-    resources:
-        runtime="24h",
-        mem="128G",
     input:
         config["download_directory"] + "/PubMed/verified",
         baseline_dir=config["download_directory"] + "/PubMed/baseline",
@@ -60,6 +57,9 @@ rule generate_pubmed_concords:
         metadata_yaml=config["intermediate_directory"] + "/publications/concords/metadata.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/generate_pubmed_concords.tsv"
+    resources:
+        runtime="24h",
+        mem="128G",
     run:
         publications.parse_pubmed_into_tsvs(
             input.baseline_dir,
@@ -73,8 +73,6 @@ rule generate_pubmed_concords:
 
 
 rule generate_pubmed_compendia:
-    resources:
-        mem="128G",
     input:
         pmid_id_file=config["intermediate_directory"] + "/publications/ids/PMID",
         pmid_doi_concord_file=config["intermediate_directory"] + "/publications/concords/PMID_DOI",
@@ -89,6 +87,8 @@ rule generate_pubmed_compendia:
         publication_synonyms_gz=config["output_directory"] + "/synonyms/Publication.txt.gz",
     benchmark:
         config["output_directory"] + "/benchmarks/generate_pubmed_compendia.tsv"
+    resources:
+        mem="128G",
     run:
         publications.generate_compendium(
             [input.pmid_doi_concord_file],
