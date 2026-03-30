@@ -103,6 +103,7 @@ rule check_for_identically_labeled_cliques:
         config["output_directory"] + "/benchmarks/check_for_identically_labeled_cliques.tsv"
     resources:
         mem="128G",
+        cpus_per_task=4,
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
@@ -129,6 +130,7 @@ rule check_for_duplicate_curies:
         config["output_directory"] + "/benchmarks/check_for_duplicate_curies.tsv"
     resources:
         mem="256G",
+        cpus_per_task=4,
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
@@ -155,6 +157,7 @@ rule check_for_duplicate_clique_leaders:
         config["output_directory"] + "/benchmarks/check_for_duplicate_clique_leaders.tsv"
     resources:
         mem="128G",
+        cpus_per_task=4,
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:

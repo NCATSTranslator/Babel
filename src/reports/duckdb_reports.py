@@ -23,7 +23,7 @@ def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identic
 
     # Pass 1: identify names shared by more than one clique using only a COUNT — fully spill-able.
     db.execute("""
-        CREATE TEMP TABLE dup_names AS
+        CREATE OR REPLACE TEMP TABLE dup_names AS
         SELECT LOWER(preferred_name) AS preferred_name_lc, COUNT(*) AS clique_leader_count
         FROM cliques
         WHERE preferred_name <> '' AND preferred_name <> '""'
@@ -60,7 +60,7 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
 
     # Pass 1: identify duplicate CURIEs using only a COUNT — fully spill-able.
     db.execute("""
-        CREATE TEMP TABLE dup_curies AS
+        CREATE OR REPLACE TEMP TABLE dup_curies AS
         SELECT curie, COUNT(*) AS clique_leader_count
         FROM edges
         WHERE conflation = 'None'
@@ -99,7 +99,7 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
 
     # Pass 1: identify duplicate clique leaders using only a COUNT — fully spill-able.
     db.execute("""
-        CREATE TEMP TABLE dup_leaders AS
+        CREATE OR REPLACE TEMP TABLE dup_leaders AS
         SELECT clique_leader, COUNT(*) AS clique_leader_count
         FROM cliques
         GROUP BY clique_leader HAVING clique_leader_count > 1
