@@ -1,5 +1,4 @@
 import json
-import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -277,6 +276,6 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
             }
         )
 
-        logging.info(f"Wrote out metadata file {metadata_yaml}.")
+        logger.info(f"Wrote out metadata file {metadata_yaml}.")
 
     logger.info("Complete")
