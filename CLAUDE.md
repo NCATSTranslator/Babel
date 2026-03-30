@@ -30,8 +30,18 @@ uv run snakemake --cores 1 chemical       # Another target
 
 ```bash
 PYTHONPATH=. uv run pytest                           # All tests
+PYTHONPATH=. uv run pytest --cov=src                 # With coverage report
 PYTHONPATH=. uv run pytest tests/test_node_factory.py  # Single test file
+PYTHONPATH=. uv run pytest -m unit -q               # Unit tests only (CI default)
+PYTHONPATH=. uv run pytest --network                # Include network tests
+PYTHONPATH=. uv run pytest --all                    # Run every test
+PYTHONPATH=. uv run pytest -n auto                  # Parallel (all CPUs)
 ```
+
+Tests use four marks: `unit` (fast, offline), `network` (requires internet, opt-in with
+`--network`), `slow` (>30s but offline), and `pipeline` (invokes Snakemake, opt-in with
+`--pipeline`). Use `--all` to opt in to everything at once. Network and pipeline tests are
+skipped by default. See `tests/README.md` for the full taxonomy.
 
 Note: not all tests currently pass (issue #602).
 
@@ -76,9 +86,9 @@ semantic type plus data collection, reports, exports, and DuckDB.
 - **`snakefiles/`** — Snakemake rule definitions wiring data handlers to compendium creators.
 - **`node.py`** — Core classes: `NodeFactory`, `SynonymFactory`, `DescriptionFactory`,
   `TaxonFactory`, `InformationContentFactory`, `TSVSQLiteLoader`.
-- **`babel_utils.py`** — Download/FTP utilities, state management.
+- **`babel_utils.py`** — Download/FTP utilities, `glom()` (clique merging), `write_compendium()`
+  (compendium builder), state management.
 - **`util.py`** — Logging, config loading, Biolink Model Toolkit (bmt) access.
-- **`make_cliques.py`** — Union-find clique merging logic.
 - **`exporters/`** — Output format handlers (KGX, Parquet, JSONL).
 - **`reports/`**, **`synonyms/`**, **`metadata/`** — Report generation, synonym files, provenance.
 
@@ -90,11 +100,37 @@ semantic type plus data collection, reports, exports, and DuckDB.
 - **Biolink Model** integration via `bmt` — types, valid prefixes, and naming conventions all follow
   the Biolink Model.
 - **Concord files** are the core data structure: tab-separated `CURIE1 \t Relation \t CURIE2`
-  triples expressing cross-references between vocabularies.
+  triples expressing cross-references between vocabularies. The `glom()` function in
+  `babel_utils.py` merges them into equivalence cliques.
+
+### Biolink Model Usage
+
+The Biolink Model version is set in `config.yaml` (`biolink_version: "4.3.6"`) and is the single
+source of truth used by `NodeFactory` and `get_biolink_model_toolkit()`. The model is fetched from
+GitHub on first use (bmt may cache it locally).
+
+**Mapped class URIs** — always use the `biolink:`-prefixed form (e.g. `biolink:ChemicalEntity`),
+not the raw element name (`chemical entity`). `get_ancestors()` and `get_element()["class_uri"]`
+return these mapped forms.
+
+**Prefix ordering** — `src/prefixes.py` is the canonical registry of prefix string constants. The
+order of `id_prefixes` in the Biolink Model determines which CURIE is selected as the preferred
+identifier by `NodeFactory`. In biolink 4.3.6, for example, `CHEBI` ranks above `PUBCHEM.COMPOUND`
+for `biolink:SmallMolecule`. Update `src/prefixes.py` whenever new prefixes appear in the model.
+
+**Node output schema** — `NodeFactory.create_node()` returns:
+
+```python
+{"identifiers": [{"identifier": CURIE, "label": str}, ...], "type": "biolink:Foo", "id": {"identifier": CURIE, "label": str}}
+```
+
+`identifiers[0]` is the preferred identifier (highest-priority prefix); `id` is an alias for
+`identifiers[0]`. Labels remain on the identifier that owns them and are not promoted to the first
+entry.
 
 ### Conflation
 
-Gene+Protein and Drug+Chemical each have dedicated conflation modules (`geneprotein.py`,
+GeneProtein and DrugChemical conflation each have dedicated conflation modules (`geneprotein.py`,
 `drugchemical.py`) that merge their respective cliques. See `docs/Conflation.md`.
 
 ### Directories at Runtime
@@ -102,3 +138,12 @@ Gene+Protein and Drug+Chemical each have dedicated conflation modules (`geneprot
 - `babel_downloads/` — cached source data
 - `babel_outputs/intermediate/` — intermediate build artifacts
 - `babel_outputs/` — final compendia, synonyms, reports, exports
+
+## Documentation
+
+When making a significant change, check if it affects any of the documentation
+files (`docs/*.md`, `*.md`) and update them if necessary. Suggest adding
+new documentation files if necessary.
+
+When writing documentation files, avoid using horizontal pipes unless necessary --
+section headings are sufficient for dividing up documentation.

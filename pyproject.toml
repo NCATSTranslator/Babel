@@ -24,6 +24,8 @@ dependencies = [
     "pyoxigraph~=0.4.11",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
+    "pytest-timeout>=2.3",
+    "pytest-xdist>=3",
     "python-levenshtein>=0.27.1",
     "pyyaml>=6.0.3",
     "requests>=2.32.5",
@@ -39,13 +41,6 @@ dependencies = [
 Homepage = "https://github.com/NCATSTranslator/Babel"
 Repository = "https://github.com/NCATSTranslator/Babel"
 Issues = "https://github.com/NCATSTranslator/Babel/issues"
-
-[tool.uv.sources]
-# We used to install apybiomart (https://github.com/robertopreste/apybiomart/tree/master) from
-# https://pypi.org/project/apybiomart/, but this hasn't been modified in five years and it depends
-# on checking if it's online via http://httpstat.us/200, which is often offline. My branch of this
-# https://github.com/gaurav/apybiomart/tree/change-check-url and changes that to https://example.org.
-apybiomart = { git = "https://github.com/gaurav/apybiomart.git", rev = "change-check-url" }
 
 [dependency-groups]
 dev = [
@@ -79,6 +74,29 @@ unfixable = []
 [tool.snakefmt]
 line_length = 120
 include = '\.snakefile$|^Snakefile'
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ""
+timeout = 30          # global fallback (seconds); overridden per mark in conftest.py
+# Canonical marker definitions — conftest.py intentionally does NOT re-register these.
+markers = [
+    "unit: fast offline tests with no external dependencies",
+    "network: requires live internet access (use --network to run)",
+    "slow: correct but takes >30s even offline",
+    "pipeline: invokes Snakemake rules; requires babel_downloads/ (use --pipeline to run)",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+precision = 1
+
+[tool.coverage.html]
+directory = "htmlcov"
 
 [tool.rumdl]
 flavor = "gfm"

@@ -1,16 +1,28 @@
-# Documentation
+# Babel documentation
 
-This folder collects a number of documentation files that provide information on different
-aspects of Babel and its output.
+This folder contains reference documentation for Babel, organized by audience.
 
-## Babel model and formats
+## For Babel users — understanding and using outputs
 
-* [Conflation](./Conflation.md) describes the conflation options available in Babel.
-* [Data Formats](./DataFormats.md) describes the output data formats produces by Babel.
-* [Downloads](./Downloads.md) describes the Babel downloads we publish to the internet.
+| Document                               | Description                                                                                                                                                                                 |
+|----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [Understanding.md](./Understanding.md) | How Babel constructs cliques, chooses preferred identifiers and labels, sources descriptions and IC values, and what split/lumped cliques are. Also covers how to report incorrect cliques. |
+| [DataFormats.md](./DataFormats.md)     | Compendium, synonym, and conflation file format specification.                                                                                                                              |
+| [Conflation.md](./Conflation.md)       | What conflations are, how GeneProtein and DrugChemical conflation work, and when to use them.                                                                                               |
+| [Downloads.md](./Downloads.md)         | Where to download published Babel outputs and which formats are available.                                                                                                                  |
 
-## Running and deploying Babel
+## For pipeline operators — running and deploying
 
-* [Babel Jupyter Notebook](./Babel.ipynb) shows you what running Babel looks like.
-* [Running Babel](./RunningBabel.md) provides additional information on running Babel.
-* [Deployment](./Deployment.md) provides information on deploying Babel's outputs.
+| Document                             | Description                                                                             |
+|--------------------------------------|-----------------------------------------------------------------------------------------|
+| [RunningBabel.md](./RunningBabel.md) | Build instructions, configuration, Snakemake targets, and system requirements.          |
+| [Deployment.md](./Deployment.md)     | Release checklist and deployment instructions for Node Normalization and Name Resolver. |
+| [Babel.ipynb](./Babel.ipynb)         | Interactive Jupyter notebook demonstrating what running Babel looks like.               |
+
+## For contributors and maintainers
+
+| Document                             | Description                                                                                                                                                                                                                              |
+|--------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [Architecture.md](./Architecture.md) | Source code layout, data-flow narrative, key data structures (concord files, compendium JSONL), and key patterns (factory pattern, TSVSQLiteLoader, union-find, Biolink Model integration).                                              |
+| [Development.md](./Development.md)   | Development workflow, how to obtain prerequisites, how to build individual compendia, known challenges, and ideas for improving the pipeline.                                                                                            |
+| [Triage.md](./Triage.md)             | **Part 1 (for users):** how to file a useful bug report, assign priority/impact/size, and track when your issue will be addressed. **Part 2 (for developers):** triage checklist, automated test syntax, and sprint planning heuristics. |
