@@ -3,6 +3,8 @@ from src.snakefiles.util import get_all_compendia, get_all_synonyms_with_drugche
 import src.exporters.duckdb_exporters as duckdb_exporters
 import os
 
+(sql_report_names,) = glob_wildcards("input_data/sql/reports/{name}.sql")
+
 ### Write all compendia, synonym and conflation files into DuckDB databases.
 
 
@@ -222,6 +224,41 @@ rule generate_clique_leader_report:
                 "preserve_insertion_order": False,
             },
         )
+
+
+rule run_sql_report:
+    resources:
+        # Snakemake scheduler resource: prevents over-scheduling on memory-constrained clusters.
+        # This is separate from DuckDB's own memory_limit, which is set via the YAML sidecar.
+        mem="512G",
+    input:
+        duckdb_done=config["output_directory"] + "/duckdb/done",
+        sql_file="input_data/sql/reports/{name}.sql",
+    params:
+        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
+        # The sidecar is optional so it cannot be declared as an input (Snakemake would fail
+        # if the file is absent). If you edit the YAML sidecar, use --forcerun to re-run.
+        sql_sidecar_file="input_data/sql/reports/{name}.yaml",
+    output:
+        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/sql_report_{name}.duckdb"),
+        report_tsv=config["output_directory"] + "/reports/sql/{name}.tsv",
+    run:
+        src.reports.duckdb_reports.run_sql_report(
+            params.parquet_dir,
+            output.duckdb_filename,
+            input.sql_file,
+            params.sql_sidecar_file,
+            output.report_tsv,
+        )
+
+
+rule all_sql_reports:
+    input:
+        expand(config["output_directory"] + "/reports/sql/{name}.tsv", name=sql_report_names),
+    output:
+        x=config["output_directory"] + "/reports/sql/done",
+    shell:
+        "echo 'done' >> {output.x}"
 
 
 rule all_duckdb_reports:
