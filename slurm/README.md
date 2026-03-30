@@ -29,9 +29,9 @@ uv run snakemake --profile slurm chemical
 | `python.executable` | `/usr/bin/time -v python` | Captures memory/time to job stderr |
 | `slurm-efficiency-report` | True | Writes per-job efficiency CSV |
 
-Download-only rules (e.g. `get_EFO`, `get_mesh`, `download_umls`) override the defaults with
-`mem="8G", cpus_per_task=1` since they are I/O-bound. Large downloads (UniProtKB idmapping/trembl,
-UMLS) also set `runtime="6h"`.
+Download-only rules (e.g. `get_EFO`, `get_mesh`, `get_rhea`, `get_pubchem`, `download_umls`)
+override the defaults with `mem="8G", cpus_per_task=1` since they are I/O-bound. Large downloads
+(UniProtKB idmapping/trembl, UMLS) also set `runtime="6h"`.
 
 ## Benchmark Data
 
@@ -47,7 +47,7 @@ For wildcard rules (e.g. one job per compendium), files are named:
 babel_outputs/benchmarks/export_compendia_to_duckdb_<filename>.tsv
 babel_outputs/benchmarks/generate_kgx_<filename>.tsv
 babel_outputs/benchmarks/generate_sapbert_training_data_<filename>.tsv
-babel_outputs/benchmarks/generate_content_report_for_compendium_<compendium>.tsv
+babel_outputs/benchmarks/generate_content_report_for_compendium_<compendium_basename>.tsv
 babel_outputs/benchmarks/export_synonyms_to_duckdb_<filename>.tsv
 babel_outputs/benchmarks/uncompress_synonym_file_<synonym_file>.tsv
 ```
@@ -124,6 +124,8 @@ SLURM allocation. They are trivial done-marker rules (e.g. `echo 'done'` or `wri
 | `all_reports` | `reports.snakefile` |
 | `geneprotein` | `geneprotein.snakefile` |
 | `drugchemical` | `drugchemical.snakefile` |
+| `publications` | `publications.snakefile` |
+| `get_mesh_synonyms` | `datacollect.snakefile` |
 
 ## Out-of-Scope Improvements (Future Work)
 

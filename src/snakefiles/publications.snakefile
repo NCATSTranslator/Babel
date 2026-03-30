@@ -4,6 +4,12 @@ import src.createcompendia.publications as publications
 import src.assess_compendia as assessments
 from src.snakefiles import util
 
+
+# Trivial done-marker rule runs locally so it doesn't consume a SLURM slot.
+localrules:
+    publications,
+
+
 ### PubMed
 
 
@@ -130,7 +136,5 @@ rule publications:
         reports=expand("{od}/reports/{ap}", od=config["output_directory"], ap=config["publication_outputs"]),
     output:
         x=config["output_directory"] + "/reports/publications_done",
-    benchmark:
-        config["output_directory"] + "/benchmarks/publications.tsv"
     shell:
         "echo 'done' >> {output.x}"

@@ -34,6 +34,12 @@ import src.datahandlers.complexportal as complexportal
 import src.datahandlers.drugbank as drugbank
 from src.babel_utils import pull_via_wget
 
+
+# No-op placeholder rules run locally and don't need a SLURM slot.
+localrules:
+    get_mesh_synonyms,
+
+
 #####
 #
 # Data sets: pull data sets, and parse them to get labels and synonyms
@@ -228,8 +234,6 @@ rule get_mesh_synonyms:
     # We don't actually get any.  Maybe we could from the nt?
     output:
         ofn=config["download_directory"] + "/MESH/synonyms",
-    benchmark:
-        config["output_directory"] + "/benchmarks/get_mesh_synonyms.tsv"
     shell:
         "touch {output.ofn}"
 
@@ -270,6 +274,9 @@ rule get_umls_labels_and_synonyms:
 
 
 rule get_obo_labels:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         obo_labels=config["download_directory"] + "/common/ubergraph/labels",
         # A bunch of files depend on UberGraph labels being created in prefix directories (e.g. babel_downloads/GO/labels),
@@ -288,6 +295,9 @@ rule get_obo_labels:
 
 
 rule get_obo_synonyms:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         obo_synonyms=config["download_directory"] + "/common/ubergraph/synonyms.jsonl",
         # A bunch of files depend on UberGraph labels being created in prefix directories (e.g. babel_downloads/GO/labels),
@@ -306,6 +316,9 @@ rule get_obo_synonyms:
 
 
 rule get_obo_descriptions:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         obo_descriptions=config["download_directory"] + "/common/ubergraph/descriptions.jsonl",
     retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
@@ -588,6 +601,9 @@ rule get_reactome_labels:
 
 
 rule get_rhea:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/RHEA/rhea.rdf",
     benchmark:
@@ -611,6 +627,9 @@ rule get_rhea_labels:
 
 
 rule get_EC:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/EC/enzyme.rdf",
     benchmark:
@@ -635,6 +654,9 @@ rule get_EC_labels:
 
 
 rule get_SMPDB:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/SMPDB/smpdb_pathways.csv",
     benchmark:
@@ -658,6 +680,9 @@ rule get_SMPDB_labels:
 
 
 rule get_panther_pathways:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/PANTHER.PATHWAY/SequenceAssociationPathway3.6.8.txt",
     benchmark:
@@ -681,6 +706,9 @@ rule get_panther_pathway_labels:
 
 
 rule get_unichem:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     retries: 5
     output:
         config["download_directory"] + "/UNICHEM/structure.tsv.gz",
@@ -706,6 +734,9 @@ rule filter_unichem:
 
 
 rule get_chembl:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         moleculefile=config["download_directory"] + "/CHEMBL.COMPOUND/chembl_latest_molecule.ttl",
         ccofile=config["download_directory"] + "/CHEMBL.COMPOUND/cco.ttl",
@@ -747,6 +778,9 @@ rule get_drugbank_labels_and_synonyms:
 
 
 rule get_gtopdb:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/GTOPDB/ligands.tsv",
     benchmark:
@@ -784,6 +818,9 @@ rule keggcompound_labels:
 
 
 rule get_unii:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         config["download_directory"] + "/UNII/Latest_UNII_Names.txt",
         config["download_directory"] + "/UNII/Latest_UNII_Records.txt",
@@ -809,6 +846,9 @@ rule unii_labels_and_synonyms:
 
 
 rule get_HMDB:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/HMDB/hmdb_metabolites.xml",
     benchmark:
@@ -834,6 +874,9 @@ rule hmdb_labels_and_synonyms:
 
 
 rule get_pubchem:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         config["download_directory"] + "/PUBCHEM.COMPOUND/CID-MeSH",
         config["download_directory"] + "/PUBCHEM.COMPOUND/CID-Synonym-filtered.gz",
@@ -845,6 +888,9 @@ rule get_pubchem:
 
 
 rule get_pubchem_structures:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         config["download_directory"] + "/PUBCHEM.COMPOUND/CID-InChI-Key.gz",
         config["download_directory"] + "/PUBCHEM.COMPOUND/CID-SMILES.gz",
@@ -877,6 +923,9 @@ rule pubchem_synonyms:
 
 
 rule download_rxnorm:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         config["download_directory"] + "/RxNorm/RXNCONSO.RRF",
         config["download_directory"] + "/RxNorm/RXNREL.RRF",
@@ -899,6 +948,9 @@ rule pubchem_rxnorm_annotations:
 
 
 rule get_drugcentral:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         structfile=config["download_directory"] + "/DrugCentral/structures",
         labelfile=config["download_directory"] + "/DrugCentral/labels",
@@ -913,6 +965,9 @@ rule get_drugcentral:
 
 
 rule get_ncbitaxon:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         config["download_directory"] + "/NCBITaxon/taxdump.tar",
     benchmark:
@@ -938,6 +993,9 @@ rule ncbitaxon_labels_and_synonyms:
 
 
 rule get_chebi:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         config["download_directory"] + "/CHEBI/ChEBI_complete.sdf",
         config["download_directory"] + "/CHEBI/database_accession.tsv",
@@ -951,6 +1009,9 @@ rule get_chebi:
 
 
 rule get_clo:
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     output:
         config["download_directory"] + "/CLO/clo.owl",
         metadata=config["download_directory"] + "/CLO/metadata.yaml",
