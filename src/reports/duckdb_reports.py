@@ -71,8 +71,8 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
     db.sql("""
         SELECT e.curie,
             LIST(e.clique_leader ORDER BY e.clique_leader) AS clique_leaders,
-            LIST(e.filename) AS filenames,
-            LIST(e.conflation) AS conflations,
+            LIST(e.filename ORDER BY e.clique_leader) AS filenames,
+            LIST(e.conflation ORDER BY e.clique_leader) AS conflations,
             d.clique_leader_count
         FROM edges e
         JOIN dup_curies d USING (curie)
@@ -110,9 +110,9 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
     # which were previously dropped due to memory pressure.
     db.sql("""
         SELECT d.clique_leader,
-            LIST(c.filename) AS filenames,
-            LIST(c.biolink_type) AS biolink_types,
-            LIST(c.clique_identifier_count) AS clique_identifier_counts,
+            LIST(c.filename ORDER BY c.filename) AS filenames,
+            LIST(c.biolink_type ORDER BY c.filename) AS biolink_types,
+            LIST(c.clique_identifier_count ORDER BY c.filename) AS clique_identifier_counts,
             d.clique_leader_count
         FROM cliques c
         JOIN dup_leaders d USING (clique_leader)
