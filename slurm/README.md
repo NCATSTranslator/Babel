@@ -5,6 +5,11 @@ RENCI Hatteras cluster).
 
 ## Quick Start
 
+Snakemake [recommends](https://snakemake.github.io/snakemake-plugin-catalog/plugins/executor/slurm.html#should-i-run-snakemake-on-the-login-node-of-my-cluster)
+running the primary Snakemake process on the login node of your Slurm cluster. I've found that running it in a
+low-memory low-CPU node (by running `sbatch run-babel-on-slurm.sh` to run [run-babel-on-slurm.sh](./run-babel-on-slurm.sh))
+works fine, and ensures that you don't get complaints from your cluster manager about long-running login node processes.
+
 ```bash
 # Activate the environment
 uv sync
