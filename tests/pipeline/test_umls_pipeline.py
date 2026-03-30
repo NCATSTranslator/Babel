@@ -8,7 +8,7 @@ UMLS-specific targeted test that has no generic equivalent.
 All tests require UMLS_API_KEY to be set for the initial download (or the
 files to already be cached in babel_downloads/UMLS/).  They are skipped by
 default.  Run with:
-    PYTHONPATH=. uv run pytest tests/pipeline/test_umls_pipeline.py --pipeline --no-cov -v
+    uv run pytest tests/pipeline/test_umls_pipeline.py --pipeline --no-cov -v
 """
 import pytest
 
