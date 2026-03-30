@@ -31,7 +31,7 @@ import os
 os.environ["TMPDIR"] = config["tmp_directory"]
 
 
-# Trivial done-marker rules run locally so they don't consume a SLURM slot.
+# Trivial done-marker rules and destructive cleanup rules run locally so they don't consume a SLURM slot.
 localrules:
     all,
     all_outputs,
