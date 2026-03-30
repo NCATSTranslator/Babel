@@ -107,7 +107,7 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 ## Localrules (Run on Head Node, No SLURM Slot)
 
 The following rules are declared `localrules` and run on the head/login node without consuming a
-SLURM allocation. They are trivial done-marker rules (e.g. `echo 'done'` or `write_done()`):
+SLURM allocation. They are trivial done-marker rules or cleanup rules:
 
 | Rule | File |
 |------|------|
