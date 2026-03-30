@@ -94,7 +94,7 @@ rule export_all_to_duckdb:
 # There are some reports we want to run on the Parquet files that have been generated.
 rule check_for_identically_labeled_cliques:
     resources:
-        mem="1500G",
+        mem="128G",
     input:
         config["output_directory"] + "/duckdb/done",
     params:
@@ -111,8 +111,8 @@ rule check_for_identically_labeled_cliques:
             output.duckdb_filename,
             output.identically_labeled_cliques_tsv,
             {
-                "memory_limit": "512G",
-                "threads": 2,
+                "memory_limit": "64G",
+                "threads": 4,
                 "preserve_insertion_order": False,
             },
         )
@@ -120,7 +120,7 @@ rule check_for_identically_labeled_cliques:
 
 rule check_for_duplicate_curies:
     resources:
-        mem="1500G",
+        mem="256G",
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
@@ -137,8 +137,8 @@ rule check_for_duplicate_curies:
             output.duckdb_filename,
             output.duplicate_curies,
             {
-                "memory_limit": "1500G",
-                "threads": 1,
+                "memory_limit": "128G",
+                "threads": 4,
                 "preserve_insertion_order": False,
             },
         )
@@ -146,7 +146,7 @@ rule check_for_duplicate_curies:
 
 rule check_for_duplicate_clique_leaders:
     resources:
-        mem="1500G",
+        mem="128G",
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
@@ -163,8 +163,8 @@ rule check_for_duplicate_clique_leaders:
             output.duckdb_filename,
             output.duplicate_clique_leaders_tsv,
             {
-                "memory_limit": "512G",
-                "threads": 2,
+                "memory_limit": "64G",
+                "threads": 4,
                 "preserve_insertion_order": False,
             },
         )
