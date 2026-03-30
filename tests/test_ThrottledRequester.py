@@ -31,14 +31,14 @@ def _local_server(delay_ms=0):
     server = HTTPServer(("127.0.0.1", 0), _DelayHandler)
     port = server.server_address[1]
     t = threading.Thread(target=server.serve_forever)
-    t.daemon = True
     t.start()
     try:
         yield f"http://127.0.0.1:{port}/"
     finally:
+        # Ensure the server loop stops, the thread exits, and the socket is closed.
         server.shutdown()
-
-
+        t.join(timeout=5)
+        server.server_close()
 @pytest.mark.unit
 def test_throttling():
     """Second request within the throttle window must wait; total runtime must exceed 500 ms."""
