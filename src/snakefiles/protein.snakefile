@@ -19,6 +19,8 @@ rule protein_mesh_ids:
 rule protein_pr_ids:
     output:
         outfile=config["intermediate_directory"] + "/protein/ids/PR",
+    benchmark:
+        config["output_directory"] + "/benchmarks/protein_pr_ids.tsv"
     run:
         protein.write_pr_ids(output.outfile)
 
@@ -28,6 +30,8 @@ rule protein_uniprotkb_ids:
         infile=config["download_directory"] + "/UniProtKB/labels",
     output:
         outfile=config["intermediate_directory"] + "/protein/ids/UniProtKB",
+    benchmark:
+        config["output_directory"] + "/benchmarks/protein_uniprotkb_ids.tsv"
     shell:
         #This one is a simple enough transform to do with awk
         "awk '{{print $1}}' {input.infile} > {output.outfile}"
@@ -38,6 +42,8 @@ rule extract_taxon_ids_from_uniprotkb:
         infile=config["download_directory"] + "/UniProtKB/idmapping.dat",
     output:
         outfile=config["download_directory"] + "/UniProtKB/taxa",
+    benchmark:
+        config["output_directory"] + "/benchmarks/extract_taxon_ids_from_uniprotkb.tsv"
     run:
         protein.extract_taxon_ids_from_uniprotkb(input.infile, output.outfile)
 
@@ -47,6 +53,8 @@ rule protein_umls_ids:
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
     output:
         outfile=config["intermediate_directory"] + "/protein/ids/UMLS",
+    benchmark:
+        config["output_directory"] + "/benchmarks/protein_umls_ids.tsv"
     run:
         protein.write_umls_ids(input.mrsty, output.outfile)
 
@@ -56,6 +64,8 @@ rule protein_ensembl_ids:
         infile=config["download_directory"] + "/ENSEMBL/BioMartDownloadComplete",
     output:
         outfile=config["intermediate_directory"] + "/protein/ids/ENSEMBL",
+    benchmark:
+        config["output_directory"] + "/benchmarks/protein_ensembl_ids.tsv"
     run:
         protein.write_ensembl_protein_ids(config["download_directory"] + "/ENSEMBL", output.outfile)
 
@@ -66,6 +76,8 @@ rule get_protein_uniprotkb_ensembl_relationships:
     output:
         outfile=config["intermediate_directory"] + "/protein/concords/UniProtKB",
         metadata_yaml=config["intermediate_directory"] + "/protein/concords/metadata-UniProtKB.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_protein_uniprotkb_ensembl_relationships.tsv"
     run:
         protein.build_protein_uniprotkb_ensemble_relationships(input.infile, output.outfile, output.metadata_yaml)
 
@@ -76,6 +88,8 @@ rule get_protein_pr_uniprotkb_relationships:
     output:
         outfile=config["intermediate_directory"] + "/protein/concords/PR",
         metadata_yaml=config["intermediate_directory"] + "/protein/concords/metadata-PR.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_protein_pr_uniprotkb_relationships.tsv"
     run:
         protein.build_pr_uniprot_relationships(output.outfile, metadata_yaml=output.metadata_yaml)
 
@@ -86,6 +100,8 @@ rule get_protein_ncit_uniprotkb_relationships:
     output:
         outfile=config["intermediate_directory"] + "/protein/concords/NCIT_UniProtKB",
         metadata_yaml=config["intermediate_directory"] + "/protein/concords/metadata-NCIT_UniProtKB.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_protein_ncit_uniprotkb_relationships.tsv"
     run:
         protein.build_ncit_uniprot_relationships(input.infile, output.outfile, output.metadata_yaml)
 
@@ -97,6 +113,8 @@ rule get_protein_ncit_umls_relationships:
     output:
         outfile=config["intermediate_directory"] + "/protein/concords/NCIT_UMLS",
         metadata_yaml=config["intermediate_directory"] + "/protein/concords/metadata-NCIT_UMLS.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_protein_ncit_umls_relationships.tsv"
     run:
         protein.build_umls_ncit_relationships(input.mrconso, input.infile, output.outfile, output.metadata_yaml)
 
@@ -108,6 +126,8 @@ rule get_protein_umls_relationships:
     output:
         outfile=config["intermediate_directory"] + "/protein/concords/UMLS",
         metadata_yaml=config["intermediate_directory"] + "/protein/concords/metadata-UMLS.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_protein_umls_relationships.tsv"
     run:
         protein.build_umls_relationships(input.mrconso, input.infile, output.outfile, output.metadata_yaml)
 
@@ -134,6 +154,8 @@ rule protein_compendia:
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["protein_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["protein_outputs"])),
+    benchmark:
+        config["output_directory"] + "/benchmarks/protein_compendia.tsv"
     run:
         protein.build_protein_compendia(input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename)
 
@@ -143,6 +165,8 @@ rule check_protein_completeness:
         input_compendia=expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["protein_outputs"]),
     output:
         report_file=config["output_directory"] + "/reports/protein_completeness.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_protein_completeness.tsv"
     run:
         assessments.assess_completeness(
             config["intermediate_directory"] + "/protein/ids", input.input_compendia, output.report_file
@@ -154,6 +178,8 @@ rule check_protein:
         infile=config["output_directory"] + "/compendia/Protein.txt",
     output:
         outfile=config["output_directory"] + "/reports/Protein.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_protein.tsv"
     run:
         assessments.assess(input.infile, output.outfile)
 
@@ -169,6 +195,8 @@ rule protein:
     output:
         synonyms_gzipped=expand("{od}/synonyms/{ap}.gz", od=config["output_directory"], ap=config["protein_outputs"]),
         x=config["output_directory"] + "/reports/protein_done",
+    benchmark:
+        config["output_directory"] + "/benchmarks/protein.tsv"
     run:
         util.gzip_files(input.synonyms)
         util.write_done(output.x)
