@@ -119,6 +119,10 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
                 if umls_id in umls_ids_in_this_compendium:
                     logger.debug(f"UMLS ID {umls_id} has already been included in this compendium, skipping.")
                     continue
+                if umls_id in curies_no_umls_type or umls_id in curies_multiple_umls_type:
+                    # This CURIE was already evaluated and skipped due to type resolution failure.
+                    # Skip it here to avoid redundant type lookups on subsequent MRCONSO rows for the same CUI.
+                    continue
 
                 # The STR value should be the label.
                 label = x[14]
