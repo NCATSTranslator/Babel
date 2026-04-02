@@ -1,5 +1,5 @@
-from src.prefixes import PANTHERPATHWAY
 from src.babel_utils import pull_via_urllib
+from src.prefixes import PANTHERPATHWAY
 
 
 def pull_panther_pathways():
@@ -9,10 +9,9 @@ def pull_panther_pathways():
 
 
 def make_pathway_labels(infile, outfile):
-    with open(infile, "r") as inf:
+    with open(infile) as inf:
         data = inf.read()
     lines = data.split("\n")
-    labels = {}
     wrote = set()
     with open(outfile, "w") as outf:
         for line in lines:

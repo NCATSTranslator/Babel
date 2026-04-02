@@ -1,28 +1,30 @@
+import gzip
+import os
+import sqlite3
 import subprocess
+import time
 import traceback
+import urllib
+from collections import defaultdict
+from datetime import datetime, timedelta
 from enum import Enum
 from ftplib import FTP
 from io import BytesIO
-import gzip
-from datetime import timedelta
-import time
-import requests
-import os
-import urllib
+from pathlib import Path
+
 import jsonlines
+import requests
 from humanfriendly import format_timespan
 
-from src.metadata.provenance import write_combined_metadata
-from src.node import NodeFactory, SynonymFactory, DescriptionFactory, InformationContentFactory, TaxonFactory
-from src.properties import PropertyList, HAS_ALTERNATIVE_ID
-from src.util import Text, get_config, get_memory_usage_summary, get_logger
 from src.LabeledID import LabeledID
-from collections import defaultdict
-import sqlite3
-from typing import List, Tuple
+from src.metadata.provenance import write_combined_metadata
+from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory
+from src.properties import HAS_ALTERNATIVE_ID, PropertyList
+from src.util import Text, get_config, get_logger, get_memory_usage_summary
 
 # Configuration items
 WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES = 1_000_000
+MAX_DOWNLOAD_ERROR = 10
 
 # Set up a logger.
 logger = get_logger(__name__)
@@ -141,7 +143,7 @@ class ThrottledRequester:
         self.delta = timedelta(milliseconds=delta_ms)
 
     def get(self, url):
-        now = dt.now()
+        now = datetime.now()
         throttled = False
         if self.last_time is not None:
             cdelta = now - self.last_time
@@ -149,7 +151,7 @@ class ThrottledRequester:
                 waittime = self.delta - cdelta
                 time.sleep(waittime.microseconds / 1e6)
                 throttled = True
-        self.last_time = dt.now()
+        self.last_time = datetime.now()
         response = requests.get(url)
         return response, throttled
 
@@ -166,16 +168,31 @@ class ThrottledRequester:
                 ntries += 1
 
 
-def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None):
+def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, verify_gzip=False):
     """
-    Retrieve files via urllib, optionally decompresses it, and writes it locally into downloads
-    url: str - the url with the correct version attached
-    in_file_name: str - the name of the target file to work
-    returns: str - the output file name
+    Download a file via the given URL, optionally decompress it, and save it
+    to the specified local path. Handles HTTP redirects gracefully.
+
+    :param url: The base URL of the remote server (e.g., "http://example.com/").
+        It is combined with the provided filename to determine the full file path.
+    :type url: str
+    :param in_file_name: The name of the file to download, specified as the filename
+        on the remote server.
+    :type in_file_name: str
+    :param decompress: Whether to decompress the downloaded file if it is gzipped.
+        Defaults to True.
+    :type decompress: bool, optional
+    :param subpath: An optional subpath under the main download directory to save the file.
+        If None, the file is saved directly in the download directory.
+    :type subpath: str, optional
+    :param verify_gzip: If downloading a Gzip file that isn't being decompressed, verify that the
+        file is valid (by reading it). Has no effect if decompress=True.
+    :type verify_gzip: bool, optional
+    :return: The path to the downloaded (and optionally decompressed) file.
+    :rtype: str
     """
     # Everything goes in downloads
     download_dir = get_config()["download_directory"]
-    working_dir = download_dir
 
     # get the (local) download file name, derived from the input file name
     if subpath is None:
@@ -187,38 +204,70 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None):
     opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
 
     # get a handle to the ftp file
-    print(url + in_file_name)
-    handle = opener.open(url + in_file_name)
+    download_url = url + in_file_name
+    logger.info(f"Downloading {download_url}")
+    handle = opener.open(download_url)
 
     # create the compressed file
-    with open(dl_file_name, "wb") as compressed_file:
-        # while there is data
-        while True:
-            # read a block of data
-            data = handle.read(1024)
+    download_verified = False
+    download_attempt = 0
+    while not download_verified:
+        Path(dl_file_name).unlink(missing_ok=True)
+        download_attempt += 1
+        if download_attempt > MAX_DOWNLOAD_ERROR:
+            raise RuntimeError(f"Could not download and verify {download_url}: more than {MAX_DOWNLOAD_ERROR} attempts.")
+        logger.info(f"Downloading {dl_file_name} using urllib, attempt {download_attempt}...")
 
-            # fif nothing read about
-            if len(data) == 0:
-                break
+        with open(dl_file_name, "wb") as compressed_file:
+            # while there is data
+            while True:
+                # read a block of data
+                data = handle.read(1024)
 
-            # write out the data to the output file
-            compressed_file.write(data)
+                # fif nothing read about
+                if len(data) == 0:
+                    break
 
-    if decompress:
-        out_file_name = dl_file_name[:-3]
+                # write out the data to the output file
+                compressed_file.write(data)
 
-        # create the output text file
-        with open(out_file_name, "w") as output_file:
-            # open the compressed file
-            with gzip.open(dl_file_name, "rt") as compressed_file:
-                for line in compressed_file:
-                    # write the data to the output file
-                    output_file.write(line)
+        if decompress:
+            out_file_name = dl_file_name[:-3]
 
-        # remove the compressed file
-        os.remove(dl_file_name)
-    else:
-        out_file_name = dl_file_name
+            # create the output text file
+            with open(out_file_name, "w") as output_file:
+                # open the compressed file
+                with gzip.open(dl_file_name, "rt") as compressed_file:
+                    for line in compressed_file:
+                        # write the data to the output file
+                        output_file.write(line)
+
+            # remove the compressed file
+            os.remove(dl_file_name)
+
+            download_verified = True
+        else:
+            out_file_name = dl_file_name
+
+            # Do we need to verify this gzip file?
+            download_verified = True
+            if verify_gzip:
+                # Is it blank/very small? If so, we immediately fail verification.
+                file_size = os.path.getsize(out_file_name)
+                if file_size < 1024:
+                    logger.warning(f"Downloaded Gzip file {out_file_name} is too small ({file_size} bytes), skipping verification.")
+                    download_verified = False
+                    continue
+
+                # To verify a Gzip file, we need to read it entirely.
+                try:
+                    with gzip.open(out_file_name, "rb") as f:
+                        for _ in iter(lambda: f.read(1024 * 1024), b""):
+                            pass
+                    download_verified = True
+                except Exception as e:
+                    logger.warning(f"Error while verifying downloaded Gzip file {out_file_name}: {e}")
+                    download_verified = False
 
     # return the filename to the caller
     return out_file_name
@@ -376,7 +425,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
     :param metadata_yaml: The YAML files containing the metadata for this compendium.
     :param synonym_list:
     :param ofname: Output filename. A file with this filename will be created in both the `compendia` and `synonyms` output directories.
-    :param node_type:
+    :param node_type: The Biolink type of this compendium (including `biolink:` prefix).
     :param labels: A map of identifiers
         Not needed if each identifier will have a label in the correct directory (i.e. downloads/PMID/labels for PMID:xxx).
     :param extra_prefixes: We default to only allowing the prefixes allowed for a particular type in Biolink.
@@ -461,6 +510,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
             # Before we get started, let's estimate where we're at.
             count_slist += 1
             if (count_slist == 1) or (count_slist % WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES == 0):
+                # TODO: replace with tqdm.
                 time_elapsed_seconds = (time.time_ns() - start_time) / 1e9
                 if time_elapsed_seconds < 0.001:
                     # We don't want to divide by zero.
@@ -538,11 +588,11 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                     possible_labels = map(lambda identifier: identifier.get("label", ""), node["identifiers"])
 
                 # Step 2. Filter out any suspicious labels.
-                filtered_possible_labels = [l for l in possible_labels if l]  # Ignore blank or empty names.
+                filtered_possible_labels = [label for label in possible_labels if label]  # Ignore blank or empty names.
 
                 # Step 3. Filter out labels longer than config['demote_labels_longer_than'], but only if there is at
                 # least one label shorter than this limit.
-                labels_shorter_than_limit = [l for l in filtered_possible_labels if l and len(l) <= config["demote_labels_longer_than"]]
+                labels_shorter_than_limit = [label for label in filtered_possible_labels if label and len(label) <= config["demote_labels_longer_than"]]
                 if labels_shorter_than_limit:
                     filtered_possible_labels = labels_shorter_than_limit
 
@@ -710,7 +760,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
             "cliques": count_cliques,
             "eq_ids": count_eq_ids,
             "synonyms": count_synonyms,
-            "property_sources": property_source_count,
+            "property_sources": dict(property_source_count),
         },
         combined_from_filenames=metadata_yamls,
     )
@@ -731,7 +781,7 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
     shit_prefixes = set(["KEGG", "PUBCHEM"])
     test_id = "xUBERON:0002262"
     debugit = False
-    excised = set()
+    # excised = set()
     for xgroup in newgroups:
         if isinstance(xgroup, frozenset):
             group = set(xgroup)
@@ -751,7 +801,7 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
         existing_sets_w_x = [(conc_set[x], x) for x in group if x in conc_set]
         # All of these sets are now going to be combined through the equivalence of our new set.
         existing_sets = [es[0] for es in existing_sets_w_x]
-        x = [es[1] for es in existing_sets_w_x]
+        # x = [es[1] for es in existing_sets_w_x]
         newset = set().union(*existing_sets)
         if debugit:
             print("merges:", existing_sets)
@@ -779,7 +829,7 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
         for up in unique_prefixes:
             if test_id in group:
                 print("up?", up)
-            idents = [e if type(e) == str else e.identifier for e in newset]
+            idents = [e if isinstance(e, str) else e.identifier for e in newset]
             if len(set([e for e in idents if (e.split(":")[0] == up)])) > 1:
                 bad += 1
                 setok = False
@@ -789,18 +839,15 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
                     wrote.add(fs)
                 for gel in group:
                     if Text.get_prefix_or_none(gel) == pref:
-                        killer = gel
+                        # killer = gel
+                        pass
                 # for preset in wrote:
                 #    print(f'{killer}\t{set(group).intersection(preset)}\t{preset}\n')
                 # print('------------')
         NPC = sum(1 for s in newset if s.startswith("PUBCHEM.COMPOUND:"))
         if ("PUBCHEM.COMPOUND:3100" in newset) and (NPC > 3):
             if debugit:
-                l = sorted(list(newset))
-                print("bad")
-                for li in l:
-                    print(li)
-                exit()
+                raise ValueError(f"Debugging information: {sorted(list(newset))}")
         if not setok:
             # Our new group created a new set that merged stuff we didn't want to merge.
             # Previously we did a lot of fooling around at this point.  But now we're just going to say, I have a
@@ -843,7 +890,7 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
         # Now check the 'close' dictionary to see if we've accidentally gotten to a close match becoming an exact match
         setok = True
         for cpref, closedict in close.items():
-            idents = set([e if type(e) == str else e.identifier for e in newset])
+            idents = set([e if isinstance(e, str) else e.identifier for e in newset])
             prefidents = [e for e in idents if e.startswith(cpref)]
             for pident in prefidents:
                 for cd in closedict[pident]:
@@ -927,7 +974,7 @@ def read_identifier_file(infile):
     a hint to the normalizer about the proper biolink type for this entity."""
     types = {}
     identifiers = list()
-    with open(infile, "r") as inf:
+    with open(infile) as inf:
         for line in inf:
             x = line.strip().split("\t")
             identifiers.append((x[0],))
@@ -936,7 +983,7 @@ def read_identifier_file(infile):
     return identifiers, types
 
 
-def remove_overused_xrefs(pairlist: List[Tuple], bothways: bool = False):
+def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
     """Given a list of tuples (id1, id2) meaning id1-[xref]->id2, remove any id2 that are associated with more
     than one id1.  The idea is that if e.g. id1 is made up of UBERONS and 2 of those have an xref to say a UMLS
     then it doesn't mean that all of those should be identified.  We don't really know what it means, so remove it."""

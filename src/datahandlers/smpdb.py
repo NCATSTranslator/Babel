@@ -1,7 +1,8 @@
-from zipfile import ZipFile
 from os import path
-from src.prefixes import SMPDB
+from zipfile import ZipFile
+
 from src.babel_utils import pull_via_urllib
+from src.prefixes import SMPDB
 
 
 def pull_smpdb():
@@ -13,8 +14,8 @@ def pull_smpdb():
 
 def make_labels(inputfile, labelfile):
     """Get the SMPDB file.  It's not good - there are \n and commas, and commas are also the delimiter. I mean, what?"""
-    with open(inputfile, "r") as inf, open(labelfile, "w") as outf:
-        h = inf.readline()
+    with open(inputfile) as inf, open(labelfile, "w") as outf:
+        _header = inf.readline()
         for line in inf:
             if "," not in line:
                 continue

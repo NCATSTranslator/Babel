@@ -1,17 +1,15 @@
 from collections import defaultdict
 
+import src.datahandlers.ec as ec
 import src.datahandlers.obo as obo
 import src.datahandlers.reactome as reactome
 import src.datahandlers.rhea as rhea
-import src.datahandlers.ec as ec
 import src.datahandlers.umls as umls
-from src.metadata.provenance import write_concord_metadata
-
-from src.prefixes import GO, REACT, WIKIPATHWAYS, TCDB
+from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
 from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
+from src.metadata.provenance import write_concord_metadata
+from src.prefixes import GO, REACT, TCDB, WIKIPATHWAYS
 from src.ubergraph import build_sets
-
-from src.babel_utils import read_identifier_file, glom, remove_overused_xrefs, get_prefixes, write_compendium
 
 
 def write_obo_ids(irisandtypes, outfile, exclude=[]):
@@ -102,7 +100,7 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
         # them added. So we want to limit concordances to terms that are already in the dicts. But that's ONLY for the
         # UMLS concord.  We trust the others to retrieve decent identifiers.
         pairs = []
-        with open(infile, "r") as inf:
+        with open(infile) as inf:
             for line in inf:
                 x = line.strip().split("\t")
                 if infile.endswith("UMLS"):

@@ -1,11 +1,10 @@
 import json
 import logging
+import os
+from collections import defaultdict
 from pathlib import Path
 
 from src.ubergraph import UberGraph
-from collections import defaultdict
-import os
-
 from src.util import Text
 
 
@@ -157,6 +156,6 @@ def write_obo_ids(irisandtypes, outfile, order, exclude=[]):
     with open(outfile, "w") as idfile:
         for kd, typeset in iris_to_types.items():
             if kd not in excluded_iris and kd.startswith(prefix):
-                l = list(typeset)
-                l.sort(key=lambda k: order.index(k))
-                idfile.write(f"{kd}\t{l[0]}\n")
+                list_typeset = list(typeset)
+                list_typeset.sort(key=lambda k: order.index(k))
+                idfile.write(f"{kd}\t{list_typeset[0]}\n")

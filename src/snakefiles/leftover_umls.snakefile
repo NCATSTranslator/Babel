@@ -25,7 +25,9 @@ configfile: "config.yaml"
 rule leftover_umls:
     input:
         input_compendia=expand(
-            "{output}/compendia/{compendium}", output=config["output_directory"], compendium=[x for x in get_all_compendia(config) if x not in {"umls.txt"}]
+            "{output}/compendia/{compendium}",
+            output=config["output_directory"],
+            compendium=[x for x in get_all_compendia(config) if x not in {"umls.txt"}],
         ),
         umls_label_filename=config["download_directory"] + "/UMLS/labels",
         mrconso=config["download_directory"] + "/UMLS/MRCONSO.RRF",
@@ -34,9 +36,13 @@ rule leftover_umls:
     output:
         umls_compendium=config["output_directory"] + "/compendia/umls.txt",
         umls_synonyms=temp(config["output_directory"] + "/synonyms/umls.txt"),
+        umls_metadata_yaml=config["output_directory"] + "/metadata/umls.txt.yaml",
         report=config["output_directory"] + "/reports/umls.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/leftover_umls.tsv"
     run:
         write_leftover_umls(
+            output.umls_metadata_yaml,
             input.input_compendia,
             input.umls_label_filename,
             input.mrconso,
@@ -55,6 +61,8 @@ rule compress_umls:
     output:
         umls_synonyms_gzipped=config["output_directory"] + "/synonyms/umls.txt.gz",
         done=config["output_directory"] + "/reports/umls_done",
+    benchmark:
+        config["output_directory"] + "/benchmarks/compress_umls.tsv"
     run:
         util.gzip_files([input.umls_synonyms])
         util.write_done(output.done)

@@ -1,5 +1,5 @@
+from os import listdir, path, rename
 from zipfile import ZipFile
-from os import path, listdir, rename
 
 import requests
 
@@ -39,8 +39,8 @@ def make_labels_and_synonyms(inputfile, labelfile, synfile):
     syncol = 0
     wrotelabels = set()
     wrotesyns = set()
-    with open(inputfile, "r", encoding="latin-1") as inf, open(labelfile, "w") as lf, open(synfile, "w") as sf:
-        h = inf.readline()
+    with open(inputfile, encoding="latin-1") as inf, open(labelfile, "w") as lf, open(synfile, "w") as sf:
+        _header = inf.readline()
         for line in inf:
             parts = line.strip().split("\t")
             ident = f"{UNII}:{parts[idcol]}"

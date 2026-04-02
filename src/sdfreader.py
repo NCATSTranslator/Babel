@@ -1,7 +1,7 @@
 def read_sdf(infile, interesting_keys):
     """Given an sdf file name and a set of keys that we'd like to extract, return a dictionary going
     chebiid -> {properties} where the properties are chosen from the interesting keys"""
-    with open(infile, "r") as inf:
+    with open(infile) as inf:
         chebisdf = inf.read()
     lines = chebisdf.split("\n")
     chunk = []

@@ -6,14 +6,24 @@ import os
 ### Export compendia/synonyms into downstream outputs
 
 
+# Trivial aggregation rules run locally so they don't consume a SLURM slot.
+localrules:
+    export_all_to_kgx,
+    export_all_to_sapbert_training,
+
+
 # Export all compendia to KGX, then create `babel_outputs/kgx/done` to signal that we're done.
 rule export_all_to_kgx:
     input:
         nodes_files=expand(
-            "{od}/kgx/{fn}", od=config["output_directory"], fn=map(lambda fn: os.path.splitext(fn)[0] + "_nodes.jsonl.gz", get_all_compendia(config))
+            "{od}/kgx/{fn}",
+            od=config["output_directory"],
+            fn=map(lambda fn: os.path.splitext(fn)[0] + "_nodes.jsonl.gz", get_all_compendia(config)),
         ),
         edges_files=expand(
-            "{od}/kgx/{fn}", od=config["output_directory"], fn=map(lambda fn: os.path.splitext(fn)[0] + "_edges.jsonl.gz", get_all_compendia(config))
+            "{od}/kgx/{fn}",
+            od=config["output_directory"],
+            fn=map(lambda fn: os.path.splitext(fn)[0] + "_edges.jsonl.gz", get_all_compendia(config)),
         ),
     output:
         x=config["output_directory"] + "/kgx/done",
@@ -28,6 +38,10 @@ rule generate_kgx:
     output:
         nodes_file=config["output_directory"] + "/kgx/{filename}_nodes.jsonl.gz",
         edges_file=config["output_directory"] + "/kgx/{filename}_edges.jsonl.gz",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_kgx_{filename}.tsv"
+    resources:
+        runtime="6h",
     run:
         kgx.convert_compendium_to_kgx(input.compendium_file, output.nodes_file, output.edges_file)
 
@@ -36,7 +50,9 @@ rule generate_kgx:
 rule export_all_to_sapbert_training:
     input:
         sapbert_training_file=expand(
-            "{od}/sapbert-training-data/{fn}.gz", od=config["output_directory"], fn=get_all_synonyms_with_drugchemicalconflated(config)
+            "{od}/sapbert-training-data/{fn}.gz",
+            od=config["output_directory"],
+            fn=get_all_synonyms_with_drugchemicalconflated(config),
         ),
     output:
         x=config["output_directory"] + "/sapbert-training-data/done",
@@ -50,5 +66,9 @@ rule generate_sapbert_training_data:
         synonym_file_gz=config["output_directory"] + "/synonyms/{filename}.gz",
     output:
         sapbert_training_data_file=config["output_directory"] + "/sapbert-training-data/{filename}.gz",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_sapbert_training_data_{filename}.tsv"
+    resources:
+        runtime="6h",
     run:
         sapbert.convert_synonyms_to_sapbert(input.synonym_file_gz, output.sapbert_training_data_file)

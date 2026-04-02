@@ -1,7 +1,6 @@
-from src.prefixes import COMPLEXPORTAL
+from src.babel_utils import glom, read_identifier_file, write_compendium
 from src.categories import MACROMOLECULAR_COMPLEX
-
-from src.babel_utils import read_identifier_file, glom, write_compendium
+from src.prefixes import COMPLEXPORTAL
 
 
 def build_compendia(identifiers, metadata_yamls, icrdf_filename):

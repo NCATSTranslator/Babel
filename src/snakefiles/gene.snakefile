@@ -10,6 +10,8 @@ rule gene_mods_ids:
         infile=expand("{dd}/{mod}/labels", dd=config["download_directory"], mod=config["mods"]),
     output:
         outfile=expand("{dd}/gene/ids/{mod}", dd=config["intermediate_directory"], mod=config["mods"]),
+    benchmark:
+        config["output_directory"] + "/benchmarks/gene_mods_ids.tsv"
     run:
         gene.write_mods_ids(config["download_directory"], config["intermediate_directory"], config["mods"])
 
@@ -19,6 +21,8 @@ rule gene_ncbi_ids:
         infile=config["download_directory"] + "/NCBIGene/labels",
     output:
         outfile=config["intermediate_directory"] + "/gene/ids/NCBIGene",
+    benchmark:
+        config["output_directory"] + "/benchmarks/gene_ncbi_ids.tsv"
     shell:
         #This one is a simple enough transform to do with awk
         "awk '{{print $1}}' {input.infile} > {output.outfile}"
@@ -29,6 +33,8 @@ rule gene_omim_ids:
         infile=config["download_directory"] + "/OMIM/mim2gene.txt",
     output:
         outfile=config["intermediate_directory"] + "/gene/ids/OMIM",
+    benchmark:
+        config["output_directory"] + "/benchmarks/gene_omim_ids.tsv"
     run:
         gene.write_omim_ids(input.infile, output.outfile)
 
@@ -38,6 +44,8 @@ rule gene_ensembl_ids:
         infile=config["download_directory"] + "/ENSEMBL/BioMartDownloadComplete",
     output:
         outfile=config["intermediate_directory"] + "/gene/ids/ENSEMBL",
+    benchmark:
+        config["output_directory"] + "/benchmarks/gene_ensembl_ids.tsv"
     run:
         gene.write_ensembl_gene_ids(config["download_directory"] + "/ENSEMBL", output.outfile)
 
@@ -47,6 +55,8 @@ rule gene_hgnc_ids:
         infile=config["download_directory"] + "/HGNC/hgnc_complete_set.json",
     output:
         outfile=config["intermediate_directory"] + "/gene/ids/HGNC",
+    benchmark:
+        config["output_directory"] + "/benchmarks/gene_hgnc_ids.tsv"
     run:
         gene.write_hgnc_ids(input.infile, output.outfile)
 
@@ -57,6 +67,8 @@ rule gene_umls_ids:
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
     output:
         outfile=config["intermediate_directory"] + "/gene/ids/UMLS",
+    benchmark:
+        config["output_directory"] + "/benchmarks/gene_umls_ids.tsv"
     run:
         gene.write_umls_ids(input.mrconso, input.mrsty, output.outfile)
 
@@ -68,6 +80,8 @@ rule get_gene_ncbigene_ensembl_relationships:
     output:
         outfile=config["intermediate_directory"] + "/gene/concords/NCBIGeneENSEMBL",
         metadata_yaml=config["intermediate_directory"] + "/gene/concords/metadata-NCBIGeneENSEMBL.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_gene_ncbigene_ensembl_relationships.tsv"
     run:
         gene.build_gene_ncbi_ensembl_relationships(input.infile, input.idfile, output.outfile, output.metadata_yaml)
 
@@ -79,6 +93,8 @@ rule get_gene_ncbigene_relationships:
     output:
         outfile=config["intermediate_directory"] + "/gene/concords/NCBIGene",
         metadata_yaml=config["intermediate_directory"] + "/gene/concords/metadata-NCBIGene.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_gene_ncbigene_relationships.tsv"
     run:
         gene.build_gene_ncbigene_xrefs(input.infile, input.idfile, output.outfile, output.metadata_yaml)
 
@@ -89,8 +105,12 @@ rule get_gene_ensembl_relationships:
     output:
         outfile=config["intermediate_directory"] + "/gene/concords/ENSEMBL",
         metadata_yaml=config["intermediate_directory"] + "/gene/concords/metadata-ENSEMBL.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_gene_ensembl_relationships.tsv"
     run:
-        gene.build_gene_ensembl_relationships(config["download_directory"] + "/ENSEMBL", output.outfile, output.metadata_yaml)
+        gene.build_gene_ensembl_relationships(
+            config["download_directory"] + "/ENSEMBL", output.outfile, output.metadata_yaml
+        )
 
 
 rule get_gene_medgen_relationships:
@@ -99,6 +119,8 @@ rule get_gene_medgen_relationships:
     output:
         outfile=config["intermediate_directory"] + "/gene/concords/medgen",
         metadata_yaml=config["intermediate_directory"] + "/gene/concords/metadata-medgen.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_gene_medgen_relationships.tsv"
     run:
         gene.build_gene_medgen_relationships(input.infile, output.outfile, output.metadata_yaml)
 
@@ -110,6 +132,8 @@ rule get_gene_umls_relationships:
     output:
         outfile=config["intermediate_directory"] + "/gene/concords/UMLS",
         metadata_yaml=config["intermediate_directory"] + "/gene/concords/metadata-UMLS.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_gene_umls_relationships.tsv"
     run:
         gene.build_gene_umls_hgnc_relationships(input.mrconso, input.infile, output.outfile, output.metadata_yaml)
 
@@ -118,9 +142,13 @@ rule get_umls_gene_protein_mappings:
     output:
         umls_uniprotkb_filename=config["download_directory"] + "/UMLS_UniProtKB/UMLS_UniProtKB.tsv",
         umls_gene_concords=config["output_directory"] + "/intermediate/gene/concords/UMLS_NCBIGene",
-        umls_ncbigene_metadata_yaml=config["output_directory"] + "/intermediate/gene/concords/metadata-UMLS_NCBIGene.yaml",
+        umls_ncbigene_metadata_yaml=config["output_directory"]
+        + "/intermediate/gene/concords/metadata-UMLS_NCBIGene.yaml",
         umls_protein_concords=config["output_directory"] + "/intermediate/protein/concords/UMLS_UniProtKB",
-        umls_protein_metadata_yaml=config["output_directory"] + "/intermediate/protein/concords/metadata-UMLS_UniProtKB.yaml",
+        umls_protein_metadata_yaml=config["output_directory"]
+        + "/intermediate/protein/concords/metadata-UMLS_UniProtKB.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_umls_gene_protein_mappings.tsv"
     run:
         uniprotkb.download_umls_gene_protein_mappings(
             config["UMLS_UniProtKB_download_raw_url"],
@@ -162,12 +190,19 @@ rule gene_compendia:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["gene_labels"]),
         synonyms=expand("{dd}/{ap}/synonyms", dd=config["download_directory"], ap=config["gene_labels"]),
         concords=expand("{dd}/gene/concords/{ap}", dd=config["intermediate_directory"], ap=config["gene_concords"]),
-        metadata_yamls=expand("{dd}/gene/concords/metadata-{ap}.yaml", dd=config["intermediate_directory"], ap=config["gene_concords"]),
+        metadata_yamls=expand(
+            "{dd}/gene/concords/metadata-{ap}.yaml", dd=config["intermediate_directory"], ap=config["gene_concords"]
+        ),
         idlists=expand("{dd}/gene/ids/{ap}", dd=config["intermediate_directory"], ap=config["gene_ids"]),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["gene_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["gene_outputs"])),
+    benchmark:
+        config["output_directory"] + "/benchmarks/gene_compendia.tsv"
+    resources:
+        runtime="6h",
+        mem="256G",
     run:
         gene.build_gene_compendia(input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename)
 
@@ -177,8 +212,12 @@ rule check_gene_completeness:
         input_compendia=expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["gene_outputs"]),
     output:
         report_file=config["output_directory"] + "/reports/gene_completeness.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_gene_completeness.tsv"
     run:
-        assessments.assess_completeness(config["intermediate_directory"] + "/gene/ids", input.input_compendia, output.report_file)
+        assessments.assess_completeness(
+            config["intermediate_directory"] + "/gene/ids", input.input_compendia, output.report_file
+        )
 
 
 rule check_gene:
@@ -186,6 +225,8 @@ rule check_gene:
         infile=config["output_directory"] + "/compendia/Gene.txt",
     output:
         outfile=config["output_directory"] + "/reports/Gene.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_gene.tsv"
     run:
         assessments.assess(input.infile, output.outfile)
 
@@ -198,6 +239,8 @@ rule gene:
     output:
         synonyms_gzipped=expand("{od}/synonyms/{ap}.gz", od=config["output_directory"], ap=config["gene_outputs"]),
         x=config["output_directory"] + "/reports/gene_done",
+    benchmark:
+        config["output_directory"] + "/benchmarks/gene.tsv"
     run:
         util.gzip_files(input.synonyms)
         util.write_done(output.x)

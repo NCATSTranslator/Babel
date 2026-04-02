@@ -4,15 +4,15 @@ import json
 import logging
 import os
 import time
+import xml.etree.ElementTree as ET
 from collections import defaultdict
 from mmap import ACCESS_READ, mmap
 from pathlib import Path
-import xml.etree.ElementTree as ET
 
-from src.babel_utils import pull_via_wget, WgetRecursionOptions, glom, read_identifier_file, write_compendium
+from src.babel_utils import WgetRecursionOptions, glom, pull_via_wget, read_identifier_file, write_compendium
 from src.categories import JOURNAL_ARTICLE, PUBLICATION
 from src.metadata.provenance import write_concord_metadata
-from src.prefixes import PMID, DOI, PMC
+from src.prefixes import DOI, PMC, PMID
 
 
 def download_pubmed(download_file, pubmed_base="ftp://ftp.ncbi.nlm.nih.gov/pubmed/", pmc_base="https://ftp.ncbi.nlm.nih.gov/pub/pmc/"):
@@ -69,7 +69,7 @@ def verify_pubmed_download_against_md5(pubmed_filename, md5_filename):
         logging.warning(f"Could not verify {pubmed_filename}: no MD5 file found at {md5_filename}.")
         return False
 
-    with open(md5_filename, "r") as md5f:
+    with open(md5_filename) as md5f:
         md5_line = md5f.readline().strip()
         expected_md5 = md5_line.split("= ")[1]
         if len(expected_md5) != 32:
@@ -273,7 +273,7 @@ def generate_compendium(concordances, metadata_yamls, identifiers, titles, publi
         print(infile)
         print("loading", infile)
         pairs = []
-        with open(infile, "r") as inf:
+        with open(infile) as inf:
             for line in inf:
                 x = line.strip().split("\t")
                 pairs.append({x[0], x[2]})
@@ -283,7 +283,7 @@ def generate_compendium(concordances, metadata_yamls, identifiers, titles, publi
     labels = dict()
     for title_filename in titles:
         print("loading titles from", title_filename)
-        with open(title_filename, "r") as titlef:
+        with open(title_filename) as titlef:
             for line in titlef:
                 id, title = line.strip().split("\t")
                 if id in labels:
@@ -294,5 +294,4 @@ def generate_compendium(concordances, metadata_yamls, identifiers, titles, publi
 
     # Write out the compendium.
     publication_sets = set([frozenset(x) for x in dicts.values()])
-    baretype = PUBLICATION.split(":")[-1]
     write_compendium(metadata_yamls, publication_sets, os.path.basename(publication_compendium), PUBLICATION, labels, icrdf_filename=icrdf_filename)

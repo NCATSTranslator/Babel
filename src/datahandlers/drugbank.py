@@ -32,7 +32,7 @@ def extract_drugbank_labels_and_synonyms(drugbank_vocab_csv, labels, synonyms):
     :param synonyms: The file to write synonyms into.
     """
 
-    with open(drugbank_vocab_csv, "r") as fin, open(labels, "w") as labelsf, open(synonyms, "w") as synonymsf:
+    with open(drugbank_vocab_csv) as fin, open(labels, "w") as labelsf, open(synonyms, "w") as synonymsf:
         reader = csv.DictReader(fin)
         assert "DrugBank ID" in reader.fieldnames
         assert "Common name" in reader.fieldnames

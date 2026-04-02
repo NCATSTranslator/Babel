@@ -1,6 +1,14 @@
+import os
+
 import src.createcompendia.publications as publications
 import src.assess_compendia as assessments
 from src.snakefiles import util
+
+
+# Trivial done-marker rule runs locally so it doesn't consume a SLURM slot.
+localrules:
+    publications,
+
 
 ### PubMed
 
@@ -10,6 +18,11 @@ rule download_pubmed:
         baseline_dir=directory(config["download_directory"] + "/PubMed/baseline"),
         updatefiles_dir=directory(config["download_directory"] + "/PubMed/updatefiles"),
         done_file=config["download_directory"] + "/PubMed/downloaded",
+    benchmark:
+        config["output_directory"] + "/benchmarks/download_pubmed.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         publications.download_pubmed(output.done_file)
 
@@ -19,9 +32,15 @@ rule verify_pubmed:
         config["download_directory"] + "/PubMed/downloaded",
     output:
         done_file=config["download_directory"] + "/PubMed/verified",
+    benchmark:
+        config["output_directory"] + "/benchmarks/verify_pubmed.tsv"
     run:
         publications.verify_pubmed_downloads(
-            [config["download_directory"] + "/PubMed/baseline", config["download_directory"] + "/PubMed/updatefiles"], output.done_file
+            [
+                config["download_directory"] + "/PubMed/baseline",
+                config["download_directory"] + "/PubMed/updatefiles",
+            ],
+            output.done_file,
         )
 
 
@@ -36,6 +55,11 @@ rule generate_pubmed_concords:
         pmid_id_file=config["intermediate_directory"] + "/publications/ids/PMID",
         pmid_doi_concord_file=config["intermediate_directory"] + "/publications/concords/PMID_DOI",
         metadata_yaml=config["intermediate_directory"] + "/publications/concords/metadata.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_pubmed_concords.tsv"
+    resources:
+        runtime="24h",
+        mem="128G",
     run:
         publications.parse_pubmed_into_tsvs(
             input.baseline_dir,
@@ -61,14 +85,24 @@ rule generate_pubmed_compendia:
         publication_compendium=config["output_directory"] + "/compendia/Publication.txt",
         # We generate an empty Publication Synonyms files, but we still need to generate one.
         publication_synonyms_gz=config["output_directory"] + "/synonyms/Publication.txt.gz",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_pubmed_compendia.tsv"
+    resources:
+        mem="128G",
     run:
         publications.generate_compendium(
-            [input.pmid_doi_concord_file], [input.metadata_yaml], [input.pmid_id_file], input.titles, output.publication_compendium, input.icrdf_filename
+            [input.pmid_doi_concord_file],
+            [input.metadata_yaml],
+            [input.pmid_id_file],
+            input.titles,
+            output.publication_compendium,
+            input.icrdf_filename,
         )
-        # generate_compendium() will generate an (empty) Publication.txt.gz file, but we need
+        # generate_compendium() will generate an (empty) Publication.txt file, but we need
         # to compress it.
         publication_synonyms = os.path.splitext(output.publication_synonyms_gz)[0]
         util.gzip_files([publication_synonyms])
+        os.remove(publication_synonyms)
 
 
 rule check_publications_completeness:
@@ -76,8 +110,12 @@ rule check_publications_completeness:
         input_compendia=expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["publication_outputs"]),
     output:
         report_file=config["output_directory"] + "/reports/publication_completeness.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_publications_completeness.tsv"
     run:
-        assessments.assess_completeness(config["intermediate_directory"] + "/publications/ids", input.input_compendia, output.report_file)
+        assessments.assess_completeness(
+            config["intermediate_directory"] + "/publications/ids", input.input_compendia, output.report_file
+        )
 
 
 rule check_publications:
@@ -85,6 +123,8 @@ rule check_publications:
         infile=config["output_directory"] + "/compendia/Publication.txt",
     output:
         outfile=config["output_directory"] + "/reports/Publication.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_publications.tsv"
     run:
         assessments.assess(input.infile, output.outfile)
 

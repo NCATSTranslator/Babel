@@ -21,10 +21,22 @@ include: "src/snakefiles/reports.snakefile"
 include: "src/snakefiles/exports.snakefile"
 
 
+# Some general imports.
+import shutil
+from src.snakefiles.util import write_done
+
 # Some global settings.
 import os
 
 os.environ["TMPDIR"] = config["tmp_directory"]
+
+
+# Trivial done-marker rules and destructive cleanup rules run locally so they don't consume a SLURM slot.
+localrules:
+    all,
+    all_outputs,
+    clean_compendia,
+    clean_downloads,
 
 
 # Top-level rules.
@@ -41,10 +53,14 @@ rule all:
         # Build all the exports.
         config["output_directory"] + "/kgx/done",
         config["output_directory"] + "/sapbert-training-data/done",
+        # Store the config.yaml file used to produce the output.
+        config_file="config.yaml",
     output:
         x=config["output_directory"] + "/reports/all_done",
-    shell:
-        "echo 'done' >> {output.x}"
+        output_config_file=config["output_directory"] + "/config.yaml",
+    run:
+        shutil.copyfile(input.config_file, output.output_config_file)
+        write_done(output.x)
 
 
 rule all_outputs:
@@ -65,8 +81,8 @@ rule all_outputs:
         config["output_directory"] + "/reports/publications_done",
     output:
         x=config["output_directory"] + "/reports/outputs_done",
-    shell:
-        "echo 'done' >> {output.x}"
+    run:
+        write_done(output.x)
 
 
 rule clean_compendia:
@@ -90,5 +106,7 @@ rule uncompress_synonym_file:
         config["output_directory"] + "/synonyms/{synonym_file}.txt.gz",
     output:
         config["output_directory"] + "/synonyms/{synonym_file}.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/uncompress_synonym_file_{synonym_file}.tsv"
     shell:
         "gunzip {input} -c > {output}"

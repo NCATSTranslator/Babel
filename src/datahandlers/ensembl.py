@@ -1,15 +1,25 @@
 import json
-
-from src.util import get_config
-from apybiomart import find_datasets, query, find_attributes
 import logging
 import os
+
+import apybiomart.classes as _apy_classes
+from apybiomart import find_attributes, find_datasets, query
+
+from src.util import get_config
+
+# apybiomart's pre-flight connectivity check uses HTTPS and fails with SSL
+# certificate errors in some environments (see
+# https://github.com/robertopreste/apybiomart/issues/131). The check is
+# redundant — if BioMart is actually unreachable the query will fail anyway.
+# Bypass it here until apybiomart is replaced (see
+# https://github.com/NCATSTranslator/Babel/pull/588).
+_apy_classes._Server._check_connection = staticmethod(lambda: True)
 
 # As per https://support.bioconductor.org/p/39744/#39751, more attributes than this result in an
 # error from BioMart: Too many attributes selected for External References
 # This is the real MAX minus one: for every batch, we'll query the ensembl_gene_id so that we can
 # put the batches back together again afterward.
-BIOMART_MAX_ATTRIBUTE_COUNT = 8
+BIOMART_MAX_ATTRIBUTE_COUNT = 6
 
 
 # Note that Ensembl doesn't seem to assign its own labels or synonyms to its gene identifiers.  It appears that

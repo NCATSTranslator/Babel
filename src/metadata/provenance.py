@@ -23,7 +23,7 @@ def write_concord_metadata(filename, *, name, concord_filename, url="", descript
     distinct_curies = set()
     predicate_counts = defaultdict(int)
     curie_prefix_counts = defaultdict(int)
-    with open(concord_filename, "r") as concordf:
+    with open(concord_filename) as concordf:
         for line in concordf:
             row = line.strip().split("\t")
             if len(row) != 3:
@@ -71,7 +71,7 @@ def write_combined_metadata(
             )
             combined_from_filenames = [combined_from_filenames]
         for metadata_yaml in combined_from_filenames:
-            with open(metadata_yaml, "r") as metaf:
+            with open(metadata_yaml) as metaf:
                 metadata_block = yaml.safe_load(metaf)
                 if metadata_block is None or metadata_block == {}:
                     raise ValueError("Metadata file {metadata_yaml} is empty.")
@@ -124,4 +124,5 @@ def write_metadata(filename, typ, name, *, sources=None, url="", description="",
                 "combined_from": combined_from,
             },
             fout,
+            sort_keys=False, # Prefer the order we specified above.
         )
