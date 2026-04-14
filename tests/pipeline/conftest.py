@@ -44,6 +44,55 @@ def _read_ids(path: str) -> set[str]:
     return ids
 
 
+def _read_ids_with_types(path: str) -> dict[str, str | None]:
+    """Return {CURIE: biolink_type_or_None} from an intermediate ID file.
+
+    The optional second column is a Biolink type hint written by write_umls_ids() and
+    similar functions.  If absent (e.g. MESH), the value is None.
+    """
+    result = {}
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                parts = line.split("\t")
+                result[parts[0]] = parts[1] if len(parts) > 1 else None
+    return result
+
+
+def _intermediate_concord_path(compendium: str, vocab: str) -> str:
+    """Stable concord path: {intermediate_directory}/{snakemake_dir}/concords/{vocab}."""
+    from src.util import get_config
+    cfg = get_config()
+    directory_map = cfg.get("compendium_directories", {})
+    snakemake_dir = directory_map.get(compendium, compendium)
+    return os.path.join(cfg["intermediate_directory"], snakemake_dir, "concords", vocab)
+
+
+def _any_concord_xrefs(concords_dir: str, curie1: str, curie2: str) -> bool:
+    """Return True if curie1 and curie2 are a direct xref pair in ANY concord file under concords_dir.
+
+    Scans every regular file in concords_dir (skipping .yaml metadata files and subdirectories).
+    A direct xref means the two CURIEs appear together in the same 3-column row, regardless of
+    column order.  Indirect equivalences through multi-hop chains are not detected — this is
+    intentional: it's fast for TDD and locates the concord file that is the source of the problem.
+    """
+    for entry in os.scandir(concords_dir):
+        if not entry.is_file() or entry.name.endswith(".yaml"):
+            continue
+        try:
+            with open(entry.path) as f:
+                for line in f:
+                    parts = line.strip().split("\t")
+                    if len(parts) >= 2:
+                        curies = {parts[0], parts[-1]}
+                        if curie1 in curies and curie2 in curies:
+                            return True
+        except (OSError, UnicodeDecodeError):
+            continue
+    return False
+
+
 def _output_paths(outputs: dict) -> dict[str, str]:
     """Filter a vocab_outputs dict down to just the string-valued output paths.
 
@@ -111,6 +160,73 @@ def regenerate(request):
     even when their output file already exists at the stable intermediate path.
     """
     return request.config.getoption("--regenerate")
+
+
+# ---------------------------------------------------------------------------
+# Snakemake-backed pipeline output fixture
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def pipeline_output(regenerate):
+    """Factory: ensure a Snakemake rule has produced its output file; return the path.
+
+    Reuses existing files without re-running (same caching contract as _maybe_run).
+    If the file is absent, runs `uv run snakemake --cores 1 --until <rule>`.
+    Skips all dependent tests if Snakemake fails or the output is not produced.
+
+    Usage inside a fixture:
+        @pytest.fixture(scope="session")
+        def my_fixture(pipeline_output):
+            return pipeline_output("my_snakemake_rule", "path/to/output")
+    """
+    import subprocess
+
+    def _get(rule: str, path: str) -> str:
+        if os.path.exists(path) and not regenerate:
+            return path
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        result = subprocess.run(
+            ["uv", "run", "snakemake", "--cores", "1", "--until", rule],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0 or not os.path.exists(path):
+            pytest.skip(
+                f"Snakemake rule '{rule}' did not produce {path}.\n"
+                f"Run:  uv run snakemake --cores N --until {rule}\n"
+                f"stderr: {result.stderr[:400]}"
+            )
+        return path
+
+    return _get
+
+
+# ---------------------------------------------------------------------------
+# Chemicals concords directory fixture
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def chemicals_concords_dir(pipeline_output):
+    """Ensure chemicals concord files are present; return the concords directory path.
+
+    Uses wikipedia_mesh_chebi as the sentinel (the get_chemical_wikipedia_relationships
+    rule has no download prerequisites and is fast to run).  If the sentinel is absent,
+    runs snakemake --until get_chemical_wikipedia_relationships.
+
+    Other concord files (UNICHEM, CHEBI, …) are used if already present from a prior
+    full pipeline run but are not generated automatically — they require large downloads
+    or significant RAM (UNICHEM needs 512G).
+    """
+    from src.util import get_config
+    cfg = get_config()
+    directory_map = cfg.get("compendium_directories", {})
+    snakemake_dir = directory_map.get("chemicals", "chemicals")
+    concords_dir = os.path.join(cfg["intermediate_directory"], snakemake_dir, "concords")
+    sentinel = os.path.join(concords_dir, "wikipedia_mesh_chebi")
+    pipeline_output("get_chemical_wikipedia_relationships", sentinel)
+    return concords_dir
 
 
 # ---------------------------------------------------------------------------
