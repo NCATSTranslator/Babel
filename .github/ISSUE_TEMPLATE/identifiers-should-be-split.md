@@ -8,9 +8,10 @@ assignees: ''
 
 ---
 
-NodeNorm instance or URL: 
+NodeNorm instance or URL:
 CURIE that should be split:
 CURIEs that should be split from it:
+
 * CURIE1 "label1"
 * CURIE2 "label2"
 

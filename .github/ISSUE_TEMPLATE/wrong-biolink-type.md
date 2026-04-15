@@ -8,7 +8,7 @@ assignees: ''
 
 ---
 
-NodeNorm instance or URL: 
+NodeNorm instance or URL:
 CURIE with the wrong Biolink type:
 Current Biolink type with URL:
 Correct Biolink type with URL:
