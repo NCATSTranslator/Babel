@@ -20,6 +20,7 @@ body:
     id: nodenorm_url
     attributes:
       label: NodeNorm instance or URL
+      description: Enter the URL of the NodeNorm instance that you are using, or a reference to which Translator environment you used (e.g. "Exp", "Dev", "CI", "Test" or "Prod").
       placeholder: "https://nodenormalization-sri.renci.org/..."
     validations:
       required: false

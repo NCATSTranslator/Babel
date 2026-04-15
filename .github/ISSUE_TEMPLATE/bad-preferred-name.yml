@@ -40,7 +40,8 @@ body:
     attributes:
       label: NodeNorm instance or URL
       description: >
-        Replace `curie_to_test` with your CURIE to check it on NodeNorm Dev.
+        Replace `curie_to_test` with your CURIE to check it on NodeNorm Dev. You can also enter a NodeNorm URL
+        or just write "Exp", "Dev", "CI", "Test" or "Prod".
       placeholder: "https://nodenormalization-sri.renci.org/1.5/get_normalized_nodes?conflate=true&drug_chemical_conflate=true&description=true&individual_types=true&include_taxa=true&curie=curie_to_test"
     validations:
       required: false
