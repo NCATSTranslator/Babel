@@ -12,6 +12,7 @@ NodeNorm instance or URL:
 CURIE with the wrong Biolink type:
 Current Biolink type with URL:
 Correct Biolink type with URL:
+Also reported at: <!-- optional -->
 
 <!-- If you only have a URL rather than a CURIE, or don't have time to add a label, no worries -- just leave them off! -->
 

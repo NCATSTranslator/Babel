@@ -15,6 +15,8 @@ CURIEs that should be split from it:
 * CURIE1 "label1"
 * CURIE2 "label2"
 
+Also reported at: <!-- optional -->
+
 <!-- If you only have a URL rather than a CURIE, or don't have time to add a label, no worries -- just leave them off! -->
 
 <!-- If you don't mind filling in a BabelTest entry, please do -- otherwise feel free to leave it.
