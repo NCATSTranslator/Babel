@@ -7,10 +7,10 @@ assignees: ''
 type: feature
 ---
 
-This template is intended to help you provide useful information when requesting a new identifier
+<!-- This template is intended to help you provide useful information when requesting a new identifier
 system or set of mappings be added to Babel. You don't need to fill in all these details right away
 or at all -- please feel free to submit an incomplete request and then fill it in later, or let
-Babel developers handle it for you.
+Babel developers handle it for you. -->
 
 Request to add: (choose multiple)
 
@@ -29,3 +29,5 @@ with?
 
 Any information that will be helpful with working with these identifiers or mappings, including
 pointers to existing code for extracting them:
+
+Also tracked at:
