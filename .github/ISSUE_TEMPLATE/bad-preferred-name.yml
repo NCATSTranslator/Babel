@@ -1,0 +1,71 @@
+name: Bad, incorrect or unclear preferred name
+description: Normalizing an identifier produces a bad, incorrect or unclear preferred name.
+title: 'Preferred name incorrect: CURIE "IncorrectPreferredName" should be "CorrectPreferredName"'
+labels: ["preferred name incorrect"]
+type: "bug"
+body:
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgently should this be fixed?
+      options:
+        - Critical
+        - High
+        - Medium
+        - Low
+    validations:
+      required: false
+  - type: input
+    id: curie
+    attributes:
+      label: CURIE
+      placeholder: "CHEBI:12345"
+    validations:
+      required: true
+  - type: input
+    id: current_preferred_name
+    attributes:
+      label: Current preferred name
+    validations:
+      required: true
+  - type: input
+    id: correct_preferred_name
+    attributes:
+      label: Correct preferred name
+    validations:
+      required: true
+  - type: input
+    id: nodenorm_url
+    attributes:
+      label: NodeNorm instance or URL
+      description: >
+        Replace `curie_to_test` with your CURIE to check it on NodeNorm Dev.
+      placeholder: "https://nodenormalization-sri.renci.org/1.5/get_normalized_nodes?conflate=true&drug_chemical_conflate=true&description=true&individual_types=true&include_taxa=true&curie=curie_to_test"
+    validations:
+      required: false
+  - type: textarea
+    id: nodenorm_json
+    attributes:
+      label: NodeNorm JSON response (optional)
+      description: Paste the JSON output from the NodeNorm URL above, if available.
+      render: json
+    validations:
+      required: false
+  - type: input
+    id: also_tracked_at
+    attributes:
+      label: Also tracked at
+      description: Link to any other issue tracker or discussion where this is tracked (optional).
+    validations:
+      required: false
+  - type: textarea
+    id: babeltest
+    attributes:
+      label: BabelTest entry (optional)
+      description: >
+        If you have time, a BabelTest entry helps us write an automated test for this issue.
+        Format: `{{BabelTest|HasPreferredName|curie|correct}}`
+      placeholder: "{{BabelTest|HasPreferredName|curie|correct}}"
+    validations:
+      required: false
