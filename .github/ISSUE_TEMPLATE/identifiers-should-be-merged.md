@@ -8,6 +8,7 @@ assignees: ''
 
 ---
 
+NodeNorm instance or URL: 
 CURIEs that should be merged:
 * CURIE1 "label1"
 * CURIE2 "label2"
