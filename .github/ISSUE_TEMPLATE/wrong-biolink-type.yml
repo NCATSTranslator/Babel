@@ -1,0 +1,68 @@
+name: Wrong Biolink type
+description: A NodeNorm clique has the wrong Biolink type.
+title: "Wrong Biolink type: CURIE should be CORRECT_BIOLINK_TYPE, not WRONG_BIOLINK_TYPE"
+labels: ["wrong biolink type"]
+type: "bug"
+body:
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgently should this be fixed?
+      options:
+        - Critical
+        - High
+        - Medium
+        - Low
+    validations:
+      required: false
+  - type: input
+    id: nodenorm_url
+    attributes:
+      label: NodeNorm instance or URL
+      description: Enter the URL of the NodeNorm instance that you are using, or a reference to which Translator environment you used (e.g. "Exp", "Dev", "CI", "Test" or "Prod").
+      placeholder: "https://nodenormalization-sri.renci.org/..."
+    validations:
+      required: false
+  - type: input
+    id: curie
+    attributes:
+      label: CURIE with the wrong Biolink type
+      placeholder: "CHEBI:12345"
+    validations:
+      required: true
+  - type: input
+    id: current_biolink_type
+    attributes:
+      label: Current Biolink type
+      description: >
+        Include a URL to the [Biolink Model](https://biolink.github.io/biolink-model/) entry, e.g.
+        `biolink:SmallMolecule` — https://biolink.github.io/biolink-model/SmallMolecule/
+      placeholder: "biolink:SmallMolecule"
+    validations:
+      required: true
+  - type: input
+    id: correct_biolink_type
+    attributes:
+      label: Correct Biolink type
+      description: Include a URL to the [Biolink Model](https://biolink.github.io/biolink-model/) entry.
+      placeholder: "biolink:ChemicalEntity"
+    validations:
+      required: true
+  - type: input
+    id: also_reported_at
+    attributes:
+      label: Also reported at
+      description: Link to any other issue tracker or discussion where this is tracked (optional).
+    validations:
+      required: false
+  - type: textarea
+    id: babeltest
+    attributes:
+      label: BabelTest entry (optional)
+      description: >
+        If you have time, a BabelTest entry helps us write an automated test for this issue.
+        Format: `{{BabelTest|ResolvesWithType|biolink_type|curie}}`
+      placeholder: "{{BabelTest|ResolvesWithType|biolink_type|curie}}"
+    validations:
+      required: false

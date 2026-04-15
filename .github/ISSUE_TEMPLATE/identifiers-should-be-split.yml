@@ -1,0 +1,63 @@
+name: Identifiers should be split
+description: A single set of equivalent identifiers should be split into multiple sets.
+title: 'Identifiers should be split: CURIE1 "LABEL1" does not belong in CURIE2 "LABEL2"'
+labels: ["identifiers should be split"]
+type: "bug"
+body:
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgently should this be fixed?
+      options:
+        - Critical
+        - High
+        - Medium
+        - Low
+    validations:
+      required: false
+  - type: input
+    id: nodenorm_url
+    attributes:
+      label: NodeNorm instance or URL
+      description: Enter the URL of the NodeNorm instance that you are using, or a reference to which Translator environment you used (e.g. "Exp", "Dev", "CI", "Test" or "Prod").
+      placeholder: "https://nodenormalization-sri.renci.org/..."
+    validations:
+      required: false
+  - type: input
+    id: curie_to_split
+    attributes:
+      label: CURIE that should be split
+      description: The main CURIE whose clique needs to be broken up.
+      placeholder: "CHEBI:12345"
+    validations:
+      required: true
+  - type: textarea
+    id: curies_split_from
+    attributes:
+      label: CURIEs that should be split from it
+      description: >
+        List the CURIEs (with labels) that do not belong in the same clique.
+        If you only have a URL rather than a CURIE, or don't have time to add a label, no worries — just leave them off!
+      placeholder: |
+        CURIE1 "label1"
+        CURIE2 "label2"
+    validations:
+      required: true
+  - type: input
+    id: also_reported_at
+    attributes:
+      label: Also reported at
+      description: Link to any other issue tracker or discussion where this is tracked (optional).
+    validations:
+      required: false
+  - type: textarea
+    id: babeltest
+    attributes:
+      label: BabelTest entry (optional)
+      description: >
+        If you have time, a BabelTest entry helps us write an automated test for this issue.
+        Format: `{{BabelTest|DoesNotResolveWith|curie|curie1|curie2}}`
+      placeholder: "{{BabelTest|DoesNotResolveWith|curie|curie1|curie2}}"
+    validations:
+      required: false
