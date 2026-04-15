@@ -1,7 +1,7 @@
 ---
 name: Identifiers should be merged
 about: Two or more identifiers that should be merged as considered to be separate concepts.
-title: 'Identifiers should be merged: CURIE, CURIE'
+title: 'Identifiers should be merged: "LABEL" CURIE, CURIE'
 labels: identifiers should be merged
 type: bug
 assignees: ''

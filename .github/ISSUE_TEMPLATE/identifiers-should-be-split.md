@@ -1,7 +1,7 @@
 ---
 name: Identifiers should be split
 about: A single set of equivalent identifiers should be split into multiple sets.
-title: 'Identifiers should be split: CURIE does not belong in CURIE'
+title: 'Identifiers should be split: CURIE1 "LABEL1" does not belong in CURIE2 "LABEL2"'
 labels: identifiers should be split
 type: bug
 assignees: ''
