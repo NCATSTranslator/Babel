@@ -8,10 +8,10 @@ assignees: ''
 
 ---
 
-CURIE: 
-Current preferred name: 
-Correct preferred name: 
-Instance or URL: 
+CURIE:
+Current preferred name:
+Correct preferred name:
+Instance or URL:
 
 <!--
 If you have the time, please replace "curie" with your CURIE on NodeNorm Dev:
