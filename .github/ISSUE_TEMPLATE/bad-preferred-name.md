@@ -3,6 +3,7 @@ name: Bad, incorrect or unclear preferred name
 about: Normalizing an identifier produces a bad, incorrect or unclear preferred name.
 title: 'Preferred name incorrect: CURIE "IncorrectPreferredName" should be "CorrectPreferredName"'
 labels: preferred name incorrect
+type: bug
 assignees: ''
 
 ---

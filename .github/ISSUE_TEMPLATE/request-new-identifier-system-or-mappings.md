@@ -4,7 +4,7 @@ about: Request a new identifier system or mapping source be added to Babel
 title: 'New data source: '
 labels: new data source
 assignees: ''
-
+type: feature
 ---
 
 This template is intended to help you provide useful information when requesting a new identifier
