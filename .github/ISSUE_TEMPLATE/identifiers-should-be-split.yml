@@ -59,6 +59,7 @@ body:
         If you have time, a BabelTest entry helps us write an automated test for this issue.
         You can add multiple entries, one per line.
         See [available BabelTest formats](https://github.com/NCATSTranslator/Babel/blob/master/docs/Triage.md#adding-automated-tests-to-issues).
+      render: text
       value: "{{BabelTest|DoesNotResolveWith|curie|curie1|curie2}}"
     validations:
       required: false
