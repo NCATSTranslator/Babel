@@ -66,7 +66,8 @@ body:
       label: BabelTest entry (optional)
       description: >
         If you have time, a BabelTest entry helps us write an automated test for this issue.
-        Format: `{{BabelTest|HasPreferredName|curie|correct}}`
-      placeholder: "{{BabelTest|HasPreferredName|curie|correct}}"
+        You can add multiple entries, one per line.
+        See [available BabelTest formats](https://github.com/NCATSTranslator/Babel/blob/master/docs/Triage.md#adding-automated-tests-to-issues).
+      value: "{{BabelTest|HasPreferredName|curie|correct}}"
     validations:
       required: false

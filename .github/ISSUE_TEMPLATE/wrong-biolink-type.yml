@@ -62,7 +62,8 @@ body:
       label: BabelTest entry (optional)
       description: >
         If you have time, a BabelTest entry helps us write an automated test for this issue.
-        Format: `{{BabelTest|ResolvesWithType|biolink_type|curie}}`
-      placeholder: "{{BabelTest|ResolvesWithType|biolink_type|curie}}"
+        You can add multiple entries, one per line.
+        See [available BabelTest formats](https://github.com/NCATSTranslator/Babel/blob/master/docs/Triage.md#adding-automated-tests-to-issues).
+      value: "{{BabelTest|ResolvesWithType|biolink_type|curie}}"
     validations:
       required: false
