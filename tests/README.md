@@ -221,6 +221,18 @@ uv run pytest tests/pipeline/checks/ -k "xref" --pipeline --no-cov -v
   verifying that rate-limiting delays are correctly applied between requests.
   Requires `--network` to run.
 
+### babel_utils/
+
+- **`babel_utils/test_write_compendia.py`** (`unit`) — Unit tests for `_select_preferred_label()`,
+  the label-selection helper extracted from `write_compendium()`. Covers per-type length demotion
+  (demotion applies to chemicals and their subtypes via ancestor traversal; diseases, phenotypes,
+  and other non-chemical types are never demoted), interaction with `preferred_name_boost_prefixes`,
+  and the fall-through when all labels exceed the limit. Regression tests use real CURIEs from
+  [#597](https://github.com/NCATSTranslator/Babel/issues/597),
+  [#711](https://github.com/NCATSTranslator/Babel/issues/711),
+  [#714](https://github.com/NCATSTranslator/Babel/issues/714), and
+  [#723](https://github.com/NCATSTranslator/Babel/issues/723).
+
 ## Test Data
 
 The `tests/data` directory contains fixture files used by several tests:

@@ -426,5 +426,10 @@ ensembl_datasets_to_skip:
   - otshawytscha_gene_ensembl
   - aocellaris_gene_ensembl
 
-demote_labels_longer_than: 25
+# Labels longer than this limit are demoted (not used as preferred label if a shorter alternative exists).
+# Keyed by Biolink type; types not listed here are never demoted. Uses ancestor traversal, so
+# biolink:ChemicalEntity applies to all chemical subtypes (SmallMolecule, Drug, etc.).
+# See https://github.com/NCATSTranslator/Babel/issues/597
+demote_labels_longer_than:
+  biolink:ChemicalEntity: 25
 
