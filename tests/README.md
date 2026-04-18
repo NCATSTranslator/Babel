@@ -133,6 +133,80 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
 - **`pipeline/checks/`** (`pipeline`) — Regression checks sourced from GitHub issues,
   designed for test-driven development. See [Pipeline Checks](#pipeline-checks) below.
 
+### Compendium regression tests (`tests/compendium/`)
+
+A near-end-to-end tier that drives `write_compendium()` against curated cliques
+and asserts on the resulting JSONL output. These run offline (`unit`) by
+patching `bmt.Toolkit` to read pinned local copies of `biolink-model.yaml`,
+`attributes.yaml`, and `biolink_model_prefix_map.json` from
+`tests/fixtures/biolink-model/`.
+
+Inputs live in `tests/fixtures/compendium/babel_downloads/{PREFIX}/labels`
+(plus optional `synonyms`, `descriptions`, `taxa` files), with a layout
+identical to the real `babel_downloads/` tree. Outputs land in `tmp_path`.
+
+- **`compendium/test_disease_compendium.py`** (`unit`) — One test per GitHub
+  issue. Currently covers
+  [#714](https://github.com/NCATSTranslator/Babel/issues/714) (POTS),
+  [#711](https://github.com/NCATSTranslator/Babel/issues/711) (failure to thrive),
+  and [#723](https://github.com/NCATSTranslator/Babel/issues/723) (arthritic
+  joint disease). Each test feeds a small clique into `write_compendium()`,
+  reads the JSONL output, and asserts on `preferred_name`.
+
+- **`compendium/test_chemical_compendium.py`** (`unit`) — Verifies that
+  per-type label demotion still applies for `biolink:ChemicalEntity` after
+  PR #725 narrowed demotion away from diseases / phenotypes.
+
+- **`test_biolink_model_freshness.py`** (`network`) — Asserts the pinned
+  Biolink Model fixture matches `config.yaml`'s `biolink_version` and
+  byte-matches the upstream files at that tag. Fails loudly when the
+  fixture drifts.
+
+#### Adding a new regression case
+
+1. Append rows to the relevant prefix's labels file (create the file and
+   prefix subdirectory if needed):
+
+   ```text
+   tests/fixtures/compendium/babel_downloads/MONDO/labels
+       MONDO:0000123<TAB>your label here
+   ```
+
+2. Add a test function in the appropriate `tests/compendium/test_X_compendium.py`:
+
+   ```python
+   @pytest.mark.unit
+   def test_my_regression_case(babel_test_env):
+       """Brief description.
+       https://github.com/NCATSTranslator/Babel/issues/NNN
+       """
+       write_compendium(
+           metadata_yamls=[],
+           synonym_list=[{"MONDO:0000123", "UMLS:C0000456"}],
+           ofname="MyCase.txt",
+           node_type="biolink:Disease",
+           labels={},
+           icrdf_filename=babel_test_env.icrdf_path,
+       )
+       [record] = babel_test_env.read_records("MyCase.txt")
+       assert_preferred_name(record, "your label here")
+   ```
+
+3. To assert on additional output fields (descriptions, taxa, identifier
+   ordering, etc.), add a sibling helper (`assert_first_identifier`,
+   `assert_descriptions`, …) to `tests/compendium/conftest.py`.
+
+#### Updating the Biolink Model fixture
+
+Run after bumping `biolink_version` in `config.yaml`:
+
+```bash
+uv run python tests/fixtures/biolink-model/refresh.py
+```
+
+then commit the updated fixture files alongside the config change. The
+`network` freshness test will fail until both sides match.
+
 ### Pipeline Checks
 
 `tests/pipeline/checks/` contains per-compendium regression assertion files driven by
@@ -232,6 +306,8 @@ uv run pytest tests/pipeline/checks/ -k "xref" --pipeline --no-cov -v
   [#711](https://github.com/NCATSTranslator/Babel/issues/711),
   [#714](https://github.com/NCATSTranslator/Babel/issues/714), and
   [#723](https://github.com/NCATSTranslator/Babel/issues/723).
+  Companion near-end-to-end tests in `tests/compendium/` exercise the same CURIEs through
+  the full `write_compendium()` flow — see [Compendium regression tests](#compendium-regression-tests-testscompendium).
 
 ## Test Data
 
