@@ -3,6 +3,7 @@ from collections import defaultdict
 import pyoxigraph
 
 from src.babel_utils import make_local_name, pull_via_ftp
+from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT
 from src.prefixes import MESH
 
 
@@ -167,7 +168,7 @@ def pull_mesh_registry():
     return m.get_registry()
 
 
-def write_ids(meshmap, outfile, order=["biolink:CellularComponent", "biolink:Cell", "biolink:AnatomicalEntity"], extra_vocab={}, scr_exclude_trees=None, scr_include_trees=None):
+def write_ids(meshmap, outfile, order=[CELLULAR_COMPONENT, CELL, ANATOMICAL_ENTITY], extra_vocab={}, scr_exclude_trees=None, scr_include_trees=None):
     """Write the mesh identifiers from a particular set of hierarchies to an output directory.
     This might be a mixed list of types (for instance anatomy and cell).  Also, the same term
     may appear in multiple trees, perhaps with different types.

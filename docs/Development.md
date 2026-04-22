@@ -2,6 +2,13 @@
 
 This document describes the current development workflow for Babel and ideas for improving it.
 
+## Coding Conventions
+
+**Biolink class references** — always import and use the named constants from `src/categories.py`
+(e.g. `CHEMICAL_ENTITY`, `DRUG`, `ANATOMICAL_ENTITY`) instead of hardcoding `"biolink:..."` strings.
+If a needed constant is missing, add it to `src/categories.py` first. This keeps all Biolink class
+names in one place so a rename only requires a single-file update.
+
 ## Current Development Process
 
 Developing a change to Babel is significantly more complicated than developing most software,

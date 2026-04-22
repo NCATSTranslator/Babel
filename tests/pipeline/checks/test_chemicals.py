@@ -29,6 +29,7 @@ from typing import NamedTuple
 
 import pytest
 
+from src.categories import CHEMICAL_ENTITY, DRUG
 from tests.pipeline.conftest import _any_concord_xrefs, get_curies_and_types_from_ids_file
 
 # ---------------------------------------------------------------------------
@@ -48,13 +49,13 @@ EXPECTED_IN_CHEMICALS: list[ChemCheck] = [
     ChemCheck(
         "mesh_pipeline_outputs",
         "MESH:C000598555",
-        "biolink:ChemicalEntity",
+        CHEMICAL_ENTITY,
         "https://github.com/NCATSTranslator/Babel/issues/708",
     ),
     ChemCheck(
         "mesh_pipeline_outputs",
         "MESH:C100843",
-        "biolink:Drug",
+        DRUG,
         "https://github.com/NCATSTranslator/Babel/issues/708",
     ),
     # D08.211 Coenzymes — non-protein small molecules that were previously excluded from
@@ -62,13 +63,13 @@ EXPECTED_IN_CHEMICALS: list[ChemCheck] = [
     ChemCheck(
         "mesh_pipeline_outputs",
         "MESH:D009243",  # Nicotinamide Adenine Dinucleotide (NAD) — D08.211.060
-        "biolink:ChemicalEntity",
+        CHEMICAL_ENTITY,
         "https://github.com/NCATSTranslator/Babel/issues/675",
     ),
     ChemCheck(
         "mesh_pipeline_outputs",
         "MESH:D003067",  # Coenzyme A — D08.211.190
-        "biolink:ChemicalEntity",
+        CHEMICAL_ENTITY,
         "https://github.com/NCATSTranslator/Babel/issues/675",
     ),
 ]

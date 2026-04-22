@@ -159,6 +159,11 @@ option would be best.
   `print(...) + exit(1)`. Exceptions are testable and propagate cleanly through Snakemake;
   bare `exit()` calls bypass Python's exception machinery and make unit testing impossible.
 
+- **Biolink class references** — always use the named constants from `src/categories.py`
+  (e.g. `CHEMICAL_ENTITY`, `DRUG`) rather than hardcoding `"biolink:..."` strings directly.
+  This ensures that a Biolink class rename only requires updating `src/categories.py`.
+  If a needed constant is missing from `categories.py`, add it there first.
+
 ## Debugging
 
 When looking things up in the source databases, prefer to invoke the existing download code in
