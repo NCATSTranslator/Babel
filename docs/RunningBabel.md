@@ -91,8 +91,8 @@ The individual details of creating a compendium vary, but all follow the same es
 
 First, we extract the identifiers that will be used in the compendia from each data source that will
 contribute, and place them into a directory. For instance, in the build of the chemical compendium,
-these ids are placed into `babel_outputs/intermediate/chemicals/ids`. Each file is a two-column file containing
-curie identifiers in column 1, and the Biolink type for that entity in column 2.
+these ids are placed into `babel_outputs/intermediate/chemicals/ids`. Each file is a two-column file
+containing curie identifiers in column 1, and the Biolink type for that entity in column 2.
 
 Second, we create pairwise concords across vocabularies. These are placed in e.g.
 `babel_outputs/intermediate/chemicals/concords`. Each concord is a three-column file of the format:
