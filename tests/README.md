@@ -19,8 +19,8 @@ dependency-free so they remain cheap to run on every PR.
 
 **Pipeline tests** cache their output to the same stable paths that Snakemake uses
 (`babel_outputs/intermediate/…`), so a prior full pipeline run is automatically reused.
-Pass `--regenerate` to force re-processing. See [Pipeline > Caching](#caching-of-intermediate-files)
-for details.
+Pass `--regenerate` to force `write_X_ids()` to re-run even if its output already exists in
+`babel_outputs/intermediate/`. See [Pipeline > Caching](#caching-of-intermediate-files) for details.
 
 ### Where to add a new test
 
@@ -67,8 +67,8 @@ You can adjust the timeout for marks in [conftest.py](conftest.py).
 - `pytest` alone: runs `unit` and `slow` tests; skips `network` and `pipeline`
 - `pytest --network`: also runs `network` tests
 - `pytest --pipeline`: also runs `pipeline` tests (ensure `babel_downloads/` exists first)
-- `pytest --pipeline --regenerate`: re-runs `write_X_ids()` even if intermediate files already
-  exist (useful after changing compendium filtering logic; see **Caching** below)
+- `pytest --pipeline --regenerate`: forces `write_X_ids()` to re-run even if its output already
+  exists in `babel_outputs/intermediate/` (useful after changing compendium filtering logic; see **Caching** below)
 - `pytest --all`: runs everything (equivalent to `--network --pipeline`)
 
 ### Convenience commands

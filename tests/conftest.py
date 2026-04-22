@@ -53,11 +53,10 @@ def pytest_addoption(parser):
         action="store_true",
         default=False,
         help=(
-            "Force pipeline processing fixtures to re-run write_X_ids() even when "
-            "their output files already exist in the intermediate directory. "
-            "Without this flag, existing files are treated as up-to-date and reused. "
-            "Pass this after changing compendium filtering logic to ensure tests "
-            "reflect the new output rather than cached files."
+            "By default, pipeline tests assume that intermediate files "
+            "(in babel_outputs/intermediate/) are up-to-date and can be reused. "
+            "Use --regenerate to force pipeline processing fixtures to re-run "
+            "write_X_ids() even when their output files already exist."
         ),
     )
 
