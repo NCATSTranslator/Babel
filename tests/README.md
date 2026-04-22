@@ -68,7 +68,8 @@ You can adjust the timeout for marks in [conftest.py](conftest.py).
 - `pytest --network`: also runs `network` tests
 - `pytest --pipeline`: also runs `pipeline` tests (ensure `babel_downloads/` exists first)
 - `pytest --pipeline --regenerate`: forces `write_X_ids()` to re-run even if its output already
-  exists in `babel_outputs/intermediate/` (useful after changing compendium filtering logic; see **Caching** below)
+  exists in `babel_outputs/intermediate/` (useful after changing compendium filtering logic; see
+  **Caching** below)
 - `pytest --all`: runs everything (equivalent to `--network --pipeline`)
 
 ### Convenience commands
@@ -157,11 +158,11 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
   GO (2 compendia via UberGraph). Adding a new vocabulary requires only adding its fixtures
   to `conftest.py` and one entry in `VOCABULARY_REGISTRY` — this file never changes.
 
-- **`pipeline/test_mesh_pipeline.py`** (`pipeline`) — MeSH-specific targeted test ([issue
-  #675](https://github.com/NCATSTranslator/Babel/issues/675)). Downloads `babel_downloads/MESH/mesh.nt` automatically if absent. One test:
-  chemicals output must exclude all D05/D08/D12.776 descriptor terms, including
-  "in-neither" subtrees like Polymers and Coenzymes, even though these are not captured
-  by `protein.write_mesh_ids()`.
+- **`pipeline/test_mesh_pipeline.py`** (`pipeline`) — MeSH-specific targeted test
+  ([issue #675](https://github.com/NCATSTranslator/Babel/issues/675)). Downloads
+  `babel_downloads/MESH/mesh.nt` automatically if absent. One test: chemicals output must exclude
+  all D05/D08/D12.776 descriptor terms, including "in-neither" subtrees like Polymers and Coenzymes,
+  even though these are not captured by `protein.write_mesh_ids()`.
 
 - **`pipeline/test_umls_pipeline.py`** (`pipeline`) — UMLS-specific targeted test. Requires
   `UMLS_API_KEY` for the initial download (or cached files). One test: chemicals must not
