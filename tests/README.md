@@ -18,9 +18,10 @@ Tests are organized along two independent axes:
 dependency-free so they remain cheap to run on every PR.
 
 **Pipeline tests** cache their output to the same stable paths that Snakemake uses
-(`babel_outputs/intermediate/…`), so a prior full pipeline run is automatically reused.
-Pass `--regenerate` to force `write_X_ids()` to re-run even if its output already exists in
-`babel_outputs/intermediate/`. See [Pipeline > Caching](pipeline/README.md#caching-of-intermediate-files) for details.
+(`babel_outputs/intermediate/…`), so a prior full pipeline run is automatically reused. Pass
+`--regenerate` to force `write_X_ids()` to re-run even if its output already exists in
+`babel_outputs/intermediate/`. See
+[Pipeline > Caching](pipeline/README.md#caching-of-intermediate-files) for details.
 
 ### Where to add a new test
 
@@ -31,7 +32,8 @@ Pass `--regenerate` to force `write_X_ids()` to re-run even if its output alread
   another compendium). No Snakemake needed for ID-presence checks.
 - **Cross-vocabulary identifier exclusivity for a new vocabulary** → add fixtures to
   `tests/pipeline/conftest.py` and one entry to `VOCABULARY_REGISTRY` in
-  `test_vocabulary_partitioning.py`. See [New pipeline tests](pipeline/README.md#new-pipeline-tests) in the pipeline README.
+  `test_vocabulary_partitioning.py`. See [New pipeline tests](pipeline/README.md#new-pipeline-tests)
+  in the pipeline README.
 - **Pipeline behavior specific to one vocabulary** → add `tests/pipeline/test_X_pipeline.py`
   marked `pipeline`.
 
