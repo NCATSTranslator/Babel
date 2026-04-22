@@ -358,7 +358,7 @@ def download_rxnorm(rxnorm_version, download_dir):
     """
     umls_api_key = os.environ.get("UMLS_API_KEY")
     if not umls_api_key:
-        raise RuntimeError("The environmental variable UMLS_API_KEY needs to be set to a valid UMLS API key.\nSee instructions at https://documentation.uts.nlm.nih.gov/rest/authentication.html")
+        raise RuntimeError("The environment variable UMLS_API_KEY needs to be set to a valid UMLS API key.\nSee instructions at https://documentation.uts.nlm.nih.gov/rest/authentication.html")
 
     # Download RxNorm_full_{rxnorm_version}.zip
     # As described at https://documentation.uts.nlm.nih.gov/automating-downloads.html
