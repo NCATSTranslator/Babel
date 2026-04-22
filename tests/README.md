@@ -157,8 +157,8 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
   GO (2 compendia via UberGraph). Adding a new vocabulary requires only adding its fixtures
   to `conftest.py` and one entry in `VOCABULARY_REGISTRY` — this file never changes.
 
-- **`pipeline/test_mesh_pipeline.py`** (`pipeline`) — MeSH-specific targeted test (issue
-  #675). Downloads `babel_downloads/MESH/mesh.nt` automatically if absent. One test:
+- **`pipeline/test_mesh_pipeline.py`** (`pipeline`) — MeSH-specific targeted test ([issue
+  #675](https://github.com/NCATSTranslator/Babel/issues/675)). Downloads `babel_downloads/MESH/mesh.nt` automatically if absent. One test:
   chemicals output must exclude all D05/D08/D12.776 descriptor terms, including
   "in-neither" subtrees like Polymers and Coenzymes, even though these are not captured
   by `protein.write_mesh_ids()`.
