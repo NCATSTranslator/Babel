@@ -29,7 +29,7 @@ from typing import NamedTuple
 
 import pytest
 
-from src.categories import CHEMICAL_ENTITY, DRUG
+from src.categories import CHEMICAL_ENTITY
 from tests.pipeline.conftest import _any_concord_xrefs, get_curies_and_types_from_ids_file
 
 # ---------------------------------------------------------------------------
@@ -55,7 +55,7 @@ EXPECTED_IN_CHEMICALS: list[ChemCheck] = [
     ChemCheck(
         "mesh_pipeline_outputs",
         "MESH:C100843",
-        DRUG,
+        CHEMICAL_ENTITY,
         "https://github.com/NCATSTranslator/Babel/issues/708",
     ),
     # D08.211 Coenzymes — non-protein small molecules that were previously excluded from
