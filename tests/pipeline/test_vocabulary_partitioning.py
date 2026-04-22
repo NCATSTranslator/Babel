@@ -32,13 +32,12 @@ from tests.pipeline.conftest import _output_paths, _read_ids
 # When an underlying bug is fixed, remove the corresponding IDs from this dict
 # so that the test starts enforcing the invariant for those identifiers.
 #
-# TODO: Create a tracking issue for each vocabulary listed here and link it.
 KNOWN_DUPLICATES: dict[str, set[str]] = {
-    "UMLS": {
+    "UMLS": {   # Filed as https://github.com/NCATSTranslator/Babel/issues/729
         "UMLS:C5443441",
         "UMLS:C5443442",
     },
-    "MESH": {
+    "MESH": {   # Filed as https://github.com/NCATSTranslator/Babel/issues/730
         # protein / anatomy overlaps
         "MESH:D022041", "MESH:D035321", "MESH:D006570", "MESH:D009707",
         "MESH:D064448", "MESH:D035341", "MESH:D045524", "MESH:D007106",
