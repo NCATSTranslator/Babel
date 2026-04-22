@@ -1,13 +1,18 @@
 """Session-scoped fixtures for pipeline tests.
 
-Pipeline tests download their own prerequisite files (or check network connectivity).
-If a prerequisite is unavailable, all dependent tests are skipped automatically.
+Processing fixtures write intermediate ID files to the same stable paths that Snakemake
+uses: {intermediate_directory}/{snakemake_dir}/ids/{vocab}, where snakemake_dir is the
+compendium name unless overridden by compendium_directories in config.yaml (e.g.
+diseasephenotype → disease).  Example: babel_outputs/intermediate/anatomy/ids/UMLS.
 
-Processing fixtures write intermediate ID files to the same stable paths that
-Snakemake uses: {intermediate_directory}/{semantic_type}/ids/{vocab}
-(e.g. babel_outputs/intermediate/anatomy/ids/UMLS).  By default, if a file
-already exists it is reused without re-running write_X_ids().  Pass --regenerate
-to force re-processing even when files are present.
+By default, if a file already exists it is reused without re-running write_X_ids().
+Pass --regenerate to force re-processing even when files are present.
+
+Prerequisites vary by vocabulary:
+- MESH, OMIM: fixtures auto-download the required file if absent.
+- UMLS: requires UMLS_API_KEY when files are not already cached.
+- NCIT, GO: require a live UberGraph SPARQL endpoint (no file download).
+If a prerequisite is unavailable, all dependent tests are skipped automatically.
 
 All tests in this package are marked `pipeline` and are skipped by default.
 Run with:  uv run pytest tests/pipeline/ --pipeline --no-cov -v
@@ -15,8 +20,8 @@ Run with:  uv run pytest tests/pipeline/ --pipeline --no-cov -v
 ## Adding a new vocabulary
 
 1. Add a download/connectivity fixture (e.g. `my_vocab_source`) to this file.
-2. Add a processing fixture (e.g. `my_vocab_pipeline_outputs`) that depends on it and
-   returns a dict of {compendium_name: output_path}.
+2. Add a processing fixture (e.g. `my_vocab_pipeline_outputs`) that calls all
+   write_X_ids() functions for that vocabulary and returns {compendium_name: output_path}.
 3. Add one entry to VOCABULARY_REGISTRY: `"MYVOCAB": "my_vocab_pipeline_outputs"`.
 That's it — test_vocabulary_partitioning.py picks it up automatically.
 """
@@ -73,9 +78,10 @@ def _any_concord_xrefs(concords_dir: str, curie1: str, curie2: str) -> bool:
     """Return True if curie1 and curie2 are a direct xref pair in ANY concord file under concords_dir.
 
     Scans every regular file in concords_dir (skipping .yaml metadata files and subdirectories).
-    A direct xref means the two CURIEs appear together in the same 3-column row, regardless of
-    column order.  Indirect equivalences through multi-hop chains are not detected — this is
-    intentional: it's fast for TDD and locates the concord file that is the source of the problem.
+    Concord files are tab-separated <curie1> <relation> <curie2> triples; this function checks
+    the first and last columns only (skipping the relation), so column order does not matter.
+    Indirect equivalences through multi-hop chains are not detected — this is intentional: it's
+    fast for TDD and locates the specific concord file that is the source of a bad link.
     """
     for entry in os.scandir(concords_dir):
         if not entry.is_file() or entry.name.endswith(".yaml"):
@@ -96,22 +102,20 @@ def _any_concord_xrefs(concords_dir: str, curie1: str, curie2: str) -> bool:
 def _output_paths(outputs: dict) -> dict[str, str]:
     """Filter a vocab_outputs dict down to just the string-valued output paths.
 
-    Some vocabulary fixtures (e.g. MESH) include non-path entries like
-    'excluded_tree_terms' in their returned dict.  This helper strips those out
-    so test functions can iterate only over real compendium output files.
+    Some fixtures return extra non-path data alongside their output paths — for example,
+    mesh_pipeline_outputs includes 'excluded_tree_terms' (a set of descriptor CURIEs) for
+    use by test_mesh_pipeline.py.  This helper strips non-string values so callers can
+    iterate over compendium output files without special-casing each vocabulary.
     """
     return {name: path for name, path in outputs.items() if isinstance(path, str)}
 
 
 def _intermediate_id_path(compendium: str, vocab: str) -> str:
-    """Stable output path matching the Snakemake convention:
-    {intermediate_directory}/{semantic_type}/ids/{vocab}
+    """Return {intermediate_directory}/{snakemake_dir}/ids/{vocab}, matching the Snakemake path.
 
-    Uses the same paths as the Snakemake pipeline so that a prior full pipeline
-    run can be reused directly without re-running write_X_ids().
-
-    The compendium-to-directory mapping is read from config.yaml
-    (compendium_directories key) so there is a single authoritative source.
+    snakemake_dir is looked up from compendium_directories in config.yaml and falls back to
+    the compendium name (e.g. diseasephenotype → disease, processactivitypathway → process).
+    Using the same paths as Snakemake means files from a prior pipeline run are reused directly.
     """
     from src.util import get_config
     cfg = get_config()
@@ -209,15 +213,12 @@ def pipeline_output(regenerate):
 
 @pytest.fixture(scope="session")
 def chemicals_concords_dir(pipeline_output):
-    """Ensure chemicals concord files are present; return the concords directory path.
+    """Ensure at least one chemicals concord file is present; return the concords directory path.
 
-    Uses wikipedia_mesh_chebi as the sentinel (the get_chemical_wikipedia_relationships
-    rule has no download prerequisites and is fast to run).  If the sentinel is absent,
-    runs snakemake --until get_chemical_wikipedia_relationships.
-
-    Other concord files (UNICHEM, CHEBI, …) are used if already present from a prior
-    full pipeline run but are not generated automatically — they require large downloads
-    or significant RAM (UNICHEM needs 512G).
+    Uses wikipedia_mesh_chebi as a sentinel: if absent, runs Snakemake's
+    get_chemical_wikipedia_relationships rule (no large downloads required, fast).
+    Other concord files (UNICHEM, CHEBI, …) are used if already present from a prior full
+    pipeline run, but are not generated automatically — UNICHEM in particular requires ~512 GB RAM.
     """
     from src.util import get_config
     cfg = get_config()
@@ -260,12 +261,10 @@ def mesh_pipeline_outputs(mesh_nt, regenerate):
     _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_mesh_ids(p("diseasephenotype")), regenerate)
     _maybe_run(p("taxon"),            lambda: taxon.write_mesh_ids(p("taxon")),                      regenerate)
 
-    # Build excluded_tree_terms for test_mesh_pipeline.py: all descriptor terms under
-    # D05/D08/D12.776 (including non-protein subtrees like Polymers and Coenzymes that
-    # belong in neither compendium).  This constructs a second Mesh() instance because
-    # write_ids() encapsulates its own instance and there is no way to reuse it here
-    # without an API change.  This is test-only and session-scoped so the cost is paid
-    # once per test run.
+    # Build excluded_tree_terms for test_mesh_pipeline.py: all descriptor CURIEs under
+    # D05/D08/D12.776, including non-protein subtrees (Polymers, Coenzymes) that belong
+    # in neither compendium.  A fresh Mesh() instance is needed because write_ids()
+    # creates its own internally and doesn't expose it; the cost is paid once per session.
     m = Mesh()
     excluded_tree_terms = set()
     for tree in ["D05", "D08", "D12.776"]:
