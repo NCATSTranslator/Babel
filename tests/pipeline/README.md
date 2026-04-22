@@ -51,8 +51,9 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
 - **`test_mesh_pipeline.py`** (`pipeline`) — MeSH-specific targeted test
   ([issue #675](https://github.com/NCATSTranslator/Babel/issues/675)). Downloads
   `babel_downloads/MESH/mesh.nt` automatically if absent. One test: chemicals must exclude
-  all D05 terms, D08 protein subtrees (D08.811/D08.622/D08.244), and D12.776 — but must
-  include D08.211 Coenzymes (e.g. NAD, Coenzyme A), which are small molecules.
+  D05 protein subtrees (D05.500/D05.875), D08 protein subtrees (D08.811/D08.622/D08.244),
+  and D12.776 — but must include D08.211 Coenzymes (NAD, Coenzyme A) and D05.374/D05.750/D05.937
+  (Micelles, Polymers, Smart Materials), which are all classified as CHEMICAL_ENTITY.
 
 - **`test_umls_pipeline.py`** (`pipeline`) — UMLS-specific targeted test. Requires
   `UMLS_API_KEY` for the initial download (or cached files). One test: chemicals must not

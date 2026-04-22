@@ -180,8 +180,8 @@ def write_mesh_ids(outfile):
     #   D08.811  Enzymes
     #   D12.776  Proteins
     #
-    # EXCLUDED — no appropriate Biolink type yet (TODO: assign when the Biolink Model
-    # gains a suitable type for non-protein macromolecules):
+    # INCLUDED as CHEMICAL_ENTITY for now — TODO: assign a more specific Biolink type
+    # when the Biolink Model gains a suitable type for non-protein macromolecules:
     #   D05.374  Micelles
     #   D05.750  Polymers
     #   D05.937  Smart Materials
@@ -198,10 +198,8 @@ def write_mesh_ids(outfile):
     # D05 protein subtrees → excluded (protein compendium handles these)
     meshmap["D05.500"] = "EXCLUDE"  # Multiprotein Complexes
     meshmap["D05.875"] = "EXCLUDE"  # Protein Aggregates
-    # D05 non-protein subtrees → excluded pending a Biolink Model type for macromolecules
-    meshmap["D05.374"] = "EXCLUDE"  # TODO: Micelles
-    meshmap["D05.750"] = "EXCLUDE"  # TODO: Polymers
-    meshmap["D05.937"] = "EXCLUDE"  # TODO: Smart Materials
+    # D05.374 Micelles, D05.750 Polymers, D05.937 Smart Materials inherit CHEMICAL_ENTITY
+    # TODO: assign a more specific Biolink type for these non-protein macromolecules
     # D08 protein subtrees → excluded (protein compendium handles these)
     meshmap["D08.811"] = "EXCLUDE"  # Enzymes
     meshmap["D08.622"] = "EXCLUDE"  # Enzyme Precursors

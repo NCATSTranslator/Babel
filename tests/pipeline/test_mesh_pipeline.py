@@ -15,17 +15,17 @@ from tests.pipeline.conftest import _read_ids
 
 @pytest.mark.pipeline
 def test_chemicals_excludes_protein_and_macromolecule_descriptor_trees(mesh_pipeline_outputs):
-    """Chemicals must not contain D05 (all), D08 protein subtrees, or D12.776 descriptor terms.
+    """Chemicals must not contain D05 protein subtrees, D08 protein subtrees, or D12.776.
 
-    Excluded from chemicals:
-    - D05.500/D05.875 → protein compendium
-    - D05.374/D05.750/D05.937 (Micelles, Polymers, Smart Materials) → neither compendium
-      (pending a Biolink Model type)
-    - D08.811/D08.622/D08.244 (Enzymes, Enzyme Precursors, Cytochromes) → protein compendium
-    - D12.776 → protein compendium
+    Excluded from chemicals (→ protein compendium):
+    - D05.500 Multiprotein Complexes, D05.875 Protein Aggregates
+    - D08.811 Enzymes, D08.622 Enzyme Precursors, D08.244 Cytochromes
+    - D12.776 Proteins
 
-    NOT excluded: D08.211 Coenzymes (e.g. NAD, Coenzyme A) — these are small molecules
-    that belong in chemicals.
+    Included in chemicals (NOT excluded):
+    - D08.211 Coenzymes (e.g. NAD, Coenzyme A) — non-protein small molecules
+    - D05.374 Micelles, D05.750 Polymers, D05.937 Smart Materials — included as
+      CHEMICAL_ENTITY for now (TODO: assign a more specific Biolink type)
 
     The mutual-exclusivity test in test_vocabulary_partitioning.py only checks pairwise
     overlap between compendia; this test checks exclusion against the full tree.
