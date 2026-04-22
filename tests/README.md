@@ -217,9 +217,9 @@ uv run pytest tests/pipeline/checks/ -k "xref" --pipeline --no-cov -v
   NCBI FTP server. Covers pulling plain text and gzipped files to memory or disk
   with optional decompression. Requires `--network` to run.
 
-- **`test_ThrottledRequester.py`** (`network`) — Tests the `ThrottledRequester` HTTP client,
+- **`test_ThrottledRequester.py`** (`unit`) — Tests the `ThrottledRequester` HTTP client,
   verifying that rate-limiting delays are correctly applied between requests.
-  Requires `--network` to run.
+  Uses a local HTTP server, so no network access is required.
 
 ## Test Data
 

@@ -64,11 +64,7 @@ that are used to prioritize labels. This list is currently:
 1. DrugCentral
 1. CHEBI
 1. MESH
-1. CHEMBL.COMPOUND
 1. GTOPDB
-1. HMDB
-1. RXCUI
-1. PUBCHEM.COMPOUND
 
 [Conflations](./Conflation.md) are lists of identifiers that are merged in
 that order when that conflation is applied. The preferred label for the
