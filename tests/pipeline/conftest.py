@@ -38,7 +38,7 @@ from src.datahandlers.mesh import Mesh, pull_mesh
 # ---------------------------------------------------------------------------
 
 
-def _read_ids(path: str) -> set[str]:
+def get_curies_from_ids_file(path: str) -> set[str]:
     """Return the set of CURIEs (first column) from a TSV output file."""
     ids = set()
     with open(path) as f:
@@ -49,7 +49,7 @@ def _read_ids(path: str) -> set[str]:
     return ids
 
 
-def _read_ids_with_types(path: str) -> dict[str, str | None]:
+def get_curies_and_types_from_ids_file(path: str) -> dict[str, str | None]:
     """Return {CURIE: biolink_type_or_None} from an intermediate ID file.
 
     The optional second column is a Biolink type hint written by write_umls_ids() and

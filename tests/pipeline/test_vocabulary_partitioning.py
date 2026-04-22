@@ -23,7 +23,7 @@ Run a single vocabulary:
 """
 import pytest
 
-from tests.pipeline.conftest import _output_paths, _read_ids
+from tests.pipeline.conftest import _output_paths, get_curies_from_ids_file
 
 # Known cross-compendium duplicates that have not yet been resolved.
 # Each entry is a set of identifier strings that are known to appear in more
@@ -64,7 +64,7 @@ def test_ids_non_empty(vocab_outputs):
     """Every compendium in this vocabulary must produce at least one identifier."""
     vocab, outputs = vocab_outputs
     paths = _output_paths(outputs)
-    empty = [name for name, path in paths.items() if not _read_ids(path)]
+    empty = [name for name, path in paths.items() if not get_curies_from_ids_file(path)]
     assert not empty, f"{vocab}: these compendia produced no output: {empty}"
 
 
@@ -76,7 +76,7 @@ def test_no_id_in_multiple_compendia(vocab_outputs):
     seen = {}       # id -> first compendium name
     duplicates = {} # id -> list of all compendia it appeared in
     for name, path in paths.items():
-        for id_ in _read_ids(path):
+        for id_ in get_curies_from_ids_file(path):
             if id_ in seen:
                 duplicates.setdefault(id_, [seen[id_]]).append(name)
             else:

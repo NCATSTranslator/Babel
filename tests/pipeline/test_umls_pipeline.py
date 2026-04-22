@@ -12,7 +12,7 @@ default.  Run with:
 """
 import pytest
 
-from tests.pipeline.conftest import _read_ids
+from tests.pipeline.conftest import get_curies_from_ids_file
 
 
 @pytest.mark.pipeline
@@ -25,8 +25,8 @@ def test_chemicals_excludes_protein_semantic_tree(umls_pipeline_outputs):
     this test has no KNOWN_DUPLICATES carve-out — a chem/protein UMLS overlap is always
     a hard failure here, making it a stricter sentinel for this specific pair.
     """
-    chem_ids = _read_ids(umls_pipeline_outputs["chemicals"])
-    prot_ids = _read_ids(umls_pipeline_outputs["protein"])
+    chem_ids = get_curies_from_ids_file(umls_pipeline_outputs["chemicals"])
+    prot_ids = get_curies_from_ids_file(umls_pipeline_outputs["protein"])
     overlap = chem_ids & prot_ids
     assert len(overlap) == 0, (
         f"Found {len(overlap)} IDs in both chemicals and protein UMLS outputs: "

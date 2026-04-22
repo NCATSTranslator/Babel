@@ -29,7 +29,7 @@ from typing import NamedTuple
 
 import pytest
 
-from tests.pipeline.conftest import _any_concord_xrefs, _read_ids_with_types
+from tests.pipeline.conftest import _any_concord_xrefs, get_curies_and_types_from_ids_file
 
 # ---------------------------------------------------------------------------
 # ID-presence check type and tables
@@ -112,7 +112,7 @@ EXPECTED_NO_XREF: list[ConcordCheck] = [
 def test_curie_in_chemicals(request, check: ChemCheck) -> None:
     """CURIE must appear in the chemicals intermediate ID file."""
     outputs = request.getfixturevalue(check.fixture)
-    ids = _read_ids_with_types(outputs["chemicals"])
+    ids = get_curies_and_types_from_ids_file(outputs["chemicals"])
     assert check.curie in ids, (
         f"{check.curie} not found in chemicals "
         f"(expected type {check.expected_type}; see {check.issue})"
@@ -132,7 +132,7 @@ def test_curie_not_in_chemicals(request, check) -> None:
     if not isinstance(check, ChemCheck):
         pytest.skip("NOT_IN_CHEMICALS is empty — add entries to activate this test")
     outputs = request.getfixturevalue(check.fixture)
-    ids = _read_ids_with_types(outputs["chemicals"])
+    ids = get_curies_and_types_from_ids_file(outputs["chemicals"])
     assert check.curie not in ids, (
         f"{check.curie} found in chemicals but should not be "
         f"(expected type {check.expected_type} elsewhere; see {check.issue})"
