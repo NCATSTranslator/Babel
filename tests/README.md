@@ -217,9 +217,3 @@ test additions.
 
 - Move `test_geneproteiny.py` assertions to also check individual clique contents, not just that
   the output file is non-empty.
-
-## Out of Scope / Pipeline-only
-
-The pipeline tests live in `tests/pipeline/`. See the [Pipeline](#pipeline) subsection of
-Test Files and [`tests/pipeline/README.md`](pipeline/README.md) for current coverage and
-how to extend it.
