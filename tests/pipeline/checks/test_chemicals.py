@@ -57,6 +57,20 @@ EXPECTED_IN_CHEMICALS: list[ChemCheck] = [
         "biolink:Drug",
         "https://github.com/NCATSTranslator/Babel/issues/708",
     ),
+    # D08.211 Coenzymes — non-protein small molecules that were previously excluded from
+    # chemicals by a blanket D08 exclusion.  They should be CHEMICAL_ENTITY.
+    ChemCheck(
+        "mesh_pipeline_outputs",
+        "MESH:D009243",  # Nicotinamide Adenine Dinucleotide (NAD) — D08.211.060
+        "biolink:ChemicalEntity",
+        "https://github.com/NCATSTranslator/Babel/issues/675",
+    ),
+    ChemCheck(
+        "mesh_pipeline_outputs",
+        "MESH:D003067",  # Coenzyme A — D08.211.190
+        "biolink:ChemicalEntity",
+        "https://github.com/NCATSTranslator/Babel/issues/675",
+    ),
 ]
 
 NOT_IN_CHEMICALS: list[ChemCheck] = []

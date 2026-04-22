@@ -14,14 +14,21 @@ from tests.pipeline.conftest import _read_ids
 
 
 @pytest.mark.pipeline
-def test_chemicals_excludes_all_protein_descriptor_trees(mesh_pipeline_outputs):
-    """Chemicals output must not contain any D05/D08/D12.776 descriptor terms.
+def test_chemicals_excludes_protein_and_macromolecule_descriptor_trees(mesh_pipeline_outputs):
+    """Chemicals must not contain D05 (all), D08 protein subtrees, or D12.776 descriptor terms.
 
-    This catches terms in "in-neither" subtrees (e.g. D05.750 Polymers, D08.211
-    Coenzymes) that should be excluded from chemicals even though they are not
-    captured by protein.write_mesh_ids().  The mutual-exclusivity test in
-    test_vocabulary_partitioning.py only checks pairwise overlap between
-    compendia; this test checks exclusion against the full tree.
+    Excluded from chemicals:
+    - D05.500/D05.875 → protein compendium
+    - D05.374/D05.750/D05.937 (Micelles, Polymers, Smart Materials) → neither compendium
+      (pending a Biolink Model type)
+    - D08.811/D08.622/D08.244 (Enzymes, Enzyme Precursors, Cytochromes) → protein compendium
+    - D12.776 → protein compendium
+
+    NOT excluded: D08.211 Coenzymes (e.g. NAD, Coenzyme A) — these are small molecules
+    that belong in chemicals.
+
+    The mutual-exclusivity test in test_vocabulary_partitioning.py only checks pairwise
+    overlap between compendia; this test checks exclusion against the full tree.
     """
     chem_ids = _read_ids(mesh_pipeline_outputs["chemicals"])
     excluded_tree_terms = mesh_pipeline_outputs["excluded_tree_terms"]

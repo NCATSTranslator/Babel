@@ -145,17 +145,18 @@ def write_pubchem_ids(labelfile, smilesfile, outfile):
 
 def write_mesh_ids(outfile):
     # MeSH D tree — chemical-related subtrees.
-    # Included as CHEMICAL_ENTITY:
+    # Included as CHEMICAL_ENTITY (via the D01–D26 base range):
     #   D01  Inorganic Chemicals
     #   D02  Organic Chemicals
     #   D03  Heterocyclic Compounds
     #   D04  Polycyclic Compounds
     #   D06  Hormones, Hormone Substitutes, and Hormone Antagonists
     #   D07  (not currently assigned in MeSH)
+    #   D08.211  Coenzymes (e.g. NAD, Coenzyme A, FAD) — non-protein small molecules
     #   D09  Carbohydrates
     #   D10  Lipids
     #   D11  (not currently assigned in MeSH)
-    #   D12  Amino Acids, Peptides, and Proteins (partially — see below)
+    #   D12  Amino Acids, Peptides, and Proteins (partially — see POLYPEPTIDE below)
     #   D14–D19  (not currently assigned in MeSH)
     #   D21–D22  (not currently assigned in MeSH)
     #   D23  Biological Factors
@@ -171,30 +172,42 @@ def write_mesh_ids(outfile):
     # Included as COMPLEX_MOLECULAR_MIXTURE:
     #   D20  Complex Mixtures
     #
-    # EXCLUDED (sent to protein compendium instead — see protein.write_mesh_ids):
-    #   D05      Macromolecular Substances — protein subtrees (D05.500 Multiprotein Complexes,
-    #            D05.875 Protein Aggregates) go to proteins; non-protein subtrees (D05.750
-    #            Polymers, D05.937 Smart Materials, D05.374 Micelles) are in neither compendium.
-    #   D08      Enzymes and Coenzymes — protein subtrees (D08.811 Enzymes, D08.622 Enzyme
-    #            Precursors, D08.244 Cytochromes) go to proteins; D08.211 Coenzymes (small
-    #            molecules) is in neither compendium.
-    #   D12.776  Proteins — goes to protein compendium.
+    # EXCLUDED — protein subtrees (handled by protein.write_mesh_ids instead):
+    #   D05.500  Multiprotein Complexes
+    #   D05.875  Protein Aggregates
+    #   D08.244  Cytochromes
+    #   D08.622  Enzyme Precursors
+    #   D08.811  Enzymes
+    #   D12.776  Proteins
     #
-    # D27 (Chemical Actions and Uses) is implicitly excluded by the range D01-D26.
+    # EXCLUDED — no appropriate Biolink type yet (TODO: assign when the Biolink Model
+    # gains a suitable type for non-protein macromolecules):
+    #   D05.374  Micelles
+    #   D05.750  Polymers
+    #   D05.937  Smart Materials
+    #
+    # D27 (Chemical Actions and Uses) is implicitly excluded by the range D01–D26.
     #
     # TODO: The MeSH tree assignments for chemicals and proteins are currently defined
     # independently in chemicals.write_mesh_ids() and protein.write_mesh_ids(). These
     # should be unified into a shared mapping (e.g. in config.yaml or a dedicated module)
     # so both compendia are derived from the same source of truth. This would also make it
-    # easier to handle edge cases like:
-    #   - D05 non-protein subtrees (Polymers, Smart Materials, Micelles) and D08.211
-    #     (Coenzymes) that currently fall into neither compendium.
-    #   - SCR_Chemical terms mapped to non-protein descriptors that are nonetheless proteins
-    #     (e.g. scorpion venom toxins classified under D23 Biological Factors).
+    # easier to handle edge cases like SCR_Chemical terms mapped to non-protein descriptors
+    # that are nonetheless proteins (e.g. scorpion venom toxins under D23 Biological Factors).
     meshmap = {f"D{str(i).zfill(2)}": CHEMICAL_ENTITY for i in range(1, 27)}
-    meshmap["D05"] = "EXCLUDE"
-    meshmap["D08"] = "EXCLUDE"
-    meshmap["D12.776"] = "EXCLUDE"
+    # D05 protein subtrees → excluded (protein compendium handles these)
+    meshmap["D05.500"] = "EXCLUDE"  # Multiprotein Complexes
+    meshmap["D05.875"] = "EXCLUDE"  # Protein Aggregates
+    # D05 non-protein subtrees → excluded pending a Biolink Model type for macromolecules
+    meshmap["D05.374"] = "EXCLUDE"  # TODO: Micelles
+    meshmap["D05.750"] = "EXCLUDE"  # TODO: Polymers
+    meshmap["D05.937"] = "EXCLUDE"  # TODO: Smart Materials
+    # D08 protein subtrees → excluded (protein compendium handles these)
+    meshmap["D08.811"] = "EXCLUDE"  # Enzymes
+    meshmap["D08.622"] = "EXCLUDE"  # Enzyme Precursors
+    meshmap["D08.244"] = "EXCLUDE"  # Cytochromes
+    # D08.211 Coenzymes inherits CHEMICAL_ENTITY from the D01–D26 base range above
+    meshmap["D12.776"] = "EXCLUDE"  # Proteins
     meshmap["D12.125"] = POLYPEPTIDE
     meshmap["D12.644"] = POLYPEPTIDE
     meshmap["D13"] = POLYPEPTIDE

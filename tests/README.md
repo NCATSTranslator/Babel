@@ -135,7 +135,7 @@ and how to add new checks or vocabularies.
 
 - **`pipeline/test_mesh_pipeline.py`** (`pipeline`) — MeSH-specific targeted assertions
   ([issue #675](https://github.com/NCATSTranslator/Babel/issues/675)): chemicals must exclude
-  D05/D08/D12.776 descriptor terms including "in-neither" subtrees (Polymers, Coenzymes).
+  all D05 terms, D08 protein subtrees, and D12.776 — but must include D08.211 Coenzymes.
 
 - **`pipeline/test_umls_pipeline.py`** (`pipeline`) — UMLS-specific targeted assertions:
   chemicals must not contain UMLS IDs claimed by the protein compendium.

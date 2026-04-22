@@ -261,13 +261,16 @@ def mesh_pipeline_outputs(mesh_nt, regenerate):
     _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_mesh_ids(p("diseasephenotype")), regenerate)
     _maybe_run(p("taxon"),            lambda: taxon.write_mesh_ids(p("taxon")),                      regenerate)
 
-    # Build excluded_tree_terms for test_mesh_pipeline.py: all descriptor CURIEs under
-    # D05/D08/D12.776, including non-protein subtrees (Polymers, Coenzymes) that belong
-    # in neither compendium.  A fresh Mesh() instance is needed because write_ids()
-    # creates its own internally and doesn't expose it; the cost is paid once per session.
+    # Build excluded_tree_terms for test_mesh_pipeline.py: descriptor CURIEs that must
+    # NOT appear in the chemicals output.  D05 (all) and D12.776 are fully excluded.
+    # For D08, only the protein subtrees are excluded — D08.211 Coenzymes now goes to
+    # chemicals.  A fresh Mesh() instance is needed because write_ids() creates its own
+    # internally and doesn't expose it; the cost is paid once per session.
     m = Mesh()
     excluded_tree_terms = set()
-    for tree in ["D05", "D08", "D12.776"]:
+    for tree in ["D05", "D12.776"]:
+        excluded_tree_terms.update(m.get_terms_in_tree(tree))
+    for tree in ["D08.811", "D08.622", "D08.244"]:  # D08 protein subtrees only
         excluded_tree_terms.update(m.get_terms_in_tree(tree))
 
     return {

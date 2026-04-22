@@ -50,9 +50,9 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
 
 - **`test_mesh_pipeline.py`** (`pipeline`) — MeSH-specific targeted test
   ([issue #675](https://github.com/NCATSTranslator/Babel/issues/675)). Downloads
-  `babel_downloads/MESH/mesh.nt` automatically if absent. One test: chemicals output must
-  exclude all D05/D08/D12.776 descriptor terms, including "in-neither" subtrees like
-  Polymers and Coenzymes, even though these are not captured by `protein.write_mesh_ids()`.
+  `babel_downloads/MESH/mesh.nt` automatically if absent. One test: chemicals must exclude
+  all D05 terms, D08 protein subtrees (D08.811/D08.622/D08.244), and D12.776 — but must
+  include D08.211 Coenzymes (e.g. NAD, Coenzyme A), which are small molecules.
 
 - **`test_umls_pipeline.py`** (`pipeline`) — UMLS-specific targeted test. Requires
   `UMLS_API_KEY` for the initial download (or cached files). One test: chemicals must not
