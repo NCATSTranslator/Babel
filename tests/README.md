@@ -1,5 +1,43 @@
 # Test Suite
 
+## Overview
+
+Tests are organized along two independent axes:
+
+- **Mark** — controls *when* a test is run (see [Marks](#marks) below for the full table).
+- **Directory** — reflects *what* is being tested.
+
+| Directory | What lives there |
+|-----------|-----------------|
+| `tests/` (root) | Core utility tests: `glom`, `LabeledID`, `NodeFactory`, `ThrottledRequester`, FTP utilities, UberGraph, and gene-protein conflation |
+| `tests/datahandlers/` | One test file per module in `src/datahandlers/` |
+| `tests/pipeline/` | Full pipeline integration tests that call `write_*_ids()` functions and check the resulting intermediate files; require `babel_downloads/` to be pre-populated |
+| `tests/pipeline/checks/` | Per-compendium regression assertions tied to specific GitHub issues, designed for test-driven development |
+
+**CI** runs only `unit` tests (`uv run pytest -m unit -q`). Keep unit tests fast, offline, and
+dependency-free so they remain cheap to run on every PR.
+
+**Pipeline tests** cache their output to the same stable paths that Snakemake uses
+(`babel_outputs/intermediate/…`), so a prior full pipeline run is automatically reused.
+Pass `--regenerate` to force re-processing. See [Pipeline > Caching](#caching-of-intermediate-files)
+for details.
+
+### Where to add a new test
+
+- **Pure function or small data transform** → `unit` test in `tests/` root (or `tests/datahandlers/`
+  if it exercises a specific data handler module).
+- **Specific CURIE that should (or should not) appear in a compendium** → append a `ChemCheck` or
+  `ConcordCheck` tuple to `tests/pipeline/checks/test_chemicals.py` (or create a parallel file for
+  another compendium). No Snakemake needed for ID-presence checks.
+- **Cross-vocabulary identifier exclusivity for a new vocabulary** → add fixtures to
+  `tests/pipeline/conftest.py` and one entry to `VOCABULARY_REGISTRY` in
+  `test_vocabulary_partitioning.py`. See [New pipeline tests](#new-pipeline-tests) in Future Plans.
+- **Pipeline behavior specific to one vocabulary** → add `tests/pipeline/test_X_pipeline.py`
+  marked `pipeline`.
+
+See [Future Plans](#future-plans) at the bottom of this file for a more detailed roadmap of
+planned test locations and conventions.
+
 ## Running Tests
 
 ```bash
