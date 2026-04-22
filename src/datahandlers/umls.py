@@ -307,7 +307,7 @@ def download_umls(umls_version, umls_subset, download_dir):
     """
     umls_api_key = os.environ.get("UMLS_API_KEY")
     if not umls_api_key:
-        raise RuntimeError("The environmental variable UMLS_API_KEY needs to be set to a valid UMLS API key.\nSee instructions at https://documentation.uts.nlm.nih.gov/rest/authentication.html")
+        raise RuntimeError("The environment variable UMLS_API_KEY needs to be set to a valid UMLS API key.\nSee instructions at https://documentation.uts.nlm.nih.gov/rest/authentication.html")
 
     # Check umls_subset.
     if umls_subset not in ["full", "level-0"]:
