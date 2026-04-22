@@ -14,7 +14,23 @@ def pull_mesh():
 class Mesh:
     """Load the mesh rdf file for querying"""
 
+    # Tracks how many Mesh instances currently hold mesh.nt in memory.
+    # mesh.nt occupies ~2 GB in pyoxigraph's in-memory store; running two at the
+    # same time on a 16 GB machine causes severe swapping or OOM failures.
+    _active_instances: int = 0
+
     def __init__(self):
+        import warnings
+
+        if Mesh._active_instances > 0:
+            warnings.warn(
+                f"{Mesh._active_instances} Mesh instance(s) are already loaded in this "
+                "process. Each instance holds mesh.nt in an in-memory pyoxigraph store "
+                "(~2 GB); running multiple simultaneously can exhaust RAM on machines "
+                "with ≤16 GB and cause severe slowdowns or OOM failures.",
+                ResourceWarning,
+                stacklevel=2,
+            )
         ifname = make_local_name("mesh.nt", subpath="MESH")
         from datetime import datetime as dt
 
@@ -26,6 +42,11 @@ class Mesh:
         end = dt.now()
         print("loading complete")
         print(f"took {end - start}")
+        Mesh._active_instances += 1  # only after successful load
+
+    def __del__(self):
+        if hasattr(self, "m"):  # only if __init__ completed successfully
+            Mesh._active_instances = max(0, Mesh._active_instances - 1)
 
     def get_terms_in_tree(self, top_treenum):
         s = f"""   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -117,6 +138,70 @@ class Mesh:
             meshid = f"{MESH}:{iterm[:-1].split('/')[-1]}"
             res.append((meshid, label))
         return res
+
+    def get_tree_numbers(self, mesh_id: str) -> list[str]:
+        """Return the tree-number strings for a MeSH descriptor.
+
+        Accepts "D009243" or "MESH:D009243". Returns strings like
+        ["D08.211.589", "D03.633.100.759.646.138.694"] sorted alphabetically.
+        Returns an empty list for SCR terms, which have no tree numbers of their own.
+        """
+        raw_id = mesh_id.split(":")[-1]
+        s = f"""   PREFIX meshv: <http://id.nlm.nih.gov/mesh/vocab#>
+                PREFIX mesh: <http://id.nlm.nih.gov/mesh/>
+
+                SELECT DISTINCT ?treenum
+                WHERE {{ mesh:{raw_id} meshv:treeNumber ?treenum }}
+                ORDER BY ?treenum
+        """
+        return [str(row["treenum"])[:-1].split("/")[-1] for row in self.m.query(s)]
+
+    def get_scr_mappings(self, scr_id: str) -> list[dict]:
+        """Return mapping info for an SCR (Supplementary Concept Record) term.
+
+        Accepts "C100843" or "MESH:C100843". Returns one dict per
+        (predicate, descriptor) pair with keys:
+          - "predicate":    "mappedTo" or "preferredMappedTo"
+          - "descriptor":   CURIE, e.g. "MESH:D004338"
+          - "label":        descriptor rdfs:label, or "" if absent
+          - "tree_numbers": sorted list of tree-number strings for that descriptor
+        """
+        raw_id = scr_id.split(":")[-1]
+        s = f"""   PREFIX meshv: <http://id.nlm.nih.gov/mesh/vocab#>
+                PREFIX mesh: <http://id.nlm.nih.gov/mesh/>
+                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+                SELECT DISTINCT ?mappingPred ?descriptor ?descLabel ?treenum
+                WHERE {{
+                    VALUES ?mappingPred {{ meshv:mappedTo meshv:preferredMappedTo }}
+                    mesh:{raw_id} ?mappingPred ?descriptor .
+                    OPTIONAL {{ ?descriptor rdfs:label ?descLabel }}
+                    OPTIONAL {{ ?descriptor meshv:treeNumber ?treenum }}
+                }}
+                ORDER BY ?mappingPred ?descriptor ?treenum
+        """
+        mappings: dict[tuple, dict] = {}
+        for row in self.m.query(s):
+            pred = str(row["mappingPred"])[:-1].split("#")[-1]
+            desc_id = f"{MESH}:{str(row['descriptor'])[:-1].split('/')[-1]}"
+            key = (pred, desc_id)
+            if key not in mappings:
+                label = ""
+                try:
+                    raw_label = str(row["descLabel"])
+                    label = raw_label.strip().split('"')[1]
+                except (KeyError, IndexError):
+                    pass
+                mappings[key] = {"predicate": pred, "descriptor": desc_id, "label": label, "tree_numbers": []}
+            try:
+                tree_id = str(row["treenum"])[:-1].split("/")[-1]
+                if tree_id not in mappings[key]["tree_numbers"]:
+                    mappings[key]["tree_numbers"].append(tree_id)
+            except KeyError:
+                pass
+        for info in mappings.values():
+            info["tree_numbers"].sort()
+        return list(mappings.values())
 
     def print_tree_labels(self):
         s = """   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
