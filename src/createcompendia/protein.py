@@ -52,8 +52,8 @@ def write_mesh_ids(outfile):
     # D05      Macromolecular Substances — only protein-related subtrees:
     #   D05.500  Multiprotein Complexes
     #   D05.875  Protein Aggregates
-    #   (In neither compendium pending a Biolink Model type: D05.374 Micelles,
-    #    D05.750 Polymers, D05.937 Smart Materials.)
+    #   (D05.374 Micelles, D05.750 Polymers, D05.937 Smart Materials go to the chemical
+    #    compendium as CHEMICAL_ENTITY — TODO: assign a more specific Biolink type.)
     #
     # D08      Enzymes and Coenzymes — only protein-related subtrees:
     #   D08.811  Enzymes
