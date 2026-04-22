@@ -83,9 +83,9 @@ semantic type plus data collection, reports, exports, and DuckDB.
 
 ### Source Code Layout (`src/`)
 
-- **`datahandlers/`** — ~37 modules, each wrapping a specific external data source (ChEBI, UniProt,
+- **`datahandlers/`** — ~35 modules, each wrapping a specific external data source (ChEBI, UniProt,
   NCBI Gene, DrugBank, MESH, etc.). These download, parse, and normalize source data.
-- **`createcompendia/`** — ~15 modules, one per semantic type (chemicals, genes, proteins, anatomy,
+- **`createcompendia/`** — ~16 modules, one per semantic type (chemicals, genes, proteins, anatomy,
   disease/phenotype, etc.). These consume data handler outputs and build concords → cliques.
 - **`snakefiles/`** — Snakemake rule definitions wiring data handlers to compendium creators.
 - **`node.py`** — Core classes: `NodeFactory`, `SynonymFactory`, `DescriptionFactory`,
