@@ -85,7 +85,15 @@ uv run pytest -m pipeline --pipeline -x --no-cov # one pipeline test at a time
 uv run pytest -m "not pipeline"                   # everything except full pipeline runs
 uv run pytest -n auto --no-cov                    # parallel (all CPUs), skip coverage
 uv run pytest -n 4 -m unit                        # 4 workers, unit tests only
+uv run pytest -n auto --pipeline --no-cov         # safe: pipeline tests run in 1 worker
 ```
+
+**Parallel execution and pipeline tests** — pytest-xdist gives each worker its own Python
+session, so session-scoped fixtures like `Mesh` (which loads `mesh.nt` into an in-memory
+store) are not shared: N workers would each load `mesh.nt` simultaneously and exhaust
+available RAM. To prevent this, the root `conftest.py` automatically assigns
+`xdist_group("pipeline")` to every pipeline-marked test when `-n` is active, ensuring all
+pipeline tests run in a single worker while unit/slow/network tests still parallelize freely.
 
 ## Test Files
 

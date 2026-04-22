@@ -96,3 +96,21 @@ def pytest_collection_modifyitems(config, items):
         applicable = [seconds for mark_name, seconds in MARK_TIMEOUTS.items() if item.get_closest_marker(mark_name)]
         if applicable:
             item.add_marker(pytest.mark.timeout(max(applicable)))
+
+    # When running with xdist, group all pipeline tests into one worker so that
+    # large session-scoped fixtures (Mesh, UMLS, etc.) are only loaded once.
+    # Each xdist worker has its own Python session, so without grouping N workers
+    # would each load mesh.nt into RAM simultaneously, exhausting available memory.
+    try:
+        n_workers = config.getoption("-n", default=None)
+    except (ValueError, AttributeError):
+        n_workers = None
+    if n_workers is not None and str(n_workers) not in ("0", "no"):
+        pipeline_items = [item for item in items if item.get_closest_marker("pipeline")]
+        if pipeline_items:
+            for item in pipeline_items:
+                item.add_marker(pytest.mark.xdist_group("pipeline"))
+            print(  # noqa: T201
+                f"\nNOTE: {len(pipeline_items)} pipeline test(s) grouped to a single xdist "
+                "worker to prevent simultaneous mesh.nt loads (OOM risk with -n > 1)."
+            )
