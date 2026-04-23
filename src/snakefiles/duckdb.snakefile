@@ -102,7 +102,8 @@ rule check_for_identically_labeled_cliques:
     benchmark:
         config["output_directory"] + "/benchmarks/check_for_identically_labeled_cliques.tsv"
     resources:
-        mem="1500G",
+        mem="128G",
+        cpus_per_task=4,
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
@@ -111,8 +112,8 @@ rule check_for_identically_labeled_cliques:
             output.duckdb_filename,
             output.identically_labeled_cliques_tsv,
             {
-                "memory_limit": "512G",
-                "threads": 2,
+                "memory_limit": "64G",
+                "threads": 4,
                 "preserve_insertion_order": False,
             },
         )
@@ -128,7 +129,8 @@ rule check_for_duplicate_curies:
     benchmark:
         config["output_directory"] + "/benchmarks/check_for_duplicate_curies.tsv"
     resources:
-        mem="1500G",
+        mem="256G",
+        cpus_per_task=4,
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
@@ -137,8 +139,8 @@ rule check_for_duplicate_curies:
             output.duckdb_filename,
             output.duplicate_curies,
             {
-                "memory_limit": "1500G",
-                "threads": 1,
+                "memory_limit": "128G",
+                "threads": 4,
                 "preserve_insertion_order": False,
             },
         )
@@ -154,7 +156,8 @@ rule check_for_duplicate_clique_leaders:
     benchmark:
         config["output_directory"] + "/benchmarks/check_for_duplicate_clique_leaders.tsv"
     resources:
-        mem="1500G",
+        mem="128G",
+        cpus_per_task=4,
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
@@ -163,8 +166,8 @@ rule check_for_duplicate_clique_leaders:
             output.duckdb_filename,
             output.duplicate_clique_leaders_tsv,
             {
-                "memory_limit": "512G",
-                "threads": 2,
+                "memory_limit": "64G",
+                "threads": 4,
                 "preserve_insertion_order": False,
             },
         )
