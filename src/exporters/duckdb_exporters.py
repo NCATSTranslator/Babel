@@ -1,6 +1,7 @@
 # The DuckDB exporter can be used to export particular intermediate files into the
 # in-process database engine DuckDB (https://duckdb.org) for future querying.
 import os.path
+from pathlib import Path
 import tempfile
 
 import duckdb
@@ -12,7 +13,6 @@ logger = get_logger(__name__)
 # Some configuration items for controlling loads.
 MIN_FILE_SIZE_FOR_SPLITTING_LOAD = 44_000_000_000
 CHUNK_LINE_SIZE = 60_000_000
-
 
 def setup_duckdb(duckdb_filename, duckdb_config=None):
     """
@@ -236,3 +236,124 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
 
         # Cleanup
         synonyms_jsonl.close()
+
+
+def export_intermediates_to_parquet(intermediate_directory, parquet_root, duckdb_filename, ids_parquet_filename, concords_parquet_filename, metadata_parquet_filename):
+    """
+    Export all the intermediate files into Parquet files, which will be easier to download and manipulate
+    than the multiple original files.
+
+    :param intermediate_directory: The intermediate directory containing the concords.
+    :param duckdb_filename: A DuckDB file to temporarily store data in.
+    :param ids_parquet_filename: The Parquet file to store the IDs.
+    :param concords_parquet_filename: The Parquet file to store the concords.
+    :param metadata_parquet_filename: The Parquet file to store the ID and concord metadata in.
+    """
+
+    # Make sure that duckdb_filename doesn't exist.
+    if os.path.exists(duckdb_filename):
+        raise RuntimeError(f"Will not overwrite existing file {duckdb_filename}")
+
+    duckdb_dir = os.path.dirname(duckdb_filename)
+    os.makedirs(duckdb_dir, exist_ok=True)
+
+    with setup_duckdb(duckdb_filename) as db:
+        # We can't include labels because the code for writing them out is just emitting nulls.
+        # nodes = db.read_parquet(os.path.join(parquet_root, "**/Node.parquet"), hive_partitioning=True)
+        # node_count = db.sql("SELECT COUNT(*) FROM nodes").fetchone()[0]
+        # logger.info(f"Loaded {node_count} nodes from {parquet_root}/**/Node.parquet.")
+
+        db.sql("""CREATE TABLE Concord (filename STRING, subj STRING, pred STRING, obj STRING)""")
+        db.sql("""CREATE TABLE Identifier (filename STRING, curie STRING, biolink_type STRING)""")
+        db.sql("""CREATE TABLE Metadata (filename STRING, subject_filename STRING, subject_file_path STRING, metadata_json STRING)""")
+
+        intermediate_path = Path(intermediate_directory)
+
+        # Load concord files.
+        for concord_path in intermediate_path.glob("**/concords/**/*"):
+            if os.path.isdir(concord_path):
+                logger.info(f"Skipping directory {concord_path}")
+                continue
+
+            if os.path.getsize(concord_path) == 0:
+                logger.warning(f"Skipping empty concord file {concord_path}")
+                continue
+
+            filename = concord_path.name
+            if filename.lower().startswith("metadata-") or filename.lower() == "metadata.yaml":
+                subject_filename = filename
+                if subject_filename.startswith("metadata-") and subject_filename.endswith(".yaml"):
+                    subject_filename = subject_filename[9:]
+                    subject_filename = subject_filename[:-5]
+
+                logger.info(f"Loading concord metadata from {concord_path} to subject file {subject_filename}")
+                db.execute("INSERT INTO Metadata VALUES (?, ?, ?, ?)", [
+                    str(concord_path),
+                    subject_filename,
+                    str(concord_path.parent / subject_filename),
+                    concord_path.read_text()
+                ])
+                continue
+
+            logger.info(f"Loading concords from {concord_path}")
+            db.execute(
+                "INSERT INTO Concord SELECT $1 AS filename, subj, pred, obj FROM read_csv($1, delim='\\t', header=false, " +
+                "columns={'subj': 'VARCHAR', 'pred': 'VARCHAR', 'obj': 'VARCHAR'})",
+                [str(concord_path)])
+
+        del concord_path
+
+        # Load identifier files.
+        for ids_path in intermediate_path.glob("**/ids/**/*"):
+            if os.path.isdir(ids_path):
+                logger.info(f"Skipping directory {ids_path}")
+                continue
+
+            if os.path.getsize(ids_path) == 0:
+                logger.warning(f"Skipping empty concord file {ids_path}")
+                continue
+
+            filename = ids_path.name
+            if filename.lower().startswith("metadata-") or filename.lower() == "metadata.yaml":
+                subject_filename = filename
+                if subject_filename.startswith("metadata-") and subject_filename.endswith(".yaml"):
+                    subject_filename = subject_filename[9:]
+                    subject_filename = subject_filename[:-5]
+
+                logger.info(f"Loading concord metadata from {ids_path} to subject file {subject_filename}")
+                db.execute("INSERT INTO Metadata VALUES (?, ?, ?, ?)", [
+                    str(ids_path),
+                    subject_filename,
+                    str(ids_path.parent / subject_filename),
+                    ids_path.read_text()
+                ])
+                continue
+
+            # ID files sometimes have a single column and sometimes have two, so we need to determine which one this is.
+            with open(ids_path, "r") as f:
+                first_line = f.readline()
+                second_line = f.readline()
+                num_cols = len(first_line.split("\t"))
+                if len(second_line.split("\t")) != num_cols:
+                    raise RuntimeError(f"Inconsistent number of columns in {ids_path}: {num_cols} (first line: '{first_line}', second line: '{second_line}').")
+
+            if num_cols == 1:
+                logger.info(f"Loading identifiers from {ids_path} without a Biolink type column")
+                db.execute(
+                    "INSERT INTO Identifier SELECT $1 AS filename, csv.curie, NULL AS biolink_type FROM read_csv($1, delim='\\t', header=false, " +
+                    "columns={'curie': 'VARCHAR'}) AS csv ",
+                    # "LEFT JOIN nodes ON nodes.curie = csv.curie",
+                    [str(ids_path)])
+            elif num_cols == 2:
+                logger.info(f"Loading identifiers from {ids_path} with a Biolink type column")
+                db.execute(
+                    "INSERT INTO Identifier SELECT $1 AS filename, csv.curie AS curie, biolink_type FROM read_csv($1, delim='\\t', header=false, " +
+                    "columns={'curie': 'VARCHAR', 'biolink_type': 'VARCHAR'}) AS csv ",
+                    # "LEFT JOIN nodes ON csv.curie = nodes.curie",
+                    [str(ids_path)])
+            else:
+                raise RuntimeError(f"Unexpected number of columns in {ids_path}: {num_cols} (first line: '{first_line}').")
+
+        db.table('Concord').write_parquet(concords_parquet_filename)
+        db.table('Identifier').write_parquet(ids_parquet_filename)
+        db.table('Metadata').write_parquet(metadata_parquet_filename)
