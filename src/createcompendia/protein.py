@@ -77,11 +77,13 @@ def write_mesh_ids(outfile):
     }
     # Also include SCR_Chemical terms mapped to protein descriptor trees.
     # We use scr_include_trees to only keep SCR terms mapped to specific protein subtrees.
-    # D05 is used broadly (not just D05.500/D05.875) because SCRs mapped to non-protein
-    # D05 subtrees (Polymers, Micelles) are more likely proteins than chemicals.
+    # D05 is narrowed to D05.500/D05.875 (Multiprotein Complexes, Protein Aggregates) so
+    # SCRs mapped to non-protein D05 subtrees (D05.374 Micelles, D05.750 Polymers, D05.937
+    # Smart Materials) fall through to the chemical compendium, consistent with how those
+    # descriptor terms are handled.
     # D08 is narrowed to only the protein subtrees so SCRs mapped to D08.211 (Coenzymes)
     # fall through to the chemical compendium, consistent with how descriptor terms are handled.
-    scr_protein_trees = ["D12.776", "D05", "D08.811", "D08.622", "D08.244"]
+    scr_protein_trees = ["D12.776", "D05.500", "D05.875", "D08.811", "D08.622", "D08.244"]
     mesh.write_ids(
         meshmap,
         outfile,

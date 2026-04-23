@@ -167,7 +167,10 @@ def write_mesh_ids(outfile):
     # Included as POLYPEPTIDE:
     #   D12.125  Amino Acids
     #   D12.644  Peptides
-    #   D13      Nucleic Acids, Nucleotides, and Nucleosides
+    #
+    # Included as CHEMICAL_ENTITY (via D01–D26 base range, no override needed):
+    #   D13  Nucleic Acids, Nucleotides, and Nucleosides — nucleotides such as NAD also
+    #        appear in D08.211 (Coenzymes); CHEMICAL_ENTITY is the correct type for both.
     #
     # Included as COMPLEX_MOLECULAR_MIXTURE:
     #   D20  Complex Mixtures
@@ -208,7 +211,9 @@ def write_mesh_ids(outfile):
     meshmap["D12.776"] = "EXCLUDE"  # Proteins
     meshmap["D12.125"] = POLYPEPTIDE
     meshmap["D12.644"] = POLYPEPTIDE
-    meshmap["D13"] = POLYPEPTIDE
+    # D13 (Nucleic Acids, Nucleotides, and Nucleosides) inherits CHEMICAL_ENTITY from the
+    # D01–D26 base range. No override needed — nucleotides like NAD (D009243) appear in
+    # both D08.211 (Coenzymes) and D13; both correctly map to CHEMICAL_ENTITY.
     meshmap["D20"] = COMPLEX_MOLECULAR_MIXTURE
     # Also add anything from SCR_Chemical, if it doesn't have a tree map.
     # SCR terms don't have tree numbers, so we need to separately exclude SCRs
