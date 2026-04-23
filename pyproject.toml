@@ -78,7 +78,7 @@ include = '\.snakefile$|^Snakefile'
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = ""
+addopts = "--dist=loadgroup"  # required for xdist_group marks to route pipeline tests to one worker
 timeout = 30          # global fallback (seconds); overridden per mark in conftest.py
 # Canonical marker definitions — conftest.py intentionally does NOT re-register these.
 markers = [
