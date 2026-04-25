@@ -31,9 +31,8 @@ dependency-free so they remain cheap to run on every PR.
   `ConcordCheck` tuple to `tests/pipeline/checks/test_chemicals.py` (or create a parallel file for
   another compendium). No Snakemake needed for ID-presence checks.
 - **Cross-vocabulary identifier exclusivity for a new vocabulary** → add fixtures to
-  `tests/pipeline/conftest.py` and one entry to `VOCABULARY_REGISTRY` in
-  `test_vocabulary_partitioning.py`. See [New pipeline tests](pipeline/README.md#new-pipeline-tests)
-  in the pipeline README.
+  `tests/pipeline/conftest.py` and one entry to `VOCABULARY_REGISTRY` there. See
+  [New pipeline tests](pipeline/README.md#new-pipeline-tests) in the pipeline README.
 - **Pipeline behavior specific to one vocabulary** → add `tests/pipeline/test_X_pipeline.py`
   marked `pipeline`.
 

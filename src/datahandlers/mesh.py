@@ -60,7 +60,7 @@ class Mesh:
         """
         qres = self.m.query(s)
         meshes = []
-        for row in list(qres):
+        for row in qres:
             iterm = str(row["term"])
             meshid = iterm[:-1].split("/")[-1]
             meshes.append(f"{MESH}:{meshid}")
@@ -90,7 +90,7 @@ class Mesh:
                 ORDER BY ?term
         """
         terms = set()
-        for row in list(self.m.query(s)):
+        for row in self.m.query(s):
             iterm = str(row["term"])
             meshid = iterm[:-1].split("/")[-1]
             terms.add(f"{MESH}:{meshid}")
@@ -108,7 +108,7 @@ class Mesh:
         """
         qres = self.m.query(s)
         meshes = []
-        for row in list(qres):
+        for row in qres:
             iterm = str(row["term"])
             meshid = iterm[:-1].split("/")[-1]
             meshes.append(f"{MESH}:{meshid}")
@@ -128,7 +128,7 @@ class Mesh:
         """
         qres = self.m.query(s)
         res = []
-        for row in list(qres):
+        for row in qres:
             iterm = str(row["term"])
             label = str(row["reg"])[1:-1]  # strip quotes
             if label == "0":
@@ -216,7 +216,7 @@ class Mesh:
         """
         qres = self.m.query(s)
         with open("mesh_tree_labels", "w", encoding="utf8") as outf:
-            for row in list(qres):
+            for row in qres:
                 iterm = str(row["treenum"])
                 meshid = iterm[:-1].split("/")[-1]
                 label = row["label"].value
@@ -234,7 +234,7 @@ class Mesh:
         ofname = make_local_name("labels", subpath="MESH")
         qres = self.m.query(s)
         with open(ofname, "w", encoding="utf8") as outf:
-            for row in list(qres):
+            for row in qres:
                 iterm = str(row["term"])
                 meshid = iterm[:-1].split("/")[-1]
                 label = row["label"].value
