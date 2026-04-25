@@ -1,3 +1,4 @@
+import warnings
 from collections import defaultdict
 
 import pyoxigraph
@@ -20,8 +21,6 @@ class Mesh:
     _active_instances: int = 0
 
     def __init__(self):
-        import warnings
-
         if Mesh._active_instances > 0:
             warnings.warn(
                 f"{Mesh._active_instances} Mesh instance(s) are already loaded in this "
@@ -188,9 +187,10 @@ class Mesh:
             if key not in mappings:
                 label = ""
                 try:
-                    raw_label = str(row["descLabel"])
-                    label = raw_label.strip().split('"')[1]
-                except (KeyError, IndexError):
+                    desc_label = row["descLabel"]
+                    if desc_label is not None:
+                        label = desc_label.value
+                except (KeyError, AttributeError):
                     pass
                 mappings[key] = {"predicate": pred, "descriptor": desc_id, "label": label, "tree_numbers": []}
             try:
@@ -218,9 +218,8 @@ class Mesh:
         with open("mesh_tree_labels", "w", encoding="utf8") as outf:
             for row in list(qres):
                 iterm = str(row["treenum"])
-                ilabel = str(row["label"])
                 meshid = iterm[:-1].split("/")[-1]
-                label = ilabel.strip().split('"')[1]
+                label = row["label"].value
                 outf.write(f"{meshid}\t{label}\n")
 
     def pull_mesh_labels(self):
@@ -237,9 +236,8 @@ class Mesh:
         with open(ofname, "w", encoding="utf8") as outf:
             for row in list(qres):
                 iterm = str(row["term"])
-                ilabel = str(row["label"])
                 meshid = iterm[:-1].split("/")[-1]
-                label = ilabel.strip().split('"')[1]
+                label = row["label"].value
                 outf.write(f"{MESH}:{meshid}\t{label}\n")
 
 

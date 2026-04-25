@@ -151,16 +151,16 @@ def write_mesh_ids(outfile):
     #   D03  Heterocyclic Compounds
     #   D04  Polycyclic Compounds
     #   D06  Hormones, Hormone Substitutes, and Hormone Antagonists
-    #   D07  (not currently assigned in MeSH)
+    #   D07  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
     #   D08.211  Coenzymes (e.g. NAD, Coenzyme A, FAD) — non-protein small molecules
     #   D09  Carbohydrates
     #   D10  Lipids
-    #   D11  (not currently assigned in MeSH)
+    #   D11  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
     #   D12  Amino Acids, Peptides, and Proteins (partially — see POLYPEPTIDE below)
-    #   D14–D19  (not currently assigned in MeSH)
-    #   D21–D22  (not currently assigned in MeSH)
+    #   D14–D19  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
+    #   D21–D22  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
     #   D23  Biological Factors
-    #   D24  (not currently assigned in MeSH)
+    #   D24  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
     #   D25  Biomedical and Dental Materials
     #   D26  Pharmaceutical Preparations
     #
