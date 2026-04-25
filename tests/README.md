@@ -72,6 +72,9 @@ You can adjust the timeout for marks in [conftest.py](conftest.py).
   exists in `babel_outputs/intermediate/` (useful after changing compendium filtering logic; see
   **Caching** below)
 - `pytest --all`: runs everything (equivalent to `--network --pipeline`)
+- `pytest --all --regenerate`: authoritative full run — reruns all `write_X_ids()` functions
+  from source rather than reusing cached intermediate files; use this when you want to
+  validate the pipeline end-to-end rather than just check tests against a prior run
 
 ### Convenience commands
 
