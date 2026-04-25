@@ -133,6 +133,8 @@ def _maybe_run(outfile: str, fn, regenerate: bool) -> str:
     if not os.path.exists(outfile) or regenerate:
         os.makedirs(os.path.dirname(outfile), exist_ok=True)
         fn()
+    else:
+        print(f"[pipeline] reusing cached {outfile} (pass --regenerate to refresh)")  # noqa: T201
     return outfile
 
 
