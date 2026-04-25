@@ -128,10 +128,8 @@ def test_curie_in_chemicals(request, check: ChemCheck) -> None:
 
 @pytest.mark.pipeline
 @pytest.mark.parametrize("check", NOT_IN_CHEMICALS, ids=[c.curie for c in NOT_IN_CHEMICALS] or None)
-def test_curie_not_in_chemicals(request, check) -> None:
+def test_curie_not_in_chemicals(request, check: ChemCheck) -> None:
     """CURIE must NOT appear in the chemicals intermediate ID file."""
-    if not isinstance(check, ChemCheck):
-        pytest.skip("NOT_IN_CHEMICALS is empty — add entries to activate this test")
     outputs = request.getfixturevalue(check.fixture)
     ids = get_curies_and_types_from_ids_file(outputs["chemicals"])
     assert check.curie not in ids, (
