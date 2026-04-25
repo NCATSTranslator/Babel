@@ -14,7 +14,7 @@ from tests.pipeline.conftest import get_curies_from_ids_file
 
 
 @pytest.mark.pipeline
-def test_chemicals_excludes_protein_and_macromolecule_descriptor_trees(mesh_pipeline_outputs):
+def test_chemicals_excludes_protein_and_macromolecule_descriptor_trees(mesh_pipeline_outputs, excluded_mesh_tree_terms):
     """Chemicals must not contain D05 protein subtrees, D08 protein subtrees, or D12.776.
 
     Excluded from chemicals (→ protein compendium):
@@ -31,8 +31,7 @@ def test_chemicals_excludes_protein_and_macromolecule_descriptor_trees(mesh_pipe
     overlap between compendia; this test checks exclusion against the full tree.
     """
     chem_ids = get_curies_from_ids_file(mesh_pipeline_outputs["chemicals"])
-    excluded_tree_terms = mesh_pipeline_outputs["excluded_tree_terms"]
-    overlap = chem_ids & excluded_tree_terms
+    overlap = chem_ids & excluded_mesh_tree_terms
     assert len(overlap) == 0, (
         f"Found {len(overlap)} D05/D08/D12.776 descriptor terms in chemicals output: "
         f"{sorted(overlap)[:10]}"

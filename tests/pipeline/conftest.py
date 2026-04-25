@@ -261,28 +261,31 @@ def mesh_pipeline_outputs(mesh_nt, regenerate):
     _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_mesh_ids(p("diseasephenotype")), regenerate)
     _maybe_run(p("taxon"),            lambda: taxon.write_mesh_ids(p("taxon")),                      regenerate)
 
-    # Build excluded_tree_terms for test_mesh_pipeline.py: descriptor CURIEs that must
-    # NOT appear in the chemicals output.  Only protein subtrees are excluded; D05.374
-    # (Micelles), D05.750 (Polymers), and D05.937 (Smart Materials) are included in
-    # chemicals as CHEMICAL_ENTITY.  A fresh Mesh() instance is needed because write_ids()
-    # creates its own internally and doesn't expose it; the cost is paid once per session.
-    m = Mesh()
-    excluded_tree_terms = set()
-    for tree in ["D12.776"]:
-        excluded_tree_terms.update(m.get_terms_in_tree(tree))
-    for tree in ["D05.500", "D05.875"]:  # D05 protein subtrees only
-        excluded_tree_terms.update(m.get_terms_in_tree(tree))
-    for tree in ["D08.811", "D08.622", "D08.244"]:  # D08 protein subtrees only
-        excluded_tree_terms.update(m.get_terms_in_tree(tree))
-
     return {
-        "chemicals":           p("chemicals"),
-        "protein":             p("protein"),
-        "anatomy":             p("anatomy"),
-        "diseasephenotype":    p("diseasephenotype"),
-        "taxon":               p("taxon"),
-        "excluded_tree_terms": excluded_tree_terms,
+        "chemicals":        p("chemicals"),
+        "protein":          p("protein"),
+        "anatomy":          p("anatomy"),
+        "diseasephenotype": p("diseasephenotype"),
+        "taxon":            p("taxon"),
     }
+
+
+@pytest.fixture(scope="session")
+def excluded_mesh_tree_terms(mesh_nt):
+    """Return the set of descriptor CURIEs that must NOT appear in the chemicals output.
+
+    Used only by test_mesh_pipeline.py.  Kept separate from mesh_pipeline_outputs so
+    that the Mesh() load (~2 GB) is only incurred when this fixture is actually
+    requested — running vocabulary-partitioning tests alone does not trigger it.
+
+    Only protein subtrees are excluded here; D05.374 (Micelles), D05.750 (Polymers),
+    and D05.937 (Smart Materials) are correctly included in chemicals as CHEMICAL_ENTITY.
+    """
+    m = Mesh()
+    terms = set()
+    for tree in ["D12.776", "D05.500", "D05.875", "D08.811", "D08.622", "D08.244"]:
+        terms.update(m.get_terms_in_tree(tree))
+    return terms
 
 
 # ---------------------------------------------------------------------------
