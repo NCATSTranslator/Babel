@@ -11,7 +11,7 @@ Tests are organized along two independent axes:
 |-----------|-----------------|
 | `tests/` (root) | Core utility tests: `glom`, `LabeledID`, `NodeFactory`, `ThrottledRequester`, FTP utilities, UberGraph, and gene-protein conflation |
 | `tests/datahandlers/` | One test file per module in `src/datahandlers/` |
-| `tests/pipeline/` | Full pipeline integration tests that call `write_*_ids()` functions and check the resulting intermediate files; require `babel_downloads/` to be pre-populated |
+| `tests/pipeline/` | Full pipeline integration tests that call `write_*_ids()` functions and check the resulting intermediate files; source data is auto-downloaded or skipped per vocabulary (see [Pipeline Tests](pipeline/README.md)) |
 | `tests/pipeline/checks/` | Per-compendium regression assertions tied to specific GitHub issues, designed for test-driven development |
 
 **CI** runs only `unit` tests (`uv run pytest -m unit -q`). Keep unit tests fast, offline, and
@@ -59,7 +59,7 @@ Tests are tagged with marks to control which subset runs in a given context:
 | `unit`     | Pure functions, in-memory logic, small fixtures in `tests/data/`         | No        | Seconds          | 30 s    |
 | `network`  | Requires live internet (FTP, SPARQL, BioMart, external APIs)             | Yes       | Seconds–minutes  | 600 s   |
 | `slow`     | Correct but takes >30s — large fixture processing, SQLite spill, etc.    | Sometimes | >30s             | 600 s   |
-| `pipeline` | Invokes Snakemake rules; requires `babel_downloads/` to be pre-populated | Yes       | Minutes–hours    | 3600 s  |
+| `pipeline` | Calls `write_*_ids()` directly; source data is auto-downloaded or the test skips — no manual setup required for most vocabularies | Sometimes | Minutes–hours    | 3600 s  |
 
 You can adjust the timeout for marks in [conftest.py](conftest.py).
 
@@ -67,7 +67,8 @@ You can adjust the timeout for marks in [conftest.py](conftest.py).
 
 - `pytest` alone: runs `unit` and `slow` tests; skips `network` and `pipeline`
 - `pytest --network`: also runs `network` tests
-- `pytest --pipeline`: also runs `pipeline` tests (ensure `babel_downloads/` exists first)
+- `pytest --pipeline`: also runs `pipeline` tests (source data is auto-downloaded per vocabulary, or
+  the test skips if unavailable)
 - `pytest --pipeline --regenerate`: forces `write_X_ids()` to re-run even if its output already
   exists in `babel_outputs/intermediate/` (useful after changing compendium filtering logic; see
   **Caching** below)
@@ -184,9 +185,6 @@ The `tests/data` directory contains fixture files used by several tests:
   fetches `biolink-model.yaml` and `predicate_mapping.yaml` from GitHub on first use. Shipping a
   pinned copy of those files with the repo (or using VCR cassettes) would let all 13 tests in
   `test_node_factory.py` run offline and be re-marked `unit`.
-- **`responses` / `pytest-httpserver`** — Use HTTP mocking to test `ThrottledRequester` and other
-  HTTP-calling code without a live service. This would let `test_ThrottledRequester.py` be
-  re-marked `unit` and become reliably deterministic.
 - **`babel_config` conftest fixture** — A session fixture that patches `get_config()` to redirect
   `download_directory` and `output_directory` to `tmp_path`. Tests that exercise `create_node()`
   or other path-dependent code could use this instead of manually setting `common_labels = {}`.
