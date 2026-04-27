@@ -146,13 +146,13 @@ def _maybe_run(outfile: str, fn, regenerate: bool) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _download_or_skip(label: str, pull_fn, expected_path: str) -> str:
-    """Download expected_path via pull_fn() if absent; pytest.skip() on failure."""
+def _download_or_fail(label: str, pull_fn, expected_path: str) -> str:
+    """Download expected_path via pull_fn() if absent; pytest.fail() with details on failure."""
     if not os.path.exists(expected_path):
         try:
             pull_fn()
         except Exception as e:
-            pytest.skip(f"Could not download {label}: {e}")
+            pytest.fail(f"Could not download {label}: {e}")
     return expected_path
 
 
@@ -246,7 +246,7 @@ def chemicals_concords_dir(pipeline_output):
 @pytest.fixture(scope="session")
 def mesh_nt():
     """Download babel_downloads/MESH/mesh.nt, or skip if unavailable."""
-    return _download_or_skip(
+    return _download_or_fail(
         "MESH mesh.nt",
         pull_mesh,
         make_local_name("mesh.nt", subpath="MESH"),
@@ -364,7 +364,7 @@ def umls_pipeline_outputs(umls_rrf_files, regenerate):
 def omim_mim2gene():
     """Download babel_downloads/OMIM/mim2gene.txt, or skip if unavailable."""
     from src.datahandlers.omim import pull_omim
-    return _download_or_skip(
+    return _download_or_fail(
         "OMIM mim2gene.txt",
         pull_omim,
         make_local_name("mim2gene.txt", subpath="OMIM"),
