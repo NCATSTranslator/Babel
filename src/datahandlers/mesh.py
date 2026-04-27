@@ -155,7 +155,7 @@ class Mesh:
         Returns an empty list for SCR terms, which have no tree numbers of their own.
         """
         raw_id = mesh_id.split(":")[-1]
-        s = f"""   PREFIX meshv: <http://id.nlm.nih.gov/mesh/vocab#>
+        s = f"""PREFIX meshv: <http://id.nlm.nih.gov/mesh/vocab#>
                 PREFIX mesh: <http://id.nlm.nih.gov/mesh/>
 
                 SELECT DISTINCT ?treenum
