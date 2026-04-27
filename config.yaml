@@ -16,6 +16,10 @@ intermediate_directory: babel_outputs/intermediate
 output_directory: babel_outputs
 tmp_directory: babel_downloads/tmp
 
+# HTTP settings.
+http:
+  User-Agent: "Babel/1 (https://github.com/NCATSTranslator/Babel)"
+
 # Maps Python compendium names (as used in src/createcompendia/ and tests) to the
 # directory names that Snakemake uses under intermediate_directory.
 # Compendia not listed here use their own name as the directory name.

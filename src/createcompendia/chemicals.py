@@ -733,9 +733,11 @@ def get_mesh_relationships(mesh_id_file, cas_out, unii_out, cas_metadata, unii_m
     )
 
 
-def get_wikipedia_relationships(outfile, metadata_yaml):
+def get_wikipedia_relationships(outfile, config, metadata_yaml):
     url = "https://query.wikidata.org/sparql?format=json&query=SELECT ?chebi ?mesh WHERE { ?compound wdt:P683 ?chebi . ?compound wdt:P486 ?mesh. }"
-    results = requests.get(url).json()
+    results = requests.get(url, headers={
+        "User-Agent": config['http']['User-Agent']
+    }).json()
     pairs = [
         (f"{MESH}:{r['mesh']['value']}", f"{CHEBI}:{r['chebi']['value']}") for r in results["results"]["bindings"] if not r["mesh"]["value"].startswith("M")
     ]
