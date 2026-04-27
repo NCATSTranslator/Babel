@@ -26,6 +26,7 @@ Run with:  uv run pytest tests/pipeline/ --pipeline --no-cov -v
 That's it — test_vocabulary_partitioning.py picks it up automatically.
 """
 import os
+import subprocess
 
 import pytest
 
@@ -71,14 +72,16 @@ def _snakemake_dir(compendium: str) -> str:
     Falls back to the compendium name itself when not listed in compendium_directories
     (e.g. diseasephenotype → disease, processactivitypathway → process).
     """
-    from src.util import get_config
+    from src.util import (
+        get_config,  # deferred: get_config() reads config.yaml at call time so path helpers always reflect the current file
+    )
     cfg = get_config()
     return cfg.get("compendium_directories", {}).get(compendium, compendium)
 
 
 def _intermediate_concord_path(compendium: str, vocab: str) -> str:
     """Stable concord path: {intermediate_directory}/{snakemake_dir}/concords/{vocab}."""
-    from src.util import get_config
+    from src.util import get_config  # deferred: same rationale as _snakemake_dir
     return os.path.join(get_config()["intermediate_directory"], _snakemake_dir(compendium), "concords", vocab)
 
 
@@ -123,7 +126,7 @@ def _intermediate_id_path(compendium: str, vocab: str) -> str:
 
     Using the same paths as Snakemake means files from a prior pipeline run are reused directly.
     """
-    from src.util import get_config
+    from src.util import get_config  # deferred: same rationale as _snakemake_dir
     return os.path.join(get_config()["intermediate_directory"], _snakemake_dir(compendium), "ids", vocab)
 
 
@@ -189,8 +192,6 @@ def pipeline_output(regenerate):
         def my_fixture(pipeline_output):
             return pipeline_output("my_snakemake_rule", "path/to/output")
     """
-    import subprocess
-
     def _get(rule: str, path: str) -> str:
         if os.path.exists(path) and not regenerate:
             return path
@@ -230,7 +231,7 @@ def chemicals_concords_dir(pipeline_output):
     Other concord files (UNICHEM, CHEBI, …) are used if already present from a prior full
     pipeline run, but are not generated automatically — UNICHEM in particular requires ~512 GB RAM.
     """
-    from src.util import get_config
+    from src.util import get_config  # deferred: same rationale as _snakemake_dir
     cfg = get_config()
     concords_dir = os.path.join(cfg["intermediate_directory"], _snakemake_dir("chemicals"), "concords")
     sentinel = os.path.join(concords_dir, "wikipedia_mesh_chebi")
@@ -312,8 +313,10 @@ def umls_rrf_files():
         if not os.environ.get("UMLS_API_KEY"):
             pytest.skip("UMLS_API_KEY not set and UMLS files not cached; cannot download UMLS files")
         try:
-            from src.datahandlers import umls as umls_handler
-            from src.util import get_config
+            from src.datahandlers import (
+                umls as umls_handler,  # deferred: only import the UMLS handler when a download is actually needed; if files are already cached this module never loads
+            )
+            from src.util import get_config  # deferred: same rationale as _snakemake_dir
             cfg = get_config()
             umls_handler.download_umls(
                 cfg["umls_version"],
@@ -333,8 +336,11 @@ def umls_pipeline_outputs(umls_rrf_files, regenerate):
     Output files are written to babel_outputs/intermediate/{type}/ids/UMLS and
     reused on subsequent runs unless --regenerate is passed.
     """
-    from src.createcompendia import gene, processactivitypathway
-    from src.util import get_config
+    from src.createcompendia import (  # deferred: gene and processactivitypathway are not in the module-level imports to avoid loading every compendium at collection time; they are only needed for UMLS
+        gene,
+        processactivitypathway,
+    )
+    from src.util import get_config  # deferred: same rationale as _snakemake_dir
 
     mrconso = umls_rrf_files["mrconso"]
     mrsty = umls_rrf_files["mrsty"]
@@ -363,7 +369,9 @@ def umls_pipeline_outputs(umls_rrf_files, regenerate):
 @pytest.fixture(scope="session")
 def omim_mim2gene():
     """Download babel_downloads/OMIM/mim2gene.txt, or skip if unavailable."""
-    from src.datahandlers.omim import pull_omim
+    from src.datahandlers.omim import (
+        pull_omim,  # deferred: omim handler not in module-level imports; only needed for this fixture
+    )
     return _download_or_fail(
         "OMIM mim2gene.txt",
         pull_omim,
@@ -378,7 +386,7 @@ def omim_pipeline_outputs(omim_mim2gene, regenerate):
     Output files are written to babel_outputs/intermediate/{type}/ids/OMIM and
     reused on subsequent runs unless --regenerate is passed.
     """
-    from src.createcompendia import gene
+    from src.createcompendia import gene  # deferred: gene not in module-level imports; only needed for OMIM
     infile = omim_mim2gene
 
     def p(compendium):
@@ -404,7 +412,9 @@ def ubergraph_connection():
     both ncit_pipeline_outputs and go_pipeline_outputs depend on.
     """
     try:
-        from src.datahandlers.obo import UberGraph
+        from src.datahandlers.obo import (
+            UberGraph,  # deferred: obo module has heavy RDFLib/SPARQL dependencies; only loaded when NCIT/GO tests are actually requested
+        )
         ug = UberGraph()
         # Minimal health check: GO:0005575 (cellular component) is a small, stable term.
         result = ug.get_subclasses_of("GO:0005575")
@@ -447,7 +457,9 @@ def go_pipeline_outputs(ubergraph_connection, regenerate):
     Output files are written to babel_outputs/intermediate/{type}/ids/GO and
     reused on subsequent runs unless --regenerate is passed.
     """
-    from src.createcompendia import processactivitypathway
+    from src.createcompendia import (
+        processactivitypathway,  # deferred: processactivitypathway not in module-level imports; only needed for GO
+    )
 
     def p(compendium):
         return _intermediate_id_path(compendium, "GO")

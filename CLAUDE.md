@@ -155,6 +155,11 @@ option would be best.
 
 ## Conventions
 
+- **Imports** — place all imports at the top of the file (stdlib, then third-party, then local),
+  following standard Python convention. Defer an import inside a function only when it is
+  genuinely necessary to break a circular dependency or avoid a heavy optional dependency; if
+  you do defer one, add a comment explaining why.
+
 - **Error handling** — raise exceptions (`RuntimeError`, `ValueError`, etc.) rather than
   `print(...) + exit(1)`. Exceptions are testable and propagate cleanly through Snakemake;
   bare `exit()` calls bypass Python's exception machinery and make unit testing impossible.
