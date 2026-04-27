@@ -3,6 +3,7 @@ import src.assess_compendia as assessments
 
 # import src.filter_compendia as filter
 import src.snakefiles.util as util
+from pathlib import Path
 
 ### Gene / Protein
 
@@ -210,3 +211,21 @@ rule protein:
 #        filtered=config['output_directory'] + '/compendia/Protein_filtered.txt'
 #    run:
 #        filter.filter_compendium(input.full,output.filtered)
+
+
+# Validate that every prefix in config["protein_ids"] has a rule in this file
+# that produces intermediate_directory/protein/ids/{prefix}.  Catches config/rule drift at
+# `snakemake --dry-run` time rather than mid-run.
+_protein_ids_dir = config["intermediate_directory"] + "/protein/ids/"
+_covered_protein_id_prefixes = {
+    Path(str(out)).name
+    for rule in workflow.rules
+    for out in rule.output
+    if str(out).startswith(_protein_ids_dir) and "/" not in str(out)[len(_protein_ids_dir):]
+}
+_missing_protein_id_rules = set(config["protein_ids"]) - _covered_protein_id_prefixes
+if _missing_protein_id_rules:
+    raise WorkflowError(
+        "config.yaml protein_ids lists prefixes with no rule producing "
+        f"{_protein_ids_dir}{{prefix}}: {sorted(_missing_protein_id_rules)}"
+    )
