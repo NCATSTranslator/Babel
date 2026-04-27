@@ -199,16 +199,16 @@ def write_mesh_ids(outfile):
     # that are nonetheless proteins (e.g. scorpion venom toxins under D23 Biological Factors).
     meshmap = {f"D{str(i).zfill(2)}": CHEMICAL_ENTITY for i in range(1, 27)}
     # D05 protein subtrees → excluded (protein compendium handles these)
-    meshmap["D05.500"] = "EXCLUDE"  # Multiprotein Complexes
-    meshmap["D05.875"] = "EXCLUDE"  # Protein Aggregates
+    meshmap["D05.500"] = "EXCLUDE"
+    meshmap["D05.875"] = "EXCLUDE"
     # D05.374 Micelles, D05.750 Polymers, D05.937 Smart Materials inherit CHEMICAL_ENTITY
     # TODO: assign a more specific Biolink type for these non-protein macromolecules
     # D08 protein subtrees → excluded (protein compendium handles these)
-    meshmap["D08.811"] = "EXCLUDE"  # Enzymes
-    meshmap["D08.622"] = "EXCLUDE"  # Enzyme Precursors
-    meshmap["D08.244"] = "EXCLUDE"  # Cytochromes
+    meshmap["D08.811"] = "EXCLUDE"
+    meshmap["D08.622"] = "EXCLUDE"
+    meshmap["D08.244"] = "EXCLUDE"
     # D08.211 Coenzymes inherits CHEMICAL_ENTITY from the D01–D26 base range above
-    meshmap["D12.776"] = "EXCLUDE"  # Proteins
+    meshmap["D12.776"] = "EXCLUDE"
     meshmap["D12.125"] = POLYPEPTIDE
     meshmap["D12.644"] = POLYPEPTIDE
     # D13 (Nucleic Acids, Nucleotides, and Nucleosides) inherits CHEMICAL_ENTITY from the

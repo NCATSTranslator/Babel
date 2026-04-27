@@ -68,12 +68,12 @@ def write_mesh_ids(outfile):
     # This would prevent the current situation where the included/excluded trees here
     # and in chemicals.py must be kept in sync manually.
     meshmap = {
-        "D12.776": PROTEIN,  # Proteins
-        "D05.500": PROTEIN,  # Multiprotein Complexes
-        "D05.875": PROTEIN,  # Protein Aggregates
-        "D08.811": PROTEIN,  # Enzymes
-        "D08.622": PROTEIN,  # Enzyme Precursors
-        "D08.244": PROTEIN,  # Cytochromes
+        "D12.776": PROTEIN,
+        "D05.500": PROTEIN,
+        "D05.875": PROTEIN,
+        "D08.811": PROTEIN,
+        "D08.622": PROTEIN,
+        "D08.244": PROTEIN,
     }
     # Also include SCR_Chemical terms mapped to protein descriptor trees.
     # We use scr_include_trees to only keep SCR terms mapped to specific protein subtrees.
@@ -83,13 +83,12 @@ def write_mesh_ids(outfile):
     # descriptor terms are handled.
     # D08 is narrowed to only the protein subtrees so SCRs mapped to D08.211 (Coenzymes)
     # fall through to the chemical compendium, consistent with how descriptor terms are handled.
-    scr_protein_trees = ["D12.776", "D05.500", "D05.875", "D08.811", "D08.622", "D08.244"]
     mesh.write_ids(
         meshmap,
         outfile,
         order=[PROTEIN],
         extra_vocab={"SCR_Chemical": PROTEIN},
-        scr_include_trees=scr_protein_trees,
+        scr_include_trees=list(meshmap.keys()),
     )
 
 
