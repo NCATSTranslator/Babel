@@ -57,7 +57,16 @@ body:
       label: BabelTest entry (optional)
       description: >
         If you have time, a BabelTest entry helps us write an automated test for this issue.
-        Format: `{{BabelTest|DoesNotResolveWith|curie|curie1|curie2}}`
-      placeholder: "{{BabelTest|DoesNotResolveWith|curie|curie1|curie2}}"
+        You can add multiple entries, one per line.
+        See [available BabelTest formats](https://github.com/NCATSTranslator/Babel/blob/main/docs/Triage.md#adding-automated-tests-to-issues).
+      render: text
+      value: "{{BabelTest|DoesNotResolveWith|curie|curie1|curie2}}"
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Any additional context, evidence, or background relevant to this issue.
     validations:
       required: false
