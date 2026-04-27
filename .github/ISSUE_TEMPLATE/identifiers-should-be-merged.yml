@@ -56,3 +56,10 @@ body:
       value: "{{BabelTest|ResolvesWith|curie1|curie2|curie3}}"
     validations:
       required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Any additional context, evidence, or background relevant to this issue.
+    validations:
+      required: false
