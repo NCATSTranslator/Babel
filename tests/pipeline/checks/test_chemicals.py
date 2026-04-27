@@ -71,6 +71,21 @@ EXPECTED_IN_CHEMICALS: list[IdentifierCheck] = [
 
 NOT_IN_CHEMICALS: list[IdentifierCheck] = []
 
+# When NOT_IN_CHEMICALS is empty, parametrize would silently skip with "got empty
+# parameter set for (check)".  Replace with a labelled sentinel so the skip reason
+# tells contributors exactly where to add entries.
+_NOT_IN_CHEMICALS_PARAMS = NOT_IN_CHEMICALS or [
+    pytest.param(
+        None,
+        marks=pytest.mark.skip(
+            reason=(
+                "NOT_IN_CHEMICALS is empty — add IdentifierCheck entries to "
+                "tests/pipeline/checks/test_chemicals.py to enable negative ID-presence checks"
+            )
+        ),
+    )
+]
+
 
 # ---------------------------------------------------------------------------
 # Direct-xref check tables
@@ -114,7 +129,11 @@ def test_curie_in_chemicals(request, check: IdentifierCheck) -> None:
 
 
 @pytest.mark.pipeline
-@pytest.mark.parametrize("check", NOT_IN_CHEMICALS, ids=[c.curie for c in NOT_IN_CHEMICALS] or None)
+@pytest.mark.parametrize(
+    "check",
+    _NOT_IN_CHEMICALS_PARAMS,
+    ids=[c.curie for c in NOT_IN_CHEMICALS] or ["(none defined)"],
+)
 def test_curie_not_in_chemicals(request, check: IdentifierCheck) -> None:
     """CURIE must NOT appear in the chemicals intermediate ID file."""
     outputs = request.getfixturevalue(check.fixture)
