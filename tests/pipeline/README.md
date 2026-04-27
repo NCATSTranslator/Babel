@@ -66,7 +66,7 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
 ## Pipeline Checks
 
 `tests/pipeline/checks/` contains per-compendium regression assertion files driven by
-specific GitHub issues. They are intended for TDD: add a failing check, run the pipeline,
+specific GitHub issues. They are intended for test-driven development (TDD): add a failing check, run the pipeline,
 iterate on source code until the check passes.
 
 Two shared NamedTuple types in `tests/pipeline/checks/__init__.py` drive all checks:
