@@ -164,6 +164,21 @@ option would be best.
   This ensures that a Biolink class rename only requires updating `src/categories.py`.
   If a needed constant is missing from `categories.py`, add it there first.
 
+- **IRI parsing helpers** — functions that extract IDs from external-format strings (e.g.
+  pyoxigraph IRIs, SPARQL results) must validate the input format and raise `ValueError` if
+  it doesn't match. Use a named prefix constant so the check and the extraction share the
+  same string. Example pattern from `src/datahandlers/mesh.py`:
+
+  ```python
+  _MESH_IRI_PREFIX = "<http://id.nlm.nih.gov/mesh/"
+
+  def _mesh_id(iri) -> str:
+      s = str(iri)
+      if not s.startswith(_MESH_IRI_PREFIX) or not s.endswith(">"):
+          raise ValueError(f"Expected a MeSH IRI, got: {s!r}")
+      return s[len(_MESH_IRI_PREFIX):-1]
+  ```
+
 ## Debugging
 
 When looking things up in the source databases, prefer to invoke the existing download code in

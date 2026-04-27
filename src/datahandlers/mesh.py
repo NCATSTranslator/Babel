@@ -7,10 +7,18 @@ from src.babel_utils import make_local_name, pull_via_ftp
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT
 from src.prefixes import MESH
 
+_MESH_IRI_PREFIX = "<http://id.nlm.nih.gov/mesh/"
+
 
 def _mesh_id(iri) -> str:
-    """Extract a MeSH ID from a pyoxigraph IRI (e.g. <http://id.nlm.nih.gov/mesh/D009243>)."""
-    return str(iri)[:-1].split("/")[-1]
+    """Extract a MeSH ID from a pyoxigraph IRI (e.g. <http://id.nlm.nih.gov/mesh/D009243>).
+
+    Raises ValueError if the input is not a MeSH concept IRI.
+    """
+    s = str(iri)
+    if not s.startswith(_MESH_IRI_PREFIX) or not s.endswith(">"):
+        raise ValueError(f"Expected a MeSH IRI like <http://id.nlm.nih.gov/mesh/D009243>, got: {s!r}")
+    return s[len(_MESH_IRI_PREFIX):-1]
 
 
 def pull_mesh():
