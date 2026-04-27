@@ -146,7 +146,8 @@ and how to add new checks or vocabularies.
 
 - **`pipeline/test_mesh_pipeline.py`** (`pipeline`) — MeSH-specific targeted assertions
   ([issue #675](https://github.com/NCATSTranslator/Babel/issues/675)): chemicals must exclude
-  all D05 terms, D08 protein subtrees, and D12.776 — but must include D08.211 Coenzymes.
+  D05 protein subtrees (D05.500, D05.875), D08 protein subtrees (D08.811, D08.622, D08.244),
+  and D12.776 — but must include D08.211 Coenzymes.
 
 - **`pipeline/test_umls_pipeline.py`** (`pipeline`) — UMLS-specific targeted assertions:
   chemicals must not contain UMLS IDs claimed by the protein compendium.
@@ -165,9 +166,10 @@ and how to add new checks or vocabularies.
   NCBI FTP server. Covers pulling plain text and gzipped files to memory or disk
   with optional decompression. Requires `--network` to run.
 
-- **`test_uber.py`** (`network`, `xfail`) — Tests the `UberGraph` class for querying ontology
+- **`test_uber.py`** (`network`) — Tests the `UberGraph` class for querying ontology
   subclasses and cross-references via SPARQL. Covers direct and indirect subclass retrieval,
-  filtering by cross-reference presence, and exact-match label queries.
+  filtering by cross-reference presence, and exact-match label queries. Tests may xfail at
+  runtime if the UberGraph server is reachable but returns an HTTP error on the probe request.
 
 ## Test Data
 
