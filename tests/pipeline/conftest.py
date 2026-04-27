@@ -65,13 +65,21 @@ def get_curies_and_types_from_ids_file(path: str) -> dict[str, str | None]:
     return result
 
 
+def _snakemake_dir(compendium: str) -> str:
+    """Return the Snakemake intermediate directory name for a compendium.
+
+    Falls back to the compendium name itself when not listed in compendium_directories
+    (e.g. diseasephenotype → disease, processactivitypathway → process).
+    """
+    from src.util import get_config
+    cfg = get_config()
+    return cfg.get("compendium_directories", {}).get(compendium, compendium)
+
+
 def _intermediate_concord_path(compendium: str, vocab: str) -> str:
     """Stable concord path: {intermediate_directory}/{snakemake_dir}/concords/{vocab}."""
     from src.util import get_config
-    cfg = get_config()
-    directory_map = cfg.get("compendium_directories", {})
-    snakemake_dir = directory_map.get(compendium, compendium)
-    return os.path.join(cfg["intermediate_directory"], snakemake_dir, "concords", vocab)
+    return os.path.join(get_config()["intermediate_directory"], _snakemake_dir(compendium), "concords", vocab)
 
 
 def _any_concord_xrefs(concords_dir: str, curie1: str, curie2: str) -> bool:
@@ -113,15 +121,10 @@ def _output_paths(outputs: dict) -> dict[str, str]:
 def _intermediate_id_path(compendium: str, vocab: str) -> str:
     """Return {intermediate_directory}/{snakemake_dir}/ids/{vocab}, matching the Snakemake path.
 
-    snakemake_dir is looked up from compendium_directories in config.yaml and falls back to
-    the compendium name (e.g. diseasephenotype → disease, processactivitypathway → process).
     Using the same paths as Snakemake means files from a prior pipeline run are reused directly.
     """
     from src.util import get_config
-    cfg = get_config()
-    directory_map = cfg.get("compendium_directories", {})
-    snakemake_dir = directory_map.get(compendium, compendium)
-    return os.path.join(cfg["intermediate_directory"], snakemake_dir, "ids", vocab)
+    return os.path.join(get_config()["intermediate_directory"], _snakemake_dir(compendium), "ids", vocab)
 
 
 def _maybe_run(outfile: str, fn, regenerate: bool) -> str:
@@ -229,9 +232,7 @@ def chemicals_concords_dir(pipeline_output):
     """
     from src.util import get_config
     cfg = get_config()
-    directory_map = cfg.get("compendium_directories", {})
-    snakemake_dir = directory_map.get("chemicals", "chemicals")
-    concords_dir = os.path.join(cfg["intermediate_directory"], snakemake_dir, "concords")
+    concords_dir = os.path.join(cfg["intermediate_directory"], _snakemake_dir("chemicals"), "concords")
     sentinel = os.path.join(concords_dir, "wikipedia_mesh_chebi")
     pipeline_output("get_chemical_wikipedia_relationships", sentinel)
     return concords_dir
