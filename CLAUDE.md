@@ -170,13 +170,18 @@ option would be best.
   same string. Example pattern from `src/datahandlers/mesh.py`:
 
   ```python
-  _MESH_IRI_PREFIX = "<http://id.nlm.nih.gov/mesh/"
-
-  def _mesh_id(iri) -> str:
-      s = str(iri)
-      if not s.startswith(_MESH_IRI_PREFIX) or not s.endswith(">"):
-          raise ValueError(f"Expected a MeSH IRI, got: {s!r}")
-      return s[len(_MESH_IRI_PREFIX):-1]
+  def get_mesh_id_from_iri(iri) -> str:
+    """Extract a MeSH ID from a pyoxigraph IRI (e.g. <http://id.nlm.nih.gov/mesh/D009243>).
+  
+    Raises ValueError if the input is not a MeSH concept IRI.
+    """
+    s = str(iri)
+    if s.startswith("<") and s.endswith(">"):
+      s = s[1:-1]
+  
+    if not s.startswith(MESH_IRI_PREFIX):
+      raise ValueError(f"Expected a MeSH IRI like <http://id.nlm.nih.gov/mesh/D009243>, got: '{s!r}'")
+    return s[len(MESH_IRI_PREFIX):]
   ```
 
 ## Debugging
