@@ -53,7 +53,7 @@ def write_mesh_ids(outfile):
     #   D05.500  Multiprotein Complexes
     #   D05.875  Protein Aggregates
     #   (D05.374 Micelles, D05.750 Polymers, D05.937 Smart Materials go to the chemical
-    #    compendium as CHEMICAL_ENTITY — TODO: assign a more specific Biolink type.)
+    #    compendium as CHEMICAL_ENTITY — see https://github.com/NCATSTranslator/Babel/issues/731
     #
     # D08      Enzymes and Coenzymes — only protein-related subtrees:
     #   D08.811  Enzymes
