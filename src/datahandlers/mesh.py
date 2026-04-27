@@ -175,7 +175,7 @@ class Mesh:
           - "tree_numbers": sorted list of tree-number strings for that descriptor
         """
         raw_id = scr_id.split(":")[-1]
-        s = f"""   PREFIX meshv: <http://id.nlm.nih.gov/mesh/vocab#>
+        s = f"""PREFIX meshv: <http://id.nlm.nih.gov/mesh/vocab#>
                 PREFIX mesh: <http://id.nlm.nih.gov/mesh/>
                 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
