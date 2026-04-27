@@ -15,6 +15,7 @@ MARK_TIMEOUTS = {
     "pipeline": 3600,
 }
 
+
 @pytest.fixture(scope="session")
 def node_factory():
     """Session-scoped NodeFactory pointing at tests/data for label lookups.
