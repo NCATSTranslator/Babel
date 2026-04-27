@@ -30,12 +30,12 @@ def _server_errors_are_xfail():
 
 def test_get_subclasses(ubergraph):
     """check that we get both direct and indirect subclasses of a node.
-    We're using chemoreceptor cell to test, which has 4 direct children,
-    2 of which have children, for 12 total descendents.  The query also
-    returns the input in the output, so that's 13 total"""
+    We're using neutrophil (CL:0000775) which has 6 descendants; the query
+    also returns the input itself, so 7 total. We previously used chemoreceptor
+    cell (CL:0000206) but FBbt added ~300 Drosophila olfactory neurons under it."""
     with _server_errors_are_xfail():
-        subs = ubergraph.get_subclasses_of("CL:0000206")
-    assert len(subs) == 13
+        subs = ubergraph.get_subclasses_of("CL:0000775")
+    assert len(subs) == 7
     for sub in subs:
         assert "descendent" in sub
         assert sub["descendent"].startswith("CL")
@@ -43,12 +43,13 @@ def test_get_subclasses(ubergraph):
 
 
 def test_get_subclasses_xref(ubergraph):
-    """This ubergraph function now only returns the subclasses that have an xref.  Which is 7 of the 13."""
+    """This ubergraph function only returns subclasses that have an xref — 6 of the 7.
+    CL:0000775 (neutrophil) itself has 5 xrefs (BTO, CALOHA, FMA, MESH, ZFA)."""
     with _server_errors_are_xfail():
-        subs = ubergraph.get_subclasses_and_xrefs("CL:0000206")
-    assert len(subs) == 7
-    xrefs = subs["CL:0000207"]
-    assert len(xrefs) == 3
+        subs = ubergraph.get_subclasses_and_xrefs("CL:0000775")
+    assert len(subs) == 6
+    xrefs = subs["CL:0000775"]
+    assert len(xrefs) == 5
 
 
 def test_get_subclasses_no_xref(ubergraph):
