@@ -5,7 +5,7 @@ The generic non-empty and mutual-exclusivity tests for all five MeSH compendia
 test_vocabulary_partitioning.py.  This file contains only the MeSH-specific
 targeted test that has no generic equivalent.
 
-All tests are skipped by default.  Run with:
+All pipeline tests are skipped by default unless PyTest is run with `--pipeline`.  Run with:
     uv run pytest tests/pipeline/test_mesh_pipeline.py --pipeline --no-cov -v
 """
 import pytest
