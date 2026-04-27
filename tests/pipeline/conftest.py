@@ -198,13 +198,13 @@ def pipeline_output(regenerate):
             text=True,
         )
         if result.returncode != 0:
-            pytest.skip(
+            pytest.fail(
                 f"Snakemake failed running rule '{rule}' (exit {result.returncode}); "
                 f"run `uv run snakemake --cores 1 --until {rule}` to diagnose.\n"
                 f"stderr: {result.stderr[:600]}"
             )
         if not os.path.exists(path):
-            pytest.skip(
+            pytest.fail(
                 f"Snakemake rule '{rule}' ran but did not produce expected output: {path}\n"
                 f"Re-run with:  uv run snakemake --cores 1 --until {rule}"
             )
