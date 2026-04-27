@@ -2,7 +2,7 @@
 
 Babel downloads are available at <https://stars.renci.org/var/babel_outputs/> with subdirectories
 for each release. Significant releases are documented in the
-[Releases lists](../releases/README.md).
+[Releases directory](../releases/README.md).
 
 There are several different Babel outputs that we make available for download:
 
