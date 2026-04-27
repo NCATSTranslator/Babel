@@ -2,8 +2,6 @@ from contextlib import contextmanager
 
 import pytest
 
-from src.ubergraph import UberGraph
-
 # These tests require a live connection to ubergraph.apps.renci.org.
 # They are only run when pytest is invoked with --network or --all
 # (see tests/conftest.py for CLI options).
