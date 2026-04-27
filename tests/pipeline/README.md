@@ -89,7 +89,7 @@ does not).
 
 Verify that two CURIEs are (or are not) a direct xref pair in any concord file for the
 compendium. These depend on `chemicals_concords_dir` (or the equivalent fixture for another
-compendium), which runs `snakemake --until get_chemical_wikipedia_relationships` if needed.
+compendium), which runs `snakemake --rerun-incomplete --until get_chemical_wikipedia_relationships` if needed.
 
 **Scope limitation**: only *direct* xref pairs are checked. Indirect equivalences through
 multi-hop chains are not detected. This is intentional — it is fast enough for TDD and

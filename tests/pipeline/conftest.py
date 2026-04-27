@@ -181,7 +181,7 @@ def pipeline_output(regenerate):
     """Factory: ensure a Snakemake rule has produced its output file; return the path.
 
     Reuses existing files without re-running (same caching contract as _maybe_run).
-    If the file is absent, runs `uv run snakemake --cores 1 --until <rule>`.
+    If the file is absent, runs `uv run snakemake --cores 1 --rerun-incomplete --until <rule>`.
     Skips all dependent tests if Snakemake fails or the output is not produced.
 
     Usage inside a fixture:
@@ -196,20 +196,20 @@ def pipeline_output(regenerate):
             return path
         os.makedirs(os.path.dirname(path), exist_ok=True)
         result = subprocess.run(
-            ["uv", "run", "snakemake", "--cores", "1", "--until", rule],
+            ["uv", "run", "snakemake", "--cores", "1", "--rerun-incomplete", "--until", rule],
             capture_output=True,
             text=True,
         )
         if result.returncode != 0:
             pytest.fail(
                 f"Snakemake failed running rule '{rule}' (exit {result.returncode}); "
-                f"run `uv run snakemake --cores 1 --until {rule}` to diagnose.\n"
+                f"run `uv run snakemake --cores 1 --rerun-incomplete --until {rule}` to diagnose.\n"
                 f"stderr: {result.stderr[:600]}"
             )
         if not os.path.exists(path):
             pytest.fail(
                 f"Snakemake rule '{rule}' ran but did not produce expected output: {path}\n"
-                f"Re-run with:  uv run snakemake --cores 1 --until {rule}"
+                f"Re-run with:  uv run snakemake --cores 1 --rerun-incomplete --until {rule}"
             )
         return path
 
