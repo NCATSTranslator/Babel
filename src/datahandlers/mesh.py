@@ -91,7 +91,7 @@ class Mesh:
         if not top_treenums:
             return set()
         values_clause = " ".join(f"mesh:{t}" for t in top_treenums)
-        s = f"""   PREFIX meshv: <http://id.nlm.nih.gov/mesh/vocab#>
+        s = f"""PREFIX meshv: <http://id.nlm.nih.gov/mesh/vocab#>
                 PREFIX mesh: <http://id.nlm.nih.gov/mesh/>
 
                 SELECT DISTINCT ?term
