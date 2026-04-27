@@ -8,6 +8,11 @@ from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT
 from src.prefixes import MESH
 
 
+def _mesh_id(iri) -> str:
+    """Extract a MeSH ID from a pyoxigraph IRI (e.g. <http://id.nlm.nih.gov/mesh/D009243>)."""
+    return str(iri)[:-1].split("/")[-1]
+
+
 def pull_mesh():
     pull_via_ftp("ftp.nlm.nih.gov", "/online/mesh/rdf", "mesh.nt.gz", decompress_data=True, outfilename="MESH/mesh.nt")
 
@@ -61,9 +66,7 @@ class Mesh:
         qres = self.m.query(s)
         meshes = []
         for row in qres:
-            iterm = str(row["term"])
-            meshid = iterm[:-1].split("/")[-1]
-            meshes.append(f"{MESH}:{meshid}")
+            meshes.append(f"{MESH}:{_mesh_id(row['term'])}")
         return meshes
 
     def get_scr_terms_mapped_to_trees(self, top_treenums):
@@ -91,9 +94,7 @@ class Mesh:
         """
         terms = set()
         for row in self.m.query(s):
-            iterm = str(row["term"])
-            meshid = iterm[:-1].split("/")[-1]
-            terms.add(f"{MESH}:{meshid}")
+            terms.add(f"{MESH}:{_mesh_id(row['term'])}")
         return terms
 
     def get_terms_with_type(self, termtype):
@@ -109,9 +110,7 @@ class Mesh:
         qres = self.m.query(s)
         meshes = []
         for row in qres:
-            iterm = str(row["term"])
-            meshid = iterm[:-1].split("/")[-1]
-            meshes.append(f"{MESH}:{meshid}")
+            meshes.append(f"{MESH}:{_mesh_id(row['term'])}")
         return meshes
 
     def get_registry(self):
@@ -129,12 +128,11 @@ class Mesh:
         qres = self.m.query(s)
         res = []
         for row in qres:
-            iterm = str(row["term"])
             label = str(row["reg"])[1:-1]  # strip quotes
             if label == "0":
                 # wtf is this dumbness?
                 continue
-            meshid = f"{MESH}:{iterm[:-1].split('/')[-1]}"
+            meshid = f"{MESH}:{_mesh_id(row['term'])}"
             res.append((meshid, label))
         return res
 
@@ -153,7 +151,7 @@ class Mesh:
                 WHERE {{ mesh:{raw_id} meshv:treeNumber ?treenum }}
                 ORDER BY ?treenum
         """
-        return [str(row["treenum"])[:-1].split("/")[-1] for row in self.m.query(s)]
+        return [_mesh_id(row["treenum"]) for row in self.m.query(s)]
 
     def get_scr_mappings(self, scr_id: str) -> list[dict]:
         """Return mapping info for an SCR (Supplementary Concept Record) term.
@@ -182,7 +180,7 @@ class Mesh:
         mappings: dict[tuple, dict] = {}
         for row in self.m.query(s):
             pred = str(row["mappingPred"])[:-1].split("#")[-1]
-            desc_id = f"{MESH}:{str(row['descriptor'])[:-1].split('/')[-1]}"
+            desc_id = f"{MESH}:{_mesh_id(row['descriptor'])}"
             key = (pred, desc_id)
             if key not in mappings:
                 label = ""
@@ -193,12 +191,11 @@ class Mesh:
                 except (KeyError, AttributeError):
                     pass
                 mappings[key] = {"predicate": pred, "descriptor": desc_id, "label": label, "tree_numbers": []}
-            try:
-                tree_id = str(row["treenum"])[:-1].split("/")[-1]
+            treenum_val = row["treenum"]
+            if treenum_val is not None:
+                tree_id = _mesh_id(treenum_val)
                 if tree_id not in mappings[key]["tree_numbers"]:
                     mappings[key]["tree_numbers"].append(tree_id)
-            except KeyError:
-                pass
         for info in mappings.values():
             info["tree_numbers"].sort()
         return list(mappings.values())
@@ -217,10 +214,7 @@ class Mesh:
         qres = self.m.query(s)
         with open("mesh_tree_labels", "w", encoding="utf8") as outf:
             for row in qres:
-                iterm = str(row["treenum"])
-                meshid = iterm[:-1].split("/")[-1]
-                label = row["label"].value
-                outf.write(f"{meshid}\t{label}\n")
+                outf.write(f"{_mesh_id(row['treenum'])}\t{row['label'].value}\n")
 
     def pull_mesh_labels(self):
         s = """   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -235,10 +229,7 @@ class Mesh:
         qres = self.m.query(s)
         with open(ofname, "w", encoding="utf8") as outf:
             for row in qres:
-                iterm = str(row["term"])
-                meshid = iterm[:-1].split("/")[-1]
-                label = row["label"].value
-                outf.write(f"{MESH}:{meshid}\t{label}\n")
+                outf.write(f"{MESH}:{_mesh_id(row['term'])}\t{row['label'].value}\n")
 
 
 def pull_mesh_labels():
@@ -261,7 +252,7 @@ def write_ids(meshmap, outfile, order=[CELLULAR_COMPONENT, CELL, ANATOMICAL_ENTI
     scr_include_trees: optional list of tree numbers. If set, only SCR terms (from extra_vocab)
     that are mapped to descriptors under these trees will be kept; all other SCR terms will be
     removed. Cannot be used together with scr_exclude_trees."""
-    if scr_exclude_trees and scr_include_trees:
+    if scr_exclude_trees is not None and scr_include_trees is not None:
         raise ValueError("scr_exclude_trees and scr_include_trees cannot both be set")
     m = Mesh()
     terms2type = defaultdict(set)
