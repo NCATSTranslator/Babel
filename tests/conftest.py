@@ -29,6 +29,30 @@ def node_factory():
     return fac
 
 
+@pytest.fixture(scope="session")
+def ubergraph():
+    """Session-scoped UberGraph instance shared across all ubergraph tests.
+
+    Skips all dependent tests if the server is unreachable (network failure).
+    XFails all dependent tests if the server is reachable but returns an error response.
+    """
+    import socket
+    import urllib.error
+
+    from src.ubergraph import UberGraph
+
+    ug = UberGraph()
+    try:
+        ug.triplestore.query("SELECT (1 AS ?x) WHERE {}", ["x"])
+    except urllib.error.HTTPError as e:
+        pytest.xfail(f"UberGraph server returned HTTP {e.code}: {e}")
+    except (urllib.error.URLError, socket.timeout, OSError) as e:
+        pytest.skip(f"Cannot connect to UberGraph ({ug.sparql_url}): {e}")
+    except Exception as e:
+        pytest.xfail(f"UberGraph probe query failed: {e}")
+    return ug
+
+
 def pytest_addoption(parser):
     parser.addoption(
         "--network",
