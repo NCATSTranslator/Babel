@@ -16,7 +16,7 @@ semantic-tree guard) live in test_mesh_pipeline.py / test_umls_pipeline.py.
 To add a new vocabulary, add its fixtures to conftest.py and one entry in
 VOCABULARY_REGISTRY.  This file never needs to change.
 
-All tests are skipped by default.  Run with:
+These are pipeline tests, which are skipped by default unless PyTest is run with `--pipeline`.  Run with:
     uv run pytest tests/pipeline/test_vocabulary_partitioning.py --pipeline --no-cov -v
 Run a single vocabulary:
     uv run pytest tests/pipeline/test_vocabulary_partitioning.py --pipeline --no-cov -v -k MESH
