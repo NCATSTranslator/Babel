@@ -65,9 +65,9 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
 
 ## Pipeline Checks
 
-`tests/pipeline/checks/` contains per-compendium regression assertion files driven by
-specific GitHub issues. They are intended for test-driven development (TDD): add a failing check, run the pipeline,
-iterate on source code until the check passes.
+`tests/pipeline/checks/` contains per-compendium regression assertion files driven by specific
+GitHub issues. They are intended for test-driven development (TDD): add a failing check, run the
+pipeline, iterate on source code until the check passes.
 
 Two shared NamedTuple types in `tests/pipeline/checks/__init__.py` drive all checks:
 `IdentifierCheck` for ID-presence checks and `ConcordCheck` for direct cross-reference
@@ -87,9 +87,9 @@ does not).
 
 **Direct cross-reference checks** (`EXPECTED_XREF` / `EXPECTED_NO_XREF`)
 
-Verify that two CURIEs are (or are not) a direct xref pair in any concord file for the
-compendium. These depend on `chemicals_concords_dir` (or the equivalent fixture for another
-compendium), which runs `snakemake --rerun-incomplete --until get_chemical_wikipedia_relationships` if needed.
+Verify that two CURIEs are (or are not) a direct xref pair in any concord file for the compendium.
+These depend on `chemicals_concords_dir` (or the equivalent fixture for another compendium), which
+runs `snakemake --rerun-incomplete --until get_chemical_wikipedia_relationships` if needed.
 
 **Scope limitation**: only *direct* xref pairs are checked. Indirect equivalences through
 multi-hop chains are not detected. This is intentional — it is fast enough for TDD and
