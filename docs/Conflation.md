@@ -8,10 +8,11 @@ Babel currently generates two conflations:
 
 1. GeneProtein conflates gene with the protein transcribed from it.
    The gene identifier will always be returned.
-2. DrugChemical conflates drugs with their active ingredients as a chemical. For each conflation we
-   attempt to determine a Biolink type, and arrange the identifiers in order of (1) preferred prefix
-   order for that Biolink type, followed by (2) ordering identifiers from the numerically smallest
-   suffix to the numerically largest suffix.
+2. DrugChemical conflates drugs with their active ingredients as a chemical. For each conflation,
+   the identifiers are arranged in order of (1) preferred prefix order for the
+   [ChemicalEntity Biolink type](https://biolink.github.io/biolink-model/ChemicalEntity/#valid-id-prefixes),
+   followed by (2) within each prefix group: lower information content first, larger cliques first,
+   and finally from the numerically smallest suffix to the numerically largest suffix.
 
 ## How are conflations generated in Babel and used in NodeNorm?
 

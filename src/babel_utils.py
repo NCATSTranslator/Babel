@@ -149,7 +149,7 @@ class ThrottledRequester:
             cdelta = now - self.last_time
             if cdelta < self.delta:
                 waittime = self.delta - cdelta
-                time.sleep(waittime.microseconds / 1e6)
+                time.sleep(waittime.total_seconds())
                 throttled = True
         self.last_time = datetime.now()
         response = requests.get(url)

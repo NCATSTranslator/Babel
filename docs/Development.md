@@ -2,6 +2,13 @@
 
 This document describes the current development workflow for Babel and ideas for improving it.
 
+## Coding Conventions
+
+**Biolink class references** — always import and use the named constants from `src/categories.py`
+(e.g. `CHEMICAL_ENTITY`, `DRUG`, `ANATOMICAL_ENTITY`) instead of hardcoding `"biolink:..."` strings.
+If a needed constant is missing, add it to `src/categories.py` first. This keeps all Biolink class
+names in one place so a rename only requires a single-file update.
+
 ## Current Development Process
 
 Developing a change to Babel is significantly more complicated than developing most software,
@@ -95,17 +102,18 @@ before/after snapshot.
 uv run diff-compendia old/AnatomicalEntity.txt new/AnatomicalEntity.txt
 ```
 
-#### 3. CURIE lookup script (`src/scripts/lookup_curie.py`)
+#### 3. Proposed CURIE lookup script (`src/scripts/lookup_curie.py`, not yet implemented)
 
 A CLI script that searches all compendium files in a directory for a given CURIE and prints the
 full clique it belongs to. Useful for spot-checking whether a specific identifier was correctly
 merged.
 
 ```bash
+# Hypothetical example; `lookup-curie` does not exist in this repository today.
 uv run lookup-curie MESH:D014867 --compendia-dir babel_outputs/compendia/
 ```
 
-#### 4. Concord inspector script (`src/scripts/inspect_concord.py`)
+#### 4. Proposed concord inspector script (`src/scripts/inspect_concord.py`, not yet implemented)
 
 A CLI script that reads one or more concord files (the `CURIE1 \t relation \t CURIE2` files in
 `intermediate/*/concords/`) and shows statistics: which prefixes appear, how many cross-references
@@ -113,16 +121,18 @@ exist per prefix pair, and examples of entries. This makes it easier to verify t
 generation step is working before building the full compendium.
 
 ```bash
+# Hypothetical example; `inspect-concord` does not exist in this repository today.
 uv run inspect-concord babel_outputs/intermediate/chemicals/concords/CHEBI
 ```
 
-#### 5. Snakemake dependency checker (`src/scripts/check_prerequisites.py`)
+#### 5. Proposed Snakemake dependency checker (`src/scripts/check_prerequisites.py`, not yet implemented)
 
 A script that reads `config.yaml` and checks which intermediate and download files are present on
 disk, printing a table of what is available versus missing. This would tell you immediately which
 prerequisites you need to copy before you can run a particular target.
 
 ```bash
+# Hypothetical example; `check-prerequisites` does not exist in this repository today.
 uv run check-prerequisites --target anatomy
 ```
 

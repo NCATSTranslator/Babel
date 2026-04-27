@@ -59,13 +59,12 @@ This entry consists of the following fields:
 |------------------|-------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ic               | 100                                                         | Information content value (see [Understanding.md](./Understanding.md#what-are-information-content-values)). They are decimal values that range from 0.0 (high-level broad term with many subclasses) to 100.0 (very specific term with no subclasses).                 |
 | identifiers      | _See below_                                                 | A list of identifiers for this clique. This is arranged in the same order as the valid ID prefixes for this type in the Biolink Model, e.g. [starting with NCBIGene and ENSEMBL for `biolink:Gene`](https://biolink.github.io/biolink-model/Gene/#valid-id-prefixes). |
-| identifiers[0].i | NCBIGene:2358                                               | A CURIE representing this identifier. You can use the [Biolink Model prefixmap](https://github.com/biolink/biolink-model/tree/master/project/prefixmap) to expand this into a full concept IRI.                                                                       |
+| identifiers[0].i | NCBIGene:2538                                               | A CURIE representing this identifier. You can use the [Biolink Model prefixmap](https://github.com/biolink/biolink-model/tree/master/project/prefixmap) to expand this into a full concept IRI.                                                                       |
 | identifiers[0].l | G6PC1                                                       | A label for this identifier. This will almost always be from the source of the CURIE (in this case, the label is from the NCBI Gene database).                                                                                                                        |
 | identifiers[0].d | (blank in this example, but usually 1-3 sentences)          | A description of this identifier or concept from this source.                                                                                                                                                                                                         |
 | identifiers[0].t | ["NCBITaxon:9606"]                                          | A list of taxa that this concept is found in as NCBITaxon CURIEs. NCBITaxon:9606 refers to the species _Homo sapiens_.                                                                                                                                                |
 | preferred_name   | G6PC1                                                       | The preferred name for this clique. This is not currently used by NodeNorm, but will be in the future.                                                                                                                                                                |
 | taxa             | ["NCBITaxon:9606"]                                          | A list of taxa that this concept is found in as NCBITaxon CURIEs. This is combined from all the individual taxa from each identifier.                                                                                                                                 |
-| descriptions     | (blank in this example, but usually a list of descriptions) | A list of descriptions, created by combining descriptions from all the identifiers.                                                                                                                                                                                   |
 | type             | biolink:Gene                                                | The Biolink type of this concept. Must be a class from the [Biolink model](https://biolink.github.io/biolink-model/) with a `biolink:` prefix.                                                                                                                        |
 
 The first identifier in the `identifiers` list is considered the "clique leader" or "preferred ID"
@@ -131,13 +130,14 @@ This entry consists of the following fields:
 
 | Field                   | Value                              | Meaning                                                                                                                                                                                                                                     |
 |-------------------------|------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| clique_identifier_count | 5                                  | The number of identifiers in the corresponding clique (i.e. for `NCBIGene:2358`).                                                                                                                                                           |
+| clique_identifier_count | 5                                  | The number of identifiers in the corresponding clique (i.e. for `NCBIGene:2538`).                                                                                                                                                           |
 | curie                   | NCBIGene:2538                      | The CURIE for this entry. Note that the equivalent identifiers are not included.                                                                                                                                                            |
 | curie_suffix            | 2538                               | If the CURIE suffix is completely numerical, it will be stored in this field as a number. This is used to sort search results, with lower CURIE suffixes appearing first.                                                                   |
 | names                   | [ "GD1", "G6PC", ... ]"            | A list of synonyms for this concept. It is usually arranged from shortest to longest, except for conflated cliques, which has all the synonyms for the first identifier, followed by all the synonyms for the second identifier, and so on. |
 | preferred_name          | G6PC1                              | The preferred name for this clique.                                                                                                                                                                                                         |
 | shortest_name_length    | 4                                  | The length of the shortest synonym in the `names` list, in order to sort results for the shortest name.                                                                                                                                     |
 | taxa                    | ["NCBITaxon:9606"]                 | The list of taxa that this concept is found in. This should be identical to the entry in the corresponding Compendia file.                                                                                                                  |
+| taxon_specific          | true or false                      | True if this concept is associated with one or more specific taxa; false if it is not taxon-specific.                                                                                                                                       |
 | types                   | ["Gene", "GeneOrGeneProduct", ...] | A list of Biolink types (without the `biolink:` prefix) for this concept. This is arranged in the same order provided by the Biolink Model Toolkit, starting with the narrowest concept, expanding to the broadest, followed by mixins.     |
 
 Note that the synonym files are generated with DrugChemical conflation turned on, but GeneProtein
@@ -150,13 +150,13 @@ two currently supported conflation methods. Both files have the same format: a J
 entry is a list of clique leaders (i.e. the first identifier for a clique in the
 [Compendia files](#compendia-files)) that should be combined under that conflation. For example, the
 following entry indicates that if either `NCBIGene:2538` or `UniProtKB:P35575` is queried with
-DrugChemical conflation turned on, then a combined clique of both identifiers should be returned.
+GeneProtein conflation turned on, then a combined clique of both identifiers should be returned.
 
 ```json
 ["NCBIGene:2538", "UniProtKB:P35575"]
 ```
 
-Here is the response when normalizing `UniProtKB:P35575` from NodeNorm when both DrugChemical
+Here is the response when normalizing `UniProtKB:P35575` from NodeNorm when both GeneProtein
 conflation and individual types are turned on:
 
 ```json

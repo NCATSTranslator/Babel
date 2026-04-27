@@ -144,36 +144,88 @@ def write_pubchem_ids(labelfile, smilesfile, outfile):
 
 
 def write_mesh_ids(outfile):
-    # Get the D tree,
-    # D01	Inorganic Chemicals
-    # D02	Organic Chemicals
-    # D03	Heterocyclic Compounds
-    # D04	Polycyclic Compounds
-    # D05	Macromolecular Substances  NO
-    # D06	Hormones, Hormone Substitutes, and Hormone Antagonists
-    # D08	Enzymes and Coenzymes  NO, include with ... Activities?
-    # D09	Carbohydrates
-    # D10	Lipids
-    # D12	Amino Acids, Peptides, and Proteins
-    # D12.125 AA yes
-    # D12.644 Peptides yes
-    # D12.776 proteins  NO
-    # D13	Nucleic Acids, Nucleotides, and Nucleosides
-    # D20	Complex Mixtures
-    # D23	Biological Factors
-    # D25	Biomedical and Dental Materials
-    # D26	Pharmaceutical Preparations
-    # D27	Chemical Actions and Uses NO
+    # MeSH D tree — chemical-related subtrees.
+    # Included as CHEMICAL_ENTITY (via the D01–D26 base range):
+    #   D01  Inorganic Chemicals
+    #   D02  Organic Chemicals
+    #   D03  Heterocyclic Compounds
+    #   D04  Polycyclic Compounds
+    #   D06  Hormones, Hormone Substitutes, and Hormone Antagonists
+    #   D07  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
+    #   D08.211  Coenzymes (e.g. NAD, Coenzyme A, FAD) — non-protein small molecules
+    #   D09  Carbohydrates
+    #   D10  Lipids
+    #   D11  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
+    #   D12  Amino Acids, Peptides, and Proteins (partially — see POLYPEPTIDE below)
+    #   D14–D19  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
+    #   D21–D22  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
+    #   D23  Biological Factors
+    #   D24  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
+    #   D25  Biomedical and Dental Materials
+    #   D26  Pharmaceutical Preparations
+    #
+    # Included as POLYPEPTIDE:
+    #   D12.125  Amino Acids
+    #   D12.644  Peptides
+    #
+    # Included as CHEMICAL_ENTITY (via D01–D26 base range, no override needed):
+    #   D13  Nucleic Acids, Nucleotides, and Nucleosides — nucleotides such as NAD also
+    #        appear in D08.211 (Coenzymes); CHEMICAL_ENTITY is the correct type for both.
+    #
+    # Included as COMPLEX_MOLECULAR_MIXTURE:
+    #   D20  Complex Mixtures
+    #
+    # EXCLUDED — protein subtrees (handled by protein.write_mesh_ids instead):
+    #   D05.500  Multiprotein Complexes
+    #   D05.875  Protein Aggregates
+    #   D08.244  Cytochromes
+    #   D08.622  Enzyme Precursors
+    #   D08.811  Enzymes
+    #   D12.776  Proteins
+    #
+    # INCLUDED as CHEMICAL_ENTITY for now — TODO: assign a more specific Biolink type
+    # when the Biolink Model gains a suitable type for non-protein macromolecules:
+    #   D05.374  Micelles
+    #   D05.750  Polymers
+    #   D05.937  Smart Materials
+    #
+    # D27 (Chemical Actions and Uses) is implicitly excluded by the range D01–D26.
+    #
+    # TODO: The MeSH tree assignments for chemicals and proteins are currently defined
+    # independently in chemicals.write_mesh_ids() and protein.write_mesh_ids(). These
+    # should be unified into a shared mapping (e.g. in config.yaml or a dedicated module)
+    # so both compendia are derived from the same source of truth. This would also make it
+    # easier to handle edge cases like SCR_Chemical terms mapped to non-protein descriptors
+    # that are nonetheless proteins (e.g. scorpion venom toxins under D23 Biological Factors).
     meshmap = {f"D{str(i).zfill(2)}": CHEMICAL_ENTITY for i in range(1, 27)}
-    meshmap["D05"] = "EXCLUDE"
-    meshmap["D08"] = "EXCLUDE"
+    # D05 protein subtrees → excluded (protein compendium handles these)
+    meshmap["D05.500"] = "EXCLUDE"
+    meshmap["D05.875"] = "EXCLUDE"
+    # D05.374 Micelles, D05.750 Polymers, D05.937 Smart Materials inherit CHEMICAL_ENTITY
+    # TODO: assign a more specific Biolink type for these non-protein macromolecules
+    # D08 protein subtrees → excluded (protein compendium handles these)
+    meshmap["D08.811"] = "EXCLUDE"
+    meshmap["D08.622"] = "EXCLUDE"
+    meshmap["D08.244"] = "EXCLUDE"
+    # D08.211 Coenzymes inherits CHEMICAL_ENTITY from the D01–D26 base range above
     meshmap["D12.776"] = "EXCLUDE"
     meshmap["D12.125"] = POLYPEPTIDE
     meshmap["D12.644"] = POLYPEPTIDE
-    meshmap["D13"] = POLYPEPTIDE
+    # D13 (Nucleic Acids, Nucleotides, and Nucleosides) inherits CHEMICAL_ENTITY from the
+    # D01–D26 base range. No override needed — nucleotides like NAD (D009243) appear in
+    # both D08.211 (Coenzymes) and D13; both correctly map to CHEMICAL_ENTITY.
     meshmap["D20"] = COMPLEX_MOLECULAR_MIXTURE
-    # Also add anything from SCR_Chemical, if it doesn't have a tree map
-    mesh.write_ids(meshmap, outfile, order=["EXCLUDE", POLYPEPTIDE, COMPLEX_MOLECULAR_MIXTURE, CHEMICAL_ENTITY], extra_vocab={"SCR_Chemical": CHEMICAL_ENTITY})
+    # Also add anything from SCR_Chemical, if it doesn't have a tree map.
+    # SCR terms don't have tree numbers, so we need to separately exclude SCRs
+    # mapped to descriptors under excluded trees (proteins, macromolecules, enzymes).
+    excluded_trees = [treenum for treenum, category in meshmap.items() if category == "EXCLUDE"]
+    mesh.write_ids(
+        meshmap,
+        outfile,
+        order=["EXCLUDE", POLYPEPTIDE, COMPLEX_MOLECULAR_MIXTURE, CHEMICAL_ENTITY],
+        extra_vocab={"SCR_Chemical": CHEMICAL_ENTITY},
+        scr_exclude_trees=excluded_trees,
+    )
 
 
 # def write_obo_ids(irisandtypes,outfile,exclude=[]):
@@ -681,9 +733,11 @@ def get_mesh_relationships(mesh_id_file, cas_out, unii_out, cas_metadata, unii_m
     )
 
 
-def get_wikipedia_relationships(outfile, metadata_yaml):
+def get_wikipedia_relationships(outfile, config, metadata_yaml):
     url = "https://query.wikidata.org/sparql?format=json&query=SELECT ?chebi ?mesh WHERE { ?compound wdt:P683 ?chebi . ?compound wdt:P486 ?mesh. }"
-    results = requests.get(url).json()
+    results = requests.get(url, headers={
+        "User-Agent": config['http']['User-Agent']
+    }).json()
     pairs = [
         (f"{MESH}:{r['mesh']['value']}", f"{CHEBI}:{r['chebi']['value']}") for r in results["results"]["bindings"] if not r["mesh"]["value"].startswith("M")
     ]

@@ -35,7 +35,7 @@ sense: for example, you might not want to differentiate between a gene and the
 protein that is the product of that gene. Babel provides different
 [conflations](docs/Conflation.md) that group cliques on the basis of various
 criteria: for example, the GeneProtein conflation combines a gene with the
-protein that that gene encodes.
+protein that the gene encodes.
 
 While generating these cliques, Babel also collects all the synonyms for every
 clique, which can then be used by tools like
@@ -51,7 +51,7 @@ Three [Babel data formats](./docs/DataFormats.md) are available:
 - Compendium files contain concepts (sets or "cliques" of equivalent
   identifiers), which include a preferred identifier, Biolink type, list of
   equivalent identifiers as well as other information about the concept (such as
-  the descriptions, information content valuen and so on).
+  the descriptions, information content value and so on).
 - Synonym files, which don't include the equivalent identifiers for each
   concept, but do include every known synonym for each concept. These files can
   be directly loaded into an Apache Solr database for querying. The
