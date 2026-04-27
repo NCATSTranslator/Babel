@@ -7,18 +7,21 @@ from src.babel_utils import make_local_name, pull_via_ftp
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT
 from src.prefixes import MESH
 
-_MESH_IRI_PREFIX = "<http://id.nlm.nih.gov/mesh/"
+MESH_IRI_PREFIX = "http://id.nlm.nih.gov/mesh/"
 
 
-def _mesh_id(iri) -> str:
+def get_mesh_id_from_iri(iri) -> str:
     """Extract a MeSH ID from a pyoxigraph IRI (e.g. <http://id.nlm.nih.gov/mesh/D009243>).
 
     Raises ValueError if the input is not a MeSH concept IRI.
     """
     s = str(iri)
-    if not s.startswith(_MESH_IRI_PREFIX) or not s.endswith(">"):
-        raise ValueError(f"Expected a MeSH IRI like <http://id.nlm.nih.gov/mesh/D009243>, got: {s!r}")
-    return s[len(_MESH_IRI_PREFIX):-1]
+    if s.startswith("<") and s.endswith(">"):
+        s = s[1:-1]
+
+    if not s.startswith(MESH_IRI_PREFIX):
+        raise ValueError(f"Expected a MeSH IRI like <http://id.nlm.nih.gov/mesh/D009243>, got: '{s!r}'")
+    return s[len(MESH_IRI_PREFIX):]
 
 
 def pull_mesh():
@@ -74,7 +77,7 @@ class Mesh:
         qres = self.m.query(s)
         meshes = []
         for row in qres:
-            meshes.append(f"{MESH}:{_mesh_id(row['term'])}")
+            meshes.append(f"{MESH}:{get_mesh_id_from_iri(row['term'])}")
         return meshes
 
     def get_scr_terms_mapped_to_trees(self, top_treenums):
@@ -102,7 +105,7 @@ class Mesh:
         """
         terms = set()
         for row in self.m.query(s):
-            terms.add(f"{MESH}:{_mesh_id(row['term'])}")
+            terms.add(f"{MESH}:{get_mesh_id_from_iri(row['term'])}")
         return terms
 
     def get_terms_with_type(self, termtype):
@@ -118,7 +121,7 @@ class Mesh:
         qres = self.m.query(s)
         meshes = []
         for row in qres:
-            meshes.append(f"{MESH}:{_mesh_id(row['term'])}")
+            meshes.append(f"{MESH}:{get_mesh_id_from_iri(row['term'])}")
         return meshes
 
     def get_registry(self):
@@ -140,7 +143,7 @@ class Mesh:
             if label == "0":
                 # wtf is this dumbness?
                 continue
-            meshid = f"{MESH}:{_mesh_id(row['term'])}"
+            meshid = f"{MESH}:{get_mesh_id_from_iri(row['term'])}"
             res.append((meshid, label))
         return res
 
@@ -159,7 +162,7 @@ class Mesh:
                 WHERE {{ mesh:{raw_id} meshv:treeNumber ?treenum }}
                 ORDER BY ?treenum
         """
-        return [_mesh_id(row["treenum"]) for row in self.m.query(s)]
+        return [get_mesh_id_from_iri(row["treenum"]) for row in self.m.query(s)]
 
     def get_scr_mappings(self, scr_id: str) -> list[dict]:
         """Return mapping info for an SCR (Supplementary Concept Record) term.
@@ -188,7 +191,7 @@ class Mesh:
         mappings: dict[tuple, dict] = {}
         for row in self.m.query(s):
             pred = str(row["mappingPred"])[:-1].split("#")[-1]
-            desc_id = f"{MESH}:{_mesh_id(row['descriptor'])}"
+            desc_id = f"{MESH}:{get_mesh_id_from_iri(row['descriptor'])}"
             key = (pred, desc_id)
             if key not in mappings:
                 label = ""
@@ -201,7 +204,7 @@ class Mesh:
                 mappings[key] = {"predicate": pred, "descriptor": desc_id, "label": label, "tree_numbers": []}
             treenum_val = row["treenum"]
             if treenum_val is not None:
-                tree_id = _mesh_id(treenum_val)
+                tree_id = get_mesh_id_from_iri(treenum_val)
                 if tree_id not in mappings[key]["tree_numbers"]:
                     mappings[key]["tree_numbers"].append(tree_id)
         for info in mappings.values():
@@ -222,7 +225,7 @@ class Mesh:
         qres = self.m.query(s)
         with open("mesh_tree_labels", "w", encoding="utf8") as outf:
             for row in qres:
-                outf.write(f"{_mesh_id(row['treenum'])}\t{row['label'].value}\n")
+                outf.write(f"{get_mesh_id_from_iri(row['treenum'])}\t{row['label'].value}\n")
 
     def pull_mesh_labels(self):
         s = """   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -237,7 +240,7 @@ class Mesh:
         qres = self.m.query(s)
         with open(ofname, "w", encoding="utf8") as outf:
             for row in qres:
-                outf.write(f"{MESH}:{_mesh_id(row['term'])}\t{row['label'].value}\n")
+                outf.write(f"{MESH}:{get_mesh_id_from_iri(row['term'])}\t{row['label'].value}\n")
 
 
 def pull_mesh_labels():
