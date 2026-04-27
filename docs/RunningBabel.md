@@ -28,10 +28,12 @@ run
 Currently, the following targets build compendia and synonym files:
 
 * anatomy
+* cell_line
 * chemical
 * disease
 * gene
 * genefamily
+* leftover_umls
 * protein
 * macromolecular_complex
 * taxon
@@ -132,7 +134,7 @@ $ docker run -it --rm --mount type=bind,source=...,target=/home/runner/babel/bab
 The download directory (`babel/babel_downloads`) is used to store data files downloaded during Babel
 assembly.
 
-The script `scripts/build-babel.sh` can be used to run `snakemake` with a few useful settings
+The script `scripts/babel-build.sh` can be used to run `snakemake` with a few useful settings
 (although just running `uv run snakemake --cores 5` should work just fine.)
 
 ## Running with Kubernetes
