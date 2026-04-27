@@ -69,6 +69,10 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
 specific GitHub issues. They are intended for TDD: add a failing check, run the pipeline,
 iterate on source code until the check passes.
 
+Two shared NamedTuple types in `tests/pipeline/checks/__init__.py` drive all checks:
+`IdentifierCheck` for ID-presence checks and `ConcordCheck` for direct cross-reference
+checks. Import them in any per-compendium check file.
+
 Two kinds of assertions are supported in each file:
 
 **ID-presence checks** (`EXPECTED_IN_CHEMICALS` / `NOT_IN_CHEMICALS`)
@@ -96,9 +100,12 @@ locates the concord file that is the root cause of a bad link.
 compendium):
 
 ```python
+from tests.pipeline.checks import ConcordCheck, IdentifierCheck
+
 # ID-presence check (MESH, no Snakemake required):
-ChemCheck(
+IdentifierCheck(
     "mesh_pipeline_outputs",
+    "chemicals",           # key in the fixture output dict
     "MESH:C000001",
     "biolink:ChemicalEntity",
     "https://github.com/NCATSTranslator/Babel/issues/NNN",
@@ -115,9 +122,10 @@ ConcordCheck(
 ```
 
 **Adding a new vocabulary** — change the `fixture` field to the appropriate session fixture
-name (e.g. `"umls_pipeline_outputs"` for UMLS ID checks). For a new compendium's concord
-checks, add a `my_compendium_concords_dir` fixture to `conftest.py` following the
-`chemicals_concords_dir` pattern, using the appropriate Snakemake sentinel rule.
+name (e.g. `"umls_pipeline_outputs"` for UMLS ID checks) and set `compendium` to the
+matching key in that fixture's output dict (e.g. `"protein"`, `"diseasephenotype"`). For a
+new compendium's concord checks, add a `my_compendium_concords_dir` fixture to `conftest.py`
+following the `chemicals_concords_dir` pattern, using the appropriate Snakemake sentinel rule.
 
 ```bash
 # Run all checks:
