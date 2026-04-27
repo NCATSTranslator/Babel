@@ -66,7 +66,7 @@ def write_mesh_ids(outfile):
     # should be unified into a shared mapping (e.g. in config.yaml or a dedicated
     # mapping module) so both compendia are derived from the same source of truth.
     # This would prevent the current situation where the included/excluded trees here
-    # and in chemicals.py must be kept in sync manually.
+    # and in chemicals.py must be kept in sync manually. See https://github.com/NCATSTranslator/Babel/issues/735
     meshmap = {
         "D12.776": PROTEIN,
         "D05.500": PROTEIN,
