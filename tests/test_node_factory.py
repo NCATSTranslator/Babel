@@ -69,6 +69,29 @@ def test_taxon_prefixes(node_factory):
 
 
 @pytest.mark.network
+def test_biological_process_prefixes(node_factory):
+    """Verify that the Biolink Model (version in config.yaml) natively includes UMLS as a
+    valid prefix for biolink:BiologicalProcess.
+
+    NodeFactory.get_prefixes() previously appended UMLS manually as a workaround for an
+    older Biolink Model version that was missing it.  Issue #413
+    (https://github.com/NCATSTranslator/Babel/issues/413) tracked the upstream fix.
+    This test queries the Biolink Model Toolkit directly (bypassing NodeFactory post-
+    processing) to confirm that UMLS is present in the model itself.
+    """
+    from src.categories import BIOLOGICAL_PROCESS
+
+    # Query the toolkit directly, bypassing NodeFactory.get_prefixes() post-processing.
+    raw_prefixes = node_factory.toolkit.get_element(BIOLOGICAL_PROCESS)["id_prefixes"]
+
+    assert pref.UMLS in raw_prefixes, (
+        f"UMLS is not in the biolink:BiologicalProcess id_prefixes in the current Biolink Model. "
+        f"Full list: {raw_prefixes}. "
+        f"See https://github.com/NCATSTranslator/Babel/issues/413"
+    )
+
+
+@pytest.mark.network
 def test_normalization(node_factory):
     """Basic normalization - do we pick the right identifier?  Note that the identifiers are made up."""
     node = node_factory.create_node(["MESH:D012034", "CHEBI:1234"], "biolink:SmallMolecule")
