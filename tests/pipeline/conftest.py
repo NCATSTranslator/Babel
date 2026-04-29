@@ -486,6 +486,199 @@ VOCABULARY_REGISTRY = {
 }
 
 
+# ---------------------------------------------------------------------------
+# EC download + processing fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def ec_rdf_file():
+    """Download babel_downloads/EC/enzyme.rdf, or skip if unavailable."""
+    from src.datahandlers.ec import pull_ec  # deferred: only import when EC tests are requested
+    return _download_or_fail(
+        "EC enzyme.rdf",
+        pull_ec,
+        make_local_name("enzyme.rdf", subpath="EC"),
+    )
+
+
+@pytest.fixture(scope="session")
+def ec_pipeline_outputs(ec_rdf_file, regenerate):
+    """Run ECgraph label/synonym/ID extraction; returns {labels, synonyms, ids} paths.
+
+    Output files are written to babel_downloads/EC/ (labels, synonyms) and
+    babel_outputs/intermediate/process/ids/EC (ids).  Reused on subsequent runs
+    unless --regenerate is passed.
+    """
+    from src.util import get_config  # deferred: same rationale as _snakemake_dir
+    cfg = get_config()
+    labels = os.path.join(cfg["download_directory"], "EC", "labels")
+    synonyms = os.path.join(cfg["download_directory"], "EC", "synonyms")
+    ids = _intermediate_id_path("processactivitypathway", "EC")
+
+    from src.datahandlers.ec import ECgraph  # deferred: avoids loading RDF at import time
+    _maybe_run(labels, lambda: ECgraph().pull_EC_labels_and_synonyms(labels, synonyms), regenerate)
+    _maybe_run(ids, lambda: ECgraph().pull_EC_ids(ids), regenerate)
+
+    return {"labels": labels, "synonyms": synonyms, "ids": ids}
+
+
+# ---------------------------------------------------------------------------
+# Rhea download + processing fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def rhea_rdf_file():
+    """Download babel_downloads/RHEA/rhea.rdf, or skip if unavailable."""
+    from src.datahandlers.rhea import pull_rhea  # deferred
+    return _download_or_fail(
+        "Rhea rhea.rdf",
+        pull_rhea,
+        make_local_name("rhea.rdf", subpath="RHEA"),
+    )
+
+
+@pytest.fixture(scope="session")
+def rhea_pipeline_outputs(rhea_rdf_file, regenerate):
+    """Run Rhea label extraction and EC concordance; returns {labels, concords} paths.
+
+    Output files go to babel_downloads/RHEA/labels and
+    babel_outputs/intermediate/process/concords/RHEA.  Reused unless --regenerate is passed.
+    """
+    from src.util import get_config  # deferred
+    cfg = get_config()
+    labels = os.path.join(cfg["download_directory"], "RHEA", "labels")
+    concords = os.path.join(cfg["intermediate_directory"], _snakemake_dir("processactivitypathway"), "concords", "RHEA")
+    metadata_yaml = os.path.join(cfg["intermediate_directory"], _snakemake_dir("processactivitypathway"), "concords", "metadata-RHEA.yaml")
+
+    from src.datahandlers.rhea import Rhea  # deferred
+    _maybe_run(labels, lambda: Rhea().pull_rhea_labels(labels), regenerate)
+    _maybe_run(concords, lambda: Rhea().pull_rhea_ec_concs(concords, metadata_yaml), regenerate)
+
+    return {"labels": labels, "concords": concords}
+
+
+# ---------------------------------------------------------------------------
+# ChemBL download + processing fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def chembl_ttl_files():
+    """Download babel_downloads/CHEMBL.COMPOUND/chembl_latest_molecule.ttl + cco.ttl, or skip."""
+    from src.datahandlers.chembl import pull_chembl  # deferred
+    from src.util import get_config  # deferred
+    cfg = get_config()
+    molecule_file = make_local_name("chembl_latest_molecule.ttl", subpath="CHEMBL.COMPOUND")
+    cco_file = make_local_name("cco.ttl", subpath="CHEMBL.COMPOUND")
+    if not os.path.exists(molecule_file):
+        try:
+            pull_chembl(molecule_file)
+        except Exception as e:
+            pytest.fail(f"Could not download ChEMBL molecule TTL: {e}")
+    return {"molecule": molecule_file, "cco": cco_file}
+
+
+@pytest.fixture(scope="session")
+def chembl_pipeline_outputs(chembl_ttl_files, regenerate):
+    """Run ChemblRDF label and SMILES extraction; returns {labels, smiles} paths.
+
+    Output files go to babel_downloads/CHEMBL.COMPOUND/labels and .../smiles.
+    Reused unless --regenerate is passed.
+    """
+    from src.util import get_config  # deferred
+    cfg = get_config()
+    labels = os.path.join(cfg["download_directory"], "CHEMBL.COMPOUND", "labels")
+    smiles = os.path.join(cfg["download_directory"], "CHEMBL.COMPOUND", "smiles")
+    molecule_file = chembl_ttl_files["molecule"]
+    cco_file = chembl_ttl_files["cco"]
+
+    from src.datahandlers.chembl import ChemblRDF  # deferred
+    _maybe_run(labels, lambda: ChemblRDF(molecule_file, cco_file).pull_labels(labels), regenerate)
+    _maybe_run(smiles, lambda: ChemblRDF(molecule_file, cco_file).pull_smiles(smiles), regenerate)
+
+    return {"labels": labels, "smiles": smiles}
+
+
+# ---------------------------------------------------------------------------
+# CLO download + processing fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def clo_owl_file():
+    """Download babel_downloads/CLO/clo.owl, or skip if unavailable."""
+    from src.datahandlers.clo import pull_clo  # deferred
+    clo_owl = make_local_name("clo.owl", subpath="CLO")
+    metadata = make_local_name("metadata.yaml", subpath="CLO")
+    if not os.path.exists(clo_owl):
+        try:
+            pull_clo(metadata)
+        except Exception as e:
+            pytest.fail(f"Could not download CLO clo.owl: {e}")
+    return clo_owl
+
+
+@pytest.fixture(scope="session")
+def clo_pipeline_outputs(clo_owl_file, regenerate):
+    """Run CLOgraph label/synonym/ID extraction; returns {labels, synonyms, ids} paths.
+
+    Output files go to babel_downloads/CLO/ (labels, synonyms) and
+    babel_outputs/intermediate/cell_line/ids/CLO (ids).  Reused unless --regenerate is passed.
+    """
+    from src.util import get_config  # deferred
+    cfg = get_config()
+    labels = os.path.join(cfg["download_directory"], "CLO", "labels")
+    synonyms = os.path.join(cfg["download_directory"], "CLO", "synonyms")
+    ids = _intermediate_id_path("cell_line", "CLO")
+
+    from src.datahandlers.clo import CLOgraph  # deferred
+    from src.categories import CELL_LINE  # deferred
+    roots = [("CLO:0000001", CELL_LINE)]
+    _maybe_run(labels, lambda: CLOgraph(clo_owl_file).pull_CLO_labels_and_synonyms(labels, synonyms), regenerate)
+    _maybe_run(ids, lambda: CLOgraph(clo_owl_file).pull_CLO_ids(roots, ids), regenerate)
+
+    return {"labels": labels, "synonyms": synonyms, "ids": ids}
+
+
+# ---------------------------------------------------------------------------
+# EFO download + processing fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def efo_owl_file():
+    """Download babel_downloads/EFO/efo.owl, or skip if unavailable."""
+    from src.datahandlers.efo import pull_efo  # deferred
+    return _download_or_fail(
+        "EFO efo.owl",
+        pull_efo,
+        make_local_name("efo.owl", subpath="EFO"),
+    )
+
+
+@pytest.fixture(scope="session")
+def efo_pipeline_outputs(efo_owl_file, regenerate):
+    """Run EFOgraph label/synonym/ID extraction; returns {labels, synonyms, ids} paths.
+
+    Output files go to babel_downloads/EFO/ (labels, synonyms) and
+    babel_outputs/intermediate/disease/ids/EFO (ids).  Reused unless --regenerate is passed.
+    """
+    from src.util import get_config  # deferred
+    cfg = get_config()
+    labels = os.path.join(cfg["download_directory"], "EFO", "labels")
+    synonyms = os.path.join(cfg["download_directory"], "EFO", "synonyms")
+    ids = _intermediate_id_path("diseasephenotype", "EFO")
+
+    from src.createcompendia.diseasephenotype import write_efo_ids  # deferred
+    from src.datahandlers.efo import EFOgraph  # deferred
+    _maybe_run(labels, lambda: EFOgraph(efo_owl_file).pull_EFO_labels_and_synonyms(labels, synonyms), regenerate)
+    _maybe_run(ids, lambda: write_efo_ids(efo_owl_file, ids), regenerate)
+
+    return {"labels": labels, "synonyms": synonyms, "ids": ids}
+
+
 @pytest.fixture(scope="session", params=list(VOCABULARY_REGISTRY.keys()))
 def vocab_outputs(request):
     """Parametrized fixture yielding (vocab_name, outputs_dict) for each registered vocabulary.
