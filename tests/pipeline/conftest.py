@@ -568,8 +568,6 @@ def rhea_pipeline_outputs(rhea_rdf_file, regenerate):
 def chembl_ttl_files():
     """Download babel_downloads/CHEMBL.COMPOUND/chembl_latest_molecule.ttl + cco.ttl, or skip."""
     from src.datahandlers.chembl import pull_chembl  # deferred
-    from src.util import get_config  # deferred
-    cfg = get_config()
     molecule_file = make_local_name("chembl_latest_molecule.ttl", subpath="CHEMBL.COMPOUND")
     cco_file = make_local_name("cco.ttl", subpath="CHEMBL.COMPOUND")
     if not os.path.exists(molecule_file):
@@ -633,8 +631,8 @@ def clo_pipeline_outputs(clo_owl_file, regenerate):
     synonyms = os.path.join(cfg["download_directory"], "CLO", "synonyms")
     ids = _intermediate_id_path("cell_line", "CLO")
 
-    from src.datahandlers.clo import CLOgraph  # deferred
     from src.categories import CELL_LINE  # deferred
+    from src.datahandlers.clo import CLOgraph  # deferred
     roots = [("CLO:0000001", CELL_LINE)]
     _maybe_run(labels, lambda: CLOgraph(clo_owl_file).pull_CLO_labels_and_synonyms(labels, synonyms), regenerate)
     _maybe_run(ids, lambda: CLOgraph(clo_owl_file).pull_CLO_ids(roots, ids), regenerate)

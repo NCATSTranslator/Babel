@@ -114,7 +114,7 @@ def test_pull_CLO_labels_altlabel_in_syn_only(clograph, tmp_path):
     labels = open(lf).read()
     syns = open(sf).read()
     # altLabel "HeLa" must not appear in label file
-    label_lines = [l for l in labels.splitlines() if "HeLa" in l and "HeLa cell" not in l]
+    label_lines = [line for line in labels.splitlines() if "HeLa" in line and "HeLa cell" not in line]
     assert not label_lines
     assert f"{CLO}:0000001\tskos:altLabel\tHeLa" in syns
 
@@ -148,7 +148,7 @@ def test_pull_CLO_ids_writes_descendants(clograph, tmp_path):
     roots = [("CLO:0000001", CELL_LINE)]
     clograph.pull_CLO_ids(roots, out)
     lines = open(out).read().splitlines()
-    curies = [l.split("\t")[0] for l in lines]
+    curies = [line.split("\t")[0] for line in lines]
     assert f"{CLO}:0000001" in curies
     assert f"{CLO}:0000002" in curies
 

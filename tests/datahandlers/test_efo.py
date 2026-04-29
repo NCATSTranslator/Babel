@@ -149,7 +149,7 @@ def test_pull_EFO_ids_writes_descendants(efograph, tmp_path):
     roots = [("EFO:0000001", DISEASE)]
     efograph.pull_EFO_ids(roots, out)
     lines = open(out).read().splitlines()
-    curies = [l.split("\t")[0] for l in lines]
+    curies = [line.split("\t")[0] for line in lines]
     assert f"{EFO}:0000001" in curies
     assert f"{EFO}:0001234" in curies
 
