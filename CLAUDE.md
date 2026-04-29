@@ -155,6 +155,12 @@ option would be best.
 
 ## Conventions
 
+- **Ruff lint** — all Python must pass `uv run ruff check` (run automatically on PRs). Two rules
+  that are easy to trip in test code:
+  - **E741** — do not use single-letter ambiguous variable names (`l`, `O`, `I`). Use `line`,
+    `row`, `col`, etc. instead.
+  - **F841** — do not assign a variable that is never read. Remove or inline the assignment.
+
 - **Imports** — place all imports at the top of the file (stdlib, then third-party, then local),
   following standard Python convention. Defer an import inside a function only when it is
   genuinely necessary to break a circular dependency or avoid a heavy optional dependency; if
