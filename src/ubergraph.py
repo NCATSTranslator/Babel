@@ -1,9 +1,13 @@
 from collections import defaultdict
+from time import sleep
+
+from tqdm import tqdm
 
 from src.babel_utils import norm
 from src.triplestore import TripleStore
-from src.util import Text
+from src.util import Text, get_logger
 
+SLEEP_BETWEEN_UBERGRAPH_QUERIES = 5 # seconds
 
 class UberGraph:
     # Some of these get_subclass_and_whatever things can/should be merged...
@@ -15,8 +19,37 @@ class UberGraph:
     # constant controls how large each batch should be.
     QUERY_BATCH_SIZE = 200_000
 
-    def __init__(self):
-        self.triplestore = TripleStore("https://ubergraph.apps.renci.org/sparql")
+    def __init__(self, sparql_url = "https://ubergraph.apps.renci.org/sparql"):
+        """
+        Set up an UberGraph querier.
+
+        TODO: it would be great to read this from the config, but that would require a whole bunch of changes.
+
+        :param sparql_url: The SPARQL endpoint to use.
+        """
+        self.sparql_url = sparql_url
+        self.triplestore = TripleStore(self.sparql_url)
+        self.logger = get_logger(str(self))
+
+    def __str__(self):
+        return f"UberGraph({self.sparql_url})"
+
+    @staticmethod
+    def is_blank_node(curie):
+        """
+        Test if the given CURIE is a blank node in UberGraph.
+
+        :param curie: A CURIE to check. Must be a string.
+        :return: True if this looks like a blank node, false otherwise.
+        """
+
+        if not isinstance(curie, str):
+            raise ValueError(f"UberGraph.is_blank_node(curie={curie}): curie must be a string.")
+
+        # For Ubergraph, blank nodes are in the form 't27502167'. If we try to convert that into a CURIE, we can ignore it.
+        if curie[0] == 't' and curie[1:].isdigit():
+            return True
+        return False
 
     def get_all_labels(self):
         # Since this is a very large query, we do this in chunks.
@@ -38,11 +71,11 @@ class UberGraph:
         total_count = int(rr[0]["count"])
 
         results = []
-        for start in range(0, total_count, UberGraph.QUERY_BATCH_SIZE):
+        for start in tqdm(range(0, total_count, UberGraph.QUERY_BATCH_SIZE), desc=f"{self}.get_all_labels()", unit="batch"):
+            sleep(SLEEP_BETWEEN_UBERGRAPH_QUERIES)
+
             # end = start + UberGraph.QUERY_BATCH_SIZE if UberGraph.QUERY_BATCH_SIZE < total_count else UberGraph.QUERY_BATCH_SIZE
-            print(
-                f"Querying get_all_labels() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})"
-            )
+            self.logger.debug(f"Querying get_all_labels() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
 
             text = (
                 """
@@ -63,7 +96,8 @@ class UberGraph:
                 try:
                     y["iri"] = Text.opt_to_curie(x["thing"])
                 except ValueError as verr:
-                    print(f"WARNING: Unable to translate {x['thing']} to a CURIE; it will be used as-is: {verr}")
+                    if not UberGraph.is_blank_node(x["thing"]):
+                        self.logger.warning(f"Unable to translate {x['thing']} to a CURIE; it will be used as-is: {verr}")
                     y["iri"] = x["thing"]
                 y["label"] = x["label"]
                 results.append(y)
@@ -90,11 +124,11 @@ class UberGraph:
         total_count = int(rr[0]["count"])
 
         results = []
-        for start in range(0, total_count, UberGraph.QUERY_BATCH_SIZE):
+        for start in tqdm(range(0, total_count, UberGraph.QUERY_BATCH_SIZE), desc=f"{self}.get_all_descriptions()", unit="batch"):
+            sleep(SLEEP_BETWEEN_UBERGRAPH_QUERIES)
+
             # end = start + UberGraph.QUERY_BATCH_SIZE if UberGraph.QUERY_BATCH_SIZE < total_count else UberGraph.QUERY_BATCH_SIZE
-            print(
-                f"Querying get_all_descriptions() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})"
-            )
+            self.logger.debug(f"Querying get_all_descriptions() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
 
             text = (
                 """
@@ -117,7 +151,8 @@ class UberGraph:
                 try:
                     y["iri"] = Text.opt_to_curie(x["thing"])
                 except ValueError as verr:
-                    print(f"WARNING: Unable to translate {x['thing']} to a CURIE; it will be used as-is: {verr}")
+                    if not UberGraph.is_blank_node(x["thing"]):
+                        self.logger.warning(f"Unable to translate {x['thing']} to a CURIE; it will be used as-is: {verr}")
                     y["iri"] = x["thing"]
                 y["description"] = x["description"]
                 results.append(y)
@@ -148,10 +183,9 @@ class UberGraph:
         total_count = int(rr[0]["count"])
 
         results = []
-        for start in range(0, total_count, UberGraph.QUERY_BATCH_SIZE):
-            print(
-                f"Querying get_all_synonyms() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})"
-            )
+        for start in tqdm(range(0, total_count, UberGraph.QUERY_BATCH_SIZE), desc=f"{self}.get_all_synonyms()"):
+            sleep(SLEEP_BETWEEN_UBERGRAPH_QUERIES)
+            self.logger.debug(f"Querying get_all_synonyms() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
 
             text = (
                 """
@@ -188,7 +222,7 @@ class UberGraph:
                 try:
                     cls_curie = Text.opt_to_curie(x["cls"])
                 except ValueError as verr:
-                    print(f"Unable to convert {x['cls']} to a CURIE; it will be used as-is: {verr}")
+                    self.logger.warning(f"Unable to convert {x['cls']} to a CURIE; it will be used as-is: {verr}")
                     cls_curie = x["cls"]
                 y = (cls_curie, x["pred"], x["val"])
                 results.append(y)
@@ -219,16 +253,14 @@ class UberGraph:
             }
         }
         """
-        rr = self.triplestore.query_template(
-            inputs={"sourcedefclass": iri}, outputs=["descendent", "descendentLabel"], template_text=text
-        )
+        rr = self.triplestore.query_template(inputs={"sourcedefclass": iri}, outputs=["descendent", "descendentLabel"], template_text=text)
         results = []
         for x in rr:
             y = {}
             try:
                 y["descendent"] = Text.opt_to_curie(x["descendent"])
             except ValueError as verr:
-                print(f"Descendent {x['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
+                self.logger.warning(f"Descendent {x['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
                 y["descendent"] = x["descendent"]
             y["descendentLabel"] = x["descendentLabel"]
             results.append(y)
@@ -259,16 +291,14 @@ class UberGraph:
             }
         }
         """
-        rr = self.triplestore.query_template(
-            inputs={"sourcedefclass": iri}, outputs=["descendent", "descendentSmiles"], template_text=text
-        )
+        rr = self.triplestore.query_template(inputs={"sourcedefclass": iri}, outputs=["descendent", "descendentSmiles"], template_text=text)
         results = []
         for x in rr:
             y = {}
             try:
                 y["descendent"] = Text.opt_to_curie(x["descendent"])
             except ValueError as verr:
-                print(f"Descendent {x['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
+                self.logger.warning(f"Descendent {x['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
                 y["descendent"] = x["descendent"]
             if x["descendentSmiles"] is not None:
                 y["SMILES"] = x["descendentSmiles"]
@@ -299,9 +329,7 @@ class UberGraph:
           ?descendent <http://www.geneontology.org/formats/oboInOwl#hasDbXref> ?xref .
         }
         """
-        resultmap = self.triplestore.query_template(
-            inputs={"sourcedefclass": iri}, outputs=["descendent", "xref"], template_text=text
-        )
+        resultmap = self.triplestore.query_template(inputs={"sourcedefclass": iri}, outputs=["descendent", "xref"], template_text=text)
         results = defaultdict(set)
         for row in resultmap:
             # Sometimes we're getting back just strings that aren't curies, skip those (but complain)
@@ -309,55 +337,48 @@ class UberGraph:
                 dcurie = Text.opt_to_curie(row["descendent"])
                 results[dcurie].add(Text.opt_to_curie(row["xref"]))
             except ValueError as verr:
-                print(f"Bad XREF from {row['descendent']} to {row['xref']}: {verr}")
+                self.logger.warning(f"Bad XREF from {row['descendent']} to {row['xref']}: {verr}")
                 continue
 
         return results
 
     def get_subclasses_and_exacts(self, iri):
-        text = lambda predicate: (
-            f"""
-        prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
-        prefix CL: <http://purl.obolibrary.org/obo/CL_>
-        prefix GO: <http://purl.obolibrary.org/obo/GO_>
-        prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
-        prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
-        prefix HP: <http://purl.obolibrary.org/obo/HP_>
-        prefix MP: <http://purl.obolibrary.org/obo/MP_>
-        prefix EFO: <http://www.ebi.ac.uk/efo/EFO_>
-        prefix NCIT: <http://purl.obolibrary.org/obo/NCIT_>
-        PREFIX EXACT_MATCH: <http://www.w3.org/2004/02/skos/core#exactMatch>
-        PREFIX M_EXACT_MATCH: <http://purl.obolibrary.org/obo/mondo#exactMatch>
-        PREFIX EQUIVALENT_CLASS: <http://www.w3.org/2002/07/owl#equivalentClass>
-        PREFIX ID: <http://www.geneontology.org/formats/oboInOwl#id>
-        SELECT DISTINCT ?descendent ?match
-        FROM <http://reasoner.renci.org/ontology>
-        WHERE {{
-            graph <http://reasoner.renci.org/redundant> {{
-                ?descendent rdfs:subClassOf $identifier .
-            }}
-            OPTIONAL {{
-                ?descendent {predicate} ?match.
-            }}
-        }}
-        """
-        )
-        resultmap = self.triplestore.query_template(
-            template_text=text("EXACT_MATCH:"), inputs={"identifier": iri}, outputs=["descendent", "match"]
-        )
-        resultmap += self.triplestore.query_template(
-            template_text=text("M_EXACT_MATCH:"), inputs={"identifier": iri}, outputs=["descendent", "match"]
-        )
-        resultmap += self.triplestore.query_template(
-            template_text=text("EQUIVALENT_CLASS:"), inputs={"identifier": iri}, outputs=["descendent", "match"]
-        )
+        def text(predicate):
+            return (f"""
+                prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
+                prefix CL: <http://purl.obolibrary.org/obo/CL_>
+                prefix GO: <http://purl.obolibrary.org/obo/GO_>
+                prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
+                prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
+                prefix HP: <http://purl.obolibrary.org/obo/HP_>
+                prefix MP: <http://purl.obolibrary.org/obo/MP_>
+                prefix EFO: <http://www.ebi.ac.uk/efo/EFO_>
+                prefix NCIT: <http://purl.obolibrary.org/obo/NCIT_>
+                PREFIX EXACT_MATCH: <http://www.w3.org/2004/02/skos/core#exactMatch>
+                PREFIX M_EXACT_MATCH: <http://purl.obolibrary.org/obo/mondo#exactMatch>
+                PREFIX EQUIVALENT_CLASS: <http://www.w3.org/2002/07/owl#equivalentClass>
+                PREFIX ID: <http://www.geneontology.org/formats/oboInOwl#id>
+                SELECT DISTINCT ?descendent ?match
+                FROM <http://reasoner.renci.org/ontology>
+                WHERE {{
+                    graph <http://reasoner.renci.org/redundant> {{
+                        ?descendent rdfs:subClassOf $identifier .
+                    }}
+                    OPTIONAL {{
+                        ?descendent {predicate} ?match.
+                    }}
+                }}
+                """)
+        resultmap = self.triplestore.query_template(template_text=text("EXACT_MATCH:"), inputs={"identifier": iri}, outputs=["descendent", "match"])
+        resultmap += self.triplestore.query_template(template_text=text("M_EXACT_MATCH:"), inputs={"identifier": iri}, outputs=["descendent", "match"])
+        resultmap += self.triplestore.query_template(template_text=text("EQUIVALENT_CLASS:"), inputs={"identifier": iri}, outputs=["descendent", "match"])
         results = defaultdict(list)
         for row in resultmap:
             try:
                 desc = Text.opt_to_curie(row["descendent"])
             except ValueError as verr:
-                print(f"Descendant {row['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
+                self.logger.warning(f"Descendant {row['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
                 desc = row["descendent"]
 
             if row["match"] is None:
@@ -368,52 +389,46 @@ class UberGraph:
                 try:
                     results[desc].append(Text.opt_to_curie(row["match"]))
                 except ValueError as verr:
-                    print(f"Row {row} could not be converted to a CURIE: {verr}")
+                    self.logger.warning(f"Row {row} could not be converted to a CURIE: {verr}")
                     continue
 
         return results
 
     def get_subclasses_and_close(self, iri):
-        text = lambda predicate: (
-            f"""
-        prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
-        prefix CL: <http://purl.obolibrary.org/obo/CL_>
-        prefix GO: <http://purl.obolibrary.org/obo/GO_>
-        prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
-        prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
-        prefix HP: <http://purl.obolibrary.org/obo/HP_>
-        prefix MP: <http://purl.obolibrary.org/obo/MP_>
-        prefix EFO: <http://www.ebi.ac.uk/efo/EFO_>
-        prefix NCIT: <http://purl.obolibrary.org/obo/NCIT_>
-        PREFIX CLOSE_MATCH: <http://www.w3.org/2004/02/skos/core#closeMatch>
-        PREFIX M_CLOSE_MATCH: <http://purl.obolibrary.org/obo/mondo#closeMatch>
-        PREFIX EQUIVALENT_CLASS: <http://www.w3.org/2002/07/owl#equivalentClass>
-        PREFIX ID: <http://www.geneontology.org/formats/oboInOwl#id>
-        SELECT DISTINCT ?descendent ?match
-        FROM <http://reasoner.renci.org/ontology>
-        WHERE {{
-            graph <http://reasoner.renci.org/redundant> {{
-                ?descendent rdfs:subClassOf $identifier .
-            }}
-            OPTIONAL {{
-                ?descendent {predicate} ?match.
-            }}
-        }}
-        """
-        )
-        resultmap = self.triplestore.query_template(
-            template_text=text("CLOSE_MATCH:"), inputs={"identifier": iri}, outputs=["descendent", "match"]
-        )
-        resultmap += self.triplestore.query_template(
-            template_text=text("M_CLOSE_MATCH:"), inputs={"identifier": iri}, outputs=["descendent", "match"]
-        )
+        def text(predicate):
+            return (f"""
+                prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
+                prefix CL: <http://purl.obolibrary.org/obo/CL_>
+                prefix GO: <http://purl.obolibrary.org/obo/GO_>
+                prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
+                prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
+                prefix HP: <http://purl.obolibrary.org/obo/HP_>
+                prefix EFO: <http://www.ebi.ac.uk/efo/EFO_>
+                prefix NCIT: <http://purl.obolibrary.org/obo/NCIT_>
+                PREFIX CLOSE_MATCH: <http://www.w3.org/2004/02/skos/core#closeMatch>
+                PREFIX M_CLOSE_MATCH: <http://purl.obolibrary.org/obo/mondo#closeMatch>
+                PREFIX EQUIVALENT_CLASS: <http://www.w3.org/2002/07/owl#equivalentClass>
+                PREFIX ID: <http://www.geneontology.org/formats/oboInOwl#id>
+                SELECT DISTINCT ?descendent ?match
+                FROM <http://reasoner.renci.org/ontology>
+                WHERE {{
+                    graph <http://reasoner.renci.org/redundant> {{
+                        ?descendent rdfs:subClassOf $identifier .
+                    }}
+                    OPTIONAL {{
+                        ?descendent {predicate} ?match.
+                    }}
+                }}
+                """)
+        resultmap = self.triplestore.query_template(template_text=text("CLOSE_MATCH:"), inputs={"identifier": iri}, outputs=["descendent", "match"])
+        resultmap += self.triplestore.query_template(template_text=text("M_CLOSE_MATCH:"), inputs={"identifier": iri}, outputs=["descendent", "match"])
         results = defaultdict(list)
         for row in resultmap:
             try:
                 desc = Text.opt_to_curie(row["descendent"])
             except ValueError as verr:
-                print(f"Descendant {row['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
+                self.logger.warning(f"Descendant {row['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
                 desc = row["descendent"]
 
             if row["match"] is None:
@@ -424,7 +439,7 @@ class UberGraph:
                 except ValueError as verr:
                     # Sometimes, if there are no exact_matches, we'll get some kind of blank node id
                     # like 't19830198'. Want to filter those out.
-                    print(f"Value {row['match']} in row {row} could not be converted to a CURIE: {verr}")
+                    self.logger.warning(f"Value {row['match']} in row {row} could not be converted to a CURIE: {verr}")
                     continue
 
         return results
@@ -444,10 +459,8 @@ class UberGraph:
 
         write_count = 0
         with open(filename, "w") as ftsv:
-            for start in range(0, total_count, UberGraph.QUERY_BATCH_SIZE):
-                print(
-                    f"Querying write_normalized_information_content() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})"
-                )
+            for start in tqdm(range(0, total_count, UberGraph.QUERY_BATCH_SIZE), desc=f"{self}.write_normalized_information_content({filename})", unit="batch"):
+                self.logger.debug(f"Querying write_normalized_information_content() offset {start} limit {UberGraph.QUERY_BATCH_SIZE} (total count: {total_count})")
 
                 query = (
                     "SELECT ?iri ?nic WHERE "
@@ -460,14 +473,14 @@ class UberGraph:
                     ftsv.write(f"{row['iri']}\t{row['nic']}\n")
                     write_count += 1
 
-        print(f"Wrote {write_count} information content values into {filename}.")
+        self.logger.info(f"Wrote {write_count} information content values into {filename}.")
         return write_count
 
 
 def build_sets(iri, concordfiles, set_type, ignore_list=[], other_prefixes={}, hop_ontologies=False):
     """Given an IRI create a list of sets.  Each set is a set of equivalent LabeledIDs, and there
     is a set for each subclass of the input iri.  Write these lists to concord files, indexed by the prefix"""
-    prefix = Text.get_curie(iri)
+    prefix = Text.get_prefix_or_none(iri)
     types2relations = {"xref": "xref", "exact": "oio:exactMatch", "close": "oio:closeMatch"}
     if set_type not in types2relations:
         return
@@ -480,13 +493,13 @@ def build_sets(iri, concordfiles, set_type, ignore_list=[], other_prefixes={}, h
         uberres = uber.get_subclasses_and_close(iri)
     for k, v in uberres.items():
         if not hop_ontologies:
-            subclass_prefix = Text.get_curie(k)
+            subclass_prefix = Text.get_prefix_or_none(k)
             if subclass_prefix != prefix:
                 continue
         v = set([norm(x, other_prefixes) for x in v])
         for x in v:
-            if Text.get_curie(x) not in ignore_list:
-                p = Text.get_curie(k)
+            if Text.get_prefix_or_none(x) not in ignore_list:
+                p = Text.get_prefix_or_none(k)
                 if p in concordfiles:
                     concordfiles[p].write(f"{k}\t{types2relations[set_type]}\t{x}\n")
 

@@ -36,7 +36,7 @@ export LATENCY_WAIT=100
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 cd "$SCRIPT_DIR/.." || exit
-snakemake \
+uv run snakemake \
   --cores ${CORES} \
   $([[ $DRY_RUN ]] && echo '--dry-run') \
   $([[ $VERBOSE ]] && echo '--verbose') \

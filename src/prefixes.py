@@ -38,8 +38,10 @@ DOID = "DOID"
 OIO = "OIO"
 ORPHANET = "orphanet"
 HP = "HP"
+
 # Mammalian Phenotype Ontology (e.g. http://purl.obolibrary.org/obo/MP_0001672)
 MP = "MP"
+
 MEDDRA = "MEDDRA"
 EFO = "EFO"
 ICD9 = "ICD9"

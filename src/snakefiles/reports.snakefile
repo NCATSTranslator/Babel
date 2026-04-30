@@ -1,13 +1,17 @@
-from src.snakefiles.util import get_all_compendia, get_all_synonyms
+from src.reports import report_tables
+from src.snakefiles.util import get_all_compendia, get_all_synonyms, get_all_gzipped
 import os
 
-from src.reports.compendia_per_file_reports import assert_files_in_directory, \
-    generate_content_report_for_compendium, summarize_content_report_for_compendia
+from src.reports.compendia_per_file_reports import (
+    assert_files_in_directory,
+    generate_content_report_for_compendium,
+    summarize_content_report_for_compendia,
+)
 
 # Some paths we will use at multiple times in these reports.
-compendia_path = config['output_directory'] + '/compendia'
-synonyms_path = config['output_directory'] + '/synonyms'
-conflations_path = config['output_directory'] + '/conflation'
+compendia_path = config["output_directory"] + "/compendia"
+synonyms_path = config["output_directory"] + "/synonyms"
+conflations_path = config["output_directory"] + "/conflation"
 
 # Expected compendia files.
 compendia_files = get_all_compendia(config)
@@ -16,84 +20,147 @@ compendia_files = get_all_compendia(config)
 synonyms_files = get_all_synonyms(config)
 
 # Expected conflation files.
-conflation_files = config['geneprotein_outputs'] + config['drugchemical_outputs']
+conflation_files = config["geneprotein_outputs"] + config["drugchemical_outputs"]
+
+
+# Trivial aggregation rules run locally so they don't consume a SLURM slot.
+localrules:
+    all_reports,
+
 
 # Make sure we have all the expected Compendia files.
 rule check_compendia_files:
     input:
         # Don't run this until all the outputs have been generated.
-        config['output_directory'] + '/reports/outputs_done'
+        config["output_directory"] + "/reports/outputs_done",
     output:
-        donefile = config['output_directory']+'/reports/check_compendia_files.done'
+        donefile=config["output_directory"] + "/reports/check_compendia_files.done",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_compendia_files.tsv"
     run:
-        assert_files_in_directory(compendia_path,
-            compendia_files,
-            output.donefile
-        )
+        assert_files_in_directory(compendia_path, compendia_files, output.donefile)
+
 
 # Make sure we have all the expected Synonyms files.
-rule check_synonyms_files:
+rule check_synonyms_gzipped_files:
     input:
         # Don't run this until all the outputs have been generated.
-        config['output_directory'] + '/reports/outputs_done'
+        config["output_directory"] + "/reports/outputs_done",
     output:
-        donefile = config['output_directory']+'/reports/check_synonyms_files.done'
+        donefile=config["output_directory"] + "/reports/check_synonyms_files.done",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_synonyms_gzipped_files.tsv"
     run:
-        assert_files_in_directory(synonyms_path,
-            synonyms_files,
-            output.donefile
-        )
+        assert_files_in_directory(synonyms_path, get_all_gzipped(synonyms_files), output.donefile)
+
 
 # Make sure we have all the expected Conflation files.
 rule check_conflation_files:
     input:
         # Don't run this until all the outputs have been generated.
-        config['output_directory'] + '/reports/outputs_done'
+        config["output_directory"] + "/reports/outputs_done",
     output:
-        donefile = config['output_directory']+'/reports/check_conflation_files.done'
+        donefile=config["output_directory"] + "/reports/check_conflation_files.done",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_conflation_files.tsv"
     run:
-        assert_files_in_directory(conflations_path,
-            conflation_files,
-            output.donefile
-        )
+        assert_files_in_directory(conflations_path, conflation_files, output.donefile)
+
 
 # Generate a report of CURIE prefixes by file.
 expected_content_reports = []
 for compendium_filename in compendia_files:
     # Remove the extension from compendium_filename using os.path
     compendium_basename = os.path.splitext(compendium_filename)[0]
-    report_filename = f"{config['output_directory']}/reports/content/compendia/{compendium_basename}.json"
+    report_filename = config["output_directory"] + "/reports/content/compendia/" + compendium_basename + ".json"
 
     expected_content_reports.append(report_filename)
 
     rule:
-        name: f"generate_content_report_for_compendium_{compendium_basename}"
+        name:
+            "generate_content_report_for_compendium_" + compendium_basename
         input:
-            compendium_file = f"{config['output_directory']}/compendia/{compendium_filename}",
+            compendium_file=config["output_directory"] + "/compendia/" + compendium_filename,
         output:
-            report_file = report_filename
+            report_file=report_filename,
+        benchmark:
+            (
+                config["output_directory"]
+                + "/benchmarks/generate_content_report_for_compendium_"
+                + compendium_basename
+                + ".tsv"
+            )
         run:
             generate_content_report_for_compendium(input.compendium_file, output.report_file)
 
 
 rule generate_summary_content_report_for_compendia:
     input:
-        expected_content_reports = expected_content_reports,
+        expected_content_reports=expected_content_reports,
     output:
-        report_path = config['output_directory']+'/reports/content/compendia_report.json',
+        report_path=config["output_directory"] + "/reports/content/compendia_report.json",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_summary_content_report_for_compendia.tsv"
     run:
         summarize_content_report_for_compendia(input.expected_content_reports, output.report_path)
+
+
+#
+# REPORT TABLES
+#
+
+
+# Generate a prefix table.
+rule generate_prefix_table:
+    input:
+        curie_report=config["output_directory"] + "/reports/duckdb/curie_report.json",
+    output:
+        prefix_table=config["output_directory"] + "/reports/tables/prefix_table.csv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_prefix_table.tsv"
+    run:
+        report_tables.generate_prefix_table(input.curie_report, output.prefix_table)
+
+
+# Generate a cliques table.
+rule generate_cliques_table:
+    input:
+        cliques_report=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
+    output:
+        cliques_table=config["output_directory"] + "/reports/tables/cliques_table.csv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_cliques_table.tsv"
+    run:
+        report_tables.generate_cliques_table(input.cliques_report, output.cliques_table)
+
+
+# Generate a table of mapping sources.
+rule generate_mapping_sources_table:
+    input:
+        metadata_yaml_files=expand(
+            "{od}/metadata/{compendia_filename}.yaml",
+            od=config["output_directory"],
+            compendia_filename=get_all_compendia(config),
+        ),
+    output:
+        mapping_sources_table=config["output_directory"] + "/reports/tables/mapping_sources_table.csv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_mapping_sources_table.tsv"
+    run:
+        report_tables.generate_mapping_sources_table(input.metadata_yaml_files, output.mapping_sources_table)
 
 
 # Check that all the reports were built correctly.
 rule all_reports:
     input:
-        config['output_directory']+'/reports/content/compendia_report.json',
-        config['output_directory']+'/reports/check_compendia_files.done',
-        config['output_directory']+'/reports/check_synonyms_files.done',
-        config['output_directory']+'/reports/check_conflation_files.done',
+        config["output_directory"] + "/reports/content/compendia_report.json",
+        config["output_directory"] + "/reports/check_compendia_files.done",
+        config["output_directory"] + "/reports/check_synonyms_files.done",
+        config["output_directory"] + "/reports/check_conflation_files.done",
+        config["output_directory"] + "/reports/tables/prefix_table.csv",
+        config["output_directory"] + "/reports/tables/cliques_table.csv",
+        config["output_directory"] + "/reports/tables/mapping_sources_table.csv",
     output:
-        x = config['output_directory']+'/reports/reports_done',
+        x=config["output_directory"] + "/reports/reports_done",
     shell:
         "echo 'done' >> {output.x}"
-

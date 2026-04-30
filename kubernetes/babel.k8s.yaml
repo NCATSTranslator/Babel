@@ -19,7 +19,7 @@ spec:
   restartPolicy: Never
   containers:
   - name: babel
-    image: ghcr.io/translatorsri/babel:latest
+    image: ghcr.io/ncatstranslator/babel:latest
     # I just need something to run while I figure out how to make this work
     command: [ "/bin/bash", "-c", "--" ]
     args: [ "while true; echo Running; do sleep 30; done;" ]
@@ -32,9 +32,11 @@ spec:
       requests:
         memory: "500G"
         cpu: "4"
+        ephemeral-storage: "1G"
       limits:
         memory: "500G"
         cpu: "4"
+        ephemeral-storage: "1G"
   volumes:
     - name: babel-downloads
       persistentVolumeClaim:
