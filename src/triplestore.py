@@ -1,12 +1,18 @@
 import logging
 import os
+from json import JSONDecodeError
 from string import Template
+from time import sleep
+from urllib.error import HTTPError, URLError
 
 from SPARQLWrapper import JSON, POST, POSTDIRECTLY, SPARQLWrapper2
 
 from src.util import LoggingUtil
 
 logger = LoggingUtil.init_logging(__name__, logging.ERROR)
+
+SPARQL_MAX_RETRIES = 3
+SPARQL_RETRY_BASE_DELAY_SECONDS = 1
 
 
 class TripleStore:
@@ -38,7 +44,38 @@ class TripleStore:
             self.service.setMethod(POST)
         self.service.setQuery(query)
         self.service.setReturnFormat(JSON)
-        return self.service.query().convert()
+        return self._execute_query_with_retries()
+
+    def _execute_query_with_retries(self):
+        attempt = 0
+        while True:
+            attempt += 1
+            try:
+                return self.service.query().convert()
+            except HTTPError as e:
+                if e.code < 500 or attempt >= SPARQL_MAX_RETRIES:
+                    raise
+                wait_seconds = SPARQL_RETRY_BASE_DELAY_SECONDS * (2 ** (attempt - 1))
+                logger.warning(
+                    "SPARQL HTTP %d on attempt %d/%d; retrying in %ss",
+                    e.code,
+                    attempt,
+                    SPARQL_MAX_RETRIES,
+                    wait_seconds,
+                )
+                sleep(wait_seconds)
+            except (JSONDecodeError, TimeoutError, URLError, OSError) as e:
+                if attempt >= SPARQL_MAX_RETRIES:
+                    raise
+                wait_seconds = SPARQL_RETRY_BASE_DELAY_SECONDS * (2 ** (attempt - 1))
+                logger.warning(
+                    "Transient SPARQL query failure (%s) on attempt %d/%d; retrying in %ss",
+                    e.__class__.__name__,
+                    attempt,
+                    SPARQL_MAX_RETRIES,
+                    wait_seconds,
+                )
+                sleep(wait_seconds)
 
     def query(self, query_text, outputs, flat=False, post=False):
         """Execute a fully formed query and return results."""
