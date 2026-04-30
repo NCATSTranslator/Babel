@@ -27,3 +27,7 @@ This folder contains reference documentation for Babel, organized by audience.
 | [Development.md](./Development.md)   | Development workflow, how to obtain prerequisites, how to build individual compendia, known challenges, and ideas for improving the pipeline.                                                                                            |
 | [Testing.md](./Testing.md)           | Testing strategy: what to automate, recommended cadence by environment (per-PR, nightly, weekly, pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other testing strategies worth considering.                      |
 | [Triage.md](./Triage.md)             | **Part 1 (for users):** how to file a useful bug report, assign priority/impact/size, and track when your issue will be addressed. **Part 2 (for developers):** triage checklist, automated test syntax, and sprint planning heuristics. |
+
+## Source-specific notes
+
+- [EMAPA source docs](./sources/EMAPA/README.md)

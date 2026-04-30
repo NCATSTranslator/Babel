@@ -66,6 +66,7 @@ generate_dirs_for_labels_and_synonyms_prefixes:
   - CL
   - NCIT
   - UBERON
+  - EMAPA
   - CHEBI
   - HP
   - MONDO
@@ -75,6 +76,7 @@ generate_dirs_for_labels_and_synonyms_prefixes:
 ubergraph_ontologies:
   - UBERON
   - CL
+  - EMAPA
   - GO
   - NCIT
   - ECO
@@ -116,6 +118,7 @@ anatomy_prefixes:
   - UBERON
   - GO
   - CL
+  - EMAPA
   - UMLS
   - MESH
   - NCIT
@@ -125,6 +128,7 @@ anatomy_ids:
   - UBERON
   - GO
   - CL
+  - EMAPA
   - UMLS
   - MESH
   - NCIT
@@ -133,6 +137,7 @@ anatomy_concords:
   - UBERON
   - GO
   - CL
+  - EMAPA
   - UMLS
   - WIKIDATA
 

@@ -9,9 +9,21 @@ import src.datahandlers.umls as umls
 from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
 from src.metadata.provenance import write_concord_metadata
-from src.prefixes import CL, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
+from src.prefixes import CL, EMAPA, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import build_sets
 from src.util import Text
+
+ANATOMY_OBO_SOURCES = {
+    UBERON: {"root": f"{UBERON}:0001062", "type": ANATOMICAL_ENTITY},
+    CL: {"root": f"{CL}:0000000", "type": CELL},
+    GO: {"root": f"{GO}:0005575", "type": CELLULAR_COMPONENT},
+    EMAPA: {"root": f"{EMAPA}:0", "type": ANATOMICAL_ENTITY},
+}
+
+
+def _write_ontology_ids(source_prefix, outfile):
+    source = ANATOMY_OBO_SOURCES[source_prefix]
+    write_obo_ids([(source["root"], source["type"])], outfile)
 
 
 def remove_overused_xrefs_dict(kv):
@@ -53,19 +65,27 @@ def write_ncit_ids(outfile):
 
 
 def write_uberon_ids(outfile):
-    anatomy_id = f"{UBERON}:0001062"
+    # Keep GrossAnatomicalStructure typing from the dedicated UBERON gross root.
     gross_id = f"{UBERON}:0010000"
-    write_obo_ids([(anatomy_id, ANATOMICAL_ENTITY), (gross_id, GROSS_ANATOMICAL_STRUCTURE)], outfile)
+    write_obo_ids(
+        [
+            (ANATOMY_OBO_SOURCES[UBERON]["root"], ANATOMY_OBO_SOURCES[UBERON]["type"]),
+            (gross_id, GROSS_ANATOMICAL_STRUCTURE),
+        ],
+        outfile,
+    )
 
 
 def write_cl_ids(outfile):
-    cell_id = f"{CL}:0000000"
-    write_obo_ids([(cell_id, CELL)], outfile)
+    _write_ontology_ids(CL, outfile)
+
+
+def write_emapa_ids(outfile):
+    _write_ontology_ids(EMAPA, outfile)
 
 
 def write_go_ids(outfile):
-    component_id = f"{GO}:0005575"
-    write_obo_ids([(component_id, CELLULAR_COMPONENT)], outfile)
+    _write_ontology_ids(GO, outfile)
 
 
 def write_mesh_ids(outfile):
@@ -106,18 +126,29 @@ def write_umls_ids(mrsty, outfile):
 def build_anatomy_obo_relationships(outdir, metadata_yamls):
     ignore_list = ["PMID", "BTO", "BAMS", "FMA", "CALOHA", "GOC", "WIKIPEDIA.EN", "CL", "GO", "NIF_SUBCELLULAR", "HTTP", "OPENCYC"]
     # Create the equivalence pairs
-    with open(f"{outdir}/{UBERON}", "w") as uberon, open(f"{outdir}/{GO}", "w") as go, open(f"{outdir}/{CL}", "w") as cl:
-        build_sets(f"{UBERON}:0001062", {UBERON: uberon, GO: go, CL: cl}, "xref", ignore_list=ignore_list)
-        build_sets(f"{GO}:0005575", {UBERON: uberon, GO: go, CL: cl}, "xref", ignore_list=ignore_list)
+    with open(f"{outdir}/{UBERON}", "w") as uberon, open(f"{outdir}/{GO}", "w") as go, open(f"{outdir}/{CL}", "w") as cl, open(f"{outdir}/{EMAPA}", "w") as emapa:
+        source_to_concord = {UBERON: uberon, GO: go, CL: cl, EMAPA: emapa}
+        for source_prefix in [UBERON, GO, EMAPA]:
+            build_sets(ANATOMY_OBO_SOURCES[source_prefix]["root"], source_to_concord, "xref", ignore_list=ignore_list)
         # CL is now being handled by Wikidata (build_wikidata_cell_relationships), so we can probably remove it from here.
 
     # Write out metadata.
-    for metadata_name in [UBERON, GO, CL]:
+    for metadata_name in [UBERON, GO, CL, EMAPA]:
         write_concord_metadata(
             metadata_yamls[metadata_name],
             name="build_anatomy_obo_relationships()",
-            sources=[{"type": "UberGraph", "name": "UBERON"}, {"type": "UberGraph", "name": "GO"}, {"type": "UberGraph", "name": "CL"}],
-            description=f"get_subclasses_and_xrefs() of {UBERON}:0001062 and {GO}:0005575",
+            sources=[
+                {"type": "UberGraph", "name": "UBERON"},
+                {"type": "UberGraph", "name": "GO"},
+                {"type": "UberGraph", "name": "CL"},
+                {"type": "UberGraph", "name": "EMAPA"},
+            ],
+            description=(
+                "get_subclasses_and_xrefs() of "
+                f"{ANATOMY_OBO_SOURCES[UBERON]['root']}, "
+                f"{ANATOMY_OBO_SOURCES[GO]['root']}, and "
+                f"{ANATOMY_OBO_SOURCES[EMAPA]['root']}"
+            ),
             concord_filename=f"{outdir}/{metadata_name}",
         )
 
@@ -173,7 +204,7 @@ def build_anatomy_umls_relationships(mrconso, idfile, outfile, umls_metadata):
     umls.build_sets(mrconso, idfile, outfile, {"SNOMEDCT_US": SNOMEDCT, "MSH": MESH, "NCI": NCIT, "GO": GO, "FMA": FMA}, provenance_metadata_yaml=umls_metadata)
 
 
-ANATOMY_UNIQUE_PREFIXES = [UBERON, GO]
+ANATOMY_UNIQUE_PREFIXES = [UBERON, GO, EMAPA]
 
 
 def compute_cliques_for_impact_report(concordances, identifiers, excluded_sources=()):
@@ -253,7 +284,7 @@ def create_typed_sets(eqsets, types):
         # prefixes = set([ Text.get_curie(x) for x in equivalent_ids])
         prefixes = get_prefixes(equivalent_ids)
         found = False
-        for prefix in [GO, CL, UBERON]:
+        for prefix in [GO, CL, UBERON, EMAPA]:
             if prefix in prefixes and prefixes[prefix][0] in types and not found:
                 mytype = types[prefixes[prefix][0]]
                 typed_sets[mytype].add(equivalent_ids)
