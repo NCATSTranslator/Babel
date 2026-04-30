@@ -1,5 +1,12 @@
 from collections import defaultdict
+import logging
+from collections import defaultdict
 from os import path
+
+import src.datahandlers.doid as doid
+import src.datahandlers.efo as efo
+import src.datahandlers.mesh as mesh
+from sssom import parsers
 
 import src.datahandlers.doid as doid
 import src.datahandlers.efo as efo
@@ -9,7 +16,7 @@ import src.datahandlers.umls as umls
 from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.metadata.provenance import write_concord_metadata
-from src.prefixes import HP, ICD0, ICD9, ICD10, KEGGDISEASE, MEDDRA, MESH, MONDO, NCIT, OMIM, ORPHANET, SNOMEDCT, UMLS
+from src.prefixes import HP, MP, ICD0, ICD9, ICD10, KEGGDISEASE, MEDDRA, MESH, MONDO, NCIT, OMIM, ORPHANET, SNOMEDCT, UMLS
 from src.ubergraph import build_sets
 
 
@@ -41,6 +48,13 @@ def write_efo_ids(owlfile, outfile):
 def write_hp_ids(outfile):
     # Phenotype
     phenotype_id = "HP:0000118"
+    write_obo_ids([(phenotype_id, PHENOTYPIC_FEATURE)], outfile)
+
+
+def write_mp_ids(outfile):
+    # Write terms from the Mammalian Phenotype Ontology
+    # https://github.com/TranslatorSRI/Babel/issues/240
+    phenotype_id = "MP:0000001"
     write_obo_ids([(phenotype_id, PHENOTYPIC_FEATURE)], outfile)
 
 
@@ -178,6 +192,42 @@ def build_disease_efo_relationships(owlfile, idfile, outfile, metadata_yaml):
     efo.make_concords(owlfile, idfile, outfile, provenance_metadata=metadata_yaml)
 
 
+def build_hp_mp_concords(hp_mp_sssom_urls, outfile, threshold=0.8, acceptable_predicates=["skos:exactMatch"]):
+    # We rely on the files from the
+    # Mouse-Human Ontology Mapping Initiative (https://github.com/mapping-commons/mh_mapping_initiative)
+
+    if not hp_mp_sssom_urls:
+        raise RuntimeError("build_hp_mp_concords() called without any hp_mp_sssom_urls")
+
+    with open(outfile, "w") as fout:
+        for hp_mp_sssom_url in hp_mp_sssom_urls:
+            count_mappings = 0
+            result = parsers.parse_sssom_table(hp_mp_sssom_url)
+
+            df = result.df
+            if "confidence" in df.columns:
+                df_filtered = df[(df["confidence"] > threshold)]
+                logging.info(f"Filtered {df.size} to {df_filtered.size} by filtering by confidence > {threshold}")
+            else:
+                df_filtered = df
+
+            for index in df_filtered.index:
+                subject_id = df_filtered["subject_id"][index]
+                object_id = df_filtered["object_id"][index]
+                predicate_id = df_filtered["predicate_id"][index]
+
+                if subject_id == "sssom:NoTermFound" or object_id == "sssom:NoTermFound":
+                    continue
+
+                if predicate_id not in acceptable_predicates:
+                    continue
+
+                print(f"{subject_id}\t{predicate_id}\t{object_id}", file=fout)
+                count_mappings += 1
+
+            logging.info(f"Extracted {count_mappings} mappings from {hp_mp_sssom_url}")
+
+
 def build_disease_umls_relationships(mrconso, idfile, outfile, omimfile, ncitfile, metadata_yaml):
     # UMLS contains xrefs between a disease UMLS and a gene OMIM. So here we are saying: if you are going to link to
     # an omim identifier, make sure it's a disease omim, not some other thing.
@@ -192,7 +242,7 @@ def build_disease_umls_relationships(mrconso, idfile, outfile, omimfile, ncitfil
         mrconso,
         idfile,
         outfile,
-        {"SNOMEDCT_US": SNOMEDCT, "MSH": MESH, "NCI": NCIT, "HPO": HP, "MDR": MEDDRA, "OMIM": OMIM},
+        {"SNOMEDCT_US": SNOMEDCT, "MSH": MESH, "NCI": NCIT, "HPO": HP, "MP": MP, "MDR": MEDDRA, "OMIM": OMIM},
         acceptable_identifiers=good_ids,
         provenance_metadata_yaml=metadata_yaml,
     )
@@ -229,7 +279,7 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
     for ifile in identifiers:
         print(ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=[MONDO, HP])
+        glom(dicts, new_identifiers, unique_prefixes=[MONDO, HP, MP])
         types.update(new_types)
     # Load close Mondos
     with open(mondoclose) as inf:
@@ -260,7 +310,7 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
             newpairs = remove_overused_xrefs(pairs)
         else:
             newpairs = pairs
-        glom(dicts, newpairs, unique_prefixes=[MONDO, HP], close={MONDO: close_mondos})
+        glom(dicts, newpairs, unique_prefixes=[MONDO, HP, MP], close={MONDO: close_mondos})
         try:
             print(dicts["OMIM:607644"])
         except Exception:
@@ -286,7 +336,7 @@ def create_typed_sets(eqsets, types):
         # prefixes = set([ Text.get_curie(x) for x in equivalent_ids])
         prefixes = get_prefixes(equivalent_ids)
         found = False
-        for prefix in [MONDO, HP]:
+        for prefix in [MONDO, HP, MP]:
             if prefix in prefixes and not found:
                 try:
                     mytype = types[prefixes[prefix][0]]

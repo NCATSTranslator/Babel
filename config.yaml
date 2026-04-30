@@ -81,6 +81,7 @@ ubergraph_ontologies:
   - ECTO
   - ENVO
   - HP
+  - MP
   - UPHENO
   - BFO
   - BSPO
@@ -202,6 +203,7 @@ disease_labelsandsynonyms:
   - DOID
   - Orphanet
   - HP
+  - MP
   - MESH
   - NCIT
   - UMLS
@@ -213,6 +215,7 @@ disease_ids:
   - DOID
   - Orphanet
   - HP
+  - MP
   - MESH
   - NCIT
   - UMLS
@@ -225,6 +228,7 @@ disease_concords:
   - UMLS
   - DOID
   - EFO
+  - HP_MP
   - Manual
 
 disease_outputs:
