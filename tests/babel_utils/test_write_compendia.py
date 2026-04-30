@@ -128,11 +128,6 @@ def test_chemical_long_iupac_demoted():
     common name when a shorter label is available.
     """
     node = _node([
-        ("CHEBI:17334", "(2S)-2-amino-3-hydroxypropanoic acid"),  # 35 chars — too long
-        ("CHEBI:17334", "serine"),  # would be a duplicate curie in practice, but label logic is independent
-    ])
-    # Use two distinct CURIEs to get two distinct labels
-    node = _node([
         ("CHEBI:17334", "(2S)-2-amino-3-hydroxypropanoic acid"),
         ("PUBCHEM.COMPOUND:5951", "serine"),
     ])
