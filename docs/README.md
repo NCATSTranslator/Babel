@@ -26,3 +26,7 @@ This folder contains reference documentation for Babel, organized by audience.
 | [Architecture.md](./Architecture.md) | Source code layout, data-flow narrative, key data structures (concord files, compendium JSONL), and key patterns (factory pattern, TSVSQLiteLoader, union-find, Biolink Model integration).                                              |
 | [Development.md](./Development.md)   | Development workflow, how to obtain prerequisites, how to build individual compendia, known challenges, and ideas for improving the pipeline.                                                                                            |
 | [Triage.md](./Triage.md)             | **Part 1 (for users):** how to file a useful bug report, assign priority/impact/size, and track when your issue will be addressed. **Part 2 (for developers):** triage checklist, automated test syntax, and sprint planning heuristics. |
+
+## Source-specific notes
+
+- [EMAPA source docs](./sources/EMAPA/README.md)

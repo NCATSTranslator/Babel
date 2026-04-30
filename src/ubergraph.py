@@ -234,6 +234,7 @@ class UberGraph:
         prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
         prefix CL: <http://purl.obolibrary.org/obo/CL_>
+        prefix EMAPA: <http://purl.obolibrary.org/obo/EMAPA_>
         prefix GO: <http://purl.obolibrary.org/obo/GO_>
         prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
         prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
@@ -270,6 +271,7 @@ class UberGraph:
         prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
         prefix CL: <http://purl.obolibrary.org/obo/CL_>
+        prefix EMAPA: <http://purl.obolibrary.org/obo/EMAPA_>
         prefix GO: <http://purl.obolibrary.org/obo/GO_>
         prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
         prefix CHEBIP: <http://purl.obolibrary.org/obo/chebi/>
@@ -310,6 +312,7 @@ class UberGraph:
         prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
         prefix CL: <http://purl.obolibrary.org/obo/CL_>
+        prefix EMAPA: <http://purl.obolibrary.org/obo/EMAPA_>
         prefix GO: <http://purl.obolibrary.org/obo/GO_>
         prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
         prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
@@ -345,6 +348,7 @@ class UberGraph:
                 prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                 prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
                 prefix CL: <http://purl.obolibrary.org/obo/CL_>
+                prefix EMAPA: <http://purl.obolibrary.org/obo/EMAPA_>
                 prefix GO: <http://purl.obolibrary.org/obo/GO_>
                 prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
                 prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
@@ -396,6 +400,7 @@ class UberGraph:
                 prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                 prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
                 prefix CL: <http://purl.obolibrary.org/obo/CL_>
+                prefix EMAPA: <http://purl.obolibrary.org/obo/EMAPA_>
                 prefix GO: <http://purl.obolibrary.org/obo/GO_>
                 prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
                 prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
