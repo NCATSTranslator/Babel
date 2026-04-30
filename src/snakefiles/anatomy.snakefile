@@ -23,6 +23,16 @@ rule anatomy_cl_ids:
         anatomy.write_cl_ids(output.outfile)
 
 
+rule anatomy_emapa_ids:
+    output:
+        outfile=config["intermediate_directory"] + "/anatomy/ids/EMAPA",
+    benchmark:
+        config["output_directory"] + "/benchmarks/anatomy_emapa_ids.tsv"
+    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    run:
+        anatomy.write_emapa_ids(output.outfile)
+
+
 rule anatomy_go_ids:
     output:
         outfile=config["intermediate_directory"] + "/anatomy/ids/GO",
@@ -68,9 +78,11 @@ rule get_anatomy_obo_relationships:
         config["intermediate_directory"] + "/anatomy/concords/UBERON",
         config["intermediate_directory"] + "/anatomy/concords/CL",
         config["intermediate_directory"] + "/anatomy/concords/GO",
+        config["intermediate_directory"] + "/anatomy/concords/EMAPA",
         uberon_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-UBERON.yaml",
         cl_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-CL.yaml",
         go_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-GO.yaml",
+        emapa_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-EMAPA.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/get_anatomy_obo_relationships.tsv"
     retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
@@ -81,6 +93,7 @@ rule get_anatomy_obo_relationships:
                 "UBERON": output.uberon_metadata,
                 "CL": output.cl_metadata,
                 "GO": output.go_metadata,
+                "EMAPA": output.emapa_metadata,
             },
         )
 

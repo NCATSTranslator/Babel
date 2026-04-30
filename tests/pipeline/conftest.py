@@ -33,6 +33,8 @@ import pytest
 from src.babel_utils import make_local_name
 from src.createcompendia import anatomy, chemicals, diseasephenotype, protein, taxon
 from src.datahandlers.mesh import Mesh, pull_mesh
+from src.prefixes import EMAPA
+from src.ubergraph import build_sets
 
 # ---------------------------------------------------------------------------
 # Shared helpers (not fixtures — importable by test files)
@@ -471,6 +473,34 @@ def go_pipeline_outputs(ubergraph_connection, regenerate):
 
 
 # ---------------------------------------------------------------------------
+# EMAPA processing fixture (uses UberGraph, no file download)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def emapa_pipeline_outputs(ubergraph_connection, regenerate):
+    """Run EMAPA anatomy ID extraction and ensure EMAPA concord generation is available."""
+
+    id_path = _intermediate_id_path("anatomy", "EMAPA")
+    concord_path = _intermediate_concord_path("anatomy", "EMAPA")
+
+    _maybe_run(id_path, lambda: anatomy.write_emapa_ids(id_path), regenerate)
+    _maybe_run(
+        concord_path,
+        lambda: _write_emapa_concord(concord_path),
+        regenerate,
+    )
+
+    return {"anatomy": id_path}
+
+
+def _write_emapa_concord(concord_path: str) -> None:
+    os.makedirs(os.path.dirname(concord_path), exist_ok=True)
+    with open(concord_path, "w") as emapa_file:
+        build_sets("EMAPA:0", {EMAPA: emapa_file}, "xref")
+
+
+# ---------------------------------------------------------------------------
 # Vocabulary registry + parametrized fixture for test_vocabulary_partitioning.py
 # ---------------------------------------------------------------------------
 
@@ -483,6 +513,7 @@ VOCABULARY_REGISTRY = {
     "OMIM": "omim_pipeline_outputs",
     "NCIT": "ncit_pipeline_outputs",
     "GO":   "go_pipeline_outputs",
+    "EMAPA": "emapa_pipeline_outputs",
 }
 
 
