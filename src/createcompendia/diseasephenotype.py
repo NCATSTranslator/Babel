@@ -1,11 +1,7 @@
-from collections import defaultdict
 import logging
 from collections import defaultdict
 from os import path
 
-import src.datahandlers.doid as doid
-import src.datahandlers.efo as efo
-import src.datahandlers.mesh as mesh
 from sssom import parsers
 
 import src.datahandlers.doid as doid
@@ -16,7 +12,22 @@ import src.datahandlers.umls as umls
 from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.metadata.provenance import write_concord_metadata
-from src.prefixes import HP, MP, ICD0, ICD9, ICD10, KEGGDISEASE, MEDDRA, MESH, MONDO, NCIT, OMIM, ORPHANET, SNOMEDCT, UMLS
+from src.prefixes import (
+    HP,
+    ICD0,
+    ICD9,
+    ICD10,
+    KEGGDISEASE,
+    MEDDRA,
+    MESH,
+    MONDO,
+    MP,
+    NCIT,
+    OMIM,
+    ORPHANET,
+    SNOMEDCT,
+    UMLS,
+)
 from src.ubergraph import build_sets
 
 
