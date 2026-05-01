@@ -50,6 +50,10 @@ If your new rule produces something other than a concord (e.g. an enrichment fil
 a new identifier list with non-trivial provenance), use `write_metadata` /
 `write_combined_metadata` directly to produce the matching YAML.
 
+See [`docs/Metadata.md`](../Metadata.md) for the full schema, the four helper
+functions in `src/metadata/provenance.py`, and worked examples (including the
+recursive `combined_from` pattern).
+
 ### 3. Cross-reference quality report
 
 For sources that contribute concords (i.e. add new equivalence edges), the impact on

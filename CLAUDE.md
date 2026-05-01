@@ -169,6 +169,24 @@ option would be best.
   This ensures that a Biolink class rename only requires updating `src/categories.py`.
   If a needed constant is missing from `categories.py`, add it there first.
 
+- **Adding a new data source** — see [`docs/AddingSources/`](docs/AddingSources/README.md) for the
+  full checklist. Two traps worth flagging here because they have caused PR-blocking bugs:
+
+  - Adding a prefix to one of the `*_ids`, `*_labelsandsynonyms`, or `*_concords` lists in
+    `config.yaml` only declares the file as required input to the compendium rule. A *separate*
+    rule must produce that file (e.g. `disease_mp_ids` in `diseasephenotype.snakefile` for
+    `MP` in `disease_ids`), and ontology prefixes whose labels come from UberGraph must also
+    appear in `generate_dirs_for_labels_and_synonyms_prefixes` so the generic `get_obo_labels` /
+    `get_obo_synonyms` rules pick them up. After any such config edit, run
+    `uv run snakemake --dry-run <target>` — DAG resolution failure points directly at the
+    missing rule.
+  - New concord rules should emit a `metadata-<NAME>.yaml` alongside the concord file, using
+    `write_concord_metadata` (and `combined_from` if there are multiple upstream inputs) from
+    `src/metadata/provenance.py`. Babel's downstream consumers and reports treat the YAML as
+    the source of truth for counts; do not paste counts into documentation, and do not add new
+    `*_concords` entries without the matching metadata-emitting rule. Schema and conventions
+    are documented in [`docs/Metadata.md`](docs/Metadata.md).
+
 - **IRI parsing helpers** — functions that extract IDs from external-format strings (e.g. pyoxigraph
   IRIs, SPARQL results) must validate the input format and raise `ValueError` if it doesn't match.
   Use a named prefix constant so the check and the extraction share the same string. Example pattern
