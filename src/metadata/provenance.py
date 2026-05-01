@@ -11,7 +11,7 @@ def write_download_metadata(filename, *, name, url="", description="", sources=N
     write_metadata(filename, "download", name, url=url, description=description, sources=sources, counts=None)
 
 
-def write_concord_metadata(filename, *, name, concord_filename, url="", description="", sources=None, counts=None):
+def write_concord_metadata(filename, *, name, concord_filename, url="", description="", sources=None, counts=None, combined_from=None):
     # Concord files should all be in the format:
     #   <curie>\t<predicate>\t<curie>
     # From this, we extract three counts:
@@ -56,7 +56,7 @@ def write_concord_metadata(filename, *, name, concord_filename, url="", descript
         "prefix_counts": dict(curie_prefix_counts),
     }
 
-    write_metadata(filename, "concord", name, url=url, description=description, sources=sources, counts=counts)
+    write_metadata(filename, "concord", name, url=url, description=description, sources=sources, counts=counts, combined_from=combined_from)
 
 
 def write_combined_metadata(

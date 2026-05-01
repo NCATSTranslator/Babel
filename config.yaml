@@ -68,6 +68,7 @@ generate_dirs_for_labels_and_synonyms_prefixes:
   - UBERON
   - CHEBI
   - HP
+  - MP
   - MONDO
   - PR
 

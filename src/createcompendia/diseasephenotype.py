@@ -204,36 +204,107 @@ def build_disease_efo_relationships(owlfile, idfile, outfile, metadata_yaml):
     efo.make_concords(owlfile, idfile, outfile, provenance_metadata=metadata_yaml)
 
 
-def build_hp_mp_concords(hp_mp_sssom_urls, outfile, threshold=0.8, acceptable_predicates=None):
-    # We rely on the files from the
-    # Mouse-Human Ontology Mapping Initiative (https://github.com/mapping-commons/mh_mapping_initiative)
+_MH_MAPPING_INITIATIVE = {
+    "name": "Mouse-Human Ontology Mapping Initiative",
+    "url": "https://github.com/mapping-commons/mh_mapping_initiative",
+}
+
+
+def _predicate_value_counts(series):
+    return {str(k): int(v) for k, v in series.value_counts().items()}
+
+
+def build_hp_mp_concords(hp_mp_sssom_inputs, outfile, metadata_yaml, threshold=0.8, acceptable_predicates=None):
+    """Build the HP↔MP concord file from SSSOM mappings and emit a per-source metadata.yaml.
+
+    Each entry of `hp_mp_sssom_inputs` is a dict with keys `name`, `url`, and (optionally)
+    `description`. We rely on the files from the
+    Mouse-Human Ontology Mapping Initiative (https://github.com/mapping-commons/mh_mapping_initiative).
+    """
     if acceptable_predicates is None:
         acceptable_predicates = ["skos:exactMatch"]
 
-    if not hp_mp_sssom_urls:
-        raise RuntimeError("build_hp_mp_concords() called without any hp_mp_sssom_urls")
+    if not hp_mp_sssom_inputs:
+        raise RuntimeError("build_hp_mp_concords() called without any hp_mp_sssom_inputs")
 
     predicate_set = set(acceptable_predicates)
+    combined_from = {}
+
     with open(outfile, "w") as fout:
-        for hp_mp_sssom_url in hp_mp_sssom_urls:
-            result = parsers.parse_sssom_table(hp_mp_sssom_url)
+        for source in hp_mp_sssom_inputs:
+            source_name = source["name"]
+            source_url = source["url"]
+            source_description = source.get("description", "")
 
+            result = parsers.parse_sssom_table(source_url)
             df = result.df
+            total_rows = len(df)
+
+            # Stage 1: confidence filter (only if the column is present).
             if "confidence" in df.columns:
-                df_filtered = df[(df["confidence"] > threshold)]
-                logging.info(f"Filtered {len(df)} to {len(df_filtered)} by filtering by confidence > {threshold}")
+                df_after_confidence = df[df["confidence"] > threshold]
+                rows_dropped_by_confidence = total_rows - len(df_after_confidence)
+                confidence_threshold_used = threshold
             else:
-                df_filtered = df
+                df_after_confidence = df
+                rows_dropped_by_confidence = 0
+                confidence_threshold_used = None
 
-            mask = (
-                (df_filtered["subject_id"] != _SSSOM_NO_TERM_FOUND)
-                & (df_filtered["object_id"] != _SSSOM_NO_TERM_FOUND)
-                & df_filtered["predicate_id"].isin(predicate_set)
+            # Stage 2: drop sssom:NoTermFound rows.
+            no_term_mask = (df_after_confidence["subject_id"] == _SSSOM_NO_TERM_FOUND) | (
+                df_after_confidence["object_id"] == _SSSOM_NO_TERM_FOUND
             )
-            df_out = df_filtered[mask][["subject_id", "predicate_id", "object_id"]]
-            df_out.to_csv(fout, sep="\t", header=False, index=False)
+            rows_dropped_no_term_found = int(no_term_mask.sum())
+            df_after_ntf = df_after_confidence[~no_term_mask]
 
-            logging.info(f"Extracted {len(df_out)} mappings from {hp_mp_sssom_url}")
+            # Stage 3: keep only acceptable predicates.
+            unaccepted_mask = ~df_after_ntf["predicate_id"].isin(predicate_set)
+            rows_dropped_unaccepted_predicate = int(unaccepted_mask.sum())
+            predicates_dropped = _predicate_value_counts(df_after_ntf[unaccepted_mask]["predicate_id"])
+
+            df_out = df_after_ntf[~unaccepted_mask][["subject_id", "predicate_id", "object_id"]]
+            rows_written = len(df_out)
+            predicates_kept = _predicate_value_counts(df_out["predicate_id"])
+
+            df_out.to_csv(fout, sep="\t", header=False, index=False)
+            logging.info(f"Extracted {rows_written} of {total_rows} mappings from {source_url}")
+
+            combined_from[source_name] = {
+                "type": "concord",
+                "name": source_name,
+                "url": source_url,
+                "description": source_description,
+                "sources": [_MH_MAPPING_INITIATIVE],
+                "counts": {
+                    "sssom": {
+                        "total_rows_input": total_rows,
+                        "confidence_threshold": confidence_threshold_used,
+                        "rows_dropped_by_confidence": rows_dropped_by_confidence,
+                        "rows_dropped_no_term_found": rows_dropped_no_term_found,
+                        "rows_dropped_unaccepted_predicate": rows_dropped_unaccepted_predicate,
+                        "predicates_dropped": predicates_dropped,
+                        "rows_written": rows_written,
+                        "predicates_kept": predicates_kept,
+                    },
+                },
+                "combined_from": [],
+            }
+
+    write_concord_metadata(
+        metadata_yaml,
+        name="HP-MP mappings (Mouse-Human Ontology Mapping Initiative)",
+        concord_filename=outfile,
+        url=_MH_MAPPING_INITIATIVE["url"],
+        description=(
+            f"HP-MP mappings combined from {len(hp_mp_sssom_inputs)} SSSOM file(s) from the "
+            f"Mouse-Human Ontology Mapping Initiative. Filters applied to each input: "
+            f"confidence > {threshold} (when the column is present), drop rows where "
+            f"subject_id or object_id equals {_SSSOM_NO_TERM_FOUND}, keep only predicates "
+            f"in {sorted(acceptable_predicates)}."
+        ),
+        sources=[_MH_MAPPING_INITIATIVE],
+        combined_from=combined_from,
+    )
 
 
 def build_disease_umls_relationships(mrconso, idfile, outfile, omimfile, ncitfile, metadata_yaml):
