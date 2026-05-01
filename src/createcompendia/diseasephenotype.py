@@ -30,6 +30,8 @@ from src.prefixes import (
 )
 from src.ubergraph import build_sets
 
+_SSSOM_NO_TERM_FOUND = "sssom:NoTermFound"
+
 
 def write_obo_ids(irisandtypes, outfile, exclude=[]):
     order = [DISEASE, PHENOTYPIC_FEATURE]
@@ -63,7 +65,6 @@ def write_hp_ids(outfile):
 
 
 def write_mp_ids(outfile):
-    # Write terms from the Mammalian Phenotype Ontology
     # https://github.com/TranslatorSRI/Babel/issues/240
     phenotype_id = "MP:0000001"
     write_obo_ids([(phenotype_id, PHENOTYPIC_FEATURE)], outfile)
@@ -203,40 +204,36 @@ def build_disease_efo_relationships(owlfile, idfile, outfile, metadata_yaml):
     efo.make_concords(owlfile, idfile, outfile, provenance_metadata=metadata_yaml)
 
 
-def build_hp_mp_concords(hp_mp_sssom_urls, outfile, threshold=0.8, acceptable_predicates=["skos:exactMatch"]):
+def build_hp_mp_concords(hp_mp_sssom_urls, outfile, threshold=0.8, acceptable_predicates=None):
     # We rely on the files from the
     # Mouse-Human Ontology Mapping Initiative (https://github.com/mapping-commons/mh_mapping_initiative)
+    if acceptable_predicates is None:
+        acceptable_predicates = ["skos:exactMatch"]
 
     if not hp_mp_sssom_urls:
         raise RuntimeError("build_hp_mp_concords() called without any hp_mp_sssom_urls")
 
+    predicate_set = set(acceptable_predicates)
     with open(outfile, "w") as fout:
         for hp_mp_sssom_url in hp_mp_sssom_urls:
-            count_mappings = 0
             result = parsers.parse_sssom_table(hp_mp_sssom_url)
 
             df = result.df
             if "confidence" in df.columns:
                 df_filtered = df[(df["confidence"] > threshold)]
-                logging.info(f"Filtered {df.size} to {df_filtered.size} by filtering by confidence > {threshold}")
+                logging.info(f"Filtered {len(df)} to {len(df_filtered)} by filtering by confidence > {threshold}")
             else:
                 df_filtered = df
 
-            for index in df_filtered.index:
-                subject_id = df_filtered["subject_id"][index]
-                object_id = df_filtered["object_id"][index]
-                predicate_id = df_filtered["predicate_id"][index]
+            mask = (
+                (df_filtered["subject_id"] != _SSSOM_NO_TERM_FOUND)
+                & (df_filtered["object_id"] != _SSSOM_NO_TERM_FOUND)
+                & df_filtered["predicate_id"].isin(predicate_set)
+            )
+            df_out = df_filtered[mask][["subject_id", "predicate_id", "object_id"]]
+            df_out.to_csv(fout, sep="\t", header=False, index=False)
 
-                if subject_id == "sssom:NoTermFound" or object_id == "sssom:NoTermFound":
-                    continue
-
-                if predicate_id not in acceptable_predicates:
-                    continue
-
-                print(f"{subject_id}\t{predicate_id}\t{object_id}", file=fout)
-                count_mappings += 1
-
-            logging.info(f"Extracted {count_mappings} mappings from {hp_mp_sssom_url}")
+            logging.info(f"Extracted {len(df_out)} mappings from {hp_mp_sssom_url}")
 
 
 def build_disease_umls_relationships(mrconso, idfile, outfile, omimfile, ncitfile, metadata_yaml):

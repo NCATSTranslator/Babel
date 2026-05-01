@@ -63,9 +63,10 @@ rule disease_ncit_ids:
     run:
         diseasephenotype.write_ncit_ids(output.outfile)
 
+
 rule disease_mesh_ids:
     input:
-        config['download_directory']+'/MESH/mesh.nt'
+        config["download_directory"] + "/MESH/mesh.nt",
     output:
         outfile=config["intermediate_directory"] + "/disease/ids/MESH",
     benchmark:
@@ -173,7 +174,6 @@ rule get_disease_doid_relationships:
         config["output_directory"] + "/benchmarks/get_disease_doid_relationships.tsv"
     run:
         diseasephenotype.build_disease_doid_relationships(input.infile, output.outfile, output.metadata_yaml)
-
 
 
 rule get_hp_mp_concord:
