@@ -160,7 +160,7 @@ def test_pull_CLO_ids_writes_descendants(clograph, tmp_path):
 
 
 @pytest.mark.unit
-def test_get_exacts_skos_exactmatch(clograph, tmp_path):
+def test_get_exacts_skos_exactmatch(clograph):
     iri = f"<{_CLO_NS}0000001>"
     out = io.StringIO()
     clograph.get_exacts(iri, out)
@@ -169,7 +169,7 @@ def test_get_exacts_skos_exactmatch(clograph, tmp_path):
 
 
 @pytest.mark.unit
-def test_get_exacts_filters_orphanet(clograph, tmp_path):
+def test_get_exacts_filters_orphanet(clograph):
     iri = f"<{_CLO_NS}0000001>"
     out = io.StringIO()
     clograph.get_exacts(iri, out)
@@ -184,7 +184,7 @@ def test_get_exacts_filters_orphanet(clograph, tmp_path):
 
 
 @pytest.mark.unit
-def test_get_xrefs_writes_valid_curie(clograph, tmp_path):
+def test_get_xrefs_writes_valid_curie(clograph):
     iri = f"<{_CLO_NS}0000001>"
     out = io.StringIO()
     clograph.get_xrefs(iri, out)
@@ -193,7 +193,7 @@ def test_get_xrefs_writes_valid_curie(clograph, tmp_path):
 
 
 @pytest.mark.unit
-def test_get_xrefs_skips_non_curie(clograph, tmp_path):
+def test_get_xrefs_skips_non_curie(clograph):
     iri = f"<{_CLO_NS}0000001>"
     out = io.StringIO()
     clograph.get_xrefs(iri, out)

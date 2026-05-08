@@ -9,7 +9,6 @@ from src.prefixes import EFO
 
 _EFO_NS = "http://www.ebi.ac.uk/efo/EFO_"
 _SKOS_NS = "http://www.w3.org/2004/02/skos/core#"
-_SKOSH_NS = "http://www.w3.org/2004/02/skos/core#"  # same, just alias
 _RDFS_NS = "http://www.w3.org/2000/01/rdf-schema#"
 _MONDO_NS = "http://purl.obolibrary.org/obo/MONDO_"
 _MONDOH_NS = "http://purl.obolibrary.org/obo/mondo#"
@@ -160,7 +159,7 @@ def test_pull_EFO_ids_writes_descendants(efograph, tmp_path):
 
 
 @pytest.mark.unit
-def test_get_exacts_skos_exactmatch(efograph, tmp_path):
+def test_get_exacts_skos_exactmatch(efograph):
     out = io.StringIO()
     efograph.get_exacts("EFO:0000001", out)
     content = out.getvalue()
@@ -168,7 +167,7 @@ def test_get_exacts_skos_exactmatch(efograph, tmp_path):
 
 
 @pytest.mark.unit
-def test_get_exacts_mondo_exactmatch(efograph, tmp_path):
+def test_get_exacts_mondo_exactmatch(efograph):
     out = io.StringIO()
     efograph.get_exacts("EFO:0000001", out)
     content = out.getvalue()
@@ -176,12 +175,10 @@ def test_get_exacts_mondo_exactmatch(efograph, tmp_path):
 
 
 @pytest.mark.unit
-def test_get_exacts_filters_orphanet(efograph, tmp_path):
+def test_get_exacts_filters_orphanet(efograph):
     out = io.StringIO()
     efograph.get_exacts("EFO:0000001", out)
     content = out.getvalue()
-    assert "Orphanet" not in content.lower() or "orphanet" not in content.lower()
-    # Strictly: no Orphanet line should appear
     for line in content.splitlines():
         assert "orphanet" not in line.lower(), f"Unexpected Orphanet line: {line}"
 
@@ -192,7 +189,7 @@ def test_get_exacts_filters_orphanet(efograph, tmp_path):
 
 
 @pytest.mark.unit
-def test_get_xrefs_writes_valid_curie(efograph, tmp_path):
+def test_get_xrefs_writes_valid_curie(efograph):
     out = io.StringIO()
     efograph.get_xrefs("EFO:0000001", out)
     content = out.getvalue()
@@ -200,7 +197,7 @@ def test_get_xrefs_writes_valid_curie(efograph, tmp_path):
 
 
 @pytest.mark.unit
-def test_get_xrefs_skips_non_curie(efograph, tmp_path):
+def test_get_xrefs_skips_non_curie(efograph):
     out = io.StringIO()
     efograph.get_xrefs("EFO:0000001", out)
     content = out.getvalue()
