@@ -493,7 +493,7 @@ VOCABULARY_REGISTRY = {
 
 @pytest.fixture(scope="session")
 def ec_rdf_file():
-    """Download babel_downloads/EC/enzyme.rdf, or skip if unavailable."""
+    """Download babel_downloads/EC/enzyme.rdf, or fail if unavailable."""
     from src.datahandlers.ec import pull_ec  # deferred: only import when EC tests are requested
     return _download_or_fail(
         "EC enzyme.rdf",
@@ -517,7 +517,9 @@ def ec_pipeline_outputs(ec_rdf_file, regenerate):
     ids = _intermediate_id_path("processactivitypathway", "EC")
 
     from src.datahandlers.ec import ECgraph  # deferred: avoids loading RDF at import time
-    _maybe_run(labels, lambda: ECgraph().pull_EC_labels_and_synonyms(labels, synonyms), regenerate)
+    if regenerate or not os.path.exists(labels) or not os.path.exists(synonyms):
+        os.makedirs(os.path.dirname(labels), exist_ok=True)
+        ECgraph().pull_EC_labels_and_synonyms(labels, synonyms)
     _maybe_run(ids, lambda: ECgraph().pull_EC_ids(ids), regenerate)
 
     return {"labels": labels, "synonyms": synonyms, "ids": ids}
@@ -530,7 +532,7 @@ def ec_pipeline_outputs(ec_rdf_file, regenerate):
 
 @pytest.fixture(scope="session")
 def rhea_rdf_file():
-    """Download babel_downloads/RHEA/rhea.rdf, or skip if unavailable."""
+    """Download babel_downloads/RHEA/rhea.rdf, or fail if unavailable."""
     from src.datahandlers.rhea import pull_rhea  # deferred
     return _download_or_fail(
         "Rhea rhea.rdf",
@@ -606,7 +608,7 @@ def chembl_pipeline_outputs(chembl_ttl_files, regenerate):
 
 @pytest.fixture(scope="session")
 def clo_owl_file():
-    """Download babel_downloads/CLO/clo.owl, or skip if unavailable."""
+    """Download babel_downloads/CLO/clo.owl, or fail if unavailable."""
     from src.datahandlers.clo import pull_clo  # deferred
     clo_owl = make_local_name("clo.owl", subpath="CLO")
     metadata = make_local_name("metadata.yaml", subpath="CLO")
@@ -634,7 +636,9 @@ def clo_pipeline_outputs(clo_owl_file, regenerate):
     from src.categories import CELL_LINE  # deferred
     from src.datahandlers.clo import CLOgraph  # deferred
     roots = [("CLO:0000001", CELL_LINE)]
-    _maybe_run(labels, lambda: CLOgraph(clo_owl_file).pull_CLO_labels_and_synonyms(labels, synonyms), regenerate)
+    if regenerate or not os.path.exists(labels) or not os.path.exists(synonyms):
+        os.makedirs(os.path.dirname(labels), exist_ok=True)
+        CLOgraph(clo_owl_file).pull_CLO_labels_and_synonyms(labels, synonyms)
     _maybe_run(ids, lambda: CLOgraph(clo_owl_file).pull_CLO_ids(roots, ids), regenerate)
 
     return {"labels": labels, "synonyms": synonyms, "ids": ids}
@@ -647,7 +651,7 @@ def clo_pipeline_outputs(clo_owl_file, regenerate):
 
 @pytest.fixture(scope="session")
 def efo_owl_file():
-    """Download babel_downloads/EFO/efo.owl, or skip if unavailable."""
+    """Download babel_downloads/EFO/efo.owl, or fail if unavailable."""
     from src.datahandlers.efo import pull_efo  # deferred
     return _download_or_fail(
         "EFO efo.owl",
@@ -671,10 +675,19 @@ def efo_pipeline_outputs(efo_owl_file, regenerate):
 
     from src.createcompendia.diseasephenotype import write_efo_ids  # deferred
     from src.datahandlers.efo import EFOgraph  # deferred
-    _maybe_run(labels, lambda: EFOgraph(efo_owl_file).pull_EFO_labels_and_synonyms(labels, synonyms), regenerate)
+    if regenerate or not os.path.exists(labels) or not os.path.exists(synonyms):
+        os.makedirs(os.path.dirname(labels), exist_ok=True)
+        EFOgraph(efo_owl_file).pull_EFO_labels_and_synonyms(labels, synonyms)
     _maybe_run(ids, lambda: write_efo_ids(efo_owl_file, ids), regenerate)
 
     return {"labels": labels, "synonyms": synonyms, "ids": ids}
+
+
+# NOTE: The five fixtures above (ec, rhea, chembl, clo, efo) are not registered
+# in VOCABULARY_REGISTRY and are therefore not exercised by the parametrized
+# vocab_outputs fixture.  They are used by tests/pipeline/test_handler_pipelines.py
+# instead.  Once handler-level pipeline tests are stable, consider adding them to
+# VOCABULARY_REGISTRY so they also benefit from the generic partitioning checks.
 
 
 @pytest.fixture(scope="session", params=list(VOCABULARY_REGISTRY.keys()))
