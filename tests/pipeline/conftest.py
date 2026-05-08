@@ -566,11 +566,11 @@ def rhea_pipeline_outputs(rhea_rdf_file, regenerate):
 
 @pytest.fixture(scope="session")
 def chembl_ttl_files():
-    """Download babel_downloads/CHEMBL.COMPOUND/chembl_latest_molecule.ttl + cco.ttl, or skip."""
+    """Download babel_downloads/CHEMBL.COMPOUND/chembl_latest_molecule.ttl + cco.ttl, or fail."""
     from src.datahandlers.chembl import pull_chembl  # deferred
     molecule_file = make_local_name("chembl_latest_molecule.ttl", subpath="CHEMBL.COMPOUND")
     cco_file = make_local_name("cco.ttl", subpath="CHEMBL.COMPOUND")
-    if not os.path.exists(molecule_file):
+    if not os.path.exists(molecule_file) or not os.path.exists(cco_file):
         try:
             pull_chembl(molecule_file)
         except Exception as e:
