@@ -483,17 +483,23 @@ VOCABULARY_REGISTRY = {
     "OMIM": "omim_pipeline_outputs",
     "NCIT": "ncit_pipeline_outputs",
     "GO":   "go_pipeline_outputs",
+    "EC":   "ec_ids_outputs",
+    "CLO":  "clo_ids_outputs",
+    "EFO":  "efo_ids_outputs",
 }
 
 
 # ---------------------------------------------------------------------------
 # EC, Rhea, ChEMBL, CLO, EFO download + processing fixtures
 #
-# NOTE: The five fixtures below (ec, rhea, chembl, clo, efo) are not registered
-# in VOCABULARY_REGISTRY and are therefore not exercised by the parametrized
-# vocab_outputs fixture.  They are used by tests/pipeline/test_handler_pipelines.py
-# instead.  Once handler-level pipeline tests are stable, consider adding them to
-# VOCABULARY_REGISTRY so they also benefit from the generic partitioning checks.
+# EC, CLO, and EFO are registered in VOCABULARY_REGISTRY via slim id-only
+# wrapper fixtures (ec_ids_outputs, clo_ids_outputs, efo_ids_outputs) defined
+# near the bottom of this file.
+#
+# Rhea and ChEMBL are NOT registered: they produce labels/concords/smiles but
+# no IDs file, so they cannot be exercised by test_vocabulary_partitioning.py
+# without adding write_X_ids() functions first.
+# See https://github.com/NCATSTranslator/Babel/issues/749
 # ---------------------------------------------------------------------------
 
 
@@ -685,6 +691,31 @@ def efo_pipeline_outputs(efo_owl_file, regenerate):
     _maybe_run(ids, lambda: write_efo_ids(efo_owl_file, ids), regenerate)
 
     return {"labels": labels, "synonyms": synonyms, "ids": ids}
+
+
+# ---------------------------------------------------------------------------
+# Slim ID-only wrappers for handler fixtures registered in VOCABULARY_REGISTRY
+#
+# EC, CLO, and EFO fixtures return {labels, synonyms, ids} dicts.  The
+# vocab_outputs fixture calls _output_paths(), which treats every string value
+# as a compendium ID file.  Wrapping here exposes only the ids path so the
+# partitioning tests see one compendium per vocabulary, not three.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def ec_ids_outputs(ec_pipeline_outputs):
+    return {"processactivitypathway": ec_pipeline_outputs["ids"]}
+
+
+@pytest.fixture(scope="session")
+def clo_ids_outputs(clo_pipeline_outputs):
+    return {"cell_line": clo_pipeline_outputs["ids"]}
+
+
+@pytest.fixture(scope="session")
+def efo_ids_outputs(efo_pipeline_outputs):
+    return {"diseasephenotype": efo_pipeline_outputs["ids"]}
 
 
 @pytest.fixture(scope="session", params=list(VOCABULARY_REGISTRY.keys()))
