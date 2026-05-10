@@ -633,13 +633,11 @@ def clo_pipeline_outputs(clo_owl_file, regenerate):
     synonyms = os.path.join(cfg["download_directory"], "CLO", "synonyms")
     ids = _intermediate_id_path("cell_line", "CLO")
 
-    from src.categories import CELL_LINE  # deferred
-    from src.datahandlers.clo import CLOgraph  # deferred
-    roots = [("CLO:0000001", CELL_LINE)]
+    from src.datahandlers.clo import CLOgraph, write_clo_ids  # deferred
     if regenerate or not os.path.exists(labels) or not os.path.exists(synonyms):
         os.makedirs(os.path.dirname(labels), exist_ok=True)
         CLOgraph(clo_owl_file).pull_CLO_labels_and_synonyms(labels, synonyms)
-    _maybe_run(ids, lambda: CLOgraph(clo_owl_file).pull_CLO_ids(roots, ids), regenerate)
+    _maybe_run(ids, lambda: write_clo_ids(clo_owl_file, ids), regenerate)
 
     return {"labels": labels, "synonyms": synonyms, "ids": ids}
 
