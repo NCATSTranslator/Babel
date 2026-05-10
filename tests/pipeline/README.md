@@ -168,6 +168,10 @@ No new test file is needed for the standard non-empty and mutual-exclusivity che
 
 Vocabularies not yet covered (candidates):
 
+- **EC, Rhea, ChEMBL, CLO, EFO** — fixtures already exist in `conftest.py` and are
+  used by `test_handler_pipelines.py`. Adding each to `VOCABULARY_REGISTRY` requires
+  only one line (the fixtures are already written). Deferred until the handler-level
+  pipeline tests are stable enough to serve as the canonical prerequisite.
 - **ENSEMBL** — appears in protein (`write_ensembl_protein_ids`) and gene
   (`write_ensembl_gene_ids`). Deferred because the download uses BioMart
   (`pull_ensembl(ensembl_dir, complete_file, ...)`) which is more complex to invoke

@@ -487,7 +487,13 @@ VOCABULARY_REGISTRY = {
 
 
 # ---------------------------------------------------------------------------
-# EC download + processing fixtures
+# EC, Rhea, ChEMBL, CLO, EFO download + processing fixtures
+#
+# NOTE: The five fixtures below (ec, rhea, chembl, clo, efo) are not registered
+# in VOCABULARY_REGISTRY and are therefore not exercised by the parametrized
+# vocab_outputs fixture.  They are used by tests/pipeline/test_handler_pipelines.py
+# instead.  Once handler-level pipeline tests are stable, consider adding them to
+# VOCABULARY_REGISTRY so they also benefit from the generic partitioning checks.
 # ---------------------------------------------------------------------------
 
 
@@ -679,13 +685,6 @@ def efo_pipeline_outputs(efo_owl_file, regenerate):
     _maybe_run(ids, lambda: write_efo_ids(efo_owl_file, ids), regenerate)
 
     return {"labels": labels, "synonyms": synonyms, "ids": ids}
-
-
-# NOTE: The five fixtures above (ec, rhea, chembl, clo, efo) are not registered
-# in VOCABULARY_REGISTRY and are therefore not exercised by the parametrized
-# vocab_outputs fixture.  They are used by tests/pipeline/test_handler_pipelines.py
-# instead.  Once handler-level pipeline tests are stable, consider adding them to
-# VOCABULARY_REGISTRY so they also benefit from the generic partitioning checks.
 
 
 @pytest.fixture(scope="session", params=list(VOCABULARY_REGISTRY.keys()))
