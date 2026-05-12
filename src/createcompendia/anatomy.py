@@ -1,3 +1,4 @@
+import os
 from collections import defaultdict
 
 import requests
@@ -172,17 +173,36 @@ def build_anatomy_umls_relationships(mrconso, idfile, outfile, umls_metadata):
     umls.build_sets(mrconso, idfile, outfile, {"SNOMEDCT_US": SNOMEDCT, "MSH": MESH, "NCI": NCIT, "GO": GO, "FMA": FMA}, provenance_metadata_yaml=umls_metadata)
 
 
-def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
-    """:concordances: a list of files from which to read relationships
-    :identifiers: a list of files from which to read identifiers and optional categories"""
+ANATOMY_UNIQUE_PREFIXES = [UBERON, GO]
+
+
+def compute_cliques_for_impact_report(concordances, identifiers, excluded_sources=()):
+    """Load anatomy identifier and concord files and return the union-find clique state
+    without writing compendia.
+
+    The source-impact report CLI calls this twice — once with the new source's files
+    excluded, once with everything — to compute a before/after diff.
+
+    :param concordances: list of paths to concord files
+    :param identifiers: list of paths to ids files
+    :param excluded_sources: set of source names (file basenames) to skip; used to compute
+        the "before-new-source" state for the impact report
+    :returns: (dicts, types) where dicts is the glom dict-of-sets and types maps CURIE
+        to its declared biolink type
+    """
+    excluded = set(excluded_sources)
     dicts = {}
     types = {}
     for ifile in identifiers:
+        if os.path.basename(ifile) in excluded:
+            continue
         print(ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=[UBERON, GO])
+        glom(dicts, new_identifiers, unique_prefixes=ANATOMY_UNIQUE_PREFIXES)
         types.update(new_types)
     for infile in concordances:
+        if os.path.basename(infile) in excluded:
+            continue
         print(infile)
         print("loading", infile)
         pairs = []
@@ -205,7 +225,14 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
                 pairs.append([x[0], x[2]])
         newpairs = remove_overused_xrefs(pairs)
         setpairs = [set(x) for x in newpairs]
-        glom(dicts, setpairs, unique_prefixes=[UBERON, GO])
+        glom(dicts, setpairs, unique_prefixes=ANATOMY_UNIQUE_PREFIXES)
+    return dicts, types
+
+
+def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
+    """:concordances: a list of files from which to read relationships
+    :identifiers: a list of files from which to read identifiers and optional categories"""
+    dicts, types = compute_cliques_for_impact_report(concordances, identifiers)
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]
