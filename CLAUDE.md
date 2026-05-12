@@ -176,6 +176,30 @@ high performance cluster) so you don't need to download all the source files and
 rerun the entire pipeline. You can look at the resource requirements of a rule to decide which
 option would be best.
 
+## Adding a new data source
+
+After integrating a new identifier source (e.g., EMAPA in PR #741), generate a
+source-impact report that captures the identifiers, biolink types, cross-references, and
+clique changes the source introduces. Commit the report to
+`docs/sources/<SOURCE>/impact-report.md` alongside the rest of the source's docs.
+
+```bash
+# Run after the intermediate ids/concords files for the source have been built.
+uv run source-impact-report --source <SOURCE>
+
+# Snakemake convenience wrapper (writes to babel_outputs/reports/source_impact/):
+uv run snakemake -c 1 babel_outputs/reports/source_impact/<SOURCE>.md
+```
+
+The CLI auto-detects every semantic type where the source has intermediate files. For
+compendia too large to re-glom locally, add `--mode both --remote-url <previous-build>`
+to also compare against a remote build. See `src/cli/source_impact_report.py` and
+`src/model/source.py` for the source-discovery and diff implementation.
+
+When extending the report to a new semantic type, add a `compute_cliques_for_impact_report`
+helper to that type's `createcompendia/*.py` module (mirroring `anatomy.py`), then register
+it in `SEMANTIC_TYPE_CONFIG` in `src/cli/source_impact_report.py`.
+
 ## Conventions
 
 - **Commits** — if you need to make a large change, break it into multiple commits so it's clearer
