@@ -4,12 +4,14 @@
 
 EMAPA data is accessed through the live UberGraph SPARQL endpoint used by Babel OBO handlers.
 
-No standalone EMAPA file download step is added in `datacollect.snakefile`. Instead, EMAPA IDs and xrefs are fetched during anatomy build rules that call UberGraph-backed helpers.
+No standalone EMAPA file download step is added in `datacollect.snakefile`. Instead, EMAPA IDs and
+xrefs are fetched during anatomy build rules that call UberGraph-backed helpers.
 
 ## Pipeline touchpoints
 
 - ID extraction runs via `write_emapa_ids()` in `src/createcompendia/anatomy.py`.
-- Concord extraction runs via `build_anatomy_obo_relationships()` in `src/createcompendia/anatomy.py`, which now includes an EMAPA root traversal.
+- Concord extraction runs via `build_anatomy_obo_relationships()` in
+  `src/createcompendia/anatomy.py`, which now includes an EMAPA root traversal.
 
 ## Expected artifacts
 

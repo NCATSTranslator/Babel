@@ -2,7 +2,8 @@
 
 ## Mapping source
 
-EMAPA mappings are pulled from UberGraph xrefs using `build_sets(..., set_type=\"xref\")` in anatomy compendium assembly.
+EMAPA mappings are pulled from UberGraph xrefs using `build_sets(..., set_type=\"xref\")` in anatomy
+compendium assembly.
 
 ## Output format
 
@@ -23,4 +24,5 @@ and is written to:
 ## Caveats
 
 - Mapping coverage depends on UberGraph content and can change across updates.
-- Some endpoint responses may be transiently unavailable; tests treat server-side issues as xfail where appropriate.
+- Some endpoint responses may be transiently unavailable; tests treat server-side issues as xfail
+  where appropriate.
