@@ -1,0 +1,153 @@
+"""Unit tests for src/model/source.py.
+
+Covers the four dimensions a Babel source can vary along: single, multi-biolink-type
+(UBERON-style), multi-semantic-type (MESH-style), and multi-prefix.
+"""
+
+import pytest
+
+from src.model.source import discover_source
+
+
+def _make_source_tree(root, source_name, semantic_type, ids_lines=None, concord_lines=None):
+    ids_dir = root / semantic_type / "ids"
+    concords_dir = root / semantic_type / "concords"
+    ids_dir.mkdir(parents=True, exist_ok=True)
+    concords_dir.mkdir(parents=True, exist_ok=True)
+    if ids_lines is not None:
+        (ids_dir / source_name).write_text("\n".join(ids_lines) + "\n")
+    if concord_lines is not None:
+        (concords_dir / source_name).write_text("\n".join(concord_lines) + "\n")
+
+
+@pytest.mark.unit
+def test_discover_single_prefix_single_type_single_semantic_type(tmp_path):
+    _make_source_tree(
+        tmp_path,
+        "EMAPA",
+        "anatomy",
+        ids_lines=["EMAPA:1\tbiolink:AnatomicalEntity",
+                   "EMAPA:2\tbiolink:AnatomicalEntity"],
+        concord_lines=["EMAPA:1\txref\tUBERON:1"],
+    )
+
+    contrib = discover_source("EMAPA", tmp_path)
+
+    assert contrib.semantic_types == frozenset({"anatomy"})
+    assert contrib.prefixes == frozenset({"EMAPA"})
+    assert contrib.declared_biolink_types == frozenset({"biolink:AnatomicalEntity"})
+    assert contrib.total_identifier_count == 2
+    assert contrib.total_concord_row_count == 1
+
+    stc = contrib.by_semantic_type["anatomy"]
+    assert stc.declared_type_counts == {"biolink:AnatomicalEntity": 2}
+    assert stc.concord_partner_prefix_counts == {"UBERON": 1}
+
+
+@pytest.mark.unit
+def test_discover_multi_biolink_type_within_one_semantic_type(tmp_path):
+    """An ids file may mix biolink types in its second column — UBERON does this with
+    AnatomicalEntity and GrossAnatomicalStructure."""
+    _make_source_tree(
+        tmp_path,
+        "UBERON",
+        "anatomy",
+        ids_lines=[
+            "UBERON:1\tbiolink:AnatomicalEntity",
+            "UBERON:2\tbiolink:GrossAnatomicalStructure",
+            "UBERON:3\tbiolink:AnatomicalEntity",
+        ],
+    )
+
+    contrib = discover_source("UBERON", tmp_path)
+
+    assert contrib.declared_biolink_types == frozenset(
+        {"biolink:AnatomicalEntity", "biolink:GrossAnatomicalStructure"}
+    )
+    stc = contrib.by_semantic_type["anatomy"]
+    assert stc.declared_type_counts == {
+        "biolink:AnatomicalEntity": 2,
+        "biolink:GrossAnatomicalStructure": 1,
+    }
+
+
+@pytest.mark.unit
+def test_discover_multi_semantic_type(tmp_path):
+    """MESH-style source spanning anatomy and chemical compendia."""
+    _make_source_tree(
+        tmp_path,
+        "MESH",
+        "anatomy",
+        ids_lines=["MESH:A1\tbiolink:AnatomicalEntity"],
+    )
+    _make_source_tree(
+        tmp_path,
+        "MESH",
+        "chemical",
+        ids_lines=["MESH:C1\tbiolink:ChemicalEntity",
+                   "MESH:C2\tbiolink:ChemicalEntity"],
+    )
+
+    contrib = discover_source("MESH", tmp_path)
+
+    assert contrib.semantic_types == frozenset({"anatomy", "chemical"})
+    assert contrib.total_identifier_count == 3
+    assert contrib.declared_biolink_types == frozenset(
+        {"biolink:AnatomicalEntity", "biolink:ChemicalEntity"}
+    )
+    assert len(contrib.by_semantic_type["anatomy"].all_curies) == 1
+    assert len(contrib.by_semantic_type["chemical"].all_curies) == 2
+
+
+@pytest.mark.unit
+def test_discover_multi_prefix(tmp_path):
+    """A source may write rows under more than one prefix."""
+    _make_source_tree(
+        tmp_path,
+        "WEIRD",
+        "anatomy",
+        ids_lines=[
+            "PREFIXA:1\tbiolink:AnatomicalEntity",
+            "PREFIXB:1\tbiolink:AnatomicalEntity",
+        ],
+    )
+
+    contrib = discover_source("WEIRD", tmp_path)
+
+    assert contrib.prefixes == frozenset({"PREFIXA", "PREFIXB"})
+    stc = contrib.by_semantic_type["anatomy"]
+    assert {p: len(c) for p, c in stc.curies_by_prefix.items()} == {
+        "PREFIXA": 1,
+        "PREFIXB": 1,
+    }
+
+
+@pytest.mark.unit
+def test_discover_missing_source_returns_empty_contribution(tmp_path):
+    (tmp_path / "anatomy" / "ids").mkdir(parents=True)
+    (tmp_path / "anatomy" / "concords").mkdir(parents=True)
+
+    contrib = discover_source("NONEXISTENT", tmp_path)
+    assert contrib.by_semantic_type == {}
+    assert contrib.semantic_types == frozenset()
+    assert contrib.total_identifier_count == 0
+
+
+@pytest.mark.unit
+def test_discover_raises_when_intermediate_root_missing(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        discover_source("EMAPA", tmp_path / "missing")
+
+
+@pytest.mark.unit
+def test_discover_skips_metadata_yaml_files(tmp_path):
+    """discover_source should only treat files literally named <SOURCE>, not metadata-* siblings."""
+    concord_dir = tmp_path / "anatomy" / "concords"
+    concord_dir.mkdir(parents=True)
+    (concord_dir / "EMAPA").write_text("EMAPA:1\txref\tUBERON:1\n")
+    (concord_dir / "metadata-EMAPA.yaml").write_text("name: build_anatomy_obo_relationships()\n")
+    (tmp_path / "anatomy" / "ids").mkdir(parents=True)
+
+    contrib = discover_source("EMAPA", tmp_path)
+    assert contrib.semantic_types == frozenset({"anatomy"})
+    assert contrib.total_concord_row_count == 1
