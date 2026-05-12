@@ -218,7 +218,7 @@ wheels = [
 [[package]]
 name = "babel"
 version = "1.14"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "apybiomart" },
     { name = "beautifulsoup4" },
