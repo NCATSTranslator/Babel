@@ -8,7 +8,8 @@ EMAPA extraction starts from:
 
 ## Inclusion logic
 
-Babel uses `obo.write_obo_ids()` to collect subclasses from the configured root and writes only EMAPA-prefixed CURIEs to the anatomy IDs file.
+Babel uses `obo.write_obo_ids()` to collect subclasses from the configured root and writes only
+EMAPA-prefixed CURIEs to the anatomy IDs file.
 
 ## Type assignment
 
