@@ -1,6 +1,6 @@
 # EMAPA source notes
 
-EMAPA (Edinburgh Mouse Atlas Project Anatomy ontology) is used in Babel as an anatomy source.
+EMAPA (Mouse Developmental Anatomy Ontology) is used in Babel as an anatomy source.
 
 In this integration, Babel:
 
