@@ -216,9 +216,25 @@ def build_disease_doid_relationships(idfile, outfile, metadata_yaml):
     )
 
 
-def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badxrefs, icrdf_filename):
-    """:concordances: a list of files from which to read relationships
-    :identifiers: a list of files from which to read identifiers and optional categories"""
+def compute_disease_cliques(concordances, identifiers, mondoclose, badxrefs):
+    """Run glom over the disease identifier and concord files and return the typed cliques.
+
+    Returns a dict mapping each Biolink type (e.g. ``biolink:Disease``) to a set of
+    frozensets, where each frozenset is one equivalence clique of CURIEs.
+
+    No file output and no NodeFactory / write_compendium calls -- this is the pure
+    clique-formation step. ``build_compendium`` and the development-time
+    ``tests/pipeline/checks/test_disease.py`` simulation both call this so the
+    clique rules (``unique_prefixes=[MONDO, HP]``, ``close_mondos``, ``badxrefs``,
+    and ``remove_overused_xrefs`` for MONDO/HP/EFO concords) live in one place.
+
+    :param concordances: list of concord file paths (``CURIE\\tRELATION\\tCURIE`` rows).
+    :param identifiers: list of identifier file paths (``CURIE[\\tTYPE]`` rows).
+    :param mondoclose: path to the ``MONDO_close`` concord file used as the ``close``
+        argument to ``glom``.
+    :param badxrefs: dict mapping concord basename (``HP``, ``MONDO``, ``UMLS``) to a
+        file of bad xref pairs to exclude.
+    """
     dicts = {}
     types = {}
     for ifile in identifiers:
@@ -260,7 +276,13 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
             print(dicts["OMIM:607644"])
         except Exception:
             print("notyet")
-    typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
+    return create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
+
+
+def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badxrefs, icrdf_filename):
+    """:concordances: a list of files from which to read relationships
+    :identifiers: a list of files from which to read identifiers and optional categories"""
+    typed_sets = compute_disease_cliques(concordances, identifiers, mondoclose, badxrefs)
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]
         write_compendium(metadata_yamls, sets, f"{baretype}.txt", biotype, {}, icrdf_filename=icrdf_filename)
