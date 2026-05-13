@@ -105,7 +105,16 @@ semantic type plus data collection, reports, exports, and DuckDB.
   the Biolink Model.
 - **Concord files** are the core data structure: tab-separated `CURIE1 \t Relation \t CURIE2`
   triples expressing cross-references between vocabularies. The `glom()` function in
-  `babel_utils.py` merges them into equivalence cliques.
+  `babel_utils.py` merges them into equivalence cliques. The basename of a concord file
+  (e.g. `MONDO`, `HP`, `EFO`) is load-bearing: compendium builders use it as a lookup key
+  for `badxrefs` filtering and to decide whether `remove_overused_xrefs` applies, so file
+  names must match the configured vocabulary names exactly.
+- **Pure compute functions for testability** — clique-formation and label-selection are
+  extracted as pure functions (`compute_disease_cliques` in `createcompendia/diseasephenotype.py`,
+  `_select_preferred_label` in `babel_utils.py`) so production (`build_compendium`,
+  `write_compendium`) and `tests/pipeline/checks/` regression checks call exactly the same
+  code. When extending the dev-time check framework to a new compendium, extract its
+  clique-formation logic out of `build_compendium` in the same shape.
 
 ### Biolink Model Usage
 
