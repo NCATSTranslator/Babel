@@ -200,6 +200,59 @@ uv run pytest tests/pipeline/checks/ -k "in_chemicals or not_in_chemicals" --pip
 uv run pytest tests/pipeline/checks/ -k "xref" --pipeline --no-cov -v
 ```
 
+#### Disease pipeline checks
+
+`tests/pipeline/checks/test_disease.py` adds two assertion types on top of the
+chemicals pattern, giving four total for the disease compendium:
+
+**Clique-membership checks** (`CLIQUE_CHECKS`)
+
+Verify that, after the full glom step over every available disease concord file, two
+CURIEs do (or do not) end up in the same equivalence class. Unlike the direct-xref
+check (which inspects one concord row at a time), this catches multi-hop chains:
+two CURIEs that share no direct row but become equivalent through an intermediate.
+Backed by the `disease_cliques` fixture, which calls `compute_disease_cliques()`
+(the same function `build_compendium` calls in production).
+
+**Final-label checks** (`LABEL_CHECKS`)
+
+Simulate `write_compendium`'s label-selection step for a CURIE's clique and assert
+the chosen preferred name. Uses `NodeFactory.create_node()` (which sorts identifiers
+by Biolink prefix order and applies labels from `babel_downloads/<PREFIX>/labels`)
+plus `_select_preferred_label` -- the same two functions production runs. Backed by
+the `babel_node_factory` fixture; first use fetches the Biolink Model.
+
+**Adding a new check** -- append one tuple to `CLIQUE_CHECKS` or `LABEL_CHECKS` in
+`tests/pipeline/checks/test_disease.py`:
+
+```python
+CliqueCheck(
+    "MONDO:0011479",
+    "UMLS:C2930833",
+    True,   # True = must land in the same clique; False = must NOT
+    "https://github.com/NCATSTranslator/Babel/issues/NNN",
+),
+
+LabelCheck(
+    "MONDO:0011479",
+    "postural orthostatic tachycardia syndrome",
+    "biolink:Disease",
+    "https://github.com/NCATSTranslator/Babel/issues/NNN",
+),
+```
+
+**Why disease fixtures are shaped differently than the existing
+`VOCABULARY_REGISTRY`** -- disease is one compendium produced from nine vocabularies,
+the inverse of the per-vocabulary partitioning shape. The disease fixtures live
+alongside but outside the registry to keep that asymmetry explicit.
+
+**Forward-compatibility** -- when an `--until disease` pipeline-fixture lands later,
+the same `LABEL_CHECKS` / `CLIQUE_CHECKS` tables can be re-parametrized against the
+real `compendia/Disease.txt` output -- the test data is the single source of truth;
+simulation vs. real output is the test mechanism. Synonym-elimination checks
+(`SynonymCheck`) are a planned follow-up; they need separate design because
+`SynonymFactory.get_synonyms()` has predicate- and taxon-specific filtering.
+
 ### Compendia
 
 - **`test_uber.py`** (`network`, `xfail`) — Tests the
@@ -232,6 +285,16 @@ uv run pytest tests/pipeline/checks/ -k "xref" --pipeline --no-cov -v
   [#711](https://github.com/NCATSTranslator/Babel/issues/711),
   [#714](https://github.com/NCATSTranslator/Babel/issues/714), and
   [#723](https://github.com/NCATSTranslator/Babel/issues/723).
+
+### compendium/
+
+- **`compendium/test_disease_cliques.py`** (`unit`) — Unit tests for
+  `compute_disease_cliques()`, the pure clique-formation step extracted from
+  `diseasephenotype.build_compendium()`. Covers basic two-hop merging into a single
+  clique, separate Disease vs. PhenotypicFeature typing for distinct cliques, and
+  `badxrefs` correctly blocking a glom merge. The same function is called by
+  `tests/pipeline/checks/test_disease.py` via the `disease_cliques` fixture, so this
+  file is the offline counterpart to those pipeline-marked clique checks.
 
 ## Test Data
 
