@@ -137,6 +137,28 @@ entry.
 GeneProtein and DrugChemical conflation each have dedicated conflation modules (`geneprotein.py`,
 `drugchemical.py`) that merge their respective cliques. See `docs/Conflation.md`.
 
+### DuckDB export
+
+The `src/snakefiles/duckdb.snakefile` rules (driven by `src/exporters/duckdb_exporters.py`)
+build a queryable DuckDB database alongside the JSONL compendia, with these tables:
+
+- `Node(curie, curie_prefix, label, label_lc, description, taxa)`
+- `Clique(clique_leader, preferred_name, clique_identifier_count, biolink_type)`
+- `Edge(clique_leader, curie, conflation, clique_leader_prefix, curie_prefix)`
+
+The `Edge` table answers "which clique contains CURIE X" with a one-line query
+(`SELECT DISTINCT clique_leader FROM Edge WHERE curie IN (...)`) and is the fastest way to
+check whether several CURIEs landed in the same clique in a given build — much cheaper than
+re-running glom or scanning the JSONL compendia.
+
+### Per-compendium metadata YAMLs
+
+Each final compendium has a sibling `babel_outputs/metadata/<Type>.yaml` that records the
+provenance tree of which concord/source contributed what, including per-source
+`prefix_counts` like `xref(CHEBI, DrugCentral): 4302`. These are aggregate (prefix-pair
+level), not per-CURIE — useful for confirming a join pathway exists between two prefixes,
+not for answering "are *these specific* CURIEs joinable."
+
 ### Directories at Runtime
 
 - `babel_downloads/` — cached source data
