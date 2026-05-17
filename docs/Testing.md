@@ -261,9 +261,11 @@ friction without meaningfully improving signal.
 
 #### Cross-Python-version matrix
 
-Babel pins Python 3.11. Snakemake and bmt both have specific version constraints. Running
-the unit suite under 3.10/3.12 would catch portability bugs that don't matter for a project
-that controls its own runtime. Skip.
+Babel currently advertises support for Python 3.11 through 3.13. Snakemake and bmt both
+have specific version constraints, and a full cross-version matrix would add CI cost for a
+project that controls its own runtime closely. Running the unit suite under multiple Python
+versions could still catch portability bugs, but this is probably not worth making a regular
+CI requirement. Skip.
 
 #### Fuzz testing (`atheris`)
 
