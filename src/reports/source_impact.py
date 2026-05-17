@@ -30,6 +30,29 @@ def _clique_leader(clique: frozenset[str]) -> str:
     return sorted(clique)[0]
 
 
+def _render_remote_section(remote_summary: dict[str, dict[str, int]]) -> str:
+    lines: list[str] = ["", "## 5. Remote comparison summary", ""]
+    for st in sorted(remote_summary):
+        s = remote_summary[st]
+        lines.append(f"### {st}")
+        lines.append("")
+        lines.append(f"- Remote total cliques (compendia): {s.get('remote_total_cliques', 0):,}")
+        lines.append(
+            "- Remote cliques containing source CURIEs: "
+            f"{s.get('remote_cliques_with_source_curies', 0):,}"
+        )
+        lines.append(
+            "- Current cliques containing source CURIEs: "
+            f"{s.get('current_cliques_with_source_curies', 0):,}"
+        )
+        lines.append(
+            "- Cliques with source CURIEs in current but not in remote: "
+            f"{s.get('current_only_with_source_curies', 0):,}"
+        )
+        lines.append("")
+    return "\n".join(lines)
+
+
 def render_markdown(
     contribution: SourceContribution,
     diffs_by_semantic_type: dict[str, SourceImpactDiff],
@@ -39,6 +62,7 @@ def render_markdown(
     generated_at: str,
     babel_commit: str,
     remote_url: str | None = None,
+    remote_summary: dict[str, dict[str, int]] | None = None,
 ) -> str:
     name = contribution.name
     lines: list[str] = []
@@ -196,6 +220,8 @@ def render_markdown(
                     lines.append(f"- {', '.join(sorted(clique))}")
                 lines.append("")
 
+    if remote_summary:
+        lines.append(_render_remote_section(remote_summary))
     return "\n".join(lines) + "\n"
 
 
@@ -208,6 +234,7 @@ def render_json(
     generated_at: str,
     babel_commit: str,
     remote_url: str | None = None,
+    remote_summary: dict[str, dict[str, int]] | None = None,
 ) -> str:
     by_semantic_type: dict[str, dict] = {}
     for st, stc in contribution.by_semantic_type.items():
@@ -250,5 +277,6 @@ def render_json(
         "by_semantic_type": by_semantic_type,
         "final_compendium_breakdown": final_compendium_breakdown,
         "clique_diffs": diffs_serialised,
+        "remote_summary": remote_summary or {},
     }
     return json.dumps(payload, indent=2, sort_keys=True)

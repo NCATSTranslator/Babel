@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import argparse
 import datetime
-import json
 import logging
 import pathlib
 import subprocess
@@ -109,7 +108,7 @@ def _final_compendium_breakdown(
             count = 0
             for clique in load_compendium(path):
                 for ident in clique.get("identifiers", []):
-                    if ident.get("i") in source_curies:
+                    if ident["i"] in source_curies:
                         count += 1
             per_file[fname] = count
         breakdown[st] = per_file
@@ -295,18 +294,6 @@ def main(argv: list[str] | None = None) -> int:
     generated_at = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
     babel_commit = _git_commit_sha()
 
-    md = render_markdown(
-        contribution,
-        diffs_by_semantic_type,
-        final_breakdown,
-        mode=args.mode,
-        generated_at=generated_at,
-        babel_commit=babel_commit,
-        remote_url=args.remote_url,
-    )
-    if remote_summary:
-        md = md + _render_remote_section(remote_summary)
-
     if args.output:
         output_path = pathlib.Path(args.output)
     else:
@@ -315,6 +302,16 @@ def main(argv: list[str] | None = None) -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     if args.format in ("md", "both"):
+        md = render_markdown(
+            contribution,
+            diffs_by_semantic_type,
+            final_breakdown,
+            mode=args.mode,
+            generated_at=generated_at,
+            babel_commit=babel_commit,
+            remote_url=args.remote_url,
+            remote_summary=remote_summary or None,
+        )
         output_path.write_text(md)
         logger.info("wrote markdown report to %s", output_path)
     if args.format in ("json", "both"):
@@ -326,39 +323,13 @@ def main(argv: list[str] | None = None) -> int:
             generated_at=generated_at,
             babel_commit=babel_commit,
             remote_url=args.remote_url,
+            remote_summary=remote_summary or None,
         )
-        if remote_summary:
-            payload_obj = json.loads(json_payload)
-            payload_obj["remote_summary"] = remote_summary
-            json_payload = json.dumps(payload_obj, indent=2, sort_keys=True)
         json_path = output_path.with_suffix(".json")
         json_path.write_text(json_payload)
         logger.info("wrote json report to %s", json_path)
 
     return 0
-
-
-def _render_remote_section(remote_summary: dict[str, dict[str, int]]) -> str:
-    lines: list[str] = ["", "## 5. Remote comparison summary", ""]
-    for st in sorted(remote_summary):
-        s = remote_summary[st]
-        lines.append(f"### {st}")
-        lines.append("")
-        lines.append(f"- Remote total cliques (compendia): {s.get('remote_total_cliques', 0):,}")
-        lines.append(
-            "- Remote cliques containing source CURIEs: "
-            f"{s.get('remote_cliques_with_source_curies', 0):,}"
-        )
-        lines.append(
-            "- Current cliques containing source CURIEs: "
-            f"{s.get('current_cliques_with_source_curies', 0):,}"
-        )
-        lines.append(
-            "- Cliques with source CURIEs in current but not in remote: "
-            f"{s.get('current_only_with_source_curies', 0):,}"
-        )
-        lines.append("")
-    return "\n".join(lines)
 
 
 if __name__ == "__main__":
