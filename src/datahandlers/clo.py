@@ -1,9 +1,8 @@
 import logging
-import re
 
 import pyoxigraph
 
-from src.babel_utils import pull_via_urllib
+from src.babel_utils import parse_rdf_literal, pull_via_urllib
 from src.categories import CELL_LINE
 from src.metadata.provenance import write_download_metadata
 from src.prefixes import CLO, ORPHANET
@@ -48,14 +47,7 @@ class CLOgraph:
                 qres = self.m.query(s)
                 for row in list(qres):
                     iterm = str(row["x"])
-                    label = str(row["label"])
-                    if label.startswith('"'):
-                        # If the label ends with '"@[language code]", edit that out.
-                        pattern = re.compile(r"^\"(.*)\"@\w+$")
-                        if pattern.match(label):
-                            label = re.sub(pattern, r"\1", label)
-                        else:
-                            label = label[1:-1]
+                    label = parse_rdf_literal(str(row["label"]))
                     cloid = iterm[:-1].split("/")[-1]
                     if not cloid.startswith("CLO_"):
                         continue
