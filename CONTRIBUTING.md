@@ -5,32 +5,14 @@ Babel is open-source software and all contributions are very welcome!
 ## Reporting bugs
 
 Reporting when you see something wrong with Babel is very helpful, whether you
-spot it in the Babel output files or through one of the frontends. Following
-these guidelines will help you submit the most useful bug reports and will help
-us triage and prioritize them correctly.
+spot it in the Babel output files or through one of the frontends. See
+[docs/NewIssue.md](./docs/NewIssue.md) for full guidance on where to file,
+what to include, and how to fill in the project fields.
 
-1. Most issues should be added to the [Babel issue tracker]: anything to do with
-   the content of Babel tools should be reported here, such as anything to do
-   with cliques whose identifiers, Biolink type, preferred label, other labels,
-   synonyms or descriptions are incorrect. *If you're not sure about which
-   repository your issue should go to, please add it to Babel and we'll sort it
-   out at our end.*
-1. If the issue is specific to the [Node Normalizer] application, such as
-   invalid output, an unexpected error message, mishandling input, or something
-   that should be changed in the application, please add them to the
-   [Node Normalizer issue tracker](https://github.com/NCATSTranslator/NodeNormalization/issues/).
-1. Is the issue related to the [Name Resolver] application, such as invalid
-   output, an unexpected error message, mishandling input, or search results not
-   being ranked correctly? If so, please add them to the
-   [Name Resolver issue tracker](https://github.com/NCATSTranslator/NameResolution/issues/).
-1. If you've identified several sets of identifiers that need fixing, a
-   spreadsheet (preferably TSV/CSV) file or table would also be helpful. We
-   would also appreciate if you can include what you expect the tool to return.
-   Any other details you can provide, especially anything that will be help us
-   replicate the issue, will be very helpful.
-1. For guidance on how to assign priority, impact and size fields, group related
-   issues, and track when your issue is likely to be addressed, see
-   [docs/Triage.md](./docs/Triage.md).
+In brief: file clique content issues in the [Babel issue tracker]; issues
+specific to the [Node Normalizer] or [Name Resolver] applications go in their
+respective issue trackers. If you are unsure, file in Babel and we will sort it
+out.
 
 ## Contributing source code
 
