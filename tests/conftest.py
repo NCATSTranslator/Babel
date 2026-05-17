@@ -22,8 +22,9 @@ def read_tsv(path: str) -> list[list[str]]:
 
 
 def assert_labels_file_valid(path: str) -> list[list[str]]:
-    """Assert every line is PREFIX:ID\\tLabel and return the rows."""
+    """Assert the file is non-empty and every line is PREFIX:ID\\tLabel; return the rows."""
     rows = read_tsv(path)
+    assert rows, f"Labels file is empty: {path}"
     for cols in rows:
         assert len(cols) == 2, f"Expected 2 columns, got {len(cols)}: {cols}"
         assert ":" in cols[0], f"First column is not a CURIE: {cols[0]}"
@@ -31,8 +32,9 @@ def assert_labels_file_valid(path: str) -> list[list[str]]:
 
 
 def assert_synonyms_file_valid(path: str) -> list[list[str]]:
-    """Assert every line is PREFIX:ID\\tlabeltype\\tLabel and return the rows."""
+    """Assert the file is non-empty and every line is PREFIX:ID\\tlabeltype\\tLabel; return the rows."""
     rows = read_tsv(path)
+    assert rows, f"Synonyms file is empty: {path}"
     for cols in rows:
         assert len(cols) == 3, f"Expected 3 columns, got {len(cols)}: {cols}"
         assert ":" in cols[0], f"First column is not a CURIE: {cols[0]}"
@@ -40,8 +42,9 @@ def assert_synonyms_file_valid(path: str) -> list[list[str]]:
 
 
 def assert_ids_file_valid(path: str) -> list[list[str]]:
-    """Assert every line is PREFIX:ID\\tbiolink:Category and return the rows."""
+    """Assert the file is non-empty and every line is PREFIX:ID\\tbiolink:Category; return the rows."""
     rows = read_tsv(path)
+    assert rows, f"IDs file is empty: {path}"
     for cols in rows:
         assert len(cols) == 2, f"Expected 2 columns, got {len(cols)}: {cols}"
         assert ":" in cols[0], f"First column is not a CURIE: {cols[0]}"
@@ -49,8 +52,9 @@ def assert_ids_file_valid(path: str) -> list[list[str]]:
 
 
 def assert_concordance_file_valid(path: str) -> list[list[str]]:
-    """Assert every line is CURIE\\trelation\\tCURIE and return the rows."""
+    """Assert the file is non-empty and every line is CURIE\\trelation\\tCURIE; return the rows."""
     rows = read_tsv(path)
+    assert rows, f"Concordance file is empty: {path}"
     for cols in rows:
         assert len(cols) == 3, f"Expected 3 columns, got {len(cols)}: {cols}"
         assert ":" in cols[0], f"First column is not a CURIE: {cols[0]}"
