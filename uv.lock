@@ -229,7 +229,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.32.5" },
     { name = "snakemake", specifier = ">=9.21.0" },
-    { name = "snakemake-executor-plugin-slurm", specifier = ">=1.9.2" },
+    { name = "snakemake-executor-plugin-slurm", specifier = ">=2.6.1" },
     { name = "sparqlwrapper", specifier = ">=2.0.0" },
     { name = "tqdm", specifier = ">=4.67.1" },
     { name = "xmltodict", specifier = ">=1.0.2" },
@@ -2315,7 +2315,7 @@ wheels = [
 
 [[package]]
 name = "snakemake-executor-plugin-slurm"
-version = "2.6.0"
+version = "2.6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
@@ -2326,9 +2326,9 @@ dependencies = [
     { name = "snakemake-interface-executor-plugins" },
     { name = "throttler" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3b/28/191e31b029c58eec08433766a8759a5c89ed5c08e21d891535f9a0a47b6f/snakemake_executor_plugin_slurm-2.6.0.tar.gz", hash = "sha256:d1f9ea3856e0650f710936873269cd808fbcf71f3271234638595acb08c7324d", size = 39097, upload-time = "2026-03-26T12:52:55.013Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/aa/82/8501eb5ffe88dd12b6723fd55f19c8ec33cdeeff80b296fbf9aee7878f63/snakemake_executor_plugin_slurm-2.6.1.tar.gz", hash = "sha256:3fec93025d4c0f4956e4e836f46faa90b15a52d3730f9a439762e64774d4d7bc", size = 39094, upload-time = "2026-04-17T07:11:57.669Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/57/1f/92c3ffeedb8f88bf08561436917ac2a12204928b29d7076370cada7115d9/snakemake_executor_plugin_slurm-2.6.0-py3-none-any.whl", hash = "sha256:8dcd00930f65c11568e2ceed4b914b3dff0e4f92abae157d0e2461584ad1ae33", size = 45236, upload-time = "2026-03-26T12:52:55.767Z" },
+    { url = "https://files.pythonhosted.org/packages/d4/e5/3ed1e6938d86a34df198cf883fca93cc4cd6024ebe68a22ffe645d92cc01/snakemake_executor_plugin_slurm-2.6.1-py3-none-any.whl", hash = "sha256:8dfb3ec4dfb05a4fb425e88cbb726206d5ec62b9d695d043138faff708f4e7f6", size = 45248, upload-time = "2026-04-17T07:11:58.481Z" },
 ]
 
 [[package]]
