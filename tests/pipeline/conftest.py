@@ -529,10 +529,14 @@ def ec_pipeline_outputs(ec_rdf_file, regenerate):
     ids = _intermediate_id_path("processactivitypathway", "EC")
 
     from src.datahandlers.ec import ECgraph  # deferred: avoids loading RDF at import time
-    if regenerate or not os.path.exists(labels) or not os.path.exists(synonyms):
-        os.makedirs(os.path.dirname(labels), exist_ok=True)
-        ECgraph().pull_EC_labels_and_synonyms(labels, synonyms)
-    _maybe_run(ids, lambda: ECgraph().pull_EC_ids(ids), regenerate)
+    needs_labels = regenerate or not os.path.exists(labels) or not os.path.exists(synonyms)
+    needs_ids = regenerate or not os.path.exists(ids)
+    if needs_labels or needs_ids:
+        ecgraph = ECgraph()
+        if needs_labels:
+            os.makedirs(os.path.dirname(labels), exist_ok=True)
+            ecgraph.pull_EC_labels_and_synonyms(labels, synonyms)
+        _maybe_run(ids, lambda: ecgraph.pull_EC_ids(ids), regenerate)
 
     return {"labels": labels, "synonyms": synonyms, "ids": ids}
 
@@ -567,8 +571,12 @@ def rhea_pipeline_outputs(rhea_rdf_file, regenerate):
     metadata_yaml = os.path.join(cfg["intermediate_directory"], _snakemake_dir("processactivitypathway"), "concords", "metadata-RHEA.yaml")
 
     from src.datahandlers.rhea import Rhea  # deferred
-    _maybe_run(labels, lambda: Rhea().pull_rhea_labels(labels), regenerate)
-    _maybe_run(concords, lambda: Rhea().pull_rhea_ec_concs(concords, metadata_yaml), regenerate)
+    needs_labels = regenerate or not os.path.exists(labels)
+    needs_concords = regenerate or not os.path.exists(concords)
+    if needs_labels or needs_concords:
+        rhea = Rhea()
+        _maybe_run(labels, lambda: rhea.pull_rhea_labels(labels), regenerate)
+        _maybe_run(concords, lambda: rhea.pull_rhea_ec_concs(concords, metadata_yaml), regenerate)
 
     return {"labels": labels, "concords": concords}
 
@@ -589,6 +597,8 @@ def chembl_ttl_files():
             pull_chembl(molecule_file)
         except Exception as e:
             pytest.fail(f"Could not download ChEMBL molecule TTL: {e}")
+    if not os.path.exists(cco_file):
+        pytest.fail(f"pull_chembl did not produce expected cco.ttl at {cco_file}")
     return {"molecule": molecule_file, "cco": cco_file}
 
 
