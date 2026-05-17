@@ -180,6 +180,12 @@ option would be best.
   Use a named prefix constant so the check and the extraction share the same string. See
   `src/datahandlers/mesh.py:get_mesh_id_from_iri()` for the canonical example.
 
+- **pyoxigraph literal stripping** — pyoxigraph returns plain string literals as `"value"` and
+  language-tagged literals as `"value"@en`. Use `parse_rdf_literal()` from `src/babel_utils.py`
+  to strip the quoting; do not inline the regex. When loading RDF/XML files that contain
+  `<owl:Ontology rdf:about=""/>`, always pass `base_iri` to `Store.bulk_load()` — without it
+  pyoxigraph raises a builtin `SyntaxError` on the empty relative IRI.
+
 ## Debugging
 
 When looking things up in the source databases, prefer to invoke the existing download code in

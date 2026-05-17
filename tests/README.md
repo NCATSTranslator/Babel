@@ -11,6 +11,7 @@ Tests are organized along two independent axes:
 |-----------|-----------------|
 | `tests/` (root) | Core utility tests: `glom`, `LabeledID`, `NodeFactory`, `ThrottledRequester`, FTP utilities, UberGraph, and gene-protein conflation |
 | `tests/datahandlers/` | One test file per module in `src/datahandlers/` |
+| `tests/datahandlers/pyoxigraph/` | Smoke tests for the pyoxigraph API surface itself (bulk_load formats, SPARQL row access). Future subdirectories will follow the same pattern for UberGraph, ENSEMBL, etc. |
 | `tests/pipeline/` | Full pipeline integration tests that call `write_*_ids()` functions and check the resulting intermediate files; source data is auto-downloaded or skipped per vocabulary (see [Pipeline Tests](pipeline/README.md)) |
 | `tests/pipeline/checks/` | Per-compendium regression assertions tied to specific GitHub issues, designed for test-driven development |
 
@@ -125,6 +126,19 @@ pipeline tests run in a single worker while unit/slow/network tests still parall
 
 ### Data Handlers
 
+All datahandler unit tests share helpers from `tests/datahandlers/conftest.py`:
+
+- `nn(iri)`, `lit(val, language=None)`, `quad(s, p, o)` — concise pyoxigraph node constructors.
+- `RDF_NS`, `RDFS_NS`, `SKOS_NS` — common namespace strings, so tests don't repeat them.
+- `make_graph_from_store(cls, store, **attrs)` — constructs a handler object (e.g. `ECgraph`,
+  `EFOgraph`) with a pre-built in-memory store, bypassing the file-loading `__init__`. Use this
+  in every new datahandler test rather than repeating the `cls.__new__(cls); obj.m = store`
+  pattern.
+
+For handlers that produce label/synonym files, add a module-scoped `*_output` fixture using
+`tmp_path_factory` that calls the extraction method once and stores the file contents as a dict.
+Individual tests then receive the pre-computed output rather than re-running the extraction.
+
 - **`datahandlers/test_mesh.py`** (`unit`) — Unit tests for `src/datahandlers/mesh.py`.
   Covers `write_ids()` parameter validation, SCR filtering logic (mock-based), and
   `Mesh.get_scr_terms_mapped_to_trees()` using an inline pyoxigraph store.
@@ -133,6 +147,12 @@ pipeline tests run in a single worker while unit/slow/network tests still parall
   BioMart data handler. Pulls real data from BioMart, verifies that batched downloads
   (splitting attribute lists across multiple queries) produce the same results as
   single-query downloads, and checks TSV output correctness. Uses `tmp_path`.
+
+- **`datahandlers/pyoxigraph/test_pyoxigraph_api.py`** (`unit`) — Smoke tests for the
+  pyoxigraph API used by all RDF-based handlers: `Store.bulk_load()` for RDF/XML, Turtle,
+  and N-Triples formats; the `base_iri` workaround required by EC/EFO/CLO (files that contain
+  `<owl:Ontology rdf:about=""/>` raise a builtin `SyntaxError` without it); and SPARQL result
+  row access by variable name.
 
 ### Pipeline
 
