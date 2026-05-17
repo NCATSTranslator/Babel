@@ -234,7 +234,6 @@ def compute_cliques_for_impact_report(concordances, identifiers, excluded_source
     for infile in concordances:
         if os.path.basename(infile) in excluded:
             continue
-        print(infile)
         print("loading", infile)
         pairs = []
         # We have a concordance problem with UMLS - it is including GO terms that are obsolete and we don't want
