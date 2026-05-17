@@ -28,7 +28,11 @@ def test_bulk_load_rdf_xml():
   </rdf:Description>
 </rdf:RDF>"""
     store = _store_from_bytes(rdf, pyoxigraph.RdfFormat.RDF_XML)
-    assert len(list(store)) > 0
+    results = list(store.query(
+        "SELECT ?label WHERE { <http://example.org/thing1> <http://www.w3.org/2000/01/rdf-schema#label> ?label }"
+    ))
+    assert len(results) == 1
+    assert str(results[0]["label"]) == '"Thing One"'
 
 
 @pytest.mark.unit
@@ -37,14 +41,22 @@ def test_bulk_load_turtle():
 <http://example.org/thing2> rdfs:label "Thing Two" .
 """
     store = _store_from_bytes(ttl, pyoxigraph.RdfFormat.TURTLE)
-    assert len(list(store)) > 0
+    results = list(store.query(
+        "SELECT ?label WHERE { <http://example.org/thing2> <http://www.w3.org/2000/01/rdf-schema#label> ?label }"
+    ))
+    assert len(results) == 1
+    assert str(results[0]["label"]) == '"Thing Two"'
 
 
 @pytest.mark.unit
 def test_bulk_load_n_triples():
     nt = b'<http://example.org/s> <http://example.org/p> <http://example.org/o> .\n'
     store = _store_from_bytes(nt, pyoxigraph.RdfFormat.N_TRIPLES)
-    assert len(list(store)) > 0
+    results = list(store.query(
+        "SELECT ?s WHERE { ?s <http://example.org/p> <http://example.org/o> }"
+    ))
+    assert len(results) == 1
+    assert str(results[0]["s"]) == "<http://example.org/s>"
 
 
 @pytest.mark.unit
@@ -59,7 +71,11 @@ def test_bulk_load_rdf_xml_with_base_iri():
   </rdf:Description>
 </rdf:RDF>"""
     store = _store_from_bytes(rdf, pyoxigraph.RdfFormat.RDF_XML, base_iri="http://example.org/")
-    assert len(list(store)) > 0
+    results = list(store.query(
+        "SELECT ?s WHERE { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.org/Type> }"
+    ))
+    assert len(results) == 1
+    assert str(results[0]["s"]) == "<http://example.org/thing3>"
 
 
 @pytest.mark.unit
