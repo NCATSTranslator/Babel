@@ -47,8 +47,6 @@ skipped by default.
 - `docs/Testing.md` — testing strategy: cadence per environment (per-PR, nightly, weekly,
   pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other strategies.
 
-Note: not all tests currently pass (issue #602).
-
 ### Linting (all three checked in CI on PRs)
 
 ```bash
