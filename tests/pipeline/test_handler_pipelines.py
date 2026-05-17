@@ -10,7 +10,7 @@ output format and content directly.
 import pytest
 
 from src.categories import CELL_LINE, MOLECULAR_ACTIVITY
-from tests.datahandlers.conftest import (
+from tests.conftest import (
     assert_concordance_file_valid,
     assert_ids_file_valid,
     assert_labels_file_valid,
