@@ -55,27 +55,22 @@ class TripleStore:
             except HTTPError as e:
                 if e.code < 500 or attempt >= SPARQL_MAX_RETRIES:
                     raise
-                wait_seconds = SPARQL_RETRY_BASE_DELAY_SECONDS * (2 ** (attempt - 1))
-                logger.warning(
-                    "SPARQL HTTP %d on attempt %d/%d; retrying in %ss",
-                    e.code,
-                    attempt,
-                    SPARQL_MAX_RETRIES,
-                    wait_seconds,
-                )
-                sleep(wait_seconds)
+                self._retry_wait(attempt, "SPARQL HTTP %d", e.code)
             except (JSONDecodeError, TimeoutError, URLError, OSError) as e:
                 if attempt >= SPARQL_MAX_RETRIES:
                     raise
-                wait_seconds = SPARQL_RETRY_BASE_DELAY_SECONDS * (2 ** (attempt - 1))
-                logger.warning(
-                    "Transient SPARQL query failure (%s) on attempt %d/%d; retrying in %ss",
-                    e.__class__.__name__,
-                    attempt,
-                    SPARQL_MAX_RETRIES,
-                    wait_seconds,
-                )
-                sleep(wait_seconds)
+                self._retry_wait(attempt, "Transient SPARQL query failure (%s)", e.__class__.__name__)
+
+    def _retry_wait(self, attempt: int, msg: str, *args) -> None:
+        wait_seconds = SPARQL_RETRY_BASE_DELAY_SECONDS * (2 ** (attempt - 1))
+        logger.warning(
+            msg + " on attempt %d/%d; retrying in %ss",
+            *args,
+            attempt,
+            SPARQL_MAX_RETRIES,
+            wait_seconds,
+        )
+        sleep(wait_seconds)
 
     def query(self, query_text, outputs, flat=False, post=False):
         """Execute a fully formed query and return results."""
