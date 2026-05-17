@@ -1,4 +1,5 @@
 """Unit tests for src/datahandlers/rhea.py (Rhea)."""
+from pathlib import Path
 from unittest.mock import patch
 
 import pyoxigraph
@@ -46,7 +47,7 @@ def rhea():
 def test_pull_rhea_labels_writes_label(rhea, tmp_path):
     out = str(tmp_path / "labels.tsv")
     rhea.pull_rhea_labels(out)
-    lines = open(out).read().splitlines()
+    lines = Path(out).read_text().splitlines()
     assert f"{RHEA}:12345\tATP hydrolysis" in lines
 
 
@@ -56,6 +57,6 @@ def test_pull_rhea_ec_concs_writes_concordance(mock_meta, rhea, tmp_path):
     out = str(tmp_path / "concs.tsv")
     meta = str(tmp_path / "meta.yaml")
     rhea.pull_rhea_ec_concs(out, meta)
-    lines = open(out).read().splitlines()
+    lines = Path(out).read_text().splitlines()
     assert f"{RHEA}:67890\toio:equivalent\t{EC}:1.2.3.4" in lines
     mock_meta.assert_called_once()

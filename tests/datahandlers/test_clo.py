@@ -1,9 +1,11 @@
 """Unit tests for src/datahandlers/clo.py (CLOgraph)."""
 import io
+from pathlib import Path
 
 import pyoxigraph
 import pytest
 
+from src.categories import CELL_LINE
 from src.datahandlers.clo import CLOgraph
 from src.prefixes import CLO
 from tests.datahandlers.conftest import lit, nn, quad
@@ -79,8 +81,8 @@ def test_pull_CLO_labels_writes_preflabel(clograph, tmp_path):
     lf = str(tmp_path / "labels.tsv")
     sf = str(tmp_path / "syns.tsv")
     clograph.pull_CLO_labels_and_synonyms(lf, sf)
-    labels = open(lf).read()
-    syns = open(sf).read()
+    labels = Path(lf).read_text()
+    syns = Path(sf).read_text()
     assert f"{CLO}:0000001\tHeLa cell" in labels
     assert f"{CLO}:0000001\tskos:prefLabel\tHeLa cell" in syns
 
@@ -90,8 +92,8 @@ def test_pull_CLO_labels_altlabel_in_syn_only(clograph, tmp_path):
     lf = str(tmp_path / "labels.tsv")
     sf = str(tmp_path / "syns.tsv")
     clograph.pull_CLO_labels_and_synonyms(lf, sf)
-    labels = open(lf).read()
-    syns = open(sf).read()
+    labels = Path(lf).read_text()
+    syns = Path(sf).read_text()
     # altLabel "HeLa" must not appear in label file
     label_lines = [line for line in labels.splitlines() if "HeLa" in line and "HeLa cell" not in line]
     assert not label_lines
@@ -103,7 +105,7 @@ def test_pull_CLO_labels_strips_language_tag(clograph, tmp_path):
     lf = str(tmp_path / "labels.tsv")
     sf = str(tmp_path / "syns.tsv")
     clograph.pull_CLO_labels_and_synonyms(lf, sf)
-    labels = open(lf).read()
+    labels = Path(lf).read_text()
     assert "@en" not in labels
 
 
@@ -112,7 +114,7 @@ def test_pull_CLO_labels_skips_non_clo_prefix(clograph, tmp_path):
     lf = str(tmp_path / "labels.tsv")
     sf = str(tmp_path / "syns.tsv")
     clograph.pull_CLO_labels_and_synonyms(lf, sf)
-    assert "Something else" not in open(lf).read()
+    assert "Something else" not in Path(lf).read_text()
 
 
 # ---------------------------------------------------------------------------
@@ -123,10 +125,9 @@ def test_pull_CLO_labels_skips_non_clo_prefix(clograph, tmp_path):
 @pytest.mark.unit
 def test_pull_CLO_ids_writes_descendants(clograph, tmp_path):
     out = str(tmp_path / "ids.tsv")
-    from src.categories import CELL_LINE
     roots = [("CLO:0000001", CELL_LINE)]
     clograph.pull_CLO_ids(roots, out)
-    lines = open(out).read().splitlines()
+    lines = Path(out).read_text().splitlines()
     curies = [line.split("\t")[0] for line in lines]
     assert f"{CLO}:0000001" in curies
     assert f"{CLO}:0000002" in curies

@@ -9,11 +9,13 @@ output format and content directly.
 """
 import pytest
 
+from src.categories import CELL_LINE, MOLECULAR_ACTIVITY
 from tests.datahandlers.conftest import (
     assert_concordance_file_valid,
     assert_ids_file_valid,
     assert_labels_file_valid,
     assert_synonyms_file_valid,
+    read_tsv,
 )
 
 # ---------------------------------------------------------------------------
@@ -36,7 +38,6 @@ def test_ec_synonyms_file_valid(ec_pipeline_outputs):
 
 @pytest.mark.pipeline
 def test_ec_ids_file_valid(ec_pipeline_outputs):
-    from src.categories import MOLECULAR_ACTIVITY
     rows = assert_ids_file_valid(ec_pipeline_outputs["ids"])
     assert len(rows) > 0, "EC ids file is empty"
     assert all(r[1] == MOLECULAR_ACTIVITY for r in rows), "EC ids contain unexpected biolink type"
@@ -79,7 +80,6 @@ def test_chembl_labels_file_valid(chembl_pipeline_outputs):
 
 @pytest.mark.pipeline
 def test_chembl_smiles_file_non_empty(chembl_pipeline_outputs):
-    from tests.datahandlers.conftest import read_tsv
     rows = read_tsv(chembl_pipeline_outputs["smiles"])
     assert len(rows) > 0, "ChEMBL smiles file is empty"
     assert all(len(r) == 2 for r in rows), "ChEMBL smiles rows should have 2 columns"
@@ -108,7 +108,6 @@ def test_clo_synonyms_file_valid(clo_pipeline_outputs):
 
 @pytest.mark.pipeline
 def test_clo_ids_file_valid(clo_pipeline_outputs):
-    from src.categories import CELL_LINE
     rows = assert_ids_file_valid(clo_pipeline_outputs["ids"])
     assert len(rows) > 0, "CLO ids file is empty"
     assert all(r[1] == CELL_LINE for r in rows), "CLO ids contain unexpected biolink type"

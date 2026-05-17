@@ -1,9 +1,11 @@
 """Unit tests for src/datahandlers/efo.py (EFOgraph)."""
 import io
+from pathlib import Path
 
 import pyoxigraph
 import pytest
 
+from src.categories import DISEASE
 from src.datahandlers.efo import EFOgraph
 from src.prefixes import EFO
 from tests.datahandlers.conftest import lit, nn, quad
@@ -80,8 +82,8 @@ def test_pull_EFO_labels_writes_preflabel(efograph, tmp_path):
     lf = str(tmp_path / "labels.tsv")
     sf = str(tmp_path / "syns.tsv")
     efograph.pull_EFO_labels_and_synonyms(lf, sf)
-    labels = open(lf).read()
-    syns = open(sf).read()
+    labels = Path(lf).read_text()
+    syns = Path(sf).read_text()
     assert f"{EFO}:0000001\tLiver disease" in labels
     assert f"{EFO}:0000001\tskos:prefLabel\tLiver disease" in syns
 
@@ -91,8 +93,8 @@ def test_pull_EFO_labels_altlabel_in_syn_only(efograph, tmp_path):
     lf = str(tmp_path / "labels.tsv")
     sf = str(tmp_path / "syns.tsv")
     efograph.pull_EFO_labels_and_synonyms(lf, sf)
-    labels = open(lf).read()
-    syns = open(sf).read()
+    labels = Path(lf).read_text()
+    syns = Path(sf).read_text()
     assert "hepatic disease" not in labels
     assert f"{EFO}:0000001\tskos:altLabel\thepatic disease" in syns
 
@@ -102,7 +104,7 @@ def test_pull_EFO_labels_strips_language_tag(efograph, tmp_path):
     lf = str(tmp_path / "labels.tsv")
     sf = str(tmp_path / "syns.tsv")
     efograph.pull_EFO_labels_and_synonyms(lf, sf)
-    labels = open(lf).read()
+    labels = Path(lf).read_text()
     assert "@en" not in labels
     assert f"{EFO}:0000001\tLiver disease" in labels
 
@@ -112,7 +114,7 @@ def test_pull_EFO_labels_skips_non_efo_prefix(efograph, tmp_path):
     lf = str(tmp_path / "labels.tsv")
     sf = str(tmp_path / "syns.tsv")
     efograph.pull_EFO_labels_and_synonyms(lf, sf)
-    labels = open(lf).read()
+    labels = Path(lf).read_text()
     assert "Something else" not in labels
 
 
@@ -124,10 +126,9 @@ def test_pull_EFO_labels_skips_non_efo_prefix(efograph, tmp_path):
 @pytest.mark.unit
 def test_pull_EFO_ids_writes_descendants(efograph, tmp_path):
     out = str(tmp_path / "ids.tsv")
-    from src.categories import DISEASE
     roots = [("EFO:0000001", DISEASE)]
     efograph.pull_EFO_ids(roots, out)
-    lines = open(out).read().splitlines()
+    lines = Path(out).read_text().splitlines()
     curies = [line.split("\t")[0] for line in lines]
     assert f"{EFO}:0000001" in curies
     assert f"{EFO}:0001234" in curies

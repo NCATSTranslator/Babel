@@ -1,4 +1,6 @@
 """Unit tests for src/datahandlers/ec.py (ECgraph)."""
+from pathlib import Path
+
 import pytest
 
 from src.categories import MOLECULAR_ACTIVITY
@@ -41,7 +43,7 @@ def ecgraph():
 def test_pull_EC_ids_writes_enzyme_ids(ecgraph, tmp_path):
     out = str(tmp_path / "ids.tsv")
     ecgraph.pull_EC_ids(out)
-    lines = open(out).read().splitlines()
+    lines = Path(out).read_text().splitlines()
     assert f"{EC}:1.2.3.4\t{MOLECULAR_ACTIVITY}" in lines
     assert f"{EC}:5.6.7.8\t{MOLECULAR_ACTIVITY}" in lines
 
@@ -51,8 +53,8 @@ def test_pull_EC_labels_preflabel_in_both_files(ecgraph, tmp_path):
     lf = str(tmp_path / "labels.tsv")
     sf = str(tmp_path / "syns.tsv")
     ecgraph.pull_EC_labels_and_synonyms(lf, sf)
-    labels = open(lf).read()
-    syns = open(sf).read()
+    labels = Path(lf).read_text()
+    syns = Path(sf).read_text()
     assert f"{EC}:1.2.3.4\tAlcohol dehydrogenase" in labels
     assert f"{EC}:1.2.3.4\tskos:prefLabel\tAlcohol dehydrogenase" in syns
 
@@ -62,8 +64,8 @@ def test_pull_EC_labels_altlabel_in_syn_only(ecgraph, tmp_path):
     lf = str(tmp_path / "labels.tsv")
     sf = str(tmp_path / "syns.tsv")
     ecgraph.pull_EC_labels_and_synonyms(lf, sf)
-    labels = open(lf).read()
-    syns = open(sf).read()
+    labels = Path(lf).read_text()
+    syns = Path(sf).read_text()
     assert "ADH" not in labels
     assert f"{EC}:1.2.3.4\tskos:altLabel\tADH" in syns
 
@@ -73,7 +75,7 @@ def test_pull_EC_labels_rdfs_label_in_both_files(ecgraph, tmp_path):
     lf = str(tmp_path / "labels.tsv")
     sf = str(tmp_path / "syns.tsv")
     ecgraph.pull_EC_labels_and_synonyms(lf, sf)
-    labels = open(lf).read()
-    syns = open(sf).read()
+    labels = Path(lf).read_text()
+    syns = Path(sf).read_text()
     assert f"{EC}:5.6.7.8\tSome enzyme" in labels
     assert f"{EC}:5.6.7.8\trdfs:label\tSome enzyme" in syns

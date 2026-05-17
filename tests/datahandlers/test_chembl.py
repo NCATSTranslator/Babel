@@ -1,4 +1,6 @@
 """Unit tests for src/datahandlers/chembl.py (ChemblRDF)."""
+from pathlib import Path
+
 import pyoxigraph
 import pytest
 
@@ -60,7 +62,7 @@ def chembl():
 def test_pull_labels_writes_label(chembl, tmp_path):
     out = str(tmp_path / "labels.tsv")
     chembl.pull_labels(out)
-    lines = open(out).read().splitlines()
+    lines = Path(out).read_text().splitlines()
     assert f"{CHEMBLCOMPOUND}:CHEMBL1234\tAspirin" in lines
 
 
@@ -68,7 +70,7 @@ def test_pull_labels_writes_label(chembl, tmp_path):
 def test_pull_labels_filters_id_equal_to_label(chembl, tmp_path):
     out = str(tmp_path / "labels.tsv")
     chembl.pull_labels(out)
-    content = open(out).read()
+    content = Path(out).read_text()
     assert "CHEMBL9999\tCHEMBL9999" not in content
 
 
@@ -76,5 +78,5 @@ def test_pull_labels_filters_id_equal_to_label(chembl, tmp_path):
 def test_pull_smiles_writes_smiles(chembl, tmp_path):
     out = str(tmp_path / "smiles.tsv")
     chembl.pull_smiles(out)
-    lines = open(out).read().splitlines()
+    lines = Path(out).read_text().splitlines()
     assert f"{CHEMBLCOMPOUND}:CHEMBL1234\tCC(=O)Oc1ccccc1C(=O)O" in lines
