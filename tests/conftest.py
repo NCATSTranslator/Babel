@@ -15,9 +15,9 @@ def read_tsv(path: str) -> list[list[str]]:
     rows = []
     with open(path) as f:
         for line in f:
-            line = line.rstrip("\n")
-            if line:
-                rows.append(line.split("\t"))
+            stripped = line.rstrip("\n")
+            if stripped:
+                rows.append(stripped.split("\t"))
     return rows
 
 

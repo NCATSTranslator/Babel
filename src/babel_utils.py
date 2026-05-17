@@ -38,7 +38,10 @@ def parse_rdf_literal(literal: str) -> str:
     """Strip quoting from a pyoxigraph SPARQL literal string.
 
     pyoxigraph returns plain literals as '"value"' and language-tagged literals as '"value"@en'.
-    Both forms should be reduced to just the inner value string.
+    Both forms are reduced to just the inner value string.  Typed literals of the form
+    '"value"^^<xsd:type>' are not yet handled and will be returned incorrectly; this is
+    acceptable because none of the current RDF sources use typed literals in label/synonym
+    positions.  See https://github.com/NCATSTranslator/Babel/issues/760
     """
     if not literal.startswith('"'):
         return literal
