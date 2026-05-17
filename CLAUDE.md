@@ -155,7 +155,8 @@ option would be best.
 
 ## Conventions
 
-- **Commits** — if you need to make a large change, break it into multiple commits so it's clearer what changes are related.
+- **Commits** — if you need to make a large change, break it into multiple commits so it's clearer
+  what changes are related.
 
 - **Ruff lint** — all Python must pass `uv run ruff check` (run automatically on PRs). Two rules
   that are easy to trip in test code:
