@@ -36,8 +36,8 @@ The constraints that shape this strategy:
 
 ## Current state (2026-05)
 
-- **Per PR (GitHub Actions):** `ruff`, `snakefmt`, `rumdl`, `pytest --collect-only`, and
-  `pytest -m unit`. Fast and free.
+- **Per PR (GitHub Actions):** `ruff`, `snakefmt`, `rumdl`,
+  `pytest --collect-only`, and `pytest -m unit`. Fast and free.
 - **Weekly (GitHub Actions, Wednesdays 17:00 UTC):**
   `pytest --network -m "unit or network or slow"`.
 - **Pipeline tests:** never automated. Run manually before a release on the HPC cluster.
