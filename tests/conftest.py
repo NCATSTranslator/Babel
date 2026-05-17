@@ -5,7 +5,6 @@ import pytest
 from src.node import NodeFactory
 from src.util import get_config
 
-
 # ---------------------------------------------------------------------------
 # TSV output assertion helpers (used by both datahandler and pipeline tests)
 # ---------------------------------------------------------------------------
