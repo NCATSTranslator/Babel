@@ -151,6 +151,8 @@ If you want to contribute to Babel, start with the
 guidance on how the source code is organized, what contributions are most
 useful, and how to run the tests. For a deeper look at the development
 workflow and ideas for improving it, see [Developing Babel](./docs/Development.md).
+For the testing strategy — what to automate, recommended cadence, and runner
+choice — see [Testing Strategy](./docs/Testing.md).
 
 ## Contact information
 

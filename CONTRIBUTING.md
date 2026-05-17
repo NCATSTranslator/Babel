@@ -67,6 +67,12 @@ Tests are written using [pytest](https://pytest.org/) and are present in the
 [working on that](https://github.com/NCATSTranslator/Babel/issues/602), and if
 you can help get them to pass, that would be great!
 
+For the full test taxonomy — marks (`unit`, `network`, `slow`, `pipeline`),
+where to add a new test, and how to run specific subsets — see
+[tests/README.md](./tests/README.md). For the testing strategy (what to
+automate, recommended cadence, GitHub Actions vs HPC self-hosted runner
+trade-offs), see [docs/Testing.md](./docs/Testing.md).
+
 ### Writing a new concord, compendium, or data source
 
 See [docs/Architecture.md](./docs/Architecture.md) for an overview of where new code goes,
