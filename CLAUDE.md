@@ -15,7 +15,7 @@ Resolver services.
 ### Setup
 
 ```bash
-uv sync                    # Install dependencies
+uv sync
 ```
 
 ### Running the Pipeline
@@ -23,7 +23,7 @@ uv sync                    # Install dependencies
 ```bash
 uv run snakemake --cores N                # Full pipeline (~500GB RAM)
 uv run snakemake --cores 1 anatomy        # Single semantic type target
-uv run snakemake --cores 1 chemical       # Another target
+uv run snakemake --cores 1 chemical
 ```
 
 ### Testing
@@ -41,9 +41,11 @@ uv run pytest -n auto                  # Parallel (all CPUs)
 Tests use four marks: `unit` (fast, offline), `network` (requires internet, opt-in with
 `--network`), `slow` (>30s but offline), and `pipeline` (invokes Snakemake, opt-in with
 `--pipeline`). Use `--all` to opt in to everything at once. Network and pipeline tests are
-skipped by default. See `tests/README.md` for the full taxonomy.
+skipped by default.
 
-Note: not all tests currently pass (issue #602).
+- `tests/README.md` — full mark taxonomy, where to add a new test, what each test file covers.
+- `docs/Testing.md` — testing strategy: cadence per environment (per-PR, nightly, weekly,
+  pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other strategies.
 
 ### Linting (all three checked in CI on PRs)
 
@@ -110,8 +112,7 @@ semantic type plus data collection, reports, exports, and DuckDB.
 ### Biolink Model Usage
 
 The Biolink Model version is set in `config.yaml` (`biolink_version: "4.3.6"`) and is the single
-source of truth used by `NodeFactory` and `get_biolink_model_toolkit()`. The model is fetched from
-GitHub on first use (bmt may cache it locally).
+source of truth used by `NodeFactory` and `get_biolink_model_toolkit()`.
 
 **Mapped class URIs** — always use the `biolink:`-prefixed form (e.g. `biolink:ChemicalEntity`),
 not the raw element name (`chemical entity`). `get_ancestors()` and `get_element()["class_uri"]`
@@ -179,6 +180,15 @@ it in `SEMANTIC_TYPE_CONFIG` in `src/cli/source_impact_report.py`.
 
 ## Conventions
 
+- **Commits** — if you need to make a large change, break it into multiple commits so it's clearer
+  what changes are related.
+
+- **Ruff lint** — all Python must pass `uv run ruff check` (run automatically on PRs). Two rules
+  that are easy to trip in test code:
+  - **E741** — do not use single-letter ambiguous variable names (`l`, `O`, `I`). Use `line`,
+    `row`, `col`, etc. instead.
+  - **F841** — do not assign a variable that is never read. Remove or inline the assignment.
+
 - **Imports** — place all imports at the top of the file (stdlib, then third-party, then local),
   following standard Python convention. Defer an import inside a function only when it is
   genuinely necessary to break a circular dependency or avoid a heavy optional dependency; if
@@ -195,23 +205,14 @@ it in `SEMANTIC_TYPE_CONFIG` in `src/cli/source_impact_report.py`.
 
 - **IRI parsing helpers** — functions that extract IDs from external-format strings (e.g. pyoxigraph
   IRIs, SPARQL results) must validate the input format and raise `ValueError` if it doesn't match.
-  Use a named prefix constant so the check and the extraction share the same string. Example pattern
-  from `src/datahandlers/mesh.py`:
+  Use a named prefix constant so the check and the extraction share the same string. See
+  `src/datahandlers/mesh.py:get_mesh_id_from_iri()` for the canonical example.
 
-  ```python
-  def get_mesh_id_from_iri(iri) -> str:
-    """Extract a MeSH ID from a pyoxigraph IRI (e.g. <http://id.nlm.nih.gov/mesh/D009243>).
-
-    Raises ValueError if the input is not a MeSH concept IRI.
-    """
-    s = str(iri)
-    if s.startswith("<") and s.endswith(">"):
-      s = s[1:-1]
-
-    if not s.startswith(MESH_IRI_PREFIX):
-      raise ValueError(f"Expected a MeSH IRI like <http://id.nlm.nih.gov/mesh/D009243>, got: '{s!r}'")
-    return s[len(MESH_IRI_PREFIX):]
-  ```
+- **pyoxigraph literal stripping** — pyoxigraph returns plain string literals as `"value"` and
+  language-tagged literals as `"value"@en`. Use `parse_rdf_literal()` from `src/babel_utils.py`
+  to strip the quoting; do not inline the regex. When loading RDF/XML files that contain
+  `<owl:Ontology rdf:about=""/>`, always pass `base_iri` to `Store.bulk_load()` — without it
+  pyoxigraph raises a builtin `SyntaxError` on the empty relative IRI.
 
 ## Debugging
 

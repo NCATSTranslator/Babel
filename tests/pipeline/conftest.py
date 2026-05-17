@@ -117,7 +117,7 @@ def _output_paths(outputs: dict) -> dict[str, str]:
 
     Some fixtures return extra non-path data alongside their output paths — for example,
     mesh_pipeline_outputs includes 'excluded_tree_terms' (a set of descriptor CURIEs) for
-    use by test_mesh_pipeline.py.  This helper strips non-string values so callers can
+    use by test_mesh.py.  This helper strips non-string values so callers can
     iterate over compendium output files without special-casing each vocabulary.
     """
     return {name: path for name, path in outputs.items() if isinstance(path, str)}
@@ -285,7 +285,7 @@ def mesh_pipeline_outputs(mesh_nt, regenerate):
 def excluded_mesh_tree_terms(mesh_nt):
     """Return the set of descriptor CURIEs that must NOT appear in the chemicals output.
 
-    Used only by test_mesh_pipeline.py.  Kept separate from mesh_pipeline_outputs so
+    Used only by test_mesh.py.  Kept separate from mesh_pipeline_outputs so
     that the Mesh() load (~2 GB) is only incurred when this fixture is actually
     requested — running vocabulary-partitioning tests alone does not trigger it.
 
@@ -514,6 +514,9 @@ VOCABULARY_REGISTRY = {
     "NCIT": "ncit_pipeline_outputs",
     "GO":   "go_pipeline_outputs",
     "EMAPA": "emapa_pipeline_outputs",
+    "EC":   "ec_ids_outputs",
+    "CLO":  "clo_ids_outputs",
+    "EFO":  "efo_ids_outputs",
 }
 
 
