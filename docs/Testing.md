@@ -27,6 +27,12 @@ The constraints that shape this strategy:
    amount of incremental testing replaces that.
 6. **Test fixes themselves take time.** A weekly cadence on slow suites prevents a backlog of
    stale failures.
+7. **Development is bursty.** Active sprints (a deadline, a data source update, a Biolink Model
+   bump) produce many PRs in a short window. Between sprints the codebase may be untouched for
+   weeks or months. Infrastructure that requires continuous maintenance — a persistent self-hosted
+   runner, a triage rotation, nightly alert monitoring — carries overhead that is hard to justify
+   between sprints. Prefer automation that is cheap to leave running always, and tools that are
+   cheap to activate at the start of a sprint and ignore the rest of the time.
 
 ## Current state (2026-05)
 
@@ -66,10 +72,12 @@ train reviewers to ignore CI.
   Snakemake) on the self-hosted runner. Higher complexity; only worth it once self-hosted
   runners exist.
 
-### Nightly — self-hosted runner on HPC (new)
+### Nightly — self-hosted runner on HPC (sprint-active only)
 
-**Recommended.** The single highest-value addition. Run on a self-hosted GitHub Actions runner on
-HPC with persistent `babel_downloads/` and `babel_outputs/intermediate/`:
+**Recommended during active sprints; not worth maintaining as always-on infrastructure.**
+
+The command itself is simple — run on a self-hosted GitHub Actions runner on HPC with persistent
+`babel_downloads/` and `babel_outputs/intermediate/`:
 
 ```bash
 uv run pytest --pipeline --no-cov -q
@@ -85,18 +93,26 @@ What this catches that nothing else does:
   merges.
 - TDD checks in `tests/pipeline/checks/` newly added by issue triage.
 
-Pair with a Slack/email notification on failure. Without notification it is too easy for a
-nightly failure to sit unnoticed for weeks.
+**Given the bursty development pattern**, the nightly cadence only delivers value when PRs are
+landing frequently. Between sprints, the pipeline is unchanged and a nightly job just burns
+resources. Consider activating the self-hosted runner workflow at the start of a sprint and
+disabling it (or running less frequently) when the sprint ends. If the maintenance cost of the
+persistent runner is too high, the pre-release manual run (below) is an acceptable fallback —
+the main risk is that a regression introduced mid-sprint goes undetected until release day.
 
 ### Weekly — GitHub Actions (unchanged from today, expand slightly)
 
 **Recommended.** Keep the existing Wednesday network test (already expanded to include `slow`
-tests: `pytest --network -m "unit or network or slow"`). Consider adding:
+tests: `pytest --network -m "unit or network or slow"`). This runs on GitHub Actions and is
+always-on with no maintenance cost.
+
+Consider adding during active sprints:
 
 - A weekly job on the self-hosted HPC runner that runs `pytest --pipeline --regenerate` once a
   week — i.e., re-runs every `write_X_ids()` from cached *downloads*. This validates that
   intermediate-file generation is still deterministic and catches drift between source data and
-  parsing code without paying full-pipeline cost.
+  parsing code without paying full-pipeline cost. Like the nightly runner, this is most valuable
+  when the codebase is actively changing.
 
 ### Pre-release — HPC, manual (unchanged from today)
 
@@ -169,13 +185,17 @@ pipeline checks that need quick turnaround and shouldn't queue behind HPC jobs.
 #### Compendium regression baseline
 
 Already proposed in [`docs/Development.md`](Development.md#12-compendium-regression-test-suite)
-(item #12). After each full pipeline run, serialize summary statistics per compendium (clique
-counts, clique size distribution, per-prefix counts, identifier counts per source) to a JSON
-file checked into the repo. The next full run compares against the baseline and a script
-flags any metric that drifted by more than a configurable threshold.
+(item #12) and tracked in [issue #764](https://github.com/NCATSTranslator/Babel/issues/764).
+After each full pipeline run, serialize summary statistics per compendium (clique counts, clique
+size distribution, per-prefix counts, identifier counts per source) to a JSON file checked into
+the repo. The next full run compares against the baseline and a script flags any metric that
+drifted by more than a configurable threshold.
 
-This is the single most valuable addition for catching silent regressions. Pipeline tests
-verify *correctness* on specific cases; the baseline catches *unintended distributional
+This is the single most valuable addition for catching silent regressions, and it is especially
+well-suited to bursty development: the baseline committed at the end of one sprint becomes the
+reference for the start of the next. Changes that accumulated across a long gap between sprints
+show up immediately on first comparison, rather than being discovered at release time. Pipeline
+tests verify *correctness* on specific cases; the baseline catches *unintended distributional
 changes* across the whole output.
 
 #### Smoke test of one full pipeline target per night
@@ -264,6 +284,10 @@ is a better use of the same engineering effort.
 
 ## Open questions worth deciding explicitly
 
+These questions are most relevant if and when a persistent self-hosted HPC runner is set up
+(see [issue #761](https://github.com/NCATSTranslator/Babel/issues/761)). If pipeline tests
+continue to run manually, they don't need answers yet.
+
 - **Notification target.** Where should nightly HPC failures go? Slack, GitHub issue auto-file,
   email? Pick one and put a TODO comment in the workflow so it isn't forgotten.
 - **Cache eviction policy on the HPC runner.** Without one, `babel_downloads/` and
@@ -273,8 +297,6 @@ is a better use of the same engineering effort.
 - **Secret handling.** `UMLS_API_KEY` is currently set per-machine. Decide whether to also put
   it in GitHub Secrets so that network tests can hit UMLS endpoints, or keep UMLS-touching
   tests on the self-hosted runner only.
-- **Who fixes failures.** Establish whose responsibility it is to triage nightly failures —
-  otherwise the alerts become noise. A rotating "test gardener" role, even informal, helps.
 
 ## Summary table of recommended cadence
 
