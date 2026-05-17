@@ -50,13 +50,31 @@ def test_bulk_load_turtle():
 
 @pytest.mark.unit
 def test_bulk_load_n_triples():
-    nt = b'<http://example.org/s> <http://example.org/p> <http://example.org/o> .\n'
+    nt = (
+        b'<http://example.org/s> <http://example.org/p> <http://example.org/o> .\n'
+        b'<http://example.org/s> <http://www.w3.org/2000/01/rdf-schema#label> "Subject S" .\n'
+        b'<http://example.org/o> <http://www.w3.org/2000/01/rdf-schema#label> "Object O" .\n'
+    )
     store = _store_from_bytes(nt, pyoxigraph.RdfFormat.N_TRIPLES)
+    assert len(list(store)) == 3
+
     results = list(store.query(
         "SELECT ?s WHERE { ?s <http://example.org/p> <http://example.org/o> }"
     ))
     assert len(results) == 1
     assert str(results[0]["s"]) == "<http://example.org/s>"
+
+    label_results = list(store.query(
+        "SELECT ?label WHERE { <http://example.org/s> <http://www.w3.org/2000/01/rdf-schema#label> ?label }"
+    ))
+    assert len(label_results) == 1
+    assert str(label_results[0]["label"]) == '"Subject S"'
+
+    obj_label_results = list(store.query(
+        "SELECT ?label WHERE { <http://example.org/o> <http://www.w3.org/2000/01/rdf-schema#label> ?label }"
+    ))
+    assert len(obj_label_results) == 1
+    assert str(obj_label_results[0]["label"]) == '"Object O"'
 
 
 @pytest.mark.unit
