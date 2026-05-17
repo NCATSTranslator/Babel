@@ -164,13 +164,17 @@ and how to add new checks or vocabularies.
   and no identifier may appear in more than one compendium. Currently covers MESH, UMLS, OMIM,
   NCIT, and GO.
 
-- **`pipeline/test_mesh_pipeline.py`** (`pipeline`) — MeSH-specific targeted assertions
+- **`pipeline/test_mesh.py`** (`pipeline`) — MeSH-specific targeted assertions
   ([issue #675](https://github.com/NCATSTranslator/Babel/issues/675)): chemicals must exclude
   D05 protein subtrees (D05.500, D05.875), D08 protein subtrees (D08.811, D08.622, D08.244),
   and D12.776 — but must include D08.211 Coenzymes.
 
-- **`pipeline/test_umls_pipeline.py`** (`pipeline`) — UMLS-specific targeted assertions:
+- **`pipeline/test_umls.py`** (`pipeline`) — UMLS-specific targeted assertions:
   chemicals must not contain UMLS IDs claimed by the protein compendium.
+
+- **`pipeline/test_ec.py`**, **`pipeline/test_rhea.py`**, **`pipeline/test_chembl.py`**,
+  **`pipeline/test_clo.py`**, **`pipeline/test_efo.py`** (`pipeline`) — Output format and
+  content checks for the EC, Rhea, ChEMBL, CLO, and EFO data handlers.
 
 - **`pipeline/checks/`** (`pipeline`) — Per-compendium regression assertions tied to GitHub
   issues (ID-presence and direct cross-reference checks), designed for TDD. See

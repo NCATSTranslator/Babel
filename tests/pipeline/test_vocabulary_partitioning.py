@@ -11,7 +11,7 @@ For every registered vocabulary, two tests run automatically:
       Normalization will see a duplicate and normalization will be ambiguous.
 
 Vocabulary-specific targeted tests (e.g. MeSH tree-exclusion, UMLS protein-
-semantic-tree guard) live in test_mesh_pipeline.py / test_umls_pipeline.py.
+semantic-tree guard) live in test_mesh.py / test_umls.py.
 
 To add a new vocabulary, add its fixtures to conftest.py and one entry in
 VOCABULARY_REGISTRY.  This file never needs to change.
