@@ -61,7 +61,10 @@ def cliques_set(glom_dict: GlomDict) -> frozenset[frozenset[str]]:
     set; many keys share the same set object. We materialise that as a frozenset of
     frozensets for downstream set operations.
     """
-    return frozenset(frozenset(v) for v in glom_dict.values())
+    # Deduplicate by object identity first (many CURIEs share the same set object),
+    # then freeze — reduces N freeze calls to K (one per unique clique).
+    unique_sets = {id(v): v for v in glom_dict.values()}.values()
+    return frozenset(frozenset(v) for v in unique_sets)
 
 
 def _lookup_table(glom_dict: GlomDict) -> dict[str, frozenset[str]]:
@@ -132,7 +135,7 @@ def diff_cliques(
                 )
             )
         else:
-            ordered = tuple(sorted(before_cliques_set, key=lambda c: sorted(c)[0]))
+            ordered = tuple(sorted(before_cliques_set, key=lambda c: min(c)))
             merged.append(
                 MergedClique(
                     before_cliques=ordered,
