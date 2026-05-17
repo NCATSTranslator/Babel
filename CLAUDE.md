@@ -15,7 +15,7 @@ Resolver services.
 ### Setup
 
 ```bash
-uv sync                    # Install dependencies
+uv sync
 ```
 
 ### Running the Pipeline
@@ -23,7 +23,7 @@ uv sync                    # Install dependencies
 ```bash
 uv run snakemake --cores N                # Full pipeline (~500GB RAM)
 uv run snakemake --cores 1 anatomy        # Single semantic type target
-uv run snakemake --cores 1 chemical       # Another target
+uv run snakemake --cores 1 chemical
 ```
 
 ### Testing
@@ -42,8 +42,6 @@ Tests use four marks: `unit` (fast, offline), `network` (requires internet, opt-
 `--network`), `slow` (>30s but offline), and `pipeline` (invokes Snakemake, opt-in with
 `--pipeline`). Use `--all` to opt in to everything at once. Network and pipeline tests are
 skipped by default. See `tests/README.md` for the full taxonomy.
-
-Note: not all tests currently pass (issue #602).
 
 ### Linting (all three checked in CI on PRs)
 
@@ -110,8 +108,7 @@ semantic type plus data collection, reports, exports, and DuckDB.
 ### Biolink Model Usage
 
 The Biolink Model version is set in `config.yaml` (`biolink_version: "4.3.6"`) and is the single
-source of truth used by `NodeFactory` and `get_biolink_model_toolkit()`. The model is fetched from
-GitHub on first use (bmt may cache it locally).
+source of truth used by `NodeFactory` and `get_biolink_model_toolkit()`.
 
 **Mapped class URIs** — always use the `biolink:`-prefixed form (e.g. `biolink:ChemicalEntity`),
 not the raw element name (`chemical entity`). `get_ancestors()` and `get_element()["class_uri"]`
@@ -180,23 +177,8 @@ option would be best.
 
 - **IRI parsing helpers** — functions that extract IDs from external-format strings (e.g. pyoxigraph
   IRIs, SPARQL results) must validate the input format and raise `ValueError` if it doesn't match.
-  Use a named prefix constant so the check and the extraction share the same string. Example pattern
-  from `src/datahandlers/mesh.py`:
-
-  ```python
-  def get_mesh_id_from_iri(iri) -> str:
-    """Extract a MeSH ID from a pyoxigraph IRI (e.g. <http://id.nlm.nih.gov/mesh/D009243>).
-
-    Raises ValueError if the input is not a MeSH concept IRI.
-    """
-    s = str(iri)
-    if s.startswith("<") and s.endswith(">"):
-      s = s[1:-1]
-
-    if not s.startswith(MESH_IRI_PREFIX):
-      raise ValueError(f"Expected a MeSH IRI like <http://id.nlm.nih.gov/mesh/D009243>, got: '{s!r}'")
-    return s[len(MESH_IRI_PREFIX):]
-  ```
+  Use a named prefix constant so the check and the extraction share the same string. See
+  `src/datahandlers/mesh.py:get_mesh_id_from_iri()` for the canonical example.
 
 ## Debugging
 
