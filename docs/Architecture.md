@@ -20,12 +20,12 @@ Babel's pipeline has two phases, orchestrated by [Snakemake](https://snakemake.g
    These files are written into `babel_downloads/[PREFIX]/`.
 
 2. **Compendium building** — for each semantic type (e.g. chemicals, genes, anatomy), a compendium
-   creator module reads the relevant label and synonym files, extracts the identifiers for that
-   type into `babel_outputs/intermediate/[PIPELINE]/ids/`, produces pairwise cross-reference files
+   creator module reads the relevant label and synonym files, extracts the identifiers for that type
+   into `babel_outputs/intermediate/[SEMANTIC_TYPE]/ids/`, produces pairwise cross-reference files
    called **concords**, merges the concords into equivalence cliques using a union-find algorithm,
    and writes enriched JSONL compendia to `babel_outputs/compendia/[BIOLINK TYPE].txt`.
 
-The top-level `Snakefile` coordinates the whole pipeline by including ~20 specialized snakefiles
+The top-level `Snakefile` coordinates the whole pipeline by including 18 specialized snakefiles
 from `src/snakefiles/` — one per semantic type, plus files for data collection, reports, exports,
 and DuckDB integration.
 
@@ -48,8 +48,8 @@ All Python and Snakemake source code lives under `src/`:
 
 | Directory / file       | Purpose                                                                                                                                                                           |
 |------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `src/datahandlers/`    | ~37 modules, one per external data source. Each module downloads, parses, and normalizes data from a specific source (ChEBI, UniProt, NCBI Gene, DrugBank, MeSH, etc.).           |
-| `src/createcompendia/` | ~15 modules, one per semantic type (chemicals, genes, proteins, anatomy, disease/phenotype, etc.). These consume data handler outputs, build concords, and write final compendia. |
+| `src/datahandlers/`    | ~35 modules, one per external data source. Each module downloads, parses, and normalizes data from a specific source (ChEBI, UniProt, NCBI Gene, DrugBank, MeSH, etc.).           |
+| `src/createcompendia/` | ~14 modules, one per semantic type (chemicals, genes, proteins, anatomy, disease/phenotype, etc.). These consume data handler outputs, build concords, and write final compendia. |
 | `src/snakefiles/`      | Snakemake rule files that wire data handlers to compendium creators and define the full dependency graph.                                                                         |
 | `src/node.py`          | Core factory classes: `NodeFactory`, `SynonymFactory`, `DescriptionFactory`, `TaxonFactory`, `InformationContentFactory`, `TSVSQLiteLoader`.                                      |
 | `src/babel_utils.py`   | Core pipeline utilities: download/FTP helpers, `glom()` (clique merging), `write_compendium()` (compendium builder), and state management helpers.                                |

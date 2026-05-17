@@ -1,13 +1,18 @@
 """Session-scoped fixtures for pipeline tests.
 
-Pipeline tests download their own prerequisite files (or check network connectivity).
-If a prerequisite is unavailable, all dependent tests are skipped automatically.
+Processing fixtures write intermediate ID files to the same stable paths that Snakemake
+uses: {intermediate_directory}/{snakemake_dir}/ids/{vocab}, where snakemake_dir is the
+compendium name unless overridden by compendium_directories in config.yaml (e.g.
+diseasephenotype → disease).  Example: babel_outputs/intermediate/anatomy/ids/UMLS.
 
-Processing fixtures write intermediate ID files to the same stable paths that
-Snakemake uses: {intermediate_directory}/{semantic_type}/ids/{vocab}
-(e.g. babel_outputs/intermediate/anatomy/ids/UMLS).  By default, if a file
-already exists it is reused without re-running write_X_ids().  Pass --regenerate
-to force re-processing even when files are present.
+By default, if a file already exists it is reused without re-running write_X_ids().
+Pass --regenerate to force re-processing even when files are present.
+
+Prerequisites vary by vocabulary:
+- MESH, OMIM: fixtures auto-download the required file if absent.
+- UMLS: requires UMLS_API_KEY when files are not already cached.
+- NCIT, GO: require a live UberGraph SPARQL endpoint (no file download).
+If a prerequisite is unavailable, all dependent tests are skipped automatically.
 
 All tests in this package are marked `pipeline` and are skipped by default.
 Run with:  uv run pytest tests/pipeline/ --pipeline --no-cov -v
@@ -15,12 +20,13 @@ Run with:  uv run pytest tests/pipeline/ --pipeline --no-cov -v
 ## Adding a new vocabulary
 
 1. Add a download/connectivity fixture (e.g. `my_vocab_source`) to this file.
-2. Add a processing fixture (e.g. `my_vocab_pipeline_outputs`) that depends on it and
-   returns a dict of {compendium_name: output_path}.
+2. Add a processing fixture (e.g. `my_vocab_pipeline_outputs`) that calls all
+   write_X_ids() functions for that vocabulary and returns {compendium_name: output_path}.
 3. Add one entry to VOCABULARY_REGISTRY: `"MYVOCAB": "my_vocab_pipeline_outputs"`.
 That's it — test_vocabulary_partitioning.py picks it up automatically.
 """
 import os
+import subprocess
 
 import pytest
 
@@ -33,7 +39,7 @@ from src.datahandlers.mesh import Mesh, pull_mesh
 # ---------------------------------------------------------------------------
 
 
-def _read_ids(path: str) -> set[str]:
+def get_curies_from_ids_file(path: str) -> set[str]:
     """Return the set of CURIEs (first column) from a TSV output file."""
     ids = set()
     with open(path) as f:
@@ -44,7 +50,7 @@ def _read_ids(path: str) -> set[str]:
     return ids
 
 
-def _read_ids_with_types(path: str) -> dict[str, str | None]:
+def get_curies_and_types_from_ids_file(path: str) -> dict[str, str | None]:
     """Return {CURIE: biolink_type_or_None} from an intermediate ID file.
 
     The optional second column is a Biolink type hint written by write_umls_ids() and
@@ -60,22 +66,33 @@ def _read_ids_with_types(path: str) -> dict[str, str | None]:
     return result
 
 
+def _snakemake_dir(compendium: str) -> str:
+    """Return the Snakemake intermediate directory name for a compendium.
+
+    Falls back to the compendium name itself when not listed in compendium_directories
+    (e.g. diseasephenotype → disease, processactivitypathway → process).
+    """
+    from src.util import (
+        get_config,  # deferred: get_config() reads config.yaml at call time so path helpers always reflect the current file
+    )
+    cfg = get_config()
+    return cfg.get("compendium_directories", {}).get(compendium, compendium)
+
+
 def _intermediate_concord_path(compendium: str, vocab: str) -> str:
     """Stable concord path: {intermediate_directory}/{snakemake_dir}/concords/{vocab}."""
-    from src.util import get_config
-    cfg = get_config()
-    directory_map = cfg.get("compendium_directories", {})
-    snakemake_dir = directory_map.get(compendium, compendium)
-    return os.path.join(cfg["intermediate_directory"], snakemake_dir, "concords", vocab)
+    from src.util import get_config  # deferred: same rationale as _snakemake_dir
+    return os.path.join(get_config()["intermediate_directory"], _snakemake_dir(compendium), "concords", vocab)
 
 
 def _any_concord_xrefs(concords_dir: str, curie1: str, curie2: str) -> bool:
     """Return True if curie1 and curie2 are a direct xref pair in ANY concord file under concords_dir.
 
     Scans every regular file in concords_dir (skipping .yaml metadata files and subdirectories).
-    A direct xref means the two CURIEs appear together in the same 3-column row, regardless of
-    column order.  Indirect equivalences through multi-hop chains are not detected — this is
-    intentional: it's fast for TDD and locates the concord file that is the source of the problem.
+    Concord files are tab-separated <curie1> <relation> <curie2> triples; this function checks
+    the first and last columns only (skipping the relation), so column order does not matter.
+    Indirect equivalences through multi-hop chains are not detected — this is intentional: it's
+    fast for TDD and locates the specific concord file that is the source of a bad link.
     """
     for entry in os.scandir(concords_dir):
         if not entry.is_file() or entry.name.endswith(".yaml"):
@@ -96,28 +113,21 @@ def _any_concord_xrefs(concords_dir: str, curie1: str, curie2: str) -> bool:
 def _output_paths(outputs: dict) -> dict[str, str]:
     """Filter a vocab_outputs dict down to just the string-valued output paths.
 
-    Some vocabulary fixtures (e.g. MESH) include non-path entries like
-    'excluded_tree_terms' in their returned dict.  This helper strips those out
-    so test functions can iterate only over real compendium output files.
+    Some fixtures return extra non-path data alongside their output paths — for example,
+    mesh_pipeline_outputs includes 'excluded_tree_terms' (a set of descriptor CURIEs) for
+    use by test_mesh.py.  This helper strips non-string values so callers can
+    iterate over compendium output files without special-casing each vocabulary.
     """
     return {name: path for name, path in outputs.items() if isinstance(path, str)}
 
 
 def _intermediate_id_path(compendium: str, vocab: str) -> str:
-    """Stable output path matching the Snakemake convention:
-    {intermediate_directory}/{semantic_type}/ids/{vocab}
+    """Return {intermediate_directory}/{snakemake_dir}/ids/{vocab}, matching the Snakemake path.
 
-    Uses the same paths as the Snakemake pipeline so that a prior full pipeline
-    run can be reused directly without re-running write_X_ids().
-
-    The compendium-to-directory mapping is read from config.yaml
-    (compendium_directories key) so there is a single authoritative source.
+    Using the same paths as Snakemake means files from a prior pipeline run are reused directly.
     """
-    from src.util import get_config
-    cfg = get_config()
-    directory_map = cfg.get("compendium_directories", {})
-    snakemake_dir = directory_map.get(compendium, compendium)
-    return os.path.join(cfg["intermediate_directory"], snakemake_dir, "ids", vocab)
+    from src.util import get_config  # deferred: same rationale as _snakemake_dir
+    return os.path.join(get_config()["intermediate_directory"], _snakemake_dir(compendium), "ids", vocab)
 
 
 def _maybe_run(outfile: str, fn, regenerate: bool) -> str:
@@ -129,6 +139,8 @@ def _maybe_run(outfile: str, fn, regenerate: bool) -> str:
     if not os.path.exists(outfile) or regenerate:
         os.makedirs(os.path.dirname(outfile), exist_ok=True)
         fn()
+    else:
+        print(f"[pipeline] reusing cached {outfile} (pass --regenerate to refresh)")  # noqa: T201
     return outfile
 
 
@@ -137,13 +149,13 @@ def _maybe_run(outfile: str, fn, regenerate: bool) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _download_or_skip(label: str, pull_fn, expected_path: str) -> str:
-    """Download expected_path via pull_fn() if absent; pytest.skip() on failure."""
+def _download_or_fail(label: str, pull_fn, expected_path: str) -> str:
+    """Download expected_path via pull_fn() if absent; pytest.fail() with details on failure."""
     if not os.path.exists(expected_path):
         try:
             pull_fn()
         except Exception as e:
-            pytest.skip(f"Could not download {label}: {e}")
+            pytest.fail(f"Could not download {label}: {e}")
     return expected_path
 
 
@@ -172,7 +184,7 @@ def pipeline_output(regenerate):
     """Factory: ensure a Snakemake rule has produced its output file; return the path.
 
     Reuses existing files without re-running (same caching contract as _maybe_run).
-    If the file is absent, runs `uv run snakemake --cores 1 --until <rule>`.
+    If the file is absent, runs `uv run snakemake --cores 1 --rerun-incomplete --until <rule>`.
     Skips all dependent tests if Snakemake fails or the output is not produced.
 
     Usage inside a fixture:
@@ -180,22 +192,25 @@ def pipeline_output(regenerate):
         def my_fixture(pipeline_output):
             return pipeline_output("my_snakemake_rule", "path/to/output")
     """
-    import subprocess
-
     def _get(rule: str, path: str) -> str:
         if os.path.exists(path) and not regenerate:
             return path
         os.makedirs(os.path.dirname(path), exist_ok=True)
         result = subprocess.run(
-            ["uv", "run", "snakemake", "--cores", "1", "--until", rule],
+            ["uv", "run", "snakemake", "--cores", "1", "--rerun-incomplete", "--until", rule],
             capture_output=True,
             text=True,
         )
-        if result.returncode != 0 or not os.path.exists(path):
-            pytest.skip(
-                f"Snakemake rule '{rule}' did not produce {path}.\n"
-                f"Run:  uv run snakemake --cores N --until {rule}\n"
-                f"stderr: {result.stderr[:400]}"
+        if result.returncode != 0:
+            pytest.fail(
+                f"Snakemake failed running rule '{rule}' (exit {result.returncode}); "
+                f"run `uv run snakemake --cores 1 --rerun-incomplete --until {rule}` to diagnose.\n"
+                f"stderr: {result.stderr[:600]}"
+            )
+        if not os.path.exists(path):
+            pytest.fail(
+                f"Snakemake rule '{rule}' ran but did not produce expected output: {path}\n"
+                f"Re-run with:  uv run snakemake --cores 1 --rerun-incomplete --until {rule}"
             )
         return path
 
@@ -209,21 +224,16 @@ def pipeline_output(regenerate):
 
 @pytest.fixture(scope="session")
 def chemicals_concords_dir(pipeline_output):
-    """Ensure chemicals concord files are present; return the concords directory path.
+    """Ensure at least one chemicals concord file is present; return the concords directory path.
 
-    Uses wikipedia_mesh_chebi as the sentinel (the get_chemical_wikipedia_relationships
-    rule has no download prerequisites and is fast to run).  If the sentinel is absent,
-    runs snakemake --until get_chemical_wikipedia_relationships.
-
-    Other concord files (UNICHEM, CHEBI, …) are used if already present from a prior
-    full pipeline run but are not generated automatically — they require large downloads
-    or significant RAM (UNICHEM needs 512G).
+    Uses wikipedia_mesh_chebi as a sentinel: if absent, runs Snakemake's
+    get_chemical_wikipedia_relationships rule (no large downloads required, fast).
+    Other concord files (UNICHEM, CHEBI, …) are used if already present from a prior full
+    pipeline run, but are not generated automatically — UNICHEM in particular requires ~512 GB RAM.
     """
-    from src.util import get_config
+    from src.util import get_config  # deferred: same rationale as _snakemake_dir
     cfg = get_config()
-    directory_map = cfg.get("compendium_directories", {})
-    snakemake_dir = directory_map.get("chemicals", "chemicals")
-    concords_dir = os.path.join(cfg["intermediate_directory"], snakemake_dir, "concords")
+    concords_dir = os.path.join(cfg["intermediate_directory"], _snakemake_dir("chemicals"), "concords")
     sentinel = os.path.join(concords_dir, "wikipedia_mesh_chebi")
     pipeline_output("get_chemical_wikipedia_relationships", sentinel)
     return concords_dir
@@ -237,7 +247,7 @@ def chemicals_concords_dir(pipeline_output):
 @pytest.fixture(scope="session")
 def mesh_nt():
     """Download babel_downloads/MESH/mesh.nt, or skip if unavailable."""
-    return _download_or_skip(
+    return _download_or_fail(
         "MESH mesh.nt",
         pull_mesh,
         make_local_name("mesh.nt", subpath="MESH"),
@@ -260,25 +270,31 @@ def mesh_pipeline_outputs(mesh_nt, regenerate):
     _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_mesh_ids(p("diseasephenotype")), regenerate)
     _maybe_run(p("taxon"),            lambda: taxon.write_mesh_ids(p("taxon")),                      regenerate)
 
-    # Build excluded_tree_terms for test_mesh_pipeline.py: all descriptor terms under
-    # D05/D08/D12.776 (including non-protein subtrees like Polymers and Coenzymes that
-    # belong in neither compendium).  This constructs a second Mesh() instance because
-    # write_ids() encapsulates its own instance and there is no way to reuse it here
-    # without an API change.  This is test-only and session-scoped so the cost is paid
-    # once per test run.
-    m = Mesh()
-    excluded_tree_terms = set()
-    for tree in ["D05", "D08", "D12.776"]:
-        excluded_tree_terms.update(m.get_terms_in_tree(tree))
-
     return {
-        "chemicals":           p("chemicals"),
-        "protein":             p("protein"),
-        "anatomy":             p("anatomy"),
-        "diseasephenotype":    p("diseasephenotype"),
-        "taxon":               p("taxon"),
-        "excluded_tree_terms": excluded_tree_terms,
+        "chemicals":        p("chemicals"),
+        "protein":          p("protein"),
+        "anatomy":          p("anatomy"),
+        "diseasephenotype": p("diseasephenotype"),
+        "taxon":            p("taxon"),
     }
+
+
+@pytest.fixture(scope="session")
+def excluded_mesh_tree_terms(mesh_nt):
+    """Return the set of descriptor CURIEs that must NOT appear in the chemicals output.
+
+    Used only by test_mesh.py.  Kept separate from mesh_pipeline_outputs so
+    that the Mesh() load (~2 GB) is only incurred when this fixture is actually
+    requested — running vocabulary-partitioning tests alone does not trigger it.
+
+    Only protein subtrees are excluded here; D05.374 (Micelles), D05.750 (Polymers),
+    and D05.937 (Smart Materials) are correctly included in chemicals as CHEMICAL_ENTITY.
+    """
+    m = Mesh()
+    terms = set()
+    for tree in ["D12.776", "D05.500", "D05.875", "D08.811", "D08.622", "D08.244"]:
+        terms.update(m.get_terms_in_tree(tree))
+    return terms
 
 
 # ---------------------------------------------------------------------------
@@ -297,8 +313,10 @@ def umls_rrf_files():
         if not os.environ.get("UMLS_API_KEY"):
             pytest.skip("UMLS_API_KEY not set and UMLS files not cached; cannot download UMLS files")
         try:
-            from src.datahandlers import umls as umls_handler
-            from src.util import get_config
+            from src.datahandlers import (
+                umls as umls_handler,  # deferred: only import the UMLS handler when a download is actually needed; if files are already cached this module never loads
+            )
+            from src.util import get_config  # deferred: same rationale as _snakemake_dir
             cfg = get_config()
             umls_handler.download_umls(
                 cfg["umls_version"],
@@ -318,8 +336,11 @@ def umls_pipeline_outputs(umls_rrf_files, regenerate):
     Output files are written to babel_outputs/intermediate/{type}/ids/UMLS and
     reused on subsequent runs unless --regenerate is passed.
     """
-    from src.createcompendia import gene, processactivitypathway
-    from src.util import get_config
+    from src.createcompendia import (  # deferred: gene and processactivitypathway are not in the module-level imports to avoid loading every compendium at collection time; they are only needed for UMLS
+        gene,
+        processactivitypathway,
+    )
+    from src.util import get_config  # deferred: same rationale as _snakemake_dir
 
     mrconso = umls_rrf_files["mrconso"]
     mrsty = umls_rrf_files["mrsty"]
@@ -348,8 +369,10 @@ def umls_pipeline_outputs(umls_rrf_files, regenerate):
 @pytest.fixture(scope="session")
 def omim_mim2gene():
     """Download babel_downloads/OMIM/mim2gene.txt, or skip if unavailable."""
-    from src.datahandlers.omim import pull_omim
-    return _download_or_skip(
+    from src.datahandlers.omim import (
+        pull_omim,  # deferred: omim handler not in module-level imports; only needed for this fixture
+    )
+    return _download_or_fail(
         "OMIM mim2gene.txt",
         pull_omim,
         make_local_name("mim2gene.txt", subpath="OMIM"),
@@ -363,7 +386,7 @@ def omim_pipeline_outputs(omim_mim2gene, regenerate):
     Output files are written to babel_outputs/intermediate/{type}/ids/OMIM and
     reused on subsequent runs unless --regenerate is passed.
     """
-    from src.createcompendia import gene
+    from src.createcompendia import gene  # deferred: gene not in module-level imports; only needed for OMIM
     infile = omim_mim2gene
 
     def p(compendium):
@@ -389,7 +412,9 @@ def ubergraph_connection():
     both ncit_pipeline_outputs and go_pipeline_outputs depend on.
     """
     try:
-        from src.datahandlers.obo import UberGraph
+        from src.datahandlers.obo import (
+            UberGraph,  # deferred: obo module has heavy RDFLib/SPARQL dependencies; only loaded when NCIT/GO tests are actually requested
+        )
         ug = UberGraph()
         # Minimal health check: GO:0005575 (cellular component) is a small, stable term.
         result = ug.get_subclasses_of("GO:0005575")
@@ -432,7 +457,9 @@ def go_pipeline_outputs(ubergraph_connection, regenerate):
     Output files are written to babel_outputs/intermediate/{type}/ids/GO and
     reused on subsequent runs unless --regenerate is passed.
     """
-    from src.createcompendia import processactivitypathway
+    from src.createcompendia import (
+        processactivitypathway,  # deferred: processactivitypathway not in module-level imports; only needed for GO
+    )
 
     def p(compendium):
         return _intermediate_id_path(compendium, "GO")
@@ -456,7 +483,249 @@ VOCABULARY_REGISTRY = {
     "OMIM": "omim_pipeline_outputs",
     "NCIT": "ncit_pipeline_outputs",
     "GO":   "go_pipeline_outputs",
+    "EC":   "ec_ids_outputs",
+    "CLO":  "clo_ids_outputs",
+    "EFO":  "efo_ids_outputs",
 }
+
+
+# ---------------------------------------------------------------------------
+# EC, Rhea, ChEMBL, CLO, EFO download + processing fixtures
+#
+# EC, CLO, and EFO are registered in VOCABULARY_REGISTRY via slim id-only
+# wrapper fixtures (ec_ids_outputs, clo_ids_outputs, efo_ids_outputs) defined
+# near the bottom of this file.
+#
+# Rhea and ChEMBL are NOT registered: they produce labels/concords/smiles but
+# no IDs file, so they cannot be exercised by test_vocabulary_partitioning.py
+# without adding write_X_ids() functions first.
+# See https://github.com/NCATSTranslator/Babel/issues/749
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def ec_rdf_file():
+    """Download babel_downloads/EC/enzyme.rdf, or fail if unavailable."""
+    from src.datahandlers.ec import pull_ec  # deferred: only import when EC tests are requested
+    return _download_or_fail(
+        "EC enzyme.rdf",
+        pull_ec,
+        make_local_name("enzyme.rdf", subpath="EC"),
+    )
+
+
+@pytest.fixture(scope="session")
+def ec_pipeline_outputs(ec_rdf_file, regenerate):
+    """Run ECgraph label/synonym/ID extraction; returns {labels, synonyms, ids} paths.
+
+    Output files are written to babel_downloads/EC/ (labels, synonyms) and
+    babel_outputs/intermediate/process/ids/EC (ids).  Reused on subsequent runs
+    unless --regenerate is passed.
+    """
+    from src.util import get_config  # deferred: same rationale as _snakemake_dir
+    cfg = get_config()
+    labels = os.path.join(cfg["download_directory"], "EC", "labels")
+    synonyms = os.path.join(cfg["download_directory"], "EC", "synonyms")
+    ids = _intermediate_id_path("processactivitypathway", "EC")
+
+    from src.datahandlers.ec import ECgraph  # deferred: avoids loading RDF at import time
+    needs_labels = regenerate or not os.path.exists(labels) or not os.path.exists(synonyms)
+    needs_ids = regenerate or not os.path.exists(ids)
+    if needs_labels or needs_ids:
+        ecgraph = ECgraph()
+        if needs_labels:
+            os.makedirs(os.path.dirname(labels), exist_ok=True)
+            ecgraph.pull_EC_labels_and_synonyms(labels, synonyms)
+        _maybe_run(ids, lambda: ecgraph.pull_EC_ids(ids), regenerate)
+
+    return {"labels": labels, "synonyms": synonyms, "ids": ids}
+
+
+# ---------------------------------------------------------------------------
+# Rhea download + processing fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def rhea_rdf_file():
+    """Download babel_downloads/RHEA/rhea.rdf, or fail if unavailable."""
+    from src.datahandlers.rhea import pull_rhea  # deferred
+    return _download_or_fail(
+        "Rhea rhea.rdf",
+        pull_rhea,
+        make_local_name("rhea.rdf", subpath="RHEA"),
+    )
+
+
+@pytest.fixture(scope="session")
+def rhea_pipeline_outputs(rhea_rdf_file, regenerate):
+    """Run Rhea label extraction and EC concordance; returns {labels, concords} paths.
+
+    Output files go to babel_downloads/RHEA/labels and
+    babel_outputs/intermediate/process/concords/RHEA.  Reused unless --regenerate is passed.
+    """
+    from src.util import get_config  # deferred
+    cfg = get_config()
+    labels = os.path.join(cfg["download_directory"], "RHEA", "labels")
+    concords = os.path.join(cfg["intermediate_directory"], _snakemake_dir("processactivitypathway"), "concords", "RHEA")
+    metadata_yaml = os.path.join(cfg["intermediate_directory"], _snakemake_dir("processactivitypathway"), "concords", "metadata-RHEA.yaml")
+
+    from src.datahandlers.rhea import Rhea  # deferred
+    needs_labels = regenerate or not os.path.exists(labels)
+    needs_concords = regenerate or not os.path.exists(concords)
+    if needs_labels or needs_concords:
+        rhea = Rhea()
+        _maybe_run(labels, lambda: rhea.pull_rhea_labels(labels), regenerate)
+        _maybe_run(concords, lambda: rhea.pull_rhea_ec_concs(concords, metadata_yaml), regenerate)
+
+    return {"labels": labels, "concords": concords}
+
+
+# ---------------------------------------------------------------------------
+# ChemBL download + processing fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def chembl_ttl_files():
+    """Download babel_downloads/CHEMBL.COMPOUND/chembl_latest_molecule.ttl + cco.ttl, or fail."""
+    from src.datahandlers.chembl import pull_chembl  # deferred
+    molecule_file = make_local_name("chembl_latest_molecule.ttl", subpath="CHEMBL.COMPOUND")
+    cco_file = make_local_name("cco.ttl", subpath="CHEMBL.COMPOUND")
+    if not os.path.exists(molecule_file) or not os.path.exists(cco_file):
+        try:
+            pull_chembl(molecule_file)
+        except Exception as e:
+            pytest.fail(f"Could not download ChEMBL molecule TTL: {e}")
+    if not os.path.exists(cco_file):
+        pytest.fail(f"pull_chembl did not produce expected cco.ttl at {cco_file}")
+    return {"molecule": molecule_file, "cco": cco_file}
+
+
+@pytest.fixture(scope="session")
+def chembl_pipeline_outputs(chembl_ttl_files, regenerate):
+    """Run ChemblRDF label and SMILES extraction; returns {labels, smiles} paths.
+
+    Output files go to babel_downloads/CHEMBL.COMPOUND/labels and .../smiles.
+    Reused unless --regenerate is passed.
+    """
+    from src.util import get_config  # deferred
+    cfg = get_config()
+    labels = os.path.join(cfg["download_directory"], "CHEMBL.COMPOUND", "labels")
+    smiles = os.path.join(cfg["download_directory"], "CHEMBL.COMPOUND", "smiles")
+    molecule_file = chembl_ttl_files["molecule"]
+    cco_file = chembl_ttl_files["cco"]
+
+    from src.datahandlers.chembl import ChemblRDF  # deferred
+    _maybe_run(labels, lambda: ChemblRDF(molecule_file, cco_file).pull_labels(labels), regenerate)
+    _maybe_run(smiles, lambda: ChemblRDF(molecule_file, cco_file).pull_smiles(smiles), regenerate)
+
+    return {"labels": labels, "smiles": smiles}
+
+
+# ---------------------------------------------------------------------------
+# CLO download + processing fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def clo_owl_file():
+    """Download babel_downloads/CLO/clo.owl, or fail if unavailable."""
+    from src.datahandlers.clo import pull_clo  # deferred
+    clo_owl = make_local_name("clo.owl", subpath="CLO")
+    metadata = make_local_name("metadata.yaml", subpath="CLO")
+    if not os.path.exists(clo_owl):
+        try:
+            pull_clo(metadata)
+        except Exception as e:
+            pytest.fail(f"Could not download CLO clo.owl: {e}")
+    return clo_owl
+
+
+@pytest.fixture(scope="session")
+def clo_pipeline_outputs(clo_owl_file, regenerate):
+    """Run CLOgraph label/synonym/ID extraction; returns {labels, synonyms, ids} paths.
+
+    Output files go to babel_downloads/CLO/ (labels, synonyms) and
+    babel_outputs/intermediate/cell_line/ids/CLO (ids).  Reused unless --regenerate is passed.
+    """
+    from src.util import get_config  # deferred
+    cfg = get_config()
+    labels = os.path.join(cfg["download_directory"], "CLO", "labels")
+    synonyms = os.path.join(cfg["download_directory"], "CLO", "synonyms")
+    ids = _intermediate_id_path("cell_line", "CLO")
+
+    from src.datahandlers.clo import CLOgraph, write_clo_ids  # deferred
+    if regenerate or not os.path.exists(labels) or not os.path.exists(synonyms):
+        os.makedirs(os.path.dirname(labels), exist_ok=True)
+        CLOgraph(clo_owl_file).pull_CLO_labels_and_synonyms(labels, synonyms)
+    _maybe_run(ids, lambda: write_clo_ids(clo_owl_file, ids), regenerate)
+
+    return {"labels": labels, "synonyms": synonyms, "ids": ids}
+
+
+# ---------------------------------------------------------------------------
+# EFO download + processing fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def efo_owl_file():
+    """Download babel_downloads/EFO/efo.owl, or fail if unavailable."""
+    from src.datahandlers.efo import pull_efo  # deferred
+    return _download_or_fail(
+        "EFO efo.owl",
+        pull_efo,
+        make_local_name("efo.owl", subpath="EFO"),
+    )
+
+
+@pytest.fixture(scope="session")
+def efo_pipeline_outputs(efo_owl_file, regenerate):
+    """Run EFOgraph label/synonym/ID extraction; returns {labels, synonyms, ids} paths.
+
+    Output files go to babel_downloads/EFO/ (labels, synonyms) and
+    babel_outputs/intermediate/disease/ids/EFO (ids).  Reused unless --regenerate is passed.
+    """
+    from src.util import get_config  # deferred
+    cfg = get_config()
+    labels = os.path.join(cfg["download_directory"], "EFO", "labels")
+    synonyms = os.path.join(cfg["download_directory"], "EFO", "synonyms")
+    ids = _intermediate_id_path("diseasephenotype", "EFO")
+
+    from src.createcompendia.diseasephenotype import write_efo_ids  # deferred
+    from src.datahandlers.efo import EFOgraph  # deferred
+    if regenerate or not os.path.exists(labels) or not os.path.exists(synonyms):
+        os.makedirs(os.path.dirname(labels), exist_ok=True)
+        EFOgraph(efo_owl_file).pull_EFO_labels_and_synonyms(labels, synonyms)
+    _maybe_run(ids, lambda: write_efo_ids(efo_owl_file, ids), regenerate)
+
+    return {"labels": labels, "synonyms": synonyms, "ids": ids}
+
+
+# ---------------------------------------------------------------------------
+# Slim ID-only wrappers for handler fixtures registered in VOCABULARY_REGISTRY
+#
+# EC, CLO, and EFO fixtures return {labels, synonyms, ids} dicts.  The
+# vocab_outputs fixture calls _output_paths(), which treats every string value
+# as a compendium ID file.  Wrapping here exposes only the ids path so the
+# partitioning tests see one compendium per vocabulary, not three.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def ec_ids_outputs(ec_pipeline_outputs):
+    return {"processactivitypathway": ec_pipeline_outputs["ids"]}
+
+
+@pytest.fixture(scope="session")
+def clo_ids_outputs(clo_pipeline_outputs):
+    return {"cell_line": clo_pipeline_outputs["ids"]}
+
+
+@pytest.fixture(scope="session")
+def efo_ids_outputs(efo_pipeline_outputs):
+    return {"diseasephenotype": efo_pipeline_outputs["ids"]}
 
 
 @pytest.fixture(scope="session", params=list(VOCABULARY_REGISTRY.keys()))

@@ -11,19 +11,19 @@ For every registered vocabulary, two tests run automatically:
       Normalization will see a duplicate and normalization will be ambiguous.
 
 Vocabulary-specific targeted tests (e.g. MeSH tree-exclusion, UMLS protein-
-semantic-tree guard) live in test_mesh_pipeline.py / test_umls_pipeline.py.
+semantic-tree guard) live in test_mesh.py / test_umls.py.
 
 To add a new vocabulary, add its fixtures to conftest.py and one entry in
 VOCABULARY_REGISTRY.  This file never needs to change.
 
-All tests are skipped by default.  Run with:
-    PYTHONPATH=. uv run pytest tests/pipeline/test_vocabulary_partitioning.py --pipeline --no-cov -v
+These are pipeline tests, which are skipped by default unless PyTest is run with `--pipeline`.  Run with:
+    uv run pytest tests/pipeline/test_vocabulary_partitioning.py --pipeline --no-cov -v
 Run a single vocabulary:
-    PYTHONPATH=. uv run pytest tests/pipeline/test_vocabulary_partitioning.py --pipeline --no-cov -v -k MESH
+    uv run pytest tests/pipeline/test_vocabulary_partitioning.py --pipeline --no-cov -v -k MESH
 """
 import pytest
 
-from tests.pipeline.conftest import _output_paths, _read_ids
+from tests.pipeline.conftest import _output_paths, get_curies_from_ids_file
 
 # Known cross-compendium duplicates that have not yet been resolved.
 # Each entry is a set of identifier strings that are known to appear in more
@@ -32,13 +32,12 @@ from tests.pipeline.conftest import _output_paths, _read_ids
 # When an underlying bug is fixed, remove the corresponding IDs from this dict
 # so that the test starts enforcing the invariant for those identifiers.
 #
-# TODO: Create a tracking issue for each vocabulary listed here and link it.
 KNOWN_DUPLICATES: dict[str, set[str]] = {
-    "UMLS": {
+    "UMLS": {   # Filed as https://github.com/NCATSTranslator/Babel/issues/729
         "UMLS:C5443441",
         "UMLS:C5443442",
     },
-    "MESH": {
+    "MESH": {   # Filed as https://github.com/NCATSTranslator/Babel/issues/730
         # protein / anatomy overlaps
         "MESH:D022041", "MESH:D035321", "MESH:D006570", "MESH:D009707",
         "MESH:D064448", "MESH:D035341", "MESH:D045524", "MESH:D007106",
@@ -65,7 +64,7 @@ def test_ids_non_empty(vocab_outputs):
     """Every compendium in this vocabulary must produce at least one identifier."""
     vocab, outputs = vocab_outputs
     paths = _output_paths(outputs)
-    empty = [name for name, path in paths.items() if not _read_ids(path)]
+    empty = [name for name, path in paths.items() if not get_curies_from_ids_file(path)]
     assert not empty, f"{vocab}: these compendia produced no output: {empty}"
 
 
@@ -77,7 +76,7 @@ def test_no_id_in_multiple_compendia(vocab_outputs):
     seen = {}       # id -> first compendium name
     duplicates = {} # id -> list of all compendia it appeared in
     for name, path in paths.items():
-        for id_ in _read_ids(path):
+        for id_ in get_curies_from_ids_file(path):
             if id_ in seen:
                 duplicates.setdefault(id_, [seen[id_]]).append(name)
             else:

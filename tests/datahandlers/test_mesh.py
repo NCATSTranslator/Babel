@@ -12,25 +12,18 @@ import pytest
 
 from src.categories import CHEMICAL_ENTITY, PROTEIN
 from src.datahandlers.mesh import Mesh, write_ids
-
-# ---------------------------------------------------------------------------
-# Helpers for building an in-memory pyoxigraph store
-# ---------------------------------------------------------------------------
+from tests.datahandlers.conftest import make_graph_from_store, nn, quad
 
 _MESH_NS = "http://id.nlm.nih.gov/mesh/"
 _MESHV_NS = "http://id.nlm.nih.gov/mesh/vocab#"
 
 
 def _mesh(local: str) -> pyoxigraph.NamedNode:
-    return pyoxigraph.NamedNode(f"{_MESH_NS}{local}")
+    return nn(f"{_MESH_NS}{local}")
 
 
 def _meshv(local: str) -> pyoxigraph.NamedNode:
-    return pyoxigraph.NamedNode(f"{_MESHV_NS}{local}")
-
-
-def _quad(s, p, o) -> pyoxigraph.Quad:
-    return pyoxigraph.Quad(s, p, o, pyoxigraph.DefaultGraph())
+    return nn(f"{_MESHV_NS}{local}")
 
 
 def _make_test_store() -> pyoxigraph.Store:
@@ -56,29 +49,22 @@ def _make_test_store() -> pyoxigraph.Store:
 
     triples = [
         # C000001 under D12.776 (one hop)
-        _quad(_mesh("C000001"), mapped_to, _mesh("D12345")),
-        _quad(_mesh("D12345"), tree_number, _mesh("D12.776.123")),
-        _quad(_mesh("D12.776.123"), parent_tree, _mesh("D12.776")),
+        quad(_mesh("C000001"), mapped_to, _mesh("D12345")),
+        quad(_mesh("D12345"), tree_number, _mesh("D12.776.123")),
+        quad(_mesh("D12.776.123"), parent_tree, _mesh("D12.776")),
         # C000002 under D05 (two hops via D05.500)
-        _quad(_mesh("C000002"), preferred_mapped_to, _mesh("D05678")),
-        _quad(_mesh("D05678"), tree_number, _mesh("D05.500.123")),
-        _quad(_mesh("D05.500.123"), parent_tree, _mesh("D05.500")),
-        _quad(_mesh("D05.500"), parent_tree, _mesh("D05")),
+        quad(_mesh("C000002"), preferred_mapped_to, _mesh("D05678")),
+        quad(_mesh("D05678"), tree_number, _mesh("D05.500.123")),
+        quad(_mesh("D05.500.123"), parent_tree, _mesh("D05.500")),
+        quad(_mesh("D05.500"), parent_tree, _mesh("D05")),
         # C000003 under D23 only (not protein)
-        _quad(_mesh("C000003"), mapped_to, _mesh("D23456")),
-        _quad(_mesh("D23456"), tree_number, _mesh("D23.123")),
-        _quad(_mesh("D23.123"), parent_tree, _mesh("D23")),
+        quad(_mesh("C000003"), mapped_to, _mesh("D23456")),
+        quad(_mesh("D23456"), tree_number, _mesh("D23.123")),
+        quad(_mesh("D23.123"), parent_tree, _mesh("D23")),
     ]
-    for quad in triples:
-        store.add(quad)
+    for triple in triples:
+        store.add(triple)
     return store
-
-
-def _make_mesh_with_store(store: pyoxigraph.Store) -> Mesh:
-    """Construct a Mesh instance without loading a file, injecting a store."""
-    obj = Mesh.__new__(Mesh)
-    obj.m = store
-    return obj
 
 
 # ---------------------------------------------------------------------------
@@ -234,28 +220,24 @@ def test_write_ids_exclude_flag_suppresses_term_from_output(mock_cls, tmp_path):
 
 @pytest.fixture(scope="module")
 def mesh_with_test_store():
-    store = _make_test_store()
-    return _make_mesh_with_store(store)
+    return make_graph_from_store(Mesh, _make_test_store())
 
 
 @pytest.mark.unit
 def test_get_scr_terms_mapped_to_trees_direct_mapping(mesh_with_test_store):
-    result = mesh_with_test_store.get_scr_terms_mapped_to_trees(["D12.776"])
-    assert result == {"MESH:C000001"}
+    assert mesh_with_test_store.get_scr_terms_mapped_to_trees(["D12.776"]) == {"MESH:C000001"}
 
 
 @pytest.mark.unit
 def test_get_scr_terms_mapped_to_trees_transitive_parent(mesh_with_test_store):
-    result = mesh_with_test_store.get_scr_terms_mapped_to_trees(["D05"])
-    assert result == {"MESH:C000002"}
+    assert mesh_with_test_store.get_scr_terms_mapped_to_trees(["D05"]) == {"MESH:C000002"}
 
 
 @pytest.mark.unit
 def test_get_scr_terms_mapped_to_trees_preferred_mapped_to(mesh_with_test_store):
     # C000002 uses preferredMappedTo — covered by the D05 transitive test above,
     # but explicitly confirmed here for clarity.
-    result = mesh_with_test_store.get_scr_terms_mapped_to_trees(["D05"])
-    assert "MESH:C000002" in result
+    assert "MESH:C000002" in mesh_with_test_store.get_scr_terms_mapped_to_trees(["D05"])
 
 
 @pytest.mark.unit
@@ -267,5 +249,4 @@ def test_get_scr_terms_mapped_to_trees_multiple_top_treenums(mesh_with_test_stor
 
 @pytest.mark.unit
 def test_get_scr_terms_mapped_to_trees_no_match(mesh_with_test_store):
-    result = mesh_with_test_store.get_scr_terms_mapped_to_trees(["D01"])
-    assert result == set()
+    assert mesh_with_test_store.get_scr_terms_mapped_to_trees(["D01"]) == set()

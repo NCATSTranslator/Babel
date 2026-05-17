@@ -2,7 +2,7 @@ import ftplib
 
 import pyoxigraph
 
-from src.babel_utils import pull_via_ftp
+from src.babel_utils import parse_rdf_literal, pull_via_ftp
 from src.prefixes import CHEMBLCOMPOUND
 
 
@@ -79,7 +79,7 @@ class ChemblRDF:
                 iterm = str(row["molecule"])
                 ilabel = str(row["label"])
                 chemblid = iterm[:-1].split("/")[-1]
-                label = ilabel[1:-1]
+                label = parse_rdf_literal(ilabel)
 
                 # Sometimes the CHEMBL label is identical to the chemblid. We don't want those (https://github.com/TranslatorSRI/Babel/issues/430).
                 if label == chemblid:
@@ -105,7 +105,7 @@ class ChemblRDF:
                 iterm = str(row["molecule"])
                 ilabel = str(row["smiles"])
                 chemblid = iterm[:-1].split("/")[-1]
-                label = ilabel[1:-1]
+                label = parse_rdf_literal(ilabel)
                 outf.write(f"{CHEMBLCOMPOUND}:{chemblid}\t{label}\n")
 
 

@@ -1,5 +1,49 @@
 # Test Suite
 
+## Overview
+
+Tests are organized along two independent axes:
+
+- **Mark** — controls *when* a test is run (see [Marks](#marks) below for the full table).
+- **Directory** — reflects *what* is being tested.
+
+| Directory | What lives there |
+|-----------|-----------------|
+| `tests/` (root) | Core utility tests: `glom`, `LabeledID`, `NodeFactory`, `ThrottledRequester`, FTP utilities, UberGraph, and gene-protein conflation |
+| `tests/datahandlers/` | One test file per module in `src/datahandlers/` |
+| `tests/datahandlers/pyoxigraph/` | Smoke tests for the pyoxigraph API surface itself (bulk_load formats, SPARQL row access). Future subdirectories will follow the same pattern for UberGraph, ENSEMBL, etc. |
+| `tests/pipeline/` | Full pipeline integration tests that call `write_*_ids()` functions and check the resulting intermediate files; source data is auto-downloaded or skipped per vocabulary (see [Pipeline Tests](pipeline/README.md)) |
+| `tests/pipeline/checks/` | Per-compendium regression assertions tied to specific GitHub issues, designed for test-driven development |
+
+**CI** runs only `unit` tests (`uv run pytest -m unit -q`). Keep unit tests fast, offline, and
+dependency-free so they remain cheap to run on every PR.
+
+For *how* and *where* the different test tiers should be run (GitHub Actions vs HPC self-hosted
+runners, cadence, what to automate vs leave manual, and other testing strategies worth
+considering), see [`docs/Testing.md`](../docs/Testing.md).
+
+**Pipeline tests** cache their output to the same stable paths that Snakemake uses
+(`babel_outputs/intermediate/…`), so a prior full pipeline run is automatically reused. Pass
+`--regenerate` to force `write_X_ids()` to re-run even if its output already exists in
+`babel_outputs/intermediate/`. See
+[Pipeline > Caching](pipeline/README.md#caching-of-intermediate-files) for details.
+
+### Where to add a new test
+
+- **Pure function or small data transform** → `unit` test in `tests/` root (or `tests/datahandlers/`
+  if it exercises a specific data handler module).
+- **Specific CURIE that should (or should not) appear in a compendium** → append a `ChemCheck` or
+  `ConcordCheck` tuple to `tests/pipeline/checks/test_chemicals.py` (or create a parallel file for
+  another compendium). No Snakemake needed for ID-presence checks.
+- **Cross-vocabulary identifier exclusivity for a new vocabulary** → add fixtures to
+  `tests/pipeline/conftest.py` and one entry to `VOCABULARY_REGISTRY` there. See
+  [New pipeline tests](pipeline/README.md#new-pipeline-tests) in the pipeline README.
+- **Pipeline behavior specific to one vocabulary** → add `tests/pipeline/test_X_pipeline.py`
+  marked `pipeline`.
+
+See [Future Plans](#future-plans) at the bottom of this file for a more detailed roadmap of
+planned test locations and conventions.
+
 ## Running Tests
 
 ```bash
@@ -20,7 +64,7 @@ Tests are tagged with marks to control which subset runs in a given context:
 | `unit`     | Pure functions, in-memory logic, small fixtures in `tests/data/`         | No        | Seconds          | 30 s    |
 | `network`  | Requires live internet (FTP, SPARQL, BioMart, external APIs)             | Yes       | Seconds–minutes  | 600 s   |
 | `slow`     | Correct but takes >30s — large fixture processing, SQLite spill, etc.    | Sometimes | >30s             | 600 s   |
-| `pipeline` | Invokes Snakemake rules; requires `babel_downloads/` to be pre-populated | Yes       | Minutes–hours    | 3600 s  |
+| `pipeline` | Calls `write_*_ids()` directly; source data is auto-downloaded or the test skips — no manual setup required for most vocabularies | Sometimes | Minutes–hours    | 3600 s  |
 
 You can adjust the timeout for marks in [conftest.py](conftest.py).
 
@@ -28,10 +72,15 @@ You can adjust the timeout for marks in [conftest.py](conftest.py).
 
 - `pytest` alone: runs `unit` and `slow` tests; skips `network` and `pipeline`
 - `pytest --network`: also runs `network` tests
-- `pytest --pipeline`: also runs `pipeline` tests (ensure `babel_downloads/` exists first)
-- `pytest --pipeline --regenerate`: re-runs `write_X_ids()` even if intermediate files already
-  exist (useful after changing compendium filtering logic; see **Caching** below)
+- `pytest --pipeline`: also runs `pipeline` tests (source data is auto-downloaded per vocabulary, or
+  the test skips if unavailable)
+- `pytest --pipeline --regenerate`: forces `write_X_ids()` to re-run even if its output already
+  exists in `babel_outputs/intermediate/` (useful after changing compendium filtering logic; see
+  **Caching** below)
 - `pytest --all`: runs everything (equivalent to `--network --pipeline`)
+- `pytest --all --regenerate`: authoritative full run — reruns all `write_X_ids()` functions
+  from source rather than reusing cached intermediate files; use this when you want to
+  validate the pipeline end-to-end rather than just check tests against a prior run
 
 ### Convenience commands
 
@@ -44,19 +93,19 @@ uv run pytest -m pipeline --pipeline -x --no-cov # one pipeline test at a time
 uv run pytest -m "not pipeline"                   # everything except full pipeline runs
 uv run pytest -n auto --no-cov                    # parallel (all CPUs), skip coverage
 uv run pytest -n 4 -m unit                        # 4 workers, unit tests only
+uv run pytest -n auto --pipeline --no-cov         # safe: pipeline tests run in 1 worker
 ```
+
+**Parallel execution and pipeline tests** — pytest-xdist gives each worker its own Python
+session, so session-scoped fixtures like `Mesh` (which loads `mesh.nt` into an in-memory
+store) are not shared: N workers would each load `mesh.nt` simultaneously and exhaust
+available RAM. To prevent this, the root `conftest.py` automatically assigns
+`xdist_group("pipeline")` to every pipeline-marked test when `-n` is active, ensuring all
+pipeline tests run in a single worker while unit/slow/network tests still parallelize freely.
 
 ## Test Files
 
 ### Core
-
-- **`test_node_factory.py`** (`network`) — Tests `NodeFactory`, the central class for building
-  normalized nodes. Covers ancestor retrieval, prefix ordering, identifier
-  normalization (selecting the best CURIE from an equivalence set), label
-  application, UMLS filtering, PubChem disambiguation, and deduplication of
-  `LabeledID` objects. Marked `network` because the `node_factory` fixture calls
-  `bmt.Toolkit`, which fetches `biolink-model.yaml` and `predicate_mapping.yaml`
-  from GitHub on first use.
 
 - **`test_glom.py`** (`unit`) — Tests the `glom` utility, which merges pairwise identifier
   sets into equivalence cliques (union-find). Covers basic merging, iterative
@@ -67,159 +116,88 @@ uv run pytest -n 4 -m unit                        # 4 workers, unit tests only
   human-readable label) compare correctly against bare strings and behave properly
   in sets.
 
+- **`test_geneproteiny.py`** (`unit`) — Integration test for gene-protein conflation. Runs
+  `build_compendium` with gene and protein compendia plus a concordance file from
+  `data/` and verifies output is produced.
+
+- **`test_node_factory.py`** (`network`) — Tests `NodeFactory`, the central class for building
+  normalized nodes. Covers ancestor retrieval, prefix ordering, identifier
+  normalization (selecting the best CURIE from an equivalence set), label
+  application, UMLS filtering, PubChem disambiguation, and deduplication of
+  `LabeledID` objects. Marked `network` because the `node_factory` fixture calls
+  `bmt.Toolkit`, which fetches `biolink-model.yaml` and `predicate_mapping.yaml`
+  from GitHub on first use.
+
 ### Data Handlers
+
+All datahandler unit tests share helpers from `tests/datahandlers/conftest.py`:
+
+- `nn(iri)`, `lit(val, language=None)`, `quad(s, p, o)` — concise pyoxigraph node constructors.
+- `RDF_NS`, `RDFS_NS`, `SKOS_NS` — common namespace strings, so tests don't repeat them.
+- `make_graph_from_store(cls, store, **attrs)` — constructs a handler object (e.g. `ECgraph`,
+  `EFOgraph`) with a pre-built in-memory store, bypassing the file-loading `__init__`. Use this
+  in every new datahandler test rather than repeating the `cls.__new__(cls); obj.m = store`
+  pattern.
+
+For handlers that produce label/synonym files, add a module-scoped `*_output` fixture using
+`tmp_path_factory` that calls the extraction method once and stores the file contents as a dict.
+Individual tests then receive the pre-computed output rather than re-running the extraction.
+
+- **`datahandlers/test_mesh.py`** (`unit`) — Unit tests for `src/datahandlers/mesh.py`.
+  Covers `write_ids()` parameter validation, SCR filtering logic (mock-based), and
+  `Mesh.get_scr_terms_mapped_to_trees()` using an inline pyoxigraph store.
 
 - **`datahandlers/test_ensembl.py`** (`network`, `xfail`) — Integration test for the Ensembl
   BioMart data handler. Pulls real data from BioMart, verifies that batched downloads
   (splitting attribute lists across multiple queries) produce the same results as
   single-query downloads, and checks TSV output correctness. Uses `tmp_path`.
 
-- **`datahandlers/test_mesh.py`** (`unit`) — Unit tests for `src/datahandlers/mesh.py`.
-  Covers `write_ids()` parameter validation, SCR filtering logic (mock-based), and
-  `Mesh.get_scr_terms_mapped_to_trees()` using an inline pyoxigraph store.
+- **`datahandlers/pyoxigraph/test_pyoxigraph_api.py`** (`unit`) — Smoke tests for the
+  pyoxigraph API used by all RDF-based handlers: `Store.bulk_load()` for RDF/XML, Turtle,
+  and N-Triples formats; the `base_iri` workaround required by EC/EFO/CLO (files that contain
+  `<owl:Ontology rdf:about=""/>` raise a builtin `SyntaxError` without it); and SPARQL result
+  row access by variable name.
 
 ### Pipeline
 
-#### Caching of intermediate files
+See [`tests/pipeline/README.md`](pipeline/README.md) for caching behavior, fixture setup,
+and how to add new checks or vocabularies.
 
-Processing fixtures write intermediate ID files to the exact paths Snakemake uses:
+- **`pipeline/test_vocabulary_partitioning.py`** (`pipeline`) — Parametrized mutual-exclusivity
+  checks for all registered vocabularies: every `write_X_ids()` must produce non-empty output
+  and no identifier may appear in more than one compendium. Currently covers MESH, UMLS, OMIM,
+  NCIT, and GO.
 
-```text
-babel_outputs/intermediate/{semantic_type}/ids/{vocab}
-```
+- **`pipeline/test_mesh.py`** (`pipeline`) — MeSH-specific targeted assertions
+  ([issue #675](https://github.com/NCATSTranslator/Babel/issues/675)): chemicals must exclude
+  D05 protein subtrees (D05.500, D05.875), D08 protein subtrees (D08.811, D08.622, D08.244),
+  and D12.776 — but must include D08.211 Coenzymes.
 
-For example, `anatomy.write_umls_ids()` writes to
-`babel_outputs/intermediate/anatomy/ids/UMLS`. By default, if that file already
-exists it is reused — `write_umls_ids()` is not called again. This means:
+- **`pipeline/test_umls.py`** (`pipeline`) — UMLS-specific targeted assertions:
+  chemicals must not contain UMLS IDs claimed by the protein compendium.
 
-- **Second and later runs are fast** — only the test assertions execute.
+- **`pipeline/test_ec.py`**, **`pipeline/test_rhea.py`**, **`pipeline/test_chembl.py`**,
+  **`pipeline/test_clo.py`**, **`pipeline/test_efo.py`** (`pipeline`) — Output format and
+  content checks for the EC, Rhea, ChEMBL, CLO, and EFO data handlers.
 
-- **A prior full Snakemake pipeline run can be reused directly** — the test fixtures
-  will pick up any files Snakemake already produced.
-
-- **To force re-processing**, pass `--regenerate`:
-
-  ```bash
-  uv run pytest tests/pipeline/ --pipeline --regenerate --no-cov -v
-  ```
-
-- **To selectively regenerate one vocabulary**, delete its files manually then run
-  without `--regenerate`:
-
-  ```bash
-  rm babel_outputs/intermediate/*/ids/UMLS
-  uv run pytest tests/pipeline/ --pipeline --no-cov -v -k UMLS
-  ```
-
-- **`pipeline/test_vocabulary_partitioning.py`** (`pipeline`) — Generic mutual-exclusivity
-  tests parametrized over all registered vocabularies. For each vocabulary, verifies that
-  (1) every compendium's `write_X_ids()` produces non-empty output and (2) no identifier
-  appears in more than one compendium. Currently covers five vocabularies: MESH (5
-  compendia), UMLS (7 compendia), OMIM (2 compendia), NCIT (2 compendia via UberGraph),
-  GO (2 compendia via UberGraph). Adding a new vocabulary requires only adding its fixtures
-  to `conftest.py` and one entry in `VOCABULARY_REGISTRY` — this file never changes.
-
-- **`pipeline/test_mesh_pipeline.py`** (`pipeline`) — MeSH-specific targeted test (issue
-  #675). Downloads `babel_downloads/MESH/mesh.nt` automatically if absent. One test:
-  chemicals output must exclude all D05/D08/D12.776 descriptor terms, including
-  "in-neither" subtrees like Polymers and Coenzymes, even though these are not captured
-  by `protein.write_mesh_ids()`.
-
-- **`pipeline/test_umls_pipeline.py`** (`pipeline`) — UMLS-specific targeted test. Requires
-  `UMLS_API_KEY` for the initial download (or cached files). One test: chemicals must not
-  contain any UMLS IDs that the protein compendium claimed (semantic type tree
-  A1.4.1.2.1.7, Amino Acid/Peptide/Protein).
-
-- **`pipeline/checks/`** (`pipeline`) — Regression checks sourced from GitHub issues,
-  designed for test-driven development. See [Pipeline Checks](#pipeline-checks) below.
-
-### Pipeline Checks
-
-`tests/pipeline/checks/` contains per-compendium regression assertion files driven by
-specific GitHub issues. They are intended for TDD: add a failing check, run the pipeline,
-iterate on source code until the check passes.
-
-Two kinds of assertions are supported in each file:
-
-**ID-presence checks** (`EXPECTED_IN_CHEMICALS` / `NOT_IN_CHEMICALS`)
-
-Verify that a specific CURIE appears in (or is absent from) the intermediate ID file for a
-compendium. These only require `write_*_ids()` to have run — no Snakemake needed. They
-depend on the existing vocab fixtures (`mesh_pipeline_outputs`, `umls_pipeline_outputs`, …).
-
-The `expected_type` field documents the Biolink type; it is also asserted against the second
-column of the intermediate file if the vocabulary writes type hints (e.g. UMLS does; MESH
-does not).
-
-**Direct cross-reference checks** (`EXPECTED_XREF` / `EXPECTED_NO_XREF`)
-
-Verify that two CURIEs are (or are not) a direct xref pair in any concord file for the
-compendium. These depend on `chemicals_concords_dir` (or the equivalent fixture for another
-compendium), which runs `snakemake --until get_chemical_wikipedia_relationships` if needed.
-
-**Scope limitation**: only *direct* xref pairs are checked. Indirect equivalences through
-multi-hop chains are not detected. This is intentional — it is fast enough for TDD and
-locates the concord file that is the root cause of a bad link.
-
-**Adding a new check** — append one tuple to the appropriate list in
-`tests/pipeline/checks/test_chemicals.py` (or add a new `test_X.py` file for another
-compendium):
-
-```python
-# ID-presence check (MESH, no Snakemake required):
-ChemCheck(
-    "mesh_pipeline_outputs",
-    "MESH:C000001",
-    "biolink:ChemicalEntity",
-    "https://github.com/NCATSTranslator/Babel/issues/NNN",
-),
-
-# Direct-xref check (requires concords to be generated):
-ConcordCheck(
-    "chemicals_concords_dir",
-    "MESH:C000001",
-    "CHEBI:12345",
-    False,   # False = must NOT be a direct xref
-    "https://github.com/NCATSTranslator/Babel/issues/NNN",
-),
-```
-
-**Adding a new vocabulary** — change the `fixture` field to the appropriate session fixture
-name (e.g. `"umls_pipeline_outputs"` for UMLS ID checks). For a new compendium's concord
-checks, add a `my_compendium_concords_dir` fixture to `conftest.py` following the
-`chemicals_concords_dir` pattern, using the appropriate Snakemake sentinel rule.
-
-```bash
-# Run all checks:
-uv run pytest tests/pipeline/checks/ --pipeline --no-cov -v
-
-# Run only ID-presence checks (fast):
-uv run pytest tests/pipeline/checks/ -k "in_chemicals or not_in_chemicals" --pipeline --no-cov -v
-
-# Run only direct-xref checks:
-uv run pytest tests/pipeline/checks/ -k "xref" --pipeline --no-cov -v
-```
-
-### Compendia
-
-- **`test_uber.py`** (`network`, `xfail`) — Tests the
-  `UberGraph` class for querying ontology subclasses and cross-references via SPARQL.
-  Covers direct and indirect subclass retrieval, filtering by cross-reference presence,
-  and exact-match label queries.
-
-- **`test_geneproteiny.py`** (`unit`) — Integration test for gene-protein conflation. Runs
-  `build_compendium` with gene and protein compendia plus a concordance file from
-  `data/` and verifies output is produced.
+- **`pipeline/checks/`** (`pipeline`) — Per-compendium regression assertions tied to GitHub
+  issues (ID-presence and direct cross-reference checks), designed for TDD. See
+  [`tests/pipeline/README.md`](pipeline/README.md#pipeline-checks) for the full guide.
 
 ### Utilities
+
+- **`test_ThrottledRequester.py`** (`unit`) — Tests the `ThrottledRequester` HTTP client,
+  verifying that rate-limiting delays are correctly applied between requests.
+  Uses a local HTTP server, so no network access is required.
 
 - **`test_ftp.py`** (`network`) — Tests FTP download utilities (`pull_via_ftp`) against the
   NCBI FTP server. Covers pulling plain text and gzipped files to memory or disk
   with optional decompression. Requires `--network` to run.
 
-- **`test_ThrottledRequester.py`** (`network`) — Tests the `ThrottledRequester` HTTP client,
-  verifying that rate-limiting delays are correctly applied between requests.
-  Requires `--network` to run.
+- **`test_uber.py`** (`network`) — Tests the `UberGraph` class for querying ontology
+  subclasses and cross-references via SPARQL. Covers direct and indirect subclass retrieval,
+  filtering by cross-reference presence, and exact-match label queries. Tests may xfail at
+  runtime if the UberGraph server is reachable but returns an HTTP error on the probe request.
 
 ### babel_utils/
 
@@ -249,9 +227,6 @@ The `tests/data` directory contains fixture files used by several tests:
   fetches `biolink-model.yaml` and `predicate_mapping.yaml` from GitHub on first use. Shipping a
   pinned copy of those files with the repo (or using VCR cassettes) would let all 13 tests in
   `test_node_factory.py` run offline and be re-marked `unit`.
-- **`responses` / `pytest-httpserver`** — Use HTTP mocking to test `ThrottledRequester` and other
-  HTTP-calling code without a live service. This would let `test_ThrottledRequester.py` be
-  re-marked `unit` and become reliably deterministic.
 - **`babel_config` conftest fixture** — A session fixture that patches `get_config()` to redirect
   `download_directory` and `output_directory` to `tmp_path`. Tests that exercise `create_node()`
   or other path-dependent code could use this instead of manually setting `common_labels = {}`.
@@ -287,54 +262,10 @@ then add offline parsing tests:
   BioMart TSV
 - **`tests/compendium/test_make_cliques.py`** — `get_conflation_ids` parsing logic
 
-### New `network + slow` ETL tests
-
-Add a `tests/etl/` sub-package with a shared `conftest.py` that provides an `etl_output_dir`
-fixture (`tmp_path_factory`). Each file downloads and parses one data handler end-to-end and
-asserts the output file is non-empty:
-
-- `test_etl_ncbigene.py`, `test_etl_chebi.py`, `test_etl_mesh.py`, `test_etl_ensembl.py`, …
-
-### New `pipeline` tests
-
-The vocabulary-partitioning framework in `tests/pipeline/conftest.py` makes adding
-new multi-compendium vocabularies straightforward. Each vocabulary needs:
-
-1. A **download/connectivity fixture** in `conftest.py` — either a file download using
-   `_download_or_skip`, a credential-checked download (like UMLS), or a network health
-   check (like `ubergraph_connection` for NCIT/GO).
-
-2. A **processing fixture** in `conftest.py` that calls all `write_X_ids()` functions for
-   that vocabulary and returns a `{compendium_name: output_path}` dict.
-
-3. **One line** in `VOCABULARY_REGISTRY`: `"MYVOCAB": "my_vocab_pipeline_outputs"`.
-
-No new test file is needed for the standard non-empty and mutual-exclusivity checks —
-`test_vocabulary_partitioning.py` picks them up automatically. Add a
-`test_X_pipeline.py` only for vocabulary-specific targeted assertions.
-
-Vocabularies not yet covered (candidates):
-
-- **ENSEMBL** — appears in protein (`write_ensembl_protein_ids`) and gene
-  (`write_ensembl_gene_ids`). Deferred because the download uses BioMart
-  (`pull_ensembl(ensembl_dir, complete_file, ...)`) which is more complex to invoke
-  outside Snakemake.
-- **NCBI Gene / HGNC / other single-source** — vocabularies that appear in only one
-  compendium don't need mutual-exclusivity tests, but could still get non-empty checks
-  in a per-compendium ETL test (see "New `network + slow` ETL tests" above).
+See [`tests/pipeline/README.md`](pipeline/README.md#future-plans) for planned pipeline and ETL
+test additions.
 
 ### Deduplication / cleanup
 
 - Move `test_geneproteiny.py` assertions to also check individual clique contents, not just that
   the output file is non-empty.
-
-## Out of Scope / Pipeline-only
-
-The pipeline tests live in `tests/pipeline/`. See the "Pipeline" subsection of "Test Files"
-and "New pipeline tests" in Future Plans for the current coverage and how to extend it.
-
-Run them with:
-
-```bash
-uv run pytest tests/pipeline/test_mesh_pipeline.py --pipeline --no-cov -v
-```
