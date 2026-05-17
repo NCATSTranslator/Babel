@@ -79,7 +79,12 @@ def test_bulk_load_n_triples():
 
 @pytest.mark.unit
 def test_bulk_load_rdf_xml_with_base_iri():
-    """The base_iri workaround is used by EC, EFO, and CLO handlers for malformed Ontology elements."""
+    """base_iri is required when the file contains a relative IRI such as rdf:about="".
+
+    EC, EFO, and CLO all include <owl:Ontology rdf:about=""/> which pyoxigraph cannot
+    resolve without a base IRI.  Without one it raises SyntaxError; with one the file
+    loads cleanly and the remaining triples are queryable.
+    """
     rdf = b"""<?xml version="1.0"?>
 <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
          xmlns:owl="http://www.w3.org/2002/07/owl#">
@@ -88,6 +93,12 @@ def test_bulk_load_rdf_xml_with_base_iri():
     <rdf:type rdf:resource="http://example.org/Type"/>
   </rdf:Description>
 </rdf:RDF>"""
+
+    # Without base_iri the empty relative IRI in rdf:about="" cannot be resolved.
+    with pytest.raises(SyntaxError, match="No scheme found in an absolute IRI"):
+        _store_from_bytes(rdf, pyoxigraph.RdfFormat.RDF_XML)
+
+    # With base_iri the relative IRI resolves and the substantive triples load correctly.
     store = _store_from_bytes(rdf, pyoxigraph.RdfFormat.RDF_XML, base_iri="http://example.org/")
     results = list(store.query(
         "SELECT ?s WHERE { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.org/Type> }"
