@@ -1,6 +1,5 @@
 """Unit tests for src/datahandlers/clo.py (CLOgraph)."""
 import io
-from pathlib import Path
 
 import pyoxigraph
 import pytest
@@ -8,11 +7,9 @@ import pytest
 from src.categories import CELL_LINE
 from src.datahandlers.clo import CLOgraph
 from src.prefixes import CLO
-from tests.datahandlers.conftest import lit, nn, quad
+from tests.datahandlers.conftest import RDFS_NS, SKOS_NS, lit, make_graph_from_store, nn, quad
 
 _CLO_NS = "http://purl.obolibrary.org/obo/CLO_"
-_SKOS_NS = "http://www.w3.org/2004/02/skos/core#"
-_RDFS_NS = "http://www.w3.org/2000/01/rdf-schema#"
 _MONDO_NS = "http://purl.obolibrary.org/obo/MONDO_"
 _MONDOH_NS = "http://purl.obolibrary.org/obo/mondo#"
 _OBO_NS = "http://www.geneontology.org/formats/oboInOwl#"
@@ -36,39 +33,38 @@ def _make_clo_store() -> pyoxigraph.Store:
     child = nn(f"{_CLO_NS}0000002")
     not_clo = nn("http://example.org/NOTACLO")
 
-    # Labels on root
-    store.add(quad(root, nn(f"{_SKOS_NS}prefLabel"), lit("HeLa cell")))
-    store.add(quad(root, nn(f"{_SKOS_NS}altLabel"), lit("HeLa")))
-    store.add(quad(root, nn(f"{_RDFS_NS}label"), lit("HeLa cell", language="en")))
+    store.add(quad(root, nn(f"{SKOS_NS}prefLabel"), lit("HeLa cell")))
+    store.add(quad(root, nn(f"{SKOS_NS}altLabel"), lit("HeLa")))
+    store.add(quad(root, nn(f"{RDFS_NS}label"), lit("HeLa cell", language="en")))
 
-    # non-CLO_ entity — should be ignored
-    store.add(quad(not_clo, nn(f"{_SKOS_NS}prefLabel"), lit("Something else")))
+    store.add(quad(not_clo, nn(f"{SKOS_NS}prefLabel"), lit("Something else")))
 
-    # Hierarchy: child subClassOf root
-    store.add(quad(child, nn(f"{_RDFS_NS}subClassOf"), root))
-    store.add(quad(child, nn(f"{_SKOS_NS}prefLabel"), lit("Child cell line")))
+    store.add(quad(child, nn(f"{RDFS_NS}subClassOf"), root))
+    store.add(quad(child, nn(f"{SKOS_NS}prefLabel"), lit("Child cell line")))
 
-    # Exact matches on root using full IRIs (CLO prefix not declared in get_exacts query)
-    store.add(quad(root, nn(f"{_SKOS_NS}exactMatch"), nn(f"{_MONDO_NS}0001234")))
-    store.add(quad(root, nn(f"{_SKOS_NS}exactMatch"), nn(_ORPHANET_IRI)))
+    store.add(quad(root, nn(f"{SKOS_NS}exactMatch"), nn(f"{_MONDO_NS}0001234")))
+    store.add(quad(root, nn(f"{SKOS_NS}exactMatch"), nn(_ORPHANET_IRI)))
     store.add(quad(root, nn(f"{_MONDOH_NS}exactMatch"), nn(f"{_MONDO_NS}9999999")))
 
-    # xrefs on root
     store.add(quad(root, nn(f"{_OBO_NS}hasDbXref"), lit("MESH:D001234")))
     store.add(quad(root, nn(f"{_OBO_NS}hasDbXref"), lit("not-a-curie")))
 
     return store
 
 
-def _make_clograph(store: pyoxigraph.Store) -> CLOgraph:
-    obj = CLOgraph.__new__(CLOgraph)
-    obj.m = store
-    return obj
+@pytest.fixture(scope="module")
+def clograph():
+    return make_graph_from_store(CLOgraph, _make_clo_store())
 
 
 @pytest.fixture(scope="module")
-def clograph():
-    return _make_clograph(_make_clo_store())
+def clo_output(clograph, tmp_path_factory):
+    """Run label/synonym extraction once and return the file contents."""
+    tmp = tmp_path_factory.mktemp("clo")
+    lf = str(tmp / "labels.tsv")
+    sf = str(tmp / "syns.tsv")
+    clograph.pull_CLO_labels_and_synonyms(lf, sf)
+    return {"labels": (tmp / "labels.tsv").read_text(), "syns": (tmp / "syns.tsv").read_text()}
 
 
 # ---------------------------------------------------------------------------
@@ -77,44 +73,26 @@ def clograph():
 
 
 @pytest.mark.unit
-def test_pull_CLO_labels_writes_preflabel(clograph, tmp_path):
-    lf = str(tmp_path / "labels.tsv")
-    sf = str(tmp_path / "syns.tsv")
-    clograph.pull_CLO_labels_and_synonyms(lf, sf)
-    labels = Path(lf).read_text()
-    syns = Path(sf).read_text()
-    assert f"{CLO}:0000001\tHeLa cell" in labels
-    assert f"{CLO}:0000001\tskos:prefLabel\tHeLa cell" in syns
+def test_pull_CLO_labels_writes_preflabel(clo_output):
+    assert f"{CLO}:0000001\tHeLa cell" in clo_output["labels"]
+    assert f"{CLO}:0000001\tskos:prefLabel\tHeLa cell" in clo_output["syns"]
 
 
 @pytest.mark.unit
-def test_pull_CLO_labels_altlabel_in_syn_only(clograph, tmp_path):
-    lf = str(tmp_path / "labels.tsv")
-    sf = str(tmp_path / "syns.tsv")
-    clograph.pull_CLO_labels_and_synonyms(lf, sf)
-    labels = Path(lf).read_text()
-    syns = Path(sf).read_text()
-    # altLabel "HeLa" must not appear in label file
-    label_lines = [line for line in labels.splitlines() if "HeLa" in line and "HeLa cell" not in line]
+def test_pull_CLO_labels_altlabel_in_syn_only(clo_output):
+    label_lines = [line for line in clo_output["labels"].splitlines() if "HeLa" in line and "HeLa cell" not in line]
     assert not label_lines
-    assert f"{CLO}:0000001\tskos:altLabel\tHeLa" in syns
+    assert f"{CLO}:0000001\tskos:altLabel\tHeLa" in clo_output["syns"]
 
 
 @pytest.mark.unit
-def test_pull_CLO_labels_strips_language_tag(clograph, tmp_path):
-    lf = str(tmp_path / "labels.tsv")
-    sf = str(tmp_path / "syns.tsv")
-    clograph.pull_CLO_labels_and_synonyms(lf, sf)
-    labels = Path(lf).read_text()
-    assert "@en" not in labels
+def test_pull_CLO_labels_strips_language_tag(clo_output):
+    assert "@en" not in clo_output["labels"]
 
 
 @pytest.mark.unit
-def test_pull_CLO_labels_skips_non_clo_prefix(clograph, tmp_path):
-    lf = str(tmp_path / "labels.tsv")
-    sf = str(tmp_path / "syns.tsv")
-    clograph.pull_CLO_labels_and_synonyms(lf, sf)
-    assert "Something else" not in Path(lf).read_text()
+def test_pull_CLO_labels_skips_non_clo_prefix(clo_output):
+    assert "Something else" not in clo_output["labels"]
 
 
 # ---------------------------------------------------------------------------
@@ -125,10 +103,8 @@ def test_pull_CLO_labels_skips_non_clo_prefix(clograph, tmp_path):
 @pytest.mark.unit
 def test_pull_CLO_ids_writes_descendants(clograph, tmp_path):
     out = str(tmp_path / "ids.tsv")
-    roots = [("CLO:0000001", CELL_LINE)]
-    clograph.pull_CLO_ids(roots, out)
-    lines = Path(out).read_text().splitlines()
-    curies = [line.split("\t")[0] for line in lines]
+    clograph.pull_CLO_ids([("CLO:0000001", CELL_LINE)], out)
+    curies = [line.split("\t")[0] for line in (tmp_path / "ids.tsv").read_text().splitlines()]
     assert f"{CLO}:0000001" in curies
     assert f"{CLO}:0000002" in curies
 
@@ -141,20 +117,16 @@ def test_pull_CLO_ids_writes_descendants(clograph, tmp_path):
 
 @pytest.mark.unit
 def test_get_exacts_skos_exactmatch(clograph):
-    iri = f"<{_CLO_NS}0000001>"
     out = io.StringIO()
-    clograph.get_exacts(iri, out)
-    content = out.getvalue()
-    assert "skos:exactMatch\tMONDO:0001234" in content
+    clograph.get_exacts(f"<{_CLO_NS}0000001>", out)
+    assert "skos:exactMatch\tMONDO:0001234" in out.getvalue()
 
 
 @pytest.mark.unit
 def test_get_exacts_filters_orphanet(clograph):
-    iri = f"<{_CLO_NS}0000001>"
     out = io.StringIO()
-    clograph.get_exacts(iri, out)
-    content = out.getvalue()
-    for line in content.splitlines():
+    clograph.get_exacts(f"<{_CLO_NS}0000001>", out)
+    for line in out.getvalue().splitlines():
         assert "orphanet" not in line.lower(), f"Unexpected Orphanet line: {line}"
 
 
@@ -165,17 +137,13 @@ def test_get_exacts_filters_orphanet(clograph):
 
 @pytest.mark.unit
 def test_get_xrefs_writes_valid_curie(clograph):
-    iri = f"<{_CLO_NS}0000001>"
     out = io.StringIO()
-    clograph.get_xrefs(iri, out)
-    content = out.getvalue()
-    assert "oboInOwl:hasDbXref\tMESH:D001234" in content
+    clograph.get_xrefs(f"<{_CLO_NS}0000001>", out)
+    assert "oboInOwl:hasDbXref\tMESH:D001234" in out.getvalue()
 
 
 @pytest.mark.unit
 def test_get_xrefs_skips_non_curie(clograph):
-    iri = f"<{_CLO_NS}0000001>"
     out = io.StringIO()
-    clograph.get_xrefs(iri, out)
-    content = out.getvalue()
-    assert "not-a-curie" not in content
+    clograph.get_xrefs(f"<{_CLO_NS}0000001>", out)
+    assert "not-a-curie" not in out.getvalue()
