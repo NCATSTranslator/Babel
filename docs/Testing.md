@@ -53,6 +53,7 @@ nothing to run on a machine that already has the downloads.
 **Recommended.** Keep what is there now:
 
 - Formatting (`ruff`, `snakefmt`, `rumdl`).
+- `pytest --collect-only -q`.
 - `pytest -m unit --no-cov -q`.
 
 These are the only checks that are cheap enough to run on every push and that give meaningful
