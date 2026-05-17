@@ -1,5 +1,6 @@
 import gzip
 import os
+import re
 import sqlite3
 import subprocess
 import time
@@ -28,6 +29,23 @@ MAX_DOWNLOAD_ERROR = 10
 
 # Set up a logger.
 logger = get_logger(__name__)
+
+# Matches an RDF language-tagged literal as returned by pyoxigraph as a raw string, e.g. "value"@en
+_RDF_LANG_LITERAL_RE = re.compile(r'^"(.*)"@\w+$')
+
+
+def parse_rdf_literal(literal: str) -> str:
+    """Strip quoting from a pyoxigraph SPARQL literal string.
+
+    pyoxigraph returns plain literals as '"value"' and language-tagged literals as '"value"@en'.
+    Both forms should be reduced to just the inner value string.
+    """
+    if not literal.startswith('"'):
+        return literal
+    m = _RDF_LANG_LITERAL_RE.match(literal)
+    if m:
+        return m.group(1)
+    return literal[1:-1]
 
 
 def make_local_name(fname, subpath=None):
