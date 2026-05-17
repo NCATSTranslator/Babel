@@ -16,6 +16,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: uv sync --frozen
+      - run: PYTHONPATH=. uv run pytest --collect-only -q
       - run: PYTHONPATH=. uv run pytest -m unit --no-cov -q
 
   network-tests:
@@ -29,4 +30,4 @@ jobs:
         with:
           python-version: "3.11"
       - run: uv sync --frozen
-      - run: PYTHONPATH=. uv run pytest --network -m "unit or network" --no-cov -q
+      - run: PYTHONPATH=. uv run pytest --network -m "unit or network or slow" --no-cov -q

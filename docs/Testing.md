@@ -30,8 +30,8 @@ The constraints that shape this strategy:
 
 ## Current state (2026-05)
 
-- **Per PR (GitHub Actions):** `ruff`, `snakefmt`, `rumdl`, and `pytest -m unit`. Fast and free.
-- **Weekly (GitHub Actions, Wednesdays 17:00 UTC):** `pytest --network -m "unit or network"`.
+- **Per PR (GitHub Actions):** `ruff`, `snakefmt`, `rumdl`, `pytest --collect-only`, and `pytest -m unit`. Fast and free.
+- **Weekly (GitHub Actions, Wednesdays 17:00 UTC):** `pytest --network -m "unit or network or slow"`.
 - **Pipeline tests:** never automated. Run manually before a release on the HPC cluster.
 - **Full pipeline run:** 12–24 hours on HPC, performed before a release.
 
@@ -61,9 +61,6 @@ train reviewers to ignore CI.
   additional job that runs the `foo`-specific network test. Implement with
   `dorny/paths-filter` or `tj-actions/changed-files`. Requires the test files to be named or
   marked in a way that the workflow can map changed source files to tests.
-- **`pytest --collect-only`** as a sanity check that no test file fails to import. Catches the
-  common case where a refactor renames a function still referenced by a `pipeline`-marked test
-  the author did not run locally.
 - **Affected-area pipeline checks** — for changes that touch `src/createcompendia/chemicals.py`,
   run `tests/pipeline/checks/test_chemicals.py` (ID-presence checks only, which don't need
   Snakemake) on the self-hosted runner. Higher complexity; only worth it once self-hosted
@@ -93,13 +90,13 @@ nightly failure to sit unnoticed for weeks.
 
 ### Weekly — GitHub Actions (unchanged from today, expand slightly)
 
-**Recommended.** Keep the existing Wednesday network test. Consider expanding to:
+**Recommended.** Keep the existing Wednesday network test (already expanded to include `slow`
+tests: `pytest --network -m "unit or network or slow"`). Consider adding:
 
-- `pytest --network -m "unit or network or slow"` — adds offline slow tests for free.
-- An additional weekly job on the self-hosted HPC runner that runs `pytest --pipeline
-  --regenerate` once a week — i.e., re-runs every `write_X_ids()` from cached *downloads*. This
-  validates that intermediate-file generation is still deterministic and catches drift between
-  source data and parsing code without paying full-pipeline cost.
+- A weekly job on the self-hosted HPC runner that runs `pytest --pipeline --regenerate` once a
+  week — i.e., re-runs every `write_X_ids()` from cached *downloads*. This validates that
+  intermediate-file generation is still deterministic and catches drift between source data and
+  parsing code without paying full-pipeline cost.
 
 ### Pre-release — HPC, manual (unchanged from today)
 
@@ -181,13 +178,6 @@ This is the single most valuable addition for catching silent regressions. Pipel
 verify *correctness* on specific cases; the baseline catches *unintended distributional
 changes* across the whole output.
 
-#### Pre-commit hooks
-
-Run `ruff check`, `ruff format --check`, and `rumdl check` locally on `git commit`. The
-formatting CI job exists today, but catching it before push is faster and cheaper. `pre-commit`
-framework handles this. Cost: ~5 minutes to add a `.pre-commit-config.yaml`. Optional for
-contributors, but mention it in `CONTRIBUTING.md` or `docs/Development.md`.
-
 #### Smoke test of one full pipeline target per night
 
 In addition to `pytest --pipeline`, run `uv run snakemake --cores N anatomy` (or another small
@@ -227,12 +217,11 @@ reports added/removed cliques, merged cliques, split cliques. Useful for release
 for understanding the impact of a Biolink Model upgrade. Half a day of effort. Not really a
 "test" — more of a release-engineering tool — but it lives in the same conceptual space.
 
-#### CodeQL / Dependabot
+#### CodeQL
 
-GitHub-native, free, and already configured for most repos. CodeQL for Python catches a small
-class of bugs (SQL injection, path traversal); for a data pipeline that doesn't accept user
-input the value is low but the cost is zero. Dependabot keeps `uv.lock` and Actions versions
-current; recommended unconditionally.
+GitHub-native, free. Catches a small class of bugs (SQL injection, path traversal); for a data
+pipeline that doesn't accept user input the value is low but the cost is zero. Enable via
+the GitHub Security tab with no workflow changes needed.
 
 #### Mutation testing (`mutmut`, `cosmic-ray`)
 
@@ -241,6 +230,12 @@ identifying weak tests, but slow to run and noisy (lots of equivalent mutants). 
 manually to identify gaps, then probably not as a regular CI job.
 
 ### Probably not worth it
+
+#### Pre-commit hooks
+
+Running `ruff`, `snakefmt`, and `rumdl` on every `git commit` catches formatting issues before
+push, but the per-PR CI job already catches them quickly. Enforcing checks on every commit adds
+friction without meaningfully improving signal.
 
 #### Cross-Python-version matrix
 
