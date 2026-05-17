@@ -18,6 +18,10 @@ Tests are organized along two independent axes:
 **CI** runs only `unit` tests (`uv run pytest -m unit -q`). Keep unit tests fast, offline, and
 dependency-free so they remain cheap to run on every PR.
 
+For *how* and *where* the different test tiers should be run (GitHub Actions vs HPC self-hosted
+runners, cadence, what to automate vs leave manual, and other testing strategies worth
+considering), see [`docs/Testing.md`](../docs/Testing.md).
+
 **Pipeline tests** cache their output to the same stable paths that Snakemake uses
 (`babel_outputs/intermediate/…`), so a prior full pipeline run is automatically reused. Pass
 `--regenerate` to force `write_X_ids()` to re-run even if its output already exists in

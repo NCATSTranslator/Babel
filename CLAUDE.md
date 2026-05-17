@@ -41,7 +41,11 @@ uv run pytest -n auto                  # Parallel (all CPUs)
 Tests use four marks: `unit` (fast, offline), `network` (requires internet, opt-in with
 `--network`), `slow` (>30s but offline), and `pipeline` (invokes Snakemake, opt-in with
 `--pipeline`). Use `--all` to opt in to everything at once. Network and pipeline tests are
-skipped by default. See `tests/README.md` for the full taxonomy.
+skipped by default.
+
+- `tests/README.md` — full mark taxonomy, where to add a new test, what each test file covers.
+- `docs/Testing.md` — testing strategy: cadence per environment (per-PR, nightly, weekly,
+  pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other strategies.
 
 ### Linting (all three checked in CI on PRs)
 
