@@ -1,3 +1,5 @@
+import re
+
 import pyoxigraph
 
 from src.babel_utils import make_local_name, pull_via_urllib
@@ -47,6 +49,12 @@ class ECgraph:
                 for row in list(qres):
                     iterm = str(row["x"])
                     label = str(row["label"])
+                    if label.startswith('"'):
+                        pattern = re.compile(r"^\"(.*)\"@\w+$")
+                        if pattern.match(label):
+                            label = re.sub(pattern, r"\1", label)
+                        else:
+                            label = label[1:-1]
                     ecid = iterm[:-1].split("/")[-1]
                     synfile.write(f"{EC}:{ecid}\t{labeltype}\t{label}\n")
                     if not labeltype == "skos:altLabel":

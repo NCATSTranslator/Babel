@@ -1,10 +1,10 @@
 """Unit tests for src/datahandlers/ec.py (ECgraph)."""
-import pyoxigraph
 import pytest
 
 from src.categories import MOLECULAR_ACTIVITY
 from src.datahandlers.ec import ECgraph
 from src.prefixes import EC
+from tests.datahandlers.conftest import lit, nn, quad
 
 _EC_NS = "http://purl.uniprot.org/enzyme/"
 _UC_NS = "http://purl.uniprot.org/core/"
@@ -13,38 +13,20 @@ _RDFS_NS = "http://www.w3.org/2000/01/rdf-schema#"
 _RDF_NS = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 
 
-def _nn(iri: str) -> pyoxigraph.NamedNode:
-    return pyoxigraph.NamedNode(iri)
-
-
-def _lit(val: str) -> pyoxigraph.Literal:
-    return pyoxigraph.Literal(val)
-
-
-def _quad(s, p, o) -> pyoxigraph.Quad:
-    return pyoxigraph.Quad(s, p, o, pyoxigraph.DefaultGraph())
-
-
-def _make_ec_store() -> pyoxigraph.Store:
+def _make_ec_store():
     """In-memory Store with two EC entries covering prefLabel, altLabel, and rdfs:label."""
-    store = pyoxigraph.Store()
-    rdf_type = _nn(f"{_RDF_NS}type")
-    enzyme = _nn(f"{_UC_NS}Enzyme")
-    pref_label = _nn(f"{_SKOS_NS}prefLabel")
-    alt_label = _nn(f"{_SKOS_NS}altLabel")
-    rdfs_label = _nn(f"{_RDFS_NS}label")
-    ec1 = _nn(f"{_EC_NS}1.2.3.4")
-    ec2 = _nn(f"{_EC_NS}5.6.7.8")
+    import pyoxigraph
 
-    store.add(_quad(ec1, rdf_type, enzyme))
-    store.add(_quad(ec1, pref_label, _lit("Alcohol dehydrogenase")))
-    store.add(_quad(ec1, alt_label, _lit("ADH")))
-    store.add(_quad(ec2, rdf_type, enzyme))
-    store.add(_quad(ec2, rdfs_label, _lit("Some enzyme")))
+    store = pyoxigraph.Store()
+    store.add(quad(nn(f"{_EC_NS}1.2.3.4"), nn(f"{_RDF_NS}type"), nn(f"{_UC_NS}Enzyme")))
+    store.add(quad(nn(f"{_EC_NS}1.2.3.4"), nn(f"{_SKOS_NS}prefLabel"), lit("Alcohol dehydrogenase")))
+    store.add(quad(nn(f"{_EC_NS}1.2.3.4"), nn(f"{_SKOS_NS}altLabel"), lit("ADH")))
+    store.add(quad(nn(f"{_EC_NS}5.6.7.8"), nn(f"{_RDF_NS}type"), nn(f"{_UC_NS}Enzyme")))
+    store.add(quad(nn(f"{_EC_NS}5.6.7.8"), nn(f"{_RDFS_NS}label"), lit("Some enzyme")))
     return store
 
 
-def _make_ecgraph(store: pyoxigraph.Store) -> ECgraph:
+def _make_ecgraph(store) -> ECgraph:
     obj = ECgraph.__new__(ECgraph)
     obj.m = store
     return obj
@@ -71,9 +53,8 @@ def test_pull_EC_labels_preflabel_in_both_files(ecgraph, tmp_path):
     ecgraph.pull_EC_labels_and_synonyms(lf, sf)
     labels = open(lf).read()
     syns = open(sf).read()
-    # EC writes label = str(row["label"]) without stripping quotes, so output includes them.
-    assert f'{EC}:1.2.3.4\t"Alcohol dehydrogenase"' in labels
-    assert f'{EC}:1.2.3.4\tskos:prefLabel\t"Alcohol dehydrogenase"' in syns
+    assert f"{EC}:1.2.3.4\tAlcohol dehydrogenase" in labels
+    assert f"{EC}:1.2.3.4\tskos:prefLabel\tAlcohol dehydrogenase" in syns
 
 
 @pytest.mark.unit
@@ -84,7 +65,7 @@ def test_pull_EC_labels_altlabel_in_syn_only(ecgraph, tmp_path):
     labels = open(lf).read()
     syns = open(sf).read()
     assert "ADH" not in labels
-    assert f'{EC}:1.2.3.4\tskos:altLabel\t"ADH"' in syns
+    assert f"{EC}:1.2.3.4\tskos:altLabel\tADH" in syns
 
 
 @pytest.mark.unit
@@ -94,5 +75,5 @@ def test_pull_EC_labels_rdfs_label_in_both_files(ecgraph, tmp_path):
     ecgraph.pull_EC_labels_and_synonyms(lf, sf)
     labels = open(lf).read()
     syns = open(sf).read()
-    assert f'{EC}:5.6.7.8\t"Some enzyme"' in labels
-    assert f'{EC}:5.6.7.8\trdfs:label\t"Some enzyme"' in syns
+    assert f"{EC}:5.6.7.8\tSome enzyme" in labels
+    assert f"{EC}:5.6.7.8\trdfs:label\tSome enzyme" in syns
