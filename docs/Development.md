@@ -66,7 +66,7 @@ that is slow by necessity.
 ## Ideas for Improvement
 
 The suggestions below range from small scripts you could add this week to multi-month architectural
-changes. All are worth considering. For the companion question of *how* and *where* to run the test
+changes. All are worth considering. For the companion question of _how_ and _where_ to run the test
 suite (cadence, runner choice, what to automate), see [`docs/Testing.md`](Testing.md).
 
 ### Small, practical improvements
