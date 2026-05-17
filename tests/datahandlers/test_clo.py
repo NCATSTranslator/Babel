@@ -6,6 +6,7 @@ import pytest
 
 from src.datahandlers.clo import CLOgraph
 from src.prefixes import CLO
+from tests.datahandlers.conftest import lit, nn, quad
 
 _CLO_NS = "http://purl.obolibrary.org/obo/CLO_"
 _SKOS_NS = "http://www.w3.org/2004/02/skos/core#"
@@ -14,20 +15,6 @@ _MONDO_NS = "http://purl.obolibrary.org/obo/MONDO_"
 _MONDOH_NS = "http://purl.obolibrary.org/obo/mondo#"
 _OBO_NS = "http://www.geneontology.org/formats/oboInOwl#"
 _ORPHANET_IRI = "http://www.orpha.net/ORDO/Orphanet_123456"
-
-
-def _nn(iri: str) -> pyoxigraph.NamedNode:
-    return pyoxigraph.NamedNode(iri)
-
-
-def _lit(val: str, language: str | None = None) -> pyoxigraph.Literal:
-    if language:
-        return pyoxigraph.Literal(val, language=language)
-    return pyoxigraph.Literal(val)
-
-
-def _quad(s, p, o) -> pyoxigraph.Quad:
-    return pyoxigraph.Quad(s, p, o, pyoxigraph.DefaultGraph())
 
 
 def _make_clo_store() -> pyoxigraph.Store:
@@ -43,38 +30,30 @@ def _make_clo_store() -> pyoxigraph.Store:
     EX:NOTACLO  — non-CLO_ IRI; skipped by label/id methods
     """
     store = pyoxigraph.Store()
-    rdfs_label = _nn(f"{_RDFS_NS}label")
-    rdfs_sub = _nn(f"{_RDFS_NS}subClassOf")
-    skos_pref = _nn(f"{_SKOS_NS}prefLabel")
-    skos_alt = _nn(f"{_SKOS_NS}altLabel")
-    skos_exact = _nn(f"{_SKOS_NS}exactMatch")
-    mondoh_exact = _nn(f"{_MONDOH_NS}exactMatch")
-    has_xref = _nn(f"{_OBO_NS}hasDbXref")
-
-    root = _nn(f"{_CLO_NS}0000001")
-    child = _nn(f"{_CLO_NS}0000002")
-    not_clo = _nn("http://example.org/NOTACLO")
+    root = nn(f"{_CLO_NS}0000001")
+    child = nn(f"{_CLO_NS}0000002")
+    not_clo = nn("http://example.org/NOTACLO")
 
     # Labels on root
-    store.add(_quad(root, skos_pref, _lit("HeLa cell")))
-    store.add(_quad(root, skos_alt, _lit("HeLa")))
-    store.add(_quad(root, rdfs_label, _lit("HeLa cell", language="en")))
+    store.add(quad(root, nn(f"{_SKOS_NS}prefLabel"), lit("HeLa cell")))
+    store.add(quad(root, nn(f"{_SKOS_NS}altLabel"), lit("HeLa")))
+    store.add(quad(root, nn(f"{_RDFS_NS}label"), lit("HeLa cell", language="en")))
 
     # non-CLO_ entity — should be ignored
-    store.add(_quad(not_clo, skos_pref, _lit("Something else")))
+    store.add(quad(not_clo, nn(f"{_SKOS_NS}prefLabel"), lit("Something else")))
 
     # Hierarchy: child subClassOf root
-    store.add(_quad(child, rdfs_sub, root))
-    store.add(_quad(child, skos_pref, _lit("Child cell line")))
+    store.add(quad(child, nn(f"{_RDFS_NS}subClassOf"), root))
+    store.add(quad(child, nn(f"{_SKOS_NS}prefLabel"), lit("Child cell line")))
 
     # Exact matches on root using full IRIs (CLO prefix not declared in get_exacts query)
-    store.add(_quad(root, skos_exact, _nn(f"{_MONDO_NS}0001234")))
-    store.add(_quad(root, skos_exact, _nn(_ORPHANET_IRI)))
-    store.add(_quad(root, mondoh_exact, _nn(f"{_MONDO_NS}9999999")))
+    store.add(quad(root, nn(f"{_SKOS_NS}exactMatch"), nn(f"{_MONDO_NS}0001234")))
+    store.add(quad(root, nn(f"{_SKOS_NS}exactMatch"), nn(_ORPHANET_IRI)))
+    store.add(quad(root, nn(f"{_MONDOH_NS}exactMatch"), nn(f"{_MONDO_NS}9999999")))
 
     # xrefs on root
-    store.add(_quad(root, has_xref, _lit("MESH:D001234")))
-    store.add(_quad(root, has_xref, _lit("not-a-curie")))
+    store.add(quad(root, nn(f"{_OBO_NS}hasDbXref"), lit("MESH:D001234")))
+    store.add(quad(root, nn(f"{_OBO_NS}hasDbXref"), lit("not-a-curie")))
 
     return store
 

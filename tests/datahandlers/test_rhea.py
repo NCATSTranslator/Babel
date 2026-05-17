@@ -6,22 +6,11 @@ import pytest
 
 from src.datahandlers.rhea import Rhea
 from src.prefixes import EC, RHEA
+from tests.datahandlers.conftest import lit, nn, quad
 
 _RH_NS = "http://rdf.rhea-db.org/"
 _RDFS_NS = "http://www.w3.org/2000/01/rdf-schema#"
 _ENZ_NS = "http://purl.uniprot.org/enzyme/"
-
-
-def _nn(iri: str) -> pyoxigraph.NamedNode:
-    return pyoxigraph.NamedNode(iri)
-
-
-def _lit(val: str) -> pyoxigraph.Literal:
-    return pyoxigraph.Literal(val)
-
-
-def _quad(s, p, o) -> pyoxigraph.Quad:
-    return pyoxigraph.Quad(s, p, o, pyoxigraph.DefaultGraph())
 
 
 def _make_rhea_store() -> pyoxigraph.Store:
@@ -31,17 +20,13 @@ def _make_rhea_store() -> pyoxigraph.Store:
     Reaction R2: has accession + ec link (for concordance test).
     """
     store = pyoxigraph.Store()
-    rdfs_label = _nn(f"{_RDFS_NS}label")
-    rh_acc = _nn(f"{_RH_NS}accession")
-    rh_ec = _nn(f"{_RH_NS}ec")
+    r1 = nn(f"{_RH_NS}12345")
+    r2 = nn(f"{_RH_NS}67890")
 
-    r1 = _nn(f"{_RH_NS}12345")
-    r2 = _nn(f"{_RH_NS}67890")
-
-    store.add(_quad(r1, rdfs_label, _lit("ATP hydrolysis")))
-    store.add(_quad(r1, rh_acc, _lit("RHEA:12345")))
-    store.add(_quad(r2, rh_acc, _lit("RHEA:67890")))
-    store.add(_quad(r2, rh_ec, _nn(f"{_ENZ_NS}1.2.3.4")))
+    store.add(quad(r1, nn(f"{_RDFS_NS}label"), lit("ATP hydrolysis")))
+    store.add(quad(r1, nn(f"{_RH_NS}accession"), lit("RHEA:12345")))
+    store.add(quad(r2, nn(f"{_RH_NS}accession"), lit("RHEA:67890")))
+    store.add(quad(r2, nn(f"{_RH_NS}ec"), nn(f"{_ENZ_NS}1.2.3.4")))
     return store
 
 

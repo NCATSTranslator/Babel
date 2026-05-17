@@ -6,6 +6,7 @@ import pytest
 
 from src.datahandlers.efo import EFOgraph
 from src.prefixes import EFO
+from tests.datahandlers.conftest import lit, nn, quad
 
 _EFO_NS = "http://www.ebi.ac.uk/efo/EFO_"
 _SKOS_NS = "http://www.w3.org/2004/02/skos/core#"
@@ -14,20 +15,6 @@ _MONDO_NS = "http://purl.obolibrary.org/obo/MONDO_"
 _MONDOH_NS = "http://purl.obolibrary.org/obo/mondo#"
 _OBO_NS = "http://www.geneontology.org/formats/oboInOwl#"
 _ORPHANET_IRI = "http://www.orpha.net/ORDO/Orphanet_123456"
-
-
-def _nn(iri: str) -> pyoxigraph.NamedNode:
-    return pyoxigraph.NamedNode(iri)
-
-
-def _lit(val: str, language: str | None = None) -> pyoxigraph.Literal:
-    if language:
-        return pyoxigraph.Literal(val, language=language)
-    return pyoxigraph.Literal(val)
-
-
-def _quad(s, p, o) -> pyoxigraph.Quad:
-    return pyoxigraph.Quad(s, p, o, pyoxigraph.DefaultGraph())
 
 
 def _make_efo_store() -> pyoxigraph.Store:
@@ -43,38 +30,31 @@ def _make_efo_store() -> pyoxigraph.Store:
     EFO:NOTANEFO — non-EFO_ IRI; should be skipped by label/id methods
     """
     store = pyoxigraph.Store()
-    rdfs_label = _nn(f"{_RDFS_NS}label")
-    rdfs_sub = _nn(f"{_RDFS_NS}subClassOf")
-    skos_pref = _nn(f"{_SKOS_NS}prefLabel")
-    skos_alt = _nn(f"{_SKOS_NS}altLabel")
-    skos_exact = _nn(f"{_SKOS_NS}exactMatch")
-    mondoh_exact = _nn(f"{_MONDOH_NS}exactMatch")
-    has_xref = _nn(f"{_OBO_NS}hasDbXref")
-
-    root = _nn(f"{_EFO_NS}0000001")
-    child = _nn(f"{_EFO_NS}0001234")
-    not_efo = _nn("http://example.org/NOTANEFO")
+    root = nn(f"{_EFO_NS}0000001")
+    child = nn(f"{_EFO_NS}0001234")
+    not_efo = nn("http://example.org/NOTANEFO")
 
     # Labels on root
-    store.add(_quad(root, skos_pref, _lit("Liver disease")))
-    store.add(_quad(root, skos_alt, _lit("hepatic disease")))
-    store.add(_quad(root, rdfs_label, _lit("Liver disease", language="en")))
+    store.add(quad(root, nn(f"{_SKOS_NS}prefLabel"), lit("Liver disease")))
+    store.add(quad(root, nn(f"{_SKOS_NS}altLabel"), lit("hepatic disease")))
+    store.add(quad(root, nn(f"{_RDFS_NS}label"), lit("Liver disease", language="en")))
 
     # non-EFO_ entity — should be ignored
-    store.add(_quad(not_efo, skos_pref, _lit("Something else")))
+    store.add(quad(not_efo, nn(f"{_SKOS_NS}prefLabel"), lit("Something else")))
 
     # Hierarchy: child subClassOf root
-    store.add(_quad(child, rdfs_sub, root))
-    store.add(_quad(child, skos_pref, _lit("Child term")))
+    store.add(quad(child, nn(f"{_RDFS_NS}subClassOf"), root))
+    store.add(quad(child, nn(f"{_SKOS_NS}prefLabel"), lit("Child term")))
 
     # Exact matches on root
-    store.add(_quad(root, skos_exact, _nn(f"{_MONDO_NS}0001234")))
-    store.add(_quad(root, skos_exact, _nn(_ORPHANET_IRI)))
-    store.add(_quad(root, mondoh_exact, _nn(f"{_MONDO_NS}9999999")))
+    store.add(quad(root, nn(f"{_SKOS_NS}exactMatch"), nn(f"{_MONDO_NS}0001234")))
+    store.add(quad(root, nn(f"{_SKOS_NS}exactMatch"), nn(_ORPHANET_IRI)))
+    # mondo#exactMatch is normalised to skos:exactMatch in output
+    store.add(quad(root, nn(f"{_MONDOH_NS}exactMatch"), nn(f"{_MONDO_NS}9999999")))
 
     # xrefs on root
-    store.add(_quad(root, has_xref, _lit("MESH:D001234")))
-    store.add(_quad(root, has_xref, _lit("not-a-curie")))
+    store.add(quad(root, nn(f"{_OBO_NS}hasDbXref"), lit("MESH:D001234")))
+    store.add(quad(root, nn(f"{_OBO_NS}hasDbXref"), lit("not-a-curie")))
 
     return store
 
@@ -168,6 +148,7 @@ def test_get_exacts_skos_exactmatch(efograph):
 
 @pytest.mark.unit
 def test_get_exacts_mondo_exactmatch(efograph):
+    # mondo#exactMatch is normalised to skos:exactMatch by EFOgraph.get_exacts
     out = io.StringIO()
     efograph.get_exacts("EFO:0000001", out)
     content = out.getvalue()

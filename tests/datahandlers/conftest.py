@@ -2,11 +2,31 @@
 
 These are plain functions (not fixtures) so they can be imported by both unit tests
 and pipeline tests without going through pytest's fixture injection machinery.
-
-As per https://github.com/NCATSTranslator/Babel/issues/736, they should eventually
-be turned into a core part of Babel so that the same code can be used to read and
-write these internal files.
 """
+import pyoxigraph
+
+# ---------------------------------------------------------------------------
+# pyoxigraph construction helpers
+# ---------------------------------------------------------------------------
+
+
+def nn(iri: str) -> pyoxigraph.NamedNode:
+    return pyoxigraph.NamedNode(iri)
+
+
+def lit(val: str, language: str | None = None) -> pyoxigraph.Literal:
+    if language:
+        return pyoxigraph.Literal(val, language=language)
+    return pyoxigraph.Literal(val)
+
+
+def quad(s, p, o) -> pyoxigraph.Quad:
+    return pyoxigraph.Quad(s, p, o, pyoxigraph.DefaultGraph())
+
+
+# ---------------------------------------------------------------------------
+# TSV output assertion helpers
+# ---------------------------------------------------------------------------
 
 
 def read_tsv(path: str) -> list[list[str]]:
