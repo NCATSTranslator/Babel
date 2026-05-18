@@ -600,7 +600,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                 # Determine types.
                 types = node_factory.get_ancestors(node["type"])
 
-                # Generate a preferred label for this clique using _select_preferred_label().
+                # Generate a preferred label for this clique using choose_preferred_name().
                 preferred_name = choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_labels_longer_than)
 
                 # At this point, we insert any HAS_ADDITIONAL_ID IDs we have.
