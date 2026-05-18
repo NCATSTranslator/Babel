@@ -51,7 +51,7 @@ def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-@pytest.mark.network
+@pytest.mark.unit
 def test_biolink_fixture_version_matches_config():
     """The pinned VERSION file must equal `biolink_version` in config.yaml."""
     config_version = _config_version()

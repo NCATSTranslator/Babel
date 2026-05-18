@@ -19,12 +19,10 @@ Two pieces of pipeline state are redirected:
 import copy
 import dataclasses
 import json
-import os
 from pathlib import Path
 
 import curies
 import pytest
-from _pytest.monkeypatch import MonkeyPatch
 from bmt import Toolkit
 
 import src.util as util_module
@@ -49,7 +47,7 @@ def local_biolink_toolkit():
     `tests/fixtures/biolink-model/refresh.py`; the freshness check lives in
     `tests/test_biolink_model_freshness.py` (marked `network`).
     """
-    mp = MonkeyPatch()
+    mp = pytest.MonkeyPatch()
 
     def _local_toolkit(_biolink_version):
         return Toolkit(str(LOCAL_BIOLINK_MODEL))
@@ -80,7 +78,7 @@ class CompendiumTestEnv:
     """Paths and helpers for a single near-end-to-end compendium test."""
 
     output_dir: Path
-    icrdf_path: str
+    icrdf_path: Path
 
     def compendium_path(self, ofname: str) -> Path:
         return self.output_dir / "compendia" / ofname
@@ -120,7 +118,7 @@ def babel_test_env(tmp_path, monkeypatch):
     (tmp_path / "compendia").mkdir(exist_ok=True)
     (tmp_path / "synonyms").mkdir(exist_ok=True)
 
-    return CompendiumTestEnv(output_dir=tmp_path, icrdf_path=str(LOCAL_ICRDF))
+    return CompendiumTestEnv(output_dir=tmp_path, icrdf_path=LOCAL_ICRDF)
 
 
 def assert_preferred_name(record: dict, expected: str) -> None:
