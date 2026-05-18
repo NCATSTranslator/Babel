@@ -425,6 +425,46 @@ def sort_identifiers_with_boosted_prefixes(identifiers, prefixes):
     )
 
 
+def choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_labels_longer_than):
+    """Return the preferred name for a node, or "" if none is available."""
+    # Walk the ancestor chain (most-specific type first) to find the first matching entry
+    # for each config dict. Using the most specific type ensures a SmallMolecule, for example,
+    # picks up boost/demotion rules defined on ChemicalEntity without overriding a more
+    # specific rule that might exist on SmallMolecule itself.
+    boost_prefixes = None
+    length_limit = None
+    for typ in types:
+        if boost_prefixes is None and typ in preferred_name_boost_prefixes:
+            boost_prefixes = preferred_name_boost_prefixes[typ]
+        if length_limit is None and typ in demote_labels_longer_than:
+            length_limit = demote_labels_longer_than[typ]
+        if boost_prefixes is not None and length_limit is not None:
+            break  # Both resolved — no need to scan further up the hierarchy.
+
+    # Build the candidate label list in priority order.
+    # If boost prefixes apply, promoted prefixes move to the front; all other identifiers
+    # follow in their original Biolink prefix order.
+    if boost_prefixes is not None:
+        possible_labels = [
+            identifier.get("label", "")
+            for identifier in sort_identifiers_with_boosted_prefixes(node["identifiers"], boost_prefixes)
+        ]
+    else:
+        possible_labels = [identifier.get("label", "") for identifier in node["identifiers"]]
+
+    # Drop blank/missing labels.
+    filtered = [label for label in possible_labels if label]
+
+    # Demote long labels: if any label fits within the limit, discard those that don't.
+    # If *all* labels exceed the limit we keep them rather than returning empty.
+    if length_limit is not None:
+        shorter = [label for label in filtered if len(label) <= length_limit]
+        if shorter:
+            filtered = shorter
+
+    return filtered[0] if filtered else ""
+
+
 def get_numerical_curie_suffix(curie):
     """
     If a CURIE has a numerical suffix, return it as an integer. Otherwise return None.
@@ -479,6 +519,9 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
     # Load the preferred_name_boost_prefixes -- this tells us which prefixes to boost when
     # coming up with a preferred label for a particular Biolink class.
     preferred_name_boost_prefixes = config["preferred_name_boost_prefixes"]
+
+    # Load the per-type label length demotion config. Types not listed here are never demoted.
+    demote_labels_longer_than = config.get("demote_labels_longer_than", {})
 
     # Create an InformationContentFactory based on the specified icRDF.tsv file. Default to the one in the download
     # directory.
@@ -567,61 +610,8 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                 # Determine types.
                 types = node_factory.get_ancestors(node["type"])
 
-                # Generate a preferred label for this clique.
-                #
-                # To pick a preferred label for this clique, we need to do three things:
-                # 1. We sort all labels in the preferred-name order. By default, this should be
-                #    the preferred CURIE order, but if this clique is in one of the Biolink classes in
-                #    preferred_name_boost_prefixes, we boost those prefixes in that order to the top of the list.
-                # 2. We filter out any suspicious labels.
-                #    (If this simple filter doesn't work, and if prefixes are inconsistent, we can build upon the
-                #    algorithm proposed by Jeff at
-                #    https://github.com/NCATSTranslator/Feedback/issues/259#issuecomment-1605140850)
-                # 3. We filter out any labels longer than config['demote_labels_longer_than'], but only if there is
-                #    at least one label shorter than this limit.
-                # 4. We choose the first label that isn't blank (that allows us to use our rule of smallest-prefix-first to find the broadest name for this concept). If no labels remain, we generate a warning.
-
-                # Step 1.1. Sort labels in boosted prefix order if possible.
-                possible_labels = []
-                for typ in types:
-                    if typ in preferred_name_boost_prefixes:
-                        # This is the most specific matching type, so we use this and then break.
-                        possible_labels = list(
-                            map(
-                                lambda identifier: identifier.get("label", ""),
-                                sort_identifiers_with_boosted_prefixes(node["identifiers"], preferred_name_boost_prefixes[typ]),
-                            )
-                        )
-
-                        # Add in all the other labels -- we'd still like to consider them, but at a lower priority.
-                        for id in node["identifiers"]:
-                            label = id.get("label", "")
-                            if label not in possible_labels:
-                                possible_labels.append(label)
-
-                        # Since this is the most specific matching type, we shouldn't do other (presumably higher-level)
-                        # categories: so let's break here.
-                        break
-
-                # Step 1.2. If we didn't have a preferred_name_boost_prefixes, just use the identifiers in their
-                # Biolink prefix order.
-                if not possible_labels:
-                    possible_labels = map(lambda identifier: identifier.get("label", ""), node["identifiers"])
-
-                # Step 2. Filter out any suspicious labels.
-                filtered_possible_labels = [label for label in possible_labels if label]  # Ignore blank or empty names.
-
-                # Step 3. Filter out labels longer than config['demote_labels_longer_than'], but only if there is at
-                # least one label shorter than this limit.
-                labels_shorter_than_limit = [label for label in filtered_possible_labels if label and len(label) <= config["demote_labels_longer_than"]]
-                if labels_shorter_than_limit:
-                    filtered_possible_labels = labels_shorter_than_limit
-
-                # Step 4. Pick the first label if it isn't blank.
-                if filtered_possible_labels:
-                    preferred_name = filtered_possible_labels[0]
-                else:
-                    preferred_name = ""
+                # Generate a preferred label for this clique using choose_preferred_name().
+                preferred_name = choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_labels_longer_than)
 
                 # At this point, we insert any HAS_ADDITIONAL_ID IDs we have.
                 # The logic we use is: we insert all additional IDs for a CURIE *AFTER* that CURIE, in a random order, as long
