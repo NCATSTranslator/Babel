@@ -426,59 +426,32 @@ def sort_identifiers_with_boosted_prefixes(identifiers, prefixes):
 
 
 def _select_preferred_label(node, types, preferred_name_boost_prefixes, demote_labels_longer_than):
-    """Choose the preferred display label for a normalised node.
-
-    Steps:
-    1. Sort labels in boosted-prefix order if the node's most-specific type has an entry in
-       preferred_name_boost_prefixes; otherwise use Biolink prefix order.
-    2. Filter blank labels.
-    3. Demote labels longer than the per-type limit (if the type has an entry in
-       demote_labels_longer_than). Types with no entry are never demoted.
-       See https://github.com/NCATSTranslator/Babel/issues/597
-    4. Return the first surviving label, or "" if none remain.
-
-    :param node: A node dict with "identifiers" (list of dicts with "identifier" and optionally "label") and "type".
-    :param types: Ancestor types for this node, most-specific first.
-    :param preferred_name_boost_prefixes: Dict mapping Biolink type → list of boosted prefixes (from config).
-    :param demote_labels_longer_than: Dict mapping Biolink type → int length limit (from config).
-    :return: The preferred label string, or "" if no label is available.
-    """
-    # Step 1.1 — sort by boosted prefix order for the most-specific matching type.
-    possible_labels = []
-    for typ in types:
-        if typ in preferred_name_boost_prefixes:
-            possible_labels = list(
-                map(
-                    lambda identifier: identifier.get("label", ""),
-                    sort_identifiers_with_boosted_prefixes(node["identifiers"], preferred_name_boost_prefixes[typ]),
-                )
-            )
-            # Append any remaining labels not already included.
-            for id in node["identifiers"]:
-                label = id.get("label", "")
-                if label not in possible_labels:
-                    possible_labels.append(label)
-            break
-
-    # Step 1.2 — fallback: use identifiers in their existing (Biolink prefix) order.
-    if not possible_labels:
-        possible_labels = list(map(lambda identifier: identifier.get("label", ""), node["identifiers"]))
-
-    # Step 2 — filter blank labels.
-    filtered = [label for label in possible_labels if label]
-
-    # Step 3 — per-type length demotion: find the limit for the most-specific matching type.
+    """Return the preferred display label for a node, or "" if none is available."""
+    boost_prefixes = None
     length_limit = None
     for typ in types:
-        if typ in demote_labels_longer_than:
+        if boost_prefixes is None and typ in preferred_name_boost_prefixes:
+            boost_prefixes = preferred_name_boost_prefixes[typ]
+        if length_limit is None and typ in demote_labels_longer_than:
             length_limit = demote_labels_longer_than[typ]
+        if boost_prefixes is not None and length_limit is not None:
             break
+
+    if boost_prefixes is not None:
+        possible_labels = [
+            identifier.get("label", "")
+            for identifier in sort_identifiers_with_boosted_prefixes(node["identifiers"], boost_prefixes)
+        ]
+    else:
+        possible_labels = [identifier.get("label", "") for identifier in node["identifiers"]]
+
+    filtered = [label for label in possible_labels if label]
+
     if length_limit is not None:
         shorter = [label for label in filtered if len(label) <= length_limit]
         if shorter:
             filtered = shorter
 
-    # Step 4 — return the first surviving label.
     return filtered[0] if filtered else ""
 
 
