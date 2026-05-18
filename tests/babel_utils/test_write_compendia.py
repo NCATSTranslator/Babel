@@ -1,6 +1,6 @@
 """Unit tests for label-selection logic in write_compendium().
 
-The helper under test is _select_preferred_label(), which is the extracted core of
+The helper under test is choose_preferred_name(), which is the extracted core of
 the label-selection algorithm previously embedded in write_compendium().
 
 Issue context:
@@ -150,13 +150,13 @@ def test_chemical_demotion_via_small_molecule_ancestor():
 
 
 @pytest.mark.unit
-def test_chemical_demotion_via_drug_ancestor():
-    """Demotion should also apply to biolink:Drug via ancestor traversal."""
+def test_chemical_within_limit_not_demoted_via_drug_ancestor():
+    """Demotion config reaches biolink:Drug via ancestor traversal, but acetylsalicylic acid
+    (20 chars) is within the 25-char limit so no demotion occurs and it is returned first."""
     node = _node([
         ("DRUGBANK:DB00945", "acetylsalicylic acid"),  # 20 chars — within limit
         ("PUBCHEM.COMPOUND:2244", "aspirin"),
     ])
-    # acetylsalicylic acid (20) is within the limit, so it should be returned first
     result = choose_preferred_name(node, DRUG_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == "acetylsalicylic acid"
 

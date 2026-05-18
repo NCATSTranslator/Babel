@@ -201,7 +201,7 @@ and how to add new checks or vocabularies.
 
 ### babel_utils/
 
-- **`babel_utils/test_write_compendia.py`** (`unit`) — Unit tests for `_select_preferred_label()`,
+- **`babel_utils/test_write_compendia.py`** (`unit`) — Unit tests for `choose_preferred_name()`,
   the label-selection helper extracted from `write_compendium()`. Covers per-type length demotion
   (demotion applies to chemicals and their subtypes via ancestor traversal; diseases, phenotypes,
   and other non-chemical types are never demoted), interaction with `preferred_name_boost_prefixes`,
