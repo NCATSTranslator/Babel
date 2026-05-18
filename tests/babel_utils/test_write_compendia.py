@@ -15,6 +15,7 @@ Issue context:
 
 import pytest
 
+from src import categories
 from src.babel_utils import _select_preferred_label
 
 
@@ -34,40 +35,40 @@ def _node(identifiers):
 # ---------------------------------------------------------------------------
 
 DISEASE_ANCESTORS = [
-    "biolink:Disease",
+    categories.DISEASE,
     "biolink:DiseaseOrPhenotypicFeature",
     "biolink:BiologicalEntity",
     "biolink:NamedThing",
 ]
 
 PHENOTYPIC_FEATURE_ANCESTORS = [
-    "biolink:PhenotypicFeature",
+    categories.PHENOTYPIC_FEATURE,
     "biolink:DiseaseOrPhenotypicFeature",
     "biolink:BiologicalEntity",
     "biolink:NamedThing",
 ]
 
 CHEMICAL_ENTITY_ANCESTORS = [
-    "biolink:ChemicalEntity",
+    categories.CHEMICAL_ENTITY,
     "biolink:PhysicalEssence",
     "biolink:NamedThing",
 ]
 
 SMALL_MOLECULE_ANCESTORS = [
-    "biolink:SmallMolecule",
-    "biolink:ChemicalEntity",
+    categories.SMALL_MOLECULE,
+    categories.CHEMICAL_ENTITY,
     "biolink:PhysicalEssence",
     "biolink:NamedThing",
 ]
 
 DRUG_ANCESTORS = [
-    "biolink:Drug",
-    "biolink:ChemicalEntity",
+    categories.DRUG,
+    categories.CHEMICAL_ENTITY,
     "biolink:PhysicalEssence",
     "biolink:NamedThing",
 ]
 
-DEMOTE_CHEMICALS_25 = {"biolink:ChemicalEntity": 25}
+DEMOTE_CHEMICALS_25 = {categories.CHEMICAL_ENTITY: 25}
 
 
 # ---------------------------------------------------------------------------
@@ -206,7 +207,7 @@ def test_boost_prefix_then_demotion():
     DRUGBANK is boosted for ChemicalEntity, so a long DRUGBANK label is moved to the front —
     but demotion should then skip it in favour of the shorter alternative.
     """
-    boost = {"biolink:ChemicalEntity": ["DRUGBANK", "CHEBI"]}
+    boost = {categories.CHEMICAL_ENTITY: ["DRUGBANK", "CHEBI"]}
     node = _node([
         ("CHEBI:27899", "cisplatin"),               # 9 chars — short, not boosted first
         ("DRUGBANK:DB00515", "cis-diaminedichloroplatinum(II)"),  # 31 chars — boosted first but too long
