@@ -69,8 +69,8 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
     node_parquet_filename = os.path.join(parquet_dir, "Node.parquet")
 
     with setup_duckdb(duckdb_filename) as db:
-        # Step 1. Create a Nodes table with all the nodes from this file.
-        db.sql("""CREATE TABLE Node (curie STRING, label STRING, label_lc STRING, description STRING[], taxa STRING[])""")
+        # Step 1. Create a Nodes table with all the nodes from compendium_filename.
+        db.sql("""CREATE TABLE Node (curie STRING, curie_prefix STRING, label STRING, label_lc STRING, description STRING[], taxa STRING[])""")
 
         compendium_filesize = os.path.getsize(compendium_filename)
         if compendium_filesize < MIN_FILE_SIZE_FOR_SPLITTING_LOAD:
@@ -85,6 +85,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                           )
                           SELECT
                               extracted_list[1] AS curie,
+                              split_part(extracted_list[1], ':', 1) AS curie_prefix,
                               extracted_list[2] AS label,
                               LOWER(label) AS label_lc,
                               extracted_list[3] AS description,
@@ -118,7 +119,6 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
 
             logger.info(f"Loaded {len(chunk_filenames)} containing {lines_added:,} lines into chunk files.")
             for chunk_filename in chunk_filenames:
-                # TODO: maybe add the PREFIX in a different column here so we can SELECT on that later?
                 db.execute(
                     """INSERT INTO Node
                               WITH extracted AS (
@@ -128,6 +128,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                               )
                               SELECT
                                   extracted_list[1] AS curie,
+                                  split_part(extracted_list[1], ':', 1) AS curie_prefix,
                                   extracted_list[2] AS label,
                                   LOWER(label) AS label_lc,
                                   extracted_list[3] AS description,
@@ -164,13 +165,23 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
         db.table("Clique").write_parquet(clique_parquet_filename)
 
         # Step 2. Create an Edge table with all the clique/CURIE relationships from this file.
-        db.sql("CREATE TABLE Edge (clique_leader STRING, curie STRING, conflation STRING)")
+        db.sql("CREATE TABLE Edge (clique_leader STRING, curie STRING, conflation STRING, clique_leader_prefix STRING, curie_prefix STRING)")
         db.execute(
-            """INSERT INTO Edge SELECT
-                json_extract_string(identifiers, '$[0].i') AS clique_leader,
-                UNNEST(json_extract_string(identifiers, '$[*].i')) AS curie,
-                'None' AS conflation
-            FROM read_json(?, format='newline_delimited')""",
+            """INSERT INTO Edge
+                WITH unnested AS (
+                    SELECT
+                        json_extract_string(identifiers, '$[0].i') AS clique_leader,
+                        UNNEST(json_extract_string(identifiers, '$[*].i')) AS curie,
+                        'None' AS conflation
+                    FROM read_json(?, format='newline_delimited')
+                )
+                SELECT
+                    clique_leader,
+                    curie,
+                    conflation,
+                    split_part(clique_leader, ':', 1) AS clique_leader_prefix,
+                    split_part(curie, ':', 1) AS curie_prefix
+                FROM unnested""",
             [compendium_filename],
         )
         db.table("Edge").write_parquet(edge_parquet_filename)

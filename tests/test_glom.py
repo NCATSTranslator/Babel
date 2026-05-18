@@ -1,8 +1,8 @@
+"""glom is a tool that looks at list of sets of values and combines them together if they share members"""
+
 import pytest
 
 from src.babel_utils import glom
-
-"""glom is a tool that looks at list of sets of values and combines them together if they share members"""
 
 
 @pytest.mark.unit

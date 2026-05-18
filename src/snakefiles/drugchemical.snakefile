@@ -6,6 +6,11 @@ from src.metadata.provenance import write_concord_metadata
 ### Drug / Chemical
 
 
+# Trivial done-marker rule runs locally so it doesn't consume a SLURM slot.
+localrules:
+    drugchemical,
+
+
 rule rxnorm_relationships:
     input:
         rxnconso=config["download_directory"] + "/RxNorm/RXNCONSO.RRF",
@@ -13,6 +18,8 @@ rule rxnorm_relationships:
     output:
         outfile_concords=config["intermediate_directory"] + "/drugchemical/concords/RXNORM",
         metadata_yaml=config["intermediate_directory"] + "/drugchemical/concords/metadata-RXNORM.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/rxnorm_relationships.tsv"
     run:
         drugchemical.build_rxnorm_relationships(
             input.rxnconso, input.rxnrel, output.outfile_concords, output.metadata_yaml
@@ -26,6 +33,8 @@ rule umls_relationships:
     output:
         outfile_concords=config["intermediate_directory"] + "/drugchemical/concords/UMLS",
         metadata_yaml=config["intermediate_directory"] + "/drugchemical/concords/metadata-UMLS.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/umls_relationships.tsv"
     run:
         drugchemical.build_rxnorm_relationships(
             input.umlsconso, input.umlsrel, output.outfile_concords, output.metadata_yaml
@@ -38,6 +47,8 @@ rule pubchem_rxnorm_relationships:
     output:
         outfile_concords=config["intermediate_directory"] + "/drugchemical/concords/PUBCHEM_RXNORM",
         metadata_yaml=config["intermediate_directory"] + "/drugchemical/concords/metadata-PUBCHEM_RXNORM.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/pubchem_rxnorm_relationships.tsv"
     run:
         drugchemical.build_pubchem_relationships(input.infile, output.outfile_concords, output.metadata_yaml)
 
@@ -57,6 +68,8 @@ rule drugchemical_conflation:
     output:
         outfile=config["output_directory"] + "/conflation/DrugChemical.txt",
         metadata_yaml=config["output_directory"] + "/metadata/DrugChemical.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/drugchemical_conflation.tsv"
     run:
         drugchemical.build_conflation(
             input.drugchemical_manual_concord,
@@ -73,8 +86,6 @@ rule drugchemical_conflation:
 
 
 rule drugchemical_conflated_synonyms:
-    resources:
-        runtime="6h",
     input:
         drugchemical_conflation=[config["output_directory"] + "/conflation/DrugChemical.txt"],
         chemical_compendia=expand("{do}/compendia/{co}", do=config["output_directory"], co=config["chemical_outputs"]),
@@ -83,6 +94,10 @@ rule drugchemical_conflated_synonyms:
         ),
     output:
         drugchemical_conflated_gz=config["output_directory"] + "/synonyms/DrugChemicalConflated.txt.gz",
+    benchmark:
+        config["output_directory"] + "/benchmarks/drugchemical_conflated_synonyms.tsv"
+    resources:
+        runtime="6h",
     run:
         synonymconflation.conflate_synonyms(
             input.chemical_synonyms_gz,

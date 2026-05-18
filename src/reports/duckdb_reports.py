@@ -48,7 +48,6 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
 
     db = setup_duckdb(duckdb_filename, duckdb_config)
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
-    cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
     # Look for CURIEs that are present in different cliques.
     db.sql("""SELECT
@@ -66,7 +65,6 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
     """).write_csv(duplicate_curies_tsv, sep="\t")
 
     edges.close()
-    cliques.close()
 
 
 def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_clique_leaders_tsv, duckdb_config=None):
@@ -134,7 +132,7 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
             COUNT(DISTINCT e.clique_leader) AS clique_distinct_count
         FROM (
              SELECT clique_leader,
-                    split_part(curie, ':', 1) AS curie_prefix,
+                    curie_prefix,
                     curie
              FROM edges
              WHERE edges.conflation = 'None'
@@ -241,8 +239,8 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
     clique_per_curie = db.sql("""
         SELECT
             filename,
-            split_part(clique_leader, ':', 1) AS clique_leader_prefix,
-            split_part(curie, ':', 1) AS curie_prefix,
+            clique_leader_prefix,
+            curie_prefix,
             COUNT(DISTINCT curie) AS distinct_curie_count,
             COUNT(curie) AS curie_count
         FROM

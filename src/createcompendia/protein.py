@@ -27,8 +27,19 @@ def extract_taxon_ids_from_uniprotkb(idmapping_filename, uniprotkb_taxa_filename
 
 
 def write_umls_ids(mrsty, outfile):
-    umlsmap = {}
-    umlsmap["A1.4.1.2.1.7"] = PROTEIN
+    # Compare with src/createcompendia/chemicals.py (see source code at
+    # https://github.com/NCATSTranslator/Babel/blob/c91654411923b86300cc2f6b5a21b96ea857817f/src/createcompendia/chemicals.py#L54-L76)
+    #
+    # We have to make sure we don't include UMLS identifiers both here and in chemicals.py, otherwise they'll
+    # end up in both compendia.
+    umlsmap = {
+        "A1.4.1.2.1.7": PROTEIN,    # Amino Acid, Peptide, or Protein -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T116
+        # The following should not be needed: receptors are generally proteins, and enzymes are definitionally proteins, so
+        # they should all be included in T116. But since we exclude them in chemicals.py, I think it makes sense to include
+        # them here.
+        "A1.4.1.1.3.6": PROTEIN,    # Receptor -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T192
+        "A1.4.1.1.3.3": PROTEIN,    # Enzyme -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T126
+    }
     umls.write_umls_ids(mrsty, umlsmap, outfile)
 
 
@@ -41,47 +52,43 @@ def write_mesh_ids(outfile):
     # D05      Macromolecular Substances — only protein-related subtrees:
     #   D05.500  Multiprotein Complexes
     #   D05.875  Protein Aggregates
-    #   (Excluded from both compendia: D05.750 Polymers, D05.937 Smart Materials,
-    #    D05.374 Micelles — these are non-protein macromolecules.)
+    #   (D05.374 Micelles, D05.750 Polymers, D05.937 Smart Materials go to the chemical
+    #    compendium as CHEMICAL_ENTITY — see https://github.com/NCATSTranslator/Babel/issues/731
     #
     # D08      Enzymes and Coenzymes — only protein-related subtrees:
     #   D08.811  Enzymes
     #   D08.622  Enzyme Precursors
     #   D08.244  Cytochromes
-    #   (Excluded from both compendia: D08.211 Coenzymes — these are small molecules.)
+    #   (D08.211 Coenzymes goes to the chemical compendium — not proteins.)
     #
-    # TODO: A more comprehensive solution would be to define the chemical and protein
-    # MeSH tree assignments in a single shared location (e.g. config.yaml or a dedicated
-    # mapping module) so that both compendia are derived from the same source of truth.
-    # This would prevent the current situation where the excluded trees in chemicals.py
-    # and the included trees here must be kept in sync manually. Possible approaches:
-    #   1. A shared dict mapping tree numbers to (compendium, category) pairs.
-    #   2. A two-pass approach: first classify all MeSH terms, then partition into
-    #      compendia based on the classification.
-    #   3. Use the MeSH SCR "heading mapped to" relationships more aggressively to
-    #      infer types for SCR terms that lack tree numbers (e.g. SCR proteins that
-    #      MeSH maps to venom descriptors rather than protein descriptors).
+    # TODO: The MeSH tree assignments for chemicals and proteins are currently defined
+    # independently in chemicals.write_mesh_ids() and protein.write_mesh_ids(). These
+    # should be unified into a shared mapping (e.g. in config.yaml or a dedicated
+    # mapping module) so both compendia are derived from the same source of truth.
+    # This would prevent the current situation where the included/excluded trees here
+    # and in chemicals.py must be kept in sync manually. See https://github.com/NCATSTranslator/Babel/issues/735
     meshmap = {
-        "D12.776": PROTEIN,  # Proteins
-        "D05.500": PROTEIN,  # Multiprotein Complexes
-        "D05.875": PROTEIN,  # Protein Aggregates
-        "D08.811": PROTEIN,  # Enzymes
-        "D08.622": PROTEIN,  # Enzyme Precursors
-        "D08.244": PROTEIN,  # Cytochromes
+        "D12.776": PROTEIN,
+        "D05.500": PROTEIN,
+        "D05.875": PROTEIN,
+        "D08.811": PROTEIN,
+        "D08.622": PROTEIN,
+        "D08.244": PROTEIN,
     }
     # Also include SCR_Chemical terms mapped to protein descriptor trees.
-    # We use scr_include_trees to only keep SCR terms mapped to the protein-related
-    # trees (D12.776, D05, D08). This is the inverse of scr_exclude_trees used in
-    # chemicals.write_mesh_ids(). We use the broader D05 and D08 here (not just the
-    # protein subtrees) because any SCR mapped to D05 or D08 is more likely a protein
-    # than a non-protein macromolecule.
-    scr_protein_trees = ["D12.776", "D05", "D08"]
+    # We use scr_include_trees to only keep SCR terms mapped to specific protein subtrees.
+    # D05 is narrowed to D05.500/D05.875 (Multiprotein Complexes, Protein Aggregates) so
+    # SCRs mapped to non-protein D05 subtrees (D05.374 Micelles, D05.750 Polymers, D05.937
+    # Smart Materials) fall through to the chemical compendium, consistent with how those
+    # descriptor terms are handled.
+    # D08 is narrowed to only the protein subtrees so SCRs mapped to D08.211 (Coenzymes)
+    # fall through to the chemical compendium, consistent with how descriptor terms are handled.
     mesh.write_ids(
         meshmap,
         outfile,
         order=[PROTEIN],
         extra_vocab={"SCR_Chemical": PROTEIN},
-        scr_include_trees=scr_protein_trees,
+        scr_include_trees=list(meshmap.keys()),
     )
 
 

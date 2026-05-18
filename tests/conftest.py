@@ -5,8 +5,72 @@ import pytest
 from src.node import NodeFactory
 from src.util import get_config
 
-# Biolink Model version derived from config.yaml — the single source of truth.
+# ---------------------------------------------------------------------------
+# TSV output assertion helpers (used by both datahandler and pipeline tests)
+# ---------------------------------------------------------------------------
+
+
+def read_tsv(path: str) -> list[list[str]]:
+    """Return non-empty lines of a TSV file split into columns."""
+    rows = []
+    with open(path) as f:
+        for line in f:
+            stripped = line.rstrip("\n")
+            if stripped:
+                rows.append(stripped.split("\t"))
+    return rows
+
+
+def assert_labels_file_valid(path: str) -> list[list[str]]:
+    """Assert the file is non-empty and every line is PREFIX:ID\\tLabel; return the rows."""
+    rows = read_tsv(path)
+    assert rows, f"Labels file is empty: {path}"
+    for cols in rows:
+        assert len(cols) == 2, f"Expected 2 columns, got {len(cols)}: {cols}"
+        assert ":" in cols[0], f"First column is not a CURIE: {cols[0]}"
+    return rows
+
+
+def assert_synonyms_file_valid(path: str) -> list[list[str]]:
+    """Assert the file is non-empty and every line is PREFIX:ID\\tlabeltype\\tLabel; return the rows."""
+    rows = read_tsv(path)
+    assert rows, f"Synonyms file is empty: {path}"
+    for cols in rows:
+        assert len(cols) == 3, f"Expected 3 columns, got {len(cols)}: {cols}"
+        assert ":" in cols[0], f"First column is not a CURIE: {cols[0]}"
+    return rows
+
+
+def assert_ids_file_valid(path: str) -> list[list[str]]:
+    """Assert the file is non-empty and every line is PREFIX:ID\\tbiolink:Category; return the rows."""
+    rows = read_tsv(path)
+    assert rows, f"IDs file is empty: {path}"
+    for cols in rows:
+        assert len(cols) == 2, f"Expected 2 columns, got {len(cols)}: {cols}"
+        assert ":" in cols[0], f"First column is not a CURIE: {cols[0]}"
+    return rows
+
+
+def assert_concordance_file_valid(path: str) -> list[list[str]]:
+    """Assert the file is non-empty and every line is CURIE\\trelation\\tCURIE; return the rows."""
+    rows = read_tsv(path)
+    assert rows, f"Concordance file is empty: {path}"
+    for cols in rows:
+        assert len(cols) == 3, f"Expected 3 columns, got {len(cols)}: {cols}"
+        assert ":" in cols[0], f"First column is not a CURIE: {cols[0]}"
+        assert ":" in cols[2], f"Third column is not a CURIE: {cols[2]}"
+    return rows
+from src.util import get_config
+
+# Biolink Model version used throughout the test suite.  Should match config.yaml.
 BIOLINK_VERSION = get_config()["biolink_version"]
+
+# Per-mark timeout overrides (pytest-timeout); unit tests inherit the global timeout = 30
+MARK_TIMEOUTS = {
+    "network": 600,
+    "slow": 600,
+    "pipeline": 3600,
+}
 
 
 @pytest.fixture(scope="session")
@@ -23,6 +87,29 @@ def node_factory():
     return fac
 
 
+@pytest.fixture(scope="session")
+def ubergraph():
+    """Session-scoped UberGraph instance shared across all ubergraph tests.
+
+    Skips all dependent tests if the server is unreachable (network failure).
+    XFails all dependent tests if the server is reachable but returns an error response.
+    """
+    import urllib.error
+
+    from src.ubergraph import UberGraph
+
+    ug = UberGraph()
+    try:
+        ug.triplestore.query("SELECT (1 AS ?x) WHERE {}", ["x"])
+    except urllib.error.HTTPError as e:
+        pytest.xfail(f"UberGraph server returned HTTP {e.code}: {e}")
+    except (TimeoutError, urllib.error.URLError, OSError) as e:
+        pytest.skip(f"Cannot connect to UberGraph ({ug.sparql_url}): {e}")
+    except Exception as e:
+        pytest.xfail(f"UberGraph probe query failed: {e}")
+    return ug
+
+
 def pytest_addoption(parser):
     parser.addoption(
         "--network",
@@ -34,7 +121,7 @@ def pytest_addoption(parser):
         "--pipeline",
         action="store_true",
         default=False,
-        help="Run pipeline tests; downloads prerequisite data automatically if absent",
+        help="Run tests that invoke Snakemake rules (requires babel_downloads/)",
     )
     parser.addoption(
         "--all",
@@ -47,20 +134,17 @@ def pytest_addoption(parser):
         action="store_true",
         default=False,
         help=(
-            "Force pipeline processing fixtures to re-run write_X_ids() even when "
-            "their output files already exist in the intermediate directory. "
-            "Without this flag, existing files are treated as up-to-date and reused."
+            "By default, pipeline tests assume that intermediate files "
+            "(in babel_outputs/intermediate/) are up-to-date and can be reused. "
+            "Use --regenerate to force pipeline processing fixtures to re-run "
+            "write_X_ids() even when their output files already exist."
         ),
     )
 
 
 def pytest_configure(config):
-    config.addinivalue_line("markers", "unit: fast offline tests with no external dependencies")
-    config.addinivalue_line("markers", "network: requires live internet access")
-    config.addinivalue_line("markers", "slow: correct but takes >30s even offline")
-    config.addinivalue_line("markers", "pipeline: invokes Snakemake rules; requires babel_downloads/")
-
     # Auto-disable coverage when xdist workers are requested.
+    # Markers are registered in pyproject.toml [tool.pytest.ini_options] — not here.
     # Combining pytest-cov with -n causes an OSError("cannot send (already closed?)")
     # from execnet during pytest_sessionfinish.  Setting no_cov here is equivalent to
     # passing --no-cov and takes effect before pytest-cov starts collecting data.
@@ -87,16 +171,27 @@ def pytest_collection_modifyitems(config, items):
         if "pipeline" in item.keywords and not run_all and not config.getoption("--pipeline"):
             item.add_marker(skip_pipeline)
 
-    # Per-mark timeout overrides (pytest-timeout); unit tests inherit the global timeout = 30
-    _MARK_TIMEOUTS = {
-        "network": 600,
-        "slow": 600,
-        "pipeline": 3600,
-    }
     for item in items:
         if item.get_closest_marker("timeout"):
             continue  # explicit override wins
-        for mark_name, seconds in _MARK_TIMEOUTS.items():
-            if item.get_closest_marker(mark_name):
-                item.add_marker(pytest.mark.timeout(seconds))
-                break
+        applicable = [seconds for mark_name, seconds in MARK_TIMEOUTS.items() if item.get_closest_marker(mark_name)]
+        if applicable:
+            item.add_marker(pytest.mark.timeout(max(applicable)))
+
+    # When running with xdist, group all pipeline tests into one worker so that
+    # large session-scoped fixtures (Mesh, UMLS, etc.) are only loaded once.
+    # Each xdist worker has its own Python session, so without grouping N workers
+    # would each load mesh.nt into RAM simultaneously, exhausting available memory.
+    try:
+        n_workers = config.getoption("-n", default=None)
+    except (ValueError, AttributeError):
+        n_workers = None
+    if n_workers is not None and str(n_workers) not in ("0", "no"):
+        pipeline_items = [item for item in items if item.get_closest_marker("pipeline")]
+        if pipeline_items:
+            for item in pipeline_items:
+                item.add_marker(pytest.mark.xdist_group("pipeline"))
+            print(  # noqa: T201
+                f"\nNOTE: {len(pipeline_items)} pipeline test(s) grouped to a single xdist "
+                "worker to prevent simultaneous mesh.nt loads (OOM risk with -n > 1)."
+            )

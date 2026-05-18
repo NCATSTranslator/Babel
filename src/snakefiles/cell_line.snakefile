@@ -13,6 +13,8 @@ rule get_clo_ids:
         infile=config["download_directory"] + "/CLO/clo.owl",
     output:
         outfile=config["intermediate_directory"] + "/cell_line/ids/CLO",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_clo_ids.tsv"
     run:
         clo.write_clo_ids(input.infile, output.outfile)
 
@@ -33,6 +35,8 @@ rule cell_line_compendia:
         config["output_directory"] + "/compendia/CellLine.txt",
         temp(config["output_directory"] + "/synonyms/CellLine.txt"),
         config["output_directory"] + "/metadata/CellLine.txt.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/cell_line_compendia.tsv"
     run:
         cell_line.build_compendia(input.ids, [input.metadatafile], input.icrdf_filename)
 
@@ -42,6 +46,8 @@ rule check_cell_line_completeness:
         input_compendia=config["output_directory"] + "/compendia/CellLine.txt",
     output:
         report_file=config["output_directory"] + "/reports/cell_line_completeness.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_cell_line_completeness.tsv"
     run:
         assessments.assess_completeness(
             config["intermediate_directory"] + "/cell_line/ids", [input.input_compendia], output.report_file
@@ -53,6 +59,8 @@ rule check_cell_line:
         infile=config["output_directory"] + "/compendia/CellLine.txt",
     output:
         outfile=config["output_directory"] + "/reports/CellLine.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_cell_line.tsv"
     run:
         assessments.assess(input.infile, output.outfile)
 
@@ -66,6 +74,8 @@ rule cell_line:
     output:
         config["output_directory"] + "/synonyms/CellLine.txt.gz",
         x=config["output_directory"] + "/reports/cell_line_done",
+    benchmark:
+        config["output_directory"] + "/benchmarks/cell_line.tsv"
     run:
         util.gzip_files([input.cell_line_synonyms])
         util.write_done(output.x)

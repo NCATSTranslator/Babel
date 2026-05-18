@@ -1,6 +1,6 @@
 import pyoxigraph
 
-from src.babel_utils import make_local_name, pull_via_urllib
+from src.babel_utils import make_local_name, parse_rdf_literal, pull_via_urllib
 from src.categories import MOLECULAR_ACTIVITY
 from src.prefixes import EC
 
@@ -46,7 +46,7 @@ class ECgraph:
                 qres = self.m.query(s)
                 for row in list(qres):
                     iterm = str(row["x"])
-                    label = str(row["label"])
+                    label = parse_rdf_literal(str(row["label"]))
                     ecid = iterm[:-1].split("/")[-1]
                     synfile.write(f"{EC}:{ecid}\t{labeltype}\t{label}\n")
                     if not labeltype == "skos:altLabel":
