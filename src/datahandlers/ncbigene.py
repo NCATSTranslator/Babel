@@ -1,6 +1,7 @@
 import gzip
 
 from src.babel_utils import pull_via_urllib
+from src.predicates import HAS_SYNONYM
 
 
 def pull_ncbigene(filenames):
@@ -99,7 +100,7 @@ def pull_ncbigene_labels_synonyms_and_taxa(gene_info_filename, labels_filename, 
                 if syn == "-":
                     raise RuntimeError("Synonym '-' should not be present in NCBIGene output!")
 
-                synfile.write(f"{gene_id}\thttp://www.geneontology.org/formats/oboInOwl#hasSynonym\t{syn}\n")
+                synfile.write(f"{gene_id}\t{HAS_SYNONYM}\t{syn}\n")
 
             # Figure out the label. We would ideally go with:
             #   {Symbol_from_nomenclature_authority || Symbol}: {Full_name_from_nomenclature_authority}
