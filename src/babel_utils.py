@@ -425,8 +425,8 @@ def sort_identifiers_with_boosted_prefixes(identifiers, prefixes):
     )
 
 
-def _select_preferred_label(node, types, preferred_name_boost_prefixes, demote_labels_longer_than):
-    """Return the preferred display label for a node, or "" if none is available."""
+def choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_labels_longer_than):
+    """Return the preferred name for a node, or "" if none is available."""
     boost_prefixes = None
     length_limit = None
     for typ in types:
@@ -601,7 +601,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                 types = node_factory.get_ancestors(node["type"])
 
                 # Generate a preferred label for this clique using _select_preferred_label().
-                preferred_name = _select_preferred_label(node, types, preferred_name_boost_prefixes, demote_labels_longer_than)
+                preferred_name = choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_labels_longer_than)
 
                 # At this point, we insert any HAS_ADDITIONAL_ID IDs we have.
                 # The logic we use is: we insert all additional IDs for a CURIE *AFTER* that CURIE, in a random order, as long

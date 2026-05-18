@@ -16,7 +16,7 @@ Issue context:
 import pytest
 
 from src import categories
-from src.babel_utils import _select_preferred_label
+from src.babel_utils import choose_preferred_name
 
 
 def _node(identifiers):
@@ -86,7 +86,7 @@ def test_pots_label_not_demoted():
         ("MONDO:0011479", "postural orthostatic tachycardia syndrome"),
         ("UMLS:C2930833", "Irritable heart"),
     ])
-    result = _select_preferred_label(node, DISEASE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, DISEASE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == "postural orthostatic tachycardia syndrome"
 
 
@@ -100,7 +100,7 @@ def test_failure_to_thrive_not_demoted():
         ("HP:0001508", "Failure to thrive"),
         ("UMLS:C4531021", "Undergrowth"),
     ])
-    result = _select_preferred_label(node, PHENOTYPIC_FEATURE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, PHENOTYPIC_FEATURE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == "Failure to thrive"
 
 
@@ -114,7 +114,7 @@ def test_arthritic_joint_disease_not_demoted():
         ("MONDO:0005578", "arthritic joint disease"),
         ("DOID:848", "arthritis"),
     ])
-    result = _select_preferred_label(node, DISEASE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, DISEASE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == "arthritic joint disease"
 
 
@@ -132,7 +132,7 @@ def test_chemical_long_iupac_demoted():
         ("CHEBI:17334", "(2S)-2-amino-3-hydroxypropanoic acid"),
         ("PUBCHEM.COMPOUND:5951", "serine"),
     ])
-    result = _select_preferred_label(node, CHEMICAL_ENTITY_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, CHEMICAL_ENTITY_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == "serine"
 
 
@@ -145,7 +145,7 @@ def test_chemical_demotion_via_small_molecule_ancestor():
         ("CHEBI:17234", "(2R,3S,4S,5R)-2,3,4,5,6-pentahydroxyhexanal"),  # very long IUPAC
         ("PUBCHEM.COMPOUND:107526", "glucose"),
     ])
-    result = _select_preferred_label(node, SMALL_MOLECULE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, SMALL_MOLECULE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == "glucose"
 
 
@@ -157,7 +157,7 @@ def test_chemical_demotion_via_drug_ancestor():
         ("PUBCHEM.COMPOUND:2244", "aspirin"),
     ])
     # acetylsalicylic acid (20) is within the limit, so it should be returned first
-    result = _select_preferred_label(node, DRUG_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, DRUG_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == "acetylsalicylic acid"
 
 
@@ -168,7 +168,7 @@ def test_chemical_all_labels_long_keeps_first():
         ("CHEBI:100001", "some-very-long-iupac-name-that-exceeds-the-limit"),
         ("PUBCHEM.COMPOUND:99999", "another-very-long-chemical-name-here"),
     ])
-    result = _select_preferred_label(node, CHEMICAL_ENTITY_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, CHEMICAL_ENTITY_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == "some-very-long-iupac-name-that-exceeds-the-limit"
 
 
@@ -184,7 +184,7 @@ def test_no_demotion_when_config_is_empty():
         ("CHEBI:17334", "(2S)-2-amino-3-hydroxypropanoic acid"),
         ("PUBCHEM.COMPOUND:5951", "serine"),
     ])
-    result = _select_preferred_label(node, CHEMICAL_ENTITY_ANCESTORS, {}, {})
+    result = choose_preferred_name(node, CHEMICAL_ENTITY_ANCESTORS, {}, {})
     assert result == "(2S)-2-amino-3-hydroxypropanoic acid"
 
 
@@ -192,7 +192,7 @@ def test_no_demotion_when_config_is_empty():
 def test_no_labels_returns_empty_string():
     """A node with no labels should return an empty string."""
     node = _node([("MONDO:0000001", None)])
-    result = _select_preferred_label(node, DISEASE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, DISEASE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == ""
 
 
@@ -212,5 +212,5 @@ def test_boost_prefix_then_demotion():
         ("CHEBI:27899", "cisplatin"),               # 9 chars — short, not boosted first
         ("DRUGBANK:DB00515", "cis-diaminedichloroplatinum(II)"),  # 31 chars — boosted first but too long
     ])
-    result = _select_preferred_label(node, CHEMICAL_ENTITY_ANCESTORS, boost, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, CHEMICAL_ENTITY_ANCESTORS, boost, DEMOTE_CHEMICALS_25)
     assert result == "cisplatin"
