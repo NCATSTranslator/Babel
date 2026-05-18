@@ -702,7 +702,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                 # get_synonyms() returns a list of tuples, where each tuple is a relation and a synonym.
                 # So we extract just the synonyms here, ditching the relations (result[0]), then unique-ify the
                 # synonyms.
-                synonyms = [result[1] for result in synonym_factory.get_synonyms(identifier_list)]
+                synonyms = [result[1] for result in synonym_factory.get_synonyms(identifier_list) if result[1]]
                 synonyms_list = sorted(set(synonyms), key=lambda x: len(x))
 
                 try:
