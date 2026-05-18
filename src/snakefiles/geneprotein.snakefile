@@ -38,9 +38,6 @@ rule geneprotein_conflation:
 
 
 rule geneprotein_conflated_synonyms:
-    resources:
-        mem="512G",
-        runtime="6h",
     input:
         geneprotein_conflations=[config["output_directory"] + "/conflation/GeneProtein.txt"],
         gene_compendia=expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["gene_outputs"]),
@@ -51,6 +48,9 @@ rule geneprotein_conflated_synonyms:
         geneprotein_conflated_synonyms_gz=config["output_directory"] + "/synonyms/GeneProteinConflated.txt.gz",
     benchmark:
         config["output_directory"] + "/benchmarks/geneprotein_conflated_synonyms.tsv"
+    resources:
+        mem="512G",
+        runtime="6h",
     run:
         synonymconflation.conflate_synonyms(
             input.gene_synonyms_gz + input.protein_synonyms_gz,

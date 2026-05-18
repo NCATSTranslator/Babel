@@ -50,13 +50,13 @@ localrules:
 
 
 rule get_EFO:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         config["download_directory"] + "/EFO" + "/efo.owl",
     benchmark:
         config["output_directory"] + "/benchmarks/get_EFO.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         efo.pull_efo()
 
@@ -78,13 +78,13 @@ rule get_EFO_labels:
 
 
 rule get_complexportal:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         config["download_directory"] + "/ComplexPortal" + "/559292.tsv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_complexportal.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         complexportal.pull_complexportal()
 
@@ -106,9 +106,6 @@ rule get_complexportal_labels_and_synonyms:
 
 
 rule get_mods:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         expand(
             "{download_directory}/{mod}/GENE-DESCRIPTION-JSON_{mod}.json",
@@ -117,6 +114,9 @@ rule get_mods:
         ),
     benchmark:
         config["output_directory"] + "/benchmarks/get_mods.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         mods.pull_mods()
 
@@ -140,14 +140,14 @@ rule get_mods_labels:
 
 
 rule get_uniprotkb_idmapping:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
-        runtime="6h",
     output:
         idmapping=config["download_directory"] + "/UniProtKB/idmapping.dat",
     benchmark:
         config["output_directory"] + "/benchmarks/get_uniprotkb_idmapping.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
+        runtime="6h",
     run:
         pull_via_wget(
             "https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/",
@@ -158,13 +158,13 @@ rule get_uniprotkb_idmapping:
 
 
 rule get_uniprotkb_sprot:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         uniprot_sprot=config["download_directory"] + "/UniProtKB/uniprot_sprot.fasta",
     benchmark:
         config["output_directory"] + "/benchmarks/get_uniprotkb_sprot.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         pull_via_wget(
             "https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/",
@@ -175,14 +175,14 @@ rule get_uniprotkb_sprot:
 
 
 rule get_uniprotkb_trembl:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
-        runtime="6h",
     output:
         uniprot_trembl=config["download_directory"] + "/UniProtKB/uniprot_trembl.fasta",
     benchmark:
         config["output_directory"] + "/benchmarks/get_uniprotkb_trembl.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
+        runtime="6h",
     run:
         pull_via_wget(
             "https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/",
@@ -208,13 +208,13 @@ rule get_uniprotkb_labels:
 
 
 rule get_mesh:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         config["download_directory"] + "/MESH/mesh.nt",
     benchmark:
         config["output_directory"] + "/benchmarks/get_mesh.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         mesh.pull_mesh()
 
@@ -242,16 +242,16 @@ rule get_mesh_synonyms:
 
 
 rule download_umls:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
-        runtime="6h",
     output:
         config["download_directory"] + "/UMLS/MRCONSO.RRF",
         config["download_directory"] + "/UMLS/MRSTY.RRF",
         config["download_directory"] + "/UMLS/MRREL.RRF",
     benchmark:
         config["output_directory"] + "/benchmarks/download_umls.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
+        runtime="6h",
     run:
         umls.download_umls(config["umls_version"], config["umls"]["subset"], config["download_directory"] + "/UMLS")
 
@@ -274,9 +274,6 @@ rule get_umls_labels_and_synonyms:
 
 
 rule get_obo_labels:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         obo_labels=config["download_directory"] + "/common/ubergraph/labels",
         # A bunch of files depend on UberGraph labels being created in prefix directories (e.g. babel_downloads/GO/labels),
@@ -287,17 +284,17 @@ rule get_obo_labels:
             download_directory=config["download_directory"],
             prefix=config["generate_dirs_for_labels_and_synonyms_prefixes"],
         ),
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     benchmark:
         config["output_directory"] + "/benchmarks/get_obo_labels.tsv"
+    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         obo.pull_uber_labels(output.obo_labels, output.generated_labels)
 
 
 rule get_obo_synonyms:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         obo_synonyms=config["download_directory"] + "/common/ubergraph/synonyms.jsonl",
         # A bunch of files depend on UberGraph labels being created in prefix directories (e.g. babel_downloads/GO/labels),
@@ -308,22 +305,25 @@ rule get_obo_synonyms:
             download_directory=config["download_directory"],
             prefix=config["generate_dirs_for_labels_and_synonyms_prefixes"],
         ),
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     benchmark:
         config["output_directory"] + "/benchmarks/get_obo_synonyms.tsv"
+    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         obo.pull_uber_synonyms(output.obo_synonyms, output.generated_synonyms)
 
 
 rule get_obo_descriptions:
+    output:
+        obo_descriptions=config["download_directory"] + "/common/ubergraph/descriptions.jsonl",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_obo_descriptions.tsv"
+    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     resources:
         mem="8G",
         cpus_per_task=1,
-    output:
-        obo_descriptions=config["download_directory"] + "/common/ubergraph/descriptions.jsonl",
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
-    benchmark:
-        config["output_directory"] + "/benchmarks/get_obo_descriptions.tsv"
     run:
         obo.pull_uber_descriptions(output.obo_descriptions)
 
@@ -339,9 +339,9 @@ rule get_icrdf:
         config["download_directory"] + "/common/ubergraph/descriptions.jsonl",
     output:
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     benchmark:
         config["output_directory"] + "/benchmarks/get_icrdf.tsv"
+    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     run:
         obo.pull_uber_icRDF(output.icrdf_filename)
 
@@ -353,9 +353,6 @@ rule get_icrdf:
 
 
 rule get_ncbigene:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         getfiles=expand(
             "{download_directory}/NCBIGene/{ncbi_files}",
@@ -364,6 +361,9 @@ rule get_ncbigene:
         ),
     benchmark:
         config["output_directory"] + "/benchmarks/get_ncbigene.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         ncbigene.pull_ncbigene(config["ncbi_files"])
 
@@ -392,15 +392,15 @@ rule get_ncbigene_labels_synonyms_and_taxa:
 
 
 rule get_ensembl:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
-        runtime="6h",
     output:
         ensembl_dir=directory(config["download_directory"] + "/ENSEMBL"),
         complete_file=config["download_directory"] + "/ENSEMBL/BioMartDownloadComplete",
     benchmark:
         config["output_directory"] + "/benchmarks/get_ensembl.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
+        runtime="6h",
     run:
         ensembl.pull_ensembl(output.ensembl_dir, output.complete_file)
 
@@ -409,23 +409,23 @@ rule get_ensembl:
 
 
 rule get_hgnc:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/HGNC/hgnc_complete_set.json",
     benchmark:
         config["output_directory"] + "/benchmarks/get_hgnc.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         hgnc.pull_hgnc()
 
 
 rule get_hgnc_labels_and_synonyms:
+    input:
+        infile=rules.get_hgnc.output.outfile,
     output:
         config["download_directory"] + "/HGNC/labels",
         config["download_directory"] + "/HGNC/synonyms",
-    input:
-        infile=rules.get_hgnc.output.outfile,
     benchmark:
         config["output_directory"] + "/benchmarks/get_hgnc_labels_and_synonyms.tsv"
     run:
@@ -436,13 +436,13 @@ rule get_hgnc_labels_and_synonyms:
 
 
 rule get_hgncfamily:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/HGNC.FAMILY/family.csv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_hgncfamily.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         hgncfamily.pull_hgncfamily()
 
@@ -464,13 +464,13 @@ rule get_hgncfamily_labels:
 
 
 rule get_pantherfamily:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/PANTHER.FAMILY/family.csv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_pantherfamily.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         pantherfamily.pull_pantherfamily()
 
@@ -491,13 +491,13 @@ rule get_pantherfamily_labels:
 
 
 rule get_omim:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/OMIM/mim2gene.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/get_omim.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         omim.pull_omim()
 
@@ -506,13 +506,13 @@ rule get_omim:
 
 
 rule get_ncit:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/NCIT/NCIt-SwissProt_Mapping.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/get_ncit.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         ncit.pull_ncit()
 
@@ -521,13 +521,13 @@ rule get_ncit:
 
 
 rule get_doid:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/DOID/doid.json",
     benchmark:
         config["output_directory"] + "/benchmarks/get_doid.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         doid.pull_doid()
 
@@ -548,13 +548,13 @@ rule get_doid_labels_and_synonyms:
 
 
 rule get_orphanet:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/Orphanet/Orphanet_Nomenclature_Pack_EN.zip",
     benchmark:
         config["output_directory"] + "/benchmarks/get_orphanet.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         orphanet.pull_orphanet()
 
@@ -575,13 +575,13 @@ rule get_orphanet_labels_and_synonyms:
 
 
 rule get_reactome:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/REACT/Events.json",
     benchmark:
         config["output_directory"] + "/benchmarks/get_reactome.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         reactome.pull_reactome(output.outfile)
 
@@ -601,13 +601,13 @@ rule get_reactome_labels:
 
 
 rule get_rhea:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/RHEA/rhea.rdf",
     benchmark:
         config["output_directory"] + "/benchmarks/get_rhea.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         rhea.pull_rhea()
 
@@ -627,13 +627,13 @@ rule get_rhea_labels:
 
 
 rule get_EC:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/EC/enzyme.rdf",
     benchmark:
         config["output_directory"] + "/benchmarks/get_EC.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         ec.pull_ec()
 
@@ -654,13 +654,13 @@ rule get_EC_labels:
 
 
 rule get_SMPDB:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/SMPDB/smpdb_pathways.csv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_SMPDB.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         smpdb.pull_smpdb()
 
@@ -680,13 +680,13 @@ rule get_SMPDB_labels:
 
 
 rule get_panther_pathways:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/PANTHER.PATHWAY/SequenceAssociationPathway3.6.8.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/get_panther_pathways.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         pantherpathways.pull_panther_pathways()
 
@@ -706,15 +706,15 @@ rule get_panther_pathway_labels:
 
 
 rule get_unichem:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
-    retries: 5
     output:
         config["download_directory"] + "/UNICHEM/structure.tsv.gz",
         config["download_directory"] + "/UNICHEM/reference.tsv.gz",
     benchmark:
         config["output_directory"] + "/benchmarks/get_unichem.tsv"
+    retries: 5
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         unichem.pull_unichem()
 
@@ -734,21 +734,19 @@ rule filter_unichem:
 
 
 rule get_chembl:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         moleculefile=config["download_directory"] + "/CHEMBL.COMPOUND/chembl_latest_molecule.ttl",
         ccofile=config["download_directory"] + "/CHEMBL.COMPOUND/cco.ttl",
     benchmark:
         config["output_directory"] + "/benchmarks/get_chembl.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         chembl.pull_chembl(output.moleculefile)
 
 
 rule chembl_labels_and_smiles:
-    resources:
-        mem="128G",
     input:
         infile=config["download_directory"] + "/CHEMBL.COMPOUND/chembl_latest_molecule.ttl",
         ccofile=config["download_directory"] + "/CHEMBL.COMPOUND/cco.ttl",
@@ -757,6 +755,8 @@ rule chembl_labels_and_smiles:
         smifile=config["download_directory"] + "/CHEMBL.COMPOUND/smiles",
     benchmark:
         config["output_directory"] + "/benchmarks/chembl_labels_and_smiles.tsv"
+    resources:
+        mem="128G",
     run:
         chembl.pull_chembl_labels_and_smiles(input.infile, input.ccofile, output.outfile, output.smifile)
 
@@ -778,13 +778,13 @@ rule get_drugbank_labels_and_synonyms:
 
 
 rule get_gtopdb:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/GTOPDB/ligands.tsv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_gtopdb.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         gtopdb.pull_gtopdb_ligands()
 
@@ -818,14 +818,14 @@ rule keggcompound_labels:
 
 
 rule get_unii:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         config["download_directory"] + "/UNII/Latest_UNII_Names.txt",
         config["download_directory"] + "/UNII/Latest_UNII_Records.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/get_unii.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         unii.pull_unii()
 
@@ -846,13 +846,13 @@ rule unii_labels_and_synonyms:
 
 
 rule get_HMDB:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         outfile=config["download_directory"] + "/HMDB/hmdb_metabolites.xml",
     benchmark:
         config["output_directory"] + "/benchmarks/get_HMDB.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         hmdb.pull_hmdb()
 
@@ -874,28 +874,28 @@ rule hmdb_labels_and_synonyms:
 
 
 rule get_pubchem:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         config["download_directory"] + "/PUBCHEM.COMPOUND/CID-MeSH",
         config["download_directory"] + "/PUBCHEM.COMPOUND/CID-Synonym-filtered.gz",
         config["download_directory"] + "/PUBCHEM.COMPOUND/CID-Title.gz",
     benchmark:
         config["output_directory"] + "/benchmarks/get_pubchem.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         pubchem.pull_pubchem()
 
 
 rule get_pubchem_structures:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         config["download_directory"] + "/PUBCHEM.COMPOUND/CID-InChI-Key.gz",
         config["download_directory"] + "/PUBCHEM.COMPOUND/CID-SMILES.gz",
     benchmark:
         config["output_directory"] + "/benchmarks/get_pubchem_structures.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         pubchem.pull_pubchem_structures()
 
@@ -923,14 +923,14 @@ rule pubchem_synonyms:
 
 
 rule download_rxnorm:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         config["download_directory"] + "/RxNorm/RXNCONSO.RRF",
         config["download_directory"] + "/RxNorm/RXNREL.RRF",
     benchmark:
         config["output_directory"] + "/benchmarks/download_rxnorm.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         umls.download_rxnorm(config["rxnorm_version"], config["download_directory"] + "/RxNorm")
 
@@ -948,15 +948,15 @@ rule pubchem_rxnorm_annotations:
 
 
 rule get_drugcentral:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         structfile=config["download_directory"] + "/DrugCentral/structures",
         labelfile=config["download_directory"] + "/DrugCentral/labels",
         xreffile=config["download_directory"] + "/DrugCentral/xrefs",
     benchmark:
         config["output_directory"] + "/benchmarks/get_drugcentral.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         drugcentral.pull_drugcentral(output.structfile, output.labelfile, output.xreffile)
 
@@ -965,13 +965,13 @@ rule get_drugcentral:
 
 
 rule get_ncbitaxon:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         config["download_directory"] + "/NCBITaxon/taxdump.tar",
     benchmark:
         config["output_directory"] + "/benchmarks/get_ncbitaxon.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         ncbitaxon.pull_ncbitaxon()
 
@@ -993,14 +993,14 @@ rule ncbitaxon_labels_and_synonyms:
 
 
 rule get_chebi:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         config["download_directory"] + "/CHEBI/ChEBI_complete.sdf",
         config["download_directory"] + "/CHEBI/database_accession.tsv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_chebi.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         chebi.pull_chebi()
 
@@ -1009,14 +1009,14 @@ rule get_chebi:
 
 
 rule get_clo:
-    resources:
-        mem="8G",
-        cpus_per_task=1,
     output:
         config["download_directory"] + "/CLO/clo.owl",
         metadata=config["download_directory"] + "/CLO/metadata.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/get_clo.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
     run:
         clo.pull_clo(output.metadata)
 

@@ -4,10 +4,10 @@ build:
   branch: babel-1.15
 
 # Versions that need to be updated on every release.
-biolink_version: "4.3.6"
-umls_version: "2025AB"
-rxnorm_version: "12012025"
-drugbank_version: "5-1-13"
+biolink_version: "4.4.0"
+umls_version: "2026AA"
+rxnorm_version: "05042026"
+drugbank_version: "5-1-20"
 
 # Overall inputs and outputs.
 input_directory: input_data
@@ -15,6 +15,10 @@ download_directory: babel_downloads
 intermediate_directory: babel_outputs/intermediate
 output_directory: babel_outputs
 tmp_directory: babel_downloads/tmp
+
+# HTTP settings.
+http:
+  User-Agent: "Babel/1 (https://github.com/NCATSTranslator/Babel)"
 
 # Maps Python compendium names (as used in src/createcompendia/ and tests) to the
 # directory names that Snakemake uses under intermediate_directory.

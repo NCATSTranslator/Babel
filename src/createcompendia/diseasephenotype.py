@@ -55,6 +55,11 @@ def write_omim_ids(infile, outfile):
 
 
 def write_mesh_ids(outfile):
+    # NOTE: C02 (Virus Diseases) and C03 (Parasitic Diseases) are intentionally absent
+    # below.  Before adding them, verify that MESH terms in those trees have adequate
+    # cross-references to MONDO (our primary disease source) and/or HPO (our primary
+    # phenotype source) so that the resulting cliques are well-connected.  Without those
+    # mappings the MESH IDs would appear as isolated singletons in the disease compendium.
     dcodes = [
         "C01",
         "C04",

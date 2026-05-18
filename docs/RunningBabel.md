@@ -28,10 +28,12 @@ run
 Currently, the following targets build compendia and synonym files:
 
 * anatomy
+* cell_line
 * chemical
 * disease
 * gene
 * genefamily
+* leftover_umls
 * protein
 * macromolecular_complex
 * taxon
@@ -91,11 +93,11 @@ The individual details of creating a compendium vary, but all follow the same es
 
 First, we extract the identifiers that will be used in the compendia from each data source that will
 contribute, and place them into a directory. For instance, in the build of the chemical compendium,
-these ids are placed into `/babel_downloads/chemical/ids`. Each file is a two-column file containing
-curie identifiers in column 1, and the Biolink type for that entity in column 2.
+these ids are placed into `babel_outputs/intermediate/chemicals/ids`. Each file is a two-column file
+containing curie identifiers in column 1, and the Biolink type for that entity in column 2.
 
 Second, we create pairwise concords across vocabularies. These are placed in e.g.
-`babel_downloads/chemical/concords`. Each concord is a three-column file of the format:
+`babel_outputs/intermediate/chemicals/concords`. Each concord is a three-column file of the format:
 
 `<curie1> <relation> <curie2>`
 
@@ -132,7 +134,7 @@ $ docker run -it --rm --mount type=bind,source=...,target=/home/runner/babel/bab
 The download directory (`babel/babel_downloads`) is used to store data files downloaded during Babel
 assembly.
 
-The script `scripts/build-babel.sh` can be used to run `snakemake` with a few useful settings
+The script `scripts/babel-build.sh` can be used to run `snakemake` with a few useful settings
 (although just running `uv run snakemake --cores 5` should work just fine.)
 
 ## Running with Kubernetes

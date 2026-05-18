@@ -1,6 +1,6 @@
 """Unit tests for label-selection logic in write_compendium().
 
-The helper under test is _select_preferred_label(), which is the extracted core of
+The helper under test is choose_preferred_name(), which is the extracted core of
 the label-selection algorithm previously embedded in write_compendium().
 
 Issue context:
@@ -15,7 +15,8 @@ Issue context:
 
 import pytest
 
-from src.babel_utils import _select_preferred_label
+from src import categories
+from src.babel_utils import choose_preferred_name
 
 
 def _node(identifiers):
@@ -34,40 +35,40 @@ def _node(identifiers):
 # ---------------------------------------------------------------------------
 
 DISEASE_ANCESTORS = [
-    "biolink:Disease",
+    categories.DISEASE,
     "biolink:DiseaseOrPhenotypicFeature",
     "biolink:BiologicalEntity",
     "biolink:NamedThing",
 ]
 
 PHENOTYPIC_FEATURE_ANCESTORS = [
-    "biolink:PhenotypicFeature",
+    categories.PHENOTYPIC_FEATURE,
     "biolink:DiseaseOrPhenotypicFeature",
     "biolink:BiologicalEntity",
     "biolink:NamedThing",
 ]
 
 CHEMICAL_ENTITY_ANCESTORS = [
-    "biolink:ChemicalEntity",
+    categories.CHEMICAL_ENTITY,
     "biolink:PhysicalEssence",
     "biolink:NamedThing",
 ]
 
 SMALL_MOLECULE_ANCESTORS = [
-    "biolink:SmallMolecule",
-    "biolink:ChemicalEntity",
+    categories.SMALL_MOLECULE,
+    categories.CHEMICAL_ENTITY,
     "biolink:PhysicalEssence",
     "biolink:NamedThing",
 ]
 
 DRUG_ANCESTORS = [
-    "biolink:Drug",
-    "biolink:ChemicalEntity",
+    categories.DRUG,
+    categories.CHEMICAL_ENTITY,
     "biolink:PhysicalEssence",
     "biolink:NamedThing",
 ]
 
-DEMOTE_CHEMICALS_25 = {"biolink:ChemicalEntity": 25}
+DEMOTE_CHEMICALS_25 = {categories.CHEMICAL_ENTITY: 25}
 
 
 # ---------------------------------------------------------------------------
@@ -85,7 +86,7 @@ def test_pots_label_not_demoted():
         ("MONDO:0011479", "postural orthostatic tachycardia syndrome"),
         ("UMLS:C2930833", "Irritable heart"),
     ])
-    result = _select_preferred_label(node, DISEASE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, DISEASE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == "postural orthostatic tachycardia syndrome"
 
 
@@ -99,7 +100,7 @@ def test_failure_to_thrive_not_demoted():
         ("HP:0001508", "Failure to thrive"),
         ("UMLS:C4531021", "Undergrowth"),
     ])
-    result = _select_preferred_label(node, PHENOTYPIC_FEATURE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, PHENOTYPIC_FEATURE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == "Failure to thrive"
 
 
@@ -113,7 +114,7 @@ def test_arthritic_joint_disease_not_demoted():
         ("MONDO:0005578", "arthritic joint disease"),
         ("DOID:848", "arthritis"),
     ])
-    result = _select_preferred_label(node, DISEASE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, DISEASE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == "arthritic joint disease"
 
 
@@ -128,15 +129,10 @@ def test_chemical_long_iupac_demoted():
     common name when a shorter label is available.
     """
     node = _node([
-        ("CHEBI:17334", "(2S)-2-amino-3-hydroxypropanoic acid"),  # 35 chars — too long
-        ("CHEBI:17334", "serine"),  # would be a duplicate curie in practice, but label logic is independent
-    ])
-    # Use two distinct CURIEs to get two distinct labels
-    node = _node([
         ("CHEBI:17334", "(2S)-2-amino-3-hydroxypropanoic acid"),
         ("PUBCHEM.COMPOUND:5951", "serine"),
     ])
-    result = _select_preferred_label(node, CHEMICAL_ENTITY_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, CHEMICAL_ENTITY_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == "serine"
 
 
@@ -149,19 +145,19 @@ def test_chemical_demotion_via_small_molecule_ancestor():
         ("CHEBI:17234", "(2R,3S,4S,5R)-2,3,4,5,6-pentahydroxyhexanal"),  # very long IUPAC
         ("PUBCHEM.COMPOUND:107526", "glucose"),
     ])
-    result = _select_preferred_label(node, SMALL_MOLECULE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, SMALL_MOLECULE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == "glucose"
 
 
 @pytest.mark.unit
-def test_chemical_demotion_via_drug_ancestor():
-    """Demotion should also apply to biolink:Drug via ancestor traversal."""
+def test_chemical_within_limit_not_demoted_via_drug_ancestor():
+    """Demotion config reaches biolink:Drug via ancestor traversal, but acetylsalicylic acid
+    (20 chars) is within the 25-char limit so no demotion occurs and it is returned first."""
     node = _node([
         ("DRUGBANK:DB00945", "acetylsalicylic acid"),  # 20 chars — within limit
         ("PUBCHEM.COMPOUND:2244", "aspirin"),
     ])
-    # acetylsalicylic acid (20) is within the limit, so it should be returned first
-    result = _select_preferred_label(node, DRUG_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, DRUG_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == "acetylsalicylic acid"
 
 
@@ -172,7 +168,7 @@ def test_chemical_all_labels_long_keeps_first():
         ("CHEBI:100001", "some-very-long-iupac-name-that-exceeds-the-limit"),
         ("PUBCHEM.COMPOUND:99999", "another-very-long-chemical-name-here"),
     ])
-    result = _select_preferred_label(node, CHEMICAL_ENTITY_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, CHEMICAL_ENTITY_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == "some-very-long-iupac-name-that-exceeds-the-limit"
 
 
@@ -188,7 +184,7 @@ def test_no_demotion_when_config_is_empty():
         ("CHEBI:17334", "(2S)-2-amino-3-hydroxypropanoic acid"),
         ("PUBCHEM.COMPOUND:5951", "serine"),
     ])
-    result = _select_preferred_label(node, CHEMICAL_ENTITY_ANCESTORS, {}, {})
+    result = choose_preferred_name(node, CHEMICAL_ENTITY_ANCESTORS, {}, {})
     assert result == "(2S)-2-amino-3-hydroxypropanoic acid"
 
 
@@ -196,7 +192,7 @@ def test_no_demotion_when_config_is_empty():
 def test_no_labels_returns_empty_string():
     """A node with no labels should return an empty string."""
     node = _node([("MONDO:0000001", None)])
-    result = _select_preferred_label(node, DISEASE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, DISEASE_ANCESTORS, {}, DEMOTE_CHEMICALS_25)
     assert result == ""
 
 
@@ -211,10 +207,10 @@ def test_boost_prefix_then_demotion():
     DRUGBANK is boosted for ChemicalEntity, so a long DRUGBANK label is moved to the front —
     but demotion should then skip it in favour of the shorter alternative.
     """
-    boost = {"biolink:ChemicalEntity": ["DRUGBANK", "CHEBI"]}
+    boost = {categories.CHEMICAL_ENTITY: ["DRUGBANK", "CHEBI"]}
     node = _node([
         ("CHEBI:27899", "cisplatin"),               # 9 chars — short, not boosted first
         ("DRUGBANK:DB00515", "cis-diaminedichloroplatinum(II)"),  # 31 chars — boosted first but too long
     ])
-    result = _select_preferred_label(node, CHEMICAL_ENTITY_ANCESTORS, boost, DEMOTE_CHEMICALS_25)
+    result = choose_preferred_name(node, CHEMICAL_ENTITY_ANCESTORS, boost, DEMOTE_CHEMICALS_25)
     assert result == "cisplatin"

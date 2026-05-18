@@ -1,5 +1,6 @@
 import gzip
 import os
+import re
 import sqlite3
 import subprocess
 import time
@@ -28,6 +29,26 @@ MAX_DOWNLOAD_ERROR = 10
 
 # Set up a logger.
 logger = get_logger(__name__)
+
+# Matches an RDF language-tagged literal as returned by pyoxigraph as a raw string, e.g. "value"@en
+_RDF_LANG_LITERAL_RE = re.compile(r'^"(.*)"@\w+$')
+
+
+def parse_rdf_literal(literal: str) -> str:
+    """Strip quoting from a pyoxigraph SPARQL literal string.
+
+    pyoxigraph returns plain literals as '"value"' and language-tagged literals as '"value"@en'.
+    Both forms are reduced to just the inner value string.  Typed literals of the form
+    '"value"^^<xsd:type>' are not yet handled and will be returned incorrectly; this is
+    acceptable because none of the current RDF sources use typed literals in label/synonym
+    positions.  See https://github.com/NCATSTranslator/Babel/issues/760
+    """
+    if not literal.startswith('"'):
+        return literal
+    m = _RDF_LANG_LITERAL_RE.match(literal)
+    if m:
+        return m.group(1)
+    return literal[1:-1]
 
 
 def make_local_name(fname, subpath=None):
@@ -404,60 +425,43 @@ def sort_identifiers_with_boosted_prefixes(identifiers, prefixes):
     )
 
 
-def _select_preferred_label(node, types, preferred_name_boost_prefixes, demote_labels_longer_than):
-    """Choose the preferred display label for a normalised node.
-
-    Steps:
-    1. Sort labels in boosted-prefix order if the node's most-specific type has an entry in
-       preferred_name_boost_prefixes; otherwise use Biolink prefix order.
-    2. Filter blank labels.
-    3. Demote labels longer than the per-type limit (if the type has an entry in
-       demote_labels_longer_than). Types with no entry are never demoted.
-       See https://github.com/NCATSTranslator/Babel/issues/597
-    4. Return the first surviving label, or "" if none remain.
-
-    :param node: A node dict with "identifiers" (list of dicts with "identifier" and optionally "label") and "type".
-    :param types: Ancestor types for this node, most-specific first.
-    :param preferred_name_boost_prefixes: Dict mapping Biolink type → list of boosted prefixes (from config).
-    :param demote_labels_longer_than: Dict mapping Biolink type → int length limit (from config).
-    :return: The preferred label string, or "" if no label is available.
-    """
-    # Step 1.1 — sort by boosted prefix order for the most-specific matching type.
-    possible_labels = []
-    for typ in types:
-        if typ in preferred_name_boost_prefixes:
-            possible_labels = list(
-                map(
-                    lambda identifier: identifier.get("label", ""),
-                    sort_identifiers_with_boosted_prefixes(node["identifiers"], preferred_name_boost_prefixes[typ]),
-                )
-            )
-            # Append any remaining labels not already included.
-            for id in node["identifiers"]:
-                label = id.get("label", "")
-                if label not in possible_labels:
-                    possible_labels.append(label)
-            break
-
-    # Step 1.2 — fallback: use identifiers in their existing (Biolink prefix) order.
-    if not possible_labels:
-        possible_labels = list(map(lambda identifier: identifier.get("label", ""), node["identifiers"]))
-
-    # Step 2 — filter blank labels.
-    filtered = [label for label in possible_labels if label]
-
-    # Step 3 — per-type length demotion: find the limit for the most-specific matching type.
+def choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_labels_longer_than):
+    """Return the preferred name for a node, or "" if none is available."""
+    # Walk the ancestor chain (most-specific type first) to find the first matching entry
+    # for each config dict. Using the most specific type ensures a SmallMolecule, for example,
+    # picks up boost/demotion rules defined on ChemicalEntity without overriding a more
+    # specific rule that might exist on SmallMolecule itself.
+    boost_prefixes = None
     length_limit = None
     for typ in types:
-        if typ in demote_labels_longer_than:
+        if boost_prefixes is None and typ in preferred_name_boost_prefixes:
+            boost_prefixes = preferred_name_boost_prefixes[typ]
+        if length_limit is None and typ in demote_labels_longer_than:
             length_limit = demote_labels_longer_than[typ]
-            break
+        if boost_prefixes is not None and length_limit is not None:
+            break  # Both resolved — no need to scan further up the hierarchy.
+
+    # Build the candidate label list in priority order.
+    # If boost prefixes apply, promoted prefixes move to the front; all other identifiers
+    # follow in their original Biolink prefix order.
+    if boost_prefixes is not None:
+        possible_labels = [
+            identifier.get("label", "")
+            for identifier in sort_identifiers_with_boosted_prefixes(node["identifiers"], boost_prefixes)
+        ]
+    else:
+        possible_labels = [identifier.get("label", "") for identifier in node["identifiers"]]
+
+    # Drop blank/missing labels.
+    filtered = [label for label in possible_labels if label]
+
+    # Demote long labels: if any label fits within the limit, discard those that don't.
+    # If *all* labels exceed the limit we keep them rather than returning empty.
     if length_limit is not None:
         shorter = [label for label in filtered if len(label) <= length_limit]
         if shorter:
             filtered = shorter
 
-    # Step 4 — return the first surviving label.
     return filtered[0] if filtered else ""
 
 
@@ -606,8 +610,8 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                 # Determine types.
                 types = node_factory.get_ancestors(node["type"])
 
-                # Generate a preferred label for this clique using _select_preferred_label().
-                preferred_name = _select_preferred_label(node, types, preferred_name_boost_prefixes, demote_labels_longer_than)
+                # Generate a preferred label for this clique using choose_preferred_name().
+                preferred_name = choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_labels_longer_than)
 
                 # At this point, we insert any HAS_ADDITIONAL_ID IDs we have.
                 # The logic we use is: we insert all additional IDs for a CURIE *AFTER* that CURIE, in a random order, as long
