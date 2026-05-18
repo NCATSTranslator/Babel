@@ -170,7 +170,7 @@ wheels = [
 ]
 
 [[package]]
-name = "babel"
+name = "babel-pipeline"
 version = "1.14"
 source = { virtual = "." }
 dependencies = [
