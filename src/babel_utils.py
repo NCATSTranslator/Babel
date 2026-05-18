@@ -427,6 +427,10 @@ def sort_identifiers_with_boosted_prefixes(identifiers, prefixes):
 
 def choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_labels_longer_than):
     """Return the preferred name for a node, or "" if none is available."""
+    # Walk the ancestor chain (most-specific type first) to find the first matching entry
+    # for each config dict. Using the most specific type ensures a SmallMolecule, for example,
+    # picks up boost/demotion rules defined on ChemicalEntity without overriding a more
+    # specific rule that might exist on SmallMolecule itself.
     boost_prefixes = None
     length_limit = None
     for typ in types:
@@ -435,8 +439,11 @@ def choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_lab
         if length_limit is None and typ in demote_labels_longer_than:
             length_limit = demote_labels_longer_than[typ]
         if boost_prefixes is not None and length_limit is not None:
-            break
+            break  # Both resolved — no need to scan further up the hierarchy.
 
+    # Build the candidate label list in priority order.
+    # If boost prefixes apply, promoted prefixes move to the front; all other identifiers
+    # follow in their original Biolink prefix order.
     if boost_prefixes is not None:
         possible_labels = [
             identifier.get("label", "")
@@ -445,8 +452,11 @@ def choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_lab
     else:
         possible_labels = [identifier.get("label", "") for identifier in node["identifiers"]]
 
+    # Drop blank/missing labels.
     filtered = [label for label in possible_labels if label]
 
+    # Demote long labels: if any label fits within the limit, discard those that don't.
+    # If *all* labels exceed the limit we keep them rather than returning empty.
     if length_limit is not None:
         shorter = [label for label in filtered if len(label) <= length_limit]
         if shorter:
