@@ -1,5 +1,5 @@
 [project]
-name = "babel"
+name = "babel-pipeline"
 version = "1.14"
 description = "Babel creates cliques of equivalent identifiers across many biomedical vocabularies. "
 readme = "README.md"
@@ -16,7 +16,7 @@ dependencies = [
     "jsonlines>=4.0.0",
     "more-itertools>=10.8.0",
     "psutil>=7.1.1",
-    "psycopg2-binary>=2.9.11",
+    "psycopg2-binary>=2.9.12",
     "pyoxigraph>=0.4.11",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
@@ -24,8 +24,8 @@ dependencies = [
     "pytest-xdist>=3",
     "pyyaml>=6.0.3",
     "requests>=2.32.5",
-    "snakemake>=9.13.3",
-    "snakemake-executor-plugin-slurm>=1.9.2",
+    "snakemake>=9.21.0",
+    "snakemake-executor-plugin-slurm>=2.6.1",
     "sparqlwrapper>=2.0.0",
     "tqdm>=4.67.1",
     "xmltodict>=1.0.2",
@@ -49,9 +49,9 @@ packages = ["src"]
 [dependency-groups]
 dev = [
     "ipykernel>=7.1.0",
-    "py-spy>=0.4.1",
+    "py-spy>=0.4.2",
     "ruff>=0.14.14",
-    "rumdl>=0.1.26",
+    "rumdl>=0.1.93",
     "snakefmt>=0.11.2",
 ]
 

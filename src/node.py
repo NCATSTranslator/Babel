@@ -72,9 +72,13 @@ class SynonymFactory:
         if os.path.exists(labelfname):
             with open(labelfname) as inf:
                 for line in inf:
-                    x = line.strip().split("\t")
-                    lbs[x[0]].add(("http://www.geneontology.org/formats/oboInOwl#hasExactSynonym", x[1]))
-                    count_labels += 1
+                    x = line.strip().split("\t", maxsplit=1)
+                    if len(x) == 1:
+                        lbs[x[0]].add(("http://www.geneontology.org/formats/oboInOwl#hasExactSynonym", ""))
+                    elif len(x) == 2:
+                        lbs[x[0]].add(("http://www.geneontology.org/formats/oboInOwl#hasExactSynonym", x[1]))
+                        if x[1]:
+                            count_labels += 1
         synfname = os.path.join(self.synonym_dir, prefix, "synonyms")
         if os.path.exists(synfname):
             with open(synfname) as inf:
@@ -497,8 +501,11 @@ class NodeFactory:
         if os.path.exists(labelfname):
             with open(labelfname) as inf:
                 for line in inf:
-                    x = line.strip().split("\t")
-                    lbs[x[0]] = x[1]
+                    x = line.strip().split('\t', maxsplit=1)
+                    if len(x) == 1:
+                        lbs[x[0]] = ''
+                    else:
+                        lbs[x[0]] = x[1]
         self.extra_labels[prefix] = lbs
 
     def apply_labels(self, input_identifiers, labels):
