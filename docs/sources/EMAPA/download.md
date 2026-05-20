@@ -23,4 +23,4 @@ xrefs are fetched during anatomy build rules that call UberGraph-backed helpers.
 
 - UberGraph endpoint unavailable or timing out.
 - UberGraph service-side query errors (transient HTTP 5xx).
-- Upstream ontology graph changes that alter EMAPA subclass/xref counts.
+- Upstream ontology graph changes that alter EMAPA term/xref counts.
