@@ -266,6 +266,45 @@ class UberGraph:
             results.append(y)
         return results
 
+    def get_subparts_of(self, iri):
+        """Return everything connected to `iri` by part_of (BFO:0000050) in UberGraph's
+        materialized graph.
+
+        Partonomy-structured ontologies such as EMAPA link their anatomical structures
+        with part_of rather than rdfs:subClassOf, so get_subclasses_of() finds almost
+        nothing for them; this is the part_of analogue.
+        """
+        text = """
+        prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        prefix BFO: <http://purl.obolibrary.org/obo/BFO_>
+        prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
+        prefix CL: <http://purl.obolibrary.org/obo/CL_>
+        prefix EMAPA: <http://purl.obolibrary.org/obo/EMAPA_>
+        prefix GO: <http://purl.obolibrary.org/obo/GO_>
+        select distinct ?descendent ?descendentLabel
+        from <http://reasoner.renci.org/ontology>
+        where {
+            graph <http://reasoner.renci.org/redundant> {
+                ?descendent BFO:0000050 $sourcedefclass .
+            }
+            OPTIONAL {
+                ?descendent rdfs:label ?descendentLabel .
+            }
+        }
+        """
+        rr = self.triplestore.query_template(inputs={"sourcedefclass": iri}, outputs=["descendent", "descendentLabel"], template_text=text)
+        results = []
+        for x in rr:
+            y = {}
+            try:
+                y["descendent"] = Text.opt_to_curie(x["descendent"])
+            except ValueError as verr:
+                self.logger.warning(f"Descendent {x['descendent']} could not be converted to a CURIE, will be used as-is: {verr}")
+                y["descendent"] = x["descendent"]
+            y["descendentLabel"] = x["descendentLabel"]
+            results.append(y)
+        return results
+
     def get_subclasses_and_smiles(self, iri):
         text = """
         prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>

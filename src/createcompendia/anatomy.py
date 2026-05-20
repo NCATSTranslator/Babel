@@ -10,7 +10,7 @@ from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_ove
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import CL, EMAPA, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
-from src.ubergraph import build_sets
+from src.ubergraph import UberGraph, build_sets
 from src.util import Text
 
 ANATOMY_OBO_SOURCES = {
@@ -81,7 +81,24 @@ def write_cl_ids(outfile):
 
 
 def write_emapa_ids(outfile):
-    _write_ontology_ids(EMAPA, outfile)
+    """Collect EMAPA anatomy identifiers from UberGraph.
+
+    EMAPA is a part_of partonomy, not an rdfs:subClassOf hierarchy, so it cannot be
+    collected with write_obo_ids() the way UBERON/GO/CL are — a subClassOf walk from
+    the EMAPA root reaches only a handful of terms. Walk part_of from the root instead
+    (plus the few is_a links), and keep every EMAPA-prefixed term.
+    """
+    root = ANATOMY_OBO_SOURCES[EMAPA]["root"]
+    biolink_type = ANATOMY_OBO_SOURCES[EMAPA]["type"]
+    uber = UberGraph()
+    curies = {root}
+    for term in uber.get_subparts_of(root) + uber.get_subclasses_of(root):
+        curie = term["descendent"]
+        if curie.startswith(f"{EMAPA}:"):
+            curies.add(curie)
+    with open(outfile, "w") as idfile:
+        for curie in sorted(curies):
+            idfile.write(f"{curie}\t{biolink_type}\n")
 
 
 def write_go_ids(outfile):

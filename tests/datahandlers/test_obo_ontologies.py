@@ -3,6 +3,7 @@ from contextlib import contextmanager
 import pytest
 
 from src.categories import ANATOMICAL_ENTITY, CELLULAR_COMPONENT
+from src.createcompendia import anatomy
 from src.datahandlers import obo
 
 pytestmark = [pytest.mark.network]
@@ -21,7 +22,6 @@ def _server_errors_are_xfail():
     ("root", "biolink_type", "expected_prefix"),
     [
         ("GO:0005575", CELLULAR_COMPONENT, "GO"),
-        ("EMAPA:0", ANATOMICAL_ENTITY, "EMAPA"),
     ],
 )
 def test_write_obo_ids_for_registered_ontology(tmp_path, root, biolink_type, expected_prefix):
@@ -33,3 +33,20 @@ def test_write_obo_ids_for_registered_ontology(tmp_path, root, biolink_type, exp
     assert lines, f"{expected_prefix} write_obo_ids returned no rows"
     prefixes = {line.split("\t", 1)[0].split(":", 1)[0] for line in lines}
     assert prefixes == {expected_prefix}
+
+
+def test_write_emapa_ids_collects_partonomy(tmp_path):
+    """EMAPA is a part_of partonomy, so write_obo_ids() (a subClassOf walk) misses it.
+
+    write_emapa_ids() must instead collect the thousands of anatomy terms reachable by
+    part_of from the EMAPA root, all typed biolink:AnatomicalEntity. The lower bound
+    guards against a regression to the subClassOf-only behaviour, which found 2 terms.
+    """
+    outfile = tmp_path / "EMAPA.ids.tsv"
+    with _server_errors_are_xfail():
+        anatomy.write_emapa_ids(str(outfile))
+
+    rows = [line.split("\t") for line in outfile.read_text().splitlines() if line.strip()]
+    assert len(rows) > 1000, f"expected thousands of EMAPA terms, got {len(rows)}"
+    assert all(row[0].startswith("EMAPA:") for row in rows)
+    assert {row[1] for row in rows} == {ANATOMICAL_ENTITY}
