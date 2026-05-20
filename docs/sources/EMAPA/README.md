@@ -19,3 +19,5 @@ Additional source details are documented in:
 - `download.md`
 - `filtering.md`
 - `mappings.md`
+- `impact-report.md` (auto-generated; see "Adding a new data source" in
+  `CLAUDE.md` for how to regenerate it)
