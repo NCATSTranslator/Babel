@@ -10,7 +10,7 @@ from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_ove
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import CL, EMAPA, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
-from src.ubergraph import UberGraph, build_sets
+from src.ubergraph import HIERARCHY_PART_OF, UberGraph, build_sets
 from src.util import Text
 
 ANATOMY_OBO_SOURCES = {
@@ -92,7 +92,7 @@ def write_emapa_ids(outfile):
     biolink_type = ANATOMY_OBO_SOURCES[EMAPA]["type"]
     uber = UberGraph()
     curies = {root}
-    for term in uber.get_subparts_of(root) + uber.get_subclasses_of(root):
+    for term in uber.get_subclasses_of(root, hierarchy_predicate=HIERARCHY_PART_OF) + uber.get_subclasses_of(root):
         curie = term["descendent"]
         if curie.startswith(f"{EMAPA}:"):
             curies.add(curie)
@@ -145,8 +145,17 @@ def build_anatomy_obo_relationships(outdir, metadata_yamls):
     # Create the equivalence pairs
     with open(f"{outdir}/{UBERON}", "w") as uberon, open(f"{outdir}/{GO}", "w") as go, open(f"{outdir}/{CL}", "w") as cl, open(f"{outdir}/{EMAPA}", "w") as emapa:
         source_to_concord = {UBERON: uberon, GO: go, CL: cl, EMAPA: emapa}
-        for source_prefix in [UBERON, GO, EMAPA]:
+        for source_prefix in [UBERON, GO]:
             build_sets(ANATOMY_OBO_SOURCES[source_prefix]["root"], source_to_concord, "xref", ignore_list=ignore_list)
+        # EMAPA is a part_of partonomy, not an is_a hierarchy, so its xref concords must
+        # be collected by walking part_of rather than rdfs:subClassOf.
+        build_sets(
+            ANATOMY_OBO_SOURCES[EMAPA]["root"],
+            source_to_concord,
+            "xref",
+            ignore_list=ignore_list,
+            hierarchy_predicate=HIERARCHY_PART_OF,
+        )
         # CL is now being handled by Wikidata (build_wikidata_cell_relationships), so we can probably remove it from here.
 
     # Write out metadata.
