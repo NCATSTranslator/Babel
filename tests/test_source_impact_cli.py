@@ -114,6 +114,18 @@ def test_cli_synthetic_report_covers_all_sections(synthetic_intermediate, tmp_pa
     assert "1 existing cliques will gain NEWSOURCE identifiers" in report
     assert "1 existing cliques will be merged" in report
 
+    # Markdown hygiene: the report is committed to docs/, so it must satisfy the repo
+    # markdown linter — every list item preceded by a blank line or another list item
+    # (MD032), and no trailing blank lines (MD012).
+    report_lines = report.split("\n")
+    for i, line in enumerate(report_lines[1:], start=1):
+        if line.lstrip().startswith("- "):
+            prev = report_lines[i - 1]
+            assert not prev.strip() or prev.lstrip().startswith("- "), (
+                f"list item not preceded by a blank line or list item: {line!r}"
+            )
+    assert report == report.rstrip("\n") + "\n", "report must end with exactly one newline"
+
 
 @pytest.mark.unit
 def test_cli_synthetic_report_json_diff_counts(synthetic_intermediate, tmp_path):

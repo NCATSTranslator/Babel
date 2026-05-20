@@ -26,6 +26,25 @@ def _fmt(n: int) -> str:
     return f"{n:,}"
 
 
+def _normalize_markdown(lines: list[str]) -> list[str]:
+    """Insert a blank line before each list block and strip trailing blank lines.
+
+    The section renderers append headings directly before their lists; without this the
+    output trips the repository markdown linter (MD032 lists-need-blank-lines, MD012
+    trailing-blank-lines). Centralising it here keeps the per-section code uncluttered.
+    """
+    out: list[str] = []
+    for line in lines:
+        is_list_item = line.lstrip().startswith("- ")
+        prev = out[-1] if out else ""
+        if is_list_item and prev.strip() and not prev.lstrip().startswith("- "):
+            out.append("")
+        out.append(line)
+    while out and not out[-1].strip():
+        out.pop()
+    return out
+
+
 def _clique_leader(clique: frozenset[str]) -> str:
     return sorted(clique)[0]
 
@@ -222,7 +241,7 @@ def render_markdown(
 
     if remote_summary:
         lines.append(_render_remote_section(remote_summary))
-    return "\n".join(lines) + "\n"
+    return "\n".join(_normalize_markdown(lines)) + "\n"
 
 
 def render_json(
