@@ -157,6 +157,56 @@ The Snakemake convenience rule writes the same output to the build-artifact tree
 uv run snakemake -c 1 babel_outputs/reports/source_impact/<SOURCE>.md
 ```
 
+### Generating the report without a full pipeline build
+
+Synthetic mode re-runs `glom()` over the intermediate `ids` and `concords` files of
+**every** source for the affected semantic type, not just the new one, so it needs that
+whole set on disk. A full local build needs ~500 GB of RAM, so the practical way to
+produce a report on a laptop is to assemble the inputs by hand from a published build.
+
+1. **Pick a recent build snapshot.** Browse `https://stars.renci.org/var/babel/` and
+   choose a recent dated build, referred to below as `<recent-build>`. Its
+   `intermediate/<semantic_type>/` directory holds the `ids/` and `concords/` files for
+   every source *except* the one you are adding.
+
+2. **Download the baseline intermediate set** for each affected semantic type into a
+   working directory. List what the snapshot provides by browsing
+   `https://stars.renci.org/var/babel/<recent-build>/intermediate/<semantic_type>/ids/`
+   and `.../concords/`, then fetch each file. For anatomy:
+
+   ```bash
+   BASE="https://stars.renci.org/var/babel/<recent-build>/intermediate/anatomy"
+   ROOT="/tmp/impact/intermediate/anatomy"
+   mkdir -p "$ROOT/ids" "$ROOT/concords"
+   for f in UBERON GO CL MESH NCIT UMLS; do
+       curl -sf "$BASE/ids/$f" -o "$ROOT/ids/$f"
+   done
+   for f in UBERON GO CL UMLS WIKIDATA; do
+       curl -sf "$BASE/concords/$f" -o "$ROOT/concords/$f"
+   done
+   ```
+
+3. **Generate the new source's intermediate files locally.** The new source is not in
+   the snapshot, so build just its `ids` and `concords` files — by running its
+   `write_*_ids()` and concord functions, or the matching Snakemake rules — and place
+   them in the same `$ROOT/ids` and `$ROOT/concords` directories.
+
+4. **Run synthetic mode against the assembled directory.** `--intermediate-root` points
+   the tool at the working directory instead of the default `babel_outputs/intermediate`:
+
+   ```bash
+   uv run source-impact-report --source <SOURCE> --mode synthetic \
+       --intermediate-root /tmp/impact/intermediate \
+       --output docs/sources/<SOURCE>/impact-report.md
+   ```
+
+`--compendia-root` (default `babel_outputs/compendia`) is read only for section 2's
+"final compendium-assigned" counts; with no local compendia, leave it pointing at a
+non-existent path and that part of the report is simply left blank.
+
+The committed `docs/sources/EMAPA/impact-report.md` was produced with exactly this
+procedure.
+
 ### Reading the report
 
 The generated markdown has four sections:

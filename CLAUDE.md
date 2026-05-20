@@ -184,7 +184,8 @@ clique changes the source introduces. Commit the report to
 `docs/sources/<SOURCE>/impact-report.md` alongside the rest of the source's docs.
 
 ```bash
-# Run after the intermediate ids/concords files for the source have been built.
+# Synthetic mode re-globs the full intermediate ids/concords set for the semantic
+# type, so every source's files must be present, not just the new source's.
 uv run source-impact-report --source <SOURCE>
 
 # Snakemake convenience wrapper (writes to babel_outputs/reports/source_impact/):
@@ -195,6 +196,11 @@ The CLI auto-detects every semantic type where the source has intermediate files
 compendia too large to re-glom locally, add `--mode both --remote-url <previous-build>`
 to also compare against a remote build. See `src/cli/source_impact_report.py` and
 `src/model/source.py` for the source-discovery and diff implementation.
+
+`docs/AddingNewSources.md` is the full usage guide: how to read each report section,
+register a new semantic type, and — since a full local build needs ~500 GB of RAM —
+assemble the intermediate inputs from a `stars.renci.org` snapshot to generate the
+report on a laptop.
 
 When extending the report to a new semantic type, add a `compute_cliques_for_impact_report`
 helper to that type's `createcompendia/*.py` module (mirroring `anatomy.py`), then register
