@@ -517,6 +517,13 @@ def build_sets(iri, concordfiles, set_type, ignore_list=[], other_prefixes={}, h
     types2relations = {"xref": "xref", "exact": "oio:exactMatch", "close": "oio:closeMatch"}
     if set_type not in types2relations:
         return
+    if hierarchy_predicate != HIERARCHY_SUBCLASS_OF and set_type != "xref":
+        raise ValueError(
+            f"hierarchy_predicate={hierarchy_predicate!r} is only supported for "
+            f"set_type='xref'; set_type={set_type!r} hardcodes rdfs:subClassOf. "
+            "Extend get_subclasses_and_exacts() / get_subclasses_and_close() "
+            "before using a custom hierarchy predicate with those set types."
+        )
     uber = UberGraph()
     if set_type == "xref":
         uberres = uber.get_subclasses_and_xrefs(iri, hierarchy_predicate=hierarchy_predicate)
