@@ -30,7 +30,7 @@ from src.model.clique_diff import (
     load_compendium,
 )
 from src.model.source import SourceContribution, discover_source
-from src.reports.source_impact import render_json, render_markdown
+from src.reports.source_impact import LookupContext, load_labels_for_prefixes, render_json, render_markdown
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +38,21 @@ logger = logging.getLogger(__name__)
 ComputeCliquesFn = Callable[..., tuple[dict, dict]]
 
 
+# Per-semantic-type configuration:
+#
+# - ``compute_fn``: returns ``(glom-dict, types-dict)`` for one call to glom over the
+#   semantic type's intermediate files. Called twice per source (with and without the
+#   source) to build the synthetic before/after diff.
+# - ``compendium_files``: list of final compendium files to scan when counting how many
+#   source CURIEs ended up where (after build).
+# - ``compendium_prefixes``: prefixes that may appear in cliques for this semantic type;
+#   labels for these are loaded from ``babel_downloads/<PREFIX>/labels`` to enrich the
+#   rendered samples.
+# - ``clique_classifier``: callable that picks a biolink type for one clique given the
+#   types map. Used by the renderer to apply the right prefix-priority list when picking
+#   the preferred CURIE for a sample.
+# - ``biolink_types``: biolink types whose ``id_prefixes`` we look up to determine the
+#   preferred CURIE per clique.
 SEMANTIC_TYPE_CONFIG: dict[str, dict] = {
     "anatomy": {
         "compute_fn": anatomy.compute_cliques_for_impact_report,
@@ -46,6 +61,14 @@ SEMANTIC_TYPE_CONFIG: dict[str, dict] = {
             "Cell.txt",
             "CellularComponent.txt",
             "GrossAnatomicalStructure.txt",
+        ],
+        "compendium_prefixes": ["UBERON", "GO", "CL", "EMAPA", "MESH", "NCIT", "UMLS", "SNOMEDCT"],
+        "clique_classifier": anatomy.classify_anatomy_clique,
+        "biolink_types": [
+            "biolink:AnatomicalEntity",
+            "biolink:Cell",
+            "biolink:CellularComponent",
+            "biolink:GrossAnatomicalStructure",
         ],
     },
 }
@@ -66,8 +89,12 @@ def _compute_synthetic_diff(
     source_name: str,
     intermediate_root: pathlib.Path,
     source_curies: frozenset[str],
-) -> SourceImpactDiff:
-    """Run a registered compute_fn twice and return the clique diff for one semantic type."""
+) -> tuple[SourceImpactDiff, dict[str, str]]:
+    """Run a registered compute_fn twice and return the clique diff for one semantic type.
+
+    Returns a ``(diff, types)`` tuple where ``types`` is the after-state CURIE -> declared
+    biolink type map (so callers can pass it into the renderer to classify cliques).
+    """
     cfg = SEMANTIC_TYPE_CONFIG[semantic_type]
     compute_fn: ComputeCliquesFn = cfg["compute_fn"]
 
@@ -79,10 +106,11 @@ def _compute_synthetic_diff(
     logger.info("synthetic diff for %s: %d ids files, %d concord files",
                 semantic_type, len(identifiers), len(concordances))
 
-    after_dicts, _ = compute_fn(concordances, identifiers)
+    after_dicts, after_types = compute_fn(concordances, identifiers)
     before_dicts, _ = compute_fn(concordances, identifiers, excluded_sources={source_name})
 
-    return diff_cliques(before_dicts, after_dicts, source_curies, semantic_type=semantic_type)
+    diff = diff_cliques(before_dicts, after_dicts, source_curies, semantic_type=semantic_type)
+    return diff, after_types
 
 
 def _final_compendium_breakdown(
@@ -187,6 +215,94 @@ def _remote_comparison_summary(
     return summary
 
 
+def _build_lookup_context(
+    *,
+    semantic_types: list[str],
+    types_by_semantic_type: dict[str, dict[str, str]],
+    downloads_root: pathlib.Path,
+    skip_biolink: bool,
+) -> LookupContext:
+    """Assemble the per-semantic-type helpers the renderer needs to enrich CURIE samples.
+
+    Loads label files for the prefixes registered for each semantic type, looks up the
+    OBO PURL converter and the biolink prefix-priority lists, and registers the
+    per-semantic-type clique classifier callable. When ``skip_biolink`` is set, the
+    Biolink prefix-map / toolkit lookups are skipped — useful for offline tests that
+    don't need OBO PURLs or preferred-identifier annotations.
+    """
+    all_prefixes: set[str] = set()
+    classifiers: dict[str, Callable] = {}
+    biolink_types_needed: set[str] = set()
+    for st in semantic_types:
+        cfg = SEMANTIC_TYPE_CONFIG.get(st)
+        if cfg is None:
+            continue
+        all_prefixes.update(cfg.get("compendium_prefixes", []))
+        if "clique_classifier" in cfg:
+            classifiers[st] = cfg["clique_classifier"]
+        biolink_types_needed.update(cfg.get("biolink_types", []))
+
+    labels = load_labels_for_prefixes(sorted(all_prefixes), downloads_root)
+
+    expander = None
+    prefix_priority_by_type: dict[str, list[str]] = {}
+    if not skip_biolink:
+        # Lazy imports so --no-biolink-lookup avoids the network fetches these trigger.
+        try:
+            from src.util import get_biolink_prefix_map  # noqa: PLC0415
+
+            converter = get_biolink_prefix_map()
+            expander = converter.expand
+        except Exception as exc:
+            logger.warning("could not load Biolink prefix map; rendering plain CURIEs: %s", exc)
+        try:
+            from src.util import get_biolink_model_toolkit, get_config  # noqa: PLC0415
+
+            tk = get_biolink_model_toolkit(get_config()["biolink_version"])
+            for bt in biolink_types_needed:
+                # ``get_element`` accepts the mapped form, the camel-case name, or the
+                # human-readable name, but the toolkit returns a ClassDefinition object
+                # (not a dict), so we read id_prefixes via attribute access.
+                bare_name = bt.removeprefix("biolink:")
+                element = tk.get_element(bare_name)
+                if element is None:
+                    continue
+                prefs = getattr(element, "id_prefixes", None) or []
+                seen: list[str] = []
+                for p in prefs:
+                    if p not in seen:
+                        seen.append(p)
+                prefix_priority_by_type[bt] = seen
+        except Exception as exc:
+            logger.warning("could not load Biolink toolkit prefix orders: %s", exc)
+
+    return LookupContext(
+        types_by_semantic_type=types_by_semantic_type,
+        labels_by_prefix=labels,
+        curie_expander=expander,
+        clique_classifier=classifiers,
+        prefix_priority_by_type=prefix_priority_by_type,
+    )
+
+
+def _run_rumdl_fmt(path: pathlib.Path) -> None:
+    """Apply ``rumdl fmt`` to the generated report so committed output is lint-clean.
+
+    URL + label entries push individual list items past the repo's 100-char line cap;
+    rather than having the renderer try to safely wrap inside markdown links, we
+    delegate line wrapping to the project's existing markdown formatter. Failures
+    (missing binary, unrelated error) only emit a warning so the report still lands
+    on disk.
+    """
+    try:
+        subprocess.run(["rumdl", "fmt", str(path)], check=False, capture_output=True)
+    except FileNotFoundError:
+        logger.warning(
+            "rumdl not found on PATH; report may have line-length lint warnings. "
+            "Run `uv run rumdl fmt %s` to fix.", path,
+        )
+
+
 def _git_commit_sha() -> str:
     try:
         result = subprocess.run(
@@ -221,6 +337,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         help="Where to cache downloaded remote compendia.")
     parser.add_argument("--intermediate-root", default="babel_outputs/intermediate")
     parser.add_argument("--compendia-root", default="babel_outputs/compendia")
+    parser.add_argument(
+        "--downloads-root",
+        default="babel_downloads",
+        help="Root directory holding per-prefix label files for enriching sample "
+             "CURIEs with preferred labels (default: babel_downloads).",
+    )
+    parser.add_argument(
+        "--no-biolink-lookup",
+        action="store_true",
+        help="Skip Biolink prefix-map / model toolkit lookups; render samples without "
+             "OBO PURL links and without preferred-identifier annotations.",
+    )
     parser.add_argument("--output", default=None,
                         help="Output path for the report. Default: "
                              "docs/sources/<SOURCE>/impact-report.md")
@@ -263,6 +391,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     diffs_by_semantic_type: dict[str, SourceImpactDiff] = {}
+    types_by_semantic_type: dict[str, dict[str, str]] = {}
     if args.mode in ("synthetic", "both"):
         for st in semantic_types:
             if st not in SEMANTIC_TYPE_CONFIG:
@@ -272,12 +401,14 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 continue
             stc = contribution.by_semantic_type[st]
-            diffs_by_semantic_type[st] = _compute_synthetic_diff(
+            diff, types = _compute_synthetic_diff(
                 semantic_type=st,
                 source_name=args.source,
                 intermediate_root=intermediate_root,
                 source_curies=stc.all_curies,
             )
+            diffs_by_semantic_type[st] = diff
+            types_by_semantic_type[st] = types
 
     remote_summary: dict[str, dict[str, int]] = {}
     if args.mode in ("remote", "both"):
@@ -290,6 +421,13 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     final_breakdown = _final_compendium_breakdown(contribution, semantic_types, compendia_root)
+
+    lookup = _build_lookup_context(
+        semantic_types=semantic_types,
+        types_by_semantic_type=types_by_semantic_type,
+        downloads_root=pathlib.Path(args.downloads_root),
+        skip_biolink=args.no_biolink_lookup,
+    )
 
     generated_at = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
     babel_commit = _git_commit_sha()
@@ -311,9 +449,11 @@ def main(argv: list[str] | None = None) -> int:
             babel_commit=babel_commit,
             remote_url=args.remote_url,
             remote_summary=remote_summary or None,
+            lookup=lookup,
         )
         output_path.write_text(md)
         logger.info("wrote markdown report to %s", output_path)
+        _run_rumdl_fmt(output_path)
     if args.format in ("json", "both"):
         json_payload = render_json(
             contribution,

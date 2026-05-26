@@ -284,13 +284,22 @@ The generated markdown has four sections:
    xref namespaces (compare to the `ignore_list` in
    `build_anatomy_obo_relationships()` or the equivalent for your type).
 4. **Clique impact** — for each semantic type with a registered compute hook, counts of:
-   - **new cliques** composed only of source identifiers,
-   - **existing cliques expanded** by adding source identifiers without merging,
+   - **new cliques** composed only of source identifiers, with the percentage increase
+     over the pre-existing clique count,
+   - **existing cliques that contain source identifiers in the after state**, split into
+     - cliques that gain at least one *structurally new* member from the source, and
+     - cliques where the source CURIE was already pulled in via another source's xref;
+       the source's ids file only *promotes* those leaves to first-class typed identifiers,
    - **existing cliques merged** because source CURIEs bridged previously-separate
-     cliques.
+     cliques,
+   - the total clique count before and after the source is added.
 
-   Sample merges and sample pure-new cliques are listed (up to 10 each) so you can spot
-   suspicious bridges quickly. Watch for merges that pull together cliques representing
+   Sample pure-new cliques, sample expanded cliques (with every identifier listed and
+   markers for `**(new from <SOURCE>)**`, `**(promoted by <SOURCE>)**`, and the picked
+   `**(preferred)**` identifier), and sample merges are listed (up to 10 each). The
+   expanded-clique sample leads with cliques where the preferred identifier would
+   change as a result of the source addition, then structurally grown cliques, then
+   promotion-only cliques. Watch for merges that pull together cliques representing
    very different concepts — usually a sign of an over-promiscuous xref.
 
 If the report header shows your semantic type as having no synthetic diff, either the
