@@ -4,7 +4,7 @@
 
 EMAPA extraction starts from:
 
-- `EMAPA:0`
+- [`EMAPA:0`](http://purl.obolibrary.org/obo/EMAPA_0) "Anatomical structure"
 
 ## Inclusion logic
 

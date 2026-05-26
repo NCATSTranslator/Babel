@@ -52,13 +52,13 @@ Totals: 0 cross-reference rows across 1 concord file(s).
 
 #### Sample pure-new cliques (up to 10)
 
-- EMAPA:18096
-- EMAPA:30460
-- EMAPA:19444
-- EMAPA:38010
-- EMAPA:18089
-- EMAPA:16606
-- EMAPA:16430
-- EMAPA:35975
-- EMAPA:38102
-- EMAPA:38051
+- [`EMAPA:18096`](http://purl.obolibrary.org/obo/EMAPA_18096) "interdigital region between forelimb digits 3 and 4 skin"
+- [`EMAPA:30460`](http://purl.obolibrary.org/obo/EMAPA_30460) "coelomic epithelium of male mesonephros"
+- [`EMAPA:19444`](http://purl.obolibrary.org/obo/EMAPA_19444) "Tl12 vertebral pre-cartilage condensation"
+- [`EMAPA:38010`](http://purl.obolibrary.org/obo/EMAPA_38010) "lateral femoral cutaneous nerve"
+- [`EMAPA:18089`](http://purl.obolibrary.org/obo/EMAPA_18089) "forelimb digit 5 epidermis"
+- [`EMAPA:16606`](http://purl.obolibrary.org/obo/EMAPA_16606) "somite 22 myocoele"
+- [`EMAPA:16430`](http://purl.obolibrary.org/obo/EMAPA_16430) "somite 10 myocoele"
+- [`EMAPA:35975`](http://purl.obolibrary.org/obo/EMAPA_35975) "male reproductive system mesenchyme"
+- [`EMAPA:38102`](http://purl.obolibrary.org/obo/EMAPA_38102) "lateral nasal gland 2"
+- [`EMAPA:38051`](http://purl.obolibrary.org/obo/EMAPA_38051) "heart trabecula"
