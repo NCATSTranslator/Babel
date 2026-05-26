@@ -23,6 +23,7 @@ import sys
 from collections.abc import Callable
 
 import src.createcompendia.anatomy as anatomy
+import src.createcompendia.diseasephenotype as diseasephenotype
 from src.model.clique_diff import (
     SourceImpactDiff,
     cliques_from_compendia,
@@ -46,6 +47,13 @@ SEMANTIC_TYPE_CONFIG: dict[str, dict] = {
             "Cell.txt",
             "CellularComponent.txt",
             "GrossAnatomicalStructure.txt",
+        ],
+    },
+    "disease": {
+        "compute_fn": diseasephenotype.compute_cliques_for_impact_report,
+        "compendium_files": [
+            "Disease.txt",
+            "PhenotypicFeature.txt",
         ],
     },
 }
