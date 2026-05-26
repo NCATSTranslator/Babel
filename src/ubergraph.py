@@ -253,6 +253,7 @@ class UberGraph:
         prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
         prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
         prefix HP: <http://purl.obolibrary.org/obo/HP_>
+        prefix MP: <http://purl.obolibrary.org/obo/MP_>
         prefix NCIT: <http://purl.obolibrary.org/obo/NCIT_>
         prefix PR: <http://purl.obolibrary.org/obo/PR_>
         prefix EFO: <http://www.ebi.ac.uk/efo/EFO_>
@@ -294,6 +295,7 @@ class UberGraph:
         prefix CHEBIP: <http://purl.obolibrary.org/obo/chebi/>
         prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
         prefix HP: <http://purl.obolibrary.org/obo/HP_>
+        prefix MP: <http://purl.obolibrary.org/obo/MP_>
         prefix NCIT: <http://purl.obolibrary.org/obo/NCIT_>
         prefix PR: <http://purl.obolibrary.org/obo/PR_>
         prefix EFO: <http://www.ebi.ac.uk/efo/EFO_>
@@ -337,6 +339,7 @@ class UberGraph:
         prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
         prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
         prefix HP: <http://purl.obolibrary.org/obo/HP_>
+        prefix MP: <http://purl.obolibrary.org/obo/MP_>
         prefix NCIT: <http://purl.obolibrary.org/obo/NCIT_>
         prefix PR: <http://purl.obolibrary.org/obo/PR_>
         select distinct ?descendent ?xref
@@ -374,6 +377,7 @@ class UberGraph:
                 prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
                 prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
                 prefix HP: <http://purl.obolibrary.org/obo/HP_>
+                prefix MP: <http://purl.obolibrary.org/obo/MP_>
                 prefix EFO: <http://www.ebi.ac.uk/efo/EFO_>
                 prefix NCIT: <http://purl.obolibrary.org/obo/NCIT_>
                 PREFIX EXACT_MATCH: <http://www.w3.org/2004/02/skos/core#exactMatch>
@@ -434,6 +438,7 @@ class UberGraph:
                 prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
                 prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
                 prefix HP: <http://purl.obolibrary.org/obo/HP_>
+                prefix MP: <http://purl.obolibrary.org/obo/MP_>
                 prefix EFO: <http://www.ebi.ac.uk/efo/EFO_>
                 prefix NCIT: <http://purl.obolibrary.org/obo/NCIT_>
                 PREFIX CLOSE_MATCH: <http://www.w3.org/2004/02/skos/core#closeMatch>
