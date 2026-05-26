@@ -157,6 +157,41 @@ The Snakemake convenience rule writes the same output to the build-artifact tree
 uv run snakemake -c 1 babel_outputs/reports/source_impact/<SOURCE>.md
 ```
 
+### Running a full local build of the affected semantic type
+
+If your semantic type fits on a single machine, the simplest path is to build all of
+its intermediates and compendia locally and then run the report against the populated
+`babel_outputs/` tree. Anatomy is comfortably tractable this way; other types may not be.
+
+```bash
+# Anything pulling from UMLS needs this set; it's checked at download time.
+export UMLS_API_KEY=...
+
+uv run snakemake -c all <semantic_type>
+uv run source-impact-report --source <SOURCE>
+```
+
+The Snakemake target name is the semantic-type label used in
+`src/snakefiles/<semantic_type>.snakefile` (e.g. `anatomy`, `chemical`). Building
+the full target also produces compendia, which populates section 2's "final
+compendium-assigned" counts in the report; without compendia present, that section
+is left blank.
+
+A few caveats:
+
+- A previous interrupted Snakemake run can leave the working directory locked. If
+  the build immediately fails with a `LockException`, run `uv run snakemake --unlock`
+  and retry.
+- UberGraph-backed rules (anatomy's UBERON, GO, CL, EMAPA ids and concords; similar
+  rules elsewhere) sometimes fail mid-fetch. Those rules carry `retries: 10`, but a
+  full UberGraph outage will still propagate. The recent ones are also wrapped in
+  the bounded retry/backoff added to `TripleStore`.
+- The full target rebuilds upstream sources too. Numbers in the resulting report
+  reflect the source data fetched at build time, not whatever published snapshot
+  you would otherwise have compared against — useful when you want a clean
+  current-state report, less useful when you want to diff against a specific
+  published release.
+
 ### Generating the report without a full pipeline build
 
 Synthetic mode re-runs `glom()` over the intermediate `ids` and `concords` files of
@@ -203,9 +238,6 @@ produce a report on a laptop is to assemble the inputs by hand from a published 
 `--compendia-root` (default `babel_outputs/compendia`) is read only for section 2's
 "final compendium-assigned" counts; with no local compendia, leave it pointing at a
 non-existent path and that part of the report is simply left blank.
-
-The committed `docs/sources/EMAPA/impact-report.md` was produced with exactly this
-procedure.
 
 ### Reading the report
 
