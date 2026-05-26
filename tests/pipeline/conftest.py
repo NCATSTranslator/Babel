@@ -34,6 +34,8 @@ import pytest
 from src.babel_utils import make_local_name
 from src.createcompendia import anatomy, chemicals, diseasephenotype, protein, taxon
 from src.datahandlers.mesh import Mesh, pull_mesh
+from src.prefixes import MP
+from src.ubergraph import build_sets
 
 # ---------------------------------------------------------------------------
 # Shared helpers (not fixtures — importable by test files)
@@ -500,6 +502,34 @@ def go_pipeline_outputs(ubergraph_connection, regenerate):
 
 
 # ---------------------------------------------------------------------------
+# MP processing fixture (uses UberGraph, no file download)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def mp_pipeline_outputs(ubergraph_connection, regenerate):
+    """Run MP disease/phenotype ID extraction and ensure MP concord generation is available."""
+
+    id_path = _intermediate_id_path("diseasephenotype", "MP")
+    concord_path = _intermediate_concord_path("diseasephenotype", "MP")
+
+    _maybe_run(id_path, lambda: diseasephenotype.write_mp_ids(id_path), regenerate)
+    _maybe_run(
+        concord_path,
+        lambda: _write_mp_concord(concord_path),
+        regenerate,
+    )
+
+    return {"diseasephenotype": id_path}
+
+
+def _write_mp_concord(concord_path: str) -> None:
+    os.makedirs(os.path.dirname(concord_path), exist_ok=True)
+    with open(concord_path, "w") as mp_file:
+        build_sets("MP:0000001", {MP: mp_file}, "xref")
+
+
+# ---------------------------------------------------------------------------
 # Vocabulary registry + parametrized fixture for test_vocabulary_partitioning.py
 # ---------------------------------------------------------------------------
 
@@ -512,7 +542,8 @@ VOCABULARY_REGISTRY = {
     "OMIM": "omim_pipeline_outputs",
     "NCIT": "ncit_pipeline_outputs",
     "GO": "go_pipeline_outputs",
-    "EC": "ec_ids_outputs",
+    "MP":  "mp_pipeline_outputs",
+    "EC":  "ec_ids_outputs",
     "CLO": "clo_ids_outputs",
     "EFO": "efo_ids_outputs",
 }
