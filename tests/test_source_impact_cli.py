@@ -111,7 +111,7 @@ def test_cli_synthetic_report_covers_all_sections(synthetic_intermediate, tmp_pa
 
     # Section 4: the overlap with EXISTING yields 2 pure-new, 1 expanded, 1 merged.
     assert "2 new cliques composed only of NEWSOURCE identifiers" in report
-    assert "1 existing cliques will gain NEWSOURCE identifiers" in report
+    assert "1 existing cliques contain NEWSOURCE identifiers" in report
     assert "1 existing cliques will be merged" in report
 
     # Markdown hygiene: the report is committed to docs/, so it must satisfy the repo
