@@ -102,6 +102,25 @@ def test_diff_handles_multi_prefix_source_curies():
 
 
 @pytest.mark.unit
+def test_diff_splits_truly_added_from_promoted_source_curies():
+    """When a source's CURIE is already in the before-clique via xref from another
+    source, ``added_source_curies`` must not include it — only ``promoted_source_curies``
+    should. The before-clique itself is unchanged in that case; the new source just
+    promotes the xref leaf to a typed identifier."""
+    # SRC:1 is pre-existing in the before-clique via someone else's xref; adding the
+    # SRC source's ids file doesn't grow the clique, it just types SRC:1.
+    before = _glom_dict_from_cliques([{"A:1", "B:1", "SRC:1"}])
+    after = _glom_dict_from_cliques([{"A:1", "B:1", "SRC:1"}])
+    diff = diff_cliques(before, after, {"SRC:1"}, semantic_type="t")
+
+    assert len(diff.expanded_cliques) == 1
+    ec = diff.expanded_cliques[0]
+    assert ec.added_source_curies == frozenset()
+    assert ec.promoted_source_curies == frozenset({"SRC:1"})
+    assert ec.before_clique == ec.after_clique
+
+
+@pytest.mark.unit
 def test_diff_treats_concord_introduced_aliases_as_pure_new():
     """If a source's concord introduces non-source CURIEs that weren't in any before
     clique, the resulting after-clique is reported as pure_new — without the source,
