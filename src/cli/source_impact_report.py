@@ -23,6 +23,7 @@ import sys
 from collections.abc import Callable, Iterator
 
 import src.createcompendia.anatomy as anatomy
+import src.createcompendia.diseasephenotype as diseasephenotype
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
 from src.model.clique_diff import (
     SourceImpactDiff,
@@ -82,6 +83,13 @@ PIPELINE_CONFIG: dict[str, dict] = {
         "compendium_prefixes": get_config()["anatomy_prefixes"],
         "clique_classifier": anatomy.classify_anatomy_clique,
         "biolink_types": _ANATOMY_BIOLINK_TYPES,
+    },
+    "disease": {
+        "compute_fn": diseasephenotype.compute_cliques_for_impact_report,
+        "compendium_files": [
+            "Disease.txt",
+            "PhenotypicFeature.txt",
+        ],
     },
 }
 
