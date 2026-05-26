@@ -248,6 +248,22 @@ def build_disease_obo_relationships(outdir, metadata_yamls):
         concord_filename=f"{outdir}/{MONDO}_close",
     )
 
+    # MP cross-references. Standard subClassOf walk from the MP root; UberGraph
+    # supplies whatever MP xrefs are declared in the source ontology (typically
+    # MESH and a few SNOMED links). SSSOM-derived MP↔HP mappings are intentionally
+    # not loaded here — see docs/sources/MP/mappings.md.
+    mp_root = DISEASE_OBO_SOURCES[MP]["root"]
+    with open(f"{outdir}/{MP}", "w") as outfile:
+        build_sets(mp_root, {MP: outfile}, set_type="xref")
+
+    write_concord_metadata(
+        metadata_yamls[MP],
+        name="build_disease_obo_relationships()",
+        sources=[{"type": "UberGraph", "name": MP}],
+        description=f"ubergraph.build_sets() (xref) of {mp_root}",
+        concord_filename=f"{outdir}/{MP}",
+    )
+
 
 def build_disease_efo_relationships(owlfile, idfile, outfile, metadata_yaml):
     efo.make_concords(owlfile, idfile, outfile, provenance_metadata=metadata_yaml)
@@ -417,7 +433,7 @@ def create_typed_sets(eqsets, types):
     chuck out here.
     Current rules: If it has MONDO trust the MONDO's type
                   If it has a HP trust the HP's type
-                   If it has an UBERON trust the UBERON's type
+                  If it has an MP trust the MP's type (always PhenotypicFeature)
     After that, check the types dict to see if we know anything.
     """
     order = [DISEASE, PHENOTYPIC_FEATURE]
@@ -426,7 +442,7 @@ def create_typed_sets(eqsets, types):
         # prefixes = set([ Text.get_curie(x) for x in equivalent_ids])
         prefixes = get_prefixes(equivalent_ids)
         found = False
-        for prefix in [MONDO, HP]:
+        for prefix in [MONDO, HP, MP]:
             if prefix in prefixes and not found:
                 try:
                     mytype = types[prefixes[prefix][0]]
