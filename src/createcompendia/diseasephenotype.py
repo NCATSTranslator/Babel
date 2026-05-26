@@ -9,8 +9,27 @@ import src.datahandlers.umls as umls
 from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.metadata.provenance import write_concord_metadata
-from src.prefixes import HP, ICD0, ICD9, ICD10, KEGGDISEASE, MEDDRA, MESH, MONDO, NCIT, OMIM, ORPHANET, SNOMEDCT, UMLS
-from src.ubergraph import build_sets
+from src.prefixes import (
+    HP,
+    ICD0,
+    ICD9,
+    ICD10,
+    KEGGDISEASE,
+    MEDDRA,
+    MESH,
+    MONDO,
+    MP,
+    NCIT,
+    OMIM,
+    ORPHANET,
+    SNOMEDCT,
+    UMLS,
+)
+from src.ubergraph import UberGraph, build_sets
+
+DISEASE_OBO_SOURCES = {
+    MP: {"root": f"{MP}:0000001", "type": PHENOTYPIC_FEATURE},
+}
 
 
 def write_obo_ids(irisandtypes, outfile, exclude=[]):
@@ -42,6 +61,25 @@ def write_hp_ids(outfile):
     # Phenotype
     phenotype_id = "HP:0000118"
     write_obo_ids([(phenotype_id, PHENOTYPIC_FEATURE)], outfile)
+
+
+def write_mp_ids(outfile):
+    """Collect MP (Mammalian Phenotype Ontology) identifiers from UberGraph.
+
+    MP is a standard rdfs:subClassOf hierarchy rooted at MP:0000001, so the default
+    subClassOf walk reaches every term. Every MP term is typed as PhenotypicFeature.
+    """
+    root = DISEASE_OBO_SOURCES[MP]["root"]
+    biolink_type = DISEASE_OBO_SOURCES[MP]["type"]
+    uber = UberGraph()
+    curies = {root}
+    for term in uber.get_subclasses_of(root):
+        curie = term["descendent"]
+        if curie.startswith(f"{MP}:"):
+            curies.add(curie)
+    with open(outfile, "w") as idfile:
+        for curie in sorted(curies):
+            idfile.write(f"{curie}\t{biolink_type}\n")
 
 
 def write_omim_ids(infile, outfile):
