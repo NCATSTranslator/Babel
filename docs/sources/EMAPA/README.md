@@ -16,8 +16,12 @@ Related implementation files:
 
 Additional source details are documented in:
 
-- `download.md`
-- `filtering.md`
-- `mappings.md`
-- `impact-report.md` (auto-generated; see "Adding a new data source" in
-  `CLAUDE.md` for how to regenerate it)
+- `download.md` — how EMAPA data is retrieved (via the UberGraph SPARQL endpoint) and what
+  queries are used.
+- `filtering.md` — which root term the identifier extraction starts from and how the
+  `part_of` traversal works.
+- `mappings.md` — how EMAPA cross-references to other prefixes are extracted from UberGraph
+  xrefs and written as concord rows.
+- `impact-report.md` — auto-generated report quantifying the identifiers, biolink types, and
+  clique changes EMAPA adds to the anatomy compendium. See "Adding a new data source" in
+  `CLAUDE.md` for how to regenerate it.
