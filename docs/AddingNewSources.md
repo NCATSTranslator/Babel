@@ -306,6 +306,24 @@ If the report header shows your semantic type as having no synthetic diff, eithe
 type is not yet registered in `SEMANTIC_TYPE_CONFIG` or the intermediate files were not
 fully present.
 
+#### Promoted vs. truly added cliques — a common surprise
+
+For ontologies that other Babel sources already xref (UBERON, GO, CL, MESH, etc.), the
+new source's CURIEs may already be present in the "before" cliques as xref leaves. In
+that case the source's ids file adds nothing structurally — it only "promotes" those
+leaves to first-class typed identifiers. EMAPA is the canonical example: its 4,188
+"expanded" cliques are all promotion-only, because UBERON's concord file already brings
+EMAPA CURIEs into the relevant cliques. Read the truly-grown vs. promotion-only split in
+section 4 before drawing conclusions about how much structural change a source produces.
+
+A related observation: even though EMAPA contributes 8,059 identifiers, only 4,802 land
+in `AnatomicalEntity.txt` (section 2). The remainder live in cliques whose dominant
+biolink type ends up as Cell, CellularComponent, or GrossAnatomicalStructure — and
+`NodeFactory` drops them from the written compendium because EMAPA is not in those
+types' `id_prefixes` list. This kind of section-1-vs-section-2 mismatch is a useful
+signal that some source CURIEs are being routed into clique types where they cannot be
+written out.
+
 ### Comparing across builds
 
 When `--mode remote` or `--mode both` is set, a fifth section summarises clique counts
