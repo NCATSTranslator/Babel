@@ -295,6 +295,33 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
         write_compendium(metadata_yamls, sets, f"{baretype}.txt", biotype, {}, icrdf_filename=icrdf_filename)
 
 
+def classify_anatomy_clique(equivalent_ids, types):
+    """Pick a biolink type for one anatomy clique using the same precedence as
+    ``create_typed_sets``: trust GO/CL/UBERON/EMAPA in that order, then fall back to a
+    majority vote over the declared types of the clique's members, breaking ties by
+    most-specific type.
+
+    Returns the biolink type string (e.g. ``"biolink:AnatomicalEntity"``) or ``None``
+    if no member of the clique has any declared type.
+    """
+    order = [CELLULAR_COMPONENT, CELL, GROSS_ANATOMICAL_STRUCTURE, ANATOMICAL_ENTITY]
+    prefixes = get_prefixes(equivalent_ids)
+    for prefix in [GO, CL, UBERON, EMAPA]:
+        if prefix in prefixes and prefixes[prefix][0] in types:
+            return types[prefixes[prefix][0]]
+    typecounts = defaultdict(int)
+    for eid in equivalent_ids:
+        if eid in types:
+            typecounts[types[eid]] += 1
+    if not typecounts:
+        return None
+    if len(typecounts) == 1:
+        return next(iter(typecounts.keys()))
+    otypes = [(-c, order.index(t), t) for t, c in typecounts.items()]
+    otypes.sort()
+    return otypes[0][2]
+
+
 def create_typed_sets(eqsets, types):
     """Given a set of sets of equivalent identifiers, we want to type each one into
     being either a disease or a phenotypic feature.  Or something else, that we may want to
@@ -304,33 +331,10 @@ def create_typed_sets(eqsets, types):
                    If it has an UBERON trust the UBERON's type
     After that, check the types dict to see if we know anything.
     """
-    order = [CELLULAR_COMPONENT, CELL, GROSS_ANATOMICAL_STRUCTURE, ANATOMICAL_ENTITY]
     typed_sets = defaultdict(set)
     for equivalent_ids in eqsets:
-        # prefixes = set([ Text.get_curie(x) for x in equivalent_ids])
-        prefixes = get_prefixes(equivalent_ids)
-        found = False
-        for prefix in [GO, CL, UBERON, EMAPA]:
-            if prefix in prefixes and prefixes[prefix][0] in types and not found:
-                mytype = types[prefixes[prefix][0]]
-                typed_sets[mytype].add(equivalent_ids)
-                found = True
-        if not found:
-            typecounts = defaultdict(int)
-            for eid in equivalent_ids:
-                if eid in types:
-                    typecounts[types[eid]] += 1
-            if len(typecounts) == 0:
-                print("how did we not get any types?")
-                print(equivalent_ids)
-                exit()
-            elif len(typecounts) == 1:
-                t = list(typecounts.keys())[0]
-                typed_sets[t].add(equivalent_ids)
-            else:
-                # First attempt is majority vote, and after that by most specific
-                otypes = [(-c, order.index(t), t) for t, c in typecounts.items()]
-                otypes.sort()
-                t = otypes[0][2]
-                typed_sets[t].add(equivalent_ids)
+        t = classify_anatomy_clique(equivalent_ids, types)
+        if t is None:
+            raise RuntimeError(f"Cannot assign a biolink type to anatomy clique {equivalent_ids}: no member CURIE has a declared type.")
+        typed_sets[t].add(equivalent_ids)
     return typed_sets
