@@ -1,5 +1,3 @@
-# Prefixes used for CURIEs
-#
 # The point here is to keep prefixes in one place so that we can easily deal with things like PUBCHEM->PUBCHEM.COMPOUND
 # In principle, we should generate this off of the context file?
 
@@ -40,6 +38,9 @@ DOID = "DOID"
 OIO = "OIO"
 ORPHANET = "orphanet"
 HP = "HP"
+MP = "MP"
+MP = "MP"
+EMAPA = "EMAPA"
 MEDDRA = "MEDDRA"
 EFO = "EFO"
 ICD9 = "ICD9"
