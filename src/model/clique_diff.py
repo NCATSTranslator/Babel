@@ -26,11 +26,21 @@ GlomDict = Mapping[str, "Iterable[str]"]
 
 @dataclass(frozen=True)
 class ExpandedClique:
-    """A before-clique that gained new-source CURIEs without merging with other cliques."""
+    """A before-clique that gained at least one source CURIE without merging.
+
+    ``added_source_curies`` is the strict difference (after - before): source CURIEs that
+    were not already in the before-clique. ``promoted_source_curies`` is the intersection:
+    source CURIEs already pulled into the clique by some other source's xref, which the
+    new source now claims as first-class typed identifiers. When ``added_source_curies``
+    is empty, the clique's identifier set is unchanged — the new source only "promotes"
+    pre-existing xref leaves into typed identifiers. Callers that want to count clique
+    growth should check ``added_source_curies`` rather than ``promoted_source_curies``.
+    """
 
     before_clique: frozenset[str]
     added_source_curies: frozenset[str]
     after_clique: frozenset[str]
+    promoted_source_curies: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -52,6 +62,8 @@ class SourceImpactDiff:
     pure_new_cliques: list[frozenset[str]] = field(default_factory=list)
     expanded_cliques: list[ExpandedClique] = field(default_factory=list)
     merged_cliques: list[MergedClique] = field(default_factory=list)
+    before_clique_count: int = 0
+    after_clique_count: int = 0
 
 
 def cliques_set(glom_dict: GlomDict) -> frozenset[frozenset[str]]:
@@ -102,6 +114,7 @@ def diff_cliques(
     source_curies_fs = frozenset(source_curies)
     before_lookup = _lookup_table(before)
     after_cliques = cliques_set(after)
+    before_cliques = cliques_set(before)
 
     pure_new: list[frozenset[str]] = []
     expanded: list[ExpandedClique] = []
@@ -127,10 +140,13 @@ def diff_cliques(
             pure_new.append(clique)
         elif len(before_cliques_set) == 1:
             (only_bc,) = before_cliques_set
+            truly_added = source_in_clique - only_bc
+            already_present = source_in_clique & only_bc
             expanded.append(
                 ExpandedClique(
                     before_clique=only_bc,
-                    added_source_curies=source_in_clique,
+                    added_source_curies=truly_added,
+                    promoted_source_curies=already_present,
                     after_clique=clique,
                 )
             )
@@ -150,6 +166,8 @@ def diff_cliques(
         pure_new_cliques=pure_new,
         expanded_cliques=expanded,
         merged_cliques=merged,
+        before_clique_count=len(before_cliques),
+        after_clique_count=len(after_cliques),
     )
 
 
