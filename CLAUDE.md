@@ -275,3 +275,24 @@ new documentation files if necessary.
 
 When writing documentation files, avoid using horizontal pipes unless necessary --
 section headings are sufficient for dividing up documentation.
+
+When a documentation file mentions a specific ontology term by CURIE, link it to its OBO
+PURL and include the preferred label in double-quotes:
+
+```markdown
+[`EMAPA:0`](http://purl.obolibrary.org/obo/EMAPA_0) "Anatomical structure"
+```
+
+Resolve CURIEs to URLs using the Biolink Model prefix map with the `curies` package
+(`strict=False` is required due to a duplicate entry in the map):
+
+```python
+import curies, urllib.request, json
+url = "https://raw.githubusercontent.com/biolink/biolink-model/v4.4.2/src/biolink_model/prefixmaps/biolink-model-prefix-map.json"
+with urllib.request.urlopen(url) as r:
+    pm = json.load(r)
+converter = curies.Converter.from_prefix_map(pm, strict=False)
+print(converter.expand("EMAPA:0"))  # http://purl.obolibrary.org/obo/EMAPA_0
+```
+
+Preferred labels come from `babel_downloads/<PREFIX>/labels` (tab-separated `CURIE\tlabel`).
