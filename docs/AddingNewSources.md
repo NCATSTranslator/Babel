@@ -289,18 +289,24 @@ The generated markdown has four sections:
    - **existing cliques that contain source identifiers in the after state**, split into
      - cliques that gain at least one *structurally new* member from the source, and
      - cliques where the source CURIE was already pulled in via another source's xref;
-       the source's ids file only *promotes* those leaves to first-class typed identifiers,
+       the source's ids file now also lists those existing CURIEs as first-class typed
+       identifiers (the report calls this the *existing-identifier* or "promotion-only"
+       case interchangeably — the dataclass field is `promoted_source_curies`),
    - **existing cliques merged** because source CURIEs bridged previously-separate
      cliques,
    - the total clique count before and after the source is added.
 
    Sample pure-new cliques, sample expanded cliques (with every identifier listed and
-   markers for `**(new from <SOURCE>)**`, `**(promoted by <SOURCE>)**`, and the picked
-   `**(preferred)**` identifier), and sample merges are listed (up to 10 each). The
-   expanded-clique sample leads with cliques where the preferred identifier would
-   change as a result of the source addition, then structurally grown cliques, then
-   promotion-only cliques. Watch for merges that pull together cliques representing
-   very different concepts — usually a sign of an over-promiscuous xref.
+   markers for `**(new from <SOURCE>)**`,
+   `**(existing identifier, also added by <SOURCE>)**`, and the picked
+   `**(preferred)**` identifier), and sample merges are listed (up to 10 each). Within
+   each sampled clique, identifiers are listed in the same order they would appear in
+   the compendium: biolink prefix priority for the clique's type, then lexicographic
+   within the same prefix (matching `NodeFactory.create_node()`). The expanded-clique
+   sample leads with cliques where the preferred identifier would change as a result of
+   the source addition, then structurally grown cliques, then existing-identifier-only
+   cliques. Watch for merges that pull together cliques representing very different
+   concepts — usually a sign of an over-promiscuous xref.
 
 If the report header shows your semantic type as having no synthetic diff, either the
 type is not yet registered in `SEMANTIC_TYPE_CONFIG` or the intermediate files were not

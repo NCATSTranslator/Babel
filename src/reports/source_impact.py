@@ -142,6 +142,30 @@ def _render_curie_entry(
     return f"{bullet}{' '.join(parts)}"
 
 
+def _sort_clique_for_display(
+    curies: Iterable[str],
+    biolink_type: str | None,
+    prefix_priority_by_type: dict[str, list[str]],
+) -> list[str]:
+    """Order CURIEs the way ``NodeFactory.create_node()`` lists them on a clique.
+
+    Within a clique the compendium writer iterates the biolink prefix-priority list for
+    the type and, for each prefix, sorts the matching CURIEs lexicographically. We mirror
+    that here so the first CURIE in the returned list is the preferred one and CURIEs
+    sharing a prefix stay adjacent in their compendium order. CURIEs whose prefix is not
+    in the priority list (which ``create_node`` would silently drop) are appended at the
+    end, sorted lexicographically, so the report still shows them.
+    """
+    priority = prefix_priority_by_type.get(biolink_type, []) if biolink_type else []
+    priority_index = {p.upper(): i for i, p in enumerate(priority)}
+    tail = len(priority_index)
+
+    def sort_key(curie: str) -> tuple[int, str]:
+        return (priority_index.get(_prefix_of(curie).upper(), tail), curie)
+
+    return sorted(curies, key=sort_key)
+
+
 def _preferred_curie(
     clique: frozenset[str],
     biolink_type: str | None,
@@ -152,17 +176,7 @@ def _preferred_curie(
     present (mirrors NodeFactory's behaviour of warning + skipping prefixes not in the
     list, but here we still have to choose *something* for the sample, so we settle on
     the lexicographically smallest CURIE)."""
-    if biolink_type is None:
-        return sorted(clique)[0]
-    priority = prefix_priority_by_type.get(biolink_type, [])
-    by_prefix: dict[str, list[str]] = defaultdict(list)
-    for c in clique:
-        by_prefix[_prefix_of(c).upper()].append(c)
-    for p in priority:
-        bucket = by_prefix.get(p.upper())
-        if bucket:
-            return sorted(bucket)[0]
-    return sorted(clique)[0]
+    return _sort_clique_for_display(clique, biolink_type, prefix_priority_by_type)[0]
 
 
 def _sample_index(item) -> str:
@@ -241,8 +255,8 @@ def _render_clique_impact(
             f"{_fmt(before_total)} pre-existing cliques). Of these, "
             f"{_fmt(truly_grown_n)} cliques gain at least one structurally new "
             f"identifier from {name}, and {_fmt(promotion_only_n)} already contained the "
-            f"{name} CURIE via an xref from another source — {name}'s ids file simply "
-            "promotes those leaves to first-class typed identifiers."
+            f"{name} CURIE via an xref from another source — {name}'s ids file now also "
+            "lists those existing CURIEs as first-class typed identifiers."
         )
         lines.append(
             f"- {_fmt(merged_n)} existing cliques will be merged because of new {name} "
@@ -271,14 +285,13 @@ def _render_clique_impact(
                     lines.append(_render_curie_entry(only, lookup))
                 else:
                     biolink_type = classifier(clique, types) if classifier else None
-                    preferred = _preferred_curie(
+                    ordered_curies = _sort_clique_for_display(
                         clique, biolink_type, lookup.prefix_priority_by_type
                     )
-                    lines.append(_render_curie_entry(preferred, lookup, marker="**(preferred)**"))
-                    for c in sorted(clique):
-                        if c == preferred:
-                            continue
-                        lines.append(_render_curie_entry(c, lookup, bullet="  - "))
+                    for i, c in enumerate(ordered_curies):
+                        marker = "**(preferred)**" if i == 0 else ""
+                        bullet = "- " if i == 0 else "  - "
+                        lines.append(_render_curie_entry(c, lookup, bullet=bullet, marker=marker))
             lines.append("")
 
         if diff.expanded_cliques:
@@ -319,7 +332,10 @@ def _render_clique_impact(
                 f"in the after state, {_fmt(preferred_change_n)} would also see their "
                 f"preferred identifier change as a result of adding {name}. The sample "
                 f"below leads with preferred-id-change cliques (if any), then "
-                f"structurally grown cliques, then promotion-only cliques."
+                f"structurally grown cliques, then cliques where {name} only adds CURIEs "
+                f"that were already present via xref. Within each clique, identifiers "
+                f"are listed in the same order they would appear in the compendium "
+                f"(biolink prefix priority, then lexicographic within prefix)."
             )
             chosen = (
                 preferred_change_samples + truly_grown_samples + promotion_only_samples
@@ -341,12 +357,15 @@ def _render_clique_impact(
                     f"- Clique with {_fmt(len(ec.after_clique))} identifiers"
                     f"{type_marker} — {summary}:"
                 )
-                for c in sorted(ec.after_clique):
+                ordered = _sort_clique_for_display(
+                    ec.after_clique, biolink_type, lookup.prefix_priority_by_type
+                )
+                for c in ordered:
                     markers: list[str] = []
                     if c in ec.added_source_curies:
                         markers.append(f"**(new from {name})**")
                     elif c in ec.promoted_source_curies:
-                        markers.append(f"**(promoted by {name})**")
+                        markers.append(f"**(existing identifier, also added by {name})**")
                     if c == after_pref:
                         markers.append("**(preferred)**")
                     if before_pref != after_pref and c == before_pref:
