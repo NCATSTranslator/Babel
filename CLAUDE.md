@@ -111,17 +111,25 @@ semantic type plus data collection, reports, exports, and DuckDB.
 
 ### Biolink Model Usage
 
-The Biolink Model version is set in `config.yaml` (`biolink_version: "4.3.6"`) and is the single
-source of truth used by `NodeFactory` and `get_biolink_model_toolkit()`.
+The Biolink Model version is set in `config.yaml` (the current value is the source of
+truth — read it via `get_config()["biolink_version"]` rather than hard-coding a version
+in code or in docs that will go stale) and feeds both `NodeFactory` and
+`get_biolink_model_toolkit()`.
 
 **Mapped class URIs** — always use the `biolink:`-prefixed form (e.g. `biolink:ChemicalEntity`),
 not the raw element name (`chemical entity`). `get_ancestors()` and `get_element()["class_uri"]`
-return these mapped forms.
+return these mapped forms. Note that `get_element()` returns a bmt `ClassDefinition`
+object, not a dict: read fields with attribute access (e.g. `element.id_prefixes`), not
+`element["id_prefixes"]` / `element.get("id_prefixes")`.
+
+**OBO PURL resolution** — `src/util.py:get_biolink_prefix_map()` returns a
+`curies.Converter` built from the Biolink prefix map for the configured Biolink version;
+use `converter.expand("EMAPA:0")` to turn a CURIE into its IRI. Prefer that helper over
+fetching the prefix map yourself.
 
 **Prefix ordering** — `src/prefixes.py` is the canonical registry of prefix string constants. The
 order of `id_prefixes` in the Biolink Model determines which CURIE is selected as the preferred
-identifier by `NodeFactory`. In biolink 4.3.6, for example, `CHEBI` ranks above `PUBCHEM.COMPOUND`
-for `biolink:SmallMolecule`. Update `src/prefixes.py` whenever new prefixes appear in the model.
+identifier by `NodeFactory`. Update `src/prefixes.py` whenever new prefixes appear in the model.
 
 **Node output schema** — `NodeFactory.create_node()` returns:
 
