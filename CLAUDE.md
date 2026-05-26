@@ -176,6 +176,16 @@ high performance cluster) so you don't need to download all the source files and
 rerun the entire pipeline. You can look at the resource requirements of a rule to decide which
 option would be best.
 
+If a previous Snakemake run was killed, the next invocation may fail with
+`LockException: Directory cannot be locked`. Clear it with `uv run snakemake --unlock` before
+retrying.
+
+Most semantic-type targets are individually much cheaper than the full pipeline — anatomy in
+particular builds end-to-end on a laptop in roughly 25 minutes wall time (UMLS download
+dominates). The 500 GB figure in the README applies to the heaviest builds (protein,
+drugchemical-conflated, and the full pipeline), not to every target. `docs/RunningBabel.md`
+has a per-target sizing breakdown and a "Common build issues" section.
+
 ## Adding a new data source
 
 After integrating a new identifier source (e.g., EMAPA in PR #741), generate a
