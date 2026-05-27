@@ -8,7 +8,7 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
-    # Skip scheduled runs on forks; only run them in the main repo.
+    # Scheduled runs are gated to the main repo; non-schedule triggers run everywhere.
     if: github.event_name != 'schedule' || github.repository == 'NCATSTranslator/Babel'
     permissions:
       contents: read
