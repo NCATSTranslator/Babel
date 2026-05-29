@@ -4,16 +4,17 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.babel_utils import BABEL_GITHUB_URL, get_user_agent
+from src.babel_utils import get_user_agent
 
 
 @pytest.mark.unit
 def test_get_user_agent_includes_branch_and_url():
     """get_user_agent() should embed the build branch and the GitHub URL."""
-    with patch("src.babel_utils.get_config", return_value={"build": {"branch": "babel-test"}}):
+    fake_config = {"build": {"branch": "babel-test"}, "babel": {"github_url": "https://github.com/NCATSTranslator/Babel"}}
+    with patch("src.babel_utils.get_config", return_value=fake_config):
         ua = get_user_agent()
     assert "TranslatorBabel/babel-test" in ua
-    assert BABEL_GITHUB_URL in ua
+    assert "https://github.com/NCATSTranslator/Babel" in ua
 
 
 @pytest.mark.unit
@@ -35,6 +36,7 @@ def test_pull_via_urllib_sends_user_agent(tmp_path):
     fake_config = {
         "download_directory": str(tmp_path),
         "build": {"branch": "babel-test"},
+        "babel": {"github_url": "https://github.com/NCATSTranslator/Babel"},
     }
 
     with patch("urllib.request.build_opener", return_value=mock_opener), patch("src.babel_utils.get_config", return_value=fake_config):

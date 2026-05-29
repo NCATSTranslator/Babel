@@ -27,13 +27,12 @@ from src.util import Text, get_config, get_logger, get_memory_usage_summary
 WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES = 1_000_000
 MAX_DOWNLOAD_ERROR = 10
 
-BABEL_GITHUB_URL = "https://github.com/NCATSTranslator/Babel"
-
-
 def get_user_agent() -> str:
     """Return the User-Agent string for outbound HTTP requests, including the build branch."""
-    branch = get_config()["build"]["branch"]
-    return f"TranslatorBabel/{branch} ({BABEL_GITHUB_URL})"
+    config = get_config()
+    branch = config["build"]["branch"]
+    github_url = config["babel"]["github_url"]
+    return f"TranslatorBabel/{branch} ({github_url})"
 
 
 # Set up a logger.

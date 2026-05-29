@@ -16,6 +16,10 @@ intermediate_directory: babel_outputs/intermediate
 output_directory: babel_outputs
 tmp_directory: babel_downloads/tmp
 
+# Babel identity settings.
+babel:
+  github_url: "https://github.com/NCATSTranslator/Babel"
+
 # HTTP settings.
 http: {}
 
