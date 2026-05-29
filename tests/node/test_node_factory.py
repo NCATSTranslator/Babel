@@ -122,6 +122,14 @@ def test_normalization_bad_prefix(node_factory):
 
 
 @pytest.mark.network
+def test_extra_prefix_does_not_duplicate_identifier(node_factory):
+    """Make sure adding an extra prefix should not duplicate identifiers."""
+    node = node_factory.create_node([f"{pref.UMLS}:C0000005"], "biolink:SmallMolecule", extra_prefixes=[pref.UMLS])
+    assert node["identifiers"] == [{"identifier": f"{pref.UMLS}:C0000005"}]
+    assert node["id"] == {"identifier": f"{pref.UMLS}:C0000005"}
+
+
+@pytest.mark.network
 def test_normalization_labeled_id(node_factory):
     """Make sure that the node creator can handle labels passed as a dict"""
     labels = {"CHEBI:1234": "name"}

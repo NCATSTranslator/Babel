@@ -33,6 +33,7 @@ rule leftover_umls:
         mrconso=config["download_directory"] + "/UMLS/MRCONSO.RRF",
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
         synonyms=config["download_directory"] + "/UMLS/synonyms",
+        icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
         umls_compendium=config["output_directory"] + "/compendia/umls.txt",
         umls_synonyms=temp(config["output_directory"] + "/synonyms/umls.txt"),
@@ -52,6 +53,7 @@ rule leftover_umls:
             output.umls_synonyms,
             output.report,
             config["biolink_version"],
+            input.icrdf_filename,
         )
 
 

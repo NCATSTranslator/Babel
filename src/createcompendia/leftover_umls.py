@@ -1,19 +1,15 @@
 import json
-from datetime import datetime
-from pathlib import Path
 
-import jsonlines
-
+from src.babel_utils import TypedClique, write_compendium
 from src.categories import ACTIVITY, AGENT, DEVICE, DRUG, FOOD, PHYSICAL_ENTITY, PROCEDURE, PUBLICATION, SMALL_MOLECULE
 from src.datahandlers import umls
-from src.metadata.provenance import write_metadata
-from src.node import NodeFactory
 from src.prefixes import UMLS
 from src.util import get_biolink_model_toolkit, get_logger
 
 logger = get_logger(__name__)
 
-def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso, mrsty, synonyms, umls_compendium, umls_synonyms, report, biolink_version):
+def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso, mrsty,
+                        synonyms, umls_compendium, umls_synonyms, report, biolink_version, icrdf_filename):
     """
     Search for "leftover" UMLS concepts, i.e. those that are defined and valid in MRCONSO but are not
     mapped to a concept in Babel.
@@ -29,12 +25,14 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
     :param umls_synonyms: The synonyms file to generate for this compendium.
     :param report: The report file to write out.
     :param biolink_version: The Biolink Model version to use.
+    :param icrdf_filename: The information content file used by write_compendium().
     :return: Nothing.
     """
 
     logger.info(
-        f"write_leftover_umls({compendia}, {umls_labels_filename}, {mrconso}, {mrsty}, {synonyms}, {umls_compendium}, {umls_synonyms}, {report}, {biolink_version})"
+        f"write_leftover_umls({compendia}, {umls_labels_filename}, {mrconso}, {mrsty}, {synonyms}, {umls_compendium}, {umls_synonyms}, {report}, {biolink_version}, {icrdf_filename})"
     )
+
     # For now, we have many more UMLS entities in MRCONSO than in the compendia, so
     # we'll make an in-memory list of those first. Once that flips, this should be
     # switched to the other way around (or perhaps written into an in-memory database
@@ -46,10 +44,7 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
     # run, it's probably okay to just pick the first label for each code.
     umls_ids_in_this_compendium = set()
 
-    # Write something to the compendium file so that Snakemake knows we've started.
-    Path(umls_compendium).touch()
-
-    with open(umls_compendium, "w") as compendiumf, open(report, "w") as reportf:
+    with open(report, "w") as reportf:
         # This defaults to the version of the Biolink model that is included with this BMT.
         biolink_toolkit = get_biolink_model_toolkit(biolink_version)
 
@@ -72,7 +67,6 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
         # print(umls_ids_in_other_compendia)
 
         # Load all the semantic types.
-        umls_type_by_id = dict()
         preferred_name_by_id = dict()
         types_by_id = dict()
         types_by_tui = dict()
@@ -105,6 +99,7 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
         # Create a compendium that consists solely of all MRCONSO entries that haven't been referenced.
         curies_no_umls_type = set()
         curies_multiple_umls_type = set()
+        leftover_cliques = []
         with open(mrconso) as inf:
             for line in inf:
                 if not umls.check_mrconso_line(line):
@@ -175,25 +170,11 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
                         reportf.write(f"MULTIPLE_UMLS_TYPES [{umls_id}]\t{biolink_types_as_str}\t{umls_type_results} -> {biolink_types}\n")
                     continue
                 biolink_type = list(biolink_types)[0]
-                umls_type_by_id[umls_id] = biolink_type
                 preferred_name_by_id[umls_id] = label
 
-                # Write this UMLS term to UMLS.txt as a single-identifier term.
-                cluster = {
-                    "type": biolink_type,
-                    "ic": None,
-                    "preferred_name": label,
-                    "taxa": [],
-                    "identifiers": [
-                        {
-                            "i": umls_id,
-                            "l": label,
-                        }
-                    ],
-                }
-                compendiumf.write(json.dumps(cluster) + "\n")
+                # Let write_compendium() generate this singleton's compendium and synonym JSON.
+                leftover_cliques.append(TypedClique(node_type=biolink_type, identifiers=[umls_id]))
                 umls_ids_in_this_compendium.add(umls_id)
-                logger.debug(f"Writing {cluster} to {compendiumf}")
 
         logger.info(f"Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.")
         reportf.write(f"Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.\n")
@@ -201,85 +182,12 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
         logger.info(f"Found {len(curies_no_umls_type)} UMLS IDs without UMLS types and {len(curies_multiple_umls_type)} UMLS IDs with multiple UMLS types.")
         reportf.write(f"Found {len(curies_no_umls_type)} UMLS IDs without UMLS types and {len(curies_multiple_umls_type)} UMLS IDs with multiple UMLS types.\n")
 
-        # Collected synonyms for all IDs in this compendium.
-        synonyms_by_id = dict()
-        with open(synonyms) as synonymsf:
-            for line in synonymsf:
-                id, relation, synonym = line.rstrip().split("\t")
-                if id in umls_ids_in_this_compendium:
-                    # Add this synonym to the set of synonyms for this identifier.
-                    if id not in synonyms_by_id:
-                        synonyms_by_id[id] = set()
-                    synonyms_by_id[id].add(synonym)
+        logger.info(f"Writing {len(leftover_cliques)} leftover UMLS cliques with write_compendium().")
+        reportf.write(f"Writing {len(leftover_cliques)} leftover UMLS cliques with write_compendium().\n")
 
-                    # We don't record the synonym relation (https://github.com/TranslatorSRI/Babel/pull/113#issuecomment-1516450124),
-                    # so we don't need to write that out now.
+    write_compendium([], leftover_cliques, "umls.txt", None, labels=preferred_name_by_id, extra_prefixes=[UMLS], 
+                     icrdf_filename=icrdf_filename)
 
-        logger.info(f"Collected synonyms for {len(synonyms_by_id)} UMLS IDs into the leftover UMLS synonyms file.")
-        reportf.write(f"Collected synonyms for {len(synonyms_by_id)} UMLS IDs into the leftover UMLS synonyms file.\n")
-
-        # Write out synonyms to synonym file.
-        node_factory = NodeFactory(umls_labels_filename, biolink_version)
-        count_synonym_objs = 0
-        count_synonyms = 0
-        with jsonlines.open(umls_synonyms, "w") as umls_synonymsf:
-            for id in synonyms_by_id:
-                synonyms_list = list(sorted(list(synonyms_by_id[id]), key=lambda syn: len(syn)))
-
-                document = {
-                    "curie": id,
-                    "names": synonyms_list,
-                    "clique_identifier_count": 1,
-                    "taxa": [],
-                    "taxon_specific": False,
-                    "types": [t[8:] for t in node_factory.get_ancestors(umls_type_by_id[id])],
-                }
-
-                if id in preferred_name_by_id:
-                    document["preferred_name"] = preferred_name_by_id[id]
-                else:
-                    document["preferred_name"] = None
-
-                # We previously used the shortest length of a name as a proxy for how good a match it is, i.e. given
-                # two concepts that both have the word "acetaminophen" in them, we assume that the shorter one is the
-                # more interesting one for users. I'm not sure if there's a better way to do that -- for instance,
-                # could we consider the information content values? -- but in the interests of getting something
-                # working quickly, this code restores that previous method.
-
-                # Since synonyms_list is sorted,
-                if len(synonyms_list) == 0:
-                    document["shortest_name_length"] = 0
-                else:
-                    document["shortest_name_length"] = len(synonyms_list[0])
-
-                umls_synonymsf.write(document)
-                count_synonym_objs += 1
-                count_synonyms += len(synonyms_list)
-
-        logger.info(f"Wrote out {count_synonym_objs} synonym objects into the leftover UMLS synonyms file.")
-        reportf.write(f"Wrote out {count_synonym_objs} synonym objects into the leftover UMLS synonyms file.\n")
-
-        write_metadata(
-            metadata_yaml,
-            typ='compendium',
-            name='umls.txt',
-            description='Writes out a compendium of UMLS concepts that are not mapped to a concept in Babel.',
-            sources=[{
-                "created_at": datetime.now().isoformat(),
-                'name': 'leftover_umls.write_leftover_umls()',
-                'type': 'UMLS',
-                'description': 'Writes out a compendium of UMLS concepts in MRCONSO that are not mapped to a concept in Babel.',
-            }],
-            counts={
-                'concords': {
-                    'cliques': len(umls_ids_in_this_compendium),
-                    'count_concords': len(umls_ids_in_this_compendium),
-                    'count_distinct_curies': len(set(umls_ids_in_this_compendium)),
-                    'synonyms': count_synonyms,
-                },
-            }
-        )
-
-        logger.info(f"Wrote out metadata file {metadata_yaml}.")
+    logger.info(f"Wrote leftover UMLS outputs: {umls_compendium}, {umls_synonyms}, {metadata_yaml}.")
 
     logger.info("Complete")

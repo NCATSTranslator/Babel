@@ -564,7 +564,17 @@ class NodeFactory:
         # we should also include provenance and version information for the node set build.
         # ancestors = self.get_ancestors(node_type)
         # ancestors.reverse()
-        prefixes = self.get_prefixes(node_type) + extra_prefixes
+        
+        # make sure prefixes list does not include duplicate prefixes
+        prefixes = []
+        seen_prefixes = set()
+        for prefix in self.get_prefixes(node_type) + extra_prefixes:
+            prefix_upper = prefix.upper()
+            if prefix_upper in seen_prefixes:
+                continue
+            prefixes.append(prefix)
+            seen_prefixes.add(prefix_upper)
+
         if len(input_identifiers) == 0:
             return None
         if len(input_identifiers) > 1000:
