@@ -4,7 +4,7 @@ import src.snakefiles.util as util
 
 ##
 ## This Snakefile implements the algorithm proposed in
-## https://github.com/TranslatorSRI/NodeNormalization/issues/119#issuecomment-1154751451
+## https://github.com/NCATSTranslator/NodeNormalization/issues/119#issuecomment-1154751451
 ##
 ## 1. Once all the other targets have been generated, we make a list of every UMLS term
 ##    that has been mapped in all the output compendia files.

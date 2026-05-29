@@ -1,6 +1,13 @@
+# Classes
+
+# OWL classes
+OWL = "http://www.w3.org/2002/07/owl#"
+OWL_CLASS = OWL + "Class"
+OWL_ONTOLOGY = OWL + "Ontology"
+
+# Biolink classes
 # Keep all the biolink classes as constants to keep from having to handle name changes.
 # of course bigger changes will require code changes as well.
-
 ACTIVITY = "biolink:Activity"
 AGENT = "biolink:Agent"
 ANATOMICAL_ENTITY = "biolink:AnatomicalEntity"
@@ -38,6 +45,7 @@ SMALL_MOLECULE = "biolink:SmallMolecule"
 # https://biolink.github.io/biolink-model/categories.html
 NUCLEIC_ACID_ENTITY = "biolink:NucleicAcidEntity"
 MOLECULAR_ENTITY = "biolink:MolecularEntity"
+NAMED_THING = "biolink:NamedThing"
 FOOD_ADDITIVE = "biolink:FoodAdditive"
 ENVIRONMENTAL_FOOD_CONTAMINANT = "biolink:EnvironmentalFoodContaminant"
 PROCESSED_MATERIAL = "biolink:ProcessedMaterial"

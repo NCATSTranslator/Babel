@@ -1,7 +1,18 @@
 import json
 
 from src.babel_utils import TypedClique, write_compendium
-from src.categories import ACTIVITY, AGENT, DEVICE, DRUG, FOOD, PHYSICAL_ENTITY, PROCEDURE, PUBLICATION, SMALL_MOLECULE
+from src.categories import (
+    ACTIVITY,
+    AGENT,
+    DEVICE,
+    DRUG,
+    FOOD,
+    NAMED_THING,
+    PHYSICAL_ENTITY,
+    PROCEDURE,
+    PUBLICATION,
+    SMALL_MOLECULE,
+)
 from src.datahandlers import umls
 from src.prefixes import UMLS
 from src.util import get_biolink_model_toolkit, get_logger
@@ -14,7 +25,7 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
     Search for "leftover" UMLS concepts, i.e. those that are defined and valid in MRCONSO but are not
     mapped to a concept in Babel.
 
-    As described in https://github.com/TranslatorSRI/NodeNormalization/issues/119#issuecomment-1154751451
+    As described in https://github.com/NCATSTranslator/NodeNormalization/issues/119#issuecomment-1154751451
 
     :param compendia: A list of compendia to collect.
     :param umls_labels_filename: The filename of the UMLS labels file to use for this compendium (e.g. 'babel_downloads/UMLS/labels').
@@ -129,7 +140,7 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
                         logger.debug(f"No Biolink type found for UMLS TUI {umls_tui}")
                     return biolink_type
 
-                umls_type_results = types_by_id.get(umls_id, {"biolink:NamedThing": {"Named thing"}})
+                umls_type_results = types_by_id.get(umls_id, {NAMED_THING: {"Named thing"}})
                 biolink_types = set(list(map(umls_type_to_biolink_type, umls_type_results.keys())))
 
                 # How to deal with multiple Biolink types? We currently only have the following multiple

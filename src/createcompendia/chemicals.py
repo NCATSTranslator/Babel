@@ -10,7 +10,14 @@ import requests
 
 import src.datahandlers.mesh as mesh
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.babel_utils import (
+    get_prefixes,
+    get_user_agent,
+    glom,
+    read_identifier_file,
+    remove_overused_xrefs,
+    write_compendium,
+)
 from src.categories import (
     CHEMICAL_ENTITY,
     CHEMICAL_MIXTURE,
@@ -735,9 +742,7 @@ def get_mesh_relationships(mesh_id_file, cas_out, unii_out, cas_metadata, unii_m
 
 def get_wikipedia_relationships(outfile, config, metadata_yaml):
     url = "https://query.wikidata.org/sparql?format=json&query=SELECT ?chebi ?mesh WHERE { ?compound wdt:P683 ?chebi . ?compound wdt:P486 ?mesh. }"
-    results = requests.get(url, headers={
-        "User-Agent": config['http']['User-Agent']
-    }).json()
+    results = requests.get(url, headers={"User-Agent": get_user_agent()}).json()
     pairs = [
         (f"{MESH}:{r['mesh']['value']}", f"{CHEBI}:{r['chebi']['value']}") for r in results["results"]["bindings"] if not r["mesh"]["value"].startswith("M")
     ]
@@ -898,7 +903,7 @@ def create_typed_sets(eqsets, types):
                 if len(pctypes) == 1:
                     typed_sets[list(pctypes)[0]].add(equivalent_ids)
                     found = True
-                elif pctypes == {"biolink:SmallMolecule", "biolink:MolecularMixture"}:
+                elif pctypes == {SMALL_MOLECULE, MOLECULAR_MIXTURE}:
                     # This is a common case (8,178 cases in 2022oct13) which occurs in cases where the InChI for
                     # e.g. water (SMILES: O) and hydron;hydroxide ([H+].[OH-]) are identical, causing them to be
                     # merged. (They may also be merged if we combine two identifiers into a single clique that is
@@ -909,11 +914,11 @@ def create_typed_sets(eqsets, types):
                     # everything we're _sure_ is a biolink:MolecularMixture into a separate clique, and leave all
                     # the other identifiers as a biolink:SmallMolecule.
                     #
-                    # First reported in https://github.com/TranslatorSRI/Babel/issues/83
+                    # First reported in https://github.com/NCATSTranslator/Babel/issues/83
                     molecular_mixture_ids = set()
                     all_other_ids = set()
                     for eq_id in equivalent_ids:
-                        if eq_id in types and types[eq_id] == "biolink:MolecularMixture":
+                        if eq_id in types and types[eq_id] == MOLECULAR_MIXTURE:
                             molecular_mixture_ids.add(eq_id)
                         else:
                             all_other_ids.add(eq_id)
@@ -924,8 +929,8 @@ def create_typed_sets(eqsets, types):
                         + f"into a biolink:MolecularMixture ({molecular_mixture_ids}) and "
                         + f"a biolink:SmallMolecule ({all_other_ids})"
                     )
-                    typed_sets["biolink:MolecularMixture"].add(frozenset(molecular_mixture_ids))
-                    typed_sets["biolink:SmallMolecule"].add(frozenset(all_other_ids))
+                    typed_sets[MOLECULAR_MIXTURE].add(frozenset(molecular_mixture_ids))
+                    typed_sets[SMALL_MOLECULE].add(frozenset(all_other_ids))
                     found = True
                 else:
                     logging.warning(f"An unexpected number of PUBCHEM types found for {equivalent_ids} ({len(pctypes)}): {pctypes}")

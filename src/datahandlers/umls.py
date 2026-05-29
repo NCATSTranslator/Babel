@@ -10,6 +10,7 @@ import requests
 from src.babel_utils import make_local_name
 from src.categories import CHEMICAL_ENTITY, DRUG, MOLECULAR_MIXTURE
 from src.metadata.provenance import write_concord_metadata
+from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import RXCUI, UMLS
 from src.util import get_logger
 
@@ -74,7 +75,7 @@ def write_umls_ids(mrsty, category_map, umls_output, prefix=UMLS, blocklist_umls
     #   C0000005|T121|A1.4.1.1.1|Pharmacologic Substance|AT17575038|256|
     #   C0000005|T130|A1.4.1.1.4|Indicator, Reagent, or Diagnostic Aid|AT17634323|256|
     #   C0000039|T109|A1.4.1.2.1|Organic Chemical|AT45562015|256|
-    # (see https://github.com/TranslatorSRI/Babel/issues/200#issuecomment-1789550364 for another example and
+    # (see https://github.com/NCATSTranslator/Babel/issues/200#issuecomment-1789550364 for another example and
     #  https://www.ncbi.nlm.nih.gov/books/NBK9685/table/ch03.Tf/ for column information.)
     #
     # This means that we can't blacklist UMLS types by just skipping those lines: instead, we will need to load
@@ -412,7 +413,7 @@ def pull_umls(mrconso):
                 snomed_id = f"SNOMEDCT:{x[15]}"
                 if termtype == "PT":
                     snolabels.write(f"{snomed_id}\t{term}\n")
-                snosyns.write(f"{snomed_id}\thttp://www.geneontology.org/formats/oboInOwl#hasExactSynonym\t{term}\n")
+                snosyns.write(f"{snomed_id}\t{HAS_EXACT_SYNONYM}\t{term}\n")
             # UMLS is a collection of sources. They pick one of the names from these sources for a concept,
             # and that's based on a priority that they define. Here we get the priority for terms so we
             # can get the right one for the label
@@ -437,4 +438,4 @@ def pull_umls(mrconso):
                 if re_numerical.fullmatch(s):
                     logging.debug(f"Found numerical synonym '{s}' in UMLS, skipping")
                     continue
-                synonyms.write(f"{UMLS}:{cui}\thttp://www.geneontology.org/formats/oboInOwl#hasExactSynonym\t{s}\n")
+                synonyms.write(f"{UMLS}:{cui}\t{HAS_EXACT_SYNONYM}\t{s}\n")

@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 
 
 def extract_taxon_ids_from_uniprotkb(idmapping_filename, uniprotkb_taxa_filename):
-    """Extract NCBIGene identifiers from the UniProtKB mapping file."""
+    """Extract NCBITaxon identifiers from the UniProtKB mapping file."""
     with open(idmapping_filename) as inf, open(uniprotkb_taxa_filename, "w") as outf:
         for line in inf:
             x = line.strip().split("\t")
@@ -166,7 +166,7 @@ def build_protein_uniprotkb_ensemble_relationships(infile, outfile, metadata_yam
                 # If the ENSEMBL ID is a version string (e.g. ENSEMBL:ENSP00000263368.3),
                 # then we should indicate that this is identical to the non-versioned string
                 # as well.
-                # See https://github.com/TranslatorSRI/Babel/issues/72 for details.
+                # See https://github.com/NCATSTranslator/Babel/issues/72 for details.
                 res = re.match(r"^([A-Z]+\d+)\.\d+", x[2])
                 if res:
                     ensembl_id_without_version = res.group(1)
