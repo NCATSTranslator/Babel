@@ -200,5 +200,3 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
                      icrdf_filename=icrdf_filename)
 
     logger.info(f"Wrote leftover UMLS outputs: {umls_compendium}, {umls_synonyms}, {metadata_yaml}.")
-
-    logger.info("Complete")
