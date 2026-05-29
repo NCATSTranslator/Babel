@@ -69,6 +69,7 @@ generate_dirs_for_labels_and_synonyms_prefixes:
   - EMAPA
   - CHEBI
   - HP
+  - MP
   - MONDO
   - PR
 
@@ -83,6 +84,7 @@ ubergraph_ontologies:
   - ECTO
   - ENVO
   - HP
+  - MP
   - UPHENO
   - BFO
   - BSPO
@@ -207,6 +209,7 @@ disease_labelsandsynonyms:
   - DOID
   - Orphanet
   - HP
+  - MP
   - MESH
   - NCIT
   - UMLS
@@ -218,6 +221,7 @@ disease_ids:
   - DOID
   - Orphanet
   - HP
+  - MP
   - MESH
   - NCIT
   - UMLS
@@ -226,6 +230,7 @@ disease_ids:
 
 disease_concords:
   - HP
+  - MP
   - MONDO
   - UMLS
   - DOID
