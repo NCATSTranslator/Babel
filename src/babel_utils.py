@@ -17,6 +17,7 @@ import jsonlines
 import requests
 from humanfriendly import format_timespan
 
+from src.label_filter import get_label_filter
 from src.LabeledID import LabeledID
 from src.metadata.provenance import write_combined_metadata
 from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory
@@ -454,15 +455,23 @@ def choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_lab
     # If boost prefixes apply, promoted prefixes move to the front; all other identifiers
     # follow in their original Biolink prefix order.
     if boost_prefixes is not None:
-        possible_labels = [
-            identifier.get("label", "")
-            for identifier in sort_identifiers_with_boosted_prefixes(node["identifiers"], boost_prefixes)
-        ]
+        ordered_identifiers = sort_identifiers_with_boosted_prefixes(node["identifiers"], boost_prefixes)
     else:
-        possible_labels = [identifier.get("label", "") for identifier in node["identifiers"]]
+        ordered_identifiers = node["identifiers"]
 
-    # Drop blank/missing labels.
-    filtered = [label for label in possible_labels if label]
+    # Drop blank/missing labels and apply the label filter as a safety net.
+    # (Labels should already have been cleared by apply_labels(), but this catches
+    # anything supplied via the explicit labels dict or through an unforeseen path.)
+    label_filter = get_label_filter()
+    filtered = []
+    for id_entry in ordered_identifiers:
+        label = id_entry.get("label", "")
+        if not label:
+            continue
+        prefix = id_entry["identifier"].split(":", 1)[0]
+        if label_filter.check_label(label, source=f"{prefix} (preferred name)", node_types=types) and label_filter.action == "remove":
+            continue
+        filtered.append(label)
 
     # Demote long labels: if any label fits within the limit, discard those that don't.
     # If *all* labels exceed the limit we keep them rather than returning empty.
@@ -566,6 +575,9 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
         logger.info("No property files provided or loaded.")
 
     property_source_count = defaultdict(int)
+
+    label_filter = get_label_filter()
+    filter_count_snapshot = label_filter.filtered_count
 
     # Counts.
     count_cliques = 0
@@ -711,7 +723,7 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                 # get_synonyms() returns a list of tuples, where each tuple is a relation and a synonym.
                 # So we extract just the synonyms here, ditching the relations (result[0]), then unique-ify the
                 # synonyms.
-                synonyms = [result[1] for result in synonym_factory.get_synonyms(identifier_list) if result[1]]
+                synonyms = [result[1] for result in synonym_factory.get_synonyms(identifier_list, node_types=types) if result[1]]
                 synonyms_list = sorted(set(synonyms), key=lambda x: len(x))
 
                 try:
@@ -770,6 +782,13 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                     print(node_factory.get_ancestors(nw["type"]))
                     traceback.print_exc()
                     raise ex
+
+    # Log a per-compendium summary of any obsolete labels that were filtered.
+    filtered_this_run = label_filter.filtered_count - filter_count_snapshot
+    if filtered_this_run > 0:
+        logger.warning(f"LabelFilter: suppressed {filtered_this_run} obsolete label(s)/synonym(s) from {ofname} (action={label_filter.action})")
+    else:
+        logger.info(f"LabelFilter: no obsolete labels found in {ofname}")
 
     # Write out the metadata.yaml file combining information from all the metadata.yaml files.
     write_combined_metadata(

@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 import curies
 
+from src.label_filter import get_label_filter
 from src.LabeledID import LabeledID
 from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import PUBCHEMCOMPOUND
@@ -92,14 +93,21 @@ class SynonymFactory:
         self.synonyms[prefix] = lbs
         logger.info(f"Loaded {count_labels:,} labels and {count_synonyms:,} synonyms for {prefix} from {labelfname}: {get_memory_usage_summary()}")
 
-    def get_synonyms(self, identifiers: list[str]):
+    def get_synonyms(self, identifiers: list[str], node_types: list = None):
+        label_filter = get_label_filter()
         node_synonyms = set()
         for thisid in identifiers:
             pref = Text.get_prefix(thisid)
             if pref not in self.synonyms:
                 self.load_synonyms(pref)
-            node_synonyms.update(self.synonyms[pref][thisid])
-            node_synonyms.update(self.common_synonyms.get(thisid, set()))
+            for predicate, synonym in self.synonyms[pref][thisid]:
+                if label_filter.check_label(synonym, source=f"{pref} synonyms/labels file", node_types=node_types) and label_filter.action == "remove":
+                    continue
+                node_synonyms.add((predicate, synonym))
+            for predicate, synonym in self.common_synonyms.get(thisid, set()):
+                if label_filter.check_label(synonym, source="common synonyms file", node_types=node_types) and label_filter.action == "remove":
+                    continue
+                node_synonyms.add((predicate, synonym))
         return node_synonyms
 
 
@@ -509,7 +517,7 @@ class NodeFactory:
                         lbs[x[0]] = x[1]
         self.extra_labels[prefix] = lbs
 
-    def apply_labels(self, input_identifiers, labels):
+    def apply_labels(self, input_identifiers, labels, node_types=None):
         # Before we work on the labels (or try to load any extra labels), let's load up the common labels.
         config = get_config()
         if self.common_labels is None:
@@ -534,6 +542,8 @@ class NodeFactory:
                         count_common_file_labels += 1
                 logger.info(f"Loaded {count_common_file_labels:,} common labels from {common_labels_path}: {get_memory_usage_summary()}")
 
+        label_filter = get_label_filter()
+
         # Originally we needed to clean up the identifer lists, because there would be both labeledids and
         # string ids and we had to reconcile them.
         # But now, we only allow regular ids in the list, and now we need to turn some of them into labeled ids for output
@@ -542,7 +552,10 @@ class NodeFactory:
             if isinstance(iid, LabeledID):
                 raise ValueError(f"LabeledID don't belong here ({iid}), pass in labels separately.")
             if iid in labels:
-                labeled_list.append(LabeledID(identifier=iid, label=labels[iid]))
+                label = labels[iid]
+                if label_filter.check_label(label, source=f"explicit labels for {iid}", node_types=node_types) and label_filter.action == "remove":
+                    label = ""
+                labeled_list.append(LabeledID(identifier=iid, label=label))
             else:
                 try:
                     prefix = Text.get_prefix(iid)
@@ -552,10 +565,16 @@ class NodeFactory:
                 if prefix not in self.extra_labels:
                     self.load_extra_labels(prefix)
                 if iid in self.extra_labels[prefix]:
-                    labeled_list.append(LabeledID(identifier=iid, label=self.extra_labels[prefix][iid]))
+                    label = self.extra_labels[prefix][iid]
+                    if label_filter.check_label(label, source=f"{prefix} labels file", node_types=node_types) and label_filter.action == "remove":
+                        label = ""
+                    labeled_list.append(LabeledID(identifier=iid, label=label))
                 elif iid in self.common_labels:
                     # We only fall back to common labels if the prefix label doesn't have anything.
-                    labeled_list.append(LabeledID(identifier=iid, label=self.common_labels[iid]))
+                    label = self.common_labels[iid]
+                    if label_filter.check_label(label, source="common labels file", node_types=node_types) and label_filter.action == "remove":
+                        label = ""
+                    labeled_list.append(LabeledID(identifier=iid, label=label))
                 else:
                     labeled_list.append(iid)
         return labeled_list
@@ -570,7 +589,7 @@ class NodeFactory:
             return None
         if len(input_identifiers) > 1000:
             logger.warning(f"this seems like a lot of input_identifiers in node.create_node() [{len(input_identifiers)}]: {input_identifiers}")
-        cleaned = self.apply_labels(input_identifiers, labels)
+        cleaned = self.apply_labels(input_identifiers, labels, node_types=[node_type])
         try:
             idmap = defaultdict(list)
             for i in list(cleaned):
