@@ -199,7 +199,14 @@ has a per-target sizing breakdown and a "Common build issues" section.
 After integrating a new identifier source (e.g., EMAPA in PR #741), generate a
 source-impact report that captures the identifiers, biolink types, cross-references, and
 clique changes the source introduces. Commit the report to
-`docs/sources/<SOURCE>/impact-report.md` alongside the rest of the source's docs.
+`docs/sources/<SOURCE>/impact-report.md` alongside the rest of the source's docs. The tool
+also writes an `impact-report/` subdirectory of full, deterministically-sorted detail files
+for SME review: commit `new-cliques.csv`, `modified-cliques.csv`, and `new-xrefs.tsv`.
+`modified-cliques.json` is written locally for digging/sharing but is gitignored (it grows
+with the source and is useless to commit for large additions). The markdown's inline samples
+are capped (3 per category, ranked by label variety) and link to the committed detail files.
+See `src/reports/source_impact_details.py` and the "Detail files for SME review" section of
+`docs/AddingNewSources.md`.
 
 ```bash
 # Synthetic mode re-globs the full intermediate ids/concords set for the semantic

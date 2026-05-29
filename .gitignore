@@ -8,3 +8,8 @@ babel_outputs/
 .env
 .idea
 htmlcov/
+
+# Source-impact detail file: generated locally for digging/sharing, but not committed —
+# it grows roughly linearly with the source and is useless to commit for large additions.
+# The smaller CSV/TSV detail files in the same directory are committed.
+docs/sources/*/impact-report/modified-cliques.json

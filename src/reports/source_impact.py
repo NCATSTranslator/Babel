@@ -19,7 +19,6 @@ right prefix-priority list when marking the preferred identifier.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import pathlib
@@ -32,9 +31,9 @@ from src.model.source import SourceContribution
 
 logger = logging.getLogger(__name__)
 
-SAMPLE_LIMIT = 10
-PURE_NEW_SAMPLE_LIMIT = 10
-EXPANDED_SAMPLE_LIMIT = 10
+SAMPLE_LIMIT = 3
+PURE_NEW_SAMPLE_LIMIT = 3
+EXPANDED_SAMPLE_LIMIT = 3
 
 
 @dataclass
@@ -179,19 +178,34 @@ def _preferred_curie(
     return _sort_clique_for_display(clique, biolink_type, prefix_priority_by_type)[0]
 
 
-def _sample_index(item) -> str:
-    """Deterministic hash used to shuffle samples without sorting alphabetically.
+def _distinct_label_count(curies: Iterable[str], labels_by_prefix: dict[str, dict[str, str]]) -> int:
+    """Count the distinct (case-folded) preferred labels among a clique's members.
 
-    Sorting cliques alphabetically would always surface the same low-numbered CURIEs,
-    so we use a SHA-1 of a canonical representation as a stable proxy for shuffling.
+    A clique whose members carry many *different* labels is the most worth a human's
+    eyes — it's the likeliest place a bad cross-reference has fused unrelated concepts —
+    so the renderer ranks samples by this descending. Members with no downloaded label
+    contribute nothing.
     """
-    if isinstance(item, frozenset):
-        canon = "|".join(sorted(item))
-    elif isinstance(item, ExpandedClique):
-        canon = "|".join(sorted(item.after_clique))
-    else:
-        canon = repr(item)
-    return hashlib.sha1(canon.encode("utf-8"), usedforsecurity=False).hexdigest()
+    labels: set[str] = set()
+    for curie in curies:
+        label = _curie_label(curie, labels_by_prefix)
+        if label:
+            labels.add(label.casefold())
+    return len(labels)
+
+
+def _pure_new_rank(clique: frozenset[str], labels_by_prefix: dict[str, dict[str, str]]) -> tuple:
+    """Deterministic review-worthiness sort key for a pure-new clique (most first)."""
+    return (-_distinct_label_count(clique, labels_by_prefix), -len(clique), _clique_leader(clique))
+
+
+def _expanded_rank(ec: ExpandedClique, labels_by_prefix: dict[str, dict[str, str]]) -> tuple:
+    """Deterministic review-worthiness sort key for an expanded clique (most first)."""
+    return (
+        -_distinct_label_count(ec.after_clique, labels_by_prefix),
+        -len(ec.after_clique),
+        _clique_leader(ec.after_clique),
+    )
 
 
 def _render_remote_section(remote_summary: dict[str, dict[str, int]]) -> str:
@@ -217,12 +231,29 @@ def _render_remote_section(remote_summary: dict[str, dict[str, int]]) -> str:
     return "\n".join(lines)
 
 
+def _detail_link(details_dirname: str | None, filename: str, text: str) -> str | None:
+    """Render a bullet linking to one of the full detail files, or None if not emitted."""
+    if not details_dirname:
+        return None
+    return f"- {text}: [`{details_dirname}/{filename}`]({details_dirname}/{filename})"
+
+
 def _render_clique_impact(
     name: str,
     diffs_by_semantic_type: dict[str, SourceImpactDiff],
     lookup: LookupContext,
+    details_dirname: str | None = None,
 ) -> list[str]:
     lines: list[str] = ["## 4. Clique impact", ""]
+    lines.append(
+        "**Worst-case view.** This report is computed from the intermediate identifier "
+        "and concord files and cannot see downstream filtering that happens later in the "
+        "build — most notably the Biolink Model's per-class prefix restrictions, which "
+        "drop identifiers whose prefix is not permitted for a clique's biolink type. The "
+        "counts and detail files below are therefore an *upper bound*: they show every "
+        "change the source could introduce before that filtering is applied."
+    )
+    lines.append("")
     if not diffs_by_semantic_type:
         lines.append(
             "(No clique diffs available — synthetic mode did not run for any semantic "
@@ -241,6 +272,16 @@ def _render_clique_impact(
         merged_n = len(diff.merged_cliques)
         truly_grown_n = sum(1 for ec in diff.expanded_cliques if ec.added_source_curies)
         promotion_only_n = expanded_n - truly_grown_n
+        # CURIEs added is distinct from cliques modified: one clique can gain several new
+        # source identifiers, so the identifier count is usually larger than the clique
+        # count. Count structurally-new source CURIEs entering *existing* cliques (via
+        # expansion or merge); pure-new cliques are reported separately above.
+        curies_added_expanded = sum(len(ec.added_source_curies) for ec in diff.expanded_cliques)
+        curies_added_merged = sum(
+            len(mc.source_curies_involved - frozenset().union(*mc.before_cliques))
+            for mc in diff.merged_cliques
+        )
+        curies_added_total = curies_added_expanded + curies_added_merged
 
         lines.append(f"### {st}")
         lines.append("")
@@ -263,14 +304,46 @@ def _render_clique_impact(
             "cross-references"
         )
         lines.append(
+            f"- {_fmt(curies_added_total)} structurally-new {name} identifiers are added "
+            f"to existing cliques ({_fmt(curies_added_expanded)} via expansion, "
+            f"{_fmt(curies_added_merged)} via merges). This is distinct from the "
+            f"{_fmt(truly_grown_n + merged_n)} existing cliques that change, since one "
+            "clique can gain several identifiers."
+        )
+        lines.append(
             f"- Total cliques in this semantic type go from {_fmt(before_total)} to "
             f"{_fmt(diff.after_clique_count)}"
         )
         lines.append("")
 
+        link = _detail_link(details_dirname, "new-cliques.csv", "Full list of new cliques")
+        if link:
+            lines.append(link)
+        link = _detail_link(
+            details_dirname, "modified-cliques.csv",
+            f"Full list of modified cliques (one row per added/promoted {name} identifier)",
+        )
+        if link:
+            lines.append(link)
+        link = _detail_link(
+            details_dirname, "new-xrefs.tsv", "Full list of new / activated cross-references"
+        )
+        if link:
+            lines.append(link)
+        if details_dirname:
+            lines.append("")
+
         if diff.merged_cliques:
             lines.append(f"#### Sample merges (up to {SAMPLE_LIMIT})")
-            for mc in diff.merged_cliques[:SAMPLE_LIMIT]:
+            merged_sorted = sorted(
+                diff.merged_cliques,
+                key=lambda mc: (
+                    -len(mc.before_cliques),
+                    -_distinct_label_count(mc.after_clique, lookup.labels_by_prefix),
+                    _clique_leader(mc.after_clique),
+                ),
+            )
+            for mc in merged_sorted[:SAMPLE_LIMIT]:
                 bridge_curie = sorted(mc.source_curies_involved)[0]
                 leaders = ", ".join(_clique_leader(bc) for bc in mc.before_cliques)
                 lines.append(f"- {bridge_curie} bridges {leaders}")
@@ -278,7 +351,10 @@ def _render_clique_impact(
 
         if diff.pure_new_cliques:
             lines.append(f"#### Sample pure-new cliques (up to {PURE_NEW_SAMPLE_LIMIT})")
-            ordered = sorted(diff.pure_new_cliques, key=_sample_index)
+            ordered = sorted(
+                diff.pure_new_cliques,
+                key=lambda c: _pure_new_rank(c, lookup.labels_by_prefix),
+            )
             for clique in ordered[:PURE_NEW_SAMPLE_LIMIT]:
                 if len(clique) == 1:
                     only = next(iter(clique))
@@ -297,9 +373,9 @@ def _render_clique_impact(
         if diff.expanded_cliques:
             # Bucket samples so the most informative ones surface first: cliques where
             # the preferred identifier changes, then cliques that gained a structurally
-            # new member, then promotion-only cliques. Sort each bucket by a stable hash
-            # so the sample reads as varied across rebuilds rather than always picking
-            # the same low-numbered CURIEs.
+            # new member, then promotion-only cliques. Sort each bucket by review-worthiness
+            # (most distinct member labels first) so the sample surfaces the cliques most
+            # likely to reveal a bad cross-reference, deterministically across rebuilds.
             preferred_change_samples: list[tuple[ExpandedClique, str, str, str | None]] = []
             truly_grown_samples: list[tuple[ExpandedClique, str, str, str | None]] = []
             promotion_only_samples: list[tuple[ExpandedClique, str, str, str | None]] = []
@@ -318,9 +394,9 @@ def _render_clique_impact(
                     truly_grown_samples.append(tup)
                 else:
                     promotion_only_samples.append(tup)
-            preferred_change_samples.sort(key=lambda t: _sample_index(t[0]))
-            truly_grown_samples.sort(key=lambda t: _sample_index(t[0]))
-            promotion_only_samples.sort(key=lambda t: _sample_index(t[0]))
+            preferred_change_samples.sort(key=lambda t: _expanded_rank(t[0], lookup.labels_by_prefix))
+            truly_grown_samples.sort(key=lambda t: _expanded_rank(t[0], lookup.labels_by_prefix))
+            promotion_only_samples.sort(key=lambda t: _expanded_rank(t[0], lookup.labels_by_prefix))
             preferred_change_n = len(preferred_change_samples)
 
             lines.append(
@@ -389,6 +465,7 @@ def render_markdown(
     remote_url: str | None = None,
     remote_summary: dict[str, dict[str, int]] | None = None,
     lookup: LookupContext | None = None,
+    details_dirname: str | None = None,
 ) -> str:
     name = contribution.name
     lookup = lookup or LookupContext()
@@ -506,7 +583,7 @@ def render_markdown(
         lines.append("- (no semantic types discovered)")
     lines.append("")
 
-    lines.extend(_render_clique_impact(name, diffs_by_semantic_type, lookup))
+    lines.extend(_render_clique_impact(name, diffs_by_semantic_type, lookup, details_dirname))
 
     if remote_summary:
         lines.append(_render_remote_section(remote_summary))
@@ -549,11 +626,16 @@ def render_json(
                     "before_clique_leaders": [_clique_leader(bc) for bc in mc.before_cliques],
                     "source_curies_involved": sorted(mc.source_curies_involved),
                 }
-                for mc in diff.merged_cliques[:SAMPLE_LIMIT]
+                for mc in sorted(
+                    diff.merged_cliques,
+                    key=lambda mc: (-len(mc.before_cliques), _clique_leader(mc.after_clique)),
+                )[:SAMPLE_LIMIT]
             ],
             "pure_new_samples": [
                 sorted(c)
-                for c in sorted(diff.pure_new_cliques, key=_sample_index)[:PURE_NEW_SAMPLE_LIMIT]
+                for c in sorted(
+                    diff.pure_new_cliques, key=lambda c: (-len(c), _clique_leader(c))
+                )[:PURE_NEW_SAMPLE_LIMIT]
             ],
             "truly_grown_clique_count": sum(
                 1 for ec in diff.expanded_cliques if ec.added_source_curies
@@ -568,9 +650,10 @@ def render_json(
                     "promoted_source_curies": sorted(ec.promoted_source_curies),
                     "after_clique": sorted(ec.after_clique),
                 }
-                for ec in sorted(diff.expanded_cliques, key=_sample_index)[
-                    :EXPANDED_SAMPLE_LIMIT
-                ]
+                for ec in sorted(
+                    diff.expanded_cliques,
+                    key=lambda ec: (-len(ec.after_clique), _clique_leader(ec.after_clique)),
+                )[:EXPANDED_SAMPLE_LIMIT]
             ],
         }
 

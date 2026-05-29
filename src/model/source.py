@@ -18,12 +18,45 @@ from __future__ import annotations
 
 import pathlib
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import cached_property
 
 
 def _prefix_of(curie: str) -> str:
     return curie.split(":", 1)[0]
+
+
+def scan_concords_for_curies(
+    concords_dir: pathlib.Path | str,
+    source_curies: Iterable[str],
+) -> list[tuple[str, str, str, str]]:
+    """Scan every concord file in a directory for rows touching any source CURIE.
+
+    Returns ``(subject, predicate, object, asserted_by)`` tuples where ``asserted_by`` is
+    the concord file's basename — the source that *declared* the cross-reference. A
+    source's cross-references frequently live in *another* source's concord file (e.g.
+    EMAPA's own concord is empty, but UBERON's concord carries ``UBERON:… xref EMAPA:…``
+    rows), so this scans every file in the directory rather than only the source's own
+    concord. Metadata sidecars (``metadata-*`` / ``*.yaml``) are skipped.
+    """
+    concords_dir = pathlib.Path(concords_dir)
+    source_set = frozenset(source_curies)
+    rows: list[tuple[str, str, str, str]] = []
+    if not concords_dir.exists():
+        return rows
+    for path in sorted(concords_dir.iterdir()):
+        if not path.is_file() or path.name.startswith("metadata-") or path.name.endswith(".yaml"):
+            continue
+        with path.open() as f:
+            for line in f:
+                parts = line.rstrip("\n").split("\t")
+                if len(parts) < 3:
+                    continue
+                subject, predicate, obj = parts[0], parts[1], parts[2]
+                if subject in source_set or obj in source_set:
+                    rows.append((subject, predicate, obj, path.name))
+    return rows
 
 
 @dataclass

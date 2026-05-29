@@ -31,6 +31,7 @@ from src.model.clique_diff import (
 )
 from src.model.source import SourceContribution, discover_source
 from src.reports.source_impact import LookupContext, load_labels_for_prefixes, render_json, render_markdown
+from src.reports.source_impact_details import write_detail_files
 
 logger = logging.getLogger(__name__)
 
@@ -352,6 +353,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output", default=None,
                         help="Output path for the report. Default: "
                              "docs/sources/<SOURCE>/impact-report.md")
+    parser.add_argument(
+        "--no-detail-files",
+        action="store_true",
+        help="Skip writing the full CSV/JSON/TSV detail files (new-cliques.csv, "
+             "modified-cliques.{csv,json}, new-xrefs.tsv) into the <output-stem>/ "
+             "subdirectory beside the markdown report.",
+    )
     parser.add_argument("--format", choices=("md", "json", "both"), default="md")
     parser.add_argument("--verbose", "-v", action="store_true")
     return parser.parse_args(argv)
@@ -439,6 +447,11 @@ def main(argv: list[str] | None = None) -> int:
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    write_details = not args.no_detail_files
+    # Detail files live in a subdirectory named after the report's stem, e.g.
+    # docs/sources/EMAPA/impact-report/ beside docs/sources/EMAPA/impact-report.md.
+    details_dirname = output_path.stem if write_details else None
+
     if args.format in ("md", "both"):
         md = render_markdown(
             contribution,
@@ -450,10 +463,22 @@ def main(argv: list[str] | None = None) -> int:
             remote_url=args.remote_url,
             remote_summary=remote_summary or None,
             lookup=lookup,
+            details_dirname=details_dirname,
         )
         output_path.write_text(md)
         logger.info("wrote markdown report to %s", output_path)
         _run_rumdl_fmt(output_path)
+
+    if write_details:
+        details_dir = output_path.parent / details_dirname
+        counts = write_detail_files(
+            details_dir,
+            contribution,
+            diffs_by_semantic_type,
+            intermediate_root,
+            lookup,
+        )
+        logger.info("wrote detail files to %s: %s", details_dir, counts)
     if args.format in ("json", "both"):
         json_payload = render_json(
             contribution,

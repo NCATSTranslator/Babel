@@ -42,3 +42,17 @@ def test_source_impact_report_runs_for_emapa(emapa_pipeline_outputs, tmp_path):
     assert "EMAPA: " in report
     assert "biolink:AnatomicalEntity" in report
     assert "Comparison mode: synthetic" in report
+
+    # The four full detail files land in the report's <output-stem>/ subdirectory.
+    details = output_path.parent / output_path.stem
+    for fname in (
+        "new-cliques.csv",
+        "modified-cliques.csv",
+        "modified-cliques.json",
+        "new-xrefs.tsv",
+    ):
+        path = details / fname
+        assert path.exists(), f"expected detail file {path}"
+        assert path.stat().st_size > 0, f"detail file {path} should be non-empty"
+    # The markdown links into that subdirectory by its relative name.
+    assert f"{output_path.stem}/new-cliques.csv" in report

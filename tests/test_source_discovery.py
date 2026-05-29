@@ -6,7 +6,35 @@ Covers the four dimensions a Babel source can vary along: single, multi-biolink-
 
 import pytest
 
-from src.model.source import discover_source
+from src.model.source import discover_source, scan_concords_for_curies
+
+
+@pytest.mark.unit
+def test_scan_concords_for_curies_matches_either_endpoint_and_records_asserter(tmp_path):
+    concords = tmp_path / "anatomy" / "concords"
+    concords.mkdir(parents=True)
+    # EMAPA's own concord is empty; its xrefs live in UBERON's concord.
+    (concords / "EMAPA").write_text("")
+    (concords / "UBERON").write_text(
+        "UBERON:1\txref\tEMAPA:10\n"          # source CURIE on the object side
+        "EMAPA:20\tskos:exactMatch\tCL:2\n"   # source CURIE on the subject side
+        "UBERON:3\txref\tCL:4\n"              # no source CURIE — skipped
+    )
+    # Metadata sidecars must be ignored.
+    (concords / "metadata-UBERON.yaml").write_text("UBERON:1\txref\tEMAPA:10\n")
+
+    rows = scan_concords_for_curies(concords, {"EMAPA:10", "EMAPA:20"})
+
+    assert ("UBERON:1", "xref", "EMAPA:10", "UBERON") in rows
+    assert ("EMAPA:20", "skos:exactMatch", "CL:2", "UBERON") in rows
+    assert all(r[3] == "UBERON" for r in rows), "asserted_by is the concord file basename"
+    assert not any("UBERON:3" in r for r in rows), "rows without a source CURIE are dropped"
+    assert len(rows) == 2
+
+
+@pytest.mark.unit
+def test_scan_concords_for_curies_missing_dir_returns_empty(tmp_path):
+    assert scan_concords_for_curies(tmp_path / "nope", {"EMAPA:1"}) == []
 
 
 def _make_source_tree(root, source_name, semantic_type, ids_lines=None, concord_lines=None):
