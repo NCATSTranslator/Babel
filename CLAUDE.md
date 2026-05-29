@@ -152,6 +152,15 @@ The `Edge` table answers "which clique contains CURIE X" with a one-line query
 check whether several CURIEs landed in the same clique in a given build — much cheaper than
 re-running glom or scanning the JSONL compendia.
 
+### Per-source documentation (`docs/sources/`)
+
+Deeper, source-specific notes live under `docs/sources/<PREFIX>/` (one directory per data source,
+named by its CURIE prefix); see `docs/sources/README.md` for the convention and an index. Check
+there first when working on a specific vocabulary, and add to it when you learn something
+non-obvious about how Babel ingests that source. Keep the detail in the source file — `CLAUDE.md`
+should point here, not duplicate it. The only source documented so far is MeSH
+(`docs/sources/MESH/Ingestion.md`).
+
 ### Per-compendium metadata YAMLs
 
 Each final compendium has a sibling `babel_outputs/metadata/<Type>.yaml` that records the
