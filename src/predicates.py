@@ -3,6 +3,7 @@
 #
 # SPARQL PREFIX declarations inside query strings are left as inline literals
 # since the SPARQL syntax requires it and they don't benefit from centralisation.
+from src.categories import OWL
 
 # oboInOwl predicates
 OBO_IN_OWL = "http://www.geneontology.org/formats/oboInOwl#"
@@ -27,3 +28,6 @@ RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 RDFS = "http://www.w3.org/2000/01/rdf-schema#"
 RDFS_LABEL = RDFS + "label"
 RDFS_SUBCLASSOF = RDFS + "subClassOf"
+
+# OWL predicates
+OWL_EQUIVALENT_CLASS = OWL + "equivalentClass"

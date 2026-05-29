@@ -2,7 +2,6 @@
 
 # OWL classes
 OWL = "http://www.w3.org/2002/07/owl#"
-OWL_EQUIVALENT_CLASS = OWL + "equivalentClass"
 OWL_CLASS = OWL + "Class"
 OWL_ONTOLOGY = OWL + "Ontology"
 
