@@ -1,5 +1,5 @@
 # Canonical RDF predicate URI constants. Keeps full predicate strings in one place
-# so that synonym/label TSV files use consistent values.
+# so that synonym/label TSV files use consistent values. Grouped by RDF URLs.
 #
 # SPARQL PREFIX declarations inside query strings are left as inline literals
 # since the SPARQL syntax requires it and they don't benefit from centralisation.
