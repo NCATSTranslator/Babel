@@ -133,6 +133,19 @@ for `biolink:SmallMolecule`. Update `src/prefixes.py` whenever new prefixes appe
 `identifiers[0]`. Labels remain on the identifier that owns them and are not promoted to the first
 entry.
 
+**UMLS semantic-type mappings** — every UMLS concept gets a Biolink class from its UMLS semantic
+type. The single source of truth is `src/datahandlers/umls/semantic_types.py`, keyed by UMLS
+semantic-type *tree number* (e.g. `A1.4.1.2.1.7`); `SEMANTIC_NETWORK` there translates to/from the
+TUI (`T116`) when the Biolink Model is queried (it keys on `STY:T###`). The seven
+`createcompendia/*.py` `write_umls_ids()` partition maps derive from `category_map_for(compendium)`
+(per-compendium blocklists stay local to each module), and `leftover_umls.py` resolves residual
+CUIs via `umls_tree_number_to_biolink_type()` — registry first, Biolink Model as fallback. To record
+a place where Babel believes the Biolink Model's own mapping is wrong, set `proposed_biolink_type`
+(and a tracking `issue`) on the entry; `tests/datahandlers/test_umls_semantic_types.py` then fails
+(or xfails) once the Biolink Model adopts it, signalling the override can be removed. Editing a
+partition assignment changes build output — keep the no-CUI-moves rule in mind and re-run the UMLS
+pipeline tests. See [docs/UMLSSemanticTypes.md](docs/UMLSSemanticTypes.md).
+
 ### Conflation
 
 GeneProtein and DrugChemical conflation each have dedicated conflation modules (`geneprotein.py`,
