@@ -1,3 +1,7 @@
+# Information about Babel
+babel:
+  github_url: "https://github.com/NCATSTranslator/Babel"
+
 # Build information. Currently unstructured -- you can use this to write down any notes on what is going on with
 # this specific build of Babel.
 build:
@@ -15,10 +19,6 @@ download_directory: babel_downloads
 intermediate_directory: babel_outputs/intermediate
 output_directory: babel_outputs
 tmp_directory: babel_downloads/tmp
-
-# Babel identity settings.
-babel:
-  github_url: "https://github.com/NCATSTranslator/Babel"
 
 # HTTP settings.
 http: {}
