@@ -157,7 +157,8 @@ choice — see [Testing Strategy](./docs/Testing.md).
 ## Contact information
 
 You can find out more about Babel by
-[opening an issue on this repository](https://github.com/TranslatorSRI/Babel/issues),
+[opening an issue on this repository](https://github.com/NCATSTranslator/Babel/issues)
+(see [docs/NewIssue.md](./docs/NewIssue.md) for guidance on filing a useful report),
 contacting one of the
 [Translator DOGSLED PIs](https://ncats.nih.gov/research/research-activities/translator/projects)
 or contacting the
