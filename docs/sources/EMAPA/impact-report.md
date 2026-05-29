@@ -1,7 +1,7 @@
 # Source impact report: EMAPA
 
-- Generated: 2026-05-26 20:21:33 UTC
-- Babel commit: 65a6e005b45b416e1f7fb1da37019ed764d002d7
+- Generated: 2026-05-29 00:18:17 UTC
+- Babel commit: 7803c37afb65cc63194b07d8fc573a2e2604a40a
 - Source semantic types: anatomy
 - Source prefixes: EMAPA
 - Comparison mode: synthetic
@@ -44,6 +44,12 @@ Totals: 0 cross-reference rows across 1 concord file(s).
 
 ## 4. Clique impact
 
+**Worst-case view.** This report is computed from the intermediate identifier and concord files and
+cannot see downstream filtering that happens later in the build — most notably the Biolink Model's
+per-class prefix restrictions, which drop identifiers whose prefix is not permitted for a clique's
+biolink type. The counts and detail files below are therefore an *upper bound*: they show every
+change the source could introduce before that filtering is applied.
+
 ### anatomy
 
 - 3,871 new cliques composed only of EMAPA identifiers (a 2.22% increase over the 174,707
@@ -53,23 +59,23 @@ Totals: 0 cross-reference rows across 1 concord file(s).
   EMAPA, and 4,188 already contained the EMAPA CURIE via an xref from another source — EMAPA's ids
   file now also lists those existing CURIEs as first-class typed identifiers.
 - 0 existing cliques will be merged because of new EMAPA cross-references
+- 0 structurally-new EMAPA identifiers are added to existing cliques (0 via expansion, 0 via
+  merges). This is distinct from the 0 existing cliques that change, since one clique can gain
+  several identifiers.
 - Total cliques in this semantic type go from 174,707 to 178,578
+- Full list of new cliques: [`impact-report/new-cliques.csv`](impact-report/new-cliques.csv)
+- Full list of modified cliques (one row per added/promoted EMAPA identifier):
+  [`impact-report/modified-cliques.csv`](impact-report/modified-cliques.csv)
+- Full list of new / activated cross-references:
+  [`impact-report/new-xrefs.tsv`](impact-report/new-xrefs.tsv)
 
-#### Sample pure-new cliques (up to 10)
+#### Sample pure-new cliques (up to 3)
 
-- [`EMAPA:27059`](http://purl.obolibrary.org/obo/EMAPA_27059) "perineal body serosa"
-- [`EMAPA:38204`](http://purl.obolibrary.org/obo/EMAPA_38204) "anterior neural ridge"
-- [`EMAPA:32802`](http://purl.obolibrary.org/obo/EMAPA_32802) "chondrocranium cartilage
-  condensation"
-- [`EMAPA:35954`](http://purl.obolibrary.org/obo/EMAPA_35954) "genitourinary system epithelium"
-- [`EMAPA:26661`](http://purl.obolibrary.org/obo/EMAPA_26661) "T11 rib shaft non-ossified region"
-- [`EMAPA:32819`](http://purl.obolibrary.org/obo/EMAPA_32819) "rhombomere lateral wall"
-- [`EMAPA:32886`](http://purl.obolibrary.org/obo/EMAPA_32886) "alimentary system mesenchyme"
-- [`EMAPA:19510`](http://purl.obolibrary.org/obo/EMAPA_19510) "T7 annulus fibrosus"
-- [`EMAPA:36696`](http://purl.obolibrary.org/obo/EMAPA_36696) "large intestine lamina propria"
-- [`EMAPA:19490`](http://purl.obolibrary.org/obo/EMAPA_19490) "T1 intervertebral disc"
+- [`EMAPA:16032`](http://purl.obolibrary.org/obo/EMAPA_16032) "first polar body"
+- [`EMAPA:16033`](http://purl.obolibrary.org/obo/EMAPA_16033) "1-cell stage embryo"
+- [`EMAPA:16034`](http://purl.obolibrary.org/obo/EMAPA_16034) "second polar body"
 
-#### Sample expanded cliques (up to 10)
+#### Sample expanded cliques (up to 3)
 
 Of the 4,188 cliques that contain EMAPA identifiers in the after state, 0 would also see their
 preferred identifier change as a result of adding EMAPA. The sample below leads with
@@ -78,106 +84,68 @@ adds CURIEs that were already present via xref. Within each clique, identifiers 
 same order they would appear in the compendium (biolink prefix priority, then lexicographic within
 prefix).
 
-- Clique with 3 identifiers — typed as `biolink:AnatomicalEntity` — EMAPA CURIE already present via
-  xref:
-  - [`UBERON:0005282`](http://purl.obolibrary.org/obo/UBERON_0005282) "ventricular system of brain"
-    **(preferred)**
-  - [`EMAPA:37447`](http://purl.obolibrary.org/obo/EMAPA_37447) "brain ventricle and choroid plexus"
-    **(existing identifier, also added by EMAPA)**
-  - `VHOG:0000005`
-- Clique with 3 identifiers — typed as `biolink:GrossAnatomicalStructure` — EMAPA CURIE already
+- Clique with 16 identifiers — typed as `biolink:GrossAnatomicalStructure` — EMAPA CURIE already
   present via xref:
-  - [`UBERON:0003596`](http://purl.obolibrary.org/obo/UBERON_0003596) "ankle connective tissue"
+  - [`UBERON:0001237`](http://purl.obolibrary.org/obo/UBERON_0001237) "paraaortic body"
     **(preferred)**
-  - [`EMAPA:37328`](http://purl.obolibrary.org/obo/EMAPA_37328) "ankle connective tissue"
+  - [`UMLS:C0030378`](http://identifiers.org/umls/C0030378) "Corpora paraaortica"
+  - [`UMLS:C0442134`](http://identifiers.org/umls/C0442134) "Para-aortic"
+  - [`UMLS:C0456269`](http://identifiers.org/umls/C0456269) "Para-aortic region"
+  - [`MESH:D010220`](http://id.nlm.nih.gov/mesh/D010220) "Para-Aortic Bodies"
+  - [`NCIT:C207628`](http://purl.obolibrary.org/obo/NCIT_C207628) "Para-aortic Body"
+  - [`NCIT:C25316`](http://purl.obolibrary.org/obo/NCIT_C25316) "Paraaortic Region"
+  - [`EMAPA:18223`](http://purl.obolibrary.org/obo/EMAPA_18223) "paraganglion of Zuckerkandl"
     **(existing identifier, also added by EMAPA)**
-  - [`MA:0000639`](http://purl.obolibrary.org/obo/MA_0000639)
-- Clique with 6 identifiers — typed as `biolink:AnatomicalEntity` — EMAPA CURIE already present via
-  xref:
-  - [`UBERON:0002105`](http://purl.obolibrary.org/obo/UBERON_0002105) "vestibulo-auditory system"
-    **(preferred)**
-  - [`EMAPA:37985`](http://purl.obolibrary.org/obo/EMAPA_37985) "vestibulo-auditory system"
-    **(existing identifier, also added by EMAPA)**
-  - [`ZFA:0001138`](http://purl.obolibrary.org/obo/ZFA_0001138)
-  - `AAO:0000631`
-  - `TAO:0001138`
-  - [`XAO:0003195`](http://purl.obolibrary.org/obo/XAO_0003195)
-- Clique with 6 identifiers — typed as `biolink:AnatomicalEntity` — EMAPA CURIE already present via
-  xref:
-  - [`UBERON:0010036`](http://purl.obolibrary.org/obo/UBERON_0010036) "anterior tegmental nucleus"
-    **(preferred)**
-  - [`EMAPA:37416`](http://purl.obolibrary.org/obo/EMAPA_37416) "anterior tegmental nucleus"
-    **(existing identifier, also added by EMAPA)**
-  - `DMBA:17008`
-  - [`MA:0001055`](http://purl.obolibrary.org/obo/MA_0001055)
-  - `MBA:231`
-  - `neuronames:1115`
-- Clique with 4 identifiers — typed as `biolink:GrossAnatomicalStructure` — EMAPA CURIE already
+  - [`FMA:15647`](http://purl.obolibrary.org/obo/FMA_15647)
+  - [`FMA:76539`](http://purl.obolibrary.org/obo/FMA_76539)
+  - `GAID:444`
+  - [`MA:0001137`](http://purl.obolibrary.org/obo/MA_0001137)
+  - `SCTID:276159005`
+  - [`SNOMEDCT:276910005`](http://snomed.info/id/276910005)
+  - [`SNOMEDCT:90769006`](http://snomed.info/id/90769006)
+  - `Wikipedia:Organ_of_Zuckerkandl`
+- Clique with 18 identifiers — typed as `biolink:GrossAnatomicalStructure` — EMAPA CURIE already
   present via xref:
-  - [`UBERON:0003480`](http://purl.obolibrary.org/obo/UBERON_0003480) "vein of clitoris"
-    **(preferred)**
-  - [`EMAPA:37201`](http://purl.obolibrary.org/obo/EMAPA_37201) "vein of clitoris"
+  - [`UBERON:0001694`](http://purl.obolibrary.org/obo/UBERON_0001694) "petrous part of temporal
+    bone" **(preferred)**
+  - [`UMLS:C0031266`](http://identifiers.org/umls/C0031266) "Structure of petrous part of temporal
+    bone"
+  - [`UMLS:C1261761`](http://identifiers.org/umls/C1261761) "Structure of ciliary processes"
+  - [`MESH:D010579`](http://id.nlm.nih.gov/mesh/D010579) "Petrous Bone"
+  - [`NCIT:C32316`](http://purl.obolibrary.org/obo/NCIT_C32316) "Ciliary Process"
+  - [`NCIT:C62643`](http://purl.obolibrary.org/obo/NCIT_C62643) "Petrous Apex"
+  - `EHDAA2:0001452`
+  - [`EMAPA:17683`](http://purl.obolibrary.org/obo/EMAPA_17683) "temporal bone petrous part"
     **(existing identifier, also added by EMAPA)**
-  - [`MA:0002252`](http://purl.obolibrary.org/obo/MA_0002252)
-  - `SCTID:360819004`
-- Clique with 5 identifiers — typed as `biolink:GrossAnatomicalStructure` — EMAPA CURIE already
-  present via xref:
-  - [`UBERON:0009648`](http://purl.obolibrary.org/obo/UBERON_0009648) "eyelid subcutaneous
-    connective tissue" **(preferred)**
-  - [`UMLS:C1707991`](http://identifiers.org/umls/C1707991) "Eyelid Subcutaneous Connective Tissue"
-  - [`NCIT:C49226`](http://purl.obolibrary.org/obo/NCIT_C49226) "Eyelid Subcutaneous Connective
-    Tissue"
-  - [`EMAPA:37533`](http://purl.obolibrary.org/obo/EMAPA_37533) "eyelid subcutaneous connective
-    tissue" **(existing identifier, also added by EMAPA)**
-  - [`MA:0001252`](http://purl.obolibrary.org/obo/MA_0001252)
-- Clique with 2 identifiers — typed as `biolink:GrossAnatomicalStructure` — EMAPA CURIE already
-  present via xref:
-  - [`UBERON:0013482`](http://purl.obolibrary.org/obo/UBERON_0013482) "crypt of Lieberkuhn of
-    duodenum" **(preferred)**
-  - [`EMAPA:37838`](http://purl.obolibrary.org/obo/EMAPA_37838) "crypt of Lieberkuhn of duodenum"
-    **(existing identifier, also added by EMAPA)**
-- Clique with 11 identifiers — typed as `biolink:AnatomicalEntity` — EMAPA CURIE already present via
+  - [`FMA:52871`](http://purl.obolibrary.org/obo/FMA_52871)
+  - [`FMA:58486`](http://purl.obolibrary.org/obo/FMA_58486)
+  - [`FMA:76551`](http://purl.obolibrary.org/obo/FMA_76551)
+  - `GAID:234`
+  - [`MA:0001477`](http://purl.obolibrary.org/obo/MA_0001477)
+  - `SCTID:361733004`
+  - [`SNOMEDCT:25516004`](http://snomed.info/id/25516004)
+  - [`SNOMEDCT:7345001`](http://snomed.info/id/7345001)
+  - `VHOG:0001553`
+  - `Wikipedia:Petrous_part_of_the_temporal_bone`
+- Clique with 17 identifiers — typed as `biolink:AnatomicalEntity` — EMAPA CURIE already present via
   xref:
-  - [`UBERON:0004154`](http://purl.obolibrary.org/obo/UBERON_0004154) "atrial septum primum"
+  - [`UBERON:0002256`](http://purl.obolibrary.org/obo/UBERON_0002256) "dorsal horn of spinal cord"
     **(preferred)**
-  - [`UMLS:C0225837`](http://identifiers.org/umls/C0225837) "Septum primum"
-  - [`NCIT:C34294`](http://purl.obolibrary.org/obo/NCIT_C34294) "Septum Primum"
-  - [`EMAPA:17013`](http://purl.obolibrary.org/obo/EMAPA_17013) "septum primum"
+  - [`UMLS:C0228564`](http://identifiers.org/umls/C0228564) "Spinal cord posterior horn"
+  - [`UMLS:C0228575`](http://identifiers.org/umls/C0228575) "Structure of posterior gray horn of
+    spinal cord"
+  - [`MESH:D066148`](http://id.nlm.nih.gov/mesh/D066148) "Spinal Cord Dorsal Horn"
+  - [`NCIT:C32473`](http://purl.obolibrary.org/obo/NCIT_C32473) "Dorsal Horn of the Spinal Cord"
+  - [`EMAPA:18574`](http://purl.obolibrary.org/obo/EMAPA_18574) "dorsal grey horn"
     **(existing identifier, also added by EMAPA)**
-  - [`FMA:63909`](http://purl.obolibrary.org/obo/FMA_63909)
-  - `EHDAA2:0001825`
-  - `EHDAA:1900`
-  - `SCTID:362017007`
-  - [`SNOMEDCT:70291006`](http://snomed.info/id/70291006)
-  - `VHOG:0000020`
-  - `Wikipedia:Septum_primum`
-- Clique with 9 identifiers — typed as `biolink:GrossAnatomicalStructure` — EMAPA CURIE already
-  present via xref:
-  - [`UBERON:0001313`](http://purl.obolibrary.org/obo/UBERON_0001313) "iliolumbar artery"
-    **(preferred)**
-  - [`UMLS:C0226367`](http://identifiers.org/umls/C0226367) "Structure of iliolumbar artery"
-  - [`NCIT:C52859`](http://purl.obolibrary.org/obo/NCIT_C52859) "Iliolumbar Artery"
-  - [`EMAPA:37085`](http://purl.obolibrary.org/obo/EMAPA_37085) "ilio-lumbar artery"
-    **(existing identifier, also added by EMAPA)**
-  - [`FMA:18845`](http://purl.obolibrary.org/obo/FMA_18845)
-  - [`MA:0001976`](http://purl.obolibrary.org/obo/MA_0001976)
-  - `SCTID:113267002`
-  - [`SNOMEDCT:293947007`](http://snomed.info/id/293947007)
-  - `Wikipedia:Iliolumbar_artery`
-- Clique with 13 identifiers — typed as `biolink:AnatomicalEntity` — EMAPA CURIE already present via
-  xref:
-  - [`UBERON:0002044`](http://purl.obolibrary.org/obo/UBERON_0002044) "ventral nucleus of posterior
-    commissure" **(preferred)**
-  - [`UMLS:C0262291`](http://identifiers.org/umls/C0262291) "Darkshevitch nucleus"
-  - [`EMAPA:35597`](http://purl.obolibrary.org/obo/EMAPA_35597) "nucleus of darkschewitsch"
-    **(existing identifier, also added by EMAPA)**
-  - [`FMA:68464`](http://purl.obolibrary.org/obo/FMA_68464)
-  - `BIRNLEX:896`
-  - `BM:MB-D`
-  - `DHBA:12218`
-  - `DMBA:16629`
-  - `HBA:9047`
-  - [`MA:0001072`](http://purl.obolibrary.org/obo/MA_0001072)
-  - `MBA:587`
-  - `SCTID:369250001`
-  - `neuronames:514`
+  - [`ZFA:0000649`](http://purl.obolibrary.org/obo/ZFA_0000649)
+  - [`FMA:256530`](http://purl.obolibrary.org/obo/FMA_256530)
+  - `BIRNLEX:2667`
+  - `BM:SpC-DH`
+  - [`MA:0001119`](http://purl.obolibrary.org/obo/MA_0001119)
+  - `SCTID:180961004`
+  - [`SNOMEDCT:44985000`](http://snomed.info/id/44985000)
+  - `TAO:0000649`
+  - `VHOG:0001287`
+  - `Wikipedia:Posterior_horn_of_spinal_cord`
+  - `neuronames:1686`
