@@ -1,0 +1,43 @@
+# Obsolete or offensive labels to filter from Babel output.
+#
+# Each entry must have EXACTLY ONE of:
+#   label:   exact string match (case-insensitive by default)
+#   pattern: Python regex (always case-insensitive via re.IGNORECASE)
+#
+# Optional fields:
+#   reason:        (required) explanation of why this term is filtered — included in
+#                  warning messages so build logs are self-explanatory.
+#   partial:       (default: false) if true, 'label' matches as a substring rather than
+#                  the whole label.  Useful for catching long UMLS entries that embed
+#                  an obsolete term.
+#   only_for_types: list of Biolink types (e.g. [biolink:Disease]) to which this entry
+#                  applies.  The full ancestor chain is checked, so biolink:Disease also
+#                  matches biolink:DiseaseOrPhenotypicFeature, etc.  Omit (or leave empty)
+#                  to apply the filter to every semantic type.
+#   sources_seen:  (documentation only) list of data-source prefixes known to emit this
+#                  term (e.g. [UMLS, MESH]).  Has no runtime effect but helps maintainers
+#                  know which upstream sources to report the issue to.
+#
+# To investigate the origin of a filtered term: grep the build log for the term text;
+# the 'found in' field in the warning message identifies the specific source.
+
+obsolete_labels:
+  - label: "mongolism"
+    reason: "Offensive historical term for Down syndrome (trisomy 21); use MONDO:0008608 / HP:0001249 labels instead"
+    only_for_types: [biolink:Disease, biolink:PhenotypicFeature, biolink:DiseaseOrPhenotypicFeature]
+    sources_seen: [UMLS, MESH]
+
+  - label: "mental retardation"
+    reason: "Outdated clinical term; preferred terminology is 'intellectual disability'"
+    partial: true
+    sources_seen: [UMLS, MESH, HP, MONDO]
+
+  - label: "manic depressive"
+    reason: "Outdated; preferred: 'bipolar disorder'"
+    partial: true
+    sources_seen: [UMLS]
+
+  - label: "manic-depressive"
+    reason: "Outdated; preferred: 'bipolar disorder'"
+    partial: true
+    sources_seen: [UMLS]

@@ -179,3 +179,9 @@ ensembl_datasets_to_skip: [elucius_gene_ensembl, hgfemale_gene_ensembl, charengu
 # See https://github.com/NCATSTranslator/Babel/issues/597
 demote_labels_longer_than:
   biolink:ChemicalEntity: 25
+
+# Label filter settings. See input_data/obsolete_labels.yaml for the filter list.
+# action: "remove" - suppress the label/synonym from output entirely (a warning is always emitted)
+# action: "warn"   - keep the label/synonym but emit a warning so the upstream source can be fixed
+label_filter:
+  action: "remove"
