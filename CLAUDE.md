@@ -157,12 +157,9 @@ re-running glom or scanning the JSONL compendia.
 Deeper, source-specific notes live under `docs/sources/<PREFIX>/` (one directory per data source,
 named by its CURIE prefix); see `docs/sources/README.md` for the convention and an index. Check
 there first when working on a specific vocabulary, and add to it when you learn something
-non-obvious about how Babel ingests that source.
-
-- `docs/sources/MESH/Ingestion.md` — how MeSH is partitioned across compendia by tree letter, how
-  Supplementary Concept Records (SCRs) are typed and routed (they have no tree numbers; only
-  `SCR_Chemical` and `SCR_Organism` are currently consumed), the chemical/protein D-tree split
-  caveat, and which MeSH branches/SCR classes we deliberately skip (audit: issue #807).
+non-obvious about how Babel ingests that source. Keep the detail in the source file — `CLAUDE.md`
+should point here, not duplicate it. The only source documented so far is MeSH
+(`docs/sources/MESH/Ingestion.md`).
 
 ### Per-compendium metadata YAMLs
 
