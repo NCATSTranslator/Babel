@@ -27,6 +27,15 @@ from src.util import Text, get_config, get_logger, get_memory_usage_summary
 WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES = 1_000_000
 MAX_DOWNLOAD_ERROR = 10
 
+BABEL_GITHUB_URL = "https://github.com/NCATSTranslator/Babel"
+
+
+def get_user_agent() -> str:
+    """Return the User-Agent string for outbound HTTP requests, including the build branch."""
+    branch = get_config()["build"]["branch"]
+    return f"TranslatorBabel/{branch} ({BABEL_GITHUB_URL})"
+
+
 # Set up a logger.
 logger = get_logger(__name__)
 
@@ -227,7 +236,8 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
     # get a handle to the ftp file
     download_url = url + in_file_name
     logger.info(f"Downloading {download_url}")
-    handle = opener.open(download_url)
+    req = urllib.request.Request(download_url, headers={"User-Agent": get_user_agent()})
+    handle = opener.open(req)
 
     # create the compressed file
     download_verified = False
