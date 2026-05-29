@@ -232,6 +232,15 @@ compendia too large to re-glom locally, add `--mode both --remote-url <previous-
 to also compare against a remote build. See `src/cli/source_impact_report.py` and
 `src/model/source.py` for the source-discovery and diff implementation.
 
+When you change a source's extraction or typing logic and want to refresh its impact report,
+regenerate the affected `ids`/`concords` files *first* — the report reads them from disk and does
+not re-derive them. Calling the writer directly is cheapest (e.g.
+`uv run python -c "import src.createcompendia.anatomy as a; a.write_emapa_ids('babel_outputs/intermediate/anatomy/ids/EMAPA')"`),
+because the Snakemake rule treats an existing ids file as up-to-date unless you delete it or pass
+`--forcerun`. Note the report's "Final compendium-assigned (after glom)" section reads the
+*existing on-disk* compendia, so it lags an ids-typing change and can disagree with the synthetic
+`would_be_added` columns until the compendia are rebuilt.
+
 `docs/AddingNewSources.md` is the full usage guide: how to read each report section,
 register a new semantic type, and — since a full local build needs ~500 GB of RAM —
 assemble the intermediate inputs from a `stars.renci.org` snapshot to generate the
