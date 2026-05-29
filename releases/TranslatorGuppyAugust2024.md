@@ -13,7 +13,8 @@ Previous release: [TranslatorFuguJuly2024](./TranslatorFuguJuly2024.md)
   allowing us to run queries such as looking for all the identically labeled cliques across
   all the compendia. Increased Babel Outputs file size to support DuckDB.
 * Added labels from DrugBank (<https://github.com/NCATSTranslator/Babel/pull/335>).
-* Improved cell anatomy concords using Wikidata (<https://github.com/NCATSTranslator/Babel/pull/329>).
+* Improved cell anatomy concords using Wikidata
+  (<https://github.com/NCATSTranslator/Babel/pull/329>).
 * Added manual concords for the DrugChemical conflation
   (<https://github.com/NCATSTranslator/Babel/pull/337>).
 * Wrote a script for comparing between two summary files
