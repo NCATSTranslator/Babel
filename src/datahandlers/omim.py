@@ -12,5 +12,5 @@ def pull_omim_labels(infile, outfile):
             if line.startswith("#"):
                 continue
             chunks = line.rstrip("\n").split("\t")
-            if len(chunks) >= 4 and chunks[3]:
+            if len(chunks) >= 4 and chunks[1] == "gene" and chunks[3]:
                 outf.write(f"{OMIM}:{chunks[0]}\t{chunks[3]}\n")
