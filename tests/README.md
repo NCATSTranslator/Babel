@@ -147,6 +147,14 @@ Individual tests then receive the pre-computed output rather than re-running the
   Covers `write_ids()` parameter validation, SCR filtering logic (mock-based), and
   `Mesh.get_scr_terms_mapped_to_trees()` using an inline pyoxigraph store.
 
+- **`datahandlers/test_umls_semantic_types.py`** (`unit`, `network`) — Tests for the unified UMLS
+  semantic-type registry in `src/datahandlers/umls/semantic_types.py`. Unit tests: the registry
+  reproduces the legacy per-compendium partition maps (golden snapshot), TUI<->tree-number
+  translation, the leftover resolver prefers the registry over the Biolink Model, and validation
+  rejects malformed entries. Network test: each tracked disagreement
+  (`proposed_biolink_type`) fails/xfails once the live Biolink Model adopts it, signalling the
+  override is redundant. See [docs/UMLSSemanticTypes.md](../docs/UMLSSemanticTypes.md).
+
 - **`datahandlers/test_ensembl.py`** (`network`, `xfail`) — Integration test for the Ensembl
   BioMart data handler. Pulls real data from BioMart, verifies that batched downloads
   (splitting attribute lists across multiple queries) produce the same results as
@@ -174,7 +182,9 @@ and how to add new checks or vocabularies.
   and D12.776 — but must include D08.211 Coenzymes.
 
 - **`pipeline/test_umls.py`** (`pipeline`) — UMLS-specific targeted assertions:
-  chemicals must not contain UMLS IDs claimed by the protein compendium.
+  chemicals must not contain UMLS IDs claimed by the protein compendium; and the hardcoded
+  `SEMANTIC_NETWORK` table in `src/datahandlers/umls/semantic_types.py` must still match the live
+  `MRSTY.RRF` (drift detection at UMLS upgrade time).
 
 - **`pipeline/test_ec.py`**, **`pipeline/test_rhea.py`**, **`pipeline/test_chembl.py`**,
   **`pipeline/test_clo.py`**, **`pipeline/test_efo.py`** (`pipeline`) — Output format and

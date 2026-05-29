@@ -6,6 +6,7 @@ import src.datahandlers.obo as obo
 import src.datahandlers.umls as umls
 from src.babel_utils import Text, glom, read_identifier_file, write_compendium
 from src.categories import PROTEIN
+from src.datahandlers.umls import semantic_types as ust
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import DRUGBANK, ENSEMBL, MESH, NCBITAXON, NCIT, PR, UNIPROTKB
 from src.ubergraph import UberGraph
@@ -27,20 +28,12 @@ def extract_taxon_ids_from_uniprotkb(idmapping_filename, uniprotkb_taxa_filename
 
 
 def write_umls_ids(mrsty, outfile):
-    # Compare with src/createcompendia/chemicals.py (see source code at
-    # https://github.com/NCATSTranslator/Babel/blob/c91654411923b86300cc2f6b5a21b96ea857817f/src/createcompendia/chemicals.py#L54-L76)
-    #
-    # We have to make sure we don't include UMLS identifiers both here and in chemicals.py, otherwise they'll
-    # end up in both compendia.
-    umlsmap = {
-        "A1.4.1.2.1.7": PROTEIN,    # Amino Acid, Peptide, or Protein -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T116
-        # The following should not be needed: receptors are generally proteins, and enzymes are definitionally proteins, so
-        # they should all be included in T116. But since we exclude them in chemicals.py, I think it makes sense to include
-        # them here.
-        "A1.4.1.1.3.6": PROTEIN,    # Receptor -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T192
-        "A1.4.1.1.3.3": PROTEIN,    # Enzyme -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T126
-    }
-    umls.write_umls_ids(mrsty, umlsmap, outfile)
+    # The UMLS semantic-type -> Biolink-class assignments for proteins live in the central registry
+    # src/datahandlers/umls/semantic_types.py (see UMLS_TYPE_MAP, compendium="protein"). That
+    # registry also enforces that no UMLS tree number lands in both protein and chemicals: the
+    # protein-owned trees (Amino Acid/Peptide/Protein T116, Receptor T192, Enzyme T126) are excluded
+    # from chemicals.py via its local blocklist.
+    umls.write_umls_ids(mrsty, ust.category_map_for("protein"), outfile)
 
 
 def write_mesh_ids(outfile):

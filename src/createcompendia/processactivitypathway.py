@@ -7,6 +7,7 @@ import src.datahandlers.rhea as rhea
 import src.datahandlers.umls as umls
 from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
 from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
+from src.datahandlers.umls import semantic_types as ust
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import GO, REACT, TCDB, WIKIPATHWAYS
 from src.ubergraph import build_sets
@@ -35,15 +36,10 @@ def write_ec_ids(outfile):
 
 
 def write_umls_ids(mrsty, outfile):
-    umlsmap = {
-        "B2.2.1.1.4": MOLECULAR_ACTIVITY,  # Molecular Function
-        "B2.2.1.1": BIOLOGICAL_PROCESS,  # Physiologic Function
-        "B2.2.1.1.1": BIOLOGICAL_PROCESS,  # Organism Function
-        "B2.2.1.1.2": BIOLOGICAL_PROCESS,  # Organ or Tissue Function
-        "B2.2.1.1.3": BIOLOGICAL_PROCESS,  #  Cell Function
-        "B2.2.1.1.4.1": BIOLOGICAL_PROCESS,  # Genetic Function
-    }
-    umls.write_umls_ids(mrsty, umlsmap, outfile)
+    # The UMLS semantic-type -> Biolink-class assignments for processes/activities live in the
+    # central registry src/datahandlers/umls/semantic_types.py (UMLS_TYPE_MAP, compendium="process").
+    # Note that B2.2.1.1.4.1 "Genetic Function" (UMLS STY T045) is assigned here, addressing #257.
+    umls.write_umls_ids(mrsty, ust.category_map_for("process"), outfile)
 
 
 def build_process_umls_relationships(mrconso, idfile, outfile, metadata_yaml):

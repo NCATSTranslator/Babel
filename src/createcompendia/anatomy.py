@@ -7,6 +7,7 @@ import src.datahandlers.obo as obo
 import src.datahandlers.umls as umls
 from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
+from src.datahandlers.umls import semantic_types as ust
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import CL, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import build_sets
@@ -75,21 +76,9 @@ def write_mesh_ids(outfile):
 
 
 def write_umls_ids(mrsty, outfile):
-    # UMLS categories:
-    # A1.2 Anatomical Structure
-    # A1.2.1 Embryonic Structure
-    # A1.2.3 Fully Formed Anatomical Structure
-    # A1.2.3.1 Body Part, Organ, or Organ Component
-    # A1.2.3.2 Tissue
-    # A1.2.3.3 Cell
-    # A1.2.3.4 Cell Component
-    # A2.1.4.1 Body System
-    # A2.1.5.1 Body Space or Junction
-    # A2.1.5.2 Body Location or Region
-    umlsmap = {x: ANATOMICAL_ENTITY for x in ["A1.2", "A1.2.1", "A1.2.3.1", "A1.2.3.2", "A2.1.4.1", "A2.1.5.1", "A2.1.5.2"]}
-    umlsmap["A1.2.3.3"] = CELL
-    umlsmap["A1.2.3.4"] = CELLULAR_COMPONENT
-    umls.write_umls_ids(mrsty, umlsmap, outfile)
+    # The UMLS semantic-type -> Biolink-class assignments for anatomy live in the central registry
+    # src/datahandlers/umls/semantic_types.py (see UMLS_TYPE_MAP, compendium="anatomy").
+    umls.write_umls_ids(mrsty, ust.category_map_for("anatomy"), outfile)
 
 
 # Ignore list notes:

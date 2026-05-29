@@ -4,19 +4,9 @@ from pathlib import Path
 
 import jsonlines
 
-from src.categories import (
-    ACTIVITY,
-    AGENT,
-    DEVICE,
-    DRUG,
-    FOOD,
-    NAMED_THING,
-    PHYSICAL_ENTITY,
-    PROCEDURE,
-    PUBLICATION,
-    SMALL_MOLECULE,
-)
+from src.categories import NAMED_THING
 from src.datahandlers import umls
+from src.datahandlers.umls import semantic_types as ust
 from src.metadata.provenance import write_metadata
 from src.node import NodeFactory
 from src.prefixes import UMLS
@@ -138,38 +128,11 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
                 # The STR value should be the label.
                 label = x[14]
 
-                # Lookup type.
-                def umls_type_to_biolink_type(umls_tui):
-                    biolink_type = biolink_toolkit.get_element_by_mapping(f"STY:{umls_tui}", most_specific=True, formatted=True, mixin=True)
-                    if biolink_type is None:
-                        logger.debug(f"No Biolink type found for UMLS TUI {umls_tui}")
-                    return biolink_type
-
+                # Resolve the UMLS semantic types (TUIs) on this CUI to a single Biolink type. The
+                # resolver consults Babel's central registry first (src/datahandlers/umls/
+                # semantic_types.py) and falls back to the Biolink Model's STY mappings.
                 umls_type_results = types_by_id.get(umls_id, {NAMED_THING: {"Named thing"}})
-                biolink_types = set(list(map(umls_type_to_biolink_type, umls_type_results.keys())))
-
-                # How to deal with multiple Biolink types? We currently only have the following multiple
-                # types, so we can resolve these manually:
-                biolink_types_as_set = set(map(lambda t: "(None)" if t is None else t, list(biolink_types)))
-                biolink_types_as_str = "|".join(sorted(list(biolink_types_as_set)))
-
-                if None in biolink_types:
-                    # One of the TUIs couldn't be converted; let's delete all of them so that we can report this.
-                    biolink_types = list()
-
-                # Some Biolink multiple types we handle manually.
-                if biolink_types_as_set == {DEVICE, DRUG}:
-                    biolink_types = [DRUG]
-                elif biolink_types_as_set == {DRUG, SMALL_MOLECULE}:
-                    biolink_types = [SMALL_MOLECULE]
-                elif biolink_types_as_set == {AGENT, PHYSICAL_ENTITY}:
-                    biolink_types = [AGENT]
-                elif biolink_types_as_set == {PHYSICAL_ENTITY, PUBLICATION}:
-                    biolink_types = [PUBLICATION]
-                elif biolink_types_as_set == {ACTIVITY, PROCEDURE}:
-                    biolink_types = [PROCEDURE]
-                elif biolink_types_as_set == {DRUG, FOOD}:
-                    biolink_types = [FOOD]
+                biolink_types, biolink_types_as_str = ust.resolve_biolink_types(umls_type_results.keys(), biolink_toolkit)
 
                 if len(biolink_types) == 0:
                     # We skip this CURIE, but we don't want to print multiple log messages for the same CURIE.
