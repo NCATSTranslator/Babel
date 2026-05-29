@@ -276,6 +276,17 @@ produce a report on a laptop is to assemble the inputs by hand from a published 
 "final compendium-assigned" counts; with no local compendia, leave it pointing at a
 non-existent path and that part of the report is simply left blank.
 
+**Refreshing a report after a typing or extraction change.** The report reads the `ids`
+and `concords` files from disk and does not re-derive them, so regenerate the affected
+source files *before* re-running the tool. Calling the writer directly is cheapest, e.g.
+
+```bash
+uv run python -c "import src.createcompendia.anatomy as a; a.write_emapa_ids('babel_outputs/intermediate/anatomy/ids/EMAPA')"
+```
+
+The Snakemake rule treats an existing ids file as up-to-date unless you delete it or pass
+`--forcerun`, so the direct call avoids a no-op rule run.
+
 ### Reading the report
 
 The generated markdown has four sections:
@@ -289,7 +300,10 @@ The generated markdown has four sections:
    final distributions should match in shape. A large mismatch usually means a glom is
    pulling source CURIEs into a clique that ends up typed differently than the source
    declared, which may be desirable (the clique members agree on a more specific type)
-   or a bug.
+   or a bug. Note the final compendium-assigned counts are read from the *existing on-disk
+   compendia* (`--compendia-root`), so after you change a source's typing they lag until the
+   compendia are rebuilt and can disagree with the synthetic `would_be_added` columns in the
+   detail files.
 3. **Cross-references added** — total concord rows plus partner-prefix breakdown.
    Sanity check: every partner prefix should be one you expect for this semantic type.
    Unexpected prefixes are a sign the extraction did not filter the right

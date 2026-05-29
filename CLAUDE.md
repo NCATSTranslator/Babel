@@ -196,59 +196,26 @@ has a per-target sizing breakdown and a "Common build issues" section.
 
 ## Adding a new data source
 
-After integrating a new identifier source (e.g., EMAPA in PR #741), generate a
-source-impact report that captures the identifiers, biolink types, cross-references, and
-clique changes the source introduces. Commit the report to
-`docs/sources/<SOURCE>/impact-report.md` alongside the rest of the source's docs. The tool
-also writes an `impact-report/` subdirectory of full, deterministically-sorted detail files
-for SME review: commit `new-cliques.csv`, `modified-cliques.csv`, and `new-xrefs.tsv`.
-`modified-cliques.json` is written locally for digging/sharing but is gitignored (it grows
-with the source and is useless to commit for large additions). The markdown's inline samples
-are capped (3 per category, ranked by label variety) and link to the committed detail files.
-See `src/reports/source_impact_details.py` and the "Detail files for SME review" section of
-`docs/AddingNewSources.md`.
+`docs/AddingNewSources.md` is the full guide: how to wire a source (prefix, data handler,
+compendium hook, Snakemake rules, `config.yaml`, docs, tests), then generate and read its
+source-impact report — including assembling the intermediate inputs from a `stars.renci.org`
+snapshot when a full local build (~500 GB RAM) is impractical. Two things to get right that
+the report exists to catch:
 
-Every ids file should give each CURIE a presumptive biolink type in column 2
-(`CURIE\tbiolink:Type`); this drives both clique typing in the build and the report's
-survival prediction. The report's detail files carry per-identifier `would_be_added` /
-`needs_biolink_registration` columns that predict the Biolink-prefix filtering in
-`write_compendium()`/`NodeFactory.create_node()` (which drops identifiers whose prefix is not
-in the Biolink Model's `id_prefixes` for the clique's class) and flag prefixes that must be
-registered in the Biolink Model before Babel can emit them. EMAPA's
-`biolink:GrossAnatomicalStructure` terms are the current example of a not-yet-registered
-prefix.
-
-```bash
-# Synthetic mode re-globs the full intermediate ids/concords set for the semantic
-# type, so every source's files must be present, not just the new source's.
-uv run source-impact-report --source <SOURCE>
-
-# Snakemake convenience wrapper (writes to babel_outputs/reports/source_impact/):
-uv run snakemake -c 1 babel_outputs/reports/source_impact/<SOURCE>.md
-```
-
-The CLI auto-detects every semantic type where the source has intermediate files. For
-compendia too large to re-glom locally, add `--mode both --remote-url <previous-build>`
-to also compare against a remote build. See `src/cli/source_impact_report.py` and
-`src/model/source.py` for the source-discovery and diff implementation.
-
-When you change a source's extraction or typing logic and want to refresh its impact report,
-regenerate the affected `ids`/`concords` files *first* — the report reads them from disk and does
-not re-derive them. Calling the writer directly is cheapest (e.g.
-`uv run python -c "import src.createcompendia.anatomy as a; a.write_emapa_ids('babel_outputs/intermediate/anatomy/ids/EMAPA')"`),
-because the Snakemake rule treats an existing ids file as up-to-date unless you delete it or pass
-`--forcerun`. Note the report's "Final compendium-assigned (after glom)" section reads the
-*existing on-disk* compendia, so it lags an ids-typing change and can disagree with the synthetic
-`would_be_added` columns until the compendia are rebuilt.
-
-`docs/AddingNewSources.md` is the full usage guide: how to read each report section,
-register a new semantic type, and — since a full local build needs ~500 GB of RAM —
-assemble the intermediate inputs from a `stars.renci.org` snapshot to generate the
-report on a laptop.
-
-When extending the report to a new semantic type, add a `compute_cliques_for_impact_report`
-helper to that type's `createcompendia/*.py` module (mirroring `anatomy.py`), then register
-it in `SEMANTIC_TYPE_CONFIG` in `src/cli/source_impact_report.py`.
+- **Type every ids file.** Each ids row should carry a presumptive biolink type in column 2
+  (`CURIE\tbiolink:Type`); this drives clique typing in the build. `write_compendium()` →
+  `NodeFactory.create_node()` then keeps only CURIEs whose prefix is in the Biolink Model's
+  `id_prefixes` for the clique's class and silently drops the rest — so a prefix that is not
+  yet registered for its type never reaches the compendium. EMAPA's
+  `biolink:GrossAnatomicalStructure` terms are the current not-yet-registered example.
+- **Generate and commit the report.** `uv run source-impact-report --source <SOURCE>` writes
+  `docs/sources/<SOURCE>/impact-report.md` plus an `impact-report/` subdirectory; commit
+  `new-cliques.csv`, `modified-cliques.csv`, and `new-xrefs.tsv` (`modified-cliques.json` is
+  gitignored). Its `would_be_added` / `needs_biolink_registration` columns flag identifiers
+  the prefix filtering above would drop. When extending the report to a new semantic type,
+  add a `compute_cliques_for_impact_report` helper to that type's `createcompendia/*.py`
+  module (mirroring `anatomy.py`) and register it in `SEMANTIC_TYPE_CONFIG` in
+  `src/cli/source_impact_report.py`.
 
 ## Conventions
 
