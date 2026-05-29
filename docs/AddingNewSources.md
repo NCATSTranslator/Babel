@@ -66,6 +66,17 @@ In the appropriate `src/createcompendia/<semantic_type>.py`:
 - Add an entry to the per-semantic-type registry (e.g. `ANATOMY_OBO_SOURCES` in
   `anatomy.py`) so the type assignment logic knows about the new source.
 - Add a `write_<source>_ids(outfile)` function that produces the source's ids file.
+  **Give every CURIE a presumptive biolink type in column 2** (`CURIE\tbiolink:Type`, no header).
+  This type drives clique classification in the real build *and* the source-impact report's survival
+  prediction, so it should be as specific as the source's structure allows — e.g. EMAPA types
+  descendants of [`EMAPA:35949`](http://purl.obolibrary.org/obo/EMAPA_35949) "organ" and
+  [`EMAPA:35868`](http://purl.obolibrary.org/obo/EMAPA_35868) "tissue" as
+  `biolink:GrossAnatomicalStructure` and everything else as `biolink:AnatomicalEntity`
+  (`write_emapa_ids`). Some older ids writers only emit a single type for the whole source; the goal
+  is for *every* ids file to carry per-CURIE types, so do this for all of your source's inputs even
+  where existing sources have not. If the chosen type's `id_prefixes` in the Biolink Model does not
+  yet include your prefix, the build will drop those identifiers — the impact report flags this (see
+  the survival columns below) and you should raise it with the Biolink team.
 - Add concord-extraction logic for the source. For OBO sources sharing
   `build_anatomy_obo_relationships()`, this means adding the source to the open-file map
   and the prefix list. Other sources have bespoke extraction functions
@@ -343,17 +354,39 @@ share the full structure.
 
 - **`new-cliques.csv`** — one row per pure-new clique the source introduces. Columns:
   `semantic_type, preferred_id, preferred_label, biolink_type, member_count,
-  equivalent_ids` (pipe-joined). The common case is a brand-new single-identifier clique
-  (`member_count = 1`); the rare multi-member pure-new clique is included too.
+  equivalent_ids` (pipe-joined), then the survival columns
+  `preferred_id_would_survive, needs_biolink_registration, unsupported_prefixes`. The
+  common case is a brand-new single-identifier clique (`member_count = 1`); the rare
+  multi-member pure-new clique is included too.
 - **`modified-cliques.csv`** — one row per source identifier landing in an existing
   (expanded or merged) clique. Columns include the clique's `preferred_id`/label/type, the
   `change_kind` (`expanded`/`merged`), an `added_kind` of `added` (structurally new) or
   `promoted` (already pulled in via another source's xref, now typed), the `added_id` with
-  its own label and declared type, and the clique's full `equivalent_ids`. Filter
-  `added_kind = added` to see only structural growth.
+  its own label and declared type, the survival columns
+  `would_be_added, needs_biolink_registration, biolink_registration_note`, and the clique's
+  full `equivalent_ids`. Filter `added_kind = added` to see only structural growth, or
+  `would_be_added = false` to see identifiers that will be dropped downstream.
 - **`modified-cliques.json`** (local only, not committed) — the same modified cliques with
   their full before/after structure (before-clique leaders, all after-members with labels,
   added/promoted CURIE lists, preferred id before and after) for programmatic consumers.
+  Each entry also carries `added_curie_details`: per-identifier objects with `biolink_type`,
+  `would_be_added`, `needs_biolink_registration`, and a `note`.
+
+##### Survival columns: would these identifiers actually be emitted?
+
+The survival columns predict the downstream Biolink filtering the report otherwise cannot
+see. `write_compendium` (via `NodeFactory.create_node`) keeps only identifiers whose prefix
+is in the Biolink Model's `id_prefixes` for the clique's biolink class and silently drops
+the rest; a clique with no surviving prefix is dropped entirely. Each row is judged on the
+**added identifier's own declared biolink type** (not the clique's preferred type, which may
+not be knowable at report time): `would_be_added` is `true`/`false`/blank (blank means
+unknown — no declared type, or the report ran with `--no-biolink-lookup`), and
+`needs_biolink_registration = true` flags an identifier whose prefix must be added to the
+Biolink Model for that class before Babel can ever emit it. EMAPA's gross-anatomy terms are
+the live example: they are typed `biolink:GrossAnatomicalStructure`, a class whose
+`id_prefixes` does not yet include `EMAPA`, so they show `would_be_added = false` until
+EMAPA is registered for that class.
+
 - **`new-xrefs.tsv`** — one row per cross-reference touching a source CURIE, scanned across
   *all* concord files (not just the source's own — a source's xrefs frequently live in
   another vocabulary's concord, e.g. EMAPA's are asserted by UBERON). Columns:
@@ -381,7 +414,9 @@ biolink type ends up as Cell, CellularComponent, or GrossAnatomicalStructure —
 `NodeFactory` drops them from the written compendium because EMAPA is not in those
 types' `id_prefixes` list. This kind of section-1-vs-section-2 mismatch is a useful
 signal that some source CURIEs are being routed into clique types where they cannot be
-written out.
+written out; the per-identifier `would_be_added` / `needs_biolink_registration` columns in
+the detail files (above) now make this explicit at the level of individual CURIEs rather
+than only as an aggregate count.
 
 ### Comparing across builds
 

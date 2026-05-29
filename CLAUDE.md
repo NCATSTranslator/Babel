@@ -208,6 +208,16 @@ are capped (3 per category, ranked by label variety) and link to the committed d
 See `src/reports/source_impact_details.py` and the "Detail files for SME review" section of
 `docs/AddingNewSources.md`.
 
+Every ids file should give each CURIE a presumptive biolink type in column 2
+(`CURIE\tbiolink:Type`); this drives both clique typing in the build and the report's
+survival prediction. The report's detail files carry per-identifier `would_be_added` /
+`needs_biolink_registration` columns that predict the Biolink-prefix filtering in
+`write_compendium()`/`NodeFactory.create_node()` (which drops identifiers whose prefix is not
+in the Biolink Model's `id_prefixes` for the clique's class) and flag prefixes that must be
+registered in the Biolink Model before Babel can emit them. EMAPA's
+`biolink:GrossAnatomicalStructure` terms are the current example of a not-yet-registered
+prefix.
+
 ```bash
 # Synthetic mode re-globs the full intermediate ids/concords set for the semantic
 # type, so every source's files must be present, not just the new source's.

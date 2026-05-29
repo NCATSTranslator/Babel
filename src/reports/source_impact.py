@@ -178,6 +178,50 @@ def _preferred_curie(
     return _sort_clique_for_display(clique, biolink_type, prefix_priority_by_type)[0]
 
 
+def prefix_survives(
+    curie: str,
+    biolink_type: str | None,
+    prefix_priority_by_type: dict[str, list[str]],
+) -> tuple[bool | None, bool]:
+    """Predict whether ``curie`` would survive ``write_compendium``'s prefix filtering.
+
+    ``NodeFactory.create_node`` keeps only CURIEs whose prefix is in the Biolink Model's
+    ``id_prefixes`` for the clique's biolink type and silently drops the rest; a clique
+    with no surviving prefix is skipped entirely. We mirror that here using
+    ``prefix_priority_by_type`` (populated from the same ``id_prefixes`` lists the build
+    filters against), judging each identifier on **its own** biolink type.
+
+    Returns ``(would_be_added, needs_biolink_registration)``:
+
+    - ``would_be_added`` is ``True``/``False`` when the type's prefix list is known, or
+      ``None`` when it is unknown (no declared type, or ``--no-biolink-lookup`` left
+      ``prefix_priority_by_type`` empty) — callers should render ``None`` as blank/unknown
+      rather than as a negative.
+    - ``needs_biolink_registration`` is ``True`` only when we positively know the prefix
+      is absent from the type's ``id_prefixes`` (i.e. someone must add it to the Biolink
+      Model before Babel can emit this identifier). It is ``False`` whenever survival is
+      unknown, to avoid false alarms.
+    """
+    if not biolink_type:
+        return None, False
+    priority = prefix_priority_by_type.get(biolink_type)
+    if priority is None:
+        return None, False
+    allowed = {p.upper() for p in priority}
+    survives = _prefix_of(curie).upper() in allowed
+    return survives, not survives
+
+
+def biolink_registration_note(curie: str, biolink_type: str | None) -> str:
+    """Short reminder for an identifier whose prefix is not registered for its type."""
+    if not biolink_type:
+        return ""
+    return (
+        f"prefix {_prefix_of(curie)} not in id_prefixes for {biolink_type} — "
+        "register in the Biolink Model before Babel can emit this identifier"
+    )
+
+
 def _distinct_label_count(curies: Iterable[str], labels_by_prefix: dict[str, dict[str, str]]) -> int:
     """Count the distinct (case-folded) preferred labels among a clique's members.
 
@@ -355,19 +399,33 @@ def _render_clique_impact(
                 diff.pure_new_cliques,
                 key=lambda c: _pure_new_rank(c, lookup.labels_by_prefix),
             )
+            def _reg_marker(curie: str) -> str:
+                # Flag a pure-new identifier whose prefix is not registered in the Biolink
+                # Model for its declared type — it cannot be written out (see survival
+                # columns in the detail files).
+                own_type = types.get(curie)
+                _, needs_reg = prefix_survives(curie, own_type, lookup.prefix_priority_by_type)
+                return (
+                    f"**(NOT emitted — prefix not registered in Biolink Model for `{own_type}`)**"
+                    if needs_reg
+                    else ""
+                )
+
             for clique in ordered[:PURE_NEW_SAMPLE_LIMIT]:
                 if len(clique) == 1:
                     only = next(iter(clique))
-                    lines.append(_render_curie_entry(only, lookup))
+                    lines.append(_render_curie_entry(only, lookup, marker=_reg_marker(only)))
                 else:
                     biolink_type = classifier(clique, types) if classifier else None
                     ordered_curies = _sort_clique_for_display(
                         clique, biolink_type, lookup.prefix_priority_by_type
                     )
                     for i, c in enumerate(ordered_curies):
-                        marker = "**(preferred)**" if i == 0 else ""
+                        markers = [m for m in ("**(preferred)**" if i == 0 else "", _reg_marker(c)) if m]
                         bullet = "- " if i == 0 else "  - "
-                        lines.append(_render_curie_entry(c, lookup, bullet=bullet, marker=marker))
+                        lines.append(
+                            _render_curie_entry(c, lookup, bullet=bullet, marker=" ".join(markers))
+                        )
             lines.append("")
 
         if diff.expanded_cliques:
@@ -442,6 +500,16 @@ def _render_clique_impact(
                         markers.append(f"**(new from {name})**")
                     elif c in ec.promoted_source_curies:
                         markers.append(f"**(existing identifier, also added by {name})**")
+                    if c in ec.added_source_curies or c in ec.promoted_source_curies:
+                        # Judge survival on the identifier's *own* declared type, since the
+                        # clique's final preferred type may not be knowable here.
+                        own_type = types.get(c)
+                        _, needs_reg = prefix_survives(c, own_type, lookup.prefix_priority_by_type)
+                        if needs_reg:
+                            markers.append(
+                                f"**(NOT emitted — prefix not registered in Biolink Model "
+                                f"for `{own_type}`)**"
+                            )
                     if c == after_pref:
                         markers.append("**(preferred)**")
                     if before_pref != after_pref and c == before_pref:
@@ -516,6 +584,15 @@ def render_markdown(
     lines.append("")
 
     lines.append("## 2. Biolink types")
+    lines.append("")
+    lines.append("### Overall declared type breakdown")
+    overall_counts = contribution.declared_type_counts
+    if overall_counts:
+        for declared_type in sorted(overall_counts):
+            label = declared_type if declared_type else "(no declared type)"
+            lines.append(f"- {label}: {_fmt(overall_counts[declared_type])}")
+    else:
+        lines.append("- (no identifiers discovered)")
     lines.append("")
     lines.append("### Source-declared (from each ids file)")
     if contribution.semantic_types:
@@ -667,6 +744,7 @@ def render_json(
         "prefixes": sorted(contribution.prefixes),
         "total_identifier_count": contribution.total_identifier_count,
         "total_concord_row_count": contribution.total_concord_row_count,
+        "declared_type_counts_overall": contribution.declared_type_counts,
         "by_semantic_type": by_semantic_type,
         "final_compendium_breakdown": final_compendium_breakdown,
         "clique_diffs": diffs_serialised,
