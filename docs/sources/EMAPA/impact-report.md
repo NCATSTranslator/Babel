@@ -1,7 +1,7 @@
 # Source impact report: EMAPA
 
-- Generated: 2026-05-29 00:18:17 UTC
-- Babel commit: 7803c37afb65cc63194b07d8fc573a2e2604a40a
+- Generated: 2026-05-29 01:02:36 UTC
+- Babel commit: 5ba5405c933f8e4f4bdf50dfd05e28b962030592
 - Source semantic types: anatomy
 - Source prefixes: EMAPA
 - Comparison mode: synthetic
@@ -20,10 +20,16 @@ Totals: 8,059 identifiers across 1 prefix(es) in 1 semantic type(s).
 
 ## 2. Biolink types
 
+### Overall declared type breakdown
+
+- biolink:AnatomicalEntity: 4,085
+- biolink:GrossAnatomicalStructure: 3,974
+
 ### Source-declared (from each ids file)
 
 - anatomy / EMAPA
-  - biolink:AnatomicalEntity: 8,059
+  - biolink:AnatomicalEntity: 4,085
+  - biolink:GrossAnatomicalStructure: 3,974
 
 ### Final compendium-assigned (after glom)
 
