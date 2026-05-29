@@ -27,6 +27,7 @@ from src.categories import (
     POLYPEPTIDE,
     SMALL_MOLECULE,
 )
+from src.datahandlers.umls import semantic_types as ust
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.prefixes import (
@@ -59,28 +60,18 @@ def get_type_from_smiles(smiles):
 
 
 def write_umls_ids(mrsty, outfile):
-    groups = [
-        "A1.4.1.1.1.1",  # antibiotic
-        "A1.4.1.1.3.2",  # Hormone
-        "A1.4.1.1.3.4",  # Vitamin
-        "A1.4.1.1.3.5",  # Immunologic Factor
-        "A1.4.1.1.4",  # Indicator, Reagent, or Diagnostic Aid
-        "A1.4.1.2",  # Chemical Viewed Structurally
-        "A1.4.1.2.1",  # Organic Chemical
-        "A1.4.1.2.1.5",  # Nucleic Acid, Nucleoside, or Nucleotide
-        "A1.4.1.2.2",  # Inorganic Chemical
-        "A1.4.1.2.3",  # Element, Ion, or Isotope
-        "A1.3.3",  # Clinical Drug
-    ]
-    # Leaving out these ones:
+    # The UMLS semantic-type -> Biolink-class assignments for chemicals live in the central registry
+    # src/datahandlers/umls/semantic_types.py (UMLS_TYPE_MAP, compendium="chemicals").
+    #
+    # The blocklist stays local to this module: receptors, enzymes, and amino-acid/peptide/protein
+    # types are claimed by protein.py, so we exclude their UMLS semantic-type trees here to keep
+    # UMLS proteins out of the chemical compendium.
     exclude_umls_sty_trees = {
         "A1.4.1.1.3.6",  # Receptor
         "A1.4.1.1.3.3",  # Enzyme
         "A1.4.1.2.1.7",  # Amino Acid, Peptide, or Protein
     }
-    umlsmap = {a: CHEMICAL_ENTITY for a in groups}
-    umlsmap["A1.3.3"] = DRUG
-    umls.write_umls_ids(mrsty, umlsmap, outfile, blocklist_umls_semantic_type_tree=exclude_umls_sty_trees)
+    umls.write_umls_ids(mrsty, ust.category_map_for("chemicals"), outfile, blocklist_umls_semantic_type_tree=exclude_umls_sty_trees)
 
 
 def write_rxnorm_ids(infile, outfile):

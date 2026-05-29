@@ -8,6 +8,7 @@ import src.datahandlers.obo as obo
 import src.datahandlers.umls as umls
 from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
+from src.datahandlers.umls import semantic_types as ust
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import HP, ICD0, ICD9, ICD10, KEGGDISEASE, MEDDRA, MESH, MONDO, NCIT, OMIM, ORPHANET, SNOMEDCT, UMLS
 from src.ubergraph import build_sets
@@ -98,29 +99,11 @@ def write_umls_ids(mrsty, outfile, badumlsfile):
                 continue
             umlscui = line.split()[0]
             badumls.add(umlscui)
-    # Disease
-    # B2.2.1.2.1 Disease or Syndrome
-    # A1.2.2.1 Congenital Abnormality
-    # A1.2.2.2 Acquired Abnormality
-    # B2.3 Injury or Poisoning
-    # B2.2.1.2 Pathologic Function
-    # B2.2.1.2.1.1 Mental or Behavioral Dysfunction
-    # B2.2.1.2.2ell or Molecular Dysfunction
-    # A1.2.2 Anatomical Abnormality
-    # B2.2.1.2.1.2 Neoplastic Process
-    umlsmap = {x: DISEASE for x in ["B2.2.1.2.1", "A1.2.2.1", "A1.2.2.2", "B2.3", "B2.2.1.2", "B2.2.1.2.1.1", "B2.2.1.2.2", "A1.2.2", "B2.2.1.2.1.2"]}
-    # A2.2 Finding
-    # Compared groupings with and without finding.  Finding includes a lot of stuff like "Negative" or whatever and it causes some extra globbing up.
-    # For instance, the Alzheimer node starts to grab in some nonsense.
-    umlsmap["A2.2"] = PHENOTYPIC_FEATURE
-    # A2.2.1 Laboratory or Test Result
-    # A2.2.2 Sign or Symptom
-    umlsmap["A2.2.1"] = PHENOTYPIC_FEATURE
-    umlsmap["A2.2.2"] = PHENOTYPIC_FEATURE
-    # A2.3 Organism Attribute
-    # Includes things like "Age" which will merge with EFOs
-    umlsmap["A2.3"] = PHENOTYPIC_FEATURE
-    umls.write_umls_ids(mrsty, umlsmap, outfile, blocklist_umls_ids=badumls)
+    # The UMLS semantic-type -> Biolink-class assignments for diseases/phenotypes live in the
+    # central registry src/datahandlers/umls/semantic_types.py (UMLS_TYPE_MAP,
+    # compendium="diseasephenotype"), including the tracked #111 proposal for "Neoplastic Process".
+    # The per-build blocklist of bad UMLS CUIs stays local to this module.
+    umls.write_umls_ids(mrsty, ust.category_map_for("diseasephenotype"), outfile, blocklist_umls_ids=badumls)
 
 
 def build_disease_obo_relationships(outdir, metadata_yamls):
