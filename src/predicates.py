@@ -27,9 +27,3 @@ RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 RDFS = "http://www.w3.org/2000/01/rdf-schema#"
 RDFS_LABEL = RDFS + "label"
 RDFS_SUBCLASSOF = RDFS + "subClassOf"
-
-# OWL predicates
-OWL = "http://www.w3.org/2002/07/owl#"
-OWL_EQUIVALENT_CLASS = OWL + "equivalentClass"
-OWL_CLASS = OWL + "Class"
-OWL_ONTOLOGY = OWL + "Ontology"

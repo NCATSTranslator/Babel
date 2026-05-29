@@ -1,6 +1,14 @@
+# Classes
+
+# OWL classes
+OWL = "http://www.w3.org/2002/07/owl#"
+OWL_EQUIVALENT_CLASS = OWL + "equivalentClass"
+OWL_CLASS = OWL + "Class"
+OWL_ONTOLOGY = OWL + "Ontology"
+
+# Biolink classes
 # Keep all the biolink classes as constants to keep from having to handle name changes.
 # of course bigger changes will require code changes as well.
-
 ACTIVITY = "biolink:Activity"
 AGENT = "biolink:Agent"
 ANATOMICAL_ENTITY = "biolink:AnatomicalEntity"
