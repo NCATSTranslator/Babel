@@ -20,6 +20,11 @@ ANATOMY_OBO_SOURCES = {
     EMAPA: {"root": f"{EMAPA}:0", "type": ANATOMICAL_ENTITY},
 }
 
+# Roots of the EMAPA "organ" and "tissue" subtrees. Terms at or below these are typed as
+# GrossAnatomicalStructure (see write_emapa_ids); everything else defaults to AnatomicalEntity.
+EMAPA_ORGAN = f"{EMAPA}:35949"
+EMAPA_TISSUE = f"{EMAPA}:35868"
+
 
 def _write_ontology_ids(source_prefix, outfile):
     source = ANATOMY_OBO_SOURCES[source_prefix]
@@ -80,24 +85,53 @@ def write_cl_ids(outfile):
     _write_ontology_ids(CL, outfile)
 
 
-def write_emapa_ids(outfile):
-    """Collect EMAPA anatomy identifiers from UberGraph.
+def _emapa_descendants(uber, root):
+    """Return the set of EMAPA-prefixed CURIEs reachable from ``root`` in UberGraph.
 
-    EMAPA is a part_of partonomy, not an rdfs:subClassOf hierarchy, so it cannot be
-    collected with write_obo_ids() the way UBERON/GO/CL are — a subClassOf walk from
-    the EMAPA root reaches only a handful of terms. Walk part_of from the root instead
-    (plus the few is_a links), and keep every EMAPA-prefixed term.
+    EMAPA is a part_of partonomy, not an rdfs:subClassOf hierarchy, so we union the
+    part_of closure (the bulk of the structure) with the subClassOf closure (the few
+    is_a links). ``get_subclasses_of`` queries the redundant graph, so each call returns
+    the full transitive closure under its predicate. The ``root`` itself is not included.
     """
-    root = ANATOMY_OBO_SOURCES[EMAPA]["root"]
-    biolink_type = ANATOMY_OBO_SOURCES[EMAPA]["type"]
-    uber = UberGraph()
-    curies = {root}
+    found = set()
     for term in uber.get_subclasses_of(root, hierarchy_predicate=HIERARCHY_PART_OF) + uber.get_subclasses_of(root):
         curie = term["descendent"]
         if curie.startswith(f"{EMAPA}:"):
-            curies.add(curie)
+            found.add(curie)
+    return found
+
+
+def write_emapa_ids(outfile):
+    """Collect EMAPA anatomy identifiers from UberGraph and assign each a biolink type.
+
+    EMAPA is a part_of partonomy, not an rdfs:subClassOf hierarchy, so it cannot be
+    collected with write_obo_ids() the way UBERON/GO/CL are — a subClassOf walk from
+    the EMAPA root reaches only a handful of terms. We walk part_of from the root instead
+    (plus the few is_a links), and keep every EMAPA-prefixed term.
+
+    Biolink typing rule (one type per CURIE, written in column 2 of the ids file):
+
+    - Terms at or below EMAPA:35949 "organ" or EMAPA:35868 "tissue" are typed as
+      biolink:GrossAnatomicalStructure. The two roots are themselves gross structures, so
+      they are included.
+    - Every other EMAPA term defaults to biolink:AnatomicalEntity.
+
+    Gross typing takes precedence on overlap, matching the precedence in write_obo_ids()
+    (the ``order`` list ranks GrossAnatomicalStructure above AnatomicalEntity) and UBERON's
+    gross-branch override in write_uberon_ids().
+
+    NOTE: EMAPA is not (yet) one of GrossAnatomicalStructure's id_prefixes in the Biolink
+    Model, so EMAPA terms typed as gross are dropped by write_compendium() until EMAPA is
+    registered for that class. The source-impact report flags this; see
+    docs/AddingNewSources.md.
+    """
+    root = ANATOMY_OBO_SOURCES[EMAPA]["root"]
+    uber = UberGraph()
+    curies = {root} | _emapa_descendants(uber, root)
+    gross_curies = {EMAPA_ORGAN, EMAPA_TISSUE} | _emapa_descendants(uber, EMAPA_ORGAN) | _emapa_descendants(uber, EMAPA_TISSUE)
     with open(outfile, "w") as idfile:
         for curie in sorted(curies):
+            biolink_type = GROSS_ANATOMICAL_STRUCTURE if curie in gross_curies else ANATOMICAL_ENTITY
             idfile.write(f"{curie}\t{biolink_type}\n")
 
 
