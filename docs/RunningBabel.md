@@ -59,6 +59,37 @@ and alternate exports.
 If you have multiple CPUs available, you can increase the number of `--cores` to run multiple steps
 in parallel.
 
+### Per-target sizing
+
+Memory and time requirements vary widely by target. The README's 500 GB figure refers to the
+largest builds (protein, drugchemical-conflated, and the full pipeline together). Many
+individual targets are tractable on a laptop. Concretely, `anatomy` builds end-to-end on a Mac
+in roughly 25 minutes wall time, with UMLS downloading dominating the runtime; peak memory is
+in the low GBs. `cell_line`, `taxon`, `genefamily`, and `macromolecular_complex` are similarly
+small. `chemical`, `gene`, `protein`, `disease`, and the conflations need a workstation or HPC
+node.
+
+If you only need the intermediates for a single semantic type (for example, to generate a
+source-impact report — see [AddingNewSources.md](./AddingNewSources.md)), building just that
+target is much cheaper than `snakemake --cores N` with no target.
+
+### Common build issues
+
+* **Stale Snakemake lock.** If a previous run was killed (Ctrl-C, OOM, power loss) Snakemake
+  may refuse to start with `LockException: Directory cannot be locked`. Clear it with
+  `uv run snakemake --unlock` and retry.
+* **UberGraph transient failures.** Rules that fetch from UberGraph (anatomy's UBERON, GO, CL,
+  EMAPA rules; similar elsewhere) sometimes time out or 5xx. They carry `retries: 10` and the
+  underlying `TripleStore` adds bounded retry/backoff, so most transient blips heal
+  themselves. A full UberGraph outage will still propagate as a job failure — wait and rerun.
+* **UMLS_API_KEY not set.** The UMLS download rule fails fast with a clear error if this is
+  missing. Set it in your shell before invoking Snakemake, not just inline (`UMLS_API_KEY=… uv
+  run snakemake …` works only for the parent process and may not propagate into all subjobs
+  depending on scheduler).
+* **Partial/incomplete state from a prior aborted run.** Add `--rerun-incomplete` to force
+  Snakemake to regenerate any outputs it considers possibly-stale, which is the safest
+  default after a kill.
+
 ## Build Process
 
 The information contained here is not required to create the compendia, but may be useful to

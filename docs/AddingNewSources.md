@@ -1,0 +1,601 @@
+# Adding a new source to Babel
+
+This document walks through everything required to wire a new identifier source into
+Babel and validate that the addition behaves as expected. It also describes the
+source-impact report system used for that validation, what it can and cannot tell you
+today, and where it is likely to grow.
+
+The recently-added EMAPA source is the worked example throughout.
+
+## What "adding a source" means
+
+A Babel source contributes two kinds of intermediate artefacts under
+`babel_outputs/intermediate/<semantic_type>/`:
+
+- an `ids/<SOURCE>` file listing the CURIEs the source supplies, with an optional second
+  column declaring each row's biolink type;
+- a `concords/<SOURCE>` file listing cross-references the source asserts, as
+  `CURIE1\trelation\tCURIE2` triples.
+
+The downstream `build_compendia()` step in each `src/createcompendia/*.py` module loads
+every ids and concord file for its semantic type, calls `glom()` to build equivalence
+cliques, types each clique with `create_typed_sets`, and writes one compendium JSONL per
+biolink output type.
+
+A "source" is more flexible than a single prefix or biolink type. It can span:
+
+- **Multiple semantic types** — MESH contributes to anatomy, chemical, disease, and more.
+- **Multiple biolink types within one semantic type** — UBERON's anatomy ids file
+  declares both `biolink:AnatomicalEntity` and `biolink:GrossAnatomicalStructure`; NCIT
+  declares three.
+- **Multiple prefixes** — rare but supported by the data model.
+
+All tooling treats prefixes, biolink types, and semantic types as collections.
+
+## Step-by-step: wiring a new source
+
+The steps below mirror what was done for EMAPA. Adapt the per-file changes for your
+source.
+
+### 1. Register the prefix
+
+Add a constant to `src/prefixes.py` so the rest of the codebase refers to your source by
+name, not by literal string:
+
+```python
+EMAPA = "EMAPA"
+```
+
+If your source uses a prefix that does not yet appear in the Biolink Model's
+`id_prefixes` list for the target biolink class, raise that with the Biolink team as a
+separate task — the model determines preferred-identifier ordering inside `NodeFactory`.
+
+### 2. Add a data handler (if needed)
+
+Sources that need a non-trivial download, file parse, or external API call get a module
+under `src/datahandlers/<source>.py`. EMAPA queries UberGraph live and so does not have a
+dedicated handler; instead it uses the shared `src/ubergraph.py` `build_sets()` helper.
+
+OBO ontologies generally fit the UberGraph pattern: declare the root CURIE and the
+target biolink type, and reuse the shared loader.
+
+### 3. Add a compendium-building hook
+
+In the appropriate `src/createcompendia/<semantic_type>.py`:
+
+- Add an entry to the per-semantic-type registry (e.g. `ANATOMY_OBO_SOURCES` in
+  `anatomy.py`) so the type assignment logic knows about the new source.
+- Add a `write_<source>_ids(outfile)` function that produces the source's ids file.
+  **Give every CURIE a presumptive biolink type in column 2** (`CURIE\tbiolink:Type`, no header).
+  This type drives clique classification in the real build *and* the source-impact report's survival
+  prediction, so it should be as specific as the source's structure allows — e.g. EMAPA types
+  descendants of [`EMAPA:35949`](http://purl.obolibrary.org/obo/EMAPA_35949) "organ" and
+  [`EMAPA:35868`](http://purl.obolibrary.org/obo/EMAPA_35868) "tissue" as
+  `biolink:GrossAnatomicalStructure` and everything else as `biolink:AnatomicalEntity`
+  (`write_emapa_ids`). Some older ids writers only emit a single type for the whole source; the goal
+  is for *every* ids file to carry per-CURIE types, so do this for all of your source's inputs even
+  where existing sources have not. If the chosen type's `id_prefixes` in the Biolink Model does not
+  yet include your prefix, the build will drop those identifiers — the impact report flags this (see
+  the survival columns below) and you should raise it with the Biolink team.
+- Add concord-extraction logic for the source. For OBO sources sharing
+  `build_anatomy_obo_relationships()`, this means adding the source to the open-file map
+  and the prefix list. Other sources have bespoke extraction functions
+  (`build_anatomy_umls_relationships`, `build_wikidata_cell_relationships`, etc.).
+- Include the source's prefix in the `unique_prefixes` argument to `glom()` if its
+  identifiers must remain pairwise-unique within a clique.
+
+### 4. Wire Snakemake rules
+
+In `src/snakefiles/<semantic_type>.snakefile`:
+
+- Add an `anatomy_<source>_ids` rule (or equivalent) whose output is
+  `intermediate/<semantic_type>/ids/<SOURCE>`. Use `retries: 10` for any UberGraph or
+  network-backed rule because transient failures are common.
+- Add the source's concord output and metadata YAML to the existing concord-building
+  rule.
+
+### 5. Update `config.yaml`
+
+Add the source name to the per-semantic-type config lists:
+
+- `<semantic_type>_prefixes`
+- `<semantic_type>_ids`
+- `<semantic_type>_concords`
+- `generate_dirs_for_labels_and_synonyms_prefixes` if the source produces its own labels
+  and synonyms (UberGraph-backed sources typically do not, because labels come from the
+  shared common labels file).
+
+### 6. Add source documentation
+
+Create `docs/sources/<SOURCE>/` with at least:
+
+- `README.md` — what the source is, how it is integrated, and pointers to the other
+  files. List each sibling file with a one-line description of what it covers so readers
+  know which to open.
+- `download.md` — where the data comes from and how it is fetched.
+- `filtering.md` — any subhierarchy filters, ignored xref namespaces, or curation rules.
+- `mappings.md` — how cross-references are extracted and any special handling.
+- `impact-report.md` — generated by the tooling below, along with an `impact-report/`
+  subdirectory of full detail files (see "Detail files for SME review").
+
+Wherever a doc file mentions a specific ontology term by CURIE (root terms, example
+identifiers in the impact report, etc.), link it to its OBO PURL and include the
+preferred label in double-quotes:
+
+```markdown
+[`EMAPA:0`](http://purl.obolibrary.org/obo/EMAPA_0) "Anatomical structure"
+```
+
+To resolve a CURIE to its URL, use the Biolink Model prefix map with the `curies` package
+(already a dependency). The map has a duplicate entry that requires `strict=False`:
+
+```python
+import curies, urllib.request, json
+
+url = "https://raw.githubusercontent.com/biolink/biolink-model/v4.4.2/src/biolink_model/prefixmaps/biolink-model-prefix-map.json"
+with urllib.request.urlopen(url) as r:
+    pm = json.load(r)
+converter = curies.Converter.from_prefix_map(pm, strict=False)
+print(converter.expand("EMAPA:0"))  # http://purl.obolibrary.org/obo/EMAPA_0
+```
+
+Preferred labels are in `babel_downloads/<PREFIX>/labels` (tab-separated `CURIE\tlabel`)
+once the source has been downloaded at least once.
+
+### 7. Add tests
+
+Two test layers:
+
+- A unit-level test in `tests/datahandlers/` that exercises any new parsing or extraction
+  helper with canned inputs.
+- A pipeline-marked test in `tests/pipeline/test_<source>_pipeline.py` that uses the
+  pattern from `test_emapa_pipeline.py`: a fixture that invokes the write function and
+  caches its output, plus assertions that the ids and concord files have non-empty,
+  syntactically-valid content. Add the fixture to `tests/pipeline/conftest.py` and to
+  `VOCABULARY_REGISTRY` so the shared partitioning tests pick it up.
+
+### 8. Register the source for the impact report (optional, recommended)
+
+The synthetic comparison mode of the source-impact report needs a per-semantic-type
+compute hook. Anatomy is wired today via
+`anatomy.compute_cliques_for_impact_report`. For other semantic types, follow the same
+pattern: split that type's `build_compendia()` into a "compute cliques in memory" helper
+and a "write compendia" wrapper, then register the helper in `SEMANTIC_TYPE_CONFIG` in
+`src/cli/source_impact_report.py`.
+
+If you do not register a hook for the new semantic type, the impact report still runs —
+it warns and skips the synthetic clique diff for that type, and falls back to remote
+mode if you supply `--remote-url`.
+
+## Validating the addition
+
+After the intermediate ids and concord files have been built, generate a source-impact
+report:
+
+```bash
+uv run source-impact-report --source <SOURCE>
+```
+
+Default output is `docs/sources/<SOURCE>/impact-report.md`. Commit the report alongside
+the rest of the source's docs so the PR captures the state of the build at the time the
+source was introduced.
+
+For compendia too large to re-glom on a laptop, pair synthetic with a remote-build
+comparison (typically run from an HPC node):
+
+```bash
+uv run source-impact-report --source <SOURCE> --mode both \
+    --remote-url https://stars.renci.org/var/babel/2025dec11/
+```
+
+The Snakemake convenience rule writes the same output to the build-artifact tree:
+
+```bash
+uv run snakemake -c 1 babel_outputs/reports/source_impact/<SOURCE>.md
+```
+
+### Running a full local build of the affected semantic type
+
+If your semantic type fits on a single machine, the simplest path is to build all of
+its intermediates and compendia locally and then run the report against the populated
+`babel_outputs/` tree. Anatomy is comfortably tractable this way; other types may not be.
+
+```bash
+# Anything pulling from UMLS needs this set; it's checked at download time.
+export UMLS_API_KEY=...
+
+uv run snakemake -c all <semantic_type>
+uv run source-impact-report --source <SOURCE>
+```
+
+The Snakemake target name is the semantic-type label used in
+`src/snakefiles/<semantic_type>.snakefile` (e.g. `anatomy`, `chemical`). Building
+the full target also produces compendia, which populates section 2's "final
+compendium-assigned" counts in the report; without compendia present, that section
+is left blank.
+
+A few caveats:
+
+- A previous interrupted Snakemake run can leave the working directory locked. If
+  the build immediately fails with a `LockException`, run `uv run snakemake --unlock`
+  and retry.
+- UberGraph-backed rules (anatomy's UBERON, GO, CL, EMAPA ids and concords; similar
+  rules elsewhere) sometimes fail mid-fetch. Those rules carry `retries: 10`, but a
+  full UberGraph outage will still propagate. The recent ones are also wrapped in
+  the bounded retry/backoff added to `TripleStore`.
+- The full target rebuilds upstream sources too. Numbers in the resulting report
+  reflect the source data fetched at build time, not whatever published snapshot
+  you would otherwise have compared against — useful when you want a clean
+  current-state report, less useful when you want to diff against a specific
+  published release.
+
+### Generating the report without a full pipeline build
+
+Synthetic mode re-runs `glom()` over the intermediate `ids` and `concords` files of
+**every** source for the affected semantic type, not just the new one, so it needs that
+whole set on disk. A full local build needs ~500 GB of RAM, so the practical way to
+produce a report on a laptop is to assemble the inputs by hand from a published build.
+
+1. **Pick a recent build snapshot.** Browse `https://stars.renci.org/var/babel/` and
+   choose a recent dated build, referred to below as `<recent-build>`. Its
+   `intermediate/<semantic_type>/` directory holds the `ids/` and `concords/` files for
+   every source *except* the one you are adding.
+
+2. **Download the baseline intermediate set** for each affected semantic type into a
+   working directory. List what the snapshot provides by browsing
+   `https://stars.renci.org/var/babel/<recent-build>/intermediate/<semantic_type>/ids/`
+   and `.../concords/`, then fetch each file. For anatomy:
+
+   ```bash
+   BASE="https://stars.renci.org/var/babel/<recent-build>/intermediate/anatomy"
+   ROOT="/tmp/impact/intermediate/anatomy"
+   mkdir -p "$ROOT/ids" "$ROOT/concords"
+   for f in UBERON GO CL MESH NCIT UMLS; do
+       curl -sf "$BASE/ids/$f" -o "$ROOT/ids/$f"
+   done
+   for f in UBERON GO CL UMLS WIKIDATA; do
+       curl -sf "$BASE/concords/$f" -o "$ROOT/concords/$f"
+   done
+   ```
+
+3. **Generate the new source's intermediate files locally.** The new source is not in
+   the snapshot, so build just its `ids` and `concords` files — by running its
+   `write_*_ids()` and concord functions, or the matching Snakemake rules — and place
+   them in the same `$ROOT/ids` and `$ROOT/concords` directories.
+
+4. **Run synthetic mode against the assembled directory.** `--intermediate-root` points
+   the tool at the working directory instead of the default `babel_outputs/intermediate`:
+
+   ```bash
+   uv run source-impact-report --source <SOURCE> --mode synthetic \
+       --intermediate-root /tmp/impact/intermediate \
+       --output docs/sources/<SOURCE>/impact-report.md
+   ```
+
+`--compendia-root` (default `babel_outputs/compendia`) is read only for section 2's
+"final compendium-assigned" counts; with no local compendia, leave it pointing at a
+non-existent path and that part of the report is simply left blank.
+
+**Refreshing a report after a typing or extraction change.** The report reads the `ids`
+and `concords` files from disk and does not re-derive them, so regenerate the affected
+source files *before* re-running the tool. Calling the writer directly is cheapest, e.g.
+
+```bash
+uv run python -c "import src.createcompendia.anatomy as a; a.write_emapa_ids('babel_outputs/intermediate/anatomy/ids/EMAPA')"
+```
+
+The Snakemake rule treats an existing ids file as up-to-date unless you delete it or pass
+`--forcerun`, so the direct call avoids a no-op rule run.
+
+### Reading the report
+
+The generated markdown has four sections:
+
+1. **Identifiers added** — totals plus breakdown by prefix and by semantic type. Sanity
+   check: total should match the number of rows in `ids/<SOURCE>`. Investigate if the
+   prefix breakdown shows prefixes you did not expect (likely an extraction bug).
+2. **Biolink types** — both the source-declared types (from the ids file's second
+   column) and the final compendium-assigned types (which compendium each source CURIE
+   ended up in after `glom()` and `create_typed_sets`). Sanity check: the declared and
+   final distributions should match in shape. A large mismatch usually means a glom is
+   pulling source CURIEs into a clique that ends up typed differently than the source
+   declared, which may be desirable (the clique members agree on a more specific type)
+   or a bug. Note the final compendium-assigned counts are read from the *existing on-disk
+   compendia* (`--compendia-root`), so after you change a source's typing they lag until the
+   compendia are rebuilt and can disagree with the synthetic `would_be_added` columns in the
+   detail files.
+3. **Cross-references added** — total concord rows plus partner-prefix breakdown.
+   Sanity check: every partner prefix should be one you expect for this semantic type.
+   Unexpected prefixes are a sign the extraction did not filter the right
+   xref namespaces (compare to the `ignore_list` in
+   `build_anatomy_obo_relationships()` or the equivalent for your type).
+4. **Clique impact** — for each semantic type with a registered compute hook, counts of:
+   - **new cliques** composed only of source identifiers, with the percentage increase
+     over the pre-existing clique count,
+   - **existing cliques that contain source identifiers in the after state**, split into
+     - cliques that gain at least one *structurally new* member from the source, and
+     - cliques where the source CURIE was already pulled in via another source's xref;
+       the source's ids file now also lists those existing CURIEs as first-class typed
+       identifiers (the report calls this the *existing-identifier* or "promotion-only"
+       case interchangeably — the dataclass field is `promoted_source_curies`),
+   - **existing cliques merged** because source CURIEs bridged previously-separate
+     cliques,
+   - the total clique count before and after the source is added.
+
+   It also reports the **number of structurally-new identifiers added to existing
+   cliques** — distinct from the *count of cliques* that change, because one clique can
+   gain several identifiers at once.
+
+   Sample pure-new cliques, sample expanded cliques (with every identifier listed and
+   markers for `**(new from <SOURCE>)**`,
+   `**(existing identifier, also added by <SOURCE>)**`, and the picked
+   `**(preferred)**` identifier), and sample merges are listed (up to 3 each). The
+   samples are ranked by **review-worthiness** — the cliques with the most distinct
+   member labels surface first, since those are the likeliest place a bad cross-reference
+   has fused unrelated concepts — and the ranking is fully deterministic, so re-running
+   the tool surfaces the same examples rather than reshuffling them. For the full, uncapped
+   data, follow the links to the detail files (below). Within each sampled clique,
+   identifiers are listed in the same order they would appear in the compendium: biolink
+   prefix priority for the clique's type, then lexicographic within the same prefix
+   (matching `NodeFactory.create_node()`). The expanded-clique sample leads with cliques
+   where the preferred identifier would change as a result of the source addition, then
+   structurally grown cliques, then existing-identifier-only cliques. Watch for merges
+   that pull together cliques representing very different concepts — usually a sign of an
+   over-promiscuous xref.
+
+   **Worst-case caveat.** Section 4 is computed from the intermediate identifier/concord
+   files and cannot see downstream filtering — most importantly the Biolink Model's
+   per-class prefix restrictions, which drop identifiers whose prefix is not permitted for
+   a clique's biolink type (the section-1-vs-section-2 mismatch described below). The
+   counts and detail files are therefore an *upper bound* of what could land.
+
+If the report header shows your semantic type as having no synthetic diff, either the
+type is not yet registered in `SEMANTIC_TYPE_CONFIG` or the intermediate files were not
+fully present.
+
+#### Detail files for SME review
+
+Alongside `impact-report.md`, the tool writes an `impact-report/` subdirectory (named
+after the report's stem) holding the full, uncapped data — suitable for an SME to review
+directly in a PR, where GitHub renders CSV/TSV as sortable tables. Pass
+`--no-detail-files` to skip them. Every file is deterministically sorted, so re-running
+the tool produces byte-identical output (clean diffs).
+
+The three CSV/TSV files are committed. `modified-cliques.json` is **not** committed (it is
+listed in `.gitignore`): it grows roughly linearly with the source and would be useless to
+commit for a large addition, but the tool still writes it locally so you can dig into or
+share the full structure.
+
+- **`new-cliques.csv`** — one row per pure-new clique the source introduces. Columns:
+  `semantic_type, preferred_id, preferred_label, biolink_type, member_count,
+  equivalent_ids` (pipe-joined), then the survival columns
+  `preferred_id_would_survive, needs_biolink_registration, unsupported_prefixes`. The
+  common case is a brand-new single-identifier clique (`member_count = 1`); the rare
+  multi-member pure-new clique is included too.
+- **`modified-cliques.csv`** — one row per source identifier landing in an existing
+  (expanded or merged) clique. Columns include the clique's `preferred_id`/label/type, the
+  `change_kind` (`expanded`/`merged`), an `added_kind` of `added` (structurally new) or
+  `promoted` (already pulled in via another source's xref, now typed), the `added_id` with
+  its own label and declared type, the survival columns
+  `would_be_added, needs_biolink_registration, biolink_registration_note`, and the clique's
+  full `equivalent_ids`. Filter `added_kind = added` to see only structural growth, or
+  `would_be_added = false` to see identifiers that will be dropped downstream.
+- **`modified-cliques.json`** (local only, not committed) — the same modified cliques with
+  their full before/after structure (before-clique leaders, all after-members with labels,
+  added/promoted CURIE lists, preferred id before and after) for programmatic consumers.
+  Each entry also carries `added_curie_details`: per-identifier objects with `biolink_type`,
+  `would_be_added`, `needs_biolink_registration`, and a `note`.
+
+##### Survival columns: would these identifiers actually be emitted?
+
+The survival columns predict the downstream Biolink filtering the report otherwise cannot
+see. `write_compendium` (via `NodeFactory.create_node`) keeps only identifiers whose prefix
+is in the Biolink Model's `id_prefixes` for the clique's biolink class and silently drops
+the rest; a clique with no surviving prefix is dropped entirely. Each row is judged on the
+**added identifier's own declared biolink type** (not the clique's preferred type, which may
+not be knowable at report time): `would_be_added` is `true`/`false`/blank (blank means
+unknown — no declared type, or the report ran with `--no-biolink-lookup`), and
+`needs_biolink_registration = true` flags an identifier whose prefix must be added to the
+Biolink Model for that class before Babel can ever emit it. EMAPA's gross-anatomy terms are
+the live example: they are typed `biolink:GrossAnatomicalStructure`, a class whose
+`id_prefixes` does not yet include `EMAPA`, so they show `would_be_added = false` until
+EMAPA is registered for that class.
+
+- **`new-xrefs.tsv`** — one row per cross-reference touching a source CURIE, scanned across
+  *all* concord files (not just the source's own — a source's xrefs frequently live in
+  another vocabulary's concord, e.g. EMAPA's are asserted by UBERON). Columns:
+  `semantic_type, subject, subject_label, predicate, object, object_label, asserted_by,
+  status`. `predicate` distinguishes match strength for sources that emit it (e.g.
+  `skos:exactMatch` vs `closeMatch`; OBO-style sources use a bare `xref`). `asserted_by`
+  is the concord file that declared the xref. `status` is `added` when the new source's
+  own concord asserts the xref (a brand-new bridge) or `made_real` when another source's
+  concord already asserted it and the source now types its endpoint as a first-class
+  identifier.
+
+#### Promoted vs. truly added cliques — a common surprise
+
+For ontologies that other Babel sources already xref (UBERON, GO, CL, MESH, etc.), the
+new source's CURIEs may already be present in the "before" cliques as xref leaves. In
+that case the source's ids file adds nothing structurally — it only "promotes" those
+leaves to first-class typed identifiers. EMAPA is the canonical example: its 4,188
+"expanded" cliques are all promotion-only, because UBERON's concord file already brings
+EMAPA CURIEs into the relevant cliques. Read the truly-grown vs. promotion-only split in
+section 4 before drawing conclusions about how much structural change a source produces.
+
+A related observation: even though EMAPA contributes 8,059 identifiers, only 4,802 land
+in `AnatomicalEntity.txt` (section 2). The remainder live in cliques whose dominant
+biolink type ends up as Cell, CellularComponent, or GrossAnatomicalStructure — and
+`NodeFactory` drops them from the written compendium because EMAPA is not in those
+types' `id_prefixes` list. This kind of section-1-vs-section-2 mismatch is a useful
+signal that some source CURIEs are being routed into clique types where they cannot be
+written out; the per-identifier `would_be_added` / `needs_biolink_registration` columns in
+the detail files (above) now make this explicit at the level of individual CURIEs rather
+than only as an aggregate count.
+
+### Comparing across builds
+
+When `--mode remote` or `--mode both` is set, a fifth section summarises clique counts
+against the remote build. Today this is a coarse count (totals and cliques-with-source
+counts); the synthetic mode is still the source of truth for the pure-new/expanded/merged
+bucketing.
+
+## How the system works
+
+### Three layers
+
+The source-impact report system is split across three packages so each can be tested and
+extended independently:
+
+- `src/model/` — pure-logic primitives with no I/O entrypoints.
+  `source.py:discover_source` walks intermediate files and assembles a
+  `SourceContribution` with multi-dimensional aggregates.
+  `clique_diff.py:diff_cliques` buckets after-cliques containing source CURIEs into
+  pure-new / expanded / merged by comparing against a before glom-dict state.
+- `src/reports/source_impact.py` — markdown and JSON renderers that consume a
+  `SourceContribution` plus per-semantic-type diffs and produce the report text.
+- `src/cli/source_impact_report.py` — argparse entrypoint, semantic-type dispatch
+  (`SEMANTIC_TYPE_CONFIG`), the synthetic re-glom loop, the remote-comparison loop, and
+  the final compendium scan.
+
+Anything that benefits multiple CLIs in the future belongs in `src/model/`.
+
+### Why a synthetic re-glom
+
+The cleanest answer to "what did adding this source change?" is to run the build with
+and without the source and diff the outputs. A full pipeline rerun is too expensive, so
+the tool instead replays just the `glom()` step on the existing intermediate files,
+excluding the new source's ids and concord files for the "before" pass. This isolates
+exactly the source's contribution, is deterministic, and uses the same `glom()`,
+`remove_overused_xrefs()`, and `unique_prefixes` rules that the production build does
+(because it calls into the same `compute_cliques_for_impact_report` helper).
+
+### Why also a remote comparison
+
+For compendia too large to fit twice in memory, or when you want to see how the build
+output looks against a previously-published Babel release, remote mode downloads the
+relevant compendium JSONL files and computes clique-set membership counts. It is
+strictly weaker than synthetic mode — it cannot easily attribute changes to a single
+source — but it is the only option at scale and useful for cross-checking the synthetic
+output.
+
+## Current weaknesses
+
+Honesty about where the tool is thin today, so reviewers know what the report does and
+does not establish.
+
+### Only anatomy is registered for synthetic mode
+
+`SEMANTIC_TYPE_CONFIG` has one entry, for anatomy. Adding a source that touches
+chemical, gene, protein, disease, or other types will produce a report with empty
+section 4 entries for those types unless you first extract a
+`compute_cliques_for_impact_report` helper from that type's
+`build_compendia`. The refactor is mechanical (see `anatomy.py` for the template) but
+must be done once per type.
+
+### Synthetic mode needs the full intermediate set
+
+The "before" re-glom assumes every other source's intermediate ids and concord files for
+the semantic type already exist on disk. If you run the report after only your new
+source's files have been generated, the before-state is empty and every after-clique
+that contains your source will be classified as pure-new. In practice this means run
+the report after a full build of the affected semantic type — or after downloading
+intermediates from a recent stars.renci.org snapshot.
+
+### Remote mode is minimal
+
+Remote-mode output is just clique-count summaries: total, with-source, current-only. It
+does not classify diffs into pure-new / expanded / merged, because the previous build's
+intermediate concord files are not generally published — only the compendia are. A
+future enhancement could reconstruct an approximate bucketing from compendium
+membership.
+
+### Typing happens after the diff
+
+`create_typed_sets()` decides which compendium each clique lands in based on the
+prefixes present and the per-type rules in `src/createcompendia/<type>.py`. The synthetic
+diff is over typeless cliques, so section 2's "final compendium-assigned" view is
+populated by reading the actual compendium JSONL files. If a build has not produced
+compendia yet, that part of the report is empty.
+
+### Conflation is invisible
+
+The DrugChemical and GeneProtein conflation steps merge cliques across compendia after
+they are written. The current report does not consider conflation, so a source that
+introduces bridges that subsequently trigger conflation merges will look quieter in the
+report than the final downstream effect.
+
+### Memory cost
+
+Running `glom()` twice for a large semantic type roughly doubles peak memory. For
+anatomy this is comfortably tractable; for chemical or gene it will need either an HPC
+node, a streaming variant, or the remote-mode fallback.
+
+### Remote URL convention is unverified
+
+The remote mode constructs URLs as `<base>/compendia/<file>.txt`. This matches what
+`stars.renci.org` exposes as of the EMAPA PR but has not been confirmed against every
+build layout. If the layout changes, update `_remote_comparison_summary` in the CLI.
+
+## Future improvements
+
+Roughly ordered by expected payoff.
+
+### Roll out the compute hook to other semantic types
+
+Each new semantic-type registration enables full synthetic-mode reporting for sources
+that touch that type. The chemical and disease types are the next likely candidates
+given the volume of source additions there.
+
+### Full remote-mode bucketing
+
+If the previous build also publishes its intermediate concord files (or if we accept an
+approximation built from compendium membership), remote mode can produce the same
+pure-new / expanded / merged classification as synthetic mode. This would make
+the tool useful even when intermediates are not available locally.
+
+### Include labels in samples
+
+The sample merges and pure-new cliques today are CURIE-only. Reading labels from the
+common labels file (or the final compendia) and adding them next to each CURIE would
+dramatically improve scannability.
+
+### Conflation-aware reporting
+
+After the synthetic per-semantic-type pass, run conflation against the with-source and
+without-source clique sets and add a section that reports any cross-type merges that the
+source enables. This is the only way to fully describe the downstream impact for sources
+that participate in DrugChemical or GeneProtein conflation.
+
+### Diff against a git base branch
+
+A `--base-branch main` flag could check out the base branch, build only the affected
+intermediates, run the diff against the current branch's intermediates, and produce a
+git-aware view. Heavier to implement and run, but useful for CI integration.
+
+### CI integration
+
+Generating the report as part of CI and posting key counts as a PR comment would push
+the validation work earlier in the review cycle. The JSON output (`--format json`) is
+already structured for this.
+
+### HTML output with cross-links
+
+A simple HTML renderer with anchored sample tables and links into the compendia would
+make large reports easier to navigate than a flat markdown document.
+
+### Better handling of partially-built states
+
+The current behaviour ("missing intermediates means empty before-state, everything
+classified as pure-new") is technically correct but misleading. A guard that detects an
+implausibly-small before-state and warns at the top of the report would prevent that
+foot-gun.
+
+## Related reading
+
+- `CLAUDE.md` "Adding a new data source" — short, command-focused summary.
+- `docs/sources/EMAPA/` — the worked example for an OBO-from-UberGraph source.
+- `src/cli/source_impact_report.py` — the CLI implementation; `SEMANTIC_TYPE_CONFIG` is
+  the per-type registry.
+- `src/model/source.py` and `src/model/clique_diff.py` — the shared primitives.
+- `src/createcompendia/anatomy.py` — the template for splitting `build_compendia()` into
+  a compute helper and a writer wrapper.
