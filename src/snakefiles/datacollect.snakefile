@@ -344,7 +344,6 @@ rule get_icrdf:
     retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     run:
         obo.pull_uber_icRDF(output.icrdf_filename)
-
         # Try to load the icRDF.tsv file (this will produce an error if the file can't be read).
         node.InformationContentFactory(output.icrdf_filename)
 
