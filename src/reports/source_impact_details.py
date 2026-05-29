@@ -1,0 +1,309 @@
+"""Full, uncapped detail-file writers for the source-impact report.
+
+While ``src.reports.source_impact`` renders the human-readable markdown (and a summary
+JSON capped at a few samples), this module writes the *complete* detail files an SME
+reviews in a PR — one subdirectory (``<output-stem>/``) beside the markdown report:
+
+- ``new-cliques.csv`` — every pure-new clique the source introduces (the common case is a
+  brand-new single-identifier clique; multi-member pure-new cliques carry ``member_count``).
+- ``modified-cliques.json`` / ``modified-cliques.csv`` — every existing clique the source
+  expands or merges. The JSON keeps the full before/after structure; the CSV has one row
+  per source identifier landing in the clique, flagged ``added`` (structurally new) or
+  ``promoted`` (already pulled in via another source's xref, now a typed identifier).
+- ``new-xrefs.tsv`` — every cross-reference row touching a source CURIE, with the predicate
+  (which for SSSOM-style sources distinguishes exact/close match) and the concord file that
+  asserted it.
+
+All files are deterministically sorted so re-running the tool yields byte-identical output
+(clean git diffs). The tool cannot see downstream Biolink-class prefix filtering, so these
+files are an *upper bound* of what could land in the build.
+"""
+
+from __future__ import annotations
+
+import csv
+import json
+import pathlib
+from collections.abc import Iterable
+from dataclasses import dataclass
+
+from src.model.clique_diff import SourceImpactDiff
+from src.model.source import SourceContribution, scan_concords_for_curies
+from src.reports.source_impact import (
+    LookupContext,
+    _clique_leader,
+    _curie_label,
+    _preferred_curie,
+    _sort_clique_for_display,
+)
+
+# Detail-file names, written inside the report's per-source subdirectory.
+NEW_CLIQUES_CSV = "new-cliques.csv"
+MODIFIED_CLIQUES_JSON = "modified-cliques.json"
+MODIFIED_CLIQUES_CSV = "modified-cliques.csv"
+NEW_XREFS_TSV = "new-xrefs.tsv"
+
+PIPE = "|"
+
+
+@dataclass(frozen=True)
+class _ModifiedClique:
+    """Normalised view of one expanded-or-merged clique for the detail writers."""
+
+    semantic_type: str
+    change_kind: str  # "expanded" | "merged"
+    biolink_type: str | None
+    after_clique: frozenset[str]
+    before_cliques: tuple[frozenset[str], ...]
+    added: frozenset[str]
+    promoted: frozenset[str]
+    after_preferred: str
+    before_preferred: str | None
+
+
+def _biolink_type_for(clique, st, lookup: LookupContext) -> str | None:
+    classifier = lookup.clique_classifier.get(st)
+    types = lookup.types_by_semantic_type.get(st, {})
+    return classifier(clique, types) if classifier else None
+
+
+def _modified_cliques(
+    diffs: dict[str, SourceImpactDiff],
+    lookup: LookupContext,
+) -> list[_ModifiedClique]:
+    """Flatten every expanded and merged clique across semantic types, sorted for output."""
+    out: list[_ModifiedClique] = []
+    for st in sorted(diffs):
+        diff = diffs[st]
+        for ec in diff.expanded_cliques:
+            biolink_type = _biolink_type_for(ec.after_clique, st, lookup)
+            out.append(
+                _ModifiedClique(
+                    semantic_type=st,
+                    change_kind="expanded",
+                    biolink_type=biolink_type,
+                    after_clique=ec.after_clique,
+                    before_cliques=(ec.before_clique,),
+                    added=ec.added_source_curies,
+                    promoted=ec.promoted_source_curies,
+                    after_preferred=_preferred_curie(
+                        ec.after_clique, biolink_type, lookup.prefix_priority_by_type
+                    ),
+                    before_preferred=_preferred_curie(
+                        ec.before_clique, biolink_type, lookup.prefix_priority_by_type
+                    ),
+                )
+            )
+        for mc in diff.merged_cliques:
+            biolink_type = _biolink_type_for(mc.after_clique, st, lookup)
+            before_union: frozenset[str] = frozenset().union(*mc.before_cliques)
+            out.append(
+                _ModifiedClique(
+                    semantic_type=st,
+                    change_kind="merged",
+                    biolink_type=biolink_type,
+                    after_clique=mc.after_clique,
+                    before_cliques=mc.before_cliques,
+                    added=mc.source_curies_involved - before_union,
+                    promoted=mc.source_curies_involved & before_union,
+                    after_preferred=_preferred_curie(
+                        mc.after_clique, biolink_type, lookup.prefix_priority_by_type
+                    ),
+                    before_preferred=None,
+                )
+            )
+    out.sort(key=lambda m: (m.semantic_type, _clique_leader(m.after_clique)))
+    return out
+
+
+def _write_rows(path: pathlib.Path, header: list[str], rows: Iterable[list], *, delimiter: str = ",") -> None:
+    # lineterminator="\n" overrides csv's default "\r\n" so committed files use LF and stay
+    # byte-identical across re-runs regardless of the platform's git autocrlf setting.
+    with path.open("w", newline="") as f:
+        writer = csv.writer(f, delimiter=delimiter, lineterminator="\n")
+        writer.writerow(header)
+        writer.writerows(rows)
+
+
+def write_new_cliques_csv(
+    path: pathlib.Path,
+    diffs: dict[str, SourceImpactDiff],
+    lookup: LookupContext,
+) -> int:
+    """Write one row per pure-new clique. Returns the number of cliques written."""
+    header = [
+        "semantic_type",
+        "preferred_id",
+        "preferred_label",
+        "biolink_type",
+        "member_count",
+        "equivalent_ids",
+    ]
+    rows: list[list] = []
+    for st in sorted(diffs):
+        for clique in diffs[st].pure_new_cliques:
+            biolink_type = _biolink_type_for(clique, st, lookup)
+            ordered = _sort_clique_for_display(clique, biolink_type, lookup.prefix_priority_by_type)
+            preferred = ordered[0]
+            rows.append([
+                st,
+                preferred,
+                _curie_label(preferred, lookup.labels_by_prefix) or "",
+                biolink_type or "",
+                len(clique),
+                PIPE.join(ordered),
+            ])
+    rows.sort(key=lambda r: (r[0], r[1]))
+    _write_rows(path, header, rows)
+    return len(rows)
+
+
+def write_modified_cliques_csv(
+    path: pathlib.Path,
+    diffs: dict[str, SourceImpactDiff],
+    lookup: LookupContext,
+) -> int:
+    """Write one row per source identifier landing in a modified clique.
+
+    Returns the number of (identifier) rows written. ``added_kind`` is ``added`` for a
+    structurally-new identifier and ``promoted`` for one that was already pulled into the
+    clique via another source's cross-reference and is now a typed identifier.
+    """
+    header = [
+        "semantic_type",
+        "clique_preferred_id",
+        "clique_preferred_label",
+        "clique_biolink_type",
+        "change_kind",
+        "added_kind",
+        "added_id",
+        "added_id_label",
+        "added_id_biolink_type",
+        "equivalent_ids",
+    ]
+    rows: list[list] = []
+    for m in _modified_cliques(diffs, lookup):
+        types = lookup.types_by_semantic_type.get(m.semantic_type, {})
+        ordered = _sort_clique_for_display(
+            m.after_clique, m.biolink_type, lookup.prefix_priority_by_type
+        )
+        equivalent_ids = PIPE.join(ordered)
+        preferred_label = _curie_label(m.after_preferred, lookup.labels_by_prefix) or ""
+        for added_kind, curie_set in (("added", m.added), ("promoted", m.promoted)):
+            for curie in curie_set:
+                rows.append([
+                    m.semantic_type,
+                    m.after_preferred,
+                    preferred_label,
+                    m.biolink_type or "",
+                    m.change_kind,
+                    added_kind,
+                    curie,
+                    _curie_label(curie, lookup.labels_by_prefix) or "",
+                    types.get(curie) or "",
+                    equivalent_ids,
+                ])
+    rows.sort(key=lambda r: (r[0], r[1], r[6]))
+    _write_rows(path, header, rows)
+    return len(rows)
+
+
+def write_modified_cliques_json(
+    path: pathlib.Path,
+    diffs: dict[str, SourceImpactDiff],
+    lookup: LookupContext,
+) -> int:
+    """Write the full before/after structure of every modified clique. Returns the count."""
+
+    def members(clique: frozenset[str]) -> list[dict]:
+        return [
+            {"i": curie, "label": _curie_label(curie, lookup.labels_by_prefix)}
+            for curie in sorted(clique)
+        ]
+
+    entries: list[dict] = []
+    for m in _modified_cliques(diffs, lookup):
+        entries.append({
+            "semantic_type": m.semantic_type,
+            "change_kind": m.change_kind,
+            "biolink_type": m.biolink_type,
+            "preferred_id_before": m.before_preferred,
+            "preferred_id_after": m.after_preferred,
+            "before_clique_leaders": sorted(_clique_leader(bc) for bc in m.before_cliques),
+            "before_cliques": [sorted(bc) for bc in m.before_cliques],
+            "added_source_curies": sorted(m.added),
+            "promoted_source_curies": sorted(m.promoted),
+            "after_members": members(m.after_clique),
+        })
+    path.write_text(json.dumps(entries, indent=2, sort_keys=True) + "\n")
+    return len(entries)
+
+
+def write_new_xrefs_tsv(
+    path: pathlib.Path,
+    contribution: SourceContribution,
+    intermediate_root: pathlib.Path,
+    lookup: LookupContext,
+) -> int:
+    """Write one row per concord row touching a source CURIE, across all concord files.
+
+    ``status`` is ``added`` when the cross-reference is asserted by the new source's own
+    concord file (a brand-new bridge) and ``made_real`` when it is asserted by another
+    source's concord file and only becomes a clique edge because the source now types its
+    endpoint as a first-class identifier. Returns the number of rows written.
+    """
+    header = [
+        "semantic_type",
+        "subject",
+        "subject_label",
+        "predicate",
+        "object",
+        "object_label",
+        "asserted_by",
+        "status",
+    ]
+    rows: list[list] = []
+    source_name = contribution.name
+    for st in sorted(contribution.semantic_types):
+        stc = contribution.by_semantic_type[st]
+        concords_dir = pathlib.Path(intermediate_root) / st / "concords"
+        for subject, predicate, obj, asserted_by in scan_concords_for_curies(
+            concords_dir, stc.all_curies
+        ):
+            status = "added" if asserted_by == source_name else "made_real"
+            rows.append([
+                st,
+                subject,
+                _curie_label(subject, lookup.labels_by_prefix) or "",
+                predicate,
+                obj,
+                _curie_label(obj, lookup.labels_by_prefix) or "",
+                asserted_by,
+                status,
+            ])
+    rows.sort(key=lambda r: (r[0], r[1], r[4], r[6]))
+    _write_rows(path, header, rows, delimiter="\t")
+    return len(rows)
+
+
+def write_detail_files(
+    details_dir: pathlib.Path,
+    contribution: SourceContribution,
+    diffs: dict[str, SourceImpactDiff],
+    intermediate_root: pathlib.Path,
+    lookup: LookupContext,
+) -> dict[str, int]:
+    """Write all four detail files into ``details_dir``; return a {filename: row_count} map."""
+    details_dir.mkdir(parents=True, exist_ok=True)
+    return {
+        NEW_CLIQUES_CSV: write_new_cliques_csv(details_dir / NEW_CLIQUES_CSV, diffs, lookup),
+        MODIFIED_CLIQUES_CSV: write_modified_cliques_csv(
+            details_dir / MODIFIED_CLIQUES_CSV, diffs, lookup
+        ),
+        MODIFIED_CLIQUES_JSON: write_modified_cliques_json(
+            details_dir / MODIFIED_CLIQUES_JSON, diffs, lookup
+        ),
+        NEW_XREFS_TSV: write_new_xrefs_tsv(
+            details_dir / NEW_XREFS_TSV, contribution, intermediate_root, lookup
+        ),
+    }
