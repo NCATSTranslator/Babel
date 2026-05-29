@@ -503,7 +503,7 @@ rule get_omim:
 
 rule get_omim_labels:
     input:
-        infile=config["download_directory"] + "/OMIM/mim2gene.txt",
+        infile=rules.get_omim.output.outfile,
     output:
         outfile=config["download_directory"] + "/OMIM/labels",
     benchmark:
