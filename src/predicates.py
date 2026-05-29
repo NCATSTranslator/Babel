@@ -31,3 +31,7 @@ RDFS_SUBCLASSOF = RDFS + "subClassOf"
 
 # OWL predicates
 OWL_EQUIVALENT_CLASS = OWL + "equivalentClass"
+
+# Biolink predicates
+BIOLINK = "biolink:"
+BIOLINK_SAME_AS = BIOLINK + "same_as"

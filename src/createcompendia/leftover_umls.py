@@ -4,7 +4,18 @@ from pathlib import Path
 
 import jsonlines
 
-from src.categories import ACTIVITY, AGENT, DEVICE, DRUG, FOOD, PHYSICAL_ENTITY, PROCEDURE, PUBLICATION, SMALL_MOLECULE
+from src.categories import (
+    ACTIVITY,
+    AGENT,
+    DEVICE,
+    DRUG,
+    FOOD,
+    NAMED_THING,
+    PHYSICAL_ENTITY,
+    PROCEDURE,
+    PUBLICATION,
+    SMALL_MOLECULE,
+)
 from src.datahandlers import umls
 from src.metadata.provenance import write_metadata
 from src.node import NodeFactory
@@ -134,7 +145,7 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
                         logger.debug(f"No Biolink type found for UMLS TUI {umls_tui}")
                     return biolink_type
 
-                umls_type_results = types_by_id.get(umls_id, {"biolink:NamedThing": {"Named thing"}})
+                umls_type_results = types_by_id.get(umls_id, {NAMED_THING: {"Named thing"}})
                 biolink_types = set(list(map(umls_type_to_biolink_type, umls_type_results.keys())))
 
                 # How to deal with multiple Biolink types? We currently only have the following multiple

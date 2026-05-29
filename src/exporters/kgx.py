@@ -9,6 +9,7 @@ import logging
 import os
 from itertools import combinations
 
+from src.predicates import BIOLINK_SAME_AS
 from src.util import LoggingUtil, get_memory_usage_summary
 
 # Default logger for this file.
@@ -99,7 +100,7 @@ def convert_compendium_to_kgx(compendium_filename, kgx_nodes_filename, kgx_edges
                             {
                                 "id": f"{hashlib.md5(record_id.encode('utf-8')).hexdigest()}",
                                 "subject": c[0]["id"],
-                                "predicate": "biolink:same_as",
+                                "predicate": BIOLINK_SAME_AS,
                                 "object": c[1]["id"],
                             }
                         )

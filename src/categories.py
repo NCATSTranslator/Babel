@@ -45,6 +45,7 @@ SMALL_MOLECULE = "biolink:SmallMolecule"
 # https://biolink.github.io/biolink-model/categories.html
 NUCLEIC_ACID_ENTITY = "biolink:NucleicAcidEntity"
 MOLECULAR_ENTITY = "biolink:MolecularEntity"
+NAMED_THING = "biolink:NamedThing"
 FOOD_ADDITIVE = "biolink:FoodAdditive"
 ENVIRONMENTAL_FOOD_CONTAMINANT = "biolink:EnvironmentalFoodContaminant"
 PROCESSED_MATERIAL = "biolink:ProcessedMaterial"
