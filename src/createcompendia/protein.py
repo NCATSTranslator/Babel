@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 
 
 def extract_taxon_ids_from_uniprotkb(idmapping_filename, uniprotkb_taxa_filename):
-    """Extract NCBIGene identifiers from the UniProtKB mapping file."""
+    """Extract NCBITaxon identifiers from the UniProtKB mapping file."""
     with open(idmapping_filename) as inf, open(uniprotkb_taxa_filename, "w") as outf:
         for line in inf:
             x = line.strip().split("\t")
