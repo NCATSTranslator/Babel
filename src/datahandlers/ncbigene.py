@@ -104,7 +104,7 @@ def pull_ncbigene_labels_synonyms_and_taxa(gene_info_filename, labels_filename, 
 
             # Figure out the label. We would ideally go with:
             #   {Symbol_from_nomenclature_authority || Symbol}: {Full_name_from_nomenclature_authority}
-            # But falling back cleanly. As per https://github.com/TranslatorSRI/Babel/issues/429
+            # But falling back cleanly. As per https://github.com/NCATSTranslator/Babel/issues/429
             best_symbol = get_ncbigene_field(row, header, "Symbol_from_nomenclature_authority")
             if not best_symbol:
                 # Fallback to the "Symbol" field.

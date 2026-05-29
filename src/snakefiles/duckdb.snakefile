@@ -77,7 +77,7 @@ rule export_synonyms_to_duckdb:
         )
 
 
-# TODO: convert all conflations to Parquet via DuckDB (https://github.com/TranslatorSRI/Babel/issues/378).
+# TODO: convert all conflations to Parquet via DuckDB (https://github.com/NCATSTranslator/Babel/issues/378).
 
 
 # Create `babel_outputs/duckdb/done` once all the files have been converted.

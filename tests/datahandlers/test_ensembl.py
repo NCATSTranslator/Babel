@@ -55,7 +55,7 @@ def test_pull_ensembl(tmp_path):
     output_dir = pull_ensembl_test_dir / "download"
     os.makedirs(output_dir)
 
-    # Pull a single ENSEMBL file to that. This should trigger https://github.com/TranslatorSRI/Babel/issues/193
+    # Pull a single ENSEMBL file to that. This should trigger https://github.com/NCATSTranslator/Babel/issues/193
     single_query_report = pull_ensembl(output_dir, output_dir / "download_complete", ["choffmanni_gene_ensembl", "hgfemale_gene_ensembl"])
 
     # uamericanus_gene_ensembl should be downloadable as a single file in the above example, but we're going to
