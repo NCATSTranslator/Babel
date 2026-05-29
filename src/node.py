@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 import curies
 
 from src.LabeledID import LabeledID
+from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import PUBCHEMCOMPOUND
 from src.util import (
     Text,
@@ -74,9 +75,9 @@ class SynonymFactory:
                 for line in inf:
                     x = line.strip().split("\t", maxsplit=1)
                     if len(x) == 1:
-                        lbs[x[0]].add(("http://www.geneontology.org/formats/oboInOwl#hasExactSynonym", ""))
+                        lbs[x[0]].add((HAS_EXACT_SYNONYM, ""))
                     elif len(x) == 2:
-                        lbs[x[0]].add(("http://www.geneontology.org/formats/oboInOwl#hasExactSynonym", x[1]))
+                        lbs[x[0]].add((HAS_EXACT_SYNONYM, x[1]))
                         if x[1]:
                             count_labels += 1
         synfname = os.path.join(self.synonym_dir, prefix, "synonyms")

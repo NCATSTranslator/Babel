@@ -898,7 +898,7 @@ def create_typed_sets(eqsets, types):
                 if len(pctypes) == 1:
                     typed_sets[list(pctypes)[0]].add(equivalent_ids)
                     found = True
-                elif pctypes == {"biolink:SmallMolecule", "biolink:MolecularMixture"}:
+                elif pctypes == {SMALL_MOLECULE, MOLECULAR_MIXTURE}:
                     # This is a common case (8,178 cases in 2022oct13) which occurs in cases where the InChI for
                     # e.g. water (SMILES: O) and hydron;hydroxide ([H+].[OH-]) are identical, causing them to be
                     # merged. (They may also be merged if we combine two identifiers into a single clique that is
@@ -913,7 +913,7 @@ def create_typed_sets(eqsets, types):
                     molecular_mixture_ids = set()
                     all_other_ids = set()
                     for eq_id in equivalent_ids:
-                        if eq_id in types and types[eq_id] == "biolink:MolecularMixture":
+                        if eq_id in types and types[eq_id] == MOLECULAR_MIXTURE:
                             molecular_mixture_ids.add(eq_id)
                         else:
                             all_other_ids.add(eq_id)
@@ -924,8 +924,8 @@ def create_typed_sets(eqsets, types):
                         + f"into a biolink:MolecularMixture ({molecular_mixture_ids}) and "
                         + f"a biolink:SmallMolecule ({all_other_ids})"
                     )
-                    typed_sets["biolink:MolecularMixture"].add(frozenset(molecular_mixture_ids))
-                    typed_sets["biolink:SmallMolecule"].add(frozenset(all_other_ids))
+                    typed_sets[MOLECULAR_MIXTURE].add(frozenset(molecular_mixture_ids))
+                    typed_sets[SMALL_MOLECULE].add(frozenset(all_other_ids))
                     found = True
                 else:
                     logging.warning(f"An unexpected number of PUBCHEM types found for {equivalent_ids} ({len(pctypes)}): {pctypes}")

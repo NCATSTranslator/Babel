@@ -10,6 +10,7 @@ import requests
 from src.babel_utils import make_local_name
 from src.categories import CHEMICAL_ENTITY, DRUG, MOLECULAR_MIXTURE
 from src.metadata.provenance import write_concord_metadata
+from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import RXCUI, UMLS
 from src.util import get_logger
 
@@ -412,7 +413,7 @@ def pull_umls(mrconso):
                 snomed_id = f"SNOMEDCT:{x[15]}"
                 if termtype == "PT":
                     snolabels.write(f"{snomed_id}\t{term}\n")
-                snosyns.write(f"{snomed_id}\thttp://www.geneontology.org/formats/oboInOwl#hasExactSynonym\t{term}\n")
+                snosyns.write(f"{snomed_id}\t{HAS_EXACT_SYNONYM}\t{term}\n")
             # UMLS is a collection of sources. They pick one of the names from these sources for a concept,
             # and that's based on a priority that they define. Here we get the priority for terms so we
             # can get the right one for the label
@@ -437,4 +438,4 @@ def pull_umls(mrconso):
                 if re_numerical.fullmatch(s):
                     logging.debug(f"Found numerical synonym '{s}' in UMLS, skipping")
                     continue
-                synonyms.write(f"{UMLS}:{cui}\thttp://www.geneontology.org/formats/oboInOwl#hasExactSynonym\t{s}\n")
+                synonyms.write(f"{UMLS}:{cui}\t{HAS_EXACT_SYNONYM}\t{s}\n")

@@ -6,6 +6,7 @@ from zipfile import ZipFile
 
 import requests
 
+from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import DRUGBANK
 
 
@@ -44,4 +45,4 @@ def extract_drugbank_labels_and_synonyms(drugbank_vocab_csv, labels, synonyms):
             if "Synonyms" in line and line["Synonyms"].strip() != "":
                 synonyms = line["Synonyms"].split(" | ")
                 for syn in synonyms:
-                    synonymsf.write(f"{drugbank_id}\thttp://www.geneontology.org/formats/oboInOwl#hasExactSynonym\t{syn}\n")
+                    synonymsf.write(f"{drugbank_id}\t{HAS_EXACT_SYNONYM}\t{syn}\n")
