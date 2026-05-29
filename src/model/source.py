@@ -170,6 +170,19 @@ class SourceContribution:
         return frozenset(out)
 
     @property
+    def declared_type_counts(self) -> dict[str, int]:
+        """Total CURIEs declaring each biolink type, summed across all semantic types.
+
+        Rows without a declared type are bucketed under the empty string (mirroring
+        ``SemanticTypeContribution.declared_type_counts``).
+        """
+        counts: dict[str, int] = defaultdict(int)
+        for stc in self.by_semantic_type.values():
+            for declared, count in stc.declared_type_counts.items():
+                counts[declared] += count
+        return dict(counts)
+
+    @property
     def total_identifier_count(self) -> int:
         return sum(len(stc.all_curies) for stc in self.by_semantic_type.values())
 

@@ -100,7 +100,9 @@ def test_cli_synthetic_report_covers_all_sections(synthetic_intermediate, tmp_pa
     assert "- NEWSRC: 4" in report
     assert "- anatomy: 4" in report
 
-    # Section 2: both declared biolink types are counted.
+    # Section 2: both declared biolink types are counted, and the overall roll-up across
+    # semantic types is present.
+    assert "### Overall declared type breakdown" in report
     assert "biolink:AnatomicalEntity: 3" in report
     assert "biolink:GrossAnatomicalStructure: 1" in report
 
@@ -149,6 +151,10 @@ def test_cli_synthetic_report_json_diff_counts(synthetic_intermediate, tmp_path)
     assert payload["total_identifier_count"] == 4
     assert payload["total_concord_row_count"] == 3
     assert payload["semantic_types"] == ["anatomy"]
+    assert payload["declared_type_counts_overall"] == {
+        "biolink:AnatomicalEntity": 3,
+        "biolink:GrossAnatomicalStructure": 1,
+    }
 
     anatomy_diff = payload["clique_diffs"]["anatomy"]
     assert anatomy_diff["pure_new_clique_count"] == 2

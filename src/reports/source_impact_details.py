@@ -15,8 +15,13 @@ reviews in a PR — one subdirectory (``<output-stem>/``) beside the markdown re
   asserted it.
 
 All files are deterministically sorted so re-running the tool yields byte-identical output
-(clean git diffs). The tool cannot see downstream Biolink-class prefix filtering, so these
-files are an *upper bound* of what could land in the build.
+(clean git diffs). The tool cannot see downstream Biolink-class prefix filtering directly,
+so the clique/xref *counts* are an *upper bound* of what could land in the build — but the
+``new-cliques.csv`` / ``modified-cliques.csv`` rows carry per-identifier survival columns
+(``would_be_added`` / ``needs_biolink_registration``) that predict that filtering by
+checking each identifier's prefix against the Biolink Model ``id_prefixes`` for its declared
+type, so a reviewer can see which "added" identifiers would actually be emitted and which
+require a Biolink Model registration first.
 """
 
 from __future__ import annotations
@@ -34,7 +39,10 @@ from src.reports.source_impact import (
     _clique_leader,
     _curie_label,
     _preferred_curie,
+    _prefix_of,
     _sort_clique_for_display,
+    biolink_registration_note,
+    prefix_survives,
 )
 
 # Detail-file names, written inside the report's per-source subdirectory.
@@ -116,6 +124,13 @@ def _modified_cliques(
     return out
 
 
+def _fmt_bool(value: bool | None) -> str:
+    """Render a tri-state survival flag for a CSV cell ("" when unknown)."""
+    if value is None:
+        return ""
+    return "true" if value else "false"
+
+
 def _write_rows(path: pathlib.Path, header: list[str], rows: Iterable[list], *, delimiter: str = ",") -> None:
     # lineterminator="\n" overrides csv's default "\r\n" so committed files use LF and stay
     # byte-identical across re-runs regardless of the platform's git autocrlf setting.
@@ -130,7 +145,16 @@ def write_new_cliques_csv(
     diffs: dict[str, SourceImpactDiff],
     lookup: LookupContext,
 ) -> int:
-    """Write one row per pure-new clique. Returns the number of cliques written."""
+    """Write one row per pure-new clique. Returns the number of cliques written.
+
+    Survival columns predict downstream Biolink prefix filtering. ``preferred_id_would_survive``
+    judges the preferred (highest-priority) identifier; ``needs_biolink_registration`` is set
+    when that prefix is positively absent from the clique type's ``id_prefixes``. Because
+    ``create_node`` keeps a clique as long as *any* member's prefix survives,
+    ``unsupported_prefixes`` lists the member prefixes that would be dropped even if the clique
+    itself survives — for a single-identifier pure-new clique (the common case) an unsupported
+    prefix means the whole clique is dropped.
+    """
     header = [
         "semantic_type",
         "preferred_id",
@@ -138,6 +162,9 @@ def write_new_cliques_csv(
         "biolink_type",
         "member_count",
         "equivalent_ids",
+        "preferred_id_would_survive",
+        "needs_biolink_registration",
+        "unsupported_prefixes",
     ]
     rows: list[list] = []
     for st in sorted(diffs):
@@ -145,6 +172,16 @@ def write_new_cliques_csv(
             biolink_type = _biolink_type_for(clique, st, lookup)
             ordered = _sort_clique_for_display(clique, biolink_type, lookup.prefix_priority_by_type)
             preferred = ordered[0]
+            would_survive, needs_reg = prefix_survives(
+                preferred, biolink_type, lookup.prefix_priority_by_type
+            )
+            unsupported = sorted(
+                {
+                    _prefix_of(c)
+                    for c in clique
+                    if prefix_survives(c, biolink_type, lookup.prefix_priority_by_type)[1]
+                }
+            )
             rows.append([
                 st,
                 preferred,
@@ -152,6 +189,9 @@ def write_new_cliques_csv(
                 biolink_type or "",
                 len(clique),
                 PIPE.join(ordered),
+                _fmt_bool(would_survive),
+                _fmt_bool(needs_reg) if would_survive is not None else "",
+                PIPE.join(unsupported),
             ])
     rows.sort(key=lambda r: (r[0], r[1]))
     _write_rows(path, header, rows)
@@ -179,6 +219,9 @@ def write_modified_cliques_csv(
         "added_id",
         "added_id_label",
         "added_id_biolink_type",
+        "would_be_added",
+        "needs_biolink_registration",
+        "biolink_registration_note",
         "equivalent_ids",
     ]
     rows: list[list] = []
@@ -191,6 +234,13 @@ def write_modified_cliques_csv(
         preferred_label = _curie_label(m.after_preferred, lookup.labels_by_prefix) or ""
         for added_kind, curie_set in (("added", m.added), ("promoted", m.promoted)):
             for curie in curie_set:
+                # Judge survival on the added identifier's *own* declared type, not the
+                # clique's preferred type (which may not be knowable at this point).
+                own_type = types.get(curie)
+                would_be_added, needs_reg = prefix_survives(
+                    curie, own_type, lookup.prefix_priority_by_type
+                )
+                note = biolink_registration_note(curie, own_type) if needs_reg else ""
                 rows.append([
                     m.semantic_type,
                     m.after_preferred,
@@ -200,7 +250,10 @@ def write_modified_cliques_csv(
                     added_kind,
                     curie,
                     _curie_label(curie, lookup.labels_by_prefix) or "",
-                    types.get(curie) or "",
+                    own_type or "",
+                    _fmt_bool(would_be_added),
+                    _fmt_bool(needs_reg) if would_be_added is not None else "",
+                    note,
                     equivalent_ids,
                 ])
     rows.sort(key=lambda r: (r[0], r[1], r[6]))
@@ -223,6 +276,25 @@ def write_modified_cliques_json(
 
     entries: list[dict] = []
     for m in _modified_cliques(diffs, lookup):
+        types = lookup.types_by_semantic_type.get(m.semantic_type, {})
+        # Per-added-identifier survival, judged on the identifier's *own* declared type.
+        # The flat added/promoted lists are kept for back-compat; this enriches them.
+        added_curie_details = []
+        for kind, curie_set in (("added", m.added), ("promoted", m.promoted)):
+            for curie in sorted(curie_set):
+                own_type = types.get(curie)
+                would_be_added, needs_reg = prefix_survives(
+                    curie, own_type, lookup.prefix_priority_by_type
+                )
+                added_curie_details.append({
+                    "i": curie,
+                    "added_kind": kind,
+                    "biolink_type": own_type,
+                    "would_be_added": would_be_added,
+                    "needs_biolink_registration": needs_reg if would_be_added is not None else None,
+                    "note": biolink_registration_note(curie, own_type) if needs_reg else None,
+                })
+        added_curie_details.sort(key=lambda d: d["i"])
         entries.append({
             "semantic_type": m.semantic_type,
             "change_kind": m.change_kind,
@@ -233,6 +305,7 @@ def write_modified_cliques_json(
             "before_cliques": [sorted(bc) for bc in m.before_cliques],
             "added_source_curies": sorted(m.added),
             "promoted_source_curies": sorted(m.promoted),
+            "added_curie_details": added_curie_details,
             "after_members": members(m.after_clique),
         })
     path.write_text(json.dumps(entries, indent=2, sort_keys=True) + "\n")
