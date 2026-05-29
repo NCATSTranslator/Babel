@@ -59,6 +59,7 @@ _SAMPLE_MIM2GENE = (
     "100640\tgene\t216\tALDH1A1\tENSG00000165092\n"
     "100650\tgene\t217\tALDH2\tENSG00000111275\n"
     "100070\tphenotype\t100329167\t\t\n"
+    "100071\tphenotype\t123\tPHENOSYM\t\n"
     "100500\tmoved/removed\t\t\t\n"
 )
 
