@@ -10,7 +10,14 @@ import requests
 
 import src.datahandlers.mesh as mesh
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.babel_utils import (
+    get_prefixes,
+    get_user_agent,
+    glom,
+    read_identifier_file,
+    remove_overused_xrefs,
+    write_compendium,
+)
 from src.categories import (
     CHEMICAL_ENTITY,
     CHEMICAL_MIXTURE,
@@ -735,9 +742,7 @@ def get_mesh_relationships(mesh_id_file, cas_out, unii_out, cas_metadata, unii_m
 
 def get_wikipedia_relationships(outfile, config, metadata_yaml):
     url = "https://query.wikidata.org/sparql?format=json&query=SELECT ?chebi ?mesh WHERE { ?compound wdt:P683 ?chebi . ?compound wdt:P486 ?mesh. }"
-    results = requests.get(url, headers={
-        "User-Agent": config['http']['User-Agent']
-    }).json()
+    results = requests.get(url, headers={"User-Agent": get_user_agent()}).json()
     pairs = [
         (f"{MESH}:{r['mesh']['value']}", f"{CHEBI}:{r['chebi']['value']}") for r in results["results"]["bindings"] if not r["mesh"]["value"].startswith("M")
     ]

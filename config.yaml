@@ -1,3 +1,7 @@
+# Information about Babel
+babel:
+  github_url: "https://github.com/NCATSTranslator/Babel"
+
 # Build information. Currently unstructured -- you can use this to write down any notes on what is going on with
 # this specific build of Babel.
 build:
@@ -17,8 +21,7 @@ output_directory: babel_outputs
 tmp_directory: babel_downloads/tmp
 
 # HTTP settings.
-http:
-  User-Agent: "Babel/1 (https://github.com/NCATSTranslator/Babel)"
+http: {}
 
 # Maps Python compendium names (as used in src/createcompendia/ and tests) to the
 # directory names that Snakemake uses under intermediate_directory.
