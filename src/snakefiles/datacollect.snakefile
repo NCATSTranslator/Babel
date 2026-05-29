@@ -501,6 +501,20 @@ rule get_omim:
         omim.pull_omim()
 
 
+rule get_omim_labels:
+    input:
+        infile=config["download_directory"] + "/OMIM/mim2gene.txt",
+    output:
+        outfile=config["download_directory"] + "/OMIM/labels",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_omim_labels.tsv"
+    resources:
+        mem="1G",
+        cpus_per_task=1,
+    run:
+        omim.pull_omim_labels(input.infile, output.outfile)
+
+
 ### NCIT
 
 
