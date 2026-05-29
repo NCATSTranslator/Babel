@@ -90,6 +90,7 @@ def test_pull_omim_labels_skips_empty_symbol(sample_mim2gene, tmp_path):
     pull_omim_labels(str(sample_mim2gene), str(outfile))
     content = outfile.read_text()
     assert f"{OMIM}:100070" not in content
+    assert f"{OMIM}:100071" not in content
     assert f"{OMIM}:100500" not in content
 
 
