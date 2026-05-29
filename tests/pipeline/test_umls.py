@@ -12,7 +12,30 @@ default.  Run with:
 """
 import pytest
 
+from src.datahandlers.umls import semantic_types as ust
 from tests.pipeline.conftest import get_curies_from_ids_file
+
+
+@pytest.mark.pipeline
+def test_semantic_network_matches_mrsty(umls_rrf_files):
+    """The hardcoded UMLS Semantic Network table must match the live MRSTY.RRF.
+
+    src/datahandlers/umls/semantic_types.py hardcodes SEMANTIC_NETWORK (TUI -> tree number, name)
+    so the module is usable offline. The semantic network changes very rarely, but if a UMLS
+    upgrade alters it this test fails at upgrade time so we update the table (and reconsider the
+    partition maps that depend on the tree numbers).
+    """
+    from_mrsty: dict[str, tuple[str, str]] = {}
+    with open(umls_rrf_files["mrsty"]) as inf:
+        for line in inf:
+            x = line.rstrip("\n").split("|")
+            tui, stn, name = x[1], x[2], x[3]
+            from_mrsty.setdefault(tui, (stn, name))
+
+    assert from_mrsty == ust.SEMANTIC_NETWORK, (
+        "SEMANTIC_NETWORK in src/datahandlers/umls/semantic_types.py no longer matches MRSTY.RRF. "
+        "Regenerate it from babel_downloads/UMLS/MRSTY.RRF (columns TUI|STN|STY)."
+    )
 
 
 @pytest.mark.pipeline
