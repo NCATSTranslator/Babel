@@ -914,7 +914,7 @@ def create_typed_sets(eqsets, types):
                     # everything we're _sure_ is a biolink:MolecularMixture into a separate clique, and leave all
                     # the other identifiers as a biolink:SmallMolecule.
                     #
-                    # First reported in https://github.com/TranslatorSRI/Babel/issues/83
+                    # First reported in https://github.com/NCATSTranslator/Babel/issues/83
                     molecular_mixture_ids = set()
                     all_other_ids = set()
                     for eq_id in equivalent_ids:

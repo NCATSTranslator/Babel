@@ -81,7 +81,7 @@ class ChemblRDF:
                 chemblid = iterm[:-1].split("/")[-1]
                 label = parse_rdf_literal(ilabel)
 
-                # Sometimes the CHEMBL label is identical to the chemblid. We don't want those (https://github.com/TranslatorSRI/Babel/issues/430).
+                # Sometimes the CHEMBL label is identical to the chemblid. We don't want those (https://github.com/NCATSTranslator/Babel/issues/430).
                 if label == chemblid:
                     label = ''
 

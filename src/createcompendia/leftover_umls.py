@@ -29,7 +29,7 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
     Search for "leftover" UMLS concepts, i.e. those that are defined and valid in MRCONSO but are not
     mapped to a concept in Babel.
 
-    As described in https://github.com/TranslatorSRI/NodeNormalization/issues/119#issuecomment-1154751451
+    As described in https://github.com/NCATSTranslator/NodeNormalization/issues/119#issuecomment-1154751451
 
     :param compendia: A list of compendia to collect.
     :param umls_labels_filename: The filename of the UMLS labels file to use for this compendium (e.g. 'babel_downloads/UMLS/labels').
@@ -223,7 +223,7 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
                         synonyms_by_id[id] = set()
                     synonyms_by_id[id].add(synonym)
 
-                    # We don't record the synonym relation (https://github.com/TranslatorSRI/Babel/pull/113#issuecomment-1516450124),
+                    # We don't record the synonym relation (https://github.com/NCATSTranslator/Babel/pull/113#issuecomment-1516450124),
                     # so we don't need to write that out now.
 
         logger.info(f"Collected synonyms for {len(synonyms_by_id)} UMLS IDs into the leftover UMLS synonyms file.")

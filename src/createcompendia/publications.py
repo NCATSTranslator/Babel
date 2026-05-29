@@ -84,7 +84,7 @@ def verify_pubmed_download_against_md5(pubmed_filename, md5_filename):
 def verify_pubmed_downloads(pubmed_directories, done_filename, pubmed_base="https://ftp.ncbi.nlm.nih.gov/pubmed/"):
     """
     download_pubmed() does a good job of downloading all the PubMed files, but every once in a while the download
-    is corrupted (https://github.com/TranslatorSRI/Babel/issues/352). Luckily, PubMed also gives up `.md5` files
+    is corrupted (https://github.com/NCATSTranslator/Babel/issues/352). Luckily, PubMed also gives up `.md5` files
     for all the downloaded files, so we can use those to verify each file. If a file is incorrect, we can re-download
     it using the more reliable HTTPS URL.
 
@@ -140,7 +140,7 @@ def parse_pubmed_into_tsvs(baseline_dir, updatefiles_dir, titles_file, status_fi
         # Track PubMed article statuses. In theory the final PubMed entry should have all the dates, which should
         # tell us the final status of a publication, but really we just want to know if the article has ever been
         # marked as retracted, so instead we track every status that has ever been attached to any article. We
-        # don't have a way of tracking properties yet (https://github.com/TranslatorSRI/Babel/issues/155), so for now
+        # don't have a way of tracking properties yet (https://github.com/NCATSTranslator/Babel/issues/155), so for now
         # we write this out in JSON to the status_file.
         pmid_status = defaultdict(set)
 

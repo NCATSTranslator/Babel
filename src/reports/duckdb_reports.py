@@ -105,7 +105,7 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
     """
     Generate a report about all the prefixes within this system.
 
-    See thoughts at https://github.com/TranslatorSRI/Babel/issues/359
+    See thoughts at https://github.com/NCATSTranslator/Babel/issues/359
 
     :param parquet_root: The root directory for the Parquet files. We expect these to have subdirectories named
         e.g. `filename=AnatomicalEntity/Clique.parquet`, etc.
@@ -195,7 +195,7 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
     """
     Generate a report about all the prefixes within this system, grouped by filename.
 
-    See thoughts at https://github.com/TranslatorSRI/Babel/issues/359
+    See thoughts at https://github.com/NCATSTranslator/Babel/issues/359
 
     :param parquet_root: The root directory for the Parquet files. We expect these to have subdirectories named
         e.g. `filename=AnatomicalEntity/Clique.parquet`, etc.

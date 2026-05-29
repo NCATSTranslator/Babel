@@ -1,7 +1,7 @@
 # Once we generate the compendium files, we need to convert them into the
 # Knowledge Graph Exchange (KGX, https://github.com/biolink/kgx) format.
 # This file provides code for doing that, based on the code from
-# https://github.com/TranslatorSRI/NodeNormalization/blob/68096b2f16e6c2eedb699178ace71cea98dc794f/node_normalizer/loader.py#L70-L208
+# https://github.com/NCATSTranslator/NodeNormalization/blob/68096b2f16e6c2eedb699178ace71cea98dc794f/node_normalizer/loader.py#L70-L208
 import gzip
 import hashlib
 import json
@@ -20,7 +20,7 @@ def convert_compendium_to_kgx(compendium_filename, kgx_nodes_filename, kgx_edges
     """
     Convert a compendium file to KGX (https://github.com/biolink/kgx) format.
 
-    Based on the code in https://github.com/TranslatorSRI/NodeNormalization/blob/68096b2f16e6c2eedb699178ace71cea98dc794f/node_normalizer/loader.py#L70-L208
+    Based on the code in https://github.com/NCATSTranslator/NodeNormalization/blob/68096b2f16e6c2eedb699178ace71cea98dc794f/node_normalizer/loader.py#L70-L208
 
     :param compendium_filename: The compendium file to convert.
     :param kgx_nodes_gz_filename: The KGX nodes gzipped file to write out.
