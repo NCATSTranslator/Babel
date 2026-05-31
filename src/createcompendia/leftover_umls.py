@@ -198,4 +198,4 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty,
     write_compendium(metadata_yamls, leftover_cliques, "umls.txt", None, labels=preferred_name_by_id, extra_prefixes=[UMLS],
                      icrdf_filename=icrdf_filename)
 
-    logger.info(f"Wrote leftover UMLS outputs: {umls_compendium}, {umls_synonyms}, {metadata_yaml}.")
+    logger.info(f"Wrote leftover UMLS outputs: {umls_compendium}, {umls_synonyms}, metadata/umls.yaml.")
