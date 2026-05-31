@@ -19,6 +19,33 @@ from src.util import get_biolink_model_toolkit, get_logger
 
 logger = get_logger(__name__)
 
+
+def tui_to_biolink_type(umls_tui: str, toolkit=None, biolink_version: str | None = None) -> str | None:
+    """
+    Convert a UMLS TUI (Type Unique Identifier) to a Biolink Model type string.
+
+    Exactly one of ``toolkit`` or ``biolink_version`` must be supplied. Pass a pre-built
+    ``toolkit`` when one is already available (avoids a redundant network fetch); pass
+    ``biolink_version`` for standalone use.
+
+    :param umls_tui: The UMLS TUI to look up (e.g. ``"T047"``).
+    :param toolkit: A BMT Toolkit instance.  Ignored when ``biolink_version`` is given.
+    :param biolink_version: Biolink Model version string (e.g. ``"4.3.6"``), used to build
+        a toolkit when ``toolkit`` is not provided.
+    :return: A formatted Biolink type string (e.g. ``"biolink:Disease"``), or ``None`` if
+        no mapping exists for the TUI.
+    :raises ValueError: If neither ``toolkit`` nor ``biolink_version`` is provided.
+    """
+    if toolkit is None:
+        if biolink_version is None:
+            raise ValueError("Either toolkit or biolink_version must be provided.")
+        toolkit = get_biolink_model_toolkit(biolink_version)
+    result = toolkit.get_element_by_mapping(f"STY:{umls_tui}", most_specific=True, formatted=True, mixin=True)
+    if result is None:
+        logger.debug(f"No Biolink type found for UMLS TUI {umls_tui}")
+    return result
+
+
 def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendium, umls_synonyms, report, biolink_version, icrdf_filename):
     """
     Search for "leftover" UMLS concepts, i.e. those that are defined and valid in MRCONSO but are not
@@ -108,7 +135,12 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
         # Create a compendium that consists solely of all MRCONSO entries that haven't been referenced.
         curies_no_umls_type = set()
         curies_multiple_umls_type = set()
-        leftover_cliques = []
+
+        # Leftover UMLS entries that are not referenced by any other compendia. Each will be a TypedClique that
+        # consists of a single UMLS identifier and the appropriate Biolink type. This allows us to override Biolink types
+        # if needed.
+        leftover_umls_cliques: list[TypedClique] = []
+
         with open(mrconso) as inf:
             for line in inf:
                 if not umls.check_mrconso_line(line):
@@ -132,14 +164,9 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
                 label = x[14]
 
                 # Lookup type.
-                def umls_type_to_biolink_type(umls_tui):
-                    biolink_type = biolink_toolkit.get_element_by_mapping(f"STY:{umls_tui}", most_specific=True, formatted=True, mixin=True)
-                    if biolink_type is None:
-                        logger.debug(f"No Biolink type found for UMLS TUI {umls_tui}")
-                    return biolink_type
 
                 umls_type_results = types_by_id.get(umls_id, {NAMED_THING: {"Named thing"}})
-                biolink_types = set(list(map(umls_type_to_biolink_type, umls_type_results.keys())))
+                biolink_types = {tui_to_biolink_type(tui, toolkit=biolink_toolkit) for tui in umls_type_results.keys()}
 
                 # How to deal with multiple Biolink types? We currently only have the following multiple
                 # types, so we can resolve these manually:
@@ -182,7 +209,7 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
                 preferred_name_by_id[umls_id] = label
 
                 # Let write_compendium() generate this singleton's compendium and synonym JSON.
-                leftover_cliques.append(TypedClique(node_type=biolink_type, identifiers=[umls_id]))
+                leftover_umls_cliques.append(TypedClique(node_type=biolink_type, identifiers=[umls_id]))
                 umls_ids_in_this_compendium.add(umls_id)
 
         logger.info(f"Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.")
@@ -191,10 +218,10 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
         logger.info(f"Found {len(curies_no_umls_type)} UMLS IDs without UMLS types and {len(curies_multiple_umls_type)} UMLS IDs with multiple UMLS types.")
         reportf.write(f"Found {len(curies_no_umls_type)} UMLS IDs without UMLS types and {len(curies_multiple_umls_type)} UMLS IDs with multiple UMLS types.\n")
 
-        logger.info(f"Writing {len(leftover_cliques)} leftover UMLS cliques with write_compendium().")
-        reportf.write(f"Writing {len(leftover_cliques)} leftover UMLS cliques with write_compendium().\n")
+        logger.info(f"Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().")
+        reportf.write(f"Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().\n")
 
-    write_compendium(metadata_yamls, leftover_cliques, "umls.txt", None, labels=preferred_name_by_id, extra_prefixes=[UMLS],
+    write_compendium(metadata_yamls, leftover_umls_cliques, "umls.txt", None, labels=preferred_name_by_id, extra_prefixes=[UMLS],
                      icrdf_filename=icrdf_filename)
 
     logger.info(f"Wrote leftover UMLS outputs: {umls_compendium}, {umls_synonyms}, metadata/umls.yaml.")
