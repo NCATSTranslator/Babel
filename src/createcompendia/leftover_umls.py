@@ -79,6 +79,12 @@ TYPE_COMBO_OVERRIDES: dict[frozenset[str], str] = {
     frozenset({PHYSICAL_ENTITY, PUBLICATION}): PUBLICATION,
     frozenset({ACTIVITY, PROCEDURE}): PROCEDURE,
     frozenset({DRUG, FOOD}): FOOD,
+    # https://github.com/NCATSTranslator/Babel/issues/569
+    # A concept typed both T033 "Finding" (-> Phenomenon) and its more specific child T034
+    # "Laboratory or Test Result" (-> ClinicalFinding) keeps the more specific ClinicalFinding.
+    # Without this, such concepts -- now routed to leftover after being excluded from
+    # diseasephenotype.py -- would resolve to two types and be dropped.
+    frozenset({PHENOMENON, CLINICAL_FINDING}): CLINICAL_FINDING,
 }
 
 
