@@ -44,6 +44,20 @@ _RDF_LANG_LITERAL_RE = re.compile(r'^"(.*)"@\w+$')
 
 
 class TypedClique(NamedTuple):
+    """A clique that carries its own Biolink node type.
+
+    Used as an element of the ``synonym_list`` passed to :func:`write_compendium` when the
+    cliques in a single compendium run do not all share the same Biolink type.  Passing a
+    heterogeneous list of ``TypedClique`` objects (with ``node_type=None`` in
+    ``write_compendium``) lets each clique declare its own type independently, which is how
+    the leftover-UMLS compendium handles entities that span many Biolink classes.
+
+    :param node_type: The ``biolink:``-prefixed class URI for this clique
+        (e.g. ``"biolink:Disease"``).  Use the named constants in ``src/categories.py``
+        rather than raw strings.
+    :param identifiers: The list of CURIEs that belong to this clique.
+    """
+
     node_type: str
     identifiers: list[str]
 
