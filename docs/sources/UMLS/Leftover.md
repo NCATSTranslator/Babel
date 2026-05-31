@@ -36,11 +36,21 @@ to anticipate how a Biolink change will land in real Babel data. The two tables 
 `leftover_umls.py` let us correct mappings locally and reversibly:
 
 - **`STY_OVERRIDES: dict[str, str | None]`** — override the Biolink type bmt assigns to a single
-  semantic type. `None` means "deliberately reject". Seeded from #569:
-  - `T033` "Finding" → `biolink:Phenomenon` (Biolink has no STY mapping for it, so without this the
-    concepts would be dropped as unmapped).
-  - `T034` "Laboratory or Test Result" → `biolink:ClinicalFinding` (Biolink maps it to the broader
-    `biolink:Phenomenon`).
+  semantic type. `None` means "deliberately reject". Current entries:
+  - `T033` "Finding" → `biolink:Phenomenon` (#569; Biolink has no STY mapping for it, so without
+    this the concepts would be dropped as unmapped).
+  - `T034` "Laboratory or Test Result" → `biolink:ClinicalFinding` (#569; Biolink maps it to the
+    broader `biolink:Phenomenon`).
+  - `T058` "Health Care Activity" → `biolink:ClinicalIntervention` (#90; bmt assigns the generic
+    `biolink:Activity`).
+  - `T045` "Genetic Function" → `biolink:BiologicalProcess` (#421; no STY mapping in Biolink).
+  - `T021` "Fully Formed Anatomical Structure" → `biolink:GrossAnatomicalStructure` (#421; no STY
+    mapping in Biolink).
+  - `T120` "Chemical Viewed Functionally" → `biolink:ChemicalEntity` (#421; no STY mapping in
+    Biolink).
+  - `T122` "Biomedical or Dental Material" → `biolink:ChemicalEntity` (#421; no STY mapping in
+    Biolink).
+  - `T168` "Food" → `biolink:Food` (#421; no STY mapping in Biolink).
 - **`TYPE_COMBO_OVERRIDES: dict[frozenset[str], str]`** — when a concept resolves to more than one
   Biolink type, pick a single one (e.g. `{Device, Drug} → Drug`).
 

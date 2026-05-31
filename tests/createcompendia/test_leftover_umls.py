@@ -10,7 +10,7 @@ import warnings
 
 import pytest
 
-from src.categories import PHENOMENON
+from src.categories import ACTIVITY, PHENOMENON
 from src.createcompendia.leftover_umls import (
     STY_OVERRIDES,
     TYPE_COMBO_OVERRIDES,
@@ -28,6 +28,12 @@ BIOLINK_VERSION = get_config()["biolink_version"]
 RECORDED_STY_BASELINE: dict[str, str | None] = {
     "T033": None,  # https://github.com/NCATSTranslator/Babel/issues/569 -- "Finding": Biolink has no STY mapping.
     "T034": PHENOMENON,  # https://github.com/NCATSTranslator/Babel/issues/569 -- "Laboratory or Test Result".
+    "T058": ACTIVITY,  # https://github.com/NCATSTranslator/Babel/issues/90 -- "Health Care Activity".
+    "T045": None,  # https://github.com/NCATSTranslator/Babel/issues/421 -- "Genetic Function": no STY mapping.
+    "T021": None,  # https://github.com/NCATSTranslator/Babel/issues/421 -- "Fully Formed Anatomical Structure": no STY mapping.
+    "T120": None,  # https://github.com/NCATSTranslator/Babel/issues/421 -- "Chemical Viewed Functionally": no STY mapping.
+    "T122": None,  # https://github.com/NCATSTranslator/Babel/issues/421 -- "Biomedical or Dental Material": no STY mapping.
+    "T168": None,  # https://github.com/NCATSTranslator/Babel/issues/421 -- "Food": no STY mapping.
 }
 
 

@@ -7,10 +7,14 @@ from src.babel_utils import TypedClique, write_compendium
 from src.categories import (
     ACTIVITY,
     AGENT,
+    BIOLOGICAL_PROCESS,
+    CHEMICAL_ENTITY,
     CLINICAL_FINDING,
+    CLINICAL_INTERVENTION,
     DEVICE,
     DRUG,
     FOOD,
+    GROSS_ANATOMICAL_STRUCTURE,
     NAMED_THING,
     PHENOMENON,
     PHYSICAL_ENTITY,
@@ -44,6 +48,24 @@ STY_OVERRIDES: dict[str, str | None] = {
     # https://github.com/NCATSTranslator/Babel/issues/569
     # "Laboratory or Test Result" is a clinical finding, not a generic Phenomenon.
     "T034": CLINICAL_FINDING,
+    # https://github.com/NCATSTranslator/Babel/issues/90
+    # "Health Care Activity" (e.g. Hospitalization) is better modeled as a clinical intervention
+    # than the generic biolink:Activity that bmt assigns. See biolink/biolink-model#1156.
+    "T058": CLINICAL_INTERVENTION,
+    # https://github.com/NCATSTranslator/Babel/issues/421
+    # bmt has no STY mapping for these semantic types, so the concepts were being dropped as
+    # unmapped. The overrides below keep them, typed as proposed in the issue. See the linked
+    # biolink-model issues in each case.
+    # "Genetic Function" -> biolink:BiologicalProcess (biolink/biolink-model#1601).
+    "T045": BIOLOGICAL_PROCESS,
+    # "Fully Formed Anatomical Structure" -> biolink:GrossAnatomicalStructure (biolink/biolink-model#1602).
+    "T021": GROSS_ANATOMICAL_STRUCTURE,
+    # "Chemical Viewed Functionally" -> biolink:ChemicalEntity (biolink/biolink-model#1600).
+    "T120": CHEMICAL_ENTITY,
+    # "Biomedical or Dental Material" -> biolink:ChemicalEntity (biolink/biolink-model#1599).
+    "T122": CHEMICAL_ENTITY,
+    # "Food" -> biolink:Food (biolink/biolink-model#1598).
+    "T168": FOOD,
 }
 
 # Disambiguation applied when a single UMLS concept resolves to more than one Biolink type (because
