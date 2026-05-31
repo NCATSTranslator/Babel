@@ -1,4 +1,5 @@
 """Unit tests for src/datahandlers/chembl.py (ChemblRDF)."""
+
 from pathlib import Path
 
 import pyoxigraph

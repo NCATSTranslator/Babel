@@ -61,6 +61,7 @@ def assert_concordance_file_valid(path: str) -> list[list[str]]:
         assert ":" in cols[2], f"Third column is not a CURIE: {cols[2]}"
     return rows
 
+
 # Biolink Model version used throughout the test suite.  Should match config.yaml.
 BIOLINK_VERSION = get_config()["biolink_version"]
 

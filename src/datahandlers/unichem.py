@@ -20,10 +20,18 @@ data_sources: dict = {
 def pull_unichem():
     """Download UniChem files."""
     pull_via_urllib(
-        "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/", "structure.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True
+        "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/",
+        "structure.tsv.gz",
+        decompress=False,
+        subpath="UNICHEM",
+        verify_gzip=True,
     )
     pull_via_urllib(
-        "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/", "reference.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True
+        "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/",
+        "reference.tsv.gz",
+        decompress=False,
+        subpath="UNICHEM",
+        verify_gzip=True,
     )
 
 
@@ -32,7 +40,9 @@ def filter_unichem(ref_file, ref_filtered):
     srclist = [str(k) for k in data_sources.keys()]
     with gzip.open(ref_file, "rt") as rf, open(ref_filtered, "w") as ref_filtered:
         header_line = rf.readline()
-        assert header_line == "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", f"Incorrect header line in {ref_file}: {header_line}"
+        assert header_line == "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", (
+            f"Incorrect header line in {ref_file}: {header_line}"
+        )
         ref_filtered.write(header_line)
         for line in rf:
             x = line.rstrip().split("\t")

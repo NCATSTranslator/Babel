@@ -24,7 +24,19 @@ from src.util import get_biolink_model_toolkit, get_logger
 
 logger = get_logger(__name__)
 
-def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso, mrsty, synonyms, umls_compendium, umls_synonyms, report, biolink_version):
+
+def write_leftover_umls(
+    metadata_yaml,
+    compendia,
+    umls_labels_filename,
+    mrconso,
+    mrsty,
+    synonyms,
+    umls_compendium,
+    umls_synonyms,
+    report,
+    biolink_version,
+):
     """
     Search for "leftover" UMLS concepts, i.e. those that are defined and valid in MRCONSO but are not
     mapped to a concept in Babel.
@@ -140,7 +152,9 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
 
                 # Lookup type.
                 def umls_type_to_biolink_type(umls_tui):
-                    biolink_type = biolink_toolkit.get_element_by_mapping(f"STY:{umls_tui}", most_specific=True, formatted=True, mixin=True)
+                    biolink_type = biolink_toolkit.get_element_by_mapping(
+                        f"STY:{umls_tui}", most_specific=True, formatted=True, mixin=True
+                    )
                     if biolink_type is None:
                         logger.debug(f"No Biolink type found for UMLS TUI {umls_tui}")
                     return biolink_type
@@ -175,15 +189,21 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
                     # We skip this CURIE, but we don't want to print multiple log messages for the same CURIE.
                     if umls_id not in curies_no_umls_type:
                         curies_no_umls_type.add(umls_id)
-                        logger.warning(f"No UMLS type found for {umls_id}: {umls_type_results} -> {biolink_types}, skipping")
+                        logger.warning(
+                            f"No UMLS type found for {umls_id}: {umls_type_results} -> {biolink_types}, skipping"
+                        )
                         reportf.write(f"NO_UMLS_TYPE [{umls_id}]: {umls_type_results} -> {biolink_types}\n")
                     continue
                 if len(biolink_types) > 1:
                     # We skip this CURIE, but we don't want to print multiple log messages for the same CURIE.
                     if umls_id not in curies_multiple_umls_type:
                         curies_multiple_umls_type.add(umls_id)
-                        logger.debug(f"Multiple UMLS types not yet supported for {umls_id}: {umls_type_results} -> {biolink_types}, skipping")
-                        reportf.write(f"MULTIPLE_UMLS_TYPES [{umls_id}]\t{biolink_types_as_str}\t{umls_type_results} -> {biolink_types}\n")
+                        logger.debug(
+                            f"Multiple UMLS types not yet supported for {umls_id}: {umls_type_results} -> {biolink_types}, skipping"
+                        )
+                        reportf.write(
+                            f"MULTIPLE_UMLS_TYPES [{umls_id}]\t{biolink_types_as_str}\t{umls_type_results} -> {biolink_types}\n"
+                        )
                     continue
                 biolink_type = list(biolink_types)[0]
                 umls_type_by_id[umls_id] = biolink_type
@@ -209,8 +229,12 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
         logger.info(f"Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.")
         reportf.write(f"Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.\n")
 
-        logger.info(f"Found {len(curies_no_umls_type)} UMLS IDs without UMLS types and {len(curies_multiple_umls_type)} UMLS IDs with multiple UMLS types.")
-        reportf.write(f"Found {len(curies_no_umls_type)} UMLS IDs without UMLS types and {len(curies_multiple_umls_type)} UMLS IDs with multiple UMLS types.\n")
+        logger.info(
+            f"Found {len(curies_no_umls_type)} UMLS IDs without UMLS types and {len(curies_multiple_umls_type)} UMLS IDs with multiple UMLS types."
+        )
+        reportf.write(
+            f"Found {len(curies_no_umls_type)} UMLS IDs without UMLS types and {len(curies_multiple_umls_type)} UMLS IDs with multiple UMLS types.\n"
+        )
 
         # Collected synonyms for all IDs in this compendium.
         synonyms_by_id = dict()
@@ -272,23 +296,25 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
 
         write_metadata(
             metadata_yaml,
-            typ='compendium',
-            name='umls.txt',
-            description='Writes out a compendium of UMLS concepts that are not mapped to a concept in Babel.',
-            sources=[{
-                "created_at": datetime.now().isoformat(),
-                'name': 'leftover_umls.write_leftover_umls()',
-                'type': 'UMLS',
-                'description': 'Writes out a compendium of UMLS concepts in MRCONSO that are not mapped to a concept in Babel.',
-            }],
+            typ="compendium",
+            name="umls.txt",
+            description="Writes out a compendium of UMLS concepts that are not mapped to a concept in Babel.",
+            sources=[
+                {
+                    "created_at": datetime.now().isoformat(),
+                    "name": "leftover_umls.write_leftover_umls()",
+                    "type": "UMLS",
+                    "description": "Writes out a compendium of UMLS concepts in MRCONSO that are not mapped to a concept in Babel.",
+                }
+            ],
             counts={
-                'concords': {
-                    'cliques': len(umls_ids_in_this_compendium),
-                    'count_concords': len(umls_ids_in_this_compendium),
-                    'count_distinct_curies': len(set(umls_ids_in_this_compendium)),
-                    'synonyms': count_synonyms,
+                "concords": {
+                    "cliques": len(umls_ids_in_this_compendium),
+                    "count_concords": len(umls_ids_in_this_compendium),
+                    "count_distinct_curies": len(set(umls_ids_in_this_compendium)),
+                    "synonyms": count_synonyms,
                 },
-            }
+            },
         )
 
         logger.info(f"Wrote out metadata file {metadata_yaml}.")

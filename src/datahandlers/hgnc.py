@@ -6,7 +6,12 @@ from src.predicates import HAS_EXACT_SYNONYM, HAS_RELATED_SYNONYM
 
 def pull_hgnc():
     # As per the "quick links" from https://www.genenames.org/download/archive/
-    pull_via_urllib("https://storage.googleapis.com/public-download-files/hgnc/json/json/", "hgnc_complete_set.json", decompress=False, subpath="HGNC")
+    pull_via_urllib(
+        "https://storage.googleapis.com/public-download-files/hgnc/json/json/",
+        "hgnc_complete_set.json",
+        decompress=False,
+        subpath="HGNC",
+    )
 
 
 def pull_hgnc_labels_and_synonyms(infile):

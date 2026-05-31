@@ -25,6 +25,7 @@ appropriate session fixture name.
 Run:
     uv run pytest tests/pipeline/checks/test_chemicals.py --pipeline --no-cov -v
 """
+
 import pytest
 
 from src.categories import CHEMICAL_ENTITY
@@ -117,8 +118,7 @@ def test_curie_in_chemicals(request, check: IdentifierCheck) -> None:
     outputs = request.getfixturevalue(check.fixture)
     ids = get_curies_and_types_from_ids_file(outputs[check.compendium])
     assert check.curie in ids, (
-        f"{check.curie} not found in chemicals "
-        f"(expected type {check.expected_type}; see {check.issue})"
+        f"{check.curie} not found in chemicals (expected type {check.expected_type}; see {check.issue})"
     )
     actual_type = ids[check.curie]
     if actual_type is not None:
@@ -153,10 +153,7 @@ def test_curie_not_in_chemicals(request, check: IdentifierCheck) -> None:
 @pytest.mark.parametrize(
     "check",
     EXPECTED_XREF + EXPECTED_NO_XREF,
-    ids=[
-        f"{c.curie1}__{'xref' if c.should_xref else 'no_xref'}__{c.curie2}"
-        for c in EXPECTED_XREF + EXPECTED_NO_XREF
-    ],
+    ids=[f"{c.curie1}__{'xref' if c.should_xref else 'no_xref'}__{c.curie2}" for c in EXPECTED_XREF + EXPECTED_NO_XREF],
 )
 def test_direct_xref(request, check: ConcordCheck) -> None:
     """Check direct cross-reference presence or absence across all concord files.

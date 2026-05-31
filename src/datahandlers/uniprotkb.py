@@ -32,7 +32,9 @@ def pull_uniprot_labels(sprotfile, tremblfile, fname):
             labelfile.write(f"{k}\t{v}\n")
 
 
-def download_umls_gene_protein_mappings(umls_uniprotkb_raw_url, umls_uniprotkb_filename, umls_gene_concords, umls_protein_concords):
+def download_umls_gene_protein_mappings(
+    umls_uniprotkb_raw_url, umls_uniprotkb_filename, umls_gene_concords, umls_protein_concords
+):
     """
     Chris Bizon generated a list of UMLS to NCBIGene/UniProtKB mappings in
     https://github.com/cbizon/UMLS_UniProtKB. This function downloads this file
@@ -58,14 +60,22 @@ def download_umls_gene_protein_mappings(umls_uniprotkb_raw_url, umls_uniprotkb_f
     os.makedirs(os.path.dirname(umls_protein_concords), exist_ok=True)
 
     count_rows = 0
-    with open(umls_uniprotkb_filename) as f, open(umls_gene_concords, "w") as genef, open(umls_protein_concords, "w") as proteinf:
+    with (
+        open(umls_uniprotkb_filename) as f,
+        open(umls_gene_concords, "w") as genef,
+        open(umls_protein_concords, "w") as proteinf,
+    ):
         csv_reader = csv.DictReader(f, dialect="excel-tab")
         for row in csv_reader:
             count_rows += 1
             if row.keys() != {"UMLS_protein", "UMLS_gene", "NCBI_gene", "UniProtKB"}:
-                raise RuntimeError(f"Format of the UniProtKB download from {umls_uniprotkb_raw_url} has changed: {csv_reader.fieldnames}.")
+                raise RuntimeError(
+                    f"Format of the UniProtKB download from {umls_uniprotkb_raw_url} has changed: {csv_reader.fieldnames}."
+                )
 
             genef.write(f"{row['UMLS_gene']}\t{RELATION}\t{row['NCBI_gene']}\n")
             proteinf.write(f"{row['UMLS_protein']}\t{RELATION}\t{row['UniProtKB']}\n")
 
-    logging.info(f"Downloaded UMLS file from {umls_uniprotkb_raw_url} and added {count_rows} to gene and protein concords.")
+    logging.info(
+        f"Downloaded UMLS file from {umls_uniprotkb_raw_url} and added {count_rows} to gene and protein concords."
+    )

@@ -63,7 +63,10 @@ def convert_synonyms_to_sapbert(synonym_filename_gz, sapbert_filename_gzipped):
     count_entry = 0
     count_training_rows = 0
     count_smaller_rows = 0
-    with gzip.open(synonym_filename_gz, "rt", encoding="utf-8") as synonymf, gzip.open(sapbert_filename_gzipped, "wt", encoding="utf-8") as sapbertf:
+    with (
+        gzip.open(synonym_filename_gz, "rt", encoding="utf-8") as synonymf,
+        gzip.open(sapbert_filename_gzipped, "wt", encoding="utf-8") as sapbertf,
+    ):
         for input_line in synonymf:
             count_entry += 1
             entry = json.loads(input_line)
