@@ -1,6 +1,7 @@
 import pytest
 
 import src.prefixes as pref
+from src import categories
 from src.LabeledID import LabeledID
 from src.node import NodeFactory
 from src.util import get_config
@@ -119,6 +120,36 @@ def test_normalization_bad_prefix(node_factory):
     assert "MESH:D012034" in ids
     assert "CHEBI:1234" in ids
     assert node["type"] == "biolink:SmallMolecule"
+
+
+@pytest.mark.network
+def test_extra_prefix_does_not_duplicate_identifier(node_factory):
+    """Make sure adding an extra prefix should not duplicate identifiers."""
+    node = node_factory.create_node([f"{pref.UMLS}:C0000005"], "biolink:SmallMolecule", extra_prefixes=[pref.UMLS])
+    assert node["identifiers"] == [{"identifier": f"{pref.UMLS}:C0000005"}]
+    assert node["id"] == {"identifier": f"{pref.UMLS}:C0000005"}
+
+
+@pytest.mark.network
+def test_extra_prefix_does_not_duplicate_identifier_multi(node_factory):
+    """Passing multiple extra_prefixes that overlap standard Biolink prefixes must not
+    duplicate any identifier, including the highest-priority one, in a multi-identifier clique."""
+    # CHEBI (highest priority) and MESH are both standard SmallMolecule prefixes.
+    # Passing them again as extra_prefixes must not cause either to appear twice
+    # or change their relative ordering.
+    node = node_factory.create_node(
+        [f"{pref.UMLS}:C0000005", f"{pref.MESH}:D012034", f"{pref.CHEBI}:1234"],
+        categories.SMALL_MOLECULE,
+        extra_prefixes=[pref.UMLS, pref.MESH, pref.CHEBI],
+    )
+    ids = [x["identifier"] for x in node["identifiers"]]
+    assert len(ids) == len(set(ids)), f"duplicate identifiers in output: {ids}"
+    assert ids.count(f"{pref.CHEBI}:1234") == 1
+    assert ids.count(f"{pref.MESH}:D012034") == 1
+    assert ids.count(f"{pref.UMLS}:C0000005") == 1
+    # CHEBI must still be the preferred identifier despite also appearing in extra_prefixes
+    assert node["identifiers"][0]["identifier"] == f"{pref.CHEBI}:1234"
+    assert node["id"]["identifier"] == f"{pref.CHEBI}:1234"
 
 
 @pytest.mark.network

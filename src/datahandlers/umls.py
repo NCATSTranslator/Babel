@@ -9,7 +9,7 @@ import requests
 
 from src.babel_utils import make_local_name
 from src.categories import CHEMICAL_ENTITY, DRUG, MOLECULAR_MIXTURE
-from src.metadata.provenance import write_concord_metadata
+from src.metadata.provenance import write_concord_metadata, write_download_metadata
 from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import RXCUI, UMLS
 from src.util import get_logger
@@ -318,13 +318,14 @@ def download_umls(umls_version, umls_subset, download_dir):
     # As described at https://documentation.uts.nlm.nih.gov/automating-downloads.html
     umls_url = "https://uts-ws.nlm.nih.gov/download"
     filename = f"umls-{umls_version}-metathesaurus-{umls_subset}.zip"
+    umls_full_url = f"https://download.nlm.nih.gov/umls/kss/{umls_version}/{filename}"
     req = requests.get(
         umls_url,
-        {"url": f"https://download.nlm.nih.gov/umls/kss/{umls_version}/{filename}", "apiKey": umls_api_key},
+        {"url": umls_full_url, "apiKey": umls_api_key},
         stream=True,
     )
     if not req.ok:
-        raise RuntimeError(f"Unable to download UMLS from {umls_url}: {req}")
+        raise RuntimeError(f"Unable to download UMLS from {umls_full_url}: {req}")
 
     # Write file to {download_dir}/umls-{umls_version}-metathesaurus-full.zip
     logging.info(f"Downloading {filename} to {download_dir}")
@@ -346,6 +347,21 @@ def download_umls(umls_version, umls_subset, download_dir):
     shutil.copy2(os.path.join(download_dir, umls_version, "META", "MRSTY.RRF"), download_dir)
     # - MRREL.RRF
     shutil.copy2(os.path.join(download_dir, umls_version, "META", "MRREL.RRF"), download_dir)
+
+    # Create a metadata.yaml file for UMLS.
+    metadata_yaml = os.path.join(download_dir, "UMLS.metadata.yaml")
+    write_download_metadata(
+        metadata_yaml,
+        name="UMLS Metathesaurus",
+        url=umls_full_url,
+        description=f"UMLS Metathesaurus {umls_version} ({umls_subset} subset), downloaded via the UTS download API.",
+        sources=[{
+            "name": "UMLS Metathesaurus MRCONSO.RRF, MRSTY.RRF and MRREL.RRF",
+            "version": umls_version,
+            "subset": umls_subset,
+            "url": umls_full_url,
+        }],
+    )
 
 
 def download_rxnorm(rxnorm_version, download_dir):
