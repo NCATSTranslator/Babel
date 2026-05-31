@@ -29,11 +29,14 @@ rule leftover_umls:
             output=config["output_directory"],
             compendium=[x for x in get_all_compendia(config) if x not in {"umls.txt"}],
         ),
-        umls_label_filename=config["download_directory"] + "/UMLS/labels",
         mrconso=config["download_directory"] + "/UMLS/MRCONSO.RRF",
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
-        synonyms=config["download_directory"] + "/UMLS/synonyms",
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
+        # These are required, and I'll leave them here so that they are generated,
+        # but since they are picked up implicitly (ugh) we don't need to pass it to
+        # write_leftover_umls().
+        config["download_directory"] + "/UMLS/labels",
+        config["download_directory"] + "/UMLS/synonyms",
     output:
         umls_compendium=config["output_directory"] + "/compendia/umls.txt",
         umls_synonyms=temp(config["output_directory"] + "/synonyms/umls.txt"),
@@ -43,12 +46,9 @@ rule leftover_umls:
         config["output_directory"] + "/benchmarks/leftover_umls.tsv"
     run:
         write_leftover_umls(
-            output.umls_metadata_yaml,
             input.input_compendia,
-            input.umls_label_filename,
             input.mrconso,
             input.mrsty,
-            input.synonyms,
             output.umls_compendium,
             output.umls_synonyms,
             output.report,

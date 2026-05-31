@@ -19,8 +19,8 @@ from src.util import get_biolink_model_toolkit, get_logger
 
 logger = get_logger(__name__)
 
-def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso, mrsty,
-                        synonyms, umls_compendium, umls_synonyms, report, biolink_version, icrdf_filename):
+def write_leftover_umls(compendia, mrconso, mrsty,
+                        umls_compendium, umls_synonyms, report, biolink_version, icrdf_filename):
     """
     Search for "leftover" UMLS concepts, i.e. those that are defined and valid in MRCONSO but are not
     mapped to a concept in Babel.
@@ -28,10 +28,8 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
     As described in https://github.com/NCATSTranslator/NodeNormalization/issues/119#issuecomment-1154751451
 
     :param compendia: A list of compendia to collect.
-    :param umls_labels_filename: The filename of the UMLS labels file to use for this compendium (e.g. 'babel_downloads/UMLS/labels').
     :param mrconso: MRCONSO.RRF file path
     :param mrsty: MRSTY.RRF file path
-    :param synonyms: synonyms file for UMLS
     :param umls_compendium: The UMLS compendium file to write out.
     :param umls_synonyms: The synonyms file to generate for this compendium.
     :param report: The report file to write out.
@@ -41,7 +39,7 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
     """
 
     logger.info(
-        f"write_leftover_umls({compendia}, {umls_labels_filename}, {mrconso}, {mrsty}, {synonyms}, {umls_compendium}, {umls_synonyms}, {report}, {biolink_version}, {icrdf_filename})"
+        f"write_leftover_umls({compendia}, {mrconso}, {mrsty}, {umls_compendium}, {umls_synonyms}, {report}, {biolink_version}, {icrdf_filename})"
     )
 
     # For now, we have many more UMLS entities in MRCONSO than in the compendia, so
@@ -196,7 +194,7 @@ def write_leftover_umls(metadata_yaml, compendia, umls_labels_filename, mrconso,
         logger.info(f"Writing {len(leftover_cliques)} leftover UMLS cliques with write_compendium().")
         reportf.write(f"Writing {len(leftover_cliques)} leftover UMLS cliques with write_compendium().\n")
 
-    write_compendium([], leftover_cliques, "umls.txt", None, labels=preferred_name_by_id, extra_prefixes=[UMLS], 
+    write_compendium([], leftover_cliques, "umls.txt", None, labels=preferred_name_by_id, extra_prefixes=[UMLS],
                      icrdf_filename=icrdf_filename)
 
     logger.info(f"Wrote leftover UMLS outputs: {umls_compendium}, {umls_synonyms}, {metadata_yaml}.")
