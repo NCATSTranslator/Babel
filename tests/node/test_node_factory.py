@@ -130,6 +130,28 @@ def test_extra_prefix_does_not_duplicate_identifier(node_factory):
 
 
 @pytest.mark.network
+def test_extra_prefix_does_not_duplicate_identifier_multi(node_factory):
+    """Passing multiple extra_prefixes that overlap standard Biolink prefixes must not
+    duplicate any identifier, including the highest-priority one, in a multi-identifier clique."""
+    # CHEBI (highest priority) and MESH are both standard SmallMolecule prefixes.
+    # Passing them again as extra_prefixes must not cause either to appear twice
+    # or change their relative ordering.
+    node = node_factory.create_node(
+        ["CHEBI:1234", "MESH:D012034", f"{pref.UMLS}:C0000005"],
+        "biolink:SmallMolecule",
+        extra_prefixes=[pref.CHEBI, pref.MESH],
+    )
+    ids = [x["identifier"] for x in node["identifiers"]]
+    assert len(ids) == len(set(ids)), f"duplicate identifiers in output: {ids}"
+    assert ids.count("CHEBI:1234") == 1
+    assert ids.count("MESH:D012034") == 1
+    assert ids.count(f"{pref.UMLS}:C0000005") == 1
+    # CHEBI must still be the preferred identifier despite also appearing in extra_prefixes
+    assert node["identifiers"][0]["identifier"] == "CHEBI:1234"
+    assert node["id"]["identifier"] == "CHEBI:1234"
+
+
+@pytest.mark.network
 def test_normalization_labeled_id(node_factory):
     """Make sure that the node creator can handle labels passed as a dict"""
     labels = {"CHEBI:1234": "name"}
