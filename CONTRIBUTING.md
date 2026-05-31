@@ -42,13 +42,13 @@ For a detailed guide to the development workflow — including how to obtain pre
 individual compendia, and ideas for making the pipeline easier to work with — see
 [docs/Development.md](./docs/Development.md).
 
-We use three linters to check the style of submitted code in GitHub pull
+We use several linters and formatters to check the style of submitted code in GitHub pull
 requests -- don't worry if this is difficult to do at your end, as it is easy to
 fix in a pull request:
 
 - [ruff](https://docs.astral.sh/ruff/) for Python code
-  - You can run this locally by running `uv run ruff check`.
-  - You can use `uv run ruff check --fix` to automatically fix some issues.
+  - You can run `uv run ruff check` to lint and `uv run ruff format --check` to check formatting.
+  - You can use `uv run ruff check --fix` and `uv run ruff format` to automatically fix issues.
 - [snakefmt](https://github.com/snakemake/snakefmt) for Snakemake files
   - You can run this locally by running
     `uv run snakefmt --check --compact-diff .`.
