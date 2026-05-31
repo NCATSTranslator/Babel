@@ -24,6 +24,8 @@ configfile: "config.yaml"
 
 rule leftover_umls:
     input:
+        config["download_directory"] + "/UMLS/labels",
+        config["download_directory"] + "/UMLS/synonyms",
         input_compendia=expand(
             "{output}/compendia/{compendium}",
             output=config["output_directory"],
@@ -36,8 +38,6 @@ rule leftover_umls:
         # These are required, and I'll leave them here so that they are generated,
         # but since they are picked up implicitly (ugh) we don't need to pass it to
         # write_leftover_umls().
-        config["download_directory"] + "/UMLS/labels",
-        config["download_directory"] + "/UMLS/synonyms",
     output:
         umls_compendium=config["output_directory"] + "/compendia/umls.txt",
         umls_synonyms=temp(config["output_directory"] + "/synonyms/umls.txt"),
@@ -46,7 +46,8 @@ rule leftover_umls:
     benchmark:
         config["output_directory"] + "/benchmarks/leftover_umls.tsv"
     run:
-        write_leftover_umls([input.umls_metadata_yaml],
+        write_leftover_umls(
+            [input.umls_metadata_yaml],
             input.input_compendia,
             input.mrconso,
             input.mrsty,
