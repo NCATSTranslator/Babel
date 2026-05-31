@@ -19,8 +19,7 @@ from src.util import get_biolink_model_toolkit, get_logger
 
 logger = get_logger(__name__)
 
-def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty,
-                        umls_compendium, umls_synonyms, report, biolink_version, icrdf_filename):
+def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendium, umls_synonyms, report, biolink_version, icrdf_filename):
     """
     Search for "leftover" UMLS concepts, i.e. those that are defined and valid in MRCONSO but are not
     mapped to a concept in Babel.
