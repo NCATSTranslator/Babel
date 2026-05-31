@@ -1,6 +1,7 @@
 import pytest
 
 import src.prefixes as pref
+from src import categories
 from src.LabeledID import LabeledID
 from src.node import NodeFactory
 from src.util import get_config
@@ -137,18 +138,18 @@ def test_extra_prefix_does_not_duplicate_identifier_multi(node_factory):
     # Passing them again as extra_prefixes must not cause either to appear twice
     # or change their relative ordering.
     node = node_factory.create_node(
-        ["CHEBI:1234", "MESH:D012034", f"{pref.UMLS}:C0000005"],
-        "biolink:SmallMolecule",
-        extra_prefixes=[pref.CHEBI, pref.MESH],
+        [f"{pref.UMLS}:C0000005", f"{pref.MESH}:D012034", f"{pref.CHEBI}:1234"],
+        categories.SMALL_MOLECULE,
+        extra_prefixes=[pref.UMLS, pref.MESH, pref.CHEBI],
     )
     ids = [x["identifier"] for x in node["identifiers"]]
     assert len(ids) == len(set(ids)), f"duplicate identifiers in output: {ids}"
-    assert ids.count("CHEBI:1234") == 1
-    assert ids.count("MESH:D012034") == 1
+    assert ids.count(f"{pref.CHEBI}:1234") == 1
+    assert ids.count(f"{pref.MESH}:D012034") == 1
     assert ids.count(f"{pref.UMLS}:C0000005") == 1
     # CHEBI must still be the preferred identifier despite also appearing in extra_prefixes
-    assert node["identifiers"][0]["identifier"] == "CHEBI:1234"
-    assert node["id"]["identifier"] == "CHEBI:1234"
+    assert node["identifiers"][0]["identifier"] == f"{pref.CHEBI}:1234"
+    assert node["id"]["identifier"] == f"{pref.CHEBI}:1234"
 
 
 @pytest.mark.network
