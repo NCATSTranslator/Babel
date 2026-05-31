@@ -9,7 +9,7 @@ import requests
 
 from src.babel_utils import make_local_name
 from src.categories import CHEMICAL_ENTITY, DRUG, MOLECULAR_MIXTURE
-from src.metadata.provenance import write_concord_metadata
+from src.metadata.provenance import write_concord_metadata, write_download_metadata
 from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import RXCUI, UMLS
 from src.util import get_logger
@@ -346,6 +346,17 @@ def download_umls(umls_version, umls_subset, download_dir):
     shutil.copy2(os.path.join(download_dir, umls_version, "META", "MRSTY.RRF"), download_dir)
     # - MRREL.RRF
     shutil.copy2(os.path.join(download_dir, umls_version, "META", "MRREL.RRF"), download_dir)
+
+    # Create a metadata.yaml file for UMLS.
+    metadata_yaml = os.path.join(download_dir, "UMLS.metadata.yaml")
+    umls_url = f"https://download.nlm.nih.gov/umls/kss/{umls_version}/umls-{umls_version}-metathesaurus-{umls_subset}.zip"
+    write_download_metadata(
+        metadata_yaml,
+        name="UMLS Metathesaurus",
+        url=umls_url,
+        description=f"UMLS Metathesaurus {umls_version} ({umls_subset} subset), downloaded via the UTS download API.",
+        sources=[{"name": "UMLS Metathesaurus", "version": umls_version, "subset": umls_subset, "url": umls_url}],
+    )
 
 
 def download_rxnorm(rxnorm_version, download_dir):

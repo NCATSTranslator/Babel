@@ -19,7 +19,7 @@ from src.util import get_biolink_model_toolkit, get_logger
 
 logger = get_logger(__name__)
 
-def write_leftover_umls(compendia, mrconso, mrsty,
+def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty,
                         umls_compendium, umls_synonyms, report, biolink_version, icrdf_filename):
     """
     Search for "leftover" UMLS concepts, i.e. those that are defined and valid in MRCONSO but are not
@@ -27,6 +27,7 @@ def write_leftover_umls(compendia, mrconso, mrsty,
 
     As described in https://github.com/NCATSTranslator/NodeNormalization/issues/119#issuecomment-1154751451
 
+    :param metadata_yamls: A list of metadata YAML files that led to this compendium.
     :param compendia: A list of compendia to collect.
     :param mrconso: MRCONSO.RRF file path
     :param mrsty: MRSTY.RRF file path
@@ -39,7 +40,7 @@ def write_leftover_umls(compendia, mrconso, mrsty,
     """
 
     logger.info(
-        f"write_leftover_umls({compendia}, {mrconso}, {mrsty}, {umls_compendium}, {umls_synonyms}, {report}, {biolink_version}, {icrdf_filename})"
+        f"write_leftover_umls({metadata_yamls}, {compendia}, {mrconso}, {mrsty}, {umls_compendium}, {umls_synonyms}, {report}, {biolink_version}, {icrdf_filename})"
     )
 
     # For now, we have many more UMLS entities in MRCONSO than in the compendia, so
@@ -194,7 +195,7 @@ def write_leftover_umls(compendia, mrconso, mrsty,
         logger.info(f"Writing {len(leftover_cliques)} leftover UMLS cliques with write_compendium().")
         reportf.write(f"Writing {len(leftover_cliques)} leftover UMLS cliques with write_compendium().\n")
 
-    write_compendium([], leftover_cliques, "umls.txt", None, labels=preferred_name_by_id, extra_prefixes=[UMLS],
+    write_compendium(metadata_yamls, leftover_cliques, "umls.txt", None, labels=preferred_name_by_id, extra_prefixes=[UMLS],
                      icrdf_filename=icrdf_filename)
 
     logger.info(f"Wrote leftover UMLS outputs: {umls_compendium}, {umls_synonyms}, {metadata_yaml}.")

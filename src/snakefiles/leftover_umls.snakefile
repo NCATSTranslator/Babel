@@ -31,6 +31,7 @@ rule leftover_umls:
         ),
         mrconso=config["download_directory"] + "/UMLS/MRCONSO.RRF",
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
+        umls_metadata_yaml=config["download_directory"] + "/UMLS/UMLS.metadata.yaml",
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
         # These are required, and I'll leave them here so that they are generated,
         # but since they are picked up implicitly (ugh) we don't need to pass it to
@@ -45,7 +46,7 @@ rule leftover_umls:
     benchmark:
         config["output_directory"] + "/benchmarks/leftover_umls.tsv"
     run:
-        write_leftover_umls(
+        write_leftover_umls([input.umls_metadata_yaml],
             input.input_compendia,
             input.mrconso,
             input.mrsty,
