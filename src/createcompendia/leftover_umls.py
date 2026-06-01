@@ -46,7 +46,9 @@ def tui_to_biolink_type(umls_tui: str, toolkit=None, biolink_version: str | None
     return result
 
 
-def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendium, umls_synonyms, report, biolink_version, icrdf_filename):
+def write_leftover_umls(
+    metadata_yamls, compendia, mrconso, mrsty, umls_compendium, umls_synonyms, report, biolink_version, icrdf_filename
+):
     """
     Search for "leftover" UMLS concepts, i.e. those that are defined and valid in MRCONSO but are not
     mapped to a concept in Babel.
@@ -195,15 +197,21 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
                     # We skip this CURIE, but we don't want to print multiple log messages for the same CURIE.
                     if umls_id not in curies_no_umls_type:
                         curies_no_umls_type.add(umls_id)
-                        logger.warning(f"No UMLS type found for {umls_id}: {umls_type_results} -> {biolink_types}, skipping")
+                        logger.warning(
+                            f"No UMLS type found for {umls_id}: {umls_type_results} -> {biolink_types}, skipping"
+                        )
                         reportf.write(f"NO_UMLS_TYPE [{umls_id}]: {umls_type_results} -> {biolink_types}\n")
                     continue
                 if len(biolink_types) > 1:
                     # We skip this CURIE, but we don't want to print multiple log messages for the same CURIE.
                     if umls_id not in curies_multiple_umls_type:
                         curies_multiple_umls_type.add(umls_id)
-                        logger.debug(f"Multiple UMLS types not yet supported for {umls_id}: {umls_type_results} -> {biolink_types}, skipping")
-                        reportf.write(f"MULTIPLE_UMLS_TYPES [{umls_id}]\t{biolink_types_as_str}\t{umls_type_results} -> {biolink_types}\n")
+                        logger.debug(
+                            f"Multiple UMLS types not yet supported for {umls_id}: {umls_type_results} -> {biolink_types}, skipping"
+                        )
+                        reportf.write(
+                            f"MULTIPLE_UMLS_TYPES [{umls_id}]\t{biolink_types_as_str}\t{umls_type_results} -> {biolink_types}\n"
+                        )
                     continue
                 biolink_type = list(biolink_types)[0]
                 preferred_name_by_id[umls_id] = label
@@ -215,13 +223,26 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
         logger.info(f"Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.")
         reportf.write(f"Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.\n")
 
-        logger.info(f"Found {len(curies_no_umls_type)} UMLS IDs without UMLS types and {len(curies_multiple_umls_type)} UMLS IDs with multiple UMLS types.")
-        reportf.write(f"Found {len(curies_no_umls_type)} UMLS IDs without UMLS types and {len(curies_multiple_umls_type)} UMLS IDs with multiple UMLS types.\n")
+        logger.info(
+            f"Found {len(curies_no_umls_type)} UMLS IDs without UMLS types and {len(curies_multiple_umls_type)} UMLS IDs with multiple UMLS types."
+        )
+        reportf.write(
+            f"Found {len(curies_no_umls_type)} UMLS IDs without UMLS types and {len(curies_multiple_umls_type)} UMLS IDs with multiple UMLS types.\n"
+        )
 
         logger.info(f"Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().")
         reportf.write(f"Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().\n")
 
-    write_compendium(metadata_yamls, leftover_umls_cliques, "umls.txt", None, labels=preferred_name_by_id, extra_prefixes=[UMLS],
-                     icrdf_filename=icrdf_filename)
+    write_compendium(
+        metadata_yamls,
+        leftover_umls_cliques,
+        "umls.txt",
+        None,
+        labels=preferred_name_by_id,
+        extra_prefixes=[UMLS],
+        icrdf_filename=icrdf_filename,
+    )
 
-    logger.info(f"Wrote leftover UMLS outputs: compendia/{umls_compendium}, synonyms/{umls_synonyms}, metadata/umls.txt.yaml.")
+    logger.info(
+        f"Wrote leftover UMLS outputs: compendia/{umls_compendium}, synonyms/{umls_synonyms}, metadata/umls.txt.yaml."
+    )

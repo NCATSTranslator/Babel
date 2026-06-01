@@ -5,6 +5,7 @@ Tests cover:
   - write_ids() SCR filtering logic (mock-based)
   - Mesh.get_scr_terms_mapped_to_trees() (inline pyoxigraph store)
 """
+
 from unittest.mock import MagicMock, patch
 
 import pyoxigraph
@@ -105,8 +106,10 @@ def _make_mock_mesh(
     mock.get_terms_with_type.return_value = scr_chemical_terms
 
     if scr_mapped_to_trees is not None:
+
         def _mapped(trees):
             return scr_mapped_to_trees.get(tuple(sorted(trees)), set())
+
         mock.get_scr_terms_mapped_to_trees.side_effect = _mapped
 
     return mock

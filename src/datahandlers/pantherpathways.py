@@ -4,7 +4,10 @@ from src.prefixes import PANTHERPATHWAY
 
 def pull_panther_pathways():
     pull_via_urllib(
-        "http://data.pantherdb.org/ftp/pathway/current_release/", "SequenceAssociationPathway3.6.8.txt", decompress=False, subpath="PANTHER.PATHWAY"
+        "http://data.pantherdb.org/ftp/pathway/current_release/",
+        "SequenceAssociationPathway3.6.8.txt",
+        decompress=False,
+        subpath="PANTHER.PATHWAY",
     )
 
 

@@ -206,7 +206,8 @@ def build_gene_ncbi_ensembl_relationships(infile, ncbi_idfile, outfile, metadata
     write_concord_metadata(
         metadata_yaml,
         name="build_gene_ncbi_ensembl_relationships()",
-        description=f"Extracts gene-ensembl relationships from the NCBIGene gene2ensembl.gz file ({infile}), filtering to " + f"NCBIGene IDs in {ncbi_idfile}",
+        description=f"Extracts gene-ensembl relationships from the NCBIGene gene2ensembl.gz file ({infile}), filtering to "
+        + f"NCBIGene IDs in {ncbi_idfile}",
         sources=[
             {
                 "type": "NCBIGENE",
@@ -219,7 +220,16 @@ def build_gene_ncbi_ensembl_relationships(infile, ncbi_idfile, outfile, metadata
 
 
 def build_gene_ncbigene_xrefs(infile, ncbi_idfile, outfile, metadata_yaml):
-    mappings = {"WormBase": WORMBASE, "FLYBASE": FLYBASE, "ZFIN": ZFIN, "HGNC": HGNC, "MGI": MGI, "RGD": RGD, "dictyBase": DICTYBASE, "SGD": SGD}
+    mappings = {
+        "WormBase": WORMBASE,
+        "FLYBASE": FLYBASE,
+        "ZFIN": ZFIN,
+        "HGNC": HGNC,
+        "MGI": MGI,
+        "RGD": RGD,
+        "dictyBase": DICTYBASE,
+        "SGD": SGD,
+    }
     ncbi_ids = read_ncbi_idfile(ncbi_idfile)
     with gzip.open(infile, "r") as inf, open(outfile, "w") as outf:
         _header = inf.readline()

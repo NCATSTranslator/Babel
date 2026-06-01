@@ -60,7 +60,10 @@ def pull_hgnc():
 def pull_prot(which, refresh):
     # swissname = pull_via_ftplib('ftp.uniprot.org','/pub/databases/uniprot/current_release/knowledgebase/complete/',f'uniprot_{which}.fasta.gz',decompress_data=True,outfilename=f'uniprot_{which}.fasta')
     if refresh:
-        swissname = pull_via_urllib("ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/", f"uniprot_{which}.fasta.gz")
+        swissname = pull_via_urllib(
+            "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/",
+            f"uniprot_{which}.fasta.gz",
+        )
     else:
         swissname = make_local_name(f"uniprot_{which}.fasta")
     swissprot_labels = {}

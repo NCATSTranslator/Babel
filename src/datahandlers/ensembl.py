@@ -98,7 +98,12 @@ def pull_ensembl(
         # config, and keep it up to date.  Maybe you could have a job that gets the datasets and writes a dataset file,
         # but then updates the config? That sounds bogus.
         if os.path.exists(outfile):
-            report[ds] = {"status": "skipped", "output_file": outfile, "batches": [], "message": f"Output file already exists for dataset {ds}, skipping."}
+            report[ds] = {
+                "status": "skipped",
+                "output_file": outfile,
+                "batches": [],
+                "message": f"Output file already exists for dataset {ds}, skipping.",
+            }
             logging.info(f"Skipping {ds} as it already exists")
             continue
         try:
@@ -135,7 +140,9 @@ def pull_ensembl(
                 for i in range(0, len(attributes_to_retrieve), max_attribute_count):
                     # Create a batch of attributes to query.
                     attr_batch = attributes_to_retrieve[i : i + max_attribute_count]
-                    logging.info(f"Querying batch of {len(attr_batch)} attributes for {ds} (+ 'ensembl_gene_id'): {attr_batch}")
+                    logging.info(
+                        f"Querying batch of {len(attr_batch)} attributes for {ds} (+ 'ensembl_gene_id'): {attr_batch}"
+                    )
 
                     # Download the list of Biomart records for this set of attributes for this dataset.
                     batch_df = query(attributes=["ensembl_gene_id"] + list(attr_batch), filters={}, dataset=ds)
@@ -154,7 +161,9 @@ def pull_ensembl(
 
                 # Note that we downloaded all the batches.
                 report[ds]["status"] = "downloaded"
-                report[ds]["message"] = f"Dataset {ds} has more than {max_attribute_count} attributes for single query, so they were downloaded in batches."
+                report[ds]["message"] = (
+                    f"Dataset {ds} has more than {max_attribute_count} attributes for single query, so they were downloaded in batches."
+                )
                 report[ds]["attributes"] = list(attsIcanGet)
                 report[ds]["num_rows"] = len(df)
 

@@ -27,7 +27,9 @@ def write_concord_metadata(filename, *, name, concord_filename, url="", descript
         for line in concordf:
             row = line.strip().split("\t")
             if len(row) != 3:
-                logging.warning(f"Concord file {concord_filename} has a line with {len(row)} columns, not 3 -- skipping: '{line}'")
+                logging.warning(
+                    f"Concord file {concord_filename} has a line with {len(row)} columns, not 3 -- skipping: '{line}'"
+                )
                 # raise ValueError(f"Concord file {concord_filename} has a line with {len(row)} columns, not 3: {line}")
                 continue
             curie1 = row[0]
@@ -60,7 +62,16 @@ def write_concord_metadata(filename, *, name, concord_filename, url="", descript
 
 
 def write_combined_metadata(
-    filename, typ, name, *, sources=None, url="", description="", counts=None, combined_from_filenames: list[str] = None, also_combined_from=None
+    filename,
+    typ,
+    name,
+    *,
+    sources=None,
+    url="",
+    description="",
+    counts=None,
+    combined_from_filenames: list[str] = None,
+    also_combined_from=None,
 ):
     combined_from = {}
     if combined_from_filenames is not None:
@@ -82,7 +93,9 @@ def write_combined_metadata(
                 metadata_name = metadata_block["name"]
 
                 if type(metadata_name) is not str:
-                    raise ValueError(f"Metadata file {metadata_yaml} has a 'name' field that is not a string: {metadata_block}")
+                    raise ValueError(
+                        f"Metadata file {metadata_yaml} has a 'name' field that is not a string: {metadata_block}"
+                    )
 
                 if metadata_name in combined_from:
                     # If it's not already a list, then make it into a list.
@@ -94,7 +107,16 @@ def write_combined_metadata(
     if also_combined_from is not None:
         combined_from.update(also_combined_from)
 
-    write_metadata(filename, typ=typ, name=name, sources=sources, url=url, description=description, counts=counts, combined_from=combined_from)
+    write_metadata(
+        filename,
+        typ=typ,
+        name=name,
+        sources=sources,
+        url=url,
+        description=description,
+        counts=counts,
+        combined_from=combined_from,
+    )
 
 
 def write_metadata(filename, typ, name, *, sources=None, url="", description="", counts=None, combined_from=None):
@@ -124,5 +146,5 @@ def write_metadata(filename, typ, name, *, sources=None, url="", description="",
                 "combined_from": combined_from,
             },
             fout,
-            sort_keys=False, # Prefer the order we specified above.
+            sort_keys=False,  # Prefer the order we specified above.
         )
