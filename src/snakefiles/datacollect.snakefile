@@ -246,6 +246,7 @@ rule download_umls:
         config["download_directory"] + "/UMLS/MRCONSO.RRF",
         config["download_directory"] + "/UMLS/MRSTY.RRF",
         config["download_directory"] + "/UMLS/MRREL.RRF",
+        config["download_directory"] + "/UMLS/UMLS.metadata.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/download_umls.tsv"
     resources:
