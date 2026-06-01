@@ -373,12 +373,14 @@ def download_umls(umls_version, umls_subset, download_dir):
         name="UMLS Metathesaurus",
         url=umls_full_url,
         description=f"UMLS Metathesaurus {umls_version} ({umls_subset} subset), downloaded via the UTS download API.",
-        sources=[{
-            "name": "UMLS Metathesaurus MRCONSO.RRF, MRSTY.RRF and MRREL.RRF",
-            "version": umls_version,
-            "subset": umls_subset,
-            "url": umls_full_url,
-        }],
+        sources=[
+            {
+                "name": "UMLS Metathesaurus MRCONSO.RRF, MRSTY.RRF and MRREL.RRF",
+                "version": umls_version,
+                "subset": umls_subset,
+                "url": umls_full_url,
+            }
+        ],
     )
 
 

@@ -590,7 +590,7 @@ class NodeFactory:
         # we should also include provenance and version information for the node set build.
         # ancestors = self.get_ancestors(node_type)
         # ancestors.reverse()
-        
+
         # make sure prefixes list does not include duplicate prefixes
         prefixes = []
         seen_prefixes = set()
