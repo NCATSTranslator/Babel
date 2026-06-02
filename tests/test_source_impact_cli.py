@@ -82,6 +82,7 @@ def test_cli_synthetic_report_covers_all_sections(synthetic_intermediate, tmp_pa
             "--compendia-root", str(synthetic_intermediate["compendia_root"]),
             "--output", str(output),
             "--format", "md",
+            "--no-biolink-lookup",
         ]
     )
 
@@ -141,6 +142,7 @@ def test_cli_synthetic_report_json_diff_counts(synthetic_intermediate, tmp_path)
             "--compendia-root", str(synthetic_intermediate["compendia_root"]),
             "--output", str(output),
             "--format", "json",
+            "--no-biolink-lookup",
         ]
     )
 
