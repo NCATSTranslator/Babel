@@ -226,6 +226,18 @@ When extending the report to a new semantic type, add a `compute_cliques_for_imp
 helper to that type's `createcompendia/*.py` module (mirroring `anatomy.py`), then register
 it in `SEMANTIC_TYPE_CONFIG` in `src/cli/source_impact_report.py`.
 
+The shared clique-building skeleton lives in `src/createcompendia/cliques.py` (note: this
+is the one module under `createcompendia/` that does *not* map to an output compendium —
+it's reused infrastructure). `glom_from_files()` runs the common `load ids → glom`,
+`load concords → filter → drop overused xrefs → glom` loop, parameterized by three hooks:
+`concord_pair_filter` (per-pair keep/drop, with access to the clique state built so far),
+`overused_xref_remover` (per-file `remove_overused_xrefs` variant), and `glom_kwargs`
+(e.g. disease's `close={MONDO: ...}`). A type's `compute_cliques_for_impact_report` should
+be a thin wrapper supplying that type's hooks, and its `build_compendia` should call the
+same wrapper so the impact report's reglom provably matches the real build (anatomy does
+this). If a compendium can't route its real build through the wrapper, add a test that
+keeps the two clique computations in sync instead.
+
 ## Conventions
 
 - **Configuration over constants** — prefer `config.yaml` over module-level Python constants for
