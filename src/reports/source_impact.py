@@ -252,7 +252,7 @@ def _expanded_rank(ec: ExpandedClique, labels_by_prefix: dict[str, dict[str, str
     )
 
 
-def _render_remote_section(remote_summary: dict[str, dict[str, int]]) -> str:
+def _render_remote_section(remote_summary: dict[str, dict[str, int]]) -> list[str]:
     lines: list[str] = ["", "## 5. Remote comparison summary", ""]
     for st in sorted(remote_summary):
         s = remote_summary[st]
@@ -272,7 +272,7 @@ def _render_remote_section(remote_summary: dict[str, dict[str, int]]) -> str:
             f"{s.get('current_only_with_source_curies', 0):,}"
         )
         lines.append("")
-    return "\n".join(lines)
+    return lines
 
 
 def _detail_link(details_dirname: str | None, filename: str, text: str) -> str | None:
@@ -662,7 +662,7 @@ def render_markdown(
     lines.extend(_render_clique_impact(name, diffs_by_semantic_type, lookup, details_dirname))
 
     if remote_summary:
-        lines.append(_render_remote_section(remote_summary))
+        lines.extend(_render_remote_section(remote_summary))
     return "\n".join(_normalize_markdown(lines)) + "\n"
 
 
