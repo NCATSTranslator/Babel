@@ -12,7 +12,7 @@ from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_AN
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import CL, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import build_sets
-from src.util import Text
+from src.util import Text, get_config
 
 logger = logging.getLogger(__name__)
 
@@ -214,9 +214,6 @@ def build_anatomy_umls_relationships(mrconso, idfile, outfile, umls_metadata):
     )
 
 
-ANATOMY_UNIQUE_PREFIXES = [UBERON, GO]
-
-
 def compute_cliques_for_impact_report(concordances, identifiers, excluded_sources=()):
     """Load anatomy identifier and concord files and return the union-find clique state
     without writing compendia.
@@ -239,7 +236,7 @@ def compute_cliques_for_impact_report(concordances, identifiers, excluded_source
             continue
         logger.info("loading ids file %s", ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=ANATOMY_UNIQUE_PREFIXES)
+        glom(dicts, new_identifiers, unique_prefixes=get_config()["anatomy_unique_prefixes"])
         types.update(new_types)
     for infile in concordances:
         if os.path.basename(infile) in excluded:
@@ -270,7 +267,7 @@ def compute_cliques_for_impact_report(concordances, identifiers, excluded_source
                 pairs.append([x[0], x[2]])
         newpairs = remove_overused_xrefs(pairs)
         setpairs = [set(x) for x in newpairs]
-        glom(dicts, setpairs, unique_prefixes=ANATOMY_UNIQUE_PREFIXES)
+        glom(dicts, setpairs, unique_prefixes=get_config()["anatomy_unique_prefixes"])
     return dicts, types
 
 
