@@ -89,11 +89,11 @@ def _normalize_markdown(lines: list[str]) -> list[str]:
     return out
 
 
-def _clique_leader(clique: frozenset[str]) -> str:
+def clique_leader(clique: frozenset[str]) -> str:
     return sorted(clique)[0]
 
 
-def _prefix_of(curie: str) -> str:
+def prefix_of(curie: str) -> str:
     return curie.split(":", 1)[0]
 
 
@@ -107,8 +107,8 @@ def _curie_url(curie: str, expander: Callable[[str], str | None] | None) -> str 
         return None
 
 
-def _curie_label(curie: str, labels_by_prefix: dict[str, dict[str, str]]) -> str | None:
-    prefix = _prefix_of(curie)
+def curie_label(curie: str, labels_by_prefix: dict[str, dict[str, str]]) -> str | None:
+    prefix = prefix_of(curie)
     return labels_by_prefix.get(prefix, {}).get(curie)
 
 
@@ -128,7 +128,7 @@ def _render_curie_entry(
     downloaded label.
     """
     url = _curie_url(curie, ctx.curie_expander)
-    label = _curie_label(curie, ctx.labels_by_prefix)
+    label = curie_label(curie, ctx.labels_by_prefix)
     if url:
         head = f"[`{curie}`]({url})"
     else:
@@ -141,7 +141,7 @@ def _render_curie_entry(
     return f"{bullet}{' '.join(parts)}"
 
 
-def _sort_clique_for_display(
+def sort_clique_for_display(
     curies: Iterable[str],
     biolink_type: str | None,
     prefix_priority_by_type: dict[str, list[str]],
@@ -160,12 +160,12 @@ def _sort_clique_for_display(
     tail = len(priority_index)
 
     def sort_key(curie: str) -> tuple[int, str]:
-        return (priority_index.get(_prefix_of(curie).upper(), tail), curie)
+        return (priority_index.get(prefix_of(curie).upper(), tail), curie)
 
     return sorted(curies, key=sort_key)
 
 
-def _preferred_curie(
+def preferred_curie(
     clique: frozenset[str],
     biolink_type: str | None,
     prefix_priority_by_type: dict[str, list[str]],
@@ -175,7 +175,7 @@ def _preferred_curie(
     present (mirrors NodeFactory's behaviour of warning + skipping prefixes not in the
     list, but here we still have to choose *something* for the sample, so we settle on
     the lexicographically smallest CURIE)."""
-    return _sort_clique_for_display(clique, biolink_type, prefix_priority_by_type)[0]
+    return sort_clique_for_display(clique, biolink_type, prefix_priority_by_type)[0]
 
 
 def prefix_survives(
@@ -208,7 +208,7 @@ def prefix_survives(
     if priority is None:
         return None, False
     allowed = {p.upper() for p in priority}
-    survives = _prefix_of(curie).upper() in allowed
+    survives = prefix_of(curie).upper() in allowed
     return survives, not survives
 
 
@@ -217,7 +217,7 @@ def biolink_registration_note(curie: str, biolink_type: str | None) -> str:
     if not biolink_type:
         return ""
     return (
-        f"prefix {_prefix_of(curie)} not in id_prefixes for {biolink_type} — "
+        f"prefix {prefix_of(curie)} not in id_prefixes for {biolink_type} — "
         "register in the Biolink Model before Babel can emit this identifier"
     )
 
@@ -232,7 +232,7 @@ def _distinct_label_count(curies: Iterable[str], labels_by_prefix: dict[str, dic
     """
     labels: set[str] = set()
     for curie in curies:
-        label = _curie_label(curie, labels_by_prefix)
+        label = curie_label(curie, labels_by_prefix)
         if label:
             labels.add(label.casefold())
     return len(labels)
@@ -240,7 +240,7 @@ def _distinct_label_count(curies: Iterable[str], labels_by_prefix: dict[str, dic
 
 def _pure_new_rank(clique: frozenset[str], labels_by_prefix: dict[str, dict[str, str]]) -> tuple:
     """Deterministic review-worthiness sort key for a pure-new clique (most first)."""
-    return (-_distinct_label_count(clique, labels_by_prefix), -len(clique), _clique_leader(clique))
+    return (-_distinct_label_count(clique, labels_by_prefix), -len(clique), clique_leader(clique))
 
 
 def _expanded_rank(ec: ExpandedClique, labels_by_prefix: dict[str, dict[str, str]]) -> tuple:
@@ -248,7 +248,7 @@ def _expanded_rank(ec: ExpandedClique, labels_by_prefix: dict[str, dict[str, str
     return (
         -_distinct_label_count(ec.after_clique, labels_by_prefix),
         -len(ec.after_clique),
-        _clique_leader(ec.after_clique),
+        clique_leader(ec.after_clique),
     )
 
 
@@ -280,6 +280,17 @@ def _detail_link(details_dirname: str | None, filename: str, text: str) -> str |
     if not details_dirname:
         return None
     return f"- {text}: [`{details_dirname}/{filename}`]({details_dirname}/{filename})"
+
+
+def _reg_marker(curie: str, types: dict[str, str], prefix_priority_by_type: dict[str, list[str]]) -> str:
+    """Return a bold warning when a pure-new CURIE's prefix is absent from the Biolink Model."""
+    own_type = types.get(curie)
+    _, needs_reg = prefix_survives(curie, own_type, prefix_priority_by_type)
+    return (
+        f"**(NOT emitted — prefix not registered in Biolink Model for `{own_type}`)**"
+        if needs_reg
+        else ""
+    )
 
 
 def _render_clique_impact(
@@ -384,12 +395,12 @@ def _render_clique_impact(
                 key=lambda mc: (
                     -len(mc.before_cliques),
                     -_distinct_label_count(mc.after_clique, lookup.labels_by_prefix),
-                    _clique_leader(mc.after_clique),
+                    clique_leader(mc.after_clique),
                 ),
             )
             for mc in merged_sorted[:SAMPLE_LIMIT]:
                 bridge_curie = sorted(mc.source_curies_involved)[0]
-                leaders = ", ".join(_clique_leader(bc) for bc in mc.before_cliques)
+                leaders = ", ".join(clique_leader(bc) for bc in mc.before_cliques)
                 lines.append(f"- {bridge_curie} bridges {leaders}")
             lines.append("")
 
@@ -399,29 +410,17 @@ def _render_clique_impact(
                 diff.pure_new_cliques,
                 key=lambda c: _pure_new_rank(c, lookup.labels_by_prefix),
             )
-            def _reg_marker(curie: str) -> str:
-                # Flag a pure-new identifier whose prefix is not registered in the Biolink
-                # Model for its declared type — it cannot be written out (see survival
-                # columns in the detail files).
-                own_type = types.get(curie)
-                _, needs_reg = prefix_survives(curie, own_type, lookup.prefix_priority_by_type)
-                return (
-                    f"**(NOT emitted — prefix not registered in Biolink Model for `{own_type}`)**"
-                    if needs_reg
-                    else ""
-                )
-
             for clique in ordered[:PURE_NEW_SAMPLE_LIMIT]:
                 if len(clique) == 1:
                     only = next(iter(clique))
-                    lines.append(_render_curie_entry(only, lookup, marker=_reg_marker(only)))
+                    lines.append(_render_curie_entry(only, lookup, marker=_reg_marker(only, types, lookup.prefix_priority_by_type)))
                 else:
                     biolink_type = classifier(clique, types) if classifier else None
-                    ordered_curies = _sort_clique_for_display(
+                    ordered_curies = sort_clique_for_display(
                         clique, biolink_type, lookup.prefix_priority_by_type
                     )
                     for i, c in enumerate(ordered_curies):
-                        markers = [m for m in ("**(preferred)**" if i == 0 else "", _reg_marker(c)) if m]
+                        markers = [m for m in ("**(preferred)**" if i == 0 else "", _reg_marker(c, types, lookup.prefix_priority_by_type)) if m]
                         bullet = "- " if i == 0 else "  - "
                         lines.append(
                             _render_curie_entry(c, lookup, bullet=bullet, marker=" ".join(markers))
@@ -439,10 +438,10 @@ def _render_clique_impact(
             promotion_only_samples: list[tuple[ExpandedClique, str, str, str | None]] = []
             for ec in diff.expanded_cliques:
                 biolink_type = classifier(ec.after_clique, types) if classifier else None
-                before_pref = _preferred_curie(
+                before_pref = preferred_curie(
                     ec.before_clique, biolink_type, lookup.prefix_priority_by_type
                 )
-                after_pref = _preferred_curie(
+                after_pref = preferred_curie(
                     ec.after_clique, biolink_type, lookup.prefix_priority_by_type
                 )
                 tup = (ec, before_pref, after_pref, biolink_type)
@@ -491,7 +490,7 @@ def _render_clique_impact(
                     f"- Clique with {_fmt(len(ec.after_clique))} identifiers"
                     f"{type_marker} — {summary}:"
                 )
-                ordered = _sort_clique_for_display(
+                ordered = sort_clique_for_display(
                     ec.after_clique, biolink_type, lookup.prefix_priority_by_type
                 )
                 for c in ordered:
@@ -700,18 +699,18 @@ def render_json(
             "merged_clique_count": len(diff.merged_cliques),
             "merged_samples": [
                 {
-                    "before_clique_leaders": [_clique_leader(bc) for bc in mc.before_cliques],
+                    "before_clique_leaders": [clique_leader(bc) for bc in mc.before_cliques],
                     "source_curies_involved": sorted(mc.source_curies_involved),
                 }
                 for mc in sorted(
                     diff.merged_cliques,
-                    key=lambda mc: (-len(mc.before_cliques), _clique_leader(mc.after_clique)),
+                    key=lambda mc: (-len(mc.before_cliques), clique_leader(mc.after_clique)),
                 )[:SAMPLE_LIMIT]
             ],
             "pure_new_samples": [
                 sorted(c)
                 for c in sorted(
-                    diff.pure_new_cliques, key=lambda c: (-len(c), _clique_leader(c))
+                    diff.pure_new_cliques, key=lambda c: (-len(c), clique_leader(c))
                 )[:PURE_NEW_SAMPLE_LIMIT]
             ],
             "truly_grown_clique_count": sum(
@@ -729,7 +728,7 @@ def render_json(
                 }
                 for ec in sorted(
                     diff.expanded_cliques,
-                    key=lambda ec: (-len(ec.after_clique), _clique_leader(ec.after_clique)),
+                    key=lambda ec: (-len(ec.after_clique), clique_leader(ec.after_clique)),
                 )[:EXPANDED_SAMPLE_LIMIT]
             ],
         }
