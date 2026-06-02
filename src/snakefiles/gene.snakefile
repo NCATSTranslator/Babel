@@ -156,7 +156,6 @@ rule get_umls_gene_protein_mappings:
             output.umls_gene_concords,
             output.umls_protein_concords,
         )
-
         write_concord_metadata(
             output.umls_ncbigene_metadata_yaml,
             name="get_umls_gene_protein_mappings",

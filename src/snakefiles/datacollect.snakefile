@@ -246,6 +246,7 @@ rule download_umls:
         config["download_directory"] + "/UMLS/MRCONSO.RRF",
         config["download_directory"] + "/UMLS/MRSTY.RRF",
         config["download_directory"] + "/UMLS/MRREL.RRF",
+        config["download_directory"] + "/UMLS/UMLS.metadata.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/download_umls.tsv"
     resources:
@@ -344,7 +345,6 @@ rule get_icrdf:
     retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     run:
         obo.pull_uber_icRDF(output.icrdf_filename)
-
         # Try to load the icRDF.tsv file (this will produce an error if the file can't be read).
         node.InformationContentFactory(output.icrdf_filename)
 

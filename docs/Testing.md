@@ -109,6 +109,10 @@ the main risk is that a regression introduced mid-sprint goes undetected until r
 tests: `pytest --network -m "unit or network or slow"`). This runs on GitHub Actions and is
 always-on with no maintenance cost.
 
+The scheduled run is gated to the main repo (`NCATSTranslator/Babel`) via a job-level `if` check
+in `test.yml`, so it does not run on forks. Fork owners can still trigger it manually with
+`workflow_dispatch`.
+
 Consider adding during active sprints:
 
 - A weekly job on the self-hosted HPC runner that runs `pytest --pipeline --regenerate` once a

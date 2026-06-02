@@ -8,7 +8,10 @@ from src.prefixes import HGNCFAMILY
 def pull_hgncfamily():
     # As per https://www.genenames.org/download/gene-groups/#!/#tocAnchor-1-2
     pull_via_urllib(
-        "https://storage.googleapis.com/public-download-files/hgnc/csv/csv/genefamily_db_tables/", "family.csv", decompress=False, subpath=HGNCFAMILY
+        "https://storage.googleapis.com/public-download-files/hgnc/csv/csv/genefamily_db_tables/",
+        "family.csv",
+        decompress=False,
+        subpath=HGNCFAMILY,
     )
 
 

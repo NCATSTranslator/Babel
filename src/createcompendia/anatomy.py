@@ -48,7 +48,14 @@ def write_ncit_ids(outfile):
     write_obo_ids(
         [(anatomy_id, ANATOMICAL_ENTITY), (cell_id, CELL), (component_id, CELLULAR_COMPONENT)],
         outfile,
-        exclude=[genomic_location_id, chromosome_band_id, macromolecular_structure_id, ostomy_site_id, chromosome_structure_id, anatomic_site_id],
+        exclude=[
+            genomic_location_id,
+            chromosome_band_id,
+            macromolecular_structure_id,
+            ostomy_site_id,
+            chromosome_structure_id,
+            anatomic_site_id,
+        ],
     )
 
 
@@ -87,7 +94,9 @@ def write_umls_ids(mrsty, outfile):
     # A2.1.4.1 Body System
     # A2.1.5.1 Body Space or Junction
     # A2.1.5.2 Body Location or Region
-    umlsmap = {x: ANATOMICAL_ENTITY for x in ["A1.2", "A1.2.1", "A1.2.3.1", "A1.2.3.2", "A2.1.4.1", "A2.1.5.1", "A2.1.5.2"]}
+    umlsmap = {
+        x: ANATOMICAL_ENTITY for x in ["A1.2", "A1.2.1", "A1.2.3.1", "A1.2.3.2", "A2.1.4.1", "A2.1.5.1", "A2.1.5.2"]
+    }
     umlsmap["A1.2.3.3"] = CELL
     umlsmap["A1.2.3.4"] = CELLULAR_COMPONENT
     umls.write_umls_ids(mrsty, umlsmap, outfile)
@@ -104,9 +113,26 @@ def write_umls_ids(mrsty, outfile):
 # GO only shows up as an xref once in uberon, and it's a mistake.  It doesn't show up in anything else.
 # PMID is just wrong
 def build_anatomy_obo_relationships(outdir, metadata_yamls):
-    ignore_list = ["PMID", "BTO", "BAMS", "FMA", "CALOHA", "GOC", "WIKIPEDIA.EN", "CL", "GO", "NIF_SUBCELLULAR", "HTTP", "OPENCYC"]
+    ignore_list = [
+        "PMID",
+        "BTO",
+        "BAMS",
+        "FMA",
+        "CALOHA",
+        "GOC",
+        "WIKIPEDIA.EN",
+        "CL",
+        "GO",
+        "NIF_SUBCELLULAR",
+        "HTTP",
+        "OPENCYC",
+    ]
     # Create the equivalence pairs
-    with open(f"{outdir}/{UBERON}", "w") as uberon, open(f"{outdir}/{GO}", "w") as go, open(f"{outdir}/{CL}", "w") as cl:
+    with (
+        open(f"{outdir}/{UBERON}", "w") as uberon,
+        open(f"{outdir}/{GO}", "w") as go,
+        open(f"{outdir}/{CL}", "w") as cl,
+    ):
         build_sets(f"{UBERON}:0001062", {UBERON: uberon, GO: go, CL: cl}, "xref", ignore_list=ignore_list)
         build_sets(f"{GO}:0005575", {UBERON: uberon, GO: go, CL: cl}, "xref", ignore_list=ignore_list)
         # CL is now being handled by Wikidata (build_wikidata_cell_relationships), so we can probably remove it from here.
@@ -116,7 +142,11 @@ def build_anatomy_obo_relationships(outdir, metadata_yamls):
         write_concord_metadata(
             metadata_yamls[metadata_name],
             name="build_anatomy_obo_relationships()",
-            sources=[{"type": "UberGraph", "name": "UBERON"}, {"type": "UberGraph", "name": "GO"}, {"type": "UberGraph", "name": "CL"}],
+            sources=[
+                {"type": "UberGraph", "name": "UBERON"},
+                {"type": "UberGraph", "name": "GO"},
+                {"type": "UberGraph", "name": "CL"},
+            ],
             description=f"get_subclasses_and_xrefs() of {UBERON}:0001062 and {GO}:0005575",
             concord_filename=f"{outdir}/{metadata_name}",
         )
@@ -137,7 +167,9 @@ def build_wikidata_cell_relationships(outdir, metadata_yaml):
     try:
         results = response.json()
     except Exception as e:
-        raise RuntimeError(f"Could not parse {frink_wikidata_url}: {e} raised when parsing response {response.content}.")
+        raise RuntimeError(
+            f"Could not parse {frink_wikidata_url}: {e} raised when parsing response {response.content}."
+        )
     rows = results["results"]["bindings"]
     # If one wikidata entry has either more than one CL or more than one UMLS, then we end up with problems
     # (It could also be possible that the same CL is on more than one wikidata entry, but haven't seen that yet)
@@ -170,7 +202,13 @@ def build_wikidata_cell_relationships(outdir, metadata_yaml):
 
 
 def build_anatomy_umls_relationships(mrconso, idfile, outfile, umls_metadata):
-    umls.build_sets(mrconso, idfile, outfile, {"SNOMEDCT_US": SNOMEDCT, "MSH": MESH, "NCI": NCIT, "GO": GO, "FMA": FMA}, provenance_metadata_yaml=umls_metadata)
+    umls.build_sets(
+        mrconso,
+        idfile,
+        outfile,
+        {"SNOMEDCT_US": SNOMEDCT, "MSH": MESH, "NCI": NCIT, "GO": GO, "FMA": FMA},
+        provenance_metadata_yaml=umls_metadata,
+    )
 
 
 ANATOMY_UNIQUE_PREFIXES = [UBERON, GO]
@@ -217,7 +255,9 @@ def compute_cliques_for_impact_report(concordances, identifiers, excluded_source
                     use = True
                     for xi in (x[0], x[2]):
                         if xi not in dicts:
-                            print(f"Skipping pair {x} from {infile}: terms with prefixes {bs} are skipped unless they are already in the concords.")
+                            print(
+                                f"Skipping pair {x} from {infile}: terms with prefixes {bs} are skipped unless they are already in the concords."
+                            )
                             use = False
                     if not use:
                         continue

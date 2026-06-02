@@ -25,6 +25,7 @@ Run with:  uv run pytest tests/pipeline/ --pipeline --no-cov -v
 3. Add one entry to VOCABULARY_REGISTRY: `"MYVOCAB": "my_vocab_pipeline_outputs"`.
 That's it — test_vocabulary_partitioning.py picks it up automatically.
 """
+
 import os
 import subprocess
 
@@ -75,6 +76,7 @@ def _snakemake_dir(compendium: str) -> str:
     from src.util import (
         get_config,  # deferred: get_config() reads config.yaml at call time so path helpers always reflect the current file
     )
+
     cfg = get_config()
     return cfg.get("compendium_directories", {}).get(compendium, compendium)
 
@@ -82,6 +84,7 @@ def _snakemake_dir(compendium: str) -> str:
 def _intermediate_concord_path(compendium: str, vocab: str) -> str:
     """Stable concord path: {intermediate_directory}/{snakemake_dir}/concords/{vocab}."""
     from src.util import get_config  # deferred: same rationale as _snakemake_dir
+
     return os.path.join(get_config()["intermediate_directory"], _snakemake_dir(compendium), "concords", vocab)
 
 
@@ -127,6 +130,7 @@ def _intermediate_id_path(compendium: str, vocab: str) -> str:
     Using the same paths as Snakemake means files from a prior pipeline run are reused directly.
     """
     from src.util import get_config  # deferred: same rationale as _snakemake_dir
+
     return os.path.join(get_config()["intermediate_directory"], _snakemake_dir(compendium), "ids", vocab)
 
 
@@ -192,6 +196,7 @@ def pipeline_output(regenerate):
         def my_fixture(pipeline_output):
             return pipeline_output("my_snakemake_rule", "path/to/output")
     """
+
     def _get(rule: str, path: str) -> str:
         if os.path.exists(path) and not regenerate:
             return path
@@ -232,6 +237,7 @@ def chemicals_concords_dir(pipeline_output):
     pipeline run, but are not generated automatically — UNICHEM in particular requires ~512 GB RAM.
     """
     from src.util import get_config  # deferred: same rationale as _snakemake_dir
+
     cfg = get_config()
     concords_dir = os.path.join(cfg["intermediate_directory"], _snakemake_dir("chemicals"), "concords")
     sentinel = os.path.join(concords_dir, "wikipedia_mesh_chebi")
@@ -261,21 +267,22 @@ def mesh_pipeline_outputs(mesh_nt, regenerate):
     Output files are written to babel_outputs/intermediate/{type}/ids/MESH and
     reused on subsequent runs unless --regenerate is passed.
     """
+
     def p(compendium):
         return _intermediate_id_path(compendium, "MESH")
 
-    _maybe_run(p("chemicals"),        lambda: chemicals.write_mesh_ids(p("chemicals")),              regenerate)
-    _maybe_run(p("protein"),          lambda: protein.write_mesh_ids(p("protein")),                  regenerate)
-    _maybe_run(p("anatomy"),          lambda: anatomy.write_mesh_ids(p("anatomy")),                  regenerate)
+    _maybe_run(p("chemicals"), lambda: chemicals.write_mesh_ids(p("chemicals")), regenerate)
+    _maybe_run(p("protein"), lambda: protein.write_mesh_ids(p("protein")), regenerate)
+    _maybe_run(p("anatomy"), lambda: anatomy.write_mesh_ids(p("anatomy")), regenerate)
     _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_mesh_ids(p("diseasephenotype")), regenerate)
-    _maybe_run(p("taxon"),            lambda: taxon.write_mesh_ids(p("taxon")),                      regenerate)
+    _maybe_run(p("taxon"), lambda: taxon.write_mesh_ids(p("taxon")), regenerate)
 
     return {
-        "chemicals":        p("chemicals"),
-        "protein":          p("protein"),
-        "anatomy":          p("anatomy"),
+        "chemicals": p("chemicals"),
+        "protein": p("protein"),
+        "anatomy": p("anatomy"),
         "diseasephenotype": p("diseasephenotype"),
-        "taxon":            p("taxon"),
+        "taxon": p("taxon"),
     }
 
 
@@ -317,6 +324,7 @@ def umls_rrf_files():
                 umls as umls_handler,  # deferred: only import the UMLS handler when a download is actually needed; if files are already cached this module never loads
             )
             from src.util import get_config  # deferred: same rationale as _snakemake_dir
+
             cfg = get_config()
             umls_handler.download_umls(
                 cfg["umls_version"],
@@ -350,15 +358,26 @@ def umls_pipeline_outputs(umls_rrf_files, regenerate):
     def p(compendium):
         return _intermediate_id_path(compendium, "UMLS")
 
-    _maybe_run(p("chemicals"),       lambda: chemicals.write_umls_ids(mrsty, p("chemicals")),                          regenerate)
-    _maybe_run(p("protein"),         lambda: protein.write_umls_ids(mrsty, p("protein")),                              regenerate)
-    _maybe_run(p("anatomy"),         lambda: anatomy.write_umls_ids(mrsty, p("anatomy")),                              regenerate)
-    _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_umls_ids(mrsty, p("diseasephenotype"), badumlsfile), regenerate)
-    _maybe_run(p("processactivitypathway"), lambda: processactivitypathway.write_umls_ids(mrsty, p("processactivitypathway")),       regenerate)
-    _maybe_run(p("taxon"),           lambda: taxon.write_umls_ids(mrsty, p("taxon")),                                  regenerate)
-    _maybe_run(p("gene"),            lambda: gene.write_umls_ids(mrconso, mrsty, p("gene")),                           regenerate)
+    _maybe_run(p("chemicals"), lambda: chemicals.write_umls_ids(mrsty, p("chemicals")), regenerate)
+    _maybe_run(p("protein"), lambda: protein.write_umls_ids(mrsty, p("protein")), regenerate)
+    _maybe_run(p("anatomy"), lambda: anatomy.write_umls_ids(mrsty, p("anatomy")), regenerate)
+    _maybe_run(
+        p("diseasephenotype"),
+        lambda: diseasephenotype.write_umls_ids(mrsty, p("diseasephenotype"), badumlsfile),
+        regenerate,
+    )
+    _maybe_run(
+        p("processactivitypathway"),
+        lambda: processactivitypathway.write_umls_ids(mrsty, p("processactivitypathway")),
+        regenerate,
+    )
+    _maybe_run(p("taxon"), lambda: taxon.write_umls_ids(mrsty, p("taxon")), regenerate)
+    _maybe_run(p("gene"), lambda: gene.write_umls_ids(mrconso, mrsty, p("gene")), regenerate)
 
-    return {name: p(name) for name in ["chemicals", "protein", "anatomy", "diseasephenotype", "processactivitypathway", "taxon", "gene"]}
+    return {
+        name: p(name)
+        for name in ["chemicals", "protein", "anatomy", "diseasephenotype", "processactivitypathway", "taxon", "gene"]
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -372,6 +391,7 @@ def omim_mim2gene():
     from src.datahandlers.omim import (
         pull_omim,  # deferred: omim handler not in module-level imports; only needed for this fixture
     )
+
     return _download_or_fail(
         "OMIM mim2gene.txt",
         pull_omim,
@@ -387,13 +407,16 @@ def omim_pipeline_outputs(omim_mim2gene, regenerate):
     reused on subsequent runs unless --regenerate is passed.
     """
     from src.createcompendia import gene  # deferred: gene not in module-level imports; only needed for OMIM
+
     infile = omim_mim2gene
 
     def p(compendium):
         return _intermediate_id_path(compendium, "OMIM")
 
-    _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_omim_ids(infile, p("diseasephenotype")), regenerate)
-    _maybe_run(p("gene"),             lambda: gene.write_omim_ids(infile, p("gene")),                         regenerate)
+    _maybe_run(
+        p("diseasephenotype"), lambda: diseasephenotype.write_omim_ids(infile, p("diseasephenotype")), regenerate
+    )
+    _maybe_run(p("gene"), lambda: gene.write_omim_ids(infile, p("gene")), regenerate)
 
     return {"diseasephenotype": p("diseasephenotype"), "gene": p("gene")}
 
@@ -415,6 +438,7 @@ def ubergraph_connection():
         from src.datahandlers.obo import (
             UberGraph,  # deferred: obo module has heavy RDFLib/SPARQL dependencies; only loaded when NCIT/GO tests are actually requested
         )
+
         ug = UberGraph()
         # Minimal health check: GO:0005575 (cellular component) is a small, stable term.
         result = ug.get_subclasses_of("GO:0005575")
@@ -436,10 +460,11 @@ def ncit_pipeline_outputs(ubergraph_connection, regenerate):
     Output files are written to babel_outputs/intermediate/{type}/ids/NCIT and
     reused on subsequent runs unless --regenerate is passed.
     """
+
     def p(compendium):
         return _intermediate_id_path(compendium, "NCIT")
 
-    _maybe_run(p("anatomy"),          lambda: anatomy.write_ncit_ids(p("anatomy")),              regenerate)
+    _maybe_run(p("anatomy"), lambda: anatomy.write_ncit_ids(p("anatomy")), regenerate)
     _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_ncit_ids(p("diseasephenotype")), regenerate)
 
     return {"anatomy": p("anatomy"), "diseasephenotype": p("diseasephenotype")}
@@ -464,8 +489,12 @@ def go_pipeline_outputs(ubergraph_connection, regenerate):
     def p(compendium):
         return _intermediate_id_path(compendium, "GO")
 
-    _maybe_run(p("anatomy"),         lambda: anatomy.write_go_ids(p("anatomy")),                       regenerate)
-    _maybe_run(p("processactivitypathway"), lambda: processactivitypathway.write_go_ids(p("processactivitypathway")), regenerate)
+    _maybe_run(p("anatomy"), lambda: anatomy.write_go_ids(p("anatomy")), regenerate)
+    _maybe_run(
+        p("processactivitypathway"),
+        lambda: processactivitypathway.write_go_ids(p("processactivitypathway")),
+        regenerate,
+    )
 
     return {"anatomy": p("anatomy"), "processactivitypathway": p("processactivitypathway")}
 
@@ -482,10 +511,10 @@ VOCABULARY_REGISTRY = {
     "UMLS": "umls_pipeline_outputs",
     "OMIM": "omim_pipeline_outputs",
     "NCIT": "ncit_pipeline_outputs",
-    "GO":   "go_pipeline_outputs",
-    "EC":   "ec_ids_outputs",
-    "CLO":  "clo_ids_outputs",
-    "EFO":  "efo_ids_outputs",
+    "GO": "go_pipeline_outputs",
+    "EC": "ec_ids_outputs",
+    "CLO": "clo_ids_outputs",
+    "EFO": "efo_ids_outputs",
 }
 
 
@@ -507,6 +536,7 @@ VOCABULARY_REGISTRY = {
 def ec_rdf_file():
     """Download babel_downloads/EC/enzyme.rdf, or fail if unavailable."""
     from src.datahandlers.ec import pull_ec  # deferred: only import when EC tests are requested
+
     return _download_or_fail(
         "EC enzyme.rdf",
         pull_ec,
@@ -523,12 +553,14 @@ def ec_pipeline_outputs(ec_rdf_file, regenerate):
     unless --regenerate is passed.
     """
     from src.util import get_config  # deferred: same rationale as _snakemake_dir
+
     cfg = get_config()
     labels = os.path.join(cfg["download_directory"], "EC", "labels")
     synonyms = os.path.join(cfg["download_directory"], "EC", "synonyms")
     ids = _intermediate_id_path("processactivitypathway", "EC")
 
     from src.datahandlers.ec import ECgraph  # deferred: avoids loading RDF at import time
+
     needs_labels = regenerate or not os.path.exists(labels) or not os.path.exists(synonyms)
     needs_ids = regenerate or not os.path.exists(ids)
     if needs_labels or needs_ids:
@@ -550,6 +582,7 @@ def ec_pipeline_outputs(ec_rdf_file, regenerate):
 def rhea_rdf_file():
     """Download babel_downloads/RHEA/rhea.rdf, or fail if unavailable."""
     from src.datahandlers.rhea import pull_rhea  # deferred
+
     return _download_or_fail(
         "Rhea rhea.rdf",
         pull_rhea,
@@ -565,12 +598,16 @@ def rhea_pipeline_outputs(rhea_rdf_file, regenerate):
     babel_outputs/intermediate/process/concords/RHEA.  Reused unless --regenerate is passed.
     """
     from src.util import get_config  # deferred
+
     cfg = get_config()
     labels = os.path.join(cfg["download_directory"], "RHEA", "labels")
     concords = os.path.join(cfg["intermediate_directory"], _snakemake_dir("processactivitypathway"), "concords", "RHEA")
-    metadata_yaml = os.path.join(cfg["intermediate_directory"], _snakemake_dir("processactivitypathway"), "concords", "metadata-RHEA.yaml")
+    metadata_yaml = os.path.join(
+        cfg["intermediate_directory"], _snakemake_dir("processactivitypathway"), "concords", "metadata-RHEA.yaml"
+    )
 
     from src.datahandlers.rhea import Rhea  # deferred
+
     needs_labels = regenerate or not os.path.exists(labels)
     needs_concords = regenerate or not os.path.exists(concords)
     if needs_labels or needs_concords:
@@ -590,6 +627,7 @@ def rhea_pipeline_outputs(rhea_rdf_file, regenerate):
 def chembl_ttl_files():
     """Download babel_downloads/CHEMBL.COMPOUND/chembl_latest_molecule.ttl + cco.ttl, or fail."""
     from src.datahandlers.chembl import pull_chembl  # deferred
+
     molecule_file = make_local_name("chembl_latest_molecule.ttl", subpath="CHEMBL.COMPOUND")
     cco_file = make_local_name("cco.ttl", subpath="CHEMBL.COMPOUND")
     if not os.path.exists(molecule_file) or not os.path.exists(cco_file):
@@ -610,6 +648,7 @@ def chembl_pipeline_outputs(chembl_ttl_files, regenerate):
     Reused unless --regenerate is passed.
     """
     from src.util import get_config  # deferred
+
     cfg = get_config()
     labels = os.path.join(cfg["download_directory"], "CHEMBL.COMPOUND", "labels")
     smiles = os.path.join(cfg["download_directory"], "CHEMBL.COMPOUND", "smiles")
@@ -617,6 +656,7 @@ def chembl_pipeline_outputs(chembl_ttl_files, regenerate):
     cco_file = chembl_ttl_files["cco"]
 
     from src.datahandlers.chembl import ChemblRDF  # deferred
+
     _maybe_run(labels, lambda: ChemblRDF(molecule_file, cco_file).pull_labels(labels), regenerate)
     _maybe_run(smiles, lambda: ChemblRDF(molecule_file, cco_file).pull_smiles(smiles), regenerate)
 
@@ -632,6 +672,7 @@ def chembl_pipeline_outputs(chembl_ttl_files, regenerate):
 def clo_owl_file():
     """Download babel_downloads/CLO/clo.owl, or fail if unavailable."""
     from src.datahandlers.clo import pull_clo  # deferred
+
     clo_owl = make_local_name("clo.owl", subpath="CLO")
     metadata = make_local_name("metadata.yaml", subpath="CLO")
     if not os.path.exists(clo_owl):
@@ -650,12 +691,14 @@ def clo_pipeline_outputs(clo_owl_file, regenerate):
     babel_outputs/intermediate/cell_line/ids/CLO (ids).  Reused unless --regenerate is passed.
     """
     from src.util import get_config  # deferred
+
     cfg = get_config()
     labels = os.path.join(cfg["download_directory"], "CLO", "labels")
     synonyms = os.path.join(cfg["download_directory"], "CLO", "synonyms")
     ids = _intermediate_id_path("cell_line", "CLO")
 
     from src.datahandlers.clo import CLOgraph, write_clo_ids  # deferred
+
     if regenerate or not os.path.exists(labels) or not os.path.exists(synonyms):
         os.makedirs(os.path.dirname(labels), exist_ok=True)
         CLOgraph(clo_owl_file).pull_CLO_labels_and_synonyms(labels, synonyms)
@@ -673,6 +716,7 @@ def clo_pipeline_outputs(clo_owl_file, regenerate):
 def efo_owl_file():
     """Download babel_downloads/EFO/efo.owl, or fail if unavailable."""
     from src.datahandlers.efo import pull_efo  # deferred
+
     return _download_or_fail(
         "EFO efo.owl",
         pull_efo,
@@ -688,6 +732,7 @@ def efo_pipeline_outputs(efo_owl_file, regenerate):
     babel_outputs/intermediate/disease/ids/EFO (ids).  Reused unless --regenerate is passed.
     """
     from src.util import get_config  # deferred
+
     cfg = get_config()
     labels = os.path.join(cfg["download_directory"], "EFO", "labels")
     synonyms = os.path.join(cfg["download_directory"], "EFO", "synonyms")
@@ -695,6 +740,7 @@ def efo_pipeline_outputs(efo_owl_file, regenerate):
 
     from src.createcompendia.diseasephenotype import write_efo_ids  # deferred
     from src.datahandlers.efo import EFOgraph  # deferred
+
     if regenerate or not os.path.exists(labels) or not os.path.exists(synonyms):
         os.makedirs(os.path.dirname(labels), exist_ok=True)
         EFOgraph(efo_owl_file).pull_EFO_labels_and_synonyms(labels, synonyms)

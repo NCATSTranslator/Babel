@@ -4,7 +4,12 @@ from src.prefixes import COMPLEXPORTAL
 
 
 def pull_complexportal():
-    pull_via_urllib("http://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/", "559292.tsv", decompress=False, subpath=COMPLEXPORTAL)
+    pull_via_urllib(
+        "http://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/",
+        "559292.tsv",
+        decompress=False,
+        subpath=COMPLEXPORTAL,
+    )
 
 
 def make_labels_and_synonyms(infile, labelfile, synfile, metadata_yaml):

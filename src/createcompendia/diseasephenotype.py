@@ -108,7 +108,20 @@ def write_umls_ids(mrsty, outfile, badumlsfile):
     # B2.2.1.2.2ell or Molecular Dysfunction
     # A1.2.2 Anatomical Abnormality
     # B2.2.1.2.1.2 Neoplastic Process
-    umlsmap = {x: DISEASE for x in ["B2.2.1.2.1", "A1.2.2.1", "A1.2.2.2", "B2.3", "B2.2.1.2", "B2.2.1.2.1.1", "B2.2.1.2.2", "A1.2.2", "B2.2.1.2.1.2"]}
+    umlsmap = {
+        x: DISEASE
+        for x in [
+            "B2.2.1.2.1",
+            "A1.2.2.1",
+            "A1.2.2.2",
+            "B2.3",
+            "B2.2.1.2",
+            "B2.2.1.2.1.1",
+            "B2.2.1.2.2",
+            "A1.2.2",
+            "B2.2.1.2.1.2",
+        ]
+    }
     # A2.2 Finding
     # Compared groupings with and without finding.  Finding includes a lot of stuff like "Negative" or whatever and it causes some extra globbing up.
     # For instance, the Alzheimer node starts to grab in some nonsense.

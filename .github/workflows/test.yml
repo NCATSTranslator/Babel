@@ -8,11 +8,13 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
+    # Scheduled runs are gated to the main repo; non-schedule triggers run everywhere.
+    if: github.event_name != 'schedule' || github.repository == 'NCATSTranslator/Babel'
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.11"
       - run: uv sync --frozen
@@ -21,12 +23,15 @@ jobs:
 
   network-tests:
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # Run on manual dispatch anywhere, but only on schedule in the main repo (not forks).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'schedule' && github.repository == 'NCATSTranslator/Babel')
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.11"
       - run: uv sync --frozen

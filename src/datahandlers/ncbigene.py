@@ -1,6 +1,7 @@
 import gzip
 
 from src.babel_utils import pull_via_urllib
+from src.predicates import HAS_SYNONYM
 
 
 def pull_ncbigene(filenames):
@@ -24,7 +25,9 @@ def get_ncbigene_field(row, header, field_name):
     return value
 
 
-def pull_ncbigene_labels_synonyms_and_taxa(gene_info_filename, labels_filename, synonyms_filename, taxa_filename, descriptions_filename):
+def pull_ncbigene_labels_synonyms_and_taxa(
+    gene_info_filename, labels_filename, synonyms_filename, taxa_filename, descriptions_filename
+):
     """
     Extract labels, synonyms, and taxonomic data for genes from the NCBIGene "gene_info.gz" file
     and write them into separate files. The function processes the input file by skipping rows
@@ -99,11 +102,11 @@ def pull_ncbigene_labels_synonyms_and_taxa(gene_info_filename, labels_filename, 
                 if syn == "-":
                     raise RuntimeError("Synonym '-' should not be present in NCBIGene output!")
 
-                synfile.write(f"{gene_id}\thttp://www.geneontology.org/formats/oboInOwl#hasSynonym\t{syn}\n")
+                synfile.write(f"{gene_id}\t{HAS_SYNONYM}\t{syn}\n")
 
             # Figure out the label. We would ideally go with:
             #   {Symbol_from_nomenclature_authority || Symbol}: {Full_name_from_nomenclature_authority}
-            # But falling back cleanly. As per https://github.com/TranslatorSRI/Babel/issues/429
+            # But falling back cleanly. As per https://github.com/NCATSTranslator/Babel/issues/429
             best_symbol = get_ncbigene_field(row, header, "Symbol_from_nomenclature_authority")
             if not best_symbol:
                 # Fallback to the "Symbol" field.
