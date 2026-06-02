@@ -94,12 +94,8 @@ def _modified_cliques(
                     before_cliques=(ec.before_clique,),
                     added=ec.added_source_curies,
                     promoted=ec.promoted_source_curies,
-                    after_preferred=preferred_curie(
-                        ec.after_clique, biolink_type, lookup.prefix_priority_by_type
-                    ),
-                    before_preferred=preferred_curie(
-                        ec.before_clique, biolink_type, lookup.prefix_priority_by_type
-                    ),
+                    after_preferred=preferred_curie(ec.after_clique, biolink_type, lookup.prefix_priority_by_type),
+                    before_preferred=preferred_curie(ec.before_clique, biolink_type, lookup.prefix_priority_by_type),
                 )
             )
         for mc in diff.merged_cliques:
@@ -114,9 +110,7 @@ def _modified_cliques(
                     before_cliques=mc.before_cliques,
                     added=mc.source_curies_involved - before_union,
                     promoted=mc.source_curies_involved & before_union,
-                    after_preferred=preferred_curie(
-                        mc.after_clique, biolink_type, lookup.prefix_priority_by_type
-                    ),
+                    after_preferred=preferred_curie(mc.after_clique, biolink_type, lookup.prefix_priority_by_type),
                     before_preferred=None,
                 )
             )
@@ -172,27 +166,23 @@ def write_new_cliques_csv(
             biolink_type = _biolink_type_for(clique, st, lookup)
             ordered = sort_clique_for_display(clique, biolink_type, lookup.prefix_priority_by_type)
             preferred = ordered[0]
-            would_survive, needs_reg = prefix_survives(
-                preferred, biolink_type, lookup.prefix_priority_by_type
-            )
+            would_survive, needs_reg = prefix_survives(preferred, biolink_type, lookup.prefix_priority_by_type)
             unsupported = sorted(
-                {
-                    prefix_of(c)
-                    for c in clique
-                    if prefix_survives(c, biolink_type, lookup.prefix_priority_by_type)[1]
-                }
+                {prefix_of(c) for c in clique if prefix_survives(c, biolink_type, lookup.prefix_priority_by_type)[1]}
             )
-            rows.append([
-                st,
-                preferred,
-                curie_label(preferred, lookup.labels_by_prefix) or "",
-                biolink_type or "",
-                len(clique),
-                PIPE.join(ordered),
-                _fmt_bool(would_survive),
-                _fmt_bool(needs_reg) if would_survive is not None else "",
-                PIPE.join(unsupported),
-            ])
+            rows.append(
+                [
+                    st,
+                    preferred,
+                    curie_label(preferred, lookup.labels_by_prefix) or "",
+                    biolink_type or "",
+                    len(clique),
+                    PIPE.join(ordered),
+                    _fmt_bool(would_survive),
+                    _fmt_bool(needs_reg) if would_survive is not None else "",
+                    PIPE.join(unsupported),
+                ]
+            )
     rows.sort(key=lambda r: (r[0], r[1]))
     _write_rows(path, header, rows)
     return len(rows)
@@ -227,9 +217,7 @@ def write_modified_cliques_csv(
     rows: list[list] = []
     for m in _modified_cliques(diffs, lookup):
         types = lookup.types_by_semantic_type.get(m.semantic_type, {})
-        ordered = sort_clique_for_display(
-            m.after_clique, m.biolink_type, lookup.prefix_priority_by_type
-        )
+        ordered = sort_clique_for_display(m.after_clique, m.biolink_type, lookup.prefix_priority_by_type)
         equivalent_ids = PIPE.join(ordered)
         preferred_label = curie_label(m.after_preferred, lookup.labels_by_prefix) or ""
         for added_kind, curie_set in (("added", m.added), ("promoted", m.promoted)):
@@ -237,25 +225,25 @@ def write_modified_cliques_csv(
                 # Judge survival on the added identifier's *own* declared type, not the
                 # clique's preferred type (which may not be knowable at this point).
                 own_type = types.get(curie)
-                would_be_added, needs_reg = prefix_survives(
-                    curie, own_type, lookup.prefix_priority_by_type
-                )
+                would_be_added, needs_reg = prefix_survives(curie, own_type, lookup.prefix_priority_by_type)
                 note = biolink_registration_note(curie, own_type) if needs_reg else ""
-                rows.append([
-                    m.semantic_type,
-                    m.after_preferred,
-                    preferred_label,
-                    m.biolink_type or "",
-                    m.change_kind,
-                    added_kind,
-                    curie,
-                    curie_label(curie, lookup.labels_by_prefix) or "",
-                    own_type or "",
-                    _fmt_bool(would_be_added),
-                    _fmt_bool(needs_reg) if would_be_added is not None else "",
-                    note,
-                    equivalent_ids,
-                ])
+                rows.append(
+                    [
+                        m.semantic_type,
+                        m.after_preferred,
+                        preferred_label,
+                        m.biolink_type or "",
+                        m.change_kind,
+                        added_kind,
+                        curie,
+                        curie_label(curie, lookup.labels_by_prefix) or "",
+                        own_type or "",
+                        _fmt_bool(would_be_added),
+                        _fmt_bool(needs_reg) if would_be_added is not None else "",
+                        note,
+                        equivalent_ids,
+                    ]
+                )
     rows.sort(key=lambda r: (r[0], r[1], r[6]))
     _write_rows(path, header, rows)
     return len(rows)
@@ -269,10 +257,7 @@ def write_modified_cliques_json(
     """Write the full before/after structure of every modified clique. Returns the count."""
 
     def members(clique: frozenset[str]) -> list[dict]:
-        return [
-            {"i": curie, "label": curie_label(curie, lookup.labels_by_prefix)}
-            for curie in sorted(clique)
-        ]
+        return [{"i": curie, "label": curie_label(curie, lookup.labels_by_prefix)} for curie in sorted(clique)]
 
     entries: list[dict] = []
     for m in _modified_cliques(diffs, lookup):
@@ -283,31 +268,33 @@ def write_modified_cliques_json(
         for kind, curie_set in (("added", m.added), ("promoted", m.promoted)):
             for curie in sorted(curie_set):
                 own_type = types.get(curie)
-                would_be_added, needs_reg = prefix_survives(
-                    curie, own_type, lookup.prefix_priority_by_type
+                would_be_added, needs_reg = prefix_survives(curie, own_type, lookup.prefix_priority_by_type)
+                added_curie_details.append(
+                    {
+                        "i": curie,
+                        "added_kind": kind,
+                        "biolink_type": own_type,
+                        "would_be_added": would_be_added,
+                        "needs_biolink_registration": needs_reg if would_be_added is not None else None,
+                        "note": biolink_registration_note(curie, own_type) if needs_reg else None,
+                    }
                 )
-                added_curie_details.append({
-                    "i": curie,
-                    "added_kind": kind,
-                    "biolink_type": own_type,
-                    "would_be_added": would_be_added,
-                    "needs_biolink_registration": needs_reg if would_be_added is not None else None,
-                    "note": biolink_registration_note(curie, own_type) if needs_reg else None,
-                })
         added_curie_details.sort(key=lambda d: d["i"])
-        entries.append({
-            "semantic_type": m.semantic_type,
-            "change_kind": m.change_kind,
-            "biolink_type": m.biolink_type,
-            "preferred_id_before": m.before_preferred,
-            "preferred_id_after": m.after_preferred,
-            "before_clique_leaders": sorted(clique_leader(bc) for bc in m.before_cliques),
-            "before_cliques": [sorted(bc) for bc in m.before_cliques],
-            "added_source_curies": sorted(m.added),
-            "promoted_source_curies": sorted(m.promoted),
-            "added_curie_details": added_curie_details,
-            "after_members": members(m.after_clique),
-        })
+        entries.append(
+            {
+                "semantic_type": m.semantic_type,
+                "change_kind": m.change_kind,
+                "biolink_type": m.biolink_type,
+                "preferred_id_before": m.before_preferred,
+                "preferred_id_after": m.after_preferred,
+                "before_clique_leaders": sorted(clique_leader(bc) for bc in m.before_cliques),
+                "before_cliques": [sorted(bc) for bc in m.before_cliques],
+                "added_source_curies": sorted(m.added),
+                "promoted_source_curies": sorted(m.promoted),
+                "added_curie_details": added_curie_details,
+                "after_members": members(m.after_clique),
+            }
+        )
     path.write_text(json.dumps(entries, indent=2, sort_keys=True) + "\n")
     return len(entries)
 
@@ -340,20 +327,20 @@ def write_new_xrefs_tsv(
     for st in sorted(contribution.semantic_types):
         stc = contribution.by_semantic_type[st]
         concords_dir = pathlib.Path(intermediate_root) / st / "concords"
-        for subject, predicate, obj, asserted_by in scan_concords_for_curies(
-            concords_dir, stc.all_curies
-        ):
+        for subject, predicate, obj, asserted_by in scan_concords_for_curies(concords_dir, stc.all_curies):
             status = "added" if asserted_by == source_name else "made_real"
-            rows.append([
-                st,
-                subject,
-                curie_label(subject, lookup.labels_by_prefix) or "",
-                predicate,
-                obj,
-                curie_label(obj, lookup.labels_by_prefix) or "",
-                asserted_by,
-                status,
-            ])
+            rows.append(
+                [
+                    st,
+                    subject,
+                    curie_label(subject, lookup.labels_by_prefix) or "",
+                    predicate,
+                    obj,
+                    curie_label(obj, lookup.labels_by_prefix) or "",
+                    asserted_by,
+                    status,
+                ]
+            )
     rows.sort(key=lambda r: (r[0], r[1], r[4], r[6]))
     _write_rows(path, header, rows, delimiter="\t")
     return len(rows)
@@ -370,13 +357,7 @@ def write_detail_files(
     details_dir.mkdir(parents=True, exist_ok=True)
     return {
         NEW_CLIQUES_CSV: write_new_cliques_csv(details_dir / NEW_CLIQUES_CSV, diffs, lookup),
-        MODIFIED_CLIQUES_CSV: write_modified_cliques_csv(
-            details_dir / MODIFIED_CLIQUES_CSV, diffs, lookup
-        ),
-        MODIFIED_CLIQUES_JSON: write_modified_cliques_json(
-            details_dir / MODIFIED_CLIQUES_JSON, diffs, lookup
-        ),
-        NEW_XREFS_TSV: write_new_xrefs_tsv(
-            details_dir / NEW_XREFS_TSV, contribution, intermediate_root, lookup
-        ),
+        MODIFIED_CLIQUES_CSV: write_modified_cliques_csv(details_dir / MODIFIED_CLIQUES_CSV, diffs, lookup),
+        MODIFIED_CLIQUES_JSON: write_modified_cliques_json(details_dir / MODIFIED_CLIQUES_JSON, diffs, lookup),
+        NEW_XREFS_TSV: write_new_xrefs_tsv(details_dir / NEW_XREFS_TSV, contribution, intermediate_root, lookup),
     }

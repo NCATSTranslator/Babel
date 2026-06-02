@@ -16,9 +16,9 @@ def test_scan_concords_for_curies_matches_either_endpoint_and_records_asserter(t
     # EMAPA's own concord is empty; its xrefs live in UBERON's concord.
     (concords / "EMAPA").write_text("")
     (concords / "UBERON").write_text(
-        "UBERON:1\txref\tEMAPA:10\n"          # source CURIE on the object side
-        "EMAPA:20\tskos:exactMatch\tCL:2\n"   # source CURIE on the subject side
-        "UBERON:3\txref\tCL:4\n"              # no source CURIE — skipped
+        "UBERON:1\txref\tEMAPA:10\n"  # source CURIE on the object side
+        "EMAPA:20\tskos:exactMatch\tCL:2\n"  # source CURIE on the subject side
+        "UBERON:3\txref\tCL:4\n"  # no source CURIE — skipped
     )
     # Metadata sidecars must be ignored.
     (concords / "metadata-UBERON.yaml").write_text("UBERON:1\txref\tEMAPA:10\n")
@@ -54,8 +54,7 @@ def test_discover_single_prefix_single_type_single_semantic_type(tmp_path):
         tmp_path,
         "EMAPA",
         "anatomy",
-        ids_lines=["EMAPA:1\tbiolink:AnatomicalEntity",
-                   "EMAPA:2\tbiolink:AnatomicalEntity"],
+        ids_lines=["EMAPA:1\tbiolink:AnatomicalEntity", "EMAPA:2\tbiolink:AnatomicalEntity"],
         concord_lines=["EMAPA:1\txref\tUBERON:1"],
     )
 
@@ -89,9 +88,7 @@ def test_discover_multi_biolink_type_within_one_semantic_type(tmp_path):
 
     contrib = discover_source("UBERON", tmp_path)
 
-    assert contrib.declared_biolink_types == frozenset(
-        {"biolink:AnatomicalEntity", "biolink:GrossAnatomicalStructure"}
-    )
+    assert contrib.declared_biolink_types == frozenset({"biolink:AnatomicalEntity", "biolink:GrossAnatomicalStructure"})
     stc = contrib.by_semantic_type["anatomy"]
     assert stc.declared_type_counts == {
         "biolink:AnatomicalEntity": 2,
@@ -112,17 +109,14 @@ def test_discover_multi_semantic_type(tmp_path):
         tmp_path,
         "MESH",
         "chemical",
-        ids_lines=["MESH:C1\tbiolink:ChemicalEntity",
-                   "MESH:C2\tbiolink:ChemicalEntity"],
+        ids_lines=["MESH:C1\tbiolink:ChemicalEntity", "MESH:C2\tbiolink:ChemicalEntity"],
     )
 
     contrib = discover_source("MESH", tmp_path)
 
     assert contrib.semantic_types == frozenset({"anatomy", "chemical"})
     assert contrib.total_identifier_count == 3
-    assert contrib.declared_biolink_types == frozenset(
-        {"biolink:AnatomicalEntity", "biolink:ChemicalEntity"}
-    )
+    assert contrib.declared_biolink_types == frozenset({"biolink:AnatomicalEntity", "biolink:ChemicalEntity"})
     assert len(contrib.by_semantic_type["anatomy"].all_curies) == 1
     assert len(contrib.by_semantic_type["chemical"].all_curies) == 2
 

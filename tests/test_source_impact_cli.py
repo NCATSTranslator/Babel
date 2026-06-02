@@ -58,9 +58,7 @@ def synthetic_intermediate(tmp_path):
     )
     _write(
         anatomy / "concords" / "NEWSOURCE",
-        "NEWSRC:2\txref\tUBERON:0001\n"
-        "NEWSRC:3\txref\tUBERON:0002\n"
-        "NEWSRC:3\txref\tGO:0000003\n",
+        "NEWSRC:2\txref\tUBERON:0001\nNEWSRC:3\txref\tUBERON:0002\nNEWSRC:3\txref\tGO:0000003\n",
     )
 
     return {
@@ -76,12 +74,18 @@ def test_cli_synthetic_report_covers_all_sections(synthetic_intermediate, tmp_pa
 
     exit_code = main(
         [
-            "--source", synthetic_intermediate["source"],
-            "--mode", "synthetic",
-            "--intermediate-root", str(synthetic_intermediate["intermediate_root"]),
-            "--compendia-root", str(synthetic_intermediate["compendia_root"]),
-            "--output", str(output),
-            "--format", "md",
+            "--source",
+            synthetic_intermediate["source"],
+            "--mode",
+            "synthetic",
+            "--intermediate-root",
+            str(synthetic_intermediate["intermediate_root"]),
+            "--compendia-root",
+            str(synthetic_intermediate["compendia_root"]),
+            "--output",
+            str(output),
+            "--format",
+            "md",
             "--no-biolink-lookup",
         ]
     )
@@ -136,12 +140,18 @@ def test_cli_synthetic_report_json_diff_counts(synthetic_intermediate, tmp_path)
 
     exit_code = main(
         [
-            "--source", synthetic_intermediate["source"],
-            "--mode", "synthetic",
-            "--intermediate-root", str(synthetic_intermediate["intermediate_root"]),
-            "--compendia-root", str(synthetic_intermediate["compendia_root"]),
-            "--output", str(output),
-            "--format", "json",
+            "--source",
+            synthetic_intermediate["source"],
+            "--mode",
+            "synthetic",
+            "--intermediate-root",
+            str(synthetic_intermediate["intermediate_root"]),
+            "--compendia-root",
+            str(synthetic_intermediate["compendia_root"]),
+            "--output",
+            str(output),
+            "--format",
+            "json",
             "--no-biolink-lookup",
         ]
     )

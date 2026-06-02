@@ -80,7 +80,8 @@ def _list_source_files(directory: pathlib.Path) -> list[pathlib.Path]:
     if not directory.exists():
         return []
     return sorted(
-        p for p in directory.iterdir()
+        p
+        for p in directory.iterdir()
         if p.is_file() and not p.name.startswith("metadata-") and not p.name.endswith(".yaml")
     )
 
@@ -104,8 +105,9 @@ def _compute_synthetic_diff(
     identifiers = [str(p) for p in _list_source_files(ids_dir)]
     concordances = [str(p) for p in _list_source_files(concords_dir)]
 
-    logger.info("synthetic diff for %s: %d ids files, %d concord files",
-                semantic_type, len(identifiers), len(concordances))
+    logger.info(
+        "synthetic diff for %s: %d ids files, %d concord files", semantic_type, len(identifiers), len(concordances)
+    )
 
     after_dicts, after_types = compute_fn(concordances, identifiers)
     before_dicts, _ = compute_fn(concordances, identifiers, excluded_sources={source_name})
@@ -188,8 +190,7 @@ def _remote_comparison_summary(
                 logger.info("downloading remote compendium %s", url)
                 resp = requests.get(url, stream=True, timeout=60)
                 if not resp.ok:
-                    logger.warning("remote download failed for %s: %s %s",
-                                   url, resp.status_code, resp.reason)
+                    logger.warning("remote download failed for %s: %s %s", url, resp.status_code, resp.reason)
                     continue
                 with cached.open("wb") as out:
                     for chunk in resp.iter_content(chunk_size=64 * 1024):
@@ -201,10 +202,7 @@ def _remote_comparison_summary(
 
         remote_with_source = sum(1 for c in remote_cliques if c & source_curies)
         current_with_source = sum(1 for c in current_cliques if c & source_curies)
-        current_only = sum(
-            1 for c in current_cliques
-            if (c & source_curies) and c not in remote_cliques
-        )
+        current_only = sum(1 for c in current_cliques if (c & source_curies) and c not in remote_cliques)
 
         summary[st] = {
             "remote_total_cliques": len(remote_cliques),
@@ -299,8 +297,8 @@ def _run_rumdl_fmt(path: pathlib.Path) -> None:
         subprocess.run(["rumdl", "fmt", str(path)], check=False, capture_output=True)
     except FileNotFoundError:
         logger.warning(
-            "rumdl not found on PATH; report may have line-length lint warnings. "
-            "Run `uv run rumdl fmt %s` to fix.", path,
+            "rumdl not found on PATH; report may have line-length lint warnings. Run `uv run rumdl fmt %s` to fix.",
+            path,
         )
 
 
@@ -322,43 +320,57 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         prog="source_impact_report",
         description="Generate an impact report for adding a new Babel data source.",
     )
-    parser.add_argument("--source", required=True,
-                        help="Name of the source (matches the basename used in "
-                             "intermediate/<type>/{ids,concords}/<name>).")
-    parser.add_argument("--semantic-types", default=None,
-                        help="Comma-separated list of semantic types to analyse. "
-                             "Default: auto-detect from filesystem.")
-    parser.add_argument("--mode", choices=("synthetic", "remote", "both"), default="synthetic",
-                        help="Comparison mode (default: synthetic).")
-    parser.add_argument("--remote-url", default=None,
-                        help="Base URL of a previous Babel build (e.g. "
-                             "https://stars.renci.org/var/babel/2025dec11/). Required for "
-                             "remote/both modes.")
-    parser.add_argument("--remote-cache-dir", default="babel_downloads/remote_compendia",
-                        help="Where to cache downloaded remote compendia.")
+    parser.add_argument(
+        "--source",
+        required=True,
+        help="Name of the source (matches the basename used in intermediate/<type>/{ids,concords}/<name>).",
+    )
+    parser.add_argument(
+        "--semantic-types",
+        default=None,
+        help="Comma-separated list of semantic types to analyse. Default: auto-detect from filesystem.",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=("synthetic", "remote", "both"),
+        default="synthetic",
+        help="Comparison mode (default: synthetic).",
+    )
+    parser.add_argument(
+        "--remote-url",
+        default=None,
+        help="Base URL of a previous Babel build (e.g. "
+        "https://stars.renci.org/var/babel/2025dec11/). Required for "
+        "remote/both modes.",
+    )
+    parser.add_argument(
+        "--remote-cache-dir",
+        default="babel_downloads/remote_compendia",
+        help="Where to cache downloaded remote compendia.",
+    )
     parser.add_argument("--intermediate-root", default="babel_outputs/intermediate")
     parser.add_argument("--compendia-root", default="babel_outputs/compendia")
     parser.add_argument(
         "--downloads-root",
         default="babel_downloads",
         help="Root directory holding per-prefix label files for enriching sample "
-             "CURIEs with preferred labels (default: babel_downloads).",
+        "CURIEs with preferred labels (default: babel_downloads).",
     )
     parser.add_argument(
         "--no-biolink-lookup",
         action="store_true",
         help="Skip Biolink prefix-map / model toolkit lookups; render samples without "
-             "OBO PURL links and without preferred-identifier annotations.",
+        "OBO PURL links and without preferred-identifier annotations.",
     )
-    parser.add_argument("--output", default=None,
-                        help="Output path for the report. Default: "
-                             "docs/sources/<SOURCE>/impact-report.md")
+    parser.add_argument(
+        "--output", default=None, help="Output path for the report. Default: docs/sources/<SOURCE>/impact-report.md"
+    )
     parser.add_argument(
         "--no-detail-files",
         action="store_true",
         help="Skip writing the full CSV/JSON/TSV detail files (new-cliques.csv, "
-             "modified-cliques.{csv,json}, new-xrefs.tsv) into the <output-stem>/ "
-             "subdirectory beside the markdown report.",
+        "modified-cliques.{csv,json}, new-xrefs.tsv) into the <output-stem>/ "
+        "subdirectory beside the markdown report.",
     )
     parser.add_argument("--format", choices=("md", "json", "both"), default="md")
     parser.add_argument("--verbose", "-v", action="store_true")
@@ -379,7 +391,8 @@ def main(argv: list[str] | None = None) -> int:
     if not contribution.by_semantic_type:
         logger.error(
             "no intermediate files found for source %r under %s",
-            args.source, intermediate_root,
+            args.source,
+            intermediate_root,
         )
         return 1
 
@@ -387,8 +400,7 @@ def main(argv: list[str] | None = None) -> int:
         requested = [s.strip() for s in args.semantic_types.split(",") if s.strip()]
         unknown = [s for s in requested if s not in contribution.semantic_types]
         if unknown:
-            logger.error("source %r has no files for semantic type(s): %s",
-                         args.source, ", ".join(unknown))
+            logger.error("source %r has no files for semantic type(s): %s", args.source, ", ".join(unknown))
             return 1
         semantic_types = requested
     else:
@@ -404,8 +416,8 @@ def main(argv: list[str] | None = None) -> int:
         for st in semantic_types:
             if st not in SEMANTIC_TYPE_CONFIG:
                 logger.warning(
-                    "semantic type %r has no synthetic compute_fn registered; "
-                    "skipping clique diff for this type", st,
+                    "semantic type %r has no synthetic compute_fn registered; skipping clique diff for this type",
+                    st,
                 )
                 continue
             stc = contribution.by_semantic_type[st]

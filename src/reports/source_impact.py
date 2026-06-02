@@ -259,14 +259,8 @@ def _render_remote_section(remote_summary: dict[str, dict[str, int]]) -> list[st
         lines.append(f"### {st}")
         lines.append("")
         lines.append(f"- Remote total cliques (compendia): {s.get('remote_total_cliques', 0):,}")
-        lines.append(
-            "- Remote cliques containing source CURIEs: "
-            f"{s.get('remote_cliques_with_source_curies', 0):,}"
-        )
-        lines.append(
-            "- Current cliques containing source CURIEs: "
-            f"{s.get('current_cliques_with_source_curies', 0):,}"
-        )
+        lines.append(f"- Remote cliques containing source CURIEs: {s.get('remote_cliques_with_source_curies', 0):,}")
+        lines.append(f"- Current cliques containing source CURIEs: {s.get('current_cliques_with_source_curies', 0):,}")
         lines.append(
             "- Cliques with source CURIEs in current but not in remote: "
             f"{s.get('current_only_with_source_curies', 0):,}"
@@ -286,11 +280,7 @@ def _reg_marker(curie: str, types: dict[str, str], prefix_priority_by_type: dict
     """Return a bold warning when a pure-new CURIE's prefix is absent from the Biolink Model."""
     own_type = types.get(curie)
     _, needs_reg = prefix_survives(curie, own_type, prefix_priority_by_type)
-    return (
-        f"**(NOT emitted — prefix not registered in Biolink Model for `{own_type}`)**"
-        if needs_reg
-        else ""
-    )
+    return f"**(NOT emitted — prefix not registered in Biolink Model for `{own_type}`)**" if needs_reg else ""
 
 
 def _render_clique_impact(
@@ -333,8 +323,7 @@ def _render_clique_impact(
         # expansion or merge); pure-new cliques are reported separately above.
         curies_added_expanded = sum(len(ec.added_source_curies) for ec in diff.expanded_cliques)
         curies_added_merged = sum(
-            len(mc.source_curies_involved - frozenset().union(*mc.before_cliques))
-            for mc in diff.merged_cliques
+            len(mc.source_curies_involved - frozenset().union(*mc.before_cliques)) for mc in diff.merged_cliques
         )
         curies_added_total = curies_added_expanded + curies_added_merged
 
@@ -354,10 +343,7 @@ def _render_clique_impact(
             f"{name} CURIE via an xref from another source — {name}'s ids file now also "
             "lists those existing CURIEs as first-class typed identifiers."
         )
-        lines.append(
-            f"- {_fmt(merged_n)} existing cliques will be merged because of new {name} "
-            "cross-references"
-        )
+        lines.append(f"- {_fmt(merged_n)} existing cliques will be merged because of new {name} cross-references")
         lines.append(
             f"- {_fmt(curies_added_total)} structurally-new {name} identifiers are added "
             f"to existing cliques ({_fmt(curies_added_expanded)} via expansion, "
@@ -366,8 +352,7 @@ def _render_clique_impact(
             "clique can gain several identifiers."
         )
         lines.append(
-            f"- Total cliques in this semantic type go from {_fmt(before_total)} to "
-            f"{_fmt(diff.after_clique_count)}"
+            f"- Total cliques in this semantic type go from {_fmt(before_total)} to {_fmt(diff.after_clique_count)}"
         )
         lines.append("")
 
@@ -375,14 +360,13 @@ def _render_clique_impact(
         if link:
             lines.append(link)
         link = _detail_link(
-            details_dirname, "modified-cliques.csv",
+            details_dirname,
+            "modified-cliques.csv",
             f"Full list of modified cliques (one row per added/promoted {name} identifier)",
         )
         if link:
             lines.append(link)
-        link = _detail_link(
-            details_dirname, "new-xrefs.tsv", "Full list of new / activated cross-references"
-        )
+        link = _detail_link(details_dirname, "new-xrefs.tsv", "Full list of new / activated cross-references")
         if link:
             lines.append(link)
         if details_dirname:
@@ -413,18 +397,25 @@ def _render_clique_impact(
             for clique in ordered[:PURE_NEW_SAMPLE_LIMIT]:
                 if len(clique) == 1:
                     only = next(iter(clique))
-                    lines.append(_render_curie_entry(only, lookup, marker=_reg_marker(only, types, lookup.prefix_priority_by_type)))
+                    lines.append(
+                        _render_curie_entry(
+                            only, lookup, marker=_reg_marker(only, types, lookup.prefix_priority_by_type)
+                        )
+                    )
                 else:
                     biolink_type = classifier(clique, types) if classifier else None
-                    ordered_curies = sort_clique_for_display(
-                        clique, biolink_type, lookup.prefix_priority_by_type
-                    )
+                    ordered_curies = sort_clique_for_display(clique, biolink_type, lookup.prefix_priority_by_type)
                     for i, c in enumerate(ordered_curies):
-                        markers = [m for m in ("**(preferred)**" if i == 0 else "", _reg_marker(c, types, lookup.prefix_priority_by_type)) if m]
+                        markers = [
+                            m
+                            for m in (
+                                "**(preferred)**" if i == 0 else "",
+                                _reg_marker(c, types, lookup.prefix_priority_by_type),
+                            )
+                            if m
+                        ]
                         bullet = "- " if i == 0 else "  - "
-                        lines.append(
-                            _render_curie_entry(c, lookup, bullet=bullet, marker=" ".join(markers))
-                        )
+                        lines.append(_render_curie_entry(c, lookup, bullet=bullet, marker=" ".join(markers)))
             lines.append("")
 
         if diff.expanded_cliques:
@@ -438,12 +429,8 @@ def _render_clique_impact(
             promotion_only_samples: list[tuple[ExpandedClique, str, str, str | None]] = []
             for ec in diff.expanded_cliques:
                 biolink_type = classifier(ec.after_clique, types) if classifier else None
-                before_pref = preferred_curie(
-                    ec.before_clique, biolink_type, lookup.prefix_priority_by_type
-                )
-                after_pref = preferred_curie(
-                    ec.after_clique, biolink_type, lookup.prefix_priority_by_type
-                )
+                before_pref = preferred_curie(ec.before_clique, biolink_type, lookup.prefix_priority_by_type)
+                after_pref = preferred_curie(ec.after_clique, biolink_type, lookup.prefix_priority_by_type)
                 tup = (ec, before_pref, after_pref, biolink_type)
                 if before_pref != after_pref:
                     preferred_change_samples.append(tup)
@@ -456,9 +443,7 @@ def _render_clique_impact(
             promotion_only_samples.sort(key=lambda t: _expanded_rank(t[0], lookup.labels_by_prefix))
             preferred_change_n = len(preferred_change_samples)
 
-            lines.append(
-                f"#### Sample expanded cliques (up to {EXPANDED_SAMPLE_LIMIT})"
-            )
+            lines.append(f"#### Sample expanded cliques (up to {EXPANDED_SAMPLE_LIMIT})")
             lines.append("")
             lines.append(
                 f"Of the {_fmt(expanded_n)} cliques that contain {name} identifiers "
@@ -470,29 +455,19 @@ def _render_clique_impact(
                 f"are listed in the same order they would appear in the compendium "
                 f"(biolink prefix priority, then lexicographic within prefix)."
             )
-            chosen = (
-                preferred_change_samples + truly_grown_samples + promotion_only_samples
-            )[:EXPANDED_SAMPLE_LIMIT]
+            chosen = (preferred_change_samples + truly_grown_samples + promotion_only_samples)[:EXPANDED_SAMPLE_LIMIT]
             for ec, before_pref, after_pref, biolink_type in chosen:
                 markers_for_clique: list[str] = []
                 if before_pref != after_pref:
                     markers_for_clique.append("preferred identifier changes")
                 if ec.added_source_curies:
-                    markers_for_clique.append(
-                        f"gains {_fmt(len(ec.added_source_curies))} new "
-                        f"member(s) from {name}"
-                    )
+                    markers_for_clique.append(f"gains {_fmt(len(ec.added_source_curies))} new member(s) from {name}")
                 else:
                     markers_for_clique.append(f"{name} CURIE already present via xref")
                 summary = "; ".join(markers_for_clique)
                 type_marker = f" — typed as `{biolink_type}`" if biolink_type else ""
-                lines.append(
-                    f"- Clique with {_fmt(len(ec.after_clique))} identifiers"
-                    f"{type_marker} — {summary}:"
-                )
-                ordered = sort_clique_for_display(
-                    ec.after_clique, biolink_type, lookup.prefix_priority_by_type
-                )
+                lines.append(f"- Clique with {_fmt(len(ec.after_clique))} identifiers{type_marker} — {summary}:")
+                ordered = sort_clique_for_display(ec.after_clique, biolink_type, lookup.prefix_priority_by_type)
                 for c in ordered:
                     markers: list[str] = []
                     if c in ec.added_source_curies:
@@ -506,16 +481,13 @@ def _render_clique_impact(
                         _, needs_reg = prefix_survives(c, own_type, lookup.prefix_priority_by_type)
                         if needs_reg:
                             markers.append(
-                                f"**(NOT emitted — prefix not registered in Biolink Model "
-                                f"for `{own_type}`)**"
+                                f"**(NOT emitted — prefix not registered in Biolink Model for `{own_type}`)**"
                             )
                     if c == after_pref:
                         markers.append("**(preferred)**")
                     if before_pref != after_pref and c == before_pref:
                         markers.append("_(was preferred before)_")
-                    lines.append(
-                        _render_curie_entry(c, lookup, bullet="  - ", marker=" ".join(markers))
-                    )
+                    lines.append(_render_curie_entry(c, lookup, bullet="  - ", marker=" ".join(markers)))
             lines.append("")
 
     return lines
@@ -542,14 +514,8 @@ def render_markdown(
     lines.append("")
     lines.append(f"- Generated: {generated_at}")
     lines.append(f"- Babel commit: {babel_commit}")
-    lines.append(
-        "- Source semantic types: "
-        f"{', '.join(sorted(contribution.semantic_types)) or '(none discovered)'}"
-    )
-    lines.append(
-        "- Source prefixes: "
-        f"{', '.join(sorted(contribution.prefixes)) or '(none discovered)'}"
-    )
+    lines.append(f"- Source semantic types: {', '.join(sorted(contribution.semantic_types)) or '(none discovered)'}")
+    lines.append(f"- Source prefixes: {', '.join(sorted(contribution.prefixes)) or '(none discovered)'}")
     mode_label = mode if not remote_url else f"{mode} (vs {remote_url})"
     lines.append(f"- Comparison mode: {mode_label}")
     lines.append("")
@@ -628,13 +594,8 @@ def render_markdown(
     lines.append("## 3. Cross-references added")
     lines.append("")
     total_concords = contribution.total_concord_row_count
-    n_concord_files = sum(
-        1 for stc in contribution.by_semantic_type.values() if stc.concords_path is not None
-    )
-    lines.append(
-        f"Totals: {_fmt(total_concords)} cross-reference rows across "
-        f"{n_concord_files} concord file(s)."
-    )
+    n_concord_files = sum(1 for stc in contribution.by_semantic_type.values() if stc.concords_path is not None)
+    lines.append(f"Totals: {_fmt(total_concords)} cross-reference rows across {n_concord_files} concord file(s).")
     lines.append("")
     lines.append("### By semantic type")
     if contribution.semantic_types:
@@ -709,16 +670,12 @@ def render_json(
             ],
             "pure_new_samples": [
                 sorted(c)
-                for c in sorted(
-                    diff.pure_new_cliques, key=lambda c: (-len(c), clique_leader(c))
-                )[:PURE_NEW_SAMPLE_LIMIT]
+                for c in sorted(diff.pure_new_cliques, key=lambda c: (-len(c), clique_leader(c)))[
+                    :PURE_NEW_SAMPLE_LIMIT
+                ]
             ],
-            "truly_grown_clique_count": sum(
-                1 for ec in diff.expanded_cliques if ec.added_source_curies
-            ),
-            "promotion_only_clique_count": sum(
-                1 for ec in diff.expanded_cliques if not ec.added_source_curies
-            ),
+            "truly_grown_clique_count": sum(1 for ec in diff.expanded_cliques if ec.added_source_curies),
+            "promotion_only_clique_count": sum(1 for ec in diff.expanded_cliques if not ec.added_source_curies),
             "expanded_samples": [
                 {
                     "before_clique": sorted(ec.before_clique),

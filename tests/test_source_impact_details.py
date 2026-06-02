@@ -41,9 +41,7 @@ def synthetic_intermediate(tmp_path):
     )
     _write(
         anatomy / "concords" / "NEWSOURCE",
-        "NEWSRC:2\txref\tUBERON:0001\n"
-        "NEWSRC:3\txref\tUBERON:0002\n"
-        "NEWSRC:3\txref\tGO:0000003\n",
+        "NEWSRC:2\txref\tUBERON:0001\nNEWSRC:3\txref\tUBERON:0002\nNEWSRC:3\txref\tGO:0000003\n",
     )
     return {"intermediate_root": tmp_path / "intermediate", "source": "NEWSOURCE"}
 
@@ -51,11 +49,16 @@ def synthetic_intermediate(tmp_path):
 def _run(synthetic_intermediate, output, extra=()):
     return main(
         [
-            "--source", synthetic_intermediate["source"],
-            "--mode", "synthetic",
-            "--intermediate-root", str(synthetic_intermediate["intermediate_root"]),
-            "--output", str(output),
-            "--format", "md",
+            "--source",
+            synthetic_intermediate["source"],
+            "--mode",
+            "synthetic",
+            "--intermediate-root",
+            str(synthetic_intermediate["intermediate_root"]),
+            "--output",
+            str(output),
+            "--format",
+            "md",
             "--no-biolink-lookup",  # keep the test fully offline
             *extra,
         ]

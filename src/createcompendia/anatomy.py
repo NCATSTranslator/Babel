@@ -260,7 +260,9 @@ def compute_cliques_for_impact_report(concordances, identifiers, excluded_source
                         if xi not in dicts:
                             logger.debug(
                                 "Skipping pair %s from %s: terms with prefixes %s are skipped unless they are already in the concords.",
-                                x, infile, bs,
+                                x,
+                                infile,
+                                bs,
                             )
                             use = False
                     if not use:
@@ -322,6 +324,8 @@ def create_typed_sets(eqsets, types):
     for equivalent_ids in eqsets:
         t = classify_anatomy_clique(equivalent_ids, types)
         if t is None:
-            raise RuntimeError(f"Cannot assign a biolink type to anatomy clique {equivalent_ids}: no member CURIE has a declared type.")
+            raise RuntimeError(
+                f"Cannot assign a biolink type to anatomy clique {equivalent_ids}: no member CURIE has a declared type."
+            )
         typed_sets[t].add(equivalent_ids)
     return typed_sets
