@@ -438,9 +438,12 @@ def _render_clique_impact(
                     truly_grown_samples.append(tup)
                 else:
                     promotion_only_samples.append(tup)
-            preferred_change_samples.sort(key=lambda t: _expanded_rank(t[0], lookup.labels_by_prefix))
-            truly_grown_samples.sort(key=lambda t: _expanded_rank(t[0], lookup.labels_by_prefix))
-            promotion_only_samples.sort(key=lambda t: _expanded_rank(t[0], lookup.labels_by_prefix))
+            def _rank(t: tuple) -> tuple:
+                return _expanded_rank(t[0], lookup.labels_by_prefix)
+
+            preferred_change_samples.sort(key=_rank)
+            truly_grown_samples.sort(key=_rank)
+            promotion_only_samples.sort(key=_rank)
             preferred_change_n = len(preferred_change_samples)
 
             lines.append(f"#### Sample expanded cliques (up to {EXPANDED_SAMPLE_LIMIT})")

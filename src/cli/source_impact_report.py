@@ -136,11 +136,10 @@ def _final_compendium_breakdown(
             path = compendia_root / fname
             if not path.exists():
                 continue
-            count = 0
-            for clique in load_compendium(path):
-                for ident in clique.get("identifiers", []):
-                    if ident["i"] in source_curies:
-                        count += 1
+            count = sum(
+                len({ident["i"] for ident in clique.get("identifiers", [])} & source_curies)
+                for clique in load_compendium(path)
+            )
             per_file[fname] = count
         breakdown[st] = per_file
     return breakdown
@@ -201,8 +200,13 @@ def _remote_comparison_summary(
         current_cliques = cliques_from_compendia(current_paths) if current_paths else frozenset()
 
         remote_with_source = sum(1 for c in remote_cliques if c & source_curies)
-        current_with_source = sum(1 for c in current_cliques if c & source_curies)
-        current_only = sum(1 for c in current_cliques if (c & source_curies) and c not in remote_cliques)
+        current_with_source = 0
+        current_only = 0
+        for c in current_cliques:
+            if c & source_curies:
+                current_with_source += 1
+                if c not in remote_cliques:
+                    current_only += 1
 
         summary[st] = {
             "remote_total_cliques": len(remote_cliques),
@@ -267,11 +271,7 @@ def _build_lookup_context(
                 if element is None:
                     continue
                 prefs = getattr(element, "id_prefixes", None) or []
-                seen: list[str] = []
-                for p in prefs:
-                    if p not in seen:
-                        seen.append(p)
-                prefix_priority_by_type[bt] = seen
+                prefix_priority_by_type[bt] = list(dict.fromkeys(prefs))
         except Exception as exc:
             logger.warning("could not load Biolink toolkit prefix orders: %s", exc)
 
@@ -473,7 +473,7 @@ def main(argv: list[str] | None = None) -> int:
             generated_at=generated_at,
             babel_commit=babel_commit,
             remote_url=args.remote_url,
-            remote_summary=remote_summary or None,
+            remote_summary=remote_summary,
             lookup=lookup,
             details_dirname=details_dirname,
         )
@@ -500,7 +500,7 @@ def main(argv: list[str] | None = None) -> int:
             generated_at=generated_at,
             babel_commit=babel_commit,
             remote_url=args.remote_url,
-            remote_summary=remote_summary or None,
+            remote_summary=remote_summary,
         )
         json_path = output_path.with_suffix(".json")
         json_path.write_text(json_payload)
