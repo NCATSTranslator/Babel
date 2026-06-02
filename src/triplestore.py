@@ -9,7 +9,7 @@ from SPARQLWrapper import JSON, POST, POSTDIRECTLY, SPARQLWrapper2
 
 from src.util import LoggingUtil
 
-logger = LoggingUtil.init_logging(__name__, logging.ERROR)
+logger = LoggingUtil.init_logging(__name__, logging.WARNING)
 
 SPARQL_MAX_RETRIES = 3
 SPARQL_RETRY_BASE_DELAY_SECONDS = 1

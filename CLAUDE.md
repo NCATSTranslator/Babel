@@ -119,7 +119,7 @@ in code or in docs that will go stale) and feeds both `NodeFactory` and
 `get_biolink_model_toolkit()`.
 
 **Mapped class URIs** — always use the `biolink:`-prefixed form (e.g. `biolink:ChemicalEntity`),
-not the raw element name (`chemical entity`). `get_ancestors()` and `get_element()["class_uri"]`
+not the raw element name (`chemical entity`). `get_ancestors()` and `get_element().class_uri`
 return these mapped forms. Note that `get_element()` returns a bmt `ClassDefinition`
 object, not a dict: read fields with attribute access (e.g. `element.id_prefixes`), not
 `element["id_prefixes"]` / `element.get("id_prefixes")`.
