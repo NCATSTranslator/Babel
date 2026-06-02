@@ -16,10 +16,11 @@ The "remote" comparison mode reads JSONL compendia from a previous Babel build a
 
 from __future__ import annotations
 
-import json
 import pathlib
 from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
+
+import jsonlines
 
 GlomDict = Mapping[str, "Iterable[str]"]
 
@@ -122,7 +123,7 @@ def diff_cliques(
     source_curies_fs = frozenset(source_curies)
     before_lookup = _lookup_table(before)
     after_cliques = cliques_set(after)
-    before_cliques = cliques_set(before)
+    before_clique_count = len({id(v): v for v in before.values()})
 
     pure_new: list[frozenset[str]] = []
     expanded: list[ExpandedClique] = []
@@ -174,19 +175,15 @@ def diff_cliques(
         pure_new_cliques=pure_new,
         expanded_cliques=expanded,
         merged_cliques=merged,
-        before_clique_count=len(before_cliques),
+        before_clique_count=before_clique_count,
         after_clique_count=len(after_cliques),
     )
 
 
 def load_compendium(path: pathlib.Path | str) -> Iterator[dict]:
     """Stream clique dicts from a JSONL compendium file."""
-    with open(path) as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            yield json.loads(line)
+    with jsonlines.open(path) as reader:
+        yield from reader
 
 
 def cliques_from_compendia(paths: Iterable[pathlib.Path | str]) -> frozenset[frozenset[str]]:
