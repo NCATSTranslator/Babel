@@ -1,5 +1,4 @@
 import logging
-import os
 from collections import defaultdict
 
 import requests
@@ -7,8 +6,9 @@ import requests
 import src.datahandlers.mesh as mesh
 import src.datahandlers.obo as obo
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.babel_utils import get_prefixes, remove_overused_xrefs, write_compendium
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
+from src.createcompendia.cliques import glom_from_files
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import CL, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import build_sets
@@ -214,9 +214,37 @@ def build_anatomy_umls_relationships(mrconso, idfile, outfile, umls_metadata):
     )
 
 
+def _anatomy_concord_pair_filter(parts, infile, dicts):
+    """Drop UMLS<->GO concord pairs unless both CURIEs are already in the clique state.
+
+    UMLS includes obsolete GO terms we don't want to add, so we limit UMLS<->GO concords
+    to terms that are already in ``dicts``. This is ONLY for the UMLS/GO combination — we
+    trust the other concords to retrieve decent identifiers. Returns True to keep the pair.
+    """
+    bs = frozenset([UMLS, GO])
+    prefixes = frozenset(xi.split(":")[0] for xi in parts[0:3:2])  # leave out the predicate
+    if prefixes != bs:
+        return True
+    for xi in (parts[0], parts[2]):
+        if xi not in dicts:
+            logger.debug(
+                "Skipping pair %s from %s: terms with prefixes %s are skipped unless they are already in the concords.",
+                parts,
+                infile,
+                bs,
+            )
+            return False
+    return True
+
+
 def compute_cliques_for_impact_report(concordances, identifiers, excluded_sources=()):
     """Load anatomy identifier and concord files and return the union-find clique state
     without writing compendia.
+
+    Thin wrapper over :func:`src.createcompendia.cliques.glom_from_files` supplying
+    anatomy's hooks (unique prefixes, the UMLS<->GO pair filter, and overused-xref
+    removal). ``build_compendia`` calls this too, so the source-impact report's reglom
+    uses the same code path as the real build.
 
     The source-impact report CLI calls this twice — once with the new source's files
     excluded, once with everything — to compute a before/after diff.
@@ -228,47 +256,14 @@ def compute_cliques_for_impact_report(concordances, identifiers, excluded_source
     :returns: (dicts, types) where dicts is the glom dict-of-sets and types maps CURIE
         to its declared biolink type
     """
-    excluded = set(excluded_sources)
-    dicts = {}
-    types = {}
-    for ifile in identifiers:
-        if os.path.basename(ifile) in excluded:
-            continue
-        logger.info("loading ids file %s", ifile)
-        new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=get_config()["anatomy_unique_prefixes"])
-        types.update(new_types)
-    for infile in concordances:
-        if os.path.basename(infile) in excluded:
-            continue
-        logger.info("loading concordance file %s", infile)
-        pairs = []
-        # We have a concordance problem with UMLS - it is including GO terms that are obsolete and we don't want
-        # them added. So we want to limit concordances to terms that are already in the dicts. But that's ONLY for the
-        # UMLS concord.  We trust the others to retrieve decent identifiers.
-        bs = frozenset([UMLS, GO])
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                prefixes = frozenset([xi.split(":")[0] for xi in x[0:3:2]])  # leave out the predicate
-                if prefixes == bs:
-                    use = True
-                    for xi in (x[0], x[2]):
-                        if xi not in dicts:
-                            logger.debug(
-                                "Skipping pair %s from %s: terms with prefixes %s are skipped unless they are already in the concords.",
-                                x,
-                                infile,
-                                bs,
-                            )
-                            use = False
-                    if not use:
-                        continue
-                pairs.append([x[0], x[2]])
-        newpairs = remove_overused_xrefs(pairs)
-        setpairs = [set(x) for x in newpairs]
-        glom(dicts, setpairs, unique_prefixes=get_config()["anatomy_unique_prefixes"])
-    return dicts, types
+    return glom_from_files(
+        concordances,
+        identifiers,
+        unique_prefixes=get_config()["anatomy_unique_prefixes"],
+        concord_pair_filter=_anatomy_concord_pair_filter,
+        overused_xref_remover=lambda pairs, infile: remove_overused_xrefs(pairs),
+        excluded_sources=excluded_sources,
+    )
 
 
 def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
