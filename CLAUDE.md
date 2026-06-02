@@ -228,6 +228,22 @@ it in `SEMANTIC_TYPE_CONFIG` in `src/cli/source_impact_report.py`.
 
 ## Conventions
 
+- **Configuration over constants** — prefer `config.yaml` over module-level Python constants for
+  any value that is a data-level choice (a list of prefixes, a threshold, a flag) rather than pure
+  logic. Constants buried in Python files are invisible to readers of `config.yaml` and are easily
+  missed when related settings change. Module-level constants are fine for values that are pure
+  implementation details with no user-facing meaning.
+
+- **Document every configuration value** — every entry in `config.yaml` and every module-level
+  constant that remains in Python must have an inline comment explaining *what it controls* and
+  *why the chosen value was picked*. One-word names are not self-documenting.
+
+- **Keep related settings together** — configuration entries that constrain or depend on each other
+  must sit adjacent in `config.yaml`, separated from unrelated entries. For example, the anatomy
+  block groups `anatomy_prefixes`, `anatomy_ids`, `anatomy_concords`, `anatomy_outputs`, and
+  `anatomy_unique_prefixes` together so that adding a new source requires reviewing all of them at
+  once. Never scatter correlated settings across the file.
+
 - **Commits** — if you need to make a large change, break it into multiple commits so it's clearer
   what changes are related.
 
