@@ -45,6 +45,7 @@ def _mock_triplestore(monkeypatch, responses):
     return ts
 
 
+@pytest.mark.unit
 def test_execute_query_retries_on_json_decode_error(monkeypatch):
     ts = _mock_triplestore(
         monkeypatch,
@@ -58,6 +59,7 @@ def test_execute_query_retries_on_json_decode_error(monkeypatch):
     assert result == {"ok": True}
 
 
+@pytest.mark.unit
 def test_execute_query_retries_on_http_503(monkeypatch):
     ts = _mock_triplestore(
         monkeypatch,
@@ -71,6 +73,7 @@ def test_execute_query_retries_on_http_503(monkeypatch):
     assert result == {"ok": True}
 
 
+@pytest.mark.unit
 def test_execute_query_does_not_retry_http_400(monkeypatch):
     ts = _mock_triplestore(
         monkeypatch,
