@@ -7,12 +7,9 @@ from urllib.error import HTTPError, URLError
 
 from SPARQLWrapper import JSON, POST, POSTDIRECTLY, SPARQLWrapper2
 
-from src.util import LoggingUtil
+from src.util import LoggingUtil, get_config
 
 logger = LoggingUtil.init_logging(__name__, logging.WARNING)
-
-SPARQL_MAX_RETRIES = 3
-SPARQL_RETRY_BASE_DELAY_SECONDS = 1
 
 
 class TripleStore:
@@ -33,41 +30,58 @@ class TripleStore:
             query = stream.read()
         return query
 
-    def execute_query(self, query, post=False):
+    def execute_query(self, query, post=False, max_retries=None, retry_base_delay_seconds=None):
         """Execute a SPARQL query.
 
         :param query: A SPARQL query.
+        :param post: If True, send the query via HTTP POST.
+        :param max_retries: Maximum number of attempts before giving up (default from config).
+        :param retry_base_delay_seconds: Base delay in seconds for exponential back-off (default from config).
         :return: Returns a JSON formatted object.
         """
+        sparql_cfg = get_config().get("sparql", {})
+        if max_retries is None:
+            max_retries = sparql_cfg.get("max_retries", 3)
+        if retry_base_delay_seconds is None:
+            retry_base_delay_seconds = sparql_cfg.get("retry_base_delay_seconds", 1)
+
         if post:
             self.service.setRequestMethod(POSTDIRECTLY)
             self.service.setMethod(POST)
         self.service.setQuery(query)
         self.service.setReturnFormat(JSON)
-        return self._execute_query_with_retries()
+        return self.dispatch_with_retries(max_retries, retry_base_delay_seconds)
 
-    def _execute_query_with_retries(self):
+    def dispatch_with_retries(self, max_retries: int, retry_base_delay_seconds: int):
+        """Dispatch the query already loaded on self.service, retrying on transient failures."""
         attempt = 0
         while True:
             attempt += 1
             try:
                 return self.service.query().convert()
             except HTTPError as e:
-                if e.code < 500 or attempt >= SPARQL_MAX_RETRIES:
+                if e.code < 500 or attempt >= max_retries:
                     raise
-                self._retry_wait(attempt, "SPARQL HTTP %d", e.code)
+                self.wait_before_retry(attempt, max_retries, retry_base_delay_seconds, "SPARQL HTTP %d", e.code)
             except (JSONDecodeError, TimeoutError, URLError, OSError) as e:
-                if attempt >= SPARQL_MAX_RETRIES:
+                if attempt >= max_retries:
                     raise
-                self._retry_wait(attempt, "Transient SPARQL query failure (%s)", e.__class__.__name__)
+                self.wait_before_retry(
+                    attempt,
+                    max_retries,
+                    retry_base_delay_seconds,
+                    "Transient SPARQL query failure (%s)",
+                    e.__class__.__name__,
+                )
 
-    def _retry_wait(self, attempt: int, msg: str, *args) -> None:
-        wait_seconds = SPARQL_RETRY_BASE_DELAY_SECONDS * (2 ** (attempt - 1))
+    def wait_before_retry(self, attempt: int, max_retries: int, retry_base_delay_seconds: int, msg: str, *args) -> None:
+        """Log a warning and sleep with exponential back-off before the next attempt."""
+        wait_seconds = retry_base_delay_seconds * (2 ** (attempt - 1))
         logger.warning(
             msg + " on attempt %d/%d; retrying in %ss",
             *args,
             attempt,
-            SPARQL_MAX_RETRIES,
+            max_retries,
             wait_seconds,
         )
         sleep(wait_seconds)
