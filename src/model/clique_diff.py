@@ -80,10 +80,18 @@ def cliques_set(glom_dict: GlomDict) -> frozenset[frozenset[str]]:
 
 
 def _lookup_table(glom_dict: GlomDict) -> dict[str, frozenset[str]]:
-    """Return a {curie: clique-as-frozenset} lookup derived from a glom dict."""
+    """Return a {curie: clique-as-frozenset} lookup derived from a glom dict.
+
+    Memoises the frozenset conversion by object identity (same trick as
+    ``cliques_set``) so we do O(cliques) freezes rather than O(identifiers).
+    """
     out: dict[str, frozenset[str]] = {}
+    frozen_cache: dict[int, frozenset[str]] = {}
     for curie, members in glom_dict.items():
-        out[curie] = frozenset(members)
+        key = id(members)
+        if key not in frozen_cache:
+            frozen_cache[key] = frozenset(members)
+        out[curie] = frozen_cache[key]
     return out
 
 
