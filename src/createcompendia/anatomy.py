@@ -1,3 +1,4 @@
+import logging
 import os
 from collections import defaultdict
 
@@ -12,6 +13,8 @@ from src.metadata.provenance import write_concord_metadata
 from src.prefixes import CL, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import build_sets
 from src.util import Text
+
+logger = logging.getLogger(__name__)
 
 
 def remove_overused_xrefs_dict(kv):
@@ -234,14 +237,14 @@ def compute_cliques_for_impact_report(concordances, identifiers, excluded_source
     for ifile in identifiers:
         if os.path.basename(ifile) in excluded:
             continue
-        print(ifile)
+        logger.info("loading ids file %s", ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
         glom(dicts, new_identifiers, unique_prefixes=ANATOMY_UNIQUE_PREFIXES)
         types.update(new_types)
     for infile in concordances:
         if os.path.basename(infile) in excluded:
             continue
-        print("loading", infile)
+        logger.info("loading concordance file %s", infile)
         pairs = []
         # We have a concordance problem with UMLS - it is including GO terms that are obsolete and we don't want
         # them added. So we want to limit concordances to terms that are already in the dicts. But that's ONLY for the
@@ -255,8 +258,9 @@ def compute_cliques_for_impact_report(concordances, identifiers, excluded_source
                     use = True
                     for xi in (x[0], x[2]):
                         if xi not in dicts:
-                            print(
-                                f"Skipping pair {x} from {infile}: terms with prefixes {bs} are skipped unless they are already in the concords."
+                            logger.debug(
+                                "Skipping pair %s from %s: terms with prefixes %s are skipped unless they are already in the concords.",
+                                x, infile, bs,
                             )
                             use = False
                     if not use:
