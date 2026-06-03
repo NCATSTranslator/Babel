@@ -64,15 +64,22 @@ _EXT_TO_FORMAT = {
 def current_rss_gib() -> float:
     """Current (not peak) resident set size of this process, in GiB.
 
-    Uses ``ps -o rss=`` (kibibytes on both macOS and Linux). Current RSS is
-    preferred over getrusage's peak ``ru_maxrss`` because the projection needs a
-    value that can go *down* — on macOS this makes memory-compression plateaus
-    visible instead of being hidden by a monotonic peak.
+    Current RSS is preferred over getrusage's peak ``ru_maxrss`` because the
+    projection needs a value that can go *down* — on macOS this makes
+    memory-compression plateaus visible instead of being hidden by a monotonic peak.
 
-    Falls back to peak RSS (via getrusage) if ``ps`` is unavailable or returns
-    an unexpected value — the projection will then be monotonically non-decreasing
-    but the tool won't abort mid-run.
+    On Linux reads ``/proc/self/status`` directly (no subprocess). On macOS uses
+    ``ps -o rss=``. Falls back to peak RSS (via getrusage) if neither works — the
+    projection will then be monotonically non-decreasing but the tool won't abort.
     """
+    if sys.platform == "linux":
+        try:
+            with open("/proc/self/status") as fh:
+                for line in fh:
+                    if line.startswith("VmRSS:"):
+                        return int(line.split()[1]) * 1024 / GIB
+        except (OSError, ValueError, IndexError):
+            pass
     try:
         out = subprocess.run(["ps", "-o", "rss=", "-p", str(os.getpid())], capture_output=True, text=True, check=True)
         return int(out.stdout.strip()) * 1024 / GIB
@@ -97,27 +104,6 @@ def format_for(path: str, override: str | None) -> pyoxigraph.RdfFormat:
     if ext not in _EXT_TO_FORMAT:
         raise ValueError(f"Cannot infer RDF format for {path!r} (extension {ext!r}); pass --format")
     return _EXT_TO_FORMAT[ext]
-
-
-class ChunkedCountingReader:
-    """Wrap a binary file so the parser always reads in bounded chunks.
-
-    pyoxigraph reads ~4 KiB at a time, but capping ``read()`` here guarantees the
-    parser pulls incrementally regardless of the size it asks for, and lets us
-    count exactly how many bytes were consumed.
-    """
-
-    def __init__(self, fh, chunk: int = 8 * 1024 * 1024):
-        self.fh = fh
-        self.chunk = chunk
-        self.n = 0
-
-    def read(self, size=-1):
-        if size is None or size < 0 or size > self.chunk:
-            size = self.chunk
-        data = self.fh.read(size)
-        self.n += len(data)
-        return data
 
 
 def main() -> int:
@@ -153,14 +139,13 @@ def main() -> int:
         fmt = format_for(path, args.format)
         batch = []
         with open(path, "rb") as raw:
-            reader = ChunkedCountingReader(raw)
-            for quad in pyoxigraph.parse(input=reader, format=fmt):
+            for quad in pyoxigraph.parse(input=raw, format=fmt):
                 batch.append(quad)
                 if len(batch) >= args.batch:
                     store.extend(batch)
                     n_quads += len(batch)
                     batch.clear()
-                    bytes_read = bytes_done + reader.n
+                    bytes_read = bytes_done + raw.tell()
                     frac = bytes_read / total_bytes
                     rss = current_rss_gib()
                     projected = rss / frac if frac else float("nan")
