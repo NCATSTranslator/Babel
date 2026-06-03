@@ -10,7 +10,7 @@ import warnings
 
 import pytest
 
-from src.categories import ACTIVITY, PHENOMENON
+from src.categories import ACTIVITY, COHORT, PHENOMENON
 from src.createcompendia.leftover_umls import (
     STY_OVERRIDES,
     TYPE_COMBO_OVERRIDES,
@@ -34,6 +34,9 @@ RECORDED_STY_BASELINE: dict[str, str | None] = {
     "T120": None,  # https://github.com/NCATSTranslator/Babel/issues/421 -- "Chemical Viewed Functionally": no STY mapping.
     "T122": None,  # https://github.com/NCATSTranslator/Babel/issues/421 -- "Biomedical or Dental Material": no STY mapping.
     "T168": None,  # https://github.com/NCATSTranslator/Babel/issues/421 -- "Food": no STY mapping.
+    "T090": None,  # https://github.com/NCATSTranslator/Babel/issues/817 -- "Occupation or Discipline": no STY mapping.
+    "T091": None,  # https://github.com/NCATSTranslator/Babel/issues/817 -- "Biomedical Occupation or Discipline": no STY mapping.
+    "T097": COHORT,  # https://github.com/NCATSTranslator/Babel/issues/817 -- "Professional or Occupational Group": bmt maps to Cohort, overridden to PopulationOfIndividualOrganisms for consistency.
 }
 
 

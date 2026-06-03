@@ -18,6 +18,7 @@ from src.categories import (
     NAMED_THING,
     PHENOMENON,
     PHYSICAL_ENTITY,
+    POPULATION_OF_INDIVIDUAL_ORGANISMS,
     PROCEDURE,
     PUBLICATION,
     SMALL_MOLECULE,
@@ -66,6 +67,15 @@ STY_OVERRIDES: dict[str, str | None] = {
     "T122": CHEMICAL_ENTITY,
     # "Food" -> biolink:Food (biolink/biolink-model#1598).
     "T168": FOOD,
+    # https://github.com/NCATSTranslator/Babel/issues/817
+    # "Occupation or Discipline", "Biomedical Occupation or Discipline", and "Professional or
+    # Occupational Group" are all mapped to PopulationOfIndividualOrganisms as a placeholder until
+    # the Biolink mapping is resolved. T090/T091 have no bmt mapping; T097 is overridden from
+    # biolink:Cohort to the parent class for consistency across this cluster. This is imprecise but
+    # lets these concepts normalise and carry labels rather than being dropped entirely.
+    "T090": POPULATION_OF_INDIVIDUAL_ORGANISMS,
+    "T091": POPULATION_OF_INDIVIDUAL_ORGANISMS,
+    "T097": POPULATION_OF_INDIVIDUAL_ORGANISMS,
 }
 
 # Disambiguation applied when a single UMLS concept resolves to more than one Biolink type (because
