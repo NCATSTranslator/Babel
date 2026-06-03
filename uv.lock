@@ -224,7 +224,7 @@ requires-dist = [
     { name = "pytest-xdist", specifier = ">=3" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.32.5" },
-    { name = "snakemake", specifier = ">=9.21.0" },
+    { name = "snakemake", specifier = ">=9.21.1" },
     { name = "snakemake-executor-plugin-slurm", specifier = ">=2.6.1" },
     { name = "sparqlwrapper", specifier = ">=2.0.0" },
     { name = "tqdm", specifier = ">=4.67.1" },
@@ -640,11 +640,11 @@ wheels = [
 
 [[package]]
 name = "docutils"
-version = "0.23"
+version = "0.22.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/39/a4/5180d9afc57e8fca05601dd652bdff19604c218814037fe90ffc7625a50a/docutils-0.23.tar.gz", hash = "sha256:746f5060322511280a1e50eb76846ed6bf2342984b2ac04dc42caa1a8d78799e", size = 2303823, upload-time = "2026-05-27T17:41:06.934Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ae/b6/03bb70946330e88ffec97aefd3ea75ba575cb2e762061e0e62a213befee8/docutils-0.22.4.tar.gz", hash = "sha256:4db53b1fde9abecbb74d91230d32ab626d94f6badfc575d6db9194a49df29968", size = 2291750, upload-time = "2025-12-18T19:00:26.443Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/32/91/30151a39f7570f448ed84529390628a651d7f27c87d73c9b887f8189695e/docutils-0.23-py3-none-any.whl", hash = "sha256:25d013af9bf23bc1c7b2b093dff4208166c53a94786c9e447808335ef1185fea", size = 634701, upload-time = "2026-05-27T17:40:58.442Z" },
+    { url = "https://files.pythonhosted.org/packages/02/10/5da547df7a391dcde17f59520a231527b8571e6f46fc8efb02ccb370ab12/docutils-0.22.4-py3-none-any.whl", hash = "sha256:d0013f540772d1420576855455d050a2180186c91c15779301ac2ccb3eeb68de", size = 633196, upload-time = "2025-12-18T19:00:18.077Z" },
 ]
 
 [[package]]
@@ -2257,7 +2257,7 @@ wheels = [
 
 [[package]]
 name = "snakemake"
-version = "9.21.0"
+version = "9.21.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "conda-inject" },
@@ -2292,9 +2292,9 @@ dependencies = [
     { name = "wrapt" },
     { name = "yte" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6e/f1/77c467acba054354b373e7fce77c9ed707b6219e101678174a5d64bd9837/snakemake-9.21.0.tar.gz", hash = "sha256:2d520b7f081bd67de59ec4e21a36db93eef29ec96f02769826fef85dd821d795", size = 6788538, upload-time = "2026-05-14T08:24:29.615Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/11/f2/f1a37124f5855579865345a5c64573de4de3b3a2e63594d2f1d3dc341caf/snakemake-9.21.1.tar.gz", hash = "sha256:495cd9438fd530b8f1d207112decd71ab2ac3699194b1756960f9488f98c26e7", size = 6792798, upload-time = "2026-05-29T14:18:27.831Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ad/c5/2455f7b26a7de342049bcc1c207852155229cb7dacbcd377817caba91655/snakemake-9.21.0-py3-none-any.whl", hash = "sha256:2250e656d28f8cf38f1218cc547fd48fa4c7a20ab2bd47a59346c624b7256793", size = 1158190, upload-time = "2026-05-14T08:24:27.206Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/bf/7f0972b61446cd4783ab39a8e211bc8aa34ed484a3062e767a8b3af80a49/snakemake-9.21.1-py3-none-any.whl", hash = "sha256:9ff83764256dea9bad5dc072a3e71ce111154999b50c127aaddffff5eef50f26", size = 1158766, upload-time = "2026-05-29T14:18:25.876Z" },
 ]
 
 [[package]]
