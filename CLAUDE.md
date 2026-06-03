@@ -57,11 +57,13 @@ accurate on Linux — macOS memory compression understates the result).
 - `docs/Testing.md` — testing strategy: cadence per environment (per-PR, nightly, weekly,
   pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other strategies.
 
-### Linting (all three checked in CI on PRs)
+### Linting (all four checked in CI on PRs)
 
 ```bash
 uv run ruff check                        # Python lint
 uv run ruff check --fix                  # Python auto-fix
+uv run ruff format --check               # Python format check
+uv run ruff format                       # Python auto-format
 uv run snakefmt --check --compact-diff . # Snakemake format check
 uv run snakefmt .                        # Snakemake auto-fix
 uv run rumdl check .                     # Markdown lint
@@ -161,6 +163,15 @@ The `Edge` table answers "which clique contains CURIE X" with a one-line query
 (`SELECT DISTINCT clique_leader FROM Edge WHERE curie IN (...)`) and is the fastest way to
 check whether several CURIEs landed in the same clique in a given build — much cheaper than
 re-running glom or scanning the JSONL compendia.
+
+### Per-source documentation (`docs/sources/`)
+
+Deeper, source-specific notes live under `docs/sources/<PREFIX>/` (one directory per data source,
+named by its CURIE prefix); see `docs/sources/README.md` for the convention and an index. Check
+there first when working on a specific vocabulary, and add to it when you learn something
+non-obvious about how Babel ingests that source. Keep the detail in the source file — `CLAUDE.md`
+should point here, not duplicate it. The only source documented so far is MeSH
+(`docs/sources/MESH/Ingestion.md`).
 
 ### Per-compendium metadata YAMLs
 

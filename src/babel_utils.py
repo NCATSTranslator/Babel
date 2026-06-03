@@ -12,6 +12,7 @@ from enum import Enum
 from ftplib import FTP
 from io import BytesIO
 from pathlib import Path
+from typing import NamedTuple
 
 import jsonlines
 import requests
@@ -41,6 +42,25 @@ logger = get_logger(__name__)
 
 # Matches an RDF language-tagged literal as returned by pyoxigraph as a raw string, e.g. "value"@en
 _RDF_LANG_LITERAL_RE = re.compile(r'^"(.*)"@\w+$')
+
+
+class TypedClique(NamedTuple):
+    """A clique that carries its own Biolink node type.
+
+    Used as an element of the ``synonym_list`` passed to :func:`write_compendium` when the
+    cliques in a single compendium run do not all share the same Biolink type.  Passing a
+    heterogeneous list of ``TypedClique`` objects (with ``node_type=None`` in
+    ``write_compendium``) lets each clique declare its own type independently, which is how
+    the leftover-UMLS compendium handles entities that span many Biolink classes.
+
+    :param node_type: The ``biolink:``-prefixed class URI for this clique
+        (e.g. ``"biolink:Disease"``).  Use the named constants in ``src/categories.py``
+        rather than raw strings.
+    :param identifiers: The list of CURIEs that belong to this clique.
+    """
+
+    node_type: str
+    identifiers: list[str]
 
 
 def parse_rdf_literal(literal: str) -> str:
@@ -229,10 +249,6 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
         dl_file_name = os.path.join(download_dir, in_file_name)
     else:
         dl_file_name = os.path.join(download_dir, subpath, in_file_name)
-
-    # Make sure the destination directory exists (Snakemake normally pre-creates output
-    # directories, but pull_via_urllib() is also called directly, e.g. from tests).
-    Path(dl_file_name).parent.mkdir(parents=True, exist_ok=True)
 
     # Add support for redirects
     opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
@@ -525,7 +541,8 @@ def write_compendium(
     :param metadata_yaml: The YAML files containing the metadata for this compendium.
     :param synonym_list:
     :param ofname: Output filename. A file with this filename will be created in both the `compendia` and `synonyms` output directories.
-    :param node_type: The Biolink type of this compendium (including `biolink:` prefix).
+    :param node_type: The Biolink type of this compendium (including `biolink:` prefix). Set this to None
+        only if every item in synonym_list is a TypedClique with its own node_type.
     :param labels: A map of identifiers
         Not needed if each identifier will have a label in the correct directory (i.e. downloads/PMID/labels for PMID:xxx).
     :param extra_prefixes: We default to only allowing the prefixes allowed for a particular type in Biolink.
@@ -575,10 +592,13 @@ def write_compendium(
     taxon_factory = TaxonFactory(make_local_name(""))
     logger.info(f"TaxonFactory ready: {taxon_factory} with {get_memory_usage_summary()}")
 
-    node_test = node_factory.create_node(
-        input_identifiers=[], node_type=node_type, labels={}, extra_prefixes=extra_prefixes
-    )
-    logger.info(f"NodeFactory test complete: {node_test} with {get_memory_usage_summary()}")
+    if node_type is not None:
+        node_test = node_factory.create_node(
+            input_identifiers=[], node_type=node_type, labels={}, extra_prefixes=extra_prefixes
+        )
+        logger.info(f"NodeFactory test complete: {node_test} with {get_memory_usage_summary()}")
+    else:
+        logger.info("Skipping NodeFactory type test for heterogeneous typed cliques.")
 
     # Create compendia and synonyms directories, just in case they haven't been created yet.
     os.makedirs(os.path.join(cdir, "compendia"), exist_ok=True)
@@ -615,6 +635,15 @@ def write_compendium(
         total_slist = len(synonym_list)
 
         for slist in synonym_list:
+            if isinstance(slist, TypedClique):
+                current_node_type = slist.node_type
+                input_identifiers = slist.identifiers
+            else:
+                if node_type is None:
+                    raise RuntimeError("write_compendium() requires node_type unless every clique is a TypedClique.")
+                current_node_type = node_type
+                input_identifiers = slist
+
             # Before we get started, let's estimate where we're at.
             count_slist += 1
             if (count_slist == 1) or (count_slist % WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES == 0):
@@ -637,19 +666,22 @@ def write_compendium(
                 logger.info(f" - Estimated time remaining: {format_timespan(time_remaining_seconds)}")
 
             node = node_factory.create_node(
-                input_identifiers=slist, node_type=node_type, labels=labels, extra_prefixes=extra_prefixes
+                input_identifiers=input_identifiers,
+                node_type=current_node_type,
+                labels=labels,
+                extra_prefixes=extra_prefixes,
             )
             if node is None:
                 # This usually happens because every CURIE in the node is not in the id_prefixes list for that node_type.
                 # Something to fix at some point, but we don't want to break the pipeline for this, so
                 # we emit a warning and skip this clique.
                 logger.warning(
-                    f"Could not create node for ({slist}, {node_type}, {labels}, {extra_prefixes}): returned None."
+                    f"Could not create node for ({input_identifiers}, {current_node_type}, {labels}, {extra_prefixes}): returned None."
                 )
                 continue
             else:
                 count_cliques += 1
-                count_eq_ids += len(slist)
+                count_eq_ids += len(input_identifiers)
 
                 nw = {"type": node["type"]}
                 ic = ic_factory.get_ic(node)
