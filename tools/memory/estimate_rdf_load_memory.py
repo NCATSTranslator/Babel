@@ -67,9 +67,16 @@ def current_rss_gib() -> float:
     preferred over getrusage's peak ``ru_maxrss`` because the projection needs a
     value that can go *down* — on macOS this makes memory-compression plateaus
     visible instead of being hidden by a monotonic peak.
+
+    Falls back to peak RSS (via getrusage) if ``ps`` is unavailable or returns
+    an unexpected value — the projection will then be monotonically non-decreasing
+    but the tool won't abort mid-run.
     """
-    out = subprocess.run(["ps", "-o", "rss=", "-p", str(os.getpid())], capture_output=True, text=True, check=True)
-    return int(out.stdout.strip()) * 1024 / GIB
+    try:
+        out = subprocess.run(["ps", "-o", "rss=", "-p", str(os.getpid())], capture_output=True, text=True, check=True)
+        return int(out.stdout.strip()) * 1024 / GIB
+    except (subprocess.CalledProcessError, FileNotFoundError, ValueError):
+        return peak_rss_gib()
 
 
 def peak_rss_gib() -> float:
@@ -165,7 +172,7 @@ def main() -> int:
 
     frac = bytes_read / total_bytes
     rss = current_rss_gib()
-    print(f"\ntriples in store: {len(store):,}")
+    print(f"\nquads in store: {len(store):,}")
     print(f"loaded {frac * 100:.1f}% of input at current RSS {rss:.2f} GiB (peak {peak_rss_gib():.2f} GiB)")
     if stopped_early:
         print(f"PROJECTED peak for full load ≈ {rss / frac:.0f} GiB (linear extrapolation; add headroom)")
