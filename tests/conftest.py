@@ -192,11 +192,8 @@ def pytest_collection_modifyitems(config, items):
             marker = item.get_closest_marker("min_memory_gb")
             if marker is None:
                 continue
-            if marker.args:
-                required = marker.args[0]
-            elif "n" in marker.kwargs:
-                required = marker.kwargs["n"]
-            else:
+            required = marker.args[0] if marker.args else marker.kwargs.get("n")
+            if required is None:
                 raise ValueError(
                     f"{item.nodeid}: @pytest.mark.min_memory_gb requires a positional argument, e.g. min_memory_gb(128)"
                 )
