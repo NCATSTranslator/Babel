@@ -80,7 +80,11 @@ def peak_rss_gib() -> float:
 
 def format_for(path: str, override: str | None) -> pyoxigraph.RdfFormat:
     if override:
-        return getattr(pyoxigraph.RdfFormat, override)
+        try:
+            return getattr(pyoxigraph.RdfFormat, override)
+        except AttributeError:
+            valid = sorted(k for k in dir(pyoxigraph.RdfFormat) if k.isupper())
+            raise ValueError(f"Unknown RDF format {override!r}; valid --format values: {', '.join(valid)}") from None
     ext = os.path.splitext(path)[1].lower()
     if ext not in _EXT_TO_FORMAT:
         raise ValueError(f"Cannot infer RDF format for {path!r} (extension {ext!r}); pass --format")
