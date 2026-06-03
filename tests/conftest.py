@@ -61,6 +61,7 @@ def assert_concordance_file_valid(path: str) -> list[list[str]]:
         assert ":" in cols[2], f"Third column is not a CURIE: {cols[2]}"
     return rows
 
+
 # Biolink Model version used throughout the test suite.  Should match config.yaml.
 BIOLINK_VERSION = get_config()["biolink_version"]
 
@@ -196,7 +197,9 @@ def pytest_collection_modifyitems(config, items):
             elif "n" in marker.kwargs:
                 required = marker.kwargs["n"]
             else:
-                raise ValueError(f"{item.nodeid}: @pytest.mark.min_memory_gb requires a positional argument, e.g. min_memory_gb(128)")
+                raise ValueError(
+                    f"{item.nodeid}: @pytest.mark.min_memory_gb requires a positional argument, e.g. min_memory_gb(128)"
+                )
 
             if total_mem_gib < required:
                 item.add_marker(

@@ -55,7 +55,9 @@ class Property:
         Make sure this Property makes sense.
         """
         if self.predicate not in supported_predicates:
-            raise ValueError(f"Predicate {self.predicate} is not supported (supported predicates: {supported_predicates})")
+            raise ValueError(
+                f"Predicate {self.predicate} is not supported (supported predicates: {supported_predicates})"
+            )
 
     @staticmethod
     def from_dict(prop_dict, source=None):

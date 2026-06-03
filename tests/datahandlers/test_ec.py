@@ -1,4 +1,5 @@
 """Unit tests for src/datahandlers/ec.py (ECgraph)."""
+
 import pyoxigraph
 import pytest
 

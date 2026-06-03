@@ -38,6 +38,7 @@ Examples:
     # Stop higher if you have more RAM to spend on a more accurate projection
     uv run python tools/memory/estimate_rdf_load_memory.py big.nt --rss-ceiling-gib 24
 """
+
 import argparse
 import os
 import resource
@@ -122,15 +123,25 @@ class ChunkedCountingReader:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("files", nargs="+", help="RDF file(s) to load, in order")
-    parser.add_argument("--rss-ceiling-gib", type=float, default=16.0, help="stop once current RSS exceeds this (default: 16)")
-    parser.add_argument("--max-fraction", type=float, default=0.30, help="stop once this fraction of input is loaded (default: 0.30)")
-    parser.add_argument("--batch", type=int, default=500_000, help="quads inserted per batch / sample interval (default: 500000)")
-    parser.add_argument("--format", default=None, help="pyoxigraph RdfFormat name to force (e.g. TURTLE); default: infer from extension")
+    parser.add_argument(
+        "--rss-ceiling-gib", type=float, default=16.0, help="stop once current RSS exceeds this (default: 16)"
+    )
+    parser.add_argument(
+        "--max-fraction", type=float, default=0.30, help="stop once this fraction of input is loaded (default: 0.30)"
+    )
+    parser.add_argument(
+        "--batch", type=int, default=500_000, help="quads inserted per batch / sample interval (default: 500000)"
+    )
+    parser.add_argument(
+        "--format", default=None, help="pyoxigraph RdfFormat name to force (e.g. TURTLE); default: infer from extension"
+    )
     args = parser.parse_args()
 
     total_bytes = sum(os.path.getsize(p) for p in args.files)
     print(f"inputs: {len(args.files)} file(s), {total_bytes / GIB:.2f} GiB on disk")
-    print(f"baseline RSS: {current_rss_gib():.3f} GiB; stopping at {args.rss_ceiling_gib:.1f} GiB or {args.max_fraction * 100:.0f}% loaded\n")
+    print(
+        f"baseline RSS: {current_rss_gib():.3f} GiB; stopping at {args.rss_ceiling_gib:.1f} GiB or {args.max_fraction * 100:.0f}% loaded\n"
+    )
 
     store = pyoxigraph.Store()
     bytes_done = 0  # bytes from files already fully loaded
