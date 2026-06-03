@@ -13,6 +13,7 @@ from src.babel_utils import ThrottledRequester
 @contextmanager
 def _local_server(delay_ms=0):
     """Start an ephemeral HTTP server on a free port, yield its URL, then shut down."""
+
     class _Handler(BaseHTTPRequestHandler):
         def do_GET(self):
             time_module.sleep(delay_ms / 1000)
@@ -47,10 +48,10 @@ def test_throttling():
         later = dt.now()
 
     runtime = later - now
-    assert not throttle1                             # first call: no throttle
-    assert throttle2                                 # second call: throttled
-    assert runtime > timedelta(milliseconds=500)     # wait was enforced
-    assert runtime < timedelta(milliseconds=1500)    # sanity: didn't wait too long
+    assert not throttle1  # first call: no throttle
+    assert throttle2  # second call: throttled
+    assert runtime > timedelta(milliseconds=500)  # wait was enforced
+    assert runtime < timedelta(milliseconds=1500)  # sanity: didn't wait too long
 
 
 @pytest.mark.unit
@@ -59,11 +60,11 @@ def test_no_throttling():
     with _local_server(delay_ms=600) as url:
         tr = ThrottledRequester(500)
         now = dt.now()
-        _response, throttle1 = tr.get(url)   # takes ~600 ms — longer than the 500 ms delta
-        _response, throttle2 = tr.get(url)   # delta already elapsed; no throttle needed
+        _response, throttle1 = tr.get(url)  # takes ~600 ms — longer than the 500 ms delta
+        _response, throttle2 = tr.get(url)  # delta already elapsed; no throttle needed
         later = dt.now()
 
     runtime = later - now
-    assert not throttle1                             # first call: no throttle
-    assert not throttle2                             # second call: request was slow enough
-    assert runtime > timedelta(milliseconds=600)     # at least one real delay occurred
+    assert not throttle1  # first call: no throttle
+    assert not throttle2  # second call: request was slow enough
+    assert runtime > timedelta(milliseconds=600)  # at least one real delay occurred

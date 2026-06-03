@@ -49,7 +49,10 @@ def convert_compendium_to_kgx(compendium_filename, kgx_nodes_filename, kgx_edges
     # Open the compendium file for reading.
     with open(compendium_filename, encoding="utf-8") as compendium:
         # Open the nodes and edges files for writing.
-        with gzip.open(kgx_nodes_filename, "wt", encoding="utf-8") as node_file, gzip.open(kgx_edges_filename, "wt", encoding="utf-8") as edge_file:
+        with (
+            gzip.open(kgx_nodes_filename, "wt", encoding="utf-8") as node_file,
+            gzip.open(kgx_edges_filename, "wt", encoding="utf-8") as edge_file,
+        ):
             # set the flag for suppressing the first ",\n" in the written data
             first = True
 
@@ -137,7 +140,9 @@ def convert_compendium_to_kgx(compendium_filename, kgx_nodes_filename, kgx_edges
 
                     # Count total lines
                     count_lines += line_counter
-                    logger.debug(f"Processed {count_lines:,} lines from {compendium_filename}: {get_memory_usage_summary()}")
+                    logger.debug(
+                        f"Processed {count_lines:,} lines from {compendium_filename}: {get_memory_usage_summary()}"
+                    )
 
                     # reset the line counter for the next group
                     line_counter = 0
@@ -155,7 +160,9 @@ def convert_compendium_to_kgx(compendium_filename, kgx_nodes_filename, kgx_edges
 
             # Count total lines
             count_lines += line_counter
-            logger.info(f"Processed a total of {count_lines} lines from {compendium_filename}: {get_memory_usage_summary()}")
+            logger.info(
+                f"Processed a total of {count_lines} lines from {compendium_filename}: {get_memory_usage_summary()}"
+            )
 
     logger.info(
         f"Converted {compendium_filename} to KGX: "

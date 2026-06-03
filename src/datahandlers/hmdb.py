@@ -8,7 +8,9 @@ from src.prefixes import HMDB
 
 
 def pull_hmdb():
-    dname = pull_via_urllib("https://hmdb.ca/system/downloads/current/", "hmdb_metabolites.zip", decompress=False, subpath="HMDB")
+    dname = pull_via_urllib(
+        "https://hmdb.ca/system/downloads/current/", "hmdb_metabolites.zip", decompress=False, subpath="HMDB"
+    )
     ddir = path.dirname(dname)
     with ZipFile(dname, "r") as zipObj:
         zipObj.extractall(ddir)

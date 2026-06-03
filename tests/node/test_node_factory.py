@@ -188,7 +188,15 @@ def test_labeling_2(node_factory):
 
 @pytest.mark.network
 def test_clean_list(node_factory):
-    input_ids = frozenset({"UMLS:C1839767", "UMLS:C1853383", LabeledID("HP:0010804", "Tented upper lip vermilion"), "UMLS:C1850072", "HP:0010804"})
+    input_ids = frozenset(
+        {
+            "UMLS:C1839767",
+            "UMLS:C1853383",
+            LabeledID("HP:0010804", "Tented upper lip vermilion"),
+            "UMLS:C1850072",
+            "HP:0010804",
+        }
+    )
     output = node_factory.clean_list(input_ids)
     assert len(output) == 4
     lidfound = False
@@ -202,7 +210,9 @@ def test_clean_list(node_factory):
 @pytest.mark.network
 def test_losing_umls(node_factory):
     input_ids = frozenset({"HP:0010804", "UMLS:C1839767", "UMLS:C1853383", "HP:0010804", "UMLS:C1850072"})
-    node = node_factory.create_node(input_ids, "biolink:PhenotypicFeature", {"HP:0010804": "Tented upper lip vermilion"})
+    node = node_factory.create_node(
+        input_ids, "biolink:PhenotypicFeature", {"HP:0010804": "Tented upper lip vermilion"}
+    )
     assert node["identifiers"][0]["identifier"] == "HP:0010804"
     assert node["identifiers"][0]["label"] == "Tented upper lip vermilion"
     assert node["id"]["identifier"] == "HP:0010804"  # node["id"] is an alias for node["identifiers"][0]
@@ -263,7 +273,11 @@ def test_pubchem_ignore_CID(node_factory):
     node = node_factory.create_node(
         [f"{pref.PUBCHEMCOMPOUND}:999", f"{pref.PUBCHEMCOMPOUND}:111", f"{pref.CHEBI}:XYZ"],
         "biolink:SmallMolecule",
-        {f"{pref.PUBCHEMCOMPOUND}:999": "CID1", f"{pref.PUBCHEMCOMPOUND}:111": "longerlabel", f"{pref.CHEBI}:XYZ": "blahblah"},
+        {
+            f"{pref.PUBCHEMCOMPOUND}:999": "CID1",
+            f"{pref.PUBCHEMCOMPOUND}:111": "longerlabel",
+            f"{pref.CHEBI}:XYZ": "blahblah",
+        },
     )
     assert node["identifiers"][0]["identifier"] == f"{pref.CHEBI}:XYZ"  # CHEBI wins overall
     assert node["id"]["identifier"] == f"{pref.CHEBI}:XYZ"  # node["id"] is an alias for node["identifiers"][0]
@@ -279,10 +293,7 @@ def test_load_extra_labels_single_column(tmp_path):
     """load_extra_labels() must not raise on single-column lines (identifier with no label)."""
     label_dir = tmp_path / "CHEMBL.COMPOUND"
     label_dir.mkdir()
-    (label_dir / "labels").write_text(
-        "CHEMBL.COMPOUND:CHEMBL1\tWater\n"
-        "CHEMBL.COMPOUND:CHEMBL2\n"
-    )
+    (label_dir / "labels").write_text("CHEMBL.COMPOUND:CHEMBL1\tWater\nCHEMBL.COMPOUND:CHEMBL2\n")
     fac = NodeFactory(str(tmp_path), BIOLINK_VERSION)
     fac.common_labels = {}
     fac.load_extra_labels("CHEMBL.COMPOUND")
@@ -296,9 +307,7 @@ def test_load_extra_labels_tab_in_label(tmp_path):
     label_dir = tmp_path / "CHEMBL.COMPOUND"
     label_dir.mkdir()
     (label_dir / "labels").write_text(
-        "CHEMBL.COMPOUND:CHEMBL1\tWater\n"
-        "CHEMBL.COMPOUND:CHEMBL2\n"
-        "CHEMBL.COMPOUND:CHEMBL3\tWater\tbottle\n"
+        "CHEMBL.COMPOUND:CHEMBL1\tWater\nCHEMBL.COMPOUND:CHEMBL2\nCHEMBL.COMPOUND:CHEMBL3\tWater\tbottle\n"
     )
     fac = NodeFactory(str(tmp_path), BIOLINK_VERSION)
     fac.common_labels = {}

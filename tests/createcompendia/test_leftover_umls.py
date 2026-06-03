@@ -76,4 +76,6 @@ def test_type_combo_overrides_reference_real_biolink_classes():
         referenced.update(combo)
         referenced.add(value)
     for biolink_type in sorted(referenced):
-        assert toolkit.get_element(biolink_type) is not None, f"{biolink_type} is not a class in Biolink {BIOLINK_VERSION}"
+        assert toolkit.get_element(biolink_type) is not None, (
+            f"{biolink_type} is not a class in Biolink {BIOLINK_VERSION}"
+        )

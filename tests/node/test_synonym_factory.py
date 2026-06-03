@@ -15,10 +15,7 @@ def test_load_synonyms_single_column(tmp_path):
     """load_synonyms() must handle single-column lines (identifier with no label) without dropping them."""
     label_dir = tmp_path / "CHEMBL.COMPOUND"
     label_dir.mkdir()
-    (label_dir / "labels").write_text(
-        "CHEMBL.COMPOUND:CHEMBL1\tWater\n"
-        "CHEMBL.COMPOUND:CHEMBL2\n"
-    )
+    (label_dir / "labels").write_text("CHEMBL.COMPOUND:CHEMBL1\tWater\nCHEMBL.COMPOUND:CHEMBL2\n")
     sf = object.__new__(SynonymFactory)
     sf.synonym_dir = tmp_path
     sf.synonyms = {}

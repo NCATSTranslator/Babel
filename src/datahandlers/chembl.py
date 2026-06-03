@@ -14,8 +14,16 @@ def pull_chembl(moleculefilename):
         mparts = moleculefilename.split("/")
         dname = mparts[-2]
         oname = "/".join(mparts[-2:])
-        pull_via_ftp("ftp.ebi.ac.uk", "/pub/databases/chembl/ChEMBL-RDF/latest/", fname, decompress_data=True, outfilename=oname)
-        pull_via_ftp("ftp.ebi.ac.uk", "/pub/databases/chembl/ChEMBL-RDF/latest/", "cco.ttl.gz", decompress_data=True, outfilename=f"{dname}/cco.ttl")
+        pull_via_ftp(
+            "ftp.ebi.ac.uk", "/pub/databases/chembl/ChEMBL-RDF/latest/", fname, decompress_data=True, outfilename=oname
+        )
+        pull_via_ftp(
+            "ftp.ebi.ac.uk",
+            "/pub/databases/chembl/ChEMBL-RDF/latest/",
+            "cco.ttl.gz",
+            decompress_data=True,
+            outfilename=f"{dname}/cco.ttl",
+        )
         # oname = 'CHEMBLCOMPOUND/'+moleculefilename.split('/')[-1]
         # pull_via_ftp('ftp.ebi.ac.uk', '/pub/databases/chembl/ChEMBL-RDF/latest/', fname, decompress_data=True, outfilename=oname)
         # pull_via_ftp('ftp.ebi.ac.uk', '/pub/databases/chembl/ChEMBL-RDF/latest/', 'cco.ttl.gz', decompress_data=True, outfilename='CHEMBL/cco.ttl')
@@ -83,7 +91,7 @@ class ChemblRDF:
 
                 # Sometimes the CHEMBL label is identical to the chemblid. We don't want those (https://github.com/NCATSTranslator/Babel/issues/430).
                 if label == chemblid:
-                    label = ''
+                    label = ""
 
                 outf.write(f"{CHEMBLCOMPOUND}:{chemblid}\t{label}\n")
 
