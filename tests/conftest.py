@@ -191,7 +191,13 @@ def pytest_collection_modifyitems(config, items):
             marker = item.get_closest_marker("min_memory_gb")
             if marker is None:
                 continue
-            required = marker.args[0]
+            if marker.args:
+                required = marker.args[0]
+            elif "n" in marker.kwargs:
+                required = marker.kwargs["n"]
+            else:
+                raise ValueError(f"{item.nodeid}: @pytest.mark.min_memory_gb requires a positional argument, e.g. min_memory_gb(128)")
+
             if total_mem_gib < required:
                 item.add_marker(
                     pytest.mark.skip(reason=f"needs >= {required} GiB RAM; this machine has {total_mem_gib:.0f} GiB")

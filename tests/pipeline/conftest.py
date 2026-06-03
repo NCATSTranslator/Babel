@@ -189,7 +189,7 @@ def pipeline_output(regenerate):
     the file means Snakemake only resolves the DAG needed to build it; using the default
     target would fail at DAG-build time on unrelated rules whose inputs are absent on a
     from-scratch tree (e.g. generate_mapping_sources_table's metadata YAMLs).
-    Skips all dependent tests if Snakemake fails or the output is not produced.
+    Fails all dependent tests if Snakemake fails or the output is not produced.
 
     Usage inside a fixture:
         @pytest.fixture(scope="session")
