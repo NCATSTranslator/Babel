@@ -29,6 +29,8 @@ from src.util import get_biolink_model_toolkit, get_logger
 
 logger = get_logger(__name__)
 
+_UMLS_PREFIX = UMLS + ":"
+
 
 # Manual overrides of the Biolink type that bmt assigns to a UMLS semantic type. bmt looks these up
 # by the mapping ``STY:<code>`` (e.g. ``STY:T033``), so we key this table by that STY code -- which is
@@ -122,9 +124,9 @@ def tui_to_biolink_type(umls_tui: str, toolkit=None, biolink_version: str | None
     return result
 
 
-def _format_samples(pairs, limit=5):
-    """Render up to ``limit`` ``(curie, label)`` pairs as a single ``CURIE=label; ...`` string."""
-    return "; ".join(f"{curie}={label}" for curie, label in pairs[:limit])
+def _format_samples(pairs):
+    """Render ``(curie, label)`` pairs as a single ``CURIE=label; ...`` string."""
+    return "; ".join(f"{curie}={label}" for curie, label in pairs)
 
 
 def write_leftover_umls(
@@ -192,7 +194,7 @@ def write_leftover_umls(
                     cluster = json.loads(row)
                     identifiers = cluster["identifiers"]
                     umls_in_clique = [
-                        identifier["i"] for identifier in identifiers if identifier["i"].startswith(UMLS + ":")
+                        identifier["i"] for identifier in identifiers if identifier["i"].startswith(_UMLS_PREFIX)
                     ]
                     umls_ids.update(umls_in_clique)
                     if len(identifiers) == 1 and len(umls_in_clique) == 1:
@@ -255,7 +257,9 @@ def write_leftover_umls(
         # if needed.
         leftover_umls_cliques: list[TypedClique] = []
 
-        # Report accumulators: (CURIE, label) samples keyed by Biolink type / unmapped TUI / rejected TUI.
+        # Report accumulators: up to 5 (CURIE, label) samples keyed by Biolink type / unmapped TUI / rejected TUI.
+        # Capped at 5 to bound memory across millions of MRCONSO lines.
+        _SAMPLE_LIMIT = 5
         type_samples: dict[str, list] = defaultdict(list)
         unmapped_tui_examples: dict[str, list] = defaultdict(list)
         rejected_tui_examples: dict[str, list] = defaultdict(list)
@@ -315,7 +319,8 @@ def write_leftover_umls(
                             f"NO_UMLS_TYPE [{umls_id}]: unmapped STY {sorted(unmapped_tuis)} in {umls_type_results}\n"
                         )
                         for tui in unmapped_tuis:
-                            unmapped_tui_examples[tui].append((umls_id, label))
+                            if len(unmapped_tui_examples[tui]) < _SAMPLE_LIMIT:
+                                unmapped_tui_examples[tui].append((umls_id, label))
                     continue
 
                 # If every semantic type was deliberately rejected (or there were none), skip and
@@ -330,7 +335,8 @@ def write_leftover_umls(
                             f"REJECTED [{umls_id}]: rejected STY {sorted(rejected_tuis)} in {umls_type_results}\n"
                         )
                         for tui in rejected_tuis:
-                            rejected_tui_examples[tui].append((umls_id, label))
+                            if len(rejected_tui_examples[tui]) < _SAMPLE_LIMIT:
+                                rejected_tui_examples[tui].append((umls_id, label))
                     continue
 
                 # Disambiguate when a concept resolves to multiple Biolink types.
@@ -355,7 +361,8 @@ def write_leftover_umls(
                 # Let write_compendium() generate this singleton's compendium and synonym JSON.
                 leftover_umls_cliques.append(TypedClique(node_type=biolink_type, identifiers=[umls_id]))
                 umls_ids_in_this_compendium.add(umls_id)
-                type_samples[biolink_type].append((umls_id, label))
+                if len(type_samples[biolink_type]) < _SAMPLE_LIMIT:
+                    type_samples[biolink_type].append((umls_id, label))
 
         logger.info(f"Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.")
         reportf.write(f"Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.\n")
