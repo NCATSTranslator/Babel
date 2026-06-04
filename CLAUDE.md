@@ -43,15 +43,27 @@ Tests use four marks: `unit` (fast, offline), `network` (requires internet, opt-
 `--pipeline`). Use `--all` to opt in to everything at once. Network and pipeline tests are
 skipped by default.
 
+Memory-hungry tests also carry a parametrized `min_memory_gb(n)` guard (registered in
+`pyproject.toml`, enforced in `tests/conftest.py`) that auto-skips them on machines with less
+than `n` GiB of RAM. For example the ChEMBL pipeline tests bulk-load a ~16 GB TTL into an
+in-memory `pyoxigraph.Store` and need ~120–150 GiB — far more than the on-disk size, because an
+indexed in-memory triple store expands roughly 8–10×. To size a new rule's `mem=` resource or a
+test's `min_memory_gb` threshold empirically, use `tools/memory/estimate_rdf_load_memory.py` (see
+`tools/memory/README.md`): it streams an RDF dump into a store, samples RSS, and extrapolates the
+full-load peak, so it works even on a machine far smaller than the eventual requirement (most
+accurate on Linux — macOS memory compression understates the result).
+
 - `tests/README.md` — full mark taxonomy, where to add a new test, what each test file covers.
 - `docs/Testing.md` — testing strategy: cadence per environment (per-PR, nightly, weekly,
   pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other strategies.
 
-### Linting (all three checked in CI on PRs)
+### Linting (all four checked in CI on PRs)
 
 ```bash
 uv run ruff check                        # Python lint
 uv run ruff check --fix                  # Python auto-fix
+uv run ruff format --check               # Python format check
+uv run ruff format                       # Python auto-format
 uv run snakefmt --check --compact-diff . # Snakemake format check
 uv run snakefmt .                        # Snakemake auto-fix
 uv run rumdl check .                     # Markdown lint
@@ -138,6 +150,21 @@ entry.
 GeneProtein and DrugChemical conflation each have dedicated conflation modules (`geneprotein.py`,
 `drugchemical.py`) that merge their respective cliques. See `docs/Conflation.md`.
 
+### Leftover UMLS
+
+`src/createcompendia/leftover_umls.py` (rule `leftover_umls`) runs last and sweeps up every valid
+UMLS concept in MRCONSO that no other compendium already claimed, writing each as a
+single-identifier clique into `compendia/umls.txt` so its label is still available downstream. The
+Biolink type for each leftover concept comes from its UMLS semantic type(s) via
+`tui_to_biolink_type()` (the bmt `STY:<code>` mapping), corrected by two manual tables at the top of
+the module: `STY_OVERRIDES` (per-semantic-type override; `None` means reject) and
+`TYPE_COMBO_OVERRIDES` (disambiguates a concept that resolves to multiple Biolink types). These
+tables exist because the long-term fix belongs in the Biolink Model but its real-world effect on
+Babel is hard to predict; each entry cites a GitHub issue.
+`tests/createcompendia/test_leftover_umls.py` records the current Biolink mapping for each override
+and flags when one drifts or becomes redundant. The rule also emits coverage CSVs under
+`babel_outputs/reports/umls/`. See `docs/sources/UMLS/Leftover.md`.
+
 ### DuckDB export
 
 The `src/snakefiles/duckdb.snakefile` rules (driven by `src/exporters/duckdb_exporters.py`)
@@ -152,6 +179,15 @@ The `Edge` table answers "which clique contains CURIE X" with a one-line query
 (`SELECT DISTINCT clique_leader FROM Edge WHERE curie IN (...)`) and is the fastest way to
 check whether several CURIEs landed in the same clique in a given build — much cheaper than
 re-running glom or scanning the JSONL compendia.
+
+### Per-source documentation (`docs/sources/`)
+
+Deeper, source-specific notes live under `docs/sources/<PREFIX>/` (one directory per data source,
+named by its CURIE prefix); see `docs/sources/README.md` for the convention and an index. Check
+there first when working on a specific vocabulary, and add to it when you learn something
+non-obvious about how Babel ingests that source. Keep the detail in the source file — `CLAUDE.md`
+should point here, not duplicate it. Documented so far: MeSH
+(`docs/sources/MESH/Ingestion.md`) and UMLS (`docs/sources/UMLS/Leftover.md`).
 
 ### Per-compendium metadata YAMLs
 
@@ -212,6 +248,15 @@ option would be best.
   to strip the quoting; do not inline the regex. When loading RDF/XML files that contain
   `<owl:Ontology rdf:about=""/>`, always pass `base_iri` to `Store.bulk_load()` — without it
   pyoxigraph raises a builtin `SyntaxError` on the empty relative IRI.
+
+- **Datahandler file-path arguments** — label and synonym extraction functions should accept
+  explicit `infile` / `outfile` path arguments rather than calling `make_local_name` internally.
+  Explicit paths let unit tests pass `tmp_path`-based paths without patching the config, and
+  let Snakemake rules declare inputs and outputs precisely.
+
+- **Test assertion helpers** — `tests/conftest.py` exports `assert_labels_file_valid`,
+  `assert_synonyms_file_valid`, `assert_ids_file_valid`, and `assert_concordance_file_valid`.
+  Use these instead of hand-rolling TSV checks in new tests.
 
 ## Debugging
 

@@ -68,6 +68,13 @@ Tests are tagged with marks to control which subset runs in a given context:
 
 You can adjust the timeout for marks in [conftest.py](conftest.py).
 
+There is also a parametrized guard marker, `min_memory_gb(n)`, that combines with the marks
+above rather than replacing them. A test tagged `@pytest.mark.min_memory_gb(n)` is auto-skipped
+when the machine has less than `n` GiB of RAM (detected via POSIX `sysconf`). It guards
+memory-hungry tests against OOM/swap-thrash on small machines — for example the `test_chembl`
+pipeline tests bulk-load a ~17 GB TTL into an in-memory store and are tagged
+`min_memory_gb(128)`, matching the `chembl_labels_and_smiles` Snakemake rule's `mem="128G"`.
+
 ### Default behavior
 
 - `pytest` alone: runs `unit` and `slow` tests; skips `network` and `pipeline`

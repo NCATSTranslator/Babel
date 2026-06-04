@@ -8,7 +8,9 @@ from src.exporters.duckdb_exporters import setup_duckdb
 logger = util.get_logger(__name__)
 
 
-def check_for_identically_labeled_cliques(parquet_root, duckdb_filename, identically_labeled_cliques_tsv, duckdb_config=None):
+def check_for_identically_labeled_cliques(
+    parquet_root, duckdb_filename, identically_labeled_cliques_tsv, duckdb_config=None
+):
     """
     Generate a list of identically labeled cliques.
 
@@ -285,6 +287,7 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
 
     edges.close()
     # cliques.close()
+
 
 def get_label_distribution(duckdb_filename, output_filename):
     db = setup_duckdb(duckdb_filename)

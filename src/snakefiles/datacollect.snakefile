@@ -246,6 +246,7 @@ rule download_umls:
         config["download_directory"] + "/UMLS/MRCONSO.RRF",
         config["download_directory"] + "/UMLS/MRSTY.RRF",
         config["download_directory"] + "/UMLS/MRREL.RRF",
+        config["download_directory"] + "/UMLS/UMLS.metadata.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/download_umls.tsv"
     resources:
@@ -499,6 +500,20 @@ rule get_omim:
         cpus_per_task=1,
     run:
         omim.pull_omim()
+
+
+rule get_omim_labels:
+    input:
+        infile=rules.get_omim.output.outfile,
+    output:
+        outfile=config["download_directory"] + "/OMIM/labels",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_omim_labels.tsv"
+    resources:
+        mem="1G",
+        cpus_per_task=1,
+    run:
+        omim.pull_omim_labels(input.infile, output.outfile)
 
 
 ### NCIT
@@ -755,6 +770,10 @@ rule chembl_labels_and_smiles:
     benchmark:
         config["output_directory"] + "/benchmarks/chembl_labels_and_smiles.tsv"
     resources:
+        # ChemblRDF bulk-loads the ~17 GB molecule TTL into an in-memory pyoxigraph
+        # store, so this rule needs a large-memory host (a 32 GB machine swap-thrashes
+        # and never finishes). The matching test_chembl pipeline tests are tagged
+        # @pytest.mark.min_memory_gb(128) and auto-skip below this.
         mem="128G",
     run:
         chembl.pull_chembl_labels_and_smiles(input.infile, input.ccofile, output.outfile, output.smifile)
