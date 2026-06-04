@@ -250,6 +250,8 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
     else:
         dl_file_name = os.path.join(download_dir, subpath, in_file_name)
 
+    os.makedirs(os.path.dirname(dl_file_name), exist_ok=True)
+
     # Add support for redirects
     opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
 
