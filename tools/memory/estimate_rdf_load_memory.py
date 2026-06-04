@@ -40,6 +40,8 @@ Examples:
 """
 
 import argparse
+import ctypes
+import ctypes.util
 import os
 import resource
 import subprocess
@@ -48,6 +50,48 @@ import sys
 import pyoxigraph
 
 GIB = 1024**3
+
+# Fast macOS RSS probe via proc_pidinfo (avoids forking ps on every sample).
+# proc_pidinfo(pid, PROC_PIDTASKINFO=4, 0, &info, sizeof(info)) returns bytes
+# written on success; pti_resident_size is the second uint64 in the struct.
+# Initialised once at import; _macos_rss_fn stays None if ctypes setup fails.
+_macos_rss_fn: "ctypes.CFUNCTYPE | None" = None
+if sys.platform == "darwin":
+    try:
+        _libproc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+
+        class _ProcTaskinfo(ctypes.Structure):
+            _fields_ = [
+                ("pti_virtual_size", ctypes.c_uint64),
+                ("pti_resident_size", ctypes.c_uint64),
+                ("pti_total_user", ctypes.c_uint64),
+                ("pti_total_system", ctypes.c_uint64),
+                ("pti_threads_user", ctypes.c_uint64),
+                ("pti_threads_system", ctypes.c_uint64),
+                ("pti_policy", ctypes.c_int32),
+                ("pti_faults", ctypes.c_int32),
+                ("pti_pageins", ctypes.c_int32),
+                ("pti_cow_faults", ctypes.c_int32),
+                ("pti_messages_sent", ctypes.c_int32),
+                ("pti_messages_received", ctypes.c_int32),
+                ("pti_syscalls_mach", ctypes.c_int32),
+                ("pti_syscalls_unix", ctypes.c_int32),
+                ("pti_csw", ctypes.c_int32),
+                ("pti_threadnum", ctypes.c_int32),
+                ("pti_numrunning", ctypes.c_int32),
+                ("pti_priority", ctypes.c_int32),
+            ]
+
+        _PROC_PIDTASKINFO = 4
+        _pid = os.getpid()
+        _taskinfo_buf = _ProcTaskinfo()
+
+        def _macos_rss_fn() -> float:
+            _libproc.proc_pidinfo(_pid, _PROC_PIDTASKINFO, 0, ctypes.byref(_taskinfo_buf), ctypes.sizeof(_taskinfo_buf))
+            return _taskinfo_buf.pti_resident_size / GIB
+
+    except (OSError, AttributeError, TypeError):
+        pass
 
 # Map file extensions to pyoxigraph RDF formats.
 _EXT_TO_FORMAT = {
@@ -68,8 +112,9 @@ def current_rss_gib() -> float:
     projection needs a value that can go *down* — on macOS this makes
     memory-compression plateaus visible instead of being hidden by a monotonic peak.
 
-    On Linux reads ``/proc/self/status`` directly (no subprocess). On macOS uses
-    ``ps -o rss=``. Falls back to peak RSS (via getrusage) if neither works — the
+    On Linux reads ``/proc/self/status`` directly. On macOS calls ``proc_pidinfo``
+    via ctypes (no subprocess). Falls back to ``ps -o rss=`` if ctypes is
+    unavailable, then to peak RSS (via getrusage) as the last resort — the
     projection will then be monotonically non-decreasing but the tool won't abort.
     """
     if sys.platform == "linux":
@@ -80,6 +125,8 @@ def current_rss_gib() -> float:
                         return int(line.split()[1]) * 1024 / GIB
         except (OSError, ValueError, IndexError):
             pass
+    if _macos_rss_fn is not None:
+        return _macos_rss_fn()
     try:
         out = subprocess.run(["ps", "-o", "rss=", "-p", str(os.getpid())], capture_output=True, text=True, check=True)
         return int(out.stdout.strip()) * 1024 / GIB
