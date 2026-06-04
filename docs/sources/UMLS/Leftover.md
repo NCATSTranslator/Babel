@@ -74,8 +74,8 @@ important time to run it is when bumping `biolink_version`.
 
 ## Coverage report
 
-The rule writes machine-readable CSVs to `babel_outputs/reports/umls/` (a directory so more UMLS
-reports can be added later), alongside the human-readable log at `babel_outputs/reports/umls.txt`:
+The rule writes all UMLS reports to `babel_outputs/reports/umls/`. The human-readable log is
+`log.txt`; the machine-readable CSVs are:
 
 - `compendium-coverage.csv` — per input compendium: `total_umls_curies` and
   `single_umls_clique_count` (cliques whose only identifier is a single UMLS CURIE).

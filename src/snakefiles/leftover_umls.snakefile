@@ -42,11 +42,7 @@ rule leftover_umls:
         umls_compendium=config["output_directory"] + "/compendia/umls.txt",
         umls_synonyms=temp(config["output_directory"] + "/synonyms/umls.txt"),
         umls_metadata_yaml=config["output_directory"] + "/metadata/umls.txt.yaml",
-        report=config["output_directory"] + "/reports/umls.txt",
-        tui_sty=config["output_directory"] + "/reports/umls/tui-sty.tsv",
-        compendium_coverage=config["output_directory"] + "/reports/umls/compendium-coverage.csv",
-        types_coverage=config["output_directory"] + "/reports/umls/types-coverage.csv",
-        unmapped_types=config["output_directory"] + "/reports/umls/unmapped-types.csv",
+        report=config["output_directory"] + "/reports/umls/log.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/leftover_umls.tsv"
     run:

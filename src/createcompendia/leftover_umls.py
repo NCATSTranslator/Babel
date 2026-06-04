@@ -160,9 +160,7 @@ def write_leftover_umls(
         f"write_leftover_umls({metadata_yamls}, {compendia}, {mrconso}, {mrsty}, {umls_compendium}, {umls_synonyms}, {report}, {biolink_version}, {icrdf_filename})"
     )
 
-    # The coverage CSVs go into a umls/ subdirectory next to the text report (e.g.
-    # babel_outputs/reports/umls/), so we can add further UMLS reports there over time.
-    report_dir = Path(report).parent / "umls"
+    report_dir = Path(report).parent
     report_dir.mkdir(parents=True, exist_ok=True)
 
     # For now, we have many more UMLS entities in MRCONSO than in the compendia, so
