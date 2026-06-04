@@ -143,7 +143,7 @@ def peak_rss_gib() -> float:
 def format_for(path: str, override: str | None) -> pyoxigraph.RdfFormat:
     if override:
         try:
-            return getattr(pyoxigraph.RdfFormat, override)
+            return getattr(pyoxigraph.RdfFormat, override.upper())
         except AttributeError:
             valid = sorted(k for k in dir(pyoxigraph.RdfFormat) if k.isupper())
             raise ValueError(f"Unknown RDF format {override!r}; valid --format values: {', '.join(valid)}") from None
@@ -171,6 +171,9 @@ def main() -> int:
     args = parser.parse_args()
 
     total_bytes = sum(os.path.getsize(p) for p in args.files)
+    if total_bytes == 0:
+        print("inputs: all files are empty — nothing to load")
+        return 0
     print(f"inputs: {len(args.files)} file(s), {total_bytes / GIB:.2f} GiB on disk")
     print(
         f"baseline RSS: {current_rss_gib():.3f} GiB; stopping at {args.rss_ceiling_gib:.1f} GiB or {args.max_fraction * 100:.0f}% loaded\n"
