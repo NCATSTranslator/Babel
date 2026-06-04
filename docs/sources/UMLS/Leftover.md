@@ -1,11 +1,11 @@
 # Leftover UMLS
 
 The "leftover UMLS" step is the last thing the pipeline does. After every other compendium has been
-built, `src/createcompendia/leftover_umls.py` (Snakemake rule `leftover_umls`) goes through `MRCONSO.RRF`
-and collects every valid UMLS concept that **no other compendium already claimed**, writing each one
-as a single-identifier clique into `babel_outputs/compendia/umls.txt`. The point is coverage: even
-when Babel can't merge a UMLS concept into a richer clique, downstream services (Node Normalization,
-Name Resolver) can still return its label and a Biolink type. This addresses
+built, `src/createcompendia/leftover_umls.py` (Snakemake rule `leftover_umls`) goes through
+`MRCONSO.RRF` and collects every valid UMLS concept that **no other compendium already claimed**,
+writing each one as a single-identifier clique into `babel_outputs/compendia/umls.txt`. The point is
+coverage: even when Babel can't merge a UMLS concept into a richer clique, downstream services (Node
+Normalization, Name Resolver) can still return its label and a Biolink type. This addresses
 [#579](https://github.com/NCATSTranslator/Babel/issues/579), and the typing corrections below
 address [#569](https://github.com/NCATSTranslator/Babel/issues/569) and the umbrella
 [#410](https://github.com/NCATSTranslator/Babel/issues/410).
