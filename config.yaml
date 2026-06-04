@@ -23,6 +23,15 @@ tmp_directory: babel_downloads/tmp
 # HTTP settings.
 http: {}
 
+# SPARQL query settings.
+sparql:
+  # How many times to attempt a SPARQL query before giving up. The first attempt counts,
+  # so max_retries=3 means one initial try plus two retries.
+  max_retries: 3
+  # Base delay in seconds between retries. Actual delay grows exponentially with each attempt
+  # (attempt 1 → 1s, attempt 2 → 2s, attempt 3 → 4s, …).
+  retry_base_delay_seconds: 1
+
 # Maps Python compendium names (as used in src/createcompendia/ and tests) to the
 # directory names that Snakemake uses under intermediate_directory.
 # Compendia not listed here use their own name as the directory name.
@@ -80,6 +89,13 @@ anatomy_prefixes:  [UBERON, GO, CL, UMLS, MESH, NCIT, SNOMEDCT]
 anatomy_ids:       [UBERON, GO, CL, UMLS, MESH, NCIT]
 anatomy_concords:  [UBERON, GO, CL, UMLS, WIKIDATA]
 anatomy_outputs:   [AnatomicalEntity.txt, Cell.txt, CellularComponent.txt, GrossAnatomicalStructure.txt]
+# Prefixes whose identifiers are treated as globally unique within a clique: if merging two
+# cliques would produce a clique containing more than one identifier with one of these prefixes,
+# the merge is blocked.  UBERON and GO are authoritative enough that two distinct terms from
+# either ontology should never be collapsed into the same equivalence set.  If you add a new
+# anatomy source whose concord file links to UBERON or GO, verify that it doesn't introduce
+# spurious merges before removing either prefix from this list.
+anatomy_unique_prefixes: [UBERON, GO]
 
 gene_labels:   [HGNC, NCBIGene, UMLS, OMIM]
 gene_ids:      [ENSEMBL, HGNC, NCBIGene, UMLS, OMIM, ZFIN, WormBase, FB, MGI, RGD, SGD]

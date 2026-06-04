@@ -150,6 +150,25 @@ rule generate_mapping_sources_table:
         report_tables.generate_mapping_sources_table(input.metadata_yaml_files, output.mapping_sources_table)
 
 
+# Optional per-source impact report. Not part of all_reports.
+# Invoke with e.g.:
+#   snakemake babel_outputs/reports/source_impact/EMAPA.md
+# See src/cli/source_impact_report.py for the underlying CLI.
+rule report_source_impact:
+    output:
+        # The markdown report plus the four full detail files written into the
+        # <output-stem>/ subdirectory beside it (see src/reports/source_impact_details.py).
+        md=config["output_directory"] + "/reports/source_impact/{source}.md",
+        new_cliques=config["output_directory"] + "/reports/source_impact/{source}/new-cliques.csv",
+        modified_csv=config["output_directory"] + "/reports/source_impact/{source}/modified-cliques.csv",
+        modified_json=config["output_directory"] + "/reports/source_impact/{source}/modified-cliques.json",
+        new_xrefs=config["output_directory"] + "/reports/source_impact/{source}/new-xrefs.tsv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/report_source_impact_{source}.tsv"
+    shell:
+        "uv run source-impact-report --source {wildcards.source} --output {output.md}"
+
+
 # Check that all the reports were built correctly.
 rule all_reports:
     input:

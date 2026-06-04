@@ -1,3 +1,5 @@
+import logging
+import os
 from collections import defaultdict
 
 import requests
@@ -10,7 +12,9 @@ from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_AN
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import CL, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import build_sets
-from src.util import Text
+from src.util import Text, get_config
+
+logger = logging.getLogger(__name__)
 
 
 def remove_overused_xrefs_dict(kv):
@@ -210,19 +214,34 @@ def build_anatomy_umls_relationships(mrconso, idfile, outfile, umls_metadata):
     )
 
 
-def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
-    """:concordances: a list of files from which to read relationships
-    :identifiers: a list of files from which to read identifiers and optional categories"""
+def compute_cliques_for_impact_report(concordances, identifiers, excluded_sources=()):
+    """Load anatomy identifier and concord files and return the union-find clique state
+    without writing compendia.
+
+    The source-impact report CLI calls this twice — once with the new source's files
+    excluded, once with everything — to compute a before/after diff.
+
+    :param concordances: list of paths to concord files
+    :param identifiers: list of paths to ids files
+    :param excluded_sources: set of source names (file basenames) to skip; used to compute
+        the "before-new-source" state for the impact report
+    :returns: (dicts, types) where dicts is the glom dict-of-sets and types maps CURIE
+        to its declared biolink type
+    """
+    excluded = set(excluded_sources)
     dicts = {}
     types = {}
     for ifile in identifiers:
-        print(ifile)
+        if os.path.basename(ifile) in excluded:
+            continue
+        logger.info("loading ids file %s", ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=[UBERON, GO])
+        glom(dicts, new_identifiers, unique_prefixes=get_config()["anatomy_unique_prefixes"])
         types.update(new_types)
     for infile in concordances:
-        print(infile)
-        print("loading", infile)
+        if os.path.basename(infile) in excluded:
+            continue
+        logger.info("loading concordance file %s", infile)
         pairs = []
         # We have a concordance problem with UMLS - it is including GO terms that are obsolete and we don't want
         # them added. So we want to limit concordances to terms that are already in the dicts. But that's ONLY for the
@@ -236,8 +255,11 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
                     use = True
                     for xi in (x[0], x[2]):
                         if xi not in dicts:
-                            print(
-                                f"Skipping pair {x} from {infile}: terms with prefixes {bs} are skipped unless they are already in the concords."
+                            logger.debug(
+                                "Skipping pair %s from %s: terms with prefixes %s are skipped unless they are already in the concords.",
+                                x,
+                                infile,
+                                bs,
                             )
                             use = False
                     if not use:
@@ -245,11 +267,45 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
                 pairs.append([x[0], x[2]])
         newpairs = remove_overused_xrefs(pairs)
         setpairs = [set(x) for x in newpairs]
-        glom(dicts, setpairs, unique_prefixes=[UBERON, GO])
+        glom(dicts, setpairs, unique_prefixes=get_config()["anatomy_unique_prefixes"])
+    return dicts, types
+
+
+def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
+    """:concordances: a list of files from which to read relationships
+    :identifiers: a list of files from which to read identifiers and optional categories"""
+    dicts, types = compute_cliques_for_impact_report(concordances, identifiers)
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]
         write_compendium(metadata_yamls, sets, f"{baretype}.txt", biotype, {}, icrdf_filename=icrdf_filename)
+
+
+def classify_anatomy_clique(equivalent_ids, types):
+    """Pick a biolink type for one anatomy clique using the same precedence as
+    ``create_typed_sets``: trust GO/CL/UBERON in that order, then fall back to a
+    majority vote over the declared types of the clique's members, breaking ties by
+    most-specific type.
+
+    Returns the biolink type string (e.g. ``"biolink:AnatomicalEntity"``) or ``None``
+    if no member of the clique has any declared type.
+    """
+    order = [CELLULAR_COMPONENT, CELL, GROSS_ANATOMICAL_STRUCTURE, ANATOMICAL_ENTITY]
+    prefixes = get_prefixes(equivalent_ids)
+    for prefix in [GO, CL, UBERON]:
+        if prefix in prefixes and prefixes[prefix][0] in types:
+            return types[prefixes[prefix][0]]
+    typecounts = defaultdict(int)
+    for eid in equivalent_ids:
+        if eid in types:
+            typecounts[types[eid]] += 1
+    if not typecounts:
+        return None
+    if len(typecounts) == 1:
+        return next(iter(typecounts.keys()))
+    otypes = [(-c, order.index(t), t) for t, c in typecounts.items()]
+    otypes.sort()
+    return otypes[0][2]
 
 
 def create_typed_sets(eqsets, types):
@@ -261,33 +317,12 @@ def create_typed_sets(eqsets, types):
                    If it has an UBERON trust the UBERON's type
     After that, check the types dict to see if we know anything.
     """
-    order = [CELLULAR_COMPONENT, CELL, GROSS_ANATOMICAL_STRUCTURE, ANATOMICAL_ENTITY]
     typed_sets = defaultdict(set)
     for equivalent_ids in eqsets:
-        # prefixes = set([ Text.get_curie(x) for x in equivalent_ids])
-        prefixes = get_prefixes(equivalent_ids)
-        found = False
-        for prefix in [GO, CL, UBERON]:
-            if prefix in prefixes and prefixes[prefix][0] in types and not found:
-                mytype = types[prefixes[prefix][0]]
-                typed_sets[mytype].add(equivalent_ids)
-                found = True
-        if not found:
-            typecounts = defaultdict(int)
-            for eid in equivalent_ids:
-                if eid in types:
-                    typecounts[types[eid]] += 1
-            if len(typecounts) == 0:
-                print("how did we not get any types?")
-                print(equivalent_ids)
-                exit()
-            elif len(typecounts) == 1:
-                t = list(typecounts.keys())[0]
-                typed_sets[t].add(equivalent_ids)
-            else:
-                # First attempt is majority vote, and after that by most specific
-                otypes = [(-c, order.index(t), t) for t, c in typecounts.items()]
-                otypes.sort()
-                t = otypes[0][2]
-                typed_sets[t].add(equivalent_ids)
+        t = classify_anatomy_clique(equivalent_ids, types)
+        if t is None:
+            raise RuntimeError(
+                f"Cannot assign a biolink type to anatomy clique {equivalent_ids}: no member CURIE has a declared type."
+            )
+        typed_sets[t].add(equivalent_ids)
     return typed_sets
