@@ -58,15 +58,16 @@ def test_sty_overrides_have_not_drifted():
     for tui, override in STY_OVERRIDES.items():
         current = tui_to_biolink_type(tui, toolkit=toolkit)
         baseline = RECORDED_STY_BASELINE[tui]
-        assert current == baseline, (
-            f"Biolink STY:{tui} now maps to {current!r}, but the recorded baseline is {baseline!r}. "
-            f"Re-review the override (currently {override!r}) and update RECORDED_STY_BASELINE."
-        )
         if current == override:
             warnings.warn(
                 f"Biolink STY:{tui} now maps to {current!r}, which equals the manual override; "
                 f"the entry in STY_OVERRIDES is redundant and can be removed.",
                 stacklevel=2,
+            )
+        else:
+            assert current == baseline, (
+                f"Biolink STY:{tui} now maps to {current!r}, but the recorded baseline is {baseline!r}. "
+                f"Re-review the override (currently {override!r}) and update RECORDED_STY_BASELINE."
             )
 
 
