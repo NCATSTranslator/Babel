@@ -256,11 +256,8 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
     # Add support for redirects
     opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
 
-    # get a handle to the ftp file
     download_url = url + in_file_name
     logger.info(f"Downloading {download_url}")
-    req = urllib.request.Request(download_url, headers={"User-Agent": get_user_agent()})
-    handle = opener.open(req)
 
     # create the compressed file
     download_verified = False
@@ -274,6 +271,10 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
             )
         logger.info(f"Downloading {dl_file_name} using urllib, attempt {download_attempt}...")
 
+        # Open a fresh connection on each attempt so a truncated response doesn't
+        # leave us reading from an exhausted handle on the next retry.
+        req = urllib.request.Request(download_url, headers={"User-Agent": get_user_agent()})
+        handle = opener.open(req)
         with open(dl_file_name, "wb") as compressed_file:
             # while there is data
             while True:
