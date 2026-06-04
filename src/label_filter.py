@@ -12,12 +12,13 @@ _instance: Optional["LabelFilter"] = None
 
 
 def get_label_filter() -> "LabelFilter":
-    global _instance
+    global _instance, logger
     if _instance is None:
         # Deferred import: label_filter.py sits near the top of the module graph,
         # so we defer util to avoid triggering config loading at import time.
-        from src.util import get_config
+        from src.util import get_config, get_logger
 
+        logger = get_logger(__name__)
         config = get_config()
         filter_file = Path(config.get("input_directory", "input_data")) / "obsolete_labels.yaml"
         action = config.get("label_filter", {}).get("action", "remove")
@@ -93,6 +94,8 @@ class LabelFilter:
                         _pattern=re.compile(raw["pattern"], re.IGNORECASE),
                     )
                 )
+            else:
+                logger.warning(f"LabelFilter: skipping malformed entry in {path} (no 'label' or 'pattern' key): {raw!r}")
         logger.info(f"LabelFilter: loaded {len(self._entries)} entries from {path} (action={self.action})")
 
     def check_label(self, label: str, source: str, node_types: list | None = None) -> bool:

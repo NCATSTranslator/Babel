@@ -103,7 +103,7 @@ def test_type_scoped_skipped_when_type_absent(tmp_path):
 
 
 @pytest.mark.unit
-def test_type_scoped_matches_when_node_types_is_none(tmp_path):
+def test_type_scoped_skipped_when_node_types_is_none(tmp_path):
     """node_types=None means we don't know the type; type-scoped entries are skipped."""
     entries = [{"label": "mongolism", "reason": "offensive", "only_for_types": ["biolink:Disease"]}]
     fltr = make_filter(tmp_path, entries)
