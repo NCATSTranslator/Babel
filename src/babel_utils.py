@@ -738,7 +738,9 @@ def write_compendium(
 
                         # ac_labelled will be a list that consists of either LabeledID (if the CURIE could be labeled)
                         # or str objects (consisting of an unlabeled CURIE).
-                        ac_labelled = node_factory.apply_labels(input_identifiers=additional_curies, labels=labels, node_types=types)
+                        ac_labelled = node_factory.apply_labels(
+                            input_identifiers=additional_curies, labels=labels, node_types=types
+                        )
 
                         for prop, label in zip(props, ac_labelled):
                             additional_curie = Text.get_curie(label)
