@@ -607,9 +607,6 @@ class NodeFactory:
     def create_node(self, input_identifiers, node_type, labels={}, extra_prefixes=[]):
         # This is where we will normalize, i.e. choose the best id, and add types in accord with BL.
         # we should also include provenance and version information for the node set build.
-        # ancestors = self.get_ancestors(node_type)
-        # ancestors.reverse()
-
         # make sure prefixes list does not include duplicate prefixes
         prefixes = []
         seen_prefixes = set()
@@ -626,7 +623,8 @@ class NodeFactory:
             logger.warning(
                 f"this seems like a lot of input_identifiers in node.create_node() [{len(input_identifiers)}]: {input_identifiers}"
             )
-        cleaned = self.apply_labels(input_identifiers, labels, node_types=[node_type])
+        ancestors = self.get_ancestors(node_type)
+        cleaned = self.apply_labels(input_identifiers, labels, node_types=ancestors)
         try:
             idmap = defaultdict(list)
             for i in list(cleaned):
