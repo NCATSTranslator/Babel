@@ -105,7 +105,7 @@ def write_umls_ids(mrsty, outfile, badumlsfile):
     # B2.3 Injury or Poisoning
     # B2.2.1.2 Pathologic Function
     # B2.2.1.2.1.1 Mental or Behavioral Dysfunction
-    # B2.2.1.2.2ell or Molecular Dysfunction
+    # B2.2.1.2.2 Cell or Molecular Dysfunction
     # A1.2.2 Anatomical Abnormality
     # B2.2.1.2.1.2 Neoplastic Process
     umlsmap = {
