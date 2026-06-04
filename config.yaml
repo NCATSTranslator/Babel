@@ -179,3 +179,4 @@ ensembl_datasets_to_skip: [elucius_gene_ensembl, hgfemale_gene_ensembl, charengu
 # See https://github.com/NCATSTranslator/Babel/issues/597
 demote_labels_longer_than:
   biolink:ChemicalEntity: 25
+
