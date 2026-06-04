@@ -6,6 +6,8 @@ babel:
 # this specific build of Babel.
 build:
   branch: babel-1.17
+  workarounds:
+  - DrugBank downloads are currently disabled https://github.com/cthoyt/drugbank-downloader/issues/23 -- I used the previously downloaded 5-1-13.
 
 # Versions that need to be updated on every release.
 biolink_version: "b0d9ef6494af9b3ab931e9505d446ca8c212f50f" # The next release after Biolink 4.4.2
