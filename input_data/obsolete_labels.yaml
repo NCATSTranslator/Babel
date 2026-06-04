@@ -1,4 +1,4 @@
-# Obsolete or offensive labels to filter from Babel output.
+# Obsolete labels to filter from Babel output.
 #
 # Each entry must have EXACTLY ONE of:
 #   label:   exact string match (case-insensitive by default)
@@ -28,7 +28,7 @@
 
 obsolete_labels:
   - label: "mongolism"
-    reason: "Offensive historical term for Down syndrome (trisomy 21); use MONDO:0008608 / HP:0001249 labels instead"
+    reason: "Obsolete historical term for Down syndrome (trisomy 21); use MONDO:0008608 / HP:0001249 labels instead"
     only_for_types: [biolink:Disease, biolink:PhenotypicFeature, biolink:DiseaseOrPhenotypicFeature]
     sources_seen: [UMLS, MESH]
 
