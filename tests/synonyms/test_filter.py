@@ -1,5 +1,7 @@
 """Unit tests for src/synonyms/filter.py."""
 
+import logging
+
 import pytest
 import yaml
 
@@ -190,8 +192,6 @@ def test_entry_action_warn_still_increments_count(tmp_path):
 @pytest.mark.unit
 def test_entry_invalid_action_defaults_to_remove(tmp_path, caplog):
     """An unrecognised action is logged as a warning and treated as 'remove'."""
-    import logging
-
     entries = [{"label": "mongolism", "reason": "offensive", "action": "delete"}]
     with caplog.at_level(logging.WARNING, logger="src.synonyms.filter"):
         fltr = make_filter(tmp_path, entries)
@@ -213,8 +213,6 @@ def test_missing_filter_file_loads_zero_entries(tmp_path):
 
 @pytest.mark.unit
 def test_missing_filter_file_emits_warning(tmp_path, caplog):
-    import logging
-
     missing = tmp_path / "does_not_exist.yaml"
     with caplog.at_level(logging.WARNING, logger="src.synonyms.filter"):
         SynonymFilter(missing)
@@ -245,18 +243,15 @@ def reset_singleton():
 
 
 @pytest.mark.unit
-def test_singleton_returns_same_instance(tmp_path, reset_singleton, monkeypatch):
+def test_singleton_returns_same_instance(tmp_path, reset_singleton):
     """get_synonym_filter() must return the same object on every call."""
     yaml_file = tmp_path / "obsolete_labels.yaml"
     yaml_file.write_text("obsolete_labels: []")
 
-    # Patch get_config so we don't need a real config.yaml
-    monkeypatch.setattr(
-        "src.synonyms.filter.SynonymFilter",
-        lambda path: SynonymFilter(yaml_file),
-        raising=False,
-    )
+    # Pre-populate the singleton directly to avoid needing get_config() / a real config.yaml.
+    lf_module._instance = SynonymFilter(yaml_file)
 
     first = lf_module.get_synonym_filter()
     second = lf_module.get_synonym_filter()
     assert first is second
+    assert first is lf_module._instance
