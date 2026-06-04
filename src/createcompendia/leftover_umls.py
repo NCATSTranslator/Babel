@@ -203,7 +203,7 @@ def write_leftover_umls(
             umls_ids_in_other_compendia.update(umls_ids)
 
         logger.info(f"Completed all compendia with {len(umls_ids_in_other_compendia)} UMLS IDs.")
-        reportf.write(f"COMPLETED Completed all compendia with {len(umls_ids_in_other_compendia)} UMLS IDs.\n")
+        reportf.write(f"COMPLETED All compendia with {len(umls_ids_in_other_compendia)} UMLS IDs.\n")
 
         # Load all the semantic types.
         preferred_name_by_id = dict()
@@ -228,7 +228,7 @@ def write_leftover_umls(
                 types_by_tui[tui].add(sty)
 
         logger.info(f"Completed loading {len(types_by_id.keys())} UMLS IDs from MRSTY.RRF.")
-        reportf.write(f"COMPLETED Completed loading {len(types_by_id.keys())} UMLS IDs from MRSTY.RRF.\n")
+        reportf.write(f"COMPLETED Loading {len(types_by_id.keys())} UMLS IDs from MRSTY.RRF.\n")
 
         with open(report_dir / "tui-sty.tsv", "w") as outf:
             for tui in sorted(types_by_tui.keys()):
@@ -396,7 +396,7 @@ def write_leftover_umls(
 
         logger.info(f"Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().")
         reportf.write(
-            f"COMPLETED Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().\n"
+            f"COUNT Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().\n"
         )
 
         # Per-compendium UMLS coverage.
