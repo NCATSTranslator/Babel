@@ -132,7 +132,10 @@ class EFOgraph:
             try:
                 other_id = Text.opt_to_curie(other_without_brackets)
             except ValueError as verr:
-                logger.warning(f"Could not translate '{other_without_brackets}' into a CURIE in " + f"EFOgraph.get_xrefs({iri}), skipping: {verr}")
+                logger.warning(
+                    f"Could not translate '{other_without_brackets}' into a CURIE in "
+                    + f"EFOgraph.get_xrefs({iri}), skipping: {verr}"
+                )
                 continue
             if other_id.upper().startswith(ORPHANET.upper()):
                 logger.warning(f"Skipping Orphanet xref '{other_without_brackets}' in EFOgraph.get_xrefs({iri})")
@@ -144,7 +147,9 @@ class EFOgraph:
             if ":" in other_id and not other_id.startswith(":"):
                 outfile.write(f"{iri}\toboInOwl:hasDbXref\t{other_id}\n")
             else:
-                logging.warning(f"Skipping xref '{other_without_brackets}' in EFOgraph.get_xrefs({iri}): " + "not a valid CURIE")
+                logging.warning(
+                    f"Skipping xref '{other_without_brackets}' in EFOgraph.get_xrefs({iri}): " + "not a valid CURIE"
+                )
 
 
 def make_labels(owlfile, labelfile, synfile):

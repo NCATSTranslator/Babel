@@ -185,7 +185,11 @@ class Text:
         if text.startswith("http://purl.obolibrary.org/obo/mondo/sources/icd11foundation/"):
             # This has to go on top because it's a 'purl.obolibrary.org' which doesn't follow the same pattern as the others.
             r = f"{ICD11FOUNDATION}:{text[61:]}"
-        elif text.startswith("http://purl.obolibrary.org") or text.startswith("http://www.orpha.net") or text.startswith("http://www.ebi.ac.uk/efo"):
+        elif (
+            text.startswith("http://purl.obolibrary.org")
+            or text.startswith("http://www.orpha.net")
+            or text.startswith("http://www.ebi.ac.uk/efo")
+        ):
             p = text.split("/")[-1].split("_")
             r = ":".join(p)
         elif text.startswith("https://omim.org/"):
@@ -379,12 +383,16 @@ def get_biolink_prefix_map():
     elif biolink_version.startswith("3."):
         # biolink-model v3.* releases keeps the prefix map in a different place.
         return curies.Converter.from_prefix_map(
-            "https://raw.githubusercontent.com/biolink/biolink-model/v" + biolink_version + "/prefix-map/biolink-model-prefix-map.json"
+            "https://raw.githubusercontent.com/biolink/biolink-model/v"
+            + biolink_version
+            + "/prefix-map/biolink-model-prefix-map.json"
         )
     else:
         # biolink-model v4.0.0 and beyond is in the /project directory.
         return curies.Converter.from_prefix_map(
-            "https://raw.githubusercontent.com/biolink/biolink-model/v" + biolink_version + "/project/prefixmap/biolink_model_prefix_map.json"
+            "https://raw.githubusercontent.com/biolink/biolink-model/v"
+            + biolink_version
+            + "/project/prefixmap/biolink_model_prefix_map.json"
         )
 
 

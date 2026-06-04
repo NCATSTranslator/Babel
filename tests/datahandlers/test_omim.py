@@ -1,4 +1,5 @@
 """Tests for the OMIM data handler and the User-Agent header it sends."""
+
 import os
 from unittest.mock import MagicMock, patch
 
@@ -12,7 +13,10 @@ from tests.conftest import assert_labels_file_valid
 @pytest.mark.unit
 def test_get_user_agent_includes_branch_and_url():
     """get_user_agent() should embed the build branch and the GitHub URL."""
-    fake_config = {"build": {"branch": "babel-test"}, "babel": {"github_url": "https://github.com/NCATSTranslator/Babel"}}
+    fake_config = {
+        "build": {"branch": "babel-test"},
+        "babel": {"github_url": "https://github.com/NCATSTranslator/Babel"},
+    }
     with patch("src.babel_utils.get_config", return_value=fake_config):
         ua = get_user_agent()
     assert "TranslatorBabel/babel-test" in ua
@@ -41,12 +45,17 @@ def test_pull_via_urllib_sends_user_agent(tmp_path):
         "babel": {"github_url": "https://github.com/NCATSTranslator/Babel"},
     }
 
-    with patch("urllib.request.build_opener", return_value=mock_opener), patch("src.babel_utils.get_config", return_value=fake_config):
+    with (
+        patch("urllib.request.build_opener", return_value=mock_opener),
+        patch("src.babel_utils.get_config", return_value=fake_config),
+    ):
         pull_via_urllib("http://example.com/", "test.txt", decompress=False)
 
     assert len(captured) == 1
     # urllib capitalises the first letter of each header name
-    assert captured[0].get_header("User-agent") == "TranslatorBabel/babel-test (https://github.com/NCATSTranslator/Babel)"
+    assert (
+        captured[0].get_header("User-agent") == "TranslatorBabel/babel-test (https://github.com/NCATSTranslator/Babel)"
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -21,6 +21,7 @@ These are pipeline tests, which are skipped by default unless PyTest is run with
 Run a single vocabulary:
     uv run pytest tests/pipeline/test_vocabulary_partitioning.py --pipeline --no-cov -v -k MESH
 """
+
 import pytest
 
 from tests.pipeline.conftest import _output_paths, get_curies_from_ids_file
@@ -33,27 +34,60 @@ from tests.pipeline.conftest import _output_paths, get_curies_from_ids_file
 # so that the test starts enforcing the invariant for those identifiers.
 #
 KNOWN_DUPLICATES: dict[str, set[str]] = {
-    "UMLS": {   # Filed as https://github.com/NCATSTranslator/Babel/issues/729
+    "UMLS": {  # Filed as https://github.com/NCATSTranslator/Babel/issues/729
         "UMLS:C5443441",
         "UMLS:C5443442",
     },
-    "MESH": {   # Filed as https://github.com/NCATSTranslator/Babel/issues/730
+    "MESH": {  # Filed as https://github.com/NCATSTranslator/Babel/issues/730
         # protein / anatomy overlaps
-        "MESH:D022041", "MESH:D035321", "MESH:D006570", "MESH:D009707",
-        "MESH:D064448", "MESH:D035341", "MESH:D045524", "MESH:D007106",
-        "MESH:D000067816", "MESH:D000089804", "MESH:D002843", "MESH:D017358",
-        "MESH:D008894", "MESH:D000961", "MESH:D009360",
+        "MESH:D022041",
+        "MESH:D035321",
+        "MESH:D006570",
+        "MESH:D009707",
+        "MESH:D064448",
+        "MESH:D035341",
+        "MESH:D045524",
+        "MESH:D007106",
+        "MESH:D000067816",
+        "MESH:D000089804",
+        "MESH:D002843",
+        "MESH:D017358",
+        "MESH:D008894",
+        "MESH:D000961",
+        "MESH:D009360",
         # chemicals / anatomy overlaps
-        "MESH:D000091083", "MESH:D014688",
+        "MESH:D000091083",
+        "MESH:D014688",
         # anatomy / diseasephenotype overlaps
-        "MESH:D000072717", "MESH:D018404", "MESH:D065309", "MESH:D003809",
-        "MESH:D008467", "MESH:D012303", "MESH:D017439", "MESH:D000153",
-        "MESH:D014097", "MESH:D010677", "MESH:D000072662", "MESH:D003750",
-        "MESH:D008551", "MESH:D048629", "MESH:D002921", "MESH:D007627",
+        "MESH:D000072717",
+        "MESH:D018404",
+        "MESH:D065309",
+        "MESH:D003809",
+        "MESH:D008467",
+        "MESH:D012303",
+        "MESH:D017439",
+        "MESH:D000153",
+        "MESH:D014097",
+        "MESH:D010677",
+        "MESH:D000072662",
+        "MESH:D003750",
+        "MESH:D008551",
+        "MESH:D048629",
+        "MESH:D002921",
+        "MESH:D007627",
         # anatomy / taxon overlaps
-        "MESH:D036226", "MESH:D013172", "MESH:D052940", "MESH:D033761",
-        "MESH:D053058", "MESH:D002523", "MESH:D038821", "MESH:D033661",
-        "MESH:D013171", "MESH:D034101", "MESH:D013104", "MESH:D052939",
+        "MESH:D036226",
+        "MESH:D013172",
+        "MESH:D052940",
+        "MESH:D033761",
+        "MESH:D053058",
+        "MESH:D002523",
+        "MESH:D038821",
+        "MESH:D033661",
+        "MESH:D013171",
+        "MESH:D034101",
+        "MESH:D013104",
+        "MESH:D052939",
         "MESH:D013170",
     },
 }
@@ -73,8 +107,8 @@ def test_no_id_in_multiple_compendia(vocab_outputs):
     """No identifier may appear in more than one compendium for this vocabulary."""
     vocab, outputs = vocab_outputs
     paths = _output_paths(outputs)
-    seen = {}       # id -> first compendium name
-    duplicates = {} # id -> list of all compendia it appeared in
+    seen = {}  # id -> first compendium name
+    duplicates = {}  # id -> list of all compendia it appeared in
     for name, path in paths.items():
         for id_ in get_curies_from_ids_file(path):
             if id_ in seen:
@@ -85,8 +119,7 @@ def test_no_id_in_multiple_compendia(vocab_outputs):
     known = KNOWN_DUPLICATES.get(vocab, set())
     unexpected = {k: v for k, v in duplicates.items() if k not in known}
     assert not unexpected, (
-        f"{vocab}: found {len(unexpected)} unexpected IDs in multiple compendia: "
-        f"{dict(list(unexpected.items())[:5])}"
+        f"{vocab}: found {len(unexpected)} unexpected IDs in multiple compendia: {dict(list(unexpected.items())[:5])}"
     )
 
     still_known = known & duplicates.keys()

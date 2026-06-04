@@ -21,7 +21,9 @@ def extract_taxon_ids_from_uniprotkb(idmapping_filename, uniprotkb_taxa_filename
             x = line.strip().split("\t")
             if x[1] == "NCBI_TaxID":
                 if x[0] == "" or x[2] == "":
-                    logger.warning(f"Line {x} is an NCBI_TaxID but has a blank UniProtKB ({x[0]}) or NCBITaxon ({x[2]}), skipping.")
+                    logger.warning(
+                        f"Line {x} is an NCBI_TaxID but has a blank UniProtKB ({x[0]}) or NCBITaxon ({x[2]}), skipping."
+                    )
                     continue
                 outf.write(f"{UNIPROTKB}:{x[0]}\t{NCBITAXON}:{x[2]}\n")
 
@@ -33,12 +35,12 @@ def write_umls_ids(mrsty, outfile):
     # We have to make sure we don't include UMLS identifiers both here and in chemicals.py, otherwise they'll
     # end up in both compendia.
     umlsmap = {
-        "A1.4.1.2.1.7": PROTEIN,    # Amino Acid, Peptide, or Protein -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T116
+        "A1.4.1.2.1.7": PROTEIN,  # Amino Acid, Peptide, or Protein -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T116
         # The following should not be needed: receptors are generally proteins, and enzymes are definitionally proteins, so
         # they should all be included in T116. But since we exclude them in chemicals.py, I think it makes sense to include
         # them here.
-        "A1.4.1.1.3.6": PROTEIN,    # Receptor -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T192
-        "A1.4.1.1.3.3": PROTEIN,    # Enzyme -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T126
+        "A1.4.1.1.3.6": PROTEIN,  # Receptor -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T192
+        "A1.4.1.1.3.3": PROTEIN,  # Enzyme -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T126
     }
     umls.write_umls_ids(mrsty, umlsmap, outfile)
 
@@ -226,7 +228,9 @@ def build_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
     #
     # TODO: we should probably add some kind of filtering so we don't include concords that point to chemicals rather
     # than proteins, which could result in duplicates (if the same ID is picked up in both chemicals and proteins).
-    umls.build_sets(mrconso, idfile, outfile, {"MSH": MESH, "DRUGBANK": DRUGBANK}, provenance_metadata_yaml=metadata_yaml)
+    umls.build_sets(
+        mrconso, idfile, outfile, {"MSH": MESH, "DRUGBANK": DRUGBANK}, provenance_metadata_yaml=metadata_yaml
+    )
 
 
 def build_protein_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
@@ -235,7 +239,9 @@ def build_protein_compendia(concordances, metadata_yamls, identifiers, icrdf_fil
     dicts = {}
     types = {}
     uniques = [UNIPROTKB, PR]
-    logger.info(f"Started building protein compendia ({concordances}, {metadata_yamls}, {identifiers}, {icrdf_filename}) with uniques {uniques}")
+    logger.info(
+        f"Started building protein compendia ({concordances}, {metadata_yamls}, {identifiers}, {icrdf_filename}) with uniques {uniques}"
+    )
     for ifile in identifiers:
         logger.info(f"Loading identifier file {ifile}")
         new_identifiers, new_types = read_identifier_file(ifile)
@@ -268,5 +274,13 @@ def build_protein_compendia(concordances, metadata_yamls, identifiers, icrdf_fil
 
     baretype = PROTEIN.split(":")[-1]
     logger.info(f"Writing compendium for {baretype}, memory usage: {get_memory_usage_summary()}")
-    write_compendium(metadata_yamls, gene_sets, f"{baretype}.txt", PROTEIN, {}, extra_prefixes=[DRUGBANK], icrdf_filename=icrdf_filename)
+    write_compendium(
+        metadata_yamls,
+        gene_sets,
+        f"{baretype}.txt",
+        PROTEIN,
+        {},
+        extra_prefixes=[DRUGBANK],
+        icrdf_filename=icrdf_filename,
+    )
     logger.info(f"Wrote compendium for {baretype}, memory usage: {get_memory_usage_summary()}")

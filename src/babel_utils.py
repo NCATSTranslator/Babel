@@ -12,6 +12,7 @@ from enum import Enum
 from ftplib import FTP
 from io import BytesIO
 from pathlib import Path
+from typing import NamedTuple
 
 import jsonlines
 import requests
@@ -27,6 +28,7 @@ from src.util import Text, get_config, get_logger, get_memory_usage_summary
 WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES = 1_000_000
 MAX_DOWNLOAD_ERROR = 10
 
+
 def get_user_agent() -> str:
     """Return the User-Agent string for outbound HTTP requests, including the build branch."""
     config = get_config()
@@ -40,6 +42,25 @@ logger = get_logger(__name__)
 
 # Matches an RDF language-tagged literal as returned by pyoxigraph as a raw string, e.g. "value"@en
 _RDF_LANG_LITERAL_RE = re.compile(r'^"(.*)"@\w+$')
+
+
+class TypedClique(NamedTuple):
+    """A clique that carries its own Biolink node type.
+
+    Used as an element of the ``synonym_list`` passed to :func:`write_compendium` when the
+    cliques in a single compendium run do not all share the same Biolink type.  Passing a
+    heterogeneous list of ``TypedClique`` objects (with ``node_type=None`` in
+    ``write_compendium``) lets each clique declare its own type independently, which is how
+    the leftover-UMLS compendium handles entities that span many Biolink classes.
+
+    :param node_type: The ``biolink:``-prefixed class URI for this clique
+        (e.g. ``"biolink:Disease"``).  Use the named constants in ``src/categories.py``
+        rather than raw strings.
+    :param identifiers: The list of CURIEs that belong to this clique.
+    """
+
+    node_type: str
+    identifiers: list[str]
 
 
 def parse_rdf_literal(literal: str) -> str:
@@ -229,6 +250,8 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
     else:
         dl_file_name = os.path.join(download_dir, subpath, in_file_name)
 
+    os.makedirs(os.path.dirname(dl_file_name), exist_ok=True)
+
     # Add support for redirects
     opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
 
@@ -245,7 +268,9 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
         Path(dl_file_name).unlink(missing_ok=True)
         download_attempt += 1
         if download_attempt > MAX_DOWNLOAD_ERROR:
-            raise RuntimeError(f"Could not download and verify {download_url}: more than {MAX_DOWNLOAD_ERROR} attempts.")
+            raise RuntimeError(
+                f"Could not download and verify {download_url}: more than {MAX_DOWNLOAD_ERROR} attempts."
+            )
         logger.info(f"Downloading {dl_file_name} using urllib, attempt {download_attempt}...")
 
         with open(dl_file_name, "wb") as compressed_file:
@@ -285,7 +310,9 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
                 # Is it blank/very small? If so, we immediately fail verification.
                 file_size = os.path.getsize(out_file_name)
                 if file_size < 1024:
-                    logger.warning(f"Downloaded Gzip file {out_file_name} is too small ({file_size} bytes), skipping verification.")
+                    logger.warning(
+                        f"Downloaded Gzip file {out_file_name} is too small ({file_size} bytes), skipping verification."
+                    )
                     download_verified = False
                     continue
 
@@ -372,10 +399,14 @@ def pull_via_wget(
             wget_command_line.extend(["-O", dl_file_name])
         case WgetRecursionOptions.RECURSE_SUBFOLDERS:
             # dl_file_name should be a directory name.
-            wget_command_line.extend(["--recursive", "--no-parent", "--no-directories", "--directory-prefix=" + dl_file_name])
+            wget_command_line.extend(
+                ["--recursive", "--no-parent", "--no-directories", "--directory-prefix=" + dl_file_name]
+            )
         case WgetRecursionOptions.RECURSE_DIRECTORY_ONLY:
             # dl_file_name should be a directory name.
-            wget_command_line.extend(["--recursive", "--no-parent", "--no-directories", "--level=1", "--directory-prefix=" + dl_file_name])
+            wget_command_line.extend(
+                ["--recursive", "--no-parent", "--no-directories", "--level=1", "--directory-prefix=" + dl_file_name]
+            )
 
     # Execute wget.
     logger.info(f"Downloading {dl_file_name} using wget: {wget_command_line}")
@@ -392,7 +423,9 @@ def pull_via_wget(
             if process.returncode != 0:
                 raise RuntimeError(f"Could not execute gunzip ['gunzip', {dl_file_name}]: {process.stderr}")
         else:
-            raise RuntimeError(f"Don't know how to decompress {in_file_name}, which was downloaded as '{dl_file_name}'.")
+            raise RuntimeError(
+                f"Don't know how to decompress {in_file_name}, which was downloaded as '{dl_file_name}'."
+            )
 
         if os.path.isfile(uncompressed_filename):
             file_size = os.path.getsize(uncompressed_filename)
@@ -405,7 +438,11 @@ def pull_via_wget(
             logger.info(f"Downloaded {dl_file_name} from {url}, file size {file_size} bytes.")
         elif os.path.isdir(dl_file_name):
             # Count the number of files in directory dl_file_name
-            dir_size = sum(os.path.getsize(os.path.join(dl_file_name, f)) for f in os.listdir(dl_file_name) if os.path.isfile(os.path.join(dl_file_name, f)))
+            dir_size = sum(
+                os.path.getsize(os.path.join(dl_file_name, f))
+                for f in os.listdir(dl_file_name)
+                if os.path.isfile(os.path.join(dl_file_name, f))
+            )
             logger.info(f"Downloaded {dir_size} files from {url} to {dl_file_name}.")
         else:
             raise RuntimeError(f"Unknown file type {dl_file_name}")
@@ -428,9 +465,11 @@ def sort_identifiers_with_boosted_prefixes(identifiers, prefixes):
     # Thanks to JetBrains AI.
     return sorted(
         identifiers,
-        key=lambda identifier: prefixes.index(identifier["identifier"].split(":", 1)[0])
-        if identifier["identifier"].split(":", 1)[0] in prefixes
-        else len(prefixes),
+        key=lambda identifier: (
+            prefixes.index(identifier["identifier"].split(":", 1)[0])
+            if identifier["identifier"].split(":", 1)[0] in prefixes
+            else len(prefixes)
+        ),
     )
 
 
@@ -490,12 +529,22 @@ def get_numerical_curie_suffix(curie):
     return None
 
 
-def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=None, extra_prefixes=None, icrdf_filename=None, properties_jsonl_gz_files=None):
+def write_compendium(
+    metadata_yamls,
+    synonym_list,
+    ofname,
+    node_type,
+    labels=None,
+    extra_prefixes=None,
+    icrdf_filename=None,
+    properties_jsonl_gz_files=None,
+):
     """
     :param metadata_yaml: The YAML files containing the metadata for this compendium.
     :param synonym_list:
     :param ofname: Output filename. A file with this filename will be created in both the `compendia` and `synonyms` output directories.
-    :param node_type: The Biolink type of this compendium (including `biolink:` prefix).
+    :param node_type: The Biolink type of this compendium (including `biolink:` prefix). Set this to None
+        only if every item in synonym_list is a TypedClique with its own node_type.
     :param labels: A map of identifiers
         Not needed if each identifier will have a label in the correct directory (i.e. downloads/PMID/labels for PMID:xxx).
     :param extra_prefixes: We default to only allowing the prefixes allowed for a particular type in Biolink.
@@ -545,8 +594,13 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
     taxon_factory = TaxonFactory(make_local_name(""))
     logger.info(f"TaxonFactory ready: {taxon_factory} with {get_memory_usage_summary()}")
 
-    node_test = node_factory.create_node(input_identifiers=[], node_type=node_type, labels={}, extra_prefixes=extra_prefixes)
-    logger.info(f"NodeFactory test complete: {node_test} with {get_memory_usage_summary()}")
+    if node_type is not None:
+        node_test = node_factory.create_node(
+            input_identifiers=[], node_type=node_type, labels={}, extra_prefixes=extra_prefixes
+        )
+        logger.info(f"NodeFactory test complete: {node_test} with {get_memory_usage_summary()}")
+    else:
+        logger.info("Skipping NodeFactory type test for heterogeneous typed cliques.")
 
     # Create compendia and synonyms directories, just in case they haven't been created yet.
     os.makedirs(os.path.join(cdir, "compendia"), exist_ok=True)
@@ -573,13 +627,25 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
     count_synonyms = 0
 
     # Write compendium and synonym files.
-    with jsonlines.open(os.path.join(cdir, "compendia", ofname), "w") as outf, jsonlines.open(os.path.join(cdir, "synonyms", ofname), "w") as sfile:
+    with (
+        jsonlines.open(os.path.join(cdir, "compendia", ofname), "w") as outf,
+        jsonlines.open(os.path.join(cdir, "synonyms", ofname), "w") as sfile,
+    ):
         # Calculate an estimated time to completion.
         start_time = time.time_ns()
         count_slist = 0
         total_slist = len(synonym_list)
 
         for slist in synonym_list:
+            if isinstance(slist, TypedClique):
+                current_node_type = slist.node_type
+                input_identifiers = slist.identifiers
+            else:
+                if node_type is None:
+                    raise RuntimeError("write_compendium() requires node_type unless every clique is a TypedClique.")
+                current_node_type = node_type
+                input_identifiers = slist
+
             # Before we get started, let's estimate where we're at.
             count_slist += 1
             if (count_slist == 1) or (count_slist % WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES == 0):
@@ -601,16 +667,23 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                 time_remaining_seconds = time_elapsed_seconds / count_slist * remaining_slist
                 logger.info(f" - Estimated time remaining: {format_timespan(time_remaining_seconds)}")
 
-            node = node_factory.create_node(input_identifiers=slist, node_type=node_type, labels=labels, extra_prefixes=extra_prefixes)
+            node = node_factory.create_node(
+                input_identifiers=input_identifiers,
+                node_type=current_node_type,
+                labels=labels,
+                extra_prefixes=extra_prefixes,
+            )
             if node is None:
                 # This usually happens because every CURIE in the node is not in the id_prefixes list for that node_type.
                 # Something to fix at some point, but we don't want to break the pipeline for this, so
                 # we emit a warning and skip this clique.
-                logger.warning(f"Could not create node for ({slist}, {node_type}, {labels}, {extra_prefixes}): returned None.")
+                logger.warning(
+                    f"Could not create node for ({input_identifiers}, {current_node_type}, {labels}, {extra_prefixes}): returned None."
+                )
                 continue
             else:
                 count_cliques += 1
-                count_eq_ids += len(slist)
+                count_eq_ids += len(input_identifiers)
 
                 nw = {"type": node["type"]}
                 ic = ic_factory.get_ic(node)
@@ -620,7 +693,9 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                 types = node_factory.get_ancestors(node["type"])
 
                 # Generate a preferred label for this clique using choose_preferred_name().
-                preferred_name = choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_labels_longer_than)
+                preferred_name = choose_preferred_name(
+                    node, types, preferred_name_boost_prefixes, demote_labels_longer_than
+                )
 
                 # At this point, we insert any HAS_ADDITIONAL_ID IDs we have.
                 # The logic we use is: we insert all additional IDs for a CURIE *AFTER* that CURIE, in a random order, as long
@@ -656,7 +731,9 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                         for prop, label in zip(props, ac_labelled):
                             additional_curie = Text.get_curie(label)
                             if ":" not in additional_curie:
-                                raise ValueError(f"Additional ID '{additional_curie}' for '{iid}' is not a valid CURIE: {prop}, {label} (from {ac_labelled})")
+                                raise ValueError(
+                                    f"Additional ID '{additional_curie}' for '{iid}' is not a valid CURIE: {prop}, {label} (from {ac_labelled})"
+                                )
                             if additional_curie not in current_curies:
                                 identifier_list.append(additional_curie)
                                 current_curies.add(additional_curie)
@@ -715,7 +792,11 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                 synonyms_list = sorted(set(synonyms), key=lambda x: len(x))
 
                 try:
-                    document = {"curie": curie, "names": synonyms_list, "types": [t[8:] for t in types]}  # remove biolink:
+                    document = {
+                        "curie": curie,
+                        "names": synonyms_list,
+                        "types": [t[8:] for t in types],
+                    }  # remove biolink:
 
                     count_synonyms += len(synonyms_list)
 
@@ -723,7 +804,9 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                     if preferred_name:
                         document["preferred_name"] = preferred_name
                     else:
-                        logger.debug(f"No preferred name for {nw}, probably because all names were filtered out, skipping.")
+                        logger.debug(
+                            f"No preferred name for {nw}, probably because all names were filtered out, skipping."
+                        )
                         continue
 
                     # We previously used the shortest length of a name as a proxy for how good a match it is, i.e. given

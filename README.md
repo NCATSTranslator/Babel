@@ -152,7 +152,9 @@ guidance on how the source code is organized, what contributions are most
 useful, and how to run the tests. For a deeper look at the development
 workflow and ideas for improving it, see [Developing Babel](./docs/Development.md).
 For the testing strategy — what to automate, recommended cadence, and runner
-choice — see [Testing Strategy](./docs/Testing.md).
+choice — see [Testing Strategy](./docs/Testing.md). For notes on how Babel
+ingests a specific upstream data source, see the
+[per-source documentation](./docs/sources/).
 
 ## Contact information
 

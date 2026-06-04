@@ -61,6 +61,7 @@ def assert_concordance_file_valid(path: str) -> list[list[str]]:
         assert ":" in cols[2], f"Third column is not a CURIE: {cols[2]}"
     return rows
 
+
 # Biolink Model version used throughout the test suite.  Should match config.yaml.
 BIOLINK_VERSION = get_config()["biolink_version"]
 
@@ -70,6 +71,18 @@ MARK_TIMEOUTS = {
     "slow": 600,
     "pipeline": 3600,
 }
+
+
+def _system_memory_gib() -> float | None:
+    """Best-effort total physical RAM in GiB, or None if it can't be determined.
+
+    Uses POSIX sysconf (available on Linux and macOS); returns None on platforms
+    that don't expose it, in which case min_memory_gb-marked tests are NOT skipped.
+    """
+    try:
+        return os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE") / (1024**3)
+    except (ValueError, AttributeError, OSError):
+        return None
 
 
 @pytest.fixture(scope="session")
@@ -169,6 +182,26 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_network)
         if "pipeline" in item.keywords and not run_all and not config.getoption("--pipeline"):
             item.add_marker(skip_pipeline)
+
+    # Skip tests that declare a minimum RAM requirement (@pytest.mark.min_memory_gb(n))
+    # when this machine has less than that.  Prevents OOM/swap-thrash on small machines
+    # (e.g. the ChEMBL pipeline tests bulk-load a ~17 GB TTL into an in-memory store).
+    total_mem_gib = _system_memory_gib()
+    if total_mem_gib is not None:
+        for item in items:
+            marker = item.get_closest_marker("min_memory_gb")
+            if marker is None:
+                continue
+            required = marker.args[0] if marker.args else marker.kwargs.get("n")
+            if required is None:
+                raise ValueError(
+                    f"{item.nodeid}: @pytest.mark.min_memory_gb requires an argument, e.g. min_memory_gb(128)"
+                )
+
+            if total_mem_gib < required:
+                item.add_marker(
+                    pytest.mark.skip(reason=f"needs >= {required} GiB RAM; this machine has {total_mem_gib:.1f} GiB")
+                )
 
     for item in items:
         if item.get_closest_marker("timeout"):
