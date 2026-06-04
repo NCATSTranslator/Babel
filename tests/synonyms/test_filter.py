@@ -199,6 +199,17 @@ def test_entry_invalid_action_defaults_to_remove(tmp_path, caplog):
     assert fltr.should_suppress("mongolism", source="UMLS") is True
 
 
+@pytest.mark.unit
+def test_entry_both_label_and_pattern_warns_and_uses_label(tmp_path, caplog):
+    """An entry with both 'label' and 'pattern' logs a warning and uses 'label'."""
+    entries = [{"label": "mongolism", "pattern": r"mongol", "reason": "obsolete"}]
+    with caplog.at_level(logging.WARNING, logger="src.synonyms.filter"):
+        fltr = make_filter(tmp_path, entries)
+    assert any("both 'label' and 'pattern'" in r.message for r in caplog.records)
+    assert fltr.should_suppress("mongolism", source="UMLS") is True
+    assert fltr.should_suppress("mongoloid", source="UMLS") is False
+
+
 # ---------------------------------------------------------------------------
 # Missing / empty filter file
 # ---------------------------------------------------------------------------

@@ -75,6 +75,10 @@ class SynonymFilter:
             if action not in ("remove", "warn"):
                 logger.warning(f"SynonymFilter: invalid action {action!r} in {path}; defaulting to 'remove'")
                 action = "remove"
+            if "label" in raw and "pattern" in raw:
+                logger.warning(
+                    f"SynonymFilter: entry in {path} has both 'label' and 'pattern'; 'label' will be used: {raw!r}"
+                )
             if "label" in raw:
                 self._entries.append(
                     _FilterEntry(
