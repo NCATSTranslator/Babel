@@ -756,6 +756,10 @@ rule chembl_labels_and_smiles:
     benchmark:
         config["output_directory"] + "/benchmarks/chembl_labels_and_smiles.tsv"
     resources:
+        # ChemblRDF bulk-loads the ~17 GB molecule TTL into an in-memory pyoxigraph
+        # store, so this rule needs a large-memory host (a 32 GB machine swap-thrashes
+        # and never finishes). The matching test_chembl pipeline tests are tagged
+        # @pytest.mark.min_memory_gb(128) and auto-skip below this.
         mem="128G",
     run:
         chembl.pull_chembl_labels_and_smiles(input.infile, input.ccofile, output.outfile, output.smifile)

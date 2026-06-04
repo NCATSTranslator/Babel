@@ -43,6 +43,16 @@ Tests use four marks: `unit` (fast, offline), `network` (requires internet, opt-
 `--pipeline`). Use `--all` to opt in to everything at once. Network and pipeline tests are
 skipped by default.
 
+Memory-hungry tests also carry a parametrized `min_memory_gb(n)` guard (registered in
+`pyproject.toml`, enforced in `tests/conftest.py`) that auto-skips them on machines with less
+than `n` GiB of RAM. For example the ChEMBL pipeline tests bulk-load a ~16 GB TTL into an
+in-memory `pyoxigraph.Store` and need ~120–150 GiB — far more than the on-disk size, because an
+indexed in-memory triple store expands roughly 8–10×. To size a new rule's `mem=` resource or a
+test's `min_memory_gb` threshold empirically, use `tools/memory/estimate_rdf_load_memory.py` (see
+`tools/memory/README.md`): it streams an RDF dump into a store, samples RSS, and extrapolates the
+full-load peak, so it works even on a machine far smaller than the eventual requirement (most
+accurate on Linux — macOS memory compression understates the result).
+
 - `tests/README.md` — full mark taxonomy, where to add a new test, what each test file covers.
 - `docs/Testing.md` — testing strategy: cadence per environment (per-PR, nightly, weekly,
   pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other strategies.

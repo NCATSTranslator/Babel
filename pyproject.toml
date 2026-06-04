@@ -81,6 +81,7 @@ markers = [
     "network: requires live internet access (use --network to run)",
     "slow: correct but takes >30s even offline",
     "pipeline: invokes Snakemake rules; requires babel_downloads/ (use --pipeline to run)",
+    "min_memory_gb(n): test needs at least n GiB of system RAM; auto-skipped on smaller machines",
 ]
 
 [tool.coverage.run]
