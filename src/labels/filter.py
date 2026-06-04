@@ -21,8 +21,7 @@ def get_label_filter() -> "LabelFilter":
         logger = get_logger(__name__)
         config = get_config()
         filter_file = Path(config.get("input_directory", "input_data")) / "obsolete_labels.yaml"
-        action = config.get("label_filter", {}).get("action", "remove")
-        _instance = LabelFilter(filter_file, action)
+        _instance = LabelFilter(filter_file)
     return _instance
 
 
@@ -31,6 +30,7 @@ class _FilterEntry:
     reason: str
     only_for_types: frozenset  # empty = applies to all Biolink types; non-empty = type-scoped
     sources_seen: list  # documentation only; records which upstream sources emit this term
+    action: str = "remove"  # "remove" = drop term; "warn" = keep but log
     _exact: str | None = field(default=None, repr=False)  # lowercased label text
     _partial: bool = field(default=False, repr=False)  # True → substring match; False → whole-label
     _pattern: re.Pattern | None = field(default=None, repr=False)
@@ -44,21 +44,17 @@ class _FilterEntry:
 
 
 class LabelFilter:
-    """Filter obsolete or offensive labels and synonyms from Babel output.
+    """Filter obsolete labels and synonyms from Babel output.
 
-    Loaded from input_data/obsolete_labels.yaml; controlled by label_filter.action in config.yaml.
+    Loaded from input_data/obsolete_labels.yaml. Each entry carries its own action:
 
-    action="remove": drop the term from output — the caller skips the term when should_suppress returns True.
-    action="warn":   keep the term but emit a warning so the upstream source can be addressed.
+    action="remove" (default): drop the term — should_suppress() returns True and the caller skips it.
+    action="warn":             keep the term but log a warning — should_suppress() returns False.
 
-    Both modes always emit a warning with full provenance (label, reason, source, action) so build
-    logs are searchable and the source data can be investigated or reported.
+    A warning is always emitted on match so build logs are searchable regardless of action.
     """
 
-    def __init__(self, filter_file: Path, action: str = "remove"):
-        if action not in ("remove", "warn"):
-            raise ValueError(f"label_filter.action must be 'remove' or 'warn', got {action!r}")
-        self.action = action
+    def __init__(self, filter_file: Path):
         self._entries: list[_FilterEntry] = []
         self.filtered_count: int = 0
         self.filtered_by_source: dict[str, int] = {}
@@ -75,12 +71,17 @@ class LabelFilter:
             only_for_types = frozenset(raw.get("only_for_types", []))
             sources_seen = raw.get("sources_seen", [])
             partial = bool(raw.get("partial", False))
+            action = raw.get("action", "remove")
+            if action not in ("remove", "warn"):
+                logger.warning(f"LabelFilter: invalid action {action!r} in {path}; defaulting to 'remove'")
+                action = "remove"
             if "label" in raw:
                 self._entries.append(
                     _FilterEntry(
                         reason=reason,
                         only_for_types=only_for_types,
                         sources_seen=sources_seen,
+                        action=action,
                         _exact=raw["label"].lower(),
                         _partial=partial,
                     )
@@ -91,6 +92,7 @@ class LabelFilter:
                         reason=reason,
                         only_for_types=only_for_types,
                         sources_seen=sources_seen,
+                        action=action,
                         _pattern=re.compile(raw["pattern"], re.IGNORECASE),
                     )
                 )
@@ -98,12 +100,12 @@ class LabelFilter:
                 logger.warning(
                     f"LabelFilter: skipping malformed entry in {path} (no 'label' or 'pattern' key): {raw!r}"
                 )
-        logger.info(f"LabelFilter: loaded {len(self._entries)} entries from {path} (action={self.action})")
+        logger.info(f"LabelFilter: loaded {len(self._entries)} entries from {path}")
 
     def should_suppress(self, label: str, source: str, node_types: list | None = None) -> bool:
-        """Return True if label matches a filter entry and should be treated as obsolete.
+        """Return True if label matches a 'remove' entry; False if it matches a 'warn' entry or no entry.
 
-        A warning is always emitted when a match is found so build logs are searchable and the
+        A warning is always emitted on any match so build logs are searchable and the
         originating data source can be identified and reported.
 
         label:      the label or synonym text to check.
@@ -122,9 +124,9 @@ class LabelFilter:
                 continue
             if entry.matches(label_lower):
                 logger.warning(
-                    f"Obsolete label '{label}' (reason: {entry.reason}) found in {source}; action={self.action}"
+                    f"Obsolete label '{label}' (reason: {entry.reason}) found in {source}; action={entry.action}"
                 )
                 self.filtered_count += 1
                 self.filtered_by_source[source] = self.filtered_by_source.get(source, 0) + 1
-                return True
+                return entry.action == "remove"
         return False

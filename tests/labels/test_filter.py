@@ -11,12 +11,12 @@ from src.labels.filter import LabelFilter
 # ---------------------------------------------------------------------------
 
 
-def make_filter(tmp_path, entries, action="remove"):
+def make_filter(tmp_path, entries):
     """Write a minimal obsolete_labels.yaml and return a LabelFilter for it."""
     data = {"obsolete_labels": entries}
     yaml_file = tmp_path / "obsolete_labels.yaml"
     yaml_file.write_text(yaml.dump(data))
-    return LabelFilter(yaml_file, action)
+    return LabelFilter(yaml_file)
 
 
 # ---------------------------------------------------------------------------
@@ -151,30 +151,50 @@ def test_filtered_by_source_tracks_per_source(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# action="warn" vs action="remove"
+# Per-entry action field
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.unit
-def test_action_warn_still_returns_true(tmp_path):
-    fltr = make_filter(tmp_path, [{"label": "mongolism", "reason": "offensive"}], action="warn")
-    assert fltr.action == "warn"
+def test_entry_action_remove_returns_true(tmp_path):
+    """action='remove' (default) causes should_suppress to return True."""
+    fltr = make_filter(tmp_path, [{"label": "mongolism", "reason": "offensive", "action": "remove"}])
     assert fltr.should_suppress("mongolism", source="UMLS") is True
 
 
 @pytest.mark.unit
-def test_action_remove_returns_true(tmp_path):
-    fltr = make_filter(tmp_path, [{"label": "mongolism", "reason": "offensive"}], action="remove")
-    assert fltr.action == "remove"
+def test_entry_action_default_is_remove(tmp_path):
+    """Omitting action is equivalent to action='remove'."""
+    fltr = make_filter(tmp_path, [{"label": "mongolism", "reason": "offensive"}])
     assert fltr.should_suppress("mongolism", source="UMLS") is True
 
 
 @pytest.mark.unit
-def test_invalid_action_raises(tmp_path):
-    yaml_file = tmp_path / "obsolete_labels.yaml"
-    yaml_file.write_text("obsolete_labels: []")
-    with pytest.raises(ValueError, match="action must be 'remove' or 'warn'"):
-        LabelFilter(yaml_file, action="delete")
+def test_entry_action_warn_returns_false(tmp_path):
+    """action='warn' logs a warning but returns False so the caller keeps the term."""
+    fltr = make_filter(tmp_path, [{"label": "mongolism", "reason": "offensive", "action": "warn"}])
+    assert fltr.should_suppress("mongolism", source="UMLS") is False
+
+
+@pytest.mark.unit
+def test_entry_action_warn_still_increments_count(tmp_path):
+    """filtered_count increments even for warn-only entries."""
+    fltr = make_filter(tmp_path, [{"label": "mongolism", "reason": "offensive", "action": "warn"}])
+    assert fltr.filtered_count == 0
+    fltr.should_suppress("mongolism", source="UMLS")
+    assert fltr.filtered_count == 1
+
+
+@pytest.mark.unit
+def test_entry_invalid_action_defaults_to_remove(tmp_path, caplog):
+    """An unrecognised action is logged as a warning and treated as 'remove'."""
+    import logging
+
+    entries = [{"label": "mongolism", "reason": "offensive", "action": "delete"}]
+    with caplog.at_level(logging.WARNING, logger="src.labels.filter"):
+        fltr = make_filter(tmp_path, entries)
+    assert any("invalid action" in r.message for r in caplog.records)
+    assert fltr.should_suppress("mongolism", source="UMLS") is True
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +205,7 @@ def test_invalid_action_raises(tmp_path):
 @pytest.mark.unit
 def test_missing_filter_file_loads_zero_entries(tmp_path):
     missing = tmp_path / "does_not_exist.yaml"
-    fltr = LabelFilter(missing, action="remove")
+    fltr = LabelFilter(missing)
     assert len(fltr._entries) == 0
 
 
@@ -195,7 +215,7 @@ def test_missing_filter_file_emits_warning(tmp_path, caplog):
 
     missing = tmp_path / "does_not_exist.yaml"
     with caplog.at_level(logging.WARNING, logger="src.labels.filter"):
-        LabelFilter(missing, action="remove")
+        LabelFilter(missing)
     assert any("not found" in r.message for r in caplog.records)
 
 
@@ -231,7 +251,7 @@ def test_singleton_returns_same_instance(tmp_path, reset_singleton, monkeypatch)
     # Patch get_config so we don't need a real config.yaml
     monkeypatch.setattr(
         "src.labels.filter.LabelFilter",
-        lambda path, action: LabelFilter(yaml_file, "remove"),
+        lambda path: LabelFilter(yaml_file),
         raising=False,
     )
 

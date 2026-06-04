@@ -14,6 +14,11 @@
 #                  applies.  The full ancestor chain is checked, so biolink:Disease also
 #                  matches biolink:DiseaseOrPhenotypicFeature, etc.  Omit (or leave empty)
 #                  to apply the filter to every semantic type.
+#   action:        (default: "remove") what to do when this entry matches:
+#                  "remove"   - suppress the label/synonym from output entirely.
+#                  "warn"     - keep the label/synonym but emit a warning; useful as a
+#                               temporary measure while waiting for an upstream fix.
+#                  A WARNING log is always emitted for both actions.
 #   sources_seen:  (documentation only) list of data-source prefixes known to emit this
 #                  term (e.g. [UMLS, MESH]).  Has no runtime effect but helps maintainers
 #                  know which upstream sources to report the issue to.

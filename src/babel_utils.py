@@ -508,10 +508,7 @@ def choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_lab
         if not label:
             continue
         prefix = id_entry["identifier"].split(":", 1)[0]
-        if (
-            label_filter.should_suppress(label, source=f"{prefix} (preferred name)", node_types=types)
-            and label_filter.action == "remove"
-        ):
+        if label_filter.should_suppress(label, source=f"{prefix} (preferred name)", node_types=types):
             continue
         filtered.append(label)
 
@@ -875,7 +872,7 @@ def write_compendium(
     filtered_this_run = label_filter.filtered_count - filter_count_snapshot
     if filtered_this_run > 0:
         logger.warning(
-            f"LabelFilter: suppressed {filtered_this_run} obsolete label(s)/synonym(s) from {ofname} (action={label_filter.action})"
+            f"LabelFilter: matched {filtered_this_run} obsolete label(s)/synonym(s) in {ofname}"
         )
     else:
         logger.info(f"LabelFilter: no obsolete labels found in {ofname}")

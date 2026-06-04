@@ -121,10 +121,11 @@ semantic type plus data collection, reports, exports, and DuckDB.
   triples expressing cross-references between vocabularies. The `glom()` function in
   `babel_utils.py` merges them into equivalence cliques.
 - **`LabelFilter`** (`src/labels/filter.py`) checks every label and synonym against
-  `input_data/obsolete_labels.yaml` before it enters a compendium. Controlled by
-  `label_filter.action` in `config.yaml` (`"remove"` or `"warn"`). When calling
-  `check_label()`, always pass the full Biolink ancestor chain via
-  `NodeFactory.get_ancestors(node_type)` as `node_types` — passing only `[node_type]`
+  `input_data/obsolete_labels.yaml` before it enters a compendium. Each YAML entry
+  carries its own `action` field: `"remove"` (default) drops the term and returns `True`
+  from `should_suppress()`; `"warn"` logs a warning but keeps the term and returns
+  `False`. When calling `should_suppress()`, always pass the full Biolink ancestor chain
+  via `NodeFactory.get_ancestors(node_type)` as `node_types` — passing only `[node_type]`
   breaks type-scoped filter entries that match on a parent type.
 - **Logging** — always use `get_logger(__name__)` from `src.util` (never
   `logging.getLogger` directly). `get_logger` installs the shared stderr handler and
