@@ -14,9 +14,9 @@ from src.synonyms.filter import SynonymFilter
 
 
 def make_filter(tmp_path, entries):
-    """Write a minimal obsolete_labels.yaml and return a SynonymFilter for it."""
-    data = {"obsolete_labels": entries}
-    yaml_file = tmp_path / "obsolete_labels.yaml"
+    """Write a minimal obsolete_synonyms.yaml and return a SynonymFilter for it."""
+    data = {"obsolete_synonyms": entries}
+    yaml_file = tmp_path / "obsolete_synonyms.yaml"
     yaml_file.write_text(yaml.dump(data))
     return SynonymFilter(yaml_file)
 
@@ -221,8 +221,8 @@ def test_missing_filter_file_emits_warning(tmp_path, caplog):
 
 @pytest.mark.unit
 def test_empty_yaml_loads_zero_entries(tmp_path):
-    yaml_file = tmp_path / "obsolete_labels.yaml"
-    yaml_file.write_text("obsolete_labels: []")
+    yaml_file = tmp_path / "obsolete_synonyms.yaml"
+    yaml_file.write_text("obsolete_synonyms: []")
     fltr = SynonymFilter(yaml_file)
     assert len(fltr._entries) == 0
     assert fltr.should_suppress("mongolism", source="UMLS") is False
@@ -245,8 +245,8 @@ def reset_singleton():
 @pytest.mark.unit
 def test_singleton_returns_same_instance(tmp_path, reset_singleton):
     """get_synonym_filter() must return the same object on every call."""
-    yaml_file = tmp_path / "obsolete_labels.yaml"
-    yaml_file.write_text("obsolete_labels: []")
+    yaml_file = tmp_path / "obsolete_synonyms.yaml"
+    yaml_file.write_text("obsolete_synonyms: []")
 
     # Pre-populate the singleton directly to avoid needing get_config() / a real config.yaml.
     lf_module._instance = SynonymFilter(yaml_file)

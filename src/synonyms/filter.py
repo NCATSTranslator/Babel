@@ -20,7 +20,7 @@ def get_synonym_filter() -> "SynonymFilter":
 
         logger = get_logger(__name__)
         config = get_config()
-        filter_file = Path(config.get("input_directory", "input_data")) / "obsolete_labels.yaml"
+        filter_file = Path(config.get("input_directory", "input_data")) / "obsolete_synonyms.yaml"
         _instance = SynonymFilter(filter_file)
     return _instance
 
@@ -46,7 +46,7 @@ class _FilterEntry:
 class SynonymFilter:
     """Filter obsolete labels and synonyms from Babel output.
 
-    Loaded from input_data/obsolete_labels.yaml. Each entry carries its own action:
+    Loaded from input_data/obsolete_synonyms.yaml. Each entry carries its own action:
 
     action="remove" (default): drop the term — should_suppress() returns True and the caller skips it.
     action="warn":             keep the term but log a warning — should_suppress() returns False.
@@ -66,7 +66,7 @@ class SynonymFilter:
             return
         with open(path) as f:
             data = yaml.safe_load(f) or {}
-        for raw in data.get("obsolete_labels", []):
+        for raw in data.get("obsolete_synonyms", []):
             reason = raw.get("reason", "(no reason given)")
             only_for_types = frozenset(raw.get("only_for_types", []))
             sources_seen = raw.get("sources_seen", [])

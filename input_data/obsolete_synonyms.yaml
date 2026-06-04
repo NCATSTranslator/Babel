@@ -26,7 +26,7 @@
 # To investigate the origin of a filtered term: grep the build log for the term text;
 # the 'found in' field in the warning message identifies the specific source.
 
-obsolete_labels:
+obsolete_synonyms:
   - label: "mongolism"
     reason: "Obsolete historical term for Down syndrome (trisomy 21); use MONDO:0008608 / HP:0001249 labels instead"
     only_for_types: [biolink:Disease, biolink:PhenotypicFeature, biolink:DiseaseOrPhenotypicFeature]

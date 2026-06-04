@@ -121,7 +121,7 @@ semantic type plus data collection, reports, exports, and DuckDB.
   triples expressing cross-references between vocabularies. The `glom()` function in
   `babel_utils.py` merges them into equivalence cliques.
 - **`SynonymFilter`** (`src/synonyms/filter.py`) checks every label and synonym against
-  `input_data/obsolete_labels.yaml` before it enters a compendium. Each YAML entry
+  `input_data/obsolete_synonyms.yaml` before it enters a compendium. Each YAML entry
   carries its own `action` field: `"remove"` (default) drops the term and returns `True`
   from `should_suppress()`; `"warn"` logs a warning but keeps the term and returns
   `False`. When calling `should_suppress()`, always pass the full Biolink ancestor chain
