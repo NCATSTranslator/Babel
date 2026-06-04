@@ -140,6 +140,21 @@ entry.
 GeneProtein and DrugChemical conflation each have dedicated conflation modules (`geneprotein.py`,
 `drugchemical.py`) that merge their respective cliques. See `docs/Conflation.md`.
 
+### Leftover UMLS
+
+`src/createcompendia/leftover_umls.py` (rule `leftover_umls`) runs last and sweeps up every valid
+UMLS concept in MRCONSO that no other compendium already claimed, writing each as a
+single-identifier clique into `compendia/umls.txt` so its label is still available downstream. The
+Biolink type for each leftover concept comes from its UMLS semantic type(s) via
+`tui_to_biolink_type()` (the bmt `STY:<code>` mapping), corrected by two manual tables at the top of
+the module: `STY_OVERRIDES` (per-semantic-type override; `None` means reject) and
+`TYPE_COMBO_OVERRIDES` (disambiguates a concept that resolves to multiple Biolink types). These
+tables exist because the long-term fix belongs in the Biolink Model but its real-world effect on
+Babel is hard to predict; each entry cites a GitHub issue.
+`tests/createcompendia/test_leftover_umls.py` records the current Biolink mapping for each override
+and flags when one drifts or becomes redundant. The rule also emits coverage CSVs under
+`babel_outputs/reports/umls/`. See `docs/sources/UMLS/Leftover.md`.
+
 ### DuckDB export
 
 The `src/snakefiles/duckdb.snakefile` rules (driven by `src/exporters/duckdb_exporters.py`)
@@ -160,8 +175,8 @@ Deeper, source-specific notes live under `docs/sources/<PREFIX>/` (one directory
 named by its CURIE prefix); see `docs/sources/README.md` for the convention and an index. Check
 there first when working on a specific vocabulary, and add to it when you learn something
 non-obvious about how Babel ingests that source. Keep the detail in the source file — `CLAUDE.md`
-should point here, not duplicate it. The only source documented so far is MeSH
-(`docs/sources/MESH/Ingestion.md`).
+should point here, not duplicate it. Documented so far: MeSH
+(`docs/sources/MESH/Ingestion.md`) and UMLS (`docs/sources/UMLS/Leftover.md`).
 
 ### Per-compendium metadata YAMLs
 
