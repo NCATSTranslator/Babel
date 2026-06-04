@@ -1,8 +1,10 @@
 import gzip
 import os
 import re
+import shutil
 import sqlite3
 import subprocess
+import tempfile
 import time
 import traceback
 import urllib
@@ -150,12 +152,19 @@ def pull_via_ftp(ftpsite, ftpdir, ftpfile, decompress_data=False, outfilename=No
             ftp.retrbinary(f"RETR {ftpfile}", ofile.write)
             ftp.quit()
     else:
-        with BytesIO() as data:
-            ftp.retrbinary(f"RETR {ftpfile}", data.write)
+        # Stream the compressed file to a temp file rather than buffering it all in
+        # memory with BytesIO+gzip.decompress — the old approach needed ~2× the
+        # uncompressed size in RAM (e.g. ~35+ GB for ChEMBL's 17 GB TTL).
+        odir = os.path.abspath(os.path.dirname(ofilename))
+        with tempfile.NamedTemporaryFile(delete=False, dir=odir, suffix=".gz") as tmp:
+            tmp_path = tmp.name
+            ftp.retrbinary(f"RETR {ftpfile}", tmp.write)
             ftp.quit()
-            value = gzip.decompress(data.getvalue()).decode()
-        with open(ofilename, "w") as ofile:
-            ofile.write(value)
+        try:
+            with gzip.open(tmp_path, "rt") as gz_in, open(ofilename, "w") as ofile:
+                shutil.copyfileobj(gz_in, ofile)
+        finally:
+            os.unlink(tmp_path)
     return ofilename
 
 
@@ -273,20 +282,25 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
 
         # Open a fresh connection on each attempt so a truncated response doesn't
         # leave us reading from an exhausted handle on the next retry.
-        req = urllib.request.Request(download_url, headers={"User-Agent": get_user_agent()})
-        handle = opener.open(req)
-        with open(dl_file_name, "wb") as compressed_file:
-            # while there is data
-            while True:
-                # read a block of data
-                data = handle.read(1024)
+        try:
+            req = urllib.request.Request(download_url, headers={"User-Agent": get_user_agent()})
+            handle = opener.open(req)
+            with open(dl_file_name, "wb") as compressed_file:
+                # while there is data
+                while True:
+                    # read a block of data
+                    data = handle.read(1024)
 
-                # fif nothing read about
-                if len(data) == 0:
-                    break
+                    # if nothing read, abort
+                    if len(data) == 0:
+                        break
 
-                # write out the data to the output file
-                compressed_file.write(data)
+                    # write out the data to the output file
+                    compressed_file.write(data)
+        except urllib.error.URLError as e:
+            logger.warning(f"Download attempt {download_attempt} of {download_url} failed with network/HTTP error: {e}")
+            time.sleep(5 * download_attempt)
+            continue
 
         if decompress:
             out_file_name = dl_file_name[:-3]

@@ -397,6 +397,7 @@ rule get_ensembl:
         complete_file=config["download_directory"] + "/ENSEMBL/BioMartDownloadComplete",
     benchmark:
         config["output_directory"] + "/benchmarks/get_ensembl.tsv"
+    retries: 3  # BioMart occasionally returns an HTML error page instead of TSV data.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -468,6 +469,7 @@ rule get_pantherfamily:
         outfile=config["download_directory"] + "/PANTHER.FAMILY/family.csv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_pantherfamily.tsv"
+    retries: 3  # FTP connections to pantherdb.org are occasionally refused or dropped.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -754,11 +756,9 @@ rule get_chembl:
         ccofile=config["download_directory"] + "/CHEMBL.COMPOUND/cco.ttl",
     benchmark:
         config["output_directory"] + "/benchmarks/get_chembl.tsv"
+    retries: 3  # FTP to EBI is occasionally refused or dropped.
     resources:
-        # pull_via_ftp buffers the full compressed file then decompresses it in memory
-        # before writing; ~17 GB TTL needs ~20+ GB peak. Reduce once pull_via_ftp
-        # is fixed to stream-decompress (see GitHub issue).
-        mem="32G",
+        mem="8G",
         cpus_per_task=1,
     run:
         chembl.pull_chembl(output.moleculefile)
@@ -872,6 +872,7 @@ rule get_HMDB:
         outfile=config["download_directory"] + "/HMDB/hmdb_metabolites.xml",
     benchmark:
         config["output_directory"] + "/benchmarks/get_HMDB.tsv"
+    retries: 3  # HMDB occasionally returns HTTP errors; transient network failures need a retry.
     resources:
         mem="8G",
         cpus_per_task=1,
