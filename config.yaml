@@ -81,7 +81,7 @@ anatomy_ids:       [UBERON, GO, CL, UMLS, MESH, NCIT]
 anatomy_concords:  [UBERON, GO, CL, UMLS, WIKIDATA]
 anatomy_outputs:   [AnatomicalEntity.txt, Cell.txt, CellularComponent.txt, GrossAnatomicalStructure.txt]
 
-gene_labels:   [HGNC, NCBIGene, UMLS]
+gene_labels:   [HGNC, NCBIGene, UMLS, OMIM]
 gene_ids:      [ENSEMBL, HGNC, NCBIGene, UMLS, OMIM, ZFIN, WormBase, FB, MGI, RGD, SGD]
 gene_concords: [NCBIGene, NCBIGeneENSEMBL, medgen, UMLS, UMLS_NCBIGene]
 gene_outputs:  [Gene.txt]

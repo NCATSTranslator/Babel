@@ -248,6 +248,15 @@ option would be best.
   `<owl:Ontology rdf:about=""/>`, always pass `base_iri` to `Store.bulk_load()` — without it
   pyoxigraph raises a builtin `SyntaxError` on the empty relative IRI.
 
+- **Datahandler file-path arguments** — label and synonym extraction functions should accept
+  explicit `infile` / `outfile` path arguments rather than calling `make_local_name` internally.
+  Explicit paths let unit tests pass `tmp_path`-based paths without patching the config, and
+  let Snakemake rules declare inputs and outputs precisely.
+
+- **Test assertion helpers** — `tests/conftest.py` exports `assert_labels_file_valid`,
+  `assert_synonyms_file_valid`, `assert_ids_file_valid`, and `assert_concordance_file_valid`.
+  Use these instead of hand-rolling TSV checks in new tests.
+
 ## Debugging
 
 When looking things up in the source databases, prefer to invoke the existing download code in
