@@ -1,10 +1,10 @@
-"""Unit tests for src/label_filter.py."""
+"""Unit tests for src/labels/filter.py."""
 
 import pytest
 import yaml
 
-import src.label_filter as lf_module
-from src.label_filter import LabelFilter
+import src.labels.filter as lf_module
+from src.labels.filter import LabelFilter
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -194,7 +194,7 @@ def test_missing_filter_file_emits_warning(tmp_path, caplog):
     import logging
 
     missing = tmp_path / "does_not_exist.yaml"
-    with caplog.at_level(logging.WARNING, logger="src.label_filter"):
+    with caplog.at_level(logging.WARNING, logger="src.labels.filter"):
         LabelFilter(missing, action="remove")
     assert any("not found" in r.message for r in caplog.records)
 
@@ -230,7 +230,7 @@ def test_singleton_returns_same_instance(tmp_path, reset_singleton, monkeypatch)
 
     # Patch get_config so we don't need a real config.yaml
     monkeypatch.setattr(
-        "src.label_filter.LabelFilter",
+        "src.labels.filter.LabelFilter",
         lambda path, action: LabelFilter(yaml_file, "remove"),
         raising=False,
     )

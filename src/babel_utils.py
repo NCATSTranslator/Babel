@@ -18,7 +18,7 @@ import jsonlines
 import requests
 from humanfriendly import format_timespan
 
-from src.label_filter import get_label_filter
+from src.labels.filter import get_label_filter
 from src.LabeledID import LabeledID
 from src.metadata.provenance import write_combined_metadata
 from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory

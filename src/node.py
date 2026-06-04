@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 import curies
 
-from src.label_filter import get_label_filter
+from src.labels.filter import get_label_filter
 from src.LabeledID import LabeledID
 from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import PUBCHEMCOMPOUND
