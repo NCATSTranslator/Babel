@@ -18,7 +18,7 @@ import jsonlines
 import requests
 from humanfriendly import format_timespan
 
-from src.labels.filter import get_label_filter
+from src.synonyms.filter import get_synonym_filter
 from src.LabeledID import LabeledID
 from src.metadata.provenance import write_combined_metadata
 from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory
@@ -501,14 +501,14 @@ def choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_lab
     # Drop blank/missing labels and apply the label filter as a safety net.
     # (Labels should already have been cleared by apply_labels(), but this catches
     # anything supplied via the explicit labels dict or through an unforeseen path.)
-    label_filter = get_label_filter()
+    synonym_filter = get_synonym_filter()
     filtered = []
     for id_entry in ordered_identifiers:
         label = id_entry.get("label", "")
         if not label:
             continue
         prefix = id_entry["identifier"].split(":", 1)[0]
-        if label_filter.should_suppress(label, source=f"{prefix} (preferred name)", node_types=types):
+        if synonym_filter.should_suppress(label, source=f"{prefix} (preferred name)", node_types=types):
             continue
         filtered.append(label)
 
@@ -630,8 +630,8 @@ def write_compendium(
 
     property_source_count = defaultdict(int)
 
-    label_filter = get_label_filter()
-    filter_count_snapshot = label_filter.filtered_count
+    synonym_filter = get_synonym_filter()
+    filter_count_snapshot = synonym_filter.filtered_count
 
     # Counts.
     count_cliques = 0
@@ -869,13 +869,13 @@ def write_compendium(
                     raise ex
 
     # Log a per-compendium summary of any obsolete labels that were filtered.
-    filtered_this_run = label_filter.filtered_count - filter_count_snapshot
+    filtered_this_run = synonym_filter.filtered_count - filter_count_snapshot
     if filtered_this_run > 0:
         logger.warning(
-            f"LabelFilter: matched {filtered_this_run} obsolete label(s)/synonym(s) in {ofname}"
+            f"SynonymFilter: matched {filtered_this_run} obsolete label(s)/synonym(s) in {ofname}"
         )
     else:
-        logger.info(f"LabelFilter: no obsolete labels found in {ofname}")
+        logger.info(f"SynonymFilter: no obsolete labels found in {ofname}")
 
     # Write out the metadata.yaml file combining information from all the metadata.yaml files.
     write_combined_metadata(

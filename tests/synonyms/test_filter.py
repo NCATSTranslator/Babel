@@ -1,10 +1,10 @@
-"""Unit tests for src/labels/filter.py."""
+"""Unit tests for src/synonyms/filter.py."""
 
 import pytest
 import yaml
 
-import src.labels.filter as lf_module
-from src.labels.filter import LabelFilter
+import src.synonyms.filter as lf_module
+from src.synonyms.filter import SynonymFilter
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -12,11 +12,11 @@ from src.labels.filter import LabelFilter
 
 
 def make_filter(tmp_path, entries):
-    """Write a minimal obsolete_labels.yaml and return a LabelFilter for it."""
+    """Write a minimal obsolete_labels.yaml and return a SynonymFilter for it."""
     data = {"obsolete_labels": entries}
     yaml_file = tmp_path / "obsolete_labels.yaml"
     yaml_file.write_text(yaml.dump(data))
-    return LabelFilter(yaml_file)
+    return SynonymFilter(yaml_file)
 
 
 # ---------------------------------------------------------------------------
@@ -191,7 +191,7 @@ def test_entry_invalid_action_defaults_to_remove(tmp_path, caplog):
     import logging
 
     entries = [{"label": "mongolism", "reason": "offensive", "action": "delete"}]
-    with caplog.at_level(logging.WARNING, logger="src.labels.filter"):
+    with caplog.at_level(logging.WARNING, logger="src.synonyms.filter"):
         fltr = make_filter(tmp_path, entries)
     assert any("invalid action" in r.message for r in caplog.records)
     assert fltr.should_suppress("mongolism", source="UMLS") is True
@@ -205,7 +205,7 @@ def test_entry_invalid_action_defaults_to_remove(tmp_path, caplog):
 @pytest.mark.unit
 def test_missing_filter_file_loads_zero_entries(tmp_path):
     missing = tmp_path / "does_not_exist.yaml"
-    fltr = LabelFilter(missing)
+    fltr = SynonymFilter(missing)
     assert len(fltr._entries) == 0
 
 
@@ -214,8 +214,8 @@ def test_missing_filter_file_emits_warning(tmp_path, caplog):
     import logging
 
     missing = tmp_path / "does_not_exist.yaml"
-    with caplog.at_level(logging.WARNING, logger="src.labels.filter"):
-        LabelFilter(missing)
+    with caplog.at_level(logging.WARNING, logger="src.synonyms.filter"):
+        SynonymFilter(missing)
     assert any("not found" in r.message for r in caplog.records)
 
 
@@ -223,7 +223,7 @@ def test_missing_filter_file_emits_warning(tmp_path, caplog):
 def test_empty_yaml_loads_zero_entries(tmp_path):
     yaml_file = tmp_path / "obsolete_labels.yaml"
     yaml_file.write_text("obsolete_labels: []")
-    fltr = LabelFilter(yaml_file)
+    fltr = SynonymFilter(yaml_file)
     assert len(fltr._entries) == 0
     assert fltr.should_suppress("mongolism", source="UMLS") is False
 
@@ -244,17 +244,17 @@ def reset_singleton():
 
 @pytest.mark.unit
 def test_singleton_returns_same_instance(tmp_path, reset_singleton, monkeypatch):
-    """get_label_filter() must return the same object on every call."""
+    """get_synonym_filter() must return the same object on every call."""
     yaml_file = tmp_path / "obsolete_labels.yaml"
     yaml_file.write_text("obsolete_labels: []")
 
     # Patch get_config so we don't need a real config.yaml
     monkeypatch.setattr(
-        "src.labels.filter.LabelFilter",
-        lambda path: LabelFilter(yaml_file),
+        "src.synonyms.filter.SynonymFilter",
+        lambda path: SynonymFilter(yaml_file),
         raising=False,
     )
 
-    first = lf_module.get_label_filter()
-    second = lf_module.get_label_filter()
+    first = lf_module.get_synonym_filter()
+    second = lf_module.get_synonym_filter()
     assert first is second

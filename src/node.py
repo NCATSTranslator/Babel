@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 import curies
 
-from src.labels.filter import get_label_filter
+from src.synonyms.filter import get_synonym_filter
 from src.LabeledID import LabeledID
 from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import PUBCHEMCOMPOUND
@@ -98,18 +98,18 @@ class SynonymFactory:
         )
 
     def get_synonyms(self, identifiers: list[str], node_types: list = None):
-        label_filter = get_label_filter()
+        synonym_filter = get_synonym_filter()
         node_synonyms = set()
         for thisid in identifiers:
             pref = Text.get_prefix(thisid)
             if pref not in self.synonyms:
                 self.load_synonyms(pref)
             for predicate, synonym in self.synonyms[pref][thisid]:
-                if label_filter.should_suppress(synonym, source=f"{pref} synonyms/labels file", node_types=node_types):
+                if synonym_filter.should_suppress(synonym, source=f"{pref} synonyms/labels file", node_types=node_types):
                     continue
                 node_synonyms.add((predicate, synonym))
             for predicate, synonym in self.common_synonyms.get(thisid, set()):
-                if label_filter.should_suppress(synonym, source="common synonyms file", node_types=node_types):
+                if synonym_filter.should_suppress(synonym, source="common synonyms file", node_types=node_types):
                     continue
                 node_synonyms.add((predicate, synonym))
         return node_synonyms
@@ -565,7 +565,7 @@ class NodeFactory:
                     f"Loaded {count_common_file_labels:,} common labels from {common_labels_path}: {get_memory_usage_summary()}"
                 )
 
-        label_filter = get_label_filter()
+        synonym_filter = get_synonym_filter()
 
         # Originally we needed to clean up the identifer lists, because there would be both labeledids and
         # string ids and we had to reconcile them.
@@ -576,7 +576,7 @@ class NodeFactory:
                 raise ValueError(f"LabeledID don't belong here ({iid}), pass in labels separately.")
             if iid in labels:
                 label = labels[iid]
-                if label_filter.should_suppress(label, source=f"explicit labels for {iid}", node_types=node_types):
+                if synonym_filter.should_suppress(label, source=f"explicit labels for {iid}", node_types=node_types):
                     label = ""
                 labeled_list.append(LabeledID(identifier=iid, label=label))
             else:
@@ -591,13 +591,13 @@ class NodeFactory:
                     self.load_extra_labels(prefix)
                 if iid in self.extra_labels[prefix]:
                     label = self.extra_labels[prefix][iid]
-                    if label_filter.should_suppress(label, source=f"{prefix} labels file", node_types=node_types):
+                    if synonym_filter.should_suppress(label, source=f"{prefix} labels file", node_types=node_types):
                         label = ""
                     labeled_list.append(LabeledID(identifier=iid, label=label))
                 elif iid in self.common_labels:
                     # We only fall back to common labels if the prefix label doesn't have anything.
                     label = self.common_labels[iid]
-                    if label_filter.should_suppress(label, source="common labels file", node_types=node_types):
+                    if synonym_filter.should_suppress(label, source="common labels file", node_types=node_types):
                         label = ""
                     labeled_list.append(LabeledID(identifier=iid, label=label))
                 else:

@@ -8,20 +8,20 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-_instance: Optional["LabelFilter"] = None
+_instance: Optional["SynonymFilter"] = None
 
 
-def get_label_filter() -> "LabelFilter":
+def get_synonym_filter() -> "SynonymFilter":
     global _instance, logger
     if _instance is None:
-        # Deferred import: label_filter.py sits near the top of the module graph,
+        # Deferred import: synonym_filter.py sits near the top of the module graph,
         # so we defer util to avoid triggering config loading at import time.
         from src.util import get_config, get_logger
 
         logger = get_logger(__name__)
         config = get_config()
         filter_file = Path(config.get("input_directory", "input_data")) / "obsolete_labels.yaml"
-        _instance = LabelFilter(filter_file)
+        _instance = SynonymFilter(filter_file)
     return _instance
 
 
@@ -43,7 +43,7 @@ class _FilterEntry:
         return False
 
 
-class LabelFilter:
+class SynonymFilter:
     """Filter obsolete labels and synonyms from Babel output.
 
     Loaded from input_data/obsolete_labels.yaml. Each entry carries its own action:
@@ -62,7 +62,7 @@ class LabelFilter:
 
     def _load(self, path: Path) -> None:
         if not path.exists():
-            logger.warning(f"LabelFilter: filter file not found at {path}; no labels will be filtered.")
+            logger.warning(f"SynonymFilter: filter file not found at {path}; no labels will be filtered.")
             return
         with open(path) as f:
             data = yaml.safe_load(f) or {}
@@ -73,7 +73,7 @@ class LabelFilter:
             partial = bool(raw.get("partial", False))
             action = raw.get("action", "remove")
             if action not in ("remove", "warn"):
-                logger.warning(f"LabelFilter: invalid action {action!r} in {path}; defaulting to 'remove'")
+                logger.warning(f"SynonymFilter: invalid action {action!r} in {path}; defaulting to 'remove'")
                 action = "remove"
             if "label" in raw:
                 self._entries.append(
@@ -98,9 +98,9 @@ class LabelFilter:
                 )
             else:
                 logger.warning(
-                    f"LabelFilter: skipping malformed entry in {path} (no 'label' or 'pattern' key): {raw!r}"
+                    f"SynonymFilter: skipping malformed entry in {path} (no 'label' or 'pattern' key): {raw!r}"
                 )
-        logger.info(f"LabelFilter: loaded {len(self._entries)} entries from {path}")
+        logger.info(f"SynonymFilter: loaded {len(self._entries)} entries from {path}")
 
     def should_suppress(self, label: str, source: str, node_types: list | None = None) -> bool:
         """Return True if label matches a 'remove' entry; False if it matches a 'warn' entry or no entry.

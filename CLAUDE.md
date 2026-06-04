@@ -120,7 +120,7 @@ semantic type plus data collection, reports, exports, and DuckDB.
 - **Concord files** are the core data structure: tab-separated `CURIE1 \t Relation \t CURIE2`
   triples expressing cross-references between vocabularies. The `glom()` function in
   `babel_utils.py` merges them into equivalence cliques.
-- **`LabelFilter`** (`src/labels/filter.py`) checks every label and synonym against
+- **`SynonymFilter`** (`src/synonyms/filter.py`) checks every label and synonym against
   `input_data/obsolete_labels.yaml` before it enters a compendium. Each YAML entry
   carries its own `action` field: `"remove"` (default) drops the term and returns `True`
   from `should_suppress()`; `"warn"` logs a warning but keeps the term and returns
@@ -132,7 +132,7 @@ semantic type plus data collection, reports, exports, and DuckDB.
   formatter that Snakemake captures; bare `logging.getLogger` loggers may produce
   unformatted output if called before any other module has triggered `get_logger`. In
   modules that sit early in the import graph and must defer `src.util` to avoid
-  triggering config loading at import time (see `src/labels/filter.py`), reassign the
+  triggering config loading at import time (see `src/synonyms/filter.py`), reassign the
   module-level `logger` inside the deferred-import block rather than at module scope.
 
 ### Biolink Model Usage
