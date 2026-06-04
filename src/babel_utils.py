@@ -350,6 +350,8 @@ def pull_via_wget(
     timestamping=True,
     recurse: WgetRecursionOptions = WgetRecursionOptions.NO_RECURSION,
     retries: int = 10,
+    connect_timeout: int = 60,
+    read_timeout: int = 300,
 ):
     """
     Download a file using wget. We call wget from the command line, and use command line options to
@@ -390,6 +392,10 @@ def pull_via_wget(
         wget_command_line.append("--timestamping")
     if retries > 0:
         wget_command_line.append(f"--tries={retries}")
+    if connect_timeout > 0:
+        wget_command_line.append(f"--timeout={connect_timeout}")
+    if read_timeout > 0:
+        wget_command_line.append(f"--read-timeout={read_timeout}")
 
     # Add URL and output file.
     wget_command_line.append(url)
