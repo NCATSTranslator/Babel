@@ -326,7 +326,7 @@ def write_leftover_umls(
                 if not mapped_types:
                     if umls_id not in curies_rejected:
                         curies_rejected.add(umls_id)
-                        logger.debug(
+                        logger.info(
                             f"Rejected {umls_id}: rejected STY {sorted(rejected_tuis)} in {umls_type_results}, skipping"
                         )
                         reportf.write(
