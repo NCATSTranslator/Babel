@@ -79,8 +79,10 @@ The rule writes all UMLS reports to `babel_outputs/reports/umls/`. The human-rea
 
 - `compendium-coverage.csv` — per input compendium: `total_umls_curies` and
   `single_umls_clique_count` (cliques whose only identifier is a single UMLS CURIE).
-- `types-coverage.csv` — per Biolink type of the leftover cliques: how many were added, with a few
+- `types-coverage.csv` — per Biolink type of the leftover cliques: exact count and a few
   sample `CURIE=label`s.
-- `unmapped-types.csv` — per semantic type that was unmapped or rejected: status, affected CUI
-  count, and sample CURIEs.
+- `unmapped-types.csv` — per semantic type that was unmapped or rejected: status, exact affected
+  CUI count, and sample CURIEs.
+- `multi-type-curies.csv` — CURIEs that resolved to multiple Biolink types even after
+  `TYPE_COMBO_OVERRIDES`: the type combo, exact count, and sample CURIEs.
 - `tui-sty.tsv` — the raw STY-code → semantic-type-name dump from `MRSTY.RRF`.

@@ -120,7 +120,7 @@ def tui_to_biolink_type(umls_tui: str, toolkit=None, biolink_version: str | None
         toolkit = get_biolink_model_toolkit(biolink_version)
     result = toolkit.get_element_by_mapping(f"STY:{umls_tui}", most_specific=True, formatted=True, mixin=True)
     if result is None:
-        logger.debug(f"No Biolink type found for UMLS TUI {umls_tui}")
+        logger.warning(f"No Biolink type found for UMLS TUI {umls_tui}")
     return result
 
 
@@ -149,8 +149,8 @@ def write_leftover_umls(
     :param mrsty: MRSTY.RRF file path
     :param umls_compendium: The UMLS compendium file to write out.
     :param umls_synonyms: The synonyms file to generate for this compendium.
-    :param report: The report file to write out. The coverage CSVs are written to a ``umls/``
-        subdirectory alongside it.
+    :param report: The report file to write out (e.g. ``reports/umls/log.txt``). All other
+        UMLS report CSVs are written into the same directory.
     :param biolink_version: The Biolink Model version to use.
     :param icrdf_filename: The information content file used by write_compendium().
     :return: Nothing.
@@ -203,7 +203,7 @@ def write_leftover_umls(
             umls_ids_in_other_compendia.update(umls_ids)
 
         logger.info(f"Completed all compendia with {len(umls_ids_in_other_compendia)} UMLS IDs.")
-        reportf.write(f"Completed all compendia with {len(umls_ids_in_other_compendia)} UMLS IDs.\n")
+        reportf.write(f"COMPLETED Completed all compendia with {len(umls_ids_in_other_compendia)} UMLS IDs.\n")
 
         # Load all the semantic types.
         preferred_name_by_id = dict()
@@ -228,7 +228,7 @@ def write_leftover_umls(
                 types_by_tui[tui].add(sty)
 
         logger.info(f"Completed loading {len(types_by_id.keys())} UMLS IDs from MRSTY.RRF.")
-        reportf.write(f"Completed loading {len(types_by_id.keys())} UMLS IDs from MRSTY.RRF.\n")
+        reportf.write(f"COMPLETED Completed loading {len(types_by_id.keys())} UMLS IDs from MRSTY.RRF.\n")
 
         with open(report_dir / "tui-sty.tsv", "w") as outf:
             for tui in sorted(types_by_tui.keys()):
@@ -255,12 +255,18 @@ def write_leftover_umls(
         # if needed.
         leftover_umls_cliques: list[TypedClique] = []
 
-        # Report accumulators: up to 5 (CURIE, label) samples keyed by Biolink type / unmapped TUI / rejected TUI.
-        # Capped at 5 to bound memory across millions of MRCONSO lines.
+        # Report accumulators: exact counts plus up to 5 (CURIE, label) samples, keyed by Biolink type /
+        # unmapped TUI / rejected TUI / frozenset of Biolink types. Samples capped at 5 to bound memory
+        # across millions of MRCONSO lines; counts are exact.
         _SAMPLE_LIMIT = 5
+        type_counts: dict[str, int] = defaultdict(int)
         type_samples: dict[str, list] = defaultdict(list)
+        unmapped_tui_counts: dict[str, int] = defaultdict(int)
         unmapped_tui_examples: dict[str, list] = defaultdict(list)
+        rejected_tui_counts: dict[str, int] = defaultdict(int)
         rejected_tui_examples: dict[str, list] = defaultdict(list)
+        multi_type_counts: dict[frozenset, int] = defaultdict(int)
+        multi_type_samples: dict[frozenset, list] = defaultdict(list)
 
         with open(mrconso) as inf:
             for line in inf:
@@ -317,6 +323,7 @@ def write_leftover_umls(
                             f"NO_UMLS_TYPE [{umls_id}]: unmapped STY {sorted(unmapped_tuis)} in {umls_type_results}\n"
                         )
                         for tui in unmapped_tuis:
+                            unmapped_tui_counts[tui] += 1
                             if len(unmapped_tui_examples[tui]) < _SAMPLE_LIMIT:
                                 unmapped_tui_examples[tui].append((umls_id, label))
                     continue
@@ -333,6 +340,7 @@ def write_leftover_umls(
                             f"REJECTED [{umls_id}]: rejected STY {sorted(rejected_tuis)} in {umls_type_results}\n"
                         )
                         for tui in rejected_tuis:
+                            rejected_tui_counts[tui] += 1
                             if len(rejected_tui_examples[tui]) < _SAMPLE_LIMIT:
                                 rejected_tui_examples[tui].append((umls_id, label))
                     continue
@@ -351,6 +359,10 @@ def write_leftover_umls(
                             f"Multiple Biolink types not yet supported for {umls_id}: {umls_type_results} -> {biolink_types_as_str}, skipping"
                         )
                         reportf.write(f"MULTIPLE_UMLS_TYPES [{umls_id}]\t{biolink_types_as_str}\t{umls_type_results}\n")
+                        key = frozenset(biolink_types)
+                        multi_type_counts[key] += 1
+                        if len(multi_type_samples[key]) < _SAMPLE_LIMIT:
+                            multi_type_samples[key].append((umls_id, label))
                     continue
 
                 biolink_type = next(iter(biolink_types))
@@ -359,23 +371,24 @@ def write_leftover_umls(
                 # Let write_compendium() generate this singleton's compendium and synonym JSON.
                 leftover_umls_cliques.append(TypedClique(node_type=biolink_type, identifiers=[umls_id]))
                 umls_ids_in_this_compendium.add(umls_id)
+                type_counts[biolink_type] += 1
                 if len(type_samples[biolink_type]) < _SAMPLE_LIMIT:
                     type_samples[biolink_type].append((umls_id, label))
 
         logger.info(f"Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.")
-        reportf.write(f"Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.\n")
+        reportf.write(f"COMPLETED Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.\n")
 
         logger.info(
             f"Found {len(curies_no_umls_type)} UMLS IDs without a Biolink type, "
             f"{len(curies_rejected)} deliberately rejected, and {len(curies_multiple_umls_type)} with multiple Biolink types."
         )
         reportf.write(
-            f"Found {len(curies_no_umls_type)} UMLS IDs without a Biolink type, "
+            f"COUNT Found {len(curies_no_umls_type)} UMLS IDs without a Biolink type, "
             f"{len(curies_rejected)} deliberately rejected, and {len(curies_multiple_umls_type)} with multiple Biolink types.\n"
         )
 
         logger.info(f"Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().")
-        reportf.write(f"Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().\n")
+        reportf.write(f"COMPLETED Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().\n")
 
         # Per-compendium UMLS coverage.
         with open(report_dir / "compendium-coverage.csv", "w", newline="") as csvf:
@@ -388,19 +401,27 @@ def write_leftover_umls(
         with open(report_dir / "types-coverage.csv", "w", newline="") as csvf:
             writer = csv.writer(csvf)
             writer.writerow(["biolink_type", "leftover_clique_count", "sample_curies"])
-            for biolink_type in sorted(type_samples.keys()):
-                pairs = type_samples[biolink_type]
-                writer.writerow([biolink_type, len(pairs), _format_samples(pairs)])
+            for biolink_type in sorted(type_counts.keys()):
+                writer.writerow([biolink_type, type_counts[biolink_type], _format_samples(type_samples[biolink_type])])
 
         # Semantic types we couldn't map or deliberately rejected, with affected CUI counts and samples.
         with open(report_dir / "unmapped-types.csv", "w", newline="") as csvf:
             writer = csv.writer(csvf)
             writer.writerow(["tui", "sty_name", "status", "affected_cui_count", "sample_curies"])
-            for status, examples in (("unmapped", unmapped_tui_examples), ("rejected", rejected_tui_examples)):
-                for tui in sorted(examples.keys()):
-                    pairs = examples[tui]
+            for status, counts, examples in (
+                ("unmapped", unmapped_tui_counts, unmapped_tui_examples),
+                ("rejected", rejected_tui_counts, rejected_tui_examples),
+            ):
+                for tui in sorted(counts.keys()):
                     sty_name = "|".join(sorted(types_by_tui.get(tui, set())))
-                    writer.writerow([tui, sty_name, status, len(pairs), _format_samples(pairs)])
+                    writer.writerow([tui, sty_name, status, counts[tui], _format_samples(examples[tui])])
+
+        # CURIEs that resolved to multiple Biolink types after TYPE_COMBO_OVERRIDES, with counts and samples.
+        with open(report_dir / "multi-type-curies.csv", "w", newline="") as csvf:
+            writer = csv.writer(csvf)
+            writer.writerow(["biolink_types", "affected_cui_count", "sample_curies"])
+            for key in sorted(multi_type_counts.keys(), key=lambda s: "|".join(sorted(s))):
+                writer.writerow(["|".join(sorted(key)), multi_type_counts[key], _format_samples(multi_type_samples[key])])
 
     write_compendium(
         metadata_yamls,
