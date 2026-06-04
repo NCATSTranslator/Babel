@@ -105,11 +105,17 @@ class SynonymFactory:
             if pref not in self.synonyms:
                 self.load_synonyms(pref)
             for predicate, synonym in self.synonyms[pref][thisid]:
-                if label_filter.check_label(synonym, source=f"{pref} synonyms/labels file", node_types=node_types) and label_filter.action == "remove":
+                if (
+                    label_filter.check_label(synonym, source=f"{pref} synonyms/labels file", node_types=node_types)
+                    and label_filter.action == "remove"
+                ):
                     continue
                 node_synonyms.add((predicate, synonym))
             for predicate, synonym in self.common_synonyms.get(thisid, set()):
-                if label_filter.check_label(synonym, source="common synonyms file", node_types=node_types) and label_filter.action == "remove":
+                if (
+                    label_filter.check_label(synonym, source="common synonyms file", node_types=node_types)
+                    and label_filter.action == "remove"
+                ):
                     continue
                 node_synonyms.add((predicate, synonym))
         return node_synonyms
@@ -576,7 +582,10 @@ class NodeFactory:
                 raise ValueError(f"LabeledID don't belong here ({iid}), pass in labels separately.")
             if iid in labels:
                 label = labels[iid]
-                if label_filter.check_label(label, source=f"explicit labels for {iid}", node_types=node_types) and label_filter.action == "remove":
+                if (
+                    label_filter.check_label(label, source=f"explicit labels for {iid}", node_types=node_types)
+                    and label_filter.action == "remove"
+                ):
                     label = ""
                 labeled_list.append(LabeledID(identifier=iid, label=label))
             else:
@@ -591,13 +600,19 @@ class NodeFactory:
                     self.load_extra_labels(prefix)
                 if iid in self.extra_labels[prefix]:
                     label = self.extra_labels[prefix][iid]
-                    if label_filter.check_label(label, source=f"{prefix} labels file", node_types=node_types) and label_filter.action == "remove":
+                    if (
+                        label_filter.check_label(label, source=f"{prefix} labels file", node_types=node_types)
+                        and label_filter.action == "remove"
+                    ):
                         label = ""
                     labeled_list.append(LabeledID(identifier=iid, label=label))
                 elif iid in self.common_labels:
                     # We only fall back to common labels if the prefix label doesn't have anything.
                     label = self.common_labels[iid]
-                    if label_filter.check_label(label, source="common labels file", node_types=node_types) and label_filter.action == "remove":
+                    if (
+                        label_filter.check_label(label, source="common labels file", node_types=node_types)
+                        and label_filter.action == "remove"
+                    ):
                         label = ""
                     labeled_list.append(LabeledID(identifier=iid, label=label))
                 else:

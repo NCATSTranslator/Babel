@@ -95,7 +95,9 @@ class LabelFilter:
                     )
                 )
             else:
-                logger.warning(f"LabelFilter: skipping malformed entry in {path} (no 'label' or 'pattern' key): {raw!r}")
+                logger.warning(
+                    f"LabelFilter: skipping malformed entry in {path} (no 'label' or 'pattern' key): {raw!r}"
+                )
         logger.info(f"LabelFilter: loaded {len(self._entries)} entries from {path} (action={self.action})")
 
     def check_label(self, label: str, source: str, node_types: list | None = None) -> bool:
@@ -119,7 +121,9 @@ class LabelFilter:
             if entry.only_for_types and (node_types is None or not any(t in entry.only_for_types for t in node_types)):
                 continue
             if entry.matches(label_lower):
-                logger.warning(f"Obsolete label '{label}' (reason: {entry.reason}) found in {source}; action={self.action}")
+                logger.warning(
+                    f"Obsolete label '{label}' (reason: {entry.reason}) found in {source}; action={self.action}"
+                )
                 self.filtered_count += 1
                 self.filtered_by_source[source] = self.filtered_by_source.get(source, 0) + 1
                 return True

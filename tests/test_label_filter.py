@@ -1,6 +1,5 @@
 """Unit tests for src/label_filter.py."""
 
-
 import pytest
 import yaml
 

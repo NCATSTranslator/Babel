@@ -508,7 +508,10 @@ def choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_lab
         if not label:
             continue
         prefix = id_entry["identifier"].split(":", 1)[0]
-        if label_filter.check_label(label, source=f"{prefix} (preferred name)", node_types=types) and label_filter.action == "remove":
+        if (
+            label_filter.check_label(label, source=f"{prefix} (preferred name)", node_types=types)
+            and label_filter.action == "remove"
+        ):
             continue
         filtered.append(label)
 
@@ -800,7 +803,9 @@ def write_compendium(
                 # get_synonyms() returns a list of tuples, where each tuple is a relation and a synonym.
                 # So we extract just the synonyms here, ditching the relations (result[0]), then unique-ify the
                 # synonyms.
-                synonyms = [result[1] for result in synonym_factory.get_synonyms(identifier_list, node_types=types) if result[1]]
+                synonyms = [
+                    result[1] for result in synonym_factory.get_synonyms(identifier_list, node_types=types) if result[1]
+                ]
                 synonyms_list = sorted(set(synonyms), key=lambda x: len(x))
 
                 try:
@@ -869,7 +874,9 @@ def write_compendium(
     # Log a per-compendium summary of any obsolete labels that were filtered.
     filtered_this_run = label_filter.filtered_count - filter_count_snapshot
     if filtered_this_run > 0:
-        logger.warning(f"LabelFilter: suppressed {filtered_this_run} obsolete label(s)/synonym(s) from {ofname} (action={label_filter.action})")
+        logger.warning(
+            f"LabelFilter: suppressed {filtered_this_run} obsolete label(s)/synonym(s) from {ofname} (action={label_filter.action})"
+        )
     else:
         logger.info(f"LabelFilter: no obsolete labels found in {ofname}")
 
