@@ -18,6 +18,9 @@ letting it accumulate in `CLAUDE.md` — `CLAUDE.md` should point here, not dupl
 - **MESH** ([MESH/Ingestion.md](./MESH/Ingestion.md)) — how MeSH is partitioned across compendia
   by tree letter, how Supplementary Concept Records (SCRs) are typed and routed, the
   chemical/protein D-tree split, and which MeSH branches/SCR classes we deliberately skip.
+- **UMLS** ([UMLS/Leftover.md](./UMLS/Leftover.md)) — the "leftover UMLS" compendium: how
+  unclaimed UMLS concepts are swept up and typed, the manual STY→Biolink override tables and the
+  drift test that keeps them honest, and the coverage report under `reports/umls/`.
 
 See the data handlers in `src/datahandlers/` and the compendium builders in
 `src/createcompendia/` for the code behind each source.
