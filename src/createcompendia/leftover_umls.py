@@ -256,8 +256,13 @@ def write_leftover_umls(
         leftover_umls_cliques: list[TypedClique] = []
 
         # Report accumulators: exact counts plus up to 5 (CURIE, label) samples, keyed by Biolink type /
-        # unmapped TUI / rejected TUI / frozenset of Biolink types. Samples capped at 5 to bound memory
-        # across millions of MRCONSO lines; counts are exact.
+        # unmapped TUI / rejected TUI / frozenset of Biolink types. Counts and samples answer different
+        # questions and are both kept: counts are quantitative (how many CUIs in each bucket, always
+        # exact), samples are qualitative (what a concept in the bucket looks like, for eyeballing the
+        # CSVs). The cap is not an approximation of the counts -- it only bounds memory across millions
+        # of MRCONSO lines. The exhaustive per-CURIE record lives elsewhere: kept concepts in
+        # compendia/umls.txt, skipped concepts in log.txt (NO_UMLS_TYPE / REJECTED / MULTIPLE_UMLS_TYPES).
+        # See docs/sources/UMLS/Leftover.md ("Counts vs. samples").
         _SAMPLE_LIMIT = 5
         type_counts: dict[str, int] = defaultdict(int)
         type_samples: dict[str, list] = defaultdict(list)
