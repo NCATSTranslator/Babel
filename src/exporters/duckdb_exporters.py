@@ -214,7 +214,9 @@ def export_conflation_to_parquet(conflation_filename, conflation_type, duckdb_fi
     os.makedirs(os.path.dirname(parquet_filename), exist_ok=True)
 
     with setup_duckdb(duckdb_filename) as db:
-        db.sql("CREATE TABLE Conflation (conflation_type STRING, conflation_leader STRING, curie STRING, curie_prefix STRING)")
+        db.sql(
+            "CREATE TABLE Conflation (conflation_type STRING, conflation_leader STRING, curie STRING, curie_prefix STRING)"
+        )
         db.execute(
             """INSERT INTO Conflation
                 WITH raw AS (

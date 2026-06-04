@@ -20,11 +20,7 @@ def test_export_conflation_to_parquet(geneprotein_conflation_file, tmp_path):
 
     # Build expected rows from the fixture definition so the test stays in sync.
     expected = sorted(
-        [
-            ("GeneProtein", group[0], curie, curie.split(":")[0])
-            for group in CONFLATION_FIXTURE_ROWS
-            for curie in group
-        ],
+        [("GeneProtein", group[0], curie, curie.split(":")[0]) for group in CONFLATION_FIXTURE_ROWS for curie in group],
         key=lambda r: r[2],
     )
     assert rows == expected
@@ -60,9 +56,7 @@ def test_export_conflation_leader_is_first_curie(geneprotein_conflation_file, tm
 
     export_conflation_to_parquet(geneprotein_conflation_file, "GeneProtein", duckdb_file, parquet_file)
 
-    leaders = set(
-        duckdb.execute(f"SELECT DISTINCT conflation_leader FROM read_parquet('{parquet_file}')").fetchall()
-    )
+    leaders = set(duckdb.execute(f"SELECT DISTINCT conflation_leader FROM read_parquet('{parquet_file}')").fetchall())
     expected_leaders = {(group[0],) for group in CONFLATION_FIXTURE_ROWS}
     assert leaders == expected_leaders
 
