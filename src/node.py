@@ -106,14 +106,14 @@ class SynonymFactory:
                 self.load_synonyms(pref)
             for predicate, synonym in self.synonyms[pref][thisid]:
                 if (
-                    label_filter.check_label(synonym, source=f"{pref} synonyms/labels file", node_types=node_types)
+                    label_filter.should_suppress(synonym, source=f"{pref} synonyms/labels file", node_types=node_types)
                     and label_filter.action == "remove"
                 ):
                     continue
                 node_synonyms.add((predicate, synonym))
             for predicate, synonym in self.common_synonyms.get(thisid, set()):
                 if (
-                    label_filter.check_label(synonym, source="common synonyms file", node_types=node_types)
+                    label_filter.should_suppress(synonym, source="common synonyms file", node_types=node_types)
                     and label_filter.action == "remove"
                 ):
                     continue
@@ -583,7 +583,7 @@ class NodeFactory:
             if iid in labels:
                 label = labels[iid]
                 if (
-                    label_filter.check_label(label, source=f"explicit labels for {iid}", node_types=node_types)
+                    label_filter.should_suppress(label, source=f"explicit labels for {iid}", node_types=node_types)
                     and label_filter.action == "remove"
                 ):
                     label = ""
@@ -601,7 +601,7 @@ class NodeFactory:
                 if iid in self.extra_labels[prefix]:
                     label = self.extra_labels[prefix][iid]
                     if (
-                        label_filter.check_label(label, source=f"{prefix} labels file", node_types=node_types)
+                        label_filter.should_suppress(label, source=f"{prefix} labels file", node_types=node_types)
                         and label_filter.action == "remove"
                     ):
                         label = ""
@@ -610,7 +610,7 @@ class NodeFactory:
                     # We only fall back to common labels if the prefix label doesn't have anything.
                     label = self.common_labels[iid]
                     if (
-                        label_filter.check_label(label, source="common labels file", node_types=node_types)
+                        label_filter.should_suppress(label, source="common labels file", node_types=node_types)
                         and label_filter.action == "remove"
                     ):
                         label = ""

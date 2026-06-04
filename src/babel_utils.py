@@ -509,7 +509,7 @@ def choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_lab
             continue
         prefix = id_entry["identifier"].split(":", 1)[0]
         if (
-            label_filter.check_label(label, source=f"{prefix} (preferred name)", node_types=types)
+            label_filter.should_suppress(label, source=f"{prefix} (preferred name)", node_types=types)
             and label_filter.action == "remove"
         ):
             continue

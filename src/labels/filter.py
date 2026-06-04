@@ -48,7 +48,7 @@ class LabelFilter:
 
     Loaded from input_data/obsolete_labels.yaml; controlled by label_filter.action in config.yaml.
 
-    action="remove": drop the term from output — the caller skips the term when check_label returns True.
+    action="remove": drop the term from output — the caller skips the term when should_suppress returns True.
     action="warn":   keep the term but emit a warning so the upstream source can be addressed.
 
     Both modes always emit a warning with full provenance (label, reason, source, action) so build
@@ -100,7 +100,7 @@ class LabelFilter:
                 )
         logger.info(f"LabelFilter: loaded {len(self._entries)} entries from {path} (action={self.action})")
 
-    def check_label(self, label: str, source: str, node_types: list | None = None) -> bool:
+    def should_suppress(self, label: str, source: str, node_types: list | None = None) -> bool:
         """Return True if label matches a filter entry and should be treated as obsolete.
 
         A warning is always emitted when a match is found so build logs are searchable and the
