@@ -122,13 +122,16 @@ def write_umls_ids(mrsty, outfile, badumlsfile):
             "B2.2.1.2.1.2",
         ]
     }
-    # A2.2 Finding
-    # Compared groupings with and without finding.  Finding includes a lot of stuff like "Negative" or whatever and it causes some extra globbing up.
-    # For instance, the Alzheimer node starts to grab in some nonsense.
-    umlsmap["A2.2"] = PHENOTYPIC_FEATURE
-    # A2.2.1 Laboratory or Test Result
-    # A2.2.2 Sign or Symptom
-    umlsmap["A2.2.1"] = PHENOTYPIC_FEATURE
+    # A2.2 Finding (T033) and A2.2.1 Laboratory or Test Result (T034) are deliberately NOT mapped
+    # here. "Finding" is far too broad to be a phenotypic feature -- it globs in things like
+    # "Negative" and pulls nonsense into e.g. the Alzheimer node -- and a lab/test result is a
+    # clinical finding rather than a generic phenotype. Instead of claiming them as
+    # PhenotypicFeature, we let any such concept that is not otherwise connected to a disease or
+    # phenotype clique fall through to the leftover UMLS compendium, where STY_OVERRIDES re-types
+    # it (T033 -> biolink:Phenomenon, T034 -> biolink:ClinicalFinding). See
+    # src/createcompendia/leftover_umls.py and https://github.com/NCATSTranslator/Babel/issues/569.
+    #
+    # A2.2.2 Sign or Symptom (T184) genuinely is a phenotypic feature, so it stays.
     umlsmap["A2.2.2"] = PHENOTYPIC_FEATURE
     # A2.3 Organism Attribute
     # Includes things like "Age" which will merge with EFOs
