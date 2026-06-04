@@ -381,7 +381,9 @@ def write_leftover_umls(
                     type_samples[biolink_type].append((umls_id, label))
 
         logger.info(f"Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.")
-        reportf.write(f"COMPLETED Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.\n")
+        reportf.write(
+            f"COMPLETED Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.\n"
+        )
 
         logger.info(
             f"Found {len(curies_no_umls_type)} UMLS IDs without a Biolink type, "
@@ -393,7 +395,9 @@ def write_leftover_umls(
         )
 
         logger.info(f"Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().")
-        reportf.write(f"COMPLETED Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().\n")
+        reportf.write(
+            f"COMPLETED Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().\n"
+        )
 
         # Per-compendium UMLS coverage.
         with open(report_dir / "compendium-coverage.csv", "w", newline="") as csvf:
@@ -426,7 +430,9 @@ def write_leftover_umls(
             writer = csv.writer(csvf)
             writer.writerow(["biolink_types", "affected_cui_count", "sample_curies"])
             for key in sorted(multi_type_counts.keys(), key=lambda s: "|".join(sorted(s))):
-                writer.writerow(["|".join(sorted(key)), multi_type_counts[key], _format_samples(multi_type_samples[key])])
+                writer.writerow(
+                    ["|".join(sorted(key)), multi_type_counts[key], _format_samples(multi_type_samples[key])]
+                )
 
     write_compendium(
         metadata_yamls,
