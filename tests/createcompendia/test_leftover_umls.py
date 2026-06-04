@@ -6,8 +6,6 @@ These are marked ``network`` because they build a Biolink Model Toolkit, which f
 ``biolink-model.yaml`` from GitHub on first use (for the biolink_version pinned in config.yaml).
 """
 
-import warnings
-
 import pytest
 
 from src.categories import ACTIVITY, COHORT, PHENOMENON
@@ -59,10 +57,9 @@ def test_sty_overrides_have_not_drifted():
         current = tui_to_biolink_type(tui, toolkit=toolkit)
         baseline = RECORDED_STY_BASELINE[tui]
         if current == override:
-            warnings.warn(
-                f"Biolink STY:{tui} now maps to {current!r}, which equals the manual override; "
-                f"the entry in STY_OVERRIDES is redundant and can be removed.",
-                stacklevel=2,
+            pytest.fail(
+                f"Biolink STY:{tui} now maps to {current!r}, which equals the manual override. "
+                f"Fix: delete the STY_OVERRIDES[{tui!r}] entry and its RECORDED_STY_BASELINE entry."
             )
         else:
             assert current == baseline, (
