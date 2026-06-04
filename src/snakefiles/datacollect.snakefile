@@ -755,7 +755,10 @@ rule get_chembl:
     benchmark:
         config["output_directory"] + "/benchmarks/get_chembl.tsv"
     resources:
-        mem="8G",
+        # pull_via_ftp buffers the full compressed file then decompresses it in memory
+        # before writing; ~17 GB TTL needs ~20+ GB peak. Reduce once pull_via_ftp
+        # is fixed to stream-decompress (see GitHub issue).
+        mem="32G",
         cpus_per_task=1,
     run:
         chembl.pull_chembl(output.moleculefile)
