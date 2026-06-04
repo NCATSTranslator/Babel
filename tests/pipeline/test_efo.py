@@ -3,6 +3,7 @@
 Skipped by default unless pytest is run with --pipeline.  Run with:
     uv run pytest tests/pipeline/test_efo.py --pipeline --no-cov -v
 """
+
 import pytest
 
 from tests.conftest import assert_ids_file_valid, assert_labels_file_valid, assert_synonyms_file_valid

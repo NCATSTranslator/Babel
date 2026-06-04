@@ -18,6 +18,7 @@ from src.categories import (
     NAMED_THING,
     PHENOMENON,
     PHYSICAL_ENTITY,
+    POPULATION_OF_INDIVIDUAL_ORGANISMS,
     PROCEDURE,
     PUBLICATION,
     SMALL_MOLECULE,
@@ -28,10 +29,12 @@ from src.util import get_biolink_model_toolkit, get_logger
 
 logger = get_logger(__name__)
 
+_UMLS_PREFIX = UMLS + ":"
+
 
 # Manual overrides of the Biolink type that bmt assigns to a UMLS semantic type. bmt looks these up
 # by the mapping ``STY:<code>`` (e.g. ``STY:T033``), so we key this table by that STY code -- which is
-# technically the UMLS TUI, but "STY" is the namespace UMLS and bmt actually use. A value of None
+# technically the UMLS TUI, but "STY" is the namespace Biolink Model and bmt actually use. A value of None
 # means "deliberately reject": a concept whose only remaining semantic type is this one is excluded
 # from the leftover UMLS compendium.
 #
@@ -66,6 +69,15 @@ STY_OVERRIDES: dict[str, str | None] = {
     "T122": CHEMICAL_ENTITY,
     # "Food" -> biolink:Food (biolink/biolink-model#1598).
     "T168": FOOD,
+    # https://github.com/NCATSTranslator/Babel/issues/817
+    # "Occupation or Discipline", "Biomedical Occupation or Discipline", and "Professional or
+    # Occupational Group" are all mapped to PopulationOfIndividualOrganisms as a placeholder until
+    # the Biolink mapping is resolved. T090/T091 have no bmt mapping; T097 is overridden from
+    # biolink:Cohort to the parent class for consistency across this cluster. This is imprecise but
+    # lets these concepts normalise and carry labels rather than being dropped entirely.
+    "T090": POPULATION_OF_INDIVIDUAL_ORGANISMS,
+    "T091": POPULATION_OF_INDIVIDUAL_ORGANISMS,
+    "T097": POPULATION_OF_INDIVIDUAL_ORGANISMS,
 }
 
 # Disambiguation applied when a single UMLS concept resolves to more than one Biolink type (because
@@ -114,16 +126,18 @@ def tui_to_biolink_type(umls_tui: str, toolkit=None, biolink_version: str | None
         toolkit = get_biolink_model_toolkit(biolink_version)
     result = toolkit.get_element_by_mapping(f"STY:{umls_tui}", most_specific=True, formatted=True, mixin=True)
     if result is None:
-        logger.debug(f"No Biolink type found for UMLS TUI {umls_tui}")
+        logger.warning(f"No Biolink type found for UMLS TUI {umls_tui}")
     return result
 
 
-def _format_samples(pairs, limit=5):
-    """Render up to ``limit`` ``(curie, label)`` pairs as a single ``CURIE=label; ...`` string."""
-    return "; ".join(f"{curie}={label}" for curie, label in pairs[:limit])
+def _format_samples(pairs):
+    """Render ``(curie, label)`` pairs as a single ``CURIE=label; ...`` string."""
+    return "; ".join(f"{curie}={label}" for curie, label in pairs)
 
 
-def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendium, umls_synonyms, report, biolink_version, icrdf_filename):
+def write_leftover_umls(
+    metadata_yamls, compendia, mrconso, mrsty, umls_compendium, umls_synonyms, report, biolink_version, icrdf_filename
+):
     """
     Search for "leftover" UMLS concepts, i.e. those that are defined and valid in MRCONSO but are not
     mapped to a concept in Babel.
@@ -141,8 +155,8 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
     :param mrsty: MRSTY.RRF file path
     :param umls_compendium: The UMLS compendium file to write out.
     :param umls_synonyms: The synonyms file to generate for this compendium.
-    :param report: The report file to write out. The coverage CSVs are written to a ``umls/``
-        subdirectory alongside it.
+    :param report: The report file to write out (e.g. ``reports/umls/log.txt``). All other
+        UMLS report CSVs are written into the same directory.
     :param biolink_version: The Biolink Model version to use.
     :param icrdf_filename: The information content file used by write_compendium().
     :return: Nothing.
@@ -152,9 +166,7 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
         f"write_leftover_umls({metadata_yamls}, {compendia}, {mrconso}, {mrsty}, {umls_compendium}, {umls_synonyms}, {report}, {biolink_version}, {icrdf_filename})"
     )
 
-    # The coverage CSVs go into a umls/ subdirectory next to the text report (e.g.
-    # babel_outputs/reports/umls/), so we can add further UMLS reports there over time.
-    report_dir = Path(report).parent / "umls"
+    report_dir = Path(report).parent
     report_dir.mkdir(parents=True, exist_ok=True)
 
     # For now, we have many more UMLS entities in MRCONSO than in the compendia, so
@@ -185,7 +197,9 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
                 for row in f:
                     cluster = json.loads(row)
                     identifiers = cluster["identifiers"]
-                    umls_in_clique = [identifier["i"] for identifier in identifiers if identifier["i"].startswith(UMLS + ":")]
+                    umls_in_clique = [
+                        identifier["i"] for identifier in identifiers if identifier["i"].startswith(_UMLS_PREFIX)
+                    ]
                     umls_ids.update(umls_in_clique)
                     if len(identifiers) == 1 and len(umls_in_clique) == 1:
                         single_umls_clique_count += 1
@@ -195,7 +209,7 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
             umls_ids_in_other_compendia.update(umls_ids)
 
         logger.info(f"Completed all compendia with {len(umls_ids_in_other_compendia)} UMLS IDs.")
-        reportf.write(f"Completed all compendia with {len(umls_ids_in_other_compendia)} UMLS IDs.\n")
+        reportf.write(f"COMPLETED All compendia with {len(umls_ids_in_other_compendia)} UMLS IDs.\n")
 
         # Load all the semantic types.
         preferred_name_by_id = dict()
@@ -220,7 +234,7 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
                 types_by_tui[tui].add(sty)
 
         logger.info(f"Completed loading {len(types_by_id.keys())} UMLS IDs from MRSTY.RRF.")
-        reportf.write(f"Completed loading {len(types_by_id.keys())} UMLS IDs from MRSTY.RRF.\n")
+        reportf.write(f"COMPLETED Loading {len(types_by_id.keys())} UMLS IDs from MRSTY.RRF.\n")
 
         with open(report_dir / "tui-sty.tsv", "w") as outf:
             for tui in sorted(types_by_tui.keys()):
@@ -247,10 +261,23 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
         # if needed.
         leftover_umls_cliques: list[TypedClique] = []
 
-        # Report accumulators: (CURIE, label) samples keyed by Biolink type / unmapped TUI / rejected TUI.
+        # Report accumulators: exact counts plus up to 5 (CURIE, label) samples, keyed by Biolink type /
+        # unmapped TUI / rejected TUI / frozenset of Biolink types. Counts and samples answer different
+        # questions and are both kept: counts are quantitative (how many CUIs in each bucket, always
+        # exact), samples are qualitative (what a concept in the bucket looks like, for eyeballing the
+        # CSVs). The cap is not an approximation of the counts -- it only bounds memory across millions
+        # of MRCONSO lines. The exhaustive per-CURIE record lives elsewhere: kept concepts in
+        # compendia/umls.txt, skipped concepts in log.txt (NO_UMLS_TYPE / REJECTED / MULTIPLE_UMLS_TYPES).
+        # See docs/sources/UMLS/Leftover.md ("Counts vs. samples").
+        _SAMPLE_LIMIT = 5
+        type_counts: dict[str, int] = defaultdict(int)
         type_samples: dict[str, list] = defaultdict(list)
+        unmapped_tui_counts: dict[str, int] = defaultdict(int)
         unmapped_tui_examples: dict[str, list] = defaultdict(list)
+        rejected_tui_counts: dict[str, int] = defaultdict(int)
         rejected_tui_examples: dict[str, list] = defaultdict(list)
+        multi_type_counts: dict[frozenset, int] = defaultdict(int)
+        multi_type_samples: dict[frozenset, list] = defaultdict(list)
 
         with open(mrconso) as inf:
             for line in inf:
@@ -300,10 +327,16 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
                 if unmapped_tuis:
                     if umls_id not in curies_no_umls_type:
                         curies_no_umls_type.add(umls_id)
-                        logger.warning(f"No Biolink type for {umls_id}: unmapped STY {sorted(unmapped_tuis)} in {umls_type_results}, skipping")
-                        reportf.write(f"NO_UMLS_TYPE [{umls_id}]: unmapped STY {sorted(unmapped_tuis)} in {umls_type_results}\n")
+                        logger.warning(
+                            f"No Biolink type for {umls_id}: unmapped STY {sorted(unmapped_tuis)} in {umls_type_results}, skipping"
+                        )
+                        reportf.write(
+                            f"NO_UMLS_TYPE [{umls_id}]: unmapped STY {sorted(unmapped_tuis)} in {umls_type_results}\n"
+                        )
                         for tui in unmapped_tuis:
-                            unmapped_tui_examples[tui].append((umls_id, label))
+                            unmapped_tui_counts[tui] += 1
+                            if len(unmapped_tui_examples[tui]) < _SAMPLE_LIMIT:
+                                unmapped_tui_examples[tui].append((umls_id, label))
                     continue
 
                 # If every semantic type was deliberately rejected (or there were none), skip and
@@ -311,10 +344,16 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
                 if not mapped_types:
                     if umls_id not in curies_rejected:
                         curies_rejected.add(umls_id)
-                        logger.debug(f"Rejected {umls_id}: rejected STY {sorted(rejected_tuis)} in {umls_type_results}, skipping")
-                        reportf.write(f"REJECTED [{umls_id}]: rejected STY {sorted(rejected_tuis)} in {umls_type_results}\n")
+                        logger.info(
+                            f"Rejected {umls_id}: rejected STY {sorted(rejected_tuis)} in {umls_type_results}, skipping"
+                        )
+                        reportf.write(
+                            f"REJECTED [{umls_id}]: rejected STY {sorted(rejected_tuis)} in {umls_type_results}\n"
+                        )
                         for tui in rejected_tuis:
-                            rejected_tui_examples[tui].append((umls_id, label))
+                            rejected_tui_counts[tui] += 1
+                            if len(rejected_tui_examples[tui]) < _SAMPLE_LIMIT:
+                                rejected_tui_examples[tui].append((umls_id, label))
                     continue
 
                 # Disambiguate when a concept resolves to multiple Biolink types.
@@ -327,8 +366,14 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
                     if umls_id not in curies_multiple_umls_type:
                         curies_multiple_umls_type.add(umls_id)
                         biolink_types_as_str = "|".join(sorted(biolink_types))
-                        logger.debug(f"Multiple Biolink types not yet supported for {umls_id}: {umls_type_results} -> {biolink_types_as_str}, skipping")
+                        logger.warning(
+                            f"Multiple Biolink types not yet supported for {umls_id}: {umls_type_results} -> {biolink_types_as_str}, skipping"
+                        )
                         reportf.write(f"MULTIPLE_UMLS_TYPES [{umls_id}]\t{biolink_types_as_str}\t{umls_type_results}\n")
+                        key = frozenset(biolink_types)
+                        multi_type_counts[key] += 1
+                        if len(multi_type_samples[key]) < _SAMPLE_LIMIT:
+                            multi_type_samples[key].append((umls_id, label))
                     continue
 
                 biolink_type = next(iter(biolink_types))
@@ -337,22 +382,26 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
                 # Let write_compendium() generate this singleton's compendium and synonym JSON.
                 leftover_umls_cliques.append(TypedClique(node_type=biolink_type, identifiers=[umls_id]))
                 umls_ids_in_this_compendium.add(umls_id)
-                type_samples[biolink_type].append((umls_id, label))
+                type_counts[biolink_type] += 1
+                if len(type_samples[biolink_type]) < _SAMPLE_LIMIT:
+                    type_samples[biolink_type].append((umls_id, label))
 
         logger.info(f"Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.")
-        reportf.write(f"Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.\n")
+        reportf.write(
+            f"COMPLETED Wrote out {len(umls_ids_in_this_compendium)} UMLS IDs into the leftover UMLS compendium.\n"
+        )
 
         logger.info(
             f"Found {len(curies_no_umls_type)} UMLS IDs without a Biolink type, "
             f"{len(curies_rejected)} deliberately rejected, and {len(curies_multiple_umls_type)} with multiple Biolink types."
         )
         reportf.write(
-            f"Found {len(curies_no_umls_type)} UMLS IDs without a Biolink type, "
+            f"COUNT Found {len(curies_no_umls_type)} UMLS IDs without a Biolink type, "
             f"{len(curies_rejected)} deliberately rejected, and {len(curies_multiple_umls_type)} with multiple Biolink types.\n"
         )
 
         logger.info(f"Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().")
-        reportf.write(f"Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().\n")
+        reportf.write(f"COUNT Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().\n")
 
         # Per-compendium UMLS coverage.
         with open(report_dir / "compendium-coverage.csv", "w", newline="") as csvf:
@@ -365,21 +414,40 @@ def write_leftover_umls(metadata_yamls, compendia, mrconso, mrsty, umls_compendi
         with open(report_dir / "types-coverage.csv", "w", newline="") as csvf:
             writer = csv.writer(csvf)
             writer.writerow(["biolink_type", "leftover_clique_count", "sample_curies"])
-            for biolink_type in sorted(type_samples.keys()):
-                pairs = type_samples[biolink_type]
-                writer.writerow([biolink_type, len(pairs), _format_samples(pairs)])
+            for biolink_type in sorted(type_counts.keys()):
+                writer.writerow([biolink_type, type_counts[biolink_type], _format_samples(type_samples[biolink_type])])
 
         # Semantic types we couldn't map or deliberately rejected, with affected CUI counts and samples.
         with open(report_dir / "unmapped-types.csv", "w", newline="") as csvf:
             writer = csv.writer(csvf)
             writer.writerow(["tui", "sty_name", "status", "affected_cui_count", "sample_curies"])
-            for status, examples in (("unmapped", unmapped_tui_examples), ("rejected", rejected_tui_examples)):
-                for tui in sorted(examples.keys()):
-                    pairs = examples[tui]
+            for status, counts, examples in (
+                ("unmapped", unmapped_tui_counts, unmapped_tui_examples),
+                ("rejected", rejected_tui_counts, rejected_tui_examples),
+            ):
+                for tui in sorted(counts.keys()):
                     sty_name = "|".join(sorted(types_by_tui.get(tui, set())))
-                    writer.writerow([tui, sty_name, status, len(pairs), _format_samples(pairs)])
+                    writer.writerow([tui, sty_name, status, counts[tui], _format_samples(examples[tui])])
 
-    write_compendium(metadata_yamls, leftover_umls_cliques, "umls.txt", None, labels=preferred_name_by_id, extra_prefixes=[UMLS],
-                     icrdf_filename=icrdf_filename)
+        # CURIEs that resolved to multiple Biolink types after TYPE_COMBO_OVERRIDES, with counts and samples.
+        with open(report_dir / "multi-type-curies.csv", "w", newline="") as csvf:
+            writer = csv.writer(csvf)
+            writer.writerow(["biolink_types", "affected_cui_count", "sample_curies"])
+            for key in sorted(multi_type_counts.keys(), key=lambda s: "|".join(sorted(s))):
+                writer.writerow(
+                    ["|".join(sorted(key)), multi_type_counts[key], _format_samples(multi_type_samples[key])]
+                )
 
-    logger.info(f"Wrote leftover UMLS outputs: {umls_compendium}, {umls_synonyms}, metadata/umls.txt.yaml, and coverage CSVs in {report_dir}.")
+    write_compendium(
+        metadata_yamls,
+        leftover_umls_cliques,
+        "umls.txt",
+        None,
+        labels=preferred_name_by_id,
+        extra_prefixes=[UMLS],
+        icrdf_filename=icrdf_filename,
+    )
+
+    logger.info(
+        f"Wrote leftover UMLS outputs: {umls_compendium}, {umls_synonyms}, metadata/umls.txt.yaml, and coverage CSVs in {report_dir}."
+    )

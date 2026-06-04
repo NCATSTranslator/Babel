@@ -1,11 +1,11 @@
 # Leftover UMLS
 
 The "leftover UMLS" step is the last thing the pipeline does. After every other compendium has been
-built, `src/createcompendia/leftover_umls.py` (Snakemake rule `leftover_umls`) walks `MRCONSO.RRF`
-and collects every valid UMLS concept that **no other compendium already claimed**, writing each one
-as a single-identifier clique into `babel_outputs/compendia/umls.txt`. The point is coverage: even
-when Babel can't merge a UMLS concept into a richer clique, downstream services (Node Normalization,
-Name Resolver) can still return its label and a Biolink type. This addresses
+built, `src/createcompendia/leftover_umls.py` (Snakemake rule `leftover_umls`) goes through
+`MRCONSO.RRF` and collects every valid UMLS concept that **no other compendium already claimed**,
+writing each one as a single-identifier clique into `babel_outputs/compendia/umls.txt`. The point is
+coverage: even when Babel can't merge a UMLS concept into a richer clique, downstream services (Node
+Normalization, Name Resolver) can still return its label and a Biolink type. This addresses
 [#579](https://github.com/NCATSTranslator/Babel/issues/579), and the typing corrections below
 address [#569](https://github.com/NCATSTranslator/Babel/issues/569) and the umbrella
 [#410](https://github.com/NCATSTranslator/Babel/issues/410).
@@ -74,13 +74,38 @@ important time to run it is when bumping `biolink_version`.
 
 ## Coverage report
 
-The rule writes machine-readable CSVs to `babel_outputs/reports/umls/` (a directory so more UMLS
-reports can be added later), alongside the human-readable log at `babel_outputs/reports/umls.txt`:
+The rule writes all UMLS reports to `babel_outputs/reports/umls/`. The human-readable log is
+`log.txt`; the machine-readable CSVs are:
 
 - `compendium-coverage.csv` — per input compendium: `total_umls_curies` and
   `single_umls_clique_count` (cliques whose only identifier is a single UMLS CURIE).
-- `types-coverage.csv` — per Biolink type of the leftover cliques: how many were added, with a few
+- `types-coverage.csv` — per Biolink type of the leftover cliques: exact count and a few
   sample `CURIE=label`s.
-- `unmapped-types.csv` — per semantic type that was unmapped or rejected: status, affected CUI
-  count, and sample CURIEs.
+- `unmapped-types.csv` — per semantic type that was unmapped or rejected: status, exact affected
+  CUI count, and sample CURIEs.
+- `multi-type-curies.csv` — CURIEs that resolved to multiple Biolink types even after
+  `TYPE_COMBO_OVERRIDES`: the type combo, exact count, and sample CURIEs.
 - `tui-sty.tsv` — the raw STY-code → semantic-type-name dump from `MRSTY.RRF`.
+
+### Counts vs. samples: why the CSVs carry both
+
+The CSVs report an **exact count** per bucket *and* up to `_SAMPLE_LIMIT` (currently 5)
+`CURIE=label` examples. These answer different questions and are not redundant: the count is
+*quantitative* ("how many CUIs landed as `biolink:Phenomenon`?"), while the samples are
+*qualitative* ("what does one of those concepts actually look like?"). The samples let a reviewer
+sanity-check an override or a skip reason straight from the CSV without cross-referencing another
+file.
+
+The sample cap is **not** an approximation of the counts — the counts are always exact. It only
+bounds memory: we keep at most 5 examples per bucket instead of accumulating every CURIE across the
+millions of `MRCONSO` lines. The exhaustive per-CURIE record is not lost, because it already lives
+elsewhere:
+
+- every mapped (kept) concept is written to `babel_outputs/compendia/umls.txt`; and
+- every skipped concept is streamed to `log.txt` as it is encountered, tagged `NO_UMLS_TYPE`,
+  `REJECTED`, or `MULTIPLE_UMLS_TYPES`.
+
+So the split is deliberate: **`log.txt` is the complete per-CURIE record, the CSVs are aggregate
+counts plus a handful of illustrative examples.** If the samples ever feel like noise, the right
+change is to drop the `sample_curies` columns entirely (the log already has every CURIE), not to
+expand them into full per-bucket CURIE lists held in memory.

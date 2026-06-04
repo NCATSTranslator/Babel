@@ -1,4 +1,5 @@
 """Unit tests for src/datahandlers/clo.py (CLOgraph)."""
+
 import io
 
 import pyoxigraph

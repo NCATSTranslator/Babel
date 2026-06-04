@@ -6,11 +6,9 @@ These are marked ``network`` because they build a Biolink Model Toolkit, which f
 ``biolink-model.yaml`` from GitHub on first use (for the biolink_version pinned in config.yaml).
 """
 
-import warnings
-
 import pytest
 
-from src.categories import ACTIVITY, PHENOMENON
+from src.categories import ACTIVITY, COHORT, PHENOMENON
 from src.createcompendia.leftover_umls import (
     STY_OVERRIDES,
     TYPE_COMBO_OVERRIDES,
@@ -34,6 +32,9 @@ RECORDED_STY_BASELINE: dict[str, str | None] = {
     "T120": None,  # https://github.com/NCATSTranslator/Babel/issues/421 -- "Chemical Viewed Functionally": no STY mapping.
     "T122": None,  # https://github.com/NCATSTranslator/Babel/issues/421 -- "Biomedical or Dental Material": no STY mapping.
     "T168": None,  # https://github.com/NCATSTranslator/Babel/issues/421 -- "Food": no STY mapping.
+    "T090": None,  # https://github.com/NCATSTranslator/Babel/issues/817 -- "Occupation or Discipline": no STY mapping.
+    "T091": None,  # https://github.com/NCATSTranslator/Babel/issues/817 -- "Biomedical Occupation or Discipline": no STY mapping.
+    "T097": COHORT,  # https://github.com/NCATSTranslator/Babel/issues/817 -- "Professional or Occupational Group": bmt maps to Cohort, overridden to PopulationOfIndividualOrganisms for consistency.
 }
 
 
@@ -55,15 +56,15 @@ def test_sty_overrides_have_not_drifted():
     for tui, override in STY_OVERRIDES.items():
         current = tui_to_biolink_type(tui, toolkit=toolkit)
         baseline = RECORDED_STY_BASELINE[tui]
-        assert current == baseline, (
-            f"Biolink STY:{tui} now maps to {current!r}, but the recorded baseline is {baseline!r}. "
-            f"Re-review the override (currently {override!r}) and update RECORDED_STY_BASELINE."
-        )
         if current == override:
-            warnings.warn(
-                f"Biolink STY:{tui} now maps to {current!r}, which equals the manual override; "
-                f"the entry in STY_OVERRIDES is redundant and can be removed.",
-                stacklevel=2,
+            pytest.fail(
+                f"Biolink STY:{tui} now maps to {current!r}, which equals the manual override. "
+                f"Fix: delete the STY_OVERRIDES[{tui!r}] entry and its RECORDED_STY_BASELINE entry."
+            )
+        else:
+            assert current == baseline, (
+                f"Biolink STY:{tui} now maps to {current!r}, but the recorded baseline is {baseline!r}. "
+                f"Re-review the override (currently {override!r}) and update RECORDED_STY_BASELINE."
             )
 
 
@@ -76,4 +77,6 @@ def test_type_combo_overrides_reference_real_biolink_classes():
         referenced.update(combo)
         referenced.add(value)
     for biolink_type in sorted(referenced):
-        assert toolkit.get_element(biolink_type) is not None, f"{biolink_type} is not a class in Biolink {BIOLINK_VERSION}"
+        assert toolkit.get_element(biolink_type) is not None, (
+            f"{biolink_type} is not a class in Biolink {BIOLINK_VERSION}"
+        )

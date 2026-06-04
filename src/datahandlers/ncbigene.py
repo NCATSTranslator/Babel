@@ -25,7 +25,9 @@ def get_ncbigene_field(row, header, field_name):
     return value
 
 
-def pull_ncbigene_labels_synonyms_and_taxa(gene_info_filename, labels_filename, synonyms_filename, taxa_filename, descriptions_filename):
+def pull_ncbigene_labels_synonyms_and_taxa(
+    gene_info_filename, labels_filename, synonyms_filename, taxa_filename, descriptions_filename
+):
     """
     Extract labels, synonyms, and taxonomic data for genes from the NCBIGene "gene_info.gz" file
     and write them into separate files. The function processes the input file by skipping rows

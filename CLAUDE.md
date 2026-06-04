@@ -47,11 +47,13 @@ skipped by default.
 - `docs/Testing.md` — testing strategy: cadence per environment (per-PR, nightly, weekly,
   pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other strategies.
 
-### Linting (all three checked in CI on PRs)
+### Linting (all four checked in CI on PRs)
 
 ```bash
 uv run ruff check                        # Python lint
 uv run ruff check --fix                  # Python auto-fix
+uv run ruff format --check               # Python format check
+uv run ruff format                       # Python auto-format
 uv run snakefmt --check --compact-diff . # Snakemake format check
 uv run snakefmt .                        # Snakemake auto-fix
 uv run rumdl check .                     # Markdown lint

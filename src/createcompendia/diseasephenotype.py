@@ -105,10 +105,23 @@ def write_umls_ids(mrsty, outfile, badumlsfile):
     # B2.3 Injury or Poisoning
     # B2.2.1.2 Pathologic Function
     # B2.2.1.2.1.1 Mental or Behavioral Dysfunction
-    # B2.2.1.2.2ell or Molecular Dysfunction
+    # B2.2.1.2.2 Cell or Molecular Dysfunction
     # A1.2.2 Anatomical Abnormality
     # B2.2.1.2.1.2 Neoplastic Process
-    umlsmap = {x: DISEASE for x in ["B2.2.1.2.1", "A1.2.2.1", "A1.2.2.2", "B2.3", "B2.2.1.2", "B2.2.1.2.1.1", "B2.2.1.2.2", "A1.2.2", "B2.2.1.2.1.2"]}
+    umlsmap = {
+        x: DISEASE
+        for x in [
+            "B2.2.1.2.1",
+            "A1.2.2.1",
+            "A1.2.2.2",
+            "B2.3",
+            "B2.2.1.2",
+            "B2.2.1.2.1.1",
+            "B2.2.1.2.2",
+            "A1.2.2",
+            "B2.2.1.2.1.2",
+        ]
+    }
     # A2.2 Finding (T033) and A2.2.1 Laboratory or Test Result (T034) are deliberately NOT mapped
     # here. "Finding" is far too broad to be a phenotypic feature -- it globs in things like
     # "Negative" and pulls nonsense into e.g. the Alzheimer node -- and a lab/test result is a
