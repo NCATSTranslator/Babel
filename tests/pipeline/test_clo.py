@@ -3,6 +3,7 @@
 Skipped by default unless pytest is run with --pipeline.  Run with:
     uv run pytest tests/pipeline/test_clo.py --pipeline --no-cov -v
 """
+
 import pytest
 
 from src.categories import CELL_LINE

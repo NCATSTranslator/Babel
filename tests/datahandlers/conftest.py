@@ -6,6 +6,7 @@ and pipeline tests without going through pytest's fixture injection machinery.
 TSV output assertion helpers (read_tsv, assert_labels_file_valid, etc.) live in
 tests/conftest.py so they are accessible to pipeline tests as well.
 """
+
 import pyoxigraph
 
 # ---------------------------------------------------------------------------

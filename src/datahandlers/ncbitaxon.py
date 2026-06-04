@@ -7,7 +7,13 @@ from src.prefixes import NCBITAXON
 
 
 def pull_ncbitaxon():
-    pull_via_ftp("ftp.ncbi.nlm.nih.gov", "/pub/taxonomy", "taxdump.tar.gz", decompress_data=True, outfilename=f"{NCBITAXON}/taxdump.tar")
+    pull_via_ftp(
+        "ftp.ncbi.nlm.nih.gov",
+        "/pub/taxonomy",
+        "taxdump.tar.gz",
+        decompress_data=True,
+        outfilename=f"{NCBITAXON}/taxdump.tar",
+    )
 
 
 def make_labels_and_synonyms(infile, labelfile, synfile, propfilegz):

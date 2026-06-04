@@ -56,13 +56,17 @@ def test_pull_ensembl(tmp_path):
     os.makedirs(output_dir)
 
     # Pull a single ENSEMBL file to that. This should trigger https://github.com/NCATSTranslator/Babel/issues/193
-    single_query_report = pull_ensembl(output_dir, output_dir / "download_complete", ["choffmanni_gene_ensembl", "hgfemale_gene_ensembl"])
+    single_query_report = pull_ensembl(
+        output_dir, output_dir / "download_complete", ["choffmanni_gene_ensembl", "hgfemale_gene_ensembl"]
+    )
 
     # uamericanus_gene_ensembl should be downloadable as a single file in the above example, but we're going to
     # deliberately download it in multiple chunks so it's clearer.
     download_as_splits = pull_ensembl_test_dir / "download_as_splits"
     os.makedirs(download_as_splits)
-    split_query_report = pull_ensembl(download_as_splits, download_as_splits / "download_complete", ["choffmanni_gene_ensembl"], max_attribute_count=4)
+    split_query_report = pull_ensembl(
+        download_as_splits, download_as_splits / "download_complete", ["choffmanni_gene_ensembl"], max_attribute_count=4
+    )
 
     # We need to check two things:
     # 1. Whether the single/split reports make sense.

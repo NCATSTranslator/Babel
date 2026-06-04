@@ -21,7 +21,7 @@ def get_mesh_id_from_iri(iri) -> str:
 
     if not s.startswith(MESH_IRI_PREFIX):
         raise ValueError(f"Expected a MeSH IRI like <http://id.nlm.nih.gov/mesh/D009243>, got: '{s!r}'")
-    return s[len(MESH_IRI_PREFIX):]
+    return s[len(MESH_IRI_PREFIX) :]
 
 
 def pull_mesh():
@@ -253,7 +253,14 @@ def pull_mesh_registry():
     return m.get_registry()
 
 
-def write_ids(meshmap, outfile, order=[CELLULAR_COMPONENT, CELL, ANATOMICAL_ENTITY], extra_vocab={}, scr_exclude_trees=None, scr_include_trees=None):
+def write_ids(
+    meshmap,
+    outfile,
+    order=[CELLULAR_COMPONENT, CELL, ANATOMICAL_ENTITY],
+    extra_vocab={},
+    scr_exclude_trees=None,
+    scr_include_trees=None,
+):
     """Write the mesh identifiers from a particular set of hierarchies to an output directory.
     This might be a mixed list of types (for instance anatomy and cell).  Also, the same term
     may appear in multiple trees, perhaps with different types.

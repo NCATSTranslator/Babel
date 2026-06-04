@@ -10,6 +10,7 @@ files to already be cached in babel_downloads/UMLS/).  They are skipped by
 default.  Run with:
     uv run pytest tests/pipeline/test_umls.py --pipeline --no-cov -v
 """
+
 import pytest
 
 from tests.pipeline.conftest import get_curies_from_ids_file
@@ -29,6 +30,5 @@ def test_chemicals_excludes_protein_semantic_tree(umls_pipeline_outputs):
     prot_ids = get_curies_from_ids_file(umls_pipeline_outputs["protein"])
     overlap = chem_ids & prot_ids
     assert len(overlap) == 0, (
-        f"Found {len(overlap)} IDs in both chemicals and protein UMLS outputs: "
-        f"{sorted(overlap)[:10]}"
+        f"Found {len(overlap)} IDs in both chemicals and protein UMLS outputs: {sorted(overlap)[:10]}"
     )

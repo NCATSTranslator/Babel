@@ -5,7 +5,12 @@ from src.prefixes import PANTHERFAMILY
 
 def pull_pantherfamily():
     outfile = f"{PANTHERFAMILY}/family.csv"
-    pull_via_ftp("ftp.pantherdb.org", "/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/", "PTHR19.0_human", outfilename=outfile)
+    pull_via_ftp(
+        "ftp.pantherdb.org",
+        "/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/",
+        "PTHR19.0_human",
+        outfilename=outfile,
+    )
     # If you need to check this quickly, it's also available on HTTP at:
     # - http://data.pantherdb.org/ftp/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/
 

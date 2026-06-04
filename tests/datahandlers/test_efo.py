@@ -1,4 +1,5 @@
 """Unit tests for src/datahandlers/efo.py (EFOgraph)."""
+
 import io
 
 import pyoxigraph

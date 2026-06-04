@@ -3,6 +3,7 @@
 These tests exercise Store.bulk_load() and RdfFormat.* directly, which are bypassed
 when other tests inject a pre-built store via ClassName.__new__().
 """
+
 import io
 
 import pyoxigraph
@@ -28,9 +29,11 @@ def test_bulk_load_rdf_xml():
   </rdf:Description>
 </rdf:RDF>"""
     store = _store_from_bytes(rdf, pyoxigraph.RdfFormat.RDF_XML)
-    results = list(store.query(
-        "SELECT ?label WHERE { <http://example.org/thing1> <http://www.w3.org/2000/01/rdf-schema#label> ?label }"
-    ))
+    results = list(
+        store.query(
+            "SELECT ?label WHERE { <http://example.org/thing1> <http://www.w3.org/2000/01/rdf-schema#label> ?label }"
+        )
+    )
     assert len(results) == 1
     assert str(results[0]["label"]) == '"Thing One"'
 
@@ -41,9 +44,11 @@ def test_bulk_load_turtle():
 <http://example.org/thing2> rdfs:label "Thing Two" .
 """
     store = _store_from_bytes(ttl, pyoxigraph.RdfFormat.TURTLE)
-    results = list(store.query(
-        "SELECT ?label WHERE { <http://example.org/thing2> <http://www.w3.org/2000/01/rdf-schema#label> ?label }"
-    ))
+    results = list(
+        store.query(
+            "SELECT ?label WHERE { <http://example.org/thing2> <http://www.w3.org/2000/01/rdf-schema#label> ?label }"
+        )
+    )
     assert len(results) == 1
     assert str(results[0]["label"]) == '"Thing Two"'
 
@@ -51,28 +56,30 @@ def test_bulk_load_turtle():
 @pytest.mark.unit
 def test_bulk_load_n_triples():
     nt = (
-        b'<http://example.org/s> <http://example.org/p> <http://example.org/o> .\n'
+        b"<http://example.org/s> <http://example.org/p> <http://example.org/o> .\n"
         b'<http://example.org/s> <http://www.w3.org/2000/01/rdf-schema#label> "Subject S" .\n'
         b'<http://example.org/o> <http://www.w3.org/2000/01/rdf-schema#label> "Object O" .\n'
     )
     store = _store_from_bytes(nt, pyoxigraph.RdfFormat.N_TRIPLES)
     assert len(list(store)) == 3
 
-    results = list(store.query(
-        "SELECT ?s WHERE { ?s <http://example.org/p> <http://example.org/o> }"
-    ))
+    results = list(store.query("SELECT ?s WHERE { ?s <http://example.org/p> <http://example.org/o> }"))
     assert len(results) == 1
     assert str(results[0]["s"]) == "<http://example.org/s>"
 
-    label_results = list(store.query(
-        "SELECT ?label WHERE { <http://example.org/s> <http://www.w3.org/2000/01/rdf-schema#label> ?label }"
-    ))
+    label_results = list(
+        store.query(
+            "SELECT ?label WHERE { <http://example.org/s> <http://www.w3.org/2000/01/rdf-schema#label> ?label }"
+        )
+    )
     assert len(label_results) == 1
     assert str(label_results[0]["label"]) == '"Subject S"'
 
-    obj_label_results = list(store.query(
-        "SELECT ?label WHERE { <http://example.org/o> <http://www.w3.org/2000/01/rdf-schema#label> ?label }"
-    ))
+    obj_label_results = list(
+        store.query(
+            "SELECT ?label WHERE { <http://example.org/o> <http://www.w3.org/2000/01/rdf-schema#label> ?label }"
+        )
+    )
     assert len(obj_label_results) == 1
     assert str(obj_label_results[0]["label"]) == '"Object O"'
 
@@ -100,9 +107,11 @@ def test_bulk_load_rdf_xml_with_base_iri():
 
     # With base_iri the relative IRI resolves and the substantive triples load correctly.
     store = _store_from_bytes(rdf, pyoxigraph.RdfFormat.RDF_XML, base_iri="http://example.org/")
-    results = list(store.query(
-        "SELECT ?s WHERE { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.org/Type> }"
-    ))
+    results = list(
+        store.query(
+            "SELECT ?s WHERE { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.org/Type> }"
+        )
+    )
     assert len(results) == 1
     assert str(results[0]["s"]) == "<http://example.org/thing3>"
 
@@ -111,12 +120,14 @@ def test_bulk_load_rdf_xml_with_base_iri():
 def test_sparql_query_row_access_by_name():
     """Verify that SPARQL result rows support row["varname"] access, used throughout Babel."""
     store = pyoxigraph.Store()
-    store.add(pyoxigraph.Quad(
-        pyoxigraph.NamedNode("http://example.org/s"),
-        pyoxigraph.NamedNode("http://example.org/p"),
-        pyoxigraph.Literal("hello"),
-        pyoxigraph.DefaultGraph(),
-    ))
+    store.add(
+        pyoxigraph.Quad(
+            pyoxigraph.NamedNode("http://example.org/s"),
+            pyoxigraph.NamedNode("http://example.org/p"),
+            pyoxigraph.Literal("hello"),
+            pyoxigraph.DefaultGraph(),
+        )
+    )
     results = list(store.query("SELECT ?s ?o WHERE { ?s ?p ?o }"))
     assert len(results) == 1
     row = results[0]
