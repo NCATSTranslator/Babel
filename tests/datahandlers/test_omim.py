@@ -92,7 +92,7 @@ def test_pull_omim_labels_writes_gene_symbols(sample_mim2gene, tmp_path):
 
 
 @pytest.mark.unit
-def test_pull_omim_labels_skips_empty_symbol(sample_mim2gene, tmp_path):
+def test_pull_omim_labels_skips_non_gene_rows(sample_mim2gene, tmp_path):
     from src.datahandlers.omim import pull_omim_labels
 
     outfile = tmp_path / "labels"
