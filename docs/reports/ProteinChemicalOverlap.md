@@ -78,6 +78,45 @@ Because it only needs the final compendia, the GeneProtein conflation, and the c
 which persist as intermediate build artifacts), it can be run against a downloaded build without
 rerunning the pipeline — see the intermediate-file download note in `CLAUDE.md`.
 
+## Future work: conflation-chain impact simulator
+
+This report says *which* protein and chemical cliques a merge would combine. It does not say what
+the merge would *do* downstream — and that is the question that actually blocks consensus (see
+issues #662 and #654). If a chemical clique is merged into a protein clique, and that protein is
+already GeneProtein-conflated, then a chemical CURIE ends up normalizing all the way to a *gene*.
+The `prot_reaches_gene` column flags where this can happen, but it does not show the concrete
+result.
+
+A follow-up tool — a conflation-chain impact simulator (tracked in issue #829) — would close that
+gap. Given a candidate
+mapping (the `candidate_pairs.tsv` produced here, or a curated/filtered subset of it) plus the
+existing `GeneProtein.txt` and `DrugChemical.txt` conflations, it would simulate the *combined*
+effect of a hypothetical DrugProtein conflation layered on top of the conflations we already ship,
+and report, for a probe set of CURIEs, what each one normalizes to **before vs. after** the merge.
+
+The point is to make the scary cases concrete before anything ships. For example: `DRUGBANK:DB00062`
+"Albumin human" is a chemical today; after a DrugProtein merge it would join `UniProtKB:P02768`,
+which is GeneProtein-conflated to `NCBIGene:213` ALB — so a drug CURIE would resolve to a gene. A
+before/after table over the worked examples is the artifact a committee can actually vote on.
+
+### Sketch
+
+- **Inputs:** `candidate_pairs.tsv` (optionally filtered — e.g. drop `chem_has_inchikey` pairs as
+  likely bugs, or keep only `label_match` / high-`support_edge_count` pairs); `GeneProtein.txt`;
+  `DrugChemical.txt`; and a probe CURIE list (the worked examples from #440, #654, and gglusman's
+  set in #440 — prothrombin, hemoglobin, collagen, collagenase, pepsin, albumin, rituximab,
+  cetuximab).
+- **Output:** one row per probe CURIE — its current clique leader/type, and its post-merge clique
+  leader/type — with a flag when a chemical now reaches a gene, or when two previously distinct
+  concepts collapse into one.
+- **Directionality knob:** support both the protein-centric framing of #706 (the merged clique
+  presents as a `biolink:Protein` that contains chemical IDs) and the alternative of inverting the
+  GeneProtein order discussed in #654, so the committee can compare them on the same probes.
+- **Reuse:** `geneprotein.merge()` / `gpkey()` ordering, the DrugChemical conflation logic, and the
+  DuckDB `Edge` table for fast "which clique contains CURIE X" lookups. A curated probe set should
+  be promoted into the `ResolvesWith` / `DoesNotResolveWith` BabelTest fixture started in #513, so
+  every proposed option can be scored against the same canonical cases.
+
 ## Implementation
 
 `src/reports/protein_chemical_overlap.py` (rule `generate_protein_chemical_overlap_report` in
