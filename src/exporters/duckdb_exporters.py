@@ -195,6 +195,53 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
         db.table("Edge").write_parquet(edge_parquet_filename)
 
 
+def export_conflation_to_parquet(conflation_filename, conflation_type, duckdb_filename, parquet_filename):
+    """
+    Export a conflation file to a Parquet file via DuckDB.
+
+    The conflation file is NDJSON where each line is a JSON array of CURIEs; the first element
+    is the conflation group leader.
+
+    :param conflation_filename: The conflation file (NDJSON) to read.
+    :param conflation_type: A string identifying the conflation type, e.g. 'GeneProtein'.
+    :param duckdb_filename: A temporary DuckDB file to use during export.
+    :param parquet_filename: The output Parquet file path.
+    """
+    if os.path.exists(duckdb_filename):
+        raise RuntimeError(f"Will not overwrite existing file {duckdb_filename}")
+
+    os.makedirs(os.path.dirname(duckdb_filename), exist_ok=True)
+    os.makedirs(os.path.dirname(parquet_filename), exist_ok=True)
+
+    with setup_duckdb(duckdb_filename) as db:
+        db.sql(
+            "CREATE TABLE Conflation (conflation_type STRING, conflation_leader STRING, curie STRING, curie_prefix STRING)"
+        )
+        db.execute(
+            """INSERT INTO Conflation
+                WITH raw AS (
+                    SELECT column0 AS line_text
+                    FROM read_csv(?, header=False, columns={'column0': 'VARCHAR'})
+                    WHERE trim(column0) != ''
+                ),
+                unnested AS (
+                    SELECT
+                        ? AS conflation_type,
+                        json_extract_string(line_text::JSON, '$[0]') AS conflation_leader,
+                        UNNEST(json_extract_string(line_text::JSON, '$[*]')) AS curie
+                    FROM raw
+                )
+                SELECT
+                    conflation_type,
+                    conflation_leader,
+                    curie,
+                    split_part(curie, ':', 1) AS curie_prefix
+                FROM unnested""",
+            [conflation_filename, conflation_type],
+        )
+        db.table("Conflation").write_parquet(parquet_filename)
+
+
 def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_parquet_filename):
     """
     Export a synonyms file to a DuckDB directory.

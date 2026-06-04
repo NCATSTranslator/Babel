@@ -171,8 +171,9 @@ The `src/snakefiles/duckdb.snakefile` rules (driven by `src/exporters/duckdb_exp
 build a queryable DuckDB database alongside the JSONL compendia, with these tables:
 
 - `Node(curie, curie_prefix, label, label_lc, description, taxa)`
-- `Clique(clique_leader, preferred_name, clique_identifier_count, biolink_type)`
+- `Clique(clique_leader, preferred_name, clique_identifier_count, biolink_type, information_content)`
 - `Edge(clique_leader, curie, conflation, clique_leader_prefix, curie_prefix)`
+- `Conflation(conflation_type, conflation_leader, curie, curie_prefix)`
 
 The `Edge` table answers "which clique contains CURIE X" with a one-line query
 (`SELECT DISTINCT clique_leader FROM Edge WHERE curie IN (...)`) and is the fastest way to

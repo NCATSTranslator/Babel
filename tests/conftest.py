@@ -1,3 +1,4 @@
+import json
 import os
 
 import pytest
@@ -60,6 +61,23 @@ def assert_concordance_file_valid(path: str) -> list[list[str]]:
         assert ":" in cols[0], f"First column is not a CURIE: {cols[0]}"
         assert ":" in cols[2], f"Third column is not a CURIE: {cols[2]}"
     return rows
+
+
+CONFLATION_FIXTURE_ROWS = [
+    ["NCBIGENE:1", "UniProtKB:A0A000", "UniProtKB:B0B000"],
+    ["NCBIGENE:2", "UniProtKB:C0C000"],
+    ["NCBIGENE:3"],
+]
+
+
+@pytest.fixture(scope="session")
+def geneprotein_conflation_file(tmp_path_factory):
+    """Session-scoped NDJSON conflation file with three sample GeneProtein groups."""
+    path = tmp_path_factory.mktemp("conflation") / "GeneProtein.txt"
+    with open(path, "w", encoding="utf-8") as f:
+        for row in CONFLATION_FIXTURE_ROWS:
+            f.write(json.dumps(row) + "\n")
+    return str(path)
 
 
 # Biolink Model version used throughout the test suite.  Should match config.yaml.
