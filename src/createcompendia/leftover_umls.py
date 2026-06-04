@@ -34,7 +34,7 @@ _UMLS_PREFIX = UMLS + ":"
 
 # Manual overrides of the Biolink type that bmt assigns to a UMLS semantic type. bmt looks these up
 # by the mapping ``STY:<code>`` (e.g. ``STY:T033``), so we key this table by that STY code -- which is
-# technically the UMLS TUI, but "STY" is the namespace UMLS and bmt actually use. A value of None
+# technically the UMLS TUI, but "STY" is the namespace Biolink Model and bmt actually use. A value of None
 # means "deliberately reject": a concept whose only remaining semantic type is this one is excluded
 # from the leftover UMLS compendium.
 #
