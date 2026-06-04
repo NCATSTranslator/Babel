@@ -18,11 +18,11 @@ import jsonlines
 import requests
 from humanfriendly import format_timespan
 
-from src.synonyms.filter import get_synonym_filter
 from src.LabeledID import LabeledID
 from src.metadata.provenance import write_combined_metadata
 from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory
 from src.properties import HAS_ALTERNATIVE_ID, PropertyList
+from src.synonyms.filter import get_synonym_filter
 from src.util import Text, get_config, get_logger, get_memory_usage_summary
 
 # Configuration items
@@ -871,9 +871,7 @@ def write_compendium(
     # Log a per-compendium summary of any obsolete labels that were filtered.
     filtered_this_run = synonym_filter.filtered_count - filter_count_snapshot
     if filtered_this_run > 0:
-        logger.warning(
-            f"SynonymFilter: matched {filtered_this_run} obsolete label(s)/synonym(s) in {ofname}"
-        )
+        logger.warning(f"SynonymFilter: matched {filtered_this_run} obsolete label(s)/synonym(s) in {ofname}")
     else:
         logger.info(f"SynonymFilter: no obsolete labels found in {ofname}")
 

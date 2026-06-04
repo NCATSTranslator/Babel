@@ -91,7 +91,9 @@ def test_nonmatching_label(tmp_path):
 def test_type_scoped_matches_when_type_present(tmp_path):
     entries = [{"label": "mongolism", "reason": "offensive", "only_for_types": ["biolink:Disease"]}]
     fltr = make_filter(tmp_path, entries)
-    assert fltr.should_suppress("mongolism", source="UMLS", node_types=["biolink:Disease", "biolink:NamedThing"]) is True
+    assert (
+        fltr.should_suppress("mongolism", source="UMLS", node_types=["biolink:Disease", "biolink:NamedThing"]) is True
+    )
 
 
 @pytest.mark.unit

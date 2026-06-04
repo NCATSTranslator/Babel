@@ -7,10 +7,10 @@ from urllib.parse import urlparse
 
 import curies
 
-from src.synonyms.filter import get_synonym_filter
 from src.LabeledID import LabeledID
 from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import PUBCHEMCOMPOUND
+from src.synonyms.filter import get_synonym_filter
 from src.util import (
     Text,
     get_biolink_model_toolkit,
@@ -105,7 +105,9 @@ class SynonymFactory:
             if pref not in self.synonyms:
                 self.load_synonyms(pref)
             for predicate, synonym in self.synonyms[pref][thisid]:
-                if synonym_filter.should_suppress(synonym, source=f"{pref} synonyms/labels file", node_types=node_types):
+                if synonym_filter.should_suppress(
+                    synonym, source=f"{pref} synonyms/labels file", node_types=node_types
+                ):
                     continue
                 node_synonyms.add((predicate, synonym))
             for predicate, synonym in self.common_synonyms.get(thisid, set()):
