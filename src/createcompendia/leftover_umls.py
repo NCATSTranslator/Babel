@@ -395,9 +395,7 @@ def write_leftover_umls(
         )
 
         logger.info(f"Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().")
-        reportf.write(
-            f"COUNT Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().\n"
-        )
+        reportf.write(f"COUNT Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().\n")
 
         # Per-compendium UMLS coverage.
         with open(report_dir / "compendium-coverage.csv", "w", newline="") as csvf:
