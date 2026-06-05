@@ -89,7 +89,7 @@ rule get_protein_pr_uniprotkb_relationships:
     benchmark:
         config["output_directory"] + "/benchmarks/get_protein_pr_uniprotkb_relationships.tsv"
     # Because we get this from UberGraph, we sometimes end up with incomplete/failed transfers and need to retry.
-    retries: 10
+    retries: 3
     run:
         protein.build_pr_uniprot_relationships(output.outfile, metadata_yaml=output.metadata_yaml)
 
