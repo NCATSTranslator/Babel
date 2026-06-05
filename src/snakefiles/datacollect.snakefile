@@ -405,7 +405,9 @@ rule get_ncbigene_labels_synonyms_and_taxa:
 
 rule get_ensembl:
     output:
-        ensembl_dir=directory(config["download_directory"] + "/ENSEMBL"),
+        # Declare only the sentinel file, not the directory. Snakemake deletes all declared
+        # outputs on failure; keeping the directory out of outputs preserves already-downloaded
+        # per-dataset TSV files so the job can resume from where it left off on retry.
         complete_file=config["download_directory"] + "/ENSEMBL/BioMartDownloadComplete",
     benchmark:
         config["output_directory"] + "/benchmarks/get_ensembl.tsv"
@@ -415,7 +417,8 @@ rule get_ensembl:
         cpus_per_task=1,
         runtime="6h",
     run:
-        ensembl.pull_ensembl(output.ensembl_dir, output.complete_file)
+        ensembl_dir = config["download_directory"] + "/ENSEMBL"
+        ensembl.pull_ensembl(ensembl_dir, output.complete_file)
 
 
 ### HGNC
