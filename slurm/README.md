@@ -102,9 +102,9 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 | `untyped_chemical_compendia` | `chemical.snakefile` | 512G | — | Pre-typing step |
 | `gene_compendia` | `gene.snakefile` | 256G | 6h | Gene graph |
 | `export_compendia_to_duckdb` | `duckdb.snakefile` | 512G | 6h | Per-compendium DuckDB export |
-| `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 1500G | — | Cross-compendium join |
-| `check_for_duplicate_curies` | `duckdb.snakefile` | 1500G | — | Cross-compendium join |
-| `check_for_duplicate_clique_leaders` | `duckdb.snakefile` | 1500G | — | Cross-compendium join |
+| `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 128G | — | Cross-compendium join (two-pass) |
+| `check_for_duplicate_curies` | `duckdb.snakefile` | 256G | — | Cross-compendium join (two-pass) |
+| `check_for_duplicate_clique_leaders` | `duckdb.snakefile` | 128G | — | Cross-compendium join (two-pass) |
 | `chembl_labels_and_smiles` | `datacollect.snakefile` | 128G | — | RDF parse |
 | `chemical_unichem_concordia` | `chemical.snakefile` | 128G | — | UniChem merge |
 | `generate_pubmed_concords` | `publications.snakefile` | 128G | 24h | Full PubMed parse |
