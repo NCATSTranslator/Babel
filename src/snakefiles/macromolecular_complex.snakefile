@@ -5,7 +5,7 @@ import src.snakefiles.util as util
 
 rule macromolecular_complex_ids:
     input:
-        infile=config["download_directory"] + "/ComplexPortal/559292_labels.tsv",
+        infile=config["download_directory"] + "/ComplexPortal/labels",
     output:
         outfile=config["intermediate_directory"] + "/macromolecular_complex/ids/ComplexPortal",
     benchmark:
@@ -16,8 +16,8 @@ rule macromolecular_complex_ids:
 
 rule macromolecular_complex_compendia:
     input:
-        labels=config["download_directory"] + "/ComplexPortal/559292_labels.tsv",
-        synonyms=config["download_directory"] + "/ComplexPortal/559292_synonyms.tsv",
+        labels=config["download_directory"] + "/ComplexPortal/labels",
+        synonyms=config["download_directory"] + "/ComplexPortal/synonyms",
         idlists=config["intermediate_directory"] + "/macromolecular_complex/ids/ComplexPortal",
         metadata_yaml=config["download_directory"] + "/ComplexPortal/metadata.yaml",
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",

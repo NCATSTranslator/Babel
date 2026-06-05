@@ -79,27 +79,27 @@ rule get_EFO_labels:
 
 rule get_complexportal:
     output:
-        config["download_directory"] + "/ComplexPortal" + "/559292.tsv",
+        config["download_directory"] + "/ComplexPortal/downloaded_tsv_files.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/get_complexportal.tsv"
     resources:
         mem="8G",
         cpus_per_task=1,
     run:
-        complexportal.pull_complexportal()
+        complexportal.pull_complexportal(output[0])
 
 
 rule get_complexportal_labels_and_synonyms:
     input:
-        infile=config["download_directory"] + "/ComplexPortal" + "/559292.tsv",
+        manifest=config["download_directory"] + "/ComplexPortal/downloaded_tsv_files.txt",
     output:
-        lfile=config["download_directory"] + "/ComplexPortal" + "/559292_labels.tsv",
-        sfile=config["download_directory"] + "/ComplexPortal" + "/559292_synonyms.tsv",
+        lfile=config["download_directory"] + "/ComplexPortal/labels",
+        sfile=config["download_directory"] + "/ComplexPortal/synonyms",
         metadata_yaml=config["download_directory"] + "/ComplexPortal/metadata.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/get_complexportal_labels_and_synonyms.tsv"
     run:
-        complexportal.make_labels_and_synonyms(input.infile, output.lfile, output.sfile, output.metadata_yaml)
+        complexportal.make_labels_and_synonyms(input.manifest, output.lfile, output.sfile, output.metadata_yaml)
 
 
 ### MODS
