@@ -20,7 +20,9 @@ FTP_HOST = "ftp.pantherdb.org"
 FTP_DIR = "/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/"
 FTP_FILE = "PTHR19.0_human"
 
-HTTP_BASE = "http://data.pantherdb.org/ftp/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/"
+HTTP_BASE = (
+    "http://data.pantherdb.org/ftp/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/"
+)
 HTTP_FILE = "PTHR19.0_human"
 
 
@@ -60,8 +62,6 @@ def test_panther_http_accessible_with_user_agent():
             chunk = resp.read(1024)
         assert len(chunk) > 0, "PANTHER HTTP endpoint returned an empty body"
     except urllib.error.HTTPError as e:
-        pytest.fail(
-            f"PANTHER HTTP URL {url} returned HTTP {e.code} with User-Agent '{get_user_agent()}'"
-        )
+        pytest.fail(f"PANTHER HTTP URL {url} returned HTTP {e.code} with User-Agent '{get_user_agent()}'")
     except (TimeoutError, urllib.error.URLError) as e:
         pytest.xfail(f"PANTHER HTTP endpoint unreachable: {e}")

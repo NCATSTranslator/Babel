@@ -5,7 +5,6 @@ Babel sends and that each file is a valid gzip archive.
 Run with: uv run pytest --network tests/datahandlers/test_unichem.py
 """
 
-import gzip
 import urllib.error
 import urllib.request
 
@@ -37,9 +36,7 @@ def test_unichem_url_accessible_with_user_agent(filename):
     assert len(raw) > 0, f"UniChem {filename} returned an empty body"
 
     # Confirm the bytes are a valid gzip stream (magic bytes 0x1f 0x8b).
-    assert raw[:2] == b"\x1f\x8b", (
-        f"UniChem {filename} does not appear to be a gzip file (got {raw[:2]!r})"
-    )
+    assert raw[:2] == b"\x1f\x8b", f"UniChem {filename} does not appear to be a gzip file (got {raw[:2]!r})"
 
     # Try to decompress the partial chunk to catch obviously truncated/corrupt files.
     try:
