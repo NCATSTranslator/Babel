@@ -21,8 +21,8 @@ data_sources: dict = {
 REFERENCE_HEADER = "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGMENT\n"
 
 
-def download_unichem():
-    """Download raw UniChem files. Format validation happens in filter_unichem."""
+def download_unichem_structure():
+    """Download UniChem structure file. Format validation happens in filter_unichem."""
     pull_via_wget(
         "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/",
         "structure.tsv.gz",
@@ -30,6 +30,10 @@ def download_unichem():
         subpath="UNICHEM",
         verify_gzip=True,
     )
+
+
+def download_unichem_reference():
+    """Download UniChem reference file. Format validation happens in filter_unichem."""
     pull_via_wget(
         "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/",
         "reference.tsv.gz",
@@ -56,7 +60,7 @@ def filter_unichem(ref_file, ref_filtered):
         if header_line != REFERENCE_HEADER:
             raise ValueError(
                 f"UniChem reference file {ref_file} has an unexpected header — "
-                f"re-run download_unichem to re-download.\n"
+                f"re-run download_unichem_reference to re-download.\n"
                 f"  Expected : {REFERENCE_HEADER!r}\n"
                 f"  Got      : {header_line!r}"
             )
