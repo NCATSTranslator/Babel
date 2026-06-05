@@ -7,6 +7,7 @@ import re
 import sys
 from collections import Counter
 from datetime import UTC, datetime
+from itertools import groupby
 from pathlib import Path
 
 _SUBMIT_RE = re.compile(
@@ -29,7 +30,8 @@ class _JobEvent:
     snakemake_jobid: int
     slurm_jobid: int
     rule_name: str
-    log_relative: str  # e.g. rule_get_HMDB/672.log
+    wildcard: str       # "" for simple rules; "Cell.txt" etc. for parametrised rules
+    log_relative: str   # e.g. rule_get_HMDB/672.log
     submitted_at: datetime
     finished_at: datetime | None = None
     failed: bool = False
@@ -71,11 +73,14 @@ def _parse_job_events(err_file: Path) -> list[_JobEvent]:
         if m := _SUBMIT_RE.search(line):
             ts, snakemake_id, slurm_id, log_path = m.group(1), int(m.group(2)), int(m.group(3)), m.group(4)
             rel = _log_relative(log_path)
-            rule = rel.split("/")[0][len("rule_") :]
+            parts = rel.split("/")
+            rule = parts[0][len("rule_") :]
+            wildcard = "/".join(parts[1:-1])
             jobs[snakemake_id] = _JobEvent(
                 snakemake_jobid=snakemake_id,
                 slurm_jobid=slurm_id,
                 rule_name=rule,
+                wildcard=wildcard,
                 log_relative=rel,
                 submitted_at=_parse_ts(ts),
             )
@@ -97,65 +102,86 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
         return
 
     now = datetime.now(UTC)
-    completed = [j for j in jobs if j.finished_at and not j.failed]
-    failed = [j for j in jobs if j.failed]
-    incomplete = [j for j in jobs if not j.finished_at and not j.failed]
+
+    # Group jobs by logical task (rule + wildcard), sorted by submission time within each group.
+    sorted_jobs = sorted(jobs, key=lambda j: (j.rule_name, j.wildcard, j.submitted_at))
+    completed_groups: list[list[_JobEvent]] = []
+    failed_groups: list[list[_JobEvent]] = []
+    incomplete_groups: list[list[_JobEvent]] = []
+    for _, grp in groupby(sorted_jobs, key=lambda j: (j.rule_name, j.wildcard)):
+        group = list(grp)
+        running = [j for j in group if not j.finished_at and not j.failed]
+        if running:
+            incomplete_groups.append(group)
+        elif any(j.finished_at and not j.failed for j in group):
+            completed_groups.append(group)
+        else:
+            failed_groups.append(group)
 
     # Completed: unique rule names on one line.
     seen: set[str] = set()
     unique_completed: list[str] = []
-    for j in completed:
-        if j.rule_name not in seen:
-            seen.add(j.rule_name)
-            unique_completed.append(j.rule_name)
+    for group in completed_groups:
+        name = group[0].rule_name
+        if name not in seen:
+            seen.add(name)
+            unique_completed.append(name)
     if unique_completed:
-        names = ", ".join(unique_completed)
-        print(f"Found {len(unique_completed)} completed rule(s): {names}", file=sys.stderr)
+        print(f"Found {len(unique_completed)} completed rule(s): {', '.join(unique_completed)}", file=sys.stderr)
     else:
         print("Found 0 completed rules.", file=sys.stderr)
 
-    # Failed: summary line with retry counts, then one detail line per job.
-    if failed:
-        attempts: Counter[str] = Counter(j.rule_name for j in failed)
+    # Failed: only truly-dead tasks (no active retry). Summary line + one detail line per job.
+    if failed_groups:
+        all_failed_jobs = [j for g in failed_groups for j in g]
+        attempts: Counter[str] = Counter(g[0].rule_name for g in failed_groups)
         seen_names: set[str] = set()
         name_parts: list[str] = []
-        for j in failed:
-            if j.rule_name not in seen_names:
-                seen_names.add(j.rule_name)
-                c = attempts[j.rule_name]
-                name_parts.append(f"{j.rule_name} (x{c})" if c > 1 else j.rule_name)
+        for group in failed_groups:
+            name = group[0].rule_name
+            if name not in seen_names:
+                seen_names.add(name)
+                c = attempts[name]
+                name_parts.append(f"{name} (x{c})" if c > 1 else name)
         print(
-            f"Found {len(failed)} failed job(s) across {len(name_parts)} rule(s): {', '.join(name_parts)}",
+            f"Found {len(all_failed_jobs)} failed job(s) across {len(name_parts)} rule(s): {', '.join(name_parts)}",
             file=sys.stderr,
         )
-        for j in sorted(failed, key=lambda x: x.submitted_at):
-            duration_str = (
-                _fmt_duration((j.finished_at - j.submitted_at).total_seconds()) if j.finished_at else "unknown"
-            )
-            log_display = logs_dir / j.log_relative
+        for j in sorted(all_failed_jobs, key=lambda x: x.submitted_at):
+            duration_str = _fmt_duration((j.finished_at - j.submitted_at).total_seconds()) if j.finished_at else "unknown"
             print(
                 f" - Rule {j.rule_name} (SLURM jobid {j.slurm_jobid}):"
                 f" failed after {duration_str},"
-                f" log at {log_display}",
+                f" log at {logs_dir / j.log_relative}",
                 file=sys.stderr,
             )
 
-    # Incomplete: one line per running job.
-    if incomplete:
-        print(f"Found {len(incomplete)} incomplete rule(s):", file=sys.stderr)
-        for j in sorted(incomplete, key=lambda x: x.submitted_at):
+    # Incomplete: one line per running job, with indented prior-failure sub-lines if retried.
+    if incomplete_groups:
+        print(f"Found {len(incomplete_groups)} incomplete rule(s):", file=sys.stderr)
+        for group in sorted(incomplete_groups, key=lambda g: g[0].submitted_at):
+            running = [j for j in group if not j.finished_at and not j.failed]
+            prior_failures = [j for j in group if j.failed]
+            j = running[0]
             elapsed = (now - j.submitted_at).total_seconds()
             timeout_min = _get_runtime_minutes(j.log_relative, logs_dir)
             elapsed_str = _fmt_duration(elapsed)
             timeout_str = _fmt_duration(timeout_min * 60)
             remaining_str = _fmt_duration(max(0.0, timeout_min * 60 - elapsed))
-            log_display = logs_dir / j.log_relative
             print(
                 f" - Rule {j.rule_name} (SLURM jobid {j.slurm_jobid}):"
                 f" {elapsed_str} / {timeout_str} ({remaining_str} left),"
-                f" log at {log_display}",
+                f" log at {logs_dir / j.log_relative}",
                 file=sys.stderr,
             )
+            for f in prior_failures:
+                dur = _fmt_duration((f.finished_at - f.submitted_at).total_seconds()) if f.finished_at else "unknown"
+                print(
+                    f"   - Prior failure (SLURM jobid {f.slurm_jobid}):"
+                    f" failed after {dur},"
+                    f" log at {logs_dir / f.log_relative}",
+                    file=sys.stderr,
+                )
     else:
         print("Found 0 incomplete rules.", file=sys.stderr)
 
