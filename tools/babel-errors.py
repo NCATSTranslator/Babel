@@ -68,7 +68,10 @@ def _get_runtime_minutes(log_relative: str, logs_dir: Path, default: int = 120) 
 
 def _parse_job_events(err_file: Path) -> list[_JobEvent]:
     """Return a list of SLURM job events parsed from the main Snakemake error log."""
-    jobs: dict[int, _JobEvent] = {}
+    # Snakemake reuses the same snakemake jobid across retries, so we track both the
+    # currently-open attempt per snakemake jobid and all superseded attempts separately.
+    current: dict[int, _JobEvent] = {}
+    all_jobs: list[_JobEvent] = []
     for line in err_file.read_text(errors="replace").splitlines():
         if m := _SUBMIT_RE.search(line):
             ts, snakemake_id, slurm_id, log_path = m.group(1), int(m.group(2)), int(m.group(3)), m.group(4)
@@ -76,7 +79,9 @@ def _parse_job_events(err_file: Path) -> list[_JobEvent]:
             parts = rel.split("/")
             rule = parts[0][len("rule_") :]
             wildcard = "/".join(parts[1:-1])
-            jobs[snakemake_id] = _JobEvent(
+            if snakemake_id in current:
+                all_jobs.append(current[snakemake_id])  # save prior attempt before retry overwrites it
+            current[snakemake_id] = _JobEvent(
                 snakemake_jobid=snakemake_id,
                 slurm_jobid=slurm_id,
                 rule_name=rule,
@@ -86,14 +91,15 @@ def _parse_job_events(err_file: Path) -> list[_JobEvent]:
             )
         elif m := _FINISH_RE.search(line):
             snakemake_id = int(m.group(2))
-            if snakemake_id in jobs:
-                jobs[snakemake_id].finished_at = _parse_ts(m.group(1))
+            if snakemake_id in current:
+                current[snakemake_id].finished_at = _parse_ts(m.group(1))
         elif m := _ERROR_RE.search(line):
             snakemake_id = int(m.group(3))
-            if snakemake_id in jobs:
-                jobs[snakemake_id].failed = True
-                jobs[snakemake_id].finished_at = _parse_ts(m.group(1))
-    return list(jobs.values())
+            if snakemake_id in current:
+                current[snakemake_id].failed = True
+                current[snakemake_id].finished_at = _parse_ts(m.group(1))
+    all_jobs.extend(current.values())
+    return all_jobs
 
 
 def print_job_summary(err_file: Path, logs_dir: Path) -> None:
@@ -134,14 +140,15 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
     # Failed: only truly-dead tasks (no active retry). Summary line + one detail line per job.
     if failed_groups:
         all_failed_jobs = [j for g in failed_groups for j in g]
-        attempts: Counter[str] = Counter(g[0].rule_name for g in failed_groups)
+        # Count total job attempts per rule name (xN shows how many times the rule was retried).
+        attempt_counts: Counter[str] = Counter(j.rule_name for j in all_failed_jobs)
         seen_names: set[str] = set()
         name_parts: list[str] = []
         for group in failed_groups:
             name = group[0].rule_name
             if name not in seen_names:
                 seen_names.add(name)
-                c = attempts[name]
+                c = attempt_counts[name]
                 name_parts.append(f"{name} (x{c})" if c > 1 else name)
         print(
             f"Found {len(all_failed_jobs)} failed job(s) across {len(name_parts)} rule(s): {', '.join(name_parts)}",
