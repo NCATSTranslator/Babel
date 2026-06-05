@@ -206,7 +206,8 @@ named by its CURIE prefix); see `docs/sources/README.md` for the convention and 
 there first when working on a specific vocabulary, and add to it when you learn something
 non-obvious about how Babel ingests that source. Keep the detail in the source file — `CLAUDE.md`
 should point here, not duplicate it. Documented so far: ComplexPortal
-(`docs/sources/COMPLEXPORTAL/Ingestion.md`), MeSH (`docs/sources/MESH/Ingestion.md`), and UMLS
+(`docs/sources/COMPLEXPORTAL/Ingestion.md`), Ensembl/BioMart
+(`docs/sources/ENSEMBL/Download.md`), MeSH (`docs/sources/MESH/Ingestion.md`), and UMLS
 (`docs/sources/UMLS/Leftover.md`). Cross-cutting download/discovery patterns (HTTP autoindex
 listing vs FTP `NLST`) live in `docs/sources/DownloadPatterns.md`.
 
