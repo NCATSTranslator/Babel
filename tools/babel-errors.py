@@ -124,6 +124,35 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
         else:
             failed_groups.append(group)
 
+    # Incomplete: one line per running job, with indented prior-failure sub-lines if retried.
+    if incomplete_groups:
+        print(f"Found {len(incomplete_groups)} incomplete rule(s):", file=sys.stderr)
+        for group in sorted(incomplete_groups, key=lambda g: g[0].submitted_at):
+            running = [j for j in group if not j.finished_at and not j.failed]
+            prior_failures = [j for j in group if j.failed]
+            j = running[0]
+            elapsed = (now - j.submitted_at).total_seconds()
+            timeout_min = _get_runtime_minutes(j.log_relative, logs_dir)
+            elapsed_str = _fmt_duration(elapsed)
+            timeout_str = _fmt_duration(timeout_min * 60)
+            remaining_str = _fmt_duration(max(0.0, timeout_min * 60 - elapsed))
+            print(
+                f" - Rule {j.rule_name} (SLURM jobid {j.slurm_jobid}):"
+                f" {elapsed_str} / {timeout_str} ({remaining_str} left),"
+                f" log at {logs_dir / j.log_relative}",
+                file=sys.stderr,
+            )
+            for f in prior_failures:
+                dur = _fmt_duration((f.finished_at - f.submitted_at).total_seconds()) if f.finished_at else "unknown"
+                print(
+                    f"   - Prior failure (SLURM jobid {f.slurm_jobid}):"
+                    f" failed after {dur},"
+                    f" log at {logs_dir / f.log_relative}",
+                    file=sys.stderr,
+                )
+    else:
+        print("Found 0 incomplete rules.", file=sys.stderr)
+
     # Completed: unique rule names on one line.
     seen: set[str] = set()
     unique_completed: list[str] = []
@@ -164,35 +193,6 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
                 f" log at {logs_dir / j.log_relative}",
                 file=sys.stderr,
             )
-
-    # Incomplete: one line per running job, with indented prior-failure sub-lines if retried.
-    if incomplete_groups:
-        print(f"Found {len(incomplete_groups)} incomplete rule(s):", file=sys.stderr)
-        for group in sorted(incomplete_groups, key=lambda g: g[0].submitted_at):
-            running = [j for j in group if not j.finished_at and not j.failed]
-            prior_failures = [j for j in group if j.failed]
-            j = running[0]
-            elapsed = (now - j.submitted_at).total_seconds()
-            timeout_min = _get_runtime_minutes(j.log_relative, logs_dir)
-            elapsed_str = _fmt_duration(elapsed)
-            timeout_str = _fmt_duration(timeout_min * 60)
-            remaining_str = _fmt_duration(max(0.0, timeout_min * 60 - elapsed))
-            print(
-                f" - Rule {j.rule_name} (SLURM jobid {j.slurm_jobid}):"
-                f" {elapsed_str} / {timeout_str} ({remaining_str} left),"
-                f" log at {logs_dir / j.log_relative}",
-                file=sys.stderr,
-            )
-            for f in prior_failures:
-                dur = _fmt_duration((f.finished_at - f.submitted_at).total_seconds()) if f.finished_at else "unknown"
-                print(
-                    f"   - Prior failure (SLURM jobid {f.slurm_jobid}):"
-                    f" failed after {dur},"
-                    f" log at {logs_dir / f.log_relative}",
-                    file=sys.stderr,
-                )
-    else:
-        print("Found 0 incomplete rules.", file=sys.stderr)
 
 
 def find_err_file(version: str | None, logs_dir: Path) -> Path:
