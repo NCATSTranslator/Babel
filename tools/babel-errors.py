@@ -5,6 +5,7 @@ import argparse
 import dataclasses
 import re
 import sys
+from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -113,10 +114,30 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
     else:
         print("Found 0 completed rules.", file=sys.stderr)
 
-    # Failed: count only (details come from the main report).
+    # Failed: summary line with retry counts, then one detail line per job.
     if failed:
-        failed_names = ", ".join(dict.fromkeys(j.rule_name for j in failed))
-        print(f"Found {len(failed)} failed rule(s): {failed_names}", file=sys.stderr)
+        attempts: Counter[str] = Counter(j.rule_name for j in failed)
+        seen_names: set[str] = set()
+        name_parts: list[str] = []
+        for j in failed:
+            if j.rule_name not in seen_names:
+                seen_names.add(j.rule_name)
+                c = attempts[j.rule_name]
+                name_parts.append(f"{j.rule_name} (x{c})" if c > 1 else j.rule_name)
+        print(
+            f"Found {len(failed)} failed job(s) across {len(name_parts)} rule(s):"
+            f" {', '.join(name_parts)}",
+            file=sys.stderr,
+        )
+        for j in sorted(failed, key=lambda x: x.submitted_at):
+            duration_str = _fmt_duration((j.finished_at - j.submitted_at).total_seconds()) if j.finished_at else "unknown"
+            log_display = logs_dir / j.log_relative
+            print(
+                f" - Rule {j.rule_name} (SLURM jobid {j.slurm_jobid}):"
+                f" failed after {duration_str},"
+                f" log at {log_display}",
+                file=sys.stderr,
+            )
 
     # Incomplete: one line per running job.
     if incomplete:
