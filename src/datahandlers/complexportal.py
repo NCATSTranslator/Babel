@@ -5,6 +5,7 @@ from html.parser import HTMLParser
 
 from src.babel_utils import get_config, get_user_agent, pull_via_urllib
 from src.metadata.provenance import write_metadata
+from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import COMPLEXPORTAL
 
 COMPLEXPORTAL_COMPLEXTAB_URL = "https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/"
@@ -98,9 +99,9 @@ def make_labels_and_synonyms(manifest_file, labelfile, synfile, metadata_yaml):
                     synonyms_str = sline[2]  # aliases
                     if synonyms_str != "-":
                         for syn in synonyms_str.split("|"):
-                            synonym_row = (identifier, syn)
+                            synonym_row = (identifier, HAS_EXACT_SYNONYM, syn)
                             if synonym_row not in used_synonyms:
-                                outsyn.write(f"{identifier}\t{syn}\n")
+                                outsyn.write(f"{identifier}\t{HAS_EXACT_SYNONYM}\t{syn}\n")
                                 used_synonyms.add(synonym_row)
 
     write_metadata(

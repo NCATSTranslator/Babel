@@ -3,8 +3,9 @@ from unittest.mock import patch
 import pytest
 
 from src.datahandlers import complexportal
+from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import COMPLEXPORTAL
-from tests.conftest import assert_labels_file_valid, read_tsv
+from tests.conftest import assert_labels_file_valid, assert_synonyms_file_valid
 
 
 class _FakeResponse:
@@ -95,7 +96,7 @@ def test_make_labels_and_synonyms_combines_manifest_files(tmp_path):
     complexportal.make_labels_and_synonyms(str(manifest), str(labels), str(synonyms), str(metadata))
 
     label_rows = assert_labels_file_valid(str(labels))
-    synonym_rows = read_tsv(str(synonyms))
+    synonym_rows = assert_synonyms_file_valid(str(synonyms))
 
     assert label_rows == [
         [f"{COMPLEXPORTAL}:CPX-1", "Mediator complex"],
@@ -103,8 +104,8 @@ def test_make_labels_and_synonyms_combines_manifest_files(tmp_path):
         [f"{COMPLEXPORTAL}:CPX-3", "No alias complex"],
     ]
     assert synonym_rows == [
-        [f"{COMPLEXPORTAL}:CPX-1", "Mediator"],
-        [f"{COMPLEXPORTAL}:CPX-1", "Mediator complex"],
-        [f"{COMPLEXPORTAL}:CPX-2", "Mediator"],
+        [f"{COMPLEXPORTAL}:CPX-1", HAS_EXACT_SYNONYM, "Mediator"],
+        [f"{COMPLEXPORTAL}:CPX-1", HAS_EXACT_SYNONYM, "Mediator complex"],
+        [f"{COMPLEXPORTAL}:CPX-2", HAS_EXACT_SYNONYM, "Mediator"],
     ]
     assert metadata.exists()
