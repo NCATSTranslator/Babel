@@ -16,13 +16,13 @@ data_sources: dict = {
     "34": DRUGCENTRAL,
 }
 
-# Expected header of reference.tsv.gz — shared by pull_unichem() (validated at
-# download time) and filter_unichem() (validated again at filter time).
-REFERENCE_HEADER = "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n"
+# Expected header of reference.tsv.gz — validated by filter_unichem() at filter time.
+# Note: upstream uses "ASSIGMENT" (missing 'N') — this matches the upstream typo exactly.
+REFERENCE_HEADER = "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGMENT\n"
 
 
-def pull_unichem():
-    """Download UniChem files."""
+def download_unichem():
+    """Download raw UniChem files. Format validation happens in filter_unichem."""
     pull_via_urllib(
         "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/",
         "structure.tsv.gz",
@@ -30,25 +30,13 @@ def pull_unichem():
         subpath="UNICHEM",
         verify_gzip=True,
     )
-    ref_path = pull_via_urllib(
+    pull_via_urllib(
         "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/",
         "reference.tsv.gz",
         decompress=False,
         subpath="UNICHEM",
         verify_gzip=True,
     )
-
-    # Validate the header immediately after downloading so that get_unichem fails
-    # (and Snakemake deletes its outputs) rather than letting filter_unichem fail
-    # later on a file whose format has silently changed upstream.
-    with gzip.open(ref_path, "rt") as f:
-        header = f.readline()
-    if header != REFERENCE_HEADER:
-        raise RuntimeError(
-            f"UniChem reference.tsv.gz has an unexpected header — the upstream format may have changed.\n"
-            f"  Expected : {REFERENCE_HEADER!r}\n"
-            f"  Got      : {header!r}"
-        )
 
 
 def filter_unichem(ref_file, ref_filtered):
@@ -68,7 +56,7 @@ def filter_unichem(ref_file, ref_filtered):
         if header_line != REFERENCE_HEADER:
             raise ValueError(
                 f"UniChem reference file {ref_file} has an unexpected header — "
-                f"re-run get_unichem to re-download.\n"
+                f"re-run download_unichem to re-download.\n"
                 f"  Expected : {REFERENCE_HEADER!r}\n"
                 f"  Got      : {header_line!r}"
             )
