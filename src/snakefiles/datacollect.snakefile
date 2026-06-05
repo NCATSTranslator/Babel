@@ -212,6 +212,9 @@ rule get_uniprotkb_labels:
         outfile=config["download_directory"] + "/UniProtKB/labels",
     benchmark:
         config["output_directory"] + "/benchmarks/get_uniprotkb_labels.tsv"
+    resources:
+        # Peaks at ~41 GB on babel-1.17 (see docs/tools/Resources.md); far over the 16 GB default.
+        mem="64G",
     run:
         uniprotkb.pull_uniprot_labels(input.sprot_input, input.trembl_input, output.outfile)
 
