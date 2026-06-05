@@ -61,6 +61,10 @@ in parallel.
 
 ## Build Process
 
+When running on the RENCI Hatteras cluster via SLURM, see [Performance.md](Performance.md) for how
+per-rule memory/CPU/runtime limits are measured (Snakemake `benchmark:` TSVs) and right-sized with
+`tools/slurm`, and how to find which failed rules to re-run when a run stalls.
+
 The information contained here is not required to create the compendia, but may be useful to
 understand. The build process is divided into two parts:
 
