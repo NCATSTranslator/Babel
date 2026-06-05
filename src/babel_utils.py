@@ -29,7 +29,7 @@ from src.util import Text, get_config, get_logger, get_memory_usage_summary
 
 # Configuration items
 WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES = 1_000_000
-MAX_DOWNLOAD_ERROR = 10
+MAX_DOWNLOAD_ERROR = 1
 
 
 def get_user_agent() -> str:
@@ -363,7 +363,7 @@ def pull_via_wget(
     continue_incomplete: bool = True,
     timestamping=True,
     recurse: WgetRecursionOptions = WgetRecursionOptions.NO_RECURSION,
-    retries: int = 10,
+    retries: int = 1,
     connect_timeout: int = 60,
     read_timeout: int = 300,
 ):
