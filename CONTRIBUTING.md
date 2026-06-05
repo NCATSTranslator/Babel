@@ -42,13 +42,13 @@ For a detailed guide to the development workflow — including how to obtain pre
 individual compendia, and ideas for making the pipeline easier to work with — see
 [docs/Development.md](./docs/Development.md).
 
-We use three linters to check the style of submitted code in GitHub pull
+We use several linters and formatters to check the style of submitted code in GitHub pull
 requests -- don't worry if this is difficult to do at your end, as it is easy to
 fix in a pull request:
 
 - [ruff](https://docs.astral.sh/ruff/) for Python code
-  - You can run this locally by running `uv run ruff check`.
-  - You can use `uv run ruff check --fix` to automatically fix some issues.
+  - You can run `uv run ruff check` to lint and `uv run ruff format --check` to check formatting.
+  - You can use `uv run ruff check --fix` and `uv run ruff format` to automatically fix issues.
 - [snakefmt](https://github.com/snakemake/snakefmt) for Snakemake files
   - You can run this locally by running
     `uv run snakefmt --check --compact-diff .`.
@@ -63,9 +63,11 @@ Tests are written using [pytest](https://pytest.org/) and are present in the
 `tests` directory. You can run these tests by running
 `PYTHONPATH=. uv run pytest`.
 
-**Note**: not all tests currently pass! We are
-[working on that](https://github.com/NCATSTranslator/Babel/issues/602), and if
-you can help get them to pass, that would be great!
+For the full test taxonomy — marks (`unit`, `network`, `slow`, `pipeline`),
+where to add a new test, and how to run specific subsets — see
+[tests/README.md](./tests/README.md). For the testing strategy (what to
+automate, recommended cadence, GitHub Actions vs HPC self-hosted runner
+trade-offs), see [docs/Testing.md](./docs/Testing.md).
 
 ### Writing a new concord, compendium, or data source
 

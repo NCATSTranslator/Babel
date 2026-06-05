@@ -50,7 +50,6 @@ rule chemical_pubchem_ids:
         # "awk '{{print $1\"\tbiolink:ChemicalSubstance\"}}' {input.infile} > {output.outfile}"
 
 
-
 rule chemical_chembl_ids:
     input:
         labelfile=config["download_directory"] + "/CHEMBL.COMPOUND/labels",
@@ -121,11 +120,11 @@ rule chemical_drugcentral_ids:
 
 
 rule chemical_chebi_ids:
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     output:
         outfile=config["intermediate_directory"] + "/chemicals/ids/CHEBI",
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_chebi_ids.tsv"
+    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     run:
         chemicals.write_chebi_ids(output.outfile)
 
@@ -189,7 +188,7 @@ rule get_chemical_wikipedia_relationships:
     benchmark:
         config["output_directory"] + "/benchmarks/get_chemical_wikipedia_relationships.tsv"
     run:
-        chemicals.get_wikipedia_relationships(output.outfile, output.metadata_yaml)
+        chemicals.get_wikipedia_relationships(output.outfile, config, output.metadata_yaml)
 
 
 rule get_chemical_mesh_relationships:
@@ -282,8 +281,6 @@ rule get_chebi_concord:
 
 
 rule chemical_unichem_concordia:
-    resources:
-        mem="128G",
     input:
         concords=expand(
             "{dd}/chemicals/concords/UNICHEM/UNICHEM_{ucc}",
@@ -294,13 +291,13 @@ rule chemical_unichem_concordia:
         unichemgroup=config["intermediate_directory"] + "/chemicals/partials/UNICHEM",
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_unichem_concordia.tsv"
+    resources:
+        mem="128G",
     run:
         chemicals.combine_unichem(input.concords, output.unichemgroup)
 
 
 rule untyped_chemical_compendia:
-    resources:
-        mem="512G",
     input:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["chemical_labels"]),
         synonyms=expand("{dd}/{ap}/synonyms", dd=config["download_directory"], ap=config["chemical_synonyms"]),
@@ -320,6 +317,8 @@ rule untyped_chemical_compendia:
         untyped_meta=config["intermediate_directory"] + "/chemicals/partials/metadata-untyped_compendium.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/untyped_chemical_compendia.tsv"
+    resources:
+        mem="512G",
     run:
         chemicals.build_untyped_compendia(
             input.concords,
@@ -333,9 +332,6 @@ rule untyped_chemical_compendia:
 
 
 rule chemical_compendia:
-    resources:
-        mem="512G",
-        runtime="6h",
     input:
         typesfile=config["intermediate_directory"] + "/chemicals/partials/types",
         untyped_file=config["intermediate_directory"] + "/chemicals/partials/untyped_compendium",
@@ -348,6 +344,9 @@ rule chemical_compendia:
         expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["chemical_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_compendia.tsv"
+    resources:
+        mem="512G",
+        runtime="6h",
     run:
         chemicals.build_compendia(
             input.typesfile,

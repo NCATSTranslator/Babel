@@ -8,7 +8,9 @@ from urllib.parse import urlparse
 import curies
 
 from src.LabeledID import LabeledID
+from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import PUBCHEMCOMPOUND
+from src.synonyms.filter import get_synonym_filter
 from src.util import (
     Text,
     get_biolink_model_toolkit,
@@ -59,7 +61,9 @@ class SynonymFactory:
                     row = json.loads(line)
                     self.common_synonyms[row["curie"]].add((row["predicate"], row["synonym"]))
                     count_common_file_synonyms += 1
-            logger.info(f"Loaded {count_common_file_synonyms:,} common synonyms from {common_synonyms_path}: {get_memory_usage_summary()}")
+            logger.info(
+                f"Loaded {count_common_file_synonyms:,} common synonyms from {common_synonyms_path}: {get_memory_usage_summary()}"
+            )
 
         logger.info(f"Created SynonymFactory for directory {syndir}")
 
@@ -72,9 +76,13 @@ class SynonymFactory:
         if os.path.exists(labelfname):
             with open(labelfname) as inf:
                 for line in inf:
-                    x = line.strip().split("\t")
-                    lbs[x[0]].add(("http://www.geneontology.org/formats/oboInOwl#hasExactSynonym", x[1]))
-                    count_labels += 1
+                    x = line.strip().split("\t", maxsplit=1)
+                    if len(x) == 1:
+                        lbs[x[0]].add((HAS_EXACT_SYNONYM, ""))
+                    elif len(x) == 2:
+                        lbs[x[0]].add((HAS_EXACT_SYNONYM, x[1]))
+                        if x[1]:
+                            count_labels += 1
         synfname = os.path.join(self.synonym_dir, prefix, "synonyms")
         if os.path.exists(synfname):
             with open(synfname) as inf:
@@ -85,16 +93,27 @@ class SynonymFactory:
                     lbs[x[0]].add((x[1], x[2]))
                     count_synonyms += 1
         self.synonyms[prefix] = lbs
-        logger.info(f"Loaded {count_labels:,} labels and {count_synonyms:,} synonyms for {prefix} from {labelfname}: {get_memory_usage_summary()}")
+        logger.info(
+            f"Loaded {count_labels:,} labels and {count_synonyms:,} synonyms for {prefix} from {labelfname}: {get_memory_usage_summary()}"
+        )
 
-    def get_synonyms(self, identifiers: list[str]):
+    def get_synonyms(self, identifiers: list[str], node_types: list = None):
+        synonym_filter = get_synonym_filter()
         node_synonyms = set()
         for thisid in identifiers:
             pref = Text.get_prefix(thisid)
             if pref not in self.synonyms:
                 self.load_synonyms(pref)
-            node_synonyms.update(self.synonyms[pref][thisid])
-            node_synonyms.update(self.common_synonyms.get(thisid, set()))
+            for predicate, synonym in self.synonyms[pref][thisid]:
+                if synonym_filter.should_suppress(
+                    synonym, source=f"{pref} synonyms/labels file", node_types=node_types
+                ):
+                    continue
+                node_synonyms.add((predicate, synonym))
+            for predicate, synonym in self.common_synonyms.get(thisid, set()):
+                if synonym_filter.should_suppress(synonym, source="common synonyms file", node_types=node_types):
+                    continue
+                node_synonyms.add((predicate, synonym))
         return node_synonyms
 
 
@@ -111,7 +130,9 @@ class DescriptionFactory:
         self.config = get_config()
         self.common_descriptions = defaultdict(list)
         for common_descriptions_file in self.config["common"]["descriptions"]:
-            common_descriptions_path = os.path.join(self.config["download_directory"], "common", common_descriptions_file)
+            common_descriptions_path = os.path.join(
+                self.config["download_directory"], "common", common_descriptions_file
+            )
             count_common_file_descriptions = 0
             with open(common_descriptions_path) as descriptionsf:
                 # Note that these files may contain ANY CURIE -- we should only fallback to this if we have no other
@@ -196,7 +217,10 @@ class TSVSQLiteLoader:
 
     def __str__(self):
         sqlite_counts = self.get_sqlite_counts()
-        sqlite_counts_str = ", ".join(f"{prefix}: {count:,} rows" for prefix, count in sorted(sqlite_counts.items(), key=lambda x: x[1], reverse=True))
+        sqlite_counts_str = ", ".join(
+            f"{prefix}: {count:,} rows"
+            for prefix, count in sorted(sqlite_counts.items(), key=lambda x: x[1], reverse=True)
+        )
         return f"TSVSQLiteLoader({self.download_dir}, {self.filename}, {self.format}) containing {len(self.sqlites)} SQLite DBs ({sqlite_counts_str})"
 
     def get_sqlite_counts(self):
@@ -227,7 +251,9 @@ class TSVSQLiteLoader:
         conn.execute(f"CREATE TABLE {prefix} (curie1 TEXT, curie2 TEXT)")
 
         # Load taxa into memory.
-        logger.info(f"Reading records from {tsv_filename} into memory to load into SQLite: {get_memory_usage_summary()}")
+        logger.info(
+            f"Reading records from {tsv_filename} into memory to load into SQLite: {get_memory_usage_summary()}"
+        )
         records = []
         record_count = 0
         with open(tsv_filename) as inf:
@@ -246,10 +272,14 @@ class TSVSQLiteLoader:
         # Insert any remaining records.
         logger.info(f"Inserting {len(records):,} records from {tsv_filename} into SQLite: {get_memory_usage_summary()}")
         conn.executemany(f"INSERT INTO {prefix} VALUES (?, ?)", records)
-        logger.info(f"Creating a case-insensitive index for the {record_count:,} records loaded into SQLite: {get_memory_usage_summary()}")
+        logger.info(
+            f"Creating a case-insensitive index for the {record_count:,} records loaded into SQLite: {get_memory_usage_summary()}"
+        )
         conn.execute(f"CREATE INDEX curie1_idx ON {prefix}(curie1)")
         conn.commit()
-        logger.info(f"Loaded {record_count:,} records from {tsv_filename} into SQLite table {prefix}: {get_memory_usage_summary()}")
+        logger.info(
+            f"Loaded {record_count:,} records from {tsv_filename} into SQLite table {prefix}: {get_memory_usage_summary()}"
+        )
         self.sqlites[prefix] = conn
         return True
 
@@ -341,7 +371,9 @@ class InformationContentFactory:
 
         unmapped_urls = []
         biolink_prefix_map = get_biolink_prefix_map()
-        ubergraph_iri_stem_to_prefix_map = curies.Converter.from_reverse_prefix_map(config["ubergraph_iri_stem_to_prefix_map"])
+        ubergraph_iri_stem_to_prefix_map = curies.Converter.from_reverse_prefix_map(
+            config["ubergraph_iri_stem_to_prefix_map"]
+        )
 
         count_by_prefix = defaultdict(int)
         with open(ic_file) as inf:
@@ -438,13 +470,6 @@ class NodeFactory:
         logger.info(f"NodeFactory({self.label_dir}, {self.biolink_version}).get_prefixes({input_type}) called")
         j = self.toolkit.get_element(input_type)
         prefs = j["id_prefixes"]
-        # biolink doesnt yet include UMLS as a valid prefix for biological process. There is a PR here:
-        # https://github.com/biolink/biolink-model/pull/1541
-        # once that's merged and makes its way to BMT, we can remove the following hack:
-        ### HACK ###
-        if input_type == "biolink:BiologicalProcess":
-            prefs.append("UMLS")
-        ### END HACK ###
         if len(prefs) == 0:
             raise RuntimeError(f"No Biolink prefixes for {input_type}")
         # The pref are in a particular order, but apparently they can have dups (ugh)
@@ -494,21 +519,28 @@ class NodeFactory:
 
     def load_extra_labels(self, prefix):
         if self.label_dir is None:
-            logger.warning(f"no label_dir specified in load_extra_labels({self}, {prefix}), can't load extra labels for {prefix}. Skipping.")
+            logger.warning(
+                f"no label_dir specified in load_extra_labels({self}, {prefix}), can't load extra labels for {prefix}. Skipping."
+            )
             return
         if prefix is None:
-            logger.warning(f"no prefix specified in load_extra_labels({self}, {prefix}), can't load extra labels. Skipping.")
+            logger.warning(
+                f"no prefix specified in load_extra_labels({self}, {prefix}), can't load extra labels. Skipping."
+            )
             return
         labelfname = os.path.join(self.label_dir, prefix, "labels")
         lbs = {}
         if os.path.exists(labelfname):
             with open(labelfname) as inf:
                 for line in inf:
-                    x = line.strip().split("\t")
-                    lbs[x[0]] = x[1]
+                    x = line.strip().split("\t", maxsplit=1)
+                    if len(x) == 1:
+                        lbs[x[0]] = ""
+                    else:
+                        lbs[x[0]] = x[1]
         self.extra_labels[prefix] = lbs
 
-    def apply_labels(self, input_identifiers, labels):
+    def apply_labels(self, input_identifiers, labels, node_types=None):
         # Before we work on the labels (or try to load any extra labels), let's load up the common labels.
         config = get_config()
         if self.common_labels is None:
@@ -531,7 +563,11 @@ class NodeFactory:
                                 continue
                         self.common_labels[x[0]] = x[1]
                         count_common_file_labels += 1
-                logger.info(f"Loaded {count_common_file_labels:,} common labels from {common_labels_path}: {get_memory_usage_summary()}")
+                logger.info(
+                    f"Loaded {count_common_file_labels:,} common labels from {common_labels_path}: {get_memory_usage_summary()}"
+                )
+
+        synonym_filter = get_synonym_filter()
 
         # Originally we needed to clean up the identifer lists, because there would be both labeledids and
         # string ids and we had to reconcile them.
@@ -541,20 +577,31 @@ class NodeFactory:
             if isinstance(iid, LabeledID):
                 raise ValueError(f"LabeledID don't belong here ({iid}), pass in labels separately.")
             if iid in labels:
-                labeled_list.append(LabeledID(identifier=iid, label=labels[iid]))
+                label = labels[iid]
+                if synonym_filter.should_suppress(label, source=f"explicit labels for {iid}", node_types=node_types):
+                    label = ""
+                labeled_list.append(LabeledID(identifier=iid, label=label))
             else:
                 try:
                     prefix = Text.get_prefix(iid)
                 except ValueError as e:
-                    logger.error(f"Unable to apply_labels({self}, {input_identifiers}, {labels}): could not obtain prefix for identifier {iid}")
+                    logger.error(
+                        f"Unable to apply_labels({self}, {input_identifiers}, {labels}): could not obtain prefix for identifier {iid}"
+                    )
                     raise e
                 if prefix not in self.extra_labels:
                     self.load_extra_labels(prefix)
                 if iid in self.extra_labels[prefix]:
-                    labeled_list.append(LabeledID(identifier=iid, label=self.extra_labels[prefix][iid]))
+                    label = self.extra_labels[prefix][iid]
+                    if synonym_filter.should_suppress(label, source=f"{prefix} labels file", node_types=node_types):
+                        label = ""
+                    labeled_list.append(LabeledID(identifier=iid, label=label))
                 elif iid in self.common_labels:
                     # We only fall back to common labels if the prefix label doesn't have anything.
-                    labeled_list.append(LabeledID(identifier=iid, label=self.common_labels[iid]))
+                    label = self.common_labels[iid]
+                    if synonym_filter.should_suppress(label, source="common labels file", node_types=node_types):
+                        label = ""
+                    labeled_list.append(LabeledID(identifier=iid, label=label))
                 else:
                     labeled_list.append(iid)
         return labeled_list
@@ -562,14 +609,24 @@ class NodeFactory:
     def create_node(self, input_identifiers, node_type, labels={}, extra_prefixes=[]):
         # This is where we will normalize, i.e. choose the best id, and add types in accord with BL.
         # we should also include provenance and version information for the node set build.
-        # ancestors = self.get_ancestors(node_type)
-        # ancestors.reverse()
-        prefixes = self.get_prefixes(node_type) + extra_prefixes
+        # make sure prefixes list does not include duplicate prefixes
+        prefixes = []
+        seen_prefixes = set()
+        for prefix in self.get_prefixes(node_type) + extra_prefixes:
+            prefix_upper = prefix.upper()
+            if prefix_upper in seen_prefixes:
+                continue
+            prefixes.append(prefix)
+            seen_prefixes.add(prefix_upper)
+
         if len(input_identifiers) == 0:
             return None
         if len(input_identifiers) > 1000:
-            logger.warning(f"this seems like a lot of input_identifiers in node.create_node() [{len(input_identifiers)}]: {input_identifiers}")
-        cleaned = self.apply_labels(input_identifiers, labels)
+            logger.warning(
+                f"this seems like a lot of input_identifiers in node.create_node() [{len(input_identifiers)}]: {input_identifiers}"
+            )
+        ancestors = self.get_ancestors(node_type)
+        cleaned = self.apply_labels(input_identifiers, labels, node_types=ancestors)
         try:
             idmap = defaultdict(list)
             for i in list(cleaned):

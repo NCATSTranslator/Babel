@@ -64,7 +64,6 @@ rule anatomy_umls_ids:
 
 
 rule get_anatomy_obo_relationships:
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     output:
         config["intermediate_directory"] + "/anatomy/concords/UBERON",
         config["intermediate_directory"] + "/anatomy/concords/CL",
@@ -74,6 +73,7 @@ rule get_anatomy_obo_relationships:
         go_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-GO.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/get_anatomy_obo_relationships.tsv"
+    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     run:
         anatomy.build_anatomy_obo_relationships(
             config["intermediate_directory"] + "/anatomy/concords",

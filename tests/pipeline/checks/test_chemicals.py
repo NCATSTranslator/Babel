@@ -25,54 +25,72 @@ appropriate session fixture name.
 Run:
     uv run pytest tests/pipeline/checks/test_chemicals.py --pipeline --no-cov -v
 """
-from typing import NamedTuple
 
 import pytest
 
-from tests.pipeline.conftest import _any_concord_xrefs, _read_ids_with_types
+from src.categories import CHEMICAL_ENTITY
+from tests.pipeline.checks import ConcordCheck, IdentifierCheck
+from tests.pipeline.conftest import _any_concord_xrefs, get_curies_and_types_from_ids_file
 
 # ---------------------------------------------------------------------------
-# ID-presence check type and tables
+# ID-presence check tables
 # ---------------------------------------------------------------------------
 
 
-class ChemCheck(NamedTuple):
-    fixture: str        # session fixture name, e.g. "mesh_pipeline_outputs"
-    curie: str          # CURIE to look for in the chemicals ID file
-    expected_type: str  # Biolink type (used in failure messages; also asserted if the
-                        # intermediate file includes a type column, e.g. for UMLS)
-    issue: str          # GitHub issue URL that motivated this check
-
-
-EXPECTED_IN_CHEMICALS: list[ChemCheck] = [
-    ChemCheck(
+EXPECTED_IN_CHEMICALS: list[IdentifierCheck] = [
+    IdentifierCheck(
         "mesh_pipeline_outputs",
+        "chemicals",
         "MESH:C000598555",
-        "biolink:ChemicalEntity",
+        CHEMICAL_ENTITY,
         "https://github.com/NCATSTranslator/Babel/issues/708",
     ),
-    ChemCheck(
+    IdentifierCheck(
         "mesh_pipeline_outputs",
+        "chemicals",
         "MESH:C100843",
-        "biolink:Drug",
+        CHEMICAL_ENTITY,
         "https://github.com/NCATSTranslator/Babel/issues/708",
+    ),
+    # D08.211 Coenzymes — non-protein small molecules that were previously excluded from
+    # chemicals by a blanket D08 exclusion.  They should be CHEMICAL_ENTITY.
+    IdentifierCheck(
+        "mesh_pipeline_outputs",
+        "chemicals",
+        "MESH:D009243",  # Nicotinamide Adenine Dinucleotide (NAD) — D08.211.060
+        CHEMICAL_ENTITY,
+        "https://github.com/NCATSTranslator/Babel/issues/675",
+    ),
+    IdentifierCheck(
+        "mesh_pipeline_outputs",
+        "chemicals",
+        "MESH:D003067",  # Coenzyme A — D08.211.190
+        CHEMICAL_ENTITY,
+        "https://github.com/NCATSTranslator/Babel/issues/675",
     ),
 ]
 
-NOT_IN_CHEMICALS: list[ChemCheck] = []
+NOT_IN_CHEMICALS: list[IdentifierCheck] = []
+
+# When NOT_IN_CHEMICALS is empty, parametrize would silently skip with "got empty
+# parameter set for (check)".  Replace with a labelled sentinel so the skip reason
+# tells contributors exactly where to add entries.
+_NOT_IN_CHEMICALS_PARAMS = NOT_IN_CHEMICALS or [
+    pytest.param(
+        None,
+        marks=pytest.mark.skip(
+            reason=(
+                "NOT_IN_CHEMICALS is empty — add IdentifierCheck entries to "
+                "tests/pipeline/checks/test_chemicals.py to enable negative ID-presence checks"
+            )
+        ),
+    )
+]
 
 
 # ---------------------------------------------------------------------------
-# Direct-xref check type and tables
+# Direct-xref check tables
 # ---------------------------------------------------------------------------
-
-
-class ConcordCheck(NamedTuple):
-    fixture: str        # session fixture providing the concords directory path
-    curie1: str
-    curie2: str
-    should_xref: bool   # True = must be a direct xref pair; False = must NOT be
-    issue: str          # GitHub issue URL that motivated this check
 
 
 EXPECTED_XREF: list[ConcordCheck] = []
@@ -95,13 +113,12 @@ EXPECTED_NO_XREF: list[ConcordCheck] = [
 
 @pytest.mark.pipeline
 @pytest.mark.parametrize("check", EXPECTED_IN_CHEMICALS, ids=[c.curie for c in EXPECTED_IN_CHEMICALS])
-def test_curie_in_chemicals(request, check: ChemCheck) -> None:
+def test_curie_in_chemicals(request, check: IdentifierCheck) -> None:
     """CURIE must appear in the chemicals intermediate ID file."""
     outputs = request.getfixturevalue(check.fixture)
-    ids = _read_ids_with_types(outputs["chemicals"])
+    ids = get_curies_and_types_from_ids_file(outputs[check.compendium])
     assert check.curie in ids, (
-        f"{check.curie} not found in chemicals "
-        f"(expected type {check.expected_type}; see {check.issue})"
+        f"{check.curie} not found in chemicals (expected type {check.expected_type}; see {check.issue})"
     )
     actual_type = ids[check.curie]
     if actual_type is not None:
@@ -112,13 +129,15 @@ def test_curie_in_chemicals(request, check: ChemCheck) -> None:
 
 
 @pytest.mark.pipeline
-@pytest.mark.parametrize("check", NOT_IN_CHEMICALS, ids=[c.curie for c in NOT_IN_CHEMICALS] or None)
-def test_curie_not_in_chemicals(request, check) -> None:
+@pytest.mark.parametrize(
+    "check",
+    _NOT_IN_CHEMICALS_PARAMS,
+    ids=[c.curie for c in NOT_IN_CHEMICALS] or ["(none defined)"],
+)
+def test_curie_not_in_chemicals(request, check: IdentifierCheck) -> None:
     """CURIE must NOT appear in the chemicals intermediate ID file."""
-    if not isinstance(check, ChemCheck):
-        pytest.skip("NOT_IN_CHEMICALS is empty — add entries to activate this test")
     outputs = request.getfixturevalue(check.fixture)
-    ids = _read_ids_with_types(outputs["chemicals"])
+    ids = get_curies_and_types_from_ids_file(outputs[check.compendium])
     assert check.curie not in ids, (
         f"{check.curie} found in chemicals but should not be "
         f"(expected type {check.expected_type} elsewhere; see {check.issue})"
@@ -134,10 +153,7 @@ def test_curie_not_in_chemicals(request, check) -> None:
 @pytest.mark.parametrize(
     "check",
     EXPECTED_XREF + EXPECTED_NO_XREF,
-    ids=[
-        f"{c.curie1}__{'xref' if c.should_xref else 'no_xref'}__{c.curie2}"
-        for c in EXPECTED_XREF + EXPECTED_NO_XREF
-    ],
+    ids=[f"{c.curie1}__{'xref' if c.should_xref else 'no_xref'}__{c.curie2}" for c in EXPECTED_XREF + EXPECTED_NO_XREF],
 )
 def test_direct_xref(request, check: ConcordCheck) -> None:
     """Check direct cross-reference presence or absence across all concord files.

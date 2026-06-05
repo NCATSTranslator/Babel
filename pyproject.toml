@@ -1,5 +1,5 @@
 [project]
-name = "babel"
+name = "babel-pipeline"
 version = "1.14"
 description = "Babel creates cliques of equivalent identifiers across many biomedical vocabularies. "
 readme = "README.md"
@@ -11,29 +11,23 @@ dependencies = [
     "biopython>=1.85",
     "bmt>=1.4.6",
     "curies>=0.12.1",
-    "deprecated~=1.2.18",
     "duckdb>=1.4.1",
     "humanfriendly>=10.0",
     "jsonlines>=4.0.0",
     "more-itertools>=10.8.0",
-    "oaklib>=0.5.1",
-    "pandas>=2.3.3",
     "psutil>=7.1.1",
-    "psycopg2-binary>=2.9.11",
-    "py-spy>=0.4.1",
-    "pyoxigraph~=0.4.11",
+    "psycopg2-binary>=2.9.12",
+    "pyoxigraph>=0.5.8",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
     "pytest-timeout>=2.3",
     "pytest-xdist>=3",
-    "python-levenshtein>=0.27.1",
     "pyyaml>=6.0.3",
     "requests>=2.32.5",
-    "snakemake>=9.13.3",
-    "snakemake-executor-plugin-slurm>=1.9.2",
+    "snakemake>=9.21.1",
+    "snakemake-executor-plugin-slurm>=2.6.1",
     "sparqlwrapper>=2.0.0",
     "tqdm>=4.67.1",
-    "wheel>=0.45.1",
     "xmltodict>=1.0.2",
 ]
 
@@ -45,8 +39,9 @@ Issues = "https://github.com/NCATSTranslator/Babel/issues"
 [dependency-groups]
 dev = [
     "ipykernel>=7.1.0",
+    "py-spy>=0.4.2",
     "ruff>=0.14.14",
-    "rumdl>=0.1.26",
+    "rumdl>=0.2.4",
     "snakefmt>=0.11.2",
 ]
 
@@ -78,7 +73,7 @@ include = '\.snakefile$|^Snakefile'
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = ""
+addopts = "--dist=loadgroup"  # required for xdist_group marks to route pipeline tests to one worker
 timeout = 30          # global fallback (seconds); overridden per mark in conftest.py
 # Canonical marker definitions — conftest.py intentionally does NOT re-register these.
 markers = [
@@ -86,6 +81,7 @@ markers = [
     "network: requires live internet access (use --network to run)",
     "slow: correct but takes >30s even offline",
     "pipeline: invokes Snakemake rules; requires babel_downloads/ (use --pipeline to run)",
+    "min_memory_gb(n): test needs at least n GiB of system RAM; auto-skipped on smaller machines",
 ]
 
 [tool.coverage.run]

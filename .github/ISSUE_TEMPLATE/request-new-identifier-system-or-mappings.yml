@@ -1,0 +1,89 @@
+name: Request new identifier system or mappings
+description: Request a new identifier system or mapping source be added to Babel.
+title: "New data source: "
+labels: ["new data source"]
+type: "feature"
+body:
+  - type: markdown
+    attributes:
+      value: >
+        This template helps you provide useful information when requesting a new identifier
+        system or set of mappings be added to Babel. You don't need to fill in all these
+        details right away or at all — please feel free to submit an incomplete request and
+        then fill it in later, or let Babel developers handle it for you.
+  - type: checkboxes
+    id: request_type
+    attributes:
+      label: What are you requesting?
+      options:
+        - label: Identifier system
+        - label: Mapping source
+    validations:
+      required: false
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgently is this source needed?
+      options:
+        - Critical
+        - High
+        - Medium
+        - Low
+    validations:
+      required: false
+  - type: input
+    id: data_source_name
+    attributes:
+      label: Data source name
+    validations:
+      required: true
+  - type: input
+    id: data_source_url
+    attributes:
+      label: Data source URL
+    validations:
+      required: true
+  - type: input
+    id: licensing
+    attributes:
+      label: Licensing information / URL
+    validations:
+      required: false
+  - type: input
+    id: biolink_type
+    attributes:
+      label: Biolink type of these identifiers
+      description: >
+        See the [Biolink Model](https://biolink.github.io/biolink-model/) for valid types,
+        e.g. `biolink:Gene`, `biolink:SmallMolecule`.
+      placeholder: "biolink:Gene"
+    validations:
+      required: false
+  - type: textarea
+    id: value
+    attributes:
+      label: Value of including this source
+    validations:
+      required: false
+  - type: textarea
+    id: conflicts
+    attributes:
+      label: Potential conflicts with existing sources
+      description: Are there existing identifier sources or mappings in Babel that these may conflict with?
+    validations:
+      required: false
+  - type: textarea
+    id: additional_info
+    attributes:
+      label: Additional information
+      description: Any information helpful for working with these identifiers or mappings, including pointers to existing code for extracting them.
+    validations:
+      required: false
+  - type: input
+    id: also_tracked_at
+    attributes:
+      label: Also tracked at
+      description: Link to any other issue tracker or discussion where this is tracked (optional).
+    validations:
+      required: false

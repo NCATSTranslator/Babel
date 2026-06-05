@@ -33,8 +33,6 @@ rule export_all_to_kgx:
 
 # Generic rule for generating the KGX files for a particular compendia file.
 rule generate_kgx:
-    resources:
-        runtime="6h",
     input:
         compendium_file=config["output_directory"] + "/compendia/{filename}.txt",
     output:
@@ -42,6 +40,8 @@ rule generate_kgx:
         edges_file=config["output_directory"] + "/kgx/{filename}_edges.jsonl.gz",
     benchmark:
         config["output_directory"] + "/benchmarks/generate_kgx_{filename}.tsv"
+    resources:
+        runtime="6h",
     run:
         kgx.convert_compendium_to_kgx(input.compendium_file, output.nodes_file, output.edges_file)
 
@@ -62,13 +62,13 @@ rule export_all_to_sapbert_training:
 
 # Generic rule for generating the KGX files for a particular compendia file.
 rule generate_sapbert_training_data:
-    resources:
-        runtime="6h",
     input:
         synonym_file_gz=config["output_directory"] + "/synonyms/{filename}.gz",
     output:
         sapbert_training_data_file=config["output_directory"] + "/sapbert-training-data/{filename}.gz",
     benchmark:
         config["output_directory"] + "/benchmarks/generate_sapbert_training_data_{filename}.tsv"
+    resources:
+        runtime="6h",
     run:
         sapbert.convert_synonyms_to_sapbert(input.synonym_file_gz, output.sapbert_training_data_file)

@@ -8,11 +8,12 @@ UMLS-specific targeted test that has no generic equivalent.
 All tests require UMLS_API_KEY to be set for the initial download (or the
 files to already be cached in babel_downloads/UMLS/).  They are skipped by
 default.  Run with:
-    uv run pytest tests/pipeline/test_umls_pipeline.py --pipeline --no-cov -v
+    uv run pytest tests/pipeline/test_umls.py --pipeline --no-cov -v
 """
+
 import pytest
 
-from tests.pipeline.conftest import _read_ids
+from tests.pipeline.conftest import get_curies_from_ids_file
 
 
 @pytest.mark.pipeline
@@ -25,10 +26,9 @@ def test_chemicals_excludes_protein_semantic_tree(umls_pipeline_outputs):
     this test has no KNOWN_DUPLICATES carve-out — a chem/protein UMLS overlap is always
     a hard failure here, making it a stricter sentinel for this specific pair.
     """
-    chem_ids = _read_ids(umls_pipeline_outputs["chemicals"])
-    prot_ids = _read_ids(umls_pipeline_outputs["protein"])
+    chem_ids = get_curies_from_ids_file(umls_pipeline_outputs["chemicals"])
+    prot_ids = get_curies_from_ids_file(umls_pipeline_outputs["protein"])
     overlap = chem_ids & prot_ids
     assert len(overlap) == 0, (
-        f"Found {len(overlap)} IDs in both chemicals and protein UMLS outputs: "
-        f"{sorted(overlap)[:10]}"
+        f"Found {len(overlap)} IDs in both chemicals and protein UMLS outputs: {sorted(overlap)[:10]}"
     )

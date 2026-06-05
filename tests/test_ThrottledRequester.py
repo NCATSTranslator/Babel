@@ -10,25 +10,21 @@ import pytest
 from src.babel_utils import ThrottledRequester
 
 
-class _DelayHandler(BaseHTTPRequestHandler):
-    """Minimal HTTP handler that sleeps delay_ms before returning empty JSON."""
-    delay_ms = 0
-
-    def do_GET(self):
-        time_module.sleep(self.delay_ms / 1000)
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"{}")
-
-    def log_message(self, *args):  # suppress request logging to stdout
-        pass
-
-
 @contextmanager
 def _local_server(delay_ms=0):
     """Start an ephemeral HTTP server on a free port, yield its URL, then shut down."""
-    _DelayHandler.delay_ms = delay_ms
-    server = HTTPServer(("127.0.0.1", 0), _DelayHandler)
+
+    class _Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            time_module.sleep(delay_ms / 1000)
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"{}")
+
+        def log_message(self, *args):  # suppress request logging to stdout
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), _Handler)
     port = server.server_address[1]
     t = threading.Thread(target=server.serve_forever)
     t.start()
@@ -39,6 +35,8 @@ def _local_server(delay_ms=0):
         server.shutdown()
         t.join(timeout=5)
         server.server_close()
+
+
 @pytest.mark.unit
 def test_throttling():
     """Second request within the throttle window must wait; total runtime must exceed 500 ms."""
@@ -50,10 +48,10 @@ def test_throttling():
         later = dt.now()
 
     runtime = later - now
-    assert not throttle1                             # first call: no throttle
-    assert throttle2                                 # second call: throttled
-    assert runtime > timedelta(milliseconds=500)     # wait was enforced
-    assert runtime < timedelta(milliseconds=1500)    # sanity: didn't wait too long
+    assert not throttle1  # first call: no throttle
+    assert throttle2  # second call: throttled
+    assert runtime > timedelta(milliseconds=500)  # wait was enforced
+    assert runtime < timedelta(milliseconds=1500)  # sanity: didn't wait too long
 
 
 @pytest.mark.unit
@@ -62,11 +60,11 @@ def test_no_throttling():
     with _local_server(delay_ms=600) as url:
         tr = ThrottledRequester(500)
         now = dt.now()
-        _response, throttle1 = tr.get(url)   # takes ~600 ms — longer than the 500 ms delta
-        _response, throttle2 = tr.get(url)   # delta already elapsed; no throttle needed
+        _response, throttle1 = tr.get(url)  # takes ~600 ms — longer than the 500 ms delta
+        _response, throttle2 = tr.get(url)  # delta already elapsed; no throttle needed
         later = dt.now()
 
     runtime = later - now
-    assert not throttle1                             # first call: no throttle
-    assert not throttle2                             # second call: request was slow enough
-    assert runtime > timedelta(milliseconds=600)     # at least one real delay occurred
+    assert not throttle1  # first call: no throttle
+    assert not throttle2  # second call: request was slow enough
+    assert runtime > timedelta(milliseconds=600)  # at least one real delay occurred

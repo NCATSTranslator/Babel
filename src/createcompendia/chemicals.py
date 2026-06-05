@@ -10,7 +10,14 @@ import requests
 
 import src.datahandlers.mesh as mesh
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.babel_utils import (
+    get_prefixes,
+    get_user_agent,
+    glom,
+    read_identifier_file,
+    remove_overused_xrefs,
+    write_compendium,
+)
 from src.categories import (
     CHEMICAL_ENTITY,
     CHEMICAL_MIXTURE,
@@ -105,17 +112,34 @@ def write_rxnorm_ids(infile, outfile):
 
 
 def build_chemical_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
-    umls.build_sets(mrconso, idfile, outfile, {"MSH": MESH, "DRUGBANK": DRUGBANK, "RXNORM": RXCUI}, provenance_metadata_yaml=metadata_yaml)
+    umls.build_sets(
+        mrconso,
+        idfile,
+        outfile,
+        {"MSH": MESH, "DRUGBANK": DRUGBANK, "RXNORM": RXCUI},
+        provenance_metadata_yaml=metadata_yaml,
+    )
 
 
 def build_chemical_rxnorm_relationships(conso, idfile, outfile, metadata_yaml):
-    umls.build_sets(conso, idfile, outfile, {"MSH": MESH, "DRUGBANK": DRUGBANK}, cui_prefix=RXCUI, provenance_metadata_yaml=metadata_yaml)
+    umls.build_sets(
+        conso,
+        idfile,
+        outfile,
+        {"MSH": MESH, "DRUGBANK": DRUGBANK},
+        cui_prefix=RXCUI,
+        provenance_metadata_yaml=metadata_yaml,
+    )
 
 
 def write_pubchem_ids(labelfile, smilesfile, outfile):
     # Trying to be memory efficient here.  We could just ingest the whole smilesfile which would make this code easier
     # but since they're already sorted, let's give it a shot
-    with open(labelfile) as inlabels, gzip.open(smilesfile, "rt", encoding="utf-8") as insmiles, open(outfile, "w") as outf:
+    with (
+        open(labelfile) as inlabels,
+        gzip.open(smilesfile, "rt", encoding="utf-8") as insmiles,
+        open(outfile, "w") as outf,
+    ):
         sn = -1
         flag_file_ended = False
         for labelline in inlabels:
@@ -145,59 +169,75 @@ def write_pubchem_ids(labelfile, smilesfile, outfile):
 
 def write_mesh_ids(outfile):
     # MeSH D tree — chemical-related subtrees.
-    # Included as CHEMICAL_ENTITY:
+    # Included as CHEMICAL_ENTITY (via the D01–D26 base range):
     #   D01  Inorganic Chemicals
     #   D02  Organic Chemicals
     #   D03  Heterocyclic Compounds
     #   D04  Polycyclic Compounds
     #   D06  Hormones, Hormone Substitutes, and Hormone Antagonists
-    #   D07  (not currently assigned in MeSH)
+    #   D07  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
+    #   D08.211  Coenzymes (e.g. NAD, Coenzyme A, FAD) — non-protein small molecules
     #   D09  Carbohydrates
     #   D10  Lipids
-    #   D11  (not currently assigned in MeSH)
-    #   D12  Amino Acids, Peptides, and Proteins (partially — see below)
-    #   D14–D19  (not currently assigned in MeSH)
-    #   D21–D22  (not currently assigned in MeSH)
+    #   D11  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
+    #   D12  Amino Acids, Peptides, and Proteins (partially — see POLYPEPTIDE below)
+    #   D14–D19  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
+    #   D21–D22  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
     #   D23  Biological Factors
-    #   D24  (not currently assigned in MeSH)
+    #   D24  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
     #   D25  Biomedical and Dental Materials
     #   D26  Pharmaceutical Preparations
     #
     # Included as POLYPEPTIDE:
     #   D12.125  Amino Acids
     #   D12.644  Peptides
-    #   D13      Nucleic Acids, Nucleotides, and Nucleosides
+    #
+    # Included as CHEMICAL_ENTITY (via D01–D26 base range, no override needed):
+    #   D13  Nucleic Acids, Nucleotides, and Nucleosides — nucleotides such as NAD also
+    #        appear in D08.211 (Coenzymes); CHEMICAL_ENTITY is the correct type for both.
     #
     # Included as COMPLEX_MOLECULAR_MIXTURE:
     #   D20  Complex Mixtures
     #
-    # EXCLUDED (sent to protein compendium instead — see protein.write_mesh_ids):
-    #   D05      Macromolecular Substances — protein subtrees (D05.500 Multiprotein Complexes,
-    #            D05.875 Protein Aggregates) go to proteins; non-protein subtrees (D05.750
-    #            Polymers, D05.937 Smart Materials, D05.374 Micelles) are in neither compendium.
-    #   D08      Enzymes and Coenzymes — protein subtrees (D08.811 Enzymes, D08.622 Enzyme
-    #            Precursors, D08.244 Cytochromes) go to proteins; D08.211 Coenzymes (small
-    #            molecules) is in neither compendium.
-    #   D12.776  Proteins — goes to protein compendium.
+    # EXCLUDED — protein subtrees (handled by protein.write_mesh_ids instead):
+    #   D05.500  Multiprotein Complexes
+    #   D05.875  Protein Aggregates
+    #   D08.244  Cytochromes
+    #   D08.622  Enzyme Precursors
+    #   D08.811  Enzymes
+    #   D12.776  Proteins
     #
-    # D27 (Chemical Actions and Uses) is implicitly excluded by the range D01-D26.
+    # INCLUDED as CHEMICAL_ENTITY for now — TODO: assign a more specific Biolink type
+    # when the Biolink Model gains a suitable type for non-protein macromolecules:
+    #   D05.374  Micelles
+    #   D05.750  Polymers
+    #   D05.937  Smart Materials
+    #
+    # D27 (Chemical Actions and Uses) is implicitly excluded by the range D01–D26.
     #
     # TODO: The MeSH tree assignments for chemicals and proteins are currently defined
     # independently in chemicals.write_mesh_ids() and protein.write_mesh_ids(). These
     # should be unified into a shared mapping (e.g. in config.yaml or a dedicated module)
     # so both compendia are derived from the same source of truth. This would also make it
-    # easier to handle edge cases like:
-    #   - D05 non-protein subtrees (Polymers, Smart Materials, Micelles) and D08.211
-    #     (Coenzymes) that currently fall into neither compendium.
-    #   - SCR_Chemical terms mapped to non-protein descriptors that are nonetheless proteins
-    #     (e.g. scorpion venom toxins classified under D23 Biological Factors).
+    # easier to handle edge cases like SCR_Chemical terms mapped to non-protein descriptors
+    # that are nonetheless proteins (e.g. scorpion venom toxins under D23 Biological Factors).
     meshmap = {f"D{str(i).zfill(2)}": CHEMICAL_ENTITY for i in range(1, 27)}
-    meshmap["D05"] = "EXCLUDE"
-    meshmap["D08"] = "EXCLUDE"
+    # D05 protein subtrees → excluded (protein compendium handles these)
+    meshmap["D05.500"] = "EXCLUDE"
+    meshmap["D05.875"] = "EXCLUDE"
+    # D05.374 Micelles, D05.750 Polymers, D05.937 Smart Materials inherit CHEMICAL_ENTITY
+    # TODO: assign a more specific Biolink type for these non-protein macromolecules
+    # D08 protein subtrees → excluded (protein compendium handles these)
+    meshmap["D08.811"] = "EXCLUDE"
+    meshmap["D08.622"] = "EXCLUDE"
+    meshmap["D08.244"] = "EXCLUDE"
+    # D08.211 Coenzymes inherits CHEMICAL_ENTITY from the D01–D26 base range above
     meshmap["D12.776"] = "EXCLUDE"
     meshmap["D12.125"] = POLYPEPTIDE
     meshmap["D12.644"] = POLYPEPTIDE
-    meshmap["D13"] = POLYPEPTIDE
+    # D13 (Nucleic Acids, Nucleotides, and Nucleosides) inherits CHEMICAL_ENTITY from the
+    # D01–D26 base range. No override needed — nucleotides like NAD (D009243) appear in
+    # both D08.211 (Coenzymes) and D13; both correctly map to CHEMICAL_ENTITY.
     meshmap["D20"] = COMPLEX_MOLECULAR_MIXTURE
     # Also add anything from SCR_Chemical, if it doesn't have a tree map.
     # SCR terms don't have tree numbers, so we need to separately exclude SCRs
@@ -277,7 +317,9 @@ def write_drugbank_ids(infile, outfile):
     written = set()
     with open(infile) as inf, open(outfile, "w") as outf:
         header_line = inf.readline()
-        assert header_line == "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", f"Incorrect header line in {infile}: {header_line}"
+        assert header_line == "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", (
+            f"Incorrect header line in {infile}: {header_line}"
+        )
         for line in inf:
             x = line.rstrip().split("\t")
             if x[1] == drugbank_id:
@@ -395,7 +437,9 @@ def write_unichem_concords(structfile, reffile, outdir):
         concfiles[num] = open(concname, "w")
     with open(reffile) as inf:
         header_line = inf.readline()
-        assert header_line == "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", f"Incorrect header line in {reffile}: {header_line}"
+        assert header_line == "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", (
+            f"Incorrect header line in {reffile}: {header_line}"
+        )
         for line in inf:
             x = line.rstrip().split("\t")
             outf = concfiles[x[1]]
@@ -411,7 +455,9 @@ def read_inchikeys(struct_file):
     inchikeys = {}
     with gzip.open(struct_file, "rt") as inf:
         header_line = inf.readline()
-        assert header_line == "UCI\tSTANDARDINCHI\tSTANDARDINCHIKEY\n", f"Unexpected header line in {struct_file}: {header_line}"
+        assert header_line == "UCI\tSTANDARDINCHI\tSTANDARDINCHIKEY\n", (
+            f"Unexpected header line in {struct_file}: {header_line}"
+        )
         for sline in inf:
             line = sline.rstrip().split("\t")
             if len(line) == 0:
@@ -444,7 +490,9 @@ def combine_unichem(concordances, output):
 
         # Was there more than one prefix in the first column?
         if len(prefixes_in_file) != 1:
-            raise RuntimeError(f"More than one prefix found in {infile}: {prefixes_in_file}. All UNICHEM files should have only one prefix.")
+            raise RuntimeError(
+                f"More than one prefix found in {infile}: {prefixes_in_file}. All UNICHEM files should have only one prefix."
+            )
         prefix_to_check = prefixes_in_file.pop()
 
         # Only remove overused xrefs for specific prefixes
@@ -559,7 +607,9 @@ def build_drugcentral_relations(infile, outfile, metadata_yaml):
             if external_ns not in prefixmap:
                 continue
             # print('ok')
-            outf.write(f"{DRUGCENTRAL}:{parts[drugcentral_id_col]}\txref\t{prefixmap[external_ns]}:{parts[external_id_col]}\n")
+            outf.write(
+                f"{DRUGCENTRAL}:{parts[drugcentral_id_col]}\txref\t{prefixmap[external_ns]}:{parts[external_id_col]}\n"
+            )
 
     write_concord_metadata(
         metadata_yaml,
@@ -601,7 +651,18 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
     # THE SDF and XREF stuff are handled in the same function because knowing what we found in the SDF impacts
     # what we want to get out of the xrefs. But the function is quite unwieldy
     # READ SDF
-    ikeys = {x: x for x in ["chebiname", "chebiid", "secondarychebiid", "inchikey", "smiles", "keggcompounddatabaselinks", "pubchemdatabaselinks"]}
+    ikeys = {
+        x: x
+        for x in [
+            "chebiname",
+            "chebiid",
+            "secondarychebiid",
+            "inchikey",
+            "smiles",
+            "keggcompounddatabaselinks",
+            "pubchemdatabaselinks",
+        ]
+    }
     chebi_sdf_dat = read_sdf(sdf, ikeys)
     # CHEBIs in the sdf by definition have structure (the sdf is a structure file)
     structured_chebi = set(chebi_sdf_dat.keys())
@@ -623,7 +684,10 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
                 for secondary_id in secondary_ids:
                     propf.write(
                         Property(
-                            curie=cid, predicate=HAS_ALTERNATIVE_ID, value=secondary_id, source=f"Listed as a CHEBI secondary ID in the ChEBI SDF file ({sdf})"
+                            curie=cid,
+                            predicate=HAS_ALTERNATIVE_ID,
+                            value=secondary_id,
+                            source=f"Listed as a CHEBI secondary ID in the ChEBI SDF file ({sdf})",
                         ).to_json_line()
                     )
             if kk in props:
@@ -717,11 +781,13 @@ def get_mesh_relationships(mesh_id_file, cas_out, unii_out, cas_metadata, unii_m
     )
 
 
-def get_wikipedia_relationships(outfile, metadata_yaml):
+def get_wikipedia_relationships(outfile, config, metadata_yaml):
     url = "https://query.wikidata.org/sparql?format=json&query=SELECT ?chebi ?mesh WHERE { ?compound wdt:P683 ?chebi . ?compound wdt:P486 ?mesh. }"
-    results = requests.get(url).json()
+    results = requests.get(url, headers={"User-Agent": get_user_agent()}).json()
     pairs = [
-        (f"{MESH}:{r['mesh']['value']}", f"{CHEBI}:{r['chebi']['value']}") for r in results["results"]["bindings"] if not r["mesh"]["value"].startswith("M")
+        (f"{MESH}:{r['mesh']['value']}", f"{CHEBI}:{r['chebi']['value']}")
+        for r in results["results"]["bindings"]
+        if not r["mesh"]["value"].startswith("M")
     ]
     # Wikidata is great, except when it sucks.   One thing it likes to do is to
     # have multiple CHEBIs for a concept, say ignoring stereochemistry or
@@ -748,7 +814,9 @@ def get_wikipedia_relationships(outfile, metadata_yaml):
     )
 
 
-def build_untyped_compendia(concordances, identifiers, unichem_partial, untyped_concord, type_file, metadata_yaml, input_metadata_yamls):
+def build_untyped_compendia(
+    concordances, identifiers, unichem_partial, untyped_concord, type_file, metadata_yaml, input_metadata_yamls
+):
     """:concordances: a list of files from which to read relationships
     :identifiers: a list of files from which to read identifiers and optional categories"""
     dicts = read_partial_unichem(unichem_partial)
@@ -822,7 +890,9 @@ def build_compendia(type_file, untyped_compendia_file, properties_jsonl_gz_files
     logger.info(f"Loaded {len(untyped_sets)} untyped sets from {untyped_compendia_file}: {get_memory_usage_summary()}")
 
     typed_sets = create_typed_sets(untyped_sets, types)
-    logger.info(f"Created {len(typed_sets)} typed sets from {len(untyped_sets)} untyped sets: {get_memory_usage_summary()}")
+    logger.info(
+        f"Created {len(typed_sets)} typed sets from {len(untyped_sets)} untyped sets: {get_memory_usage_summary()}"
+    )
 
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]
@@ -858,7 +928,15 @@ def create_typed_sets(eqsets, types):
     :param eqsets: A list of lists of identifiers (should NOT be a list of LabeledIDs, but a list of strings).
     :param types: A dictionary of known types for each identifier. (Some identifiers don't have known types.)
     """
-    order = [DRUG, MOLECULAR_MIXTURE, SMALL_MOLECULE, POLYPEPTIDE, COMPLEX_MOLECULAR_MIXTURE, CHEMICAL_MIXTURE, CHEMICAL_ENTITY]
+    order = [
+        DRUG,
+        MOLECULAR_MIXTURE,
+        SMALL_MOLECULE,
+        POLYPEPTIDE,
+        COMPLEX_MOLECULAR_MIXTURE,
+        CHEMICAL_MIXTURE,
+        CHEMICAL_ENTITY,
+    ]
     typed_sets = defaultdict(set)
     # logging.warning(f"create_typed_sets: eqsets={eqsets}, types=...")
     for equivalent_ids in eqsets:
@@ -880,7 +958,7 @@ def create_typed_sets(eqsets, types):
                 if len(pctypes) == 1:
                     typed_sets[list(pctypes)[0]].add(equivalent_ids)
                     found = True
-                elif pctypes == {"biolink:SmallMolecule", "biolink:MolecularMixture"}:
+                elif pctypes == {SMALL_MOLECULE, MOLECULAR_MIXTURE}:
                     # This is a common case (8,178 cases in 2022oct13) which occurs in cases where the InChI for
                     # e.g. water (SMILES: O) and hydron;hydroxide ([H+].[OH-]) are identical, causing them to be
                     # merged. (They may also be merged if we combine two identifiers into a single clique that is
@@ -891,11 +969,11 @@ def create_typed_sets(eqsets, types):
                     # everything we're _sure_ is a biolink:MolecularMixture into a separate clique, and leave all
                     # the other identifiers as a biolink:SmallMolecule.
                     #
-                    # First reported in https://github.com/TranslatorSRI/Babel/issues/83
+                    # First reported in https://github.com/NCATSTranslator/Babel/issues/83
                     molecular_mixture_ids = set()
                     all_other_ids = set()
                     for eq_id in equivalent_ids:
-                        if eq_id in types and types[eq_id] == "biolink:MolecularMixture":
+                        if eq_id in types and types[eq_id] == MOLECULAR_MIXTURE:
                             molecular_mixture_ids.add(eq_id)
                         else:
                             all_other_ids.add(eq_id)
@@ -906,11 +984,13 @@ def create_typed_sets(eqsets, types):
                         + f"into a biolink:MolecularMixture ({molecular_mixture_ids}) and "
                         + f"a biolink:SmallMolecule ({all_other_ids})"
                     )
-                    typed_sets["biolink:MolecularMixture"].add(frozenset(molecular_mixture_ids))
-                    typed_sets["biolink:SmallMolecule"].add(frozenset(all_other_ids))
+                    typed_sets[MOLECULAR_MIXTURE].add(frozenset(molecular_mixture_ids))
+                    typed_sets[SMALL_MOLECULE].add(frozenset(all_other_ids))
                     found = True
                 else:
-                    logging.warning(f"An unexpected number of PUBCHEM types found for {equivalent_ids} ({len(pctypes)}): {pctypes}")
+                    logging.warning(
+                        f"An unexpected number of PUBCHEM types found for {equivalent_ids} ({len(pctypes)}): {pctypes}"
+                    )
         if not found:
             typecounts = defaultdict(int)
             for eid in equivalent_ids:
