@@ -262,8 +262,6 @@ def main() -> None:
     sys.stdout.flush()
     print(f"\n--- Summary (read {err_file}) ---", file=sys.stderr)
     print_job_summary(err_file, logs_dir)
-    if failures:
-        print(f"Found {len(failures)} failing rule(s).", file=sys.stderr)
 
 
 if __name__ == "__main__":
