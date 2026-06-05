@@ -229,6 +229,17 @@ high performance cluster) so you don't need to download all the source files and
 rerun the entire pipeline. You can look at the resource requirements of a rule to decide which
 option would be best.
 
+### SLURM resource tuning and performance tracking
+
+`tools/slurm` analyzes a (possibly partial) Snakemake-on-SLURM run. `uv run python -m tools.slurm
+resources <run-dir>` joins actual usage (the `benchmark:` TSVs — the authoritative source, since
+Hatteras `sacct` reports empty `MaxRSS`/`TotalCPU`) against requested resources and recommends
+right-sized `mem`/`cpus`, flagging rules that need an explicit override before the cluster default
+can be lowered. `uv run python -m tools.slurm errors <version>` (formerly `tools/babel-errors.py`)
+aggregates failing-rule logs to decide what to re-run. The cluster default in `slurm/config.yaml`
+is intentionally small (`mem: 16G`, `cpus_per_task: 1`); rules that need more carry an explicit
+`resources:` block. See `docs/Performance.md`.
+
 ## Conventions
 
 - **Commits** — if you need to make a large change, break it into multiple commits so it's clearer

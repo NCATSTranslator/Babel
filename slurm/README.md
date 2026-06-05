@@ -30,8 +30,8 @@ uv run snakemake --profile slurm chemical
 |---------|-------|-------|
 | `executor` | `slurm` | Uses Snakemake's built-in SLURM executor |
 | `jobs` | 50 | Max parallel SLURM jobs |
-| `default-resources.mem` | 64G | Per-job default RAM |
-| `default-resources.cpus_per_task` | 4 | Per-job default CPUs |
+| `default-resources.mem` | 16G | Per-job default RAM (right-sized from babel-1.17 benchmarks) |
+| `default-resources.cpus_per_task` | 1 | Per-job default CPUs (almost every rule is single-threaded) |
 | `default-resources.runtime` | 120 min | Per-job default wall time |
 | `python.executable` | `/usr/bin/time -v python` | Captures memory/time to job stderr |
 | `slurm-efficiency-report` | True | Writes per-job efficiency CSV |
@@ -74,8 +74,9 @@ babel_outputs/benchmarks/uncompress_synonym_file_<synonym_file>.tsv
 | `mean_load` | Average CPU load (100 = 1 full core) |
 | `cpu_time` | Total CPU time in seconds |
 
-`max_rss` is the most useful column for right-sizing SLURM memory allocations. Add ~20–30%
-headroom over `max_rss` when setting `mem:` for a rule.
+`max_rss` is the most useful column for right-sizing SLURM memory allocations. The
+`tools.slurm resources` analyzer applies a 1.5× safety factor over `max_rss` and rounds up to a
+bucket; see [`docs/Performance.md`](../docs/Performance.md).
 
 ## SLURM Efficiency CSV
 
@@ -85,11 +86,12 @@ In addition to per-rule benchmarks, the SLURM executor writes a cumulative CSV a
 babel_outputs/reports/slurm/slurm_efficiency_report.csv
 ```
 
-This captures SLURM-level efficiency metrics (CPU efficiency, memory efficiency) per job,
-complementing the Snakemake benchmark TSVs. The two sources measure slightly different things:
-
-- **Benchmark TSVs** — measured by Snakemake inside the job; independent of SLURM accounting
-- **Efficiency CSV** — reported by SLURM's `sacct`; includes job-scheduling overhead
+This is a *directory* containing `efficiency_report_<uuid>.csv`. **On Hatteras its `MaxRSS` and
+`TotalCPU` columns come back empty** (the `jobacct_gather`/cgroup accounting isn't capturing
+them), so its CPU-efficiency and memory-usage percentages are all `0`. Use it only for the
+*requested* side (`RequestedMem_MB`, `NCPUS`, `Elapsed_sec`); the benchmark TSVs are
+authoritative for actual usage. See [`docs/Performance.md`](../docs/Performance.md) for the full
+story and the issue tracking a fix to SLURM accounting.
 
 ## Known Resource Hotspots
 
@@ -110,6 +112,8 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 | `generate_pubmed_concords` | `publications.snakefile` | 128G | 24h | Full PubMed parse |
 | `generate_pubmed_compendia` | `publications.snakefile` | 128G | — | PubMed compendium build |
 | `geneprotein_conflated_synonyms` | `geneprotein.snakefile` | 512G | 6h | Conflated synonym merge |
+| `get_uniprotkb_labels` | `datacollect.snakefile` | 64G | — | Peaks ~41G; over the 16G default |
+| `taxon_compendia` | `taxon.snakefile` | 32G | — | Peaks ~14G; over the 16G default |
 
 ## Localrules (Run on Head Node, No SLURM Slot)
 
