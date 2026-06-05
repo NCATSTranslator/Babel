@@ -12,18 +12,13 @@ import urllib.request
 
 import pytest
 
+import src.datahandlers.pantherfamily as pantherfamily
 from src.babel_utils import get_user_agent
+from src.datahandlers.pantherfamily import FTP_FILE, FTP_HOST, HTTP_BASE
 
 pytestmark = [pytest.mark.network]
 
-FTP_HOST = "ftp.pantherdb.org"
 FTP_DIR = "/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/"
-FTP_FILE = "PTHR19.0_human"
-
-HTTP_BASE = (
-    "http://data.pantherdb.org/ftp/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/"
-)
-HTTP_FILE = "PTHR19.0_human"
 
 
 def test_panther_ftp_accessible():
@@ -53,9 +48,9 @@ def test_panther_http_accessible_with_user_agent():
 
     This is the fallback when FTP is blocked (e.g. on HPC). If this test passes
     and test_panther_ftp_accessible xfails, the pull_pantherfamily() function
-    should be updated to use pull_via_urllib/pull_via_wget instead of pull_via_ftp.
+    falls back to HTTP automatically.
     """
-    url = HTTP_BASE + HTTP_FILE
+    url = HTTP_BASE + FTP_FILE
     req = urllib.request.Request(url, headers={"User-Agent": get_user_agent()})
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
@@ -65,3 +60,27 @@ def test_panther_http_accessible_with_user_agent():
         pytest.fail(f"PANTHER HTTP URL {url} returned HTTP {e.code} with User-Agent '{get_user_agent()}'")
     except (TimeoutError, urllib.error.URLError) as e:
         pytest.xfail(f"PANTHER HTTP endpoint unreachable: {e}")
+
+
+def test_pull_pantherfamily_falls_back_to_http_when_ftp_blocked(tmp_path, monkeypatch):
+    """pull_pantherfamily() must fall back to HTTP when FTP is blocked (HPC firewall scenario).
+
+    Simulates the HPC environment where port 21 is refused, confirms the HTTP mirror
+    is tried and produces a non-empty output file at the expected path.
+    """
+
+    def ftp_refused(*args, **kwargs):
+        raise OSError("Connection refused (simulating HPC FTP firewall)")
+
+    monkeypatch.setattr("src.datahandlers.pantherfamily.pull_via_ftp", ftp_refused)
+    monkeypatch.setattr("src.datahandlers.pantherfamily.get_config", lambda: {"download_directory": str(tmp_path)})
+    monkeypatch.setattr("src.datahandlers.pantherfamily.get_user_agent", lambda: "Babel/test")
+
+    try:
+        pantherfamily.pull_pantherfamily()
+    except (TimeoutError, urllib.error.URLError) as e:
+        pytest.xfail(f"HTTP fallback also unreachable (no network?): {e}")
+
+    outfile = tmp_path / "PANTHER.FAMILY" / "family.csv"
+    assert outfile.exists(), f"Expected output file {outfile} was not created"
+    assert outfile.stat().st_size > 0, f"Output file {outfile} is empty"
