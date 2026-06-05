@@ -125,12 +125,13 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
                 c = attempts[j.rule_name]
                 name_parts.append(f"{j.rule_name} (x{c})" if c > 1 else j.rule_name)
         print(
-            f"Found {len(failed)} failed job(s) across {len(name_parts)} rule(s):"
-            f" {', '.join(name_parts)}",
+            f"Found {len(failed)} failed job(s) across {len(name_parts)} rule(s): {', '.join(name_parts)}",
             file=sys.stderr,
         )
         for j in sorted(failed, key=lambda x: x.submitted_at):
-            duration_str = _fmt_duration((j.finished_at - j.submitted_at).total_seconds()) if j.finished_at else "unknown"
+            duration_str = (
+                _fmt_duration((j.finished_at - j.submitted_at).total_seconds()) if j.finished_at else "unknown"
+            )
             log_display = logs_dir / j.log_relative
             print(
                 f" - Rule {j.rule_name} (SLURM jobid {j.slurm_jobid}):"
