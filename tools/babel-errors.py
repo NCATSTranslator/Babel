@@ -30,8 +30,8 @@ class _JobEvent:
     snakemake_jobid: int
     slurm_jobid: int
     rule_name: str
-    wildcard: str       # "" for simple rules; "Cell.txt" etc. for parametrised rules
-    log_relative: str   # e.g. rule_get_HMDB/672.log
+    wildcard: str  # "" for simple rules; "Cell.txt" etc. for parametrised rules
+    log_relative: str  # e.g. rule_get_HMDB/672.log
     submitted_at: datetime
     finished_at: datetime | None = None
     failed: bool = False
@@ -148,7 +148,9 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
             file=sys.stderr,
         )
         for j in sorted(all_failed_jobs, key=lambda x: x.submitted_at):
-            duration_str = _fmt_duration((j.finished_at - j.submitted_at).total_seconds()) if j.finished_at else "unknown"
+            duration_str = (
+                _fmt_duration((j.finished_at - j.submitted_at).total_seconds()) if j.finished_at else "unknown"
+            )
             print(
                 f" - Rule {j.rule_name} (SLURM jobid {j.slurm_jobid}):"
                 f" failed after {duration_str},"
