@@ -126,10 +126,11 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
             timeout_min = _get_runtime_minutes(j.log_relative, logs_dir)
             elapsed_str = _fmt_duration(elapsed)
             timeout_str = _fmt_duration(timeout_min * 60)
+            remaining_str = _fmt_duration(max(0.0, timeout_min * 60 - elapsed))
             log_display = logs_dir / j.log_relative
             print(
-                f"\t - Rule {j.rule_name} (SLURM jobid {j.slurm_jobid}):"
-                f" running for {elapsed_str}, timeout at {timeout_str},"
+                f" - Rule {j.rule_name} (SLURM jobid {j.slurm_jobid}):"
+                f" {elapsed_str} / {timeout_str} ({remaining_str} left),"
                 f" log at {log_display}",
                 file=sys.stderr,
             )
