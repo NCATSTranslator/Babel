@@ -745,18 +745,20 @@ rule get_panther_pathway_labels:
 ### Unichem
 
 
-rule get_unichem:
+rule download_unichem:
     output:
         config["download_directory"] + "/UNICHEM/structure.tsv.gz",
         config["download_directory"] + "/UNICHEM/reference.tsv.gz",
     benchmark:
-        config["output_directory"] + "/benchmarks/get_unichem.tsv"
+        config["output_directory"] + "/benchmarks/download_unichem.tsv"
     retries: 3
     resources:
         mem="8G",
+        disk="50G",
         cpus_per_task=1,
+        runtime=120,
     run:
-        unichem.pull_unichem()
+        unichem.download_unichem()
 
 
 rule filter_unichem:

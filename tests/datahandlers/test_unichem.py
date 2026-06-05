@@ -1,16 +1,20 @@
 """Network tests for the UniChem download.
 
 These verify that the UniChem FTP mirror URLs are reachable with the User-Agent
-Babel sends and that each file is a valid gzip archive.
+Babel sends, that each file is a valid gzip archive, and that the reference file
+header matches the constant in unichem.py.
 Run with: uv run pytest --network tests/datahandlers/test_unichem.py
 """
 
+import gzip
+import io
 import urllib.error
 import urllib.request
 
 import pytest
 
 from src.babel_utils import get_user_agent
+from src.datahandlers.unichem import REFERENCE_HEADER
 
 pytestmark = [pytest.mark.network]
 
@@ -48,3 +52,39 @@ def test_unichem_url_accessible_with_user_agent(filename):
         d.decompress(raw)
     except zlib.error as exc:
         pytest.fail(f"UniChem {filename} first 64 KB failed gzip decompression: {exc}")
+
+
+@pytest.mark.slow
+def test_unichem_reference_header_matches_expected():
+    """The first line of reference.tsv.gz must match REFERENCE_HEADER exactly.
+
+    This test downloads a small initial chunk of the file (~256 KB) and decompresses
+    it to read the header.  It guards against upstream format changes like the
+    2026-06 rename of 'ASSIGNMENT' → 'ASSIGMENT'.
+    """
+    url = UNICHEM_BASE + "reference.tsv.gz"
+    req = urllib.request.Request(url, headers={"User-Agent": get_user_agent()})
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            raw = resp.read(262144)  # 256 KB — header is always in the first block
+    except urllib.error.HTTPError as e:
+        pytest.fail(f"UniChem reference.tsv.gz returned HTTP {e.code}: {e}")
+
+    assert raw[:2] == b"\x1f\x8b", "reference.tsv.gz does not look like a gzip file"
+
+    try:
+        with gzip.open(io.BytesIO(raw), "rt") as gz:
+            header = gz.readline()
+    except EOFError:
+        # Partial gzip stream at end of chunk is expected; we already got the header
+        # by this point since readline() returned before raising.
+        pass
+    except Exception as exc:
+        pytest.fail(f"Could not decompress initial chunk of reference.tsv.gz: {exc}")
+
+    assert header == REFERENCE_HEADER, (
+        f"UniChem reference.tsv.gz header has changed — update REFERENCE_HEADER in "
+        f"src/datahandlers/unichem.py.\n"
+        f"  Expected : {REFERENCE_HEADER!r}\n"
+        f"  Got      : {header!r}"
+    )
