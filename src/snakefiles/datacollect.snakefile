@@ -287,7 +287,7 @@ rule get_obo_labels:
         ),
     benchmark:
         config["output_directory"] + "/benchmarks/get_obo_labels.tsv"
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -308,7 +308,7 @@ rule get_obo_synonyms:
         ),
     benchmark:
         config["output_directory"] + "/benchmarks/get_obo_synonyms.tsv"
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -321,7 +321,7 @@ rule get_obo_descriptions:
         obo_descriptions=config["download_directory"] + "/common/ubergraph/descriptions.jsonl",
     benchmark:
         config["output_directory"] + "/benchmarks/get_obo_descriptions.tsv"
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
     resources:
         mem="8G",
         cpus_per_task=1,
@@ -342,7 +342,7 @@ rule get_icrdf:
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_icrdf.tsv"
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
     run:
         obo.pull_uber_icRDF(output.icrdf_filename)
         # Try to load the icRDF.tsv file (this will produce an error if the file can't be read).
@@ -731,7 +731,7 @@ rule get_unichem:
         config["download_directory"] + "/UNICHEM/reference.tsv.gz",
     benchmark:
         config["output_directory"] + "/benchmarks/get_unichem.tsv"
-    retries: 5
+    retries: 3
     resources:
         mem="8G",
         cpus_per_task=1,
