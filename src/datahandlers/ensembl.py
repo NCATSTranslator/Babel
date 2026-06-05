@@ -22,7 +22,7 @@ _apy_classes._Server._check_connection = staticmethod(lambda: True)
 # This is the real MAX minus one: for every batch, we'll query the ensembl_gene_id so that we can
 # put the batches back together again afterward.
 BIOMART_MAX_ATTRIBUTE_COUNT = 6
-BIOMART_MAX_RETRIES = 5
+BIOMART_MAX_RETRIES = 1
 BIOMART_RETRY_DELAY_SECS = 30
 
 
