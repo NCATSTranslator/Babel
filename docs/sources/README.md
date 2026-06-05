@@ -15,6 +15,10 @@ letting it accumulate in `CLAUDE.md` — `CLAUDE.md` should point here, not dupl
 
 ## Sources documented so far
 
+- **ENSEMBL** ([ENSEMBL/Download.md](./ENSEMBL/Download.md)) — how Ensembl identifiers are
+  downloaded via the BioMart API: per-dataset retry logic, permanently broken datasets and how to
+  skip them, the attribute-batching workaround, and how partial progress is preserved across
+  failed runs.
 - **MESH** ([MESH/Ingestion.md](./MESH/Ingestion.md)) — how MeSH is partitioned across compendia
   by tree letter, how Supplementary Concept Records (SCRs) are typed and routed, the
   chemical/protein D-tree split, and which MeSH branches/SCR classes we deliberately skip.

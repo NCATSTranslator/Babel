@@ -202,8 +202,9 @@ Deeper, source-specific notes live under `docs/sources/<PREFIX>/` (one directory
 named by its CURIE prefix); see `docs/sources/README.md` for the convention and an index. Check
 there first when working on a specific vocabulary, and add to it when you learn something
 non-obvious about how Babel ingests that source. Keep the detail in the source file — `CLAUDE.md`
-should point here, not duplicate it. Documented so far: MeSH
-(`docs/sources/MESH/Ingestion.md`) and UMLS (`docs/sources/UMLS/Leftover.md`).
+should point here, not duplicate it. Documented so far: Ensembl/BioMart
+(`docs/sources/ENSEMBL/Download.md`), MeSH (`docs/sources/MESH/Ingestion.md`), and UMLS
+(`docs/sources/UMLS/Leftover.md`).
 
 ### Per-compendium metadata YAMLs
 
