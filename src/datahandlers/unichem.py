@@ -1,6 +1,6 @@
 import gzip
 
-from src.babel_utils import pull_via_urllib
+from src.babel_utils import pull_via_wget
 from src.prefixes import CHEBI, CHEMBLCOMPOUND, DRUGBANK, DRUGCENTRAL, GTOPDB, HMDB, KEGGCOMPOUND, PUBCHEMCOMPOUND, UNII
 
 # global for this file
@@ -23,14 +23,14 @@ REFERENCE_HEADER = "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGMENT\n"
 
 def download_unichem():
     """Download raw UniChem files. Format validation happens in filter_unichem."""
-    pull_via_urllib(
+    pull_via_wget(
         "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/",
         "structure.tsv.gz",
         decompress=False,
         subpath="UNICHEM",
         verify_gzip=True,
     )
-    pull_via_urllib(
+    pull_via_wget(
         "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/",
         "reference.tsv.gz",
         decompress=False,
