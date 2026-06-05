@@ -79,6 +79,9 @@ rule taxon_compendia:
         output_metadata=expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["taxon_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/taxon_compendia.tsv"
+    resources:
+        # Peaks at ~14 GB on babel-1.17 (see docs/Performance.md); over the 16 GB default.
+        mem="32G",
     run:
         taxon.build_compendia(input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename)
 
