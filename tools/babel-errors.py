@@ -2,9 +2,139 @@
 """Aggregate Babel SLURM rule error logs into a single report for debugging."""
 
 import argparse
+import dataclasses
 import re
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
+
+_SUBMIT_RE = re.compile(
+    r"(?:INFO|ERROR) snakemake\.logging \[(\S+)\]: "
+    r"Job (\d+) has been submitted with SLURM jobid (\d+) \(log: (\S+)\)\."
+)
+_FINISH_RE = re.compile(
+    r"(?:INFO|ERROR) snakemake\.logging \[(\S+)\]: "
+    r"Finished jobid: (\d+) \(Rule: (\w+)\)"
+)
+_ERROR_RE = re.compile(
+    r"ERROR snakemake\.logging \[(\S+)\]: "
+    r"Error in rule (\w+), jobid: (\d+)"
+)
+_RUNTIME_RE = re.compile(r"\bruntime=(\d+)\b")
+
+
+@dataclasses.dataclass
+class _JobEvent:
+    snakemake_jobid: int
+    slurm_jobid: int
+    rule_name: str
+    log_relative: str  # e.g. rule_get_HMDB/672.log
+    submitted_at: datetime
+    finished_at: datetime | None = None
+    failed: bool = False
+
+
+def _parse_ts(ts_str: str) -> datetime:
+    # Normalise +0000 → +00:00 for Python < 3.11 fromisoformat compatibility.
+    return datetime.fromisoformat(ts_str.replace("+0000", "+00:00"))
+
+
+def _fmt_duration(seconds: float) -> str:
+    h = int(seconds // 3600)
+    m = int((seconds % 3600) // 60)
+    return f"{h}h{m:02d}m" if h else f"{m}m"
+
+
+def _log_relative(remote_log_path: str) -> str:
+    """Extract the logs-dir-relative path (rule_FOO/.../N.log) from a remote path."""
+    parts = remote_log_path.split("/rule_", 1)
+    return ("rule_" + parts[1]) if len(parts) == 2 else remote_log_path
+
+
+def _get_runtime_minutes(log_relative: str, logs_dir: Path, default: int = 120) -> int:
+    local_log = logs_dir / log_relative
+    if not local_log.exists():
+        return default
+    for line in local_log.read_text(errors="replace").splitlines():
+        if "resources:" in line:
+            m = _RUNTIME_RE.search(line)
+            if m:
+                return int(m.group(1))
+    return default
+
+
+def _parse_job_events(err_file: Path) -> list[_JobEvent]:
+    """Return a list of SLURM job events parsed from the main Snakemake error log."""
+    jobs: dict[int, _JobEvent] = {}
+    for line in err_file.read_text(errors="replace").splitlines():
+        if m := _SUBMIT_RE.search(line):
+            ts, snakemake_id, slurm_id, log_path = m.group(1), int(m.group(2)), int(m.group(3)), m.group(4)
+            rel = _log_relative(log_path)
+            rule = rel.split("/")[0][len("rule_") :]
+            jobs[snakemake_id] = _JobEvent(
+                snakemake_jobid=snakemake_id,
+                slurm_jobid=slurm_id,
+                rule_name=rule,
+                log_relative=rel,
+                submitted_at=_parse_ts(ts),
+            )
+        elif m := _FINISH_RE.search(line):
+            snakemake_id = int(m.group(2))
+            if snakemake_id in jobs:
+                jobs[snakemake_id].finished_at = _parse_ts(m.group(1))
+        elif m := _ERROR_RE.search(line):
+            snakemake_id = int(m.group(3))
+            if snakemake_id in jobs:
+                jobs[snakemake_id].failed = True
+                jobs[snakemake_id].finished_at = _parse_ts(m.group(1))
+    return list(jobs.values())
+
+
+def print_job_summary(err_file: Path, logs_dir: Path) -> None:
+    jobs = _parse_job_events(err_file)
+    if not jobs:
+        return
+
+    now = datetime.now(UTC)
+    completed = [j for j in jobs if j.finished_at and not j.failed]
+    failed = [j for j in jobs if j.failed]
+    incomplete = [j for j in jobs if not j.finished_at and not j.failed]
+
+    # Completed: unique rule names on one line.
+    seen: set[str] = set()
+    unique_completed: list[str] = []
+    for j in completed:
+        if j.rule_name not in seen:
+            seen.add(j.rule_name)
+            unique_completed.append(j.rule_name)
+    if unique_completed:
+        names = ", ".join(unique_completed)
+        print(f"Found {len(unique_completed)} completed rule(s): {names}", file=sys.stderr)
+    else:
+        print("Found 0 completed rules.", file=sys.stderr)
+
+    # Failed: count only (details come from the main report).
+    if failed:
+        failed_names = ", ".join(dict.fromkeys(j.rule_name for j in failed))
+        print(f"Found {len(failed)} failed rule(s): {failed_names}", file=sys.stderr)
+
+    # Incomplete: one line per running job.
+    if incomplete:
+        print(f"Found {len(incomplete)} incomplete rule(s):", file=sys.stderr)
+        for j in sorted(incomplete, key=lambda x: x.submitted_at):
+            elapsed = (now - j.submitted_at).total_seconds()
+            timeout_min = _get_runtime_minutes(j.log_relative, logs_dir)
+            elapsed_str = _fmt_duration(elapsed)
+            timeout_str = _fmt_duration(timeout_min * 60)
+            log_display = logs_dir / j.log_relative
+            print(
+                f"\t - Rule {j.rule_name} (SLURM jobid {j.slurm_jobid}):"
+                f" running for {elapsed_str}, timeout at {timeout_str},"
+                f" log at {log_display}",
+                file=sys.stderr,
+            )
+    else:
+        print("Found 0 incomplete rules.", file=sys.stderr)
 
 
 def find_err_file(version: str | None, logs_dir: Path) -> Path:
@@ -125,12 +255,13 @@ def main() -> None:
         sys.exit(1)
 
     print(f"Reading {err_file}", file=sys.stderr)
+    print_job_summary(err_file, logs_dir)
+
     failures = parse_failures(err_file)
     if not failures:
-        print("No rule failures found in error log.", file=sys.stderr)
         sys.exit(0)
 
-    print(f"Found {len(failures)} failing rule(s).", file=sys.stderr)
+    print(f"\nFound {len(failures)} failing rule(s).", file=sys.stderr)
     print(build_report(failures, args.markdown, args.traceback_only, args.lines))
 
 
