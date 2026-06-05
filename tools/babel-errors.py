@@ -254,14 +254,12 @@ def main() -> None:
         print(f"error: {exc}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Reading {err_file}", file=sys.stderr)
-
     failures = parse_failures(err_file)
     if failures:
         print(build_report(failures, args.markdown, args.traceback_only, args.lines))
 
     sys.stdout.flush()
-    print("\n--- Summary ---", file=sys.stderr)
+    print(f"\n--- Summary (read {err_file}) ---", file=sys.stderr)
     print_job_summary(err_file, logs_dir)
     if failures:
         print(f"Found {len(failures)} failing rule(s).", file=sys.stderr)
