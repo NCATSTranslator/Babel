@@ -430,10 +430,12 @@ def write_gtopdb_ids(infile, outfile):
 def write_unichem_concords(structfile, reffile, outdir):
     inchikeys = read_inchikeys(structfile)
     concfiles = {}
+    row_counts = {}
     for num, name in unichem_data_sources.items():
         concname = f"{outdir}/UNICHEM_{name}"
         print(concname)
         concfiles[num] = open(concname, "w")
+        row_counts[num] = 0
     with open(reffile) as inf:
         header_line = inf.readline()
         assert header_line == UNICHEM_REFERENCE_TSV_HEADER, f"Incorrect header line in {reffile}: {header_line}"
@@ -443,8 +445,20 @@ def write_unichem_concords(structfile, reffile, outdir):
             assert x[3] == "1"  # Only '1' (current) assignments should be in this file
             # (see https://chembl.gitbook.io/unichem/definitions/what-is-an-assignment).
             outf.write(f"{unichem_data_sources[x[1]]}:{x[2]}\toio:equivalent\t{inchikeys[x[0]]}\n")
+            row_counts[x[1]] += 1
     for outf in concfiles.values():
         outf.close()
+
+    empty_sources = [(num, unichem_data_sources[num]) for num, count in row_counts.items() if count == 0]
+    if empty_sources:
+        descriptions = ", ".join(f"{name!r} (source ID {num!r})" for num, name in empty_sources)
+        raise RuntimeError(
+            f"UniChem reference file produced no entries for the following sources: {descriptions}. "
+            f"These sources may have been removed or renumbered in the current UniChem release. "
+            f"To fix: remove them from unichem_data_sources in src/datahandlers/unichem.py and "
+            f"from unichem_datasources (and chemical_labels/chemical_ids if present) in config.yaml, "
+            f"then rerun this step."
+        )
 
 
 def read_inchikeys(struct_file):
