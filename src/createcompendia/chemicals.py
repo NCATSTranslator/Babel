@@ -485,10 +485,14 @@ def combine_unichem(concordances, output):
                 # Get the prefix from the first row to determine if we need to remove overused xrefs
                 prefixes_in_file.add(Text.get_prefix(x[0]))
 
-        # Was there more than one prefix in the first column?
-        if len(prefixes_in_file) != 1:
+        # Was there exactly one prefix in the first column?
+        if len(prefixes_in_file) == 0:
             raise RuntimeError(
-                f"More than one prefix found in {infile}: {prefixes_in_file}. All UNICHEM files should have only one prefix."
+                f"No prefixes found in {infile} (file may be empty or have no valid CURIE in column 1). All UNICHEM files should have exactly one prefix."
+            )
+        if len(prefixes_in_file) > 1:
+            raise RuntimeError(
+                f"Multiple prefixes found in {infile}: {prefixes_in_file}. All UNICHEM files should have exactly one prefix."
             )
         prefix_to_check = prefixes_in_file.pop()
 
