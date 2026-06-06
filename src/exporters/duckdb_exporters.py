@@ -258,9 +258,7 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
     duckdb_dir = os.path.dirname(duckdb_filename)
     os.makedirs(duckdb_dir, exist_ok=True)
 
-    # Use write_buffer_row_group_count=1 so DuckDB flushes row groups to disk eagerly rather than
-    # buffering up to 5 row groups per thread in RAM (default: 5 × threads × ~4 GiB = ~76 GiB peak).
-    with setup_duckdb(duckdb_filename, duckdb_config={"write_buffer_row_group_count": 1}) as db:
+    with setup_duckdb(duckdb_filename) as db:
         synonyms_jsonl = db.read_json(synonyms_filename_gz, format="newline_delimited")
 
         # We can't execute the following query unless we have at least one row in the input data.
