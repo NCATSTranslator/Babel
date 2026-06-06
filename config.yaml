@@ -173,7 +173,13 @@ drugchemical_outputs: [DrugChemical.txt]
 preferred_name_boost_prefixes:
   biolink:ChemicalEntity: [DRUGBANK, DrugCentral, CHEBI, MESH, GTOPDB]
 
-ensembl_datasets_to_skip: [elucius_gene_ensembl, hgfemale_gene_ensembl, charengus_gene_ensembl, otshawytscha_gene_ensembl, aocellaris_gene_ensembl]
+ensembl_datasets_to_skip:
+#  - elucius_gene_ensembl
+#  - hgfemale_gene_ensembl
+#  - charengus_gene_ensembl
+#  - otshawytscha_gene_ensembl
+#  - aocellaris_gene_ensembl
+  - omykiss_gene_ensembl        # 2026jun5: keeps getting stuck with this dataset for some reason.
 
 # Labels longer than this limit are demoted (not used as preferred label if a shorter alternative exists).
 # Keyed by Biolink type; types not listed here are never demoted. Uses ancestor traversal, so
