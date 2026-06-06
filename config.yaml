@@ -37,8 +37,13 @@ compendium_directories:
 # SHARED
 #
 
-# DuckDB settings for use in all DuckDB connections:
-duckdb_config: {}
+# DuckDB settings for use in all DuckDB connections.
+# write_buffer_row_group_count=1: flush Parquet row groups to disk eagerly. The default of 5
+# means DuckDB holds 5 row groups × threads × ~4 GiB in write buffers before flushing (~76 GiB
+# peak at 128 GB allocation). Setting it to 1 keeps write-buffer RAM proportional to one row
+# group, at no cost to compression ratio or query performance.
+duckdb_config:
+  write_buffer_row_group_count: 1
 
 #
 # UMLS
