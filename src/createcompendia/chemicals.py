@@ -27,6 +27,7 @@ from src.categories import (
     POLYPEPTIDE,
     SMALL_MOLECULE,
 )
+from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.prefixes import (
@@ -317,11 +318,7 @@ def write_drugbank_ids(infile, outfile):
     written = set()
     with open(infile) as inf, open(outfile, "w") as outf:
         header_line = inf.readline()
-        # UniChem uses "ASSIGMENT" (missing one N) in its reference file header.
-        assert header_line in (
-            "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n",
-            "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGMENT\n",
-        ), f"Incorrect header line in {infile}: {header_line}"
+        assert header_line == UNICHEM_REFERENCE_TSV_HEADER, f"Incorrect header line in {infile}: {header_line}"
         for line in inf:
             x = line.rstrip().split("\t")
             if x[1] == drugbank_id:
@@ -439,9 +436,7 @@ def write_unichem_concords(structfile, reffile, outdir):
         concfiles[num] = open(concname, "w")
     with open(reffile) as inf:
         header_line = inf.readline()
-        assert header_line == "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", (
-            f"Incorrect header line in {reffile}: {header_line}"
-        )
+        assert header_line == UNICHEM_REFERENCE_TSV_HEADER, f"Incorrect header line in {reffile}: {header_line}"
         for line in inf:
             x = line.rstrip().split("\t")
             outf = concfiles[x[1]]

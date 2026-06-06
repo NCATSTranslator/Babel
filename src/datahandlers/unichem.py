@@ -18,7 +18,7 @@ data_sources: dict = {
 
 # Expected header of reference.tsv.gz — validated by filter_unichem() at filter time.
 # Note: upstream uses "ASSIGMENT" (missing 'N') — this matches the upstream typo exactly.
-REFERENCE_HEADER = "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGMENT\n"
+UNICHEM_REFERENCE_TSV_HEADER = "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGMENT\n"
 
 
 def download_unichem_structure():
@@ -57,11 +57,11 @@ def filter_unichem(ref_file, ref_filtered):
         except EOFError as e:
             raise RuntimeError(f"UniChem reference file {ref_file} is truncated (could not read header): {e}") from e
 
-        if header_line != REFERENCE_HEADER:
+        if header_line != UNICHEM_REFERENCE_TSV_HEADER:
             raise ValueError(
                 f"UniChem reference file {ref_file} has an unexpected header — "
-                f"re-run download_unichem_reference to re-download.\n"
-                f"  Expected : {REFERENCE_HEADER!r}\n"
+                f"examine the file and update UNICHEM_REFERENCE_TSV_HEADER in src/datahandlers/unichem.py if the format has changed.\n"
+                f"  Expected : {UNICHEM_REFERENCE_TSV_HEADER!r}\n"
                 f"  Got      : {header_line!r}"
             )
         out.write(header_line)
