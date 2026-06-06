@@ -73,7 +73,7 @@ rule export_synonyms_to_duckdb:
     benchmark:
         config["output_directory"] + "/benchmarks/export_synonyms_to_duckdb_{filename}.tsv"
     resources:
-        mem=lambda wildcards: "128G" if wildcards.filename == "Protein" else "64G",
+        mem=lambda wildcards: "128G" if wildcards.filename in {"Protein", "GeneProteinConflated"} else "64G",
     run:
         duckdb_exporters.export_synonyms_to_parquet(
             input.synonyms_file, output.duckdb_filename, output.synonyms_parquet_filename
