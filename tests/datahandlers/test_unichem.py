@@ -14,7 +14,7 @@ import urllib.request
 import pytest
 
 from src.babel_utils import get_user_agent
-from src.datahandlers.unichem import REFERENCE_HEADER
+from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER
 
 pytestmark = [pytest.mark.network]
 
@@ -56,7 +56,7 @@ def test_unichem_url_accessible_with_user_agent(filename):
 
 @pytest.mark.slow
 def test_unichem_reference_header_matches_expected():
-    """The first line of reference.tsv.gz must match REFERENCE_HEADER exactly.
+    """The first line of reference.tsv.gz must match UNICHEM_REFERENCE_TSV_HEADER exactly.
 
     This test downloads a small initial chunk of the file (~256 KB) and decompresses
     it to read the header.  It guards against upstream format changes like the
@@ -82,9 +82,9 @@ def test_unichem_reference_header_matches_expected():
     except Exception as exc:
         pytest.fail(f"Could not decompress initial chunk of reference.tsv.gz: {exc}")
 
-    assert header == REFERENCE_HEADER, (
-        f"UniChem reference.tsv.gz header has changed — update REFERENCE_HEADER in "
+    assert header == UNICHEM_REFERENCE_TSV_HEADER, (
+        f"UniChem reference.tsv.gz header has changed — update UNICHEM_REFERENCE_TSV_HEADER in "
         f"src/datahandlers/unichem.py.\n"
-        f"  Expected : {REFERENCE_HEADER!r}\n"
+        f"  Expected : {UNICHEM_REFERENCE_TSV_HEADER!r}\n"
         f"  Got      : {header!r}"
     )
