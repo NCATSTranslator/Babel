@@ -318,9 +318,10 @@ def write_drugbank_ids(infile, outfile):
     with open(infile) as inf, open(outfile, "w") as outf:
         header_line = inf.readline()
         # UniChem uses "ASSIGMENT" (missing one N) in its reference file header.
-        assert header_line in ("UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGMENT\n"), (
-            f"Incorrect header line in {infile}: {header_line}"
-        )
+        assert header_line in (
+            "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n",
+            "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGMENT\n",
+        ), f"Incorrect header line in {infile}: {header_line}"
         for line in inf:
             x = line.rstrip().split("\t")
             if x[1] == drugbank_id:
