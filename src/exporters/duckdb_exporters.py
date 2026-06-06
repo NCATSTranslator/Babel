@@ -258,38 +258,32 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
     duckdb_dir = os.path.dirname(duckdb_filename)
     os.makedirs(duckdb_dir, exist_ok=True)
 
-    with setup_duckdb(duckdb_filename) as db:
-        # Step 1. Load the entire synonyms file.
+    # Use write_buffer_row_group_count=1 so DuckDB flushes row groups to disk eagerly rather than
+    # buffering up to 5 row groups per thread in RAM (default: 5 × threads × ~4 GiB = ~76 GiB peak).
+    with setup_duckdb(duckdb_filename, duckdb_config={"write_buffer_row_group_count": 1}) as db:
         synonyms_jsonl = db.read_json(synonyms_filename_gz, format="newline_delimited")
 
-        # Step 2. Create a Cliques table with all the cliques from this file.
-        # db.sql("CREATE TABLE Cliques (curie TEXT PRIMARY KEY, label TEXT, clique_identifier_count INT, biolink_type TEXT)")
-        # db.sql("INSERT INTO Cliques (curie, label, clique_identifier_count, biolink_type) " +
-        #       "SELECT curie, replace(preferred_name, '\"\"\"', '\"') AS label, clique_identifier_count, " +
-        #       "CONCAT('biolink:', json_extract_string(types, '$[0]')) AS biolink_type FROM synonyms_jsonl")
-
-        # Step 3. Create a Synonyms table with all the cliques from this file.
-        db.sql("""CREATE TABLE Synonym (clique_leader STRING, preferred_name STRING, preferred_name_lc STRING,
-            biolink_type STRING, label STRING, label_lc STRING)""")
-
-        # We can't execute the following INSERT statement unless we have at least one row in the input data.
-        # So let's test that now.
+        # We can't execute the following query unless we have at least one row in the input data.
         result = db.execute("SELECT COUNT(*) AS row_count FROM synonyms_jsonl").fetchone()
         row_count = result[0]
 
-        # Assuming we have data in synonyms_jsonl, write it out now.
         if row_count > 0:
-            db.sql("""INSERT INTO Synonym
+            # Write directly to Parquet without an intermediate in-memory Synonym table.
+            # INSERT INTO a table would materialise all unnested rows in RAM; .write_parquet()
+            # streams row groups to disk so peak memory stays proportional to one row group.
+            db.sql("""
                 SELECT curie AS clique_leader, preferred_name,
                     LOWER(preferred_name) AS preferred_name_lc,
                     CONCAT('biolink:', json_extract_string(types, '$[0]')) AS biolink_type,
                     unnest(names) AS label, LOWER(label) AS label_lc
-                FROM synonyms_jsonl""")
+                FROM synonyms_jsonl
+            """).write_parquet(synonyms_parquet_filename)
+        else:
+            db.sql("""
+                SELECT NULL::VARCHAR AS clique_leader, NULL::VARCHAR AS preferred_name,
+                    NULL::VARCHAR AS preferred_name_lc, NULL::VARCHAR AS biolink_type,
+                    NULL::VARCHAR AS label, NULL::VARCHAR AS label_lc
+                WHERE FALSE
+            """).write_parquet(synonyms_parquet_filename)
 
-        # Step 3. Export as Parquet files.
-        db.sql(
-            "SELECT clique_leader, preferred_name, preferred_name_lc, biolink_type, label, label_lc FROM Synonym"
-        ).write_parquet(synonyms_parquet_filename)
-
-        # Cleanup
         synonyms_jsonl.close()
