@@ -102,12 +102,12 @@ process_ids:      [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
 process_concords: [GO, RHEA, UMLS]
 process_outputs:  [Pathway.txt, BiologicalProcess.txt, MolecularActivity.txt]
 
-unichem_datasources: [CHEMBL.COMPOUND, DRUGBANK, GTOPDB, KEGG.COMPOUND, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral]
+unichem_datasources: [CHEMBL.COMPOUND, DRUGBANK, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
 
-chemical_labels:    [CHEMBL.COMPOUND, GTOPDB, KEGG.COMPOUND, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, UMLS, DRUGBANK]
+chemical_labels:    [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, UMLS, DRUGBANK]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
 chemical_synonyms:  [GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, UMLS, DRUGBANK]
 chemical_concords:  [wikipedia_mesh_chebi, PUBCHEM_MESH, mesh_cas, mesh_unii, PUBCHEM_CAS, GTOPDB, CHEBI, UMLS, DrugCentral, RXNORM]
-chemical_ids:       [CHEMBL.COMPOUND, GTOPDB, KEGG.COMPOUND, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, DRUGBANK, MESH, UMLS, RXNORM]
+chemical_ids:       [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, DRUGBANK, MESH, UMLS, RXNORM]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
 chemical_outputs:   [MolecularMixture.txt, SmallMolecule.txt, Polypeptide.txt, ComplexMolecularMixture.txt, ChemicalEntity.txt, ChemicalMixture.txt, Drug.txt]
 
 drugchemicalconflated_synonym_outputs: [DrugChemicalConflated.txt]

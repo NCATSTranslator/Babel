@@ -1,14 +1,14 @@
 import gzip
 
 from src.babel_utils import pull_via_wget
-from src.prefixes import CHEBI, CHEMBLCOMPOUND, DRUGBANK, DRUGCENTRAL, GTOPDB, HMDB, KEGGCOMPOUND, PUBCHEMCOMPOUND, UNII
+from src.prefixes import CHEBI, CHEMBLCOMPOUND, DRUGBANK, DRUGCENTRAL, GTOPDB, HMDB, PUBCHEMCOMPOUND, UNII
 
 # global for this file
 data_sources: dict = {
     "1": CHEMBLCOMPOUND,
     "2": DRUGBANK,
     "4": GTOPDB,
-    "6": KEGGCOMPOUND,
+    # "6": KEGGCOMPOUND,  # Removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
     "7": CHEBI,
     "14": UNII,
     "18": HMDB,
