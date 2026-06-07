@@ -233,7 +233,7 @@ requires-dist = [
     { name = "pytest-xdist", specifier = ">=3" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.32.5" },
-    { name = "snakemake", specifier = ">=9.21.1" },
+    { name = "snakemake", specifier = ">=9.22.0" },
     { name = "snakemake-executor-plugin-slurm", specifier = ">=2.6.1" },
     { name = "sparqlwrapper", specifier = ">=2.0.0" },
     { name = "tqdm", specifier = ">=4.67.1" },
@@ -2266,7 +2266,7 @@ wheels = [
 
 [[package]]
 name = "snakemake"
-version = "9.21.1"
+version = "9.22.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "conda-inject" },
@@ -2301,9 +2301,9 @@ dependencies = [
     { name = "wrapt" },
     { name = "yte" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/11/f2/f1a37124f5855579865345a5c64573de4de3b3a2e63594d2f1d3dc341caf/snakemake-9.21.1.tar.gz", hash = "sha256:495cd9438fd530b8f1d207112decd71ab2ac3699194b1756960f9488f98c26e7", size = 6792798, upload-time = "2026-05-29T14:18:27.831Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/42/62/333b00dc3b85516e81aec60e87a4bbe18f99f590b4cd09045b7546263abb/snakemake-9.22.0.tar.gz", hash = "sha256:7c276c775a04a85c5a2de3e28f123a1dda6974ce5d6d52de758cd37b5d839cc7", size = 6797914, upload-time = "2026-06-01T18:44:03.452Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dd/bf/7f0972b61446cd4783ab39a8e211bc8aa34ed484a3062e767a8b3af80a49/snakemake-9.21.1-py3-none-any.whl", hash = "sha256:9ff83764256dea9bad5dc072a3e71ce111154999b50c127aaddffff5eef50f26", size = 1158766, upload-time = "2026-05-29T14:18:25.876Z" },
+    { url = "https://files.pythonhosted.org/packages/97/ef/75e9f782b1b9d11ebfe3a590ef2866a480dc3f1c7b45f118b99f22e2ce81/snakemake-9.22.0-py3-none-any.whl", hash = "sha256:ba980ee8184e325add5eede8bdf675ffdf7384993ce110e6634cbdbc887be86e", size = 1160941, upload-time = "2026-06-01T18:43:59.256Z" },
 ]
 
 [[package]]
