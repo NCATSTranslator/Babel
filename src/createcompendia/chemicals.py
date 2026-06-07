@@ -431,6 +431,7 @@ def write_unichem_concords(structfile, reffile, outdir):
     inchikeys = read_inchikeys(structfile)
     concfiles = {}
     row_counts = {}
+    double_prefix_warned = set()  # sources where we already logged the strip-warning
     for num, name in unichem_data_sources.items():
         concname = f"{outdir}/UNICHEM_{name}"
         print(concname)
@@ -441,11 +442,38 @@ def write_unichem_concords(structfile, reffile, outdir):
         assert header_line == UNICHEM_REFERENCE_TSV_HEADER, f"Incorrect header line in {reffile}: {header_line}"
         for line in inf:
             x = line.rstrip().split("\t")
-            outf = concfiles[x[1]]
+            src_id = x[1]
+            compound_id = x[2]
+            expected_prefix = unichem_data_sources[src_id]
+            outf = concfiles[src_id]
             assert x[3] == "1"  # Only '1' (current) assignments should be in this file
             # (see https://chembl.gitbook.io/unichem/definitions/what-is-an-assignment).
-            outf.write(f"{unichem_data_sources[x[1]]}:{x[2]}\toio:equivalent\t{inchikeys[x[0]]}\n")
-            row_counts[x[1]] += 1
+
+            # Guard against UniChem embedding the prefix inside the compound ID.
+            # e.g. CHEBI source stores "CHEBI:12345" instead of bare "12345".
+            if ":" in compound_id:
+                embedded_prefix, bare_id = compound_id.split(":", 1)
+                if embedded_prefix == expected_prefix:
+                    # Double prefix — strip the embedded one and warn once per source.
+                    if src_id not in double_prefix_warned:
+                        logger.warning(
+                            f"UniChem source {src_id} ({expected_prefix}): compound ID already contains "
+                            f"the prefix (e.g. {compound_id!r}). Stripping embedded prefix. "
+                            f"Consider reporting this to UniChem."
+                        )
+                        double_prefix_warned.add(src_id)
+                    compound_id = bare_id
+                else:
+                    raise ValueError(
+                        f"UniChem source {src_id} ({expected_prefix}): compound ID {compound_id!r} "
+                        f"contains an unexpected embedded prefix {embedded_prefix!r}. "
+                        f"Expected either a bare ID or one prefixed with {expected_prefix!r}. "
+                        f"Update unichem_data_sources in src/datahandlers/unichem.py if this source "
+                        f"has changed its identifier scheme."
+                    )
+
+            outf.write(f"{expected_prefix}:{compound_id}\toio:equivalent\t{inchikeys[x[0]]}\n")
+            row_counts[src_id] += 1
     for outf in concfiles.values():
         outf.close()
 
