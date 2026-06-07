@@ -78,6 +78,7 @@ STY_OVERRIDES: dict[str, str | None] = {
     "T090": POPULATION_OF_INDIVIDUAL_ORGANISMS,
     "T091": POPULATION_OF_INDIVIDUAL_ORGANISMS,
     "T097": POPULATION_OF_INDIVIDUAL_ORGANISMS,
+    # https://github.com/NCATSTranslator/Babel/issues/840
     # "Physical Object" (T072) and "Manufactured Object" (T073) both map to biolink:PhysicalEntity,
     # which has no id_prefixes in the Biolink Model and therefore cannot be written to a compendium
     # (node.py raises RuntimeError). Reject both so concepts typed only as physical objects are
