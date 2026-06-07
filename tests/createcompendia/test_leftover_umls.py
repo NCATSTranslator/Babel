@@ -35,8 +35,8 @@ RECORDED_STY_BASELINE: dict[str, str | None] = {
     "T090": None,  # https://github.com/NCATSTranslator/Babel/issues/817 -- "Occupation or Discipline": no STY mapping.
     "T091": None,  # https://github.com/NCATSTranslator/Babel/issues/817 -- "Biomedical Occupation or Discipline": no STY mapping.
     "T097": COHORT,  # https://github.com/NCATSTranslator/Babel/issues/817 -- "Professional or Occupational Group": bmt maps to Cohort, overridden to PopulationOfIndividualOrganisms for consistency.
-    "T072": PHYSICAL_ENTITY,  # "Physical Object": bmt maps to PhysicalEntity, which has no id_prefixes — rejected.
-    "T073": PHYSICAL_ENTITY,  # "Manufactured Object": bmt maps to PhysicalEntity, which has no id_prefixes — rejected.
+    "T072": PHYSICAL_ENTITY,  # https://github.com/NCATSTranslator/Babel/issues/840 -- "Physical Object": bmt maps to PhysicalEntity, which has no id_prefixes — rejected.
+    "T073": PHYSICAL_ENTITY,  # https://github.com/NCATSTranslator/Babel/issues/840 -- "Manufactured Object": bmt maps to PhysicalEntity, which has no id_prefixes — rejected.
 }
 
 
