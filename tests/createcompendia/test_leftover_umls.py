@@ -8,7 +8,7 @@ These are marked ``network`` because they build a Biolink Model Toolkit, which f
 
 import pytest
 
-from src.categories import ACTIVITY, COHORT, PHENOMENON
+from src.categories import ACTIVITY, COHORT, PHENOMENON, PHYSICAL_ENTITY
 from src.createcompendia.leftover_umls import (
     STY_OVERRIDES,
     TYPE_COMBO_OVERRIDES,
@@ -35,6 +35,8 @@ RECORDED_STY_BASELINE: dict[str, str | None] = {
     "T090": None,  # https://github.com/NCATSTranslator/Babel/issues/817 -- "Occupation or Discipline": no STY mapping.
     "T091": None,  # https://github.com/NCATSTranslator/Babel/issues/817 -- "Biomedical Occupation or Discipline": no STY mapping.
     "T097": COHORT,  # https://github.com/NCATSTranslator/Babel/issues/817 -- "Professional or Occupational Group": bmt maps to Cohort, overridden to PopulationOfIndividualOrganisms for consistency.
+    "T072": PHYSICAL_ENTITY,  # "Physical Object": bmt maps to PhysicalEntity, which has no id_prefixes — rejected.
+    "T073": PHYSICAL_ENTITY,  # "Manufactured Object": bmt maps to PhysicalEntity, which has no id_prefixes — rejected.
 }
 
 
