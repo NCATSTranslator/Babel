@@ -425,12 +425,16 @@ def build_conflation(
     for subject, object in manual_concords:
         if subject not in preferred_curie_for_curie:
             logger.warning(
-                f"Manual concord subject {subject} (paired with {object}) is not in any chemical compendium, skipping."
+                f"Manual concord subject {subject} (paired with {object}) is not in any chemical compendium — "
+                f"it may have been reclassified (e.g. as a protein). "
+                f"If so, remove it from input_data/manual_concords/drugchemical.tsv."
             )
             continue
         if object not in preferred_curie_for_curie:
             logger.warning(
-                f"Manual concord object {object} (paired with {subject}) is not in any chemical compendium, skipping."
+                f"Manual concord object {object} (paired with {subject}) is not in any chemical compendium — "
+                f"it may have been reclassified (e.g. as a protein). "
+                f"If so, remove it from input_data/manual_concords/drugchemical.tsv."
             )
             continue
         pairs.append((preferred_curie_for_curie[subject], preferred_curie_for_curie[object]))
