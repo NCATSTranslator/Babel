@@ -73,7 +73,10 @@ rule export_synonyms_to_duckdb:
     benchmark:
         config["output_directory"] + "/benchmarks/export_synonyms_to_duckdb_{filename}.tsv"
     resources:
-        mem="128G",
+        # Protein and GeneProteinConflated have hundreds of UniProt synonyms
+        # per entry; after unnesting the names array the row count is large
+        # enough to OOM at 128G.
+        mem=lambda wildcards: "512G" if wildcards.filename in ("Protein", "GeneProteinConflated") else "128G",
         runtime="3h",
     run:
         # Cap DuckDB at 75% of the SLURM allocation so Python + OS overhead
