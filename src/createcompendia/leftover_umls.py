@@ -78,6 +78,13 @@ STY_OVERRIDES: dict[str, str | None] = {
     "T090": POPULATION_OF_INDIVIDUAL_ORGANISMS,
     "T091": POPULATION_OF_INDIVIDUAL_ORGANISMS,
     "T097": POPULATION_OF_INDIVIDUAL_ORGANISMS,
+    # "Physical Object" (T072) and "Manufactured Object" (T073) both map to biolink:PhysicalEntity,
+    # which has no id_prefixes in the Biolink Model and therefore cannot be written to a compendium
+    # (node.py raises RuntimeError). Reject both so concepts typed only as physical objects are
+    # skipped cleanly rather than crashing the pipeline. Concepts that carry T072/T073 alongside
+    # another semantic type retain the other type via the normal mapping path.
+    "T072": None,
+    "T073": None,
 }
 
 # Disambiguation applied when a single UMLS concept resolves to more than one Biolink type (because
