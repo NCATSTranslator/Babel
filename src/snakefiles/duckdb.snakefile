@@ -73,10 +73,19 @@ rule export_synonyms_to_duckdb:
     benchmark:
         config["output_directory"] + "/benchmarks/export_synonyms_to_duckdb_{filename}.tsv"
     resources:
-        mem="64G",
+        mem="128G",
+        runtime="3h",
     run:
+        # Cap DuckDB at 75% of the SLURM allocation so Python + OS overhead
+        # don't push total RSS over the job limit. Without this, DuckDB
+        # auto-sizes to 75% of *total system* RAM, which can far exceed the
+        # SLURM allocation on a multi-tenant HPC node.
+        duckdb_memory_limit_mb = int(resources.mem_mb * 0.75)
         duckdb_exporters.export_synonyms_to_parquet(
-            input.synonyms_file, output.duckdb_filename, output.synonyms_parquet_filename
+            input.synonyms_file,
+            output.duckdb_filename,
+            output.synonyms_parquet_filename,
+            memory_limit_mb=duckdb_memory_limit_mb,
         )
 
 

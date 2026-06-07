@@ -242,13 +242,15 @@ def export_conflation_to_parquet(conflation_filename, conflation_type, duckdb_fi
         db.table("Conflation").write_parquet(parquet_filename)
 
 
-def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_parquet_filename):
+def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_parquet_filename, memory_limit_mb=None):
     """
     Export a synonyms file to a DuckDB directory.
 
-    :param synonyms_filename: The synonym file (in JSONL) to export to Parquet.
+    :param synonyms_filename_gz: The synonym file (gzipped JSONL) to export to Parquet.
     :param duckdb_filename: A DuckDB file to temporarily store data in.
-    :param synonyms_parquet_filename: The Parquet file to store the synoynms in.
+    :param synonyms_parquet_filename: The Parquet file to store the synonyms in.
+    :param memory_limit_mb: DuckDB memory limit in MB. When set, overrides DuckDB's default
+        (75% of system RAM), which can exceed the SLURM allocation on shared HPC nodes.
     """
 
     # Make sure that duckdb_filename doesn't exist.
@@ -258,7 +260,11 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
     duckdb_dir = os.path.dirname(duckdb_filename)
     os.makedirs(duckdb_dir, exist_ok=True)
 
-    with setup_duckdb(duckdb_filename) as db:
+    duckdb_config = {}
+    if memory_limit_mb is not None:
+        duckdb_config["memory_limit"] = f"{memory_limit_mb}MB"
+
+    with setup_duckdb(duckdb_filename, duckdb_config=duckdb_config) as db:
         synonyms_jsonl = db.read_json(synonyms_filename_gz, format="newline_delimited")
 
         # We can't execute the following query unless we have at least one row in the input data.
