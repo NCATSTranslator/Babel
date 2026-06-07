@@ -6,7 +6,6 @@ from pathlib import Path
 from src.babel_utils import TypedClique, write_compendium
 from src.categories import (
     ACTIVITY,
-    AGENT,
     BIOLOGICAL_PROCESS,
     CHEMICAL_ENTITY,
     CLINICAL_FINDING,
@@ -17,10 +16,8 @@ from src.categories import (
     GROSS_ANATOMICAL_STRUCTURE,
     NAMED_THING,
     PHENOMENON,
-    PHYSICAL_ENTITY,
     POPULATION_OF_INDIVIDUAL_ORGANISMS,
     PROCEDURE,
-    PUBLICATION,
     SMALL_MOLECULE,
 )
 from src.datahandlers import umls
@@ -95,8 +92,6 @@ STY_OVERRIDES: dict[str, str | None] = {
 TYPE_COMBO_OVERRIDES: dict[frozenset[str], str] = {
     frozenset({DEVICE, DRUG}): DRUG,
     frozenset({DRUG, SMALL_MOLECULE}): SMALL_MOLECULE,
-    frozenset({AGENT, PHYSICAL_ENTITY}): AGENT,
-    frozenset({PHYSICAL_ENTITY, PUBLICATION}): PUBLICATION,
     frozenset({ACTIVITY, PROCEDURE}): PROCEDURE,
     frozenset({DRUG, FOOD}): FOOD,
     # https://github.com/NCATSTranslator/Babel/issues/569
