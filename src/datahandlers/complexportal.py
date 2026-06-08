@@ -16,6 +16,8 @@ COMPLEXPORTAL_DOWNLOAD_DONE = "download_done"
 
 
 class _DirectoryListingParser(HTMLParser):
+    """Collect all href values from anchor tags in an HTML page."""
+
     def __init__(self):
         super().__init__()
         self.hrefs = []
@@ -57,6 +59,7 @@ def _default_download_done_file():
 
 
 def pull_complexportal(download_done_file=None):
+    """Download all ComplexPortal ComplexTAB TSV files and write a manifest listing them."""
     if download_done_file is None:
         download_done_file = _default_download_done_file()
 
@@ -90,6 +93,12 @@ def _read_manifest(manifest_file):
 def make_labels_synonyms_and_taxa(
     manifest_file, download_dir, labelfile, synfile, taxafile, descfile, metadata_yaml, idsfile=None
 ):
+    """Parse all TSV files listed in the manifest and write labels, synonyms, taxa, descriptions, and optionally IDs.
+
+    When `idsfile` is provided, every unique identifier is written there as
+    ``CURIE\\tbiolink:MacromolecularComplex``, derived directly from the source rows rather
+    than from the labels file, so IDs without a recommended name are still captured.
+    """
     filenames = _read_manifest(manifest_file)
     used_identifiers = set()
     used_synonyms = set()
