@@ -30,12 +30,12 @@ from tests.pipeline.conftest import _download_or_fail
 
 @pytest.fixture(scope="session")
 def complexportal_tsv_files():
-    """Download all ComplexPortal TSV files; fail if unavailable."""
-    download_done = make_local_name(complexportal.COMPLEXPORTAL_DOWNLOAD_DONE, subpath=COMPLEXPORTAL)
+    """Download all ComplexPortal TSV files; fail if unavailable. Returns the manifest path."""
+    manifest = make_local_name(complexportal.COMPLEXPORTAL_MANIFEST, subpath=COMPLEXPORTAL)
     return _download_or_fail(
         "ComplexPortal TSV files",
         complexportal.pull_complexportal,
-        download_done,
+        manifest,
     )
 
 
@@ -65,7 +65,9 @@ def complexportal_pipeline_outputs(complexportal_tsv_files, regenerate):
         or not os.path.exists(descriptions)
     ):
         os.makedirs(download_dir, exist_ok=True)
-        complexportal.make_labels_synonyms_and_taxa(manifest, download_dir, labels, synonyms, taxa, descriptions, metadata)
+        complexportal.make_labels_synonyms_and_taxa(
+            manifest, download_dir, labels, synonyms, taxa, descriptions, metadata
+        )
 
     return {"manifest": manifest, "labels": labels, "synonyms": synonyms, "taxa": taxa, "descriptions": descriptions}
 
@@ -77,11 +79,8 @@ def complexportal_pipeline_outputs(complexportal_tsv_files, regenerate):
 
 @pytest.mark.pipeline
 def test_complexportal_tsv_files_downloaded(complexportal_tsv_files):
-    """Sentinel and manifest files exist and the manifest lists at least one TSV."""
-    assert os.path.exists(complexportal_tsv_files), "download_done sentinel is missing"
-    download_dir = os.path.dirname(complexportal_tsv_files)
-    manifest = os.path.join(download_dir, complexportal.COMPLEXPORTAL_MANIFEST)
-    with open(manifest) as f:
+    """Manifest exists and lists at least one TSV file."""
+    with open(complexportal_tsv_files) as f:
         lines = [line.strip() for line in f if line.strip()]
     assert len(lines) > 0, "Manifest is empty — no TSV files were downloaded"
     assert all(fn.endswith(".tsv") for fn in lines), f"Non-TSV entry in manifest: {lines}"

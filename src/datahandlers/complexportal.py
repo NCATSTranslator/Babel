@@ -12,7 +12,6 @@ from src.prefixes import COMPLEXPORTAL
 
 COMPLEXPORTAL_COMPLEXTAB_URL = "https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/"
 COMPLEXPORTAL_MANIFEST = "downloaded_tsv_files.txt"
-COMPLEXPORTAL_DOWNLOAD_DONE = "download_done"
 
 # All 19 columns in the ComplexPortal ComplexTAB TSV format (as of 2026-06).
 # Columns read by Babel are marked with (*); the rest are set to "-" in most rows.
@@ -80,16 +79,20 @@ def fetch_complexportal_tsv_filenames(url=COMPLEXPORTAL_COMPLEXTAB_URL):
     return sorted(tsv_filenames)
 
 
-def _default_download_done_file():
-    return os.path.join(get_config()["download_directory"], COMPLEXPORTAL, COMPLEXPORTAL_DOWNLOAD_DONE)
+def _default_manifest_file():
+    return os.path.join(get_config()["download_directory"], COMPLEXPORTAL, COMPLEXPORTAL_MANIFEST)
 
 
-def pull_complexportal(download_done_file=None):
-    """Download all ComplexPortal ComplexTAB TSV files and write a manifest listing them."""
-    if download_done_file is None:
-        download_done_file = _default_download_done_file()
+def pull_complexportal(manifest_file=None):
+    """Download all ComplexPortal ComplexTAB TSV files and write a manifest listing them.
 
-    download_dir = os.path.dirname(download_done_file)
+    The manifest is written last, so its presence signals that all downloads completed
+    and Snakemake can treat it as the sentinel output for this rule.
+    """
+    if manifest_file is None:
+        manifest_file = _default_manifest_file()
+
+    download_dir = os.path.dirname(manifest_file)
     os.makedirs(download_dir, exist_ok=True)
 
     filenames = fetch_complexportal_tsv_filenames()
@@ -101,14 +104,8 @@ def pull_complexportal(download_done_file=None):
             subpath=COMPLEXPORTAL,
         )
 
-    manifest_file = os.path.join(download_dir, COMPLEXPORTAL_MANIFEST)
     with open(manifest_file, "w") as manifest:
         manifest.writelines(f"{fn}\n" for fn in filenames)
-
-    # Written last so Snakemake only considers the download complete once both
-    # the manifest and all TSV files are in place.
-    with open(download_done_file, "w") as sentinel:
-        sentinel.write(f"Downloaded {len(filenames)} ComplexPortal TSV files.\n")
 
 
 def _read_manifest(manifest_file):
@@ -144,7 +141,7 @@ def make_labels_synonyms_and_taxa(
             if not os.path.exists(infile):
                 raise RuntimeError(
                     f"{infile} is listed in the manifest but does not exist. "
-                    f"Delete {os.path.join(download_dir, COMPLEXPORTAL_DOWNLOAD_DONE)} "
+                    f"Delete {os.path.join(download_dir, COMPLEXPORTAL_MANIFEST)} "
                     "and re-run the get_complexportal Snakemake rule to re-download all files."
                 )
             with open(infile) as inf:
