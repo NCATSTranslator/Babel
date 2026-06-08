@@ -18,6 +18,9 @@ input_directory: input_data
 download_directory: babel_downloads
 intermediate_directory: babel_outputs/intermediate
 output_directory: babel_outputs
+# Where DuckDB spills larger-than-memory intermediates. setup_duckdb() gives each job its own
+# duckdb-$SLURM_JOB_ID subdirectory here. Override per run with the BABEL_DUCKDB_TEMP_DIR
+# environment variable; see slurm/README.md ("Temporary Scratch Space") for the trade-offs.
 tmp_directory: babel_downloads/tmp
 
 # HTTP settings.
