@@ -144,10 +144,10 @@ rule check_for_identically_labeled_cliques:
     benchmark:
         config["output_directory"] + "/benchmarks/check_for_identically_labeled_cliques.tsv"
     resources:
-        # The pass-1 GROUP BY over LOWER(preferred_name) across every clique is the memory
-        # bottleneck, and its peak grows with the thread count (each thread keeps a local hash
-        # table). A 400G/4-thread attempt OOMed at DuckDB's own memory_limit, so run on a full
-        # largemem node with a high limit and few threads. See slurm/README.md.
+        # Both passes are now spillable: pass 1 is a COUNT(*) GROUP BY, and pass 2 writes the
+        # duplicate (name, clique_leader) pairs via a spillable ORDER BY (the previous in-SQL
+        # LIST(... ORDER BY ...) aggregate was not spillable and OOMed). single thread keeps the
+        # per-thread hash/sort state -- and thus peak RAM -- low. See slurm/README.md.
         mem="1500G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
@@ -158,7 +158,7 @@ rule check_for_identically_labeled_cliques:
             output.identically_labeled_cliques_tsv,
             {
                 "memory_limit": "1400G",
-                "threads": 2,
+                "threads": 1,
                 "preserve_insertion_order": False,
             },
         )
@@ -233,8 +233,10 @@ rule generate_curie_report:
     benchmark:
         config["output_directory"] + "/benchmarks/generate_curie_report.tsv"
     resources:
-        # COUNT(DISTINCT) over the full Edge set. A 400G/4-thread attempt OOMed at DuckDB's
-        # memory_limit, so run on a full largemem node with a high limit and few threads.
+        # The grouped COUNT(DISTINCT)s over the full Edge set are now computed with a spillable
+        # SELECT DISTINCT + COUNT(*) (the direct COUNT(DISTINCT) was not spillable and OOMed at
+        # DuckDB's memory_limit). single thread keeps per-thread hash-table state -- and peak RAM --
+        # low. See slurm/README.md.
         mem="1500G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
@@ -245,7 +247,7 @@ rule generate_curie_report:
             output.curie_report_json,
             {
                 "memory_limit": "1400G",
-                "threads": 2,
+                "threads": 1,
                 "preserve_insertion_order": False,
             },
         )
@@ -261,9 +263,10 @@ rule generate_clique_leader_report:
     benchmark:
         config["output_directory"] + "/benchmarks/generate_clique_leader_report.tsv"
     resources:
-        # Aggregates (incl. COUNT(DISTINCT)) over the full Edge set. A 400G/4-thread attempt
-        # OOMed at DuckDB's memory_limit, so run on a full largemem node with a high limit and
-        # few threads.
+        # The grouped COUNT(DISTINCT)s over the full Edge set are now computed with a spillable
+        # SELECT DISTINCT + COUNT(*) (the direct COUNT(DISTINCT) was not spillable and OOMed at
+        # DuckDB's memory_limit). single thread keeps per-thread hash-table state -- and peak RAM --
+        # low. See slurm/README.md.
         mem="1500G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
@@ -274,7 +277,7 @@ rule generate_clique_leader_report:
             output.clique_leaders_json,
             {
                 "memory_limit": "1400G",
-                "threads": 2,
+                "threads": 1,
                 "preserve_insertion_order": False,
             },
         )
