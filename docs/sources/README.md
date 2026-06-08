@@ -22,5 +22,10 @@ letting it accumulate in `CLAUDE.md` — `CLAUDE.md` should point here, not dupl
   unclaimed UMLS concepts are swept up and typed, the manual STY→Biolink override tables and the
   drift test that keeps them honest, and the coverage report under `reports/umls/`.
 
+## Cross-cutting patterns
+
+- **Download patterns** ([DownloadPatterns.md](./DownloadPatterns.md)) — HTTP directory listing
+  vs FTP for file discovery, and when to use each approach.
+
 See the data handlers in `src/datahandlers/` and the compendium builders in
 `src/createcompendia/` for the code behind each source.
