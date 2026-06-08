@@ -102,11 +102,11 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 | `untyped_chemical_compendia` | `chemical.snakefile` | 512G | — | Pre-typing step |
 | `gene_compendia` | `gene.snakefile` | 256G | 6h | Gene graph |
 | `export_compendia_to_duckdb` | `duckdb.snakefile` | 512G | 6h | Per-compendium DuckDB export |
-| `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 1500G | — | Spillable COUNT(*) GROUP BY + sorted-pair output; memory_limit 1400G, 1 thread |
+| `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 1500G | — | Spillable COUNT(*) GROUP BY + streaming-join pair output; memory_limit 1000G, 1 thread |
 | `check_for_duplicate_curies` | `duckdb.snakefile` | 1500G | — | GROUP BY curie over all edges; memory_limit 1400G, 2 threads |
 | `check_for_duplicate_clique_leaders` | `duckdb.snakefile` | 512G | — | Two-pass over the smaller Clique table; memory_limit 400G, 4 threads |
-| `generate_curie_report` | `duckdb.snakefile` | 1500G | — | Spillable SELECT DISTINCT + COUNT(*) over all edges; memory_limit 1400G, 1 thread |
-| `generate_clique_leader_report` | `duckdb.snakefile` | 1500G | — | Spillable SELECT DISTINCT + COUNT(*) over all edges; memory_limit 1400G, 1 thread |
+| `generate_curie_report` | `duckdb.snakefile` | 1500G | — | approx_count_distinct() over all edges; memory_limit 1000G, 1 thread |
+| `generate_clique_leader_report` | `duckdb.snakefile` | 1500G | — | approx_count_distinct() over all edges; memory_limit 1000G, 1 thread |
 | `chembl_labels_and_smiles` | `datacollect.snakefile` | 128G | — | RDF parse |
 | `chemical_unichem_concordia` | `chemical.snakefile` | 128G | — | UniChem merge |
 | `generate_pubmed_concords` | `publications.snakefile` | 128G | 24h | Full PubMed parse |
@@ -136,10 +136,20 @@ The cross-compendium report rules used to be sized to run entirely in RAM, becau
 aggregations (a grouped `COUNT(DISTINCT)`, or a `LIST(... ORDER BY ...)`) could not spill and would
 OOM rather than overflow to disk. Even on a full largemem node (`memory_limit` ≈ 1400G) two of them
 still exceeded DuckDB's tracked limit, which is near the physical ceiling of the largemem partition
-(~1.46 TiB), so adding memory was exhausted. They were therefore rewritten to use only spillable
-operators — `SELECT DISTINCT` + `COUNT(*)` instead of `COUNT(DISTINCT)`, and a sorted
-`(name, clique_leader)` pair dump instead of an ordered `LIST()` — and run single-threaded to keep
-per-thread state small. These now spill to the temp directory when needed instead of OOMing.
+(~1.46 TiB), so adding memory was exhausted. Rather than fight the spill machinery, they were
+rewritten so peak memory is small by construction:
+
+- `generate_curie_report` / `generate_clique_leader_report` use `approx_count_distinct()` (a
+  fixed-size HyperLogLog sketch per group, ~2% error) instead of an exact `COUNT(DISTINCT)`. The
+  exact totals (`COUNT`) stay exact; only the distinct counts are approximate, which is fine for a
+  summary report.
+- `check_for_identically_labeled_cliques` emits the duplicate `(name, clique_leader)` pairs via a
+  streaming hash join (small build side, no aggregate, no sort) instead of an ordered `LIST()`. The
+  output is unsorted; each row carries the per-name count so a consumer can group/sort it cheaply.
+
+All three run single-threaded with `memory_limit` set well below `mem` (1000G vs 1500G) so DuckDB
+has a large headroom under the cgroup hard limit — the earlier hard SIGKILLs happened when tracked
+memory crept up to within ~160 GiB of the ceiling and an untracked allocation tipped it over.
 
 To override the spill location for a run — for example to point spills at a larger or less-contended
 filesystem — set `BABEL_DUCKDB_TEMP_DIR` in the job environment; an individual rule can also pass
@@ -181,13 +191,13 @@ The following improvements are tracked here for visibility but not yet implement
   path and should be updated to use `uv run`.
 
 - **Cross-compendium DuckDB report sizing**: `check_for_identically_labeled_cliques`,
-  `generate_curie_report`, and `generate_clique_leader_report` were rewritten to use only spillable
-  operators (`SELECT DISTINCT` + `COUNT(*)` instead of `COUNT(DISTINCT)`; a sorted pair dump instead
-  of an ordered `LIST()`) and run single-threaded, but they still default to a full largemem node
-  (1500G, `memory_limit` 1400G) out of caution. Once a full run confirms their real peak RSS, they
-  can likely drop to a much smaller `mem`, freeing the largemem partition. `check_for_duplicate_*`
-  use a two-pass spillable `COUNT(*)` + `LIST()`-over-confirmed-duplicates query;
-  `check_for_duplicate_clique_leaders` already runs at 512G.
+  `generate_curie_report`, and `generate_clique_leader_report` were rewritten to keep peak memory
+  small (`approx_count_distinct()` sketches; a streaming-join pair dump) and run single-threaded,
+  but they still default to a full largemem node (1500G, `memory_limit` 1000G) out of caution. Once
+  a full run confirms their real peak RSS, they can likely drop to a much smaller `mem`, freeing the
+  largemem partition. `check_for_duplicate_*` use a two-pass spillable `COUNT(*)` +
+  `LIST()`-over-confirmed-duplicates query; `check_for_duplicate_clique_leaders` already runs at
+  512G.
 
 - **Per-rule resource tuning**: After collecting benchmark data from a full run, add explicit
   `resources:` to every rule based on observed `max_rss + 30% headroom`. This will greatly reduce
