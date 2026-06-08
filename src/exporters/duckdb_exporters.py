@@ -252,8 +252,16 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
             db.table("Clique").write_parquet(clique_parquet_filename)
 
         # Step 2. Create an Edge table with all the clique/CURIE relationships from this file.
+        #
+        # biolink_type is denormalized onto every edge here, where it is free: it is the same
+        # top-level ``type`` field the Clique build above already reads, and each compendium record
+        # carries it inline. Storing it per-edge lets the cross-compendium curie report group by
+        # (curie_prefix, biolink_type) with a plain scan instead of joining the full Edge table
+        # (~1.5B rows) against the Clique table (~200M rows) -- a large-vs-large join that OOM-killed
+        # the report rule even on a largemem node.
         db.sql(
-            "CREATE TABLE Edge (clique_leader STRING, curie STRING, conflation STRING, clique_leader_prefix STRING, curie_prefix STRING)"
+            """CREATE TABLE Edge (clique_leader STRING, curie STRING, conflation STRING,
+                clique_leader_prefix STRING, curie_prefix STRING, biolink_type STRING)"""
         )
         with log_duckdb_settings_on_error(
             db, f"export_compendia_to_parquet: build and write Edge table for {compendium_basename}"
@@ -264,7 +272,8 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                         SELECT
                             json_extract_string(identifiers, '$[0].i') AS clique_leader,
                             UNNEST(json_extract_string(identifiers, '$[*].i')) AS curie,
-                            'None' AS conflation
+                            'None' AS conflation,
+                            type AS biolink_type
                         FROM read_json(?, format='newline_delimited')
                     )
                     SELECT
@@ -272,7 +281,8 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                         curie,
                         conflation,
                         split_part(clique_leader, ':', 1) AS clique_leader_prefix,
-                        split_part(curie, ':', 1) AS curie_prefix
+                        split_part(curie, ':', 1) AS curie_prefix,
+                        biolink_type
                     FROM unnested""",
                 [compendium_filename],
             )
