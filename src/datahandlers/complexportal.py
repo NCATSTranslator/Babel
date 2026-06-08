@@ -14,6 +14,32 @@ COMPLEXPORTAL_COMPLEXTAB_URL = "https://ftp.ebi.ac.uk/pub/databases/intact/compl
 COMPLEXPORTAL_MANIFEST = "downloaded_tsv_files.txt"
 COMPLEXPORTAL_DOWNLOAD_DONE = "download_done"
 
+# All 19 columns in the ComplexPortal ComplexTAB TSV format (as of 2026-06).
+# Columns read by Babel are marked with (*); the rest are set to "-" in most rows.
+# Columns noted as "could" are candidates for future ingestion.
+COMPLEXTAB_COLUMNS = [
+    "#Complex ac",  # 0  (*) complex accession → CURIE
+    "Recommended name",  # 1  (*) preferred label
+    "Aliases for complex",  # 2  (*) "|"-separated synonyms, or "-"
+    "Taxonomy identifier",  # 3  (*) NCBI taxon integer, or "-"
+    "Identifiers (and stoichiometry) of molecules in complex",  # 4  participants — could add to concords
+    "Evidence Code",  # 5
+    "Experimental evidence",  # 6
+    "Go Annotations",  # 7  GO terms — could enrich type/function info
+    "Cross references",  # 8  Reactome, PubMed, wwPDB, etc. — potential concord sources
+    "Description",  # 9  (*) free-text description
+    "Complex properties",  # 10
+    "Complex assembly",  # 11
+    "Ligand",  # 12
+    "Disease",  # 13 disease associations — potentially useful
+    "Agonist",  # 14
+    "Antagonist",  # 15
+    "Comment",  # 16
+    "Source",  # 17
+    "Expanded participant list",  # 18
+]
+COMPLEXTAB_HEADER = "\t".join(COMPLEXTAB_COLUMNS) + "\n"
+
 
 class _DirectoryListingParser(HTMLParser):
     """Collect all href values from anchor tags in an HTML page."""

@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 
 from src.datahandlers import complexportal
+from src.datahandlers.complexportal import COMPLEXTAB_COLUMNS, COMPLEXTAB_HEADER
 from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import COMPLEXPORTAL
 from tests.conftest import (
@@ -28,36 +29,9 @@ class _FakeResponse:
         return self.content
 
 
-# Real ComplexPortal ComplexTAB header (all 19 columns as of 2026-06).
-# Columns currently used by Babel are marked with (*); the rest are set to "-" in test rows.
-# Columns worth considering for future use are noted inline.
-_COLUMNS = [
-    "#Complex ac",  # 0  (*) complex accession → CURIE
-    "Recommended name",  # 1  (*) preferred label
-    "Aliases for complex",  # 2  (*) "|"-separated synonyms, or "-"
-    "Taxonomy identifier",  # 3  (*) NCBI taxon integer, or "-"
-    "Identifiers (and stoichiometry) of molecules in complex",  # 4  participants — could add to concords
-    "Evidence Code",  # 5
-    "Experimental evidence",  # 6
-    "Go Annotations",  # 7  GO terms — could enrich type/function info
-    "Cross references",  # 8  Reactome, PubMed, wwPDB, etc. — potential concord sources
-    "Description",  # 9  (*) free-text description
-    "Complex properties",  # 10
-    "Complex assembly",  # 11
-    "Ligand",  # 12
-    "Disease",  # 13 disease associations — potentially useful
-    "Agonist",  # 14
-    "Antagonist",  # 15
-    "Comment",  # 16
-    "Source",  # 17
-    "Expanded participant list",  # 18
-]
-_HEADER = "\t".join(_COLUMNS) + "\n"
-
-
 def _row(ac, name, aliases, taxon, description="-"):
-    """Build a test data row with only the columns Babel reads set to real values."""
-    values = ["-"] * len(_COLUMNS)
+    """Build a ComplexTAB test row with only the Babel-read columns set; all others are '-'."""
+    values = ["-"] * len(COMPLEXTAB_COLUMNS)
     values[0] = ac
     values[1] = name
     values[2] = aliases
@@ -68,6 +42,7 @@ def _row(ac, name, aliases, taxon, description="-"):
 
 @pytest.mark.unit
 def test_fetch_complexportal_tsv_filenames_selects_tsv_links():
+    """Only .tsv hrefs are returned; parent-directory and non-tsv links are ignored."""
     listing = b"""
     <html>
       <body>
@@ -88,6 +63,7 @@ def test_fetch_complexportal_tsv_filenames_selects_tsv_links():
 
 @pytest.mark.unit
 def test_pull_complexportal_downloads_all_discovered_tsvs_and_writes_manifest(tmp_path):
+    """Every discovered TSV is fetched, the manifest lists them, and download_done is written last."""
     complexportal_dir = tmp_path / "ComplexPortal"
     download_done = complexportal_dir / complexportal.COMPLEXPORTAL_DOWNLOAD_DONE
     manifest = complexportal_dir / complexportal.COMPLEXPORTAL_MANIFEST
@@ -119,18 +95,19 @@ def test_pull_complexportal_downloads_all_discovered_tsvs_and_writes_manifest(tm
 
 @pytest.mark.unit
 def test_make_labels_synonyms_and_taxa_combines_manifest_files(tmp_path):
+    """Labels, synonyms, taxa, descriptions, and IDs are correctly extracted across multiple species files."""
     complexportal_dir = tmp_path / "ComplexPortal"
     complexportal_dir.mkdir()
     manifest = complexportal_dir / complexportal.COMPLEXPORTAL_MANIFEST
     manifest.write_text("10090.tsv\n559292.tsv\n")
 
     (complexportal_dir / "10090.tsv").write_text(
-        _HEADER
+        COMPLEXTAB_HEADER
         + _row("CPX-1", "Mediator complex", "Mediator|Mediator complex", "10090", "A conserved complex.")
         + _row("CPX-2", "Shared alias complex", "Mediator", "10090", "Another complex.")
     )
     (complexportal_dir / "559292.tsv").write_text(
-        _HEADER
+        COMPLEXTAB_HEADER
         # CPX-1 has the same description in both files — should appear only once.
         + _row("CPX-1", "Mediator complex", "Mediator|Mediator complex", "559292", "A conserved complex.")
         + _row("CPX-3", "No alias complex", "-", "559292")
@@ -197,10 +174,10 @@ def test_make_labels_synonyms_and_taxa_deduplicates_labels_by_identifier(tmp_pat
     manifest.write_text("9606.tsv\n10090.tsv\n")
 
     (complexportal_dir / "9606.tsv").write_text(
-        _HEADER + _row("CPX-1", "Human name", "-", "9606", "Human-specific description.")
+        COMPLEXTAB_HEADER + _row("CPX-1", "Human name", "-", "9606", "Human-specific description.")
     )
     (complexportal_dir / "10090.tsv").write_text(
-        _HEADER + _row("CPX-1", "Mouse name", "-", "10090", "Mouse-specific description.")
+        COMPLEXTAB_HEADER + _row("CPX-1", "Mouse name", "-", "10090", "Mouse-specific description.")
     )
 
     labels = complexportal_dir / "labels"
@@ -244,7 +221,9 @@ def test_make_labels_synonyms_and_taxa_skips_missing_taxon(tmp_path):
     manifest.write_text("9606.tsv\n")
 
     (complexportal_dir / "9606.tsv").write_text(
-        _HEADER + _row("CPX-1", "Complex with taxon", "-", "9606") + _row("CPX-2", "Complex without taxon", "-", "-")
+        COMPLEXTAB_HEADER
+        + _row("CPX-1", "Complex with taxon", "-", "9606")
+        + _row("CPX-2", "Complex without taxon", "-", "-")
     )
 
     labels = complexportal_dir / "labels"
@@ -279,8 +258,12 @@ def test_make_labels_synonyms_and_taxa_deduplicates_identical_descriptions(tmp_p
     manifest.write_text("9606.tsv\n10090.tsv\n")
 
     shared_desc = "A description shared verbatim across species."
-    (complexportal_dir / "9606.tsv").write_text(_HEADER + _row("CPX-1", "Human name", "-", "9606", shared_desc))
-    (complexportal_dir / "10090.tsv").write_text(_HEADER + _row("CPX-1", "Mouse name", "-", "10090", shared_desc))
+    (complexportal_dir / "9606.tsv").write_text(
+        COMPLEXTAB_HEADER + _row("CPX-1", "Human name", "-", "9606", shared_desc)
+    )
+    (complexportal_dir / "10090.tsv").write_text(
+        COMPLEXTAB_HEADER + _row("CPX-1", "Mouse name", "-", "10090", shared_desc)
+    )
 
     labels = complexportal_dir / "labels"
     synonyms = complexportal_dir / "synonyms"
@@ -313,7 +296,7 @@ def test_make_labels_synonyms_and_taxa_ids_file_includes_entries_with_empty_labe
     manifest.write_text("9606.tsv\n")
 
     (complexportal_dir / "9606.tsv").write_text(
-        _HEADER
+        COMPLEXTAB_HEADER
         + _row("CPX-1", "Normal complex", "-", "9606")
         + _row("CPX-2", "", "-", "9606")  # empty recommended name
     )
@@ -345,6 +328,7 @@ def test_make_labels_synonyms_and_taxa_ids_file_includes_entries_with_empty_labe
 
 @pytest.mark.network
 def test_fetch_complexportal_tsv_filenames_returns_real_files():
+    """Live EBI endpoint returns at least one .tsv file and the list is sorted."""
     filenames = complexportal.fetch_complexportal_tsv_filenames()
     assert len(filenames) > 0
     assert all(f.endswith(".tsv") for f in filenames)
