@@ -3,8 +3,34 @@ import os
 import duckdb
 import pytest
 
-from src.exporters.duckdb_exporters import export_conflation_to_parquet
+from src.exporters.duckdb_exporters import export_conflation_to_parquet, log_duckdb_settings_on_error
 from tests.conftest import CONFLATION_FIXTURE_ROWS
+
+
+@pytest.mark.unit
+def test_log_duckdb_settings_on_error_reraises_and_logs(caplog):
+    """On failure the helper should log the operation name and effective settings, then re-raise."""
+    con = duckdb.connect()
+    con.execute("SET threads=3")
+    with caplog.at_level("ERROR"):
+        with pytest.raises(duckdb.Error):
+            with log_duckdb_settings_on_error(con, "my-test-operation"):
+                con.execute("SELECT * FROM a_table_that_does_not_exist")
+
+    assert "my-test-operation" in caplog.text
+    assert "effective settings" in caplog.text
+    # A couple of the diagnostic settings should be reported back.
+    assert "memory_limit=" in caplog.text
+    assert "threads=3" in caplog.text
+
+
+@pytest.mark.unit
+def test_log_duckdb_settings_on_error_passes_through_on_success():
+    """When the wrapped block succeeds the helper must not interfere with the result."""
+    con = duckdb.connect()
+    with log_duckdb_settings_on_error(con, "ok-operation"):
+        result = con.execute("SELECT 42").fetchone()
+    assert result == (42,)
 
 
 @pytest.mark.unit
