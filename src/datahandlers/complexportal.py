@@ -75,21 +75,27 @@ def _read_manifest(manifest_file):
         return [line.strip() for line in manifest if line.strip()]
 
 
-def make_labels_synonyms_and_taxa(manifest_file, download_dir, labelfile, synfile, taxafile, metadata_yaml):
+def make_labels_synonyms_and_taxa(manifest_file, download_dir, labelfile, synfile, taxafile, descfile, metadata_yaml):
     filenames = _read_manifest(manifest_file)
     used_labels = set()
     used_synonyms = set()
     used_taxa = set()
+    used_descs = set()  # (identifier, description) pairs — same text from two files is written only once
 
-    with open(labelfile, "w") as outl, open(synfile, "w") as outsyn, open(taxafile, "w") as outt:
+    with (
+        open(labelfile, "w") as outl,
+        open(synfile, "w") as outsyn,
+        open(taxafile, "w") as outt,
+        open(descfile, "w") as outd,
+    ):
         for filename in filenames:
             infile = os.path.join(download_dir, filename)
             with open(infile) as inf:
                 next(inf)  # skip header
                 for line in inf:
-                    sline = line.split("\t", 4)
-                    if len(sline) < 4:
-                        raise ValueError(f"Expected at least 4 columns in {infile}, found {len(sline)}")
+                    sline = line.split("\t", 10)
+                    if len(sline) < 10:
+                        raise ValueError(f"Expected at least 10 columns in {infile}, found {len(sline)}")
 
                     identifier = f"{COMPLEXPORTAL}:{sline[0]}"
                     label = sline[1]  # recommended name
@@ -112,11 +118,18 @@ def make_labels_synonyms_and_taxa(manifest_file, download_dir, labelfile, synfil
                             outt.write(f"{identifier}\tNCBITaxon:{taxon_id}\n")
                             used_taxa.add(taxa_row)
 
+                    description = sline[9].strip()  # free-text description
+                    if description and description != "-":
+                        desc_row = (identifier, description)
+                        if desc_row not in used_descs:
+                            outd.write(f"{identifier}\t{description}\n")
+                            used_descs.add(desc_row)
+
     write_metadata(
         metadata_yaml,
         typ="transform",
         name="ComplexPortal",
-        description="Labels and synonyms extracted from ComplexPortal ComplexTAB downloads",
+        description="Labels, synonyms, taxa, and descriptions extracted from ComplexPortal ComplexTAB downloads",
         sources=[
             {
                 "type": "download",

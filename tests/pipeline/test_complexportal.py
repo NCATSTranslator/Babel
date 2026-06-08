@@ -15,7 +15,7 @@ from src.babel_utils import make_local_name
 from src.datahandlers import complexportal
 from src.prefixes import COMPLEXPORTAL
 from tests.conftest import assert_labels_file_valid, assert_synonyms_file_valid
-from tests.datahandlers.test_complexportal import _assert_taxa_file_valid
+from tests.datahandlers.test_complexportal import _assert_descriptions_file_valid, _assert_taxa_file_valid
 from tests.pipeline.conftest import _download_or_fail
 
 # ---------------------------------------------------------------------------
@@ -49,13 +49,20 @@ def complexportal_pipeline_outputs(complexportal_tsv_files, regenerate):
     labels = os.path.join(download_dir, "labels")
     synonyms = os.path.join(download_dir, "synonyms")
     taxa = os.path.join(download_dir, "taxa")
+    descriptions = os.path.join(download_dir, "descriptions")
     metadata = os.path.join(download_dir, "metadata.yaml")
 
-    if regenerate or not os.path.exists(labels) or not os.path.exists(synonyms) or not os.path.exists(taxa):
+    if (
+        regenerate
+        or not os.path.exists(labels)
+        or not os.path.exists(synonyms)
+        or not os.path.exists(taxa)
+        or not os.path.exists(descriptions)
+    ):
         os.makedirs(download_dir, exist_ok=True)
-        complexportal.make_labels_synonyms_and_taxa(manifest, download_dir, labels, synonyms, taxa, metadata)
+        complexportal.make_labels_synonyms_and_taxa(manifest, download_dir, labels, synonyms, taxa, descriptions, metadata)
 
-    return {"manifest": manifest, "labels": labels, "synonyms": synonyms, "taxa": taxa}
+    return {"manifest": manifest, "labels": labels, "synonyms": synonyms, "taxa": taxa, "descriptions": descriptions}
 
 
 # ---------------------------------------------------------------------------
@@ -125,6 +132,12 @@ def test_complexportal_taxa_valid(complexportal_pipeline_outputs):
     taxa_curies = {row[0] for row in rows}
     missing = label_curies - taxa_curies
     assert not missing, f"{len(missing)} ComplexPortal identifiers have no taxon entry: {sorted(missing)[:10]}"
+
+
+@pytest.mark.pipeline
+def test_complexportal_descriptions_valid(complexportal_pipeline_outputs):
+    """Descriptions file is non-empty and every row is a valid CURIE→description pair."""
+    _assert_descriptions_file_valid(complexportal_pipeline_outputs["descriptions"])
 
 
 @pytest.mark.pipeline
