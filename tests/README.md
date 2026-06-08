@@ -41,6 +41,18 @@ considering), see [`docs/Testing.md`](../docs/Testing.md).
 - **Pipeline behavior specific to one vocabulary** → add `tests/pipeline/test_X_pipeline.py`
   marked `pipeline`.
 
+**Touching a data source that has no pipeline test? Consider writing one.** It is more work up
+front, but it pays off three ways and is worth biting the bullet for:
+
+- It forces you to write smaller **`network` tests** (e.g. that the upstream listing still returns
+  files, that the header columns Babel reads are still where it expects) that can run regularly and
+  catch an upstream format change *before* it silently corrupts output — see
+  `tests/pipeline/test_complexportal.py` (header-column assertion) and the `network` test in
+  `tests/datahandlers/test_complexportal.py`.
+- It validates the handler's outputs end-to-end against real data, using the shared
+  `assert_*_file_valid` helpers.
+- It becomes the place to hang later assertions about that source's compendium output.
+
 See [Future Plans](#future-plans) at the bottom of this file for a more detailed roadmap of
 planned test locations and conventions.
 
