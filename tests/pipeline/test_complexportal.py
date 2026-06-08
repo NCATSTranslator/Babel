@@ -8,6 +8,7 @@ Run with:
 """
 
 import os
+from collections import Counter
 
 import pytest
 
@@ -183,14 +184,14 @@ def test_complexportal_cross_file_duplicates_handled_correctly(complexportal_tsv
 
     # Labels: every CURIE appears exactly once.
     label_rows = read_tsv(complexportal_pipeline_outputs["labels"])
-    label_curies = [row[0] for row in label_rows]
-    duplicate_labels = {c for c in label_curies if label_curies.count(c) > 1}
+    label_counts = Counter(row[0] for row in label_rows)
+    duplicate_labels = {c for c, n in label_counts.items() if n > 1}
     assert not duplicate_labels, f"Duplicate label rows for: {sorted(duplicate_labels)[:10]}"
 
     # Synonyms: no duplicate (CURIE, synonym) rows.
     syn_rows = read_tsv(complexportal_pipeline_outputs["synonyms"])
-    syn_pairs = [(row[0], row[2]) for row in syn_rows]
-    duplicate_syns = {pair for pair in syn_pairs if syn_pairs.count(pair) > 1}
+    syn_pair_counts = Counter((row[0], row[2]) for row in syn_rows)
+    duplicate_syns = {pair for pair, n in syn_pair_counts.items() if n > 1}
     assert not duplicate_syns, f"Duplicate synonym rows for: {sorted(duplicate_syns)[:5]}"
 
     # Taxa: every (CURIE, taxon) pair from the source files is present in the output.

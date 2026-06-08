@@ -78,7 +78,7 @@ def _read_manifest(manifest_file):
 
 def make_labels_synonyms_and_taxa(manifest_file, download_dir, labelfile, synfile, taxafile, descfile, metadata_yaml):
     filenames = _read_manifest(manifest_file)
-    used_labels = set()
+    used_identifiers = set()
     used_synonyms = set()
     used_taxa = set()
     used_descs = set()  # (identifier, description) pairs — same text from two files is written only once
@@ -94,15 +94,17 @@ def make_labels_synonyms_and_taxa(manifest_file, download_dir, labelfile, synfil
             with open(infile) as inf:
                 next(inf)  # skip header
                 for line in inf:
+                    if not line.strip():
+                        continue
                     sline = line.split("\t", 10)
                     if len(sline) < 10:
                         raise ValueError(f"Expected at least 10 columns in {infile}, found {len(sline)}")
 
                     identifier = f"{COMPLEXPORTAL}:{sline[0]}"
                     label = sline[1]  # recommended name
-                    if identifier not in used_labels:
+                    if identifier not in used_identifiers:
                         outl.write(f"{identifier}\t{label}\n")
-                        used_labels.add(identifier)
+                        used_identifiers.add(identifier)
 
                     synonyms_str = sline[2]  # aliases for complex
                     if synonyms_str != "-":
