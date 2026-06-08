@@ -91,10 +91,9 @@ def make_labels_and_synonyms(manifest_file, labelfile, synfile, metadata_yaml):
 
                     identifier = f"{COMPLEXPORTAL}:{sline[0]}"
                     label = sline[1]  # recommended name
-                    label_row = (identifier, label)
-                    if label_row not in used_labels:
+                    if identifier not in used_labels:
                         outl.write(f"{identifier}\t{label}\n")
-                        used_labels.add(label_row)
+                        used_labels.add(identifier)
 
                     synonyms_str = sline[2]  # aliases
                     if synonyms_str != "-":
