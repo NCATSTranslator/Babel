@@ -63,16 +63,18 @@ def parquet_root(tmp_path):
         ],
     )
 
-    edge_cols = ["curie", "clique_leader", "conflation", "curie_prefix", "clique_leader_prefix"]
+    # biolink_type is denormalized onto every edge at export time, so the curie report reads it
+    # straight off the Edge table instead of joining back to Clique.
+    edge_cols = ["curie", "clique_leader", "conflation", "curie_prefix", "clique_leader_prefix", "biolink_type"]
     _write_parquet(
         con,
         str(foo_dir / "Edge.parquet"),
         edge_cols,
         [
-            ("CHEBI:1", "A", "None", "CHEBI", "CHEBI"),
-            ("MESH:1", "A", "None", "MESH", "CHEBI"),
+            ("CHEBI:1", "A", "None", "CHEBI", "CHEBI", "biolink:SmallMolecule"),
+            ("MESH:1", "A", "None", "MESH", "CHEBI", "biolink:SmallMolecule"),
             # conflation != 'None' rows must be ignored by every report.
-            ("DRUGBANK:1", "A", "DrugChemical", "DRUGBANK", "CHEBI"),
+            ("DRUGBANK:1", "A", "DrugChemical", "DRUGBANK", "CHEBI", "biolink:SmallMolecule"),
         ],
     )
     _write_parquet(
@@ -80,8 +82,8 @@ def parquet_root(tmp_path):
         str(bar_dir / "Edge.parquet"),
         edge_cols,
         [
-            ("CHEBI:1", "A", "None", "CHEBI", "CHEBI"),  # duplicate CURIE across Foo/Bar
-            ("MESH:1", "C", "None", "MESH", "NCBIGene"),  # duplicate CURIE in a different clique
+            ("CHEBI:1", "A", "None", "CHEBI", "CHEBI", "biolink:ChemicalEntity"),  # duplicate CURIE across Foo/Bar
+            ("MESH:1", "C", "None", "MESH", "NCBIGene", "biolink:Drug"),  # duplicate CURIE in a different clique
         ],
     )
     con.close()
@@ -149,7 +151,7 @@ def test_check_for_duplicate_clique_leaders(parquet_root, tmp_path):
 
 @pytest.mark.unit
 def test_generate_curie_report_totals(parquet_root, tmp_path):
-    """The spillable SELECT DISTINCT + COUNT(*) rewrite must reproduce the COUNT(DISTINCT) math.
+    """The approx_count_distinct rewrite must reproduce the COUNT(DISTINCT) math.
 
     Over the conflation='None' edges, CHEBI:1 appears once (in clique A, twice across files) and
     MESH:1 appears in cliques A and C, so the per-prefix totals are exact and easy to check.
@@ -170,6 +172,36 @@ def test_generate_curie_report_totals(parquet_root, tmp_path):
         "curie_count": 2,
         "curie_distinct_count": 1,
         "clique_distinct_count": 2,
+    }
+
+
+@pytest.mark.unit
+def test_generate_curie_report_by_biolink_type(parquet_root, tmp_path):
+    """The per-Biolink-type breakdown now reads biolink_type straight off the denormalized Edge
+    column, so each (curie_prefix, biolink_type) cell must reflect the fixture's edges directly."""
+    out = str(tmp_path / "curie_report.json")
+    duckdb_reports.generate_curie_report(parquet_root, str(tmp_path / "db.duckdb"), out)
+
+    with open(out) as f:
+        report = json.load(f)
+
+    # CHEBI:1 sits in clique A under both SmallMolecule (Foo) and ChemicalEntity (Bar).
+    assert report["CHEBI"]["biolink:SmallMolecule"] == {
+        "curie_count": 1,
+        "curie_distinct_count": 1,
+        "clique_distinct_count": 1,
+    }
+    assert report["CHEBI"]["biolink:ChemicalEntity"] == {
+        "curie_count": 1,
+        "curie_distinct_count": 1,
+        "clique_distinct_count": 1,
+    }
+    # MESH:1 is SmallMolecule in clique A (Foo) and Drug in clique C (Bar).
+    assert set(report["MESH"]) == {"biolink:SmallMolecule", "biolink:Drug", "_totals"}
+    assert report["MESH"]["biolink:Drug"] == {
+        "curie_count": 1,
+        "curie_distinct_count": 1,
+        "clique_distinct_count": 1,
     }
 
 
