@@ -200,8 +200,10 @@ Deeper, source-specific notes live under `docs/sources/<PREFIX>/` (one directory
 named by its CURIE prefix); see `docs/sources/README.md` for the convention and an index. Check
 there first when working on a specific vocabulary, and add to it when you learn something
 non-obvious about how Babel ingests that source. Keep the detail in the source file — `CLAUDE.md`
-should point here, not duplicate it. Documented so far: MeSH
-(`docs/sources/MESH/Ingestion.md`) and UMLS (`docs/sources/UMLS/Leftover.md`).
+should point here, not duplicate it. Documented so far: ComplexPortal
+(`docs/sources/COMPLEXPORTAL/Ingestion.md`), MeSH (`docs/sources/MESH/Ingestion.md`), and UMLS
+(`docs/sources/UMLS/Leftover.md`). Cross-cutting download/discovery patterns (HTTP autoindex
+listing vs FTP `NLST`) live in `docs/sources/DownloadPatterns.md`.
 
 ### Per-compendium metadata YAMLs
 
@@ -268,9 +270,25 @@ option would be best.
   Explicit paths let unit tests pass `tmp_path`-based paths without patching the config, and
   let Snakemake rules declare inputs and outputs precisely.
 
+- **Pin external column layouts in source, assert headers in tests** — when a handler parses a
+  fixed-column TSV by index, define the column list as a module-level constant in the source
+  (e.g. `complexportal.COMPLEXTAB_COLUMNS`/`COMPLEXTAB_HEADER`), import it into the tests to build
+  fixture rows, and add a test that asserts the upstream header still has the expected column at
+  each index Babel reads. The constant is the canonical format documentation living next to the
+  code; the header assertion turns a silent upstream re-ordering into a loud test failure instead
+  of corrupted output. See `src/datahandlers/complexportal.py`.
+
+- **Manifest/sentinel as the Snakemake output of a multi-file download** — when a rule downloads
+  many files discovered at runtime, write a manifest listing them as the *last* action and declare
+  the manifest (not the individual files or a separate flag) as the rule's output. Its presence
+  then reliably signals that the whole download phase completed, and the extraction rule reads it
+  to know what to parse. See `complexportal.pull_complexportal()`.
+
 - **Test assertion helpers** — `tests/conftest.py` exports `assert_labels_file_valid`,
-  `assert_synonyms_file_valid`, `assert_ids_file_valid`, and `assert_concordance_file_valid`.
-  Use these instead of hand-rolling TSV checks in new tests.
+  `assert_synonyms_file_valid`, `assert_ids_file_valid`, `assert_concordance_file_valid`,
+  `assert_taxa_file_valid`, and `assert_descriptions_file_valid` (plus `read_tsv`). Use these
+  instead of hand-rolling TSV checks in new tests; when a handler adds a new output kind, add the
+  matching helper to the root conftest rather than a private one in the test file.
 
 ## Debugging
 
