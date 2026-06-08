@@ -63,6 +63,32 @@ def assert_concordance_file_valid(path: str) -> list[list[str]]:
     return rows
 
 
+def assert_taxa_file_valid(path: str) -> list[list[str]]:
+    """Assert the file is non-empty and every line is CURIE\\tNCBITaxon:ID; return the rows."""
+    rows = read_tsv(path)
+    assert rows, f"Taxa file is empty: {path}"
+    for cols in rows:
+        assert len(cols) == 2, f"Expected 2 columns, got {len(cols)}: {cols}"
+        assert ":" in cols[0], f"First column is not a CURIE: {cols[0]}"
+        assert cols[1].startswith("NCBITaxon:"), f"Second column is not an NCBITaxon CURIE: {cols[1]}"
+    return rows
+
+
+def assert_descriptions_file_valid(path: str) -> list[list[str]]:
+    """Assert the file is non-empty and every line is CURIE\\tdescription; return the rows."""
+    rows = []
+    with open(path) as f:
+        for line in f:
+            stripped = line.rstrip("\n")
+            if stripped:
+                cols = stripped.split("\t", 1)
+                assert len(cols) == 2, f"Expected 2 columns in descriptions file, got {len(cols)}: {cols}"
+                assert ":" in cols[0], f"First column is not a CURIE: {cols[0]}"
+                rows.append(cols)
+    assert rows, f"Descriptions file is empty: {path}"
+    return rows
+
+
 CONFLATION_FIXTURE_ROWS = [
     ["NCBIGENE:1", "UniProtKB:A0A000", "UniProtKB:B0B000"],
     ["NCBIGENE:2", "UniProtKB:C0C000"],

@@ -3,21 +3,12 @@ import src.assess_compendia as assessments
 import src.snakefiles.util as util
 
 
-rule macromolecular_complex_ids:
-    input:
-        infile=config["download_directory"] + "/ComplexPortal/559292_labels.tsv",
-    output:
-        outfile=config["intermediate_directory"] + "/macromolecular_complex/ids/ComplexPortal",
-    benchmark:
-        config["output_directory"] + "/benchmarks/macromolecular_complex_ids.tsv"
-    shell:
-        "awk '{{print $1\"\tbiolink:MacromolecularComplex\"}}' {input.infile} > {output.outfile}"
-
-
 rule macromolecular_complex_compendia:
     input:
-        labels=config["download_directory"] + "/ComplexPortal/559292_labels.tsv",
-        synonyms=config["download_directory"] + "/ComplexPortal/559292_synonyms.tsv",
+        labels=config["download_directory"] + "/ComplexPortal/labels",
+        synonyms=config["download_directory"] + "/ComplexPortal/synonyms",
+        taxafile=config["download_directory"] + "/ComplexPortal/taxa",
+        descfile=config["download_directory"] + "/ComplexPortal/descriptions",
         idlists=config["intermediate_directory"] + "/macromolecular_complex/ids/ComplexPortal",
         metadata_yaml=config["download_directory"] + "/ComplexPortal/metadata.yaml",
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",

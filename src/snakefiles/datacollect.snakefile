@@ -79,27 +79,39 @@ rule get_EFO_labels:
 
 rule get_complexportal:
     output:
-        config["download_directory"] + "/ComplexPortal" + "/559292.tsv",
+        manifest=config["download_directory"] + "/ComplexPortal/" + complexportal.COMPLEXPORTAL_MANIFEST,
     benchmark:
         config["output_directory"] + "/benchmarks/get_complexportal.tsv"
     resources:
         mem="8G",
         cpus_per_task=1,
     run:
-        complexportal.pull_complexportal()
+        complexportal.pull_complexportal(output.manifest)
 
 
 rule get_complexportal_labels_and_synonyms:
     input:
-        infile=config["download_directory"] + "/ComplexPortal" + "/559292.tsv",
+        manifest=config["download_directory"] + "/ComplexPortal/" + complexportal.COMPLEXPORTAL_MANIFEST,
     output:
-        lfile=config["download_directory"] + "/ComplexPortal" + "/559292_labels.tsv",
-        sfile=config["download_directory"] + "/ComplexPortal" + "/559292_synonyms.tsv",
+        lfile=config["download_directory"] + "/ComplexPortal/labels",
+        sfile=config["download_directory"] + "/ComplexPortal/synonyms",
+        taxafile=config["download_directory"] + "/ComplexPortal/taxa",
+        descfile=config["download_directory"] + "/ComplexPortal/descriptions",
         metadata_yaml=config["download_directory"] + "/ComplexPortal/metadata.yaml",
+        idsfile=config["intermediate_directory"] + "/macromolecular_complex/ids/ComplexPortal",
     benchmark:
         config["output_directory"] + "/benchmarks/get_complexportal_labels_and_synonyms.tsv"
     run:
-        complexportal.make_labels_and_synonyms(input.infile, output.lfile, output.sfile, output.metadata_yaml)
+        complexportal.make_labels_synonyms_and_taxa(
+            input.manifest,
+            os.path.dirname(input.manifest),
+            output.lfile,
+            output.sfile,
+            output.taxafile,
+            output.descfile,
+            output.metadata_yaml,
+            output.idsfile,
+        )
 
 
 ### MODS
