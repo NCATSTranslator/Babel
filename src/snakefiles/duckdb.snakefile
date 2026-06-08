@@ -144,7 +144,10 @@ rule check_for_identically_labeled_cliques:
     benchmark:
         config["output_directory"] + "/benchmarks/check_for_identically_labeled_cliques.tsv"
     resources:
-        mem="1500G",
+        # The two-pass query keeps peak memory well under this, but we stay generous so the
+        # spillable pass-1 aggregation does not have to fall back to the (NFS-backed) temp
+        # directory, where spill reads have failed with stale-handle / short-read IO errors.
+        mem="512G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
@@ -153,8 +156,8 @@ rule check_for_identically_labeled_cliques:
             output.duckdb_filename,
             output.identically_labeled_cliques_tsv,
             {
-                "memory_limit": "512G",
-                "threads": 2,
+                "memory_limit": "400G",
+                "threads": 4,
                 "preserve_insertion_order": False,
             },
         )
@@ -170,7 +173,9 @@ rule check_for_duplicate_curies:
     benchmark:
         config["output_directory"] + "/benchmarks/check_for_duplicate_curies.tsv"
     resources:
-        mem="1500G",
+        # Reads the full Edge set (the largest table); the single-pass version peaked at
+        # ~318 GiB RSS, so keep the allocation generous to avoid spilling to the NFS temp dir.
+        mem="512G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
@@ -179,8 +184,8 @@ rule check_for_duplicate_curies:
             output.duckdb_filename,
             output.duplicate_curies,
             {
-                "memory_limit": "1500G",
-                "threads": 1,
+                "memory_limit": "400G",
+                "threads": 4,
                 "preserve_insertion_order": False,
             },
         )
@@ -196,7 +201,9 @@ rule check_for_duplicate_clique_leaders:
     benchmark:
         config["output_directory"] + "/benchmarks/check_for_duplicate_clique_leaders.tsv"
     resources:
-        mem="1500G",
+        # The two-pass query keeps peak memory low, but stay generous so the spillable
+        # pass-1 aggregation does not have to fall back to the (NFS-backed) temp directory.
+        mem="512G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
@@ -205,8 +212,8 @@ rule check_for_duplicate_clique_leaders:
             output.duckdb_filename,
             output.duplicate_clique_leaders_tsv,
             {
-                "memory_limit": "512G",
-                "threads": 2,
+                "memory_limit": "400G",
+                "threads": 4,
                 "preserve_insertion_order": False,
             },
         )
@@ -222,19 +229,21 @@ rule generate_curie_report:
     benchmark:
         config["output_directory"] + "/benchmarks/generate_curie_report.tsv"
     resources:
-        # mem="64G", -- this actually worked!
         mem="512G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
+        # This aggregates over the full Edge set (~318 GiB working set). The previous 100G
+        # limit forced a heavy spill to the NFS-backed temp directory, which then failed to
+        # read its spill files back ("Could not read enough bytes from file"). Raise the
+        # limit so the report runs in memory instead of spilling.
         src.reports.duckdb_reports.generate_curie_report(
             params.parquet_dir,
             output.duckdb_filename,
             output.curie_report_json,
             {
-                # 'memory_limit': '20G', -- this actually worked!
-                "memory_limit": "100G",
-                "threads": 5,
+                "memory_limit": "400G",
+                "threads": 4,
                 "preserve_insertion_order": False,
             },
         )
@@ -250,17 +259,20 @@ rule generate_clique_leader_report:
     benchmark:
         config["output_directory"] + "/benchmarks/generate_clique_leader_report.tsv"
     resources:
-        mem="64G",
+        mem="512G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
+        # This aggregates over the full Edge set. The previous 20G limit forced a massive
+        # spill to the NFS-backed temp directory, which then failed with a stale file handle.
+        # Raise the limit so the report runs in memory instead of spilling.
         src.reports.duckdb_reports.generate_clique_leaders_report(
             params.parquet_dir,
             output.duckdb_filename,
             output.clique_leaders_json,
             {
-                "memory_limit": "20G",
-                "threads": 3,
+                "memory_limit": "400G",
+                "threads": 4,
                 "preserve_insertion_order": False,
             },
         )
