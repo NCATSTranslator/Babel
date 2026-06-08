@@ -22,6 +22,26 @@ class _FakeResponse:
         return self.content
 
 
+# Real ComplexPortal TSV header (4 columns we use + a trailing column to test the split limit).
+_HEADER = "#Complex ac\tRecommended name\tAliases for complex\tTaxonomy identifier\tIdentifiers\n"
+
+
+def _assert_taxa_file_valid(path: str) -> list[list[str]]:
+    """Assert every line is CURIE\\tNCBITaxon:NNNN; return the rows."""
+    rows = []
+    with open(path) as f:
+        for line in f:
+            stripped = line.rstrip("\n")
+            if stripped:
+                cols = stripped.split("\t")
+                assert len(cols) == 2, f"Expected 2 columns in taxa file, got {len(cols)}: {cols}"
+                assert cols[0].startswith(f"{COMPLEXPORTAL}:"), f"First column is not a ComplexPortal CURIE: {cols[0]}"
+                assert cols[1].startswith("NCBITaxon:"), f"Second column is not an NCBITaxon CURIE: {cols[1]}"
+                rows.append(cols)
+    assert rows, f"Taxa file is empty: {path}"
+    return rows
+
+
 @pytest.mark.unit
 def test_fetch_complexportal_tsv_filenames_selects_tsv_links():
     listing = b"""
@@ -71,32 +91,35 @@ def test_pull_complexportal_downloads_all_discovered_tsvs_and_writes_manifest(tm
 
 
 @pytest.mark.unit
-def test_make_labels_and_synonyms_combines_manifest_files(tmp_path):
+def test_make_labels_synonyms_and_taxa_combines_manifest_files(tmp_path):
     complexportal_dir = tmp_path / "ComplexPortal"
     complexportal_dir.mkdir()
     manifest = complexportal_dir / complexportal.COMPLEXPORTAL_MANIFEST
     manifest.write_text("10090.tsv\n559292.tsv\n")
 
-    header = "Complex ac\tRecommended name\tAliases\tDescription\n"
     (complexportal_dir / "10090.tsv").write_text(
-        header
-        + "CPX-1\tMediator complex\tMediator|Mediator complex\tA complex\n"
-        + "CPX-2\tShared alias complex\tMediator\tAnother complex\n"
+        _HEADER
+        + "CPX-1\tMediator complex\tMediator|Mediator complex\t10090\tpart1\n"
+        + "CPX-2\tShared alias complex\tMediator\t10090\tpart2\n"
     )
     (complexportal_dir / "559292.tsv").write_text(
-        header
-        + "CPX-1\tMediator complex\tMediator|Mediator complex\tA complex\n"
-        + "CPX-3\tNo alias complex\t-\tNo aliases\n"
+        _HEADER
+        + "CPX-1\tMediator complex\tMediator|Mediator complex\t559292\tpart1\n"
+        + "CPX-3\tNo alias complex\t-\t559292\tpart3\n"
     )
 
     labels = complexportal_dir / "labels"
     synonyms = complexportal_dir / "synonyms"
+    taxa = complexportal_dir / "taxa"
     metadata = complexportal_dir / "metadata.yaml"
 
-    complexportal.make_labels_and_synonyms(str(manifest), str(complexportal_dir), str(labels), str(synonyms), str(metadata))
+    complexportal.make_labels_synonyms_and_taxa(
+        str(manifest), str(complexportal_dir), str(labels), str(synonyms), str(taxa), str(metadata)
+    )
 
     label_rows = assert_labels_file_valid(str(labels))
     synonym_rows = assert_synonyms_file_valid(str(synonyms))
+    taxa_rows = _assert_taxa_file_valid(str(taxa))
 
     assert label_rows == [
         [f"{COMPLEXPORTAL}:CPX-1", "Mediator complex"],
@@ -108,29 +131,69 @@ def test_make_labels_and_synonyms_combines_manifest_files(tmp_path):
         [f"{COMPLEXPORTAL}:CPX-1", HAS_EXACT_SYNONYM, "Mediator complex"],
         [f"{COMPLEXPORTAL}:CPX-2", HAS_EXACT_SYNONYM, "Mediator"],
     ]
+    # CPX-1 appears in both files with different taxa; both taxa should be recorded.
+    assert [f"{COMPLEXPORTAL}:CPX-1", "NCBITaxon:10090"] in taxa_rows
+    assert [f"{COMPLEXPORTAL}:CPX-1", "NCBITaxon:559292"] in taxa_rows
+    assert [f"{COMPLEXPORTAL}:CPX-2", "NCBITaxon:10090"] in taxa_rows
+    assert [f"{COMPLEXPORTAL}:CPX-3", "NCBITaxon:559292"] in taxa_rows
     assert metadata.exists()
 
 
 @pytest.mark.unit
-def test_make_labels_and_synonyms_deduplicates_by_identifier(tmp_path):
-    """Same complex ID in two species files with different labels: first label wins, no duplicate row."""
+def test_make_labels_synonyms_and_taxa_deduplicates_labels_by_identifier(tmp_path):
+    """Same complex ID in two species files with different labels: first label wins, no duplicate label row."""
     complexportal_dir = tmp_path / "ComplexPortal"
     complexportal_dir.mkdir()
     manifest = complexportal_dir / complexportal.COMPLEXPORTAL_MANIFEST
     manifest.write_text("9606.tsv\n10090.tsv\n")
 
-    header = "Complex ac\tRecommended name\tAliases\tDescription\n"
-    (complexportal_dir / "9606.tsv").write_text(header + "CPX-1\tHuman name\t-\tHuman complex\n")
-    (complexportal_dir / "10090.tsv").write_text(header + "CPX-1\tMouse name\t-\tMouse complex\n")
+    (complexportal_dir / "9606.tsv").write_text(_HEADER + "CPX-1\tHuman name\t-\t9606\tpart1\n")
+    (complexportal_dir / "10090.tsv").write_text(_HEADER + "CPX-1\tMouse name\t-\t10090\tpart1\n")
 
     labels = complexportal_dir / "labels"
     synonyms = complexportal_dir / "synonyms"
+    taxa = complexportal_dir / "taxa"
     metadata = complexportal_dir / "metadata.yaml"
 
-    complexportal.make_labels_and_synonyms(str(manifest), str(complexportal_dir), str(labels), str(synonyms), str(metadata))
+    complexportal.make_labels_synonyms_and_taxa(
+        str(manifest), str(complexportal_dir), str(labels), str(synonyms), str(taxa), str(metadata)
+    )
 
     label_rows = assert_labels_file_valid(str(labels))
     assert label_rows == [[f"{COMPLEXPORTAL}:CPX-1", "Human name"]]
+
+    # Both taxa are recorded even though the label was deduplicated.
+    taxa_rows = _assert_taxa_file_valid(str(taxa))
+    assert [f"{COMPLEXPORTAL}:CPX-1", "NCBITaxon:9606"] in taxa_rows
+    assert [f"{COMPLEXPORTAL}:CPX-1", "NCBITaxon:10090"] in taxa_rows
+
+
+@pytest.mark.unit
+def test_make_labels_synonyms_and_taxa_skips_missing_taxon(tmp_path):
+    """Rows with '-' taxonomy identifier produce no taxa entry."""
+    complexportal_dir = tmp_path / "ComplexPortal"
+    complexportal_dir.mkdir()
+    manifest = complexportal_dir / complexportal.COMPLEXPORTAL_MANIFEST
+    manifest.write_text("9606.tsv\n")
+
+    (complexportal_dir / "9606.tsv").write_text(
+        _HEADER
+        + "CPX-1\tComplex with taxon\t-\t9606\tpart1\n"
+        + "CPX-2\tComplex without taxon\t-\t-\tpart2\n"
+    )
+
+    labels = complexportal_dir / "labels"
+    synonyms = complexportal_dir / "synonyms"
+    taxa = complexportal_dir / "taxa"
+    metadata = complexportal_dir / "metadata.yaml"
+
+    complexportal.make_labels_synonyms_and_taxa(
+        str(manifest), str(complexportal_dir), str(labels), str(synonyms), str(taxa), str(metadata)
+    )
+
+    taxa_rows = _assert_taxa_file_valid(str(taxa))
+    assert len(taxa_rows) == 1
+    assert taxa_rows[0] == [f"{COMPLEXPORTAL}:CPX-1", "NCBITaxon:9606"]
 
 
 @pytest.mark.network

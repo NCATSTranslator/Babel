@@ -95,12 +95,13 @@ rule get_complexportal_labels_and_synonyms:
     output:
         lfile=config["download_directory"] + "/ComplexPortal/labels",
         sfile=config["download_directory"] + "/ComplexPortal/synonyms",
+        taxafile=config["download_directory"] + "/ComplexPortal/taxa",
         metadata_yaml=config["download_directory"] + "/ComplexPortal/metadata.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/get_complexportal_labels_and_synonyms.tsv"
     run:
-        complexportal.make_labels_and_synonyms(
-            input.manifest, os.path.dirname(input.manifest), output.lfile, output.sfile, output.metadata_yaml
+        complexportal.make_labels_synonyms_and_taxa(
+            input.manifest, os.path.dirname(input.manifest), output.lfile, output.sfile, output.taxafile, output.metadata_yaml
         )
 
 

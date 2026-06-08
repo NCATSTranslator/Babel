@@ -75,20 +75,21 @@ def _read_manifest(manifest_file):
         return [line.strip() for line in manifest if line.strip()]
 
 
-def make_labels_and_synonyms(manifest_file, download_dir, labelfile, synfile, metadata_yaml):
+def make_labels_synonyms_and_taxa(manifest_file, download_dir, labelfile, synfile, taxafile, metadata_yaml):
     filenames = _read_manifest(manifest_file)
     used_labels = set()
     used_synonyms = set()
+    used_taxa = set()
 
-    with open(labelfile, "w") as outl, open(synfile, "w") as outsyn:
+    with open(labelfile, "w") as outl, open(synfile, "w") as outsyn, open(taxafile, "w") as outt:
         for filename in filenames:
             infile = os.path.join(download_dir, filename)
             with open(infile) as inf:
                 next(inf)  # skip header
                 for line in inf:
-                    sline = line.split("\t", 3)
-                    if len(sline) < 3:
-                        raise ValueError(f"Expected at least 3 columns in {infile}, found {len(sline)}")
+                    sline = line.split("\t", 4)
+                    if len(sline) < 4:
+                        raise ValueError(f"Expected at least 4 columns in {infile}, found {len(sline)}")
 
                     identifier = f"{COMPLEXPORTAL}:{sline[0]}"
                     label = sline[1]  # recommended name
@@ -96,13 +97,20 @@ def make_labels_and_synonyms(manifest_file, download_dir, labelfile, synfile, me
                         outl.write(f"{identifier}\t{label}\n")
                         used_labels.add(identifier)
 
-                    synonyms_str = sline[2]  # aliases
+                    synonyms_str = sline[2]  # aliases for complex
                     if synonyms_str != "-":
                         for syn in synonyms_str.split("|"):
                             synonym_row = (identifier, syn)
                             if synonym_row not in used_synonyms:
                                 outsyn.write(f"{identifier}\t{HAS_EXACT_SYNONYM}\t{syn}\n")
                                 used_synonyms.add(synonym_row)
+
+                    taxon_id = sline[3].strip()  # taxonomy identifier (NCBI taxon integer)
+                    if taxon_id and taxon_id != "-":
+                        taxa_row = (identifier, taxon_id)
+                        if taxa_row not in used_taxa:
+                            outt.write(f"{identifier}\tNCBITaxon:{taxon_id}\n")
+                            used_taxa.add(taxa_row)
 
     write_metadata(
         metadata_yaml,
