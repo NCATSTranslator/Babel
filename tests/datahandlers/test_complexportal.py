@@ -7,6 +7,7 @@ from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import COMPLEXPORTAL
 from tests.conftest import (
     assert_descriptions_file_valid,
+    assert_ids_file_valid,
     assert_labels_file_valid,
     assert_synonyms_file_valid,
     assert_taxa_file_valid,
@@ -31,25 +32,25 @@ class _FakeResponse:
 # Columns currently used by Babel are marked with (*); the rest are set to "-" in test rows.
 # Columns worth considering for future use are noted inline.
 _COLUMNS = [
-    "#Complex ac",                                           # 0  (*) complex accession → CURIE
-    "Recommended name",                                      # 1  (*) preferred label
-    "Aliases for complex",                                   # 2  (*) "|"-separated synonyms, or "-"
-    "Taxonomy identifier",                                   # 3  (*) NCBI taxon integer, or "-"
+    "#Complex ac",  # 0  (*) complex accession → CURIE
+    "Recommended name",  # 1  (*) preferred label
+    "Aliases for complex",  # 2  (*) "|"-separated synonyms, or "-"
+    "Taxonomy identifier",  # 3  (*) NCBI taxon integer, or "-"
     "Identifiers (and stoichiometry) of molecules in complex",  # 4  participants — could add to concords
-    "Evidence Code",                                         # 5
-    "Experimental evidence",                                 # 6
-    "Go Annotations",                                        # 7  GO terms — could enrich type/function info
-    "Cross references",                                      # 8  Reactome, PubMed, wwPDB, etc. — potential concord sources
-    "Description",                                           # 9  (*) free-text description
-    "Complex properties",                                    # 10
-    "Complex assembly",                                      # 11
-    "Ligand",                                                # 12
-    "Disease",                                               # 13 disease associations — potentially useful
-    "Agonist",                                               # 14
-    "Antagonist",                                            # 15
-    "Comment",                                               # 16
-    "Source",                                                # 17
-    "Expanded participant list",                             # 18
+    "Evidence Code",  # 5
+    "Experimental evidence",  # 6
+    "Go Annotations",  # 7  GO terms — could enrich type/function info
+    "Cross references",  # 8  Reactome, PubMed, wwPDB, etc. — potential concord sources
+    "Description",  # 9  (*) free-text description
+    "Complex properties",  # 10
+    "Complex assembly",  # 11
+    "Ligand",  # 12
+    "Disease",  # 13 disease associations — potentially useful
+    "Agonist",  # 14
+    "Antagonist",  # 15
+    "Comment",  # 16
+    "Source",  # 17
+    "Expanded participant list",  # 18
 ]
 _HEADER = "\t".join(_COLUMNS) + "\n"
 
@@ -139,16 +140,25 @@ def test_make_labels_synonyms_and_taxa_combines_manifest_files(tmp_path):
     synonyms = complexportal_dir / "synonyms"
     taxa = complexportal_dir / "taxa"
     descriptions = complexportal_dir / "descriptions"
+    ids = complexportal_dir / "ids"
     metadata = complexportal_dir / "metadata.yaml"
 
     complexportal.make_labels_synonyms_and_taxa(
-        str(manifest), str(complexportal_dir), str(labels), str(synonyms), str(taxa), str(descriptions), str(metadata)
+        str(manifest),
+        str(complexportal_dir),
+        str(labels),
+        str(synonyms),
+        str(taxa),
+        str(descriptions),
+        str(metadata),
+        str(ids),
     )
 
     label_rows = assert_labels_file_valid(str(labels))
     synonym_rows = assert_synonyms_file_valid(str(synonyms))
     taxa_rows = assert_taxa_file_valid(str(taxa))
     desc_rows = assert_descriptions_file_valid(str(descriptions))
+    ids_rows = assert_ids_file_valid(str(ids))
 
     assert label_rows == [
         [f"{COMPLEXPORTAL}:CPX-1", "Mediator complex"],
@@ -171,6 +181,10 @@ def test_make_labels_synonyms_and_taxa_combines_manifest_files(tmp_path):
     assert [f"{COMPLEXPORTAL}:CPX-2", "Another complex."] in desc_rows
     # CPX-3 has no description ("-"); it should not appear in the descriptions file.
     assert not any(row[0] == f"{COMPLEXPORTAL}:CPX-3" for row in desc_rows)
+    # All three distinct IDs must appear in the IDs file exactly once.
+    ids_curies = [row[0] for row in ids_rows]
+    assert ids_curies == [f"{COMPLEXPORTAL}:CPX-1", f"{COMPLEXPORTAL}:CPX-2", f"{COMPLEXPORTAL}:CPX-3"]
+    assert all(row[1] == "biolink:MacromolecularComplex" for row in ids_rows)
     assert metadata.exists()
 
 
@@ -193,10 +207,18 @@ def test_make_labels_synonyms_and_taxa_deduplicates_labels_by_identifier(tmp_pat
     synonyms = complexportal_dir / "synonyms"
     taxa = complexportal_dir / "taxa"
     descriptions = complexportal_dir / "descriptions"
+    ids = complexportal_dir / "ids"
     metadata = complexportal_dir / "metadata.yaml"
 
     complexportal.make_labels_synonyms_and_taxa(
-        str(manifest), str(complexportal_dir), str(labels), str(synonyms), str(taxa), str(descriptions), str(metadata)
+        str(manifest),
+        str(complexportal_dir),
+        str(labels),
+        str(synonyms),
+        str(taxa),
+        str(descriptions),
+        str(metadata),
+        str(ids),
     )
 
     label_rows = assert_labels_file_valid(str(labels))
@@ -222,19 +244,25 @@ def test_make_labels_synonyms_and_taxa_skips_missing_taxon(tmp_path):
     manifest.write_text("9606.tsv\n")
 
     (complexportal_dir / "9606.tsv").write_text(
-        _HEADER
-        + _row("CPX-1", "Complex with taxon", "-", "9606")
-        + _row("CPX-2", "Complex without taxon", "-", "-")
+        _HEADER + _row("CPX-1", "Complex with taxon", "-", "9606") + _row("CPX-2", "Complex without taxon", "-", "-")
     )
 
     labels = complexportal_dir / "labels"
     synonyms = complexportal_dir / "synonyms"
     taxa = complexportal_dir / "taxa"
     descriptions = complexportal_dir / "descriptions"
+    ids = complexportal_dir / "ids"
     metadata = complexportal_dir / "metadata.yaml"
 
     complexportal.make_labels_synonyms_and_taxa(
-        str(manifest), str(complexportal_dir), str(labels), str(synonyms), str(taxa), str(descriptions), str(metadata)
+        str(manifest),
+        str(complexportal_dir),
+        str(labels),
+        str(synonyms),
+        str(taxa),
+        str(descriptions),
+        str(metadata),
+        str(ids),
     )
 
     taxa_rows = assert_taxa_file_valid(str(taxa))
@@ -258,14 +286,61 @@ def test_make_labels_synonyms_and_taxa_deduplicates_identical_descriptions(tmp_p
     synonyms = complexportal_dir / "synonyms"
     taxa = complexportal_dir / "taxa"
     descriptions = complexportal_dir / "descriptions"
+    ids = complexportal_dir / "ids"
     metadata = complexportal_dir / "metadata.yaml"
 
     complexportal.make_labels_synonyms_and_taxa(
-        str(manifest), str(complexportal_dir), str(labels), str(synonyms), str(taxa), str(descriptions), str(metadata)
+        str(manifest),
+        str(complexportal_dir),
+        str(labels),
+        str(synonyms),
+        str(taxa),
+        str(descriptions),
+        str(metadata),
+        str(ids),
     )
 
     desc_rows = assert_descriptions_file_valid(str(descriptions))
     assert desc_rows == [[f"{COMPLEXPORTAL}:CPX-1", shared_desc]]
+
+
+@pytest.mark.unit
+def test_make_labels_synonyms_and_taxa_ids_file_includes_entries_with_empty_label(tmp_path):
+    """IDs file must include every identifier even when the recommended name column is empty."""
+    complexportal_dir = tmp_path / "ComplexPortal"
+    complexportal_dir.mkdir()
+    manifest = complexportal_dir / complexportal.COMPLEXPORTAL_MANIFEST
+    manifest.write_text("9606.tsv\n")
+
+    (complexportal_dir / "9606.tsv").write_text(
+        _HEADER
+        + _row("CPX-1", "Normal complex", "-", "9606")
+        + _row("CPX-2", "", "-", "9606")  # empty recommended name
+    )
+
+    labels = complexportal_dir / "labels"
+    synonyms = complexportal_dir / "synonyms"
+    taxa = complexportal_dir / "taxa"
+    descriptions = complexportal_dir / "descriptions"
+    ids = complexportal_dir / "ids"
+    metadata = complexportal_dir / "metadata.yaml"
+
+    complexportal.make_labels_synonyms_and_taxa(
+        str(manifest),
+        str(complexportal_dir),
+        str(labels),
+        str(synonyms),
+        str(taxa),
+        str(descriptions),
+        str(metadata),
+        str(ids),
+    )
+
+    ids_rows = assert_ids_file_valid(str(ids))
+    ids_curies = [row[0] for row in ids_rows]
+    assert f"{COMPLEXPORTAL}:CPX-1" in ids_curies
+    assert f"{COMPLEXPORTAL}:CPX-2" in ids_curies, "ID with empty label must still appear in IDs file"
+    assert all(row[1] == "biolink:MacromolecularComplex" for row in ids_rows)
 
 
 @pytest.mark.network
