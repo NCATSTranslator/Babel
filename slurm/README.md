@@ -102,11 +102,11 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 | `untyped_chemical_compendia` | `chemical.snakefile` | 512G | — | Pre-typing step |
 | `gene_compendia` | `gene.snakefile` | 256G | 6h | Gene graph |
 | `export_compendia_to_duckdb` | `duckdb.snakefile` | 512G | 6h | Per-compendium DuckDB export |
-| `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 512G | — | Cross-compendium join; two-pass query keeps it in RAM |
-| `check_for_duplicate_curies` | `duckdb.snakefile` | 512G | — | Cross-compendium join; two-pass query keeps it in RAM |
-| `check_for_duplicate_clique_leaders` | `duckdb.snakefile` | 512G | — | Cross-compendium join; two-pass query keeps it in RAM |
-| `generate_curie_report` | `duckdb.snakefile` | 512G | — | Full-Edge aggregation; sized to avoid spilling |
-| `generate_clique_leader_report` | `duckdb.snakefile` | 512G | — | Full-Edge aggregation; sized to avoid spilling |
+| `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 1500G | — | GROUP BY over all cliques; memory_limit 1400G, 2 threads |
+| `check_for_duplicate_curies` | `duckdb.snakefile` | 1500G | — | GROUP BY curie over all edges; memory_limit 1400G, 2 threads |
+| `check_for_duplicate_clique_leaders` | `duckdb.snakefile` | 512G | — | Two-pass over the smaller Clique table; memory_limit 400G, 4 threads |
+| `generate_curie_report` | `duckdb.snakefile` | 1500G | — | COUNT(DISTINCT) over all edges; memory_limit 1400G, 2 threads |
+| `generate_clique_leader_report` | `duckdb.snakefile` | 1500G | — | COUNT(DISTINCT) over all edges; memory_limit 1400G, 2 threads |
 | `chembl_labels_and_smiles` | `datacollect.snakefile` | 128G | — | RDF parse |
 | `chemical_unichem_concordia` | `chemical.snakefile` | 128G | — | UniChem merge |
 | `generate_pubmed_concords` | `publications.snakefile` | 128G | 24h | Full PubMed parse |
@@ -173,11 +173,14 @@ The following improvements are tracked here for visibility but not yet implement
   path and should be updated to use `uv run`.
 
 - **Cross-compendium DuckDB reports**: `check_for_identically_labeled_cliques`,
-  `check_for_duplicate_curies`, and `check_for_duplicate_clique_leaders` now use a two-pass query
-  (a spillable `COUNT(*)` pass, then `LIST()` only over confirmed duplicates) and run at 512G
-  instead of 1500G. `generate_curie_report` and `generate_clique_leader_report` still load the
-  full Edge set into memory; they may be rewritable with streaming `COUNT(DISTINCT)` aggregations
-  to reduce peak RSS further.
+  `check_for_duplicate_curies`, and `check_for_duplicate_clique_leaders` use a two-pass query
+  (a spillable `COUNT(*)` pass, then `LIST()` only over confirmed duplicates). This let
+  `check_for_duplicate_clique_leaders` (smaller Clique table) drop to 512G, but the pass-1
+  `GROUP BY` over the full Edge set still dominates the others, so they remain on a full largemem
+  node (1500G, `memory_limit` 1400G, 2 threads) — DuckDB OOMs rather than spills that aggregation
+  at lower limits / higher thread counts. `generate_curie_report` and
+  `generate_clique_leader_report` are `COUNT(DISTINCT)` over the full Edge set with the same
+  profile; all four may be rewritable with streaming aggregations to reduce peak RSS further.
 
 - **Per-rule resource tuning**: After collecting benchmark data from a full run, add explicit
   `resources:` to every rule based on observed `max_rss + 30% headroom`. This will greatly reduce
