@@ -18,6 +18,8 @@ rule macromolecular_complex_compendia:
     input:
         labels=config["download_directory"] + "/ComplexPortal/labels",
         synonyms=config["download_directory"] + "/ComplexPortal/synonyms",
+        taxafile=config["download_directory"] + "/ComplexPortal/taxa",
+        descfile=config["download_directory"] + "/ComplexPortal/descriptions",
         idlists=config["intermediate_directory"] + "/macromolecular_complex/ids/ComplexPortal",
         metadata_yaml=config["download_directory"] + "/ComplexPortal/metadata.yaml",
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",

@@ -40,7 +40,8 @@ def fetch_complexportal_tsv_filenames(url=COMPLEXPORTAL_COMPLEXTAB_URL):
     parser = _DirectoryListingParser()
     parser.feed(listing)
 
-    tsv_filenames = {f for h in parser.hrefs if (f := posixpath.basename(h.rstrip("/"))).endswith(".tsv")}
+    basenames = (posixpath.basename(h.rstrip("/")) for h in parser.hrefs)
+    tsv_filenames = {f for f in basenames if f.endswith(".tsv")}
 
     if not tsv_filenames:
         raise RuntimeError(f"No ComplexPortal TSV files found at {url}")
@@ -113,6 +114,11 @@ def make_labels_synonyms_and_taxa(manifest_file, download_dir, labelfile, synfil
 
                     taxon_id = sline[3].strip()  # taxonomy identifier (NCBI taxon integer)
                     if taxon_id and taxon_id != "-":
+                        if taxon_id.startswith("NCBITaxon:"):
+                            raise ValueError(
+                                f"Taxon ID {taxon_id!r} in {infile} is already prefixed; "
+                                "expected a bare integer (e.g. '9606')"
+                            )
                         taxa_row = (identifier, taxon_id)
                         if taxa_row not in used_taxa:
                             outt.write(f"{identifier}\tNCBITaxon:{taxon_id}\n")
