@@ -23,34 +23,44 @@ def check_for_identically_labeled_cliques(
     db = setup_duckdb(duckdb_filename, duckdb_config)
     cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
-    # Pass 1: identify names shared by more than one clique using only a COUNT.
-    # A pure COUNT(*) GROUP BY can spill to disk, whereas a LIST() aggregate cannot:
-    # DuckDB would build one list per group (including the single-clique groups that the
-    # HAVING clause later discards), holding all of them in RAM and OOMing on the full set.
+    # Pass 1: identify names shared by more than one clique, grouping on a fixed-size *hash* of the
+    # lowercased name rather than the name itself.
+    #
+    # Grouping directly on LOWER(preferred_name) OOM-killed the job on the full graph even on a
+    # largemem node: there are ~200M cliques, and preferred_name is often a long chemical/disease
+    # label, so the aggregate's hash table held ~200M distinct long strings. That string heap is
+    # largely untracked by DuckDB's memory accounting, so RSS overshot the cgroup hard limit
+    # (~500 GiB above the configured memory_limit) before any spill kicked in. The sibling
+    # check_for_duplicate_clique_leaders runs the same ~200M-group pattern comfortably at 512G
+    # because its key is a short CURIE. hash(...) gives us a uniform 8-byte key, so the aggregate
+    # is bounded and spillable. A 64-bit hash collision (which would merge two distinct names into
+    # one "duplicate" group) is astronomically unlikely at this scale and only perturbs a
+    # diagnostic count, so we accept it rather than carrying the long strings through the aggregate.
     with log_duckdb_settings_on_error(
-        db, "check_for_identically_labeled_cliques pass 1 (GROUP BY LOWER(preferred_name))"
+        db, "check_for_identically_labeled_cliques pass 1 (GROUP BY hash(LOWER(preferred_name)))"
     ):
         db.execute("""
             CREATE OR REPLACE TEMP TABLE dup_names AS
-            SELECT LOWER(preferred_name) AS preferred_name_lc, COUNT(*) AS clique_leader_count
+            SELECT hash(LOWER(preferred_name)) AS preferred_name_hash, COUNT(*) AS clique_leader_count
             FROM cliques
             WHERE preferred_name <> '' AND preferred_name <> '""'
-            GROUP BY preferred_name_lc HAVING clique_leader_count > 1
+            GROUP BY preferred_name_hash HAVING clique_leader_count > 1
         """)
 
     # Pass 2: write one row per (duplicate name, clique_leader) pair via a streaming hash join.
-    # The build side (dup_names) is small, so this streams the Clique scan straight to the output
-    # with O(1) memory. Earlier attempts that either aggregated the leaders into an in-SQL
-    # ``LIST(... ORDER BY ...)`` (not spillable -- OOMed; one name was shared by 92k cliques) or
-    # globally sorted the pairs (the sort overshot the cgroup limit and was OOM-killed) both failed
-    # on the full graph. We therefore emit the pairs unsorted; rows sharing a name are not
-    # guaranteed adjacent, but clique_leader_count is on every row, so a consumer can group/sort
-    # cheaply. dup_names already holds the per-name counts on their own if only those are needed.
+    # The build side (dup_names) is small -- only the hashes of names that actually repeat -- so this
+    # streams the Clique scan straight to the output with O(1) memory, recomputing the same hash on
+    # each clique to probe and recovering the real lowercased name for the output. Earlier attempts
+    # that aggregated the leaders into an in-SQL ``LIST(... ORDER BY ...)`` (not spillable -- OOMed;
+    # one name was shared by 92k cliques) or globally sorted the pairs (the sort overshot the cgroup
+    # limit) both failed on the full graph. We therefore emit the pairs unsorted; rows sharing a name
+    # are not guaranteed adjacent, but clique_leader_count is on every row, so a consumer can
+    # group/sort cheaply.
     with log_duckdb_settings_on_error(db, "check_for_identically_labeled_cliques pass 2 (stream duplicate pairs)"):
         db.sql("""
-            SELECT d.preferred_name_lc, d.clique_leader_count, c.clique_leader
+            SELECT LOWER(c.preferred_name) AS preferred_name_lc, d.clique_leader_count, c.clique_leader
             FROM cliques c
-            JOIN dup_names d ON LOWER(c.preferred_name) = d.preferred_name_lc
+            JOIN dup_names d ON hash(LOWER(c.preferred_name)) = d.preferred_name_hash
             WHERE c.preferred_name <> '' AND c.preferred_name <> '""'
         """).write_csv(identically_labeled_cliques_tsv, sep="\t", header=True)
 
@@ -157,38 +167,32 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
 
     db = setup_duckdb(duckdb_filename, duckdb_config)
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
-    cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
 
     # Step 2. Generate a prefix report by Biolink type.
     #
+    # biolink_type is read straight off the Edge table (it is denormalized there at export time), so
+    # this is a plain grouped scan. It used to join the full Edge table against the Clique table to
+    # recover biolink_type, but that large-vs-large join overshot the cgroup hard limit and was
+    # OOM-killed even on a largemem node; the denormalized column removes the join entirely.
+    #
     # The distinct counts use approx_count_distinct() (HyperLogLog), not COUNT(DISTINCT): an exact
     # grouped COUNT(DISTINCT) over the full Edge set keeps a distinct hash set per group in RAM and
-    # is not spillable, so it OOMed even on a full largemem node. approx_count_distinct keeps a
-    # fixed, tiny sketch per group instead. These are summary statistics for a diagnostic report,
-    # so the ~2% HLL error is acceptable; the exact total (COUNT) stays exact.
+    # is not spillable. approx_count_distinct keeps a fixed, tiny sketch per group instead. These are
+    # summary statistics for a diagnostic report, so the ~2% HLL error is acceptable; the exact total
+    # (COUNT) stays exact.
     logger.info("Generating prefix report by Biolink type...")
     with log_duckdb_settings_on_error(
         db, "generate_curie_report: prefix report by Biolink type (approx distinct counts)"
     ):
         curie_prefix_by_type = db.sql("""
-            WITH C AS (
-                SELECT clique_leader, biolink_type
-                FROM cliques
-            )
             SELECT
                 curie_prefix,
                 biolink_type,
-                COUNT(e.curie) AS curie_count,
-                approx_count_distinct(e.curie) AS curie_distinct_count,
-                approx_count_distinct(e.clique_leader) AS clique_distinct_count
-            FROM (
-                 SELECT clique_leader,
-                        curie_prefix,
-                        curie
-                 FROM edges
-                 WHERE edges.conflation = 'None'
-            ) e
-            JOIN C USING (clique_leader)
+                COUNT(curie) AS curie_count,
+                approx_count_distinct(curie) AS curie_distinct_count,
+                approx_count_distinct(clique_leader) AS clique_distinct_count
+            FROM edges
+            WHERE conflation = 'None'
             GROUP BY curie_prefix, biolink_type
         """)
         logger.info("Done generating prefix report by Biolink type, retrieving results...")
@@ -241,7 +245,6 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
         json.dump(by_curie_prefix_results, fout, indent=2, sort_keys=True)
 
     edges.close()
-    cliques.close()
 
 
 def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_report_json, duckdb_config=None):
