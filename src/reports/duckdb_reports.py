@@ -38,19 +38,20 @@ def check_for_identically_labeled_cliques(
             GROUP BY preferred_name_lc HAVING clique_leader_count > 1
         """)
 
-    # Pass 2: write one row per (duplicate name, clique_leader) pair, sorted so that the cliques
-    # sharing a name are adjacent. The previous version aggregated the leaders into an in-SQL
-    # ``LIST(... ORDER BY ...)``, which is not spillable: DuckDB buffers every group's sorted state
-    # in RAM at once, and because many cliques can share a name (one name in a recent build was
-    # shared by 92k cliques) it OOMed even on a full largemem node. A plain ``ORDER BY`` spills to
-    # the temp directory, so peak RAM stays bounded; the flat output is just as easy to read.
-    with log_duckdb_settings_on_error(db, "check_for_identically_labeled_cliques pass 2 (sorted duplicate pairs)"):
+    # Pass 2: write one row per (duplicate name, clique_leader) pair via a streaming hash join.
+    # The build side (dup_names) is small, so this streams the Clique scan straight to the output
+    # with O(1) memory. Earlier attempts that either aggregated the leaders into an in-SQL
+    # ``LIST(... ORDER BY ...)`` (not spillable -- OOMed; one name was shared by 92k cliques) or
+    # globally sorted the pairs (the sort overshot the cgroup limit and was OOM-killed) both failed
+    # on the full graph. We therefore emit the pairs unsorted; rows sharing a name are not
+    # guaranteed adjacent, but clique_leader_count is on every row, so a consumer can group/sort
+    # cheaply. dup_names already holds the per-name counts on their own if only those are needed.
+    with log_duckdb_settings_on_error(db, "check_for_identically_labeled_cliques pass 2 (stream duplicate pairs)"):
         db.sql("""
             SELECT d.preferred_name_lc, d.clique_leader_count, c.clique_leader
             FROM cliques c
             JOIN dup_names d ON LOWER(c.preferred_name) = d.preferred_name_lc
             WHERE c.preferred_name <> '' AND c.preferred_name <> '""'
-            ORDER BY d.clique_leader_count DESC, d.preferred_name_lc ASC, c.clique_leader ASC
         """).write_csv(identically_labeled_cliques_tsv, sep="\t", header=True)
 
     cliques.close()
@@ -160,41 +161,35 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
 
     # Step 2. Generate a prefix report by Biolink type.
     #
-    # A grouped COUNT(DISTINCT) over the full Edge set is not spillable (DuckDB keeps a distinct
-    # hash set per group in RAM) and OOMed even on a full largemem node. Instead we pre-reduce to
-    # the distinct grain with a plain ``SELECT DISTINCT`` -- a normal hash aggregation that spills
-    # to the temp directory -- and then COUNT(*) over that. The distinct-curie and
-    # distinct-clique_leader counts use different keys, so each gets its own spillable subquery and
-    # they are joined back on (curie_prefix, biolink_type), which has only a few thousand rows.
+    # The distinct counts use approx_count_distinct() (HyperLogLog), not COUNT(DISTINCT): an exact
+    # grouped COUNT(DISTINCT) over the full Edge set keeps a distinct hash set per group in RAM and
+    # is not spillable, so it OOMed even on a full largemem node. approx_count_distinct keeps a
+    # fixed, tiny sketch per group instead. These are summary statistics for a diagnostic report,
+    # so the ~2% HLL error is acceptable; the exact total (COUNT) stays exact.
     logger.info("Generating prefix report by Biolink type...")
     with log_duckdb_settings_on_error(
-        db, "generate_curie_report: prefix report by Biolink type (spillable distinct counts)"
+        db, "generate_curie_report: prefix report by Biolink type (approx distinct counts)"
     ):
         curie_prefix_by_type = db.sql("""
-            WITH edge_by_type AS (
-                SELECT e.curie_prefix, c.biolink_type, e.curie, e.clique_leader
-                FROM (SELECT clique_leader, curie_prefix, curie FROM edges WHERE conflation = 'None') e
-                JOIN (SELECT clique_leader, biolink_type FROM cliques) c USING (clique_leader)
-            ),
-            totals AS (
-                SELECT curie_prefix, biolink_type, COUNT(*) AS curie_count
-                FROM edge_by_type GROUP BY curie_prefix, biolink_type
-            ),
-            distinct_curies AS (
-                SELECT curie_prefix, biolink_type, COUNT(*) AS curie_distinct_count
-                FROM (SELECT DISTINCT curie_prefix, biolink_type, curie FROM edge_by_type)
-                GROUP BY curie_prefix, biolink_type
-            ),
-            distinct_cliques AS (
-                SELECT curie_prefix, biolink_type, COUNT(*) AS clique_distinct_count
-                FROM (SELECT DISTINCT curie_prefix, biolink_type, clique_leader FROM edge_by_type)
-                GROUP BY curie_prefix, biolink_type
+            WITH C AS (
+                SELECT clique_leader, biolink_type
+                FROM cliques
             )
-            SELECT t.curie_prefix, t.biolink_type, t.curie_count,
-                   dc.curie_distinct_count, dl.clique_distinct_count
-            FROM totals t
-            JOIN distinct_curies dc USING (curie_prefix, biolink_type)
-            JOIN distinct_cliques dl USING (curie_prefix, biolink_type)
+            SELECT
+                curie_prefix,
+                biolink_type,
+                COUNT(e.curie) AS curie_count,
+                approx_count_distinct(e.curie) AS curie_distinct_count,
+                approx_count_distinct(e.clique_leader) AS clique_distinct_count
+            FROM (
+                 SELECT clique_leader,
+                        curie_prefix,
+                        curie
+                 FROM edges
+                 WHERE edges.conflation = 'None'
+            ) e
+            JOIN C USING (clique_leader)
+            GROUP BY curie_prefix, biolink_type
         """)
         logger.info("Done generating prefix report by Biolink type, retrieving results...")
         prefix_by_type_report = curie_prefix_by_type.fetchall()
@@ -210,31 +205,23 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
             "clique_distinct_count": row[4],
         }
 
-    # Step 1. Generate a prefix total report. Same spillable distinct-then-count pattern as Step 2,
+    # Step 1. Generate a prefix total report. Same approx_count_distinct approach as Step 2,
     # grouped by curie prefix alone.
     logger.info("Generating prefix totals report...")
-    with log_duckdb_settings_on_error(db, "generate_curie_report: prefix totals (spillable distinct counts)"):
+    with log_duckdb_settings_on_error(db, "generate_curie_report: prefix totals (approx distinct counts)"):
         curie_prefix_totals = db.sql("""
-            WITH base AS (
-                SELECT split_part(curie, ':', 1) AS curie_prefix, curie, clique_leader
-                FROM edges WHERE conflation = 'None'
-            ),
-            totals AS (
-                SELECT curie_prefix, COUNT(*) AS curie_count FROM base GROUP BY curie_prefix
-            ),
-            distinct_curies AS (
-                SELECT curie_prefix, COUNT(*) AS curie_distinct_count
-                FROM (SELECT DISTINCT curie_prefix, curie FROM base) GROUP BY curie_prefix
-            ),
-            distinct_cliques AS (
-                SELECT curie_prefix, COUNT(*) AS clique_distinct_count
-                FROM (SELECT DISTINCT curie_prefix, clique_leader FROM base) GROUP BY curie_prefix
-            )
-            SELECT t.curie_prefix, t.curie_count, dc.curie_distinct_count, dl.clique_distinct_count
-            FROM totals t
-            JOIN distinct_curies dc USING (curie_prefix)
-            JOIN distinct_cliques dl USING (curie_prefix)
-        """)
+                                     SELECT
+                                         curie_prefix,
+                                         COUNT(curie) AS curie_count,
+                                         approx_count_distinct(curie) AS curie_distinct_count,
+                                         approx_count_distinct(clique_leader) AS clique_distinct_count
+                                     FROM
+                                         edges
+                                     WHERE
+                                         edges.conflation = 'None'
+                                     GROUP BY
+                                         curie_prefix
+                                     """)
         logger.info("Done generating prefix totals report, retrieving results...")
         prefix_totals_report = curie_prefix_totals.fetchall()
     prefix_totals_report_by_curie_prefix = defaultdict(dict)
@@ -276,32 +263,24 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
 
     # Step 1. Generate a by-clique report.
     #
-    # As in generate_curie_report, grouped COUNT(DISTINCT) over the full Edge set is not spillable,
-    # so we pre-reduce each distinct count with a ``SELECT DISTINCT`` (a spillable hash aggregation)
-    # and COUNT(*) over it, joining the per-key results back together.
+    # As in generate_curie_report, the distinct counts use approx_count_distinct() (a fixed-size HLL
+    # sketch per group) rather than an exact, non-spillable COUNT(DISTINCT) over the full Edge set.
     logger.info("Generating clique report...")
     with log_duckdb_settings_on_error(
-        db, "generate_clique_leaders_report: per-filename totals (spillable distinct counts)"
+        db, "generate_clique_leaders_report: per-filename totals (approx distinct counts)"
     ):
         cliques = db.sql("""
-            WITH base AS (
-                SELECT filename, clique_leader, curie FROM edges WHERE conflation = 'None'
-            ),
-            totals AS (
-                SELECT filename, COUNT(*) AS curie_count FROM base GROUP BY filename
-            ),
-            distinct_curies AS (
-                SELECT filename, COUNT(*) AS distinct_curie_count
-                FROM (SELECT DISTINCT filename, curie FROM base) GROUP BY filename
-            ),
-            distinct_cliques AS (
-                SELECT filename, COUNT(*) AS distinct_clique_count
-                FROM (SELECT DISTINCT filename, clique_leader FROM base) GROUP BY filename
-            )
-            SELECT t.filename, dl.distinct_clique_count, dc.distinct_curie_count, t.curie_count
-            FROM totals t
-            JOIN distinct_curies dc USING (filename)
-            JOIN distinct_cliques dl USING (filename)
+            SELECT
+                filename,
+                approx_count_distinct(clique_leader) AS distinct_clique_count,
+                approx_count_distinct(curie) AS distinct_curie_count,
+                COUNT(curie) AS curie_count
+            FROM
+                edges
+            WHERE
+                conflation = 'None'
+            GROUP BY
+                filename
         """)
         logger.info("Done generating clique report, retrieving results...")
         clique_totals = cliques.fetchall()
@@ -320,23 +299,18 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
         db, "generate_clique_leaders_report: per-prefix breakdown (COUNT(DISTINCT) over all edges)"
     ):
         clique_per_curie = db.sql("""
-            WITH base AS (
-                SELECT filename, clique_leader_prefix, curie_prefix, curie
-                FROM edges WHERE conflation = 'None'
-            ),
-            totals AS (
-                SELECT filename, clique_leader_prefix, curie_prefix, COUNT(*) AS curie_count
-                FROM base GROUP BY filename, clique_leader_prefix, curie_prefix
-            ),
-            distinct_curies AS (
-                SELECT filename, clique_leader_prefix, curie_prefix, COUNT(*) AS distinct_curie_count
-                FROM (SELECT DISTINCT filename, clique_leader_prefix, curie_prefix, curie FROM base)
-                GROUP BY filename, clique_leader_prefix, curie_prefix
-            )
-            SELECT t.filename, t.clique_leader_prefix, t.curie_prefix,
-                   dc.distinct_curie_count, t.curie_count
-            FROM totals t
-            JOIN distinct_curies dc USING (filename, clique_leader_prefix, curie_prefix)
+            SELECT
+                filename,
+                clique_leader_prefix,
+                curie_prefix,
+                approx_count_distinct(curie) AS distinct_curie_count,
+                COUNT(curie) AS curie_count
+            FROM
+                edges
+            WHERE
+                conflation = 'None'
+            GROUP BY
+                filename, clique_leader_prefix, curie_prefix
         """)
         logger.info("Done generating clique report, retrieving results...")
         all_rows = clique_per_curie.fetchall()
