@@ -109,3 +109,33 @@ def test_make_labels_and_synonyms_combines_manifest_files(tmp_path):
         [f"{COMPLEXPORTAL}:CPX-2", HAS_EXACT_SYNONYM, "Mediator"],
     ]
     assert metadata.exists()
+
+
+@pytest.mark.unit
+def test_make_labels_and_synonyms_deduplicates_by_identifier(tmp_path):
+    """Same complex ID in two species files with different labels: first label wins, no duplicate row."""
+    complexportal_dir = tmp_path / "ComplexPortal"
+    complexportal_dir.mkdir()
+    manifest = complexportal_dir / complexportal.COMPLEXPORTAL_MANIFEST
+    manifest.write_text("9606.tsv\n10090.tsv\n")
+
+    header = "Complex ac\tRecommended name\tAliases\tDescription\n"
+    (complexportal_dir / "9606.tsv").write_text(header + "CPX-1\tHuman name\t-\tHuman complex\n")
+    (complexportal_dir / "10090.tsv").write_text(header + "CPX-1\tMouse name\t-\tMouse complex\n")
+
+    labels = complexportal_dir / "labels"
+    synonyms = complexportal_dir / "synonyms"
+    metadata = complexportal_dir / "metadata.yaml"
+
+    complexportal.make_labels_and_synonyms(str(manifest), str(labels), str(synonyms), str(metadata))
+
+    label_rows = assert_labels_file_valid(str(labels))
+    assert label_rows == [[f"{COMPLEXPORTAL}:CPX-1", "Human name"]]
+
+
+@pytest.mark.network
+def test_get_complexportal_tsv_filenames_returns_real_files():
+    filenames = complexportal.get_complexportal_tsv_filenames()
+    assert len(filenames) > 0
+    assert all(f.endswith(".tsv") for f in filenames)
+    assert filenames == sorted(filenames)
