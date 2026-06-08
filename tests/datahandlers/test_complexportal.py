@@ -23,7 +23,7 @@ class _FakeResponse:
 
 
 @pytest.mark.unit
-def test_get_complexportal_tsv_filenames_selects_tsv_links():
+def test_fetch_complexportal_tsv_filenames_selects_tsv_links():
     listing = b"""
     <html>
       <body>
@@ -37,7 +37,7 @@ def test_get_complexportal_tsv_filenames_selects_tsv_links():
     """
 
     with patch("urllib.request.urlopen", return_value=_FakeResponse(listing)):
-        filenames = complexportal.get_complexportal_tsv_filenames("https://example.org/complextab/")
+        filenames = complexportal.fetch_complexportal_tsv_filenames("https://example.org/complextab/")
 
     assert filenames == ["10090.tsv", "559292.tsv", "9606.tsv"]
 
@@ -48,7 +48,7 @@ def test_pull_complexportal_downloads_all_discovered_tsvs_and_writes_manifest(tm
 
     with (
         patch(
-            "src.datahandlers.complexportal.get_complexportal_tsv_filenames", return_value=["10090.tsv", "559292.tsv"]
+            "src.datahandlers.complexportal.fetch_complexportal_tsv_filenames", return_value=["10090.tsv", "559292.tsv"]
         ),
         patch("src.datahandlers.complexportal.pull_via_urllib") as mock_pull,
     ):
@@ -134,8 +134,8 @@ def test_make_labels_and_synonyms_deduplicates_by_identifier(tmp_path):
 
 
 @pytest.mark.network
-def test_get_complexportal_tsv_filenames_returns_real_files():
-    filenames = complexportal.get_complexportal_tsv_filenames()
+def test_fetch_complexportal_tsv_filenames_returns_real_files():
+    filenames = complexportal.fetch_complexportal_tsv_filenames()
     assert len(filenames) > 0
     assert all(f.endswith(".tsv") for f in filenames)
     assert filenames == sorted(filenames)

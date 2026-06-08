@@ -24,10 +24,10 @@ transfers.
 years and the parser is a handful of lines. `ftplib` adds a second protocol dependency and
 occasional auth/passive-mode headaches. The risk is that EBI (or another host) switches to a
 different listing format (e.g. Nginx JSON autoindex, a JavaScript SPA) and the parser silently
-returns an empty list. The existing `get_complexportal_tsv_filenames()` guard (`if not
+returns an empty list. The existing `fetch_complexportal_tsv_filenames()` guard (`if not
 tsv_filenames: raise RuntimeError(...)`) catches this immediately at runtime.
 
-**If the HTML listing breaks** — switch `get_complexportal_tsv_filenames()` (and equivalent
+**If the HTML listing breaks** — switch `fetch_complexportal_tsv_filenames()` (and equivalent
 functions in other handlers) to use `ftplib.FTP.nlst()` or `MLSD` for discovery while keeping
 `pull_via_urllib` for the actual download. That combination gives structured directory listings
 without sacrificing download reliability. The FTP URL for EBI is
