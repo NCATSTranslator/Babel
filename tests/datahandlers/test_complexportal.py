@@ -22,8 +22,34 @@ class _FakeResponse:
         return self.content
 
 
-# Real ComplexPortal TSV header (4 columns we use + a trailing column to test the split limit).
-_HEADER = "#Complex ac\tRecommended name\tAliases for complex\tTaxonomy identifier\tIdentifiers\n"
+# Real ComplexPortal ComplexTAB header (all 19 columns as of 2026-06).
+# Columns currently used by Babel are marked with (*); the rest are set to "-" in test rows.
+# Columns worth considering for future use are noted inline.
+_HEADER = (
+    "#Complex ac\t"           # 0  (*) complex accession → CURIE
+    "Recommended name\t"      # 1  (*) preferred label
+    "Aliases for complex\t"   # 2  (*) "|"-separated synonyms, or "-"
+    "Taxonomy identifier\t"   # 3  (*) NCBI taxon integer, or "-"
+    "Identifiers (and stoichiometry) of molecules in complex\t"  # 4  participants — could add to concords
+    "Evidence Code\t"         # 5
+    "Experimental evidence\t" # 6
+    "Go Annotations\t"        # 7  GO terms — could enrich type/function info
+    "Cross references\t"      # 8  Reactome, PubMed, wwPDB, etc. — potential concord sources
+    "Description\t"           # 9  free-text description — could populate descriptions file
+    "Complex properties\t"    # 10
+    "Complex assembly\t"      # 11
+    "Ligand\t"                # 12
+    "Disease\t"               # 13 disease associations — potentially useful
+    "Agonist\t"               # 14
+    "Antagonist\t"            # 15
+    "Comment\t"               # 16
+    "Source\t"                # 17
+    "Expanded participant list\n"  # 18
+)
+
+# Shorthand for a row with all unused columns set to "-".
+def _row(ac, name, aliases, taxon):
+    return f"{ac}\t{name}\t{aliases}\t{taxon}\t" + "\t".join(["-"] * 15) + "\n"
 
 
 def _assert_taxa_file_valid(path: str) -> list[list[str]]:
@@ -99,13 +125,13 @@ def test_make_labels_synonyms_and_taxa_combines_manifest_files(tmp_path):
 
     (complexportal_dir / "10090.tsv").write_text(
         _HEADER
-        + "CPX-1\tMediator complex\tMediator|Mediator complex\t10090\tpart1\n"
-        + "CPX-2\tShared alias complex\tMediator\t10090\tpart2\n"
+        + _row("CPX-1", "Mediator complex", "Mediator|Mediator complex", "10090")
+        + _row("CPX-2", "Shared alias complex", "Mediator", "10090")
     )
     (complexportal_dir / "559292.tsv").write_text(
         _HEADER
-        + "CPX-1\tMediator complex\tMediator|Mediator complex\t559292\tpart1\n"
-        + "CPX-3\tNo alias complex\t-\t559292\tpart3\n"
+        + _row("CPX-1", "Mediator complex", "Mediator|Mediator complex", "559292")
+        + _row("CPX-3", "No alias complex", "-", "559292")
     )
 
     labels = complexportal_dir / "labels"
@@ -147,8 +173,8 @@ def test_make_labels_synonyms_and_taxa_deduplicates_labels_by_identifier(tmp_pat
     manifest = complexportal_dir / complexportal.COMPLEXPORTAL_MANIFEST
     manifest.write_text("9606.tsv\n10090.tsv\n")
 
-    (complexportal_dir / "9606.tsv").write_text(_HEADER + "CPX-1\tHuman name\t-\t9606\tpart1\n")
-    (complexportal_dir / "10090.tsv").write_text(_HEADER + "CPX-1\tMouse name\t-\t10090\tpart1\n")
+    (complexportal_dir / "9606.tsv").write_text(_HEADER + _row("CPX-1", "Human name", "-", "9606"))
+    (complexportal_dir / "10090.tsv").write_text(_HEADER + _row("CPX-1", "Mouse name", "-", "10090"))
 
     labels = complexportal_dir / "labels"
     synonyms = complexportal_dir / "synonyms"
@@ -178,8 +204,8 @@ def test_make_labels_synonyms_and_taxa_skips_missing_taxon(tmp_path):
 
     (complexportal_dir / "9606.tsv").write_text(
         _HEADER
-        + "CPX-1\tComplex with taxon\t-\t9606\tpart1\n"
-        + "CPX-2\tComplex without taxon\t-\t-\tpart2\n"
+        + _row("CPX-1", "Complex with taxon", "-", "9606")
+        + _row("CPX-2", "Complex without taxon", "-", "-")
     )
 
     labels = complexportal_dir / "labels"
