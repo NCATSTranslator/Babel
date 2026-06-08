@@ -5,7 +5,12 @@ import pytest
 from src.datahandlers import complexportal
 from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import COMPLEXPORTAL
-from tests.conftest import assert_labels_file_valid, assert_synonyms_file_valid
+from tests.conftest import (
+    assert_descriptions_file_valid,
+    assert_labels_file_valid,
+    assert_synonyms_file_valid,
+    assert_taxa_file_valid,
+)
 
 
 class _FakeResponse:
@@ -58,37 +63,6 @@ def _row(ac, name, aliases, taxon, description="-"):
     values[3] = taxon
     values[9] = description
     return "\t".join(values) + "\n"
-
-
-def _assert_descriptions_file_valid(path: str) -> list[list[str]]:
-    """Assert every line is CURIE\\tdescription; return the rows."""
-    rows = []
-    with open(path) as f:
-        for line in f:
-            stripped = line.rstrip("\n")
-            if stripped:
-                cols = stripped.split("\t", 1)
-                assert len(cols) == 2, f"Expected 2 columns in descriptions file, got {len(cols)}: {cols}"
-                assert cols[0].startswith(f"{COMPLEXPORTAL}:"), f"First column is not a ComplexPortal CURIE: {cols[0]}"
-                rows.append(cols)
-    assert rows, f"Descriptions file is empty: {path}"
-    return rows
-
-
-def _assert_taxa_file_valid(path: str) -> list[list[str]]:
-    """Assert every line is CURIE\\tNCBITaxon:NNNN; return the rows."""
-    rows = []
-    with open(path) as f:
-        for line in f:
-            stripped = line.rstrip("\n")
-            if stripped:
-                cols = stripped.split("\t")
-                assert len(cols) == 2, f"Expected 2 columns in taxa file, got {len(cols)}: {cols}"
-                assert cols[0].startswith(f"{COMPLEXPORTAL}:"), f"First column is not a ComplexPortal CURIE: {cols[0]}"
-                assert cols[1].startswith("NCBITaxon:"), f"Second column is not an NCBITaxon CURIE: {cols[1]}"
-                rows.append(cols)
-    assert rows, f"Taxa file is empty: {path}"
-    return rows
 
 
 @pytest.mark.unit
@@ -170,8 +144,8 @@ def test_make_labels_synonyms_and_taxa_combines_manifest_files(tmp_path):
 
     label_rows = assert_labels_file_valid(str(labels))
     synonym_rows = assert_synonyms_file_valid(str(synonyms))
-    taxa_rows = _assert_taxa_file_valid(str(taxa))
-    desc_rows = _assert_descriptions_file_valid(str(descriptions))
+    taxa_rows = assert_taxa_file_valid(str(taxa))
+    desc_rows = assert_descriptions_file_valid(str(descriptions))
 
     assert label_rows == [
         [f"{COMPLEXPORTAL}:CPX-1", "Mediator complex"],
@@ -226,12 +200,12 @@ def test_make_labels_synonyms_and_taxa_deduplicates_labels_by_identifier(tmp_pat
     assert label_rows == [[f"{COMPLEXPORTAL}:CPX-1", "Human name"]]
 
     # Both taxa are recorded even though the label was deduplicated.
-    taxa_rows = _assert_taxa_file_valid(str(taxa))
+    taxa_rows = assert_taxa_file_valid(str(taxa))
     assert [f"{COMPLEXPORTAL}:CPX-1", "NCBITaxon:9606"] in taxa_rows
     assert [f"{COMPLEXPORTAL}:CPX-1", "NCBITaxon:10090"] in taxa_rows
 
     # Both descriptions are kept — DescriptionFactory accumulates all descriptions per identifier.
-    desc_rows = _assert_descriptions_file_valid(str(descriptions))
+    desc_rows = assert_descriptions_file_valid(str(descriptions))
     desc_texts = {row[1] for row in desc_rows if row[0] == f"{COMPLEXPORTAL}:CPX-1"}
     assert desc_texts == {"Human-specific description.", "Mouse-specific description."}
 
@@ -260,7 +234,7 @@ def test_make_labels_synonyms_and_taxa_skips_missing_taxon(tmp_path):
         str(manifest), str(complexportal_dir), str(labels), str(synonyms), str(taxa), str(descriptions), str(metadata)
     )
 
-    taxa_rows = _assert_taxa_file_valid(str(taxa))
+    taxa_rows = assert_taxa_file_valid(str(taxa))
     assert len(taxa_rows) == 1
     assert taxa_rows[0] == [f"{COMPLEXPORTAL}:CPX-1", "NCBITaxon:9606"]
 
@@ -287,7 +261,7 @@ def test_make_labels_synonyms_and_taxa_deduplicates_identical_descriptions(tmp_p
         str(manifest), str(complexportal_dir), str(labels), str(synonyms), str(taxa), str(descriptions), str(metadata)
     )
 
-    desc_rows = _assert_descriptions_file_valid(str(descriptions))
+    desc_rows = assert_descriptions_file_valid(str(descriptions))
     assert desc_rows == [[f"{COMPLEXPORTAL}:CPX-1", shared_desc]]
 
 

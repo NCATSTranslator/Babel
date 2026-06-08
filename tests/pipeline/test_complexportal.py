@@ -14,8 +14,12 @@ import pytest
 from src.babel_utils import make_local_name
 from src.datahandlers import complexportal
 from src.prefixes import COMPLEXPORTAL
-from tests.conftest import assert_labels_file_valid, assert_synonyms_file_valid
-from tests.datahandlers.test_complexportal import _assert_descriptions_file_valid, _assert_taxa_file_valid
+from tests.conftest import (
+    assert_descriptions_file_valid,
+    assert_labels_file_valid,
+    assert_synonyms_file_valid,
+    assert_taxa_file_valid,
+)
 from tests.pipeline.conftest import _download_or_fail
 
 # ---------------------------------------------------------------------------
@@ -124,7 +128,7 @@ def test_complexportal_synonyms_valid(complexportal_pipeline_outputs):
 @pytest.mark.pipeline
 def test_complexportal_taxa_valid(complexportal_pipeline_outputs):
     """Taxa file is non-empty and every row is a valid CURIE→NCBITaxon:NNNN pair."""
-    rows = _assert_taxa_file_valid(complexportal_pipeline_outputs["taxa"])
+    rows = assert_taxa_file_valid(complexportal_pipeline_outputs["taxa"])
     # Every label in the labels file should have at least one taxon entry.
     from tests.conftest import read_tsv
 
@@ -137,7 +141,7 @@ def test_complexportal_taxa_valid(complexportal_pipeline_outputs):
 @pytest.mark.pipeline
 def test_complexportal_descriptions_valid(complexportal_pipeline_outputs):
     """Descriptions file is non-empty and every row is a valid CURIE→description pair."""
-    _assert_descriptions_file_valid(complexportal_pipeline_outputs["descriptions"])
+    assert_descriptions_file_valid(complexportal_pipeline_outputs["descriptions"])
 
 
 @pytest.mark.pipeline
