@@ -112,14 +112,18 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
     return db
 
 
-def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, duckdb_filename):
+def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, edge_parquet_filename, duckdb_filename):
     """
     Export a compendium to a Parquet file via a DuckDB.
 
     :param compendium_filename: The compendium filename to read.
     :param clique_parquet_filename: The filename for the Clique.parquet file.
-    :param duckdb_filename: The DuckDB filename to write. We will write the Parquet files into the directory that
-        this file is located in.
+    :param edge_parquet_filename: The filename for the Edge.parquet file.
+    :param duckdb_filename: The DuckDB filename to write.
+
+    The Node.parquet file is written alongside clique_parquet_filename (same directory); the
+    Clique and Edge Parquet paths are passed explicitly so the Snakemake rule and this function
+    agree on them and Snakemake can track them as declared outputs.
     """
 
     # Make sure that duckdb_filename doesn't exist.
@@ -129,10 +133,11 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
     duckdb_dir = os.path.dirname(duckdb_filename)
     os.makedirs(duckdb_dir, exist_ok=True)
 
-    # We'll create these two files as well, but we don't report them back to Snakemake for now.
+    # Node.parquet is written alongside the Clique.parquet file and is also declared as a rule
+    # output; the Clique and Edge paths arrive as explicit arguments.
     parquet_dir = os.path.dirname(clique_parquet_filename)
     os.makedirs(parquet_dir, exist_ok=True)
-    edge_parquet_filename = os.path.join(parquet_dir, "Edge.parquet")
+    os.makedirs(os.path.dirname(edge_parquet_filename), exist_ok=True)
     node_parquet_filename = os.path.join(parquet_dir, "Node.parquet")
 
     compendium_basename = os.path.basename(compendium_filename)

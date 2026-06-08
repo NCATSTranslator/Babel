@@ -37,6 +37,7 @@ rule export_compendia_to_duckdb:
         duckdb_filename=config["output_directory"] + "/duckdb/duckdbs/filename={filename}/compendium.duckdb",
         node_parquet_file=config["output_directory"] + "/duckdb/parquet/filename={filename}/Node.parquet",
         clique_parquet_file=config["output_directory"] + "/duckdb/parquet/filename={filename}/Clique.parquet",
+        edge_parquet_file=config["output_directory"] + "/duckdb/parquet/filename={filename}/Edge.parquet",
     benchmark:
         config["output_directory"] + "/benchmarks/export_compendia_to_duckdb_{filename}.tsv"
     resources:
@@ -45,7 +46,7 @@ rule export_compendia_to_duckdb:
     run:
         print(f"Exporting {input.compendium_file} to {output.duckdb_filename}...")
         duckdb_exporters.export_compendia_to_parquet(
-            input.compendium_file, output.clique_parquet_file, output.duckdb_filename
+            input.compendium_file, output.clique_parquet_file, output.edge_parquet_file, output.duckdb_filename
         )
 
 
