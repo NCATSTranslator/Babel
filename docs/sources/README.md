@@ -15,6 +15,10 @@ letting it accumulate in `CLAUDE.md` — `CLAUDE.md` should point here, not dupl
 
 ## Sources documented so far
 
+- **COMPLEXPORTAL** ([COMPLEXPORTAL/Ingestion.md](./COMPLEXPORTAL/Ingestion.md)) — the
+  `MacromolecularComplex` source: which ComplexTAB columns Babel reads, downloading all species
+  files, the manifest-as-download-sentinel pattern, and the per-output cross-species
+  deduplication rules (labels, IDs, synonyms, taxa, descriptions).
 - **MESH** ([MESH/Ingestion.md](./MESH/Ingestion.md)) — how MeSH is partitioned across compendia
   by tree letter, how Supplementary Concept Records (SCRs) are typed and routed, the
   chemical/protein D-tree split, and which MeSH branches/SCR classes we deliberately skip.
