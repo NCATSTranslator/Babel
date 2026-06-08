@@ -1,9 +1,11 @@
+import contextlib
 import os
 import posixpath
 import urllib.request
 from html.parser import HTMLParser
 
 from src.babel_utils import get_config, get_user_agent, pull_via_urllib
+from src.categories import MACROMOLECULAR_COMPLEX
 from src.metadata.provenance import write_metadata
 from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import COMPLEXPORTAL
@@ -85,18 +87,22 @@ def _read_manifest(manifest_file):
         return [line.strip() for line in manifest if line.strip()]
 
 
-def make_labels_synonyms_and_taxa(manifest_file, download_dir, labelfile, synfile, taxafile, descfile, metadata_yaml):
+def make_labels_synonyms_and_taxa(
+    manifest_file, download_dir, labelfile, synfile, taxafile, descfile, metadata_yaml, idsfile=None
+):
     filenames = _read_manifest(manifest_file)
     used_identifiers = set()
     used_synonyms = set()
     used_taxa = set()
     used_descs = set()  # (identifier, description) pairs — same text from two files is written only once
 
+    ids_ctx = open(idsfile, "w") if idsfile else contextlib.nullcontext()
     with (
         open(labelfile, "w") as outl,
         open(synfile, "w") as outsyn,
         open(taxafile, "w") as outt,
         open(descfile, "w") as outd,
+        ids_ctx as outids,
     ):
         for filename in filenames:
             infile = os.path.join(download_dir, filename)
@@ -119,6 +125,8 @@ def make_labels_synonyms_and_taxa(manifest_file, download_dir, labelfile, synfil
                     label = sline[1]  # recommended name
                     if identifier not in used_identifiers:
                         outl.write(f"{identifier}\t{label}\n")
+                        if outids is not None:
+                            outids.write(f"{identifier}\t{MACROMOLECULAR_COMPLEX}\n")
                         used_identifiers.add(identifier)
 
                     synonyms_str = sline[2]  # aliases for complex

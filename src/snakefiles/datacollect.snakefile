@@ -98,6 +98,7 @@ rule get_complexportal_labels_and_synonyms:
         taxafile=config["download_directory"] + "/ComplexPortal/taxa",
         descfile=config["download_directory"] + "/ComplexPortal/descriptions",
         metadata_yaml=config["download_directory"] + "/ComplexPortal/metadata.yaml",
+        idsfile=config["intermediate_directory"] + "/macromolecular_complex/ids/ComplexPortal",
     benchmark:
         config["output_directory"] + "/benchmarks/get_complexportal_labels_and_synonyms.tsv"
     run:
@@ -110,6 +111,7 @@ rule get_complexportal_labels_and_synonyms:
             output.taxafile,
             output.descfile,
             output.metadata_yaml,
+            output.idsfile,
         )
 
 
