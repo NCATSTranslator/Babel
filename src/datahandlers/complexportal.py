@@ -33,11 +33,7 @@ def get_complexportal_tsv_filenames(url=COMPLEXPORTAL_COMPLEXTAB_URL):
     parser = _DirectoryListingParser()
     parser.feed(listing)
 
-    tsv_filenames = set()
-    for href in parser.hrefs:
-        filename = posixpath.basename(href.rstrip("/"))
-        if filename.endswith(".tsv"):
-            tsv_filenames.add(filename)
+    tsv_filenames = {f for h in parser.hrefs if (f := posixpath.basename(h.rstrip("/"))).endswith(".tsv")}
 
     if not tsv_filenames:
         raise RuntimeError(f"No ComplexPortal TSV files found at {url}")
@@ -64,8 +60,7 @@ def pull_complexportal(manifest_file=None):
 
     os.makedirs(os.path.dirname(manifest_file), exist_ok=True)
     with open(manifest_file, "w") as manifest:
-        for filename in filenames:
-            manifest.write(f"{filename}\n")
+        manifest.writelines(f"{fn}\n" for fn in filenames)
 
 
 def _read_manifest(manifest_file):
@@ -73,9 +68,8 @@ def _read_manifest(manifest_file):
         return [line.strip() for line in manifest if line.strip()]
 
 
-def make_labels_and_synonyms(manifest_file, labelfile, synfile, metadata_yaml):
+def make_labels_and_synonyms(manifest_file, download_dir, labelfile, synfile, metadata_yaml):
     filenames = _read_manifest(manifest_file)
-    download_dir = os.path.dirname(manifest_file)
     used_labels = set()
     used_synonyms = set()
 
@@ -85,7 +79,7 @@ def make_labels_and_synonyms(manifest_file, labelfile, synfile, metadata_yaml):
             with open(infile) as inf:
                 next(inf)  # skip header
                 for line in inf:
-                    sline = line.split("\t")
+                    sline = line.split("\t", 3)
                     if len(sline) < 3:
                         raise ValueError(f"Expected at least 3 columns in {infile}, found {len(sline)}")
 
@@ -98,7 +92,7 @@ def make_labels_and_synonyms(manifest_file, labelfile, synfile, metadata_yaml):
                     synonyms_str = sline[2]  # aliases
                     if synonyms_str != "-":
                         for syn in synonyms_str.split("|"):
-                            synonym_row = (identifier, HAS_EXACT_SYNONYM, syn)
+                            synonym_row = (identifier, syn)
                             if synonym_row not in used_synonyms:
                                 outsyn.write(f"{identifier}\t{HAS_EXACT_SYNONYM}\t{syn}\n")
                                 used_synonyms.add(synonym_row)

@@ -93,7 +93,7 @@ def test_make_labels_and_synonyms_combines_manifest_files(tmp_path):
     synonyms = complexportal_dir / "synonyms"
     metadata = complexportal_dir / "metadata.yaml"
 
-    complexportal.make_labels_and_synonyms(str(manifest), str(labels), str(synonyms), str(metadata))
+    complexportal.make_labels_and_synonyms(str(manifest), str(complexportal_dir), str(labels), str(synonyms), str(metadata))
 
     label_rows = assert_labels_file_valid(str(labels))
     synonym_rows = assert_synonyms_file_valid(str(synonyms))
@@ -127,7 +127,7 @@ def test_make_labels_and_synonyms_deduplicates_by_identifier(tmp_path):
     synonyms = complexportal_dir / "synonyms"
     metadata = complexportal_dir / "metadata.yaml"
 
-    complexportal.make_labels_and_synonyms(str(manifest), str(labels), str(synonyms), str(metadata))
+    complexportal.make_labels_and_synonyms(str(manifest), str(complexportal_dir), str(labels), str(synonyms), str(metadata))
 
     label_rows = assert_labels_file_valid(str(labels))
     assert label_rows == [[f"{COMPLEXPORTAL}:CPX-1", "Human name"]]
