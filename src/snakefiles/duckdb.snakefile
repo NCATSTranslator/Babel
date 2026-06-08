@@ -144,10 +144,11 @@ rule check_for_identically_labeled_cliques:
     benchmark:
         config["output_directory"] + "/benchmarks/check_for_identically_labeled_cliques.tsv"
     resources:
-        # The two-pass query keeps peak memory well under this, but we stay generous so the
-        # spillable pass-1 aggregation does not have to fall back to the (NFS-backed) temp
-        # directory, where spill reads have failed with stale-handle / short-read IO errors.
-        mem="512G",
+        # The pass-1 GROUP BY over LOWER(preferred_name) across every clique is the memory
+        # bottleneck, and its peak grows with the thread count (each thread keeps a local hash
+        # table). A 400G/4-thread attempt OOMed at DuckDB's own memory_limit, so run on a full
+        # largemem node with a high limit and few threads. See slurm/README.md.
+        mem="1500G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
@@ -156,8 +157,8 @@ rule check_for_identically_labeled_cliques:
             output.duckdb_filename,
             output.identically_labeled_cliques_tsv,
             {
-                "memory_limit": "400G",
-                "threads": 4,
+                "memory_limit": "1400G",
+                "threads": 2,
                 "preserve_insertion_order": False,
             },
         )
@@ -173,9 +174,12 @@ rule check_for_duplicate_curies:
     benchmark:
         config["output_directory"] + "/benchmarks/check_for_duplicate_curies.tsv"
     resources:
-        # Reads the full Edge set (the largest table); the single-pass version peaked at
-        # ~318 GiB RSS, so keep the allocation generous to avoid spilling to the NFS temp dir.
-        mem="512G",
+        # Pass 1 is a GROUP BY over every CURIE in the full Edge set (~1B distinct groups) and is
+        # the memory bottleneck; the two-pass rewrite does not shrink it. The single-pass version
+        # passed at 1500G/1 thread (~318 GiB RSS), but a 400G/4-thread attempt OOMed at DuckDB's
+        # memory_limit (per-thread hash tables multiply the peak). Run on a full largemem node
+        # with a high limit and few threads.
+        mem="1500G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
@@ -184,8 +188,8 @@ rule check_for_duplicate_curies:
             output.duckdb_filename,
             output.duplicate_curies,
             {
-                "memory_limit": "400G",
-                "threads": 4,
+                "memory_limit": "1400G",
+                "threads": 2,
                 "preserve_insertion_order": False,
             },
         )
@@ -229,21 +233,19 @@ rule generate_curie_report:
     benchmark:
         config["output_directory"] + "/benchmarks/generate_curie_report.tsv"
     resources:
-        mem="512G",
+        # COUNT(DISTINCT) over the full Edge set. A 400G/4-thread attempt OOMed at DuckDB's
+        # memory_limit, so run on a full largemem node with a high limit and few threads.
+        mem="1500G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
-        # This aggregates over the full Edge set (~318 GiB working set). The previous 100G
-        # limit forced a heavy spill to the NFS-backed temp directory, which then failed to
-        # read its spill files back ("Could not read enough bytes from file"). Raise the
-        # limit so the report runs in memory instead of spilling.
         src.reports.duckdb_reports.generate_curie_report(
             params.parquet_dir,
             output.duckdb_filename,
             output.curie_report_json,
             {
-                "memory_limit": "400G",
-                "threads": 4,
+                "memory_limit": "1400G",
+                "threads": 2,
                 "preserve_insertion_order": False,
             },
         )
@@ -259,20 +261,20 @@ rule generate_clique_leader_report:
     benchmark:
         config["output_directory"] + "/benchmarks/generate_clique_leader_report.tsv"
     resources:
-        mem="512G",
+        # Aggregates (incl. COUNT(DISTINCT)) over the full Edge set. A 400G/4-thread attempt
+        # OOMed at DuckDB's memory_limit, so run on a full largemem node with a high limit and
+        # few threads.
+        mem="1500G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
-        # This aggregates over the full Edge set. The previous 20G limit forced a massive
-        # spill to the NFS-backed temp directory, which then failed with a stale file handle.
-        # Raise the limit so the report runs in memory instead of spilling.
         src.reports.duckdb_reports.generate_clique_leaders_report(
             params.parquet_dir,
             output.duckdb_filename,
             output.clique_leaders_json,
             {
-                "memory_limit": "400G",
-                "threads": 4,
+                "memory_limit": "1400G",
+                "threads": 2,
                 "preserve_insertion_order": False,
             },
         )
