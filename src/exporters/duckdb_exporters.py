@@ -135,6 +135,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
     edge_parquet_filename = os.path.join(parquet_dir, "Edge.parquet")
     node_parquet_filename = os.path.join(parquet_dir, "Node.parquet")
 
+    compendium_basename = os.path.basename(compendium_filename)
     with setup_duckdb(duckdb_filename) as db:
         # Step 1. Create a Nodes table with all the nodes from compendium_filename.
         db.sql(
@@ -147,8 +148,11 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
             logger.info(
                 f"Loading {compendium_filename} into DuckDB (size {compendium_filesize}) in a single direct ingest."
             )
-            db.execute(
-                """INSERT INTO Node
+            with log_duckdb_settings_on_error(
+                db, f"export_compendia_to_parquet: load Node table from {compendium_basename} (single ingest)"
+            ):
+                db.execute(
+                    """INSERT INTO Node
                           WITH extracted AS (
                               SELECT json_extract_string(identifier_row.value, ['i', 'l', 'd', 't']) AS extracted_list
                               FROM read_json($1, format='newline_delimited') AS clique,
@@ -162,8 +166,8 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                               extracted_list[3] AS description,
                               extracted_list[4] AS taxa
                           FROM extracted""",
-                [compendium_filename],
-            )
+                    [compendium_filename],
+                )
         else:
             logger.info(
                 f"Loading {compendium_filename} into DuckDB (size {compendium_filesize}) in multiple chunks of {CHUNK_LINE_SIZE:,} lines:"
@@ -192,8 +196,12 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
 
             logger.info(f"Loaded {len(chunk_filenames)} containing {lines_added:,} lines into chunk files.")
             for chunk_filename in chunk_filenames:
-                db.execute(
-                    """INSERT INTO Node
+                with log_duckdb_settings_on_error(
+                    db,
+                    f"export_compendia_to_parquet: load Node table from {compendium_basename} (chunk {chunk_filename})",
+                ):
+                    db.execute(
+                        """INSERT INTO Node
                               WITH extracted AS (
                                   SELECT json_extract_string(identifier_row.value, ['i', 'l', 'd', 't']) AS extracted_list
                                   FROM read_json($1, format='newline_delimited') AS clique,
@@ -207,8 +215,8 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
                                   extracted_list[3] AS description,
                                   extracted_list[4] AS taxa
                               FROM extracted""",
-                    [chunk_filename],
-                )
+                        [chunk_filename],
+                    )
                 logger.info(f" - Loaded chunk file {chunk_filename} into DuckDB.")
                 os.remove(chunk_filename)
                 logger.info(f" - Deleted chunk file {chunk_filename}.")
@@ -219,47 +227,56 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
             node_count = db.execute("SELECT COUNT(*) FROM Node").fetchone()[0]
             logger.info(f" - Identifier count: {node_count:,}.")
 
-        db.table("Node").write_parquet(node_parquet_filename)
+        with log_duckdb_settings_on_error(
+            db, f"export_compendia_to_parquet: write Node Parquet for {compendium_basename}"
+        ):
+            db.table("Node").write_parquet(node_parquet_filename)
 
         # Step 2. Create a Cliques table with all the cliques from this file.
         db.sql("""CREATE TABLE Clique
                 (clique_leader STRING, preferred_name STRING, clique_identifier_count INT, biolink_type STRING,
                 information_content FLOAT)""")
-        db.execute(
-            """INSERT INTO Clique SELECT
-                        json_extract_string(identifiers, '$[0].i') AS clique_leader,
-                        preferred_name,
-                        len(identifiers) AS clique_identifier_count,
-                        type AS biolink_type,
-                        ic AS information_content
-                    FROM read_json(?, format='newline_delimited')""",
-            [compendium_filename],
-        )
-        db.table("Clique").write_parquet(clique_parquet_filename)
+        with log_duckdb_settings_on_error(
+            db, f"export_compendia_to_parquet: build and write Clique table for {compendium_basename}"
+        ):
+            db.execute(
+                """INSERT INTO Clique SELECT
+                            json_extract_string(identifiers, '$[0].i') AS clique_leader,
+                            preferred_name,
+                            len(identifiers) AS clique_identifier_count,
+                            type AS biolink_type,
+                            ic AS information_content
+                        FROM read_json(?, format='newline_delimited')""",
+                [compendium_filename],
+            )
+            db.table("Clique").write_parquet(clique_parquet_filename)
 
         # Step 2. Create an Edge table with all the clique/CURIE relationships from this file.
         db.sql(
             "CREATE TABLE Edge (clique_leader STRING, curie STRING, conflation STRING, clique_leader_prefix STRING, curie_prefix STRING)"
         )
-        db.execute(
-            """INSERT INTO Edge
-                WITH unnested AS (
+        with log_duckdb_settings_on_error(
+            db, f"export_compendia_to_parquet: build and write Edge table for {compendium_basename}"
+        ):
+            db.execute(
+                """INSERT INTO Edge
+                    WITH unnested AS (
+                        SELECT
+                            json_extract_string(identifiers, '$[0].i') AS clique_leader,
+                            UNNEST(json_extract_string(identifiers, '$[*].i')) AS curie,
+                            'None' AS conflation
+                        FROM read_json(?, format='newline_delimited')
+                    )
                     SELECT
-                        json_extract_string(identifiers, '$[0].i') AS clique_leader,
-                        UNNEST(json_extract_string(identifiers, '$[*].i')) AS curie,
-                        'None' AS conflation
-                    FROM read_json(?, format='newline_delimited')
-                )
-                SELECT
-                    clique_leader,
-                    curie,
-                    conflation,
-                    split_part(clique_leader, ':', 1) AS clique_leader_prefix,
-                    split_part(curie, ':', 1) AS curie_prefix
-                FROM unnested""",
-            [compendium_filename],
-        )
-        db.table("Edge").write_parquet(edge_parquet_filename)
+                        clique_leader,
+                        curie,
+                        conflation,
+                        split_part(clique_leader, ':', 1) AS clique_leader_prefix,
+                        split_part(curie, ':', 1) AS curie_prefix
+                    FROM unnested""",
+                [compendium_filename],
+            )
+            db.table("Edge").write_parquet(edge_parquet_filename)
 
 
 def export_conflation_to_parquet(conflation_filename, conflation_type, duckdb_filename, parquet_filename):
@@ -284,8 +301,12 @@ def export_conflation_to_parquet(conflation_filename, conflation_type, duckdb_fi
         db.sql(
             "CREATE TABLE Conflation (conflation_type STRING, conflation_leader STRING, curie STRING, curie_prefix STRING)"
         )
-        db.execute(
-            """INSERT INTO Conflation
+        with log_duckdb_settings_on_error(
+            db,
+            f"export_conflation_to_parquet: build and write {conflation_type} Conflation from {os.path.basename(conflation_filename)}",
+        ):
+            db.execute(
+                """INSERT INTO Conflation
                 WITH raw AS (
                     SELECT column0 AS line_text
                     FROM read_csv(?, header=False, columns={'column0': 'VARCHAR'})
@@ -304,9 +325,9 @@ def export_conflation_to_parquet(conflation_filename, conflation_type, duckdb_fi
                     curie,
                     split_part(curie, ':', 1) AS curie_prefix
                 FROM unnested""",
-            [conflation_filename, conflation_type],
-        )
-        db.table("Conflation").write_parquet(parquet_filename)
+                [conflation_filename, conflation_type],
+            )
+            db.table("Conflation").write_parquet(parquet_filename)
 
 
 def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_parquet_filename, memory_limit_mb=None):
@@ -342,13 +363,16 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
             # Write directly to Parquet without an intermediate in-memory Synonym table.
             # INSERT INTO a table would materialise all unnested rows in RAM; .write_parquet()
             # streams row groups to disk so peak memory stays proportional to one row group.
-            db.sql("""
-                SELECT curie AS clique_leader, preferred_name,
-                    LOWER(preferred_name) AS preferred_name_lc,
-                    CONCAT('biolink:', json_extract_string(types, '$[0]')) AS biolink_type,
-                    unnest(names) AS label, LOWER(label) AS label_lc
-                FROM synonyms_jsonl
-            """).write_parquet(synonyms_parquet_filename)
+            with log_duckdb_settings_on_error(
+                db, f"export_synonyms_to_parquet: write Parquet from {os.path.basename(synonyms_filename_gz)}"
+            ):
+                db.sql("""
+                    SELECT curie AS clique_leader, preferred_name,
+                        LOWER(preferred_name) AS preferred_name_lc,
+                        CONCAT('biolink:', json_extract_string(types, '$[0]')) AS biolink_type,
+                        unnest(names) AS label, LOWER(label) AS label_lc
+                    FROM synonyms_jsonl
+                """).write_parquet(synonyms_parquet_filename)
         else:
             db.sql("""
                 SELECT NULL::VARCHAR AS clique_leader, NULL::VARCHAR AS preferred_name,
