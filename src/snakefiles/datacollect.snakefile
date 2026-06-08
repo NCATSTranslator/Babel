@@ -79,14 +79,14 @@ rule get_EFO_labels:
 
 rule get_complexportal:
     output:
-        config["download_directory"] + "/ComplexPortal/downloaded_tsv_files.txt",
+        complexportal_tsv_list = config["download_directory"] + "/ComplexPortal/downloaded_tsv_files.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/get_complexportal.tsv"
     resources:
         mem="8G",
         cpus_per_task=1,
     run:
-        complexportal.pull_complexportal(output[0])
+        complexportal.pull_complexportal(output.complexportal_tsv_list)
 
 
 rule get_complexportal_labels_and_synonyms:
