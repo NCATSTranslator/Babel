@@ -15,6 +15,10 @@ letting it accumulate in `CLAUDE.md` — `CLAUDE.md` should point here, not dupl
 
 ## Sources documented so far
 
+- **COMPLEXPORTAL** ([COMPLEXPORTAL/Ingestion.md](./COMPLEXPORTAL/Ingestion.md)) — the
+  `MacromolecularComplex` source: which ComplexTAB columns Babel reads, downloading all species
+  files, the manifest-as-download-sentinel pattern, and the per-output cross-species
+  deduplication rules (labels, IDs, synonyms, taxa, descriptions).
 - **ENSEMBL** ([ENSEMBL/Download.md](./ENSEMBL/Download.md)) — how Ensembl identifiers are
   downloaded via the BioMart API: per-dataset retry logic, permanently broken datasets and how to
   skip them, the attribute-batching workaround, and how partial progress is preserved across
@@ -25,6 +29,11 @@ letting it accumulate in `CLAUDE.md` — `CLAUDE.md` should point here, not dupl
 - **UMLS** ([UMLS/Leftover.md](./UMLS/Leftover.md)) — the "leftover UMLS" compendium: how
   unclaimed UMLS concepts are swept up and typed, the manual STY→Biolink override tables and the
   drift test that keeps them honest, and the coverage report under `reports/umls/`.
+
+## Cross-cutting patterns
+
+- **Download patterns** ([DownloadPatterns.md](./DownloadPatterns.md)) — HTTP directory listing
+  vs FTP for file discovery, and when to use each approach.
 
 See the data handlers in `src/datahandlers/` and the compendium builders in
 `src/createcompendia/` for the code behind each source.
