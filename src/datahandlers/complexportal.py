@@ -26,6 +26,10 @@ class _DirectoryListingParser(HTMLParser):
 
 
 def get_complexportal_tsv_filenames(url=COMPLEXPORTAL_COMPLEXTAB_URL):
+    # We parse the Apache autoindex HTML rather than using FTP NLST because HTTPS is more reliable
+    # for large downloads. If EBI changes their listing format (e.g. switches to Nginx or a JS SPA)
+    # and this starts returning an empty list, switch to ftplib.FTP.nlst() for discovery while
+    # keeping pull_via_urllib for the actual download. See docs/sources/DownloadPatterns.md.
     req = urllib.request.Request(url, headers={"User-Agent": get_user_agent()})
     with urllib.request.urlopen(req) as response:
         listing = response.read().decode("utf-8")
