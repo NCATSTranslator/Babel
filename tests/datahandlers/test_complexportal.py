@@ -87,7 +87,9 @@ def test_fetch_complexportal_tsv_filenames_selects_tsv_links():
 
 @pytest.mark.unit
 def test_pull_complexportal_downloads_all_discovered_tsvs_and_writes_manifest(tmp_path):
-    manifest = tmp_path / "ComplexPortal" / complexportal.COMPLEXPORTAL_MANIFEST
+    complexportal_dir = tmp_path / "ComplexPortal"
+    download_done = complexportal_dir / complexportal.COMPLEXPORTAL_DOWNLOAD_DONE
+    manifest = complexportal_dir / complexportal.COMPLEXPORTAL_MANIFEST
 
     with (
         patch(
@@ -95,9 +97,10 @@ def test_pull_complexportal_downloads_all_discovered_tsvs_and_writes_manifest(tm
         ),
         patch("src.datahandlers.complexportal.pull_via_urllib") as mock_pull,
     ):
-        complexportal.pull_complexportal(str(manifest))
+        complexportal.pull_complexportal(str(download_done))
 
     assert manifest.read_text() == "10090.tsv\n559292.tsv\n"
+    assert download_done.exists(), "Sentinel file download_done should be written last"
     assert mock_pull.call_count == 2
     mock_pull.assert_any_call(
         complexportal.COMPLEXPORTAL_COMPLEXTAB_URL,

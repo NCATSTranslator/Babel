@@ -79,19 +79,19 @@ rule get_EFO_labels:
 
 rule get_complexportal:
     output:
-        complexportal_tsv_list=config["download_directory"] + "/ComplexPortal/downloaded_tsv_files.txt",
+        download_done=config["download_directory"] + "/ComplexPortal/download_done",
     benchmark:
         config["output_directory"] + "/benchmarks/get_complexportal.tsv"
     resources:
         mem="8G",
         cpus_per_task=1,
     run:
-        complexportal.pull_complexportal(output.complexportal_tsv_list)
+        complexportal.pull_complexportal(output.download_done)
 
 
 rule get_complexportal_labels_and_synonyms:
     input:
-        manifest=config["download_directory"] + "/ComplexPortal/downloaded_tsv_files.txt",
+        download_done=config["download_directory"] + "/ComplexPortal/download_done",
     output:
         lfile=config["download_directory"] + "/ComplexPortal/labels",
         sfile=config["download_directory"] + "/ComplexPortal/synonyms",
@@ -101,9 +101,10 @@ rule get_complexportal_labels_and_synonyms:
     benchmark:
         config["output_directory"] + "/benchmarks/get_complexportal_labels_and_synonyms.tsv"
     run:
+        download_dir = os.path.dirname(input.download_done)
         complexportal.make_labels_synonyms_and_taxa(
-            input.manifest,
-            os.path.dirname(input.manifest),
+            os.path.join(download_dir, complexportal.COMPLEXPORTAL_MANIFEST),
+            download_dir,
             output.lfile,
             output.sfile,
             output.taxafile,

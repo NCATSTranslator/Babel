@@ -31,11 +31,11 @@ from tests.pipeline.conftest import _download_or_fail
 @pytest.fixture(scope="session")
 def complexportal_tsv_files():
     """Download all ComplexPortal TSV files; fail if unavailable."""
-    manifest = make_local_name(complexportal.COMPLEXPORTAL_MANIFEST, subpath=COMPLEXPORTAL)
+    download_done = make_local_name(complexportal.COMPLEXPORTAL_DOWNLOAD_DONE, subpath=COMPLEXPORTAL)
     return _download_or_fail(
         "ComplexPortal TSV files",
         complexportal.pull_complexportal,
-        manifest,
+        download_done,
     )
 
 
@@ -77,9 +77,11 @@ def complexportal_pipeline_outputs(complexportal_tsv_files, regenerate):
 
 @pytest.mark.pipeline
 def test_complexportal_tsv_files_downloaded(complexportal_tsv_files):
-    """Manifest file exists and lists at least one TSV."""
-    assert os.path.exists(complexportal_tsv_files)
-    with open(complexportal_tsv_files) as f:
+    """Sentinel and manifest files exist and the manifest lists at least one TSV."""
+    assert os.path.exists(complexportal_tsv_files), "download_done sentinel is missing"
+    download_dir = os.path.dirname(complexportal_tsv_files)
+    manifest = os.path.join(download_dir, complexportal.COMPLEXPORTAL_MANIFEST)
+    with open(manifest) as f:
         lines = [line.strip() for line in f if line.strip()]
     assert len(lines) > 0, "Manifest is empty — no TSV files were downloaded"
     assert all(fn.endswith(".tsv") for fn in lines), f"Non-TSV entry in manifest: {lines}"
@@ -92,12 +94,10 @@ def test_complexportal_tsv_header_columns(complexportal_tsv_files):
     This test is intentionally explicit about the expected column names so that
     any upstream format change is caught here rather than silently producing wrong output.
     """
-    from src.util import get_config  # deferred
+    download_dir = os.path.dirname(complexportal_tsv_files)
+    manifest = os.path.join(download_dir, complexportal.COMPLEXPORTAL_MANIFEST)
 
-    cfg = get_config()
-    download_dir = os.path.join(cfg["download_directory"], COMPLEXPORTAL)
-
-    with open(complexportal_tsv_files) as mf:
+    with open(manifest) as mf:
         first_filename = next(line.strip() for line in mf if line.strip())
 
     tsv_path = os.path.join(download_dir, first_filename)
@@ -154,13 +154,12 @@ def test_complexportal_cross_file_duplicates_handled_correctly(complexportal_tsv
     Taxa: every (CURIE, taxon) pair from every file is preserved — a complex
           conserved across species should have one taxon entry per species.
     """
-    from src.util import get_config  # deferred
     from tests.conftest import read_tsv
 
-    cfg = get_config()
-    download_dir = os.path.join(cfg["download_directory"], COMPLEXPORTAL)
+    download_dir = os.path.dirname(complexportal_tsv_files)
+    manifest = os.path.join(download_dir, complexportal.COMPLEXPORTAL_MANIFEST)
 
-    with open(complexportal_tsv_files) as mf:
+    with open(manifest) as mf:
         filenames = [line.strip() for line in mf if line.strip()]
 
     # Collect every (curie, taxon_id) pair seen across all source files.
