@@ -102,14 +102,41 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 | `untyped_chemical_compendia` | `chemical.snakefile` | 512G | — | Pre-typing step |
 | `gene_compendia` | `gene.snakefile` | 256G | 6h | Gene graph |
 | `export_compendia_to_duckdb` | `duckdb.snakefile` | 512G | 6h | Per-compendium DuckDB export |
-| `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 1500G | — | Cross-compendium join |
-| `check_for_duplicate_curies` | `duckdb.snakefile` | 1500G | — | Cross-compendium join |
-| `check_for_duplicate_clique_leaders` | `duckdb.snakefile` | 1500G | — | Cross-compendium join |
+| `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 512G | — | Cross-compendium join; two-pass query keeps it in RAM |
+| `check_for_duplicate_curies` | `duckdb.snakefile` | 512G | — | Cross-compendium join; two-pass query keeps it in RAM |
+| `check_for_duplicate_clique_leaders` | `duckdb.snakefile` | 512G | — | Cross-compendium join; two-pass query keeps it in RAM |
+| `generate_curie_report` | `duckdb.snakefile` | 512G | — | Full-Edge aggregation; sized to avoid spilling |
+| `generate_clique_leader_report` | `duckdb.snakefile` | 512G | — | Full-Edge aggregation; sized to avoid spilling |
 | `chembl_labels_and_smiles` | `datacollect.snakefile` | 128G | — | RDF parse |
 | `chemical_unichem_concordia` | `chemical.snakefile` | 128G | — | UniChem merge |
 | `generate_pubmed_concords` | `publications.snakefile` | 128G | 24h | Full PubMed parse |
 | `generate_pubmed_compendia` | `publications.snakefile` | 128G | — | PubMed compendium build |
 | `geneprotein_conflated_synonyms` | `geneprotein.snakefile` | 512G | 6h | Conflated synonym merge |
+
+## Temporary Scratch Space
+
+The DuckDB rules (`export_*_to_duckdb` and the cross-compendium report rules in
+`duckdb.snakefile`) spill larger-than-memory intermediates to a temp directory. By default that
+is `tmp_directory` from `config.yaml` (`babel_downloads/tmp`, on the parallel filesystem).
+`setup_duckdb()` gives each job its own `duckdb-$SLURM_JOB_ID` subdirectory there, so concurrent
+jobs never share spill files — sharing one directory previously caused `stale file handle` and
+`could not read enough bytes` IO errors when several report jobs ran at once.
+
+Hatteras has no large node-local disk suitable for spilling:
+
+- `/tmp` is the node-local rootfs SLURM advertises (`TmpFS=/tmp`), but it is only ~16 GB and
+  there is no per-job isolation (`JobContainerType` is unset), so it fills almost immediately.
+- `/dev/shm` is node-local but RAM-backed; its pages count against the job's cgroup memory limit
+  (`ConstrainRAMSpace=yes`), so spilling there is effectively spilling to RAM and can trigger an
+  OOM-kill.
+- `/scratch` and `/projects` are both NFS, so they don't avoid the networked-filesystem class of
+  error, though `/scratch` is a separate, less-contended server (50 TB free).
+
+Because of this, the report rules are instead sized (`memory_limit` ≈ 400G) so they run in memory
+without spilling. To override the spill location for a run — for example to point the (small)
+report spills at `/dev/shm` on a node with RAM headroom — set `BABEL_DUCKDB_TEMP_DIR` in the job
+environment; an individual rule can also pass `temp_directory` / `max_temp_directory_size` in its
+`duckdb_config`. Do not point the 500 GB-spilling `export_*` rules at `/tmp` or `/dev/shm`.
 
 ## Localrules (Run on Head Node, No SLURM Slot)
 
@@ -145,9 +172,12 @@ The following improvements are tracked here for visibility but not yet implement
 - **`run_babel_one_node.job` cleanup**: This job script references a hardcoded conda env
   path and should be updated to use `uv run`.
 
-- **1500G DuckDB rules**: `check_for_identically_labeled_cliques`, `check_for_duplicate_curies`,
-  and `check_for_duplicate_clique_leaders` load the full cross-compendium Parquet dataset into
-  memory. These may be rewritable with streaming DuckDB queries to reduce peak RSS.
+- **Cross-compendium DuckDB reports**: `check_for_identically_labeled_cliques`,
+  `check_for_duplicate_curies`, and `check_for_duplicate_clique_leaders` now use a two-pass query
+  (a spillable `COUNT(*)` pass, then `LIST()` only over confirmed duplicates) and run at 512G
+  instead of 1500G. `generate_curie_report` and `generate_clique_leader_report` still load the
+  full Edge set into memory; they may be rewritable with streaming `COUNT(DISTINCT)` aggregations
+  to reduce peak RSS further.
 
 - **Per-rule resource tuning**: After collecting benchmark data from a full run, add explicit
   `resources:` to every rule based on observed `max_rss + 30% headroom`. This will greatly reduce

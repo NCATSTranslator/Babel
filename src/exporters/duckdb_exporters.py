@@ -25,13 +25,36 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
 
     # We want to use (1) the global duckdb_config, then (2) the duckdb_config passed to this function.
     complete_duckdb_config = {**get_config().get("duckdb_config", {}), **duckdb_config}
+
+    # These two keys are Babel conveniences, not DuckDB connect() settings, so pull them out
+    # before handing the rest to duckdb.connect(). They let an individual rule override where
+    # DuckDB spills and how large that spill may grow.
+    temp_directory_override = complete_duckdb_config.pop("temp_directory", None)
+    max_temp_directory_size = complete_duckdb_config.pop("max_temp_directory_size", None)
+
     db = duckdb.connect(duckdb_filename, config=complete_duckdb_config)
 
     # Apply some Babel-wide settings to DuckDB.
     config = get_config()
-    if "tmp_directory" in config:
-        db.execute(f"SET temp_directory = '{config['tmp_directory']}'")
-        db.execute("SET max_temp_directory_size = '500GB';")
+
+    # Decide where DuckDB spills larger-than-memory intermediates. Precedence:
+    #   1. an explicit per-call `temp_directory` (a rule that wants a specific scratch area),
+    #   2. the BABEL_DUCKDB_TEMP_DIR environment variable (set per job at submission time),
+    #   3. the global `tmp_directory` from config.yaml.
+    # Hatteras has no large node-local disk we can use: /tmp is a ~16 GB rootfs, /dev/shm is
+    # RAM (charged against the job's cgroup), and /scratch and /projects are both NFS. So the
+    # default stays on the parallel filesystem; see slurm/README.md ("Temporary scratch space").
+    temp_directory = temp_directory_override or os.environ.get("BABEL_DUCKDB_TEMP_DIR") or config.get("tmp_directory")
+    if temp_directory:
+        # Give every job its own spill subdirectory. Multiple report jobs previously shared a
+        # single NFS temp directory, which produced "stale file handle" / "could not read
+        # enough bytes" IO errors when one job's temp files raced against another's; per-job
+        # isolation removes that contention regardless of which filesystem is used.
+        job_id = os.environ.get("SLURM_JOB_ID") or str(os.getpid())
+        temp_directory = os.path.join(temp_directory, f"duckdb-{job_id}")
+        os.makedirs(temp_directory, exist_ok=True)
+        db.execute(f"SET temp_directory = '{temp_directory}'")
+        db.execute(f"SET max_temp_directory_size = '{max_temp_directory_size or '500GB'}'")
 
     # We need to set local settings after the connection has been opened.
     db.execute("SET enable_progress_bar=true")
