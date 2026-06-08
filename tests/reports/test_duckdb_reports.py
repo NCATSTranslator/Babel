@@ -9,6 +9,7 @@ caused the original out-of-memory failures.
 """
 
 import csv
+import json
 
 import duckdb
 import pytest
@@ -100,13 +101,15 @@ def test_check_for_identically_labeled_cliques(parquet_root, tmp_path):
 
     rows = _read_tsv(out)
     header, data = rows[0], rows[1:]
-    by_name = {r[0]: dict(zip(header, r)) for r in data}
+    assert header == ["preferred_name_lc", "clique_leader_count", "clique_leader"]
 
-    # "water" (case-folded) is shared by A (Foo + Bar) and C (Bar); "caffeine" is unique.
-    assert set(by_name) == {"water"}
-    assert by_name["water"]["clique_leader_count"] == "3"
-    leaders = by_name["water"]["clique_leaders"]
-    assert "A" in leaders and "C" in leaders
+    # The report now emits one row per (name, clique_leader) pair. "water" (case-folded) is the
+    # only duplicated name: it is shared by clique A (in both Foo and Bar) and clique C (Bar), so
+    # three Clique rows match -> three output rows, all with clique_leader_count 3. "caffeine" is
+    # unique and must not appear.
+    assert {r[0] for r in data} == {"water"}
+    assert all(r[1] == "3" for r in data)
+    assert sorted(r[2] for r in data) == ["A", "A", "C"]
 
 
 @pytest.mark.unit
@@ -142,3 +145,51 @@ def test_check_for_duplicate_clique_leaders(parquet_root, tmp_path):
     assert "biolink:ChemicalEntity" in row["biolink_types"]
     assert "biolink:SmallMolecule" in row["biolink_types"]
     assert "Foo" in row["filenames"] and "Bar" in row["filenames"]
+
+
+@pytest.mark.unit
+def test_generate_curie_report_totals(parquet_root, tmp_path):
+    """The spillable SELECT DISTINCT + COUNT(*) rewrite must reproduce the COUNT(DISTINCT) math.
+
+    Over the conflation='None' edges, CHEBI:1 appears once (in clique A, twice across files) and
+    MESH:1 appears in cliques A and C, so the per-prefix totals are exact and easy to check.
+    """
+    out = str(tmp_path / "curie_report.json")
+    duckdb_reports.generate_curie_report(parquet_root, str(tmp_path / "db.duckdb"), out)
+
+    with open(out) as f:
+        report = json.load(f)
+
+    # curie_count counts every edge; *_distinct_count de-duplicates curie / clique_leader.
+    assert report["CHEBI"]["_totals"] == {
+        "curie_count": 2,
+        "curie_distinct_count": 1,
+        "clique_distinct_count": 1,
+    }
+    assert report["MESH"]["_totals"] == {
+        "curie_count": 2,
+        "curie_distinct_count": 1,
+        "clique_distinct_count": 2,
+    }
+
+
+@pytest.mark.unit
+def test_generate_clique_leaders_report_totals(parquet_root, tmp_path):
+    """The per-filename totals must match a direct COUNT(DISTINCT) over the fixture edges."""
+    out = str(tmp_path / "clique_leaders.json")
+    duckdb_reports.generate_clique_leaders_report(parquet_root, str(tmp_path / "db.duckdb"), out)
+
+    with open(out) as f:
+        report = json.load(f)
+
+    # Foo's two None-edges sit in one clique (A); Bar's two span cliques A and C.
+    assert report["Foo"]["_totals"] == {
+        "distinct_clique_count": 1,
+        "distinct_curie_count": 2,
+        "curie_count": 2,
+    }
+    assert report["Bar"]["_totals"] == {
+        "distinct_clique_count": 2,
+        "distinct_curie_count": 2,
+        "curie_count": 2,
+    }
