@@ -3,7 +3,7 @@ import os
 from collections import defaultdict
 
 from src import util
-from src.exporters.duckdb_exporters import setup_duckdb
+from src.exporters.duckdb_exporters import log_duckdb_settings_on_error, setup_duckdb
 
 logger = util.get_logger(__name__)
 
@@ -27,25 +27,29 @@ def check_for_identically_labeled_cliques(
     # A pure COUNT(*) GROUP BY can spill to disk, whereas a LIST() aggregate cannot:
     # DuckDB would build one list per group (including the single-clique groups that the
     # HAVING clause later discards), holding all of them in RAM and OOMing on the full set.
-    db.execute("""
-        CREATE OR REPLACE TEMP TABLE dup_names AS
-        SELECT LOWER(preferred_name) AS preferred_name_lc, COUNT(*) AS clique_leader_count
-        FROM cliques
-        WHERE preferred_name <> '' AND preferred_name <> '""'
-        GROUP BY preferred_name_lc HAVING clique_leader_count > 1
-    """)
+    with log_duckdb_settings_on_error(
+        db, "check_for_identically_labeled_cliques pass 1 (GROUP BY LOWER(preferred_name))"
+    ):
+        db.execute("""
+            CREATE OR REPLACE TEMP TABLE dup_names AS
+            SELECT LOWER(preferred_name) AS preferred_name_lc, COUNT(*) AS clique_leader_count
+            FROM cliques
+            WHERE preferred_name <> '' AND preferred_name <> '""'
+            GROUP BY preferred_name_lc HAVING clique_leader_count > 1
+        """)
 
     # Pass 2: collect LIST() only for the confirmed duplicate names (a small join target).
-    db.sql("""
-        SELECT d.preferred_name_lc,
-            LIST(c.clique_leader ORDER BY c.clique_leader ASC) AS clique_leaders,
-            d.clique_leader_count
-        FROM cliques c
-        JOIN dup_names d ON LOWER(c.preferred_name) = d.preferred_name_lc
-        WHERE c.preferred_name <> '' AND c.preferred_name <> '""'
-        GROUP BY d.preferred_name_lc, d.clique_leader_count
-        ORDER BY d.clique_leader_count DESC
-    """).write_csv(identically_labeled_cliques_tsv, sep="\t")
+    with log_duckdb_settings_on_error(db, "check_for_identically_labeled_cliques pass 2 (LIST over duplicate names)"):
+        db.sql("""
+            SELECT d.preferred_name_lc,
+                LIST(c.clique_leader ORDER BY c.clique_leader ASC) AS clique_leaders,
+                d.clique_leader_count
+            FROM cliques c
+            JOIN dup_names d ON LOWER(c.preferred_name) = d.preferred_name_lc
+            WHERE c.preferred_name <> '' AND c.preferred_name <> '""'
+            GROUP BY d.preferred_name_lc, d.clique_leader_count
+            ORDER BY d.clique_leader_count DESC
+        """).write_csv(identically_labeled_cliques_tsv, sep="\t")
 
     cliques.close()
 
@@ -66,27 +70,29 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
     # Pass 1: identify CURIEs present in more than one clique using only a COUNT.
     # A pure COUNT(*) GROUP BY can spill to disk; the LIST() aggregates below cannot, so
     # collecting them up front over every CURIE (most of which are not duplicated) would OOM.
-    db.execute("""
-        CREATE OR REPLACE TEMP TABLE dup_curies AS
-        SELECT curie, COUNT(*) AS clique_leader_count
-        FROM edges
-        WHERE conflation = 'None'
-        GROUP BY curie HAVING clique_leader_count > 1
-    """)
+    with log_duckdb_settings_on_error(db, "check_for_duplicate_curies pass 1 (GROUP BY curie over all edges)"):
+        db.execute("""
+            CREATE OR REPLACE TEMP TABLE dup_curies AS
+            SELECT curie, COUNT(*) AS clique_leader_count
+            FROM edges
+            WHERE conflation = 'None'
+            GROUP BY curie HAVING clique_leader_count > 1
+        """)
 
     # Pass 2: collect LIST() only for the confirmed duplicate CURIEs (a small join target).
-    db.sql("""
-        SELECT e.curie,
-            LIST(e.clique_leader ORDER BY e.clique_leader) AS clique_leaders,
-            LIST(e.filename ORDER BY e.clique_leader) AS filenames,
-            LIST(e.conflation ORDER BY e.clique_leader) AS conflations,
-            d.clique_leader_count
-        FROM edges e
-        JOIN dup_curies d USING (curie)
-        WHERE e.conflation = 'None'
-        GROUP BY e.curie, d.clique_leader_count
-        ORDER BY d.clique_leader_count DESC
-    """).write_csv(duplicate_curies_tsv, sep="\t")
+    with log_duckdb_settings_on_error(db, "check_for_duplicate_curies pass 2 (LIST over duplicate CURIEs)"):
+        db.sql("""
+            SELECT e.curie,
+                LIST(e.clique_leader ORDER BY e.clique_leader) AS clique_leaders,
+                LIST(e.filename ORDER BY e.clique_leader) AS filenames,
+                LIST(e.conflation ORDER BY e.clique_leader) AS conflations,
+                d.clique_leader_count
+            FROM edges e
+            JOIN dup_curies d USING (curie)
+            WHERE e.conflation = 'None'
+            GROUP BY e.curie, d.clique_leader_count
+            ORDER BY d.clique_leader_count DESC
+        """).write_csv(duplicate_curies_tsv, sep="\t")
 
     edges.close()
 
@@ -107,27 +113,29 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
     # Pass 1: identify duplicate clique leaders using only a COUNT.
     # A pure COUNT(*) GROUP BY can spill to disk, but the LIST() aggregates below cannot, so
     # collecting them over every clique leader (almost all unique) would OOM on the full set.
-    db.execute("""
-        CREATE OR REPLACE TEMP TABLE dup_leaders AS
-        SELECT clique_leader, COUNT(*) AS clique_leader_count
-        FROM cliques
-        GROUP BY clique_leader HAVING clique_leader_count > 1
-    """)
+    with log_duckdb_settings_on_error(db, "check_for_duplicate_clique_leaders pass 1 (GROUP BY clique_leader)"):
+        db.execute("""
+            CREATE OR REPLACE TEMP TABLE dup_leaders AS
+            SELECT clique_leader, COUNT(*) AS clique_leader_count
+            FROM cliques
+            GROUP BY clique_leader HAVING clique_leader_count > 1
+        """)
 
     # Pass 2: collect LIST() only for the confirmed duplicates (a small join target).
     # Because the LIST() materialization is now trivial we can also afford to keep
     # biolink_type and clique_identifier_count, which were previously dropped to save memory.
-    db.sql("""
-        SELECT d.clique_leader,
-            LIST(c.filename ORDER BY c.filename) AS filenames,
-            LIST(c.biolink_type ORDER BY c.filename) AS biolink_types,
-            LIST(c.clique_identifier_count ORDER BY c.filename) AS clique_identifier_counts,
-            d.clique_leader_count
-        FROM cliques c
-        JOIN dup_leaders d USING (clique_leader)
-        GROUP BY d.clique_leader, d.clique_leader_count
-        ORDER BY d.clique_leader_count DESC
-    """).write_csv(duplicate_clique_leaders_tsv, sep="\t")
+    with log_duckdb_settings_on_error(db, "check_for_duplicate_clique_leaders pass 2 (LIST over duplicate leaders)"):
+        db.sql("""
+            SELECT d.clique_leader,
+                LIST(c.filename ORDER BY c.filename) AS filenames,
+                LIST(c.biolink_type ORDER BY c.filename) AS biolink_types,
+                LIST(c.clique_identifier_count ORDER BY c.filename) AS clique_identifier_counts,
+                d.clique_leader_count
+            FROM cliques c
+            JOIN dup_leaders d USING (clique_leader)
+            GROUP BY d.clique_leader, d.clique_leader_count
+            ORDER BY d.clique_leader_count DESC
+        """).write_csv(duplicate_clique_leaders_tsv, sep="\t")
 
     cliques.close()
 
@@ -150,29 +158,32 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
 
     # Step 2. Generate a prefix report by Biolink type.
     logger.info("Generating prefix report by Biolink type...")
-    curie_prefix_by_type = db.sql("""
-        WITH C AS (
-            SELECT clique_leader, biolink_type
-            FROM cliques
-        )
-        SELECT
-            curie_prefix,
-            biolink_type,
-            COUNT(e.curie) AS curie_count,
-            COUNT(DISTINCT e.curie) AS curie_distinct_count,
-            COUNT(DISTINCT e.clique_leader) AS clique_distinct_count
-        FROM (
-             SELECT clique_leader,
-                    curie_prefix,
-                    curie
-             FROM edges
-             WHERE edges.conflation = 'None'
-        ) e
-        JOIN C USING (clique_leader)
-        GROUP BY curie_prefix, biolink_type
-    """)
-    logger.info("Done generating prefix report by Biolink type, retrieving results...")
-    prefix_by_type_report = curie_prefix_by_type.fetchall()
+    with log_duckdb_settings_on_error(
+        db, "generate_curie_report: prefix report by Biolink type (COUNT(DISTINCT) over all edges)"
+    ):
+        curie_prefix_by_type = db.sql("""
+            WITH C AS (
+                SELECT clique_leader, biolink_type
+                FROM cliques
+            )
+            SELECT
+                curie_prefix,
+                biolink_type,
+                COUNT(e.curie) AS curie_count,
+                COUNT(DISTINCT e.curie) AS curie_distinct_count,
+                COUNT(DISTINCT e.clique_leader) AS clique_distinct_count
+            FROM (
+                 SELECT clique_leader,
+                        curie_prefix,
+                        curie
+                 FROM edges
+                 WHERE edges.conflation = 'None'
+            ) e
+            JOIN C USING (clique_leader)
+            GROUP BY curie_prefix, biolink_type
+        """)
+        logger.info("Done generating prefix report by Biolink type, retrieving results...")
+        prefix_by_type_report = curie_prefix_by_type.fetchall()
     logger.info("Done retrieving prefix report by Biolink type.")
 
     # This is split up by filename, so we need to stitch it back together again.
@@ -187,21 +198,22 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
 
     # Step 1. Generate a prefix total report.
     logger.info("Generating prefix totals report...")
-    curie_prefix_totals = db.sql("""
-                                 SELECT
-                                     split_part(curie, ':', 1) AS curie_prefix,
-                                     COUNT(curie) AS curie_count,
-                                     COUNT(DISTINCT curie) AS curie_distinct_count,
-                                     COUNT(DISTINCT clique_leader) AS clique_distinct_count,
-                                 FROM
-                                     edges
-                                 WHERE
-                                     edges.conflation = 'None'
-                                 GROUP BY
-                                     curie_prefix
-                                 """)
-    logger.info("Done generating prefix totals report, retrieving results...")
-    prefix_totals_report = curie_prefix_totals.fetchall()
+    with log_duckdb_settings_on_error(db, "generate_curie_report: prefix totals (COUNT(DISTINCT) over all edges)"):
+        curie_prefix_totals = db.sql("""
+                                     SELECT
+                                         split_part(curie, ':', 1) AS curie_prefix,
+                                         COUNT(curie) AS curie_count,
+                                         COUNT(DISTINCT curie) AS curie_distinct_count,
+                                         COUNT(DISTINCT clique_leader) AS clique_distinct_count,
+                                     FROM
+                                         edges
+                                     WHERE
+                                         edges.conflation = 'None'
+                                     GROUP BY
+                                         curie_prefix
+                                     """)
+        logger.info("Done generating prefix totals report, retrieving results...")
+        prefix_totals_report = curie_prefix_totals.fetchall()
     prefix_totals_report_by_curie_prefix = defaultdict(dict)
     for row in prefix_totals_report:
         prefix_totals_report_by_curie_prefix[row[0]] = {
@@ -241,21 +253,24 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
 
     # Step 1. Generate a by-clique report.
     logger.info("Generating clique report...")
-    cliques = db.sql("""
-        SELECT
-            filename,
-            COUNT(DISTINCT clique_leader) AS distinct_clique_count,
-            COUNT(DISTINCT curie) AS distinct_curie_count,
-            COUNT(curie) AS curie_count
-        FROM
-            edges
-        WHERE
-            conflation = 'None'
-        GROUP BY
-            filename
-    """)
-    logger.info("Done generating clique report, retrieving results...")
-    clique_totals = cliques.fetchall()
+    with log_duckdb_settings_on_error(
+        db, "generate_clique_leaders_report: per-filename totals (COUNT(DISTINCT) over all edges)"
+    ):
+        cliques = db.sql("""
+            SELECT
+                filename,
+                COUNT(DISTINCT clique_leader) AS distinct_clique_count,
+                COUNT(DISTINCT curie) AS distinct_curie_count,
+                COUNT(curie) AS curie_count
+            FROM
+                edges
+            WHERE
+                conflation = 'None'
+            GROUP BY
+                filename
+        """)
+        logger.info("Done generating clique report, retrieving results...")
+        clique_totals = cliques.fetchall()
     clique_totals_by_curie_prefix = defaultdict(dict)
     for row in clique_totals:
         clique_totals_by_curie_prefix[row[0]] = {
@@ -267,22 +282,25 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
 
     # Step 2. Generate a by-clique report .
     logger.info("Generating clique report for each CURIE prefix...")
-    clique_per_curie = db.sql("""
-        SELECT
-            filename,
-            clique_leader_prefix,
-            curie_prefix,
-            COUNT(DISTINCT curie) AS distinct_curie_count,
-            COUNT(curie) AS curie_count
-        FROM
-            edges
-        WHERE
-            conflation = 'None'
-        GROUP BY
-            filename, clique_leader_prefix, curie_prefix
-    """)
-    logger.info("Done generating clique report, retrieving results...")
-    all_rows = clique_per_curie.fetchall()
+    with log_duckdb_settings_on_error(
+        db, "generate_clique_leaders_report: per-prefix breakdown (COUNT(DISTINCT) over all edges)"
+    ):
+        clique_per_curie = db.sql("""
+            SELECT
+                filename,
+                clique_leader_prefix,
+                curie_prefix,
+                COUNT(DISTINCT curie) AS distinct_curie_count,
+                COUNT(curie) AS curie_count
+            FROM
+                edges
+            WHERE
+                conflation = 'None'
+            GROUP BY
+                filename, clique_leader_prefix, curie_prefix
+        """)
+        logger.info("Done generating clique report, retrieving results...")
+        all_rows = clique_per_curie.fetchall()
     logger.info("Done retrieving results.")
 
     clique_leaders_by_filename = dict()

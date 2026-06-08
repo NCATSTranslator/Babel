@@ -2,12 +2,56 @@
 # in-process database engine DuckDB (https://duckdb.org) for future querying.
 import os.path
 import tempfile
+from contextlib import contextmanager
 
 import duckdb
 
 from src.util import get_config, get_logger
 
 logger = get_logger(__name__)
+
+# The DuckDB settings most relevant to diagnosing an out-of-memory or spill failure. Kept short
+# so the on-error log line stays readable; the full set is dumped by setup_duckdb() at connect.
+_DUCKDB_DIAGNOSTIC_SETTINGS = (
+    "memory_limit",
+    "max_memory",
+    "threads",
+    "temp_directory",
+    "max_temp_directory_size",
+    "preserve_insertion_order",
+)
+
+
+@contextmanager
+def log_duckdb_settings_on_error(db, operation):
+    """Log the effective DuckDB memory/spill settings if the wrapped call raises.
+
+    DuckDB's OutOfMemory and IO errors don't say which limits were in force or which step hit
+    them, which makes the bare Snakemake traceback hard to act on. Wrapping a query in this
+    context manager emits one ERROR line naming the `operation` and the relevant settings before
+    re-raising the original exception unchanged.
+    """
+    try:
+        yield
+    except duckdb.Error as exc:
+        try:
+            placeholders = ", ".join("?" for _ in _DUCKDB_DIAGNOSTIC_SETTINGS)
+            rows = db.execute(
+                f"SELECT name, value FROM duckdb_settings() WHERE name IN ({placeholders})",
+                list(_DUCKDB_DIAGNOSTIC_SETTINGS),
+            ).fetchall()
+            settings = ", ".join(f"{name}={value}" for name, value in sorted(rows))
+        except Exception:  # diagnostics must never mask the real error
+            settings = "<could not read duckdb_settings()>"
+        logger.error(
+            "DuckDB operation failed during %s (%s: %s); effective settings: %s",
+            operation,
+            type(exc).__name__,
+            exc,
+            settings,
+        )
+        raise
+
 
 # Some configuration items for controlling loads.
 MIN_FILE_SIZE_FOR_SPLITTING_LOAD = 44_000_000_000
