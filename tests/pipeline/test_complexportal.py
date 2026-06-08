@@ -125,3 +125,68 @@ def test_complexportal_taxa_valid(complexportal_pipeline_outputs):
     taxa_curies = {row[0] for row in rows}
     missing = label_curies - taxa_curies
     assert not missing, f"{len(missing)} ComplexPortal identifiers have no taxon entry: {sorted(missing)[:10]}"
+
+
+@pytest.mark.pipeline
+def test_complexportal_cross_file_duplicates_handled_correctly(complexportal_tsv_files, complexportal_pipeline_outputs):
+    """Verify correct handling when the same CPX accession appears in multiple species TSV files.
+
+    Labels: each CURIE appears exactly once (first-file wins).
+    Synonyms: deduplicated by (CURIE, synonym) pair — no duplicate rows.
+    Taxa: every (CURIE, taxon) pair from every file is preserved — a complex
+          conserved across species should have one taxon entry per species.
+    """
+    from src.util import get_config  # deferred
+    from tests.conftest import read_tsv
+
+    cfg = get_config()
+    download_dir = os.path.join(cfg["download_directory"], COMPLEXPORTAL)
+
+    with open(complexportal_tsv_files) as mf:
+        filenames = [line.strip() for line in mf if line.strip()]
+
+    # Collect every (curie, taxon_id) pair seen across all source files.
+    curie_to_files: dict[str, list[str]] = {}
+    curie_taxon_pairs: set[tuple[str, str]] = set()
+    for filename in filenames:
+        tsv_path = os.path.join(download_dir, filename)
+        with open(tsv_path) as f:
+            next(f)  # skip header
+            for line in f:
+                cols = line.split("\t", 4)
+                if len(cols) < 4:
+                    continue
+                curie = f"{COMPLEXPORTAL}:{cols[0]}"
+                taxon_id = cols[3].strip()
+                curie_to_files.setdefault(curie, []).append(filename)
+                if taxon_id and taxon_id != "-":
+                    curie_taxon_pairs.add((curie, taxon_id))
+
+    cross_file_curies = {c for c, files in curie_to_files.items() if len(files) > 1}
+
+    # Labels: every CURIE appears exactly once.
+    label_rows = read_tsv(complexportal_pipeline_outputs["labels"])
+    label_curies = [row[0] for row in label_rows]
+    duplicate_labels = {c for c in label_curies if label_curies.count(c) > 1}
+    assert not duplicate_labels, f"Duplicate label rows for: {sorted(duplicate_labels)[:10]}"
+
+    # Synonyms: no duplicate (CURIE, synonym) rows.
+    syn_rows = read_tsv(complexportal_pipeline_outputs["synonyms"])
+    syn_pairs = [(row[0], row[2]) for row in syn_rows]
+    duplicate_syns = {pair for pair in syn_pairs if syn_pairs.count(pair) > 1}
+    assert not duplicate_syns, f"Duplicate synonym rows for: {sorted(duplicate_syns)[:5]}"
+
+    # Taxa: every (CURIE, taxon) pair from the source files is present in the output.
+    taxa_rows = read_tsv(complexportal_pipeline_outputs["taxa"])
+    output_taxon_pairs = {(row[0], row[1].removeprefix("NCBITaxon:")) for row in taxa_rows}
+    missing_pairs = curie_taxon_pairs - output_taxon_pairs
+    assert not missing_pairs, (
+        f"{len(missing_pairs)} (CURIE, taxon) pairs from source files are absent from taxa output: "
+        f"{sorted(missing_pairs)[:5]}"
+    )
+
+    # Report how many cross-file CURIEs were found (informational, not a failure).
+    if cross_file_curies:
+        print(f"\n[info] {len(cross_file_curies)} CURIEs appear in multiple species files — all handled correctly.")  # noqa: T201
+    else:
+        print("\n[info] No CURIEs found in multiple species files in this ComplexPortal release.")  # noqa: T201
