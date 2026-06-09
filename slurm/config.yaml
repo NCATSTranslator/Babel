@@ -12,17 +12,8 @@ rerun-incomplete: true  # Re-run any jobs that failed with an incomplete status 
 keep-going: true # Keep going with independent jobs if a job fails.
 
 # Wrap Python execution with `time -v` to report on memory usage for each rule.
-#
-# MALLOC_ARENA_MAX=2: glibc malloc creates up to 8 arenas per CPU, so on a 96-core largemem node a
-# process can spawn hundreds of arenas, each reserving virtual address space and memory mappings.
-# That inflates VmSize and the /proc/self/maps count without using much actual RAM, and can make a
-# small allocation fail with `bad allocation` (an address-space / mmap limit, not a RAM shortage)
-# even with hundreds of GiB of cgroup budget free -- the failure seen in
-# check_for_identically_labeled_cliques. Capping arenas at 2 keeps the address-space footprint small
-# for these single-threaded DuckDB rules. Setting it on the executable guarantees glibc sees it at
-# process start (an env var set later, from inside Python, is too late for malloc initialisation).
 python:
-  executable: "env MALLOC_ARENA_MAX=2 /usr/bin/time -v python"
+  executable: "/usr/bin/time -v python"
   log_stderr: true
 
 # Set up Hatteras partitions as per https://renci.atlassian.net/wiki/spaces/RENCI/pages/254443570/Cluster+Info#Hardware-Information

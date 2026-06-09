@@ -43,8 +43,19 @@ compendium_directories:
 # means DuckDB holds 5 row groups × threads × ~4 GiB in write buffers before flushing (~76 GiB
 # peak at 128 GB allocation). Setting it to 1 keeps write-buffer RAM proportional to one row
 # group, at no cost to compression ratio or query performance.
+#
+# enable_external_file_cache=false: DuckDB's external file cache keeps Parquet file blocks mmapped
+# in memory across queries. The cross-compendium report rules scan every compendium's Parquet file
+# (e.g. `read_parquet("**/Clique.parquet")`) twice, so the cache accumulated one memory mapping per
+# cached block and never released them: check_for_identically_labeled_cliques reached 65532
+# mappings against the kernel's vm.max_map_count of 65530 and a routine ~8 MB allocation then failed
+# with `bad allocation` -- an address-space (mmap-count) limit, NOT a RAM shortage (the job used
+# only ~85 GiB of its 500 GiB cgroup). Disabling the cache bounds the mapping count; for our
+# read-once/scan-twice queries it costs only a re-read from disk, no correctness change. (If the
+# cluster raises vm.max_map_count well above 65530, this could be revisited.)
 duckdb_config:
   write_buffer_row_group_count: 1
+  enable_external_file_cache: false
 
 #
 # UMLS
