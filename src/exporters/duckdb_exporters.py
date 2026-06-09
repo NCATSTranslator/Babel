@@ -1,6 +1,8 @@
 # The DuckDB exporter can be used to export particular intermediate files into the
 # in-process database engine DuckDB (https://duckdb.org) for future querying.
 import os.path
+import resource
+import sys
 import tempfile
 from contextlib import contextmanager
 
@@ -9,6 +11,107 @@ import duckdb
 from src.util import get_config, get_logger
 
 logger = get_logger(__name__)
+
+
+def _bytes_to_gib(num_bytes):
+    """Format a byte count as a human-readable GiB string, or 'unknown' for None."""
+    if num_bytes is None:
+        return "unknown"
+    return f"{num_bytes / (1024**3):.1f} GiB"
+
+
+def _read_cgroup_memory_value(*paths):
+    """Best-effort read of the first readable cgroup memory file in *paths.
+
+    Returns the integer byte value, or None if none of the files exist, the value is the
+    cgroup-v2 sentinel ``max``, or the cgroup-v1 "unlimited" sentinel (a value near 2**63).
+    Never raises -- memory introspection must not mask the real error or break non-Linux runs.
+    """
+    for path in paths:
+        try:
+            with open(path) as fin:
+                raw = fin.read().strip()
+        except OSError:
+            continue
+        if raw == "max":
+            return None
+        try:
+            value = int(raw)
+        except ValueError:
+            continue
+        # cgroup v1 reports an absurd sentinel (e.g. PAGE_COUNTER_MAX * page size) when unlimited.
+        if value >= (1 << 62):
+            return None
+        return value
+    return None
+
+
+def cgroup_memory_hard_limit_bytes():
+    """The cgroup memory hard limit (the SLURM ``mem=`` allocation), or None if unavailable.
+
+    This is the ceiling that an *untracked* DuckDB allocation overshoots to produce a
+    ``bad allocation`` OOM -- the number to compare ``memory_limit`` against when sizing headroom.
+    """
+    return _read_cgroup_memory_value("/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/memory/memory.limit_in_bytes")
+
+
+def cgroup_memory_peak_bytes():
+    """The peak memory the job's cgroup has ever charged (bytes), or None if unavailable.
+
+    Unlike per-process RSS this includes every thread/child and page cache charged to the job,
+    so it is the closest proxy for what actually tripped the cgroup OOM-killer.
+    """
+    return _read_cgroup_memory_value("/sys/fs/cgroup/memory.peak", "/sys/fs/cgroup/memory/memory.max_usage_in_bytes")
+
+
+def process_peak_rss_bytes():
+    """Peak resident set size of this process, in bytes (covers in-process DuckDB threads)."""
+    rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    # ru_maxrss is bytes on macOS but kibibytes on Linux.
+    return rss if sys.platform == "darwin" else rss * 1024
+
+
+def log_memory_snapshot(db, context):
+    """Log a one-line memory snapshot: process peak RSS, cgroup peak + hard limit, DuckDB tracked.
+
+    The ``untracked`` figure (cgroup peak minus DuckDB's own tracked usage) is the key diagnostic
+    for these report rules: the OOMs are ``bad allocation`` failures where RSS overshot the cgroup
+    hard limit while DuckDB's tracked memory stayed under its soft ``memory_limit``. Seeing a large
+    untracked figure says "lower memory_limit / rewrite the query", not "request more RAM".
+
+    Best-effort and self-contained: every lookup is guarded so this never raises and never masks
+    the real error, and it degrades to ``unknown`` fields off Linux/cgroups.
+    """
+    try:
+        proc_peak = process_peak_rss_bytes()
+    except Exception:
+        proc_peak = None
+    cgroup_limit = cgroup_memory_hard_limit_bytes()
+    cgroup_peak = cgroup_memory_peak_bytes()
+
+    duckdb_tracked = None
+    if db is not None:
+        try:
+            row = db.execute("SELECT sum(memory_usage_bytes) FROM duckdb_memory()").fetchone()
+            duckdb_tracked = row[0] if row else None
+        except Exception:
+            duckdb_tracked = None
+
+    untracked = None
+    if cgroup_peak is not None and duckdb_tracked is not None:
+        untracked = max(cgroup_peak - duckdb_tracked, 0)
+
+    logger.info(
+        "Memory snapshot (%s): process peak RSS=%s; cgroup peak=%s; cgroup hard limit=%s; "
+        "DuckDB tracked=%s; untracked (cgroup peak - DuckDB tracked)=%s",
+        context,
+        _bytes_to_gib(proc_peak),
+        _bytes_to_gib(cgroup_peak),
+        _bytes_to_gib(cgroup_limit),
+        _bytes_to_gib(duckdb_tracked),
+        _bytes_to_gib(untracked),
+    )
+
 
 # The DuckDB settings most relevant to diagnosing an out-of-memory or spill failure. Kept short
 # so the on-error log line stays readable; the full set is dumped by setup_duckdb() at connect.
@@ -50,6 +153,9 @@ def log_duckdb_settings_on_error(db, operation):
             exc,
             settings,
         )
+        # Peak/tracked/untracked memory at the point of failure -- the single most useful thing
+        # for distinguishing "needs more headroom" from "untracked allocation / query rewrite".
+        log_memory_snapshot(db, f"at failure of {operation}")
         raise
 
 
@@ -108,6 +214,24 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
     logger.info("DuckDB connected with the following settings:")
     for row in settings.fetchall():
         logger.info(f" - {row[0]}: {row[1]}")
+
+    # Log the memory_limit vs the cgroup hard limit (the SLURM mem= allocation) at connect time.
+    # When threads > 1, a background-thread OOM aborts the process with SIGABRT and no Python
+    # exception, so log_duckdb_settings_on_error never runs -- this connect-time line is then the
+    # only record of how much headroom DuckDB had under the cgroup. A small or negative headroom
+    # here means an untracked allocation can overshoot the cgroup before DuckDB's soft limit
+    # triggers a spill; lower memory_limit (and/or drop to a single thread) to widen it.
+    try:
+        memory_limit_row = db.execute("SELECT value FROM duckdb_settings() WHERE name = 'memory_limit'").fetchone()
+        memory_limit = memory_limit_row[0] if memory_limit_row else "unknown"
+    except Exception:
+        memory_limit = "unknown"
+    cgroup_limit = cgroup_memory_hard_limit_bytes()
+    logger.info(
+        "DuckDB memory headroom: memory_limit=%s, cgroup hard limit (SLURM mem)=%s",
+        memory_limit,
+        _bytes_to_gib(cgroup_limit),
+    )
 
     return db
 
