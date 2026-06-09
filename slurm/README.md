@@ -102,7 +102,7 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 | `untyped_chemical_compendia` | `chemical.snakefile` | 512G | — | Pre-typing step |
 | `gene_compendia` | `gene.snakefile` | 256G | 6h | Gene graph |
 | `export_compendia_to_duckdb` | `duckdb.snakefile` | 512G | 6h | Per-compendium DuckDB export |
-| `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 512G | — | Two-pass: GROUP BY hash(LOWER(preferred_name)) + streaming-join pair output; right-sized to its ~67 GiB footprint; memory_limit 400G, 1 thread; relies on MALLOC_ARENA_MAX=2 (address-space, not RAM, was the killer) |
+| `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 512G | — | Two-pass: GROUP BY hash(LOWER(preferred_name)) + streaming-join pair output; right-sized to its ~67 GiB footprint; memory_limit 400G, 1 thread; mmap-count exhaustion fixed by global `enable_external_file_cache: false` |
 | `check_for_duplicate_curies` | `duckdb.snakefile` | 1500G | — | GROUP BY curie over all edges; memory_limit 1000G, 1 thread |
 | `check_for_duplicate_clique_leaders` | `duckdb.snakefile` | 512G | — | Two-pass over the smaller Clique table; memory_limit 400G, 4 threads |
 | `generate_curie_report` | `duckdb.snakefile` | 1500G | — | approx_count_distinct() over all edges, biolink_type read from the denormalized Edge column (no join); memory_limit 1000G, 1 thread |
@@ -169,14 +169,18 @@ way on the larger 1.17 graph; it is now `1000G` / 1 thread like the rest.
 `check_for_identically_labeled_cliques` is the cautionary tale that a `bad allocation` OOM is not
 always about running out of RAM. After the two-pass rewrite it is cheap: the snapshot showed it
 completing on the 1.17 graph with only ~67 GiB RSS, an **85 GiB cgroup peak against a 500 GiB
-limit**, and ~0.1 GiB DuckDB-tracked memory. Yet it still died — with `bad allocation` failing an
-~8 MB allocation **after** the query finished, during teardown. With ~415 GiB of cgroup budget free,
-this is an *address-space* limit, not a RAM shortage: glibc malloc creates up to 8 arenas per CPU,
-so on a 96-core node a process accrues hundreds of arenas and memory mappings, inflating `VmSize`
-and the `/proc/self/maps` count until a routine mmap-backed allocation fails even though physical
-RAM is plentiful. The fix is `MALLOC_ARENA_MAX=2` (set on `python.executable` in `slurm/config.yaml`
-so glibc sees it at process start); the rule is also kept right-sized at `mem` 512G / `memory_limit`
-400G, single-threaded, since the query does not need a largemem node.
+limit**, and ~0.1 GiB DuckDB-tracked memory. Yet it died with `bad allocation` failing an ~8 MB
+allocation during teardown. The address-space snapshot named the cause outright:
+**`mappings=65532` against the kernel's `vm.max_map_count=65530`**. DuckDB's external file cache
+(`enable_external_file_cache`, on by default) keeps Parquet blocks mmapped across queries, so
+scanning every `Clique.parquet` twice accumulated one mapping per cached block until the process hit
+the kernel's per-process mapping limit — an *mmap-count* limit, not a RAM shortage (`Committed_AS`
+was 80 GiB against a 1359 GiB `CommitLimit`, and `MemAvailable` was ~1.5 TiB). The fix is
+`enable_external_file_cache: false` in `config.yaml`'s `duckdb_config` (it applies to every DuckDB
+connection; for our read-once / scan-twice queries it costs only a re-read from disk). The rule is
+also kept right-sized at `mem` 512G / `memory_limit` 400G, single-threaded, since the query does not
+need a largemem node. (Note: `MALLOC_ARENA_MAX` was tried first and did **not** help — the 65k
+mappings averaged ~1.3 MB, so they were DuckDB's file-cache mappings, not glibc's 64 MB arenas.)
 
 The memory snapshot is built to tell these shapes apart. `setup_duckdb()` logs a connect-time
 `DuckDB memory headroom: memory_limit=…, cgroup hard limit=…` line (the only memory record that
@@ -190,10 +194,11 @@ as:
   not account for (string heap, hash-join build side, or file page cache). Lower `memory_limit`,
   rewrite the query, or shrink the working set.
 - **cgroup current well below the limit but a small allocation fails** → an address-space limit, not
-  a RAM shortage. Check the address-space line: `mappings` near `max_map_count` (mmap exhaustion,
-  usually arena sprawl — cap `MALLOC_ARENA_MAX`), `VmSize` near `RLIMIT_AS` (an address-space
-  ulimit), or `Committed_AS` near `CommitLimit` with `overcommit_memory=2` (strict node-level
-  overcommit). Adding `mem=` does not help any of these.
+  a RAM shortage. Check the address-space line: `mappings` near `max_map_count` (mmap exhaustion —
+  for the report rules this was DuckDB's external file cache; disable it, or have the cluster raise
+  `vm.max_map_count`), `VmSize` near `RLIMIT_AS` (an address-space ulimit), or `Committed_AS` near
+  `CommitLimit` with `overcommit_memory=2` (strict node-level overcommit). Adding `mem=` does not
+  help any of these.
 - **cgroup current at the limit and DuckDB tracked large** → the query genuinely needs the RAM.
 
 The cgroup figures come from the job's SLURM cgroup, resolved via `/proc/self/cgroup` (the bare
