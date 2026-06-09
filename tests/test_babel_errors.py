@@ -13,45 +13,63 @@ _SPEC.loader.exec_module(babel_errors)
 
 
 @pytest.mark.unit
-def test_extract_error_content_surfaces_connect_time_headroom(tmp_path):
-    """A connect-time headroom line near the top of a traceback-less SIGABRT log is surfaced."""
+def test_extract_error_content_shows_full_log_and_real_exception(tmp_path):
+    """The whole log is shown, so a RuleException far from the tail (not a Python Traceback,
+    not in the last N lines) is never hidden -- this is the 1870.log failure shape."""
     log = (
-        "INFO src.exporters.duckdb_exporters: DuckDB connected with the following settings:\n"
-        "INFO src.exporters.duckdb_exporters:  - memory_limit: 1.2 TiB\n"
         "INFO src.exporters.duckdb_exporters: DuckDB memory headroom: "
-        "memory_limit=1000G, cgroup hard limit (SLURM mem)=1500.0 GiB\n"
-        + "\n".join(f"filler {i}" for i in range(200))
-        + "\nterminate called after throwing an instance of 'duckdb::OutOfMemoryException'\n"
-        "  what():  Failed to allocate block of 16384 bytes (bad allocation)\n"
-        "srun: error: largemem-5-2: task 0: Aborted (core dumped)\n"
+        "memory_limit=400G, cgroup hard limit (SLURM mem)=512.0 GiB\n"
+        + "\n".join(f"filler {i}" for i in range(40))
+        + "\nRuleException:\n"
+        "OutOfMemoryException in file duckdb.snakefile, line 163:\n"
+        "Out of Memory Error: Failed to allocate block of 8650496 bytes (bad allocation)\n"
+        + "\n".join(f"snakemake boilerplate {i}" for i in range(80))
     )
-    log_path = tmp_path / "1862.log"
+    log_path = tmp_path / "1870.log"
     log_path.write_text(log)
 
     content = babel_errors.extract_error_content(log_path, fallback_lines=50)
 
-    # The SIGABRT tail is kept...
-    assert "Aborted (core dumped)" in content
-    # ...and the headroom line, 200+ lines above the tail, is pulled into the diagnostics section.
-    assert "--- DuckDB memory diagnostics (from elsewhere in log) ---" in content
-    assert "cgroup hard limit (SLURM mem)=1500.0 GiB" in content
+    # The exception (76+ lines from the end, not a Python Traceback) is present in the full log...
+    assert "Failed to allocate block of 8650496 bytes" in content
+    assert "filler 0" in content  # ...and so is the top of the log.
+    # The memory line appears both inline and in the labelled trailer.
+    assert "--- DuckDB memory diagnostics (also inline above) ---" in content
+    assert "cgroup hard limit (SLURM mem)=512.0 GiB" in content
 
 
 @pytest.mark.unit
-def test_extract_error_content_no_duplicate_diagnostics_section(tmp_path):
-    """When a marker line already sits inside the extracted tail, no extra section is appended."""
-    log = "\n".join(f"filler {i}" for i in range(10)) + (
-        "\nMemory snapshot (at failure of pass 1): process peak RSS=900.0 GiB; "
-        "cgroup peak=1500.0 GiB; DuckDB tracked=400.0 GiB; untracked=1100.0 GiB\n"
-        "Out of Memory Error: Failed to allocate block (bad allocation)\n"
+def test_extract_error_content_collapses_progress_bar_spam(tmp_path):
+    """DuckDB progress-bar redraw lines are collapsed to a single marker, not dumped verbatim."""
+    progress = " 58% ▕██████████████████████                ▏ (~9 seconds remaining)"
+    log = (
+        "starting\n"
+        + "\n".join(progress for _ in range(500))
+        + "\nMemory snapshot (complete): process peak RSS=66.7 GiB; cgroup current=120.0 GiB\n"
+        "done\n"
     )
-    log_path = tmp_path / "x.log"
+    log_path = tmp_path / "p.log"
     log_path.write_text(log)
 
     content = babel_errors.extract_error_content(log_path, fallback_lines=50)
 
-    assert "Memory snapshot (at failure of pass 1)" in content
-    assert "--- DuckDB memory diagnostics" not in content
+    assert "[... DuckDB progress-bar output elided ...]" in content
+    assert content.count("seconds remaining") == 0
+    assert "starting" in content and "done" in content
+
+
+@pytest.mark.unit
+def test_extract_error_content_caps_pathologically_long_log(tmp_path):
+    """A very long log is capped to a head + tail with an elision marker so the report stays usable."""
+    log = "\n".join(f"line {i}" for i in range(5000))
+    log_path = tmp_path / "long.log"
+    log_path.write_text(log)
+
+    content = babel_errors.extract_error_content(log_path, fallback_lines=50)
+
+    assert "log lines elided" in content
+    assert "line 0" in content  # head kept
+    assert "line 4999" in content  # tail kept
 
 
 @pytest.mark.unit

@@ -249,26 +249,58 @@ def _collect_memory_diagnostics(lines: list[str]) -> list[str]:
     return found
 
 
+# Characters that only appear in DuckDB's in-place progress bar. Snakemake captures every
+# carriage-return redraw, so a single "line" can be hundreds of KB of repeated bar frames; we
+# collapse any run of them to one marker so the full log stays readable.
+_PROGRESS_BAR_CHARS = "▕▏█▎▍▌▋▊▉▐"
+
+
+def _collapse_progress_noise(lines: list[str]) -> list[str]:
+    """Replace each run of DuckDB progress-bar redraw lines with a single elision marker."""
+    cleaned: list[str] = []
+    in_progress = False
+    for line in lines:
+        if any(ch in line for ch in _PROGRESS_BAR_CHARS):
+            if not in_progress:
+                cleaned.append("[... DuckDB progress-bar output elided ...]")
+                in_progress = True
+            continue
+        in_progress = False
+        cleaned.append(line)
+    return cleaned
+
+
 def extract_error_content(log_path: Path, fallback_lines: int) -> str:
+    """Return the failed rule's log for the report.
+
+    We show the *whole* log (so the real exception is never hidden by tail/traceback heuristics --
+    Snakemake's RuleException/OutOfMemory blocks are neither a Python "Traceback" nor always within
+    the last N lines), with two cleanups: DuckDB's progress-bar redraw spam is collapsed, and the
+    memory-diagnostic lines are echoed in a labelled section at the end so they are easy to find.
+    ``fallback_lines`` caps a pathologically long log to a head + tail so the report stays usable.
+    """
     if not log_path.exists():
         return f"(log file not found: {log_path})"
 
-    lines = log_path.read_text(errors="replace").splitlines()
+    raw_lines = log_path.read_text(errors="replace").splitlines()
+    lines = _collapse_progress_noise(raw_lines)
 
-    # Use the last Python traceback block if present, otherwise the tail of the log.
-    last_tb_start: int | None = None
-    for i, line in enumerate(lines):
-        if line.strip().startswith("Traceback (most recent call last):"):
-            last_tb_start = i
+    # Show the full (de-spammed) log, but guard against a pathologically long one by keeping a
+    # generous head and tail. The cap is large enough that ordinary rule logs are shown in full.
+    max_lines = max(fallback_lines * 20, 400)
+    if len(lines) > max_lines:
+        head = lines[: max_lines // 4]
+        tail = lines[-(max_lines - max_lines // 4) :]
+        elided = len(lines) - len(head) - len(tail)
+        content = "\n".join(head + [f"[... {elided} log lines elided ...]"] + tail)
+    else:
+        content = "\n".join(lines)
 
-    content = "\n".join(lines[last_tb_start:]) if last_tb_start is not None else "\n".join(lines[-fallback_lines:])
-
-    # Surface the DuckDB memory diagnostics even when they fall outside the extracted slice: the
-    # connect-time headroom line is near the top of the log, and a threads>1 background-thread OOM
-    # aborts with SIGABRT and no traceback. Only append the lines not already shown.
-    extras = [line for line in _collect_memory_diagnostics(lines) if line not in content]
-    if extras:
-        content = content + "\n\n--- DuckDB memory diagnostics (from elsewhere in log) ---\n" + "\n".join(extras)
+    # Echo the memory diagnostics in a clearly-labelled trailer so they are easy to find even in a
+    # long log (and present even if the head/tail cap dropped them).
+    diagnostics = _collect_memory_diagnostics(raw_lines)
+    if diagnostics:
+        content += "\n\n--- DuckDB memory diagnostics (also inline above) ---\n" + "\n".join(diagnostics)
 
     return content
 
