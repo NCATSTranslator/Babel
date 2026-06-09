@@ -6,6 +6,7 @@ import pytest
 from src.exporters.duckdb_exporters import (
     _bytes_to_gib,
     _parse_cgroup_memory_value,
+    _parse_kv_kb_bytes,
     _parse_proc_cgroup,
     export_conflation_to_parquet,
     log_duckdb_settings_on_error,
@@ -65,6 +66,22 @@ def test_parse_cgroup_memory_value_parses_and_rejects_sentinels():
     assert _parse_cgroup_memory_value("") is None
     assert _parse_cgroup_memory_value(f"{1 << 63}\n") is None
     assert _parse_cgroup_memory_value("not-a-number") is None
+
+
+@pytest.mark.unit
+def test_parse_kv_kb_bytes_reads_proc_status_and_meminfo_lines():
+    """`Key:   N kB` lines (as in /proc/self/status and /proc/meminfo) parse to bytes."""
+    status = "Name:\tpython\nVmPeak:\t 1048576 kB\nVmSize:\t  524288 kB\nThreads:\t4\n"
+    assert _parse_kv_kb_bytes(status, "VmPeak") == 1048576 * 1024
+    assert _parse_kv_kb_bytes(status, "VmSize") == 524288 * 1024
+
+    meminfo = "MemTotal:       16000000 kB\nCommitLimit:     8000000 kB\nCommitted_AS:    1234567 kB\n"
+    assert _parse_kv_kb_bytes(meminfo, "CommitLimit") == 8000000 * 1024
+    assert _parse_kv_kb_bytes(meminfo, "Committed_AS") == 1234567 * 1024
+
+    # Absent key, and a prefix that is not a full key match, both return None.
+    assert _parse_kv_kb_bytes(status, "VmHWM") is None
+    assert _parse_kv_kb_bytes(status, "Vm") is None
 
 
 @pytest.mark.unit
