@@ -149,18 +149,80 @@ def process_peak_rss_bytes():
     return rss if sys.platform == "darwin" else rss * 1024
 
 
+def _parse_kv_kb_bytes(text, key):
+    """Parse a ``Key:   12345 kB`` line (as in /proc/self/status and /proc/meminfo) into bytes.
+
+    Returns the value in bytes, or None if the key is absent or unparseable. Never raises.
+    """
+    for line in text.splitlines():
+        if line.startswith(key + ":"):
+            try:
+                return int(line.split()[1]) * 1024
+            except (ValueError, IndexError):
+                return None
+    return None
+
+
+def _read_kv_kb_bytes(path, key):
+    """Read a ``Key: value kB`` field from a /proc file as bytes, or None. Never raises."""
+    try:
+        with open(path) as fin:
+            return _parse_kv_kb_bytes(fin.read(), key)
+    except OSError:
+        return None
+
+
+def _read_proc_status_bytes(key):
+    """Read a ``VmFoo:`` field (kB) from /proc/self/status as bytes, or None."""
+    return _read_kv_kb_bytes("/proc/self/status", key)
+
+
+def _read_meminfo_bytes(key):
+    """Read a field (kB) from /proc/meminfo as bytes, or None."""
+    return _read_kv_kb_bytes("/proc/meminfo", key)
+
+
+def _read_int_file(path):
+    """Read a file containing a single integer, or None. Never raises."""
+    try:
+        with open(path) as fin:
+            return int(fin.read().strip())
+    except (OSError, ValueError):
+        return None
+
+
+def _count_memory_mappings():
+    """Number of VMAs in /proc/self/maps (compare against vm.max_map_count), or None."""
+    try:
+        with open("/proc/self/maps") as fin:
+            return sum(1 for _ in fin)
+    except OSError:
+        return None
+
+
+def _rlimit_as_bytes():
+    """Soft RLIMIT_AS (virtual address-space ceiling) in bytes, or None if unlimited/unavailable."""
+    try:
+        soft, _ = resource.getrlimit(resource.RLIMIT_AS)
+    except (ValueError, OSError, AttributeError):
+        return None
+    return None if soft == resource.RLIM_INFINITY else soft
+
+
 def log_memory_snapshot(db, context):
-    """Log a one-line memory snapshot: process peak RSS, cgroup current/peak/limit, DuckDB tracked.
+    """Log memory + address-space diagnostics: one RSS/cgroup line and one address-space line.
 
-    The ``untracked`` figure (cgroup current minus DuckDB's own tracked usage) is the key diagnostic
-    for these report rules. Two distinct OOM shapes show up here, and this line tells them apart:
+    A ``bad allocation`` OOM here is not always about running out of *RAM*. With the cgroup figures
+    plus the address-space line, three distinct shapes are now distinguishable:
 
-    - cgroup current near the limit while DuckDB tracked is small -> the killer is memory DuckDB
-      does not account for (string heaps, hash-join build sides, or file page cache); lower
-      memory_limit / rewrite the query / reduce the working set, do not request more RAM.
-    - cgroup current well below the limit but an allocation still fails -> a *node-level* physical
-      OOM, i.e. ``mem=`` was sized near the whole node for a query that does not need it; right-size
-      ``mem`` down so the cgroup limit sits comfortably under physical RAM.
+    - cgroup current near the hard limit while DuckDB tracked is small -> untracked memory (string
+      heaps, hash-join build sides, file page cache). Lower memory_limit / rewrite the query.
+    - cgroup current well below the limit but a *small* allocation still fails -> not a RAM shortage
+      but an address-space limit: check ``mappings`` vs ``max_map_count`` (mmap exhaustion), ``VmSize``
+      vs ``RLIMIT_AS`` (address-space ulimit), or ``Committed_AS`` vs ``CommitLimit`` with
+      ``overcommit=2`` (strict node-level overcommit). The fix is allocator/ulimit/overcommit tuning,
+      not more ``mem=``.
+    - cgroup current at the limit AND DuckDB tracked large -> the query genuinely needs the RAM.
 
     Best-effort and self-contained: every lookup is guarded so this never raises and never masks
     the real error, and it degrades to ``unknown`` fields off Linux/cgroups.
@@ -196,6 +258,28 @@ def log_memory_snapshot(db, context):
         _bytes_to_gib(duckdb_tracked),
         _bytes_to_gib(untracked),
     )
+
+    # A second line for the address-space limits that cause a `bad allocation` even with free RAM.
+    try:
+        mappings = _count_memory_mappings()
+        max_map_count = _read_int_file("/proc/sys/vm/max_map_count")
+        overcommit = _read_int_file("/proc/sys/vm/overcommit_memory")
+        logger.info(
+            "Address-space snapshot (%s): VmSize=%s; VmPeak=%s; mappings=%s/max_map_count=%s; "
+            "RLIMIT_AS=%s; overcommit_memory=%s; Committed_AS=%s/CommitLimit=%s; MemAvailable=%s",
+            context,
+            _bytes_to_gib(_read_proc_status_bytes("VmSize")),
+            _bytes_to_gib(_read_proc_status_bytes("VmPeak")),
+            mappings if mappings is not None else "unknown",
+            max_map_count if max_map_count is not None else "unknown",
+            _bytes_to_gib(_rlimit_as_bytes()),
+            overcommit if overcommit is not None else "unknown",
+            _bytes_to_gib(_read_meminfo_bytes("Committed_AS")),
+            _bytes_to_gib(_read_meminfo_bytes("CommitLimit")),
+            _bytes_to_gib(_read_meminfo_bytes("MemAvailable")),
+        )
+    except Exception:
+        pass
 
 
 # The DuckDB settings most relevant to diagnosing an out-of-memory or spill failure. Kept short
