@@ -210,6 +210,31 @@ filesystem — set `BABEL_DUCKDB_TEMP_DIR` in the job environment; an individual
 `temp_directory` / `max_temp_directory_size` in its `duckdb_config`. Do not point the
 500 GB-spilling `export_*` rules at `/tmp` or `/dev/shm`.
 
+## Known Issues
+
+### `bad allocation` with plenty of free RAM (`vm.max_map_count` / mmap-count exhaustion)
+
+A DuckDB rule can fail with `Out of Memory Error: Failed to allocate block of N bytes (bad
+allocation)` for a *small* `N` (a few MB) even though there is hundreds of GiB of free RAM. This is
+an address-space limit, not a RAM shortage: Linux caps the number of memory-mapping areas a process
+may have at `vm.max_map_count` (the old default is 65530), and a new mmap-backed allocation fails
+with `ENOMEM` once that ceiling is reached.
+
+How to confirm: look at the `Address-space snapshot (…)` line that `log_memory_snapshot()` writes
+(`src/exporters/duckdb_exporters.py`); it is surfaced automatically by `tools/babel-errors.py`. If
+`mappings` is at or near `max_map_count` while `Committed_AS` is well under `CommitLimit` and
+`MemAvailable` is large, it is this issue. (Compare against the RAM shapes documented under
+"Temporary Scratch Space" above.)
+
+What we have seen and the current mitigation: `check_for_identically_labeled_cliques` hit
+`mappings=65532` vs `max_map_count=65530`. DuckDB's external file cache keeps Parquet blocks mmapped
+across queries, and scanning every compendium's Parquet file more than once accumulated one mapping
+per cached block. The fix in this repo is `enable_external_file_cache: false` in `config.yaml`'s
+`duckdb_config`. If a future rule hits the same ceiling from a different mmap source, the broader
+fix is to have the cluster raise `vm.max_map_count` (e.g. to 262144 or higher via
+`sysctl -w vm.max_map_count=262144`); 65530 is low for data-heavy mmap workloads. Tracking issue:
+<https://github.com/NCATSTranslator/Babel/issues/846>.
+
 ## Localrules (Run on Head Node, No SLURM Slot)
 
 The following rules are declared `localrules` and run on the head/login node without consuming a
