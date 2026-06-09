@@ -147,17 +147,17 @@ rule check_for_identically_labeled_cliques:
     resources:
         # Pass 1 is a spillable COUNT(*) GROUP BY on a fixed-size hash; pass 2 is a streaming hash
         # join (small build side) writing the duplicate (name, clique_leader) pairs. The rewritten
-        # query is cheap: at 700G it ran to completion using only ~67 GiB RSS and ~0.1 GiB
-        # DuckDB-tracked memory -- but the job still died with `bad allocation` failing an 8.6 MB
-        # allocation *after* the query finished (during teardown). With the job's own working set
-        # that small, that was a node-level physical OOM: mem=1500G reserved nearly the entire
-        # ~1.46 TiB largemem node for a query that does not need it, and an allocation tripped the
-        # node's physical RAM ceiling. So this rule is right-sized to its measured footprint -- mem
-        # 512G with memory_limit 400G, single-threaded -- which keeps the cgroup limit well under
-        # physical RAM and frees the scarce largemem nodes. The "Memory snapshot ..." log line (see
-        # src/exporters/duckdb_exporters.py) now reports the cgroup current/peak/limit so a recurrence
-        # can be read directly: cgroup current near the limit => untracked working set; well below =>
-        # node-level OOM. See slurm/README.md.
+        # query is cheap and is NOT the problem: the snapshot showed it completing with only ~67 GiB
+        # RSS, an 85 GiB cgroup peak against a 500 GiB limit, and ~0.1 GiB DuckDB-tracked memory --
+        # yet the job still died with `bad allocation` failing an ~8 MB allocation during teardown.
+        # With ~415 GiB of cgroup budget free, that is an address-space limit, not a RAM shortage:
+        # glibc spawns up to 8 arenas per CPU, so on a 96-core node the process accrues hundreds of
+        # arenas/mappings, inflating VmSize until a small mmap-backed allocation fails. The fix is
+        # MALLOC_ARENA_MAX=2 in slurm/config.yaml (applies to all rules at process start); this rule
+        # is also kept right-sized at mem 512G / memory_limit 400G, single-threaded, since the query
+        # does not need a largemem node. The "Address-space snapshot ..." log line (see
+        # src/exporters/duckdb_exporters.py) reports VmSize / mappings vs max_map_count / RLIMIT_AS /
+        # Committed_AS vs CommitLimit so a recurrence pinpoints which ceiling was hit. See slurm/README.md.
         mem="512G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
