@@ -1,5 +1,6 @@
 from src.reports import report_tables
 from src.snakefiles.util import get_all_compendia, get_all_synonyms, get_all_gzipped
+import glob
 import os
 
 from src.reports.compendia_per_file_reports import (
@@ -7,6 +8,7 @@ from src.reports.compendia_per_file_reports import (
     generate_content_report_for_compendium,
     summarize_content_report_for_compendia,
 )
+from src.reports.protein_chemical_overlap import generate_protein_chemical_overlap_report
 
 # Some paths we will use at multiple times in these reports.
 compendia_path = config["output_directory"] + "/compendia"
@@ -150,6 +152,44 @@ rule generate_mapping_sources_table:
         report_tables.generate_mapping_sources_table(input.metadata_yaml_files, output.mapping_sources_table)
 
 
+# Inventory cross-references that bridge the chemical/protein boundary, so the Translator community
+# can review which protein and chemical cliques a merge would combine (issues #706, #667, #440).
+rule generate_protein_chemical_overlap_report:
+    input:
+        # Gate on every output (compendia, conflations) and intermediate concord having been built.
+        config["output_directory"] + "/reports/outputs_done",
+    output:
+        bridges=config["output_directory"] + "/reports/protein_chemical/bridges.tsv",
+        candidate_pairs=config["output_directory"] + "/reports/protein_chemical/candidate_pairs.tsv",
+        duplicate_curies=config["output_directory"] + "/reports/protein_chemical/duplicate_curies.tsv",
+        summary=config["output_directory"] + "/reports/protein_chemical/summary.tsv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_protein_chemical_overlap_report.tsv"
+    run:
+        chemical_compendia = [os.path.join(compendia_path, filename) for filename in config["chemical_outputs"]]
+        protein_compendia = [os.path.join(compendia_path, filename) for filename in config["protein_outputs"]]
+        concord_files = sorted(
+            path
+            for concord_dir in (
+                os.path.join(config["intermediate_directory"], "chemicals", "concords"),
+                os.path.join(config["intermediate_directory"], "protein", "concords"),
+            )
+            for path in glob.glob(os.path.join(concord_dir, "**"), recursive=True)
+            if os.path.isfile(path)
+        )
+        geneprotein_conflation = os.path.join(conflations_path, config["geneprotein_outputs"][0])
+        generate_protein_chemical_overlap_report(
+            chemical_compendia=chemical_compendia,
+            protein_compendia=protein_compendia,
+            concord_files=concord_files,
+            bridges_tsv=output.bridges,
+            candidate_pairs_tsv=output.candidate_pairs,
+            duplicate_curies_tsv=output.duplicate_curies,
+            summary_tsv=output.summary,
+            geneprotein_conflation=geneprotein_conflation,
+        )
+
+
 # Check that all the reports were built correctly.
 rule all_reports:
     input:
@@ -160,6 +200,7 @@ rule all_reports:
         config["output_directory"] + "/reports/tables/prefix_table.csv",
         config["output_directory"] + "/reports/tables/cliques_table.csv",
         config["output_directory"] + "/reports/tables/mapping_sources_table.csv",
+        config["output_directory"] + "/reports/protein_chemical/summary.tsv",
     output:
         x=config["output_directory"] + "/reports/reports_done",
     shell:
