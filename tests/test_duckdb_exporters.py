@@ -3,7 +3,14 @@ import os
 import duckdb
 import pytest
 
-from src.exporters.duckdb_exporters import export_conflation_to_parquet, log_duckdb_settings_on_error
+from src.exporters.duckdb_exporters import (
+    _bytes_to_gib,
+    _read_cgroup_memory_value,
+    export_conflation_to_parquet,
+    log_duckdb_settings_on_error,
+    log_memory_snapshot,
+    process_peak_rss_bytes,
+)
 from tests.conftest import CONFLATION_FIXTURE_ROWS
 
 
@@ -12,7 +19,7 @@ def test_log_duckdb_settings_on_error_reraises_and_logs(caplog):
     """On failure the helper should log the operation name and effective settings, then re-raise."""
     con = duckdb.connect()
     con.execute("SET threads=3")
-    with caplog.at_level("ERROR"):
+    with caplog.at_level("INFO"):
         with pytest.raises(duckdb.Error):
             with log_duckdb_settings_on_error(con, "my-test-operation"):
                 con.execute("SELECT * FROM a_table_that_does_not_exist")
@@ -22,6 +29,49 @@ def test_log_duckdb_settings_on_error_reraises_and_logs(caplog):
     # A couple of the diagnostic settings should be reported back.
     assert "memory_limit=" in caplog.text
     assert "threads=3" in caplog.text
+    # The on-error path also emits a memory snapshot for the failed operation.
+    assert "Memory snapshot (at failure of my-test-operation)" in caplog.text
+
+
+@pytest.mark.unit
+def test_bytes_to_gib_formats_and_handles_none():
+    assert _bytes_to_gib(None) == "unknown"
+    assert _bytes_to_gib(0) == "0.0 GiB"
+    assert _bytes_to_gib(1024**3) == "1.0 GiB"
+    assert _bytes_to_gib(int(1.5 * 1024**3)) == "1.5 GiB"
+
+
+@pytest.mark.unit
+def test_read_cgroup_memory_value_parses_and_rejects_sentinels(tmp_path):
+    """A plain integer is returned; 'max' and the cgroup-v1 unlimited sentinel become None."""
+    numeric = tmp_path / "memory.max"
+    numeric.write_text("1610612736\n")
+    assert _read_cgroup_memory_value(str(numeric)) == 1610612736
+
+    maxfile = tmp_path / "memory.max.unbounded"
+    maxfile.write_text("max\n")
+    assert _read_cgroup_memory_value(str(maxfile)) is None
+
+    sentinel = tmp_path / "memory.limit_in_bytes"
+    sentinel.write_text(f"{1 << 63}\n")
+    assert _read_cgroup_memory_value(str(sentinel)) is None
+
+    # No readable file in the list -> None, no exception.
+    assert _read_cgroup_memory_value(str(tmp_path / "does-not-exist")) is None
+
+
+@pytest.mark.unit
+def test_process_peak_rss_bytes_is_positive():
+    assert process_peak_rss_bytes() > 0
+
+
+@pytest.mark.unit
+def test_log_memory_snapshot_never_raises_with_db_none(caplog):
+    """The snapshot must be best-effort: db=None and missing cgroup files must not raise."""
+    with caplog.at_level("INFO"):
+        log_memory_snapshot(None, "snapshot-test")
+    assert "Memory snapshot (snapshot-test)" in caplog.text
+    assert "process peak RSS=" in caplog.text
 
 
 @pytest.mark.unit

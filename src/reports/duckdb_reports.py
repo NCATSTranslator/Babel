@@ -3,7 +3,7 @@ import os
 from collections import defaultdict
 
 from src import util
-from src.exporters.duckdb_exporters import log_duckdb_settings_on_error, setup_duckdb
+from src.exporters.duckdb_exporters import log_duckdb_settings_on_error, log_memory_snapshot, setup_duckdb
 
 logger = util.get_logger(__name__)
 
@@ -64,6 +64,7 @@ def check_for_identically_labeled_cliques(
             WHERE c.preferred_name <> '' AND c.preferred_name <> '""'
         """).write_csv(identically_labeled_cliques_tsv, sep="\t", header=True)
 
+    log_memory_snapshot(db, "check_for_identically_labeled_cliques complete")
     cliques.close()
 
 
@@ -107,6 +108,7 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
             ORDER BY d.clique_leader_count DESC
         """).write_csv(duplicate_curies_tsv, sep="\t")
 
+    log_memory_snapshot(db, "check_for_duplicate_curies complete")
     edges.close()
 
 
