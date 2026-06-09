@@ -24,6 +24,18 @@ _ERROR_RE = re.compile(
 )
 _RUNTIME_RE = re.compile(r"\bruntime=(\d+)\b")
 
+# Substrings identifying the DuckDB memory-diagnostic log lines emitted by
+# src/exporters/duckdb_exporters.py. These pinpoint cgroup vs memory_limit headroom and the
+# tracked/untracked split at a `bad allocation` OOM. The connect-time headroom line sits near the
+# top of the log and the threads>1 SIGABRT path leaves no traceback, so the default
+# "last N lines" / traceback extraction misses them; we scan the whole log and surface them
+# explicitly. (We deliberately do not match the verbose per-setting dump, e.g. " - memory_limit:".)
+_MEMORY_DIAGNOSTIC_MARKERS = (
+    "DuckDB memory headroom:",
+    "Memory snapshot (",
+    "DuckDB operation failed during",
+)
+
 
 @dataclasses.dataclass
 class _JobEvent:
@@ -224,22 +236,41 @@ def parse_failures(err_file: Path) -> list[tuple[str, Path]]:
     return results
 
 
+def _collect_memory_diagnostics(lines: list[str]) -> list[str]:
+    """Return the DuckDB memory-diagnostic lines anywhere in the log, in order, de-duplicated."""
+    found: list[str] = []
+    seen: set[str] = set()
+    for line in lines:
+        if any(marker in line for marker in _MEMORY_DIAGNOSTIC_MARKERS):
+            stripped = line.rstrip()
+            if stripped not in seen:
+                seen.add(stripped)
+                found.append(stripped)
+    return found
+
+
 def extract_error_content(log_path: Path, fallback_lines: int) -> str:
     if not log_path.exists():
         return f"(log file not found: {log_path})"
 
     lines = log_path.read_text(errors="replace").splitlines()
 
-    # Use the last Python traceback block if present.
+    # Use the last Python traceback block if present, otherwise the tail of the log.
     last_tb_start: int | None = None
     for i, line in enumerate(lines):
         if line.strip().startswith("Traceback (most recent call last):"):
             last_tb_start = i
 
-    if last_tb_start is not None:
-        return "\n".join(lines[last_tb_start:])
+    content = "\n".join(lines[last_tb_start:]) if last_tb_start is not None else "\n".join(lines[-fallback_lines:])
 
-    return "\n".join(lines[-fallback_lines:])
+    # Surface the DuckDB memory diagnostics even when they fall outside the extracted slice: the
+    # connect-time headroom line is near the top of the log, and a threads>1 background-thread OOM
+    # aborts with SIGABRT and no traceback. Only append the lines not already shown.
+    extras = [line for line in _collect_memory_diagnostics(lines) if line not in content]
+    if extras:
+        content = content + "\n\n--- DuckDB memory diagnostics (from elsewhere in log) ---\n" + "\n".join(extras)
+
+    return content
 
 
 def build_report(failures: list[tuple[str, Path]], markdown: bool, traceback_only: bool, fallback_lines: int) -> str:
