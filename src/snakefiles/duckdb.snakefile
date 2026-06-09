@@ -148,8 +148,14 @@ rule check_for_identically_labeled_cliques:
         # Pass 1 is a spillable COUNT(*) GROUP BY; pass 2 is a streaming hash join (small build
         # side) writing the duplicate (name, clique_leader) pairs with O(1) memory -- no aggregate,
         # no sort, since both an in-SQL LIST(... ORDER BY ...) and a global ORDER BY OOMed on the
-        # full graph. memory_limit is kept well below mem so DuckDB has a large headroom under the
-        # cgroup hard limit; single thread keeps per-thread state low. See slurm/README.md.
+        # full graph. On the larger 1.17 graph this still hit `bad allocation` single-threaded at
+        # memory_limit 1000G: an untracked allocation overshot the cgroup hard limit by >500 GiB
+        # before the soft limit triggered a spill. memory_limit is therefore dropped to 700G (~848
+        # GiB headroom under mem 1500G) and the temp dir uncapped so the spillable pass-1 aggregate
+        # spills to disk instead of RAM. If it still OOMs, the new "Memory snapshot ... untracked"
+        # log line (see src/exporters/duckdb_exporters.py) shows whether the killer is a tracked
+        # working set (needs more headroom) or an untracked join build side (needs a query rewrite).
+        # See slurm/README.md.
         mem="1500G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
@@ -159,9 +165,10 @@ rule check_for_identically_labeled_cliques:
             output.duckdb_filename,
             output.identically_labeled_cliques_tsv,
             {
-                "memory_limit": "1000G",
+                "memory_limit": "700G",
                 "threads": 1,
                 "preserve_insertion_order": False,
+                "max_temp_directory_size": "1500GB",
             },
         )
 
@@ -177,10 +184,14 @@ rule check_for_duplicate_curies:
         config["output_directory"] + "/benchmarks/check_for_duplicate_curies.tsv"
     resources:
         # Pass 1 is a GROUP BY over every CURIE in the full Edge set (~1B distinct groups) and is
-        # the memory bottleneck; the two-pass rewrite does not shrink it. The single-pass version
-        # passed at 1500G/1 thread (~318 GiB RSS), but a 400G/4-thread attempt OOMed at DuckDB's
-        # memory_limit (per-thread hash tables multiply the peak). Run on a full largemem node
-        # with a high limit and few threads.
+        # the memory bottleneck; the two-pass rewrite does not shrink it. On the 1.17 graph this
+        # rule died with `terminate called ... bad allocation`: a *background-thread* DuckDB OOM
+        # (only possible with threads > 1) that aborts the process with SIGABRT, and an untracked
+        # allocation that overshot the cgroup hard limit because memory_limit 1400G left only ~13%
+        # headroom under mem 1500G. It now follows the same safe recipe as its report siblings:
+        # single-threaded (no uncatchable background-thread OOM, no per-thread hash-table
+        # multiplication) with memory_limit (1000G) well below mem (1500G) for headroom, and a
+        # large temp dir so the spillable pass-1 aggregate spills instead of falling back to RAM.
         mem="1500G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
@@ -190,9 +201,10 @@ rule check_for_duplicate_curies:
             output.duckdb_filename,
             output.duplicate_curies,
             {
-                "memory_limit": "1400G",
-                "threads": 2,
+                "memory_limit": "1000G",
+                "threads": 1,
                 "preserve_insertion_order": False,
+                "max_temp_directory_size": "1500GB",
             },
         )
 
