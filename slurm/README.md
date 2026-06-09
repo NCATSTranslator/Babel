@@ -102,8 +102,8 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 | `untyped_chemical_compendia` | `chemical.snakefile` | 512G | — | Pre-typing step |
 | `gene_compendia` | `gene.snakefile` | 256G | 6h | Gene graph |
 | `export_compendia_to_duckdb` | `duckdb.snakefile` | 512G | 6h | Per-compendium DuckDB export |
-| `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 1500G | — | Two-pass: GROUP BY hash(LOWER(preferred_name)) + streaming-join pair output; memory_limit 1000G, 1 thread |
-| `check_for_duplicate_curies` | `duckdb.snakefile` | 1500G | — | GROUP BY curie over all edges; memory_limit 1400G, 2 threads |
+| `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 1500G | — | Two-pass: GROUP BY hash(LOWER(preferred_name)) + streaming-join pair output; memory_limit 700G, 1 thread |
+| `check_for_duplicate_curies` | `duckdb.snakefile` | 1500G | — | GROUP BY curie over all edges; memory_limit 1000G, 1 thread |
 | `check_for_duplicate_clique_leaders` | `duckdb.snakefile` | 512G | — | Two-pass over the smaller Clique table; memory_limit 400G, 4 threads |
 | `generate_curie_report` | `duckdb.snakefile` | 1500G | — | approx_count_distinct() over all edges, biolink_type read from the denormalized Edge column (no join); memory_limit 1000G, 1 thread |
 | `generate_clique_leader_report` | `duckdb.snakefile` | 1500G | — | approx_count_distinct() over all edges; memory_limit 1000G, 1 thread |
@@ -158,8 +158,28 @@ memory is small by construction:
   no sort). The output is unsorted; each row carries the per-name count so a consumer can group/sort
   it cheaply.
 
-All three run single-threaded with `memory_limit` set well below `mem` (1000G vs 1500G) so DuckDB
-has a large headroom under the cgroup hard limit.
+All of these run **single-threaded** with `memory_limit` set well below `mem` so DuckDB has a large
+headroom under the cgroup hard limit. Single-threaded matters for two reasons: a second thread
+multiplies per-thread hash tables (raising the peak), and a background-thread OOM aborts the process
+with `terminate called ... bad allocation` (SIGABRT, core dump) instead of a catchable
+`duckdb.OutOfMemoryException`, so the Python error handler — and its memory snapshot — never runs.
+`check_for_duplicate_curies` was the last rule still on `1400G` / 2 threads and OOMed exactly this
+way on the larger 1.17 graph; it is now `1000G` / 1 thread like the rest.
+
+`check_for_identically_labeled_cliques` needed an even wider margin on the 1.17 graph (it OOMed
+single-threaded at `1000G` when an untracked allocation overshot the cgroup by >500 GiB before the
+soft limit could spill), so it runs at `memory_limit` 700G. The heavy report rules also pass
+`max_temp_directory_size: 1500GB` so the spillable pass-1 aggregate spills to disk rather than
+falling back to RAM at the 500 GB default cap.
+
+When a `bad allocation` OOM does happen, `setup_duckdb()` logs a connect-time
+`DuckDB memory headroom: memory_limit=…, cgroup hard limit=…` line (the only memory record that
+survives a SIGABRT), and `log_duckdb_settings_on_error()` / the end of each report log a
+`Memory snapshot (…): process peak RSS=…; cgroup peak=…; DuckDB tracked=…; untracked=…` line. A
+large **untracked** figure means the killer is a string heap or hash-join build side DuckDB does not
+account for — lower `memory_limit` further or rewrite the query — whereas a tracked footprint near
+the soft limit means the rule simply needs more headroom or to spill. See
+`src/exporters/duckdb_exporters.py`.
 
 To override the spill location for a run — for example to point spills at a larger or less-contended
 filesystem — set `BABEL_DUCKDB_TEMP_DIR` in the job environment; an individual rule can also pass
