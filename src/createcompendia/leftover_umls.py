@@ -6,7 +6,6 @@ from pathlib import Path
 from src.babel_utils import TypedClique, write_compendium
 from src.categories import (
     ACTIVITY,
-    AGENT,
     BIOLOGICAL_PROCESS,
     CHEMICAL_ENTITY,
     CLINICAL_FINDING,
@@ -20,10 +19,10 @@ from src.categories import (
     PHYSICAL_ENTITY,
     POPULATION_OF_INDIVIDUAL_ORGANISMS,
     PROCEDURE,
-    PUBLICATION,
     SMALL_MOLECULE,
 )
 from src.datahandlers import umls
+from src.node import NodeFactory
 from src.prefixes import UMLS
 from src.util import get_biolink_model_toolkit, get_logger
 
@@ -78,7 +77,24 @@ STY_OVERRIDES: dict[str, str | None] = {
     "T090": POPULATION_OF_INDIVIDUAL_ORGANISMS,
     "T091": POPULATION_OF_INDIVIDUAL_ORGANISMS,
     "T097": POPULATION_OF_INDIVIDUAL_ORGANISMS,
+    # https://github.com/NCATSTranslator/Babel/issues/840
+    # "Physical Object" (T072) and "Manufactured Object" (T073) both map to biolink:PhysicalEntity,
+    # which has no id_prefixes in the Biolink Model. write_compendium() can nonetheless write these
+    # because the leftover UMLS rule passes extra_prefixes=[UMLS] (see Change in node.create_node),
+    # so we keep them typed as PhysicalEntity rather than dropping them. PhysicalEntity is listed in
+    # GENERIC_TYPES below, so a concept that carries T072/T073 *alongside* a more specific semantic
+    # type keeps the specific type instead of being dropped as multiply-typed.
+    "T072": PHYSICAL_ENTITY,
+    "T073": PHYSICAL_ENTITY,
 }
+
+# Very high-level Biolink types that should never shadow a more specific co-type. When a UMLS concept
+# resolves to more than one Biolink type and one of them is generic (e.g. biolink:PhysicalEntity from
+# T072/T073 "Physical Object"/"Manufactured Object"), the generic type is dropped so the specific
+# type wins. This is the cleaner successor to the old approach of rejecting T072/T073 with None (which
+# kept the specific type only by contributing no type at all, at the cost of dropping concepts whose
+# *only* type was T072/T073). A concept typed solely as a generic type still keeps it and is written.
+GENERIC_TYPES: frozenset[str] = frozenset({PHYSICAL_ENTITY})
 
 # Disambiguation applied when a single UMLS concept resolves to more than one Biolink type (because
 # it carries multiple semantic types). Keyed by the frozenset of resolved Biolink types; the value is
@@ -87,8 +103,6 @@ STY_OVERRIDES: dict[str, str | None] = {
 TYPE_COMBO_OVERRIDES: dict[frozenset[str], str] = {
     frozenset({DEVICE, DRUG}): DRUG,
     frozenset({DRUG, SMALL_MOLECULE}): SMALL_MOLECULE,
-    frozenset({AGENT, PHYSICAL_ENTITY}): AGENT,
-    frozenset({PHYSICAL_ENTITY, PUBLICATION}): PUBLICATION,
     frozenset({ACTIVITY, PROCEDURE}): PROCEDURE,
     frozenset({DRUG, FOOD}): FOOD,
     # https://github.com/NCATSTranslator/Babel/issues/569
@@ -98,6 +112,23 @@ TYPE_COMBO_OVERRIDES: dict[frozenset[str], str] = {
     # diseasephenotype.py -- would resolve to two types and be dropped.
     frozenset({PHENOMENON, CLINICAL_FINDING}): CLINICAL_FINDING,
 }
+
+
+def writable_output_types() -> set[str]:
+    """
+    Every Biolink type the leftover UMLS rule can emit from its manual override tables: all non-None
+    STY_OVERRIDES values, all TYPE_COMBO_OVERRIDES values, and NAMED_THING (the fallback type used
+    when a concept has no MRSTY semantic type). Used by the preflight check in write_leftover_umls()
+    and by the regression test to confirm each type is writable with extra_prefixes=[UMLS] -- some of
+    them (e.g. biolink:Phenomenon, biolink:PhysicalEntity) have no id_prefixes of their own.
+
+    The dynamic, Biolink-mapped TUIs are not enumerated here because they are made crash-proof by
+    node.create_node() tolerating prefix-less types when extra_prefixes is supplied.
+    """
+    types = {t for t in STY_OVERRIDES.values() if t is not None}
+    types.update(TYPE_COMBO_OVERRIDES.values())
+    types.add(NAMED_THING)
+    return types
 
 
 def tui_to_biolink_type(umls_tui: str, toolkit=None, biolink_version: str | None = None) -> str | None:
@@ -168,6 +199,22 @@ def write_leftover_umls(
 
     report_dir = Path(report).parent
     report_dir.mkdir(parents=True, exist_ok=True)
+
+    # Preflight: confirm every Biolink type this rule can emit from its manual override tables can
+    # actually be written with extra_prefixes=[UMLS], before we spend hours loading the compendia,
+    # MRSTY and MRCONSO. create_node() with empty identifiers exercises get_prefixes() (the call that
+    # historically crashed write_compendium after ~5h on a prefix-less type) and then returns None
+    # without touching any labels or files. Fail fast here with a clear message instead.
+    preflight_factory = NodeFactory(label_dir=None, biolink_version=biolink_version)
+    for output_type in sorted(writable_output_types()):
+        try:
+            preflight_factory.create_node(input_identifiers=[], node_type=output_type, labels={}, extra_prefixes=[UMLS])
+        except RuntimeError as e:
+            raise RuntimeError(
+                f"leftover_umls preflight failed: Biolink type {output_type} is not writable even with "
+                f"extra_prefixes=[UMLS] ({e}). Fix the override tables in leftover_umls.py before running the rule."
+            ) from e
+    logger.info(f"Preflight passed: all {len(writable_output_types())} override output types are writable.")
 
     # For now, we have many more UMLS entities in MRCONSO than in the compendia, so
     # we'll make an in-memory list of those first. Once that flips, this should be
@@ -358,6 +405,13 @@ def write_leftover_umls(
 
                 # Disambiguate when a concept resolves to multiple Biolink types.
                 biolink_types = mapped_types
+                # Drop very high-level types (e.g. PhysicalEntity) when a more specific co-type is
+                # present, so the generic type never shadows it. A concept typed *only* as a generic
+                # type keeps it.
+                if len(biolink_types) > 1:
+                    specific_types = biolink_types - GENERIC_TYPES
+                    if specific_types:
+                        biolink_types = specific_types
                 if len(biolink_types) > 1 and frozenset(biolink_types) in TYPE_COMBO_OVERRIDES:
                     biolink_types = {TYPE_COMBO_OVERRIDES[frozenset(biolink_types)]}
 

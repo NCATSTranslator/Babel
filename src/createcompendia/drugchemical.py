@@ -421,8 +421,23 @@ def build_conflation(
                     object = chemical_rxcui_to_clique[object]
                     pairs.append((subject, object))
 
-    # Add the manual concords.
-    pairs.extend(manual_concords)
+    # Add the manual concords, normalizing CURIEs to their preferred form.
+    for subject, object in manual_concords:
+        if subject not in preferred_curie_for_curie:
+            logger.warning(
+                f"Manual concord subject {subject} (paired with {object}) is not in any chemical compendium — "
+                f"it may have been reclassified (e.g. as a protein). "
+                f"If so, remove it from input_data/manual_concords/drugchemical.tsv."
+            )
+            continue
+        if object not in preferred_curie_for_curie:
+            logger.warning(
+                f"Manual concord object {object} (paired with {subject}) is not in any chemical compendium — "
+                f"it may have been reclassified (e.g. as a protein). "
+                f"If so, remove it from input_data/manual_concords/drugchemical.tsv."
+            )
+            continue
+        pairs.append((preferred_curie_for_curie[subject], preferred_curie_for_curie[object]))
 
     # We've had some issues with non-chemical types getting conflated, so we filter those out here.
     biolink_model_toolkit = get_biolink_model_toolkit(config["biolink_version"])
@@ -572,6 +587,12 @@ def build_conflation(
             normalized_conflation_id_list = list()
             for iid in conflation_id_list:
                 # Normalization shouldn't be needed here, because they're all clique leaders, but just in case.
+                if iid not in preferred_curie_for_curie:
+                    raise RuntimeError(
+                        f"Conflation clique member {iid} (in clique {conflation_id_list}) is not in any chemical "
+                        f"compendium. This usually means a manual concord references a CURIE that isn't in any "
+                        f"compendium — check input_data/manual_concords/drugchemical.tsv for entries containing {iid}."
+                    )
                 preferred_curie = preferred_curie_for_curie[iid]
                 if preferred_curie != iid:
                     logger.warning(

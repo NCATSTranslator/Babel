@@ -26,8 +26,9 @@ Biolink says (or `None` if Biolink has no mapping). For each concept:
    fully type) and reported as `NO_UMLS_TYPE`.
 3. Rejected semantic types simply drop out. If nothing is left, the concept is skipped and reported
    as `REJECTED`.
-4. If the surviving Biolink types disagree, `TYPE_COMBO_OVERRIDES` is consulted to pick one;
-   otherwise the concept is skipped and reported as `MULTIPLE_UMLS_TYPES`.
+4. If the surviving Biolink types disagree, generic types in `GENERIC_TYPES` are dropped first (so a
+   specific co-type wins), then `TYPE_COMBO_OVERRIDES` is consulted to pick one; if more than one
+   type still remains the concept is skipped and reported as `MULTIPLE_UMLS_TYPES`.
 
 ## The override tables
 
@@ -51,8 +52,36 @@ to anticipate how a Biolink change will land in real Babel data. The two tables 
   - `T122` "Biomedical or Dental Material" → `biolink:ChemicalEntity` (#421; no STY mapping in
     Biolink).
   - `T168` "Food" → `biolink:Food` (#421; no STY mapping in Biolink).
+  - `T072` "Physical Object" and `T073` "Manufactured Object" → `biolink:PhysicalEntity` (#840). bmt
+    already maps these to `biolink:PhysicalEntity`, so the override is an intentional pin (see
+    `GENERIC_TYPES` below) rather than a correction.
 - **`TYPE_COMBO_OVERRIDES: dict[frozenset[str], str]`** — when a concept resolves to more than one
   Biolink type, pick a single one (e.g. `{Device, Drug} → Drug`).
+- **`GENERIC_TYPES: frozenset[str]`** — very high-level types (currently `biolink:PhysicalEntity`)
+  that must never shadow a more specific co-type. When a concept resolves to more than one Biolink
+  type and one is generic, the generic type is dropped so the specific one wins. A concept typed
+  *only* as a generic type still keeps it. This is the successor to rejecting `T072`/`T073` with
+  `None`: rejection kept the specific type only by contributing no type at all, which also dropped
+  concepts whose *only* type was `T072`/`T073`.
+
+### Prefix-less Biolink types are still writable here
+
+Some of these target types (`biolink:Phenomenon`, `biolink:ClinicalFinding`,
+`biolink:PhysicalEntity`) carry no `id_prefixes` in the Biolink Model. They are nonetheless writable
+in *this* compendium because every leftover clique is a single `UMLS:` identifier and the rule
+passes `extra_prefixes=[UMLS]` to `write_compendium()`. `NodeFactory.create_node()` raises "No
+Biolink prefixes for ..." only when a type has no `id_prefixes` **and** no `extra_prefixes` are
+supplied. (Previously `create_node()` raised on the bare `get_prefixes()` call before it considered
+`extra_prefixes`, which crashed the rule after ~5h on the HPC.)
+
+### Preflight: failing fast
+
+`write_leftover_umls()` runs a preflight before loading any compendia, MRSTY or MRCONSO: it calls
+`create_node(input_identifiers=[], node_type=T, extra_prefixes=[UMLS])` for every type in
+`writable_output_types()` (all non-`None` `STY_OVERRIDES` values, all `TYPE_COMBO_OVERRIDES` values,
+and `biolink:NamedThing`). If any type is unwritable the rule aborts in seconds with a clear message
+instead of after the multi-hour MRCONSO scan. The companion test
+`test_all_override_target_types_are_writable` guards the same set in CI.
 
 Every `STY_OVERRIDES` entry must cite the GitHub issue that motivates it.
 
