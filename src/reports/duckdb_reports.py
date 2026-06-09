@@ -65,8 +65,12 @@ def check_for_identically_labeled_cliques(
         """).write_csv(identically_labeled_cliques_tsv, sep="\t", header=True)
 
     log_memory_snapshot(db, "check_for_identically_labeled_cliques complete")
-    cliques.close()
-    db.close()
+    # Teardown is wrapped because a `bad allocation` has struck here (cliques.close()) *after* the
+    # query finished -- an address-space, not RAM, limit. The wrapper logs a snapshot at the exact
+    # failing allocation so the address-space line is captured.
+    with log_duckdb_settings_on_error(db, "check_for_identically_labeled_cliques teardown"):
+        cliques.close()
+        db.close()
 
 
 def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_tsv, duckdb_config=None):
@@ -110,8 +114,9 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
         """).write_csv(duplicate_curies_tsv, sep="\t")
 
     log_memory_snapshot(db, "check_for_duplicate_curies complete")
-    edges.close()
-    db.close()
+    with log_duckdb_settings_on_error(db, "check_for_duplicate_curies teardown"):
+        edges.close()
+        db.close()
 
 
 def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_clique_leaders_tsv, duckdb_config=None):
