@@ -145,18 +145,18 @@ rule check_for_identically_labeled_cliques:
     benchmark:
         config["output_directory"] + "/benchmarks/check_for_identically_labeled_cliques.tsv"
     resources:
-        # Pass 1 is a spillable COUNT(*) GROUP BY on a fixed-size hash; pass 2 is a streaming hash
-        # join (small build side) writing the duplicate (name, clique_leader) pairs. The query is
-        # cheap and is NOT the problem: the snapshot showed it completing with only ~67 GiB RSS, an
-        # 85 GiB cgroup peak against a 500 GiB limit, and ~0.1 GiB DuckDB-tracked memory -- yet it
-        # died with `bad allocation` failing an ~8 MB allocation during teardown. The address-space
-        # snapshot pinpointed the cause: mappings=65532 against the kernel's vm.max_map_count=65530.
-        # DuckDB's external file cache (enable_external_file_cache, on by default) keeps Parquet
-        # blocks mmapped across queries, so scanning every Clique.parquet twice accumulated one
-        # mapping per cached block until the process hit the kernel limit -- an mmap-count limit, not
-        # a RAM shortage. The fix is enable_external_file_cache=false (set globally in config.yaml).
-        # This rule is also kept right-sized at mem 512G / memory_limit 400G, single-threaded, since
-        # the query does not need a largemem node. See slurm/README.md.
+        # This rule keeps dying with `bad allocation` failing a ~8 MB allocation, and the
+        # address-space snapshot pins the cause beyond doubt: mappings=65532 against the kernel's
+        # vm.max_map_count=65530 -- an mmap-count limit, NOT a RAM shortage (cgroup peak 85 GiB of a
+        # 500 GiB limit, Committed_AS 80 GiB of 1359 GiB). Disabling DuckDB's external file cache did
+        # NOT change the count, so the mappings are DuckDB's buffer-pool allocations: VmSize (84.8
+        # GiB) tracks the query's peak memory at ~1.3 MB per mapping, and DuckDB's allocator retains
+        # the mappings after freeing the pages (cgroup current falls but VmSize/mappings stay at the
+        # peak). The mapping count therefore scales with peak buffer-pool memory, which is bounded by
+        # memory_limit. So cap memory_limit far below the query's natural ~85 GiB peak: at 16G the
+        # spillable two-pass query holds only ~16 GiB of buffers at once (~12k mappings, comfortably
+        # under 65530), spilling the rest to disk. The definitive fix is for the cluster to raise
+        # vm.max_map_count (issue #846); this keeps the rule running until then. See slurm/README.md.
         mem="512G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
@@ -166,7 +166,7 @@ rule check_for_identically_labeled_cliques:
             output.duckdb_filename,
             output.identically_labeled_cliques_tsv,
             {
-                "memory_limit": "400G",
+                "memory_limit": "16G",
                 "threads": 1,
                 "preserve_insertion_order": False,
             },

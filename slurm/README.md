@@ -102,7 +102,7 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 | `untyped_chemical_compendia` | `chemical.snakefile` | 512G | — | Pre-typing step |
 | `gene_compendia` | `gene.snakefile` | 256G | 6h | Gene graph |
 | `export_compendia_to_duckdb` | `duckdb.snakefile` | 512G | 6h | Per-compendium DuckDB export |
-| `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 512G | — | Two-pass: GROUP BY hash(LOWER(preferred_name)) + streaming-join pair output; right-sized to its ~67 GiB footprint; memory_limit 400G, 1 thread; mmap-count exhaustion fixed by global `enable_external_file_cache: false` |
+| `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 512G | — | Two-pass: GROUP BY hash(LOWER(preferred_name)) + streaming-join pair output; memory_limit **16G**, 1 thread — capped low to bound the buffer-pool mapping count under vm.max_map_count (see Known Issues) |
 | `check_for_duplicate_curies` | `duckdb.snakefile` | 1500G | — | GROUP BY curie over all edges; memory_limit 1000G, 1 thread |
 | `check_for_duplicate_clique_leaders` | `duckdb.snakefile` | 512G | — | Two-pass over the smaller Clique table; memory_limit 400G, 4 threads |
 | `generate_curie_report` | `duckdb.snakefile` | 1500G | — | approx_count_distinct() over all edges, biolink_type read from the denormalized Edge column (no join); memory_limit 1000G, 1 thread |
@@ -168,19 +168,28 @@ way on the larger 1.17 graph; it is now `1000G` / 1 thread like the rest.
 
 `check_for_identically_labeled_cliques` is the cautionary tale that a `bad allocation` OOM is not
 always about running out of RAM. After the two-pass rewrite it is cheap: the snapshot showed it
-completing on the 1.17 graph with only ~67 GiB RSS, an **85 GiB cgroup peak against a 500 GiB
-limit**, and ~0.1 GiB DuckDB-tracked memory. Yet it died with `bad allocation` failing an ~8 MB
-allocation during teardown. The address-space snapshot named the cause outright:
-**`mappings=65532` against the kernel's `vm.max_map_count=65530`**. DuckDB's external file cache
-(`enable_external_file_cache`, on by default) keeps Parquet blocks mmapped across queries, so
-scanning every `Clique.parquet` twice accumulated one mapping per cached block until the process hit
-the kernel's per-process mapping limit — an *mmap-count* limit, not a RAM shortage (`Committed_AS`
-was 80 GiB against a 1359 GiB `CommitLimit`, and `MemAvailable` was ~1.5 TiB). The fix is
-`enable_external_file_cache: false` in `config.yaml`'s `duckdb_config` (it applies to every DuckDB
-connection; for our read-once / scan-twice queries it costs only a re-read from disk). The rule is
-also kept right-sized at `mem` 512G / `memory_limit` 400G, single-threaded, since the query does not
-need a largemem node. (Note: `MALLOC_ARENA_MAX` was tried first and did **not** help — the 65k
-mappings averaged ~1.3 MB, so they were DuckDB's file-cache mappings, not glibc's 64 MB arenas.)
+completing on the 1.17 graph with only ~67 GiB RSS, an
+**85 GiB cgroup peak against a 500 GiB limit**, and ~0.1 GiB DuckDB-tracked memory. Yet it died with
+`bad allocation` failing an ~8 MB allocation during teardown. The address-space snapshot named the
+cause outright: **`mappings=65532` against the kernel's `vm.max_map_count=65530`** — an *mmap-count*
+limit, not a RAM shortage (`Committed_AS` was 80 GiB against a 1359 GiB `CommitLimit`, and
+`MemAvailable` was ~1.5 TiB). Pinning down *which* mappings took several tries, all of which the
+snapshot adjudicated:
+
+- `MALLOC_ARENA_MAX=2` did **not** help — the 65k mappings averaged ~1.3 MB, not glibc's 64 MB
+  arenas.
+- `enable_external_file_cache: false` did **not** change the count either — the file cache was not
+  the source (kept off anyway, since it cannot increase the count and removes one variable).
+- What the numbers actually say: `VmSize` (84.8 GiB) ≈ the query's peak memory, at ~1.3 MB per
+  mapping, and DuckDB's allocator **retains those mappings after freeing the pages** (cgroup current
+  falls to ~24 GiB while `VmSize`/mappings stay at the peak). So the mapping count tracks DuckDB's
+  **peak buffer-pool memory**, which is bounded by `memory_limit`. Capping `memory_limit` at 16G
+  holds only ~16 GiB of buffers at once (~12k mappings, well under 65530); the spillable two-pass
+  query just spills the rest to disk.
+
+The **definitive** fix is for the cluster to raise `vm.max_map_count` (it is the old default of
+65530; 262144+ is typical for data-heavy mmap workloads — tracking issue #846). The `memory_limit`
+cap keeps the rule running until then. `mem` stays at 512G (the cgroup was never the constraint).
 
 The memory snapshot is built to tell these shapes apart. `setup_duckdb()` logs a connect-time
 `DuckDB memory headroom: memory_limit=…, cgroup hard limit=…` line (the only memory record that
@@ -226,14 +235,24 @@ How to confirm: look at the `Address-space snapshot (…)` line that `log_memory
 `MemAvailable` is large, it is this issue. (Compare against the RAM shapes documented under
 "Temporary Scratch Space" above.)
 
-What we have seen and the current mitigation: `check_for_identically_labeled_cliques` hit
-`mappings=65532` vs `max_map_count=65530`. DuckDB's external file cache keeps Parquet blocks mmapped
-across queries, and scanning every compendium's Parquet file more than once accumulated one mapping
-per cached block. The fix in this repo is `enable_external_file_cache: false` in `config.yaml`'s
-`duckdb_config`. If a future rule hits the same ceiling from a different mmap source, the broader
-fix is to have the cluster raise `vm.max_map_count` (e.g. to 262144 or higher via
-`sysctl -w vm.max_map_count=262144`); 65530 is low for data-heavy mmap workloads. Tracking issue:
-<https://github.com/NCATSTranslator/Babel/issues/846>.
+What we have seen: `check_for_identically_labeled_cliques` hit `mappings=65532` vs
+`max_map_count=65530`. The mappings are DuckDB's **buffer-pool allocations** — `VmSize` tracked the
+query's peak memory at ~1.3 MB per mapping, and DuckDB's allocator retains the mappings after
+freeing the pages (so `VmSize`/`mappings` stay at the peak even as `cgroup current` falls). Two
+things that did **not** help, both ruled out by the snapshot: `MALLOC_ARENA_MAX=2` (the mappings
+were not glibc's 64 MB arenas) and `enable_external_file_cache: false` (the count was unchanged —
+the file cache was not the source; we leave it off anyway as it cannot increase the count).
+
+Two mitigations:
+
+1. **Cap `memory_limit` low** (in the rule's `duckdb_config`). The mapping count scales with peak
+   buffer-pool memory, which `memory_limit` bounds, so a low cap (16G for this rule) keeps the
+   spillable query's live mappings well under the ceiling. This is what keeps the rule running
+   today.
+2. **Raise `vm.max_map_count`** — the definitive fix. The old default of 65530 is low for
+   data-heavy mmap workloads; 262144+ is typical (`sysctl -w vm.max_map_count=262144`). This is a
+   cluster-level change and the right long-term answer. Tracking issue:
+   <https://github.com/NCATSTranslator/Babel/issues/846>.
 
 ## Localrules (Run on Head Node, No SLURM Slot)
 

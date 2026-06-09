@@ -47,14 +47,14 @@ compendium_directories:
 # group, at no cost to compression ratio or query performance.
 #
 # enable_external_file_cache=false: DuckDB's external file cache keeps Parquet file blocks mmapped
-# in memory across queries. The cross-compendium report rules scan every compendium's Parquet file
-# (e.g. `read_parquet("**/Clique.parquet")`) twice, so the cache accumulated one memory mapping per
-# cached block and never released them: check_for_identically_labeled_cliques reached 65532
-# mappings against the kernel's vm.max_map_count of 65530 and a routine ~8 MB allocation then failed
-# with `bad allocation` -- an address-space (mmap-count) limit, NOT a RAM shortage (the job used
-# only ~85 GiB of its 500 GiB cgroup). Disabling the cache bounds the mapping count; for our
-# read-once/scan-twice queries it costs only a re-read from disk, no correctness change. (If the
-# cluster raises vm.max_map_count well above 65530, this could be revisited.)
+# across queries, which is one source of memory mappings. The cross-compendium report rules were
+# hitting the kernel's per-process mapping limit (vm.max_map_count, default 65530) and failing with
+# `bad allocation` on a small allocation despite free RAM -- an address-space (mmap-count) limit.
+# Disabling this cache removes it as a mapping source, but note it was NOT sufficient on its own:
+# the dominant source is DuckDB's buffer pool (its allocator retains ~1.3 MB mappings up to the
+# query's peak memory), so the report rules also cap memory_limit far below their natural peak. The
+# definitive fix is for the cluster to raise vm.max_map_count (issue #846); until then we keep this
+# off (it only costs a re-read from disk for our read-once/scan-twice queries, no correctness change).
 duckdb_config:
   write_buffer_row_group_count: 1
   enable_external_file_cache: false
