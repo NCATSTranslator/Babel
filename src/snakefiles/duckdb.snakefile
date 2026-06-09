@@ -145,18 +145,20 @@ rule check_for_identically_labeled_cliques:
     benchmark:
         config["output_directory"] + "/benchmarks/check_for_identically_labeled_cliques.tsv"
     resources:
-        # Pass 1 is a spillable COUNT(*) GROUP BY; pass 2 is a streaming hash join (small build
-        # side) writing the duplicate (name, clique_leader) pairs with O(1) memory -- no aggregate,
-        # no sort, since both an in-SQL LIST(... ORDER BY ...) and a global ORDER BY OOMed on the
-        # full graph. On the larger 1.17 graph this still hit `bad allocation` single-threaded at
-        # memory_limit 1000G: an untracked allocation overshot the cgroup hard limit by >500 GiB
-        # before the soft limit triggered a spill. memory_limit is therefore dropped to 700G (~848
-        # GiB headroom under mem 1500G) and the temp dir uncapped so the spillable pass-1 aggregate
-        # spills to disk instead of RAM. If it still OOMs, the new "Memory snapshot ... untracked"
-        # log line (see src/exporters/duckdb_exporters.py) shows whether the killer is a tracked
-        # working set (needs more headroom) or an untracked join build side (needs a query rewrite).
-        # See slurm/README.md.
-        mem="1500G",
+        # Pass 1 is a spillable COUNT(*) GROUP BY on a fixed-size hash; pass 2 is a streaming hash
+        # join (small build side) writing the duplicate (name, clique_leader) pairs. The rewritten
+        # query is cheap: at 700G it ran to completion using only ~67 GiB RSS and ~0.1 GiB
+        # DuckDB-tracked memory -- but the job still died with `bad allocation` failing an 8.6 MB
+        # allocation *after* the query finished (during teardown). With the job's own working set
+        # that small, that was a node-level physical OOM: mem=1500G reserved nearly the entire
+        # ~1.46 TiB largemem node for a query that does not need it, and an allocation tripped the
+        # node's physical RAM ceiling. So this rule is right-sized to its measured footprint -- mem
+        # 512G with memory_limit 400G, single-threaded -- which keeps the cgroup limit well under
+        # physical RAM and frees the scarce largemem nodes. The "Memory snapshot ..." log line (see
+        # src/exporters/duckdb_exporters.py) now reports the cgroup current/peak/limit so a recurrence
+        # can be read directly: cgroup current near the limit => untracked working set; well below =>
+        # node-level OOM. See slurm/README.md.
+        mem="512G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
@@ -165,10 +167,9 @@ rule check_for_identically_labeled_cliques:
             output.duckdb_filename,
             output.identically_labeled_cliques_tsv,
             {
-                "memory_limit": "700G",
+                "memory_limit": "400G",
                 "threads": 1,
                 "preserve_insertion_order": False,
-                "max_temp_directory_size": "1500GB",
             },
         )
 
