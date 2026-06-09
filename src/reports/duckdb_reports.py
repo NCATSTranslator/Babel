@@ -66,6 +66,7 @@ def check_for_identically_labeled_cliques(
 
     log_memory_snapshot(db, "check_for_identically_labeled_cliques complete")
     cliques.close()
+    db.close()
 
 
 def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_tsv, duckdb_config=None):
@@ -110,6 +111,7 @@ def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_t
 
     log_memory_snapshot(db, "check_for_duplicate_curies complete")
     edges.close()
+    db.close()
 
 
 def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_clique_leaders_tsv, duckdb_config=None):

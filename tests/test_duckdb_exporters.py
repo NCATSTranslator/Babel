@@ -5,7 +5,8 @@ import pytest
 
 from src.exporters.duckdb_exporters import (
     _bytes_to_gib,
-    _read_cgroup_memory_value,
+    _parse_cgroup_memory_value,
+    _parse_proc_cgroup,
     export_conflation_to_parquet,
     log_duckdb_settings_on_error,
     log_memory_snapshot,
@@ -42,22 +43,28 @@ def test_bytes_to_gib_formats_and_handles_none():
 
 
 @pytest.mark.unit
-def test_read_cgroup_memory_value_parses_and_rejects_sentinels(tmp_path):
-    """A plain integer is returned; 'max' and the cgroup-v1 unlimited sentinel become None."""
-    numeric = tmp_path / "memory.max"
-    numeric.write_text("1610612736\n")
-    assert _read_cgroup_memory_value(str(numeric)) == 1610612736
+def test_parse_proc_cgroup_resolves_slurm_job_cgroup():
+    """The SLURM job cgroup is resolved from /proc/self/cgroup for both cgroup v1 and v2."""
+    # cgroup v1: a memory-controller line points under /sys/fs/cgroup/memory.
+    v1 = "12:cpuset:/\n7:memory:/slurm/uid_1000/job_1870/step_0\n3:cpu,cpuacct:/slurm\n"
+    assert _parse_proc_cgroup(v1) == ["/sys/fs/cgroup/memory/slurm/uid_1000/job_1870/step_0"]
 
-    maxfile = tmp_path / "memory.max.unbounded"
-    maxfile.write_text("max\n")
-    assert _read_cgroup_memory_value(str(maxfile)) is None
+    # cgroup v2: the unified 0:: line points directly under /sys/fs/cgroup.
+    v2 = "0::/system.slice/slurmstepd.scope/job_1870/step_0\n"
+    assert _parse_proc_cgroup(v2) == ["/sys/fs/cgroup/system.slice/slurmstepd.scope/job_1870/step_0"]
 
-    sentinel = tmp_path / "memory.limit_in_bytes"
-    sentinel.write_text(f"{1 << 63}\n")
-    assert _read_cgroup_memory_value(str(sentinel)) is None
+    # No memory controller / malformed lines -> empty, no exception.
+    assert _parse_proc_cgroup("9:cpuset:/\ngarbage\n") == []
 
-    # No readable file in the list -> None, no exception.
-    assert _read_cgroup_memory_value(str(tmp_path / "does-not-exist")) is None
+
+@pytest.mark.unit
+def test_parse_cgroup_memory_value_parses_and_rejects_sentinels():
+    """A plain integer is parsed; 'max', empty, and the cgroup-v1 unlimited sentinel become None."""
+    assert _parse_cgroup_memory_value("1610612736\n") == 1610612736
+    assert _parse_cgroup_memory_value("max\n") is None
+    assert _parse_cgroup_memory_value("") is None
+    assert _parse_cgroup_memory_value(f"{1 << 63}\n") is None
+    assert _parse_cgroup_memory_value("not-a-number") is None
 
 
 @pytest.mark.unit
