@@ -102,7 +102,7 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 | `untyped_chemical_compendia` | `chemical.snakefile` | 512G | — | Pre-typing step |
 | `gene_compendia` | `gene.snakefile` | 256G | 6h | Gene graph |
 | `export_compendia_to_duckdb` | `duckdb.snakefile` | 512G | 6h | Per-compendium DuckDB export |
-| `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 1500G | — | Two-pass: GROUP BY hash(LOWER(preferred_name)) + streaming-join pair output; memory_limit 700G, 1 thread |
+| `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 512G | — | Two-pass: GROUP BY hash(LOWER(preferred_name)) + streaming-join pair output; right-sized to its ~67 GiB footprint; memory_limit 400G, 1 thread |
 | `check_for_duplicate_curies` | `duckdb.snakefile` | 1500G | — | GROUP BY curie over all edges; memory_limit 1000G, 1 thread |
 | `check_for_duplicate_clique_leaders` | `duckdb.snakefile` | 512G | — | Two-pass over the smaller Clique table; memory_limit 400G, 4 threads |
 | `generate_curie_report` | `duckdb.snakefile` | 1500G | — | approx_count_distinct() over all edges, biolink_type read from the denormalized Edge column (no join); memory_limit 1000G, 1 thread |
@@ -166,20 +166,32 @@ with `terminate called ... bad allocation` (SIGABRT, core dump) instead of a cat
 `check_for_duplicate_curies` was the last rule still on `1400G` / 2 threads and OOMed exactly this
 way on the larger 1.17 graph; it is now `1000G` / 1 thread like the rest.
 
-`check_for_identically_labeled_cliques` needed an even wider margin on the 1.17 graph (it OOMed
-single-threaded at `1000G` when an untracked allocation overshot the cgroup by >500 GiB before the
-soft limit could spill), so it runs at `memory_limit` 700G. The heavy report rules also pass
-`max_temp_directory_size: 1500GB` so the spillable pass-1 aggregate spills to disk rather than
-falling back to RAM at the 500 GB default cap.
+`check_for_identically_labeled_cliques` is the cautionary tale for why `mem` should track the
+*measured* footprint, not a worst-case guess. After the two-pass rewrite it is cheap: the memory
+snapshot showed it completing on the 1.17 graph with only ~67 GiB RSS and ~0.1 GiB DuckDB-tracked
+memory. Yet it still died — with `bad allocation` failing an 8.6 MB allocation **after** the query
+finished, during teardown. With the job's own working set that small, the cgroup was nowhere near
+its 1500G limit; this was a *node-level physical OOM*: `mem=1500G` reserves nearly the whole
+~1.46 TiB largemem node, and a trivial allocation tripped the node's physical RAM ceiling. It is now
+right-sized to its footprint (`mem` 512G, `memory_limit` 400G, single-threaded), which keeps the
+cgroup limit comfortably under physical RAM and frees the scarce largemem nodes for the rules that
+genuinely need them.
 
-When a `bad allocation` OOM does happen, `setup_duckdb()` logs a connect-time
-`DuckDB memory headroom: memory_limit=…, cgroup hard limit=…` line (the only memory record that
-survives a SIGABRT), and `log_duckdb_settings_on_error()` / the end of each report log a
-`Memory snapshot (…): process peak RSS=…; cgroup peak=…; DuckDB tracked=…; untracked=…` line. A
-large **untracked** figure means the killer is a string heap or hash-join build side DuckDB does not
-account for — lower `memory_limit` further or rewrite the query — whereas a tracked footprint near
-the soft limit means the rule simply needs more headroom or to spill. See
-`src/exporters/duckdb_exporters.py`.
+This is exactly the distinction the memory snapshot is built to expose. `setup_duckdb()` logs a
+connect-time `DuckDB memory headroom: memory_limit=…, cgroup hard limit=…` line (the only memory
+record that survives a SIGABRT), and `log_duckdb_settings_on_error()` plus the end of each report
+log a `Memory snapshot (…)` line reporting process peak RSS, cgroup current/peak/hard-limit, DuckDB
+tracked memory, and the untracked remainder. Read it as:
+
+- **cgroup current near the hard limit, DuckDB tracked small** → the killer is memory DuckDB does
+  not account for (string heap, hash-join build side, or file page cache). Lower `memory_limit`,
+  rewrite the query, or shrink the working set; do not add RAM.
+- **cgroup current well below the hard limit but an allocation still fails** → a node-level OOM:
+  `mem` was sized near the whole node for a query that does not need it. Right-size `mem` *down*.
+
+The cgroup figures come from the job's SLURM cgroup, resolved via `/proc/self/cgroup` (the bare
+`/sys/fs/cgroup` root would report the node total, not the `mem=` allocation); they read `unknown`
+off Linux/cgroups. See `src/exporters/duckdb_exporters.py`.
 
 To override the spill location for a run — for example to point spills at a larger or less-contended
 filesystem — set `BABEL_DUCKDB_TEMP_DIR` in the job environment; an individual rule can also pass
