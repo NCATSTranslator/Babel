@@ -29,9 +29,9 @@ def split_ncbigene_synonym_field(value):
     """
     Split a pipe-delimited NCBIGene synonym field into standalone synonym strings.
 
-    Some NCBIGene aliases contain '' around comma-containing text, and those '' quotes 
+    Some NCBIGene aliases contain '' around comma-containing text, and those '' quotes
     are not real synonym content. When the quoted text has already been split
-    by NCBI into pipe-delimited fragments, the leading/trailing fragments 
+    by NCBI into pipe-delimited fragments, the leading/trailing fragments
     (for example: ''cytochrome P450) are not valid synonyms and should not be added.
     """
     synonyms = set()
