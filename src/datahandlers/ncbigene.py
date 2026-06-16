@@ -25,6 +25,31 @@ def get_ncbigene_field(row, header, field_name):
     return value
 
 
+def split_ncbigene_synonym_field(value):
+    """
+    Split a pipe-delimited NCBIGene synonym field into standalone synonym strings.
+
+    Some NCBIGene aliases contain '' around comma-containing text, and those '' quotes 
+    are not real synonym content. When the quoted text has already been split
+    by NCBI into pipe-delimited fragments, the leading/trailing fragments 
+    (for example: ''cytochrome P450) are not valid synonyms and should not be added.
+    """
+    synonyms = set()
+    for raw_synonym in value.split("|"):
+        synonym = raw_synonym.strip()
+        if not synonym:
+            continue
+        starts_quoted = synonym.startswith("''")
+        ends_quoted = synonym.endswith("''")
+        if starts_quoted and ends_quoted:
+            synonym = synonym[2:-2].strip()
+        elif starts_quoted or ends_quoted:
+            continue
+        if synonym:
+            synonyms.add(synonym)
+    return synonyms
+
+
 def pull_ncbigene_labels_synonyms_and_taxa(
     gene_info_filename, labels_filename, synonyms_filename, taxa_filename, descriptions_filename
 ):
@@ -86,9 +111,11 @@ def pull_ncbigene_labels_synonyms_and_taxa(
             taxafile.write(f"{gene_id}\tNCBITaxon:{get_ncbigene_field(row, header, '#tax_id')}\n")
 
             # Write out all the synonyms.
-            syns = set(get_ncbigene_field(row, header, "Full_name_from_nomenclature_authority").split("|"))
-            syns.update(get_ncbigene_field(row, header, "Synonyms").split("|"))
-            syns.update(get_ncbigene_field(row, header, "Other_designations").split("|"))
+            syns = split_ncbigene_synonym_field(
+                get_ncbigene_field(row, header, "Full_name_from_nomenclature_authority")
+            )
+            syns.update(split_ncbigene_synonym_field(get_ncbigene_field(row, header, "Synonyms")))
+            syns.update(split_ncbigene_synonym_field(get_ncbigene_field(row, header, "Other_designations")))
             # syns.add(get_ncbigene_field(row, header, "description"))
             syns.add(get_ncbigene_field(row, header, "Symbol_from_nomenclature_authority"))
             syns.add(get_ncbigene_field(row, header, "Symbol"))
