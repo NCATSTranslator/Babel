@@ -3,6 +3,13 @@
 This guide explains how to file a useful issue — whether you spotted a problem in the Babel output
 files, through the [Node Normalizer], or through the [Name Resolver].
 
+Before filing, check whether a similar issue already exists in the [Babel issue tracker]. If it
+does, please add a comment with additional examples or "+1" the issue to signal that it affects
+you too, rather than opening a duplicate. If the same underlying bug seems to be the cause, you
+can also add your issue as a sub-issue of the existing one. If you don't have time for this,
+don't worry — filing the issue at all is more important, and we can deduplicate it after
+submission.
+
 ## Where to file
 
 - **Clique content** (wrong identifiers, wrong Biolink type, wrong preferred label, missing

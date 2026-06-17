@@ -10,9 +10,11 @@ spot it in the Babel output files or through one of the frontends. See
 what to include, and how to fill in the project fields.
 
 In brief: file clique content issues in the [Babel issue tracker]; issues
-specific to the [Node Normalizer] or [Name Resolver] applications go in their
-respective issue trackers. If you are unsure, file in Babel and we will sort it
-out.
+specific to the [Node Normalizer] application go in the
+[Node Normalizer issue tracker](https://github.com/NCATSTranslator/NodeNormalization/issues/)
+and issues specific to the [Name Resolver] application go in the
+[Name Resolver issue tracker](https://github.com/NCATSTranslator/NameResolution/issues/).
+If you are unsure, file in Babel and we will sort it out.
 
 ## Contributing source code
 
