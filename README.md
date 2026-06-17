@@ -27,7 +27,7 @@ Each semantic type (such as
 requires specialized processing, but in each case, a JSON-formatted compendium
 is written to disk. This compendium can be used directly, but it can also be
 served by the
-[Node Normalization service](https://github.com/TranslatorSRI/NodeNormalization)
+[Node Normalization service](https://github.com/NCATSTranslator/NodeNormalization)
 or another frontend.
 
 In certain contexts, differentiating between some related concepts doesn't make
@@ -85,12 +85,12 @@ There are several ways of accessing Babel cliques:
   normalized to the same preferred identifier, and the API will return all the
   secondary identifiers, Biolink type, description and other useful information.
   You can find out more about this frontend on
-  [its GitHub repository](https://github.com/TranslatorSRI/NodeNormalization).
+  [its GitHub repository](https://github.com/NCATSTranslator/NodeNormalization).
 - The NCATS Translator project also provides the
   [Name Lookup (Name Resolution)](https://name-lookup.transltr.io/) frontends
   for searching for concepts by labels or synonyms. You can find out more about
   this frontend at
-  [its GitHub repository](https://github.com/TranslatorSRI/NameResolution).
+  [its GitHub repository](https://github.com/NCATSTranslator/NameResolution).
 - Play around with the [Babel Downloads](./docs/Downloads.md) (in a
   [custom format](./docs/DataFormats.md)), which are currently available in
   JSONL, [Apache Parquet](https://parquet.apache.org/) or
@@ -99,7 +99,7 @@ There are several ways of accessing Babel cliques:
 ### What is the Node Normalization service (NodeNorm)?
 
 The Node Normalization service, Node Normalizer or
-[NodeNorm](https://github.com/TranslatorSRI/NodeNormalization) is an NCATS
+[NodeNorm](https://github.com/NCATSTranslator/NodeNormalization) is an NCATS
 Translator web service to normalize identifiers by returning a single preferred
 identifier for any identifier provided.
 
@@ -113,19 +113,19 @@ other APIs intended primarily for Translator users.
 
 You can find out more about NodeNorm at its
 [Swagger interface](https://nodenormalization-sri.renci.org/docs) or
-[in this Jupyter Notebook](https://github.com/TranslatorSRI/NodeNormalization/blob/master/documentation/NodeNormalization.ipynb).
+[in this Jupyter Notebook](https://github.com/NCATSTranslator/NodeNormalization/blob/master/documentation/NodeNormalization.ipynb).
 
 ### What is the Name Resolver (NameRes)?
 
 The Name Resolver, Name Lookup or
-[NameRes](https://github.com/TranslatorSRI/NameResolution) is an NCATS
+[NameRes](https://github.com/NCATSTranslator/NameResolution) is an NCATS
 Translator web service for looking up preferred identifiers by search text.
 Although it is primarily designed to be used to power NCATS Translator's
 autocomplete text fields, it has also been used for named-entity linkage.
 
 You can find out more about NameRes at its
 [Swagger interface](https://name-resolution-sri.renci.org/docs) or
-[in this Jupyter Notebook](https://github.com/TranslatorSRI/NameResolution/blob/master/documentation/NameResolution.ipynb).
+[in this Jupyter Notebook](https://github.com/NCATSTranslator/NameResolution/blob/master/documentation/NameResolution.ipynb).
 
 ## Understanding Babel outputs
 
@@ -152,7 +152,9 @@ guidance on how the source code is organized, what contributions are most
 useful, and how to run the tests. For a deeper look at the development
 workflow and ideas for improving it, see [Developing Babel](./docs/Development.md).
 For the testing strategy — what to automate, recommended cadence, and runner
-choice — see [Testing Strategy](./docs/Testing.md).
+choice — see [Testing Strategy](./docs/Testing.md). For notes on how Babel
+ingests a specific upstream data source, see the
+[per-source documentation](./docs/sources/).
 
 ## Contact information
 

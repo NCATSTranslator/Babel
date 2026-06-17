@@ -49,7 +49,7 @@ def write_ids(infile, idfile):
 def parse_element_for_ids(e, lfile):
     oid = e["stId"]
     rtype = e["type"]
-    # For CellDevelopmentStep, see discussion at https://github.com/TranslatorSRI/Babel/issues/277
+    # For CellDevelopmentStep, see discussion at https://github.com/NCATSTranslator/Babel/issues/277
     btypes = {
         "Pathway": PATHWAY,
         "TopLevelPathway": PATHWAY,

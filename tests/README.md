@@ -41,6 +41,18 @@ considering), see [`docs/Testing.md`](../docs/Testing.md).
 - **Pipeline behavior specific to one vocabulary** → add `tests/pipeline/test_X_pipeline.py`
   marked `pipeline`.
 
+**Touching a data source that has no pipeline test? Consider writing one.** It is more work up
+front, but it pays off three ways and is worth biting the bullet for:
+
+- It forces you to write smaller **`network` tests** (e.g. that the upstream listing still returns
+  files, that the header columns Babel reads are still where it expects) that can run regularly and
+  catch an upstream format change *before* it silently corrupts output — see
+  `tests/pipeline/test_complexportal.py` (header-column assertion) and the `network` test in
+  `tests/datahandlers/test_complexportal.py`.
+- It validates the handler's outputs end-to-end against real data, using the shared
+  `assert_*_file_valid` helpers.
+- It becomes the place to hang later assertions about that source's compendium output.
+
 See [Future Plans](#future-plans) at the bottom of this file for a more detailed roadmap of
 planned test locations and conventions.
 
@@ -67,6 +79,13 @@ Tests are tagged with marks to control which subset runs in a given context:
 | `pipeline` | Calls `write_*_ids()` directly; source data is auto-downloaded or the test skips — no manual setup required for most vocabularies | Sometimes | Minutes–hours    | 3600 s  |
 
 You can adjust the timeout for marks in [conftest.py](conftest.py).
+
+There is also a parametrized guard marker, `min_memory_gb(n)`, that combines with the marks
+above rather than replacing them. A test tagged `@pytest.mark.min_memory_gb(n)` is auto-skipped
+when the machine has less than `n` GiB of RAM (detected via POSIX `sysconf`). It guards
+memory-hungry tests against OOM/swap-thrash on small machines — for example the `test_chembl`
+pipeline tests bulk-load a ~17 GB TTL into an in-memory store and are tagged
+`min_memory_gb(128)`, matching the `chembl_labels_and_smiles` Snakemake rule's `mem="128G"`.
 
 ### Default behavior
 
@@ -143,9 +162,27 @@ For handlers that produce label/synonym files, add a module-scoped `*_output` fi
 `tmp_path_factory` that calls the extraction method once and stores the file contents as a dict.
 Individual tests then receive the pre-computed output rather than re-running the extraction.
 
+The **root** `tests/conftest.py` exports format-validation helpers shared by both datahandler and
+pipeline tests: `assert_labels_file_valid`, `assert_synonyms_file_valid`, `assert_ids_file_valid`,
+`assert_concordance_file_valid`, `assert_taxa_file_valid`, and `assert_descriptions_file_valid`.
+Each asserts the file is non-empty and column-shaped correctly and returns the parsed rows. Use
+these (and `read_tsv`) instead of hand-rolling TSV checks; when a handler grows a new output kind
+(as ComplexPortal did for taxa and descriptions), add the matching helper here rather than keeping
+a private one in the test file.
+
 - **`datahandlers/test_mesh.py`** (`unit`) — Unit tests for `src/datahandlers/mesh.py`.
   Covers `write_ids()` parameter validation, SCR filtering logic (mock-based), and
   `Mesh.get_scr_terms_mapped_to_trees()` using an inline pyoxigraph store.
+
+- **`datahandlers/test_complexportal.py`** (`unit`, one `network`) — Unit tests for
+  `src/datahandlers/complexportal.py`. Covers HTML directory-listing parsing (only `.tsv`
+  hrefs returned, sorted), download + manifest writing (mocked), and the cross-species
+  deduplication rules for every output (labels by identifier with first-seen winning, synonyms
+  and descriptions by pair, taxa keeping all `(id, taxon)` pairs, IDs including accessions with
+  an empty label). Test rows are built from the real 19-column header via `COMPLEXTAB_COLUMNS`/
+  `COMPLEXTAB_HEADER` imported from the source module, so a column-layout change in source is
+  reflected in the fixtures automatically. The single `network` test hits the live EBI listing
+  and asserts it returns at least one sorted `.tsv` file.
 
 - **`datahandlers/test_ensembl.py`** (`network`, `xfail`) — Integration test for the Ensembl
   BioMart data handler. Pulls real data from BioMart, verifies that batched downloads
@@ -180,6 +217,15 @@ and how to add new checks or vocabularies.
   **`pipeline/test_clo.py`**, **`pipeline/test_efo.py`** (`pipeline`) — Output format and
   content checks for the EC, Rhea, ChEMBL, CLO, and EFO data handlers.
 
+- **`pipeline/test_complexportal.py`** (`pipeline`) — Downloads all ComplexPortal TSV files and
+  validates the `labels`, `synonyms`, `taxa`, and `descriptions` outputs with the shared
+  `assert_*_file_valid` helpers. Two guards worth copying for other sources: a **header-column
+  assertion** that pins the index of every column Babel reads, so an upstream format change is
+  caught here rather than silently corrupting the taxon/description extraction; and a
+  **cross-file consistency** test that re-reads every source TSV and confirms each `(CURIE,
+  taxon)` pair survives into the taxa output while labels and synonyms stay deduplicated (using
+  `collections.Counter`, not `O(n²)` `list.count()`).
+
 - **`pipeline/checks/`** (`pipeline`) — Per-compendium regression assertions tied to GitHub
   issues (ID-presence and direct cross-reference checks), designed for TDD. See
   [`tests/pipeline/README.md`](pipeline/README.md#pipeline-checks) for the full guide.
@@ -198,6 +244,18 @@ and how to add new checks or vocabularies.
   subclasses and cross-references via SPARQL. Covers direct and indirect subclass retrieval,
   filtering by cross-reference presence, and exact-match label queries. Tests may xfail at
   runtime if the UberGraph server is reachable but returns an HTTP error on the probe request.
+
+### babel_utils/
+
+- **`babel_utils/test_write_compendia.py`** (`unit`) — Unit tests for `choose_preferred_name()`,
+  the label-selection helper extracted from `write_compendium()`. Covers per-type length demotion
+  (demotion applies to chemicals and their subtypes via ancestor traversal; diseases, phenotypes,
+  and other non-chemical types are never demoted), interaction with `preferred_name_boost_prefixes`,
+  and the fall-through when all labels exceed the limit. Regression tests use real CURIEs from
+  [#597](https://github.com/NCATSTranslator/Babel/issues/597),
+  [#711](https://github.com/NCATSTranslator/Babel/issues/711),
+  [#714](https://github.com/NCATSTranslator/Babel/issues/714), and
+  [#723](https://github.com/NCATSTranslator/Babel/issues/723).
 
 ## Test Data
 

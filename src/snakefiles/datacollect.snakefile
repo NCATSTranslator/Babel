@@ -79,27 +79,39 @@ rule get_EFO_labels:
 
 rule get_complexportal:
     output:
-        config["download_directory"] + "/ComplexPortal" + "/559292.tsv",
+        manifest=config["download_directory"] + "/ComplexPortal/" + complexportal.COMPLEXPORTAL_MANIFEST,
     benchmark:
         config["output_directory"] + "/benchmarks/get_complexportal.tsv"
     resources:
         mem="8G",
         cpus_per_task=1,
     run:
-        complexportal.pull_complexportal()
+        complexportal.pull_complexportal(output.manifest)
 
 
 rule get_complexportal_labels_and_synonyms:
     input:
-        infile=config["download_directory"] + "/ComplexPortal" + "/559292.tsv",
+        manifest=config["download_directory"] + "/ComplexPortal/" + complexportal.COMPLEXPORTAL_MANIFEST,
     output:
-        lfile=config["download_directory"] + "/ComplexPortal" + "/559292_labels.tsv",
-        sfile=config["download_directory"] + "/ComplexPortal" + "/559292_synonyms.tsv",
+        lfile=config["download_directory"] + "/ComplexPortal/labels",
+        sfile=config["download_directory"] + "/ComplexPortal/synonyms",
+        taxafile=config["download_directory"] + "/ComplexPortal/taxa",
+        descfile=config["download_directory"] + "/ComplexPortal/descriptions",
         metadata_yaml=config["download_directory"] + "/ComplexPortal/metadata.yaml",
+        idsfile=config["intermediate_directory"] + "/macromolecular_complex/ids/ComplexPortal",
     benchmark:
         config["output_directory"] + "/benchmarks/get_complexportal_labels_and_synonyms.tsv"
     run:
-        complexportal.make_labels_and_synonyms(input.infile, output.lfile, output.sfile, output.metadata_yaml)
+        complexportal.make_labels_synonyms_and_taxa(
+            input.manifest,
+            os.path.dirname(input.manifest),
+            output.lfile,
+            output.sfile,
+            output.taxafile,
+            output.descfile,
+            output.metadata_yaml,
+            output.idsfile,
+        )
 
 
 ### MODS
@@ -246,6 +258,7 @@ rule download_umls:
         config["download_directory"] + "/UMLS/MRCONSO.RRF",
         config["download_directory"] + "/UMLS/MRSTY.RRF",
         config["download_directory"] + "/UMLS/MRREL.RRF",
+        config["download_directory"] + "/UMLS/UMLS.metadata.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/download_umls.tsv"
     resources:
@@ -344,7 +357,6 @@ rule get_icrdf:
     retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     run:
         obo.pull_uber_icRDF(output.icrdf_filename)
-
         # Try to load the icRDF.tsv file (this will produce an error if the file can't be read).
         node.InformationContentFactory(output.icrdf_filename)
 
@@ -500,6 +512,20 @@ rule get_omim:
         cpus_per_task=1,
     run:
         omim.pull_omim()
+
+
+rule get_omim_labels:
+    input:
+        infile=rules.get_omim.output.outfile,
+    output:
+        outfile=config["download_directory"] + "/OMIM/labels",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_omim_labels.tsv"
+    resources:
+        mem="1G",
+        cpus_per_task=1,
+    run:
+        omim.pull_omim_labels(input.infile, output.outfile)
 
 
 ### NCIT
@@ -756,6 +782,10 @@ rule chembl_labels_and_smiles:
     benchmark:
         config["output_directory"] + "/benchmarks/chembl_labels_and_smiles.tsv"
     resources:
+        # ChemblRDF bulk-loads the ~17 GB molecule TTL into an in-memory pyoxigraph
+        # store, so this rule needs a large-memory host (a 32 GB machine swap-thrashes
+        # and never finishes). The matching test_chembl pipeline tests are tagged
+        # @pytest.mark.min_memory_gb(128) and auto-skip below this.
         mem="128G",
     run:
         chembl.pull_chembl_labels_and_smiles(input.infile, input.ccofile, output.outfile, output.smifile)

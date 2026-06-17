@@ -10,6 +10,7 @@ import os
 localrules:
     export_all_compendia_to_duckdb,
     export_all_synonyms_to_duckdb,
+    export_all_conflations_to_duckdb,
     export_all_to_duckdb,
     all_duckdb_reports,
 
@@ -77,7 +78,33 @@ rule export_synonyms_to_duckdb:
         )
 
 
-# TODO: convert all conflations to Parquet via DuckDB (https://github.com/TranslatorSRI/Babel/issues/378).
+# Write all conflation files to Parquet via DuckDB.
+rule export_all_conflations_to_duckdb:
+    input:
+        conflation_parquet_files=expand(
+            "{od}/duckdb/parquet/filename={cn}/Conflation.parquet",
+            od=config["output_directory"],
+            cn=[os.path.splitext(fn)[0] for fn in config["geneprotein_outputs"] + config["drugchemical_outputs"]],
+        ),
+    output:
+        x=config["output_directory"] + "/duckdb/conflations_done",
+    shell:
+        "echo 'done' >> {output.x}"
+
+
+# Generic rule for generating the Parquet file for a single conflation file.
+rule export_conflation_to_duckdb:
+    input:
+        conflation_file=config["output_directory"] + "/conflation/{conflation_name}.txt",
+    output:
+        duckdb_filename=config["output_directory"] + "/duckdb/duckdbs/filename={conflation_name}/conflation.duckdb",
+        parquet_filename=config["output_directory"] + "/duckdb/parquet/filename={conflation_name}/Conflation.parquet",
+    benchmark:
+        config["output_directory"] + "/benchmarks/export_conflation_to_duckdb_{conflation_name}.tsv"
+    run:
+        duckdb_exporters.export_conflation_to_parquet(
+            input.conflation_file, wildcards.conflation_name, output.duckdb_filename, output.parquet_filename
+        )
 
 
 # Create `babel_outputs/duckdb/done` once all the files have been converted.
@@ -85,6 +112,7 @@ rule export_all_to_duckdb:
     input:
         compendia_done=config["output_directory"] + "/duckdb/compendia_done",
         synonyms_done=config["output_directory"] + "/duckdb/synonyms_done",
+        conflations_done=config["output_directory"] + "/duckdb/conflations_done",
     output:
         x=config["output_directory"] + "/duckdb/done",
     shell:

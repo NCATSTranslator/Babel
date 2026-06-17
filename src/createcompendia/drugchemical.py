@@ -212,10 +212,16 @@ def build_rxnorm_relationships(conso, relfile, outfile, metadata_yaml):
     # This is maybe relying on convention a bit too much.
     if outfile == "UMLS":
         prefix = UMLS
-        sources = [{"type": "UMLS", "name": "MRCONSO", "filename": conso}, {"type": "UMLS", "name": "MRREL", "filename": relfile}]
+        sources = [
+            {"type": "UMLS", "name": "MRCONSO", "filename": conso},
+            {"type": "UMLS", "name": "MRREL", "filename": relfile},
+        ]
     else:
         prefix = RXCUI
-        sources = [{"type": "RXNORM", "name": "RXNCONSO", "filename": conso}, {"type": "RXNOM", "name": "RXNREL", "filename": relfile}]
+        sources = [
+            {"type": "RXNORM", "name": "RXNCONSO", "filename": conso},
+            {"type": "RXNOM", "name": "RXNREL", "filename": relfile},
+        ]
     aui_to_cui, sdui_to_cui = get_aui_to_cui(conso)
     # relfile = os.path.join('input_data', 'private', "RXNREL.RRF")
     single_use_relations = {
@@ -375,7 +381,9 @@ def build_conflation(
                     id = ident["i"]
                     preferred_curie_for_curie[id] = preferred_id
 
-    logger.info(f"Loaded preferred CURIEs for {len(preferred_curie_for_curie)} CURIEs from the chemical compendia: {get_memory_usage_summary()}")
+    logger.info(
+        f"Loaded preferred CURIEs for {len(preferred_curie_for_curie)} CURIEs from the chemical compendia: {get_memory_usage_summary()}"
+    )
 
     logger.info("load drugs")
     drug_rxcui_to_clique = load_cliques_containing_rxcui(drug_compendium)
@@ -438,7 +446,9 @@ def build_conflation(
             elif subject in chemical_rxcui_to_clique:
                 subject = chemical_rxcui_to_clique[subject]
             else:
-                logger.warning(f"Subject in subject-object pair ({subject}, {object}) isn't mapped to a RxCUI, skipping.")
+                logger.warning(
+                    f"Subject in subject-object pair ({subject}, {object}) isn't mapped to a RxCUI, skipping."
+                )
                 continue
                 # raise RuntimeError(f"Unknown identifier in drugchemical conflation as subject: {subject}")
 
@@ -447,12 +457,16 @@ def build_conflation(
             elif object in chemical_rxcui_to_clique:
                 object = chemical_rxcui_to_clique[object]
             else:
-                logger.warning(f"Object in subject-object pair ({subject}, {object}) isn't mapped to a RxCUI, continuing.")
+                logger.warning(
+                    f"Object in subject-object pair ({subject}, {object}) isn't mapped to a RxCUI, continuing."
+                )
                 # raise RuntimeError(f"Unknown identifier in drugchemical conflation as object: {object}")
 
             # Normalize both the subject and object, otherwise skip them.
             if subject not in preferred_curie_for_curie:
-                logger.warning(f"Subject in subject-object pair ({subject}, {object}) has no preferred CURIE, skipping.")
+                logger.warning(
+                    f"Subject in subject-object pair ({subject}, {object}) has no preferred CURIE, skipping."
+                )
                 continue
             subject = preferred_curie_for_curie[subject]
 
@@ -462,19 +476,25 @@ def build_conflation(
             object = preferred_curie_for_curie[object]
 
             if subject == object:
-                logger.warning(f"Subject and object in subject-object pair ({subject}, {object}) normalize to the same identifier ({subject}), skipping.")
+                logger.warning(
+                    f"Subject and object in subject-object pair ({subject}, {object}) normalize to the same identifier ({subject}), skipping."
+                )
                 continue
 
             # Either the subject or the object might not be a chemical -- for example, MESH:C415772 shows up here,
             # but it's a gene, not a chemical.
             subject_type = type_for_preferred_curie[subject]
             if CHEMICAL_ENTITY not in biolink_chemical_types:
-                logger.warning(f"Subject in subject-object pair ({subject}, {object}) has type {subject_type}, which is is not a chemical type, skipping.")
+                logger.warning(
+                    f"Subject in subject-object pair ({subject}, {object}) has type {subject_type}, which is is not a chemical type, skipping."
+                )
                 continue
 
             object_type = type_for_preferred_curie[object]
             if CHEMICAL_ENTITY not in biolink_chemical_types:
-                logger.warning(f"Object in subject-object pair ({subject}, {object}) has type {object_type}, which is is not a chemical type, skipping.")
+                logger.warning(
+                    f"Object in subject-object pair ({subject}, {object}) has type {object_type}, which is is not a chemical type, skipping."
+                )
                 continue
 
             pairs.append((subject, object))
@@ -499,7 +519,9 @@ def build_conflation(
     biolink_chemical_entity = biolink_model_toolkit.get_element(CHEMICAL_ENTITY)
     conflation_prefix_order = biolink_chemical_entity["id_prefixes"]
     if not conflation_prefix_order:
-        raise RuntimeError(f"Biolink model {config['biolink_version']} doesn't have a ChemicalEntity prefix order: {biolink_chemical_entity}")
+        raise RuntimeError(
+            f"Biolink model {config['biolink_version']} doesn't have a ChemicalEntity prefix order: {biolink_chemical_entity}"
+        )
 
     # Add RXCUI at the bottom.
     conflation_prefix_order.append("RXCUI")
@@ -552,7 +574,9 @@ def build_conflation(
                 # Normalization shouldn't be needed here, because they're all clique leaders, but just in case.
                 preferred_curie = preferred_curie_for_curie[iid]
                 if preferred_curie != iid:
-                    logger.warning(f"Conflation leader {iid} should have been normalized to {preferred_curie}, normalizing now.")
+                    logger.warning(
+                        f"Conflation leader {iid} should have been normalized to {preferred_curie}, normalizing now."
+                    )
                 if preferred_curie not in normalized_conflation_id_list:
                     normalized_conflation_id_list.append(preferred_curie)
 
@@ -574,7 +598,9 @@ def build_conflation(
             # single identifier in it. If so, we don't need to add it to the conflation list, because it won't
             # do anything there.
             if len(normalized_conflation_id_list) == 1:
-                logger.debug(f"Found a DrugChemical conflation with a single identifier, skipping: {normalized_conflation_id_list}.")
+                logger.debug(
+                    f"Found a DrugChemical conflation with a single identifier, skipping: {normalized_conflation_id_list}."
+                )
                 continue
 
             # Within each of those groups, we want to sort by:
@@ -592,7 +618,9 @@ def build_conflation(
             # If you do that, please remember to sort these identifiers in the prefix order for that type,
             # which I forgot to do in the previous implementation!
 
-            for prefix, ids in sorted(conflation_ids_by_prefix.items(), key=lambda bt: conflation_prefix_sort_order.get(bt[0], 100)):
+            for prefix, ids in sorted(
+                conflation_ids_by_prefix.items(), key=lambda bt: conflation_prefix_sort_order.get(bt[0], 100)
+            ):
                 # Is this Biolink type a chemical type? If not, ignore it.
                 # if biolink_type not in biolink_chemical_types:
                 #     logger.warning(f"Skipping Biolink type {biolink_type} because it's not a chemical type, with IDs: {ids}")
@@ -604,7 +632,9 @@ def build_conflation(
                     clique_for_id = clique_for_preferred_curie[curie]
 
                     # Criteria 1: the information content of the clique represented by this identifier (lowest -> highest).
-                    clique_ic = ic_factory.get_ic({"identifiers": list(map(lambda c: {"identifier": c}, clique_for_id))})
+                    clique_ic = ic_factory.get_ic(
+                        {"identifiers": list(map(lambda c: {"identifier": c}, clique_for_id))}
+                    )
                     clique_ics.append(clique_ic)
                     if clique_ic is None:
                         clique_ic = 100.0

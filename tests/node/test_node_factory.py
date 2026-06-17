@@ -1,7 +1,12 @@
 import pytest
 
 import src.prefixes as pref
+from src import categories
 from src.LabeledID import LabeledID
+from src.node import NodeFactory
+from src.util import get_config
+
+BIOLINK_VERSION = get_config()["biolink_version"]
 
 # Node schema (as of the current codebase):
 #   {"identifiers": [{"identifier": CURIE, "label": str}, ...], "type": str}
@@ -118,6 +123,36 @@ def test_normalization_bad_prefix(node_factory):
 
 
 @pytest.mark.network
+def test_extra_prefix_does_not_duplicate_identifier(node_factory):
+    """Make sure adding an extra prefix should not duplicate identifiers."""
+    node = node_factory.create_node([f"{pref.UMLS}:C0000005"], "biolink:SmallMolecule", extra_prefixes=[pref.UMLS])
+    assert node["identifiers"] == [{"identifier": f"{pref.UMLS}:C0000005"}]
+    assert node["id"] == {"identifier": f"{pref.UMLS}:C0000005"}
+
+
+@pytest.mark.network
+def test_extra_prefix_does_not_duplicate_identifier_multi(node_factory):
+    """Passing multiple extra_prefixes that overlap standard Biolink prefixes must not
+    duplicate any identifier, including the highest-priority one, in a multi-identifier clique."""
+    # CHEBI (highest priority) and MESH are both standard SmallMolecule prefixes.
+    # Passing them again as extra_prefixes must not cause either to appear twice
+    # or change their relative ordering.
+    node = node_factory.create_node(
+        [f"{pref.UMLS}:C0000005", f"{pref.MESH}:D012034", f"{pref.CHEBI}:1234"],
+        categories.SMALL_MOLECULE,
+        extra_prefixes=[pref.UMLS, pref.MESH, pref.CHEBI],
+    )
+    ids = [x["identifier"] for x in node["identifiers"]]
+    assert len(ids) == len(set(ids)), f"duplicate identifiers in output: {ids}"
+    assert ids.count(f"{pref.CHEBI}:1234") == 1
+    assert ids.count(f"{pref.MESH}:D012034") == 1
+    assert ids.count(f"{pref.UMLS}:C0000005") == 1
+    # CHEBI must still be the preferred identifier despite also appearing in extra_prefixes
+    assert node["identifiers"][0]["identifier"] == f"{pref.CHEBI}:1234"
+    assert node["id"]["identifier"] == f"{pref.CHEBI}:1234"
+
+
+@pytest.mark.network
 def test_normalization_labeled_id(node_factory):
     """Make sure that the node creator can handle labels passed as a dict"""
     labels = {"CHEBI:1234": "name"}
@@ -153,7 +188,15 @@ def test_labeling_2(node_factory):
 
 @pytest.mark.network
 def test_clean_list(node_factory):
-    input_ids = frozenset({"UMLS:C1839767", "UMLS:C1853383", LabeledID("HP:0010804", "Tented upper lip vermilion"), "UMLS:C1850072", "HP:0010804"})
+    input_ids = frozenset(
+        {
+            "UMLS:C1839767",
+            "UMLS:C1853383",
+            LabeledID("HP:0010804", "Tented upper lip vermilion"),
+            "UMLS:C1850072",
+            "HP:0010804",
+        }
+    )
     output = node_factory.clean_list(input_ids)
     assert len(output) == 4
     lidfound = False
@@ -167,7 +210,9 @@ def test_clean_list(node_factory):
 @pytest.mark.network
 def test_losing_umls(node_factory):
     input_ids = frozenset({"HP:0010804", "UMLS:C1839767", "UMLS:C1853383", "HP:0010804", "UMLS:C1850072"})
-    node = node_factory.create_node(input_ids, "biolink:PhenotypicFeature", {"HP:0010804": "Tented upper lip vermilion"})
+    node = node_factory.create_node(
+        input_ids, "biolink:PhenotypicFeature", {"HP:0010804": "Tented upper lip vermilion"}
+    )
     assert node["identifiers"][0]["identifier"] == "HP:0010804"
     assert node["identifiers"][0]["label"] == "Tented upper lip vermilion"
     assert node["id"]["identifier"] == "HP:0010804"  # node["id"] is an alias for node["identifiers"][0]
@@ -228,7 +273,11 @@ def test_pubchem_ignore_CID(node_factory):
     node = node_factory.create_node(
         [f"{pref.PUBCHEMCOMPOUND}:999", f"{pref.PUBCHEMCOMPOUND}:111", f"{pref.CHEBI}:XYZ"],
         "biolink:SmallMolecule",
-        {f"{pref.PUBCHEMCOMPOUND}:999": "CID1", f"{pref.PUBCHEMCOMPOUND}:111": "longerlabel", f"{pref.CHEBI}:XYZ": "blahblah"},
+        {
+            f"{pref.PUBCHEMCOMPOUND}:999": "CID1",
+            f"{pref.PUBCHEMCOMPOUND}:111": "longerlabel",
+            f"{pref.CHEBI}:XYZ": "blahblah",
+        },
     )
     assert node["identifiers"][0]["identifier"] == f"{pref.CHEBI}:XYZ"  # CHEBI wins overall
     assert node["id"]["identifier"] == f"{pref.CHEBI}:XYZ"  # node["id"] is an alias for node["identifiers"][0]
@@ -237,3 +286,30 @@ def test_pubchem_ignore_CID(node_factory):
     assert node["identifiers"][1]["identifier"] == f"{pref.PUBCHEMCOMPOUND}:111"
     assert node["identifiers"][1]["label"] == "longerlabel"
     assert node["type"] == "biolink:SmallMolecule"
+
+
+@pytest.mark.unit
+def test_load_extra_labels_single_column(tmp_path):
+    """load_extra_labels() must not raise on single-column lines (identifier with no label)."""
+    label_dir = tmp_path / "CHEMBL.COMPOUND"
+    label_dir.mkdir()
+    (label_dir / "labels").write_text("CHEMBL.COMPOUND:CHEMBL1\tWater\nCHEMBL.COMPOUND:CHEMBL2\n")
+    fac = NodeFactory(str(tmp_path), BIOLINK_VERSION)
+    fac.common_labels = {}
+    fac.load_extra_labels("CHEMBL.COMPOUND")
+    assert fac.extra_labels["CHEMBL.COMPOUND"]["CHEMBL.COMPOUND:CHEMBL1"] == "Water"
+    assert fac.extra_labels["CHEMBL.COMPOUND"]["CHEMBL.COMPOUND:CHEMBL2"] == ""
+
+
+@pytest.mark.unit
+def test_load_extra_labels_tab_in_label(tmp_path):
+    """load_extra_labels() must preserve labels that themselves contain a tab (maxsplit=1)."""
+    label_dir = tmp_path / "CHEMBL.COMPOUND"
+    label_dir.mkdir()
+    (label_dir / "labels").write_text(
+        "CHEMBL.COMPOUND:CHEMBL1\tWater\nCHEMBL.COMPOUND:CHEMBL2\nCHEMBL.COMPOUND:CHEMBL3\tWater\tbottle\n"
+    )
+    fac = NodeFactory(str(tmp_path), BIOLINK_VERSION)
+    fac.common_labels = {}
+    fac.load_extra_labels("CHEMBL.COMPOUND")
+    assert fac.extra_labels["CHEMBL.COMPOUND"]["CHEMBL.COMPOUND:CHEMBL3"] == "Water\tbottle"

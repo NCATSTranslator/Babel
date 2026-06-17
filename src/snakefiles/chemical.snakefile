@@ -50,7 +50,6 @@ rule chemical_pubchem_ids:
         # "awk '{{print $1\"\tbiolink:ChemicalSubstance\"}}' {input.infile} > {output.outfile}"
 
 
-
 rule chemical_chembl_ids:
     input:
         labelfile=config["download_directory"] + "/CHEMBL.COMPOUND/labels",

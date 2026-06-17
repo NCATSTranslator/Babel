@@ -4,6 +4,7 @@ from collections import defaultdict
 import jsonlines
 
 from src.babel_utils import glom
+from src.categories import GENE
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import NCBIGENE, UNIPROTKB
 from src.util import LoggingUtil
@@ -56,7 +57,7 @@ def merge(geneproteinlist):
         # there shouldn't be any overlap here, so we can just concatenate
         geneprotein["equivalent_identifiers"] += protein["equivalent_identifiers"]
     # Now, we need to slightly modify the types. Not sure this is good, but maybe it is?
-    geneprotein["type"] = ["biolink:Gene"] + protein["type"]
+    geneprotein["type"] = [GENE] + protein["type"]
     return geneprotein
 
 

@@ -2,6 +2,7 @@ import gzip
 from json import loads
 
 from src.babel_utils import make_local_name, pull_via_ftp, pull_via_urllib
+from src.predicates import HAS_EXACT_SYNONYM, HAS_RELATED_SYNONYM
 
 
 def pull_pubchem_labels():
@@ -26,7 +27,7 @@ def pull_pubchem_synonyms():
                 continue
             if x[1].startswith("SCHEMBL"):
                 continue
-            outf.write(f"PUBCHEM.COMPOUND:{x[0]}\thttp://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym\t{x[1]}\n")
+            outf.write(f"PUBCHEM.COMPOUND:{x[0]}\t{HAS_RELATED_SYNONYM}\t{x[1]}\n")
 
 
 def pull_pubchem():
@@ -45,21 +46,24 @@ def pull_hgnc():
             symbol = gene["symbol"]
             lfile.write(f"{hgnc_id}\t{symbol}\n")
             name = gene["name"]
-            sfile.write(f"{hgnc_id}\thttp://www.geneontology.org/formats/oboInOwl#hasExactSynonym\t{name}\n")
+            sfile.write(f"{hgnc_id}\t{HAS_EXACT_SYNONYM}\t{name}\n")
             if "alias_symbol" in gene:
                 alias_symbols = gene["alias_symbol"]
                 for asym in alias_symbols:
-                    sfile.write(f"{hgnc_id}\thttp://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym\t{asym}\n")
+                    sfile.write(f"{hgnc_id}\t{HAS_RELATED_SYNONYM}\t{asym}\n")
             if "alias_name" in gene:
                 alias_names = gene["alias_name"]
                 for asym in alias_names:
-                    sfile.write(f"{hgnc_id}\thttp://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym\t{asym}\n")
+                    sfile.write(f"{hgnc_id}\t{HAS_RELATED_SYNONYM}\t{asym}\n")
 
 
 def pull_prot(which, refresh):
     # swissname = pull_via_ftplib('ftp.uniprot.org','/pub/databases/uniprot/current_release/knowledgebase/complete/',f'uniprot_{which}.fasta.gz',decompress_data=True,outfilename=f'uniprot_{which}.fasta')
     if refresh:
-        swissname = pull_via_urllib("ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/", f"uniprot_{which}.fasta.gz")
+        swissname = pull_via_urllib(
+            "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/",
+            f"uniprot_{which}.fasta.gz",
+        )
     else:
         swissname = make_local_name(f"uniprot_{which}.fasta")
     swissprot_labels = {}

@@ -19,7 +19,9 @@ def pull_mods():
         # - origname = pull_via_urllib(f"https://download.alliancegenome.org/8.1.0/GENE-DESCRIPTION-JSON/{mod}/",f'GENE-DESCRIPTION-JSON_{mod}_9.json.gz', subpath=subp)
         #
         # However, the following URL returns the latest version of this file for each model organism.
-        origname = pull_via_urllib("https://fms.alliancegenome.org/download/", f"GENE-DESCRIPTION-JSON_{mod}.json.gz", subpath=subp)
+        origname = pull_via_urllib(
+            "https://fms.alliancegenome.org/download/", f"GENE-DESCRIPTION-JSON_{mod}.json.gz", subpath=subp
+        )
 
         # This should be fine.  But for the makefile it's nice if the directory in which this goes is the same as the {mod} in the filename.
         # And we'd like it to be the names of the prefixes

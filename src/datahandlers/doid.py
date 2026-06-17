@@ -5,7 +5,12 @@ from src.prefixes import DOID, OIO
 
 
 def pull_doid():
-    pull_via_urllib("https://raw.githubusercontent.com/DiseaseOntology/HumanDiseaseOntology/main/src/ontology/", "doid.json", subpath="DOID", decompress=False)
+    pull_via_urllib(
+        "https://raw.githubusercontent.com/DiseaseOntology/HumanDiseaseOntology/main/src/ontology/",
+        "doid.json",
+        subpath="DOID",
+        decompress=False,
+    )
 
 
 def pull_doid_labels_and_synonyms(infile, labelfile, synonymfile):
