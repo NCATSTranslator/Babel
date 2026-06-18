@@ -109,15 +109,17 @@ rule export_conflation_to_duckdb:
 
 # Export all the intermediate concord, ids, and metadata files into Parquet.
 #
-# `intermediate_directory` is declared as an input only so the rule has something concrete to read;
-# Snakemake tracks a directory by mtime, which does not reliably change when a nested concord/ids
-# file is rewritten. The real ordering trigger is `compendia_done`: every compendium depends
-# (transitively) on the intermediate concord/ids files, none of which are temp(), so by the time
-# compendia_done exists the full intermediate tree is present on disk for this rule to sweep.
+# `compendia_done` is the rerun trigger. Every intermediate concord/ids file is consumed by a
+# compendium-build rule, so any change to one propagates up the DAG (concord/ids -> compendium ->
+# compendium.duckdb -> compendia_done) and forces compendia_done -- and therefore this rule -- to
+# rebuild. None of the concord/ids files are temp(), so by the time compendia_done exists the full
+# intermediate tree is present on disk for this rule to sweep. The intermediate directory itself is
+# passed as a params path to glob, not an input: Snakemake tracks a directory by mtime, which does
+# not reliably change when a nested file is rewritten, so depending on it would be both unreliable
+# and redundant with compendia_done.
 rule export_intermediate_files_to_duckdb:
     input:
         compendia_done=config["output_directory"] + "/duckdb/compendia_done",
-        intermediate_directory=config["intermediate_directory"],
     output:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/concords.duckdb"),
         ids_parquet_filename=config["output_directory"] + "/duckdb/Identifiers.parquet",
@@ -128,9 +130,11 @@ rule export_intermediate_files_to_duckdb:
     resources:
         # Provisional; right-size from the benchmark once we have a real run.
         mem="128G",
+    params:
+        intermediate_directory=config["intermediate_directory"],
     run:
         duckdb_exporters.export_intermediates_to_parquet(
-            input.intermediate_directory,
+            params.intermediate_directory,
             output.duckdb_filename,
             output.ids_parquet_filename,
             output.concord_parquet_filename,
