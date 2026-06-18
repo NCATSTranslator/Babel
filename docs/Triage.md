@@ -27,9 +27,9 @@ When a new issue arrives, work through the following steps:
    if necessary. If they are blank, set them now based on your assessment. Don't be shy about
    changing them in the future if necessary.
 
-4. **Set the Component field.** Choose the appropriate **Component** value (see table above)
-   if that would be useful. This can help group together related issues and for filtering during
-   sprint planning.
+4. **Set the Component field.** Choose the appropriate **Component** value (see the Component
+   table in [docs/NewIssue.md](./NewIssue.md#grouping-related-issues)) if that would be useful.
+   This can help group together related issues and for filtering during sprint planning.
 
 5. **Link to a parent issue.** If this issue is one instance of a broader known problem (e.g. a
    deprecated identifier source, or a class of missing cliques), set the **Parent issue** field.
