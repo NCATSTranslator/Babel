@@ -296,6 +296,38 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
         synonyms_jsonl.close()
 
 
+# Intermediate metadata sidecar files are named `metadata-<subject>.yaml` (describing a sibling
+# file) or a bare `metadata.yaml` (describing the directory it lives in).
+METADATA_FILENAME_PREFIX = "metadata-"
+METADATA_FILENAME_SUFFIX = ".yaml"
+METADATA_DIRECTORY_FILENAME = "metadata.yaml"
+
+
+def _metadata_subject_filename(filename):
+    """Return the name of the file a metadata sidecar describes, or None if `filename` is not a
+    metadata file.
+
+    `metadata-<subject>.yaml` describes the sibling file `<subject>`; a bare `metadata.yaml`
+    describes the directory it lives in, so its own name is returned unchanged.
+    """
+    lower_filename = filename.lower()
+    if not (lower_filename.startswith(METADATA_FILENAME_PREFIX) or lower_filename == METADATA_DIRECTORY_FILENAME):
+        return None
+    if lower_filename.startswith(METADATA_FILENAME_PREFIX) and lower_filename.endswith(METADATA_FILENAME_SUFFIX):
+        return filename[len(METADATA_FILENAME_PREFIX) : -len(METADATA_FILENAME_SUFFIX)]
+    return filename
+
+
+def _insert_metadata(db, path, subject_filename):
+    """Insert one metadata sidecar file into the Metadata table, recording the subject file it
+    describes and the full path to that subject file."""
+    logger.info(f"Loading metadata from {path} describing subject file {subject_filename}")
+    db.execute(
+        "INSERT INTO Metadata VALUES (?, ?, ?, ?)",
+        [str(path), subject_filename, str(path.parent / subject_filename), path.read_text()],
+    )
+
+
 def export_intermediates_to_parquet(
     intermediate_directory,
     duckdb_filename,
@@ -322,11 +354,8 @@ def export_intermediates_to_parquet(
     os.makedirs(duckdb_dir, exist_ok=True)
 
     with setup_duckdb(duckdb_filename) as db:
-        # We can't include labels because the code for writing them out is just emitting nulls.
-        # nodes = db.read_parquet(os.path.join(parquet_root, "**/Node.parquet"), hive_partitioning=True)
-        # node_count = db.sql("SELECT COUNT(*) FROM nodes").fetchone()[0]
-        # logger.info(f"Loaded {node_count} nodes from {parquet_root}/**/Node.parquet.")
-
+        # We don't include labels here: the Node-writing code currently emits only nulls for them,
+        # so there is nothing useful to join against.
         db.sql("""CREATE TABLE Concord (filename STRING, subj STRING, pred STRING, obj STRING)""")
         db.sql("""CREATE TABLE Identifier (filename STRING, curie STRING, biolink_type STRING)""")
         db.sql(
@@ -337,31 +366,17 @@ def export_intermediates_to_parquet(
 
         # Load concord files.
         for concord_path in intermediate_path.glob("**/concords/**/*"):
-            if os.path.isdir(concord_path):
+            if concord_path.is_dir():
                 logger.info(f"Skipping directory {concord_path}")
                 continue
 
-            if os.path.getsize(concord_path) == 0:
+            if concord_path.stat().st_size == 0:
                 logger.warning(f"Skipping empty concord file {concord_path}")
                 continue
 
-            filename = concord_path.name
-            lower_filename = filename.lower()
-            if lower_filename.startswith("metadata-") or lower_filename == "metadata.yaml":
-                subject_filename = filename
-                if lower_filename.startswith("metadata-") and lower_filename.endswith(".yaml"):
-                    subject_filename = filename[9:-5]
-
-                logger.info(f"Loading concord metadata from {concord_path} to subject file {subject_filename}")
-                db.execute(
-                    "INSERT INTO Metadata VALUES (?, ?, ?, ?)",
-                    [
-                        str(concord_path),
-                        subject_filename,
-                        str(concord_path.parent / subject_filename),
-                        concord_path.read_text(),
-                    ],
-                )
+            subject_filename = _metadata_subject_filename(concord_path.name)
+            if subject_filename is not None:
+                _insert_metadata(db, concord_path, subject_filename)
                 continue
 
             logger.info(f"Loading concords from {concord_path}")
@@ -373,26 +388,17 @@ def export_intermediates_to_parquet(
 
         # Load identifier files.
         for ids_path in intermediate_path.glob("**/ids/**/*"):
-            if os.path.isdir(ids_path):
+            if ids_path.is_dir():
                 logger.info(f"Skipping directory {ids_path}")
                 continue
 
-            if os.path.getsize(ids_path) == 0:
+            if ids_path.stat().st_size == 0:
                 logger.warning(f"Skipping empty identifier file {ids_path}")
                 continue
 
-            filename = ids_path.name
-            lower_filename = filename.lower()
-            if lower_filename.startswith("metadata-") or lower_filename == "metadata.yaml":
-                subject_filename = filename
-                if lower_filename.startswith("metadata-") and lower_filename.endswith(".yaml"):
-                    subject_filename = filename[9:-5]
-
-                logger.info(f"Loading concord metadata from {ids_path} to subject file {subject_filename}")
-                db.execute(
-                    "INSERT INTO Metadata VALUES (?, ?, ?, ?)",
-                    [str(ids_path), subject_filename, str(ids_path.parent / subject_filename), ids_path.read_text()],
-                )
+            subject_filename = _metadata_subject_filename(ids_path.name)
+            if subject_filename is not None:
+                _insert_metadata(db, ids_path, subject_filename)
                 continue
 
             # ID files sometimes have a single column and sometimes have two, so we need to determine which one this is.
@@ -410,7 +416,6 @@ def export_intermediates_to_parquet(
                 db.execute(
                     "INSERT INTO Identifier SELECT $1 AS filename, csv.curie, NULL AS biolink_type FROM read_csv($1, delim='\\t', header=false, quote='', "
                     + "columns={'curie': 'VARCHAR'}) AS csv ",
-                    # "LEFT JOIN nodes ON nodes.curie = csv.curie",
                     [str(ids_path)],
                 )
             elif num_cols == 2:
@@ -418,7 +423,6 @@ def export_intermediates_to_parquet(
                 db.execute(
                     "INSERT INTO Identifier SELECT $1 AS filename, csv.curie AS curie, biolink_type FROM read_csv($1, delim='\\t', header=false, quote='', "
                     + "columns={'curie': 'VARCHAR', 'biolink_type': 'VARCHAR'}) AS csv ",
-                    # "LEFT JOIN nodes ON csv.curie = nodes.curie",
                     [str(ids_path)],
                 )
             else:
