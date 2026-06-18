@@ -100,22 +100,24 @@ You can also set the **Component** field to identify which part of Babel is affe
 ## Tracking when your issue will be addressed
 
 Babel development is organized into two-week **sprints** using the
-[Babel sprints GitHub project]. You can use the project board to see:
-
-- **Backlog** — issues that have been triaged and are waiting to be scheduled.
-- **Ready** — issues that are queued for the current or next sprint.
-- **In progress** — issues being actively worked on right now.
-- **Needs review** — issues with a pull request awaiting review.
-- **Done** — issues completed in recent sprints.
+[Babel sprints GitHub project]. You can see what we're working on in
+the [current sprint] or in the [future sprints], arranged by estimated size,
+impact, and priority. Once an issue has been closed, it should be fixed in
+the next Babel build, which will be announcated on the Translator Slack and/or
+on the [Babel Tools mailing list].
 
 In general, a **Critical + Enormous** issue will be scheduled very quickly, while a **Low + Low**
 issue may sit in the backlog for a long time. To estimate when your issue is likely to be
-addressed, look at how many **Critical** and **High** priority issues are currently in the backlog
-ahead of yours.
+addressed, look at how many **Critical** and **High** priority issues are currently arranged into
+sprints ahead of yours. If we have misprioritized your issue, please modify the priority yourself
+or leave a comment to let us know.
 
 [Babel issue tracker]: https://github.com/NCATSTranslator/Babel/issues/
 [Node Normalizer issue tracker]: https://github.com/NCATSTranslator/NodeNormalization/issues/
 [Name Resolver issue tracker]: https://github.com/NCATSTranslator/NameResolution/issues/
 [Babel sprints GitHub project]: https://github.com/orgs/NCATSTranslator/projects/36
+[current sprint]: https://github.com/orgs/NCATSTranslator/projects/36/views/1
+[future sprints]: https://github.com/orgs/NCATSTranslator/projects/36/views/9
+[Babel Tools mailing list]: https://lists.renci.org/mailman3/lists/babel-tools.lists.renci.org/
 [Name Resolver]: https://github.com/NCATSTranslator/NameResolution
 [Node Normalizer]: https://github.com/NCATSTranslator/NodeNormalization
