@@ -24,6 +24,8 @@ configfile: "config.yaml"
 
 rule leftover_umls:
     input:
+        # Listed only to force these files to be generated; write_leftover_umls() reads labels
+        # from MRCONSO, not from these files.
         config["download_directory"] + "/UMLS/labels",
         config["download_directory"] + "/UMLS/synonyms",
         input_compendia=expand(
