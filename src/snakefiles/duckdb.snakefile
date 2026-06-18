@@ -113,10 +113,14 @@ rule export_intermediate_files_to_duckdb:
         compendia_done=config["output_directory"] + "/duckdb/compendia_done",
         intermediate_directory=config["intermediate_directory"],
     output:
-        duckdb_filename=config["output_directory"] + "/duckdb/concords.duckdb",
+        duckdb_filename=temp(config["output_directory"] + "/duckdb/concords.duckdb"),
         ids_parquet_filename=config["output_directory"] + "/duckdb/Identifiers.parquet",
         concord_parquet_filename=config["output_directory"] + "/duckdb/Concord.parquet",
         concord_metadata_parquet_filename=config["output_directory"] + "/duckdb/Metadata.parquet",
+    benchmark:
+        config["output_directory"] + "/benchmarks/export_intermediate_files_to_duckdb.tsv"
+    resources:
+        mem="512G",
     run:
         duckdb_exporters.export_intermediates_to_parquet(
             input.intermediate_directory,
