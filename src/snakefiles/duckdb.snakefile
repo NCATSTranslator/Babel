@@ -106,6 +106,7 @@ rule export_conflation_to_duckdb:
             input.conflation_file, wildcards.conflation_name, output.duckdb_filename, output.parquet_filename
         )
 
+
 # Export all the concord files into a DuckDB database.
 rule export_intermediate_files_to_duckdb:
     input:
@@ -124,7 +125,9 @@ rule export_intermediate_files_to_duckdb:
             output.duckdb_filename,
             output.ids_parquet_filename,
             output.concord_parquet_filename,
-            output.concord_metadata_parquet_filename)
+            output.concord_metadata_parquet_filename,
+        )
+
 
 # Create `babel_outputs/duckdb/done` once all the files have been converted.
 rule export_all_to_duckdb:
