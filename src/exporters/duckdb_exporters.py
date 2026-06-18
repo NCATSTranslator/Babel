@@ -347,11 +347,11 @@ def export_intermediates_to_parquet(
                 continue
 
             filename = concord_path.name
-            if filename.lower().startswith("metadata-") or filename.lower() == "metadata.yaml":
+            lower_filename = filename.lower()
+            if lower_filename.startswith("metadata-") or lower_filename == "metadata.yaml":
                 subject_filename = filename
-                if subject_filename.startswith("metadata-") and subject_filename.endswith(".yaml"):
-                    subject_filename = subject_filename[9:]
-                    subject_filename = subject_filename[:-5]
+                if lower_filename.startswith("metadata-") and lower_filename.endswith(".yaml"):
+                    subject_filename = filename[9:-5]
 
                 logger.info(f"Loading concord metadata from {concord_path} to subject file {subject_filename}")
                 db.execute(
