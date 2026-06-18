@@ -298,7 +298,6 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
 
 def export_intermediates_to_parquet(
     intermediate_directory,
-    parquet_root,
     duckdb_filename,
     ids_parquet_filename,
     concords_parquet_filename,
