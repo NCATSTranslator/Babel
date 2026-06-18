@@ -137,6 +137,9 @@ rule export_all_to_duckdb:
         compendia_done=config["output_directory"] + "/duckdb/compendia_done",
         synonyms_done=config["output_directory"] + "/duckdb/synonyms_done",
         conflations_done=config["output_directory"] + "/duckdb/conflations_done",
+        intermediate_ids_parquet=config["output_directory"] + "/duckdb/Identifiers.parquet",
+        intermediate_concord_parquet=config["output_directory"] + "/duckdb/Concord.parquet",
+        intermediate_metadata_parquet=config["output_directory"] + "/duckdb/Metadata.parquet",
     output:
         x=config["output_directory"] + "/duckdb/done",
     shell:
