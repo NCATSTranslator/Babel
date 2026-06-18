@@ -398,15 +398,15 @@ def export_intermediates_to_parquet(
                 continue
 
             # ID files sometimes have a single column and sometimes have two, so we need to determine which one this is.
-            with open(ids_path) as f:
+            with open(ids_path, encoding="utf-8") as f:
                 first_line = f.readline()
                 second_line = f.readline()
-                num_cols = len(first_line.split("\t"))
-                if len(second_line.split("\t")) != num_cols:
-                    raise RuntimeError(
-                        f"Inconsistent number of columns in {ids_path}: {num_cols} (first line: '{first_line}', second line: '{second_line}')."
-                    )
 
+            num_cols = len(first_line.rstrip("\n").split("\t"))
+            if second_line and len(second_line.rstrip("\n").split("\t")) != num_cols:
+                raise RuntimeError(
+                    f"Inconsistent number of columns in {ids_path}: {num_cols} (first line: '{first_line}', second line: '{second_line}')."
+                )
             if num_cols == 1:
                 logger.info(f"Loading identifiers from {ids_path} without a Biolink type column")
                 db.execute(
