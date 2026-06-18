@@ -19,7 +19,9 @@ def pull_pubchem_structures():
 
 def pull(files):
     for f in files:
-        pull_via_wget("https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras/", f, decompress=False, subpath=PUBCHEMCOMPOUND)
+        pull_via_wget(
+            "https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras/", f, decompress=False, subpath=PUBCHEMCOMPOUND
+        )
 
 
 def pull_rxnorm_annotations(outname):

@@ -7,6 +7,15 @@ import src.snakefiles.util as util
 ### Gene / Protein
 
 
+rule protein_mesh_ids:
+    input:
+        infile=config["download_directory"] + "/MESH/mesh.nt",
+    output:
+        outfile=config["intermediate_directory"] + "/protein/ids/MESH",
+    run:
+        protein.write_mesh_ids(output.outfile)
+
+
 rule protein_pr_ids:
     output:
         outfile=config["intermediate_directory"] + "/protein/ids/PR",

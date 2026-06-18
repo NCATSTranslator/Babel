@@ -50,7 +50,6 @@ rule chemical_pubchem_ids:
         # "awk '{{print $1\"\tbiolink:ChemicalSubstance\"}}' {input.infile} > {output.outfile}"
 
 
-
 rule chemical_chembl_ids:
     input:
         labelfile=config["download_directory"] + "/CHEMBL.COMPOUND/labels",
@@ -189,7 +188,7 @@ rule get_chemical_wikipedia_relationships:
     benchmark:
         config["output_directory"] + "/benchmarks/get_chemical_wikipedia_relationships.tsv"
     run:
-        chemicals.get_wikipedia_relationships(output.outfile, output.metadata_yaml)
+        chemicals.get_wikipedia_relationships(output.outfile, config, output.metadata_yaml)
 
 
 rule get_chemical_mesh_relationships:

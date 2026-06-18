@@ -70,7 +70,7 @@ def build_gene_ensembl_relationships(ensembl_dir, outfile, metadata_yaml):
                                     # If the ENSEMBL ID is a version string (e.g. ENSEMBL:ENSP00000263368.3),
                                     # then we should indicate that this is identical to the non-versioned string
                                     # as well.
-                                    # See https://github.com/TranslatorSRI/Babel/issues/72 for details.
+                                    # See https://github.com/NCATSTranslator/Babel/issues/72 for details.
                                     res = re.match(r"^([A-Z]+\d+)\.\d+", gene_id)
                                     if res:
                                         ensembl_id_without_version = res.group(1)
@@ -197,7 +197,7 @@ def build_gene_ncbi_ensembl_relationships(infile, ncbi_idfile, outfile, metadata
             # If the ENSEMBL ID is a version string (e.g. ENSEMBL:ENSP00000263368.3),
             # then we should indicate that this is identical to the non-versioned string
             # as well.
-            # See https://github.com/TranslatorSRI/Babel/issues/72 for details.
+            # See https://github.com/NCATSTranslator/Babel/issues/72 for details.
             res = re.match(r"^([A-Z]+\d+)\.\d+", x[2])
             if res:
                 ensembl_id_without_version = res.group(1)
@@ -206,7 +206,8 @@ def build_gene_ncbi_ensembl_relationships(infile, ncbi_idfile, outfile, metadata
     write_concord_metadata(
         metadata_yaml,
         name="build_gene_ncbi_ensembl_relationships()",
-        description=f"Extracts gene-ensembl relationships from the NCBIGene gene2ensembl.gz file ({infile}), filtering to " + f"NCBIGene IDs in {ncbi_idfile}",
+        description=f"Extracts gene-ensembl relationships from the NCBIGene gene2ensembl.gz file ({infile}), filtering to "
+        + f"NCBIGene IDs in {ncbi_idfile}",
         sources=[
             {
                 "type": "NCBIGENE",
@@ -219,7 +220,16 @@ def build_gene_ncbi_ensembl_relationships(infile, ncbi_idfile, outfile, metadata
 
 
 def build_gene_ncbigene_xrefs(infile, ncbi_idfile, outfile, metadata_yaml):
-    mappings = {"WormBase": WORMBASE, "FLYBASE": FLYBASE, "ZFIN": ZFIN, "HGNC": HGNC, "MGI": MGI, "RGD": RGD, "dictyBase": DICTYBASE, "SGD": SGD}
+    mappings = {
+        "WormBase": WORMBASE,
+        "FLYBASE": FLYBASE,
+        "ZFIN": ZFIN,
+        "HGNC": HGNC,
+        "MGI": MGI,
+        "RGD": RGD,
+        "dictyBase": DICTYBASE,
+        "SGD": SGD,
+    }
     ncbi_ids = read_ncbi_idfile(ncbi_idfile)
     with gzip.open(infile, "r") as inf, open(outfile, "w") as outf:
         _header = inf.readline()
