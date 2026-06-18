@@ -366,12 +366,10 @@ def export_intermediates_to_parquet(
 
             logger.info(f"Loading concords from {concord_path}")
             db.execute(
-                "INSERT INTO Concord SELECT $1 AS filename, subj, pred, obj FROM read_csv($1, delim='\\t', header=false, "
+                "INSERT INTO Concord SELECT $1 AS filename, subj, pred, obj FROM read_csv($1, delim='\\t', header=false, quote='', "
                 + "columns={'subj': 'VARCHAR', 'pred': 'VARCHAR', 'obj': 'VARCHAR'})",
                 [str(concord_path)],
             )
-
-        del concord_path
 
         # Load identifier files.
         for ids_path in intermediate_path.glob("**/ids/**/*"):
@@ -410,7 +408,7 @@ def export_intermediates_to_parquet(
             if num_cols == 1:
                 logger.info(f"Loading identifiers from {ids_path} without a Biolink type column")
                 db.execute(
-                    "INSERT INTO Identifier SELECT $1 AS filename, csv.curie, NULL AS biolink_type FROM read_csv($1, delim='\\t', header=false, "
+                    "INSERT INTO Identifier SELECT $1 AS filename, csv.curie, NULL AS biolink_type FROM read_csv($1, delim='\\t', header=false, quote='', "
                     + "columns={'curie': 'VARCHAR'}) AS csv ",
                     # "LEFT JOIN nodes ON nodes.curie = csv.curie",
                     [str(ids_path)],
@@ -418,7 +416,7 @@ def export_intermediates_to_parquet(
             elif num_cols == 2:
                 logger.info(f"Loading identifiers from {ids_path} with a Biolink type column")
                 db.execute(
-                    "INSERT INTO Identifier SELECT $1 AS filename, csv.curie AS curie, biolink_type FROM read_csv($1, delim='\\t', header=false, "
+                    "INSERT INTO Identifier SELECT $1 AS filename, csv.curie AS curie, biolink_type FROM read_csv($1, delim='\\t', header=false, quote='', "
                     + "columns={'curie': 'VARCHAR', 'biolink_type': 'VARCHAR'}) AS csv ",
                     # "LEFT JOIN nodes ON csv.curie = nodes.curie",
                     [str(ids_path)],
