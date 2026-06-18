@@ -1,8 +1,8 @@
 # The DuckDB exporter can be used to export particular intermediate files into the
 # in-process database engine DuckDB (https://duckdb.org) for future querying.
 import os.path
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 import duckdb
 
@@ -399,7 +399,7 @@ def export_intermediates_to_parquet(
                 continue
 
             # ID files sometimes have a single column and sometimes have two, so we need to determine which one this is.
-            with open(ids_path, "r") as f:
+            with open(ids_path) as f:
                 first_line = f.readline()
                 second_line = f.readline()
                 num_cols = len(first_line.split("\t"))
