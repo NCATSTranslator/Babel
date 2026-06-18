@@ -380,7 +380,7 @@ def export_intermediates_to_parquet(
                 continue
 
             if os.path.getsize(ids_path) == 0:
-                logger.warning(f"Skipping empty concord file {ids_path}")
+                logger.warning(f"Skipping empty identifier file {ids_path}")
                 continue
 
             filename = ids_path.name
