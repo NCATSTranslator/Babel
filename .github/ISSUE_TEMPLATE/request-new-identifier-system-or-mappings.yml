@@ -47,7 +47,15 @@ body:
   - type: input
     id: licensing
     attributes:
-      label: Licensing information / URL
+      label: License
+      placeholder: "URL or short name (e.g. CC-0, Apache 2.0)"
+    validations:
+      required: false
+  - type: input
+    id: also_tracked_at
+    attributes:
+      label: Also tracked at
+      description: Link to any other issue tracker or discussion where this is tracked (optional).
     validations:
       required: false
   - type: input
@@ -60,30 +68,31 @@ body:
       placeholder: "biolink:Gene"
     validations:
       required: false
+  - type: input
+    id: contact
+    attributes:
+      label: Person(s) who can answer questions about this source
+      description: Who should we ping if we have questions? GitHub usernames preferred (e.g. `@gaurav`).
+    validations:
+      required: false
   - type: textarea
     id: value
     attributes:
       label: Value of including this source
+      description: Optional. Why should this source be added to Babel?
     validations:
       required: false
   - type: textarea
     id: conflicts
     attributes:
       label: Potential conflicts with existing sources
-      description: Are there existing identifier sources or mappings in Babel that these may conflict with?
+      description: Optional. Are there existing identifier sources or mappings in Babel that these may conflict with?
     validations:
       required: false
   - type: textarea
     id: additional_info
     attributes:
       label: Additional information
-      description: Any information helpful for working with these identifiers or mappings, including pointers to existing code for extracting them.
-    validations:
-      required: false
-  - type: input
-    id: also_tracked_at
-    attributes:
-      label: Also tracked at
-      description: Link to any other issue tracker or discussion where this is tracked (optional).
+      description: Optional. Any information helpful for working with these identifiers or mappings, including pointers to existing code for extracting them.
     validations:
       required: false
