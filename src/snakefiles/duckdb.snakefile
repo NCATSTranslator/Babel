@@ -107,7 +107,13 @@ rule export_conflation_to_duckdb:
         )
 
 
-# Export all the concord files into a DuckDB database.
+# Export all the intermediate concord, ids, and metadata files into Parquet.
+#
+# `intermediate_directory` is declared as an input only so the rule has something concrete to read;
+# Snakemake tracks a directory by mtime, which does not reliably change when a nested concord/ids
+# file is rewritten. The real ordering trigger is `compendia_done`: every compendium depends
+# (transitively) on the intermediate concord/ids files, none of which are temp(), so by the time
+# compendia_done exists the full intermediate tree is present on disk for this rule to sweep.
 rule export_intermediate_files_to_duckdb:
     input:
         compendia_done=config["output_directory"] + "/duckdb/compendia_done",
@@ -116,18 +122,19 @@ rule export_intermediate_files_to_duckdb:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/concords.duckdb"),
         ids_parquet_filename=config["output_directory"] + "/duckdb/Identifiers.parquet",
         concord_parquet_filename=config["output_directory"] + "/duckdb/Concord.parquet",
-        concord_metadata_parquet_filename=config["output_directory"] + "/duckdb/Metadata.parquet",
+        metadata_parquet_filename=config["output_directory"] + "/duckdb/Metadata.parquet",
     benchmark:
         config["output_directory"] + "/benchmarks/export_intermediate_files_to_duckdb.tsv"
     resources:
-        mem="512G",
+        # Provisional; right-size from the benchmark once we have a real run.
+        mem="128G",
     run:
         duckdb_exporters.export_intermediates_to_parquet(
             input.intermediate_directory,
             output.duckdb_filename,
             output.ids_parquet_filename,
             output.concord_parquet_filename,
-            output.concord_metadata_parquet_filename,
+            output.metadata_parquet_filename,
         )
 
 
@@ -138,7 +145,7 @@ rule export_all_to_duckdb:
         synonyms_done=config["output_directory"] + "/duckdb/synonyms_done",
         conflations_done=config["output_directory"] + "/duckdb/conflations_done",
         intermediate_ids_parquet=config["output_directory"] + "/duckdb/Identifiers.parquet",
-        intermediate_concord_parquet=config["output_directory"] + "/duckdb/Concord.parquet",
+        intermediate_concords_parquet=config["output_directory"] + "/duckdb/Concord.parquet",
         intermediate_metadata_parquet=config["output_directory"] + "/duckdb/Metadata.parquet",
     output:
         x=config["output_directory"] + "/duckdb/done",
