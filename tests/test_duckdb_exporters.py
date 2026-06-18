@@ -135,11 +135,19 @@ def test_export_intermediates_to_parquet(tmp_path):
 
     # Metadata: the sidecar describing Anatomy.txt resolves its subject filename, and the bare
     # metadata.yaml keeps its own name as the subject.
-    metadata = dict(
-        duckdb.execute(f"SELECT subject_filename, metadata_json FROM read_parquet('{metadata_parquet}')").fetchall()
-    )
-    assert metadata["Anatomy.txt"].strip() == "xref(UBERON, MESH): 2"
-    assert metadata["metadata.yaml"].strip() == "source: datacollect"
+    metadata = {
+        row[0]: row[1:]
+        for row in duckdb.execute(
+            f"SELECT subject_filename, metadata_json, subject_file_path FROM read_parquet('{metadata_parquet}')"
+        ).fetchall()
+    }
+    concords_dir = intermediate_dir / "datacollect" / "concords"
+    # metadata-Anatomy.txt.yaml describes the sibling file Anatomy.txt.
+    assert metadata["Anatomy.txt"][0].strip() == "xref(UBERON, MESH): 2"
+    assert metadata["Anatomy.txt"][1] == str(concords_dir / "Anatomy.txt")
+    # A bare metadata.yaml describes the directory it lives in, so subject_file_path is that dir.
+    assert metadata["metadata.yaml"][0].strip() == "source: datacollect"
+    assert metadata["metadata.yaml"][1] == str(concords_dir)
 
 
 @pytest.mark.unit

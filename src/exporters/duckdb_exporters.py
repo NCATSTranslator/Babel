@@ -317,21 +317,31 @@ def _metadata_subject_filename(filename):
 
 
 def _insert_metadata(db, path, subject_filename):
-    """Insert one metadata sidecar file into the Metadata table, recording the subject file it
-    describes and the full path to that subject file."""
-    logger.info(f"Loading metadata from {path} describing subject file {subject_filename}")
+    """Insert one metadata sidecar file into the Metadata table, recording the subject it
+    describes and the full path to that subject.
+
+    For a `metadata-<subject>.yaml` sidecar, the subject path is the sibling file it describes; for
+    a bare `metadata.yaml`, which describes its directory, the subject path is that directory.
+    """
+    logger.info(f"Loading metadata from {path} describing subject {subject_filename}")
+    if path.name.lower() == METADATA_DIRECTORY_FILENAME:
+        subject_file_path = path.parent
+    else:
+        subject_file_path = path.parent / subject_filename
     db.execute(
         "INSERT INTO Metadata VALUES (?, ?, ?, ?)",
-        [str(path), subject_filename, str(path.parent / subject_filename), path.read_text()],
+        [str(path), subject_filename, str(subject_file_path), path.read_text(encoding="utf-8")],
     )
 
 
-def _iter_loadable_files(db, root, kind):
-    """Yield each non-empty data file of the given `kind` ('concords' or 'ids') under `root`.
+def _iter_loadable_files(root, kind):
+    """Yield `(path, subject_filename)` for each non-empty file of the given `kind`
+    ('concords' or 'ids') under `root`.
 
-    Directories and empty files are skipped, and metadata sidecar files are routed into the
-    Metadata table as a side effect rather than being yielded, so callers receive only the
-    files they need to bulk-load.
+    Directories and empty files are skipped. `subject_filename` is the metadata subject for a
+    metadata sidecar file (see `_metadata_subject_filename`) and `None` for a data file the caller
+    should bulk-load; the caller routes on it. The generator has no side effects so partial
+    consumption can't silently drop metadata.
     """
     for path in root.glob(f"**/{kind}/**/*"):
         # One stat() serves both the directory and the empty-file checks.
@@ -343,12 +353,7 @@ def _iter_loadable_files(db, root, kind):
             logger.warning(f"Skipping empty {kind} file {path}")
             continue
 
-        subject_filename = _metadata_subject_filename(path.name)
-        if subject_filename is not None:
-            _insert_metadata(db, path, subject_filename)
-            continue
-
-        yield path
+        yield path, _metadata_subject_filename(path.name)
 
 
 def export_intermediates_to_parquet(
@@ -383,7 +388,10 @@ def export_intermediates_to_parquet(
         intermediate_path = Path(intermediate_directory)
 
         # Load concord files.
-        for concord_path in _iter_loadable_files(db, intermediate_path, "concords"):
+        for concord_path, subject_filename in _iter_loadable_files(intermediate_path, "concords"):
+            if subject_filename is not None:
+                _insert_metadata(db, concord_path, subject_filename)
+                continue
             logger.info(f"Loading concords from {concord_path}")
             db.execute(
                 "INSERT INTO Concord SELECT $1 AS filename, subj, pred, obj "
@@ -393,8 +401,14 @@ def export_intermediates_to_parquet(
             )
 
         # Load identifier files.
-        for ids_path in _iter_loadable_files(db, intermediate_path, "ids"):
-            # ID files sometimes have a single column and sometimes have two, so we need to determine which one this is.
+        for ids_path, subject_filename in _iter_loadable_files(intermediate_path, "ids"):
+            if subject_filename is not None:
+                _insert_metadata(db, ids_path, subject_filename)
+                continue
+            # ID files sometimes have a single column and sometimes have two, so we need to
+            # determine which one this is. This is a cheap heuristic: it inspects only the first
+            # two lines, not the whole file. A later line with a different column count is not
+            # caught here and will instead surface as a read_csv error below.
             with open(ids_path, encoding="utf-8") as f:
                 first_line = f.readline()
                 second_line = f.readline()
