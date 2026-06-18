@@ -117,12 +117,9 @@ rule export_intermediate_files_to_duckdb:
         ids_parquet_filename=config["output_directory"] + "/duckdb/Identifiers.parquet",
         concord_parquet_filename=config["output_directory"] + "/duckdb/Concord.parquet",
         concord_metadata_parquet_filename=config["output_directory"] + "/duckdb/Metadata.parquet",
-    params:
-        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
         duckdb_exporters.export_intermediates_to_parquet(
             input.intermediate_directory,
-            params.parquet_dir,
             output.duckdb_filename,
             output.ids_parquet_filename,
             output.concord_parquet_filename,
