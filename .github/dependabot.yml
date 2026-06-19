@@ -1,11 +1,17 @@
+# Note: I'm going with a versioning-strategy of "increase" so that Dependabot will update pyproject.toml when
+# an older version is known to have an issue. If this has any bad side-effects, please switch it back to "auto".
+
 version: 2
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    versioning-strategy: "increase"
 
   - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "weekly"
+    versioning-strategy: "increase"
+
