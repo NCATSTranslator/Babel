@@ -14,7 +14,12 @@ A Snakemake-on-SLURM run leaves three kinds of artifact under `babel_outputs/`. 
   include `s` (wall seconds), `max_rss` (peak RAM, MB), `mean_load` (%CPU, 100 = one core), and
   `cpu_time`. This is the **authoritative source for actual memory and CPU usage**.
 - `reports/slurm/slurm_efficiency_report.csv/` — a *directory* of `efficiency_report_<uuid>.csv`
-  from the SLURM executor, with `RequestedMem_MB`, `NCPUS`, and `Elapsed_sec` per job.
+  from the SLURM executor, with `RequestedMem_MB`, `NCPUS`, and `Elapsed_sec` per job. The executor
+  appends a **fresh shard on every Snakemake (re)start**, and each shard covers only that
+  invocation's jobs — so a run that restarted several times leaves many shards, and the final one
+  usually holds just a handful of rules. The analyzer therefore reads and merges *all* shards
+  (worst-case per rule); reading only the newest (as an early version did) drops the requested-side
+  data for almost every rule.
 - `logs/rule_<name>/<jobid>.log` — per-rule control-node logs: the declared `resources:` line,
   start/end timestamps, and any traceback.
 
