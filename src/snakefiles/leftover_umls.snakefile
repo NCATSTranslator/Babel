@@ -24,6 +24,8 @@ configfile: "config.yaml"
 
 rule leftover_umls:
     input:
+        # Listed only to force these files to be generated; write_leftover_umls() reads labels
+        # from MRCONSO, not from these files.
         config["download_directory"] + "/UMLS/labels",
         config["download_directory"] + "/UMLS/synonyms",
         input_compendia=expand(
@@ -35,9 +37,6 @@ rule leftover_umls:
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
         umls_metadata_yaml=config["download_directory"] + "/UMLS/UMLS.metadata.yaml",
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
-        # These are required, and I'll leave them here so that they are generated,
-        # but since they are picked up implicitly (ugh) we don't need to pass it to
-        # write_leftover_umls().
     output:
         umls_compendium=config["output_directory"] + "/compendia/umls.txt",
         umls_synonyms=temp(config["output_directory"] + "/synonyms/umls.txt"),

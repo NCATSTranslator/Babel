@@ -1,7 +1,9 @@
 # The DuckDB exporter can be used to export particular intermediate files into the
 # in-process database engine DuckDB (https://duckdb.org) for future querying.
 import os.path
+import stat
 import tempfile
+from pathlib import Path
 
 import duckdb
 
@@ -45,6 +47,16 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
     return db
 
 
+def _prepare_duckdb_output(duckdb_filename):
+    """Refuse to clobber an existing DuckDB file and ensure its parent directory exists.
+
+    Shared by every exporter that writes a fresh DuckDB scratch file before emitting Parquet.
+    """
+    if os.path.exists(duckdb_filename):
+        raise RuntimeError(f"Will not overwrite existing file {duckdb_filename}")
+    os.makedirs(os.path.dirname(duckdb_filename), exist_ok=True)
+
+
 def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, duckdb_filename):
     """
     Export a compendium to a Parquet file via a DuckDB.
@@ -55,12 +67,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, du
         this file is located in.
     """
 
-    # Make sure that duckdb_filename doesn't exist.
-    if os.path.exists(duckdb_filename):
-        raise RuntimeError(f"Will not overwrite existing file {duckdb_filename}")
-
-    duckdb_dir = os.path.dirname(duckdb_filename)
-    os.makedirs(duckdb_dir, exist_ok=True)
+    _prepare_duckdb_output(duckdb_filename)
 
     # We'll create these two files as well, but we don't report them back to Snakemake for now.
     parquet_dir = os.path.dirname(clique_parquet_filename)
@@ -207,10 +214,7 @@ def export_conflation_to_parquet(conflation_filename, conflation_type, duckdb_fi
     :param duckdb_filename: A temporary DuckDB file to use during export.
     :param parquet_filename: The output Parquet file path.
     """
-    if os.path.exists(duckdb_filename):
-        raise RuntimeError(f"Will not overwrite existing file {duckdb_filename}")
-
-    os.makedirs(os.path.dirname(duckdb_filename), exist_ok=True)
+    _prepare_duckdb_output(duckdb_filename)
     os.makedirs(os.path.dirname(parquet_filename), exist_ok=True)
 
     with setup_duckdb(duckdb_filename) as db:
@@ -251,12 +255,7 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
     :param synonyms_parquet_filename: The Parquet file to store the synoynms in.
     """
 
-    # Make sure that duckdb_filename doesn't exist.
-    if os.path.exists(duckdb_filename):
-        raise RuntimeError(f"Will not overwrite existing file {duckdb_filename}")
-
-    duckdb_dir = os.path.dirname(duckdb_filename)
-    os.makedirs(duckdb_dir, exist_ok=True)
+    _prepare_duckdb_output(duckdb_filename)
 
     with setup_duckdb(duckdb_filename) as db:
         # Step 1. Load the entire synonyms file.
@@ -293,3 +292,148 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
 
         # Cleanup
         synonyms_jsonl.close()
+
+
+# Intermediate metadata sidecar files are named `metadata-<subject>.yaml` (describing a sibling
+# file) or a bare `metadata.yaml` (describing the directory it lives in).
+METADATA_FILENAME_PREFIX = "metadata-"
+METADATA_FILENAME_SUFFIX = ".yaml"
+METADATA_DIRECTORY_FILENAME = "metadata.yaml"
+
+
+def _metadata_subject_filename(filename):
+    """Return the name of the file a metadata sidecar describes, or None if `filename` is not a
+    metadata file.
+
+    `metadata-<subject>.yaml` describes the sibling file `<subject>`; a bare `metadata.yaml`
+    describes the directory it lives in, so its own name is returned unchanged.
+    """
+    lower_filename = filename.lower()
+    if lower_filename.startswith(METADATA_FILENAME_PREFIX) and lower_filename.endswith(METADATA_FILENAME_SUFFIX):
+        return filename[len(METADATA_FILENAME_PREFIX) : -len(METADATA_FILENAME_SUFFIX)]
+    if lower_filename == METADATA_DIRECTORY_FILENAME:
+        return filename
+    return None
+
+
+def _insert_metadata(db, path, subject_filename):
+    """Insert one metadata sidecar file into the Metadata table, recording the subject it
+    describes and the full path to that subject.
+
+    For a `metadata-<subject>.yaml` sidecar, the subject path is the sibling file it describes; for
+    a bare `metadata.yaml`, which describes its directory, the subject path is that directory.
+    """
+    logger.info(f"Loading metadata from {path} describing subject {subject_filename}")
+    if path.name.lower() == METADATA_DIRECTORY_FILENAME:
+        subject_file_path = path.parent
+    else:
+        subject_file_path = path.parent / subject_filename
+    db.execute(
+        "INSERT INTO Metadata VALUES (?, ?, ?, ?)",
+        [str(path), subject_filename, str(subject_file_path), path.read_text(encoding="utf-8")],
+    )
+
+
+def _iter_loadable_files(root, kind):
+    """Yield `(path, subject_filename)` for each non-empty file of the given `kind`
+    ('concords' or 'ids') under `root`.
+
+    Directories and empty files are skipped. `subject_filename` is the metadata subject for a
+    metadata sidecar file (see `_metadata_subject_filename`) and `None` for a data file the caller
+    should bulk-load; the caller routes on it. The generator has no side effects so partial
+    consumption can't silently drop metadata.
+    """
+    for path in root.glob(f"**/{kind}/**/*"):
+        # One stat() serves both the directory and the empty-file checks.
+        st = path.stat()
+        if stat.S_ISDIR(st.st_mode):
+            logger.info(f"Skipping directory {path}")
+            continue
+        if st.st_size == 0:
+            logger.warning(f"Skipping empty {kind} file {path}")
+            continue
+
+        yield path, _metadata_subject_filename(path.name)
+
+
+def export_intermediates_to_parquet(
+    intermediate_directory,
+    duckdb_filename,
+    ids_parquet_filename,
+    concords_parquet_filename,
+    metadata_parquet_filename,
+):
+    """
+    Export all the intermediate files into Parquet files, which will be easier to download and manipulate
+    than the multiple original files.
+
+    :param intermediate_directory: The intermediate directory containing the concords.
+    :param duckdb_filename: A DuckDB file to temporarily store data in.
+    :param ids_parquet_filename: The Parquet file to store the IDs.
+    :param concords_parquet_filename: The Parquet file to store the concords.
+    :param metadata_parquet_filename: The Parquet file to store the ID and concord metadata in.
+    """
+
+    _prepare_duckdb_output(duckdb_filename)
+
+    with setup_duckdb(duckdb_filename) as db:
+        # We don't include labels here: the Node-writing code currently emits only nulls for them,
+        # so there is nothing useful to join against.
+        db.sql("""CREATE TABLE Concord (filename STRING, subj STRING, pred STRING, obj STRING)""")
+        db.sql("""CREATE TABLE Identifier (filename STRING, curie STRING, biolink_type STRING)""")
+        db.sql(
+            """CREATE TABLE Metadata (filename STRING, subject_filename STRING, subject_file_path STRING, metadata_json STRING)"""
+        )
+
+        intermediate_path = Path(intermediate_directory)
+
+        # Load concord files.
+        for concord_path, subject_filename in _iter_loadable_files(intermediate_path, "concords"):
+            if subject_filename is not None:
+                _insert_metadata(db, concord_path, subject_filename)
+                continue
+            logger.info(f"Loading concords from {concord_path}")
+            db.execute(
+                "INSERT INTO Concord SELECT $1 AS filename, subj, pred, obj "
+                "FROM read_csv($1, delim='\\t', header=false, quote='', "
+                "columns={'subj': 'VARCHAR', 'pred': 'VARCHAR', 'obj': 'VARCHAR'})",
+                [str(concord_path)],
+            )
+
+        # Load identifier files.
+        for ids_path, subject_filename in _iter_loadable_files(intermediate_path, "ids"):
+            if subject_filename is not None:
+                _insert_metadata(db, ids_path, subject_filename)
+                continue
+            # ID files sometimes have a single column and sometimes have two, so we need to
+            # determine which one this is. This is a cheap heuristic: it inspects only the first
+            # two lines, not the whole file. A later line with a different column count is not
+            # caught here and will instead surface as a read_csv error below.
+            with open(ids_path, encoding="utf-8") as f:
+                first_line = f.readline()
+                second_line = f.readline()
+
+            num_cols = len(first_line.rstrip("\n").split("\t"))
+            if second_line and len(second_line.rstrip("\n").split("\t")) != num_cols:
+                raise RuntimeError(
+                    f"Inconsistent number of columns in {ids_path}: {num_cols} (first line: '{first_line}', second line: '{second_line}')."
+                )
+            if num_cols == 1:
+                logger.info(f"Loading identifiers from {ids_path} without a Biolink type column")
+                select_type, csv_columns = "NULL AS biolink_type", "{'curie': 'VARCHAR'}"
+            elif num_cols == 2:
+                logger.info(f"Loading identifiers from {ids_path} with a Biolink type column")
+                select_type, csv_columns = "biolink_type", "{'curie': 'VARCHAR', 'biolink_type': 'VARCHAR'}"
+            else:
+                raise RuntimeError(
+                    f"Unexpected number of columns in {ids_path}: {num_cols} (first line: '{first_line}')."
+                )
+            db.execute(
+                f"INSERT INTO Identifier SELECT $1 AS filename, csv.curie, {select_type} "
+                f"FROM read_csv($1, delim='\\t', header=false, quote='', columns={csv_columns}) AS csv",
+                [str(ids_path)],
+            )
+
+        db.table("Concord").write_parquet(concords_parquet_filename)
+        db.table("Identifier").write_parquet(ids_parquet_filename)
+        db.table("Metadata").write_parquet(metadata_parquet_filename)
