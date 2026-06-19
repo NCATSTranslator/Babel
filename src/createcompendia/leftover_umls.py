@@ -19,7 +19,7 @@ from src.categories import (
     PHYSICAL_ENTITY,
     POPULATION_OF_INDIVIDUAL_ORGANISMS,
     PROCEDURE,
-    SMALL_MOLECULE,
+    SMALL_MOLECULE, ANATOMICAL_ENTITY,
 )
 from src.datahandlers import umls
 from src.node import NodeFactory
@@ -106,6 +106,8 @@ GENERIC_TYPES: frozenset[str] = frozenset({PHYSICAL_ENTITY})
 # write_leftover_umls().
 TYPE_COMBO_OVERRIDES: dict[frozenset[str], str] = {
     frozenset({DEVICE, DRUG}): DRUG,
+    frozenset({CHEMICAL_ENTITY, DRUG}): DRUG,
+    frozenset({ANATOMICAL_ENTITY, DRUG}): DRUG,             # e.g. fecal microbiota
     frozenset({DRUG, SMALL_MOLECULE}): SMALL_MOLECULE,
     frozenset({ACTIVITY, PROCEDURE}): PROCEDURE,
     frozenset({DRUG, FOOD}): FOOD,
