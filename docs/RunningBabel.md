@@ -179,3 +179,62 @@ cluster. You need to create three resources:
        `screen -r`. You can also see a list of all running screens by running `screen -l`.
 
     5. Once the generation completes, all output files should be in the `babel_outputs` directory.
+
+## Releasing a new Babel version
+
+A full production run happens on an HPC system over many hours, and it almost always
+surfaces problems that aren't visible from a local dry run: wrong memory settings,
+download endpoints that have moved or started blocking us, format changes upstream, and
+latent bugs that only fire at full scale. The practical way to keep a run moving is to
+fix these directly on the release branch (for example `babel-1.17`) rather than stopping
+to open a separate PR for each one. By the time the run is healthy, the release branch
+holds a long, date-interleaved mix of trivial tweaks and substantial changes.
+
+Before that branch is merged, it is worth separating the two kinds of change.
+
+### Which commits stay on the release branch
+
+A commit can stay on the release branch if its entire effect fits in a single
+release-note line, for example "updated the ENSEMBL dataset skip list", "bumped the
+Biolink Model version", or "raised a rule's memory limit". These are the expected
+running-a-build adjustments and reviewing them inline with the release is fine.
+
+Everything else should move to its own branch off `main` and be reviewed as a normal
+PR, so the change is documented, gets a real review, and earns its own release-note
+entry. Related commits move together as one PR even if they were made days apart: all
+the download-robustness work is one PR, all the DuckDB memory tuning is another, and so
+on. Documentation and formatting commits travel with the code they describe rather than
+staying behind on the release branch.
+
+### Splitting the branch
+
+1. **Classify by theme, not by date.** The commits interleave chronologically but group
+   cleanly by the files they touch. List `git rev-list --no-merges main..<release-branch>`
+   with each commit's changed files and bucket them (download robustness, a specific
+   source's ingest, export/reporting, tooling, and so on).
+2. **Make a backup ref** (`git branch <release-branch>-backup <release-branch>`) before
+   anything that will later rewrite the release branch.
+3. **Build one branch per theme off `main`** with `git cherry-pick`, replaying each
+   bucket's commits in chronological order. Enable `git rerere` so a conflict you resolve
+   once (typically in shared files like `config.yaml`, `datacollect.snakefile`, or
+   `CLAUDE.md`) is replayed automatically if you have to rebuild the branch.
+4. **Watch for entangled and coupled commits.** Two themes that edit the same file in
+   alternating commits may need one branch *stacked on* the other (cherry-pick the second
+   theme on top of the first) rather than both off `main` — that reconstructs the original
+   context and avoids fighting conflicts. Also watch for a "workaround then fix" pair
+   split across buckets: for example a commit that raises a memory limit as a stopgap and
+   a later commit that removes the stopgap after fixing the root cause must live in the
+   same PR, or the net effect on the release branch changes.
+5. **Verify each branch independently** with the full CI gate — `uv run ruff check`,
+   `uv run ruff format --check`, `uv run snakefmt --check --compact-diff .`,
+   `uv run rumdl check .`, and `uv run pytest -m unit` — plus the cluster's own tests. A
+   branch that carries a behavior change but no test gets a small regression test added.
+6. **Prove nothing was lost.** Compare `git patch-id --stable` for every commit in
+   `main..<release-branch>` against the patch-ids present across all theme branches: every
+   moved commit should appear in exactly one branch, and every stay-behind commit should
+   appear in none. Commits you deliberately adapted while resolving a conflict will differ;
+   confirm those by diffing the applied change against the original so only context, not
+   added or removed lines, has changed.
+7. **Reintegrate.** Once the theme PRs are merged into `main`, merge or rebase `main` into
+   the release branch. The commits that were split out arrive via `main` and drop out of
+   the release branch's own diff, leaving only the stay-behind commits there.
