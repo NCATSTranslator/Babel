@@ -112,48 +112,62 @@ class EfficiencyRow:
     max_rss_mb: float
 
 
-def _resolve_efficiency_csv(path: str | Path) -> Path:
-    """Resolve the efficiency CSV from a file, the ``*.csv`` directory, or a parent.
+def _efficiency_csvs(path: str | Path) -> list[Path]:
+    """Resolve *every* efficiency CSV shard from a file, the ``*.csv`` directory, or a parent.
 
-    The SLURM executor writes ``slurm_efficiency_report.csv`` as a *directory*
-    containing ``efficiency_report_<uuid>.csv`` files; accept any of:
-    the inner CSV file, that directory, or a run dir containing
-    ``reports/slurm/...``. Picks the newest CSV when several exist.
+    The SLURM executor writes ``slurm_efficiency_report.csv`` as a *directory* and appends a
+    fresh ``efficiency_report_<uuid>.csv`` on every Snakemake (re)start, so a single run leaves
+    many shards, each covering only the jobs from that invocation. We must read **all** of them
+    -- picking just the newest (as an earlier version did) drops almost every rule, since the
+    final restart usually re-ran only a handful of jobs.
     """
     path = Path(path)
     if path.is_file():
-        return path
-    candidates: list[Path]
-    if path.is_dir():
-        candidates = sorted(path.rglob("efficiency_report_*.csv"))
-        if not candidates:
-            candidates = sorted(path.rglob("*.csv"))
-    else:
+        return [path]
+    if not path.is_dir():
         raise FileNotFoundError(f"No efficiency report found at {path}")
+    candidates = sorted(path.rglob("efficiency_report_*.csv")) or sorted(path.rglob("*.csv"))
     if not candidates:
         raise FileNotFoundError(f"No efficiency report CSV under {path}")
-    return max(candidates, key=lambda p: p.stat().st_mtime)
+    return candidates
 
 
 def read_efficiency_report(path: str | Path) -> dict[str, EfficiencyRow]:
-    """Read the SLURM efficiency report keyed by rule name (``rule_`` prefix stripped)."""
-    csv_path = _resolve_efficiency_csv(path)
+    """Read the SLURM efficiency report keyed by rule name (``rule_`` prefix stripped).
+
+    Merges every shard (see :func:`_efficiency_csvs`); when a rule appears in more than one shard
+    (retries across restarts) we keep the per-column worst case, mirroring how
+    :func:`read_benchmarks` keeps the worst observed run.
+    """
     result: dict[str, EfficiencyRow] = {}
-    with open(csv_path, newline="") as handle:
-        for row in csv.DictReader(handle):
-            rule = (row.get("RuleName") or "").strip()
-            if rule.startswith("rule_"):
-                rule = rule[len("rule_") :]
-            if not rule:
-                continue
-            result[rule] = EfficiencyRow(
-                rule=rule,
-                requested_mem_mb=_to_float(row.get("RequestedMem_MB")),
-                ncpus=int(_to_float(row.get("NCPUS"))),
-                elapsed_sec=_to_float(row.get("Elapsed_sec")),
-                total_cpu_sec=_to_float(row.get("TotalCPU_sec")),
-                max_rss_mb=_to_float(row.get("MaxRSS_MB")),
-            )
+    for csv_path in _efficiency_csvs(path):
+        with open(csv_path, newline="") as handle:
+            for row in csv.DictReader(handle):
+                rule = (row.get("RuleName") or "").strip()
+                if rule.startswith("rule_"):
+                    rule = rule[len("rule_") :]
+                if not rule:
+                    continue
+                new = EfficiencyRow(
+                    rule=rule,
+                    requested_mem_mb=_to_float(row.get("RequestedMem_MB")),
+                    ncpus=int(_to_float(row.get("NCPUS"))),
+                    elapsed_sec=_to_float(row.get("Elapsed_sec")),
+                    total_cpu_sec=_to_float(row.get("TotalCPU_sec")),
+                    max_rss_mb=_to_float(row.get("MaxRSS_MB")),
+                )
+                prev = result.get(rule)
+                if prev is None:
+                    result[rule] = new
+                else:
+                    result[rule] = EfficiencyRow(
+                        rule=rule,
+                        requested_mem_mb=max(prev.requested_mem_mb, new.requested_mem_mb),
+                        ncpus=max(prev.ncpus, new.ncpus),
+                        elapsed_sec=max(prev.elapsed_sec, new.elapsed_sec),
+                        total_cpu_sec=max(prev.total_cpu_sec, new.total_cpu_sec),
+                        max_rss_mb=max(prev.max_rss_mb, new.max_rss_mb),
+                    )
     return result
 
 
@@ -235,6 +249,30 @@ def read_rule_logs(logs_dir: str | Path) -> dict[str, RuleLog]:
 
 # --- aggregate sbatch error log (used by the ``errors`` subcommand) ----------
 
+_SUBMIT_RE = re.compile(
+    r"(?:INFO|ERROR) snakemake\.logging \[(\S+)\]: Job (\d+) has been submitted with SLURM jobid (\d+) \(log: (\S+)\)\."
+)
+_FINISH_RE = re.compile(r"(?:INFO|ERROR) snakemake\.logging \[(\S+)\]: Finished jobid: (\d+) \(Rule: (\w+)\)")
+_ERROR_RE = re.compile(r"ERROR snakemake\.logging \[(\S+)\]: Error in rule (\w+), jobid: (\d+)")
+
+# Substrings identifying the DuckDB memory-diagnostic log lines emitted by
+# src/exporters/duckdb_exporters.py. These pinpoint cgroup vs memory_limit headroom and the
+# tracked/untracked split at a `bad allocation` OOM. The connect-time headroom line sits near the
+# top of the log and the threads>1 SIGABRT path leaves no traceback, so the default
+# "last N lines" / traceback extraction misses them; we scan the whole log and surface them
+# explicitly. (We deliberately do not match the verbose per-setting dump, e.g. " - memory_limit:".)
+_MEMORY_DIAGNOSTIC_MARKERS = (
+    "DuckDB memory headroom:",
+    "Memory snapshot (",
+    "Address-space snapshot (",
+    "DuckDB operation failed during",
+)
+
+# Characters that only appear in DuckDB's in-place progress bar. Snakemake captures every
+# carriage-return redraw, so a single "line" can be hundreds of KB of repeated bar frames; we
+# collapse any run of them to one marker so the full log stays readable.
+_PROGRESS_BAR_CHARS = "▕▏█▎▍▌▋▊▉▐"
+
 
 def find_err_file(version: str | None, logs_dir: Path) -> Path:
     """Locate the main Snakemake ``sbatch-<version>.err`` control-node log."""
@@ -266,19 +304,140 @@ def parse_failures(err_file: Path) -> list[tuple[str, Path]]:
     return results
 
 
+def _collect_memory_diagnostics(lines: list[str]) -> list[str]:
+    """Return the DuckDB memory-diagnostic lines anywhere in the log, in order, de-duplicated."""
+    found: list[str] = []
+    seen: set[str] = set()
+    for line in lines:
+        if any(marker in line for marker in _MEMORY_DIAGNOSTIC_MARKERS):
+            stripped = line.rstrip()
+            if stripped not in seen:
+                seen.add(stripped)
+                found.append(stripped)
+    return found
+
+
+def _collapse_progress_noise(lines: list[str]) -> list[str]:
+    """Replace each run of DuckDB progress-bar redraw lines with a single elision marker."""
+    cleaned: list[str] = []
+    in_progress = False
+    for line in lines:
+        if any(ch in line for ch in _PROGRESS_BAR_CHARS):
+            if not in_progress:
+                cleaned.append("[... DuckDB progress-bar output elided ...]")
+                in_progress = True
+            continue
+        in_progress = False
+        cleaned.append(line)
+    return cleaned
+
+
 def extract_error_content(log_path: Path, fallback_lines: int) -> str:
-    """Return the last traceback block from a log, or its trailing lines."""
+    """Return the failed rule's log for the report.
+
+    We show the *whole* log (so the real exception is never hidden by tail/traceback heuristics --
+    Snakemake's RuleException/OutOfMemory blocks are neither a Python "Traceback" nor always within
+    the last N lines), with two cleanups: DuckDB's progress-bar redraw spam is collapsed, and the
+    memory-diagnostic lines are echoed in a labelled section at the end so they are easy to find.
+    ``fallback_lines`` caps a pathologically long log to a head + tail so the report stays usable.
+    """
     if not log_path.exists():
         return f"(log file not found: {log_path})"
 
-    lines = log_path.read_text(errors="replace").splitlines()
+    raw_lines = log_path.read_text(errors="replace").splitlines()
+    lines = _collapse_progress_noise(raw_lines)
 
-    last_tb_start: int | None = None
-    for i, line in enumerate(lines):
-        if line.strip().startswith("Traceback (most recent call last):"):
-            last_tb_start = i
+    # Show the full (de-spammed) log, but guard against a pathologically long one by keeping a
+    # generous head and tail. The cap is large enough that ordinary rule logs are shown in full.
+    max_lines = max(fallback_lines * 20, 400)
+    if len(lines) > max_lines:
+        head = lines[: max_lines // 4]
+        tail = lines[-(max_lines - max_lines // 4) :]
+        elided = len(lines) - len(head) - len(tail)
+        content = "\n".join(head + [f"[... {elided} log lines elided ...]"] + tail)
+    else:
+        content = "\n".join(lines)
 
-    if last_tb_start is not None:
-        return "\n".join(lines[last_tb_start:])
+    # Echo the memory diagnostics in a clearly-labelled trailer so they are easy to find even in a
+    # long log (and present even if the head/tail cap dropped them).
+    diagnostics = _collect_memory_diagnostics(raw_lines)
+    if diagnostics:
+        content += "\n\n--- DuckDB memory diagnostics (also inline above) ---\n" + "\n".join(diagnostics)
 
-    return "\n".join(lines[-fallback_lines:])
+    return content
+
+
+# --- job-event timeline (used by the ``errors`` subcommand's run summary) ----
+
+
+@dataclass
+class JobEvent:
+    """One SLURM job attempt parsed from the main Snakemake error log."""
+
+    snakemake_jobid: int
+    slurm_jobid: int
+    rule_name: str
+    wildcard: str  # "" for simple rules; "Cell.txt" etc. for parametrised rules
+    log_relative: str  # e.g. rule_get_HMDB/672.log
+    submitted_at: datetime
+    finished_at: datetime | None = None
+    failed: bool = False
+
+
+def _parse_ts(ts_str: str) -> datetime:
+    # Normalise +0000 → +00:00 for Python < 3.11 fromisoformat compatibility.
+    return datetime.fromisoformat(ts_str.replace("+0000", "+00:00"))
+
+
+def log_relative(remote_log_path: str) -> str:
+    """Extract the logs-dir-relative path (``rule_FOO/.../N.log``) from a remote path."""
+    parts = remote_log_path.split("/rule_", 1)
+    return ("rule_" + parts[1]) if len(parts) == 2 else remote_log_path
+
+
+def declared_runtime_min(log_relative_path: str, logs_dir: Path, default: int = 120) -> int:
+    """Read the declared ``runtime=`` (minutes) from a job's per-rule log, or ``default``."""
+    local_log = logs_dir / log_relative_path
+    if not local_log.exists():
+        return default
+    for line in local_log.read_text(errors="replace").splitlines():
+        if "resources:" in line:
+            if m := _RUNTIME_RE.search(line):
+                return int(m.group(1))
+    return default
+
+
+def parse_job_events(err_file: Path) -> list[JobEvent]:
+    """Return the SLURM job attempts parsed from the main Snakemake error log."""
+    # Snakemake reuses the same snakemake jobid across retries, so we track both the
+    # currently-open attempt per snakemake jobid and all superseded attempts separately.
+    current: dict[int, JobEvent] = {}
+    all_jobs: list[JobEvent] = []
+    for line in err_file.read_text(errors="replace").splitlines():
+        if m := _SUBMIT_RE.search(line):
+            ts, snakemake_id, slurm_id, log_path = m.group(1), int(m.group(2)), int(m.group(3)), m.group(4)
+            rel = log_relative(log_path)
+            parts = rel.split("/")
+            rule = parts[0][len("rule_") :]
+            wildcard = "/".join(parts[1:-1])
+            if snakemake_id in current:
+                all_jobs.append(current[snakemake_id])  # save prior attempt before retry overwrites it
+            current[snakemake_id] = JobEvent(
+                snakemake_jobid=snakemake_id,
+                slurm_jobid=slurm_id,
+                rule_name=rule,
+                wildcard=wildcard,
+                log_relative=rel,
+                submitted_at=_parse_ts(ts),
+            )
+        elif m := _FINISH_RE.search(line):
+            snakemake_id = int(m.group(2))
+            if snakemake_id in current:
+                current[snakemake_id].finished_at = _parse_ts(m.group(1))
+        elif m := _ERROR_RE.search(line):
+            snakemake_id = int(m.group(3))
+            if snakemake_id in current:
+                current[snakemake_id].failed = True
+                current[snakemake_id].finished_at = _parse_ts(m.group(1))
+    all_jobs.extend(current.values())
+    return all_jobs

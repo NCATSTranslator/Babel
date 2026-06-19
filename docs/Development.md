@@ -9,6 +9,75 @@ This document describes the current development workflow for Babel and ideas for
 If a needed constant is missing, add it to `src/categories.py` first. This keeps all Biolink class
 names in one place so a rename only requires a single-file update.
 
+## Enhancing a data source ingest
+
+When you add a new data source or extend an existing one (the
+[ComplexPortal PR #831](https://github.com/NCATSTranslator/Babel/pull/831) is a worked example of
+all of this), these lessons are worth applying. The Babel-specific conventions referenced here are
+spelled out in `CLAUDE.md`; this section is the human-readable overview.
+
+### Emit the attribute files your source supports
+
+The data-collection phase writes per-source attribute files into `babel_downloads/[PREFIX]/`, and
+the factories in `src/node.py` pick them up by prefix. There are four, each an independent,
+optional TSV:
+
+- `labels` — `CURIE → name` (read by `NodeFactory`).
+- `synonyms` — `CURIE → predicate → synonym` (`SynonymFactory`).
+- `taxa` — `CURIE → NCBITaxon:NNNN` (`TaxonFactory`).
+- `descriptions` — `CURIE → text` (`DescriptionFactory`).
+
+Emit whichever your source supports — providing `taxa` and `descriptions` is simply how a source
+enriches its cliques, and it costs little once you are already parsing the rows. Match each
+output's **deduplication key to its downstream consumer**: labels key on the identifier alone
+(first-seen wins), but taxa and descriptions keep every distinct `(identifier, value)` pair because
+their factories accumulate per identifier.
+
+### Write an explicit Biolink type in the IDs file
+
+The `ids/[TYPE]/[PREFIX]` file is `CURIE → biolink:Type`. Write the type explicitly even when every
+CURIE from the source has the same prefix and type: the column looks redundant in that case, but it
+is **essential** the moment a source spans multiple types, and it makes intent obvious. Generate
+the IDs from the source rows as each CURIE is first seen, rather than deriving the file from
+`labels` via `awk` — deriving from labels silently drops any identifier whose label is empty.
+
+### Document the code with docstrings
+
+Give modules, classes, and non-trivial functions a docstring covering what they do and any
+non-obvious behavior (dedup keys, side effects, why a network call happens). Name functions for
+what they do — `fetch_*` rather than `get_*` when the call hits the network. Docstrings are cheap,
+survive refactors, and are the first thing read when someone revisits the ingest.
+
+### Bite the bullet and add a pipeline test
+
+If the source has no pipeline test, consider writing one even though it is more work up front. It
+pays off three ways:
+
+- It forces you to write smaller, regularly-runnable **`network` tests** — that the upstream
+  listing still returns files, that the header columns you read by index are still where you expect
+  — which catch an upstream format change _before_ it silently corrupts output.
+- It validates the handler end-to-end against real data using the shared `assert_*_file_valid`
+  helpers in `tests/conftest.py`.
+- It becomes the natural home for later assertions about that source's compendium output.
+
+See [`tests/README.md`](../tests/README.md) and
+`tests/{datahandlers,pipeline}/test_complexportal.py`.
+
+### A few more habits that paid off
+
+- **Validate upstream format and fail loudly.** Pin the column layout as a constant in the source
+  module, import it into tests, and assert the live header still matches. Raise `ValueError` /
+  `RuntimeError` on anything unexpected (a missing column, a zero-length file listing, an
+  already-prefixed taxon) rather than producing wrong output quietly.
+- **Use a manifest as the download sentinel** for multi-file downloads: write the list of
+  downloaded files last and make _that_ the Snakemake output, so its presence proves the download
+  phase finished and the extraction rule knows what to parse.
+- **Accept explicit file-path arguments** (`infile`/`outfile`/…) instead of calling
+  `make_local_name` inside the handler, so unit tests can point at `tmp_path` without patching the
+  config and Snakemake can declare inputs/outputs precisely.
+- **Record provenance** with `write_metadata()` so the per-source `metadata.yaml` captures where
+  each output came from.
+
 ## Current Development Process
 
 Developing a change to Babel is significantly more complicated than developing most software,

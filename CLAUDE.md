@@ -5,7 +5,7 @@ repository.
 
 ## Project Overview
 
-GitHub repository: https://github.com/NCATSTranslator/Babel
+GitHub repository: <https://github.com/NCATSTranslator/Babel>
 
 Babel is the Biomedical Data Translator's identifier normalization system. It creates "cliques" —
 equivalence sets of identifiers across biomedical vocabularies (e.g., recognizing that MESH:D014867
@@ -88,8 +88,13 @@ uv run rumdl fmt .                       # Markdown auto-fix
 
 Snakemake drives a two-phase pipeline:
 
-1. **Data Collection** — downloads from FTP/web sources, producing `labels` (CURIE→name) and
-   `synonyms` (CURIE→predicate→synonym) files in `babel_downloads/[PREFIX]/`.
+1. **Data Collection** — downloads from FTP/web sources, producing per-source attribute files in
+   `babel_downloads/[PREFIX]/` that the factories in `node.py` pick up by prefix. Each is an
+   independent, optional TSV: `labels` (CURIE→name, read by `NodeFactory`), `synonyms`
+   (CURIE→predicate→synonym, `SynonymFactory`), `taxa` (CURIE→`NCBITaxon:NNNN`, `TaxonFactory`),
+   and `descriptions` (CURIE→text, `DescriptionFactory`). A handler emits whichever of these its
+   source supports; supplying `taxa`/`descriptions` is how a source enriches its cliques with
+   taxon and description data (see ComplexPortal and NCBIGene for examples that emit all four).
 2. **Compendium Building** — extracts identifiers per semantic type into `ids/[TYPE]`, creates
    pairwise cross-reference mappings (concords), merges them into equivalence cliques via
    union-find, and outputs enriched JSONL compendia.
@@ -188,13 +193,16 @@ build a queryable DuckDB database alongside the JSONL compendia, with these tabl
 
 - `Node(curie, curie_prefix, label, label_lc, description, taxa)`
 - `Clique(clique_leader, preferred_name, clique_identifier_count, biolink_type, information_content)`
-- `Edge(clique_leader, curie, conflation, clique_leader_prefix, curie_prefix)`
+- `Edge(clique_leader, curie, conflation, clique_leader_prefix, curie_prefix, biolink_type)`
 - `Conflation(conflation_type, conflation_leader, curie, curie_prefix)`
 
 The `Edge` table answers "which clique contains CURIE X" with a one-line query
 (`SELECT DISTINCT clique_leader FROM Edge WHERE curie IN (...)`) and is the fastest way to
 check whether several CURIEs landed in the same clique in a given build — much cheaper than
-re-running glom or scanning the JSONL compendia.
+re-running glom or scanning the JSONL compendia. `biolink_type` is denormalized onto every edge
+(it equals the owning clique's type) so cross-compendium reports can group by
+`(curie_prefix, biolink_type)` with a plain scan instead of a large Edge-to-Clique join, which
+OOM-killed `generate_curie_report` even on a largemem node.
 
 ### Per-source documentation (`docs/sources/`)
 
@@ -202,8 +210,11 @@ Deeper, source-specific notes live under `docs/sources/<PREFIX>/` (one directory
 named by its CURIE prefix); see `docs/sources/README.md` for the convention and an index. Check
 there first when working on a specific vocabulary, and add to it when you learn something
 non-obvious about how Babel ingests that source. Keep the detail in the source file — `CLAUDE.md`
-should point here, not duplicate it. Documented so far: MeSH
-(`docs/sources/MESH/Ingestion.md`) and UMLS (`docs/sources/UMLS/Leftover.md`).
+should point here, not duplicate it. Documented so far: ComplexPortal
+(`docs/sources/COMPLEXPORTAL/Ingestion.md`), Ensembl/BioMart
+(`docs/sources/ENSEMBL/Download.md`), MeSH (`docs/sources/MESH/Ingestion.md`), and UMLS
+(`docs/sources/UMLS/Leftover.md`). Cross-cutting download/discovery patterns (HTTP autoindex
+listing vs FTP `NLST`) live in `docs/sources/DownloadPatterns.md`.
 
 ### Per-compendium metadata YAMLs
 
@@ -242,8 +253,19 @@ is intentionally small (`mem: 16G`, `cpus_per_task: 1`); rules that need more ca
 
 ## Conventions
 
+When adding or enhancing a data source ingest, `docs/Development.md` ("Enhancing a data source
+ingest") collects the process-level lessons (which attribute files to emit, IDs-file typing,
+docstrings, and when to add a pipeline test) that the individual conventions below back up.
+
 - **Commits** — if you need to make a large change, break it into multiple commits so it's clearer
   what changes are related.
+
+- **Separate download and extract/validate rules** — always split a Snakemake data-collection step
+  into two rules: a `download_*` rule that only fetches the raw file(s), and a separate rule that
+  validates format or extracts content. This way, if upstream changes its format (e.g. a column
+  rename), only the validation rule fails; Snakemake preserves the downloaded file and the
+  expensive re-download is avoided after a code fix. Format validation belongs in the
+  extraction/filter rule, never in the download rule.
 
 - **Ruff lint** — all Python must pass `uv run ruff check` (run automatically on PRs). Two rules
   that are easy to trip in test code:
@@ -281,9 +303,37 @@ is intentionally small (`mem: 16G`, `cpus_per_task: 1`); rules that need more ca
   Explicit paths let unit tests pass `tmp_path`-based paths without patching the config, and
   let Snakemake rules declare inputs and outputs precisely.
 
+- **Pin external column layouts in source, assert headers in tests** — when a handler parses a
+  fixed-column TSV by index, define the column list as a module-level constant in the source
+  (e.g. `complexportal.COMPLEXTAB_COLUMNS`/`COMPLEXTAB_HEADER`), import it into the tests to build
+  fixture rows, and add a test that asserts the upstream header still has the expected column at
+  each index Babel reads. The constant is the canonical format documentation living next to the
+  code; the header assertion turns a silent upstream re-ordering into a loud test failure instead
+  of corrupted output. See `src/datahandlers/complexportal.py`.
+
+- **Manifest/sentinel as the Snakemake output of a multi-file download** — when a rule downloads
+  many files discovered at runtime, write a manifest listing them as the *last* action and declare
+  the manifest (not the individual files or a separate flag) as the rule's output. Its presence
+  then reliably signals that the whole download phase completed, and the extraction rule reads it
+  to know what to parse. See `complexportal.pull_complexportal()`.
+
+- **Always write an explicit Biolink type in the IDs file** — the `ids/[TYPE]/[PREFIX]` file is
+  `CURIE\tbiolink:Type`. Even when every CURIE from a source has the same prefix and type (so the
+  type column looks redundant), write it explicitly: it is essential the moment a source spans
+  multiple types, and it documents intent. Prefer generating IDs directly from the source rows
+  (as each CURIE is first seen) rather than deriving the file from `labels` via `awk` — deriving
+  from labels silently drops any identifier whose label column is empty.
+
+- **Docstrings** — give modules, classes, and non-trivial functions a docstring saying what they
+  do and any non-obvious behavior (e.g. dedup keys, side effects, why a network call happens).
+  This is cheap, survives refactors, and is the first thing read when revisiting an ingest. Name
+  functions for what they do — e.g. `fetch_*` (not `get_*`) when the call hits the network.
+
 - **Test assertion helpers** — `tests/conftest.py` exports `assert_labels_file_valid`,
-  `assert_synonyms_file_valid`, `assert_ids_file_valid`, and `assert_concordance_file_valid`.
-  Use these instead of hand-rolling TSV checks in new tests.
+  `assert_synonyms_file_valid`, `assert_ids_file_valid`, `assert_concordance_file_valid`,
+  `assert_taxa_file_valid`, and `assert_descriptions_file_valid` (plus `read_tsv`). Use these
+  instead of hand-rolling TSV checks in new tests; when a handler adds a new output kind, add the
+  matching helper to the root conftest rather than a private one in the test file.
 
 ## Debugging
 

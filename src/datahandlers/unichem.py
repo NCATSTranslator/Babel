@@ -1,14 +1,14 @@
 import gzip
 
-from src.babel_utils import pull_via_urllib
-from src.prefixes import CHEBI, CHEMBLCOMPOUND, DRUGBANK, DRUGCENTRAL, GTOPDB, HMDB, KEGGCOMPOUND, PUBCHEMCOMPOUND, UNII
+from src.babel_utils import pull_via_wget
+from src.prefixes import CHEBI, CHEMBLCOMPOUND, DRUGBANK, DRUGCENTRAL, GTOPDB, HMDB, PUBCHEMCOMPOUND, UNII
 
 # global for this file
 data_sources: dict = {
     "1": CHEMBLCOMPOUND,
     "2": DRUGBANK,
     "4": GTOPDB,
-    "6": KEGGCOMPOUND,
+    # "6": KEGGCOMPOUND,  # Removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
     "7": CHEBI,
     "14": UNII,
     "18": HMDB,
@@ -16,39 +16,31 @@ data_sources: dict = {
     "34": DRUGCENTRAL,
 }
 
-# Expected header of reference.tsv.gz — shared by pull_unichem() (validated at
-# download time) and filter_unichem() (validated again at filter time).
-REFERENCE_HEADER = "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n"
+# Expected header of reference.tsv.gz — validated by filter_unichem() at filter time.
+# Note: upstream uses "ASSIGMENT" (missing 'N') — this matches the upstream typo exactly.
+UNICHEM_REFERENCE_TSV_HEADER = "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGMENT\n"
 
 
-def pull_unichem():
-    """Download UniChem files."""
-    pull_via_urllib(
+def download_unichem_structure():
+    """Download UniChem structure file. Format validation happens in filter_unichem."""
+    pull_via_wget(
         "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/",
         "structure.tsv.gz",
         decompress=False,
         subpath="UNICHEM",
         verify_gzip=True,
     )
-    ref_path = pull_via_urllib(
+
+
+def download_unichem_reference():
+    """Download UniChem reference file. Format validation happens in filter_unichem."""
+    pull_via_wget(
         "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/",
         "reference.tsv.gz",
         decompress=False,
         subpath="UNICHEM",
         verify_gzip=True,
     )
-
-    # Validate the header immediately after downloading so that get_unichem fails
-    # (and Snakemake deletes its outputs) rather than letting filter_unichem fail
-    # later on a file whose format has silently changed upstream.
-    with gzip.open(ref_path, "rt") as f:
-        header = f.readline()
-    if header != REFERENCE_HEADER:
-        raise RuntimeError(
-            f"UniChem reference.tsv.gz has an unexpected header — the upstream format may have changed.\n"
-            f"  Expected : {REFERENCE_HEADER!r}\n"
-            f"  Got      : {header!r}"
-        )
 
 
 def filter_unichem(ref_file, ref_filtered):
@@ -65,11 +57,11 @@ def filter_unichem(ref_file, ref_filtered):
         except EOFError as e:
             raise RuntimeError(f"UniChem reference file {ref_file} is truncated (could not read header): {e}") from e
 
-        if header_line != REFERENCE_HEADER:
+        if header_line != UNICHEM_REFERENCE_TSV_HEADER:
             raise ValueError(
                 f"UniChem reference file {ref_file} has an unexpected header — "
-                f"re-run get_unichem to re-download.\n"
-                f"  Expected : {REFERENCE_HEADER!r}\n"
+                f"examine the file and update UNICHEM_REFERENCE_TSV_HEADER in src/datahandlers/unichem.py if the format has changed.\n"
+                f"  Expected : {UNICHEM_REFERENCE_TSV_HEADER!r}\n"
                 f"  Got      : {header_line!r}"
             )
         out.write(header_line)

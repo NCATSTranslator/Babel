@@ -1,19 +1,37 @@
 """Aggregate Babel SLURM rule error logs into a single copy-pasteable report.
 
-Reads the main Snakemake ``sbatch-<version>.err`` control-node log, follows each
-failing rule to its per-rule log, and groups rules that share identical error
-content so a recurring transient failure (e.g. an HTTP 503 from a data source)
-shows up once. This is the fastest way to find which upstream rules to re-run so a
-stalled DAG can finish.
+Reads the main Snakemake ``sbatch-<version>.err`` control-node log, follows each failing rule to
+its per-rule log, and groups rules that share identical error content so a recurring transient
+failure (e.g. an HTTP 503 from a data source) shows up once. The trailing job summary classifies
+every job attempt as completed / failed / still-running, with elapsed-vs-timeout for running jobs.
+Together this is the fastest way to find which upstream rules to re-run so a stalled DAG can finish.
+
+The parsing lives in :mod:`tools.slurm.parse`; this module is presentation + CLI only.
 """
 
 from __future__ import annotations
 
 import argparse
 import sys
+from collections import Counter
+from datetime import UTC, datetime
+from itertools import groupby
 from pathlib import Path
 
-from .parse import extract_error_content, find_err_file, parse_failures
+from .parse import (
+    JobEvent,
+    declared_runtime_min,
+    extract_error_content,
+    find_err_file,
+    parse_failures,
+    parse_job_events,
+)
+
+
+def _fmt_duration(seconds: float) -> str:
+    h = int(seconds // 3600)
+    m = int((seconds % 3600) // 60)
+    return f"{h}h{m:02d}m" if h else f"{m}m"
 
 
 def build_report(failures: list[tuple[str, Path]], markdown: bool, traceback_only: bool, fallback_lines: int) -> str:
@@ -42,6 +60,100 @@ def build_report(failures: list[tuple[str, Path]], markdown: bool, traceback_onl
             sections.append(f"{bar}\n=== {header} ===\n{bar}\n{content}")
 
     return "\n\n".join(sections)
+
+
+def print_job_summary(err_file: Path, logs_dir: Path) -> None:
+    """Print a completed / failed / still-running summary of every job attempt to stderr."""
+    jobs = parse_job_events(err_file)
+    if not jobs:
+        return
+
+    now = datetime.now(UTC)
+
+    # Group jobs by logical task (rule + wildcard), sorted by submission time within each group.
+    sorted_jobs = sorted(jobs, key=lambda j: (j.rule_name, j.wildcard, j.submitted_at))
+    completed_groups: list[list[JobEvent]] = []
+    failed_groups: list[list[JobEvent]] = []
+    incomplete_groups: list[list[JobEvent]] = []
+    for _, grp in groupby(sorted_jobs, key=lambda j: (j.rule_name, j.wildcard)):
+        group = list(grp)
+        running = [j for j in group if not j.finished_at and not j.failed]
+        if running:
+            incomplete_groups.append(group)
+        elif any(j.finished_at and not j.failed for j in group):
+            completed_groups.append(group)
+        else:
+            failed_groups.append(group)
+
+    # Incomplete: one line per running job, with indented prior-failure sub-lines if retried.
+    if incomplete_groups:
+        print(f"Found {len(incomplete_groups)} incomplete rule(s):", file=sys.stderr)
+        for group in sorted(incomplete_groups, key=lambda g: g[0].submitted_at):
+            running = [j for j in group if not j.finished_at and not j.failed]
+            prior_failures = [j for j in group if j.failed]
+            j = running[0]
+            elapsed = (now - j.submitted_at).total_seconds()
+            timeout_min = declared_runtime_min(j.log_relative, logs_dir)
+            elapsed_str = _fmt_duration(elapsed)
+            timeout_str = _fmt_duration(timeout_min * 60)
+            remaining_str = _fmt_duration(max(0.0, timeout_min * 60 - elapsed))
+            print(
+                f" - Rule {j.rule_name} (SLURM jobid {j.slurm_jobid}):"
+                f" {elapsed_str} / {timeout_str} ({remaining_str} left),"
+                f" log at {logs_dir / j.log_relative}",
+                file=sys.stderr,
+            )
+            for f in prior_failures:
+                dur = _fmt_duration((f.finished_at - f.submitted_at).total_seconds()) if f.finished_at else "unknown"
+                print(
+                    f"   - Prior failure (SLURM jobid {f.slurm_jobid}):"
+                    f" failed after {dur},"
+                    f" log at {logs_dir / f.log_relative}",
+                    file=sys.stderr,
+                )
+    else:
+        print("Found 0 incomplete rules.", file=sys.stderr)
+
+    # Completed: unique rule names on one line.
+    seen: set[str] = set()
+    unique_completed: list[str] = []
+    for group in completed_groups:
+        name = group[0].rule_name
+        if name not in seen:
+            seen.add(name)
+            unique_completed.append(name)
+    if unique_completed:
+        print(f"Found {len(unique_completed)} completed rule(s): {', '.join(unique_completed)}", file=sys.stderr)
+    else:
+        print("Found 0 completed rules.", file=sys.stderr)
+
+    # Failed: only truly-dead tasks (no active retry). Summary line + one detail line per job.
+    if failed_groups:
+        all_failed_jobs = [j for g in failed_groups for j in g]
+        # Count total job attempts per rule name (xN shows how many times the rule was retried).
+        attempt_counts: Counter[str] = Counter(j.rule_name for j in all_failed_jobs)
+        seen_names: set[str] = set()
+        name_parts: list[str] = []
+        for group in failed_groups:
+            name = group[0].rule_name
+            if name not in seen_names:
+                seen_names.add(name)
+                c = attempt_counts[name]
+                name_parts.append(f"{name} (x{c})" if c > 1 else name)
+        print(
+            f"Found {len(all_failed_jobs)} failed job(s) across {len(name_parts)} rule(s): {', '.join(name_parts)}",
+            file=sys.stderr,
+        )
+        for j in sorted(all_failed_jobs, key=lambda x: x.submitted_at):
+            duration_str = (
+                _fmt_duration((j.finished_at - j.submitted_at).total_seconds()) if j.finished_at else "unknown"
+            )
+            print(
+                f" - Rule {j.rule_name} (SLURM jobid {j.slurm_jobid}):"
+                f" failed after {duration_str},"
+                f" log at {logs_dir / j.log_relative}",
+                file=sys.stderr,
+            )
 
 
 def add_subparser(subparsers: argparse._SubParsersAction) -> None:
@@ -89,38 +201,10 @@ def run(args: argparse.Namespace) -> None:
         print(f"error: {exc}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Reading {err_file}", file=sys.stderr)
     failures = parse_failures(err_file)
-    if not failures:
-        print("No rule failures found in error log.", file=sys.stderr)
-        sys.exit(0)
+    if failures:
+        print(build_report(failures, args.markdown, args.traceback_only, args.lines))
 
-    print(f"Found {len(failures)} failing rule(s).", file=sys.stderr)
-    print(build_report(failures, args.markdown, args.traceback_only, args.lines))
-
-
-def main() -> None:
-    """Backward-compatible entry point for ``tools/babel-errors.py``."""
-    parser = argparse.ArgumentParser(
-        description="Aggregate Babel SLURM error logs into a single copy-pasteable report.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""Examples:
-  uv run tools/babel-errors.py 1.17-try-2
-  uv run tools/babel-errors.py 1.17-try-2 --markdown
-  uv run tools/babel-errors.py --traceback-only
-  uv run tools/babel-errors.py 1.17-try-2 --markdown > /tmp/errors.md
-""",
-    )
-    parser.add_argument(
-        "version", nargs="?", help="Babel version tag (e.g. 1.17-try-2). Auto-detects newest .err file if omitted."
-    )
-    parser.add_argument("--logs-dir", default="babel_outputs/logs", metavar="DIR")
-    parser.add_argument("--markdown", action="store_true")
-    parser.add_argument("--traceback-only", action="store_true")
-    parser.add_argument("--lines", type=int, default=50, metavar="N")
-    args = parser.parse_args()
-    run(args)
-
-
-if __name__ == "__main__":
-    main()
+    sys.stdout.flush()
+    print(f"\n--- Summary (read {err_file}) ---", file=sys.stderr)
+    print_job_summary(err_file, logs_dir)

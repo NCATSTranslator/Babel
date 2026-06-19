@@ -232,3 +232,83 @@ conflation and individual types are turned on:
 Note that this includes both biolink:Gene identifiers (such as
 [HGNC:4056](https://alliancegenome.org/gene/HGNC:4056)) and biolink:Protein identifiers (such as
 [UniProtKB:P35575](http://www.uniprot.org/uniprot/P35575)).
+
+## DuckDB and Parquet exports
+
+The `babel_outputs/duckdb/` directory contains the same information as the JSONL files above,
+reformatted for analytical queries. The intended use case is index-wide queries that would be
+impractical against the raw JSONL — for example, finding synonyms shared across multiple cliques,
+computing synonym-length distributions, or checking prefix coverage across semantic types. There
+are no fixed downstream consumers yet; the schema is evolving.
+
+The export is produced by `src/snakefiles/duckdb.snakefile` via
+`src/exporters/duckdb_exporters.py`. Each semantic type gets a subdirectory under
+`babel_outputs/duckdb/parquet/filename={Type}/` containing one or more Parquet files. A
+transient DuckDB database (`.duckdb`) is written alongside each set of Parquet files during
+export and can be used directly for interactive querying, but the Parquet files are the
+durable output.
+
+### Compendium tables (`filename={Type}/Node.parquet`, `Clique.parquet`, `Edge.parquet`)
+
+These three tables are derived from the compendia JSONL for each semantic type.
+
+`Node.parquet` — one row per identifier across all cliques:
+
+| Column       | Type            | Meaning                                          |
+|--------------|-----------------|--------------------------------------------------|
+| curie        | STRING          | The identifier CURIE, e.g. `NCBIGene:2538`       |
+| curie_prefix | STRING          | The prefix portion of the CURIE, e.g. `NCBIGene` |
+| label        | STRING          | The label for this identifier, if any            |
+| label_lc     | STRING          | Lower-cased label (for case-insensitive search)  |
+| description  | STRING[]        | Description text(s) for this identifier          |
+| taxa         | STRING[]        | Taxa CURIEs associated with this identifier      |
+
+`Clique.parquet` — one row per clique:
+
+| Column                   | Type   | Meaning                                                   |
+|--------------------------|--------|-----------------------------------------------------------|
+| clique_leader            | STRING | CURIE of the preferred identifier for the clique          |
+| preferred_name           | STRING | Preferred display name for the clique                     |
+| clique_identifier_count  | INT    | Number of identifiers in the clique                       |
+| biolink_type             | STRING | Biolink type, e.g. `biolink:Gene`                         |
+| information_content      | FLOAT  | Information content value (0–100)                         |
+
+`Edge.parquet` — one row per (clique, identifier) pair; the primary way to look up which
+clique contains a given CURIE:
+
+| Column               | Type   | Meaning                                              |
+|----------------------|--------|------------------------------------------------------|
+| clique_leader        | STRING | CURIE of the clique's preferred identifier           |
+| curie                | STRING | An identifier that belongs to this clique            |
+| conflation           | STRING | Conflation type if applicable, otherwise `'None'`    |
+| clique_leader_prefix | STRING | Prefix of the clique leader CURIE                    |
+| curie_prefix         | STRING | Prefix of the member CURIE                           |
+
+### Synonym table (`filename={Type}/Synonyms.parquet`)
+
+Derived from the synonym JSONL files. One row per (clique, synonym) pair — i.e., the `names`
+array from the synonym file is unnested so each individual synonym gets its own row. This makes
+synonym-frequency queries straightforward at the cost of a large row count for types with many
+synonyms per concept (notably `Protein` and `GeneProteinConflated`, which have hundreds of
+UniProt synonyms per entry).
+
+| Column           | Type   | Meaning                                            |
+|------------------|--------|----------------------------------------------------|
+| clique_leader    | STRING | CURIE of the clique's preferred identifier         |
+| preferred_name   | STRING | Preferred display name for the clique              |
+| preferred_name_lc| STRING | Lower-cased preferred name                         |
+| biolink_type     | STRING | Biolink type, e.g. `biolink:Gene`                  |
+| label            | STRING | One synonym from the `names` list                  |
+| label_lc         | STRING | Lower-cased synonym                                |
+
+### Conflation table (`filename={ConflationName}/Conflation.parquet`)
+
+Derived from the conflation JSONL files (`GeneProtein.txt`, `DrugChemical.txt`). One row per
+(conflation group, member CURIE):
+
+| Column             | Type   | Meaning                                              |
+|--------------------|--------|------------------------------------------------------|
+| conflation_type    | STRING | Conflation name, e.g. `GeneProtein`                  |
+| conflation_leader  | STRING | CURIE of the conflation group's lead identifier      |
+| curie              | STRING | A member CURIE of the conflation group               |
+| curie_prefix       | STRING | Prefix of the member CURIE                           |

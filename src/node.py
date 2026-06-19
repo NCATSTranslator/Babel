@@ -464,14 +464,21 @@ class NodeFactory:
         self.ancestor_map[input_type] = ancs
         return ancs
 
-    def get_prefixes(self, input_type):
+    def get_prefixes(self, input_type, allow_empty=False):
         if input_type in self.prefix_map:
             return self.prefix_map[input_type]
         logger.info(f"NodeFactory({self.label_dir}, {self.biolink_version}).get_prefixes({input_type}) called")
         j = self.toolkit.get_element(input_type)
         prefs = j["id_prefixes"]
         if len(prefs) == 0:
-            raise RuntimeError(f"No Biolink prefixes for {input_type}")
+            if not allow_empty:
+                raise RuntimeError(f"No Biolink prefixes for {input_type}")
+            # Some Biolink types (e.g. biolink:Phenomenon, biolink:PhysicalEntity) carry no id_prefixes
+            # at all. A caller that supplies extra_prefixes (e.g. leftover_umls, which writes UMLS:xxx
+            # singletons with extra_prefixes=[UMLS]) can still write such a node, so we return [] instead
+            # of raising. We deliberately do NOT cache this empty result, so a later strict caller
+            # (allow_empty=False) for the same type still raises.
+            return []
         # The pref are in a particular order, but apparently they can have dups (ugh)
         # We de-duplicate those here.
         prefixes_deduplicated = list()
@@ -610,14 +617,20 @@ class NodeFactory:
         # This is where we will normalize, i.e. choose the best id, and add types in accord with BL.
         # we should also include provenance and version information for the node set build.
         # make sure prefixes list does not include duplicate prefixes
+        # When extra_prefixes are supplied, a node_type with no id_prefixes of its own is still
+        # writable, so we tolerate an empty get_prefixes() result and rely on extra_prefixes. The
+        # combined list is validated as non-empty below.
+        node_prefixes = self.get_prefixes(node_type, allow_empty=bool(extra_prefixes))
         prefixes = []
         seen_prefixes = set()
-        for prefix in self.get_prefixes(node_type) + extra_prefixes:
+        for prefix in node_prefixes + extra_prefixes:
             prefix_upper = prefix.upper()
             if prefix_upper in seen_prefixes:
                 continue
             prefixes.append(prefix)
             seen_prefixes.add(prefix_upper)
+        if len(prefixes) == 0:
+            raise RuntimeError(f"No Biolink prefixes for {node_type} and no extra_prefixes supplied")
 
         if len(input_identifiers) == 0:
             return None

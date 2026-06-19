@@ -42,8 +42,9 @@ uv run python -m tools.slurm resources data/babel-1.17 --csv /tmp/resources.csv
 uv run python -m tools.slurm errors 1.17-try-2 --markdown
 ```
 
-The historical `uv run tools/babel-errors.py …` invocation still works (it is now a thin shim over
-`tools.slurm errors`).
+The `errors` subcommand is the successor to the old `tools/babel-errors.py` script (removed): its
+full failing-log extraction, DuckDB memory-diagnostic surfacing, and completed/failed/running job
+summary now live in `tools.slurm` alongside the resource analyzer, sharing `tools/slurm/parse.py`.
 
 ### What the resource analyzer reports
 

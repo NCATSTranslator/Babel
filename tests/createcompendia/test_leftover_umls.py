@@ -8,12 +8,15 @@ These are marked ``network`` because they build a Biolink Model Toolkit, which f
 
 import pytest
 
-from src.categories import ACTIVITY, COHORT, PHENOMENON
+from src.categories import ACTIVITY, COHORT, PHENOMENON, PHYSICAL_ENTITY
 from src.createcompendia.leftover_umls import (
     STY_OVERRIDES,
     TYPE_COMBO_OVERRIDES,
     tui_to_biolink_type,
+    writable_output_types,
 )
+from src.node import NodeFactory
+from src.prefixes import UMLS
 from src.util import get_biolink_model_toolkit, get_config
 
 BIOLINK_VERSION = get_config()["biolink_version"]
@@ -35,7 +38,14 @@ RECORDED_STY_BASELINE: dict[str, str | None] = {
     "T090": None,  # https://github.com/NCATSTranslator/Babel/issues/817 -- "Occupation or Discipline": no STY mapping.
     "T091": None,  # https://github.com/NCATSTranslator/Babel/issues/817 -- "Biomedical Occupation or Discipline": no STY mapping.
     "T097": COHORT,  # https://github.com/NCATSTranslator/Babel/issues/817 -- "Professional or Occupational Group": bmt maps to Cohort, overridden to PopulationOfIndividualOrganisms for consistency.
+    "T072": PHYSICAL_ENTITY,  # https://github.com/NCATSTranslator/Babel/issues/840 -- "Physical Object": kept as PhysicalEntity (writable via extra_prefixes=[UMLS]).
+    "T073": PHYSICAL_ENTITY,  # https://github.com/NCATSTranslator/Babel/issues/840 -- "Manufactured Object": kept as PhysicalEntity (writable via extra_prefixes=[UMLS]).
 }
+
+# STY codes whose override is intentionally pinned to the raw Biolink mapping (rather than correcting
+# it). For these the drift test must NOT treat "override == live Biolink mapping" as redundant: we
+# keep the explicit entry so the type participates in GENERIC_TYPES demotion in leftover_umls.py.
+INTENTIONAL_BIOLINK_PINS: frozenset[str] = frozenset({"T072", "T073"})
 
 
 @pytest.mark.network
@@ -56,6 +66,14 @@ def test_sty_overrides_have_not_drifted():
     for tui, override in STY_OVERRIDES.items():
         current = tui_to_biolink_type(tui, toolkit=toolkit)
         baseline = RECORDED_STY_BASELINE[tui]
+        if tui in INTENTIONAL_BIOLINK_PINS:
+            # We deliberately pin these to the Biolink value, so "override == live mapping" is
+            # expected, not redundant. Only check that Biolink hasn't drifted from the baseline.
+            assert current == baseline, (
+                f"Biolink STY:{tui} now maps to {current!r}, but the recorded baseline is {baseline!r}. "
+                f"Re-review the intentional pin (currently {override!r}) and update RECORDED_STY_BASELINE."
+            )
+            continue
         if current == override:
             pytest.fail(
                 f"Biolink STY:{tui} now maps to {current!r}, which equals the manual override. "
@@ -80,3 +98,19 @@ def test_type_combo_overrides_reference_real_biolink_classes():
         assert toolkit.get_element(biolink_type) is not None, (
             f"{biolink_type} is not a class in Biolink {BIOLINK_VERSION}"
         )
+
+
+@pytest.mark.network
+def test_all_override_target_types_are_writable():
+    """
+    Reproduces the production failure in seconds: every Biolink type the leftover UMLS rule can emit
+    from its manual override tables must be writable by NodeFactory.create_node() when the rule's
+    extra_prefixes=[UMLS] is supplied. Some of these (e.g. biolink:Phenomenon, biolink:PhysicalEntity)
+    have no id_prefixes of their own; before the fix these raised "No Biolink prefixes for ..." deep
+    inside write_compendium() after a ~5h HPC run. create_node() with empty identifiers exercises the
+    same get_prefixes() call and then returns None without touching any labels or files.
+    """
+    factory = NodeFactory(label_dir=None, biolink_version=BIOLINK_VERSION)
+    for output_type in sorted(writable_output_types()):
+        # Must not raise. (Returns None because input_identifiers is empty.)
+        factory.create_node(input_identifiers=[], node_type=output_type, labels={}, extra_prefixes=[UMLS])
