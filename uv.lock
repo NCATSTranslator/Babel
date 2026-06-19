@@ -235,7 +235,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.32.5" },
     { name = "snakemake", specifier = ">=9.21.1" },
-    { name = "snakemake-executor-plugin-slurm", specifier = ">=2.6.1" },
+    { name = "snakemake-executor-plugin-slurm", specifier = ">=2.7.1" },
     { name = "sparqlwrapper", specifier = ">=2.0.0" },
     { name = "tqdm", specifier = ">=4.67.1" },
     { name = "xmltodict", specifier = ">=1.0.2" },
