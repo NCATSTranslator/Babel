@@ -81,6 +81,45 @@ def parse_rdf_literal(literal: str) -> str:
     return literal[1:-1]
 
 
+def reduce_to_most_specific_tree_codes(codes, code_to_tree):
+    """Reduce a set of hierarchy codes to only the most specific ones.
+
+    Given an iterable of ``codes`` and a ``code_to_tree`` map from each code to its
+    dot-delimited tree number (e.g. a UMLS TUI ``"T116"`` -> ``"A1.4.1.2.1.7"``, or a MeSH
+    tree number like ``"C04.557"``), return the subset of codes whose tree number is NOT a
+    proper ancestor of another code's tree number in the set.
+
+    A tree number is a proper ancestor of another when it is a strict dot-*component* prefix
+    of it: ``"A1.2"`` is an ancestor of ``"A1.2.3"`` but NOT of ``"A1.20"`` (comparison is on
+    ``tree.split(".")`` component lists, not raw string prefixes). Unrelated codes (siblings or
+    codes in different subtrees) all survive. A code with no entry in ``code_to_tree`` -- or an
+    empty tree number -- has no ancestor relationship to anything and is always kept.
+
+    This is vocabulary-agnostic: it only needs a code -> tree-number mapping, so it works for
+    UMLS semantic-type tree numbers (MRSTY STN) and MeSH tree numbers alike.
+
+    :param codes: An iterable of codes to reduce.
+    :param code_to_tree: A mapping from code to its dot-delimited tree number string.
+    :return: A set of the most-specific codes.
+    """
+    codes = set(codes)
+    tree_components = {code: code_to_tree.get(code, "").split(".") if code_to_tree.get(code) else [] for code in codes}
+    survivors = set()
+    for code in codes:
+        components = tree_components[code]
+        # Keep this code unless its tree number is a proper ancestor of some other code's.
+        is_ancestor_of_other = any(
+            other != code
+            and components
+            and len(tree_components[other]) > len(components)
+            and tree_components[other][: len(components)] == components
+            for other in codes
+        )
+        if not is_ancestor_of_other:
+            survivors.add(code)
+    return survivors
+
+
 def make_local_name(fname, subpath=None):
     config = get_config()
     if subpath is None:
