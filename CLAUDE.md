@@ -250,7 +250,7 @@ can be lowered. `uv run python -m tools.slurm errors <version>` (formerly `tools
 aggregates failing-rule logs (and prints a completed/failed/still-running job summary) to decide
 what to re-run. Both subcommands share `tools/slurm/parse.py`. The cluster default in
 `slurm/config.yaml` is intentionally small (`mem: 16G`, `cpus_per_task: 1`); rules that need more
-carry an explicit `resources:` block. Note that `reports/slurm/slurm_efficiency_report.csv` is a
+carry an explicit `resources:` block. Note that `reports/slurm/slurm_efficiency_reports` is a
 *directory* of per-restart `efficiency_report_<uuid>.csv` shards (the SLURM executor appends one
 each time Snakemake restarts, each covering only that invocation's jobs); the analyzer merges all
 of them, so copy the whole directory when archiving a run. See `docs/Performance.md`.

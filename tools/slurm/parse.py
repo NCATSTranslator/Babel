@@ -4,7 +4,7 @@ Three kinds of artifact are produced by a Snakemake-on-SLURM run and copied into
 run-analysis directory such as ``data/babel-1.17/``:
 
 - ``benchmarks/<rule>.tsv``     — Snakemake ``benchmark:`` output (actual usage).
-- ``reports/slurm/slurm_efficiency_report.csv/`` — the SLURM executor's efficiency
+- ``reports/slurm/slurm_efficiency_reports/`` — the SLURM executor's efficiency
   report (a *directory* containing ``efficiency_report_*.csv``).
 - ``logs/rule_<name>/<jobid>.log`` — per-rule control-node logs (declared resources,
   timestamps, tracebacks).
@@ -115,7 +115,7 @@ class EfficiencyRow:
 def _efficiency_csvs(path: str | Path) -> list[Path]:
     """Resolve *every* efficiency CSV shard from a file, the ``*.csv`` directory, or a parent.
 
-    The SLURM executor writes ``slurm_efficiency_report.csv`` as a *directory* and appends a
+    The SLURM executor writes ``slurm_efficiency_reports`` as a *directory* and appends a
     fresh ``efficiency_report_<uuid>.csv`` on every Snakemake (re)start, so a single run leaves
     many shards, each covering only the jobs from that invocation. We must read **all** of them
     -- picking just the newest (as an earlier version did) drops almost every rule, since the

@@ -51,7 +51,7 @@ def test_read_benchmarks_tolerates_missing_cells(tmp_path):
 
 def test_read_efficiency_report_from_directory_and_strips_rule_prefix(tmp_path):
     # SLURM writes the report as a *directory* of efficiency_report_*.csv files.
-    rep = tmp_path / "reports" / "slurm" / "slurm_efficiency_report.csv"
+    rep = tmp_path / "reports" / "slurm" / "slurm_efficiency_reports"
     rep.mkdir(parents=True)
     (rep / "efficiency_report_abc.csv").write_text(
         ",JobID,JobName,RuleName,Elapsed,TotalCPU,NNodes,NCPUS,MaxRSS,ReqMem,"
@@ -113,7 +113,7 @@ def _make_run(tmp_path, rule, rss_mb, mean_load, requested_mem_mb):
     bdir = tmp_path / "benchmarks"
     bdir.mkdir(exist_ok=True)
     _write_benchmark(bdir / f"{rule}.tsv", [[100.0, "0:01:40", rss_mb, rss_mb, rss_mb, rss_mb, 1, 1, mean_load, 90.0]])
-    rep = tmp_path / "reports" / "slurm" / "slurm_efficiency_report.csv"
+    rep = tmp_path / "reports" / "slurm" / "slurm_efficiency_reports"
     rep.mkdir(parents=True, exist_ok=True)
     (rep / "efficiency_report_x.csv").write_text(
         ",RuleName,NCPUS,Elapsed_sec,TotalCPU_sec,MaxRSS_MB,RequestedMem_MB\n"
@@ -159,7 +159,7 @@ def test_read_efficiency_report_merges_all_shards_worst_case(tmp_path):
     # A real run leaves one efficiency_report_<uuid>.csv per Snakemake (re)start; each shard only
     # covers that invocation's jobs. Reading just the newest (as an earlier version did) would drop
     # almost every rule -- so all shards must be merged.
-    rep = tmp_path / "reports" / "slurm" / "slurm_efficiency_report.csv"
+    rep = tmp_path / "reports" / "slurm" / "slurm_efficiency_reports"
     rep.mkdir(parents=True)
     header = ",RuleName,NCPUS,Elapsed_sec,TotalCPU_sec,MaxRSS_MB,RequestedMem_MB\n"
     # Older, larger shard with two rules.

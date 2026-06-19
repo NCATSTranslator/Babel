@@ -83,7 +83,7 @@ bucket; see [`docs/Performance.md`](../docs/Performance.md).
 In addition to per-rule benchmarks, the SLURM executor writes a cumulative CSV at:
 
 ```text
-babel_outputs/reports/slurm/slurm_efficiency_report.csv
+babel_outputs/reports/slurm/slurm_efficiency_reports
 ```
 
 This is a *directory* containing `efficiency_report_<uuid>.csv`. **On Hatteras its `MaxRSS` and

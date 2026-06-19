@@ -13,7 +13,7 @@ A Snakemake-on-SLURM run leaves three kinds of artifact under `babel_outputs/`. 
 - `benchmarks/<rule>.tsv` — Snakemake `benchmark:` output, written from *inside* each job. Columns
   include `s` (wall seconds), `max_rss` (peak RAM, MB), `mean_load` (%CPU, 100 = one core), and
   `cpu_time`. This is the **authoritative source for actual memory and CPU usage**.
-- `reports/slurm/slurm_efficiency_report.csv/` — a *directory* of `efficiency_report_<uuid>.csv`
+- `reports/slurm/slurm_efficiency_reports/` — a *directory* of `efficiency_report_<uuid>.csv`
   from the SLURM executor, with `RequestedMem_MB`, `NCPUS`, and `Elapsed_sec` per job. The executor
   appends a **fresh shard on every Snakemake (re)start**, and each shard covers only that
   invocation's jobs — so a run that restarted several times leaves many shards, and the final one

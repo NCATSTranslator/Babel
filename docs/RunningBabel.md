@@ -84,7 +84,7 @@ uv run python -m tools.slurm errors <version> --markdown
 either `babel_outputs/` itself or a copy such as `data/babel-1.17/babel_outputs`. `<version>` is
 the tag in the `sbatch-<version>.err` control-node log (omit it to auto-detect the newest).
 
-Note that `reports/slurm/slurm_efficiency_report.csv` is a *directory*: the SLURM executor writes a
+Note that `reports/slurm/slurm_efficiency_reports` is a *directory*: the SLURM executor writes a
 new `efficiency_report_<uuid>.csv` shard on every Snakemake (re)start, each covering only that
 invocation's jobs. `resources` merges all shards, so when copying a run elsewhere copy the whole
 directory, not just the newest file. The actual `mem`/`cpus` recommendations come from the
