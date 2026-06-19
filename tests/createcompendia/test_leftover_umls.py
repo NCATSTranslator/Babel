@@ -13,6 +13,7 @@ from src.createcompendia.leftover_umls import (
     STY_OVERRIDES,
     TYPE_COMBO_OVERRIDES,
     apply_generic_demotion,
+    summarize_compendium_umls_by_semantic_type,
     tui_to_biolink_type,
     writable_output_types,
 )
@@ -134,3 +135,64 @@ def test_all_override_target_types_are_writable():
     for output_type in sorted(writable_output_types()):
         # Must not raise. (Returns None because input_identifiers is empty.)
         factory.create_node(input_identifiers=[], node_type=output_type, labels={}, extra_prefixes=[UMLS])
+
+
+@pytest.mark.unit
+def test_summarize_compendium_umls_by_semantic_type():
+    """The per-compendium semantic-type breakdown: unique CURIE counts, single-clique attribution,
+    sample capping, and bucketing by the (injected) most-specific TUI set. Offline -- semantic_key is
+    a stub, so no Biolink/MRSTY access is needed."""
+    # Stub semantic_key: a fixed CURIE -> most-specific TUI set mapping.
+    tuis_by_curie = {
+        "UMLS:C1": frozenset({"T047"}),
+        "UMLS:C2": frozenset({"T047"}),
+        "UMLS:C3": frozenset({"T047", "T191"}),
+        "UMLS:C4": frozenset(),  # no MRSTY entry
+    }
+
+    def semantic_key(curie):
+        return tuis_by_curie[curie]
+
+    clusters = [
+        # Single-identifier UMLS-only clique -> counts as a single clique.
+        {"identifiers": [{"i": "UMLS:C1", "l": "c1"}]},
+        # C2 sits with a non-UMLS partner -> not a single UMLS clique. C1 reappears (deduped).
+        {"identifiers": [{"i": "UMLS:C1", "l": "c1"}, {"i": "MESH:D2", "l": "m2"}, {"i": "UMLS:C2", "l": "c2"}]},
+        # Multi-TUI concept, single clique.
+        {"identifiers": [{"i": "UMLS:C3", "l": "c3"}]},
+        # Untyped concept, single clique; label intentionally missing.
+        {"identifiers": [{"i": "UMLS:C4"}]},
+    ]
+
+    breakdown, umls_ids = summarize_compendium_umls_by_semantic_type(clusters, semantic_key)
+
+    assert umls_ids == {"UMLS:C1", "UMLS:C2", "UMLS:C3", "UMLS:C4"}
+
+    # {T047}: C1 (single) + C2 (not single) = 2 CURIEs, 1 single.
+    count, single, samples = breakdown[frozenset({"T047"})]
+    assert count == 2
+    assert single == 1
+    assert sorted(samples) == [("UMLS:C1", "c1"), ("UMLS:C2", "c2")]
+
+    # {T047, T191}: just C3, in a single clique.
+    assert breakdown[frozenset({"T047", "T191"})] == [1, 1, [("UMLS:C3", "c3")]]
+
+    # Empty set (untyped): C4, missing label rendered as "".
+    assert breakdown[frozenset()] == [1, 1, [("UMLS:C4", "")]]
+
+    # Per-compendium total is reproduced by summing curie_count over buckets.
+    assert sum(entry[0] for entry in breakdown.values()) == len(umls_ids)
+
+
+@pytest.mark.unit
+def test_summarize_compendium_umls_caps_samples():
+    """Samples are capped at the module sample limit even when a bucket has many CURIEs."""
+    from src.createcompendia.leftover_umls import _SAMPLE_LIMIT
+
+    n = _SAMPLE_LIMIT + 4
+    clusters = [{"identifiers": [{"i": f"UMLS:C{i}", "l": f"c{i}"}]} for i in range(n)]
+    breakdown, umls_ids = summarize_compendium_umls_by_semantic_type(clusters, lambda curie: frozenset({"T047"}))
+    count, single, samples = breakdown[frozenset({"T047"})]
+    assert count == n
+    assert single == n
+    assert len(samples) == _SAMPLE_LIMIT
