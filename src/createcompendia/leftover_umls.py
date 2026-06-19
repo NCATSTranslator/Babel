@@ -544,14 +544,15 @@ def write_leftover_umls(
         with open(report_dir / "compendium-coverage.csv", "w", newline="") as csvf:
             writer = csv.writer(csvf)
             writer.writerow(
-                ["compendium", "tui_set", "tree_set", "curie_count", "single_umls_clique_count", "sample_curies"]
+                ["compendium", "tui_set", "tui_set_labels", "tree_set", "curie_count", "single_umls_clique_count", "sample_curies"]
             )
             for name, key in sorted(semantic_breakdown.keys(), key=lambda nk: (nk[0], sorted(nk[1]))):
                 curie_count, single_count, samples = semantic_breakdown[(name, key)]
                 sorted_tuis = sorted(key)
                 tui_set = "|".join(sorted_tuis) if sorted_tuis else "(none)"
+                tui_set_labels = "|".join("/".join(sorted(types_by_tui.get(tui, {""}))) for tui in sorted_tuis) if sorted_tuis else "(none)"
                 tree_set = "|".join(tui_to_tree.get(tui, "") for tui in sorted_tuis)
-                writer.writerow([name, tui_set, tree_set, curie_count, single_count, _format_samples(samples)])
+                writer.writerow([name, tui_set, tui_set_labels, tree_set, curie_count, single_count, _format_samples(samples)])
 
         # Per-Biolink-type leftover clique coverage, with a few sample CURIEs and labels.
         with open(report_dir / "types-coverage.csv", "w", newline="") as csvf:
