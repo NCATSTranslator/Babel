@@ -106,8 +106,18 @@ important time to run it is when bumping `biolink_version`.
 The rule writes all UMLS reports to `babel_outputs/reports/umls/`. The human-readable log is
 `log.txt`; the machine-readable CSVs are:
 
-- `compendium-coverage.csv` — per input compendium: `total_umls_curies` and
-  `single_umls_clique_count` (cliques whose only identifier is a single UMLS CURIE).
+- `compendium-coverage.csv` — where UMLS lands inside Babel, broken down by semantic type. One row
+  per (compendium, most-specific UMLS semantic-type set): `compendium`, `tui_set`, `tree_set`,
+  `curie_count`, `single_umls_clique_count` (cliques whose only identifier is a single UMLS CURIE),
+  and sample `CURIE=label`s. The semantic types are emitted as **codes, not labels** — `tui_set` is
+  the pipe-joined TUIs and `tree_set` the matching `MRSTY` tree numbers — so the type grouping is
+  scannable at a glance (use `tui-sty.tsv` to decode a code). Each concept's TUIs are reduced to the
+  *most specific* ones first (a TUI that is a tree-number ancestor of another TUI on the same
+  concept is dropped), via `babel_utils.reduce_to_most_specific_tree_codes()`. Summing `curie_count`
+  over a compendium reproduces its total unique UMLS count. The file spans every compendium that
+  consumes UMLS **plus** the leftover `umls.txt` compendium itself (whose rows tend to be the most
+  type-diverse); filter on the `compendium` column to focus on one. An empty semantic-type set (a
+  UMLS CURIE absent from `MRSTY`) is written as `(none)`.
 - `types-coverage.csv` — per Biolink type of the leftover cliques: exact count and a few
   sample `CURIE=label`s.
 - `unmapped-types.csv` — per semantic type that was unmapped or rejected: status, exact affected
