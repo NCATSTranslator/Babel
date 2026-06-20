@@ -7,6 +7,7 @@ Run with: uv run pytest --network tests/datahandlers/test_unichem.py
 
 import urllib.error
 import urllib.request
+import zlib
 
 import pytest
 
@@ -44,8 +45,6 @@ def test_unichem_url_accessible_with_user_agent(filename):
     try:
         # wbits=47 tells zlib to accept gzip format; partial streams raise EOFError,
         # which we allow — we only care that the header and first block are valid.
-        import zlib
-
         d = zlib.decompressobj(wbits=47)
         d.decompress(raw)
     except zlib.error as exc:

@@ -284,8 +284,7 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
         # leave us reading from an exhausted handle on the next retry.
         try:
             req = urllib.request.Request(download_url, headers={"User-Agent": get_user_agent()})
-            handle = opener.open(req)
-            with open(dl_file_name, "wb") as compressed_file:
+            with opener.open(req) as handle, open(dl_file_name, "wb") as compressed_file:
                 # while there is data
                 while True:
                     # read a block of data
@@ -407,7 +406,7 @@ def pull_via_wget(
     if retries > 0:
         wget_command_line.append(f"--tries={retries}")
     if connect_timeout > 0:
-        wget_command_line.append(f"--timeout={connect_timeout}")
+        wget_command_line.append(f"--connect-timeout={connect_timeout}")
     if read_timeout > 0:
         wget_command_line.append(f"--read-timeout={read_timeout}")
 
