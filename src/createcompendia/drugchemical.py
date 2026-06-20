@@ -353,14 +353,16 @@ def build_conflation(
             # We're only interested in two fields, so you can add additional files ('comment', 'notes', etc.) as needed.
             if "subject" not in row or "object" not in row:
                 raise RuntimeError(f"Missing subject or object fields in {manual_concord_filename}: {row}")
-            if row["subject"].strip() == "" or row["object"].strip() == "":
+            subject_curie = row["subject"].strip()
+            object_curie = row["object"].strip()
+            if subject_curie == "" or object_curie == "":
                 raise RuntimeError(f"Empty subject or object fields in {manual_concord_filename}: {row}")
-            manual_concords.append((row["subject"], row["object"]))
+            manual_concords.append((subject_curie, object_curie))
             manual_concords_predicate_counts[row["predicate"]] += 1
-            manual_concords_curies.add(row["subject"])
-            manual_concords_curies.add(row["object"])
+            manual_concords_curies.add(subject_curie)
+            manual_concords_curies.add(object_curie)
 
-            sorted_curies = sorted([row["subject"], row["object"]])
+            sorted_curies = sorted([subject_curie, object_curie])
             prefix_count_label = row["predicate"] + "(" + (" ,".join(sorted_curies)) + ")"
             manual_concords_curie_prefix_counts[prefix_count_label] += 1
     logger.info(f"{len(manual_concords)} manual concords loaded.")
