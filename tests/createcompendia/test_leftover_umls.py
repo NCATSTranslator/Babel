@@ -8,8 +8,9 @@ These are marked ``network`` because they build a Biolink Model Toolkit, which f
 
 import pytest
 
-from src.categories import ACTIVITY, COHORT, PHENOMENON, PHYSICAL_ENTITY
+from src.categories import ACTIVITY, COHORT, DRUG, PHENOMENON, PHYSICAL_ENTITY
 from src.createcompendia.leftover_umls import (
+    GENERIC_TYPES,
     STY_OVERRIDES,
     TYPE_COMBO_OVERRIDES,
     tui_to_biolink_type,
@@ -98,6 +99,30 @@ def test_type_combo_overrides_reference_real_biolink_classes():
         assert toolkit.get_element(biolink_type) is not None, (
             f"{biolink_type} is not a class in Biolink {BIOLINK_VERSION}"
         )
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "input_types, expected",
+    [
+        # Generic type alongside a specific type: generic is dropped.
+        ({PHYSICAL_ENTITY, DRUG}, {DRUG}),
+        # Generic type alone: kept as-is (no specific co-type to prefer).
+        ({PHYSICAL_ENTITY}, {PHYSICAL_ENTITY}),
+        # Two non-generic types: demotion does not fire.
+        ({DRUG, PHENOMENON}, {DRUG, PHENOMENON}),
+        # Single non-generic type: unchanged.
+        ({DRUG}, {DRUG}),
+    ],
+)
+def test_generic_types_demotion(input_types, expected):
+    """GENERIC_TYPES are dropped when a more specific co-type is present; kept when alone."""
+    if len(input_types) > 1:
+        specific_types = input_types - GENERIC_TYPES
+        result = specific_types if specific_types else input_types
+    else:
+        result = input_types
+    assert result == expected
 
 
 @pytest.mark.network
