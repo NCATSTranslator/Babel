@@ -72,13 +72,15 @@ def test_unichem_reference_header_matches_expected():
 
     assert raw[:2] == b"\x1f\x8b", "reference.tsv.gz does not look like a gzip file"
 
+    header = ""
     try:
         with gzip.open(io.BytesIO(raw), "rt") as gz:
             header = gz.readline()
     except EOFError:
-        # Partial gzip stream at end of chunk is expected; we already got the header
-        # by this point since readline() returned before raising.
-        pass
+        # A partial gzip stream at the end of the chunk is expected. readline() may have
+        # already populated `header` before the stream ended; if it didn't, fail loudly.
+        if not header:
+            pytest.fail("reference.tsv.gz: gzip stream ended before a complete header line could be read")
     except Exception as exc:
         pytest.fail(f"Could not decompress initial chunk of reference.tsv.gz: {exc}")
 
