@@ -114,6 +114,18 @@ TYPE_COMBO_OVERRIDES: dict[frozenset[str], str] = {
 }
 
 
+def apply_generic_demotion(biolink_types: set[str]) -> set[str]:
+    """
+    Drop GENERIC_TYPES from biolink_types when a more specific co-type is present; keep them when
+    they are the only type. This is a pure function used both in write_leftover_umls() and in tests.
+    """
+    if len(biolink_types) > 1:
+        specific_types = biolink_types - GENERIC_TYPES
+        if specific_types:
+            return specific_types
+    return biolink_types
+
+
 def writable_output_types() -> set[str]:
     """
     Every Biolink type the leftover UMLS rule can emit from its manual override tables: all non-None
@@ -206,7 +218,8 @@ def write_leftover_umls(
     # historically crashed write_compendium after ~5h on a prefix-less type) and then returns None
     # without touching any labels or files. Fail fast here with a clear message instead.
     preflight_factory = NodeFactory(label_dir=None, biolink_version=biolink_version)
-    for output_type in sorted(writable_output_types()):
+    output_types = writable_output_types()
+    for output_type in sorted(output_types):
         try:
             preflight_factory.create_node(input_identifiers=[], node_type=output_type, labels={}, extra_prefixes=[UMLS])
         except RuntimeError as e:
@@ -214,7 +227,7 @@ def write_leftover_umls(
                 f"leftover_umls preflight failed: Biolink type {output_type} is not writable even with "
                 f"extra_prefixes=[UMLS] ({e}). Fix the override tables in leftover_umls.py before running the rule."
             ) from e
-    logger.info(f"Preflight passed: all {len(writable_output_types())} override output types are writable.")
+    logger.info(f"Preflight passed: all {len(output_types)} override output types are writable.")
 
     # For now, we have many more UMLS entities in MRCONSO than in the compendia, so
     # we'll make an in-memory list of those first. Once that flips, this should be
@@ -404,14 +417,7 @@ def write_leftover_umls(
                     continue
 
                 # Disambiguate when a concept resolves to multiple Biolink types.
-                biolink_types = mapped_types
-                # Drop very high-level types (e.g. PhysicalEntity) when a more specific co-type is
-                # present, so the generic type never shadows it. A concept typed *only* as a generic
-                # type keeps it.
-                if len(biolink_types) > 1:
-                    specific_types = biolink_types - GENERIC_TYPES
-                    if specific_types:
-                        biolink_types = specific_types
+                biolink_types = apply_generic_demotion(mapped_types)
                 if len(biolink_types) > 1 and frozenset(biolink_types) in TYPE_COMBO_OVERRIDES:
                     biolink_types = {TYPE_COMBO_OVERRIDES[frozenset(biolink_types)]}
 

@@ -10,9 +10,9 @@ import pytest
 
 from src.categories import ACTIVITY, COHORT, DRUG, PHENOMENON, PHYSICAL_ENTITY
 from src.createcompendia.leftover_umls import (
-    GENERIC_TYPES,
     STY_OVERRIDES,
     TYPE_COMBO_OVERRIDES,
+    apply_generic_demotion,
     tui_to_biolink_type,
     writable_output_types,
 )
@@ -117,12 +117,7 @@ def test_type_combo_overrides_reference_real_biolink_classes():
 )
 def test_generic_types_demotion(input_types, expected):
     """GENERIC_TYPES are dropped when a more specific co-type is present; kept when alone."""
-    if len(input_types) > 1:
-        specific_types = input_types - GENERIC_TYPES
-        result = specific_types if specific_types else input_types
-    else:
-        result = input_types
-    assert result == expected
+    assert apply_generic_demotion(input_types) == expected
 
 
 @pytest.mark.network
