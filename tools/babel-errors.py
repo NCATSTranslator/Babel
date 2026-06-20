@@ -23,6 +23,12 @@ _ERROR_RE = re.compile(
     r"Error in rule (\w+), jobid: (\d+)"
 )
 _RUNTIME_RE = re.compile(r"\bruntime=(\d+)\b")
+_RULE_RE = re.compile(r"Error in rule (\w+):")
+_LOG_RE = re.compile(r"log: (\S+\.log)")
+# Characters that only appear in DuckDB's in-place progress bar. Snakemake captures every
+# carriage-return redraw, so a single "line" can be hundreds of KB of repeated bar frames; we
+# collapse any run of them to one marker so the full log stays readable.
+_PROGRESS_BAR_RE = re.compile(r"[▕▏█▎▍▌▋▊▉▐]")
 
 # Substrings identifying the DuckDB memory-diagnostic log lines emitted by
 # src/exporters/duckdb_exporters.py. These pinpoint cgroup vs memory_limit headroom and the
@@ -125,12 +131,12 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
     sorted_jobs = sorted(jobs, key=lambda j: (j.rule_name, j.wildcard, j.submitted_at))
     completed_groups: list[list[_JobEvent]] = []
     failed_groups: list[list[_JobEvent]] = []
-    incomplete_groups: list[list[_JobEvent]] = []
+    incomplete_groups: list[tuple[list[_JobEvent], list[_JobEvent]]] = []
     for _, grp in groupby(sorted_jobs, key=lambda j: (j.rule_name, j.wildcard)):
         group = list(grp)
         running = [j for j in group if not j.finished_at and not j.failed]
         if running:
-            incomplete_groups.append(group)
+            incomplete_groups.append((group, running))
         elif any(j.finished_at and not j.failed for j in group):
             completed_groups.append(group)
         else:
@@ -139,8 +145,7 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
     # Incomplete: one line per running job, with indented prior-failure sub-lines if retried.
     if incomplete_groups:
         print(f"Found {len(incomplete_groups)} incomplete rule(s):", file=sys.stderr)
-        for group in sorted(incomplete_groups, key=lambda g: g[0].submitted_at):
-            running = [j for j in group if not j.finished_at and not j.failed]
+        for group, running in sorted(incomplete_groups, key=lambda x: x[0][0].submitted_at):
             prior_failures = [j for j in group if j.failed]
             j = running[0]
             elapsed = (now - j.submitted_at).total_seconds()
@@ -166,13 +171,7 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
         print("Found 0 incomplete rules.", file=sys.stderr)
 
     # Completed: unique rule names on one line.
-    seen: set[str] = set()
-    unique_completed: list[str] = []
-    for group in completed_groups:
-        name = group[0].rule_name
-        if name not in seen:
-            seen.add(name)
-            unique_completed.append(name)
+    unique_completed = list(dict.fromkeys(g[0].rule_name for g in completed_groups))
     if unique_completed:
         print(f"Found {len(unique_completed)} completed rule(s): {', '.join(unique_completed)}", file=sys.stderr)
     else:
@@ -183,14 +182,8 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
         all_failed_jobs = [j for g in failed_groups for j in g]
         # Count total job attempts per rule name (xN shows how many times the rule was retried).
         attempt_counts: Counter[str] = Counter(j.rule_name for j in all_failed_jobs)
-        seen_names: set[str] = set()
-        name_parts: list[str] = []
-        for group in failed_groups:
-            name = group[0].rule_name
-            if name not in seen_names:
-                seen_names.add(name)
-                c = attempt_counts[name]
-                name_parts.append(f"{name} (x{c})" if c > 1 else name)
+        unique_names = dict.fromkeys(g[0].rule_name for g in failed_groups)
+        name_parts = [f"{n} (x{attempt_counts[n]})" if attempt_counts[n] > 1 else n for n in unique_names]
         print(
             f"Found {len(all_failed_jobs)} failed job(s) across {len(name_parts)} rule(s): {', '.join(name_parts)}",
             file=sys.stderr,
@@ -213,24 +206,20 @@ def find_err_file(version: str | None, logs_dir: Path) -> Path:
         if not path.exists():
             raise FileNotFoundError(f"Error log not found: {path}")
         return path
-    candidates = sorted(logs_dir.glob("sbatch-*.err"), key=lambda p: p.stat().st_mtime)
+    candidates = list(logs_dir.glob("sbatch-*.err"))
     if not candidates:
         raise FileNotFoundError(f"No sbatch-*.err files found in {logs_dir}")
-    return candidates[-1]
+    return max(candidates, key=lambda p: p.stat().st_mtime)
 
 
 def parse_failures(err_file: Path) -> list[tuple[str, Path]]:
     """Return (rule_name, log_path) pairs extracted from the main Snakemake error log."""
-    text = err_file.read_text(errors="replace")
-    rule_re = re.compile(r"Error in rule (\w+):")
-    log_re = re.compile(r"log: (\S+\.log)")
-
     results: list[tuple[str, Path]] = []
     current_rule: str | None = None
-    for line in text.splitlines():
-        if m := rule_re.search(line):
+    for line in err_file.read_text(errors="replace").splitlines():
+        if m := _RULE_RE.search(line):
             current_rule = m.group(1)
-        if (m := log_re.search(line)) and current_rule:
+        if (m := _LOG_RE.search(line)) and current_rule:
             results.append((current_rule, Path(m.group(1))))
             current_rule = None
     return results
@@ -238,21 +227,9 @@ def parse_failures(err_file: Path) -> list[tuple[str, Path]]:
 
 def _collect_memory_diagnostics(lines: list[str]) -> list[str]:
     """Return the DuckDB memory-diagnostic lines anywhere in the log, in order, de-duplicated."""
-    found: list[str] = []
-    seen: set[str] = set()
-    for line in lines:
-        if any(marker in line for marker in _MEMORY_DIAGNOSTIC_MARKERS):
-            stripped = line.rstrip()
-            if stripped not in seen:
-                seen.add(stripped)
-                found.append(stripped)
-    return found
-
-
-# Characters that only appear in DuckDB's in-place progress bar. Snakemake captures every
-# carriage-return redraw, so a single "line" can be hundreds of KB of repeated bar frames; we
-# collapse any run of them to one marker so the full log stays readable.
-_PROGRESS_BAR_CHARS = "▕▏█▎▍▌▋▊▉▐"
+    return list(
+        dict.fromkeys(line.rstrip() for line in lines if any(marker in line for marker in _MEMORY_DIAGNOSTIC_MARKERS))
+    )
 
 
 def _collapse_progress_noise(lines: list[str]) -> list[str]:
@@ -260,7 +237,7 @@ def _collapse_progress_noise(lines: list[str]) -> list[str]:
     cleaned: list[str] = []
     in_progress = False
     for line in lines:
-        if any(ch in line for ch in _PROGRESS_BAR_CHARS):
+        if _PROGRESS_BAR_RE.search(line):
             if not in_progress:
                 cleaned.append("[... DuckDB progress-bar output elided ...]")
                 in_progress = True
@@ -270,14 +247,14 @@ def _collapse_progress_noise(lines: list[str]) -> list[str]:
     return cleaned
 
 
-def extract_error_content(log_path: Path, fallback_lines: int) -> str:
+def extract_error_content(log_path: Path, max_lines: int) -> str:
     """Return the failed rule's log for the report.
 
     We show the *whole* log (so the real exception is never hidden by tail/traceback heuristics --
     Snakemake's RuleException/OutOfMemory blocks are neither a Python "Traceback" nor always within
     the last N lines), with two cleanups: DuckDB's progress-bar redraw spam is collapsed, and the
     memory-diagnostic lines are echoed in a labelled section at the end so they are easy to find.
-    ``fallback_lines`` caps a pathologically long log to a head + tail so the report stays usable.
+    ``max_lines`` caps a pathologically long log to a head + tail so the report stays usable.
     """
     if not log_path.exists():
         return f"(log file not found: {log_path})"
@@ -287,7 +264,6 @@ def extract_error_content(log_path: Path, fallback_lines: int) -> str:
 
     # Show the full (de-spammed) log, but guard against a pathologically long one by keeping a
     # generous head and tail. The cap is large enough that ordinary rule logs are shown in full.
-    max_lines = max(fallback_lines * 20, 400)
     if len(lines) > max_lines:
         head = lines[: max_lines // 4]
         tail = lines[-(max_lines - max_lines // 4) :]
@@ -305,14 +281,14 @@ def extract_error_content(log_path: Path, fallback_lines: int) -> str:
     return content
 
 
-def build_report(failures: list[tuple[str, Path]], markdown: bool, traceback_only: bool, fallback_lines: int) -> str:
+def build_report(failures: list[tuple[str, Path]], markdown: bool, traceback_only: bool, max_lines: int) -> str:
     if not failures:
         return "No failures found."
 
     # Deduplicate: group rules that share identical error content.
     content_to_rules: dict[str, list[str]] = {}
     for rule, log_path in failures:
-        content = extract_error_content(log_path, fallback_lines)
+        content = extract_error_content(log_path, max_lines)
         if traceback_only and "Traceback (most recent call last):" not in content:
             continue
         label = f"{rule} ({log_path.name})"
@@ -362,9 +338,9 @@ def main() -> None:
     parser.add_argument(
         "--lines",
         type=int,
-        default=50,
+        default=1000,
         metavar="N",
-        help="Controls the long-log cap: logs longer than N*20 lines (min 400) are shown as head+tail with an elision marker (default: 50).",
+        help="Cap long logs to a head+tail of N lines total with an elision marker (default: 1000).",
     )
     args = parser.parse_args()
 

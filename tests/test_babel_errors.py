@@ -28,7 +28,7 @@ def test_extract_error_content_shows_full_log_and_real_exception(tmp_path):
     log_path = tmp_path / "1870.log"
     log_path.write_text(log)
 
-    content = babel_errors.extract_error_content(log_path, fallback_lines=50)
+    content = babel_errors.extract_error_content(log_path, max_lines=1000)
 
     # The exception (76+ lines from the end, not a Python Traceback) is present in the full log...
     assert "Failed to allocate block of 8650496 bytes" in content
@@ -51,7 +51,7 @@ def test_extract_error_content_collapses_progress_bar_spam(tmp_path):
     log_path = tmp_path / "p.log"
     log_path.write_text(log)
 
-    content = babel_errors.extract_error_content(log_path, fallback_lines=50)
+    content = babel_errors.extract_error_content(log_path, max_lines=1000)
 
     assert "[... DuckDB progress-bar output elided ...]" in content
     assert content.count("seconds remaining") == 0
@@ -65,7 +65,7 @@ def test_extract_error_content_caps_pathologically_long_log(tmp_path):
     log_path = tmp_path / "long.log"
     log_path.write_text(log)
 
-    content = babel_errors.extract_error_content(log_path, fallback_lines=50)
+    content = babel_errors.extract_error_content(log_path, max_lines=1000)
 
     assert "log lines elided" in content
     assert "line 0" in content  # head kept
