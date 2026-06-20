@@ -630,7 +630,7 @@ class NodeFactory:
             prefixes.append(prefix)
             seen_prefixes.add(prefix_upper)
         if len(prefixes) == 0:
-            raise RuntimeError(f"No Biolink prefixes for {node_type} and no extra_prefixes supplied")
+            raise RuntimeError(f"No Biolink prefixes for {node_type}: id_prefixes is empty and extra_prefixes is empty")
 
         if len(input_identifiers) == 0:
             return None
