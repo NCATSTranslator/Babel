@@ -267,6 +267,7 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
 
     download_url = url + in_file_name
     logger.info(f"Downloading {download_url}")
+    user_agent = get_user_agent()
 
     # create the compressed file
     download_verified = False
@@ -283,7 +284,7 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
         # Open a fresh connection on each attempt so a truncated response doesn't
         # leave us reading from an exhausted handle on the next retry.
         try:
-            req = urllib.request.Request(download_url, headers={"User-Agent": get_user_agent()})
+            req = urllib.request.Request(download_url, headers={"User-Agent": user_agent})
             with opener.open(req) as handle, open(dl_file_name, "wb") as compressed_file:
                 # while there is data
                 while True:

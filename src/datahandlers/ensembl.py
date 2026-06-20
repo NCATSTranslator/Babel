@@ -178,23 +178,18 @@ def pull_ensembl(
                 df.sort_values(by=["Gene stable ID"], inplace=True)
                 os.makedirs(os.path.dirname(outfile), exist_ok=True)
                 df.to_csv(outfile, index=False, sep="\t")
-                last_exc = None
                 break
             except Exception as exc:
                 last_exc = exc
                 biomart_dir = os.path.dirname(outfile)
                 logging.warning(f"Failed to download dataset {ds} (attempt {attempt}/{BIOMART_MAX_RETRIES}): {exc}")
-                if os.path.exists(outfile):
-                    logging.warning(f"Deleting partial download file {outfile}")
-                    os.remove(outfile)
                 if os.path.exists(biomart_dir):
                     logging.warning(f"Deleting BioMart directory {biomart_dir}")
                     shutil.rmtree(biomart_dir)
                 if attempt < BIOMART_MAX_RETRIES:
                     logging.info(f"Retrying dataset {ds} in {BIOMART_RETRY_DELAY_SECS}s...")
                     time.sleep(BIOMART_RETRY_DELAY_SECS)
-
-        if last_exc is not None:
+        else:
             report[ds] = {"status": "failed", "message": str(last_exc), "output_file": outfile}
             failed_datasets[ds] = last_exc
             logging.error(
