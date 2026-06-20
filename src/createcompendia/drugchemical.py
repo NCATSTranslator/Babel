@@ -318,6 +318,44 @@ def build_pubchem_relationships(infile, outfile, metadata_yaml):
     )
 
 
+def _validate_and_apply_manual_concords(
+    manual_concords: list[tuple[str, str]],
+    preferred_curie_for_curie: dict[str, str],
+    pairs: list[tuple[str, str]],
+    manual_concord_filename: str,
+) -> int:
+    """Validate each manual concord pair against the chemical compendia and append passing pairs to *pairs*.
+
+    Both CURIEs in a pair must appear in *preferred_curie_for_curie*; if either is absent a warning is
+    emitted for that CURIE, the whole pair is skipped, and the skip count returned by this function is
+    incremented. When both are absent, a warning is emitted for each before the pair is skipped.
+    Passing CURIEs are normalised to their preferred form before being appended.
+
+    Returns the number of skipped pairs.
+    """
+    skipped = 0
+    for subject, obj in manual_concords:
+        subject_ok = subject in preferred_curie_for_curie
+        object_ok = obj in preferred_curie_for_curie
+        if not subject_ok:
+            logger.warning(
+                f"Manual concord subject {subject} (paired with {obj}) is not in any chemical compendium — "
+                f"it may have been reclassified (e.g. as a protein). "
+                f"If so, remove it from {manual_concord_filename}."
+            )
+        if not object_ok:
+            logger.warning(
+                f"Manual concord object {obj} (paired with {subject}) is not in any chemical compendium — "
+                f"it may have been reclassified (e.g. as a protein). "
+                f"If so, remove it from {manual_concord_filename}."
+            )
+        if not subject_ok or not object_ok:
+            skipped += 1
+            continue
+        pairs.append((preferred_curie_for_curie[subject], preferred_curie_for_curie[obj]))
+    return skipped
+
+
 def build_conflation(
     manual_concord_filename,
     rxn_concord,
@@ -424,25 +462,9 @@ def build_conflation(
                     pairs.append((subject, object))
 
     # Add the manual concords, normalizing CURIEs to their preferred form.
-    manual_concords_skipped = 0
-    for subject, object in manual_concords:
-        if subject not in preferred_curie_for_curie:
-            logger.warning(
-                f"Manual concord subject {subject} (paired with {object}) is not in any chemical compendium — "
-                f"it may have been reclassified (e.g. as a protein). "
-                f"If so, remove it from {manual_concord_filename}."
-            )
-            manual_concords_skipped += 1
-            continue
-        if object not in preferred_curie_for_curie:
-            logger.warning(
-                f"Manual concord object {object} (paired with {subject}) is not in any chemical compendium — "
-                f"it may have been reclassified (e.g. as a protein). "
-                f"If so, remove it from {manual_concord_filename}."
-            )
-            manual_concords_skipped += 1
-            continue
-        pairs.append((preferred_curie_for_curie[subject], preferred_curie_for_curie[object]))
+    manual_concords_skipped = _validate_and_apply_manual_concords(
+        manual_concords, preferred_curie_for_curie, pairs, manual_concord_filename
+    )
 
     # We've had some issues with non-chemical types getting conflated, so we filter those out here.
     biolink_model_toolkit = get_biolink_model_toolkit(config["biolink_version"])
@@ -595,8 +617,9 @@ def build_conflation(
                 if iid not in preferred_curie_for_curie:
                     raise RuntimeError(
                         f"Conflation clique member {iid} (in clique {conflation_id_list}) is not in any chemical "
-                        f"compendium. This usually means a manual concord references a CURIE that isn't in any "
-                        f"compendium — check {manual_concord_filename} for entries containing {iid}."
+                        f"compendium. This is an internal logic error: all CURIEs entering glom() should have been "
+                        f"validated against the compendia beforehand. Check the RXN/UMLS concord processing paths "
+                        f"above, as manual concord entries are already validated by _validate_and_apply_manual_concords."
                     )
                 preferred_curie = preferred_curie_for_curie[iid]
                 if preferred_curie != iid:
