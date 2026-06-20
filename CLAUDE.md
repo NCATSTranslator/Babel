@@ -72,7 +72,8 @@ uv run rumdl fmt .                       # Markdown auto-fix
 
 ### Configuration
 
-- Line length is 160 for both Python (ruff) and Snakemake (snakefmt).
+- Line length is 160 for both Python (ruff) and Snakemake (snakefmt). Markdown (`rumdl`, rule
+  `MD013`) wraps at 100 instead, though tables are exempt.
 - Main config: `config.yaml` (directory paths, version strings, prefix lists per semantic type).
 - `UMLS_API_KEY` environment variable required for UMLS/RxNorm downloads.
 - `compendium_directories` in `config.yaml` maps Python compendium names to the Snakemake
@@ -243,7 +244,8 @@ completed/failed/still-running job summary, to decide what to re-run. `uv run py
 resources <run-dir>` joins actual usage (the `benchmark:` TSVs — authoritative, since Hatteras
 `sacct` reports empty `MaxRSS`/`TotalCPU`) against requested resources and recommends right-sized
 `mem`/`cpus`, flagging rules that need an explicit override before the cluster default can be
-lowered. Both subcommands share `tools/slurm/parse.py`. Note that `reports/slurm/` accumulates one
+lowered. Both subcommands share `tools/slurm/parse.py`. Note that
+`reports/slurm/slurm_efficiency_reports/` is a *directory* that accumulates one
 `efficiency_report_<uuid>.csv` shard per Snakemake restart (each covering only that invocation's
 jobs); the analyzer merges them all, so copy the whole directory when archiving a run.
 
