@@ -27,7 +27,7 @@ from src.categories import (
     POLYPEPTIDE,
     SMALL_MOLECULE,
 )
-from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER
+from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.prefixes import (
@@ -496,9 +496,7 @@ def read_inchikeys(struct_file):
     inchikeys = {}
     with gzip.open(struct_file, "rt") as inf:
         header_line = inf.readline()
-        assert header_line == "UCI\tSTANDARDINCHI\tSTANDARDINCHIKEY\n", (
-            f"Unexpected header line in {struct_file}: {header_line}"
-        )
+        assert header_line == UNICHEM_STRUCT_TSV_HEADER, f"Unexpected header line in {struct_file}: {header_line}"
         for sline in inf:
             line = sline.rstrip().split("\t")
             if len(line) == 0:

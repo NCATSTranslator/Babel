@@ -11,14 +11,12 @@ import gzip
 import pytest
 
 from src.createcompendia.chemicals import write_unichem_concords
-from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER
+from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.prefixes import CHEBI
 
-STRUCT_HEADER = "UCI\tSTANDARDINCHI\tSTANDARDINCHIKEY\n"
-
-# UniChem source id for CHEBI (see data_sources in src/datahandlers/unichem.py).
-CHEBI_SRC_ID = "7"
+# Derive CHEBI's UniChem source ID from the authoritative dict rather than hardcoding it.
+CHEBI_SRC_ID = next(k for k, v in unichem_data_sources.items() if v == CHEBI)
 
 
 def _bare_rows_for_other_sources():
@@ -33,7 +31,7 @@ def _bare_rows_for_other_sources():
 def _write_struct(path):
     """Write a minimal gzipped UniChem structure file with one UCI→InChIKey row."""
     with gzip.open(path, "wt") as out:
-        out.write(STRUCT_HEADER)
+        out.write(UNICHEM_STRUCT_TSV_HEADER)
         out.write("1\tInChI=1S/H2O/h1H2\tXLYOFNOQVPJJNP-UHFFFAOYSA-N\n")
 
 
