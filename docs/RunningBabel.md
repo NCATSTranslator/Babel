@@ -61,6 +61,42 @@ in parallel.
 
 ## Build Process
 
+When running on the RENCI Hatteras cluster via SLURM, see [Performance.md](Performance.md) for how
+per-rule memory/CPU/runtime limits are measured (Snakemake `benchmark:` TSVs) and right-sized with
+`tools/slurm`, and how to find which failed rules to re-run when a run stalls.
+
+### Analyzing a SLURM run with `tools.slurm`
+
+`tools.slurm` is a small package that analyzes a (possibly partial) Snakemake-on-SLURM run. It has
+two subcommands that share one parsing layer (`tools/slurm/parse.py`), and is run as a Python
+module:
+
+```bash
+# Recommend right-sized mem/cpus from a run's benchmark + efficiency data:
+uv run python -m tools.slurm resources <run-dir>
+uv run python -m tools.slurm resources <run-dir> --csv /tmp/resources.csv --new-default-mem-gb 16
+
+# Aggregate failing-rule logs (and a completed/failed/running job summary) when a run stalls:
+uv run python -m tools.slurm errors <version> --markdown
+```
+
+`<run-dir>` is a directory containing `benchmarks/`, `logs/`, and (optionally) `reports/slurm/` —
+either `babel_outputs/` itself or a copy such as `data/babel-1.17/babel_outputs`. `<version>` is
+the tag in the `sbatch-<version>.err` control-node log (omit it to auto-detect the newest).
+
+Note that `reports/slurm/slurm_efficiency_reports` is a *directory*: the SLURM executor writes a
+new `efficiency_report_<uuid>.csv` shard on every Snakemake (re)start, each covering only that
+invocation's jobs. `resources` merges all shards, so when copying a run elsewhere copy the whole
+directory, not just the newest file. The actual `mem`/`cpus` recommendations come from the
+`benchmark:` TSVs, so the override list is reliable even when the efficiency (requested) side is
+sparse.
+
+The two subcommands answer different questions — `resources` is for capacity tuning between runs,
+`errors` is for failure triage during a run — so they are kept as separate subcommands rather than
+merged, but they live in one package because both parse the same run artifacts. `errors` replaces
+the former `tools/babel-errors.py` script. See [Performance.md](Performance.md) for the full
+resource-tuning workflow and what each report column means.
+
 The information contained here is not required to create the compendia, but may be useful to
 understand. The build process is divided into two parts:
 

@@ -23,15 +23,23 @@ partitions:
   largemem:
     max_mem_mb: 1530329 # 1.5 TB
 
-# Default resource settings for all rules
+# Default resource settings for all rules.
+#
+# These defaults are deliberately small: a partial babel-1.17 run showed that of the
+# rules running on the old 64 GB / 4-CPU default, 119 of 122 peaked below 8 GB and all
+# but a handful used a single core (see docs/Performance.md). A 64 GB default packed
+# only ~3 of these light jobs onto a 191 GB batch node, throttling parallelism. Rules
+# that genuinely need more carry an explicit `resources:` block in their snakefile;
+# re-derive the override list after each run with:
+#   uv run python -m tools.slurm resources <run-dir> --new-default-mem-gb 16
 default-resources:
-  mem: 64G
+  mem: 16G
   runtime: 120 # minutes
-  cpus_per_task: 4
+  cpus_per_task: 1
 
 # Set up the Slurm efficiency report.
 slurm-efficiency-report: True
-slurm-efficiency-report-path: babel_outputs/reports/slurm/slurm_efficiency_report.csv
+slurm-efficiency-report-path: babel_outputs/reports/slurm/slurm_efficiency_reports
 
 # Write Slurm logs into a `logs/` directory so we can look at them later.
 slurm-logdir: babel_outputs/logs
