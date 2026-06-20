@@ -34,7 +34,7 @@ def test_extract_error_content_shows_full_log_and_real_exception(tmp_path):
     assert "Failed to allocate block of 8650496 bytes" in content
     assert "filler 0" in content  # ...and so is the top of the log.
     # The memory line appears both inline and in the labelled trailer.
-    assert "--- DuckDB memory diagnostics (also inline above) ---" in content
+    assert "--- DuckDB memory diagnostics ---" in content
     assert "cgroup hard limit (SLURM mem)=512.0 GiB" in content
 
 

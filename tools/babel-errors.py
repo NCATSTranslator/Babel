@@ -300,7 +300,7 @@ def extract_error_content(log_path: Path, fallback_lines: int) -> str:
     # long log (and present even if the head/tail cap dropped them).
     diagnostics = _collect_memory_diagnostics(raw_lines)
     if diagnostics:
-        content += "\n\n--- DuckDB memory diagnostics (also inline above) ---\n" + "\n".join(diagnostics)
+        content += "\n\n--- DuckDB memory diagnostics ---\n" + "\n".join(diagnostics)
 
     return content
 
@@ -364,7 +364,7 @@ def main() -> None:
         type=int,
         default=50,
         metavar="N",
-        help="Fallback line count when no traceback is found (default: 50).",
+        help="Controls the long-log cap: logs longer than N*20 lines (min 400) are shown as head+tail with an elision marker (default: 50).",
     )
     args = parser.parse_args()
 
