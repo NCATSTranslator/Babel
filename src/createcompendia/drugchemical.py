@@ -424,20 +424,23 @@ def build_conflation(
                     pairs.append((subject, object))
 
     # Add the manual concords, normalizing CURIEs to their preferred form.
+    manual_concords_skipped = 0
     for subject, object in manual_concords:
         if subject not in preferred_curie_for_curie:
             logger.warning(
                 f"Manual concord subject {subject} (paired with {object}) is not in any chemical compendium — "
                 f"it may have been reclassified (e.g. as a protein). "
-                f"If so, remove it from input_data/manual_concords/drugchemical.tsv."
+                f"If so, remove it from {manual_concord_filename}."
             )
+            manual_concords_skipped += 1
             continue
         if object not in preferred_curie_for_curie:
             logger.warning(
                 f"Manual concord object {object} (paired with {subject}) is not in any chemical compendium — "
                 f"it may have been reclassified (e.g. as a protein). "
-                f"If so, remove it from input_data/manual_concords/drugchemical.tsv."
+                f"If so, remove it from {manual_concord_filename}."
             )
+            manual_concords_skipped += 1
             continue
         pairs.append((preferred_curie_for_curie[subject], preferred_curie_for_curie[object]))
 
@@ -593,7 +596,7 @@ def build_conflation(
                     raise RuntimeError(
                         f"Conflation clique member {iid} (in clique {conflation_id_list}) is not in any chemical "
                         f"compendium. This usually means a manual concord references a CURIE that isn't in any "
-                        f"compendium — check input_data/manual_concords/drugchemical.tsv for entries containing {iid}."
+                        f"compendium — check {manual_concord_filename} for entries containing {iid}."
                     )
                 preferred_curie = preferred_curie_for_curie[iid]
                 if preferred_curie != iid:
@@ -707,6 +710,8 @@ def build_conflation(
                 "filename": manual_concord_filename,
                 "counts": {
                     "count_concords": len(manual_concords),
+                    "count_concords_skipped": manual_concords_skipped,
+                    "count_concords_applied": len(manual_concords) - manual_concords_skipped,
                     "count_distinct_curies": len(manual_concords_curies),
                     "predicates": dict(manual_concords_predicate_counts),
                     "prefix_counts": dict(manual_concords_curie_prefix_counts),
