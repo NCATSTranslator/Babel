@@ -151,7 +151,11 @@ The following improvements are tracked here for visibility but not yet implement
 
 - **Per-rule resource tuning**: After collecting benchmark data from a full run, add explicit
   `resources:` to every rule based on observed `max_rss + 30% headroom`. This will greatly reduce
-  wasted SLURM allocations across the ~100+ rules currently defaulting to 64G/4-CPU.
+  wasted SLURM allocations across the ~100+ rules currently defaulting to 64G/4-CPU. The
+  `tools/slurm resources` subcommand automates the measurement and recommends per-rule sizes from a
+  run's benchmark TSVs (see [`../docs/tools/Resources.md`](../docs/tools/Resources.md)). Applying
+  the recommendations — the `slurm/config.yaml` default and the per-rule overrides — is tracked
+  separately.
 
 - **`--local-cores N` flag**: Use this to limit the number of CPUs consumed by local rules
   when running on a shared login node.

@@ -59,6 +59,15 @@ and alternate exports.
 If you have multiple CPUs available, you can increase the number of `--cores` to run multiple steps
 in parallel.
 
+## Analyzing and tuning a SLURM run
+
+When running on the RENCI Hatteras cluster via SLURM, the `tools/slurm` package analyzes a
+(possibly partial) run: `uv run python -m tools.slurm errors <version>` aggregates failing-rule
+logs when a run stalls so you can see what to re-run, and `uv run python -m tools.slurm resources
+<run-dir>` recommends right-sized per-rule `mem`/`cpus` from the run's benchmark data. See
+[Tools.md](Tools.md) for the full set of developer tools and [slurm/README.md](../slurm/README.md)
+for the SLURM profile itself.
+
 ## Build Process
 
 The information contained here is not required to create the compendia, but may be useful to
