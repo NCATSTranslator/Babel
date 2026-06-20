@@ -1,6 +1,7 @@
 """Unit tests for the tools.slurm run-analysis package."""
 
 import os
+from pathlib import Path
 
 import pytest
 
@@ -238,6 +239,22 @@ def test_extract_error_content_caps_pathologically_long_log(tmp_path):
     assert "log lines elided" in content
     assert "line 0" in content  # head kept
     assert "line 4999" in content  # tail kept
+
+
+def test_extract_error_content_falls_back_to_logs_dir_for_remote_path(tmp_path):
+    """The main error log records each rule log by its absolute cluster path; when the run has been
+    copied off the cluster, extraction falls back to the same rule_<name>/<jobid>.log under
+    logs_dir instead of reporting the file as missing."""
+    logs_dir = tmp_path / "logs"
+    (logs_dir / "rule_get_HMDB").mkdir(parents=True)
+    (logs_dir / "rule_get_HMDB" / "672.log").write_text("RuleException:\nHTTP Error 503\n")
+    remote = Path("/projects/babel/runs/whoever/babel_outputs/logs/rule_get_HMDB/672.log")
+
+    # Without logs_dir the absolute remote path can't resolve...
+    assert "log file not found" in parse.extract_error_content(remote, max_lines=1000)
+    # ...with it, the local copy is found and its content is shown.
+    content = parse.extract_error_content(remote, max_lines=1000, logs_dir=logs_dir)
+    assert "HTTP Error 503" in content
 
 
 def test_collect_memory_diagnostics_dedupes_and_ignores_settings_dump():

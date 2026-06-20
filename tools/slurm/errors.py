@@ -34,14 +34,16 @@ def _fmt_duration(seconds: float) -> str:
     return f"{h}h{m:02d}m" if h else f"{m}m"
 
 
-def build_report(failures: list[tuple[str, Path]], markdown: bool, traceback_only: bool, max_lines: int) -> str:
+def build_report(
+    failures: list[tuple[str, Path]], markdown: bool, traceback_only: bool, max_lines: int, logs_dir: Path | None = None
+) -> str:
     if not failures:
         return "No failures found."
 
     # Deduplicate: group rules that share identical error content.
     content_to_rules: dict[str, list[str]] = {}
     for rule, log_path in failures:
-        content = extract_error_content(log_path, max_lines)
+        content = extract_error_content(log_path, max_lines, logs_dir)
         if traceback_only and "Traceback (most recent call last):" not in content:
             continue
         label = f"{rule} ({log_path.name})"
@@ -190,7 +192,7 @@ def run(args: argparse.Namespace) -> None:
 
     failures = parse_failures(err_file)
     if failures:
-        print(build_report(failures, args.markdown, args.traceback_only, args.lines))
+        print(build_report(failures, args.markdown, args.traceback_only, args.lines, logs_dir))
 
     sys.stdout.flush()
     print(f"\n--- Summary (read {err_file}) ---", file=sys.stderr)

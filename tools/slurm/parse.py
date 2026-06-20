@@ -323,7 +323,7 @@ def _collapse_progress_noise(lines: list[str]) -> list[str]:
     return cleaned
 
 
-def extract_error_content(log_path: Path, max_lines: int) -> str:
+def extract_error_content(log_path: Path, max_lines: int, logs_dir: Path | None = None) -> str:
     """Return the failed rule's log for the report.
 
     We show the *whole* log (so the real exception is never hidden by tail/traceback heuristics --
@@ -331,7 +331,16 @@ def extract_error_content(log_path: Path, max_lines: int) -> str:
     the last N lines), with two cleanups: DuckDB's progress-bar redraw spam is collapsed, and the
     memory-diagnostic lines are echoed in a labelled section at the end so they are easy to find.
     ``max_lines`` caps a pathologically long log to a head + tail so the report stays usable.
+
+    The main error log records each rule's log by its *absolute* path on the cluster. When
+    analyzing a run copied off the cluster, that path won't resolve, so if ``logs_dir`` is given we
+    fall back to the same ``rule_<name>/<jobid>.log`` under it (the relative form
+    :func:`print_job_summary` already uses).
     """
+    if not log_path.exists() and logs_dir is not None:
+        local = logs_dir / log_relative(str(log_path))
+        if local.exists():
+            log_path = local
     if not log_path.exists():
         return f"(log file not found: {log_path})"
 
