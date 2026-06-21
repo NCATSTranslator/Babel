@@ -106,25 +106,48 @@ important time to run it is when bumping `biolink_version`.
 The rule writes all UMLS reports to `babel_outputs/reports/umls/`. The human-readable log is
 `log.txt`; the machine-readable CSVs are:
 
-- `compendium-coverage.csv` — where UMLS lands inside Babel, broken down by semantic type. One row
-  per (compendium, most-specific UMLS semantic-type set): `compendium`, `tui_set`, `tree_set`,
-  `curie_count`, `single_umls_clique_count` (cliques whose only identifier is a single UMLS CURIE),
-  and sample `CURIE=label`s. The semantic types are emitted as **codes, not labels** — `tui_set` is
-  the pipe-joined TUIs and `tree_set` the matching `MRSTY` tree numbers — so the type grouping is
-  scannable at a glance (use `tui-sty.tsv` to decode a code). Each concept's TUIs are reduced to the
-  *most specific* ones first (a TUI that is a tree-number ancestor of another TUI on the same
-  concept is dropped), via `babel_utils.reduce_to_most_specific_tree_codes()`. Summing `curie_count`
-  over a compendium reproduces its total unique UMLS count. The file spans every compendium that
-  consumes UMLS **plus** the leftover `umls.txt` compendium itself (whose rows tend to be the most
-  type-diverse); filter on the `compendium` column to focus on one. An empty semantic-type set (a
-  UMLS CURIE absent from `MRSTY`) is written as `(none)`.
-- `types-coverage.csv` — per Biolink type of the leftover cliques: exact count and a few
-  sample `CURIE=label`s.
+- `compendium-coverage.csv` — where UMLS lands inside Babel, broken down by Biolink type and
+  semantic type. One row per (compendium, Biolink type, most-specific UMLS semantic-type set):
+  `compendium`, `biolink_type`, `tui_set`, `tui_set_labels`, `tree_set`, `curie_count`,
+  `single_umls_clique_count` (cliques whose only identifier is a single UMLS CURIE), and sample
+  `CURIE=label`s. The `biolink_type` is read directly from each clique's `type` field as the file is
+  parsed (falling back to the compendium filename, e.g. `MolecularMixture.txt` →
+  `biolink:MolecularMixture`, for any clique lacking one), so when one semantic type is split across
+  two Biolink types it gets one row per type. The semantic types are emitted as **codes** in
+  `tui_set`/`tree_set` (pipe-joined TUIs and matching `MRSTY` tree numbers) with their names in
+  `tui_set_labels`, so the type grouping is scannable at a glance (use `tui-sty.tsv` to decode a
+  code). Each concept's TUIs are reduced to the *most specific* ones first (a TUI that is a
+  tree-number ancestor of another TUI on the same concept is dropped), via
+  `babel_utils.reduce_to_most_specific_tree_codes()`. Summing `curie_count` over a compendium
+  reproduces its total unique UMLS count. The file spans every compendium that consumes UMLS
+  **plus** the leftover `umls.txt` compendium itself (whose rows tend to be the most type-diverse);
+  filter on the `compendium` column to focus on one. An empty semantic-type set (a UMLS CURIE absent
+  from `MRSTY`) is written as `(none)`.
+- `tui-coverage.csv` — the **same rows** as `compendium-coverage.csv` (same columns, reordered to
+  `tui_set`, `tui_set_labels`, `tree_set`, `compendium`, `biolink_type`, `curie_count`,
+  `single_umls_clique_count`, `sample_curies`) but sorted **TUI-set first**, so the file answers
+  "where does semantic type `T047` go across all of Babel, and which Biolink types does it get?"
+  rather than "what's in compendium X". It is the transpose of `compendium-coverage.csv`, not new
+  data; keep whichever ordering suits the question at hand.
+- `duplicate-curies.csv` — UMLS CURIEs that landed in **more than one compendium clique**: either
+  across two different compendium files (**cross-file**) or in two distinct cliques of one file with
+  different clique leaders (**within-file**). Both are clique-merge bugs
+  ([#276](https://github.com/NCATSTranslator/Babel/issues/276)). One row per duplicated CURIE:
+  `umls_curie`, `umls_label`, `tui_set`, `tui_set_labels`, `num_compendia`, `num_distinct_cliques`,
+  `duplicate_scope` (`cross-file`/`within-file`/`both`), and an `occurrences` column rendering each
+  landing as `compendium[biolink_type, leader=CURIE, name=...]`. The clique leaders are the key to
+  tracing the cause: they show which two cliques the CURIE was glommed into, so you can work back to
+  the upstream concords that pulled it both ways. The leftover `umls.txt` compendium never appears
+  here because it only claims CURIEs that no other compendium took.
 - `unmapped-types.csv` — per semantic type that was unmapped or rejected: status, exact affected
   CUI count, and sample CURIEs.
 - `multi-type-curies.csv` — CURIEs that resolved to multiple Biolink types even after
   `TYPE_COMBO_OVERRIDES`: the type combo, exact count, and sample CURIEs.
 - `tui-sty.tsv` — the raw STY-code → semantic-type-name dump from `MRSTY.RRF`.
+
+The old `types-coverage.csv` (per Biolink type of the leftover cliques only) has been removed: it is
+derivable from `compendium-coverage.csv` by filtering to `compendium == umls.txt` and summing
+`curie_count` per `biolink_type`.
 
 ### Counts vs. samples: why the CSVs carry both
 
