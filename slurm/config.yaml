@@ -5,6 +5,7 @@
 #   $ snakemake --profile slurm
 #
 executor: slurm
+slurm-jobname: "babel-{rule}.{wildcards}"
 jobs: 50 # maximum number of parallel cluster jobs
 latency-wait: 60 # seconds
 slurm-delete-logfiles-older-than: 0 # Don't delete log files automatically.
