@@ -6,6 +6,7 @@ from pathlib import Path
 from src.babel_utils import TypedClique, reduce_to_most_specific_tree_codes, write_compendium
 from src.categories import (
     ACTIVITY,
+    ANATOMICAL_ENTITY,
     BIOLOGICAL_PROCESS,
     CHEMICAL_ENTITY,
     CLINICAL_FINDING,
@@ -19,7 +20,7 @@ from src.categories import (
     PHYSICAL_ENTITY,
     POPULATION_OF_INDIVIDUAL_ORGANISMS,
     PROCEDURE,
-    SMALL_MOLECULE, ANATOMICAL_ENTITY,
+    SMALL_MOLECULE,
 )
 from src.datahandlers import umls
 from src.node import NodeFactory
@@ -107,7 +108,7 @@ GENERIC_TYPES: frozenset[str] = frozenset({PHYSICAL_ENTITY})
 TYPE_COMBO_OVERRIDES: dict[frozenset[str], str] = {
     frozenset({DEVICE, DRUG}): DRUG,
     frozenset({CHEMICAL_ENTITY, DRUG}): DRUG,
-    frozenset({ANATOMICAL_ENTITY, DRUG}): DRUG,             # e.g. fecal microbiota
+    frozenset({ANATOMICAL_ENTITY, DRUG}): DRUG,  # e.g. fecal microbiota
     frozenset({DRUG, SMALL_MOLECULE}): SMALL_MOLECULE,
     frozenset({ACTIVITY, PROCEDURE}): PROCEDURE,
     frozenset({DRUG, FOOD}): FOOD,
@@ -172,44 +173,143 @@ def _format_samples(pairs):
     return "; ".join(f"{curie}={label}" for curie, label in pairs)
 
 
-def summarize_compendium_umls_by_semantic_type(clusters, semantic_key, sample_limit=_SAMPLE_LIMIT):
-    """Group one compendium's UMLS members by their most-specific UMLS semantic-type set.
+def _format_tui_set(sorted_tuis, types_by_tui, tui_to_tree):
+    """Render a sorted list of TUIs as ``(tui_set, tui_set_labels, tree_set)`` display strings.
 
-    Each unique UMLS CURIE in the compendium is bucketed by ``semantic_key(curie)`` (a frozenset of
-    the concept's most-specific TUIs). A CURIE is counted once even if it appears in several cliques;
-    it counts toward ``single_umls_clique_count`` if it is ever seen in a clique whose only member is
-    that single UMLS identifier.
-
-    :param clusters: iterable of compendium clique dicts, each with an ``"identifiers"`` list of
-        ``{"i": curie, "l": label, ...}`` entries.
-    :param semantic_key: callable mapping a UMLS CURIE to a frozenset of TUIs.
-    :param sample_limit: max ``(curie, label)`` samples kept per bucket.
-    :return: ``(breakdown, umls_ids)`` where ``breakdown`` maps ``frozenset(TUIs)`` to
-        ``[unique_curie_count, single_umls_clique_count, [(curie, label), ...]]`` and ``umls_ids`` is
-        the set of every UMLS CURIE seen in this compendium.
+    ``tui_set`` is the pipe-joined codes; ``tui_set_labels`` joins each TUI's STY name(s)
+    (slash-joined when a TUI has several); ``tree_set`` is the pipe-joined MRSTY tree numbers. An
+    empty list renders as ``"(none)"`` for the code/label columns and ``""`` for the tree column.
+    Shared by the ``compendium-coverage.csv``, ``tui-coverage.csv`` and ``duplicate-curies.csv``
+    writers so the TUI-set formatting lives in one place.
     """
-    umls_ids = set()
-    single_umls_ids = set()
+    if not sorted_tuis:
+        return "(none)", "(none)", ""
+    tui_set = "|".join(sorted_tuis)
+    tui_set_labels = "|".join("/".join(sorted(types_by_tui.get(tui, {""}))) for tui in sorted_tuis)
+    tree_set = "|".join(tui_to_tree.get(tui, "") for tui in sorted_tuis)
+    return tui_set, tui_set_labels, tree_set
+
+
+class DuplicateUmlsTracker:
+    """Track which compendium cliques each UMLS CURIE lands in, to surface duplicate-CURIE bugs.
+
+    A CURIE is "duplicated" when its occurrences span more than one compendium file (**cross-file**)
+    or more than one distinct clique leader within a single file (**within-file**) -- both indicate a
+    glom/merge problem worth tracing upstream (see https://github.com/NCATSTranslator/Babel/issues/276).
+
+    To stay close to the memory of a plain membership set over the millions of CURIEs in the input
+    compendia, only the *first* occurrence of each CURIE is retained until a second occurrence with a
+    distinct ``(compendium, leader)`` promotes it into the duplicates map. The tracker also doubles as
+    the "is this CURIE already claimed by another compendium" membership set (``curie in tracker``)
+    used to skip already-claimed concepts during the MRCONSO sweep.
+
+    An occurrence is the tuple ``(compendium, biolink_type, leader, preferred_name, label)``.
+    """
+
+    def __init__(self):
+        # Every CURIE -> its first-seen occurrence (kept even after promotion to a duplicate).
+        self._first: dict[str, tuple] = {}
+        # Only duplicated CURIEs -> all their distinct occurrences.
+        self._dups: dict[str, list[tuple]] = {}
+
+    def record(self, curie, compendium, biolink_type, leader, preferred_name, label):
+        """Record that ``curie`` appears in clique ``leader`` of ``compendium`` (typed ``biolink_type``)."""
+        occ = (compendium, biolink_type, leader, preferred_name, label)
+        if curie in self._dups:
+            if (compendium, leader) not in {(o[0], o[2]) for o in self._dups[curie]}:
+                self._dups[curie].append(occ)
+            return
+        if curie not in self._first:
+            self._first[curie] = occ
+            return
+        prev = self._first[curie]
+        if (prev[0], prev[2]) == (compendium, leader):
+            # Same CURIE re-seen in the same clique (e.g. another MRCONSO row); not a duplicate.
+            return
+        self._dups[curie] = [prev, occ]
+
+    def __contains__(self, curie):
+        return curie in self._first
+
+    def __len__(self):
+        return len(self._first)
+
+    def duplicates(self):
+        """Yield ``(curie, occurrences, scope)`` for each duplicated CURIE, sorted by CURIE.
+
+        ``scope`` is ``"cross-file"`` (occurrences span 2+ compendia), ``"within-file"`` (2+ distinct
+        clique leaders within one compendium), or ``"both"``.
+        """
+        for curie in sorted(self._dups):
+            occs = self._dups[curie]
+            compendia = {o[0] for o in occs}
+            cross = len(compendia) > 1
+            within = any(len({o[2] for o in occs if o[0] == comp}) > 1 for comp in compendia)
+            scope = "both" if (cross and within) else ("cross-file" if cross else "within-file")
+            yield curie, occs, scope
+
+
+def summarize_compendium_umls_by_semantic_type(
+    clusters, semantic_key, fallback_biolink_type=None, sample_limit=_SAMPLE_LIMIT
+):
+    """Group one compendium's UMLS members by Biolink type and most-specific UMLS semantic-type set.
+
+    Each UMLS CURIE in the compendium is bucketed by ``(biolink_type, semantic_key(curie))`` where
+    ``biolink_type`` is the owning clique's ``"type"`` field (falling back to
+    ``fallback_biolink_type`` when a clique lacks one) and ``semantic_key`` maps the CURIE to a
+    frozenset of its most-specific TUIs. A CURIE is counted once per Biolink type even if it appears
+    in several cliques of that type; it counts toward ``single_umls_clique_count`` if it is ever seen
+    in a clique whose only member is that single UMLS identifier.
+
+    :param clusters: iterable of compendium clique dicts, each with a ``"type"`` (Biolink type),
+        optional ``"preferred_name"``, and an ``"identifiers"`` list of ``{"i": curie, "l": label,
+        ...}`` entries.
+    :param semantic_key: callable mapping a UMLS CURIE to a frozenset of TUIs.
+    :param fallback_biolink_type: Biolink type to use for a clique missing a ``"type"`` field
+        (normally the filename-derived type, e.g. ``MolecularMixture.txt`` -> ``biolink:MolecularMixture``).
+    :param sample_limit: max ``(curie, label)`` samples kept per bucket.
+    :return: ``(breakdown, occ_by_curie)`` where ``breakdown`` maps ``(biolink_type, frozenset(TUIs))``
+        to ``[unique_curie_count, single_umls_clique_count, [(curie, label), ...]]`` and
+        ``occ_by_curie`` maps each UMLS CURIE seen in this compendium to the set of its occurrences
+        ``(biolink_type, clique_leader, preferred_name, label)`` (one per distinct clique it lands in,
+        for cross-/within-compendium duplicate detection).
+    """
+    occ_by_curie = defaultdict(set)
     labels_by_id = dict()
+    seen_pairs = set()  # (biolink_type, curie) already counted toward a bucket
+    single_pairs = set()  # (biolink_type, curie) ever seen in a single-UMLS clique
+    ordered_pairs = []  # (biolink_type, curie) in first-seen order, for stable sampling
     for cluster in clusters:
         identifiers = cluster["identifiers"]
+        biolink_type = cluster.get("type") or fallback_biolink_type
+        leader = identifiers[0]["i"] if identifiers else ""
+        preferred_name = cluster.get("preferred_name", "")
         umls_in_clique = [identifier["i"] for identifier in identifiers if identifier["i"].startswith(_UMLS_PREFIX)]
-        umls_ids.update(umls_in_clique)
+        is_single = len(identifiers) == 1 and len(umls_in_clique) == 1
         for identifier in identifiers:
-            if identifier["i"].startswith(_UMLS_PREFIX) and identifier["i"] not in labels_by_id:
-                labels_by_id[identifier["i"]] = identifier.get("l", "")
-        if len(identifiers) == 1 and len(umls_in_clique) == 1:
-            single_umls_ids.add(umls_in_clique[0])
+            curie = identifier["i"]
+            if not curie.startswith(_UMLS_PREFIX):
+                continue
+            label = identifier.get("l", "")
+            if curie not in labels_by_id:
+                labels_by_id[curie] = label
+            occ_by_curie[curie].add((biolink_type, leader, preferred_name, label))
+            pair = (biolink_type, curie)
+            if pair not in seen_pairs:
+                seen_pairs.add(pair)
+                ordered_pairs.append(pair)
+            if is_single:
+                single_pairs.add(pair)
 
     breakdown = defaultdict(lambda: [0, 0, []])
-    for umls_id in umls_ids:
-        entry = breakdown[semantic_key(umls_id)]
+    for biolink_type, curie in ordered_pairs:
+        entry = breakdown[(biolink_type, semantic_key(curie))]
         entry[0] += 1
-        if umls_id in single_umls_ids:
+        if (biolink_type, curie) in single_pairs:
             entry[1] += 1
         if len(entry[2]) < sample_limit:
-            entry[2].append((umls_id, labels_by_id.get(umls_id, "")))
-    return breakdown, umls_ids
+            entry[2].append((curie, labels_by_id.get(curie, "")))
+    return breakdown, occ_by_curie
 
 
 def write_leftover_umls(
@@ -262,11 +362,10 @@ def write_leftover_umls(
             ) from e
     logger.info(f"Preflight passed: all {len(writable_output_types())} override output types are writable.")
 
-    # For now, we have many more UMLS entities in MRCONSO than in the compendia, so
-    # we'll make an in-memory list of those first. Once that flips, this should be
-    # switched to the other way around (or perhaps written into an in-memory database
-    # of some sort).
-    umls_ids_in_other_compendia = set()
+    # For now, we have many more UMLS entities in MRCONSO than in the compendia, so we'll collect the
+    # latter first (into the DuplicateUmlsTracker built below, which doubles as the membership set).
+    # Once that flips, this should be switched to the other way around (or perhaps written into an
+    # in-memory database of some sort).
 
     # If we were interested in keeping all UMLS labels, we would create an identifier file as described in
     # babel_utils.read_identifier_file() and then glom them with babel_utils.glom(). However, for this initial
@@ -327,30 +426,41 @@ def write_leftover_umls(
             tuis = set(types_by_id.get(umls_id, {}).keys())
             return frozenset(reduce_to_most_specific_tree_codes(tuis, tui_to_tree))
 
-        # Per-compendium UMLS coverage, broken down by most-specific semantic-type set. The key is
-        # (compendium name, frozenset of TUIs); the value is [unique CURIE count, single-UMLS-clique
-        # count, up to _SAMPLE_LIMIT (CURIE, label) samples]. This answers "where does UMLS go inside
-        # Babel, by semantic type" -- summing curie_count over a compendium reproduces its total. The
-        # leftover umls.txt compendium is added in the MRCONSO sweep below, so this one CSV spans every
-        # compendium that consumes UMLS.
-        semantic_breakdown: dict[tuple[str, frozenset], list] = defaultdict(lambda: [0, 0, []])
+        # Per-compendium UMLS coverage, broken down by Biolink type and most-specific semantic-type
+        # set. The key is (compendium name, biolink_type, frozenset of TUIs); the value is [unique
+        # CURIE count, single-UMLS-clique count, up to _SAMPLE_LIMIT (CURIE, label) samples]. This
+        # answers "where does UMLS go inside Babel, by Biolink type and semantic type" -- summing
+        # curie_count over a compendium reproduces its total. The leftover umls.txt compendium is added
+        # in the MRCONSO sweep below, so this one CSV spans every compendium that consumes UMLS.
+        semantic_breakdown: dict[tuple[str, str, frozenset], list] = defaultdict(lambda: [0, 0, []])
+
+        # Cross-/within-compendium duplicate-CURIE detector; also serves as the membership set used to
+        # skip already-claimed UMLS concepts during the MRCONSO sweep below.
+        duplicate_tracker = DuplicateUmlsTracker()
 
         for compendium in compendia:
             logger.info(f"Starting compendium: {compendium}")
             name = Path(compendium).name
+            # Biolink type to assume for any clique missing a "type" field (each compendium file is
+            # named for its Biolink type, e.g. MolecularMixture.txt -> biolink:MolecularMixture).
+            fallback_biolink_type = "biolink:" + name.removesuffix(".txt")
             with open(compendium) as f:
-                breakdown, umls_ids = summarize_compendium_umls_by_semantic_type(
-                    (json.loads(row) for row in f), semantic_key
+                breakdown, occ_by_curie = summarize_compendium_umls_by_semantic_type(
+                    (json.loads(row) for row in f), semantic_key, fallback_biolink_type=fallback_biolink_type
                 )
-            for key, (count, single_count, samples) in breakdown.items():
-                entry = semantic_breakdown[(name, key)]
+            for (biolink_type, key), (count, single_count, samples) in breakdown.items():
+                entry = semantic_breakdown[(name, biolink_type, key)]
                 entry[0] += count
                 entry[1] += single_count
                 entry[2].extend(samples[: _SAMPLE_LIMIT - len(entry[2])])
 
-            logger.info(f"Completed compendium {compendium} with {len(umls_ids)} UMLS IDs")
-            umls_ids_in_other_compendia.update(umls_ids)
+            for curie, occurrences in occ_by_curie.items():
+                for biolink_type, leader, preferred_name, label in occurrences:
+                    duplicate_tracker.record(curie, name, biolink_type, leader, preferred_name, label)
 
+            logger.info(f"Completed compendium {compendium} with {len(occ_by_curie)} UMLS IDs")
+
+        umls_ids_in_other_compendia = duplicate_tracker
         logger.info(f"Completed all compendia with {len(umls_ids_in_other_compendia)} UMLS IDs.")
         reportf.write(f"COMPLETED All compendia with {len(umls_ids_in_other_compendia)} UMLS IDs.\n")
 
@@ -384,8 +494,8 @@ def write_leftover_umls(
         # of MRCONSO lines. The exhaustive per-CURIE record lives elsewhere: kept concepts in
         # compendia/umls.txt, skipped concepts in log.txt (NO_UMLS_TYPE / REJECTED / MULTIPLE_UMLS_TYPES).
         # See docs/sources/UMLS/Leftover.md ("Counts vs. samples"). (_SAMPLE_LIMIT defined above.)
-        type_counts: dict[str, int] = defaultdict(int)
-        type_samples: dict[str, list] = defaultdict(list)
+        # The per-Biolink-type leftover counts are no longer accumulated here: they are derivable from
+        # compendium-coverage.csv (filter compendium == umls.txt, sum curie_count per biolink_type).
         unmapped_tui_counts: dict[str, int] = defaultdict(int)
         unmapped_tui_examples: dict[str, list] = defaultdict(list)
         rejected_tui_counts: dict[str, int] = defaultdict(int)
@@ -503,14 +613,11 @@ def write_leftover_umls(
                 # Let write_compendium() generate this singleton's compendium and synonym JSON.
                 leftover_umls_cliques.append(TypedClique(node_type=biolink_type, identifiers=[umls_id]))
                 umls_ids_in_this_compendium.add(umls_id)
-                type_counts[biolink_type] += 1
-                if len(type_samples[biolink_type]) < _SAMPLE_LIMIT:
-                    type_samples[biolink_type].append((umls_id, label))
 
                 # Also record this leftover concept in the per-compendium semantic-type breakdown, so
                 # umls.txt appears alongside the input compendia. Every leftover clique is a single
                 # UMLS identifier, so it counts toward single_umls_clique_count too.
-                leftover_entry = semantic_breakdown[(leftover_compendium_name, semantic_key(umls_id))]
+                leftover_entry = semantic_breakdown[(leftover_compendium_name, biolink_type, semantic_key(umls_id))]
                 leftover_entry[0] += 1
                 leftover_entry[1] += 1
                 if len(leftover_entry[2]) < _SAMPLE_LIMIT:
@@ -533,29 +640,89 @@ def write_leftover_umls(
         logger.info(f"Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().")
         reportf.write(f"COUNT Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().\n")
 
-        # Per-compendium UMLS coverage, broken down by most-specific UMLS semantic-type set. One row
-        # per (compendium, TUI set). TUIs and tree numbers are emitted as codes (no labels) so the
-        # grouping is scannable at a glance; tui-sty.tsv is the code -> label lookup. Summing
-        # curie_count over a compendium reproduces its total unique UMLS count.
+        # Per-compendium UMLS coverage, broken down by Biolink type and most-specific UMLS
+        # semantic-type set. One row per (compendium, biolink_type, TUI set). TUIs and tree numbers are
+        # emitted as codes (no labels) so the grouping is scannable at a glance; tui-sty.tsv is the
+        # code -> label lookup. Summing curie_count over a compendium reproduces its total unique UMLS
+        # count. The same rows are written twice with different sort orders: compendium-coverage.csv is
+        # grouped compendium-first ("what's in compendium X, by type?"); tui-coverage.csv is grouped
+        # TUI-set-first ("where does semantic type T047 go across Babel?").
+        coverage_rows = []
+        for name, biolink_type, key in semantic_breakdown.keys():
+            curie_count, single_count, samples = semantic_breakdown[(name, biolink_type, key)]
+            sorted_tuis = sorted(key)
+            tui_set, tui_set_labels, tree_set = _format_tui_set(sorted_tuis, types_by_tui, tui_to_tree)
+            coverage_rows.append(
+                (
+                    name,
+                    biolink_type,
+                    sorted_tuis,
+                    tui_set,
+                    tui_set_labels,
+                    tree_set,
+                    curie_count,
+                    single_count,
+                    _format_samples(samples),
+                )
+            )
+
         with open(report_dir / "compendium-coverage.csv", "w", newline="") as csvf:
             writer = csv.writer(csvf)
             writer.writerow(
-                ["compendium", "tui_set", "tui_set_labels", "tree_set", "curie_count", "single_umls_clique_count", "sample_curies"]
+                [
+                    "compendium",
+                    "biolink_type",
+                    "tui_set",
+                    "tui_set_labels",
+                    "tree_set",
+                    "curie_count",
+                    "single_umls_clique_count",
+                    "sample_curies",
+                ]
             )
-            for name, key in sorted(semantic_breakdown.keys(), key=lambda nk: (nk[0], sorted(nk[1]))):
-                curie_count, single_count, samples = semantic_breakdown[(name, key)]
-                sorted_tuis = sorted(key)
-                tui_set = "|".join(sorted_tuis) if sorted_tuis else "(none)"
-                tui_set_labels = "|".join("/".join(sorted(types_by_tui.get(tui, {""}))) for tui in sorted_tuis) if sorted_tuis else "(none)"
-                tree_set = "|".join(tui_to_tree.get(tui, "") for tui in sorted_tuis)
-                writer.writerow([name, tui_set, tui_set_labels, tree_set, curie_count, single_count, _format_samples(samples)])
+            for (
+                name,
+                biolink_type,
+                _sorted_tuis,
+                tui_set,
+                tui_set_labels,
+                tree_set,
+                curie_count,
+                single_count,
+                samples,
+            ) in sorted(coverage_rows, key=lambda r: (r[0], r[1], r[2])):
+                writer.writerow(
+                    [name, biolink_type, tui_set, tui_set_labels, tree_set, curie_count, single_count, samples]
+                )
 
-        # Per-Biolink-type leftover clique coverage, with a few sample CURIEs and labels.
-        with open(report_dir / "types-coverage.csv", "w", newline="") as csvf:
+        with open(report_dir / "tui-coverage.csv", "w", newline="") as csvf:
             writer = csv.writer(csvf)
-            writer.writerow(["biolink_type", "leftover_clique_count", "sample_curies"])
-            for biolink_type in sorted(type_counts.keys()):
-                writer.writerow([biolink_type, type_counts[biolink_type], _format_samples(type_samples[biolink_type])])
+            writer.writerow(
+                [
+                    "tui_set",
+                    "tui_set_labels",
+                    "tree_set",
+                    "compendium",
+                    "biolink_type",
+                    "curie_count",
+                    "single_umls_clique_count",
+                    "sample_curies",
+                ]
+            )
+            for (
+                name,
+                biolink_type,
+                _sorted_tuis,
+                tui_set,
+                tui_set_labels,
+                tree_set,
+                curie_count,
+                single_count,
+                samples,
+            ) in sorted(coverage_rows, key=lambda r: (r[2], r[0], r[1])):
+                writer.writerow(
+                    [tui_set, tui_set_labels, tree_set, name, biolink_type, curie_count, single_count, samples]
+                )
 
         # Semantic types we couldn't map or deliberately rejected, with affected CUI counts and samples.
         with open(report_dir / "unmapped-types.csv", "w", newline="") as csvf:
@@ -577,6 +744,45 @@ def write_leftover_umls(
                 writer.writerow(
                     ["|".join(sorted(key)), multi_type_counts[key], _format_samples(multi_type_samples[key])]
                 )
+
+        # UMLS CURIEs that landed in more than one compendium clique -- either across two compendium
+        # files (cross-file) or in two distinct cliques of one file (within-file). Both are glom/merge
+        # bugs (https://github.com/NCATSTranslator/Babel/issues/276); the occurrences column carries the
+        # provenance (compendium, Biolink type, clique leader, preferred name) needed to trace each one
+        # back to the upstream concord that pulled the CURIE into two cliques. One row per CURIE.
+        duplicate_count = 0
+        with open(report_dir / "duplicate-curies.csv", "w", newline="") as csvf:
+            writer = csv.writer(csvf)
+            writer.writerow(
+                [
+                    "umls_curie",
+                    "umls_label",
+                    "tui_set",
+                    "tui_set_labels",
+                    "num_compendia",
+                    "num_distinct_cliques",
+                    "duplicate_scope",
+                    "occurrences",
+                ]
+            )
+            for curie, occurrences, scope in duplicate_tracker.duplicates():
+                duplicate_count += 1
+                # The CURIE's own UMLS label, taken from any occurrence that recorded one.
+                umls_label = next((occ[4] for occ in occurrences if occ[4]), "")
+                sorted_tuis = sorted(semantic_key(curie))
+                tui_set, tui_set_labels, _tree_set = _format_tui_set(sorted_tuis, types_by_tui, tui_to_tree)
+                num_compendia = len({occ[0] for occ in occurrences})
+                num_distinct_cliques = len({(occ[0], occ[2]) for occ in occurrences})
+                rendered = "; ".join(
+                    f"{comp}[{btype}, leader={leader}, name={pref_name}]"
+                    for comp, btype, leader, pref_name, _label in sorted(occurrences)
+                )
+                writer.writerow(
+                    [curie, umls_label, tui_set, tui_set_labels, num_compendia, num_distinct_cliques, scope, rendered]
+                )
+
+        logger.info(f"Found {duplicate_count} UMLS CURIEs duplicated across or within compendia.")
+        reportf.write(f"COUNT Found {duplicate_count} UMLS CURIEs duplicated across or within compendia.\n")
 
     write_compendium(
         metadata_yamls,
