@@ -193,9 +193,7 @@ def pull_ensembl(
         else:
             report[ds] = {"status": "failed", "message": str(last_exc), "output_file": outfile}
             failed_datasets[ds] = last_exc
-            logger.error(
-                f"Dataset {ds} failed all {BIOMART_MAX_RETRIES} attempts; continuing with remaining datasets."
-            )
+            logger.error(f"Dataset {ds} failed all {BIOMART_MAX_RETRIES} attempts; continuing with remaining datasets.")
 
     # Write out a complete file with the report as a JSON object.
     with open(complete_file, "w") as outf:
