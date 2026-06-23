@@ -256,7 +256,10 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
     with open(curie_report_json, "w") as fout:
         json.dump(by_curie_prefix_results, fout, indent=2, sort_keys=True)
 
-    edges.close()
+    log_memory_snapshot(db, "generate_curie_report complete")
+    with log_duckdb_settings_on_error(db, "generate_curie_report teardown"):
+        edges.close()
+        db.close()
 
 
 def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_report_json, duckdb_config=None):
@@ -311,7 +314,7 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
     # Step 2. Generate a by-clique report .
     logger.info("Generating clique report for each CURIE prefix...")
     with log_duckdb_settings_on_error(
-        db, "generate_clique_leaders_report: per-prefix breakdown (COUNT(DISTINCT) over all edges)"
+        db, "generate_clique_leaders_report: per-prefix breakdown (approx distinct counts)"
     ):
         clique_per_curie = db.sql("""
             SELECT
@@ -360,8 +363,10 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
             sort_keys=True,
         )
 
-    edges.close()
-    # cliques.close()
+    log_memory_snapshot(db, "generate_clique_leaders_report complete")
+    with log_duckdb_settings_on_error(db, "generate_clique_leaders_report teardown"):
+        edges.close()
+        db.close()
 
 
 def get_label_distribution(duckdb_filename, output_filename):
