@@ -68,3 +68,17 @@ def test_write_unichem_concords_raises_on_unexpected_embedded_prefix(tmp_path):
 
     with pytest.raises(ValueError, match="unexpected embedded prefix"):
         write_unichem_concords(str(struct), str(ref), str(tmp_path))
+
+
+@pytest.mark.unit
+def test_write_unichem_concords_raises_when_source_produces_no_entries(tmp_path):
+    """Any configured source that contributes zero rows should raise RuntimeError."""
+    struct = tmp_path / "structure.tsv.gz"
+    ref = tmp_path / "reference.tsv"
+    _write_struct(struct)
+    # Feed rows for every source except CHEBI — CHEBI should trigger the empty-source guard.
+    rows = [("1", src_id, "100") for src_id in unichem_data_sources if src_id != CHEBI_SRC_ID]
+    _write_ref(ref, rows)
+
+    with pytest.raises(RuntimeError, match="no entries for the following sources"):
+        write_unichem_concords(str(struct), str(ref), str(tmp_path))
