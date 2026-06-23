@@ -1,6 +1,6 @@
 """Network tests for the UniChem download.
 
-These verify that the UniChem HTTP mirror URLs are reachable with the User-Agent
+These verify that the UniChem FTP mirror URLs are reachable with the User-Agent
 Babel sends, that each file is a valid gzip archive, and that the reference file
 header matches the constant in unichem.py.
 Run with: uv run pytest --network tests/datahandlers/test_unichem.py
