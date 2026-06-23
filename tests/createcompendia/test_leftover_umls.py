@@ -71,10 +71,16 @@ def test_sty_overrides_have_not_drifted():
         baseline = RECORDED_STY_BASELINE[tui]
         if tui in INTENTIONAL_BIOLINK_PINS:
             # We deliberately pin these to the Biolink value, so "override == live mapping" is
-            # expected, not redundant. Only check that Biolink hasn't drifted from the baseline.
+            # expected, not redundant. Check both that Biolink hasn't drifted from the baseline
+            # and that the override itself still matches the baseline (guards against accidental
+            # changes to STY_OVERRIDES that would silently break the pin).
             assert current == baseline, (
                 f"Biolink STY:{tui} now maps to {current!r}, but the recorded baseline is {baseline!r}. "
                 f"Re-review the intentional pin (currently {override!r}) and update RECORDED_STY_BASELINE."
+            )
+            assert override == baseline, (
+                f"STY_OVERRIDES[{tui!r}] is {override!r} but an intentional pin must match the Biolink "
+                f"baseline {baseline!r}. Restore the override or remove {tui!r} from INTENTIONAL_BIOLINK_PINS."
             )
             continue
         if current == override:
