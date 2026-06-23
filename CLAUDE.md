@@ -262,6 +262,13 @@ docstrings, and when to add a pipeline test) that the individual conventions bel
 - **Commits** — if you need to make a large change, break it into multiple commits so it's clearer
   what changes are related.
 
+- **Separate download and extract/validate rules** — always split a Snakemake data-collection step
+  into two rules: a `download_*` rule that only fetches the raw file(s), and a separate rule that
+  validates format or extracts content. This way, if upstream changes its format (e.g. a column
+  rename), only the validation rule fails; Snakemake preserves the downloaded file and the
+  expensive re-download is avoided after a code fix. Format validation belongs in the
+  extraction/filter rule, never in the download rule.
+
 - **Ruff lint** — all Python must pass `uv run ruff check` (run automatically on PRs). Two rules
   that are easy to trip in test code:
   - **E741** — do not use single-letter ambiguous variable names (`l`, `O`, `I`). Use `line`,

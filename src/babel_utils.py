@@ -406,6 +406,7 @@ def pull_via_wget(
     retries: int = 1,
     connect_timeout: int = 60,
     read_timeout: int = 300,
+    verify_gzip: bool = False,
 ):
     """
     Download a file using wget. We call wget from the command line, and use command line options to
@@ -421,6 +422,8 @@ def pull_via_wget(
     :param continue_incomplete: Should wget continue an incomplete download?
     :param recurse: Do we want to download recursively? Should be from Wget_Recursion_Options, such as Wget_Recursion_Options.NO_RECURSION.
     :param retries: The number of retries to attempt.
+    :param verify_gzip: If downloading a Gzip file that isn't being decompressed, verify that the
+        file is valid (by reading it entirely). Has no effect if decompress=True.
     """
 
     # Prepare download URL and location
@@ -434,6 +437,8 @@ def pull_via_wget(
         dl_file_name = os.path.join(download_dir, subpath, in_file_name)
     else:
         dl_file_name = os.path.join(download_dir, in_file_name)
+
+    os.makedirs(os.path.dirname(os.path.abspath(dl_file_name)), exist_ok=True)
 
     # Prepare wget options.
     wget_command_line = [
@@ -498,6 +503,17 @@ def pull_via_wget(
         if os.path.isfile(dl_file_name):
             file_size = os.path.getsize(dl_file_name)
             logger.info(f"Downloaded {dl_file_name} from {url}, file size {file_size} bytes.")
+            if verify_gzip:
+                if file_size < 1024:
+                    raise RuntimeError(
+                        f"Downloaded Gzip file {dl_file_name} is too small ({file_size} bytes) to be valid."
+                    )
+                result = subprocess.run(["gzip", "-t", dl_file_name], capture_output=True, text=True)
+                if result.returncode != 0:
+                    raise RuntimeError(
+                        f"Downloaded Gzip file {dl_file_name} failed verification: {result.stderr.strip()}"
+                    )
+                logger.info(f"Verified {dl_file_name} as a valid Gzip file.")
         elif os.path.isdir(dl_file_name):
             # Count the number of files in directory dl_file_name
             dir_size = sum(
