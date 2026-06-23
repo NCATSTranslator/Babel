@@ -61,12 +61,11 @@ in parallel.
 
 ## Analyzing and tuning a SLURM run
 
-When running on the RENCI Hatteras cluster via SLURM, the `tools/slurm` package analyzes a
-(possibly partial) run: `uv run babel-slurm-errors <version>` aggregates failing-rule logs when a
-run stalls so you can see what to re-run, and `uv run babel-slurm-resources <run-dir>` recommends
-right-sized per-rule `mem`/`cpus` from the run's benchmark data. See
-[Tools.md](Tools.md) for the full set of developer tools and [slurm/README.md](../slurm/README.md)
-for the SLURM profile itself.
+When running on the RENCI Hatteras cluster via SLURM, the `tools/slurm` package analyzes a (possibly
+partial) run: `uv run babel-slurm-errors <version>` aggregates failing-rule logs when a run stalls
+so you can see what to re-run, and `uv run babel-slurm-resources <run-dir>` recommends right-sized
+per-rule `mem`/`cpus` from the run's benchmark data. See [tools/README.md](tools/README.md) for the
+full set of developer tools and [slurm/README.md](../slurm/README.md) for the SLURM profile itself.
 
 ## Build Process
 

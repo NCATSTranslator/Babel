@@ -18,13 +18,13 @@ uv run babel-slurm-resources <run-dir>             # capacity tuning between run
   completed / failed / still-running job summary. Run it on a loop during an active cluster job to
   catch failures early and feed them to a coding agent while the rest of the DAG keeps running; it
   is also invoked automatically by
-  [`slurm/run-babel-on-slurm.sh`](../slurm/run-babel-on-slurm.sh) when a run exits non-zero. It
+  [`slurm/run-babel-on-slurm.sh`](../../slurm/run-babel-on-slurm.sh) when a run exits non-zero. It
   is the successor to the former `tools/babel-errors.py` script. See
-  [tools/Errors.md](tools/Errors.md).
+  [Errors.md](Errors.md).
 - **`resources`** joins each rule's *actual* usage (Snakemake `benchmark:` TSVs) against its
   *requested* resources and recommends right-sized `mem`/`cpus`, flagging the rules that would need
   an explicit override before the cluster-wide default can be lowered. See
-  [tools/Resources.md](tools/Resources.md).
+  [Resources.md](Resources.md).
 
 The two answer different questions — failure triage versus capacity planning — so they are kept as
 separate subcommands, but they live in one package because both parse the same run artifacts.
@@ -34,4 +34,4 @@ separate subcommands, but they live in one package because both parse the same r
 `tools/memory/estimate_rdf_load_memory.py` streams an RDF dump into an in-memory
 `pyoxigraph.Store`, samples RSS, and extrapolates the full-load peak, so you can size a rule's
 `mem=` resource or a test's `min_memory_gb` guard from a machine far smaller than the eventual
-requirement. See [../tools/memory/README.md](../tools/memory/README.md).
+requirement. See [../../tools/memory/README.md](../../tools/memory/README.md).

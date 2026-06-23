@@ -237,7 +237,7 @@ option would be best.
 
 ### Analyzing a SLURM run (`tools/slurm`)
 
-`tools/slurm` analyzes a (possibly partial) Snakemake-on-SLURM run; see `docs/Tools.md` and the
+`tools/slurm` analyzes a (possibly partial) Snakemake-on-SLURM run; see `docs/tools/README.md` and the
 per-tool pages under `docs/tools/`. `uv run babel-slurm-errors <version>` (the successor to the
 old `tools/babel-errors.py`) aggregates failing-rule logs and prints a
 completed/failed/still-running job summary, to decide what to re-run. `uv run babel-slurm-resources
