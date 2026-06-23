@@ -329,7 +329,8 @@ def _validate_and_apply_manual_concords(
     Both CURIEs in a pair must appear in *preferred_curie_for_curie*; if either is absent a warning is
     emitted for that CURIE, the whole pair is skipped, and the skip count returned by this function is
     incremented. When both are absent, a warning is emitted for each before the pair is skipped.
-    Passing CURIEs are normalised to their preferred form before being appended.
+    Passing CURIEs are normalised to their preferred form before being appended. If both CURIEs normalise
+    to the same preferred CURIE, a warning is emitted and the self-pair is skipped.
 
     Returns the number of skipped pairs.
     """
@@ -352,7 +353,16 @@ def _validate_and_apply_manual_concords(
         if not subject_ok or not object_ok:
             skipped += 1
             continue
-        pairs.append((preferred_curie_for_curie[subject_curie], preferred_curie_for_curie[object_curie]))
+        norm_subject = preferred_curie_for_curie[subject_curie]
+        norm_object = preferred_curie_for_curie[object_curie]
+        if norm_subject == norm_object:
+            logger.warning(
+                f"Manual concord pair ({subject_curie}, {object_curie}) normalizes to the same preferred CURIE "
+                f"({norm_subject}); skipping self-pair."
+            )
+            skipped += 1
+            continue
+        pairs.append((norm_subject, norm_object))
     return skipped
 
 

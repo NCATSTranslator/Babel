@@ -79,3 +79,15 @@ def test_mixed_pairs_counts_correctly(caplog):
         skipped = _validate_and_apply_manual_concords(concords, PREFERRED, pairs, CONCORD_FILE)
     assert skipped == 2
     assert pairs == [("CHEMBL:123", "CHEBI:456")]
+
+
+@pytest.mark.unit
+def test_aliases_normalizing_to_same_curie_are_skipped(caplog):
+    """A pair whose two CURIEs both map to the same preferred CURIE is skipped as a self-pair."""
+    pairs: list[tuple[str, str]] = []
+    # CHEMBL:123 and DRUGBANK:DB001 both map to CHEMBL:123 in PREFERRED.
+    with caplog.at_level(logging.WARNING, logger="src.createcompendia.drugchemical"):
+        skipped = _validate_and_apply_manual_concords([("CHEMBL:123", "DRUGBANK:DB001")], PREFERRED, pairs, CONCORD_FILE)
+    assert skipped == 1
+    assert pairs == []
+    assert "CHEMBL:123" in caplog.text
