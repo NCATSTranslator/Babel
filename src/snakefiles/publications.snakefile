@@ -23,6 +23,9 @@ rule download_pubmed:
     resources:
         mem="8G",
         cpus_per_task=1,
+        # Two hours got ~50% through ~1500 files; parallelizing baseline+updatefiles should halve
+        # that, so 6h is conservative. Tighten once benchmark TSVs give real-world data.
+        runtime="6h",
     run:
         publications.download_pubmed(output.done_file)
 

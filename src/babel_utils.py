@@ -1,8 +1,10 @@
 import gzip
 import os
 import re
+import shutil
 import sqlite3
 import subprocess
+import tempfile
 import time
 import traceback
 import urllib
@@ -27,7 +29,7 @@ from src.util import Text, get_config, get_logger, get_memory_usage_summary
 
 # Configuration items
 WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES = 1_000_000
-MAX_DOWNLOAD_ERROR = 10
+MAX_DOWNLOAD_ERROR = 1
 
 
 def get_user_agent() -> str:
@@ -150,12 +152,20 @@ def pull_via_ftp(ftpsite, ftpdir, ftpfile, decompress_data=False, outfilename=No
             ftp.retrbinary(f"RETR {ftpfile}", ofile.write)
             ftp.quit()
     else:
-        with BytesIO() as data:
-            ftp.retrbinary(f"RETR {ftpfile}", data.write)
-            ftp.quit()
-            value = gzip.decompress(data.getvalue()).decode()
-        with open(ofilename, "w") as ofile:
-            ofile.write(value)
+        # Stream the compressed file to a temp file rather than buffering it all in
+        # memory with BytesIO+gzip.decompress — the old approach needed ~2× the
+        # uncompressed size in RAM (e.g. ~35+ GB for ChEMBL's 17 GB TTL).
+        tmp_path = None  # set before try so finally can always check it
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, dir=odir, suffix=".gz") as tmp:
+                tmp_path = tmp.name
+                ftp.retrbinary(f"RETR {ftpfile}", tmp.write)
+                ftp.quit()
+            with gzip.open(tmp_path, "rt") as gz_in, open(ofilename, "w") as ofile:
+                shutil.copyfileobj(gz_in, ofile)
+        finally:
+            if tmp_path is not None and os.path.exists(tmp_path):
+                os.unlink(tmp_path)
     return ofilename
 
 
@@ -256,11 +266,9 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
     # Add support for redirects
     opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
 
-    # get a handle to the ftp file
     download_url = url + in_file_name
     logger.info(f"Downloading {download_url}")
-    req = urllib.request.Request(download_url, headers={"User-Agent": get_user_agent()})
-    handle = opener.open(req)
+    user_agent = get_user_agent()
 
     # create the compressed file
     download_verified = False
@@ -274,18 +282,26 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
             )
         logger.info(f"Downloading {dl_file_name} using urllib, attempt {download_attempt}...")
 
-        with open(dl_file_name, "wb") as compressed_file:
-            # while there is data
-            while True:
-                # read a block of data
-                data = handle.read(1024)
+        # Open a fresh connection on each attempt so a truncated response doesn't
+        # leave us reading from an exhausted handle on the next retry.
+        try:
+            req = urllib.request.Request(download_url, headers={"User-Agent": user_agent})
+            with opener.open(req) as handle, open(dl_file_name, "wb") as compressed_file:
+                # while there is data
+                while True:
+                    # read a block of data
+                    data = handle.read(1024)
 
-                # fif nothing read about
-                if len(data) == 0:
-                    break
+                    # if nothing read, abort
+                    if len(data) == 0:
+                        break
 
-                # write out the data to the output file
-                compressed_file.write(data)
+                    # write out the data to the output file
+                    compressed_file.write(data)
+        except urllib.error.URLError as e:
+            logger.warning(f"Download attempt {download_attempt} of {download_url} failed with network/HTTP error: {e}")
+            time.sleep(5 * download_attempt)
+            continue
 
         if decompress:
             out_file_name = dl_file_name[:-3]
@@ -348,7 +364,9 @@ def pull_via_wget(
     continue_incomplete: bool = True,
     timestamping=True,
     recurse: WgetRecursionOptions = WgetRecursionOptions.NO_RECURSION,
-    retries: int = 10,
+    retries: int = 1,
+    connect_timeout: int = 60,
+    read_timeout: int = 300,
 ):
     """
     Download a file using wget. We call wget from the command line, and use command line options to
@@ -389,6 +407,10 @@ def pull_via_wget(
         wget_command_line.append("--timestamping")
     if retries > 0:
         wget_command_line.append(f"--tries={retries}")
+    if connect_timeout > 0:
+        wget_command_line.append(f"--connect-timeout={connect_timeout}")
+    if read_timeout > 0:
+        wget_command_line.append(f"--read-timeout={read_timeout}")
 
     # Add URL and output file.
     wget_command_line.append(url)

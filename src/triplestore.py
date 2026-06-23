@@ -4,6 +4,7 @@ from string import Template
 
 from SPARQLWrapper import JSON, POST, POSTDIRECTLY, SPARQLWrapper2
 
+from src.babel_utils import get_user_agent
 from src.util import LoggingUtil
 
 logger = LoggingUtil.init_logging(__name__, logging.ERROR)
@@ -14,6 +15,7 @@ class TripleStore:
 
     def __init__(self, hostname):
         self.service = SPARQLWrapper2(hostname)
+        self.service.addCustomHttpHeader("User-Agent", get_user_agent())
 
     def get_template(self, query_name):
         """Load a template given a template name"""
