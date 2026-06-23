@@ -155,16 +155,17 @@ def pull_via_ftp(ftpsite, ftpdir, ftpfile, decompress_data=False, outfilename=No
         # Stream the compressed file to a temp file rather than buffering it all in
         # memory with BytesIO+gzip.decompress — the old approach needed ~2× the
         # uncompressed size in RAM (e.g. ~35+ GB for ChEMBL's 17 GB TTL).
-        odir = os.path.abspath(os.path.dirname(ofilename))
-        with tempfile.NamedTemporaryFile(delete=False, dir=odir, suffix=".gz") as tmp:
-            tmp_path = tmp.name
-            ftp.retrbinary(f"RETR {ftpfile}", tmp.write)
-            ftp.quit()
+        tmp_path = None  # set before try so finally can always check it
         try:
+            with tempfile.NamedTemporaryFile(delete=False, dir=odir, suffix=".gz") as tmp:
+                tmp_path = tmp.name
+                ftp.retrbinary(f"RETR {ftpfile}", tmp.write)
+                ftp.quit()
             with gzip.open(tmp_path, "rt") as gz_in, open(ofilename, "w") as ofile:
                 shutil.copyfileobj(gz_in, ofile)
         finally:
-            os.unlink(tmp_path)
+            if tmp_path is not None and os.path.exists(tmp_path):
+                os.unlink(tmp_path)
     return ofilename
 
 
