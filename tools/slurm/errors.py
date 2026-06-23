@@ -191,8 +191,7 @@ def run(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     failures = parse_failures(err_file)
-    if failures:
-        print(build_report(failures, args.markdown, args.traceback_only, args.lines, logs_dir))
+    print(build_report(failures, args.markdown, args.traceback_only, args.lines, logs_dir))
 
     sys.stdout.flush()
     print(f"\n--- Summary (read {err_file}) ---", file=sys.stderr)

@@ -224,11 +224,14 @@ def read_rule_logs(logs_dir: str | Path) -> dict[str, RuleLog]:
             continue
         any_failed = False
         newest = logs[-1]
+        newest_text = ""
         for log in logs:
             text = log.read_text(errors="replace")
             if _FAILURE_RE.search(text):
                 any_failed = True
-        text = newest.read_text(errors="replace")
+            if log == newest:
+                newest_text = text
+        text = newest_text
         mem = _MEM_RE.search(text)
         runtime = _RUNTIME_RE.search(text)
         cpus = _CPUS_RE.search(text)
@@ -383,9 +386,13 @@ class JobEvent:
     failed: bool = False
 
 
+_TZ_OFFSET_RE = re.compile(r"([+-])(\d{2})(\d{2})$")
+
+
 def _parse_ts(ts_str: str) -> datetime:
-    # Normalise +0000 → +00:00 for Python < 3.11 fromisoformat compatibility.
-    return datetime.fromisoformat(ts_str.replace("+0000", "+00:00"))
+    # Normalise any bare ±HHMM offset → ±HH:MM for Python < 3.11 fromisoformat compatibility.
+    ts_str = _TZ_OFFSET_RE.sub(r"\1\2:\3", ts_str)
+    return datetime.fromisoformat(ts_str)
 
 
 def log_relative(remote_log_path: str) -> str:
