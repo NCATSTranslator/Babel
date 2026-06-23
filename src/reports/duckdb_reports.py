@@ -159,7 +159,10 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
             ORDER BY d.clique_leader_count DESC
         """).write_csv(duplicate_clique_leaders_tsv, sep="\t")
 
-    cliques.close()
+    log_memory_snapshot(db, "check_for_duplicate_clique_leaders complete")
+    with log_duckdb_settings_on_error(db, "check_for_duplicate_clique_leaders teardown"):
+        cliques.close()
+        db.close()
 
 
 def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duckdb_config=None):

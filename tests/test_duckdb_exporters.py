@@ -1,3 +1,4 @@
+import json
 import os
 
 import duckdb
@@ -8,12 +9,78 @@ from src.exporters.duckdb_exporters import (
     _parse_cgroup_memory_value,
     _parse_kv_kb_bytes,
     _parse_proc_cgroup,
+    export_compendia_to_parquet,
     export_conflation_to_parquet,
     log_duckdb_settings_on_error,
     log_memory_snapshot,
     process_peak_rss_bytes,
 )
 from tests.conftest import CONFLATION_FIXTURE_ROWS
+
+# A minimal two-clique compendium in the same format write_compendium() produces.
+_COMPENDIUM_FIXTURE = [
+    {
+        "type": "biolink:SmallMolecule",
+        "ic": None,
+        "identifiers": [
+            {"i": "CHEBI:15422", "l": "ATP", "d": [], "t": []},
+            {"i": "PUBCHEM.COMPOUND:5957", "l": "", "d": [], "t": []},
+        ],
+        "preferred_name": "ATP",
+        "taxa": [],
+    },
+    {
+        "type": "biolink:SmallMolecule",
+        "ic": 42.0,
+        "identifiers": [
+            {"i": "CHEBI:15903", "l": "caffeine", "d": [], "t": []},
+        ],
+        "preferred_name": "caffeine",
+        "taxa": [],
+    },
+]
+
+
+@pytest.fixture
+def compendium_file(tmp_path):
+    path = tmp_path / "Chemical.txt"
+    with open(path, "w") as fout:
+        for record in _COMPENDIUM_FIXTURE:
+            fout.write(json.dumps(record) + "\n")
+    return str(path)
+
+
+@pytest.mark.unit
+def test_export_compendia_to_parquet_edge_biolink_type(compendium_file, tmp_path):
+    """Edge.parquet must contain biolink_type denormalized from each clique's type field."""
+    clique_parquet = str(tmp_path / "Clique.parquet")
+    edge_parquet = str(tmp_path / "Edge.parquet")
+    duckdb_file = str(tmp_path / "compendium.duckdb")
+
+    export_compendia_to_parquet(compendium_file, clique_parquet, edge_parquet, duckdb_file)
+
+    assert os.path.exists(edge_parquet), "Edge.parquet was not written"
+
+    rows = duckdb.execute(f"SELECT curie, biolink_type FROM read_parquet('{edge_parquet}') ORDER BY curie").fetchall()
+    by_curie = {curie: btype for curie, btype in rows}
+
+    # Every edge must carry the owning clique's biolink_type.
+    assert by_curie["CHEBI:15422"] == "biolink:SmallMolecule"
+    assert by_curie["PUBCHEM.COMPOUND:5957"] == "biolink:SmallMolecule"
+    assert by_curie["CHEBI:15903"] == "biolink:SmallMolecule"
+
+
+@pytest.mark.unit
+def test_export_compendia_to_parquet_edge_columns(compendium_file, tmp_path):
+    """Edge.parquet must contain the expected columns including the new biolink_type."""
+    clique_parquet = str(tmp_path / "Clique.parquet")
+    edge_parquet = str(tmp_path / "Edge.parquet")
+    duckdb_file = str(tmp_path / "compendium.duckdb")
+
+    export_compendia_to_parquet(compendium_file, clique_parquet, edge_parquet, duckdb_file)
+
+    columns = {col[0] for col in duckdb.execute(f"DESCRIBE SELECT * FROM read_parquet('{edge_parquet}')").fetchall()}
+    assert columns == {"clique_leader", "curie", "conflation", "clique_leader_prefix", "curie_prefix", "biolink_type"}
 
 
 @pytest.mark.unit
