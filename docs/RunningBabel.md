@@ -236,7 +236,7 @@ staying behind on the release branch.
    cleanly by the files they touch. List `git rev-list --no-merges main..<release-branch>`
    with each commit's changed files and bucket them (download robustness, a specific
    source's ingest, export/reporting, tooling, and so on).
-2. **Make a backup ref** (`git branch <release-branch>-backup <release-branch>`) before
+2. **Make a backup branch** (`git branch backups/<release-branch> <release-branch>`) before
    anything that will later rewrite the release branch.
 3. **Build one branch per theme off `main`** with `git cherry-pick`, replaying each
    bucket's commits in chronological order. Enable `git rerere` so a conflict you resolve
