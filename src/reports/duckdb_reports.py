@@ -3,7 +3,8 @@ import os
 from collections import defaultdict
 
 from src import util
-from src.exporters.duckdb_exporters import log_duckdb_settings_on_error, log_memory_snapshot, setup_duckdb
+from src.exporters.duckdb_exporters import log_duckdb_settings_on_error, setup_duckdb
+from src.memory import log_memory_snapshot
 
 logger = util.get_logger(__name__)
 
