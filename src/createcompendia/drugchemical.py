@@ -528,14 +528,14 @@ def build_conflation(
             # Either the subject or the object might not be a chemical -- for example, MESH:C415772 shows up here,
             # but it's a gene, not a chemical.
             subject_type = type_for_preferred_curie[subject_curie]
-            if CHEMICAL_ENTITY not in biolink_chemical_types:
+            if subject_type not in biolink_chemical_types:
                 logger.warning(
                     f"Subject in subject-object pair ({subject_curie}, {object_curie}) has type {subject_type}, which is is not a chemical type, skipping."
                 )
                 continue
 
             object_type = type_for_preferred_curie[object_curie]
-            if CHEMICAL_ENTITY not in biolink_chemical_types:
+            if object_type not in biolink_chemical_types:
                 logger.warning(
                     f"Object in subject-object pair ({subject_curie}, {object_curie}) has type {object_type}, which is is not a chemical type, skipping."
                 )
