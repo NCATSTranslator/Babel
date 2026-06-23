@@ -303,7 +303,7 @@ def summarize_compendium_umls_by_semantic_type(
             if not curie.startswith(_UMLS_PREFIX):
                 continue
             label = identifier.get("l", "")
-            if curie not in labels_by_id:
+            if curie not in labels_by_id or (not labels_by_id[curie] and label):
                 labels_by_id[curie] = label
             occ_by_curie[curie].add((biolink_type, leader, preferred_name, label))
             pair = (biolink_type, curie)
@@ -363,11 +363,11 @@ def write_leftover_umls(
     # MRSTY and MRCONSO. create_node() with empty identifiers exercises get_prefixes() (the call that
     # historically crashed write_compendium after ~5h on a prefix-less type) and then returns None
     # without touching any labels or files. Fail fast here with a clear message instead.
-    preflight_factory = NodeFactory(label_dir=None, biolink_version=biolink_version)
+    node_factory = NodeFactory(label_dir=None, biolink_version=biolink_version)
     output_types = writable_output_types()
     for output_type in sorted(output_types):
         try:
-            preflight_factory.create_node(input_identifiers=[], node_type=output_type, labels={}, extra_prefixes=[UMLS])
+            node_factory.create_node(input_identifiers=[], node_type=output_type, labels={}, extra_prefixes=[UMLS])
         except RuntimeError as e:
             raise RuntimeError(
                 f"leftover_umls preflight failed: Biolink type {output_type} is not writable even with "
@@ -386,8 +386,8 @@ def write_leftover_umls(
     umls_ids_in_this_compendium = set()
 
     with open(report, "w") as reportf:
-        # This defaults to the version of the Biolink model that is included with this BMT.
-        biolink_toolkit = get_biolink_model_toolkit(biolink_version)
+        # Reuse the toolkit built by node_factory above to avoid a redundant parse.
+        biolink_toolkit = node_factory.toolkit
 
         # Load all the semantic types first: the per-compendium coverage breakdown below needs to
         # look up each UMLS CURIE's semantic types, and the MRCONSO sweep needs them to type each
@@ -541,23 +541,28 @@ def write_leftover_umls(
                 # Resolve every semantic type (STY/TUI) on this concept into one of three outcomes:
                 # a Biolink type, an explicit rejection (STY_OVERRIDES -> None), or unmapped (Biolink
                 # has no mapping and there is no override).
-                umls_type_results = types_by_id.get(umls_id, {NAMED_THING: {"Named thing"}})
+                tuis_for_id = types_by_id.get(umls_id)
                 mapped_types = set()
                 rejected_tuis = set()
                 unmapped_tuis = set()
-                for tui in umls_type_results.keys():
-                    if tui in STY_OVERRIDES:
-                        override = STY_OVERRIDES[tui]
-                        if override is None:
-                            rejected_tuis.add(tui)
+                if tuis_for_id is None:
+                    # Concept has no MRSTY entry: no semantic type annotation. Fall back to NAMED_THING
+                    # rather than treating the absence as an unmapped or rejected TUI.
+                    mapped_types.add(NAMED_THING)
+                else:
+                    for tui in tuis_for_id.keys():
+                        if tui in STY_OVERRIDES:
+                            override = STY_OVERRIDES[tui]
+                            if override is None:
+                                rejected_tuis.add(tui)
+                            else:
+                                mapped_types.add(override)
                         else:
-                            mapped_types.add(override)
-                    else:
-                        biolink_type = resolve_sty_biolink(tui)
-                        if biolink_type is None:
-                            unmapped_tuis.add(tui)
-                        else:
-                            mapped_types.add(biolink_type)
+                            biolink_type = resolve_sty_biolink(tui)
+                            if biolink_type is None:
+                                unmapped_tuis.add(tui)
+                            else:
+                                mapped_types.add(biolink_type)
 
                 # An unmapped semantic type means we can't fully type this concept, so we skip it
                 # entirely (the existing conservative behavior) and report it as unmapped.
@@ -565,10 +570,10 @@ def write_leftover_umls(
                     if umls_id not in curies_no_umls_type:
                         curies_no_umls_type.add(umls_id)
                         logger.warning(
-                            f"No Biolink type for {umls_id}: unmapped STY {sorted(unmapped_tuis)} in {umls_type_results}, skipping"
+                            f"No Biolink type for {umls_id}: unmapped STY {sorted(unmapped_tuis)} in {tuis_for_id}, skipping"
                         )
                         reportf.write(
-                            f"NO_UMLS_TYPE [{umls_id}]: unmapped STY {sorted(unmapped_tuis)} in {umls_type_results}\n"
+                            f"NO_UMLS_TYPE [{umls_id}]: unmapped STY {sorted(unmapped_tuis)} in {tuis_for_id}\n"
                         )
                         for tui in unmapped_tuis:
                             unmapped_tui_counts[tui] += 1
@@ -582,11 +587,9 @@ def write_leftover_umls(
                     if umls_id not in curies_rejected:
                         curies_rejected.add(umls_id)
                         logger.info(
-                            f"Rejected {umls_id}: rejected STY {sorted(rejected_tuis)} in {umls_type_results}, skipping"
+                            f"Rejected {umls_id}: rejected STY {sorted(rejected_tuis)} in {tuis_for_id}, skipping"
                         )
-                        reportf.write(
-                            f"REJECTED [{umls_id}]: rejected STY {sorted(rejected_tuis)} in {umls_type_results}\n"
-                        )
+                        reportf.write(f"REJECTED [{umls_id}]: rejected STY {sorted(rejected_tuis)} in {tuis_for_id}\n")
                         for tui in rejected_tuis:
                             rejected_tui_counts[tui] += 1
                             if len(rejected_tui_examples[tui]) < _SAMPLE_LIMIT:
@@ -604,9 +607,9 @@ def write_leftover_umls(
                         curies_multiple_umls_type.add(umls_id)
                         biolink_types_as_str = "|".join(sorted(biolink_types))
                         logger.warning(
-                            f"Multiple Biolink types not yet supported for {umls_id}: {umls_type_results} -> {biolink_types_as_str}, skipping"
+                            f"Multiple Biolink types not yet supported for {umls_id}: {tuis_for_id} -> {biolink_types_as_str}, skipping"
                         )
-                        reportf.write(f"MULTIPLE_UMLS_TYPES [{umls_id}]\t{biolink_types_as_str}\t{umls_type_results}\n")
+                        reportf.write(f"MULTIPLE_UMLS_TYPES [{umls_id}]\t{biolink_types_as_str}\t{tuis_for_id}\n")
                         key = frozenset(biolink_types)
                         multi_type_counts[key] += 1
                         if len(multi_type_samples[key]) < _SAMPLE_LIMIT:
