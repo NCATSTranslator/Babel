@@ -486,7 +486,7 @@ def build_conflation(
             mixin=True,
         )
     )
-    logging.info(f"Filtering RxCUI pairs to those in these Biolink chemical types: {sorted(biolink_chemical_types)}")
+    logger.info(f"Filtering RxCUI pairs to those in these Biolink chemical types: {sorted(biolink_chemical_types)}")
     with open(pubchem_rxn_concord) as infile:
         for line in infile:
             x = line.strip().split("\t")
@@ -510,9 +510,10 @@ def build_conflation(
                 object_curie = chemical_rxcui_to_clique[object_curie]
             else:
                 logger.warning(
-                    f"Object in subject-object pair ({subject_curie}, {object_curie}) isn't mapped to a RxCUI, continuing."
+                    f"Object in subject-object pair ({subject_curie}, {object_curie}) isn't mapped to a RxCUI, skipping."
                 )
                 # raise RuntimeError(f"Unknown identifier in drugchemical conflation as object: {object_curie}")
+                continue
 
             # Normalize both the subject and object, otherwise skip them.
             if subject_curie not in preferred_curie_for_curie:
@@ -585,7 +586,7 @@ def build_conflation(
     for i, prefix in enumerate(conflation_prefix_order):
         conflation_prefix_sort_order[prefix] = i
 
-    logging.info(f"Using prefix sort order: {json.dumps(conflation_prefix_sort_order, indent=2)}")
+    logger.info(f"Using prefix sort order: {json.dumps(conflation_prefix_sort_order, indent=2)}")
 
     # Write out all the resulting cliques.
     written = set()
