@@ -1,4 +1,4 @@
-"""Recommend right-sized SLURM ``mem`` / ``cpus`` / ``runtime`` from run data.
+"""Recommend right-sized SLURM ``mem`` / ``cpus`` from run data.
 
 Joins *actual* usage (Snakemake ``benchmark:`` TSVs) against *requested* resources
 (the SLURM efficiency report, falling back to the per-rule logs) and, for each rule,
@@ -52,7 +52,7 @@ def recommend_cpus(cores_used: float) -> int:
 
 
 def _fmt_gb(mb: float | None) -> str:
-    if not mb:
+    if mb is None:
         return "-"
     return f"{mb / _GIB:.1f}G"
 
@@ -240,7 +240,7 @@ def write_csv(recs: list[Recommendation], path: str | Path) -> None:
 def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser(
         "resources",
-        help="Recommend right-sized mem/cpus/runtime from benchmark + efficiency data.",
+        help="Recommend right-sized mem/cpus from benchmark + efficiency data.",
         description="Compare actual resource usage against requested resources and recommend right-sized limits.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples:

@@ -72,7 +72,7 @@ uv run rumdl fmt .                       # Markdown auto-fix
 
 ### Configuration
 
-- Line length is 160 for both Python (ruff) and Snakemake (snakefmt). Markdown (`rumdl`, rule
+- Line length is 120 for both Python (ruff) and Snakemake (snakefmt). Markdown (`rumdl`, rule
   `MD013`) wraps at 100 instead, though tables are exempt.
 - Main config: `config.yaml` (directory paths, version strings, prefix lists per semantic type).
 - `UMLS_API_KEY` environment variable required for UMLS/RxNorm downloads.

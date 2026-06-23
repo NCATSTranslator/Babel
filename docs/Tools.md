@@ -20,8 +20,8 @@ uv run python -m tools.slurm resources <run-dir>             # capacity tuning b
   is invoked automatically by [`slurm/run-babel-on-slurm.sh`](../slurm/run-babel-on-slurm.sh) when
   a run exits non-zero. See [tools/Errors.md](tools/Errors.md).
 - **`resources`** joins each rule's *actual* usage (Snakemake `benchmark:` TSVs) against its
-  *requested* resources and recommends right-sized `mem`/`cpus`/`runtime`, flagging the rules that
-  would need an explicit override before the cluster-wide default can be lowered. See
+  *requested* resources and recommends right-sized `mem`/`cpus`, flagging the rules that would need
+  an explicit override before the cluster-wide default can be lowered. See
   [tools/Resources.md](tools/Resources.md).
 
 The two answer different questions — failure triage versus capacity planning — so they are kept as
