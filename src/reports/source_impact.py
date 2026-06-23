@@ -438,6 +438,7 @@ def _render_clique_impact(
                     truly_grown_samples.append(tup)
                 else:
                     promotion_only_samples.append(tup)
+
             def _rank(t: tuple) -> tuple:
                 return _expanded_rank(t[0], lookup.labels_by_prefix)
 

@@ -1,6 +1,6 @@
 [project]
 name = "babel-pipeline"
-version = "1.14"
+version = "1.17"
 description = "Babel creates cliques of equivalent identifiers across many biomedical vocabularies. "
 readme = "README.md"
 license = "MIT"
@@ -24,34 +24,40 @@ dependencies = [
     "pytest-xdist>=3",
     "pyyaml>=6.0.3",
     "requests>=2.32.5",
-    "snakemake>=9.21.0",
-    "snakemake-executor-plugin-slurm>=2.6.1",
+    "snakemake>=9.21.1",
+    "snakemake-executor-plugin-slurm>=2.7.1",
     "sparqlwrapper>=2.0.0",
     "tqdm>=4.67.1",
     "xmltodict>=1.0.2",
 ]
+
+[project.scripts]
+babel-slurm-errors = "tools.slurm.errors:main"
+babel-slurm-resources = "tools.slurm.resources:main"
+source-impact-report = "src.cli.source_impact_report:main"
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src", "src.*", "tools", "tools.*"]
 
 [project.urls]
 Homepage = "https://github.com/NCATSTranslator/Babel"
 Repository = "https://github.com/NCATSTranslator/Babel"
 Issues = "https://github.com/NCATSTranslator/Babel/issues"
 
-[project.scripts]
-source-impact-report = "src.cli.source_impact_report:main"
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src"]
-
 [dependency-groups]
 dev = [
     "ipykernel>=7.1.0",
     "py-spy>=0.4.2",
     "ruff>=0.14.14",
-    "rumdl>=0.1.93",
+    "rumdl>=0.2.4",
     "snakefmt>=0.11.2",
 ]
 
@@ -91,6 +97,7 @@ markers = [
     "network: requires live internet access (use --network to run)",
     "slow: correct but takes >30s even offline",
     "pipeline: invokes Snakemake rules; requires babel_downloads/ (use --pipeline to run)",
+    "min_memory_gb(n): test needs at least n GiB of system RAM; auto-skipped on smaller machines",
 ]
 
 [tool.coverage.run]

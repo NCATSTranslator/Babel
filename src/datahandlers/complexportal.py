@@ -1,44 +1,204 @@
-from src.babel_utils import pull_via_urllib
+import contextlib
+import os
+import posixpath
+import urllib.request
+from html.parser import HTMLParser
+
+from src.babel_utils import get_config, get_user_agent, pull_via_urllib
+from src.categories import MACROMOLECULAR_COMPLEX
 from src.metadata.provenance import write_metadata
+from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import COMPLEXPORTAL
 
+COMPLEXPORTAL_COMPLEXTAB_URL = "https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/"
+COMPLEXPORTAL_MANIFEST = "downloaded_tsv_files.txt"
 
-def pull_complexportal():
-    pull_via_urllib(
-        "http://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/",
-        "559292.tsv",
-        decompress=False,
-        subpath=COMPLEXPORTAL,
-    )
+# All 19 columns in the ComplexPortal ComplexTAB TSV format (as of 2026-06).
+# Columns read by Babel are marked with (*); the rest are set to "-" in most rows.
+# Columns noted as "could" are candidates for future ingestion.
+COMPLEXTAB_COLUMNS = [
+    "#Complex ac",  # 0  (*) complex accession → CURIE
+    "Recommended name",  # 1  (*) preferred label
+    "Aliases for complex",  # 2  (*) "|"-separated synonyms, or "-"
+    "Taxonomy identifier",  # 3  (*) NCBI taxon integer, or "-"
+    "Identifiers (and stoichiometry) of molecules in complex",  # 4  participants — could add to concords
+    "Evidence Code",  # 5
+    "Experimental evidence",  # 6
+    "Go Annotations",  # 7  GO terms — could enrich type/function info
+    "Cross references",  # 8  Reactome, PubMed, wwPDB, etc. — potential concord sources
+    "Description",  # 9  (*) free-text description
+    "Complex properties",  # 10
+    "Complex assembly",  # 11
+    "Ligand",  # 12
+    "Disease",  # 13 disease associations — potentially useful
+    "Agonist",  # 14
+    "Antagonist",  # 15
+    "Comment",  # 16
+    "Source",  # 17
+    "Expanded participant list",  # 18
+]
+COMPLEXTAB_HEADER = "\t".join(COMPLEXTAB_COLUMNS) + "\n"
 
 
-def make_labels_and_synonyms(infile, labelfile, synfile, metadata_yaml):
-    usedsyns = set()
-    with open(infile) as inf, open(labelfile, "w") as outl, open(synfile, "w") as outsyn:
-        next(inf)  # skip header
-        for line in inf:
-            sline = line.split("\t")
-            id = sline[0]
-            label = sline[1]  # recommended name
-            outl.write(f"{COMPLEXPORTAL}:{id}\t{label}\n")
-            synonyms_str = sline[2]  # aliases
-            if not synonyms_str == "-":
-                synonyms = synonyms_str.split("|")
-                for syn in synonyms:
-                    if syn not in usedsyns:
-                        outsyn.write(f"{COMPLEXPORTAL}:{id}\t{syn}\n")
-                        usedsyns.add(syn)
+class _DirectoryListingParser(HTMLParser):
+    """Collect all href values from anchor tags in an HTML page."""
+
+    def __init__(self):
+        super().__init__()
+        self.hrefs = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag != "a":
+            return
+        for name, value in attrs:
+            if name == "href":
+                self.hrefs.append(value)
+
+
+def fetch_complexportal_tsv_filenames(url=COMPLEXPORTAL_COMPLEXTAB_URL):
+    """Fetch the list of available ComplexPortal TSV filenames by parsing the remote HTTP directory listing.
+
+    Parses Apache autoindex HTML from `url` rather than using FTP NLST because HTTPS is more
+    reliable for large file downloads. If EBI changes their listing format (e.g. switches to Nginx
+    or a JS SPA) and this starts returning an empty list, switch to ftplib.FTP.nlst() for discovery
+    while keeping pull_via_urllib for the actual download. See docs/sources/DownloadPatterns.md.
+    """
+    req = urllib.request.Request(url, headers={"User-Agent": get_user_agent()})
+    with urllib.request.urlopen(req) as response:
+        listing = response.read().decode("utf-8")
+
+    parser = _DirectoryListingParser()
+    parser.feed(listing)
+
+    basenames = (posixpath.basename(h.rstrip("/")) for h in parser.hrefs)
+    tsv_filenames = {f for f in basenames if f.endswith(".tsv")}
+
+    if not tsv_filenames:
+        raise RuntimeError(f"No ComplexPortal TSV files found at {url}")
+
+    return sorted(tsv_filenames)
+
+
+def _default_manifest_file():
+    return os.path.join(get_config()["download_directory"], COMPLEXPORTAL, COMPLEXPORTAL_MANIFEST)
+
+
+def pull_complexportal(manifest_file=None):
+    """Download all ComplexPortal ComplexTAB TSV files and write a manifest listing them.
+
+    The manifest is written last, so its presence signals that all downloads completed
+    and Snakemake can treat it as the sentinel output for this rule.
+    """
+    if manifest_file is None:
+        manifest_file = _default_manifest_file()
+
+    download_dir = os.path.dirname(manifest_file)
+    os.makedirs(download_dir, exist_ok=True)
+
+    filenames = fetch_complexportal_tsv_filenames()
+    for filename in filenames:
+        pull_via_urllib(
+            COMPLEXPORTAL_COMPLEXTAB_URL,
+            filename,
+            decompress=False,
+            subpath=COMPLEXPORTAL,
+        )
+
+    with open(manifest_file, "w") as manifest:
+        manifest.writelines(f"{fn}\n" for fn in filenames)
+
+
+def _read_manifest(manifest_file):
+    with open(manifest_file) as manifest:
+        return [line.strip() for line in manifest if line.strip()]
+
+
+def make_labels_synonyms_and_taxa(
+    manifest_file, download_dir, labelfile, synfile, taxafile, descfile, metadata_yaml, idsfile=None
+):
+    """Parse all TSV files listed in the manifest and write labels, synonyms, taxa, descriptions, and optionally IDs.
+
+    When `idsfile` is provided, every unique identifier is written there as
+    ``CURIE\\tbiolink:MacromolecularComplex``, derived directly from the source rows rather
+    than from the labels file, so IDs without a recommended name are still captured.
+    """
+    filenames = _read_manifest(manifest_file)
+    used_identifiers = set()
+    used_synonyms = set()
+    used_taxa = set()
+    used_descs = set()  # (identifier, description) pairs — same text from two files is written only once
+
+    ids_ctx = open(idsfile, "w") if idsfile else contextlib.nullcontext()
+    with (
+        open(labelfile, "w") as outl,
+        open(synfile, "w") as outsyn,
+        open(taxafile, "w") as outt,
+        open(descfile, "w") as outd,
+        ids_ctx as outids,
+    ):
+        for filename in filenames:
+            infile = os.path.join(download_dir, filename)
+            if not os.path.exists(infile):
+                raise RuntimeError(
+                    f"{infile} is listed in the manifest but does not exist. "
+                    f"Delete {os.path.join(download_dir, COMPLEXPORTAL_MANIFEST)} "
+                    "and re-run the get_complexportal Snakemake rule to re-download all files."
+                )
+            with open(infile) as inf:
+                next(inf)  # skip header
+                for line in inf:
+                    if not line.strip():
+                        continue
+                    sline = line.split("\t", 10)
+                    if len(sline) < 10:
+                        raise ValueError(f"Expected at least 10 columns in {infile}, found {len(sline)}")
+
+                    identifier = f"{COMPLEXPORTAL}:{sline[0]}"
+                    label = sline[1]  # recommended name
+                    if identifier not in used_identifiers:
+                        outl.write(f"{identifier}\t{label}\n")
+                        if outids is not None:
+                            outids.write(f"{identifier}\t{MACROMOLECULAR_COMPLEX}\n")
+                        used_identifiers.add(identifier)
+
+                    synonyms_str = sline[2]  # aliases for complex
+                    if synonyms_str != "-":
+                        for syn in synonyms_str.split("|"):
+                            synonym_row = (identifier, syn)
+                            if synonym_row not in used_synonyms:
+                                outsyn.write(f"{identifier}\t{HAS_EXACT_SYNONYM}\t{syn}\n")
+                                used_synonyms.add(synonym_row)
+
+                    taxon_id = sline[3].strip()  # taxonomy identifier (NCBI taxon integer)
+                    if taxon_id and taxon_id != "-":
+                        if taxon_id.startswith("NCBITaxon:"):
+                            raise ValueError(
+                                f"Taxon ID {taxon_id!r} in {infile} is already prefixed; "
+                                "expected a bare integer (e.g. '9606')"
+                            )
+                        taxa_row = (identifier, taxon_id)
+                        if taxa_row not in used_taxa:
+                            outt.write(f"{identifier}\tNCBITaxon:{taxon_id}\n")
+                            used_taxa.add(taxa_row)
+
+                    description = sline[9].strip()  # free-text description
+                    if description and description != "-":
+                        desc_row = (identifier, description)
+                        if desc_row not in used_descs:
+                            outd.write(f"{identifier}\t{description}\n")
+                            used_descs.add(desc_row)
 
     write_metadata(
         metadata_yaml,
         typ="transform",
         name="ComplexPortal",
-        description="Labels and synonyms extracted from ComplexPortal download of 559292 (Saccharomyces cerevisiae)",
+        description="Labels, synonyms, taxa, and descriptions extracted from ComplexPortal ComplexTAB downloads",
         sources=[
             {
                 "type": "download",
-                "name": "ComplexPortal for organism 559292 (Saccharomyces cerevisiae)",
-                "url": "http://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/559292.tsv",
+                "name": f"ComplexPortal for organism {os.path.splitext(filename)[0]}",
+                "url": f"{COMPLEXPORTAL_COMPLEXTAB_URL}{filename}",
             }
+            for filename in filenames
         ],
     )

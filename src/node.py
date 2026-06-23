@@ -10,6 +10,7 @@ import curies
 from src.LabeledID import LabeledID
 from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import PUBCHEMCOMPOUND
+from src.synonyms.filter import get_synonym_filter
 from src.util import (
     Text,
     get_biolink_model_toolkit,
@@ -96,14 +97,23 @@ class SynonymFactory:
             f"Loaded {count_labels:,} labels and {count_synonyms:,} synonyms for {prefix} from {labelfname}: {get_memory_usage_summary()}"
         )
 
-    def get_synonyms(self, identifiers: list[str]):
+    def get_synonyms(self, identifiers: list[str], node_types: list = None):
+        synonym_filter = get_synonym_filter()
         node_synonyms = set()
         for thisid in identifiers:
             pref = Text.get_prefix(thisid)
             if pref not in self.synonyms:
                 self.load_synonyms(pref)
-            node_synonyms.update(self.synonyms[pref][thisid])
-            node_synonyms.update(self.common_synonyms.get(thisid, set()))
+            for predicate, synonym in self.synonyms[pref][thisid]:
+                if synonym_filter.should_suppress(
+                    synonym, source=f"{pref} synonyms/labels file", node_types=node_types
+                ):
+                    continue
+                node_synonyms.add((predicate, synonym))
+            for predicate, synonym in self.common_synonyms.get(thisid, set()):
+                if synonym_filter.should_suppress(synonym, source="common synonyms file", node_types=node_types):
+                    continue
+                node_synonyms.add((predicate, synonym))
         return node_synonyms
 
 
@@ -454,14 +464,23 @@ class NodeFactory:
         self.ancestor_map[input_type] = ancs
         return ancs
 
-    def get_prefixes(self, input_type):
+    def get_prefixes(self, input_type, allow_empty=False):
         if input_type in self.prefix_map:
-            return self.prefix_map[input_type]
+            cached = self.prefix_map[input_type]
+            if not cached and not allow_empty:
+                raise RuntimeError(f"No Biolink prefixes for {input_type}")
+            return cached
         logger.info(f"NodeFactory({self.label_dir}, {self.biolink_version}).get_prefixes({input_type}) called")
         j = self.toolkit.get_element(input_type)
         prefs = j["id_prefixes"]
         if len(prefs) == 0:
-            raise RuntimeError(f"No Biolink prefixes for {input_type}")
+            # Some Biolink types (e.g. biolink:Phenomenon, biolink:PhysicalEntity) carry no id_prefixes.
+            # Cache [] so repeated calls skip the toolkit lookup; strict callers (allow_empty=False)
+            # still raise, both on first call and from cache.
+            self.prefix_map[input_type] = []
+            if not allow_empty:
+                raise RuntimeError(f"No Biolink prefixes for {input_type}")
+            return []
         # The pref are in a particular order, but apparently they can have dups (ugh)
         # We de-duplicate those here.
         prefixes_deduplicated = list()
@@ -530,7 +549,7 @@ class NodeFactory:
                         lbs[x[0]] = x[1]
         self.extra_labels[prefix] = lbs
 
-    def apply_labels(self, input_identifiers, labels):
+    def apply_labels(self, input_identifiers, labels, node_types=None):
         # Before we work on the labels (or try to load any extra labels), let's load up the common labels.
         config = get_config()
         if self.common_labels is None:
@@ -557,6 +576,8 @@ class NodeFactory:
                     f"Loaded {count_common_file_labels:,} common labels from {common_labels_path}: {get_memory_usage_summary()}"
                 )
 
+        synonym_filter = get_synonym_filter()
+
         # Originally we needed to clean up the identifer lists, because there would be both labeledids and
         # string ids and we had to reconcile them.
         # But now, we only allow regular ids in the list, and now we need to turn some of them into labeled ids for output
@@ -565,7 +586,10 @@ class NodeFactory:
             if isinstance(iid, LabeledID):
                 raise ValueError(f"LabeledID don't belong here ({iid}), pass in labels separately.")
             if iid in labels:
-                labeled_list.append(LabeledID(identifier=iid, label=labels[iid]))
+                label = labels[iid]
+                if synonym_filter.should_suppress(label, source=f"explicit labels for {iid}", node_types=node_types):
+                    label = ""
+                labeled_list.append(LabeledID(identifier=iid, label=label))
             else:
                 try:
                     prefix = Text.get_prefix(iid)
@@ -577,10 +601,16 @@ class NodeFactory:
                 if prefix not in self.extra_labels:
                     self.load_extra_labels(prefix)
                 if iid in self.extra_labels[prefix]:
-                    labeled_list.append(LabeledID(identifier=iid, label=self.extra_labels[prefix][iid]))
+                    label = self.extra_labels[prefix][iid]
+                    if synonym_filter.should_suppress(label, source=f"{prefix} labels file", node_types=node_types):
+                        label = ""
+                    labeled_list.append(LabeledID(identifier=iid, label=label))
                 elif iid in self.common_labels:
                     # We only fall back to common labels if the prefix label doesn't have anything.
-                    labeled_list.append(LabeledID(identifier=iid, label=self.common_labels[iid]))
+                    label = self.common_labels[iid]
+                    if synonym_filter.should_suppress(label, source="common labels file", node_types=node_types):
+                        label = ""
+                    labeled_list.append(LabeledID(identifier=iid, label=label))
                 else:
                     labeled_list.append(iid)
         return labeled_list
@@ -588,18 +618,21 @@ class NodeFactory:
     def create_node(self, input_identifiers, node_type, labels={}, extra_prefixes=[]):
         # This is where we will normalize, i.e. choose the best id, and add types in accord with BL.
         # we should also include provenance and version information for the node set build.
-        # ancestors = self.get_ancestors(node_type)
-        # ancestors.reverse()
-
         # make sure prefixes list does not include duplicate prefixes
+        # Always allow an empty get_prefixes() result here: a node_type with no id_prefixes of its
+        # own is still writable when extra_prefixes covers the gap. The combined list is validated
+        # as non-empty below, which produces a clearer error than an early raise inside get_prefixes.
+        node_prefixes = self.get_prefixes(node_type, allow_empty=True)
         prefixes = []
         seen_prefixes = set()
-        for prefix in self.get_prefixes(node_type) + extra_prefixes:
+        for prefix in node_prefixes + extra_prefixes:
             prefix_upper = prefix.upper()
             if prefix_upper in seen_prefixes:
                 continue
             prefixes.append(prefix)
             seen_prefixes.add(prefix_upper)
+        if not prefixes:
+            raise RuntimeError(f"No Biolink prefixes for {node_type}: id_prefixes is empty and extra_prefixes is empty")
 
         if len(input_identifiers) == 0:
             return None
@@ -607,7 +640,8 @@ class NodeFactory:
             logger.warning(
                 f"this seems like a lot of input_identifiers in node.create_node() [{len(input_identifiers)}]: {input_identifiers}"
             )
-        cleaned = self.apply_labels(input_identifiers, labels)
+        ancestors = self.get_ancestors(node_type)
+        cleaned = self.apply_labels(input_identifiers, labels, node_types=ancestors)
         try:
             idmap = defaultdict(list)
             for i in list(cleaned):
