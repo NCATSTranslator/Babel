@@ -204,7 +204,8 @@ as:
   rewrite the query, or shrink the working set.
 - **cgroup current well below the limit but a small allocation fails** → an address-space limit, not
   a RAM shortage. Check the address-space line: `mappings` near `max_map_count` (mmap exhaustion —
-  for the report rules this was DuckDB's external file cache; disable it, or have the cluster raise
+  the source for the report rules was DuckDB's **buffer-pool allocations**, not the external file
+  cache; lower `memory_limit` to cap the mapping count, or have the cluster raise
   `vm.max_map_count`), `VmSize` near `RLIMIT_AS` (an address-space ulimit), or `Committed_AS` near
   `CommitLimit` with `overcommit_memory=2` (strict node-level overcommit). Adding `mem=` does not
   help any of these.
