@@ -632,7 +632,8 @@ def build_conflation(
                         f"Conflation clique member {iid} (in clique {conflation_id_list}) is not in any chemical "
                         f"compendium. This is an internal logic error: all CURIEs entering glom() should have been "
                         f"validated against the compendia beforehand. Check the RXN/UMLS concord processing paths "
-                        f"above, as manual concord entries are already validated by _validate_and_apply_manual_concords."
+                        f"above, as manual concord entries from {manual_concord_filename} are already validated by "
+                        f"_validate_and_apply_manual_concords."
                     )
                 preferred_curie = preferred_curie_for_curie[iid]
                 if preferred_curie != iid:
