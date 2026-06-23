@@ -238,11 +238,11 @@ option would be best.
 ### Analyzing a SLURM run (`tools/slurm`)
 
 `tools/slurm` analyzes a (possibly partial) Snakemake-on-SLURM run; see `docs/Tools.md` and the
-per-tool pages under `docs/tools/`. `uv run python -m tools.slurm errors <version>` (the successor
-to the old `tools/babel-errors.py`) aggregates failing-rule logs and prints a
-completed/failed/still-running job summary, to decide what to re-run. `uv run python -m tools.slurm
-resources <run-dir>` joins actual usage (the `benchmark:` TSVs — authoritative, since Hatteras
-`sacct` reports empty `MaxRSS`/`TotalCPU`) against requested resources and recommends right-sized
+per-tool pages under `docs/tools/`. `uv run babel-slurm-errors <version>` (the successor to the
+old `tools/babel-errors.py`) aggregates failing-rule logs and prints a
+completed/failed/still-running job summary, to decide what to re-run. `uv run babel-slurm-resources
+<run-dir>` joins actual usage (the `benchmark:` TSVs — authoritative, since Hatteras `sacct`
+reports empty `MaxRSS`/`TotalCPU`) against requested resources and recommends right-sized
 `mem`/`cpus`, flagging rules that need an explicit override before the cluster default can be
 lowered. Both subcommands share `tools/slurm/parse.py`. Note that
 `reports/slurm/slurm_efficiency_reports/` is a *directory* that accumulates one

@@ -237,18 +237,7 @@ def write_csv(recs: list[Recommendation], path: str | Path) -> None:
             )
 
 
-def add_subparser(subparsers: argparse._SubParsersAction) -> None:
-    parser = subparsers.add_parser(
-        "resources",
-        help="Recommend right-sized mem/cpus from benchmark + efficiency data.",
-        description="Compare actual resource usage against requested resources and recommend right-sized limits.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""Examples:
-  uv run python -m tools.slurm resources data/babel-1.17
-  uv run python -m tools.slurm resources data/babel-1.17 --csv /tmp/resources.csv
-  uv run python -m tools.slurm resources data/babel-1.17 --new-default-mem-gb 16 --safety 2.0
-""",
-    )
+def _add_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("run_dir", help="Run-analysis directory with benchmarks/, logs/, reports/slurm/.")
     parser.add_argument(
         "--safety", type=float, default=DEFAULT_SAFETY, help=f"Safety factor on peak RSS (default: {DEFAULT_SAFETY})."
@@ -269,7 +258,37 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
         help="Proposed new cluster default cpus to test rules against (default: 1).",
     )
     parser.add_argument("--csv", metavar="PATH", help="Also write the full per-rule table to this CSV.")
+
+
+def add_subparser(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser(
+        "resources",
+        help="Recommend right-sized mem/cpus from benchmark + efficiency data.",
+        description="Compare actual resource usage against requested resources and recommend right-sized limits.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples:
+  babel-slurm-resources data/babel-1.17
+  babel-slurm-resources data/babel-1.17 --csv /tmp/resources.csv
+  babel-slurm-resources data/babel-1.17 --new-default-mem-gb 16 --safety 2.0
+""",
+    )
+    _add_args(parser)
     parser.set_defaults(func=run)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        prog="babel-slurm-resources",
+        description="Compare actual resource usage against requested resources and recommend right-sized limits.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples:
+  babel-slurm-resources data/babel-1.17
+  babel-slurm-resources data/babel-1.17 --csv /tmp/resources.csv
+  babel-slurm-resources data/babel-1.17 --new-default-mem-gb 16 --safety 2.0
+""",
+    )
+    _add_args(parser)
+    run(parser.parse_args())
 
 
 def run(args: argparse.Namespace) -> None:

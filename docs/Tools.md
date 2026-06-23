@@ -6,12 +6,12 @@ picks up the project's pinned environment.
 
 ## `tools/slurm` — analyze a SLURM run
 
-`tools/slurm` analyzes a (possibly partial) Snakemake-on-SLURM run. It is run as a Python module
-with one of two subcommands, which share a single parsing layer (`tools/slurm/parse.py`):
+`tools/slurm` analyzes a (possibly partial) Snakemake-on-SLURM run. It exposes two commands
+installed by `uv sync`, which share a single parsing layer (`tools/slurm/parse.py`):
 
 ```bash
-uv run python -m tools.slurm errors <version> --markdown     # failure triage during a run
-uv run python -m tools.slurm resources <run-dir>             # capacity tuning between runs
+uv run babel-slurm-errors <version> --markdown     # failure triage during a run
+uv run babel-slurm-resources <run-dir>             # capacity tuning between runs
 ```
 
 - **`errors`** aggregates the logs of failing rules from a stalled or failed run into one

@@ -6,7 +6,7 @@ single report so you can paste it somewhere (a code review tool, an issue, a cha
 rules to re-run.
 
 ```bash
-uv run python -m tools.slurm errors <version> [--logs-dir DIR] [--markdown] [--traceback-only] [--lines N]
+uv run babel-slurm-errors <version> [--logs-dir DIR] [--markdown] [--traceback-only] [--lines N]
 ```
 
 `<version>` is the tag in the `sbatch-<version>.err` control-node log (e.g. `1.17-try-2`); omit it

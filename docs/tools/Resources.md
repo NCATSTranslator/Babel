@@ -7,7 +7,7 @@ measures what rules actually used on a past run and turns that into recommended,
 `resources:`.
 
 ```bash
-uv run python -m tools.slurm resources <run-dir> [--csv PATH] [--safety F] [--floor-gb N] [--new-default-mem-gb N] [--new-default-cpus N]
+uv run babel-slurm-resources <run-dir> [--csv PATH] [--safety F] [--floor-gb N] [--new-default-mem-gb N] [--new-default-cpus N]
 ```
 
 `<run-dir>` is a directory containing `benchmarks/`, `logs/`, and (optionally) `reports/slurm/` —

@@ -16,6 +16,10 @@ authoritative source for actual usage; the efficiency report is used only for th
 
 Run with::
 
-    uv run python -m tools.slurm resources data/babel-1.17
-    uv run python -m tools.slurm errors 1.17-try-2 --markdown
+    uv run babel-slurm-resources data/babel-1.17
+    uv run babel-slurm-errors 1.17-try-2 --markdown
+
+Both subcommands are also reachable as ``python -m tools.slurm errors`` /
+``python -m tools.slurm resources`` (useful when running directly from a clone
+without the package installed).
 """

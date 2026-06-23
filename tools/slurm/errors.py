@@ -145,18 +145,7 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
             )
 
 
-def add_subparser(subparsers: argparse._SubParsersAction) -> None:
-    parser = subparsers.add_parser(
-        "errors",
-        help="Aggregate failing-rule logs into one report.",
-        description="Aggregate Babel SLURM error logs into a single copy-pasteable report.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""Examples:
-  uv run python -m tools.slurm errors 1.17-try-2
-  uv run python -m tools.slurm errors 1.17-try-2 --markdown
-  uv run python -m tools.slurm errors --traceback-only
-""",
-    )
+def _add_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "version", nargs="?", help="Babel version tag (e.g. 1.17-try-2). Auto-detects newest .err file if omitted."
     )
@@ -179,7 +168,37 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
         metavar="N",
         help="Cap long logs to a head+tail of N lines total with an elision marker (default: 1000).",
     )
+
+
+def add_subparser(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser(
+        "errors",
+        help="Aggregate failing-rule logs into one report.",
+        description="Aggregate Babel SLURM error logs into a single copy-pasteable report.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples:
+  babel-slurm-errors 1.17-try-2
+  babel-slurm-errors 1.17-try-2 --markdown
+  babel-slurm-errors --traceback-only
+""",
+    )
+    _add_args(parser)
     parser.set_defaults(func=run)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        prog="babel-slurm-errors",
+        description="Aggregate Babel SLURM error logs into a single copy-pasteable report.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples:
+  babel-slurm-errors 1.17-try-2
+  babel-slurm-errors 1.17-try-2 --markdown
+  babel-slurm-errors --traceback-only
+""",
+    )
+    _add_args(parser)
+    run(parser.parse_args())
 
 
 def run(args: argparse.Namespace) -> None:

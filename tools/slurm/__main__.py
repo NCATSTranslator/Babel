@@ -1,7 +1,8 @@
 """Dispatch the ``errors`` and ``resources`` subcommands.
 
-uv run python -m tools.slurm resources data/babel-1.17
-uv run python -m tools.slurm errors 1.17-try-2 --markdown
+Prefer the installed entry points (``babel-slurm-errors`` /
+``babel-slurm-resources``) when the package is installed via ``uv sync``.
+The ``python -m`` form is useful when running directly from a clone.
 """
 
 from __future__ import annotations

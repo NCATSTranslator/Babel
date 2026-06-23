@@ -30,7 +30,7 @@ snakemake_exit=\$?
 
 if [ \$snakemake_exit -ne 0 ]; then
     report=babel_outputs/logs/error-report-${BABEL_VERSION:-babel-current}.md
-    if uv run python -m tools.slurm errors ${BABEL_VERSION:-babel-current} --markdown > "\$report"; then
+    if uv run babel-slurm-errors ${BABEL_VERSION:-babel-current} --markdown > "\$report"; then
         echo "Error report written to \$report" >&2
     else
         echo "Warning: error report generation failed (exit \$?); partial output may be in \$report" >&2
