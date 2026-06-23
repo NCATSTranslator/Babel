@@ -273,6 +273,8 @@ These three tables are derived from the compendia JSONL for each semantic type.
 | biolink_type             | STRING | Biolink type, e.g. `biolink:Gene`                         |
 | information_content      | FLOAT  | Information content value (0–100)                         |
 
+We get information content values as the [`normalizedInformationContent` from Ubergraph].
+
 `Edge.parquet` — one row per (clique, identifier) pair; the primary way to look up which
 clique contains a given CURIE:
 
@@ -313,3 +315,5 @@ Derived from the conflation JSONL files (`GeneProtein.txt`, `DrugChemical.txt`).
 | conflation_leader  | STRING | CURIE of the conflation group's lead identifier      |
 | curie              | STRING | A member CURIE of the conflation group               |
 | curie_prefix       | STRING | Prefix of the member CURIE                           |
+
+[`normalizedInformationContent` from Ubergraph]: https://github.com/INCATools/ubergraph/#graph-organization
