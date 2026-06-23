@@ -191,13 +191,16 @@ build a queryable DuckDB database alongside the JSONL compendia, with these tabl
 
 - `Node(curie, curie_prefix, label, label_lc, description, taxa)`
 - `Clique(clique_leader, preferred_name, clique_identifier_count, biolink_type, information_content)`
-- `Edge(clique_leader, curie, conflation, clique_leader_prefix, curie_prefix)`
+- `Edge(clique_leader, curie, conflation, clique_leader_prefix, curie_prefix, biolink_type)`
 - `Conflation(conflation_type, conflation_leader, curie, curie_prefix)`
 
 The `Edge` table answers "which clique contains CURIE X" with a one-line query
 (`SELECT DISTINCT clique_leader FROM Edge WHERE curie IN (...)`) and is the fastest way to
 check whether several CURIEs landed in the same clique in a given build — much cheaper than
-re-running glom or scanning the JSONL compendia.
+re-running glom or scanning the JSONL compendia. `biolink_type` is denormalized onto every edge
+(it equals the owning clique's type) so cross-compendium reports can group by
+`(curie_prefix, biolink_type)` with a plain scan instead of a large Edge-to-Clique join, which
+OOM-killed `generate_curie_report` even on a largemem node.
 
 ### Per-source documentation (`docs/sources/`)
 

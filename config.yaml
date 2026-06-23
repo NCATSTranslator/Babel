@@ -18,6 +18,9 @@ input_directory: input_data
 download_directory: babel_downloads
 intermediate_directory: babel_outputs/intermediate
 output_directory: babel_outputs
+# Where DuckDB spills larger-than-memory intermediates. setup_duckdb() gives each job its own
+# duckdb-$SLURM_JOB_ID subdirectory here. Override per run with the BABEL_DUCKDB_TEMP_DIR
+# environment variable; see slurm/README.md ("Temporary Scratch Space") for the trade-offs.
 tmp_directory: babel_downloads/tmp
 
 # HTTP settings.
@@ -35,8 +38,24 @@ compendium_directories:
 # SHARED
 #
 
-# DuckDB settings for use in all DuckDB connections:
-duckdb_config: {}
+# DuckDB settings for use in all DuckDB connections.
+# write_buffer_row_group_count=1: flush Parquet row groups to disk eagerly. The default of 5
+# means DuckDB holds 5 row groups × threads × ~4 GiB in write buffers before flushing (~76 GiB
+# peak at 128 GB allocation). Setting it to 1 keeps write-buffer RAM proportional to one row
+# group, at no cost to compression ratio or query performance.
+#
+# enable_external_file_cache=false: DuckDB's external file cache keeps Parquet file blocks mmapped
+# across queries, which is one source of memory mappings. The cross-compendium report rules were
+# hitting the kernel's per-process mapping limit (vm.max_map_count, default 65530) and failing with
+# `bad allocation` on a small allocation despite free RAM -- an address-space (mmap-count) limit.
+# Disabling this cache removes it as a mapping source, but note it was NOT sufficient on its own:
+# the dominant source is DuckDB's buffer pool (its allocator retains ~1.3 MB mappings up to the
+# query's peak memory), so the report rules also cap memory_limit far below their natural peak. The
+# definitive fix is for the cluster to raise vm.max_map_count (issue #846); until then we keep this
+# off (it only costs a re-read from disk for our read-once/scan-twice queries, no correctness change).
+duckdb_config:
+  write_buffer_row_group_count: 1
+  enable_external_file_cache: false
 
 #
 # UMLS
