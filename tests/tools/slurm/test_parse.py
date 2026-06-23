@@ -1,22 +1,22 @@
-"""Unit tests for the tools.slurm run-analysis package."""
+"""Unit tests for tools.slurm.parse."""
 
 import os
 from pathlib import Path
 
 import pytest
 
-from tools.slurm import errors, parse, resources
+from tools.slurm import parse
 
 pytestmark = pytest.mark.unit
-
-
-# --- parse.read_benchmarks ---------------------------------------------------
 
 
 def _write_benchmark(path, rows):
     header = "s\th:m:s\tmax_rss\tmax_vms\tmax_uss\tmax_pss\tio_in\tio_out\tmean_load\tcpu_time"
     lines = [header] + ["\t".join(str(c) for c in r) for r in rows]
     path.write_text("\n".join(lines) + "\n")
+
+
+# --- parse.read_benchmarks ---------------------------------------------------
 
 
 def test_read_benchmarks_takes_worst_case_across_rows(tmp_path):
@@ -69,93 +69,6 @@ def test_read_efficiency_report_from_directory_and_strips_rule_prefix(tmp_path):
     assert row.total_cpu_sec == 0.0
 
 
-# --- parse.read_rule_logs ----------------------------------------------------
-
-
-def test_read_rule_logs_parses_resources_and_failure(tmp_path):
-    logs = tmp_path / "logs"
-    rdir = logs / "rule_anatomy_ncit_ids"
-    rdir.mkdir(parents=True)
-    (rdir / "451.log").write_text(
-        "[Thu Jun  4 05:15:08 2026]\n"
-        "rule anatomy_ncit_ids:\n"
-        "    resources: tmpdir=<TBD>, disk_mb=50000, mem_mb=64000, mem=64 GB, runtime=120, cpus_per_task=4\n"
-        "RuleException:\n"
-        "HTTP Error 503: Service Temporarily Unavailable\n"
-        "[Thu Jun  4 05:15:26 2026]\n"
-    )
-    out = parse.read_rule_logs(logs)
-    assert "anatomy_ncit_ids" in out
-    log = out["anatomy_ncit_ids"]
-    assert (log.mem_mb, log.runtime_min, log.cpus) == (64000, 120, 4)
-    assert log.failed is True
-    assert log.start is not None and log.end is not None and log.end > log.start
-
-
-# --- resources recommendation logic ------------------------------------------
-
-
-def test_recommend_mem_rounds_up_to_bucket_with_floor():
-    # 0.5 GB * 1.5 = 0.75 GB, floored to the 8 GB minimum
-    assert resources.recommend_mem_mb(512, safety=1.5, floor_mb=8192) == 8192
-    # 14 GB * 1.5 = 21 GB -> next bucket is 24 GB
-    assert resources.recommend_mem_mb(14 * 1024, safety=1.5, floor_mb=8192) == 24 * 1024
-    # 41 GB * 1.5 = 61.5 GB -> next bucket is 64 GB
-    assert resources.recommend_mem_mb(41 * 1024, safety=1.5, floor_mb=8192) == 64 * 1024
-
-
-def test_recommend_cpus_rounds_up():
-    assert resources.recommend_cpus(0.95) == 1
-    assert resources.recommend_cpus(1.0) == 1
-    assert resources.recommend_cpus(2.3) == 3
-
-
-def _make_run(tmp_path, rule, rss_mb, mean_load, requested_mem_mb):
-    bdir = tmp_path / "benchmarks"
-    bdir.mkdir(exist_ok=True)
-    _write_benchmark(bdir / f"{rule}.tsv", [[100.0, "0:01:40", rss_mb, rss_mb, rss_mb, rss_mb, 1, 1, mean_load, 90.0]])
-    rep = tmp_path / "reports" / "slurm" / "slurm_efficiency_reports"
-    rep.mkdir(parents=True, exist_ok=True)
-    (rep / "efficiency_report_x.csv").write_text(
-        ",RuleName,NCPUS,Elapsed_sec,TotalCPU_sec,MaxRSS_MB,RequestedMem_MB\n"
-        f"0,rule_{rule},4,100.0,0.0,,{requested_mem_mb}\n"
-    )
-    (tmp_path / "logs").mkdir(exist_ok=True)
-
-
-def test_analyze_flags_rule_needing_override(tmp_path):
-    # 41 GB peak on a 16 GB proposed default -> must be flagged for an explicit override.
-    _make_run(tmp_path, "get_uniprotkb_labels", rss_mb=41 * 1024, mean_load=70.0, requested_mem_mb=64000)
-    recs = resources.analyze(tmp_path, new_default_mem_mb=16 * 1024, new_default_cpus=1)
-    assert len(recs) == 1
-    rec = recs[0]
-    assert rec.rule == "get_uniprotkb_labels"
-    assert rec.rec_mem_mb == 64 * 1024
-    assert rec.needs_override is True
-
-
-def test_analyze_classifies_over_provisioned_and_fits_default(tmp_path):
-    # 0.2 GB peak with a 64 GB request -> heavily over-provisioned, no override needed.
-    _make_run(tmp_path, "tiny_rule", rss_mb=200.0, mean_load=98.0, requested_mem_mb=64000)
-    rec = resources.analyze(tmp_path, new_default_mem_mb=16 * 1024, new_default_cpus=1)[0]
-    assert rec.classification == "over"
-    assert rec.needs_override is False
-    assert rec.rec_mem_mb == 8 * 1024
-
-
-def test_analyze_handles_missing_efficiency_report(tmp_path):
-    bdir = tmp_path / "benchmarks"
-    bdir.mkdir()
-    _write_benchmark(bdir / "lonely.tsv", [[5.0, "0:00:05", 100.0, 100.0, 100.0, 100.0, 1, 1, 90.0, 4.0]])
-    (tmp_path / "logs").mkdir()
-    recs = resources.analyze(tmp_path)
-    assert recs[0].classification == "no-request-data"
-    assert recs[0].requested_mem_mb is None
-
-
-# --- parse.read_efficiency_report: multi-shard aggregation -------------------
-
-
 def test_read_efficiency_report_merges_all_shards_worst_case(tmp_path):
     # A real run leaves one efficiency_report_<uuid>.csv per Snakemake (re)start; each shard only
     # covers that invocation's jobs. Reading just the newest (as an earlier version did) would drop
@@ -181,7 +94,30 @@ def test_read_efficiency_report_merges_all_shards_worst_case(tmp_path):
     assert eff["alpha"].ncpus == 4
 
 
-# --- parse: error-log extraction (errors subcommand) ------------------------
+# --- parse.read_rule_logs ----------------------------------------------------
+
+
+def test_read_rule_logs_parses_resources_and_failure(tmp_path):
+    logs = tmp_path / "logs"
+    rdir = logs / "rule_anatomy_ncit_ids"
+    rdir.mkdir(parents=True)
+    (rdir / "451.log").write_text(
+        "[Thu Jun  4 05:15:08 2026]\n"
+        "rule anatomy_ncit_ids:\n"
+        "    resources: tmpdir=<TBD>, disk_mb=50000, mem_mb=64000, mem=64 GB, runtime=120, cpus_per_task=4\n"
+        "RuleException:\n"
+        "HTTP Error 503: Service Temporarily Unavailable\n"
+        "[Thu Jun  4 05:15:26 2026]\n"
+    )
+    out = parse.read_rule_logs(logs)
+    assert "anatomy_ncit_ids" in out
+    log = out["anatomy_ncit_ids"]
+    assert (log.mem_mb, log.runtime_min, log.cpus) == (64000, 120, 4)
+    assert log.failed is True
+    assert log.start is not None and log.end is not None and log.end > log.start
+
+
+# --- parse.extract_error_content ---------------------------------------------
 
 
 def test_extract_error_content_shows_full_log_and_real_exception(tmp_path):
@@ -257,6 +193,9 @@ def test_extract_error_content_falls_back_to_logs_dir_for_remote_path(tmp_path):
     assert "HTTP Error 503" in content
 
 
+# --- parse._collect_memory_diagnostics ---------------------------------------
+
+
 def test_collect_memory_diagnostics_dedupes_and_ignores_settings_dump():
     """Diagnostic markers are collected and de-duplicated; the verbose settings dump is ignored."""
     lines = [
@@ -274,7 +213,7 @@ def test_collect_memory_diagnostics_dedupes_and_ignores_settings_dump():
     assert any("Memory snapshot (complete)" in line for line in found)
 
 
-# --- parse.parse_job_events: timeline (errors subcommand summary) ------------
+# --- parse.parse_job_events --------------------------------------------------
 
 
 def test_parse_job_events_tracks_retries_and_outcomes(tmp_path):
@@ -295,41 +234,7 @@ def test_parse_job_events_tracks_retries_and_outcomes(tmp_path):
     assert {j.rule_name for j in jobs} == {"get_x"}
 
 
-# --- errors.print_job_summary: completed / failed / incomplete bucketing -----
-
-
-def test_print_job_summary_buckets_completed_failed_and_incomplete(tmp_path, capsys):
-    """The summary splits every task into completed / failed / still-running, and an incomplete
-    task that was retried lists its prior failure as an indented sub-line."""
-    err = tmp_path / "sbatch-test.err"
-    err.write_text(
-        # done_rule: submitted and finished -> completed.
-        "INFO snakemake.logging [2026-06-04T05:00:00+0000]: "
-        "Job 1 has been submitted with SLURM jobid 100 (log: /remote/logs/rule_done_rule/100.log).\n"
-        "INFO snakemake.logging [2026-06-04T05:05:00+0000]: Finished jobid: 1 (Rule: done_rule)\n"
-        # dead_rule: submitted and errored, never retried -> failed.
-        "INFO snakemake.logging [2026-06-04T05:00:00+0000]: "
-        "Job 2 has been submitted with SLURM jobid 200 (log: /remote/logs/rule_dead_rule/200.log).\n"
-        "ERROR snakemake.logging [2026-06-04T05:06:00+0000]: Error in rule dead_rule, jobid: 2\n"
-        # retry_rule: errored once, resubmitted, still running -> incomplete with a prior failure.
-        "INFO snakemake.logging [2026-06-04T05:00:00+0000]: "
-        "Job 3 has been submitted with SLURM jobid 300 (log: /remote/logs/rule_retry_rule/300.log).\n"
-        "ERROR snakemake.logging [2026-06-04T05:07:00+0000]: Error in rule retry_rule, jobid: 3\n"
-        "INFO snakemake.logging [2026-06-04T05:08:00+0000]: "
-        "Job 3 has been submitted with SLURM jobid 301 (log: /remote/logs/rule_retry_rule/301.log).\n"
-    )
-
-    errors.print_job_summary(err, tmp_path)
-    out = capsys.readouterr().err
-
-    assert "Found 1 incomplete rule(s):" in out
-    assert "Rule retry_rule (SLURM jobid 301)" in out
-    assert "Prior failure (SLURM jobid 300)" in out  # the e70afd0a (group, running) restructure
-    assert "Found 1 completed rule(s): done_rule" in out
-    assert "Found 1 failed job(s) across 1 rule(s): dead_rule" in out
-
-
-# --- parse.parse_failures: (rule_name, log_path) extraction ------------------
+# --- parse.parse_failures ----------------------------------------------------
 
 
 def test_parse_failures_extracts_rule_and_log_path(tmp_path):
@@ -359,7 +264,7 @@ def test_parse_failures_returns_empty_for_clean_log(tmp_path):
     assert parse.parse_failures(err) == []
 
 
-# --- parse._parse_ts: UTC-offset normalisation --------------------------------
+# --- parse._parse_ts ---------------------------------------------------------
 
 
 def test_parse_ts_normalises_non_utc_offsets():
