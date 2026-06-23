@@ -6,9 +6,7 @@ built, `src/createcompendia/leftover_umls.py` (Snakemake rule `leftover_umls`) g
 writing each one as a single-identifier clique into `babel_outputs/compendia/umls.txt`. The point is
 coverage: even when Babel can't merge a UMLS concept into a richer clique, downstream services (Node
 Normalization, Name Resolver) can still return its label and a Biolink type. This addresses
-[#579](https://github.com/NCATSTranslator/Babel/issues/579), and the typing corrections below
-address [#569](https://github.com/NCATSTranslator/Babel/issues/569) and the umbrella
-[#410](https://github.com/NCATSTranslator/Babel/issues/410).
+[#579], and the typing corrections below address [#569] and the umbrella [#410].
 
 ## How a leftover concept gets its Biolink type
 
@@ -38,22 +36,22 @@ to anticipate how a Biolink change will land in real Babel data. The two tables 
 
 - **`STY_OVERRIDES: dict[str, str | None]`** — override the Biolink type bmt assigns to a single
   semantic type. `None` means "deliberately reject". Current entries:
-  - `T033` "Finding" → `biolink:Phenomenon` (#569; Biolink has no STY mapping for it, so without
+  - `T033` "Finding" → `biolink:Phenomenon` ([#569]; Biolink has no STY mapping for it, so without
     this the concepts would be dropped as unmapped).
-  - `T034` "Laboratory or Test Result" → `biolink:ClinicalFinding` (#569; Biolink maps it to the
+  - `T034` "Laboratory or Test Result" → `biolink:ClinicalFinding` ([#569]; Biolink maps it to the
     broader `biolink:Phenomenon`).
-  - `T058` "Health Care Activity" → `biolink:ClinicalIntervention` (#90; bmt assigns the generic
+  - `T058` "Health Care Activity" → `biolink:ClinicalIntervention` ([#90]; bmt assigns the generic
     `biolink:Activity`).
-  - `T045` "Genetic Function" → `biolink:BiologicalProcess` (#421; no STY mapping in Biolink).
-  - `T021` "Fully Formed Anatomical Structure" → `biolink:GrossAnatomicalStructure` (#421; no STY
+  - `T045` "Genetic Function" → `biolink:BiologicalProcess` ([#421]; no STY mapping in Biolink).
+  - `T021` "Fully Formed Anatomical Structure" → `biolink:GrossAnatomicalStructure` ([#421]; no STY
     mapping in Biolink).
-  - `T120` "Chemical Viewed Functionally" → `biolink:ChemicalEntity` (#421; no STY mapping in
+  - `T120` "Chemical Viewed Functionally" → `biolink:ChemicalEntity` ([#421]; no STY mapping in
     Biolink).
-  - `T122` "Biomedical or Dental Material" → `biolink:ChemicalEntity` (#421; no STY mapping in
+  - `T122` "Biomedical or Dental Material" → `biolink:ChemicalEntity` ([#421]; no STY mapping in
     Biolink).
-  - `T168` "Food" → `biolink:Food` (#421; no STY mapping in Biolink).
-  - `T072` "Physical Object" and `T073` "Manufactured Object" → `biolink:PhysicalEntity` (#840). bmt
-    already maps these to `biolink:PhysicalEntity`, so the override is an intentional pin (see
+  - `T168` "Food" → `biolink:Food` ([#421]; no STY mapping in Biolink).
+  - `T072` "Physical Object" and `T073` "Manufactured Object" → `biolink:PhysicalEntity` ([#840]).
+    bmt already maps these to `biolink:PhysicalEntity`, so the override is an intentional pin (see
     `GENERIC_TYPES` below) rather than a correction.
 - **`TYPE_COMBO_OVERRIDES: dict[frozenset[str], str]`** — when a concept resolves to more than one
   Biolink type, pick a single one (e.g. `{Device, Drug} → Drug`).
@@ -131,14 +129,14 @@ The rule writes all UMLS reports to `babel_outputs/reports/umls/`. The human-rea
   data; keep whichever ordering suits the question at hand.
 - `duplicate-curies.csv` — UMLS CURIEs that landed in **more than one compendium clique**: either
   across two different compendium files (**cross-file**) or in two distinct cliques of one file with
-  different clique leaders (**within-file**). Both are clique-merge bugs
-  ([#276](https://github.com/NCATSTranslator/Babel/issues/276)). One row per duplicated CURIE:
-  `umls_curie`, `umls_label`, `tui_set`, `tui_set_labels`, `num_compendia`, `num_distinct_cliques`,
-  `duplicate_scope` (`cross-file`/`within-file`/`both`), and an `occurrences` column rendering each
-  landing as `compendium[biolink_type, leader=CURIE, name=...]`. The clique leaders are the key to
-  tracing the cause: they show which two cliques the CURIE was glommed into, so you can work back to
-  the upstream concords that pulled it both ways. The leftover `umls.txt` compendium never appears
-  here because it only claims CURIEs that no other compendium took.
+  different clique leaders (**within-file**). Both are clique-merge bugs ([#276]). One row per
+  duplicated CURIE: `umls_curie`, `umls_label`, `tui_set`, `tui_set_labels`, `num_compendia`,
+  `num_distinct_cliques`, `duplicate_scope` (`cross-file`/`within-file`/`both`), and an
+  `occurrences` column rendering each landing as `compendium[biolink_type, leader=CURIE, name=...]`.
+  The clique leaders are the key to tracing the cause: they show which two cliques the CURIE was
+  glommed into, so you can work back to the upstream concords that pulled it both ways. The leftover
+  `umls.txt` compendium never appears here because it only claims CURIEs that no other compendium
+  took.
 - `unmapped-types.csv` — per semantic type that was unmapped or rejected: status, exact affected
   CUI count, and sample CURIEs.
 - `multi-type-curies.csv` — CURIEs that resolved to multiple Biolink types even after
@@ -171,3 +169,11 @@ So the split is deliberate: **`log.txt` is the complete per-CURIE record, the CS
 counts plus a handful of illustrative examples.** If the samples ever feel like noise, the right
 change is to drop the `sample_curies` columns entirely (the log already has every CURIE), not to
 expand them into full per-bucket CURIE lists held in memory.
+
+[#90]: https://github.com/NCATSTranslator/Babel/issues/90
+[#276]: https://github.com/NCATSTranslator/Babel/issues/276
+[#410]: https://github.com/NCATSTranslator/Babel/issues/410
+[#421]: https://github.com/NCATSTranslator/Babel/issues/421
+[#569]: https://github.com/NCATSTranslator/Babel/issues/569
+[#579]: https://github.com/NCATSTranslator/Babel/issues/579
+[#840]: https://github.com/NCATSTranslator/Babel/issues/840
