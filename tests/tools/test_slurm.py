@@ -327,3 +327,50 @@ def test_print_job_summary_buckets_completed_failed_and_incomplete(tmp_path, cap
     assert "Prior failure (SLURM jobid 300)" in out  # the e70afd0a (group, running) restructure
     assert "Found 1 completed rule(s): done_rule" in out
     assert "Found 1 failed job(s) across 1 rule(s): dead_rule" in out
+
+
+# --- parse.parse_failures: (rule_name, log_path) extraction ------------------
+
+
+def test_parse_failures_extracts_rule_and_log_path(tmp_path):
+    """parse_failures() returns (rule_name, log_path) pairs from the sbatch .err log,
+    grouping each 'Error in rule X:' header with the nearest 'log: ...' line that follows it."""
+    err = tmp_path / "sbatch-test.err"
+    err.write_text(
+        "Error in rule get_HMDB:\n"
+        "    log: /remote/babel_outputs/logs/rule_get_HMDB/672.log (check log file(s) for error details)\n"
+        "Error in rule anatomy_compendia:\n"
+        "    log: /remote/babel_outputs/logs/rule_anatomy_compendia/891.log (check log file(s) for error details)\n"
+        # A bare log: line with no preceding rule header should be ignored.
+        "    log: /remote/babel_outputs/logs/rule_orphan/1.log\n"
+    )
+    failures = parse.parse_failures(err)
+    assert len(failures) == 2
+    names = [rule for rule, _ in failures]
+    assert names == ["get_HMDB", "anatomy_compendia"]
+    paths = [str(path) for _, path in failures]
+    assert any("rule_get_HMDB/672.log" in p for p in paths)
+    assert any("rule_anatomy_compendia/891.log" in p for p in paths)
+
+
+def test_parse_failures_returns_empty_for_clean_log(tmp_path):
+    err = tmp_path / "sbatch-clean.err"
+    err.write_text("INFO snakemake.logging: All done.\n")
+    assert parse.parse_failures(err) == []
+
+
+# --- parse._parse_ts: UTC-offset normalisation --------------------------------
+
+
+def test_parse_ts_normalises_non_utc_offsets():
+    """_parse_ts must handle non-UTC offsets like -0400 and +0530, not just +0000."""
+    from tools.slurm.parse import _parse_ts
+
+    dt_utc = _parse_ts("2026-06-04T05:00:00+0000")
+    assert dt_utc.utcoffset().total_seconds() == 0
+
+    dt_neg = _parse_ts("2026-06-04T05:00:00-0400")
+    assert dt_neg.utcoffset().total_seconds() == -4 * 3600
+
+    dt_pos = _parse_ts("2026-06-04T05:00:00+0530")
+    assert dt_pos.utcoffset().total_seconds() == 5.5 * 3600
