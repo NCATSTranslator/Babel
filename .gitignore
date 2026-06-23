@@ -8,3 +8,4 @@ babel_outputs/
 .env
 .idea
 htmlcov/
+data/

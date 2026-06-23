@@ -5,6 +5,8 @@ repository.
 
 ## Project Overview
 
+GitHub repository: <https://github.com/NCATSTranslator/Babel>
+
 Babel is the Biomedical Data Translator's identifier normalization system. It creates "cliques" —
 equivalence sets of identifiers across biomedical vocabularies (e.g., recognizing that MESH:D014867
 and DRUGBANK:DB09145 both refer to water). Output is consumed by Node Normalization and Name

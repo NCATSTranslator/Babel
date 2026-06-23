@@ -138,6 +138,7 @@ rule process_compendia:
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["process_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["process_outputs"])),
+        expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["process_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/process_compendia.tsv"
     run:

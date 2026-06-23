@@ -151,6 +151,7 @@ rule protein_compendia:
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["protein_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["protein_outputs"])),
+        expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["protein_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/protein_compendia.tsv"
     resources:

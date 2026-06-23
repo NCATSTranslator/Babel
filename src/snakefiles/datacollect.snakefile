@@ -535,14 +535,15 @@ rule get_omim_labels:
     input:
         infile=rules.get_omim.output.outfile,
     output:
-        outfile=config["download_directory"] + "/OMIM/labels",
+        labels=config["download_directory"] + "/OMIM/labels",
+        synonyms=config["download_directory"] + "/OMIM/synonyms",
     benchmark:
         config["output_directory"] + "/benchmarks/get_omim_labels.tsv"
     resources:
         mem="1G",
         cpus_per_task=1,
     run:
-        omim.pull_omim_labels(input.infile, output.outfile)
+        omim.pull_omim_labels(input.infile, output.labels, output.synonyms)
 
 
 ### NCIT

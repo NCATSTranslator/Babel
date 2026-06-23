@@ -88,6 +88,7 @@ rule generate_pubmed_compendia:
         publication_compendium=config["output_directory"] + "/compendia/Publication.txt",
         # We generate an empty Publication Synonyms files, but we still need to generate one.
         publication_synonyms_gz=config["output_directory"] + "/synonyms/Publication.txt.gz",
+        publication_metadata_yaml=config["output_directory"] + "/metadata/Publication.txt.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/generate_pubmed_compendia.tsv"
     resources:
