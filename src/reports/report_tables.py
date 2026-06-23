@@ -123,7 +123,9 @@ def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str)
         if "_totals" not in filename_entries:
             raise ValueError(f"No totals entry for prefix {prefix}!")
 
-        sorted_entries = sorted(filename_entries.items(), key=lambda x: x[1]["approx_curie_distinct_count"], reverse=True)
+        sorted_entries = sorted(
+            filename_entries.items(), key=lambda x: x[1]["approx_curie_distinct_count"], reverse=True
+        )
         filename_rows = []
         for filename, entry in sorted_entries:
             if filename == "_totals":
@@ -273,7 +275,9 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                     "Description": "",
                     "Biolink Types": filename,
                     "Number of CURIEs": "{:,}".format(clique_leader_entries[filename]["curie_count"]),
-                    "Number of approx distinct CURIEs": "{:,}".format(clique_leader_entries[filename]["approx_distinct_curie_count"]),
+                    "Number of approx distinct CURIEs": "{:,}".format(
+                        clique_leader_entries[filename]["approx_distinct_curie_count"]
+                    ),
                     "Clique leader prefixes": clique_leader_entries[filename]["clique_leader_prefixes"],
                     "CURIE prefixes": clique_leader_entries[filename]["curie_prefixes"],
                 }
