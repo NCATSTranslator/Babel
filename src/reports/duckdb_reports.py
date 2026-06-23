@@ -202,8 +202,8 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
                 curie_prefix,
                 biolink_type,
                 COUNT(curie) AS curie_count,
-                approx_count_distinct(curie) AS curie_distinct_count,
-                approx_count_distinct(clique_leader) AS clique_distinct_count
+                approx_count_distinct(curie) AS approx_curie_distinct_count,
+                approx_count_distinct(clique_leader) AS approx_clique_distinct_count
             FROM edges
             WHERE conflation = 'None'
             GROUP BY curie_prefix, biolink_type
@@ -218,8 +218,8 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
     for row in sorted_rows:
         by_curie_prefix_results[row[0]][row[1]] = {
             "curie_count": row[2],
-            "curie_distinct_count": row[3],
-            "clique_distinct_count": row[4],
+            "approx_curie_distinct_count": row[3],
+            "approx_clique_distinct_count": row[4],
         }
 
     # Step 1. Generate a prefix total report. Same approx_count_distinct approach as Step 2,
@@ -230,8 +230,8 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
                                      SELECT
                                          curie_prefix,
                                          COUNT(curie) AS curie_count,
-                                         approx_count_distinct(curie) AS curie_distinct_count,
-                                         approx_count_distinct(clique_leader) AS clique_distinct_count
+                                         approx_count_distinct(curie) AS approx_curie_distinct_count,
+                                         approx_count_distinct(clique_leader) AS approx_clique_distinct_count
                                      FROM
                                          edges
                                      WHERE
@@ -245,8 +245,8 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
     for row in prefix_totals_report:
         prefix_totals_report_by_curie_prefix[row[0]] = {
             "curie_count": row[1],
-            "curie_distinct_count": row[2],
-            "clique_distinct_count": row[3],
+            "approx_curie_distinct_count": row[2],
+            "approx_clique_distinct_count": row[3],
         }
     logger.info("Done retrieving prefix totals report.")
 
@@ -291,8 +291,8 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
         cliques = db.sql("""
             SELECT
                 filename,
-                approx_count_distinct(clique_leader) AS distinct_clique_count,
-                approx_count_distinct(curie) AS distinct_curie_count,
+                approx_count_distinct(clique_leader) AS approx_distinct_clique_count,
+                approx_count_distinct(curie) AS approx_distinct_curie_count,
                 COUNT(curie) AS curie_count
             FROM
                 edges
@@ -306,8 +306,8 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
     clique_totals_by_curie_prefix = defaultdict(dict)
     for row in clique_totals:
         clique_totals_by_curie_prefix[row[0]] = {
-            "distinct_clique_count": row[1],
-            "distinct_curie_count": row[2],
+            "approx_distinct_clique_count": row[1],
+            "approx_distinct_curie_count": row[2],
             "curie_count": row[3],
         }
     logger.info("Done retrieving results.")
@@ -322,7 +322,7 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
                 filename,
                 clique_leader_prefix,
                 curie_prefix,
-                approx_count_distinct(curie) AS distinct_curie_count,
+                approx_count_distinct(curie) AS approx_distinct_curie_count,
                 COUNT(curie) AS curie_count
             FROM
                 edges
@@ -346,7 +346,7 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
             clique_leaders_by_filename[filename] = defaultdict(dict)
 
         clique_leaders_by_filename[filename][clique_leader_prefix][curie_prefix] = {
-            "distinct_curie_count": row[3],
+            "approx_distinct_curie_count": row[3],
             "curie_count": row[4],
         }
 

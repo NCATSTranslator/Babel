@@ -162,16 +162,16 @@ def test_generate_curie_report_totals(parquet_root, tmp_path):
     with open(out) as f:
         report = json.load(f)
 
-    # curie_count counts every edge; *_distinct_count de-duplicates curie / clique_leader.
+    # curie_count counts every edge; approx_*_distinct_count de-duplicates curie / clique_leader.
     assert report["CHEBI"]["_totals"] == {
         "curie_count": 2,
-        "curie_distinct_count": 1,
-        "clique_distinct_count": 1,
+        "approx_curie_distinct_count": 1,
+        "approx_clique_distinct_count": 1,
     }
     assert report["MESH"]["_totals"] == {
         "curie_count": 2,
-        "curie_distinct_count": 1,
-        "clique_distinct_count": 2,
+        "approx_curie_distinct_count": 1,
+        "approx_clique_distinct_count": 2,
     }
 
 
@@ -188,20 +188,20 @@ def test_generate_curie_report_by_biolink_type(parquet_root, tmp_path):
     # CHEBI:1 sits in clique A under both SmallMolecule (Foo) and ChemicalEntity (Bar).
     assert report["CHEBI"]["biolink:SmallMolecule"] == {
         "curie_count": 1,
-        "curie_distinct_count": 1,
-        "clique_distinct_count": 1,
+        "approx_curie_distinct_count": 1,
+        "approx_clique_distinct_count": 1,
     }
     assert report["CHEBI"]["biolink:ChemicalEntity"] == {
         "curie_count": 1,
-        "curie_distinct_count": 1,
-        "clique_distinct_count": 1,
+        "approx_curie_distinct_count": 1,
+        "approx_clique_distinct_count": 1,
     }
     # MESH:1 is SmallMolecule in clique A (Foo) and Drug in clique C (Bar).
     assert set(report["MESH"]) == {"biolink:SmallMolecule", "biolink:Drug", "_totals"}
     assert report["MESH"]["biolink:Drug"] == {
         "curie_count": 1,
-        "curie_distinct_count": 1,
-        "clique_distinct_count": 1,
+        "approx_curie_distinct_count": 1,
+        "approx_clique_distinct_count": 1,
     }
 
 
@@ -216,12 +216,12 @@ def test_generate_clique_leaders_report_totals(parquet_root, tmp_path):
 
     # Foo's two None-edges sit in one clique (A); Bar's two span cliques A and C.
     assert report["Foo"]["_totals"] == {
-        "distinct_clique_count": 1,
-        "distinct_curie_count": 2,
+        "approx_distinct_clique_count": 1,
+        "approx_distinct_curie_count": 2,
         "curie_count": 2,
     }
     assert report["Bar"]["_totals"] == {
-        "distinct_clique_count": 2,
-        "distinct_curie_count": 2,
+        "approx_distinct_clique_count": 2,
+        "approx_distinct_curie_count": 2,
         "curie_count": 2,
     }
