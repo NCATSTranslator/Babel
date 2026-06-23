@@ -374,7 +374,7 @@ def get_biolink_model_toolkit(biolink_version):
     Return a BMT Toolkit object for the specified Biolink Model version.
 
     The model YAML is fetched from GitHub on first use. Pass the version string from
-    config.yaml (``biolink_version`` key, e.g. ``"4.3.6"`` or a 40-character commit SHA).
+    config.yaml (``biolink_version`` key, e.g. ``"4.3.6"`` or a Git commit SHA).
     Do not include the leading ``v`` for version numbers; it is prepended automatically.
     Always use mapped class URIs from the returned toolkit
     (e.g. ``get_element(x)["class_uri"]`` → ``"biolink:ChemicalEntity"``), not raw
