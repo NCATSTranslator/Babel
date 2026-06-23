@@ -14,11 +14,13 @@ uv run babel-slurm-errors <version> --markdown     # failure triage during a run
 uv run babel-slurm-resources <run-dir>             # capacity tuning between runs
 ```
 
-- **`errors`** aggregates the logs of failing rules from a stalled or failed run into one
-  copy-pasteable report, and prints a completed / failed / still-running job summary, so you can
-  see which rules to re-run. It is the successor to the former `tools/babel-errors.py` script and
-  is invoked automatically by [`slurm/run-babel-on-slurm.sh`](../slurm/run-babel-on-slurm.sh) when
-  a run exits non-zero. See [tools/Errors.md](tools/Errors.md).
+- **`errors`** aggregates the logs of failing rules into one copy-pasteable report and prints a
+  completed / failed / still-running job summary. Run it on a loop during an active cluster job to
+  catch failures early and feed them to a coding agent while the rest of the DAG keeps running; it
+  is also invoked automatically by
+  [`slurm/run-babel-on-slurm.sh`](../slurm/run-babel-on-slurm.sh) when a run exits non-zero. It
+  is the successor to the former `tools/babel-errors.py` script. See
+  [tools/Errors.md](tools/Errors.md).
 - **`resources`** joins each rule's *actual* usage (Snakemake `benchmark:` TSVs) against its
   *requested* resources and recommends right-sized `mem`/`cpus`, flagging the rules that would need
   an explicit override before the cluster-wide default can be lowered. See

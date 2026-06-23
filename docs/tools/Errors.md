@@ -5,6 +5,22 @@ control-node log and one per-rule log per failing job. This subcommand gathers a
 single report so you can paste it somewhere (a code review tool, an issue, a chat) and decide which
 rules to re-run.
 
+## Two workflows
+
+**During an ongoing run — poll for status and act on failures early.**
+Run `babel-slurm-errors` on a loop while the cluster job is still running. The stderr summary tells
+you at a glance which rules have finished, which are still in flight, and which have already failed
+(with elapsed vs. timeout). The stdout report gives you the full log for each failure, formatted for
+pasting directly into a coding agent. You can hand a failure off to the agent to diagnose and fix
+while the rest of the DAG continues running on the cluster — failures that are code bugs get a fix
+in flight; failures that are transient (HTTP 503s, OOM) you can queue for a re-run at the end.
+
+**After a run completes or stalls — triage before re-running.**
+`slurm/run-babel-on-slurm.sh` generates this report automatically into
+`babel_outputs/logs/error-report-<version>.md` when Snakemake exits non-zero, so the report is
+already waiting when you log back in. Use it to decide which rules need a code fix vs. a simple
+re-run, and to confirm nothing was left silently broken.
+
 ```bash
 uv run babel-slurm-errors <version> [--logs-dir DIR] [--markdown] [--traceback-only] [--lines N]
 ```
