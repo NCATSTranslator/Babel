@@ -516,6 +516,13 @@ def write_leftover_umls(
         multi_type_counts: dict[frozenset, int] = defaultdict(int)
         multi_type_samples: dict[frozenset, list] = defaultdict(list)
 
+        # UMLS CURIEs with no MRSTY entry -- typed as NAMED_THING as a fallback. Maps each CURIE to
+        # the set of MRCONSO source abbreviations (SAB) seen for it, as a traceability aid: CURIEs that
+        # appear in no MRSTY row are often from older or superseded UMLS releases, so knowing which
+        # vocabularies reference them helps trace where they originated.
+        no_mrsty_curie_sources: dict[str, set[str]] = {}
+        no_mrsty_curie_label: dict[str, str] = {}
+
         with open(mrconso) as inf:
             for line in inf:
                 if not umls.check_mrconso_line(line):
@@ -524,8 +531,13 @@ def write_leftover_umls(
                 x = line.strip().split("|")
                 cui = x[0]
                 umls_id = f"{UMLS}:{cui}"
+                sab = x[11]
                 if umls_id in umls_ids_in_other_compendia:
                     logger.debug(f"UMLS ID {umls_id} is in another compendium, skipping.")
+                    continue
+                if umls_id in no_mrsty_curie_sources:
+                    # Already typed as NAMED_THING on a prior MRCONSO row; just accumulate the SAB.
+                    no_mrsty_curie_sources[umls_id].add(sab)
                     continue
                 if umls_id in umls_ids_in_this_compendium:
                     logger.debug(f"UMLS ID {umls_id} has already been included in this compendium, skipping.")
@@ -549,6 +561,8 @@ def write_leftover_umls(
                     # Concept has no MRSTY entry: no semantic type annotation. Fall back to NAMED_THING
                     # rather than treating the absence as an unmapped or rejected TUI.
                     mapped_types.add(NAMED_THING)
+                    no_mrsty_curie_sources[umls_id] = {sab}
+                    no_mrsty_curie_label[umls_id] = label
                 else:
                     for tui in tuis_for_id.keys():
                         if tui in STY_OVERRIDES:
@@ -644,6 +658,12 @@ def write_leftover_umls(
         reportf.write(
             f"COUNT Found {len(curies_no_umls_type)} UMLS IDs without a Biolink type, "
             f"{len(curies_rejected)} deliberately rejected, and {len(curies_multiple_umls_type)} with multiple Biolink types.\n"
+        )
+        logger.info(
+            f"Found {len(no_mrsty_curie_sources)} UMLS IDs with no MRSTY entry, typed as {NAMED_THING} (see no-mrsty-curies.csv)."
+        )
+        reportf.write(
+            f"COUNT Found {len(no_mrsty_curie_sources)} UMLS IDs with no MRSTY entry, typed as {NAMED_THING}.\n"
         )
 
         logger.info(f"Writing {len(leftover_umls_cliques)} leftover UMLS cliques with write_compendium().")
@@ -753,6 +773,17 @@ def write_leftover_umls(
                 writer.writerow(
                     ["|".join(sorted(key)), multi_type_counts[key], _format_samples(multi_type_samples[key])]
                 )
+
+        # UMLS CURIEs with no MRSTY entry, typed as NAMED_THING as a fallback. The `sources` column
+        # lists all MRCONSO SAB abbreviations seen for the CURIE -- useful for tracing which vocabularies
+        # reference it when the UMLS semantic-type index has no entry (often a sign of an outdated release
+        # or a CUI retained for backward compatibility but no longer annotated in MRSTY).
+        with open(report_dir / "no-mrsty-curies.csv", "w", newline="") as csvf:
+            writer = csv.writer(csvf)
+            writer.writerow(["umls_curie", "label", "biolink_type", "source_count", "sources"])
+            for curie in sorted(no_mrsty_curie_sources.keys()):
+                sources = sorted(no_mrsty_curie_sources[curie])
+                writer.writerow([curie, no_mrsty_curie_label.get(curie, ""), NAMED_THING, len(sources), "|".join(sources)])
 
         # UMLS CURIEs that landed in more than one compendium clique -- either across two compendium
         # files (cross-file) or in two distinct cliques of one file (within-file). Both are glom/merge

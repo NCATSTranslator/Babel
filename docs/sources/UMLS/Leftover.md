@@ -141,6 +141,11 @@ The rule writes all UMLS reports to `babel_outputs/reports/umls/`. The human-rea
   CUI count, and sample CURIEs.
 - `multi-type-curies.csv` — CURIEs that resolved to multiple Biolink types even after
   `TYPE_COMBO_OVERRIDES`: the type combo, exact count, and sample CURIEs.
+- `no-mrsty-curies.csv` — CURIEs that had **no entry in `MRSTY.RRF`** and were therefore typed as
+  `biolink:NamedThing` as a fallback. Columns: `umls_curie`, `label`, `biolink_type` (always
+  `biolink:NamedThing`), `source_count`, and `sources` (pipe-joined MRCONSO SAB abbreviations for
+  that CUI). The SAB list shows which vocabularies reference the CURIE even though UMLS carries no
+  semantic-type annotation for it — useful for tracing CUIs from older or superseded releases.
 - `tui-sty.tsv` — the raw STY-code → semantic-type-name dump from `MRSTY.RRF`.
 
 The old `types-coverage.csv` (per Biolink type of the leftover cliques only) has been removed: it is
