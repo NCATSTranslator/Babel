@@ -194,16 +194,17 @@ def pull_via_ftp(ftpsite, ftpdir, ftpfile, decompress_data=False, outfilename=No
         # Stream the compressed file to a temp file rather than buffering it all in
         # memory with BytesIO+gzip.decompress — the old approach needed ~2× the
         # uncompressed size in RAM (e.g. ~35+ GB for ChEMBL's 17 GB TTL).
-        odir = os.path.abspath(os.path.dirname(ofilename))
-        with tempfile.NamedTemporaryFile(delete=False, dir=odir, suffix=".gz") as tmp:
-            tmp_path = tmp.name
-            ftp.retrbinary(f"RETR {ftpfile}", tmp.write)
-            ftp.quit()
+        tmp_path = None  # set before try so finally can always check it
         try:
+            with tempfile.NamedTemporaryFile(delete=False, dir=odir, suffix=".gz") as tmp:
+                tmp_path = tmp.name
+                ftp.retrbinary(f"RETR {ftpfile}", tmp.write)
+                ftp.quit()
             with gzip.open(tmp_path, "rt") as gz_in, open(ofilename, "w") as ofile:
                 shutil.copyfileobj(gz_in, ofile)
         finally:
-            os.unlink(tmp_path)
+            if tmp_path is not None and os.path.exists(tmp_path):
+                os.unlink(tmp_path)
     return ofilename
 
 
@@ -306,6 +307,7 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
 
     download_url = url + in_file_name
     logger.info(f"Downloading {download_url}")
+    user_agent = get_user_agent()
 
     # create the compressed file
     download_verified = False
@@ -322,9 +324,8 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
         # Open a fresh connection on each attempt so a truncated response doesn't
         # leave us reading from an exhausted handle on the next retry.
         try:
-            req = urllib.request.Request(download_url, headers={"User-Agent": get_user_agent()})
-            handle = opener.open(req)
-            with open(dl_file_name, "wb") as compressed_file:
+            req = urllib.request.Request(download_url, headers={"User-Agent": user_agent})
+            with opener.open(req) as handle, open(dl_file_name, "wb") as compressed_file:
                 # while there is data
                 while True:
                     # read a block of data
@@ -437,6 +438,8 @@ def pull_via_wget(
     else:
         dl_file_name = os.path.join(download_dir, in_file_name)
 
+    os.makedirs(os.path.dirname(os.path.abspath(dl_file_name)), exist_ok=True)
+
     # Prepare wget options.
     wget_command_line = [
         "wget",
@@ -449,7 +452,7 @@ def pull_via_wget(
     if retries > 0:
         wget_command_line.append(f"--tries={retries}")
     if connect_timeout > 0:
-        wget_command_line.append(f"--timeout={connect_timeout}")
+        wget_command_line.append(f"--connect-timeout={connect_timeout}")
     if read_timeout > 0:
         wget_command_line.append(f"--read-timeout={read_timeout}")
 
@@ -505,13 +508,12 @@ def pull_via_wget(
                     raise RuntimeError(
                         f"Downloaded Gzip file {dl_file_name} is too small ({file_size} bytes) to be valid."
                     )
-                try:
-                    with gzip.open(dl_file_name, "rb") as f:
-                        for _ in iter(lambda: f.read(1024 * 1024), b""):
-                            pass
-                    logger.info(f"Verified {dl_file_name} as a valid Gzip file.")
-                except Exception as e:
-                    raise RuntimeError(f"Downloaded Gzip file {dl_file_name} failed verification: {e}") from e
+                result = subprocess.run(["gzip", "-t", dl_file_name], capture_output=True, text=True)
+                if result.returncode != 0:
+                    raise RuntimeError(
+                        f"Downloaded Gzip file {dl_file_name} failed verification: {result.stderr.strip()}"
+                    )
+                logger.info(f"Verified {dl_file_name} as a valid Gzip file.")
         elif os.path.isdir(dl_file_name):
             # Count the number of files in directory dl_file_name
             dir_size = sum(

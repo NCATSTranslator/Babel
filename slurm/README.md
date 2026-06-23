@@ -77,19 +77,26 @@ babel_outputs/benchmarks/uncompress_synonym_file_<synonym_file>.tsv
 `max_rss` is the most useful column for right-sizing SLURM memory allocations. Add ~20–30%
 headroom over `max_rss` when setting `mem:` for a rule.
 
-## SLURM Efficiency CSV
+## SLURM Efficiency Report
 
-In addition to per-rule benchmarks, the SLURM executor writes a cumulative CSV at:
+In addition to per-rule benchmarks, the SLURM executor writes an efficiency report at:
 
 ```text
-babel_outputs/reports/slurm/slurm_efficiency_report.csv
+babel_outputs/reports/slurm/slurm_efficiency_reports
 ```
 
-This captures SLURM-level efficiency metrics (CPU efficiency, memory efficiency) per job,
-complementing the Snakemake benchmark TSVs. The two sources measure slightly different things:
+This is a *directory*, not a file: the executor appends a fresh `efficiency_report_<uuid>.csv`
+shard on every Snakemake (re)start, each covering only that invocation's jobs. It captures
+SLURM-level efficiency metrics (CPU efficiency, memory efficiency) per job, complementing the
+Snakemake benchmark TSVs. The two sources measure slightly different things:
 
 - **Benchmark TSVs** — measured by Snakemake inside the job; independent of SLURM accounting
-- **Efficiency CSV** — reported by SLURM's `sacct`; includes job-scheduling overhead
+- **Efficiency report** — reported by SLURM's `sacct`; includes job-scheduling overhead. On
+  Hatteras its `MaxRSS`/`TotalCPU` columns come back empty (the `jobacct_gather`/cgroup accounting
+  isn't capturing them), so the benchmark TSVs are authoritative for actual usage.
+
+The `tools/slurm resources` subcommand reads and merges all shards in this directory; see
+[`../docs/tools/Resources.md`](../docs/tools/Resources.md).
 
 ## Known Resource Hotspots
 
@@ -204,7 +211,8 @@ as:
   rewrite the query, or shrink the working set.
 - **cgroup current well below the limit but a small allocation fails** → an address-space limit, not
   a RAM shortage. Check the address-space line: `mappings` near `max_map_count` (mmap exhaustion —
-  for the report rules this was DuckDB's external file cache; disable it, or have the cluster raise
+  the source for the report rules was DuckDB's **buffer-pool allocations**, not the external file
+  cache; lower `memory_limit` to cap the mapping count, or have the cluster raise
   `vm.max_map_count`), `VmSize` near `RLIMIT_AS` (an address-space ulimit), or `Committed_AS` near
   `CommitLimit` with `overcommit_memory=2` (strict node-level overcommit). Adding `mem=` does not
   help any of these.
@@ -303,7 +311,11 @@ The following improvements are tracked here for visibility but not yet implement
 
 - **Per-rule resource tuning**: After collecting benchmark data from a full run, add explicit
   `resources:` to every rule based on observed `max_rss + 30% headroom`. This will greatly reduce
-  wasted SLURM allocations across the ~100+ rules currently defaulting to 64G/4-CPU.
+  wasted SLURM allocations across the ~100+ rules currently defaulting to 64G/4-CPU. The
+  `tools/slurm resources` subcommand automates the measurement and recommends per-rule sizes from a
+  run's benchmark TSVs (see [`../docs/tools/Resources.md`](../docs/tools/Resources.md)). Applying
+  the recommendations — the `slurm/config.yaml` default and the per-rule overrides — is tracked
+  separately.
 
 - **`--local-cores N` flag**: Use this to limit the number of CPUs consumed by local rules
   when running on a shared login node.

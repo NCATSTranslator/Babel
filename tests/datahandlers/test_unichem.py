@@ -1,6 +1,6 @@
 """Network tests for the UniChem download.
 
-These verify that the UniChem FTP mirror URLs are reachable with the User-Agent
+These verify that the UniChem HTTP mirror URLs are reachable with the User-Agent
 Babel sends, that each file is a valid gzip archive, and that the reference file
 header matches the constant in unichem.py.
 Run with: uv run pytest --network tests/datahandlers/test_unichem.py
@@ -10,6 +10,7 @@ import gzip
 import io
 import urllib.error
 import urllib.request
+import zlib
 
 import pytest
 
@@ -46,8 +47,6 @@ def test_unichem_url_accessible_with_user_agent(filename):
     try:
         # wbits=47 tells zlib to accept gzip format; partial streams raise EOFError,
         # which we allow — we only care that the header and first block are valid.
-        import zlib
-
         d = zlib.decompressobj(wbits=47)
         d.decompress(raw)
     except zlib.error as exc:
@@ -72,13 +71,15 @@ def test_unichem_reference_header_matches_expected():
 
     assert raw[:2] == b"\x1f\x8b", "reference.tsv.gz does not look like a gzip file"
 
+    header = ""
     try:
         with gzip.open(io.BytesIO(raw), "rt") as gz:
             header = gz.readline()
     except EOFError:
-        # Partial gzip stream at end of chunk is expected; we already got the header
-        # by this point since readline() returned before raising.
-        pass
+        # A partial gzip stream at the end of the chunk is expected. readline() may have
+        # already populated `header` before the stream ended; if it didn't, fail loudly.
+        if not header:
+            pytest.fail("reference.tsv.gz: gzip stream ended before a complete header line could be read")
     except Exception as exc:
         pytest.fail(f"Could not decompress initial chunk of reference.tsv.gz: {exc}")
 

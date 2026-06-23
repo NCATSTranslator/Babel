@@ -14,11 +14,9 @@ import pytest
 
 import src.datahandlers.pantherfamily as pantherfamily
 from src.babel_utils import get_user_agent
-from src.datahandlers.pantherfamily import FTP_FILE, FTP_HOST, HTTP_BASE
+from src.datahandlers.pantherfamily import FTP_DIR, FTP_FILE, FTP_HOST, HTTP_BASE
 
 pytestmark = [pytest.mark.network]
-
-FTP_DIR = "/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/"
 
 
 def test_panther_ftp_accessible():

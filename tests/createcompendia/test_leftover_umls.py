@@ -8,11 +8,12 @@ These are marked ``network`` because they build a Biolink Model Toolkit, which f
 
 import pytest
 
-from src.categories import ACTIVITY, COHORT, PHENOMENON, PHYSICAL_ENTITY
+from src.categories import ACTIVITY, COHORT, DRUG, PHENOMENON, PHYSICAL_ENTITY
 from src.createcompendia.leftover_umls import (
     STY_OVERRIDES,
     TYPE_COMBO_OVERRIDES,
     DuplicateUmlsTracker,
+    apply_generic_demotion,
     summarize_compendium_umls_by_semantic_type,
     tui_to_biolink_type,
     writable_output_types,
@@ -70,10 +71,16 @@ def test_sty_overrides_have_not_drifted():
         baseline = RECORDED_STY_BASELINE[tui]
         if tui in INTENTIONAL_BIOLINK_PINS:
             # We deliberately pin these to the Biolink value, so "override == live mapping" is
-            # expected, not redundant. Only check that Biolink hasn't drifted from the baseline.
+            # expected, not redundant. Check both that Biolink hasn't drifted from the baseline
+            # and that the override itself still matches the baseline (guards against accidental
+            # changes to STY_OVERRIDES that would silently break the pin).
             assert current == baseline, (
                 f"Biolink STY:{tui} now maps to {current!r}, but the recorded baseline is {baseline!r}. "
                 f"Re-review the intentional pin (currently {override!r}) and update RECORDED_STY_BASELINE."
+            )
+            assert override == baseline, (
+                f"STY_OVERRIDES[{tui!r}] is {override!r} but an intentional pin must match the Biolink "
+                f"baseline {baseline!r}. Restore the override or remove {tui!r} from INTENTIONAL_BIOLINK_PINS."
             )
             continue
         if current == override:
@@ -100,6 +107,25 @@ def test_type_combo_overrides_reference_real_biolink_classes():
         assert toolkit.get_element(biolink_type) is not None, (
             f"{biolink_type} is not a class in Biolink {BIOLINK_VERSION}"
         )
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "input_types, expected",
+    [
+        # Generic type alongside a specific type: generic is dropped.
+        ({PHYSICAL_ENTITY, DRUG}, {DRUG}),
+        # Generic type alone: kept as-is (no specific co-type to prefer).
+        ({PHYSICAL_ENTITY}, {PHYSICAL_ENTITY}),
+        # Two non-generic types: demotion does not fire.
+        ({DRUG, PHENOMENON}, {DRUG, PHENOMENON}),
+        # Single non-generic type: unchanged.
+        ({DRUG}, {DRUG}),
+    ],
+)
+def test_generic_types_demotion(input_types, expected):
+    """GENERIC_TYPES are dropped when a more specific co-type is present; kept when alone."""
+    assert apply_generic_demotion(input_types) == expected
 
 
 @pytest.mark.network

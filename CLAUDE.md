@@ -74,7 +74,8 @@ uv run rumdl fmt .                       # Markdown auto-fix
 
 ### Configuration
 
-- Line length is 160 for both Python (ruff) and Snakemake (snakefmt).
+- Line length is 120 for both Python (ruff) and Snakemake (snakefmt). Markdown (`rumdl`, rule
+  `MD013`) wraps at 100 instead, though tables are exempt.
 - Main config: `config.yaml` (directory paths, version strings, prefix lists per semantic type).
 - `UMLS_API_KEY` environment variable required for UMLS/RxNorm downloads.
 - `compendium_directories` in `config.yaml` maps Python compendium names to the Snakemake
@@ -239,6 +240,20 @@ a rule that produces intermediate files, it might be easier to download the inte
 high performance cluster) so you don't need to download all the source files and
 rerun the entire pipeline. You can look at the resource requirements of a rule to decide which
 option would be best.
+
+### Analyzing a SLURM run (`tools/slurm`)
+
+`tools/slurm` analyzes a (possibly partial) Snakemake-on-SLURM run; see `docs/tools/README.md` and
+the per-tool pages under `docs/tools/`. `uv run babel-slurm-errors <version>` (the successor to the
+old `tools/babel-errors.py`) aggregates failing-rule logs and prints a
+completed/failed/still-running job summary, to decide what to re-run.
+`uv run babel-slurm-resources <run-dir>` joins actual usage (the `benchmark:` TSVs — authoritative,
+since Hatteras `sacct` reports empty `MaxRSS`/`TotalCPU`) against requested resources and recommends
+right-sized `mem`/`cpus`, flagging rules that need an explicit override before the cluster default
+can be lowered. Both subcommands share `tools/slurm/parse.py`. Note that
+`reports/slurm/slurm_efficiency_reports/` is a *directory* that accumulates one
+`efficiency_report_<uuid>.csv` shard per Snakemake restart (each covering only that invocation's
+jobs); the analyzer merges them all, so copy the whole directory when archiving a run.
 
 ## Conventions
 

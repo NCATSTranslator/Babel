@@ -240,34 +240,34 @@ def build_rxnorm_relationships(conso, relfile, outfile, metadata_yaml):
             x = line.strip().split("|")
             # UMLS always has the CUI in it, while RXNORM does not.
             if outfile == "UMLS":
-                object = x[0]
-                subject = x[4]
+                object_cui = x[0]
+                subject_cui = x[4]
             else:
-                object = get_cui(x, 2, 0, 1, aui_to_cui, sdui_to_cui)
-                subject = get_cui(x, 6, 4, 5, aui_to_cui, sdui_to_cui)
-            if (subject is not None) and (object is not None):
-                if subject == object:
+                object_cui = get_cui(x, 2, 0, 1, aui_to_cui, sdui_to_cui)
+                subject_cui = get_cui(x, 6, 4, 5, aui_to_cui, sdui_to_cui)
+            if (subject_cui is not None) and (object_cui is not None):
+                if subject_cui == object_cui:
                     continue
                 predicate = x[7]
                 if predicate in single_use_relations:
-                    single_use_relations[predicate][subject].add(object)
+                    single_use_relations[predicate][subject_cui].add(object_cui)
                 elif predicate in one_to_one_relations:
-                    one_to_one_relations[predicate]["subject"][subject].add(object)
-                    one_to_one_relations[predicate]["object"][object].add(subject)
+                    one_to_one_relations[predicate]["subject"][subject_cui].add(object_cui)
+                    one_to_one_relations[predicate]["object"][object_cui].add(subject_cui)
                 else:
-                    outf.write(f"{prefix}:{subject}\t{predicate}\t{prefix}:{object}\n")
+                    outf.write(f"{prefix}:{subject_cui}\t{predicate}\t{prefix}:{object_cui}\n")
         for predicate in single_use_relations:
-            for subject, objects in single_use_relations[predicate].items():
+            for subject_cui, objects in single_use_relations[predicate].items():
                 if len(objects) > 1:
                     continue
-                outf.write(f"{prefix}:{subject}\t{predicate}\t{prefix}:{next(iter(objects))}\n")
+                outf.write(f"{prefix}:{subject_cui}\t{predicate}\t{prefix}:{next(iter(objects))}\n")
         for predicate in one_to_one_relations:
-            for subject, objects in one_to_one_relations[predicate]["subject"].items():
+            for subject_cui, objects in one_to_one_relations[predicate]["subject"].items():
                 if len(objects) > 1:
                     continue
                 if len(one_to_one_relations[predicate]["object"][next(iter(objects))]) > 1:
                     continue
-                outf.write(f"{prefix}:{subject}\t{predicate}\t{prefix}:{next(iter(objects))}\n")
+                outf.write(f"{prefix}:{subject_cui}\t{predicate}\t{prefix}:{next(iter(objects))}\n")
 
     write_concord_metadata(
         metadata_yaml,
@@ -318,6 +318,58 @@ def build_pubchem_relationships(infile, outfile, metadata_yaml):
     )
 
 
+def _validate_and_apply_manual_concords(
+    manual_concords: list[tuple[str, str]],
+    preferred_curie_for_curie: dict[str, str],
+    pairs: list[tuple[str, str]],
+    manual_concord_filename: str,
+) -> int:
+    """Validate each manual concord pair against the chemical compendia and append passing pairs to *pairs*.
+
+    Both CURIEs in a pair must appear in *preferred_curie_for_curie*; if either is absent a warning is
+    emitted for that CURIE, the whole pair is skipped, and the skip count returned by this function is
+    incremented. When both are absent, a warning is emitted for each before the pair is skipped.
+    Passing CURIEs are normalised to their preferred form before being appended. If both CURIEs normalise
+    to the same preferred CURIE, a warning is emitted and the self-pair is skipped.
+
+    Returns (skipped, applied_curies) where skipped is the number of skipped pairs and applied_curies
+    is the set of preferred CURIEs that were actually added to pairs.
+    """
+    skipped = 0
+    applied_curies: set[str] = set()
+    for subject_curie, object_curie in manual_concords:
+        subject_ok = subject_curie in preferred_curie_for_curie
+        object_ok = object_curie in preferred_curie_for_curie
+        if not subject_ok:
+            logger.warning(
+                f"Manual concord subject {subject_curie} (paired with {object_curie}) is not in any chemical compendium — "
+                f"it may have been reclassified (e.g. as a protein). "
+                f"If so, remove it from {manual_concord_filename}."
+            )
+        if not object_ok:
+            logger.warning(
+                f"Manual concord object {object_curie} (paired with {subject_curie}) is not in any chemical compendium — "
+                f"it may have been reclassified (e.g. as a protein). "
+                f"If so, remove it from {manual_concord_filename}."
+            )
+        if not subject_ok or not object_ok:
+            skipped += 1
+            continue
+        norm_subject = preferred_curie_for_curie[subject_curie]
+        norm_object = preferred_curie_for_curie[object_curie]
+        if norm_subject == norm_object:
+            logger.warning(
+                f"Manual concord pair ({subject_curie}, {object_curie}) normalizes to the same preferred CURIE "
+                f"({norm_subject}); skipping self-pair."
+            )
+            skipped += 1
+            continue
+        pairs.append((norm_subject, norm_object))
+        applied_curies.add(norm_subject)
+        applied_curies.add(norm_object)
+    return skipped, applied_curies
+
+
 def build_conflation(
     manual_concord_filename,
     rxn_concord,
@@ -353,14 +405,16 @@ def build_conflation(
             # We're only interested in two fields, so you can add additional files ('comment', 'notes', etc.) as needed.
             if "subject" not in row or "object" not in row:
                 raise RuntimeError(f"Missing subject or object fields in {manual_concord_filename}: {row}")
-            if row["subject"].strip() == "" or row["object"].strip() == "":
+            subject_curie = row["subject"].strip()
+            object_curie = row["object"].strip()
+            if subject_curie == "" or object_curie == "":
                 raise RuntimeError(f"Empty subject or object fields in {manual_concord_filename}: {row}")
-            manual_concords.append((row["subject"], row["object"]))
+            manual_concords.append((subject_curie, object_curie))
             manual_concords_predicate_counts[row["predicate"]] += 1
-            manual_concords_curies.add(row["subject"])
-            manual_concords_curies.add(row["object"])
+            manual_concords_curies.add(subject_curie)
+            manual_concords_curies.add(object_curie)
 
-            sorted_curies = sorted([row["subject"], row["object"]])
+            sorted_curies = sorted([subject_curie, object_curie])
             prefix_count_label = row["predicate"] + "(" + (" ,".join(sorted_curies)) + ")"
             manual_concords_curie_prefix_counts[prefix_count_label] += 1
     logger.info(f"{len(manual_concords)} manual concords loaded.")
@@ -399,45 +453,32 @@ def build_conflation(
         with open(concfile) as infile:
             for line in infile:
                 x = line.strip().split("\t")
-                subject = x[0]
-                object = x[2]
+                subject_curie = x[0]
+                object_curie = x[2]
 
                 # While we do this, we will also normalize all chemicals to their preferred clique IDs.
-                if subject in drug_rxcui_to_clique and object in chemical_rxcui_to_clique:
-                    subject = drug_rxcui_to_clique[subject]
-                    object = chemical_rxcui_to_clique[object]
-                    pairs.append((subject, object))
-                elif subject in chemical_rxcui_to_clique and object in drug_rxcui_to_clique:
-                    subject = chemical_rxcui_to_clique[subject]
-                    object = drug_rxcui_to_clique[object]
-                    pairs.append((subject, object))
+                if subject_curie in drug_rxcui_to_clique and object_curie in chemical_rxcui_to_clique:
+                    subject_curie = drug_rxcui_to_clique[subject_curie]
+                    object_curie = chemical_rxcui_to_clique[object_curie]
+                    pairs.append((subject_curie, object_curie))
+                elif subject_curie in chemical_rxcui_to_clique and object_curie in drug_rxcui_to_clique:
+                    subject_curie = chemical_rxcui_to_clique[subject_curie]
+                    object_curie = drug_rxcui_to_clique[object_curie]
+                    pairs.append((subject_curie, object_curie))
                 # OK, this is possible, and it's OK, as long as we get real clique leaders
-                elif subject in drug_rxcui_to_clique and object in drug_rxcui_to_clique:
-                    subject = drug_rxcui_to_clique[subject]
-                    object = drug_rxcui_to_clique[object]
-                    pairs.append((subject, object))
-                elif subject in chemical_rxcui_to_clique and object in chemical_rxcui_to_clique:
-                    subject = chemical_rxcui_to_clique[subject]
-                    object = chemical_rxcui_to_clique[object]
-                    pairs.append((subject, object))
+                elif subject_curie in drug_rxcui_to_clique and object_curie in drug_rxcui_to_clique:
+                    subject_curie = drug_rxcui_to_clique[subject_curie]
+                    object_curie = drug_rxcui_to_clique[object_curie]
+                    pairs.append((subject_curie, object_curie))
+                elif subject_curie in chemical_rxcui_to_clique and object_curie in chemical_rxcui_to_clique:
+                    subject_curie = chemical_rxcui_to_clique[subject_curie]
+                    object_curie = chemical_rxcui_to_clique[object_curie]
+                    pairs.append((subject_curie, object_curie))
 
     # Add the manual concords, normalizing CURIEs to their preferred form.
-    for subject, object in manual_concords:
-        if subject not in preferred_curie_for_curie:
-            logger.warning(
-                f"Manual concord subject {subject} (paired with {object}) is not in any chemical compendium — "
-                f"it may have been reclassified (e.g. as a protein). "
-                f"If so, remove it from input_data/manual_concords/drugchemical.tsv."
-            )
-            continue
-        if object not in preferred_curie_for_curie:
-            logger.warning(
-                f"Manual concord object {object} (paired with {subject}) is not in any chemical compendium — "
-                f"it may have been reclassified (e.g. as a protein). "
-                f"If so, remove it from input_data/manual_concords/drugchemical.tsv."
-            )
-            continue
-        pairs.append((preferred_curie_for_curie[subject], preferred_curie_for_curie[object]))
+    manual_concords_skipped, manual_concords_applied_curies = _validate_and_apply_manual_concords(
+        manual_concords, preferred_curie_for_curie, pairs, manual_concord_filename
+    )
 
     # We've had some issues with non-chemical types getting conflated, so we filter those out here.
     biolink_model_toolkit = get_biolink_model_toolkit(config["biolink_version"])
@@ -449,70 +490,73 @@ def build_conflation(
             mixin=True,
         )
     )
-    logging.info(f"Filtering RxCUI pairs to those in these Biolink chemical types: {sorted(biolink_chemical_types)}")
+    logger.info(f"Filtering RxCUI pairs to those in these Biolink chemical types: {sorted(biolink_chemical_types)}")
     with open(pubchem_rxn_concord) as infile:
         for line in infile:
             x = line.strip().split("\t")
-            subject = x[0]
-            object = x[2]
+            subject_curie = x[0]
+            object_curie = x[2]
 
-            if subject in drug_rxcui_to_clique:
-                subject = drug_rxcui_to_clique[subject]
-            elif subject in chemical_rxcui_to_clique:
-                subject = chemical_rxcui_to_clique[subject]
+            if subject_curie in drug_rxcui_to_clique:
+                subject_curie = drug_rxcui_to_clique[subject_curie]
+            elif subject_curie in chemical_rxcui_to_clique:
+                subject_curie = chemical_rxcui_to_clique[subject_curie]
             else:
                 logger.warning(
-                    f"Subject in subject-object pair ({subject}, {object}) isn't mapped to a RxCUI, skipping."
+                    f"Subject in subject-object pair ({subject_curie}, {object_curie}) isn't mapped to a RxCUI, skipping."
                 )
                 continue
-                # raise RuntimeError(f"Unknown identifier in drugchemical conflation as subject: {subject}")
+                # raise RuntimeError(f"Unknown identifier in drugchemical conflation as subject: {subject_curie}")
 
-            if object in drug_rxcui_to_clique:
-                object = drug_rxcui_to_clique[object]
-            elif object in chemical_rxcui_to_clique:
-                object = chemical_rxcui_to_clique[object]
+            if object_curie in drug_rxcui_to_clique:
+                object_curie = drug_rxcui_to_clique[object_curie]
+            elif object_curie in chemical_rxcui_to_clique:
+                object_curie = chemical_rxcui_to_clique[object_curie]
             else:
                 logger.warning(
-                    f"Object in subject-object pair ({subject}, {object}) isn't mapped to a RxCUI, continuing."
+                    f"Object in subject-object pair ({subject_curie}, {object_curie}) isn't mapped to a RxCUI, skipping."
                 )
-                # raise RuntimeError(f"Unknown identifier in drugchemical conflation as object: {object}")
+                # raise RuntimeError(f"Unknown identifier in drugchemical conflation as object: {object_curie}")
+                continue
 
             # Normalize both the subject and object, otherwise skip them.
-            if subject not in preferred_curie_for_curie:
+            if subject_curie not in preferred_curie_for_curie:
                 logger.warning(
-                    f"Subject in subject-object pair ({subject}, {object}) has no preferred CURIE, skipping."
+                    f"Subject in subject-object pair ({subject_curie}, {object_curie}) has no preferred CURIE, skipping."
                 )
                 continue
-            subject = preferred_curie_for_curie[subject]
+            subject_curie = preferred_curie_for_curie[subject_curie]
 
-            if object not in preferred_curie_for_curie:
-                logger.warning(f"Object in subject-object pair ({subject}, {object}) has no preferred CURIE, skipping.")
-                continue
-            object = preferred_curie_for_curie[object]
-
-            if subject == object:
+            if object_curie not in preferred_curie_for_curie:
                 logger.warning(
-                    f"Subject and object in subject-object pair ({subject}, {object}) normalize to the same identifier ({subject}), skipping."
+                    f"Object in subject-object pair ({subject_curie}, {object_curie}) has no preferred CURIE, skipping."
+                )
+                continue
+            object_curie = preferred_curie_for_curie[object_curie]
+
+            if subject_curie == object_curie:
+                logger.warning(
+                    f"Subject and object in subject-object pair ({subject_curie}, {object_curie}) normalize to the same identifier ({subject_curie}), skipping."
                 )
                 continue
 
             # Either the subject or the object might not be a chemical -- for example, MESH:C415772 shows up here,
             # but it's a gene, not a chemical.
-            subject_type = type_for_preferred_curie[subject]
-            if CHEMICAL_ENTITY not in biolink_chemical_types:
+            subject_type = type_for_preferred_curie[subject_curie]
+            if subject_type not in biolink_chemical_types:
                 logger.warning(
-                    f"Subject in subject-object pair ({subject}, {object}) has type {subject_type}, which is is not a chemical type, skipping."
+                    f"Subject in subject-object pair ({subject_curie}, {object_curie}) has type {subject_type}, which is is not a chemical type, skipping."
                 )
                 continue
 
-            object_type = type_for_preferred_curie[object]
-            if CHEMICAL_ENTITY not in biolink_chemical_types:
+            object_type = type_for_preferred_curie[object_curie]
+            if object_type not in biolink_chemical_types:
                 logger.warning(
-                    f"Object in subject-object pair ({subject}, {object}) has type {object_type}, which is is not a chemical type, skipping."
+                    f"Object in subject-object pair ({subject_curie}, {object_curie}) has type {object_type}, which is is not a chemical type, skipping."
                 )
                 continue
 
-            pairs.append((subject, object))
+            pairs.append((subject_curie, object_curie))
 
     # Glommin' time
     logger.info(f"glom: {get_memory_usage_summary()}")
@@ -546,7 +590,7 @@ def build_conflation(
     for i, prefix in enumerate(conflation_prefix_order):
         conflation_prefix_sort_order[prefix] = i
 
-    logging.info(f"Using prefix sort order: {json.dumps(conflation_prefix_sort_order, indent=2)}")
+    logger.info(f"Using prefix sort order: {json.dumps(conflation_prefix_sort_order, indent=2)}")
 
     # Write out all the resulting cliques.
     written = set()
@@ -590,8 +634,10 @@ def build_conflation(
                 if iid not in preferred_curie_for_curie:
                     raise RuntimeError(
                         f"Conflation clique member {iid} (in clique {conflation_id_list}) is not in any chemical "
-                        f"compendium. This usually means a manual concord references a CURIE that isn't in any "
-                        f"compendium — check input_data/manual_concords/drugchemical.tsv for entries containing {iid}."
+                        f"compendium. This is an internal logic error: all CURIEs entering glom() should have been "
+                        f"validated against the compendia beforehand. Check the RXN/UMLS concord processing paths "
+                        f"above, as manual concord entries from {manual_concord_filename} are already validated by "
+                        f"_validate_and_apply_manual_concords."
                     )
                 preferred_curie = preferred_curie_for_curie[iid]
                 if preferred_curie != iid:
@@ -705,7 +751,10 @@ def build_conflation(
                 "filename": manual_concord_filename,
                 "counts": {
                     "count_concords": len(manual_concords),
+                    "count_concords_skipped": manual_concords_skipped,
+                    "count_concords_applied": len(manual_concords) - manual_concords_skipped,
                     "count_distinct_curies": len(manual_concords_curies),
+                    "count_distinct_curies_applied": len(manual_concords_applied_curies),
                     "predicates": dict(manual_concords_predicate_counts),
                     "prefix_counts": dict(manual_concords_curie_prefix_counts),
                 },

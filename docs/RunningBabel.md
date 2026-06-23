@@ -59,6 +59,14 @@ and alternate exports.
 If you have multiple CPUs available, you can increase the number of `--cores` to run multiple steps
 in parallel.
 
+## Analyzing and tuning a SLURM run
+
+When running on the RENCI Hatteras cluster via SLURM, the `tools/slurm` package analyzes a (possibly
+partial) run: `uv run babel-slurm-errors <version>` aggregates failing-rule logs when a run stalls
+so you can see what to re-run, and `uv run babel-slurm-resources <run-dir>` recommends right-sized
+per-rule `mem`/`cpus` from the run's benchmark data. See [tools/README.md](tools/README.md) for the
+full set of developer tools and [slurm/README.md](../slurm/README.md) for the SLURM profile itself.
+
 ## Build Process
 
 The information contained here is not required to create the compendia, but may be useful to
@@ -110,6 +118,20 @@ from the id files, and the labels from the label files.
 Fourth, the compendia is assessed to make sure that all the ids in the id files made into one of the
 possibly multiple compendia. The compendia are further assessed to locate large cliques and display
 the level of vocabulary merging.
+
+## Running on an HPC Cluster (SLURM)
+
+The production Babel runs are executed on Hatteras, an HPC cluster managed by RENCI, using a SLURM
+profile in [`slurm/`](../slurm/). See [`slurm/README.md`](../slurm/README.md) for:
+
+* How to submit the pipeline with `sbatch` and the SLURM profile.
+* Per-rule memory and runtime allocations, including which rules need a largemem node.
+* DuckDB memory tuning: `memory_limit` caps, single-threaded query settings, per-job spill
+  subdirectories, and `write_buffer_row_group_count`.
+* Known issues and their mitigations — notably the `vm.max_map_count` mmap-count limit that causes
+  `bad allocation` failures with plenty of free RAM, what was investigated (`MALLOC_ARENA_MAX=2`,
+  disabling the external file cache) and ruled out, and the `memory_limit` cap that keeps the rules
+  running until the cluster raises the kernel limit.
 
 ## Building with Docker
 

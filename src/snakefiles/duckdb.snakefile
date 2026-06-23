@@ -84,7 +84,8 @@ rule export_synonyms_to_duckdb:
         # don't push total RSS over the job limit. Without this, DuckDB
         # auto-sizes to 75% of *total system* RAM, which can far exceed the
         # SLURM allocation on a multi-tenant HPC node.
-        duckdb_memory_limit_mb = int(resources.mem_mb * 0.75)
+        # resources.mem is a string like "128G" or "512G"; parse to MB.
+        duckdb_memory_limit_mb = int(int(resources.mem.rstrip("G")) * 1024 * 0.75)
         duckdb_exporters.export_synonyms_to_parquet(
             input.synonyms_file,
             output.duckdb_filename,

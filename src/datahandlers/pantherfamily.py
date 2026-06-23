@@ -26,7 +26,7 @@ def pull_pantherfamily():
     try:
         pull_via_ftp(FTP_HOST, FTP_DIR, FTP_FILE, outfilename=outfile)
         return
-    except (ftplib.Error, OSError, EOFError, TimeoutError) as e:
+    except ftplib.all_errors as e:
         logger.warning(f"FTP download from {FTP_HOST} failed ({e}); falling back to HTTP mirror.")
 
     http_url = HTTP_BASE + FTP_FILE

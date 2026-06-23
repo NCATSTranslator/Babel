@@ -14,6 +14,9 @@ from src.babel_utils import WgetRecursionOptions, glom, pull_via_wget, read_iden
 from src.categories import JOURNAL_ARTICLE, PUBLICATION
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import DOI, PMC, PMID
+from src.util import get_logger
+
+logger = get_logger(__name__)
 
 
 def download_pubmed(
@@ -56,7 +59,7 @@ def download_pubmed(
             exc = future.exception()
             if exc:
                 raise RuntimeError(f"Failed to download PubMed/{subdir}: {exc}") from exc
-            logging.info(f"Finished downloading PubMed/{subdir}.")
+            logger.info(f"Finished downloading PubMed/{subdir}.")
 
     # Step 3. Download the PMC/PMID mapping file from PMC.
     # We don't actually use this file -- we currently only use the PMC IDs already included in the PubMed XML files.

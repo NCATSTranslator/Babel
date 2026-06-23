@@ -3,7 +3,8 @@ import os
 from collections import defaultdict
 
 from src import util
-from src.exporters.duckdb_exporters import log_duckdb_settings_on_error, log_memory_snapshot, setup_duckdb
+from src.exporters.duckdb_exporters import log_duckdb_settings_on_error, setup_duckdb
+from src.memory import log_memory_snapshot
 
 logger = util.get_logger(__name__)
 
@@ -159,7 +160,10 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
             ORDER BY d.clique_leader_count DESC
         """).write_csv(duplicate_clique_leaders_tsv, sep="\t")
 
-    cliques.close()
+    log_memory_snapshot(db, "check_for_duplicate_clique_leaders complete")
+    with log_duckdb_settings_on_error(db, "check_for_duplicate_clique_leaders teardown"):
+        cliques.close()
+        db.close()
 
 
 def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duckdb_config=None):
@@ -198,8 +202,8 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
                 curie_prefix,
                 biolink_type,
                 COUNT(curie) AS curie_count,
-                approx_count_distinct(curie) AS curie_distinct_count,
-                approx_count_distinct(clique_leader) AS clique_distinct_count
+                approx_count_distinct(curie) AS approx_curie_distinct_count,
+                approx_count_distinct(clique_leader) AS approx_clique_distinct_count
             FROM edges
             WHERE conflation = 'None'
             GROUP BY curie_prefix, biolink_type
@@ -214,8 +218,8 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
     for row in sorted_rows:
         by_curie_prefix_results[row[0]][row[1]] = {
             "curie_count": row[2],
-            "curie_distinct_count": row[3],
-            "clique_distinct_count": row[4],
+            "approx_curie_distinct_count": row[3],
+            "approx_clique_distinct_count": row[4],
         }
 
     # Step 1. Generate a prefix total report. Same approx_count_distinct approach as Step 2,
@@ -226,8 +230,8 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
                                      SELECT
                                          curie_prefix,
                                          COUNT(curie) AS curie_count,
-                                         approx_count_distinct(curie) AS curie_distinct_count,
-                                         approx_count_distinct(clique_leader) AS clique_distinct_count
+                                         approx_count_distinct(curie) AS approx_curie_distinct_count,
+                                         approx_count_distinct(clique_leader) AS approx_clique_distinct_count
                                      FROM
                                          edges
                                      WHERE
@@ -241,8 +245,8 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
     for row in prefix_totals_report:
         prefix_totals_report_by_curie_prefix[row[0]] = {
             "curie_count": row[1],
-            "curie_distinct_count": row[2],
-            "clique_distinct_count": row[3],
+            "approx_curie_distinct_count": row[2],
+            "approx_clique_distinct_count": row[3],
         }
     logger.info("Done retrieving prefix totals report.")
 
@@ -253,7 +257,10 @@ def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duck
     with open(curie_report_json, "w") as fout:
         json.dump(by_curie_prefix_results, fout, indent=2, sort_keys=True)
 
-    edges.close()
+    log_memory_snapshot(db, "generate_curie_report complete")
+    with log_duckdb_settings_on_error(db, "generate_curie_report teardown"):
+        edges.close()
+        db.close()
 
 
 def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_report_json, duckdb_config=None):
@@ -284,8 +291,8 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
         cliques = db.sql("""
             SELECT
                 filename,
-                approx_count_distinct(clique_leader) AS distinct_clique_count,
-                approx_count_distinct(curie) AS distinct_curie_count,
+                approx_count_distinct(clique_leader) AS approx_distinct_clique_count,
+                approx_count_distinct(curie) AS approx_distinct_curie_count,
                 COUNT(curie) AS curie_count
             FROM
                 edges
@@ -299,8 +306,8 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
     clique_totals_by_curie_prefix = defaultdict(dict)
     for row in clique_totals:
         clique_totals_by_curie_prefix[row[0]] = {
-            "distinct_clique_count": row[1],
-            "distinct_curie_count": row[2],
+            "approx_distinct_clique_count": row[1],
+            "approx_distinct_curie_count": row[2],
             "curie_count": row[3],
         }
     logger.info("Done retrieving results.")
@@ -308,14 +315,14 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
     # Step 2. Generate a by-clique report .
     logger.info("Generating clique report for each CURIE prefix...")
     with log_duckdb_settings_on_error(
-        db, "generate_clique_leaders_report: per-prefix breakdown (COUNT(DISTINCT) over all edges)"
+        db, "generate_clique_leaders_report: per-prefix breakdown (approx distinct counts)"
     ):
         clique_per_curie = db.sql("""
             SELECT
                 filename,
                 clique_leader_prefix,
                 curie_prefix,
-                approx_count_distinct(curie) AS distinct_curie_count,
+                approx_count_distinct(curie) AS approx_distinct_curie_count,
                 COUNT(curie) AS curie_count
             FROM
                 edges
@@ -339,7 +346,7 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
             clique_leaders_by_filename[filename] = defaultdict(dict)
 
         clique_leaders_by_filename[filename][clique_leader_prefix][curie_prefix] = {
-            "distinct_curie_count": row[3],
+            "approx_distinct_curie_count": row[3],
             "curie_count": row[4],
         }
 
@@ -357,8 +364,10 @@ def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_repo
             sort_keys=True,
         )
 
-    edges.close()
-    # cliques.close()
+    log_memory_snapshot(db, "generate_clique_leaders_report complete")
+    with log_duckdb_settings_on_error(db, "generate_clique_leaders_report teardown"):
+        edges.close()
+        db.close()
 
 
 def get_label_distribution(duckdb_filename, output_filename):
