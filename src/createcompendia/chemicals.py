@@ -447,8 +447,11 @@ def write_unichem_concords(structfile, reffile, outdir):
                 compound_id = x[2]
                 expected_prefix = unichem_data_sources[src_id]
                 outf = concfiles[src_id]
-                assert x[3] == "1"  # Only '1' (current) assignments should be in this file
-                # (see https://chembl.gitbook.io/unichem/definitions/what-is-an-assignment).
+                assert x[3] == "1", (  # Only '1' (current) assignments should be in this file
+                    f"Expected assignment '1' (current) but got {x[3]!r} for src_id={src_id!r}, "
+                    f"compound_id={compound_id!r}; filter_unichem should have excluded non-current rows "
+                    f"(see https://chembl.gitbook.io/unichem/definitions/what-is-an-assignment)"
+                )
 
                 # Guard against UniChem embedding the prefix inside the compound ID.
                 # e.g. CHEBI source stores "CHEBI:12345" instead of bare "12345".

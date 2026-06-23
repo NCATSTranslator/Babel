@@ -16,7 +16,7 @@ data_sources: dict = {
     "34": DRUGCENTRAL,
 }
 
-_UNICHEM_FTP_BASE = "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/"
+_UNICHEM_HTTP_BASE = "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/"
 
 # Expected headers for UniChem table dumps — validated at filter/parse time.
 # Note: upstream uses "ASSIGMENT" (missing 'N') in the reference file — this matches the upstream typo exactly.
@@ -25,13 +25,15 @@ UNICHEM_STRUCT_TSV_HEADER = "UCI\tSTANDARDINCHI\tSTANDARDINCHIKEY\n"
 
 
 def download_unichem_structure():
-    """Download UniChem structure file. Format validation happens in filter_unichem."""
-    pull_via_wget(_UNICHEM_FTP_BASE, "structure.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True)
+    """Download UniChem structure file. Gzip integrity is verified at download time; column-format
+    validation happens in read_inchikeys() (called from write_unichem_concords)."""
+    pull_via_wget(_UNICHEM_HTTP_BASE, "structure.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True)
 
 
 def download_unichem_reference():
-    """Download UniChem reference file. Format validation happens in filter_unichem."""
-    pull_via_wget(_UNICHEM_FTP_BASE, "reference.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True)
+    """Download UniChem reference file. Gzip integrity is verified at download time; header and
+    column-format validation happens in filter_unichem()."""
+    pull_via_wget(_UNICHEM_HTTP_BASE, "reference.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True)
 
 
 def filter_unichem(ref_file, ref_filtered):
