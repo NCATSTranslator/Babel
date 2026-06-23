@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import shutil
 import time
@@ -7,7 +6,9 @@ import time
 import apybiomart.classes as _apy_classes
 from apybiomart import find_attributes, find_datasets, query
 
-from src.util import get_config
+from src.util import get_config, get_logger
+
+logger = get_logger(__name__)
 
 # apybiomart's pre-flight connectivity check uses HTTPS and fails with SSL
 # certificate errors in some environments (see
@@ -94,7 +95,7 @@ def pull_ensembl(
         "wormbase_gene",
     }
     for ds in dataset_ids:
-        logging.info(f"Downloading ENSEMBL dataset {ds}")
+        logger.info(f"Downloading ENSEMBL dataset {ds}")
         if ds in skip_dataset_ids:
             print(f"Skipping {ds} as it is included in skip_dataset_ids: {skip_dataset_ids}")
             continue
@@ -109,7 +110,7 @@ def pull_ensembl(
                 "batches": [],
                 "message": f"Output file already exists for dataset {ds}, skipping.",
             }
-            logging.info(f"Skipping {ds} as it already exists")
+            logger.info(f"Skipping {ds} as it already exists")
             continue
         last_exc = None
         for attempt in range(1, BIOMART_MAX_RETRIES + 1):
@@ -120,7 +121,7 @@ def pull_ensembl(
 
                 if len(attsIcanGet) <= max_attribute_count:
                     # Excellent: we can do this in one query.
-                    logging.info(f"Found {len(attsIcanGet)} attributes for {ds} for single query: {attsIcanGet}")
+                    logger.info(f"Found {len(attsIcanGet)} attributes for {ds} for single query: {attsIcanGet}")
                     df = query(attributes=list(attsIcanGet), filters={}, dataset=ds)
                     report[ds] = {
                         "status": "downloaded",
@@ -147,7 +148,7 @@ def pull_ensembl(
                     for i in range(0, len(attributes_to_retrieve), max_attribute_count):
                         # Create a batch of attributes to query.
                         attr_batch = attributes_to_retrieve[i : i + max_attribute_count]
-                        logging.info(
+                        logger.info(
                             f"Querying batch of {len(attr_batch)} attributes for {ds} (+ 'ensembl_gene_id'): {attr_batch}"
                         )
 
@@ -182,17 +183,17 @@ def pull_ensembl(
             except Exception as exc:
                 last_exc = exc
                 biomart_dir = os.path.dirname(outfile)
-                logging.warning(f"Failed to download dataset {ds} (attempt {attempt}/{BIOMART_MAX_RETRIES}): {exc}")
+                logger.warning(f"Failed to download dataset {ds} (attempt {attempt}/{BIOMART_MAX_RETRIES}): {exc}")
                 if os.path.exists(biomart_dir):
-                    logging.warning(f"Deleting BioMart directory {biomart_dir}")
+                    logger.warning(f"Deleting BioMart directory {biomart_dir}")
                     shutil.rmtree(biomart_dir)
                 if attempt < BIOMART_MAX_RETRIES:
-                    logging.info(f"Retrying dataset {ds} in {BIOMART_RETRY_DELAY_SECS}s...")
+                    logger.info(f"Retrying dataset {ds} in {BIOMART_RETRY_DELAY_SECS}s...")
                     time.sleep(BIOMART_RETRY_DELAY_SECS)
         else:
             report[ds] = {"status": "failed", "message": str(last_exc), "output_file": outfile}
             failed_datasets[ds] = last_exc
-            logging.error(
+            logger.error(
                 f"Dataset {ds} failed all {BIOMART_MAX_RETRIES} attempts; continuing with remaining datasets."
             )
 
