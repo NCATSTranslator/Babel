@@ -25,7 +25,9 @@ PREFERRED = {
 def test_valid_pair_is_normalised_and_appended():
     """A pair where both CURIEs are in the compendia is normalised and appended to pairs."""
     pairs: list[tuple[str, str]] = []
-    skipped, applied_curies = _validate_and_apply_manual_concords([("DRUGBANK:DB001", "CHEBI:456")], PREFERRED, pairs, CONCORD_FILE)
+    skipped, applied_curies = _validate_and_apply_manual_concords(
+        [("DRUGBANK:DB001", "CHEBI:456")], PREFERRED, pairs, CONCORD_FILE
+    )
     assert skipped == 0
     assert pairs == [("CHEMBL:123", "CHEBI:456")]
     assert applied_curies == {"CHEMBL:123", "CHEBI:456"}
@@ -48,7 +50,9 @@ def test_missing_object_is_skipped_with_warning(caplog):
     """A pair whose object is absent from the compendia is skipped; the object CURIE appears in the warning."""
     pairs: list[tuple[str, str]] = []
     with caplog.at_level(logging.WARNING, logger="src.createcompendia.drugchemical"):
-        skipped, _ = _validate_and_apply_manual_concords([("CHEMBL:123", "MISSING:002")], PREFERRED, pairs, CONCORD_FILE)
+        skipped, _ = _validate_and_apply_manual_concords(
+            [("CHEMBL:123", "MISSING:002")], PREFERRED, pairs, CONCORD_FILE
+        )
     assert skipped == 1
     assert pairs == []
     assert "MISSING:002" in caplog.text
@@ -60,7 +64,9 @@ def test_both_missing_warns_for_each_and_counts_once(caplog):
     """When both CURIEs in a pair are absent, a warning is emitted for each but the pair is counted as one skip."""
     pairs: list[tuple[str, str]] = []
     with caplog.at_level(logging.WARNING, logger="src.createcompendia.drugchemical"):
-        skipped, _ = _validate_and_apply_manual_concords([("MISSING:001", "MISSING:002")], PREFERRED, pairs, CONCORD_FILE)
+        skipped, _ = _validate_and_apply_manual_concords(
+            [("MISSING:001", "MISSING:002")], PREFERRED, pairs, CONCORD_FILE
+        )
     assert skipped == 1
     assert pairs == []
     assert "MISSING:001" in caplog.text
@@ -88,7 +94,9 @@ def test_aliases_normalizing_to_same_curie_are_skipped(caplog):
     pairs: list[tuple[str, str]] = []
     # CHEMBL:123 and DRUGBANK:DB001 both map to CHEMBL:123 in PREFERRED.
     with caplog.at_level(logging.WARNING, logger="src.createcompendia.drugchemical"):
-        skipped, applied_curies = _validate_and_apply_manual_concords([("CHEMBL:123", "DRUGBANK:DB001")], PREFERRED, pairs, CONCORD_FILE)
+        skipped, applied_curies = _validate_and_apply_manual_concords(
+            [("CHEMBL:123", "DRUGBANK:DB001")], PREFERRED, pairs, CONCORD_FILE
+        )
     assert skipped == 1
     assert pairs == []
     assert applied_curies == set()
