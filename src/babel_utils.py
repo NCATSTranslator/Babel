@@ -1,8 +1,10 @@
 import gzip
 import os
 import re
+import shutil
 import sqlite3
 import subprocess
+import tempfile
 import time
 import traceback
 import urllib
@@ -22,11 +24,12 @@ from src.LabeledID import LabeledID
 from src.metadata.provenance import write_combined_metadata
 from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory
 from src.properties import HAS_ALTERNATIVE_ID, PropertyList
+from src.synonyms.filter import get_synonym_filter
 from src.util import Text, get_config, get_logger, get_memory_usage_summary
 
 # Configuration items
 WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES = 1_000_000
-MAX_DOWNLOAD_ERROR = 10
+MAX_DOWNLOAD_ERROR = 1
 
 
 def get_user_agent() -> str:
@@ -78,6 +81,45 @@ def parse_rdf_literal(literal: str) -> str:
     if m:
         return m.group(1)
     return literal[1:-1]
+
+
+def reduce_to_most_specific_tree_codes(codes, code_to_tree):
+    """Reduce a set of hierarchy codes to only the most specific ones.
+
+    Given an iterable of ``codes`` and a ``code_to_tree`` map from each code to its
+    dot-delimited tree number (e.g. a UMLS TUI ``"T116"`` -> ``"A1.4.1.2.1.7"``, or a MeSH
+    tree number like ``"C04.557"``), return the subset of codes whose tree number is NOT a
+    proper ancestor of another code's tree number in the set.
+
+    A tree number is a proper ancestor of another when it is a strict dot-*component* prefix
+    of it: ``"A1.2"`` is an ancestor of ``"A1.2.3"`` but NOT of ``"A1.20"`` (comparison is on
+    ``tree.split(".")`` component lists, not raw string prefixes). Unrelated codes (siblings or
+    codes in different subtrees) all survive. A code with no entry in ``code_to_tree`` -- or an
+    empty tree number -- has no ancestor relationship to anything and is always kept.
+
+    This is vocabulary-agnostic: it only needs a code -> tree-number mapping, so it works for
+    UMLS semantic-type tree numbers (MRSTY STN) and MeSH tree numbers alike.
+
+    :param codes: An iterable of codes to reduce.
+    :param code_to_tree: A mapping from code to its dot-delimited tree number string.
+    :return: A set of the most-specific codes.
+    """
+    codes = set(codes)
+    tree_components = {code: code_to_tree.get(code, "").split(".") if code_to_tree.get(code) else [] for code in codes}
+    survivors = set()
+    for code in codes:
+        components = tree_components[code]
+        # Keep this code unless its tree number is a proper ancestor of some other code's.
+        is_ancestor_of_other = any(
+            other != code
+            and components
+            and len(tree_components[other]) > len(components)
+            and tree_components[other][: len(components)] == components
+            for other in codes
+        )
+        if not is_ancestor_of_other:
+            survivors.add(code)
+    return survivors
 
 
 def make_local_name(fname, subpath=None):
@@ -149,12 +191,20 @@ def pull_via_ftp(ftpsite, ftpdir, ftpfile, decompress_data=False, outfilename=No
             ftp.retrbinary(f"RETR {ftpfile}", ofile.write)
             ftp.quit()
     else:
-        with BytesIO() as data:
-            ftp.retrbinary(f"RETR {ftpfile}", data.write)
-            ftp.quit()
-            value = gzip.decompress(data.getvalue()).decode()
-        with open(ofilename, "w") as ofile:
-            ofile.write(value)
+        # Stream the compressed file to a temp file rather than buffering it all in
+        # memory with BytesIO+gzip.decompress — the old approach needed ~2× the
+        # uncompressed size in RAM (e.g. ~35+ GB for ChEMBL's 17 GB TTL).
+        tmp_path = None  # set before try so finally can always check it
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, dir=odir, suffix=".gz") as tmp:
+                tmp_path = tmp.name
+                ftp.retrbinary(f"RETR {ftpfile}", tmp.write)
+                ftp.quit()
+            with gzip.open(tmp_path, "rt") as gz_in, open(ofilename, "w") as ofile:
+                shutil.copyfileobj(gz_in, ofile)
+        finally:
+            if tmp_path is not None and os.path.exists(tmp_path):
+                os.unlink(tmp_path)
     return ofilename
 
 
@@ -250,14 +300,14 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
     else:
         dl_file_name = os.path.join(download_dir, subpath, in_file_name)
 
+    os.makedirs(os.path.dirname(dl_file_name), exist_ok=True)
+
     # Add support for redirects
     opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
 
-    # get a handle to the ftp file
     download_url = url + in_file_name
     logger.info(f"Downloading {download_url}")
-    req = urllib.request.Request(download_url, headers={"User-Agent": get_user_agent()})
-    handle = opener.open(req)
+    user_agent = get_user_agent()
 
     # create the compressed file
     download_verified = False
@@ -271,18 +321,26 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
             )
         logger.info(f"Downloading {dl_file_name} using urllib, attempt {download_attempt}...")
 
-        with open(dl_file_name, "wb") as compressed_file:
-            # while there is data
-            while True:
-                # read a block of data
-                data = handle.read(1024)
+        # Open a fresh connection on each attempt so a truncated response doesn't
+        # leave us reading from an exhausted handle on the next retry.
+        try:
+            req = urllib.request.Request(download_url, headers={"User-Agent": user_agent})
+            with opener.open(req) as handle, open(dl_file_name, "wb") as compressed_file:
+                # while there is data
+                while True:
+                    # read a block of data
+                    data = handle.read(1024)
 
-                # fif nothing read about
-                if len(data) == 0:
-                    break
+                    # if nothing read, abort
+                    if len(data) == 0:
+                        break
 
-                # write out the data to the output file
-                compressed_file.write(data)
+                    # write out the data to the output file
+                    compressed_file.write(data)
+        except urllib.error.URLError as e:
+            logger.warning(f"Download attempt {download_attempt} of {download_url} failed with network/HTTP error: {e}")
+            time.sleep(5 * download_attempt)
+            continue
 
         if decompress:
             out_file_name = dl_file_name[:-3]
@@ -345,7 +403,10 @@ def pull_via_wget(
     continue_incomplete: bool = True,
     timestamping=True,
     recurse: WgetRecursionOptions = WgetRecursionOptions.NO_RECURSION,
-    retries: int = 10,
+    retries: int = 1,
+    connect_timeout: int = 60,
+    read_timeout: int = 300,
+    verify_gzip: bool = False,
 ):
     """
     Download a file using wget. We call wget from the command line, and use command line options to
@@ -361,6 +422,8 @@ def pull_via_wget(
     :param continue_incomplete: Should wget continue an incomplete download?
     :param recurse: Do we want to download recursively? Should be from Wget_Recursion_Options, such as Wget_Recursion_Options.NO_RECURSION.
     :param retries: The number of retries to attempt.
+    :param verify_gzip: If downloading a Gzip file that isn't being decompressed, verify that the
+        file is valid (by reading it entirely). Has no effect if decompress=True.
     """
 
     # Prepare download URL and location
@@ -375,6 +438,8 @@ def pull_via_wget(
     else:
         dl_file_name = os.path.join(download_dir, in_file_name)
 
+    os.makedirs(os.path.dirname(os.path.abspath(dl_file_name)), exist_ok=True)
+
     # Prepare wget options.
     wget_command_line = [
         "wget",
@@ -386,6 +451,10 @@ def pull_via_wget(
         wget_command_line.append("--timestamping")
     if retries > 0:
         wget_command_line.append(f"--tries={retries}")
+    if connect_timeout > 0:
+        wget_command_line.append(f"--connect-timeout={connect_timeout}")
+    if read_timeout > 0:
+        wget_command_line.append(f"--read-timeout={read_timeout}")
 
     # Add URL and output file.
     wget_command_line.append(url)
@@ -434,6 +503,17 @@ def pull_via_wget(
         if os.path.isfile(dl_file_name):
             file_size = os.path.getsize(dl_file_name)
             logger.info(f"Downloaded {dl_file_name} from {url}, file size {file_size} bytes.")
+            if verify_gzip:
+                if file_size < 1024:
+                    raise RuntimeError(
+                        f"Downloaded Gzip file {dl_file_name} is too small ({file_size} bytes) to be valid."
+                    )
+                result = subprocess.run(["gzip", "-t", dl_file_name], capture_output=True, text=True)
+                if result.returncode != 0:
+                    raise RuntimeError(
+                        f"Downloaded Gzip file {dl_file_name} failed verification: {result.stderr.strip()}"
+                    )
+                logger.info(f"Verified {dl_file_name} as a valid Gzip file.")
         elif os.path.isdir(dl_file_name):
             # Count the number of files in directory dl_file_name
             dir_size = sum(
@@ -491,15 +571,23 @@ def choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_lab
     # If boost prefixes apply, promoted prefixes move to the front; all other identifiers
     # follow in their original Biolink prefix order.
     if boost_prefixes is not None:
-        possible_labels = [
-            identifier.get("label", "")
-            for identifier in sort_identifiers_with_boosted_prefixes(node["identifiers"], boost_prefixes)
-        ]
+        ordered_identifiers = sort_identifiers_with_boosted_prefixes(node["identifiers"], boost_prefixes)
     else:
-        possible_labels = [identifier.get("label", "") for identifier in node["identifiers"]]
+        ordered_identifiers = node["identifiers"]
 
-    # Drop blank/missing labels.
-    filtered = [label for label in possible_labels if label]
+    # Drop blank/missing labels and apply the label filter as a safety net.
+    # (Labels should already have been cleared by apply_labels(), but this catches
+    # anything supplied via the explicit labels dict or through an unforeseen path.)
+    synonym_filter = get_synonym_filter()
+    filtered = []
+    for id_entry in ordered_identifiers:
+        label = id_entry.get("label", "")
+        if not label:
+            continue
+        prefix = id_entry["identifier"].split(":", 1)[0]
+        if synonym_filter.should_suppress(label, source=f"{prefix} (preferred name)", node_types=types):
+            continue
+        filtered.append(label)
 
     # Demote long labels: if any label fits within the limit, discard those that don't.
     # If *all* labels exceed the limit we keep them rather than returning empty.
@@ -619,6 +707,9 @@ def write_compendium(
 
     property_source_count = defaultdict(int)
 
+    synonym_filter = get_synonym_filter()
+    filter_count_snapshot = synonym_filter.filtered_count
+
     # Counts.
     count_cliques = 0
     count_eq_ids = 0
@@ -724,7 +815,9 @@ def write_compendium(
 
                         # ac_labelled will be a list that consists of either LabeledID (if the CURIE could be labeled)
                         # or str objects (consisting of an unlabeled CURIE).
-                        ac_labelled = node_factory.apply_labels(input_identifiers=additional_curies, labels=labels)
+                        ac_labelled = node_factory.apply_labels(
+                            input_identifiers=additional_curies, labels=labels, node_types=types
+                        )
 
                         for prop, label in zip(props, ac_labelled):
                             additional_curie = Text.get_curie(label)
@@ -786,7 +879,9 @@ def write_compendium(
                 # get_synonyms() returns a list of tuples, where each tuple is a relation and a synonym.
                 # So we extract just the synonyms here, ditching the relations (result[0]), then unique-ify the
                 # synonyms.
-                synonyms = [result[1] for result in synonym_factory.get_synonyms(identifier_list) if result[1]]
+                synonyms = [
+                    result[1] for result in synonym_factory.get_synonyms(identifier_list, node_types=types) if result[1]
+                ]
                 synonyms_list = sorted(set(synonyms), key=lambda x: len(x))
 
                 try:
@@ -851,6 +946,13 @@ def write_compendium(
                     print(node_factory.get_ancestors(nw["type"]))
                     traceback.print_exc()
                     raise ex
+
+    # Log a per-compendium summary of any obsolete labels that were filtered.
+    filtered_this_run = synonym_filter.filtered_count - filter_count_snapshot
+    if filtered_this_run > 0:
+        logger.warning(f"SynonymFilter: matched {filtered_this_run} obsolete label(s)/synonym(s) in {ofname}")
+    else:
+        logger.info(f"SynonymFilter: no obsolete labels found in {ofname}")
 
     # Write out the metadata.yaml file combining information from all the metadata.yaml files.
     write_combined_metadata(

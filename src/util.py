@@ -2,6 +2,7 @@ import copy
 import json
 import logging
 import os
+import re
 import sys
 from collections import namedtuple
 from logging.handlers import RotatingFileHandler
@@ -353,20 +354,37 @@ def get_config():
     return config_yaml
 
 
+_GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+
+
+def _biolink_ref(biolink_version: str) -> str:
+    """Return the git ref to use in a GitHub URL for a Biolink Model version string.
+
+    Version strings (e.g. ``"4.3.6"``) are prefixed with ``v`` as GitHub release tags
+    require.  Commit SHAs (40 lowercase hex characters) are returned unchanged — adding
+    ``v`` would produce an invalid ref.
+    """
+    if _GIT_SHA_RE.match(biolink_version):
+        return biolink_version
+    return f"v{biolink_version}"
+
+
 def get_biolink_model_toolkit(biolink_version):
     """
     Return a BMT Toolkit object for the specified Biolink Model version.
 
     The model YAML is fetched from GitHub on first use. Pass the version string from
-    config.yaml (``biolink_version`` key, e.g. ``"4.3.6"``). Do not include the leading
-    ``v``; it is prepended here. Always use mapped class URIs from the returned toolkit
+    config.yaml (``biolink_version`` key, e.g. ``"4.3.6"`` or a Git commit SHA).
+    Do not include the leading ``v`` for version numbers; it is prepended automatically.
+    Always use mapped class URIs from the returned toolkit
     (e.g. ``get_element(x)["class_uri"]`` → ``"biolink:ChemicalEntity"``), not raw
     element names.
 
-    :param biolink_version: The Biolink Model version to use (e.g. ``"4.3.6"``).
+    :param biolink_version: The Biolink Model version to use (e.g. ``"4.3.6"`` or a commit SHA).
     :return: A Toolkit instance from the bmt library using the specified Biolink version.
     """
-    return Toolkit(f"https://raw.githubusercontent.com/biolink/biolink-model/v{biolink_version}/biolink-model.yaml")
+    ref = _biolink_ref(biolink_version)
+    return Toolkit(f"https://raw.githubusercontent.com/biolink/biolink-model/{ref}/biolink-model.yaml")
 
 
 def get_biolink_prefix_map():
@@ -380,19 +398,16 @@ def get_biolink_prefix_map():
     biolink_version = config["biolink_version"]
     if biolink_version.startswith("1.") or biolink_version.startswith("2."):
         raise RuntimeError(f"Biolink version {biolink_version} is not supported.")
-    elif biolink_version.startswith("3."):
+    ref = _biolink_ref(biolink_version)
+    if biolink_version.startswith("3."):
         # biolink-model v3.* releases keeps the prefix map in a different place.
         return curies.Converter.from_prefix_map(
-            "https://raw.githubusercontent.com/biolink/biolink-model/v"
-            + biolink_version
-            + "/prefix-map/biolink-model-prefix-map.json"
+            f"https://raw.githubusercontent.com/biolink/biolink-model/{ref}/prefix-map/biolink-model-prefix-map.json"
         )
     else:
-        # biolink-model v4.0.0 and beyond is in the /project directory.
+        # biolink-model v4.0.0 and beyond (including commit SHAs) is in the /project directory.
         return curies.Converter.from_prefix_map(
-            "https://raw.githubusercontent.com/biolink/biolink-model/v"
-            + biolink_version
-            + "/project/prefixmap/biolink_model_prefix_map.json"
+            f"https://raw.githubusercontent.com/biolink/biolink-model/{ref}/project/prefixmap/biolink_model_prefix_map.json"
         )
 
 
