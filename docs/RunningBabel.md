@@ -206,7 +206,7 @@ cluster. You need to create three resources:
 
 A full production run happens on an HPC system over many hours, and it almost always
 surfaces problems that aren't visible from a local dry run: wrong memory settings,
-download endpoints that have moved or started blocking us, format changes upstream, and
+download endpoints that have moved or require an API key, format changes upstream, and
 latent bugs that only fire at full scale. The practical way to keep a run moving is to
 fix these directly on the release branch (for example `babel-1.17`) rather than stopping
 to open a separate PR for each one. By the time the run is healthy, the release branch
