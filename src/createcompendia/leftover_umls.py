@@ -783,7 +783,9 @@ def write_leftover_umls(
             writer.writerow(["umls_curie", "label", "biolink_type", "source_count", "sources"])
             for curie in sorted(no_mrsty_curie_sources.keys()):
                 sources = sorted(no_mrsty_curie_sources[curie])
-                writer.writerow([curie, no_mrsty_curie_label.get(curie, ""), NAMED_THING, len(sources), "|".join(sources)])
+                writer.writerow(
+                    [curie, no_mrsty_curie_label.get(curie, ""), NAMED_THING, len(sources), "|".join(sources)]
+                )
 
         # UMLS CURIEs that landed in more than one compendium clique -- either across two compendium
         # files (cross-file) or in two distinct cliques of one file (within-file). Both are glom/merge
