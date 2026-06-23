@@ -399,6 +399,8 @@ def pull_via_wget(
     else:
         dl_file_name = os.path.join(download_dir, in_file_name)
 
+    os.makedirs(os.path.dirname(os.path.abspath(dl_file_name)), exist_ok=True)
+
     # Prepare wget options.
     wget_command_line = [
         "wget",
@@ -467,13 +469,12 @@ def pull_via_wget(
                     raise RuntimeError(
                         f"Downloaded Gzip file {dl_file_name} is too small ({file_size} bytes) to be valid."
                     )
-                try:
-                    with gzip.open(dl_file_name, "rb") as f:
-                        for _ in iter(lambda: f.read(1024 * 1024), b""):
-                            pass
-                    logger.info(f"Verified {dl_file_name} as a valid Gzip file.")
-                except Exception as e:
-                    raise RuntimeError(f"Downloaded Gzip file {dl_file_name} failed verification: {e}") from e
+                result = subprocess.run(["gzip", "-t", dl_file_name], capture_output=True, text=True)
+                if result.returncode != 0:
+                    raise RuntimeError(
+                        f"Downloaded Gzip file {dl_file_name} failed verification: {result.stderr.strip()}"
+                    )
+                logger.info(f"Verified {dl_file_name} as a valid Gzip file.")
         elif os.path.isdir(dl_file_name):
             # Count the number of files in directory dl_file_name
             dir_size = sum(
