@@ -31,6 +31,21 @@ dependencies = [
     "xmltodict>=1.0.2",
 ]
 
+[project.scripts]
+babel-slurm-errors = "tools.slurm.errors:main"
+babel-slurm-resources = "tools.slurm.resources:main"
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tools", "tools.*"]
+
 [project.urls]
 Homepage = "https://github.com/NCATSTranslator/Babel"
 Repository = "https://github.com/NCATSTranslator/Babel"

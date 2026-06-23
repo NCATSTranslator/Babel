@@ -178,7 +178,7 @@ wheels = [
 [[package]]
 name = "babel-pipeline"
 version = "1.14"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "apybiomart" },
     { name = "beautifulsoup4" },

@@ -5,6 +5,7 @@
 #   $ snakemake --profile slurm
 #
 executor: slurm
+slurm-jobname: "babel-{rule}.{wildcards}"
 jobs: 50 # maximum number of parallel cluster jobs
 latency-wait: 60 # seconds
 slurm-delete-logfiles-older-than: 0 # Don't delete log files automatically.
@@ -31,7 +32,7 @@ default-resources:
 
 # Set up the Slurm efficiency report.
 slurm-efficiency-report: True
-slurm-efficiency-report-path: babel_outputs/reports/slurm/slurm_efficiency_report.csv
+slurm-efficiency-report-path: babel_outputs/reports/slurm/slurm_efficiency_reports
 
 # Write Slurm logs into a `logs/` directory so we can look at them later.
 slurm-logdir: babel_outputs/logs
