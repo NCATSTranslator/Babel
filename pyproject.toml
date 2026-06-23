@@ -1,6 +1,6 @@
 [project]
 name = "babel-pipeline"
-version = "1.14"
+version = "1.17"
 description = "Babel creates cliques of equivalent identifiers across many biomedical vocabularies. "
 readme = "README.md"
 license = "MIT"
