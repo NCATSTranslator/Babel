@@ -111,6 +111,20 @@ Fourth, the compendia is assessed to make sure that all the ids in the id files 
 possibly multiple compendia. The compendia are further assessed to locate large cliques and display
 the level of vocabulary merging.
 
+## Running on an HPC Cluster (SLURM)
+
+The production Babel runs are executed on Hatteras, an HPC cluster managed by RENCI, using a SLURM
+profile in [`slurm/`](../slurm/). See [`slurm/README.md`](../slurm/README.md) for:
+
+* How to submit the pipeline with `sbatch` and the SLURM profile.
+* Per-rule memory and runtime allocations, including which rules need a largemem node.
+* DuckDB memory tuning: `memory_limit` caps, single-threaded query settings, per-job spill
+  subdirectories, and `write_buffer_row_group_count`.
+* Known issues and their mitigations — notably the `vm.max_map_count` mmap-count limit that causes
+  `bad allocation` failures with plenty of free RAM, what was investigated (`MALLOC_ARENA_MAX=2`,
+  disabling the external file cache) and ruled out, and the `memory_limit` cap that keeps the rules
+  running until the cluster raises the kernel limit.
+
 ## Building with Docker
 
 You can build this repository by running the following Docker command:
