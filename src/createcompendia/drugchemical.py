@@ -332,9 +332,11 @@ def _validate_and_apply_manual_concords(
     Passing CURIEs are normalised to their preferred form before being appended. If both CURIEs normalise
     to the same preferred CURIE, a warning is emitted and the self-pair is skipped.
 
-    Returns the number of skipped pairs.
+    Returns (skipped, applied_curies) where skipped is the number of skipped pairs and applied_curies
+    is the set of preferred CURIEs that were actually added to pairs.
     """
     skipped = 0
+    applied_curies: set[str] = set()
     for subject_curie, object_curie in manual_concords:
         subject_ok = subject_curie in preferred_curie_for_curie
         object_ok = object_curie in preferred_curie_for_curie
@@ -363,7 +365,9 @@ def _validate_and_apply_manual_concords(
             skipped += 1
             continue
         pairs.append((norm_subject, norm_object))
-    return skipped
+        applied_curies.add(norm_subject)
+        applied_curies.add(norm_object)
+    return skipped, applied_curies
 
 
 def build_conflation(
@@ -472,7 +476,7 @@ def build_conflation(
                     pairs.append((subject_curie, object_curie))
 
     # Add the manual concords, normalizing CURIEs to their preferred form.
-    manual_concords_skipped = _validate_and_apply_manual_concords(
+    manual_concords_skipped, manual_concords_applied_curies = _validate_and_apply_manual_concords(
         manual_concords, preferred_curie_for_curie, pairs, manual_concord_filename
     )
 
@@ -750,6 +754,7 @@ def build_conflation(
                     "count_concords_skipped": manual_concords_skipped,
                     "count_concords_applied": len(manual_concords) - manual_concords_skipped,
                     "count_distinct_curies": len(manual_concords_curies),
+                    "count_distinct_curies_applied": len(manual_concords_applied_curies),
                     "predicates": dict(manual_concords_predicate_counts),
                     "prefix_counts": dict(manual_concords_curie_prefix_counts),
                 },
