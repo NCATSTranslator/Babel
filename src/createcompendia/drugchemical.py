@@ -1,4 +1,5 @@
 import csv
+import gzip
 import json
 import logging
 import sys
@@ -318,11 +319,59 @@ def build_pubchem_relationships(infile, outfile, metadata_yaml):
     )
 
 
+class ConflationExclusionRecorder:
+    """Records, to a gzipped TSV, every subject/object pair that ``build_conflation()`` drops, and why.
+
+    Historically the reasons a cross-reference failed to conflate existed only as ``logger.warning``
+    lines on STDERR, which Snakemake discards once a rule succeeds. That made regressions like
+    Babel #754 (the Carbidopa clique fragmenting between runs) impossible to diagnose after the
+    fact. This recorder turns those ephemeral warnings into a declared, published Snakemake output
+    so a future run can answer "why was CHEBI:3395 dropped?" with a single ``zgrep`` against the
+    retained report.
+
+    One row is written per dropped pair. Rows are streamed straight to the gzip file rather than
+    buffered, because the RXN/UMLS concords are large and many pairs may be dropped. ``subject`` and
+    ``object`` are written in whatever form they had at the drop site (raw RxCUI/UMLS CURIE for
+    resolution failures, preferred CURIE for type/self-pair failures). Use as a context manager.
+
+    Columns: source, reason, subject, object, subject_type, object_type, detail.
+    """
+
+    COLUMNS = ["source", "reason", "subject", "object", "subject_type", "object_type", "detail"]
+
+    def __init__(self, outfilename):
+        self.outfilename = outfilename
+        self._outf = gzip.open(outfilename, "wt", newline="")
+        self._writer = csv.writer(self._outf, dialect=csv.excel_tab)
+        self._writer.writerow(self.COLUMNS)
+        # (source, reason) -> count, for a summary log line and the metadata YAML.
+        self.counts = defaultdict(int)
+
+    def record(self, source, reason, subject, obj, subject_type="", object_type="", detail=""):
+        """Record one dropped pair. ``obj`` (not ``object``) avoids shadowing the builtin."""
+        self._writer.writerow([source, reason, subject, obj, subject_type or "", object_type or "", detail])
+        self.counts[(source, reason)] += 1
+
+    def total(self):
+        return sum(self.counts.values())
+
+    def close(self):
+        self._outf.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+        return False
+
+
 def _validate_and_apply_manual_concords(
     manual_concords: list[tuple[str, str]],
     preferred_curie_for_curie: dict[str, str],
     pairs: list[tuple[str, str]],
     manual_concord_filename: str,
+    exclusion_recorder: "ConflationExclusionRecorder | None" = None,
 ) -> int:
     """Validate each manual concord pair against the chemical compendia and append passing pairs to *pairs*.
 
@@ -353,6 +402,19 @@ def _validate_and_apply_manual_concords(
                 f"If so, remove it from {manual_concord_filename}."
             )
         if not subject_ok or not object_ok:
+            if exclusion_recorder is not None:
+                missing = []
+                if not subject_ok:
+                    missing.append(f"subject {subject_curie}")
+                if not object_ok:
+                    missing.append(f"object {object_curie}")
+                exclusion_recorder.record(
+                    source="Manual",
+                    reason="manual_concord_not_in_compendium",
+                    subject=subject_curie,
+                    obj=object_curie,
+                    detail=f"{' and '.join(missing)} not in any chemical compendium",
+                )
             skipped += 1
             continue
         norm_subject = preferred_curie_for_curie[subject_curie]
@@ -362,6 +424,14 @@ def _validate_and_apply_manual_concords(
                 f"Manual concord pair ({subject_curie}, {object_curie}) normalizes to the same preferred CURIE "
                 f"({norm_subject}); skipping self-pair."
             )
+            if exclusion_recorder is not None:
+                exclusion_recorder.record(
+                    source="Manual",
+                    reason="manual_concord_self_pair",
+                    subject=subject_curie,
+                    obj=object_curie,
+                    detail=f"both normalize to {norm_subject}",
+                )
             skipped += 1
             continue
         pairs.append((norm_subject, norm_object))
@@ -381,6 +451,7 @@ def build_conflation(
     outfilename,
     input_metadata_yamls,
     output_metadata_yaml,
+    exclusions_outfilename,
 ):
     """RXN_concord contains relationshps between rxcuis that can be used to conflate
     Now we don't want all of them.  We want the ones that are between drugs and chemicals,
@@ -390,6 +461,11 @@ def build_conflation(
     in the clique."""
 
     config = get_config()
+
+    # Records every subject/object pair we drop, and why, to a declared (and published) output so a
+    # missing cross-reference (e.g. Babel #754) can be diagnosed from a past run. See
+    # docs/debugging/Conflation.md.
+    exclusion_recorder = ConflationExclusionRecorder(exclusions_outfilename)
 
     logger.info("Loading information content values...")
     ic_factory = InformationContentFactory(icrdf_filename)
@@ -449,7 +525,7 @@ def build_conflation(
         chemical_rxcui_to_clique.update(load_cliques_containing_rxcui(chemical_compendium))
 
     pairs = []
-    for concfile in [rxn_concord, umls_concord]:
+    for concfile, source_label in [(rxn_concord, "RXNORM"), (umls_concord, "UMLS")]:
         with open(concfile) as infile:
             for line in infile:
                 x = line.strip().split("\t")
@@ -474,10 +550,29 @@ def build_conflation(
                     subject_curie = chemical_rxcui_to_clique[subject_curie]
                     object_curie = chemical_rxcui_to_clique[object_curie]
                     pairs.append((subject_curie, object_curie))
+                else:
+                    # Neither endpoint is a RxCUI that belongs to a Drug or chemical clique, so this
+                    # relationship cannot bridge two cliques and is dropped. This silent drop is the
+                    # most likely place for a cross-reference (e.g. Babel #754) to vanish when an RxCUI
+                    # stops being a member of the expected clique upstream, which is why we record it.
+                    subject_in_drug = subject_curie in drug_rxcui_to_clique
+                    subject_in_chem = subject_curie in chemical_rxcui_to_clique
+                    object_in_drug = object_curie in drug_rxcui_to_clique
+                    object_in_chem = object_curie in chemical_rxcui_to_clique
+                    exclusion_recorder.record(
+                        source=source_label,
+                        reason="rxcui_not_in_any_clique",
+                        subject=subject_curie,
+                        obj=object_curie,
+                        detail=(
+                            f"subject in_drug={subject_in_drug} in_chem={subject_in_chem}; "
+                            f"object in_drug={object_in_drug} in_chem={object_in_chem}"
+                        ),
+                    )
 
     # Add the manual concords, normalizing CURIEs to their preferred form.
     manual_concords_skipped, manual_concords_applied_curies = _validate_and_apply_manual_concords(
-        manual_concords, preferred_curie_for_curie, pairs, manual_concord_filename
+        manual_concords, preferred_curie_for_curie, pairs, manual_concord_filename, exclusion_recorder
     )
 
     # We've had some issues with non-chemical types getting conflated, so we filter those out here.
@@ -497,6 +592,11 @@ def build_conflation(
             subject_curie = x[0]
             object_curie = x[2]
 
+            # Hold on to the raw (pre-normalization) CURIEs so the exclusion report shows what was
+            # actually in the PubChem concord, not a half-normalized value.
+            raw_subject_curie = subject_curie
+            raw_object_curie = object_curie
+
             if subject_curie in drug_rxcui_to_clique:
                 subject_curie = drug_rxcui_to_clique[subject_curie]
             elif subject_curie in chemical_rxcui_to_clique:
@@ -504,6 +604,13 @@ def build_conflation(
             else:
                 logger.warning(
                     f"Subject in subject-object pair ({subject_curie}, {object_curie}) isn't mapped to a RxCUI, skipping."
+                )
+                exclusion_recorder.record(
+                    source="PUBCHEM_RXNORM",
+                    reason="rxcui_not_in_any_clique",
+                    subject=raw_subject_curie,
+                    obj=raw_object_curie,
+                    detail="subject RxCUI not in any Drug or chemical clique",
                 )
                 continue
                 # raise RuntimeError(f"Unknown identifier in drugchemical conflation as subject: {subject_curie}")
@@ -516,6 +623,13 @@ def build_conflation(
                 logger.warning(
                     f"Object in subject-object pair ({subject_curie}, {object_curie}) isn't mapped to a RxCUI, skipping."
                 )
+                exclusion_recorder.record(
+                    source="PUBCHEM_RXNORM",
+                    reason="rxcui_not_in_any_clique",
+                    subject=raw_subject_curie,
+                    obj=raw_object_curie,
+                    detail="object not in any Drug or chemical clique",
+                )
                 # raise RuntimeError(f"Unknown identifier in drugchemical conflation as object: {object_curie}")
                 continue
 
@@ -524,6 +638,13 @@ def build_conflation(
                 logger.warning(
                     f"Subject in subject-object pair ({subject_curie}, {object_curie}) has no preferred CURIE, skipping."
                 )
+                exclusion_recorder.record(
+                    source="PUBCHEM_RXNORM",
+                    reason="no_preferred_curie",
+                    subject=subject_curie,
+                    obj=object_curie,
+                    detail="subject clique leader not in preferred_curie_for_curie",
+                )
                 continue
             subject_curie = preferred_curie_for_curie[subject_curie]
 
@@ -531,12 +652,26 @@ def build_conflation(
                 logger.warning(
                     f"Object in subject-object pair ({subject_curie}, {object_curie}) has no preferred CURIE, skipping."
                 )
+                exclusion_recorder.record(
+                    source="PUBCHEM_RXNORM",
+                    reason="no_preferred_curie",
+                    subject=subject_curie,
+                    obj=object_curie,
+                    detail="object clique leader not in preferred_curie_for_curie",
+                )
                 continue
             object_curie = preferred_curie_for_curie[object_curie]
 
             if subject_curie == object_curie:
                 logger.warning(
                     f"Subject and object in subject-object pair ({subject_curie}, {object_curie}) normalize to the same identifier ({subject_curie}), skipping."
+                )
+                exclusion_recorder.record(
+                    source="PUBCHEM_RXNORM",
+                    reason="self_pair",
+                    subject=raw_subject_curie,
+                    obj=raw_object_curie,
+                    detail=f"both normalize to {subject_curie}",
                 )
                 continue
 
@@ -547,12 +682,30 @@ def build_conflation(
                 logger.warning(
                     f"Subject in subject-object pair ({subject_curie}, {object_curie}) has type {subject_type}, which is is not a chemical type, skipping."
                 )
+                exclusion_recorder.record(
+                    source="PUBCHEM_RXNORM",
+                    reason="non_chemical_type",
+                    subject=subject_curie,
+                    obj=object_curie,
+                    subject_type=subject_type,
+                    object_type=type_for_preferred_curie.get(object_curie, ""),
+                    detail="subject type is not a biolink:ChemicalEntity descendant",
+                )
                 continue
 
             object_type = type_for_preferred_curie[object_curie]
             if object_type not in biolink_chemical_types:
                 logger.warning(
                     f"Object in subject-object pair ({subject_curie}, {object_curie}) has type {object_type}, which is is not a chemical type, skipping."
+                )
+                exclusion_recorder.record(
+                    source="PUBCHEM_RXNORM",
+                    reason="non_chemical_type",
+                    subject=subject_curie,
+                    obj=object_curie,
+                    subject_type=subject_type,
+                    object_type=object_type,
+                    detail="object type is not a biolink:ChemicalEntity descendant",
                 )
                 continue
 
@@ -668,6 +821,13 @@ def build_conflation(
                 logger.debug(
                     f"Found a DrugChemical conflation with a single identifier, skipping: {normalized_conflation_id_list}."
                 )
+                exclusion_recorder.record(
+                    source="glom",
+                    reason="single_identifier_conflation",
+                    subject=normalized_conflation_id_list[0],
+                    obj="",
+                    detail="clique collapsed to a single identifier after normalization",
+                )
                 continue
 
             # Within each of those groups, we want to sort by:
@@ -738,6 +898,14 @@ def build_conflation(
             outf.write(final_conflation_id_list)
             written.add(fs)
 
+    # Finalize the exclusion report and log a summary of why pairs were dropped.
+    exclusion_recorder.close()
+    logger.info(f"Wrote {exclusion_recorder.total():,} excluded DrugChemical pairs to {exclusions_outfilename}.")
+    exclusion_counts_by_reason = {}
+    for (source, reason), count in sorted(exclusion_recorder.counts.items()):
+        logger.info(f" - {source} / {reason}: {count:,}")
+        exclusion_counts_by_reason[f"{source}/{reason}"] = count
+
     # Write out metadata.yaml
     write_combined_metadata(
         output_metadata_yaml,
@@ -758,7 +926,15 @@ def build_conflation(
                     "predicates": dict(manual_concords_predicate_counts),
                     "prefix_counts": dict(manual_concords_curie_prefix_counts),
                 },
-            }
+            },
+            "Exclusions": {
+                "name": "DrugChemical excluded pairs",
+                "filename": exclusions_outfilename,
+                "counts": {
+                    "count_excluded_pairs": exclusion_recorder.total(),
+                    "count_by_source_and_reason": exclusion_counts_by_reason,
+                },
+            },
         },
     )
 
