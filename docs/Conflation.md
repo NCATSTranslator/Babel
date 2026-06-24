@@ -4,6 +4,11 @@ Babel is designed to produce cliques of _identical_ identifiers, but our users w
 to combine identifiers that are similar in some other way. Babel generates "conflations" to support
 this.
 
+For debugging "these identifiers used to be conflated and now aren't" regressions in the
+DrugChemical conflation, see [docs/debugging/Conflation.md](debugging/Conflation.md), which also
+documents the per-run exclusion report (`reports/drugchemical/excluded_pairs.tsv.gz`) that records
+why each subject/object pair was dropped.
+
 Babel currently generates two conflations:
 
 1. GeneProtein conflates gene with the protein transcribed from it.
