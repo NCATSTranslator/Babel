@@ -68,6 +68,7 @@ rule drugchemical_conflation:
     output:
         outfile=config["output_directory"] + "/conflation/DrugChemical.txt",
         metadata_yaml=config["output_directory"] + "/metadata/DrugChemical.yaml",
+        exclusions=config["output_directory"] + "/reports/drugchemical/excluded_pairs.tsv.gz",
     benchmark:
         config["output_directory"] + "/benchmarks/drugchemical_conflation.tsv"
     run:
@@ -82,6 +83,7 @@ rule drugchemical_conflation:
             output.outfile,
             input_metadata_yamls=[input.rxnorm_metadata, input.umls_metadata, input.pubchem_metadata],
             output_metadata_yaml=output.metadata_yaml,
+            exclusions_outfilename=output.exclusions,
         )
 
 
