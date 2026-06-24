@@ -1,4 +1,5 @@
 import src.reports.duckdb_reports
+import src.reports.drugprotein_conflation_report
 from src.snakefiles.util import get_all_compendia, get_all_synonyms_with_drugchemicalconflated
 import src.exporters.duckdb_exporters as duckdb_exporters
 import os
@@ -298,6 +299,57 @@ rule generate_clique_leader_report:
         )
 
 
+# Estimate a prospective DrugProtein conflation (issue #706). This does not change any compendium;
+# it resolves both endpoints of the existing DrugChemical bridge concords to their clique leaders
+# and counts the pairs that cross the protein/chemical boundary -- exactly the pairs DrugChemical
+# conflation discards today. See src/reports/drugprotein_conflation_report.py and docs/Conflation.md.
+rule drugprotein_conflation_estimate:
+    input:
+        config["output_directory"] + "/duckdb/done",
+        config["output_directory"] + "/duckdb/compendia_done",
+        rxnorm_concord=config["intermediate_directory"] + "/drugchemical/concords/RXNORM",
+        umls_concord=config["intermediate_directory"] + "/drugchemical/concords/UMLS",
+        pubchem_concord=config["intermediate_directory"] + "/drugchemical/concords/PUBCHEM_RXNORM",
+        manual_concord=config["input_directory"] + "/manual_concords/drugchemical.tsv",
+    output:
+        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/drugprotein_conflation_estimate.duckdb"),
+        summary_json=config["output_directory"] + "/reports/drugprotein/summary.json",
+        edges_tsv_gz=config["output_directory"] + "/reports/drugprotein/bridge_edges.tsv.gz",
+        top_cliques_csv=config["output_directory"] + "/reports/drugprotein/top_cliques.csv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/drugprotein_conflation_estimate.tsv"
+    resources:
+        # The Edge scan is restricted to the bridge prefixes up front and the cross-pipeline pair
+        # set is small, so this is far lighter than the full-graph reports; memory_limit is still
+        # kept well below mem for cgroup headroom. See slurm/README.md.
+        mem="512G",
+    params:
+        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
+        protein_filenames=[os.path.splitext(f)[0] for f in config["protein_outputs"]],
+        chemical_filenames=[os.path.splitext(f)[0] for f in config["chemical_outputs"]],
+    run:
+        src.reports.drugprotein_conflation_report.estimate_drugprotein_conflation(
+            params.parquet_dir,
+            [
+                ("drugchemical/RXNORM", input.rxnorm_concord),
+                ("drugchemical/UMLS", input.umls_concord),
+                ("drugchemical/PUBCHEM_RXNORM", input.pubchem_concord),
+            ],
+            input.manual_concord,
+            output.duckdb_filename,
+            output.summary_json,
+            output.edges_tsv_gz,
+            output.top_cliques_csv,
+            protein_filenames=params.protein_filenames,
+            chemical_filenames=params.chemical_filenames,
+            duckdb_config={
+                "memory_limit": "400G",
+                "threads": 1,
+                "preserve_insertion_order": False,
+            },
+        )
+
+
 rule all_duckdb_reports:
     input:
         config["output_directory"] + "/duckdb/done",
@@ -307,6 +359,7 @@ rule all_duckdb_reports:
         duplicate_clique_leaders_tsv=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.tsv",
         curie_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
         by_clique_report_json=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
+        drugprotein_summary_json=config["output_directory"] + "/reports/drugprotein/summary.json",
     output:
         x=config["output_directory"] + "/reports/duckdb/done",
     shell:
