@@ -9,6 +9,7 @@ This folder contains reference documentation for Babel, organized by audience.
 | [Understanding.md](./Understanding.md) | How Babel constructs cliques, chooses preferred identifiers and labels, sources descriptions and IC values, and what split/lumped cliques are. Also covers how to report incorrect cliques. |
 | [DataFormats.md](./DataFormats.md)     | Compendium, synonym, and conflation file format specification.                                                                                                                              |
 | [Conflation.md](./Conflation.md)       | What conflations are, how GeneProtein and DrugChemical conflation work, and when to use them.                                                                                               |
+| [reports/ProteinChemicalOverlap.md](./reports/ProteinChemicalOverlap.md) | The protein/chemical overlap report: cross-references that bridge the chemical/protein boundary, the candidate merges a DrugProtein conflation would apply, and how to read them.   |
 | [Downloads.md](./Downloads.md)         | Where to download published Babel outputs and which formats are available.                                                                                                                  |
 
 ## For pipeline operators — running and deploying
