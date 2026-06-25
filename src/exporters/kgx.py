@@ -1,7 +1,7 @@
 # Once we generate the compendium files, we need to convert them into the
 # Knowledge Graph Exchange (KGX, https://github.com/biolink/kgx) format.
 # This file provides code for doing that, based on the code from
-# https://github.com/TranslatorSRI/NodeNormalization/blob/68096b2f16e6c2eedb699178ace71cea98dc794f/node_normalizer/loader.py#L70-L208
+# https://github.com/NCATSTranslator/NodeNormalization/blob/68096b2f16e6c2eedb699178ace71cea98dc794f/node_normalizer/loader.py#L70-L208
 import gzip
 import hashlib
 import json
@@ -9,6 +9,7 @@ import logging
 import os
 from itertools import combinations
 
+from src.predicates import BIOLINK_SAME_AS
 from src.util import LoggingUtil, get_memory_usage_summary
 
 # Default logger for this file.
@@ -19,7 +20,7 @@ def convert_compendium_to_kgx(compendium_filename, kgx_nodes_filename, kgx_edges
     """
     Convert a compendium file to KGX (https://github.com/biolink/kgx) format.
 
-    Based on the code in https://github.com/TranslatorSRI/NodeNormalization/blob/68096b2f16e6c2eedb699178ace71cea98dc794f/node_normalizer/loader.py#L70-L208
+    Based on the code in https://github.com/NCATSTranslator/NodeNormalization/blob/68096b2f16e6c2eedb699178ace71cea98dc794f/node_normalizer/loader.py#L70-L208
 
     :param compendium_filename: The compendium file to convert.
     :param kgx_nodes_gz_filename: The KGX nodes gzipped file to write out.
@@ -48,7 +49,10 @@ def convert_compendium_to_kgx(compendium_filename, kgx_nodes_filename, kgx_edges
     # Open the compendium file for reading.
     with open(compendium_filename, encoding="utf-8") as compendium:
         # Open the nodes and edges files for writing.
-        with gzip.open(kgx_nodes_filename, "wt", encoding="utf-8") as node_file, gzip.open(kgx_edges_filename, "wt", encoding="utf-8") as edge_file:
+        with (
+            gzip.open(kgx_nodes_filename, "wt", encoding="utf-8") as node_file,
+            gzip.open(kgx_edges_filename, "wt", encoding="utf-8") as edge_file,
+        ):
             # set the flag for suppressing the first ",\n" in the written data
             first = True
 
@@ -99,7 +103,7 @@ def convert_compendium_to_kgx(compendium_filename, kgx_nodes_filename, kgx_edges
                             {
                                 "id": f"{hashlib.md5(record_id.encode('utf-8')).hexdigest()}",
                                 "subject": c[0]["id"],
-                                "predicate": "biolink:same_as",
+                                "predicate": BIOLINK_SAME_AS,
                                 "object": c[1]["id"],
                             }
                         )
@@ -136,7 +140,9 @@ def convert_compendium_to_kgx(compendium_filename, kgx_nodes_filename, kgx_edges
 
                     # Count total lines
                     count_lines += line_counter
-                    logger.debug(f"Processed {count_lines:,} lines from {compendium_filename}: {get_memory_usage_summary()}")
+                    logger.debug(
+                        f"Processed {count_lines:,} lines from {compendium_filename}: {get_memory_usage_summary()}"
+                    )
 
                     # reset the line counter for the next group
                     line_counter = 0
@@ -154,7 +160,9 @@ def convert_compendium_to_kgx(compendium_filename, kgx_nodes_filename, kgx_edges
 
             # Count total lines
             count_lines += line_counter
-            logger.info(f"Processed a total of {count_lines} lines from {compendium_filename}: {get_memory_usage_summary()}")
+            logger.info(
+                f"Processed a total of {count_lines} lines from {compendium_filename}: {get_memory_usage_summary()}"
+            )
 
     logger.info(
         f"Converted {compendium_filename} to KGX: "

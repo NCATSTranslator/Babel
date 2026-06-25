@@ -200,7 +200,6 @@ rule disease_manual_concord:
                     )
                 outp.writelines(["\t".join(elements)])
                 count_manual_concords += 1
-
         write_concord_metadata(
             output.metadata_yaml,
             name="Manual Disease/Phenotype Concords",
@@ -237,6 +236,7 @@ rule disease_compendia:
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["disease_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["disease_outputs"])),
+        expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["disease_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/disease_compendia.tsv"
     run:

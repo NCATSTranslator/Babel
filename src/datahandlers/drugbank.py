@@ -6,6 +6,7 @@ from zipfile import ZipFile
 
 import requests
 
+from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import DRUGBANK
 
 
@@ -13,7 +14,9 @@ def download_drugbank_vocabulary(drugbank_version, outfile):
     """Download a particular version of the DrugBank vocabulary."""
 
     # Download from URL using Requests.
-    response = requests.get(f"https://go.drugbank.com/releases/{drugbank_version}/downloads/all-drugbank-vocabulary", stream=True)
+    response = requests.get(
+        f"https://go.drugbank.com/releases/{drugbank_version}/downloads/all-drugbank-vocabulary", stream=True
+    )
 
     with open(outfile + ".zip", "wb") as fout:
         shutil.copyfileobj(response.raw, fout)
@@ -44,4 +47,4 @@ def extract_drugbank_labels_and_synonyms(drugbank_vocab_csv, labels, synonyms):
             if "Synonyms" in line and line["Synonyms"].strip() != "":
                 synonyms = line["Synonyms"].split(" | ")
                 for syn in synonyms:
-                    synonymsf.write(f"{drugbank_id}\thttp://www.geneontology.org/formats/oboInOwl#hasExactSynonym\t{syn}\n")
+                    synonymsf.write(f"{drugbank_id}\t{HAS_EXACT_SYNONYM}\t{syn}\n")

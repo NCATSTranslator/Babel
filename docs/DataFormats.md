@@ -59,13 +59,12 @@ This entry consists of the following fields:
 |------------------|-------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ic               | 100                                                         | Information content value (see [Understanding.md](./Understanding.md#what-are-information-content-values)). They are decimal values that range from 0.0 (high-level broad term with many subclasses) to 100.0 (very specific term with no subclasses).                 |
 | identifiers      | _See below_                                                 | A list of identifiers for this clique. This is arranged in the same order as the valid ID prefixes for this type in the Biolink Model, e.g. [starting with NCBIGene and ENSEMBL for `biolink:Gene`](https://biolink.github.io/biolink-model/Gene/#valid-id-prefixes). |
-| identifiers[0].i | NCBIGene:2358                                               | A CURIE representing this identifier. You can use the [Biolink Model prefixmap](https://github.com/biolink/biolink-model/tree/master/project/prefixmap) to expand this into a full concept IRI.                                                                       |
+| identifiers[0].i | NCBIGene:2538                                               | A CURIE representing this identifier. You can use the [Biolink Model prefixmap](https://github.com/biolink/biolink-model/tree/master/project/prefixmap) to expand this into a full concept IRI.                                                                       |
 | identifiers[0].l | G6PC1                                                       | A label for this identifier. This will almost always be from the source of the CURIE (in this case, the label is from the NCBI Gene database).                                                                                                                        |
 | identifiers[0].d | (blank in this example, but usually 1-3 sentences)          | A description of this identifier or concept from this source.                                                                                                                                                                                                         |
 | identifiers[0].t | ["NCBITaxon:9606"]                                          | A list of taxa that this concept is found in as NCBITaxon CURIEs. NCBITaxon:9606 refers to the species _Homo sapiens_.                                                                                                                                                |
 | preferred_name   | G6PC1                                                       | The preferred name for this clique. This is not currently used by NodeNorm, but will be in the future.                                                                                                                                                                |
 | taxa             | ["NCBITaxon:9606"]                                          | A list of taxa that this concept is found in as NCBITaxon CURIEs. This is combined from all the individual taxa from each identifier.                                                                                                                                 |
-| descriptions     | (blank in this example, but usually a list of descriptions) | A list of descriptions, created by combining descriptions from all the identifiers.                                                                                                                                                                                   |
 | type             | biolink:Gene                                                | The Biolink type of this concept. Must be a class from the [Biolink model](https://biolink.github.io/biolink-model/) with a `biolink:` prefix.                                                                                                                        |
 
 The first identifier in the `identifiers` list is considered the "clique leader" or "preferred ID"
@@ -131,13 +130,14 @@ This entry consists of the following fields:
 
 | Field                   | Value                              | Meaning                                                                                                                                                                                                                                     |
 |-------------------------|------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| clique_identifier_count | 5                                  | The number of identifiers in the corresponding clique (i.e. for `NCBIGene:2358`).                                                                                                                                                           |
+| clique_identifier_count | 5                                  | The number of identifiers in the corresponding clique (i.e. for `NCBIGene:2538`).                                                                                                                                                           |
 | curie                   | NCBIGene:2538                      | The CURIE for this entry. Note that the equivalent identifiers are not included.                                                                                                                                                            |
 | curie_suffix            | 2538                               | If the CURIE suffix is completely numerical, it will be stored in this field as a number. This is used to sort search results, with lower CURIE suffixes appearing first.                                                                   |
 | names                   | [ "GD1", "G6PC", ... ]"            | A list of synonyms for this concept. It is usually arranged from shortest to longest, except for conflated cliques, which has all the synonyms for the first identifier, followed by all the synonyms for the second identifier, and so on. |
 | preferred_name          | G6PC1                              | The preferred name for this clique.                                                                                                                                                                                                         |
 | shortest_name_length    | 4                                  | The length of the shortest synonym in the `names` list, in order to sort results for the shortest name.                                                                                                                                     |
 | taxa                    | ["NCBITaxon:9606"]                 | The list of taxa that this concept is found in. This should be identical to the entry in the corresponding Compendia file.                                                                                                                  |
+| taxon_specific          | true or false                      | True if this concept is associated with one or more specific taxa; false if it is not taxon-specific.                                                                                                                                       |
 | types                   | ["Gene", "GeneOrGeneProduct", ...] | A list of Biolink types (without the `biolink:` prefix) for this concept. This is arranged in the same order provided by the Biolink Model Toolkit, starting with the narrowest concept, expanding to the broadest, followed by mixins.     |
 
 Note that the synonym files are generated with DrugChemical conflation turned on, but GeneProtein
@@ -150,13 +150,13 @@ two currently supported conflation methods. Both files have the same format: a J
 entry is a list of clique leaders (i.e. the first identifier for a clique in the
 [Compendia files](#compendia-files)) that should be combined under that conflation. For example, the
 following entry indicates that if either `NCBIGene:2538` or `UniProtKB:P35575` is queried with
-DrugChemical conflation turned on, then a combined clique of both identifiers should be returned.
+GeneProtein conflation turned on, then a combined clique of both identifiers should be returned.
 
 ```json
 ["NCBIGene:2538", "UniProtKB:P35575"]
 ```
 
-Here is the response when normalizing `UniProtKB:P35575` from NodeNorm when both DrugChemical
+Here is the response when normalizing `UniProtKB:P35575` from NodeNorm when both GeneProtein
 conflation and individual types are turned on:
 
 ```json
@@ -232,3 +232,88 @@ conflation and individual types are turned on:
 Note that this includes both biolink:Gene identifiers (such as
 [HGNC:4056](https://alliancegenome.org/gene/HGNC:4056)) and biolink:Protein identifiers (such as
 [UniProtKB:P35575](http://www.uniprot.org/uniprot/P35575)).
+
+## DuckDB and Parquet exports
+
+The `babel_outputs/duckdb/` directory contains the same information as the JSONL files above,
+reformatted for analytical queries. The intended use case is index-wide queries that would be
+impractical against the raw JSONL — for example, finding synonyms shared across multiple cliques,
+computing synonym-length distributions, or checking prefix coverage across semantic types. There
+are no fixed downstream consumers yet; the schema is evolving.
+
+The export is produced by `src/snakefiles/duckdb.snakefile` via
+`src/exporters/duckdb_exporters.py`. Each semantic type gets a subdirectory under
+`babel_outputs/duckdb/parquet/filename={Type}/` containing one or more Parquet files. A
+transient DuckDB database (`.duckdb`) is written alongside each set of Parquet files during
+export and can be used directly for interactive querying, but the Parquet files are the
+durable output.
+
+### Compendium tables (`filename={Type}/Node.parquet`, `Clique.parquet`, `Edge.parquet`)
+
+These three tables are derived from the compendia JSONL for each semantic type.
+
+`Node.parquet` — one row per identifier across all cliques:
+
+| Column       | Type            | Meaning                                          |
+|--------------|-----------------|--------------------------------------------------|
+| curie        | STRING          | The identifier CURIE, e.g. `NCBIGene:2538`       |
+| curie_prefix | STRING          | The prefix portion of the CURIE, e.g. `NCBIGene` |
+| label        | STRING          | The label for this identifier, if any            |
+| label_lc     | STRING          | Lower-cased label (for case-insensitive search)  |
+| description  | STRING[]        | Description text(s) for this identifier          |
+| taxa         | STRING[]        | Taxa CURIEs associated with this identifier      |
+
+`Clique.parquet` — one row per clique:
+
+| Column                   | Type   | Meaning                                                   |
+|--------------------------|--------|-----------------------------------------------------------|
+| clique_leader            | STRING | CURIE of the preferred identifier for the clique          |
+| preferred_name           | STRING | Preferred display name for the clique                     |
+| clique_identifier_count  | INT    | Number of identifiers in the clique                       |
+| biolink_type             | STRING | Biolink type, e.g. `biolink:Gene`                         |
+| information_content      | FLOAT  | Information content value (0–100)                         |
+
+We get information content values as the [`normalizedInformationContent` from Ubergraph].
+
+`Edge.parquet` — one row per (clique, identifier) pair; the primary way to look up which
+clique contains a given CURIE:
+
+| Column               | Type   | Meaning                                                                    |
+|----------------------|--------|----------------------------------------------------------------------------|
+| clique_leader        | STRING | CURIE of the clique's preferred identifier                                 |
+| curie                | STRING | An identifier that belongs to this clique                                  |
+| conflation           | STRING | Conflation type if applicable, otherwise `'None'`                          |
+| clique_leader_prefix | STRING | Prefix of the clique leader CURIE                                          |
+| curie_prefix         | STRING | Prefix of the member CURIE                                                 |
+| biolink_type         | STRING | Biolink type of the owning clique (denormalized to avoid Edge→Clique join) |
+
+### Synonym table (`filename={Type}/Synonyms.parquet`)
+
+Derived from the synonym JSONL files. One row per (clique, synonym) pair — i.e., the `names`
+array from the synonym file is unnested so each individual synonym gets its own row. This makes
+synonym-frequency queries straightforward at the cost of a large row count for types with many
+synonyms per concept (notably `Protein` and `GeneProteinConflated`, which have hundreds of
+UniProt synonyms per entry).
+
+| Column           | Type   | Meaning                                            |
+|------------------|--------|----------------------------------------------------|
+| clique_leader    | STRING | CURIE of the clique's preferred identifier         |
+| preferred_name   | STRING | Preferred display name for the clique              |
+| preferred_name_lc| STRING | Lower-cased preferred name                         |
+| biolink_type     | STRING | Biolink type, e.g. `biolink:Gene`                  |
+| label            | STRING | One synonym from the `names` list                  |
+| label_lc         | STRING | Lower-cased synonym                                |
+
+### Conflation table (`filename={ConflationName}/Conflation.parquet`)
+
+Derived from the conflation JSONL files (`GeneProtein.txt`, `DrugChemical.txt`). One row per
+(conflation group, member CURIE):
+
+| Column             | Type   | Meaning                                              |
+|--------------------|--------|------------------------------------------------------|
+| conflation_type    | STRING | Conflation name, e.g. `GeneProtein`                  |
+| conflation_leader  | STRING | CURIE of the conflation group's lead identifier      |
+| curie              | STRING | A member CURIE of the conflation group               |
+| curie_prefix       | STRING | Prefix of the member CURIE                           |
+
+[`normalizedInformationContent` from Ubergraph]: https://github.com/INCATools/ubergraph/#graph-organization

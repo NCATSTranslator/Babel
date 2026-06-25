@@ -7,6 +7,15 @@ import src.snakefiles.util as util
 ### Gene / Protein
 
 
+rule protein_mesh_ids:
+    input:
+        infile=config["download_directory"] + "/MESH/mesh.nt",
+    output:
+        outfile=config["intermediate_directory"] + "/protein/ids/MESH",
+    run:
+        protein.write_mesh_ids(output.outfile)
+
+
 rule protein_pr_ids:
     output:
         outfile=config["intermediate_directory"] + "/protein/ids/PR",
@@ -80,7 +89,7 @@ rule get_protein_pr_uniprotkb_relationships:
     benchmark:
         config["output_directory"] + "/benchmarks/get_protein_pr_uniprotkb_relationships.tsv"
     # Because we get this from UberGraph, we sometimes end up with incomplete/failed transfers and need to retry.
-    retries: 10
+    retries: 3
     run:
         protein.build_pr_uniprot_relationships(output.outfile, metadata_yaml=output.metadata_yaml)
 
@@ -142,6 +151,7 @@ rule protein_compendia:
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["protein_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["protein_outputs"])),
+        expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["protein_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/protein_compendia.tsv"
     resources:

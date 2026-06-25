@@ -28,13 +28,9 @@ conflated.
 - For GeneProtein conflation, the preferred identifier is a gene.
 - For DrugChemical conflation, Babel uses the
   [following algorithm](https://github.com/NCATSTranslator/Babel/blob/f3ff2103e74bc9b6bee9483355206b32e8f9ae9b/src/createcompendia/drugchemical.py#L466-L538):
-    1. We first choose an overall Biolink type for the conflated clique. To do this, we use a
-       ["preferred Biolink type" order](https://github.com/NCATSTranslator/Babel/blob/f3ff2103e74bc9b6bee9483355206b32e8f9ae9b/config.yaml#L32-L50)
-       that can be configured in [config.yaml](../config.yaml) and choose the most preferred Biolink
-       type that is present in the conflated clique.
-    1. We then group the cliques to be conflated by the prefix of their preferred
-       identifier, and sort them based on the preferred prefix order for the
-       chosen Biolink type.
+    1. We group the cliques to be conflated by the prefix of their preferred identifier (e.g. CHEBI,
+       UNII, PUBCHEM.COMPOUND), and sort these groups using the
+       [ChemicalEntity prefix sort order from the Biolink Model](https://biolink.github.io/biolink-model/ChemicalEntity/#valid-id-prefixes).
     1. If there are multiple cliques with the same prefix in their preferred
        identifier, we use the following criteria to sort them:
         1. A clique with a lower information content value will be sorted before
@@ -64,11 +60,7 @@ that are used to prioritize labels. This list is currently:
 1. DrugCentral
 1. CHEBI
 1. MESH
-1. CHEMBL.COMPOUND
 1. GTOPDB
-1. HMDB
-1. RXCUI
-1. PUBCHEM.COMPOUND
 
 [Conflations](./Conflation.md) are lists of identifiers that are merged in
 that order when that conflation is applied. The preferred label for the

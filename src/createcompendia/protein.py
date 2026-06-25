@@ -1,6 +1,7 @@
 import os
 import re
 
+import src.datahandlers.mesh as mesh
 import src.datahandlers.obo as obo
 import src.datahandlers.umls as umls
 from src.babel_utils import Text, glom, read_identifier_file, write_compendium
@@ -14,13 +15,15 @@ logger = get_logger(__name__)
 
 
 def extract_taxon_ids_from_uniprotkb(idmapping_filename, uniprotkb_taxa_filename):
-    """Extract NCBIGene identifiers from the UniProtKB mapping file."""
+    """Extract NCBITaxon identifiers from the UniProtKB mapping file."""
     with open(idmapping_filename) as inf, open(uniprotkb_taxa_filename, "w") as outf:
         for line in inf:
             x = line.strip().split("\t")
             if x[1] == "NCBI_TaxID":
                 if x[0] == "" or x[2] == "":
-                    logger.warning(f"Line {x} is an NCBI_TaxID but has a blank UniProtKB ({x[0]}) or NCBITaxon ({x[2]}), skipping.")
+                    logger.warning(
+                        f"Line {x} is an NCBI_TaxID but has a blank UniProtKB ({x[0]}) or NCBITaxon ({x[2]}), skipping."
+                    )
                     continue
                 outf.write(f"{UNIPROTKB}:{x[0]}\t{NCBITAXON}:{x[2]}\n")
 
@@ -32,14 +35,63 @@ def write_umls_ids(mrsty, outfile):
     # We have to make sure we don't include UMLS identifiers both here and in chemicals.py, otherwise they'll
     # end up in both compendia.
     umlsmap = {
-        "A1.4.1.2.1.7": PROTEIN,    # Amino Acid, Peptide, or Protein -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T116
+        "A1.4.1.2.1.7": PROTEIN,  # Amino Acid, Peptide, or Protein -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T116
         # The following should not be needed: receptors are generally proteins, and enzymes are definitionally proteins, so
         # they should all be included in T116. But since we exclude them in chemicals.py, I think it makes sense to include
         # them here.
-        "A1.4.1.1.3.6": PROTEIN,    # Receptor -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T192
-        "A1.4.1.1.3.3": PROTEIN,    # Enzyme -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T126
+        "A1.4.1.1.3.6": PROTEIN,  # Receptor -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T192
+        "A1.4.1.1.3.3": PROTEIN,  # Enzyme -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T126
     }
     umls.write_umls_ids(mrsty, umlsmap, outfile)
+
+
+def write_mesh_ids(outfile):
+    # MeSH protein trees — these are terms excluded from the chemical compendium
+    # (see chemicals.write_mesh_ids) that belong in the protein compendium instead.
+    #
+    # D12.776  Proteins (entire subtree)
+    #
+    # D05      Macromolecular Substances — only protein-related subtrees:
+    #   D05.500  Multiprotein Complexes
+    #   D05.875  Protein Aggregates
+    #   (D05.374 Micelles, D05.750 Polymers, D05.937 Smart Materials go to the chemical
+    #    compendium as CHEMICAL_ENTITY — see https://github.com/NCATSTranslator/Babel/issues/731
+    #
+    # D08      Enzymes and Coenzymes — only protein-related subtrees:
+    #   D08.811  Enzymes
+    #   D08.622  Enzyme Precursors
+    #   D08.244  Cytochromes
+    #   (D08.211 Coenzymes goes to the chemical compendium — not proteins.)
+    #
+    # TODO: The MeSH tree assignments for chemicals and proteins are currently defined
+    # independently in chemicals.write_mesh_ids() and protein.write_mesh_ids(). These
+    # should be unified into a shared mapping (e.g. in config.yaml or a dedicated
+    # mapping module) so both compendia are derived from the same source of truth.
+    # This would prevent the current situation where the included/excluded trees here
+    # and in chemicals.py must be kept in sync manually. See https://github.com/NCATSTranslator/Babel/issues/735
+    meshmap = {
+        "D12.776": PROTEIN,
+        "D05.500": PROTEIN,
+        "D05.875": PROTEIN,
+        "D08.811": PROTEIN,
+        "D08.622": PROTEIN,
+        "D08.244": PROTEIN,
+    }
+    # Also include SCR_Chemical terms mapped to protein descriptor trees.
+    # We use scr_include_trees to only keep SCR terms mapped to specific protein subtrees.
+    # D05 is narrowed to D05.500/D05.875 (Multiprotein Complexes, Protein Aggregates) so
+    # SCRs mapped to non-protein D05 subtrees (D05.374 Micelles, D05.750 Polymers, D05.937
+    # Smart Materials) fall through to the chemical compendium, consistent with how those
+    # descriptor terms are handled.
+    # D08 is narrowed to only the protein subtrees so SCRs mapped to D08.211 (Coenzymes)
+    # fall through to the chemical compendium, consistent with how descriptor terms are handled.
+    mesh.write_ids(
+        meshmap,
+        outfile,
+        order=[PROTEIN],
+        extra_vocab={"SCR_Chemical": PROTEIN},
+        scr_include_trees=list(meshmap.keys()),
+    )
 
 
 def write_pr_ids(outfile):
@@ -116,7 +168,7 @@ def build_protein_uniprotkb_ensemble_relationships(infile, outfile, metadata_yam
                 # If the ENSEMBL ID is a version string (e.g. ENSEMBL:ENSP00000263368.3),
                 # then we should indicate that this is identical to the non-versioned string
                 # as well.
-                # See https://github.com/TranslatorSRI/Babel/issues/72 for details.
+                # See https://github.com/NCATSTranslator/Babel/issues/72 for details.
                 res = re.match(r"^([A-Z]+\d+)\.\d+", x[2])
                 if res:
                     ensembl_id_without_version = res.group(1)
@@ -176,7 +228,9 @@ def build_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
     #
     # TODO: we should probably add some kind of filtering so we don't include concords that point to chemicals rather
     # than proteins, which could result in duplicates (if the same ID is picked up in both chemicals and proteins).
-    umls.build_sets(mrconso, idfile, outfile, {"MSH": MESH, "DRUGBANK": DRUGBANK}, provenance_metadata_yaml=metadata_yaml)
+    umls.build_sets(
+        mrconso, idfile, outfile, {"MSH": MESH, "DRUGBANK": DRUGBANK}, provenance_metadata_yaml=metadata_yaml
+    )
 
 
 def build_protein_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
@@ -185,7 +239,9 @@ def build_protein_compendia(concordances, metadata_yamls, identifiers, icrdf_fil
     dicts = {}
     types = {}
     uniques = [UNIPROTKB, PR]
-    logger.info(f"Started building protein compendia ({concordances}, {metadata_yamls}, {identifiers}, {icrdf_filename}) with uniques {uniques}")
+    logger.info(
+        f"Started building protein compendia ({concordances}, {metadata_yamls}, {identifiers}, {icrdf_filename}) with uniques {uniques}"
+    )
     for ifile in identifiers:
         logger.info(f"Loading identifier file {ifile}")
         new_identifiers, new_types = read_identifier_file(ifile)
@@ -218,5 +274,13 @@ def build_protein_compendia(concordances, metadata_yamls, identifiers, icrdf_fil
 
     baretype = PROTEIN.split(":")[-1]
     logger.info(f"Writing compendium for {baretype}, memory usage: {get_memory_usage_summary()}")
-    write_compendium(metadata_yamls, gene_sets, f"{baretype}.txt", PROTEIN, {}, extra_prefixes=[DRUGBANK], icrdf_filename=icrdf_filename)
+    write_compendium(
+        metadata_yamls,
+        gene_sets,
+        f"{baretype}.txt",
+        PROTEIN,
+        {},
+        extra_prefixes=[DRUGBANK],
+        icrdf_filename=icrdf_filename,
+    )
     logger.info(f"Wrote compendium for {baretype}, memory usage: {get_memory_usage_summary()}")

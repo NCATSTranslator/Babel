@@ -5,6 +5,8 @@ repository.
 
 ## Project Overview
 
+GitHub repository: <https://github.com/NCATSTranslator/Babel>
+
 Babel is the Biomedical Data Translator's identifier normalization system. It creates "cliques" —
 equivalence sets of identifiers across biomedical vocabularies (e.g., recognizing that MESH:D014867
 and DRUGBANK:DB09145 both refer to water). Output is consumed by Node Normalization and Name
@@ -15,7 +17,7 @@ Resolver services.
 ### Setup
 
 ```bash
-uv sync                    # Install dependencies
+uv sync
 ```
 
 ### Running the Pipeline
@@ -23,33 +25,47 @@ uv sync                    # Install dependencies
 ```bash
 uv run snakemake --cores N                # Full pipeline (~500GB RAM)
 uv run snakemake --cores 1 anatomy        # Single semantic type target
-uv run snakemake --cores 1 chemical       # Another target
+uv run snakemake --cores 1 chemical
 ```
 
 ### Testing
 
 ```bash
-PYTHONPATH=. uv run pytest                           # All tests
-PYTHONPATH=. uv run pytest --cov=src                 # With coverage report
-PYTHONPATH=. uv run pytest tests/test_node_factory.py  # Single test file
-PYTHONPATH=. uv run pytest -m unit -q               # Unit tests only (CI default)
-PYTHONPATH=. uv run pytest --network                # Include network tests
-PYTHONPATH=. uv run pytest --all                    # Run every test
-PYTHONPATH=. uv run pytest -n auto                  # Parallel (all CPUs)
+uv run pytest                           # All tests
+uv run pytest --cov=src                 # With coverage report
+uv run pytest tests/test_node_factory.py  # Single test file
+uv run pytest -m unit -q               # Unit tests only (CI default)
+uv run pytest --network                # Include network tests
+uv run pytest --all                    # Run every test
+uv run pytest -n auto                  # Parallel (all CPUs)
 ```
 
 Tests use four marks: `unit` (fast, offline), `network` (requires internet, opt-in with
 `--network`), `slow` (>30s but offline), and `pipeline` (invokes Snakemake, opt-in with
 `--pipeline`). Use `--all` to opt in to everything at once. Network and pipeline tests are
-skipped by default. See `tests/README.md` for the full taxonomy.
+skipped by default.
 
-Note: not all tests currently pass (issue #602).
+Memory-hungry tests also carry a parametrized `min_memory_gb(n)` guard (registered in
+`pyproject.toml`, enforced in `tests/conftest.py`) that auto-skips them on machines with less
+than `n` GiB of RAM. For example the ChEMBL pipeline tests bulk-load a ~16 GB TTL into an
+in-memory `pyoxigraph.Store` and need ~120–150 GiB — far more than the on-disk size, because an
+indexed in-memory triple store expands roughly 8–10×. To size a new rule's `mem=` resource or a
+test's `min_memory_gb` threshold empirically, use `tools/memory/estimate_rdf_load_memory.py` (see
+`tools/memory/README.md`): it streams an RDF dump into a store, samples RSS, and extrapolates the
+full-load peak, so it works even on a machine far smaller than the eventual requirement (most
+accurate on Linux — macOS memory compression understates the result).
 
-### Linting (all three checked in CI on PRs)
+- `tests/README.md` — full mark taxonomy, where to add a new test, what each test file covers.
+- `docs/Testing.md` — testing strategy: cadence per environment (per-PR, nightly, weekly,
+  pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other strategies.
+
+### Linting (all four checked in CI on PRs)
 
 ```bash
 uv run ruff check                        # Python lint
 uv run ruff check --fix                  # Python auto-fix
+uv run ruff format --check               # Python format check
+uv run ruff format                       # Python auto-format
 uv run snakefmt --check --compact-diff . # Snakemake format check
 uv run snakefmt .                        # Snakemake auto-fix
 uv run rumdl check .                     # Markdown lint
@@ -58,9 +74,14 @@ uv run rumdl fmt .                       # Markdown auto-fix
 
 ### Configuration
 
-- Line length is 160 for both Python (ruff) and Snakemake (snakefmt).
+- Line length is 120 for both Python (ruff) and Snakemake (snakefmt). Markdown (`rumdl`, rule
+  `MD013`) wraps at 100 instead, though tables are exempt.
 - Main config: `config.yaml` (directory paths, version strings, prefix lists per semantic type).
 - `UMLS_API_KEY` environment variable required for UMLS/RxNorm downloads.
+- `compendium_directories` in `config.yaml` maps Python compendium names to the Snakemake
+  intermediate directory names when they differ (e.g., `diseasephenotype → disease`,
+  `processactivitypathway → process`). Update this when adding a new semantic type whose
+  directory name doesn't match its Python module name.
 
 ## Architecture
 
@@ -68,8 +89,13 @@ uv run rumdl fmt .                       # Markdown auto-fix
 
 Snakemake drives a two-phase pipeline:
 
-1. **Data Collection** — downloads from FTP/web sources, producing `labels` (CURIE→name) and
-   `synonyms` (CURIE→predicate→synonym) files in `babel_downloads/[PREFIX]/`.
+1. **Data Collection** — downloads from FTP/web sources, producing per-source attribute files in
+   `babel_downloads/[PREFIX]/` that the factories in `node.py` pick up by prefix. Each is an
+   independent, optional TSV: `labels` (CURIE→name, read by `NodeFactory`), `synonyms`
+   (CURIE→predicate→synonym, `SynonymFactory`), `taxa` (CURIE→`NCBITaxon:NNNN`, `TaxonFactory`),
+   and `descriptions` (CURIE→text, `DescriptionFactory`). A handler emits whichever of these its
+   source supports; supplying `taxa`/`descriptions` is how a source enriches its cliques with
+   taxon and description data (see ComplexPortal and NCBIGene for examples that emit all four).
 2. **Compendium Building** — extracts identifiers per semantic type into `ids/[TYPE]`, creates
    pairwise cross-reference mappings (concords), merges them into equivalence cliques via
    union-find, and outputs enriched JSONL compendia.
@@ -79,9 +105,9 @@ semantic type plus data collection, reports, exports, and DuckDB.
 
 ### Source Code Layout (`src/`)
 
-- **`datahandlers/`** — ~37 modules, each wrapping a specific external data source (ChEBI, UniProt,
+- **`datahandlers/`** — ~35 modules, each wrapping a specific external data source (ChEBI, UniProt,
   NCBI Gene, DrugBank, MESH, etc.). These download, parse, and normalize source data.
-- **`createcompendia/`** — ~15 modules, one per semantic type (chemicals, genes, proteins, anatomy,
+- **`createcompendia/`** — ~16 modules, one per semantic type (chemicals, genes, proteins, anatomy,
   disease/phenotype, etc.). These consume data handler outputs and build concords → cliques.
 - **`snakefiles/`** — Snakemake rule definitions wiring data handlers to compendium creators.
 - **`node.py`** — Core classes: `NodeFactory`, `SynonymFactory`, `DescriptionFactory`,
@@ -102,12 +128,25 @@ semantic type plus data collection, reports, exports, and DuckDB.
 - **Concord files** are the core data structure: tab-separated `CURIE1 \t Relation \t CURIE2`
   triples expressing cross-references between vocabularies. The `glom()` function in
   `babel_utils.py` merges them into equivalence cliques.
+- **`SynonymFilter`** (`src/synonyms/filter.py`) checks every label and synonym against
+  `input_data/obsolete_synonyms.yaml` before it enters a compendium. Each YAML entry
+  carries its own `action` field: `"remove"` (default) drops the term and returns `True`
+  from `should_suppress()`; `"warn"` logs a warning but keeps the term and returns
+  `False`. When calling `should_suppress()`, always pass the full Biolink ancestor chain
+  via `NodeFactory.get_ancestors(node_type)` as `node_types` — passing only `[node_type]`
+  breaks type-scoped filter entries that match on a parent type.
+- **Logging** — always use `get_logger(__name__)` from `src.util` (never
+  `logging.getLogger` directly). `get_logger` installs the shared stderr handler and
+  formatter that Snakemake captures; bare `logging.getLogger` loggers may produce
+  unformatted output if called before any other module has triggered `get_logger`. In
+  modules that sit early in the import graph and must defer `src.util` to avoid
+  triggering config loading at import time (see `src/synonyms/filter.py`), reassign the
+  module-level `logger` inside the deferred-import block rather than at module scope.
 
 ### Biolink Model Usage
 
 The Biolink Model version is set in `config.yaml` (`biolink_version: "4.3.6"`) and is the single
-source of truth used by `NodeFactory` and `get_biolink_model_toolkit()`. The model is fetched from
-GitHub on first use (bmt may cache it locally).
+source of truth used by `NodeFactory` and `get_biolink_model_toolkit()`.
 
 **Mapped class URIs** — always use the `biolink:`-prefixed form (e.g. `biolink:ChemicalEntity`),
 not the raw element name (`chemical entity`). `get_ancestors()` and `get_element()["class_uri"]`
@@ -133,11 +172,187 @@ entry.
 GeneProtein and DrugChemical conflation each have dedicated conflation modules (`geneprotein.py`,
 `drugchemical.py`) that merge their respective cliques. See `docs/Conflation.md`.
 
+### Leftover UMLS
+
+`src/createcompendia/leftover_umls.py` (rule `leftover_umls`) runs last and sweeps up every valid
+UMLS concept in MRCONSO that no other compendium already claimed, writing each as a
+single-identifier clique into `compendia/umls.txt` so its label is still available downstream. The
+Biolink type for each leftover concept comes from its UMLS semantic type(s) via
+`tui_to_biolink_type()` (the bmt `STY:<code>` mapping), corrected by two manual tables at the top of
+the module: `STY_OVERRIDES` (per-semantic-type override; `None` means reject) and
+`TYPE_COMBO_OVERRIDES` (disambiguates a concept that resolves to multiple Biolink types). These
+tables exist because the long-term fix belongs in the Biolink Model but its real-world effect on
+Babel is hard to predict; each entry cites a GitHub issue.
+`tests/createcompendia/test_leftover_umls.py` records the current Biolink mapping for each override
+and flags when one drifts or becomes redundant. The rule also emits coverage CSVs under
+`babel_outputs/reports/umls/`. See `docs/sources/UMLS/Leftover.md`.
+
+### DuckDB export
+
+The `src/snakefiles/duckdb.snakefile` rules (driven by `src/exporters/duckdb_exporters.py`)
+build a queryable DuckDB database alongside the JSONL compendia, with these tables:
+
+- `Node(curie, curie_prefix, label, label_lc, description, taxa)`
+- `Clique(clique_leader, preferred_name, clique_identifier_count, biolink_type, information_content)`
+- `Edge(clique_leader, curie, conflation, clique_leader_prefix, curie_prefix, biolink_type)`
+- `Conflation(conflation_type, conflation_leader, curie, curie_prefix)`
+
+The `Edge` table answers "which clique contains CURIE X" with a one-line query
+(`SELECT DISTINCT clique_leader FROM Edge WHERE curie IN (...)`) and is the fastest way to
+check whether several CURIEs landed in the same clique in a given build — much cheaper than
+re-running glom or scanning the JSONL compendia. `biolink_type` is denormalized onto every edge
+(it equals the owning clique's type) so cross-compendium reports can group by
+`(curie_prefix, biolink_type)` with a plain scan instead of a large Edge-to-Clique join, which
+OOM-killed `generate_curie_report` even on a largemem node.
+
+### Per-source documentation (`docs/sources/`)
+
+Deeper, source-specific notes live under `docs/sources/<PREFIX>/` (one directory per data source,
+named by its CURIE prefix); see `docs/sources/README.md` for the convention and an index. Check
+there first when working on a specific vocabulary, and add to it when you learn something
+non-obvious about how Babel ingests that source. Keep the detail in the source file — `CLAUDE.md`
+should point here, not duplicate it. Documented so far: ComplexPortal
+(`docs/sources/COMPLEXPORTAL/Ingestion.md`), Ensembl/BioMart
+(`docs/sources/ENSEMBL/Download.md`), MeSH (`docs/sources/MESH/Ingestion.md`), and UMLS
+(`docs/sources/UMLS/Leftover.md`). Cross-cutting download/discovery patterns (HTTP autoindex
+listing vs FTP `NLST`) live in `docs/sources/DownloadPatterns.md`.
+
+### Per-compendium metadata YAMLs
+
+Each final compendium has a sibling `babel_outputs/metadata/<Type>.yaml` that records the
+provenance tree of which concord/source contributed what, including per-source
+`prefix_counts` like `xref(CHEBI, DrugCentral): 4302`. These are aggregate (prefix-pair
+level), not per-CURIE — useful for confirming a join pathway exists between two prefixes,
+not for answering "are *these specific* CURIEs joinable."
+
 ### Directories at Runtime
 
 - `babel_downloads/` — cached source data
 - `babel_outputs/intermediate/` — intermediate build artifacts
 - `babel_outputs/` — final compendia, synonyms, reports, exports
+
+## Running Babel
+
+You may run `uv run snakemake -c all --rerun-incomplete [rulename]` to run a particular rule.
+When running a download step, it will be easier to run the job in Snakemake, but when running
+a rule that produces intermediate files, it might be easier to download the intermediate files from
+<https://stars.renci.org/var/babel/2025dec11/> (which is the `babel_output` folder from a run on a
+high performance cluster) so you don't need to download all the source files and
+rerun the entire pipeline. You can look at the resource requirements of a rule to decide which
+option would be best.
+
+### Analyzing a SLURM run (`tools/slurm`)
+
+`tools/slurm` analyzes a (possibly partial) Snakemake-on-SLURM run; see `docs/tools/README.md` and
+the per-tool pages under `docs/tools/`. `uv run babel-slurm-errors <version>` (the successor to the
+old `tools/babel-errors.py`) aggregates failing-rule logs and prints a
+completed/failed/still-running job summary, to decide what to re-run.
+`uv run babel-slurm-resources <run-dir>` joins actual usage (the `benchmark:` TSVs — authoritative,
+since Hatteras `sacct` reports empty `MaxRSS`/`TotalCPU`) against requested resources and recommends
+right-sized `mem`/`cpus`, flagging rules that need an explicit override before the cluster default
+can be lowered. Both subcommands share `tools/slurm/parse.py`. Note that
+`reports/slurm/slurm_efficiency_reports/` is a *directory* that accumulates one
+`efficiency_report_<uuid>.csv` shard per Snakemake restart (each covering only that invocation's
+jobs); the analyzer merges them all, so copy the whole directory when archiving a run.
+
+## Conventions
+
+When adding or enhancing a data source ingest, `docs/Development.md` ("Enhancing a data source
+ingest") collects the process-level lessons (which attribute files to emit, IDs-file typing,
+docstrings, and when to add a pipeline test) that the individual conventions below back up.
+
+- **Commits** — if you need to make a large change, break it into multiple commits so it's clearer
+  what changes are related.
+
+- **Separate download and extract/validate rules** — always split a Snakemake data-collection step
+  into two rules: a `download_*` rule that only fetches the raw file(s), and a separate rule that
+  validates format or extracts content. This way, if upstream changes its format (e.g. a column
+  rename), only the validation rule fails; Snakemake preserves the downloaded file and the
+  expensive re-download is avoided after a code fix. Format validation belongs in the
+  extraction/filter rule, never in the download rule.
+
+- **Ruff lint** — all Python must pass `uv run ruff check` (run automatically on PRs). Two rules
+  that are easy to trip in test code:
+  - **E741** — do not use single-letter ambiguous variable names (`l`, `O`, `I`). Use `line`,
+    `row`, `col`, etc. instead.
+  - **F841** — do not assign a variable that is never read. Remove or inline the assignment.
+
+- **Imports** — place all imports at the top of the file (stdlib, then third-party, then local),
+  following standard Python convention. Defer an import inside a function only when it is
+  genuinely necessary to break a circular dependency or avoid a heavy optional dependency; if
+  you do defer one, add a comment explaining why.
+
+- **Error handling** — raise exceptions (`RuntimeError`, `ValueError`, etc.) rather than
+  `print(...) + exit(1)`. Exceptions are testable and propagate cleanly through Snakemake;
+  bare `exit()` calls bypass Python's exception machinery and make unit testing impossible.
+
+- **Biolink class references** — always use the named constants from `src/categories.py`
+  (e.g. `CHEMICAL_ENTITY`, `DRUG`) rather than hardcoding `"biolink:..."` strings directly.
+  This ensures that a Biolink class rename only requires updating `src/categories.py`.
+  If a needed constant is missing from `categories.py`, add it there first.
+
+- **IRI parsing helpers** — functions that extract IDs from external-format strings (e.g. pyoxigraph
+  IRIs, SPARQL results) must validate the input format and raise `ValueError` if it doesn't match.
+  Use a named prefix constant so the check and the extraction share the same string. See
+  `src/datahandlers/mesh.py:get_mesh_id_from_iri()` for the canonical example.
+
+- **pyoxigraph literal stripping** — pyoxigraph returns plain string literals as `"value"` and
+  language-tagged literals as `"value"@en`. Use `parse_rdf_literal()` from `src/babel_utils.py`
+  to strip the quoting; do not inline the regex. When loading RDF/XML files that contain
+  `<owl:Ontology rdf:about=""/>`, always pass `base_iri` to `Store.bulk_load()` — without it
+  pyoxigraph raises a builtin `SyntaxError` on the empty relative IRI.
+
+- **Datahandler file-path arguments** — label and synonym extraction functions should accept
+  explicit `infile` / `outfile` path arguments rather than calling `make_local_name` internally.
+  Explicit paths let unit tests pass `tmp_path`-based paths without patching the config, and
+  let Snakemake rules declare inputs and outputs precisely.
+
+- **Pin external column layouts in source, assert headers in tests** — when a handler parses a
+  fixed-column TSV by index, define the column list as a module-level constant in the source
+  (e.g. `complexportal.COMPLEXTAB_COLUMNS`/`COMPLEXTAB_HEADER`), import it into the tests to build
+  fixture rows, and add a test that asserts the upstream header still has the expected column at
+  each index Babel reads. The constant is the canonical format documentation living next to the
+  code; the header assertion turns a silent upstream re-ordering into a loud test failure instead
+  of corrupted output. See `src/datahandlers/complexportal.py`.
+
+- **Manifest/sentinel as the Snakemake output of a multi-file download** — when a rule downloads
+  many files discovered at runtime, write a manifest listing them as the *last* action and declare
+  the manifest (not the individual files or a separate flag) as the rule's output. Its presence
+  then reliably signals that the whole download phase completed, and the extraction rule reads it
+  to know what to parse. See `complexportal.pull_complexportal()`.
+
+- **Always write an explicit Biolink type in the IDs file** — the `ids/[TYPE]/[PREFIX]` file is
+  `CURIE\tbiolink:Type`. Even when every CURIE from a source has the same prefix and type (so the
+  type column looks redundant), write it explicitly: it is essential the moment a source spans
+  multiple types, and it documents intent. Prefer generating IDs directly from the source rows
+  (as each CURIE is first seen) rather than deriving the file from `labels` via `awk` — deriving
+  from labels silently drops any identifier whose label column is empty.
+
+- **Docstrings** — give modules, classes, and non-trivial functions a docstring saying what they
+  do and any non-obvious behavior (e.g. dedup keys, side effects, why a network call happens).
+  This is cheap, survives refactors, and is the first thing read when revisiting an ingest. Name
+  functions for what they do — e.g. `fetch_*` (not `get_*`) when the call hits the network.
+
+- **Test assertion helpers** — `tests/conftest.py` exports `assert_labels_file_valid`,
+  `assert_synonyms_file_valid`, `assert_ids_file_valid`, `assert_concordance_file_valid`,
+  `assert_taxa_file_valid`, and `assert_descriptions_file_valid` (plus `read_tsv`). Use these
+  instead of hand-rolling TSV checks in new tests; when a handler adds a new output kind, add the
+  matching helper to the root conftest rather than a private one in the test file.
+
+## Debugging
+
+When looking things up in the source databases, prefer to invoke the existing download code in
+this repository unless you suspect that it is incorrect, in which case use the existing code
+and then compare it with an API lookup to see how they differ.
+
+If it is easy to add a test that will either exercise this bug or check some other relevant
+functionality, please suggest that when planning the bug fix.
+
+It is very important that two different compendia don't contain the same identifier and that we
+don't miss out on any valid identifiers without very good reason. If you're changing how
+identifiers are filtered in one compendium, think about whether that will affect which identifiers
+should be included in the other compendia to prevent any identifiers from being missed or being
+added twice.
 
 ## Documentation
 

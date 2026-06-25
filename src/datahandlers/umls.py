@@ -9,11 +9,13 @@ import requests
 
 from src.babel_utils import make_local_name
 from src.categories import CHEMICAL_ENTITY, DRUG, MOLECULAR_MIXTURE
-from src.metadata.provenance import write_concord_metadata
+from src.metadata.provenance import write_concord_metadata, write_download_metadata
+from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import RXCUI, UMLS
 from src.util import get_logger
 
 logger = get_logger(__name__)
+
 
 def check_mrconso_line(line):
     """
@@ -47,7 +49,9 @@ def check_mrconso_line(line):
     return True
 
 
-def write_umls_ids(mrsty, category_map, umls_output, prefix=UMLS, blocklist_umls_ids=None, blocklist_umls_semantic_type_tree=None):
+def write_umls_ids(
+    mrsty, category_map, umls_output, prefix=UMLS, blocklist_umls_ids=None, blocklist_umls_semantic_type_tree=None
+):
     """
     Write out UMLS IDs and categories (as per a category map) to a file.
 
@@ -74,7 +78,7 @@ def write_umls_ids(mrsty, category_map, umls_output, prefix=UMLS, blocklist_umls
     #   C0000005|T121|A1.4.1.1.1|Pharmacologic Substance|AT17575038|256|
     #   C0000005|T130|A1.4.1.1.4|Indicator, Reagent, or Diagnostic Aid|AT17634323|256|
     #   C0000039|T109|A1.4.1.2.1|Organic Chemical|AT45562015|256|
-    # (see https://github.com/TranslatorSRI/Babel/issues/200#issuecomment-1789550364 for another example and
+    # (see https://github.com/NCATSTranslator/Babel/issues/200#issuecomment-1789550364 for another example and
     #  https://www.ncbi.nlm.nih.gov/books/NBK9685/table/ch03.Tf/ for column information.)
     #
     # This means that we can't blacklist UMLS types by just skipping those lines: instead, we will need to load
@@ -113,8 +117,12 @@ def write_umls_ids(mrsty, category_map, umls_output, prefix=UMLS, blocklist_umls
                     # type of "A1.2.3.4" will NOT be blocked.
 
                     # Write out a log message.
-                    sty_trees_with_names = ", ".join(map(lambda sty_tree: f"{sty_tree}={tree_names[sty_tree]}", semantic_type_trees[curie]))
-                    blocklist_sty_trees_with_names = ", ".join(map(lambda sty_tree: f"{sty_tree}={tree_names[sty_tree]}", blocklist_umls_semantic_type_tree))
+                    sty_trees_with_names = ", ".join(
+                        map(lambda sty_tree: f"{sty_tree}={tree_names[sty_tree]}", semantic_type_trees[curie])
+                    )
+                    blocklist_sty_trees_with_names = ", ".join(
+                        map(lambda sty_tree: f"{sty_tree}={tree_names[sty_tree]}", blocklist_umls_semantic_type_tree)
+                    )
                     logging.info(
                         f"Deleted {curie} from UMLS IDs because its types ({sty_trees_with_names}) overlapped with the blocklist ({blocklist_sty_trees_with_names})."
                     )
@@ -128,7 +136,9 @@ def write_umls_ids(mrsty, category_map, umls_output, prefix=UMLS, blocklist_umls
             outf.write(f"{curie}\t{types[0]}\n")
 
 
-def write_rxnorm_ids(category_map, bad_categories, infile, outfile, prefix=RXCUI, styfile="RXNSTY.RRF", blacklist=set()):
+def write_rxnorm_ids(
+    category_map, bad_categories, infile, outfile, prefix=RXCUI, styfile="RXNSTY.RRF", blacklist=set()
+):
     """It's surprising, but not everything in here has an RXCUI.
     Just because there's a row and it has an id in the first column, it doesn't mean pretty much anything.
     It's only ones that have an RXNORM in their row somewhere that count.   They are the ones that show up
@@ -209,7 +219,14 @@ def write_rxnorm_ids(category_map, bad_categories, infile, outfile, prefix=RXCUI
 # The second is because I want to use the UMLS as a source for some terminologies (SNOMED) even if there's another
 #  way.  I'm going to modify this to do one thing at a time, and if it takes a little longer, then so be it.
 def build_sets(
-    mrconso, umls_input, umls_output, other_prefixes, bad_mappings=defaultdict(set), acceptable_identifiers={}, cui_prefix=UMLS, provenance_metadata_yaml=None
+    mrconso,
+    umls_input,
+    umls_output,
+    other_prefixes,
+    bad_mappings=defaultdict(set),
+    acceptable_identifiers={},
+    cui_prefix=UMLS,
+    provenance_metadata_yaml=None,
 ):
     """Given a list of umls identifiers we want to generate all the concordances
     between UMLS and that other entity"""
@@ -307,9 +324,9 @@ def download_umls(umls_version, umls_subset, download_dir):
     """
     umls_api_key = os.environ.get("UMLS_API_KEY")
     if not umls_api_key:
-        print("The environmental variable UMLS_API_KEY needs to be set to a valid UMLS API key.")
-        print("See instructions at https://documentation.uts.nlm.nih.gov/rest/authentication.html")
-        exit(1)
+        raise RuntimeError(
+            "The environment variable UMLS_API_KEY needs to be set to a valid UMLS API key.\nSee instructions at https://documentation.uts.nlm.nih.gov/rest/authentication.html"
+        )
 
     # Check umls_subset.
     if umls_subset not in ["full", "level-0"]:
@@ -319,14 +336,14 @@ def download_umls(umls_version, umls_subset, download_dir):
     # As described at https://documentation.uts.nlm.nih.gov/automating-downloads.html
     umls_url = "https://uts-ws.nlm.nih.gov/download"
     filename = f"umls-{umls_version}-metathesaurus-{umls_subset}.zip"
+    umls_full_url = f"https://download.nlm.nih.gov/umls/kss/{umls_version}/{filename}"
     req = requests.get(
         umls_url,
-        {"url": f"https://download.nlm.nih.gov/umls/kss/{umls_version}/{filename}", "apiKey": umls_api_key},
+        {"url": umls_full_url, "apiKey": umls_api_key},
         stream=True,
     )
     if not req.ok:
-        print(f"Unable to download UMLS from {umls_url}: {req}")
-        exit(1)
+        raise RuntimeError(f"Unable to download UMLS from {umls_full_url}: {req}")
 
     # Write file to {download_dir}/umls-{umls_version}-metathesaurus-full.zip
     logging.info(f"Downloading {filename} to {download_dir}")
@@ -349,6 +366,23 @@ def download_umls(umls_version, umls_subset, download_dir):
     # - MRREL.RRF
     shutil.copy2(os.path.join(download_dir, umls_version, "META", "MRREL.RRF"), download_dir)
 
+    # Create a metadata.yaml file for UMLS.
+    metadata_yaml = os.path.join(download_dir, "UMLS.metadata.yaml")
+    write_download_metadata(
+        metadata_yaml,
+        name="UMLS Metathesaurus",
+        url=umls_full_url,
+        description=f"UMLS Metathesaurus {umls_version} ({umls_subset} subset), downloaded via the UTS download API.",
+        sources=[
+            {
+                "name": "UMLS Metathesaurus MRCONSO.RRF, MRSTY.RRF and MRREL.RRF",
+                "version": umls_version,
+                "subset": umls_subset,
+                "url": umls_full_url,
+            }
+        ],
+    )
+
 
 def download_rxnorm(rxnorm_version, download_dir):
     """
@@ -361,19 +395,23 @@ def download_rxnorm(rxnorm_version, download_dir):
     """
     umls_api_key = os.environ.get("UMLS_API_KEY")
     if not umls_api_key:
-        print("The environmental variable UMLS_API_KEY needs to be set to a valid UMLS API key.")
-        print("See instructions at https://documentation.uts.nlm.nih.gov/rest/authentication.html")
-        exit(1)
+        raise RuntimeError(
+            "The environment variable UMLS_API_KEY needs to be set to a valid UMLS API key.\nSee instructions at https://documentation.uts.nlm.nih.gov/rest/authentication.html"
+        )
 
     # Download RxNorm_full_{rxnorm_version}.zip
     # As described at https://documentation.uts.nlm.nih.gov/automating-downloads.html
     rxnorm_url = "https://uts-ws.nlm.nih.gov/download"
     req = requests.get(
-        rxnorm_url, {"url": f"https://download.nlm.nih.gov/umls/kss/rxnorm/RxNorm_full_{rxnorm_version}.zip", "apiKey": umls_api_key}, stream=True
+        rxnorm_url,
+        {
+            "url": f"https://download.nlm.nih.gov/umls/kss/rxnorm/RxNorm_full_{rxnorm_version}.zip",
+            "apiKey": umls_api_key,
+        },
+        stream=True,
     )
     if not req.ok:
-        print(f"Unable to download RxNorm from ${rxnorm_url}: ${req}")
-        exit(1)
+        raise RuntimeError(f"Unable to download RxNorm from {rxnorm_url}: {req}")
 
     # Write file to {download_dir}/RxNorm_full_{rxnorm_version}.zip
     logging.info(f"Downloading RxNorm_full_{rxnorm_version}.zip to {download_dir}")
@@ -418,7 +456,7 @@ def pull_umls(mrconso):
                 snomed_id = f"SNOMEDCT:{x[15]}"
                 if termtype == "PT":
                     snolabels.write(f"{snomed_id}\t{term}\n")
-                snosyns.write(f"{snomed_id}\thttp://www.geneontology.org/formats/oboInOwl#hasExactSynonym\t{term}\n")
+                snosyns.write(f"{snomed_id}\t{HAS_EXACT_SYNONYM}\t{term}\n")
             # UMLS is a collection of sources. They pick one of the names from these sources for a concept,
             # and that's based on a priority that they define. Here we get the priority for terms so we
             # can get the right one for the label
@@ -443,4 +481,4 @@ def pull_umls(mrconso):
                 if re_numerical.fullmatch(s):
                     logging.debug(f"Found numerical synonym '{s}' in UMLS, skipping")
                     continue
-                synonyms.write(f"{UMLS}:{cui}\thttp://www.geneontology.org/formats/oboInOwl#hasExactSynonym\t{s}\n")
+                synonyms.write(f"{UMLS}:{cui}\t{HAS_EXACT_SYNONYM}\t{s}\n")
