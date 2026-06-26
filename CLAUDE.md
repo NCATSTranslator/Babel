@@ -153,8 +153,11 @@ in code or in docs that will go stale) and feeds both `NodeFactory` and
 **Mapped class URIs** — always use the `biolink:`-prefixed form (e.g. `biolink:ChemicalEntity`),
 not the raw element name (`chemical entity`). `get_ancestors()` and `get_element().class_uri`
 return these mapped forms. Note that `get_element()` returns a bmt `ClassDefinition`
-object, not a dict: read fields with attribute access (e.g. `element.id_prefixes`), not
-`element["id_prefixes"]` / `element.get("id_prefixes")`.
+object (a `linkml_runtime` model), not a plain dict. It supports both attribute access
+(`element.id_prefixes`, `element.class_uri`) and subscript access (`element["id_prefixes"]`,
+which `src/node.py:get_prefixes()` uses), but it has no `dict`-style `.get()` method, so
+`element.get("id_prefixes")` raises `AttributeError`. Prefer attribute access (or a plain
+`getattr(element, "id_prefixes", default)`) and never reach for `.get()`.
 
 **OBO PURL resolution** — `src/util.py:get_biolink_prefix_map()` returns a
 `curies.Converter` built from the Biolink prefix map for the configured Biolink version;
