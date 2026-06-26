@@ -97,6 +97,16 @@ rule disease_hp_ids:
         diseasephenotype.write_hp_ids(output.outfile)
 
 
+rule disease_mp_ids:
+    output:
+        outfile=config["intermediate_directory"] + "/disease/ids/MP",
+    benchmark:
+        config["output_directory"] + "/benchmarks/disease_mp_ids.tsv"
+    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    run:
+        diseasephenotype.write_mp_ids(output.outfile)
+
+
 rule disease_omim_ids:
     input:
         infile=config["download_directory"] + "/OMIM/mim2gene.txt",
@@ -116,11 +126,14 @@ rule get_disease_obo_relationships:
         config["intermediate_directory"] + "/disease/concords/MONDO",
         config["intermediate_directory"] + "/disease/concords/MONDO_close",
         config["intermediate_directory"] + "/disease/concords/HP",
+        config["intermediate_directory"] + "/disease/concords/MP",
         mondo_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MONDO.yaml",
         mondo_close_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MONDO_close.yaml",
         hp_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-HP.yaml",
+        mp_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MP.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/get_disease_obo_relationships.tsv"
+    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
     run:
         diseasephenotype.build_disease_obo_relationships(
             config["intermediate_directory"] + "/disease/concords",
@@ -128,6 +141,7 @@ rule get_disease_obo_relationships:
                 "MONDO": output.mondo_metadata_yaml,
                 "MONDO_close": output.mondo_close_metadata_yaml,
                 "HP": output.hp_metadata_yaml,
+                "MP": output.mp_metadata_yaml,
             },
         )
 
