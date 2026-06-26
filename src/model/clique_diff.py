@@ -30,18 +30,19 @@ class ExpandedClique:
     """A before-clique that gained at least one source CURIE without merging.
 
     ``added_source_curies`` is the strict difference (after - before): source CURIEs that
-    were not already in the before-clique. ``promoted_source_curies`` is the intersection:
-    source CURIEs already pulled into the clique by some other source's xref, which the
-    new source now claims as first-class typed identifiers. When ``added_source_curies``
-    is empty, the clique's identifier set is unchanged — the new source only "promotes"
-    pre-existing xref leaves into typed identifiers. Callers that want to count clique
-    growth should check ``added_source_curies`` rather than ``promoted_source_curies``.
+    were not already in the before-clique. ``preexisting_source_curies`` is the intersection:
+    source CURIEs that were already present in the before-clique — pulled in by some other
+    source's xref — before this source was added. The new source does not change clique
+    membership for these CURIEs; it only re-types them from anonymous xref targets to
+    first-class typed identifiers. When ``added_source_curies`` is empty, the clique's
+    identifier set is unchanged. Callers that want to count clique growth should check
+    ``added_source_curies`` rather than ``preexisting_source_curies``.
     """
 
     before_clique: frozenset[str]
     added_source_curies: frozenset[str]
     after_clique: frozenset[str]
-    promoted_source_curies: frozenset[str] = frozenset()
+    preexisting_source_curies: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -155,7 +156,7 @@ def diff_cliques(
                 ExpandedClique(
                     before_clique=only_bc,
                     added_source_curies=truly_added,
-                    promoted_source_curies=already_present,
+                    preexisting_source_curies=already_present,
                     after_clique=clique,
                 )
             )
