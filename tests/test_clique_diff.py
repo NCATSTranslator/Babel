@@ -30,7 +30,7 @@ def _glom_dict_from_cliques(cliques):
 def test_diff_classifies_pure_new_clique_of_only_source_curies():
     before = _glom_dict_from_cliques([{"A:1"}])
     after = _glom_dict_from_cliques([{"A:1"}, {"NEW:1", "NEW:2"}])
-    diff = diff_cliques(before, after, {"NEW:1", "NEW:2"}, semantic_type="t")
+    diff = diff_cliques(before, after, {"NEW:1", "NEW:2"}, babel_pipeline="t")
 
     assert {frozenset({"NEW:1", "NEW:2"})} == set(diff.pure_new_cliques)
     assert diff.expanded_cliques == []
@@ -41,7 +41,7 @@ def test_diff_classifies_pure_new_clique_of_only_source_curies():
 def test_diff_classifies_expanded_clique():
     before = _glom_dict_from_cliques([{"A:1", "B:1"}])
     after = _glom_dict_from_cliques([{"A:1", "B:1", "NEW:1"}])
-    diff = diff_cliques(before, after, {"NEW:1"}, semantic_type="t")
+    diff = diff_cliques(before, after, {"NEW:1"}, babel_pipeline="t")
 
     assert diff.pure_new_cliques == []
     assert diff.merged_cliques == []
@@ -56,7 +56,7 @@ def test_diff_classifies_expanded_clique():
 def test_diff_classifies_merged_cliques():
     before = _glom_dict_from_cliques([{"A:1", "B:1"}, {"C:1", "D:1"}])
     after = _glom_dict_from_cliques([{"A:1", "B:1", "C:1", "D:1", "NEW:1"}])
-    diff = diff_cliques(before, after, {"NEW:1"}, semantic_type="t")
+    diff = diff_cliques(before, after, {"NEW:1"}, babel_pipeline="t")
 
     assert diff.pure_new_cliques == []
     assert diff.expanded_cliques == []
@@ -73,7 +73,7 @@ def test_diff_classifies_merged_cliques():
 def test_diff_ignores_cliques_with_no_source_curies():
     before = _glom_dict_from_cliques([{"A:1"}, {"B:1"}])
     after = _glom_dict_from_cliques([{"A:1"}, {"B:1"}, {"NEW:1"}])
-    diff = diff_cliques(before, after, {"NEW:1"}, semantic_type="t")
+    diff = diff_cliques(before, after, {"NEW:1"}, babel_pipeline="t")
 
     assert len(diff.pure_new_cliques) == 1
     assert diff.expanded_cliques == []
@@ -91,7 +91,7 @@ def test_diff_handles_multi_prefix_source_curies():
             {"C:1", "SRC_B:1"},
         ]
     )
-    diff = diff_cliques(before, after, {"SRC_A:1", "SRC_B:1"}, semantic_type="t")
+    diff = diff_cliques(before, after, {"SRC_A:1", "SRC_B:1"}, babel_pipeline="t")
 
     assert diff.pure_new_cliques == []
     assert diff.merged_cliques == []
@@ -111,7 +111,7 @@ def test_diff_splits_truly_added_from_preexisting_source_curies():
     # SRC source's ids file doesn't grow the clique, it just types SRC:1.
     before = _glom_dict_from_cliques([{"A:1", "B:1", "SRC:1"}])
     after = _glom_dict_from_cliques([{"A:1", "B:1", "SRC:1"}])
-    diff = diff_cliques(before, after, {"SRC:1"}, semantic_type="t")
+    diff = diff_cliques(before, after, {"SRC:1"}, babel_pipeline="t")
 
     assert len(diff.expanded_cliques) == 1
     ec = diff.expanded_cliques[0]
@@ -127,7 +127,7 @@ def test_diff_treats_concord_introduced_aliases_as_pure_new():
     those CURIEs would not be in Babel at all."""
     before = _glom_dict_from_cliques([{"A:1"}])  # ALIAS:1 not present in before
     after = _glom_dict_from_cliques([{"A:1"}, {"SRC:1", "ALIAS:1"}])
-    diff = diff_cliques(before, after, {"SRC:1"}, semantic_type="t")
+    diff = diff_cliques(before, after, {"SRC:1"}, babel_pipeline="t")
 
     assert diff.expanded_cliques == []
     assert diff.merged_cliques == []

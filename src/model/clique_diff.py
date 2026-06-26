@@ -64,9 +64,9 @@ class MergedClique:
 
 @dataclass
 class SourceImpactDiff:
-    """Result of comparing before/after clique state for a single semantic type."""
+    """Result of comparing before/after clique state for a single Babel pipeline type."""
 
-    semantic_type: str
+    babel_pipeline: str
     source_curies: frozenset[str]
     pure_new_cliques: list[frozenset[str]] = field(default_factory=list)
     expanded_cliques: list[ExpandedClique] = field(default_factory=list)
@@ -109,7 +109,7 @@ def diff_cliques(
     after: GlomDict,
     source_curies: Iterable[str],
     *,
-    semantic_type: str,
+    babel_pipeline: str,
 ) -> SourceImpactDiff:
     """Bucket the differences between two clique states into pure_new / expanded / merged.
 
@@ -178,7 +178,7 @@ def diff_cliques(
             )
 
     return SourceImpactDiff(
-        semantic_type=semantic_type,
+        babel_pipeline=babel_pipeline,
         source_curies=source_curies_fs,
         pure_new_cliques=pure_new,
         expanded_cliques=expanded,
