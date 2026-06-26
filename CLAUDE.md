@@ -261,6 +261,19 @@ When adding or enhancing a data source ingest, `docs/Development.md` ("Enhancing
 ingest") collects the process-level lessons (which attribute files to emit, IDs-file typing,
 docstrings, and when to add a pipeline test) that the individual conventions below back up.
 
+- **`babel_pipeline` vs `biolink_type`** — these two concepts are easy to confuse because the
+  codebase (and this file) sometimes uses the vague phrase "semantic type" for either. Keep them
+  distinct in code and variable names:
+  - **`babel_pipeline`** is the pipeline directory name: `anatomy`, `chemical`, `diseasephenotype`,
+    etc. It is a Babel artifact — an intermediate-file namespace, not a vocabulary term.
+  - **`biolink_type`** is the Biolink class URI stored in compendia: `biolink:AnatomicalEntity`,
+    `biolink:SmallMolecule`, etc. Multiple Biolink types can map to the same `babel_pipeline`
+    (e.g. `anatomy` covers both `biolink:AnatomicalEntity` and `biolink:GrossAnatomicalStructure`).
+  - **`umls_semantic_type`** (or `sty`) is yet a third thing: a UMLS TUI code / tree string used
+    only inside the UMLS ingest. Do not conflate it with either of the above.
+  Prefer these three explicit names in code. Avoid "semantic type" as a bare phrase unless quoting
+  an external vocabulary (e.g. "UMLS semantic type").
+
 - **Commits** — if you need to make a large change, break it into multiple commits so it's clearer
   what changes are related.
 
