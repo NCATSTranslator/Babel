@@ -20,7 +20,6 @@ import pytest
 
 from src.model.source import discover_source, scan_concords_for_curies
 
-
 # ---------------------------------------------------------------------------
 # scan_concords_for_curies
 # ---------------------------------------------------------------------------
