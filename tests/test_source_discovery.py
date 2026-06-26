@@ -75,10 +75,10 @@ def test_scan_concords_for_curies_missing_dir_returns_empty(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def _make_source_tree(root, source_name, semantic_type, ids_lines=None, concord_lines=None):
-    """Write minimal ids/ and concords/ files under ``root/<semantic_type>/`` for one source."""
-    ids_dir = root / semantic_type / "ids"
-    concords_dir = root / semantic_type / "concords"
+def _make_source_tree(root, source_name, pipeline, ids_lines=None, concord_lines=None):
+    """Write minimal ids/ and concords/ files under ``root/<pipeline>/`` for one source."""
+    ids_dir = root / pipeline / "ids"
+    concords_dir = root / pipeline / "concords"
     ids_dir.mkdir(parents=True, exist_ok=True)
     concords_dir.mkdir(parents=True, exist_ok=True)
     if ids_lines is not None:
@@ -88,10 +88,10 @@ def _make_source_tree(root, source_name, semantic_type, ids_lines=None, concord_
 
 
 @pytest.mark.unit
-def test_discover_single_prefix_single_type_single_semantic_type(tmp_path):
+def test_discover_single_prefix_single_type_single_pipeline(tmp_path):
     """Baseline: one source, one babel_pipeline, one biolink_type, one prefix.
 
-    Verifies the full shape of ``SourceContribution`` — semantic_types, prefixes,
+    Verifies the full shape of ``SourceContribution`` — pipelines, prefixes,
     declared_biolink_types, total counts, and the per-pipeline ``declared_type_counts``
     and ``concord_partner_prefix_counts`` breakdowns.
     """
@@ -105,15 +105,15 @@ def test_discover_single_prefix_single_type_single_semantic_type(tmp_path):
 
     contrib = discover_source("EMAPA", tmp_path)
 
-    assert contrib.semantic_types == frozenset({"anatomy"})
+    assert contrib.pipelines == frozenset({"anatomy"})
     assert contrib.prefixes == frozenset({"EMAPA"})
     assert contrib.declared_biolink_types == frozenset({"biolink:AnatomicalEntity"})
     assert contrib.total_identifier_count == 2
     assert contrib.total_concord_row_count == 1
 
-    stc = contrib.by_semantic_type["anatomy"]
-    assert stc.declared_type_counts == {"biolink:AnatomicalEntity": 2}
-    assert stc.concord_partner_prefix_counts == {"UBERON": 1}
+    pc = contrib.by_pipeline["anatomy"]
+    assert pc.declared_type_counts == {"biolink:AnatomicalEntity": 2}
+    assert pc.concord_partner_prefix_counts == {"UBERON": 1}
 
 
 @pytest.mark.unit
@@ -134,15 +134,15 @@ def test_discover_multi_biolink_type_within_one_semantic_type(tmp_path):
     contrib = discover_source("UBERON", tmp_path)
 
     assert contrib.declared_biolink_types == frozenset({"biolink:AnatomicalEntity", "biolink:GrossAnatomicalStructure"})
-    stc = contrib.by_semantic_type["anatomy"]
-    assert stc.declared_type_counts == {
+    pc = contrib.by_pipeline["anatomy"]
+    assert pc.declared_type_counts == {
         "biolink:AnatomicalEntity": 2,
         "biolink:GrossAnatomicalStructure": 1,
     }
 
 
 @pytest.mark.unit
-def test_discover_multi_semantic_type(tmp_path):
+def test_discover_multi_pipeline(tmp_path):
     """MESH-style source present in two babel_pipeline directories (anatomy and chemical)."""
     _make_source_tree(
         tmp_path,
@@ -159,11 +159,11 @@ def test_discover_multi_semantic_type(tmp_path):
 
     contrib = discover_source("MESH", tmp_path)
 
-    assert contrib.semantic_types == frozenset({"anatomy", "chemical"})
+    assert contrib.pipelines == frozenset({"anatomy", "chemical"})
     assert contrib.total_identifier_count == 3
     assert contrib.declared_biolink_types == frozenset({"biolink:AnatomicalEntity", "biolink:ChemicalEntity"})
-    assert len(contrib.by_semantic_type["anatomy"].all_curies) == 1
-    assert len(contrib.by_semantic_type["chemical"].all_curies) == 2
+    assert len(contrib.by_pipeline["anatomy"].all_curies) == 1
+    assert len(contrib.by_pipeline["chemical"].all_curies) == 2
 
 
 @pytest.mark.unit
@@ -182,8 +182,8 @@ def test_discover_multi_prefix(tmp_path):
     contrib = discover_source("WEIRD", tmp_path)
 
     assert contrib.prefixes == frozenset({"PREFIXA", "PREFIXB"})
-    stc = contrib.by_semantic_type["anatomy"]
-    assert {p: len(c) for p, c in stc.curies_by_prefix.items()} == {
+    pc = contrib.by_pipeline["anatomy"]
+    assert {p: len(c) for p, c in pc.curies_by_prefix.items()} == {
         "PREFIXA": 1,
         "PREFIXB": 1,
     }
@@ -201,8 +201,8 @@ def test_discover_missing_source_returns_empty_contribution(tmp_path):
     (tmp_path / "anatomy" / "concords").mkdir(parents=True)
 
     contrib = discover_source("NONEXISTENT", tmp_path)
-    assert contrib.by_semantic_type == {}
-    assert contrib.semantic_types == frozenset()
+    assert contrib.by_pipeline == {}
+    assert contrib.pipelines == frozenset()
     assert contrib.total_identifier_count == 0
 
 
@@ -242,5 +242,5 @@ def test_discover_skips_metadata_yaml_files(tmp_path):
     (tmp_path / "anatomy" / "ids").mkdir(parents=True)
 
     contrib = discover_source("EMAPA", tmp_path)
-    assert contrib.semantic_types == frozenset({"anatomy"})
+    assert contrib.pipelines == frozenset({"anatomy"})
     assert contrib.total_concord_row_count == 1

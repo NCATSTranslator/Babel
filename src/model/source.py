@@ -1,17 +1,22 @@
 """Discover how a Babel source contributes to the build outputs.
 
 Given a source name like "EMAPA", walks every
-``<intermediate_root>/<semantic_type>/ids/<name>`` and
-``<intermediate_root>/<semantic_type>/concords/<name>`` and assembles a structured
+``<intermediate_root>/<pipeline>/ids/<name>`` and
+``<intermediate_root>/<pipeline>/concords/<name>`` and assembles a structured
 description that the source-impact report tool can render.
 
 A Babel source can vary along three axes simultaneously, so every aggregate is a
 collection:
 
-- multiple semantic types (e.g., MESH contributes to anatomy, chemical, disease)
-- multiple biolink types within a semantic type (UBERON declares both
+- multiple pipelines (e.g., MESH contributes to anatomy, chemical, disease)
+- multiple biolink types within a pipeline (UBERON declares both
   ``biolink:AnatomicalEntity`` and ``biolink:GrossAnatomicalStructure`` in one ids file)
 - multiple prefixes per ids file (rare but supported)
+
+.. note::
+    PR #742 (source-impact report tool) also uses the old ``semantic_type`` / ``by_semantic_type``
+    naming in its own variables (``SEMANTIC_TYPE_CONFIG``, ``diffs_by_semantic_type``,
+    ``--semantic-types`` CLI flag). Update those when rebasing #742 onto this branch.
 """
 
 from __future__ import annotations
@@ -63,10 +68,10 @@ def scan_concords_for_curies(
 
 
 @dataclass
-class SemanticTypeContribution:
-    """One source's contribution within a single semantic type."""
+class PipelineContribution:
+    """One source's contribution within a single babel_pipeline directory."""
 
-    semantic_type: str
+    pipeline: str
     ids_path: pathlib.Path | None
     concords_path: pathlib.Path | None
 
@@ -149,76 +154,76 @@ class SemanticTypeContribution:
 
 @dataclass
 class SourceContribution:
-    """Aggregated description of a source across every semantic type it touches."""
+    """Aggregated description of a source across every babel_pipeline it touches."""
 
     name: str
-    by_semantic_type: dict[str, SemanticTypeContribution]
+    by_pipeline: dict[str, PipelineContribution]
 
     @property
-    def semantic_types(self) -> frozenset[str]:
-        return frozenset(self.by_semantic_type.keys())
+    def pipelines(self) -> frozenset[str]:
+        return frozenset(self.by_pipeline.keys())
 
     @property
     def prefixes(self) -> frozenset[str]:
         out: set[str] = set()
-        for stc in self.by_semantic_type.values():
-            out.update(stc.curies_by_prefix.keys())
+        for pc in self.by_pipeline.values():
+            out.update(pc.curies_by_prefix.keys())
         return frozenset(out)
 
     @property
     def declared_biolink_types(self) -> frozenset[str]:
         out: set[str] = set()
-        for stc in self.by_semantic_type.values():
-            out.update(stc.declared_biolink_types)
+        for pc in self.by_pipeline.values():
+            out.update(pc.declared_biolink_types)
         return frozenset(out)
 
     @property
     def declared_type_counts(self) -> dict[str, int]:
-        """Total CURIEs declaring each biolink type, summed across all semantic types.
+        """Total CURIEs declaring each biolink type, summed across all pipelines.
 
         Rows without a declared type are bucketed under the empty string (mirroring
-        ``SemanticTypeContribution.declared_type_counts``).
+        ``PipelineContribution.declared_type_counts``).
         """
         counts: dict[str, int] = defaultdict(int)
-        for stc in self.by_semantic_type.values():
-            for declared, count in stc.declared_type_counts.items():
+        for pc in self.by_pipeline.values():
+            for declared, count in pc.declared_type_counts.items():
                 counts[declared] += count
         return dict(counts)
 
     @property
     def total_identifier_count(self) -> int:
-        return sum(len(stc.all_curies) for stc in self.by_semantic_type.values())
+        return sum(len(pc.all_curies) for pc in self.by_pipeline.values())
 
     @property
     def total_concord_row_count(self) -> int:
-        return sum(len(stc.concord_pairs) for stc in self.by_semantic_type.values())
+        return sum(len(pc.concord_pairs) for pc in self.by_pipeline.values())
 
 
 def discover_source(name: str, intermediate_root: pathlib.Path | str) -> SourceContribution:
     """Discover where a named source contributes across the intermediate build outputs.
 
-    Walks ``<intermediate_root>/<semantic_type>/ids/<name>`` and
-    ``<intermediate_root>/<semantic_type>/concords/<name>`` for every semantic-type
-    subdirectory and records a SemanticTypeContribution wherever the source has either
-    file. Returns a SourceContribution; callers can check ``by_semantic_type`` to detect
-    a source name that is not present anywhere.
+    Walks ``<intermediate_root>/<pipeline>/ids/<name>`` and
+    ``<intermediate_root>/<pipeline>/concords/<name>`` for every pipeline subdirectory
+    and records a PipelineContribution wherever the source has either file. Returns a
+    SourceContribution; callers can check ``by_pipeline`` to detect a source name that is
+    not present anywhere.
     """
     intermediate_root = pathlib.Path(intermediate_root)
     if not intermediate_root.exists():
         raise FileNotFoundError(f"Intermediate root does not exist: {intermediate_root}")
-    by_st: dict[str, SemanticTypeContribution] = {}
-    for st_dir in sorted(intermediate_root.iterdir()):
-        if not st_dir.is_dir():
+    by_pipeline: dict[str, PipelineContribution] = {}
+    for pipeline_dir in sorted(intermediate_root.iterdir()):
+        if not pipeline_dir.is_dir():
             continue
-        ids_path = st_dir / "ids" / name
-        concords_path = st_dir / "concords" / name
+        ids_path = pipeline_dir / "ids" / name
+        concords_path = pipeline_dir / "concords" / name
         has_ids = ids_path.exists()
         has_concords = concords_path.exists()
         if not (has_ids or has_concords):
             continue
-        by_st[st_dir.name] = SemanticTypeContribution(
-            semantic_type=st_dir.name,
+        by_pipeline[pipeline_dir.name] = PipelineContribution(
+            pipeline=pipeline_dir.name,
             ids_path=ids_path if has_ids else None,
             concords_path=concords_path if has_concords else None,
         )
-    return SourceContribution(name=name, by_semantic_type=by_st)
+    return SourceContribution(name=name, by_pipeline=by_pipeline)
