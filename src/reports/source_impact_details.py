@@ -19,9 +19,10 @@ All files are deterministically sorted so re-running the tool yields byte-identi
 so the clique/xref *counts* are an *upper bound* of what could land in the build — but the
 ``new-cliques.csv`` / ``modified-cliques.csv`` rows carry per-identifier survival columns
 (``would_be_added`` / ``needs_biolink_registration``) that predict that filtering by
-checking each identifier's prefix against the Biolink Model ``id_prefixes`` for its declared
-type, so a reviewer can see which "added" identifiers would actually be emitted and which
-require a Biolink Model registration first.
+checking each identifier's prefix against the Biolink Model ``id_prefixes`` for the
+*clique's* assigned biolink type (the single ``node_type`` ``NodeFactory.create_node()``
+filters every member against), so a reviewer can see which "added" identifiers would
+actually be emitted and which require a Biolink Model registration first.
 """
 
 from __future__ import annotations
@@ -222,11 +223,15 @@ def write_modified_cliques_csv(
         preferred_label = curie_label(m.after_preferred, lookup.labels_by_prefix) or ""
         for added_kind, curie_set in (("added", m.added), ("promoted", m.promoted)):
             for curie in curie_set:
-                # Judge survival on the added identifier's *own* declared type, not the
-                # clique's preferred type (which may not be knowable at this point).
+                # Judge survival on the *clique's* assigned biolink type, since that is the
+                # single node_type NodeFactory.create_node() filters every member's prefix
+                # against (not each identifier's own declared type). When the clique type is
+                # unknown (no classifier), prefix_survives returns (None, False) -> blank.
+                # added_id_biolink_type still records the identifier's own declared type for
+                # context.
                 own_type = types.get(curie)
-                would_be_added, needs_reg = prefix_survives(curie, own_type, lookup.prefix_priority_by_type)
-                note = biolink_registration_note(curie, own_type) if needs_reg else ""
+                would_be_added, needs_reg = prefix_survives(curie, m.biolink_type, lookup.prefix_priority_by_type)
+                note = biolink_registration_note(curie, m.biolink_type) if needs_reg else ""
                 rows.append(
                     [
                         m.semantic_type,
@@ -262,21 +267,24 @@ def write_modified_cliques_json(
     entries: list[dict] = []
     for m in _modified_cliques(diffs, lookup):
         types = lookup.types_by_semantic_type.get(m.semantic_type, {})
-        # Per-added-identifier survival, judged on the identifier's *own* declared type.
-        # The flat added/promoted lists are kept for back-compat; this enriches them.
+        # Per-added-identifier survival, judged on the *clique's* assigned biolink type —
+        # the single node_type create_node() filters every member's prefix against. The
+        # ``declared_biolink_type`` field records the identifier's own declared type for
+        # context. The flat added/promoted lists are kept for back-compat; this enriches them.
         added_curie_details = []
         for kind, curie_set in (("added", m.added), ("promoted", m.promoted)):
             for curie in sorted(curie_set):
                 own_type = types.get(curie)
-                would_be_added, needs_reg = prefix_survives(curie, own_type, lookup.prefix_priority_by_type)
+                would_be_added, needs_reg = prefix_survives(curie, m.biolink_type, lookup.prefix_priority_by_type)
                 added_curie_details.append(
                     {
                         "i": curie,
                         "added_kind": kind,
-                        "biolink_type": own_type,
+                        "declared_biolink_type": own_type,
+                        "clique_biolink_type": m.biolink_type,
                         "would_be_added": would_be_added,
                         "needs_biolink_registration": needs_reg if would_be_added is not None else None,
-                        "note": biolink_registration_note(curie, own_type) if needs_reg else None,
+                        "note": biolink_registration_note(curie, m.biolink_type) if needs_reg else None,
                     }
                 )
         added_curie_details.sort(key=lambda d: d["i"])
@@ -307,10 +315,12 @@ def write_new_xrefs_tsv(
 ) -> int:
     """Write one row per concord row touching a source CURIE, across all concord files.
 
-    ``status`` is ``added`` when the cross-reference is asserted by the new source's own
-    concord file (a brand-new bridge) and ``made_real`` when it is asserted by another
-    source's concord file and only becomes a clique edge because the source now types its
-    endpoint as a first-class identifier. Returns the number of rows written.
+    ``status`` reflects *which* concord file asserts the row, not before/after novelty
+    (this writer does not diff the pre-source glom state, so it cannot tell whether the
+    row newly becomes a clique edge): ``added`` means the new source's own concord file
+    asserts it (a brand-new bridge), and ``from_other_source`` means another source's
+    concord file asserts a row that happens to touch a source CURIE — such a row may have
+    already existed before this source was added. Returns the number of rows written.
     """
     header = [
         "semantic_type",
@@ -328,7 +338,7 @@ def write_new_xrefs_tsv(
         stc = contribution.by_semantic_type[st]
         concords_dir = pathlib.Path(intermediate_root) / st / "concords"
         for subject, predicate, obj, asserted_by in scan_concords_for_curies(concords_dir, stc.all_curies):
-            status = "added" if asserted_by == source_name else "made_real"
+            status = "added" if asserted_by == source_name else "from_other_source"
             rows.append(
                 [
                     st,

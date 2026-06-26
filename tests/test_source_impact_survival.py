@@ -97,9 +97,12 @@ def test_new_cliques_csv_survival_columns(tmp_path):
 
 
 @pytest.mark.unit
-def test_modified_cliques_csv_judges_on_own_type(tmp_path):
-    # EMAPA:100 (gross, unregistered) is added to a UBERON clique; EMAPA:300 (anatomical,
-    # registered) is added to another. Survival is judged on each identifier's OWN type.
+def test_modified_cliques_csv_survival_columns(tmp_path):
+    # EMAPA:100 joins a clique that classifies as GrossAnatomicalStructure (EMAPA not
+    # registered -> dropped); EMAPA:300 joins one that classifies as AnatomicalEntity
+    # (registered -> survives). Here the UBERON members carry no declared type, so the
+    # classifier falls back to the EMAPA term's type and the clique type happens to match
+    # each identifier's own type; the discriminating case is exercised separately below.
     types = {
         "EMAPA:100": "biolink:GrossAnatomicalStructure",
         "EMAPA:300": "biolink:AnatomicalEntity",
@@ -138,6 +141,56 @@ def test_modified_cliques_csv_judges_on_own_type(tmp_path):
 
 
 @pytest.mark.unit
+def test_modified_cliques_csv_judges_on_clique_type_not_own_type(tmp_path):
+    # EMAPA:9 declares GrossAnatomicalStructure (where EMAPA is NOT registered), but the
+    # clique it joins is typed AnatomicalEntity (where EMAPA IS registered). NodeFactory
+    # types the whole clique AnatomicalEntity and keeps EMAPA:9, so survival must be judged
+    # on the clique type: would_be_added must be true, with no false "needs registration"
+    # even though the identifier's own declared type would flag it.
+    types = {
+        "UBERON:0001": "biolink:AnatomicalEntity",
+        "EMAPA:9": "biolink:GrossAnatomicalStructure",
+    }
+
+    # Mirror anatomy's classifier: trust the UBERON member's declared type for the clique.
+    def classifier(clique, type_map):
+        for curie in sorted(clique):
+            if curie.startswith("UBERON:") and curie in type_map:
+                return type_map[curie]
+        return next((type_map[c] for c in sorted(clique) if c in type_map), None)
+
+    lookup = LookupContext(
+        types_by_semantic_type={"anatomy": types},
+        labels_by_prefix={},
+        clique_classifier={"anatomy": classifier},
+        prefix_priority_by_type=PREFIX_PRIORITY,
+    )
+    diffs = {
+        "anatomy": SourceImpactDiff(
+            semantic_type="anatomy",
+            source_curies=frozenset({"EMAPA:9"}),
+            expanded_cliques=[
+                ExpandedClique(
+                    before_clique=frozenset({"UBERON:0001"}),
+                    added_source_curies=frozenset({"EMAPA:9"}),
+                    after_clique=frozenset({"UBERON:0001", "EMAPA:9"}),
+                ),
+            ],
+        )
+    }
+    path = tmp_path / "modified-cliques.csv"
+    write_modified_cliques_csv(path, diffs, lookup)
+    with path.open() as f:
+        row = next(r for r in csv.DictReader(f) if r["added_id"] == "EMAPA:9")
+
+    assert row["clique_biolink_type"] == "biolink:AnatomicalEntity"
+    assert row["added_id_biolink_type"] == "biolink:GrossAnatomicalStructure"
+    assert row["would_be_added"] == "true"
+    assert row["needs_biolink_registration"] == "false"
+    assert row["biolink_registration_note"] == ""
+
+
+@pytest.mark.unit
 def test_modified_cliques_json_added_curie_details(tmp_path):
     types = {"EMAPA:100": "biolink:GrossAnatomicalStructure"}
     diffs = {
@@ -162,7 +215,10 @@ def test_modified_cliques_json_added_curie_details(tmp_path):
     assert entries[0]["added_source_curies"] == ["EMAPA:100"]
     detail = entries[0]["added_curie_details"][0]
     assert detail["i"] == "EMAPA:100"
-    assert detail["biolink_type"] == "biolink:GrossAnatomicalStructure"
+    # Own declared type is recorded for context; survival is judged on the clique type
+    # (here the singleton-ish merge classifies as Gross too, so the term is dropped).
+    assert detail["declared_biolink_type"] == "biolink:GrossAnatomicalStructure"
+    assert detail["clique_biolink_type"] == "biolink:GrossAnatomicalStructure"
     assert detail["would_be_added"] is False
     assert detail["needs_biolink_registration"] is True
     assert detail["note"]

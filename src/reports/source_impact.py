@@ -20,7 +20,6 @@ right prefix-priority list when marking the preferred identifier.
 from __future__ import annotations
 
 import json
-import logging
 import pathlib
 from collections import defaultdict
 from collections.abc import Callable, Iterable
@@ -28,8 +27,9 @@ from dataclasses import dataclass, field
 
 from src.model.clique_diff import ExpandedClique, SourceImpactDiff
 from src.model.source import SourceContribution
+from src.util import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 SAMPLE_LIMIT = 3
 PURE_NEW_SAMPLE_LIMIT = 3
@@ -189,12 +189,14 @@ def prefix_survives(
     ``id_prefixes`` for the clique's biolink type and silently drops the rest; a clique
     with no surviving prefix is skipped entirely. We mirror that here using
     ``prefix_priority_by_type`` (populated from the same ``id_prefixes`` lists the build
-    filters against), judging each identifier on **its own** biolink type.
+    filters against). ``biolink_type`` must therefore be the **clique's** assigned type
+    (the single ``node_type`` the build filters every member against), not each
+    identifier's own declared type — passing the latter mispredicts mixed-type cliques.
 
     Returns ``(would_be_added, needs_biolink_registration)``:
 
     - ``would_be_added`` is ``True``/``False`` when the type's prefix list is known, or
-      ``None`` when it is unknown (no declared type, or ``--no-biolink-lookup`` left
+      ``None`` when it is unknown (no clique type, or ``--no-biolink-lookup`` left
       ``prefix_priority_by_type`` empty) — callers should render ``None`` as blank/unknown
       rather than as a negative.
     - ``needs_biolink_registration`` is ``True`` only when we positively know the prefix
@@ -276,11 +278,15 @@ def _detail_link(details_dirname: str | None, filename: str, text: str) -> str |
     return f"- {text}: [`{details_dirname}/{filename}`]({details_dirname}/{filename})"
 
 
-def _reg_marker(curie: str, types: dict[str, str], prefix_priority_by_type: dict[str, list[str]]) -> str:
-    """Return a bold warning when a pure-new CURIE's prefix is absent from the Biolink Model."""
-    own_type = types.get(curie)
-    _, needs_reg = prefix_survives(curie, own_type, prefix_priority_by_type)
-    return f"**(NOT emitted — prefix not registered in Biolink Model for `{own_type}`)**" if needs_reg else ""
+def _reg_marker(curie: str, biolink_type: str | None, prefix_priority_by_type: dict[str, list[str]]) -> str:
+    """Return a bold warning when a CURIE's prefix is absent from id_prefixes for its clique type.
+
+    Survival is judged against the *clique's* assigned biolink type, since that is the single
+    node_type ``NodeFactory.create_node()`` filters every member's prefix against (not each
+    identifier's own declared type).
+    """
+    _, needs_reg = prefix_survives(curie, biolink_type, prefix_priority_by_type)
+    return f"**(NOT emitted — prefix not registered in Biolink Model for `{biolink_type}`)**" if needs_reg else ""
 
 
 def _render_clique_impact(
@@ -395,22 +401,22 @@ def _render_clique_impact(
                 key=lambda c: _pure_new_rank(c, lookup.labels_by_prefix),
             )
             for clique in ordered[:PURE_NEW_SAMPLE_LIMIT]:
+                biolink_type = classifier(clique, types) if classifier else None
                 if len(clique) == 1:
                     only = next(iter(clique))
                     lines.append(
                         _render_curie_entry(
-                            only, lookup, marker=_reg_marker(only, types, lookup.prefix_priority_by_type)
+                            only, lookup, marker=_reg_marker(only, biolink_type, lookup.prefix_priority_by_type)
                         )
                     )
                 else:
-                    biolink_type = classifier(clique, types) if classifier else None
                     ordered_curies = sort_clique_for_display(clique, biolink_type, lookup.prefix_priority_by_type)
                     for i, c in enumerate(ordered_curies):
                         markers = [
                             m
                             for m in (
                                 "**(preferred)**" if i == 0 else "",
-                                _reg_marker(c, types, lookup.prefix_priority_by_type),
+                                _reg_marker(c, biolink_type, lookup.prefix_priority_by_type),
                             )
                             if m
                         ]
@@ -479,13 +485,12 @@ def _render_clique_impact(
                     elif c in ec.promoted_source_curies:
                         markers.append(f"**(existing identifier, also added by {name})**")
                     if c in ec.added_source_curies or c in ec.promoted_source_curies:
-                        # Judge survival on the identifier's *own* declared type, since the
-                        # clique's final preferred type may not be knowable here.
-                        own_type = types.get(c)
-                        _, needs_reg = prefix_survives(c, own_type, lookup.prefix_priority_by_type)
+                        # Judge survival on the *clique's* assigned biolink type — the single
+                        # node_type create_node() filters every member's prefix against.
+                        _, needs_reg = prefix_survives(c, biolink_type, lookup.prefix_priority_by_type)
                         if needs_reg:
                             markers.append(
-                                f"**(NOT emitted — prefix not registered in Biolink Model for `{own_type}`)**"
+                                f"**(NOT emitted — prefix not registered in Biolink Model for `{biolink_type}`)**"
                             )
                     if c == after_pref:
                         markers.append("**(preferred)**")
