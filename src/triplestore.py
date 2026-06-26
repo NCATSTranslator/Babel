@@ -1,4 +1,3 @@
-import logging
 import os
 from json import JSONDecodeError
 from string import Template
@@ -8,7 +7,7 @@ from urllib.error import HTTPError
 from SPARQLWrapper import JSON, POST, POSTDIRECTLY, SPARQLWrapper2
 
 from src.babel_utils import get_user_agent
-from src.util import LoggingUtil, get_config, get_logger
+from src.util import get_config, get_logger
 
 logger = get_logger(__name__)
 
