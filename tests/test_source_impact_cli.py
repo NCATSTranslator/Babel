@@ -101,12 +101,12 @@ def test_cli_synthetic_report_covers_all_sections(synthetic_intermediate, tmp_pa
     assert "## 4. Clique impact" in report
     assert "Comparison mode: synthetic" in report
 
-    # Section 1: 4 identifiers under one prefix, one semantic type.
+    # Section 1: 4 identifiers under one prefix, one pipeline.
     assert "- NEWSRC: 4" in report
     assert "- anatomy: 4" in report
 
     # Section 2: both declared biolink types are counted, and the overall roll-up across
-    # semantic types is present.
+    # pipelines is present.
     assert "### Overall declared type breakdown" in report
     assert "biolink:AnatomicalEntity: 3" in report
     assert "biolink:GrossAnatomicalStructure: 1" in report
@@ -162,7 +162,7 @@ def test_cli_synthetic_report_json_diff_counts(synthetic_intermediate, tmp_path)
     assert payload["source"] == "NEWSOURCE"
     assert payload["total_identifier_count"] == 4
     assert payload["total_concord_row_count"] == 3
-    assert payload["semantic_types"] == ["anatomy"]
+    assert payload["pipelines"] == ["anatomy"]
     assert payload["declared_type_counts_overall"] == {
         "biolink:AnatomicalEntity": 3,
         "biolink:GrossAnatomicalStructure": 1,

@@ -3,8 +3,8 @@
 Invocation:
     uv run python -m src.cli.source_impact_report --source EMAPA
 
-The CLI discovers where the source contributes (across one or more semantic types),
-runs a synthetic re-glom with and without the source for each registered semantic type,
+The CLI discovers where the source contributes (across one or more pipelines),
+runs a synthetic re-glom with and without the source for each registered pipeline,
 diffs the resulting cliques, scans the final compendia to see which type the source's
 CURIEs ended up under, and writes a markdown (and optionally JSON) report.
 
@@ -40,14 +40,14 @@ logger = get_logger(__name__)
 ComputeCliquesFn = Callable[..., tuple[dict, dict]]
 
 
-# Per-semantic-type configuration:
+# Per-pipeline configuration:
 #
 # - ``compute_fn``: returns ``(glom-dict, types-dict)`` for one call to glom over the
-#   semantic type's intermediate files. Called twice per source (with and without the
+#   pipeline's intermediate files. Called twice per source (with and without the
 #   source) to build the synthetic before/after diff.
 # - ``compendium_files``: list of final compendium files to scan when counting how many
 #   source CURIEs ended up where (after build).
-# - ``compendium_prefixes``: prefixes that may appear in cliques for this semantic type;
+# - ``compendium_prefixes``: prefixes that may appear in cliques for this pipeline;
 #   labels for these are loaded from ``babel_downloads/<PREFIX>/labels`` to enrich the
 #   rendered samples.
 # - ``clique_classifier``: callable that picks a biolink type for one clique given the
@@ -55,7 +55,7 @@ ComputeCliquesFn = Callable[..., tuple[dict, dict]]
 #   the preferred CURIE for a sample.
 # - ``biolink_types``: biolink types whose ``id_prefixes`` we look up to determine the
 #   preferred CURIE per clique.
-SEMANTIC_TYPE_CONFIG: dict[str, dict] = {
+PIPELINE_CONFIG: dict[str, dict] = {
     "anatomy": {
         "compute_fn": anatomy.compute_cliques_for_impact_report,
         "compendium_files": [
@@ -88,47 +88,45 @@ def _list_source_files(directory: pathlib.Path) -> list[pathlib.Path]:
 
 
 def _compute_synthetic_diff(
-    semantic_type: str,
+    pipeline: str,
     source_name: str,
     intermediate_root: pathlib.Path,
     source_curies: frozenset[str],
 ) -> tuple[SourceImpactDiff, dict[str, str]]:
-    """Run a registered compute_fn twice and return the clique diff for one semantic type.
+    """Run a registered compute_fn twice and return the clique diff for one pipeline.
 
     Returns a ``(diff, types)`` tuple where ``types`` is the after-state CURIE -> declared
     biolink type map (so callers can pass it into the renderer to classify cliques).
     """
-    cfg = SEMANTIC_TYPE_CONFIG[semantic_type]
+    cfg = PIPELINE_CONFIG[pipeline]
     compute_fn: ComputeCliquesFn = cfg["compute_fn"]
 
-    ids_dir = intermediate_root / semantic_type / "ids"
-    concords_dir = intermediate_root / semantic_type / "concords"
+    ids_dir = intermediate_root / pipeline / "ids"
+    concords_dir = intermediate_root / pipeline / "concords"
     identifiers = [str(p) for p in _list_source_files(ids_dir)]
     concordances = [str(p) for p in _list_source_files(concords_dir)]
 
-    logger.info(
-        "synthetic diff for %s: %d ids files, %d concord files", semantic_type, len(identifiers), len(concordances)
-    )
+    logger.info("synthetic diff for %s: %d ids files, %d concord files", pipeline, len(identifiers), len(concordances))
 
     after_dicts, after_types = compute_fn(concordances, identifiers)
     before_dicts, _ = compute_fn(concordances, identifiers, excluded_sources={source_name})
 
-    diff = diff_cliques(before_dicts, after_dicts, source_curies, semantic_type=semantic_type)
+    diff = diff_cliques(before_dicts, after_dicts, source_curies, babel_pipeline=pipeline)
     return diff, after_types
 
 
 def _final_compendium_breakdown(
     contribution: SourceContribution,
-    semantic_types: list[str],
+    pipelines: list[str],
     compendia_root: pathlib.Path,
 ) -> dict[str, dict[str, int]]:
-    """Count how many source CURIEs land in each compendium file per semantic type."""
+    """Count how many source CURIEs land in each compendium file per pipeline."""
     breakdown: dict[str, dict[str, int]] = {}
-    for st in semantic_types:
-        cfg = SEMANTIC_TYPE_CONFIG.get(st)
+    for st in pipelines:
+        cfg = PIPELINE_CONFIG.get(st)
         if cfg is None:
             continue
-        stc = contribution.by_semantic_type.get(st)
+        stc = contribution.by_pipeline.get(st)
         if stc is None:
             continue
         source_curies = stc.all_curies
@@ -148,14 +146,14 @@ def _final_compendium_breakdown(
 
 def _remote_comparison_summary(
     contribution: SourceContribution,
-    semantic_types: list[str],
+    pipelines: list[str],
     remote_url: str,
     remote_cache_dir: pathlib.Path,
     compendia_root: pathlib.Path,
 ) -> dict[str, dict[str, int]]:
     """Download previous-build compendia and count cliques present/missing for this source.
 
-    Returns a per-semantic-type breakdown with keys ``remote_total_cliques``,
+    Returns a per-pipeline breakdown with keys ``remote_total_cliques``,
     ``remote_cliques_with_source_curies``, ``current_cliques_with_source_curies``, and
     ``current_only``. The "current only" count is the number of cliques in the current
     build that contain any source CURIE *and* are not present (by identifier-set) in the
@@ -168,11 +166,11 @@ def _remote_comparison_summary(
     summary: dict[str, dict[str, int]] = {}
     base = remote_url.rstrip("/")
 
-    for st in semantic_types:
-        cfg = SEMANTIC_TYPE_CONFIG.get(st)
+    for st in pipelines:
+        cfg = PIPELINE_CONFIG.get(st)
         if cfg is None:
             continue
-        stc = contribution.by_semantic_type.get(st)
+        stc = contribution.by_pipeline.get(st)
         if stc is None:
             continue
         source_curies = stc.all_curies
@@ -221,24 +219,24 @@ def _remote_comparison_summary(
 
 def _build_lookup_context(
     *,
-    semantic_types: list[str],
-    types_by_semantic_type: dict[str, dict[str, str]],
+    pipelines: list[str],
+    types_by_pipeline: dict[str, dict[str, str]],
     downloads_root: pathlib.Path,
     skip_biolink: bool,
 ) -> LookupContext:
-    """Assemble the per-semantic-type helpers the renderer needs to enrich CURIE samples.
+    """Assemble the per-pipeline helpers the renderer needs to enrich CURIE samples.
 
-    Loads label files for the prefixes registered for each semantic type, looks up the
+    Loads label files for the prefixes registered for each pipeline, looks up the
     OBO PURL converter and the biolink prefix-priority lists, and registers the
-    per-semantic-type clique classifier callable. When ``skip_biolink`` is set, the
+    per-pipeline clique classifier callable. When ``skip_biolink`` is set, the
     Biolink prefix-map / toolkit lookups are skipped — useful for offline tests that
     don't need OBO PURLs or preferred-identifier annotations.
     """
     all_prefixes: set[str] = set()
     classifiers: dict[str, Callable] = {}
     biolink_types_needed: set[str] = set()
-    for st in semantic_types:
-        cfg = SEMANTIC_TYPE_CONFIG.get(st)
+    for st in pipelines:
+        cfg = PIPELINE_CONFIG.get(st)
         if cfg is None:
             continue
         all_prefixes.update(cfg.get("compendium_prefixes", []))
@@ -277,7 +275,7 @@ def _build_lookup_context(
             logger.warning("could not load Biolink toolkit prefix orders: %s", exc)
 
     return LookupContext(
-        types_by_semantic_type=types_by_semantic_type,
+        types_by_pipeline=types_by_pipeline,
         labels_by_prefix=labels,
         curie_expander=expander,
         clique_classifier=classifiers,
@@ -327,9 +325,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Name of the source (matches the basename used in intermediate/<type>/{ids,concords}/<name>).",
     )
     parser.add_argument(
-        "--semantic-types",
+        "--pipelines",
         default=None,
-        help="Comma-separated list of semantic types to analyse. Default: auto-detect from filesystem.",
+        help="Comma-separated list of pipelines to analyse. Default: auto-detect from filesystem.",
     )
     parser.add_argument(
         "--mode",
@@ -390,7 +388,7 @@ def main(argv: list[str] | None = None) -> int:
     compendia_root = pathlib.Path(args.compendia_root)
 
     contribution = discover_source(args.source, intermediate_root)
-    if not contribution.by_semantic_type:
+    if not contribution.by_pipeline:
         logger.error(
             "no intermediate files found for source %r under %s",
             args.source,
@@ -398,55 +396,55 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    if args.semantic_types:
-        requested = [s.strip() for s in args.semantic_types.split(",") if s.strip()]
-        unknown = [s for s in requested if s not in contribution.semantic_types]
+    if args.pipelines:
+        requested = [s.strip() for s in args.pipelines.split(",") if s.strip()]
+        unknown = [s for s in requested if s not in contribution.pipelines]
         if unknown:
-            logger.error("source %r has no files for semantic type(s): %s", args.source, ", ".join(unknown))
+            logger.error("source %r has no files for pipeline(s): %s", args.source, ", ".join(unknown))
             return 1
-        semantic_types = requested
+        pipelines = requested
     else:
-        semantic_types = sorted(contribution.semantic_types)
+        pipelines = sorted(contribution.pipelines)
 
     if (args.mode in ("remote", "both")) and not args.remote_url:
         logger.error("--remote-url is required for mode=%s", args.mode)
         return 1
 
-    diffs_by_semantic_type: dict[str, SourceImpactDiff] = {}
-    types_by_semantic_type: dict[str, dict[str, str]] = {}
+    diffs_by_pipeline: dict[str, SourceImpactDiff] = {}
+    types_by_pipeline: dict[str, dict[str, str]] = {}
     if args.mode in ("synthetic", "both"):
-        for st in semantic_types:
-            if st not in SEMANTIC_TYPE_CONFIG:
+        for st in pipelines:
+            if st not in PIPELINE_CONFIG:
                 logger.warning(
-                    "semantic type %r has no synthetic compute_fn registered; skipping clique diff for this type",
+                    "pipeline %r has no synthetic compute_fn registered; skipping clique diff for this type",
                     st,
                 )
                 continue
-            stc = contribution.by_semantic_type[st]
+            stc = contribution.by_pipeline[st]
             diff, types = _compute_synthetic_diff(
-                semantic_type=st,
+                pipeline=st,
                 source_name=args.source,
                 intermediate_root=intermediate_root,
                 source_curies=stc.all_curies,
             )
-            diffs_by_semantic_type[st] = diff
-            types_by_semantic_type[st] = types
+            diffs_by_pipeline[st] = diff
+            types_by_pipeline[st] = types
 
     remote_summary: dict[str, dict[str, int]] = {}
     if args.mode in ("remote", "both"):
         remote_summary = _remote_comparison_summary(
             contribution=contribution,
-            semantic_types=semantic_types,
+            pipelines=pipelines,
             remote_url=args.remote_url,
             remote_cache_dir=pathlib.Path(args.remote_cache_dir),
             compendia_root=compendia_root,
         )
 
-    final_breakdown = _final_compendium_breakdown(contribution, semantic_types, compendia_root)
+    final_breakdown = _final_compendium_breakdown(contribution, pipelines, compendia_root)
 
     lookup = _build_lookup_context(
-        semantic_types=semantic_types,
-        types_by_semantic_type=types_by_semantic_type,
+        pipelines=pipelines,
+        types_by_pipeline=types_by_pipeline,
         downloads_root=pathlib.Path(args.downloads_root),
         skip_biolink=args.no_biolink_lookup,
     )
@@ -469,7 +467,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.format in ("md", "both"):
         md = render_markdown(
             contribution,
-            diffs_by_semantic_type,
+            diffs_by_pipeline,
             final_breakdown,
             mode=args.mode,
             generated_at=generated_at,
@@ -488,7 +486,7 @@ def main(argv: list[str] | None = None) -> int:
         counts = write_detail_files(
             details_dir,
             contribution,
-            diffs_by_semantic_type,
+            diffs_by_pipeline,
             intermediate_root,
             lookup,
         )
@@ -496,7 +494,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.format in ("json", "both"):
         json_payload = render_json(
             contribution,
-            diffs_by_semantic_type,
+            diffs_by_pipeline,
             final_breakdown,
             mode=args.mode,
             generated_at=generated_at,

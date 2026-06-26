@@ -62,7 +62,7 @@ def _lookup(types):
         return next((type_map[c] for c in sorted(clique) if c in type_map), None)
 
     return LookupContext(
-        types_by_semantic_type={"anatomy": types},
+        types_by_pipeline={"anatomy": types},
         labels_by_prefix={},
         clique_classifier={"anatomy": classifier},
         prefix_priority_by_type=PREFIX_PRIORITY,
@@ -77,7 +77,7 @@ def test_new_cliques_csv_survival_columns(tmp_path):
     }
     diffs = {
         "anatomy": SourceImpactDiff(
-            semantic_type="anatomy",
+            babel_pipeline="anatomy",
             source_curies=frozenset({"EMAPA:100", "EMAPA:300"}),
             pure_new_cliques=[frozenset({"EMAPA:100"}), frozenset({"EMAPA:300"})],
         )
@@ -109,7 +109,7 @@ def test_modified_cliques_csv_survival_columns(tmp_path):
     }
     diffs = {
         "anatomy": SourceImpactDiff(
-            semantic_type="anatomy",
+            babel_pipeline="anatomy",
             source_curies=frozenset({"EMAPA:100", "EMAPA:300"}),
             expanded_cliques=[
                 ExpandedClique(
@@ -160,14 +160,14 @@ def test_modified_cliques_csv_judges_on_clique_type_not_own_type(tmp_path):
         return next((type_map[c] for c in sorted(clique) if c in type_map), None)
 
     lookup = LookupContext(
-        types_by_semantic_type={"anatomy": types},
+        types_by_pipeline={"anatomy": types},
         labels_by_prefix={},
         clique_classifier={"anatomy": classifier},
         prefix_priority_by_type=PREFIX_PRIORITY,
     )
     diffs = {
         "anatomy": SourceImpactDiff(
-            semantic_type="anatomy",
+            babel_pipeline="anatomy",
             source_curies=frozenset({"EMAPA:9"}),
             expanded_cliques=[
                 ExpandedClique(
@@ -195,7 +195,7 @@ def test_modified_cliques_json_added_curie_details(tmp_path):
     types = {"EMAPA:100": "biolink:GrossAnatomicalStructure"}
     diffs = {
         "anatomy": SourceImpactDiff(
-            semantic_type="anatomy",
+            babel_pipeline="anatomy",
             source_curies=frozenset({"EMAPA:100"}),
             merged_cliques=[
                 MergedClique(
@@ -230,13 +230,13 @@ def test_survival_columns_blank_without_biolink_lookup(tmp_path):
     # exist but be blank, with no false "needs registration".
     types = {"EMAPA:100": "biolink:GrossAnatomicalStructure"}
     lookup = LookupContext(
-        types_by_semantic_type={"anatomy": types},
+        types_by_pipeline={"anatomy": types},
         clique_classifier={"anatomy": lambda clique, tm: next(iter(tm.values()), None)},
         prefix_priority_by_type={},
     )
     diffs = {
         "anatomy": SourceImpactDiff(
-            semantic_type="anatomy",
+            babel_pipeline="anatomy",
             source_curies=frozenset({"EMAPA:100"}),
             pure_new_cliques=[frozenset({"EMAPA:100"})],
         )

@@ -1,16 +1,48 @@
 """Unit tests for src/model/source.py.
 
-Covers the four dimensions a Babel source can vary along: single, multi-biolink-type
-(UBERON-style), multi-semantic-type (MESH-style), and multi-prefix.
+A Babel source can vary along three axes simultaneously (see src/model/source.py):
+
+- **babel_pipeline** — which intermediate directory the source contributes to
+  (e.g. ``anatomy``, ``chemical``). MESH spans several; most sources span one.
+- **biolink_type** — the Biolink class URI written in the ids file's second column.
+  Multiple types may appear in one ids file (e.g. UBERON mixes ``AnatomicalEntity``
+  and ``GrossAnatomicalStructure``).
+- **prefix** — the CURIE prefix of the identifiers. Rare but supported: a single
+  source file can emit ``PREFIXA:…`` and ``PREFIXB:…`` rows.
+
+Test groups
+-----------
+scan_concords_for_curies:
+    Row-matching and asserter-recording logic. Key behaviours: matches either endpoint
+    of a concord triple; records the concord file path relative to ``concords_dir`` as
+    the asserter; skips ``metadata-*`` sidecars; recurses into subdirectories
+    (e.g. ``UNICHEM/UNICHEM_*``).
+
+discover_source — structure:
+    Baseline (single everything) plus one test per axis, confirming that
+    ``SourceContribution`` correctly aggregates across each dimension.
+
+discover_source — edge cases:
+    Missing source name, missing intermediate root, and metadata sidecar filtering.
 """
 
 import pytest
 
 from src.model.source import discover_source, scan_concords_for_curies
 
+# ---------------------------------------------------------------------------
+# scan_concords_for_curies
+# ---------------------------------------------------------------------------
+
 
 @pytest.mark.unit
 def test_scan_concords_for_curies_matches_either_endpoint_and_records_asserter(tmp_path):
+    """Matches rows where the source CURIE is subject or object; skips rows and files with no match.
+
+    Also verifies that ``asserted_by`` is the concord file path relative to ``concords_dir``
+    (``"UBERON"``, not the full path), and that metadata sidecars are never scanned even if
+    they contain matching content.
+    """
     concords = tmp_path / "anatomy" / "concords"
     concords.mkdir(parents=True)
     # EMAPA's own concord is empty; its xrefs live in UBERON's concord.
@@ -27,19 +59,26 @@ def test_scan_concords_for_curies_matches_either_endpoint_and_records_asserter(t
 
     assert ("UBERON:1", "xref", "EMAPA:10", "UBERON") in rows
     assert ("EMAPA:20", "skos:exactMatch", "CL:2", "UBERON") in rows
-    assert all(r[3] == "UBERON" for r in rows), "asserted_by is the concord file basename"
+    assert all(r[3] == "UBERON" for r in rows), "asserted_by is the concord file path relative to concords_dir"
     assert not any("UBERON:3" in r for r in rows), "rows without a source CURIE are dropped"
     assert len(rows) == 2
 
 
 @pytest.mark.unit
 def test_scan_concords_for_curies_missing_dir_returns_empty(tmp_path):
+    """Returns an empty list rather than raising when the concords directory does not exist."""
     assert scan_concords_for_curies(tmp_path / "nope", {"EMAPA:1"}) == []
 
 
-def _make_source_tree(root, source_name, semantic_type, ids_lines=None, concord_lines=None):
-    ids_dir = root / semantic_type / "ids"
-    concords_dir = root / semantic_type / "concords"
+# ---------------------------------------------------------------------------
+# discover_source — structure
+# ---------------------------------------------------------------------------
+
+
+def _make_source_tree(root, source_name, pipeline, ids_lines=None, concord_lines=None):
+    """Write minimal ids/ and concords/ files under ``root/<pipeline>/`` for one source."""
+    ids_dir = root / pipeline / "ids"
+    concords_dir = root / pipeline / "concords"
     ids_dir.mkdir(parents=True, exist_ok=True)
     concords_dir.mkdir(parents=True, exist_ok=True)
     if ids_lines is not None:
@@ -49,7 +88,13 @@ def _make_source_tree(root, source_name, semantic_type, ids_lines=None, concord_
 
 
 @pytest.mark.unit
-def test_discover_single_prefix_single_type_single_semantic_type(tmp_path):
+def test_discover_single_prefix_single_type_single_pipeline(tmp_path):
+    """Baseline: one source, one babel_pipeline, one biolink_type, one prefix.
+
+    Verifies the full shape of ``SourceContribution`` — pipelines, prefixes,
+    declared_biolink_types, total counts, and the per-pipeline ``declared_type_counts``
+    and ``concord_partner_prefix_counts`` breakdowns.
+    """
     _make_source_tree(
         tmp_path,
         "EMAPA",
@@ -60,15 +105,15 @@ def test_discover_single_prefix_single_type_single_semantic_type(tmp_path):
 
     contrib = discover_source("EMAPA", tmp_path)
 
-    assert contrib.semantic_types == frozenset({"anatomy"})
+    assert contrib.pipelines == frozenset({"anatomy"})
     assert contrib.prefixes == frozenset({"EMAPA"})
     assert contrib.declared_biolink_types == frozenset({"biolink:AnatomicalEntity"})
     assert contrib.total_identifier_count == 2
     assert contrib.total_concord_row_count == 1
 
-    stc = contrib.by_semantic_type["anatomy"]
-    assert stc.declared_type_counts == {"biolink:AnatomicalEntity": 2}
-    assert stc.concord_partner_prefix_counts == {"UBERON": 1}
+    pc = contrib.by_pipeline["anatomy"]
+    assert pc.declared_type_counts == {"biolink:AnatomicalEntity": 2}
+    assert pc.concord_partner_prefix_counts == {"UBERON": 1}
 
 
 @pytest.mark.unit
@@ -89,16 +134,16 @@ def test_discover_multi_biolink_type_within_one_semantic_type(tmp_path):
     contrib = discover_source("UBERON", tmp_path)
 
     assert contrib.declared_biolink_types == frozenset({"biolink:AnatomicalEntity", "biolink:GrossAnatomicalStructure"})
-    stc = contrib.by_semantic_type["anatomy"]
-    assert stc.declared_type_counts == {
+    pc = contrib.by_pipeline["anatomy"]
+    assert pc.declared_type_counts == {
         "biolink:AnatomicalEntity": 2,
         "biolink:GrossAnatomicalStructure": 1,
     }
 
 
 @pytest.mark.unit
-def test_discover_multi_semantic_type(tmp_path):
-    """MESH-style source spanning anatomy and chemical compendia."""
+def test_discover_multi_pipeline(tmp_path):
+    """MESH-style source present in two babel_pipeline directories (anatomy and chemical)."""
     _make_source_tree(
         tmp_path,
         "MESH",
@@ -114,16 +159,16 @@ def test_discover_multi_semantic_type(tmp_path):
 
     contrib = discover_source("MESH", tmp_path)
 
-    assert contrib.semantic_types == frozenset({"anatomy", "chemical"})
+    assert contrib.pipelines == frozenset({"anatomy", "chemical"})
     assert contrib.total_identifier_count == 3
     assert contrib.declared_biolink_types == frozenset({"biolink:AnatomicalEntity", "biolink:ChemicalEntity"})
-    assert len(contrib.by_semantic_type["anatomy"].all_curies) == 1
-    assert len(contrib.by_semantic_type["chemical"].all_curies) == 2
+    assert len(contrib.by_pipeline["anatomy"].all_curies) == 1
+    assert len(contrib.by_pipeline["chemical"].all_curies) == 2
 
 
 @pytest.mark.unit
 def test_discover_multi_prefix(tmp_path):
-    """A source may write rows under more than one prefix."""
+    """A source may write rows under more than one prefix (rare but supported)."""
     _make_source_tree(
         tmp_path,
         "WEIRD",
@@ -137,28 +182,54 @@ def test_discover_multi_prefix(tmp_path):
     contrib = discover_source("WEIRD", tmp_path)
 
     assert contrib.prefixes == frozenset({"PREFIXA", "PREFIXB"})
-    stc = contrib.by_semantic_type["anatomy"]
-    assert {p: len(c) for p, c in stc.curies_by_prefix.items()} == {
+    pc = contrib.by_pipeline["anatomy"]
+    assert {p: len(c) for p, c in pc.curies_by_prefix.items()} == {
         "PREFIXA": 1,
         "PREFIXB": 1,
     }
 
 
+# ---------------------------------------------------------------------------
+# discover_source — edge cases
+# ---------------------------------------------------------------------------
+
+
 @pytest.mark.unit
 def test_discover_missing_source_returns_empty_contribution(tmp_path):
+    """A source name with no ids or concords files anywhere returns an empty contribution."""
     (tmp_path / "anatomy" / "ids").mkdir(parents=True)
     (tmp_path / "anatomy" / "concords").mkdir(parents=True)
 
     contrib = discover_source("NONEXISTENT", tmp_path)
-    assert contrib.by_semantic_type == {}
-    assert contrib.semantic_types == frozenset()
+    assert contrib.by_pipeline == {}
+    assert contrib.pipelines == frozenset()
     assert contrib.total_identifier_count == 0
 
 
 @pytest.mark.unit
 def test_discover_raises_when_intermediate_root_missing(tmp_path):
+    """Passing a non-existent intermediate root raises FileNotFoundError rather than silently returning empty."""
     with pytest.raises(FileNotFoundError):
         discover_source("EMAPA", tmp_path / "missing")
+
+
+@pytest.mark.unit
+def test_scan_concords_for_curies_recurses_into_subdirectories(tmp_path):
+    """Concord files in subdirectories (e.g. chemicals/concords/UNICHEM/UNICHEM_*) must be
+    scanned; asserted_by should be the relative path from concords_dir."""
+    concords = tmp_path / "chemicals" / "concords"
+    unichem_dir = concords / "UNICHEM"
+    unichem_dir.mkdir(parents=True)
+    (unichem_dir / "UNICHEM_7").write_text("PUBCHEM.COMPOUND:1\txref\tCHEMBL.COMPOUND:2\n")
+    (unichem_dir / "UNICHEM_22").write_text("PUBCHEM.COMPOUND:1\txref\tCHEBI:999\n")
+    # Metadata sidecars in subdirectories are also skipped.
+    (unichem_dir / "metadata-UNICHEM_7.yaml").write_text("name: unichem\n")
+
+    rows = scan_concords_for_curies(concords, {"PUBCHEM.COMPOUND:1"})
+
+    assert len(rows) == 2
+    asserters = {r[3] for r in rows}
+    assert asserters == {"UNICHEM/UNICHEM_7", "UNICHEM/UNICHEM_22"}
 
 
 @pytest.mark.unit
@@ -171,5 +242,5 @@ def test_discover_skips_metadata_yaml_files(tmp_path):
     (tmp_path / "anatomy" / "ids").mkdir(parents=True)
 
     contrib = discover_source("EMAPA", tmp_path)
-    assert contrib.semantic_types == frozenset({"anatomy"})
+    assert contrib.pipelines == frozenset({"anatomy"})
     assert contrib.total_concord_row_count == 1

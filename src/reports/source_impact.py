@@ -8,9 +8,9 @@ Both inputs are the output of:
 - ``src.model.source.discover_source(name, intermediate_root)`` (the source's filesystem
   contribution), and
 - ``src.model.clique_diff.diff_cliques(before, after, source_curies, ...)`` (one diff per
-  semantic type the source touches).
+  pipeline the source touches).
 
-The ``LookupContext`` aggregates the per-semantic-type helpers the renderer needs to turn
+The ``LookupContext`` aggregates the per-pipeline helpers the renderer needs to turn
 bare CURIEs into linked, labelled lines: a Biolink CURIE→IRI converter for the OBO PURL,
 a per-prefix CURIE→label map sourced from ``babel_downloads/<PREFIX>/labels``, and a
 ``clique_classifier`` that picks each clique's biolink type so the renderer can apply the
@@ -38,21 +38,21 @@ EXPANDED_SAMPLE_LIMIT = 3
 
 @dataclass
 class LookupContext:
-    """Bundle of per-semantic-type helpers the renderer uses to enrich CURIE listings.
+    """Bundle of per-pipeline helpers the renderer uses to enrich CURIE listings.
 
     Anything that needs filesystem or network access (label files, Biolink prefix map)
-    or per-semantic-type knowledge (which biolink type a clique should be classified as,
+    or per-pipeline knowledge (which biolink type a clique should be classified as,
     which prefix-priority list to apply) is plumbed in here instead of being looked up
     inside the renderer. This keeps the renderer pure and testable.
     """
 
-    # CURIE -> declared biolink type, per semantic type, as captured at ids-file load time.
-    types_by_semantic_type: dict[str, dict[str, str]] = field(default_factory=dict)
+    # CURIE -> declared biolink type, per pipeline, as captured at ids-file load time.
+    types_by_pipeline: dict[str, dict[str, str]] = field(default_factory=dict)
     # Per-prefix CURIE -> label map (e.g. ``{"EMAPA": {"EMAPA:1": "...", ...}}``).
     labels_by_prefix: dict[str, dict[str, str]] = field(default_factory=dict)
     # Optional CURIE -> IRI expander (e.g. a ``curies.Converter`` with ``.expand``).
     curie_expander: Callable[[str], str | None] | None = None
-    # Pick a biolink type for one clique given the types map for its semantic type.
+    # Pick a biolink type for one clique given the types map for its pipeline.
     clique_classifier: dict[str, Callable[[frozenset[str], dict[str, str]], str | None]] = field(
         default_factory=dict,
     )
@@ -291,7 +291,7 @@ def _reg_marker(curie: str, biolink_type: str | None, prefix_priority_by_type: d
 
 def _render_clique_impact(
     name: str,
-    diffs_by_semantic_type: dict[str, SourceImpactDiff],
+    diffs_by_pipeline: dict[str, SourceImpactDiff],
     lookup: LookupContext,
     details_dirname: str | None = None,
 ) -> list[str]:
@@ -305,16 +305,16 @@ def _render_clique_impact(
         "change the source could introduce before that filtering is applied."
     )
     lines.append("")
-    if not diffs_by_semantic_type:
+    if not diffs_by_pipeline:
         lines.append(
-            "(No clique diffs available — synthetic mode did not run for any semantic "
-            "type. See report header for the mode used.)"
+            "(No clique diffs available — synthetic mode did not run for any "
+            "pipeline. See report header for the mode used.)"
         )
         return lines
 
-    for st in sorted(diffs_by_semantic_type):
-        diff = diffs_by_semantic_type[st]
-        types = lookup.types_by_semantic_type.get(st, {})
+    for st in sorted(diffs_by_pipeline):
+        diff = diffs_by_pipeline[st]
+        types = lookup.types_by_pipeline.get(st, {})
         classifier = lookup.clique_classifier.get(st)
 
         before_total = diff.before_clique_count
@@ -358,7 +358,7 @@ def _render_clique_impact(
             "clique can gain several identifiers."
         )
         lines.append(
-            f"- Total cliques in this semantic type go from {_fmt(before_total)} to {_fmt(diff.after_clique_count)}"
+            f"- Total cliques in this pipeline go from {_fmt(before_total)} to {_fmt(diff.after_clique_count)}"
         )
         lines.append("")
 
@@ -482,9 +482,9 @@ def _render_clique_impact(
                     markers: list[str] = []
                     if c in ec.added_source_curies:
                         markers.append(f"**(new from {name})**")
-                    elif c in ec.promoted_source_curies:
+                    elif c in ec.preexisting_source_curies:
                         markers.append(f"**(existing identifier, also added by {name})**")
-                    if c in ec.added_source_curies or c in ec.promoted_source_curies:
+                    if c in ec.added_source_curies or c in ec.preexisting_source_curies:
                         # Judge survival on the *clique's* assigned biolink type — the single
                         # node_type create_node() filters every member's prefix against.
                         _, needs_reg = prefix_survives(c, biolink_type, lookup.prefix_priority_by_type)
@@ -504,7 +504,7 @@ def _render_clique_impact(
 
 def render_markdown(
     contribution: SourceContribution,
-    diffs_by_semantic_type: dict[str, SourceImpactDiff],
+    diffs_by_pipeline: dict[str, SourceImpactDiff],
     final_compendium_breakdown: dict[str, dict[str, int]],
     *,
     mode: str,
@@ -523,7 +523,7 @@ def render_markdown(
     lines.append("")
     lines.append(f"- Generated: {generated_at}")
     lines.append(f"- Babel commit: {babel_commit}")
-    lines.append(f"- Source semantic types: {', '.join(sorted(contribution.semantic_types)) or '(none discovered)'}")
+    lines.append(f"- Source pipelines: {', '.join(sorted(contribution.pipelines)) or '(none discovered)'}")
     lines.append(f"- Source prefixes: {', '.join(sorted(contribution.prefixes)) or '(none discovered)'}")
     mode_label = mode if not remote_url else f"{mode} (vs {remote_url})"
     lines.append(f"- Comparison mode: {mode_label}")
@@ -534,12 +534,12 @@ def render_markdown(
     total = contribution.total_identifier_count
     lines.append(
         f"Totals: {_fmt(total)} identifiers across {len(contribution.prefixes)} "
-        f"prefix(es) in {len(contribution.semantic_types)} semantic type(s)."
+        f"prefix(es) in {len(contribution.pipelines)} pipeline(s)."
     )
     lines.append("")
     lines.append("### By prefix")
     by_prefix: dict[str, int] = defaultdict(int)
-    for stc in contribution.by_semantic_type.values():
+    for stc in contribution.by_pipeline.values():
         for prefix, curies in stc.curies_by_prefix.items():
             by_prefix[prefix] += len(curies)
     if by_prefix:
@@ -548,13 +548,13 @@ def render_markdown(
     else:
         lines.append("- (no identifiers discovered)")
     lines.append("")
-    lines.append("### By semantic type")
-    if contribution.semantic_types:
-        for st in sorted(contribution.semantic_types):
-            stc = contribution.by_semantic_type[st]
+    lines.append("### By pipeline")
+    if contribution.pipelines:
+        for st in sorted(contribution.pipelines):
+            stc = contribution.by_pipeline[st]
             lines.append(f"- {st}: {_fmt(len(stc.all_curies))}")
     else:
-        lines.append("- (no semantic types discovered)")
+        lines.append("- (no pipelines discovered)")
     lines.append("")
 
     lines.append("## 2. Biolink types")
@@ -569,9 +569,9 @@ def render_markdown(
         lines.append("- (no identifiers discovered)")
     lines.append("")
     lines.append("### Source-declared (from each ids file)")
-    if contribution.semantic_types:
-        for st in sorted(contribution.semantic_types):
-            stc = contribution.by_semantic_type[st]
+    if contribution.pipelines:
+        for st in sorted(contribution.pipelines):
+            stc = contribution.by_pipeline[st]
             lines.append(f"- {st} / {name}")
             counts = stc.declared_type_counts
             if not counts:
@@ -581,7 +581,7 @@ def render_markdown(
                 label = declared_type if declared_type else "(no declared type)"
                 lines.append(f"  - {label}: {_fmt(counts[declared_type])}")
     else:
-        lines.append("- (no semantic types discovered)")
+        lines.append("- (no pipelines discovered)")
     lines.append("")
 
     lines.append("### Final compendium-assigned (after glom)")
@@ -603,21 +603,21 @@ def render_markdown(
     lines.append("## 3. Cross-references added")
     lines.append("")
     total_concords = contribution.total_concord_row_count
-    n_concord_files = sum(1 for stc in contribution.by_semantic_type.values() if stc.concords_path is not None)
+    n_concord_files = sum(1 for stc in contribution.by_pipeline.values() if stc.concords_path is not None)
     lines.append(f"Totals: {_fmt(total_concords)} cross-reference rows across {n_concord_files} concord file(s).")
     lines.append("")
-    lines.append("### By semantic type")
-    if contribution.semantic_types:
-        for st in sorted(contribution.semantic_types):
-            stc = contribution.by_semantic_type[st]
+    lines.append("### By pipeline")
+    if contribution.pipelines:
+        for st in sorted(contribution.pipelines):
+            stc = contribution.by_pipeline[st]
             lines.append(f"- {st} / {name}: {_fmt(len(stc.concord_pairs))}")
     else:
-        lines.append("- (no semantic types discovered)")
+        lines.append("- (no pipelines discovered)")
     lines.append("")
-    lines.append("### Partner prefix breakdown (per semantic type)")
-    if contribution.semantic_types:
-        for st in sorted(contribution.semantic_types):
-            stc = contribution.by_semantic_type[st]
+    lines.append("### Partner prefix breakdown (per pipeline)")
+    if contribution.pipelines:
+        for st in sorted(contribution.pipelines):
+            stc = contribution.by_pipeline[st]
             lines.append(f"- {st}")
             partner_counts = stc.concord_partner_prefix_counts
             if not partner_counts:
@@ -626,10 +626,10 @@ def render_markdown(
             for prefix in sorted(partner_counts, key=lambda p: (-partner_counts[p], p)):
                 lines.append(f"  - {prefix}: {_fmt(partner_counts[prefix])}")
     else:
-        lines.append("- (no semantic types discovered)")
+        lines.append("- (no pipelines discovered)")
     lines.append("")
 
-    lines.extend(_render_clique_impact(name, diffs_by_semantic_type, lookup, details_dirname))
+    lines.extend(_render_clique_impact(name, diffs_by_pipeline, lookup, details_dirname))
 
     if remote_summary:
         lines.extend(_render_remote_section(remote_summary))
@@ -638,7 +638,7 @@ def render_markdown(
 
 def render_json(
     contribution: SourceContribution,
-    diffs_by_semantic_type: dict[str, SourceImpactDiff],
+    diffs_by_pipeline: dict[str, SourceImpactDiff],
     final_compendium_breakdown: dict[str, dict[str, int]],
     *,
     mode: str,
@@ -647,9 +647,9 @@ def render_json(
     remote_url: str | None = None,
     remote_summary: dict[str, dict[str, int]] | None = None,
 ) -> str:
-    by_semantic_type: dict[str, dict] = {}
-    for st, stc in contribution.by_semantic_type.items():
-        by_semantic_type[st] = {
+    by_pipeline: dict[str, dict] = {}
+    for st, stc in contribution.by_pipeline.items():
+        by_pipeline[st] = {
             "ids_path": str(stc.ids_path) if stc.ids_path else None,
             "concords_path": str(stc.concords_path) if stc.concords_path else None,
             "curies_by_prefix": {p: len(cs) for p, cs in stc.curies_by_prefix.items()},
@@ -659,7 +659,7 @@ def render_json(
         }
 
     diffs_serialised: dict[str, dict] = {}
-    for st, diff in diffs_by_semantic_type.items():
+    for st, diff in diffs_by_pipeline.items():
         diffs_serialised[st] = {
             "source_curie_count": len(diff.source_curies),
             "before_clique_count": diff.before_clique_count,
@@ -689,7 +689,7 @@ def render_json(
                 {
                     "before_clique": sorted(ec.before_clique),
                     "added_source_curies": sorted(ec.added_source_curies),
-                    "promoted_source_curies": sorted(ec.promoted_source_curies),
+                    "preexisting_source_curies": sorted(ec.preexisting_source_curies),
                     "after_clique": sorted(ec.after_clique),
                 }
                 for ec in sorted(
@@ -705,12 +705,12 @@ def render_json(
         "babel_commit": babel_commit,
         "mode": mode,
         "remote_url": remote_url,
-        "semantic_types": sorted(contribution.semantic_types),
+        "pipelines": sorted(contribution.pipelines),
         "prefixes": sorted(contribution.prefixes),
         "total_identifier_count": contribution.total_identifier_count,
         "total_concord_row_count": contribution.total_concord_row_count,
         "declared_type_counts_overall": contribution.declared_type_counts,
-        "by_semantic_type": by_semantic_type,
+        "by_pipeline": by_pipeline,
         "final_compendium_breakdown": final_compendium_breakdown,
         "clique_diffs": diffs_serialised,
         "remote_summary": remote_summary or {},
@@ -725,7 +725,7 @@ def load_labels_for_prefixes(
     """Load per-prefix label maps from ``<downloads_root>/<PREFIX>/labels``.
 
     Each file is tab-separated ``CURIE\\tlabel``. Missing files are skipped quietly so
-    the caller can pass the full set of prefixes a semantic type might use without
+    the caller can pass the full set of prefixes a pipeline might use without
     having to pre-check which prefixes are available.
     """
     root = pathlib.Path(downloads_root)

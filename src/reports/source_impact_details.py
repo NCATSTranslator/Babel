@@ -59,7 +59,7 @@ PIPE = "|"
 class _ModifiedClique:
     """Normalised view of one expanded-or-merged clique for the detail writers."""
 
-    semantic_type: str
+    pipeline: str
     change_kind: str  # "expanded" | "merged"
     biolink_type: str | None
     after_clique: frozenset[str]
@@ -72,7 +72,7 @@ class _ModifiedClique:
 
 def _biolink_type_for(clique, st, lookup: LookupContext) -> str | None:
     classifier = lookup.clique_classifier.get(st)
-    types = lookup.types_by_semantic_type.get(st, {})
+    types = lookup.types_by_pipeline.get(st, {})
     return classifier(clique, types) if classifier else None
 
 
@@ -80,7 +80,7 @@ def _modified_cliques(
     diffs: dict[str, SourceImpactDiff],
     lookup: LookupContext,
 ) -> list[_ModifiedClique]:
-    """Flatten every expanded and merged clique across semantic types, sorted for output."""
+    """Flatten every expanded and merged clique across pipelines, sorted for output."""
     out: list[_ModifiedClique] = []
     for st in sorted(diffs):
         diff = diffs[st]
@@ -88,13 +88,13 @@ def _modified_cliques(
             biolink_type = _biolink_type_for(ec.after_clique, st, lookup)
             out.append(
                 _ModifiedClique(
-                    semantic_type=st,
+                    pipeline=st,
                     change_kind="expanded",
                     biolink_type=biolink_type,
                     after_clique=ec.after_clique,
                     before_cliques=(ec.before_clique,),
                     added=ec.added_source_curies,
-                    promoted=ec.promoted_source_curies,
+                    promoted=ec.preexisting_source_curies,
                     after_preferred=preferred_curie(ec.after_clique, biolink_type, lookup.prefix_priority_by_type),
                     before_preferred=preferred_curie(ec.before_clique, biolink_type, lookup.prefix_priority_by_type),
                 )
@@ -104,7 +104,7 @@ def _modified_cliques(
             before_union: frozenset[str] = frozenset().union(*mc.before_cliques)
             out.append(
                 _ModifiedClique(
-                    semantic_type=st,
+                    pipeline=st,
                     change_kind="merged",
                     biolink_type=biolink_type,
                     after_clique=mc.after_clique,
@@ -115,7 +115,7 @@ def _modified_cliques(
                     before_preferred=None,
                 )
             )
-    out.sort(key=lambda m: (m.semantic_type, clique_leader(m.after_clique)))
+    out.sort(key=lambda m: (m.pipeline, clique_leader(m.after_clique)))
     return out
 
 
@@ -151,7 +151,7 @@ def write_new_cliques_csv(
     prefix means the whole clique is dropped.
     """
     header = [
-        "semantic_type",
+        "pipeline",
         "preferred_id",
         "preferred_label",
         "biolink_type",
@@ -201,7 +201,7 @@ def write_modified_cliques_csv(
     clique via another source's cross-reference and is now a typed identifier.
     """
     header = [
-        "semantic_type",
+        "pipeline",
         "clique_preferred_id",
         "clique_preferred_label",
         "clique_biolink_type",
@@ -217,7 +217,7 @@ def write_modified_cliques_csv(
     ]
     rows: list[list] = []
     for m in _modified_cliques(diffs, lookup):
-        types = lookup.types_by_semantic_type.get(m.semantic_type, {})
+        types = lookup.types_by_pipeline.get(m.pipeline, {})
         ordered = sort_clique_for_display(m.after_clique, m.biolink_type, lookup.prefix_priority_by_type)
         equivalent_ids = PIPE.join(ordered)
         preferred_label = curie_label(m.after_preferred, lookup.labels_by_prefix) or ""
@@ -234,7 +234,7 @@ def write_modified_cliques_csv(
                 note = biolink_registration_note(curie, m.biolink_type) if needs_reg else ""
                 rows.append(
                     [
-                        m.semantic_type,
+                        m.pipeline,
                         m.after_preferred,
                         preferred_label,
                         m.biolink_type or "",
@@ -266,7 +266,7 @@ def write_modified_cliques_json(
 
     entries: list[dict] = []
     for m in _modified_cliques(diffs, lookup):
-        types = lookup.types_by_semantic_type.get(m.semantic_type, {})
+        types = lookup.types_by_pipeline.get(m.pipeline, {})
         # Per-added-identifier survival, judged on the *clique's* assigned biolink type —
         # the single node_type create_node() filters every member's prefix against. The
         # ``declared_biolink_type`` field records the identifier's own declared type for
@@ -290,7 +290,7 @@ def write_modified_cliques_json(
         added_curie_details.sort(key=lambda d: d["i"])
         entries.append(
             {
-                "semantic_type": m.semantic_type,
+                "pipeline": m.pipeline,
                 "change_kind": m.change_kind,
                 "biolink_type": m.biolink_type,
                 "preferred_id_before": m.before_preferred,
@@ -298,7 +298,7 @@ def write_modified_cliques_json(
                 "before_clique_leaders": sorted(clique_leader(bc) for bc in m.before_cliques),
                 "before_cliques": [sorted(bc) for bc in m.before_cliques],
                 "added_source_curies": sorted(m.added),
-                "promoted_source_curies": sorted(m.promoted),
+                "preexisting_source_curies": sorted(m.promoted),
                 "added_curie_details": added_curie_details,
                 "after_members": members(m.after_clique),
             }
@@ -323,7 +323,7 @@ def write_new_xrefs_tsv(
     already existed before this source was added. Returns the number of rows written.
     """
     header = [
-        "semantic_type",
+        "pipeline",
         "subject",
         "subject_label",
         "predicate",
@@ -334,8 +334,8 @@ def write_new_xrefs_tsv(
     ]
     rows: list[list] = []
     source_name = contribution.name
-    for st in sorted(contribution.semantic_types):
-        stc = contribution.by_semantic_type[st]
+    for st in sorted(contribution.pipelines):
+        stc = contribution.by_pipeline[st]
         concords_dir = pathlib.Path(intermediate_root) / st / "concords"
         for subject, predicate, obj, asserted_by in scan_concords_for_curies(concords_dir, stc.all_curies):
             status = "added" if asserted_by == source_name else "from_other_source"
