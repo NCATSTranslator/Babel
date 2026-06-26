@@ -32,8 +32,9 @@ from src.model.clique_diff import (
 from src.model.source import SourceContribution, discover_source
 from src.reports.source_impact import LookupContext, load_labels_for_prefixes, render_json, render_markdown
 from src.reports.source_impact_details import write_detail_files
+from src.util import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 ComputeCliquesFn = Callable[..., tuple[dict, dict]]
@@ -379,10 +380,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(asctime)s %(levelname)s %(message)s",
-    )
+    # get_logger() (called at import) already installed the shared stderr handler/formatter
+    # that Snakemake captures; here we only raise the verbosity when --verbose is passed.
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
 
     intermediate_root = pathlib.Path(args.intermediate_root)
     compendia_root = pathlib.Path(args.compendia_root)

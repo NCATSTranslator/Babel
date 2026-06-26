@@ -1,4 +1,3 @@
-import logging
 from collections import defaultdict
 
 import requests
@@ -12,9 +11,9 @@ from src.createcompendia.cliques import glom_from_files
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import CL, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import build_sets
-from src.util import Text, get_config
+from src.util import Text, get_config, get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def remove_overused_xrefs_dict(kv):
