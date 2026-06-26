@@ -261,6 +261,19 @@ When adding or enhancing a data source ingest, `docs/Development.md` ("Enhancing
 ingest") collects the process-level lessons (which attribute files to emit, IDs-file typing,
 docstrings, and when to add a pipeline test) that the individual conventions below back up.
 
+- **`babel_pipeline` vs `biolink_type`** — these two concepts are easy to confuse because the
+  codebase (and this file) sometimes uses the vague phrase "semantic type" for either. Keep them
+  distinct in code and variable names:
+  - **`babel_pipeline`** is the pipeline directory name: `anatomy`, `chemical`, `diseasephenotype`,
+    etc. It is a Babel artifact — an intermediate-file namespace, not a vocabulary term.
+  - **`biolink_type`** is the Biolink class URI stored in compendia: `biolink:AnatomicalEntity`,
+    `biolink:SmallMolecule`, etc. Multiple Biolink types can map to the same `babel_pipeline`
+    (e.g. `anatomy` covers both `biolink:AnatomicalEntity` and `biolink:GrossAnatomicalStructure`).
+  - **`umls_semantic_type`** (or `sty`) is yet a third thing: a UMLS TUI code / tree string used
+    only inside the UMLS ingest. Do not conflate it with either of the above.
+  Prefer these three explicit names in code. Avoid "semantic type" as a bare phrase unless quoting
+  an external vocabulary (e.g. "UMLS semantic type").
+
 - **Commits** — if you need to make a large change, break it into multiple commits so it's clearer
   what changes are related.
 
@@ -332,6 +345,15 @@ docstrings, and when to add a pipeline test) that the individual conventions bel
   do and any non-obvious behavior (e.g. dedup keys, side effects, why a network call happens).
   This is cheap, survives refactors, and is the first thing read when revisiting an ingest. Name
   functions for what they do — e.g. `fetch_*` (not `get_*`) when the call hits the network.
+
+- **Test documentation** — every test function should have a docstring that explains what is being
+  tested and what the expectation is. A good test docstring will explain the scenario being tested
+  (e.g. "A source CURIE already in the before-clique via xref is reported as preexisting, not
+  added"). Group related tests with a `# ---` section comment and a label (e.g.
+  `# Basic classification`, `# Edge cases`, `# Utilities`). Documentation at the top of the test
+  file can be useful in explaining what this set of tests is testing. Update the module docstring to
+  list the groups and briefly describe what each covers. This makes it easy to scan a test file for
+  coverage without reading every body.
 
 - **Test assertion helpers** — `tests/conftest.py` exports `assert_labels_file_valid`,
   `assert_synonyms_file_valid`, `assert_ids_file_valid`, `assert_concordance_file_valid`,
