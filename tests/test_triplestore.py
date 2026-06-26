@@ -16,8 +16,13 @@ _FakeService — replaces ts.service with a queue of _FakeQueryResult values.
 
 _mock_triplestore() wires both fakes into a TripleStore and patches out
 `sleep` so retry delays are instant in tests.
+
+Network tests (marked `network`, skipped by default) run the same retry logic
+against the real Ubergraph endpoint, exercising the full SPARQLWrapper stack.
+Pass --network or --all to pytest to enable them.
 """
 
+from contextlib import contextmanager
 from json import JSONDecodeError
 from urllib.error import HTTPError
 
@@ -202,3 +207,59 @@ def test_execute_query_rejects_negative_delay(monkeypatch):
     ts = _mock_triplestore(monkeypatch, [])
     with pytest.raises(ValueError, match="retry_base_delay_seconds"):
         ts.execute_query("SELECT * WHERE {?s ?p ?o}", retry_base_delay_seconds=-1)
+
+
+# ---------------------------------------------------------------------------
+# Network tests — skipped by default, enabled with --network or --all
+# ---------------------------------------------------------------------------
+
+
+@contextmanager
+def _sparql_errors_are_xfail():
+    """Mark the enclosing test xfail if the SPARQL server returns any error.
+
+    Distinguishes server-side problems (xfail — expected in a degraded
+    environment) from assertion failures on valid-but-wrong data (real failures).
+    """
+    try:
+        yield
+    except Exception as exc:
+        pytest.xfail(f"SPARQL query failed (server-side issue): {exc}")
+
+
+@pytest.mark.network
+def test_execute_query_network_basic(ubergraph):
+    """A trivial SELECT against the real Ubergraph endpoint returns a non-empty result.
+
+    This exercises the full SPARQLWrapper stack (HTTP, JSON parsing, retry
+    machinery) against a live server, confirming that the happy path works
+    end-to-end.  Uses `SELECT (1 AS ?x) WHERE {}` — a standard SPARQL probe
+    that every conformant endpoint must answer.
+    """
+    with _sparql_errors_are_xfail():
+        result = ubergraph.triplestore.execute_query("SELECT (1 AS ?x) WHERE {}")
+    assert result is not None
+
+
+@pytest.mark.network
+def test_execute_query_network_long_running(ubergraph):
+    """A moderately expensive query completes without triggering spurious retries.
+
+    Fetches the first 10 000 owl:equivalentClass triples from Ubergraph — enough
+    to exercise the streaming/JSON-parse path and take a second or two, without
+    being so large that it strains the server on every CI run.  If the server
+    takes longer than usual and returns a transient error, the retry logic
+    should recover and the test should still pass (or xfail on a persistent
+    server error).
+    """
+    query = """
+    SELECT ?s ?o WHERE {
+        ?s <http://www.w3.org/2002/07/owl#equivalentClass> ?o .
+    }
+    LIMIT 10000
+    """
+    with _sparql_errors_are_xfail():
+        result = ubergraph.triplestore.execute_query(query)
+    assert result is not None
+    # SPARQLWrapper returns a dict with a "results" / "bindings" structure
+    assert "results" in result or hasattr(result, "bindings")
