@@ -22,6 +22,13 @@ from dataclasses import dataclass, field
 
 import jsonlines
 
+# GlomDict is the dict produced by babel_utils.glom() and consumed by build_compendia.
+# Every CURIE key maps to its clique's *shared mutable set* — many keys point to the exact
+# same set object (that is the union-find invariant). Consumers must not mutate the sets;
+# Mapping[str, Iterable[str]] signals read-only intent and is wide enough to accept both the
+# live glom output (dict[str, set[str]]) and any read-only view of the same structure.
+# Functions here exploit the shared-identity property by deduplicating via id() rather than
+# value equality, which reduces O(identifiers) frozenset constructions to O(cliques).
 GlomDict = Mapping[str, "Iterable[str]"]
 
 
