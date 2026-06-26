@@ -34,6 +34,7 @@ dependencies = [
 [project.scripts]
 babel-slurm-errors = "tools.slurm.errors:main"
 babel-slurm-resources = "tools.slurm.resources:main"
+source-impact-report = "src.cli.source_impact_report:main"
 
 [tool.uv]
 package = true
@@ -44,7 +45,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["tools", "tools.*"]
+include = ["src", "src.*", "tools", "tools.*"]
 
 [project.urls]
 Homepage = "https://github.com/NCATSTranslator/Babel"

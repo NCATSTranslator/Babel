@@ -145,17 +145,28 @@ semantic type plus data collection, reports, exports, and DuckDB.
 
 ### Biolink Model Usage
 
-The Biolink Model version is set in `config.yaml` (`biolink_version: "4.3.6"`) and is the single
-source of truth used by `NodeFactory` and `get_biolink_model_toolkit()`.
+The Biolink Model version is set in `config.yaml` (the current value is the source of
+truth — read it via `get_config()["biolink_version"]` rather than hard-coding a version
+in code or in docs that will go stale) and feeds both `NodeFactory` and
+`get_biolink_model_toolkit()`.
 
 **Mapped class URIs** — always use the `biolink:`-prefixed form (e.g. `biolink:ChemicalEntity`),
-not the raw element name (`chemical entity`). `get_ancestors()` and `get_element()["class_uri"]`
-return these mapped forms.
+not the raw element name (`chemical entity`). `get_ancestors()` and `get_element().class_uri`
+return these mapped forms. Note that `get_element()` returns a bmt `ClassDefinition`
+object (a `linkml_runtime` model), not a plain dict. It supports both attribute access
+(`element.id_prefixes`, `element.class_uri`) and subscript access (`element["id_prefixes"]`,
+which `src/node.py:get_prefixes()` uses), but it has no `dict`-style `.get()` method, so
+`element.get("id_prefixes")` raises `AttributeError`. Prefer attribute access (or a plain
+`getattr(element, "id_prefixes", default)`) and never reach for `.get()`.
+
+**OBO PURL resolution** — `src/util.py:get_biolink_prefix_map()` returns a
+`curies.Converter` built from the Biolink prefix map for the configured Biolink version;
+use `converter.expand("EMAPA:0")` to turn a CURIE into its IRI. Prefer that helper over
+fetching the prefix map yourself.
 
 **Prefix ordering** — `src/prefixes.py` is the canonical registry of prefix string constants. The
 order of `id_prefixes` in the Biolink Model determines which CURIE is selected as the preferred
-identifier by `NodeFactory`. In biolink 4.3.6, for example, `CHEBI` ranks above `PUBCHEM.COMPOUND`
-for `biolink:SmallMolecule`. Update `src/prefixes.py` whenever new prefixes appear in the model.
+identifier by `NodeFactory`. Update `src/prefixes.py` whenever new prefixes appear in the model.
 
 **Node output schema** — `NodeFactory.create_node()` returns:
 
@@ -241,6 +252,49 @@ high performance cluster) so you don't need to download all the source files and
 rerun the entire pipeline. You can look at the resource requirements of a rule to decide which
 option would be best.
 
+## Adding a new data source
+
+After integrating a new identifier source (e.g., EMAPA in PR #741), generate a
+source-impact report that captures the identifiers, biolink types, cross-references, and
+clique changes the source introduces. Commit the report to
+`docs/sources/<SOURCE>/impact-report.md` alongside the rest of the source's docs. The tool
+also writes an `impact-report/` subdirectory of full, deterministically-sorted detail files
+for SME review: commit `new-cliques.csv`, `modified-cliques.csv`, and `new-xrefs.tsv`.
+`modified-cliques.json` is written locally for digging/sharing but is gitignored (it grows
+with the source and is useless to commit for large additions). The markdown's inline samples
+are capped (3 per category, ranked by label variety) and link to the committed detail files.
+See `src/reports/source_impact_details.py` and the "Detail files for SME review" section of
+`docs/AddingNewSources.md`.
+
+```bash
+# Run after the intermediate ids/concords files for the source have been built.
+uv run source-impact-report --source <SOURCE>
+
+# Snakemake convenience wrapper (writes to babel_outputs/reports/source_impact/):
+uv run snakemake -c 1 babel_outputs/reports/source_impact/<SOURCE>.md
+```
+
+The CLI auto-detects every semantic type where the source has intermediate files. For
+compendia too large to re-glom locally, add `--mode both --remote-url <previous-build>`
+to also compare against a remote build. See `src/cli/source_impact_report.py` and
+`src/model/source.py` for the source-discovery and diff implementation.
+
+When extending the report to a new semantic type, add a `compute_cliques_for_impact_report`
+helper to that type's `createcompendia/*.py` module (mirroring `anatomy.py`), then register
+it in `SEMANTIC_TYPE_CONFIG` in `src/cli/source_impact_report.py`.
+
+The shared clique-building skeleton lives in `src/createcompendia/cliques.py` (note: this
+is the one module under `createcompendia/` that does *not* map to an output compendium —
+it's reused infrastructure). `glom_from_files()` runs the common `load ids → glom`,
+`load concords → filter → drop overused xrefs → glom` loop, parameterized by three hooks:
+`concord_pair_filter` (per-pair keep/drop, with access to the clique state built so far),
+`overused_xref_remover` (per-file `remove_overused_xrefs` variant), and `glom_kwargs`
+(e.g. disease's `close={MONDO: ...}`). A type's `compute_cliques_for_impact_report` should
+be a thin wrapper supplying that type's hooks, and its `build_compendia` should call the
+same wrapper so the impact report's reglom provably matches the real build (anatomy does
+this). If a compendium can't route its real build through the wrapper, add a test that
+keeps the two clique computations in sync instead.
+
 ### Analyzing a SLURM run (`tools/slurm`)
 
 `tools/slurm` analyzes a (possibly partial) Snakemake-on-SLURM run; see `docs/tools/README.md` and
@@ -260,6 +314,22 @@ jobs); the analyzer merges them all, so copy the whole directory when archiving 
 When adding or enhancing a data source ingest, `docs/Development.md` ("Enhancing a data source
 ingest") collects the process-level lessons (which attribute files to emit, IDs-file typing,
 docstrings, and when to add a pipeline test) that the individual conventions below back up.
+
+- **Configuration over constants** — prefer `config.yaml` over module-level Python constants for
+  any value that is a data-level choice (a list of prefixes, a threshold, a flag) rather than pure
+  logic. Constants buried in Python files are invisible to readers of `config.yaml` and are easily
+  missed when related settings change. Module-level constants are fine for values that are pure
+  implementation details with no user-facing meaning.
+
+- **Document every configuration value** — every entry in `config.yaml` and every module-level
+  constant that remains in Python must have an inline comment explaining *what it controls* and
+  *why the chosen value was picked*. One-word names are not self-documenting.
+
+- **Keep related settings together** — configuration entries that constrain or depend on each other
+  must sit adjacent in `config.yaml`, separated from unrelated entries. For example, the anatomy
+  block groups `anatomy_prefixes`, `anatomy_ids`, `anatomy_concords`, `anatomy_outputs`, and
+  `anatomy_unique_prefixes` together so that adding a new source requires reviewing all of them at
+  once. Never scatter correlated settings across the file.
 
 - **`babel_pipeline` vs `biolink_type`** — these two concepts are easy to confuse because the
   codebase (and this file) sometimes uses the vague phrase "semantic type" for either. Keep them
