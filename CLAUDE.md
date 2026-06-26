@@ -346,6 +346,14 @@ docstrings, and when to add a pipeline test) that the individual conventions bel
   This is cheap, survives refactors, and is the first thing read when revisiting an ingest. Name
   functions for what they do — e.g. `fetch_*` (not `get_*`) when the call hits the network.
 
+- **Test documentation** — every test function should have a one-line docstring that names the
+  scenario being exercised and the key assertion, especially when the test name alone is not
+  enough to understand the edge case (e.g. "A source CURIE already in the before-clique via xref
+  is reported as preexisting, not added"). Group related tests with a `# ---` section comment and
+  a label (e.g. `# Basic classification`, `# Edge cases`, `# Utilities`). Update the module
+  docstring to list the groups and briefly describe what each covers. This makes it easy to scan
+  a test file for coverage without reading every body.
+
 - **Test assertion helpers** — `tests/conftest.py` exports `assert_labels_file_valid`,
   `assert_synonyms_file_valid`, `assert_ids_file_valid`, `assert_concordance_file_valid`,
   `assert_taxa_file_valid`, and `assert_descriptions_file_valid` (plus `read_tsv`). Use these
