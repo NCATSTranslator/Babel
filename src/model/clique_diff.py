@@ -129,7 +129,7 @@ def diff_cliques(
     expanded: list[ExpandedClique] = []
     merged: list[MergedClique] = []
 
-    for clique in after_cliques:
+    for clique in sorted(after_cliques, key=min):
         source_in_clique = clique & source_curies_fs
         if not source_in_clique:
             continue

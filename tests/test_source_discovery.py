@@ -27,7 +27,7 @@ def test_scan_concords_for_curies_matches_either_endpoint_and_records_asserter(t
 
     assert ("UBERON:1", "xref", "EMAPA:10", "UBERON") in rows
     assert ("EMAPA:20", "skos:exactMatch", "CL:2", "UBERON") in rows
-    assert all(r[3] == "UBERON" for r in rows), "asserted_by is the concord file basename"
+    assert all(r[3] == "UBERON" for r in rows), "asserted_by is the concord file path relative to concords_dir"
     assert not any("UBERON:3" in r for r in rows), "rows without a source CURIE are dropped"
     assert len(rows) == 2
 
@@ -159,6 +159,25 @@ def test_discover_missing_source_returns_empty_contribution(tmp_path):
 def test_discover_raises_when_intermediate_root_missing(tmp_path):
     with pytest.raises(FileNotFoundError):
         discover_source("EMAPA", tmp_path / "missing")
+
+
+@pytest.mark.unit
+def test_scan_concords_for_curies_recurses_into_subdirectories(tmp_path):
+    """Concord files in subdirectories (e.g. chemicals/concords/UNICHEM/UNICHEM_*) must be
+    scanned; asserted_by should be the relative path from concords_dir."""
+    concords = tmp_path / "chemicals" / "concords"
+    unichem_dir = concords / "UNICHEM"
+    unichem_dir.mkdir(parents=True)
+    (unichem_dir / "UNICHEM_7").write_text("PUBCHEM.COMPOUND:1\txref\tCHEMBL.COMPOUND:2\n")
+    (unichem_dir / "UNICHEM_22").write_text("PUBCHEM.COMPOUND:1\txref\tCHEBI:999\n")
+    # Metadata sidecars in subdirectories are also skipped.
+    (unichem_dir / "metadata-UNICHEM_7.yaml").write_text("name: unichem\n")
+
+    rows = scan_concords_for_curies(concords, {"PUBCHEM.COMPOUND:1"})
+
+    assert len(rows) == 2
+    asserters = {r[3] for r in rows}
+    assert asserters == {"UNICHEM/UNICHEM_7", "UNICHEM/UNICHEM_22"}
 
 
 @pytest.mark.unit
