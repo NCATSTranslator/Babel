@@ -8,9 +8,9 @@ from urllib.error import HTTPError
 from SPARQLWrapper import JSON, POST, POSTDIRECTLY, SPARQLWrapper2
 
 from src.babel_utils import get_user_agent
-from src.util import LoggingUtil, get_config
+from src.util import LoggingUtil, get_config, get_logger
 
-logger = LoggingUtil.init_logging(__name__, logging.WARNING)
+logger = get_logger(__name__)
 
 
 class TripleStore:
