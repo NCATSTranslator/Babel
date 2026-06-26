@@ -1,12 +1,29 @@
 """Unit tests for src/model/source.py.
 
-Covers the four dimensions a Babel source can vary along: single, multi-biolink-type
-(UBERON-style), multi-semantic-type (MESH-style), and multi-prefix.
+Test groups
+-----------
+scan_concords_for_curies:
+    Row-matching and asserter-recording logic. Key behaviours: matches either endpoint
+    of a concord triple; records the file path relative to concords_dir as the asserter;
+    skips metadata sidecars; recurses into subdirectories (e.g. UNICHEM/*).
+
+discover_source — structure:
+    The four axes a source can vary along — single vs multi babel_pipeline, single vs
+    multi biolink_type within one pipeline, single vs multi prefix — each verified with a
+    minimal fixture tree.
+
+discover_source — edge cases:
+    Missing source name, missing intermediate root, and metadata sidecar filtering.
 """
 
 import pytest
 
 from src.model.source import discover_source, scan_concords_for_curies
+
+
+# ---------------------------------------------------------------------------
+# scan_concords_for_curies
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.unit
@@ -37,7 +54,13 @@ def test_scan_concords_for_curies_missing_dir_returns_empty(tmp_path):
     assert scan_concords_for_curies(tmp_path / "nope", {"EMAPA:1"}) == []
 
 
+# ---------------------------------------------------------------------------
+# discover_source — structure
+# ---------------------------------------------------------------------------
+
+
 def _make_source_tree(root, source_name, semantic_type, ids_lines=None, concord_lines=None):
+    """Write minimal ids/ and concords/ files under ``root/<semantic_type>/`` for one source."""
     ids_dir = root / semantic_type / "ids"
     concords_dir = root / semantic_type / "concords"
     ids_dir.mkdir(parents=True, exist_ok=True)
@@ -50,6 +73,7 @@ def _make_source_tree(root, source_name, semantic_type, ids_lines=None, concord_
 
 @pytest.mark.unit
 def test_discover_single_prefix_single_type_single_semantic_type(tmp_path):
+    """Baseline: one source, one babel_pipeline, one biolink_type, one prefix."""
     _make_source_tree(
         tmp_path,
         "EMAPA",
@@ -98,7 +122,7 @@ def test_discover_multi_biolink_type_within_one_semantic_type(tmp_path):
 
 @pytest.mark.unit
 def test_discover_multi_semantic_type(tmp_path):
-    """MESH-style source spanning anatomy and chemical compendia."""
+    """MESH-style source present in two babel_pipeline directories (anatomy and chemical)."""
     _make_source_tree(
         tmp_path,
         "MESH",
@@ -119,6 +143,11 @@ def test_discover_multi_semantic_type(tmp_path):
     assert contrib.declared_biolink_types == frozenset({"biolink:AnatomicalEntity", "biolink:ChemicalEntity"})
     assert len(contrib.by_semantic_type["anatomy"].all_curies) == 1
     assert len(contrib.by_semantic_type["chemical"].all_curies) == 2
+
+
+# ---------------------------------------------------------------------------
+# discover_source — edge cases
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.unit
@@ -146,6 +175,7 @@ def test_discover_multi_prefix(tmp_path):
 
 @pytest.mark.unit
 def test_discover_missing_source_returns_empty_contribution(tmp_path):
+    """A source name with no ids or concords files anywhere returns an empty contribution."""
     (tmp_path / "anatomy" / "ids").mkdir(parents=True)
     (tmp_path / "anatomy" / "concords").mkdir(parents=True)
 
@@ -157,6 +187,7 @@ def test_discover_missing_source_returns_empty_contribution(tmp_path):
 
 @pytest.mark.unit
 def test_discover_raises_when_intermediate_root_missing(tmp_path):
+    """Passing a non-existent intermediate root raises FileNotFoundError rather than silently returning empty."""
     with pytest.raises(FileNotFoundError):
         discover_source("EMAPA", tmp_path / "missing")
 

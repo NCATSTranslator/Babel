@@ -1,9 +1,20 @@
 """Unit tests for src/model/clique_diff.py.
 
-Exercises diff_cliques against hand-built before/after glom-dict states so the four-way
-categorisation (pure_new / expanded / merged / unrelated) is locked in. Includes a
-multi-prefix source_curies case to confirm the diff logic does not silently special-case
-a single-prefix source.
+Exercises diff_cliques against hand-built before/after glom-dict states.
+
+Test groups
+-----------
+Basic classification (pure_new / expanded / merged / unrelated):
+    The four mutually exclusive buckets that diff_cliques produces. Each test
+    constructs a minimal before/after pair that should land entirely in one bucket.
+
+Edge cases:
+    Behaviours that the bucket names alone do not make obvious — multi-prefix sources,
+    the added-vs-preexisting split, and concord-introduced aliases.
+
+Utilities (cliques_set, cliques_from_compendia):
+    The helper functions that collapse a glom dict or JSONL compendia to the frozenset
+    view consumed by diff_cliques.
 """
 
 import pytest
@@ -26,8 +37,14 @@ def _glom_dict_from_cliques(cliques):
     return out
 
 
+# ---------------------------------------------------------------------------
+# Basic classification
+# ---------------------------------------------------------------------------
+
+
 @pytest.mark.unit
 def test_diff_classifies_pure_new_clique_of_only_source_curies():
+    """A clique whose every member is a source CURIE is pure_new — it did not exist before."""
     before = _glom_dict_from_cliques([{"A:1"}])
     after = _glom_dict_from_cliques([{"A:1"}, {"NEW:1", "NEW:2"}])
     diff = diff_cliques(before, after, {"NEW:1", "NEW:2"}, babel_pipeline="t")
@@ -39,6 +56,7 @@ def test_diff_classifies_pure_new_clique_of_only_source_curies():
 
 @pytest.mark.unit
 def test_diff_classifies_expanded_clique():
+    """A source CURIE joining a single existing before-clique is an expansion of that clique."""
     before = _glom_dict_from_cliques([{"A:1", "B:1"}])
     after = _glom_dict_from_cliques([{"A:1", "B:1", "NEW:1"}])
     diff = diff_cliques(before, after, {"NEW:1"}, babel_pipeline="t")
@@ -54,6 +72,7 @@ def test_diff_classifies_expanded_clique():
 
 @pytest.mark.unit
 def test_diff_classifies_merged_cliques():
+    """A source CURIE that bridges two distinct before-cliques into one is a merge."""
     before = _glom_dict_from_cliques([{"A:1", "B:1"}, {"C:1", "D:1"}])
     after = _glom_dict_from_cliques([{"A:1", "B:1", "C:1", "D:1", "NEW:1"}])
     diff = diff_cliques(before, after, {"NEW:1"}, babel_pipeline="t")
@@ -71,6 +90,7 @@ def test_diff_classifies_merged_cliques():
 
 @pytest.mark.unit
 def test_diff_ignores_cliques_with_no_source_curies():
+    """After-cliques that contain no source CURIE at all are silently skipped."""
     before = _glom_dict_from_cliques([{"A:1"}, {"B:1"}])
     after = _glom_dict_from_cliques([{"A:1"}, {"B:1"}, {"NEW:1"}])
     diff = diff_cliques(before, after, {"NEW:1"}, babel_pipeline="t")
@@ -78,6 +98,11 @@ def test_diff_ignores_cliques_with_no_source_curies():
     assert len(diff.pure_new_cliques) == 1
     assert diff.expanded_cliques == []
     assert diff.merged_cliques == []
+
+
+# ---------------------------------------------------------------------------
+# Edge cases
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.unit
@@ -134,6 +159,11 @@ def test_diff_treats_concord_introduced_aliases_as_pure_new():
     assert frozenset({"SRC:1", "ALIAS:1"}) in set(diff.pure_new_cliques)
 
 
+# ---------------------------------------------------------------------------
+# Utilities
+# ---------------------------------------------------------------------------
+
+
 @pytest.mark.unit
 def test_cliques_set_collapses_shared_set_references():
     """glom dicts point many CURIEs at the same set object; cliques_set must dedupe."""
@@ -145,6 +175,7 @@ def test_cliques_set_collapses_shared_set_references():
 
 @pytest.mark.unit
 def test_cliques_from_compendia_reads_jsonl(tmp_path):
+    """Reads the ``i`` field from each identifier entry across one or more JSONL compendium files."""
     path = tmp_path / "Foo.txt"
     path.write_text(
         '{"type":"biolink:Foo","identifiers":[{"i":"A:1","l":"a"},{"i":"B:1","l":"b"}]}\n'
