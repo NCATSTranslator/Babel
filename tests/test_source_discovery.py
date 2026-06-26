@@ -1,16 +1,26 @@
 """Unit tests for src/model/source.py.
 
+A Babel source can vary along three axes simultaneously (see src/model/source.py):
+
+- **babel_pipeline** — which intermediate directory the source contributes to
+  (e.g. ``anatomy``, ``chemical``). MESH spans several; most sources span one.
+- **biolink_type** — the Biolink class URI written in the ids file's second column.
+  Multiple types may appear in one ids file (e.g. UBERON mixes ``AnatomicalEntity``
+  and ``GrossAnatomicalStructure``).
+- **prefix** — the CURIE prefix of the identifiers. Rare but supported: a single
+  source file can emit ``PREFIXA:…`` and ``PREFIXB:…`` rows.
+
 Test groups
 -----------
 scan_concords_for_curies:
     Row-matching and asserter-recording logic. Key behaviours: matches either endpoint
-    of a concord triple; records the file path relative to concords_dir as the asserter;
-    skips metadata sidecars; recurses into subdirectories (e.g. UNICHEM/*).
+    of a concord triple; records the concord file path relative to ``concords_dir`` as
+    the asserter; skips ``metadata-*`` sidecars; recurses into subdirectories
+    (e.g. ``UNICHEM/UNICHEM_*``).
 
 discover_source — structure:
-    The four axes a source can vary along — single vs multi babel_pipeline, single vs
-    multi biolink_type within one pipeline, single vs multi prefix — each verified with a
-    minimal fixture tree.
+    Baseline (single everything) plus one test per axis, confirming that
+    ``SourceContribution`` correctly aggregates across each dimension.
 
 discover_source — edge cases:
     Missing source name, missing intermediate root, and metadata sidecar filtering.
@@ -27,6 +37,12 @@ from src.model.source import discover_source, scan_concords_for_curies
 
 @pytest.mark.unit
 def test_scan_concords_for_curies_matches_either_endpoint_and_records_asserter(tmp_path):
+    """Matches rows where the source CURIE is subject or object; skips rows and files with no match.
+
+    Also verifies that ``asserted_by`` is the concord file path relative to ``concords_dir``
+    (``"UBERON"``, not the full path), and that metadata sidecars are never scanned even if
+    they contain matching content.
+    """
     concords = tmp_path / "anatomy" / "concords"
     concords.mkdir(parents=True)
     # EMAPA's own concord is empty; its xrefs live in UBERON's concord.
@@ -50,6 +66,7 @@ def test_scan_concords_for_curies_matches_either_endpoint_and_records_asserter(t
 
 @pytest.mark.unit
 def test_scan_concords_for_curies_missing_dir_returns_empty(tmp_path):
+    """Returns an empty list rather than raising when the concords directory does not exist."""
     assert scan_concords_for_curies(tmp_path / "nope", {"EMAPA:1"}) == []
 
 
@@ -72,7 +89,12 @@ def _make_source_tree(root, source_name, semantic_type, ids_lines=None, concord_
 
 @pytest.mark.unit
 def test_discover_single_prefix_single_type_single_semantic_type(tmp_path):
-    """Baseline: one source, one babel_pipeline, one biolink_type, one prefix."""
+    """Baseline: one source, one babel_pipeline, one biolink_type, one prefix.
+
+    Verifies the full shape of ``SourceContribution`` — semantic_types, prefixes,
+    declared_biolink_types, total counts, and the per-pipeline ``declared_type_counts``
+    and ``concord_partner_prefix_counts`` breakdowns.
+    """
     _make_source_tree(
         tmp_path,
         "EMAPA",
@@ -144,14 +166,9 @@ def test_discover_multi_semantic_type(tmp_path):
     assert len(contrib.by_semantic_type["chemical"].all_curies) == 2
 
 
-# ---------------------------------------------------------------------------
-# discover_source — edge cases
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.unit
 def test_discover_multi_prefix(tmp_path):
-    """A source may write rows under more than one prefix."""
+    """A source may write rows under more than one prefix (rare but supported)."""
     _make_source_tree(
         tmp_path,
         "WEIRD",
@@ -170,6 +187,11 @@ def test_discover_multi_prefix(tmp_path):
         "PREFIXA": 1,
         "PREFIXB": 1,
     }
+
+
+# ---------------------------------------------------------------------------
+# discover_source — edge cases
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.unit
