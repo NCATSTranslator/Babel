@@ -28,6 +28,15 @@ tmp_directory: babel_downloads/tmp
 # HTTP settings.
 http: {}
 
+# SPARQL query settings.
+sparql:
+  # Total number of attempts (initial try + retries) before giving up; must be >= 1.
+  # Example: max_attempts=3 → one initial try, then up to two retries.
+  max_attempts: 3
+  # Base delay in seconds between attempts; must be >= 0. Actual delay grows exponentially
+  # (attempt 1 → 1 s, attempt 2 → 2 s, attempt 3 → 4 s, …). Accepts fractional values.
+  retry_base_delay_seconds: 1
+
 # Maps Python compendium names (as used in src/createcompendia/ and tests) to the
 # directory names that Snakemake uses under intermediate_directory.
 # Compendia not listed here use their own name as the directory name.
