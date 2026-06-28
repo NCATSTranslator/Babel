@@ -55,7 +55,7 @@ Issues = "https://github.com/NCATSTranslator/Babel/issues"
 dev = [
     "ipykernel>=7.1.0",
     "py-spy>=0.4.2",
-    "ruff>=0.14.14",
+    "ruff>=0.15.20",
     "rumdl>=0.2.4",
     "snakefmt>=0.11.2",
 ]
