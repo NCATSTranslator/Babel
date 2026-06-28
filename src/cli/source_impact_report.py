@@ -23,6 +23,7 @@ import sys
 from collections.abc import Callable
 
 import src.createcompendia.anatomy as anatomy
+from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
 from src.model.clique_diff import (
     SourceImpactDiff,
     cliques_from_compendia,
@@ -55,23 +56,18 @@ ComputeCliquesFn = Callable[..., tuple[dict, dict]]
 #   the preferred CURIE for a sample.
 # - ``biolink_types``: biolink types whose ``id_prefixes`` we look up to determine the
 #   preferred CURIE per clique.
+# The biolink types anatomy cliques can carry, in the named-constant form mandated by the
+# repo conventions (never hard-code "biolink:..." strings). The compendium file names are
+# derived from these (``<BareType>.txt``) so the two lists can never drift apart.
+_ANATOMY_BIOLINK_TYPES = [ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE]
+
 PIPELINE_CONFIG: dict[str, dict] = {
     "anatomy": {
         "compute_fn": anatomy.compute_cliques_for_impact_report,
-        "compendium_files": [
-            "AnatomicalEntity.txt",
-            "Cell.txt",
-            "CellularComponent.txt",
-            "GrossAnatomicalStructure.txt",
-        ],
+        "compendium_files": [f"{bt.split(':')[-1]}.txt" for bt in _ANATOMY_BIOLINK_TYPES],
         "compendium_prefixes": ["UBERON", "GO", "CL", "EMAPA", "MESH", "NCIT", "UMLS", "SNOMEDCT"],
         "clique_classifier": anatomy.classify_anatomy_clique,
-        "biolink_types": [
-            "biolink:AnatomicalEntity",
-            "biolink:Cell",
-            "biolink:CellularComponent",
-            "biolink:GrossAnatomicalStructure",
-        ],
+        "biolink_types": _ANATOMY_BIOLINK_TYPES,
     },
 }
 
@@ -154,11 +150,14 @@ def _remote_comparison_summary(
     """Download previous-build compendia and count cliques present/missing for this source.
 
     Returns a per-pipeline breakdown with keys ``remote_total_cliques``,
-    ``remote_cliques_with_source_curies``, ``current_cliques_with_source_curies``, and
-    ``current_only``. The "current only" count is the number of cliques in the current
-    build that contain any source CURIE *and* are not present (by identifier-set) in the
-    remote build — a useful first-pass estimate of net-new clique structure introduced
-    by adding this source.
+    ``remote_cliques_with_source_curies``, ``current_cliques_with_source_curies``,
+    ``current_only_with_source_curies``, and ``remote_compendium_files_missing``. The
+    "current only" count is the number of cliques in the current build that contain any
+    source CURIE *and* are not present (by identifier-set) in the remote build — a useful
+    first-pass estimate of net-new clique structure introduced by adding this source. Only
+    compendium files whose remote counterpart was successfully fetched are compared, so a
+    failed remote download reduces coverage (recorded in ``remote_compendium_files_missing``)
+    rather than inflating ``current_only_with_source_curies``.
     """
     import requests  # imported lazily so synthetic-only runs don't need it
 
@@ -177,11 +176,11 @@ def _remote_comparison_summary(
 
         remote_paths: list[pathlib.Path] = []
         current_paths: list[pathlib.Path] = []
+        missing = 0
         for fname in cfg["compendium_files"]:
             current = compendia_root / fname
             if not current.exists():
                 continue
-            current_paths.append(current)
             cached = remote_cache_dir / fname
             if not cached.exists():
                 url = f"{base}/compendia/{fname}"
@@ -189,11 +188,16 @@ def _remote_comparison_summary(
                 resp = requests.get(url, stream=True, timeout=60)
                 if not resp.ok:
                     logger.warning("remote download failed for %s: %s %s", url, resp.status_code, resp.reason)
+                    missing += 1
                     continue
                 with cached.open("wb") as out:
                     for chunk in resp.iter_content(chunk_size=64 * 1024):
                         out.write(chunk)
+            # Only compare a current compendium against its remote counterpart when we
+            # actually obtained that counterpart; otherwise a missing remote file would make
+            # every current clique in it look "current only" and inflate the net-new estimate.
             remote_paths.append(cached)
+            current_paths.append(current)
 
         remote_cliques = cliques_from_compendia(remote_paths) if remote_paths else frozenset()
         current_cliques = cliques_from_compendia(current_paths) if current_paths else frozenset()
@@ -212,6 +216,7 @@ def _remote_comparison_summary(
             "remote_cliques_with_source_curies": remote_with_source,
             "current_cliques_with_source_curies": current_with_source,
             "current_only_with_source_curies": current_only,
+            "remote_compendium_files_missing": missing,
         }
 
     return summary

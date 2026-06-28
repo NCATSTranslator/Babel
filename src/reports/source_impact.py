@@ -267,6 +267,13 @@ def _render_remote_section(remote_summary: dict[str, dict[str, int]]) -> list[st
             "- Cliques with source CURIEs in current but not in remote: "
             f"{s.get('current_only_with_source_curies', 0):,}"
         )
+        missing = s.get("remote_compendium_files_missing", 0)
+        if missing:
+            lines.append(
+                f"- ⚠️ {missing:,} remote compendium file(s) could not be downloaded; the "
+                "counts above cover only the files that were fetched, so they understate "
+                "this pipeline's true coverage."
+            )
         lines.append("")
     return lines
 
