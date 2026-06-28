@@ -254,7 +254,7 @@ option would be best.
 
 ## Adding a new data source
 
-After integrating a new identifier source (e.g., EMAPA in PR #741), generate a
+After integrating a new identifier source (e.g., EMAPA in PR #781), generate a
 source-impact report that captures the identifiers, biolink types, cross-references, and
 clique changes the source introduces. Commit the report to
 `docs/sources/<SOURCE>/impact-report.md` alongside the rest of the source's docs. The tool
@@ -281,7 +281,7 @@ to also compare against a remote build. See `src/cli/source_impact_report.py` an
 
 When extending the report to a new semantic type, add a `compute_cliques_for_impact_report`
 helper to that type's `createcompendia/*.py` module (mirroring `anatomy.py`), then register
-it in `SEMANTIC_TYPE_CONFIG` in `src/cli/source_impact_report.py`.
+it in `PIPELINE_CONFIG` in `src/cli/source_impact_report.py`.
 
 The shared clique-building skeleton lives in `src/createcompendia/cliques.py` (note: this
 is the one module under `createcompendia/` that does *not* map to an output compendium —
