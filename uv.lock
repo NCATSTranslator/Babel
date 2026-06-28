@@ -247,7 +247,7 @@ dev = [
     { name = "py-spy", specifier = ">=0.4.2" },
     { name = "ruff", specifier = ">=0.14.14" },
     { name = "rumdl", specifier = ">=0.2.4" },
-    { name = "snakefmt", specifier = ">=0.11.2" },
+    { name = "snakefmt", specifier = ">=2.0.3" },
 ]
 
 [[package]]
@@ -2319,16 +2319,16 @@ wheels = [
 
 [[package]]
 name = "snakefmt"
-version = "2.0.2"
+version = "2.0.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "black" },
     { name = "click" },
     { name = "shfmt-py" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1a/40/6c05d546237a73be5e80434682534337854fb7556713447c1c31236ba14c/snakefmt-2.0.2.tar.gz", hash = "sha256:aa037ff2579fcdb76f4d5b722b3438738fff05924d43faf4655ff7eebd64152a", size = 167261, upload-time = "2026-06-17T05:08:24.507Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/9b/c3dce69468a32d9b2dd9366c41c472b59ecafa28971761e8620466fb288f/snakefmt-2.0.3.tar.gz", hash = "sha256:1aecfed46d631eaae8179e4bedd09450c8c306d221cfd4b3594e35a8dccd0618", size = 167576, upload-time = "2026-06-26T02:39:00.701Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/28/ae/08717a4b9577c72116c3ce2b251df15736cfd855cb4568149b059aed7018/snakefmt-2.0.2-py3-none-any.whl", hash = "sha256:d161b0ab320f0baa95dadb03a841ea9883b39e091cf875629e5550226ad1960a", size = 44136, upload-time = "2026-06-17T05:08:23.335Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/47/7bdd7176fb76b17ce935092f004440c0de649af17f1a0d9c24ab61593a87/snakefmt-2.0.3-py3-none-any.whl", hash = "sha256:a8a88407f3226b2db31fb12ff787f0e9d9ca617ea77e86791967e24d3b65e381", size = 44206, upload-time = "2026-06-26T02:38:59.737Z" },
 ]
 
 [[package]]

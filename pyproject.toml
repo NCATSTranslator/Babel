@@ -57,7 +57,7 @@ dev = [
     "py-spy>=0.4.2",
     "ruff>=0.14.14",
     "rumdl>=0.2.4",
-    "snakefmt>=0.11.2",
+    "snakefmt>=2.0.3",
 ]
 
 # Linting/formatting configuration
