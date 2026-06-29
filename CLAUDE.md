@@ -270,7 +270,7 @@ source-impact report — including assembling the intermediate inputs from a `st
 snapshot when a full local build (~500 GB RAM) is impractical. Two things to get right that
 the report exists to catch:
 
-- **Type every ids file.** Each ids row should carry a presumptive biolink type in column 2
+- **Type every ids file.** Each ids row should carry a presumptive Biolink Type in column 2
   (`CURIE\tbiolink:Type`); this drives clique typing in the build. `write_compendium()` →
   `NodeFactory.create_node()` then keeps only CURIEs whose prefix is in the Biolink Model's
   `id_prefixes` for the clique's class and silently drops the rest — so a prefix that is not
