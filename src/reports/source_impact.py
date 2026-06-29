@@ -724,12 +724,19 @@ def render_json(
 def load_labels_for_prefixes(
     prefixes: Iterable[str],
     downloads_root: pathlib.Path | str,
+    needed_curies: set[str] | None = None,
 ) -> dict[str, dict[str, str]]:
     """Load per-prefix label maps from ``<downloads_root>/<PREFIX>/labels``.
 
     Each file is tab-separated ``CURIE\\tlabel``. Missing files are skipped quietly so
     the caller can pass the full set of prefixes a pipeline might use without
     having to pre-check which prefixes are available.
+
+    When ``needed_curies`` is given, only labels for those CURIEs are kept. The report only
+    ever renders labels for a small, known set (the diff's clique members plus the xref
+    endpoints in the detail files), while a prefix's ``labels`` file can be hundreds of MB
+    (UMLS/MESH have millions of rows). Streaming each file once and keeping only the matching
+    rows avoids building multi-GB dicts that are almost entirely discarded.
     """
     root = pathlib.Path(downloads_root)
     out: dict[str, dict[str, str]] = {}
@@ -742,6 +749,8 @@ def load_labels_for_prefixes(
             for line in f:
                 parts = line.rstrip("\n").split("\t", 1)
                 if len(parts) != 2:
+                    continue
+                if needed_curies is not None and parts[0] not in needed_curies:
                     continue
                 labels[parts[0]] = parts[1]
         out[prefix] = labels

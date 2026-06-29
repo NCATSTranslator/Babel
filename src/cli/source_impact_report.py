@@ -30,7 +30,7 @@ from src.model.clique_diff import (
     diff_cliques,
     load_compendium,
 )
-from src.model.source import SourceContribution, discover_source
+from src.model.source import SourceContribution, discover_source, scan_concords_for_curies
 from src.reports.source_impact import LookupContext, load_labels_for_prefixes, render_json, render_markdown
 from src.reports.source_impact_details import write_detail_files
 from src.util import get_logger
@@ -226,12 +226,46 @@ def _remote_comparison_summary(
     return summary
 
 
+def _curies_needing_labels(
+    diffs_by_pipeline: dict[str, SourceImpactDiff],
+    contribution: SourceContribution,
+    intermediate_root: pathlib.Path,
+) -> set[str]:
+    """Collect every CURIE whose label the report or detail files will render.
+
+    This is the exact set ``load_labels_for_prefixes`` needs to keep, so it can stream the
+    (potentially huge) per-prefix ``labels`` files once and discard everything else. It
+    covers the members of every diffed clique (rendered in the markdown samples and the
+    new-/modified-clique detail files) plus the concord-row endpoints in ``new-xrefs.tsv``
+    and the source's own CURIEs.
+    """
+    needed: set[str] = set()
+    for diff in diffs_by_pipeline.values():
+        for clique in diff.pure_new_cliques:
+            needed.update(clique)
+        for ec in diff.expanded_cliques:
+            needed.update(ec.before_clique)
+            needed.update(ec.after_clique)
+        for mc in diff.merged_cliques:
+            needed.update(mc.after_clique)
+            for bc in mc.before_cliques:
+                needed.update(bc)
+    for st, _cfg, source_curies in _iter_pipeline_contributions(contribution, list(contribution.pipelines)):
+        needed.update(source_curies)
+        concords_dir = intermediate_root / st / "concords"
+        for subject, _predicate, obj, _asserted_by in scan_concords_for_curies(concords_dir, source_curies):
+            needed.add(subject)
+            needed.add(obj)
+    return needed
+
+
 def _build_lookup_context(
     *,
     pipelines: list[str],
     types_by_pipeline: dict[str, dict[str, str]],
     downloads_root: pathlib.Path,
     skip_biolink: bool,
+    needed_curies: set[str] | None = None,
 ) -> LookupContext:
     """Assemble the per-pipeline helpers the renderer needs to enrich CURIE samples.
 
@@ -253,7 +287,7 @@ def _build_lookup_context(
             classifiers[st] = cfg["clique_classifier"]
         biolink_types_needed.update(cfg.get("biolink_types", []))
 
-    labels = load_labels_for_prefixes(sorted(all_prefixes), downloads_root)
+    labels = load_labels_for_prefixes(sorted(all_prefixes), downloads_root, needed_curies)
 
     expander = None
     prefix_priority_by_type: dict[str, list[str]] = {}
@@ -456,6 +490,7 @@ def main(argv: list[str] | None = None) -> int:
         types_by_pipeline=types_by_pipeline,
         downloads_root=pathlib.Path(args.downloads_root),
         skip_biolink=args.no_biolink_lookup,
+        needed_curies=_curies_needing_labels(diffs_by_pipeline, contribution, intermediate_root),
     )
 
     generated_at = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
