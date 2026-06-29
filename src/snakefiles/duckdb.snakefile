@@ -123,12 +123,50 @@ rule export_conflation_to_duckdb:
         )
 
 
+# Export all the intermediate concord, ids, and metadata files into Parquet.
+#
+# `compendia_done` is the rerun trigger. Every intermediate concord/ids file is consumed by a
+# compendium-build rule, so any change to one propagates up the DAG (concord/ids -> compendium ->
+# compendium.duckdb -> compendia_done) and forces compendia_done -- and therefore this rule -- to
+# rebuild. None of the concord/ids files are temp(), so by the time compendia_done exists the full
+# intermediate tree is present on disk for this rule to sweep. The intermediate directory itself is
+# passed as a params path to glob, not an input: Snakemake tracks a directory by mtime, which does
+# not reliably change when a nested file is rewritten, so depending on it would be both unreliable
+# and redundant with compendia_done.
+rule export_intermediate_files_to_duckdb:
+    input:
+        compendia_done=config["output_directory"] + "/duckdb/compendia_done",
+    output:
+        duckdb_filename=temp(config["output_directory"] + "/duckdb/concords.duckdb"),
+        ids_parquet_filename=config["output_directory"] + "/duckdb/Identifiers.parquet",
+        concord_parquet_filename=config["output_directory"] + "/duckdb/Concord.parquet",
+        metadata_parquet_filename=config["output_directory"] + "/duckdb/Metadata.parquet",
+    benchmark:
+        config["output_directory"] + "/benchmarks/export_intermediate_files_to_duckdb.tsv"
+    resources:
+        # Provisional; right-size from the benchmark once we have a real run.
+        mem="128G",
+    params:
+        intermediate_directory=config["intermediate_directory"],
+    run:
+        duckdb_exporters.export_intermediates_to_parquet(
+            params.intermediate_directory,
+            output.duckdb_filename,
+            output.ids_parquet_filename,
+            output.concord_parquet_filename,
+            output.metadata_parquet_filename,
+        )
+
+
 # Create `babel_outputs/duckdb/done` once all the files have been converted.
 rule export_all_to_duckdb:
     input:
         compendia_done=config["output_directory"] + "/duckdb/compendia_done",
         synonyms_done=config["output_directory"] + "/duckdb/synonyms_done",
         conflations_done=config["output_directory"] + "/duckdb/conflations_done",
+        intermediate_ids_parquet=config["output_directory"] + "/duckdb/Identifiers.parquet",
+        intermediate_concords_parquet=config["output_directory"] + "/duckdb/Concord.parquet",
+        intermediate_metadata_parquet=config["output_directory"] + "/duckdb/Metadata.parquet",
     output:
         x=config["output_directory"] + "/duckdb/done",
     shell:
