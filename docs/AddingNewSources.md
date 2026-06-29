@@ -343,7 +343,8 @@ synthetic mode is the source of truth for the pure-new/expanded/merged bucketing
 ## Related reading
 
 - `CLAUDE.md` "Adding a new data source" — short, command-focused summary.
-- `docs/sources/EMAPA/` — the worked example for an OBO-from-UberGraph source.
+- `docs/sources/MP/` — a worked-example OBO-from-UberGraph source (Mammalian Phenotype Ontology,
+  ingested into the disease pipeline).
 - `src/cli/source_impact_report.py` — CLI implementation; `PIPELINE_CONFIG` is the registry.
 - `src/model/source.py` and `src/model/clique_diff.py` — shared primitives.
 - `src/createcompendia/anatomy.py` — template for the compute helper / writer split.
