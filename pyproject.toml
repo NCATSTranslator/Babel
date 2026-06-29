@@ -1,6 +1,6 @@
 [project]
 name = "babel-pipeline"
-version = "1.14"
+version = "1.17"
 description = "Babel creates cliques of equivalent identifiers across many biomedical vocabularies. "
 readme = "README.md"
 license = "MIT"
@@ -25,11 +25,26 @@ dependencies = [
     "pyyaml>=6.0.3",
     "requests>=2.32.5",
     "snakemake>=9.21.1",
-    "snakemake-executor-plugin-slurm>=2.6.1",
+    "snakemake-executor-plugin-slurm>=2.7.1",
     "sparqlwrapper>=2.0.0",
     "tqdm>=4.67.1",
     "xmltodict>=1.0.2",
 ]
+
+[project.scripts]
+babel-slurm-errors = "tools.slurm.errors:main"
+babel-slurm-resources = "tools.slurm.resources:main"
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tools", "tools.*"]
 
 [project.urls]
 Homepage = "https://github.com/NCATSTranslator/Babel"

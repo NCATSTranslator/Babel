@@ -117,30 +117,32 @@ def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str)
             filename_entries[filename] = {
                 "prefix": prefix,
                 "curie_count": entry["curie_count"],
-                "curie_distinct_count": entry["curie_distinct_count"],
+                "approx_curie_distinct_count": entry["approx_curie_distinct_count"],
             }
 
         if "_totals" not in filename_entries:
             raise ValueError(f"No totals entry for prefix {prefix}!")
 
-        sorted_entries = sorted(filename_entries.items(), key=lambda x: x[1]["curie_distinct_count"], reverse=True)
+        sorted_entries = sorted(
+            filename_entries.items(), key=lambda x: x[1]["approx_curie_distinct_count"], reverse=True
+        )
         filename_rows = []
         for filename, entry in sorted_entries:
             if filename == "_totals":
                 continue
 
-            if entry["curie_count"] == entry["curie_distinct_count"]:
+            if entry["curie_count"] == entry["approx_curie_distinct_count"]:
                 filename_rows.append(f"- {filename}: {entry['curie_count']:,} CURIEs")
             else:
                 filename_rows.append(
-                    f"- {filename}: {entry['curie_count']:,} CURIEs ({entry['curie_distinct_count']:,} distinct)"
+                    f"- {filename}: {entry['curie_count']:,} CURIEs ({entry['approx_curie_distinct_count']:,} approx distinct)"
                 )
 
         curie_entries.append(
             {
                 "prefix": prefix,
                 "curie_count": filename_entries["_totals"]["curie_count"],
-                "curie_distinct_count": filename_entries["_totals"]["curie_distinct_count"],
+                "approx_curie_distinct_count": filename_entries["_totals"]["approx_curie_distinct_count"],
                 "filenames": "\n".join(filename_rows),
             }
         )
@@ -148,14 +150,14 @@ def generate_prefix_table(prefix_report_json: str, prefix_report_table_csv: str)
     # Before writing it out, sort by distinct CURIE count descending.
     Path(prefix_report_table_csv).parent.mkdir(parents=True, exist_ok=True)
     with open(prefix_report_table_csv, "w") as f:
-        writer = csv.DictWriter(f, ["Prefix", "CURIE count", "Distinct CURIE count", "Filenames"])
+        writer = csv.DictWriter(f, ["Prefix", "CURIE count", "Approx distinct CURIE count", "Filenames"])
         writer.writeheader()
 
-        for entry in sorted(curie_entries, key=lambda x: x["curie_distinct_count"], reverse=True):
+        for entry in sorted(curie_entries, key=lambda x: x["approx_curie_distinct_count"], reverse=True):
             row = {
                 "Prefix": entry["prefix"],
                 "CURIE count": "{:,}".format(entry["curie_count"]),
-                "Distinct CURIE count": "{:,}".format(entry["curie_distinct_count"]),
+                "Approx distinct CURIE count": "{:,}".format(entry["approx_curie_distinct_count"]),
                 "Filenames": entry["filenames"],
             }
 
@@ -184,7 +186,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                     {
                         "curie_prefix": curie_prefix,
                         "curie_count": entry["curie_count"],
-                        "distinct_curie_count": entry["distinct_curie_count"],
+                        "approx_distinct_curie_count": entry["approx_distinct_curie_count"],
                     }
                 )
 
@@ -196,7 +198,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
 
         curie_prefixes = map(
             lambda e: f"{e['curie_prefix']}",
-            sorted(curie_prefix_entries, key=lambda x: x["distinct_curie_count"], reverse=True),
+            sorted(curie_prefix_entries, key=lambda x: x["approx_distinct_curie_count"], reverse=True),
         )
         unique_curie_prefixes = []
         for prefix in curie_prefixes:
@@ -205,7 +207,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
 
         clique_leader_entries[filename] = {
             "curie_count": totals["curie_count"],
-            "distinct_curie_count": totals["distinct_curie_count"],
+            "approx_distinct_curie_count": totals["approx_distinct_curie_count"],
             "total_synonyms": "",
             "clique_leader_prefixes": ", ".join(sorted(clique_leader_prefixes)),
             "curie_prefixes": ", ".join(unique_curie_prefixes),
@@ -220,7 +222,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                 "Description",
                 "Biolink Types",
                 "Number of CURIEs",
-                "Number of distinct CURIEs",
+                "Number of approx distinct CURIEs",
                 "Clique leader prefixes",
                 "CURIE prefixes",
             ],
@@ -238,7 +240,7 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                         "Description": description,
                         "Biolink Types": "N/A",
                         "Number of CURIEs": "",
-                        "Number of distinct CURIEs": "",
+                        "Number of approx distinct CURIEs": "",
                         "Clique leader prefixes": "",
                         "CURIE prefixes": "",
                     }
@@ -256,8 +258,8 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                         "Description": description,
                         "Biolink Types": filename,
                         "Number of CURIEs": "{:,}".format(clique_leader_entries[filename]["curie_count"]),
-                        "Number of distinct CURIEs": "{:,}".format(
-                            clique_leader_entries[filename]["distinct_curie_count"]
+                        "Number of approx distinct CURIEs": "{:,}".format(
+                            clique_leader_entries[filename]["approx_distinct_curie_count"]
                         ),
                         "Clique leader prefixes": clique_leader_entries[filename]["clique_leader_prefixes"],
                         "CURIE prefixes": clique_leader_entries[filename]["curie_prefixes"],
@@ -273,7 +275,9 @@ def generate_cliques_table(cliques_report_json: str, cliques_table_csv: str):
                     "Description": "",
                     "Biolink Types": filename,
                     "Number of CURIEs": "{:,}".format(clique_leader_entries[filename]["curie_count"]),
-                    "Number of distinct CURIEs": "{:,}".format(clique_leader_entries[filename]["distinct_curie_count"]),
+                    "Number of approx distinct CURIEs": "{:,}".format(
+                        clique_leader_entries[filename]["approx_distinct_curie_count"]
+                    ),
                     "Clique leader prefixes": clique_leader_entries[filename]["clique_leader_prefixes"],
                     "CURIE prefixes": clique_leader_entries[filename]["curie_prefixes"],
                 }
