@@ -376,7 +376,12 @@ def compute_cliques_for_impact_report(
     if mondoclose is not None:
         with open(mondoclose) as inf:
             for line in inf:
-                x = tuple(line.strip().split("\t"))
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                x = tuple(stripped.split("\t"))
+                if len(x) != 2:
+                    raise RuntimeError(f'Line "{stripped}" is not a valid MONDO_close entry: {x}')
                 close_mondos[x[0]].add(x[1])
 
     for infile in iterated_concords:
