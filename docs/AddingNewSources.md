@@ -7,7 +7,7 @@ addition. EMAPA is the worked example throughout.
 
 - **pipeline** (`anatomy`, `chemical`, `diseasephenotype`, …) — the intermediate-file
   namespace, called `babel_pipeline` in code. Paths below use `<pipeline>` as a
-  placeholder.
+  placeholder. Usually corresponds to the src/createcompendia/<pipeline>.py file that generates these outputs. Sometimes, untyped compendia will be generated before being assigned Biolink Types (e.g. `chemical`).
 - **Biolink type** (`biolink:AnatomicalEntity`, `biolink:SmallMolecule`, …) — the class URI
   stored in compendia. Multiple Biolink types can map to the same pipeline.
 
