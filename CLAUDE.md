@@ -256,6 +256,18 @@ If a previous Snakemake run was killed, the next invocation may fail with
 `LockException: Directory cannot be locked`. Clear it with `uv run snakemake --unlock` before
 retrying.
 
+Two non-obvious gotchas when re-running a single rule:
+
+- **`--forcerun` greedily consumes targets.** `snakemake --forcerun ruleA ruleB` reads *both*
+  `ruleA` and `ruleB` as rules to force, leaving no positional target — so Snakemake falls back to
+  the default first rule (`all`) and silently launches the *entire* pipeline. Always put the target
+  positionally and `--forcerun` last: `uv run snakemake -c all disease --forcerun disease_compendia`
+  (not `--forcerun disease_compendia disease`). Dry-run first (`-n`) and confirm the job list is the
+  handful you expect, not hundreds.
+- **`config.yaml` is read once per invocation.** Editing it (e.g. fixing `biolink_version`) does not
+  affect an already-running build — the loaded value is cached for the life of the process. Kill and
+  restart the run to pick up a config change.
+
 Most semantic-type targets are individually much cheaper than the full pipeline — anatomy in
 particular builds end-to-end on a laptop in roughly 25 minutes wall time (UMLS download
 dominates). The 500 GB figure in the README applies to the heaviest builds (protein,

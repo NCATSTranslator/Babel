@@ -44,7 +44,12 @@ considering), see [`docs/Testing.md`](../docs/Testing.md).
   `tests/tools/test_slurm.py`). Do **not** add `tests/tools/__init__.py`: unlike the other test
   subdirectories, making `tests/tools` a package puts it on `sys.path` as `tools`, shadowing the
   real top-level `tools/` package and breaking `from tools.slurm import ...`. The tests import fine
-  via the `pythonpath = ["."]` setting in `pyproject.toml`.
+  via the `pythonpath = ["."]` setting in `pyproject.toml`. **Because that directory is not a
+  package, pytest's default prepend import mode imports its test files as top-level modules, so each
+  file needs a basename unique across the whole suite.** A `tests/tools/test_clique_diff.py` would
+  collide with the existing `tests/test_clique_diff.py` (`import file mismatch ... use a unique
+  basename`); name the tool's test `test_<tool>_tool.py` (e.g. `test_clique_diff_tool.py`) when a
+  same-named file already exists elsewhere.
 
 **Touching a data source that has no pipeline test? Consider writing one.** It is more work up
 front, but it pays off three ways and is worth biting the bullet for:
