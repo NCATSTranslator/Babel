@@ -18,11 +18,12 @@ def test_mp_concords_include_external_mappings(mp_pipeline_outputs):
     _ = mp_pipeline_outputs["diseasephenotype"]
     concord_path = _intermediate_concord_path("diseasephenotype", "MP")
 
-    with open(concord_path) as infile:
-        rows = [line.strip().split("\t") for line in infile if line.strip()]
-
     # MP UberGraph xrefs may be empty in current snapshots; this test ensures the
     # mapping extraction path runs and output is syntactically valid.
     assert os.path.exists(concord_path)
+
+    with open(concord_path) as infile:
+        rows = [line.strip().split("\t") for line in infile if line.strip()]
+
     assert all(len(row) >= 3 for row in rows)
     assert all(row[0].startswith("MP:") for row in rows)
