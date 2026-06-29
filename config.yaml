@@ -10,7 +10,7 @@ build:
   - DrugBank downloads are currently disabled https://github.com/cthoyt/drugbank-downloader/issues/23 -- I used the previously downloaded 5-1-13.
 
 # Versions that need to be updated on every release.
-biolink_version: "v4.4.3"
+biolink_version: "4.4.3"
 umls_version: "2026AA"
 rxnorm_version: "06012026"
 drugbank_version: "5-1-13" # Really 5-1-21, but since downloads are currently not allowed, we need to reuse our most recent download.
