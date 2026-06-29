@@ -153,8 +153,11 @@ in code or in docs that will go stale) and feeds both `NodeFactory` and
 **Mapped class URIs** — always use the `biolink:`-prefixed form (e.g. `biolink:ChemicalEntity`),
 not the raw element name (`chemical entity`). `get_ancestors()` and `get_element().class_uri`
 return these mapped forms. Note that `get_element()` returns a bmt `ClassDefinition`
-object, not a dict: read fields with attribute access (e.g. `element.id_prefixes`), not
-`element["id_prefixes"]` / `element.get("id_prefixes")`.
+object (a `linkml_runtime` model), not a plain dict. It supports both attribute access
+(`element.id_prefixes`, `element.class_uri`) and subscript access (`element["id_prefixes"]`,
+which `src/node.py:get_prefixes()` uses), but it has no `dict`-style `.get()` method, so
+`element.get("id_prefixes")` raises `AttributeError`. Prefer attribute access (or a plain
+`getattr(element, "id_prefixes", default)`) and never reach for `.get()`.
 
 **OBO PURL resolution** — `src/util.py:get_biolink_prefix_map()` returns a
 `curies.Converter` built from the Biolink prefix map for the configured Biolink version;
@@ -249,40 +252,47 @@ high performance cluster) so you don't need to download all the source files and
 rerun the entire pipeline. You can look at the resource requirements of a rule to decide which
 option would be best.
 
+If a previous Snakemake run was killed, the next invocation may fail with
+`LockException: Directory cannot be locked`. Clear it with `uv run snakemake --unlock` before
+retrying.
+
+Most semantic-type targets are individually much cheaper than the full pipeline — anatomy in
+particular builds end-to-end on a laptop in roughly 25 minutes wall time (UMLS download
+dominates). The 500 GB figure in the README applies to the heaviest builds (protein,
+drugchemical-conflated, and the full pipeline), not to every target. `docs/RunningBabel.md`
+has a per-target sizing breakdown and a "Common build issues" section.
+
 ## Adding a new data source
 
-After integrating a new identifier source (e.g., EMAPA in PR #741), generate a
-source-impact report that captures the identifiers, biolink types, cross-references, and
-clique changes the source introduces. Commit the report to
-`docs/sources/<SOURCE>/impact-report.md` alongside the rest of the source's docs. The tool
-also writes an `impact-report/` subdirectory of full, deterministically-sorted detail files
-for SME review: commit `new-cliques.csv`, `modified-cliques.csv`, and `new-xrefs.tsv`.
-`modified-cliques.json` is written locally for digging/sharing but is gitignored (it grows
-with the source and is useless to commit for large additions). The markdown's inline samples
-are capped (3 per category, ranked by label variety) and link to the committed detail files.
-See `src/reports/source_impact_details.py` and the "Detail files for SME review" section of
-`docs/AddingNewSources.md`.
+`docs/AddingNewSources.md` is the full guide: how to wire a source (prefix, data handler,
+compendium hook, Snakemake rules, `config.yaml`, docs, tests), then generate and read its
+source-impact report — including assembling the intermediate inputs from a `stars.renci.org`
+snapshot when a full local build (~500 GB RAM) is impractical. Two things to get right that
+the report exists to catch:
 
-```bash
-# Run after the intermediate ids/concords files for the source have been built.
-uv run source-impact-report --source <SOURCE>
+- **Type every ids file.** Each ids row should carry a presumptive Biolink Type in column 2
+  (`CURIE\tbiolink:Type`); this drives clique typing in the build. `write_compendium()` →
+  `NodeFactory.create_node()` then keeps only CURIEs whose prefix is in the Biolink Model's
+  `id_prefixes` for the clique's class and silently drops the rest — so a prefix that is not
+  yet registered for its type never reaches the compendium. EMAPA's
+  `biolink:GrossAnatomicalStructure` terms are the current not-yet-registered example.
+- **Generate and commit the report.** `uv run source-impact-report --source <SOURCE>` writes
+  `docs/sources/<SOURCE>/impact-report.md` plus an `impact-report/` subdirectory; commit
+  `new-cliques.csv`, `modified-cliques.csv`, and `new-xrefs.tsv` (`modified-cliques.json` is
+  gitignored). Its `would_be_added` / `needs_biolink_registration` columns flag identifiers
+  the prefix filtering above would drop. When extending the report to a new semantic type,
+  add a `compute_cliques_for_impact_report` helper to that type's `createcompendia/*.py`
+  module (mirroring `anatomy.py`) and register it in `PIPELINE_CONFIG` in
+  `src/cli/source_impact_report.py`.
 
-# Snakemake convenience wrapper (writes to babel_outputs/reports/source_impact/):
-uv run snakemake -c 1 babel_outputs/reports/source_impact/<SOURCE>.md
-```
+**Snakemake `retries:`** — use `retries: 3` for any network-backed rule (UberGraph, FTP,
+HTTP). Do not use `retries: 10`. UberGraph rules already get per-request retry-with-backoff
+inside `TripleStore.execute_query` (default 3 attempts, exponential back-off, configurable
+via `config["sparql"]["max_attempts"]`), so the Snakemake `retries:` is only a coarse
+safety net for whole-rule failures, not a substitute for fine-grained request retries.
 
-The CLI auto-detects every semantic type where the source has intermediate files. For
-compendia too large to re-glom locally, add `--mode both --remote-url <previous-build>`
-to also compare against a remote build. See `src/cli/source_impact_report.py` and
-`src/model/source.py` for the source-discovery and diff implementation.
-
-When extending the report to a new semantic type, add a `compute_cliques_for_impact_report`
-helper to that type's `createcompendia/*.py` module (mirroring `anatomy.py`), then register
-it in `SEMANTIC_TYPE_CONFIG` in `src/cli/source_impact_report.py`.
-
-The shared clique-building skeleton lives in `src/createcompendia/cliques.py` (note: this
-is the one module under `createcompendia/` that does *not* map to an output compendium —
-it's reused infrastructure). `glom_from_files()` runs the common `load ids → glom`,
+The shared clique-building skeleton lives in `src/model/cliques.py`.
+`glom_from_files()` runs the common `load ids → glom`,
 `load concords → filter → drop overused xrefs → glom` loop, parameterized by three hooks:
 `concord_pair_filter` (per-pair keep/drop, with access to the clique state built so far),
 `overused_xref_remover` (per-file `remove_overused_xrefs` variant), and `glom_kwargs`
@@ -327,6 +337,19 @@ docstrings, and when to add a pipeline test) that the individual conventions bel
   block groups `anatomy_prefixes`, `anatomy_ids`, `anatomy_concords`, `anatomy_outputs`, and
   `anatomy_unique_prefixes` together so that adding a new source requires reviewing all of them at
   once. Never scatter correlated settings across the file.
+
+- **`babel_pipeline` vs `biolink_type`** — these two concepts are easy to confuse because the
+  codebase (and this file) sometimes uses the vague phrase "semantic type" for either. Keep them
+  distinct in code and variable names:
+  - **`babel_pipeline`** is the pipeline directory name: `anatomy`, `chemical`, `diseasephenotype`,
+    etc. It is a Babel artifact — an intermediate-file namespace, not a vocabulary term.
+  - **`biolink_type`** is the Biolink class URI stored in compendia: `biolink:AnatomicalEntity`,
+    `biolink:SmallMolecule`, etc. Multiple Biolink types can map to the same `babel_pipeline`
+    (e.g. `anatomy` covers both `biolink:AnatomicalEntity` and `biolink:GrossAnatomicalStructure`).
+  - **`umls_semantic_type`** (or `sty`) is yet a third thing: a UMLS TUI code / tree string used
+    only inside the UMLS ingest. Do not conflate it with either of the above.
+  Prefer these three explicit names in code. Avoid "semantic type" as a bare phrase unless quoting
+  an external vocabulary (e.g. "UMLS semantic type").
 
 - **Commits** — if you need to make a large change, break it into multiple commits so it's clearer
   what changes are related.
@@ -400,6 +423,14 @@ docstrings, and when to add a pipeline test) that the individual conventions bel
   This is cheap, survives refactors, and is the first thing read when revisiting an ingest. Name
   functions for what they do — e.g. `fetch_*` (not `get_*`) when the call hits the network.
 
+- **Test documentation** — every test function should have a docstring that explains (a) what
+  scenario is being tested and (b) what the expected outcome is. "Should" phrasing makes both
+  explicit (e.g. "``excluded_sources`` should skip ids and concords — FOO:2 must not appear in
+  the clique dict"). Group related tests with a `# --- Label ---` section comment in the code
+  (e.g. `# --- Basic merging ---`, `# --- Edge cases ---`). The module docstring should describe
+  what the file covers overall; do **not** duplicate the group list there — the section headers
+  in the code are the authoritative, always-current index.
+
 - **Test assertion helpers** — `tests/conftest.py` exports `assert_labels_file_valid`,
   `assert_synonyms_file_valid`, `assert_ids_file_valid`, `assert_concordance_file_valid`,
   `assert_taxa_file_valid`, and `assert_descriptions_file_valid` (plus `read_tsv`). Use these
@@ -429,3 +460,15 @@ new documentation files if necessary.
 
 When writing documentation files, avoid using horizontal pipes unless necessary --
 section headings are sufficient for dividing up documentation.
+
+When a documentation file mentions a specific ontology term by CURIE, link it to its OBO
+PURL and include the preferred label in double-quotes:
+
+```markdown
+[`EMAPA:0`](http://purl.obolibrary.org/obo/EMAPA_0) "anatomical structure"
+```
+
+Resolve CURIEs to URLs with `src/util.py:get_biolink_prefix_map()`, which returns a
+`curies.Converter` for the configured Biolink version (`converter.expand("EMAPA:0")`);
+prefer that helper over fetching the prefix map yourself. Preferred labels come from
+`babel_downloads/<PREFIX>/labels` (tab-separated `CURIE\tlabel`).

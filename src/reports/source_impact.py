@@ -8,9 +8,9 @@ Both inputs are the output of:
 - ``src.model.source.discover_source(name, intermediate_root)`` (the source's filesystem
   contribution), and
 - ``src.model.clique_diff.diff_cliques(before, after, source_curies, ...)`` (one diff per
-  semantic type the source touches).
+  pipeline the source touches).
 
-The ``LookupContext`` aggregates the per-semantic-type helpers the renderer needs to turn
+The ``LookupContext`` aggregates the per-pipeline helpers the renderer needs to turn
 bare CURIEs into linked, labelled lines: a Biolink CURIE→IRI converter for the OBO PURL,
 a per-prefix CURIE→label map sourced from ``babel_downloads/<PREFIX>/labels``, and a
 ``clique_classifier`` that picks each clique's biolink type so the renderer can apply the
@@ -20,7 +20,6 @@ right prefix-priority list when marking the preferred identifier.
 from __future__ import annotations
 
 import json
-import logging
 import pathlib
 from collections import defaultdict
 from collections.abc import Callable, Iterable
@@ -28,8 +27,9 @@ from dataclasses import dataclass, field
 
 from src.model.clique_diff import ExpandedClique, SourceImpactDiff
 from src.model.source import SourceContribution
+from src.util import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 SAMPLE_LIMIT = 3
 PURE_NEW_SAMPLE_LIMIT = 3
@@ -38,21 +38,21 @@ EXPANDED_SAMPLE_LIMIT = 3
 
 @dataclass
 class LookupContext:
-    """Bundle of per-semantic-type helpers the renderer uses to enrich CURIE listings.
+    """Bundle of per-pipeline helpers the renderer uses to enrich CURIE listings.
 
     Anything that needs filesystem or network access (label files, Biolink prefix map)
-    or per-semantic-type knowledge (which biolink type a clique should be classified as,
+    or per-pipeline knowledge (which biolink type a clique should be classified as,
     which prefix-priority list to apply) is plumbed in here instead of being looked up
     inside the renderer. This keeps the renderer pure and testable.
     """
 
-    # CURIE -> declared biolink type, per semantic type, as captured at ids-file load time.
-    types_by_semantic_type: dict[str, dict[str, str]] = field(default_factory=dict)
+    # CURIE -> declared biolink type, per pipeline, as captured at ids-file load time.
+    types_by_pipeline: dict[str, dict[str, str]] = field(default_factory=dict)
     # Per-prefix CURIE -> label map (e.g. ``{"EMAPA": {"EMAPA:1": "...", ...}}``).
     labels_by_prefix: dict[str, dict[str, str]] = field(default_factory=dict)
     # Optional CURIE -> IRI expander (e.g. a ``curies.Converter`` with ``.expand``).
     curie_expander: Callable[[str], str | None] | None = None
-    # Pick a biolink type for one clique given the types map for its semantic type.
+    # Pick a biolink type for one clique given the types map for its pipeline.
     clique_classifier: dict[str, Callable[[frozenset[str], dict[str, str]], str | None]] = field(
         default_factory=dict,
     )
@@ -189,12 +189,14 @@ def prefix_survives(
     ``id_prefixes`` for the clique's biolink type and silently drops the rest; a clique
     with no surviving prefix is skipped entirely. We mirror that here using
     ``prefix_priority_by_type`` (populated from the same ``id_prefixes`` lists the build
-    filters against), judging each identifier on **its own** biolink type.
+    filters against). ``biolink_type`` must therefore be the **clique's** assigned type
+    (the single ``node_type`` the build filters every member against), not each
+    identifier's own declared type — passing the latter mispredicts mixed-type cliques.
 
     Returns ``(would_be_added, needs_biolink_registration)``:
 
     - ``would_be_added`` is ``True``/``False`` when the type's prefix list is known, or
-      ``None`` when it is unknown (no declared type, or ``--no-biolink-lookup`` left
+      ``None`` when it is unknown (no clique type, or ``--no-biolink-lookup`` left
       ``prefix_priority_by_type`` empty) — callers should render ``None`` as blank/unknown
       rather than as a negative.
     - ``needs_biolink_registration`` is ``True`` only when we positively know the prefix
@@ -265,6 +267,13 @@ def _render_remote_section(remote_summary: dict[str, dict[str, int]]) -> list[st
             "- Cliques with source CURIEs in current but not in remote: "
             f"{s.get('current_only_with_source_curies', 0):,}"
         )
+        missing = s.get("remote_compendium_files_missing", 0)
+        if missing:
+            lines.append(
+                f"- ⚠️ {missing:,} remote compendium file(s) could not be downloaded; the "
+                "counts above cover only the files that were fetched, so they understate "
+                "this pipeline's true coverage."
+            )
         lines.append("")
     return lines
 
@@ -276,18 +285,26 @@ def _detail_link(details_dirname: str | None, filename: str, text: str) -> str |
     return f"- {text}: [`{details_dirname}/{filename}`]({details_dirname}/{filename})"
 
 
-def _reg_marker(curie: str, types: dict[str, str], prefix_priority_by_type: dict[str, list[str]]) -> str:
-    """Return a bold warning when a pure-new CURIE's prefix is absent from the Biolink Model."""
-    own_type = types.get(curie)
-    _, needs_reg = prefix_survives(curie, own_type, prefix_priority_by_type)
-    return f"**(NOT emitted — prefix not registered in Biolink Model for `{own_type}`)**" if needs_reg else ""
+def _reg_marker(curie: str, biolink_type: str | None, prefix_priority_by_type: dict[str, list[str]]) -> str:
+    """Return a bold warning when a CURIE's prefix is absent from id_prefixes for its clique type.
+
+    Survival is judged against the *clique's* assigned biolink type, since that is the single
+    node_type ``NodeFactory.create_node()`` filters every member's prefix against (not each
+    identifier's own declared type).
+    """
+    _, needs_reg = prefix_survives(curie, biolink_type, prefix_priority_by_type)
+    return f"**(NOT emitted — prefix not registered in Biolink Model for `{biolink_type}`)**" if needs_reg else ""
 
 
 def _render_clique_impact(
     name: str,
-    diffs_by_semantic_type: dict[str, SourceImpactDiff],
+    diffs_by_pipeline: dict[str, SourceImpactDiff],
     lookup: LookupContext,
     details_dirname: str | None = None,
+    *,
+    sample_limit: int = SAMPLE_LIMIT,
+    pure_new_sample_limit: int = PURE_NEW_SAMPLE_LIMIT,
+    expanded_sample_limit: int = EXPANDED_SAMPLE_LIMIT,
 ) -> list[str]:
     lines: list[str] = ["## 4. Clique impact", ""]
     lines.append(
@@ -299,16 +316,16 @@ def _render_clique_impact(
         "change the source could introduce before that filtering is applied."
     )
     lines.append("")
-    if not diffs_by_semantic_type:
+    if not diffs_by_pipeline:
         lines.append(
-            "(No clique diffs available — synthetic mode did not run for any semantic "
-            "type. See report header for the mode used.)"
+            "(No clique diffs available — synthetic mode did not run for any "
+            "pipeline. See report header for the mode used.)"
         )
         return lines
 
-    for st in sorted(diffs_by_semantic_type):
-        diff = diffs_by_semantic_type[st]
-        types = lookup.types_by_semantic_type.get(st, {})
+    for st in sorted(diffs_by_pipeline):
+        diff = diffs_by_pipeline[st]
+        types = lookup.types_by_pipeline.get(st, {})
         classifier = lookup.clique_classifier.get(st)
 
         before_total = diff.before_clique_count
@@ -352,7 +369,7 @@ def _render_clique_impact(
             "clique can gain several identifiers."
         )
         lines.append(
-            f"- Total cliques in this semantic type go from {_fmt(before_total)} to {_fmt(diff.after_clique_count)}"
+            f"- Total cliques in this pipeline go from {_fmt(before_total)} to {_fmt(diff.after_clique_count)}"
         )
         lines.append("")
 
@@ -362,7 +379,7 @@ def _render_clique_impact(
         link = _detail_link(
             details_dirname,
             "modified-cliques.csv",
-            f"Full list of modified cliques (one row per added/promoted {name} identifier)",
+            f"Full list of modified cliques (one row per added/preexisting {name} identifier)",
         )
         if link:
             lines.append(link)
@@ -373,7 +390,7 @@ def _render_clique_impact(
             lines.append("")
 
         if diff.merged_cliques:
-            lines.append(f"#### Sample merges (up to {SAMPLE_LIMIT})")
+            lines.append(f"#### Sample merges (up to {sample_limit})")
             merged_sorted = sorted(
                 diff.merged_cliques,
                 key=lambda mc: (
@@ -382,35 +399,35 @@ def _render_clique_impact(
                     clique_leader(mc.after_clique),
                 ),
             )
-            for mc in merged_sorted[:SAMPLE_LIMIT]:
+            for mc in merged_sorted[:sample_limit]:
                 bridge_curie = sorted(mc.source_curies_involved)[0]
                 leaders = ", ".join(clique_leader(bc) for bc in mc.before_cliques)
                 lines.append(f"- {bridge_curie} bridges {leaders}")
             lines.append("")
 
         if diff.pure_new_cliques:
-            lines.append(f"#### Sample pure-new cliques (up to {PURE_NEW_SAMPLE_LIMIT})")
+            lines.append(f"#### Sample pure-new cliques (up to {pure_new_sample_limit})")
             ordered = sorted(
                 diff.pure_new_cliques,
                 key=lambda c: _pure_new_rank(c, lookup.labels_by_prefix),
             )
-            for clique in ordered[:PURE_NEW_SAMPLE_LIMIT]:
+            for clique in ordered[:pure_new_sample_limit]:
+                biolink_type = classifier(clique, types) if classifier else None
                 if len(clique) == 1:
                     only = next(iter(clique))
                     lines.append(
                         _render_curie_entry(
-                            only, lookup, marker=_reg_marker(only, types, lookup.prefix_priority_by_type)
+                            only, lookup, marker=_reg_marker(only, biolink_type, lookup.prefix_priority_by_type)
                         )
                     )
                 else:
-                    biolink_type = classifier(clique, types) if classifier else None
                     ordered_curies = sort_clique_for_display(clique, biolink_type, lookup.prefix_priority_by_type)
                     for i, c in enumerate(ordered_curies):
                         markers = [
                             m
                             for m in (
                                 "**(preferred)**" if i == 0 else "",
-                                _reg_marker(c, types, lookup.prefix_priority_by_type),
+                                _reg_marker(c, biolink_type, lookup.prefix_priority_by_type),
                             )
                             if m
                         ]
@@ -447,7 +464,7 @@ def _render_clique_impact(
             promotion_only_samples.sort(key=_rank)
             preferred_change_n = len(preferred_change_samples)
 
-            lines.append(f"#### Sample expanded cliques (up to {EXPANDED_SAMPLE_LIMIT})")
+            lines.append(f"#### Sample expanded cliques (up to {expanded_sample_limit})")
             lines.append("")
             lines.append(
                 f"Of the {_fmt(expanded_n)} cliques that contain {name} identifiers "
@@ -459,7 +476,7 @@ def _render_clique_impact(
                 f"are listed in the same order they would appear in the compendium "
                 f"(biolink prefix priority, then lexicographic within prefix)."
             )
-            chosen = (preferred_change_samples + truly_grown_samples + promotion_only_samples)[:EXPANDED_SAMPLE_LIMIT]
+            chosen = (preferred_change_samples + truly_grown_samples + promotion_only_samples)[:expanded_sample_limit]
             for ec, before_pref, after_pref, biolink_type in chosen:
                 markers_for_clique: list[str] = []
                 if before_pref != after_pref:
@@ -476,17 +493,12 @@ def _render_clique_impact(
                     markers: list[str] = []
                     if c in ec.added_source_curies:
                         markers.append(f"**(new from {name})**")
-                    elif c in ec.promoted_source_curies:
+                    elif c in ec.preexisting_source_curies:
                         markers.append(f"**(existing identifier, also added by {name})**")
-                    if c in ec.added_source_curies or c in ec.promoted_source_curies:
-                        # Judge survival on the identifier's *own* declared type, since the
-                        # clique's final preferred type may not be knowable here.
-                        own_type = types.get(c)
-                        _, needs_reg = prefix_survives(c, own_type, lookup.prefix_priority_by_type)
-                        if needs_reg:
-                            markers.append(
-                                f"**(NOT emitted — prefix not registered in Biolink Model for `{own_type}`)**"
-                            )
+                    if c in ec.added_source_curies or c in ec.preexisting_source_curies:
+                        reg = _reg_marker(c, biolink_type, lookup.prefix_priority_by_type)
+                        if reg:
+                            markers.append(reg)
                     if c == after_pref:
                         markers.append("**(preferred)**")
                     if before_pref != after_pref and c == before_pref:
@@ -499,7 +511,7 @@ def _render_clique_impact(
 
 def render_markdown(
     contribution: SourceContribution,
-    diffs_by_semantic_type: dict[str, SourceImpactDiff],
+    diffs_by_pipeline: dict[str, SourceImpactDiff],
     final_compendium_breakdown: dict[str, dict[str, int]],
     *,
     mode: str,
@@ -509,6 +521,9 @@ def render_markdown(
     remote_summary: dict[str, dict[str, int]] | None = None,
     lookup: LookupContext | None = None,
     details_dirname: str | None = None,
+    sample_limit: int = SAMPLE_LIMIT,
+    pure_new_sample_limit: int = PURE_NEW_SAMPLE_LIMIT,
+    expanded_sample_limit: int = EXPANDED_SAMPLE_LIMIT,
 ) -> str:
     name = contribution.name
     lookup = lookup or LookupContext()
@@ -518,7 +533,7 @@ def render_markdown(
     lines.append("")
     lines.append(f"- Generated: {generated_at}")
     lines.append(f"- Babel commit: {babel_commit}")
-    lines.append(f"- Source semantic types: {', '.join(sorted(contribution.semantic_types)) or '(none discovered)'}")
+    lines.append(f"- Source pipelines: {', '.join(sorted(contribution.pipelines)) or '(none discovered)'}")
     lines.append(f"- Source prefixes: {', '.join(sorted(contribution.prefixes)) or '(none discovered)'}")
     mode_label = mode if not remote_url else f"{mode} (vs {remote_url})"
     lines.append(f"- Comparison mode: {mode_label}")
@@ -529,12 +544,12 @@ def render_markdown(
     total = contribution.total_identifier_count
     lines.append(
         f"Totals: {_fmt(total)} identifiers across {len(contribution.prefixes)} "
-        f"prefix(es) in {len(contribution.semantic_types)} semantic type(s)."
+        f"prefix(es) in {len(contribution.pipelines)} pipeline(s)."
     )
     lines.append("")
     lines.append("### By prefix")
     by_prefix: dict[str, int] = defaultdict(int)
-    for stc in contribution.by_semantic_type.values():
+    for stc in contribution.by_pipeline.values():
         for prefix, curies in stc.curies_by_prefix.items():
             by_prefix[prefix] += len(curies)
     if by_prefix:
@@ -543,13 +558,13 @@ def render_markdown(
     else:
         lines.append("- (no identifiers discovered)")
     lines.append("")
-    lines.append("### By semantic type")
-    if contribution.semantic_types:
-        for st in sorted(contribution.semantic_types):
-            stc = contribution.by_semantic_type[st]
+    lines.append("### By pipeline")
+    if contribution.pipelines:
+        for st in sorted(contribution.pipelines):
+            stc = contribution.by_pipeline[st]
             lines.append(f"- {st}: {_fmt(len(stc.all_curies))}")
     else:
-        lines.append("- (no semantic types discovered)")
+        lines.append("- (no pipelines discovered)")
     lines.append("")
 
     lines.append("## 2. Biolink types")
@@ -564,9 +579,9 @@ def render_markdown(
         lines.append("- (no identifiers discovered)")
     lines.append("")
     lines.append("### Source-declared (from each ids file)")
-    if contribution.semantic_types:
-        for st in sorted(contribution.semantic_types):
-            stc = contribution.by_semantic_type[st]
+    if contribution.pipelines:
+        for st in sorted(contribution.pipelines):
+            stc = contribution.by_pipeline[st]
             lines.append(f"- {st} / {name}")
             counts = stc.declared_type_counts
             if not counts:
@@ -576,7 +591,7 @@ def render_markdown(
                 label = declared_type if declared_type else "(no declared type)"
                 lines.append(f"  - {label}: {_fmt(counts[declared_type])}")
     else:
-        lines.append("- (no semantic types discovered)")
+        lines.append("- (no pipelines discovered)")
     lines.append("")
 
     lines.append("### Final compendium-assigned (after glom)")
@@ -598,21 +613,21 @@ def render_markdown(
     lines.append("## 3. Cross-references added")
     lines.append("")
     total_concords = contribution.total_concord_row_count
-    n_concord_files = sum(1 for stc in contribution.by_semantic_type.values() if stc.concords_path is not None)
+    n_concord_files = sum(1 for stc in contribution.by_pipeline.values() if stc.concords_path is not None)
     lines.append(f"Totals: {_fmt(total_concords)} cross-reference rows across {n_concord_files} concord file(s).")
     lines.append("")
-    lines.append("### By semantic type")
-    if contribution.semantic_types:
-        for st in sorted(contribution.semantic_types):
-            stc = contribution.by_semantic_type[st]
+    lines.append("### By pipeline")
+    if contribution.pipelines:
+        for st in sorted(contribution.pipelines):
+            stc = contribution.by_pipeline[st]
             lines.append(f"- {st} / {name}: {_fmt(len(stc.concord_pairs))}")
     else:
-        lines.append("- (no semantic types discovered)")
+        lines.append("- (no pipelines discovered)")
     lines.append("")
-    lines.append("### Partner prefix breakdown (per semantic type)")
-    if contribution.semantic_types:
-        for st in sorted(contribution.semantic_types):
-            stc = contribution.by_semantic_type[st]
+    lines.append("### Partner prefix breakdown (per pipeline)")
+    if contribution.pipelines:
+        for st in sorted(contribution.pipelines):
+            stc = contribution.by_pipeline[st]
             lines.append(f"- {st}")
             partner_counts = stc.concord_partner_prefix_counts
             if not partner_counts:
@@ -621,10 +636,20 @@ def render_markdown(
             for prefix in sorted(partner_counts, key=lambda p: (-partner_counts[p], p)):
                 lines.append(f"  - {prefix}: {_fmt(partner_counts[prefix])}")
     else:
-        lines.append("- (no semantic types discovered)")
+        lines.append("- (no pipelines discovered)")
     lines.append("")
 
-    lines.extend(_render_clique_impact(name, diffs_by_semantic_type, lookup, details_dirname))
+    lines.extend(
+        _render_clique_impact(
+            name,
+            diffs_by_pipeline,
+            lookup,
+            details_dirname,
+            sample_limit=sample_limit,
+            pure_new_sample_limit=pure_new_sample_limit,
+            expanded_sample_limit=expanded_sample_limit,
+        )
+    )
 
     if remote_summary:
         lines.extend(_render_remote_section(remote_summary))
@@ -633,7 +658,7 @@ def render_markdown(
 
 def render_json(
     contribution: SourceContribution,
-    diffs_by_semantic_type: dict[str, SourceImpactDiff],
+    diffs_by_pipeline: dict[str, SourceImpactDiff],
     final_compendium_breakdown: dict[str, dict[str, int]],
     *,
     mode: str,
@@ -641,10 +666,13 @@ def render_json(
     babel_commit: str,
     remote_url: str | None = None,
     remote_summary: dict[str, dict[str, int]] | None = None,
+    sample_limit: int = SAMPLE_LIMIT,
+    pure_new_sample_limit: int = PURE_NEW_SAMPLE_LIMIT,
+    expanded_sample_limit: int = EXPANDED_SAMPLE_LIMIT,
 ) -> str:
-    by_semantic_type: dict[str, dict] = {}
-    for st, stc in contribution.by_semantic_type.items():
-        by_semantic_type[st] = {
+    by_pipeline: dict[str, dict] = {}
+    for st, stc in contribution.by_pipeline.items():
+        by_pipeline[st] = {
             "ids_path": str(stc.ids_path) if stc.ids_path else None,
             "concords_path": str(stc.concords_path) if stc.concords_path else None,
             "curies_by_prefix": {p: len(cs) for p, cs in stc.curies_by_prefix.items()},
@@ -654,7 +682,7 @@ def render_json(
         }
 
     diffs_serialised: dict[str, dict] = {}
-    for st, diff in diffs_by_semantic_type.items():
+    for st, diff in diffs_by_pipeline.items():
         diffs_serialised[st] = {
             "source_curie_count": len(diff.source_curies),
             "before_clique_count": diff.before_clique_count,
@@ -670,12 +698,12 @@ def render_json(
                 for mc in sorted(
                     diff.merged_cliques,
                     key=lambda mc: (-len(mc.before_cliques), clique_leader(mc.after_clique)),
-                )[:SAMPLE_LIMIT]
+                )[:sample_limit]
             ],
             "pure_new_samples": [
                 sorted(c)
                 for c in sorted(diff.pure_new_cliques, key=lambda c: (-len(c), clique_leader(c)))[
-                    :PURE_NEW_SAMPLE_LIMIT
+                    :pure_new_sample_limit
                 ]
             ],
             "truly_grown_clique_count": sum(1 for ec in diff.expanded_cliques if ec.added_source_curies),
@@ -684,13 +712,13 @@ def render_json(
                 {
                     "before_clique": sorted(ec.before_clique),
                     "added_source_curies": sorted(ec.added_source_curies),
-                    "promoted_source_curies": sorted(ec.promoted_source_curies),
+                    "preexisting_source_curies": sorted(ec.preexisting_source_curies),
                     "after_clique": sorted(ec.after_clique),
                 }
                 for ec in sorted(
                     diff.expanded_cliques,
                     key=lambda ec: (-len(ec.after_clique), clique_leader(ec.after_clique)),
-                )[:EXPANDED_SAMPLE_LIMIT]
+                )[:expanded_sample_limit]
             ],
         }
 
@@ -700,12 +728,12 @@ def render_json(
         "babel_commit": babel_commit,
         "mode": mode,
         "remote_url": remote_url,
-        "semantic_types": sorted(contribution.semantic_types),
+        "pipelines": sorted(contribution.pipelines),
         "prefixes": sorted(contribution.prefixes),
         "total_identifier_count": contribution.total_identifier_count,
         "total_concord_row_count": contribution.total_concord_row_count,
         "declared_type_counts_overall": contribution.declared_type_counts,
-        "by_semantic_type": by_semantic_type,
+        "by_pipeline": by_pipeline,
         "final_compendium_breakdown": final_compendium_breakdown,
         "clique_diffs": diffs_serialised,
         "remote_summary": remote_summary or {},
@@ -716,12 +744,19 @@ def render_json(
 def load_labels_for_prefixes(
     prefixes: Iterable[str],
     downloads_root: pathlib.Path | str,
+    needed_curies: set[str] | None = None,
 ) -> dict[str, dict[str, str]]:
     """Load per-prefix label maps from ``<downloads_root>/<PREFIX>/labels``.
 
     Each file is tab-separated ``CURIE\\tlabel``. Missing files are skipped quietly so
-    the caller can pass the full set of prefixes a semantic type might use without
+    the caller can pass the full set of prefixes a pipeline might use without
     having to pre-check which prefixes are available.
+
+    When ``needed_curies`` is given, only labels for those CURIEs are kept. The report only
+    ever renders labels for a small, known set (the diff's clique members plus the xref
+    endpoints in the detail files), while a prefix's ``labels`` file can be hundreds of MB
+    (UMLS/MESH have millions of rows). Streaming each file once and keeping only the matching
+    rows avoids building multi-GB dicts that are almost entirely discarded.
     """
     root = pathlib.Path(downloads_root)
     out: dict[str, dict[str, str]] = {}
@@ -734,6 +769,8 @@ def load_labels_for_prefixes(
             for line in f:
                 parts = line.rstrip("\n").split("\t", 1)
                 if len(parts) != 2:
+                    continue
+                if needed_curies is not None and parts[0] not in needed_curies:
                     continue
                 labels[parts[0]] = parts[1]
         out[prefix] = labels

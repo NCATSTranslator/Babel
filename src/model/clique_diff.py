@@ -22,6 +22,13 @@ from dataclasses import dataclass, field
 
 import jsonlines
 
+# GlomDict is the dict produced by babel_utils.glom() and consumed by build_compendia.
+# Every CURIE key maps to its clique's *shared mutable set* — many keys point to the exact
+# same set object (that is the union-find invariant). Consumers must not mutate the sets;
+# Mapping[str, Iterable[str]] signals read-only intent and is wide enough to accept both the
+# live glom output (dict[str, set[str]]) and any read-only view of the same structure.
+# Functions here exploit the shared-identity property by deduplicating via id() rather than
+# value equality, which reduces O(identifiers) frozenset constructions to O(cliques).
 GlomDict = Mapping[str, "Iterable[str]"]
 
 
@@ -30,18 +37,19 @@ class ExpandedClique:
     """A before-clique that gained at least one source CURIE without merging.
 
     ``added_source_curies`` is the strict difference (after - before): source CURIEs that
-    were not already in the before-clique. ``promoted_source_curies`` is the intersection:
-    source CURIEs already pulled into the clique by some other source's xref, which the
-    new source now claims as first-class typed identifiers. When ``added_source_curies``
-    is empty, the clique's identifier set is unchanged — the new source only "promotes"
-    pre-existing xref leaves into typed identifiers. Callers that want to count clique
-    growth should check ``added_source_curies`` rather than ``promoted_source_curies``.
+    were not already in the before-clique. ``preexisting_source_curies`` is the intersection:
+    source CURIEs that were already present in the before-clique — pulled in by some other
+    source's xref — before this source was added. The new source does not change clique
+    membership for these CURIEs; it only re-types them from anonymous xref targets to
+    first-class typed identifiers. When ``added_source_curies`` is empty, the clique's
+    identifier set is unchanged. Callers that want to count clique growth should check
+    ``added_source_curies`` rather than ``preexisting_source_curies``.
     """
 
     before_clique: frozenset[str]
     added_source_curies: frozenset[str]
     after_clique: frozenset[str]
-    promoted_source_curies: frozenset[str] = frozenset()
+    preexisting_source_curies: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -56,9 +64,9 @@ class MergedClique:
 
 @dataclass
 class SourceImpactDiff:
-    """Result of comparing before/after clique state for a single semantic type."""
+    """Result of comparing before/after clique state for a single Babel pipeline type."""
 
-    semantic_type: str
+    babel_pipeline: str
     source_curies: frozenset[str]
     pure_new_cliques: list[frozenset[str]] = field(default_factory=list)
     expanded_cliques: list[ExpandedClique] = field(default_factory=list)
@@ -101,7 +109,7 @@ def diff_cliques(
     after: GlomDict,
     source_curies: Iterable[str],
     *,
-    semantic_type: str,
+    babel_pipeline: str,
 ) -> SourceImpactDiff:
     """Bucket the differences between two clique states into pure_new / expanded / merged.
 
@@ -129,7 +137,7 @@ def diff_cliques(
     expanded: list[ExpandedClique] = []
     merged: list[MergedClique] = []
 
-    for clique in after_cliques:
+    for clique in sorted(after_cliques, key=min):
         source_in_clique = clique & source_curies_fs
         if not source_in_clique:
             continue
@@ -155,7 +163,7 @@ def diff_cliques(
                 ExpandedClique(
                     before_clique=only_bc,
                     added_source_curies=truly_added,
-                    promoted_source_curies=already_present,
+                    preexisting_source_curies=already_present,
                     after_clique=clique,
                 )
             )
@@ -170,7 +178,7 @@ def diff_cliques(
             )
 
     return SourceImpactDiff(
-        semantic_type=semantic_type,
+        babel_pipeline=babel_pipeline,
         source_curies=source_curies_fs,
         pure_new_cliques=pure_new,
         expanded_cliques=expanded,

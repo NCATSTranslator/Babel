@@ -1,4 +1,3 @@
-import logging
 from collections import defaultdict
 
 import requests
@@ -8,13 +7,13 @@ import src.datahandlers.obo as obo
 import src.datahandlers.umls as umls
 from src.babel_utils import get_prefixes, remove_overused_xrefs, write_compendium
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
-from src.createcompendia.cliques import glom_from_files
 from src.metadata.provenance import write_concord_metadata
+from src.model.cliques import glom_from_files
 from src.prefixes import CL, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import build_sets
-from src.util import Text, get_config
+from src.util import Text, get_config, get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def remove_overused_xrefs_dict(kv):
@@ -241,7 +240,7 @@ def compute_cliques_for_impact_report(concordances, identifiers, excluded_source
     """Load anatomy identifier and concord files and return the union-find clique state
     without writing compendia.
 
-    Thin wrapper over :func:`src.createcompendia.cliques.glom_from_files` supplying
+    Thin wrapper over :func:`src.model.cliques.glom_from_files` supplying
     anatomy's hooks (unique prefixes, the UMLS<->GO pair filter, and overused-xref
     removal). ``build_compendia`` calls this too, so the source-impact report's reglom
     uses the same code path as the real build.

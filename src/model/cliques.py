@@ -1,14 +1,13 @@
 """Shared clique-building scaffolding used by multiple compendium modules.
 
-Unlike the other modules in ``src/createcompendia/``, this one does **not** map to an
-output compendium. It factors out the common skeleton of turning a set of identifier
-files and concord files into union-find clique state via :func:`src.babel_utils.glom`:
+Factors out the common skeleton of turning a set of identifier files and concord files
+into union-find clique state via :func:`src.babel_utils.glom`:
 
     load each ids file  -> glom into the clique state
     load each concord   -> optionally filter pairs -> optionally drop overused xrefs ->
                            glom into the clique state
 
-Each semantic type's ``build_compendia`` (and its ``compute_cliques_for_impact_report``)
+Each pipeline's ``build_compendia`` (and its ``compute_cliques_for_impact_report``)
 can call :func:`glom_from_files` with a few injected hooks rather than duplicating the
 loop. Routing the real build through the same function the source-impact report uses
 keeps the report from drifting away from what the pipeline actually produces.
@@ -24,13 +23,13 @@ drop-in change:
 - ``glom_kwargs`` — disease's ``close={MONDO: ...}`` map.
 """
 
-import logging
 import os
 from collections.abc import Callable
 
 from src.babel_utils import glom, read_identifier_file
+from src.util import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # A concord-pair filter receives the tab-split concord line, the concord file path, and
 # the current clique state, and returns True to keep the pair. The clique state is passed
@@ -94,6 +93,12 @@ def glom_from_files(
         with open(infile) as inf:
             for line in inf:
                 parts = line.strip().split("\t")
+                # Skip blank/malformed lines before indexing parts[2]: a concord row is
+                # `CURIE1 \t REL \t CURIE2`, so anything with fewer than 3 fields would
+                # IndexError here and in concord_pair_filter hooks (e.g. anatomy's, which
+                # reads parts[0]/parts[2]).
+                if len(parts) < 3:
+                    continue
                 if concord_pair_filter is not None and not concord_pair_filter(parts, infile, dicts):
                     continue
                 pairs.append([parts[0], parts[2]])
