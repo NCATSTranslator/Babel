@@ -131,6 +131,11 @@ The synthetic comparison mode needs a per-pipeline compute hook. Anatomy is wire
 `build_compendia()` into a "compute cliques in memory" helper and a "write compendia"
 wrapper, then register the helper in `PIPELINE_CONFIG` in `src/cli/source_impact_report.py`.
 
+The report also loads preferred labels for each prefix listed under `<pipeline>_prefixes` in
+`config.yaml` to enrich the clique samples. Adding the new prefix there (step 5) is therefore
+what makes the new source's labels visible in the rendered report — no separate change to the
+CLI is needed.
+
 Without a registered hook the impact report still runs — it warns and skips the synthetic
 clique diff for that pipeline, and falls back to remote mode if you supply `--remote-url`.
 
