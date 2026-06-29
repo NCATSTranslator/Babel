@@ -1,4 +1,3 @@
-import os
 from collections import defaultdict
 
 import requests
@@ -6,12 +5,15 @@ import requests
 import src.datahandlers.mesh as mesh
 import src.datahandlers.obo as obo
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.babel_utils import get_prefixes, remove_overused_xrefs, write_compendium
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
 from src.metadata.provenance import write_concord_metadata
+from src.model.cliques import glom_from_files
 from src.prefixes import CL, EMAPA, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import HIERARCHY_PART_OF, UberGraph, build_sets
-from src.util import Text
+from src.util import Text, get_config, get_logger
+
+logger = get_logger(__name__)
 
 ANATOMY_OBO_SOURCES = {
     UBERON: {"root": f"{UBERON}:0001062", "type": ANATOMICAL_ENTITY},
@@ -65,7 +67,14 @@ def write_ncit_ids(outfile):
     write_obo_ids(
         [(anatomy_id, ANATOMICAL_ENTITY), (cell_id, CELL), (component_id, CELLULAR_COMPONENT)],
         outfile,
-        exclude=[genomic_location_id, chromosome_band_id, macromolecular_structure_id, ostomy_site_id, chromosome_structure_id, anatomic_site_id],
+        exclude=[
+            genomic_location_id,
+            chromosome_band_id,
+            macromolecular_structure_id,
+            ostomy_site_id,
+            chromosome_structure_id,
+            anatomic_site_id,
+        ],
     )
 
 
@@ -158,7 +167,9 @@ def write_umls_ids(mrsty, outfile):
     # A2.1.4.1 Body System
     # A2.1.5.1 Body Space or Junction
     # A2.1.5.2 Body Location or Region
-    umlsmap = {x: ANATOMICAL_ENTITY for x in ["A1.2", "A1.2.1", "A1.2.3.1", "A1.2.3.2", "A2.1.4.1", "A2.1.5.1", "A2.1.5.2"]}
+    umlsmap = {
+        x: ANATOMICAL_ENTITY for x in ["A1.2", "A1.2.1", "A1.2.3.1", "A1.2.3.2", "A2.1.4.1", "A2.1.5.1", "A2.1.5.2"]
+    }
     umlsmap["A1.2.3.3"] = CELL
     umlsmap["A1.2.3.4"] = CELLULAR_COMPONENT
     umls.write_umls_ids(mrsty, umlsmap, outfile)
@@ -175,9 +186,27 @@ def write_umls_ids(mrsty, outfile):
 # GO only shows up as an xref once in uberon, and it's a mistake.  It doesn't show up in anything else.
 # PMID is just wrong
 def build_anatomy_obo_relationships(outdir, metadata_yamls):
-    ignore_list = ["PMID", "BTO", "BAMS", "FMA", "CALOHA", "GOC", "WIKIPEDIA.EN", "CL", "GO", "NIF_SUBCELLULAR", "HTTP", "OPENCYC"]
+    ignore_list = [
+        "PMID",
+        "BTO",
+        "BAMS",
+        "FMA",
+        "CALOHA",
+        "GOC",
+        "WIKIPEDIA.EN",
+        "CL",
+        "GO",
+        "NIF_SUBCELLULAR",
+        "HTTP",
+        "OPENCYC",
+    ]
     # Create the equivalence pairs
-    with open(f"{outdir}/{UBERON}", "w") as uberon, open(f"{outdir}/{GO}", "w") as go, open(f"{outdir}/{CL}", "w") as cl, open(f"{outdir}/{EMAPA}", "w") as emapa:
+    with (
+        open(f"{outdir}/{UBERON}", "w") as uberon,
+        open(f"{outdir}/{GO}", "w") as go,
+        open(f"{outdir}/{CL}", "w") as cl,
+        open(f"{outdir}/{EMAPA}", "w") as emapa,
+    ):
         source_to_concord = {UBERON: uberon, GO: go, CL: cl, EMAPA: emapa}
         for source_prefix in [UBERON, GO]:
             build_sets(ANATOMY_OBO_SOURCES[source_prefix]["root"], source_to_concord, "xref", ignore_list=ignore_list)
@@ -228,7 +257,9 @@ def build_wikidata_cell_relationships(outdir, metadata_yaml):
     try:
         results = response.json()
     except Exception as e:
-        raise RuntimeError(f"Could not parse {frink_wikidata_url}: {e} raised when parsing response {response.content}.")
+        raise RuntimeError(
+            f"Could not parse {frink_wikidata_url}: {e} raised when parsing response {response.content}."
+        )
     rows = results["results"]["bindings"]
     # If one wikidata entry has either more than one CL or more than one UMLS, then we end up with problems
     # (It could also be possible that the same CL is on more than one wikidata entry, but haven't seen that yet)
@@ -261,15 +292,46 @@ def build_wikidata_cell_relationships(outdir, metadata_yaml):
 
 
 def build_anatomy_umls_relationships(mrconso, idfile, outfile, umls_metadata):
-    umls.build_sets(mrconso, idfile, outfile, {"SNOMEDCT_US": SNOMEDCT, "MSH": MESH, "NCI": NCIT, "GO": GO, "FMA": FMA}, provenance_metadata_yaml=umls_metadata)
+    umls.build_sets(
+        mrconso,
+        idfile,
+        outfile,
+        {"SNOMEDCT_US": SNOMEDCT, "MSH": MESH, "NCI": NCIT, "GO": GO, "FMA": FMA},
+        provenance_metadata_yaml=umls_metadata,
+    )
 
 
-ANATOMY_UNIQUE_PREFIXES = [UBERON, GO, EMAPA]
+def _anatomy_concord_pair_filter(parts, infile, dicts):
+    """Drop UMLS<->GO concord pairs unless both CURIEs are already in the clique state.
+
+    UMLS includes obsolete GO terms we don't want to add, so we limit UMLS<->GO concords
+    to terms that are already in ``dicts``. This is ONLY for the UMLS/GO combination — we
+    trust the other concords to retrieve decent identifiers. Returns True to keep the pair.
+    """
+    bs = frozenset([UMLS, GO])
+    prefixes = frozenset(xi.split(":")[0] for xi in parts[0:3:2])  # leave out the predicate
+    if prefixes != bs:
+        return True
+    for xi in (parts[0], parts[2]):
+        if xi not in dicts:
+            logger.debug(
+                "Skipping pair %s from %s: terms with prefixes %s are skipped unless they are already in the concords.",
+                parts,
+                infile,
+                bs,
+            )
+            return False
+    return True
 
 
 def compute_cliques_for_impact_report(concordances, identifiers, excluded_sources=()):
     """Load anatomy identifier and concord files and return the union-find clique state
     without writing compendia.
+
+    Thin wrapper over :func:`src.model.cliques.glom_from_files` supplying
+    anatomy's hooks (unique prefixes, the UMLS<->GO pair filter, and overused-xref
+    removal). ``build_compendia`` calls this too, so the source-impact report's reglom
+    uses the same code path as the real build.
 
     The source-impact report CLI calls this twice — once with the new source's files
     excluded, once with everything — to compute a before/after diff.
@@ -281,42 +343,14 @@ def compute_cliques_for_impact_report(concordances, identifiers, excluded_source
     :returns: (dicts, types) where dicts is the glom dict-of-sets and types maps CURIE
         to its declared biolink type
     """
-    excluded = set(excluded_sources)
-    dicts = {}
-    types = {}
-    for ifile in identifiers:
-        if os.path.basename(ifile) in excluded:
-            continue
-        print(ifile)
-        new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=ANATOMY_UNIQUE_PREFIXES)
-        types.update(new_types)
-    for infile in concordances:
-        if os.path.basename(infile) in excluded:
-            continue
-        print("loading", infile)
-        pairs = []
-        # We have a concordance problem with UMLS - it is including GO terms that are obsolete and we don't want
-        # them added. So we want to limit concordances to terms that are already in the dicts. But that's ONLY for the
-        # UMLS concord.  We trust the others to retrieve decent identifiers.
-        bs = frozenset([UMLS, GO])
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                prefixes = frozenset([xi.split(":")[0] for xi in x[0:3:2]])  # leave out the predicate
-                if prefixes == bs:
-                    use = True
-                    for xi in (x[0], x[2]):
-                        if xi not in dicts:
-                            print(f"Skipping pair {x} from {infile}: terms with prefixes {bs} are skipped unless they are already in the concords.")
-                            use = False
-                    if not use:
-                        continue
-                pairs.append([x[0], x[2]])
-        newpairs = remove_overused_xrefs(pairs)
-        setpairs = [set(x) for x in newpairs]
-        glom(dicts, setpairs, unique_prefixes=ANATOMY_UNIQUE_PREFIXES)
-    return dicts, types
+    return glom_from_files(
+        concordances,
+        identifiers,
+        unique_prefixes=get_config()["anatomy_unique_prefixes"],
+        concord_pair_filter=_anatomy_concord_pair_filter,
+        overused_xref_remover=lambda pairs, infile: remove_overused_xrefs(pairs),
+        excluded_sources=excluded_sources,
+    )
 
 
 def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
@@ -369,6 +403,8 @@ def create_typed_sets(eqsets, types):
     for equivalent_ids in eqsets:
         t = classify_anatomy_clique(equivalent_ids, types)
         if t is None:
-            raise RuntimeError(f"Cannot assign a biolink type to anatomy clique {equivalent_ids}: no member CURIE has a declared type.")
+            raise RuntimeError(
+                f"Cannot assign a biolink type to anatomy clique {equivalent_ids}: no member CURIE has a declared type."
+            )
         typed_sets[t].add(equivalent_ids)
     return typed_sets

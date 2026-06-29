@@ -7,6 +7,12 @@ Drives the real ``src.cli.source_impact_report.main`` over a synthetic intermedi
 The synthetic source ``NEWSOURCE`` is arranged against an ``EXISTING`` Babel set to yield:
 two pure-new singleton cliques, one expanded clique (a structurally-new member), and one
 merged clique — so every detail file has content to assert on.
+
+Test groups
+-----------
+- Content correctness: detail files contain the expected rows and values.
+- Determinism: two runs over the same inputs produce byte-identical output.
+- CLI flags: ``--no-detail-files`` skips the subdirectory entirely.
 """
 
 import csv
@@ -18,12 +24,19 @@ from src.cli.source_impact_report import main
 
 
 def _write(path, text):
+    """Create parent directories as needed and write *text* to *path*."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text)
 
 
 @pytest.fixture
 def synthetic_intermediate(tmp_path):
+    """Populate a minimal two-source anatomy intermediate tree under *tmp_path*.
+
+    EXISTING contributes four ids; NEWSOURCE contributes four ids and three concord rows
+    that join NEWSRC:2 into an existing clique (expanded), and NEWSRC:3 into two existing
+    cliques simultaneously (merged), leaving NEWSRC:1 and NEWSRC:4 as pure-new singletons.
+    """
     anatomy = tmp_path / "intermediate" / "anatomy"
     _write(
         anatomy / "ids" / "EXISTING",
@@ -41,21 +54,25 @@ def synthetic_intermediate(tmp_path):
     )
     _write(
         anatomy / "concords" / "NEWSOURCE",
-        "NEWSRC:2\txref\tUBERON:0001\n"
-        "NEWSRC:3\txref\tUBERON:0002\n"
-        "NEWSRC:3\txref\tGO:0000003\n",
+        "NEWSRC:2\txref\tUBERON:0001\nNEWSRC:3\txref\tUBERON:0002\nNEWSRC:3\txref\tGO:0000003\n",
     )
     return {"intermediate_root": tmp_path / "intermediate", "source": "NEWSOURCE"}
 
 
 def _run(synthetic_intermediate, output, extra=()):
+    """Invoke ``main`` in synthetic mode against *synthetic_intermediate* and return the exit code."""
     return main(
         [
-            "--source", synthetic_intermediate["source"],
-            "--mode", "synthetic",
-            "--intermediate-root", str(synthetic_intermediate["intermediate_root"]),
-            "--output", str(output),
-            "--format", "md",
+            "--source",
+            synthetic_intermediate["source"],
+            "--mode",
+            "synthetic",
+            "--intermediate-root",
+            str(synthetic_intermediate["intermediate_root"]),
+            "--output",
+            str(output),
+            "--format",
+            "md",
             "--no-biolink-lookup",  # keep the test fully offline
             *extra,
         ]
@@ -63,12 +80,19 @@ def _run(synthetic_intermediate, output, extra=()):
 
 
 def _read_csv(path):
+    """Read a CSV file at *path* and return its rows as a list of dicts."""
     with path.open() as f:
         return list(csv.DictReader(f))
 
 
 @pytest.mark.unit
 def test_detail_files_written_with_expected_content(synthetic_intermediate, tmp_path):
+    """All four detail files are created and contain the rows expected from the synthetic fixture.
+
+    Checks new-cliques.csv (two pure-new singletons), modified-cliques.csv (one expanded, one
+    merged row), modified-cliques.json (full structure including before_clique_leaders), and
+    new-xrefs.tsv (three rows from NEWSOURCE's own concord, all status=added).
+    """
     output = tmp_path / "impact-report.md"
     assert _run(synthetic_intermediate, output) == 0
 
@@ -81,7 +105,7 @@ def test_detail_files_written_with_expected_content(synthetic_intermediate, tmp_
     assert ids == {"NEWSRC:1", "NEWSRC:4"}
     assert all(r["member_count"] == "1" for r in new_cliques)
 
-    # modified-cliques.csv — one row per added/promoted identifier. The expanded clique
+    # modified-cliques.csv — one row per added/preexisting identifier. The expanded clique
     # gains NEWSRC:2 and the merge is bridged by NEWSRC:3, both structurally new.
     modified = _read_csv(details / "modified-cliques.csv")
     added = {r["added_id"] for r in modified if r["added_kind"] == "added"}
@@ -107,6 +131,7 @@ def test_detail_files_written_with_expected_content(synthetic_intermediate, tmp_
 
 @pytest.mark.unit
 def test_detail_files_are_deterministic(synthetic_intermediate, tmp_path):
+    """Two runs over the same intermediate tree produce byte-identical detail files."""
     out_a = tmp_path / "a" / "impact-report.md"
     out_b = tmp_path / "b" / "impact-report.md"
     assert _run(synthetic_intermediate, out_a) == 0
@@ -119,6 +144,7 @@ def test_detail_files_are_deterministic(synthetic_intermediate, tmp_path):
 
 @pytest.mark.unit
 def test_no_detail_files_flag_skips_subdirectory(synthetic_intermediate, tmp_path):
+    """Passing ``--no-detail-files`` writes the report markdown but skips the detail subdirectory."""
     output = tmp_path / "impact-report.md"
     assert _run(synthetic_intermediate, output, extra=("--no-detail-files",)) == 0
     assert output.exists()

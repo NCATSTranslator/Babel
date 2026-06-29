@@ -1,13 +1,52 @@
-from src.babel_utils import pull_via_ftp
+import ftplib
+import os
+import urllib.error
+import urllib.request
+
+from src.babel_utils import get_config, get_user_agent, pull_via_ftp
 from src.metadata.provenance import write_metadata
 from src.prefixes import PANTHERFAMILY
+from src.util import get_logger
+
+logger = get_logger(__name__)
+
+FTP_HOST = "ftp.pantherdb.org"
+FTP_DIR = "/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/"
+FTP_FILE = "PTHR19.0_human"
+HTTP_BASE = (
+    "http://data.pantherdb.org/ftp/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/"
+)
 
 
 def pull_pantherfamily():
     outfile = f"{PANTHERFAMILY}/family.csv"
-    pull_via_ftp("ftp.pantherdb.org", "/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/", "PTHR19.0_human", outfilename=outfile)
-    # If you need to check this quickly, it's also available on HTTP at:
-    # - http://data.pantherdb.org/ftp/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/
+    config = get_config()
+    ofilename = os.path.join(config["download_directory"], outfile)
+
+    try:
+        pull_via_ftp(FTP_HOST, FTP_DIR, FTP_FILE, outfilename=outfile)
+        return
+    except ftplib.all_errors as e:
+        logger.warning(f"FTP download from {FTP_HOST} failed ({e}); falling back to HTTP mirror.")
+
+    http_url = HTTP_BASE + FTP_FILE
+    logger.info(f"Downloading {http_url} → {ofilename}")
+    os.makedirs(os.path.dirname(ofilename), exist_ok=True)
+    req = urllib.request.Request(http_url, headers={"User-Agent": get_user_agent()})
+    try:
+        with urllib.request.urlopen(req, timeout=300) as resp, open(ofilename, "wb") as outf:
+            while True:
+                chunk = resp.read(65536)
+                if not chunk:
+                    break
+                outf.write(chunk)
+    except (urllib.error.URLError, TimeoutError) as e:
+        raise RuntimeError(
+            f"Both FTP and HTTP downloads failed for PANTHER family file.\n"
+            f"  URL: {http_url}\n"
+            f"  Local path: {ofilename}\n"
+            f"  To download manually: wget '{http_url}' -O '{ofilename}'"
+        ) from e
 
 
 def pull_labels(infile, outfile, metadata_yaml):

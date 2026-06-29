@@ -52,13 +52,18 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
                 # Note that we map the primary identifier to itself.
                 for ident in conflation:
                     if ident in conflation_index and conflation_index[ident] != conflation[0]:
-                        logger.error(f"Secondary ID {ident} is mapped to both {conflation_index[ident]} and " + f"{conflation[0]}, the latter will be used.")
+                        logger.error(
+                            f"Secondary ID {ident} is mapped to both {conflation_index[ident]} and "
+                            + f"{conflation[0]}, the latter will be used."
+                        )
                     conflation_index[ident] = conflation[0]
                     count_secondary += 1
 
                 # Store the entire conflation list for later use.
                 if conflation[0] in conflations:
-                    logger.error(f"Two conflations have the same primary ID: {conflation} and {conflations[conflation[0]]}")
+                    logger.error(
+                        f"Two conflations have the same primary ID: {conflation} and {conflations[conflation[0]]}"
+                    )
                 conflations[conflation[0]] = conflation
                 count_primary += 1
 
@@ -98,7 +103,9 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
                         # Once we've done this for one of the identifiers, we don't need to do it for any others.
                         break
 
-    logger.info(f"Added {count_clique_ids_added} IDs from {len(cliques_with_conflations)} cliques involved in conflation.")
+    logger.info(
+        f"Added {count_clique_ids_added} IDs from {len(cliques_with_conflations)} cliques involved in conflation."
+    )
 
     logger.info(f"Writing output to {output_gz}.")
     with gzip.open(output_gz, "wt", encoding="utf8") as outputf:
@@ -121,7 +128,9 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
                         # We need to conflate this. Add this to the synonyms_to_conflate list.
                         preferred_id = conflation_index[curie]
                         if curie in synonyms_to_conflate[preferred_id]:
-                            logger.warning(f"Duplicate CURIE in conflation: {preferred_id} appears multiple times in {curie}")
+                            logger.warning(
+                                f"Duplicate CURIE in conflation: {preferred_id} appears multiple times in {curie}"
+                            )
                         synonyms_to_conflate[preferred_id][curie].append(synonym)
                         synonyms = synonyms_to_conflate[preferred_id].values()
                         bl_types = set()
@@ -160,7 +169,9 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
                 for conflation_id in conflation_ids:
                     logger.info(f"Looking into conflation ID {conflation_id} for {conflation_id_not_normalized}.")
                     for synonym in synonyms_by_curie[conflation_id]:
-                        logger.info(f"conflation_order = {conflation_order}, synonyms_by_curie[{conflation_id}] = {synonyms_by_curie[conflation_id]}")
+                        logger.info(
+                            f"conflation_order = {conflation_order}, synonyms_by_curie[{conflation_id}] = {synonyms_by_curie[conflation_id]}"
+                        )
                         if "curie" not in final_conflation:
                             final_conflation["curie"] = synonym["curie"]
 
@@ -193,7 +204,10 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
                         if "shortest_name_length" in synonym:
                             # If we don't have a shortest_name_length in final_conflation OR if
                             # it is smaller than synonym['shortest_name_length'], use that instead.
-                            if "shortest_name_length" not in final_conflation or synonym["shortest_name_length"] < final_conflation["shortest_name_length"]:
+                            if (
+                                "shortest_name_length" not in final_conflation
+                                or synonym["shortest_name_length"] < final_conflation["shortest_name_length"]
+                            ):
                                 final_conflation["shortest_name_length"] = synonym["shortest_name_length"]
 
                         # Handle clique_identifier_count.
@@ -220,7 +234,10 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
 
             # Checks
             if "curie" not in final_conflation:
-                logger.warning(f"Conflated synonym entry missing CURIE entirely! Using primary CURIE {curie} for: " + f"{final_conflation}")
+                logger.warning(
+                    f"Conflated synonym entry missing CURIE entirely! Using primary CURIE {curie} for: "
+                    + f"{final_conflation}"
+                )
                 final_conflation["curie"] = curie
 
             if final_conflation["curie"] != curie:

@@ -3,6 +3,7 @@
 Skipped by default unless pytest is run with --pipeline.  Run with:
     uv run pytest tests/pipeline/test_ec.py --pipeline --no-cov -v
 """
+
 import pytest
 
 from src.categories import MOLECULAR_ACTIVITY

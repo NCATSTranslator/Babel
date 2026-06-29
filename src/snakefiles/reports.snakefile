@@ -165,8 +165,18 @@ rule report_source_impact:
         new_xrefs=config["output_directory"] + "/reports/source_impact/{source}/new-xrefs.tsv",
     benchmark:
         config["output_directory"] + "/benchmarks/report_source_impact_{source}.tsv"
+    params:
+        # Derive the roots the CLI reads from the same config the outputs use, so changing
+        # output_directory/intermediate_directory doesn't desync inputs from outputs (the
+        # CLI's own defaults are the babel_outputs/* literals).
+        intermediate_root=config["intermediate_directory"],
+        compendia_root=config["output_directory"] + "/compendia",
+        downloads_root=config["download_directory"],
     shell:
         "uv run source-impact-report --source {wildcards.source} --output {output.md}"
+        " --intermediate-root {params.intermediate_root}"
+        " --compendia-root {params.compendia_root}"
+        " --downloads-root {params.downloads_root}"
 
 
 # Check that all the reports were built correctly.

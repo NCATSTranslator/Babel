@@ -1,0 +1,173 @@
+import json
+import os
+
+import duckdb
+import pytest
+
+from src.exporters.duckdb_exporters import (
+    export_compendia_to_parquet,
+    export_conflation_to_parquet,
+    log_duckdb_settings_on_error,
+)
+from tests.conftest import CONFLATION_FIXTURE_ROWS
+
+# A minimal two-clique compendium in the same format write_compendium() produces.
+_COMPENDIUM_FIXTURE = [
+    {
+        "type": "biolink:SmallMolecule",
+        "ic": None,
+        "identifiers": [
+            {"i": "CHEBI:15422", "l": "ATP", "d": [], "t": []},
+            {"i": "PUBCHEM.COMPOUND:5957", "l": "", "d": [], "t": []},
+        ],
+        "preferred_name": "ATP",
+        "taxa": [],
+    },
+    {
+        "type": "biolink:SmallMolecule",
+        "ic": 42.0,
+        "identifiers": [
+            {"i": "CHEBI:15903", "l": "caffeine", "d": [], "t": []},
+        ],
+        "preferred_name": "caffeine",
+        "taxa": [],
+    },
+]
+
+
+@pytest.fixture
+def compendium_file(tmp_path):
+    path = tmp_path / "Chemical.txt"
+    with open(path, "w") as fout:
+        for record in _COMPENDIUM_FIXTURE:
+            fout.write(json.dumps(record) + "\n")
+    return str(path)
+
+
+@pytest.mark.unit
+def test_export_compendia_to_parquet_edge_biolink_type(compendium_file, tmp_path):
+    """Edge.parquet must contain biolink_type denormalized from each clique's type field."""
+    clique_parquet = str(tmp_path / "Clique.parquet")
+    edge_parquet = str(tmp_path / "Edge.parquet")
+    duckdb_file = str(tmp_path / "compendium.duckdb")
+
+    export_compendia_to_parquet(compendium_file, clique_parquet, edge_parquet, duckdb_file)
+
+    assert os.path.exists(edge_parquet), "Edge.parquet was not written"
+
+    rows = duckdb.execute(f"SELECT curie, biolink_type FROM read_parquet('{edge_parquet}') ORDER BY curie").fetchall()
+    by_curie = {curie: btype for curie, btype in rows}
+
+    # Every edge must carry the owning clique's biolink_type.
+    assert by_curie["CHEBI:15422"] == "biolink:SmallMolecule"
+    assert by_curie["PUBCHEM.COMPOUND:5957"] == "biolink:SmallMolecule"
+    assert by_curie["CHEBI:15903"] == "biolink:SmallMolecule"
+
+
+@pytest.mark.unit
+def test_export_compendia_to_parquet_edge_columns(compendium_file, tmp_path):
+    """Edge.parquet must contain the expected columns including the new biolink_type."""
+    clique_parquet = str(tmp_path / "Clique.parquet")
+    edge_parquet = str(tmp_path / "Edge.parquet")
+    duckdb_file = str(tmp_path / "compendium.duckdb")
+
+    export_compendia_to_parquet(compendium_file, clique_parquet, edge_parquet, duckdb_file)
+
+    columns = {col[0] for col in duckdb.execute(f"DESCRIBE SELECT * FROM read_parquet('{edge_parquet}')").fetchall()}
+    assert columns == {"clique_leader", "curie", "conflation", "clique_leader_prefix", "curie_prefix", "biolink_type"}
+
+
+@pytest.mark.unit
+def test_log_duckdb_settings_on_error_reraises_and_logs(caplog):
+    """On failure the helper should log the operation name and effective settings, then re-raise."""
+    con = duckdb.connect()
+    con.execute("SET threads=3")
+    with caplog.at_level("INFO"):
+        with pytest.raises(duckdb.Error):
+            with log_duckdb_settings_on_error(con, "my-test-operation"):
+                con.execute("SELECT * FROM a_table_that_does_not_exist")
+
+    assert "my-test-operation" in caplog.text
+    assert "effective settings" in caplog.text
+    # A couple of the diagnostic settings should be reported back.
+    assert "memory_limit=" in caplog.text
+    assert "threads=3" in caplog.text
+    # The on-error path also emits a memory snapshot for the failed operation.
+    assert "Memory snapshot (at failure of my-test-operation)" in caplog.text
+
+
+@pytest.mark.unit
+def test_log_duckdb_settings_on_error_passes_through_on_success():
+    """When the wrapped block succeeds the helper must not interfere with the result."""
+    con = duckdb.connect()
+    with log_duckdb_settings_on_error(con, "ok-operation"):
+        result = con.execute("SELECT 42").fetchone()
+    assert result == (42,)
+
+
+@pytest.mark.unit
+def test_export_conflation_to_parquet(geneprotein_conflation_file, tmp_path):
+    duckdb_file = str(tmp_path / "conflation.duckdb")
+    parquet_file = str(tmp_path / "Conflation.parquet")
+
+    export_conflation_to_parquet(geneprotein_conflation_file, "GeneProtein", duckdb_file, parquet_file)
+
+    assert os.path.exists(parquet_file)
+
+    rows = duckdb.execute(f"SELECT * FROM read_parquet('{parquet_file}') ORDER BY curie").fetchall()
+
+    # Build expected rows from the fixture definition so the test stays in sync.
+    expected = sorted(
+        [("GeneProtein", group[0], curie, curie.split(":")[0]) for group in CONFLATION_FIXTURE_ROWS for curie in group],
+        key=lambda r: r[2],
+    )
+    assert rows == expected
+
+
+@pytest.mark.unit
+def test_export_conflation_to_parquet_raises_on_existing_duckdb(geneprotein_conflation_file, tmp_path):
+    duckdb_file = str(tmp_path / "conflation.duckdb")
+    parquet_file = str(tmp_path / "Conflation.parquet")
+
+    # Create the duckdb file so the guard triggers.
+    open(duckdb_file, "w").close()
+
+    with pytest.raises(RuntimeError, match="Will not overwrite"):
+        export_conflation_to_parquet(geneprotein_conflation_file, "GeneProtein", duckdb_file, parquet_file)
+
+
+@pytest.mark.unit
+def test_export_conflation_conflation_type_stored(geneprotein_conflation_file, tmp_path):
+    duckdb_file = str(tmp_path / "conflation.duckdb")
+    parquet_file = str(tmp_path / "Conflation.parquet")
+
+    export_conflation_to_parquet(geneprotein_conflation_file, "DrugChemical", duckdb_file, parquet_file)
+
+    types = duckdb.execute(f"SELECT DISTINCT conflation_type FROM read_parquet('{parquet_file}')").fetchall()
+    assert types == [("DrugChemical",)]
+
+
+@pytest.mark.unit
+def test_export_conflation_leader_is_first_curie(geneprotein_conflation_file, tmp_path):
+    duckdb_file = str(tmp_path / "conflation.duckdb")
+    parquet_file = str(tmp_path / "Conflation.parquet")
+
+    export_conflation_to_parquet(geneprotein_conflation_file, "GeneProtein", duckdb_file, parquet_file)
+
+    leaders = set(duckdb.execute(f"SELECT DISTINCT conflation_leader FROM read_parquet('{parquet_file}')").fetchall())
+    expected_leaders = {(group[0],) for group in CONFLATION_FIXTURE_ROWS}
+    assert leaders == expected_leaders
+
+
+@pytest.mark.unit
+def test_export_conflation_curie_prefix(geneprotein_conflation_file, tmp_path):
+    duckdb_file = str(tmp_path / "conflation.duckdb")
+    parquet_file = str(tmp_path / "Conflation.parquet")
+
+    export_conflation_to_parquet(geneprotein_conflation_file, "GeneProtein", duckdb_file, parquet_file)
+
+    mismatched = duckdb.execute(
+        f"SELECT curie, curie_prefix FROM read_parquet('{parquet_file}') "
+        "WHERE split_part(curie, ':', 1) != curie_prefix"
+    ).fetchall()
+    assert mismatched == [], f"curie_prefix mismatch: {mismatched}"

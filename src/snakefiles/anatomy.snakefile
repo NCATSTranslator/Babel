@@ -85,7 +85,7 @@ rule get_anatomy_obo_relationships:
         emapa_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-EMAPA.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/get_anatomy_obo_relationships.tsv"
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
     run:
         anatomy.build_anatomy_obo_relationships(
             config["intermediate_directory"] + "/anatomy/concords",

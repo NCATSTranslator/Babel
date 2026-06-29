@@ -8,6 +8,7 @@ targeted test that has no generic equivalent.
 All pipeline tests are skipped by default unless PyTest is run with `--pipeline`.  Run with:
     uv run pytest tests/pipeline/test_mesh.py --pipeline --no-cov -v
 """
+
 import pytest
 
 from tests.pipeline.conftest import get_curies_from_ids_file
@@ -33,6 +34,5 @@ def test_chemicals_excludes_protein_and_macromolecule_descriptor_trees(mesh_pipe
     chem_ids = get_curies_from_ids_file(mesh_pipeline_outputs["chemicals"])
     overlap = chem_ids & excluded_mesh_tree_terms
     assert len(overlap) == 0, (
-        f"Found {len(overlap)} D05/D08/D12.776 descriptor terms in chemicals output: "
-        f"{sorted(overlap)[:10]}"
+        f"Found {len(overlap)} D05/D08/D12.776 descriptor terms in chemicals output: {sorted(overlap)[:10]}"
     )

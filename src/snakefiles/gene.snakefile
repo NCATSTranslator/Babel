@@ -156,7 +156,6 @@ rule get_umls_gene_protein_mappings:
             output.umls_gene_concords,
             output.umls_protein_concords,
         )
-
         write_concord_metadata(
             output.umls_ncbigene_metadata_yaml,
             name="get_umls_gene_protein_mappings",
@@ -198,6 +197,7 @@ rule gene_compendia:
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["gene_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["gene_outputs"])),
+        expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["gene_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/gene_compendia.tsv"
     resources:

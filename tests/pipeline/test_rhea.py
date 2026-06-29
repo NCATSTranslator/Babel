@@ -3,6 +3,7 @@
 Skipped by default unless pytest is run with --pipeline.  Run with:
     uv run pytest tests/pipeline/test_rhea.py --pipeline --no-cov -v
 """
+
 import pytest
 
 from tests.conftest import assert_concordance_file_valid, assert_labels_file_valid

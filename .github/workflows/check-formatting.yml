@@ -8,17 +8,20 @@ jobs:
     name: Check Python formatting with ruff
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
       - uses: astral-sh/ruff-action@v3
         with:
           args: "check --output-format github"
+      - uses: astral-sh/ruff-action@v3
+        with:
+          args: "format --check"
 
   check-formatting-with-snakefmt:
     name: Check Snakemake formatting with snakefmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v7
       - run: uv run snakefmt --check --compact-diff .
@@ -27,7 +30,7 @@ jobs:
     name: Check Markdown formatting with rumdl
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: rvben/rumdl@v0 # v0 = latest stable
         with:
           report-type: annotations

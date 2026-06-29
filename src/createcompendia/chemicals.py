@@ -10,7 +10,14 @@ import requests
 
 import src.datahandlers.mesh as mesh
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.babel_utils import (
+    get_prefixes,
+    get_user_agent,
+    glom,
+    read_identifier_file,
+    remove_overused_xrefs,
+    write_compendium,
+)
 from src.categories import (
     CHEMICAL_ENTITY,
     CHEMICAL_MIXTURE,
@@ -20,6 +27,7 @@ from src.categories import (
     POLYPEPTIDE,
     SMALL_MOLECULE,
 )
+from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.prefixes import (
@@ -105,17 +113,34 @@ def write_rxnorm_ids(infile, outfile):
 
 
 def build_chemical_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
-    umls.build_sets(mrconso, idfile, outfile, {"MSH": MESH, "DRUGBANK": DRUGBANK, "RXNORM": RXCUI}, provenance_metadata_yaml=metadata_yaml)
+    umls.build_sets(
+        mrconso,
+        idfile,
+        outfile,
+        {"MSH": MESH, "DRUGBANK": DRUGBANK, "RXNORM": RXCUI},
+        provenance_metadata_yaml=metadata_yaml,
+    )
 
 
 def build_chemical_rxnorm_relationships(conso, idfile, outfile, metadata_yaml):
-    umls.build_sets(conso, idfile, outfile, {"MSH": MESH, "DRUGBANK": DRUGBANK}, cui_prefix=RXCUI, provenance_metadata_yaml=metadata_yaml)
+    umls.build_sets(
+        conso,
+        idfile,
+        outfile,
+        {"MSH": MESH, "DRUGBANK": DRUGBANK},
+        cui_prefix=RXCUI,
+        provenance_metadata_yaml=metadata_yaml,
+    )
 
 
 def write_pubchem_ids(labelfile, smilesfile, outfile):
     # Trying to be memory efficient here.  We could just ingest the whole smilesfile which would make this code easier
     # but since they're already sorted, let's give it a shot
-    with open(labelfile) as inlabels, gzip.open(smilesfile, "rt", encoding="utf-8") as insmiles, open(outfile, "w") as outf:
+    with (
+        open(labelfile) as inlabels,
+        gzip.open(smilesfile, "rt", encoding="utf-8") as insmiles,
+        open(outfile, "w") as outf,
+    ):
         sn = -1
         flag_file_ended = False
         for labelline in inlabels:
@@ -293,7 +318,7 @@ def write_drugbank_ids(infile, outfile):
     written = set()
     with open(infile) as inf, open(outfile, "w") as outf:
         header_line = inf.readline()
-        assert header_line == "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", f"Incorrect header line in {infile}: {header_line}"
+        assert header_line == UNICHEM_REFERENCE_TSV_HEADER, f"Incorrect header line in {infile}: {header_line}"
         for line in inf:
             x = line.rstrip().split("\t")
             if x[1] == drugbank_id:
@@ -405,21 +430,68 @@ def write_gtopdb_ids(infile, outfile):
 def write_unichem_concords(structfile, reffile, outdir):
     inchikeys = read_inchikeys(structfile)
     concfiles = {}
+    row_counts = {}
+    double_prefix_warned = set()  # sources where we already logged the strip-warning
     for num, name in unichem_data_sources.items():
         concname = f"{outdir}/UNICHEM_{name}"
         print(concname)
         concfiles[num] = open(concname, "w")
-    with open(reffile) as inf:
-        header_line = inf.readline()
-        assert header_line == "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", f"Incorrect header line in {reffile}: {header_line}"
-        for line in inf:
-            x = line.rstrip().split("\t")
-            outf = concfiles[x[1]]
-            assert x[3] == "1"  # Only '1' (current) assignments should be in this file
-            # (see https://chembl.gitbook.io/unichem/definitions/what-is-an-assignment).
-            outf.write(f"{unichem_data_sources[x[1]]}:{x[2]}\toio:equivalent\t{inchikeys[x[0]]}\n")
-    for outf in concfiles.values():
-        outf.close()
+        row_counts[num] = 0
+    try:
+        with open(reffile) as inf:
+            header_line = inf.readline()
+            assert header_line == UNICHEM_REFERENCE_TSV_HEADER, f"Incorrect header line in {reffile}: {header_line}"
+            for line in inf:
+                x = line.rstrip().split("\t")
+                src_id = x[1]
+                compound_id = x[2]
+                expected_prefix = unichem_data_sources[src_id]
+                outf = concfiles[src_id]
+                assert x[3] == "1", (  # Only '1' (current) assignments should be in this file
+                    f"Expected assignment '1' (current) but got {x[3]!r} for src_id={src_id!r}, "
+                    f"compound_id={compound_id!r}; filter_unichem should have excluded non-current rows "
+                    f"(see https://chembl.gitbook.io/unichem/definitions/what-is-an-assignment)"
+                )
+
+                # Guard against UniChem embedding the prefix inside the compound ID.
+                # e.g. CHEBI source stores "CHEBI:12345" instead of bare "12345".
+                if ":" in compound_id:
+                    embedded_prefix, bare_id = compound_id.split(":", 1)
+                    if embedded_prefix == expected_prefix:
+                        # Double prefix — strip the embedded one and warn once per source.
+                        if src_id not in double_prefix_warned:
+                            logger.warning(
+                                f"UniChem source {src_id} ({expected_prefix}): compound ID already contains "
+                                f"the prefix (e.g. {compound_id!r}). Stripping embedded prefix. "
+                                f"Consider reporting this to UniChem."
+                            )
+                            double_prefix_warned.add(src_id)
+                        compound_id = bare_id
+                    else:
+                        raise ValueError(
+                            f"UniChem source {src_id} ({expected_prefix}): compound ID {compound_id!r} "
+                            f"contains an unexpected embedded prefix {embedded_prefix!r}. "
+                            f"Expected either a bare ID or one prefixed with {expected_prefix!r}. "
+                            f"Update unichem_data_sources in src/datahandlers/unichem.py if this source "
+                            f"has changed its identifier scheme."
+                        )
+
+                outf.write(f"{expected_prefix}:{compound_id}\toio:equivalent\t{inchikeys[x[0]]}\n")
+                row_counts[src_id] += 1
+    finally:
+        for outf in concfiles.values():
+            outf.close()
+
+    empty_sources = [(num, unichem_data_sources[num]) for num, count in row_counts.items() if count == 0]
+    if empty_sources:
+        descriptions = ", ".join(f"{name!r} (source ID {num!r})" for num, name in empty_sources)
+        raise RuntimeError(
+            f"UniChem reference file produced no entries for the following sources: {descriptions}. "
+            f"These sources may have been removed or renumbered in the current UniChem release. "
+            f"To fix: remove them from unichem_data_sources in src/datahandlers/unichem.py and "
+            f"from unichem_datasources (and chemical_labels/chemical_ids if present) in config.yaml, "
+            f"then rerun this step."
+        )
 
 
 def read_inchikeys(struct_file):
@@ -427,7 +499,7 @@ def read_inchikeys(struct_file):
     inchikeys = {}
     with gzip.open(struct_file, "rt") as inf:
         header_line = inf.readline()
-        assert header_line == "UCI\tSTANDARDINCHI\tSTANDARDINCHIKEY\n", f"Unexpected header line in {struct_file}: {header_line}"
+        assert header_line == UNICHEM_STRUCT_TSV_HEADER, f"Unexpected header line in {struct_file}: {header_line}"
         for sline in inf:
             line = sline.rstrip().split("\t")
             if len(line) == 0:
@@ -458,9 +530,15 @@ def combine_unichem(concordances, output):
                 # Get the prefix from the first row to determine if we need to remove overused xrefs
                 prefixes_in_file.add(Text.get_prefix(x[0]))
 
-        # Was there more than one prefix in the first column?
-        if len(prefixes_in_file) != 1:
-            raise RuntimeError(f"More than one prefix found in {infile}: {prefixes_in_file}. All UNICHEM files should have only one prefix.")
+        # Was there exactly one prefix in the first column?
+        if len(prefixes_in_file) == 0:
+            raise RuntimeError(
+                f"No prefixes found in {infile} (file may be empty or have no valid CURIE in column 1). All UNICHEM files should have exactly one prefix."
+            )
+        if len(prefixes_in_file) > 1:
+            raise RuntimeError(
+                f"Multiple prefixes found in {infile}: {prefixes_in_file}. All UNICHEM files should have exactly one prefix."
+            )
         prefix_to_check = prefixes_in_file.pop()
 
         # Only remove overused xrefs for specific prefixes
@@ -575,7 +653,9 @@ def build_drugcentral_relations(infile, outfile, metadata_yaml):
             if external_ns not in prefixmap:
                 continue
             # print('ok')
-            outf.write(f"{DRUGCENTRAL}:{parts[drugcentral_id_col]}\txref\t{prefixmap[external_ns]}:{parts[external_id_col]}\n")
+            outf.write(
+                f"{DRUGCENTRAL}:{parts[drugcentral_id_col]}\txref\t{prefixmap[external_ns]}:{parts[external_id_col]}\n"
+            )
 
     write_concord_metadata(
         metadata_yaml,
@@ -617,7 +697,18 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
     # THE SDF and XREF stuff are handled in the same function because knowing what we found in the SDF impacts
     # what we want to get out of the xrefs. But the function is quite unwieldy
     # READ SDF
-    ikeys = {x: x for x in ["chebiname", "chebiid", "secondarychebiid", "inchikey", "smiles", "keggcompounddatabaselinks", "pubchemdatabaselinks"]}
+    ikeys = {
+        x: x
+        for x in [
+            "chebiname",
+            "chebiid",
+            "secondarychebiid",
+            "inchikey",
+            "smiles",
+            "keggcompounddatabaselinks",
+            "pubchemdatabaselinks",
+        ]
+    }
     chebi_sdf_dat = read_sdf(sdf, ikeys)
     # CHEBIs in the sdf by definition have structure (the sdf is a structure file)
     structured_chebi = set(chebi_sdf_dat.keys())
@@ -639,7 +730,10 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
                 for secondary_id in secondary_ids:
                     propf.write(
                         Property(
-                            curie=cid, predicate=HAS_ALTERNATIVE_ID, value=secondary_id, source=f"Listed as a CHEBI secondary ID in the ChEBI SDF file ({sdf})"
+                            curie=cid,
+                            predicate=HAS_ALTERNATIVE_ID,
+                            value=secondary_id,
+                            source=f"Listed as a CHEBI secondary ID in the ChEBI SDF file ({sdf})",
                         ).to_json_line()
                     )
             if kk in props:
@@ -735,11 +829,11 @@ def get_mesh_relationships(mesh_id_file, cas_out, unii_out, cas_metadata, unii_m
 
 def get_wikipedia_relationships(outfile, config, metadata_yaml):
     url = "https://query.wikidata.org/sparql?format=json&query=SELECT ?chebi ?mesh WHERE { ?compound wdt:P683 ?chebi . ?compound wdt:P486 ?mesh. }"
-    results = requests.get(url, headers={
-        "User-Agent": config['http']['User-Agent']
-    }).json()
+    results = requests.get(url, headers={"User-Agent": get_user_agent()}).json()
     pairs = [
-        (f"{MESH}:{r['mesh']['value']}", f"{CHEBI}:{r['chebi']['value']}") for r in results["results"]["bindings"] if not r["mesh"]["value"].startswith("M")
+        (f"{MESH}:{r['mesh']['value']}", f"{CHEBI}:{r['chebi']['value']}")
+        for r in results["results"]["bindings"]
+        if not r["mesh"]["value"].startswith("M")
     ]
     # Wikidata is great, except when it sucks.   One thing it likes to do is to
     # have multiple CHEBIs for a concept, say ignoring stereochemistry or
@@ -766,7 +860,9 @@ def get_wikipedia_relationships(outfile, config, metadata_yaml):
     )
 
 
-def build_untyped_compendia(concordances, identifiers, unichem_partial, untyped_concord, type_file, metadata_yaml, input_metadata_yamls):
+def build_untyped_compendia(
+    concordances, identifiers, unichem_partial, untyped_concord, type_file, metadata_yaml, input_metadata_yamls
+):
     """:concordances: a list of files from which to read relationships
     :identifiers: a list of files from which to read identifiers and optional categories"""
     dicts = read_partial_unichem(unichem_partial)
@@ -840,7 +936,9 @@ def build_compendia(type_file, untyped_compendia_file, properties_jsonl_gz_files
     logger.info(f"Loaded {len(untyped_sets)} untyped sets from {untyped_compendia_file}: {get_memory_usage_summary()}")
 
     typed_sets = create_typed_sets(untyped_sets, types)
-    logger.info(f"Created {len(typed_sets)} typed sets from {len(untyped_sets)} untyped sets: {get_memory_usage_summary()}")
+    logger.info(
+        f"Created {len(typed_sets)} typed sets from {len(untyped_sets)} untyped sets: {get_memory_usage_summary()}"
+    )
 
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]
@@ -876,7 +974,15 @@ def create_typed_sets(eqsets, types):
     :param eqsets: A list of lists of identifiers (should NOT be a list of LabeledIDs, but a list of strings).
     :param types: A dictionary of known types for each identifier. (Some identifiers don't have known types.)
     """
-    order = [DRUG, MOLECULAR_MIXTURE, SMALL_MOLECULE, POLYPEPTIDE, COMPLEX_MOLECULAR_MIXTURE, CHEMICAL_MIXTURE, CHEMICAL_ENTITY]
+    order = [
+        DRUG,
+        MOLECULAR_MIXTURE,
+        SMALL_MOLECULE,
+        POLYPEPTIDE,
+        COMPLEX_MOLECULAR_MIXTURE,
+        CHEMICAL_MIXTURE,
+        CHEMICAL_ENTITY,
+    ]
     typed_sets = defaultdict(set)
     # logging.warning(f"create_typed_sets: eqsets={eqsets}, types=...")
     for equivalent_ids in eqsets:
@@ -898,7 +1004,7 @@ def create_typed_sets(eqsets, types):
                 if len(pctypes) == 1:
                     typed_sets[list(pctypes)[0]].add(equivalent_ids)
                     found = True
-                elif pctypes == {"biolink:SmallMolecule", "biolink:MolecularMixture"}:
+                elif pctypes == {SMALL_MOLECULE, MOLECULAR_MIXTURE}:
                     # This is a common case (8,178 cases in 2022oct13) which occurs in cases where the InChI for
                     # e.g. water (SMILES: O) and hydron;hydroxide ([H+].[OH-]) are identical, causing them to be
                     # merged. (They may also be merged if we combine two identifiers into a single clique that is
@@ -909,11 +1015,11 @@ def create_typed_sets(eqsets, types):
                     # everything we're _sure_ is a biolink:MolecularMixture into a separate clique, and leave all
                     # the other identifiers as a biolink:SmallMolecule.
                     #
-                    # First reported in https://github.com/TranslatorSRI/Babel/issues/83
+                    # First reported in https://github.com/NCATSTranslator/Babel/issues/83
                     molecular_mixture_ids = set()
                     all_other_ids = set()
                     for eq_id in equivalent_ids:
-                        if eq_id in types and types[eq_id] == "biolink:MolecularMixture":
+                        if eq_id in types and types[eq_id] == MOLECULAR_MIXTURE:
                             molecular_mixture_ids.add(eq_id)
                         else:
                             all_other_ids.add(eq_id)
@@ -924,11 +1030,13 @@ def create_typed_sets(eqsets, types):
                         + f"into a biolink:MolecularMixture ({molecular_mixture_ids}) and "
                         + f"a biolink:SmallMolecule ({all_other_ids})"
                     )
-                    typed_sets["biolink:MolecularMixture"].add(frozenset(molecular_mixture_ids))
-                    typed_sets["biolink:SmallMolecule"].add(frozenset(all_other_ids))
+                    typed_sets[MOLECULAR_MIXTURE].add(frozenset(molecular_mixture_ids))
+                    typed_sets[SMALL_MOLECULE].add(frozenset(all_other_ids))
                     found = True
                 else:
-                    logging.warning(f"An unexpected number of PUBCHEM types found for {equivalent_ids} ({len(pctypes)}): {pctypes}")
+                    logging.warning(
+                        f"An unexpected number of PUBCHEM types found for {equivalent_ids} ({len(pctypes)}): {pctypes}"
+                    )
         if not found:
             typecounts = defaultdict(int)
             for eid in equivalent_ids:
