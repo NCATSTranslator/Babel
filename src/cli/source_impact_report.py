@@ -20,7 +20,7 @@ import logging
 import pathlib
 import subprocess
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 
 import src.createcompendia.anatomy as anatomy
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
@@ -111,13 +111,15 @@ def _compute_synthetic_diff(
     return diff, after_types
 
 
-def _final_compendium_breakdown(
+def _iter_pipeline_contributions(
     contribution: SourceContribution,
     pipelines: list[str],
-    compendia_root: pathlib.Path,
-) -> dict[str, dict[str, int]]:
-    """Count how many source CURIEs land in each compendium file per pipeline."""
-    breakdown: dict[str, dict[str, int]] = {}
+) -> Iterator[tuple[str, dict, frozenset[str]]]:
+    """Yield ``(pipeline, config, source_curies)`` for each in-scope pipeline.
+
+    Skips pipelines that have no registered ``PIPELINE_CONFIG`` entry or no contribution
+    from this source, so the per-pipeline consumers don't each re-derive that filter.
+    """
     for st in pipelines:
         cfg = PIPELINE_CONFIG.get(st)
         if cfg is None:
@@ -125,7 +127,17 @@ def _final_compendium_breakdown(
         stc = contribution.by_pipeline.get(st)
         if stc is None:
             continue
-        source_curies = stc.all_curies
+        yield st, cfg, stc.all_curies
+
+
+def _final_compendium_breakdown(
+    contribution: SourceContribution,
+    pipelines: list[str],
+    compendia_root: pathlib.Path,
+) -> dict[str, dict[str, int]]:
+    """Count how many source CURIEs land in each compendium file per pipeline."""
+    breakdown: dict[str, dict[str, int]] = {}
+    for st, cfg, source_curies in _iter_pipeline_contributions(contribution, pipelines):
         per_file: dict[str, int] = {}
         for fname in cfg["compendium_files"]:
             path = compendia_root / fname
@@ -165,15 +177,7 @@ def _remote_comparison_summary(
     summary: dict[str, dict[str, int]] = {}
     base = remote_url.rstrip("/")
 
-    for st in pipelines:
-        cfg = PIPELINE_CONFIG.get(st)
-        if cfg is None:
-            continue
-        stc = contribution.by_pipeline.get(st)
-        if stc is None:
-            continue
-        source_curies = stc.all_curies
-
+    for st, cfg, source_curies in _iter_pipeline_contributions(contribution, pipelines):
         remote_paths: list[pathlib.Path] = []
         current_paths: list[pathlib.Path] = []
         missing = 0

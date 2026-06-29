@@ -492,13 +492,9 @@ def _render_clique_impact(
                     elif c in ec.preexisting_source_curies:
                         markers.append(f"**(existing identifier, also added by {name})**")
                     if c in ec.added_source_curies or c in ec.preexisting_source_curies:
-                        # Judge survival on the *clique's* assigned biolink type — the single
-                        # node_type create_node() filters every member's prefix against.
-                        _, needs_reg = prefix_survives(c, biolink_type, lookup.prefix_priority_by_type)
-                        if needs_reg:
-                            markers.append(
-                                f"**(NOT emitted — prefix not registered in Biolink Model for `{biolink_type}`)**"
-                            )
+                        reg = _reg_marker(c, biolink_type, lookup.prefix_priority_by_type)
+                        if reg:
+                            markers.append(reg)
                     if c == after_pref:
                         markers.append("**(preferred)**")
                     if before_pref != after_pref and c == before_pref:
