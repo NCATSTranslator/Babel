@@ -1,7 +1,7 @@
 """CLI for the per-source impact report.
 
 Invocation:
-    uv run python -m src.cli.source_impact_report --source EMAPA
+    uv run source-impact-report --source EMAPA
 
 The CLI discovers where the source contributes (across one or more pipelines),
 runs a synthetic re-glom with and without the source for each registered pipeline,
