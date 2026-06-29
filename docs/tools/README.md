@@ -35,3 +35,26 @@ separate subcommands, but they live in one package because both parse the same r
 `pyoxigraph.Store`, samples RSS, and extrapolates the full-load peak, so you can size a rule's
 `mem=` resource or a test's `min_memory_gb` guard from a machine far smaller than the eventual
 requirement. See [../../tools/memory/README.md](../../tools/memory/README.md).
+
+## `tools/clique_diff` — diff the cliques of two builds
+
+`tools/clique_diff` compares the finished JSONL compendia of two Babel builds and reports
+which cliques split, merged, or lost members, and — most usefully — which CURIEs were
+*dropped* from the output entirely.
+
+```bash
+uv run babel-clique-diff \
+    --before <baseline-compendia-dir> --after <comparison-compendia-dir> \
+    --files Disease.txt PhenotypicFeature.txt \
+    --out-csv diff.csv --out-json summary.json
+```
+
+It is distinct from `source-impact-report`: that answers "what does adding *source X* do?"
+by re-glomming intermediate ids/concords with vs. without one source; this answers "how did
+the cliques change between *build A* and *build B*?" given the same inputs but different code,
+config, or upstream data. Because it works on finished compendia rather than glom state, it
+can compare a local build against a published `stars.renci.org` build without re-running
+glom, which makes it a fit for validating any glom-logic change (close-match handling,
+`unique_prefixes`, overuse filtering) or as a release regression check. The
+[MONDO close-match guard analysis](../pipelines/diseasephenotype/mondo-close-match-guard/README.md)
+is a worked example.
