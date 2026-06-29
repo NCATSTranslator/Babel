@@ -119,6 +119,7 @@ Create `docs/sources/<SOURCE>/` with at least:
 
 If the details cannot be sufficiently described in the README.md file, you can expand
 into other files that describe complexity around different steps in this process:
+
 - `download.md` — where the data comes from and how it is fetched.
 - `filtering.md` — any subhierarchy filters, ignored xref namespaces, or curation rules.
 - `mappings.md` — how cross-references are extracted and any special handling.
