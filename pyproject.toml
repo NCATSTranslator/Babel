@@ -34,6 +34,7 @@ dependencies = [
 [project.scripts]
 babel-slurm-errors = "tools.slurm.errors:main"
 babel-slurm-resources = "tools.slurm.resources:main"
+babel-clique-diff = "tools.clique_diff.diff:main"
 source-impact-report = "src.cli.source_impact_report:main"
 
 [tool.uv]
