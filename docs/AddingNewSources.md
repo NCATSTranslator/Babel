@@ -179,7 +179,7 @@ Caveats:
 
 - A previous interrupted run can leave the working directory locked. Clear it with
   `uv run snakemake --unlock` before retrying.
-- UberGraph-backed rules carry `retries: 10`, but a full UberGraph outage will propagate.
+- UberGraph-backed rules carry `retries: 3`, but a full UberGraph outage will propagate.
 - The full target rebuilds upstream sources, so numbers reflect data fetched at build time.
 
 ### Generating the report without a full pipeline build
