@@ -423,14 +423,13 @@ docstrings, and when to add a pipeline test) that the individual conventions bel
   This is cheap, survives refactors, and is the first thing read when revisiting an ingest. Name
   functions for what they do — e.g. `fetch_*` (not `get_*`) when the call hits the network.
 
-- **Test documentation** — every test function should have a docstring that explains what is being
-  tested and what the expectation is. A good test docstring will explain the scenario being tested
-  (e.g. "A source CURIE already in the before-clique via xref is reported as preexisting, not
-  added"). Group related tests with a `# ---` section comment and a label (e.g.
-  `# Basic classification`, `# Edge cases`, `# Utilities`). Documentation at the top of the test
-  file can be useful in explaining what this set of tests is testing. Update the module docstring to
-  list the groups and briefly describe what each covers. This makes it easy to scan a test file for
-  coverage without reading every body.
+- **Test documentation** — every test function should have a docstring that explains (a) what
+  scenario is being tested and (b) what the expected outcome is. "Should" phrasing makes both
+  explicit (e.g. "``excluded_sources`` should skip ids and concords — FOO:2 must not appear in
+  the clique dict"). Group related tests with a `# --- Label ---` section comment in the code
+  (e.g. `# --- Basic merging ---`, `# --- Edge cases ---`). The module docstring should describe
+  what the file covers overall; do **not** duplicate the group list there — the section headers
+  in the code are the authoritative, always-current index.
 
 - **Test assertion helpers** — `tests/conftest.py` exports `assert_labels_file_valid`,
   `assert_synonyms_file_valid`, `assert_ids_file_valid`, `assert_concordance_file_valid`,
