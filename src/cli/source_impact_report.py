@@ -203,14 +203,14 @@ def _remote_comparison_summary(
             if not cached.exists():
                 url = f"{base}/compendia/{fname}"
                 logger.info("downloading remote compendium %s", url)
-                resp = requests.get(url, stream=True, timeout=60)
-                if not resp.ok:
-                    logger.warning("remote download failed for %s: %s %s", url, resp.status_code, resp.reason)
-                    missing += 1
-                    continue
-                with cached.open("wb") as out:
-                    for chunk in resp.iter_content(chunk_size=64 * 1024):
-                        out.write(chunk)
+                with requests.get(url, stream=True, timeout=60) as resp:
+                    if not resp.ok:
+                        logger.warning("remote download failed for %s: %s %s", url, resp.status_code, resp.reason)
+                        missing += 1
+                        continue
+                    with cached.open("wb") as out:
+                        for chunk in resp.iter_content(chunk_size=64 * 1024):
+                            out.write(chunk)
             # Only compare a current compendium against its remote counterpart when we
             # actually obtained that counterpart; otherwise a missing remote file would make
             # every current clique in it look "current only" and inflate the net-new estimate.
