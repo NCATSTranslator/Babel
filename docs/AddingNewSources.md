@@ -275,7 +275,7 @@ The three committed files:
   `preferred_id_would_survive, needs_biolink_registration, unsupported_prefixes`.
 - **`modified-cliques.csv`** — one row per source identifier landing in an existing clique.
   Includes `change_kind` (`expanded`/`merged`), `added_kind` (`added` = structurally new,
-  `promoted` = already present via xref), survival columns, and the clique's full
+  `preexisting` = already present via xref), survival columns, and the clique's full
   `equivalent_ids`. Filter `added_kind = added` for structural growth, or
   `would_be_added = false` for identifiers that will be dropped downstream.
 - **`new-xrefs.tsv`** — one row per cross-reference touching a source CURIE, scanned across

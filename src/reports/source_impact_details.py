@@ -9,7 +9,7 @@ reviews in a PR — one subdirectory (``<output-stem>/``) beside the markdown re
 - ``modified-cliques.json`` / ``modified-cliques.csv`` — every existing clique the source
   expands or merges. The JSON keeps the full before/after structure; the CSV has one row
   per source identifier landing in the clique, flagged ``added`` (structurally new) or
-  ``promoted`` (already pulled in via another source's xref, now a typed identifier).
+  ``preexisting`` (already pulled in via another source's xref, now a typed identifier).
 - ``new-xrefs.tsv`` — every cross-reference row touching a source CURIE, with the predicate
   (which for SSSOM-style sources distinguishes exact/close match) and the concord file that
   asserted it.
@@ -65,7 +65,7 @@ class _ModifiedClique:
     after_clique: frozenset[str]
     before_cliques: tuple[frozenset[str], ...]
     added: frozenset[str]
-    promoted: frozenset[str]
+    preexisting: frozenset[str]
     after_preferred: str
     before_preferred: str | None
 
@@ -94,7 +94,7 @@ def _modified_cliques(
                     after_clique=ec.after_clique,
                     before_cliques=(ec.before_clique,),
                     added=ec.added_source_curies,
-                    promoted=ec.preexisting_source_curies,
+                    preexisting=ec.preexisting_source_curies,
                     after_preferred=preferred_curie(ec.after_clique, biolink_type, lookup.prefix_priority_by_type),
                     before_preferred=preferred_curie(ec.before_clique, biolink_type, lookup.prefix_priority_by_type),
                 )
@@ -110,7 +110,7 @@ def _modified_cliques(
                     after_clique=mc.after_clique,
                     before_cliques=mc.before_cliques,
                     added=mc.source_curies_involved - before_union,
-                    promoted=mc.source_curies_involved & before_union,
+                    preexisting=mc.source_curies_involved & before_union,
                     after_preferred=preferred_curie(mc.after_clique, biolink_type, lookup.prefix_priority_by_type),
                     before_preferred=None,
                 )
@@ -197,7 +197,7 @@ def write_modified_cliques_csv(
     """Write one row per source identifier landing in a modified clique.
 
     Returns the number of (identifier) rows written. ``added_kind`` is ``added`` for a
-    structurally-new identifier and ``promoted`` for one that was already pulled into the
+    structurally-new identifier and ``preexisting`` for one that was already pulled into the
     clique via another source's cross-reference and is now a typed identifier.
     """
     header = [
@@ -221,7 +221,7 @@ def write_modified_cliques_csv(
         ordered = sort_clique_for_display(m.after_clique, m.biolink_type, lookup.prefix_priority_by_type)
         equivalent_ids = PIPE.join(ordered)
         preferred_label = curie_label(m.after_preferred, lookup.labels_by_prefix) or ""
-        for added_kind, curie_set in (("added", m.added), ("promoted", m.promoted)):
+        for added_kind, curie_set in (("added", m.added), ("preexisting", m.preexisting)):
             for curie in curie_set:
                 # Judge survival on the *clique's* assigned biolink type, since that is the
                 # single node_type NodeFactory.create_node() filters every member's prefix
@@ -270,9 +270,9 @@ def write_modified_cliques_json(
         # Per-added-identifier survival, judged on the *clique's* assigned biolink type —
         # the single node_type create_node() filters every member's prefix against. The
         # ``declared_biolink_type`` field records the identifier's own declared type for
-        # context. The flat added/promoted lists are kept for back-compat; this enriches them.
+        # context. The flat added/preexisting lists are kept for back-compat; this enriches them.
         added_curie_details = []
-        for kind, curie_set in (("added", m.added), ("promoted", m.promoted)):
+        for kind, curie_set in (("added", m.added), ("preexisting", m.preexisting)):
             for curie in sorted(curie_set):
                 own_type = types.get(curie)
                 would_be_added, needs_reg = prefix_survives(curie, m.biolink_type, lookup.prefix_priority_by_type)
@@ -298,7 +298,7 @@ def write_modified_cliques_json(
                 "before_clique_leaders": sorted(clique_leader(bc) for bc in m.before_cliques),
                 "before_cliques": [sorted(bc) for bc in m.before_cliques],
                 "added_source_curies": sorted(m.added),
-                "preexisting_source_curies": sorted(m.promoted),
+                "preexisting_source_curies": sorted(m.preexisting),
                 "added_curie_details": added_curie_details,
                 "after_members": members(m.after_clique),
             }

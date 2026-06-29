@@ -375,7 +375,7 @@ def _render_clique_impact(
         link = _detail_link(
             details_dirname,
             "modified-cliques.csv",
-            f"Full list of modified cliques (one row per added/promoted {name} identifier)",
+            f"Full list of modified cliques (one row per added/preexisting {name} identifier)",
         )
         if link:
             lines.append(link)

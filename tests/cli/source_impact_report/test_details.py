@@ -105,7 +105,7 @@ def test_detail_files_written_with_expected_content(synthetic_intermediate, tmp_
     assert ids == {"NEWSRC:1", "NEWSRC:4"}
     assert all(r["member_count"] == "1" for r in new_cliques)
 
-    # modified-cliques.csv — one row per added/promoted identifier. The expanded clique
+    # modified-cliques.csv — one row per added/preexisting identifier. The expanded clique
     # gains NEWSRC:2 and the merge is bridged by NEWSRC:3, both structurally new.
     modified = _read_csv(details / "modified-cliques.csv")
     added = {r["added_id"] for r in modified if r["added_kind"] == "added"}
