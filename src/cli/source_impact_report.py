@@ -46,6 +46,12 @@ from src.util import get_logger
 logger = get_logger(__name__)
 
 
+# Signature of a pipeline's clique-computation function as registered in PIPELINE_CONFIG.
+# Each implementation accepts ``(concordances, identifiers, *, excluded_sources=None)``
+# and returns ``(clique_dict, types_dict)`` — a union-find clique mapping and a
+# CURIE → declared biolink type map built from the ids files.  The CLI calls it twice
+# per source (once with all inputs, once with the source excluded) to produce the
+# synthetic before/after diff.
 ComputeCliquesFn = Callable[..., tuple[dict, dict]]
 
 
