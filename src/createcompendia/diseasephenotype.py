@@ -387,8 +387,9 @@ def compute_cliques_for_impact_report(
                 # close-match object). Because no clique ever contains the literal predicate
                 # string, glom()'s `close=` guard never matches and has effectively been a no-op.
                 # Fixing it to x[2] activates the guard and changes disease clique merging
-                # broadly, so it is deferred to a dedicated follow-up PR with its own before/after
-                # impact analysis rather than riding along with the MP addition.
+                # broadly (it drops ~1,219 MEDDRA identifiers from Disease.txt), so it is deferred
+                # to a dedicated follow-up PR (#883) with its own before/after impact analysis
+                # rather than riding along with the MP addition.
                 x = tuple(stripped.split("\t"))
                 if len(x) != 3:
                     raise RuntimeError(f'Line "{stripped}" is not a valid MONDO_close entry: {x}')
