@@ -530,7 +530,7 @@ def mp_pipeline_outputs(ubergraph_connection, regenerate):
 def _write_mp_concord(concord_path: str) -> None:
     os.makedirs(os.path.dirname(concord_path), exist_ok=True)
     with open(concord_path, "w") as mp_file:
-        build_sets("MP:0000001", {MP: mp_file}, "xref")
+        build_sets(f"{MP}:0000001", {MP: mp_file}, "xref")
 
 
 # ---------------------------------------------------------------------------
