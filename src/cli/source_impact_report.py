@@ -31,7 +31,15 @@ from src.model.clique_diff import (
     load_compendium,
 )
 from src.model.source import SourceContribution, discover_source, scan_concords_for_curies
-from src.reports.source_impact import LookupContext, load_labels_for_prefixes, render_json, render_markdown
+from src.reports.source_impact import (
+    EXPANDED_SAMPLE_LIMIT,
+    PURE_NEW_SAMPLE_LIMIT,
+    SAMPLE_LIMIT,
+    LookupContext,
+    load_labels_for_prefixes,
+    render_json,
+    render_markdown,
+)
 from src.reports.source_impact_details import write_detail_files
 from src.util import get_logger
 
@@ -415,6 +423,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "subdirectory beside the markdown report.",
     )
     parser.add_argument("--format", choices=("md", "json", "both"), default="md")
+    parser.add_argument(
+        "--sample-limit",
+        type=int,
+        default=None,
+        help="Maximum number of sample merges to show per pipeline (default: 3).",
+    )
+    parser.add_argument(
+        "--pure-new-sample-limit",
+        type=int,
+        default=None,
+        help="Maximum number of sample pure-new cliques to show per pipeline (default: 3).",
+    )
+    parser.add_argument(
+        "--expanded-sample-limit",
+        type=int,
+        default=None,
+        help="Maximum number of sample expanded cliques to show per pipeline (default: 3).",
+    )
     parser.add_argument("--verbose", "-v", action="store_true")
     return parser.parse_args(argv)
 
@@ -426,6 +452,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
         logger.setLevel(logging.DEBUG)
+
+    sample_limit = args.sample_limit if args.sample_limit is not None else SAMPLE_LIMIT
+    pure_new_sample_limit = args.pure_new_sample_limit if args.pure_new_sample_limit is not None else PURE_NEW_SAMPLE_LIMIT
+    expanded_sample_limit = args.expanded_sample_limit if args.expanded_sample_limit is not None else EXPANDED_SAMPLE_LIMIT
 
     intermediate_root = pathlib.Path(args.intermediate_root)
     compendia_root = pathlib.Path(args.compendia_root)
@@ -520,6 +550,9 @@ def main(argv: list[str] | None = None) -> int:
             remote_summary=remote_summary,
             lookup=lookup,
             details_dirname=details_dirname,
+            sample_limit=sample_limit,
+            pure_new_sample_limit=pure_new_sample_limit,
+            expanded_sample_limit=expanded_sample_limit,
         )
         output_path.write_text(md)
         logger.info("wrote markdown report to %s", output_path)
@@ -545,6 +578,9 @@ def main(argv: list[str] | None = None) -> int:
             babel_commit=babel_commit,
             remote_url=args.remote_url,
             remote_summary=remote_summary,
+            sample_limit=sample_limit,
+            pure_new_sample_limit=pure_new_sample_limit,
+            expanded_sample_limit=expanded_sample_limit,
         )
         json_path = output_path.with_suffix(".json")
         json_path.write_text(json_payload)

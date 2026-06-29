@@ -301,6 +301,10 @@ def _render_clique_impact(
     diffs_by_pipeline: dict[str, SourceImpactDiff],
     lookup: LookupContext,
     details_dirname: str | None = None,
+    *,
+    sample_limit: int = SAMPLE_LIMIT,
+    pure_new_sample_limit: int = PURE_NEW_SAMPLE_LIMIT,
+    expanded_sample_limit: int = EXPANDED_SAMPLE_LIMIT,
 ) -> list[str]:
     lines: list[str] = ["## 4. Clique impact", ""]
     lines.append(
@@ -386,7 +390,7 @@ def _render_clique_impact(
             lines.append("")
 
         if diff.merged_cliques:
-            lines.append(f"#### Sample merges (up to {SAMPLE_LIMIT})")
+            lines.append(f"#### Sample merges (up to {sample_limit})")
             merged_sorted = sorted(
                 diff.merged_cliques,
                 key=lambda mc: (
@@ -395,19 +399,19 @@ def _render_clique_impact(
                     clique_leader(mc.after_clique),
                 ),
             )
-            for mc in merged_sorted[:SAMPLE_LIMIT]:
+            for mc in merged_sorted[:sample_limit]:
                 bridge_curie = sorted(mc.source_curies_involved)[0]
                 leaders = ", ".join(clique_leader(bc) for bc in mc.before_cliques)
                 lines.append(f"- {bridge_curie} bridges {leaders}")
             lines.append("")
 
         if diff.pure_new_cliques:
-            lines.append(f"#### Sample pure-new cliques (up to {PURE_NEW_SAMPLE_LIMIT})")
+            lines.append(f"#### Sample pure-new cliques (up to {pure_new_sample_limit})")
             ordered = sorted(
                 diff.pure_new_cliques,
                 key=lambda c: _pure_new_rank(c, lookup.labels_by_prefix),
             )
-            for clique in ordered[:PURE_NEW_SAMPLE_LIMIT]:
+            for clique in ordered[:pure_new_sample_limit]:
                 biolink_type = classifier(clique, types) if classifier else None
                 if len(clique) == 1:
                     only = next(iter(clique))
@@ -460,7 +464,7 @@ def _render_clique_impact(
             promotion_only_samples.sort(key=_rank)
             preferred_change_n = len(preferred_change_samples)
 
-            lines.append(f"#### Sample expanded cliques (up to {EXPANDED_SAMPLE_LIMIT})")
+            lines.append(f"#### Sample expanded cliques (up to {expanded_sample_limit})")
             lines.append("")
             lines.append(
                 f"Of the {_fmt(expanded_n)} cliques that contain {name} identifiers "
@@ -472,7 +476,7 @@ def _render_clique_impact(
                 f"are listed in the same order they would appear in the compendium "
                 f"(biolink prefix priority, then lexicographic within prefix)."
             )
-            chosen = (preferred_change_samples + truly_grown_samples + promotion_only_samples)[:EXPANDED_SAMPLE_LIMIT]
+            chosen = (preferred_change_samples + truly_grown_samples + promotion_only_samples)[:expanded_sample_limit]
             for ec, before_pref, after_pref, biolink_type in chosen:
                 markers_for_clique: list[str] = []
                 if before_pref != after_pref:
@@ -517,6 +521,9 @@ def render_markdown(
     remote_summary: dict[str, dict[str, int]] | None = None,
     lookup: LookupContext | None = None,
     details_dirname: str | None = None,
+    sample_limit: int = SAMPLE_LIMIT,
+    pure_new_sample_limit: int = PURE_NEW_SAMPLE_LIMIT,
+    expanded_sample_limit: int = EXPANDED_SAMPLE_LIMIT,
 ) -> str:
     name = contribution.name
     lookup = lookup or LookupContext()
@@ -632,7 +639,17 @@ def render_markdown(
         lines.append("- (no pipelines discovered)")
     lines.append("")
 
-    lines.extend(_render_clique_impact(name, diffs_by_pipeline, lookup, details_dirname))
+    lines.extend(
+        _render_clique_impact(
+            name,
+            diffs_by_pipeline,
+            lookup,
+            details_dirname,
+            sample_limit=sample_limit,
+            pure_new_sample_limit=pure_new_sample_limit,
+            expanded_sample_limit=expanded_sample_limit,
+        )
+    )
 
     if remote_summary:
         lines.extend(_render_remote_section(remote_summary))
@@ -649,6 +666,9 @@ def render_json(
     babel_commit: str,
     remote_url: str | None = None,
     remote_summary: dict[str, dict[str, int]] | None = None,
+    sample_limit: int = SAMPLE_LIMIT,
+    pure_new_sample_limit: int = PURE_NEW_SAMPLE_LIMIT,
+    expanded_sample_limit: int = EXPANDED_SAMPLE_LIMIT,
 ) -> str:
     by_pipeline: dict[str, dict] = {}
     for st, stc in contribution.by_pipeline.items():
@@ -678,12 +698,12 @@ def render_json(
                 for mc in sorted(
                     diff.merged_cliques,
                     key=lambda mc: (-len(mc.before_cliques), clique_leader(mc.after_clique)),
-                )[:SAMPLE_LIMIT]
+                )[:sample_limit]
             ],
             "pure_new_samples": [
                 sorted(c)
                 for c in sorted(diff.pure_new_cliques, key=lambda c: (-len(c), clique_leader(c)))[
-                    :PURE_NEW_SAMPLE_LIMIT
+                    :pure_new_sample_limit
                 ]
             ],
             "truly_grown_clique_count": sum(1 for ec in diff.expanded_cliques if ec.added_source_curies),
@@ -698,7 +718,7 @@ def render_json(
                 for ec in sorted(
                     diff.expanded_cliques,
                     key=lambda ec: (-len(ec.after_clique), clique_leader(ec.after_clique)),
-                )[:EXPANDED_SAMPLE_LIMIT]
+                )[:expanded_sample_limit]
             ],
         }
 
