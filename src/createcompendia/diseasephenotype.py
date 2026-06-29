@@ -380,19 +380,20 @@ def compute_cliques_for_impact_report(
                 if not stripped:
                     continue
                 # MONDO_close is a 3-column concord (subject, predicate, object), written by
-                # ubergraph.build_sets() exactly like the regular concords below.
+                # ubergraph.build_sets() exactly like the regular concords below. We key each
+                # MONDO subject to its close-match *objects* (column 3) so glom()'s `close=`
+                # guard can block a close (but not exact) match from collapsing into the exact
+                # clique; the predicate (column 2, e.g. "oio:closeMatch") is skipped, mirroring
+                # the (stuff[0], stuff[2]) parsing used for every other concord in this function.
                 #
-                # NOTE: this intentionally preserves the long-standing behaviour from `main` of
-                # keying on x[1] (the predicate, e.g. "oio:closeMatch") rather than x[2] (the
-                # close-match object). Because no clique ever contains the literal predicate
-                # string, glom()'s `close=` guard never matches and has effectively been a no-op.
-                # Fixing it to x[2] activates the guard and changes disease clique merging
-                # broadly, so it is deferred to a dedicated follow-up PR with its own before/after
-                # impact analysis rather than riding along with the MP addition.
+                # Historically this keyed on x[1] (the predicate) rather than x[2], so no clique
+                # ever contained the literal close-match value and the guard was a silent no-op.
+                # See docs/pipelines/diseasephenotype/mondo-close-match-guard/ for the before/after
+                # impact analysis of activating it.
                 x = tuple(stripped.split("\t"))
                 if len(x) != 3:
                     raise RuntimeError(f'Line "{stripped}" is not a valid MONDO_close entry: {x}')
-                close_mondos[x[0]].add(x[1])
+                close_mondos[x[0]].add(x[2])
 
     for infile in iterated_concords:
         if path.basename(infile) in excluded:
