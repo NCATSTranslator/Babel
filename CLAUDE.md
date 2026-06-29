@@ -285,6 +285,12 @@ the report exists to catch:
   module (mirroring `anatomy.py`) and register it in `PIPELINE_CONFIG` in
   `src/cli/source_impact_report.py`.
 
+**Snakemake `retries:`** — use `retries: 3` for any network-backed rule (UberGraph, FTP,
+HTTP). Do not use `retries: 10`. UberGraph rules already get per-request retry-with-backoff
+inside `TripleStore.execute_query` (default 3 attempts, exponential back-off, configurable
+via `config["sparql"]["max_attempts"]`), so the Snakemake `retries:` is only a coarse
+safety net for whole-rule failures, not a substitute for fine-grained request retries.
+
 The shared clique-building skeleton lives in `src/model/cliques.py`.
 `glom_from_files()` runs the common `load ids → glom`,
 `load concords → filter → drop overused xrefs → glom` loop, parameterized by three hooks:

@@ -78,7 +78,11 @@ In `src/createcompendia/<pipeline>.py`:
 In `src/snakefiles/<pipeline>.snakefile`:
 
 - Add an ids rule whose output is `intermediate/<pipeline>/ids/<SOURCE>`. Use
-  `retries: 10` for any UberGraph or network-backed rule.
+  `retries: 3` for any network-backed rule (UberGraph, FTP, HTTP). UberGraph rules need
+  this only as a Snakemake-level safety net: `TripleStore.execute_query` already retries
+  each individual SPARQL call up to 3 times with exponential back-off (configurable via
+  `config["sparql"]["max_attempts"]` and `retry_base_delay_seconds`), so a full UberGraph
+  rule failure indicates something more persistent than a single-request glitch.
 - Add the source's concord output and metadata YAML to the existing concord-building rule.
 
 ### 5. Update `config.yaml`
