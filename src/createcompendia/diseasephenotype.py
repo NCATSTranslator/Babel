@@ -379,8 +379,18 @@ def compute_cliques_for_impact_report(
                 stripped = line.strip()
                 if not stripped:
                     continue
+                # MONDO_close is a 3-column concord (subject, predicate, object), written by
+                # ubergraph.build_sets() exactly like the regular concords below.
+                #
+                # NOTE: this intentionally preserves the long-standing behaviour from `main` of
+                # keying on x[1] (the predicate, e.g. "oio:closeMatch") rather than x[2] (the
+                # close-match object). Because no clique ever contains the literal predicate
+                # string, glom()'s `close=` guard never matches and has effectively been a no-op.
+                # Fixing it to x[2] activates the guard and changes disease clique merging
+                # broadly, so it is deferred to a dedicated follow-up PR with its own before/after
+                # impact analysis rather than riding along with the MP addition.
                 x = tuple(stripped.split("\t"))
-                if len(x) != 2:
+                if len(x) != 3:
                     raise RuntimeError(f'Line "{stripped}" is not a valid MONDO_close entry: {x}')
                 close_mondos[x[0]].add(x[1])
 

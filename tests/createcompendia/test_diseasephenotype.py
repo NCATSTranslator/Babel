@@ -1,10 +1,15 @@
 """
 Unit tests for src/createcompendia/diseasephenotype.py.
 
-These exercise the UMLS semantic-type-tree → Biolink category map that
-``write_umls_ids`` hands to ``umls.write_umls_ids``. The map is built inline,
-so we capture it by mocking the downstream ``umls.write_umls_ids`` call rather
-than running a real MRSTY parse -- keeping these tests fast and offline.
+Sections:
+
+- ``# --- UMLS semantic-type tree mapping ---`` exercises the UMLS
+  semantic-type-tree → Biolink category map that ``write_umls_ids`` hands to
+  ``umls.write_umls_ids``. The map is built inline, so we capture it by mocking
+  the downstream ``umls.write_umls_ids`` call rather than running a real MRSTY
+  parse -- keeping these tests fast and offline.
+- ``# --- MONDO_close parsing in compute_cliques_for_impact_report ---`` guards
+  the 3-column ``MONDO_close`` concord reader against a column-count regression.
 """
 
 from unittest.mock import patch
@@ -13,6 +18,8 @@ import pytest
 
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
+
+# --- UMLS semantic-type tree mapping ---
 
 
 def _capture_umlsmap(tmp_path):
@@ -70,3 +77,58 @@ def test_disease_trees_remain_claimed(tmp_path):
         "B2.2.1.2.1.2",
     ]:
         assert umlsmap.get(tree) == DISEASE, f"{tree} should map to {DISEASE}"
+
+
+# --- MONDO_close parsing in compute_cliques_for_impact_report ---
+
+
+def _write_lines(p, lines):
+    """Write an iterable of strings to path ``p`` as newline-terminated rows."""
+    p.write_text("".join(f"{line}\n" for line in lines))
+    return str(p)
+
+
+@pytest.mark.unit
+def test_mondo_close_accepts_three_column_concord(tmp_path):
+    """MONDO_close is a 3-column (subject, predicate, object) concord written by
+    ubergraph.build_sets(); compute_cliques_for_impact_report() must parse it without
+    raising. Regression guard: a reader that assumes 2 columns rejects every real row
+    and aborts the whole disease build.
+    """
+    ids = _write_lines(tmp_path / "MONDO", [f"MONDO:0000001\t{DISEASE}"])
+    mondoclose = _write_lines(
+        tmp_path / "MONDO_close",
+        [
+            "MONDO:0000739\toio:closeMatch\tMEDDRA:10051962",
+            "",  # blank line must be skipped, not crash
+            "MONDO:0000740\toio:closeMatch\tMEDDRA:10001229",
+        ],
+    )
+
+    dicts, types = diseasephenotype.compute_cliques_for_impact_report(
+        concordances=[],
+        identifiers=[ids],
+        mondoclose=mondoclose,
+        badxrefs={},
+    )
+
+    assert "MONDO:0000001" in dicts
+    assert types["MONDO:0000001"] == DISEASE
+
+
+@pytest.mark.unit
+def test_mondo_close_rejects_malformed_row(tmp_path):
+    """A MONDO_close row that is not exactly three tab-separated columns is malformed
+    and must raise a clear RuntimeError rather than silently mis-parsing or hitting an
+    IndexError deep inside glom.
+    """
+    ids = _write_lines(tmp_path / "MONDO", [f"MONDO:0000001\t{DISEASE}"])
+    mondoclose = _write_lines(tmp_path / "MONDO_close", ["MONDO:0000739\tMEDDRA:10051962"])
+
+    with pytest.raises(RuntimeError, match="not a valid MONDO_close entry"):
+        diseasephenotype.compute_cliques_for_impact_report(
+            concordances=[],
+            identifiers=[ids],
+            mondoclose=mondoclose,
+            badxrefs={},
+        )
