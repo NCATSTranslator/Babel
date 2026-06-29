@@ -55,6 +55,8 @@ test's `min_memory_gb` threshold empirically, use `tools/memory/estimate_rdf_loa
 full-load peak, so it works even on a machine far smaller than the eventual requirement (most
 accurate on Linux — macOS memory compression understates the result).
 
+- `tests/CLAUDE.md` — agent notes for editing/running tests: import-mode gotchas, which subset to
+  run, and the conventions to follow when adding a test. Read this before touching `tests/`.
 - `tests/README.md` — full mark taxonomy, where to add a new test, what each test file covers.
 - `docs/Testing.md` — testing strategy: cadence per environment (per-PR, nightly, weekly,
   pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other strategies.
