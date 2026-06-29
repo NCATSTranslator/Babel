@@ -1,0 +1,20 @@
+{
+  "Disease.txt": {
+    "after_clique_count": 365485,
+    "before_clique_count": 365465,
+    "changed_before_cliques": 1229,
+    "cliques_with_dropped_members": 1191,
+    "dropped_member_count": 1219,
+    "moved_member_count": 73,
+    "regrouped_member_count": 114
+  },
+  "PhenotypicFeature.txt": {
+    "after_clique_count": 75175,
+    "before_clique_count": 75162,
+    "changed_before_cliques": 1,
+    "cliques_with_dropped_members": 0,
+    "dropped_member_count": 0,
+    "moved_member_count": 2,
+    "regrouped_member_count": 0
+  }
+}
