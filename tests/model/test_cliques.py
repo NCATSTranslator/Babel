@@ -5,14 +5,6 @@
 through. The anatomy CLI test exercises it end-to-end; these tests cover the generic
 hooks directly: the concord-pair filter, the overused-xref remover, ``excluded_sources``,
 and that ``unique_prefixes`` / ``glom_kwargs`` are forwarded to :func:`glom`.
-
-Test groups
------------
-- Basic merging: ids and concord files produce the expected clique.
-- Excluded sources: ``excluded_sources`` gates both ids and concord files by basename.
-- Concord pair filter: ``concord_pair_filter`` can inspect clique state to reject a pair.
-- Overused-xref remover: ``overused_xref_remover`` is invoked with the right arguments.
-- Hook forwarding: ``unique_prefixes`` and ``glom_kwargs`` reach :func:`glom` unchanged.
 """
 
 import pytest
@@ -33,8 +25,11 @@ def _clique_of(dicts, curie):
     return frozenset(dicts.get(curie, set()))
 
 
+# --- Basic merging ---
+
+
 def test_merges_ids_and_concords(tmp_path):
-    """A concord pair merges two ids-file entries into a single clique; the Biolink type is preserved."""
+    """A concord pair should merge two ids-file entries into one clique and preserve the Biolink type."""
     ids = write_lines(tmp_path / "SRC", ["FOO:1\tbiolink:Thing", "BAR:1"])
     concord = write_lines(tmp_path / "SRC.concord", ["FOO:1\teq\tBAR:1"])
 
@@ -44,8 +39,15 @@ def test_merges_ids_and_concords(tmp_path):
     assert types["FOO:1"] == "biolink:Thing"
 
 
+# --- Excluded sources ---
+
+
 def test_excluded_sources_skips_ids_and_concords(tmp_path):
-    """Files whose basename appears in ``excluded_sources`` are skipped for both ids and concords."""
+    """Files whose basename is in ``excluded_sources`` should be ignored for both ids and concords.
+
+    FOO:2 comes only from the excluded DROP file; after exclusion it must not appear in the
+    clique dict at all, and the concord that would have linked it to FOO:1 must also be dropped.
+    """
     keep_ids = write_lines(tmp_path / "KEEP", ["FOO:1"])
     drop_ids = write_lines(tmp_path / "DROP", ["FOO:2"])
     concord = write_lines(tmp_path / "DROP.concord", ["FOO:1\teq\tFOO:2"])
@@ -62,12 +64,15 @@ def test_excluded_sources_skips_ids_and_concords(tmp_path):
     assert "FOO:2" not in dicts
 
 
-def test_concord_pair_filter_can_gate_on_clique_state(tmp_path):
-    """``concord_pair_filter`` receives the live clique dict and can reject pairs based on it.
+# --- Concord pair filter ---
 
-    A filter that requires both CURIEs to already be present drops any pair where one side
-    was never declared in an ids file, leaving the known CURIE un-merged. Without the filter,
-    the unknown CURIE is pulled in.
+
+def test_concord_pair_filter_can_gate_on_clique_state(tmp_path):
+    """``concord_pair_filter`` should receive the live clique dict and can reject pairs based on it.
+
+    With a filter that requires both CURIEs to already be present: the pair FOO:1↔NEW:1 is
+    dropped because NEW:1 was never declared in an ids file, so FOO:1's clique stays a
+    singleton. Without the filter the same pair pulls NEW:1 in.
     """
     ids = write_lines(tmp_path / "SRC", ["FOO:1"])
     # NEW:1 is never declared in an ids file, so a filter that requires both CURIEs to be
@@ -85,8 +90,16 @@ def test_concord_pair_filter_can_gate_on_clique_state(tmp_path):
     assert _clique_of(dicts2, "FOO:1") == frozenset({"FOO:1", "NEW:1"})
 
 
+# --- Overused-xref remover ---
+
+
 def test_overused_xref_remover_is_invoked(tmp_path):
-    """``overused_xref_remover`` is called with the per-file pair list; pairs it drops are not glommed."""
+    """``overused_xref_remover`` should be called with the per-file pair list; dropped pairs must not be glommed.
+
+    A remover that returns an empty list is used as a spy: it records the pairs it received and
+    drops them all. The test asserts the spy saw the expected pair and that FOO:1's clique
+    remains a singleton because the only concord pair was removed.
+    """
     ids = write_lines(tmp_path / "SRC", ["FOO:1"])
     concord = write_lines(tmp_path / "SRC.concord", ["FOO:1\teq\tBAR:1"])
 
@@ -103,8 +116,15 @@ def test_overused_xref_remover_is_invoked(tmp_path):
     assert _clique_of(dicts, "FOO:1") == frozenset({"FOO:1"})
 
 
+# --- Hook forwarding ---
+
+
 def test_unique_prefixes_and_glom_kwargs_forwarded(tmp_path, monkeypatch):
-    """``unique_prefixes`` and all extra ``glom_kwargs`` are forwarded verbatim to :func:`glom`."""
+    """``unique_prefixes`` and all extra ``glom_kwargs`` should be forwarded verbatim to :func:`glom`.
+
+    A monkeypatched ``glom`` records every kwargs dict it receives. Each call must contain
+    ``unique_prefixes``, ``pref``, and ``close`` exactly as passed to ``glom_from_files``.
+    """
     ids = write_lines(tmp_path / "SRC", ["FOO:1"])
     concord = write_lines(tmp_path / "SRC.concord", ["FOO:1\teq\tBAR:1"])
 
