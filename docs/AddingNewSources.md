@@ -5,11 +5,14 @@ addition. EMAPA is the worked example throughout.
 
 **Terminology** — two concepts that are easy to confuse:
 
-- **pipeline** (`anatomy`, `chemical`, `diseasephenotype`, …) — the intermediate-file
-  namespace, called `babel_pipeline` in code. Paths below use `<pipeline>` as a
-  placeholder. Usually corresponds to the src/createcompendia/<pipeline>.py file that generates these outputs. Sometimes, untyped compendia will be generated before being assigned Biolink Types (e.g. `chemical`).
-- **Biolink type** (`biolink:AnatomicalEntity`, `biolink:SmallMolecule`, …) — the class URI
-  stored in compendia. A single pipeline may generate multiple Biolink types (one per file) or even one file containing multiple Biolink types (leftover_umls.txt -> umls.txt is the only current example of this).
+- **pipeline** (`anatomy`, `chemical`, `diseasephenotype`, …) — the intermediate-file namespace,
+  called `babel_pipeline` in code. Paths below use `<pipeline>` as a placeholder. Usually
+  corresponds to the src/createcompendia/<pipeline>.py file that generates these outputs. Sometimes,
+  untyped compendia will be generated before being assigned Biolink Types (e.g. `chemical`).
+- **Biolink type** (`biolink:AnatomicalEntity`, `biolink:SmallMolecule`, …) — the class URI stored
+  in compendia. A single pipeline may generate multiple Biolink types (one per file) or even one
+  file containing multiple Biolink types (leftover_umls.txt -> umls.txt is the only current example
+  of this).
 
 ## What "adding a source" means
 
