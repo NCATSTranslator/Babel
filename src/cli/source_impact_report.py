@@ -460,8 +460,12 @@ def main(argv: list[str] | None = None) -> int:
         logger.setLevel(logging.DEBUG)
 
     sample_limit = args.sample_limit if args.sample_limit is not None else SAMPLE_LIMIT
-    pure_new_sample_limit = args.pure_new_sample_limit if args.pure_new_sample_limit is not None else PURE_NEW_SAMPLE_LIMIT
-    expanded_sample_limit = args.expanded_sample_limit if args.expanded_sample_limit is not None else EXPANDED_SAMPLE_LIMIT
+    pure_new_sample_limit = (
+        args.pure_new_sample_limit if args.pure_new_sample_limit is not None else PURE_NEW_SAMPLE_LIMIT
+    )
+    expanded_sample_limit = (
+        args.expanded_sample_limit if args.expanded_sample_limit is not None else EXPANDED_SAMPLE_LIMIT
+    )
 
     intermediate_root = pathlib.Path(args.intermediate_root)
     compendia_root = pathlib.Path(args.compendia_root)
