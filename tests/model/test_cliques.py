@@ -1,6 +1,6 @@
 """Unit tests for the shared clique-building helper.
 
-``src.createcompendia.cliques.glom_from_files`` is the skeleton that each compendium's
+``src.model.cliques.glom_from_files`` is the skeleton that each compendium's
 ``compute_cliques_for_impact_report`` (and, ideally, its ``build_compendia``) routes
 through. The anatomy CLI test exercises it end-to-end; these tests cover the generic
 hooks directly: the concord-pair filter, the overused-xref remover, ``excluded_sources``,
@@ -9,7 +9,7 @@ and that ``unique_prefixes`` / ``glom_kwargs`` are forwarded to :func:`glom`.
 
 import pytest
 
-from src.createcompendia import cliques
+from src.model import cliques
 
 pytestmark = pytest.mark.unit
 
