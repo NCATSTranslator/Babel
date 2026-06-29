@@ -19,6 +19,10 @@ letting it accumulate in `CLAUDE.md` — `CLAUDE.md` should point here, not dupl
   `MacromolecularComplex` source: which ComplexTAB columns Babel reads, downloading all species
   files, the manifest-as-download-sentinel pattern, and the per-output cross-species
   deduplication rules (labels, IDs, synonyms, taxa, descriptions).
+- **EMAPA** ([EMAPA/README.md](./EMAPA/README.md)) — the Mouse Developmental Anatomy Ontology as
+  an anatomy source: extracting identifiers from UberGraph via a `part_of` traversal, exporting
+  xref concords, and how its terms are typed and routed into the anatomy compendia. The worked
+  example for an OBO-from-UberGraph source, with an auto-generated source-impact report.
 - **ENSEMBL** ([ENSEMBL/Download.md](./ENSEMBL/Download.md)) — how Ensembl identifiers are
   downloaded via the BioMart API: per-dataset retry logic, permanently broken datasets and how to
   skip them, the attribute-batching workaround, and how partial progress is preserved across

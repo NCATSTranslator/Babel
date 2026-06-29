@@ -9,11 +9,28 @@ from src.babel_utils import get_prefixes, remove_overused_xrefs, write_compendiu
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
 from src.metadata.provenance import write_concord_metadata
 from src.model.cliques import glom_from_files
-from src.prefixes import CL, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
-from src.ubergraph import build_sets
+from src.prefixes import CL, EMAPA, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
+from src.ubergraph import HIERARCHY_PART_OF, UberGraph, build_sets
 from src.util import Text, get_config, get_logger
 
 logger = get_logger(__name__)
+
+ANATOMY_OBO_SOURCES = {
+    UBERON: {"root": f"{UBERON}:0001062", "type": ANATOMICAL_ENTITY},
+    CL: {"root": f"{CL}:0000000", "type": CELL},
+    GO: {"root": f"{GO}:0005575", "type": CELLULAR_COMPONENT},
+    EMAPA: {"root": f"{EMAPA}:0", "type": ANATOMICAL_ENTITY},
+}
+
+# Roots of the EMAPA "organ" and "tissue" subtrees. Terms at or below these are typed as
+# GrossAnatomicalStructure (see write_emapa_ids); everything else defaults to AnatomicalEntity.
+EMAPA_ORGAN = f"{EMAPA}:35949"
+EMAPA_TISSUE = f"{EMAPA}:35868"
+
+
+def _write_ontology_ids(source_prefix, outfile):
+    source = ANATOMY_OBO_SOURCES[source_prefix]
+    write_obo_ids([(source["root"], source["type"])], outfile)
 
 
 def remove_overused_xrefs_dict(kv):
@@ -62,19 +79,73 @@ def write_ncit_ids(outfile):
 
 
 def write_uberon_ids(outfile):
-    anatomy_id = f"{UBERON}:0001062"
+    # Keep GrossAnatomicalStructure typing from the dedicated UBERON gross root.
     gross_id = f"{UBERON}:0010000"
-    write_obo_ids([(anatomy_id, ANATOMICAL_ENTITY), (gross_id, GROSS_ANATOMICAL_STRUCTURE)], outfile)
+    write_obo_ids(
+        [
+            (ANATOMY_OBO_SOURCES[UBERON]["root"], ANATOMY_OBO_SOURCES[UBERON]["type"]),
+            (gross_id, GROSS_ANATOMICAL_STRUCTURE),
+        ],
+        outfile,
+    )
 
 
 def write_cl_ids(outfile):
-    cell_id = f"{CL}:0000000"
-    write_obo_ids([(cell_id, CELL)], outfile)
+    _write_ontology_ids(CL, outfile)
+
+
+def _emapa_descendants(uber, root):
+    """Return the set of EMAPA-prefixed CURIEs reachable from ``root`` in UberGraph.
+
+    EMAPA is a part_of partonomy, not an rdfs:subClassOf hierarchy, so we union the
+    part_of closure (the bulk of the structure) with the subClassOf closure (the few
+    is_a links). ``get_subclasses_of`` queries the redundant graph, so each call returns
+    the full transitive closure under its predicate. The ``root`` itself is not included.
+    """
+    found = set()
+    for term in uber.get_subclasses_of(root, hierarchy_predicate=HIERARCHY_PART_OF) + uber.get_subclasses_of(root):
+        curie = term["descendent"]
+        if curie.startswith(f"{EMAPA}:"):
+            found.add(curie)
+    return found
+
+
+def write_emapa_ids(outfile):
+    """Collect EMAPA anatomy identifiers from UberGraph and assign each a biolink type.
+
+    EMAPA is a part_of partonomy, not an rdfs:subClassOf hierarchy, so it cannot be
+    collected with write_obo_ids() the way UBERON/GO/CL are — a subClassOf walk from
+    the EMAPA root reaches only a handful of terms. We walk part_of from the root instead
+    (plus the few is_a links), and keep every EMAPA-prefixed term.
+
+    Biolink typing rule (one type per CURIE, written in column 2 of the ids file):
+
+    - Terms at or below EMAPA:35949 "organ" or EMAPA:35868 "tissue" are typed as
+      biolink:GrossAnatomicalStructure. The two roots are themselves gross structures, so
+      they are included.
+    - Every other EMAPA term defaults to biolink:AnatomicalEntity.
+
+    Gross typing takes precedence on overlap, matching the precedence in write_obo_ids()
+    (the ``order`` list ranks GrossAnatomicalStructure above AnatomicalEntity) and UBERON's
+    gross-branch override in write_uberon_ids().
+
+    NOTE: EMAPA is not (yet) one of GrossAnatomicalStructure's id_prefixes in the Biolink
+    Model, so EMAPA terms typed as gross are dropped by write_compendium() until EMAPA is
+    registered for that class. The source-impact report flags this; see
+    docs/AddingNewSources.md.
+    """
+    root = ANATOMY_OBO_SOURCES[EMAPA]["root"]
+    uber = UberGraph()
+    curies = {root} | _emapa_descendants(uber, root)
+    gross_curies = {EMAPA_ORGAN, EMAPA_TISSUE} | _emapa_descendants(uber, EMAPA_ORGAN) | _emapa_descendants(uber, EMAPA_TISSUE)
+    with open(outfile, "w") as idfile:
+        for curie in sorted(curies):
+            biolink_type = GROSS_ANATOMICAL_STRUCTURE if curie in gross_curies else ANATOMICAL_ENTITY
+            idfile.write(f"{curie}\t{biolink_type}\n")
 
 
 def write_go_ids(outfile):
-    component_id = f"{GO}:0005575"
-    write_obo_ids([(component_id, CELLULAR_COMPONENT)], outfile)
+    _write_ontology_ids(GO, outfile)
 
 
 def write_mesh_ids(outfile):
@@ -134,13 +205,24 @@ def build_anatomy_obo_relationships(outdir, metadata_yamls):
         open(f"{outdir}/{UBERON}", "w") as uberon,
         open(f"{outdir}/{GO}", "w") as go,
         open(f"{outdir}/{CL}", "w") as cl,
+        open(f"{outdir}/{EMAPA}", "w") as emapa,
     ):
-        build_sets(f"{UBERON}:0001062", {UBERON: uberon, GO: go, CL: cl}, "xref", ignore_list=ignore_list)
-        build_sets(f"{GO}:0005575", {UBERON: uberon, GO: go, CL: cl}, "xref", ignore_list=ignore_list)
+        source_to_concord = {UBERON: uberon, GO: go, CL: cl, EMAPA: emapa}
+        for source_prefix in [UBERON, GO]:
+            build_sets(ANATOMY_OBO_SOURCES[source_prefix]["root"], source_to_concord, "xref", ignore_list=ignore_list)
+        # EMAPA is a part_of partonomy, not an is_a hierarchy, so its xref concords must
+        # be collected by walking part_of rather than rdfs:subClassOf.
+        build_sets(
+            ANATOMY_OBO_SOURCES[EMAPA]["root"],
+            source_to_concord,
+            "xref",
+            ignore_list=ignore_list,
+            hierarchy_predicate=HIERARCHY_PART_OF,
+        )
         # CL is now being handled by Wikidata (build_wikidata_cell_relationships), so we can probably remove it from here.
 
     # Write out metadata.
-    for metadata_name in [UBERON, GO, CL]:
+    for metadata_name in [UBERON, GO, CL, EMAPA]:
         write_concord_metadata(
             metadata_yamls[metadata_name],
             name="build_anatomy_obo_relationships()",
@@ -148,8 +230,14 @@ def build_anatomy_obo_relationships(outdir, metadata_yamls):
                 {"type": "UberGraph", "name": "UBERON"},
                 {"type": "UberGraph", "name": "GO"},
                 {"type": "UberGraph", "name": "CL"},
+                {"type": "UberGraph", "name": "EMAPA"},
             ],
-            description=f"get_subclasses_and_xrefs() of {UBERON}:0001062 and {GO}:0005575",
+            description=(
+                "get_subclasses_and_xrefs() of "
+                f"{ANATOMY_OBO_SOURCES[UBERON]['root']}, "
+                f"{ANATOMY_OBO_SOURCES[GO]['root']}, and "
+                f"{ANATOMY_OBO_SOURCES[EMAPA]['root']}"
+            ),
             concord_filename=f"{outdir}/{metadata_name}",
         )
 
@@ -277,7 +365,7 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
 
 def classify_anatomy_clique(equivalent_ids, types):
     """Pick a biolink type for one anatomy clique using the same precedence as
-    ``create_typed_sets``: trust GO/CL/UBERON in that order, then fall back to a
+    ``create_typed_sets``: trust GO/CL/UBERON/EMAPA in that order, then fall back to a
     majority vote over the declared types of the clique's members, breaking ties by
     most-specific type.
 
@@ -286,7 +374,7 @@ def classify_anatomy_clique(equivalent_ids, types):
     """
     order = [CELLULAR_COMPONENT, CELL, GROSS_ANATOMICAL_STRUCTURE, ANATOMICAL_ENTITY]
     prefixes = get_prefixes(equivalent_ids)
-    for prefix in [GO, CL, UBERON]:
+    for prefix in [GO, CL, UBERON, EMAPA]:
         if prefix in prefixes and prefixes[prefix][0] in types:
             return types[prefixes[prefix][0]]
     typecounts = defaultdict(int)
