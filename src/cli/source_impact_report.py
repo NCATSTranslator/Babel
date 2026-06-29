@@ -41,7 +41,7 @@ from src.reports.source_impact import (
     render_markdown,
 )
 from src.reports.source_impact_details import write_detail_files
-from src.util import get_logger
+from src.util import get_config, get_logger
 
 logger = get_logger(__name__)
 
@@ -79,7 +79,7 @@ PIPELINE_CONFIG: dict[str, dict] = {
     "anatomy": {
         "compute_fn": anatomy.compute_cliques_for_impact_report,
         "compendium_files": [f"{bt.split(':')[-1]}.txt" for bt in _ANATOMY_BIOLINK_TYPES],
-        "compendium_prefixes": ["UBERON", "GO", "CL", "EMAPA", "MESH", "NCIT", "UMLS", "SNOMEDCT"],
+        "compendium_prefixes": get_config()["anatomy_prefixes"],
         "clique_classifier": anatomy.classify_anatomy_clique,
         "biolink_types": _ANATOMY_BIOLINK_TYPES,
     },
@@ -315,7 +315,7 @@ def _build_lookup_context(
         except Exception as exc:
             logger.warning("could not load Biolink prefix map; rendering plain CURIEs: %s", exc)
         try:
-            from src.util import get_biolink_model_toolkit, get_config  # noqa: PLC0415
+            from src.util import get_biolink_model_toolkit  # noqa: PLC0415
 
             tk = get_biolink_model_toolkit(get_config()["biolink_version"])
             for bt in biolink_types_needed:
