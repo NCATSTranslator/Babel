@@ -285,9 +285,8 @@ the report exists to catch:
   module (mirroring `anatomy.py`) and register it in `PIPELINE_CONFIG` in
   `src/cli/source_impact_report.py`.
 
-The shared clique-building skeleton lives in `src/createcompendia/cliques.py` (note: this
-is the one module under `createcompendia/` that does *not* map to an output compendium —
-it's reused infrastructure). `glom_from_files()` runs the common `load ids → glom`,
+The shared clique-building skeleton lives in `src/model/cliques.py`.
+`glom_from_files()` runs the common `load ids → glom`,
 `load concords → filter → drop overused xrefs → glom` loop, parameterized by three hooks:
 `concord_pair_filter` (per-pair keep/drop, with access to the clique state built so far),
 `overused_xref_remover` (per-file `remove_overused_xrefs` variant), and `glom_kwargs`
