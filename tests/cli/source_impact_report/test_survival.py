@@ -5,6 +5,16 @@ whose prefix is not in the Biolink Model ``id_prefixes`` for its biolink type is
 ``write_compendium``. These tests exercise the pure helper and the detail-file writers that
 surface it (``would_be_added`` / ``needs_biolink_registration`` columns), using a
 hand-built ``LookupContext`` so no Biolink network lookup is needed.
+
+Test groups
+-----------
+- ``prefix_survives`` helper: registered, unregistered, unknown type, and case-insensitivity.
+- ``new-cliques.csv`` survival columns: ``would_be_added``, ``needs_biolink_registration``,
+  and ``unsupported_prefixes`` for pure-new cliques.
+- ``modified-cliques.csv`` survival columns: per-added-identifier survival judged on the
+  clique type, not the identifier's own declared type.
+- ``modified-cliques.json`` detail: ``added_curie_details`` entries carry survival fields.
+- No-lookup mode: survival columns are blank when ``prefix_priority_by_type`` is empty.
 """
 
 import csv
@@ -30,11 +40,13 @@ PREFIX_PRIORITY = {
 
 @pytest.mark.unit
 def test_prefix_survives_present():
+    """A prefix registered in the type's id_prefixes returns (True, False)."""
     assert prefix_survives("EMAPA:100", "biolink:AnatomicalEntity", PREFIX_PRIORITY) == (True, False)
 
 
 @pytest.mark.unit
 def test_prefix_survives_absent_needs_registration():
+    """A prefix absent from the type's id_prefixes returns (False, True) — needs Biolink registration."""
     assert prefix_survives("EMAPA:100", "biolink:GrossAnatomicalStructure", PREFIX_PRIORITY) == (
         False,
         True,
@@ -43,20 +55,26 @@ def test_prefix_survives_absent_needs_registration():
 
 @pytest.mark.unit
 def test_prefix_survives_unknown_type_or_empty_lookup():
-    # No declared type, or an empty priority map (e.g. --no-biolink-lookup): unknown, never
-    # a false "needs registration".
+    """Returns (None, False) when the type is unknown or the lookup map is empty (--no-biolink-lookup).
+
+    The second element is never True in these cases to avoid false "needs registration" warnings.
+    """
     assert prefix_survives("EMAPA:100", None, PREFIX_PRIORITY) == (None, False)
     assert prefix_survives("EMAPA:100", "biolink:AnatomicalEntity", {}) == (None, False)
 
 
 @pytest.mark.unit
 def test_prefix_survives_case_insensitive():
-    # Lowercase CURIE prefix still matches the uppercased priority list.
+    """A lowercase CURIE prefix still matches an uppercased entry in the priority list."""
     assert prefix_survives("emapa:100", "biolink:AnatomicalEntity", PREFIX_PRIORITY) == (True, False)
 
 
 def _lookup(types):
-    """A LookupContext with the test prefix priorities and a simple declared-type classifier."""
+    """Build a ``LookupContext`` for the anatomy pipeline using *types* as the declared-type map.
+
+    Uses the module-level ``PREFIX_PRIORITY`` and a classifier that picks the first type found
+    by sorted CURIE order. Suitable for tests that do not need pipeline-specific classifier logic.
+    """
 
     def classifier(clique, type_map):
         return next((type_map[c] for c in sorted(clique) if c in type_map), None)
@@ -71,6 +89,11 @@ def _lookup(types):
 
 @pytest.mark.unit
 def test_new_cliques_csv_survival_columns(tmp_path):
+    """``new-cliques.csv`` carries correct survival columns for registered and unregistered prefixes.
+
+    EMAPA:100 is typed GrossAnatomicalStructure (EMAPA not in id_prefixes → dropped);
+    EMAPA:300 is typed AnatomicalEntity (EMAPA registered → survives).
+    """
     types = {
         "EMAPA:100": "biolink:GrossAnatomicalStructure",  # not registered -> dropped
         "EMAPA:300": "biolink:AnatomicalEntity",  # registered -> survives
@@ -98,11 +121,13 @@ def test_new_cliques_csv_survival_columns(tmp_path):
 
 @pytest.mark.unit
 def test_modified_cliques_csv_survival_columns(tmp_path):
-    # EMAPA:100 joins a clique that classifies as GrossAnatomicalStructure (EMAPA not
-    # registered -> dropped); EMAPA:300 joins one that classifies as AnatomicalEntity
-    # (registered -> survives). Here the UBERON members carry no declared type, so the
-    # classifier falls back to the EMAPA term's type and the clique type happens to match
-    # each identifier's own type; the discriminating case is exercised separately below.
+    """``modified-cliques.csv`` carries correct survival columns for identifiers joining existing cliques.
+
+    EMAPA:100 joins a clique classified as GrossAnatomicalStructure (EMAPA not registered → dropped,
+    biolink_registration_note populated); EMAPA:300 joins one classified as AnatomicalEntity (registered
+    → survives). The UBERON members carry no declared type here, so the classifier falls back to the
+    EMAPA term's type; the case where clique type diverges from own type is tested separately.
+    """
     types = {
         "EMAPA:100": "biolink:GrossAnatomicalStructure",
         "EMAPA:300": "biolink:AnatomicalEntity",
@@ -142,11 +167,13 @@ def test_modified_cliques_csv_survival_columns(tmp_path):
 
 @pytest.mark.unit
 def test_modified_cliques_csv_judges_on_clique_type_not_own_type(tmp_path):
-    # EMAPA:9 declares GrossAnatomicalStructure (where EMAPA is NOT registered), but the
-    # clique it joins is typed AnatomicalEntity (where EMAPA IS registered). NodeFactory
-    # types the whole clique AnatomicalEntity and keeps EMAPA:9, so survival must be judged
-    # on the clique type: would_be_added must be true, with no false "needs registration"
-    # even though the identifier's own declared type would flag it.
+    """Survival is judged on the clique's Biolink type, not the identifier's own declared type.
+
+    EMAPA:9 declares GrossAnatomicalStructure (where EMAPA is not registered), but joins a
+    clique typed AnatomicalEntity (where EMAPA is registered). NodeFactory keeps EMAPA:9 because
+    it uses the clique type, so ``would_be_added`` must be true with no false ``needs_biolink_registration``,
+    even though checking the identifier's own type alone would flag it as dropped.
+    """
     types = {
         "UBERON:0001": "biolink:AnatomicalEntity",
         "EMAPA:9": "biolink:GrossAnatomicalStructure",
@@ -192,6 +219,12 @@ def test_modified_cliques_csv_judges_on_clique_type_not_own_type(tmp_path):
 
 @pytest.mark.unit
 def test_modified_cliques_json_added_curie_details(tmp_path):
+    """``modified-cliques.json`` entries carry per-CURIE survival detail in ``added_curie_details``.
+
+    Each entry records ``declared_biolink_type``, ``clique_biolink_type``, ``would_be_added``,
+    ``needs_biolink_registration``, and ``note`` alongside the flat ``added_source_curies`` list
+    retained for back-compat.
+    """
     types = {"EMAPA:100": "biolink:GrossAnatomicalStructure"}
     diffs = {
         "anatomy": SourceImpactDiff(
@@ -226,8 +259,11 @@ def test_modified_cliques_json_added_curie_details(tmp_path):
 
 @pytest.mark.unit
 def test_survival_columns_blank_without_biolink_lookup(tmp_path):
-    # An empty prefix_priority_by_type stands in for --no-biolink-lookup: the columns must
-    # exist but be blank, with no false "needs registration".
+    """Survival columns exist but are blank when ``prefix_priority_by_type`` is empty (``--no-biolink-lookup``).
+
+    An empty priority map simulates running without a Biolink lookup. The columns must be present
+    in the CSV but contain empty strings, and ``needs_biolink_registration`` must never be ``true``.
+    """
     types = {"EMAPA:100": "biolink:GrossAnatomicalStructure"}
     lookup = LookupContext(
         types_by_pipeline={"anatomy": types},
