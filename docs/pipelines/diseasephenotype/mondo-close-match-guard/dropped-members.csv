@@ -1,0 +1,1220 @@
+dropped_curie,dropped_label,dropped_from_clique_leader,clique_leader_label
+MEDDRA:10044701,,MONDO:0000088,precocious puberty
+MEDDRA:10058084,,MONDO:0000088,precocious puberty
+MEDDRA:10063361,,MONDO:0000127,geleophysic dysplasia
+MEDDRA:10028282,,MONDO:0000330,endemic typhus
+MEDDRA:10053865,,MONDO:0000645,fallopian tube benign neoplasm
+MEDDRA:10048928,,MONDO:0000703,collagenous colitis
+MEDDRA:10025268,,MONDO:0000704,lymphocytic colitis
+MEDDRA:10009657,,MONDO:0000705,Clostridium difficile colitis
+MEDDRA:10051962,,MONDO:0000739,uvulitis
+MEDDRA:10001229,,MONDO:0000740,adenoid hypertrophy
+MEDDRA:10039447,,MONDO:0000827,salmonellosis
+MEDDRA:10016664,,MONDO:0000845,fibrous dysplasia
+MEDDRA:10064087,,MONDO:0001347,facioscapulohumeral muscular dystrophy
+MEDDRA:10001935,,MONDO:0001444,Chagas disease
+MEDDRA:10000523,,MONDO:0001569,acoustic neuroma
+MEDDRA:10056886,,MONDO:0001586,mucopolysaccharidosis type 1
+MEDDRA:10004056,,MONDO:0001882,bacteriuria
+MEDDRA:10007196,,MONDO:0001956,capillary leak syndrome
+MEDDRA:10016221,,MONDO:0001971,farmer's lung disease
+MEDDRA:10065151,,MONDO:0001999,idiopathic pulmonary arterial hypertension
+MEDDRA:10025552,,MONDO:0002142,undifferentiated pleomorphic sarcoma
+MEDDRA:10070597,,MONDO:0002145,disorder of sexual differentiation
+MEDDRA:10025915,,MONDO:0002158,fallopian tube cancer
+MEDDRA:10061990,,MONDO:0002412,disorder of glycogen metabolism
+MEDDRA:10018464,,MONDO:0002413,glycogen storage disease I
+MEDDRA:10057936,,MONDO:0002441,Jervell and Lange-Nielsen syndrome
+MEDDRA:10051456,,MONDO:0002457,Treacher-Collins syndrome
+MEDDRA:10061227,,MONDO:0002525,inherited lipid metabolism disorder
+MEDDRA:10029234,,MONDO:0002546,schwannoma
+MEDDRA:10036685,,MONDO:0002571,primary central nervous system lymphoma
+MEDDRA:10031291,,MONDO:0002629,bone osteosarcoma
+MEDDRA:10051938,,MONDO:0002752,ovarian adenocarcinoma
+MEDDRA:10031130,,MONDO:0004241,Osgood-Schlatter disease
+MEDDRA:10020231,,MONDO:0004604,"Hodgkin's lymphoma, lymphocytic-histiocytic predominance"
+MEDDRA:10054651,,MONDO:0004653,"atypical chronic myeloid leukemia, BCR-ABL1 negative"
+MEDDRA:10035154,,MONDO:0004684,plantar fibromatosis
+MEDDRA:10021076,,MONDO:0004933,hypoplastic left heart syndrome
+MEDDRA:10008958,,MONDO:0004948,B-cell chronic lymphocytic leukemia
+MEDDRA:10002026,,MONDO:0004976,amyotrophic lateral sclerosis
+MEDDRA:10002449,,MONDO:0004977,angioimmunoblastic T-cell lymphoma
+MEDDRA:10007636,,MONDO:0004994,cardiomyopathy
+MEDDRA:10056370,,MONDO:0005021,dilated cardiomyopathy
+MEDDRA:10015493,,MONDO:0005029,essential thrombocythemia
+MEDDRA:10017709,,MONDO:0005033,ganglioneuroma
+MEDDRA:10017708,,MONDO:0005035,ganglioneuroblastoma
+MEDDRA:10020871,,MONDO:0005045,hypertrophic cardiomyopathy
+MEDDRA:10023284,,MONDO:0005055,Kaposi's sarcoma
+MEDDRA:10024189,,MONDO:0005058,leiomyosarcoma
+MEDDRA:10024627,,MONDO:0005060,liposarcoma
+MEDDRA:10029260,,MONDO:0005072,neuroblastoma
+MEDDRA:10034738,,MONDO:0005077,pertussis
+MEDDRA:10036485,,MONDO:0005081,preeclampsia
+MEDDRA:10067946,,MONDO:0005086,renal cell carcinoma
+MEDDRA:10061982,,MONDO:0005091,severe acute respiratory syndrome
+MEDDRA:10042953,,MONDO:0005100,systemic sclerosis
+MEDDRA:10047931,,MONDO:0005116,Whipple disease
+MEDDRA:10024229,,MONDO:0005124,leprosy
+MEDDRA:10025487,,MONDO:0005136,malaria
+MEDDRA:10016632,,MONDO:0005164,fibrosarcoma
+MEDDRA:10038748,,MONDO:0005201,restrictive cardiomyopathy
+MEDDRA:10039497,,MONDO:0005210,uterine corpus sarcoma
+MEDDRA:10039022,,MONDO:0005212,rhabdomyosarcoma
+MEDDRA:10038269,,MONDO:0005272,myelodysplastic syndrome with single lineage dysplasia
+MEDDRA:10064212,,MONDO:0005361,eosinophilic esophagitis
+MEDDRA:10004661,,MONDO:0005388,primary biliary cholangitis
+MEDDRA:10019137,,MONDO:0005388,primary biliary cholangitis
+MEDDRA:10001461,,MONDO:0005459,human African trypanosomiasis
+MEDDRA:10006041,,MONDO:0005498,botulism
+MEDDRA:10012310,,MONDO:0005502,dengue disease
+MEDDRA:10013023,,MONDO:0005504,diphtheria
+MEDDRA:10067807,,MONDO:0005507,gingival cancer
+MEDDRA:10056558,,MONDO:0005512,malignant peritoneal mesothelioma
+MEDDRA:10043376,,MONDO:0005526,tetanus
+MEDDRA:10062647,,MONDO:0005534,ileocolitis
+MEDDRA:10036051,,MONDO:0005571,polycythemia
+MEDDRA:10035484,,MONDO:0005615,plasmacytoma
+MEDDRA:10069408,,MONDO:0005629,Acanthamoeba keratitis
+MEDDRA:10002255,,MONDO:0005645,ancylostomiasis
+MEDDRA:10003488,,MONDO:0005657,aspergillosis
+MEDDRA:10003965,,MONDO:0005661,babesiosis
+MEDDRA:10004080,,MONDO:0005662,balantidiasis
+MEDDRA:10004941,,MONDO:0005668,bird fancier's lung
+MEDDRA:10006500,,MONDO:0005683,brucellosis
+MEDDRA:10007729,,MONDO:0005692,cat-scratch disease
+MEDDRA:10009825,,MONDO:0005706,coccidioidomycosis
+MEDDRA:10010022,,MONDO:0005708,Colorado tick fever
+MEDDRA:10010439,,MONDO:0005711,congenital diaphragmatic hernia
+MEDDRA:10010652,,MONDO:0005715,congenital toxoplasmosis
+MEDDRA:10011490,,MONDO:0005724,cryptococcosis
+MEDDRA:10014587,,MONDO:0005736,eastern equine encephalitis
+MEDDRA:10014071,,MONDO:0005737,Ebola hemorrhagic fever
+MEDDRA:10048251,,MONDO:0005744,yolk sac tumor
+MEDDRA:10016675,,MONDO:0005761,filarial elephantiasis
+MEDDRA:10048608,,MONDO:0005773,Gerstmann syndrome
+MEDDRA:10020546,,MONDO:0005802,hymenolepiasis
+MEDDRA:10066431,,MONDO:0005817,Kluver-Bucy syndrome
+MEDDRA:10023927,,MONDO:0005820,Lassa fever
+MEDDRA:10061266,,MONDO:0005823,legionellosis
+MEDDRA:10024238,,MONDO:0005825,leptospirosis
+MEDDRA:10024641,,MONDO:0005828,listeriosis
+MEDDRA:10053982,,MONDO:0005846,microsporidiosis
+MEDDRA:10049567,,MONDO:0005851,Miller Fisher syndrome
+MEDDRA:10027754,,MONDO:0005854,mixed connective tissue disease
+MEDDRA:10061906,,MONDO:0005894,paracoccidioidomycosis
+MEDDRA:10039012,,MONDO:0005942,Reye syndrome
+MEDDRA:10041736,,MONDO:0005968,sporotrichosis
+MEDDRA:10041896,,MONDO:0005969,st. Louis encephalitis
+MEDDRA:10042254,,MONDO:0005974,strongyloidiasis
+MEDDRA:10062120,,MONDO:0005976,syphilis
+MEDDRA:10048627,,MONDO:0005979,thoracic outlet syndrome
+MEDDRA:10044269,,MONDO:0005988,toxocariasis
+MEDDRA:10044582,,MONDO:0005991,trench fever
+MEDDRA:10047847,,MONDO:0006015,Waterhouse-Friderichsen syndrome
+MEDDRA:10020481,,MONDO:0006248,hydatidiform mole
+MEDDRA:10064886,,MONDO:0006260,kidney medullary carcinoma
+MEDDRA:10035079,,MONDO:0006373,pituitary gland adenoma
+MEDDRA:10063397,,MONDO:0006412,sinus histiocytosis with massive lymphadenopathy
+MEDDRA:10061031,,MONDO:0006451,thymic carcinoma
+MEDDRA:10043670,,MONDO:0006456,thymoma
+MEDDRA:10002240,,MONDO:0006468,thyroid gland undifferentiated (anaplastic) carcinoma
+MEDDRA:10061252,,MONDO:0006486,uveal melanoma
+MEDDRA:10019939,,MONDO:0006558,pemphigoid gestationis
+MEDDRA:10036175,,MONDO:0006602,porokeratosis
+MEDDRA:10042342,,MONDO:0006614,subcorneal pustular dermatosis
+MEDDRA:10020853,,MONDO:0006624,overactive bladder
+MEDDRA:10000347,,MONDO:0006633,acalculous cholecystitis
+MEDDRA:10001388,,MONDO:0006639,adrenal cortex carcinoma
+MEDDRA:10056245,,MONDO:0006641,afferent loop syndrome
+MEDDRA:10001610,,MONDO:0006642,alcohol withdrawal delirium
+MEDDRA:10001616,,MONDO:0006643,alcoholic cardiomyopathy
+MEDDRA:10001618,,MONDO:0006644,alcoholic liver cirrhosis
+MEDDRA:10068250,,MONDO:0006649,anterior ischemic optic neuropathy
+MEDDRA:10002703,,MONDO:0006650,anterior spinal artery syndrome
+MEDDRA:10002709,,MONDO:0006651,anterior uveitis
+MEDDRA:10068109,,MONDO:0006652,anterolateral myocardial infarction
+MEDDRA:10050363,,MONDO:0006653,anthracosilicosis
+MEDDRA:10073051,,MONDO:0006654,anthracosis
+MEDDRA:10057454,,MONDO:0006655,aortic valve prolapse
+MEDDRA:10002921,,MONDO:0006656,aortitis
+MEDDRA:10065418,,MONDO:0006659,arteriosclerosis obliterans
+MEDDRA:10003420,,MONDO:0006660,arthus reaction
+MEDDRA:10003458,,MONDO:0006662,aseptic meningitis
+MEDDRA:10003664,,MONDO:0006664,atrial septal defect
+MEDDRA:10019308,,MONDO:0006664,atrial septal defect
+MEDDRA:10003685,,MONDO:0006665,chronic atrophic gastritis
+MEDDRA:10043693,,MONDO:0006666,atrophy of thyroid
+MEDDRA:10061784,,MONDO:0006668,bacterial conjunctivitis
+MEDDRA:10004019,,MONDO:0006669,bacterial endocarditis
+MEDDRA:10004049,,MONDO:0006670,bacterial meningitis
+MEDDRA:10004073,,MONDO:0006672,balanitis
+MEDDRA:10004482,,MONDO:0006676,beriberi
+MEDDRA:10005001,,MONDO:0006678,bladder calculus
+MEDDRA:10005053,,MONDO:0006679,bladder neck obstruction
+MEDDRA:10062788,,MONDO:0006680,blue nevus
+MEDDRA:10061591,,MONDO:0006681,Borrelia infectious disease
+MEDDRA:10073002,,MONDO:0006682,brachial plexus neuritis
+MEDDRA:10006121,,MONDO:0006684,brain edema
+MEDDRA:10068065,,MONDO:0006687,burning mouth syndrome
+MEDDRA:10006822,,MONDO:0006688,byssinosis
+MEDDRA:10007688,,MONDO:0006690,carotid artery thrombosis
+MEDDRA:10007968,,MONDO:0006692,central pontine myelinolysis
+MEDDRA:10015128,,MONDO:0006696,cervix erosion
+MEDDRA:10049890,,MONDO:0006698,cholecystolithiasis
+MEDDRA:10049891,,MONDO:0006699,choledocholithiasis
+MEDDRA:10057645,,MONDO:0006702,chronic inflammatory demyelinating polyradiculoneuropathy
+MEDDRA:10010783,,MONDO:0006711,constrictive pericarditis
+MEDDRA:10011007,,MONDO:0006712,corneal edema
+MEDDRA:10011031,,MONDO:0006713,corneal neovascularization
+MEDDRA:10002348,,MONDO:0006714,coronary aneurysm
+MEDDRA:10011089,,MONDO:0006715,coronary stenosis
+MEDDRA:10011108,,MONDO:0006716,coronary thrombosis
+MEDDRA:10016819,,MONDO:0006722,dental fluorosis
+MEDDRA:10069211,,MONDO:0006727,diastolic heart failure
+MEDDRA:10013777,,MONDO:0006733,dry eye syndrome
+MEDDRA:10004251,,MONDO:0006734,benign duodenal neoplasm
+MEDDRA:10060865,,MONDO:0006735,duodenogastric reflux
+MEDDRA:10013957,,MONDO:0006736,dysplasia of cervix
+MEDDRA:10014567,,MONDO:0006740,empty sella syndrome
+MEDDRA:10051818,,MONDO:0006741,encephalomalacia
+MEDDRA:10068848,,MONDO:0006742,endemic goiter
+MEDDRA:10049934,,MONDO:0006744,endolymphatic hydrops
+MEDDRA:10048397,,MONDO:0006745,endometrioid stromal sarcoma
+MEDDRA:10014800,,MONDO:0006746,endomyocardial fibrosis
+MEDDRA:10015549,,MONDO:0006755,euthyroid sick syndrome
+MEDDRA:10008637,,MONDO:0006757,extrahepatic cholestasis
+MEDDRA:10061150,,MONDO:0006758,female genital tuberculosis
+MEDDRA:10054794,,MONDO:0006761,fibromuscular dysplasia
+MEDDRA:10017391,,MONDO:0006763,frozen shoulder
+MEDDRA:10017538,,MONDO:0006764,fungal meningitis
+MEDDRA:10070635,,MONDO:0006766,gait apraxia
+MEDDRA:10051585,,MONDO:0006767,gastric antral vascular ectasia
+MEDDRA:10018043,,MONDO:0006769,gastroparesis
+MEDDRA:10018386,,MONDO:0006771,glossitis
+MEDDRA:10062935,,MONDO:0006774,habitual spontaneous abortion
+MEDDRA:10043960,,MONDO:0006777,hairy tongue
+MEDDRA:10062794,,MONDO:0006778,halo nevus
+MEDDRA:10002350,,MONDO:0006779,heart aneurysm
+MEDDRA:10060632,,MONDO:0006783,hemopneumothorax
+MEDDRA:10019601,,MONDO:0006784,hemorrhagic disease of newborn
+MEDDRA:10019713,,MONDO:0006786,hepatic vein thrombosis
+MEDDRA:10059019,,MONDO:0006787,hidrocystoma
+MEDDRA:10062777,,MONDO:0006789,hyperamylasemia
+MEDDRA:10020596,,MONDO:0006790,hypercementosis
+MEDDRA:10020614,,MONDO:0006791,hyperemesis gravidarum
+MEDDRA:10020716,,MONDO:0006793,hyperpituitarism
+MEDDRA:10020769,,MONDO:0006795,hypersplenism
+MEDDRA:10020803,,MONDO:0006796,hypertensive encephalopathy
+MEDDRA:10020839,,MONDO:0006797,hypertensive retinopathy
+MEDDRA:10020916,,MONDO:0006798,hypervitaminosis A
+MEDDRA:10021216,,MONDO:0006800,ideomotor apraxia
+MEDDRA:10042818,,MONDO:0006802,inappropriate ADH syndrome
+MEDDRA:10057546,,MONDO:0006803,inferior myocardial infarction
+MEDDRA:10006205,,MONDO:0006804,inflammatory breast carcinoma
+MEDDRA:10022554,,MONDO:0006805,intermediate coronary syndrome
+MEDDRA:10022557,,MONDO:0006806,intermediate uveitis
+MEDDRA:10022694,,MONDO:0006807,intestinal perforation
+MEDDRA:10049977,,MONDO:0006811,intracranial hypotension
+MEDDRA:10058537,,MONDO:0006813,intradermal nevus
+MEDDRA:10022955,,MONDO:0006814,iritis
+MEDDRA:10023166,,MONDO:0006815,jejunal cancer
+MEDDRA:10003285,,MONDO:0006816,arthropathy
+MEDDRA:10023414,,MONDO:0006820,kidney cortex necrosis
+MEDDRA:10028865,,MONDO:0006821,kidney papillary necrosis
+MEDDRA:10023463,,MONDO:0006823,Klinefelter syndrome
+MEDDRA:10023497,,MONDO:0006825,kuru
+MEDDRA:10023504,,MONDO:0006826,kwashiorkor
+MEDDRA:10024033,,MONDO:0006827,lateral medullary syndrome
+MEDDRA:10024255,,MONDO:0006828,nasal cavity and paranasal sinus lethal midline granuloma
+MEDDRA:10024373,,MONDO:0006829,leukemoid reaction
+MEDDRA:10024394,,MONDO:0006830,leukoplakia of penis
+MEDDRA:10024404,,MONDO:0006831,leukostasis
+MEDDRA:10007089,,MONDO:0006834,lip cancer
+MEDDRA:10058325,,MONDO:0006835,minimal change disease
+MEDDRA:10024931,,MONDO:0006837,low tension glaucoma
+MEDDRA:10025143,,MONDO:0006838,lupus vulgaris
+MEDDRA:10025433,,MONDO:0006844,magnesium deficiency
+MEDDRA:10061234,,MONDO:0006845,male genital tuberculosis
+MEDDRA:10025600,,MONDO:0006846,malignant hypertension
+MEDDRA:10026820,,MONDO:0006848,marasmus
+MEDDRA:10026883,,MONDO:0006849,mastitis
+MEDDRA:10027057,,MONDO:0006851,meconium aspiration syndrome
+MEDDRA:10027389,,MONDO:0006853,mesenchymal chondrosarcoma
+MEDDRA:10074583,,MONDO:0006855,mesenteric vascular occlusion
+MEDDRA:10028562,,MONDO:0006861,myeloid sarcoma
+MEDDRA:10048780,,MONDO:0006862,myofascial pain syndrome
+MEDDRA:10072176,,MONDO:0006864,necrotizing sialometaplasia
+MEDDRA:10028963,,MONDO:0006866,neonatal myasthenia gravis
+MEDDRA:10048657,,MONDO:0006868,neurogenic bowel
+MEDDRA:10018495,,MONDO:0006869,nodular goiter
+MEDDRA:10046058,,MONDO:0006873,nutritional deficiency disease
+MEDDRA:10029982,,MONDO:0006874,obstructive jaundice
+MEDDRA:10030043,,MONDO:0006875,ocular hypertension
+MEDDRA:10030345,,MONDO:0006877,oophoritis
+MEDDRA:10030948,,MONDO:0006879,optic papillitis
+MEDDRA:10057365,,MONDO:0006880,oral leukoedema
+MEDDRA:10031036,,MONDO:0006881,orbital cellulitis
+MEDDRA:10031064,,MONDO:0006882,orchitis
+MEDDRA:10033683,,MONDO:0006884,panophthalmitis
+MEDDRA:10062289,,MONDO:0006888,paraneoplastic polyneuropathy
+MEDDRA:10033890,,MONDO:0006889,paraphimosis
+MEDDRA:10033940,,MONDO:0006890,parathyroid gland adenoma
+MEDDRA:10049143,,MONDO:0006894,patellofemoral pain syndrome
+MEDDRA:10061913,,MONDO:0006895,penile neoplasm
+MEDDRA:10060985,,MONDO:0006897,periapical granuloma
+MEDDRA:10034464,,MONDO:0006898,periarthritis
+MEDDRA:10034504,,MONDO:0006899,pericoronitis
+MEDDRA:10072058,,MONDO:0006900,perinephritis
+MEDDRA:10061344,,MONDO:0006901,peritoneal neoplasm
+MEDDRA:10033828,,MONDO:0006903,peroneal nerve paralysis
+MEDDRA:10034878,,MONDO:0006904,phimosis
+MEDDRA:10056447,,MONDO:0006908,pituitary apoplexy
+MEDDRA:10035083,,MONDO:0006909,pituitary dwarfism
+MEDDRA:10049732,,MONDO:0006912,pneumatosis cystoides intestinalis
+MEDDRA:10027253,,MONDO:0006913,pneumococcal meningitis
+MEDDRA:10035645,,MONDO:0006913,pneumococcal meningitis
+MEDDRA:10036370,,MONDO:0006918,posterior uveitis
+MEDDRA:10036445,,MONDO:0006919,potassium deficiency
+MEDDRA:10065542,,MONDO:0006920,prediabetes syndrome
+MEDDRA:10037114,,MONDO:0006930,pseudobulbar palsy
+MEDDRA:10037375,,MONDO:0006932,pulmonary edema
+MEDDRA:10037450,,MONDO:0006936,pulmonary valve stenosis
+MEDDRA:10037463,,MONDO:0006937,pulpitis
+MEDDRA:10037584,,MONDO:0006938,pyelitis
+MEDDRA:10037596,,MONDO:0006939,pyelonephritis
+MEDDRA:10061477,,MONDO:0006940,radial nerve lesion
+MEDDRA:10037904,,MONDO:0006941,rat-bite fever
+MEDDRA:10001939,,MONDO:0006944,renal aminoaciduria
+MEDDRA:10038489,,MONDO:0006946,renal osteodystrophy
+MEDDRA:10038827,,MONDO:0006948,retinal artery occlusion
+MEDDRA:10062776,,MONDO:0006949,retinal drusen
+MEDDRA:10038905,,MONDO:0006950,retinal vasculitis
+MEDDRA:10038907,,MONDO:0006951,retinal vein occlusion
+MEDDRA:10038933,,MONDO:0006952,retinopathy of prematurity
+MEDDRA:10039016,,MONDO:0006953,Rh isoimmunization
+MEDDRA:10062110,,MONDO:0006955,rheumatic heart disease
+MEDDRA:10061495,,MONDO:0006956,Rickettsiosis
+MEDDRA:10048950,,MONDO:0006960,sciatic neuropathy
+MEDDRA:10020708,,MONDO:0006964,secondary hyperparathyroidism
+MEDDRA:10049039,,MONDO:0006968,shoulder impingement syndrome
+MEDDRA:10040627,,MONDO:0006969,sialadenitis
+MEDDRA:10040631,,MONDO:0006970,sialolithiasis
+MEDDRA:10041329,,MONDO:0006976,somatostatinoma
+MEDDRA:10041490,,MONDO:0006977,spermatocele
+MEDDRA:10041648,,MONDO:0006978,splenic infarction
+MEDDRA:10042271,,MONDO:0006981,subacute bacterial endocarditis
+MEDDRA:10042298,,MONDO:0006982,subacute thyroiditis
+MEDDRA:10042335,,MONDO:0006983,subclavian steal syndrome
+MEDDRA:10042360,,MONDO:0006984,subdural empyema
+MEDDRA:10042431,,MONDO:0006987,subvalvular aortic stenosis
+MEDDRA:10042481,,MONDO:0006988,sulfhemoglobinemia
+MEDDRA:10042900,,MONDO:0006992,syphilitic aortitis
+MEDDRA:10074631,,MONDO:0006993,systolic heart failure
+MEDDRA:10043121,,MONDO:0006994,tarsal tunnel syndrome
+MEDDRA:10043705,,MONDO:0006996,thyroid crisis
+MEDDRA:10044002,,MONDO:0006998,tonsil cancer
+MEDDRA:10066862,,MONDO:0007001,tricuspid valve prolapse
+MEDDRA:10074765,,MONDO:0007002,trochlear nerve disorder
+MEDDRA:10045265,,MONDO:0007004,type III hypersensitivity disease
+MEDDRA:10046369,,MONDO:0007008,uremia
+MEDDRA:10064199,,MONDO:0007012,variant Creutzfeldt-Jakob disease
+MEDDRA:10047469,,MONDO:0007015,viral meningitis
+MEDDRA:10047586,,MONDO:0007016,vitamin A deficiency
+MEDDRA:10047650,,MONDO:0007017,vitreous detachment
+MEDDRA:10047780,,MONDO:0007018,vulvitis
+MEDDRA:10047794,,MONDO:0007019,vulvovaginitis
+MEDDRA:10074389,,MONDO:0007022,xanthogranulomatous pyelonephritis
+MEDDRA:10053219,,MONDO:0007027,metabolic dysfunction-associated steatohepatitis
+MEDDRA:10071135,,MONDO:0007029,branchio-oto-renal syndrome
+MEDDRA:10051025,,MONDO:0007032,prune belly syndrome
+MEDDRA:10000452,,MONDO:0007037,achondroplasia
+MEDDRA:10002943,,MONDO:0007041,Apert syndrome
+MEDDRA:10069445,,MONDO:0007048,acrokeratosis verruciformis
+MEDDRA:10001294,,MONDO:0007070,adiposis dolorosa
+MEDDRA:10049004,,MONDO:0007113,Angelman syndrome
+MEDDRA:10066017,,MONDO:0007114,Angel-shaped phalango-epiphyseal dysplasia
+MEDDRA:10003082,,MONDO:0007150,arcus senilis
+MEDDRA:10024984,,MONDO:0007174,Lown-Ganong-Levine syndrome
+MEDDRA:10004213,,MONDO:0007191,Behcet disease
+MEDDRA:10006595,,MONDO:0007243,Burkitt lymphoma
+MEDDRA:10049010,,MONDO:0007256,hepatocellular carcinoma
+MEDDRA:10008301,,MONDO:0007303,cervical rib disease
+MEDDRA:10056944,,MONDO:0007316,Chiari malformation type I
+MEDDRA:10053870,,MONDO:0007318,Alagille syndrome
+MEDDRA:10009807,,MONDO:0007345,aorta coarctation
+MEDDRA:10019866,,MONDO:0007369,hereditary coproporphyria
+MEDDRA:10011385,,MONDO:0007404,Cri-du-chat syndrome
+MEDDRA:10071283,,MONDO:0007414,Gorham-Stout disease
+MEDDRA:10023369,,MONDO:0007417,Darier disease
+MEDDRA:10013799,,MONDO:0007473,Duane retraction syndrome
+MEDDRA:10014338,,MONDO:0007529,elastosis perforans serpiginosa
+MEDDRA:10010456,,MONDO:0007536,congenital lobar emphysema
+MEDDRA:10035040,,MONDO:0007564,pilomatrixoma
+MEDDRA:10016386,,MONDO:0007603,Felty syndrome
+MEDDRA:10068715,,MONDO:0007606,fibrodysplasia ossificans progressiva
+MEDDRA:10060707,,MONDO:0007650,MALT lymphoma
+MEDDRA:10017807,,MONDO:0007652,gastric mucosal hypertrophy
+MEDDRA:10017868,,MONDO:0007652,gastric mucosal hypertrophy
+MEDDRA:10072075,,MONDO:0007656,Gerstmann-Straussler-Scheinker syndrome
+MEDDRA:10068636,,MONDO:0007693,hypertrichosis cubiti-short stature syndrome
+MEDDRA:10072361,,MONDO:0007698,hand-foot-genital syndrome
+MEDDRA:10002058,,MONDO:0007705,Heinz body anemia
+MEDDRA:10058423,,MONDO:0007708,Kasabach-Merritt syndrome
+MEDDRA:10050469,,MONDO:0007732,Holt-Oram syndrome
+MEDDRA:10070668,,MONDO:0007739,Huntington disease
+MEDDRA:10063383,,MONDO:0007740,Wagner disease
+MEDDRA:10050975,,MONDO:0007741,congenital hydronephrosis
+MEDDRA:10071311,,MONDO:0007756,hyperkeratosis lenticularis perstans
+MEDDRA:10060755,,MONDO:0007762,hyperlipoproteinemia type V
+MEDDRA:10020967,,MONDO:0007793,hypochondroplasia
+MEDDRA:10064060,,MONDO:0007803,multiple system atrophy
+MEDDRA:10066407,,MONDO:0007827,inclusion body myositis
+MEDDRA:10053712,,MONDO:0007863,Kleine-Levin syndrome
+MEDDRA:10051452,,MONDO:0007864,angioosteohypertrophic syndrome
+MEDDRA:10050638,,MONDO:0007874,trichorhinophalangeal syndrome type II
+MEDDRA:10060786,,MONDO:0007878,congenital laryngomalacia
+MEDDRA:10034735,,MONDO:0007885,Legg-Calve-Perthes disease
+MEDDRA:10062901,,MONDO:0007893,Noonan syndrome with multiple lentigines
+MEDDRA:10000871,,MONDO:0007896,acute monocytic leukemia
+MEDDRA:10048244,,MONDO:0007921,yellow nail syndrome
+MEDDRA:10064583,,MONDO:0007946,jaw-winking syndrome
+MEDDRA:10026829,,MONDO:0007947,Marfan syndrome
+MEDDRA:10026891,,MONDO:0007950,mastocytosis
+MEDDRA:10027107,,MONDO:0007959,medulloblastoma
+MEDDRA:10027166,,MONDO:0007969,Melkersson-Rosenthal syndrome
+MEDDRA:10030069,,MONDO:0008006,Mobius syndrome
+MEDDRA:10044019,,MONDO:0008007,tooth ankylosis
+MEDDRA:10044696,,MONDO:0008039,tropical spastic paraparesis
+MEDDRA:10008521,,MONDO:0008054,juvenile dermatomyositis
+MEDDRA:10063431,,MONDO:0008061,nail-patella syndrome
+MEDDRA:10069382,,MONDO:0008087,hereditary neuropathy with liability to pressure palsies
+MEDDRA:10053176,,MONDO:0008090,cyclic hematopoiesis
+MEDDRA:10067193,,MONDO:0008094,familial multiple nevi flammei
+MEDDRA:10063691,,MONDO:0008111,oculodentodigital dysplasia
+MEDDRA:10052181,,MONDO:0008116,oculopharyngeal muscular dystrophy
+MEDDRA:10014642,,MONDO:0008145,Ollier disease
+MEDDRA:10048902,,MONDO:0008153,progressive osseous heteroplasia
+MEDDRA:10064257,,MONDO:0008168,ovarian fibroma
+MEDDRA:10033366,,MONDO:0008177,extramammary Paget disease
+MEDDRA:10068223,,MONDO:0008177,extramammary Paget disease
+MEDDRA:10071757,,MONDO:0008183,annular pancreas
+MEDDRA:10052802,,MONDO:0008219,pemphigus vulgaris
+MEDDRA:10036007,,MONDO:0008262,Poland syndrome
+MEDDRA:10036120,,MONDO:0008274,polyostotic fibrous dysplasia
+MEDDRA:10053878,,MONDO:0008287,Greig cephalopolysyndactyly syndrome
+MEDDRA:10036476,,MONDO:0008300,Prader-Willi syndrome
+MEDDRA:10063656,,MONDO:0008303,familial male-limited precocious puberty
+MEDDRA:10036794,,MONDO:0008310,Hutchinson-Gilford progeria syndrome
+MEDDRA:10037113,,MONDO:0008323,Liddle syndrome
+MEDDRA:10052313,,MONDO:0008323,Liddle syndrome
+MEDDRA:10015996,,MONDO:0008340,congenital ptosis
+MEDDRA:10066100,,MONDO:0008353,pruritic urticarial papules and plaques of pregnancy
+MEDDRA:10037080,,MONDO:0008369,proximal renal tubular acidosis
+MEDDRA:10068651,,MONDO:0008371,Dowling-Degos disease
+MEDDRA:10038916,,MONDO:0008380,retinoblastoma
+MEDDRA:10062282,,MONDO:0008394,Silver-Russell syndrome
+MEDDRA:10067159,,MONDO:0008428,septooptic dysplasia
+MEDDRA:10053841,,MONDO:0008436,Sneddon syndrome
+MEDDRA:10062920,,MONDO:0008471,spondyloepiphyseal dysplasia congenita
+MEDDRA:10042044,,MONDO:0008491,stiff-person syndrome
+MEDDRA:10042265,,MONDO:0008501,Sturge-Weber syndrome
+MEDDRA:10057653,,MONDO:0008501,Sturge-Weber syndrome
+MEDDRA:10042598,,MONDO:0008504,supravalvular aortic stenosis
+MEDDRA:10071755,,MONDO:0008523,Blau syndrome
+MEDDRA:10018250,,MONDO:0008538,temporal arteritis
+MEDDRA:10043207,,MONDO:0008538,temporal arteritis
+MEDDRA:10016193,,MONDO:0008542,tetralogy of fallot
+MEDDRA:10021245,,MONDO:0008558,autoimmune thrombocytopenic purpura
+MEDDRA:10049058,,MONDO:0008585,HELLP syndrome
+MEDDRA:10044652,,MONDO:0008599,trigeminal neuralgia
+MEDDRA:10044688,,MONDO:0008608,Down syndrome
+MEDDRA:10056433,,MONDO:0008628,ureterocele
+MEDDRA:10064569,,MONDO:0008633,Muckle-Wells syndrome
+MEDDRA:10053665,,MONDO:0008642,VACTERL/vater association
+MEDDRA:10066022,,MONDO:0008642,VACTERL/vater association
+MEDDRA:10047716,,MONDO:0008667,von Hippel-Lindau disease
+MEDDRA:10049644,,MONDO:0008678,Williams syndrome
+MEDDRA:10070179,,MONDO:0008682,Denys-Drash syndrome
+MEDDRA:10050361,,MONDO:0008684,Wolf-Hirschhorn syndrome
+MEDDRA:10000002,,MONDO:0008729,congenital adrenal hyperplasia due to 11-beta-hydroxylase deficiency
+MEDDRA:10001689,,MONDO:0008753,alkaptonuria
+MEDDRA:10001767,,MONDO:0008757,alopecia universalis congenita
+MEDDRA:10062943,,MONDO:0008758,mitochondrial DNA depletion syndrome 4a
+MEDDRA:10068783,,MONDO:0008763,Alstrom syndrome
+MEDDRA:10051875,,MONDO:0008783,Tangier disease
+MEDDRA:10002583,,MONDO:0008797,anodontia
+MEDDRA:10049005,,MONDO:0008813,arachnoid cyst
+MEDDRA:10062695,,MONDO:0008814,arginase deficiency
+MEDDRA:10058299,,MONDO:0008815,argininosuccinic aciduria
+MEDDRA:10056945,,MONDO:0008816,Chiari malformation type II
+MEDDRA:10003446,,MONDO:0008829,chylous ascites
+MEDDRA:10068220,,MONDO:0008830,aspartylglucosaminuria
+MEDDRA:10068335,,MONDO:0008832,right atrial isomerism
+MEDDRA:10003594,,MONDO:0008840,ataxia telangiectasia
+MEDDRA:10063985,,MONDO:0008863,sitosterolemia
+MEDDRA:10003650,,MONDO:0008867,biliary atresia
+MEDDRA:10054064,,MONDO:0008882,congenital bowing of long bones
+MEDDRA:10043540,,MONDO:0008889,thromboangiitis obliterans
+MEDDRA:10008033,,MONDO:0008939,isolated cerebellar hypoplasia/agenesis
+MEDDRA:10059626,,MONDO:0008947,bilateral striopallidodentate calcinosis
+MEDDRA:10008415,,MONDO:0008963,Chediak-Higashi syndrome
+MEDDRA:10064063,,MONDO:0008965,CHARGE syndrome
+MEDDRA:10008734,,MONDO:0008977,chondrosarcoma
+MEDDRA:10008747,,MONDO:0008978,chordoma
+MEDDRA:10049066,,MONDO:0008999,Cohen syndrome
+MEDDRA:10022599,,MONDO:0009010,aortic arch interruption
+MEDDRA:10067380,,MONDO:0009026,Costello syndrome
+MEDDRA:10011386,,MONDO:0009044,Crigler-Najjar syndrome
+MEDDRA:10035109,,MONDO:0009050,Cushing disease due to pituitary adenoma
+MEDDRA:10011762,,MONDO:0009061,cystic fibrosis
+MEDDRA:10011778,,MONDO:0009067,cystinuria
+MEDDRA:10048411,,MONDO:0009072,Dandy-Walker syndrome
+MEDDRA:10012750,,MONDO:0009106,diastematomyelia
+MEDDRA:10058300,,MONDO:0009109,lysinuric protein intolerance
+MEDDRA:10066387,,MONDO:0009114,congenital sucrase-isomaltase deficiency
+MEDDRA:10059589,,MONDO:0009124,Dubowitz syndrome
+MEDDRA:10039179,,MONDO:0009131,Riley-Day syndrome
+MEDDRA:10013140,,MONDO:0009133,"cerebellar ataxia, intellectual disability, and dysequilibrium"
+MEDDRA:10014075,,MONDO:0009144,Ebstein anomaly
+MEDDRA:10008724,,MONDO:0009162,Ellis-van Creveld syndrome
+MEDDRA:10014663,,MONDO:0009169,endocardial fibroelastosis
+MEDDRA:10014954,,MONDO:0009175,eosinophilic fasciitis
+MEDDRA:10052339,,MONDO:0009176,epidermodysplasia verruciformis
+MEDDRA:10062600,,MONDO:0009191,Lowry-Wood syndrome
+MEDDRA:10068448,,MONDO:0009221,femur-fibula-ulna complex
+MEDDRA:10019878,,MONDO:0009249,hereditary fructose intolerance
+MEDDRA:10015487,,MONDO:0009252,essential fructosuria
+MEDDRA:10057473,,MONDO:0009276,Bernard-Soulier syndrome
+MEDDRA:10053185,,MONDO:0009290,glycogen storage disease II
+MEDDRA:10053250,,MONDO:0009291,glycogen storage disease III
+MEDDRA:10053249,,MONDO:0009292,glycogen storage disease due to glycogen branching enzyme deficiency
+MEDDRA:10018462,,MONDO:0009293,glycogen storage disease V
+MEDDRA:10053240,,MONDO:0009294,glycogen storage disease VI
+MEDDRA:10053241,,MONDO:0009295,glycogen storage disease VII
+MEDDRA:10018620,,MONDO:0009303,anti-glomerular basement membrane disease
+MEDDRA:10019165,,MONDO:0009324,Hartnup disease
+MEDDRA:10019263,,MONDO:0009326,congenital heart block
+MEDDRA:10071093,,MONDO:0009352,classic homocystinuria
+MEDDRA:10029773,,MONDO:0009366,normal pressure hydrocephalus
+MEDDRA:10052312,,MONDO:0009367,McKusick-Kaufman syndrome
+MEDDRA:10058297,,MONDO:0009376,carbamoyl phosphate synthetase I deficiency disease
+MEDDRA:10039234,,MONDO:0009379,Rotor syndrome
+MEDDRA:10013800,,MONDO:0009380,Dubin-Johnson syndrome
+MEDDRA:10058513,,MONDO:0009400,hyperprolinemia type 1
+MEDDRA:10058512,,MONDO:0009401,hyperprolinemia type 2
+MEDDRA:10058514,,MONDO:0009401,hyperprolinemia type 2
+MEDDRA:10039768,,MONDO:0009412,scurvy
+MEDDRA:10047623,,MONDO:0009412,scurvy
+MEDDRA:10048699,,MONDO:0009458,Schimke immuno-osseous dysplasia
+MEDDRA:10037149,,MONDO:0009468,pseudotumor cerebri
+MEDDRA:10010626,,MONDO:0009476,atresia of small intestine
+MEDDRA:10023492,,MONDO:0009499,Krabbe disease
+MEDDRA:10052075,,MONDO:0009509,Landau-Kleffner syndrome
+MEDDRA:10052083,,MONDO:0009509,Landau-Kleffner syndrome
+MEDDRA:10056710,,MONDO:0009514,Laurence-Moon syndrome
+MEDDRA:10024265,,MONDO:0009519,letterer-Siwe disease
+MEDDRA:10068361,,MONDO:0009532,Miller-Dieker lissencephaly syndrome
+MEDDRA:10062997,,MONDO:0009537,lymphoid interstitial pneumonia
+MEDDRA:10026817,,MONDO:0009563,maple syrup urine disease
+MEDDRA:10069596,,MONDO:0009595,cartilage-hair hypoplasia
+MEDDRA:10067857,,MONDO:0009623,Nijmegen breakage syndrome
+MEDDRA:10068494,,MONDO:0009635,microvillus inclusion disease
+MEDDRA:10027710,,MONDO:0009637,inborn mitochondrial myopathy
+MEDDRA:10056892,,MONDO:0009661,mucopolysaccharidosis type 6
+MEDDRA:10056893,,MONDO:0009662,mucopolysaccharidosis type 7
+MEDDRA:10071434,,MONDO:0009665,biotinidase deficiency
+MEDDRA:10028417,,MONDO:0009688,myasthenia gravis
+MEDDRA:10028483,,MONDO:0009691,mycosis fungoides
+MEDDRA:10028228,,MONDO:0009693,plasma cell myeloma
+MEDDRA:10071082,,MONDO:0009696,juvenile myoclonic epilepsy
+MEDDRA:10054030,,MONDO:0009697,Lafora disease
+MEDDRA:10054895,,MONDO:0009698,Unverricht-Lundborg syndrome
+MEDDRA:10064584,,MONDO:0009714,myosclerosis
+MEDDRA:10028663,,MONDO:0009718,myxedema
+MEDDRA:10062950,,MONDO:0009723,Leigh syndrome
+MEDDRA:10060740,,MONDO:0009732,"congenital nephrotic syndrome, Finnish type"
+MEDDRA:10062909,,MONDO:0009735,Netherton syndrome
+MEDDRA:10058949,,MONDO:0009761,cystic hygroma
+MEDDRA:10067424,,MONDO:0009774,cloacal exstrophy
+MEDDRA:10052452,,MONDO:0009820,osteoporosis-pseudoglioma syndrome
+MEDDRA:10067940,,MONDO:0009833,Shwachman-Diamond syndrome
+MEDDRA:10008777,,MONDO:0009837,choroid plexus papilloma
+MEDDRA:10064170,,MONDO:0009846,pentosuria
+MEDDRA:10056961,,MONDO:0009848,dissecting cellulitis of the scalp
+MEDDRA:10070440,,MONDO:0009852,hereditary intrinsic factor deficiency
+MEDDRA:10034872,,MONDO:0009861,phenylketonuria
+MEDDRA:10036047,,MONDO:0009889,autosomal recessive polycystic kidney disease
+MEDDRA:10036057,,MONDO:0009891,acquired polycythemia vera
+MEDDRA:10062906,,MONDO:0009904,Gitelman syndrome
+MEDDRA:10000029,,MONDO:0009923,"46,XY disorder of sex development due to 5-alpha-reductase 2 deficiency"
+MEDDRA:10037315,,MONDO:0009928,pulmonary alveolar microlithiasis
+MEDDRA:10037458,,MONDO:0009937,pulmonary venoocclusive disease
+MEDDRA:10038275,,MONDO:0009958,adult Refsum disease
+MEDDRA:10038804,,MONDO:0009975,reticulum cell sarcoma
+MEDDRA:10065868,,MONDO:0009993,embryonal rhabdomyosarcoma
+MEDDRA:10065867,,MONDO:0009994,alveolar rhabdomyosarcoma
+MEDDRA:10059299,,MONDO:0010008,sarcosinemia
+MEDDRA:10063540,,MONDO:0010010,Schinzel-Giedion syndrome
+MEDDRA:10067529,,MONDO:0010028,sialuria
+MEDDRA:10048676,,MONDO:0010031,Sjogren-Larsson syndrome
+MEDDRA:10067608,,MONDO:0010079,Canavan disease
+MEDDRA:10043147,,MONDO:0010100,Tay-Sachs disease
+MEDDRA:10071719,,MONDO:0010121,thrombocytopenia-absent radius syndrome
+MEDDRA:10052622,,MONDO:0010130,dihydropyrimidine dehydrogenase deficiency
+MEDDRA:10044316,,MONDO:0010148,Mounier-Kuhn syndrome
+MEDDRA:10060121,,MONDO:0010150,head and neck squamous cell carcinoma
+MEDDRA:10069463,,MONDO:0010160,tyrosinemia type II
+MEDDRA:10069462,,MONDO:0010161,tyrosinemia type I
+MEDDRA:10069461,,MONDO:0010162,tyrosinemia type III
+MEDDRA:10049429,,MONDO:0010196,Werner syndrome
+MEDDRA:10047913,,MONDO:0010198,Wernicke-Korsakoff syndrome
+MEDDRA:10019819,,MONDO:0010200,Wilson disease
+MEDDRA:10063689,,MONDO:0010220,Young syndrome
+MEDDRA:10057589,,MONDO:0010298,Lesch-Nyhan syndrome
+MEDDRA:10059117,,MONDO:0010311,Becker muscular dystrophy
+MEDDRA:10017324,,MONDO:0010383,fragile X syndrome
+MEDDRA:10060360,,MONDO:0010421,Bruton-type agammaglobulinemia
+MEDDRA:10042863,,MONDO:0010434,synovial sarcoma
+MEDDRA:10016016,,MONDO:0010526,Fabry disease
+MEDDRA:10008791,,MONDO:0010557,choroideremia
+MEDDRA:10054935,,MONDO:0010568,Aicardi syndrome
+MEDDRA:10067148,,MONDO:0010589,"Aarskog-Scott syndrome, X-linked"
+MEDDRA:10053242,,MONDO:0010598,glycogen storage disease IXa1
+MEDDRA:10016080,,MONDO:0010602,hemophilia A
+MEDDRA:10016077,,MONDO:0010604,hemophilia B
+MEDDRA:10048063,,MONDO:0010622,recessive X-linked ichthyosis
+MEDDRA:10068348,,MONDO:0010627,X-linked lymphoproliferative syndrome
+MEDDRA:10051707,,MONDO:0010645,oculocerebrorenal syndrome
+MEDDRA:10060908,,MONDO:0010650,Melnick-Needles syndrome
+MEDDRA:10027294,,MONDO:0010651,Menkes disease
+MEDDRA:10056889,,MONDO:0010674,mucopolysaccharidosis type 2
+MEDDRA:10013801,,MONDO:0010679,Duchenne muscular dystrophy
+MEDDRA:10069760,,MONDO:0010691,Norrie disease
+MEDDRA:10052450,,MONDO:0010703,ornithine carbamoyltransferase deficiency
+MEDDRA:10067610,,MONDO:0010714,Pelizaeus-Merzbacher spectrum disorder
+MEDDRA:10039000,,MONDO:0010726,Rett syndrome
+MEDDRA:10068600,,MONDO:0010735,Kennedy disease
+MEDDRA:10069402,,MONDO:0010759,Wildervanck syndrome
+MEDDRA:10048804,,MONDO:0010787,Kearns-Sayre syndrome
+MEDDRA:10053872,,MONDO:0010789,MELAS syndrome
+MEDDRA:10069825,,MONDO:0010790,MERRF syndrome
+MEDDRA:10062940,,MONDO:0010794,NARP syndrome
+MEDDRA:10062941,,MONDO:0010797,Pearson syndrome
+MEDDRA:10072077,,MONDO:0010808,fatal familial insomnia
+MEDDRA:10036832,,MONDO:0010911,prolactin-producing pituitary gland adenoma
+MEDDRA:10027555,,MONDO:0010920,microtia
+MEDDRA:10070579,,MONDO:0010922,Satoyoshi syndrome
+MEDDRA:10068936,,MONDO:0010939,gallbladder disease 1
+MEDDRA:10006537,,MONDO:0010947,Budd-Chiari syndrome
+MEDDRA:10064281,,MONDO:0011208,malignant atrophic papulosis
+MEDDRA:10069681,,MONDO:0011224,monomelic amyotrophy
+MEDDRA:10069097,,MONDO:0011338,Omenn syndrome
+MEDDRA:10040641,,MONDO:0011382,sickle cell disease
+MEDDRA:10043390,,MONDO:0011399,alpha thalassemia spectrum
+MEDDRA:10059202,,MONDO:0011414,Peters anomaly
+MEDDRA:10059177,,MONDO:0011429,juvenile idiopathic arthritis
+MEDDRA:10038249,,MONDO:0011441,complex regional pain syndrome type 1
+MEDDRA:10064334,,MONDO:0011441,complex regional pain syndrome type 1
+MEDDRA:10067531,,MONDO:0011449,Salla disease
+MEDDRA:10062952,,MONDO:0011490,diffuse panbronchiolitis
+MEDDRA:10049767,,MONDO:0011514,tricuspid atresia
+MEDDRA:10069417,,MONDO:0011634,rippling muscle disease
+MEDDRA:10034052,,MONDO:0011644,pars planitis
+MEDDRA:10001882,,MONDO:0011655,alveolar soft part sarcoma
+MEDDRA:10051066,,MONDO:0011719,gastrointestinal stromal tumor
+MEDDRA:10011387,,MONDO:0011725,Crigler-Najjar syndrome type 2
+MEDDRA:10066388,,MONDO:0011731,glucose-galactose malabsorption
+MEDDRA:10056916,,MONDO:0011759,Hurler-Scheie syndrome
+MEDDRA:10066191,,MONDO:0011782,angioid streaks
+MEDDRA:10069034,,MONDO:0011885,tubulointerstitial nephritis and uveitis syndrome
+MEDDRA:10069039,,MONDO:0011885,tubulointerstitial nephritis and uveitis syndrome
+MEDDRA:10023249,,MONDO:0011908,juvenile myelomonocytic leukemia
+MEDDRA:10057070,,MONDO:0011934,dermatofibrosarcoma protuberans
+MEDDRA:10000748,,MONDO:0011959,sweet syndrome
+MEDDRA:10033266,,MONDO:0011972,ovarian hyperstimulation syndrome
+MEDDRA:10024198,,MONDO:0011989,leishmaniasis
+MEDDRA:10009013,,MONDO:0011996,chronic myeloid leukemia
+MEDDRA:10047888,,MONDO:0012105,granulomatosis with polyangiitis
+MEDDRA:10008587,,MONDO:0012155,choanal atresia
+MEDDRA:10016524,,MONDO:0012275,fetal valproate syndrome
+MEDDRA:10072223,,MONDO:0012316,Majeed syndrome
+MEDDRA:10002947,,MONDO:0012456,congenital primary aphakia
+MEDDRA:10072219,,MONDO:0012481,mevalonic aciduria
+MEDDRA:10023320,,MONDO:0012727,Kawasaki disease
+MEDDRA:10015560,,MONDO:0012817,Ewing sarcoma
+MEDDRA:10012671,,MONDO:0012819,diabetic ketoacidosis
+MEDDRA:10068370,,MONDO:0012868,"thrombophilia due to protein S deficiency, autosomal dominant"
+MEDDRA:10001019,,MONDO:0012883,acute promyelocytic leukemia
+MEDDRA:10068739,,MONDO:0013024,chronic thromboembolic pulmonary hypertension
+MEDDRA:10029530,,MONDO:0013209,metabolic dysfunction-associated steatotic liver disease
+MEDDRA:10001806,,MONDO:0013282,alpha 1-antitrypsin deficiency
+MEDDRA:10036732,,MONDO:0013433,primary sclerosing cholangitis
+MEDDRA:10063435,,MONDO:0013512,hemoglobin H disease
+MEDDRA:10063955,,MONDO:0013577,Lipedema
+MEDDRA:10018651,,MONDO:0013730,graft versus host disease
+MEDDRA:10048230,,MONDO:0015028,"48,XXYY syndrome"
+MEDDRA:10007476,,MONDO:0015075,thyroid gland carcinoma
+MEDDRA:10071150,,MONDO:0015094,subependymal nodular heterotopia
+MEDDRA:10054329,,MONDO:0015100,aregenerative anemia
+MEDDRA:10036183,,MONDO:0015104,porphyria cutanea tarda
+MEDDRA:10001130,,MONDO:0015129,chronic primary adrenal insufficiency
+MEDDRA:10051643,,MONDO:0015168,arthrogryposis multiplex congenita
+MEDDRA:10069002,,MONDO:0015175,autoimmune pancreatitis
+MEDDRA:10049416,,MONDO:0015183,short bowel syndrome
+MEDDRA:10020529,,MONDO:0015193,hydrops fetalis
+MEDDRA:10040661,,MONDO:0015194,sideroblastic anemia
+MEDDRA:10064895,,MONDO:0015195,atresia of urethra
+MEDDRA:10002533,,MONDO:0015200,anisakiasis
+MEDDRA:10061060,,MONDO:0015203,coronary artery congenital malformation
+MEDDRA:10056715,,MONDO:0015229,Bardet-Biedl syndrome
+MEDDRA:10050839,,MONDO:0015231,Bartter syndrome
+MEDDRA:10006474,,MONDO:0015243,allergic bronchopulmonary aspergillosis
+MEDDRA:10062989,,MONDO:0015253,Diamond-Blackfan anemia
+MEDDRA:10039603,,MONDO:0015254,schistosomiasis
+MEDDRA:10013029,,MONDO:0015260,diphyllobothriasis
+MEDDRA:10059027,,MONDO:0015263,Brugada syndrome
+MEDDRA:10027104,,MONDO:0015268,medullary sponge kidney
+MEDDRA:10069646,,MONDO:0015271,idiopathic camptocormia
+MEDDRA:10027101,,MONDO:0015277,medullary thyroid gland carcinoma
+MEDDRA:10009007,,MONDO:0015279,chronic mucocutaneous candidiasis
+MEDDRA:10069732,,MONDO:0015290,neurotrophic keratopathy
+MEDDRA:10067467,,MONDO:0015294,nephrogenic systemic fibrosis
+MEDDRA:10053868,,MONDO:0015299,Asherman syndrome
+MEDDRA:10056953,,MONDO:0015302,nodular cutaneous amyloidosis
+MEDDRA:10003074,,MONDO:0015304,arachnoiditis
+MEDDRA:10065552,,MONDO:0015306,Lemierre syndrome
+MEDDRA:10058919,,MONDO:0015340,drug rash with eosinophilia and systemic symptoms
+MEDDRA:10070595,,MONDO:0015347,multicentric reticulohistiocytosis
+MEDDRA:10056667,,MONDO:0015453,Cogan syndrome
+MEDDRA:10028176,,MONDO:0015454,multiple carboxylase deficiency
+MEDDRA:10028793,,MONDO:0015459,nasopharyngeal carcinoma
+MEDDRA:10049889,,MONDO:0015469,craniosynostosis
+MEDDRA:10011502,,MONDO:0015474,cryptosporidiosis
+MEDDRA:10011775,,MONDO:0015484,cysticercosis
+MEDDRA:10023353,,MONDO:0015486,keratoconus
+MEDDRA:10021449,,MONDO:0015517,common variable immunodeficiency
+MEDDRA:10052575,,MONDO:0015535,xanthoma disseminatum
+MEDDRA:10058125,,MONDO:0015540,hemophagocytic syndrome
+MEDDRA:10070904,,MONDO:0015541,hereditary hemophagocytic lymphohistiocytosis
+MEDDRA:10053867,,MONDO:0015545,macrophage activation syndrome
+MEDDRA:10050251,,MONDO:0015564,Castleman disease
+MEDDRA:10057903,,MONDO:0015573,subacute cutaneous lupus erythematosus
+MEDDRA:10069664,,MONDO:0015599,atopic keratoconjunctivitis
+MEDDRA:10060957,,MONDO:0015604,middle ear anomaly
+MEDDRA:10069199,,MONDO:0015612,Dent disease
+MEDDRA:10012468,,MONDO:0015614,dermatitis herpetiformis
+MEDDRA:10034699,,MONDO:0015626,Charcot-Marie-Tooth disease
+MEDDRA:10012592,,MONDO:0015661,dextrocardia
+MEDDRA:10008522,,MONDO:0015681,childhood disintegrative disorder
+MEDDRA:10065854,,MONDO:0015687,chronic eosinophilic leukemia
+MEDDRA:10048643,,MONDO:0015691,hypereosinophilic syndrome
+MEDDRA:10038271,,MONDO:0015692,refractory anemia with excess blasts in transformation
+MEDDRA:10044388,,MONDO:0015698,transient hypogammaglobulinemia of infancy
+MEDDRA:10072229,,MONDO:0015704,familial scaphocephaly syndrome
+MEDDRA:10052594,,MONDO:0015742,periventricular leukomalacia
+MEDDRA:10011677,,MONDO:0015758,primary cutaneous T-cell lymphoma
+MEDDRA:10042971,,MONDO:0015760,T-cell non-Hodgkin lymphoma
+MEDDRA:10008631,,MONDO:0015766,cholera
+MEDDRA:10068587,,MONDO:0015790,central diabetes insipidus
+MEDDRA:10069351,,MONDO:0015796,acute lung injury
+MEDDRA:10067917,,MONDO:0015798,inflammatory myofibroblastic tumor
+MEDDRA:10045224,,MONDO:0015827,distal renal tubular acidosis
+MEDDRA:10012770,,MONDO:0015834,didelphys uterus
+MEDDRA:10062606,,MONDO:0015839,septate uterus
+MEDDRA:10004550,,MONDO:0015842,bicornuate uterus
+MEDDRA:10063146,,MONDO:0015843,uterine hypoplasia
+MEDDRA:10049786,,MONDO:0015854,supernumerary breasts
+MEDDRA:10061630,,MONDO:0015898,adrenogenital syndrome
+MEDDRA:10008803,,MONDO:0015908,chromomycosis
+MEDDRA:10022611,,MONDO:0015925,interstitial lung disease
+MEDDRA:10035653,,MONDO:0015926,pneumoconiosis
+MEDDRA:10048594,,MONDO:0015943,eosinophilic granulomatosis with polyangiitis
+MEDDRA:10021202,,MONDO:0015947,inherited ichthyosis
+MEDDRA:10069566,,MONDO:0015974,severe combined immunodeficiency
+MEDDRA:10001471,,MONDO:0015977,agammaglobulinemia
+MEDDRA:10051951,,MONDO:0015987,scimitar syndrome
+MEDDRA:10014145,,MONDO:0015998,isolated ectopia lentis
+MEDDRA:10071183,,MONDO:0016004,aminopterin/methotrexate embryofetopathy
+MEDDRA:10009835,,MONDO:0016006,Cockayne syndrome
+MEDDRA:10016508,,MONDO:0016008,fetal hydantoin syndrome
+MEDDRA:10051445,,MONDO:0016010,vitamin K-antagonist embryofetopathy
+MEDDRA:10016845,,MONDO:0016011,fetal alcohol syndrome
+MEDDRA:10012780,,MONDO:0016012,diethylstilbestrol syndrome
+MEDDRA:10067866,,MONDO:0016027,benign neonatal seizures
+MEDDRA:10015284,,MONDO:0016028,erythromelalgia
+MEDDRA:10053873,,MONDO:0016030,Evans syndrome
+MEDDRA:10056354,,MONDO:0016033,Cornelia de Lange syndrome
+MEDDRA:10028913,,MONDO:0016035,Nelson syndrome
+MEDDRA:10009260,,MONDO:0016044,cleft lip/palate
+MEDDRA:10014801,,MONDO:0016047,endophthalmitis
+MEDDRA:10003747,,MONDO:0016052,atypical autism
+MEDDRA:10027534,,MONDO:0016056,isolated congenital microcephaly
+MEDDRA:10051906,,MONDO:0016063,Cowden disease
+MEDDRA:10009269,,MONDO:0016064,cleft palate
+MEDDRA:10016674,,MONDO:0016075,filariasis
+MEDDRA:10068871,,MONDO:0016107,myotonic dystrophy
+MEDDRA:10028658,,MONDO:0016120,myotonic syndrome
+MEDDRA:10051512,,MONDO:0016126,viral myositis
+MEDDRA:10017902,,MONDO:0016129,eosinophilic gastroenteritis
+MEDDRA:10068850,,MONDO:0016168,cryopyrin-associated periodic syndrome
+MEDDRA:10011692,,MONDO:0016175,cutis laxa
+MEDDRA:10064924,,MONDO:0016217,mal de Debarquement
+MEDDRA:10018767,,MONDO:0016218,Guillain-Barre syndrome
+MEDDRA:10011777,,MONDO:0016239,cystinosis
+MEDDRA:10019464,,MONDO:0016240,hemimelia
+MEDDRA:10018883,,MONDO:0016242,hemoglobin C disease
+MEDDRA:10053215,,MONDO:0016243,hemoglobin E disease
+MEDDRA:10003827,,MONDO:0016264,autoimmune hepatitis
+MEDDRA:10056304,,MONDO:0016296,holoprosencephaly
+MEDDRA:10011120,,MONDO:0016301,congenitally corrected transposition of the great arteries
+MEDDRA:10036807,,MONDO:0016318,progressive multifocal leukoencephalopathy
+MEDDRA:10010506,,MONDO:0016349,congenital hydrocephalus
+MEDDRA:10012503,,MONDO:0016367,dermatomyositis
+MEDDRA:10026828,,MONDO:0016370,Marchiafava-Bignami disease
+MEDDRA:10018391,,MONDO:0016372,glossopharyngeal neuralgia
+MEDDRA:10029147,,MONDO:0016383,nephrogenic diabetes insipidus
+MEDDRA:10028933,,MONDO:0016391,neonatal diabetes mellitus
+MEDDRA:10051919,,MONDO:0016426,fusariosis
+MEDDRA:10010252,,MONDO:0016430,Balo concentric sclerosis
+MEDDRA:10013618,,MONDO:0016472,dracunculiasis
+MEDDRA:10013706,,MONDO:0016474,drug-induced lupus erythematosus
+MEDDRA:10012236,,MONDO:0016489,delta-beta-thalassemia
+MEDDRA:10063935,,MONDO:0016512,Kabuki syndrome
+MEDDRA:10064585,,MONDO:0016523,bronchogenic cyst
+MEDDRA:10023885,,MONDO:0016530,laryngocele
+MEDDRA:10048816,,MONDO:0016532,Lennox-Gastaut syndrome
+MEDDRA:10024797,,MONDO:0016566,loiasis
+MEDDRA:10024792,,MONDO:0016567,locked-in syndrome
+MEDDRA:10000746,,MONDO:0016573,acute fatty liver of pregnancy
+MEDDRA:10042949,,MONDO:0016586,systemic mastocytosis
+MEDDRA:10058093,,MONDO:0016587,arrhythmogenic right ventricular cardiomyopathy
+MEDDRA:10035667,,MONDO:0016595,inhalational anthrax
+MEDDRA:10051686,,MONDO:0016620,primary hypertrophic osteoarthropathy
+MEDDRA:10027191,,MONDO:0016642,meningioma
+MEDDRA:10028197,,MONDO:0016648,multiple epiphyseal dysplasia
+MEDDRA:10057072,,MONDO:0016669,sickle cell-hemoglobin c disease syndrome
+MEDDRA:10056724,,MONDO:0016670,sickle cell-hemoglobin d disease syndrome
+MEDDRA:10018340,,MONDO:0016681,gliosarcoma
+MEDDRA:10066254,,MONDO:0016683,gliomatosis cerebri
+MEDDRA:10002224,,MONDO:0016684,anaplastic astrocytoma
+MEDDRA:10060971,,MONDO:0016684,anaplastic astrocytoma
+MEDDRA:10065869,,MONDO:0016685,low-grade astrocytoma
+MEDDRA:10065889,,MONDO:0016688,fibrillary astrocytoma
+MEDDRA:10030286,,MONDO:0016695,oligodendroglioma
+MEDDRA:10026659,,MONDO:0016696,anaplastic oligodendroglioma
+MEDDRA:10014967,,MONDO:0016698,ependymoma
+MEDDRA:10014968,,MONDO:0016700,anaplastic ependymoma
+MEDDRA:10014966,,MONDO:0016715,ependymoblastoma
+MEDDRA:10067478,,MONDO:0016718,choroid plexus carcinoma
+MEDDRA:10050487,,MONDO:0016722,pineoblastoma
+MEDDRA:10035059,,MONDO:0016723,pineocytoma
+MEDDRA:10017701,,MONDO:0016733,ganglioglioma
+MEDDRA:10061282,,MONDO:0016743,tumor of meninges
+MEDDRA:10018813,,MONDO:0016748,hemangioblastoma
+MEDDRA:10029267,,MONDO:0016755,neurofibroma
+MEDDRA:10056959,,MONDO:0016773,atrophic lichen planus
+MEDDRA:10070612,,MONDO:0016817,Meier-Gorlin syndrome
+MEDDRA:10028047,,MONDO:0016820,Moyamoya disease
+MEDDRA:10028427,,MONDO:0016823,mycetoma
+MEDDRA:10002476,,MONDO:0016982,angiosarcoma
+MEDDRA:10051713,,MONDO:0016984,nevus of Ota
+MEDDRA:10017406,,MONDO:0016989,Fuchs heterochromic iridocyclitis
+MEDDRA:10049808,,MONDO:0017042,thanatophoric dysplasia
+MEDDRA:10037138,,MONDO:0017048,pseudomyxoma peritonei
+MEDDRA:10071011,,MONDO:0017069,spina bifida cystica
+MEDDRA:10029502,,MONDO:0017124,noma
+MEDDRA:10030314,,MONDO:0017137,onchocerciasis
+MEDDRA:10031231,,MONDO:0017178,osteochondritis dissecans
+MEDDRA:10072255,,MONDO:0017194,Blount disease
+MEDDRA:10063718,,MONDO:0017195,Bruck syndrome
+MEDDRA:10031280,,MONDO:0017198,osteopetrosis
+MEDDRA:10000730,,MONDO:0017202,acute endophthalmitis
+MEDDRA:10008864,,MONDO:0017203,chronic endophthalmitis
+MEDDRA:10051714,,MONDO:0017215,calciphylaxis
+MEDDRA:10018378,,MONDO:0017236,rapidly progressive glomerulonephritis
+MEDDRA:10033687,,MONDO:0017255,panuveitis
+MEDDRA:10068968,,MONDO:0017276,frontotemporal dementia
+MEDDRA:10053042,,MONDO:0017282,alveolar echinococcosis
+MEDDRA:10067287,,MONDO:0017285,penoscrotal transposition
+MEDDRA:10071569,,MONDO:0017287,immunoglobulin G4-related sclerosing disease
+MEDDRA:10065276,,MONDO:0017304,ocular albinism
+MEDDRA:10014490,,MONDO:0017319,hereditary elliptocytosis
+MEDDRA:10068349,,MONDO:0017343,Epstein-Barr virus-associated lymphoproliferative disorder
+MEDDRA:10065039,,MONDO:0017347,plasmablastic lymphoma
+MEDDRA:10010618,,MONDO:0017361,congenital rubella syndrome
+MEDDRA:10053869,,MONDO:0017364,POEMS syndrome
+MEDDRA:10036012,,MONDO:0017373,poliomyelitis
+MEDDRA:10003267,,MONDO:0017376,reactive arthritis
+MEDDRA:10048799,,MONDO:0017384,acute generalized exanthematous pustulosis
+MEDDRA:10015099,,MONDO:0017387,epithelioid sarcoma
+MEDDRA:10024500,,MONDO:0017427,congenital deformities of limbs
+MEDDRA:10010520,,MONDO:0017470,congenital knee dislocation
+MEDDRA:10043848,,MONDO:0017572,tick-borne encephalitis
+MEDDRA:10048853,,MONDO:0017590,carcinoma of the ampulla of vater
+MEDDRA:10041932,,MONDO:0017592,staphylococcal toxemia
+MEDDRA:10065863,,MONDO:0017598,primary cutaneous anaplastic large cell lymphoma
+MEDDRA:10019054,,MONDO:0017600,hairy cell leukemia variant
+MEDDRA:10059387,,MONDO:0017607,caudal regression sequence
+MEDDRA:10058951,,MONDO:0017638,manganese poisoning
+MEDDRA:10042732,,MONDO:0017648,Sydenham chorea
+MEDDRA:10072221,,MONDO:0017708,mevalonate kinase deficiency
+MEDDRA:10058800,,MONDO:0017734,sialidosis
+MEDDRA:10010371,,MONDO:0017735,congenital aortic valve stenosis
+MEDDRA:10061091,,MONDO:0017762,disorder of copper metabolism
+MEDDRA:10048260,,MONDO:0017764,disorder of zinc metabolism
+MEDDRA:10039054,,MONDO:0017767,rheumatic fever
+MEDDRA:10065148,,MONDO:0017771,Mayer-Rokitansky-Kuster-Hauser syndrome
+MEDDRA:10065156,,MONDO:0017773,hypoalphalipoproteinemia
+MEDDRA:10069748,,MONDO:0017775,melioidosis
+MEDDRA:10029444,,MONDO:0017776,nocardiosis
+MEDDRA:10023686,,MONDO:0017778,lamellar ichthyosis
+MEDDRA:10066796,,MONDO:0017795,ameloblastoma
+MEDDRA:10027139,,MONDO:0017799,Meigs syndrome
+MEDDRA:10029236,,MONDO:0017827,malignant peripheral nerve sheath tumor
+MEDDRA:10040493,,MONDO:0017844,Sezary syndrome
+MEDDRA:10040500,,MONDO:0017844,Sezary syndrome
+MEDDRA:10049048,,MONDO:0017851,erythrokeratodermia variabilis
+MEDDRA:10001890,,MONDO:0017853,hypersensitivity pneumonitis
+MEDDRA:10037451,,MONDO:0017865,congenital pulmonary valve stenosis
+MEDDRA:10005932,,MONDO:0017875,Bolivian hemorrhagic fever
+MEDDRA:10019143,,MONDO:0017879,hantavirus pulmonary syndrome
+MEDDRA:10039143,,MONDO:0017880,Rift valley fever
+MEDDRA:10023505,,MONDO:0017881,Kyasanur forest disease
+MEDDRA:10030310,,MONDO:0017882,Omsk hemorrhagic fever
+MEDDRA:10042928,,MONDO:0017987,syringomyelia
+MEDDRA:10043097,,MONDO:0017991,Takayasu arteritis
+MEDDRA:10071249,,MONDO:0018034,thalidomide embryopathy
+MEDDRA:10062506,,MONDO:0018048,heparin-induced thrombocytopenia
+MEDDRA:10044628,,MONDO:0018053,trichothiodystrophy
+MEDDRA:10056960,,MONDO:0018056,bullous lichen planus
+MEDDRA:10027249,,MONDO:0018059,meningococcal meningitis
+MEDDRA:10027276,,MONDO:0018059,meningococcal meningitis
+MEDDRA:10047883,,MONDO:0018063,nodular non-suppurative panniculitis
+MEDDRA:10044686,,MONDO:0018068,trisomy 13
+MEDDRA:10053884,,MONDO:0018071,trisomy 18
+MEDDRA:10044755,,MONDO:0018076,tuberculosis
+MEDDRA:10045146,,MONDO:0018077,tularemia
+MEDDRA:10023484,,MONDO:0018081,hemorrhagic fever-renal syndrome
+MEDDRA:10048951,,MONDO:0018084,Uhl anomaly
+MEDDRA:10016207,,MONDO:0018088,familial Mediterranean fever
+MEDDRA:10013611,,MONDO:0018089,double outlet right ventricle
+MEDDRA:10069203,,MONDO:0018094,Waardenburg syndrome
+MEDDRA:10064963,,MONDO:0018096,Weill-Marchesani syndrome
+MEDDRA:10021750,,MONDO:0018097,infantile spasms
+MEDDRA:10011005,,MONDO:0018102,corneal dystrophy
+MEDDRA:10017604,,MONDO:0018116,galactosemia
+MEDDRA:10018048,,MONDO:0018150,Gaucher disease
+MEDDRA:10060801,,MONDO:0018153,Erdheim-Chester disease
+MEDDRA:10007700,,MONDO:0018154,Madelung deformity
+MEDDRA:10036704,,MONDO:0018155,lateral sclerosis
+MEDDRA:10059396,,MONDO:0018158,mitochondrial DNA depletion syndrome
+MEDDRA:10027974,,MONDO:0018169,morning glory syndrome
+MEDDRA:10018336,,MONDO:0018177,glioblastoma
+MEDDRA:10018337,,MONDO:0018177,glioblastoma
+MEDDRA:10025213,,MONDO:0018178,intestinal lymphangiectasia
+MEDDRA:10041929,,MONDO:0018181,staphylococcal scalded skin syndrome
+MEDDRA:10006563,,MONDO:0018182,bullous impetigo
+MEDDRA:10042033,,MONDO:0018229,Stevens-Johnson syndrome
+MEDDRA:10011796,,MONDO:0018301,interstitial cystitis
+MEDDRA:10062908,,MONDO:0018304,Schnitzler syndrome
+MEDDRA:10008906,,MONDO:0018305,chronic granulomatous disease
+MEDDRA:10010539,,MONDO:0018309,Hirschsprung disease
+MEDDRA:10069698,,MONDO:0018310,Langerhans cell histiocytosis
+MEDDRA:10020141,,MONDO:0018312,histoplasmosis
+MEDDRA:10057429,,MONDO:0018460,Eales disease
+MEDDRA:10060751,,MONDO:0018473,hyperlipoproteinemia type 3
+MEDDRA:10023376,,MONDO:0018477,bilirubin encephalopathy
+MEDDRA:10010323,,MONDO:0018479,congenital adrenal hyperplasia
+MEDDRA:10020844,,MONDO:0018493,malignant hyperthermia of anesthesia
+MEDDRA:10052210,,MONDO:0018542,severe congenital neutropenia
+MEDDRA:10051260,,MONDO:0018544,adrenoleukodystrophy
+MEDDRA:10040108,,MONDO:0018546,serotonin syndrome
+MEDDRA:10067685,,MONDO:0018556,Lambert-Eaton myasthenic syndrome
+MEDDRA:10049933,,MONDO:0018570,hypophosphatasia
+MEDDRA:10010510,,MONDO:0018612,congenital hypothyroidism
+MEDDRA:10061992,,MONDO:0018660,hemophilia
+MEDDRA:10062001,,MONDO:0018666,hepatoblastoma
+MEDDRA:10059119,,MONDO:0018677,visceral heterotaxy
+MEDDRA:10067265,,MONDO:0018677,visceral heterotaxy
+MEDDRA:10057052,,MONDO:0018746,mucous membrane pemphigoid
+MEDDRA:10056508,,MONDO:0018747,acquired epidermolysis bullosa
+MEDDRA:10024515,,MONDO:0018748,linear IgA Dermatosis
+MEDDRA:10064570,,MONDO:0018768,familial cold autoinflammatory syndrome
+MEDDRA:10023076,,MONDO:0018769,isosporiasis
+MEDDRA:10057621,,MONDO:0018770,Jeune syndrome
+MEDDRA:10048786,,MONDO:0018781,KID syndrome
+MEDDRA:10053142,,MONDO:0018800,Kallmann syndrome
+MEDDRA:10037635,,MONDO:0018824,pyoderma gangrenosum
+MEDDRA:10065580,,MONDO:0018826,Lewis-Sumner syndrome
+MEDDRA:10048640,,MONDO:0018830,Kimura disease
+MEDDRA:10048911,,MONDO:0018838,lissencephaly spectrum disorders
+MEDDRA:10065857,,MONDO:0018842,primary effusion lymphoma
+MEDDRA:10065375,,MONDO:0018844,urachal cyst
+MEDDRA:10038979,,MONDO:0018848,IgG4-related retroperitoneal fibrosis
+MEDDRA:10054013,,MONDO:0018849,dentinogenesis imperfecta
+MEDDRA:10000454,,MONDO:0018852,achromatopsia
+MEDDRA:10067609,,MONDO:0018868,metachromatic leukodystrophy
+MEDDRA:10000890,,MONDO:0018871,acute myelomonocytic leukemia M4
+MEDDRA:10060556,,MONDO:0018872,acute megakaryoblastic leukemia
+MEDDRA:10000880,,MONDO:0018874,acute myeloid leukemia
+MEDDRA:10061275,,MONDO:0018876,mantle cell lymphoma
+MEDDRA:10028532,,MONDO:0018881,myelodysplastic syndrome
+MEDDRA:10047115,,MONDO:0018882,vasculitis
+MEDDRA:10059364,,MONDO:0018891,familial tumoral calcinosis
+MEDDRA:10048661,,MONDO:0018892,Wyburn-Mason syndrome
+MEDDRA:10040664,,MONDO:0018895,Plummer-Vinson syndrome
+MEDDRA:10043648,,MONDO:0018896,thrombotic thrombocytopenic purpura
+MEDDRA:10019827,,MONDO:0018902,hepatocellular adenoma
+MEDDRA:10039483,,MONDO:0018903,sarcocystosis
+MEDDRA:10012818,,MONDO:0018905,diffuse large B-cell lymphoma
+MEDDRA:10011318,,MONDO:0018907,craniopharyngioma
+MEDDRA:10029547,,MONDO:0018908,non-Hodgkin lymphoma
+MEDDRA:10011652,,MONDO:0018912,Cushing syndrome
+MEDDRA:10049430,,MONDO:0018920,peripartum cardiomyopathy
+MEDDRA:10061981,,MONDO:0018927,SUNCT syndrome
+MEDDRA:10019053,,MONDO:0018935,hairy cell leukemia
+MEDDRA:10019055,,MONDO:0018935,hairy cell leukemia
+MEDDRA:10004430,,MONDO:0018936,osteoblastoma
+MEDDRA:10056890,,MONDO:0018937,mucopolysaccharidosis type 3
+MEDDRA:10028095,,MONDO:0018938,mucopolysaccharidosis type 4
+MEDDRA:10061988,,MONDO:0018944,gestational trophoblastic neoplasm
+MEDDRA:10059314,,MONDO:0018955,recurrent respiratory papillomatosis
+MEDDRA:10001843,,MONDO:0018965,Alport syndrome
+MEDDRA:10022034,,MONDO:0018968,iniencephaly
+MEDDRA:10011321,,MONDO:0018969,craniorachischisis
+MEDDRA:10057056,,MONDO:0018974,paraneoplastic pemphigus
+MEDDRA:10027074,,MONDO:0018978,IgG4-related mediastinitis
+MEDDRA:10051526,,MONDO:0018983,Tolosa-Hunt syndrome
+MEDDRA:10053678,,MONDO:0018988,iridocorneal endothelial syndrome
+MEDDRA:10039142,,MONDO:0018992,IgG4-related thyroid disease
+MEDDRA:10029748,,MONDO:0018997,Noonan syndrome
+MEDDRA:10070667,,MONDO:0018998,Leber congenital amaurosis
+MEDDRA:10029145,,MONDO:0019004,kidney Wilms tumor
+MEDDRA:10046879,,MONDO:0019007,vaginal atresia
+MEDDRA:10030308,,MONDO:0019015,omphalocele
+MEDDRA:10031243,,MONDO:0019019,osteogenesis imperfecta
+MEDDRA:10036813,,MONDO:0019037,progressive supranuclear palsy
+MEDDRA:10024381,,MONDO:0019046,leukodystrophy
+MEDDRA:10062018,,MONDO:0019052,inborn errors of metabolism
+MEDDRA:10029323,,MONDO:0019056,neuromuscular disease
+MEDDRA:10019903,,MONDO:0019064,hereditary spastic paraplegia
+MEDDRA:10002022,,MONDO:0019065,amyloidosis
+MEDDRA:10068856,,MONDO:0019077,warty dyskeratoma
+MEDDRA:10001766,,MONDO:0019080,alopecia totalis
+MEDDRA:10037766,,MONDO:0019084,radiation proctitis
+MEDDRA:10030155,,MONDO:0019086,carcinoma of esophagus
+MEDDRA:10008593,,MONDO:0019087,cholangiocarcinoma
+MEDDRA:10051358,,MONDO:0019088,post-transplant lymphoproliferative disease
+MEDDRA:10006475,,MONDO:0019091,bronchopulmonary dysplasia
+MEDDRA:10035148,,MONDO:0019095,plague
+MEDDRA:10050245,,MONDO:0019098,autoimmune thrombocytopenia
+MEDDRA:10029322,,MONDO:0019100,neuromyelitis optica
+MEDDRA:10066142,,MONDO:0019104,Sandifer syndrome
+MEDDRA:10072376,,MONDO:0019114,psychogenic movement disorders
+MEDDRA:10038857,,MONDO:0019118,inherited retinal dystrophy
+MEDDRA:10063344,,MONDO:0019124,microscopic polyangiitis
+MEDDRA:10038304,,MONDO:0019125,relapsing polychondritis
+MEDDRA:10036102,,MONDO:0019127,polymyositis
+MEDDRA:10061418,,MONDO:0019136,Zygomycosis
+MEDDRA:10053745,,MONDO:0019139,acquired hemophilia
+MEDDRA:10069517,,MONDO:0019143,angiostrongyliasis
+MEDDRA:10028586,,MONDO:0019147,myiasis
+MEDDRA:10053687,,MONDO:0019148,Wolman disease
+MEDDRA:10056292,,MONDO:0019154,androgen insensitivity syndrome
+MEDDRA:10024406,,MONDO:0019155,Leydig cell hypoplasia
+MEDDRA:10052841,,MONDO:0019159,Loeffler endocarditis
+MEDDRA:10036024,,MONDO:0019170,polyarteritis nodosa
+MEDDRA:10057926,,MONDO:0019171,familial long QT syndrome
+MEDDRA:10002532,,MONDO:0019172,aniridia
+MEDDRA:10037742,,MONDO:0019173,rabies
+MEDDRA:10019883,,MONDO:0019180,hereditary hemorrhagic telangiectasia
+MEDDRA:10037688,,MONDO:0019186,Q fever
+MEDDRA:10059255,,MONDO:0019187,Axenfeld-Rieger syndrome
+MEDDRA:10039281,,MONDO:0019188,Rubinstein-Taybi syndrome
+MEDDRA:10051457,,MONDO:0019191,IgG4-related dacryoadenitis and sialadenitis
+MEDDRA:10052317,,MONDO:0019191,IgG4-related dacryoadenitis and sialadenitis
+MEDDRA:10042742,,MONDO:0019198,sympathetic ophthalmia
+MEDDRA:10038914,,MONDO:0019200,retinitis pigmentosa
+MEDDRA:10043788,,MONDO:0019201,thyrotoxic periodic paralysis
+MEDDRA:10066948,,MONDO:0019202,myxofibrosarcoma
+MEDDRA:10066728,,MONDO:0019203,acute interstitial pneumonia
+MEDDRA:10014596,,MONDO:0019209,Japanese encephalitis
+MEDDRA:10070969,,MONDO:0019238,inborn disorder of pyrimidine metabolism
+MEDDRA:10028093,,MONDO:0019249,mucopolysaccharidosis
+MEDDRA:10037546,,MONDO:0019254,inborn disorder of purine or pyrimidine metabolism
+MEDDRA:10034875,,MONDO:0019259,classic phenylketonuria
+MEDDRA:10051316,,MONDO:0019266,SAPHO syndrome
+MEDDRA:10015280,,MONDO:0019270,erythrokeratoderma
+MEDDRA:10020864,,MONDO:0019280,hypertrichosis
+MEDDRA:10010452,,MONDO:0019287,ectodermal dysplasia syndrome
+MEDDRA:10040868,,MONDO:0019290,hypopigmentation of the skin
+MEDDRA:10062171,,MONDO:0019293,skin vascular disease
+MEDDRA:10025282,,MONDO:0019297,lymphedema
+MEDDRA:10063493,,MONDO:0019303,premature aging syndrome
+MEDDRA:10071775,,MONDO:0019312,Hermansky-Pudlak syndrome
+MEDDRA:10012812,,MONDO:0019315,diffuse cutaneous mastocytosis
+MEDDRA:10046752,,MONDO:0019316,maculopapular cutaneous mastocytosis
+MEDDRA:10057053,,MONDO:0019322,pemphigus vegetans
+MEDDRA:10058917,,MONDO:0019323,pemphigus erythematosus
+MEDDRA:10057069,,MONDO:0019324,pemphigus foliaceus
+MEDDRA:10039486,,MONDO:0019338,sarcoidosis
+MEDDRA:10056894,,MONDO:0019339,"47,XYY syndrome"
+MEDDRA:10039710,,MONDO:0019340,scleroderma
+MEDDRA:10068801,,MONDO:0019344,antisynthetase syndrome
+MEDDRA:10017915,,MONDO:0019345,shigellosis
+MEDDRA:10054178,,MONDO:0019345,shigellosis
+MEDDRA:10064387,,MONDO:0019349,Sotos syndrome
+MEDDRA:10019904,,MONDO:0019350,hereditary spherocytosis
+MEDDRA:10062766,,MONDO:0019353,Stargardt disease
+MEDDRA:10063402,,MONDO:0019354,Stickler syndrome
+MEDDRA:10064056,,MONDO:0019355,adult-onset Still disease
+MEDDRA:10039207,,MONDO:0019359,Rocky mountain spotted fever
+MEDDRA:10039137,,MONDO:0019360,rickettsialpox
+MEDDRA:10014979,,MONDO:0019362,epidemic louse-borne typhus
+MEDDRA:10039766,,MONDO:0019365,scrub typhus
+MEDDRA:10064332,,MONDO:0019369,complex regional pain syndrome
+MEDDRA:10064581,,MONDO:0019373,desmoplastic small round cell tumor
+MEDDRA:10064587,,MONDO:0019373,desmoplastic small round cell tumor
+MEDDRA:10014584,,MONDO:0019378,la Crosse encephalitis
+MEDDRA:10014614,,MONDO:0019380,western equine encephalitis
+MEDDRA:10052369,,MONDO:0019384,encephalitis lethargica
+MEDDRA:10071573,,MONDO:0019390,Susac syndrome
+MEDDRA:10055206,,MONDO:0019391,Fanconi anemia
+MEDDRA:10042926,,MONDO:0019392,syringocystadenoma papilliferum
+MEDDRA:10043391,,MONDO:0019402,beta thalassemia
+MEDDRA:10036673,,MONDO:0019438,AL amyloidosis
+MEDDRA:10039811,,MONDO:0019439,AA amyloidosis
+MEDDRA:10044608,,MONDO:0019444,trichinellosis
+MEDDRA:10044611,,MONDO:0019445,trichofolliculoma
+MEDDRA:10067959,,MONDO:0019453,myelodysplastic syndrome with multilineage dysplasia
+MEDDRA:10038270,,MONDO:0019454,myelodysplastic syndrome with excess blasts
+MEDDRA:10000879,,MONDO:0019455,acute panmyelosis with myelofibrosis
+MEDDRA:10062113,,MONDO:0019462,splenic marginal zone lymphoma
+MEDDRA:10019350,,MONDO:0019464,heavy chain disease
+MEDDRA:10029460,,MONDO:0019465,nodal marginal zone B-cell lymphoma
+MEDDRA:10025325,,MONDO:0019466,lymphomatoid granulomatosis
+MEDDRA:10042985,,MONDO:0019468,T-cell prolymphocytic leukemia
+MEDDRA:10065862,,MONDO:0019469,T-cell large granular lymphocyte leukemia
+MEDDRA:10028811,,MONDO:0019470,aggressive NK-cell leukemia
+MEDDRA:10001413,,MONDO:0019471,adult T-cell leukemia/lymphoma
+MEDDRA:10065855,,MONDO:0019472,extranodal nasal NK/T cell lymphoma
+MEDDRA:10066957,,MONDO:0019474,hepatosplenic T-cell lymphoma
+MEDDRA:10034623,,MONDO:0019476,primary cutaneous peripheral T-cell lymphoma not otherwise specified
+MEDDRA:10045181,,MONDO:0019499,Turner syndrome
+MEDDRA:10047216,,MONDO:0019514,hepatic veno-occlusive disease
+MEDDRA:10056968,,MONDO:0019526,erythema elevatum diutinum
+MEDDRA:10071575,,MONDO:0019527,undifferentiated connective tissue syndrome
+MEDDRA:10047822,,MONDO:0019532,"autoimmune hemolytic anemia, warm type"
+MEDDRA:10055019,,MONDO:0019537,hemoglobin D disease
+MEDDRA:10042217,,MONDO:0019538,Gaisbock syndrome
+MEDDRA:10053885,,MONDO:0019538,Gaisbock syndrome
+MEDDRA:10000804,,MONDO:0019542,acute liver failure
+MEDDRA:10025141,,MONDO:0019557,chilblain lupus
+MEDDRA:10013072,,MONDO:0019558,discoid lupus erythematosus
+MEDDRA:10039712,,MONDO:0019562,localized scleroderma
+MEDDRA:10011380,,MONDO:0019563,CREST syndrome
+MEDDRA:10043192,,MONDO:0019576,telangiectasia macularis eruptiva perstans
+MEDDRA:10033662,,MONDO:0019591,panhypopituitarism
+MEDDRA:10048220,,MONDO:0019600,xeroderma pigmentosum
+MEDDRA:10036297,,MONDO:0019618,Sheehan syndrome
+MEDDRA:10019860,,MONDO:0019623,hereditary angioedema
+MEDDRA:10059198,,MONDO:0019628,Rieger anomaly
+MEDDRA:10025169,,MONDO:0019632,Lyme disease
+MEDDRA:10038300,,MONDO:0019633,relapsing fever
+MEDDRA:10036669,,MONDO:0019635,idiopathic achalasia
+MEDDRA:10053624,,MONDO:0019636,"renal agenesis, unilateral"
+MEDDRA:10049102,,MONDO:0019637,renal hypoplasia
+MEDDRA:10036369,,MONDO:0019640,posterior urethral valve
+MEDDRA:10066122,,MONDO:0019648,achondrogenesis
+MEDDRA:10058902,,MONDO:0019668,adenoma of pancreas
+MEDDRA:10043645,,MONDO:0019737,thrombotic microangiopathy
+MEDDRA:10072220,,MONDO:0019751,autoinflammatory syndrome
+MEDDRA:10015088,,MONDO:0019759,epispadias
+MEDDRA:10002654,,MONDO:0019780,anotia
+MEDDRA:10062891,,MONDO:0019783,neovascular glaucoma
+MEDDRA:10029282,,MONDO:0019790,neuroleptic malignant syndrome
+MEDDRA:10000590,,MONDO:0019796,acrocephalosyndactyly
+MEDDRA:10010654,,MONDO:0019804,congenital tracheomalacia
+MEDDRA:10058328,,MONDO:0019805,twin to twin transfusion syndrome
+MEDDRA:10066801,,MONDO:0019808,aortic valve atresia
+MEDDRA:10010370,,MONDO:0019809,congenital aortic valve insufficiency
+MEDDRA:10044223,,MONDO:0019810,toxic epidermal necrolysis
+MEDDRA:10010656,,MONDO:0019813,congenital tricuspid stenosis
+MEDDRA:10065938,,MONDO:0019861,thyroid hypoplasia
+MEDDRA:10071015,,MONDO:0019862,levocardia
+MEDDRA:10053916,,MONDO:0019867,mosaic trisomy 8
+MEDDRA:10048228,,MONDO:0019928,"48,XXXY syndrome"
+MEDDRA:10000599,,MONDO:0019933,acromegaly
+MEDDRA:10058554,,MONDO:0019944,Eisenmenger syndrome
+MEDDRA:10041307,,MONDO:0019945,solar urticaria
+MEDDRA:10062547,,MONDO:0019952,congenital myopathy
+MEDDRA:10014581,,MONDO:0019956,encephalitis
+MEDDRA:10018404,,MONDO:0019959,glucagonoma
+MEDDRA:10047430,,MONDO:0019960,VIPoma
+MEDDRA:10064242,,MONDO:0019967,Kienbock disease
+MEDDRA:10063585,,MONDO:0019970,Sinding-Larsen-Johansson disease
+MEDDRA:10029400,,MONDO:0019975,pellagra
+MEDDRA:10037126,,MONDO:0019992,pseudohypoparathyroidism
+MEDDRA:10014316,,MONDO:0020066,Ehlers-Danlos syndrome
+MEDDRA:10057235,,MONDO:0020068,postinfectious encephalitis
+MEDDRA:10028576,,MONDO:0020076,myeloproliferative neoplasm
+MEDDRA:10049287,,MONDO:0020089,acquired lipodystrophy
+MEDDRA:10002046,,MONDO:0020108,autoimmune hemolytic anemia
+MEDDRA:10037322,,MONDO:0020110,pulmonary agenesis
+MEDDRA:10028356,,MONDO:0020121,muscular dystrophy
+MEDDRA:10068836,,MONDO:0020123,metabolic myopathy
+MEDDRA:10028003,,MONDO:0020128,motor neuron disorder
+MEDDRA:10014923,,MONDO:0020159,congenital entropion
+MEDDRA:10046851,,MONDO:0020283,uveitis
+MEDDRA:10050053,,MONDO:0020291,hypoplastic right heart syndrome
+MEDDRA:10064962,,MONDO:0020291,hypoplastic right heart syndrome
+MEDDRA:10061080,,MONDO:0020292,congenital anomaly of the great arteries
+MEDDRA:10009018,,MONDO:0020311,chronic myelomonocytic leukemia
+MEDDRA:10067399,,MONDO:0020322,acute biphenotypic leukemia
+MEDDRA:10036710,,MONDO:0020323,primary mediastinal large B-cell lymphoma
+MEDDRA:10069643,,MONDO:0020324,intravascular large B-cell lymphoma
+MEDDRA:10056670,,MONDO:0020326,lymphomatoid papulosis
+MEDDRA:10056452,,MONDO:0020331,indolent systemic mastocytosis
+MEDDRA:10056453,,MONDO:0020333,aggressive systemic mastocytosis
+MEDDRA:10056450,,MONDO:0020334,mast cell leukemia
+MEDDRA:10066854,,MONDO:0020341,periventricular nodular heterotopia
+MEDDRA:10064032,,MONDO:0020367,juvenile open angle glaucoma
+MEDDRA:10058653,,MONDO:0020368,Axenfeld anomaly
+MEDDRA:10057487,,MONDO:0020369,Chandler syndrome
+MEDDRA:10059200,,MONDO:0020370,Cogan-Reese syndrome
+MEDDRA:10066802,,MONDO:0020404,shone complex
+MEDDRA:10067407,,MONDO:0020417,right aortic arch
+MEDDRA:10031302,,MONDO:0020434,"atrial septal defect, ostium secundum type"
+MEDDRA:10031303,,MONDO:0020434,"atrial septal defect, ostium secundum type"
+MEDDRA:10016982,,MONDO:0020439,patent foramen ovale
+MEDDRA:10069495,,MONDO:0020460,acquired von willebrand syndrome
+MEDDRA:10018265,,MONDO:0020479,pituitary gigantism
+MEDDRA:10054161,,MONDO:0020487,Pontiac fever
+MEDDRA:10026822,,MONDO:0020500,Marburg hemorrhagic fever
+MEDDRA:10048240,,MONDO:0020502,yellow fever
+MEDDRA:10014956,,MONDO:0020517,eosinophilic granuloma
+MEDDRA:10044251,,MONDO:0020544,streptococcal toxic-shock syndrome
+MEDDRA:10044250,,MONDO:0020545,staphylococcal toxic-shock syndrome
+MEDDRA:10066260,,MONDO:0020546,acute graft versus host disease
+MEDDRA:10066261,,MONDO:0020547,chronic graft versus host disease
+MEDDRA:10069682,,MONDO:0020559,O'Sullivan-McLeod syndrome
+MEDDRA:10007825,,MONDO:0020572,complex regional pain syndrome type 2
+MEDDRA:10064335,,MONDO:0020572,complex regional pain syndrome type 2
+MEDDRA:10042778,,MONDO:0021002,syndactyly
+MEDDRA:10036063,,MONDO:0021003,polydactyly
+MEDDRA:10057034,,MONDO:0021020,Crigler-Najjar syndrome type 1
+MEDDRA:10006007,,MONDO:0021054,bone sarcoma
+MEDDRA:10006045,,MONDO:0024472,boutonneuse fever
+MEDDRA:10022498,,MONDO:0024677,pancreatic insulinoma
+MEDDRA:10068842,,MONDO:0031421,Olmsted syndrome
+MEDDRA:10072036,,MONDO:0044792,large congenital melanocytic nevus
+MEDDRA:10034042,,MONDO:0100244,paroxysmal nocturnal hemoglobinuria
+MEDDRA:10047801,,MONDO:0100280,Waldenstrom macroglobulinemia
+MEDDRA:10039211,,MONDO:0100316,long QT syndrome 1
+MEDDRA:10017374,,MONDO:0100339,Friedreich ataxia
+MEDDRA:10007270,,MONDO:0100347,carcinoid syndrome
+MEDDRA:10064062,,MONDO:0700092,neurodevelopmental disorder
+MEDDRA:10007982,,MONDO:0800026,"central hypoventilation syndrome, congenital, 1, with or without Hirschsprung disease"
+MEDDRA:10007625,,MONDO:0800175,cardiogenic shock
+MEDDRA:10071545,,MONDO:0800491,early-infantile DEE
