@@ -103,6 +103,33 @@ def write_mp_ids(outfile):
             idfile.write(f"{curie}\t{biolink_type}\n")
 
 
+def write_phenotype_taxa(idfile, taxon, outfile):
+    """Write a ``babel_downloads/<PREFIX>/taxa`` file assigning a fixed taxon to every
+    identifier in a phenotype ontology's ids file.
+
+    HP and MP terms are inherently taxon-scoped: every HP term we ingest describes a human
+    (NCBITaxon:9606) phenotype and every MP term a mammalian (NCBITaxon:40674) phenotype.
+    Rather than re-walk the ontology, we read the already-built ids file (the authoritative
+    set of identifiers Babel ingests for that prefix, ``CURIE\\tbiolink:Type`` per row) so the
+    taxa file covers exactly those CURIEs and never drifts from what lands in the compendia.
+    TaxonFactory then reads this file to populate each identifier's ``t`` field; a clique that
+    mixes HP and MP members ends up with both taxa via the per-clique union in write_compendium.
+
+    :param idfile: path to the prefix's ids file (``CURIE\\tbiolink:Type`` rows)
+    :param taxon: the NCBITaxon CURIE to assign to every identifier (e.g. ``"NCBITaxon:9606"``)
+    :param outfile: path to the taxa file to write (``CURIE\\tNCBITaxon:NNNN`` rows)
+    """
+    if not taxon.startswith("NCBITaxon:"):
+        raise ValueError(f"Phenotype taxon must be an NCBITaxon CURIE, got {taxon!r}")
+    with open(idfile) as inf, open(outfile, "w") as outf:
+        for line in inf:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            curie = stripped.split("\t", maxsplit=1)[0]
+            outf.write(f"{curie}\t{taxon}\n")
+
+
 def write_omim_ids(infile, outfile):
     with open(infile) as inf, open(outfile, "w") as outf:
         for line in inf:

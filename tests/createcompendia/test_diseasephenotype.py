@@ -12,6 +12,8 @@ Sections:
   the 3-column ``MONDO_close`` concord reader against a column-count regression.
 - ``# --- classify_disease_clique ---`` checks the per-clique biolink typing used
   by both the real build and the source-impact report.
+- ``# --- write_phenotype_taxa ---`` checks the per-prefix taxa file (HP->human,
+  MP->mammal) derived from a phenotype ids file.
 """
 
 from unittest.mock import patch
@@ -20,6 +22,7 @@ import pytest
 
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
+from tests.conftest import assert_taxa_file_valid
 
 # --- UMLS semantic-type tree mapping ---
 
@@ -197,3 +200,39 @@ def test_create_typed_sets_raises_on_untypable_clique():
     member, so the failure is testable and propagates cleanly through Snakemake."""
     with pytest.raises(RuntimeError, match="no member CURIE has a declared type"):
         diseasephenotype.create_typed_sets({frozenset({"FOO:1"})}, {})
+
+
+# --- write_phenotype_taxa ---
+
+
+@pytest.mark.unit
+def test_write_phenotype_taxa_assigns_taxon_to_every_id(tmp_path):
+    """Every identifier in the ids file should get exactly one row mapping it to the given
+    taxon, and the biolink-type column of the ids file should be dropped. This is how HP
+    terms become NCBITaxon:9606 and MP terms NCBITaxon:40674 in the compendia."""
+    idfile = tmp_path / "HP"
+    idfile.write_text(f"HP:0000118\t{PHENOTYPIC_FEATURE}\nHP:0001234\t{PHENOTYPIC_FEATURE}\n")
+    outfile = tmp_path / "taxa"
+    diseasephenotype.write_phenotype_taxa(str(idfile), "NCBITaxon:9606", str(outfile))
+    rows = assert_taxa_file_valid(str(outfile))
+    assert rows == [["HP:0000118", "NCBITaxon:9606"], ["HP:0001234", "NCBITaxon:9606"]]
+
+
+@pytest.mark.unit
+def test_write_phenotype_taxa_skips_blank_lines(tmp_path):
+    """A blank trailing line in the ids file must not produce a malformed taxa row."""
+    idfile = tmp_path / "MP"
+    idfile.write_text(f"MP:0000001\t{PHENOTYPIC_FEATURE}\n\n")
+    outfile = tmp_path / "taxa"
+    diseasephenotype.write_phenotype_taxa(str(idfile), "NCBITaxon:40674", str(outfile))
+    assert outfile.read_text() == "MP:0000001\tNCBITaxon:40674\n"
+
+
+@pytest.mark.unit
+def test_write_phenotype_taxa_rejects_non_ncbitaxon(tmp_path):
+    """A taxon that is not an NCBITaxon CURIE is a configuration error and must raise,
+    rather than silently writing a malformed taxa file the TaxonFactory can't use."""
+    idfile = tmp_path / "HP"
+    idfile.write_text(f"HP:0000118\t{PHENOTYPIC_FEATURE}\n")
+    with pytest.raises(ValueError, match="NCBITaxon"):
+        diseasephenotype.write_phenotype_taxa(str(idfile), "9606", str(tmp_path / "taxa"))
