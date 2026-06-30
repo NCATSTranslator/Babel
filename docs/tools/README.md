@@ -55,6 +55,7 @@ the cliques change between *build A* and *build B*?" given the same inputs but d
 config, or upstream data. Because it works on finished compendia rather than glom state, it
 can compare a local build against a published `stars.renci.org` build without re-running
 glom, which makes it a fit for validating any glom-logic change (close-match handling,
-`unique_prefixes`, overuse filtering) or as a release regression check. The
-[MONDO close-match guard analysis](../pipelines/diseasephenotype/mondo-close-match-guard/README.md)
-is a worked example.
+`unique_prefixes`, overuse filtering) or as a release regression check. Commit a worked
+example's output alongside the change that motivated it, under
+`docs/sources/<SOURCE>/<change>/` or `docs/pipelines/<pipeline>/<change>/` (always the small
+`clique-diff.summary.json`, plus the per-row `clique-diff.csv` when reasonably sized).
