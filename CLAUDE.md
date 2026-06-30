@@ -55,6 +55,8 @@ test's `min_memory_gb` threshold empirically, use `tools/memory/estimate_rdf_loa
 full-load peak, so it works even on a machine far smaller than the eventual requirement (most
 accurate on Linux — macOS memory compression understates the result).
 
+- `tests/CLAUDE.md` — agent notes for editing/running tests: import-mode gotchas, which subset to
+  run, and the conventions to follow when adding a test. Read this before touching `tests/`.
 - `tests/README.md` — full mark taxonomy, where to add a new test, what each test file covers.
 - `docs/Testing.md` — testing strategy: cadence per environment (per-PR, nightly, weekly,
   pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other strategies.
@@ -96,6 +98,13 @@ Snakemake drives a two-phase pipeline:
    and `descriptions` (CURIE→text, `DescriptionFactory`). A handler emits whichever of these its
    source supports; supplying `taxa`/`descriptions` is how a source enriches its cliques with
    taxon and description data (see ComplexPortal and NCBIGene for examples that emit all four).
+   `write_compendium` sets each identifier's `t` field from its prefix's `taxa` file and unions
+   them onto the clique, so a clique mixing two taxon-scoped sources carries both taxa. When every
+   term of an ontology shares a single fixed taxon (e.g. HP→`NCBITaxon:9606` "Homo sapiens",
+   MP→`NCBITaxon:40674` "Mammalia"), derive the `taxa` file from that prefix's already-built ids
+   file rather than re-walking the source — it stays exactly in sync with what Babel ingests. See
+   `diseasephenotype.write_phenotype_taxa` (config `disease_phenotype_taxa`) and
+   `docs/sources/HP/README.md`.
 2. **Compendium Building** — extracts identifiers per semantic type into `ids/[TYPE]`, creates
    pairwise cross-reference mappings (concords), merges them into equivalence cliques via
    union-find, and outputs enriched JSONL compendia.
@@ -256,6 +265,18 @@ If a previous Snakemake run was killed, the next invocation may fail with
 `LockException: Directory cannot be locked`. Clear it with `uv run snakemake --unlock` before
 retrying.
 
+Two non-obvious gotchas when re-running a single rule:
+
+- **`--forcerun` greedily consumes targets.** `snakemake --forcerun ruleA ruleB` reads *both*
+  `ruleA` and `ruleB` as rules to force, leaving no positional target — so Snakemake falls back to
+  the default first rule (`all`) and silently launches the *entire* pipeline. Always put the target
+  positionally and `--forcerun` last: `uv run snakemake -c all disease --forcerun disease_compendia`
+  (not `--forcerun disease_compendia disease`). Dry-run first (`-n`) and confirm the job list is the
+  handful you expect, not hundreds.
+- **`config.yaml` is read once per invocation.** Editing it (e.g. fixing `biolink_version`) does not
+  affect an already-running build — the loaded value is cached for the life of the process. Kill and
+  restart the run to pick up a config change.
+
 Most semantic-type targets are individually much cheaper than the full pipeline — anatomy in
 particular builds end-to-end on a laptop in roughly 25 minutes wall time (UMLS download
 dominates). The 500 GB figure in the README applies to the heaviest builds (protein,
@@ -283,7 +304,15 @@ the report exists to catch:
   the prefix filtering above would drop. When extending the report to a new semantic type,
   add a `compute_cliques_for_impact_report` helper to that type's `createcompendia/*.py`
   module (mirroring `anatomy.py`) and register it in `PIPELINE_CONFIG` in
-  `src/cli/source_impact_report.py`.
+  `src/cli/source_impact_report.py`. A `PIPELINE_CONFIG` entry needs **more than just
+  `compute_fn`**: it must also supply `clique_classifier` (a `classify_*_clique` callable that
+  returns the clique's biolink type), `biolink_types` (the types whose `id_prefixes` order the
+  report uses to pick the preferred CURIE), and `compendium_prefixes` (for loading labels). Omit
+  these and `_biolink_type_for()` returns `None`, so every clique renders with a blank
+  `biolink_type` and `preferred_curie()` silently falls back to the lexicographically-smallest
+  CURIE — e.g. a `DOID` (or even `Fyler`) clique leader instead of `MONDO`/`HP`. Extract the
+  classifier from the type's `create_typed_sets()` (as `diseasephenotype.classify_disease_clique`
+  does) so the report types and orders identifiers exactly like the real build.
 
 **Snakemake `retries:`** — use `retries: 3` for any network-backed rule (UberGraph, FTP,
 HTTP). Do not use `retries: 10`. UberGraph rules already get per-request retry-with-backoff

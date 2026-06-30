@@ -41,10 +41,8 @@ considering), see [`docs/Testing.md`](../docs/Testing.md).
 - **Pipeline behavior specific to one vocabulary** → add `tests/pipeline/test_X_pipeline.py`
   marked `pipeline`.
 - **A developer tool under `tools/`** → `unit` test in `tests/tools/` (e.g.
-  `tests/tools/test_slurm.py`). Do **not** add `tests/tools/__init__.py`: unlike the other test
-  subdirectories, making `tests/tools` a package puts it on `sys.path` as `tools`, shadowing the
-  real top-level `tools/` package and breaking `from tools.slurm import ...`. The tests import fine
-  via the `pythonpath = ["."]` setting in `pyproject.toml`.
+  `tests/tools/test_slurm.py`). Two import-mode gotchas apply here (no `tests/tools/__init__.py`,
+  and unique test-file basenames) — see [`CLAUDE.md`](CLAUDE.md) for the why and how.
 
 **Touching a data source that has no pipeline test? Consider writing one.** It is more work up
 front, but it pays off three ways and is worth biting the bullet for:
