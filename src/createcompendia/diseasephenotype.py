@@ -26,6 +26,9 @@ from src.prefixes import (
     UMLS,
 )
 from src.ubergraph import UberGraph, build_sets
+from src.util import get_logger
+
+logger = get_logger(__name__)
 
 DISEASE_OBO_SOURCES = {
     MP: {"root": f"{MP}:0000001", "type": PHENOTYPIC_FEATURE},
@@ -578,10 +581,16 @@ def create_typed_sets(eqsets, types):
     for equivalent_ids in eqsets:
         t = classify_disease_clique(equivalent_ids, types)
         if t is None:
-            raise RuntimeError(
-                f"Cannot assign a biolink type to disease/phenotype clique {equivalent_ids}: "
-                "no member CURIE has a declared type."
+            # No member carries a declared type, so we can't assign a Biolink type and can't
+            # emit the clique. This is normally an empty set in practice, but the HP/MP split
+            # can strand a lone identifier that is referenced in a concord yet absent from any
+            # ids file (e.g. an obsolete MP). Drop it with a warning rather than aborting the
+            # whole build over one untypeable stray.
+            logger.warning(
+                "Dropping untypeable disease/phenotype clique (no member has a declared type): %s",
+                sorted(equivalent_ids),
             )
+            continue
         typed_sets[t].add(equivalent_ids)
     return typed_sets
 

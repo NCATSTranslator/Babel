@@ -197,11 +197,16 @@ def test_classify_disease_clique_returns_none_when_no_types():
 
 
 @pytest.mark.unit
-def test_create_typed_sets_raises_on_untypable_clique():
-    """create_typed_sets must raise (not exit()) when a clique has no declared type for any
-    member, so the failure is testable and propagates cleanly through Snakemake."""
-    with pytest.raises(RuntimeError, match="no member CURIE has a declared type"):
-        diseasephenotype.create_typed_sets({frozenset({"FOO:1"})}, {})
+def test_create_typed_sets_drops_untypable_clique_with_warning(caplog):
+    """create_typed_sets should skip (not crash on) a clique with no declared type for any
+    member, logging a warning. The HP/MP split can strand such a clique (an identifier in a
+    concord but absent from every ids file), and one stray must not abort the whole build."""
+    import logging
+
+    with caplog.at_level(logging.WARNING):
+        typed_sets = diseasephenotype.create_typed_sets({frozenset({"FOO:1"})}, {})
+    assert typed_sets == {}, "untypeable clique should be dropped, not emitted"
+    assert any("untypeable" in r.message.lower() for r in caplog.records), "expected a warning about the dropped clique"
 
 
 # --- write_phenotype_taxa ---
