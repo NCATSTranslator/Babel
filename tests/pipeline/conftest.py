@@ -546,8 +546,8 @@ VOCABULARY_REGISTRY = {
     "OMIM": "omim_pipeline_outputs",
     "NCIT": "ncit_pipeline_outputs",
     "GO": "go_pipeline_outputs",
-    "MP":  "mp_pipeline_outputs",
-    "EC":  "ec_ids_outputs",
+    "MP": "mp_pipeline_outputs",
+    "EC": "ec_ids_outputs",
     "CLO": "clo_ids_outputs",
     "EFO": "efo_ids_outputs",
 }
