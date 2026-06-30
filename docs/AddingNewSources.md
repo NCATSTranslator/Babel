@@ -321,6 +321,45 @@ When `--mode remote` or `--mode both` is set, a fifth section summarises clique 
 against the remote build. This is a coarse count (totals and cliques-with-source counts);
 synthetic mode is the source of truth for the pure-new/expanded/merged bucketing.
 
+### Build-vs-build clique diff (restructured cliques: split / merge / delete)
+
+The source-impact report only models what *adding* a source does (its "before" is the same
+inputs with the source excluded), so it expresses pure-new / expanded / merged cliques but
+**cannot show cliques that SPLIT, lose members, or disappear**. When a change *restructures
+existing* cliques — a new policy like keeping two prefixes disjoint, a concord-filtering or
+close-match change, or any source whose addition pulls members back out — use
+[`babel-clique-diff`](tools/README.md) instead. It diffs two finished compendium builds and
+reports, per changed before-clique, whether members were `kept`, `regrouped` (split to a
+different leader), `moved` (retyped into another compendium file), or `dropped` (gone):
+
+```bash
+uv run babel-clique-diff \
+    --before <overlap-or-baseline-compendia-dir> --after <new-compendia-dir> \
+    --files Disease.txt PhenotypicFeature.txt \
+    --out-csv  docs/sources/<SOURCE>/<change>/clique-diff.csv \
+    --out-json docs/sources/<SOURCE>/<change>/clique-diff.summary.json
+```
+
+Build both sides from the **same cached intermediates**, changing only the thing under test
+(e.g. build at the commit with the change and again with it reverted/disabled), so the diff
+provably isolates that one change. The diff doubles as a completeness check: if the only
+differences are the intended ones, nothing else regressed.
+
+Commit convention: put the artifacts in a change-named subdirectory —
+`docs/sources/<SOURCE>/<change>/` for a source-specific change (e.g. `MP/disjointness/`) or
+`docs/pipelines/<pipeline>/<change>/` for a pipeline-wide one — alongside a short prose page
+explaining what was compared and summarising added/split/moved/deleted (see
+`docs/sources/MP/disjointness.md`). Always commit the tiny `clique-diff.summary.json`; commit
+the per-row `clique-diff.csv` when it is reasonably sized (it is the same class of artifact as
+the source-impact `new-cliques.csv`), and gitignore it like `modified-cliques.json` only if it
+is very large.
+
+**Stranded concord-only identifiers.** A clique-restructuring change can strand an identifier
+that appears in a concord but in no ids file (an out-of-date mapping). With no member carrying
+a declared Biolink type, the clique cannot be typed; `create_typed_sets` drops it with a
+warning rather than aborting the build (see `diseasephenotype.create_typed_sets`). A handful of
+these in the `dropped` column is expected; a large number suggests an extraction problem.
+
 ## Known limitations
 
 - **Only anatomy has a synthetic-mode hook.** Other pipelines produce empty section 4 unless
