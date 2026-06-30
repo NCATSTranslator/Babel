@@ -15,10 +15,11 @@ sets the per-identifier `t` field. The taxa file is derived directly from the HP
 covers exactly the identifiers Babel ingests and never drifts from them.
 
 The sibling MP source (see [`../MP/README.md`](../MP/README.md)) is tagged
-[`NCBITaxon:40674`](http://purl.obolibrary.org/obo/NCBITaxon_40674) "Mammalia" the same way. A
-clique that mixes HP and MP members carries both taxa, because `write_compendium` unions the
-per-identifier taxa onto the clique. Whether HP and MP cliques for the same phenotype should be
-merged at all is a separate question left for SME review (see the MP impact report).
+[`NCBITaxon:40674`](http://purl.obolibrary.org/obo/NCBITaxon_40674) "Mammalia" the same way. HP and
+MP are kept **disjoint** — no clique contains both an HP and an MP identifier — so an HP clique
+carries only the human taxon and never mixes in the mammalian one. See
+[`../MP/disjointness.md`](../MP/disjointness.md) for how that separation is enforced and its
+clique impact.
 
 Related implementation files:
 
