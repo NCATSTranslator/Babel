@@ -1,44 +1,47 @@
 # Source impact report: MP
 
-- Generated: 2026-05-26 14:13:06 UTC
-- Babel commit: 7fe080ad27f5b9945a881b35657b65ff911bf2fb
-- Source semantic types: disease
+- Generated: 2026-06-30 21:39:15 UTC
+- Babel commit: 1ec9ff71ca314b7642bf638db2ba6a31d09695da
+- Source pipelines: disease
 - Source prefixes: MP
 - Comparison mode: synthetic
 
 ## 1. Identifiers added
 
-Totals: 14,634 identifiers across 1 prefix(es) in 1 semantic type(s).
+Totals: 14,750 identifiers across 1 prefix(es) in 1 pipeline(s).
 
 ### By prefix
 
-- MP: 14,634
+- MP: 14,750
 
-### By semantic type
+### By pipeline
 
-- disease: 14,634
+- disease: 14,750
 
 ## 2. Biolink types
+
+### Overall declared type breakdown
+
+- biolink:PhenotypicFeature: 14,750
 
 ### Source-declared (from each ids file)
 
 - disease / MP
-  - biolink:PhenotypicFeature: 14,634
+  - biolink:PhenotypicFeature: 14,750
 
 ### Final compendium-assigned (after glom)
 
-- disease / Disease.txt: 93 MP identifiers
-- disease / PhenotypicFeature.txt: 14,541 MP identifiers
+- disease / PhenotypicFeature.txt: 14,750 MP identifiers
 
 ## 3. Cross-references added
 
 Totals: 663 cross-reference rows across 1 concord file(s).
 
-### By semantic type
+### By pipeline
 
 - disease / MP: 663
 
-### Partner prefix breakdown (per semantic type)
+### Partner prefix breakdown (per pipeline)
 
 - disease
   - Fyler: 257
@@ -58,21 +61,110 @@ Totals: 663 cross-reference rows across 1 concord file(s).
 
 ## 4. Clique impact
 
+**Worst-case view.** This report is computed from the intermediate identifier and concord files and
+cannot see downstream filtering that happens later in the build — most notably the Biolink Model's
+per-class prefix restrictions, which drop identifiers whose prefix is not permitted for a clique's
+biolink type. The counts and detail files below are therefore an *upper bound*: they show every
+change the source could introduce before that filtering is applied.
+
 ### disease
 
-- 14,325 new cliques composed only of MP identifiers
-- 214 existing cliques will gain MP identifiers
+- 14,640 new cliques composed only of MP identifiers (a 3.43% increase over the 426,271 pre-existing
+  cliques)
+- 15 existing cliques contain MP identifiers in the after state (0.00% of the 426,271 pre-existing
+  cliques). Of these, 0 cliques gain at least one structurally new identifier from MP, and 15
+  already contained the MP CURIE via an xref from another source — MP's ids file now also lists
+  those existing CURIEs as first-class typed identifiers.
 - 0 existing cliques will be merged because of new MP cross-references
+- 0 structurally-new MP identifiers are added to existing cliques (0 via expansion, 0 via merges).
+  This is distinct from the 0 existing cliques that change, since one clique can gain several
+  identifiers.
+- Total cliques in this pipeline go from 426,271 to 440,897
+- Full list of new cliques: [`impact-report/new-cliques.csv`](impact-report/new-cliques.csv)
+- Full list of modified cliques (one row per added/preexisting MP identifier):
+  [`impact-report/modified-cliques.csv`](impact-report/modified-cliques.csv)
+- Full list of new / activated cross-references:
+  [`impact-report/new-xrefs.tsv`](impact-report/new-xrefs.tsv)
 
-#### Sample pure-new cliques (up to 10)
+#### Sample pure-new cliques (up to 3)
 
-- MP:0012016
-- MGI:2173526, MP:0002081
-- MP:0012681
-- MP:0014081
-- MP:0000547
-- MP:0030719
-- MP:0011726
-- MP:0014064
-- MP:0030612
-- MP:0012106
+- [`MP:0005068`](http://purl.obolibrary.org/obo/MP_0005068) "abnormal NK cell morphology"
+  **(preferred)**
+  - [`MP:0008043`](http://purl.obolibrary.org/obo/MP_0008043) "abnormal NK cell number"
+  - [`MP:0008044`](http://purl.obolibrary.org/obo/MP_0008044) "increased NK cell number"
+  - [`MP:0008045`](http://purl.obolibrary.org/obo/MP_0008045) "decreased NK cell number"
+  - [`MP:0008046`](http://purl.obolibrary.org/obo/MP_0008046) "absent NK cells"
+  - [`MP:0010766`](http://purl.obolibrary.org/obo/MP_0010766) "abnormal NK cell physiology"
+  - [`CL:0000623`](http://purl.obolibrary.org/obo/CL_0000623)
+    **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
+  - [`FMA:63147`](http://purl.obolibrary.org/obo/FMA_63147)
+    **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
+  - [`FMA:83601`](http://purl.obolibrary.org/obo/FMA_83601)
+    **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
+- [`MP:0010184`](http://purl.obolibrary.org/obo/MP_0010184) "abnormal T follicular helper cell
+  morphology" **(preferred)**
+  - [`MP:0010185`](http://purl.obolibrary.org/obo/MP_0010185) "abnormal T follicular helper cell
+    number"
+  - [`MP:0010186`](http://purl.obolibrary.org/obo/MP_0010186) "increased T follicular helper cell
+    number"
+  - [`MP:0010187`](http://purl.obolibrary.org/obo/MP_0010187) "decreased T follicular helper cell
+    number"
+  - [`MP:0010188`](http://purl.obolibrary.org/obo/MP_0010188) "abnormal T follicular helper cell
+    differentiation"
+  - [`MP:0010189`](http://purl.obolibrary.org/obo/MP_0010189) "abnormal T follicular helper cell
+    physiology"
+  - [`CL:0002038`](http://purl.obolibrary.org/obo/CL_0002038)
+    **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
+- [`MP:0011240`](http://purl.obolibrary.org/obo/MP_0011240) "abnormal fetal derived definitive
+  erythrocyte morphology" **(preferred)**
+  - [`MP:0011241`](http://purl.obolibrary.org/obo/MP_0011241) "abnormal fetal derived definitive
+    erythrocyte cell number"
+  - [`MP:0011242`](http://purl.obolibrary.org/obo/MP_0011242) "increased fetal derived definitive
+    erythrocyte cell number"
+  - [`MP:0011243`](http://purl.obolibrary.org/obo/MP_0011243) "decreased fetal derived definitive
+    erythrocyte cell number"
+  - [`MP:0011244`](http://purl.obolibrary.org/obo/MP_0011244) "absent fetal derived definitive
+    erythrocytes"
+  - [`MP:0011245`](http://purl.obolibrary.org/obo/MP_0011245) "abnormal fetal derived definitive
+    erythrocyte physiology"
+  - [`CL:0002357`](http://purl.obolibrary.org/obo/CL_0002357)
+    **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
+
+#### Sample expanded cliques (up to 3)
+
+Of the 15 cliques that contain MP identifiers in the after state, 0 would also see their preferred
+identifier change as a result of adding MP. The sample below leads with preferred-id-change cliques
+(if any), then structurally grown cliques, then cliques where MP only adds CURIEs that were already
+present via xref. Within each clique, identifiers are listed in the same order they would appear in
+the compendium (biolink prefix priority, then lexicographic within prefix).
+
+- Clique with 2 identifiers — typed as `biolink:PhenotypicFeature` — MP CURIE already present via
+  xref:
+  - [`EFO:0005414`](http://www.ebi.ac.uk/efo/EFO_0005414) "airway hyperresponsiveness"
+    **(preferred)**
+  - [`MP:0001952`](http://purl.obolibrary.org/obo/MP_0001952) "increased airway responsiveness"
+    **(existing identifier, also added by MP)**
+- Clique with 12 identifiers — typed as `biolink:PhenotypicFeature` — MP CURIE already present via
+  xref:
+  - [`EFO:0009472`](http://www.ebi.ac.uk/efo/EFO_0009472) "tympanic membrane perforation"
+    **(preferred)**
+  - [`UMLS:C0206504`](http://identifiers.org/umls/C0206504) "Tympanic Membrane Perforation"
+  - [`MEDDRA:10014006`](http://identifiers.org/meddra/10014006)
+  - [`MEDDRA:10034391`](http://identifiers.org/meddra/10034391)
+  - [`MEDDRA:10034424`](http://identifiers.org/meddra/10034424)
+  - [`MEDDRA:10034425`](http://identifiers.org/meddra/10034425)
+  - [`MEDDRA:10045210`](http://identifiers.org/meddra/10045210)
+  - [`MP:0030414`](http://purl.obolibrary.org/obo/MP_0030414) "tympanic membrane perforation"
+    **(existing identifier, also added by MP)**
+  - [`SNOMEDCT:271743003`](http://snomed.info/id/271743003)
+  - [`SNOMEDCT:60442001`](http://snomed.info/id/60442001)
+  - [`MESH:D018058`](http://id.nlm.nih.gov/mesh/D018058) "Tympanic Membrane Perforation"
+  - [`ICD10:H72`](https://icd.codes/icd9cm/H72)
+- Clique with 5 identifiers — typed as `biolink:PhenotypicFeature` — MP CURIE already present via
+  xref:
+  - [`EFO:0009471`](http://www.ebi.ac.uk/efo/EFO_0009471) "small kidney" **(preferred)**
+  - [`MEDDRA:10041135`](http://identifiers.org/meddra/10041135)
+  - [`MEDDRA:10041137`](http://identifiers.org/meddra/10041137)
+  - [`MP:0002989`](http://purl.obolibrary.org/obo/MP_0002989) "small kidney"
+    **(existing identifier, also added by MP)**
+  - [`ICD10:N27`](https://icd.codes/icd9cm/N27)

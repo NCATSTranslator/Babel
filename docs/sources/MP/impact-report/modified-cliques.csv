@@ -1,0 +1,16 @@
+pipeline,clique_preferred_id,clique_preferred_label,clique_biolink_type,change_kind,added_kind,added_id,added_id_label,added_id_biolink_type,would_be_added,needs_biolink_registration,biolink_registration_note,equivalent_ids
+disease,EFO:0005414,airway hyperresponsiveness,biolink:PhenotypicFeature,expanded,preexisting,MP:0001952,increased airway responsiveness,biolink:PhenotypicFeature,true,false,,EFO:0005414|MP:0001952
+disease,EFO:0008322,decreased susceptibility to bacterial infection,biolink:PhenotypicFeature,expanded,preexisting,MP:0002411,decreased susceptibility to bacterial infection,biolink:PhenotypicFeature,true,false,,EFO:0008322|MP:0002411
+disease,EFO:0009427,embryonic lethality,biolink:PhenotypicFeature,expanded,preexisting,MP:0008762,embryonic lethality,biolink:PhenotypicFeature,true,false,,EFO:0009427|MP:0008762
+disease,EFO:0009457,abnormal vascular wound healing,biolink:PhenotypicFeature,expanded,preexisting,MP:0004883,abnormal vascular wound healing,biolink:PhenotypicFeature,true,false,,EFO:0009457|MP:0004883
+disease,EFO:0009471,small kidney,biolink:PhenotypicFeature,expanded,preexisting,MP:0002989,small kidney,biolink:PhenotypicFeature,true,false,,EFO:0009471|MEDDRA:10041135|MEDDRA:10041137|MP:0002989|ICD10:N27
+disease,EFO:0009472,tympanic membrane perforation,biolink:PhenotypicFeature,expanded,preexisting,MP:0030414,tympanic membrane perforation,biolink:PhenotypicFeature,true,false,,EFO:0009472|UMLS:C0206504|MEDDRA:10014006|MEDDRA:10034391|MEDDRA:10034424|MEDDRA:10034425|MEDDRA:10045210|MP:0030414|SNOMEDCT:271743003|SNOMEDCT:60442001|MESH:D018058|ICD10:H72
+disease,EFO:0009829,vascular smooth muscle hypertrophy,biolink:PhenotypicFeature,expanded,preexisting,MP:0002975,vascular smooth muscle hypertrophy,biolink:PhenotypicFeature,true,false,,EFO:0009829|MP:0002975
+disease,EFO:0009866,pulmonary vascular congestion,biolink:PhenotypicFeature,expanded,preexisting,MP:0010018,pulmonary vascular congestion,biolink:PhenotypicFeature,true,false,,EFO:0009866|MP:0010018
+disease,EFO:0009871,increased heart weight,biolink:PhenotypicFeature,expanded,preexisting,MP:0002833,increased heart weight,biolink:PhenotypicFeature,true,false,,EFO:0009871|MP:0002833
+disease,EFO:0009872,increased cardiac output,biolink:PhenotypicFeature,expanded,preexisting,MP:0003394,increased cardiac output,biolink:PhenotypicFeature,true,false,,EFO:0009872|MP:0003394
+disease,EFO:0009873,decreased cardiac output,biolink:PhenotypicFeature,expanded,preexisting,MP:0003393,decreased cardiac output,biolink:PhenotypicFeature,true,false,,EFO:0009873|MP:0003393
+disease,EFO:0009874,decreased anxiety-related response,biolink:PhenotypicFeature,expanded,preexisting,MP:0001364,decreased anxiety-related response,biolink:PhenotypicFeature,true,false,,EFO:0009874|MP:0001364
+disease,EFO:0009875,thymus atrophy,biolink:PhenotypicFeature,expanded,preexisting,MP:0003644,thymus atrophy,biolink:PhenotypicFeature,true,false,,EFO:0009875|MP:0003644
+disease,EFO:0009876,abnormal lipolysis,biolink:PhenotypicFeature,expanded,preexisting,MP:0008032,abnormal lipolysis,biolink:PhenotypicFeature,true,false,,EFO:0009876|MP:0008032
+disease,EFO:0009877,decreased bone mass,biolink:PhenotypicFeature,expanded,preexisting,MP:0004016,decreased bone mass,biolink:PhenotypicFeature,true,false,,EFO:0009877|MP:0004016
