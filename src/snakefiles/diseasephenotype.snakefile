@@ -102,7 +102,7 @@ rule disease_mp_ids:
         outfile=config["intermediate_directory"] + "/disease/ids/MP",
     benchmark:
         config["output_directory"] + "/benchmarks/disease_mp_ids.tsv"
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    retries: 3  # Ubergraph sometimes fails mid-download; per-request retry-with-backoff lives in TripleStore.
     run:
         diseasephenotype.write_mp_ids(output.outfile)
 
@@ -158,7 +158,7 @@ rule get_disease_obo_relationships:
         mp_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MP.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/get_disease_obo_relationships.tsv"
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    retries: 3  # Ubergraph sometimes fails mid-download; per-request retry-with-backoff lives in TripleStore.
     run:
         diseasephenotype.build_disease_obo_relationships(
             config["intermediate_directory"] + "/disease/concords",
