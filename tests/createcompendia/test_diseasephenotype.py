@@ -14,6 +14,8 @@ Sections:
   by both the real build and the source-impact report.
 - ``# --- write_phenotype_taxa ---`` checks the per-prefix taxa file (HP->human,
   MP->mammal) derived from a phenotype ids file.
+- ``# --- split_mutually_exclusive_cliques (HP/MP disjointness) ---`` checks that a
+  glommed clique holding both HP and MP is split (MP peeled out, HP side kept).
 """
 
 from unittest.mock import patch
@@ -236,3 +238,76 @@ def test_write_phenotype_taxa_rejects_non_ncbitaxon(tmp_path):
     idfile.write_text(f"HP:0000118\t{PHENOTYPIC_FEATURE}\n")
     with pytest.raises(ValueError, match="NCBITaxon"):
         diseasephenotype.write_phenotype_taxa(str(idfile), "9606", str(tmp_path / "taxa"))
+
+
+# --- split_mutually_exclusive_cliques (HP/MP disjointness) ---
+
+
+def _glom_dict(*cliques):
+    """Build a glom-style dict-of-sets: every member of a clique maps to the SAME set object
+    (one shared object per clique), mirroring how glom() stores cliques. Returns the dict."""
+    dicts = {}
+    for members in cliques:
+        shared = set(members)
+        for curie in shared:
+            dicts[curie] = shared
+    return dicts
+
+
+@pytest.mark.unit
+def test_split_separates_mp_from_hp_keeping_rest():
+    """A clique holding HP, MP, and MONDO should split: HP and MONDO stay together (one
+    shared object), MP is peeled into its own clique, and the two are distinct objects."""
+    dicts = _glom_dict(["HP:0000118", "MP:0004133", "MONDO:0018677"])
+    diseasephenotype.split_mutually_exclusive_cliques(dicts)
+    assert dicts["HP:0000118"] == {"HP:0000118", "MONDO:0018677"}
+    assert dicts["HP:0000118"] is dicts["MONDO:0018677"]
+    assert dicts["MP:0004133"] == {"MP:0004133"}
+    assert dicts["MP:0004133"] is not dicts["HP:0000118"]
+
+
+@pytest.mark.unit
+def test_split_leaves_mp_without_hp_untouched():
+    """A clique with MP and MONDO but no HP should be left intact (MP may merge with non-HP
+    disease ids); all members keep pointing at one shared, unchanged set."""
+    dicts = _glom_dict(["MP:0002989", "MONDO:0005110"])
+    diseasephenotype.split_mutually_exclusive_cliques(dicts)
+    assert dicts["MP:0002989"] == {"MP:0002989", "MONDO:0005110"}
+    assert dicts["MP:0002989"] is dicts["MONDO:0005110"]
+
+
+@pytest.mark.unit
+def test_split_leaves_pure_hp_clique_untouched():
+    """A clique with HP and MONDO but no MP should be unchanged."""
+    dicts = _glom_dict(["HP:0001638", "MONDO:0005110"])
+    diseasephenotype.split_mutually_exclusive_cliques(dicts)
+    assert dicts["HP:0001638"] == {"HP:0001638", "MONDO:0005110"}
+    assert dicts["HP:0001638"] is dicts["MONDO:0005110"]
+
+
+@pytest.mark.unit
+def test_split_pulls_all_mp_ids_into_one_clique():
+    """Every MP identifier in an HP-bearing clique should be peeled into a single MP clique,
+    leaving HP plus any non-group members (e.g. MESH) behind."""
+    dicts = _glom_dict(["HP:0001638", "MP:0010412", "MP:0011667", "MESH:D004694"])
+    diseasephenotype.split_mutually_exclusive_cliques(dicts)
+    assert dicts["MP:0010412"] == {"MP:0010412", "MP:0011667"}
+    assert dicts["MP:0010412"] is dicts["MP:0011667"]
+    assert dicts["HP:0001638"] == {"HP:0001638", "MESH:D004694"}
+
+
+@pytest.mark.unit
+def test_split_then_create_typed_sets_routes_mp_to_phenotypic_feature():
+    """End-to-end build/report contract: after splitting an HP+MP+MONDO clique, create_typed_sets
+    should route the peeled MP-only clique to PhenotypicFeature and keep the HP/MONDO clique as
+    Disease (its pre-split type, since MONDO is trusted first)."""
+    dicts = _glom_dict(["HP:0000118", "MP:0004133", "MONDO:0018677"])
+    types = {
+        "HP:0000118": PHENOTYPIC_FEATURE,
+        "MP:0004133": PHENOTYPIC_FEATURE,
+        "MONDO:0018677": DISEASE,
+    }
+    diseasephenotype.split_mutually_exclusive_cliques(dicts)
+    typed_sets = diseasephenotype.create_typed_sets({frozenset(x) for x in dicts.values()}, types)
+    assert frozenset({"MP:0004133"}) in typed_sets[PHENOTYPIC_FEATURE]
+    assert frozenset({"HP:0000118", "MONDO:0018677"}) in typed_sets[DISEASE]

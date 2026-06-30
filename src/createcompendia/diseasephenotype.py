@@ -33,6 +33,18 @@ DISEASE_OBO_SOURCES = {
 
 DISEASE_UNIQUE_PREFIXES = [MONDO, HP]
 
+# Prefix groups that must never co-occur in a single clique. After glom, any clique that
+# holds identifiers from two or more prefixes within a group is split: the first-listed
+# prefix (and every identifier whose prefix is not in the group) stays in the clique, and
+# each subsequent prefix's identifiers are peeled into their own clique. HP (human) and MP
+# (mammalian) phenotypes are kept disjoint at the SMEs' request: a human phenotype clique
+# must not absorb a mouse-phenotype identifier (and vice versa), even though UberGraph xrefs
+# (e.g. HP↔MP, EFO↔MP, or transitively via MESH/SNOMED/MONDO) would otherwise merge them.
+# HP is listed first so the existing human/disease clique is preserved and MP is the part
+# that splits off. MP may still merge with non-HP disease ids (MONDO/MESH); only HP triggers
+# a split. See docs/sources/MP/disjointness.md.
+MUTUALLY_EXCLUSIVE_PREFIX_GROUPS = [[HP, MP]]
+
 # Concord file basenames whose pair stream is filtered through remove_overused_xrefs
 # before glom. Other concord sources are trusted as-is.
 OVERUSE_FILTERED_CONCORDS = {"MONDO", "HP", "EFO"}
@@ -452,7 +464,53 @@ def compute_cliques_for_impact_report(
         except Exception:
             print("notyet")
 
+    # Enforce HP/MP (and any other configured) disjointness as the final step, so BOTH the
+    # real build (build_compendium) and the source-impact report (which diffs these dicts)
+    # see identical, already-split cliques. Must stay the last statement before the return.
+    split_mutually_exclusive_cliques(dicts)
     return dicts, types
+
+
+def split_mutually_exclusive_cliques(dicts, exclusive_prefix_groups=MUTUALLY_EXCLUSIVE_PREFIX_GROUPS):
+    """Split glommed cliques so no clique holds identifiers from two prefixes in one group.
+
+    ``dicts`` is glom's dict-of-sets: every clique member maps to the *same* set object
+    (its clique). For each clique containing identifiers from two or more prefixes within a
+    group in ``exclusive_prefix_groups``, keep the group's first-listed prefix (and all
+    members whose prefix is outside the group) together, and peel each subsequent occupied
+    prefix's identifiers into a clique of their own. Mutates ``dicts`` in place (re-pointing
+    each affected member's key to a fresh set object) and returns it.
+
+    Order within a group is significant: ``[[HP, MP]]`` keeps the HP-bearing clique intact
+    and pulls MP out. No empty clique is ever produced (the kept side always retains the
+    first prefix's members plus any out-of-group members; each peeled side is non-empty by
+    construction).
+    """
+    # glom points every member of a clique at one shared set object, so dicts.values() has
+    # duplicate references; dedupe by identity before mutating.
+    unique_cliques = list({id(clique): clique for clique in dicts.values()}.values())
+    for clique in unique_cliques:
+        for group in exclusive_prefix_groups:
+            members_by_prefix = {prefix: [] for prefix in group}
+            for curie in clique:
+                prefix = curie.split(":")[0]
+                if prefix in members_by_prefix:
+                    members_by_prefix[prefix].append(curie)
+            occupied = [prefix for prefix in group if members_by_prefix[prefix]]
+            if len(occupied) < 2:
+                continue  # at most one of the group's prefixes is present; nothing to split
+            # Keep group[0] with the remainder; peel every other occupied prefix out.
+            for peel_prefix in occupied:
+                if peel_prefix == group[0]:
+                    continue
+                peel_ids = set(members_by_prefix[peel_prefix])
+                rest_ids = set(clique) - peel_ids
+                for curie in peel_ids:
+                    dicts[curie] = peel_ids
+                for curie in rest_ids:
+                    dicts[curie] = rest_ids
+                clique = rest_ids  # continue peeling further prefixes from the remainder
+    return dicts
 
 
 def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badxrefs, icrdf_filename):
