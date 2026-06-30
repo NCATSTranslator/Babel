@@ -96,6 +96,12 @@ Snakemake drives a two-phase pipeline:
    and `descriptions` (CURIE→text, `DescriptionFactory`). A handler emits whichever of these its
    source supports; supplying `taxa`/`descriptions` is how a source enriches its cliques with
    taxon and description data (see ComplexPortal and NCBIGene for examples that emit all four).
+   `write_compendium` sets each identifier's `t` field from its prefix's `taxa` file and unions
+   them onto the clique. When every term of an ontology shares one fixed taxon (HP→human, MP→
+   mammal), derive the `taxa` file from that prefix's already-built ids file so it stays exactly
+   in sync with what Babel ingests — see `diseasephenotype.write_phenotype_taxa` (config
+   `disease_phenotype_taxa`). Note HP and MP are kept disjoint (see "Keeping two prefixes
+   disjoint" below), so an MP clique carries only the mammalian taxon and never unions in HP's.
 2. **Compendium Building** — extracts identifiers per semantic type into `ids/[TYPE]`, creates
    pairwise cross-reference mappings (concords), merges them into equivalence cliques via
    union-find, and outputs enriched JSONL compendia.
@@ -224,9 +230,11 @@ there first when working on a specific vocabulary, and add to it when you learn 
 non-obvious about how Babel ingests that source. Keep the detail in the source file — `CLAUDE.md`
 should point here, not duplicate it. Documented so far: ComplexPortal
 (`docs/sources/COMPLEXPORTAL/Ingestion.md`), Ensembl/BioMart
-(`docs/sources/ENSEMBL/Download.md`), MeSH (`docs/sources/MESH/Ingestion.md`), and UMLS
-(`docs/sources/UMLS/Leftover.md`). Cross-cutting download/discovery patterns (HTTP autoindex
-listing vs FTP `NLST`) live in `docs/sources/DownloadPatterns.md`.
+(`docs/sources/ENSEMBL/Download.md`), MeSH (`docs/sources/MESH/Ingestion.md`), UMLS
+(`docs/sources/UMLS/Leftover.md`), and the phenotype ontologies HP (`docs/sources/HP/README.md`)
+and MP (`docs/sources/MP/README.md`, with `MP/disjointness.md` covering how MP is kept disjoint
+from HP). Cross-cutting download/discovery patterns (HTTP autoindex listing vs FTP `NLST`) live
+in `docs/sources/DownloadPatterns.md`.
 
 ### Per-compendium metadata YAMLs
 
@@ -283,7 +291,37 @@ the report exists to catch:
   the prefix filtering above would drop. When extending the report to a new semantic type,
   add a `compute_cliques_for_impact_report` helper to that type's `createcompendia/*.py`
   module (mirroring `anatomy.py`) and register it in `PIPELINE_CONFIG` in
-  `src/cli/source_impact_report.py`.
+  `src/cli/source_impact_report.py`. A `PIPELINE_CONFIG` entry needs **more than just
+  `compute_fn`**: also supply `clique_classifier` (a `classify_*_clique` callable returning the
+  clique's biolink type), `biolink_types` (the types whose `id_prefixes` order the report uses
+  to pick the preferred CURIE), and `compendium_prefixes` (for loading labels). Omit these and
+  every clique renders with a blank `biolink_type` and `preferred_curie()` silently falls back to
+  the lexicographically-smallest CURIE (e.g. a `DOID`/`Fyler` leader instead of `MONDO`/`HP`).
+  Extract the classifier from the type's `create_typed_sets()` so the report types and orders
+  identifiers exactly like the build.
+- **For changes that *restructure* existing cliques, use `babel-clique-diff`, not the impact
+  report.** `source-impact-report`'s "before" is always "the same inputs with this source excluded",
+  so it only shows added/expanded/merged cliques — never cliques that split, lose members, or
+  disappear. When a change pulls members back out (a disjointness policy, a concord/close-match
+  change), diff two finished compendium builds with
+  `babel-clique-diff --before <dir> --after <dir> --files <files…> --out-csv … --out-json …`
+  (`tools/clique_diff/diff.py`): it reports per before-clique whether members were `kept`,
+  `regrouped` (split), `moved` (retyped to another file), or `dropped` (deleted). Build both sides
+  from the same cached intermediates so the diff isolates the one change (it then doubles as a
+  completeness check). Commit artifacts under `docs/sources/<SOURCE>/<change>/` (or
+  `docs/pipelines/<pipeline>/<change>/`): always the tiny `clique-diff.summary.json`, plus the
+  per-row `clique-diff.csv` when reasonably sized. See `docs/AddingNewSources.md`.
+
+**Keeping two prefixes disjoint** — `glom()`'s `unique_prefixes` only forbids *duplicate
+same-prefix* identifiers in a clique; it does **not** stop two *different* prefixes from
+co-occurring, and dropping one source's concord is also insufficient (other sources' concords
+bridge them directly or transitively). To guarantee two prefixes never share a clique, run a
+**post-glom split** as the last step of the shared clique-builder so the build and the
+source-impact report agree — see `diseasephenotype.split_mutually_exclusive_cliques` /
+`MUTUALLY_EXCLUSIVE_PREFIX_GROUPS = [[HP, MP]]` (mirrors the type-driven split in
+`chemicals.py`) and `docs/sources/MP/disjointness.md`. A split can strand an identifier that is
+in a concord but no ids file (an out-of-date mapping); `create_typed_sets` drops such an
+untypeable clique with a warning rather than aborting the build.
 
 **Snakemake `retries:`** — use `retries: 3` for any network-backed rule (UberGraph, FTP,
 HTTP). Do not use `retries: 10`. UberGraph rules already get per-request retry-with-backoff
