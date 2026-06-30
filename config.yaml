@@ -133,6 +133,16 @@ disease_labelsandsynonyms: [MONDO, DOID, Orphanet, HP, MP, MESH, NCIT, UMLS, SNO
 disease_ids:               [MONDO, DOID, Orphanet, HP, MP, MESH, NCIT, UMLS, OMIM, EFO]
 disease_concords:          [HP, MP, MONDO, UMLS, DOID, EFO, Manual]
 disease_outputs:           [Disease.txt, PhenotypicFeature.txt]
+# Taxon assigned to each phenotype ontology's identifiers in the compendia. Every HP term we
+# ingest (the HP:0000118 "Phenotypic abnormality" subtree) describes a human (Homo sapiens)
+# phenotype; every MP term describes a mammalian (Mammalia) phenotype. These are written to
+# babel_downloads/<PREFIX>/taxa from each prefix's disease_ids file (the authoritative set of
+# ingested identifiers) and read by TaxonFactory to populate the per-identifier `t` field;
+# cliques that mix HP and MP members therefore carry both taxa. Keyed by prefix so the mapping
+# stays adjacent to disease_ids, which defines the identifier set these taxa annotate.
+disease_phenotype_taxa:
+  HP: NCBITaxon:9606 # Homo sapiens
+  MP: NCBITaxon:40674 # Mammalia
 
 process_labels:   [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
 process_ids:      [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
