@@ -98,6 +98,13 @@ Snakemake drives a two-phase pipeline:
    and `descriptions` (CURIE→text, `DescriptionFactory`). A handler emits whichever of these its
    source supports; supplying `taxa`/`descriptions` is how a source enriches its cliques with
    taxon and description data (see ComplexPortal and NCBIGene for examples that emit all four).
+   `write_compendium` sets each identifier's `t` field from its prefix's `taxa` file and unions
+   them onto the clique, so a clique mixing two taxon-scoped sources carries both taxa. When every
+   term of an ontology shares a single fixed taxon (e.g. HP→`NCBITaxon:9606` "Homo sapiens",
+   MP→`NCBITaxon:40674` "Mammalia"), derive the `taxa` file from that prefix's already-built ids
+   file rather than re-walking the source — it stays exactly in sync with what Babel ingests. See
+   `diseasephenotype.write_phenotype_taxa` (config `disease_phenotype_taxa`) and
+   `docs/sources/HP/README.md`.
 2. **Compendium Building** — extracts identifiers per semantic type into `ids/[TYPE]`, creates
    pairwise cross-reference mappings (concords), merges them into equivalence cliques via
    union-find, and outputs enriched JSONL compendia.
@@ -297,7 +304,15 @@ the report exists to catch:
   the prefix filtering above would drop. When extending the report to a new semantic type,
   add a `compute_cliques_for_impact_report` helper to that type's `createcompendia/*.py`
   module (mirroring `anatomy.py`) and register it in `PIPELINE_CONFIG` in
-  `src/cli/source_impact_report.py`.
+  `src/cli/source_impact_report.py`. A `PIPELINE_CONFIG` entry needs **more than just
+  `compute_fn`**: it must also supply `clique_classifier` (a `classify_*_clique` callable that
+  returns the clique's biolink type), `biolink_types` (the types whose `id_prefixes` order the
+  report uses to pick the preferred CURIE), and `compendium_prefixes` (for loading labels). Omit
+  these and `_biolink_type_for()` returns `None`, so every clique renders with a blank
+  `biolink_type` and `preferred_curie()` silently falls back to the lexicographically-smallest
+  CURIE — e.g. a `DOID` (or even `Fyler`) clique leader instead of `MONDO`/`HP`. Extract the
+  classifier from the type's `create_typed_sets()` (as `diseasephenotype.classify_disease_clique`
+  does) so the report types and orders identifiers exactly like the real build.
 
 **Snakemake `retries:`** — use `retries: 3` for any network-backed rule (UberGraph, FTP,
 HTTP). Do not use `retries: 10`. UberGraph rules already get per-request retry-with-backoff
