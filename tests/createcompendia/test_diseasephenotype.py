@@ -10,6 +10,8 @@ Sections:
   parse -- keeping these tests fast and offline.
 - ``# --- MONDO_close parsing in compute_cliques_for_impact_report ---`` guards
   the 3-column ``MONDO_close`` concord reader against a column-count regression.
+- ``# --- classify_disease_clique ---`` checks the per-clique biolink typing used
+  by both the real build and the source-impact report.
 """
 
 from unittest.mock import patch
@@ -132,3 +134,66 @@ def test_mondo_close_rejects_malformed_row(tmp_path):
             mondoclose=mondoclose,
             badxrefs={},
         )
+
+
+# --- classify_disease_clique ---
+
+
+@pytest.mark.unit
+def test_classify_disease_clique_trusts_mondo_over_other_members():
+    """A mixed clique containing a MONDO term should be typed from MONDO's declared type,
+    regardless of what other members (e.g. an MP phenotype) declare. This is the case the
+    MP impact report hit: a disease clique that an MP cross-reference expanded must still
+    classify as biolink:Disease so the report picks MONDO (not DOID) as the preferred id."""
+    clique = frozenset({"DOID:0050545", "MONDO:0018677", "HP:0030853", "MP:0004133"})
+    types = {
+        "MONDO:0018677": DISEASE,
+        "HP:0030853": PHENOTYPIC_FEATURE,
+        "MP:0004133": PHENOTYPIC_FEATURE,
+        # DOID intentionally has no declared type to prove MONDO is what's trusted.
+    }
+    assert diseasephenotype.classify_disease_clique(clique, types) == DISEASE
+
+
+@pytest.mark.unit
+def test_classify_disease_clique_falls_through_to_hp_then_mp():
+    """When no MONDO is present the classifier should trust HP next, then MP. A clique with
+    only HP and MP members should take HP's declared type."""
+    clique = frozenset({"HP:0001638", "MP:0005330"})
+    types = {"HP:0001638": PHENOTYPIC_FEATURE, "MP:0005330": PHENOTYPIC_FEATURE}
+    assert diseasephenotype.classify_disease_clique(clique, types) == PHENOTYPIC_FEATURE
+
+
+@pytest.mark.unit
+def test_classify_disease_clique_skips_trusted_prefix_with_missing_type():
+    """If a trusted prefix's CURIE has no entry in the types map (concords out of sync),
+    the classifier should fall through to the next trusted prefix rather than raising."""
+    clique = frozenset({"MONDO:0000001", "HP:0001638"})
+    types = {"HP:0001638": PHENOTYPIC_FEATURE}  # MONDO present but untyped
+    assert diseasephenotype.classify_disease_clique(clique, types) == PHENOTYPIC_FEATURE
+
+
+@pytest.mark.unit
+def test_classify_disease_clique_majority_vote_breaks_ties_by_order():
+    """With no trusted prefix present, the classifier should take a majority vote over
+    declared types, breaking ties by the ``order`` list (DISEASE before PHENOTYPIC_FEATURE)."""
+    clique = frozenset({"UMLS:C1", "UMLS:C2"})
+    types = {"UMLS:C1": DISEASE, "UMLS:C2": PHENOTYPIC_FEATURE}  # 1-1 tie -> DISEASE wins
+    assert diseasephenotype.classify_disease_clique(clique, types) == DISEASE
+
+
+@pytest.mark.unit
+def test_classify_disease_clique_returns_none_when_no_types():
+    """A clique whose members are all absent from the types map should return None so the
+    source-impact report can render it blank; create_typed_sets turns that None into a
+    RuntimeError instead."""
+    clique = frozenset({"FOO:1", "BAR:2"})
+    assert diseasephenotype.classify_disease_clique(clique, {}) is None
+
+
+@pytest.mark.unit
+def test_create_typed_sets_raises_on_untypable_clique():
+    """create_typed_sets must raise (not exit()) when a clique has no declared type for any
+    member, so the failure is testable and propagates cleanly through Snakemake."""
+    with pytest.raises(RuntimeError, match="no member CURIE has a declared type"):
+        diseasephenotype.create_typed_sets({frozenset({"FOO:1"})}, {})

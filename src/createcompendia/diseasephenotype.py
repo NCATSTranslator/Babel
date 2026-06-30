@@ -443,6 +443,43 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
         write_compendium(metadata_yamls, sets, f"{baretype}.txt", biotype, {}, icrdf_filename=icrdf_filename)
 
 
+def classify_disease_clique(equivalent_ids, types):
+    """Pick a biolink type for one disease/phenotype clique using the same precedence as
+    ``create_typed_sets``: trust MONDO, then HP, then MP (MP is always PhenotypicFeature),
+    then fall back to a majority vote over the declared types of the clique's members,
+    breaking ties by most-specific type.
+
+    Returns the biolink type string (e.g. ``"biolink:Disease"``) or ``None`` if no member
+    of the clique has any declared type.
+
+    Used both by ``create_typed_sets`` (the real build) and by the source-impact report,
+    via the ``clique_classifier`` hook in ``PIPELINE_CONFIG``, so the report labels each
+    clique with the same type and preferred CURIE the build would assign.
+    """
+    order = [DISEASE, PHENOTYPIC_FEATURE]
+    prefixes = get_prefixes(equivalent_ids)
+    for prefix in [MONDO, HP, MP]:
+        if prefix in prefixes:
+            try:
+                return types[prefixes[prefix][0]]
+            except KeyError:
+                # This can happen if the concords are out of sync. Typically, e.g. there might be an HP
+                # that doesn't exist anymore but is still in UMLS. Fall through to the next trusted prefix.
+                pass
+    typecounts = defaultdict(int)
+    for eid in equivalent_ids:
+        if eid in types:
+            typecounts[types[eid]] += 1
+    if not typecounts:
+        return None
+    if len(typecounts) == 1:
+        return next(iter(typecounts.keys()))
+    # First attempt is majority vote, and after that by most specific
+    otypes = [(-c, order.index(t), t) for t, c in typecounts.items()]
+    otypes.sort()
+    return otypes[0][2]
+
+
 def create_typed_sets(eqsets, types):
     """Given a set of sets of equivalent identifiers, we want to type each one into
     being either a disease or a phenotypic feature.  Or something else, that we may want to
@@ -452,40 +489,15 @@ def create_typed_sets(eqsets, types):
                   If it has an MP trust the MP's type (always PhenotypicFeature)
     After that, check the types dict to see if we know anything.
     """
-    order = [DISEASE, PHENOTYPIC_FEATURE]
     typed_sets = defaultdict(set)
     for equivalent_ids in eqsets:
-        # prefixes = set([ Text.get_curie(x) for x in equivalent_ids])
-        prefixes = get_prefixes(equivalent_ids)
-        found = False
-        for prefix in [MONDO, HP, MP]:
-            if prefix in prefixes and not found:
-                try:
-                    mytype = types[prefixes[prefix][0]]
-                    typed_sets[mytype].add(equivalent_ids)
-                    found = True
-                except Exception:
-                    # This can happen if the concords are out of sync. Typically, e,g there might be an HP that
-                    # doesn't exist anymroe but ist still in UMLS
-                    pass
-        if not found:
-            typecounts = defaultdict(int)
-            for eid in equivalent_ids:
-                if eid in types:
-                    typecounts[types[eid]] += 1
-            if len(typecounts) == 0:
-                print("how did we not get any types?")
-                print(equivalent_ids)
-                exit()
-            elif len(typecounts) == 1:
-                t = list(typecounts.keys())[0]
-                typed_sets[t].add(equivalent_ids)
-            else:
-                # First attempt is majority vote, and after that by most specific
-                otypes = [(-c, order.index(t), t) for t, c in typecounts.items()]
-                otypes.sort()
-                t = otypes[0][2]
-                typed_sets[t].add(equivalent_ids)
+        t = classify_disease_clique(equivalent_ids, types)
+        if t is None:
+            raise RuntimeError(
+                f"Cannot assign a biolink type to disease/phenotype clique {equivalent_ids}: "
+                "no member CURIE has a declared type."
+            )
+        typed_sets[t].add(equivalent_ids)
     return typed_sets
 
 
