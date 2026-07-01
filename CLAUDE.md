@@ -224,7 +224,9 @@ there first when working on a specific vocabulary, and add to it when you learn 
 non-obvious about how Babel ingests that source. Keep the detail in the source file — `CLAUDE.md`
 should point here, not duplicate it. Documented so far: ComplexPortal
 (`docs/sources/COMPLEXPORTAL/Ingestion.md`), Ensembl/BioMart
-(`docs/sources/ENSEMBL/Download.md`), MeSH (`docs/sources/MESH/Ingestion.md`), and UMLS
+(`docs/sources/ENSEMBL/Download.md`), EUPATH manual ingest
+(`docs/sources/EUPATH/README.md`), the manual compendium mechanism
+(`docs/sources/MANUAL/README.md`), MeSH (`docs/sources/MESH/Ingestion.md`), and UMLS
 (`docs/sources/UMLS/Leftover.md`). Cross-cutting download/discovery patterns (HTTP autoindex
 listing vs FTP `NLST`) live in `docs/sources/DownloadPatterns.md`.
 

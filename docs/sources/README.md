@@ -23,6 +23,11 @@ letting it accumulate in `CLAUDE.md` — `CLAUDE.md` should point here, not dupl
   downloaded via the BioMart API: per-dataset retry logic, permanently broken datasets and how to
   skip them, the attribute-batching workaround, and how partial progress is preserved across
   failed runs.
+- **EUPATH** ([EUPATH/README.md](./EUPATH/README.md)) — the current EUPATH manual addition:
+  `EUPATH:0009259`, its preferred label/synonyms, and how it flows through the manual compendium.
+- **MANUAL** ([MANUAL/README.md](./MANUAL/README.md)) — Babel's hand-curated NDJSON ingestion
+  path: unstable gating, per-prefix labels/synonyms materialization, and multi-CURIE manual
+  cliques.
 - **MESH** ([MESH/Ingestion.md](./MESH/Ingestion.md)) — how MeSH is partitioned across compendia
   by tree letter, how Supplementary Concept Records (SCRs) are typed and routed, the
   chemical/protein D-tree split, and which MeSH branches/SCR classes we deliberately skip.
