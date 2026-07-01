@@ -52,7 +52,7 @@ def test_load_cliques_rejects_empty_identifiers(tmp_path):
 @pytest.mark.unit
 def test_identical_cliques_produce_no_rows(tmp_path):
     """A clique with identical membership in both builds should be omitted from the diff."""
-    before, before_leader = load_cliques(_write_jsonl(tmp_path / "b.txt", [_clique("MONDO:1", "MEDDRA:9")]))
+    before, _ = load_cliques(_write_jsonl(tmp_path / "b.txt", [_clique("MONDO:1", "MEDDRA:9")]))
     after, after_leader = load_cliques(_write_jsonl(tmp_path / "a.txt", [_clique("MONDO:1", "MEDDRA:9")]))
     records = diff_compendium(before, after, after_leader, set(after_leader))
     assert records == []
