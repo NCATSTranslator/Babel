@@ -36,16 +36,21 @@ Output:
 """
 
 import argparse
+import csv
+import heapq
 import json
 from pathlib import Path
 
 
-def load_cliques(path):
+def load_cliques(path, need_curie_to_leader=True):
     """Load one compendium JSONL file into a list of member-CURIE sets and a CURIE→leader map.
 
     The leader is ``identifiers[0].i`` (the preferred identifier). Returns
     ``(cliques, curie_to_leader)`` where ``cliques`` maps leader → frozenset(member CURIEs).
-    Raises ``ValueError`` if a line has no identifiers.
+    Raises ``ValueError`` if a line has no identifiers. Pass ``need_curie_to_leader=False`` to
+    skip populating ``curie_to_leader`` when only clique membership is needed (e.g. the "before"
+    side of a build-vs-build diff, which never looks up an after-leader) — for a large compendium
+    that dict has one entry per member CURIE, so skipping it roughly halves transient allocation.
     """
     cliques = {}
     curie_to_leader = {}
@@ -61,8 +66,9 @@ def load_cliques(path):
             members = frozenset(i["i"] for i in identifiers)
             leader = identifiers[0]["i"]
             cliques[leader] = members
-            for curie in members:
-                curie_to_leader[curie] = leader
+            if need_curie_to_leader:
+                for curie in members:
+                    curie_to_leader[curie] = leader
     return cliques, curie_to_leader
 
 
@@ -103,7 +109,7 @@ def diff_compendium(before_cliques, after_cliques, after_leader_of, all_after_cu
             groups.setdefault(dest, []).append(c)
         # Unchanged: every member kept under the same single after-clique with identical
         # membership.
-        if list(groups) == [before_leader] and after_cliques.get(before_leader) == members:
+        if set(groups) == {before_leader} and after_cliques.get(before_leader) == members:
             continue
         for dest, group_members in groups.items():
             if dest == DROPPED:
@@ -112,7 +118,7 @@ def diff_compendium(before_cliques, after_cliques, after_leader_of, all_after_cu
                 destination_kind, after_size = "moved", 0
             else:
                 destination_kind = "kept" if dest == before_leader else "regrouped"
-                after_size = len(after_cliques.get(dest, ()))
+                after_size = len(after_cliques[dest])
             records.append(
                 {
                     "before_leader": before_leader,
@@ -121,10 +127,9 @@ def diff_compendium(before_cliques, after_cliques, after_leader_of, all_after_cu
                     "destination_kind": destination_kind,
                     "after_size": after_size,
                     "member_count": len(group_members),
-                    "example_members": ";".join(sorted(group_members)[:5]),
+                    "example_members": ";".join(heapq.nsmallest(5, group_members)),
                 }
             )
-    records.sort(key=lambda r: (r["before_leader"], r["destination"]))
     return records
 
 
@@ -144,7 +149,7 @@ def diff_builds(before_dir, after_dir, filenames):
         after_path = Path(after_dir) / fname
         if not before_path.exists() or not after_path.exists():
             raise FileNotFoundError(f"Missing compendium {fname} in before ({before_path}) or after ({after_path})")
-        before_by_file[fname] = load_cliques(before_path)
+        before_by_file[fname] = load_cliques(before_path, need_curie_to_leader=False)
         after_by_file[fname] = load_cliques(after_path)
         all_after_curies.update(after_by_file[fname][1])
 
@@ -184,11 +189,13 @@ CSV_COLUMNS = [
 
 
 def write_csv(rows, out_csv):
-    """Write change records to ``out_csv`` as a deterministically-ordered CSV."""
-    import csv
+    """Write change records to ``out_csv`` as a deterministically-ordered CSV.
 
+    Forces LF line endings (``lineterminator="\\n"``) regardless of platform so the
+    output is byte-stable when committed or diffed.
+    """
     with open(out_csv, "w", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=CSV_COLUMNS)
+        writer = csv.DictWriter(fh, fieldnames=CSV_COLUMNS, lineterminator="\n")
         writer.writeheader()
         for r in sorted(rows, key=lambda r: (r["compendium"], r["before_leader"], r["destination"])):
             writer.writerow({k: r[k] for k in CSV_COLUMNS})
