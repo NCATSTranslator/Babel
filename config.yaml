@@ -171,6 +171,10 @@ macromolecularcomplex_outputs: [MacromolecularComplex.txt]
 manual_prefixes: [EUPATH]
 manual_outputs: [Manual.txt]
 
+# When true (e.g. --config unstable=true), opt-in/experimental compendia are built.
+# Currently gates the manual compendium. Default keeps the build identical to stable.
+unstable: false
+
 ubergraph_iri_stem_to_prefix_map:
   "https://identifiers.org/ncbigene/": NCBIGene
   "http://www.ncbi.nlm.nih.gov/gene/": NCBIGene

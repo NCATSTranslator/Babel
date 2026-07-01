@@ -12,12 +12,19 @@ logger = get_logger(__name__)
 
 
 class ManualTerm(NamedTuple):
-    """A single hand-curated identifier with its Biolink type and names."""
+    """A hand-curated identifier, its Biolink type, its names, and any equivalent CURIEs.
+
+    All identifiers (curie + equivalents) become one clique; ``curie`` is the preferred
+    identifier (clique leader) provided no equivalent's prefix outranks it in the type's
+    Biolink id_prefixes (see build_manual_cliques). ``alternatives`` and ``equivalents``
+    are optional and default to empty.
+    """
 
     curie: str
     biolink_type: str
     preferred: str
     alternatives: list[str]
+    equivalents: list[str]
 
 
 # Source-of-truth for hand-curated identifiers, as NDJSON (one JSON object per line -- the
@@ -25,9 +32,13 @@ class ManualTerm(NamedTuple):
 #   curie         -- the identifier, e.g. "EUPATH:0009259"
 #   type          -- a Biolink class CURIE, e.g. "biolink:ClinicalFinding"
 #   preferred     -- the preferred name (also written to the prefix's labels file)
-#   alternatives  -- a list of zero or more synonym strings
-# Adding a term is adding a line here, provided the term's prefix is listed in
-# config["manual_prefixes"]. Blank lines are ignored.
+#   alternatives  -- optional list of synonym strings (default [])
+#   equivalents   -- optional list of CURIEs equivalent to ``curie``; they join ``curie`` in one
+#                    clique with ``curie`` as the preferred identifier (default [])
+# A term's primary prefix MUST be listed in config["manual_prefixes"] so its labels/synonyms are
+# materialized (otherwise it has no names and is skipped). Equivalent prefixes are passed through
+# extra_prefixes automatically and need no config entry. Blank lines are ignored. A CURIE may
+# appear in only one term; overlapping terms must be merged into one line.
 DEFAULT_TERMS_FILE = "input_data/manual_terms.ndjson"
 
 
@@ -44,6 +55,7 @@ def read_manual_terms(terms_file: str = DEFAULT_TERMS_FILE) -> Iterator[ManualTe
                 biolink_type=obj["type"],
                 preferred=obj["preferred"],
                 alternatives=list(obj.get("alternatives", [])),
+                equivalents=list(obj.get("equivalents", [])),
             )
 
 
@@ -80,16 +92,35 @@ def write_manual_labels_and_synonyms(terms_file: str, download_directory: str, p
 
 
 def build_manual_cliques(terms_file: str = DEFAULT_TERMS_FILE) -> tuple[list[TypedClique], list[str]]:
-    """Return (cliques, extra_prefixes): one TypedClique per curated CURIE, in file order."""
+    """Return (cliques, extra_prefixes): one TypedClique per term, identifiers = [curie] + equivalents.
+
+    The term's ``curie`` is the preferred identifier (first). Every distinct prefix is passed via
+    extra_prefixes (primary prefix first) so NodeFactory.create_node keeps all identifiers --
+    equivalents whose prefix is absent from the type's Biolink id_prefixes would otherwise be
+    silently stripped (src/node.py:666-688). Raises ValueError if any identifier appears in more
+    than one clique: a CURIE belongs to exactly one clique, so merge such terms into one line.
+    """
     cliques: list[TypedClique] = []
     extra_prefixes: list[str] = []
-    seen: set[str] = set()
+    seen_prefixes: set[str] = set()
+    seen_identifiers: set[str] = set()
     for term in read_manual_terms(terms_file):
-        cliques.append(TypedClique(node_type=term.biolink_type, identifiers=[term.curie]))
-        prefix = term.curie.split(":", 1)[0]
-        if prefix not in seen:
-            extra_prefixes.append(prefix)
-            seen.add(prefix)
+        # Dedupe equivalents (order-preserving) and drop the primary if self-listed.
+        equivalents = [e for e in dict.fromkeys(term.equivalents) if e != term.curie]
+        identifiers: list[str] = [term.curie, *equivalents]
+        for identifier in identifiers:
+            if identifier in seen_identifiers:
+                raise ValueError(
+                    f"Manual term {term.curie}: identifier {identifier} already belongs to another "
+                    f"clique. Merge the two terms into one line in {terms_file}."
+                )
+            seen_identifiers.add(identifier)
+        cliques.append(TypedClique(node_type=term.biolink_type, identifiers=identifiers))
+        for identifier in identifiers:  # primary prefix first (identifiers[0])
+            prefix = identifier.split(":", 1)[0]
+            if prefix not in seen_prefixes:
+                extra_prefixes.append(prefix)
+                seen_prefixes.add(prefix)
     return cliques, extra_prefixes
 
 
