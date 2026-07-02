@@ -24,7 +24,7 @@ import pytest
 
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
-from tests.conftest import assert_taxa_file_valid
+from tests.conftest import assert_taxa_file_valid, glom_dict_from_cliques
 
 # --- UMLS semantic-type tree mapping ---
 
@@ -249,14 +249,8 @@ def test_write_phenotype_taxa_rejects_non_ncbitaxon(tmp_path):
 
 
 def _glom_dict(*cliques):
-    """Build a glom-style dict-of-sets: every member of a clique maps to the SAME set object
-    (one shared object per clique), mirroring how glom() stores cliques. Returns the dict."""
-    dicts = {}
-    for members in cliques:
-        shared = set(members)
-        for curie in shared:
-            dicts[curie] = shared
-    return dicts
+    """Varargs convenience wrapper over the shared glom_dict_from_cliques test helper."""
+    return glom_dict_from_cliques(cliques)
 
 
 @pytest.mark.unit

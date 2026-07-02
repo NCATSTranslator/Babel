@@ -24,18 +24,7 @@ from src.model.clique_diff import (
     cliques_set,
     diff_cliques,
 )
-
-
-def _glom_dict_from_cliques(cliques):
-    """Helper: build a {curie: set} glom-style dict where every CURIE in a clique points
-    to that clique's shared set object."""
-    out = {}
-    for members in cliques:
-        s = set(members)
-        for c in members:
-            out[c] = s
-    return out
-
+from tests.conftest import glom_dict_from_cliques
 
 # ---------------------------------------------------------------------------
 # Basic classification
@@ -45,8 +34,8 @@ def _glom_dict_from_cliques(cliques):
 @pytest.mark.unit
 def test_diff_classifies_pure_new_clique_of_only_source_curies():
     """A clique whose every member is a source CURIE is pure_new — it did not exist before."""
-    before = _glom_dict_from_cliques([{"A:1"}])
-    after = _glom_dict_from_cliques([{"A:1"}, {"NEW:1", "NEW:2"}])
+    before = glom_dict_from_cliques([{"A:1"}])
+    after = glom_dict_from_cliques([{"A:1"}, {"NEW:1", "NEW:2"}])
     diff = diff_cliques(before, after, {"NEW:1", "NEW:2"}, babel_pipeline="t")
 
     assert {frozenset({"NEW:1", "NEW:2"})} == set(diff.pure_new_cliques)
@@ -57,8 +46,8 @@ def test_diff_classifies_pure_new_clique_of_only_source_curies():
 @pytest.mark.unit
 def test_diff_classifies_expanded_clique():
     """A source CURIE joining a single existing before-clique is an expansion of that clique."""
-    before = _glom_dict_from_cliques([{"A:1", "B:1"}])
-    after = _glom_dict_from_cliques([{"A:1", "B:1", "NEW:1"}])
+    before = glom_dict_from_cliques([{"A:1", "B:1"}])
+    after = glom_dict_from_cliques([{"A:1", "B:1", "NEW:1"}])
     diff = diff_cliques(before, after, {"NEW:1"}, babel_pipeline="t")
 
     assert diff.pure_new_cliques == []
@@ -73,8 +62,8 @@ def test_diff_classifies_expanded_clique():
 @pytest.mark.unit
 def test_diff_classifies_merged_cliques():
     """A source CURIE that bridges two distinct before-cliques into one is a merge."""
-    before = _glom_dict_from_cliques([{"A:1", "B:1"}, {"C:1", "D:1"}])
-    after = _glom_dict_from_cliques([{"A:1", "B:1", "C:1", "D:1", "NEW:1"}])
+    before = glom_dict_from_cliques([{"A:1", "B:1"}, {"C:1", "D:1"}])
+    after = glom_dict_from_cliques([{"A:1", "B:1", "C:1", "D:1", "NEW:1"}])
     diff = diff_cliques(before, after, {"NEW:1"}, babel_pipeline="t")
 
     assert diff.pure_new_cliques == []
@@ -91,8 +80,8 @@ def test_diff_classifies_merged_cliques():
 @pytest.mark.unit
 def test_diff_ignores_cliques_with_no_source_curies():
     """After-cliques that contain no source CURIE at all are silently skipped."""
-    before = _glom_dict_from_cliques([{"A:1"}, {"B:1"}])
-    after = _glom_dict_from_cliques([{"A:1"}, {"B:1"}, {"NEW:1"}])
+    before = glom_dict_from_cliques([{"A:1"}, {"B:1"}])
+    after = glom_dict_from_cliques([{"A:1"}, {"B:1"}, {"NEW:1"}])
     diff = diff_cliques(before, after, {"NEW:1"}, babel_pipeline="t")
 
     assert len(diff.pure_new_cliques) == 1
@@ -109,8 +98,8 @@ def test_diff_ignores_cliques_with_no_source_curies():
 def test_diff_handles_multi_prefix_source_curies():
     """A single source may declare CURIEs under more than one prefix; the diff must
     treat all of them as 'source' regardless of prefix."""
-    before = _glom_dict_from_cliques([{"A:1", "B:1"}, {"C:1"}])
-    after = _glom_dict_from_cliques(
+    before = glom_dict_from_cliques([{"A:1", "B:1"}, {"C:1"}])
+    after = glom_dict_from_cliques(
         [
             {"A:1", "B:1", "SRC_A:1"},
             {"C:1", "SRC_B:1"},
@@ -134,8 +123,8 @@ def test_diff_splits_truly_added_from_preexisting_source_curies():
     re-types the xref leaf to a typed identifier without growing the clique."""
     # SRC:1 is pre-existing in the before-clique via someone else's xref; adding the
     # SRC source's ids file doesn't grow the clique, it just types SRC:1.
-    before = _glom_dict_from_cliques([{"A:1", "B:1", "SRC:1"}])
-    after = _glom_dict_from_cliques([{"A:1", "B:1", "SRC:1"}])
+    before = glom_dict_from_cliques([{"A:1", "B:1", "SRC:1"}])
+    after = glom_dict_from_cliques([{"A:1", "B:1", "SRC:1"}])
     diff = diff_cliques(before, after, {"SRC:1"}, babel_pipeline="t")
 
     assert len(diff.expanded_cliques) == 1
@@ -150,8 +139,8 @@ def test_diff_treats_concord_introduced_aliases_as_pure_new():
     """If a source's concord introduces non-source CURIEs that weren't in any before
     clique, the resulting after-clique is reported as pure_new — without the source,
     those CURIEs would not be in Babel at all."""
-    before = _glom_dict_from_cliques([{"A:1"}])  # ALIAS:1 not present in before
-    after = _glom_dict_from_cliques([{"A:1"}, {"SRC:1", "ALIAS:1"}])
+    before = glom_dict_from_cliques([{"A:1"}])  # ALIAS:1 not present in before
+    after = glom_dict_from_cliques([{"A:1"}, {"SRC:1", "ALIAS:1"}])
     diff = diff_cliques(before, after, {"SRC:1"}, babel_pipeline="t")
 
     assert diff.expanded_cliques == []

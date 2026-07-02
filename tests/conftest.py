@@ -74,6 +74,17 @@ def assert_taxa_file_valid(path: str) -> list[list[str]]:
     return rows
 
 
+def glom_dict_from_cliques(cliques) -> dict:
+    """Build a glom-style {curie: set} dict where every CURIE in a clique points to that
+    clique's shared set object, mirroring how src.babel_utils.glom stores cliques."""
+    out = {}
+    for members in cliques:
+        s = set(members)
+        for c in members:
+            out[c] = s
+    return out
+
+
 def assert_descriptions_file_valid(path: str) -> list[list[str]]:
     """Assert the file is non-empty and every line is CURIE\\tdescription; return the rows."""
     rows = []
