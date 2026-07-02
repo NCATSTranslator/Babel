@@ -249,6 +249,8 @@ not for answering "are *these specific* CURIEs joinable."
 - `babel_downloads/` — cached source data
 - `babel_outputs/intermediate/` — intermediate build artifacts
 - `babel_outputs/` — final compendia, synonyms, reports, exports
+- `data/` — local scratch space for ad hoc files (analysis notebooks, one-off downloads,
+  intermediate digging); gitignored, never committed
 
 ## Running Babel
 
