@@ -137,9 +137,11 @@ disease_outputs:           [Disease.txt, PhenotypicFeature.txt]
 # ingest (the HP:0000118 "Phenotypic abnormality" subtree) describes a human (Homo sapiens)
 # phenotype; every MP term describes a mammalian (Mammalia) phenotype. These are written to
 # babel_downloads/<PREFIX>/taxa from each prefix's disease_ids file (the authoritative set of
-# ingested identifiers) and read by TaxonFactory to populate the per-identifier `t` field;
-# cliques that mix HP and MP members therefore carry both taxa. Keyed by prefix so the mapping
-# stays adjacent to disease_ids, which defines the identifier set these taxa annotate.
+# ingested identifiers) and read by TaxonFactory to populate the per-identifier `t` field. HP
+# and MP are kept disjoint (see split_mutually_exclusive_cliques), so no clique ever carries
+# both taxa in practice -- each clique's taxon set comes from whichever one of HP/MP (if
+# either) is present. Keyed by prefix so the mapping stays adjacent to disease_ids, which
+# defines the identifier set these taxa annotate.
 disease_phenotype_taxa:
   HP: NCBITaxon:9606 # Homo sapiens
   MP: NCBITaxon:40674 # Mammalia
