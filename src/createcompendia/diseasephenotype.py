@@ -34,7 +34,13 @@ DISEASE_OBO_SOURCES = {
     MP: {"root": f"{MP}:0000001", "type": PHENOTYPIC_FEATURE},
 }
 
-DISEASE_UNIQUE_PREFIXES = [MONDO, HP]
+# Prefixes glom() rejects a *same-prefix* merge for: if a clique would end up holding two
+# distinct identifiers of one of these prefixes (e.g. two different MONDO ids, or two
+# different HP/MP ids), the merge is refused rather than silently accepted. MONDO, HP, and MP
+# are each meant to be the single authoritative identifier of their kind within a clique, so
+# an accidental same-prefix collision (e.g. via a bad transitive MESH/SNOMED bridge) is a
+# data-quality signal worth catching rather than merging through.
+DISEASE_UNIQUE_PREFIXES = [MONDO, HP, MP]
 
 # Prefix groups that must never co-occur in a single clique. After glom, any clique that
 # holds identifiers from two or more prefixes within a group is split: the first-listed
@@ -49,8 +55,11 @@ DISEASE_UNIQUE_PREFIXES = [MONDO, HP]
 MUTUALLY_EXCLUSIVE_PREFIX_GROUPS = [[HP, MP]]
 
 # Concord file basenames whose pair stream is filtered through remove_overused_xrefs
-# before glom. Other concord sources are trusted as-is.
-OVERUSE_FILTERED_CONCORDS = {"MONDO", "HP", "EFO"}
+# before glom. Other concord sources are trusted as-is. MP is included alongside the other
+# OBO-sourced concords (MONDO, HP, EFO) since its UberGraph xrefs are ordinary ontology xrefs
+# with the same "one xref target claimed by many source ids" failure mode the filter guards
+# against, and there's no reason to trust MP's xrefs more than HP's.
+OVERUSE_FILTERED_CONCORDS = {"MONDO", "HP", "EFO", "MP"}
 
 # Per-source bad-xref files used when build_compendium is called without explicit
 # badxrefs (e.g. by the source-impact report CLI). The Snakemake call site still
@@ -386,16 +395,22 @@ def compute_cliques_for_impact_report(
     # MONDO_close is not a regular concord; pull it out of the iterated list so it
     # isn't double-loaded. Production already passes it as a separate `mondoclose`
     # argument and doesn't include it in `concordances`; this branch only fires when
-    # the impact-report CLI auto-discovered concord files from disk.
+    # the impact-report CLI auto-discovered concord files from disk. MONDO_close is
+    # MONDO's own close-match data, so it must be skipped whenever "MONDO" itself is
+    # excluded -- otherwise a `--source MONDO` impact-report "before" computation would
+    # still apply the close-match guard even though MONDO is supposed to be fully absent.
     iterated_concords = []
     discovered_mondoclose = None
     for c in concordances:
         if path.basename(c) == MONDO_CLOSE_BASENAME:
-            discovered_mondoclose = c
+            if MONDO not in excluded:
+                discovered_mondoclose = c
         else:
             iterated_concords.append(c)
     if mondoclose is None:
         mondoclose = discovered_mondoclose
+    elif MONDO in excluded:
+        mondoclose = None
 
     dicts = {}
     types = {}

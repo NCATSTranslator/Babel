@@ -9,19 +9,24 @@ Sections:
   the downstream ``umls.write_umls_ids`` call rather than running a real MRSTY
   parse -- keeping these tests fast and offline.
 - ``# --- MONDO_close parsing in compute_cliques_for_impact_report ---`` guards
-  the 3-column ``MONDO_close`` concord reader against a column-count regression.
+  the 3-column ``MONDO_close`` concord reader against a column-count regression, and
+  checks that excluding MONDO also skips its own MONDO_close close-match data.
 - ``# --- classify_disease_clique ---`` checks the per-clique biolink typing used
   by both the real build and the source-impact report.
 - ``# --- write_phenotype_taxa ---`` checks the per-prefix taxa file (HP->human,
   MP->mammal) derived from a phenotype ids file.
 - ``# --- split_mutually_exclusive_cliques (HP/MP disjointness) ---`` checks that a
   glommed clique holding both HP and MP is split (MP peeled out, HP side kept).
+- ``# --- MP data-quality guards ---`` checks that MP gets the same same-prefix
+  overmerge guard (``DISEASE_UNIQUE_PREFIXES``) and overused-xref filtering
+  (``OVERUSE_FILTERED_CONCORDS``) that MONDO/HP already have.
 """
 
 from unittest.mock import patch
 
 import pytest
 
+from src.babel_utils import glom
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
 from tests.conftest import assert_taxa_file_valid, glom_dict_from_cliques
@@ -139,6 +144,54 @@ def test_mondo_close_rejects_malformed_row(tmp_path):
             mondoclose=mondoclose,
             badxrefs={},
         )
+
+
+@pytest.mark.unit
+def test_excluding_mondo_skips_basename_discovered_mondo_close(tmp_path):
+    """excluded_sources={"MONDO"} must also skip a basename-discovered MONDO_close (it's
+    MONDO's own close-match data), not just MONDO's ids/concord files.
+
+    Regression guard: MONDO_close used to be pulled out of `concordances` -- and therefore
+    always read -- before the excluded_sources filter got a chance to run, so a
+    ``--source MONDO`` impact-report "before" computation would still load MONDO's
+    close-match data even though MONDO was supposed to be fully absent. Demonstrated here via
+    a malformed MONDO_close file: if it's ever opened it raises, so "no raise" proves it was
+    skipped.
+    """
+    ids = _write_lines(tmp_path / "HP", [f"HP:0000001\t{PHENOTYPIC_FEATURE}"])
+    bad_mondo_close = _write_lines(tmp_path / "MONDO_close", ["MONDO:0000739\tMEDDRA:10051962"])
+
+    with pytest.raises(RuntimeError, match="not a valid MONDO_close entry"):
+        diseasephenotype.compute_cliques_for_impact_report(
+            concordances=[bad_mondo_close],
+            identifiers=[ids],
+            badxrefs={},
+        )
+
+    dicts, types = diseasephenotype.compute_cliques_for_impact_report(
+        concordances=[bad_mondo_close],
+        identifiers=[ids],
+        excluded_sources={"MONDO"},
+        badxrefs={},
+    )
+    assert set(dicts.keys()) == {"HP:0000001"}
+
+
+@pytest.mark.unit
+def test_excluding_mondo_skips_explicit_mondoclose_argument(tmp_path):
+    """Excluding MONDO must skip MONDO_close even when `mondoclose` is passed explicitly
+    (the production build_compendium() call shape), not only when auto-discovered."""
+    ids = _write_lines(tmp_path / "HP", [f"HP:0000001\t{PHENOTYPIC_FEATURE}"])
+    bad_mondo_close = _write_lines(tmp_path / "MONDO_close", ["MONDO:0000739\tMEDDRA:10051962"])
+
+    dicts, types = diseasephenotype.compute_cliques_for_impact_report(
+        concordances=[],
+        identifiers=[ids],
+        mondoclose=bad_mondo_close,
+        excluded_sources={"MONDO"},
+        badxrefs={},
+    )
+    assert set(dicts.keys()) == {"HP:0000001"}
 
 
 # --- classify_disease_clique ---
@@ -310,3 +363,58 @@ def test_split_then_create_typed_sets_routes_mp_to_phenotypic_feature():
     typed_sets = diseasephenotype.create_typed_sets({frozenset(x) for x in dicts.values()}, types)
     assert frozenset({"MP:0004133"}) in typed_sets[PHENOTYPIC_FEATURE]
     assert frozenset({"HP:0000118", "MONDO:0018677"}) in typed_sets[DISEASE]
+
+
+# --- MP data-quality guards ---
+
+
+@pytest.mark.unit
+def test_mp_included_in_unique_prefixes_blocks_same_prefix_merge():
+    """DISEASE_UNIQUE_PREFIXES must include MP so two distinct MP ids never merge into one
+    clique via a shared bridge -- the same protection MONDO and HP already get.
+
+    Regression guard: MP was added to disease_ids/disease_concords without being added to
+    DISEASE_UNIQUE_PREFIXES, silently losing this data-quality guard.
+    """
+    dicts = {}
+    glom(dicts, [("MP:0000001",), ("MP:0000002",)], unique_prefixes=diseasephenotype.DISEASE_UNIQUE_PREFIXES)
+    glom(dicts, [("MP:0000001", "MESH:D000001")], unique_prefixes=diseasephenotype.DISEASE_UNIQUE_PREFIXES)
+    # MP:0000002 bridging to the same MESH id would merge it with MP:0000001's clique; with MP
+    # in unique_prefixes that merge must be rejected, leaving MP:0000002 in its own clique.
+    glom(dicts, [("MP:0000002", "MESH:D000001")], unique_prefixes=diseasephenotype.DISEASE_UNIQUE_PREFIXES)
+
+    assert dicts["MP:0000002"] == {"MP:0000002"}
+    assert dicts["MP:0000001"] == {"MP:0000001", "MESH:D000001"}
+
+
+@pytest.mark.unit
+def test_mp_concords_are_overuse_filtered(tmp_path):
+    """OVERUSE_FILTERED_CONCORDS must include "MP" so an MP xref target shared by multiple MP
+    source ids is dropped the same way an overused MONDO/HP/EFO xref target would be.
+
+    Regression guard: MP concords were previously trusted as-is (not filtered through
+    remove_overused_xrefs), so a promiscuous MP xref target could silently fuse unrelated MP
+    cliques together via the shared target.
+    """
+    ids = _write_lines(
+        tmp_path / "MP_ids",
+        [f"MP:0000001\t{PHENOTYPIC_FEATURE}", f"MP:0000002\t{PHENOTYPIC_FEATURE}"],
+    )
+    concord_dir = tmp_path / "concords"
+    concord_dir.mkdir()
+    concord = _write_lines(
+        concord_dir / "MP",  # basename must be "MP" to hit OVERUSE_FILTERED_CONCORDS
+        [
+            "MP:0000001\txref\tMESH:D000001",
+            "MP:0000002\txref\tMESH:D000001",
+        ],
+    )
+
+    dicts, types = diseasephenotype.compute_cliques_for_impact_report(
+        concordances=[concord],
+        identifiers=[ids],
+        badxrefs={},
+    )
+
+    assert dicts["MP:0000001"] == {"MP:0000001"}
+    assert dicts["MP:0000002"] == {"MP:0000002"}
