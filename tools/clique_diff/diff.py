@@ -18,34 +18,41 @@ It is deliberately distinct from the source-impact report
   regression check.
 
 A clique is identified by its leader (the preferred identifier, ``identifiers[0].i``).
-Two cliques are "the same" when their member-CURIE sets are equal. For each before-clique
-whose membership changed, the tool partitions its members by where they ended up in the
-after build and emits one row per destination.
+Two cliques are "the same" when their leader and member-CURIE set are both unchanged. For
+each before-clique whose leader or membership changed, the tool partitions its members by
+where they ended up in the after build and emits one row per destination.
 
 Output:
 
 - ``--out-csv`` (required): one row per (changed before-clique, after-destination) group.
   Columns: ``compendium, before_leader, before_size, destination, destination_kind,
   after_size, member_count, example_members``. ``destination_kind`` is one of:
-  ``kept`` (members still under the same leader), ``regrouped`` (members moved to a
-  different after-clique in the same compendium), ``moved`` (the CURIE was retyped into a
-  different compared compendium), or ``dropped`` (the CURIE is absent from every compared
-  after compendium — it left the output entirely). Deterministically sorted.
+  ``kept`` (members still under the same leader), ``leader_changed`` (the whole clique's
+  membership is unchanged but its preferred identifier was reassigned), ``regrouped``
+  (members were actually redistributed to a different after-clique in the same
+  compendium), ``moved`` (the CURIE was retyped into a different compared compendium), or
+  ``dropped`` (the CURIE is absent from every compared after compendium — it left the
+  output entirely). Deterministically sorted.
 - ``--out-json`` (optional): a summary with per-compendium counts, including
   ``dropped_member_count`` — the headline regression signal.
 """
 
 import argparse
+import csv
+import heapq
 import json
 from pathlib import Path
 
 
-def load_cliques(path):
+def load_cliques(path, need_curie_to_leader=True):
     """Load one compendium JSONL file into a list of member-CURIE sets and a CURIE→leader map.
 
     The leader is ``identifiers[0].i`` (the preferred identifier). Returns
     ``(cliques, curie_to_leader)`` where ``cliques`` maps leader → frozenset(member CURIEs).
-    Raises ``ValueError`` if a line has no identifiers.
+    Raises ``ValueError`` if a line has no identifiers. Pass ``need_curie_to_leader=False`` to
+    skip populating ``curie_to_leader`` when only clique membership is needed (e.g. the "before"
+    side of a build-vs-build diff, which never looks up an after-leader) — for a large compendium
+    that dict has one entry per member CURIE, so skipping it roughly halves transient allocation.
     """
     cliques = {}
     curie_to_leader = {}
@@ -61,8 +68,9 @@ def load_cliques(path):
             members = frozenset(i["i"] for i in identifiers)
             leader = identifiers[0]["i"]
             cliques[leader] = members
-            for curie in members:
-                curie_to_leader[curie] = leader
+            if need_curie_to_leader:
+                for curie in members:
+                    curie_to_leader[curie] = leader
     return cliques, curie_to_leader
 
 
@@ -77,17 +85,23 @@ def diff_compendium(before_cliques, after_cliques, after_leader_of, all_after_cu
     after build:
 
     - a real after-clique leader (in this same compendium): ``destination_kind`` is
-      ``kept`` if that leader equals the before leader, else ``regrouped``;
+      ``kept`` if that leader equals the before leader; ``leader_changed`` if every member
+      of the before-clique landed under one different leader whose after-clique membership
+      is otherwise identical (the preferred identifier was reassigned, nothing else moved);
+      otherwise ``regrouped`` (members were actually redistributed);
     - ``(moved-to-other-compendium)`` — the CURIE still exists in the after build but in a
       different compendium file (it was retyped);
     - ``(dropped)`` — the CURIE is absent from every compared after compendium. This is the
       consequential category: the identifier left the output entirely.
 
     Yields one record per (before-clique, destination) group, but only for before-cliques
-    whose membership actually changed (a clique whose members are identical in both builds,
-    even if its leader differs, is skipped). Each record has keys ``before_leader``,
-    ``before_size``, ``destination``, ``destination_kind``, ``after_size``,
-    ``member_count``, ``example_members``.
+    whose clique-vs-clique state actually changed — a before-clique that keeps the exact same
+    leader and membership is skipped entirely (nothing to report). Each record has keys
+    ``before_leader``, ``before_size``, ``destination``, ``destination_kind``, ``after_size``,
+    ``member_count``, ``example_members``. ``example_members`` is left empty for
+    ``leader_changed`` rows, since ``before_leader``/``destination`` already say everything
+    that changed (the old and new leader) and re-listing the unchanged membership adds no
+    information.
     """
     records = []
     for before_leader, members in before_cliques.items():
@@ -101,18 +115,24 @@ def diff_compendium(before_cliques, after_cliques, after_leader_of, all_after_cu
             else:
                 dest = DROPPED
             groups.setdefault(dest, []).append(c)
-        # Unchanged: every member kept under the same single after-clique with identical
-        # membership.
-        if list(groups) == [before_leader] and after_cliques.get(before_leader) == members:
-            continue
+        # Whole-clique cases: every member landed under the same single after-clique
+        # leader, and that after-clique's membership is identical to the before-clique's.
+        only_dest = next(iter(groups)) if len(groups) == 1 else None
+        whole_clique_unchanged = (
+            only_dest is not None and only_dest not in (DROPPED, MOVED) and after_cliques.get(only_dest) == members
+        )
+        if whole_clique_unchanged and only_dest == before_leader:
+            continue  # Same leader, same membership: nothing changed.
         for dest, group_members in groups.items():
             if dest == DROPPED:
                 destination_kind, after_size = "dropped", 0
             elif dest == MOVED:
                 destination_kind, after_size = "moved", 0
+            elif whole_clique_unchanged:
+                destination_kind, after_size = "leader_changed", len(after_cliques[dest])
             else:
                 destination_kind = "kept" if dest == before_leader else "regrouped"
-                after_size = len(after_cliques.get(dest, ()))
+                after_size = len(after_cliques[dest])
             records.append(
                 {
                     "before_leader": before_leader,
@@ -121,10 +141,11 @@ def diff_compendium(before_cliques, after_cliques, after_leader_of, all_after_cu
                     "destination_kind": destination_kind,
                     "after_size": after_size,
                     "member_count": len(group_members),
-                    "example_members": ";".join(sorted(group_members)[:5]),
+                    "example_members": (
+                        "" if destination_kind == "leader_changed" else ";".join(heapq.nsmallest(5, group_members))
+                    ),
                 }
             )
-    records.sort(key=lambda r: (r["before_leader"], r["destination"]))
     return records
 
 
@@ -144,7 +165,7 @@ def diff_builds(before_dir, after_dir, filenames):
         after_path = Path(after_dir) / fname
         if not before_path.exists() or not after_path.exists():
             raise FileNotFoundError(f"Missing compendium {fname} in before ({before_path}) or after ({after_path})")
-        before_by_file[fname] = load_cliques(before_path)
+        before_by_file[fname] = load_cliques(before_path, need_curie_to_leader=False)
         after_by_file[fname] = load_cliques(after_path)
         all_after_curies.update(after_by_file[fname][1])
 
@@ -167,6 +188,7 @@ def diff_builds(before_dir, after_dir, filenames):
             "dropped_member_count": sum(r["member_count"] for r in records if r["destination_kind"] == "dropped"),
             "moved_member_count": sum(r["member_count"] for r in records if r["destination_kind"] == "moved"),
             "regrouped_member_count": sum(r["member_count"] for r in records if r["destination_kind"] == "regrouped"),
+            "leader_changed_count": sum(1 for r in records if r["destination_kind"] == "leader_changed"),
         }
     return rows, summary
 
@@ -184,11 +206,13 @@ CSV_COLUMNS = [
 
 
 def write_csv(rows, out_csv):
-    """Write change records to ``out_csv`` as a deterministically-ordered CSV."""
-    import csv
+    """Write change records to ``out_csv`` as a deterministically-ordered CSV.
 
+    Forces LF line endings (``lineterminator="\\n"``) regardless of platform so the
+    output is byte-stable when committed or diffed.
+    """
     with open(out_csv, "w", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=CSV_COLUMNS)
+        writer = csv.DictWriter(fh, fieldnames=CSV_COLUMNS, lineterminator="\n")
         writer.writeheader()
         for r in sorted(rows, key=lambda r: (r["compendium"], r["before_leader"], r["destination"])):
             writer.writerow({k: r[k] for k in CSV_COLUMNS})
