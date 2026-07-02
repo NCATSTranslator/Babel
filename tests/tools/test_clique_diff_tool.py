@@ -4,8 +4,8 @@ Unit tests for tools/clique_diff/diff.py — the build-vs-build compendium cliqu
 Sections:
 
 - ``# --- Loading ---`` covers JSONL parsing and the leader/member extraction.
-- ``# --- Diffing ---`` covers the four destination kinds (kept/regrouped/moved/dropped)
-  and the "unchanged clique is omitted" rule.
+- ``# --- Diffing ---`` covers the five destination kinds
+  (kept/leader_changed/regrouped/moved/dropped) and the "unchanged clique is omitted" rule.
 """
 
 import json
@@ -59,16 +59,23 @@ def test_identical_cliques_produce_no_rows(tmp_path):
 
 
 @pytest.mark.unit
-def test_identical_membership_with_new_leader_produces_no_rows(tmp_path):
+def test_leader_change_with_identical_membership_is_flagged(tmp_path):
     """A clique whose membership is unchanged but whose leader (preferred identifier)
-    changed should still be omitted from the diff, per the "two cliques are the same
-    when their member-CURIE sets are equal" rule in the module docstring.
+    changed should be reported as a single 'leader_changed' row — not silently omitted,
+    and not misreported as 'regrouped' — naming the old and new leader without repeating
+    the (unchanged) membership.
     """
     before, _ = load_cliques(_write_jsonl(tmp_path / "b.txt", [_clique("MONDO:1", "MEDDRA:9")]))
     # Same two members, but MEDDRA:9 is now first, so it's the new leader.
     after, after_leader = load_cliques(_write_jsonl(tmp_path / "a.txt", [_clique("MEDDRA:9", "MONDO:1")]))
     records = diff_compendium(before, after, after_leader, set(after_leader))
-    assert records == []
+    assert len(records) == 1
+    (record,) = records
+    assert record["destination_kind"] == "leader_changed"
+    assert record["before_leader"] == "MONDO:1"
+    assert record["destination"] == "MEDDRA:9"
+    assert record["before_size"] == record["after_size"] == record["member_count"] == 2
+    assert record["example_members"] == ""
 
 
 @pytest.mark.unit
