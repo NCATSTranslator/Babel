@@ -237,6 +237,34 @@ def build_disease_doid_relationships(idfile, outfile, metadata_yaml):
     )
 
 
+def load_close_mondos(mondoclose):
+    """Read a MONDO_close concord file into a dict mapping each MONDO subject to its set of
+    close-match *object* CURIEs.
+
+    MONDO_close is a 3-column concord (subject, predicate, object) written by
+    ``ubergraph.build_sets()``, exactly like the regular concords consumed by
+    :func:`build_compendium`. We key each MONDO subject to its close-match objects (column 3)
+    so :func:`glom`'s ``close=`` guard can block a close (but not exact) match from collapsing
+    into the exact clique.
+
+    Historically this keyed on column 2 (the predicate, e.g. ``"oio:closeMatch"``) rather than
+    column 3, so no clique ever contained the recorded value and the guard was a silent no-op on
+    every build. Blank lines are skipped; any row that is not exactly 3 columns raises
+    ``RuntimeError``.
+    """
+    close_mondos = defaultdict(set)
+    with open(mondoclose) as inf:
+        for line in inf:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            x = tuple(stripped.split("\t"))
+            if len(x) != 3:
+                raise RuntimeError(f'Line "{stripped}" is not a valid MONDO_close entry: {x}')
+            close_mondos[x[0]].add(x[2])
+    return close_mondos
+
+
 def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badxrefs, icrdf_filename):
     """:concordances: a list of files from which to read relationships
     :identifiers: a list of files from which to read identifiers and optional categories"""
@@ -248,11 +276,7 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
         glom(dicts, new_identifiers, unique_prefixes=[MONDO, HP])
         types.update(new_types)
     # Load close Mondos
-    with open(mondoclose) as inf:
-        close_mondos = defaultdict(set)
-        for line in inf:
-            x = tuple(line.strip().split("\t"))
-            close_mondos[x[0]].add(x[1])
+    close_mondos = load_close_mondos(mondoclose)
     # Load and glom concords
     for infile in concordances:
         print(infile)
