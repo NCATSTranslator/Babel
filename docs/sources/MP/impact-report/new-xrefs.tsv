@@ -1,24 +1,4 @@
 pipeline	subject	subject_label	predicate	object	object_label	asserted_by	status
-disease	EFO:0002503	cardiac hypertrophy	oboInOwl:hasDbXref	MP:0001625	cardiac hypertrophy	EFO	from_other_source
-disease	EFO:0005414	airway hyperresponsiveness	oboInOwl:hasDbXref	MP:0001952	increased airway responsiveness	EFO	from_other_source
-disease	EFO:0005757	vaginal inflammation	oboInOwl:hasDbXref	MP:0003541	vaginal inflammation	EFO	from_other_source
-disease	EFO:0008322	decreased susceptibility to bacterial infection	oboInOwl:hasDbXref	MP:0002411	decreased susceptibility to bacterial infection	EFO	from_other_source
-disease	EFO:0008561	diaphragmatic hernia	oboInOwl:hasDbXref	MP:0003924	diaphragmatic hernia	EFO	from_other_source
-disease	EFO:0009427	embryonic lethality	oboInOwl:hasDbXref	MP:0008762	embryonic lethality	EFO	from_other_source
-disease	EFO:0009444	hypoxia	oboInOwl:hasDbXref	MP:0005039	hypoxia	EFO	from_other_source
-disease	EFO:0009457	abnormal vascular wound healing	oboInOwl:hasDbXref	MP:0004883	abnormal vascular wound healing	EFO	from_other_source
-disease	EFO:0009471	small kidney	oboInOwl:hasDbXref	MP:0002989	small kidney	EFO	from_other_source
-disease	EFO:0009472	tympanic membrane perforation	oboInOwl:hasDbXref	MP:0030414	tympanic membrane perforation	EFO	from_other_source
-disease	EFO:0009829	vascular smooth muscle hypertrophy	oboInOwl:hasDbXref	MP:0002975	vascular smooth muscle hypertrophy	EFO	from_other_source
-disease	EFO:0009866	pulmonary vascular congestion	oboInOwl:hasDbXref	MP:0010018	pulmonary vascular congestion	EFO	from_other_source
-disease	EFO:0009869	xerostomia	oboInOwl:hasDbXref	MP:0000624	xerostomia	EFO	from_other_source
-disease	EFO:0009871	increased heart weight	oboInOwl:hasDbXref	MP:0002833	increased heart weight	EFO	from_other_source
-disease	EFO:0009872	increased cardiac output	oboInOwl:hasDbXref	MP:0003394	increased cardiac output	EFO	from_other_source
-disease	EFO:0009873	decreased cardiac output	oboInOwl:hasDbXref	MP:0003393	decreased cardiac output	EFO	from_other_source
-disease	EFO:0009874	decreased anxiety-related response	oboInOwl:hasDbXref	MP:0001364	decreased anxiety-related response	EFO	from_other_source
-disease	EFO:0009875	thymus atrophy	oboInOwl:hasDbXref	MP:0003644	thymus atrophy	EFO	from_other_source
-disease	EFO:0009876	abnormal lipolysis	oboInOwl:hasDbXref	MP:0008032	abnormal lipolysis	EFO	from_other_source
-disease	EFO:0009877	decreased bone mass	oboInOwl:hasDbXref	MP:0004016	decreased bone mass	EFO	from_other_source
 disease	HP:0011112	Abnormal circulating cytokine concentration	xref	MP:0010210	abnormal circulating cytokine level	HP	from_other_source
 disease	HP:0011113	Abnormality of cytokine secretion	xref	MP:0003009	abnormal cytokine secretion	HP	from_other_source
 disease	HP:0011118	Abnormality of tumor necrosis factor secretion	xref	MP:0008556	abnormal tumor necrosis factor secretion	HP	from_other_source
