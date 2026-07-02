@@ -5,6 +5,7 @@
     "changed_before_cliques": 90,
     "cliques_with_dropped_members": 0,
     "dropped_member_count": 0,
+    "leader_changed_count": 0,
     "moved_member_count": 94,
     "regrouped_member_count": 0
   },
@@ -14,6 +15,7 @@
     "changed_before_cliques": 110,
     "cliques_with_dropped_members": 1,
     "dropped_member_count": 1,
+    "leader_changed_count": 0,
     "moved_member_count": 0,
     "regrouped_member_count": 114
   }
