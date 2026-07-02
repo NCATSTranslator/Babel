@@ -54,6 +54,15 @@ DISEASE_UNIQUE_PREFIXES = [MONDO, HP, MP]
 # a split. See docs/sources/MP/disjointness.md.
 MUTUALLY_EXCLUSIVE_PREFIX_GROUPS = [[HP, MP]]
 
+# EFO's direct xrefs to MP are dropped when building concords/EFO. EFO is a species-agnostic /
+# human-leaning ontology, so an EFO phenotype term xref'd to an MP term is ambiguous: it may be
+# human-scoped (which, like HP, must stay disjoint from MP) or genuinely mammalian, and we have
+# no reliable signal to tell them apart. Per the SMEs' MP/HP disjointness request we therefore do
+# not trust EFO->MP xrefs and remove them at the source. This is the EFO-source complement to the
+# [HP, MP] post-glom split above (HP->MP is handled there); it is applied via
+# efo.make_concords(..., excluded_target_prefixes=...). See docs/sources/MP/disjointness.md.
+EFO_EXCLUDED_XREF_PREFIXES = [MP]
+
 # Concord file basenames whose pair stream is filtered through remove_overused_xrefs
 # before glom. Other concord sources are trusted as-is. MP is included alongside the other
 # OBO-sourced concords (MONDO, HP, EFO) since its UberGraph xrefs are ordinary ontology xrefs
@@ -310,7 +319,13 @@ def build_disease_obo_relationships(outdir, metadata_yamls):
 
 
 def build_disease_efo_relationships(owlfile, idfile, outfile, metadata_yaml):
-    efo.make_concords(owlfile, idfile, outfile, provenance_metadata=metadata_yaml)
+    efo.make_concords(
+        owlfile,
+        idfile,
+        outfile,
+        provenance_metadata=metadata_yaml,
+        excluded_target_prefixes=EFO_EXCLUDED_XREF_PREFIXES,
+    )
 
 
 def build_disease_umls_relationships(mrconso, idfile, outfile, omimfile, ncitfile, metadata_yaml):

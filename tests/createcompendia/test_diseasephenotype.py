@@ -418,3 +418,27 @@ def test_mp_concords_are_overuse_filtered(tmp_path):
 
     assert dicts["MP:0000001"] == {"MP:0000001"}
     assert dicts["MP:0000002"] == {"MP:0000002"}
+
+
+# --- EFO->MP xref exclusion (MP disjointness at the EFO source) ---
+
+
+@pytest.mark.unit
+def test_efo_excluded_xref_prefixes_is_mp():
+    """EFO_EXCLUDED_XREF_PREFIXES must list MP so EFO's untrusted direct xrefs to Mammalian
+    Phenotype terms are dropped at the source, keeping MP disjoint from EFO. Regression guard
+    against the constant being emptied or repointed. See docs/sources/MP/disjointness.md."""
+    from src.prefixes import MP
+
+    assert diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES == [MP]
+
+
+@pytest.mark.unit
+def test_build_disease_efo_relationships_forwards_excluded_prefixes():
+    """build_disease_efo_relationships must forward EFO_EXCLUDED_XREF_PREFIXES into
+    efo.make_concords, so the EFO->MP filter actually runs during the build (not just in the
+    handler when a caller opts in)."""
+    with patch.object(diseasephenotype.efo, "make_concords") as mock_make:
+        diseasephenotype.build_disease_efo_relationships("efo.owl", "ids", "out", "meta.yaml")
+    assert mock_make.call_count == 1
+    assert mock_make.call_args.kwargs["excluded_target_prefixes"] == diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES

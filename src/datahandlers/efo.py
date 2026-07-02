@@ -74,7 +74,7 @@ class EFOgraph:
                         efo_id = efoid.split("_")[-1]
                         idfile.write(f"{EFO}:{efo_id}\t{rtype}\n")
 
-    def get_exacts(self, iri, outfile):
+    def get_exacts(self, iri, outfile, excluded_target_prefixes=()):
         query = f"""
          prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
          prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
@@ -111,11 +111,14 @@ class EFOgraph:
                 # raise RuntimeError(
                 #     f"Unexpected ORPHANET in EFOgraph.get_xrefs({iri}): '{other_without_brackets}'"
                 # )
+            if otherid.split(":", 1)[0] in excluded_target_prefixes:
+                logger.debug(f"Skipping excluded-prefix exactMatch '{otherid}' in EFOgraph.get_exacts({iri})")
+                continue
             outfile.write(f"{iri}\tskos:exactMatch\t{otherid}\n")
             nwrite += 1
         return nwrite
 
-    def get_xrefs(self, iri, outfile):
+    def get_xrefs(self, iri, outfile, excluded_target_prefixes=()):
         query = f"""
          prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
          prefix EFO: <http://www.ebi.ac.uk/efo/EFO_>
@@ -143,6 +146,9 @@ class EFOgraph:
                 # raise RuntimeError(
                 #     f"Unexpected ORPHANET in EFOgraph.get_xrefs({iri}): '{other_without_brackets}'"
                 # )
+            if other_id.split(":", 1)[0] in excluded_target_prefixes:
+                logger.debug(f"Skipping excluded-prefix xref '{other_id}' in EFOgraph.get_xrefs({iri})")
+                continue
             # EFO occasionally has xrefs that are just strings, not IRIs or CURIEs
             if ":" in other_id and not other_id.startswith(":"):
                 outfile.write(f"{iri}\toboInOwl:hasDbXref\t{other_id}\n")
@@ -162,21 +168,32 @@ def make_ids(roots, owlfile, idfname):
     m.pull_EFO_ids(roots, idfname)
 
 
-def make_concords(owlfile, idfilename, outfilename, provenance_metadata=None):
-    """Given a list of identifiers, find out all of the equivalent identifiers from the owl"""
+def make_concords(owlfile, idfilename, outfilename, provenance_metadata=None, excluded_target_prefixes=()):
+    """Given a list of identifiers, find out all of the equivalent identifiers from the owl.
+
+    :param excluded_target_prefixes: xref/exactMatch targets whose CURIE prefix is in this
+        collection are dropped. The disease/phenotype build passes ``[MP]`` here so EFO's
+        (untrusted) direct xrefs to Mammalian Phenotype terms never enter the concord — see
+        diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES and docs/sources/MP/disjointness.md.
+    """
     m = EFOgraph(owlfile)
     with open(idfilename) as inf, open(outfilename, "w") as concfile:
         for line in inf:
             efo_id = line.split("\t")[0]
-            nexacts = m.get_exacts(efo_id, concfile)
+            nexacts = m.get_exacts(efo_id, concfile, excluded_target_prefixes=excluded_target_prefixes)
             if nexacts == 0:
-                m.get_xrefs(efo_id, concfile)
+                m.get_xrefs(efo_id, concfile, excluded_target_prefixes=excluded_target_prefixes)
 
     if provenance_metadata is not None:
+        excluded_note = (
+            f" Xref targets with these prefixes were excluded: {sorted(excluded_target_prefixes)}."
+            if excluded_target_prefixes
+            else ""
+        )
         write_concord_metadata(
             provenance_metadata,
             name="Experimental Factor Ontology (EFO) cross-references",
-            description=f"Cross-references from the Experimental Factor Ontology (EFO) for the EFO IDs in {idfilename}",
+            description=f"Cross-references from the Experimental Factor Ontology (EFO) for the EFO IDs in {idfilename}.{excluded_note}",
             sources=[
                 {
                     "name": "Experimental Factor Ontology",
