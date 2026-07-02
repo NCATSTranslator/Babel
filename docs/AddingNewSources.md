@@ -329,8 +329,11 @@ inputs with the source excluded), so it expresses pure-new / expanded / merged c
 existing* cliques — a new policy like keeping two prefixes disjoint, a concord-filtering or
 close-match change, or any source whose addition pulls members back out — use
 [`babel-clique-diff`](tools/README.md) instead. It diffs two finished compendium builds and
-reports, per changed before-clique, whether members were `kept`, `regrouped` (split to a
-different leader), `moved` (retyped into another compendium file), or `dropped` (gone):
+reports, per changed before-clique, a `destination_kind` for each group of members: `kept`
+(still under the same leader), `leader_changed` (identical membership, only the preferred
+identifier was reassigned), `regrouped` (members redistributed to a different leader within
+the same compendium file — the split case), `moved` (the CURIE was retyped into a *different*
+compared compendium file), or `dropped` (gone from every compared after compendium):
 
 ```bash
 uv run babel-clique-diff \

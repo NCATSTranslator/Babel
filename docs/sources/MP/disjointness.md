@@ -53,20 +53,21 @@ HP and an MP identifier** (down from 110+ mixed cliques in `PhenotypicFeature.tx
 
 Added (new MP cliques):
 
-- 14,641 pure-new MP-only cliques, plus 15 existing non-HP phenotype cliques that MP still
+- 14,735 pure-new MP-only cliques, plus 15 existing non-HP phenotype cliques that MP still
   expands (e.g. EFO/MONDO partners) — see the regenerated source-impact report.
 
 Split (existing cliques that lost their MP members):
 
-- In `PhenotypicFeature.txt`, 114 MP members were `regrouped` out of 109 HP-bearing cliques
-  into their own cliques (the after-build has 199 more PhenotypicFeature cliques as a result).
-  Example: [`HP:0000048`](http://purl.obolibrary.org/obo/HP_0000048) "Bifid scrotum" lost
+- In `PhenotypicFeature.txt`, 109 MP members were `regrouped` out of 109 HP-bearing cliques
+  into their own cliques (the after-build has 199 more PhenotypicFeature cliques as a result:
+  109 regrouped plus the 90 moved out of `Disease.txt` below). Example:
+  [`HP:0000048`](http://purl.obolibrary.org/obo/HP_0000048) "Bifid scrotum" lost
   [`MP:0009203`](http://purl.obolibrary.org/obo/MP_0009203) "external male genitalia
   hypoplasia", which became its own MP clique.
 
 Moved (MP retyped out of `Disease.txt`):
 
-- 94 MP members that had merged into HP-bearing *disease* cliques moved from `Disease.txt` to
+- 90 MP members that had merged into HP-bearing *disease* cliques moved from `Disease.txt` to
   `PhenotypicFeature.txt` once peeled off. Example:
   [`MONDO:0000811`](http://purl.obolibrary.org/obo/MONDO_0000811) "anomalous left coronary
   artery from the pulmonary artery" kept its 10 human members (incl. an HP) and released

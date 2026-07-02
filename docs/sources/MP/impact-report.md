@@ -1,7 +1,7 @@
 # Source impact report: MP
 
-- Generated: 2026-06-30 21:39:15 UTC
-- Babel commit: 1ec9ff71ca314b7642bf638db2ba6a31d09695da
+- Generated: 2026-07-02 05:51:31 UTC
+- Babel commit: 909e421fa6518e6de219d4e23dd3fceb84811255
 - Source pipelines: disease
 - Source prefixes: MP
 - Comparison mode: synthetic
@@ -69,7 +69,7 @@ change the source could introduce before that filtering is applied.
 
 ### disease
 
-- 14,640 new cliques composed only of MP identifiers (a 3.43% increase over the 426,271 pre-existing
+- 14,735 new cliques composed only of MP identifiers (a 3.46% increase over the 426,271 pre-existing
   cliques)
 - 15 existing cliques contain MP identifiers in the after state (0.00% of the 426,271 pre-existing
   cliques). Of these, 0 cliques gain at least one structurally new identifier from MP, and 15
@@ -79,7 +79,7 @@ change the source could introduce before that filtering is applied.
 - 0 structurally-new MP identifiers are added to existing cliques (0 via expansion, 0 via merges).
   This is distinct from the 0 existing cliques that change, since one clique can gain several
   identifiers.
-- Total cliques in this pipeline go from 426,271 to 440,897
+- Total cliques in this pipeline go from 426,271 to 440,992
 - Full list of new cliques: [`impact-report/new-cliques.csv`](impact-report/new-cliques.csv)
 - Full list of modified cliques (one row per added/preexisting MP identifier):
   [`impact-report/modified-cliques.csv`](impact-report/modified-cliques.csv)
@@ -88,46 +88,25 @@ change the source could introduce before that filtering is applied.
 
 #### Sample pure-new cliques (up to 3)
 
-- [`MP:0005068`](http://purl.obolibrary.org/obo/MP_0005068) "abnormal NK cell morphology"
+- [`MP:0011253`](http://purl.obolibrary.org/obo/MP_0011253) "situs inversus with levocardia"
   **(preferred)**
-  - [`MP:0008043`](http://purl.obolibrary.org/obo/MP_0008043) "abnormal NK cell number"
-  - [`MP:0008044`](http://purl.obolibrary.org/obo/MP_0008044) "increased NK cell number"
-  - [`MP:0008045`](http://purl.obolibrary.org/obo/MP_0008045) "decreased NK cell number"
-  - [`MP:0008046`](http://purl.obolibrary.org/obo/MP_0008046) "absent NK cells"
-  - [`MP:0010766`](http://purl.obolibrary.org/obo/MP_0010766) "abnormal NK cell physiology"
-  - [`CL:0000623`](http://purl.obolibrary.org/obo/CL_0000623)
+  - `Fyler:0102`
     **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
-  - [`FMA:63147`](http://purl.obolibrary.org/obo/FMA_63147)
+  - `Fyler:102`
     **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
-  - [`FMA:83601`](http://purl.obolibrary.org/obo/FMA_83601)
+  - [`MPATH:714`](http://purl.obolibrary.org/obo/MPATH_714)
     **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
-- [`MP:0010184`](http://purl.obolibrary.org/obo/MP_0010184) "abnormal T follicular helper cell
+- [`MP:0010913`](http://purl.obolibrary.org/obo/MP_0010913) "abnormal neuroendocrine cell
   morphology" **(preferred)**
-  - [`MP:0010185`](http://purl.obolibrary.org/obo/MP_0010185) "abnormal T follicular helper cell
-    number"
-  - [`MP:0010186`](http://purl.obolibrary.org/obo/MP_0010186) "increased T follicular helper cell
-    number"
-  - [`MP:0010187`](http://purl.obolibrary.org/obo/MP_0010187) "decreased T follicular helper cell
-    number"
-  - [`MP:0010188`](http://purl.obolibrary.org/obo/MP_0010188) "abnormal T follicular helper cell
-    differentiation"
-  - [`MP:0010189`](http://purl.obolibrary.org/obo/MP_0010189) "abnormal T follicular helper cell
-    physiology"
-  - [`CL:0002038`](http://purl.obolibrary.org/obo/CL_0002038)
+  - [`CL:0000165`](http://purl.obolibrary.org/obo/CL_0000165)
     **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
-- [`MP:0011240`](http://purl.obolibrary.org/obo/MP_0011240) "abnormal fetal derived definitive
-  erythrocyte morphology" **(preferred)**
-  - [`MP:0011241`](http://purl.obolibrary.org/obo/MP_0011241) "abnormal fetal derived definitive
-    erythrocyte cell number"
-  - [`MP:0011242`](http://purl.obolibrary.org/obo/MP_0011242) "increased fetal derived definitive
-    erythrocyte cell number"
-  - [`MP:0011243`](http://purl.obolibrary.org/obo/MP_0011243) "decreased fetal derived definitive
-    erythrocyte cell number"
-  - [`MP:0011244`](http://purl.obolibrary.org/obo/MP_0011244) "absent fetal derived definitive
-    erythrocytes"
-  - [`MP:0011245`](http://purl.obolibrary.org/obo/MP_0011245) "abnormal fetal derived definitive
-    erythrocyte physiology"
-  - [`CL:0002357`](http://purl.obolibrary.org/obo/CL_0002357)
+  - [`FMA:83810`](http://purl.obolibrary.org/obo/FMA_83810)
+    **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
+- [`MP:0009942`](http://purl.obolibrary.org/obo/MP_0009942) "abnormal olfactory bulb granule cell
+  morphology" **(preferred)**
+  - [`CL:0000626`](http://purl.obolibrary.org/obo/CL_0000626)
+    **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
+  - `NLX:nifext_123`
     **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
 
 #### Sample expanded cliques (up to 3)
