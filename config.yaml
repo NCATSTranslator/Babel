@@ -19,6 +19,14 @@ drugbank_version: "5-1-13" # Really 5-1-21, but since downloads are currently no
 # release_name is the date-style name for THIS build; it becomes the "name" in the generated
 # prefix_report.json and names the file when it is archived into releases/prefix_reports/.
 release_name: "2026jul2"
+# previous_release pins which committed baseline the end-of-run comparison diffs against. Bumping it
+# to the newest release archived in releases/prefix_reports/ is the deliberate "new baseline" action;
+# a unit test fails if a newer baseline was committed without updating this pin.
+previous_release: "2025sep1"
+# Thresholds for the "Notable changes" section of reports/tables/prefix_comparison.md (informational
+# only -- large drifts are flagged, never fail the build).
+prefix_comparison_warn_abs: 100000 # flag any prefix whose absolute CURIE change is >= this
+prefix_comparison_warn_pct: 25 # flag any prefix whose |percent change| is >= this
 
 # Overall inputs and outputs.
 input_directory: input_data

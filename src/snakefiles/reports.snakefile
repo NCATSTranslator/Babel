@@ -1,4 +1,5 @@
 from src.reports import report_tables
+from src.reports import prefix_comparison
 from src.snakefiles.util import get_all_compendia, get_all_synonyms, get_all_gzipped
 import os
 
@@ -134,6 +135,33 @@ rule generate_cliques_table:
         report_tables.generate_cliques_table(input.prefix_report, output.cliques_table)
 
 
+# Compare this build's prefix report against the previous release pinned in config.yaml.
+rule generate_prefix_comparison:
+    input:
+        prefix_report=config["output_directory"] + "/reports/duckdb/prefix_report.json",
+    output:
+        overall_csv=config["output_directory"] + "/reports/tables/prefix_comparison_overall.csv",
+        by_clique_csv=config["output_directory"] + "/reports/tables/prefix_comparison_by_clique_prefix.csv",
+        md=config["output_directory"] + "/reports/tables/prefix_comparison.md",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_prefix_comparison.tsv"
+    params:
+        # The baseline is a committed repo file, read-only during the build.
+        baseline_json="releases/prefix_reports/" + config["previous_release"] + ".json",
+        warn_abs=config["prefix_comparison_warn_abs"],
+        warn_pct=config["prefix_comparison_warn_pct"],
+    run:
+        prefix_comparison.generate_prefix_comparison(
+            input.prefix_report,
+            params.baseline_json,
+            output.overall_csv,
+            output.by_clique_csv,
+            output.md,
+            params.warn_abs,
+            params.warn_pct,
+        )
+
+
 # Generate a table of mapping sources.
 rule generate_mapping_sources_table:
     input:
@@ -189,6 +217,7 @@ rule all_reports:
         config["output_directory"] + "/reports/tables/prefix_table.csv",
         config["output_directory"] + "/reports/tables/cliques_table.csv",
         config["output_directory"] + "/reports/tables/mapping_sources_table.csv",
+        config["output_directory"] + "/reports/tables/prefix_comparison.md",
     output:
         x=config["output_directory"] + "/reports/reports_done",
     shell:
