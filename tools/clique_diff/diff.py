@@ -25,14 +25,20 @@ where they ended up in the after build and emits one row per destination.
 Output:
 
 - ``--out-csv`` (required): one row per (changed before-clique, after-destination) group.
-  Columns: ``compendium, before_leader, before_size, destination, destination_kind,
-  after_size, member_count, example_members``. ``destination_kind`` is one of:
+  Columns: ``compendium, before_leader, before_leader_label, before_leader_type,
+  before_size, destination, destination_kind, destination_type, after_size, member_count,
+  example_members``. ``destination_kind`` is one of:
   ``kept`` (members still under the same leader), ``leader_changed`` (the whole clique's
   membership is unchanged but its preferred identifier was reassigned), ``regrouped``
   (members were actually redistributed to a different after-clique in the same
   compendium), ``moved`` (the CURIE was retyped into a different compared compendium), or
   ``dropped`` (the CURIE is absent from every compared after compendium — it left the
-  output entirely). Deterministically sorted.
+  output entirely). Deterministically sorted. ``before_leader_label``/``before_leader_type``
+  are the before-build label and Biolink type of the clique leader; ``destination_type`` is
+  the Biolink type the grouped members ended up as in the after build (the after-clique's
+  type for real destinations, the distinct types of the members for ``moved``, empty for
+  ``dropped``); ``example_members`` lists up to five members as ``CURIE "label"`` using
+  before-build labels.
 - ``--out-json`` (optional): a summary with per-compendium counts, including
   ``dropped_member_count`` — the headline regression signal.
 """
@@ -41,21 +47,45 @@ import argparse
 import csv
 import heapq
 import json
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
-def load_cliques(path, need_curie_to_leader=True):
-    """Load one compendium JSONL file into a list of member-CURIE sets and a CURIE→leader map.
+@dataclass
+class LoadedCompendium:
+    """One compendium JSONL file parsed into the lookups the diff needs.
 
-    The leader is ``identifiers[0].i`` (the preferred identifier). Returns
-    ``(cliques, curie_to_leader)`` where ``cliques`` maps leader → frozenset(member CURIEs).
-    Raises ``ValueError`` if a line has no identifiers. Pass ``need_curie_to_leader=False`` to
-    skip populating ``curie_to_leader`` when only clique membership is needed (e.g. the "before"
-    side of a build-vs-build diff, which never looks up an after-leader) — for a large compendium
-    that dict has one entry per member CURIE, so skipping it roughly halves transient allocation.
+    - ``cliques``: leader → frozenset(member CURIEs).
+    - ``curie_to_leader``: member CURIE → its clique leader (empty when
+      ``need_curie_to_leader=False`` was passed to :func:`load_cliques`).
+    - ``labels``: member CURIE → its label (``""`` when the source had none). Used to
+      annotate the leader and example members in the CSV.
+    - ``clique_type``: leader → the clique's Biolink type (e.g. ``biolink:Disease``).
     """
-    cliques = {}
-    curie_to_leader = {}
+
+    cliques: dict = field(default_factory=dict)
+    curie_to_leader: dict = field(default_factory=dict)
+    labels: dict = field(default_factory=dict)
+    clique_type: dict = field(default_factory=dict)
+
+    def __iter__(self):
+        # Preserve the historical 2-tuple unpacking ``cliques, curie_to_leader = load_cliques(...)``.
+        return iter((self.cliques, self.curie_to_leader))
+
+
+def load_cliques(path, need_curie_to_leader=True):
+    """Load one compendium JSONL file into a :class:`LoadedCompendium`.
+
+    The leader is ``identifiers[0].i`` (the preferred identifier). Each identifier also
+    carries a label (``l``) and each clique a Biolink ``type``, both captured for CSV
+    annotation. Raises ``ValueError`` if a line has no identifiers. Pass
+    ``need_curie_to_leader=False`` to skip populating ``curie_to_leader`` when only clique
+    membership is needed (e.g. the "before" side of a build-vs-build diff, which never looks
+    up an after-leader) — for a large compendium that dict has one entry per member CURIE, so
+    skipping it roughly halves transient allocation. The returned object still unpacks as the
+    historical ``(cliques, curie_to_leader)`` 2-tuple.
+    """
+    loaded = LoadedCompendium()
     with open(path) as inf:
         for lineno, line in enumerate(inf, 1):
             line = line.strip()
@@ -67,19 +97,36 @@ def load_cliques(path, need_curie_to_leader=True):
                 raise ValueError(f"{path}:{lineno}: clique has no identifiers")
             members = frozenset(i["i"] for i in identifiers)
             leader = identifiers[0]["i"]
-            cliques[leader] = members
+            loaded.cliques[leader] = members
+            loaded.clique_type[leader] = clique.get("type") or ""
+            for identifier in identifiers:
+                loaded.labels[identifier["i"]] = identifier.get("l") or ""
             if need_curie_to_leader:
                 for curie in members:
-                    curie_to_leader[curie] = leader
-    return cliques, curie_to_leader
+                    loaded.curie_to_leader[curie] = leader
+    return loaded
 
 
 DROPPED = "(dropped)"
 MOVED = "(moved-to-other-compendium)"
 
 
-def diff_compendium(before_cliques, after_cliques, after_leader_of, all_after_curies):
+def _format_members(curies, labels):
+    """Render up to five members (smallest CURIEs first) as ``CURIE "label"``.
+
+    Labels come from the before build (``labels`` maps CURIE → label). A member with no
+    known label renders as ``CURIE ""``. Deterministic so the CSV is byte-stable.
+    """
+    return "; ".join(f'{c} "{labels.get(c, "")}"' for c in heapq.nsmallest(5, curies))
+
+
+def diff_compendium(before, after, all_after_curies, all_after_types):
     """Diff one compendium's cliques between two builds.
+
+    ``before`` and ``after`` are :class:`LoadedCompendium` objects. ``all_after_curies`` is
+    the set of every CURIE present anywhere in the after build, and ``all_after_types`` maps
+    each such CURIE to the Biolink type of the after-clique it landed in (used to type
+    ``moved`` members, which by definition live in a different compendium file).
 
     Each member of a before-clique lands in one of three kinds of destination in the
     after build:
@@ -97,12 +144,18 @@ def diff_compendium(before_cliques, after_cliques, after_leader_of, all_after_cu
     Yields one record per (before-clique, destination) group, but only for before-cliques
     whose clique-vs-clique state actually changed — a before-clique that keeps the exact same
     leader and membership is skipped entirely (nothing to report). Each record has keys
-    ``before_leader``, ``before_size``, ``destination``, ``destination_kind``, ``after_size``,
+    ``before_leader``, ``before_leader_label``, ``before_leader_type``, ``before_size``,
+    ``destination``, ``destination_kind``, ``destination_type``, ``after_size``,
     ``member_count``, ``example_members``. ``example_members`` is left empty for
     ``leader_changed`` rows, since ``before_leader``/``destination`` already say everything
     that changed (the old and new leader) and re-listing the unchanged membership adds no
-    information.
+    information. ``destination_type`` is the after-clique's Biolink type for real
+    destinations, the ``|``-joined distinct types of the members for ``moved``, and empty for
+    ``dropped``.
     """
+    before_cliques = before.cliques
+    after_cliques = after.cliques
+    after_leader_of = after.curie_to_leader
     records = []
     for before_leader, members in before_cliques.items():
         # Partition members by their after-build destination.
@@ -125,24 +178,31 @@ def diff_compendium(before_cliques, after_cliques, after_leader_of, all_after_cu
             continue  # Same leader, same membership: nothing changed.
         for dest, group_members in groups.items():
             if dest == DROPPED:
-                destination_kind, after_size = "dropped", 0
+                destination_kind, after_size, destination_type = "dropped", 0, ""
             elif dest == MOVED:
                 destination_kind, after_size = "moved", 0
+                destination_type = "|".join(sorted({all_after_types.get(c, "") for c in group_members} - {""}))
             elif whole_clique_unchanged:
-                destination_kind, after_size = "leader_changed", len(after_cliques[dest])
+                destination_kind = "leader_changed"
+                after_size = len(after_cliques[dest])
+                destination_type = after.clique_type.get(dest, "")
             else:
                 destination_kind = "kept" if dest == before_leader else "regrouped"
                 after_size = len(after_cliques[dest])
+                destination_type = after.clique_type.get(dest, "")
             records.append(
                 {
                     "before_leader": before_leader,
+                    "before_leader_label": before.labels.get(before_leader, ""),
+                    "before_leader_type": before.clique_type.get(before_leader, ""),
                     "before_size": len(members),
                     "destination": dest,
                     "destination_kind": destination_kind,
+                    "destination_type": destination_type,
                     "after_size": after_size,
                     "member_count": len(group_members),
                     "example_members": (
-                        "" if destination_kind == "leader_changed" else ";".join(heapq.nsmallest(5, group_members))
+                        "" if destination_kind == "leader_changed" else _format_members(group_members, before.labels)
                     ),
                 }
             )
@@ -157,29 +217,36 @@ def diff_builds(before_dir, after_dir, filenames):
     judged against the union of all compared after compendia, so a CURIE retyped into one
     of the other ``filenames`` counts as ``moved``, not ``dropped``.
     """
-    # First pass: load everything and compute the global set of CURIEs present after.
+    # First pass: load everything and compute the global set of CURIEs present after,
+    # plus each after-CURIE's Biolink type (so a moved member can be typed even though it
+    # now lives in a different compendium file).
     before_by_file, after_by_file = {}, {}
     all_after_curies = set()
+    all_after_types = {}
     for fname in filenames:
         before_path = Path(before_dir) / fname
         after_path = Path(after_dir) / fname
         if not before_path.exists() or not after_path.exists():
             raise FileNotFoundError(f"Missing compendium {fname} in before ({before_path}) or after ({after_path})")
         before_by_file[fname] = load_cliques(before_path, need_curie_to_leader=False)
-        after_by_file[fname] = load_cliques(after_path)
-        all_after_curies.update(after_by_file[fname][1])
+        after = load_cliques(after_path)
+        after_by_file[fname] = after
+        all_after_curies.update(after.curie_to_leader)
+        for curie, leader in after.curie_to_leader.items():
+            all_after_types[curie] = after.clique_type.get(leader, "")
 
     rows = []
     summary = {}
     for fname in filenames:
-        before_cliques, _ = before_by_file[fname]
-        after_cliques, after_leader_of = after_by_file[fname]
-        records = diff_compendium(before_cliques, after_cliques, after_leader_of, all_after_curies)
+        before = before_by_file[fname]
+        after = after_by_file[fname]
+        after_cliques = after.cliques
+        records = diff_compendium(before, after, all_after_curies, all_after_types)
         for r in records:
             r["compendium"] = fname
             rows.append(r)
         summary[fname] = {
-            "before_clique_count": len(before_cliques),
+            "before_clique_count": len(before.cliques),
             "after_clique_count": len(after_cliques),
             "changed_before_cliques": len({r["before_leader"] for r in records}),
             "cliques_with_dropped_members": len(
@@ -196,9 +263,12 @@ def diff_builds(before_dir, after_dir, filenames):
 CSV_COLUMNS = [
     "compendium",
     "before_leader",
+    "before_leader_label",
+    "before_leader_type",
     "before_size",
     "destination",
     "destination_kind",
+    "destination_type",
     "after_size",
     "member_count",
     "example_members",

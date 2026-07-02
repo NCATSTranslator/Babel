@@ -89,3 +89,11 @@ Everything else in a compendium record — `type` (Biolink type), `identifiers[*
   is invisible to this tool.
 - Label, description, and taxon changes on an otherwise-unchanged clique are invisible;
   such a clique is reported as fully unchanged (no row at all).
+
+Labels and Biolink types are not part of change detection, but they *are* emitted as
+read-only annotation columns to make the CSV legible without a separate lookup:
+`before_leader_label` and `before_leader_type` (the before-build label and type of the
+clique leader), `destination_type` (the Biolink type the grouped members ended up as in the
+after build — the after-clique's type for real destinations, the `|`-joined distinct types
+of the members for `moved`, empty for `dropped`), and `example_members`, which lists up to
+five members as `CURIE "label"` using before-build labels.
