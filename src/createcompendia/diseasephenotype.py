@@ -25,7 +25,7 @@ from src.prefixes import (
     SNOMEDCT,
     UMLS,
 )
-from src.ubergraph import UberGraph, build_sets
+from src.ubergraph import build_sets
 from src.util import get_logger
 
 logger = get_logger(__name__)
@@ -103,19 +103,12 @@ def write_mp_ids(outfile):
     """Collect MP (Mammalian Phenotype Ontology) identifiers from UberGraph.
 
     MP is a standard rdfs:subClassOf hierarchy rooted at MP:0000001, so the default
-    subClassOf walk reaches every term. Every MP term is typed as PhenotypicFeature.
+    subClassOf walk (write_obo_ids, same as write_hp_ids) reaches every term. Every MP
+    term is typed as PhenotypicFeature.
     """
     root = DISEASE_OBO_SOURCES[MP]["root"]
     biolink_type = DISEASE_OBO_SOURCES[MP]["type"]
-    uber = UberGraph()
-    curies = {root}
-    for term in uber.get_subclasses_of(root):
-        curie = term["descendent"]
-        if curie.startswith(f"{MP}:"):
-            curies.add(curie)
-    with open(outfile, "w") as idfile:
-        for curie in sorted(curies):
-            idfile.write(f"{curie}\t{biolink_type}\n")
+    write_obo_ids([(root, biolink_type)], outfile)
 
 
 def write_phenotype_taxa(idfile, taxon, outfile):
@@ -494,11 +487,11 @@ def split_mutually_exclusive_cliques(dicts, exclusive_prefix_groups=MUTUALLY_EXC
     unique_cliques = list({id(clique): clique for clique in dicts.values()}.values())
     for clique in unique_cliques:
         for group in exclusive_prefix_groups:
-            members_by_prefix = {prefix: [] for prefix in group}
+            members_by_prefix = {prefix: set() for prefix in group}
             for curie in clique:
                 prefix = curie.split(":")[0]
                 if prefix in members_by_prefix:
-                    members_by_prefix[prefix].append(curie)
+                    members_by_prefix[prefix].add(curie)
             occupied = [prefix for prefix in group if members_by_prefix[prefix]]
             if len(occupied) < 2:
                 continue  # at most one of the group's prefixes is present; nothing to split
@@ -506,8 +499,8 @@ def split_mutually_exclusive_cliques(dicts, exclusive_prefix_groups=MUTUALLY_EXC
             for peel_prefix in occupied:
                 if peel_prefix == group[0]:
                     continue
-                peel_ids = set(members_by_prefix[peel_prefix])
-                rest_ids = set(clique) - peel_ids
+                peel_ids = members_by_prefix[peel_prefix]
+                rest_ids = clique - peel_ids
                 for curie in peel_ids:
                     dicts[curie] = peel_ids
                 for curie in rest_ids:
