@@ -107,10 +107,13 @@ def diff_compendium(before_cliques, after_cliques, after_leader_of, all_after_cu
             else:
                 dest = DROPPED
             groups.setdefault(dest, []).append(c)
-        # Unchanged: every member kept under the same single after-clique with identical
-        # membership.
-        if set(groups) == {before_leader} and after_cliques.get(before_leader) == members:
-            continue
+        # Unchanged: every member landed in the same single after-clique, and that
+        # after-clique's membership is identical to the before-clique's — even if the
+        # leader (preferred identifier) itself changed.
+        if len(groups) == 1:
+            (dest,) = groups
+            if dest not in (DROPPED, MOVED) and after_cliques.get(dest) == members:
+                continue
         for dest, group_members in groups.items():
             if dest == DROPPED:
                 destination_kind, after_size = "dropped", 0

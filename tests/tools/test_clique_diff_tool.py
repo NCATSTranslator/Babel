@@ -59,6 +59,19 @@ def test_identical_cliques_produce_no_rows(tmp_path):
 
 
 @pytest.mark.unit
+def test_identical_membership_with_new_leader_produces_no_rows(tmp_path):
+    """A clique whose membership is unchanged but whose leader (preferred identifier)
+    changed should still be omitted from the diff, per the "two cliques are the same
+    when their member-CURIE sets are equal" rule in the module docstring.
+    """
+    before, _ = load_cliques(_write_jsonl(tmp_path / "b.txt", [_clique("MONDO:1", "MEDDRA:9")]))
+    # Same two members, but MEDDRA:9 is now first, so it's the new leader.
+    after, after_leader = load_cliques(_write_jsonl(tmp_path / "a.txt", [_clique("MEDDRA:9", "MONDO:1")]))
+    records = diff_compendium(before, after, after_leader, set(after_leader))
+    assert records == []
+
+
+@pytest.mark.unit
 def test_dropped_member_is_flagged(tmp_path):
     """When a member present before is absent from every after compendium, it is 'dropped'.
 
