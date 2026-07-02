@@ -402,7 +402,7 @@ def compute_cliques_for_impact_report(
     for ifile in identifiers:
         if path.basename(ifile) in excluded:
             continue
-        print(ifile)
+        logger.info("Reading identifiers from %s", ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
         glom(dicts, new_identifiers, unique_prefixes=DISEASE_UNIQUE_PREFIXES)
         types.update(new_types)
@@ -433,14 +433,14 @@ def compute_cliques_for_impact_report(
     for infile in iterated_concords:
         if path.basename(infile) in excluded:
             continue
-        print(infile)
+        logger.info("Reading concords from %s", infile)
         pairs = []
         pref = path.basename(infile)
         if pref in badxrefs:
-            print("reading bad xrefs", pref)
+            logger.info("Reading bad xrefs for %s", pref)
             bad_pairs = read_badxrefs(badxrefs[pref])
         else:
-            print("no bad pairs", pref)
+            logger.info("No bad xrefs configured for %s", pref)
             bad_pairs = set()
         with open(infile) as inf:
             for line in inf:
@@ -455,10 +455,6 @@ def compute_cliques_for_impact_report(
         else:
             newpairs = pairs
         glom(dicts, newpairs, unique_prefixes=DISEASE_UNIQUE_PREFIXES, close={MONDO: close_mondos})
-        try:
-            print(dicts["OMIM:607644"])
-        except Exception:
-            print("notyet")
 
     # Enforce HP/MP (and any other configured) disjointness as the final step, so BOTH the
     # real build (build_compendium) and the source-impact report (which diffs these dicts)
@@ -467,7 +463,7 @@ def compute_cliques_for_impact_report(
     return dicts, types
 
 
-def split_mutually_exclusive_cliques(dicts, exclusive_prefix_groups=MUTUALLY_EXCLUSIVE_PREFIX_GROUPS):
+def split_mutually_exclusive_cliques(dicts, exclusive_prefix_groups=None):
     """Split glommed cliques so no clique holds identifiers from two prefixes in one group.
 
     ``dicts`` is glom's dict-of-sets: every clique member maps to the *same* set object
@@ -481,7 +477,14 @@ def split_mutually_exclusive_cliques(dicts, exclusive_prefix_groups=MUTUALLY_EXC
     and pulls MP out. No empty clique is ever produced (the kept side always retains the
     first prefix's members plus any out-of-group members; each peeled side is non-empty by
     construction).
+
+    :param exclusive_prefix_groups: defaults to ``MUTUALLY_EXCLUSIVE_PREFIX_GROUPS``. Not
+        given a mutable default directly, since a shared mutable default is re-used across
+        every call and any accidental in-place edit (e.g. ``exclusive_prefix_groups.append``
+        by a caller) would leak into all other callers for the lifetime of the process.
     """
+    if exclusive_prefix_groups is None:
+        exclusive_prefix_groups = MUTUALLY_EXCLUSIVE_PREFIX_GROUPS
     # glom points every member of a clique at one shared set object, so dicts.values() has
     # duplicate references; dedupe by identity before mutating.
     unique_cliques = list({id(clique): clique for clique in dicts.values()}.values())
