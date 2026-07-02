@@ -35,3 +35,57 @@ separate subcommands, but they live in one package because both parse the same r
 `pyoxigraph.Store`, samples RSS, and extrapolates the full-load peak, so you can size a rule's
 `mem=` resource or a test's `min_memory_gb` guard from a machine far smaller than the eventual
 requirement. See [../../tools/memory/README.md](../../tools/memory/README.md).
+
+## `tools/clique_diff` — diff the cliques of two builds
+
+`tools/clique_diff` compares the finished JSONL compendia of two Babel builds and reports
+which cliques split, merged, or lost members, and — most usefully — which CURIEs were
+*dropped* from the output entirely.
+
+```bash
+uv run babel-clique-diff \
+    --before <baseline-compendia-dir> --after <comparison-compendia-dir> \
+    --files Disease.txt PhenotypicFeature.txt \
+    --out-csv diff.csv --out-json summary.json
+```
+
+It is distinct from `source-impact-report`: that answers "what does adding *source X* do?"
+by re-glomming intermediate ids/concords with vs. without one source; this answers "how did
+the cliques change between *build A* and *build B*?" given the same inputs but different code,
+config, or upstream data. Because it works on finished compendia rather than glom state, it
+can compare a local build against a published `stars.renci.org` build without re-running
+glom, which makes it a fit for validating any glom-logic change (close-match handling,
+`unique_prefixes`, overuse filtering) or as a release regression check. Commit a worked
+example's output alongside the change that motivated it, under
+`docs/sources/<SOURCE>/<change>/` or `docs/pipelines/<pipeline>/<change>/` (always the small
+`clique-diff.summary.json`, plus the per-row `clique-diff.csv` when reasonably sized).
+
+### What is (and isn't) diffed
+
+Per compendium line, the tool reads exactly two fields: the clique's **leader** (the
+preferred identifier, `identifiers[0].i`) and its **membership** (the full set of
+`identifiers[*].i` CURIEs). A clique is unchanged only if *both* are identical between
+builds; if either changed, every before-clique member is classified into one row per
+`destination_kind`:
+
+- `kept` — same leader, and the member is still under it.
+- `leader_changed` — the whole clique's membership is byte-identical, but its preferred
+  identifier was reassigned to a different member (e.g. a Biolink `id_prefixes` priority
+  change, or `NodeFactory` tie-breaking, picked a new leader).
+- `regrouped` — the member moved to a different clique within the same compared compendium
+  file (a real split/merge).
+- `moved` — the CURIE still exists in the after build, but under a different compendium
+  file (e.g. `Disease.txt` → `PhenotypicFeature.txt`) — it was retyped to a different
+  Biolink type.
+- `dropped` — the CURIE is absent from every compared after compendium.
+
+Everything else in a compendium record — `type` (Biolink type), `identifiers[*].l`
+(labels), `identifiers[*].d`/`t` (descriptions/taxa), `preferred_name`, `ic`, and
+`clique_identifier_count` — is **not compared**. In particular:
+
+- A clique's Biolink `type` is not diffed directly. A type change is only visible
+  indirectly, as `moved`, and only when the before- and after-type's compendium files are
+  both passed to `--files` — a type change between two files neither of which was passed
+  is invisible to this tool.
+- Label, description, and taxon changes on an otherwise-unchanged clique are invisible;
+  such a clique is reported as fully unchanged (no row at all).

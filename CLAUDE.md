@@ -425,11 +425,12 @@ docstrings, and when to add a pipeline test) that the individual conventions bel
 
 - **Test documentation** — every test function should have a docstring that explains (a) what
   scenario is being tested and (b) what the expected outcome is. "Should" phrasing makes both
-  explicit (e.g. "``excluded_sources`` should skip ids and concords — FOO:2 must not appear in
-  the clique dict"). Group related tests with a `# --- Label ---` section comment in the code
-  (e.g. `# --- Basic merging ---`, `# --- Edge cases ---`). The module docstring should describe
-  what the file covers overall; do **not** duplicate the group list there — the section headers
-  in the code are the authoritative, always-current index.
+  explicit (e.g. "``excluded_sources`` should skip ids and concords — FOO:2 must not appear in the
+  clique dict"). Group related tests with a `# LABEL` section comment in the code (e.g.
+  `# BASIC MERGING`, `# EDGE CASES`), with additional `# ----` lines before and after the section
+  comments if that will help make them more distinct. The module docstring should describe what the
+  file covers overall; do **not** duplicate the group list there — the section headers in the code
+  are the authoritative, always-current index.
 
 - **Test assertion helpers** — `tests/conftest.py` exports `assert_labels_file_valid`,
   `assert_synonyms_file_valid`, `assert_ids_file_valid`, `assert_concordance_file_valid`,
