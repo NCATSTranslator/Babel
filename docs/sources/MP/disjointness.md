@@ -53,8 +53,10 @@ HP and an MP identifier** (down from 110+ mixed cliques in `PhenotypicFeature.tx
 
 Added (new MP cliques):
 
-- 14,735 pure-new MP-only cliques, plus 15 existing non-HP phenotype cliques that MP still
-  expands (e.g. EFO/MONDO partners) — see the regenerated source-impact report.
+- 14,750 pure-new MP-only cliques and **no** expanded existing cliques — see the regenerated
+  source-impact report. (Before EFO→MP xrefs were filtered at the EFO source, 15 of these were
+  instead EFO/MONDO cliques that MP expanded; dropping those untrusted xrefs turns them into
+  pure-new MP-only cliques. See "Keeping MP disjoint from EFO" below.)
 
 Split (existing cliques that lost their MP members):
 
@@ -78,6 +80,40 @@ Deleted (dropped):
 
 - 1 member — the stray untypeable [`MP:0005555`](http://purl.obolibrary.org/obo/MP_0005555)
   described above.
+
+## Keeping MP disjoint from EFO (filtered at the EFO source)
+
+MP is also kept out of EFO cliques, but by a different mechanism. The source-impact report
+surfaced ~15 cliques where an EFO phenotype term and an MP term co-occurred, every one of them
+created by a **direct `oboInOwl:hasDbXref` row asserted by EFO** in
+`intermediate/disease/concords/EFO` (see the impact report's `new-xrefs.tsv`).
+
+EFO is a species-agnostic / human-leaning ontology, so an EFO term xref'd to an MP term is
+ambiguous: it may denote a human-specific phenotype (which, like HP, must stay disjoint from MP)
+or a genuinely mammalian one. It is *not impossible* for EFO to carry an MP-specific identifier,
+but there is no reliable signal to distinguish those cases. Since no individual EFO→MP xref can
+be trusted, Babel drops them all **at the EFO source**: `efo.make_concords()` is called with
+`excluded_target_prefixes=[MP]` (the constant `diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES`), so
+`concords/EFO` never emits an EFO↔MP link (neither `skos:exactMatch` nor `oboInOwl:hasDbXref`).
+
+### Why source-filtering rather than another post-glom split
+
+The HP/MP problem needed a post-glom split because HP and MP merge *transitively* through shared
+MESH/SNOMED/MONDO identifiers, so dropping a concord alone could not guarantee disjointness. The
+EFO/MP situation is narrower: MP's own UberGraph xrefs point at anatomy/GO/cell/Fyler targets
+outside the disease identifier space, so the direct EFO→MP xref is effectively the only bridge.
+Removing it at the source is therefore sufficient in practice, and it avoids overstating the
+policy — a broad `[EFO, MP]` split would assert "EFO and MP are never equivalent," which is
+stronger than we can justify given EFO may hold legitimately-mammalian terms we cannot identify.
+Dropping the untrusted direct evidence is the more honest expression of "we don't trust these
+xrefs."
+
+This removes *direct* evidence only. The regenerated source-impact report is the check that it is
+enough: after filtering, no EFO-led `expanded` rows remain in `modified-cliques.csv` and no EFO→MP
+rows remain in `new-xrefs.tsv`. If a future EFO/MP release introduced a transitive bridge (a shared
+MESH/UMLS/SNOMED identifier), it would reappear there, at which point adding `[EFO, MP]` to
+`MUTUALLY_EXCLUSIVE_PREFIX_GROUPS` is the backstop. (HP→MP direct xrefs are unaffected by this
+filter and continue to be handled by the `[HP, MP]` split above.)
 
 ## Related work
 

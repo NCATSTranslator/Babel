@@ -11,6 +11,9 @@ In this integration, Babel:
 - keeps MP **disjoint from HP**: no clique may contain both an HP and an MP identifier (MP may
   still merge with non-HP disease ids such as MONDO/MESH). See [`disjointness.md`](disjointness.md)
   for the post-glom split that enforces this and the before/after clique impact;
+- keeps MP **disjoint from EFO** as well, but by filtering EFO's untrusted direct EFO→MP xrefs out
+  of `concords/EFO` at the source (`EFO_EXCLUDED_XREF_PREFIXES = [MP]`) rather than a post-glom
+  split, since EFO term species-scope is ambiguous. See [`disjointness.md`](disjointness.md);
 - tags every ingested MP identifier with the taxon
   [`NCBITaxon:40674`](http://purl.obolibrary.org/obo/NCBITaxon_40674) "Mammalia" via a
   `babel_downloads/MP/taxa` file, so each MP identifier carries a `t` field in the compendia. The

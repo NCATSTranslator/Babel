@@ -25,6 +25,9 @@ and is written to:
   trusted as-is. If review of the impact report shows xref namespaces that should be aliased
   (e.g. MSH → MESH), they can be added in a follow-up the same way `build_disease_obo_relationships`
   does for HPO.
+- MP terms never merge with EFO terms: the reverse EFO→MP direction is filtered out of
+  `concords/EFO` at the EFO source (EFO's direct xrefs to MP are untrusted). This is separate from
+  the MP concord described here — see [`disjointness.md`](disjointness.md).
 
 ## SSSOM history and known failure modes
 
