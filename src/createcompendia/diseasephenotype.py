@@ -268,6 +268,31 @@ def load_close_mondos(mondoclose):
     return close_mondos
 
 
+def load_concord_pairs(infile, bad_pairs=frozenset()):
+    """Read a 3-column concord file into a list of (subject, object) CURIE pairs.
+
+    A concord line is ``subject<TAB>predicate<TAB>object`` (the same 3-column format
+    :func:`load_close_mondos` consumes). We keep columns 1 and 3 (subject, object) and skip
+    column 2 (the predicate) -- the equivalence itself is what glom needs, not the relation type.
+    Keying on subject + object is the one convention every disease concord reader must share; the
+    close-match reader once disagreed (see :func:`load_close_mondos`), which is what silently
+    disabled glom's ``close=`` guard for years.
+
+    Pairs present in *bad_pairs* are dropped. Any row that is not exactly 3 columns raises
+    ``RuntimeError``.
+    """
+    pairs = []
+    with open(infile) as inf:
+        for line in inf:
+            stuff = line.strip().split("\t")
+            if len(stuff) != 3:
+                raise RuntimeError(f'Line "{line.strip()}" is not a valid concord: {stuff}')
+            x = (stuff[0].strip(), stuff[2].strip())
+            if x not in bad_pairs:
+                pairs.append(x)
+    return pairs
+
+
 def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badxrefs, icrdf_filename):
     """:concordances: a list of files from which to read relationships
     :identifiers: a list of files from which to read identifiers and optional categories"""
@@ -283,7 +308,6 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
     # Load and glom concords
     for infile in concordances:
         print(infile)
-        pairs = []
         pref = path.basename(infile)
         if pref in badxrefs:
             print("reading bad xrefs", pref)
@@ -291,14 +315,7 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
         else:
             print("no bad pairs", pref)
             bad_pairs = set()
-        with open(infile) as inf:
-            for line in inf:
-                stuff = line.strip().split("\t")
-                if len(stuff) != 3:
-                    raise RuntimeError('Line "', line.strip(), '" is not a valid concord: ', stuff)
-                x = tuple([stuff[0].strip(), stuff[2].strip()])
-                if x not in bad_pairs:
-                    pairs.append(x)
+        pairs = load_concord_pairs(infile, bad_pairs)
         if pref in ["MONDO", "HP", "EFO"]:
             newpairs = remove_overused_xrefs(pairs)
         else:
