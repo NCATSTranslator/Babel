@@ -500,10 +500,19 @@ def split_mutually_exclusive_cliques(dicts, exclusive_prefix_groups=None):
     """
     if exclusive_prefix_groups is None:
         exclusive_prefix_groups = MUTUALLY_EXCLUSIVE_PREFIX_GROUPS
-    # glom points every member of a clique at one shared set object, so dicts.values() has
-    # duplicate references; dedupe by identity before mutating.
-    unique_cliques = list({id(clique): clique for clique in dicts.values()}.values())
-    for clique in unique_cliques:
+
+    # dicts spans the whole disease/phenotype build (MONDO/DOID/Orphanet/HP/MP/MESH/NCIT/
+    # UMLS/OMIM/EFO), but only cliques touching a group prefix (HP/MP) can possibly need
+    # splitting. Find just those cliques with a single pass over dicts' keys, rather than
+    # dedupe-by-identity over every clique in the whole dict and then re-scan every member of
+    # every clique (most of which are pure MONDO/UMLS/MESH/etc. and can never match).
+    group_prefixes = {prefix for group in exclusive_prefix_groups for prefix in group}
+    candidate_cliques = {}
+    for curie, clique in dicts.items():
+        if curie.split(":", 1)[0] in group_prefixes:
+            candidate_cliques[id(clique)] = clique
+
+    for clique in candidate_cliques.values():
         for group in exclusive_prefix_groups:
             members_by_prefix = {prefix: set() for prefix in group}
             for curie in clique:
@@ -514,10 +523,10 @@ def split_mutually_exclusive_cliques(dicts, exclusive_prefix_groups=None):
             if len(occupied) < 2:
                 continue  # at most one of the group's prefixes is present; nothing to split
             # Keep group[0] with the remainder; peel every other occupied prefix out.
-            for peel_prefix in occupied:
-                if peel_prefix == group[0]:
-                    continue
+            for peel_prefix in group[1:]:
                 peel_ids = members_by_prefix[peel_prefix]
+                if not peel_ids:
+                    continue
                 rest_ids = clique - peel_ids
                 for curie in peel_ids:
                     dicts[curie] = peel_ids
