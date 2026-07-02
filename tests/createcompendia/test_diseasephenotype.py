@@ -158,3 +158,76 @@ def test_predicate_keyed_close_dict_is_a_noop(tmp_path):
     assert f"{MEDDRA}:10051962" in conc_set[f"{MONDO}:0000739"], (
         "predicate-keyed close dict leaves the guard a no-op, so the merge goes through"
     )
+
+
+# ----------------------------------------------------------------------------------------------
+# CONCORD-READER COLUMN SYMMETRY
+#
+# Every disease concord file is `subject<TAB>predicate<TAB>object`. Both readers in
+# diseasephenotype must key on subject (column 1) + object (column 3) and ignore the predicate
+# (column 2). The original guard bug was exactly an asymmetry here -- load_close_mondos keyed on
+# the predicate while the regular-concord loop keyed on the object -- so these tests pin the shared
+# convention across ALL disease concord readers and would fail loudly if a new reader (or a
+# regression of an old one) started reading the predicate column.
+# ----------------------------------------------------------------------------------------------
+
+# The predicate column value; it must never surface in any reader's output.
+PREDICATE = "oio:closeMatch"
+
+
+def _surfaced_curies_from_concord_pairs(path):
+    """All CURIEs load_concord_pairs surfaces from *path*, flattened into a set."""
+    return {curie for pair in diseasephenotype.load_concord_pairs(str(path)) for curie in pair}
+
+
+def _surfaced_curies_from_close_mondos(path):
+    """All CURIEs load_close_mondos surfaces from *path* (subjects + objects), flattened into a set."""
+    close = diseasephenotype.load_close_mondos(str(path))
+    return set(close.keys()) | {obj for objects in close.values() for obj in objects}
+
+
+# Each entry: (reader-under-test name, function that returns the set of CURIEs it surfaced).
+CONCORD_READERS = [
+    ("load_concord_pairs", _surfaced_curies_from_concord_pairs),
+    ("load_close_mondos", _surfaced_curies_from_close_mondos),
+]
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("reader_name, surfaced_curies", CONCORD_READERS, ids=[r[0] for r in CONCORD_READERS])
+def test_concord_readers_key_on_subject_and_object_not_predicate(tmp_path, reader_name, surfaced_curies):
+    """Every disease concord reader must surface the subject (column 1) and object (column 3) and
+    must never surface the predicate (column 2). This is the shared column convention whose
+    violation silently disabled the close-match guard for years."""
+    concord = tmp_path / "concord"
+    concord.write_text(f"{MONDO}:0000739\t{PREDICATE}\t{MEDDRA}:10051962\n")
+
+    surfaced = surfaced_curies(concord)
+    assert f"{MONDO}:0000739" in surfaced, f"{reader_name} must surface the subject (column 1)"
+    assert f"{MEDDRA}:10051962" in surfaced, f"{reader_name} must surface the object (column 3)"
+    assert PREDICATE not in surfaced, f"{reader_name} must not surface the predicate (column 2)"
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("reader_name, surfaced_curies", CONCORD_READERS, ids=[r[0] for r in CONCORD_READERS])
+def test_concord_readers_reject_malformed_rows(tmp_path, reader_name, surfaced_curies):
+    """Every disease concord reader must raise RuntimeError on a row that is not exactly 3 columns,
+    so a format change (e.g. an added/removed column) fails loudly instead of silently shifting
+    which column is read as the object."""
+    concord = tmp_path / "concord"
+    concord.write_text(f"{MONDO}:0000739\t{MEDDRA}:10051962\n")  # only 2 columns
+    with pytest.raises(RuntimeError, match="not a valid"):
+        surfaced_curies(concord)
+
+
+@pytest.mark.unit
+def test_load_concord_pairs_drops_bad_pairs(tmp_path):
+    """load_concord_pairs should drop any (subject, object) pair listed in bad_pairs and keep the
+    rest, so curated bad xrefs never reach glom."""
+    concord = tmp_path / "concord"
+    concord.write_text(
+        f"{MONDO}:0000739\t{PREDICATE}\t{MEDDRA}:10051962\n{MONDO}:0005148\t{PREDICATE}\t{MEDDRA}:10012601\n"
+    )
+    bad_pairs = {(f"{MONDO}:0000739", f"{MEDDRA}:10051962")}
+    pairs = diseasephenotype.load_concord_pairs(str(concord), bad_pairs)
+    assert pairs == [(f"{MONDO}:0005148", f"{MEDDRA}:10012601")]
