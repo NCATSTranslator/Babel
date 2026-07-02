@@ -84,10 +84,13 @@ Deleted (dropped):
   ingestion with HP/MP overlap allowed; preserved as the fallback.
 - [#300](https://github.com/NCATSTranslator/Babel/pull/300) — the earlier
   `add-mammal-phenotype-ontology` attempt and its SSSOM MP↔HP/NCIT bridging questions.
-- [#883](https://github.com/NCATSTranslator/Babel/pull/883) — the original home of the
-  `babel-clique-diff` tool (now its own PR) and the deferred MONDO close-match-guard fix.
-  These numbers were measured against the current (predicate-keyed, effectively no-op) close
-  behavior, so a later close-match-guard fix changing disease merging will not contradict them.
+- [#885](https://github.com/NCATSTranslator/Babel/pull/885) — the `babel-clique-diff` tool used
+  to measure the impact above (split out of the original combined #883).
+- [#888](https://github.com/NCATSTranslator/Babel/pull/888) (`fix-mondo-close-guard`) — the
+  deferred MONDO close-match-guard fix (keying glom's `close=` map on the object rather than the
+  predicate), also split out of #883. The numbers on this page were measured against the current
+  predicate-keyed, effectively no-op close behavior that this branch preserves, so #888 activating
+  the guard and changing disease merging will not contradict them.
 - [#742](https://github.com/NCATSTranslator/Babel/pull/742) /
   [#781](https://github.com/NCATSTranslator/Babel/pull/781) — the source-impact / EMAPA
   infrastructure this builds on.
