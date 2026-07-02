@@ -96,6 +96,11 @@ def _read_tsv(path):
         return list(csv.reader(f, delimiter="\t"))
 
 
+def _read_csv(path):
+    with open(path) as f:
+        return list(csv.reader(f))
+
+
 @pytest.mark.unit
 def test_check_for_identically_labeled_cliques(parquet_root, tmp_path):
     out = str(tmp_path / "identically_labeled.tsv")
@@ -149,79 +154,103 @@ def test_check_for_duplicate_clique_leaders(parquet_root, tmp_path):
     assert "Foo" in row["filenames"] and "Bar" in row["filenames"]
 
 
-@pytest.mark.unit
-def test_generate_curie_report_totals(parquet_root, tmp_path):
-    """The approx_count_distinct rewrite must reproduce the COUNT(DISTINCT) math.
+@pytest.fixture
+def prefix_report(parquet_root, tmp_path):
+    """Run generate_prefix_report over the fixture and return the parsed combined report.
 
-    Over the conflation='None' edges, CHEBI:1 appears once (in clique A, twice across files) and
-    MESH:1 appears in cliques A and C, so the per-prefix totals are exact and easy to check.
+    Over the conflation='None' edges: CHEBI:1 is led by A in both Foo (SmallMolecule) and Bar
+    (ChemicalEntity); MESH:1 is led by A in Foo and by C in Bar. approx_count_distinct is exact at
+    this tiny cardinality, so every count below is exact.
     """
-    out = str(tmp_path / "curie_report.json")
-    duckdb_reports.generate_curie_report(parquet_root, str(tmp_path / "db.duckdb"), out)
-
+    out = str(tmp_path / "prefix_report.json")
+    duckdb_reports.generate_prefix_report(parquet_root, str(tmp_path / "db.duckdb"), out, "2099jan1")
     with open(out) as f:
-        report = json.load(f)
+        return json.load(f)
 
-    # curie_count counts every edge; approx_*_distinct_count de-duplicates curie / clique_leader.
-    assert report["CHEBI"]["_totals"] == {
+
+@pytest.mark.unit
+def test_generate_prefix_report_totals(prefix_report):
+    """Top-level totals: count_curies is the exact edge count over conflation='None' (4); count_cliques
+    is the sum of per-leader-prefix distinct clique counts (A under CHEBI + C under NCBIGene = 2)."""
+    assert prefix_report["name"] == "2099jan1"
+    assert prefix_report["count_curies"] == 4
+    assert prefix_report["count_cliques"] == 2
+    # The conflated DRUGBANK:1 edge is excluded, so DRUGBANK never appears.
+    assert "DRUGBANK" not in prefix_report["by_curie_prefix"]
+
+
+@pytest.mark.unit
+def test_generate_prefix_report_by_curie_prefix(prefix_report):
+    """by_curie_prefix: exact occurrence counts plus the per-filename occurrence breakdown."""
+    assert prefix_report["by_curie_prefix"]["CHEBI"] == {
         "curie_count": 2,
-        "approx_curie_distinct_count": 1,
-        "approx_clique_distinct_count": 1,
+        "curie_distinct_count": 1,
+        "clique_distinct_count": 1,
+        "filenames": {"Foo": 1, "Bar": 1},
     }
-    assert report["MESH"]["_totals"] == {
+    # MESH:1 is led by two different cliques (A, C), so its clique_distinct_count is 2.
+    assert prefix_report["by_curie_prefix"]["MESH"] == {
         "curie_count": 2,
-        "approx_curie_distinct_count": 1,
-        "approx_clique_distinct_count": 2,
+        "curie_distinct_count": 1,
+        "clique_distinct_count": 2,
+        "filenames": {"Foo": 1, "Bar": 1},
     }
 
 
 @pytest.mark.unit
-def test_generate_curie_report_by_biolink_type(parquet_root, tmp_path):
-    """The per-Biolink-type breakdown now reads biolink_type straight off the denormalized Edge
-    column, so each (curie_prefix, biolink_type) cell must reflect the fixture's edges directly."""
-    out = str(tmp_path / "curie_report.json")
-    duckdb_reports.generate_curie_report(parquet_root, str(tmp_path / "db.duckdb"), out)
+def test_generate_prefix_report_by_clique(prefix_report):
+    """by_clique is keyed by clique-leader prefix and reshapes the (filename, leader, curie) grouping."""
+    chebi = prefix_report["by_clique"]["CHEBI"]
+    assert chebi["by_file"] == {"Foo": {"CHEBI": 1, "MESH": 1}, "Bar": {"CHEBI": 1}}
+    assert chebi["count_curies"] == 3  # Foo CHEBI:1 + Foo MESH:1 + Bar CHEBI:1, all led by A
+    assert chebi["count_cliques"] == 1  # only leader A has prefix CHEBI
 
-    with open(out) as f:
-        report = json.load(f)
+    ncbigene = prefix_report["by_clique"]["NCBIGene"]
+    assert ncbigene["by_file"] == {"Bar": {"MESH": 1}}
+    assert ncbigene["count_curies"] == 1
+    assert ncbigene["count_cliques"] == 1
 
-    # CHEBI:1 sits in clique A under both SmallMolecule (Foo) and ChemicalEntity (Bar).
-    assert report["CHEBI"]["biolink:SmallMolecule"] == {
-        "curie_count": 1,
-        "approx_curie_distinct_count": 1,
-        "approx_clique_distinct_count": 1,
+
+@pytest.mark.unit
+def test_generate_prefix_report_by_filename(prefix_report):
+    """by_filename carries the per-file totals report_tables.generate_cliques_table needs."""
+    assert prefix_report["by_filename"]["Foo"] == {
+        "curie_count": 2,
+        "distinct_curie_count": 2,
+        "distinct_clique_count": 1,
     }
-    assert report["CHEBI"]["biolink:ChemicalEntity"] == {
-        "curie_count": 1,
-        "approx_curie_distinct_count": 1,
-        "approx_clique_distinct_count": 1,
-    }
-    # MESH:1 is SmallMolecule in clique A (Foo) and Drug in clique C (Bar).
-    assert set(report["MESH"]) == {"biolink:SmallMolecule", "biolink:Drug", "_totals"}
-    assert report["MESH"]["biolink:Drug"] == {
-        "curie_count": 1,
-        "approx_curie_distinct_count": 1,
-        "approx_clique_distinct_count": 1,
+    assert prefix_report["by_filename"]["Bar"] == {
+        "curie_count": 2,
+        "distinct_curie_count": 2,
+        "distinct_clique_count": 2,
     }
 
 
 @pytest.mark.unit
-def test_generate_clique_leaders_report_totals(parquet_root, tmp_path):
-    """The per-filename totals must match a direct COUNT(DISTINCT) over the fixture edges."""
-    out = str(tmp_path / "clique_leaders.json")
-    duckdb_reports.generate_clique_leaders_report(parquet_root, str(tmp_path / "db.duckdb"), out)
+def test_report_tables_consume_prefix_report(parquet_root, tmp_path, monkeypatch):
+    """report_tables must build both tables from the combined prefix report without error."""
+    from src.reports import report_tables
 
-    with open(out) as f:
-        report = json.load(f)
+    report_json = str(tmp_path / "prefix_report.json")
+    duckdb_reports.generate_prefix_report(parquet_root, str(tmp_path / "db.duckdb"), report_json, "2099jan1")
 
-    # Foo's two None-edges sit in one clique (A); Bar's two span cliques A and C.
-    assert report["Foo"]["_totals"] == {
-        "approx_distinct_clique_count": 1,
-        "approx_distinct_curie_count": 2,
-        "curie_count": 2,
-    }
-    assert report["Bar"]["_totals"] == {
-        "approx_distinct_clique_count": 2,
-        "approx_distinct_curie_count": 2,
-        "curie_count": 2,
-    }
+    prefix_table = str(tmp_path / "prefix_table.csv")
+    report_tables.generate_prefix_table(report_json, prefix_table)
+    prefix_rows = _read_csv(prefix_table)
+    assert prefix_rows[0] == ["Prefix", "CURIE count", "Approx distinct CURIE count", "Filenames"]
+    assert {"CHEBI", "MESH"} <= {r[0] for r in prefix_rows[1:]}
+
+    # generate_cliques_table groups by pipeline; point a pipeline at the fixture's filenames so every
+    # referenced filename is present in the data (real pipeline_descriptions name real compendia).
+    monkeypatch.setattr(
+        report_tables,
+        "pipeline_descriptions",
+        {"TestPipeline": {"description": "test", "filenames": ["Foo", "Bar"]}},
+    )
+    cliques_table = str(tmp_path / "cliques_table.csv")
+    report_tables.generate_cliques_table(report_json, cliques_table)
+    clique_rows = _read_csv(cliques_table)
+    header = clique_rows[0]
+    # Foo (a SmallMolecule compendium in the fixture) lists CHEBI as a clique-leader prefix.
+    foo_rows = [dict(zip(header, r)) for r in clique_rows[1:] if r[header.index("Biolink Types")] == "Foo"]
+    assert foo_rows and "CHEBI" in foo_rows[0]["Clique leader prefixes"]

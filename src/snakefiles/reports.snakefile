@@ -113,25 +113,25 @@ rule generate_summary_content_report_for_compendia:
 # Generate a prefix table.
 rule generate_prefix_table:
     input:
-        curie_report=config["output_directory"] + "/reports/duckdb/curie_report.json",
+        prefix_report=config["output_directory"] + "/reports/duckdb/prefix_report.json",
     output:
         prefix_table=config["output_directory"] + "/reports/tables/prefix_table.csv",
     benchmark:
         config["output_directory"] + "/benchmarks/generate_prefix_table.tsv"
     run:
-        report_tables.generate_prefix_table(input.curie_report, output.prefix_table)
+        report_tables.generate_prefix_table(input.prefix_report, output.prefix_table)
 
 
 # Generate a cliques table.
 rule generate_cliques_table:
     input:
-        cliques_report=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
+        prefix_report=config["output_directory"] + "/reports/duckdb/prefix_report.json",
     output:
         cliques_table=config["output_directory"] + "/reports/tables/cliques_table.csv",
     benchmark:
         config["output_directory"] + "/benchmarks/generate_cliques_table.tsv"
     run:
-        report_tables.generate_cliques_table(input.cliques_report, output.cliques_table)
+        report_tables.generate_cliques_table(input.prefix_report, output.cliques_table)
 
 
 # Generate a table of mapping sources.

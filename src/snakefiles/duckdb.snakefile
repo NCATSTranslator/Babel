@@ -238,58 +238,31 @@ rule check_for_duplicate_clique_leaders:
         )
 
 
-rule generate_curie_report:
+rule generate_prefix_report:
     input:
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
     output:
-        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/curie_report.duckdb"),
-        curie_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
+        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/prefix_report.duckdb"),
+        prefix_report_json=config["output_directory"] + "/reports/duckdb/prefix_report.json",
     benchmark:
-        config["output_directory"] + "/benchmarks/generate_curie_report.tsv"
+        config["output_directory"] + "/benchmarks/generate_prefix_report.tsv"
     resources:
-        # The distinct counts use approx_count_distinct() (a fixed-size HLL sketch per group)
-        # instead of an exact, non-spillable COUNT(DISTINCT) that OOMed over the full Edge set.
-        # memory_limit is kept well below mem for headroom under the cgroup hard limit; single
-        # thread keeps per-thread state low. See slurm/README.md.
+        # This single rule replaces the former generate_curie_report + generate_clique_leader_report,
+        # so the full Edge set is now scanned once rather than twice. Every aggregate is a spillable
+        # GROUP BY <prefix>, and the distinct/clique counts use approx_count_distinct() (a fixed-size
+        # HLL sketch per group) instead of an exact, non-spillable COUNT(DISTINCT) that OOMed over the
+        # full Edge set. memory_limit is kept well below mem for headroom under the cgroup hard limit;
+        # single thread keeps per-thread state low. See slurm/README.md.
         mem="1500G",
     params:
         parquet_dir=config["output_directory"] + "/duckdb/parquet/",
     run:
-        src.reports.duckdb_reports.generate_curie_report(
+        src.reports.duckdb_reports.generate_prefix_report(
             params.parquet_dir,
             output.duckdb_filename,
-            output.curie_report_json,
-            {
-                "memory_limit": "1000G",
-                "threads": 1,
-                "preserve_insertion_order": False,
-            },
-        )
-
-
-rule generate_clique_leader_report:
-    input:
-        config["output_directory"] + "/duckdb/done",
-        config["output_directory"] + "/duckdb/compendia_done",
-    output:
-        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/clique_leaders.duckdb"),
-        clique_leaders_json=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
-    benchmark:
-        config["output_directory"] + "/benchmarks/generate_clique_leader_report.tsv"
-    resources:
-        # The distinct counts use approx_count_distinct() (a fixed-size HLL sketch per group)
-        # instead of an exact, non-spillable COUNT(DISTINCT) that OOMed over the full Edge set.
-        # memory_limit is kept well below mem for headroom under the cgroup hard limit; single
-        # thread keeps per-thread state low. See slurm/README.md.
-        mem="1500G",
-    params:
-        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
-    run:
-        src.reports.duckdb_reports.generate_clique_leaders_report(
-            params.parquet_dir,
-            output.duckdb_filename,
-            output.clique_leaders_json,
+            output.prefix_report_json,
+            config["release_name"],
             {
                 "memory_limit": "1000G",
                 "threads": 1,
@@ -305,8 +278,7 @@ rule all_duckdb_reports:
         + "/reports/duckdb/identically_labeled_cliques.tsv.gz",
         duplicate_curies=config["output_directory"] + "/reports/duckdb/duplicate_curies.tsv",
         duplicate_clique_leaders_tsv=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.tsv",
-        curie_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
-        by_clique_report_json=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
+        prefix_report_json=config["output_directory"] + "/reports/duckdb/prefix_report.json",
     output:
         x=config["output_directory"] + "/reports/duckdb/done",
     shell:
