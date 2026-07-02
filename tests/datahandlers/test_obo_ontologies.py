@@ -1,4 +1,6 @@
 from contextlib import contextmanager
+from json import JSONDecodeError
+from urllib.error import HTTPError
 
 import pytest
 
@@ -8,13 +10,23 @@ from src.datahandlers import obo
 
 pytestmark = [pytest.mark.network]
 
+# The transient failure types TripleStore._dispatch_with_retries (src/triplestore.py) can still
+# raise after exhausting its own retries: an HTTP error from the endpoint, a malformed/truncated
+# JSON response, or a lower-level connection failure (OSError covers socket/connection errors).
+_TRANSIENT_UBERGRAPH_ERRORS = (HTTPError, JSONDecodeError, OSError)
+
 
 @contextmanager
 def _server_errors_are_xfail():
-    """Treat endpoint/server instability as xfail, not product failure."""
+    """Treat endpoint/server instability as xfail, not product failure.
+
+    Only catches the transient network/server error types UberGraph queries can raise after
+    TripleStore's own retry-with-backoff gives up; anything else (e.g. a programming error in
+    write_mp_ids()) propagates so it fails the test instead of being silently xfailed.
+    """
     try:
         yield
-    except Exception as e:
+    except _TRANSIENT_UBERGRAPH_ERRORS as e:
         pytest.xfail(f"UberGraph query failed (server-side issue): {e}")
 
 
