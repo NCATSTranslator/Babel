@@ -137,6 +137,18 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
     return db
 
 
+def _ensure_parent_dir(filename):
+    """Create the parent directory of `filename` if it has one.
+
+    `os.path.dirname` returns '' for a bare filename with no directory component, and
+    `os.makedirs('')` raises FileNotFoundError -- so skip the call in that case. The file is
+    then written into the current working directory, which already exists.
+    """
+    parent = os.path.dirname(filename)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
+
 def _prepare_duckdb_output(duckdb_filename):
     """Refuse to clobber an existing DuckDB file and ensure its parent directory exists.
 
@@ -144,7 +156,7 @@ def _prepare_duckdb_output(duckdb_filename):
     """
     if os.path.exists(duckdb_filename):
         raise RuntimeError(f"Will not overwrite existing file {duckdb_filename}")
-    os.makedirs(os.path.dirname(duckdb_filename), exist_ok=True)
+    _ensure_parent_dir(duckdb_filename)
 
 
 def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, edge_parquet_filename, duckdb_filename):
@@ -166,8 +178,8 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, ed
     # Node.parquet is written alongside the Clique.parquet file and is also declared as a rule
     # output; the Clique and Edge paths arrive as explicit arguments.
     parquet_dir = os.path.dirname(clique_parquet_filename)
-    os.makedirs(parquet_dir, exist_ok=True)
-    os.makedirs(os.path.dirname(edge_parquet_filename), exist_ok=True)
+    _ensure_parent_dir(clique_parquet_filename)
+    _ensure_parent_dir(edge_parquet_filename)
     node_parquet_filename = os.path.join(parquet_dir, "Node.parquet")
 
     compendium_basename = os.path.basename(compendium_filename)
@@ -337,7 +349,7 @@ def export_conflation_to_parquet(conflation_filename, conflation_type, duckdb_fi
     :param parquet_filename: The output Parquet file path.
     """
     _prepare_duckdb_output(duckdb_filename)
-    os.makedirs(os.path.dirname(parquet_filename), exist_ok=True)
+    _ensure_parent_dir(parquet_filename)
 
     with setup_duckdb(duckdb_filename) as db:
         db.sql(
@@ -502,6 +514,10 @@ def export_intermediates_to_parquet(
     """
 
     _prepare_duckdb_output(duckdb_filename)
+    # DuckDB's write_parquet won't create missing parent directories, so ensure each output's
+    # directory exists -- this exporter is public and its Parquet paths need not share a directory.
+    for parquet_filename in (ids_parquet_filename, concords_parquet_filename, metadata_parquet_filename):
+        _ensure_parent_dir(parquet_filename)
 
     with setup_duckdb(duckdb_filename) as db:
         # We don't include labels here: the Node-writing code currently emits only nulls for them,

@@ -5,6 +5,7 @@ import duckdb
 import pytest
 
 from src.exporters.duckdb_exporters import (
+    _ensure_parent_dir,
     _metadata_subject_filename,
     export_compendia_to_parquet,
     export_conflation_to_parquet,
@@ -371,6 +372,34 @@ def test_export_intermediates_to_parquet_malformed_concord_attributed_to_right_f
     assert "Skipped 1 malformed concord line(s)" in caplog.text
     assert str(concords_dir / "Bad.txt") in caplog.text
     assert str(concords_dir / "Clean.txt") not in caplog.text
+
+
+@pytest.mark.unit
+def test_ensure_parent_dir_bare_filename_does_not_raise(tmp_path, monkeypatch):
+    """A bare filename with no directory component (os.path.dirname == '') must not raise:
+    os.makedirs('') would throw FileNotFoundError even though the path is valid in the CWD."""
+    monkeypatch.chdir(tmp_path)
+    # Should be a no-op (nothing to create) rather than raising.
+    _ensure_parent_dir("concords.duckdb")
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.unit
+def test_export_intermediates_to_parquet_creates_missing_output_dirs(tmp_path):
+    """The Parquet outputs may live in directories that don't exist yet (DuckDB's write_parquet
+    won't create parents); the exporter must create them rather than failing."""
+    intermediate_dir = _build_intermediate_tree(tmp_path / "intermediate")
+    out = tmp_path / "does" / "not" / "exist"  # deliberately absent
+    ids_parquet = str(out / "Identifiers.parquet")
+    concords_parquet = str(out / "Concord.parquet")
+    metadata_parquet = str(out / "Metadata.parquet")
+
+    export_intermediates_to_parquet(
+        str(intermediate_dir), str(tmp_path / "concords.duckdb"), ids_parquet, concords_parquet, metadata_parquet
+    )
+
+    for parquet_file in (ids_parquet, concords_parquet, metadata_parquet):
+        assert os.path.exists(parquet_file)
 
 
 @pytest.mark.unit
