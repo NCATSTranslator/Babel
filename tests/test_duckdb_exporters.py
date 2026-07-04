@@ -248,6 +248,50 @@ def test_export_intermediates_to_parquet(tmp_path):
 
 
 @pytest.mark.unit
+def test_export_intermediates_to_parquet_extensionless_concords_with_sidecar(tmp_path):
+    """Regression test for the DrugChemical conflation concords (Babel #754 triage input): they
+    live at `intermediate/drugchemical/concords/{RXNORM,UMLS,PUBCHEM_RXNORM}` with no file
+    extension and each has a sibling `metadata-<name>.yaml`. Confirm the `**/concords/**/*` glob
+    picks up the extension-less data files (loading them into Concord) while the `metadata-*.yaml`
+    sidecars are routed to Metadata, not mistaken for concord data."""
+    intermediate_dir = tmp_path / "intermediate"
+    concords_dir = intermediate_dir / "drugchemical" / "concords"
+    concords_dir.mkdir(parents=True)
+    # Extension-less concord data files, exactly as build_rxnorm_relationships() et al. write them.
+    (concords_dir / "RXNORM").write_text("RXCUI:1\teq\tRXCUI:2\n")
+    (concords_dir / "PUBCHEM_RXNORM").write_text("RXCUI:1\tlinked\tPUBCHEM.COMPOUND:3\n")
+    # A sidecar describing the RXNORM file above; it must land in Metadata, not Concord.
+    (concords_dir / "metadata-RXNORM.yaml").write_text("xref(RXCUI, RXCUI): 1\n")
+
+    concords_parquet = str(tmp_path / "Concord.parquet")
+    metadata_parquet = str(tmp_path / "Metadata.parquet")
+    export_intermediates_to_parquet(
+        str(intermediate_dir),
+        str(tmp_path / "concords.duckdb"),
+        str(tmp_path / "Identifiers.parquet"),
+        concords_parquet,
+        metadata_parquet,
+    )
+
+    # Both extension-less data files are loaded; the sidecar's contents are not among them.
+    concords = duckdb.execute(
+        f"SELECT subj, pred, obj FROM read_parquet('{concords_parquet}') ORDER BY subj, obj"
+    ).fetchall()
+    assert concords == [
+        ("RXCUI:1", "linked", "PUBCHEM.COMPOUND:3"),
+        ("RXCUI:1", "eq", "RXCUI:2"),
+    ]
+    # The sidecar is captured as metadata for its subject file (RXNORM), keyed by subject filename.
+    metadata = {
+        row[0]: row[1]
+        for row in duckdb.execute(
+            f"SELECT subject_filename, metadata_json FROM read_parquet('{metadata_parquet}')"
+        ).fetchall()
+    }
+    assert metadata["RXNORM"].strip() == "xref(RXCUI, RXCUI): 1"
+
+
+@pytest.mark.unit
 def test_export_intermediates_to_parquet_empty_tree(tmp_path):
     # An intermediate directory with no concords/ or ids/ subdirectories must not raise
     # (regression test: a trailing `del concord_path` used to NameError on an empty glob).
