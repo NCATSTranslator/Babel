@@ -92,7 +92,9 @@ disease:
   these cliques and none of the swapped members appears in MP's concord; the effect is
   deterministic and independent of MP's position in `disease_concords` (moving MP to the end of
   the list produces a byte-identical diff), so it is a stable tie-break shift, not run-to-run
-  noise.
+  noise. This is a general `glom()` `unique_prefixes` behavior (a contested cross-reference's
+  winning clique is sensitive to the input set), not specific to MP; tracked in
+  [#894](https://github.com/NCATSTranslator/Babel/issues/894).
 
 Note — where the "14K" lives in each artifact. Both this clique-diff and the impact report use a
 "before" that lacks MP (the impact report *excludes the MP source*; the `main` build simply never

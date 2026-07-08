@@ -95,6 +95,13 @@ Everything else in a compendium record — `type` (Biolink type), `identifiers[*
   is invisible to this tool.
 - Label, description, and taxon changes on an otherwise-unchanged clique are invisible;
   such a clique is reported as fully unchanged (no row at all).
+- Not every row is caused by the change under test. When a build uses
+  `glom(..., unique_prefixes=…)`, a cross-reference contested by two same-prefix cliques is awarded
+  to one of them by a tie-break that is sensitive to the input *set*, so adding or removing an
+  *unrelated* source can reshuffle members between existing same-prefix cliques (deterministically,
+  without creating or deleting any). Expect a few such incidental rows; see
+  [NCATSTranslator/Babel#894](https://github.com/NCATSTranslator/Babel/issues/894) and the worked
+  example in `docs/sources/MP/disjointness.md`.
 
 Labels and Biolink types are not part of change detection, but they *are* emitted as
 read-only annotation columns to make the CSV legible without a separate lookup:
