@@ -339,9 +339,17 @@ compared compendium file), or `dropped` (gone from every compared after compendi
 uv run babel-clique-diff \
     --before <overlap-or-baseline-compendia-dir> --after <new-compendia-dir> \
     --files Disease.txt PhenotypicFeature.txt \
+    --before-label "<what the before build is>" --after-label "<what the after build is>" \
+    --note "<what this diff isolates>" \
     --out-csv  docs/sources/<SOURCE>/<change>/clique-diff.csv \
     --out-json docs/sources/<SOURCE>/<change>/clique-diff.summary.json
 ```
+
+Pass `--before-label`/`--after-label`/`--note`: they are recorded in the summary's `about` block so
+the committed artifact says which build was which and what it isolates. Remember the summary's
+`clique_count.diff` is where *wholly new* cliques (with no before counterpart) show up — they are
+never per-clique change rows — so a diff that adds many cliques can still have few rows (see the
+reconciliation in `docs/sources/MP/disjointness.md`).
 
 Build both sides from the **same cached intermediates**, changing only the thing under test
 (e.g. build at the commit with the change and again with it reverted/disabled), so the diff

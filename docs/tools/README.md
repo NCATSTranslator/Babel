@@ -46,8 +46,14 @@ which cliques split, merged, or lost members, and — most usefully — which CU
 uv run babel-clique-diff \
     --before <baseline-compendia-dir> --after <comparison-compendia-dir> \
     --files Disease.txt PhenotypicFeature.txt \
+    --before-label "main (no MP)" --after-label "mp-hp-disjoint" \
+    --note "isolates PR #886" \
     --out-csv diff.csv --out-json summary.json
 ```
+
+`--before-label`/`--after-label`/`--note` are optional but recommended: they are recorded in the
+summary's `about` block so the artifact is self-describing (a reader never has to guess which build
+was before vs after, or what the diff isolates). Labels default to the directory paths.
 
 It is distinct from `source-impact-report`: that answers "what does adding *source X* do?"
 by re-glomming intermediate ids/concords with vs. without one source; this answers "how did
@@ -97,3 +103,18 @@ clique leader), `destination_type` (the Biolink type the grouped members ended u
 after build — the after-clique's type for real destinations, the `|`-joined distinct types
 of the members for `moved`, empty for `dropped`), and `example_members`, which lists up to
 five members as `CURIE "label"` using before-build labels.
+
+### Summary JSON
+
+`--out-json` writes a self-describing summary, `{"about": …, "compendia": …}`. `about` carries
+the two build labels, the `note`, and the compared `files`. `compendia` maps each filename to its
+counts: a nested `clique_count` (`before`/`after`/`diff`/`diff_percent`) plus
+`changed_before_cliques`, `dropped_member_count` (the headline regression signal),
+`moved_member_count`, `regrouped_member_count`, and `leader_changed_count`.
+
+One subtlety worth internalizing: a clique that exists **only** in the after build — no before
+counterpart, e.g. a wholly new MP-only clique — is *not* a change row, because the tool iterates
+before-cliques. Such additions surface **only** as a positive `clique_count.diff`. That is why a
+build that adds thousands of new cliques can still show very few change rows; to see the additions
+themselves, read the count delta (or use `source-impact-report`, whose whole job is the "added"
+view). See `docs/sources/MP/disjointness.md` for a worked example of this exact reconciliation.

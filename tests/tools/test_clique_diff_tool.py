@@ -5,7 +5,10 @@ Sections:
 
 - ``# --- Loading ---`` covers JSONL parsing and the leader/member extraction.
 - ``# --- Diffing ---`` covers the five destination kinds
-  (kept/leader_changed/regrouped/moved/dropped) and the "unchanged clique is omitted" rule.
+  (kept/leader_changed/regrouped/moved/dropped), the "unchanged clique is omitted" rule, the
+  nested ``clique_count`` breakdown, and that a wholly new after-clique shows only in the count
+  delta.
+- ``# --- CLI ---`` covers the self-describing ``about`` block written by ``main()``.
 """
 
 import json
@@ -130,3 +133,80 @@ def test_moved_vs_dropped_distinguished_across_files(tmp_path):
     assert moved[0]["destination_type"] == "biolink:PhenotypicFeature"
     assert summary["Disease.txt"]["dropped_member_count"] == 0
     assert summary["Disease.txt"]["moved_member_count"] == 1
+    # clique_count is nested with a before/after/diff/diff_percent breakdown.
+    assert summary["Disease.txt"]["clique_count"] == {"before": 1, "after": 1, "diff": 0, "diff_percent": 0.0}
+
+
+@pytest.mark.unit
+def test_new_after_clique_shows_only_in_count_delta(tmp_path):
+    """A wholly new after-clique (no before counterpart) must not be a change row.
+
+    It should surface only as a positive ``clique_count.diff`` — the exact behavior that makes
+    a build adding many cliques show few change rows.
+    """
+    bdir, adir = tmp_path / "before", tmp_path / "after"
+    bdir.mkdir()
+    adir.mkdir()
+    _write_jsonl(bdir / "PhenotypicFeature.txt", [_clique("HP:1", biolink_type="biolink:PhenotypicFeature")])
+    # After adds a brand-new MP-only clique alongside the unchanged HP clique.
+    _write_jsonl(
+        adir / "PhenotypicFeature.txt",
+        [
+            _clique("HP:1", biolink_type="biolink:PhenotypicFeature"),
+            _clique("MP:9", biolink_type="biolink:PhenotypicFeature"),
+        ],
+    )
+    rows, summary = diff_builds(str(bdir), str(adir), ["PhenotypicFeature.txt"])
+    assert rows == []  # nothing changed among before-cliques
+    assert summary["PhenotypicFeature.txt"]["clique_count"] == {
+        "before": 1,
+        "after": 2,
+        "diff": 1,
+        "diff_percent": 100.0,
+    }
+
+
+# --- CLI ---
+
+
+@pytest.mark.unit
+def test_cli_writes_self_describing_summary(tmp_path):
+    """main() should wrap the per-compendium summary in an ``about`` block carrying the
+    baseline labels, note, and compared files, so the JSON explains its own provenance.
+    """
+    from tools.clique_diff.diff import main
+
+    bdir, adir = tmp_path / "before", tmp_path / "after"
+    bdir.mkdir()
+    adir.mkdir()
+    _write_jsonl(bdir / "Disease.txt", [_clique("MONDO:1", "MEDDRA:9")])
+    _write_jsonl(adir / "Disease.txt", [_clique("MONDO:1", "MEDDRA:9")])
+    out_json = tmp_path / "summary.json"
+    main(
+        [
+            "--before",
+            str(bdir),
+            "--after",
+            str(adir),
+            "--files",
+            "Disease.txt",
+            "--out-csv",
+            str(tmp_path / "diff.csv"),
+            "--out-json",
+            str(out_json),
+            "--before-label",
+            "main (no MP)",
+            "--after-label",
+            "branch",
+            "--note",
+            "isolates X",
+        ]
+    )
+    out = json.loads(out_json.read_text())
+    assert out["about"] == {
+        "before": "main (no MP)",
+        "after": "branch",
+        "note": "isolates X",
+        "files": ["Disease.txt"],
+    }
+    assert "Disease.txt" in out["compendia"]

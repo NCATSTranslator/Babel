@@ -39,8 +39,17 @@ Output:
   type for real destinations, the distinct types of the members for ``moved``, empty for
   ``dropped``); ``example_members`` lists up to five members as ``CURIE "label"`` using
   before-build labels.
-- ``--out-json`` (optional): a summary with per-compendium counts, including
-  ``dropped_member_count`` — the headline regression signal.
+- ``--out-json`` (optional): a self-describing summary, ``{"about": …, "compendia": …}``.
+  ``about`` records the two builds' labels (``--before-label``/``--after-label``, defaulting
+  to the directory paths), a free-text ``note`` (``--note``), and the compared ``files`` — so a
+  reader never has to guess which build was before vs after or what the diff isolates.
+  ``compendia`` maps each filename to its counts: a nested ``clique_count``
+  (``before``/``after``/``diff``/``diff_percent``) plus ``changed_before_cliques``,
+  ``dropped_member_count`` (the headline regression signal), ``moved_member_count``,
+  ``regrouped_member_count``, and ``leader_changed_count``. NOTE: a clique that exists only in
+  the after build (no before counterpart — e.g. a wholly new MP-only clique) is not a change
+  row, since the diff iterates before-cliques; such additions surface only as a positive
+  ``clique_count.diff``, which is why a build adding thousands of cliques can show few rows.
 """
 
 import argparse
@@ -245,9 +254,21 @@ def diff_builds(before_dir, after_dir, filenames):
         for r in records:
             r["compendium"] = fname
             rows.append(r)
+        before_count = len(before.cliques)
+        after_count = len(after_cliques)
         summary[fname] = {
-            "before_clique_count": len(before.cliques),
-            "after_clique_count": len(after_cliques),
+            # Nested so the headline magnitude reads at a glance. NOTE: a clique that exists
+            # only in the after build (no before counterpart — e.g. a wholly new MP-only
+            # clique) is NOT emitted as a change row; the diff iterates before-cliques. Such
+            # additions appear *only* here, as a positive ``clique_count.diff``. That is why a
+            # build that adds thousands of new cliques can still show few change rows.
+            "clique_count": {
+                "before": before_count,
+                "after": after_count,
+                "diff": after_count - before_count,
+                # Percent change of the clique count (after vs before); 0.0 when unchanged.
+                "diff_percent": round(100 * (after_count - before_count) / before_count, 2) if before_count else 0.0,
+            },
             "changed_before_cliques": len({r["before_leader"] for r in records}),
             "cliques_with_dropped_members": len(
                 {r["before_leader"] for r in records if r["destination_kind"] == "dropped"}
@@ -300,13 +321,28 @@ def main(argv=None):
     )
     parser.add_argument("--out-csv", required=True, help="Path to write the per-clique change CSV.")
     parser.add_argument("--out-json", help="Optional path to write the per-compendium summary JSON.")
+    # Baseline labels make the summary self-describing: a reader shouldn't have to know which
+    # build was --before vs --after (e.g. "main (no MP)" vs "mp-hp-disjoint"). Default to the
+    # directory paths so the provenance is never blank.
+    parser.add_argument("--before-label", help="Human label for the --before build (defaults to its path).")
+    parser.add_argument("--after-label", help="Human label for the --after build (defaults to its path).")
+    parser.add_argument("--note", help="Free-text note recorded in the summary (e.g. what change this diff isolates).")
     args = parser.parse_args(argv)
 
     rows, summary = diff_builds(args.before, args.after, args.files)
     write_csv(rows, args.out_csv)
     if args.out_json:
+        out = {
+            "about": {
+                "before": args.before_label or args.before,
+                "after": args.after_label or args.after,
+                "note": args.note or "",
+                "files": list(args.files),
+            },
+            "compendia": summary,
+        }
         with open(args.out_json, "w") as fh:
-            json.dump(summary, fh, indent=2, sort_keys=True)
+            json.dump(out, fh, indent=2, sort_keys=True)
             fh.write("\n")
 
     total_changed = sum(s["changed_before_cliques"] for s in summary.values())
