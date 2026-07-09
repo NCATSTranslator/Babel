@@ -1,16 +1,16 @@
 {
   "about": {
-    "after": "mp-hp-disjoint (MP added, kept disjoint from HP)",
-    "before": "main (Babel without this PR \u2014 no MP)",
+    "after": "disjoint (HP/MP split enabled)",
+    "before": "overlap-allowed (split disabled)",
     "files": [
       "Disease.txt",
       "PhenotypicFeature.txt"
     ],
-    "note": "Isolates the full effect of PR #886 (add MP, disjoint from HP) on Babel. Both builds share cached babel_downloads and were built the same day so UberGraph concords match; the only difference is this PR's code. Wholly new MP-only cliques appear as the positive PhenotypicFeature clique_count.diff, not as change rows."
+    "note": "Both built from the identical data/branch-mp/intermediate/disease concords (one UberGraph pull) -- isolates the HP/MP disjointness split with no concord-ordering noise."
   },
   "compendia": {
     "Disease.txt": {
-      "changed_before_cliques": 21,
+      "changed_before_cliques": 88,
       "clique_count": {
         "after": 365466,
         "before": 365466,
@@ -20,22 +20,22 @@
       "cliques_with_dropped_members": 0,
       "dropped_member_count": 0,
       "leader_changed_count": 0,
-      "moved_member_count": 49,
-      "regrouped_member_count": 96
+      "moved_member_count": 88,
+      "regrouped_member_count": 0
     },
     "PhenotypicFeature.txt": {
-      "changed_before_cliques": 30,
+      "changed_before_cliques": 107,
       "clique_count": {
         "after": 75469,
-        "before": 60718,
-        "diff": 14751,
-        "diff_percent": 24.29
+        "before": 75275,
+        "diff": 194,
+        "diff_percent": 0.26
       },
       "cliques_with_dropped_members": 1,
       "dropped_member_count": 1,
       "leader_changed_count": 0,
-      "moved_member_count": 23,
-      "regrouped_member_count": 26
+      "moved_member_count": 0,
+      "regrouped_member_count": 106
     }
   }
 }
