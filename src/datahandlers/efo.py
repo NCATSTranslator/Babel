@@ -111,6 +111,9 @@ class EFOgraph:
                 # raise RuntimeError(
                 #     f"Unexpected ORPHANET in EFOgraph.get_xrefs({iri}): '{other_without_brackets}'"
                 # )
+            # ponytail: use raw split, not Text.get_prefix(), which raises on a colonless string.
+            # otherid can be colonless here: it's the opt_to_curie() fallback above (line 106),
+            # populated only when opt_to_curie raised ValueError for producing a colonless result.
             if otherid.split(":", 1)[0] in excluded_target_prefixes:
                 logger.debug(f"Skipping excluded-prefix exactMatch '{otherid}' in EFOgraph.get_exacts({iri})")
                 continue
@@ -146,6 +149,9 @@ class EFOgraph:
                 # raise RuntimeError(
                 #     f"Unexpected ORPHANET in EFOgraph.get_xrefs({iri}): '{other_without_brackets}'"
                 # )
+            # ponytail: use raw split, not Text.get_prefix(), which raises on a colonless string.
+            # EFO occasionally has xrefs that are just strings, not IRIs or CURIEs (see the
+            # colon check a few lines below) — this must tolerate that, not reject it.
             if other_id.split(":", 1)[0] in excluded_target_prefixes:
                 logger.debug(f"Skipping excluded-prefix xref '{other_id}' in EFOgraph.get_xrefs({iri})")
                 continue
