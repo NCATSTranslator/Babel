@@ -22,7 +22,7 @@ import json
 
 import pytest
 
-from src.model.clique_diff import ExpandedClique, MergedClique, SourceImpactDiff
+from src.model.glom_diff import ExpandedClique, MergedClique, SourceImpactDiff
 from src.reports.source_impact import LookupContext, prefix_survives
 from src.reports.source_impact_details import (
     write_modified_cliques_csv,

@@ -1,6 +1,6 @@
 """Primitives for diffing Babel clique state with and without a given source.
 
-The CLI in ``src/cli/source_impact_report.py`` is the main consumer. The "synthetic"
+The CLI in ``src/tools/source_impact_report/cli.py`` is the main consumer. The "synthetic"
 comparison mode calls a semantic-type-specific compute function (e.g.
 ``anatomy.compute_cliques_for_impact_report``) twice — once with the new source's
 intermediate files excluded, once with them included — and then calls ``diff_cliques``

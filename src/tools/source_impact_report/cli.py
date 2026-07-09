@@ -32,7 +32,7 @@ from src.categories import (
     GROSS_ANATOMICAL_STRUCTURE,
     PHENOTYPIC_FEATURE,
 )
-from src.model.clique_diff import (
+from src.model.glom_diff import (
     SourceImpactDiff,
     cliques_from_compendia,
     diff_cliques,

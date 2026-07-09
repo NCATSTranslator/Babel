@@ -1,4 +1,4 @@
-"""Unit tests for src/model/clique_diff.py.
+"""Unit tests for src/model/glom_diff.py.
 
 Exercises diff_cliques against hand-built before/after glom-dict states.
 
@@ -19,7 +19,7 @@ Utilities (cliques_set, cliques_from_compendia):
 
 import pytest
 
-from src.model.clique_diff import (
+from src.model.glom_diff import (
     cliques_from_compendia,
     cliques_set,
     diff_cliques,
