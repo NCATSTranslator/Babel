@@ -21,7 +21,7 @@
 # patch-ids are collected relative to BASE for every branch.
 #
 # Example:
-#   RELEASE_BRANCH=babel-1.18 tools/commit-split/verify-completeness.sh \
+#   RELEASE_BRANCH=babel-1.18 scripts/commit-split/verify-completeness.sh \
 #       split/duckdb-memory-tuning split/download-robustness \
 #       split/babel-errors-tool split/unichem-chemicals \
 #       split/leftover-umls-types split/drugchemical-concord-validation

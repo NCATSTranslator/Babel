@@ -244,7 +244,7 @@ to open a separate PR for each one. By the time the run is healthy, the release 
 holds a long, date-interleaved mix of trivial tweaks and substantial changes.
 
 Before that branch is merged, it is worth separating the two kinds of change.
-The scripts in [`../tools/commit-split`](../tools/commit-split) help verify the
+The scripts in [`../scripts/commit-split`](../scripts/commit-split) help verify the
 split is complete and lossless; see that directory's `README.md`.
 
 ### Which commits stay on the release branch

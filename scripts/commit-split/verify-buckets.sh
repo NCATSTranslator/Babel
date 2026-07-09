@@ -17,7 +17,7 @@
 # map file, which normally lives in the gitignored data/ scratch dir.
 #
 # Example:
-#   RELEASE_BRANCH=babel-1.18 tools/commit-split/verify-buckets.sh
+#   RELEASE_BRANCH=babel-1.18 scripts/commit-split/verify-buckets.sh
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 

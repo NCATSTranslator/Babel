@@ -32,7 +32,7 @@ unassigned, no out-of-range typo, no duplicate) and writes a chronological
 `classification.tsv` audit file plus per-bucket counts. Run this first.
 
 ```bash
-RELEASE_BRANCH=babel-1.18 tools/commit-split/verify-buckets.sh
+RELEASE_BRANCH=babel-1.18 scripts/commit-split/verify-buckets.sh
 ```
 
 ## verify-completeness.sh
@@ -43,7 +43,7 @@ commit's `git patch-id --stable` appears in exactly one branch, and every
 (including any branch stacked on another theme branch).
 
 ```bash
-RELEASE_BRANCH=babel-1.18 tools/commit-split/verify-completeness.sh \
+RELEASE_BRANCH=babel-1.18 scripts/commit-split/verify-completeness.sh \
     split/duckdb-memory-tuning split/download-robustness \
     split/babel-errors-tool split/unichem-chemicals \
     split/leftover-umls-types split/drugchemical-concord-validation
