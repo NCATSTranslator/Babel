@@ -32,11 +32,11 @@ from src.categories import (
     GROSS_ANATOMICAL_STRUCTURE,
     PHENOTYPIC_FEATURE,
 )
+from src.model.compendium_diff import load_compendium
 from src.model.glom_diff import (
     SourceImpactDiff,
     cliques_from_compendia,
     diff_cliques,
-    load_compendium,
 )
 from src.model.source import SourceContribution, discover_source, scan_concords_for_curies
 from src.reports.source_impact import (

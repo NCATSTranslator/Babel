@@ -11,16 +11,21 @@ A clique is represented as a ``frozenset[str]`` of CURIEs. The glom output (used
 clique's mutable set; ``cliques_set`` collapses that to the deduplicated frozenset view.
 
 The "remote" comparison mode reads JSONL compendia from a previous Babel build and uses
-``cliques_from_compendia`` to derive the same frozenset view from disk.
+``cliques_from_compendia`` to derive the same frozenset view from disk, via
+``compendium_diff.load_compendium``.
+
+Not to be confused with :mod:`src.model.compendium_diff`, the *build-vs-build* clique diff
+behind ``babel-clique-diff``: that one compares two finished builds' compendia, where this
+one compares two glom states from the same build with and without one source.
 """
 
 from __future__ import annotations
 
 import pathlib
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 
-import jsonlines
+from src.model.compendium_diff import load_compendium
 
 # GlomDict is the dict produced by babel_utils.glom() and consumed by build_compendia.
 # Every CURIE key maps to its clique's *shared mutable set* — many keys point to the exact
@@ -186,12 +191,6 @@ def diff_cliques(
         before_clique_count=before_clique_count,
         after_clique_count=len(after_cliques),
     )
-
-
-def load_compendium(path: pathlib.Path | str) -> Iterator[dict]:
-    """Stream clique dicts from a JSONL compendium file."""
-    with jsonlines.open(path) as reader:
-        yield from reader
 
 
 def cliques_from_compendia(paths: Iterable[pathlib.Path | str]) -> frozenset[frozenset[str]]:

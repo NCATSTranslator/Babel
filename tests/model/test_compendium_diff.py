@@ -1,21 +1,14 @@
-"""
-Unit tests for tools/clique_diff/diff.py — the build-vs-build compendium clique diff.
+"""Unit tests for src/model/compendium_diff.py — the build-vs-build compendium clique diff.
 
-Sections:
-
-- ``# --- Loading ---`` covers JSONL parsing and the leader/member extraction.
-- ``# --- Diffing ---`` covers the five destination kinds
-  (kept/leader_changed/regrouped/moved/dropped), the "unchanged clique is omitted" rule, the
-  nested ``clique_count`` breakdown, and that a wholly new after-clique shows only in the count
-  delta.
-- ``# --- CLI ---`` covers the self-describing ``about`` block written by ``main()``.
+The CLI wrapper that drives these functions is tested separately in
+``tests/tools/clique_diff/test_cli.py``.
 """
 
 import json
 
 import pytest
 
-from tools.clique_diff.diff import diff_builds, diff_compendium, load_cliques
+from src.model.compendium_diff import diff_builds, diff_compendium, load_cliques, load_compendium
 
 
 def _clique(*curies, biolink_type="biolink:Disease"):
@@ -33,6 +26,25 @@ def _write_jsonl(path, cliques):
 
 
 # --- Loading ---
+
+
+@pytest.mark.unit
+def test_load_compendium_streams_records(tmp_path):
+    """load_compendium should yield one dict per JSONL record, in file order."""
+    path = _write_jsonl(tmp_path / "Disease.txt", [_clique("MONDO:1"), _clique("MONDO:2")])
+    assert [c["identifiers"][0]["i"] for c in load_compendium(path)] == ["MONDO:1", "MONDO:2"]
+
+
+@pytest.mark.unit
+def test_load_compendium_skips_blank_lines(tmp_path):
+    """Blank lines are not records and must be skipped, not raised on.
+
+    load_compendium is the single compendium reader shared with ``glom_diff``; a trailing
+    newline or a blank separator line in a compendium must not crash either consumer.
+    """
+    path = tmp_path / "Disease.txt"
+    path.write_text(json.dumps(_clique("MONDO:1")) + "\n\n" + json.dumps(_clique("MONDO:2")) + "\n\n")
+    assert len(list(load_compendium(path))) == 2
 
 
 @pytest.mark.unit
@@ -56,10 +68,14 @@ def test_load_cliques_extracts_leader_and_members(tmp_path):
 
 @pytest.mark.unit
 def test_load_cliques_rejects_empty_identifiers(tmp_path):
-    """A clique line with no identifiers is malformed and must raise ValueError."""
+    """A clique line with no identifiers is malformed and must raise ValueError.
+
+    The message should name the offending record's ordinal so a bad line in a
+    multi-million-record compendium can be located.
+    """
     path = tmp_path / "Disease.txt"
-    path.write_text(json.dumps({"identifiers": []}) + "\n")
-    with pytest.raises(ValueError, match="no identifiers"):
+    path.write_text(json.dumps(_clique("MONDO:1")) + "\n" + json.dumps({"identifiers": []}) + "\n")
+    with pytest.raises(ValueError, match="clique 2 has no identifiers"):
         load_cliques(path)
 
 
@@ -164,49 +180,3 @@ def test_new_after_clique_shows_only_in_count_delta(tmp_path):
         "diff": 1,
         "diff_percent": 100.0,
     }
-
-
-# --- CLI ---
-
-
-@pytest.mark.unit
-def test_cli_writes_self_describing_summary(tmp_path):
-    """main() should wrap the per-compendium summary in an ``about`` block carrying the
-    baseline labels, note, and compared files, so the JSON explains its own provenance.
-    """
-    from tools.clique_diff.diff import main
-
-    bdir, adir = tmp_path / "before", tmp_path / "after"
-    bdir.mkdir()
-    adir.mkdir()
-    _write_jsonl(bdir / "Disease.txt", [_clique("MONDO:1", "MEDDRA:9")])
-    _write_jsonl(adir / "Disease.txt", [_clique("MONDO:1", "MEDDRA:9")])
-    out_json = tmp_path / "summary.json"
-    main(
-        [
-            "--before",
-            str(bdir),
-            "--after",
-            str(adir),
-            "--files",
-            "Disease.txt",
-            "--out-csv",
-            str(tmp_path / "diff.csv"),
-            "--out-json",
-            str(out_json),
-            "--before-label",
-            "main (no MP)",
-            "--after-label",
-            "branch",
-            "--note",
-            "isolates X",
-        ]
-    )
-    out = json.loads(out_json.read_text())
-    assert out["about"] == {
-        "before": "main (no MP)",
-        "after": "branch",
-        "note": "isolates X",
-        "files": ["Disease.txt"],
-    }
-    assert "Disease.txt" in out["compendia"]

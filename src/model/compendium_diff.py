@@ -1,63 +1,72 @@
-"""Compare the cliques in two Babel compendium builds and report what changed.
+"""Primitives for diffing the cliques of two finished Babel compendium builds.
 
 This is a *build-vs-build* clique diff: given the same compendium file(s) from two
-different builds (``--before`` and ``--after``), it reports which cliques split,
-merged, or otherwise changed membership, and which CURIEs moved between cliques.
+different builds, it reports which cliques split, merged, or otherwise changed
+membership, and which CURIEs moved between cliques or left the output entirely.
 
-It is deliberately distinct from the source-impact report
-(``src/cli/source_impact_report.py``):
+Distinct from :mod:`src.model.glom_diff`, which is the other clique diff in this package:
 
-- The source-impact report answers "what does adding *source X* do?" by re-glomming
-  the intermediate ids/concords with vs. without one source over the *same* code.
-- This tool answers "how did the cliques change between *build A* and *build B*?" — the
-  inputs are the same but the code/config (or upstream data) differs. It operates on the
-  finished JSONL compendia rather than in-memory glom state, so it can compare any two
-  builds — e.g. a local build against a published ``stars.renci.org`` build — without
-  re-running glom. That makes it useful for validating any glom-logic change
-  (close-match handling, ``unique_prefixes``, overuse filtering) or as a release
-  regression check.
+- ``glom_diff`` answers "what does adding *source X* do?" It diffs in-memory glom state
+  (``dict[curie, set[curie]]``) from a re-glom with vs. without one source, over the same
+  code. It is what the source-impact report is built on.
+- This module answers "how did the cliques change between *build A* and *build B*?" The
+  inputs are the same but the code, config, or upstream data differs. It reads the finished
+  JSONL compendia rather than glom state, so it can compare any two builds — e.g. a local
+  build against a published ``stars.renci.org`` build — without re-running glom. That makes
+  it useful for validating any glom-logic change (close-match handling, ``unique_prefixes``,
+  overuse filtering) or as a release regression check.
 
-A clique is identified by its leader (the preferred identifier, ``identifiers[0].i``).
-Two cliques are "the same" when their leader and member-CURIE set are both unchanged. For
-each before-clique whose leader or membership changed, the tool partitions its members by
-where they ended up in the after build and emits one row per destination.
+Both share :func:`load_compendium`, which lives here because compendium I/O is the lower
+layer; ``glom_diff`` imports it. See `#759 <https://github.com/NCATSTranslator/Babel/issues/759>`_
+for the eventual consolidation of all compendium reading and writing.
 
-Output:
+A clique is identified by its leader (the preferred identifier, ``identifiers[0].i``). Two
+cliques are "the same" when their leader and member-CURIE set are both unchanged. For each
+before-clique whose leader or membership changed, :func:`diff_compendium` partitions its
+members by where they ended up in the after build and emits one record per destination.
 
-- ``--out-csv`` (required): one row per (changed before-clique, after-destination) group.
-  Columns: ``compendium, before_leader, before_leader_label, before_leader_type,
-  before_size, destination, destination_kind, destination_type, after_size, member_count,
-  example_members``. ``destination_kind`` is one of:
-  ``kept`` (members still under the same leader), ``leader_changed`` (the whole clique's
-  membership is unchanged but its preferred identifier was reassigned), ``regrouped``
-  (members were actually redistributed to a different after-clique in the same
-  compendium), ``moved`` (the CURIE was retyped into a different compared compendium), or
-  ``dropped`` (the CURIE is absent from every compared after compendium — it left the
-  output entirely). Deterministically sorted. ``before_leader_label``/``before_leader_type``
-  are the before-build label and Biolink type of the clique leader; ``destination_type`` is
-  the Biolink type the grouped members ended up as in the after build (the after-clique's
-  type for real destinations, the distinct types of the members for ``moved``, empty for
-  ``dropped``); ``example_members`` lists up to five members as ``CURIE "label"`` using
-  before-build labels.
-- ``--out-json`` (optional): a self-describing summary, ``{"about": …, "compendia": …}``.
-  ``about`` records the two builds' labels (``--before-label``/``--after-label``, defaulting
-  to the directory paths), a free-text ``note`` (``--note``), and the compared ``files`` — so a
-  reader never has to guess which build was before vs after or what the diff isolates.
-  ``compendia`` maps each filename to its counts: a nested ``clique_count``
-  (``before``/``after``/``diff``/``diff_percent``) plus ``changed_before_cliques``,
-  ``dropped_member_count`` (the headline regression signal), ``moved_member_count``,
-  ``regrouped_member_count``, and ``leader_changed_count``. NOTE: a clique that exists only in
-  the after build (no before counterpart — e.g. a wholly new MP-only clique) is not a change
-  row, since the diff iterates before-cliques; such additions surface only as a positive
-  ``clique_count.diff``, which is why a build adding thousands of cliques can show few rows.
+The CLI wrapper is :mod:`src.tools.clique_diff.cli` (``babel-clique-diff``); see
+``docs/tools/CliqueDiff.md`` for the rendered output and its caveats.
 """
 
-import argparse
-import csv
+from __future__ import annotations
+
 import heapq
 import json
+import pathlib
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from pathlib import Path
+
+# The column order of the change CSV, and equivalently the keys of every record produced by
+# ``diff_compendium`` (plus ``compendium``, which ``diff_builds`` adds). Defined here rather
+# than in the CLI because it is the record schema, not a presentation choice.
+CSV_COLUMNS = [
+    "compendium",
+    "before_leader",
+    "before_leader_label",
+    "before_leader_type",
+    "before_size",
+    "destination",
+    "destination_kind",
+    "destination_type",
+    "after_size",
+    "member_count",
+    "example_members",
+]
+
+# Sentinel destinations, used where a real after-clique leader would otherwise go. Both are
+# parenthesised so they can never collide with a CURIE.
+DROPPED = "(dropped)"
+MOVED = "(moved-to-other-compendium)"
+
+
+def load_compendium(path: pathlib.Path | str) -> Iterator[dict]:
+    """Stream clique dicts from a JSONL compendium file, skipping blank lines."""
+    with open(path) as inf:
+        for line in inf:
+            line = line.strip()
+            if line:
+                yield json.loads(line)
 
 
 @dataclass
@@ -87,37 +96,29 @@ def load_cliques(path, need_curie_to_leader=True):
 
     The leader is ``identifiers[0].i`` (the preferred identifier). Each identifier also
     carries a label (``l``) and each clique a Biolink ``type``, both captured for CSV
-    annotation. Raises ``ValueError`` if a line has no identifiers. Pass
-    ``need_curie_to_leader=False`` to skip populating ``curie_to_leader`` when only clique
-    membership is needed (e.g. the "before" side of a build-vs-build diff, which never looks
-    up an after-leader) — for a large compendium that dict has one entry per member CURIE, so
-    skipping it roughly halves transient allocation. The returned object still unpacks as the
-    historical ``(cliques, curie_to_leader)`` 2-tuple.
+    annotation. Raises ``ValueError`` if a clique has no identifiers, naming the offending
+    record's ordinal. Pass ``need_curie_to_leader=False`` to skip populating
+    ``curie_to_leader`` when only clique membership is needed (e.g. the "before" side of a
+    build-vs-build diff, which never looks up an after-leader) — for a large compendium that
+    dict has one entry per member CURIE, so skipping it roughly halves transient allocation.
+    The returned object still unpacks as the historical ``(cliques, curie_to_leader)``
+    2-tuple.
     """
     loaded = LoadedCompendium()
-    with open(path) as inf:
-        for lineno, line in enumerate(inf, 1):
-            line = line.strip()
-            if not line:
-                continue
-            clique = json.loads(line)
-            identifiers = clique.get("identifiers") or []
-            if not identifiers:
-                raise ValueError(f"{path}:{lineno}: clique has no identifiers")
-            members = frozenset(i["i"] for i in identifiers)
-            leader = identifiers[0]["i"]
-            loaded.cliques[leader] = members
-            loaded.clique_type[leader] = clique.get("type") or ""
-            for identifier in identifiers:
-                loaded.labels[identifier["i"]] = identifier.get("l") or ""
-            if need_curie_to_leader:
-                for curie in members:
-                    loaded.curie_to_leader[curie] = leader
+    for record_number, clique in enumerate(load_compendium(path), 1):
+        identifiers = clique.get("identifiers") or []
+        if not identifiers:
+            raise ValueError(f"{path}: clique {record_number} has no identifiers")
+        members = frozenset(i["i"] for i in identifiers)
+        leader = identifiers[0]["i"]
+        loaded.cliques[leader] = members
+        loaded.clique_type[leader] = clique.get("type") or ""
+        for identifier in identifiers:
+            loaded.labels[identifier["i"]] = identifier.get("l") or ""
+        if need_curie_to_leader:
+            for curie in members:
+                loaded.curie_to_leader[curie] = leader
     return loaded
-
-
-DROPPED = "(dropped)"
-MOVED = "(moved-to-other-compendium)"
 
 
 def _format_members(curies, labels):
@@ -233,8 +234,8 @@ def diff_builds(before_dir, after_dir, filenames):
     all_after_curies = set()
     all_after_types = {}
     for fname in filenames:
-        before_path = Path(before_dir) / fname
-        after_path = Path(after_dir) / fname
+        before_path = pathlib.Path(before_dir) / fname
+        after_path = pathlib.Path(after_dir) / fname
         if not before_path.exists() or not after_path.exists():
             raise FileNotFoundError(f"Missing compendium {fname} in before ({before_path}) or after ({after_path})")
         before_by_file[fname] = load_cliques(before_path, need_curie_to_leader=False)
@@ -279,82 +280,3 @@ def diff_builds(before_dir, after_dir, filenames):
             "leader_changed_count": sum(1 for r in records if r["destination_kind"] == "leader_changed"),
         }
     return rows, summary
-
-
-CSV_COLUMNS = [
-    "compendium",
-    "before_leader",
-    "before_leader_label",
-    "before_leader_type",
-    "before_size",
-    "destination",
-    "destination_kind",
-    "destination_type",
-    "after_size",
-    "member_count",
-    "example_members",
-]
-
-
-def write_csv(rows, out_csv):
-    """Write change records to ``out_csv`` as a deterministically-ordered CSV.
-
-    Forces LF line endings (``lineterminator="\\n"``) regardless of platform so the
-    output is byte-stable when committed or diffed.
-    """
-    with open(out_csv, "w", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=CSV_COLUMNS, lineterminator="\n")
-        writer.writeheader()
-        for r in sorted(rows, key=lambda r: (r["compendium"], r["before_leader"], r["destination"])):
-            writer.writerow({k: r[k] for k in CSV_COLUMNS})
-
-
-def main(argv=None):
-    parser = argparse.ArgumentParser(description="Diff the cliques in two Babel compendium builds.")
-    parser.add_argument("--before", required=True, help="Directory of the baseline build's compendia.")
-    parser.add_argument("--after", required=True, help="Directory of the comparison build's compendia.")
-    parser.add_argument(
-        "--files",
-        required=True,
-        nargs="+",
-        help="Compendium filenames to compare (e.g. Disease.txt PhenotypicFeature.txt).",
-    )
-    parser.add_argument("--out-csv", required=True, help="Path to write the per-clique change CSV.")
-    parser.add_argument("--out-json", help="Optional path to write the per-compendium summary JSON.")
-    # Baseline labels make the summary self-describing: a reader shouldn't have to know which
-    # build was --before vs --after (e.g. "main (no MP)" vs "mp-hp-disjoint"). Default to the
-    # directory paths so the provenance is never blank.
-    parser.add_argument("--before-label", help="Human label for the --before build (defaults to its path).")
-    parser.add_argument("--after-label", help="Human label for the --after build (defaults to its path).")
-    parser.add_argument("--note", help="Free-text note recorded in the summary (e.g. what change this diff isolates).")
-    args = parser.parse_args(argv)
-
-    rows, summary = diff_builds(args.before, args.after, args.files)
-    write_csv(rows, args.out_csv)
-    if args.out_json:
-        out = {
-            "about": {
-                "before": args.before_label or args.before,
-                "after": args.after_label or args.after,
-                "note": args.note or "",
-                "files": list(args.files),
-            },
-            "compendia": summary,
-        }
-        with open(args.out_json, "w") as fh:
-            json.dump(out, fh, indent=2, sort_keys=True)
-            fh.write("\n")
-
-    total_changed = sum(s["changed_before_cliques"] for s in summary.values())
-    total_dropped = sum(s["dropped_member_count"] for s in summary.values())
-    print(f"Wrote {len(rows)} change rows across {len(summary)} compendia ({total_changed} changed before-cliques).")
-    for fname, s in sorted(summary.items()):
-        print(
-            f"  {fname}: {s['changed_before_cliques']} changed cliques, "
-            f"{s['dropped_member_count']} dropped members, {s['moved_member_count']} moved"
-        )
-    print(f"Total members dropped from the compared compendia: {total_dropped}")
-
-
-if __name__ == "__main__":
-    main()
