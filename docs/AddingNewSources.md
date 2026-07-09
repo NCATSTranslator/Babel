@@ -128,8 +128,9 @@ Preferred labels are in `babel_downloads/<PREFIX>/labels` (tab-separated `CURIE\
 
 The synthetic comparison mode needs a per-pipeline compute hook. Anatomy is wired via
 `anatomy.compute_cliques_for_impact_report`. For other pipelines, split that pipeline's
-`build_compendia()` into a "compute cliques in memory" helper and a "write compendia"
-wrapper, then register the helper in `PIPELINE_CONFIG` in `src/cli/source_impact_report.py`.
+`build_compendia()` into a "compute cliques in memory" helper and a "write compendia" wrapper, then
+register the helper in `PIPELINE_CONFIG` in `src/tools/source_impact_report/cli.py` (see
+[docs/tools/SourceImpactReport.md](tools/SourceImpactReport.md)).
 
 The report also loads preferred labels for each prefix listed under `<pipeline>_prefixes` in
 `config.yaml` to enrich the clique samples. Adding the new prefix there (step 5) is therefore
@@ -347,14 +348,14 @@ Two things worth knowing about that gap:
 
 When a change *restructures existing* cliques — a new policy like keeping two prefixes disjoint, a
 concord-filtering or close-match change, or any source whose addition pulls members back out — use
-[`babel-clique-diff`](tools/README.md) instead. It is also the only option for changes that are not
-"add a source" at all: with no source to exclude, synthetic mode cannot model them even in
-principle. It diffs two finished compendium builds and
-reports, per changed before-clique, a `destination_kind` for each group of members: `kept`
-(still under the same leader), `leader_changed` (identical membership, only the preferred
-identifier was reassigned), `regrouped` (members redistributed to a different leader within
-the same compendium file — the split case), `moved` (the CURIE was retyped into a *different*
-compared compendium file), or `dropped` (gone from every compared after compendium):
+[`babel-clique-diff`](tools/CliqueDiff.md) instead. It is also the only option for changes that are
+not "add a source" at all: with no source to exclude, synthetic mode cannot model them even in
+principle. It diffs two finished compendium builds and reports, per changed before-clique, a
+`destination_kind` for each group of members: `kept` (still under the same leader), `leader_changed`
+(identical membership, only the preferred identifier was reassigned), `regrouped` (members
+redistributed to a different leader within the same compendium file — the split case), `moved` (the
+CURIE was retyped into a *different* compared compendium file), or `dropped` (gone from every
+compared after compendium):
 
 ```bash
 uv run babel-clique-diff \
@@ -421,6 +422,7 @@ these in the `dropped` column is expected; a large number suggests an extraction
 
 - `CLAUDE.md` "Adding a new data source" — short, command-focused summary.
 - `docs/sources/EMAPA/` — the worked example for an OBO-from-UberGraph source.
-- `src/cli/source_impact_report.py` — CLI implementation; `PIPELINE_CONFIG` is the registry.
-- `src/model/source.py` and `src/model/clique_diff.py` — shared primitives.
+- `src/tools/source_impact_report/cli.py` — CLI implementation; `PIPELINE_CONFIG` is the registry.
+  See [docs/tools/SourceImpactReport.md](tools/SourceImpactReport.md).
+- `src/model/source.py` and `src/model/glom_diff.py` — shared primitives.
 - `src/createcompendia/anatomy.py` — template for the compute helper / writer split.

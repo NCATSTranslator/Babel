@@ -46,12 +46,12 @@ Tests use four marks: `unit` (fast, offline), `network` (requires internet, opt-
 skipped by default.
 
 Memory-hungry tests also carry a parametrized `min_memory_gb(n)` guard (registered in
-`pyproject.toml`, enforced in `tests/conftest.py`) that auto-skips them on machines with less
-than `n` GiB of RAM. For example the ChEMBL pipeline tests bulk-load a ~16 GB TTL into an
-in-memory `pyoxigraph.Store` and need ~120–150 GiB — far more than the on-disk size, because an
-indexed in-memory triple store expands roughly 8–10×. To size a new rule's `mem=` resource or a
-test's `min_memory_gb` threshold empirically, use `tools/memory/estimate_rdf_load_memory.py` (see
-`tools/memory/README.md`): it streams an RDF dump into a store, samples RSS, and extrapolates the
+`pyproject.toml`, enforced in `tests/conftest.py`) that auto-skips them on machines with less than
+`n` GiB of RAM. For example the ChEMBL pipeline tests bulk-load a ~16 GB TTL into an in-memory
+`pyoxigraph.Store` and need ~120–150 GiB — far more than the on-disk size, because an indexed
+in-memory triple store expands roughly 8–10×. To size a new rule's `mem=` resource or a test's
+`min_memory_gb` threshold empirically, use `src/tools/memory/estimate_rdf_load_memory.py` (see
+`docs/tools/Memory.md`): it streams an RDF dump into a store, samples RSS, and extrapolates the
 full-load peak, so it works even on a machine far smaller than the eventual requirement (most
 accurate on Linux — macOS memory compression understates the result).
 
@@ -123,6 +123,23 @@ semantic type plus data collection, reports, exports, and DuckDB.
 - **`util.py`** — Logging, config loading, Biolink Model Toolkit (bmt) access.
 - **`exporters/`** — Output format handlers (KGX, Parquet, JSONL).
 - **`reports/`**, **`synonyms/`**, **`metadata/`** — Report generation, synonym files, provenance.
+- **`model/`** — Shared data-structure logic: `cliques.py` (the `glom_from_files` skeleton),
+  `source.py`, `glom_diff.py` (source-impact clique diff), `compendium_diff.py` (build-vs-build
+  clique diff, and the shared `load_compendium`).
+- **`tools/`** — Developer tools, each a thin CLI frontend (see below). Not part of the pipeline.
+
+### Developer tools (`src/tools/`)
+
+Every tool lives in `src/tools/<tool>/` with a `cli.py` exposing `main()`, wired up in
+`[project.scripts]`. **A tool is a thin CLI frontend**: logic that models Babel data — cliques,
+compendia, concords, ids — belongs in `src/` beside the code it models, so a second tool or a
+pipeline rule can reuse it. A tool that reimplements pipeline functionality is a bug.
+`babel-clique-diff` is the pattern: the diff is `src/model/compendium_diff.py`, the CLI is sixty
+lines over it. `slurm` and `memory` are documented exceptions — they model SLURM and RDF
+artifacts, not Babel data. Bash invoked by path lives in `scripts/`, not here.
+
+`docs/tools/README.md` is the index and the full convention; each tool has a page beside it. Read
+it before adding a tool.
 
 ### Key Patterns
 
@@ -293,7 +310,7 @@ the report exists to catch:
   the prefix filtering above would drop. When extending the report to a new semantic type,
   add a `compute_cliques_for_impact_report` helper to that type's `createcompendia/*.py`
   module (mirroring `anatomy.py`) and register it in `PIPELINE_CONFIG` in
-  `src/cli/source_impact_report.py`. A `PIPELINE_CONFIG` entry needs **more than just
+  `src/tools/source_impact_report/cli.py`. A `PIPELINE_CONFIG` entry needs **more than just
   `compute_fn`**: also supply `clique_classifier` (a `classify_*_clique` callable returning the
   clique's biolink type), `biolink_types` (the types whose `id_prefixes` order the report uses
   to pick the preferred CURIE), and `compendium_prefixes` (for loading labels). Omit these and
@@ -307,7 +324,7 @@ the report exists to catch:
   disappear. When a change pulls members back out (a disjointness policy, a concord/close-match
   change), diff two finished compendium builds with
   `babel-clique-diff --before <dir> --after <dir> --files <files…> --out-csv … --out-json …`
-  (`tools/clique_diff/diff.py`): it reports per before-clique whether members were `kept`,
+  (`src/model/compendium_diff.py`): it reports per before-clique whether members were `kept`,
   `regrouped` (split), `moved` (retyped to another file), or `dropped` (deleted). Build both sides
   from the same cached intermediates so the diff isolates the one change (it then doubles as a
   completeness check). Commit artifacts under `docs/sources/<SOURCE>/<change>/` (or
@@ -342,16 +359,16 @@ same wrapper so the impact report's reglom provably matches the real build (anat
 this). If a compendium can't route its real build through the wrapper, add a test that
 keeps the two clique computations in sync instead.
 
-### Analyzing a SLURM run (`tools/slurm`)
+### Analyzing a SLURM run (`src/tools/slurm`)
 
-`tools/slurm` analyzes a (possibly partial) Snakemake-on-SLURM run; see `docs/tools/README.md` and
-the per-tool pages under `docs/tools/`. `uv run babel-slurm-errors <version>` (the successor to the
-old `tools/babel-errors.py`) aggregates failing-rule logs and prints a
-completed/failed/still-running job summary, to decide what to re-run.
+`src/tools/slurm` analyzes a (possibly partial) Snakemake-on-SLURM run; see `docs/tools/README.md`
+and the per-tool pages under `docs/tools/`. `uv run babel-slurm-errors <version>` aggregates
+failing-rule logs and prints a completed/failed/still-running job summary, to decide what to
+re-run.
 `uv run babel-slurm-resources <run-dir>` joins actual usage (the `benchmark:` TSVs — authoritative,
 since Hatteras `sacct` reports empty `MaxRSS`/`TotalCPU`) against requested resources and recommends
 right-sized `mem`/`cpus`, flagging rules that need an explicit override before the cluster default
-can be lowered. Both subcommands share `tools/slurm/parse.py`. Note that
+can be lowered. Both subcommands share `src/tools/slurm/parse.py`. Note that
 `reports/slurm/slurm_efficiency_reports/` is a *directory* that accumulates one
 `efficiency_report_<uuid>.csv` shard per Snakemake restart (each covering only that invocation's
 jobs); the analyzer merges them all, so copy the whole directory when archiving a run.

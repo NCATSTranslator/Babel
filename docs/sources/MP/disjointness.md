@@ -42,7 +42,7 @@ aborting the build.
 ## Impact
 
 This is measured as the **overall effect of this PR on Babel**: a
-[`babel-clique-diff`](../../tools/README.md) of a `main` build (Babel *without* this PR — no MP)
+[`babel-clique-diff`](../../tools/CliqueDiff.md) of a `main` build (Babel *without* this PR — no MP)
 against this branch (MP added, kept disjoint). Both sides were built the same day from the same
 cached `babel_downloads`, so the UberGraph-derived concords match and the only difference is this
 PR's code. See [`disjointness/clique-diff.csv`](disjointness/clique-diff.csv) and

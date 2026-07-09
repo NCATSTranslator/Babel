@@ -140,7 +140,11 @@ suite (cadence, runner choice, what to automate), see [`docs/Testing.md`](Testin
 
 ### Small, practical improvements
 
-#### 1. Proposed per-compendium assessment script (`src/scripts/assess_compendium.py`, not yet implemented)
+The proposals below are new developer tools. Before writing one, read
+[tools/README.md](tools/README.md): a tool is a thin CLI in `src/tools/<tool>/cli.py`, and the
+logic it drives belongs in `src/` beside the code it models, so the next tool can reuse it.
+
+#### 1. Proposed per-compendium assessment tool (`src/tools/assess_compendium/`, not yet implemented)
 
 A standalone CLI script that would take a compendium JSONL file as input and print a human-readable
 summary: number of cliques, clique size distribution, identifier prefix breakdown, large-clique
@@ -156,23 +160,21 @@ For example, if such a CLI were added, you might run:
 uv run assess-compendium babel_outputs/compendia/AnatomicalEntity.txt
 ```
 
-#### 2. Proposed compendium diff script (`src/scripts/diff_compendia.py`, not yet implemented)
+#### 2. Compendium diff — implemented as `babel-clique-diff`
 
-A CLI script that compares two compendium files and reports:
-
-- Cliques that appear in one but not the other.
-- Cliques whose membership changed (identifiers added or removed).
-- Cliques whose preferred identifier (clique leader) changed.
-- Summary statistics: total cliques gained/lost, total identifiers gained/lost.
-
-This would immediately tell you whether a code change had the intended effect when you copy a
-before/after snapshot.
+This one exists. `babel-clique-diff` compares the compendia of two builds and reports cliques
+whose membership changed, whose preferred identifier (leader) changed, that were split apart, and
+whose members were dropped from the output entirely — plus per-compendium summary statistics. It
+tells you whether a code change had the intended effect when you have a before/after snapshot.
 
 ```bash
-uv run diff-compendia old/AnatomicalEntity.txt new/AnatomicalEntity.txt
+uv run babel-clique-diff --before old/ --after new/ --files AnatomicalEntity.txt \
+    --out-csv diff.csv --out-json summary.json
 ```
 
-#### 3. Proposed CURIE lookup script (`src/scripts/lookup_curie.py`, not yet implemented)
+See [tools/CliqueDiff.md](tools/CliqueDiff.md).
+
+#### 3. Proposed CURIE lookup tool (`src/tools/lookup_curie/`, not yet implemented)
 
 A CLI script that searches all compendium files in a directory for a given CURIE and prints the
 full clique it belongs to. Useful for spot-checking whether a specific identifier was correctly
@@ -183,7 +185,7 @@ merged.
 uv run lookup-curie MESH:D014867 --compendia-dir babel_outputs/compendia/
 ```
 
-#### 4. Proposed concord inspector script (`src/scripts/inspect_concord.py`, not yet implemented)
+#### 4. Proposed concord inspector tool (`src/tools/inspect_concord/`, not yet implemented)
 
 A CLI script that reads one or more concord files (the `CURIE1 \t relation \t CURIE2` files in
 `intermediate/*/concords/`) and shows statistics: which prefixes appear, how many cross-references
@@ -195,7 +197,7 @@ generation step is working before building the full compendium.
 uv run inspect-concord babel_outputs/intermediate/chemicals/concords/CHEBI
 ```
 
-#### 5. Proposed Snakemake dependency checker (`src/scripts/check_prerequisites.py`, not yet implemented)
+#### 5. Proposed Snakemake dependency checker (`src/tools/check_prerequisites/`, not yet implemented)
 
 A script that reads `config.yaml` and checks which intermediate and download files are present on
 disk, printing a table of what is available versus missing. This would tell you immediately which
