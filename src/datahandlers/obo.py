@@ -131,13 +131,6 @@ def pull_uber_synonyms(jsonloutputfile, prefix_synonyms_files_to_generate):
                 outf.write(f"{curie}\t{predicate}\t{synonym}\n")
 
 
-def pull_uber(expected_ontologies, icrdf_filename):
-    pull_uber_icRDF(icrdf_filename)
-    pull_uber_labels(expected_ontologies)
-    pull_uber_descriptions(expected_ontologies)
-    pull_uber_synonyms(expected_ontologies)
-
-
 def write_obo_ids(irisandtypes, outfile, order, exclude=[]):
     uber = UberGraph()
     iris_to_types = defaultdict(set)
