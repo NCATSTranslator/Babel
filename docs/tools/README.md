@@ -121,7 +121,7 @@ counts: a nested `clique_count` (`before`/`after`/`diff`/`diff_percent`) plus
 
 Note that we are deliberately not interested in additions that don't modify an existing clique:
 this tool is primarily meant to track how a software change changes the outputs, not whether new
-additions were included. These *will* be counted in the overall counts, but *will not* be included
+additions were included. Additions *will* be counted in the summary JSON, but *will not* be included
 in the change rows (we may add an optional `--include-additions` options in the future to support
 this if needed). The `source-impact-report` is really interested in new additions and tracks those.
 See `docs/sources/MP/disjointness.md` for a worked example of this exact reconciliation.
