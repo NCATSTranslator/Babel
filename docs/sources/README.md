@@ -10,6 +10,11 @@ One directory per data source, named by the source's CURIE prefix (the same pref
 `src/prefixes.py` and in `babel_downloads/<PREFIX>/`). A source directory may contain multiple
 files when there is enough to say (ingestion, synonyms, known issues, etc.).
 
+Some sources have no CURIE prefix of their own — Ubergraph, for instance, is a merged triplestore
+serving identifiers from many prefixes. Name those directories after the source in its own
+capitalisation (`Ubergraph/`, not `UBERGRAPH/`), so that an all-caps directory name always means
+"this is a CURIE prefix you can look up".
+
 When you learn something non-obvious about how a source is ingested, add it here rather than
 letting it accumulate in `CLAUDE.md` — `CLAUDE.md` should point here, not duplicate the detail.
 
@@ -26,6 +31,10 @@ letting it accumulate in `CLAUDE.md` — `CLAUDE.md` should point here, not dupl
 - **MESH** ([MESH/Ingestion.md](./MESH/Ingestion.md)) — how MeSH is partitioned across compendia
   by tree letter, how Supplementary Concept Records (SCRs) are typed and routed, the
   chemical/protein D-tree split, and which MeSH branches/SCR classes we deliberately skip.
+- **Ubergraph** ([Ubergraph/curie-validation.md](./Ubergraph/curie-validation.md)) — the merged
+  reasoned triplestore behind the shared label/synonym/description files: what its SPARQL results
+  actually contain (bare IRIs, blank nodes, fragment IRIs mangled by `Text.opt_to_curie()`,
+  Relation Ontology predicates), and where the filtering that rejects them lives.
 - **UMLS** ([UMLS/Leftover.md](./UMLS/Leftover.md)) — the "leftover UMLS" compendium: how
   unclaimed UMLS concepts are swept up and typed, the manual STY→Biolink override tables and the
   drift test that keeps them honest, and the coverage report under `reports/umls/`.
