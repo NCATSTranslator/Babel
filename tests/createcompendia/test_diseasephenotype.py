@@ -442,3 +442,18 @@ def test_build_disease_efo_relationships_forwards_excluded_prefixes():
         diseasephenotype.build_disease_efo_relationships("efo.owl", "ids", "out", "meta.yaml")
     assert mock_make.call_count == 1
     assert mock_make.call_args.kwargs["excluded_target_prefixes"] == diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES
+
+
+@pytest.mark.unit
+def test_read_badxrefs_skips_comments_and_parses_shipped_mondo_file():
+    """read_badxrefs must skip ``#`` comment lines and parse the remaining SPACE-separated
+    ``subject object`` pairs. The shipped mondo_badxrefs.txt must still drop
+    MONDO:0003425 -> SNOMEDCT:78097002: that xref points "ophthalmoplegia" at SNOMED's "Total
+    ophthalmoplegia" and competes with the correct UMLS:C0029089 bridge to HP:0000602, so which
+    HP the clique keeps would otherwise depend on concord line order. Note the file is
+    space-separated while concords are tab-separated -- reformatting it with tabs would silently
+    parse every line into a single field and drop every entry."""
+    bad_pairs = diseasephenotype.read_badxrefs("input_data/mondo_badxrefs.txt")
+    assert ("MONDO:0003425", "SNOMEDCT:78097002") in bad_pairs
+    # Comment lines never become pairs.
+    assert not any(subject.startswith("#") for subject, _ in bad_pairs)
