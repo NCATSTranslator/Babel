@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 from collections import defaultdict
 from pathlib import Path
@@ -121,9 +120,12 @@ def pull_uber_synonyms(jsonloutputfile, prefix_synonyms_files_to_generate):
         prefix_dir = Path(prefix_synonyms_file).parent
         prefix = prefix_dir.name
         os.makedirs(prefix_dir, exist_ok=True)
+        # Every prefix we generate a file for is a large OBO ontology that certainly has synonyms, so an
+        # empty result means the download or our filtering broke. Fail the rule rather than write an empty
+        # file, mirroring pull_uber_labels(). This is what makes the emptiness bug loud on the next build.
+        if prefix not in ldict:
+            raise ValueError(f"Prefix {prefix} not found in UberGraph synonyms download.")
         with open(prefix_synonyms_file, "w") as outf:
-            if prefix not in ldict:
-                logging.warning(f"Prefix {prefix} not found in UberGraph synonyms download.")
             for curie, predicate, synonym in ldict[prefix]:
                 # 3 columns: CURIE, predicate, synonym -- see SynonymFactory.load_synonyms().
                 outf.write(f"{curie}\t{predicate}\t{synonym}\n")

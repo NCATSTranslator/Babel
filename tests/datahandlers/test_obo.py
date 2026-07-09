@@ -5,6 +5,7 @@ import json
 import pytest
 
 from src.datahandlers import obo
+from tests.conftest import assert_synonyms_file_valid
 
 
 class _FakeUberGraph:
@@ -26,9 +27,10 @@ class _FakeUberGraph:
 def test_pull_uber_synonyms_groups_by_prefix_not_curie(tmp_path, monkeypatch):
     """Regression test: pull_uber_synonyms() used to key its internal dict by full CURIE
     (e.g. "MP:0000002"), so `prefix in ldict` (prefix == "MP") was always False and every
-    per-prefix synonyms file came out empty with a spurious "not found" warning -- even
-    though the common file and UberGraph itself had the data. Grouping by prefix should
-    make both the common file and the per-prefix file contain the right rows."""
+    per-prefix synonyms file came out empty -- even though the common file and UberGraph
+    itself had the data. Grouping by prefix should make both the common file and the
+    per-prefix file contain the right rows, the latter with the 3 columns
+    SynonymFactory.load_synonyms() expects."""
     synonyms = [
         ("MP:0000002", "hasExactSynonym", "Anatomy"),
         ("MP:0000005", "hasExactSynonym", "increased brown fat"),
@@ -37,35 +39,52 @@ def test_pull_uber_synonyms_groups_by_prefix_not_curie(tmp_path, monkeypatch):
     monkeypatch.setattr(obo, "UberGraph", lambda: _FakeUberGraph(synonyms))
 
     common_file = tmp_path / "common_synonyms.jsonl"
-    mp_dir = tmp_path / "MP"
-    mp_dir.mkdir()
-    mp_synonyms_file = mp_dir / "synonyms"
+    mp_synonyms_file = tmp_path / "MP" / "synonyms"
 
     obo.pull_uber_synonyms(str(common_file), [str(mp_synonyms_file)])
 
     common_rows = [json.loads(line) for line in common_file.read_text().splitlines()]
     assert {row["curie"] for row in common_rows} == {"MP:0000002", "MP:0000005", "GO:0000001"}
 
-    mp_rows = [line.split("\t") for line in mp_synonyms_file.read_text().splitlines()]
+    mp_rows = assert_synonyms_file_valid(str(mp_synonyms_file))
     assert len(mp_rows) == 2
-    for cols in mp_rows:
-        assert len(cols) == 3, f"Expected 3 columns (CURIE, predicate, synonym), got {cols}"
-        assert cols[0].startswith("MP:")
+    assert all(cols[0].startswith("MP:") for cols in mp_rows)
 
 
 @pytest.mark.unit
-def test_pull_uber_synonyms_warns_and_writes_empty_for_missing_prefix(tmp_path, monkeypatch, caplog):
-    """A prefix truly absent from the UberGraph synonym results should still warn and
-    produce an empty (not missing) file, so Snakemake's declared output exists."""
+def test_pull_uber_synonyms_skips_non_ontology_prefixes(tmp_path, monkeypatch):
+    """Results that aren't real ontology CURIEs -- bare IRIs, the `ro` and `t...` prefixes,
+    and anything containing '#' -- should be dropped from the common synonyms file rather
+    than written out as bogus identifiers."""
+    synonyms = [
+        ("CHEBI:15377", "hasExactSynonym", "water"),
+        ("http://example.org/x", "hasExactSynonym", "ignored"),
+        ("ro:0000001", "hasExactSynonym", "ignored"),
+        ("t123:456", "hasExactSynonym", "ignored"),
+        ("foo#bar:1", "hasExactSynonym", "ignored"),
+        ("no_colon_here", "hasExactSynonym", "ignored"),
+    ]
+    monkeypatch.setattr(obo, "UberGraph", lambda: _FakeUberGraph(synonyms))
+
+    common_file = tmp_path / "common_synonyms.jsonl"
+    obo.pull_uber_synonyms(str(common_file), [])
+
+    common_rows = [json.loads(line) for line in common_file.read_text().splitlines()]
+    assert [row["curie"] for row in common_rows] == ["CHEBI:15377"]
+
+
+@pytest.mark.unit
+def test_pull_uber_synonyms_raises_for_missing_prefix(tmp_path, monkeypatch):
+    """Every prefix we generate a per-prefix file for is a large OBO ontology that certainly has
+    synonyms, so a prefix missing from the UberGraph results means the download or our filtering
+    broke. pull_uber_synonyms() should raise (as pull_uber_labels() does) rather than leave an
+    empty file behind for the rest of the build to consume."""
     monkeypatch.setattr(obo, "UberGraph", lambda: _FakeUberGraph([("GO:0000001", "hasExactSynonym", "foo")]))
 
     common_file = tmp_path / "common_synonyms.jsonl"
-    mp_dir = tmp_path / "MP"
-    mp_dir.mkdir()
-    mp_synonyms_file = mp_dir / "synonyms"
+    mp_synonyms_file = tmp_path / "MP" / "synonyms"
 
-    with caplog.at_level("WARNING"):
+    with pytest.raises(ValueError, match="MP"):
         obo.pull_uber_synonyms(str(common_file), [str(mp_synonyms_file)])
 
-    assert "MP" in caplog.text
-    assert mp_synonyms_file.read_text() == ""
+    assert not mp_synonyms_file.exists()
