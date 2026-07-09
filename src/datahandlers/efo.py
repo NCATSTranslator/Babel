@@ -74,6 +74,23 @@ class EFOgraph:
                         efo_id = efoid.split("_")[-1]
                         idfile.write(f"{EFO}:{efo_id}\t{rtype}\n")
 
+    @staticmethod
+    def _is_excluded_target(otherid, excluded_target_prefixes):
+        """True if otherid should be dropped from a concord: either it's Orphanet (excluded
+        unconditionally -- Orphanet xrefs/exactMatches out of EFO have proven unreliable, see the
+        callers below) or its CURIE prefix is in the caller-supplied excluded_target_prefixes
+        (e.g. MP, passed by diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES to keep MP disjoint from
+        EFO -- see docs/sources/MP/disjointness.md). Orphanet is enforced here rather than via
+        excluded_target_prefixes' default value so a caller that passes its own list (as
+        diseasephenotype.py does) can't accidentally drop the Orphanet exclusion.
+
+        ponytail: prefix compared with a raw split, not Text.get_prefix(), which raises on a
+        colonless string -- otherid can be colonless here (see callers).
+        """
+        if otherid.upper().startswith(ORPHANET.upper()):
+            return True
+        return otherid.split(":", 1)[0] in excluded_target_prefixes
+
     def get_exacts(self, iri, outfile, excluded_target_prefixes=()):
         query = f"""
          prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -105,17 +122,8 @@ class EFOgraph:
                 logger.error(f"Could not translate {other[1:-1]} into a CURIE, will be used as-is: {verr}")
                 otherid = other[1:-1]
 
-            if otherid.upper().startswith(ORPHANET.upper()):
-                logger.warning(f"Skipping Orphanet xref '{other[1:-1]}' in EFOgraph.get_xrefs({iri})")
-                continue
-                # raise RuntimeError(
-                #     f"Unexpected ORPHANET in EFOgraph.get_xrefs({iri}): '{other_without_brackets}'"
-                # )
-            # ponytail: use raw split, not Text.get_prefix(), which raises on a colonless string.
-            # otherid can be colonless here: it's the opt_to_curie() fallback above (line 106),
-            # populated only when opt_to_curie raised ValueError for producing a colonless result.
-            if otherid.split(":", 1)[0] in excluded_target_prefixes:
-                logger.debug(f"Skipping excluded-prefix exactMatch '{otherid}' in EFOgraph.get_exacts({iri})")
+            if self._is_excluded_target(otherid, excluded_target_prefixes):
+                logger.debug(f"Skipping excluded exactMatch '{otherid}' in EFOgraph.get_exacts({iri})")
                 continue
             outfile.write(f"{iri}\tskos:exactMatch\t{otherid}\n")
             nwrite += 1
@@ -143,17 +151,8 @@ class EFOgraph:
                     + f"EFOgraph.get_xrefs({iri}), skipping: {verr}"
                 )
                 continue
-            if other_id.upper().startswith(ORPHANET.upper()):
-                logger.warning(f"Skipping Orphanet xref '{other_without_brackets}' in EFOgraph.get_xrefs({iri})")
-                continue
-                # raise RuntimeError(
-                #     f"Unexpected ORPHANET in EFOgraph.get_xrefs({iri}): '{other_without_brackets}'"
-                # )
-            # ponytail: use raw split, not Text.get_prefix(), which raises on a colonless string.
-            # EFO occasionally has xrefs that are just strings, not IRIs or CURIEs (see the
-            # colon check a few lines below) — this must tolerate that, not reject it.
-            if other_id.split(":", 1)[0] in excluded_target_prefixes:
-                logger.debug(f"Skipping excluded-prefix xref '{other_id}' in EFOgraph.get_xrefs({iri})")
+            if self._is_excluded_target(other_id, excluded_target_prefixes):
+                logger.debug(f"Skipping excluded xref '{other_id}' in EFOgraph.get_xrefs({iri})")
                 continue
             # EFO occasionally has xrefs that are just strings, not IRIs or CURIEs
             if ":" in other_id and not other_id.startswith(":"):
