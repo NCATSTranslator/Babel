@@ -86,9 +86,9 @@ def pull_uber_descriptions(jsonloutputfile):
 
 def pull_uber_synonyms(jsonloutputfile, prefix_synonyms_files_to_generate):
     """
-    Extracts synonyms from the UberGraph, structures them by identifiers (CURIEs), and writes
-    them in JSON Lines format to the specified output file. The function filters synonyms
-    based on certain prefix constraints and organizes them by predicates.
+    Extracts synonyms from the UberGraph, groups them by CURIE prefix, and writes them in JSON
+    Lines format to the specified output file. The function filters synonyms based on certain
+    prefix constraints and organizes them by predicates.
 
     :param jsonloutputfile: File path to write the output in JSON Lines format.
     :type jsonloutputfile: str
@@ -96,30 +96,25 @@ def pull_uber_synonyms(jsonloutputfile, prefix_synonyms_files_to_generate):
     :type prefix_synonyms_files_to_generate: list[str]
     :return: None
     """
-    # Load all the synonyms from UberGraph.
+    # Load all the synonyms from UberGraph, grouped by CURIE prefix -- not by CURIE, which would
+    # make every `prefix in ldict` check below false and silently produce empty per-prefix files.
     uber = UberGraph()
     synonyms = uber.get_all_synonyms()
-    ldict = defaultdict(dict)
-    for unit in synonyms:
-        curie = unit[0]
-        predicate = unit[1]
-        synonym = unit[2]
-        if predicate not in ldict[curie]:
-            ldict[curie][predicate] = []
-        ldict[curie][predicate].append(synonym)
+    ldict = defaultdict(list)
+    for curie, predicate, synonym in synonyms:
+        try:
+            prefix = Text.get_prefix(curie)
+        except ValueError:
+            continue
+        if prefix in ["http", "ro"] or prefix.startswith("t") or "#" in prefix:
+            continue
+        ldict[prefix].append((curie, predicate, synonym))
 
     # Write all the synonyms into a common synonym file.
     with open(jsonloutputfile, "w") as outf:
-        for curie in ldict.keys():
-            try:
-                prefix = Text.get_prefix(curie)
-            except ValueError:
-                continue
-
-            if prefix not in ["http", "ro"] and not prefix.startswith("t") and "#" not in prefix:
-                for predicate in ldict[curie].keys():
-                    for synonym in ldict[curie][predicate]:
-                        outf.write(json.dumps({"curie": curie, "predicate": predicate, "synonym": synonym}) + "\n")
+        for units in ldict.values():
+            for curie, predicate, synonym in units:
+                outf.write(json.dumps({"curie": curie, "predicate": predicate, "synonym": synonym}) + "\n")
 
     # Create directories and synonyms files for some synonyms.
     for prefix_synonyms_file in prefix_synonyms_files_to_generate:
@@ -129,9 +124,9 @@ def pull_uber_synonyms(jsonloutputfile, prefix_synonyms_files_to_generate):
         with open(prefix_synonyms_file, "w") as outf:
             if prefix not in ldict:
                 logging.warning(f"Prefix {prefix} not found in UberGraph synonyms download.")
-                outf.write("")
-            for unit in ldict[prefix]:
-                outf.write(f"{unit[0]}\t{unit[1]}\n")
+            for curie, predicate, synonym in ldict[prefix]:
+                # 3 columns: CURIE, predicate, synonym -- see SynonymFactory.load_synonyms().
+                outf.write(f"{curie}\t{predicate}\t{synonym}\n")
 
 
 def pull_uber(expected_ontologies, icrdf_filename):
