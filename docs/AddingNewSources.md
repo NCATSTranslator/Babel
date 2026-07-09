@@ -323,12 +323,33 @@ synthetic mode is the source of truth for the pure-new/expanded/merged bucketing
 
 ### Build-vs-build clique diff (restructured cliques: split / merge / delete)
 
-The source-impact report only models what *adding* a source does (its "before" is the same
-inputs with the source excluded), so it expresses pure-new / expanded / merged cliques but
-**cannot show cliques that SPLIT, lose members, or disappear**. When a change *restructures
-existing* cliques — a new policy like keeping two prefixes disjoint, a concord-filtering or
-close-match change, or any source whose addition pulls members back out — use
-[`babel-clique-diff`](tools/README.md) instead. It diffs two finished compendium builds and
+The source-impact report models what *adding* a source does: its "before" is a full re-glom of the
+pipeline's intermediate files with the source excluded, its "after" a re-glom with everything.
+`diff_cliques()` then walks only the **after-cliques that contain a source CURIE**, bucketing them
+into pure-new / expanded / merged. So it **does not report** before-cliques that split, lose
+members, or disappear — not because that is unknowable, but because nothing iterates the before
+side. Synthetic mode holds both complete clique states in memory; see
+[#895](https://github.com/NCATSTranslator/Babel/issues/895) for the follow-up that surfaces them.
+
+Two things worth knowing about that gap:
+
+- **It cannot be recovered from the concord files.** Both runs read the *same* concords — the
+  "before" run simply skips the new source's file — so no xref goes missing between them. When a
+  clique does split it is because of a decision made *inside* a run: `glom()` rejects a merge whose
+  union would hold two identifiers sharing a `unique_prefixes` prefix, and pipelines like
+  diseasephenotype run `split_mutually_exclusive_cliques()` after glom. Adding a source can flip
+  either. (`remove_overused_xrefs` is applied per concord file, so a new file cannot push another
+  file's xrefs over the overuse threshold.) The clique dicts, not the concords, are the level to
+  compare at.
+- **A plain source addition rarely splits anything.** Union-find only unions, so absent the two
+  non-monotone paths above a source that just contributes ids and concord rows can only grow and
+  merge cliques.
+
+When a change *restructures existing* cliques — a new policy like keeping two prefixes disjoint, a
+concord-filtering or close-match change, or any source whose addition pulls members back out — use
+[`babel-clique-diff`](tools/README.md) instead. It is also the only option for changes that are not
+"add a source" at all: with no source to exclude, synthetic mode cannot model them even in
+principle. It diffs two finished compendium builds and
 reports, per changed before-clique, a `destination_kind` for each group of members: `kept`
 (still under the same leader), `leader_changed` (identical membership, only the preferred
 identifier was reassigned), `regrouped` (members redistributed to a different leader within
@@ -382,6 +403,12 @@ these in the `dropped` column is expected; a large number suggests an extraction
 - **Remote mode is coarse.** It reports total/with-source/current-only counts but cannot
   classify diffs into pure-new/expanded/merged (compendia are published; intermediate
   concord files are not).
+- **Split / shrunk / dropped cliques are not reported.** `diff_cliques` only walks after-cliques
+  containing a source CURIE, so a before-clique that lost members or was split apart (by
+  `unique_prefixes` rejecting a merge, or by a post-glom split like
+  `split_mutually_exclusive_cliques`) produces no row. Both clique states are computed, so this is a
+  missing pass rather than missing data —
+  [#895](https://github.com/NCATSTranslator/Babel/issues/895). Use `babel-clique-diff` meanwhile.
 - **Typing happens after the diff.** The synthetic diff is over untyped cliques; section 2's
   compendium-assigned view requires on-disk compendia and is blank without them.
 - **Conflation is invisible.** DrugChemical and GeneProtein conflation runs after compendia
