@@ -119,9 +119,9 @@ counts: a nested `clique_count` (`before`/`after`/`diff`/`diff_percent`) plus
 `changed_before_cliques`, `dropped_member_count` (the headline regression signal),
 `moved_member_count`, `regrouped_member_count`, and `leader_changed_count`.
 
-One subtlety worth internalizing: a clique that exists **only** in the after build — no before
-counterpart, e.g. a wholly new MP-only clique — is *not* a change row, because the tool iterates
-before-cliques. Such additions surface **only** as a positive `clique_count.diff`. That is why a
-build that adds thousands of new cliques can still show very few change rows; to see the additions
-themselves, read the count delta (or use `source-impact-report`, whose whole job is the "added"
-view). See `docs/sources/MP/disjointness.md` for a worked example of this exact reconciliation.
+Note that we are deliberately not interested in additions that don't modify an existing clique:
+this tool is primarily meant to track how a software change changes the outputs, not whether new
+additions were included. These *will* be counted in the overall counts, but *will not* be included
+in the change rows (we may add an optional `--include-additions` options in the future to support
+this if needed). The `source-impact-report` is really interested in new additions and tracks those.
+See `docs/sources/MP/disjointness.md` for a worked example of this exact reconciliation.
