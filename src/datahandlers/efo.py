@@ -123,7 +123,7 @@ class EFOgraph:
                 otherid = other[1:-1]
 
             if self._is_excluded_target(otherid, excluded_target_prefixes):
-                logger.debug(f"Skipping excluded exactMatch '{otherid}' in EFOgraph.get_exacts({iri})")
+                logger.warning(f"Skipping excluded exactMatch '{otherid}' in EFOgraph.get_exacts({iri})")
                 continue
             outfile.write(f"{iri}\tskos:exactMatch\t{otherid}\n")
             nwrite += 1
@@ -152,7 +152,7 @@ class EFOgraph:
                 )
                 continue
             if self._is_excluded_target(other_id, excluded_target_prefixes):
-                logger.debug(f"Skipping excluded xref '{other_id}' in EFOgraph.get_xrefs({iri})")
+                logger.warning(f"Skipping excluded xref '{other_id}' in EFOgraph.get_xrefs({iri})")
                 continue
             # EFO occasionally has xrefs that are just strings, not IRIs or CURIEs
             if ":" in other_id and not other_id.startswith(":"):
