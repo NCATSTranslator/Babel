@@ -19,7 +19,7 @@ Run with::
     uv run babel-slurm-resources data/babel-1.17
     uv run babel-slurm-errors 1.17-try-2 --markdown
 
-Both subcommands are also reachable as ``python -m tools.slurm errors`` /
-``python -m tools.slurm resources`` (useful when running directly from a clone
+Both subcommands are also reachable as ``python -m src.tools.slurm errors`` /
+``python -m src.tools.slurm resources`` (useful when running directly from a clone
 without the package installed).
 """

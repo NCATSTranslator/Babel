@@ -6,7 +6,7 @@ failure (e.g. an HTTP 503 from a data source) shows up once. The trailing job su
 every job attempt as completed / failed / still-running, with elapsed-vs-timeout for running jobs.
 Together this is the fastest way to find which upstream rules to re-run so a stalled DAG can finish.
 
-The parsing lives in :mod:`tools.slurm.parse`; this module is presentation + CLI only.
+The parsing lives in :mod:`src.tools.slurm.parse`; this module is presentation + CLI only.
 """
 
 from __future__ import annotations

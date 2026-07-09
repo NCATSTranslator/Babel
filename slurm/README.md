@@ -95,7 +95,7 @@ Snakemake benchmark TSVs. The two sources measure slightly different things:
   Hatteras its `MaxRSS`/`TotalCPU` columns come back empty (the `jobacct_gather`/cgroup accounting
   isn't capturing them), so the benchmark TSVs are authoritative for actual usage.
 
-The `tools/slurm resources` subcommand reads and merges all shards in this directory; see
+The `src.tools.slurm resources` subcommand reads and merges all shards in this directory; see
 [`../docs/tools/Resources.md`](../docs/tools/Resources.md).
 
 ## Known Resource Hotspots
@@ -312,7 +312,7 @@ The following improvements are tracked here for visibility but not yet implement
 - **Per-rule resource tuning**: After collecting benchmark data from a full run, add explicit
   `resources:` to every rule based on observed `max_rss + 30% headroom`. This will greatly reduce
   wasted SLURM allocations across the ~100+ rules currently defaulting to 64G/4-CPU. The
-  `tools/slurm resources` subcommand automates the measurement and recommends per-rule sizes from a
+  `src.tools.slurm resources` subcommand automates the measurement and recommends per-rule sizes from a
   run's benchmark TSVs (see [`../docs/tools/Resources.md`](../docs/tools/Resources.md)). Applying
   the recommendations — the `slurm/config.yaml` default and the per-rule overrides — is tracked
   separately.

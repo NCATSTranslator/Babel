@@ -1,4 +1,4 @@
-# `tools.slurm resources` — right-size SLURM resources
+# `src.tools.slurm resources` — right-size SLURM resources
 
 Babel runs on the RENCI Hatteras cluster as a Snakemake-on-SLURM pipeline. Each rule reserves
 memory, CPUs, and wall time. Over-reserving throttles parallelism (a 191 GB batch node fits only
@@ -63,9 +63,9 @@ to also write the full per-rule table for further analysis.
 ## Workflow
 
 1. Run the pipeline; let it write `benchmarks/`, `logs/`, and `reports/slurm/`.
-2. If the run stalls, use [`tools.slurm errors`](Errors.md) to find which rules failed (often
+2. If the run stalls, use [`src.tools.slurm errors`](Errors.md) to find which rules failed (often
    transient HTTP errors from data sources) and re-run them.
-3. After a complete run, run `tools.slurm resources <run-dir>` and apply the "needs an explicit
+3. After a complete run, run `src.tools.slurm resources <run-dir>` and apply the "needs an explicit
    override" list: add a `resources:` block to those rules, and adjust the default in
    `slurm/config.yaml` if the whole distribution has shifted. The known heavy rules and the current
    defaults are documented in [`slurm/README.md`](../../slurm/README.md).

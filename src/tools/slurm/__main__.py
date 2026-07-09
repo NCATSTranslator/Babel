@@ -13,7 +13,7 @@ from . import errors, resources
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="tools.slurm", description="Analyze a Babel Snakemake-on-SLURM run.")
+    parser = argparse.ArgumentParser(prog="src.tools.slurm", description="Analyze a Babel Snakemake-on-SLURM run.")
     subparsers = parser.add_subparsers(dest="command", required=True)
     errors.add_subparser(subparsers)
     resources.add_subparser(subparsers)
