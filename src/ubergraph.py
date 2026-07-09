@@ -540,7 +540,12 @@ def build_sets(iri, concordfiles, set_type, ignore_list=[], other_prefixes={}, h
             if subclass_prefix != prefix:
                 continue
         v = set([norm(x, other_prefixes) for x in v])
-        for x in v:
+        # Sort: iterating the set directly emits each subject's xref targets in Python's
+        # per-process randomized string-hash order, so the same UberGraph data yields
+        # differently-ordered concord files on every pull. glom() resolves a unique_prefixes
+        # conflict by keeping whichever bridge it reads first and silently dropping the rest, so
+        # that ordering decides clique membership. See #894.
+        for x in sorted(v):
             if Text.get_prefix_or_none(x) not in ignore_list:
                 p = Text.get_prefix_or_none(k)
                 if p in concordfiles:
