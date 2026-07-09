@@ -43,12 +43,24 @@ aborting the build.
 
 This is measured as the **overall effect of this PR on Babel**: a
 [`babel-clique-diff`](../../tools/README.md) of a `main` build (Babel *without* this PR — no MP)
-against this branch (MP added, kept disjoint). Both sides were built the same day from the same
-cached `babel_downloads`, so the UberGraph-derived concords match and the only difference is this
-PR's code. See [`disjointness/clique-diff.csv`](disjointness/clique-diff.csv) and
+against this branch (MP added, kept disjoint). See
+[`disjointness/clique-diff.csv`](disjointness/clique-diff.csv) and
 [`disjointness/clique-diff.summary.json`](disjointness/clique-diff.summary.json) (the `about`
 block records both build labels). The complementary "what does the MP *source* add" view is the
 [`impact-report.md`](impact-report.md).
+
+**The two builds do not isolate this PR's code.** They were built the same day from the same
+cached `babel_downloads`, but their UberGraph-derived HP and MONDO concords were pulled at
+different times. Those files are identical *as sets* and differ only in **line order**, which is
+enough to change cliques: `ubergraph.build_sets()` writes each subject's xref targets by iterating
+a Python `set`, whose order is randomized per process, and `glom()` resolves a `unique_prefixes`
+conflict by keeping whichever bridge it processes **first** and silently dropping the other. So a
+MONDO clique with two competing HP bridges keeps a different HP depending on the pull. Of the 93
+change rows, **33 come from before-cliques containing no MP identifier at all** and are this
+ordering noise; re-glomming this branch's own inputs with the MP source *fully excluded*
+reproduces every one of them. Only the remaining 60 rows, from the 30 before-cliques that do
+contain an MP, are attributable to this PR. The general order-sensitivity is tracked in
+[#894](https://github.com/NCATSTranslator/Babel/issues/894).
 
 Headline counts:
 
@@ -64,37 +76,51 @@ Headline counts:
 After enforcement, **zero cliques in `Disease.txt` or `PhenotypicFeature.txt` contain both an HP
 and an MP identifier.** The 93 per-clique change rows fall into two groups.
 
-Disjointness — MP peeled out of cliques `main` had merged it into (via *unfiltered* HP→MP / EFO→MP
-xrefs that this PR removes):
+Disjointness (60 rows, 30 before-cliques) — MP peeled out of cliques `main` had merged it into
+(via *unfiltered* HP→MP / EFO→MP xrefs that this PR removes). This is the PR's actual effect:
 
 - `PhenotypicFeature.txt`: 26 MP members `regrouped` into their own cliques. Example: on `main`,
   [`EFO:0005414`](http://www.ebi.ac.uk/efo/EFO_0005414) "airway hyperresponsiveness" absorbed
   [`MP:0001952`](http://purl.obolibrary.org/obo/MP_0001952) "increased airway responsiveness"; this
   PR splits them.
-- 8 `Disease.txt` cliques released an MP member that `moved` to `PhenotypicFeature.txt`. Example:
+- 3 `Disease.txt` cliques released an MP member that `moved` to `PhenotypicFeature.txt`:
   [`MONDO:0005711`](http://purl.obolibrary.org/obo/MONDO_0005711) "congenital diaphragmatic hernia"
-  released [`MP:0003924`](http://purl.obolibrary.org/obo/MP_0003924) "diaphragmatic hernia".
+  released [`MP:0003924`](http://purl.obolibrary.org/obo/MP_0003924) "diaphragmatic hernia",
+  [`MONDO:0002234`](http://purl.obolibrary.org/obo/MONDO_0002234) "vaginitis" released
+  [`MP:0003541`](http://purl.obolibrary.org/obo/MP_0003541) "vaginal inflammation", and
+  [`EFO:0009472`](http://www.ebi.ac.uk/efo/EFO_0009472) "tympanic membrane perforation" released
+  [`MP:0030414`](http://purl.obolibrary.org/obo/MP_0030414) "tympanic membrane perforation".
 - 1 `dropped`: the stray untypeable [`MP:0005555`](http://purl.obolibrary.org/obo/MP_0005555)
   described above.
 
-Contested-xref reshuffle — a side effect of MP's *presence* in the build, not of MP merging with
-disease:
+Concord-ordering noise (33 rows, 21 before-cliques, **no MP identifier anywhere in them**) — not
+caused by this PR. Each is a MONDO clique with two competing bridges to two different HP terms,
+where `DISEASE_UNIQUE_PREFIXES` admits only one HP and `glom()` keeps whichever bridge the concord
+happens to list first. The two builds' concords list them in different orders, so the two builds
+pick different HPs. Re-glomming this branch's inputs with MP *fully excluded* reproduces all 33
+rows, which is how we know MP is not the cause.
 
-- 7 `Disease.txt` cliques (96 members, **no MP involved**) `regrouped`. These are cross-references
-  shared by two near-synonymous MONDO cliques that `unique_prefixes` keeps separate (two MONDO
-  identifiers may not share a clique); MP's presence in the build shifts which of the two claims
-  the shared member. Example:
+- 7 `Disease.txt` cliques `regrouped`: cross-references shared by two near-synonymous MONDO
+  cliques that `unique_prefixes` keeps separate. Example:
   [`MONDO:0004555`](http://purl.obolibrary.org/obo/MONDO_0004555) "kidney angiomyolipoma" and
   [`MONDO:0002603`](http://purl.obolibrary.org/obo/MONDO_0002603) "angiomyolipoma" swap five shared
   members (an HP, NCIT, SNOMEDCT, UMLS, MEDDRA). This redistributes members between existing
   disease cliques but creates and deletes none, which is why `Disease.txt`'s clique count is
-  unchanged. Verified incidental rather than a real MP relationship: MP is not a member of any of
-  these cliques and none of the swapped members appears in MP's concord; the effect is
-  deterministic and independent of MP's position in `disease_concords` (moving MP to the end of
-  the list produces a byte-identical diff), so it is a stable tie-break shift, not run-to-run
-  noise. This is a general `glom()` `unique_prefixes` behavior (a contested cross-reference's
-  winning clique is sensitive to the input set), not specific to MP; tracked in
-  [#894](https://github.com/NCATSTranslator/Babel/issues/894).
+  unchanged.
+- 5 `Disease.txt` cliques `moved` their HP member out to `PhenotypicFeature.txt`, swapping it for a
+  different HP. The clearest case:
+  [`MONDO:0003425`](http://purl.obolibrary.org/obo/MONDO_0003425) "ophthalmoplegia" traded
+  [`HP:0000602`](http://purl.obolibrary.org/obo/HP_0000602) "Ophthalmoplegia" (its correct exact
+  match, reached via `UMLS:C0029089`) for
+  [`HP:0007824`](http://purl.obolibrary.org/obo/HP_0007824) "Total ophthalmoplegia" (a subtype,
+  reached via a bad MONDO `exactMatch` to `SNOMEDCT:78097002`). That bad xref is now dropped in
+  `input_data/mondo_badxrefs.txt`, which pins `HP:0000602` as the winner under either ordering;
+  see [#900](https://github.com/NCATSTranslator/Babel/issues/900) for reporting it upstream to
+  MONDO. The committed CSV predates that fix and still shows the swap.
+
+The right way to remove this noise is to make `build_sets()` write its concords in a deterministic
+order and rebuild both sides; until then, read the 33 MP-free rows as an artifact of the
+measurement, not of the change.
 
 Note — where the "14K" lives in each artifact. Both this clique-diff and the impact report use a
 "before" that lacks MP (the impact report *excludes the MP source*; the `main` build simply never
@@ -153,6 +179,9 @@ filter and continue to be handled by the `[HP, MP]` split above.)
   predicate), also split out of #883. The numbers on this page were measured against the current
   predicate-keyed, effectively no-op close behavior that this branch preserves, so #888 activating
   the guard and changing disease merging will not contradict them.
+- [#900](https://github.com/NCATSTranslator/Babel/issues/900) — the bad MONDO `exactMatch`
+  (`MONDO:0003425` → `SNOMEDCT:78097002`) worked around in `input_data/mondo_badxrefs.txt`, to be
+  reported upstream to MONDO.
 - [#742](https://github.com/NCATSTranslator/Babel/pull/742) /
   [#781](https://github.com/NCATSTranslator/Babel/pull/781) — the source-impact / EMAPA
   infrastructure this builds on.
