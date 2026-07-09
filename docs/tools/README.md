@@ -80,9 +80,9 @@ builds; if either changed, every before-clique member is classified into one row
   change, or `NodeFactory` tie-breaking, picked a new leader).
 - `regrouped` — the member moved to a different clique within the same compared compendium
   file (a real split/merge).
-- `moved` — the CURIE still exists in the after build, but under a different compendium
-  file (e.g. `Disease.txt` → `PhenotypicFeature.txt`) — it was retyped to a different
-  Biolink type.
+- `moved` — the CURIE still exists in the after build, but in a clique under a different
+  compendium file (e.g. `Disease.txt` → `PhenotypicFeature.txt`) — it was retyped to a
+  different Biolink type. `destination_compendium` names that file.
 - `dropped` — the CURIE is absent from every compared after compendium.
 
 Everything else in a compendium record — `type` (Biolink type), `identifiers[*].l`
@@ -103,13 +103,26 @@ Everything else in a compendium record — `type` (Biolink type), `identifiers[*
   [NCATSTranslator/Babel#894](https://github.com/NCATSTranslator/Babel/issues/894) and the worked
   example in `docs/sources/MP/disjointness.md`.
 
+### Reading a row
+
+Every row names both endpoints of a move: the before-clique it left (`before_leader`,
+`before_leader_label`, `before_leader_type`, `before_size`) and the after-clique it landed in
+(`destination`, `destination_label`, `destination_type`, `after_size`), plus
+`destination_compendium`, the file that after-clique lives in. `destination_compendium` equals
+`compendium` on every kind except `moved`, which is precisely the case where the destination
+lives elsewhere — so a retyped member's new home is readable straight off the row. Members are
+grouped by destination *clique*, so a before-clique whose members scatter across several
+after-cliques gets one row per destination.
+
+`dropped` is the only kind with no destination clique: `destination` is the literal
+`(dropped)`, and `destination_label`, `destination_compendium`, `destination_type` are empty
+with `after_size` 0.
+
 Labels and Biolink types are not part of change detection, but they *are* emitted as
-read-only annotation columns to make the CSV legible without a separate lookup:
-`before_leader_label` and `before_leader_type` (the before-build label and type of the
-clique leader), `destination_type` (the Biolink type the grouped members ended up as in the
-after build — the after-clique's type for real destinations, the `|`-joined distinct types
-of the members for `moved`, empty for `dropped`), and `example_members`, which lists up to
-five members as `CURIE "label"` using before-build labels.
+read-only annotation columns to make the CSV legible without a separate lookup. So is
+`example_members`, which lists up to five members as `CURIE "label"` using before-build
+labels — a sample, not the full membership, so read `member_count` for the true size of the
+group.
 
 ### Summary JSON
 
