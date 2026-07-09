@@ -1,6 +1,6 @@
 """Unit tests for the source-impact detail files (CSV/JSON/TSV).
 
-Drives the real ``src.cli.source_impact_report.main`` over a synthetic intermediate root
+Drives the real ``src.tools.source_impact_report.cli.main`` over a synthetic intermediate root
 (offline, so ``unit``-marked) and asserts the four detail files written into the report's
 ``<output-stem>/`` subdirectory are correct, complete, and deterministic.
 
@@ -20,7 +20,7 @@ import json
 
 import pytest
 
-from src.cli.source_impact_report import main
+from src.tools.source_impact_report.cli import main
 
 
 def _write(path, text):

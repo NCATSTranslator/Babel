@@ -7,7 +7,7 @@ A fixture lays down two anatomy datasets in a temporary intermediate root:
   it produces a meaningful mix of clique changes against ``EXISTING``: two pure-new
   cliques, one expanded clique, and one merged clique.
 
-The test drives the real ``src.cli.source_impact_report.main`` in synthetic mode — the
+The test drives the real ``src.tools.source_impact_report.cli.main`` in synthetic mode — the
 same entrypoint the EMAPA pipeline test exercises — but because the intermediate files
 are synthetic the whole run is offline and fast, so this is a ``unit`` test rather than
 a ``pipeline`` one.
@@ -17,7 +17,7 @@ import json
 
 import pytest
 
-from src.cli.source_impact_report import main
+from src.tools.source_impact_report.cli import main
 
 
 def _write(path, text):
