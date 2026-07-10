@@ -74,13 +74,6 @@ Two notes on the kept prefixes:
   assertions that keep the clique honest; upstream reporting to MP is tracked in
   [Babel#905](https://github.com/NCATSTranslator/Babel/issues/905).
 
-## Bad-xref file
-
-`input_data/mp_badxrefs.txt` drops individual `subject object` pairs from the MP concord that
-survive the allowlist but assert an equivalence that isn't one. It is keyed by concord basename
-(`MP`) in `DEFAULT_BAD_XREFS` and in the `disease_compendia` Snakemake rule, alongside the existing
-`badHPx.txt`, `mondo_badxrefs.txt` and `umls_badxrefs.txt`.
-
 ### Why an allowlist rather than an `ignore_list`
 
 `build_sets()` has long supported an `ignore_list` of blocked target prefixes (see
@@ -93,6 +86,13 @@ ontologies above, add the prefix to `MP_XREF_ALLOWED_PREFIXES` as a deliberate d
 
 Note that `build_sets()` matches allowlist entries against `Text.get_prefix_or_none()`, which
 upper-cases, so entries must be upper-case: `"MPATH"`, not `"MPath"`.
+
+## Bad-xref file
+
+`input_data/mp_badxrefs.txt` drops individual `subject object` pairs from the MP concord that
+survive the allowlist but assert an equivalence that isn't one. It is keyed by concord basename
+(`MP`) in `DEFAULT_BAD_XREFS` and in the `disease_compendia` Snakemake rule, alongside the existing
+`badHPx.txt`, `mondo_badxrefs.txt` and `umls_badxrefs.txt`.
 
 ## SSSOM history and known failure modes
 
