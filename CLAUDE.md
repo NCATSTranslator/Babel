@@ -214,6 +214,20 @@ entry.
 GeneProtein and DrugChemical conflation each have dedicated conflation modules (`geneprotein.py`,
 `drugchemical.py`) that merge their respective cliques. See `docs/Conflation.md`.
 
+### Chemical compendium output types
+
+The chemical pipeline emits one compendium file per Biolink type, enumerated in one place:
+`config.yaml: chemical_outputs`. That single list fans out to DrugChemical conflation (its input is
+`expand(..., config["chemical_outputs"])`), the KGX/Parquet/JSONL/DuckDB exports (via
+`get_all_compendia`), and the synonym outputs — so **adding a new chemical subtype only needs an
+entry there** (plus, in `create_typed_sets`, whatever routes cliques to it). Conflation reads these
+files but never re-types, so a retype done in the compendium survives downstream. The one manual
+extra: the per-type report rules in `chemical.snakefile` are hardcoded (`check_drug`,
+`check_food`, ...), and `rule chemical` expands `chemical_outputs` over `reports/`, so a new output
+without a matching `check_*` rule breaks the DAG (no producer for `reports/<Type>.txt`). See the
+DrugBank allergenic-extract retype (`docs/sources/DRUGBANK/allergenic-extracts/README.md`) for a
+worked example that added `Food.txt`.
+
 ### Leftover UMLS
 
 `src/createcompendia/leftover_umls.py` (rule `leftover_umls`) runs last and sweeps up every valid
@@ -309,9 +323,14 @@ the report exists to catch:
 - **Type every ids file.** Each ids row should carry a presumptive Biolink Type in column 2
   (`CURIE\tbiolink:Type`); this drives clique typing in the build. `write_compendium()` →
   `NodeFactory.create_node()` then keeps only CURIEs whose prefix is in the Biolink Model's
-  `id_prefixes` for the clique's class and silently drops the rest — so a prefix that is not
-  yet registered for its type never reaches the compendium. EMAPA's
-  `biolink:GrossAnatomicalStructure` terms are the current not-yet-registered example.
+  `id_prefixes` for the clique's class and silently drops the rest — so a prefix that is not yet
+  registered for its type never reaches the compendium. EMAPA's `biolink:GrossAnatomicalStructure`
+  terms are the current not-yet-registered example. `write_compendium(extra_prefixes=[...])` is the
+  escape hatch: a prefix listed there is kept even when the Biolink class doesn't register it (the
+  chemical build passes `extra_prefixes=[RXCUI]` because RXCUI is in no chemical class's
+  `id_prefixes`). This matters most when **retyping** a clique to a different class: the clique's
+  members that were valid under the old type but aren't in the new type's `id_prefixes` will
+  silently vanish unless they're covered by `extra_prefixes` — a quiet way to lose identifiers.
 - **Generate and commit the report.** `uv run source-impact-report --source <SOURCE>` writes
   `docs/sources/<SOURCE>/impact-report.md` plus an `impact-report/` subdirectory; commit
   `new-cliques.csv`, `modified-cliques.csv`, and `new-xrefs.tsv` (`modified-cliques.json` is
