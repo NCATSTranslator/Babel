@@ -127,10 +127,11 @@ are essentially nonexistent (**0** in `otheraliases`, **2** in `otherdesignation
 spaced/padded pipes are rare (**0** and **139**). But `|` is not always the *only* way multiple
 values are joined:
 
-- **Under-splitting via semicolon (`otherdesignations` only).** **624,799** designation rows join
-  distinct designations with a `;` and no pipe at all — e.g. `ribosomal protein
-  S2;uncharacterized protein`. That is 98.6% of the 633,842 no-pipe rows containing a `;` (only
-  8,885 are within-name nomenclature). A plain `split("|")` keeps these as one combined synonym.
+- **Semicolon-joined values (`otherdesignations` only).** **624,799** designation rows join
+  multiple values with a `;` and no pipe at all — e.g. `ribosomal protein S2;uncharacterized
+  protein`. That is 98.6% of the 633,842 no-pipe rows containing a `;` (only 8,885 are within-name
+  nomenclature). A plain `split("|")` keeps these as one combined synonym. Whether that matters is
+  examined in "Should the semicolon be a delimiter too?" below — mostly it should not.
   In `otheraliases` this barely happens: of its 85 no-pipe `;` rows most are within-name
   (`PIP1;2`, `CYCLIN D3;3`), so aliases pipe-delimiting is effectively consistent.
 - **Over-splitting via the `''` span (both fields, small).** **285** `otheraliases` rows and
@@ -170,6 +171,29 @@ Crucially, a **leading** `''` never begins a genuine name (double-prime is alway
 internal locant), so a leading `''` reliably identifies the #744 open marker. That is the basis for
 narrowing the fix (below).
 
+### Should the semicolon be a delimiter too? (No.)
+
+The ~624,799 semicolon-joined `otherdesignations` rows look at first like distinct designations
+that a `split("|")` fails to separate, but examining the text *after* each `;` shows otherwise:
+
+- **95.8%** of these rows are *isoform enumerations* — every segment is the **same base name** with
+  only a different trailing enumerator: `X isoform 1;X isoform 2;X isoform 3;…`. The `;` separates
+  isoforms of one protein, not two different designations.
+- The post-`;` text is **highly variable, not a shared boilerplate tag**: 96,114 distinct
+  last-segment strings, and the 20 most common cover only 7.3%. The top entries are exactly the
+  isoform pattern (`uncharacterized protein isoform 2`, `… isoform 3`, plain `uncharacterized
+  protein`, …). So neither "it's one tag we should strip" nor "these are distinct useful synonyms"
+  holds.
+- Only ~4.2% (~26k rows) have genuinely different base names across the `;`, and there the extra
+  segment is usually a low-value generic (`uncharacterized protein`, `hypothetical protein`).
+- Segment counts run from 2 (the majority) up to **50**.
+
+**Decision: do not split `otherdesignations` on `;`.** Splitting would mostly manufacture
+near-duplicate `X isoform N` synonyms rather than surface new distinct names, and the genuinely
+different minority gains little. The only real cost of leaving it joined is that high-isoform genes
+produce a long, non-matching combined synonym; if that ever matters the better lever is collapsing
+the isoform enumeration (keep the base name once), not treating `;` as a delimiter.
+
 ## Deferred follow-up questions
 
 Once we know which characters are present, the deeper questions (each a likely next script here):
@@ -181,5 +205,6 @@ Once we know which characters are present, the deeper questions (each a likely n
 - **(Answered — see above.)** Distinguishing "leading `''`" from "trailing `''`" *does* cleanly
   separate artifacts from legitimate double-prime, so the #744 fix is narrowed to drop only leading
   open-marker fragments (and their paired trailing close-marker), keeping genuine trailing `''`.
-- Should the ingest also split `otherdesignations` on `;` (or at least the `;uncharacterized
-  protein` join pattern) so those ~0.6M semicolon-joined designations become individual synonyms?
+- **(Answered — No; see "Should the semicolon be a delimiter too?" above.)** The ~0.6M
+  semicolon-joined designations are 95.8% isoform enumerations of the same base name, so splitting
+  on `;` would mostly produce near-duplicate synonyms. Left joined.
