@@ -1,5 +1,6 @@
 from collections import defaultdict
 from os import path
+from pathlib import Path
 
 import src.datahandlers.doid as doid
 import src.datahandlers.efo as efo
@@ -27,9 +28,14 @@ from src.prefixes import (
     UMLS,
 )
 from src.ubergraph import build_sets
-from src.util import get_logger
+from src.util import Text, get_logger
 
 logger = get_logger(__name__)
+
+# Repo root, so DEFAULT_BAD_XREFS resolves regardless of the caller's working directory. The
+# Snakemake rules pass their own repo-relative paths (Snakemake always runs from the root), but
+# the source-impact report CLI can be invoked from anywhere.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 DISEASE_OBO_SOURCES = {
     MP: {"root": f"{MP}:0000001", "type": PHENOTYPIC_FEATURE},
@@ -90,12 +96,13 @@ OVERUSE_FILTERED_CONCORDS = {"MONDO", "HP", "EFO", "MP"}
 
 # Per-source bad-xref files used when build_compendium is called without explicit
 # badxrefs (e.g. by the source-impact report CLI). The Snakemake call site still
-# passes its own explicit dict so production behaviour is unchanged.
+# passes its own explicit dict so production behaviour is unchanged. Anchored at the repo
+# root because the CLI, unlike Snakemake, need not run from there.
 DEFAULT_BAD_XREFS = {
-    "HP": "input_data/badHPx.txt",
-    "MONDO": "input_data/mondo_badxrefs.txt",
-    "MP": "input_data/mp_badxrefs.txt",
-    "UMLS": "input_data/umls_badxrefs.txt",
+    "HP": str(_REPO_ROOT / "input_data/badHPx.txt"),
+    "MONDO": str(_REPO_ROOT / "input_data/mondo_badxrefs.txt"),
+    "MP": str(_REPO_ROOT / "input_data/mp_badxrefs.txt"),
+    "UMLS": str(_REPO_ROOT / "input_data/umls_badxrefs.txt"),
 }
 
 # MONDO_close lives in the same intermediate concords/ directory as ordinary concord
@@ -518,56 +525,66 @@ def split_mutually_exclusive_cliques(dicts, exclusive_prefix_groups=None):
 
     ``dicts`` is glom's dict-of-sets: every clique member maps to the *same* set object
     (its clique). For each clique containing identifiers from two or more prefixes within a
-    group in ``exclusive_prefix_groups``, keep the group's first-listed prefix (and all
-    members whose prefix is outside the group) together, and peel each subsequent occupied
-    prefix's identifiers into a clique of their own. Mutates ``dicts`` in place (re-pointing
-    each affected member's key to a fresh set object) and returns it.
+    group in ``exclusive_prefix_groups``, the group's earliest-listed *occupied* prefix stays
+    put (along with every identifier whose prefix is outside the group), and each subsequent
+    occupied prefix's identifiers are peeled into a clique of their own. Mutates ``dicts`` in
+    place (re-pointing each affected member's key to a fresh set object) and returns it.
 
-    Order within a group is significant: ``[[HP, MP]]`` keeps the HP-bearing clique intact
-    and pulls MP out. No empty clique is ever produced (the kept side always retains the
-    first prefix's members plus any out-of-group members; each peeled side is non-empty by
-    construction).
+    Order within a group is significant: ``[[HP, MP]]`` keeps the HP-bearing clique intact and
+    pulls MP out. It is the earliest *occupied* prefix that is kept, not ``group[0]``
+    unconditionally: for a group ``[A, B, C]`` and a clique holding only B, C and out-of-group
+    identifiers, B keeps the out-of-group members and C is peeled off. (Peeling every prefix
+    after ``group[0]`` instead would strand the out-of-group members in a clique of their own.)
+    No empty clique is ever produced.
+
+    Multiple groups are supported. Each group is applied to what the previous group left behind,
+    and the cliques peeled off along the way need no further checking: a peeled clique holds the
+    identifiers of exactly one prefix, so it can never hold two prefixes of a later group.
 
     :param exclusive_prefix_groups: defaults to ``MUTUALLY_EXCLUSIVE_PREFIX_GROUPS``. Not
         given a mutable default directly, since a shared mutable default is re-used across
         every call and any accidental in-place edit (e.g. ``exclusive_prefix_groups.append``
         by a caller) would leak into all other callers for the lifetime of the process.
+        Prefixes are matched case-insensitively, so a lower-case constant (prefixes.ORPHANET
+        is ``"orphanet"``) works as a group member.
     """
     if exclusive_prefix_groups is None:
         exclusive_prefix_groups = MUTUALLY_EXCLUSIVE_PREFIX_GROUPS
+
+    # Text.get_prefix_or_none() upper-cases, so compare everything in upper case. Group order is
+    # preserved, since `occupied` below relies on it to decide which prefix keeps the remainder.
+    upper_groups = [[prefix.upper() for prefix in group] for group in exclusive_prefix_groups]
 
     # dicts spans the whole disease/phenotype build (MONDO/DOID/Orphanet/HP/MP/MESH/NCIT/
     # UMLS/OMIM/EFO), but only cliques touching a group prefix (HP/MP) can possibly need
     # splitting. Find just those cliques with a single pass over dicts' keys, rather than
     # dedupe-by-identity over every clique in the whole dict and then re-scan every member of
     # every clique (most of which are pure MONDO/UMLS/MESH/etc. and can never match).
-    group_prefixes = {prefix for group in exclusive_prefix_groups for prefix in group}
+    group_prefixes = {prefix for group in upper_groups for prefix in group}
     candidate_cliques = {}
     for curie, clique in dicts.items():
-        if curie.split(":", 1)[0] in group_prefixes:
+        if Text.get_prefix_or_none(curie) in group_prefixes:
             candidate_cliques[id(clique)] = clique
 
     for clique in candidate_cliques.values():
-        for group in exclusive_prefix_groups:
+        for group in upper_groups:
             members_by_prefix = {prefix: set() for prefix in group}
             for curie in clique:
-                prefix = curie.split(":")[0]
+                prefix = Text.get_prefix_or_none(curie)
                 if prefix in members_by_prefix:
                     members_by_prefix[prefix].add(curie)
             occupied = [prefix for prefix in group if members_by_prefix[prefix]]
             if len(occupied) < 2:
                 continue  # at most one of the group's prefixes is present; nothing to split
-            # Keep group[0] with the remainder; peel every other occupied prefix out.
-            for peel_prefix in group[1:]:
+            # Keep the earliest occupied prefix with the remainder; peel every later one out.
+            for peel_prefix in occupied[1:]:
                 peel_ids = members_by_prefix[peel_prefix]
-                if not peel_ids:
-                    continue
                 rest_ids = clique - peel_ids
                 for curie in peel_ids:
                     dicts[curie] = peel_ids
                 for curie in rest_ids:
                     dicts[curie] = rest_ids
-                clique = rest_ids  # continue peeling further prefixes from the remainder
+                clique = rest_ids  # later peels, and later groups, see only the remainder
     return dicts
 
 
@@ -633,6 +650,7 @@ def create_typed_sets(eqsets, types):
     After that, check the types dict to see if we know anything.
     """
     typed_sets = defaultdict(set)
+    dropped = 0
     for equivalent_ids in eqsets:
         t = classify_disease_clique(equivalent_ids, types)
         if t is None:
@@ -641,12 +659,17 @@ def create_typed_sets(eqsets, types):
             # can strand a lone identifier that is referenced in a concord yet absent from any
             # ids file (e.g. an obsolete MP). Drop it with a warning rather than aborting the
             # whole build over one untypeable stray.
+            dropped += 1
             logger.warning(
                 "Dropping untypeable disease/phenotype clique (no member has a declared type): %s",
                 sorted(equivalent_ids),
             )
             continue
         typed_sets[t].add(equivalent_ids)
+    if dropped:
+        # A one-line total, so a mass drop (e.g. an ids file that silently failed to build) is
+        # visible in the Snakemake log without counting individual warnings.
+        logger.warning("Dropped %d untypeable disease/phenotype cliques out of %d.", dropped, len(eqsets))
     return typed_sets
 
 

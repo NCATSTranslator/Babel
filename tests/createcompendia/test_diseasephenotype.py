@@ -350,6 +350,42 @@ def test_split_pulls_all_mp_ids_into_one_clique():
 
 
 @pytest.mark.unit
+def test_split_keeps_earliest_occupied_prefix_not_group_zero():
+    """When a group's first-listed prefix is absent, the earliest *occupied* prefix should keep
+    the out-of-group members. For group [HP, MP, MESH] over an MP+MESH+MONDO clique, MP keeps
+    MONDO and MESH is peeled off -- peeling everything after group[0] would strand MONDO alone."""
+    dicts = _glom_dict(["MP:0002989", "MESH:D004694", "MONDO:0005110"])
+    diseasephenotype.split_mutually_exclusive_cliques(dicts, exclusive_prefix_groups=[["HP", "MP", "MESH"]])
+    assert dicts["MP:0002989"] == {"MP:0002989", "MONDO:0005110"}
+    assert dicts["MP:0002989"] is dicts["MONDO:0005110"]
+    assert dicts["MESH:D004694"] == {"MESH:D004694"}
+
+
+@pytest.mark.unit
+def test_split_applies_each_group_to_the_previous_group_s_remainder():
+    """With more than one group, each group should split what the previous group left behind.
+    [HP, MP] peels MP off an HP+MP+MESH+UMLS clique; [MESH, UMLS] then splits the HP remainder,
+    leaving HP+MESH together and UMLS alone. The peeled MP clique is single-prefix and so cannot
+    split again."""
+    dicts = _glom_dict(["HP:0001638", "MP:0010412", "MESH:D004694", "UMLS:C0018799"])
+    diseasephenotype.split_mutually_exclusive_cliques(dicts, exclusive_prefix_groups=[["HP", "MP"], ["MESH", "UMLS"]])
+    assert dicts["MP:0010412"] == {"MP:0010412"}
+    assert dicts["HP:0001638"] == {"HP:0001638", "MESH:D004694"}
+    assert dicts["HP:0001638"] is dicts["MESH:D004694"]
+    assert dicts["UMLS:C0018799"] == {"UMLS:C0018799"}
+
+
+@pytest.mark.unit
+def test_split_matches_prefixes_case_insensitively():
+    """Group prefixes should be matched case-insensitively, so a lower-case constant (as
+    prefixes.ORPHANET is) still triggers a split rather than silently failing open."""
+    dicts = _glom_dict(["HP:0001638", "orphanet:12345"])
+    diseasephenotype.split_mutually_exclusive_cliques(dicts, exclusive_prefix_groups=[["HP", "orphanet"]])
+    assert dicts["HP:0001638"] == {"HP:0001638"}
+    assert dicts["orphanet:12345"] == {"orphanet:12345"}
+
+
+@pytest.mark.unit
 def test_split_then_create_typed_sets_routes_mp_to_phenotypic_feature():
     """End-to-end build/report contract: after splitting an HP+MP+MONDO clique, create_typed_sets
     should route the peeled MP-only clique to PhenotypicFeature and keep the HP/MONDO clique as
