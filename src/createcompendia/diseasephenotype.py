@@ -413,8 +413,9 @@ def load_close_mondos(mondoclose):
     every build. The bug dates back to commit 93a6c898 (2021-05-25), the very commit that
     introduced the close-match guard: the reader keyed on ``x[1]`` while the regular-concord loop
     in the same function already keyed on ``stuff[0]``/``stuff[2]`` (subject + object), so the
-    guard never once fired in roughly four years of disease builds. Blank lines are skipped; any
-    row that is not exactly 3 columns raises ``RuntimeError``.
+    guard never once fired in roughly four years of disease builds. See
+    https://github.com/NCATSTranslator/Babel/issues/912 for the full write-up. Blank lines are
+    skipped; any row that is not exactly 3 columns raises ``RuntimeError``.
     """
     close_mondos = defaultdict(set)
     with open(mondoclose) as inf:
