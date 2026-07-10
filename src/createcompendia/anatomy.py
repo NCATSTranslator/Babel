@@ -137,7 +137,9 @@ def write_emapa_ids(outfile):
     root = ANATOMY_OBO_SOURCES[EMAPA]["root"]
     uber = UberGraph()
     curies = {root} | _emapa_descendants(uber, root)
-    gross_curies = {EMAPA_ORGAN, EMAPA_TISSUE} | _emapa_descendants(uber, EMAPA_ORGAN) | _emapa_descendants(uber, EMAPA_TISSUE)
+    gross_curies = (
+        {EMAPA_ORGAN, EMAPA_TISSUE} | _emapa_descendants(uber, EMAPA_ORGAN) | _emapa_descendants(uber, EMAPA_TISSUE)
+    )
     with open(outfile, "w") as idfile:
         for curie in sorted(curies):
             biolink_type = GROSS_ANATOMICAL_STRUCTURE if curie in gross_curies else ANATOMICAL_ENTITY

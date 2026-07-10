@@ -70,7 +70,6 @@ def test_get_subclasses_exact(ubergraph):
         print(v)
 
 
-
 def test_build_sets_rejects_custom_hierarchy_predicate_for_non_xref():
     """build_sets() must raise ValueError immediately if a non-default hierarchy_predicate
     is combined with set_type != 'xref', because those code paths hardcode rdfs:subClassOf."""

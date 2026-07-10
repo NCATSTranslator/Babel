@@ -22,11 +22,16 @@ def test_source_impact_report_runs_for_emapa(emapa_pipeline_outputs, tmp_path):
 
     exit_code = run_cli(
         [
-            "--source", "EMAPA",
-            "--mode", "synthetic",
-            "--intermediate-root", intermediate_root,
-            "--output", str(output_path),
-            "--format", "md",
+            "--source",
+            "EMAPA",
+            "--mode",
+            "synthetic",
+            "--intermediate-root",
+            intermediate_root,
+            "--output",
+            str(output_path),
+            "--format",
+            "md",
         ]
     )
 
