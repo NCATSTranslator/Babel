@@ -157,7 +157,15 @@ chemical_labels:    [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUN
 chemical_synonyms:  [GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, UMLS, DRUGBANK]
 chemical_concords:  [wikipedia_mesh_chebi, PUBCHEM_MESH, mesh_cas, mesh_unii, PUBCHEM_CAS, GTOPDB, CHEBI, UMLS, DrugCentral, RXNORM]
 chemical_ids:       [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, DRUGBANK, MESH, UMLS, RXNORM]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
-chemical_outputs:   [MolecularMixture.txt, SmallMolecule.txt, Polypeptide.txt, ComplexMolecularMixture.txt, ChemicalEntity.txt, ChemicalMixture.txt, Drug.txt]
+# Food.txt holds DRUGBANK allergenic-extract cliques retyped from ChemicalEntity to Food (issue #828);
+# it must stay in this list so those cliques flow into DrugChemical conflation and the exports like any
+# other chemical output. (Non-food allergen extracts are retyped to the already-present ComplexMolecularMixture.)
+chemical_outputs:   [MolecularMixture.txt, SmallMolecule.txt, Polypeptide.txt, ComplexMolecularMixture.txt, ChemicalEntity.txt, ChemicalMixture.txt, Drug.txt, Food.txt]
+# NCIt subtrees whose members are treated as foods when retyping DRUGBANK allergenic extracts (issue #828):
+# NCIT:C1949 "Food" plus NCIT:C73913 "Seed" (nuts/grains like almond and wheat that NCIt files under Seed,
+# not Food). A DRUGBANK extract whose UNII is classified under either becomes biolink:Food; other allergen
+# extracts (pollens, danders, molds) become biolink:ComplexMolecularMixture.
+drugbank_food_ncit_roots: [NCIT:C1949, NCIT:C73913]
 
 drugchemicalconflated_synonym_outputs: [DrugChemicalConflated.txt]
 geneproteinconflated_synonym_outputs:  [GeneProteinConflated.txt]

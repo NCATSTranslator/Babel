@@ -1,4 +1,5 @@
 import src.createcompendia.chemicals as chemicals
+import src.datahandlers.drugbank as drugbank
 import src.assess_compendia as assessments
 import src.snakefiles.util as util
 
@@ -138,6 +139,38 @@ rule chemical_drugbank_ids:
         config["output_directory"] + "/benchmarks/chemical_drugbank_ids.tsv"
     run:
         chemicals.write_drugbank_ids(input.infile, output.outfile)
+
+
+rule chemical_ncit_food_codes:
+    # Enumerate the NCIt Food/Seed subtrees so the DRUGBANK allergenic-extract retype can recognise
+    # foods by their UNII's NCIt class (issue #828). Queries UberGraph, hence retries.
+    output:
+        outfile=config["intermediate_directory"] + "/chemicals/ids/ncit_food_codes",
+    benchmark:
+        config["output_directory"] + "/benchmarks/chemical_ncit_food_codes.tsv"
+    retries: 3  # UberGraph sometimes fails mid-download and needs a retry.
+    run:
+        chemicals.write_ncit_descendant_codes(config["drugbank_food_ncit_roots"], output.outfile)
+
+
+rule chemical_drugbank_allergenic_extracts:
+    # DRUGBANK allergenic extracts (whole trout, strawberry, ragweed pollen, cat dander, ...) that
+    # default to biolink:ChemicalEntity but should be biolink:Food (foods) or
+    # biolink:ComplexMolecularMixture (non-food allergens) — issue #828. Uses the DrugBank vocabulary
+    # CSV's UNII column cross-checked against each UNII's NCIt class; see
+    # datahandlers/drugbank.py:extract_drugbank_allergenic_extract_types.
+    input:
+        vocab_csv=config["download_directory"] + "/DRUGBANK/drugbank vocabulary.csv",
+        unii_records=config["download_directory"] + "/UNII/Latest_UNII_Records.txt",
+        food_ncit_codes=config["intermediate_directory"] + "/chemicals/ids/ncit_food_codes",
+    output:
+        outfile=config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_allergenic_extracts",
+    benchmark:
+        config["output_directory"] + "/benchmarks/chemical_drugbank_allergenic_extracts.tsv"
+    run:
+        drugbank.extract_drugbank_allergenic_extract_types(
+            input.vocab_csv, input.unii_records, input.food_ncit_codes, output.outfile
+        )
 
 
 ######
@@ -338,6 +371,7 @@ rule chemical_compendia:
         metadata_yamls=[config["intermediate_directory"] + "/chemicals/partials/metadata-untyped_compendium.yaml"],
         properties_jsonl_gz=[config["intermediate_directory"] + "/chemicals/properties/get_chebi_concord.jsonl.gz"],
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
+        allergenic_extract_types=config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_allergenic_extracts",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["chemical_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["chemical_outputs"])),
@@ -354,6 +388,7 @@ rule chemical_compendia:
             input.properties_jsonl_gz,
             input.metadata_yamls,
             input.icrdf_filename,
+            input.allergenic_extract_types,
         )
 
 
@@ -443,6 +478,17 @@ rule check_drug:
         outfile=config["output_directory"] + "/reports/Drug.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/check_drug.tsv"
+    run:
+        assessments.assess(input.infile, output.outfile)
+
+
+rule check_food:
+    input:
+        infile=config["output_directory"] + "/compendia/Food.txt",
+    output:
+        outfile=config["output_directory"] + "/reports/Food.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_food.tsv"
     run:
         assessments.assess(input.infile, output.outfile)
 

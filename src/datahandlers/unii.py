@@ -3,8 +3,62 @@ from zipfile import ZipFile
 
 import requests
 
-from src.prefixes import UNII
+from src.prefixes import NCIT, UNII
 from src.util import get_config
+
+# Columns in Latest_UNII_Records.txt that, when populated, mark a UNII as a whole organism or
+# crude organism-derived substance (a plant, animal, fungus, etc.) rather than a defined
+# chemical. These are the substances the chemical ingest deliberately skips ("a plant or an eye
+# of newt") and the same signal the DrugBank allergenic-extract retype (issue #828) uses to
+# recognise that a structureless DrugBank entry is really a food/organism extract.
+UNII_ORGANISM_COLUMNS = ["NCBI", "PLANTS", "GRIN", "MPNS"]
+
+# Latest_UNII_Records.txt is Windows-1252 encoded and column 0 is the UNII code.
+UNII_RECORDS_ENCODING = "windows-1252"
+UNII_RECORDS_CODE_COLUMN = 0
+
+# Column in Latest_UNII_Records.txt holding the substance's NCIt code (bare, e.g. "C71910"). Used
+# by the DrugBank allergenic-extract retype to recognise foods via NCIt classification (issue #828).
+UNII_RECORDS_NCIT_COLUMN = "NCIT"
+
+
+def read_unii_ncit(records_file):
+    """Return {UNII code -> NCIt CURIE (e.g. "NCIT:C71910")} for records that carry an NCIt code.
+
+    The NCIt code lets the DrugBank allergenic-extract retype decide whether a structureless
+    DrugBank entry is a food (its UNII's NCIt class is under NCIt "Food"/"Seed").
+    """
+    unii_to_ncit = {}
+    with open(records_file, encoding=UNII_RECORDS_ENCODING) as inf:
+        header = inf.readline().rstrip("\n").split("\t")
+        ncit_colno = header.index(UNII_RECORDS_NCIT_COLUMN)
+        for line in inf:
+            row = line.rstrip("\n").split("\t")
+            ncit = row[ncit_colno].strip()
+            if ncit:
+                unii_to_ncit[row[UNII_RECORDS_CODE_COLUMN]] = f"{NCIT}:{ncit}"
+    return unii_to_ncit
+
+
+def read_organism_uniis(records_file):
+    """Return the set of UNII codes flagged as a whole organism / crude organism-derived
+    substance in Latest_UNII_Records.txt (any of UNII_ORGANISM_COLUMNS populated).
+
+    Shared by chemicals.write_unii_ids (which excludes these from the chemical compendium) and
+    the DrugBank allergenic-extract retype so the "this UNII is an organism" definition lives in
+    one place.
+    """
+    organism_uniis = set()
+    with open(records_file, encoding=UNII_RECORDS_ENCODING) as inf:
+        header = inf.readline().rstrip("\n").split("\t")
+        organism_colnos = [header.index(col) for col in UNII_ORGANISM_COLUMNS]
+        for line in inf:
+            # rstrip("\n") not strip(): the organism columns are near the end and are usually
+            # empty, and strip() would drop those trailing empty fields and misalign the row.
+            row = line.rstrip("\n").split("\t")
+            if any(len(row[colno]) > 0 for colno in organism_colnos):
+                organism_uniis.add(row[UNII_RECORDS_CODE_COLUMN])
+    return organism_uniis
 
 
 def pull_unii():
