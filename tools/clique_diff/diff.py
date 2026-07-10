@@ -48,13 +48,20 @@ Output:
   reader never has to guess which build was before vs after or what the diff isolates.
   ``compendia`` maps each filename to its counts: a nested ``clique_count``
   (``before``/``after``/``diff``/``diff_percent``) plus ``changed_before_cliques``,
-  ``dropped_member_count`` (the headline regression signal), ``moved_member_count``,
+  ``dropped_member_count`` (the headline regression signal), ``moved_member_count`` (members that
+  left *this* compendium, re-typed into another), ``moved_in_member_count`` and
+  ``moved_in_clique_count`` (the mirror image: members that *arrived* here from another
+  compendium's cliques, and how many distinct after-cliques here received them),
   ``regrouped_member_count``, and ``leader_changed_count``. ``diff_percent`` is ``null`` when
   the before build had no cliques at all but the after build has some — the percentage is
-  undefined there, and reporting ``0.0`` would read as "nothing changed". NOTE: a clique that exists only in
-  the after build (no before counterpart — e.g. a wholly new MP-only clique) is not a change
-  row, since the diff iterates before-cliques; such additions surface only as a positive
-  ``clique_count.diff``, which is why a build adding thousands of cliques can show few rows.
+  undefined there, and reporting ``0.0`` would read as "nothing changed". The
+  ``moved_in_*`` fields exist because every other stat is before-clique-centric, so a compendium
+  that only *receives* retyped members (e.g. a disease clique shedding a phenotype group that
+  becomes a new ``PhenotypicFeature`` clique) would otherwise look untouched — its gained cliques
+  show up only as a positive ``clique_count.diff`` and as ``moved`` rows filed under the *source*
+  compendium. NOTE: a clique that exists only in the after build with *no* before member anywhere
+  in the compared files (e.g. a wholly new MP-only clique) is still not a change row, since the
+  diff iterates before-cliques; such additions surface only as a positive ``clique_count.diff``.
 """
 
 import argparse
@@ -280,6 +287,16 @@ def diff_builds(before_dir, after_dir, filenames):
             "regrouped_member_count": sum(r["member_count"] for r in records if r["destination_kind"] == "regrouped"),
             "leader_changed_count": sum(1 for r in records if r["destination_kind"] == "leader_changed"),
         }
+
+    # Second pass for the incoming side of moves. A `moved` row is filed under its *source*
+    # compendium (the before-clique's file), so a receiving compendium's own before-clique-centric
+    # stats never see it. Computed here, after `rows` is complete, because a moved row's
+    # destination file may have been summarised before its source file was processed.
+    for fname in summary:
+        incoming = [r for r in rows if r["destination_kind"] == "moved" and r["destination_compendium"] == fname]
+        summary[fname]["moved_in_member_count"] = sum(r["member_count"] for r in incoming)
+        summary[fname]["moved_in_clique_count"] = len({r["destination"] for r in incoming})
+
     return rows, summary
 
 
@@ -357,7 +374,8 @@ def main(argv=None):
     for fname, s in sorted(summary.items()):
         print(
             f"  {fname}: {s['changed_before_cliques']} changed cliques, "
-            f"{s['dropped_member_count']} dropped members, {s['moved_member_count']} moved"
+            f"{s['dropped_member_count']} dropped members, {s['moved_member_count']} moved out, "
+            f"{s['moved_in_clique_count']} cliques gained from moves in"
         )
     print(f"Total members dropped from the compared compendia: {total_dropped}")
 

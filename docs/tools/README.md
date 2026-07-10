@@ -132,6 +132,16 @@ counts: a nested `clique_count` (`before`/`after`/`diff`/`diff_percent`) plus
 `changed_before_cliques`, `dropped_member_count` (the headline regression signal),
 `moved_member_count`, `regrouped_member_count`, and `leader_changed_count`.
 
+Two further fields, `moved_in_member_count` and `moved_in_clique_count`, report the *incoming*
+side of moves: members that arrived in this compendium from another compendium's before-cliques,
+and how many distinct after-cliques here received them. They exist because every other stat is
+before-clique-centric — a `moved` row is filed under the *source* compendium, so a compendium that
+only *receives* retyped members (e.g. `PhenotypicFeature.txt` gaining cliques that split off
+disease cliques) would otherwise show `changed_before_cliques: 0` and look untouched, with its
+gained cliques visible only as a positive `clique_count.diff`. When triaging a diff, read
+`moved_in_clique_count` on every receiving compendium and pull the corresponding `moved` rows
+(`destination_compendium == <file>`) from the CSV — they name each gained clique.
+
 `diff_percent` is `null` when the before build had no cliques in that compendium but the after
 build has some: the percentage is undefined, and `0.0` would misread as "unchanged". It is `0.0`
 only when the two counts genuinely match.
