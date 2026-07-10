@@ -144,6 +144,32 @@ Net for Babel's ingest: `otheraliases` is safely pipe-delimited; `otherdesignati
 awareness that ~0.6M values are semicolon-joined (under-split) and a few thousand are `''`-spanned
 (over-split).
 
+### Most `''` is genuine double-prime nomenclature, not a #744 artifact
+
+`double_prime_report.py` (output: [`double_prime_report.md`](./double_prime_report.md)) separates
+`''` that could be a real name component from the #744 split-span markers. A `''` is a split
+marker only when it sits at a pipe-fragment boundary as part of an open/close pair; anything else —
+a value *ending* in `''` with no matching open marker, a `''` embedded mid-text, or a `''` in the
+single-value `Symbol` columns — is a genuine double-prime candidate.
+
+The result: **25,335** genuine `''` occurrences across **372** distinct tokens, versus only
+**277** open/close split-span pairs (all in `otheraliases`; `otherdesignations` has *zero* split
+markers). Double-prime is rare overall (0.036% of rows) — your intuition is right there — but where
+it appears it is real, and it outnumbers the artifacts ~90:1. NCBI is ASCII-rendering the
+typographic double-prime `″` as two apostrophes. Two classes dominate:
+
+- **Protein-subunit double-prime (`″`):** `RNA polymerase beta'' subunit` (10,414 rows — the
+  largest single token), `U2 small nuclear ribonucleoprotein B''`, PP2A `regulatory subunit B''`,
+  `V-type proton ATPase ... subunit c''`, `transcription factor TFIIIB component B''` (BDP1), RNA
+  pol `A''`/`E''`/`N''`. Triple/quadruple prime also occur (`SRP31'''`, `b''''`).
+- **Chemical-position locants (`2″`, `3″`, `6″`…):** `...-6''-O-malonyltransferase`,
+  `...2''-O-xylosyltransferase`, `APH(3'')`/`ANT(3'')` aminoglycoside enzymes, `ADP-ribose
+  1''-phosphate phosphatase`, `diadenosine 5',5'''-tetraphosphate`.
+
+Crucially, a **leading** `''` never begins a genuine name (double-prime is always a suffix or
+internal locant), so a leading `''` reliably identifies the #744 open marker. That is the basis for
+narrowing the fix (below).
+
 ## Deferred follow-up questions
 
 Once we know which characters are present, the deeper questions (each a likely next script here):
@@ -152,8 +178,8 @@ Once we know which characters are present, the deeper questions (each a likely n
 - Are `''` always paired within a single pipe-fragment, or do they span fragments (the #744 case)?
 - Do `''…''`-quoted phrases ever contain characters that would otherwise be read as structure —
   embedded `|`, commas, semicolons, newlines, or backslash escape sequences like `\n`?
-- Does distinguishing "leading `''`" (fragment) from "trailing `''`" (double-prime nomenclature)
-  cleanly separate artifacts from legitimate values, and should the #744 fix drop only leading-`''`
-  fragments?
+- **(Answered — see above.)** Distinguishing "leading `''`" from "trailing `''`" *does* cleanly
+  separate artifacts from legitimate double-prime, so the #744 fix is narrowed to drop only leading
+  open-marker fragments (and their paired trailing close-marker), keeping genuine trailing `''`.
 - Should the ingest also split `otherdesignations` on `;` (or at least the `;uncharacterized
   protein` join pattern) so those ~0.6M semicolon-joined designations become individual synonyms?
