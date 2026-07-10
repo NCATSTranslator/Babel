@@ -250,7 +250,7 @@ dev = [
     { name = "py-spy", specifier = ">=0.4.2" },
     { name = "ruff", specifier = ">=0.14.14" },
     { name = "rumdl", specifier = ">=0.2.4" },
-    { name = "snakefmt", specifier = ">=0.11.2" },
+    { name = "snakefmt", specifier = ">=2.0.3" },
 ]
 
 [[package]]
