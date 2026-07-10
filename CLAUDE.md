@@ -254,7 +254,8 @@ named by its CURIE prefix); see `docs/sources/README.md` for the convention and 
 there first when working on a specific vocabulary, and add to it when you learn something
 non-obvious about how Babel ingests that source. Keep the detail in the source file — `CLAUDE.md`
 should point here, not duplicate it. Documented so far: ComplexPortal
-(`docs/sources/COMPLEXPORTAL/Ingestion.md`), Ensembl/BioMart
+(`docs/sources/COMPLEXPORTAL/Ingestion.md`), DrugBank allergenic extracts
+(`docs/sources/DRUGBANK/allergenic-extracts/README.md`), Ensembl/BioMart
 (`docs/sources/ENSEMBL/Download.md`), MeSH (`docs/sources/MESH/Ingestion.md`), UMLS
 (`docs/sources/UMLS/Leftover.md`), and the phenotype ontologies HP (`docs/sources/HP/README.md`)
 and MP (`docs/sources/MP/README.md`, with `MP/disjointness.md` covering how MP is kept disjoint
