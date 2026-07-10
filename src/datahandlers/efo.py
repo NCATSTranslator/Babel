@@ -89,7 +89,8 @@ class EFOgraph:
         """
         if otherid.upper().startswith(ORPHANET.upper()):
             return True
-        return otherid.split(":", 1)[0] in excluded_target_prefixes
+        excluded = {p.upper() for p in excluded_target_prefixes}
+        return otherid.split(":", 1)[0].upper() in excluded
 
     def get_exacts(self, iri, outfile, excluded_target_prefixes=()):
         query = f"""
