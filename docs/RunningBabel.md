@@ -103,11 +103,15 @@ target is much cheaper than `snakemake --cores N` with no target.
   {"type": "biolink:Ana{"type": "biolink:AnatomicalEntity", "ic": 77.6, ...
   ```
 
-  and `check_*` rules failing with `line contains invalid json`. The intermediate `ids/` and
-  `concords/` files usually survive (they are written by a single rule); it is the compendia
-  that get corrupted. Recovery: kill every Snakemake process, delete the affected compendia,
-  synonyms, reports and metadata for that pipeline, then rerun the target once. Validate before
-  trusting a rebuild — every line of a compendium must be parseable JSON.
+  and `check_*` rules failing with `line contains invalid json`. Only a small fraction of lines
+  is usually affected (157 of 147,523 in one observed case), so eyeballing the head of the file
+  will not catch it. The intermediate `ids/` and `concords/` files usually survive (each is
+  written by a single rule); it is the compendia that get corrupted. Recovery: kill every
+  Snakemake process, delete the affected compendia, synonyms, reports and metadata for that
+  pipeline, then rerun the target once. Validate before trusting a rebuild — every line of a
+  compendium must be parseable JSON. `write_compendium()` does not write atomically, which is
+  what makes this possible; tracked in
+  [#910](https://github.com/NCATSTranslator/Babel/issues/910).
 * **UberGraph transient failures.** Rules that fetch from UberGraph (anatomy's UBERON, GO, CL,
   EMAPA rules; similar elsewhere) sometimes time out, 5xx, or return truncated JSON. They carry
   `retries: 3` and the underlying `TripleStore` adds bounded retry/backoff, so most transient
@@ -140,7 +144,8 @@ JSONDecodeError: Expecting property name enclosed in double quotes: line 1418299
 ```
 
 `retries: 3` plus `TripleStore`'s own backoff usually gets it through eventually, so this reads
-as a flaky endpoint rather than the design problem it is.
+as a flaky endpoint rather than the design problem it is. Tracked in
+[#909](https://github.com/NCATSTranslator/Babel/issues/909).
 
 The fix is to push the prefix filter into the SPARQL query (a `FILTER(STRSTARTS(STR(?descendent),
 "<root prefix IRI>"))` when `hop_ontologies` is false) rather than to batch the download.

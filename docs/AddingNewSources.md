@@ -191,10 +191,28 @@ here and cannot show up in a hand-assembled intermediate tree.
 
 Caveats:
 
-- A previous interrupted run can leave the working directory locked. Clear it with
-  `uv run snakemake --unlock` before retrying.
+- A previous interrupted run can leave the working directory locked. Check that no build is
+  still alive (`pgrep -fl snakemake`) and only then clear it with `uv run snakemake --unlock`.
+  Never run two Snakemake invocations against the same working directory — they interleave writes
+  and corrupt the compendia. See RunningBabel.md → "Common build issues".
 - UberGraph-backed rules carry `retries: 3`, but a full UberGraph outage will propagate.
 - The full target rebuilds upstream sources, so numbers reflect data fetched at build time.
+- **The pipeline target does not build the per-prefix label files.** Section 3's sample tables and
+  `new-xrefs.tsv` enrich CURIEs with preferred labels read from
+  `babel_downloads/<PREFIX>/labels` (`--downloads-root`). Those files come from the
+  `get_obo_labels` rule in `datacollect.snakefile`, which a pipeline target such as `anatomy` does
+  not depend on — so a report generated straight after a fresh pipeline build has a blank
+  `object_label` column for the new source, with no warning. Each per-prefix file is exactly the
+  subset of `babel_downloads/common/ubergraph/labels` whose CURIEs carry that prefix (see
+  `obo.pull_uber_labels`), so if you already have the common file you can slice it rather than
+  re-querying all of UberGraph:
+
+  ```bash
+  mkdir -p babel_downloads/<PREFIX>
+  grep '^<PREFIX>:' babel_downloads/common/ubergraph/labels > babel_downloads/<PREFIX>/labels
+  ```
+
+  Confirm the tool logs `loaded N labels for <PREFIX>` before trusting the report.
 
 ### Fallback: generating the report without a full pipeline build
 
@@ -302,6 +320,12 @@ The three committed files:
   `from_other_source` = another source's concord touches a source CURIE).
 
 `modified-cliques.json` is written locally but gitignored.
+
+**Parse the CSVs with a real CSV reader.** `equivalent_ids` is a comma-joined list inside a single
+quoted field, so `awk -F,` (or `cut -d,`) silently shifts every column after it and will happily
+report, say, a non-zero `needs_biolink_registration` count that is really fragments of a CURIE
+list. Use `csv.DictReader` (or `pandas`) instead. `new-xrefs.tsv` is tab-separated and safe for
+`awk -F'\t'`, but note its columns are `subject`/`object`, not the first two fields.
 
 ##### Survival columns
 

@@ -189,7 +189,17 @@ semantic type plus data collection, reports, exports, and DuckDB.
 The Biolink Model version is set in `config.yaml` (the current value is the source of
 truth — read it via `get_config()["biolink_version"]` rather than hard-coding a version
 in code or in docs that will go stale) and feeds both `NodeFactory` and
-`get_biolink_model_toolkit()`.
+`get_biolink_model_toolkit()`. Note the toolkit helper takes the version as a **required**
+argument: `get_biolink_model_toolkit(get_config()["biolink_version"])`, not
+`get_biolink_model_toolkit()`. The version may be a git SHA rather than a `x.y.z` tag.
+
+To check whether a prefix is registered for a Biolink class (the check that decides whether
+`NodeFactory.create_node()` keeps or silently drops a CURIE):
+
+```python
+tk = get_biolink_model_toolkit(get_config()["biolink_version"])
+"EMAPA" in tk.get_element("gross anatomical structure").id_prefixes
+```
 
 **Mapped class URIs** — always use the `biolink:`-prefixed form (e.g. `biolink:ChemicalEntity`),
 not the raw element name (`chemical entity`). `get_ancestors()` and `get_element().class_uri`
@@ -336,8 +346,9 @@ the report exists to catch:
   (`CURIE\tbiolink:Type`); this drives clique typing in the build. `write_compendium()` →
   `NodeFactory.create_node()` then keeps only CURIEs whose prefix is in the Biolink Model's
   `id_prefixes` for the clique's class and silently drops the rest — so a prefix that is not
-  yet registered for its type never reaches the compendium. EMAPA's
-  `biolink:GrossAnatomicalStructure` terms are the current not-yet-registered example.
+  yet registered for its type never reaches the compendium. Check registration with
+  `get_biolink_model_toolkit(version).get_element(<class>).id_prefixes` before assuming a
+  type will survive; the impact report's `needs_biolink_registration` column reports it.
 - **Generate and commit the report.** `uv run source-impact-report --source <SOURCE>` writes
   `docs/sources/<SOURCE>/impact-report.md` plus an `impact-report/` subdirectory; commit
   `new-cliques.csv`, `modified-cliques.csv`, and `new-xrefs.tsv` (`modified-cliques.json` is
