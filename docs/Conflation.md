@@ -26,6 +26,39 @@ on, NodeNorm will:
    identifier is the first identifier in the clique, and which consists of all the identifiers from
    all the cliques included in that conflation.
 
+## Estimating a prospective DrugProtein conflation (issue #706)
+
+Proteins and chemicals are built by separate pipelines, and the identifiers that could be either
+(UMLS, MESH) are deliberately kept apart between them, so no compendium records a
+protein-clique -> chemical-clique edge.
+[Issue #706](https://github.com/NCATSTranslator/Babel/issues/706) asks whether we should
+_optionally_ re-join them with a new **DrugProtein** conflation (for example, conflating insulin the
+protein with insulin the chemical and specific insulin formulations). Before building it, we need to
+quantify what it would look like.
+
+The `drugprotein_conflation_estimate` rule (`src/reports/drugprotein_conflation_report.py`) produces
+that estimate without changing any compendium. It reuses the bridge edges that already exist on
+disk: the DrugChemical relationship concords
+(`intermediate/drugchemical/concords/{RXNORM,UMLS,PUBCHEM_RXNORM}`) and the manual DrugChemical
+concord. These are the only artifacts that relate a protein-pipeline concept and a chemical-pipeline
+concept in the same edge. The rule resolves both endpoints of every bridge edge to their clique
+leader (via the DuckDB `Edge.parquet` export), keeps the pairs that cross the protein/chemical
+boundary, and merges them with the same `glom()` union-find the real conflations use. The kept pairs
+are exactly the ones DrugChemical conflation discards today because one side is not a
+ChemicalEntity.
+
+It writes three files under `babel_outputs/reports/drugprotein/`:
+
+- `summary.json` — counts of protein and chemical cliques bridged, the number of resulting merged
+  cliques, a merged-clique size histogram, and a per-bridge-source breakdown.
+- `bridge_edges.tsv.gz` — every cross-pipeline (protein leader, chemical leader, source) pair with
+  labels; the reviewable artifact for the issue.
+- `top_cliques.csv` — the largest prospective merged cliques with member CURIEs and labels, for
+  sanity-checking (insulin and similar).
+
+To produce the same estimate ad hoc against a finished build (for example on the HPC login node,
+without re-running the pipeline), run `tools/drugprotein/run_first_cut.py`.
+
 ## How are types handled for conflated cliques?
 
 Babel does not assign a type to any conflations. When NodeNorm is called with a particular
