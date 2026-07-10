@@ -96,6 +96,12 @@ Snakemake drives a two-phase pipeline:
    and `descriptions` (CURIE→text, `DescriptionFactory`). A handler emits whichever of these its
    source supports; supplying `taxa`/`descriptions` is how a source enriches its cliques with
    taxon and description data (see ComplexPortal and NCBIGene for examples that emit all four).
+   `write_compendium` sets each identifier's `t` field from its prefix's `taxa` file and unions
+   them onto the clique. When every term of an ontology shares one fixed taxon (HP→human, MP→
+   mammal), derive the `taxa` file from that prefix's already-built ids file so it stays exactly
+   in sync with what Babel ingests — see `diseasephenotype.write_phenotype_taxa` (config
+   `disease_phenotype_taxa`). Note HP and MP are kept disjoint (see "Keeping two prefixes
+   disjoint" below), so an MP clique carries only the mammalian taxon and never unions in HP's.
 2. **Compendium Building** — extracts identifiers per semantic type into `ids/[TYPE]`, creates
    pairwise cross-reference mappings (concords), merges them into equivalence cliques via
    union-find, and outputs enriched JSONL compendia.
@@ -128,6 +134,31 @@ semantic type plus data collection, reports, exports, and DuckDB.
 - **Concord files** are the core data structure: tab-separated `CURIE1 \t Relation \t CURIE2`
   triples expressing cross-references between vocabularies. The `glom()` function in
   `babel_utils.py` merges them into equivalence cliques.
+- **An OBO `hasDbXref` is not an equivalence.** Concords are fed to `glom()` as equivalence
+  assertions, but many ontologies use `oboInOwl:hasDbXref` to mean "this term is *about* that
+  thing". MP is the worst offender: it xrefs the anatomy an abnormality occurs in (`MP:0009873`
+  "abnormal aorta tunica media morphology" → `MA:0002903`), the process a phenotype perturbs
+  (`MP:0002998` "abnormal bone remodeling" → `GO:0046849` "bone remodeling"), plus citations and
+  bare Wikipedia URLs. **Always audit the target-prefix breakdown of a new source's xrefs before
+  trusting them** (section 3 of the source-impact report, or `cut -f3 <concord> | sed 's/:.*//' |
+  sort | uniq -c`). Two filters exist on `ubergraph.build_sets()`:
+  - `ignore_list=[...]` blocks named target prefixes and **fails open** — a namespace the source
+    newly starts emitting is silently trusted (`anatomy.build_anatomy_obo_relationships`).
+  - `allowed_prefixes=[...]` is the complement and **fails closed** — only listed prefixes are
+    written, so a new namespace is dropped until someone reviews it. Prefer this for a source whose
+    xrefs are mostly junk (`diseasephenotype.MP_XREF_ALLOWED_PREFIXES`).
+
+  Both are matched against `Text.get_prefix_or_none()`, which **upper-cases**, so entries must be
+  upper-case: `"MPATH"`, `"HTTP"` — a lower-case entry silently never matches. For individually
+  wrong pairs that survive prefix filtering, add them to a per-source bad-xref file (see below).
+  Worked example: `docs/sources/MP/mappings.md`.
+- **Bad-xref files** (`input_data/*_badxrefs.txt`) drop individual `subject object` pairs (**space**
+  separated, `#` comments) from a concord before glom. They are keyed by **concord basename**, and
+  that key must be added in *two* places or the file is silently never read:
+  `diseasephenotype.DEFAULT_BAD_XREFS` (used by the impact-report CLI) *and* the explicit dict the
+  `disease_compendia` Snakemake rule passes to `build_compendium`. A unit test asserting the key
+  exists and the pair parses is the cheap guard — `read_badxrefs` silently returns an empty set for
+  an unregistered prefix.
 - **`SynonymFilter`** (`src/synonyms/filter.py`) checks every label and synonym against
   `input_data/obsolete_synonyms.yaml` before it enters a compendium. Each YAML entry
   carries its own `action` field: `"remove"` (default) drops the term and returns `True`
@@ -224,9 +255,11 @@ there first when working on a specific vocabulary, and add to it when you learn 
 non-obvious about how Babel ingests that source. Keep the detail in the source file — `CLAUDE.md`
 should point here, not duplicate it. Documented so far: ComplexPortal
 (`docs/sources/COMPLEXPORTAL/Ingestion.md`), Ensembl/BioMart
-(`docs/sources/ENSEMBL/Download.md`), MeSH (`docs/sources/MESH/Ingestion.md`), and UMLS
-(`docs/sources/UMLS/Leftover.md`). Cross-cutting download/discovery patterns (HTTP autoindex
-listing vs FTP `NLST`) live in `docs/sources/DownloadPatterns.md`.
+(`docs/sources/ENSEMBL/Download.md`), MeSH (`docs/sources/MESH/Ingestion.md`), UMLS
+(`docs/sources/UMLS/Leftover.md`), and the phenotype ontologies HP (`docs/sources/HP/README.md`)
+and MP (`docs/sources/MP/README.md`, with `MP/disjointness.md` covering how MP is kept disjoint
+from HP). Cross-cutting download/discovery patterns (HTTP autoindex listing vs FTP `NLST`) live
+in `docs/sources/DownloadPatterns.md`.
 
 ### Per-compendium metadata YAMLs
 
@@ -241,6 +274,8 @@ not for answering "are *these specific* CURIEs joinable."
 - `babel_downloads/` — cached source data
 - `babel_outputs/intermediate/` — intermediate build artifacts
 - `babel_outputs/` — final compendia, synonyms, reports, exports
+- `data/` — local scratch space for ad hoc files (analysis notebooks, one-off downloads,
+  intermediate digging); gitignored, never committed
 
 ## Running Babel
 
@@ -283,7 +318,37 @@ the report exists to catch:
   the prefix filtering above would drop. When extending the report to a new semantic type,
   add a `compute_cliques_for_impact_report` helper to that type's `createcompendia/*.py`
   module (mirroring `anatomy.py`) and register it in `PIPELINE_CONFIG` in
-  `src/cli/source_impact_report.py`.
+  `src/cli/source_impact_report.py`. A `PIPELINE_CONFIG` entry needs **more than just
+  `compute_fn`**: also supply `clique_classifier` (a `classify_*_clique` callable returning the
+  clique's biolink type), `biolink_types` (the types whose `id_prefixes` order the report uses
+  to pick the preferred CURIE), and `compendium_prefixes` (for loading labels). Omit these and
+  every clique renders with a blank `biolink_type` and `preferred_curie()` silently falls back to
+  the lexicographically-smallest CURIE (e.g. a `DOID`/`Fyler` leader instead of `MONDO`/`HP`).
+  Extract the classifier from the type's `create_typed_sets()` so the report types and orders
+  identifiers exactly like the build.
+- **For changes that *restructure* existing cliques, use `babel-clique-diff`, not the impact
+  report.** `source-impact-report`'s "before" is always "the same inputs with this source excluded",
+  so it only shows added/expanded/merged cliques — never cliques that split, lose members, or
+  disappear. When a change pulls members back out (a disjointness policy, a concord/close-match
+  change), diff two finished compendium builds with
+  `babel-clique-diff --before <dir> --after <dir> --files <files…> --out-csv … --out-json …`
+  (`tools/clique_diff/diff.py`): it reports per before-clique whether members were `kept`,
+  `regrouped` (split), `moved` (retyped to another file), or `dropped` (deleted). Build both sides
+  from the same cached intermediates so the diff isolates the one change (it then doubles as a
+  completeness check). Commit artifacts under `docs/sources/<SOURCE>/<change>/` (or
+  `docs/pipelines/<pipeline>/<change>/`): always the tiny `clique-diff.summary.json`, plus the
+  per-row `clique-diff.csv` when reasonably sized. See `docs/AddingNewSources.md`.
+
+**Keeping two prefixes disjoint** — `glom()`'s `unique_prefixes` only forbids *duplicate
+same-prefix* identifiers in a clique; it does **not** stop two *different* prefixes from
+co-occurring, and dropping one source's concord is also insufficient (other sources' concords
+bridge them directly or transitively). To guarantee two prefixes never share a clique, run a
+**post-glom split** as the last step of the shared clique-builder so the build and the
+source-impact report agree — see `diseasephenotype.split_mutually_exclusive_cliques` /
+`MUTUALLY_EXCLUSIVE_PREFIX_GROUPS = [[HP, MP]]` (mirrors the type-driven split in
+`chemicals.py`) and `docs/sources/MP/disjointness.md`. A split can strand an identifier that is
+in a concord but no ids file (an out-of-date mapping); `create_typed_sets` drops such an
+untypeable clique with a warning rather than aborting the build.
 
 **Snakemake `retries:`** — use `retries: 3` for any network-backed rule (UberGraph, FTP,
 HTTP). Do not use `retries: 10`. UberGraph rules already get per-request retry-with-backoff
@@ -425,11 +490,12 @@ docstrings, and when to add a pipeline test) that the individual conventions bel
 
 - **Test documentation** — every test function should have a docstring that explains (a) what
   scenario is being tested and (b) what the expected outcome is. "Should" phrasing makes both
-  explicit (e.g. "``excluded_sources`` should skip ids and concords — FOO:2 must not appear in
-  the clique dict"). Group related tests with a `# --- Label ---` section comment in the code
-  (e.g. `# --- Basic merging ---`, `# --- Edge cases ---`). The module docstring should describe
-  what the file covers overall; do **not** duplicate the group list there — the section headers
-  in the code are the authoritative, always-current index.
+  explicit (e.g. "``excluded_sources`` should skip ids and concords — FOO:2 must not appear in the
+  clique dict"). Group related tests with a `# LABEL` section comment in the code (e.g.
+  `# BASIC MERGING`, `# EDGE CASES`), with additional `# ----` lines before and after the section
+  comments if that will help make them more distinct. The module docstring should describe what the
+  file covers overall; do **not** duplicate the group list there — the section headers in the code
+  are the authoritative, always-current index.
 
 - **Test assertion helpers** — `tests/conftest.py` exports `assert_labels_file_valid`,
   `assert_synonyms_file_valid`, `assert_ids_file_valid`, `assert_concordance_file_valid`,

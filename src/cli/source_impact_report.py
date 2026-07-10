@@ -23,7 +23,15 @@ import sys
 from collections.abc import Callable, Iterator
 
 import src.createcompendia.anatomy as anatomy
-from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
+import src.createcompendia.diseasephenotype as diseasephenotype
+from src.categories import (
+    ANATOMICAL_ENTITY,
+    CELL,
+    CELLULAR_COMPONENT,
+    DISEASE,
+    GROSS_ANATOMICAL_STRUCTURE,
+    PHENOTYPIC_FEATURE,
+)
 from src.model.clique_diff import (
     SourceImpactDiff,
     cliques_from_compendia,
@@ -72,8 +80,14 @@ ComputeCliquesFn = Callable[..., tuple[dict, dict]]
 #   preferred CURIE per clique.
 # The biolink types anatomy cliques can carry, in the named-constant form mandated by the
 # repo conventions (never hard-code "biolink:..." strings). The compendium file names are
-# derived from these (``<BareType>.txt``) so the two lists can never drift apart.
+# derived from these (``<BareType>.txt``) so the two lists can never drift apart. They must
+# also match config.yaml's ``anatomy_outputs`` (the same set, as file names, which is what
+# Snakemake builds); test_compendium_files_match_config_outputs asserts that.
 _ANATOMY_BIOLINK_TYPES = [ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE]
+# The biolink types disease/phenotype cliques can carry. As with anatomy, the compendium file
+# names (``Disease.txt``, ``PhenotypicFeature.txt``) are derived from these so they can't drift,
+# and the same test pins them to config.yaml's ``disease_outputs``.
+_DISEASE_BIOLINK_TYPES = [DISEASE, PHENOTYPIC_FEATURE]
 
 PIPELINE_CONFIG: dict[str, dict] = {
     "anatomy": {
@@ -82,6 +96,13 @@ PIPELINE_CONFIG: dict[str, dict] = {
         "compendium_prefixes": get_config()["anatomy_prefixes"],
         "clique_classifier": anatomy.classify_anatomy_clique,
         "biolink_types": _ANATOMY_BIOLINK_TYPES,
+    },
+    "disease": {
+        "compute_fn": diseasephenotype.compute_cliques_for_impact_report,
+        "compendium_files": [f"{bt.split(':')[-1]}.txt" for bt in _DISEASE_BIOLINK_TYPES],
+        "compendium_prefixes": get_config()["disease_labelsandsynonyms"],
+        "clique_classifier": diseasephenotype.classify_disease_clique,
+        "biolink_types": _DISEASE_BIOLINK_TYPES,
     },
 }
 
