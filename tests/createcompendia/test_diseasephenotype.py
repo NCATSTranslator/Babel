@@ -562,3 +562,23 @@ def test_mp_xref_allowlist_drops_non_phenotype_targets(tmp_path):
 
     targets = {line.rstrip("\n").split("\t")[2] for line in (outdir / "MP").read_text().splitlines()}
     assert targets == {"MGI:2173579", "MPATH:720", "HP:0001257", "UMLS:C0026838"}
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("argument_name", ["ignore_list", "allowed_prefixes"])
+def test_build_sets_rejects_non_upper_case_prefix_filters(argument_name):
+    """A prefix filter entry that isn't upper-case can never match Text.get_prefix_or_none()'s
+    upper-cased output. build_sets should raise ValueError naming the offending entries rather
+    than silently ignoring the filter -- which for ignore_list would fail open. It must raise
+    before contacting UberGraph, so no network patching is needed here."""
+    with pytest.raises(ValueError, match="can never match.*orphanet"):
+        build_sets("MONDO:0000001", {}, set_type="xref", **{argument_name: ["MESH", "orphanet"]})
+
+
+@pytest.mark.unit
+def test_build_sets_accepts_the_allowlist_this_module_ships():
+    """The MP allowlist must satisfy build_sets' upper-case check; this pins the constant so a
+    future lower-case addition (e.g. "mpath") fails here rather than silently dropping every MP
+    xref of that namespace."""
+    diseasephenotype_allowlist = diseasephenotype.MP_XREF_ALLOWED_PREFIXES
+    assert diseasephenotype_allowlist == [p.upper() for p in diseasephenotype_allowlist]
