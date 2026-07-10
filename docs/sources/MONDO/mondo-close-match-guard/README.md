@@ -54,17 +54,25 @@ The 1,218 figure matches the ~1,219 MEDDRA drop reported in the earlier combined
 
 ### PhenotypicFeature.txt
 
-Essentially unaffected: 1 changed clique, 0 dropped members, 2 members moved. The guard is
-MONDO-scoped, and MONDO cliques are disease-typed, so phenotype cliques barely move.
+The clique-diff tool reports only 1 changed *before*-clique and 0 dropped members here, but the
+clique count still rose by 13 (75,469 → 75,482). Those additions do not show up as diff rows
+because the tool iterates before-cliques, and these are brand-new cliques with no before
+counterpart — so they are analysed separately below ("Disease clique split into a new phenotype
+clique"). Precisely: 14 new HP-led phenotype cliques appeared and 1 pre-existing one
+(`HP:0010866`) was absorbed, netting +13.
 
 ## Cliques that actually split — SME review needed
 
 The 1,218 dropped identifiers are all MEDDRA, and MEDDRA is barely used downstream, so those
-drops are low-stakes. The changes that need a subject-matter expert's eye are the small number of
-cliques that did not merely shed a MEDDRA term but **structurally split**, moving a real
-(non-MEDDRA) identifier out of the MONDO clique. There are 23 of these (the net Disease clique
-count rose by 20): 19 split a piece off into a brand-new clique, and 4 re-attached the piece to a
-different, already-existing MONDO clique.
+drops are low-stakes. The changes that need a subject-matter expert's eye are the cliques that did
+not merely shed a MEDDRA term but **structurally split**, moving a real (non-MEDDRA) identifier out
+of the MONDO clique. There are 37 of these across three kinds, all in `split-cliques.csv`:
+
+- **19** eject a piece into a brand-new clique in `Disease.txt` ("Split into a brand-new clique").
+- **4** re-attach the piece to a different, already-existing MONDO clique ("Re-attached to a
+  different existing MONDO clique").
+- **14** shed a group that re-types into a brand-new `PhenotypicFeature.txt` clique ("Disease
+  clique split into a new phenotype clique") — these are the +13 phenotype additions noted above.
 
 **Why a real identifier gets ejected.** When the guard fires, `glom()` drops the *entire* pairwise
 concord link, not just the offending MEDDRA term (it `continue`s past the whole merge). So if a
@@ -78,12 +86,13 @@ close concept and are improvements — e.g.
 correctly no longer subsumes the broader `UMLS:C0017980` "Glycosuria, Renal". Each row needs an SME
 to decide which it is.
 
-These 23 rows are also in `split-cliques.csv` (a `near_identical_label` column flags the ⚠ cases).
-Its `sme_assessment` column carries a first pass: the two cases confirmed above are marked
-`regression`/`improvement (SME-confirmed)`, the eight ⚠ identical-label cases are marked
-`suspected regression (identical label)`, and the remaining 13 (a distinct close concept was
-separated) are left blank as genuine SME calls. Members shown below are examples (up to five per
-row); see `clique-diff.csv` for the full membership.
+All 37 rows are in `split-cliques.csv` (a `near_identical_label` column flags the ⚠ cases). For
+the 23 disease splits its `sme_assessment` column carries a first pass: the two cases confirmed
+above are marked `regression`/`improvement (SME-confirmed)`, the eight ⚠ identical-label cases are
+marked `suspected regression (identical label)`, and the remaining 13 (a distinct close concept was
+separated) are left blank as genuine SME calls. The 14 phenotype splits are left blank (see their
+section for why the ⚠ flag does *not* imply a regression there). Members shown below are examples
+(up to five per row); see `clique-diff.csv` for the full membership.
 
 ### Split into a brand-new clique (19)
 
@@ -152,8 +161,52 @@ regression — these 4 are left blank in `sme_assessment` for that reason.
 - **MONDO:0017850** "sirenomelia" → **MONDO:0010831** "familial caudal dysgenesis" (moved
   HP:0010497, SNOMEDCT:253191000, 3 MEDDRA)
 
+### Disease clique split into a new phenotype clique (14)
+
+Same guard-fires-and-ejects mechanism, but here the ejected group carries an **HP** phenotype term
+and no MONDO, so `create_typed_sets` types it as `biolink:PhenotypicFeature` and writes it to
+`PhenotypicFeature.txt` as a brand-new clique. These are the +13 phenotype additions above (14 new,
+1 pre-existing absorbed).
+
+Unlike the disease splits, a near-identical MONDO↔HP label here (marked ⚠) does **not** imply a
+regression: Babel deliberately keeps disease and phenotype in separate compendia, so pulling
+`HP:0001543` "Gastroschisis" out of the `MONDO:0009264` "gastroschisis" disease clique is arguably
+*correct* typing. The real SME question is the other direction — whether the UMLS/SNOMEDCT/MEDDRA
+identifiers that moved *with* the HP term belong on the phenotype side or should have stayed as the
+disease's cross-references. All 14 are left blank in `sme_assessment`.
+
+- ⚠ **MONDO:0009264** "gastroschisis" → new phenotype clique **HP:0001543** "Gastroschisis" (+
+  SNOMEDCT:72951007, UMLS:C0265706, 1 MEDDRA)
+- ⚠ **MONDO:0007955** "Meckel diverticulum" → new phenotype clique **HP:0002245** "Meckel
+  diverticulum" (+ 2 SNOMEDCT, UMLS:C0025037, 2 MEDDRA)
+- ⚠ **MONDO:0009126** "duodenal atresia" → new phenotype clique **HP:0002247** "Duodenal atresia" (+
+  SNOMEDCT:51118003, UMLS:C0266174, 2 MEDDRA)
+- ⚠ **MONDO:0019269** "ichthyosis" → new phenotype clique **HP:0008064** "Ichthyosis" (+
+  SNOMEDCT:782957005, UMLS:C0020757, 3 MEDDRA)
+- ⚠ **MONDO:0007970** "melorheostosis" → new phenotype clique **HP:6000817** "Melorheostosis" (+
+  UMLS:C0025239, 1 MEDDRA)
+- **MONDO:0008482** "Sprengel deformity" → new phenotype clique **HP:0000912** "Sprengel anomaly" (+
+  SNOMEDCT:79120002, UMLS:C0152438, 2 MEDDRA)
+- **MONDO:0008652** "congenital vertical talus" → new phenotype clique **HP:0001838** "Rocker bottom
+  foot" (+ 2 SNOMEDCT, UMLS:C0240912, 1 MEDDRA)
+- **MONDO:0008686** "isolated familial wooly hair disorder" → new phenotype clique **HP:0002224**
+  "Woolly hair" (+ SNOMEDCT:52564001, 3 UMLS, 1 MEDDRA)
+- **MONDO:0002474** "primary hyperoxaluria" → new phenotype clique **HP:0003159** "Hyperoxaluria" (+
+  MESH:D006959, SNOMEDCT:367621000119107, UMLS:C0020500, 1 MEDDRA)
+- **MONDO:0020296** "congenital arteriovenous fistula" → new phenotype clique **HP:0004947**
+  "Arteriovenous fistula" (+ NCIT:C36192, 2 SNOMEDCT, UMLS:C0003855, 2 MEDDRA)
+- **MONDO:0007880** "congenital laryngeal web" → new phenotype clique **HP:0005950** "Laryngeal web"
+  (+ SNOMEDCT:297159008, 2 UMLS, 2 MEDDRA)
+- **MONDO:0017419** "non-syndromic amelia" → new phenotype clique **HP:0009827** "Amelia" (+
+  SNOMEDCT:62588002, UMLS:C0002447, 1 MEDDRA)
+- **MONDO:0010831** "familial caudal dysgenesis" → new phenotype clique **HP:0010305** "Absence of
+  the sacrum" (+ SNOMEDCT:205425003, 2 UMLS, 1 MEDDRA)
+- **MONDO:0000709** "Crohn ileitis" → new phenotype clique **HP:0032564** "Ileitis" (+ NCIT:C84782,
+  UMLS:C0020877, 1 MEDDRA)
+
 ## Files
 
 - `clique-diff.summary.json` — per-compendium counts (committed).
 - `clique-diff.csv` — per-clique change rows (committed; ~530 KB, 2,458 rows).
-- `split-cliques.csv` — the 23 structural splits above, for SME review (committed; ~3 KB).
+- `split-cliques.csv` — the 37 structural splits above (23 disease + 14 phenotype), for SME
+  review (committed; ~5 KB).
