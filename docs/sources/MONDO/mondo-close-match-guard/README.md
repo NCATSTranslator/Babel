@@ -125,6 +125,24 @@ row); see `clique-diff.csv` for the full membership.
 
 ### Re-attached to a different existing MONDO clique (4)
 
+These are the same guard-fires-and-ejects mechanism as above, with one extra ingredient: the
+ejected group had a concord path to a **second, already-existing MONDO clique**, so instead of
+forming its own standalone clique it was absorbed into that sibling. This happens because `MONDO`
+is a `unique_prefix` — a clique can hold at most one MONDO identifier, so when a group of
+identifiers is linked to two MONDO terms at once, only one can win, and blocking the winning path
+hands the group to the runner-up.
+
+Worked example — `MONDO:0016702` "oligoastrocytoma" → `MONDO:0003268` "mixed glioma". A group
+anchored by `UMLS:C0280793` "Mixed Oligodendroglioma-Astrocytoma" (equivalent to `NCIT:C129323`
+"Oligoastrocytoma, NOS", two MEDDRA terms, and `SNOMEDCT:22217002`) has a concord path to *both*
+MONDO terms: to oligoastrocytoma via `DOID:7912 xref UMLS:C0280793`, and to mixed glioma via
+`UMLS:C0280793 eq SNOMEDCT:22217002`. Before the fix, the oligoastrocytoma merge won and the group
+landed there. After the fix, `MONDO:0016702` close-matches `MEDDRA:10027744` — which is inside that
+group — so the guard refuses the whole oligoastrocytoma link; the group's other path (via the
+SNOMEDCT term) then routes it into the mixed-glioma clique instead. Note `NCIT:C129323` literally
+means "Oligoastrocytoma, NOS" yet now lives under *mixed glioma*, so even a re-attachment can be a
+regression — these 4 are left blank in `sme_assessment` for that reason.
+
 - **MONDO:0015597** "palmoplantar pustulosis" → **MONDO:0013626** "psoriasis 14, pustular" (moved
   HP:0100847, SNOMEDCT:27520001, UMLS:C0030246, 1 MEDDRA)
 - **MONDO:0016575** "primary ciliary dyskinesia" → **MONDO:0009484** "primary ciliary dyskinesia 1"
