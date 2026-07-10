@@ -1,0 +1,88 @@
+pipeline	subject	subject_label	predicate	object	object_label	asserted_by	status
+disease	HP:0011112	Abnormal circulating cytokine concentration	xref	MP:0010210	abnormal circulating cytokine level	HP	from_other_source
+disease	HP:0011113	Abnormality of cytokine secretion	xref	MP:0003009	abnormal cytokine secretion	HP	from_other_source
+disease	HP:0011118	Abnormality of tumor necrosis factor secretion	xref	MP:0008556	abnormal tumor necrosis factor secretion	HP	from_other_source
+disease	HP:0011123	Inflammatory abnormality of the skin	xref	MP:0004947	skin inflammation	HP	from_other_source
+disease	HP:0011281	Abnormality of urine catecholamine level	xref	MP:0011478	abnormal urine catecholamine level	HP	from_other_source
+disease	HP:0011849	Abnormal bone ossification	xref	MP:0008271	abnormal bone ossification	HP	from_other_source
+disease	HP:0012337	Abnormal homeostasis	xref	MP:0001764	abnormal homeostasis	HP	from_other_source
+disease	HP:0012632	Abnormal intraocular pressure	xref	MP:0005257	abnormal intraocular pressure	HP	from_other_source
+disease	HP:0040270	Impaired glucose tolerance	xref	MP:0005291	abnormal glucose tolerance	HP	from_other_source
+disease	MP:0000230	abnormal systemic arterial blood pressure	xref	MGI:2173589		MP	added
+disease	MP:0000462	abnormal digestive system morphology	xref	MGI:2173601		MP	added
+disease	MP:0001544	abnormal cardiovascular system physiology	xref	MGI:2173590		MP	added
+disease	MP:0001663	abnormal digestive system physiology	xref	MGI:2173602		MP	added
+disease	MP:0001963	abnormal hearing physiology	xref	MGI:2173555		MP	added
+disease	MP:0002061	abnormal aggression-related behavior	xref	MGI:2173566		MP	added
+disease	MP:0002062	abnormal associative learning	xref	MGI:2173567		MP	added
+disease	MP:0002063	abnormal learning/memory/conditioning	xref	MGI:2173568		MP	added
+disease	MP:0002064	seizures	xref	MGI:2173569		MP	added
+disease	MP:0002065	abnormal fear/anxiety-related behavior	xref	MGI:2173570		MP	added
+disease	MP:0002066	abnormal motor capabilities/coordination/movement	xref	MGI:2173571		MP	added
+disease	MP:0002067	abnormal sensory capabilities/reflexes/nociception	xref	MGI:2173572		MP	added
+disease	MP:0002068	abnormal parental behavior	xref	MGI:2173573		MP	added
+disease	MP:0002069	abnormal consumption behavior	xref	MGI:2173574		MP	added
+disease	MP:0002073	abnormal hair growth	xref	MGI:2173539		MP	added
+disease	MP:0002074	abnormal hair texture	xref	MGI:2173540		MP	added
+disease	MP:0002075	abnormal coat/hair pigmentation	xref	MGI:2173541		MP	added
+disease	MP:0002078	abnormal glucose homeostasis	xref	MGI:2173579		MP	added
+disease	MP:0002080	prenatal lethality	xref	MGI:2173525		MP	added
+disease	MP:0002081	perinatal lethality	xref	MGI:2173526		MP	added
+disease	MP:0002082	postnatal lethality	xref	MGI:2173527		MP	added
+disease	MP:0002083	premature death	xref	MGI:2173528		MP	added
+disease	MP:0002084	abnormal developmental patterning	xref	MGI:2173529		MP	added
+disease	MP:0002085	abnormal embryonic tissue morphology	xref	MGI:2173530		MP	added
+disease	MP:0002086	abnormal extraembryonic tissue morphology	xref	MGI:2173531		MP	added
+disease	MP:0002088	abnormal embryonic growth/weight/body size	xref	MGI:2173533		MP	added
+disease	MP:0002089	abnormal postnatal growth/weight/body size	xref	MGI:2173534		MP	added
+disease	MP:0002092	abnormal eye morphology	xref	MGI:2173536		MP	added
+disease	MP:0002095	abnormal skin pigmentation	xref	MGI:2173544		MP	added
+disease	MP:0002098	abnormal vibrissa morphology	xref	MGI:2173547		MP	added
+disease	MP:0002100	abnormal tooth morphology	xref	MGI:2173553		MP	added
+disease	MP:0002102	abnormal ear morphology	xref	MGI:2173556		MP	added
+disease	MP:0002106	abnormal muscle physiology	xref	MGI:2173559		MP	added
+disease	MP:0002108	abnormal muscle morphology	xref	MGI:2173558		MP	added
+disease	MP:0002109	abnormal limb morphology	xref	MGI:2173549		MP	added
+disease	MP:0002110	abnormal digit morphology	xref	MGI:2173550		MP	added
+disease	MP:0002111	abnormal tail morphology	xref	MGI:2173551		MP	added
+disease	MP:0002113	abnormal skeleton development	xref	MGI:2173561		MP	added
+disease	MP:0002114	abnormal axial skeleton morphology	xref	MGI:2173562		MP	added
+disease	MP:0002115	abnormal limb bone morphology	xref	MGI:2173563		MP	added
+disease	MP:0002116	abnormal craniofacial bone morphology	xref	MGI:2173564		MP	added
+disease	MP:0002118	abnormal lipid homeostasis	xref	MGI:2173578		MP	added
+disease	MP:0002123	abnormal definitive hematopoiesis	xref	MGI:2173583		MP	added
+disease	MP:0002127	abnormal cardiovascular system morphology	xref	MGI:2173587		MP	added
+disease	MP:0002128	abnormal blood circulation	xref	MGI:2173588		MP	added
+disease	MP:0002132	abnormal respiratory system morphology	xref	MGI:2173592		MP	added
+disease	MP:0002133	abnormal respiratory system physiology	xref	MGI:2173593		MP	added
+disease	MP:0002135	abnormal kidney morphology	xref	MGI:2173595		MP	added
+disease	MP:0002136	abnormal kidney physiology	xref	MGI:2173596		MP	added
+disease	MP:0002138	abnormal hepatobiliary system morphology	xref	MGI:2173598		MP	added
+disease	MP:0002139	abnormal hepatobiliary system physiology	xref	MGI:2173599		MP	added
+disease	MP:0002144	abnormal B cell differentiation	xref	MGI:2173604		MP	added
+disease	MP:0002145	abnormal T cell differentiation	xref	MGI:2173605		MP	added
+disease	MP:0002148	abnormal hypersensitivity reaction	xref	MGI:2173608		MP	added
+disease	MP:0002151	abnormal neural tube morphology	xref	MGI:2173611		MP	added
+disease	MP:0002152	abnormal brain morphology	xref	MGI:2173612		MP	added
+disease	MP:0002160	abnormal reproductive system morphology	xref	MGI:2173620		MP	added
+disease	MP:0002161	abnormal fertility/fecundity	xref	MGI:2173621		MP	added
+disease	MP:0002163	abnormal gland morphology	xref	MGI:2173623		MP	added
+disease	MP:0002164	abnormal gland physiology	xref	MGI:2173624		MP	added
+disease	MP:0002166	abnormal tumor susceptibility	xref	MGI:2173626		MP	added
+disease	MP:0002169	no abnormal phenotype detected	xref	MGI:2173629		MP	added
+disease	MP:0002207	abnormal long-term potentiation	xref	MGI:2173614		MP	added
+disease	MP:0002447	abnormal erythrocyte morphology	xref	MGI:2173584		MP	added
+disease	MP:0002551	abnormal blood coagulation	xref	MGI:2173585		MP	added
+disease	MP:0002766	situs inversus	xref	MPATH:720		MP	added
+disease	MP:0002767	situs ambiguus	xref	MPATH:711		MP	added
+disease	MP:0003632	abnormal nervous system morphology	xref	MGI:2173613		MP	added
+disease	MP:0003632	abnormal nervous system morphology	xref	MGI:2173617		MP	added
+disease	MP:0003633	abnormal nervous system physiology	xref	MGI:2173615		MP	added
+disease	MP:0003633	abnormal nervous system physiology	xref	MGI:2173618		MP	added
+disease	MP:0004133	heterotaxia	xref	MPATH:712		MP	added
+disease	MP:0009203	external male genitalia hypoplasia	xref	UMLS:C0341787	Bifid scrotum	MP	added
+disease	MP:0009875	absent interdigital cell death	xref	MGI:llw2		MP	added
+disease	MP:0011253	situs inversus with levocardia	xref	MPATH:714		MP	added
+disease	MP:0012051	spasticity	xref	HP:0001257	Spasticity	MP	added
+disease	MP:0012051	spasticity	xref	UMLS:C0026838	Muscle Spasticity	MP	added
+disease	MP:0030178	abnormal scalp morphology	xref	HP:0001965	Abnormal scalp morphology	MP	added
