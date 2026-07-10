@@ -1,6 +1,7 @@
 # EMAPA source notes
 
-EMAPA (Mouse Developmental Anatomy Ontology, https://obofoundry.org/ontology/emapa.html) is used in Babel as an anatomy source.
+EMAPA (Mouse Developmental Anatomy Ontology, <https://obofoundry.org/ontology/emapa.html>) is used
+in Babel as an anatomy source.
 
 In this integration, Babel:
 
