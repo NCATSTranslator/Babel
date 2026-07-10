@@ -98,6 +98,11 @@ OVERUSE_FILTERED_CONCORDS = {"MONDO", "HP", "EFO", "MP"}
 # badxrefs (e.g. by the source-impact report CLI). The Snakemake call site still
 # passes its own explicit dict so production behaviour is unchanged. Anchored at the repo
 # root because the CLI, unlike Snakemake, need not run from there.
+#
+# A new prefix's key must be added HERE and in the `disease_compendia` rule's explicit dict
+# (src/snakefiles/diseasephenotype.snakefile) — read_badxrefs() silently returns an empty set
+# for a prefix missing from whichever dict was actually passed in, so an unregistered key
+# doesn't fail loudly, it just never filters anything.
 DEFAULT_BAD_XREFS = {
     "HP": str(_REPO_ROOT / "input_data/badHPx.txt"),
     "MONDO": str(_REPO_ROOT / "input_data/mondo_badxrefs.txt"),
