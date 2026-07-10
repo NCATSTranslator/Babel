@@ -1,0 +1,15 @@
+# MP xrefs (from UberGraph, in intermediate/disease/concords/MP) that assert an equivalence
+# that isn't one. Hand maintained. Space-separated `subject object` pairs; `#` starts a comment.
+#
+# MP declares hasDbXref far more loosely than Babel treats it -- see docs/sources/MP/mappings.md
+# for the target-prefix allowlist (MP_XREF_ALLOWED_PREFIXES) that removes the bulk of them. This
+# file catches the individually-wrong rows that survive the allowlist.
+#
+# MP:0009203 is "external male genitalia hypoplasia", a broad term covering underdevelopment of
+# any external male genital structure. UMLS:C0341787 is "Bifid scrotum", a specific and different
+# malformation (a scrotum divided into halves), which UMLS and HP agree on (HP:0000048). Cliquing
+# them makes "external male genitalia hypoplasia" a synonym of "bifid scrotum". Today the
+# [HP, MP] post-glom split separates the resulting clique anyway, so this row is inert; it is
+# dropped here so it stays wrong-and-absent rather than wrong-and-accidentally-harmless.
+# To be reported upstream to MP; tracked in https://github.com/NCATSTranslator/Babel/issues/905
+MP:0009203 UMLS:C0341787
