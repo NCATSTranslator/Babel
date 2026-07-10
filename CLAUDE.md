@@ -298,8 +298,17 @@ rerun the entire pipeline. You can look at the resource requirements of a rule t
 option would be best.
 
 If a previous Snakemake run was killed, the next invocation may fail with
-`LockException: Directory cannot be locked`. Clear it with `uv run snakemake --unlock` before
-retrying.
+`LockException: Directory cannot be locked`. Check that no build is still alive
+(`pgrep -fl snakemake`), then clear it with `uv run snakemake --unlock` before retrying.
+
+**Never let two Snakemake runs share a working directory.** The directory lock is the only
+guard, so `--unlock` while a build is still running starts a second one on top of it. Note that
+Snakemake does *not* exit the moment a rule fails — it finishes the other scheduled jobs first,
+so a run that already printed `Error in rule ...` can still be executing minutes later. Two runs
+then interleave writes into the same compendium and corrupt it: the `check_*` rules fail with
+`line contains invalid json`, and you find one JSONL record spliced into the middle of another.
+Intermediate `ids/` and `concords/` files normally survive; the compendia do not. See
+`docs/RunningBabel.md` ("Common build issues") for the recovery procedure.
 
 **Most targets build locally — prefer that over faking up intermediate files.** Only `gene`,
 `protein` and `chemical` need a workstation or HPC node, together with the conflations that
@@ -373,6 +382,17 @@ HTTP). Do not use `retries: 10`. UberGraph rules already get per-request retry-w
 inside `TripleStore.execute_query` (default 3 attempts, exponential back-off, configurable
 via `config["sparql"]["max_attempts"]`), so the Snakemake `retries:` is only a coarse
 safety net for whole-rule failures, not a substitute for fine-grained request retries.
+
+**Oversized UberGraph queries** — the `get_subclasses_*` family walks the redundant graph's
+`rdfs:subClassOf` closure, which crosses ontology boundaries, so it returns descendants from
+*every* ontology in UberGraph. `build_sets()` then discards every row whose subject prefix
+differs from the root's. For `UBERON:0001062` that is 2,885,566 rows (~396 MB of SPARQL JSON)
+of which 48,592 are kept. Responses this large get truncated mid-stream and surface as a
+`JSONDecodeError` at a character offset in the hundreds of millions — which looks like a flaky
+endpoint, not a design problem. If you touch this code, push the prefix filter into SPARQL
+rather than batching the transfer, and do it in `UberGraph` rather than in one caller: every
+caller pays the same cost. `docs/RunningBabel.md` ("Oversized UberGraph queries") has the
+details and the existing `QUERY_BATCH_SIZE` batching idiom.
 
 The shared clique-building skeleton lives in `src/model/cliques.py`.
 `glom_from_files()` runs the common `load ids → glom`,

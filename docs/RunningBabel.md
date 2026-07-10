@@ -89,11 +89,33 @@ target is much cheaper than `snakemake --cores N` with no target.
 
 * **Stale Snakemake lock.** If a previous run was killed (Ctrl-C, OOM, power loss) Snakemake
   may refuse to start with `LockException: Directory cannot be locked`. Clear it with
-  `uv run snakemake --unlock` and retry.
+  `uv run snakemake --unlock` and retry. **Check first that no Snakemake process is actually
+  still running** (`pgrep -fl snakemake`) — see the next bullet for why.
+* **Never run two Snakemake invocations against the same working directory.** The directory
+  lock is the only thing preventing this, so `--unlock` while a build is still alive lets a
+  second run start on top of the first. When a rule fails, Snakemake keeps executing unrelated
+  jobs rather than exiting immediately, so a build that printed `Error in rule ...` may still
+  be running for many minutes afterwards. Two runs then execute the same rule concurrently and
+  interleave their writes. The symptom is a compendium that fails JSON parsing partway through,
+  with one record spliced into the middle of another:
+
+  ```text
+  {"type": "biolink:Ana{"type": "biolink:AnatomicalEntity", "ic": 77.6, ...
+  ```
+
+  and `check_*` rules failing with `line contains invalid json`. The intermediate `ids/` and
+  `concords/` files usually survive (they are written by a single rule); it is the compendia
+  that get corrupted. Recovery: kill every Snakemake process, delete the affected compendia,
+  synonyms, reports and metadata for that pipeline, then rerun the target once. Validate before
+  trusting a rebuild — every line of a compendium must be parseable JSON.
 * **UberGraph transient failures.** Rules that fetch from UberGraph (anatomy's UBERON, GO, CL,
-  EMAPA rules; similar elsewhere) sometimes time out or 5xx. They carry `retries: 10` and the
-  underlying `TripleStore` adds bounded retry/backoff, so most transient blips heal
-  themselves. A full UberGraph outage will still propagate as a job failure — wait and rerun.
+  EMAPA rules; similar elsewhere) sometimes time out, 5xx, or return truncated JSON. They carry
+  `retries: 3` and the underlying `TripleStore` adds bounded retry/backoff, so most transient
+  blips heal themselves. A full UberGraph outage will still propagate as a job failure — wait
+  and rerun. A `JSONDecodeError` reporting a character offset in the hundreds of millions is a
+  truncated response to an oversized query, not malformed data; see "Oversized UberGraph
+  queries" below. Running two heavy UberGraph rules in parallel (`-c all` will happily schedule
+  `get_icrdf` alongside `get_anatomy_obo_relationships`) makes it markedly more likely.
 * **UMLS_API_KEY not set.** The UMLS download rule fails fast with a clear error if this is
   missing. Set it in your shell before invoking Snakemake, not just inline (`UMLS_API_KEY=… uv
   run snakemake …` works only for the parent process and may not propagate into all subjobs
@@ -101,6 +123,34 @@ target is much cheaper than `snakemake --cores N` with no target.
 * **Partial/incomplete state from a prior aborted run.** Add `--rerun-incomplete` to force
   Snakemake to regenerate any outputs it considers possibly-stale, which is the safest
   default after a kill.
+
+### Oversized UberGraph queries
+
+`UberGraph.get_subclasses_and_xrefs()` (and its `_exacts`/`_close` siblings) fetch every
+descendant of a root **across all ontologies loaded into UberGraph**, because the redundant
+graph's `rdfs:subClassOf` closure crosses ontology boundaries. `build_sets()` then throws away
+every row whose subject prefix differs from the root's, client-side.
+
+For `UBERON:0001062` "anatomical entity" that means downloading **2,885,566 rows (~396 MB of
+SPARQL JSON) and keeping 48,592** — under 2%. The full response regularly gets truncated
+mid-stream, surfacing as:
+
+```text
+JSONDecodeError: Expecting property name enclosed in double quotes: line 14182994 column 7 (char 396247040)
+```
+
+`retries: 3` plus `TripleStore`'s own backoff usually gets it through eventually, so this reads
+as a flaky endpoint rather than the design problem it is.
+
+The fix is to push the prefix filter into the SPARQL query (a `FILTER(STRSTARTS(STR(?descendent),
+"<root prefix IRI>"))` when `hop_ontologies` is false) rather than to batch the download.
+Batching would page 396 MB in chunks; filtering avoids transferring 98% of it in the first
+place. This belongs in `UberGraph`, not in a single caller — `build_sets()` applies the same
+client-side prefix filter for every source, so every caller of the `get_subclasses_*` family
+pays this cost today. Note that `UberGraph` already has a batching idiom (`QUERY_BATCH_SIZE`
+with a `COUNT` then `OFFSET`/`LIMIT`, used by `get_all_labels`, `get_all_descriptions`,
+`get_all_synonyms` and `write_normalized_information_content`); reach for it only if a query is
+still too large *after* filtering.
 
 ## Analyzing and tuning a SLURM run
 
