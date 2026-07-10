@@ -39,17 +39,28 @@ def test_ncbigene_descriptions_file_valid(ncbigene_pipeline_outputs):
     assert any(r[0].startswith("NCBIGene:") for r in rows), "No NCBIGene: CURIEs found in descriptions"
 
 
+# The exact fragment strings from the issue #744 example row (gene 828367): a comma-containing
+# alias that NCBI wrapped in '' and then pipe-split, leaving these dangling half-quoted pieces.
+ISSUE_744_ARTIFACTS = {"''cytochrome P450", "polypeptide 2''"}
+
+
 @pytest.mark.pipeline
 @pytest.mark.slow
-def test_ncbigene_synonyms_have_no_stray_quote_fragments(ncbigene_pipeline_outputs):
-    """No emitted synonym should start or end with '' — the guarantee of split_ncbigene_synonym_field.
+def test_ncbigene_synonyms_have_no_leading_quote_fragments(ncbigene_pipeline_outputs):
+    """No emitted synonym may START with '' — the guarantee of split_ncbigene_synonym_field.
 
-    This is the real-data regression check for issue #744: malformed quoted alias fragments
-    like ''cytochrome P450 must never reach the synonyms file.  Streams the whole file so the
-    check covers every gene, not just a fixture row.
+    A leading '' is always the opening of a ''...''-quoted alias that NCBI split across pipe
+    fields (issue #744), so a fragment like ''cytochrome P450 must never reach the synonyms file.
+    A TRAILING '' is NOT checked: it is legitimate "double-prime" gene nomenclature — real symbols
+    such as U2B'', ycf1'', and nrdB'' end in '' and are added straight from the Symbol column.
+
+    Also asserts the two exact fragment strings from the issue's example row are absent, which
+    covers the trailing-fragment case (polypeptide 2'') that the leading-only rule cannot.
+    Streams the whole file so the check covers every gene, not just a fixture row.
     """
     found_ncbigene = False
-    offenders = []
+    leading_offenders = []
+    artifact_offenders = []
     with open(ncbigene_pipeline_outputs["synonyms"]) as f:
         for line in f:
             cols = line.rstrip("\n").split("\t")
@@ -57,10 +68,11 @@ def test_ncbigene_synonyms_have_no_stray_quote_fragments(ncbigene_pipeline_outpu
             if cols[0].startswith("NCBIGene:"):
                 found_ncbigene = True
             synonym = cols[2]
-            if synonym.startswith("''") or synonym.endswith("''"):
-                offenders.append(line.rstrip("\n"))
-                if len(offenders) >= 10:
-                    break
+            if synonym.startswith("''") and len(leading_offenders) < 10:
+                leading_offenders.append(line.rstrip("\n"))
+            if synonym in ISSUE_744_ARTIFACTS:
+                artifact_offenders.append(line.rstrip("\n"))
 
     assert found_ncbigene, "No NCBIGene: CURIEs found in synonyms"
-    assert not offenders, f"Found synonyms with stray '' fragments (issue #744): {offenders}"
+    assert not leading_offenders, f"Found synonyms starting with '' (issue #744): {leading_offenders}"
+    assert not artifact_offenders, f"Found exact issue #744 fragment strings as synonyms: {artifact_offenders}"
