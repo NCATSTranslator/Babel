@@ -45,13 +45,9 @@ by default. See `tests/README.md` for the full taxonomy and where to add a new t
 
 Memory-hungry tests also carry a parametrized `min_memory_gb(n)` guard (registered in
 `pyproject.toml`, enforced in `tests/conftest.py`) that auto-skips them on machines with less than
-`n` GiB of RAM. For example the ChEMBL pipeline tests bulk-load a ~16 GB TTL into an in-memory
-`pyoxigraph.Store` and need ~120–150 GiB — far more than the on-disk size, because an indexed
-in-memory triple store expands roughly 8–10×. To size a new rule's `mem=` resource or a test's
-`min_memory_gb` threshold empirically, use `src/tools/memory/estimate_rdf_load_memory.py` (see
-`docs/tools/Memory.md`): it streams an RDF dump into a store, samples RSS, and extrapolates the
-full-load peak, so it works even on a machine far smaller than the eventual requirement (most
-accurate on Linux — macOS memory compression understates the result).
+`n` GiB of RAM — an in-memory RDF store can need 8-10x a dump's on-disk size. Size a new rule's
+`mem=` or a test's `min_memory_gb` empirically with `src/tools/memory/estimate_rdf_load_memory.py`
+(see `docs/tools/Memory.md`).
 
 - `docs/Testing.md` — testing strategy: cadence per environment (per-PR, nightly, weekly,
   pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other strategies.
@@ -89,16 +85,12 @@ Snakemake drives a two-phase pipeline:
 1. **Data Collection** — downloads from FTP/web sources, producing per-source attribute files in
    `babel_downloads/[PREFIX]/` that the factories in `node.py` pick up by prefix. Each is an
    independent, optional TSV: `labels` (CURIE→name, read by `NodeFactory`), `synonyms`
-   (CURIE→predicate→synonym, `SynonymFactory`), `taxa` (CURIE→`NCBITaxon:NNNN`, `TaxonFactory`),
-   and `descriptions` (CURIE→text, `DescriptionFactory`). A handler emits whichever of these its
-   source supports; supplying `taxa`/`descriptions` is how a source enriches its cliques with
-   taxon and description data (see ComplexPortal and NCBIGene for examples that emit all four).
-   `write_compendium` sets each identifier's `t` field from its prefix's `taxa` file and unions
-   them onto the clique. When every term of an ontology shares one fixed taxon (HP→human, MP→
-   mammal), derive the `taxa` file from that prefix's already-built ids file so it stays exactly
-   in sync with what Babel ingests — see `diseasephenotype.write_phenotype_taxa` (config
-   `disease_phenotype_taxa`). Note HP and MP are kept disjoint (see "Keeping two prefixes
-   disjoint" below), so an MP clique carries only the mammalian taxon and never unions in HP's.
+   (CURIE→predicate→synonym, `SynonymFactory`), `taxa` (CURIE→`NCBITaxon:NNNN`, `TaxonFactory`), and
+   `descriptions` (CURIE→text, `DescriptionFactory`). A handler emits whichever of these its source
+   supports (see ComplexPortal and NCBIGene for examples emitting all four); `write_compendium`
+   unions each identifier's `taxa` onto its clique. For a one-taxon-per-ontology source (HP→human,
+   MP→mammal), derive `taxa` from the already-built ids file instead of hand-maintaining it — see
+   `diseasephenotype.write_phenotype_taxa`.
 2. **Compendium Building** — extracts identifiers per semantic type into `ids/[TYPE]`, creates
    pairwise cross-reference mappings (concords), merges them into equivalence cliques via
    union-find, and outputs enriched JSONL compendia.
@@ -142,67 +134,36 @@ new tool.
 - **Concord files** are the core data structure: tab-separated `CURIE1 \t Relation \t CURIE2`
   triples expressing cross-references between vocabularies. The `glom()` function in
   `babel_utils.py` merges them into equivalence cliques.
-- **The shared clique-building skeleton** lives in `src/model/cliques.py`. `glom_from_files()` runs
-  the common `load ids → glom`, `load concords → filter → drop overused xrefs → glom` loop,
-  parameterized by three hooks: `concord_pair_filter` (per-pair keep/drop, with access to the
-  clique state built so far), `overused_xref_remover` (per-file `remove_overused_xrefs` variant),
-  and `glom_kwargs` (e.g. disease's `close={MONDO: ...}`). A type's
-  `compute_cliques_for_impact_report` should be a thin wrapper supplying that type's hooks, and its
-  `build_compendia` should call the same wrapper so the impact report's reglom provably matches the
-  real build (anatomy does this). If a compendium can't route its real build through the wrapper,
-  add a test that keeps the two clique computations in sync instead.
+- **The shared clique-building skeleton** is `glom_from_files()` in `src/model/cliques.py` (see its
+  docstring for the three hooks); route a pipeline's `build_compendia` and
+  `compute_cliques_for_impact_report` through the same wrapper so the impact report provably
+  matches the build.
 - Xref/concord data-quality conventions (auditing `hasDbXref`, bad-xref files, keeping two prefixes
   disjoint) live in [`docs/sources/CLAUDE.md`](docs/sources/CLAUDE.md) — read it before adding or
   filtering a source's cross-references.
-- **`SynonymFilter`** (`src/synonyms/filter.py`) checks every label and synonym against
-  `input_data/obsolete_synonyms.yaml` before it enters a compendium. Each YAML entry
-  carries its own `action` field: `"remove"` (default) drops the term and returns `True`
-  from `should_suppress()`; `"warn"` logs a warning but keeps the term and returns
-  `False`. When calling `should_suppress()`, always pass the full Biolink ancestor chain
-  via `NodeFactory.get_ancestors(node_type)` as `node_types` — passing only `[node_type]`
-  breaks type-scoped filter entries that match on a parent type.
-- **Logging** — always use `get_logger(__name__)` from `src.util` (never
-  `logging.getLogger` directly). `get_logger` installs the shared stderr handler and
-  formatter that Snakemake captures; bare `logging.getLogger` loggers may produce
-  unformatted output if called before any other module has triggered `get_logger`. In
-  modules that sit early in the import graph and must defer `src.util` to avoid
-  triggering config loading at import time (see `src/synonyms/filter.py`), reassign the
-  module-level `logger` inside the deferred-import block rather than at module scope.
+- **`SynonymFilter`** (`src/synonyms/filter.py`, see its docstring for the `action` field and the
+  `should_suppress()` contract) checks every label/synonym against
+  `input_data/obsolete_synonyms.yaml` before it enters a compendium.
+- **Logging** — always use `get_logger(__name__)` from `src.util`, never `logging.getLogger`
+  directly (see its docstring for why and the deferred-import exception).
 
 ### Biolink Model Usage
 
-The Biolink Model version is set in `config.yaml` (the current value is the source of
-truth — read it via `get_config()["biolink_version"]` rather than hard-coding a version
-in code or in docs that will go stale) and feeds both `NodeFactory` and
-`get_biolink_model_toolkit()`.
+The Biolink Model version is set in `config.yaml` — read it via `get_config()["biolink_version"]`
+rather than hard-coding a version — and feeds both `NodeFactory` and `get_biolink_model_toolkit()`.
 
-**Mapped class URIs** — always use the `biolink:`-prefixed form (e.g. `biolink:ChemicalEntity`),
-not the raw element name (`chemical entity`). `get_ancestors()` and `get_element().class_uri`
-return these mapped forms. Note that `get_element()` returns a bmt `ClassDefinition`
-object (a `linkml_runtime` model), not a plain dict. It supports both attribute access
-(`element.id_prefixes`, `element.class_uri`) and subscript access (`element["id_prefixes"]`,
-which `src/node.py:get_prefixes()` uses), but it has no `dict`-style `.get()` method, so
-`element.get("id_prefixes")` raises `AttributeError`. Prefer attribute access (or a plain
-`getattr(element, "id_prefixes", default)`) and never reach for `.get()`.
+Always use the mapped `biolink:`-prefixed class URI (`biolink:ChemicalEntity`), never the raw
+element name (`chemical entity`); `get_element()` (no `.get()` method — see `get_prefixes()`'s
+comment in `src/node.py`) and `get_ancestors()` return the mapped form. `src/prefixes.py` is the
+canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model drives which CURIE
+`NodeFactory` picks as preferred. To resolve a CURIE to a URL use
+`src/util.py:get_biolink_prefix_map()` (`converter.expand("EMAPA:0")`), not a hand-rolled map.
 
-**OBO PURL resolution** — `src/util.py:get_biolink_prefix_map()` returns a
-`curies.Converter` built from the Biolink prefix map for the configured Biolink version;
-use `converter.expand("EMAPA:0")` to turn a CURIE into its IRI. Prefer that helper over
-fetching the prefix map yourself.
-
-**Prefix ordering** — `src/prefixes.py` is the canonical registry of prefix string constants. The
-order of `id_prefixes` in the Biolink Model determines which CURIE is selected as the preferred
-identifier by `NodeFactory`. Update `src/prefixes.py` whenever new prefixes appear in the model.
-
-**Node output schema** — `NodeFactory.create_node()` returns:
+**Node output schema** — see `NodeFactory.create_node()`'s docstring in `src/node.py`:
 
 ```python
 {"identifiers": [{"identifier": CURIE, "label": str}, ...], "type": "biolink:Foo", "id": {"identifier": CURIE, "label": str}}
 ```
-
-`identifiers[0]` is the preferred identifier (highest-priority prefix); `id` is an alias for
-`identifiers[0]`. Labels remain on the identifier that owns them and are not promoted to the first
-entry.
 
 ### Conflation
 
@@ -219,21 +180,11 @@ manual Biolink-type override tables and their drift test.
 
 ### DuckDB export
 
-The `src/snakefiles/duckdb.snakefile` rules (driven by `src/exporters/duckdb_exporters.py`)
-build a queryable DuckDB database alongside the JSONL compendia, with these tables:
-
-- `Node(curie, curie_prefix, label, label_lc, description, taxa)`
-- `Clique(clique_leader, preferred_name, clique_identifier_count, biolink_type, information_content)`
-- `Edge(clique_leader, curie, conflation, clique_leader_prefix, curie_prefix, biolink_type)`
-- `Conflation(conflation_type, conflation_leader, curie, curie_prefix)`
-
-The `Edge` table answers "which clique contains CURIE X" with a one-line query
-(`SELECT DISTINCT clique_leader FROM Edge WHERE curie IN (...)`) and is the fastest way to
-check whether several CURIEs landed in the same clique in a given build — much cheaper than
-re-running glom or scanning the JSONL compendia. `biolink_type` is denormalized onto every edge
-(it equals the owning clique's type) so cross-compendium reports can group by
-`(curie_prefix, biolink_type)` with a plain scan instead of a large Edge-to-Clique join, which
-OOM-killed `generate_curie_report` even on a largemem node.
+`src/snakefiles/duckdb.snakefile` (driven by `src/exporters/duckdb_exporters.py`) builds a
+queryable DuckDB database (`Node`/`Clique`/`Edge`/`Conflation` tables) alongside the JSONL
+compendia — schema in `docs/DataFormats.md`. `Edge` answers "which clique contains CURIE X" in one
+query (`SELECT DISTINCT clique_leader FROM Edge WHERE curie IN (...)`), much cheaper than
+re-running glom or scanning JSONL.
 
 ### Per-source documentation (`docs/sources/`)
 
@@ -245,11 +196,10 @@ something non-obvious about how Babel ingests that source — keep the detail th
 
 ### Per-compendium metadata YAMLs
 
-Each final compendium has a sibling `babel_outputs/metadata/<Type>.yaml` that records the
-provenance tree of which concord/source contributed what, including per-source
-`prefix_counts` like `xref(CHEBI, DrugCentral): 4302`. These are aggregate (prefix-pair
-level), not per-CURIE — useful for confirming a join pathway exists between two prefixes,
-not for answering "are *these specific* CURIEs joinable."
+Each final compendium has a sibling `babel_outputs/metadata/<Type>.yaml` recording provenance
+(which concord/source contributed what), including per-source `prefix_counts` like
+`xref(CHEBI, DrugCentral): 4302`. Aggregate (prefix-pair level) only — confirms a join pathway
+exists, doesn't answer whether *specific* CURIEs are joinable.
 
 ### Directories at Runtime
 
@@ -261,42 +211,32 @@ not for answering "are *these specific* CURIEs joinable."
 
 ## Running Babel
 
-You may run `uv run snakemake -c all --rerun-incomplete [rulename]` to run a particular rule.
-When running a download step, it will be easier to run the job in Snakemake, but when running
-a rule that produces intermediate files, it might be easier to download the intermediate files from
-<https://stars.renci.org/var/babel/2025dec11/> (which is the `babel_output` folder from a run on a
-high performance cluster) so you don't need to download all the source files and
-rerun the entire pipeline. You can look at the resource requirements of a rule to decide which
-option would be best.
+Run a particular rule with `uv run snakemake -c all --rerun-incomplete [rulename]`. Download steps
+are easiest run through Snakemake directly; for a rule that needs intermediate files, it's often
+faster to pull them from a cluster run's output, e.g.
+<https://stars.renci.org/var/babel/2025dec11/>, than to rebuild every upstream source — check the
+rule's resource requirements to decide.
 
-If a previous Snakemake run was killed, the next invocation may fail with
-`LockException: Directory cannot be locked`. Clear it with `uv run snakemake --unlock` before
-retrying.
+A killed run can leave `LockException: Directory cannot be locked` on the next invocation; clear it
+with `uv run snakemake --unlock`.
 
-Most semantic-type targets are individually much cheaper than the full pipeline — anatomy in
-particular builds end-to-end on a laptop in roughly 25 minutes wall time (UMLS download
-dominates). The 500 GB figure in the README applies to the heaviest builds (protein,
-drugchemical-conflated, and the full pipeline), not to every target. `docs/RunningBabel.md`
-has a per-target sizing breakdown and a "Common build issues" section.
+Most semantic-type targets are much cheaper than the full pipeline (anatomy builds end-to-end on a
+laptop in ~25 minutes; the README's 500 GB figure is for the heaviest targets only). See
+`docs/RunningBabel.md` for a per-target sizing breakdown and common build issues.
 
 ## Adding a new data source
 
-`docs/AddingNewSources.md` is the full guide: how to wire a source (prefix, data handler,
-compendium hook, Snakemake rules, `config.yaml`, docs, tests), then generate and read its
-source-impact report — including assembling the intermediate inputs from a `stars.renci.org`
-snapshot when a full local build (~500 GB RAM) is impractical. Two things to get right that
-the report exists to catch:
-
-- **Type every ids file.** Each ids row should carry a presumptive Biolink Type in column 2
-  (`CURIE\tbiolink:Type`); this drives clique typing in the build. `write_compendium()` →
-  `NodeFactory.create_node()` then keeps only CURIEs whose prefix is in the Biolink Model's
-  `id_prefixes` for the clique's class and silently drops the rest — so a prefix that is not
-  yet registered for its type never reaches the compendium. EMAPA's
-  `biolink:GrossAnatomicalStructure` terms are the current not-yet-registered example.
-- **Generate and commit the report** (`uv run source-impact-report --source <SOURCE>`) and, for
-  changes that *restructure* existing cliques, follow up with `babel-clique-diff` — see
-  `src/tools/source_impact_report/CLAUDE.md` and `src/tools/clique_diff/CLAUDE.md` for the tool
-  internals, and `docs/AddingNewSources.md` for the full workflow.
+`docs/AddingNewSources.md` is the full guide: how to wire a source (prefix, data handler, compendium
+hook, Snakemake rules, `config.yaml`, docs, tests), then generate and read its source-impact report
+— including assembling the intermediate inputs from a `stars.renci.org` snapshot when a full local
+build (~500 GB RAM) is impractical. Two things the report exists to catch: an ids file missing its
+Biolink type (see `docs/Development.md`), and a prefix not yet registered in the Biolink Model for
+its class (`write_compendium()` silently drops such CURIEs — EMAPA's
+`biolink:GrossAnatomicalStructure` terms are the current example).
+**Generate and commit the report** (`uv run source-impact-report --source <SOURCE>`) and, for
+changes that *restructure* existing cliques, follow up with `babel-clique-diff` — see
+`src/tools/source_impact_report/CLAUDE.md` and `src/tools/clique_diff/CLAUDE.md` for the tool
+internals.
 
 Use `retries: 3` (not `retries: 10`) on network-backed Snakemake rules (UberGraph, FTP, HTTP) — see
 `docs/AddingNewSources.md` step 4 for why. `src/tools/slurm/CLAUDE.md` covers analyzing a
@@ -304,9 +244,9 @@ Use `retries: 3` (not `retries: 10`) on network-backed Snakemake rules (UberGrap
 
 ## Conventions
 
-When adding or enhancing a data source ingest, `docs/Development.md` ("Enhancing a data source
-ingest") collects the process-level lessons (which attribute files to emit, IDs-file typing,
-docstrings, and when to add a pipeline test) that the individual conventions below back up.
+When adding or enhancing a data source ingest, see `docs/Development.md` ("Enhancing a data source
+ingest") for the full process-level lessons (attribute files, IDs-file typing, download/extract
+rule splitting, manifests, column-layout pinning) — a few of the conventions below reinforce it.
 
 - **Configuration over constants** — prefer `config.yaml` over module-level Python constants for
   any value that is a data-level choice (a list of prefixes, a threshold, a flag) rather than pure
@@ -324,99 +264,45 @@ docstrings, and when to add a pipeline test) that the individual conventions bel
   `anatomy_unique_prefixes` together so that adding a new source requires reviewing all of them at
   once. Never scatter correlated settings across the file.
 
-- **`babel_pipeline` vs `biolink_type`** — these two concepts are easy to confuse because the
-  codebase (and this file) sometimes uses the vague phrase "semantic type" for either. Keep them
-  distinct in code and variable names:
-  - **`babel_pipeline`** is the pipeline directory name: `anatomy`, `chemical`, `diseasephenotype`,
-    etc. It is a Babel artifact — an intermediate-file namespace, not a vocabulary term.
-  - **`biolink_type`** is the Biolink class URI stored in compendia: `biolink:AnatomicalEntity`,
-    `biolink:SmallMolecule`, etc. Multiple Biolink types can map to the same `babel_pipeline`
-    (e.g. `anatomy` covers both `biolink:AnatomicalEntity` and `biolink:GrossAnatomicalStructure`).
-  - **`umls_semantic_type`** (or `sty`) is yet a third thing: a UMLS TUI code / tree string used
-    only inside the UMLS ingest. Do not conflate it with either of the above.
-  Prefer these three explicit names in code. Avoid "semantic type" as a bare phrase unless quoting
-  an external vocabulary (e.g. "UMLS semantic type").
+- **`babel_pipeline` vs `biolink_type`** — easy to confuse; keep distinct in code and variable
+  names. See the Terminology section of `docs/AddingNewSources.md` for the full distinction
+  (plus the unrelated third term, `umls_semantic_type`/`sty`).
 
-- **Commits** — if you need to make a large change, break it into multiple commits so it's clearer
-  what changes are related.
+- **Ruff lint** — all Python must pass `uv run ruff check`. Two rules easy to trip in test code:
+  E741 (no single-letter ambiguous names like `l`/`O`/`I`) and F841 (no unread assignments).
 
-- **Separate download and extract/validate rules** — always split a Snakemake data-collection step
-  into two rules: a `download_*` rule that only fetches the raw file(s), and a separate rule that
-  validates format or extracts content. This way, if upstream changes its format (e.g. a column
-  rename), only the validation rule fails; Snakemake preserves the downloaded file and the
-  expensive re-download is avoided after a code fix. Format validation belongs in the
-  extraction/filter rule, never in the download rule.
+- **Imports** — all at the top of the file (stdlib, then third-party, then local). Defer one
+  inside a function only to break a circular dependency or avoid a heavy optional dependency,
+  with a comment saying why.
 
-- **Ruff lint** — all Python must pass `uv run ruff check` (run automatically on PRs). Two rules
-  that are easy to trip in test code:
-  - **E741** — do not use single-letter ambiguous variable names (`l`, `O`, `I`). Use `line`,
-    `row`, `col`, etc. instead.
-  - **F841** — do not assign a variable that is never read. Remove or inline the assignment.
-
-- **Imports** — place all imports at the top of the file (stdlib, then third-party, then local),
-  following standard Python convention. Defer an import inside a function only when it is
-  genuinely necessary to break a circular dependency or avoid a heavy optional dependency; if
-  you do defer one, add a comment explaining why.
-
-- **Error handling** — raise exceptions (`RuntimeError`, `ValueError`, etc.) rather than
-  `print(...) + exit(1)`. Exceptions are testable and propagate cleanly through Snakemake;
-  bare `exit()` calls bypass Python's exception machinery and make unit testing impossible.
+- **Error handling** — raise exceptions (`RuntimeError`, `ValueError`) rather than
+  `print(...) + exit(1)`, which bypasses Python's exception machinery and breaks unit testing.
 
 - **Biolink class references** — always use the named constants from `src/categories.py`
-  (e.g. `CHEMICAL_ENTITY`, `DRUG`) rather than hardcoding `"biolink:..."` strings directly.
-  This ensures that a Biolink class rename only requires updating `src/categories.py`.
-  If a needed constant is missing from `categories.py`, add it there first.
+  (e.g. `CHEMICAL_ENTITY`, `DRUG`) rather than hardcoding `"biolink:..."` strings; add a missing
+  constant there first.
 
-- **IRI parsing helpers** — functions that extract IDs from external-format strings (e.g. pyoxigraph
-  IRIs, SPARQL results) must validate the input format and raise `ValueError` if it doesn't match.
-  Use a named prefix constant so the check and the extraction share the same string. See
-  `src/datahandlers/mesh.py:get_mesh_id_from_iri()` for the canonical example.
+- **IRI parsing helpers** — functions extracting IDs from external-format strings (pyoxigraph
+  IRIs, SPARQL results) must validate the format and raise `ValueError` on mismatch, using a named
+  prefix constant shared by the check and the extraction. See
+  `src/datahandlers/mesh.py:get_mesh_id_from_iri()`.
 
-- **pyoxigraph literal stripping** — pyoxigraph returns plain string literals as `"value"` and
-  language-tagged literals as `"value"@en`. Use `parse_rdf_literal()` from `src/babel_utils.py`
-  to strip the quoting; do not inline the regex. When loading RDF/XML files that contain
-  `<owl:Ontology rdf:about=""/>`, always pass `base_iri` to `Store.bulk_load()` — without it
-  pyoxigraph raises a builtin `SyntaxError` on the empty relative IRI.
+- **pyoxigraph literal stripping** — use `parse_rdf_literal()` from `src/babel_utils.py` to strip
+  plain/language-tagged literal quoting; don't inline the regex. Pass `base_iri` to
+  `Store.bulk_load()` when loading RDF/XML with `<owl:Ontology rdf:about=""/>`, or it raises a
+  builtin `SyntaxError` on the empty relative IRI.
 
-- **Datahandler file-path arguments** — label and synonym extraction functions should accept
-  explicit `infile` / `outfile` path arguments rather than calling `make_local_name` internally.
-  Explicit paths let unit tests pass `tmp_path`-based paths without patching the config, and
-  let Snakemake rules declare inputs and outputs precisely.
+- **Datahandler file-path arguments** — label/synonym extraction functions should accept explicit
+  `infile`/`outfile` arguments rather than calling `make_local_name` internally, so tests can pass
+  `tmp_path` paths and Snakemake can declare inputs/outputs precisely.
 
-- **Pin external column layouts in source, assert headers in tests** — when a handler parses a
-  fixed-column TSV by index, define the column list as a module-level constant in the source
-  (e.g. `complexportal.COMPLEXTAB_COLUMNS`/`COMPLEXTAB_HEADER`), import it into the tests to build
-  fixture rows, and add a test that asserts the upstream header still has the expected column at
-  each index Babel reads. The constant is the canonical format documentation living next to the
-  code; the header assertion turns a silent upstream re-ordering into a loud test failure instead
-  of corrupted output. See `src/datahandlers/complexportal.py`.
+- **Docstrings** — give modules, classes, and non-trivial functions a docstring covering what they
+  do and any non-obvious behavior. Name functions for what they do — `fetch_*` (not `get_*`) when
+  the call hits the network.
 
-- **Manifest/sentinel as the Snakemake output of a multi-file download** — when a rule downloads
-  many files discovered at runtime, write a manifest listing them as the *last* action and declare
-  the manifest (not the individual files or a separate flag) as the rule's output. Its presence
-  then reliably signals that the whole download phase completed, and the extraction rule reads it
-  to know what to parse. See `complexportal.pull_complexportal()`.
-
-- **Always write an explicit Biolink type in the IDs file** — the `ids/[TYPE]/[PREFIX]` file is
-  `CURIE\tbiolink:Type`. Even when every CURIE from a source has the same prefix and type (so the
-  type column looks redundant), write it explicitly: it is essential the moment a source spans
-  multiple types, and it documents intent. Prefer generating IDs directly from the source rows
-  (as each CURIE is first seen) rather than deriving the file from `labels` via `awk` — deriving
-  from labels silently drops any identifier whose label column is empty.
-
-- **Docstrings** — give modules, classes, and non-trivial functions a docstring saying what they
-  do and any non-obvious behavior (e.g. dedup keys, side effects, why a network call happens).
-  This is cheap, survives refactors, and is the first thing read when revisiting an ingest. Name
-  functions for what they do — e.g. `fetch_*` (not `get_*`) when the call hits the network.
-
-- **Test documentation** — every test function should have a docstring that explains (a) what
-  scenario is being tested and (b) what the expected outcome is. "Should" phrasing makes both
-  explicit (e.g. "``excluded_sources`` should skip ids and concords — FOO:2 must not appear in the
-  clique dict"). Group related tests with a `# LABEL` section comment in the code (e.g.
-  `# BASIC MERGING`, `# EDGE CASES`), with additional `# ----` lines before and after the section
-  comments if that will help make them more distinct. The module docstring should describe what the
-  file covers overall; do **not** duplicate the group list there — the section headers in the code
-  are the authoritative, always-current index.
+- **Test documentation** — every test docstring states the scenario and expected outcome ("should"
+  phrasing works well). Group related tests with a `# LABEL` section comment; the module docstring
+  describes the file overall without duplicating that section list.
 
 - **Test assertion helpers** — `tests/conftest.py` exports `assert_labels_file_valid`,
   `assert_synonyms_file_valid`, `assert_ids_file_valid`, `assert_concordance_file_valid`,
@@ -426,27 +312,22 @@ docstrings, and when to add a pipeline test) that the individual conventions bel
 
 ## Debugging
 
-When looking things up in the source databases, prefer to invoke the existing download code in
-this repository unless you suspect that it is incorrect, in which case use the existing code
-and then compare it with an API lookup to see how they differ.
+Prefer invoking this repo's existing download code over a fresh API lookup when investigating a
+source database, unless you suspect that code is wrong — then compare the two to see how they
+differ.
 
-If it is easy to add a test that will either exercise this bug or check some other relevant
-functionality, please suggest that when planning the bug fix.
+When a bug fix is easy to cover with a test, suggest adding one as part of the fix.
 
-It is very important that two different compendia don't contain the same identifier and that we
-don't miss out on any valid identifiers without very good reason. If you're changing how
-identifiers are filtered in one compendium, think about whether that will affect which identifiers
-should be included in the other compendia to prevent any identifiers from being missed or being
-added twice.
+Two different compendia must never share an identifier, and no valid identifier should be dropped
+without good reason — when changing how one compendium filters identifiers, check the effect on
+every other compendium too.
 
 ## Documentation
 
-When making a significant change, check if it affects any of the documentation
-files (`docs/*.md`, `*.md`) and update them if necessary. Suggest adding
-new documentation files if necessary.
+When making a significant change, check whether it affects any documentation (`docs/*.md`, `*.md`)
+and update it, or suggest a new doc file if one is needed.
 
-When writing documentation files, avoid using horizontal pipes unless necessary --
-section headings are sufficient for dividing up documentation.
+Prefer section headings over horizontal pipes for dividing up documentation.
 
 When a documentation file mentions a specific ontology term by CURIE, link it to its OBO
 PURL and include the preferred label in double-quotes:
@@ -455,7 +336,5 @@ PURL and include the preferred label in double-quotes:
 [`EMAPA:0`](http://purl.obolibrary.org/obo/EMAPA_0) "anatomical structure"
 ```
 
-Resolve CURIEs to URLs with `src/util.py:get_biolink_prefix_map()`, which returns a
-`curies.Converter` for the configured Biolink version (`converter.expand("EMAPA:0")`);
-prefer that helper over fetching the prefix map yourself. Preferred labels come from
-`babel_downloads/<PREFIX>/labels` (tab-separated `CURIE\tlabel`).
+Resolve CURIEs with `get_biolink_prefix_map()` (see Biolink Model Usage above). Preferred labels
+come from `babel_downloads/<PREFIX>/labels` (tab-separated `CURIE\tlabel`).
