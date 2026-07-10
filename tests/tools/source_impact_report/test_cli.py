@@ -17,7 +17,8 @@ import json
 
 import pytest
 
-from src.tools.source_impact_report.cli import main
+from src.tools.source_impact_report.cli import PIPELINE_CONFIG, main
+from src.util import get_config
 
 
 def _write(path, text):
@@ -172,3 +173,20 @@ def test_cli_synthetic_report_json_diff_counts(synthetic_intermediate, tmp_path)
     assert anatomy_diff["pure_new_clique_count"] == 2
     assert anatomy_diff["expanded_clique_count"] == 1
     assert anatomy_diff["merged_clique_count"] == 1
+
+
+# ----
+# PIPELINE_CONFIG / config.yaml CONSISTENCY
+# ----
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    ("pipeline", "config_key"),
+    [("anatomy", "anatomy_outputs"), ("disease", "disease_outputs")],
+)
+def test_compendium_files_match_config_outputs(pipeline, config_key):
+    """A pipeline's PIPELINE_CONFIG biolink types should cover exactly the compendium files
+    that Snakemake builds for it. Adding a biolink type to config.yaml's ``<pipeline>_outputs``
+    without adding the matching constant to the CLI (or vice versa) should fail here."""
+    assert set(PIPELINE_CONFIG[pipeline]["compendium_files"]) == set(get_config()[config_key])

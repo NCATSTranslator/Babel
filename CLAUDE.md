@@ -151,6 +151,31 @@ it before adding a tool.
 - **Concord files** are the core data structure: tab-separated `CURIE1 \t Relation \t CURIE2`
   triples expressing cross-references between vocabularies. The `glom()` function in
   `babel_utils.py` merges them into equivalence cliques.
+- **An OBO `hasDbXref` is not an equivalence.** Concords are fed to `glom()` as equivalence
+  assertions, but many ontologies use `oboInOwl:hasDbXref` to mean "this term is *about* that
+  thing". MP is the worst offender: it xrefs the anatomy an abnormality occurs in (`MP:0009873`
+  "abnormal aorta tunica media morphology" → `MA:0002903`), the process a phenotype perturbs
+  (`MP:0002998` "abnormal bone remodeling" → `GO:0046849` "bone remodeling"), plus citations and
+  bare Wikipedia URLs. **Always audit the target-prefix breakdown of a new source's xrefs before
+  trusting them** (section 3 of the source-impact report, or `cut -f3 <concord> | sed 's/:.*//' |
+  sort | uniq -c`). Two filters exist on `ubergraph.build_sets()`:
+  - `ignore_list=[...]` blocks named target prefixes and **fails open** — a namespace the source
+    newly starts emitting is silently trusted (`anatomy.build_anatomy_obo_relationships`).
+  - `allowed_prefixes=[...]` is the complement and **fails closed** — only listed prefixes are
+    written, so a new namespace is dropped until someone reviews it. Prefer this for a source whose
+    xrefs are mostly junk (`diseasephenotype.MP_XREF_ALLOWED_PREFIXES`).
+
+  Both are matched against `Text.get_prefix_or_none()`, which **upper-cases**, so entries must be
+  upper-case: `"MPATH"`, `"HTTP"` — a lower-case entry silently never matches. For individually
+  wrong pairs that survive prefix filtering, add them to a per-source bad-xref file (see below).
+  Worked example: `docs/sources/MP/mappings.md`.
+- **Bad-xref files** (`input_data/*_badxrefs.txt`) drop individual `subject object` pairs (**space**
+  separated, `#` comments) from a concord before glom. They are keyed by **concord basename**, and
+  that key must be added in *two* places or the file is silently never read:
+  `diseasephenotype.DEFAULT_BAD_XREFS` (used by the impact-report CLI) *and* the explicit dict the
+  `disease_compendia` Snakemake rule passes to `build_compendium`. A unit test asserting the key
+  exists and the pair parses is the cheap guard — `read_badxrefs` silently returns an empty set for
+  an unregistered prefix.
 - **`SynonymFilter`** (`src/synonyms/filter.py`) checks every label and synonym against
   `input_data/obsolete_synonyms.yaml` before it enters a compendium. Each YAML entry
   carries its own `action` field: `"remove"` (default) drops the term and returns `True`

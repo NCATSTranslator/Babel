@@ -80,10 +80,13 @@ ComputeCliquesFn = Callable[..., tuple[dict, dict]]
 #   preferred CURIE per clique.
 # The biolink types anatomy cliques can carry, in the named-constant form mandated by the
 # repo conventions (never hard-code "biolink:..." strings). The compendium file names are
-# derived from these (``<BareType>.txt``) so the two lists can never drift apart.
+# derived from these (``<BareType>.txt``) so the two lists can never drift apart. They must
+# also match config.yaml's ``anatomy_outputs`` (the same set, as file names, which is what
+# Snakemake builds); test_compendium_files_match_config_outputs asserts that.
 _ANATOMY_BIOLINK_TYPES = [ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE]
 # The biolink types disease/phenotype cliques can carry. As with anatomy, the compendium file
-# names (``Disease.txt``, ``PhenotypicFeature.txt``) are derived from these so they can't drift.
+# names (``Disease.txt``, ``PhenotypicFeature.txt``) are derived from these so they can't drift,
+# and the same test pins them to config.yaml's ``disease_outputs``.
 _DISEASE_BIOLINK_TYPES = [DISEASE, PHENOTYPIC_FEATURE]
 
 PIPELINE_CONFIG: dict[str, dict] = {

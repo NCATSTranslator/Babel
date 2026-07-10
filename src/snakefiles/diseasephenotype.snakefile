@@ -93,6 +93,7 @@ rule disease_hp_ids:
         outfile=config["intermediate_directory"] + "/disease/ids/HP",
     benchmark:
         config["output_directory"] + "/benchmarks/disease_hp_ids.tsv"
+    retries: 3  # Ubergraph sometimes fails mid-download; per-request retry-with-backoff lives in TripleStore.
     run:
         diseasephenotype.write_hp_ids(output.outfile)
 
@@ -258,6 +259,7 @@ rule disease_compendia:
     input:
         bad_hpo_xrefs="input_data/badHPx.txt",
         bad_mondo_xrefs="input_data/mondo_badxrefs.txt",
+        bad_mp_xrefs="input_data/mp_badxrefs.txt",
         bad_umls_xrefs="input_data/umls_badxrefs.txt",
         close_matches=config["intermediate_directory"] + "/disease/concords/MONDO_close",
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["disease_labelsandsynonyms"]),
@@ -287,7 +289,12 @@ rule disease_compendia:
             input.metadata_yamls,
             input.idlists,
             input.close_matches,
-            {"HP": input.bad_hpo_xrefs, "MONDO": input.bad_mondo_xrefs, "UMLS": input.bad_umls_xrefs},
+            {
+                "HP": input.bad_hpo_xrefs,
+                "MONDO": input.bad_mondo_xrefs,
+                "MP": input.bad_mp_xrefs,
+                "UMLS": input.bad_umls_xrefs,
+            },
             input.icrdf_filename,
         )
 

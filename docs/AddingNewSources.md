@@ -247,8 +247,9 @@ The generated Markdown has four sections:
    on-disk compendia and lag until compendia are rebuilt.
 3. **Cross-references added** — total concord rows plus partner-prefix breakdown. Unexpected
    prefixes indicate the extraction did not filter the right xref namespaces (compare to
-   the `ignore_list` in `build_anatomy_obo_relationships()` or the equivalent for your
-   pipeline).
+   the `ignore_list` in `build_anatomy_obo_relationships()` or the `allowed_prefixes` in
+   `build_disease_obo_relationships()`). See "Auditing a source's xrefs" below — a clean
+   section 4 does **not** mean section 3 is clean.
 4. **Clique impact** — for each pipeline with a registered compute hook:
    - **new cliques** composed only of source identifiers (with percentage increase over
      the pre-existing count),
@@ -315,6 +316,45 @@ Even though EMAPA contributes 8,059 identifiers, only 4,802 land in `AnatomicalE
 (section 2). The remainder live in cliques whose dominant Biolink type ends up as Cell,
 CellularComponent, or GrossAnatomicalStructure — and `NodeFactory` drops them because EMAPA
 is not in those types' `id_prefixes`. The survival columns make this visible per identifier.
+
+#### Auditing a source's xrefs
+
+Section 4 reporting "0 cliques merged" is **not** evidence that a source's xrefs are good. An xref
+whose target prefix is absent from the pipeline's other concords merges nothing, and one whose
+prefix is absent from the clique type's Biolink `id_prefixes` is dropped by `NodeFactory` at
+`write_compendium`. Such xrefs are *inert*, not *correct* — they still bloat the concord, and they
+become live the moment another source starts emitting that prefix.
+
+So audit section 3 (and `impact-report/new-xrefs.tsv`) on its own terms. Sample a few rows per
+target prefix and ask whether the pair is an equivalence or an "is about" relation. MP's review is
+the worked example: 663 xref rows, of which nine of thirteen target namespaces turned out to be
+anatomy, processes, citations or Wikipedia URLs (see `docs/sources/MP/mappings.md`).
+
+To decide whether a suspect prefix is inert or load-bearing, check both gates:
+
+```bash
+# Gate 1: does the target prefix appear in any OTHER concord of this pipeline?
+#         (if not, it can never bridge this source into an existing clique)
+cd babel_outputs/intermediate/<pipeline>/concords
+for f in $(ls | grep -v '\.yaml$'); do
+  printf '%-12s ' "$f"; cut -f3 "$f" | sed 's/:.*//' | sort -u | tr '\n' ' '; echo
+done
+```
+
+```python
+# Gate 2: is the prefix in the clique type's Biolink id_prefixes?
+#         (if not, write_compendium drops it and it never reaches a compendium)
+from src.util import get_biolink_model_toolkit, get_config
+tk = get_biolink_model_toolkit(get_config()["biolink_version"])
+print(tk.get_element("phenotypic feature").id_prefixes)
+```
+
+If a prefix fails both gates it is inert and can be filtered with no change to compendium output —
+which makes the filtering a safe, reviewable cleanup rather than a behavioral change. If it passes
+either gate, the xrefs are load-bearing and removing them needs a build-vs-build clique diff.
+
+Note that the `Edge` table of the DuckDB export answers gate 1 for a *finished* build much faster
+than scanning concords (`SELECT DISTINCT clique_leader FROM Edge WHERE curie IN (...)`).
 
 ### Comparing across builds
 

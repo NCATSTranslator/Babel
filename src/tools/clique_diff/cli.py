@@ -10,8 +10,8 @@ Invocation::
 
 Output:
 
-- ``--out-csv`` (required): one row per (changed before-clique, after-destination) group,
-  with the columns of ``compendium_diff.CSV_COLUMNS``. ``destination_kind`` is one of
+- ``--out-csv`` (required): one row per (changed before-clique, after-destination clique)
+  group, with the columns of ``compendium_diff.CSV_COLUMNS``. ``destination_kind`` is one of
   ``kept``, ``leader_changed``, ``regrouped``, ``moved``, or ``dropped``; see
   :func:`src.model.compendium_diff.diff_compendium` for what each means. Deterministically
   sorted.
@@ -22,9 +22,11 @@ Output:
   ``compendia`` maps each filename to its counts: a nested ``clique_count``
   (``before``/``after``/``diff``/``diff_percent``) plus ``changed_before_cliques``,
   ``dropped_member_count`` (the headline regression signal), ``moved_member_count``,
-  ``regrouped_member_count``, and ``leader_changed_count``. NOTE: a clique that exists only
-  in the after build (no before counterpart — e.g. a wholly new MP-only clique) is not a
-  change row, since the diff iterates before-cliques; such additions surface only as a
+  ``regrouped_member_count``, and ``leader_changed_count``. ``diff_percent`` is ``null`` when
+  the before build had no cliques at all but the after build has some — the percentage is
+  undefined there, and reporting ``0.0`` would read as "nothing changed". NOTE: a clique that
+  exists only in the after build (no before counterpart — e.g. a wholly new MP-only clique) is
+  not a change row, since the diff iterates before-cliques; such additions surface only as a
   positive ``clique_count.diff``, which is why a build adding thousands of cliques can show
   few rows.
 
@@ -47,7 +49,9 @@ def write_csv(rows, out_csv):
     with open(out_csv, "w", newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=CSV_COLUMNS, lineterminator="\n")
         writer.writeheader()
-        for r in sorted(rows, key=lambda r: (r["compendium"], r["before_leader"], r["destination"])):
+        for r in sorted(
+            rows, key=lambda r: (r["compendium"], r["before_leader"], r["destination_compendium"], r["destination"])
+        ):
             writer.writerow({k: r[k] for k in CSV_COLUMNS})
 
 

@@ -20,11 +20,19 @@ All MP IDs emitted by `write_mp_ids()` are typed as:
 
 - `biolink:PhenotypicFeature`
 
-This reflects MP's role as a mammalian-phenotype counterpart to HPO. MP IDs are never promoted
-to clique leader: `unique_prefixes` is `[MONDO, HP]`, so MONDO or HP always wins when present. MP
-appears in `create_typed_sets`'s prefix-priority list only after MONDO and HP, so pure-new MP
-cliques (those without a MONDO or HP partner) are typed as `biolink:PhenotypicFeature` directly
-rather than via majority vote.
+This reflects MP's role as a mammalian-phenotype counterpart to HPO. `classify_disease_clique`
+(used by both `create_typed_sets` and the source-impact report) still checks prefixes in the order
+MONDO, then HP, then MP, so a clique carrying any of those always takes that prefix's declared
+type over a majority vote; a pure-MP clique (no MONDO/HP partner) is typed as
+`biolink:PhenotypicFeature` directly through this same precedence.
+
+MP can still be promoted to clique leader (preferred identifier). Since MP and HP are kept
+disjoint (see [`disjointness.md`](disjointness.md)), no clique can contain both, so HP never
+competes with MP for leadership. In the Biolink Model's `id_prefixes` order for
+`biolink:PhenotypicFeature`, MP ranks below HP, EFO, NCIT, UMLS, and MEDDRA but above ZP, SNOMEDCT,
+MESH, and the rest — so MP wins leadership of any `PhenotypicFeature` clique that lacks an
+EFO/NCIT/UMLS/MEDDRA partner (which, for the MP-bearing cliques MP itself contributes, is most of
+them).
 
 ## Exclusions
 

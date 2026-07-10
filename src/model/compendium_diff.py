@@ -47,17 +47,20 @@ CSV_COLUMNS = [
     "before_leader_type",
     "before_size",
     "destination",
+    "destination_label",
     "destination_kind",
+    "destination_compendium",
     "destination_type",
     "after_size",
     "member_count",
     "example_members",
 ]
 
-# Sentinel destinations, used where a real after-clique leader would otherwise go. Both are
-# parenthesised so they can never collide with a CURIE.
+# Sentinel destination, used where a real after-clique leader would otherwise go. Parenthesised
+# so it can never collide with a CURIE.
 DROPPED = "(dropped)"
-MOVED = "(moved-to-other-compendium)"
+# Group key for members that left the output entirely: no after compendium, no after leader.
+DROPPED_KEY = ("", DROPPED)
 
 
 def load_compendium(path: pathlib.Path | str) -> Iterator[dict]:
@@ -86,10 +89,6 @@ class LoadedCompendium:
     labels: dict = field(default_factory=dict)
     clique_type: dict = field(default_factory=dict)
 
-    def __iter__(self):
-        # Preserve the historical 2-tuple unpacking ``cliques, curie_to_leader = load_cliques(...)``.
-        return iter((self.cliques, self.curie_to_leader))
-
 
 def load_cliques(path, need_curie_to_leader=True):
     """Load one compendium JSONL file into a :class:`LoadedCompendium`.
@@ -101,8 +100,6 @@ def load_cliques(path, need_curie_to_leader=True):
     ``curie_to_leader`` when only clique membership is needed (e.g. the "before" side of a
     build-vs-build diff, which never looks up an after-leader) — for a large compendium that
     dict has one entry per member CURIE, so skipping it roughly halves transient allocation.
-    The returned object still unpacks as the historical ``(cliques, curie_to_leader)``
-    2-tuple.
     """
     loaded = LoadedCompendium()
     for record_number, clique in enumerate(load_compendium(path), 1):
@@ -130,84 +127,85 @@ def _format_members(curies, labels):
     return "; ".join(f'{c} "{labels.get(c, "")}"' for c in heapq.nsmallest(5, curies))
 
 
-def diff_compendium(before, after, all_after_curies, all_after_types):
+def diff_compendium(compendium, before, after_by_file, after_location):
     """Diff one compendium's cliques between two builds.
 
-    ``before`` and ``after`` are :class:`LoadedCompendium` objects. ``all_after_curies`` is
-    the set of every CURIE present anywhere in the after build, and ``all_after_types`` maps
-    each such CURIE to the Biolink type of the after-clique it landed in (used to type
-    ``moved`` members, which by definition live in a different compendium file).
+    ``compendium`` is the filename being diffed; ``before`` is its :class:`LoadedCompendium`
+    in the before build and ``after_by_file`` maps every compared filename to its
+    :class:`LoadedCompendium` in the after build. ``after_location`` maps each CURIE present
+    anywhere in the after build to the ``(filename, leader)`` of the after-clique it landed
+    in — which is what lets a ``moved`` member name its real destination clique even though
+    that clique lives in a different file.
 
-    Each member of a before-clique lands in one of three kinds of destination in the
-    after build:
+    Members are partitioned by that ``(filename, leader)`` destination, so every row names a
+    concrete after-clique rather than a sentinel. ``destination_kind`` is:
 
-    - a real after-clique leader (in this same compendium): ``destination_kind`` is
-      ``kept`` if that leader equals the before leader; ``leader_changed`` if every member
-      of the before-clique landed under one different leader whose after-clique membership
-      is otherwise identical (the preferred identifier was reassigned, nothing else moved);
-      otherwise ``regrouped`` (members were actually redistributed);
-    - ``(moved-to-other-compendium)`` — the CURIE still exists in the after build but in a
-      different compendium file (it was retyped);
-    - ``(dropped)`` — the CURIE is absent from every compared after compendium. This is the
-      consequential category: the identifier left the output entirely.
+    - ``kept`` — destination is this compendium, under the same leader;
+    - ``leader_changed`` — the whole before-clique landed under one different leader in this
+      compendium whose membership is otherwise identical (the preferred identifier was
+      reassigned, nothing else moved);
+    - ``regrouped`` — destination is a different leader in this compendium (members were
+      actually redistributed);
+    - ``moved`` — destination is a clique in a *different* compared compendium (the CURIE was
+      retyped);
+    - ``dropped`` — the CURIE is absent from every compared after compendium. This is the
+      consequential category: the identifier left the output entirely, so there is no
+      destination clique and ``destination`` is ``(dropped)``.
 
-    Yields one record per (before-clique, destination) group, but only for before-cliques
-    whose clique-vs-clique state actually changed — a before-clique that keeps the exact same
-    leader and membership is skipped entirely (nothing to report). Each record has keys
-    ``before_leader``, ``before_leader_label``, ``before_leader_type``, ``before_size``,
-    ``destination``, ``destination_kind``, ``destination_type``, ``after_size``,
-    ``member_count``, ``example_members``. ``example_members`` is left empty for
+    Returns one record per (before-clique, destination-clique) group, but only for
+    before-cliques whose clique-vs-clique state actually changed — a before-clique that keeps
+    the exact same leader and membership is skipped entirely (nothing to report). Each record
+    has keys ``before_leader``, ``before_leader_label``, ``before_leader_type``,
+    ``before_size``, ``destination``, ``destination_label``, ``destination_kind``,
+    ``destination_compendium``, ``destination_type``, ``after_size``, ``member_count``,
+    ``example_members``. ``destination``/``destination_label``/``destination_type``/
+    ``after_size`` describe the destination clique in the after build (all empty or zero for
+    ``dropped``); ``destination_compendium`` is the file it lives in, which differs from
+    ``compendium`` exactly for ``moved`` rows. ``example_members`` is left empty for
     ``leader_changed`` rows, since ``before_leader``/``destination`` already say everything
     that changed (the old and new leader) and re-listing the unchanged membership adds no
-    information. ``destination_type`` is the after-clique's Biolink type for real
-    destinations, the ``|``-joined distinct types of the members for ``moved``, and empty for
-    ``dropped``.
+    information.
     """
-    before_cliques = before.cliques
-    after_cliques = after.cliques
-    after_leader_of = after.curie_to_leader
+    after = after_by_file[compendium]
     records = []
-    for before_leader, members in before_cliques.items():
-        # Partition members by their after-build destination.
+    for before_leader, members in before.cliques.items():
+        # Partition members by the after-clique they landed in, identified globally as
+        # (filename, leader) so a member retyped into another compendium still names its clique.
         groups = {}
         for c in members:
-            if c in after_leader_of:
-                dest = after_leader_of[c]
-            elif c in all_after_curies:
-                dest = MOVED
-            else:
-                dest = DROPPED
-            groups.setdefault(dest, []).append(c)
-        # Whole-clique cases: every member landed under the same single after-clique
-        # leader, and that after-clique's membership is identical to the before-clique's.
+            groups.setdefault(after_location.get(c, DROPPED_KEY), []).append(c)
+        # Whole-clique case: every member landed under one after-clique in this same
+        # compendium, whose membership is identical to the before-clique's.
         only_dest = next(iter(groups)) if len(groups) == 1 else None
         whole_clique_unchanged = (
-            only_dest is not None and only_dest not in (DROPPED, MOVED) and after_cliques.get(only_dest) == members
+            only_dest is not None and only_dest[0] == compendium and after.cliques.get(only_dest[1]) == members
         )
-        if whole_clique_unchanged and only_dest == before_leader:
+        if whole_clique_unchanged and only_dest[1] == before_leader:
             continue  # Same leader, same membership: nothing changed.
-        for dest, group_members in groups.items():
-            if dest == DROPPED:
-                destination_kind, after_size, destination_type = "dropped", 0, ""
-            elif dest == MOVED:
-                destination_kind, after_size = "moved", 0
-                destination_type = "|".join(sorted({all_after_types.get(c, "") for c in group_members} - {""}))
-            elif whole_clique_unchanged:
-                destination_kind = "leader_changed"
-                after_size = len(after_cliques[dest])
-                destination_type = after.clique_type.get(dest, "")
+        for (dest_file, dest_leader), group_members in groups.items():
+            if dest_file == "":
+                destination_kind, after_size, destination_label, destination_type = "dropped", 0, "", ""
             else:
-                destination_kind = "kept" if dest == before_leader else "regrouped"
-                after_size = len(after_cliques[dest])
-                destination_type = after.clique_type.get(dest, "")
+                dest_after = after_by_file[dest_file]
+                if dest_file != compendium:
+                    destination_kind = "moved"
+                elif whole_clique_unchanged:
+                    destination_kind = "leader_changed"
+                else:
+                    destination_kind = "kept" if dest_leader == before_leader else "regrouped"
+                after_size = len(dest_after.cliques[dest_leader])
+                destination_label = dest_after.labels.get(dest_leader, "")
+                destination_type = dest_after.clique_type.get(dest_leader, "")
             records.append(
                 {
                     "before_leader": before_leader,
                     "before_leader_label": before.labels.get(before_leader, ""),
                     "before_leader_type": before.clique_type.get(before_leader, ""),
                     "before_size": len(members),
-                    "destination": dest,
+                    "destination": dest_leader,
+                    "destination_label": destination_label,
                     "destination_kind": destination_kind,
+                    "destination_compendium": dest_file,
                     "destination_type": destination_type,
                     "after_size": after_size,
                     "member_count": len(group_members),
@@ -227,12 +225,10 @@ def diff_builds(before_dir, after_dir, filenames):
     judged against the union of all compared after compendia, so a CURIE retyped into one
     of the other ``filenames`` counts as ``moved``, not ``dropped``.
     """
-    # First pass: load everything and compute the global set of CURIEs present after,
-    # plus each after-CURIE's Biolink type (so a moved member can be typed even though it
-    # now lives in a different compendium file).
+    # First pass: load everything and locate every after-CURIE as (filename, leader), so a
+    # member retyped into another compendium can still name the after-clique it landed in.
     before_by_file, after_by_file = {}, {}
-    all_after_curies = set()
-    all_after_types = {}
+    after_location = {}
     for fname in filenames:
         before_path = pathlib.Path(before_dir) / fname
         after_path = pathlib.Path(after_dir) / fname
@@ -241,17 +237,15 @@ def diff_builds(before_dir, after_dir, filenames):
         before_by_file[fname] = load_cliques(before_path, need_curie_to_leader=False)
         after = load_cliques(after_path)
         after_by_file[fname] = after
-        all_after_curies.update(after.curie_to_leader)
         for curie, leader in after.curie_to_leader.items():
-            all_after_types[curie] = after.clique_type.get(leader, "")
+            after_location[curie] = (fname, leader)
 
     rows = []
     summary = {}
     for fname in filenames:
         before = before_by_file[fname]
-        after = after_by_file[fname]
-        after_cliques = after.cliques
-        records = diff_compendium(before, after, all_after_curies, all_after_types)
+        after_cliques = after_by_file[fname].cliques
+        records = diff_compendium(fname, before, after_by_file, after_location)
         for r in records:
             r["compendium"] = fname
             rows.append(r)
@@ -268,7 +262,11 @@ def diff_builds(before_dir, after_dir, filenames):
                 "after": after_count,
                 "diff": after_count - before_count,
                 # Percent change of the clique count (after vs before); 0.0 when unchanged.
-                "diff_percent": round(100 * (after_count - before_count) / before_count, 2) if before_count else 0.0,
+                "diff_percent": (
+                    0.0
+                    if after_count == before_count
+                    else (None if before_count == 0 else round(100 * (after_count - before_count) / before_count, 2))
+                ),
             },
             "changed_before_cliques": len({r["before_leader"] for r in records}),
             "cliques_with_dropped_members": len(
