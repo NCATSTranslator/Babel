@@ -470,6 +470,7 @@ def test_mp_badxrefs_is_wired_up_and_drops_the_bifid_scrotum_xref():
     Regression guard: the pair is only dropped if "MP" is a key in the badxrefs dict, since
     build_compendia looks the file up by concord basename. The [HP, MP] post-glom split currently
     masks the bad merge, so nothing else in the build would notice this silently regressing.
+    See https://github.com/NCATSTranslator/Babel/issues/906 for the live BabelTest assertions.
     """
     assert "MP" in diseasephenotype.DEFAULT_BAD_XREFS
     bad_pairs = diseasephenotype.read_badxrefs(diseasephenotype.DEFAULT_BAD_XREFS["MP"])

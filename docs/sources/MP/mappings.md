@@ -70,7 +70,8 @@ Two notes on the kept prefixes:
   ([`HP:0000048`](http://purl.obolibrary.org/obo/HP_0000048) "Bifid scrotum"). The `[HP, MP]`
   split would separate the resulting clique anyway, but the pair is dropped explicitly in
   `input_data/mp_badxrefs.txt` so it does not become a live bad merge if that policy is ever
-  relaxed. Tracked for upstream reporting in
+  relaxed. [Babel#906](https://github.com/NCATSTranslator/Babel/issues/906) carries the BabelTest
+  assertions that keep the clique honest; upstream reporting to MP is tracked in
   [Babel#905](https://github.com/NCATSTranslator/Babel/issues/905).
 
 ## Bad-xref file

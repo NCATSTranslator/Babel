@@ -11,5 +11,7 @@
 # them makes "external male genitalia hypoplasia" a synonym of "bifid scrotum". Today the
 # [HP, MP] post-glom split separates the resulting clique anyway, so this row is inert; it is
 # dropped here so it stays wrong-and-absent rather than wrong-and-accidentally-harmless.
+# https://github.com/NCATSTranslator/Babel/issues/906 carries the BabelTest assertions that keep
+# MP:0009203 out of the bifid-scrotum clique while keeping HP:0000048 and UMLS:C0341787 in it.
 # To be reported upstream to MP; tracked in https://github.com/NCATSTranslator/Babel/issues/905
 MP:0009203 UMLS:C0341787
