@@ -525,9 +525,17 @@ class UberGraph:
         return write_count
 
 
-def build_sets(iri, concordfiles, set_type, ignore_list=[], other_prefixes={}, hop_ontologies=False):
+def build_sets(
+    iri, concordfiles, set_type, ignore_list=[], other_prefixes={}, hop_ontologies=False, allowed_prefixes=None
+):
     """Given an IRI create a list of sets.  Each set is a set of equivalent LabeledIDs, and there
-    is a set for each subclass of the input iri.  Write these lists to concord files, indexed by the prefix"""
+    is a set for each subclass of the input iri.  Write these lists to concord files, indexed by the prefix
+
+    `ignore_list` blocks the named target prefixes (fail-open: anything unlisted is written).
+    `allowed_prefixes`, if not None, is the complement (fail-closed): only targets whose prefix is
+    listed are written, so a namespace the source newly starts emitting is rejected until someone
+    reviews it. Both are matched against `Text.get_prefix_or_none()`, which upper-cases, so entries
+    must be upper-case (e.g. "HTTP", not "http")."""
     prefix = Text.get_prefix_or_none(iri)
     types2relations = {"xref": "xref", "exact": "oio:exactMatch", "close": "oio:closeMatch"}
     if set_type not in types2relations:
@@ -546,10 +554,14 @@ def build_sets(iri, concordfiles, set_type, ignore_list=[], other_prefixes={}, h
                 continue
         v = set([norm(x, other_prefixes) for x in v])
         for x in v:
-            if Text.get_prefix_or_none(x) not in ignore_list:
-                p = Text.get_prefix_or_none(k)
-                if p in concordfiles:
-                    concordfiles[p].write(f"{k}\t{types2relations[set_type]}\t{x}\n")
+            target_prefix = Text.get_prefix_or_none(x)
+            if target_prefix in ignore_list:
+                continue
+            if allowed_prefixes is not None and target_prefix not in allowed_prefixes:
+                continue
+            p = Text.get_prefix_or_none(k)
+            if p in concordfiles:
+                concordfiles[p].write(f"{k}\t{types2relations[set_type]}\t{x}\n")
 
 
 if __name__ == "__main__":
