@@ -426,6 +426,50 @@ def omim_pipeline_outputs(omim_mim2gene, regenerate):
 
 
 # ---------------------------------------------------------------------------
+# NCBIGene download + processing fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def ncbigene_gene_info():
+    """Download babel_downloads/NCBIGene/gene_info.gz, or fail if unavailable.
+
+    This is a large file (>1 GB compressed); dependent tests are marked `slow`.
+    """
+    from src.datahandlers.ncbigene import pull_ncbigene  # deferred: only import when NCBIGene tests are requested
+
+    return _download_or_fail(
+        "NCBIGene gene_info.gz",
+        lambda: pull_ncbigene(["gene_info.gz"]),
+        make_local_name("gene_info.gz", subpath="NCBIGene"),
+    )
+
+
+@pytest.fixture(scope="session")
+def ncbigene_pipeline_outputs(ncbigene_gene_info, regenerate):
+    """Run pull_ncbigene_labels_synonyms_and_taxa; returns {labels, synonyms, taxa, descriptions} paths.
+
+    Output files go to babel_downloads/NCBIGene/ and are reused on subsequent runs unless
+    --regenerate is passed.  Processing the full gene_info.gz is slow (millions of rows), so
+    the four outputs are generated together in one pass.
+    """
+    from src.datahandlers.ncbigene import pull_ncbigene_labels_synonyms_and_taxa  # deferred
+
+    labels = make_local_name("labels", subpath="NCBIGene")
+    synonyms = make_local_name("synonyms", subpath="NCBIGene")
+    taxa = make_local_name("taxa", subpath="NCBIGene")
+    descriptions = make_local_name("descriptions", subpath="NCBIGene")
+
+    if regenerate or not all(os.path.exists(p) for p in (labels, synonyms, taxa, descriptions)):
+        os.makedirs(os.path.dirname(labels), exist_ok=True)
+        pull_ncbigene_labels_synonyms_and_taxa(ncbigene_gene_info, labels, synonyms, taxa, descriptions)
+    else:
+        print(f"[pipeline] reusing cached NCBIGene outputs in {os.path.dirname(labels)} (pass --regenerate to refresh)")  # noqa: T201
+
+    return {"labels": labels, "synonyms": synonyms, "taxa": taxa, "descriptions": descriptions}
+
+
+# ---------------------------------------------------------------------------
 # UberGraph connectivity fixture (shared prerequisite for NCIT and GO)
 # ---------------------------------------------------------------------------
 

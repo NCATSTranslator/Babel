@@ -64,6 +64,11 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
   **`test_efo.py`** (`pipeline`) — Output format and content checks for the EC, Rhea,
   ChEMBL, CLO, and EFO data handlers.
 
+- **`test_ncbigene.py`** (`pipeline` + `slow`) — Output format checks for the NCBIGene
+  labels/synonyms/taxa/descriptions files, plus a real-data regression check for issue #744:
+  no emitted synonym may start or end with `''` (stray quoted-alias fragments). Marked `slow`
+  because it downloads the full `gene_info.gz` (>1 GB compressed) and processes every row.
+
 - **`checks/`** (`pipeline`) — Per-compendium regression assertions tied to specific GitHub
   issues, designed for test-driven development. See [Pipeline Checks](#pipeline-checks) below.
 
