@@ -268,7 +268,11 @@ def diff_builds(before_dir, after_dir, filenames):
                 "after": after_count,
                 "diff": after_count - before_count,
                 # Percent change of the clique count (after vs before); 0.0 when unchanged.
-                "diff_percent": round(100 * (after_count - before_count) / before_count, 2) if before_count else 0.0,
+                "diff_percent": (
+                    0.0
+                    if after_count == before_count
+                    else (None if before_count == 0 else round(100 * (after_count - before_count) / before_count, 2))
+                ),
             },
             "changed_before_cliques": len({r["before_leader"] for r in records}),
             "cliques_with_dropped_members": len(
