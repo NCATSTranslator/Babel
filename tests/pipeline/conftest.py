@@ -528,9 +528,22 @@ def mp_pipeline_outputs(ubergraph_connection, regenerate):
 
 
 def _write_mp_concord(concord_path: str) -> None:
+    """Build the MP concord exactly as build_disease_obo_relationships() does.
+
+    MP_XREF_ALLOWED_PREFIXES is not optional here. Without it this writes the raw ~663-row xref
+    dump (anatomy, processes, citations, Wikipedia URLs) to the same stable intermediate path the
+    real build uses, so a later Snakemake run would treat the unfiltered file as up to date and
+    glom category-error xrefs as equivalences. It would also leave the allowlist -- the whole point
+    of MP's ingest -- untested.
+    """
     os.makedirs(os.path.dirname(concord_path), exist_ok=True)
     with open(concord_path, "w") as mp_file:
-        build_sets(f"{MP}:0000001", {MP: mp_file}, "xref")
+        build_sets(
+            f"{MP}:0000001",
+            {MP: mp_file},
+            "xref",
+            allowed_prefixes=diseasephenotype.MP_XREF_ALLOWED_PREFIXES,
+        )
 
 
 # ---------------------------------------------------------------------------
