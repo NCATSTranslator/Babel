@@ -14,6 +14,11 @@ addition. EMAPA is the worked example throughout.
   file containing multiple Biolink types (leftover_umls.txt -> umls.txt is the only current example
   of this).
 
+A third, unrelated concept: **`umls_semantic_type`** (or `sty`) is a UMLS TUI code / tree string
+used only inside the UMLS ingest (see `docs/sources/UMLS/Leftover.md`) — don't conflate it with
+either pipeline or Biolink type. Avoid the bare phrase "semantic type" for any of the three unless
+quoting an external vocabulary (e.g. "UMLS semantic type").
+
 ## What "adding a source" means
 
 A Babel source contributes two kinds of intermediate artefacts under

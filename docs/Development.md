@@ -65,13 +65,23 @@ See [`tests/README.md`](../tests/README.md) and
 
 ### A few more habits that paid off
 
+- **Split download from extract/validate.** Give a data-collection step two Snakemake rules: a
+  `download_*` rule that only fetches the raw file(s), and a separate rule that validates format or
+  extracts content. If upstream changes its format (e.g. a column rename), only the validation rule
+  fails — Snakemake keeps the downloaded file, so a code fix doesn't force an expensive re-download.
+  Format validation belongs in the extraction/filter rule, never in the download rule.
 - **Validate upstream format and fail loudly.** Pin the column layout as a constant in the source
-  module, import it into tests, and assert the live header still matches. Raise `ValueError` /
-  `RuntimeError` on anything unexpected (a missing column, a zero-length file listing, an
-  already-prefixed taxon) rather than producing wrong output quietly.
+  module (e.g. `complexportal.COMPLEXTAB_COLUMNS`/`COMPLEXTAB_HEADER`) — that constant is the
+  canonical format documentation living next to the code — import it into tests to build fixture
+  rows, and assert the live header still matches at each index Babel reads, so a silent upstream
+  re-ordering becomes a loud test failure instead of corrupted output. Raise `ValueError` /
+  `RuntimeError` on anything else unexpected (a missing column, a zero-length file listing, an
+  already-prefixed taxon) rather than producing wrong output quietly. See
+  `src/datahandlers/complexportal.py`.
 - **Use a manifest as the download sentinel** for multi-file downloads: write the list of
   downloaded files last and make _that_ the Snakemake output, so its presence proves the download
-  phase finished and the extraction rule knows what to parse.
+  phase finished and the extraction rule knows what to parse. See
+  `complexportal.pull_complexportal()`.
 - **Accept explicit file-path arguments** (`infile`/`outfile`/…) instead of calling
   `make_local_name` inside the handler, so unit tests can point at `tmp_path` without patching the
   config and Snakemake can declare inputs/outputs precisely.
