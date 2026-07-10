@@ -1,23 +1,23 @@
 mondo_leader,mondo_label,split_kind,destination_leader,destination_label,destination_type,near_identical_label,meddra_moved,nonmeddra_moved,members_moved_total,sme_assessment
-MONDO:0000889,haemophilus meningitis,new-clique,UMLS:C0276028,Haemophilus influenzae meningitis,biolink:Disease,no,2,UMLS:C0276028,3,regression
+MONDO:0000889,haemophilus meningitis,new-clique,UMLS:C0276028,Haemophilus influenzae meningitis,biolink:Disease,no,2,UMLS:C0276028,3,regression (SME-confirmed)
 MONDO:0001561,pyloric stenosis,new-clique,UMLS:C0162651,Gastric outlet obstruction,biolink:Disease,no,2,SNOMEDCT:244815007;UMLS:C0162651;UMLS:C1541124,5,
 MONDO:0007064,"severe combined immunodeficiency, autosomal recessive, T cell-negative, B cell-negative, NK cell-negative, due to adenosine deaminase deficiency",new-clique,UMLS:C0268124,Adenosine deaminase deficiency,biolink:Disease,no,2,UMLS:C0268124,3,
-MONDO:0007540,multiple endocrine neoplasia type 1,new-clique,DOID:10017,multiple endocrine neoplasia type 1,biolink:Disease,yes,2,DOID:10017;ICD10:E31.21;ICD9:258.01,13,
+MONDO:0007540,multiple endocrine neoplasia type 1,new-clique,DOID:10017,multiple endocrine neoplasia type 1,biolink:Disease,yes,2,DOID:10017;ICD10:E31.21;ICD9:258.01,13,suspected regression (identical label)
 MONDO:0007896,acute monocytic leukemia,new-clique,UMLS:C0457334,Acute monoblastic leukemia,biolink:Disease,no,4,NCIT:C7171,7,
 MONDO:0008303,familial male-limited precocious puberty,new-clique,UMLS:C1504412,Testotoxicosis,biolink:Disease,no,1,UMLS:C1504412,2,
-MONDO:0009020,macular corneal dystrophy,new-clique,UMLS:C0024439,Macular corneal dystrophy,biolink:Disease,yes,1,UMLS:C0024439,2,
-MONDO:0009297,familial renal glucosuria,new-clique,UMLS:C0017980,"Glycosuria, Renal",biolink:Disease,no,2,UMLS:C0017980,3,improvement
+MONDO:0009020,macular corneal dystrophy,new-clique,UMLS:C0024439,Macular corneal dystrophy,biolink:Disease,yes,1,UMLS:C0024439,2,suspected regression (identical label)
+MONDO:0009297,familial renal glucosuria,new-clique,UMLS:C0017980,"Glycosuria, Renal",biolink:Disease,no,2,UMLS:C0017980,3,improvement (SME-confirmed)
 MONDO:0010269,Coats disease,new-clique,UMLS:C0154832,Exudative retinopathy,biolink:Disease,no,2,HP:0007898;SNOMEDCT:25506007;UMLS:C0154832,5,
 MONDO:0015274,chronic beryllium disease,new-clique,UMLS:C0005138,Berylliosis,biolink:Disease,no,1,NCIT:C197848;SNOMEDCT:8247009;UMLS:C0005138,4,
-MONDO:0016421,toxic oil syndrome,new-clique,UMLS:C0409998,Toxic oil syndrome,biolink:Disease,yes,2,UMLS:C0409998,3,
-MONDO:0017169,multiple endocrine neoplasia,new-clique,DOID:3125,multiple endocrine neoplasia,biolink:Disease,yes,4,DOID:3125,13,
-MONDO:0017201,Spasmus nutans,new-clique,UMLS:C1527306,spasmus nutans,biolink:Disease,yes,1,UMLS:C1527306,2,
+MONDO:0016421,toxic oil syndrome,new-clique,UMLS:C0409998,Toxic oil syndrome,biolink:Disease,yes,2,UMLS:C0409998,3,suspected regression (identical label)
+MONDO:0017169,multiple endocrine neoplasia,new-clique,DOID:3125,multiple endocrine neoplasia,biolink:Disease,yes,4,DOID:3125,13,suspected regression (identical label)
+MONDO:0017201,Spasmus nutans,new-clique,UMLS:C1527306,spasmus nutans,biolink:Disease,yes,1,UMLS:C1527306,2,suspected regression (identical label)
 MONDO:0018301,interstitial cystitis,new-clique,UMLS:C0600040,Chronic interstitial cystitis,biolink:Disease,no,2,UMLS:C0600040,3,
-MONDO:0018952,argyria,new-clique,UMLS:C0003782,Argyria,biolink:Disease,yes,1,SNOMEDCT:255636009;SNOMEDCT:66994003;SNOMEDCT:77783001;UMLS:C0003782,5,
+MONDO:0018952,argyria,new-clique,UMLS:C0003782,Argyria,biolink:Disease,yes,1,SNOMEDCT:255636009;SNOMEDCT:66994003;SNOMEDCT:77783001;UMLS:C0003782,5,suspected regression (identical label)
 MONDO:0019136,Zygomycosis,new-clique,UMLS:C0026718,Mucormycosis,biolink:Disease,no,1,MESH:D009091;UMLS:C0026718,3,
-MONDO:0019168,pyomyositis,new-clique,UMLS:C1704275,Pyomyositis,biolink:Disease,yes,1,UMLS:C1704275,2,
+MONDO:0019168,pyomyositis,new-clique,UMLS:C1704275,Pyomyositis,biolink:Disease,yes,1,UMLS:C1704275,2,suspected regression (identical label)
 MONDO:0019735,polymyalgia rheumatica,new-clique,UMLS:C1527406,Rhizomelic pseudopolyarthritis,biolink:Disease,no,1,UMLS:C1527406,2,
-MONDO:0020115,secondary polycythemia,new-clique,UMLS:C5848252,Secondary polycythemia,biolink:Disease,yes,4,UMLS:C5848252,5,
+MONDO:0020115,secondary polycythemia,new-clique,UMLS:C5848252,Secondary polycythemia,biolink:Disease,yes,4,UMLS:C5848252,5,suspected regression (identical label)
 MONDO:0015597,palmoplantar pustulosis,reattached-existing-mondo,MONDO:0013626,"psoriasis 14, pustular",biolink:Disease,no,1,HP:0100847;SNOMEDCT:27520001;UMLS:C0030246,4,
 MONDO:0016575,primary ciliary dyskinesia,reattached-existing-mondo,MONDO:0009484,primary ciliary dyskinesia 1,biolink:Disease,no,2,UMLS:C4551720,3,
 MONDO:0016702,oligoastrocytoma,reattached-existing-mondo,MONDO:0003268,mixed glioma,biolink:Disease,no,2,NCIT:C129323;UMLS:C0280793,4,

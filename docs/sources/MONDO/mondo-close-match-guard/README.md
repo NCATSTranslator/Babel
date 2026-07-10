@@ -78,9 +78,12 @@ close concept and are improvements — e.g.
 correctly no longer subsumes the broader `UMLS:C0017980` "Glycosuria, Renal". Each row needs an SME
 to decide which it is.
 
-These 23 rows are also in `split-cliques.csv` (a `near_identical_label` column flags the ⚠ cases
-and an empty `sme_assessment` column is there to fill in). Members shown below are examples (up to
-five per row); see `clique-diff.csv` for the full membership.
+These 23 rows are also in `split-cliques.csv` (a `near_identical_label` column flags the ⚠ cases).
+Its `sme_assessment` column carries a first pass: the two cases confirmed above are marked
+`regression`/`improvement (SME-confirmed)`, the eight ⚠ identical-label cases are marked
+`suspected regression (identical label)`, and the remaining 13 (a distinct close concept was
+separated) are left blank as genuine SME calls. Members shown below are examples (up to five per
+row); see `clique-diff.csv` for the full membership.
 
 ### Split into a brand-new clique (19)
 
