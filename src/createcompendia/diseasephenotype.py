@@ -17,6 +17,7 @@ from src.prefixes import (
     KEGGDISEASE,
     MEDDRA,
     MESH,
+    MGI,
     MONDO,
     MP,
     NCIT,
@@ -63,6 +64,23 @@ MUTUALLY_EXCLUSIVE_PREFIX_GROUPS = [[HP, MP]]
 # efo.make_concords(..., excluded_target_prefixes=...). See docs/sources/MP/disjointness.md.
 EFO_EXCLUDED_XREF_PREFIXES = [MP]
 
+# Target prefixes we accept from MP's UberGraph xrefs; every other target is dropped. MP uses
+# oboInOwl:hasDbXref to mean "this phenotype is *about* that thing", not "is equivalent to it",
+# so most of its xref targets are category errors: CL/MA/FMA are the cell or anatomical structure
+# the abnormality occurs in (MP:0009873 "abnormal aorta tunica media morphology" -> MA:0002903
+# "aorta tunica media"), GO is the process the phenotype perturbs (MP:0002998 "abnormal bone
+# remodeling" -> GO:0046849 "bone remodeling"), NBO is a behavior, NLX a cell type, and
+# Fyler/PMID/http(s) are registry codes, citations and Wikipedia links. What survives:
+#   HP    - genuine phenotype equivalences (the [HP, MP] split above still separates them).
+#   MGI   - MGI phenotype-slim terms, the same kind of thing as the MP term.
+#   MPATH - mouse pathology lesions, phenotype-shaped.
+#   UMLS  - phenotype concepts, and a prefix the disease compendia actually carry.
+# This is an allowlist rather than an ignore_list so that a namespace MP newly starts emitting is
+# rejected by default and surfaces as a review decision instead of a silent regression. Matched
+# against Text.get_prefix_or_none(), which upper-cases, hence "MPATH" (no prefixes.py constant
+# exists for it; Babel does not ingest MPATH). See docs/sources/MP/mappings.md.
+MP_XREF_ALLOWED_PREFIXES = [HP, MGI, "MPATH", UMLS]
+
 # Concord file basenames whose pair stream is filtered through remove_overused_xrefs
 # before glom. Other concord sources are trusted as-is. MP is included alongside the other
 # OBO-sourced concords (MONDO, HP, EFO) since its UberGraph xrefs are ordinary ontology xrefs
@@ -76,6 +94,7 @@ OVERUSE_FILTERED_CONCORDS = {"MONDO", "HP", "EFO", "MP"}
 DEFAULT_BAD_XREFS = {
     "HP": "input_data/badHPx.txt",
     "MONDO": "input_data/mondo_badxrefs.txt",
+    "MP": "input_data/mp_badxrefs.txt",
     "UMLS": "input_data/umls_badxrefs.txt",
 }
 
@@ -301,19 +320,20 @@ def build_disease_obo_relationships(outdir, metadata_yamls):
         concord_filename=f"{outdir}/{MONDO}_close",
     )
 
-    # MP cross-references. Standard subClassOf walk from the MP root; UberGraph
-    # supplies whatever MP xrefs are declared in the source ontology (typically
-    # MESH and a few SNOMED links). SSSOM-derived MP↔HP mappings are intentionally
-    # not loaded here — see docs/sources/MP/mappings.md.
+    # MP cross-references. Standard subClassOf walk from the MP root. Most of MP's declared
+    # xrefs point at anatomy, processes or citations rather than equivalent phenotypes, so only
+    # the MP_XREF_ALLOWED_PREFIXES targets are kept. SSSOM-derived MP↔HP mappings are
+    # intentionally not loaded here — see docs/sources/MP/mappings.md.
     mp_root = DISEASE_OBO_SOURCES[MP]["root"]
     with open(f"{outdir}/{MP}", "w") as outfile:
-        build_sets(mp_root, {MP: outfile}, set_type="xref")
+        build_sets(mp_root, {MP: outfile}, set_type="xref", allowed_prefixes=MP_XREF_ALLOWED_PREFIXES)
 
     write_concord_metadata(
         metadata_yamls[MP],
         name="build_disease_obo_relationships()",
         sources=[{"type": "UberGraph", "name": MP}],
-        description=f"ubergraph.build_sets() (xref) of {mp_root}",
+        description=f"ubergraph.build_sets() (xref) of {mp_root}, "
+        f"restricted to target prefixes {MP_XREF_ALLOWED_PREFIXES}",
         concord_filename=f"{outdir}/{MP}",
     )
 

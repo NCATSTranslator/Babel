@@ -22,13 +22,14 @@ Sections:
   (``OVERUSE_FILTERED_CONCORDS``) that MONDO/HP already have.
 """
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from src.babel_utils import glom
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
+from src.ubergraph import build_sets
 from tests.conftest import assert_taxa_file_valid, glom_dict_from_cliques
 
 # --- UMLS semantic-type tree mapping ---
@@ -457,3 +458,70 @@ def test_read_badxrefs_skips_comments_and_parses_shipped_mondo_file():
     assert ("MONDO:0003425", "SNOMEDCT:78097002") in bad_pairs
     # Comment lines never become pairs.
     assert not any(subject.startswith("#") for subject, _ in bad_pairs)
+
+
+@pytest.mark.unit
+def test_mp_badxrefs_is_wired_up_and_drops_the_bifid_scrotum_xref():
+    """The MP concord must be filtered through input_data/mp_badxrefs.txt, which must still drop
+    MP:0009203 -> UMLS:C0341787. MP:0009203 is "external male genitalia hypoplasia" (a broad
+    underdevelopment term) while UMLS:C0341787 is "Bifid scrotum" (a specific malformation, also
+    HP:0000048), so the xref would clique two different concepts.
+
+    Regression guard: the pair is only dropped if "MP" is a key in the badxrefs dict, since
+    build_compendia looks the file up by concord basename. The [HP, MP] post-glom split currently
+    masks the bad merge, so nothing else in the build would notice this silently regressing.
+    """
+    assert "MP" in diseasephenotype.DEFAULT_BAD_XREFS
+    bad_pairs = diseasephenotype.read_badxrefs(diseasephenotype.DEFAULT_BAD_XREFS["MP"])
+    assert ("MP:0009203", "UMLS:C0341787") in bad_pairs
+
+
+# --- MP xref allowlist ---
+
+
+@pytest.mark.unit
+def test_mp_xref_allowlist_drops_non_phenotype_targets(tmp_path):
+    """build_disease_obo_relationships must pass MP_XREF_ALLOWED_PREFIXES to build_sets, keeping
+    only phenotype-shaped xref targets (HP/MGI/MPATH/UMLS) and dropping the anatomy, process,
+    registry-code, citation and bare-URL targets MP asserts with oboInOwl:hasDbXref.
+
+    The targets below are real rows from the MP UberGraph xref dump. Note the allowlist is matched
+    against Text.get_prefix_or_none(), which upper-cases, so "https://..." must be rejected via
+    the prefix "HTTPS" -- a lower-case allowlist entry would silently let every URL through.
+    """
+    xrefs = {
+        "MP:0009873": {  # "abnormal aorta tunica media morphology"
+            "MA:0002903",  # the anatomical structure that is abnormal -- dropped
+            "FMA:19039",  # ditto, human anatomy -- dropped
+            "MGI:2173579",  # MGI phenotype-slim term -- kept
+        },
+        "MP:0002998": {  # "abnormal bone remodeling"
+            "GO:0046849",  # the process the phenotype perturbs -- dropped
+            "MPATH:720",  # mouse pathology lesion -- kept
+        },
+        "MP:0012051": {  # "spasticity"
+            "HP:0001257",  # genuine phenotype equivalence -- kept
+            "UMLS:C0026838",  # ditto -- kept
+            "Fyler:4876",  # defunct cardiac-lesion registry code -- dropped
+            "CL:0000806",  # the cell type involved -- dropped
+            "PMID:1754386",  # a citation -- dropped
+            "https://en.wikipedia.org/wiki/Aorta",  # a web page -- dropped
+        },
+    }
+
+    fake_uber = MagicMock()
+    fake_uber.get_subclasses_and_xrefs.return_value = xrefs
+    outdir = tmp_path / "concords"
+    outdir.mkdir()
+
+    with patch("src.ubergraph.UberGraph", return_value=fake_uber):
+        with open(outdir / "MP", "w") as outfile:
+            build_sets(
+                "MP:0000001",
+                {"MP": outfile},
+                set_type="xref",
+                allowed_prefixes=diseasephenotype.MP_XREF_ALLOWED_PREFIXES,
+            )
+
+    targets = {line.rstrip("\n").split("\t")[2] for line in (outdir / "MP").read_text().splitlines()}
+    assert targets == {"MGI:2173579", "MPATH:720", "HP:0001257", "UMLS:C0026838"}
