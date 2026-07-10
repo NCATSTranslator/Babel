@@ -75,12 +75,21 @@ class EFOgraph:
                         idfile.write(f"{EFO}:{efo_id}\t{rtype}\n")
 
     @staticmethod
-    def _is_excluded_target(otherid, excluded_target_prefixes):
+    def _upper_prefixes(excluded_target_prefixes):
+        """Upper-case a caller's prefix collection once, for comparison against upper-cased CURIE
+        prefixes in _is_excluded_target(). Callers do this once per query rather than once per
+        result row, and it lets a caller pass a lower-case constant (e.g. prefixes.ORPHANET, which
+        is "orphanet") without it silently never matching."""
+        return {prefix.upper() for prefix in excluded_target_prefixes}
+
+    @staticmethod
+    def _is_excluded_target(otherid, excluded_upper):
         """True if otherid should be dropped from a concord: either it's Orphanet (excluded
         unconditionally -- Orphanet xrefs/exactMatches out of EFO have proven unreliable, see the
-        callers below) or its CURIE prefix is in the caller-supplied excluded_target_prefixes
-        (e.g. MP, passed by diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES to keep MP disjoint from
-        EFO -- see docs/sources/MP/disjointness.md). Orphanet is enforced here rather than via
+        callers below) or its CURIE prefix is in ``excluded_upper``, the caller's already
+        upper-cased excluded_target_prefixes (e.g. MP, passed by
+        diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES to keep MP disjoint from EFO -- see
+        docs/sources/MP/disjointness.md). Orphanet is enforced here rather than via
         excluded_target_prefixes' default value so a caller that passes its own list (as
         diseasephenotype.py does) can't accidentally drop the Orphanet exclusion.
 
@@ -89,8 +98,7 @@ class EFOgraph:
         """
         if otherid.upper().startswith(ORPHANET.upper()):
             return True
-        excluded = {p.upper() for p in excluded_target_prefixes}
-        return otherid.split(":", 1)[0].upper() in excluded
+        return otherid.split(":", 1)[0].upper() in excluded_upper
 
     def get_exacts(self, iri, outfile, excluded_target_prefixes=()):
         query = f"""
@@ -114,6 +122,7 @@ class EFOgraph:
          }}
          """
         qres = self.m.query(query)
+        excluded_upper = self._upper_prefixes(excluded_target_prefixes)
         nwrite = 0
         for row in list(qres):
             other = str(row["match"])
@@ -123,7 +132,7 @@ class EFOgraph:
                 logger.error(f"Could not translate {other[1:-1]} into a CURIE, will be used as-is: {verr}")
                 otherid = other[1:-1]
 
-            if self._is_excluded_target(otherid, excluded_target_prefixes):
+            if self._is_excluded_target(otherid, excluded_upper):
                 logger.warning(f"Skipping excluded exactMatch '{otherid}' in EFOgraph.get_exacts({iri})")
                 continue
             outfile.write(f"{iri}\tskos:exactMatch\t{otherid}\n")
@@ -141,6 +150,7 @@ class EFOgraph:
          }}
          """
         qres = self.m.query(query)
+        excluded_upper = self._upper_prefixes(excluded_target_prefixes)
         for row in list(qres):
             other = str(row["match"])
             other_without_brackets = other[1:-1]
@@ -152,14 +162,14 @@ class EFOgraph:
                     + f"EFOgraph.get_xrefs({iri}), skipping: {verr}"
                 )
                 continue
-            if self._is_excluded_target(other_id, excluded_target_prefixes):
+            if self._is_excluded_target(other_id, excluded_upper):
                 logger.warning(f"Skipping excluded xref '{other_id}' in EFOgraph.get_xrefs({iri})")
                 continue
             # EFO occasionally has xrefs that are just strings, not IRIs or CURIEs
             if ":" in other_id and not other_id.startswith(":"):
                 outfile.write(f"{iri}\toboInOwl:hasDbXref\t{other_id}\n")
             else:
-                logging.warning(
+                logger.warning(
                     f"Skipping xref '{other_without_brackets}' in EFOgraph.get_xrefs({iri}): " + "not a valid CURIE"
                 )
 
