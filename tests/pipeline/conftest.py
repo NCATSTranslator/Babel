@@ -528,9 +528,16 @@ def emapa_pipeline_outputs(ubergraph_connection, regenerate):
 
 
 def _write_emapa_concord(concord_path: str) -> None:
+    """Build the EMAPA concord exactly as build_anatomy_obo_relationships() does.
+
+    Delegating to anatomy.build_emapa_obo_relationships() is what keeps the part_of
+    traversal and the ignore_list in step with the real build. Calling build_sets()
+    directly here once wrote a subClassOf-only, unfiltered concord to this same stable
+    intermediate path, which a later Snakemake run would then treat as up to date.
+    """
     os.makedirs(os.path.dirname(concord_path), exist_ok=True)
     with open(concord_path, "w") as emapa_file:
-        build_sets("EMAPA:0", {EMAPA: emapa_file}, "xref")
+        anatomy.build_emapa_obo_relationships({EMAPA: emapa_file})
 
 
 @pytest.fixture(scope="session")

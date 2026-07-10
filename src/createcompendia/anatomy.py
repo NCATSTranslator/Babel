@@ -187,21 +187,49 @@ def write_umls_ids(mrsty, outfile):
 # CL only shows up as an xref once in uberon, and it's a mistake.  It doesn't show up in anything else.
 # GO only shows up as an xref once in uberon, and it's a mistake.  It doesn't show up in anything else.
 # PMID is just wrong
+# Target prefixes never written to an anatomy OBO concord: citations (PMID), ontologies Babel
+# does not ingest for anatomy (BTO, BAMS, FMA, CALOHA, OPENCYC, NIF_SUBCELLULAR), bare URLs
+# (HTTP, WIKIPEDIA.EN), provenance annotations (GOC), and CL/GO, whose cliques are built from
+# their own roots rather than from a cross-reference. Matched against Text.get_prefix_or_none(),
+# which upper-cases, so every entry must be upper-case.
+ANATOMY_OBO_IGNORE_LIST = [
+    "PMID",
+    "BTO",
+    "BAMS",
+    "FMA",
+    "CALOHA",
+    "GOC",
+    "WIKIPEDIA.EN",
+    "CL",
+    "GO",
+    "NIF_SUBCELLULAR",
+    "HTTP",
+    "OPENCYC",
+]
+
+
+def build_emapa_obo_relationships(concordfiles):
+    """Write EMAPA's xref concords into ``concordfiles`` (a {prefix: open file} mapping).
+
+    EMAPA is a part_of partonomy, not an is_a hierarchy, so its xref concords must be
+    collected by walking part_of rather than rdfs:subClassOf; a subClassOf walk reaches
+    only two terms.
+
+    This exists as its own function so that the real build and the EMAPA pipeline test
+    fixture issue the identical call. Both write to the same intermediate concord path, so
+    a fixture that dropped ``hierarchy_predicate`` or ``ignore_list`` would leave a
+    degenerate or unfiltered file that a later Snakemake run would treat as up to date.
+    """
+    build_sets(
+        ANATOMY_OBO_SOURCES[EMAPA]["root"],
+        concordfiles,
+        "xref",
+        ignore_list=ANATOMY_OBO_IGNORE_LIST,
+        hierarchy_predicate=HIERARCHY_PART_OF,
+    )
+
+
 def build_anatomy_obo_relationships(outdir, metadata_yamls):
-    ignore_list = [
-        "PMID",
-        "BTO",
-        "BAMS",
-        "FMA",
-        "CALOHA",
-        "GOC",
-        "WIKIPEDIA.EN",
-        "CL",
-        "GO",
-        "NIF_SUBCELLULAR",
-        "HTTP",
-        "OPENCYC",
-    ]
     # Create the equivalence pairs
     with (
         open(f"{outdir}/{UBERON}", "w") as uberon,
@@ -211,16 +239,13 @@ def build_anatomy_obo_relationships(outdir, metadata_yamls):
     ):
         source_to_concord = {UBERON: uberon, GO: go, CL: cl, EMAPA: emapa}
         for source_prefix in [UBERON, GO]:
-            build_sets(ANATOMY_OBO_SOURCES[source_prefix]["root"], source_to_concord, "xref", ignore_list=ignore_list)
-        # EMAPA is a part_of partonomy, not an is_a hierarchy, so its xref concords must
-        # be collected by walking part_of rather than rdfs:subClassOf.
-        build_sets(
-            ANATOMY_OBO_SOURCES[EMAPA]["root"],
-            source_to_concord,
-            "xref",
-            ignore_list=ignore_list,
-            hierarchy_predicate=HIERARCHY_PART_OF,
-        )
+            build_sets(
+                ANATOMY_OBO_SOURCES[source_prefix]["root"],
+                source_to_concord,
+                "xref",
+                ignore_list=ANATOMY_OBO_IGNORE_LIST,
+            )
+        build_emapa_obo_relationships(source_to_concord)
         # CL is now being handled by Wikidata (build_wikidata_cell_relationships), so we can probably remove it from here.
 
     # Write out metadata.
