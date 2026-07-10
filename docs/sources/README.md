@@ -25,6 +25,10 @@ letting it accumulate in `CLAUDE.md` — `CLAUDE.md` should point here, not dupl
 - **UMLS** ([UMLS/Leftover.md](./UMLS/Leftover.md)) — the "leftover UMLS" compendium: how
   unclaimed UMLS concepts are swept up and typed, the manual STY→Biolink override tables and the
   drift test that keeps them honest, and the coverage report under `reports/umls/`.
+- **NCBIGene** ([NCBIGene/quoting/README.md](./NCBIGene/quoting/README.md)) — an investigation into
+  how the two free-text synonym columns (`Synonyms`/`otheraliases`, `Other_designations`/
+  `otherdesignations`) in `gene_info.gz` are quoted, prompted by issue #744's `''…''` fragments and
+  the discovery that a trailing `''` is legitimate "double-prime" gene nomenclature.
 
 ## Cross-cutting patterns
 
