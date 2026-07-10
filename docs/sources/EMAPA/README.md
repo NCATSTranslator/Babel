@@ -26,3 +26,7 @@ Additional source details are documented in:
 - `impact-report.md` — auto-generated report quantifying the identifiers, biolink types, and
   clique changes EMAPA adds to the anatomy compendium. See "Adding a new data source" in
   `CLAUDE.md` for how to regenerate it.
+- `clique-diff.md` — a full build-vs-build diff of the anatomy compendia with and without EMAPA,
+  covering the restructured and dropped cliques the impact report cannot see. Explains why
+  adding EMAPA to `anatomy_unique_prefixes` splits 67 members out of existing cliques and drops
+  two obsolete EMAPA identifiers that `main` was carrying via stale UBERON xrefs.
