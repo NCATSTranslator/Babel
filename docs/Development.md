@@ -77,6 +77,15 @@ See [`tests/README.md`](../tests/README.md) and
   config and Snakemake can declare inputs/outputs precisely.
 - **Record provenance** with `write_metadata()` so the per-source `metadata.yaml` captures where
   each output came from.
+- **Characterize a messy field before you parse it.** When a free-text field has irregular quoting
+  or delimiters, stream the whole downloaded file and tabulate how characters and delimiters are
+  actually used across every row before deciding how to split it. A pattern that reads as an
+  artifact in a handful of sampled rows is often legitimate at scale — NCBIGene's trailing `''` is
+  genuine double-prime nomenclature (`RNA polymerase subunit beta''`, `V-type proton ATPase subunit
+  c''`), not a stray quote, and a semicolon-joined designation is usually an isoform enumeration of
+  one name rather than two distinct synonyms. Keep the analysis script and its output next to the
+  per-source doc so the conclusion is reproducible and reviewable; see
+  [`docs/sources/NCBIGene/quoting/`](sources/NCBIGene/quoting/).
 
 ## Current Development Process
 

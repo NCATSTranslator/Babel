@@ -206,9 +206,11 @@ named by its CURIE prefix); see `docs/sources/README.md` for the convention and 
 there first when working on a specific vocabulary, and add to it when you learn something
 non-obvious about how Babel ingests that source. Keep the detail in the source file — `CLAUDE.md`
 should point here, not duplicate it. Documented so far: ComplexPortal
-(`docs/sources/COMPLEXPORTAL/Ingestion.md`), MeSH (`docs/sources/MESH/Ingestion.md`), and UMLS
-(`docs/sources/UMLS/Leftover.md`). Cross-cutting download/discovery patterns (HTTP autoindex
-listing vs FTP `NLST`) live in `docs/sources/DownloadPatterns.md`.
+(`docs/sources/COMPLEXPORTAL/Ingestion.md`), MeSH (`docs/sources/MESH/Ingestion.md`), UMLS
+(`docs/sources/UMLS/Leftover.md`), and NCBIGene (`docs/sources/NCBIGene/quoting/` — how the
+free-text synonym fields of `gene_info.gz` are quoted and delimited: double-prime `''`,
+semicolon-joined isoform lists, and pipe/comma splitting). Cross-cutting download/discovery
+patterns (HTTP autoindex listing vs FTP `NLST`) live in `docs/sources/DownloadPatterns.md`.
 
 ### Per-compendium metadata YAMLs
 
@@ -316,6 +318,15 @@ docstrings, and when to add a pipeline test) that the individual conventions bel
 When looking things up in the source databases, prefer to invoke the existing download code in
 this repository unless you suspect that it is incorrect, in which case use the existing code
 and then compare it with an API lookup to see how they differ.
+
+Before changing how a source's free-text field is parsed, characterize the *whole* downloaded file
+(stream it and tabulate how characters and delimiters are actually used) rather than generalizing
+from a few sampled rows — a shape that reads as a quoting/delimiter artifact in a sample is often
+legitimate at scale (in NCBIGene a trailing `''` looked like a stray quote but is genuine
+double-prime nomenclature such as RNA polymerase `beta''`, so a fix dropping every `''`-terminated
+value discarded ~4,000 real synonyms). Commit the analysis script and its output so the finding is
+reproducible; see the "Characterize a messy field before you parse it" habit in
+`docs/Development.md` and the worked example in `docs/sources/NCBIGene/quoting/`.
 
 If it is easy to add a test that will either exercise this bug or check some other relevant
 functionality, please suggest that when planning the bug fix.
