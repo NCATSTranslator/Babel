@@ -30,6 +30,10 @@ letting it accumulate in `CLAUDE.md` — `CLAUDE.md` should point here, not dupl
 - **MESH** ([MESH/Ingestion.md](./MESH/Ingestion.md)) — how MeSH is partitioned across compendia
   by tree letter, how Supplementary Concept Records (SCRs) are typed and routed, the
   chemical/protein D-tree split, and which MeSH branches/SCR classes we deliberately skip.
+- **MONDO** ([MONDO/mondo-close-match-guard/README.md](./MONDO/mondo-close-match-guard/README.md))
+  — the before/after clique diff measuring the fix that activated `glom()`'s MONDO close-match
+  guard (previously a silent no-op that let close-but-not-exact MEDDRA matches collapse into exact
+  MONDO cliques). See issue #912 and PR #888.
 - **MP** ([MP/README.md](./MP/README.md)) — the Mammalian Phenotype Ontology as a
   disease/phenotype source: extracting identifiers from UberGraph via a `subClassOf` walk from
   [`MP:0000001`](http://purl.obolibrary.org/obo/MP_0000001) "mammalian phenotype", typing every
