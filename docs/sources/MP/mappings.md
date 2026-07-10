@@ -42,7 +42,7 @@ process it perturbs, or the paper that described it:
 
 | Prefix | Rows | The targets are | Example |
 |---|---|---|---|
-| `Fyler` | 257 | Codes from a defunct 1980s congenital-heart-defect registry | [`MP:0000111`](http://purl.obolibrary.org/obo/MP_0000111) "cleft palate" → `Fyler:4876` |
+| `Fyler` | 257 | Codes from a congenital-heart-defect registry | [`MP:0000111`](http://purl.obolibrary.org/obo/MP_0000111) "cleft palate" → `Fyler:4876` |
 | `CL` | 112 | The cell type the abnormality occurs in | [`MP:0010132`](http://purl.obolibrary.org/obo/MP_0010132) "decreased DN2 thymocyte number" → [`CL:0000806`](http://purl.obolibrary.org/obo/CL_0000806) "DN2 thymocyte" |
 | `MA` | 85 | The mouse anatomical structure that is abnormal | [`MP:0009873`](http://purl.obolibrary.org/obo/MP_0009873) "abnormal aorta tunica media morphology" → [`MA:0002903`](http://purl.obolibrary.org/obo/MA_0002903) |
 | `GO` | 76 | The biological process the phenotype perturbs | [`MP:0002998`](http://purl.obolibrary.org/obo/MP_0002998) "abnormal bone remodeling" → [`GO:0046849`](http://purl.obolibrary.org/obo/GO_0046849) "bone remodeling" |
