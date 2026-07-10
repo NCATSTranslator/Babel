@@ -62,12 +62,24 @@ in parallel.
 ### Per-target sizing
 
 Memory and time requirements vary widely by target. The README's 500 GB figure refers to the
-largest builds (protein, drugchemical-conflated, and the full pipeline together). Many
-individual targets are tractable on a laptop. Concretely, `anatomy` builds end-to-end on a Mac
-in roughly 25 minutes wall time, with UMLS downloading dominating the runtime; peak memory is
-in the low GBs. `cell_line`, `taxon`, `genefamily`, and `macromolecular_complex` are similarly
-small. `chemical`, `gene`, `protein`, `disease`, and the conflations need a workstation or HPC
-node.
+largest builds (protein, drugchemical-conflated, and the full pipeline together), not to every
+target.
+
+**Only `gene`, `protein` and `chemical` need a workstation or HPC node**, along with the two
+conflations and the full no-target pipeline. The conflations are expensive because of what they
+depend on, not because conflation itself is costly: `geneprotein` takes `Gene.txt` and
+`Protein.txt` as inputs, and `drugchemical` takes `Drug.txt` and the chemical outputs, so asking
+for either transitively builds the heavy targets underneath it.
+
+Every other target is small enough to build locally, and building one locally is the default way
+to work on it: `anatomy`, `disease`, `process`, `taxon`, `genefamily`, `publications`,
+`cell_line` and `macromolecular_complex`. (Note the Snakemake target is `disease`, while the
+intermediate directory and Python module are `diseasephenotype`.)
+
+Concretely, `anatomy` builds end-to-end on a Mac in roughly 25 minutes wall time, with the UMLS
+download dominating the runtime; peak memory is in the low GBs. The other local targets are in
+the same range. A first build is usually dominated by downloads rather than computation, so a
+warm `babel_downloads/` makes a rebuild dramatically faster.
 
 If you only need the intermediates for a single semantic type (for example, to generate a
 source-impact report — see [AddingNewSources.md](./AddingNewSources.md)), building just that

@@ -301,11 +301,19 @@ If a previous Snakemake run was killed, the next invocation may fail with
 `LockException: Directory cannot be locked`. Clear it with `uv run snakemake --unlock` before
 retrying.
 
-Most semantic-type targets are individually much cheaper than the full pipeline — anatomy in
-particular builds end-to-end on a laptop in roughly 25 minutes wall time (UMLS download
-dominates). The 500 GB figure in the README applies to the heaviest builds (protein,
-drugchemical-conflated, and the full pipeline), not to every target. `docs/RunningBabel.md`
-has a per-target sizing breakdown and a "Common build issues" section.
+**Most targets build locally — prefer that over faking up intermediate files.** Only `gene`,
+`protein` and `chemical` need a workstation or HPC node, together with the conflations that
+depend on them (`geneprotein` consumes `Gene.txt` and `Protein.txt`; `drugchemical` consumes
+`Drug.txt` and the chemical outputs) and the full no-target pipeline. Every other target —
+`anatomy`, `disease`, `process`, `taxon`, `genefamily`, `publications`, `cell_line`,
+`macromolecular_complex` — is laptop-sized. Anatomy builds end to end in roughly 25 minutes
+wall time (the UMLS download dominates), and much less with a warm `babel_downloads/`.
+
+The 500 GB figure in the README applies to the heaviest builds, not to every target.
+`docs/RunningBabel.md` has a per-target sizing breakdown and a "Common build issues" section.
+
+Note that the Snakemake target name does not always match the pipeline directory name: the
+`diseasephenotype` pipeline is built by the target `disease`.
 
 ## Adding a new data source
 

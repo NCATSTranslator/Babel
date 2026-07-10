@@ -163,11 +163,15 @@ The Snakemake convenience rule writes the same output to the build-artifact tree
 uv run snakemake -c 1 babel_outputs/reports/source_impact/<SOURCE>.md
 ```
 
-### Running a full local build
+### Running a full local build (do this first)
 
-If the pipeline fits on a single machine, build all its intermediates and compendia locally
-and run the report against the populated `babel_outputs/` tree. Anatomy is comfortably
-tractable; other pipelines may not be.
+Build the pipeline's intermediates and compendia locally, then run the report against the
+populated `babel_outputs/` tree. **This is the normal path.** Most pipelines are small enough to
+build on a laptop — only `gene`, `protein` and `chemical` (and the conflations and full pipeline
+that depend on them) need a workstation or HPC node. `anatomy`, `disease`, `process`, `taxon`,
+`genefamily`, `publications`, `cell_line` and `macromolecular_complex` all build locally; see
+[RunningBabel.md](./RunningBabel.md#per-target-sizing) for sizing. `anatomy` takes roughly 25
+minutes end to end, and much less with a warm `babel_downloads/`.
 
 ```bash
 export UMLS_API_KEY=...   # required for UMLS-backed rules
@@ -176,9 +180,14 @@ uv run snakemake -c all <pipeline>
 uv run source-impact-report --source <SOURCE>
 ```
 
-The Snakemake target name matches the pipeline name (e.g. `anatomy`, `chemical`). Building
-the full target also produces compendia, which populates section 2's "final
-compendium-assigned" counts; without compendia present that section is blank.
+The Snakemake target name usually matches the pipeline name (`anatomy`, `chemical`), but not
+always — the disease/phenotype pipeline lives in `intermediate/diseasephenotype/` and is built by
+the target `disease`. Building the full target also produces compendia, which populates section
+2's "final compendium-assigned" counts; without compendia present that section is blank.
+
+A local build is worth preferring over the synthetic assembly below because it exercises the real
+Snakemake rules — a rule that fails, or an ids file the compendium build silently drops, shows up
+here and cannot show up in a hand-assembled intermediate tree.
 
 Caveats:
 
@@ -187,7 +196,10 @@ Caveats:
 - UberGraph-backed rules carry `retries: 3`, but a full UberGraph outage will propagate.
 - The full target rebuilds upstream sources, so numbers reflect data fetched at build time.
 
-### Generating the report without a full pipeline build
+### Fallback: generating the report without a full pipeline build
+
+Use this only for the pipelines that genuinely do not fit locally (`gene`, `protein`,
+`chemical`), or when you cannot spare the build time.
 
 Synthetic mode re-runs `glom()` over the intermediate files of **every** source for the
 pipeline, not just the new one, so it needs that whole set on disk. The practical approach
