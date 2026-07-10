@@ -74,7 +74,33 @@ class EFOgraph:
                         efo_id = efoid.split("_")[-1]
                         idfile.write(f"{EFO}:{efo_id}\t{rtype}\n")
 
-    def get_exacts(self, iri, outfile):
+    @staticmethod
+    def _upper_prefixes(excluded_target_prefixes):
+        """Upper-case a caller's prefix collection once, for comparison against upper-cased CURIE
+        prefixes in _is_excluded_target(). Callers do this once per query rather than once per
+        result row, and it lets a caller pass a lower-case constant (e.g. prefixes.ORPHANET, which
+        is "orphanet") without it silently never matching."""
+        return {prefix.upper() for prefix in excluded_target_prefixes}
+
+    @staticmethod
+    def _is_excluded_target(otherid, excluded_upper):
+        """True if otherid should be dropped from a concord: either it's Orphanet (excluded
+        unconditionally -- Orphanet xrefs/exactMatches out of EFO have proven unreliable, see the
+        callers below) or its CURIE prefix is in ``excluded_upper``, the caller's already
+        upper-cased excluded_target_prefixes (e.g. MP, passed by
+        diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES to keep MP disjoint from EFO -- see
+        docs/sources/MP/disjointness.md). Orphanet is enforced here rather than via
+        excluded_target_prefixes' default value so a caller that passes its own list (as
+        diseasephenotype.py does) can't accidentally drop the Orphanet exclusion.
+
+        ponytail: prefix compared with a raw split, not Text.get_prefix(), which raises on a
+        colonless string -- otherid can be colonless here (see callers).
+        """
+        if otherid.upper().startswith(ORPHANET.upper()):
+            return True
+        return otherid.split(":", 1)[0].upper() in excluded_upper
+
+    def get_exacts(self, iri, outfile, excluded_target_prefixes=()):
         query = f"""
          prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
          prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
@@ -96,6 +122,7 @@ class EFOgraph:
          }}
          """
         qres = self.m.query(query)
+        excluded_upper = self._upper_prefixes(excluded_target_prefixes)
         nwrite = 0
         for row in list(qres):
             other = str(row["match"])
@@ -105,17 +132,14 @@ class EFOgraph:
                 logger.error(f"Could not translate {other[1:-1]} into a CURIE, will be used as-is: {verr}")
                 otherid = other[1:-1]
 
-            if otherid.upper().startswith(ORPHANET.upper()):
-                logger.warning(f"Skipping Orphanet xref '{other[1:-1]}' in EFOgraph.get_xrefs({iri})")
+            if self._is_excluded_target(otherid, excluded_upper):
+                logger.warning(f"Skipping excluded exactMatch '{otherid}' in EFOgraph.get_exacts({iri})")
                 continue
-                # raise RuntimeError(
-                #     f"Unexpected ORPHANET in EFOgraph.get_xrefs({iri}): '{other_without_brackets}'"
-                # )
             outfile.write(f"{iri}\tskos:exactMatch\t{otherid}\n")
             nwrite += 1
         return nwrite
 
-    def get_xrefs(self, iri, outfile):
+    def get_xrefs(self, iri, outfile, excluded_target_prefixes=()):
         query = f"""
          prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
          prefix EFO: <http://www.ebi.ac.uk/efo/EFO_>
@@ -126,6 +150,7 @@ class EFOgraph:
          }}
          """
         qres = self.m.query(query)
+        excluded_upper = self._upper_prefixes(excluded_target_prefixes)
         for row in list(qres):
             other = str(row["match"])
             other_without_brackets = other[1:-1]
@@ -137,17 +162,14 @@ class EFOgraph:
                     + f"EFOgraph.get_xrefs({iri}), skipping: {verr}"
                 )
                 continue
-            if other_id.upper().startswith(ORPHANET.upper()):
-                logger.warning(f"Skipping Orphanet xref '{other_without_brackets}' in EFOgraph.get_xrefs({iri})")
+            if self._is_excluded_target(other_id, excluded_upper):
+                logger.warning(f"Skipping excluded xref '{other_id}' in EFOgraph.get_xrefs({iri})")
                 continue
-                # raise RuntimeError(
-                #     f"Unexpected ORPHANET in EFOgraph.get_xrefs({iri}): '{other_without_brackets}'"
-                # )
             # EFO occasionally has xrefs that are just strings, not IRIs or CURIEs
             if ":" in other_id and not other_id.startswith(":"):
                 outfile.write(f"{iri}\toboInOwl:hasDbXref\t{other_id}\n")
             else:
-                logging.warning(
+                logger.warning(
                     f"Skipping xref '{other_without_brackets}' in EFOgraph.get_xrefs({iri}): " + "not a valid CURIE"
                 )
 
@@ -162,21 +184,32 @@ def make_ids(roots, owlfile, idfname):
     m.pull_EFO_ids(roots, idfname)
 
 
-def make_concords(owlfile, idfilename, outfilename, provenance_metadata=None):
-    """Given a list of identifiers, find out all of the equivalent identifiers from the owl"""
+def make_concords(owlfile, idfilename, outfilename, provenance_metadata=None, excluded_target_prefixes=()):
+    """Given a list of identifiers, find out all of the equivalent identifiers from the owl.
+
+    :param excluded_target_prefixes: xref/exactMatch targets whose CURIE prefix is in this
+        collection are dropped. The disease/phenotype build passes ``[MP]`` here so EFO's
+        (untrusted) direct xrefs to Mammalian Phenotype terms never enter the concord — see
+        diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES and docs/sources/MP/disjointness.md.
+    """
     m = EFOgraph(owlfile)
     with open(idfilename) as inf, open(outfilename, "w") as concfile:
         for line in inf:
             efo_id = line.split("\t")[0]
-            nexacts = m.get_exacts(efo_id, concfile)
+            nexacts = m.get_exacts(efo_id, concfile, excluded_target_prefixes=excluded_target_prefixes)
             if nexacts == 0:
-                m.get_xrefs(efo_id, concfile)
+                m.get_xrefs(efo_id, concfile, excluded_target_prefixes=excluded_target_prefixes)
 
     if provenance_metadata is not None:
+        excluded_note = (
+            f" Xref targets with these prefixes were excluded: {sorted(excluded_target_prefixes)}."
+            if excluded_target_prefixes
+            else ""
+        )
         write_concord_metadata(
             provenance_metadata,
             name="Experimental Factor Ontology (EFO) cross-references",
-            description=f"Cross-references from the Experimental Factor Ontology (EFO) for the EFO IDs in {idfilename}",
+            description=f"Cross-references from the Experimental Factor Ontology (EFO) for the EFO IDs in {idfilename}.{excluded_note}",
             sources=[
                 {
                     "name": "Experimental Factor Ontology",

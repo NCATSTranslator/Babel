@@ -3,3 +3,12 @@ MONDO:0008143 UMLS:C0029408
 MONDO:0008143 SNOMEDCT:396275006
 #https://github.com/monarch-initiative/mondo/issues/1654
 MONDO:0045057 UMLS:C0029221
+#https://github.com/NCATSTranslator/Babel/issues/900 (not yet reported upstream to MONDO)
+# MONDO:0003425 "ophthalmoplegia" asserts skos:exactMatch to SNOMEDCT:78097002, which is
+# "Total ophthalmoplegia" -- a subtype, not an exact match. That xref bridges MONDO:0003425 to
+# HP:0007824 "Total ophthalmoplegia", competing with the correct bridge (via UMLS:C0029089) to
+# HP:0000602 "Ophthalmoplegia". DISEASE_UNIQUE_PREFIXES forbids two HPs in one clique, so glom
+# keeps whichever bridge it sees first and silently drops the other -- making the clique depend
+# on concord line order rather than on which xref is right. Dropping the bad xref makes
+# HP:0000602 win deterministically. TODO: report upstream to MONDO.
+MONDO:0003425 SNOMEDCT:78097002
