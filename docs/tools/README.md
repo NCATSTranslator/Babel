@@ -132,6 +132,10 @@ counts: a nested `clique_count` (`before`/`after`/`diff`/`diff_percent`) plus
 `changed_before_cliques`, `dropped_member_count` (the headline regression signal),
 `moved_member_count`, `regrouped_member_count`, and `leader_changed_count`.
 
+`diff_percent` is `null` when the before build had no cliques in that compendium but the after
+build has some: the percentage is undefined, and `0.0` would misread as "unchanged". It is `0.0`
+only when the two counts genuinely match.
+
 Note that we are deliberately not interested in additions that don't modify an existing clique:
 this tool is primarily meant to track how a software change changes the outputs, not whether new
 additions were included. Additions *will* be counted in the summary JSON, but *will not* be included

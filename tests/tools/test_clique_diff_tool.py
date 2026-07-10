@@ -46,7 +46,7 @@ def test_load_cliques_extracts_leader_and_members(tmp_path):
     """load_cliques should key cliques by their first identifier and map every member to it.
 
     It should also capture each member's label and each clique's Biolink type for CSV
-    annotation, while still unpacking as the historical ``(cliques, curie_to_leader)`` tuple.
+    annotation.
     """
     path = _write_jsonl(tmp_path / "Disease.txt", [_clique("MONDO:1", "MEDDRA:9", "UMLS:7")])
     loaded = load_cliques(path)
@@ -54,10 +54,6 @@ def test_load_cliques_extracts_leader_and_members(tmp_path):
     assert loaded.curie_to_leader["MEDDRA:9"] == "MONDO:1"
     assert loaded.labels["MEDDRA:9"] == "label of MEDDRA:9"
     assert loaded.clique_type["MONDO:1"] == "biolink:Disease"
-    # Backward-compatible 2-tuple unpacking still works.
-    cliques, leader_of = load_cliques(path)
-    assert cliques == loaded.cliques
-    assert leader_of == loaded.curie_to_leader
 
 
 @pytest.mark.unit
@@ -212,6 +208,31 @@ def test_new_after_clique_shows_only_in_count_delta(tmp_path):
         "diff": 1,
         "diff_percent": 100.0,
     }
+
+
+@pytest.mark.unit
+def test_diff_percent_is_null_when_before_compendium_was_empty(tmp_path):
+    """A compendium that is empty before and populated after has an undefined percent change;
+    ``diff_percent`` should be None (JSON ``null``), not 0.0 — which would read as "unchanged"."""
+    bdir, adir = tmp_path / "before", tmp_path / "after"
+    bdir.mkdir()
+    adir.mkdir()
+    _write_jsonl(bdir / "Disease.txt", [])
+    _write_jsonl(adir / "Disease.txt", [_clique("MONDO:1")])
+    _, summary = diff_builds(str(bdir), str(adir), ["Disease.txt"])
+    assert summary["Disease.txt"]["clique_count"] == {"before": 0, "after": 1, "diff": 1, "diff_percent": None}
+
+
+@pytest.mark.unit
+def test_diff_percent_is_zero_when_both_compendia_are_empty(tmp_path):
+    """Two empty compendia are genuinely unchanged, so diff_percent should be 0.0, not None."""
+    bdir, adir = tmp_path / "before", tmp_path / "after"
+    bdir.mkdir()
+    adir.mkdir()
+    _write_jsonl(bdir / "Disease.txt", [])
+    _write_jsonl(adir / "Disease.txt", [])
+    _, summary = diff_builds(str(bdir), str(adir), ["Disease.txt"])
+    assert summary["Disease.txt"]["clique_count"] == {"before": 0, "after": 0, "diff": 0, "diff_percent": 0.0}
 
 
 # --- CLI ---

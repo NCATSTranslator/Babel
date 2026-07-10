@@ -49,7 +49,9 @@ Output:
   ``compendia`` maps each filename to its counts: a nested ``clique_count``
   (``before``/``after``/``diff``/``diff_percent``) plus ``changed_before_cliques``,
   ``dropped_member_count`` (the headline regression signal), ``moved_member_count``,
-  ``regrouped_member_count``, and ``leader_changed_count``. NOTE: a clique that exists only in
+  ``regrouped_member_count``, and ``leader_changed_count``. ``diff_percent`` is ``null`` when
+  the before build had no cliques at all but the after build has some — the percentage is
+  undefined there, and reporting ``0.0`` would read as "nothing changed". NOTE: a clique that exists only in
   the after build (no before counterpart — e.g. a wholly new MP-only clique) is not a change
   row, since the diff iterates before-cliques; such additions surface only as a positive
   ``clique_count.diff``, which is why a build adding thousands of cliques can show few rows.
@@ -80,10 +82,6 @@ class LoadedCompendium:
     labels: dict = field(default_factory=dict)
     clique_type: dict = field(default_factory=dict)
 
-    def __iter__(self):
-        # Preserve the historical 2-tuple unpacking ``cliques, curie_to_leader = load_cliques(...)``.
-        return iter((self.cliques, self.curie_to_leader))
-
 
 def load_cliques(path, need_curie_to_leader=True):
     """Load one compendium JSONL file into a :class:`LoadedCompendium`.
@@ -94,8 +92,7 @@ def load_cliques(path, need_curie_to_leader=True):
     ``need_curie_to_leader=False`` to skip populating ``curie_to_leader`` when only clique
     membership is needed (e.g. the "before" side of a build-vs-build diff, which never looks
     up an after-leader) — for a large compendium that dict has one entry per member CURIE, so
-    skipping it roughly halves transient allocation. The returned object still unpacks as the
-    historical ``(cliques, curie_to_leader)`` 2-tuple.
+    skipping it roughly halves transient allocation.
     """
     loaded = LoadedCompendium()
     with open(path) as inf:
