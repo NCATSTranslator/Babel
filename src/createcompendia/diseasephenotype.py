@@ -435,9 +435,9 @@ def load_concord_pairs(infile, bad_pairs=frozenset()):
     A concord line is ``subject<TAB>predicate<TAB>object`` (the same 3-column format
     :func:`load_close_mondos` consumes). We keep columns 1 and 3 (subject, object) and skip
     column 2 (the predicate) -- the equivalence itself is what glom needs, not the relation type.
-    Keying on subject + object is the one convention every disease concord reader must share; the
-    close-match reader once disagreed (see :func:`load_close_mondos`), which is what silently
-    disabled glom's ``close=`` guard for years.
+    This subject + object convention is shared with :func:`load_close_mondos` (whose docstring has
+    the history of the bug that a disagreeing reader once caused) and pinned by the concord-reader
+    symmetry tests.
 
     Pairs present in *bad_pairs* are dropped. Any row that is not exactly 3 columns raises
     ``RuntimeError``.
