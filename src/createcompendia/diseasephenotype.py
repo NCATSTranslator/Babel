@@ -398,6 +398,63 @@ def build_disease_doid_relationships(idfile, outfile, metadata_yaml):
     )
 
 
+def load_close_mondos(mondoclose):
+    """Read a MONDO_close concord file into a dict mapping each MONDO subject to its set of
+    close-match *object* CURIEs.
+
+    MONDO_close is a 3-column concord (subject, predicate, object) written by
+    ``ubergraph.build_sets()``, exactly like the regular concords consumed by
+    :func:`compute_cliques_for_impact_report`. We key each MONDO subject to its close-match
+    objects (column 3) so :func:`glom`'s ``close=`` guard can block a close (but not exact) match
+    from collapsing into the exact clique.
+
+    Historically this keyed on column 2 (the predicate, e.g. ``"oio:closeMatch"``) rather than
+    column 3, so no clique ever contained the recorded value and the guard was a silent no-op on
+    every build. The bug dates back to commit 93a6c898 (2021-05-25), the very commit that
+    introduced the close-match guard: the reader keyed on ``x[1]`` while the regular-concord loop
+    in the same function already keyed on ``stuff[0]``/``stuff[2]`` (subject + object), so the
+    guard never once fired in roughly four years of disease builds. See
+    https://github.com/NCATSTranslator/Babel/issues/912 for the full write-up. Blank lines are
+    skipped; any row that is not exactly 3 columns raises ``RuntimeError``.
+    """
+    close_mondos = defaultdict(set)
+    with open(mondoclose) as inf:
+        for line in inf:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            x = tuple(stripped.split("\t"))
+            if len(x) != 3:
+                raise RuntimeError(f'Line "{stripped}" is not a valid MONDO_close entry: {x}')
+            close_mondos[x[0]].add(x[2])
+    return close_mondos
+
+
+def load_concord_pairs(infile, bad_pairs=frozenset()):
+    """Read a 3-column concord file into a list of (subject, object) CURIE pairs.
+
+    A concord line is ``subject<TAB>predicate<TAB>object`` (the same 3-column format
+    :func:`load_close_mondos` consumes). We keep columns 1 and 3 (subject, object) and skip
+    column 2 (the predicate) -- the equivalence itself is what glom needs, not the relation type.
+    This subject + object convention is shared with :func:`load_close_mondos` (whose docstring has
+    the history of the bug that a disagreeing reader once caused) and pinned by the concord-reader
+    symmetry tests.
+
+    Pairs present in *bad_pairs* are dropped. Any row that is not exactly 3 columns raises
+    ``RuntimeError``.
+    """
+    pairs = []
+    with open(infile) as inf:
+        for line in inf:
+            stuff = line.strip().split("\t")
+            if len(stuff) != 3:
+                raise RuntimeError(f'Line "{line.strip()}" is not a valid concord: {stuff}')
+            x = (stuff[0].strip(), stuff[2].strip())
+            if x not in bad_pairs:
+                pairs.append(x)
+    return pairs
+
+
 def compute_cliques_for_impact_report(
     concordances,
     identifiers,
@@ -464,34 +521,14 @@ def compute_cliques_for_impact_report(
         glom(dicts, new_identifiers, unique_prefixes=DISEASE_UNIQUE_PREFIXES)
         types.update(new_types)
 
-    close_mondos = defaultdict(set)
-    if mondoclose is not None:
-        with open(mondoclose) as inf:
-            for line in inf:
-                stripped = line.strip()
-                if not stripped:
-                    continue
-                # MONDO_close is a 3-column concord (subject, predicate, object), written by
-                # ubergraph.build_sets() exactly like the regular concords below.
-                #
-                # NOTE: this intentionally preserves the long-standing behaviour from `main` of
-                # keying on x[1] (the predicate, e.g. "oio:closeMatch") rather than x[2] (the
-                # close-match object). Because no clique ever contains the literal predicate
-                # string, glom()'s `close=` guard never matches and has effectively been a no-op.
-                # Fixing it to x[2] activates the guard and changes disease clique merging
-                # broadly (it drops ~1,219 MEDDRA identifiers from Disease.txt), so it is deferred
-                # to a dedicated follow-up PR (#888, `fix-mondo-close-guard`) with its own
-                # before/after impact analysis rather than riding along with the MP addition.
-                x = tuple(stripped.split("\t"))
-                if len(x) != 3:
-                    raise RuntimeError(f'Line "{stripped}" is not a valid MONDO_close entry: {x}')
-                close_mondos[x[0]].add(x[1])
+    # An absent MONDO_close (impact-report CLI run before all intermediates exist, or MONDO
+    # excluded) leaves the close-match guard with nothing to block.
+    close_mondos = load_close_mondos(mondoclose) if mondoclose is not None else defaultdict(set)
 
     for infile in iterated_concords:
         if path.basename(infile) in excluded:
             continue
         logger.info("Reading concords from %s", infile)
-        pairs = []
         pref = path.basename(infile)
         if pref in badxrefs:
             logger.info("Reading bad xrefs for %s", pref)
@@ -499,14 +536,7 @@ def compute_cliques_for_impact_report(
         else:
             logger.info("No bad xrefs configured for %s", pref)
             bad_pairs = set()
-        with open(infile) as inf:
-            for line in inf:
-                stuff = line.strip().split("\t")
-                if len(stuff) != 3:
-                    raise RuntimeError('Line "', line.strip(), '" is not a valid concord: ', stuff)
-                x = tuple([stuff[0].strip(), stuff[2].strip()])
-                if x not in bad_pairs:
-                    pairs.append(x)
+        pairs = load_concord_pairs(infile, bad_pairs)
         if pref in OVERUSE_FILTERED_CONCORDS:
             newpairs = remove_overused_xrefs(pairs)
         else:

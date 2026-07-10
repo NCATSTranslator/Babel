@@ -150,10 +150,10 @@ filter and continue to be handled by the `[HP, MP]` split above.)
 - [#885](https://github.com/NCATSTranslator/Babel/pull/885) — the `babel-clique-diff` tool used
   to measure the impact above (split out of the original combined #883).
 - [#888](https://github.com/NCATSTranslator/Babel/pull/888) (`fix-mondo-close-guard`) — the
-  deferred MONDO close-match-guard fix (keying glom's `close=` map on the object rather than the
-  predicate), also split out of #883. The numbers on this page were measured against the current
-  predicate-keyed, effectively no-op close behavior that this branch preserves, so #888 activating
-  the guard and changing disease merging will not contradict them.
+  MONDO close-match-guard fix (keying glom's `close=` map on the object rather than the
+  predicate), also split out of #883. The numbers on this page were measured against the earlier
+  predicate-keyed, effectively no-op close behavior, before #888 activated the guard, so its
+  changes to disease merging do not contradict them.
 - [#900](https://github.com/NCATSTranslator/Babel/issues/900) — the bad MONDO `exactMatch`
   (`MONDO:0003425` → `SNOMEDCT:78097002`) worked around in `input_data/mondo_badxrefs.txt`, to be
   reported upstream to MONDO.

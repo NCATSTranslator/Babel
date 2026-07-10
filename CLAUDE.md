@@ -256,9 +256,11 @@ non-obvious about how Babel ingests that source. Keep the detail in the source f
 should point here, not duplicate it. Documented so far: ComplexPortal
 (`docs/sources/COMPLEXPORTAL/Ingestion.md`), Ensembl/BioMart
 (`docs/sources/ENSEMBL/Download.md`), MeSH (`docs/sources/MESH/Ingestion.md`), UMLS
-(`docs/sources/UMLS/Leftover.md`), and the phenotype ontologies HP (`docs/sources/HP/README.md`)
-and MP (`docs/sources/MP/README.md`, with `MP/disjointness.md` covering how MP is kept disjoint
-from HP). Cross-cutting download/discovery patterns (HTTP autoindex listing vs FTP `NLST`) live
+(`docs/sources/UMLS/Leftover.md`), MONDO (`docs/sources/MONDO/mondo-close-match-guard/README.md`,
+the before/after clique diff for activating `glom()`'s close-match guard), and the phenotype
+ontologies HP (`docs/sources/HP/README.md`) and MP (`docs/sources/MP/README.md`, with
+`MP/disjointness.md` covering how MP is kept disjoint from HP). Cross-cutting download/discovery
+patterns (HTTP autoindex listing vs FTP `NLST`) live
 in `docs/sources/DownloadPatterns.md`.
 
 ### Per-compendium metadata YAMLs

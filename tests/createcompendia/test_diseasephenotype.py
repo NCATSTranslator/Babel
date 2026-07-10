@@ -8,6 +8,10 @@ Sections:
   ``umls.write_umls_ids``. The map is built inline, so we capture it by mocking
   the downstream ``umls.write_umls_ids`` call rather than running a real MRSTY
   parse -- keeping these tests fast and offline.
+- ``# --- MONDO CLOSE-MATCH GUARD ---`` checks that ``load_close_mondos`` keys each MONDO
+  subject to its close-match *objects* (column 3), so glom's ``close=`` guard actually fires.
+- ``# --- CONCORD-READER COLUMN SYMMETRY ---`` pins the subject+object convention shared by
+  every disease concord reader.
 - ``# --- MONDO_close parsing in compute_cliques_for_impact_report ---`` guards
   the 3-column ``MONDO_close`` concord reader against a column-count regression, and
   checks that excluding MONDO also skips its own MONDO_close close-match data.
@@ -22,6 +26,7 @@ Sections:
   (``OVERUSE_FILTERED_CONCORDS``) that MONDO/HP already have.
 """
 
+from collections import defaultdict
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -29,6 +34,7 @@ import pytest
 from src.babel_utils import glom
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
+from src.prefixes import HP, MEDDRA, MONDO
 from src.ubergraph import build_sets
 from tests.conftest import assert_taxa_file_valid, glom_dict_from_cliques
 
@@ -90,6 +96,164 @@ def test_disease_trees_remain_claimed(tmp_path):
         "B2.2.1.2.1.2",
     ]:
         assert umlsmap.get(tree) == DISEASE, f"{tree} should map to {DISEASE}"
+
+
+# ----------------------------------------------------------------------------------------------
+# MONDO CLOSE-MATCH GUARD
+#
+# MONDO_close is a 3-column concord (subject, predicate, object). load_close_mondos must key each
+# MONDO subject to its close-match *objects* (column 3) so glom()'s close= guard can block a close
+# (but not exact) match from collapsing into the exact MONDO clique. Keying on the predicate
+# (column 2) leaves the guard a silent no-op -- the bug these tests exist to prevent recurring.
+# ----------------------------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_load_close_mondos_keys_on_object(tmp_path):
+    """A 3-column MONDO_close row should map the MONDO subject to the close-match object CURIE,
+    never to the predicate string in column 2 -- keying on the predicate is what silently disabled
+    the guard."""
+    mondoclose = tmp_path / "MONDO_close"
+    mondoclose.write_text(
+        f"{MONDO}:0000739\toio:closeMatch\t{MEDDRA}:10051962\n"
+        f"{MONDO}:0000739\toio:closeMatch\t{MEDDRA}:99999999\n"
+        f"{MONDO}:0005148\toio:closeMatch\t{MEDDRA}:10012601\n"
+    )
+    close_mondos = diseasephenotype.load_close_mondos(str(mondoclose))
+    assert close_mondos[f"{MONDO}:0000739"] == {f"{MEDDRA}:10051962", f"{MEDDRA}:99999999"}
+    assert close_mondos[f"{MONDO}:0005148"] == {f"{MEDDRA}:10012601"}
+    # The predicate must never leak into the recorded close-match values.
+    for objects in close_mondos.values():
+        assert "oio:closeMatch" not in objects
+
+
+@pytest.mark.unit
+def test_load_close_mondos_skips_blank_and_rejects_malformed(tmp_path):
+    """Blank lines should be skipped; a row that is not exactly 3 columns should raise
+    RuntimeError so a malformed MONDO_close file fails loudly instead of corrupting the guard."""
+    ok = tmp_path / "ok"
+    ok.write_text(f"\n{MONDO}:0000739\toio:closeMatch\t{MEDDRA}:10051962\n\n")
+    assert diseasephenotype.load_close_mondos(str(ok)) == {f"{MONDO}:0000739": {f"{MEDDRA}:10051962"}}
+
+    bad = tmp_path / "bad"
+    bad.write_text(f"{MONDO}:0000739\t{MEDDRA}:10051962\n")  # only 2 columns
+    with pytest.raises(RuntimeError, match="not a valid MONDO_close entry"):
+        diseasephenotype.load_close_mondos(str(bad))
+
+
+@pytest.mark.unit
+def test_close_guard_blocks_close_match_merge(tmp_path):
+    """End-to-end: with close_mondos loaded from a real 3-column file, glom must refuse to merge a
+    MONDO term with a MEDDRA term recorded only as its *close* (not exact) match."""
+    mondoclose = tmp_path / "MONDO_close"
+    mondoclose.write_text(f"{MONDO}:0000739\toio:closeMatch\t{MEDDRA}:10051962\n")
+    close_mondos = diseasephenotype.load_close_mondos(str(mondoclose))
+
+    conc_set = {}
+    glom(conc_set, [[f"{MONDO}:0000739"], [f"{MEDDRA}:10051962"]], unique_prefixes=[MONDO, HP])
+    # A concord pair that would otherwise merge them:
+    glom(
+        conc_set,
+        [[f"{MONDO}:0000739", f"{MEDDRA}:10051962"]],
+        unique_prefixes=[MONDO, HP],
+        close={MONDO: close_mondos},
+    )
+    assert f"{MEDDRA}:10051962" not in conc_set[f"{MONDO}:0000739"], (
+        "a close-match MEDDRA term must not collapse into the exact MONDO clique"
+    )
+
+
+@pytest.mark.unit
+def test_predicate_keyed_close_dict_is_a_noop(tmp_path):
+    """Documents the original bug: a close dict keyed on the predicate (column 2) records a value
+    no clique ever contains, so glom's guard never fires and the close match merges in anyway."""
+    predicate_keyed = defaultdict(set)
+    predicate_keyed[f"{MONDO}:0000739"].add("oio:closeMatch")  # the pre-fix behaviour
+
+    conc_set = {}
+    glom(conc_set, [[f"{MONDO}:0000739"], [f"{MEDDRA}:10051962"]], unique_prefixes=[MONDO, HP])
+    glom(
+        conc_set,
+        [[f"{MONDO}:0000739", f"{MEDDRA}:10051962"]],
+        unique_prefixes=[MONDO, HP],
+        close={MONDO: predicate_keyed},
+    )
+    assert f"{MEDDRA}:10051962" in conc_set[f"{MONDO}:0000739"], (
+        "predicate-keyed close dict leaves the guard a no-op, so the merge goes through"
+    )
+
+
+# ----------------------------------------------------------------------------------------------
+# CONCORD-READER COLUMN SYMMETRY
+#
+# Every disease concord file is `subject<TAB>predicate<TAB>object`. Both readers in
+# diseasephenotype must key on subject (column 1) + object (column 3) and ignore the predicate
+# (column 2). The original guard bug was exactly an asymmetry here -- load_close_mondos keyed on
+# the predicate while the regular-concord loop keyed on the object -- so these tests pin the shared
+# convention across ALL disease concord readers and would fail loudly if a new reader (or a
+# regression of an old one) started reading the predicate column.
+# ----------------------------------------------------------------------------------------------
+
+# The predicate column value; it must never surface in any reader's output.
+PREDICATE = "oio:closeMatch"
+
+
+def _surfaced_curies_from_concord_pairs(path):
+    """All CURIEs load_concord_pairs surfaces from *path*, flattened into a set."""
+    return {curie for pair in diseasephenotype.load_concord_pairs(str(path)) for curie in pair}
+
+
+def _surfaced_curies_from_close_mondos(path):
+    """All CURIEs load_close_mondos surfaces from *path* (subjects + objects), flattened into a set."""
+    close = diseasephenotype.load_close_mondos(str(path))
+    return set(close.keys()) | {obj for objects in close.values() for obj in objects}
+
+
+# Each entry: (reader-under-test name, function that returns the set of CURIEs it surfaced).
+CONCORD_READERS = [
+    ("load_concord_pairs", _surfaced_curies_from_concord_pairs),
+    ("load_close_mondos", _surfaced_curies_from_close_mondos),
+]
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("reader_name, surfaced_curies", CONCORD_READERS, ids=[r[0] for r in CONCORD_READERS])
+def test_concord_readers_key_on_subject_and_object_not_predicate(tmp_path, reader_name, surfaced_curies):
+    """Every disease concord reader must surface the subject (column 1) and object (column 3) and
+    must never surface the predicate (column 2). This is the shared column convention whose
+    violation silently disabled the close-match guard for years."""
+    concord = tmp_path / "concord"
+    concord.write_text(f"{MONDO}:0000739\t{PREDICATE}\t{MEDDRA}:10051962\n")
+
+    surfaced = surfaced_curies(concord)
+    assert f"{MONDO}:0000739" in surfaced, f"{reader_name} must surface the subject (column 1)"
+    assert f"{MEDDRA}:10051962" in surfaced, f"{reader_name} must surface the object (column 3)"
+    assert PREDICATE not in surfaced, f"{reader_name} must not surface the predicate (column 2)"
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("reader_name, surfaced_curies", CONCORD_READERS, ids=[r[0] for r in CONCORD_READERS])
+def test_concord_readers_reject_malformed_rows(tmp_path, reader_name, surfaced_curies):
+    """Every disease concord reader must raise RuntimeError on a row that is not exactly 3 columns,
+    so a format change (e.g. an added/removed column) fails loudly instead of silently shifting
+    which column is read as the object."""
+    concord = tmp_path / "concord"
+    concord.write_text(f"{MONDO}:0000739\t{MEDDRA}:10051962\n")  # only 2 columns
+    with pytest.raises(RuntimeError, match="not a valid"):
+        surfaced_curies(concord)
+
+
+@pytest.mark.unit
+def test_load_concord_pairs_drops_bad_pairs(tmp_path):
+    """load_concord_pairs should drop any (subject, object) pair listed in bad_pairs and keep the
+    rest, so curated bad xrefs never reach glom."""
+    concord = tmp_path / "concord"
+    concord.write_text(
+        f"{MONDO}:0000739\t{PREDICATE}\t{MEDDRA}:10051962\n{MONDO}:0005148\t{PREDICATE}\t{MEDDRA}:10012601\n"
+    )
+    bad_pairs = {(f"{MONDO}:0000739", f"{MEDDRA}:10051962")}
+    pairs = diseasephenotype.load_concord_pairs(str(concord), bad_pairs)
+    assert pairs == [(f"{MONDO}:0005148", f"{MEDDRA}:10012601")]
 
 
 # --- MONDO_close parsing in compute_cliques_for_impact_report ---
