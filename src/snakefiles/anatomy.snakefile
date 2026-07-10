@@ -28,7 +28,7 @@ rule anatomy_emapa_ids:
         outfile=config["intermediate_directory"] + "/anatomy/ids/EMAPA",
     benchmark:
         config["output_directory"] + "/benchmarks/anatomy_emapa_ids.tsv"
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
     run:
         anatomy.write_emapa_ids(output.outfile)
 
