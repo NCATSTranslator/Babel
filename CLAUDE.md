@@ -40,10 +40,8 @@ uv run pytest --all                    # Run every test
 uv run pytest -n auto                  # Parallel (all CPUs)
 ```
 
-Tests use four marks: `unit` (fast, offline), `network` (requires internet, opt-in with
-`--network`), `slow` (>30s but offline), and `pipeline` (invokes Snakemake, opt-in with
-`--pipeline`). Use `--all` to opt in to everything at once. Network and pipeline tests are
-skipped by default.
+Tests use four marks (`unit`/`network`/`slow`/`pipeline`); network and pipeline tests are skipped
+by default. See `tests/README.md` for the full taxonomy and where to add a new test.
 
 Memory-hungry tests also carry a parametrized `min_memory_gb(n)` guard (registered in
 `pyproject.toml`, enforced in `tests/conftest.py`) that auto-skips them on machines with less than
@@ -55,7 +53,6 @@ in-memory triple store expands roughly 8–10×. To size a new rule's `mem=` res
 full-load peak, so it works even on a machine far smaller than the eventual requirement (most
 accurate on Linux — macOS memory compression understates the result).
 
-- `tests/README.md` — full mark taxonomy, where to add a new test, what each test file covers.
 - `docs/Testing.md` — testing strategy: cadence per environment (per-PR, nightly, weekly,
   pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other strategies.
 
@@ -130,16 +127,10 @@ semantic type plus data collection, reports, exports, and DuckDB.
 
 ### Developer tools (`src/tools/`)
 
-Every tool lives in `src/tools/<tool>/` with a `cli.py` exposing `main()`, wired up in
-`[project.scripts]`. **A tool is a thin CLI frontend**: logic that models Babel data — cliques,
-compendia, concords, ids — belongs in `src/` beside the code it models, so a second tool or a
-pipeline rule can reuse it. A tool that reimplements pipeline functionality is a bug.
-`babel-clique-diff` is the pattern: the diff is `src/model/compendium_diff.py`, the CLI is sixty
-lines over it. `slurm` and `memory` are documented exceptions — they model SLURM and RDF
-artifacts, not Babel data. Bash invoked by path lives in `scripts/`, not here.
-
-`docs/tools/README.md` is the index and the full convention; each tool has a page beside it. Read
-it before adding a tool.
+Tooling that helps build, debug, and analyse Babel but is not part of the compendium pipeline.
+Each tool lives in `src/tools/<tool>/`, has its own `CLAUDE.md`, and is documented in
+`docs/tools/`. See `src/tools/CLAUDE.md` for the "thin CLI frontend" convention and how to add a
+new tool.
 
 ### Key Patterns
 
@@ -151,31 +142,18 @@ it before adding a tool.
 - **Concord files** are the core data structure: tab-separated `CURIE1 \t Relation \t CURIE2`
   triples expressing cross-references between vocabularies. The `glom()` function in
   `babel_utils.py` merges them into equivalence cliques.
-- **An OBO `hasDbXref` is not an equivalence.** Concords are fed to `glom()` as equivalence
-  assertions, but many ontologies use `oboInOwl:hasDbXref` to mean "this term is *about* that
-  thing". MP is the worst offender: it xrefs the anatomy an abnormality occurs in (`MP:0009873`
-  "abnormal aorta tunica media morphology" → `MA:0002903`), the process a phenotype perturbs
-  (`MP:0002998` "abnormal bone remodeling" → `GO:0046849` "bone remodeling"), plus citations and
-  bare Wikipedia URLs. **Always audit the target-prefix breakdown of a new source's xrefs before
-  trusting them** (section 3 of the source-impact report, or `cut -f3 <concord> | sed 's/:.*//' |
-  sort | uniq -c`). Two filters exist on `ubergraph.build_sets()`:
-  - `ignore_list=[...]` blocks named target prefixes and **fails open** — a namespace the source
-    newly starts emitting is silently trusted (`anatomy.build_anatomy_obo_relationships`).
-  - `allowed_prefixes=[...]` is the complement and **fails closed** — only listed prefixes are
-    written, so a new namespace is dropped until someone reviews it. Prefer this for a source whose
-    xrefs are mostly junk (`diseasephenotype.MP_XREF_ALLOWED_PREFIXES`).
-
-  Both are matched against `Text.get_prefix_or_none()`, which **upper-cases**, so entries must be
-  upper-case: `"MPATH"`, `"HTTP"` — a lower-case entry silently never matches. For individually
-  wrong pairs that survive prefix filtering, add them to a per-source bad-xref file (see below).
-  Worked example: `docs/sources/MP/mappings.md`.
-- **Bad-xref files** (`input_data/*_badxrefs.txt`) drop individual `subject object` pairs (**space**
-  separated, `#` comments) from a concord before glom. They are keyed by **concord basename**, and
-  that key must be added in *two* places or the file is silently never read:
-  `diseasephenotype.DEFAULT_BAD_XREFS` (used by the impact-report CLI) *and* the explicit dict the
-  `disease_compendia` Snakemake rule passes to `build_compendium`. A unit test asserting the key
-  exists and the pair parses is the cheap guard — `read_badxrefs` silently returns an empty set for
-  an unregistered prefix.
+- **The shared clique-building skeleton** lives in `src/model/cliques.py`. `glom_from_files()` runs
+  the common `load ids → glom`, `load concords → filter → drop overused xrefs → glom` loop,
+  parameterized by three hooks: `concord_pair_filter` (per-pair keep/drop, with access to the
+  clique state built so far), `overused_xref_remover` (per-file `remove_overused_xrefs` variant),
+  and `glom_kwargs` (e.g. disease's `close={MONDO: ...}`). A type's
+  `compute_cliques_for_impact_report` should be a thin wrapper supplying that type's hooks, and its
+  `build_compendia` should call the same wrapper so the impact report's reglom provably matches the
+  real build (anatomy does this). If a compendium can't route its real build through the wrapper,
+  add a test that keeps the two clique computations in sync instead.
+- Xref/concord data-quality conventions (auditing `hasDbXref`, bad-xref files, keeping two prefixes
+  disjoint) live in [`docs/sources/CLAUDE.md`](docs/sources/CLAUDE.md) — read it before adding or
+  filtering a source's cross-references.
 - **`SynonymFilter`** (`src/synonyms/filter.py`) checks every label and synonym against
   `input_data/obsolete_synonyms.yaml` before it enters a compendium. Each YAML entry
   carries its own `action` field: `"remove"` (default) drops the term and returns `True`
@@ -235,16 +213,9 @@ GeneProtein and DrugChemical conflation each have dedicated conflation modules (
 
 `src/createcompendia/leftover_umls.py` (rule `leftover_umls`) runs last and sweeps up every valid
 UMLS concept in MRCONSO that no other compendium already claimed, writing each as a
-single-identifier clique into `compendia/umls.txt` so its label is still available downstream. The
-Biolink type for each leftover concept comes from its UMLS semantic type(s) via
-`tui_to_biolink_type()` (the bmt `STY:<code>` mapping), corrected by two manual tables at the top of
-the module: `STY_OVERRIDES` (per-semantic-type override; `None` means reject) and
-`TYPE_COMBO_OVERRIDES` (disambiguates a concept that resolves to multiple Biolink types). These
-tables exist because the long-term fix belongs in the Biolink Model but its real-world effect on
-Babel is hard to predict; each entry cites a GitHub issue.
-`tests/createcompendia/test_leftover_umls.py` records the current Biolink mapping for each override
-and flags when one drifts or becomes redundant. The rule also emits coverage CSVs under
-`babel_outputs/reports/umls/`. See `docs/sources/UMLS/Leftover.md`.
+single-identifier clique into `compendia/umls.txt` so its label is still available downstream. See
+[`docs/sources/CLAUDE.md`](docs/sources/CLAUDE.md) and `docs/sources/UMLS/Leftover.md` for the
+manual Biolink-type override tables and their drift test.
 
 ### DuckDB export
 
@@ -266,17 +237,11 @@ OOM-killed `generate_curie_report` even on a largemem node.
 
 ### Per-source documentation (`docs/sources/`)
 
-Deeper, source-specific notes live under `docs/sources/<PREFIX>/` (one directory per data source,
-named by its CURIE prefix); see `docs/sources/README.md` for the convention and an index. Check
-there first when working on a specific vocabulary, and add to it when you learn something
-non-obvious about how Babel ingests that source. Keep the detail in the source file — `CLAUDE.md`
-should point here, not duplicate it. Documented so far: ComplexPortal
-(`docs/sources/COMPLEXPORTAL/Ingestion.md`), Ensembl/BioMart
-(`docs/sources/ENSEMBL/Download.md`), MeSH (`docs/sources/MESH/Ingestion.md`), UMLS
-(`docs/sources/UMLS/Leftover.md`), and the phenotype ontologies HP (`docs/sources/HP/README.md`)
-and MP (`docs/sources/MP/README.md`, with `MP/disjointness.md` covering how MP is kept disjoint
-from HP). Cross-cutting download/discovery patterns (HTTP autoindex listing vs FTP `NLST`) live
-in `docs/sources/DownloadPatterns.md`.
+Deeper, source-specific notes live under `docs/sources/<PREFIX>/`; see
+[`docs/sources/README.md`](docs/sources/README.md) for the index and
+[`docs/sources/CLAUDE.md`](docs/sources/CLAUDE.md) for cross-cutting xref/source-data
+conventions. Check there first when working on a specific vocabulary, and add to it when you learn
+something non-obvious about how Babel ingests that source — keep the detail there, not here.
 
 ### Per-compendium metadata YAMLs
 
@@ -328,75 +293,14 @@ the report exists to catch:
   `id_prefixes` for the clique's class and silently drops the rest — so a prefix that is not
   yet registered for its type never reaches the compendium. EMAPA's
   `biolink:GrossAnatomicalStructure` terms are the current not-yet-registered example.
-- **Generate and commit the report.** `uv run source-impact-report --source <SOURCE>` writes
-  `docs/sources/<SOURCE>/impact-report.md` plus an `impact-report/` subdirectory; commit
-  `new-cliques.csv`, `modified-cliques.csv`, and `new-xrefs.tsv` (`modified-cliques.json` is
-  gitignored). Its `would_be_added` / `needs_biolink_registration` columns flag identifiers
-  the prefix filtering above would drop. When extending the report to a new semantic type,
-  add a `compute_cliques_for_impact_report` helper to that type's `createcompendia/*.py`
-  module (mirroring `anatomy.py`) and register it in `PIPELINE_CONFIG` in
-  `src/tools/source_impact_report/cli.py`. A `PIPELINE_CONFIG` entry needs **more than just
-  `compute_fn`**: also supply `clique_classifier` (a `classify_*_clique` callable returning the
-  clique's biolink type), `biolink_types` (the types whose `id_prefixes` order the report uses
-  to pick the preferred CURIE), and `compendium_prefixes` (for loading labels). Omit these and
-  every clique renders with a blank `biolink_type` and `preferred_curie()` silently falls back to
-  the lexicographically-smallest CURIE (e.g. a `DOID`/`Fyler` leader instead of `MONDO`/`HP`).
-  Extract the classifier from the type's `create_typed_sets()` so the report types and orders
-  identifiers exactly like the build.
-- **For changes that *restructure* existing cliques, use `babel-clique-diff`, not the impact
-  report.** `source-impact-report`'s "before" is always "the same inputs with this source excluded",
-  so it only shows added/expanded/merged cliques — never cliques that split, lose members, or
-  disappear. When a change pulls members back out (a disjointness policy, a concord/close-match
-  change), diff two finished compendium builds with
-  `babel-clique-diff --before <dir> --after <dir> --files <files…> --out-csv … --out-json …`
-  (`src/model/compendium_diff.py`): it reports per before-clique whether members were `kept`,
-  `regrouped` (split), `moved` (retyped to another file), or `dropped` (deleted). Build both sides
-  from the same cached intermediates so the diff isolates the one change (it then doubles as a
-  completeness check). Commit artifacts under `docs/sources/<SOURCE>/<change>/` (or
-  `docs/pipelines/<pipeline>/<change>/`): always the tiny `clique-diff.summary.json`, plus the
-  per-row `clique-diff.csv` when reasonably sized. See `docs/AddingNewSources.md`.
+- **Generate and commit the report** (`uv run source-impact-report --source <SOURCE>`) and, for
+  changes that *restructure* existing cliques, follow up with `babel-clique-diff` — see
+  `src/tools/source_impact_report/CLAUDE.md` and `src/tools/clique_diff/CLAUDE.md` for the tool
+  internals, and `docs/AddingNewSources.md` for the full workflow.
 
-**Keeping two prefixes disjoint** — `glom()`'s `unique_prefixes` only forbids *duplicate
-same-prefix* identifiers in a clique; it does **not** stop two *different* prefixes from
-co-occurring, and dropping one source's concord is also insufficient (other sources' concords
-bridge them directly or transitively). To guarantee two prefixes never share a clique, run a
-**post-glom split** as the last step of the shared clique-builder so the build and the
-source-impact report agree — see `diseasephenotype.split_mutually_exclusive_cliques` /
-`MUTUALLY_EXCLUSIVE_PREFIX_GROUPS = [[HP, MP]]` (mirrors the type-driven split in
-`chemicals.py`) and `docs/sources/MP/disjointness.md`. A split can strand an identifier that is
-in a concord but no ids file (an out-of-date mapping); `create_typed_sets` drops such an
-untypeable clique with a warning rather than aborting the build.
-
-**Snakemake `retries:`** — use `retries: 3` for any network-backed rule (UberGraph, FTP,
-HTTP). Do not use `retries: 10`. UberGraph rules already get per-request retry-with-backoff
-inside `TripleStore.execute_query` (default 3 attempts, exponential back-off, configurable
-via `config["sparql"]["max_attempts"]`), so the Snakemake `retries:` is only a coarse
-safety net for whole-rule failures, not a substitute for fine-grained request retries.
-
-The shared clique-building skeleton lives in `src/model/cliques.py`.
-`glom_from_files()` runs the common `load ids → glom`,
-`load concords → filter → drop overused xrefs → glom` loop, parameterized by three hooks:
-`concord_pair_filter` (per-pair keep/drop, with access to the clique state built so far),
-`overused_xref_remover` (per-file `remove_overused_xrefs` variant), and `glom_kwargs`
-(e.g. disease's `close={MONDO: ...}`). A type's `compute_cliques_for_impact_report` should
-be a thin wrapper supplying that type's hooks, and its `build_compendia` should call the
-same wrapper so the impact report's reglom provably matches the real build (anatomy does
-this). If a compendium can't route its real build through the wrapper, add a test that
-keeps the two clique computations in sync instead.
-
-### Analyzing a SLURM run (`src/tools/slurm`)
-
-`src/tools/slurm` analyzes a (possibly partial) Snakemake-on-SLURM run; see `docs/tools/README.md`
-and the per-tool pages under `docs/tools/`. `uv run babel-slurm-errors <version>` aggregates
-failing-rule logs and prints a completed/failed/still-running job summary, to decide what to
-re-run.
-`uv run babel-slurm-resources <run-dir>` joins actual usage (the `benchmark:` TSVs — authoritative,
-since Hatteras `sacct` reports empty `MaxRSS`/`TotalCPU`) against requested resources and recommends
-right-sized `mem`/`cpus`, flagging rules that need an explicit override before the cluster default
-can be lowered. Both subcommands share `src/tools/slurm/parse.py`. Note that
-`reports/slurm/slurm_efficiency_reports/` is a *directory* that accumulates one
-`efficiency_report_<uuid>.csv` shard per Snakemake restart (each covering only that invocation's
-jobs); the analyzer merges them all, so copy the whole directory when archiving a run.
+Use `retries: 3` (not `retries: 10`) on network-backed Snakemake rules (UberGraph, FTP, HTTP) — see
+`docs/AddingNewSources.md` step 4 for why. `src/tools/slurm/CLAUDE.md` covers analyzing a
+(possibly partial) run on the cluster.
 
 ## Conventions
 
