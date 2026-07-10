@@ -2,14 +2,18 @@
 Unit tests for src/createcompendia/drugchemical.py.
 
 These exercise _validate_and_apply_manual_concords, which validates manual
-concord pairs against the chemical compendia and normalises their CURIEs.
+concord pairs against the chemical compendia and normalises their CURIEs, and
+ConflationExclusionRecorder, which records every dropped subject/object pair to a
+gzipped TSV so a missing cross-reference can be diagnosed from a past run.
 """
 
+import csv
+import gzip
 import logging
 
 import pytest
 
-from src.createcompendia.drugchemical import _validate_and_apply_manual_concords
+from src.createcompendia.drugchemical import ConflationExclusionRecorder, _validate_and_apply_manual_concords
 
 CONCORD_FILE = "input_data/manual_concords/drugchemical.tsv"
 
@@ -101,3 +105,66 @@ def test_aliases_normalizing_to_same_curie_are_skipped(caplog):
     assert pairs == []
     assert applied_curies == set()
     assert "CHEMBL:123" in caplog.text
+
+
+def _read_exclusions(path):
+    """Read a gzipped exclusion-report TSV back into a list of dict rows."""
+    with gzip.open(path, "rt", newline="") as inf:
+        return list(csv.DictReader(inf, dialect=csv.excel_tab))
+
+
+@pytest.mark.unit
+def test_exclusion_recorder_writes_header_rows_and_counts(tmp_path):
+    """The recorder writes a header, one row per dropped pair, and tracks per-(source, reason) counts."""
+    outfile = tmp_path / "excluded_pairs.tsv.gz"
+    with ConflationExclusionRecorder(outfile) as recorder:
+        recorder.record(source="RXNORM", reason="rxcui_not_in_any_clique", subject="RXCUI:1", obj="RXCUI:2")
+        recorder.record(source="RXNORM", reason="rxcui_not_in_any_clique", subject="RXCUI:3", obj="RXCUI:4")
+        recorder.record(
+            source="PUBCHEM_RXNORM",
+            reason="non_chemical_type",
+            subject="CHEBI:5",
+            obj="PUBCHEM.COMPOUND:6",
+            subject_type="biolink:Gene",
+            detail="subject type is not a biolink:ChemicalEntity descendant",
+        )
+        assert recorder.total() == 3
+
+    rows = _read_exclusions(outfile)
+    assert len(rows) == 3
+    assert set(rows[0].keys()) == set(ConflationExclusionRecorder.COLUMNS)
+    assert rows[0]["source"] == "RXNORM"
+    assert rows[0]["subject"] == "RXCUI:1"
+    assert rows[2]["subject_type"] == "biolink:Gene"
+    assert rows[2]["object"] == "PUBCHEM.COMPOUND:6"
+    assert recorder.counts[("RXNORM", "rxcui_not_in_any_clique")] == 2
+    assert recorder.counts[("PUBCHEM_RXNORM", "non_chemical_type")] == 1
+
+
+@pytest.mark.unit
+def test_validate_records_missing_curie_exclusion(tmp_path):
+    """When a manual concord CURIE is absent from the compendia, a row is recorded with the missing CURIE."""
+    outfile = tmp_path / "excluded_pairs.tsv.gz"
+    pairs: list[tuple[str, str]] = []
+    with ConflationExclusionRecorder(outfile) as recorder:
+        _validate_and_apply_manual_concords([("MISSING:001", "CHEBI:456")], PREFERRED, pairs, CONCORD_FILE, recorder)
+    rows = _read_exclusions(outfile)
+    assert len(rows) == 1
+    assert rows[0]["reason"] == "manual_concord_not_in_compendium"
+    assert "MISSING:001" in rows[0]["detail"]
+
+
+@pytest.mark.unit
+def test_validate_records_self_pair_exclusion(tmp_path):
+    """A manual concord whose CURIEs collapse to the same leader is recorded as a self-pair."""
+    outfile = tmp_path / "excluded_pairs.tsv.gz"
+    pairs: list[tuple[str, str]] = []
+    with ConflationExclusionRecorder(outfile) as recorder:
+        # CHEMBL:123 and DRUGBANK:DB001 both normalize to CHEMBL:123.
+        _validate_and_apply_manual_concords(
+            [("CHEMBL:123", "DRUGBANK:DB001")], PREFERRED, pairs, CONCORD_FILE, recorder
+        )
+    rows = _read_exclusions(outfile)
+    assert len(rows) == 1
+    assert rows[0]["reason"] == "manual_concord_self_pair"
+    assert rows[0]["subject"] == "CHEMBL:123"

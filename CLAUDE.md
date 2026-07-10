@@ -247,10 +247,21 @@ not for answering "are *these specific* CURIEs joinable."
 You may run `uv run snakemake -c all --rerun-incomplete [rulename]` to run a particular rule.
 When running a download step, it will be easier to run the job in Snakemake, but when running
 a rule that produces intermediate files, it might be easier to download the intermediate files from
-<https://stars.renci.org/var/babel/2025dec11/> (which is the `babel_output` folder from a run on a
-high performance cluster) so you don't need to download all the source files and
-rerun the entire pipeline. You can look at the resource requirements of a rule to decide which
-option would be best.
+a published HPC run (the `babel_outputs` folder from a high performance cluster) so you don't need
+to download all the source files and rerun the entire pipeline. You can look at the resource
+requirements of a rule to decide which option would be best.
+
+There are two publication roots on the RENCI stars server, and the difference matters:
+
+- `https://stars.renci.org/var/babel_outputs/<version>/` is the **full** output set, including
+  every identifier and cross-reference. Use this for debugging. Useful versions:
+  `2024oct24` (currently in Prod) and `2025sep1` (currently in CI). Note that not every version
+  publishes an `intermediate/` tree (e.g. `2024oct24` does not), so concord-level inspection is
+  only possible for versions that do.
+- `https://stars.renci.org/var/babel/<version>/` (e.g. `2025dec11`) contains **only** the subset
+  of identifiers and xrefs that may be shared outside of Translator, so it is missing many
+  identifiers/xrefs. Do **not** use it for debugging unless you are specifically working on that
+  externally-shareable output.
 
 If a previous Snakemake run was killed, the next invocation may fail with
 `LockException: Directory cannot be locked`. Clear it with `uv run snakemake --unlock` before
