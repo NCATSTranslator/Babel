@@ -95,7 +95,7 @@ Snakemake benchmark TSVs. The two sources measure slightly different things:
   Hatteras its `MaxRSS`/`TotalCPU` columns come back empty (the `jobacct_gather`/cgroup accounting
   isn't capturing them), so the benchmark TSVs are authoritative for actual usage.
 
-The `tools/slurm resources` subcommand reads and merges all shards in this directory; see
+The `src.tools.slurm resources` subcommand reads and merges all shards in this directory; see
 [`../docs/tools/Resources.md`](../docs/tools/Resources.md).
 
 ## Known Resource Hotspots
@@ -238,7 +238,7 @@ may have at `vm.max_map_count` (the old default is 65530), and a new mmap-backed
 with `ENOMEM` once that ceiling is reached.
 
 How to confirm: look at the `Address-space snapshot (…)` line that `log_memory_snapshot()` writes
-(`src/exporters/duckdb_exporters.py`); it is surfaced automatically by `tools/babel-errors.py`. If
+(`src/exporters/duckdb_exporters.py`); it is surfaced automatically by `babel-slurm-errors`. If
 `mappings` is at or near `max_map_count` while `Committed_AS` is well under `CommitLimit` and
 `MemAvailable` is large, it is this issue. (Compare against the RAM shapes documented under
 "Temporary Scratch Space" above.)
@@ -312,10 +312,10 @@ The following improvements are tracked here for visibility but not yet implement
 - **Per-rule resource tuning**: After collecting benchmark data from a full run, add explicit
   `resources:` to every rule based on observed `max_rss + 30% headroom`. This will greatly reduce
   wasted SLURM allocations across the ~100+ rules currently defaulting to 64G/4-CPU. The
-  `tools/slurm resources` subcommand automates the measurement and recommends per-rule sizes from a
-  run's benchmark TSVs (see [`../docs/tools/Resources.md`](../docs/tools/Resources.md)). Applying
-  the recommendations — the `slurm/config.yaml` default and the per-rule overrides — is tracked
-  separately.
+  `src.tools.slurm resources` subcommand automates the measurement and recommends per-rule sizes
+  from a run's benchmark TSVs (see [`../docs/tools/Resources.md`](../docs/tools/Resources.md)).
+  Applying the recommendations — the `slurm/config.yaml` default and the per-rule overrides — is
+  tracked separately.
 
 - **`--local-cores N` flag**: Use this to limit the number of CPUs consumed by local rules
   when running on a shared login node.

@@ -12,11 +12,6 @@ collection:
 - multiple biolink types within a pipeline (UBERON declares both
   ``biolink:AnatomicalEntity`` and ``biolink:GrossAnatomicalStructure`` in one ids file)
 - multiple prefixes per ids file (rare but supported)
-
-.. note::
-    PR #742 (source-impact report tool) also uses the old ``semantic_type`` / ``by_semantic_type``
-    naming in its own variables (``SEMANTIC_TYPE_CONFIG``, ``diffs_by_semantic_type``,
-    ``--semantic-types`` CLI flag). Update those when rebasing #742 onto this branch.
 """
 
 from __future__ import annotations

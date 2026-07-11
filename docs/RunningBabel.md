@@ -59,13 +59,45 @@ and alternate exports.
 If you have multiple CPUs available, you can increase the number of `--cores` to run multiple steps
 in parallel.
 
+### Per-target sizing
+
+Memory and time requirements vary widely by target. The README's 500 GB figure refers to the
+largest builds (protein, drugchemical-conflated, and the full pipeline together). Many
+individual targets are tractable on a laptop. Concretely, `anatomy` builds end-to-end on a Mac
+in roughly 25 minutes wall time, with UMLS downloading dominating the runtime; peak memory is
+in the low GBs. `cell_line`, `taxon`, `genefamily`, and `macromolecular_complex` are similarly
+small. `chemical`, `gene`, `protein`, `disease`, and the conflations need a workstation or HPC
+node.
+
+If you only need the intermediates for a single semantic type (for example, to generate a
+source-impact report — see [AddingNewSources.md](./AddingNewSources.md)), building just that
+target is much cheaper than `snakemake --cores N` with no target.
+
+### Common build issues
+
+* **Stale Snakemake lock.** If a previous run was killed (Ctrl-C, OOM, power loss) Snakemake
+  may refuse to start with `LockException: Directory cannot be locked`. Clear it with
+  `uv run snakemake --unlock` and retry.
+* **UberGraph transient failures.** Rules that fetch from UberGraph (anatomy's UBERON, GO, CL,
+  EMAPA rules; similar elsewhere) sometimes time out or 5xx. They carry `retries: 10` and the
+  underlying `TripleStore` adds bounded retry/backoff, so most transient blips heal
+  themselves. A full UberGraph outage will still propagate as a job failure — wait and rerun.
+* **UMLS_API_KEY not set.** The UMLS download rule fails fast with a clear error if this is
+  missing. Set it in your shell before invoking Snakemake, not just inline (`UMLS_API_KEY=… uv
+  run snakemake …` works only for the parent process and may not propagate into all subjobs
+  depending on scheduler).
+* **Partial/incomplete state from a prior aborted run.** Add `--rerun-incomplete` to force
+  Snakemake to regenerate any outputs it considers possibly-stale, which is the safest
+  default after a kill.
+
 ## Analyzing and tuning a SLURM run
 
-When running on the RENCI Hatteras cluster via SLURM, the `tools/slurm` package analyzes a (possibly
-partial) run: `uv run babel-slurm-errors <version>` aggregates failing-rule logs when a run stalls
-so you can see what to re-run, and `uv run babel-slurm-resources <run-dir>` recommends right-sized
-per-rule `mem`/`cpus` from the run's benchmark data. See [tools/README.md](tools/README.md) for the
-full set of developer tools and [slurm/README.md](../slurm/README.md) for the SLURM profile itself.
+When running on the RENCI Hatteras cluster via SLURM, the `src/tools/slurm` package analyzes a
+(possibly partial) run: `uv run babel-slurm-errors <version>` aggregates failing-rule logs when a
+run stalls so you can see what to re-run, and `uv run babel-slurm-resources <run-dir>` recommends
+right-sized per-rule `mem`/`cpus` from the run's benchmark data. See
+[tools/README.md](tools/README.md) for the full set of developer tools and
+[slurm/README.md](../slurm/README.md) for the SLURM profile itself.
 
 ## Build Process
 
@@ -213,7 +245,7 @@ to open a separate PR for each one. By the time the run is healthy, the release 
 holds a long, date-interleaved mix of trivial tweaks and substantial changes.
 
 Before that branch is merged, it is worth separating the two kinds of change.
-The scripts in [`../tools/commit-split`](../tools/commit-split) help verify the
+The scripts in [`../scripts/commit-split`](../scripts/commit-split) help verify the
 split is complete and lossless; see that directory's `README.md`.
 
 ### Which commits stay on the release branch
@@ -241,7 +273,7 @@ staying behind on the release branch.
 3. **Build one branch per theme off `main`** with `git cherry-pick`, replaying each
    bucket's commits in chronological order. Enable `git rerere` so a conflict you resolve
    once (typically in shared files like `config.yaml`, `datacollect.snakefile`, or
-   `CLAUDE.md`) is replayed automatically if you have to rebuild the branch.
+   `AGENTS.md`) is replayed automatically if you have to rebuild the branch.
 4. **Watch for entangled and coupled commits.** Two themes that edit the same file in
    alternating commits may need one branch *stacked on* the other (cherry-pick the second
    theme on top of the first) rather than both off `main` — that reconstructs the original
