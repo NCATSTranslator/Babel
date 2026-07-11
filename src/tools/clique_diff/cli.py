@@ -87,7 +87,7 @@ def main(argv=None):
             },
             "compendia": summary,
         }
-        with open(args.out_json, "w") as fh:
+        with open(args.out_json, "w", encoding="utf-8", newline="\n") as fh:
             json.dump(out, fh, indent=2, sort_keys=True)
             fh.write("\n")
 
