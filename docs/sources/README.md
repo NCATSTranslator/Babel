@@ -11,7 +11,7 @@ One directory per data source, named by the source's CURIE prefix (the same pref
 files when there is enough to say (ingestion, synonyms, known issues, etc.).
 
 When you learn something non-obvious about how a source is ingested, add it here rather than
-letting it accumulate in `CLAUDE.md` — `CLAUDE.md` should point here, not duplicate the detail.
+letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not duplicate the detail.
 
 ## Sources documented so far
 

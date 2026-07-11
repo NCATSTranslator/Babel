@@ -168,6 +168,9 @@ rule check_protein_completeness:
         report_file=config["output_directory"] + "/reports/protein_completeness.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/check_protein_completeness.tsv"
+    resources:
+        # Peaks at ~21 GB on babel-1.17 (see docs/tools/Resources.md); over the 16 GB default.
+        mem="24G",
     run:
         assessments.assess_completeness(
             config["intermediate_directory"] + "/protein/ids", input.input_compendia, output.report_file

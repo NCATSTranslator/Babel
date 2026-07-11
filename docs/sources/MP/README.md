@@ -40,4 +40,4 @@ Additional source details are documented in:
 - `mappings.md`
 - `disjointness.md` (how MP is kept disjoint from HP, with the before/after clique impact)
 - `impact-report.md` (auto-generated; see "Adding a new data source" in
-  `CLAUDE.md` for how to regenerate it)
+  `AGENTS.md` for how to regenerate it)

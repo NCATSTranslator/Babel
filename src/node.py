@@ -471,6 +471,9 @@ class NodeFactory:
                 raise RuntimeError(f"No Biolink prefixes for {input_type}")
             return cached
         logger.info(f"NodeFactory({self.label_dir}, {self.biolink_version}).get_prefixes({input_type}) called")
+        # get_element() returns a bmt ClassDefinition (a linkml_runtime model): attribute access
+        # (j.id_prefixes) and subscript access (j["id_prefixes"], used here) both work, but it has
+        # no dict-style .get() -- j.get("id_prefixes") raises AttributeError, not a default.
         j = self.toolkit.get_element(input_type)
         prefs = j["id_prefixes"]
         if len(prefs) == 0:
@@ -616,6 +619,13 @@ class NodeFactory:
         return labeled_list
 
     def create_node(self, input_identifiers, node_type, labels={}, extra_prefixes=[]):
+        """
+        Build a clique's node record: {"identifiers": [{"identifier": CURIE, "label": str}, ...],
+        "type": "biolink:Foo", "id": {"identifier": CURIE, "label": str}}. identifiers[0] is the
+        preferred identifier (highest-priority prefix per get_prefixes()'s ordering); "id" is an
+        alias for identifiers[0], not a separate value. Labels stay on the identifier that owns
+        them and are not promoted onto the first entry. Returns None if input_identifiers is empty.
+        """
         # This is where we will normalize, i.e. choose the best id, and add types in accord with BL.
         # we should also include provenance and version information for the node set build.
         # make sure prefixes list does not include duplicate prefixes

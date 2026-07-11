@@ -1,8 +1,8 @@
-"""Unit tests for tools.slurm.resources."""
+"""Unit tests for src.tools.slurm.resources."""
 
 import pytest
 
-from tools.slurm import resources
+from src.tools.slurm import resources
 
 pytestmark = pytest.mark.unit
 
@@ -62,6 +62,41 @@ def test_analyze_classifies_over_provisioned_and_fits_default(tmp_path):
     assert rec.classification == "over"
     assert rec.needs_override is False
     assert rec.rec_mem_mb == 8 * 1024
+
+
+def test_analyze_marks_ran_on_default(tmp_path):
+    """A rule requesting the modal (default) mem should be flagged ran_on_default=True; a rule with
+    its own explicit request False; a rule with no requested-side data None."""
+    bdir = tmp_path / "benchmarks"
+    bdir.mkdir()
+    # Three rules ran on the 64000 MB default, one carries an explicit 500000 MB block, one has no
+    # efficiency-report row at all.
+    peaks = {
+        "on_default_a": (30 * 1024, 64000),
+        "on_default_b": (20 * 1024, 64000),
+        "on_default_c": (2 * 1024, 64000),
+        "has_block": (400 * 1024, 500000),
+        "no_data": (25 * 1024, None),
+    }
+    rows = []
+    for rule, (rss, _req) in peaks.items():
+        _write_benchmark(bdir / f"{rule}.tsv", [[100.0, "0:01:40", rss, rss, rss, rss, 1, 1, 90.0, 90.0]])
+    rep = tmp_path / "reports" / "slurm" / "slurm_efficiency_reports"
+    rep.mkdir(parents=True)
+    for i, (rule, (_rss, req)) in enumerate(peaks.items()):
+        if req is not None:
+            rows.append(f"{i},rule_{rule},4,100.0,0.0,,{req}")
+    (rep / "efficiency_report_x.csv").write_text(
+        ",RuleName,NCPUS,Elapsed_sec,TotalCPU_sec,MaxRSS_MB,RequestedMem_MB\n" + "\n".join(rows) + "\n"
+    )
+    (tmp_path / "logs").mkdir()
+
+    recs = {r.rule: r for r in resources.analyze(tmp_path, new_default_mem_mb=16 * 1024, new_default_cpus=1)}
+    assert resources.detect_run_default_mem_mb(list(recs.values())) == 64000
+    assert recs["on_default_a"].ran_on_default is True
+    assert recs["on_default_b"].ran_on_default is True
+    assert recs["has_block"].ran_on_default is False
+    assert recs["no_data"].ran_on_default is None
 
 
 def test_analyze_handles_missing_efficiency_report(tmp_path):

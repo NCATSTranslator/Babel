@@ -153,7 +153,7 @@ rule generate_mapping_sources_table:
 # Optional per-source impact report. Not part of all_reports.
 # Invoke with e.g.:
 #   snakemake babel_outputs/reports/source_impact/EMAPA.md
-# See src/cli/source_impact_report.py for the underlying CLI.
+# See src/tools/source_impact_report/cli.py for the underlying CLI.
 rule report_source_impact:
     output:
         # The markdown report plus the four full detail files written into the
