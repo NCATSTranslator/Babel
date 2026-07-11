@@ -40,7 +40,7 @@ Run `uv run source-impact-report --help` for the full flag list, including the r
 ## `PIPELINE_CONFIG`, the registry
 
 `src/tools/source_impact_report/cli.py` holds `PIPELINE_CONFIG`, mapping each
-[`babel_pipeline`](../../CLAUDE.md) to the hooks the report needs. Without an entry the report
+[`babel_pipeline`](../../AGENTS.md) to the hooks the report needs. Without an entry the report
 still runs: it warns, skips the synthetic clique diff for that pipeline, and falls back to remote
 mode if `--remote-url` was supplied.
 

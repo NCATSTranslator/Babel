@@ -273,7 +273,7 @@ staying behind on the release branch.
 3. **Build one branch per theme off `main`** with `git cherry-pick`, replaying each
    bucket's commits in chronological order. Enable `git rerere` so a conflict you resolve
    once (typically in shared files like `config.yaml`, `datacollect.snakefile`, or
-   `CLAUDE.md`) is replayed automatically if you have to rebuild the branch.
+   `AGENTS.md`) is replayed automatically if you have to rebuild the branch.
 4. **Watch for entangled and coupled commits.** Two themes that edit the same file in
    alternating commits may need one branch *stacked on* the other (cherry-pick the second
    theme on top of the first) rather than both off `main` — that reconstructs the original

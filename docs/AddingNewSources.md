@@ -465,7 +465,7 @@ these in the `dropped` column is expected; a large number suggests an extraction
 
 ## Related reading
 
-- `CLAUDE.md` "Adding a new data source" — short, command-focused summary.
+- `AGENTS.md` "Adding a new data source" — short, command-focused summary.
 - `docs/sources/EMAPA/` — the worked example for an OBO-from-UberGraph source.
 - `src/tools/source_impact_report/cli.py` — CLI implementation; `PIPELINE_CONFIG` is the registry.
   See [docs/tools/SourceImpactReport.md](tools/SourceImpactReport.md).
