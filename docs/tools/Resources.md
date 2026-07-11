@@ -56,12 +56,13 @@ For each rule with a benchmark, it joins actual usage against the requested reso
   `--new-default-cpus`, default 1). This is the safety gate: lowering the cluster-wide default
   without giving these rules an explicit `resources:` block would silently starve them.
 
-  **This list is a superset of the rules you must act on.** It flags every rule whose peak exceeds
-  the new default, including the heavy ones that *already* carry an explicit `resources:` block
-  (e.g. `protein_compendia` at 512G). Those are already safe — do nothing. The rules you must add a
-  block to are the ones whose requested mem in the "req mem" column equals the *old* default (they
-  ran on the default and had no block). Cross-check against the snakefiles: the tool sees only the
-  run's requested resources, not which rules declare a block.
+  **This list is a superset of the rules you must act on**, and a `ran on default` column splits it:
+  **yes** means the rule requested the run's default mem (no explicit `resources:` block) and needs
+  a *new* one before the default drops — the actionable subset; **no** means it already carries a
+  block (e.g. `protein_compendia` at 512G) and is safe; **?** means there was no requested-side data
+  for it (usually a DuckDB rule the efficiency report missed — check that one by hand). The default
+  the run used is auto-detected as the modal requested mem and printed in the header, so there's no
+  need to know or pass it.
 
 Each rule is classified `over` (requested ≥ 2× the recommendation), `at-risk` (actual > 80% of the
 request), `ok`, or `no-request-data` (a benchmark with no matching requested-side row). Pass `--csv`
@@ -73,7 +74,7 @@ to also write the full per-rule table for further analysis.
 2. If the run stalls, use [`babel-slurm-errors`](Errors.md) to find which rules failed (often
    transient HTTP errors from data sources) and re-run them.
 3. After a complete run, run `babel-slurm-resources <run-dir>` and, for each rule in the override
-   list that *ran on the default* (see the caveat above), add a `resources:` block. Bias the numbers
+   list marked `ran on default = yes`, add a `resources:` block. Bias the numbers
    **down**: pick the smallest bucket comfortably above the observed peak (~10-15% headroom is fine)
    rather than the padded `--safety 1.5` recommendation. An OOM is cheap — we track per-rule peak
    RSS, so it's easy to bump the limit and re-run — whereas padding every rule slowly ratchets the

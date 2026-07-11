@@ -20,6 +20,7 @@ import argparse
 import csv
 import math
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -57,6 +58,21 @@ def _fmt_gb(mb: float | None) -> str:
     return f"{mb / _GIB:.1f}G"
 
 
+def detect_run_default_mem_mb(recs: list[Recommendation]) -> float | None:
+    """The mem the run's cluster-wide default requested, inferred as the modal requested mem.
+
+    The vast majority of rules carry no explicit ``resources:`` block and so request the
+    cluster-wide default, which makes the most common requested value the default itself. This
+    avoids hard-coding the default (and the SLURM 1000-vs-1024 GB ambiguity in how ``64G`` is
+    recorded): a rule requesting the mode ran on the default and needs a new block before the
+    default is lowered; a rule requesting anything else already declares its own.
+    """
+    values = [round(r.requested_mem_mb) for r in recs if r.requested_mem_mb]
+    if not values:
+        return None
+    return float(Counter(values).most_common(1)[0][0])
+
+
 @dataclass
 class Recommendation:
     rule: str
@@ -70,6 +86,10 @@ class Recommendation:
     rec_cpus: int
     classification: str  # over | ok | at-risk | no-request-data
     needs_override: bool
+    # True if the rule ran on the run's default mem (no explicit `resources:` block, so it needs a
+    # new one before the default drops); False if it carried an explicit request; None if unknown
+    # (no requested-side data). Set by analyze() from the run's modal requested mem.
+    ran_on_default: bool | None = None
 
     @property
     def mem_pct(self) -> float | None:
@@ -139,6 +159,17 @@ def analyze(
                 needs_override=needs_override,
             )
         )
+    # Mark which rules ran on the run's default (no explicit block) vs declared their own, so the
+    # override list separates rules that need a *new* block from those that already carry one.
+    run_default_mb = detect_run_default_mem_mb(recs)
+    for rec in recs:
+        if rec.requested_mem_mb is None:
+            rec.ran_on_default = None
+        elif run_default_mb is not None and abs(rec.requested_mem_mb - run_default_mb) <= 0.02 * run_default_mb:
+            rec.ran_on_default = True
+        else:
+            rec.ran_on_default = False
+
     recs.sort(key=lambda r: r.actual_mem_mb, reverse=True)
     return recs
 
@@ -170,18 +201,33 @@ def build_markdown(recs: list[Recommendation], new_default_mem_mb: int, new_defa
     )
     lines.append(f"Wasted reservation (requested minus used): {wasted_gb:.0f} GB across rules with a known request.")
     lines.append("")
+    run_default_mb = detect_run_default_mem_mb(recs)
+    actionable = [r for r in overrides if r.ran_on_default is True]
+    unknown = [r for r in overrides if r.ran_on_default is None]
     lines.append(
         f"Proposed new default: mem={new_default_mem_mb // _GIB}G, cpus={new_default_cpus}. "
-        f"{len(overrides)} rule(s) need an explicit override first (below)."
+        f"Detected run default: mem={_fmt_gb(run_default_mb)}."
+    )
+    lines.append(
+        f"{len(actionable)} of {len(overrides)} exceeding rule(s) ran on the default and need a *new* "
+        f"block; {len(overrides) - len(actionable) - len(unknown)} already carry one"
+        + (f"; {len(unknown)} have no request data (check manually)." if unknown else ".")
     )
     lines.append("")
-    lines.append("## Rules needing an explicit override before lowering the default")
+    lines.append("## Rules exceeding the proposed default")
+    lines.append("")
+    lines.append(
+        "`ran on default` = **yes** → needs a new `resources:` block; **no** → already has one; **?** → unknown."
+    )
     lines.append("")
     if overrides:
-        lines.append("rule | actual RSS | rec mem | rec cpus")
-        lines.append("---- | ---------- | ------- | --------")
-        for r in overrides:
-            lines.append(f"{r.rule} | {_fmt_gb(r.actual_mem_mb)} | {_fmt_gb(r.rec_mem_mb)} | {r.rec_cpus}")
+        # Actionable (ran on default) first, then unknown, then rules that already carry a block.
+        order = {True: 0, None: 1, False: 2}
+        lines.append("rule | actual RSS | rec mem | rec cpus | ran on default")
+        lines.append("---- | ---------- | ------- | -------- | --------------")
+        for r in sorted(overrides, key=lambda r: (order[r.ran_on_default], -r.actual_mem_mb)):
+            flag = {True: "yes", False: "no", None: "?"}[r.ran_on_default]
+            lines.append(f"{r.rule} | {_fmt_gb(r.actual_mem_mb)} | {_fmt_gb(r.rec_mem_mb)} | {r.rec_cpus} | {flag}")
     else:
         lines.append("(none — the proposed default already covers every rule)")
     lines.append("")
@@ -216,6 +262,7 @@ def write_csv(recs: list[Recommendation], path: str | Path) -> None:
                 "rec_cpus",
                 "classification",
                 "needs_override",
+                "ran_on_default",
             ]
         )
         for r in recs:
@@ -233,6 +280,7 @@ def write_csv(recs: list[Recommendation], path: str | Path) -> None:
                     r.rec_cpus,
                     r.classification,
                     int(r.needs_override),
+                    "" if r.ran_on_default is None else int(r.ran_on_default),
                 ]
             )
 
