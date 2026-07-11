@@ -32,8 +32,11 @@ upper-case: `"MPATH"`, `"HTTP"` — a lower-case entry silently never matches. W
 `input_data/*_badxrefs.txt` drop individual `subject object` pairs (**space** separated, `#`
 comments) from a concord before glom — for individually wrong pairs that survive prefix filtering.
 See the code comments at `diseasephenotype.DEFAULT_BAD_XREFS` and the `disease_compendia`
-Snakemake rule (`src/snakefiles/diseasephenotype.snakefile`) for the registration gotcha. A unit
-test asserting a new key exists and its pairs parse is the cheap guard.
+Snakemake rule (`src/snakefiles/diseasephenotype.snakefile`) for the registration gotcha: a key
+must be added in **both** places. `compute_cliques_for_impact_report()` now raises if a key names
+no concord basename (a typo), but a key added to one dict and not the other — or forgotten
+entirely — still fails open, so a unit test asserting a new key exists and its pairs parse remains
+the cheap guard for that.
 
 ## Keeping two prefixes disjoint
 
