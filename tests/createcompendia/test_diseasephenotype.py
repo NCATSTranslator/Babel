@@ -513,6 +513,41 @@ def test_mp_badxrefs_is_wired_up_and_drops_the_bifid_scrotum_xref():
     assert ("MP:0009203", "UMLS:C0341787") in bad_pairs
 
 
+@pytest.mark.unit
+def test_badxrefs_key_matching_no_concord_raises(tmp_path):
+    """A bad-xrefs key that matches no concord basename (a typo, or DEFAULT_BAD_XREFS and the
+    snakefile dict drifting apart) must raise rather than silently never filtering -- the
+    footgun the DEFAULT_BAD_XREFS docstring warns about. The error should name the offending key.
+    """
+    ids = _write_lines(tmp_path / "MONDO", [f"MONDO:0000001\t{DISEASE}"])
+    concord = _write_lines(tmp_path / "MONDO_concord", ["MONDO:0000001\txref\tMESH:D000001"])
+
+    with pytest.raises(ValueError, match="Mondo"):  # deliberate case typo of the real "MONDO" concord
+        diseasephenotype.compute_cliques_for_impact_report(
+            concordances=[concord],
+            identifiers=[ids],
+            badxrefs={"Mondo": str(tmp_path / "whatever.txt")},
+        )
+
+
+@pytest.mark.unit
+def test_badxrefs_key_for_excluded_source_does_not_raise(tmp_path):
+    """Excluding a source keeps its concord in the list (skipped inside the loop), so its
+    bad-xrefs key still matches a basename and must not trip the guard: a `--source MONDO`
+    impact-report before-run passes DEFAULT_BAD_XREFS (which carries "MONDO") unchanged."""
+    ids = _write_lines(tmp_path / "HP", [f"HP:0000001\t{PHENOTYPIC_FEATURE}"])
+    mondo_concord = _write_lines(tmp_path / "MONDO", ["MONDO:0000001\txref\tMESH:D000001"])
+    badxrefs_file = _write_lines(tmp_path / "mondo_bad.txt", ["MONDO:0000001 MESH:D000001"])
+
+    dicts, types = diseasephenotype.compute_cliques_for_impact_report(
+        concordances=[mondo_concord],
+        identifiers=[ids],
+        excluded_sources={"MONDO"},
+        badxrefs={"MONDO": badxrefs_file},
+    )
+    assert set(dicts.keys()) == {"HP:0000001"}
+
+
 # --- MP xref allowlist ---
 
 

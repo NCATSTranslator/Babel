@@ -285,8 +285,8 @@ rule disease_compendia:
         config["output_directory"] + "/benchmarks/disease_compendia.tsv"
     run:
         # A new prefix's bad-xref file must be registered HERE (as a rule input above and a key
-        # in this dict) and in diseasephenotype.DEFAULT_BAD_XREFS — read_badxrefs() silently
-        # returns an empty set for a prefix missing from whichever dict is passed in.
+        # in this dict) and in diseasephenotype.DEFAULT_BAD_XREFS. A key that matches no concord
+        # basename (a typo, or the two dicts drifting) is caught by compute_cliques_for_impact_report().
         diseasephenotype.build_compendium(
             input.concords,
             input.metadata_yamls,
