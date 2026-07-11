@@ -13,6 +13,10 @@ uv run babel-slurm-resources <run-dir> [--csv PATH] [--safety F] [--floor-gb N] 
 `<run-dir>` is a directory containing `benchmarks/`, `logs/`, and (optionally) `reports/slurm/` —
 either `babel_outputs/` itself or a copy archived for analysis, such as `data/babel-1.17/`.
 
+A captured example of the full report — the analysis behind the current `slurm/config.yaml`
+defaults and per-rule overrides — is committed at
+[`examples/babel-slurm-resources-babel-1.17.md`](examples/babel-slurm-resources-babel-1.17.md).
+
 ## The data a run produces
 
 A Snakemake-on-SLURM run leaves three kinds of artifact under `babel_outputs/`:
