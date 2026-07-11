@@ -1,223 +1,223 @@
 drugbank_curie,label,biolink_type,unii,ncit,signal
-DRUGBANK:DB10351,Cynodon dactylon pollen,biolink:ComplexMolecularMixture,175F461W10,NCIT:C85157,allergen-text
-DRUGBANK:DB10357,Zea mays pollen,biolink:ComplexMolecularMixture,74PD8J616H,NCIT:C85205,allergen-text
-DRUGBANK:DB10379,Dactylis glomerata pollen,biolink:ComplexMolecularMixture,83N78IDA7P,NCIT:C85158,allergen-text
-DRUGBANK:DB10385,Ambrosia artemisiifolia pollen,biolink:ComplexMolecularMixture,9W34L2CQ9A,,allergen-text
-DRUGBANK:DB10389,Lolium perenne pollen,biolink:ComplexMolecularMixture,4T81LB52R0,NCIT:C85282,allergen-text
-DRUGBANK:DB10394,Phleum pratense pollen,biolink:ComplexMolecularMixture,0P46LFE4VC,NCIT:C72397,allergen-text
-DRUGBANK:DB10403,Agrostis gigantea pollen,biolink:ComplexMolecularMixture,HU8V6E7HOA,NCIT:C85089,allergen-text
-DRUGBANK:DB10417,Periplaneta americana,biolink:ComplexMolecularMixture,2RQ1L9N089,,allergen-text
-DRUGBANK:DB10418,Blatella germanica,biolink:ComplexMolecularMixture,G9O67I0A8Q,NCIT:C87504,allergen-text
-DRUGBANK:DB10419,Solenopsis invicta,biolink:ComplexMolecularMixture,5O7CR4P444,,allergen-text
-DRUGBANK:DB10424,Alternaria alternata,biolink:ComplexMolecularMixture,52B29REC7H,NCIT:C87529,allergen-text
-DRUGBANK:DB10441,Rhizopus arrhizus var. arrhizus,biolink:ComplexMolecularMixture,8476849N1Y,,allergen-text
-DRUGBANK:DB10443,Ustilago maydis,biolink:ComplexMolecularMixture,4K7Z7K7SWG,NCIT:C87523,allergen-text
-DRUGBANK:DB10451,Acacia,biolink:ComplexMolecularMixture,5C5403N26O,NCIT:C80123,allergen-text
-DRUGBANK:DB10499,Felis catus hair,biolink:ComplexMolecularMixture,1564HD0N96,NCIT:C80294,allergen-text
-DRUGBANK:DB10516,Casein,biolink:ComplexMolecularMixture,48268V50D5,NCIT:C73337,allergen-text
-DRUGBANK:DB10531,Flounder,biolink:ComplexMolecularMixture,F8PTG78KRB,,allergen-text
-DRUGBANK:DB10535,Karaya gum,biolink:ComplexMolecularMixture,73W9IQY50Q,NCIT:C83852,allergen-text
-DRUGBANK:DB10541,Lobster,biolink:ComplexMolecularMixture,6T362S6JF6,,allergen-text
-DRUGBANK:DB10544,Cultivated mushroom,biolink:ComplexMolecularMixture,54C8E6W6JY,NCIT:C71949,allergen-text
-DRUGBANK:DB10576,Vanilla,biolink:ComplexMolecularMixture,Q74T35078H,NCIT:C84613,allergen-text
-DRUGBANK:DB10580,Tea leaf,biolink:ComplexMolecularMixture,GH42T47V24,NCIT:C87164,allergen-text
-DRUGBANK:DB10603,Meriones unguiculatus skin,biolink:ComplexMolecularMixture,9WN2H714TG,,allergen-text
-DRUGBANK:DB10609,Bombyx mori fiber,biolink:ComplexMolecularMixture,6LK42KUV6W,NCIT:C79611,allergen-text
+DRUGBANK:DB10351,Cynodon dactylon pollen,biolink:ComplexMolecularMixture,UNII:175F461W10,NCIT:C85157,allergen-text
+DRUGBANK:DB10357,Zea mays pollen,biolink:ComplexMolecularMixture,UNII:74PD8J616H,NCIT:C85205,allergen-text
+DRUGBANK:DB10379,Dactylis glomerata pollen,biolink:ComplexMolecularMixture,UNII:83N78IDA7P,NCIT:C85158,allergen-text
+DRUGBANK:DB10385,Ambrosia artemisiifolia pollen,biolink:ComplexMolecularMixture,UNII:9W34L2CQ9A,,allergen-text
+DRUGBANK:DB10389,Lolium perenne pollen,biolink:ComplexMolecularMixture,UNII:4T81LB52R0,NCIT:C85282,allergen-text
+DRUGBANK:DB10394,Phleum pratense pollen,biolink:ComplexMolecularMixture,UNII:0P46LFE4VC,NCIT:C72397,allergen-text
+DRUGBANK:DB10403,Agrostis gigantea pollen,biolink:ComplexMolecularMixture,UNII:HU8V6E7HOA,NCIT:C85089,allergen-text
+DRUGBANK:DB10417,Periplaneta americana,biolink:ComplexMolecularMixture,UNII:2RQ1L9N089,,allergen-text
+DRUGBANK:DB10418,Blatella germanica,biolink:ComplexMolecularMixture,UNII:G9O67I0A8Q,NCIT:C87504,allergen-text
+DRUGBANK:DB10419,Solenopsis invicta,biolink:ComplexMolecularMixture,UNII:5O7CR4P444,,allergen-text
+DRUGBANK:DB10424,Alternaria alternata,biolink:ComplexMolecularMixture,UNII:52B29REC7H,NCIT:C87529,allergen-text
+DRUGBANK:DB10441,Rhizopus arrhizus var. arrhizus,biolink:ComplexMolecularMixture,UNII:8476849N1Y,,allergen-text
+DRUGBANK:DB10443,Ustilago maydis,biolink:ComplexMolecularMixture,UNII:4K7Z7K7SWG,NCIT:C87523,allergen-text
+DRUGBANK:DB10451,Acacia,biolink:ComplexMolecularMixture,UNII:5C5403N26O,NCIT:C80123,allergen-text
+DRUGBANK:DB10499,Felis catus hair,biolink:ComplexMolecularMixture,UNII:1564HD0N96,NCIT:C80294,allergen-text
+DRUGBANK:DB10516,Casein,biolink:ComplexMolecularMixture,UNII:48268V50D5,NCIT:C73337,allergen-text
+DRUGBANK:DB10531,Flounder,biolink:ComplexMolecularMixture,UNII:F8PTG78KRB,,allergen-text
+DRUGBANK:DB10535,Karaya gum,biolink:ComplexMolecularMixture,UNII:73W9IQY50Q,NCIT:C83852,allergen-text
+DRUGBANK:DB10541,Lobster,biolink:ComplexMolecularMixture,UNII:6T362S6JF6,,allergen-text
+DRUGBANK:DB10544,Cultivated mushroom,biolink:ComplexMolecularMixture,UNII:54C8E6W6JY,NCIT:C71949,allergen-text
+DRUGBANK:DB10576,Vanilla,biolink:ComplexMolecularMixture,UNII:Q74T35078H,NCIT:C84613,allergen-text
+DRUGBANK:DB10580,Tea leaf,biolink:ComplexMolecularMixture,UNII:GH42T47V24,NCIT:C87164,allergen-text
+DRUGBANK:DB10603,Meriones unguiculatus skin,biolink:ComplexMolecularMixture,UNII:9WN2H714TG,,allergen-text
+DRUGBANK:DB10609,Bombyx mori fiber,biolink:ComplexMolecularMixture,UNII:6LK42KUV6W,NCIT:C79611,allergen-text
 DRUGBANK:DB10611,Allergenic extract- beef liver,biolink:ComplexMolecularMixture,,,allergen-text
-DRUGBANK:DB10622,European pilchard,biolink:ComplexMolecularMixture,76780GX08D,,allergen-text
-DRUGBANK:DB10666,Arabica coffee bean,biolink:ComplexMolecularMixture,3SW678MX72,,allergen-text
-DRUGBANK:DB10667,Tragacanth,biolink:ComplexMolecularMixture,2944357O2O,NCIT:C84223,allergen-text
-DRUGBANK:DB10670,Laurus nobilis,biolink:ComplexMolecularMixture,WS0Y3M85RF,,allergen-text
-DRUGBANK:DB10672,Clove,biolink:ComplexMolecularMixture,K48IKT5321,NCIT:C73872,allergen-text
-DRUGBANK:DB10688,Musca domestica,biolink:ComplexMolecularMixture,PV7823W303,NCIT:C87500,allergen-text
-DRUGBANK:DB10690,Ctenocephalides canis,biolink:ComplexMolecularMixture,LN7IM9RDEA,,allergen-text
-DRUGBANK:DB10691,Aedes taeniorhynchus,biolink:ComplexMolecularMixture,BN2DNW66IQ,NCIT:C87499,allergen-text
-DRUGBANK:DB10693,Ctenocephalides felis,biolink:ComplexMolecularMixture,5X9Y89ENI9,,allergen-text
-DRUGBANK:DB10697,Curvularia inaequalis,biolink:ComplexMolecularMixture,W042YAB8JC,,allergen-text
-DRUGBANK:DB10704,Ustilago avenae,biolink:ComplexMolecularMixture,YIH315U1TU,NCIT:C87521,allergen-text
-DRUGBANK:DB10708,Flax seed,biolink:ComplexMolecularMixture,4110YT348C,NCIT:C26650,allergen-text
-DRUGBANK:DB10812,Penicillium roqueforti,biolink:ComplexMolecularMixture,7ORP6R724L,,allergen-text
-DRUGBANK:DB10819,Myrothecium verrucaria,biolink:ComplexMolecularMixture,8Z8C642TPL,,allergen-text
-DRUGBANK:DB10845,Phycomyces blakesleeanus,biolink:ComplexMolecularMixture,41Y752Y34M,,allergen-text
-DRUGBANK:DB10866,Acheta domesticus,biolink:ComplexMolecularMixture,P9S201X6LH,,allergen-text
-DRUGBANK:DB10893,Melopsittacus undulatus feather,biolink:ComplexMolecularMixture,1XY644QKWG,,allergen-text
-DRUGBANK:DB10905,Safflower,biolink:ComplexMolecularMixture,4VBL71TY4Y,,allergen-text
-DRUGBANK:DB10964,Lolium perenne subsp. multiflorum pollen,biolink:ComplexMolecularMixture,VJI0WKK736,NCIT:C85390,allergen-text
-DRUGBANK:DB10977,Cocoa,biolink:ComplexMolecularMixture,D9108TZ9KG,NCIT:C121851,allergen-text
-DRUGBANK:DB10982,Sage,biolink:ComplexMolecularMixture,065C5D077J,NCIT:C71519,allergen-text
-DRUGBANK:DB11026,Solenopsis richteri,biolink:ComplexMolecularMixture,739684T11W,,allergen-text
-DRUGBANK:DB11087,Pyrethrum extract,biolink:ComplexMolecularMixture,ZUM06L90GV,,allergen-text
-DRUGBANK:DB13904,Cat dander extract,biolink:ComplexMolecularMixture,ZDN2AC0L08,NCIT:C84494,allergen-text
-DRUGBANK:DB14168,Sarocladium strictum,biolink:ComplexMolecularMixture,3F36V0451W,NCIT:C87527,allergen-text
-DRUGBANK:DB14171,Penicillium glaucum,biolink:ComplexMolecularMixture,E3X33F517C,,allergen-text
-DRUGBANK:DB14272,Rosemary,biolink:ComplexMolecularMixture,8JM482TI79,,allergen-text
-DRUGBANK:DB14276,Turmeric,biolink:ComplexMolecularMixture,856YO1Z64F,,allergen-text
-DRUGBANK:DB14312,Glycyrrhiza glabra,biolink:ComplexMolecularMixture,2788Z9758H,NCIT:C80295,allergen-text
-DRUGBANK:DB14313,Lawsonia inermis leaf,biolink:ComplexMolecularMixture,E5818YZ355,NCIT:C72518,allergen-text
-DRUGBANK:DB15542,Atlantic mackerel,biolink:ComplexMolecularMixture,HO615U86UJ,,allergen-text
-DRUGBANK:DB19080,Freneslerbart,biolink:ComplexMolecularMixture,AL6PH7LX2Y,NCIT:C190340,allergen-text
-DRUGBANK:DB19416,Mevonlerbart,biolink:ComplexMolecularMixture,SN982PAN4O,NCIT:C190485,allergen-text
-DRUGBANK:DB19417,Bremzalerbart,biolink:ComplexMolecularMixture,F8SN45N8HN,NCIT:C190442,allergen-text
-DRUGBANK:DB19418,Atisnolerbart,biolink:ComplexMolecularMixture,4S1L0R6IJG,NCIT:C190335,allergen-text
-DRUGBANK:DB00638,Inulin,biolink:Food,JOS53KRJ01,NCIT:C61506,ncit-food
-DRUGBANK:DB09341,"Dextrose, unspecified form",biolink:Food,IY9XDZ35W2,NCIT:C2831,ncit-food
-DRUGBANK:DB09344,Invert sugar,biolink:Food,ED959S6ACY,NCIT:C73853,ncit-food
-DRUGBANK:DB09422,Soybean oil,biolink:Food,241ATL177A,NCIT:C838,ncit-food
-DRUGBANK:DB09446,Safflower oil,biolink:Food,65UEH262IS,NCIT:C820,ncit-food
-DRUGBANK:DB09567,Olive oil,biolink:Food,6UYK2W1W1E,NCIT:C1175,ncit-food
-DRUGBANK:DB10344,Ginger,biolink:Food,C5529G5JPQ,NCIT:C66725,ncit-food
-DRUGBANK:DB10408,Cotton seed,biolink:Food,DI0ZRJ0MXN,NCIT:C73881,ncit-food
-DRUGBANK:DB10500,Almond,biolink:Food,3Z252A2K9G,NCIT:C74458,ncit-food
-DRUGBANK:DB10501,Apple,biolink:Food,B423VGH5S9,NCIT:C71985,ncit-food
-DRUGBANK:DB10502,Apricot,biolink:Food,269CJD5GZ9,NCIT:C71986,ncit-food
-DRUGBANK:DB10503,Asparagus,biolink:Food,Z1EJP3037Z,NCIT:C71987,ncit-food
-DRUGBANK:DB10505,Banana,biolink:Food,4AJZ4765R9,NCIT:C71989,ncit-food
-DRUGBANK:DB10506,Barley,biolink:Food,5PWM7YLI7R,NCIT:C73935,ncit-food
-DRUGBANK:DB10508,String bean,biolink:Food,N9D69B2Q7Y,NCIT:C71951,ncit-food
-DRUGBANK:DB10509,Beef,biolink:Food,4PIB2155QP,NCIT:C71932,ncit-food
-DRUGBANK:DB10510,Brazil nut,biolink:Food,XKR79OET1K,NCIT:C72048,ncit-food
-DRUGBANK:DB10511,Broccoli,biolink:Food,UOI4FT57BZ,NCIT:C71997,ncit-food
-DRUGBANK:DB10512,Buckwheat,biolink:Food,N0Y68724R3,NCIT:C73936,ncit-food
-DRUGBANK:DB10513,Cabbage,biolink:Food,GW0W1Y9I97,NCIT:C71999,ncit-food
-DRUGBANK:DB10514,Cantaloupe,biolink:Food,8QF5D5H6UH,NCIT:C72057,ncit-food
-DRUGBANK:DB10515,Carrot,biolink:Food,L56Z1JK48B,NCIT:C72000,ncit-food
-DRUGBANK:DB10517,Celery,biolink:Food,44IDY6DTKX,NCIT:C71994,ncit-food
-DRUGBANK:DB10518,Cherry,biolink:Food,BUC5I9595W,NCIT:C65311,ncit-food
-DRUGBANK:DB10523,Coconut,biolink:Food,3RT3536DHY,NCIT:C71966,ncit-food
-DRUGBANK:DB10525,Coffee bean,biolink:Food,JFH385Y744,NCIT:C73875,ncit-food
-DRUGBANK:DB10527,Cucumber,biolink:Food,YY7C30VXJT,NCIT:C71968,ncit-food
-DRUGBANK:DB10528,Egg white,biolink:Food,3E0I92Z2GR,NCIT:C71956,ncit-food
-DRUGBANK:DB10529,Egg,biolink:Food,291P45F896,NCIT:C72064,ncit-food
-DRUGBANK:DB10530,Egg yolk,biolink:Food,4IPS17B70T,NCIT:C71955,ncit-food
-DRUGBANK:DB10533,Grape,biolink:Food,6X543N684K,NCIT:C71982,ncit-food
-DRUGBANK:DB10534,Grapefruit,biolink:Food,O82C39RR8C,NCIT:C71974,ncit-food
-DRUGBANK:DB10536,Honeydew melon,biolink:Food,RN8P45F92A,NCIT:C71979,ncit-food
-DRUGBANK:DB10537,Lamb,biolink:Food,FOF26T73HA,NCIT:C71638,ncit-food
-DRUGBANK:DB10538,Lemon,biolink:Food,24RS0A988O,NCIT:C72005,ncit-food
-DRUGBANK:DB10539,Lettuce,biolink:Food,5PO6NN3RRJ,NCIT:C72028,ncit-food
-DRUGBANK:DB10540,Lima bean,biolink:Food,112YH1ZMX2,NCIT:C71950,ncit-food
-DRUGBANK:DB10542,Goat milk,biolink:Food,XE5K5I4RP7,NCIT:C72806,ncit-food
-DRUGBANK:DB10543,Cow milk,biolink:Food,917J3173FT,NCIT:C66153,ncit-food
-DRUGBANK:DB10545,Mustard seed,biolink:Food,58RXI817UT,NCIT:C73907,ncit-food
-DRUGBANK:DB10546,Oat,biolink:Food,Z6J799EAJK,NCIT:C101357,ncit-food
-DRUGBANK:DB10547,Black olive,biolink:Food,2M6QWV94OC,NCIT:C71983,ncit-food
-DRUGBANK:DB10548,Onion,biolink:Food,492225Q21H,NCIT:C72035,ncit-food
-DRUGBANK:DB10549,Orange,biolink:Food,5EVU04N5QU,NCIT:C65208,ncit-food
-DRUGBANK:DB10550,Oyster,biolink:Food,0I77C68AWS,NCIT:C85050,ncit-food
-DRUGBANK:DB10551,Pea,biolink:Food,W4X7H8GYFM,NCIT:C72056,ncit-food
-DRUGBANK:DB10552,Peach,biolink:Food,3OKE88I3QG,NCIT:C72027,ncit-food
-DRUGBANK:DB10553,Peanut,biolink:Food,QE1QX6B99R,NCIT:C72071,ncit-food
-DRUGBANK:DB10554,Pear,biolink:Food,2ZN8DWC0YF,NCIT:C72039,ncit-food
-DRUGBANK:DB10555,Pecan,biolink:Food,F14P91GB5F,NCIT:C72051,ncit-food
-DRUGBANK:DB10556,Green bell pepper,biolink:Food,4J4DOU3HEK,NCIT:C71964,ncit-food
-DRUGBANK:DB10558,Pineapple,biolink:Food,2A88ZO081O,NCIT:C66390,ncit-food
-DRUGBANK:DB10559,Pistachio,biolink:Food,6815CPT6ZJ,NCIT:C72053,ncit-food
-DRUGBANK:DB10560,Plum,biolink:Food,67M3EQ6BE1,NCIT:C72044,ncit-food
-DRUGBANK:DB10561,Pork,biolink:Food,O138UB266J,NCIT:C71958,ncit-food
-DRUGBANK:DB10562,Potato,biolink:Food,CFE1S8DYWD,NCIT:C72045,ncit-food
-DRUGBANK:DB10563,Rice,biolink:Food,659G217HPG,NCIT:C73972,ncit-food
-DRUGBANK:DB10564,Rye,biolink:Food,0R4AQI398X,NCIT:C85249,ncit-food
-DRUGBANK:DB10566,Sesame seed,biolink:Food,7Y1255HVXR,NCIT:C71942,ncit-food
-DRUGBANK:DB10567,Shrimp,biolink:Food,1891LE191T,NCIT:C71914,ncit-food
-DRUGBANK:DB10568,Soybean,biolink:Food,L7HT8F1ZOD,NCIT:C72010,ncit-food
-DRUGBANK:DB10569,Spinach,biolink:Food,6WO75C6WVB,NCIT:C72012,ncit-food
-DRUGBANK:DB10570,Squash,biolink:Food,9961HBA483,NCIT:C72013,ncit-food
-DRUGBANK:DB10571,Strawberry,biolink:Food,4J2TY8Y81V,NCIT:C66565,ncit-food
-DRUGBANK:DB10572,Corn,biolink:Food,0N8672707O,NCIT:C72066,ncit-food
-DRUGBANK:DB10573,Tomato,biolink:Food,Z4KHF2C175,NCIT:C72019,ncit-food
-DRUGBANK:DB10574,Tuna,biolink:Food,V2T3IHT3E2,NCIT:C71908,ncit-food
-DRUGBANK:DB10575,Turkey,biolink:Food,8E9NT44R8I,NCIT:C73855,ncit-food
-DRUGBANK:DB10578,Watermelon,biolink:Food,231473QB6R,NCIT:C72022,ncit-food
-DRUGBANK:DB10579,Wheat,biolink:Food,4J2I0SN84Y,NCIT:C74546,ncit-food
-DRUGBANK:DB10610,Duck,biolink:Food,28ON068RWM,NCIT:C73850,ncit-food
-DRUGBANK:DB10612,Veal,biolink:Food,0X5GW3050M,NCIT:C71937,ncit-food
-DRUGBANK:DB10617,Herring,biolink:Food,34EX28T4C1,NCIT:C71926,ncit-food
-DRUGBANK:DB10618,Mackerel,biolink:Food,CYO6K3VM7F,NCIT:C71641,ncit-food
-DRUGBANK:DB10620,Red snapper,biolink:Food,WF621S7K14,NCIT:C71917,ncit-food
-DRUGBANK:DB10623,Scallop,biolink:Food,D380C73WOU,NCIT:C71916,ncit-food
-DRUGBANK:DB10625,Swordfish,biolink:Food,01695YPV36,NCIT:C71911,ncit-food
-DRUGBANK:DB10626,Trout,biolink:Food,7TI7U5PF2U,NCIT:C71910,ncit-food
-DRUGBANK:DB10627,White fish,biolink:Food,IA4C8ND0DT,NCIT:C71907,ncit-food
-DRUGBANK:DB10628,Blackberry,biolink:Food,8A6OMU3I8L,NCIT:C71601,ncit-food
-DRUGBANK:DB10629,Blueberry,biolink:Food,253RUG1X1A,NCIT:C71996,ncit-food
-DRUGBANK:DB10631,Cranberry,biolink:Food,0MVO31Q3QS,NCIT:C28943,ncit-food
-DRUGBANK:DB10632,Date,biolink:Food,H3O7QI5HY7,NCIT:C72063,ncit-food
-DRUGBANK:DB10633,Fig,biolink:Food,TGD87RII2U,NCIT:C71971,ncit-food
-DRUGBANK:DB10635,Lime (citrus),biolink:Food,8CZS546954,NCIT:C72002,ncit-food
-DRUGBANK:DB10636,Raspberry,biolink:Food,4N14V5R27W,NCIT:C72036,ncit-food
-DRUGBANK:DB10637,Tangerine,biolink:Food,KH3E3096OO,NCIT:C72017,ncit-food
-DRUGBANK:DB10639,Kidney bean,biolink:Food,M98C8416QO,NCIT:C82900,ncit-food
-DRUGBANK:DB10640,Beet,biolink:Food,N487KM8COK,NCIT:C72003,ncit-food
-DRUGBANK:DB10641,Kiwi fruit,biolink:Food,71ES77LGJC,NCIT:C71981,ncit-food
-DRUGBANK:DB10642,Brussels sprout,biolink:Food,KHX46H31F8,NCIT:C71998,ncit-food
-DRUGBANK:DB10643,Cauliflower,biolink:Food,138LUT2DWV,NCIT:C72055,ncit-food
-DRUGBANK:DB10644,Eggplant,biolink:Food,W5K7RAS4VK,NCIT:C71969,ncit-food
-DRUGBANK:DB10646,Green olive,biolink:Food,6HD2W46UEG,NCIT:C72034,ncit-food
-DRUGBANK:DB10647,Parsley,biolink:Food,58FMD0Q0EV,NCIT:C72037,ncit-food
-DRUGBANK:DB10648,Sweet potato,biolink:Food,M9WGG9Z9GK,NCIT:C72015,ncit-food
-DRUGBANK:DB10651,Rhubarb,biolink:Food,G280W4MW6E,NCIT:C74269,ncit-food
-DRUGBANK:DB10652,Turnip,biolink:Food,Z38C7FBM49,NCIT:C72020,ncit-food
-DRUGBANK:DB10653,Cashew,biolink:Food,3H5U5CX7KO,NCIT:C72049,ncit-food
-DRUGBANK:DB10654,Hazelnut,biolink:Food,IW0OM96F6O,NCIT:C72050,ncit-food
-DRUGBANK:DB10655,Macadamia nut,biolink:Food,Y5432RGW8N,NCIT:C71640,ncit-food
-DRUGBANK:DB10656,Nectarine,biolink:Food,65KD9TD4C3,NCIT:C72032,ncit-food
-DRUGBANK:DB10657,Mango,biolink:Food,I629I3NR86,NCIT:C71637,ncit-food
-DRUGBANK:DB10658,Papaya,biolink:Food,KU94FIY6JB,NCIT:C72047,ncit-food
-DRUGBANK:DB10659,Leek,biolink:Food,RCU76P419D,NCIT:C71973,ncit-food
-DRUGBANK:DB10660,Okra,biolink:Food,51ME2L7STL,NCIT:C72033,ncit-food
-DRUGBANK:DB10662,Chickpea,biolink:Food,N91637DNW9,NCIT:C71992,ncit-food
-DRUGBANK:DB10663,Black-eyed pea,biolink:Food,786YV7B602,NCIT:C71995,ncit-food
-DRUGBANK:DB10664,Watercress,biolink:Food,K5877MW0LE,NCIT:C75666,ncit-food
-DRUGBANK:DB10681,Poppy seed,biolink:Food,60RO23IR87,NCIT:C73910,ncit-food
-DRUGBANK:DB10830,Mung bean,biolink:Food,1LIB31N73G,NCIT:C28261,ncit-food
-DRUGBANK:DB10864,Cumin,biolink:Food,AG9BNA51DQ,NCIT:C74527,ncit-food
-DRUGBANK:DB10875,Concord grape,biolink:Food,T3PW93IB4Q,NCIT:C72007,ncit-food
-DRUGBANK:DB10884,Millet seed,biolink:Food,TJR6B3R47P,NCIT:C73905,ncit-food
-DRUGBANK:DB10885,Mustard greens,biolink:Food,5M338IN22E,NCIT:C72031,ncit-food
-DRUGBANK:DB10890,Red bell pepper,biolink:Food,E917XHH50V,NCIT:C72006,ncit-food
-DRUGBANK:DB10891,Perch,biolink:Food,50Y07N9X03,NCIT:C71924,ncit-food
-DRUGBANK:DB10892,Pumpkin,biolink:Food,SYW0QUB89Y,NCIT:C72016,ncit-food
-DRUGBANK:DB10897,Capsicum,biolink:Food,00UK7646FG,NCIT:C75665,ncit-food
-DRUGBANK:DB10907,Sunflower seed,biolink:Food,R9N3379M4Z,NCIT:C71938,ncit-food
-DRUGBANK:DB10913,"Starch, tapioca",biolink:Food,24SC3U704I,NCIT:C80781,ncit-food
-DRUGBANK:DB10918,Venison,biolink:Food,85EA9K88OY,NCIT:C71936,ncit-food
-DRUGBANK:DB10919,Black walnut,biolink:Food,02WM57RXZJ,NCIT:C72054,ncit-food
-DRUGBANK:DB10981,Radish,biolink:Food,EM5RP35463,NCIT:C72014,ncit-food
-DRUGBANK:DB11008,Poultry,biolink:Food,L7WXO2P5HM,NCIT:C53475,ncit-food
-DRUGBANK:DB11009,"Quahog, unspecified",biolink:Food,226LY0AFR9,NCIT:C71920,ncit-food
-DRUGBANK:DB11010,"Cod, unspecified",biolink:Food,8D6Q5LNG3D,NCIT:C71921,ncit-food
-DRUGBANK:DB11011,Crab leg,biolink:Food,S1VF61QLO9,NCIT:C71929,ncit-food
-DRUGBANK:DB11014,"Salmon, unspecified",biolink:Food,6122W2M0GB,NCIT:C71905,ncit-food
-DRUGBANK:DB11017,Yeast,biolink:Food,3NY3SM6B8U,NCIT:C66676,ncit-food
-DRUGBANK:DB11094,Vitamin D,biolink:Food,9VU1KI44GP,NCIT:C941,ncit-food
-DRUGBANK:DB11133,Omega-3 fatty acids,biolink:Food,71M78END5S,NCIT:C493,ncit-food
-DRUGBANK:DB11158,Pectin,biolink:Food,89NA02M4RX,NCIT:C63647,ncit-food
-DRUGBANK:DB11172,Sesame oil,biolink:Food,QX10HYY4QV,NCIT:C66537,ncit-food
-DRUGBANK:DB11242,Gelatin,biolink:Food,2G86QN327L,NCIT:C65802,ncit-food
-DRUGBANK:DB11251,Tocopherol,biolink:Food,R0ZB2556P8,NCIT:C68313,ncit-food
-DRUGBANK:DB11253,Xanthan gum,biolink:Food,TTV12P4NEE,NCIT:C84244,ncit-food
-DRUGBANK:DB11266,Sea salt,biolink:Food,87GE52P74G,NCIT:C75874,ncit-food
-DRUGBANK:DB11302,Hydrogenated soybean oil,biolink:Food,A2M91M918C,NCIT:C83765,ncit-food
-DRUGBANK:DB11599,"Starch, corn",biolink:Food,O8232NY3SJ,NCIT:C80778,ncit-food
-DRUGBANK:DB12583,Maltodextrin,biolink:Food,7CVR7L4A2D,NCIT:C68474,ncit-food
-DRUGBANK:DB13168,Omega-6 fatty acids,biolink:Food,116Z6MZN1M,NCIT:C2563,ncit-food
-DRUGBANK:DB13195,Horse chestnut,biolink:Food,3C18L6RJAZ,NCIT:C80286,ncit-food
-DRUGBANK:DB13964,Peanut oil,biolink:Food,5TL50QU0W4,NCIT:C66332,ncit-food
-DRUGBANK:DB14161,"Lecithin, soybean",biolink:Food,1DI56QDM62,NCIT:C80292,ncit-food
-DRUGBANK:DB14233,Egg phospholipids,biolink:Food,1Z74184RGV,NCIT:C79998,ncit-food
-DRUGBANK:DB14241,"Caviar, unspecified",biolink:Food,020K6HLU0O,NCIT:C72058,ncit-food
-DRUGBANK:DB14242,Honey,biolink:Food,Y9H1V576FH,NCIT:C65859,ncit-food
-DRUGBANK:DB14317,Pomegranate,biolink:Food,56687D1Z4D,NCIT:C73929,ncit-food
-DRUGBANK:DB14322,Coconut oil,biolink:Food,Q9L0O73W7L,NCIT:C65347,ncit-food
-DRUGBANK:DB14329,Sunflower oil,biolink:Food,3W1JG795YI,NCIT:C1241,ncit-food
-DRUGBANK:DB14694,Beef liver,biolink:Food,W8N8R55022,NCIT:C75669,ncit-food
-DRUGBANK:DB14709,Bean,biolink:Food,8WB9PV3YW5,NCIT:C71990,ncit-food
-DRUGBANK:DB14758,Catfish,biolink:Food,EFN1AL1YP0,NCIT:C71919,ncit-food
-DRUGBANK:DB14759,Red pepper,biolink:Food,6M47G7C4SY,NCIT:C73793,ncit-food
-DRUGBANK:DB14836,Polydextrose,biolink:Food,VH2XOU12IE,NCIT:C81624,ncit-food
-DRUGBANK:DB15216,Amylose,biolink:Food,7TDQ74Y18L,NCIT:C68489,ncit-food
-DRUGBANK:DB15611,Muskmelon,biolink:Food,ZV095H5633,NCIT:C72030,ncit-food
-DRUGBANK:DB15615,Fennel,biolink:Food,557II4LLC3,NCIT:C71970,ncit-food
-DRUGBANK:DB16558,Rosa canina fruit,biolink:Food,3TNW8D08V3,NCIT:C71789,ncit-food
-DRUGBANK:DB16638,Cnidium monnieri fruit,biolink:Food,V1IA3S3CUS,NCIT:C73874,ncit-food
-DRUGBANK:DB18685,Whey,biolink:Food,8617Z5FMF6,NCIT:C71947,ncit-food
+DRUGBANK:DB10622,European pilchard,biolink:ComplexMolecularMixture,UNII:76780GX08D,,allergen-text
+DRUGBANK:DB10666,Arabica coffee bean,biolink:ComplexMolecularMixture,UNII:3SW678MX72,,allergen-text
+DRUGBANK:DB10667,Tragacanth,biolink:ComplexMolecularMixture,UNII:2944357O2O,NCIT:C84223,allergen-text
+DRUGBANK:DB10670,Laurus nobilis,biolink:ComplexMolecularMixture,UNII:WS0Y3M85RF,,allergen-text
+DRUGBANK:DB10672,Clove,biolink:ComplexMolecularMixture,UNII:K48IKT5321,NCIT:C73872,allergen-text
+DRUGBANK:DB10688,Musca domestica,biolink:ComplexMolecularMixture,UNII:PV7823W303,NCIT:C87500,allergen-text
+DRUGBANK:DB10690,Ctenocephalides canis,biolink:ComplexMolecularMixture,UNII:LN7IM9RDEA,,allergen-text
+DRUGBANK:DB10691,Aedes taeniorhynchus,biolink:ComplexMolecularMixture,UNII:BN2DNW66IQ,NCIT:C87499,allergen-text
+DRUGBANK:DB10693,Ctenocephalides felis,biolink:ComplexMolecularMixture,UNII:5X9Y89ENI9,,allergen-text
+DRUGBANK:DB10697,Curvularia inaequalis,biolink:ComplexMolecularMixture,UNII:W042YAB8JC,,allergen-text
+DRUGBANK:DB10704,Ustilago avenae,biolink:ComplexMolecularMixture,UNII:YIH315U1TU,NCIT:C87521,allergen-text
+DRUGBANK:DB10708,Flax seed,biolink:ComplexMolecularMixture,UNII:4110YT348C,NCIT:C26650,allergen-text
+DRUGBANK:DB10812,Penicillium roqueforti,biolink:ComplexMolecularMixture,UNII:7ORP6R724L,,allergen-text
+DRUGBANK:DB10819,Myrothecium verrucaria,biolink:ComplexMolecularMixture,UNII:8Z8C642TPL,,allergen-text
+DRUGBANK:DB10845,Phycomyces blakesleeanus,biolink:ComplexMolecularMixture,UNII:41Y752Y34M,,allergen-text
+DRUGBANK:DB10866,Acheta domesticus,biolink:ComplexMolecularMixture,UNII:P9S201X6LH,,allergen-text
+DRUGBANK:DB10893,Melopsittacus undulatus feather,biolink:ComplexMolecularMixture,UNII:1XY644QKWG,,allergen-text
+DRUGBANK:DB10905,Safflower,biolink:ComplexMolecularMixture,UNII:4VBL71TY4Y,,allergen-text
+DRUGBANK:DB10964,Lolium perenne subsp. multiflorum pollen,biolink:ComplexMolecularMixture,UNII:VJI0WKK736,NCIT:C85390,allergen-text
+DRUGBANK:DB10977,Cocoa,biolink:ComplexMolecularMixture,UNII:D9108TZ9KG,NCIT:C121851,allergen-text
+DRUGBANK:DB10982,Sage,biolink:ComplexMolecularMixture,UNII:065C5D077J,NCIT:C71519,allergen-text
+DRUGBANK:DB11026,Solenopsis richteri,biolink:ComplexMolecularMixture,UNII:739684T11W,,allergen-text
+DRUGBANK:DB11087,Pyrethrum extract,biolink:ComplexMolecularMixture,UNII:ZUM06L90GV,,allergen-text
+DRUGBANK:DB13904,Cat dander extract,biolink:ComplexMolecularMixture,UNII:ZDN2AC0L08,NCIT:C84494,allergen-text
+DRUGBANK:DB14168,Sarocladium strictum,biolink:ComplexMolecularMixture,UNII:3F36V0451W,NCIT:C87527,allergen-text
+DRUGBANK:DB14171,Penicillium glaucum,biolink:ComplexMolecularMixture,UNII:E3X33F517C,,allergen-text
+DRUGBANK:DB14272,Rosemary,biolink:ComplexMolecularMixture,UNII:8JM482TI79,,allergen-text
+DRUGBANK:DB14276,Turmeric,biolink:ComplexMolecularMixture,UNII:856YO1Z64F,,allergen-text
+DRUGBANK:DB14312,Glycyrrhiza glabra,biolink:ComplexMolecularMixture,UNII:2788Z9758H,NCIT:C80295,allergen-text
+DRUGBANK:DB14313,Lawsonia inermis leaf,biolink:ComplexMolecularMixture,UNII:E5818YZ355,NCIT:C72518,allergen-text
+DRUGBANK:DB15542,Atlantic mackerel,biolink:ComplexMolecularMixture,UNII:HO615U86UJ,,allergen-text
+DRUGBANK:DB19080,Freneslerbart,biolink:ComplexMolecularMixture,UNII:AL6PH7LX2Y,NCIT:C190340,allergen-text
+DRUGBANK:DB19416,Mevonlerbart,biolink:ComplexMolecularMixture,UNII:SN982PAN4O,NCIT:C190485,allergen-text
+DRUGBANK:DB19417,Bremzalerbart,biolink:ComplexMolecularMixture,UNII:F8SN45N8HN,NCIT:C190442,allergen-text
+DRUGBANK:DB19418,Atisnolerbart,biolink:ComplexMolecularMixture,UNII:4S1L0R6IJG,NCIT:C190335,allergen-text
+DRUGBANK:DB00638,Inulin,biolink:Food,UNII:JOS53KRJ01,NCIT:C61506,ncit-food
+DRUGBANK:DB09341,"Dextrose, unspecified form",biolink:Food,UNII:IY9XDZ35W2,NCIT:C2831,ncit-food
+DRUGBANK:DB09344,Invert sugar,biolink:Food,UNII:ED959S6ACY,NCIT:C73853,ncit-food
+DRUGBANK:DB09422,Soybean oil,biolink:Food,UNII:241ATL177A,NCIT:C838,ncit-food
+DRUGBANK:DB09446,Safflower oil,biolink:Food,UNII:65UEH262IS,NCIT:C820,ncit-food
+DRUGBANK:DB09567,Olive oil,biolink:Food,UNII:6UYK2W1W1E,NCIT:C1175,ncit-food
+DRUGBANK:DB10344,Ginger,biolink:Food,UNII:C5529G5JPQ,NCIT:C66725,ncit-food
+DRUGBANK:DB10408,Cotton seed,biolink:Food,UNII:DI0ZRJ0MXN,NCIT:C73881,ncit-food
+DRUGBANK:DB10500,Almond,biolink:Food,UNII:3Z252A2K9G,NCIT:C74458,ncit-food
+DRUGBANK:DB10501,Apple,biolink:Food,UNII:B423VGH5S9,NCIT:C71985,ncit-food
+DRUGBANK:DB10502,Apricot,biolink:Food,UNII:269CJD5GZ9,NCIT:C71986,ncit-food
+DRUGBANK:DB10503,Asparagus,biolink:Food,UNII:Z1EJP3037Z,NCIT:C71987,ncit-food
+DRUGBANK:DB10505,Banana,biolink:Food,UNII:4AJZ4765R9,NCIT:C71989,ncit-food
+DRUGBANK:DB10506,Barley,biolink:Food,UNII:5PWM7YLI7R,NCIT:C73935,ncit-food
+DRUGBANK:DB10508,String bean,biolink:Food,UNII:N9D69B2Q7Y,NCIT:C71951,ncit-food
+DRUGBANK:DB10509,Beef,biolink:Food,UNII:4PIB2155QP,NCIT:C71932,ncit-food
+DRUGBANK:DB10510,Brazil nut,biolink:Food,UNII:XKR79OET1K,NCIT:C72048,ncit-food
+DRUGBANK:DB10511,Broccoli,biolink:Food,UNII:UOI4FT57BZ,NCIT:C71997,ncit-food
+DRUGBANK:DB10512,Buckwheat,biolink:Food,UNII:N0Y68724R3,NCIT:C73936,ncit-food
+DRUGBANK:DB10513,Cabbage,biolink:Food,UNII:GW0W1Y9I97,NCIT:C71999,ncit-food
+DRUGBANK:DB10514,Cantaloupe,biolink:Food,UNII:8QF5D5H6UH,NCIT:C72057,ncit-food
+DRUGBANK:DB10515,Carrot,biolink:Food,UNII:L56Z1JK48B,NCIT:C72000,ncit-food
+DRUGBANK:DB10517,Celery,biolink:Food,UNII:44IDY6DTKX,NCIT:C71994,ncit-food
+DRUGBANK:DB10518,Cherry,biolink:Food,UNII:BUC5I9595W,NCIT:C65311,ncit-food
+DRUGBANK:DB10523,Coconut,biolink:Food,UNII:3RT3536DHY,NCIT:C71966,ncit-food
+DRUGBANK:DB10525,Coffee bean,biolink:Food,UNII:JFH385Y744,NCIT:C73875,ncit-food
+DRUGBANK:DB10527,Cucumber,biolink:Food,UNII:YY7C30VXJT,NCIT:C71968,ncit-food
+DRUGBANK:DB10528,Egg white,biolink:Food,UNII:3E0I92Z2GR,NCIT:C71956,ncit-food
+DRUGBANK:DB10529,Egg,biolink:Food,UNII:291P45F896,NCIT:C72064,ncit-food
+DRUGBANK:DB10530,Egg yolk,biolink:Food,UNII:4IPS17B70T,NCIT:C71955,ncit-food
+DRUGBANK:DB10533,Grape,biolink:Food,UNII:6X543N684K,NCIT:C71982,ncit-food
+DRUGBANK:DB10534,Grapefruit,biolink:Food,UNII:O82C39RR8C,NCIT:C71974,ncit-food
+DRUGBANK:DB10536,Honeydew melon,biolink:Food,UNII:RN8P45F92A,NCIT:C71979,ncit-food
+DRUGBANK:DB10537,Lamb,biolink:Food,UNII:FOF26T73HA,NCIT:C71638,ncit-food
+DRUGBANK:DB10538,Lemon,biolink:Food,UNII:24RS0A988O,NCIT:C72005,ncit-food
+DRUGBANK:DB10539,Lettuce,biolink:Food,UNII:5PO6NN3RRJ,NCIT:C72028,ncit-food
+DRUGBANK:DB10540,Lima bean,biolink:Food,UNII:112YH1ZMX2,NCIT:C71950,ncit-food
+DRUGBANK:DB10542,Goat milk,biolink:Food,UNII:XE5K5I4RP7,NCIT:C72806,ncit-food
+DRUGBANK:DB10543,Cow milk,biolink:Food,UNII:917J3173FT,NCIT:C66153,ncit-food
+DRUGBANK:DB10545,Mustard seed,biolink:Food,UNII:58RXI817UT,NCIT:C73907,ncit-food
+DRUGBANK:DB10546,Oat,biolink:Food,UNII:Z6J799EAJK,NCIT:C101357,ncit-food
+DRUGBANK:DB10547,Black olive,biolink:Food,UNII:2M6QWV94OC,NCIT:C71983,ncit-food
+DRUGBANK:DB10548,Onion,biolink:Food,UNII:492225Q21H,NCIT:C72035,ncit-food
+DRUGBANK:DB10549,Orange,biolink:Food,UNII:5EVU04N5QU,NCIT:C65208,ncit-food
+DRUGBANK:DB10550,Oyster,biolink:Food,UNII:0I77C68AWS,NCIT:C85050,ncit-food
+DRUGBANK:DB10551,Pea,biolink:Food,UNII:W4X7H8GYFM,NCIT:C72056,ncit-food
+DRUGBANK:DB10552,Peach,biolink:Food,UNII:3OKE88I3QG,NCIT:C72027,ncit-food
+DRUGBANK:DB10553,Peanut,biolink:Food,UNII:QE1QX6B99R,NCIT:C72071,ncit-food
+DRUGBANK:DB10554,Pear,biolink:Food,UNII:2ZN8DWC0YF,NCIT:C72039,ncit-food
+DRUGBANK:DB10555,Pecan,biolink:Food,UNII:F14P91GB5F,NCIT:C72051,ncit-food
+DRUGBANK:DB10556,Green bell pepper,biolink:Food,UNII:4J4DOU3HEK,NCIT:C71964,ncit-food
+DRUGBANK:DB10558,Pineapple,biolink:Food,UNII:2A88ZO081O,NCIT:C66390,ncit-food
+DRUGBANK:DB10559,Pistachio,biolink:Food,UNII:6815CPT6ZJ,NCIT:C72053,ncit-food
+DRUGBANK:DB10560,Plum,biolink:Food,UNII:67M3EQ6BE1,NCIT:C72044,ncit-food
+DRUGBANK:DB10561,Pork,biolink:Food,UNII:O138UB266J,NCIT:C71958,ncit-food
+DRUGBANK:DB10562,Potato,biolink:Food,UNII:CFE1S8DYWD,NCIT:C72045,ncit-food
+DRUGBANK:DB10563,Rice,biolink:Food,UNII:659G217HPG,NCIT:C73972,ncit-food
+DRUGBANK:DB10564,Rye,biolink:Food,UNII:0R4AQI398X,NCIT:C85249,ncit-food
+DRUGBANK:DB10566,Sesame seed,biolink:Food,UNII:7Y1255HVXR,NCIT:C71942,ncit-food
+DRUGBANK:DB10567,Shrimp,biolink:Food,UNII:1891LE191T,NCIT:C71914,ncit-food
+DRUGBANK:DB10568,Soybean,biolink:Food,UNII:L7HT8F1ZOD,NCIT:C72010,ncit-food
+DRUGBANK:DB10569,Spinach,biolink:Food,UNII:6WO75C6WVB,NCIT:C72012,ncit-food
+DRUGBANK:DB10570,Squash,biolink:Food,UNII:9961HBA483,NCIT:C72013,ncit-food
+DRUGBANK:DB10571,Strawberry,biolink:Food,UNII:4J2TY8Y81V,NCIT:C66565,ncit-food
+DRUGBANK:DB10572,Corn,biolink:Food,UNII:0N8672707O,NCIT:C72066,ncit-food
+DRUGBANK:DB10573,Tomato,biolink:Food,UNII:Z4KHF2C175,NCIT:C72019,ncit-food
+DRUGBANK:DB10574,Tuna,biolink:Food,UNII:V2T3IHT3E2,NCIT:C71908,ncit-food
+DRUGBANK:DB10575,Turkey,biolink:Food,UNII:8E9NT44R8I,NCIT:C73855,ncit-food
+DRUGBANK:DB10578,Watermelon,biolink:Food,UNII:231473QB6R,NCIT:C72022,ncit-food
+DRUGBANK:DB10579,Wheat,biolink:Food,UNII:4J2I0SN84Y,NCIT:C74546,ncit-food
+DRUGBANK:DB10610,Duck,biolink:Food,UNII:28ON068RWM,NCIT:C73850,ncit-food
+DRUGBANK:DB10612,Veal,biolink:Food,UNII:0X5GW3050M,NCIT:C71937,ncit-food
+DRUGBANK:DB10617,Herring,biolink:Food,UNII:34EX28T4C1,NCIT:C71926,ncit-food
+DRUGBANK:DB10618,Mackerel,biolink:Food,UNII:CYO6K3VM7F,NCIT:C71641,ncit-food
+DRUGBANK:DB10620,Red snapper,biolink:Food,UNII:WF621S7K14,NCIT:C71917,ncit-food
+DRUGBANK:DB10623,Scallop,biolink:Food,UNII:D380C73WOU,NCIT:C71916,ncit-food
+DRUGBANK:DB10625,Swordfish,biolink:Food,UNII:01695YPV36,NCIT:C71911,ncit-food
+DRUGBANK:DB10626,Trout,biolink:Food,UNII:7TI7U5PF2U,NCIT:C71910,ncit-food
+DRUGBANK:DB10627,White fish,biolink:Food,UNII:IA4C8ND0DT,NCIT:C71907,ncit-food
+DRUGBANK:DB10628,Blackberry,biolink:Food,UNII:8A6OMU3I8L,NCIT:C71601,ncit-food
+DRUGBANK:DB10629,Blueberry,biolink:Food,UNII:253RUG1X1A,NCIT:C71996,ncit-food
+DRUGBANK:DB10631,Cranberry,biolink:Food,UNII:0MVO31Q3QS,NCIT:C28943,ncit-food
+DRUGBANK:DB10632,Date,biolink:Food,UNII:H3O7QI5HY7,NCIT:C72063,ncit-food
+DRUGBANK:DB10633,Fig,biolink:Food,UNII:TGD87RII2U,NCIT:C71971,ncit-food
+DRUGBANK:DB10635,Lime (citrus),biolink:Food,UNII:8CZS546954,NCIT:C72002,ncit-food
+DRUGBANK:DB10636,Raspberry,biolink:Food,UNII:4N14V5R27W,NCIT:C72036,ncit-food
+DRUGBANK:DB10637,Tangerine,biolink:Food,UNII:KH3E3096OO,NCIT:C72017,ncit-food
+DRUGBANK:DB10639,Kidney bean,biolink:Food,UNII:M98C8416QO,NCIT:C82900,ncit-food
+DRUGBANK:DB10640,Beet,biolink:Food,UNII:N487KM8COK,NCIT:C72003,ncit-food
+DRUGBANK:DB10641,Kiwi fruit,biolink:Food,UNII:71ES77LGJC,NCIT:C71981,ncit-food
+DRUGBANK:DB10642,Brussels sprout,biolink:Food,UNII:KHX46H31F8,NCIT:C71998,ncit-food
+DRUGBANK:DB10643,Cauliflower,biolink:Food,UNII:138LUT2DWV,NCIT:C72055,ncit-food
+DRUGBANK:DB10644,Eggplant,biolink:Food,UNII:W5K7RAS4VK,NCIT:C71969,ncit-food
+DRUGBANK:DB10646,Green olive,biolink:Food,UNII:6HD2W46UEG,NCIT:C72034,ncit-food
+DRUGBANK:DB10647,Parsley,biolink:Food,UNII:58FMD0Q0EV,NCIT:C72037,ncit-food
+DRUGBANK:DB10648,Sweet potato,biolink:Food,UNII:M9WGG9Z9GK,NCIT:C72015,ncit-food
+DRUGBANK:DB10651,Rhubarb,biolink:Food,UNII:G280W4MW6E,NCIT:C74269,ncit-food
+DRUGBANK:DB10652,Turnip,biolink:Food,UNII:Z38C7FBM49,NCIT:C72020,ncit-food
+DRUGBANK:DB10653,Cashew,biolink:Food,UNII:3H5U5CX7KO,NCIT:C72049,ncit-food
+DRUGBANK:DB10654,Hazelnut,biolink:Food,UNII:IW0OM96F6O,NCIT:C72050,ncit-food
+DRUGBANK:DB10655,Macadamia nut,biolink:Food,UNII:Y5432RGW8N,NCIT:C71640,ncit-food
+DRUGBANK:DB10656,Nectarine,biolink:Food,UNII:65KD9TD4C3,NCIT:C72032,ncit-food
+DRUGBANK:DB10657,Mango,biolink:Food,UNII:I629I3NR86,NCIT:C71637,ncit-food
+DRUGBANK:DB10658,Papaya,biolink:Food,UNII:KU94FIY6JB,NCIT:C72047,ncit-food
+DRUGBANK:DB10659,Leek,biolink:Food,UNII:RCU76P419D,NCIT:C71973,ncit-food
+DRUGBANK:DB10660,Okra,biolink:Food,UNII:51ME2L7STL,NCIT:C72033,ncit-food
+DRUGBANK:DB10662,Chickpea,biolink:Food,UNII:N91637DNW9,NCIT:C71992,ncit-food
+DRUGBANK:DB10663,Black-eyed pea,biolink:Food,UNII:786YV7B602,NCIT:C71995,ncit-food
+DRUGBANK:DB10664,Watercress,biolink:Food,UNII:K5877MW0LE,NCIT:C75666,ncit-food
+DRUGBANK:DB10681,Poppy seed,biolink:Food,UNII:60RO23IR87,NCIT:C73910,ncit-food
+DRUGBANK:DB10830,Mung bean,biolink:Food,UNII:1LIB31N73G,NCIT:C28261,ncit-food
+DRUGBANK:DB10864,Cumin,biolink:Food,UNII:AG9BNA51DQ,NCIT:C74527,ncit-food
+DRUGBANK:DB10875,Concord grape,biolink:Food,UNII:T3PW93IB4Q,NCIT:C72007,ncit-food
+DRUGBANK:DB10884,Millet seed,biolink:Food,UNII:TJR6B3R47P,NCIT:C73905,ncit-food
+DRUGBANK:DB10885,Mustard greens,biolink:Food,UNII:5M338IN22E,NCIT:C72031,ncit-food
+DRUGBANK:DB10890,Red bell pepper,biolink:Food,UNII:E917XHH50V,NCIT:C72006,ncit-food
+DRUGBANK:DB10891,Perch,biolink:Food,UNII:50Y07N9X03,NCIT:C71924,ncit-food
+DRUGBANK:DB10892,Pumpkin,biolink:Food,UNII:SYW0QUB89Y,NCIT:C72016,ncit-food
+DRUGBANK:DB10897,Capsicum,biolink:Food,UNII:00UK7646FG,NCIT:C75665,ncit-food
+DRUGBANK:DB10907,Sunflower seed,biolink:Food,UNII:R9N3379M4Z,NCIT:C71938,ncit-food
+DRUGBANK:DB10913,"Starch, tapioca",biolink:Food,UNII:24SC3U704I,NCIT:C80781,ncit-food
+DRUGBANK:DB10918,Venison,biolink:Food,UNII:85EA9K88OY,NCIT:C71936,ncit-food
+DRUGBANK:DB10919,Black walnut,biolink:Food,UNII:02WM57RXZJ,NCIT:C72054,ncit-food
+DRUGBANK:DB10981,Radish,biolink:Food,UNII:EM5RP35463,NCIT:C72014,ncit-food
+DRUGBANK:DB11008,Poultry,biolink:Food,UNII:L7WXO2P5HM,NCIT:C53475,ncit-food
+DRUGBANK:DB11009,"Quahog, unspecified",biolink:Food,UNII:226LY0AFR9,NCIT:C71920,ncit-food
+DRUGBANK:DB11010,"Cod, unspecified",biolink:Food,UNII:8D6Q5LNG3D,NCIT:C71921,ncit-food
+DRUGBANK:DB11011,Crab leg,biolink:Food,UNII:S1VF61QLO9,NCIT:C71929,ncit-food
+DRUGBANK:DB11014,"Salmon, unspecified",biolink:Food,UNII:6122W2M0GB,NCIT:C71905,ncit-food
+DRUGBANK:DB11017,Yeast,biolink:Food,UNII:3NY3SM6B8U,NCIT:C66676,ncit-food
+DRUGBANK:DB11094,Vitamin D,biolink:Food,UNII:9VU1KI44GP,NCIT:C941,ncit-food
+DRUGBANK:DB11133,Omega-3 fatty acids,biolink:Food,UNII:71M78END5S,NCIT:C493,ncit-food
+DRUGBANK:DB11158,Pectin,biolink:Food,UNII:89NA02M4RX,NCIT:C63647,ncit-food
+DRUGBANK:DB11172,Sesame oil,biolink:Food,UNII:QX10HYY4QV,NCIT:C66537,ncit-food
+DRUGBANK:DB11242,Gelatin,biolink:Food,UNII:2G86QN327L,NCIT:C65802,ncit-food
+DRUGBANK:DB11251,Tocopherol,biolink:Food,UNII:R0ZB2556P8,NCIT:C68313,ncit-food
+DRUGBANK:DB11253,Xanthan gum,biolink:Food,UNII:TTV12P4NEE,NCIT:C84244,ncit-food
+DRUGBANK:DB11266,Sea salt,biolink:Food,UNII:87GE52P74G,NCIT:C75874,ncit-food
+DRUGBANK:DB11302,Hydrogenated soybean oil,biolink:Food,UNII:A2M91M918C,NCIT:C83765,ncit-food
+DRUGBANK:DB11599,"Starch, corn",biolink:Food,UNII:O8232NY3SJ,NCIT:C80778,ncit-food
+DRUGBANK:DB12583,Maltodextrin,biolink:Food,UNII:7CVR7L4A2D,NCIT:C68474,ncit-food
+DRUGBANK:DB13168,Omega-6 fatty acids,biolink:Food,UNII:116Z6MZN1M,NCIT:C2563,ncit-food
+DRUGBANK:DB13195,Horse chestnut,biolink:Food,UNII:3C18L6RJAZ,NCIT:C80286,ncit-food
+DRUGBANK:DB13964,Peanut oil,biolink:Food,UNII:5TL50QU0W4,NCIT:C66332,ncit-food
+DRUGBANK:DB14161,"Lecithin, soybean",biolink:Food,UNII:1DI56QDM62,NCIT:C80292,ncit-food
+DRUGBANK:DB14233,Egg phospholipids,biolink:Food,UNII:1Z74184RGV,NCIT:C79998,ncit-food
+DRUGBANK:DB14241,"Caviar, unspecified",biolink:Food,UNII:020K6HLU0O,NCIT:C72058,ncit-food
+DRUGBANK:DB14242,Honey,biolink:Food,UNII:Y9H1V576FH,NCIT:C65859,ncit-food
+DRUGBANK:DB14317,Pomegranate,biolink:Food,UNII:56687D1Z4D,NCIT:C73929,ncit-food
+DRUGBANK:DB14322,Coconut oil,biolink:Food,UNII:Q9L0O73W7L,NCIT:C65347,ncit-food
+DRUGBANK:DB14329,Sunflower oil,biolink:Food,UNII:3W1JG795YI,NCIT:C1241,ncit-food
+DRUGBANK:DB14694,Beef liver,biolink:Food,UNII:W8N8R55022,NCIT:C75669,ncit-food
+DRUGBANK:DB14709,Bean,biolink:Food,UNII:8WB9PV3YW5,NCIT:C71990,ncit-food
+DRUGBANK:DB14758,Catfish,biolink:Food,UNII:EFN1AL1YP0,NCIT:C71919,ncit-food
+DRUGBANK:DB14759,Red pepper,biolink:Food,UNII:6M47G7C4SY,NCIT:C73793,ncit-food
+DRUGBANK:DB14836,Polydextrose,biolink:Food,UNII:VH2XOU12IE,NCIT:C81624,ncit-food
+DRUGBANK:DB15216,Amylose,biolink:Food,UNII:7TDQ74Y18L,NCIT:C68489,ncit-food
+DRUGBANK:DB15611,Muskmelon,biolink:Food,UNII:ZV095H5633,NCIT:C72030,ncit-food
+DRUGBANK:DB15615,Fennel,biolink:Food,UNII:557II4LLC3,NCIT:C71970,ncit-food
+DRUGBANK:DB16558,Rosa canina fruit,biolink:Food,UNII:3TNW8D08V3,NCIT:C71789,ncit-food
+DRUGBANK:DB16638,Cnidium monnieri fruit,biolink:Food,UNII:V1IA3S3CUS,NCIT:C73874,ncit-food
+DRUGBANK:DB18685,Whey,biolink:Food,UNII:8617Z5FMF6,NCIT:C71947,ncit-food
