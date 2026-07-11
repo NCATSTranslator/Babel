@@ -1,4 +1,4 @@
-# `src.tools.slurm resources` — right-size SLURM resources
+# `babel-slurm-resources` — right-size SLURM resources
 
 Babel runs on the RENCI Hatteras cluster as a Snakemake-on-SLURM pipeline. Each rule reserves
 memory, CPUs, and wall time. Over-reserving throttles parallelism (a 191 GB batch node fits only
