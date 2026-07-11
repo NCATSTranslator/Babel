@@ -93,8 +93,44 @@ rule disease_hp_ids:
         outfile=config["intermediate_directory"] + "/disease/ids/HP",
     benchmark:
         config["output_directory"] + "/benchmarks/disease_hp_ids.tsv"
+    retries: 3  # Ubergraph sometimes fails mid-download; per-request retry-with-backoff lives in TripleStore.
     run:
         diseasephenotype.write_hp_ids(output.outfile)
+
+
+rule disease_mp_ids:
+    output:
+        outfile=config["intermediate_directory"] + "/disease/ids/MP",
+    benchmark:
+        config["output_directory"] + "/benchmarks/disease_mp_ids.tsv"
+    retries: 3  # Ubergraph sometimes fails mid-download; per-request retry-with-backoff lives in TripleStore.
+    run:
+        diseasephenotype.write_mp_ids(output.outfile)
+
+
+rule disease_hp_taxa:
+    # Every HP phenotype we ingest describes a human; tag each with NCBITaxon:9606 (Homo sapiens).
+    # Derived from the ids file so the taxa cover exactly the ingested identifiers.
+    input:
+        idfile=config["intermediate_directory"] + "/disease/ids/HP",
+    output:
+        outfile=config["download_directory"] + "/HP/taxa",
+    benchmark:
+        config["output_directory"] + "/benchmarks/disease_hp_taxa.tsv"
+    run:
+        diseasephenotype.write_phenotype_taxa(input.idfile, config["disease_phenotype_taxa"]["HP"], output.outfile)
+
+
+rule disease_mp_taxa:
+    # Every MP phenotype describes a mammal; tag each with NCBITaxon:40674 (Mammalia).
+    input:
+        idfile=config["intermediate_directory"] + "/disease/ids/MP",
+    output:
+        outfile=config["download_directory"] + "/MP/taxa",
+    benchmark:
+        config["output_directory"] + "/benchmarks/disease_mp_taxa.tsv"
+    run:
+        diseasephenotype.write_phenotype_taxa(input.idfile, config["disease_phenotype_taxa"]["MP"], output.outfile)
 
 
 rule disease_omim_ids:
@@ -116,11 +152,14 @@ rule get_disease_obo_relationships:
         config["intermediate_directory"] + "/disease/concords/MONDO",
         config["intermediate_directory"] + "/disease/concords/MONDO_close",
         config["intermediate_directory"] + "/disease/concords/HP",
+        config["intermediate_directory"] + "/disease/concords/MP",
         mondo_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MONDO.yaml",
         mondo_close_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MONDO_close.yaml",
         hp_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-HP.yaml",
+        mp_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MP.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/get_disease_obo_relationships.tsv"
+    retries: 3  # Ubergraph sometimes fails mid-download; per-request retry-with-backoff lives in TripleStore.
     run:
         diseasephenotype.build_disease_obo_relationships(
             config["intermediate_directory"] + "/disease/concords",
@@ -128,6 +167,7 @@ rule get_disease_obo_relationships:
                 "MONDO": output.mondo_metadata_yaml,
                 "MONDO_close": output.mondo_close_metadata_yaml,
                 "HP": output.hp_metadata_yaml,
+                "MP": output.mp_metadata_yaml,
             },
         )
 
@@ -219,6 +259,7 @@ rule disease_compendia:
     input:
         bad_hpo_xrefs="input_data/badHPx.txt",
         bad_mondo_xrefs="input_data/mondo_badxrefs.txt",
+        bad_mp_xrefs="input_data/mp_badxrefs.txt",
         bad_umls_xrefs="input_data/umls_badxrefs.txt",
         close_matches=config["intermediate_directory"] + "/disease/concords/MONDO_close",
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["disease_labelsandsynonyms"]),
@@ -232,19 +273,31 @@ rule disease_compendia:
             ap=config["disease_concords"],
         ),
         idlists=expand("{dd}/disease/ids/{ap}", dd=config["intermediate_directory"], ap=config["disease_ids"]),
+        # Per-prefix taxa files (read by TaxonFactory in write_compendium to set each
+        # identifier's `t` field); declared here so they exist before the compendium is built.
+        taxa=expand("{dd}/{ap}/taxa", dd=config["download_directory"], ap=config["disease_phenotype_taxa"]),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["disease_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["disease_outputs"])),
+        expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["disease_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/disease_compendia.tsv"
     run:
+        # A new prefix's bad-xref file must be registered HERE (as a rule input above and a key
+        # in this dict) and in diseasephenotype.DEFAULT_BAD_XREFS. A key that matches no concord
+        # basename (a typo, or the two dicts drifting) is caught by compute_cliques_for_impact_report().
         diseasephenotype.build_compendium(
             input.concords,
             input.metadata_yamls,
             input.idlists,
             input.close_matches,
-            {"HP": input.bad_hpo_xrefs, "MONDO": input.bad_mondo_xrefs, "UMLS": input.bad_umls_xrefs},
+            {
+                "HP": input.bad_hpo_xrefs,
+                "MONDO": input.bad_mondo_xrefs,
+                "MP": input.bad_mp_xrefs,
+                "UMLS": input.bad_umls_xrefs,
+            },
             input.icrdf_filename,
         )
 

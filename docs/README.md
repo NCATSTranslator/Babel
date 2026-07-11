@@ -16,6 +16,7 @@ This folder contains reference documentation for Babel, organized by audience.
 | Document                             | Description                                                                             |
 |--------------------------------------|-----------------------------------------------------------------------------------------|
 | [RunningBabel.md](./RunningBabel.md) | Build instructions, configuration, Snakemake targets, and system requirements.          |
+| [tools/README.md](./tools/README.md) | Developer tools under `src/tools/`: the source-impact report, the build-vs-build clique diff, the SLURM run analyzer, and the RDF-load estimator — plus the convention for writing a new one. Per-tool detail under [tools/](./tools/). |
 | [Deployment.md](./Deployment.md)     | Release checklist and deployment instructions for Node Normalization and Name Resolver. |
 | [Babel.ipynb](./Babel.ipynb)         | Interactive Jupyter notebook demonstrating what running Babel looks like.               |
 

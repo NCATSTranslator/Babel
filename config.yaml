@@ -5,23 +5,37 @@ babel:
 # Build information. Currently unstructured -- you can use this to write down any notes on what is going on with
 # this specific build of Babel.
 build:
-  branch: babel-1.15
+  branch: babel-1.17
+  workarounds:
+  - DrugBank downloads are currently disabled https://github.com/cthoyt/drugbank-downloader/issues/23 -- I used the previously downloaded 5-1-13.
 
 # Versions that need to be updated on every release.
-biolink_version: "4.4.0"
+biolink_version: "b0d9ef6494af9b3ab931e9505d446ca8c212f50f" # The next release after Biolink 4.4.2
 umls_version: "2026AA"
-rxnorm_version: "05042026"
-drugbank_version: "5-1-20"
+rxnorm_version: "06012026"
+drugbank_version: "5-1-13" # Really 5-1-21, but since downloads are currently not allowed, we need to reuse our most recent download.
 
 # Overall inputs and outputs.
 input_directory: input_data
 download_directory: babel_downloads
 intermediate_directory: babel_outputs/intermediate
 output_directory: babel_outputs
+# Where DuckDB spills larger-than-memory intermediates. setup_duckdb() gives each job its own
+# duckdb-$SLURM_JOB_ID subdirectory here. Override per run with the BABEL_DUCKDB_TEMP_DIR
+# environment variable; see slurm/README.md ("Temporary Scratch Space") for the trade-offs.
 tmp_directory: babel_downloads/tmp
 
 # HTTP settings.
 http: {}
+
+# SPARQL query settings.
+sparql:
+  # Total number of attempts (initial try + retries) before giving up; must be >= 1.
+  # Example: max_attempts=3 → one initial try, then up to two retries.
+  max_attempts: 3
+  # Base delay in seconds between attempts; must be >= 0. Actual delay grows exponentially
+  # (attempt 1 → 1 s, attempt 2 → 2 s, attempt 3 → 4 s, …). Accepts fractional values.
+  retry_base_delay_seconds: 1
 
 # Maps Python compendium names (as used in src/createcompendia/ and tests) to the
 # directory names that Snakemake uses under intermediate_directory.
@@ -35,8 +49,24 @@ compendium_directories:
 # SHARED
 #
 
-# DuckDB settings for use in all DuckDB connections:
-duckdb_config: {}
+# DuckDB settings for use in all DuckDB connections.
+# write_buffer_row_group_count=1: flush Parquet row groups to disk eagerly. The default of 5
+# means DuckDB holds 5 row groups × threads × ~4 GiB in write buffers before flushing (~76 GiB
+# peak at 128 GB allocation). Setting it to 1 keeps write-buffer RAM proportional to one row
+# group, at no cost to compression ratio or query performance.
+#
+# enable_external_file_cache=false: DuckDB's external file cache keeps Parquet file blocks mmapped
+# across queries, which is one source of memory mappings. The cross-compendium report rules were
+# hitting the kernel's per-process mapping limit (vm.max_map_count, default 65530) and failing with
+# `bad allocation` on a small allocation despite free RAM -- an address-space (mmap-count) limit.
+# Disabling this cache removes it as a mapping source, but note it was NOT sufficient on its own:
+# the dominant source is DuckDB's buffer pool (its allocator retains ~1.3 MB mappings up to the
+# query's peak memory), so the report rules also cap memory_limit far below their natural peak. The
+# definitive fix is for the cluster to raise vm.max_map_count (issue #846); until then we keep this
+# off (it only costs a re-read from disk for our read-once/scan-twice queries, no correctness change).
+duckdb_config:
+  write_buffer_row_group_count: 1
+  enable_external_file_cache: false
 
 #
 # UMLS
@@ -64,10 +94,10 @@ ncbi_files:
   - gene_refseq_uniprotkb_collab.gz
   - mim2gene_medgen
 
-generate_dirs_for_labels_and_synonyms_prefixes: [GO, CL, NCIT, UBERON, CHEBI, HP, MONDO, PR]
+generate_dirs_for_labels_and_synonyms_prefixes: [GO, CL, NCIT, UBERON, CHEBI, HP, MP, MONDO, PR]
 
 # TODO: This doesn't appear to be used anywhere -- but it might be neat to use this list to make sure we got all of them.
-ubergraph_ontologies: [UBERON, CL, GO, NCIT, ECO, ECTO, ENVO, HP, UPHENO, BFO, BSPO, CARO, CHEBI, CP, GOREL, IAO, MAXO, MONDO, PATO, PR, RO, UBPROP]
+ubergraph_ontologies: [UBERON, CL, GO, NCIT, ECO, ECTO, ENVO, HP, MP, UPHENO, BFO, BSPO, CARO, CHEBI, CP, GOREL, IAO, MAXO, MONDO, PATO, PR, RO, UBPROP]
 
 mods: [WormBase, FB, MGI, ZFIN, RGD, SGD]
 
@@ -80,6 +110,13 @@ anatomy_prefixes:  [UBERON, GO, CL, UMLS, MESH, NCIT, SNOMEDCT]
 anatomy_ids:       [UBERON, GO, CL, UMLS, MESH, NCIT]
 anatomy_concords:  [UBERON, GO, CL, UMLS, WIKIDATA]
 anatomy_outputs:   [AnatomicalEntity.txt, Cell.txt, CellularComponent.txt, GrossAnatomicalStructure.txt]
+# Prefixes whose identifiers are treated as globally unique within a clique: if merging two
+# cliques would produce a clique containing more than one identifier with one of these prefixes,
+# the merge is blocked.  UBERON and GO are authoritative enough that two distinct terms from
+# either ontology should never be collapsed into the same equivalence set.  If you add a new
+# anatomy source whose concord file links to UBERON or GO, verify that it doesn't introduce
+# spurious merges before removing either prefix from this list.
+anatomy_unique_prefixes: [UBERON, GO]
 
 gene_labels:   [HGNC, NCBIGene, UMLS, OMIM]
 gene_ids:      [ENSEMBL, HGNC, NCBIGene, UMLS, OMIM, ZFIN, WormBase, FB, MGI, RGD, SGD]
@@ -92,22 +129,34 @@ protein_ids:      [ENSEMBL, MESH, UniProtKB, PR, UMLS]
 protein_concords: [UniProtKB, PR, NCIT_UniProtKB, NCIT_UMLS, UMLS, UMLS_UniProtKB]
 protein_outputs:  [Protein.txt]
 
-disease_labelsandsynonyms: [MONDO, DOID, Orphanet, HP, MESH, NCIT, UMLS, SNOMEDCT, EFO]
-disease_ids:               [MONDO, DOID, Orphanet, HP, MESH, NCIT, UMLS, OMIM, EFO]
-disease_concords:          [HP, MONDO, UMLS, DOID, EFO, Manual]
+disease_labelsandsynonyms: [MONDO, DOID, Orphanet, HP, MP, MESH, NCIT, UMLS, SNOMEDCT, EFO]
+disease_ids:               [MONDO, DOID, Orphanet, HP, MP, MESH, NCIT, UMLS, OMIM, EFO]
+disease_concords:          [HP, MP, MONDO, UMLS, DOID, EFO, Manual]
 disease_outputs:           [Disease.txt, PhenotypicFeature.txt]
+# Taxon assigned to each phenotype ontology's identifiers in the compendia. Every HP term we
+# ingest (the HP:0000118 "Phenotypic abnormality" subtree) describes a human (Homo sapiens)
+# phenotype; every MP term describes a mammalian (Mammalia) phenotype. These are written to
+# babel_downloads/<PREFIX>/taxa from each prefix's disease_ids file (the authoritative set of
+# ingested identifiers) and read by TaxonFactory to populate the per-identifier `t` field. HP
+# and MP are kept disjoint (see split_mutually_exclusive_cliques), so no clique ever carries
+# both taxa in practice -- each clique's taxon set comes from whichever one of HP/MP (if
+# either) is present. Keyed by prefix so the mapping stays adjacent to disease_ids, which
+# defines the identifier set these taxa annotate.
+disease_phenotype_taxa:
+  HP: NCBITaxon:9606 # Homo sapiens
+  MP: NCBITaxon:40674 # Mammalia
 
 process_labels:   [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
 process_ids:      [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
 process_concords: [GO, RHEA, UMLS]
 process_outputs:  [Pathway.txt, BiologicalProcess.txt, MolecularActivity.txt]
 
-unichem_datasources: [CHEMBL.COMPOUND, DRUGBANK, GTOPDB, KEGG.COMPOUND, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral]
+unichem_datasources: [CHEMBL.COMPOUND, DRUGBANK, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
 
-chemical_labels:    [CHEMBL.COMPOUND, GTOPDB, KEGG.COMPOUND, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, UMLS, DRUGBANK]
+chemical_labels:    [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, UMLS, DRUGBANK]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
 chemical_synonyms:  [GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, UMLS, DRUGBANK]
 chemical_concords:  [wikipedia_mesh_chebi, PUBCHEM_MESH, mesh_cas, mesh_unii, PUBCHEM_CAS, GTOPDB, CHEBI, UMLS, DrugCentral, RXNORM]
-chemical_ids:       [CHEMBL.COMPOUND, GTOPDB, KEGG.COMPOUND, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, DRUGBANK, MESH, UMLS, RXNORM]
+chemical_ids:       [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, DRUGBANK, MESH, UMLS, RXNORM]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
 chemical_outputs:   [MolecularMixture.txt, SmallMolecule.txt, Polypeptide.txt, ComplexMolecularMixture.txt, ChemicalEntity.txt, ChemicalMixture.txt, Drug.txt]
 
 drugchemicalconflated_synonym_outputs: [DrugChemicalConflated.txt]
@@ -171,7 +220,13 @@ drugchemical_outputs: [DrugChemical.txt]
 preferred_name_boost_prefixes:
   biolink:ChemicalEntity: [DRUGBANK, DrugCentral, CHEBI, MESH, GTOPDB]
 
-ensembl_datasets_to_skip: [elucius_gene_ensembl, hgfemale_gene_ensembl, charengus_gene_ensembl, otshawytscha_gene_ensembl, aocellaris_gene_ensembl]
+ensembl_datasets_to_skip:
+#  - elucius_gene_ensembl
+#  - hgfemale_gene_ensembl
+#  - charengus_gene_ensembl
+#  - otshawytscha_gene_ensembl
+#  - aocellaris_gene_ensembl
+  - omykiss_gene_ensembl        # 2026jun5: keeps getting stuck with this dataset for some reason.
 
 # Labels longer than this limit are demoted (not used as preferred label if a shorter alternative exists).
 # Keyed by Biolink type; types not listed here are never demoted. Uses ancestor traversal, so

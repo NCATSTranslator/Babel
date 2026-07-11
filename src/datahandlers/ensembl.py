@@ -1,11 +1,14 @@
 import json
-import logging
 import os
+import shutil
+import time
 
 import apybiomart.classes as _apy_classes
 from apybiomart import find_attributes, find_datasets, query
 
-from src.util import get_config
+from src.util import get_config, get_logger
+
+logger = get_logger(__name__)
 
 # apybiomart's pre-flight connectivity check uses HTTPS and fails with SSL
 # certificate errors in some environments (see
@@ -20,6 +23,8 @@ _apy_classes._Server._check_connection = staticmethod(lambda: True)
 # This is the real MAX minus one: for every batch, we'll query the ensembl_gene_id so that we can
 # put the batches back together again afterward.
 BIOMART_MAX_ATTRIBUTE_COUNT = 6
+BIOMART_MAX_RETRIES = 5
+BIOMART_RETRY_DELAY_SECS = 30
 
 
 # Note that Ensembl doesn't seem to assign its own labels or synonyms to its gene identifiers.  It appears that
@@ -68,6 +73,7 @@ def pull_ensembl(
 
     # Prepare a report to return.
     report = {}
+    failed_datasets = {}
 
     # Columns to choose.
     cols_to_find = {
@@ -89,7 +95,7 @@ def pull_ensembl(
         "wormbase_gene",
     }
     for ds in dataset_ids:
-        logging.info(f"Downloading ENSEMBL dataset {ds}")
+        logger.info(f"Downloading ENSEMBL dataset {ds}")
         if ds in skip_dataset_ids:
             print(f"Skipping {ds} as it is included in skip_dataset_ids: {skip_dataset_ids}")
             continue
@@ -104,83 +110,100 @@ def pull_ensembl(
                 "batches": [],
                 "message": f"Output file already exists for dataset {ds}, skipping.",
             }
-            logging.info(f"Skipping {ds} as it already exists")
+            logger.info(f"Skipping {ds} as it already exists")
             continue
-        try:
-            atts = find_attributes(ds)
-            existingatts = set(atts["Attribute_ID"].to_list())
-            attsIcanGet = cols_to_find.intersection(existingatts)
+        last_exc = None
+        for attempt in range(1, BIOMART_MAX_RETRIES + 1):
+            try:
+                atts = find_attributes(ds)
+                existingatts = set(atts["Attribute_ID"].to_list())
+                attsIcanGet = cols_to_find.intersection(existingatts)
 
-            if len(attsIcanGet) <= max_attribute_count:
-                # Excellent: we can do this in one query.
-                logging.info(f"Found {len(attsIcanGet)} attributes for {ds} for single query: {attsIcanGet}")
-                df = query(attributes=list(attsIcanGet), filters={}, dataset=ds)
-                report[ds] = {
-                    "status": "downloaded",
-                    "message": f"Downloaded dataset {ds} in a single query",
-                    "batches": [],
-                    "attributes": list(attsIcanGet),
-                    "num_rows": len(df),
-                    "output_file": outfile,
-                }
-            else:
-                # We need to retrieve all the attributes in batches.
-                # We'll remove ensembl_gene_id from the list so we can use that to stitch the individual
-                # results back together again.
-                attributes_to_retrieve = list(attsIcanGet)
-                attributes_to_retrieve.remove("ensembl_gene_id")
-                df = None
-                report[ds] = {
-                    "status": "downloading",
-                    "message": f"Dataset {ds} has more than {max_attribute_count} attributes for single query, so they will be downloaded in batches.",
-                    "batches": [],
-                    "output_file": outfile,
-                }
-                # Go through the list of attributes stepping at max_attribute_count.
-                for i in range(0, len(attributes_to_retrieve), max_attribute_count):
-                    # Create a batch of attributes to query.
-                    attr_batch = attributes_to_retrieve[i : i + max_attribute_count]
-                    logging.info(
-                        f"Querying batch of {len(attr_batch)} attributes for {ds} (+ 'ensembl_gene_id'): {attr_batch}"
+                if len(attsIcanGet) <= max_attribute_count:
+                    # Excellent: we can do this in one query.
+                    logger.info(f"Found {len(attsIcanGet)} attributes for {ds} for single query: {attsIcanGet}")
+                    df = query(attributes=list(attsIcanGet), filters={}, dataset=ds)
+                    report[ds] = {
+                        "status": "downloaded",
+                        "message": f"Downloaded dataset {ds} in a single query",
+                        "batches": [],
+                        "attributes": list(attsIcanGet),
+                        "num_rows": len(df),
+                        "output_file": outfile,
+                    }
+                else:
+                    # We need to retrieve all the attributes in batches.
+                    # We'll remove ensembl_gene_id from the list so we can use that to stitch the individual
+                    # results back together again.
+                    attributes_to_retrieve = list(attsIcanGet)
+                    attributes_to_retrieve.remove("ensembl_gene_id")
+                    df = None
+                    report[ds] = {
+                        "status": "downloading",
+                        "message": f"Dataset {ds} has more than {max_attribute_count} attributes for single query, so they will be downloaded in batches.",
+                        "batches": [],
+                        "output_file": outfile,
+                    }
+                    # Go through the list of attributes stepping at max_attribute_count.
+                    for i in range(0, len(attributes_to_retrieve), max_attribute_count):
+                        # Create a batch of attributes to query.
+                        attr_batch = attributes_to_retrieve[i : i + max_attribute_count]
+                        logger.info(
+                            f"Querying batch of {len(attr_batch)} attributes for {ds} (+ 'ensembl_gene_id'): {attr_batch}"
+                        )
+
+                        # Download the list of Biomart records for this set of attributes for this dataset.
+                        batch_df = query(attributes=["ensembl_gene_id"] + list(attr_batch), filters={}, dataset=ds)
+                        report[ds]["batches"].append(
+                            {
+                                "attributes": attr_batch,
+                                "num_rows": len(batch_df),
+                            }
+                        )
+                        if df is None:
+                            # If we're the first df, we don't need to merge anything.
+                            df = batch_df
+                        else:
+                            # Merge these new results with the earlier results.
+                            df = df.merge(batch_df, on="Gene stable ID", how="outer", sort=True)
+
+                    # Note that we downloaded all the batches.
+                    report[ds]["status"] = "downloaded"
+                    report[ds]["message"] = (
+                        f"Dataset {ds} has more than {max_attribute_count} attributes for single query, so they were downloaded in batches."
                     )
+                    report[ds]["attributes"] = list(attsIcanGet)
+                    report[ds]["num_rows"] = len(df)
 
-                    # Download the list of Biomart records for this set of attributes for this dataset.
-                    batch_df = query(attributes=["ensembl_gene_id"] + list(attr_batch), filters={}, dataset=ds)
-                    report[ds]["batches"].append(
-                        {
-                            "attributes": attr_batch,
-                            "num_rows": len(batch_df),
-                        }
-                    )
-                    if df is None:
-                        # If we're the first df, we don't need to merge anything.
-                        df = batch_df
-                    else:
-                        # Merge these new results with the earlier results.
-                        df = df.merge(batch_df, on="Gene stable ID", how="outer", sort=True)
-
-                # Note that we downloaded all the batches.
-                report[ds]["status"] = "downloaded"
-                report[ds]["message"] = (
-                    f"Dataset {ds} has more than {max_attribute_count} attributes for single query, so they were downloaded in batches."
-                )
-                report[ds]["attributes"] = list(attsIcanGet)
-                report[ds]["num_rows"] = len(df)
-
-            # Write out the data frame after sorting it by Gene stable ID.
-            df.sort_values(by=["Gene stable ID"], inplace=True)
-            os.makedirs(os.path.dirname(outfile))
-            df.to_csv(outfile, index=False, sep="\t")
-        except Exception as exc:
-            biomart_dir = os.path.dirname(outfile)
-            print(f"Deleting BioMart directory {biomart_dir} so its clear it needs to be downloaded again.")
-            if os.path.exists(biomart_dir):
-                os.rmdir(biomart_dir)
-            raise exc
+                # Write out the data frame after sorting it by Gene stable ID.
+                df.sort_values(by=["Gene stable ID"], inplace=True)
+                os.makedirs(os.path.dirname(outfile), exist_ok=True)
+                df.to_csv(outfile, index=False, sep="\t")
+                break
+            except Exception as exc:
+                last_exc = exc
+                biomart_dir = os.path.dirname(outfile)
+                logger.warning(f"Failed to download dataset {ds} (attempt {attempt}/{BIOMART_MAX_RETRIES}): {exc}")
+                if os.path.exists(biomart_dir):
+                    logger.warning(f"Deleting BioMart directory {biomart_dir}")
+                    shutil.rmtree(biomart_dir)
+                if attempt < BIOMART_MAX_RETRIES:
+                    logger.info(f"Retrying dataset {ds} in {BIOMART_RETRY_DELAY_SECS}s...")
+                    time.sleep(BIOMART_RETRY_DELAY_SECS)
+        else:
+            report[ds] = {"status": "failed", "message": str(last_exc), "output_file": outfile}
+            failed_datasets[ds] = last_exc
+            logger.error(f"Dataset {ds} failed all {BIOMART_MAX_RETRIES} attempts; continuing with remaining datasets.")
 
     # Write out a complete file with the report as a JSON object.
     with open(complete_file, "w") as outf:
         json.dump(report, outf, indent=2, sort_keys=True)
+
+    if failed_datasets:
+        failed_list = ", ".join(failed_datasets)
+        raise RuntimeError(
+            f"{len(failed_datasets)} dataset(s) failed after {BIOMART_MAX_RETRIES} attempts each: {failed_list}"
+        )
 
     return report
 

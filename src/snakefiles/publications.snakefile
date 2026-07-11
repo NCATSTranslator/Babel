@@ -23,6 +23,9 @@ rule download_pubmed:
     resources:
         mem="8G",
         cpus_per_task=1,
+        # Two hours got ~50% through ~1500 files; parallelizing baseline+updatefiles should halve
+        # that, so 6h is conservative. Tighten once benchmark TSVs give real-world data.
+        runtime="6h",
     run:
         publications.download_pubmed(output.done_file)
 
@@ -85,6 +88,7 @@ rule generate_pubmed_compendia:
         publication_compendium=config["output_directory"] + "/compendia/Publication.txt",
         # We generate an empty Publication Synonyms files, but we still need to generate one.
         publication_synonyms_gz=config["output_directory"] + "/synonyms/Publication.txt.gz",
+        publication_metadata_yaml=config["output_directory"] + "/metadata/Publication.txt.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/generate_pubmed_compendia.tsv"
     resources:

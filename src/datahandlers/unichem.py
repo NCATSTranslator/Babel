@@ -1,14 +1,14 @@
 import gzip
 
-from src.babel_utils import pull_via_urllib
-from src.prefixes import CHEBI, CHEMBLCOMPOUND, DRUGBANK, DRUGCENTRAL, GTOPDB, HMDB, KEGGCOMPOUND, PUBCHEMCOMPOUND, UNII
+from src.babel_utils import pull_via_wget
+from src.prefixes import CHEBI, CHEMBLCOMPOUND, DRUGBANK, DRUGCENTRAL, GTOPDB, HMDB, PUBCHEMCOMPOUND, UNII
 
 # global for this file
 data_sources: dict = {
     "1": CHEMBLCOMPOUND,
     "2": DRUGBANK,
     "4": GTOPDB,
-    "6": KEGGCOMPOUND,
+    # "6": KEGGCOMPOUND,  # Removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
     "7": CHEBI,
     "14": UNII,
     "18": HMDB,
@@ -16,37 +16,57 @@ data_sources: dict = {
     "34": DRUGCENTRAL,
 }
 
+_UNICHEM_HTTP_BASE = "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/"
 
-def pull_unichem():
-    """Download UniChem files."""
-    pull_via_urllib(
-        "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/",
-        "structure.tsv.gz",
-        decompress=False,
-        subpath="UNICHEM",
-        verify_gzip=True,
-    )
-    pull_via_urllib(
-        "http://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/table_dumps/",
-        "reference.tsv.gz",
-        decompress=False,
-        subpath="UNICHEM",
-        verify_gzip=True,
-    )
+# Expected headers for UniChem table dumps — validated at filter/parse time.
+# Note: upstream uses "ASSIGMENT" (missing 'N') in the reference file — this matches the upstream typo exactly.
+UNICHEM_REFERENCE_TSV_HEADER = "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGMENT\n"
+UNICHEM_STRUCT_TSV_HEADER = "UCI\tSTANDARDINCHI\tSTANDARDINCHIKEY\n"
+
+
+def download_unichem_structure():
+    """Download UniChem structure file. Gzip integrity is verified at download time; column-format
+    validation happens in read_inchikeys() (called from write_unichem_concords)."""
+    pull_via_wget(_UNICHEM_HTTP_BASE, "structure.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True)
+
+
+def download_unichem_reference():
+    """Download UniChem reference file. Gzip integrity is verified at download time; header and
+    column-format validation happens in filter_unichem()."""
+    pull_via_wget(_UNICHEM_HTTP_BASE, "reference.tsv.gz", decompress=False, subpath="UNICHEM", verify_gzip=True)
 
 
 def filter_unichem(ref_file, ref_filtered):
     """Filter UniChem reference file to those sources we're interested in."""
-    srclist = [str(k) for k in data_sources.keys()]
-    with gzip.open(ref_file, "rt") as rf, open(ref_filtered, "w") as ref_filtered:
-        header_line = rf.readline()
-        assert header_line == "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", (
-            f"Incorrect header line in {ref_file}: {header_line}"
-        )
-        ref_filtered.write(header_line)
-        for line in rf:
+    srcs = set(data_sources)
+    try:
+        rf_handle = gzip.open(ref_file, "rt")
+    except (OSError, gzip.BadGzipFile) as e:
+        raise RuntimeError(f"Cannot open UniChem reference file {ref_file}: {e}") from e
+
+    with rf_handle, open(ref_filtered, "w") as out:
+        try:
+            header_line = rf_handle.readline()
+        except EOFError as e:
+            raise RuntimeError(f"UniChem reference file {ref_file} is truncated (could not read header): {e}") from e
+
+        if header_line != UNICHEM_REFERENCE_TSV_HEADER:
+            raise ValueError(
+                f"UniChem reference file {ref_file} has an unexpected header — "
+                f"examine the file and update UNICHEM_REFERENCE_TSV_HEADER in src/datahandlers/unichem.py if the format has changed.\n"
+                f"  Expected : {UNICHEM_REFERENCE_TSV_HEADER!r}\n"
+                f"  Got      : {header_line!r}"
+            )
+        out.write(header_line)
+
+        for line_num, line in enumerate(rf_handle, start=2):
             x = line.rstrip().split("\t")
-            if x[1] in srclist and x[3] == "1":
+            if len(x) < 4:
+                raise ValueError(
+                    f"UniChem reference file {ref_file} line {line_num}: "
+                    f"expected ≥4 tab-separated columns, got {len(x)}: {line!r}"
+                )
+            if x[1] in srcs and x[3] == "1":
                 # Only use rows with assignment == 1 (current), not 0 (obsolete)
                 # As per https://chembl.gitbook.io/unichem/definitions/what-is-an-assignment
-                ref_filtered.writelines([line])
+                out.write(line)

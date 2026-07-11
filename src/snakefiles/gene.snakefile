@@ -197,6 +197,7 @@ rule gene_compendia:
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["gene_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["gene_outputs"])),
+        expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["gene_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/gene_compendia.tsv"
     resources:

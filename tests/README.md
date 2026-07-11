@@ -40,6 +40,10 @@ considering), see [`docs/Testing.md`](../docs/Testing.md).
   [New pipeline tests](pipeline/README.md#new-pipeline-tests) in the pipeline README.
 - **Pipeline behavior specific to one vocabulary** → add `tests/pipeline/test_X_pipeline.py`
   marked `pipeline`.
+- **A developer tool under `src/tools/`** → `unit` test in `tests/tools/<tool>/`, mirroring the
+  tool's own package name (e.g. `tests/tools/slurm/test_parse.py`). Test only the CLI layer here:
+  a tool's reusable logic lives in `src/` and is tested beside it (e.g. `src/model/glom_diff.py`
+  → `tests/model/test_glom_diff.py`). See [Developer tools](../docs/tools/README.md).
 
 **Touching a data source that has no pipeline test? Consider writing one.** It is more work up
 front, but it pays off three ways and is worth biting the bullet for:
