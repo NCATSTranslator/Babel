@@ -1,4 +1,4 @@
-# `src.tools.slurm errors` — aggregate failing-rule logs
+# `babel-slurm-errors` — aggregate failing-rule logs
 
 When a Babel run on SLURM stalls or fails, the failure is usually spread across the main Snakemake
 control-node log and one per-rule log per failing job. This subcommand gathers all of that into a
