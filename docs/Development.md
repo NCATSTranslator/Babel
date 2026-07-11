@@ -14,7 +14,9 @@ names in one place so a rename only requires a single-file update.
 When you add a new data source or extend an existing one (the
 [ComplexPortal PR #831](https://github.com/NCATSTranslator/Babel/pull/831) is a worked example of
 all of this), these lessons are worth applying. The Babel-specific conventions referenced here are
-spelled out in `CLAUDE.md`; this section is the human-readable overview.
+spelled out for Claude Code in [`../src/datahandlers/CLAUDE.md`](../src/datahandlers/CLAUDE.md) (and
+[`../tests/CLAUDE.md`](../tests/CLAUDE.md) for the test rules); this section is the human-readable
+overview.
 
 ### Emit the attribute files your source supports
 

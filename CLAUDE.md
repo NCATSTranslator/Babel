@@ -78,74 +78,11 @@ uv run rumdl fmt .                       # Markdown auto-fix
 
 ## Architecture
 
-### Pipeline Orchestration
-
-Snakemake drives a two-phase pipeline:
-
-1. **Data Collection** — downloads from FTP/web sources, producing per-source attribute files in
-   `babel_downloads/[PREFIX]/` that the factories in `node.py` pick up by prefix. Each is an
-   independent, optional TSV: `labels` (CURIE→name, read by `NodeFactory`), `synonyms`
-   (CURIE→predicate→synonym, `SynonymFactory`), `taxa` (CURIE→`NCBITaxon:NNNN`, `TaxonFactory`), and
-   `descriptions` (CURIE→text, `DescriptionFactory`). A handler emits whichever of these its source
-   supports (see ComplexPortal and NCBIGene for examples emitting all four); `write_compendium`
-   unions each identifier's `taxa` onto its clique. For a one-taxon-per-ontology source (HP→human,
-   MP→mammal), derive `taxa` from the already-built ids file instead of hand-maintaining it — see
-   `diseasephenotype.write_phenotype_taxa`.
-2. **Compendium Building** — extracts identifiers per semantic type into `ids/[TYPE]`, creates
-   pairwise cross-reference mappings (concords), merges them into equivalence cliques via
-   union-find, and outputs enriched JSONL compendia.
-
-The top-level `Snakefile` includes ~20 specialized snakefiles from `src/snakefiles/` — one per
-semantic type plus data collection, reports, exports, and DuckDB.
-
-### Source Code Layout (`src/`)
-
-- **`datahandlers/`** — ~35 modules, each wrapping a specific external data source (ChEBI, UniProt,
-  NCBI Gene, DrugBank, MESH, etc.). These download, parse, and normalize source data.
-- **`createcompendia/`** — ~16 modules, one per semantic type (chemicals, genes, proteins, anatomy,
-  disease/phenotype, etc.). These consume data handler outputs and build concords → cliques.
-- **`snakefiles/`** — Snakemake rule definitions wiring data handlers to compendium creators.
-- **`node.py`** — Core classes: `NodeFactory`, `SynonymFactory`, `DescriptionFactory`,
-  `TaxonFactory`, `InformationContentFactory`, `TSVSQLiteLoader`.
-- **`babel_utils.py`** — Download/FTP utilities, `glom()` (clique merging), `write_compendium()`
-  (compendium builder), state management.
-- **`util.py`** — Logging, config loading, Biolink Model Toolkit (bmt) access.
-- **`exporters/`** — Output format handlers (KGX, Parquet, JSONL).
-- **`reports/`**, **`synonyms/`**, **`metadata/`** — Report generation, synonym files, provenance.
-- **`model/`** — Shared data-structure logic: `cliques.py` (the `glom_from_files` skeleton),
-  `source.py`, `glom_diff.py` (source-impact clique diff), `compendium_diff.py` (build-vs-build
-  clique diff, and the shared `load_compendium`).
-- **`tools/`** — Developer tools, each a thin CLI frontend (see below). Not part of the pipeline.
-
-### Developer tools (`src/tools/`)
-
-Tooling that helps build, debug, and analyse Babel but is not part of the compendium pipeline.
-Each tool lives in `src/tools/<tool>/`, has its own `CLAUDE.md`, and is documented in
-`docs/tools/`. See `src/tools/CLAUDE.md` for the "thin CLI frontend" convention and how to add a
-new tool.
-
-### Key Patterns
-
-- **Factory pattern** for lazy-loading large datasets (`NodeFactory`, `SynonymFactory`, etc.).
-- **`TSVSQLiteLoader`** creates in-memory SQLite databases that spill to disk, avoiding full RAM
-  loading of large TSV files.
-- **Biolink Model** integration via `bmt` — types, valid prefixes, and naming conventions all follow
-  the Biolink Model.
-- **Concord files** are the core data structure: tab-separated `CURIE1 \t Relation \t CURIE2`
-  triples expressing cross-references between vocabularies. The `glom()` function in
-  `babel_utils.py` merges them into equivalence cliques.
-- **The shared clique-building skeleton** is `glom_from_files()` in `src/model/cliques.py` (see its
-  docstring for the three hooks); route a pipeline's `build_compendia` and
-  `compute_cliques_for_impact_report` through the same wrapper so the impact report provably
-  matches the build.
-- Xref/concord data-quality conventions (auditing `hasDbXref`, bad-xref files, keeping two prefixes
-  disjoint) live in [`docs/sources/CLAUDE.md`](docs/sources/CLAUDE.md) — read it before adding or
-  filtering a source's cross-references.
-- **`SynonymFilter`** (`src/synonyms/filter.py`, see its docstring for the `action` field and the
-  `should_suppress()` contract) checks every label/synonym against
-  `input_data/obsolete_synonyms.yaml` before it enters a compendium.
-- **Logging** — always use `get_logger(__name__)` from `src.util`, never `logging.getLogger`
-  directly (see its docstring for why and the deferred-import exception).
+[`docs/Architecture.md`](docs/Architecture.md) is the full tour: the two-phase pipeline (data
+collection → compendium building), the `src/` layout, the core data structures (concord files,
+compendium JSONL), and the factory / `glom()` / `TSVSQLiteLoader` / Biolink patterns. Read it
+before making structural changes. The notes below are the ones worth having in front of you every
+session.
 
 ### Biolink Model Usage
 
@@ -165,49 +102,41 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
 {"identifiers": [{"identifier": CURIE, "label": str}, ...], "type": "biolink:Foo", "id": {"identifier": CURIE, "label": str}}
 ```
 
-### Conflation
+### Subsystem gotchas
 
-GeneProtein and DrugChemical conflation each have dedicated conflation modules (`geneprotein.py`,
-`drugchemical.py`) that merge their respective cliques. See `docs/Conflation.md`.
+- **Clique-building skeleton** — `glom_from_files()` in `src/model/cliques.py` (see its docstring
+  for the three hooks); route a pipeline's `build_compendia` and
+  `compute_cliques_for_impact_report` through the same wrapper so the impact report provably matches
+  the build.
+- **`SynonymFilter`** (`src/synonyms/filter.py`) checks every label/synonym against
+  `input_data/obsolete_synonyms.yaml` before it enters a compendium — see its docstring for the
+  `action` field and the `should_suppress()` contract.
+- **Logging** — always use `get_logger(__name__)` from `src.util`, never `logging.getLogger`
+  directly (see its docstring for why and the deferred-import exception).
+- **Leftover UMLS** — `src/createcompendia/leftover_umls.py` (rule `leftover_umls`) runs last and
+  writes every unclaimed valid MRCONSO concept as a single-identifier clique into
+  `compendia/umls.txt` so its label survives downstream. Manual Biolink-type override tables and
+  their drift test: [`docs/sources/CLAUDE.md`](docs/sources/CLAUDE.md) and
+  `docs/sources/UMLS/Leftover.md`.
+- **DuckDB export** — `src/snakefiles/duckdb.snakefile` builds a queryable DuckDB database
+  (`Node`/`Clique`/`Edge`/`Conflation`) alongside the JSONL compendia (schema in
+  `docs/DataFormats.md`); its `Edge` table answers "which clique contains CURIE X" in one query
+  (`SELECT DISTINCT clique_leader FROM Edge WHERE curie IN (...)`), far cheaper than re-running glom
+  or scanning JSONL.
+- **Per-compendium metadata YAMLs** — `babel_outputs/metadata/<Type>.yaml` records provenance with
+  per-source `prefix_counts` like `xref(CHEBI, DrugCentral): 4302`. Aggregate (prefix-pair) only —
+  confirms a join pathway exists, not whether *specific* CURIEs are joinable.
+- **`data/`** — gitignored local scratch space for ad hoc files (analysis notebooks, one-off
+  downloads, intermediate digging); never committed.
 
-### Leftover UMLS
+### Per-source & developer-tool docs
 
-`src/createcompendia/leftover_umls.py` (rule `leftover_umls`) runs last and sweeps up every valid
-UMLS concept in MRCONSO that no other compendium already claimed, writing each as a
-single-identifier clique into `compendia/umls.txt` so its label is still available downstream. See
-[`docs/sources/CLAUDE.md`](docs/sources/CLAUDE.md) and `docs/sources/UMLS/Leftover.md` for the
-manual Biolink-type override tables and their drift test.
-
-### DuckDB export
-
-`src/snakefiles/duckdb.snakefile` (driven by `src/exporters/duckdb_exporters.py`) builds a
-queryable DuckDB database (`Node`/`Clique`/`Edge`/`Conflation` tables) alongside the JSONL
-compendia — schema in `docs/DataFormats.md`. `Edge` answers "which clique contains CURIE X" in one
-query (`SELECT DISTINCT clique_leader FROM Edge WHERE curie IN (...)`), much cheaper than
-re-running glom or scanning JSONL.
-
-### Per-source documentation (`docs/sources/`)
-
-Deeper, source-specific notes live under `docs/sources/<PREFIX>/`; see
+Source-specific notes live under `docs/sources/<PREFIX>/` — see
 [`docs/sources/README.md`](docs/sources/README.md) for the index and
-[`docs/sources/CLAUDE.md`](docs/sources/CLAUDE.md) for cross-cutting xref/source-data
-conventions. Check there first when working on a specific vocabulary, and add to it when you learn
-something non-obvious about how Babel ingests that source — keep the detail there, not here.
-
-### Per-compendium metadata YAMLs
-
-Each final compendium has a sibling `babel_outputs/metadata/<Type>.yaml` recording provenance
-(which concord/source contributed what), including per-source `prefix_counts` like
-`xref(CHEBI, DrugCentral): 4302`. Aggregate (prefix-pair level) only — confirms a join pathway
-exists, doesn't answer whether *specific* CURIEs are joinable.
-
-### Directories at Runtime
-
-- `babel_downloads/` — cached source data
-- `babel_outputs/intermediate/` — intermediate build artifacts
-- `babel_outputs/` — final compendia, synonyms, reports, exports
-- `data/` — local scratch space for ad hoc files (analysis notebooks, one-off downloads,
-  intermediate digging); gitignored, never committed
+[`docs/sources/CLAUDE.md`](docs/sources/CLAUDE.md) for cross-cutting xref/data-quality conventions
+(read it before adding or filtering a source's cross-references). Developer tools each live in
+`src/tools/<tool>/` with their own `CLAUDE.md`, documented in `docs/tools/`; see
+`src/tools/CLAUDE.md` for the "thin CLI frontend" convention.
 
 ## Running Babel
 
@@ -244,9 +173,11 @@ Use `retries: 3` (not `retries: 10`) on network-backed Snakemake rules (UberGrap
 
 ## Conventions
 
-When adding or enhancing a data source ingest, see `docs/Development.md` ("Enhancing a data source
-ingest") for the full process-level lessons (attribute files, IDs-file typing, download/extract
-rule splitting, manifests, column-layout pinning) — a few of the conventions below reinforce it.
+Point-of-use conventions live where they apply: process-level guidance for adding/enhancing an
+ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandler code rules
+(attribute files, IRI parsing, pyoxigraph, file-path args) are in
+[`src/datahandlers/CLAUDE.md`](src/datahandlers/CLAUDE.md); test conventions are in
+[`tests/CLAUDE.md`](tests/CLAUDE.md). The rules below apply repo-wide.
 
 - **Configuration over constants** — prefer `config.yaml` over module-level Python constants for
   any value that is a data-level choice (a list of prefixes, a threshold, a flag) rather than pure
@@ -268,47 +199,16 @@ rule splitting, manifests, column-layout pinning) — a few of the conventions b
   names. See the Terminology section of `docs/AddingNewSources.md` for the full distinction
   (plus the unrelated third term, `umls_semantic_type`/`sty`).
 
-- **Ruff lint** — all Python must pass `uv run ruff check`. Two rules easy to trip in test code:
-  E741 (no single-letter ambiguous names like `l`/`O`/`I`) and F841 (no unread assignments).
-
-- **Imports** — all at the top of the file (stdlib, then third-party, then local). Defer one
-  inside a function only to break a circular dependency or avoid a heavy optional dependency,
-  with a comment saying why.
-
-- **Error handling** — raise exceptions (`RuntimeError`, `ValueError`) rather than
-  `print(...) + exit(1)`, which bypasses Python's exception machinery and breaks unit testing.
-
 - **Biolink class references** — always use the named constants from `src/categories.py`
   (e.g. `CHEMICAL_ENTITY`, `DRUG`) rather than hardcoding `"biolink:..."` strings; add a missing
   constant there first.
 
-- **IRI parsing helpers** — functions extracting IDs from external-format strings (pyoxigraph
-  IRIs, SPARQL results) must validate the format and raise `ValueError` on mismatch, using a named
-  prefix constant shared by the check and the extraction. See
-  `src/datahandlers/mesh.py:get_mesh_id_from_iri()`.
-
-- **pyoxigraph literal stripping** — use `parse_rdf_literal()` from `src/babel_utils.py` to strip
-  plain/language-tagged literal quoting; don't inline the regex. Pass `base_iri` to
-  `Store.bulk_load()` when loading RDF/XML with `<owl:Ontology rdf:about=""/>`, or it raises a
-  builtin `SyntaxError` on the empty relative IRI.
-
-- **Datahandler file-path arguments** — label/synonym extraction functions should accept explicit
-  `infile`/`outfile` arguments rather than calling `make_local_name` internally, so tests can pass
-  `tmp_path` paths and Snakemake can declare inputs/outputs precisely.
+- **Error handling** — raise exceptions (`RuntimeError`, `ValueError`) rather than
+  `print(...) + exit(1)`, which bypasses Python's exception machinery and breaks unit testing.
 
 - **Docstrings** — give modules, classes, and non-trivial functions a docstring covering what they
   do and any non-obvious behavior. Name functions for what they do — `fetch_*` (not `get_*`) when
   the call hits the network.
-
-- **Test documentation** — every test docstring states the scenario and expected outcome ("should"
-  phrasing works well). Group related tests with a `# LABEL` section comment; the module docstring
-  describes the file overall without duplicating that section list.
-
-- **Test assertion helpers** — `tests/conftest.py` exports `assert_labels_file_valid`,
-  `assert_synonyms_file_valid`, `assert_ids_file_valid`, `assert_concordance_file_valid`,
-  `assert_taxa_file_valid`, and `assert_descriptions_file_valid` (plus `read_tsv`). Use these
-  instead of hand-rolling TSV checks in new tests; when a handler adds a new output kind, add the
-  matching helper to the root conftest rather than a private one in the test file.
 
 ## Debugging
 
