@@ -41,7 +41,7 @@ aborting the build.
 
 ## Impact
 
-This is measured with [`babel-clique-diff`](../../tools/README.md) comparing two builds of
+This is measured with [`babel-clique-diff`](../../tools/CliqueDiff.md) comparing two builds of
 `Disease.txt`/`PhenotypicFeature.txt` from the **identical, already-pulled** disease/phenotype
 concords and ids (`data/branch-mp/intermediate/disease`, one UberGraph pull): a `before` build with
 `split_mutually_exclusive_cliques()` disabled (HP/MP overlap allowed, matching pre-PR behavior) and

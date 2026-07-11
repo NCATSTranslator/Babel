@@ -1,8 +1,8 @@
-"""Unit tests for tools.slurm.resources."""
+"""Unit tests for src.tools.slurm.resources."""
 
 import pytest
 
-from tools.slurm import resources
+from src.tools.slurm import resources
 
 pytestmark = pytest.mark.unit
 

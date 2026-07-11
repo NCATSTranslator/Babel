@@ -48,6 +48,11 @@ _SAMPLE_LIMIT = 5
 # mapping for each code, so we are alerted when an override drifts (Biolink changed underneath us) or
 # has become redundant (Biolink now agrees with the override and it can be removed). See
 # docs/sources/UMLS/Leftover.md.
+#
+# Reach: this rule (leftover_umls) runs last and only sees CUIs no other compendium already claimed,
+# so an override here never fires for a CUI another pipeline typed first. E.g. diseasephenotype claims
+# T033/T034/T184 CUIs before this rule runs, so overrides for those TUIs are effectively dead for most
+# concepts -- check `tracker` membership (below) before assuming an override is live.
 STY_OVERRIDES: dict[str, str | None] = {
     # https://github.com/NCATSTranslator/Babel/issues/569
     # "Finding" is too broad to be a PhenotypicFeature; treat it as a Phenomenon.

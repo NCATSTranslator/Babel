@@ -98,6 +98,11 @@ OVERUSE_FILTERED_CONCORDS = {"MONDO", "HP", "EFO", "MP"}
 # badxrefs (e.g. by the source-impact report CLI). The Snakemake call site still
 # passes its own explicit dict so production behaviour is unchanged. Anchored at the repo
 # root because the CLI, unlike Snakemake, need not run from there.
+#
+# A new prefix's key must be added HERE and in the `disease_compendia` rule's explicit dict
+# (src/snakefiles/diseasephenotype.snakefile). A prefix missing from whichever dict was actually
+# passed in simply never filters anything; a key that matches no concord basename (a typo, or the
+# two dicts drifting apart) is caught by the guard in compute_cliques_for_impact_report().
 DEFAULT_BAD_XREFS = {
     "HP": str(_REPO_ROOT / "input_data/badHPx.txt"),
     "MONDO": str(_REPO_ROOT / "input_data/mondo_badxrefs.txt"),
@@ -433,6 +438,20 @@ def compute_cliques_for_impact_report(
     excluded = set(excluded_sources)
     if badxrefs is None:
         badxrefs = DEFAULT_BAD_XREFS
+
+    # A bad-xrefs key is looked up by concord basename (`pref in badxrefs`, below), so a key that
+    # matches no concord silently never filters anything -- the two-place-registration footgun the
+    # DEFAULT_BAD_XREFS docstring warns about (a typo, or a key added to one dict but not the
+    # other). Fail loud here instead. Validated against the full concordances list rather than the
+    # post-exclusion subset, so a `--source X` impact-report before-run (which keeps X's concord in
+    # the list but skips it inside the loop) doesn't trip on X's own bad-xrefs entry.
+    concord_basenames = {path.basename(c) for c in concordances}
+    unknown_badxrefs = set(badxrefs) - concord_basenames
+    if unknown_badxrefs:
+        raise ValueError(
+            f"bad-xrefs keys match no concord basename: {sorted(unknown_badxrefs)} "
+            f"(known concords: {sorted(concord_basenames)}). Fix the key or register the concord."
+        )
 
     # MONDO_close is not a regular concord; pull it out of the iterated list so it
     # isn't double-loaded. Production already passes it as a separate `mondoclose`

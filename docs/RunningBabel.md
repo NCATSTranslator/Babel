@@ -92,11 +92,12 @@ target is much cheaper than `snakemake --cores N` with no target.
 
 ## Analyzing and tuning a SLURM run
 
-When running on the RENCI Hatteras cluster via SLURM, the `tools/slurm` package analyzes a (possibly
-partial) run: `uv run babel-slurm-errors <version>` aggregates failing-rule logs when a run stalls
-so you can see what to re-run, and `uv run babel-slurm-resources <run-dir>` recommends right-sized
-per-rule `mem`/`cpus` from the run's benchmark data. See [tools/README.md](tools/README.md) for the
-full set of developer tools and [slurm/README.md](../slurm/README.md) for the SLURM profile itself.
+When running on the RENCI Hatteras cluster via SLURM, the `src/tools/slurm` package analyzes a
+(possibly partial) run: `uv run babel-slurm-errors <version>` aggregates failing-rule logs when a
+run stalls so you can see what to re-run, and `uv run babel-slurm-resources <run-dir>` recommends
+right-sized per-rule `mem`/`cpus` from the run's benchmark data. See
+[tools/README.md](tools/README.md) for the full set of developer tools and
+[slurm/README.md](../slurm/README.md) for the SLURM profile itself.
 
 ## Build Process
 
@@ -244,7 +245,7 @@ to open a separate PR for each one. By the time the run is healthy, the release 
 holds a long, date-interleaved mix of trivial tweaks and substantial changes.
 
 Before that branch is merged, it is worth separating the two kinds of change.
-The scripts in [`../tools/commit-split`](../tools/commit-split) help verify the
+The scripts in [`../scripts/commit-split`](../scripts/commit-split) help verify the
 split is complete and lossless; see that directory's `README.md`.
 
 ### Which commits stay on the release branch
@@ -272,7 +273,7 @@ staying behind on the release branch.
 3. **Build one branch per theme off `main`** with `git cherry-pick`, replaying each
    bucket's commits in chronological order. Enable `git rerere` so a conflict you resolve
    once (typically in shared files like `config.yaml`, `datacollect.snakefile`, or
-   `CLAUDE.md`) is replayed automatically if you have to rebuild the branch.
+   `AGENTS.md`) is replayed automatically if you have to rebuild the branch.
 4. **Watch for entangled and coupled commits.** Two themes that edit the same file in
    alternating commits may need one branch *stacked on* the other (cherry-pick the second
    theme on top of the first) rather than both off `main` — that reconstructs the original

@@ -26,6 +26,13 @@ def get_logger(name, loglevel=logging.INFO):
     The LoggingUtil is inconsistently used, and we don't want rolling logs anyway -- just logging everything to STDERR
     so that Snakemake can capture it is fine. However, we do want every logger to be configured identically and without
     duplicated handlers.
+
+    Always call this instead of `logging.getLogger()` directly: it installs the shared stderr
+    handler/formatter below, so a bare `logging.getLogger()` logger can produce unformatted output
+    if it logs before any other module has called this function. A module that sits early in the
+    import graph and must defer this import to avoid triggering config loading at import time
+    (see `src/synonyms/filter.py`) should reassign its module-level `logger` inside the deferred
+    block rather than at module scope.
     """
 
     # Set up the root handler for a logger. Ideally we would call this in one central location, but I'm not sure

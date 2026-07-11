@@ -191,8 +191,7 @@ pipeline checks that need quick turnaround and shouldn't queue behind HPC jobs.
 
 #### Compendium regression baseline
 
-Already proposed in [`docs/Development.md`](Development.md#12-compendium-regression-test-suite)
-(item #12) and tracked in [issue #764](https://github.com/NCATSTranslator/Babel/issues/764).
+Tracked in [issue #764](https://github.com/NCATSTranslator/Babel/issues/764).
 After each full pipeline run, serialize summary statistics per compendium (clique counts, clique
 size distribution, per-prefix counts, identifier counts per source) to a JSON file checked into
 the repo. The next full run compares against the baseline and a script flags any metric that
