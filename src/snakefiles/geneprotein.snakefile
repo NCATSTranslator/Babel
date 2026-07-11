@@ -31,6 +31,9 @@ rule geneprotein_conflation:
         outfile=config["output_directory"] + "/conflation/GeneProtein.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/geneprotein_conflation.tsv"
+    resources:
+        # Peaks at ~48 GB on babel-1.17 (see docs/tools/Resources.md); far over the 16 GB default.
+        mem="64G",
     run:
         geneprotein.build_conflation(
             input.geneprotein_concord, input.gene_compendium, input.protein_compendium, output.outfile

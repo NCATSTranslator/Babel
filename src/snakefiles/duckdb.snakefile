@@ -43,6 +43,9 @@ rule export_compendia_to_duckdb:
     resources:
         runtime="6h",
         mem="512G",
+        # DuckDB auto-threads and used up to ~2.6 cores on babel-1.17; the cpus_per_task=1 default
+        # would pin it to one core. Packing here is memory-bound (512G), so the cores are ~free.
+        cpus_per_task=4,
     run:
         print(f"Exporting {input.compendium_file} to {output.duckdb_filename}...")
         duckdb_exporters.export_compendia_to_parquet(
@@ -79,6 +82,9 @@ rule export_synonyms_to_duckdb:
         # enough to OOM at 128G.
         mem=lambda wildcards: "512G" if wildcards.filename in ("Protein", "GeneProteinConflated") else "128G",
         runtime="3h",
+        # DuckDB auto-threads and used up to ~2.6 cores on babel-1.17; the cpus_per_task=1 default
+        # would pin it to one core. Packing here is memory-bound, so the cores are ~free.
+        cpus_per_task=4,
     run:
         # Cap DuckDB at 75% of the SLURM allocation so Python + OS overhead
         # don't push total RSS over the job limit. Without this, DuckDB
