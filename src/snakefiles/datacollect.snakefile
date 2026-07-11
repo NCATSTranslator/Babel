@@ -219,8 +219,8 @@ rule get_uniprotkb_labels:
     benchmark:
         config["output_directory"] + "/benchmarks/get_uniprotkb_labels.tsv"
     resources:
-        # Peaks at ~41 GB on babel-1.17 (see docs/tools/Resources.md); far over the 16 GB default.
-        mem="64G",
+        # Peaks at ~40 GB on babel-1.17 (see docs/tools/Resources.md); over the 16 GB default.
+        mem="48G",
     run:
         uniprotkb.pull_uniprot_labels(input.sprot_input, input.trembl_input, output.outfile)
 
@@ -947,6 +947,9 @@ rule hmdb_labels_and_synonyms:
         smifile=config["download_directory"] + "/HMDB/smiles",
     benchmark:
         config["output_directory"] + "/benchmarks/hmdb_labels_and_synonyms.tsv"
+    resources:
+        # Peaks at ~30 GB on babel-1.17 (see docs/tools/Resources.md); over the 16 GB default.
+        mem="48G",
     run:
         hmdb.make_labels_and_synonyms_and_smiles(input.infile, output.labelfile, output.synfile, output.smifile)
 
