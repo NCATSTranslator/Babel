@@ -31,6 +31,20 @@ dependencies = [
     "xmltodict>=1.0.2",
 ]
 
+[project.urls]
+Homepage = "https://github.com/NCATSTranslator/Babel"
+Repository = "https://github.com/NCATSTranslator/Babel"
+Issues = "https://github.com/NCATSTranslator/Babel/issues"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.1.0",
+    "py-spy>=0.4.2",
+    "ruff>=0.14.14",
+    "rumdl>=0.2.4",
+    "snakefmt>=2.0.3",
+]
+
 [project.scripts]
 babel-slurm-errors = "src.tools.slurm.errors:main"
 babel-slurm-resources = "src.tools.slurm.resources:main"
@@ -48,19 +62,6 @@ build-backend = "setuptools.build_meta"
 where = ["."]
 include = ["src", "src.*"]
 
-[project.urls]
-Homepage = "https://github.com/NCATSTranslator/Babel"
-Repository = "https://github.com/NCATSTranslator/Babel"
-Issues = "https://github.com/NCATSTranslator/Babel/issues"
-
-[dependency-groups]
-dev = [
-    "ipykernel>=7.1.0",
-    "py-spy>=0.4.2",
-    "ruff>=0.14.14",
-    "rumdl>=0.2.4",
-    "snakefmt>=2.0.3",
-]
 
 # Linting/formatting configuration
 [tool.ruff]
