@@ -165,7 +165,9 @@ chemical_outputs:   [MolecularMixture.txt, SmallMolecule.txt, Polypeptide.txt, C
 # NCIT:C1949 "Food" plus NCIT:C73913 "Seed" (nuts/grains like almond and wheat that NCIt files under Seed,
 # not Food). A DRUGBANK extract whose UNII is classified under either becomes biolink:Food; other allergen
 # extracts (pollens, danders, molds) become biolink:ComplexMolecularMixture.
-drugbank_food_ncit_roots: [NCIT:C1949, NCIT:C73913]
+drugbank_food_ncit_roots:
+  - NCIT:C1949 # "Food" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C1949
+  - NCIT:C73913 # "Seed" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C73913
 
 drugchemicalconflated_synonym_outputs: [DrugChemicalConflated.txt]
 geneproteinconflated_synonym_outputs:  [GeneProteinConflated.txt]
