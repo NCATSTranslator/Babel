@@ -50,9 +50,19 @@ extract") stays `biolink:Food`.
 
 An earlier attempt used the UNII organism columns (`NCBI/PLANTS/GRIN/MPNS`, the same flags
 `write_unii_ids` uses to drop "a plant or an eye of newt" from chemicals). That over-captures
-badly — 1128 DrugBank entries, including immunoglobulins, interferons, and albumin, which are
-biologic **drugs**, not foods. NCIt classification cleanly separates the ~222 genuine
-allergenic-extract products from those biologics.
+badly — 1128 structureless DrugBank entries, including immune globulins, antithymocyte
+immunoglobulin, and live-attenuated virus vaccines, which are biologic **drugs**, not foods. NCIt
+classification cleanly separates the ~222 genuine allergenic-extract products from those biologics.
+
+The full over-capture set is recorded in `organism-flag-overcapture.csv` in this directory: all
+1128 structureless DrugBank rows whose UNII carries an organism flag. Its `current_ncit_retype`
+column is the Biolink type the current NCIt approach assigns (blank = not retyped): 175 are genuine
+foods the NCIt approach also catches, and the other **953 are the over-capture** the organism-flag
+approach would wrongly retype as `biolink:Food`/`biolink:ComplexMolecularMixture`. This is why the
+organism-flag check is deliberately **not** used to pick which DrugBank entries to retype — nothing
+is being excluded by it, and switching to it would mis-retype those 953 biologics. (Because DrugBank
+is pinned but the UNII records are re-downloaded fresh, the exact membership can drift slightly
+between refreshes; the count above is against the UNII records current as of this file.)
 
 ### Why `biolink:ComplexMolecularMixture` for the non-food allergens
 
