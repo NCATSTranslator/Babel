@@ -149,12 +149,17 @@ rule export_intermediate_files_to_duckdb:
     params:
         intermediate_directory=config["intermediate_directory"],
     run:
+        # Cap DuckDB at 75% of the SLURM allocation so Python + OS overhead don't push total RSS
+        # over the job limit; without this DuckDB auto-sizes to 75% of *total system* RAM, which
+        # can far exceed the allocation on a multi-tenant HPC node. resources.mem is like "128G".
+        duckdb_memory_limit_mb = int(int(resources.mem.rstrip("G")) * 1024 * 0.75)
         duckdb_exporters.export_intermediates_to_parquet(
             params.intermediate_directory,
             output.duckdb_filename,
             output.ids_parquet_filename,
             output.concord_parquet_filename,
             output.metadata_parquet_filename,
+            memory_limit_mb=duckdb_memory_limit_mb,
         )
 
 

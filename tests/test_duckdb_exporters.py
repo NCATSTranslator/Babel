@@ -248,6 +248,37 @@ def test_export_intermediates_to_parquet(tmp_path):
 
 
 @pytest.mark.unit
+def test_export_intermediates_to_parquet_filename_is_absolute(tmp_path, monkeypatch):
+    """The `filename` column (and the metadata subject paths derived from it) must be absolute
+    even when the intermediate directory is passed as a relative path, as the DataFormats docs
+    promise -- config passes it in relative to the run directory."""
+    _build_intermediate_tree(tmp_path / "intermediate")
+    monkeypatch.chdir(tmp_path)
+
+    concords_parquet = str(tmp_path / "Concord.parquet")
+    ids_parquet = str(tmp_path / "Identifiers.parquet")
+    metadata_parquet = str(tmp_path / "Metadata.parquet")
+    export_intermediates_to_parquet(
+        "intermediate",  # deliberately relative
+        str(tmp_path / "concords.duckdb"),
+        ids_parquet,
+        concords_parquet,
+        metadata_parquet,
+    )
+
+    for parquet_file, columns in (
+        (concords_parquet, ["filename"]),
+        (ids_parquet, ["filename"]),
+        (metadata_parquet, ["filename", "subject_file_path"]),
+    ):
+        for column in columns:
+            paths = duckdb.execute(f"SELECT DISTINCT {column} FROM read_parquet('{parquet_file}')").fetchall()
+            assert paths, f"{parquet_file} unexpectedly empty"
+            for (path,) in paths:
+                assert os.path.isabs(path), f"{column} in {parquet_file} is not absolute: {path}"
+
+
+@pytest.mark.unit
 def test_export_intermediates_to_parquet_extensionless_concords_with_sidecar(tmp_path):
     """Regression test for the DrugChemical conflation concords (Babel #754 triage input): they
     live at `intermediate/drugchemical/concords/{RXNORM,UMLS,PUBCHEM_RXNORM}` with no file
@@ -457,4 +488,7 @@ def test_export_intermediates_to_parquet_creates_missing_output_dirs(tmp_path):
     ],
 )
 def test_metadata_subject_filename(filename, expected):
+    """A `metadata-<subject>.yaml` sidecar resolves to its subject filename, a bare
+    `metadata.yaml` returns its own name (it describes its directory), and a non-metadata
+    filename returns None so the caller loads it as a data file."""
     assert _metadata_subject_filename(filename) == expected

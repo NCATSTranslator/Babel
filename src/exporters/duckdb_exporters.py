@@ -501,16 +501,23 @@ def export_intermediates_to_parquet(
     ids_parquet_filename,
     concords_parquet_filename,
     metadata_parquet_filename,
+    memory_limit_mb=None,
 ):
     """
     Export all the intermediate files into Parquet files, which will be easier to download and manipulate
     than the multiple original files.
+
+    The `filename` column in every output table is the absolute path of the source file, so
+    `intermediate_directory` is resolved to an absolute path before globbing (config passes it in
+    relative to the run directory).
 
     :param intermediate_directory: The intermediate directory containing the concords.
     :param duckdb_filename: A DuckDB file to temporarily store data in.
     :param ids_parquet_filename: The Parquet file to store the IDs.
     :param concords_parquet_filename: The Parquet file to store the concords.
     :param metadata_parquet_filename: The Parquet file to store the ID and concord metadata in.
+    :param memory_limit_mb: DuckDB memory limit in MB. When set, overrides DuckDB's default
+        (75% of system RAM), which can exceed the SLURM allocation on shared HPC nodes.
     """
 
     _prepare_duckdb_output(duckdb_filename)
@@ -519,7 +526,11 @@ def export_intermediates_to_parquet(
     for parquet_filename in (ids_parquet_filename, concords_parquet_filename, metadata_parquet_filename):
         _ensure_parent_dir(parquet_filename)
 
-    with setup_duckdb(duckdb_filename) as db:
+    duckdb_config = {}
+    if memory_limit_mb is not None:
+        duckdb_config["memory_limit"] = f"{memory_limit_mb}MB"
+
+    with setup_duckdb(duckdb_filename, duckdb_config=duckdb_config) as db:
         # We don't include labels here: the Node-writing code currently emits only nulls for them,
         # so there is nothing useful to join against.
         db.sql("""CREATE TABLE Concord (filename STRING, subj STRING, pred STRING, obj STRING)""")
@@ -528,7 +539,10 @@ def export_intermediates_to_parquet(
             """CREATE TABLE Metadata (filename STRING, subject_filename STRING, subject_file_path STRING, metadata_json STRING)"""
         )
 
-        intermediate_path = Path(intermediate_directory)
+        # Resolve to an absolute path so every `filename` value (and the metadata subject paths
+        # derived from it) is absolute, as the DataFormats docs promise -- config passes the
+        # intermediate directory in relative to the run directory.
+        intermediate_path = Path(intermediate_directory).resolve()
 
         # Load concord files. A concord line that is not exactly three tab-separated columns is
         # skipped rather than aborting the whole export: this matches write_concord_metadata() in
