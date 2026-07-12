@@ -46,7 +46,7 @@ def test_split_ncbigene_synonym_field_skips_unbalanced_single_quote_fragments():
     Full_name_from_nomenclature_authority / Other_designations columns instead (asserted in
     test_pull_ncbigene_labels_synonyms_and_taxa_skips_quote_fragments_for_828367 below).
 
-    Without the `quoted_value` context the middle pieces of the shredded value (`family 706`,
+    Without the `full_name` context the middle pieces of the shredded value (`family 706`,
     `subfamily A`) cannot be recognised, so they still come through; passing it drops them (#932,
     covered by the next test).
     """
@@ -102,6 +102,18 @@ def test_split_ncbigene_synonym_field_keeps_double_prime_without_open_marker():
     # But a trailing '' that IS a close marker (its field has a leading open marker) is still dropped.
     dropped = split_ncbigene_synonym_field("''cytochrome P450|polypeptide 2''")
     assert dropped == set()
+
+
+@pytest.mark.unit
+def test_split_ncbigene_synonym_field_keeps_middle_pieces_without_full_name():
+    """An open marker with no `full_name` still drops the '' markers themselves, but the middle
+    pieces (which carry no '' at all) can't be identified as junk without the intact value to
+    compare against, so they pass through. This is the case where a row's
+    Full_name_from_nomenclature_authority and Other_designations are both blank.
+    """
+    synonyms = split_ncbigene_synonym_field(GENE_828367_SYNONYMS)
+
+    assert synonyms == {"T12H17.100", "T12H17_100", "cytochrome P450", "family 706", "polypeptide 2", "subfamily A"}
 
 
 @pytest.mark.unit
@@ -161,3 +173,47 @@ def test_pull_ncbigene_labels_synonyms_and_taxa_skips_quote_fragments_for_828367
 
     # The gene's real aliases do.
     assert {"T12H17.100", "T12H17_100", "CYP706A2"} <= synonym_values
+
+
+@pytest.mark.unit
+def test_pull_ncbigene_labels_synonyms_and_taxa_falls_back_to_other_designations(tmp_path):
+    """When Full_name_from_nomenclature_authority is blank, the `full_name` argument falls back to
+    Other_designations (ncbigene.py passes `full_name or other_designations`) -- the shredded
+    value's middle pieces are still dropped using that column instead.
+    """
+    gene_info = tmp_path / "gene_info.gz"
+    labels = tmp_path / "labels"
+    synonyms = tmp_path / "synonyms"
+    taxa = tmp_path / "taxa"
+    descriptions = tmp_path / "descriptions"
+    write_gene_info(
+        gene_info,
+        [
+            [
+                "3702",
+                "828367",
+                "CYP706A2",
+                "AT4G22710",
+                GENE_828367_SYNONYMS,
+                "Araport:AT4G22710|TAIR:AT4G22710",
+                "4",
+                "-",
+                "-",  # Full_name_from_nomenclature_authority blank.
+                "protein-coding",
+                "-",
+                "-",  # Full_name_from_nomenclature_authority blank.
+                "-",
+                GENE_828367_FULL_NAME,  # Other_designations carries the intact value instead.
+                "20260706",
+                "-",
+            ]
+        ],
+    )
+
+    pull_ncbigene_labels_synonyms_and_taxa(str(gene_info), str(labels), str(synonyms), str(taxa), str(descriptions))
+
+    synonym_values = {row[2] for row in assert_synonyms_file_valid(str(synonyms))}
+    # The shredded value's middle pieces are dropped via the Other_designations fallback.
+    assert synonym_values.isdisjoint({"cytochrome P450", "family 706", "polypeptide 2", "subfamily A"})
+    # The gene's real aliases, and the intact value from Other_designations itself, survive.
+    assert {"T12H17.100", "T12H17_100", "CYP706A2", GENE_828367_FULL_NAME} <= synonym_values
