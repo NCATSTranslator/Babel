@@ -15,6 +15,7 @@ loads the nearest one automatically when you edit files there; **other agents sh
 - `src/tools/` (plus `src/tools/clique_diff/`, `src/tools/slurm/`,
   `src/tools/source_impact_report/`) — the "thin CLI frontend" convention and per-tool notes.
 - `docs/sources/` — cross-cutting xref / source-data conventions.
+- `docs/sources/DRUGBANK/` — DrugBank ingest gotchas (CC-0 vocabulary only, the UNII typing bridge).
 
 (Agents that merge nested `AGENTS.md` up the tree won't see these `CLAUDE.md` files — only this
 root file. If per-directory cross-agent context ever matters, pair each with an `AGENTS.md` holding
@@ -240,6 +241,12 @@ source database, unless you suspect that code is wrong — then compare the two 
 differ.
 
 When a bug fix is easy to cover with a test, suggest adding one as part of the fix.
+
+To see what type or clique Babel currently assigns a CURIE in the **last released** build without a
+local build, query the production Node Normalization service, e.g.
+`https://nodenormalization-sri.renci.org/get_normalized_nodes?curie=DRUGBANK:DB00965&conflate=true&drug_chemical_conflate=true`
+— it returns the clique's `type` and `equivalent_identifiers`, so you can check current typing or
+whether two CURIEs already share a clique (the released-build analogue of the DuckDB `Edge` table).
 
 Two different compendia must never share an identifier, and no valid identifier should be dropped
 without good reason — when changing how one compendium filters identifiers, check the effect on
