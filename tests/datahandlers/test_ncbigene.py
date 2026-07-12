@@ -36,6 +36,26 @@ def test_split_ncbigene_synonym_field_skips_unbalanced_single_quote_fragments():
 
 
 @pytest.mark.unit
+def test_split_ncbigene_synonym_field_keeps_double_prime_without_open_marker():
+    """A trailing '' with no matching open marker is genuine double-prime nomenclature, kept.
+
+    See docs/sources/NCBIGene/quoting/double_prime_report.md: real values such as U2B'' and
+    "RNA polymerase subunit beta''" end in '' and must survive, unlike the #744 span fragments.
+    """
+    # Symbol-style double-prime alongside a normal synonym: no open marker anywhere, so U2B'' stays.
+    synonyms = split_ncbigene_synonym_field("U2B''|U2 small nuclear ribonucleoprotein B")
+    assert "U2B''" in synonyms
+    assert "U2 small nuclear ribonucleoprotein B" in synonyms
+
+    # A standalone double-prime designation.
+    assert "RNA polymerase subunit beta''" in split_ncbigene_synonym_field("RNA polymerase subunit beta''")
+
+    # But a trailing '' that IS a close marker (its field has a leading open marker) is still dropped.
+    dropped = split_ncbigene_synonym_field("''cytochrome P450|polypeptide 2''")
+    assert dropped == set()
+
+
+@pytest.mark.unit
 def test_pull_ncbigene_labels_synonyms_and_taxa_skips_quote_fragments_for_828367(tmp_path):
     gene_info = tmp_path / "gene_info.gz"
     labels = tmp_path / "labels"

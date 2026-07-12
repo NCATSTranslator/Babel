@@ -45,28 +45,60 @@ def get_ncbigene_field(row, header, field_name):
     return value
 
 
+def is_open_marker(starts_quoted, ends_quoted):
+    """True if a pipe-fragment's quote flags mark it as a #744 open marker.
+
+    An open marker starts with '' but does not also end with '' (that would be a self-contained
+    ''...'' value). Shared between split_ncbigene_synonym_field and
+    docs/sources/NCBIGene/quoting/double_prime_report.py so the two can't drift apart on what
+    counts as an artifact vs. genuine double-prime nomenclature.
+    """
+    return starts_quoted and not ends_quoted
+
+
 def split_ncbigene_synonym_field(value):
     """
     Split a pipe-delimited NCBIGene synonym field into standalone synonym strings.
 
-    Some NCBIGene aliases contain '' around comma-containing text, and those '' quotes
-    are not real synonym content. When the quoted text has already been split
-    by NCBI into pipe-delimited fragments, the leading/trailing fragments
-    (for example: ''cytochrome P450) are not valid synonyms and should not be added.
+    NCBI wraps some comma-containing values in ''...'' and then splits the whole field on '|',
+    leaving the opening fragment ''cytochrome P450 and the closing fragment polypeptide 2'' as
+    dangling artifacts (issue #744). These are dropped.
+
+    A *trailing* '' by itself, however, is usually legitimate double-prime nomenclature -- real
+    values such as U2B'', "RNA polymerase subunit beta''", and "...6''-O-malonyltransferase" end in
+    '' and must be kept. An empirical scan of gene_info.gz (see
+    docs/sources/NCBIGene/quoting/double_prime_report.md) found ~25,000 genuine double-prime values
+    versus only a few hundred split-span pairs, and confirmed that a *leading* '' never begins a
+    genuine name. So a fragment is treated as an artifact only when it is a leading open marker, or
+    a trailing close marker in a field that also contains such an open marker.
     """
+    fragments = [
+        (fragment, fragment.startswith("''"), fragment.endswith("''"))
+        for fragment in (f.strip() for f in value.split("|"))
+    ]
+    # An open marker starts with '' but does not also end with '' (that would be a self-contained
+    # ''...'' value). Its presence means the field is a comma-split span, so the matching trailing
+    # close markers in the same field are artifacts too.
+    has_open_marker = any(is_open_marker(starts_quoted, ends_quoted) for _, starts_quoted, ends_quoted in fragments)
+
     synonyms = set()
-    for raw_synonym in value.split("|"):
-        synonym = raw_synonym.strip()
-        if not synonym:
+    for fragment, starts_quoted, ends_quoted in fragments:
+        if not fragment:
             continue
-        starts_quoted = synonym.startswith("''")
-        ends_quoted = synonym.endswith("''")
         if starts_quoted and ends_quoted:
-            synonym = synonym[2:-2].strip()
-        elif starts_quoted or ends_quoted:
+            # A fully ''...''-wrapped single value: unwrap it.
+            stripped = fragment[2:-2].strip()
+            if stripped:
+                synonyms.add(stripped)
             continue
-        if synonym:
-            synonyms.add(synonym)
+        if starts_quoted:
+            # Leading '' = open marker of a #744 comma-split span -> drop.
+            continue
+        if ends_quoted and has_open_marker:
+            # Trailing '' in a span field = close marker -> drop. Without an open marker, a trailing
+            # '' is genuine double-prime nomenclature and is kept below.
+            continue
+        synonyms.add(fragment)
     return synonyms
 
 
