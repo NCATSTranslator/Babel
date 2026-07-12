@@ -154,10 +154,10 @@ rule chemical_ncit_food_codes:
 
 
 rule chemical_drugbank_allergenic_extracts:
-    # DRUGBANK allergenic extracts (whole trout, strawberry, ragweed pollen, cat dander, ...) that
-    # default to biolink:ChemicalEntity but should be biolink:Food (foods) or
-    # biolink:ComplexMolecularMixture (non-food allergens) — issue #828. Uses the DrugBank vocabulary
-    # CSV's UNII column cross-checked against each UNII's NCIt class; see
+    # DRUGBANK plant/food materials (whole strawberry, willow bark, ragweed pollen, ...) that default
+    # to biolink:ChemicalEntity but should be biolink:Food, or biolink:ComplexMolecularMixture when
+    # they are a processed "extract" — issue #828. Uses the DrugBank vocabulary CSV's UNII column
+    # cross-checked against each UNII's NCIt class and botanical-database (PLANTS/GRIN/MPNS) flags; see
     # datahandlers/drugbank.py:extract_drugbank_allergenic_extract_types.
     input:
         vocab_csv=config["download_directory"] + "/DRUGBANK/drugbank vocabulary.csv",
@@ -169,7 +169,11 @@ rule chemical_drugbank_allergenic_extracts:
         config["output_directory"] + "/benchmarks/chemical_drugbank_allergenic_extracts.tsv"
     run:
         drugbank.extract_drugbank_allergenic_extract_types(
-            input.vocab_csv, input.unii_records, input.food_ncit_codes, output.outfile
+            input.vocab_csv,
+            input.unii_records,
+            input.food_ncit_codes,
+            config["drugbank_extract_markers"],
+            output.outfile,
         )
 
 

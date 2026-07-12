@@ -13,6 +13,14 @@ from src.util import get_config
 # recognise that a structureless DrugBank entry is really a food/organism extract.
 UNII_ORGANISM_COLUMNS = ["NCBI", "PLANTS", "GRIN", "MPNS"]
 
+# The botanical-database subset of UNII_ORGANISM_COLUMNS. A UNII cross-referenced to any of the USDA
+# PLANTS database, the GRIN germplasm database, or the Medicinal Plant Names Services (MPNS) reliably
+# denotes plant material (a whole plant or a plant part/extract). NCBI is deliberately excluded: the
+# NCBI taxonomy also covers animals, bacteria, fungi and the biologic-drug source organisms, so an
+# NCBI flag alone is not a reliable "this is a plant/food" signal. Used by the DrugBank
+# allergenic-extract retype to recognise plant-derived Food/extract entries (issue #828).
+UNII_PLANT_COLUMNS = ["PLANTS", "GRIN", "MPNS"]
+
 # Latest_UNII_Records.txt is Windows-1252 encoded and column 0 is the UNII code.
 UNII_RECORDS_ENCODING = "windows-1252"
 UNII_RECORDS_CODE_COLUMN = 0
@@ -40,6 +48,21 @@ def read_unii_ncit(records_file):
     return unii_to_ncit
 
 
+def _read_uniis_with_any_column(records_file, columns):
+    """Return the set of UNII codes with any of ``columns`` populated in Latest_UNII_Records.txt."""
+    uniis = set()
+    with open(records_file, encoding=UNII_RECORDS_ENCODING) as inf:
+        header = inf.readline().rstrip("\n").split("\t")
+        colnos = [header.index(col) for col in columns]
+        for line in inf:
+            # rstrip("\n") not strip(): the organism columns are near the end and are usually
+            # empty, and strip() would drop those trailing empty fields and misalign the row.
+            row = line.rstrip("\n").split("\t")
+            if any(len(row[colno]) > 0 for colno in colnos):
+                uniis.add(row[UNII_RECORDS_CODE_COLUMN])
+    return uniis
+
+
 def read_organism_uniis(records_file):
     """Return the set of UNII codes flagged as a whole organism / crude organism-derived
     substance in Latest_UNII_Records.txt (any of UNII_ORGANISM_COLUMNS populated).
@@ -48,17 +71,19 @@ def read_organism_uniis(records_file):
     the DrugBank allergenic-extract retype so the "this UNII is an organism" definition lives in
     one place.
     """
-    organism_uniis = set()
-    with open(records_file, encoding=UNII_RECORDS_ENCODING) as inf:
-        header = inf.readline().rstrip("\n").split("\t")
-        organism_colnos = [header.index(col) for col in UNII_ORGANISM_COLUMNS]
-        for line in inf:
-            # rstrip("\n") not strip(): the organism columns are near the end and are usually
-            # empty, and strip() would drop those trailing empty fields and misalign the row.
-            row = line.rstrip("\n").split("\t")
-            if any(len(row[colno]) > 0 for colno in organism_colnos):
-                organism_uniis.add(row[UNII_RECORDS_CODE_COLUMN])
-    return organism_uniis
+    return _read_uniis_with_any_column(records_file, UNII_ORGANISM_COLUMNS)
+
+
+def read_plant_uniis(records_file):
+    """Return the set of UNII codes flagged as plant material in Latest_UNII_Records.txt (any of
+    UNII_PLANT_COLUMNS — PLANTS/GRIN/MPNS — populated).
+
+    Used by the DrugBank allergenic-extract retype (issue #828) to recognise plant-derived entries
+    (whole plants, plant parts, and plant extracts), which are typed biolink:Food or, when described
+    as an "extract", biolink:ComplexMolecularMixture. Unlike read_organism_uniis this excludes
+    NCBI-only records, which mix plants with animals/bacteria/fungi/biologics and are not retyped.
+    """
+    return _read_uniis_with_any_column(records_file, UNII_PLANT_COLUMNS)
 
 
 def pull_unii():

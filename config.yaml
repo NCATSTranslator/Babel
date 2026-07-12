@@ -163,11 +163,17 @@ chemical_ids:       [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUN
 chemical_outputs:   [MolecularMixture.txt, SmallMolecule.txt, Polypeptide.txt, ComplexMolecularMixture.txt, ChemicalEntity.txt, ChemicalMixture.txt, Drug.txt, Food.txt]
 # NCIt subtrees whose members are treated as foods when retyping DRUGBANK allergenic extracts (issue #828):
 # NCIT:C1949 "Food" plus NCIT:C73913 "Seed" (nuts/grains like almond and wheat that NCIt files under Seed,
-# not Food). A DRUGBANK extract whose UNII is classified under either becomes biolink:Food; other allergen
-# extracts (pollens, danders, molds) become biolink:ComplexMolecularMixture.
+# not Food). A structureless DRUGBANK entry counts as plant/food material if its UNII is classified under
+# either root OR its UNII carries a botanical-database flag (PLANTS/GRIN/MPNS); such material becomes
+# biolink:Food, or biolink:ComplexMolecularMixture when it is an extract (see drugbank_extract_markers).
 drugbank_food_ncit_roots:
   - NCIT:C1949 # "Food" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C1949
   - NCIT:C73913 # "Seed" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C73913
+# Case-insensitive name/synonym substrings that mark a plant/food DRUGBANK material as a processed
+# *extract*: such rows become biolink:ComplexMolecularMixture (an interim type — the eventual home is
+# biolink:ProcessedMaterial once issue #929 adds that output) rather than biolink:Food. "allergen" was
+# deliberately dropped as a marker (too broad); "extract" is the reliable signal (issue #828).
+drugbank_extract_markers: [extract]
 
 drugchemicalconflated_synonym_outputs: [DrugChemicalConflated.txt]
 geneproteinconflated_synonym_outputs:  [GeneProteinConflated.txt]
