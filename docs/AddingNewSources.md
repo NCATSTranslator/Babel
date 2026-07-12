@@ -313,7 +313,7 @@ there is kept even when the clique's Biolink class doesn't register it (the chem
 `extra_prefixes=[RXCUI]` because RXCUI is in no chemical class's `id_prefixes`). This matters most
 when **retyping** a clique to a different class: members that were valid under the old type but are
 not in the new type's `id_prefixes` silently vanish unless they are covered by `extra_prefixes` — a
-quiet way to lose identifiers. The DrugBank allergenic-extract retype
+quiet way to lose identifiers. The DrugBank food-and-extract retype
 ([`docs/sources/DRUGBANK/food-and-extracts/README.md`](sources/DRUGBANK/food-and-extracts/README.md))
 relies on this to keep `RXCUI` members when moving cliques to `biolink:Food`.
 

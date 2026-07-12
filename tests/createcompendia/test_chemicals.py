@@ -86,7 +86,7 @@ def test_write_unichem_concords_raises_when_source_produces_no_entries(tmp_path)
 
 
 # ----
-# ALLERGENIC-EXTRACT RETYPE (issue #828)
+# FOOD-AND-EXTRACT RETYPE (issue #828)
 # ----
 
 

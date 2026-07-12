@@ -142,7 +142,7 @@ The one manual extra: the per-type report rules in
 [`src/snakefiles/chemical.snakefile`](../src/snakefiles/chemical.snakefile) are hardcoded
 (`check_drug`, `check_food`, …), and `rule chemical` expands `chemical_outputs` over `reports/`, so
 a new output without a matching `check_*` rule breaks the DAG (no producer for
-`reports/<Type>.txt`). See the DrugBank allergenic-extract retype
+`reports/<Type>.txt`). See the DrugBank food-and-extract retype
 ([`docs/sources/DRUGBANK/food-and-extracts/README.md`](sources/DRUGBANK/food-and-extracts/README.md))
 for a worked example that added `Food.txt`.
 

@@ -142,7 +142,7 @@ rule chemical_drugbank_ids:
 
 
 rule chemical_ncit_food_codes:
-    # Enumerate the NCIt Food/Seed subtrees so the DRUGBANK allergenic-extract retype can recognise
+    # Enumerate the NCIt Food/Seed subtrees so the DRUGBANK food-and-extract retype can recognise
     # foods by their UNII's NCIt class (issue #828). Queries UberGraph, hence retries.
     output:
         outfile=config["intermediate_directory"] + "/chemicals/ids/ncit_food_codes",
@@ -153,22 +153,22 @@ rule chemical_ncit_food_codes:
         chemicals.write_ncit_descendant_codes(config["drugbank_food_ncit_roots"], output.outfile)
 
 
-rule chemical_drugbank_allergenic_extracts:
+rule chemical_drugbank_food_extracts:
     # DRUGBANK plant/food materials (whole strawberry, willow bark, ragweed pollen, ...) that default
     # to biolink:ChemicalEntity but should be biolink:Food, or biolink:ComplexMolecularMixture when
     # they are a processed "extract" — issue #828. Uses the DrugBank vocabulary CSV's UNII column
     # cross-checked against each UNII's NCIt class and botanical-database (PLANTS/GRIN/MPNS) flags; see
-    # datahandlers/drugbank.py:extract_drugbank_allergenic_extract_types.
+    # datahandlers/drugbank.py:write_drugbank_food_extract_types.
     input:
         vocab_csv=config["download_directory"] + "/DRUGBANK/drugbank vocabulary.csv",
         unii_records=config["download_directory"] + "/UNII/Latest_UNII_Records.txt",
         food_ncit_codes=config["intermediate_directory"] + "/chemicals/ids/ncit_food_codes",
     output:
-        outfile=config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_allergenic_extracts",
+        outfile=config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts",
     benchmark:
-        config["output_directory"] + "/benchmarks/chemical_drugbank_allergenic_extracts.tsv"
+        config["output_directory"] + "/benchmarks/chemical_drugbank_food_extracts.tsv"
     run:
-        drugbank.extract_drugbank_allergenic_extract_types(
+        drugbank.write_drugbank_food_extract_types(
             input.vocab_csv,
             input.unii_records,
             input.food_ncit_codes,
@@ -378,7 +378,7 @@ rule chemical_compendia:
         metadata_yamls=[config["intermediate_directory"] + "/chemicals/partials/metadata-untyped_compendium.yaml"],
         properties_jsonl_gz=[config["intermediate_directory"] + "/chemicals/properties/get_chebi_concord.jsonl.gz"],
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
-        allergenic_extract_types=config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_allergenic_extracts",
+        food_extract_types=config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["chemical_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["chemical_outputs"])),
@@ -395,7 +395,7 @@ rule chemical_compendia:
             input.properties_jsonl_gz,
             input.metadata_yamls,
             input.icrdf_filename,
-            input.allergenic_extract_types,
+            input.food_extract_types,
         )
 
 

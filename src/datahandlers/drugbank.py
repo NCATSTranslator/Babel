@@ -52,11 +52,11 @@ def extract_drugbank_labels_and_synonyms(drugbank_vocab_csv, labels, synonyms):
                     synonymsf.write(f"{drugbank_id}\t{HAS_EXACT_SYNONYM}\t{syn}\n")
 
 
-def classify_allergenic_extract(row, unii_to_ncit, food_ncit_codes, plant_uniis, extract_markers):
+def classify_food_or_extract(row, unii_to_ncit, food_ncit_codes, plant_uniis, extract_markers):
     """Return ``(biolink_type, signal)`` a DrugBank vocabulary row should be retyped to, or
     ``(None, None)`` (issue #828).
 
-    DrugBank ships allergenic-extract products as structureless organism materials (whole trout,
+    DrugBank ships food-and-extract products as structureless organism materials (whole trout,
     strawberry, ragweed pollen, willow bark, cat dander, ...) that default to biolink:ChemicalEntity.
     We only consider rows with **no** ``Standard InChI Key`` (an extract/material, not a defined
     molecule, so a genuine plant-derived small molecule stays a chemical), and type the plant-derived
@@ -89,15 +89,13 @@ def classify_allergenic_extract(row, unii_to_ncit, food_ncit_codes, plant_uniis,
     return FOOD, ("ncit-food" if is_ncit_food else "plant-food")
 
 
-def extract_drugbank_allergenic_extract_types(
-    drugbank_vocab_csv, unii_records, food_ncit_codes_file, extract_markers, outfile
-):
-    """Write ``DRUGBANK:xxx\\tbiolink:Type`` for DrugBank allergenic extracts to retype (issue #828).
+def write_drugbank_food_extract_types(drugbank_vocab_csv, unii_records, food_ncit_codes_file, extract_markers, outfile):
+    """Write ``DRUGBANK:xxx\\tbiolink:Type`` for DrugBank food/extracts to retype (issue #828).
 
     Reads the raw DrugBank vocabulary CSV (whose ``UNII`` column the label/synonym extractor
     discards), the FDA UNII records (for each UNII's NCIt class and its plant-database flags), and the
     enumerated NCIt Food/Seed subtree, then classifies each structureless plant/food material as
-    biolink:Food or (for extracts) biolink:ComplexMolecularMixture (see classify_allergenic_extract).
+    biolink:Food or (for extracts) biolink:ComplexMolecularMixture (see classify_food_or_extract).
     ``extract_markers`` is the config list of name/synonym substrings that mark an extract. The output
     drives the retype in ``chemicals.create_typed_sets``.
     """
@@ -111,7 +109,7 @@ def extract_drugbank_allergenic_extract_types(
         assert "UNII" in reader.fieldnames
         assert "Standard InChI Key" in reader.fieldnames
         for row in reader:
-            biolink_type, _signal = classify_allergenic_extract(
+            biolink_type, _signal = classify_food_or_extract(
                 row, unii_to_ncit, food_ncit_codes, plant_uniis, extract_markers
             )
             if biolink_type:

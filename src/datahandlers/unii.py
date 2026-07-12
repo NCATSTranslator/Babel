@@ -9,7 +9,7 @@ from src.util import get_config
 # Columns in Latest_UNII_Records.txt that, when populated, mark a UNII as a whole organism or
 # crude organism-derived substance (a plant, animal, fungus, etc.) rather than a defined
 # chemical. These are the substances the chemical ingest deliberately skips ("a plant or an eye
-# of newt") and the same signal the DrugBank allergenic-extract retype (issue #828) uses to
+# of newt") and the same signal the DrugBank food-and-extract retype (issue #828) uses to
 # recognise that a structureless DrugBank entry is really a food/organism extract.
 UNII_ORGANISM_COLUMNS = ["NCBI", "PLANTS", "GRIN", "MPNS"]
 
@@ -18,7 +18,7 @@ UNII_ORGANISM_COLUMNS = ["NCBI", "PLANTS", "GRIN", "MPNS"]
 # denotes plant material (a whole plant or a plant part/extract). NCBI is deliberately excluded: the
 # NCBI taxonomy also covers animals, bacteria, fungi and the biologic-drug source organisms, so an
 # NCBI flag alone is not a reliable "this is a plant/food" signal. Used by the DrugBank
-# allergenic-extract retype to recognise plant-derived Food/extract entries (issue #828).
+# food-and-extract retype to recognise plant-derived Food/extract entries (issue #828).
 UNII_PLANT_COLUMNS = ["PLANTS", "GRIN", "MPNS"]
 
 # Latest_UNII_Records.txt is Windows-1252 encoded and column 0 is the UNII code.
@@ -26,14 +26,14 @@ UNII_RECORDS_ENCODING = "windows-1252"
 UNII_RECORDS_CODE_COLUMN = 0
 
 # Column in Latest_UNII_Records.txt holding the substance's NCIt code (bare, e.g. "C71910"). Used
-# by the DrugBank allergenic-extract retype to recognise foods via NCIt classification (issue #828).
+# by the DrugBank food-and-extract retype to recognise foods via NCIt classification (issue #828).
 UNII_RECORDS_NCIT_COLUMN = "NCIT"
 
 
 def read_unii_ncit(records_file):
     """Return {UNII code -> NCIt CURIE (e.g. "NCIT:C71910")} for records that carry an NCIt code.
 
-    The NCIt code lets the DrugBank allergenic-extract retype decide whether a structureless
+    The NCIt code lets the DrugBank food-and-extract retype decide whether a structureless
     DrugBank entry is a food (its UNII's NCIt class is under NCIt "Food"/"Seed").
     """
     unii_to_ncit = {}
@@ -68,7 +68,7 @@ def read_organism_uniis(records_file):
     substance in Latest_UNII_Records.txt (any of UNII_ORGANISM_COLUMNS populated).
 
     Shared by chemicals.write_unii_ids (which excludes these from the chemical compendium) and
-    the DrugBank allergenic-extract retype so the "this UNII is an organism" definition lives in
+    the DrugBank food-and-extract retype so the "this UNII is an organism" definition lives in
     one place.
     """
     return _read_uniis_with_any_column(records_file, UNII_ORGANISM_COLUMNS)
@@ -78,7 +78,7 @@ def read_plant_uniis(records_file):
     """Return the set of UNII codes flagged as plant material in Latest_UNII_Records.txt (any of
     UNII_PLANT_COLUMNS — PLANTS/GRIN/MPNS — populated).
 
-    Used by the DrugBank allergenic-extract retype (issue #828) to recognise plant-derived entries
+    Used by the DrugBank food-and-extract retype (issue #828) to recognise plant-derived entries
     (whole plants, plant parts, and plant extracts), which are typed biolink:Food or, when described
     as an "extract", biolink:ComplexMolecularMixture. Unlike read_organism_uniis this excludes
     NCBI-only records, which mix plants with animals/bacteria/fungi/biologics and are not retyped.

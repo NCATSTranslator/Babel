@@ -71,4 +71,4 @@ reverse-engineering how the file was built. Prefer scripts that
 **import the production classification/parsing code** rather than reimplementing it, so the
 committed artifact cannot drift from the pipeline. Worked example:
 `docs/sources/DRUGBANK/food-and-extracts/scripts/generate_csvs.py`, which regenerates the two
-DrugBank retype CSVs from the same `classify_allergenic_extract` the build uses.
+DrugBank retype CSVs from the same `classify_food_or_extract` the build uses.

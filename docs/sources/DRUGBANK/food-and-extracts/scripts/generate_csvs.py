@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Regenerate the two DrugBank allergenic-extract audit CSVs in this directory (issue #828).
+"""Regenerate the two DrugBank food-and-extract audit CSVs in this directory (issue #828).
 
 This is the committed generator for the sibling files:
 
@@ -11,8 +11,8 @@ This is the committed generator for the sibling files:
     do *not* retype yet (animals, bacteria, fungi, biologics, danders), the review set for the
     NCBI-only follow-up issue.
 
-The classification is imported from production code (``classify_allergenic_extract``) so this script
-and the ``chemical_drugbank_allergenic_extracts`` pipeline rule can never drift.
+The classification is imported from production code (``classify_food_or_extract``) so this script
+and the ``chemical_drugbank_food_extracts`` pipeline rule can never drift.
 
 Inputs (pinned DrugBank vocabulary; current FDA UNII records):
 
@@ -35,7 +35,7 @@ import csv
 from pathlib import Path
 
 from src.categories import COMPLEX_MOLECULAR_MIXTURE
-from src.datahandlers.drugbank import classify_allergenic_extract
+from src.datahandlers.drugbank import classify_food_or_extract
 from src.datahandlers.unii import read_organism_uniis, read_plant_uniis, read_unii_ncit
 from src.prefixes import DRUGBANK
 from src.util import get_config
@@ -62,7 +62,7 @@ def generate(vocab_csv, unii_records, ncit_food_codes_file, extract_markers, fil
             curie = f"{DRUGBANK}:{row['DrugBank ID']}"
             unii = (row.get("UNII") or "").strip()
             ncit = unii_to_ncit.get(unii, "")
-            biolink_type, signal = classify_allergenic_extract(
+            biolink_type, signal = classify_food_or_extract(
                 row, unii_to_ncit, food_ncit_codes, plant_uniis, extract_markers
             )
             if biolink_type:

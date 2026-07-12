@@ -1,6 +1,6 @@
 """Unit tests for the DrugBank plant-derived-extract retype (issue #828).
 
-Covers datahandlers.drugbank.extract_drugbank_allergenic_extract_types (which DRUGBANK ids become
+Covers datahandlers.drugbank.write_drugbank_food_extract_types (which DRUGBANK ids become
 biolink:Food vs biolink:ComplexMolecularMixture) and the UNII helpers it and write_unii_ids rely on
 (read_unii_ncit, read_organism_uniis, read_plant_uniis).
 """
@@ -8,7 +8,7 @@ biolink:Food vs biolink:ComplexMolecularMixture) and the UNII helpers it and wri
 import pytest
 
 from src.categories import COMPLEX_MOLECULAR_MIXTURE, FOOD
-from src.datahandlers.drugbank import classify_allergenic_extract, extract_drugbank_allergenic_extract_types
+from src.datahandlers.drugbank import classify_food_or_extract, write_drugbank_food_extract_types
 from src.datahandlers.unii import (
     UNII_ORGANISM_COLUMNS,
     UNII_PLANT_COLUMNS,
@@ -108,12 +108,12 @@ def test_unii_plant_columns_are_botanical_subset():
 
 
 # ----
-# extract_drugbank_allergenic_extract_types
+# write_drugbank_food_extract_types
 # ----
 
 
 @pytest.mark.unit
-def test_extract_drugbank_allergenic_extract_types(tmp_path):
+def test_write_drugbank_food_extract_types(tmp_path):
     """Plant/food material → Food; a plant *extract* → ComplexMolecularMixture; a real chemical (InChI
     Key), an NCBI-only organism, and an unflagged structureless entry get neither."""
     vocab = tmp_path / "drugbank vocabulary.csv"
@@ -144,9 +144,9 @@ def test_extract_drugbank_allergenic_extract_types(tmp_path):
     )
     food_codes = tmp_path / "ncit_food_codes"
     food_codes.write_text("NCIT:C71910\nNCIT:C74458\n")  # trout + almond classified as food
-    outfile = tmp_path / "DRUGBANK_allergenic_extracts"
+    outfile = tmp_path / "DRUGBANK_food_extracts"
 
-    extract_drugbank_allergenic_extract_types(str(vocab), str(records), str(food_codes), EXTRACT_MARKERS, str(outfile))
+    write_drugbank_food_extract_types(str(vocab), str(records), str(food_codes), EXTRACT_MARKERS, str(outfile))
 
     lines = set(outfile.read_text().splitlines())
     assert lines == {
@@ -158,7 +158,7 @@ def test_extract_drugbank_allergenic_extract_types(tmp_path):
 
 
 # ----
-# classify_allergenic_extract
+# classify_food_or_extract
 # ----
 
 
@@ -166,14 +166,14 @@ def test_extract_drugbank_allergenic_extract_types(tmp_path):
 def test_classify_plant_material_without_extract_is_food():
     """A plant-flagged structureless material with no 'extract' marker is biolink:Food."""
     row = {"Common name": "Raphanus sativus", "Synonyms": "", "UNII": "RADISH", "Standard InChI Key": ""}
-    assert classify_allergenic_extract(row, {}, set(), {"RADISH"}, EXTRACT_MARKERS) == (FOOD, "plant-food")
+    assert classify_food_or_extract(row, {}, set(), {"RADISH"}, EXTRACT_MARKERS) == (FOOD, "plant-food")
 
 
 @pytest.mark.unit
 def test_classify_plant_extract_is_complex_molecular_mixture():
     """A plant-flagged material whose name says 'extract' is biolink:ComplexMolecularMixture."""
     row = {"Common name": "Birch bark extract", "Synonyms": "", "UNII": "BARK", "Standard InChI Key": ""}
-    result = classify_allergenic_extract(row, {}, set(), {"BARK"}, EXTRACT_MARKERS)
+    result = classify_food_or_extract(row, {}, set(), {"BARK"}, EXTRACT_MARKERS)
     assert result == (COMPLEX_MOLECULAR_MIXTURE, "extract")
 
 
@@ -181,7 +181,7 @@ def test_classify_plant_extract_is_complex_molecular_mixture():
 def test_classify_extract_marker_beats_ncit_food():
     """'extract' routes even an NCIt-food row to ComplexMolecularMixture (extract check wins)."""
     row = {"Common name": "Soybean extract", "Synonyms": "", "UNII": "SOY", "Standard InChI Key": ""}
-    result = classify_allergenic_extract(row, {"SOY": "NCIT:C72010"}, {"NCIT:C72010"}, set(), EXTRACT_MARKERS)
+    result = classify_food_or_extract(row, {"SOY": "NCIT:C72010"}, {"NCIT:C72010"}, set(), EXTRACT_MARKERS)
     assert result == (COMPLEX_MOLECULAR_MIXTURE, "extract")
 
 
@@ -190,18 +190,18 @@ def test_classify_allergen_text_no_longer_triggers_cmm():
     """'allergen' is no longer a marker: a plant material carrying allergen (but not extract) text is
     still biolink:Food, not ComplexMolecularMixture."""
     row = {"Common name": "Ragweed pollen", "Synonyms": "allergenic", "UNII": "RAG", "Standard InChI Key": ""}
-    assert classify_allergenic_extract(row, {}, set(), {"RAG"}, EXTRACT_MARKERS) == (FOOD, "plant-food")
+    assert classify_food_or_extract(row, {}, set(), {"RAG"}, EXTRACT_MARKERS) == (FOOD, "plant-food")
 
 
 @pytest.mark.unit
 def test_classify_ncbi_only_is_not_retyped():
     """An NCBI-only organism (not plant-flagged, not NCIt-food) is left alone — deferred work."""
     row = {"Common name": "Periplaneta americana", "Synonyms": "allergen", "UNII": "ROACH", "Standard InChI Key": ""}
-    assert classify_allergenic_extract(row, {}, set(), set(), EXTRACT_MARKERS) == (None, None)
+    assert classify_food_or_extract(row, {}, set(), set(), EXTRACT_MARKERS) == (None, None)
 
 
 @pytest.mark.unit
 def test_classify_requires_missing_structure():
     """A plant-derived molecule that still has an InChI Key is a chemical, not an extract."""
     row = {"UNII": "3Z252A2K9G", "Common name": "Some plant alkaloid", "Standard InChI Key": "ABC-DEF-G"}
-    assert classify_allergenic_extract(row, {}, set(), {"3Z252A2K9G"}, EXTRACT_MARKERS) == (None, None)
+    assert classify_food_or_extract(row, {}, set(), {"3Z252A2K9G"}, EXTRACT_MARKERS) == (None, None)
