@@ -2,7 +2,6 @@
   "meta": {
     "source_file": "babel_downloads/NCBIGene/gene_info.gz",
     "generated_by": "docs/sources/NCBIGene/quoting/analyze_quoting.py",
-    "generated_at": "2026-07-10T21:41:59+00:00",
     "total_data_rows": 70541777,
     "malformed_rows": 0,
     "columns_analyzed": {

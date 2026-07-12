@@ -231,7 +231,7 @@ symbol_field_valid                         12
 ## Can the quoted value be reconstructed by rejoining the span?
 
 Tests the intuitive reading of `''…''` as ordinary quoting: rejoin the fragments between the markers
-with `,` and compare against the row's own `Full_name`/`Other_designations`, which carries the
+with `", "` and compare against the row's own `Full_name`/`Other_designations`, which carries the
 value intact.
 
 ```text

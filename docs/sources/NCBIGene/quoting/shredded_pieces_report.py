@@ -36,7 +36,8 @@ import gzip
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from src.datahandlers.ncbigene import GENE_INFO_HEADER, is_open_marker, split_ncbigene_synonym_field
+from src.babel_utils import make_local_name
+from src.datahandlers.ncbigene import GENE_INFO_HEADER, field_has_open_marker, split_ncbigene_synonym_field
 
 TAX_ID = GENE_INFO_HEADER.index("#tax_id")
 GENE_ID = GENE_INFO_HEADER.index("GeneID")
@@ -45,17 +46,9 @@ SYNONYMS = GENE_INFO_HEADER.index("Synonyms")
 FULL_NAME = GENE_INFO_HEADER.index("Full_name_from_nomenclature_authority")
 OTHER_DESIG = GENE_INFO_HEADER.index("Other_designations")
 
-DEFAULT_INPUT = Path("babel_downloads/NCBIGene/gene_info.gz")
+DEFAULT_INPUT = Path(make_local_name("gene_info.gz", subpath="NCBIGene"))
 DEFAULT_CSV = Path(__file__).with_name("shredded_pieces.csv")
 DEFAULT_MD = Path(__file__).with_name("shredded_pieces_report.md")
-
-
-def has_shredded_value(synonyms_field):
-    """True if an open marker shows NCBI shredded a ''...''-quoted value into this field."""
-    return any(
-        is_open_marker(fragment.startswith("''"), fragment.endswith("''"))
-        for fragment in (f.strip() for f in synonyms_field.split("|"))
-    )
 
 
 def analyze(input_path):
@@ -67,7 +60,7 @@ def analyze(input_path):
         inf.readline()
         for line in inf:
             row = line.rstrip("\n").split("\t")
-            if len(row) <= OTHER_DESIG or not has_shredded_value(row[SYNONYMS]):
+            if len(row) <= OTHER_DESIG or not field_has_open_marker(row[SYNONYMS]):
                 continue
             totals["rows"] += 1
 

@@ -32,14 +32,23 @@ Usage:
 
 import argparse
 import gzip
+import textwrap
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from src.datahandlers.ncbigene import is_open_marker
+from src.babel_utils import make_local_name
+from src.datahandlers.ncbigene import GENE_INFO_HEADER, field_has_open_marker, is_open_marker
 
-TAX_ID, GENE_ID, SYMBOL, SYNONYMS, DESCRIPTION, SYMBOL_AUTH, FULL_NAME, OTHER_DESIG = 0, 1, 2, 4, 8, 10, 11, 13
+TAX_ID = GENE_INFO_HEADER.index("#tax_id")
+GENE_ID = GENE_INFO_HEADER.index("GeneID")
+SYMBOL = GENE_INFO_HEADER.index("Symbol")
+SYNONYMS = GENE_INFO_HEADER.index("Synonyms")
+DESCRIPTION = GENE_INFO_HEADER.index("description")
+SYMBOL_AUTH = GENE_INFO_HEADER.index("Symbol_from_nomenclature_authority")
+FULL_NAME = GENE_INFO_HEADER.index("Full_name_from_nomenclature_authority")
+OTHER_DESIG = GENE_INFO_HEADER.index("Other_designations")
 
-DEFAULT_INPUT = Path("babel_downloads/NCBIGene/gene_info.gz")
+DEFAULT_INPUT = Path(make_local_name("gene_info.gz", subpath="NCBIGene"))
 DEFAULT_OUTPUT = Path(__file__).with_name("double_prime_report.md")
 
 
@@ -54,7 +63,7 @@ def classify_field(value: str):
         return
     fragments = value.split("|")
     flags = [(f, f.startswith("''"), f.endswith("''")) for f in fragments]
-    has_open = any(is_open_marker(starts, ends) for _, starts, ends in flags)
+    has_open = field_has_open_marker(value)
     for f, starts, ends in flags:
         if "''" not in f:
             continue
@@ -77,11 +86,11 @@ def check_rejoinable(row):
     intact. Returns None if the row has no open marker, else a dict recording whether the naive
     rejoin reproduces the true value and which fragments inside the span are foreign to it.
     """
+    if not field_has_open_marker(row[SYNONYMS]):
+        return None
     frags = [f.strip() for f in row[SYNONYMS].split("|")]
     flags = [(f, f.startswith("''"), f.endswith("''")) for f in frags]
-    open_i = next((i for i, (_, s, e) in enumerate(flags) if is_open_marker(s, e)), None)
-    if open_i is None:
-        return None
+    open_i = next(i for i, (_, s, e) in enumerate(flags) if is_open_marker(s, e))
     close_i = next((i for i in range(open_i + 1, len(frags)) if frags[i].endswith("''")), None)
     truth = next((row[c] for c in (FULL_NAME, OTHER_DESIG) if row[c] not in ("", "-")), None)
     if close_i is None or truth is None:
@@ -164,6 +173,15 @@ def _record_valid(valid_tokens, token, row, symbol):
         entry["example"] = (row[GENE_ID], row[TAX_ID], desc)
 
 
+def para(text):
+    """Wrap a prose paragraph to 100 characters, the MD013 limit rumdl enforces on this file.
+
+    This report is regenerated, so the generator -- not a one-off `rumdl fmt` -- has to emit
+    lint-clean Markdown; otherwise every re-run dirties the committed file.
+    """
+    return textwrap.fill(text, width=100) + "\n"
+
+
 def write_rejoin_section(lines, rejoin):
     """Append the "can the quoted span be rejoined?" findings to the report."""
     lines.append("## Can the quoted value be reconstructed by rejoining the span?\n")
@@ -171,9 +189,11 @@ def write_rejoin_section(lines, rejoin):
         lines.append("No rows with an open marker found.\n")
         return
     lines.append(
-        "Tests the intuitive reading of `''…''` as ordinary quoting: rejoin the fragments between "
-        "the markers with `, ` and compare against the row's own `Full_name`/`Other_designations`, "
-        "which carries the value intact.\n"
+        para(
+            "Tests the intuitive reading of `''…''` as ordinary quoting: rejoin the fragments "
+            'between the markers with `", "` and compare against the row\'s own '
+            "`Full_name`/`Other_designations`, which carries the value intact."
+        )
     )
     undecidable = rejoin["rows"] - rejoin["checkable"]
     lines.append("```text")
@@ -185,15 +205,19 @@ def write_rejoin_section(lines, rejoin):
     lines.append("```\n")
     if not rejoin["exact"]:
         lines.append(
-            "**Not reconstructable.** The span is not a contiguous run of the value's pieces: "
-            "genuine, unrelated aliases (locus tags and the like) sit *inside* it, the fragment "
-            "order is meaningless, and the value's internal commas became `|` — indistinguishable "
-            "from the delimiter. Rejoining yields garbage.\n"
+            para(
+                "**Not reconstructable.** The span is not a contiguous run of the value's pieces: "
+                "genuine, unrelated aliases (locus tags and the like) sit *inside* it, the fragment "
+                "order is meaningless, and the value's internal commas became `|` — indistinguishable "
+                "from the delimiter. Rejoining yields garbage."
+            )
         )
         lines.append(
-            "This costs nothing: `Full_name_from_nomenclature_authority` / `Other_designations` "
-            "carry the correct value, and Babel already reads both. See issue #932 for the junk "
-            "comma-pieces that do remain.\n"
+            para(
+                "This costs nothing: `Full_name_from_nomenclature_authority` / `Other_designations` "
+                "carry the correct value, and Babel already reads both. See issue #932 for the junk "
+                "comma-pieces that do remain."
+            )
         )
     for e in rejoin["examples"]:
         gid, sym, syn, truth, rejoined = e["example"]

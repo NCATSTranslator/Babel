@@ -41,9 +41,9 @@ import gzip
 import json
 import re
 from collections import Counter
-from datetime import UTC, datetime
 from pathlib import Path
 
+from src.babel_utils import make_local_name
 from src.datahandlers.ncbigene import GENE_INFO_HEADER
 
 # The two columns we study, keyed by the NCBI web-API field name Babel users will recognize.
@@ -52,7 +52,7 @@ COLUMNS = {
     "otherdesignations": GENE_INFO_HEADER.index("Other_designations"),
 }
 
-DEFAULT_INPUT = Path("babel_downloads/NCBIGene/gene_info.gz")
+DEFAULT_INPUT = Path(make_local_name("gene_info.gz", subpath="NCBIGene"))
 DEFAULT_OUTPUT = Path(__file__).with_name("counts.json")
 
 
@@ -133,8 +133,10 @@ class FieldStats:
 
         # Independent presence tags (superset of the combination tags).
         double_single = "''" in value
-        # A lone single quote is a "'" left over after removing every "''" pair.
-        lone_single = "'" in value.replace("''", "")
+        # A lone single quote is a "'" left over after removing every "''" pair. The `"'" in value`
+        # guard first: most of the ~70M values contain no quote at all, and .replace() allocates a
+        # copy of the string even when there is nothing to replace.
+        lone_single = "'" in value and "'" in value.replace("''", "")
         has = {
             "has_pipe": "|" in value,
             "has_comma": "," in value,
@@ -250,7 +252,9 @@ def analyze(input_path: Path) -> dict:
         "meta": {
             "source_file": str(input_path),
             "generated_by": "docs/sources/NCBIGene/quoting/analyze_quoting.py",
-            "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            # Deliberately no generated_at: this file is committed and regenerated, and a timestamp
+            # would make every re-run dirty it even when no count changed -- hiding the real diff,
+            # which is the only thing worth reviewing. Git history records when it was last written.
             "total_data_rows": total_data_rows,
             "malformed_rows": malformed_rows,
             "columns_analyzed": {
