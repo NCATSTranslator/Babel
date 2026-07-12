@@ -421,7 +421,7 @@ def pull_via_wget(
     :param outpath: The full output directory to write this file to. Both subpath and outpath cannot be set at the same time.
     :param continue_incomplete: Should wget continue an incomplete download? Ignored (forced off) in a
         recursive download with timestamping, where resuming can corrupt a file that changed upstream.
-    :param recurse: Do we want to download recursively? Should be from Wget_Recursion_Options, such as Wget_Recursion_Options.NO_RECURSION.
+    :param recurse: Do we want to download recursively? Should be from WgetRecursionOptions, such as WgetRecursionOptions.NO_RECURSION.
     :param retries: The number of retries to attempt.
     :param verify_gzip: If downloading a Gzip file that isn't being decompressed, verify that the
         file is valid (by reading it entirely). Has no effect if decompress=True.
