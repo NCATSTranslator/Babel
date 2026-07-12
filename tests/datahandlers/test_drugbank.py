@@ -1,4 +1,4 @@
-"""Unit tests for the DrugBank plant-derived-extract retype (issue #828).
+"""Unit tests for the DrugBank food-and-extract retype (issue #828).
 
 Covers datahandlers.drugbank.write_drugbank_food_extract_types (which DRUGBANK ids become
 biolink:Food vs biolink:ComplexMolecularMixture) and the UNII helpers it and write_unii_ids rely on
@@ -166,7 +166,7 @@ def test_write_drugbank_food_extract_types(tmp_path):
 def test_classify_plant_material_without_extract_is_food():
     """A plant-flagged structureless material with no 'extract' marker is biolink:Food."""
     row = {"Common name": "Raphanus sativus", "Synonyms": "", "UNII": "RADISH", "Standard InChI Key": ""}
-    assert classify_food_or_extract(row, {}, set(), {"RADISH"}, EXTRACT_MARKERS) == (FOOD, "plant-food")
+    assert classify_food_or_extract(row, {}, set(), {"RADISH"}, EXTRACT_MARKERS) == (FOOD, "botanical-flag")
 
 
 @pytest.mark.unit
@@ -190,7 +190,7 @@ def test_classify_allergen_text_no_longer_triggers_cmm():
     """'allergen' is no longer a marker: a plant material carrying allergen (but not extract) text is
     still biolink:Food, not ComplexMolecularMixture."""
     row = {"Common name": "Ragweed pollen", "Synonyms": "allergenic", "UNII": "RAG", "Standard InChI Key": ""}
-    assert classify_food_or_extract(row, {}, set(), {"RAG"}, EXTRACT_MARKERS) == (FOOD, "plant-food")
+    assert classify_food_or_extract(row, {}, set(), {"RAG"}, EXTRACT_MARKERS) == (FOOD, "botanical-flag")
 
 
 @pytest.mark.unit

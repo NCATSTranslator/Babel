@@ -58,22 +58,26 @@ def classify_food_or_extract(row, unii_to_ncit, food_ncit_codes, plant_uniis, ex
 
     DrugBank ships food-and-extract products as structureless organism materials (whole trout,
     strawberry, ragweed pollen, willow bark, cat dander, ...) that default to biolink:ChemicalEntity.
-    We only consider rows with **no** ``Standard InChI Key`` (an extract/material, not a defined
-    molecule, so a genuine plant-derived small molecule stays a chemical), and type the plant-derived
-    ones:
+    The aim is to type as many of the *foods* among them as biolink:Food as the available signals
+    safely allow. We only consider rows with **no** ``Standard InChI Key`` (an extract/material, not
+    a defined molecule, so a small molecule extracted from a plant stays a chemical), and then:
 
-    - The row is treated as **plant/food material** when its UNII is classified under NCIt "Food"/
-      "Seed" (``food_ncit_codes``) *or* its UNII carries a botanical-database flag (``plant_uniis`` —
-      PLANTS/GRIN/MPNS). Everything else (NCBI-only organisms — animals, bacteria, fungi, biologics —
-      and unflagged rows) is left as biolink:ChemicalEntity and deferred for later work.
+    - The row is treated as **food material** when its UNII is classified under NCIt "Food"/"Seed"
+      (``food_ncit_codes`` — NCIt types a food by what it is, not what it came from, so this covers
+      scallop, venison and beef liver as well as strawberries) *or* its UNII carries a
+      botanical-database flag (``plant_uniis`` — PLANTS/GRIN/MPNS, which reaches the plant materials
+      NCIt has no food class for). Everything else is left as biolink:ChemicalEntity and deferred:
+      most importantly the NCBI-only organism entries, where the same flag covers real foods
+      (lobster, mushroom) and biologics (immune globulins, antivenins, CAR-T), so retyping on it
+      would call a biologic a food (issue #930).
     - Among that material, a row whose name/synonyms contain an ``extract_markers`` substring
       (``"extract"``) is a processed extract → **biolink:ComplexMolecularMixture** (an interim type;
       the eventual home is biolink:ProcessedMaterial once issue #929 adds that output). Bark/root/
       leaf/pollen *extracts* land here.
-    - Any other plant/food material → **biolink:Food** (whole fruits, roots, seeds, herbs). The
+    - Any other food material → **biolink:Food** (whole fruits, roots, seeds, herbs, meats). The
       finer Food-vs-biolink:OrganismTaxon distinction is deferred to issue #926.
 
-    ``signal`` records which branch fired (``ncit-food``, ``plant-food``, or ``extract``) so the
+    ``signal`` records which branch fired (``ncit-food``, ``botanical-flag``, or ``extract``) so the
     audit CSVs and the ids file share one classification.
     """
     if (row.get("Standard InChI Key") or "").strip() != "":
@@ -86,7 +90,7 @@ def classify_food_or_extract(row, unii_to_ncit, food_ncit_codes, plant_uniis, ex
     text = f"{row.get('Common name', '')} {row.get('Synonyms', '')}".lower()
     if any(marker in text for marker in extract_markers):
         return COMPLEX_MOLECULAR_MIXTURE, "extract"
-    return FOOD, ("ncit-food" if is_ncit_food else "plant-food")
+    return FOOD, ("ncit-food" if is_ncit_food else "botanical-flag")
 
 
 def write_drugbank_food_extract_types(drugbank_vocab_csv, unii_records, food_ncit_codes_file, extract_markers, outfile):
@@ -94,7 +98,7 @@ def write_drugbank_food_extract_types(drugbank_vocab_csv, unii_records, food_nci
 
     Reads the raw DrugBank vocabulary CSV (whose ``UNII`` column the label/synonym extractor
     discards), the FDA UNII records (for each UNII's NCIt class and its plant-database flags), and the
-    enumerated NCIt Food/Seed subtree, then classifies each structureless plant/food material as
+    enumerated NCIt Food/Seed subtree, then classifies each structureless food material as
     biolink:Food or (for extracts) biolink:ComplexMolecularMixture (see classify_food_or_extract).
     ``extract_markers`` is the config list of name/synonym substrings that mark an extract. The output
     drives the retype in ``chemicals.create_typed_sets``.

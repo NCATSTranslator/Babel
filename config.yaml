@@ -157,19 +157,21 @@ chemical_labels:    [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUN
 chemical_synonyms:  [GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, UMLS, DRUGBANK]
 chemical_concords:  [wikipedia_mesh_chebi, PUBCHEM_MESH, mesh_cas, mesh_unii, PUBCHEM_CAS, GTOPDB, CHEBI, UMLS, DrugCentral, RXNORM]
 chemical_ids:       [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, DRUGBANK, MESH, UMLS, RXNORM]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
-# Food.txt holds DRUGBANK allergenic-extract cliques retyped from ChemicalEntity to Food (issue #828);
-# it must stay in this list so those cliques flow into DrugChemical conflation and the exports like any
-# other chemical output. (Non-food allergen extracts are retyped to the already-present ComplexMolecularMixture.)
+# Food.txt holds DRUGBANK food entries retyped from ChemicalEntity to Food (issue #828); it must stay in
+# this list so those cliques flow into DrugChemical conflation and the exports like any other chemical
+# output. (The processed extracts among them go to the already-present ComplexMolecularMixture.)
 chemical_outputs:   [MolecularMixture.txt, SmallMolecule.txt, Polypeptide.txt, ComplexMolecularMixture.txt, ChemicalEntity.txt, ChemicalMixture.txt, Drug.txt, Food.txt]
-# NCIt subtrees whose members are treated as foods when retyping DRUGBANK allergenic extracts (issue #828):
-# NCIT:C1949 "Food" plus NCIT:C73913 "Seed" (nuts/grains like almond and wheat that NCIt files under Seed,
-# not Food). A structureless DRUGBANK entry counts as plant/food material if its UNII is classified under
-# either root OR its UNII carries a botanical-database flag (PLANTS/GRIN/MPNS); such material becomes
-# biolink:Food, or biolink:ComplexMolecularMixture when it is an extract (see drugbank_extract_markers).
+# NCIt subtrees whose members are treated as foods when retyping DRUGBANK food-and-extract entries (issue
+# #828): NCIT:C1949 "Food" plus NCIT:C73913 "Seed" (nuts/grains like almond and wheat that NCIt files under
+# Seed, not Food). NCIt types a food by what it is rather than what it came from, so this covers non-plant
+# foods (scallop, venison, beef liver) too. A structureless DRUGBANK entry counts as food material if its
+# UNII is classified under either root OR its UNII carries a botanical-database flag (PLANTS/GRIN/MPNS,
+# which reaches the plant materials NCIt has no food class for); such material becomes biolink:Food, or
+# biolink:ComplexMolecularMixture when it is an extract (see drugbank_extract_markers).
 drugbank_food_ncit_roots:
   - NCIT:C1949 # "Food" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C1949
   - NCIT:C73913 # "Seed" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C73913
-# Case-insensitive name/synonym substrings that mark a plant/food DRUGBANK material as a processed
+# Case-insensitive name/synonym substrings that mark a DRUGBANK food material as a processed
 # *extract*: such rows become biolink:ComplexMolecularMixture (an interim type — the eventual home is
 # biolink:ProcessedMaterial once issue #929 adds that output) rather than biolink:Food. "allergen" was
 # deliberately dropped as a marker (too broad); "extract" is the reliable signal (issue #828).

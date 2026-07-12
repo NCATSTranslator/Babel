@@ -154,9 +154,9 @@ rule chemical_ncit_food_codes:
 
 
 rule chemical_drugbank_food_extracts:
-    # DRUGBANK plant/food materials (whole strawberry, willow bark, ragweed pollen, ...) that default
-    # to biolink:ChemicalEntity but should be biolink:Food, or biolink:ComplexMolecularMixture when
-    # they are a processed "extract" — issue #828. Uses the DrugBank vocabulary CSV's UNII column
+    # DRUGBANK food materials and extracts (whole strawberry, scallop, willow bark, ragweed pollen, ...)
+    # that default to biolink:ChemicalEntity but should be biolink:Food, or biolink:ComplexMolecularMixture
+    # when they are a processed "extract" — issue #828. Uses the DrugBank vocabulary CSV's UNII column
     # cross-checked against each UNII's NCIt class and botanical-database (PLANTS/GRIN/MPNS) flags; see
     # datahandlers/drugbank.py:write_drugbank_food_extract_types.
     input:
