@@ -316,7 +316,7 @@ Derived from the conflation JSONL files (`GeneProtein.txt`, `DrugChemical.txt`).
 | curie              | STRING | A member CURIE of the conflation group               |
 | curie_prefix       | STRING | Prefix of the member CURIE                           |
 
-### Intermediate tables (`Concord.parquet`, `Identifiers.parquet`, `Metadata.parquet`)
+### Intermediate tables (`Concord.parquet`, `Identifier.parquet`, `Metadata.parquet`)
 
 Unlike the tables above, these three are not per-semantic-type; they sweep the whole
 `babel_outputs/intermediate/` tree into three flat Parquet files written directly under
@@ -352,7 +352,7 @@ by a conflation filter — look up the reason in the paired per-run exclusion re
 `babel_outputs/reports/drugchemical/excluded_pairs.tsv.gz` (its `reason` column names the filter).
 `docs/debugging/Conflation.md` walks through this two-report diagnosis flow end to end.
 
-`Identifiers.parquet` — one row per identifier extracted into an `ids/` file:
+`Identifier.parquet` — one row per identifier extracted into an `ids/` file:
 
 | Column       | Type   | Meaning                                                            |
 |--------------|--------|--------------------------------------------------------------------|
@@ -360,8 +360,11 @@ by a conflation filter — look up the reason in the paired per-run exclusion re
 | curie        | STRING | The identifier CURIE                                               |
 | biolink_type | STRING | The Biolink type from the ids file's second column, or NULL if the file has only a CURIE column |
 
-`Metadata.parquet` — one row per intermediate metadata YAML (`metadata-<subject>.yaml` sidecars
-describing a sibling file, and bare `metadata.yaml` files describing their directory):
+`Metadata.parquet` — one row per metadata YAML _inside a `concords/` or `ids/` directory_
+(`metadata-<subject>.yaml` sidecars describing a sibling file, and bare `metadata.yaml` files
+describing their directory). Metadata YAMLs elsewhere in the intermediate tree — e.g.
+`intermediate/chemicals/partials/metadata-untyped_compendium.yaml` — are not exported, since this
+table exists to describe the concord and identifier files above:
 
 | Column            | Type   | Meaning                                                              |
 |-------------------|--------|----------------------------------------------------------------------|
@@ -372,6 +375,6 @@ describing a sibling file, and bare `metadata.yaml` files describing their direc
 
 Labels are intentionally not exported here: `ids/` files carry only `CURIE\tbiolink:Type`, and the
 label for any identifier that landed in a clique is already available in `Node.parquet` (join
-`Identifiers.curie` to `Node.curie`).
+`Identifier.curie` to `Node.curie`).
 
 [`normalizedInformationContent` from Ubergraph]: https://github.com/INCATools/ubergraph/#graph-organization

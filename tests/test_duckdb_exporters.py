@@ -203,7 +203,7 @@ def _build_intermediate_tree(intermediate_dir):
 def test_export_intermediates_to_parquet(tmp_path):
     intermediate_dir = _build_intermediate_tree(tmp_path / "intermediate")
     duckdb_file = str(tmp_path / "concords.duckdb")
-    ids_parquet = str(tmp_path / "Identifiers.parquet")
+    ids_parquet = str(tmp_path / "Identifier.parquet")
     concords_parquet = str(tmp_path / "Concord.parquet")
     metadata_parquet = str(tmp_path / "Metadata.parquet")
 
@@ -219,7 +219,7 @@ def test_export_intermediates_to_parquet(tmp_path):
         ("UBERON:0000002", "eq", 'FOO:"bar"'),
     ]
 
-    # Identifiers: two-column file keeps its Biolink type, one-column file gets NULL.
+    # Identifier: two-column file keeps its Biolink type, one-column file gets NULL.
     identifiers = duckdb.execute(
         f"SELECT curie, biolink_type FROM read_parquet('{ids_parquet}') ORDER BY curie"
     ).fetchall()
@@ -256,7 +256,7 @@ def test_export_intermediates_to_parquet_filename_is_absolute(tmp_path, monkeypa
     monkeypatch.chdir(tmp_path)
 
     concords_parquet = str(tmp_path / "Concord.parquet")
-    ids_parquet = str(tmp_path / "Identifiers.parquet")
+    ids_parquet = str(tmp_path / "Identifier.parquet")
     metadata_parquet = str(tmp_path / "Metadata.parquet")
     export_intermediates_to_parquet(
         "intermediate",  # deliberately relative
@@ -299,7 +299,7 @@ def test_export_intermediates_to_parquet_extensionless_concords_with_sidecar(tmp
     export_intermediates_to_parquet(
         str(intermediate_dir),
         str(tmp_path / "concords.duckdb"),
-        str(tmp_path / "Identifiers.parquet"),
+        str(tmp_path / "Identifier.parquet"),
         concords_parquet,
         metadata_parquet,
     )
@@ -329,7 +329,7 @@ def test_export_intermediates_to_parquet_empty_tree(tmp_path):
     intermediate_dir = tmp_path / "intermediate"
     intermediate_dir.mkdir()
     duckdb_file = str(tmp_path / "concords.duckdb")
-    ids_parquet = str(tmp_path / "Identifiers.parquet")
+    ids_parquet = str(tmp_path / "Identifier.parquet")
     concords_parquet = str(tmp_path / "Concord.parquet")
     metadata_parquet = str(tmp_path / "Metadata.parquet")
 
@@ -350,7 +350,7 @@ def test_export_intermediates_to_parquet_raises_on_existing_duckdb(tmp_path):
         export_intermediates_to_parquet(
             str(intermediate_dir),
             duckdb_file,
-            str(tmp_path / "Identifiers.parquet"),
+            str(tmp_path / "Identifier.parquet"),
             str(tmp_path / "Concord.parquet"),
             str(tmp_path / "Metadata.parquet"),
         )
@@ -368,7 +368,7 @@ def test_export_intermediates_to_parquet_inconsistent_columns(tmp_path):
         export_intermediates_to_parquet(
             str(intermediate_dir),
             str(tmp_path / "concords.duckdb"),
-            str(tmp_path / "Identifiers.parquet"),
+            str(tmp_path / "Identifier.parquet"),
             str(tmp_path / "Concord.parquet"),
             str(tmp_path / "Metadata.parquet"),
         )
@@ -395,7 +395,7 @@ def test_export_intermediates_to_parquet_skips_malformed_concord_line(tmp_path, 
         export_intermediates_to_parquet(
             str(intermediate_dir),
             str(tmp_path / "concords.duckdb"),
-            str(tmp_path / "Identifiers.parquet"),
+            str(tmp_path / "Identifier.parquet"),
             concords_parquet,
             str(tmp_path / "Metadata.parquet"),
         )
@@ -429,7 +429,7 @@ def test_export_intermediates_to_parquet_malformed_concord_attributed_to_right_f
         export_intermediates_to_parquet(
             str(intermediate_dir),
             str(tmp_path / "concords.duckdb"),
-            str(tmp_path / "Identifiers.parquet"),
+            str(tmp_path / "Identifier.parquet"),
             concords_parquet,
             str(tmp_path / "Metadata.parquet"),
         )
@@ -465,7 +465,7 @@ def test_export_intermediates_to_parquet_creates_missing_output_dirs(tmp_path):
     won't create parents); the exporter must create them rather than failing."""
     intermediate_dir = _build_intermediate_tree(tmp_path / "intermediate")
     out = tmp_path / "does" / "not" / "exist"  # deliberately absent
-    ids_parquet = str(out / "Identifiers.parquet")
+    ids_parquet = str(out / "Identifier.parquet")
     concords_parquet = str(out / "Concord.parquet")
     metadata_parquet = str(out / "Metadata.parquet")
 

@@ -139,7 +139,7 @@ rule export_intermediate_files_to_duckdb:
         conflations_done=config["output_directory"] + "/duckdb/conflations_done",
     output:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/concords.duckdb"),
-        ids_parquet_filename=config["output_directory"] + "/duckdb/Identifiers.parquet",
+        ids_parquet_filename=config["output_directory"] + "/duckdb/Identifier.parquet",
         concord_parquet_filename=config["output_directory"] + "/duckdb/Concord.parquet",
         metadata_parquet_filename=config["output_directory"] + "/duckdb/Metadata.parquet",
     benchmark:
@@ -166,7 +166,7 @@ rule export_all_to_duckdb:
         compendia_done=config["output_directory"] + "/duckdb/compendia_done",
         synonyms_done=config["output_directory"] + "/duckdb/synonyms_done",
         conflations_done=config["output_directory"] + "/duckdb/conflations_done",
-        intermediate_ids_parquet=config["output_directory"] + "/duckdb/Identifiers.parquet",
+        intermediate_ids_parquet=config["output_directory"] + "/duckdb/Identifier.parquet",
         intermediate_concords_parquet=config["output_directory"] + "/duckdb/Concord.parquet",
         intermediate_metadata_parquet=config["output_directory"] + "/duckdb/Metadata.parquet",
     output:
