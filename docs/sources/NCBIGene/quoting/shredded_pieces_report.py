@@ -101,10 +101,12 @@ def write_csv(dropped_rows, out_path):
         writer.writerows(dropped_rows)
 
 
-def write_markdown(dropped_rows, totals, out_path, csv_path, input_path):
+def write_markdown(dropped_rows, totals, out_path, csv_path, input_path, sample_size=5):
     by_token = defaultdict(list)
+    by_gene = defaultdict(list)
     for entry in dropped_rows:
         by_token[entry["dropped_synonym"]].append(entry)
+        by_gene[entry["gene_id"]].append(entry)
 
     # Keep every emitted line under 100 characters: rumdl (MD013) lints this file in CI, and it is
     # regenerated, so the generator -- not a one-off `rumdl fmt` -- has to produce compliant output.
@@ -127,19 +129,21 @@ def write_markdown(dropped_rows, totals, out_path, csv_path, input_path):
         "Every dropped token is a fragment of a longer name — none is a plausible standalone alias.",
         "Several are actively hazardous rather than merely useless: `MET`, `CYS` and `PRO` are real",
         "human gene symbols, and a bare `3` would match almost anything.\n",
-        "## Distinct dropped tokens\n",
-        "Ranked by how many genes carry them.\n",
-        "| dropped synonym | genes | example gene | shredded from |",
-        "| --- | ---: | --- | --- |",
+        f"## Examples ({sample_size} of {len(by_gene):,} genes)\n",
+        f"Every gene and every dropped synonym is in [`{csv_path.name}`](./{csv_path.name}); these are",
+        "a spread across it, to show the shape.\n",
     ]
-    for token, entries in sorted(by_token.items(), key=lambda kv: (-len(kv[1]), kv[0])):
-        example = entries[0]
-        shredded_from = example["shredded_from"].replace("|", "\\|")[:60]
-        lines.append(
-            f"| `{token.replace('|', chr(92) + '|')}` | {len(entries):,} | "
-            f"{example['gene_id']} ({example['symbol']}) | {shredded_from} |"
-        )
-    lines.append("")
+    # Stride across the genes rather than taking the first few: consecutive gene IDs are near-clones
+    # (whole runs of Arabidopsis CYP7xx paralogs), so a head sample looks like one gene repeated.
+    genes = sorted(by_gene)
+    for gene_id in genes[:: max(1, len(genes) // sample_size)][:sample_size]:
+        entries = by_gene[gene_id]
+        lines.append(f"### Gene {gene_id} (`{entries[0]['symbol']}`)\n")
+        lines.append("```text")
+        lines.append(f"raw Synonyms : {entries[0]['raw_synonyms_field']}")
+        lines.append(f"shredded from: {entries[0]['shredded_from']}")
+        lines.append(f"dropped      : {', '.join(e['dropped_synonym'] for e in entries)}")
+        lines.append("```\n")
     out_path.write_text("\n".join(lines), encoding="utf-8")
 
 

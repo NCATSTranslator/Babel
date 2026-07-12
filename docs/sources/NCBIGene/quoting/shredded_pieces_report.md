@@ -22,195 +22,47 @@ Every dropped token is a fragment of a longer name — none is a plausible stand
 Several are actively hazardous rather than merely useless: `MET`, `CYS` and `PRO` are real
 human gene symbols, and a bare `3` would match almost anything.
 
-## Distinct dropped tokens
+## Examples (5 of 263 genes)
 
-Ranked by how many genes carry them.
+Every gene and every dropped synonym is in [`shredded_pieces.csv`](./shredded_pieces.csv); these are
+a spread across it, to show the shape.
 
-| dropped synonym | genes | example gene | shredded from |
-| --- | ---: | --- | --- |
-| `cytochrome P450` | 192 | 814788 (CYP71B9) | cytochrome P450, family 71, subfamily B, polypeptide 9 |
-| `subfamily A` | 112 | 815066 (CYP705A6) | cytochrome P450, family 705, subfamily A, polypeptide 6 |
-| `family 71` | 43 | 814788 (CYP71B9) | cytochrome P450, family 71, subfamily B, polypeptide 9 |
-| `subfamily B` | 42 | 814788 (CYP71B9) | cytochrome P450, family 71, subfamily B, polypeptide 9 |
-| `nuclear factor Y` | 35 | 815843 (NF-YB7) | nuclear factor Y, subunit B7 |
-| `polypeptide 1` | 32 | 816850 (CYP96A1) | cytochrome P450, family 96, subfamily A, polypeptide 1 |
-| `polypeptide 2` | 26 | 817457 (CYP707A2) | cytochrome P450, family 707, subfamily A, polypeptide 2 |
-| `family 705` | 22 | 815066 (CYP705A6) | cytochrome P450, family 705, subfamily A, polypeptide 6 |
-| `polypeptide 3` | 18 | 816765 (CYP79B3) | cytochrome P450, family 79, subfamily B, polypeptide 3 |
-| `subfamily C` | 16 | 817315 (CYP94C1) | cytochrome P450, family 94, subfamily C, polypeptide 1 |
-| `family 81` | 14 | 816851 (CYP81D7) | cytochrome P450, family 81, subfamily D, polypeptide 7 |
-| `family 96` | 13 | 816727 (CYP96A5) | cytochrome P450, family 96, subfamily A, polypeptide 5 |
-| `polypeptide 4` | 12 | 819163 (CYP76C4) | cytochrome P450, family 76, subfamily C, polypeptide 4 |
-| `subfamily D` | 11 | 816851 (CYP81D7) | cytochrome P450, family 81, subfamily D, polypeptide 7 |
-| `family 86` | 10 | 819205 (CYP86A8) | cytochrome P450, family 86, subfamily A, polypeptide 8 |
-| `family 72` | 8 | 820689 (CYP72A7) | cytochrome P450, family 72, subfamily A, polypeptide 7 |
-| `family 76` | 8 | 819163 (CYP76C4) | cytochrome P450, family 76, subfamily C, polypeptide 4 |
-| `polypeptide 7` | 8 | 816851 (CYP81D7) | cytochrome P450, family 81, subfamily D, polypeptide 7 |
-| `polypeptide 8` | 8 | 817242 (CYP705A8) | cytochrome P450, family 705, subfamily A, polypeptide 8 |
-| `family 706` | 7 | 826839 (CYP706A4) | cytochrome P450, family 706, subfamily A, polypeptide 4 |
-| `polypeptide 5` | 7 | 816727 (CYP96A5) | cytochrome P450, family 96, subfamily A, polypeptide 5 |
-| `polypeptide 6` | 7 | 815066 (CYP705A6) | cytochrome P450, family 705, subfamily A, polypeptide 6 |
-| `family 702` | 6 | 822729 (CYP702A8) | cytochrome P450, family 702, subfamily A, polypeptide 8 |
-| `family 79` | 6 | 816765 (CYP79B3) | cytochrome P450, family 79, subfamily B, polypeptide 3 |
-| `polypeptide 9` | 6 | 814788 (CYP71B9) | cytochrome P450, family 71, subfamily B, polypeptide 9 |
-| `family 77` | 5 | 820222 (CYP77A6) | cytochrome P450, family 77, subfamily A, polypeptide 6 |
-| `family 94` | 5 | 817315 (CYP94C1) | cytochrome P450, family 94, subfamily C, polypeptide 1 |
-| `subfamily F` | 5 | 817054 (CYP82F1) | cytochrome P450, family 82, subfamily F, polypeptide 1 |
-| `beta-1` | 4 | 824893 (BGL2) | beta-1,3-glucanase 2 |
-| `family 707` | 4 | 817457 (CYP707A2) | cytochrome P450, family 707, subfamily A, polypeptide 2 |
-| `family 78` | 4 | 830858 (CYP78A7) | cytochrome P450, family 78, subfamily A, polypeptide 7 |
-| `family 82` | 4 | 817054 (CYP82F1) | cytochrome P450, family 82, subfamily F, polypeptide 1 |
-| `family 87` | 4 | 821250 (CYP89A9) | cytochrome P450, family 87, subfamily A, polypeptide 9 |
-| `polypeptide 10` | 4 | 820692 (CYP72A10) | cytochrome P450, family 72, subfamily A, polypeptide 10 |
-| `polypeptide 13` | 4 | 815896 (CYP705A13) | cytochrome P450, family 705, subfamily A, polypeptide 13 |
-| `polypeptide 15` | 4 | 820697 (CYP72A15) | cytochrome P450, family 72, subfamily A, polypeptide 15 |
-| `RNA polymerase II fifth largest subunit` | 3 | 818732 (RPB5D) | RNA polymerase II fifth largest subunit, D |
-| `family 704` | 3 | 819098 (CYP704A1) | cytochrome P450, family 704, subfamily A, polypeptide 1 |
-| `family 709` | 3 | 819309 (CYP709B2) | cytochrome P450, family 709, subfamily B, polypeptide 2 |
-| `family 89` | 3 | 836253 (CYP89A3) | cytochrome P450, family 89, subfamily A, polypeptide 3 |
-| `polypeptide 11` | 3 | 820693 (CYP72A11) | cytochrome P450, family 72, subfamily A, polypeptide 11 |
-| `polypeptide 12` | 3 | 830105 (CYP96A12) | cytochrome P450, family 96, subfamily A, polypeptide 12 |
-| `polypeptide 14` | 3 | 820696 (CYP72A14) | cytochrome P450, family 72, subfamily A, polypeptide 14 |
-| `polypeptide 19` | 3 | 821553 (CYP705A19) | cytochrome P450, family 705, subfamily A, polypeptide 19 |
-| `polypeptide 20` | 3 | 821554 (CYP705A20) | cytochrome P450, family 705, subfamily A, polypeptide 20 |
-| `polypeptide 21` | 3 | 821555 (CYP705A21) | cytochrome P450, family 705, subfamily A, polypeptide 21 |
-| `polypeptide 23` | 3 | 821557 (CYP705A23) | cytochrome P450, family 705, subfamily A, polypeptide 23 |
-| `polypeptide 24` | 3 | 822224 (CYP71B24) | cytochrome P450, family 71, subfamily B, polypeptide 24 |
-| `polypeptide 25` | 3 | 822230 (CYP71B25) | cytochrome P450, family 71, subfamily B, polypeptide 25 |
-| `polypeptide 28` | 3 | 837866 (CYP71B28) | cytochrome P450, family 71, subfamily B, polypeptide 28 |
-| `8-cineole` | 2 | 822175 (TPS-CIN) | terpene synthase-like sequence-1,8-cineole |
-| `CYS` | 2 | 836587 (CMPG2) | CYS, MET, PRO, and GLY protein 2 |
-| `MET` | 2 | 836587 (CMPG2) | CYS, MET, PRO, and GLY protein 2 |
-| `PRO` | 2 | 836587 (CMPG2) | CYS, MET, PRO, and GLY protein 2 |
-| `co-factor for nitrate` | 2 | 826601 (CNX7) | co-factor for nitrate, reductase and xanthine dehydrogenase  |
-| `family 708` | 2 | 834851 (CYP708A2) | cytochrome P450, family 708, subfamily A, polypeptide 2 |
-| `family 712` | 2 | 818826 (CYP712A1) | cytochrome P450, family 712, subfamily A, polypeptide 1 |
-| `family 716` | 2 | 833607 (CYP716A1) | cytochrome P450, family 716, subfamily A, polypeptide 1 |
-| `family 83` | 2 | 827011 (CYP83A1) | cytochrome P450, family 83, subfamily A, polypeptide 1 |
-| `family 97` | 2 | 827177 (CYP97B3) | cytochrome P450, family 97, subfamily B, polypeptide 3 |
-| `polypeptide 18` | 2 | 821552 (CYP705A18) | cytochrome P450, family 705, subfamily A, polypeptide 18 |
-| `polypeptide 22` | 2 | 822221 (CYP71B22) | cytochrome P450, family 71, subfamily B, polypeptide 22 |
-| `polypeptide 26` | 2 | 822232 (CYP71B26) | cytochrome P450, family 71, subfamily B, polypeptide 26 |
-| `polypeptide 27` | 2 | 827771 (CYP71A27) | cytochrome P450, family 71, subfamily A, polypeptide 27 |
-| `polypeptide 32` | 2 | 821645 (CYP705A32) | cytochrome P450, family 705, subfamily A, polypeptide 32 |
-| `subfamily G` | 2 | 824463 (CYP76G1) | cytochrome P450, family 76, subfamily G, polypeptide 1 |
-| `subfamily K` | 2 | 830925 (CYP81K2) | cytochrome P450, family 81, subfamily K, polypeptide 2 |
-| `terpene synthase-like sequence-1` | 2 | 822175 (TPS-CIN) | terpene synthase-like sequence-1,8-cineole |
-| `1-aminomutase` | 1 | 836476 (GSA1) | glutamate-1-semialdehyde-2,1-aminomutase |
-| `2-xylosyltransferase` | 1 | 835643 (XYLT) | beta-1,2-xylosyltransferase |
-| `3` | 1 | 819003 (ITPK4) | inositol 1,3,4-trisphosphate 5/6-kinase 4 |
-| `3-beta-glucosidase-like protein 3` | 1 | 830694 (E13L3) | glucan endo-1,3-beta-glucosidase-like protein 3 |
-| `3-glucanase 1` | 1 | 824894 (BG1) | beta-1,3-glucanase 1 |
-| `3-glucanase 2` | 1 | 824893 (BGL2) | beta-1,3-glucanase 2 |
-| `3-glucanase 4` | 1 | 832155 (BETAG4) | beta-1,3-glucanase 4 |
-| `4)-dienoyl-CoA isomerase 1` | 1 | 834346 (DCI1) | delta(3,5),delta(2,4)-dienoyl-CoA isomerase 1 |
-| `4-lactone dehydrogenase` | 1 | 823948 (GLDH) | L-galactono-1,4-lactone dehydrogenase |
-| `4-trisphosphate 5/6-kinase 4` | 1 | 819003 (ITPK4) | inositol 1,3,4-trisphosphate 5/6-kinase 4 |
-| `5'-epimerase` | 1 | 833002 (GME) | GDP-D-mannose 3',5'-epimerase |
-| `5)` | 1 | 834346 (DCI1) | delta(3,5),delta(2,4)-dienoyl-CoA isomerase 1 |
-| `5-epimerase-4-reductase 1` | 1 | 843659 (GER1) | GDP-4-keto-6-deoxymannose-3,5-epimerase-4-reductase 1 |
-| `6-bisphosphatase` | 1 | 837221 (F2KP) | fructose-2,6-bisphosphatase |
-| `6-dehydratase 1` | 1 | 836760 (GMD1) | GDP-D-mannose 4,6-dehydratase 1 |
-| `ATP synthase D chain` | 1 | 824395 (ATPQ) | ATP synthase D chain |
-| `C` | 1 | 835909 (RPB5C) | RNA polymerase II fifth largest subunit, C |
-| `D` | 1 | 818732 (RPB5D) | RNA polymerase II fifth largest subunit, D |
-| `E` | 1 | 824614 (RPB5E) | RNA polymerase II fifth largest subunit, E |
-| `GDP-4-keto-6-deoxymannose-3` | 1 | 843659 (GER1) | GDP-4-keto-6-deoxymannose-3,5-epimerase-4-reductase 1 |
-| `GDP-D-mannose 3'` | 1 | 833002 (GME) | GDP-D-mannose 3',5'-epimerase |
-| `GDP-D-mannose 4` | 1 | 836760 (GMD1) | GDP-D-mannose 4,6-dehydratase 1 |
-| `L-galactono-1` | 1 | 823948 (GLDH) | L-galactono-1,4-lactone dehydrogenase |
-| `NIMA-interacting 1` | 1 | 816316 (PIN1AT) | peptidylprolyl cis/trans isomerase, NIMA-interacting 1 |
-| `alpha chain 2` | 1 | 824162 (CKA2) | casein kinase II, alpha chain 2 |
-| `and GLY protein 1` | 1 | 842931 (CMPG1) | CYS, MET, PRO, and GLY protein 1 |
-| `and GLY protein 2` | 1 | 836587 (CMPG2) | CYS, MET, PRO, and GLY protein 2 |
-| `and rna binding 2` | 1 | 816705 (GRP7) | cold, circadian rhythm, and rna binding 2 |
-| `autoinhibited Ca(2+)-ATPase` | 1 | 818754 (ACA4) | autoinhibited Ca(2+)-ATPase |
-| `autoinhibited Ca2+ -ATPase` | 1 | 835815 (ACA8) | autoinhibited Ca2+ -ATPase |
-| `casein kinase II` | 1 | 824162 (CKA2) | casein kinase II, alpha chain 2 |
-| `chitinase` | 1 | 818959 (CHI) | chitinase |
-| `chloroplast precursor` | 1 | 825494 (RRF) | ribosome recycling factor, chloroplast precursor |
-| `circadian rhythm` | 1 | 816705 (GRP7) | cold, circadian rhythm, and rna binding 2 |
-| `cofactor assembly` | 1 | 833608 (CCB3) | cofactor assembly, complex C (B6F) |
-| `cold` | 1 | 816705 (GRP7) | cold, circadian rhythm, and rna binding 2 |
-| `complex C (B6F)` | 1 | 833608 (CCB3) | cofactor assembly, complex C (B6F) |
-| `delta(2` | 1 | 834346 (DCI1) | delta(3,5),delta(2,4)-dienoyl-CoA isomerase 1 |
-| `delta(2)-enoyl CoA isomerase 1` | 1 | 842864 (ECI1) | delta(3), delta(2)-enoyl CoA isomerase 1 |
-| `delta(3` | 1 | 834346 (DCI1) | delta(3,5),delta(2,4)-dienoyl-CoA isomerase 1 |
-| `delta(3)` | 1 | 842864 (ECI1) | delta(3), delta(2)-enoyl CoA isomerase 1 |
-| `f box 1` | 1 | 843133 (FKF1) | flavin-binding, kelch repeat, f box 1 |
-| `family 703` | 1 | 839470 (CYP703A2) | cytochrome P450, family 703, subfamily A, polypeptide 2 |
-| `family 71 subfamily B` | 1 | 837868 (CYP71B7) | cytochrome P450, family 71 subfamily B, polypeptide 7 |
-| `family 715` | 1 | 835316 (CYP715A1) | cytochrome P450, family 715, subfamily A, polypeptide 1 |
-| `family 718` | 1 | 818885 (CYP718) | cytochrome P450, family 718 |
-| `family 721` | 1 | 843850 (CYP721A1) | cytochrome P450, family 721, subfamily A, polypeptide 1 |
-| `family 722` | 1 | 838550 (CYP722A1) | cytochrome P450, family 722, subfamily A, polypeptide 1 |
-| `family 724` | 1 | 831291 (CYP724A1) | cytochrome P450, family 724, subfamily A, polypeptide 1 |
-| `family 88` | 1 | 839311 (CYP88A3) | cytochrome P450, family 88, subfamily A, polypeptide 3 |
-| `family 90` | 1 | 820582 (CYP90D1) | cytochrome P450, family 90, subfamily D, polypeptide 1 |
-| `family 91` | 1 | 829897 (CYP91A2) | cytochrome P450, family 91, subfamily A, polypeptide 2 |
-| `family 93` | 1 | 830580 (CYP93D1) | cytochrome P450, family 93, subfamily D, polypeptide 1 |
-| `flavin-binding` | 1 | 843133 (FKF1) | flavin-binding, kelch repeat, f box 1 |
-| `flower-specific` | 1 | 821536 (FYPP3) | flower-specific, phytochrome-associated protein phosphatase  |
-| `fructose-2` | 1 | 837221 (F2KP) | fructose-2,6-bisphosphatase |
-| `glucan endo-1` | 1 | 830694 (E13L3) | glucan endo-1,3-beta-glucosidase-like protein 3 |
-| `glutamate-1-semialdehyde-2` | 1 | 836476 (GSA1) | glutamate-1-semialdehyde-2,1-aminomutase |
-| `inositol 1` | 1 | 819003 (ITPK4) | inositol 1,3,4-trisphosphate 5/6-kinase 4 |
-| `kelch repeat` | 1 | 843133 (FKF1) | flavin-binding, kelch repeat, f box 1 |
-| `nucleotide-rhamnose synthase/epimerase-reductase` | 1 | 842603 (NRS/ER) | nucleotide-rhamnose synthase/epimerase-reductase |
-| `peptidylprolyl cis/trans isomerase` | 1 | 816316 (PIN1AT) | peptidylprolyl cis/trans isomerase, NIMA-interacting 1 |
-| `phytochrome-associated protein phosphatase 3` | 1 | 821536 (FYPP3) | flower-specific, phytochrome-associated protein phosphatase  |
-| `polypeptide 14 pseudogene` | 1 | 842916 (CYP96A14P) | cytochrome P450, family 96, subfamily A, polypeptide 14 pseu |
-| `polypeptide 16` | 1 | 822215 (CYP71B16) | cytochrome P450, family 71, subfamily B, polypeptide 16 |
-| `polypeptide 17` | 1 | 822216 (CYP71B17) | cytochrome P450, family 71, subfamily B, polypeptide 17 |
-| `polypeptide 29` | 1 | 837867 (CYP71B29) | cytochrome P450, family 71, subfamily B, polypeptide 29 |
-| `polypeptide 3 pseudogene` | 1 | 833580 (CYP79A3P) | cytochrome P450, family 79, subfamily A, polypeptide 3 pseud |
-| `polypeptide 30` | 1 | 821644 (CYP705A30) | cytochrome P450, family 705, subfamily A, polypeptide 30 |
-| `polypeptide 30 pseudogene` | 1 | 824496 (CYP71B30P) | cytochrome P450, family 71, subfamily B, polypeptide 30 pseu |
-| `polypeptide 31` | 1 | 824497 (CYP71B31) | cytochrome P450, family 71, subfamily B, polypeptide 31 |
-| `polypeptide 33` | 1 | 821646 (CYP705A33) | cytochrome P450, family 705, subfamily A, polypeptide 33 |
-| `polypeptide 34` | 1 | 822234 (CYP71B34) | cytochrome P450, family 71, subfamily B, polypeptide 34 |
-| `polypeptide 35` | 1 | 822235 (CYP71B35) | cytochrome P450, family 71, subfamily B, polypeptide 35 |
-| `polypeptide 36` | 1 | 822236 (CYP71B36) | cytochrome P450, family 71, subfamily B, polypeptide 36 |
-| `polypeptide 37` | 1 | 822237 (CYP71B37) | cytochrome P450, family 71, subfamily B, polypeptide 37 |
-| `polypeptide 38` | 1 | 823550 (CYP71B38) | cytochrome P450, family 71, subfamily B, polypeptide 38 |
-| `polypeptide 4 pseudogene` | 1 | 833581 (CYP79A4P) | cytochrome P450, family 79, subfamily A, polypeptide 4 pseud |
-| `polypeptide 5 pseudogene` | 1 | 821355 (CYP77A5P) | cytochrome P450, family 77, subfamily A, polypeptide 5 pseud |
-| `reductase and xanthine dehydrogenase 5` | 1 | 835604 (CNX5) | co-factor for nitrate, reductase and xanthine dehydrogenase  |
-| `reductase and xanthine dehydrogenase 7` | 1 | 826601 (CNX7) | co-factor for nitrate, reductase and xanthine dehydrogenase  |
-| `ribosome recycling factor` | 1 | 825494 (RRF) | ribosome recycling factor, chloroplast precursor |
-| `subfamily H` | 1 | 829886 (CYP81H1) | cytochrome P450, family 81, subfamily H, polypeptide 1 |
-| `subunit A1` | 1 | 831124 (NF-YA1) | nuclear factor Y, subunit A1 |
-| `subunit A10` | 1 | 830539 (NF-YA10) | nuclear factor Y, subunit A10 |
-| `subunit A2` | 1 | 819738 (NF-YA2) | nuclear factor Y, subunit A2 |
-| `subunit A3` | 1 | 843614 (NF-YA3) | nuclear factor Y, subunit A3 |
-| `subunit A4` | 1 | 818037 (NF-YA4) | nuclear factor Y, subunit A4 |
-| `subunit A5` | 1 | 841856 (NF-YA5) | nuclear factor Y, subunit A5 |
-| `subunit A6` | 1 | 820616 (NF-YA6) | nuclear factor Y, subunit A6 |
-| `subunit A7` | 1 | 839929 (NF-YA7) | nuclear factor Y, subunit A7 |
-| `subunit A8` | 1 | 838335 (NF-YA8) | nuclear factor Y, subunit A8 |
-| `subunit A9` | 1 | 821640 (NF-YA9) | nuclear factor Y, subunit A9 |
-| `subunit B1` | 1 | 818472 (NF-YB1) | nuclear factor Y, subunit B1 |
-| `subunit B10` | 1 | 824502 (NF-YB10) | nuclear factor Y, subunit B10 |
-| `subunit B11` | 1 | 817292 (NF-YB11) | nuclear factor Y, subunit B11 |
-| `subunit B12` | 1 | 830715 (NF-YB12) | nuclear factor Y, subunit B12 |
-| `subunit B13` | 1 | 832373 (NF-YB13) | nuclear factor Y, subunit B13 |
-| `subunit B2` | 1 | 834815 (NF-YB2) | nuclear factor Y, subunit B2 |
-| `subunit B3` | 1 | 827101 (NF-YB3) | nuclear factor Y, subunit B3 |
-| `subunit B4` | 1 | 837424 (NF-YB4) | nuclear factor Y, subunit B4 |
-| `subunit B5` | 1 | 819393 (NF-YB5) | nuclear factor Y, subunit B5 |
-| `subunit B6` | 1 | 834818 (NF-YB6) | nuclear factor Y, subunit B6 |
-| `subunit B7` | 1 | 815843 (NF-YB7) | nuclear factor Y, subunit B7 |
-| `subunit B8` | 1 | 818282 (NF-YB8) | nuclear factor Y, subunit B8 |
-| `subunit C1` | 1 | 824019 (NF-YC1) | nuclear factor Y, subunit C1 |
-| `subunit C10` | 1 | 837313 (NF-YC10) | nuclear factor Y, subunit C10 |
-| `subunit C11` | 1 | 820427 (NF-YC11) | nuclear factor Y, subunit C11 |
-| `subunit C12` | 1 | 833794 (NF-YC12) | nuclear factor Y, subunit C12 |
-| `subunit C13` | 1 | 834343 (NF-YC13) | nuclear factor Y, subunit C13 |
-| `subunit C2` | 1 | 842070 (NF-YC2) | nuclear factor Y, subunit C2 |
-| `subunit C3` | 1 | 841922 (NF-YC3) | nuclear factor Y, subunit C3 |
-| `subunit C4` | 1 | 836466 (NF-YC4) | nuclear factor Y, subunit C4 |
-| `subunit C5` | 1 | 835117 (NF-YC5) | nuclear factor Y, subunit C5 |
-| `subunit C6` | 1 | 835116 (NF-YC6) | nuclear factor Y, subunit C6 |
-| `subunit C7` | 1 | 835115 (NF-YC7) | nuclear factor Y, subunit C7 |
-| `subunit C8` | 1 | 832857 (NF-YC8) | nuclear factor Y, subunit C8 |
-| `subunit C9` | 1 | 837417 (NF-YC9) | nuclear factor Y, subunit C9 |
+### Gene 3768880 (`CYP705A28`)
+
+```text
+raw Synonyms : ''cytochrome P450|MFD22.6|cytochrome P450|family 705|polypeptide 28|polypeptide 28''|subfamily A
+shredded from: cytochrome P450, family 705, subfamily A, polypeptide 28
+dropped      : cytochrome P450, family 705, polypeptide 28, subfamily A
+```
+
+### Gene 821250 (`CYP89A9`)
+
+```text
+raw Synonyms : ''cytochrome P450|T21P5.11|T21P5_11|cytochrome P450|family 87|polypeptide 9|polypeptide 9''|subfamily A
+shredded from: cytochrome P450, family 87, subfamily A, polypeptide 9
+dropped      : cytochrome P450, family 87, polypeptide 9, subfamily A
+```
+
+### Gene 824830 (`CYP94D2`)
+
+```text
+raw Synonyms : ''cytochrome P450|cytochrome P450|family 94|polypeptide 2|polypeptide 2''|subfamily D
+shredded from: cytochrome P450, family 94, subfamily D, polypeptide 2
+dropped      : cytochrome P450, family 94, polypeptide 2, subfamily D
+```
+
+### Gene 830694 (`E13L3`)
+
+```text
+raw Synonyms : ''glucan endo-1|3-beta-glucosidase-like protein 3|3-beta-glucosidase-like protein 3''|F13G24.200|F13G24_200|PDCB2|PLASMODESMATA CALLOSE-BINDING PROTEIN 2|glucan endo-1
+shredded from: glucan endo-1,3-beta-glucosidase-like protein 3
+dropped      : 3-beta-glucosidase-like protein 3, glucan endo-1
+```
+
+### Gene 836866 (`CYP81G1`)
+
+```text
+raw Synonyms : ''cytochrome P450|K8K14.3|K8K14_3|cytochrome P450|family 81|polypeptide 1|polypeptide 1''|subfamily G
+shredded from: cytochrome P450, family 81, subfamily G, polypeptide 1
+dropped      : cytochrome P450, family 81, polypeptide 1, subfamily G
+```

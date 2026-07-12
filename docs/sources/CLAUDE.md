@@ -25,6 +25,20 @@ asserts it over the full downloaded file. `docs/sources/NCBIGene/quoting/` is th
 `analyze_quoting.py` and `double_prime_report.py` both import from `src/datahandlers/ncbigene.py`,
 and `tests/pipeline/test_ncbigene.py` enforces the conclusion against every row.
 
+### Markdown gets a sample; the CSV gets the rest
+
+The generated Markdown is an *argument*, read top to bottom by a person: **5–10 examples is plenty**
+to show a shape. Anything longer is a data dump that buries the finding — and if it is ranked purely
+by frequency, its head is usually one shape repeated (NCBIGene's `''` tokens are all protein-subunit
+names for the first dozen rows, hiding the chemical locants entirely). Sample deliberately: spread
+across the list, or take the most common of each shape, and say in the report which you did.
+
+Emit the exhaustive per-row record as a **CSV** beside the Markdown and commit it — that is what a
+reviewer greps and what a future run diffs against (`shredded_pieces.csv`, one row per dropped
+synonym). If the full record is big enough to be unwieldy in Git, leave it out and let the script
+regenerate it locally; say so in the report, and make sure the script's default output path is the
+one the report names.
+
 ## An OBO `hasDbXref` is not an equivalence
 
 Concords are fed to `glom()` as equivalence assertions, but many ontologies use
