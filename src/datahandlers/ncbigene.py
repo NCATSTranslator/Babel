@@ -45,6 +45,17 @@ def get_ncbigene_field(row, header, field_name):
     return value
 
 
+def is_open_marker(starts_quoted, ends_quoted):
+    """True if a pipe-fragment's quote flags mark it as a #744 open marker.
+
+    An open marker starts with '' but does not also end with '' (that would be a self-contained
+    ''...'' value). Shared between split_ncbigene_synonym_field and
+    docs/sources/NCBIGene/quoting/double_prime_report.py so the two can't drift apart on what
+    counts as an artifact vs. genuine double-prime nomenclature.
+    """
+    return starts_quoted and not ends_quoted
+
+
 def split_ncbigene_synonym_field(value):
     """
     Split a pipe-delimited NCBIGene synonym field into standalone synonym strings.
@@ -68,7 +79,7 @@ def split_ncbigene_synonym_field(value):
     # An open marker starts with '' but does not also end with '' (that would be a self-contained
     # ''...'' value). Its presence means the field is a comma-split span, so the matching trailing
     # close markers in the same field are artifacts too.
-    has_open_marker = any(starts_quoted and not ends_quoted for _, starts_quoted, ends_quoted in fragments)
+    has_open_marker = any(is_open_marker(starts_quoted, ends_quoted) for _, starts_quoted, ends_quoted in fragments)
 
     synonyms = set()
     for fragment, starts_quoted, ends_quoted in fragments:

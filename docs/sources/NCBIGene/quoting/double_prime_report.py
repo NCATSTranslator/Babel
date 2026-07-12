@@ -29,6 +29,8 @@ import gzip
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from src.datahandlers.ncbigene import is_open_marker
+
 TAX_ID, GENE_ID, SYMBOL, SYNONYMS, DESCRIPTION, SYMBOL_AUTH, FULL_NAME, OTHER_DESIG = 0, 1, 2, 4, 8, 10, 11, 13
 
 DEFAULT_INPUT = Path("babel_downloads/NCBIGene/gene_info.gz")
@@ -38,17 +40,19 @@ DEFAULT_OUTPUT = Path(__file__).with_name("double_prime_report.md")
 def classify_field(value: str):
     """Yield (category, token) for each ''-bearing unit in one raw field value.
 
-    Categories: 'open', 'close', 'valid', 'balanced', 'internal'.
+    Categories: 'open', 'close', 'valid', 'balanced', 'internal'. Uses the shared
+    src.datahandlers.ncbigene.is_open_marker() predicate so this report can't drift from what
+    split_ncbigene_synonym_field actually treats as an open marker.
     """
     if "''" not in value:
         return
     fragments = value.split("|")
-    has_open = any(f.startswith("''") and not f.endswith("''") for f in fragments)
-    for f in fragments:
+    flags = [(f, f.startswith("''"), f.endswith("''")) for f in fragments]
+    has_open = any(is_open_marker(starts, ends) for _, starts, ends in flags)
+    for f, starts, ends in flags:
         if "''" not in f:
             continue
-        starts, ends = f.startswith("''"), f.endswith("''")
-        if starts and ends and len(f) > 4:
+        if starts and ends:
             yield "balanced", f
         elif starts:
             yield "open", f
