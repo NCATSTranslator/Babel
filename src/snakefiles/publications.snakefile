@@ -13,10 +13,13 @@ localrules:
 ### PubMed
 
 
+# The baseline/ and updatefiles/ directories are deliberately NOT declared as directory() outputs:
+# Snakemake recursively deletes existing directory() outputs before running a job, which would wipe
+# any PubMed files preloaded from a previous run. Keeping them undeclared lets wget --timestamping
+# skip files we already have (see docs/RunningBabel.md, "Preloading PubMed downloads"). The done
+# marker is what the downstream rules depend on.
 rule download_pubmed:
     output:
-        baseline_dir=directory(config["download_directory"] + "/PubMed/baseline"),
-        updatefiles_dir=directory(config["download_directory"] + "/PubMed/updatefiles"),
         done_file=config["download_directory"] + "/PubMed/downloaded",
     benchmark:
         config["output_directory"] + "/benchmarks/download_pubmed.tsv"
@@ -50,8 +53,6 @@ rule verify_pubmed:
 rule generate_pubmed_concords:
     input:
         config["download_directory"] + "/PubMed/verified",
-        baseline_dir=config["download_directory"] + "/PubMed/baseline",
-        updatefiles_dir=config["download_directory"] + "/PubMed/updatefiles",
     output:
         titles_file=config["download_directory"] + "/PubMed/titles.tsv",
         status_file=config["download_directory"] + "/PubMed/statuses.jsonl.gz",
@@ -63,10 +64,14 @@ rule generate_pubmed_concords:
     resources:
         runtime="24h",
         mem="128G",
+    params:
+        # Not inputs: see the comment on download_pubmed for why these directories are untracked.
+        baseline_dir=config["download_directory"] + "/PubMed/baseline",
+        updatefiles_dir=config["download_directory"] + "/PubMed/updatefiles",
     run:
         publications.parse_pubmed_into_tsvs(
-            input.baseline_dir,
-            input.updatefiles_dir,
+            params.baseline_dir,
+            params.updatefiles_dir,
             output.titles_file,
             output.status_file,
             output.pmid_id_file,
