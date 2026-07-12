@@ -28,7 +28,7 @@ from src.prefixes import KEGGCOMPOUND
 def pull_kegg_compound_labels(outfile):
     try:
         request_session = requests.Session()
-        request_adapter = requests.adapters.HTTPAdapter(max_retries=10)
+        request_adapter = requests.adapters.HTTPAdapter(max_retries=0)
         request_session.mount("http://", request_adapter)
         request_session.mount("https://", request_adapter)
 

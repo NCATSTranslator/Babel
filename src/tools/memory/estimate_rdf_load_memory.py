@@ -27,16 +27,16 @@ projection (before ``current RSS`` plateaus) and prefer running on Linux, where
 RSS tracks the real footprint, for an authoritative number.
 
 Usage:
-    uv run python tools/memory/estimate_rdf_load_memory.py FILE [FILE ...] [options]
+    uv run python src/tools/memory/estimate_rdf_load_memory.py FILE [FILE ...] [options]
 
 Examples:
     # ChEMBL: load cco.ttl (tiny) first, then the big molecule dump, like ChemblRDF
-    uv run python tools/memory/estimate_rdf_load_memory.py \
+    uv run python src/tools/memory/estimate_rdf_load_memory.py \
         babel_downloads/CHEMBL.COMPOUND/cco.ttl \
         babel_downloads/CHEMBL.COMPOUND/chembl_latest_molecule.ttl
 
     # Stop higher if you have more RAM to spend on a more accurate projection
-    uv run python tools/memory/estimate_rdf_load_memory.py big.nt --rss-ceiling-gib 24
+    uv run python src/tools/memory/estimate_rdf_load_memory.py big.nt --rss-ceiling-gib 24
 """
 
 import argparse

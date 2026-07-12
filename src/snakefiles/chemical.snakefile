@@ -124,7 +124,7 @@ rule chemical_chebi_ids:
         outfile=config["intermediate_directory"] + "/chemicals/ids/CHEBI",
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_chebi_ids.tsv"
-    retries: 10  # Ubergraph sometimes fails mid-download, and then we need to retry.
+    retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
     run:
         chemicals.write_chebi_ids(output.outfile)
 
@@ -220,6 +220,9 @@ rule get_chemical_unichem_relationships:
         ),
     benchmark:
         config["output_directory"] + "/benchmarks/get_chemical_unichem_relationships.tsv"
+    resources:
+        # Peaks at ~21 GB on babel-1.17 (see docs/tools/Resources.md); over the 16 GB default.
+        mem="24G",
     run:
         chemicals.write_unichem_concords(
             input.structfile, input.reffile, config["intermediate_directory"] + "/chemicals/concords/UNICHEM"

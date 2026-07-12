@@ -2,6 +2,7 @@ import copy
 import json
 import logging
 import os
+import re
 import sys
 from collections import namedtuple
 from logging.handlers import RotatingFileHandler
@@ -25,6 +26,13 @@ def get_logger(name, loglevel=logging.INFO):
     The LoggingUtil is inconsistently used, and we don't want rolling logs anyway -- just logging everything to STDERR
     so that Snakemake can capture it is fine. However, we do want every logger to be configured identically and without
     duplicated handlers.
+
+    Always call this instead of `logging.getLogger()` directly: it installs the shared stderr
+    handler/formatter below, so a bare `logging.getLogger()` logger can produce unformatted output
+    if it logs before any other module has called this function. A module that sits early in the
+    import graph and must defer this import to avoid triggering config loading at import time
+    (see `src/synonyms/filter.py`) should reassign its module-level `logger` inside the deferred
+    block rather than at module scope.
     """
 
     # Set up the root handler for a logger. Ideally we would call this in one central location, but I'm not sure
@@ -42,6 +50,20 @@ def get_logger(name, loglevel=logging.INFO):
     logger = logging.getLogger(name)
     logger.setLevel(loglevel)
     return logger
+
+
+def ensure_parent_dir(filename):
+    """Create the parent directory of `filename` if it has one.
+
+    Call this before writing any output file whose directory might not exist yet. Prefer it to a
+    bare `os.makedirs(os.path.dirname(filename), exist_ok=True)`: `os.path.dirname` returns '' for
+    a filename with no directory component, and `os.makedirs('')` raises FileNotFoundError even
+    though the path is perfectly valid (it names a file in the current working directory, which
+    already exists).
+    """
+    parent = os.path.dirname(filename)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
 
 
 # loggers = {}
@@ -353,20 +375,37 @@ def get_config():
     return config_yaml
 
 
+_GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+
+
+def _biolink_ref(biolink_version: str) -> str:
+    """Return the git ref to use in a GitHub URL for a Biolink Model version string.
+
+    Version strings (e.g. ``"4.3.6"``) are prefixed with ``v`` as GitHub release tags
+    require.  Commit SHAs (40 lowercase hex characters) are returned unchanged — adding
+    ``v`` would produce an invalid ref.
+    """
+    if _GIT_SHA_RE.match(biolink_version):
+        return biolink_version
+    return f"v{biolink_version}"
+
+
 def get_biolink_model_toolkit(biolink_version):
     """
     Return a BMT Toolkit object for the specified Biolink Model version.
 
     The model YAML is fetched from GitHub on first use. Pass the version string from
-    config.yaml (``biolink_version`` key, e.g. ``"4.3.6"``). Do not include the leading
-    ``v``; it is prepended here. Always use mapped class URIs from the returned toolkit
+    config.yaml (``biolink_version`` key, e.g. ``"4.3.6"`` or a Git commit SHA).
+    Do not include the leading ``v`` for version numbers; it is prepended automatically.
+    Always use mapped class URIs from the returned toolkit
     (e.g. ``get_element(x)["class_uri"]`` → ``"biolink:ChemicalEntity"``), not raw
     element names.
 
-    :param biolink_version: The Biolink Model version to use (e.g. ``"4.3.6"``).
+    :param biolink_version: The Biolink Model version to use (e.g. ``"4.3.6"`` or a commit SHA).
     :return: A Toolkit instance from the bmt library using the specified Biolink version.
     """
-    return Toolkit(f"https://raw.githubusercontent.com/biolink/biolink-model/v{biolink_version}/biolink-model.yaml")
+    ref = _biolink_ref(biolink_version)
+    return Toolkit(f"https://raw.githubusercontent.com/biolink/biolink-model/{ref}/biolink-model.yaml")
 
 
 def get_biolink_prefix_map():
@@ -380,19 +419,16 @@ def get_biolink_prefix_map():
     biolink_version = config["biolink_version"]
     if biolink_version.startswith("1.") or biolink_version.startswith("2."):
         raise RuntimeError(f"Biolink version {biolink_version} is not supported.")
-    elif biolink_version.startswith("3."):
+    ref = _biolink_ref(biolink_version)
+    if biolink_version.startswith("3."):
         # biolink-model v3.* releases keeps the prefix map in a different place.
         return curies.Converter.from_prefix_map(
-            "https://raw.githubusercontent.com/biolink/biolink-model/v"
-            + biolink_version
-            + "/prefix-map/biolink-model-prefix-map.json"
+            f"https://raw.githubusercontent.com/biolink/biolink-model/{ref}/prefix-map/biolink-model-prefix-map.json"
         )
     else:
-        # biolink-model v4.0.0 and beyond is in the /project directory.
+        # biolink-model v4.0.0 and beyond (including commit SHAs) is in the /project directory.
         return curies.Converter.from_prefix_map(
-            "https://raw.githubusercontent.com/biolink/biolink-model/v"
-            + biolink_version
-            + "/project/prefixmap/biolink_model_prefix_map.json"
+            f"https://raw.githubusercontent.com/biolink/biolink-model/{ref}/project/prefixmap/biolink_model_prefix_map.json"
         )
 
 

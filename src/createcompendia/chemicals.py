@@ -1,9 +1,7 @@
 import ast
 import gzip
 import logging
-import os
 from collections import defaultdict
-from os.path import dirname
 
 import jsonlines
 import requests
@@ -27,6 +25,7 @@ from src.categories import (
     POLYPEPTIDE,
     SMALL_MOLECULE,
 )
+from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.prefixes import (
@@ -46,7 +45,7 @@ from src.prefixes import (
 from src.properties import HAS_ALTERNATIVE_ID, Property
 from src.sdfreader import read_sdf
 from src.ubergraph import UberGraph
-from src.util import Text, get_logger, get_memory_usage_summary
+from src.util import Text, ensure_parent_dir, get_logger, get_memory_usage_summary
 
 logger = get_logger(__name__)
 
@@ -317,9 +316,7 @@ def write_drugbank_ids(infile, outfile):
     written = set()
     with open(infile) as inf, open(outfile, "w") as outf:
         header_line = inf.readline()
-        assert header_line == "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", (
-            f"Incorrect header line in {infile}: {header_line}"
-        )
+        assert header_line == UNICHEM_REFERENCE_TSV_HEADER, f"Incorrect header line in {infile}: {header_line}"
         for line in inf:
             x = line.rstrip().split("\t")
             if x[1] == drugbank_id:
@@ -431,23 +428,68 @@ def write_gtopdb_ids(infile, outfile):
 def write_unichem_concords(structfile, reffile, outdir):
     inchikeys = read_inchikeys(structfile)
     concfiles = {}
+    row_counts = {}
+    double_prefix_warned = set()  # sources where we already logged the strip-warning
     for num, name in unichem_data_sources.items():
         concname = f"{outdir}/UNICHEM_{name}"
         print(concname)
         concfiles[num] = open(concname, "w")
-    with open(reffile) as inf:
-        header_line = inf.readline()
-        assert header_line == "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", (
-            f"Incorrect header line in {reffile}: {header_line}"
+        row_counts[num] = 0
+    try:
+        with open(reffile) as inf:
+            header_line = inf.readline()
+            assert header_line == UNICHEM_REFERENCE_TSV_HEADER, f"Incorrect header line in {reffile}: {header_line}"
+            for line in inf:
+                x = line.rstrip().split("\t")
+                src_id = x[1]
+                compound_id = x[2]
+                expected_prefix = unichem_data_sources[src_id]
+                outf = concfiles[src_id]
+                assert x[3] == "1", (  # Only '1' (current) assignments should be in this file
+                    f"Expected assignment '1' (current) but got {x[3]!r} for src_id={src_id!r}, "
+                    f"compound_id={compound_id!r}; filter_unichem should have excluded non-current rows "
+                    f"(see https://chembl.gitbook.io/unichem/definitions/what-is-an-assignment)"
+                )
+
+                # Guard against UniChem embedding the prefix inside the compound ID.
+                # e.g. CHEBI source stores "CHEBI:12345" instead of bare "12345".
+                if ":" in compound_id:
+                    embedded_prefix, bare_id = compound_id.split(":", 1)
+                    if embedded_prefix == expected_prefix:
+                        # Double prefix — strip the embedded one and warn once per source.
+                        if src_id not in double_prefix_warned:
+                            logger.warning(
+                                f"UniChem source {src_id} ({expected_prefix}): compound ID already contains "
+                                f"the prefix (e.g. {compound_id!r}). Stripping embedded prefix. "
+                                f"Consider reporting this to UniChem."
+                            )
+                            double_prefix_warned.add(src_id)
+                        compound_id = bare_id
+                    else:
+                        raise ValueError(
+                            f"UniChem source {src_id} ({expected_prefix}): compound ID {compound_id!r} "
+                            f"contains an unexpected embedded prefix {embedded_prefix!r}. "
+                            f"Expected either a bare ID or one prefixed with {expected_prefix!r}. "
+                            f"Update unichem_data_sources in src/datahandlers/unichem.py if this source "
+                            f"has changed its identifier scheme."
+                        )
+
+                outf.write(f"{expected_prefix}:{compound_id}\toio:equivalent\t{inchikeys[x[0]]}\n")
+                row_counts[src_id] += 1
+    finally:
+        for outf in concfiles.values():
+            outf.close()
+
+    empty_sources = [(num, unichem_data_sources[num]) for num, count in row_counts.items() if count == 0]
+    if empty_sources:
+        descriptions = ", ".join(f"{name!r} (source ID {num!r})" for num, name in empty_sources)
+        raise RuntimeError(
+            f"UniChem reference file produced no entries for the following sources: {descriptions}. "
+            f"These sources may have been removed or renumbered in the current UniChem release. "
+            f"To fix: remove them from unichem_data_sources in src/datahandlers/unichem.py and "
+            f"from unichem_datasources (and chemical_labels/chemical_ids if present) in config.yaml, "
+            f"then rerun this step."
         )
-        for line in inf:
-            x = line.rstrip().split("\t")
-            outf = concfiles[x[1]]
-            assert x[3] == "1"  # Only '1' (current) assignments should be in this file
-            # (see https://chembl.gitbook.io/unichem/definitions/what-is-an-assignment).
-            outf.write(f"{unichem_data_sources[x[1]]}:{x[2]}\toio:equivalent\t{inchikeys[x[0]]}\n")
-    for outf in concfiles.values():
-        outf.close()
 
 
 def read_inchikeys(struct_file):
@@ -455,9 +497,7 @@ def read_inchikeys(struct_file):
     inchikeys = {}
     with gzip.open(struct_file, "rt") as inf:
         header_line = inf.readline()
-        assert header_line == "UCI\tSTANDARDINCHI\tSTANDARDINCHIKEY\n", (
-            f"Unexpected header line in {struct_file}: {header_line}"
-        )
+        assert header_line == UNICHEM_STRUCT_TSV_HEADER, f"Unexpected header line in {struct_file}: {header_line}"
         for sline in inf:
             line = sline.rstrip().split("\t")
             if len(line) == 0:
@@ -488,10 +528,14 @@ def combine_unichem(concordances, output):
                 # Get the prefix from the first row to determine if we need to remove overused xrefs
                 prefixes_in_file.add(Text.get_prefix(x[0]))
 
-        # Was there more than one prefix in the first column?
-        if len(prefixes_in_file) != 1:
+        # Was there exactly one prefix in the first column?
+        if len(prefixes_in_file) == 0:
             raise RuntimeError(
-                f"More than one prefix found in {infile}: {prefixes_in_file}. All UNICHEM files should have only one prefix."
+                f"No prefixes found in {infile} (file may be empty or have no valid CURIE in column 1). All UNICHEM files should have exactly one prefix."
+            )
+        if len(prefixes_in_file) > 1:
+            raise RuntimeError(
+                f"Multiple prefixes found in {infile}: {prefixes_in_file}. All UNICHEM files should have exactly one prefix."
             )
         prefix_to_check = prefixes_in_file.pop()
 
@@ -674,7 +718,7 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
     secondary_chebi_id = "secondarychebiid"
 
     # What if we don't have a propfile directory?
-    os.makedirs(dirname(propfile_gz), exist_ok=True)
+    ensure_parent_dir(propfile_gz)
 
     with open(outfile, "w") as outf, gzip.open(propfile_gz, "wt") as propf:
         # Write SDF structured things

@@ -6,11 +6,10 @@ import gzip
 import hashlib
 import json
 import logging
-import os
 from itertools import combinations
 
 from src.predicates import BIOLINK_SAME_AS
-from src.util import LoggingUtil, get_memory_usage_summary
+from src.util import LoggingUtil, ensure_parent_dir, get_memory_usage_summary
 
 # Default logger for this file.
 logger = LoggingUtil.init_logging(__name__, level=logging.INFO)
@@ -43,8 +42,8 @@ def convert_compendium_to_kgx(compendium_filename, kgx_nodes_filename, kgx_edges
     line_counter = 0
 
     # Make the output directories if they don't exist.
-    os.makedirs(os.path.dirname(kgx_nodes_filename), exist_ok=True)
-    os.makedirs(os.path.dirname(kgx_edges_filename), exist_ok=True)
+    ensure_parent_dir(kgx_nodes_filename)
+    ensure_parent_dir(kgx_edges_filename)
 
     # Open the compendium file for reading.
     with open(compendium_filename, encoding="utf-8") as compendium:

@@ -1,10 +1,11 @@
 import logging
-import os.path
 import traceback
 from collections import defaultdict
 from datetime import datetime
 
 import yaml
+
+from src.util import ensure_parent_dir
 
 
 def write_download_metadata(filename, *, name, url="", description="", sources=None, counts=None):
@@ -131,8 +132,7 @@ def write_metadata(filename, typ, name, *, sources=None, url="", description="",
     if combined_from is None:
         combined_from = []
 
-    metadata_dir = os.path.dirname(filename)
-    os.makedirs(metadata_dir, exist_ok=True)
+    ensure_parent_dir(filename)
     with open(filename, "w") as fout:
         yaml.dump(
             {

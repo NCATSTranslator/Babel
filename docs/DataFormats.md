@@ -232,3 +232,149 @@ conflation and individual types are turned on:
 Note that this includes both biolink:Gene identifiers (such as
 [HGNC:4056](https://alliancegenome.org/gene/HGNC:4056)) and biolink:Protein identifiers (such as
 [UniProtKB:P35575](http://www.uniprot.org/uniprot/P35575)).
+
+## DuckDB and Parquet exports
+
+The `babel_outputs/duckdb/` directory contains the same information as the JSONL files above,
+reformatted for analytical queries. The intended use case is index-wide queries that would be
+impractical against the raw JSONL — for example, finding synonyms shared across multiple cliques,
+computing synonym-length distributions, or checking prefix coverage across semantic types. There
+are no fixed downstream consumers yet; the schema is evolving.
+
+The export is produced by `src/snakefiles/duckdb.snakefile` via
+`src/exporters/duckdb_exporters.py`. Each semantic type gets a subdirectory under
+`babel_outputs/duckdb/parquet/filename={Type}/` containing one or more Parquet files. A
+transient DuckDB database (`.duckdb`) is written alongside each set of Parquet files during
+export and can be used directly for interactive querying, but the Parquet files are the
+durable output.
+
+### Compendium tables (`filename={Type}/Node.parquet`, `Clique.parquet`, `Edge.parquet`)
+
+These three tables are derived from the compendia JSONL for each semantic type.
+
+`Node.parquet` — one row per identifier across all cliques:
+
+| Column       | Type            | Meaning                                          |
+|--------------|-----------------|--------------------------------------------------|
+| curie        | STRING          | The identifier CURIE, e.g. `NCBIGene:2538`       |
+| curie_prefix | STRING          | The prefix portion of the CURIE, e.g. `NCBIGene` |
+| label        | STRING          | The label for this identifier, if any            |
+| label_lc     | STRING          | Lower-cased label (for case-insensitive search)  |
+| description  | STRING[]        | Description text(s) for this identifier          |
+| taxa         | STRING[]        | Taxa CURIEs associated with this identifier      |
+
+`Clique.parquet` — one row per clique:
+
+| Column                   | Type   | Meaning                                                   |
+|--------------------------|--------|-----------------------------------------------------------|
+| clique_leader            | STRING | CURIE of the preferred identifier for the clique          |
+| preferred_name           | STRING | Preferred display name for the clique                     |
+| clique_identifier_count  | INT    | Number of identifiers in the clique                       |
+| biolink_type             | STRING | Biolink type, e.g. `biolink:Gene`                         |
+| information_content      | FLOAT  | Information content value (0–100)                         |
+
+We get information content values as the [`normalizedInformationContent` from Ubergraph].
+
+`Edge.parquet` — one row per (clique, identifier) pair; the primary way to look up which
+clique contains a given CURIE:
+
+| Column               | Type   | Meaning                                                                    |
+|----------------------|--------|----------------------------------------------------------------------------|
+| clique_leader        | STRING | CURIE of the clique's preferred identifier                                 |
+| curie                | STRING | An identifier that belongs to this clique                                  |
+| conflation           | STRING | Conflation type if applicable, otherwise `'None'`                          |
+| clique_leader_prefix | STRING | Prefix of the clique leader CURIE                                          |
+| curie_prefix         | STRING | Prefix of the member CURIE                                                 |
+| biolink_type         | STRING | Biolink type of the owning clique (denormalized to avoid Edge→Clique join) |
+
+### Synonym table (`filename={Type}/Synonyms.parquet`)
+
+Derived from the synonym JSONL files. One row per (clique, synonym) pair — i.e., the `names`
+array from the synonym file is unnested so each individual synonym gets its own row. This makes
+synonym-frequency queries straightforward at the cost of a large row count for types with many
+synonyms per concept (notably `Protein` and `GeneProteinConflated`, which have hundreds of
+UniProt synonyms per entry).
+
+| Column           | Type   | Meaning                                            |
+|------------------|--------|----------------------------------------------------|
+| clique_leader    | STRING | CURIE of the clique's preferred identifier         |
+| preferred_name   | STRING | Preferred display name for the clique              |
+| preferred_name_lc| STRING | Lower-cased preferred name                         |
+| biolink_type     | STRING | Biolink type, e.g. `biolink:Gene`                  |
+| label            | STRING | One synonym from the `names` list                  |
+| label_lc         | STRING | Lower-cased synonym                                |
+
+### Conflation table (`filename={ConflationName}/Conflation.parquet`)
+
+Derived from the conflation JSONL files (`GeneProtein.txt`, `DrugChemical.txt`). One row per
+(conflation group, member CURIE):
+
+| Column             | Type   | Meaning                                              |
+|--------------------|--------|------------------------------------------------------|
+| conflation_type    | STRING | Conflation name, e.g. `GeneProtein`                  |
+| conflation_leader  | STRING | CURIE of the conflation group's lead identifier      |
+| curie              | STRING | A member CURIE of the conflation group               |
+| curie_prefix       | STRING | Prefix of the member CURIE                           |
+
+### Intermediate tables (`Concord.parquet`, `Identifier.parquet`, `Metadata.parquet`)
+
+Unlike the tables above, these three are not per-semantic-type; they sweep the whole
+`babel_outputs/intermediate/` tree into three flat Parquet files written directly under
+`babel_outputs/duckdb/` (not under `parquet/filename={Type}/`). They are produced by
+`export_intermediates_to_parquet()` (rule `export_intermediate_files_to_duckdb`) and make the raw
+build inputs — the cross-reference concords and per-source identifier lists — queryable without
+downloading the many original TSV files. The `filename` column on every row is the absolute path of
+the source file, so you can tell which semantic type and which source a row came from.
+
+`Concord.parquet` — one row per cross-reference edge, from every non-empty concord file (including
+the extension-less DrugChemical conflation concords at
+`intermediate/drugchemical/concords/{RXNORM,UMLS,PUBCHEM_RXNORM}`):
+
+| Column   | Type   | Meaning                                                          |
+|----------|--------|------------------------------------------------------------------|
+| filename | STRING | Absolute path of the concord file this edge came from            |
+| subj     | STRING | Subject CURIE of the cross-reference, e.g. `RXCUI:203437`        |
+| pred     | STRING | Relation/predicate, e.g. `eq` or `linked`                        |
+| obj      | STRING | Object CURIE of the cross-reference, e.g. `PUBCHEM.COMPOUND:146037278` |
+
+Finding every raw concord edge that touches a CURIE — the first question a conflation-regression
+triage asks (see Babel [#754](https://github.com/NCATSTranslator/Babel/issues/754)) — is a
+one-liner:
+
+```sql
+SELECT * FROM read_parquet('babel_outputs/duckdb/Concord.parquet')
+WHERE subj = 'CHEBI:3395' OR obj = 'CHEBI:3395';
+```
+
+If the edge you expected is absent, the link was never generated upstream (a compendium-build /
+RxCUI-typing problem); if it is present but the CURIEs still aren't conflated, the pair was dropped
+by a conflation filter — look up the reason in the paired per-run exclusion report
+`babel_outputs/reports/drugchemical/excluded_pairs.tsv.gz` (its `reason` column names the filter).
+`docs/debugging/Conflation.md` walks through this two-report diagnosis flow end to end.
+
+`Identifier.parquet` — one row per identifier extracted into an `ids/` file:
+
+| Column       | Type   | Meaning                                                            |
+|--------------|--------|--------------------------------------------------------------------|
+| filename     | STRING | Absolute path of the ids file this CURIE came from                 |
+| curie        | STRING | The identifier CURIE                                               |
+| biolink_type | STRING | The Biolink type from the ids file's second column, or NULL if the file has only a CURIE column |
+
+`Metadata.parquet` — one row per metadata YAML _inside a `concords/` or `ids/` directory_
+(`metadata-<subject>.yaml` sidecars describing a sibling file, and bare `metadata.yaml` files
+describing their directory). Metadata YAMLs elsewhere in the intermediate tree — e.g.
+`intermediate/chemicals/partials/metadata-untyped_compendium.yaml` — are not exported, since this
+table exists to describe the concord and identifier files above:
+
+| Column            | Type   | Meaning                                                              |
+|-------------------|--------|----------------------------------------------------------------------|
+| filename          | STRING | Absolute path of the metadata YAML file                              |
+| subject_filename  | STRING | The file the metadata describes (the `<subject>` of a sidecar, or the metadata file's own name for a bare `metadata.yaml`) |
+| subject_file_path | STRING | Absolute path of the described file (or its directory, for a bare `metadata.yaml`) |
+| metadata_json     | STRING | The metadata YAML contents                                          |
+
+Labels are intentionally not exported here: `ids/` files carry only `CURIE\tbiolink:Type`, and the
+label for any identifier that landed in a clique is already available in `Node.parquet` (join
+`Identifier.curie` to `Node.curie`).
+
+[`normalizedInformationContent` from Ubergraph]: https://github.com/INCATools/ubergraph/#graph-organization
