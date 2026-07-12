@@ -61,18 +61,19 @@ def split_ncbigene_synonym_field(value):
     genuine name. So a fragment is treated as an artifact only when it is a leading open marker, or
     a trailing close marker in a field that also contains such an open marker.
     """
-    fragments = [fragment.strip() for fragment in value.split("|")]
+    fragments = [
+        (fragment, fragment.startswith("''"), fragment.endswith("''"))
+        for fragment in (f.strip() for f in value.split("|"))
+    ]
     # An open marker starts with '' but does not also end with '' (that would be a self-contained
     # ''...'' value). Its presence means the field is a comma-split span, so the matching trailing
     # close markers in the same field are artifacts too.
-    has_open_marker = any(f.startswith("''") and not f.endswith("''") for f in fragments)
+    has_open_marker = any(starts_quoted and not ends_quoted for _, starts_quoted, ends_quoted in fragments)
 
     synonyms = set()
-    for fragment in fragments:
+    for fragment, starts_quoted, ends_quoted in fragments:
         if not fragment:
             continue
-        starts_quoted = fragment.startswith("''")
-        ends_quoted = fragment.endswith("''")
         if starts_quoted and ends_quoted:
             # A fully ''...''-wrapped single value: unwrap it.
             stripped = fragment[2:-2].strip()
