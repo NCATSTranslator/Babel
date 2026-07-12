@@ -1,4 +1,4 @@
-# DrugBank allergenic extracts: retyping plant-derived foods and extracts
+# DrugBank foods and extracts: retyping plant-derived materials
 
 [Issue #828](https://github.com/NCATSTranslator/Babel/issues/828)
 
@@ -104,7 +104,7 @@ production `classify_allergenic_extract`, so the CSVs can't drift from the pipel
 from DrugBank vocabulary `5-1-13` (pinned — DrugBank downloads are currently blocked) and the
 current FDA UNII records.
 
-- **`allergenic-extracts.csv`** — the retype changes, **687 entries** = **306 `biolink:Food`** (130
+- **`food-and-extracts.csv`** — the retype changes, **687 entries** = **306 `biolink:Food`** (130
   via NCIt Food/Seed, 176 via a plant flag) + **381 `biolink:ComplexMolecularMixture`** (the
   extracts). Columns:
   `drugbank_curie, label, unii, ncit, biolink_type, future_biolink_type, signal`.

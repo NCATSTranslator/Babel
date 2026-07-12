@@ -3,7 +3,7 @@
 
 This is the committed generator for the sibling files:
 
-  - ``allergenic-extracts.csv`` (File A) — every structureless DrugBank plant/food material this PR
+  - ``food-and-extracts.csv`` (File A) — every structureless DrugBank plant/food material this PR
     retypes, with the type it ships now (``biolink:Food`` or, for extracts, the interim
     ``biolink:ComplexMolecularMixture``) and, on the extract rows, the ``future_biolink_type``
     (``biolink:ProcessedMaterial``) they should become once issue #929 adds that output.
@@ -26,7 +26,7 @@ Inputs (pinned DrugBank vocabulary; current FDA UNII records):
 
 Run (from the repo root):
 
-    uv run python docs/sources/DRUGBANK/allergenic-extracts/scripts/generate_csvs.py \\
+    uv run python docs/sources/DRUGBANK/food-and-extracts/scripts/generate_csvs.py \\
         --ncit-food-codes babel_outputs/intermediate/chemicals/ids/ncit_food_codes
 """
 
@@ -43,8 +43,8 @@ from src.util import get_config
 # ProcessedMaterial is the eventual home for the "extract" rows once issue #929 adds that output.
 FUTURE_EXTRACT_TYPE = "biolink:ProcessedMaterial"
 
-HERE = Path(__file__).resolve().parent.parent  # docs/sources/DRUGBANK/allergenic-extracts/
-FILE_A = HERE / "allergenic-extracts.csv"
+HERE = Path(__file__).resolve().parent.parent  # docs/sources/DRUGBANK/food-and-extracts/
+FILE_A = HERE / "food-and-extracts.csv"
 FILE_B = HERE / "ncbi-only-drugbank-entries.csv"
 
 
