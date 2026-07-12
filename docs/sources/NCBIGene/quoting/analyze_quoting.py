@@ -44,7 +44,7 @@ from collections import Counter
 from pathlib import Path
 
 from src.babel_utils import make_local_name
-from src.datahandlers.ncbigene import GENE_INFO_HEADER
+from src.datahandlers.ncbigene import GENE_INFO_HEADER, field_has_open_marker
 
 # The two columns we study, keyed by the NCBI web-API field name Babel users will recognize.
 COLUMNS = {
@@ -99,7 +99,7 @@ DELIMITER_KEY_ORDER = [
     "rows_single_value_no_pipe",
     "pipe_rows_with_empty_fragment",
     "pipe_rows_spaced_or_padded",
-    "pipe_rows_with_double_single_quote_span",
+    "pipe_rows_with_open_marker",
     "no_pipe_rows_with_semicolon",
     "no_pipe_semicolon_separator_like",
     "no_pipe_semicolon_within_name_like",
@@ -172,8 +172,11 @@ class FieldStats:
                 self.delimiter["pipe_rows_with_empty_fragment"] += 1
             if " | " in value or value.strip() != value:
                 self.delimiter["pipe_rows_spaced_or_padded"] += 1
-            if double_single:
-                self.delimiter["pipe_rows_with_double_single_quote_span"] += 1
+            # Not just "contains ''" -- a '' is usually genuine double-prime nomenclature. Only an
+            # *open* marker (a fragment starting but not ending with '') means NCBI split one
+            # logical value across pipe-fields; key off the production predicate so this can't drift.
+            if double_single and field_has_open_marker(value):
+                self.delimiter["pipe_rows_with_open_marker"] += 1
         else:
             self.delimiter["rows_single_value_no_pipe"] += 1
             if has["has_semicolon"]:

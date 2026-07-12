@@ -51,9 +51,11 @@ For each column it writes three things to [`counts.json`](./counts.json):
 - **`delimiter_consistency`** — whether `|` behaves as the sole, clean delimiter: multi-value
   (`rows_multi_value_pipe`) vs single-value (`rows_single_value_no_pipe`) rows; delimiter hygiene
   (`pipe_rows_with_empty_fragment` for `||`, `pipe_rows_spaced_or_padded`); *over*-splitting
-  (`pipe_rows_with_double_single_quote_span`, where a `''` span's internal pipes are converted
-  commas); and *under*-splitting (`no_pipe_rows_with_semicolon`, split into `separator_like` vs
-  `within_name_like`, plus `no_pipe_rows_with_comma`).
+  (`pipe_rows_with_open_marker`, where a `''`-quoted value's internal pipes are converted commas —
+  keyed off the same open-marker shape the production splitter uses, so a `''` that is merely
+  genuine double-prime nomenclature is not counted); and *under*-splitting
+  (`no_pipe_rows_with_semicolon`, split into `separator_like` vs `within_name_like`, plus
+  `no_pipe_rows_with_comma`).
 
 ## Regenerating
 
@@ -132,16 +134,17 @@ values are joined:
   examined in "Should the semicolon be a delimiter too?" below — mostly it should not.
   In `otheraliases` this barely happens: of its 85 no-pipe `;` rows most are within-name
   (`PIP1;2`, `CYCLIN D3;3`), so aliases pipe-delimiting is effectively consistent.
-- **Over-splitting via the `''` span (both fields, small).** **285** `otheraliases` rows and
-  **1,999** `otherdesignations` rows have a `''`-wrapped value whose internal pipes are converted
-  commas (the #744 mechanism above), so `split("|")` breaks one logical value into fragments.
+- **Over-splitting via the `''` span (`otheraliases` only, small).** **276** `otheraliases` rows
+  carry an open marker — a `''`-wrapped value whose internal pipes are converted commas (the #744
+  mechanism above) — so `split("|")` breaks one logical value into fragments. `otherdesignations`
+  has **zero**: every `''` there is genuine double-prime nomenclature.
 - **Commas are *not* an alternative delimiter.** No-pipe comma rows are single values that contain
   commas (`succinate dehydrogenase, hydrophobic membrane anchor protein`), not lists — **2.2M** in
   `otherdesignations`, only **5** in `otheraliases`.
 
-Net for Babel's ingest: `otheraliases` is safely pipe-delimited; `otherdesignations` needs
-awareness that ~0.6M values are semicolon-joined (under-split) and a few thousand are `''`-spanned
-(over-split).
+Net for Babel's ingest: `otheraliases` is pipe-delimited apart from the 276 open-marker rows;
+`otherdesignations` is never over-split, but needs awareness that ~0.6M values are semicolon-joined
+(under-split).
 
 ### Most `''` is genuine double-prime nomenclature, not a #744 artifact
 
