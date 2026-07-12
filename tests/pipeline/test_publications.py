@@ -9,10 +9,13 @@ server: the second download pass over the same directory must leave the already-
 alone.
 
 Everything is written into a temporary download/output directory, so the test never touches (or
-clobbers) a real babel_downloads/babel_outputs tree.
+clobbers) a real babel_downloads/babel_outputs tree. That makes it an outlier among the pipeline
+tests, which reuse (and cache into) babel_downloads/ — it is marked `pipeline` anyway because it
+runs the rule bodies of a whole target end to end and takes minutes, which is what that mark buys:
+the 3600s timeout rather than `network`'s 600s, and its own xdist worker under `-n auto`.
 
 Run with:
-    uv run pytest tests/pipeline/test_publications.py --pipeline --no-cov -v
+    uv run pytest tests/pipeline/test_publications.py --pipeline --network --no-cov -v
 """
 
 import json
@@ -32,9 +35,12 @@ from src.util import ensure_parent_dir
 
 pytestmark = [pytest.mark.pipeline, pytest.mark.network]
 
-# How many files to take from each of baseline/ and updatefiles/. Each is a few tens of MB; five of
-# each is enough to exercise the parse and the compendium build without downloading the ~50 GB corpus.
-FILES_PER_DIRECTORY = 5
+# How many files to take from each of baseline/ and updatefiles/, out of the ~1,500-file, ~50 GB
+# corpus. Every file has the same format, so two of each already exercises every code path; the
+# count only scales how many articles we push through them. It is worth keeping small: parsing the
+# XML, not downloading it, dominates the runtime (at 5 files each the test took 155s, of which 119s
+# was the parse and only 20s the download; at 2 each it takes 64s).
+FILES_PER_DIRECTORY = 2
 
 
 def list_pubmed_files(subdir):
