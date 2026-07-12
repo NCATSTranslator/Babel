@@ -1,122 +1,15 @@
 # Babel Issue Triage
 
-This document describes how issues in the [Babel issue tracker] are triaged and prioritized using
-the [Babel sprints GitHub project]. It is written for two audiences:
+This document is a guide for Babel developers and project managers triaging and prioritizing
+issues in the [Babel issue tracker] using the [Babel sprints GitHub project].
 
-- **Part 1: For users of Babel outputs** — how to file a useful bug report, how to assign
-  priority, impact and size when you file an issue, and how to read the project board to estimate
-  when your issue is likely to be addressed.
-- **Part 2: For Babel developers** — how to triage incoming issues, how to add automated tests,
-  and how to select issues for the next sprint.
+For guidance on how to file an issue — including what to include, how to fill in priority,
+impact and size, and how to track when your issue will be addressed — see
+[docs/NewIssue.md](./NewIssue.md).
 
 ---
 
-## Part 1: Reporting and tracking issues (for users)
-
-### Filing a bug report
-
-Before filing an issue, check whether a similar issue already exists in the
-[Babel issue tracker]. If it does, you can add a comment with additional examples or "+1" the
-issue to signal that it affects you too. You can also add your issue as a sub-issue of an existing
-issue if the same underlying bug seems to be the cause.
-
-When filing a new issue, please include:
-
-- The identifiers or concept names that are behaving incorrectly (ideally as a table or TSV/CSV
-  attachment).
-- What you expected Babel to return and what it actually returned.
-- Which frontend you noticed the problem in: [Node Normalizer], [Name Resolver], or direct
-  inspection of Babel output files.
-- Any additional context that will help replicate the problem.
-
-### Assigning priority, impact and size
-
-When you file an issue, please fill in three fields in the [Babel sprints GitHub project] to
-help us understand how urgently it needs to be addressed. If you are unsure about any of these,
-please leave them blank. Developers will fill them in during triage.
-
-#### Priority
-
-How urgent is this to fix?
-
-| Value        | Meaning                                                                                                               |
-|--------------|-----------------------------------------------------------------------------------------------------------------------|
-| **Critical** | Causes outright failures or produces seriously wrong results that are actively misleading downstream users right now. |
-| **High**     | Significantly degrades the quality or usability of Babel outputs, but a workaround exists.                            |
-| **Medium**   | A noticeable quality problem, but not one that breaks workflows.                                                      |
-| **Low**      | A minor issue or a nice-to-have improvement.                                                                          |
-
-#### Impact
-
-How beneficial will fixing this issue be to Babel users?
-
-| Value        | Meaning                                                                                                    |
-|--------------|------------------------------------------------------------------------------------------------------------|
-| **Enormous** | Will significantly improve clique or output quality, or will make future development substantially easier. |
-| **High**     | Will provide a large benefit to users or developers.                                                       |
-| **Medium**   | Will provide a moderate benefit to users or developers.                                                    |
-| **Low**      | Will provide a small benefit to users or developers.                                                       |
-
-#### Size
-
-How much effort do you think this fix will require? (This is an estimate; developers may adjust it.)
-
-| Value  | Approximate effort                                                        |
-|--------|---------------------------------------------------------------------------|
-| **XS** | Trivial change — a configuration tweak or a one-line fix.                 |
-| **S**  | Small — a few hours of focused work.                                      |
-| **M**  | Medium — up to a day or two of work.                                      |
-| **L**  | Large — requires investigation and several days of implementation.        |
-| **XL** | Extra large — a substantial piece of work that may span multiple sprints. |
-
-### Grouping related issues
-
-If your issue looks like it may be caused by the same underlying bug as an existing issue, you
-can set the **Parent issue** field to that issue. This helps developers see patterns and fix
-related issues together.
-
-You can also set the **Component** property to identify which part of Babel is affected:
-
-| Component               | What it covers                                                |
-|-------------------------|---------------------------------------------------------------|
-| Process                 | The overall pipeline for running Babel                        |
-| Cliques and identifiers | What identifiers are or are not in a clique                   |
-| Downloaders             | Code that downloads source data                               |
-| Metadata                | Information content, taxon, or other metadata stored on nodes |
-| Biolink types           | How Biolink semantic types are assigned to cliques            |
-| Conflations             | GeneProtein and DrugChemical conflation                       |
-| Preferred labels        | How preferred labels are chosen                               |
-| Synonyms                | Which synonyms are included                                   |
-| New data sources        | Requests to add a new data source                             |
-| Validation and reports  | Validating Babel output or producing a report                 |
-| Documentation           | Improving or fixing Babel documentation                       |
-| NodeNorm                | [Node Normalizer] frontend                                    |
-| NameRes                 | [Name Resolver] frontend                                      |
-
-### Tracking when your issue will be addressed
-
-Babel development is organized into two-week **sprints** using the
-[Babel sprints GitHub project]. You can use the project board to see:
-
-- **Backlog** — issues that have been triaged and are waiting to be scheduled.
-- **Ready** — issues that are queued for the current or next sprint.
-- **In progress** — issues being actively worked on right now.
-- **Needs review** — issues with a pull request awaiting review.
-- **Done** — issues completed in recent sprints.
-
-At the start of each sprint, leftover items from the previous sprint are carried forward, and
-then the highest-priority issues from the backlog are added. If an issue is unexpectedly large
-or is displaced by a higher-priority item, it may be deferred to a later sprint. In general, a
-**Critical + Enormous** issue will be scheduled very quickly, while a **Low + Low** issue may
-sit in the backlog for a long time.
-
-To estimate when your issue is likely to be addressed, look at how many **Critical** and **High**
-priority issues are currently in the backlog ahead of yours. Issues are typically ordered by
-priority first and then impact.
-
----
-
-## Part 2: Triage guide (for developers)
+## Triage guide (for developers)
 
 ### Triage checklist
 
@@ -134,9 +27,9 @@ When a new issue arrives, work through the following steps:
    if necessary. If they are blank, set them now based on your assessment. Don't be shy about
    changing them in the future if necessary.
 
-4. **Set the Component field.** Choose the appropriate **Component** value (see table above)
-   if that would be useful. This can help group together related issues and for filtering during
-   sprint planning.
+4. **Set the Component field.** Choose the appropriate **Component** value (see the Component
+   table in [docs/NewIssue.md](./NewIssue.md#grouping-related-issues)) if that would be useful.
+   This can help group together related issues and for filtering during sprint planning.
 
 5. **Link to a parent issue.** If this issue is one instance of a broader known problem (e.g. a
    deprecated identifier source, or a class of missing cliques), set the **Parent issue** field.
@@ -248,5 +141,3 @@ Sprints are two weeks long. At the start of each sprint:
 [Babel issue tracker]: https://github.com/NCATSTranslator/Babel/issues/
 [Babel sprints GitHub project]: https://github.com/orgs/NCATSTranslator/projects/36
 [babel-validation]: https://github.com/TranslatorSRI/babel-validation
-[Name Resolver]: https://github.com/NCATSTranslator/NameResolution
-[Node Normalizer]: https://github.com/NCATSTranslator/NodeNormalization

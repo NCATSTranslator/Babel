@@ -6,6 +6,7 @@ import os
 import time
 import xml.etree.ElementTree as ET
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from mmap import ACCESS_READ, mmap
 from pathlib import Path
 
@@ -13,6 +14,9 @@ from src.babel_utils import WgetRecursionOptions, glom, pull_via_wget, read_iden
 from src.categories import JOURNAL_ARTICLE, PUBLICATION
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import DOI, PMC, PMID
+from src.util import ensure_parent_dir, get_logger
+
+logger = get_logger(__name__)
 
 
 def download_pubmed(
@@ -32,27 +36,30 @@ def download_pubmed(
     """
 
     # Create directories if they don't exist.
-    os.makedirs(os.path.dirname(download_file), exist_ok=True)
+    ensure_parent_dir(download_file)
 
-    # Step 1. Download all the files for the PubMed annual baseline.
-    pull_via_wget(
-        pubmed_base,
-        "baseline",
-        decompress=False,
-        subpath="PubMed",
-        recurse=WgetRecursionOptions.RECURSE_SUBFOLDERS,
-        timestamping=True,
-    )
+    # Download baseline and updatefiles in parallel — each directory contains ~750 files,
+    # so running them concurrently roughly halves wall time on the HPC.
+    subdirs = ["baseline", "updatefiles"]
 
-    # Step 2. Download all the files for the PubMed update files.
-    pull_via_wget(
-        pubmed_base,
-        "updatefiles",
-        decompress=False,
-        subpath="PubMed",
-        recurse=WgetRecursionOptions.RECURSE_SUBFOLDERS,
-        timestamping=True,
-    )
+    def _download_subdir(subdir):
+        pull_via_wget(
+            pubmed_base,
+            subdir,
+            decompress=False,
+            subpath="PubMed",
+            recurse=WgetRecursionOptions.RECURSE_SUBFOLDERS,
+            timestamping=True,
+        )
+
+    with ThreadPoolExecutor(max_workers=len(subdirs)) as pool:
+        futures = {pool.submit(_download_subdir, sd): sd for sd in subdirs}
+        for future in as_completed(futures):
+            subdir = futures[future]
+            exc = future.exception()
+            if exc:
+                raise RuntimeError(f"Failed to download PubMed/{subdir}: {exc}") from exc
+            logger.info(f"Finished downloading PubMed/{subdir}.")
 
     # Step 3. Download the PMC/PMID mapping file from PMC.
     # We don't actually use this file -- we currently only use the PMC IDs already included in the PubMed XML files.

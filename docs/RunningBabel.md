@@ -59,6 +59,46 @@ and alternate exports.
 If you have multiple CPUs available, you can increase the number of `--cores` to run multiple steps
 in parallel.
 
+### Per-target sizing
+
+Memory and time requirements vary widely by target. The README's 500 GB figure refers to the
+largest builds (protein, drugchemical-conflated, and the full pipeline together). Many
+individual targets are tractable on a laptop. Concretely, `anatomy` builds end-to-end on a Mac
+in roughly 25 minutes wall time, with UMLS downloading dominating the runtime; peak memory is
+in the low GBs. `cell_line`, `taxon`, `genefamily`, and `macromolecular_complex` are similarly
+small. `chemical`, `gene`, `protein`, `disease`, and the conflations need a workstation or HPC
+node.
+
+If you only need the intermediates for a single semantic type (for example, to generate a
+source-impact report — see [AddingNewSources.md](./AddingNewSources.md)), building just that
+target is much cheaper than `snakemake --cores N` with no target.
+
+### Common build issues
+
+* **Stale Snakemake lock.** If a previous run was killed (Ctrl-C, OOM, power loss) Snakemake
+  may refuse to start with `LockException: Directory cannot be locked`. Clear it with
+  `uv run snakemake --unlock` and retry.
+* **UberGraph transient failures.** Rules that fetch from UberGraph (anatomy's UBERON, GO, CL,
+  EMAPA rules; similar elsewhere) sometimes time out or 5xx. They carry `retries: 10` and the
+  underlying `TripleStore` adds bounded retry/backoff, so most transient blips heal
+  themselves. A full UberGraph outage will still propagate as a job failure — wait and rerun.
+* **UMLS_API_KEY not set.** The UMLS download rule fails fast with a clear error if this is
+  missing. Set it in your shell before invoking Snakemake, not just inline (`UMLS_API_KEY=… uv
+  run snakemake …` works only for the parent process and may not propagate into all subjobs
+  depending on scheduler).
+* **Partial/incomplete state from a prior aborted run.** Add `--rerun-incomplete` to force
+  Snakemake to regenerate any outputs it considers possibly-stale, which is the safest
+  default after a kill.
+
+## Analyzing and tuning a SLURM run
+
+When running on the RENCI Hatteras cluster via SLURM, the `src/tools/slurm` package analyzes a
+(possibly partial) run: `uv run babel-slurm-errors <version>` aggregates failing-rule logs when a
+run stalls so you can see what to re-run, and `uv run babel-slurm-resources <run-dir>` recommends
+right-sized per-rule `mem`/`cpus` from the run's benchmark data. See
+[tools/README.md](tools/README.md) for the full set of developer tools and
+[slurm/README.md](../slurm/README.md) for the SLURM profile itself.
+
 ## Build Process
 
 The information contained here is not required to create the compendia, but may be useful to
@@ -110,6 +150,20 @@ from the id files, and the labels from the label files.
 Fourth, the compendia is assessed to make sure that all the ids in the id files made into one of the
 possibly multiple compendia. The compendia are further assessed to locate large cliques and display
 the level of vocabulary merging.
+
+## Running on an HPC Cluster (SLURM)
+
+The production Babel runs are executed on Hatteras, an HPC cluster managed by RENCI, using a SLURM
+profile in [`slurm/`](../slurm/). See [`slurm/README.md`](../slurm/README.md) for:
+
+* How to submit the pipeline with `sbatch` and the SLURM profile.
+* Per-rule memory and runtime allocations, including which rules need a largemem node.
+* DuckDB memory tuning: `memory_limit` caps, single-threaded query settings, per-job spill
+  subdirectories, and `write_buffer_row_group_count`.
+* Known issues and their mitigations — notably the `vm.max_map_count` mmap-count limit that causes
+  `bad allocation` failures with plenty of free RAM, what was investigated (`MALLOC_ARENA_MAX=2`,
+  disabling the external file cache) and ruled out, and the `memory_limit` cap that keeps the rules
+  running until the cluster raises the kernel limit.
 
 ## Building with Docker
 
@@ -179,3 +233,64 @@ cluster. You need to create three resources:
        `screen -r`. You can also see a list of all running screens by running `screen -l`.
 
     5. Once the generation completes, all output files should be in the `babel_outputs` directory.
+
+## Releasing a new Babel version
+
+A full production run happens on an HPC system over many hours, and it almost always
+surfaces problems that aren't visible from a local dry run: wrong memory settings,
+download endpoints that have moved or require an API key, format changes upstream, and
+latent bugs that only fire at full scale. The practical way to keep a run moving is to
+fix these directly on the release branch (for example `babel-1.17`) rather than stopping
+to open a separate PR for each one. By the time the run is healthy, the release branch
+holds a long, date-interleaved mix of trivial tweaks and substantial changes.
+
+Before that branch is merged, it is worth separating the two kinds of change.
+The scripts in [`../scripts/commit-split`](../scripts/commit-split) help verify the
+split is complete and lossless; see that directory's `README.md`.
+
+### Which commits stay on the release branch
+
+A commit can stay on the release branch if its entire effect fits in a single
+release-note line, for example "updated the ENSEMBL dataset skip list", "bumped the
+Biolink Model version", or "raised a rule's memory limit". These are the expected
+running-a-build adjustments and reviewing them inline with the release is fine.
+
+Everything else should move to its own branch off `main` and be reviewed as a normal
+PR, so the change is documented, gets a real review, and earns its own release-note
+entry. Related commits move together as one PR even if they were made days apart: all
+the download-robustness work is one PR, all the DuckDB memory tuning is another, and so
+on. Documentation and formatting commits travel with the code they describe rather than
+staying behind on the release branch.
+
+### Splitting the branch
+
+1. **Classify by theme, not by date.** The commits interleave chronologically but group
+   cleanly by the files they touch. List `git rev-list --no-merges main..<release-branch>`
+   with each commit's changed files and bucket them (download robustness, a specific
+   source's ingest, export/reporting, tooling, and so on).
+2. **Make a backup branch** (`git branch backups/<release-branch> <release-branch>`) before
+   anything that will later rewrite the release branch.
+3. **Build one branch per theme off `main`** with `git cherry-pick`, replaying each
+   bucket's commits in chronological order. Enable `git rerere` so a conflict you resolve
+   once (typically in shared files like `config.yaml`, `datacollect.snakefile`, or
+   `AGENTS.md`) is replayed automatically if you have to rebuild the branch.
+4. **Watch for entangled and coupled commits.** Two themes that edit the same file in
+   alternating commits may need one branch *stacked on* the other (cherry-pick the second
+   theme on top of the first) rather than both off `main` — that reconstructs the original
+   context and avoids fighting conflicts. Also watch for a "workaround then fix" pair
+   split across buckets: for example a commit that raises a memory limit as a stopgap and
+   a later commit that removes the stopgap after fixing the root cause must live in the
+   same PR, or the net effect on the release branch changes.
+5. **Verify each branch independently** with the full CI gate — `uv run ruff check`,
+   `uv run ruff format --check`, `uv run snakefmt --check --compact-diff .`,
+   `uv run rumdl check .`, and `uv run pytest -m unit` — plus the cluster's own tests. A
+   branch that carries a behavior change but no test gets a small regression test added.
+6. **Prove nothing was lost.** Compare `git patch-id --stable` for every commit in
+   `main..<release-branch>` against the patch-ids present across all theme branches: every
+   moved commit should appear in exactly one branch, and every stay-behind commit should
+   appear in none. Commits you deliberately adapted while resolving a conflict will differ;
+   confirm those by diffing the applied change against the original so only context, not
+   added or removed lines, has changed.
+7. **Reintegrate.** Once the theme PRs are merged into `main`, merge or rebase `main` into
+   the release branch. The commits that were split out arrive via `main` and drop out of
+   the release branch's own diff, leaving only the stay-behind commits there.

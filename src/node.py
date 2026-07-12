@@ -464,14 +464,26 @@ class NodeFactory:
         self.ancestor_map[input_type] = ancs
         return ancs
 
-    def get_prefixes(self, input_type):
+    def get_prefixes(self, input_type, allow_empty=False):
         if input_type in self.prefix_map:
-            return self.prefix_map[input_type]
+            cached = self.prefix_map[input_type]
+            if not cached and not allow_empty:
+                raise RuntimeError(f"No Biolink prefixes for {input_type}")
+            return cached
         logger.info(f"NodeFactory({self.label_dir}, {self.biolink_version}).get_prefixes({input_type}) called")
+        # get_element() returns a bmt ClassDefinition (a linkml_runtime model): attribute access
+        # (j.id_prefixes) and subscript access (j["id_prefixes"], used here) both work, but it has
+        # no dict-style .get() -- j.get("id_prefixes") raises AttributeError, not a default.
         j = self.toolkit.get_element(input_type)
         prefs = j["id_prefixes"]
         if len(prefs) == 0:
-            raise RuntimeError(f"No Biolink prefixes for {input_type}")
+            # Some Biolink types (e.g. biolink:Phenomenon, biolink:PhysicalEntity) carry no id_prefixes.
+            # Cache [] so repeated calls skip the toolkit lookup; strict callers (allow_empty=False)
+            # still raise, both on first call and from cache.
+            self.prefix_map[input_type] = []
+            if not allow_empty:
+                raise RuntimeError(f"No Biolink prefixes for {input_type}")
+            return []
         # The pref are in a particular order, but apparently they can have dups (ugh)
         # We de-duplicate those here.
         prefixes_deduplicated = list()
@@ -607,17 +619,30 @@ class NodeFactory:
         return labeled_list
 
     def create_node(self, input_identifiers, node_type, labels={}, extra_prefixes=[]):
+        """
+        Build a clique's node record: {"identifiers": [{"identifier": CURIE, "label": str}, ...],
+        "type": "biolink:Foo", "id": {"identifier": CURIE, "label": str}}. identifiers[0] is the
+        preferred identifier (highest-priority prefix per get_prefixes()'s ordering); "id" is an
+        alias for identifiers[0], not a separate value. Labels stay on the identifier that owns
+        them and are not promoted onto the first entry. Returns None if input_identifiers is empty.
+        """
         # This is where we will normalize, i.e. choose the best id, and add types in accord with BL.
         # we should also include provenance and version information for the node set build.
         # make sure prefixes list does not include duplicate prefixes
+        # Always allow an empty get_prefixes() result here: a node_type with no id_prefixes of its
+        # own is still writable when extra_prefixes covers the gap. The combined list is validated
+        # as non-empty below, which produces a clearer error than an early raise inside get_prefixes.
+        node_prefixes = self.get_prefixes(node_type, allow_empty=True)
         prefixes = []
         seen_prefixes = set()
-        for prefix in self.get_prefixes(node_type) + extra_prefixes:
+        for prefix in node_prefixes + extra_prefixes:
             prefix_upper = prefix.upper()
             if prefix_upper in seen_prefixes:
                 continue
             prefixes.append(prefix)
             seen_prefixes.add(prefix_upper)
+        if not prefixes:
+            raise RuntimeError(f"No Biolink prefixes for {node_type}: id_prefixes is empty and extra_prefixes is empty")
 
         if len(input_identifiers) == 0:
             return None

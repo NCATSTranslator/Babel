@@ -70,6 +70,9 @@ rule drugchemical_conflation:
         metadata_yaml=config["output_directory"] + "/metadata/DrugChemical.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/drugchemical_conflation.tsv"
+    resources:
+        # Peaks at ~57 GB on babel-1.17 (see docs/tools/Resources.md); far over the 16 GB default.
+        mem="64G",
     run:
         drugchemical.build_conflation(
             input.drugchemical_manual_concord,

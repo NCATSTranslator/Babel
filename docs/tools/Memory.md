@@ -21,7 +21,7 @@ can estimate a 120 GiB load on a 32 GiB laptop.
 
 ```bash
 # ChEMBL: load cco.ttl (tiny) first, then the big molecule dump, like ChemblRDF
-uv run python tools/memory/estimate_rdf_load_memory.py \
+uv run python src/tools/memory/estimate_rdf_load_memory.py \
     babel_downloads/CHEMBL.COMPOUND/cco.ttl \
     babel_downloads/CHEMBL.COMPOUND/chembl_latest_molecule.ttl
 ```

@@ -5,6 +5,7 @@
 #   $ snakemake --profile slurm
 #
 executor: slurm
+slurm-jobname: "babel-{rule}.{wildcards}"
 jobs: 50 # maximum number of parallel cluster jobs
 latency-wait: 60 # seconds
 slurm-delete-logfiles-older-than: 0 # Don't delete log files automatically.
@@ -23,15 +24,25 @@ partitions:
   largemem:
     max_mem_mb: 1530329 # 1.5 TB
 
-# Default resource settings for all rules
+# Default resource settings for all rules.
+#
+# These defaults are deliberately small: on a full babel-1.17 run, 312 of 345 benchmarked
+# rules peaked below 8 GB and all but the DuckDB export rules used a single core (see
+# docs/tools/Resources.md). The old 64 GB / 4-CPU default packed only ~3 of these light
+# jobs onto a 191 GB batch node, throttling parallelism. Rules that genuinely need more
+# carry an explicit `resources:` block in their snakefile. Bias these numbers *down*: an
+# OOM is cheap to spot (we track per-rule peak RSS) and re-run at a higher limit, whereas
+# padding every job silently ratchets the whole cluster upward over time. Re-check the
+# override rules against actual usage after each run with:
+#   uv run babel-slurm-resources <run-dir> --new-default-mem-gb 16
 default-resources:
-  mem: 64G
+  mem: 16G
   runtime: 120 # minutes
-  cpus_per_task: 4
+  cpus_per_task: 1
 
 # Set up the Slurm efficiency report.
 slurm-efficiency-report: True
-slurm-efficiency-report-path: babel_outputs/reports/slurm/slurm_efficiency_report.csv
+slurm-efficiency-report-path: babel_outputs/reports/slurm/slurm_efficiency_reports
 
 # Write Slurm logs into a `logs/` directory so we can look at them later.
 slurm-logdir: babel_outputs/logs

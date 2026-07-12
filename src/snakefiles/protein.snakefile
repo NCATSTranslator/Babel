@@ -89,7 +89,7 @@ rule get_protein_pr_uniprotkb_relationships:
     benchmark:
         config["output_directory"] + "/benchmarks/get_protein_pr_uniprotkb_relationships.tsv"
     # Because we get this from UberGraph, we sometimes end up with incomplete/failed transfers and need to retry.
-    retries: 10
+    retries: 3
     run:
         protein.build_pr_uniprot_relationships(output.outfile, metadata_yaml=output.metadata_yaml)
 
@@ -151,6 +151,7 @@ rule protein_compendia:
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["protein_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["protein_outputs"])),
+        expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["protein_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/protein_compendia.tsv"
     resources:
@@ -167,6 +168,9 @@ rule check_protein_completeness:
         report_file=config["output_directory"] + "/reports/protein_completeness.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/check_protein_completeness.tsv"
+    resources:
+        # Peaks at ~21 GB on babel-1.17 (see docs/tools/Resources.md); over the 16 GB default.
+        mem="24G",
     run:
         assessments.assess_completeness(
             config["intermediate_directory"] + "/protein/ids", input.input_compendia, output.report_file

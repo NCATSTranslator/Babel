@@ -11,11 +11,10 @@ import gzip
 import itertools
 import json
 import logging
-import os
 import random
 import re
 
-from src.util import LoggingUtil
+from src.util import LoggingUtil, ensure_parent_dir
 
 # Default logger for this file.
 logger = LoggingUtil.init_logging(__name__, level=logging.INFO)
@@ -52,7 +51,7 @@ def convert_synonyms_to_sapbert(synonym_filename_gz, sapbert_filename_gzipped):
         generate_smaller_filename = sapbert_filename_gzipped.replace(".txt.gz", "Smaller.txt.gz")
 
     # Make the output directories if they don't exist.
-    os.makedirs(os.path.dirname(sapbert_filename_gzipped), exist_ok=True)
+    ensure_parent_dir(sapbert_filename_gzipped)
 
     # Open SmallerFile for writing if needed.
     generate_smaller_file = None

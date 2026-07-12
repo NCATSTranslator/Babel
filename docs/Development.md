@@ -14,7 +14,9 @@ names in one place so a rename only requires a single-file update.
 When you add a new data source or extend an existing one (the
 [ComplexPortal PR #831](https://github.com/NCATSTranslator/Babel/pull/831) is a worked example of
 all of this), these lessons are worth applying. The Babel-specific conventions referenced here are
-spelled out in `CLAUDE.md`; this section is the human-readable overview.
+spelled out for Claude Code in [`../src/datahandlers/CLAUDE.md`](../src/datahandlers/CLAUDE.md) (and
+[`../tests/CLAUDE.md`](../tests/CLAUDE.md) for the test rules); this section is the human-readable
+overview.
 
 ### Emit the attribute files your source supports
 
@@ -65,13 +67,23 @@ See [`tests/README.md`](../tests/README.md) and
 
 ### A few more habits that paid off
 
+- **Split download from extract/validate.** Give a data-collection step two Snakemake rules: a
+  `download_*` rule that only fetches the raw file(s), and a separate rule that validates format or
+  extracts content. If upstream changes its format (e.g. a column rename), only the validation rule
+  fails — Snakemake keeps the downloaded file, so a code fix doesn't force an expensive re-download.
+  Format validation belongs in the extraction/filter rule, never in the download rule.
 - **Validate upstream format and fail loudly.** Pin the column layout as a constant in the source
-  module, import it into tests, and assert the live header still matches. Raise `ValueError` /
-  `RuntimeError` on anything unexpected (a missing column, a zero-length file listing, an
-  already-prefixed taxon) rather than producing wrong output quietly.
+  module (e.g. `complexportal.COMPLEXTAB_COLUMNS`/`COMPLEXTAB_HEADER`) — that constant is the
+  canonical format documentation living next to the code — import it into tests to build fixture
+  rows, and assert the live header still matches at each index Babel reads, so a silent upstream
+  re-ordering becomes a loud test failure instead of corrupted output. Raise `ValueError` /
+  `RuntimeError` on anything else unexpected (a missing column, a zero-length file listing, an
+  already-prefixed taxon) rather than producing wrong output quietly. See
+  `src/datahandlers/complexportal.py`.
 - **Use a manifest as the download sentinel** for multi-file downloads: write the list of
   downloaded files last and make _that_ the Snakemake output, so its presence proves the download
-  phase finished and the extraction rule knows what to parse.
+  phase finished and the extraction rule knows what to parse. See
+  `complexportal.pull_complexportal()`.
 - **Accept explicit file-path arguments** (`infile`/`outfile`/…) instead of calling
   `make_local_name` inside the handler, so unit tests can point at `tmp_path` without patching the
   config and Snakemake can declare inputs/outputs precisely.
@@ -139,192 +151,19 @@ that is slow by necessity.
 - **Opaque intermediate state.** Snakemake tracks what has been built via file existence and
   timestamps. There is no summary of what prerequisites are present and what is missing.
 
----
-
 ## Ideas for Improvement
 
-The suggestions below range from small scripts you could add this week to multi-month architectural
-changes. All are worth considering. For the companion question of _how_ and _where_ to run the test
-suite (cadence, runner choice, what to automate), see [`docs/Testing.md`](Testing.md).
+Developer-tooling and workflow improvements — scripts and pipeline changes that help you build,
+debug, and validate Babel without changing its outputs — are tracked as GitHub issues under the
+[`developer tooling`](https://github.com/NCATSTranslator/Babel/issues?q=is%3Aissue+is%3Aopen+label%3A%22developer+tooling%22)
+label, rather than as a static list here. Broader efforts they build on are tracked too: logging
+([#453](https://github.com/NCATSTranslator/Babel/issues/453)), fixture/unit-test coverage
+([#763](https://github.com/NCATSTranslator/Babel/issues/763)), shared format readers/writers
+([#736](https://github.com/NCATSTranslator/Babel/issues/736),
+[#759](https://github.com/NCATSTranslator/Babel/issues/759)), and release regression tooling
+([#764](https://github.com/NCATSTranslator/Babel/issues/764)).
 
-### Small, practical improvements
-
-#### 1. Proposed per-compendium assessment script (`src/scripts/assess_compendium.py`, not yet implemented)
-
-A standalone CLI script that would take a compendium JSONL file as input and print a human-readable
-summary: number of cliques, clique size distribution, identifier prefix breakdown, large-clique
-examples, and any structural validation errors. This would mirror what the pipeline's `assess` rules
-do today, but could be run against _any_ compendium file, including one built from a partial
-dataset, without needing the full pipeline to have run. This script and its CLI entrypoint are
-**not** implemented yet.
-
-For example, if such a CLI were added, you might run:
-
-```bash
-# Hypothetical example; `assess-compendium` does not exist in this repository today.
-uv run assess-compendium babel_outputs/compendia/AnatomicalEntity.txt
-```
-
-#### 2. Proposed compendium diff script (`src/scripts/diff_compendia.py`, not yet implemented)
-
-A CLI script that compares two compendium files and reports:
-
-- Cliques that appear in one but not the other.
-- Cliques whose membership changed (identifiers added or removed).
-- Cliques whose preferred identifier (clique leader) changed.
-- Summary statistics: total cliques gained/lost, total identifiers gained/lost.
-
-This would immediately tell you whether a code change had the intended effect when you copy a
-before/after snapshot.
-
-```bash
-uv run diff-compendia old/AnatomicalEntity.txt new/AnatomicalEntity.txt
-```
-
-#### 3. Proposed CURIE lookup script (`src/scripts/lookup_curie.py`, not yet implemented)
-
-A CLI script that searches all compendium files in a directory for a given CURIE and prints the
-full clique it belongs to. Useful for spot-checking whether a specific identifier was correctly
-merged.
-
-```bash
-# Hypothetical example; `lookup-curie` does not exist in this repository today.
-uv run lookup-curie MESH:D014867 --compendia-dir babel_outputs/compendia/
-```
-
-#### 4. Proposed concord inspector script (`src/scripts/inspect_concord.py`, not yet implemented)
-
-A CLI script that reads one or more concord files (the `CURIE1 \t relation \t CURIE2` files in
-`intermediate/*/concords/`) and shows statistics: which prefixes appear, how many cross-references
-exist per prefix pair, and examples of entries. This makes it easier to verify that a concord
-generation step is working before building the full compendium.
-
-```bash
-# Hypothetical example; `inspect-concord` does not exist in this repository today.
-uv run inspect-concord babel_outputs/intermediate/chemicals/concords/CHEBI
-```
-
-#### 5. Proposed Snakemake dependency checker (`src/scripts/check_prerequisites.py`, not yet implemented)
-
-A script that reads `config.yaml` and checks which intermediate and download files are present on
-disk, printing a table of what is available versus missing. This would tell you immediately which
-prerequisites you need to copy before you can run a particular target.
-
-```bash
-# Hypothetical example; `check-prerequisites` does not exist in this repository today.
-uv run check-prerequisites --target anatomy
-```
-
-#### 6. Per-type report targets in `src/snakefiles/reports.snakefile`
-
-Currently `all_reports` requires all compendia. Adding per-type report targets (e.g.,
-`anatomy_report`, `chemical_report`) that only require the files for that semantic type would let
-you run a meaningful report in isolation. The per-compendium content report rules already exist
-(`generate_content_report_for_compendium_*`); they just need to be wired into per-type aggregate
-rules.
-
-#### 7. Structured logging for compendium building
-
-The compendium-building Python code (`createcompendia/`) currently logs to a mix of `print` and
-Python logging. Adding structured JSON log output (e.g., counts of identifiers processed, concords
-merged, cliques formed at each stage) would make it possible to write a script that summarizes
-pipeline behavior from logs alone, without inspecting output files.
-
----
-
-### Medium-effort improvements
-
-#### 8. Mini-dataset fixtures for each data source
-
-Each data handler in `src/datahandlers/` reads a specific file format. For each handler, create a
-small, representative fixture file (a few hundred rows) checked into `tests/fixtures/`. Then write
-a test that runs the handler against the fixture and checks the resulting `labels`, `synonyms`, and
-`ids` files. This would let you run a fast integration test for a data handler without downloading
-anything.
-
-This builds naturally on the existing test infrastructure in `tests/`.
-
-#### 9. Development config with smaller targets (`config.dev.yaml`)
-
-A second `config.yaml` variant that points to smaller fixture datasets and has reduced prefix
-lists. Running `uv run snakemake --configfile config.dev.yaml --cores 4` would exercise the full
-pipeline structure (all rules, all file handoffs) against toy data, completing in minutes rather
-than hours. The output would be structurally valid but not biologically complete.
-
-#### 10. Standalone compendium builder script
-
-A script that accepts a list of concord files and id files as command-line arguments and runs
-just the clique `glom()` method to produce a compendium file, without any Snakemake
-involvement. This decouples the algorithmic core from the orchestration layer, making it easy to
-experiment with clique-merging logic on captured intermediate files.
-
-```bash
-uv run build-cliques \
-    --ids intermediate/chemicals/ids/* \
-    --concords intermediate/chemicals/concords/* \
-    --output my_test_compendium.jsonl
-```
-
-#### 11. Remote intermediate file cache
-
-A script (or Snakemake rule) that syncs a canonical set of intermediate files from object storage
-(S3, GCS, or a shared NFS path) to your local machine. This means developers don't have to run
-data collection steps themselves — they pull the outputs of the last successful full run. Combined
-with a clear versioning scheme (tied to the data source versions in `config.yaml`), this could
-eliminate most of the prerequisite-gathering step.
-
-#### 12. Compendium regression test suite
-
-After each full pipeline run, serialize summary statistics for every compendium (total cliques,
-cliques per prefix, median clique size, etc.) as a JSON file and commit it to the repository.
-On subsequent runs, compare against this baseline and fail if any metric changes by more than a
-configurable threshold. This would catch regressions automatically and provide the feedback loop
-that is currently missing.
-
----
-
-### Large, sweeping changes
-
-#### 13. Isolate semantic types into independent sub-pipelines
-
-Currently the reports depend on all semantic types together, creating a hard global dependency.
-If each semantic type were a self-contained sub-pipeline — with its own report, its own
-completeness check, and its own done-marker — developers could run and validate a single type
-end-to-end without touching any other type. This would require refactoring the report rules but
-would not change the pipeline logic.
-
-#### 14. Unit-testable Python API for compendium building
-
-The compendium-building code in `createcompendia/` directly reads and writes files. Refactoring it
-so that each function accepts Python data structures (lists of ID tuples, concord triples) and
-returns clique structures — with file I/O as a separate layer — would make every step independently
-unit-testable. Snakemake rules would remain as thin wrappers that read inputs from disk, call the
-Python API, and write outputs to disk.
-
-This is the highest-value architectural change for long-term maintainability.
-
-#### 15. Streaming / chunked processing with DuckDB
-
-Several steps require hundreds of gigabytes of RAM because they load entire files into memory.
-`TSVSQLiteLoader` already attempts to mitigate this with an in-memory SQLite database. A further
-step would be to use DuckDB (already present in the pipeline for exports) as the primary
-intermediate store throughout compendium building — storing ids, concords, and partial cliques in
-DuckDB tables on disk, and performing joins and aggregations inside DuckDB rather than in Python
-memory. This would reduce RAM requirements substantially and make more steps runnable on
-development hardware.
-
-#### 16. Containerized development environment with prebuilt downloads
-
-A Docker image (separate from the production image) that includes a curated, compressed snapshot
-of all download data — not full production datasets, but representative subsets sufficient to
-exercise every code path. A developer could `docker pull` this image, mount their source code, and
-run the full pipeline against it in a few hours on a workstation. This is the closest thing to a
-reproducible, low-friction development environment for a pipeline of this scale.
-
-#### 17. Per-data-source version pinning and change detection
-
-Currently, when an upstream data source changes (e.g. a new UMLS release), it is not always clear
-which parts of the pipeline are affected. Adding an explicit version manifest — a file that records
-the version/checksum of each downloaded resource — would allow a script to compare against the
-previous manifest and report exactly which downstream compendia need to be rebuilt. This would
-make release preparation more predictable and reduce unnecessary re-runs.
+For the companion question of _how_ and _where_ to run the test suite (cadence, runner choice, what
+to automate), see [`docs/Testing.md`](Testing.md). Before writing a new tool, read
+[`tools/README.md`](tools/README.md): a tool is a thin CLI in `src/tools/<tool>/cli.py`, and the
+logic it drives belongs in `src/` beside the code it models, so the next tool can reuse it.
