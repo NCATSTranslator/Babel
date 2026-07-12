@@ -26,12 +26,13 @@ The answer is no -- see the generated report -- because genuine unrelated aliase
 span and the value's internal commas became pipes.
 
 Usage:
-    uv run python docs/sources/NCBIGene/quoting/double_prime_report.py [--limit 200] \
+    uv run python docs/sources/NCBIGene/quoting/double_prime_report.py [--limit 10] \
         [--input gene_info.gz] [--output double_prime_report.md]
 """
 
 import argparse
 import gzip
+import re
 import textwrap
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -173,6 +174,21 @@ def _record_valid(valid_tokens, token, row, symbol):
         entry["example"] = (row[GENE_ID], row[TAX_ID], desc)
 
 
+def representative_sample(ranked, limit):
+    """Pick `limit` tokens covering both genuine double-prime shapes, most common of each first.
+
+    Ranking purely by row count buries the chemical-position locants (2''-O-xylosyltransferase and
+    friends, first at rank ~13) under the protein-subunit names (beta'', B'', c''), so a short head
+    of the list would misrepresent what '' is used for. Split on the character before the '' --
+    digit means locant, anything else means subunit -- and take half the sample from each.
+    """
+    digit_led = [kv for kv in ranked if re.search(r"\d''", kv[0])]
+    other = [kv for kv in ranked if not re.search(r"\d''", kv[0])]
+    half = limit // 2
+    sample = other[: limit - half] + digit_led[:half]
+    return sorted(sample, key=lambda kv: (-kv[1]["rows"], kv[0]))
+
+
 def para(text):
     """Wrap a prose paragraph to 100 characters, the MD013 limit rumdl enforces on this file.
 
@@ -250,11 +266,20 @@ def write_report(counts, valid_tokens, balanced_tokens, rejoin, limit, out_path,
     )
 
     ranked = sorted(valid_tokens.items(), key=lambda kv: (-kv[1]["rows"], kv[0]))
-    lines.append(f"## Distinct potentially-valid tokens (top {min(limit, len(ranked))} by row count)\n")
+    sample = representative_sample(ranked, limit)
+    lines.append(f"## Distinct potentially-valid tokens ({len(sample)} of {len(ranked):,})\n")
     lines.append("`token` — rows — is_symbol (rows where it equals the gene's own Symbol) — example gene\n")
+    lines.append(
+        para(
+            "The most common tokens of each genuine double-prime shape: a *letter* before the `''` "
+            "(subunit nomenclature — RNA polymerase `beta''`, snRNP `B''`) and a *digit* before it "
+            "(chemical-position locants — `6''-O-malonyltransferase`). Purely top-by-row-count would "
+            f"be all subunit names. Rerun with `--limit {len(ranked)}` to list every token."
+        )
+    )
     lines.append("| token | rows | is_symbol | example GeneID | example tax | example full name |")
     lines.append("| --- | ---: | ---: | --- | --- | --- |")
-    for token, e in ranked[:limit]:
+    for token, e in sample:
         gid, tax, name = e["example"]
         safe = token.replace("|", "\\|")
         name = name.replace("|", "\\|")[:70]
@@ -281,7 +306,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--input", type=Path, default=DEFAULT_INPUT)
     p.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
-    p.add_argument("--limit", type=int, default=200, help="max distinct tokens to list (default 200)")
+    p.add_argument("--limit", type=int, default=10, help="distinct tokens to sample into the table (default 10)")
     args = p.parse_args()
     counts, valid_tokens, balanced_tokens, rejoin = analyze(args.input)
     write_report(counts, valid_tokens, balanced_tokens, rejoin, args.limit, args.output, args.input)
