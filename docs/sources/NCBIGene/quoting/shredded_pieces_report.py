@@ -102,6 +102,7 @@ def write_csv(dropped_rows, out_path):
         writer = csv.DictWriter(
             out,
             fieldnames=["gene_id", "symbol", "tax_id", "dropped_synonym", "shredded_from", "raw_synonyms_field"],
+            lineterminator="\n",  # csv defaults to \r\n; keep the committed file LF-only.
         )
         writer.writeheader()
         writer.writerows(dropped_rows)
