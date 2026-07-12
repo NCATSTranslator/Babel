@@ -48,7 +48,9 @@ def download_pubmed(
             decompress=False,
             subpath="PubMed",
             recurse=WgetRecursionOptions.RECURSE_SUBFOLDERS,
+            # A recursive download must be timestamped and must not resume: see pull_via_wget().
             timestamping=True,
+            continue_incomplete=False,
         )
 
     with ThreadPoolExecutor(max_workers=len(subdirs)) as pool:

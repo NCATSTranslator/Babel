@@ -108,10 +108,11 @@ so drop them and let `verify_pubmed` check every carried-over `.gz` against a ch
 re-downloads any that fail, so a corrupt or truncated file from the previous run heals itself.
 Checksumming the full corpus takes a few minutes; it happens on every run regardless.
 
-A recursive, timestamped download never passes `--continue` to wget (`pull_via_wget()` drops it):
-wget resumes by *appending* the bytes it thinks are missing to whatever local file it finds, which
-silently corrupts a file whose content changed upstream rather than merely being truncated. Any file
-that disagrees with the server on size or mtime is therefore re-fetched in full, at the cost of
+A recursive download is always timestamped and never resumed: `pull_via_wget()` raises if a caller
+asks for `--continue` alongside recursion, or for recursion without `--timestamping`. wget resumes
+by *appending* the bytes it thinks are missing to whatever local file it finds, which silently
+corrupts a file whose content changed upstream rather than merely being truncated. Any file that
+disagrees with the server on size or mtime is therefore re-fetched in full, at the cost of
 restarting — rather than resuming — a large file whose download was interrupted.
 
 The `baseline/` and `updatefiles/` directories are deliberately *not* declared as `directory()`

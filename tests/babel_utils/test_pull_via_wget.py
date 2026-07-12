@@ -58,6 +58,7 @@ def test_recursive_wget_downloads_every_file_into_an_empty_directory(http_server
         decompress=False,
         outpath=str(local_dir),
         recurse=WgetRecursionOptions.RECURSE_DIRECTORY_ONLY,
+        continue_incomplete=False,
     )
 
     assert (local_dir / "one.txt").read_text() == "one"
@@ -91,6 +92,7 @@ def test_recursive_wget_keeps_preloaded_files_and_downloads_only_the_new_ones(ht
         decompress=False,
         outpath=str(local_dir),
         recurse=WgetRecursionOptions.RECURSE_DIRECTORY_ONLY,
+        continue_incomplete=False,
     )
 
     # The preloaded file was not re-downloaded: its (distinguishable) local content survives.
@@ -107,8 +109,8 @@ def test_recursive_wget_redownloads_a_stale_preloaded_file_rather_than_resuming_
 
     This is the regression test for --continue: wget resumes by appending the bytes it is missing
     to the local file, so with --continue this download produced "old local contentt" — the stale
-    content plus the one-byte tail of the new file. pull_via_wget() now drops --continue for
-    recursive, timestamped downloads."""
+    content plus the one-byte tail of the new file. pull_via_wget() now refuses --continue in a
+    recursive download; this test proves the resulting fetch is a clean, whole-file one."""
     base_url, remote_dir = http_server
     (remote_dir / "files" / "revised.txt").write_text("new remote content")
 
@@ -127,6 +129,43 @@ def test_recursive_wget_redownloads_a_stale_preloaded_file_rather_than_resuming_
         decompress=False,
         outpath=str(local_dir),
         recurse=WgetRecursionOptions.RECURSE_DIRECTORY_ONLY,
+        continue_incomplete=False,
     )
 
     assert revised.read_text() == "new remote content"
+
+
+# UNSAFE OPTION COMBINATIONS
+#
+# These guards fire before wget is invoked, so these tests need neither the server nor the binary.
+
+
+@pytest.mark.unit
+def test_a_recursive_download_that_asks_to_continue_is_refused(tmp_path):
+    """Recursion plus --continue is the combination that corrupts a file changed upstream, so
+    pull_via_wget() should refuse it rather than quietly downloading with one of them dropped.
+    continue_incomplete defaults to True, so a recursive caller has to say otherwise."""
+    with pytest.raises(ValueError, match="cannot combine continue_incomplete=True with recursion"):
+        pull_via_wget(
+            "http://127.0.0.1:1/",
+            "files",
+            decompress=False,
+            outpath=str(tmp_path / "local"),
+            recurse=WgetRecursionOptions.RECURSE_DIRECTORY_ONLY,
+        )
+
+
+@pytest.mark.unit
+def test_a_recursive_download_without_timestamping_is_refused(tmp_path):
+    """With --continue refused, --timestamping is the only thing keeping wget from saving a second
+    copy of every file we already have as `file.1`, so a recursive download requires it."""
+    with pytest.raises(ValueError, match="cannot disable timestamping in a recursive download"):
+        pull_via_wget(
+            "http://127.0.0.1:1/",
+            "files",
+            decompress=False,
+            outpath=str(tmp_path / "local"),
+            recurse=WgetRecursionOptions.RECURSE_DIRECTORY_ONLY,
+            continue_incomplete=False,
+            timestamping=False,
+        )
