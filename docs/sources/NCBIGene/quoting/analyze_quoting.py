@@ -44,26 +44,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-# The full 16-column gene_info.gz layout, asserted so an upstream re-ordering fails loudly.
-# Kept in sync with src/datahandlers/ncbigene.py:pull_ncbigene_labels_synonyms_and_taxa.
-GENE_INFO_HEADER = [
-    "#tax_id",
-    "GeneID",
-    "Symbol",
-    "LocusTag",
-    "Synonyms",
-    "dbXrefs",
-    "chromosome",
-    "map_location",
-    "description",
-    "type_of_gene",
-    "Symbol_from_nomenclature_authority",
-    "Full_name_from_nomenclature_authority",
-    "Nomenclature_status",
-    "Other_designations",
-    "Modification_date",
-    "Feature_type",
-]
+from src.datahandlers.ncbigene import GENE_INFO_HEADER
 
 # The two columns we study, keyed by the NCBI web-API field name Babel users will recognize.
 COLUMNS = {
