@@ -36,84 +36,86 @@ GENE_828367_SYNONYMS = (
 GENE_828367_FULL_NAME = "cytochrome P450, family 706, subfamily A, polypeptide 2"
 
 
+# Every case is (Synonyms field, full_name, exactly the synonyms that should come out). Assertions
+# are exact-set, not "contains", so a case pins the whole output and a new error case is one entry
+# rather than a new test function. Add to this table when a new NCBI quoting shape turns up --
+# characterize it against the real gene_info.gz first (see docs/sources/NCBIGene/quoting/).
+SPLIT_CASES = [
+    pytest.param(
+        GENE_828367_SYNONYMS,
+        GENE_828367_FULL_NAME,
+        {"T12H17.100", "T12H17_100"},
+        id="shredded-value-with-full-name-drops-markers-and-middle-pieces",
+    ),
+    # The same field with no full_name to compare against (a row whose
+    # Full_name_from_nomenclature_authority and Other_designations are both blank). The ''-marked
+    # ends still go, but the middle pieces carry no '' at all and cannot be identified as junk
+    # without the intact value -- so they survive. This is the #932 limitation, not a bug.
+    pytest.param(
+        GENE_828367_SYNONYMS,
+        "",
+        {"T12H17.100", "T12H17_100", "cytochrome P450", "family 706", "polypeptide 2", "subfamily A"},
+        id="shredded-value-without-full-name-keeps-middle-pieces",
+    ),
+    # No open marker => nothing was shredded into this field, so every fragment is a real alias --
+    # even one that happens to equal a comma-piece of the full name. Guards the #932 fix against
+    # over-reaching.
+    pytest.param(
+        "cytochrome P450|T12H17.100",
+        GENE_828367_FULL_NAME,
+        {"cytochrome P450", "T12H17.100"},
+        id="no-open-marker-keeps-fragments-matching-full-name-pieces",
+    ),
+    # A trailing '' with no matching open marker is genuine double-prime nomenclature, not an
+    # artifact -- see docs/sources/NCBIGene/quoting/double_prime_report.md.
+    pytest.param(
+        "U2B''|U2 small nuclear ribonucleoprotein B",
+        "",
+        {"U2B''", "U2 small nuclear ribonucleoprotein B"},
+        id="double-prime-symbol-kept",
+    ),
+    pytest.param(
+        "RNA polymerase subunit beta''",
+        "",
+        {"RNA polymerase subunit beta''"},
+        id="standalone-double-prime-designation-kept",
+    ),
+    # Open marker present, so the trailing '' IS a close marker: both ends go, nothing is left.
+    pytest.param(
+        "''cytochrome P450|polypeptide 2''",
+        "",
+        set(),
+        id="open-and-close-markers-both-dropped",
+    ),
+    # A self-contained ''...'' value is unwrapped rather than dropped.
+    pytest.param(
+        "''cytochrome P450, family 706''|T12H17.100",
+        "",
+        {"cytochrome P450, family 706", "T12H17.100"},
+        id="balanced-quotes-unwrapped",
+    ),
+    # The no-'' fast path.
+    pytest.param(
+        "CYP706A2|T12H17.100",
+        GENE_828367_FULL_NAME,
+        {"CYP706A2", "T12H17.100"},
+        id="field-without-any-quotes-passes-through",
+    ),
+]
+
+
 @pytest.mark.unit
-def test_split_ncbigene_synonym_field_skips_unbalanced_single_quote_fragments():
-    """The ''-bearing marker fragments never escape, and genuine aliases are untouched.
+@pytest.mark.parametrize(("synonyms_field", "full_name", "expected"), SPLIT_CASES)
+def test_split_ncbigene_synonym_field(synonyms_field, full_name, expected):
+    """Each case pins the exact set of synonyms a Synonyms field should produce.
 
-    The quoted value itself is NOT reconstructable from this column: its pieces are interleaved
-    with real aliases and reordered, so there is no span to rejoin. It does not need to be --
-    the correct "cytochrome P450, family 706, subfamily A, polypeptide 2" is carried by the
-    Full_name_from_nomenclature_authority / Other_designations columns instead (asserted in
-    test_pull_ncbigene_labels_synonyms_and_taxa_skips_quote_fragments_for_828367 below).
-
-    Without the `full_name` context the middle pieces of the shredded value (`family 706`,
-    `subfamily A`) cannot be recognised, so they still come through; passing it drops them (#932,
-    covered by the next test).
+    The two behaviors under test, both established by characterizing the whole gene_info.gz (see
+    docs/sources/NCBIGene/quoting/): a fragment is a #744 artifact only when it is a leading open
+    marker or a trailing close marker in a field that also has an open marker (so genuine
+    double-prime nomenclature survives), and the shredded value's middle pieces are #932 junk,
+    identifiable only against the intact value in `full_name`.
     """
-    synonyms = split_ncbigene_synonym_field(GENE_828367_SYNONYMS)
-
-    # The guarantee: no fragment carrying a '' marker is emitted.
-    assert "''cytochrome P450" not in synonyms
-    assert "polypeptide 2''" not in synonyms
-    assert not any(s.startswith("''") for s in synonyms)
-
-    # Genuine aliases in the same field survive.
-    assert "T12H17.100" in synonyms
-    assert "T12H17_100" in synonyms
-
-
-@pytest.mark.unit
-def test_split_ncbigene_synonym_field_drops_shredded_middle_pieces():
-    """Given the intact value, the shredded value's middle pieces are dropped (issue #932).
-
-    NCBI turned the commas of "cytochrome P450, family 706, subfamily A, polypeptide 2" into pipes,
-    so its pieces arrive as fragments carrying no '' at all and indistinguishable from real aliases
-    by shape. Passing the intact value from Full_name_from_nomenclature_authority identifies them.
-    """
-    synonyms = split_ncbigene_synonym_field(GENE_828367_SYNONYMS, GENE_828367_FULL_NAME)
-
-    # The junk middle pieces are gone.
-    assert synonyms.isdisjoint({"cytochrome P450", "family 706", "polypeptide 2", "subfamily A"})
-
-    # Genuine aliases are untouched, and no '' marker escapes.
-    assert synonyms == {"T12H17.100", "T12H17_100"}
-
-    # Without an open marker there is no shredded value, so nothing is dropped even when the
-    # fragments happen to match a piece of the full name.
-    intact = split_ncbigene_synonym_field("cytochrome P450|T12H17.100", GENE_828367_FULL_NAME)
-    assert intact == {"cytochrome P450", "T12H17.100"}
-
-
-@pytest.mark.unit
-def test_split_ncbigene_synonym_field_keeps_double_prime_without_open_marker():
-    """A trailing '' with no matching open marker is genuine double-prime nomenclature, kept.
-
-    See docs/sources/NCBIGene/quoting/double_prime_report.md: real values such as U2B'' and
-    "RNA polymerase subunit beta''" end in '' and must survive, unlike the #744 span fragments.
-    """
-    # Symbol-style double-prime alongside a normal synonym: no open marker anywhere, so U2B'' stays.
-    synonyms = split_ncbigene_synonym_field("U2B''|U2 small nuclear ribonucleoprotein B")
-    assert "U2B''" in synonyms
-    assert "U2 small nuclear ribonucleoprotein B" in synonyms
-
-    # A standalone double-prime designation.
-    assert "RNA polymerase subunit beta''" in split_ncbigene_synonym_field("RNA polymerase subunit beta''")
-
-    # But a trailing '' that IS a close marker (its field has a leading open marker) is still dropped.
-    dropped = split_ncbigene_synonym_field("''cytochrome P450|polypeptide 2''")
-    assert dropped == set()
-
-
-@pytest.mark.unit
-def test_split_ncbigene_synonym_field_keeps_middle_pieces_without_full_name():
-    """An open marker with no `full_name` still drops the '' markers themselves, but the middle
-    pieces (which carry no '' at all) can't be identified as junk without the intact value to
-    compare against, so they pass through. This is the case where a row's
-    Full_name_from_nomenclature_authority and Other_designations are both blank.
-    """
-    synonyms = split_ncbigene_synonym_field(GENE_828367_SYNONYMS)
-
-    assert synonyms == {"T12H17.100", "T12H17_100", "cytochrome P450", "family 706", "polypeptide 2", "subfamily A"}
+    assert split_ncbigene_synonym_field(synonyms_field, full_name) == expected
 
 
 @pytest.mark.unit
