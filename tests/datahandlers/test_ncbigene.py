@@ -44,7 +44,8 @@ def test_split_ncbigene_synonym_field_skips_unbalanced_single_quote_fragments():
     test_pull_ncbigene_labels_synonyms_and_taxa_skips_quote_fragments_for_828367 below).
 
     Known limitation: the bare comma-pieces (`family 706`, `subfamily A`, ...) do still come through
-    as standalone synonyms here. Tracked in issue #932; they are junk, but they are not malformed.
+    as standalone synonyms here. They are junk, but they are not malformed. Pinned below so that
+    fixing them trips this test rather than passing silently.
     """
     synonyms = split_ncbigene_synonym_field(GENE_828367_SYNONYMS)
 
@@ -56,6 +57,13 @@ def test_split_ncbigene_synonym_field_skips_unbalanced_single_quote_fragments():
     # Genuine aliases in the same field survive.
     assert "T12H17.100" in synonyms
     assert "T12H17_100" in synonyms
+
+    # Pins CURRENT, KNOWN-IMPERFECT behavior, not a guarantee we want to keep: the comma-pieces of
+    # the quoted value are emitted as standalone synonyms. Issue #932
+    # (https://github.com/NCATSTranslator/Babel/issues/932) proposes dropping them by matching them
+    # against the row's Full_name. When that lands, invert this assertion -- do not "repair" the
+    # test by deleting it.
+    assert {"cytochrome P450", "family 706", "polypeptide 2", "subfamily A"} <= synonyms
 
 
 @pytest.mark.unit
@@ -128,4 +136,11 @@ def test_pull_ncbigene_labels_synonyms_and_taxa_skips_quote_fragments_for_828367
         "NCBIGene:828367",
         "cytochrome P450, family 706, subfamily A, polypeptide 2",
     ] in assert_descriptions_file_valid(str(descriptions))
+
+    # The mangled alias is recovered in full from Full_name_from_nomenclature_authority, not by
+    # reassembling the Synonyms fragments.
     assert ["NCBIGene:828367", HAS_SYNONYM, "cytochrome P450, family 706, subfamily A, polypeptide 2"] in synonym_rows
+
+    # Pins CURRENT, KNOWN-IMPERFECT behavior: the junk comma-pieces still reach the synonyms file.
+    # See issue #932 (https://github.com/NCATSTranslator/Babel/issues/932); invert when it lands.
+    assert {"cytochrome P450", "family 706", "polypeptide 2", "subfamily A"} <= synonym_values
