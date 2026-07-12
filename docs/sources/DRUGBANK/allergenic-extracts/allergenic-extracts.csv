@@ -1,223 +1,688 @@
-drugbank_curie,label,biolink_type,unii,ncit,signal
-DRUGBANK:DB10351,Cynodon dactylon pollen,biolink:ComplexMolecularMixture,UNII:175F461W10,NCIT:C85157,allergen-text
-DRUGBANK:DB10357,Zea mays pollen,biolink:ComplexMolecularMixture,UNII:74PD8J616H,NCIT:C85205,allergen-text
-DRUGBANK:DB10379,Dactylis glomerata pollen,biolink:ComplexMolecularMixture,UNII:83N78IDA7P,NCIT:C85158,allergen-text
-DRUGBANK:DB10385,Ambrosia artemisiifolia pollen,biolink:ComplexMolecularMixture,UNII:9W34L2CQ9A,,allergen-text
-DRUGBANK:DB10389,Lolium perenne pollen,biolink:ComplexMolecularMixture,UNII:4T81LB52R0,NCIT:C85282,allergen-text
-DRUGBANK:DB10394,Phleum pratense pollen,biolink:ComplexMolecularMixture,UNII:0P46LFE4VC,NCIT:C72397,allergen-text
-DRUGBANK:DB10403,Agrostis gigantea pollen,biolink:ComplexMolecularMixture,UNII:HU8V6E7HOA,NCIT:C85089,allergen-text
-DRUGBANK:DB10417,Periplaneta americana,biolink:ComplexMolecularMixture,UNII:2RQ1L9N089,,allergen-text
-DRUGBANK:DB10418,Blatella germanica,biolink:ComplexMolecularMixture,UNII:G9O67I0A8Q,NCIT:C87504,allergen-text
-DRUGBANK:DB10419,Solenopsis invicta,biolink:ComplexMolecularMixture,UNII:5O7CR4P444,,allergen-text
-DRUGBANK:DB10424,Alternaria alternata,biolink:ComplexMolecularMixture,UNII:52B29REC7H,NCIT:C87529,allergen-text
-DRUGBANK:DB10441,Rhizopus arrhizus var. arrhizus,biolink:ComplexMolecularMixture,UNII:8476849N1Y,,allergen-text
-DRUGBANK:DB10443,Ustilago maydis,biolink:ComplexMolecularMixture,UNII:4K7Z7K7SWG,NCIT:C87523,allergen-text
-DRUGBANK:DB10451,Acacia,biolink:ComplexMolecularMixture,UNII:5C5403N26O,NCIT:C80123,allergen-text
-DRUGBANK:DB10499,Felis catus hair,biolink:ComplexMolecularMixture,UNII:1564HD0N96,NCIT:C80294,allergen-text
-DRUGBANK:DB10516,Casein,biolink:ComplexMolecularMixture,UNII:48268V50D5,NCIT:C73337,allergen-text
-DRUGBANK:DB10531,Flounder,biolink:ComplexMolecularMixture,UNII:F8PTG78KRB,,allergen-text
-DRUGBANK:DB10535,Karaya gum,biolink:ComplexMolecularMixture,UNII:73W9IQY50Q,NCIT:C83852,allergen-text
-DRUGBANK:DB10541,Lobster,biolink:ComplexMolecularMixture,UNII:6T362S6JF6,,allergen-text
-DRUGBANK:DB10544,Cultivated mushroom,biolink:ComplexMolecularMixture,UNII:54C8E6W6JY,NCIT:C71949,allergen-text
-DRUGBANK:DB10576,Vanilla,biolink:ComplexMolecularMixture,UNII:Q74T35078H,NCIT:C84613,allergen-text
-DRUGBANK:DB10580,Tea leaf,biolink:ComplexMolecularMixture,UNII:GH42T47V24,NCIT:C87164,allergen-text
-DRUGBANK:DB10603,Meriones unguiculatus skin,biolink:ComplexMolecularMixture,UNII:9WN2H714TG,,allergen-text
-DRUGBANK:DB10609,Bombyx mori fiber,biolink:ComplexMolecularMixture,UNII:6LK42KUV6W,NCIT:C79611,allergen-text
-DRUGBANK:DB10611,Allergenic extract- beef liver,biolink:ComplexMolecularMixture,,,allergen-text
-DRUGBANK:DB10622,European pilchard,biolink:ComplexMolecularMixture,UNII:76780GX08D,,allergen-text
-DRUGBANK:DB10666,Arabica coffee bean,biolink:ComplexMolecularMixture,UNII:3SW678MX72,,allergen-text
-DRUGBANK:DB10667,Tragacanth,biolink:ComplexMolecularMixture,UNII:2944357O2O,NCIT:C84223,allergen-text
-DRUGBANK:DB10670,Laurus nobilis,biolink:ComplexMolecularMixture,UNII:WS0Y3M85RF,,allergen-text
-DRUGBANK:DB10672,Clove,biolink:ComplexMolecularMixture,UNII:K48IKT5321,NCIT:C73872,allergen-text
-DRUGBANK:DB10688,Musca domestica,biolink:ComplexMolecularMixture,UNII:PV7823W303,NCIT:C87500,allergen-text
-DRUGBANK:DB10690,Ctenocephalides canis,biolink:ComplexMolecularMixture,UNII:LN7IM9RDEA,,allergen-text
-DRUGBANK:DB10691,Aedes taeniorhynchus,biolink:ComplexMolecularMixture,UNII:BN2DNW66IQ,NCIT:C87499,allergen-text
-DRUGBANK:DB10693,Ctenocephalides felis,biolink:ComplexMolecularMixture,UNII:5X9Y89ENI9,,allergen-text
-DRUGBANK:DB10697,Curvularia inaequalis,biolink:ComplexMolecularMixture,UNII:W042YAB8JC,,allergen-text
-DRUGBANK:DB10704,Ustilago avenae,biolink:ComplexMolecularMixture,UNII:YIH315U1TU,NCIT:C87521,allergen-text
-DRUGBANK:DB10708,Flax seed,biolink:ComplexMolecularMixture,UNII:4110YT348C,NCIT:C26650,allergen-text
-DRUGBANK:DB10812,Penicillium roqueforti,biolink:ComplexMolecularMixture,UNII:7ORP6R724L,,allergen-text
-DRUGBANK:DB10819,Myrothecium verrucaria,biolink:ComplexMolecularMixture,UNII:8Z8C642TPL,,allergen-text
-DRUGBANK:DB10845,Phycomyces blakesleeanus,biolink:ComplexMolecularMixture,UNII:41Y752Y34M,,allergen-text
-DRUGBANK:DB10866,Acheta domesticus,biolink:ComplexMolecularMixture,UNII:P9S201X6LH,,allergen-text
-DRUGBANK:DB10893,Melopsittacus undulatus feather,biolink:ComplexMolecularMixture,UNII:1XY644QKWG,,allergen-text
-DRUGBANK:DB10905,Safflower,biolink:ComplexMolecularMixture,UNII:4VBL71TY4Y,,allergen-text
-DRUGBANK:DB10964,Lolium perenne subsp. multiflorum pollen,biolink:ComplexMolecularMixture,UNII:VJI0WKK736,NCIT:C85390,allergen-text
-DRUGBANK:DB10977,Cocoa,biolink:ComplexMolecularMixture,UNII:D9108TZ9KG,NCIT:C121851,allergen-text
-DRUGBANK:DB10982,Sage,biolink:ComplexMolecularMixture,UNII:065C5D077J,NCIT:C71519,allergen-text
-DRUGBANK:DB11026,Solenopsis richteri,biolink:ComplexMolecularMixture,UNII:739684T11W,,allergen-text
-DRUGBANK:DB11087,Pyrethrum extract,biolink:ComplexMolecularMixture,UNII:ZUM06L90GV,,allergen-text
-DRUGBANK:DB13904,Cat dander extract,biolink:ComplexMolecularMixture,UNII:ZDN2AC0L08,NCIT:C84494,allergen-text
-DRUGBANK:DB14168,Sarocladium strictum,biolink:ComplexMolecularMixture,UNII:3F36V0451W,NCIT:C87527,allergen-text
-DRUGBANK:DB14171,Penicillium glaucum,biolink:ComplexMolecularMixture,UNII:E3X33F517C,,allergen-text
-DRUGBANK:DB14272,Rosemary,biolink:ComplexMolecularMixture,UNII:8JM482TI79,,allergen-text
-DRUGBANK:DB14276,Turmeric,biolink:ComplexMolecularMixture,UNII:856YO1Z64F,,allergen-text
-DRUGBANK:DB14312,Glycyrrhiza glabra,biolink:ComplexMolecularMixture,UNII:2788Z9758H,NCIT:C80295,allergen-text
-DRUGBANK:DB14313,Lawsonia inermis leaf,biolink:ComplexMolecularMixture,UNII:E5818YZ355,NCIT:C72518,allergen-text
-DRUGBANK:DB15542,Atlantic mackerel,biolink:ComplexMolecularMixture,UNII:HO615U86UJ,,allergen-text
-DRUGBANK:DB19080,Freneslerbart,biolink:ComplexMolecularMixture,UNII:AL6PH7LX2Y,NCIT:C190340,allergen-text
-DRUGBANK:DB19416,Mevonlerbart,biolink:ComplexMolecularMixture,UNII:SN982PAN4O,NCIT:C190485,allergen-text
-DRUGBANK:DB19417,Bremzalerbart,biolink:ComplexMolecularMixture,UNII:F8SN45N8HN,NCIT:C190442,allergen-text
-DRUGBANK:DB19418,Atisnolerbart,biolink:ComplexMolecularMixture,UNII:4S1L0R6IJG,NCIT:C190335,allergen-text
-DRUGBANK:DB00638,Inulin,biolink:Food,UNII:JOS53KRJ01,NCIT:C61506,ncit-food
-DRUGBANK:DB09341,"Dextrose, unspecified form",biolink:Food,UNII:IY9XDZ35W2,NCIT:C2831,ncit-food
-DRUGBANK:DB09344,Invert sugar,biolink:Food,UNII:ED959S6ACY,NCIT:C73853,ncit-food
-DRUGBANK:DB09422,Soybean oil,biolink:Food,UNII:241ATL177A,NCIT:C838,ncit-food
-DRUGBANK:DB09446,Safflower oil,biolink:Food,UNII:65UEH262IS,NCIT:C820,ncit-food
-DRUGBANK:DB09567,Olive oil,biolink:Food,UNII:6UYK2W1W1E,NCIT:C1175,ncit-food
-DRUGBANK:DB10344,Ginger,biolink:Food,UNII:C5529G5JPQ,NCIT:C66725,ncit-food
-DRUGBANK:DB10408,Cotton seed,biolink:Food,UNII:DI0ZRJ0MXN,NCIT:C73881,ncit-food
-DRUGBANK:DB10500,Almond,biolink:Food,UNII:3Z252A2K9G,NCIT:C74458,ncit-food
-DRUGBANK:DB10501,Apple,biolink:Food,UNII:B423VGH5S9,NCIT:C71985,ncit-food
-DRUGBANK:DB10502,Apricot,biolink:Food,UNII:269CJD5GZ9,NCIT:C71986,ncit-food
-DRUGBANK:DB10503,Asparagus,biolink:Food,UNII:Z1EJP3037Z,NCIT:C71987,ncit-food
-DRUGBANK:DB10505,Banana,biolink:Food,UNII:4AJZ4765R9,NCIT:C71989,ncit-food
-DRUGBANK:DB10506,Barley,biolink:Food,UNII:5PWM7YLI7R,NCIT:C73935,ncit-food
-DRUGBANK:DB10508,String bean,biolink:Food,UNII:N9D69B2Q7Y,NCIT:C71951,ncit-food
-DRUGBANK:DB10509,Beef,biolink:Food,UNII:4PIB2155QP,NCIT:C71932,ncit-food
-DRUGBANK:DB10510,Brazil nut,biolink:Food,UNII:XKR79OET1K,NCIT:C72048,ncit-food
-DRUGBANK:DB10511,Broccoli,biolink:Food,UNII:UOI4FT57BZ,NCIT:C71997,ncit-food
-DRUGBANK:DB10512,Buckwheat,biolink:Food,UNII:N0Y68724R3,NCIT:C73936,ncit-food
-DRUGBANK:DB10513,Cabbage,biolink:Food,UNII:GW0W1Y9I97,NCIT:C71999,ncit-food
-DRUGBANK:DB10514,Cantaloupe,biolink:Food,UNII:8QF5D5H6UH,NCIT:C72057,ncit-food
-DRUGBANK:DB10515,Carrot,biolink:Food,UNII:L56Z1JK48B,NCIT:C72000,ncit-food
-DRUGBANK:DB10517,Celery,biolink:Food,UNII:44IDY6DTKX,NCIT:C71994,ncit-food
-DRUGBANK:DB10518,Cherry,biolink:Food,UNII:BUC5I9595W,NCIT:C65311,ncit-food
-DRUGBANK:DB10523,Coconut,biolink:Food,UNII:3RT3536DHY,NCIT:C71966,ncit-food
-DRUGBANK:DB10525,Coffee bean,biolink:Food,UNII:JFH385Y744,NCIT:C73875,ncit-food
-DRUGBANK:DB10527,Cucumber,biolink:Food,UNII:YY7C30VXJT,NCIT:C71968,ncit-food
-DRUGBANK:DB10528,Egg white,biolink:Food,UNII:3E0I92Z2GR,NCIT:C71956,ncit-food
-DRUGBANK:DB10529,Egg,biolink:Food,UNII:291P45F896,NCIT:C72064,ncit-food
-DRUGBANK:DB10530,Egg yolk,biolink:Food,UNII:4IPS17B70T,NCIT:C71955,ncit-food
-DRUGBANK:DB10533,Grape,biolink:Food,UNII:6X543N684K,NCIT:C71982,ncit-food
-DRUGBANK:DB10534,Grapefruit,biolink:Food,UNII:O82C39RR8C,NCIT:C71974,ncit-food
-DRUGBANK:DB10536,Honeydew melon,biolink:Food,UNII:RN8P45F92A,NCIT:C71979,ncit-food
-DRUGBANK:DB10537,Lamb,biolink:Food,UNII:FOF26T73HA,NCIT:C71638,ncit-food
-DRUGBANK:DB10538,Lemon,biolink:Food,UNII:24RS0A988O,NCIT:C72005,ncit-food
-DRUGBANK:DB10539,Lettuce,biolink:Food,UNII:5PO6NN3RRJ,NCIT:C72028,ncit-food
-DRUGBANK:DB10540,Lima bean,biolink:Food,UNII:112YH1ZMX2,NCIT:C71950,ncit-food
-DRUGBANK:DB10542,Goat milk,biolink:Food,UNII:XE5K5I4RP7,NCIT:C72806,ncit-food
-DRUGBANK:DB10543,Cow milk,biolink:Food,UNII:917J3173FT,NCIT:C66153,ncit-food
-DRUGBANK:DB10545,Mustard seed,biolink:Food,UNII:58RXI817UT,NCIT:C73907,ncit-food
-DRUGBANK:DB10546,Oat,biolink:Food,UNII:Z6J799EAJK,NCIT:C101357,ncit-food
-DRUGBANK:DB10547,Black olive,biolink:Food,UNII:2M6QWV94OC,NCIT:C71983,ncit-food
-DRUGBANK:DB10548,Onion,biolink:Food,UNII:492225Q21H,NCIT:C72035,ncit-food
-DRUGBANK:DB10549,Orange,biolink:Food,UNII:5EVU04N5QU,NCIT:C65208,ncit-food
-DRUGBANK:DB10550,Oyster,biolink:Food,UNII:0I77C68AWS,NCIT:C85050,ncit-food
-DRUGBANK:DB10551,Pea,biolink:Food,UNII:W4X7H8GYFM,NCIT:C72056,ncit-food
-DRUGBANK:DB10552,Peach,biolink:Food,UNII:3OKE88I3QG,NCIT:C72027,ncit-food
-DRUGBANK:DB10553,Peanut,biolink:Food,UNII:QE1QX6B99R,NCIT:C72071,ncit-food
-DRUGBANK:DB10554,Pear,biolink:Food,UNII:2ZN8DWC0YF,NCIT:C72039,ncit-food
-DRUGBANK:DB10555,Pecan,biolink:Food,UNII:F14P91GB5F,NCIT:C72051,ncit-food
-DRUGBANK:DB10556,Green bell pepper,biolink:Food,UNII:4J4DOU3HEK,NCIT:C71964,ncit-food
-DRUGBANK:DB10558,Pineapple,biolink:Food,UNII:2A88ZO081O,NCIT:C66390,ncit-food
-DRUGBANK:DB10559,Pistachio,biolink:Food,UNII:6815CPT6ZJ,NCIT:C72053,ncit-food
-DRUGBANK:DB10560,Plum,biolink:Food,UNII:67M3EQ6BE1,NCIT:C72044,ncit-food
-DRUGBANK:DB10561,Pork,biolink:Food,UNII:O138UB266J,NCIT:C71958,ncit-food
-DRUGBANK:DB10562,Potato,biolink:Food,UNII:CFE1S8DYWD,NCIT:C72045,ncit-food
-DRUGBANK:DB10563,Rice,biolink:Food,UNII:659G217HPG,NCIT:C73972,ncit-food
-DRUGBANK:DB10564,Rye,biolink:Food,UNII:0R4AQI398X,NCIT:C85249,ncit-food
-DRUGBANK:DB10566,Sesame seed,biolink:Food,UNII:7Y1255HVXR,NCIT:C71942,ncit-food
-DRUGBANK:DB10567,Shrimp,biolink:Food,UNII:1891LE191T,NCIT:C71914,ncit-food
-DRUGBANK:DB10568,Soybean,biolink:Food,UNII:L7HT8F1ZOD,NCIT:C72010,ncit-food
-DRUGBANK:DB10569,Spinach,biolink:Food,UNII:6WO75C6WVB,NCIT:C72012,ncit-food
-DRUGBANK:DB10570,Squash,biolink:Food,UNII:9961HBA483,NCIT:C72013,ncit-food
-DRUGBANK:DB10571,Strawberry,biolink:Food,UNII:4J2TY8Y81V,NCIT:C66565,ncit-food
-DRUGBANK:DB10572,Corn,biolink:Food,UNII:0N8672707O,NCIT:C72066,ncit-food
-DRUGBANK:DB10573,Tomato,biolink:Food,UNII:Z4KHF2C175,NCIT:C72019,ncit-food
-DRUGBANK:DB10574,Tuna,biolink:Food,UNII:V2T3IHT3E2,NCIT:C71908,ncit-food
-DRUGBANK:DB10575,Turkey,biolink:Food,UNII:8E9NT44R8I,NCIT:C73855,ncit-food
-DRUGBANK:DB10578,Watermelon,biolink:Food,UNII:231473QB6R,NCIT:C72022,ncit-food
-DRUGBANK:DB10579,Wheat,biolink:Food,UNII:4J2I0SN84Y,NCIT:C74546,ncit-food
-DRUGBANK:DB10610,Duck,biolink:Food,UNII:28ON068RWM,NCIT:C73850,ncit-food
-DRUGBANK:DB10612,Veal,biolink:Food,UNII:0X5GW3050M,NCIT:C71937,ncit-food
-DRUGBANK:DB10617,Herring,biolink:Food,UNII:34EX28T4C1,NCIT:C71926,ncit-food
-DRUGBANK:DB10618,Mackerel,biolink:Food,UNII:CYO6K3VM7F,NCIT:C71641,ncit-food
-DRUGBANK:DB10620,Red snapper,biolink:Food,UNII:WF621S7K14,NCIT:C71917,ncit-food
-DRUGBANK:DB10623,Scallop,biolink:Food,UNII:D380C73WOU,NCIT:C71916,ncit-food
-DRUGBANK:DB10625,Swordfish,biolink:Food,UNII:01695YPV36,NCIT:C71911,ncit-food
-DRUGBANK:DB10626,Trout,biolink:Food,UNII:7TI7U5PF2U,NCIT:C71910,ncit-food
-DRUGBANK:DB10627,White fish,biolink:Food,UNII:IA4C8ND0DT,NCIT:C71907,ncit-food
-DRUGBANK:DB10628,Blackberry,biolink:Food,UNII:8A6OMU3I8L,NCIT:C71601,ncit-food
-DRUGBANK:DB10629,Blueberry,biolink:Food,UNII:253RUG1X1A,NCIT:C71996,ncit-food
-DRUGBANK:DB10631,Cranberry,biolink:Food,UNII:0MVO31Q3QS,NCIT:C28943,ncit-food
-DRUGBANK:DB10632,Date,biolink:Food,UNII:H3O7QI5HY7,NCIT:C72063,ncit-food
-DRUGBANK:DB10633,Fig,biolink:Food,UNII:TGD87RII2U,NCIT:C71971,ncit-food
-DRUGBANK:DB10635,Lime (citrus),biolink:Food,UNII:8CZS546954,NCIT:C72002,ncit-food
-DRUGBANK:DB10636,Raspberry,biolink:Food,UNII:4N14V5R27W,NCIT:C72036,ncit-food
-DRUGBANK:DB10637,Tangerine,biolink:Food,UNII:KH3E3096OO,NCIT:C72017,ncit-food
-DRUGBANK:DB10639,Kidney bean,biolink:Food,UNII:M98C8416QO,NCIT:C82900,ncit-food
-DRUGBANK:DB10640,Beet,biolink:Food,UNII:N487KM8COK,NCIT:C72003,ncit-food
-DRUGBANK:DB10641,Kiwi fruit,biolink:Food,UNII:71ES77LGJC,NCIT:C71981,ncit-food
-DRUGBANK:DB10642,Brussels sprout,biolink:Food,UNII:KHX46H31F8,NCIT:C71998,ncit-food
-DRUGBANK:DB10643,Cauliflower,biolink:Food,UNII:138LUT2DWV,NCIT:C72055,ncit-food
-DRUGBANK:DB10644,Eggplant,biolink:Food,UNII:W5K7RAS4VK,NCIT:C71969,ncit-food
-DRUGBANK:DB10646,Green olive,biolink:Food,UNII:6HD2W46UEG,NCIT:C72034,ncit-food
-DRUGBANK:DB10647,Parsley,biolink:Food,UNII:58FMD0Q0EV,NCIT:C72037,ncit-food
-DRUGBANK:DB10648,Sweet potato,biolink:Food,UNII:M9WGG9Z9GK,NCIT:C72015,ncit-food
-DRUGBANK:DB10651,Rhubarb,biolink:Food,UNII:G280W4MW6E,NCIT:C74269,ncit-food
-DRUGBANK:DB10652,Turnip,biolink:Food,UNII:Z38C7FBM49,NCIT:C72020,ncit-food
-DRUGBANK:DB10653,Cashew,biolink:Food,UNII:3H5U5CX7KO,NCIT:C72049,ncit-food
-DRUGBANK:DB10654,Hazelnut,biolink:Food,UNII:IW0OM96F6O,NCIT:C72050,ncit-food
-DRUGBANK:DB10655,Macadamia nut,biolink:Food,UNII:Y5432RGW8N,NCIT:C71640,ncit-food
-DRUGBANK:DB10656,Nectarine,biolink:Food,UNII:65KD9TD4C3,NCIT:C72032,ncit-food
-DRUGBANK:DB10657,Mango,biolink:Food,UNII:I629I3NR86,NCIT:C71637,ncit-food
-DRUGBANK:DB10658,Papaya,biolink:Food,UNII:KU94FIY6JB,NCIT:C72047,ncit-food
-DRUGBANK:DB10659,Leek,biolink:Food,UNII:RCU76P419D,NCIT:C71973,ncit-food
-DRUGBANK:DB10660,Okra,biolink:Food,UNII:51ME2L7STL,NCIT:C72033,ncit-food
-DRUGBANK:DB10662,Chickpea,biolink:Food,UNII:N91637DNW9,NCIT:C71992,ncit-food
-DRUGBANK:DB10663,Black-eyed pea,biolink:Food,UNII:786YV7B602,NCIT:C71995,ncit-food
-DRUGBANK:DB10664,Watercress,biolink:Food,UNII:K5877MW0LE,NCIT:C75666,ncit-food
-DRUGBANK:DB10681,Poppy seed,biolink:Food,UNII:60RO23IR87,NCIT:C73910,ncit-food
-DRUGBANK:DB10830,Mung bean,biolink:Food,UNII:1LIB31N73G,NCIT:C28261,ncit-food
-DRUGBANK:DB10864,Cumin,biolink:Food,UNII:AG9BNA51DQ,NCIT:C74527,ncit-food
-DRUGBANK:DB10875,Concord grape,biolink:Food,UNII:T3PW93IB4Q,NCIT:C72007,ncit-food
-DRUGBANK:DB10884,Millet seed,biolink:Food,UNII:TJR6B3R47P,NCIT:C73905,ncit-food
-DRUGBANK:DB10885,Mustard greens,biolink:Food,UNII:5M338IN22E,NCIT:C72031,ncit-food
-DRUGBANK:DB10890,Red bell pepper,biolink:Food,UNII:E917XHH50V,NCIT:C72006,ncit-food
-DRUGBANK:DB10891,Perch,biolink:Food,UNII:50Y07N9X03,NCIT:C71924,ncit-food
-DRUGBANK:DB10892,Pumpkin,biolink:Food,UNII:SYW0QUB89Y,NCIT:C72016,ncit-food
-DRUGBANK:DB10897,Capsicum,biolink:Food,UNII:00UK7646FG,NCIT:C75665,ncit-food
-DRUGBANK:DB10907,Sunflower seed,biolink:Food,UNII:R9N3379M4Z,NCIT:C71938,ncit-food
-DRUGBANK:DB10913,"Starch, tapioca",biolink:Food,UNII:24SC3U704I,NCIT:C80781,ncit-food
-DRUGBANK:DB10918,Venison,biolink:Food,UNII:85EA9K88OY,NCIT:C71936,ncit-food
-DRUGBANK:DB10919,Black walnut,biolink:Food,UNII:02WM57RXZJ,NCIT:C72054,ncit-food
-DRUGBANK:DB10981,Radish,biolink:Food,UNII:EM5RP35463,NCIT:C72014,ncit-food
-DRUGBANK:DB11008,Poultry,biolink:Food,UNII:L7WXO2P5HM,NCIT:C53475,ncit-food
-DRUGBANK:DB11009,"Quahog, unspecified",biolink:Food,UNII:226LY0AFR9,NCIT:C71920,ncit-food
-DRUGBANK:DB11010,"Cod, unspecified",biolink:Food,UNII:8D6Q5LNG3D,NCIT:C71921,ncit-food
-DRUGBANK:DB11011,Crab leg,biolink:Food,UNII:S1VF61QLO9,NCIT:C71929,ncit-food
-DRUGBANK:DB11014,"Salmon, unspecified",biolink:Food,UNII:6122W2M0GB,NCIT:C71905,ncit-food
-DRUGBANK:DB11017,Yeast,biolink:Food,UNII:3NY3SM6B8U,NCIT:C66676,ncit-food
-DRUGBANK:DB11094,Vitamin D,biolink:Food,UNII:9VU1KI44GP,NCIT:C941,ncit-food
-DRUGBANK:DB11133,Omega-3 fatty acids,biolink:Food,UNII:71M78END5S,NCIT:C493,ncit-food
-DRUGBANK:DB11158,Pectin,biolink:Food,UNII:89NA02M4RX,NCIT:C63647,ncit-food
-DRUGBANK:DB11172,Sesame oil,biolink:Food,UNII:QX10HYY4QV,NCIT:C66537,ncit-food
-DRUGBANK:DB11242,Gelatin,biolink:Food,UNII:2G86QN327L,NCIT:C65802,ncit-food
-DRUGBANK:DB11251,Tocopherol,biolink:Food,UNII:R0ZB2556P8,NCIT:C68313,ncit-food
-DRUGBANK:DB11253,Xanthan gum,biolink:Food,UNII:TTV12P4NEE,NCIT:C84244,ncit-food
-DRUGBANK:DB11266,Sea salt,biolink:Food,UNII:87GE52P74G,NCIT:C75874,ncit-food
-DRUGBANK:DB11302,Hydrogenated soybean oil,biolink:Food,UNII:A2M91M918C,NCIT:C83765,ncit-food
-DRUGBANK:DB11599,"Starch, corn",biolink:Food,UNII:O8232NY3SJ,NCIT:C80778,ncit-food
-DRUGBANK:DB12583,Maltodextrin,biolink:Food,UNII:7CVR7L4A2D,NCIT:C68474,ncit-food
-DRUGBANK:DB13168,Omega-6 fatty acids,biolink:Food,UNII:116Z6MZN1M,NCIT:C2563,ncit-food
-DRUGBANK:DB13195,Horse chestnut,biolink:Food,UNII:3C18L6RJAZ,NCIT:C80286,ncit-food
-DRUGBANK:DB13964,Peanut oil,biolink:Food,UNII:5TL50QU0W4,NCIT:C66332,ncit-food
-DRUGBANK:DB14161,"Lecithin, soybean",biolink:Food,UNII:1DI56QDM62,NCIT:C80292,ncit-food
-DRUGBANK:DB14233,Egg phospholipids,biolink:Food,UNII:1Z74184RGV,NCIT:C79998,ncit-food
-DRUGBANK:DB14241,"Caviar, unspecified",biolink:Food,UNII:020K6HLU0O,NCIT:C72058,ncit-food
-DRUGBANK:DB14242,Honey,biolink:Food,UNII:Y9H1V576FH,NCIT:C65859,ncit-food
-DRUGBANK:DB14317,Pomegranate,biolink:Food,UNII:56687D1Z4D,NCIT:C73929,ncit-food
-DRUGBANK:DB14322,Coconut oil,biolink:Food,UNII:Q9L0O73W7L,NCIT:C65347,ncit-food
-DRUGBANK:DB14329,Sunflower oil,biolink:Food,UNII:3W1JG795YI,NCIT:C1241,ncit-food
-DRUGBANK:DB14694,Beef liver,biolink:Food,UNII:W8N8R55022,NCIT:C75669,ncit-food
-DRUGBANK:DB14709,Bean,biolink:Food,UNII:8WB9PV3YW5,NCIT:C71990,ncit-food
-DRUGBANK:DB14758,Catfish,biolink:Food,UNII:EFN1AL1YP0,NCIT:C71919,ncit-food
-DRUGBANK:DB14759,Red pepper,biolink:Food,UNII:6M47G7C4SY,NCIT:C73793,ncit-food
-DRUGBANK:DB14836,Polydextrose,biolink:Food,UNII:VH2XOU12IE,NCIT:C81624,ncit-food
-DRUGBANK:DB15216,Amylose,biolink:Food,UNII:7TDQ74Y18L,NCIT:C68489,ncit-food
-DRUGBANK:DB15611,Muskmelon,biolink:Food,UNII:ZV095H5633,NCIT:C72030,ncit-food
-DRUGBANK:DB15615,Fennel,biolink:Food,UNII:557II4LLC3,NCIT:C71970,ncit-food
-DRUGBANK:DB16558,Rosa canina fruit,biolink:Food,UNII:3TNW8D08V3,NCIT:C71789,ncit-food
-DRUGBANK:DB16638,Cnidium monnieri fruit,biolink:Food,UNII:V1IA3S3CUS,NCIT:C73874,ncit-food
-DRUGBANK:DB18685,Whey,biolink:Food,UNII:8617Z5FMF6,NCIT:C71947,ncit-food
+drugbank_curie,label,unii,ncit,biolink_type,future_biolink_type,signal
+DRUGBANK:DB00638,Inulin,UNII:JOS53KRJ01,NCIT:C61506,biolink:Food,,ncit-food
+DRUGBANK:DB00965,Ethiodized oil,UNII:KZW0R0686Q,NCIT:C487,biolink:Food,,plant-food
+DRUGBANK:DB01323,St. John's Wort,UNII:UFH8805FKA,NCIT:C2589,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB01363,Ephedra sinica root,UNII:D0P20CT40D,,biolink:Food,,plant-food
+DRUGBANK:DB01381,Ginkgo biloba,UNII:19FUJ2C58T,NCIT:C29072,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB01404,Ginseng,UNII:CUQ3A77YXI,NCIT:C69298,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB05051,BZL101,UNII:J52LXC6DTW,NCIT:C69134,biolink:Food,,plant-food
+DRUGBANK:DB09341,"Dextrose, unspecified form",UNII:IY9XDZ35W2,NCIT:C2831,biolink:Food,,ncit-food
+DRUGBANK:DB09344,Invert sugar,UNII:ED959S6ACY,NCIT:C73853,biolink:Food,,ncit-food
+DRUGBANK:DB09363,Rauwolfia serpentina root,UNII:H192N84N1G,,biolink:Food,,plant-food
+DRUGBANK:DB09422,Soybean oil,UNII:241ATL177A,NCIT:C838,biolink:Food,,ncit-food
+DRUGBANK:DB09446,Safflower oil,UNII:65UEH262IS,NCIT:C820,biolink:Food,,ncit-food
+DRUGBANK:DB09567,Olive oil,UNII:6UYK2W1W1E,NCIT:C1175,biolink:Food,,ncit-food
+DRUGBANK:DB10344,Ginger,UNII:C5529G5JPQ,NCIT:C66725,biolink:Food,,ncit-food
+DRUGBANK:DB10346,Acacia longifolia pollen,UNII:24SO2J296O,NCIT:C85201,biolink:Food,,plant-food
+DRUGBANK:DB10348,Fraxinus americana pollen,UNII:G684LX721Q,NCIT:C85167,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10349,Paspalum notatum pollen,UNII:V003SHB7VK,NCIT:C85293,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10350,Fagus grandifolia pollen,UNII:34X886W1H4,NCIT:C85165,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10351,Cynodon dactylon pollen,UNII:175F461W10,NCIT:C85157,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10352,Betula lenta pollen,UNII:JQ5HI5004M,NCIT:C85131,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10353,Poa annua pollen,UNII:7U437HHU5C,NCIT:C85319,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10354,Acer negundo pollen,UNII:P6K070AR8V,NCIT:C80312,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10355,Bromus inermis pollen,UNII:766QT72BK6,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10356,Xanthium strumarium pollen,UNII:2QOF601J1M,NCIT:C85388,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10357,Zea mays pollen,UNII:74PD8J616H,NCIT:C85205,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10359,Rumex acetosella pollen,UNII:N52MIQ81ZW,NCIT:C85352,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10360,Rumex crispus pollen,UNII:V825XJG64G,NCIT:C85354,biolink:Food,,plant-food
+DRUGBANK:DB10361,Ulmus americana pollen,UNII:89BAT511BD,NCIT:C85382,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10362,Ulmus pumila pollen,UNII:030R993R8E,NCIT:C85385,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10363,Corylus americana pollen,UNII:ZGS382Y3AV,NCIT:C85156,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10364,Carya ovata pollen,UNII:54UN9R2798,NCIT:C85148,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10365,Sorghum halepense pollen,UNII:577VA5B4HP,NCIT:C85370,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10366,Poa pratensis pollen,UNII:SCB8J7LS3T,NCIT:C85321,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10368,Chenopodium album pollen,UNII:098LKX5NCN,NCIT:C85152,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10369,Acer saccharum pollen,UNII:V38QUQ7861,NCIT:C80315,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10370,Festuca pratensis pollen,UNII:A0WFQ8P6N1,NCIT:C85166,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10371,Prosopis juliflora pollen,UNII:6EIJ3D04MR,NCIT:C85332,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10372,Artemisia vulgaris pollen,UNII:ANT994T71D,NCIT:C85120,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10373,Morus rubra pollen,UNII:9LYI4RTZ52,NCIT:C85291,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10374,Quercus agrifolia pollen,UNII:VOT5MA71M7,NCIT:C85334,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10375,Quercus virginiana pollen,UNII:8KDG09A4GO,NCIT:C85348,biolink:Food,,plant-food
+DRUGBANK:DB10376,Quercus alba pollen,UNII:Z4Y9ZSV4KK,NCIT:C85335,biolink:Food,,plant-food
+DRUGBANK:DB10377,Avena sativa pollen,UNII:A7IKY24TR7,NCIT:C85126,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10378,Olea europaea pollen,UNII:43R41XZ627,NCIT:C80320,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10379,Dactylis glomerata pollen,UNII:83N78IDA7P,NCIT:C85158,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10380,Carya illinoinensis pollen,UNII:PYO4JR720Y,NCIT:C85146,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10381,Amaranthus retroflexus pollen,UNII:73B14PX5FW,NCIT:C85098,biolink:Food,,plant-food
+DRUGBANK:DB10382,Plantago lanceolata pollen,UNII:DO87T1U2CI,NCIT:C85314,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10383,Populus alba pollen,UNII:VU8C8SB23P,NCIT:C85323,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10384,Ambrosia acanthicarpa pollen,UNII:U2AI3H2J5Y,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10385,Ambrosia artemisiifolia pollen,UNII:9W34L2CQ9A,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10386,Ambrosia trifida pollen,UNII:KU1V1898XX,NCIT:C85110,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10387,Ambrosia psilostachya pollen,UNII:RX18M46K8L,NCIT:C85108,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10388,Salsola kali pollen,UNII:2MH135KC6G,NCIT:C85361,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10389,Lolium perenne pollen,UNII:4T81LB52R0,NCIT:C85282,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10390,Artemisia tridentata pollen,UNII:YI19RB8YFD,NCIT:C85119,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10391,Atriplex wrightii pollen,UNII:YB1308W43O,NCIT:C85125,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10392,Platanus occidentalis pollen,UNII:E03U1K03LK,NCIT:C85317,biolink:Food,,plant-food
+DRUGBANK:DB10393,Platanus racemosa pollen,UNII:BWC8DYU8OS,NCIT:C85318,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10394,Phleum pratense pollen,UNII:0P46LFE4VC,NCIT:C72397,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10395,Holcus lanatus pollen,UNII:70O1TP6H01,NCIT:C85209,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10396,Juglans nigra pollen,UNII:1BV28146ZR,NCIT:C85264,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10397,Juglans californica pollen,UNII:2147EPR64I,NCIT:C85263,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10398,Salix nigra pollen,UNII:6M2JIH93ZN,NCIT:C85360,biolink:Food,,plant-food
+DRUGBANK:DB10403,Agrostis gigantea pollen,UNII:HU8V6E7HOA,NCIT:C85089,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10404,Anthoxanthum odoratum pollen,UNII:2KIK19R45Y,NCIT:C85111,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10408,Cotton seed,UNII:DI0ZRJ0MXN,NCIT:C73881,biolink:Food,,ncit-food
+DRUGBANK:DB10411,Ceiba pentandra fiber,UNII:758Z9H9WV9,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10413,Orris,UNII:8N6VTJ9IWV,,biolink:Food,,plant-food
+DRUGBANK:DB10451,Acacia,UNII:5C5403N26O,NCIT:C80123,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10452,Ailanthus altissima pollen,UNII:2A64U81OQ3,NCIT:C85091,biolink:Food,,plant-food
+DRUGBANK:DB10453,Alnus incana subsp. rugosa pollen,UNII:605T96G8Y5,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10454,Medicago sativa pollen,UNII:G515RAI9FY,NCIT:C85285,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10455,Fraxinus velutina pollen,UNII:LJT6I6Z8FD,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10456,Populus tremuloides pollen,UNII:928OC2TJDA,NCIT:C85330,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10457,Morella cerifera pollen,UNII:LC8MEV9S89,NCIT:C85289,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10458,Betula nigra pollen,UNII:93963RFO1P,NCIT:C85132,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10459,Amaranthus palmeri pollen,UNII:1GH3WV23KH,NCIT:C85097,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10460,Juniperus ashei pollen,UNII:544F8MEY0Y,NCIT:C85266,biolink:Food,,plant-food
+DRUGBANK:DB10461,Juniperus virginiana pollen,UNII:PY0JA16R2G,NCIT:C85273,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10462,Xanthium strumarium var. canadense pollen,UNII:0ZK6G3W3BI,NCIT:C85389,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10463,Populus deltoides pollen,UNII:476DVV63WP,NCIT:C85325,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10464,Populus fremontii pollen,UNII:426RHB4302,NCIT:C85328,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10466,Cupressus arizonica pollen,UNII:232DMH0XVF,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10467,Taxodium distichum pollen,UNII:O12H03B41R,NCIT:C85375,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10468,Eupatorium capillifolium pollen,UNII:B67NF86HF0,NCIT:C85164,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10469,Ulmus crassifolia pollen,UNII:G82398SD3I,NCIT:C85383,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10470,Eucalyptus globulus pollen,UNII:7XW7TB10X9,NCIT:C85163,biolink:Food,,plant-food
+DRUGBANK:DB10471,Solidago canadensis pollen,UNII:644CZ16IR5,NCIT:C85366,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10472,Celtis occidentalis pollen,UNII:68R9X9Y96X,NCIT:C85150,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10473,Juniperus californica pollen,UNII:0H1V4V5V9L,NCIT:C85267,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10474,Robinia pseudoacacia pollen,UNII:8003NOJ82F,NCIT:C85351,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10475,Acer rubrum pollen,UNII:700NK45C76,NCIT:C80313,biolink:Food,,plant-food
+DRUGBANK:DB10478,Melaleuca quinquenervia pollen,UNII:NX974IRT8E,NCIT:C85286,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10479,Chenopodium ambrosioides pollen,UNII:WIB701MW2H,NCIT:C85153,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10480,Morus alba pollen,UNII:3I9T68187H,NCIT:C85290,biolink:Food,,plant-food
+DRUGBANK:DB10481,Quercus rubra pollen,UNII:SVW19ET93C,NCIT:C85345,biolink:Food,,plant-food
+DRUGBANK:DB10482,Syagrus romanzoffiana pollen,UNII:84ZOM591BB,NCIT:C85372,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10483,Schinus molle pollen,UNII:M0G28FH9K1,NCIT:C85364,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10484,Amaranthus spinosus pollen,UNII:380W4HYR6N,NCIT:C85099,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10485,Casuarina equisetifolia pollen,UNII:OZJ4OE173N,NCIT:C85149,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10486,Pinus strobus pollen,UNII:TX1ER5UV3T,NCIT:C85309,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10487,Pinus echinata pollen,UNII:96LRW14765,NCIT:C85301,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10488,Ligustrum vulgare pollen,UNII:Y3FRX92Z0E,NCIT:C85280,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10489,Elymus repens pollen,UNII:ON2T85TA2O,NCIT:C85162,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10490,Ambrosia tenuifolia pollen,UNII:57W5SO585B,NCIT:C85109,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10491,Ambrosia bidentata pollen,UNII:M3S672G75O,NCIT:C85103,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10493,Artemisia frigida pollen,UNII:5AN5LR8L3F,NCIT:C85117,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10494,Distichlis spicata pollen,UNII:GOA51670YV,NCIT:C85160,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10495,Liquidambar styraciflua pollen,UNII:5Q246DS5BS,NCIT:C85281,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10496,Juglans regia pollen,UNII:ARW43087I1,NCIT:C85265,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10497,Amaranthus tuberculatus pollen,UNII:92N6W6KO2G,NCIT:C85100,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10498,Triticum aestivum pollen,UNII:F1KAH8374D,NCIT:C85380,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10500,Almond,UNII:3Z252A2K9G,NCIT:C74458,biolink:Food,,ncit-food
+DRUGBANK:DB10501,Apple,UNII:B423VGH5S9,NCIT:C71985,biolink:Food,,ncit-food
+DRUGBANK:DB10502,Apricot,UNII:269CJD5GZ9,NCIT:C71986,biolink:Food,,ncit-food
+DRUGBANK:DB10503,Asparagus,UNII:Z1EJP3037Z,NCIT:C71987,biolink:Food,,ncit-food
+DRUGBANK:DB10504,Avocado,UNII:6VNO72PFC1,NCIT:C107267,biolink:Food,,plant-food
+DRUGBANK:DB10505,Banana,UNII:4AJZ4765R9,NCIT:C71989,biolink:Food,,ncit-food
+DRUGBANK:DB10506,Barley,UNII:5PWM7YLI7R,NCIT:C73935,biolink:Food,,ncit-food
+DRUGBANK:DB10508,String bean,UNII:N9D69B2Q7Y,NCIT:C71951,biolink:Food,,ncit-food
+DRUGBANK:DB10509,Beef,UNII:4PIB2155QP,NCIT:C71932,biolink:Food,,ncit-food
+DRUGBANK:DB10510,Brazil nut,UNII:XKR79OET1K,NCIT:C72048,biolink:Food,,ncit-food
+DRUGBANK:DB10511,Broccoli,UNII:UOI4FT57BZ,NCIT:C71997,biolink:Food,,ncit-food
+DRUGBANK:DB10512,Buckwheat,UNII:N0Y68724R3,NCIT:C73936,biolink:Food,,ncit-food
+DRUGBANK:DB10513,Cabbage,UNII:GW0W1Y9I97,NCIT:C71999,biolink:Food,,ncit-food
+DRUGBANK:DB10514,Cantaloupe,UNII:8QF5D5H6UH,NCIT:C72057,biolink:Food,,ncit-food
+DRUGBANK:DB10515,Carrot,UNII:L56Z1JK48B,NCIT:C72000,biolink:Food,,ncit-food
+DRUGBANK:DB10517,Celery,UNII:44IDY6DTKX,NCIT:C71994,biolink:Food,,ncit-food
+DRUGBANK:DB10518,Cherry,UNII:BUC5I9595W,NCIT:C65311,biolink:Food,,ncit-food
+DRUGBANK:DB10520,Cinnamon,UNII:5S29HWU6QB,NCIT:C65331,biolink:Food,,plant-food
+DRUGBANK:DB10523,Coconut,UNII:3RT3536DHY,NCIT:C71966,biolink:Food,,ncit-food
+DRUGBANK:DB10525,Coffee bean,UNII:JFH385Y744,NCIT:C73875,biolink:Food,,ncit-food
+DRUGBANK:DB10527,Cucumber,UNII:YY7C30VXJT,NCIT:C71968,biolink:Food,,ncit-food
+DRUGBANK:DB10528,Egg white,UNII:3E0I92Z2GR,NCIT:C71956,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10529,Egg,UNII:291P45F896,NCIT:C72064,biolink:Food,,ncit-food
+DRUGBANK:DB10530,Egg yolk,UNII:4IPS17B70T,NCIT:C71955,biolink:Food,,ncit-food
+DRUGBANK:DB10532,Garlic,UNII:V1V998DC17,NCIT:C38706,biolink:Food,,plant-food
+DRUGBANK:DB10533,Grape,UNII:6X543N684K,NCIT:C71982,biolink:Food,,ncit-food
+DRUGBANK:DB10534,Grapefruit,UNII:O82C39RR8C,NCIT:C71974,biolink:Food,,ncit-food
+DRUGBANK:DB10535,Karaya gum,UNII:73W9IQY50Q,NCIT:C83852,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10536,Honeydew melon,UNII:RN8P45F92A,NCIT:C71979,biolink:Food,,ncit-food
+DRUGBANK:DB10537,Lamb,UNII:FOF26T73HA,NCIT:C71638,biolink:Food,,ncit-food
+DRUGBANK:DB10538,Lemon,UNII:24RS0A988O,NCIT:C72005,biolink:Food,,ncit-food
+DRUGBANK:DB10539,Lettuce,UNII:5PO6NN3RRJ,NCIT:C72028,biolink:Food,,ncit-food
+DRUGBANK:DB10540,Lima bean,UNII:112YH1ZMX2,NCIT:C71950,biolink:Food,,ncit-food
+DRUGBANK:DB10542,Goat milk,UNII:XE5K5I4RP7,NCIT:C72806,biolink:Food,,ncit-food
+DRUGBANK:DB10543,Cow milk,UNII:917J3173FT,NCIT:C66153,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10545,Mustard seed,UNII:58RXI817UT,NCIT:C73907,biolink:Food,,ncit-food
+DRUGBANK:DB10546,Oat,UNII:Z6J799EAJK,NCIT:C101357,biolink:Food,,ncit-food
+DRUGBANK:DB10547,Black olive,UNII:2M6QWV94OC,NCIT:C71983,biolink:Food,,ncit-food
+DRUGBANK:DB10548,Onion,UNII:492225Q21H,NCIT:C72035,biolink:Food,,ncit-food
+DRUGBANK:DB10549,Orange,UNII:5EVU04N5QU,NCIT:C65208,biolink:Food,,ncit-food
+DRUGBANK:DB10550,Oyster,UNII:0I77C68AWS,NCIT:C85050,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10551,Pea,UNII:W4X7H8GYFM,NCIT:C72056,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10552,Peach,UNII:3OKE88I3QG,NCIT:C72027,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10553,Peanut,UNII:QE1QX6B99R,NCIT:C72071,biolink:Food,,ncit-food
+DRUGBANK:DB10554,Pear,UNII:2ZN8DWC0YF,NCIT:C72039,biolink:Food,,ncit-food
+DRUGBANK:DB10555,Pecan,UNII:F14P91GB5F,NCIT:C72051,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10556,Green bell pepper,UNII:4J4DOU3HEK,NCIT:C71964,biolink:Food,,ncit-food
+DRUGBANK:DB10557,Black pepper,UNII:KM66971LVF,NCIT:C72040,biolink:Food,,plant-food
+DRUGBANK:DB10558,Pineapple,UNII:2A88ZO081O,NCIT:C66390,biolink:Food,,ncit-food
+DRUGBANK:DB10559,Pistachio,UNII:6815CPT6ZJ,NCIT:C72053,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10560,Plum,UNII:67M3EQ6BE1,NCIT:C72044,biolink:Food,,ncit-food
+DRUGBANK:DB10561,Pork,UNII:O138UB266J,NCIT:C71958,biolink:Food,,ncit-food
+DRUGBANK:DB10562,Potato,UNII:CFE1S8DYWD,NCIT:C72045,biolink:Food,,ncit-food
+DRUGBANK:DB10563,Rice,UNII:659G217HPG,NCIT:C73972,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10564,Rye,UNII:0R4AQI398X,NCIT:C85249,biolink:Food,,ncit-food
+DRUGBANK:DB10566,Sesame seed,UNII:7Y1255HVXR,NCIT:C71942,biolink:Food,,ncit-food
+DRUGBANK:DB10567,Shrimp,UNII:1891LE191T,NCIT:C71914,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10568,Soybean,UNII:L7HT8F1ZOD,NCIT:C72010,biolink:Food,,ncit-food
+DRUGBANK:DB10569,Spinach,UNII:6WO75C6WVB,NCIT:C72012,biolink:Food,,ncit-food
+DRUGBANK:DB10570,Squash,UNII:9961HBA483,NCIT:C72013,biolink:Food,,ncit-food
+DRUGBANK:DB10571,Strawberry,UNII:4J2TY8Y81V,NCIT:C66565,biolink:Food,,ncit-food
+DRUGBANK:DB10572,Corn,UNII:0N8672707O,NCIT:C72066,biolink:Food,,ncit-food
+DRUGBANK:DB10573,Tomato,UNII:Z4KHF2C175,NCIT:C72019,biolink:Food,,ncit-food
+DRUGBANK:DB10574,Tuna,UNII:V2T3IHT3E2,NCIT:C71908,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10575,Turkey,UNII:8E9NT44R8I,NCIT:C73855,biolink:Food,,ncit-food
+DRUGBANK:DB10576,Vanilla,UNII:Q74T35078H,NCIT:C84613,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10577,English walnut,UNII:1V3SHR7QB7,,biolink:Food,,plant-food
+DRUGBANK:DB10578,Watermelon,UNII:231473QB6R,NCIT:C72022,biolink:Food,,ncit-food
+DRUGBANK:DB10579,Wheat,UNII:4J2I0SN84Y,NCIT:C74546,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10580,Tea leaf,UNII:GH42T47V24,NCIT:C87164,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10582,Artemisia annua pollen,UNII:36R82U4DL6,NCIT:C85114,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10610,Duck,UNII:28ON068RWM,NCIT:C73850,biolink:Food,,ncit-food
+DRUGBANK:DB10612,Veal,UNII:0X5GW3050M,NCIT:C71937,biolink:Food,,ncit-food
+DRUGBANK:DB10617,Herring,UNII:34EX28T4C1,NCIT:C71926,biolink:Food,,ncit-food
+DRUGBANK:DB10618,Mackerel,UNII:CYO6K3VM7F,NCIT:C71641,biolink:Food,,ncit-food
+DRUGBANK:DB10620,Red snapper,UNII:WF621S7K14,NCIT:C71917,biolink:Food,,ncit-food
+DRUGBANK:DB10623,Scallop,UNII:D380C73WOU,NCIT:C71916,biolink:Food,,ncit-food
+DRUGBANK:DB10625,Swordfish,UNII:01695YPV36,NCIT:C71911,biolink:Food,,ncit-food
+DRUGBANK:DB10626,Trout,UNII:7TI7U5PF2U,NCIT:C71910,biolink:Food,,ncit-food
+DRUGBANK:DB10627,White fish,UNII:IA4C8ND0DT,NCIT:C71907,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10628,Blackberry,UNII:8A6OMU3I8L,NCIT:C71601,biolink:Food,,ncit-food
+DRUGBANK:DB10629,Blueberry,UNII:253RUG1X1A,NCIT:C71996,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10630,Sour cherry,UNII:1L29G6428X,,biolink:Food,,plant-food
+DRUGBANK:DB10631,Cranberry,UNII:0MVO31Q3QS,NCIT:C28943,biolink:Food,,ncit-food
+DRUGBANK:DB10632,Date,UNII:H3O7QI5HY7,NCIT:C72063,biolink:Food,,ncit-food
+DRUGBANK:DB10633,Fig,UNII:TGD87RII2U,NCIT:C71971,biolink:Food,,ncit-food
+DRUGBANK:DB10634,Wine grape,UNII:3GOV20705G,,biolink:Food,,plant-food
+DRUGBANK:DB10635,Lime (citrus),UNII:8CZS546954,NCIT:C72002,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10636,Raspberry,UNII:4N14V5R27W,NCIT:C72036,biolink:Food,,ncit-food
+DRUGBANK:DB10637,Tangerine,UNII:KH3E3096OO,NCIT:C72017,biolink:Food,,ncit-food
+DRUGBANK:DB10638,Artichoke,UNII:4F3W47PLBE,,biolink:Food,,plant-food
+DRUGBANK:DB10639,Kidney bean,UNII:M98C8416QO,NCIT:C82900,biolink:Food,,ncit-food
+DRUGBANK:DB10640,Beet,UNII:N487KM8COK,NCIT:C72003,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10641,Kiwi fruit,UNII:71ES77LGJC,NCIT:C71981,biolink:Food,,ncit-food
+DRUGBANK:DB10642,Brussels sprout,UNII:KHX46H31F8,NCIT:C71998,biolink:Food,,ncit-food
+DRUGBANK:DB10643,Cauliflower,UNII:138LUT2DWV,NCIT:C72055,biolink:Food,,ncit-food
+DRUGBANK:DB10644,Eggplant,UNII:W5K7RAS4VK,NCIT:C71969,biolink:Food,,ncit-food
+DRUGBANK:DB10645,Lentil,UNII:6O38V6B52O,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10646,Green olive,UNII:6HD2W46UEG,NCIT:C72034,biolink:Food,,ncit-food
+DRUGBANK:DB10647,Parsley,UNII:58FMD0Q0EV,NCIT:C72037,biolink:Food,,ncit-food
+DRUGBANK:DB10648,Sweet potato,UNII:M9WGG9Z9GK,NCIT:C72015,biolink:Food,,ncit-food
+DRUGBANK:DB10650,Raphanus sativus,UNII:86R5J6D01D,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10651,Rhubarb,UNII:G280W4MW6E,NCIT:C74269,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10652,Turnip,UNII:Z38C7FBM49,NCIT:C72020,biolink:Food,,ncit-food
+DRUGBANK:DB10653,Cashew,UNII:3H5U5CX7KO,NCIT:C72049,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10654,Hazelnut,UNII:IW0OM96F6O,NCIT:C72050,biolink:Food,,ncit-food
+DRUGBANK:DB10655,Macadamia nut,UNII:Y5432RGW8N,NCIT:C71640,biolink:Food,,ncit-food
+DRUGBANK:DB10656,Nectarine,UNII:65KD9TD4C3,NCIT:C72032,biolink:Food,,ncit-food
+DRUGBANK:DB10657,Mango,UNII:I629I3NR86,NCIT:C71637,biolink:Food,,ncit-food
+DRUGBANK:DB10658,Papaya,UNII:KU94FIY6JB,NCIT:C72047,biolink:Food,,ncit-food
+DRUGBANK:DB10659,Leek,UNII:RCU76P419D,NCIT:C71973,biolink:Food,,ncit-food
+DRUGBANK:DB10660,Okra,UNII:51ME2L7STL,NCIT:C72033,biolink:Food,,ncit-food
+DRUGBANK:DB10661,Parsnip,UNII:L2V28YP49S,,biolink:Food,,plant-food
+DRUGBANK:DB10662,Chickpea,UNII:N91637DNW9,NCIT:C71992,biolink:Food,,ncit-food
+DRUGBANK:DB10663,Black-eyed pea,UNII:786YV7B602,NCIT:C71995,biolink:Food,,ncit-food
+DRUGBANK:DB10664,Watercress,UNII:K5877MW0LE,NCIT:C75666,biolink:Food,,ncit-food
+DRUGBANK:DB10666,Arabica coffee bean,UNII:3SW678MX72,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10667,Tragacanth,UNII:2944357O2O,NCIT:C84223,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10669,Allspice,UNII:I5GZG55B36,NCIT:C73857,biolink:Food,,plant-food
+DRUGBANK:DB10670,Laurus nobilis,UNII:WS0Y3M85RF,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10671,Caraway seed,UNII:W2FH8O2BBE,,biolink:Food,,plant-food
+DRUGBANK:DB10672,Clove,UNII:K48IKT5321,NCIT:C73872,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10673,Dill,UNII:Y05PC4JZRH,,biolink:Food,,plant-food
+DRUGBANK:DB10674,Horseradish,UNII:8DS6G120HJ,,biolink:Food,,plant-food
+DRUGBANK:DB10676,Nutmeg,UNII:AEE24M3MQ9,NCIT:C73928,biolink:Food,,plant-food
+DRUGBANK:DB10677,Oregano,UNII:0E5AT8T16U,,biolink:Food,,plant-food
+DRUGBANK:DB10678,Paprika,UNII:X72Z47861V,NCIT:C73909,biolink:Food,,plant-food
+DRUGBANK:DB10679,White pepper,UNII:M29DW54Q9E,NCIT:C73922,biolink:Food,,plant-food
+DRUGBANK:DB10681,Poppy seed,UNII:60RO23IR87,NCIT:C73910,biolink:Food,,ncit-food
+DRUGBANK:DB10683,Spearmint,UNII:J7I2T6IV1N,NCIT:C84614,biolink:Food,,plant-food
+DRUGBANK:DB10685,Wheat bran,UNII:6L966A1IMR,,biolink:Food,,plant-food
+DRUGBANK:DB10686,American chestnut,UNII:0XH1TH76XZ,,biolink:Food,,plant-food
+DRUGBANK:DB10687,Hops,UNII:01G73H6H83,NCIT:C73896,biolink:Food,,plant-food
+DRUGBANK:DB10707,Cotton,UNII:70LDW53ROO,,biolink:Food,,plant-food
+DRUGBANK:DB10708,Flax seed,UNII:4110YT348C,NCIT:C26650,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10710,Tobacco leaf,UNII:6YR2608RSU,NCIT:C891,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10711,Corcorus capsularis fiber,UNII:TVA75O7S63,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10712,Agave sisalana fiber,UNII:MRJ91HVV4H,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10713,Poa compressa pollen,UNII:50HCQ1NYV5,NCIT:C85320,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10714,Phalaris arundinacea pollen,UNII:FAY1Y90VJ9,NCIT:C85294,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10715,Bouteloua gracilis pollen,UNII:2XO08315X1,NCIT:C85137,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10716,Urochloa mutica pollen,UNII:3ZO9YGZ8ZJ,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10717,Secale cereale pollen,UNII:I6KAZ8AO1O,NCIT:C85365,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10718,Leymus condensatus pollen,UNII:257GC6QO0Q,NCIT:C85279,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10719,Pascopyrum smithii pollen,UNII:6AU0ZD8T1O,NCIT:C85292,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10720,Acacia baileyana pollen,UNII:59WAV8G5X5,NCIT:C85084,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10721,Alnus rubra pollen,UNII:Z0F2YK1B7H,NCIT:C85095,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10722,Alnus rhombifolia pollen,UNII:7X8HL8GRTM,NCIT:C85094,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10723,Fraxinus latifolia pollen,UNII:1FH355G8HF,NCIT:C85168,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10724,Betula populifolia pollen,UNII:23H70FYJ5U,NCIT:C85136,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10725,Tamarix gallica pollen,UNII:43IR7KR479,NCIT:C85373,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10727,Juniperus monosperma pollen,UNII:PM6E3FG1QK,NCIT:C85268,biolink:Food,,plant-food
+DRUGBANK:DB10728,Juniperus pinchotii pollen,UNII:S8A4X05W7J,NCIT:C85271,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10729,Juniperus scopulorum pollen,UNII:0G82TT8ZFY,NCIT:C85272,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10730,Juniperus osteosperma pollen,UNII:15L060HV8H,NCIT:C85270,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10731,Juniperus occidentalis pollen,UNII:7JWJ3HXZ9U,NCIT:C85269,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10732,Tilia americana pollen,UNII:E2B4Q4BXJG,NCIT:C85377,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10733,Mangifera indica pollen,UNII:BS3OW0RZ4K,NCIT:C85284,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10734,Acer macrophyllum pollen,UNII:E4CG5Q55M1,NCIT:C80311,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10735,Acer saccharinum pollen,UNII:95447163DG,NCIT:C80314,biolink:Food,,plant-food
+DRUGBANK:DB10736,Broussonetia papyrifera pollen,UNII:51I6N3XIML,NCIT:C85140,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10737,Quercus velutina pollen,UNII:294L626TT0,NCIT:C85347,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10738,Quercus macrocarpa pollen,UNII:57BTU4547U,NCIT:C85341,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10739,Quercus kelloggii pollen,UNII:02RVY6X9EC,NCIT:C85339,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10740,Quercus gambelii pollen,UNII:9HC15X34LX,NCIT:C85337,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10741,Quercus lobata pollen,UNII:HGH5K3653K,NCIT:C85340,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10742,Quercus nigra pollen,UNII:6U600U1326,NCIT:C85343,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10743,Citrus sinensis pollen,UNII:0U790UB32K,NCIT:C85155,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10744,Pinus taeda pollen,UNII:4O1FFR8ARN,NCIT:C85311,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10745,Pinus palustris pollen,UNII:E3A7U1HWIO,NCIT:C85305,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10746,Pinus ponderosa pollen,UNII:042SUA2DS9,NCIT:C85306,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10747,Pinus elliottii pollen,UNII:QJB9OQO689,NCIT:C85302,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10748,Pinus virginiana pollen,UNII:P6818UI2E4,NCIT:C85313,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10749,Pinus monticola pollen,UNII:3MDX759C0W,NCIT:C85303,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10750,Populus nigra pollen,UNII:0MGE63QPFJ,NCIT:C85329,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10751,Elaeagnus angustifolia pollen,UNII:68P4F4M6VD,NCIT:C85161,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10752,Salix lasiolepis pollen,UNII:808UWJ59FI,NCIT:C85358,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10753,Salix discolor pollen,UNII:ER172J09FM,NCIT:C85357,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10754,Populus balsamifera subsp. trichocarpa pollen,UNII:H8QYU50Z2D,NCIT:C85324,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10755,Taraxacum officinale pollen,UNII:WQ3S5294XY,NCIT:C85374,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10756,Atriplex polycarpa pollen,UNII:JQ87AA60GU,NCIT:C85124,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10757,Baccharis halimifolia pollen,UNII:BBO1IJ3ZIW,NCIT:C85127,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10758,Hymenoclea salsola pollen,UNII:662J7FTA7T,NCIT:C85212,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10759,Allenrolfea occidentalis pollen,UNII:5W6JAI84OI,NCIT:C85092,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10760,Atriplex lentiformis pollen,UNII:86LWA5503I,NCIT:C85123,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10761,Artemisia douglasiana pollen,UNII:K1301R7883,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10762,Artemisia ludoviciana pollen,UNII:57KIJ4772H,NCIT:C85118,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10763,Urtica dioica pollen,UNII:DNB59M1NVU,NCIT:C85387,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10764,Iva axillaris pollen,UNII:13KFG30UBR,NCIT:C85261,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10765,Ambrosia deltoidea pollen,UNII:O4AB4546TP,NCIT:C85106,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10766,Sarcobatus vermiculatus pollen,UNII:6532U64A3X,NCIT:C85363,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10767,Atriplex canescens pollen,UNII:26U0BU8G83,NCIT:C85121,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10768,Artemisia absinthium pollen,UNII:81GS97HVFO,NCIT:C85113,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10815,Fraxinus pennsylvanica pollen,UNII:2WZG2G15WX,NCIT:C85169,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10816,Atriplex confertifolia pollen,UNII:GG8WX068MX,NCIT:C85122,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10829,Basil,UNII:2U0KZP0FDW,,biolink:Food,,plant-food
+DRUGBANK:DB10830,Mung bean,UNII:1LIB31N73G,NCIT:C28261,biolink:Food,,ncit-food
+DRUGBANK:DB10831,Betula papyrifera pollen,UNII:3538FNV8AY,NCIT:C85134,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10832,Betula occidentalis pollen,UNII:R889N2L976,NCIT:C85133,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10833,Betula alleghaniensis pollen,UNII:3R393IX840,NCIT:C85130,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10836,Bromus secalinus pollen,UNII:Q4T1SJ3046,NCIT:C85139,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10837,Beta vulgaris pollen,UNII:W7NU4B5CIY,NCIT:C85129,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10838,Chenopodium botrys pollen,UNII:IVU789297D,NCIT:C85154,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10852,Carob,UNII:5MG5Z946UO,,biolink:Food,,plant-food
+DRUGBANK:DB10853,Sweet cherry,UNII:93T4562ZI3,,biolink:Food,,plant-food
+DRUGBANK:DB10858,Melilotus albus pollen,UNII:9L67M8B78R,NCIT:C85287,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10859,Melilotus officinalis pollen,UNII:UVC3Z60VTX,NCIT:C85288,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10860,Typha latifolia pollen,UNII:341PDX5PLM,NCIT:C85381,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10862,Red currant,UNII:Q5YG47WU3D,,biolink:Food,,plant-food
+DRUGBANK:DB10864,Cumin,UNII:AG9BNA51DQ,NCIT:C74527,biolink:Food,,ncit-food
+DRUGBANK:DB10871,Ambrosia dumosa pollen,UNII:ZIO18VN6HJ,NCIT:C85107,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10872,Ambrosia confertiflora pollen,UNII:63TBJ590BL,NCIT:C85105,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10875,Concord grape,UNII:T3PW93IB4Q,NCIT:C72007,biolink:Food,,ncit-food
+DRUGBANK:DB10879,Arrhenatherum elatius pollen,UNII:B55BD1QM4Q,NCIT:C85112,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10882,Carya cordiformis pollen,UNII:O99P60FU6G,NCIT:C85144,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10883,Carya glabra pollen,UNII:KPO1Z9N98A,NCIT:C85145,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10884,Millet seed,UNII:TJR6B3R47P,NCIT:C73905,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10885,Mustard greens,UNII:5M338IN22E,NCIT:C72031,biolink:Food,,ncit-food
+DRUGBANK:DB10886,Quercus muehlenbergii pollen,UNII:434DQ2U4JX,NCIT:C85342,biolink:Food,,plant-food
+DRUGBANK:DB10887,Quercus palustris pollen,UNII:CU781COT7M,NCIT:C85344,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10888,Quercus stellata pollen,UNII:W34X0P8636,NCIT:C85346,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10889,Quercus garryana pollen,UNII:QQ00BED0DV,NCIT:C85338,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10890,Red bell pepper,UNII:E917XHH50V,NCIT:C72006,biolink:Food,,ncit-food
+DRUGBANK:DB10891,Perch,UNII:50Y07N9X03,NCIT:C71924,biolink:Food,,ncit-food
+DRUGBANK:DB10892,Pumpkin,UNII:SYW0QUB89Y,NCIT:C72016,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10894,Pinus contorta pollen,UNII:FB7IP650ET,NCIT:C85300,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10895,Pinus sylvestris pollen,UNII:59070I8M63,NCIT:C85310,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10896,Pinus rigida pollen,UNII:KV6DYF25M4,NCIT:C85308,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10897,Capsicum,UNII:00UK7646FG,NCIT:C75665,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10899,Sequoia sempervirens pollen,UNII:NBV527E8B4,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10900,Rumex obtusifolius pollen,UNII:R6H8O3GVL9,NCIT:C85355,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10901,Rumex altissimus pollen,UNII:BML0J15H8W,NCIT:C85353,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10902,Rumex salicifolius var. mexicanus pollen,UNII:BHS470V9ON,NCIT:C85356,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10905,Safflower,UNII:4VBL71TY4Y,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10906,Sugarcane,UNII:81H2R5AOH3,,biolink:Food,,plant-food
+DRUGBANK:DB10907,Sunflower seed,UNII:R9N3379M4Z,NCIT:C71938,biolink:Food,,ncit-food
+DRUGBANK:DB10909,Artemisia californica pollen,UNII:1EDY616508,NCIT:C85115,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10910,Helianthus annuus pollen,UNII:28D6K7E9IP,NCIT:C85206,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10911,Carpinus caroliniana pollen,UNII:9UC4BM3IZ0,NCIT:C85142,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10912,Picea pungens pollen,UNII:R9JBC6687X,NCIT:C85299,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10913,"Starch, tapioca",UNII:24SC3U704I,NCIT:C80781,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10914,Larix occidentalis pollen,UNII:1L67OBT731,NCIT:C85277,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10917,Cedar oil,UNII:PAD4FN7P2G,NCIT:C72190,biolink:Food,,plant-food
+DRUGBANK:DB10918,Venison,UNII:85EA9K88OY,NCIT:C71936,biolink:Food,,ncit-food
+DRUGBANK:DB10919,Black walnut,UNII:02WM57RXZJ,NCIT:C72054,biolink:Food,,ncit-food
+DRUGBANK:DB10921,Artemisia dracunculus pollen,UNII:UU78E56M7L,NCIT:C85116,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10922,Pinus banksiana pollen,UNII:YM2P5UN502,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10923,Pinus resinosa pollen,UNII:Q7Y557L8UZ,NCIT:C85307,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10924,Pinus nigra pollen,UNII:17Q05812N1,NCIT:C85304,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10925,Pinus thunbergii pollen,UNII:6607IKD2XX,NCIT:C85312,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10926,Carya tomentosa pollen,UNII:G2A764T54B,NCIT:C85143,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10927,Iva annua pollen,UNII:Y2U5S5PF22,NCIT:C85260,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10928,Bassia scoparia pollen,UNII:07A108ZKW5,NCIT:C85274,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10929,Cyclachaena xanthifolia pollen,UNII:V80TPZ0T6J,NCIT:C85262,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10930,Amaranthus retroflexus whole,UNII:55W4M8149I,,biolink:Food,,plant-food
+DRUGBANK:DB10941,Bassia hyssopifolia pollen,UNII:35487N1IC9,NCIT:C85128,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10942,Brassica rapa pollen,UNII:85Z8OHV3K7,NCIT:C85138,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10943,Callistemon citrinus pollen,UNII:62OII98F1T,NCIT:C85141,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10945,Dicoria canescens pollen,UNII:E9H4GR1NMP,NCIT:C85159,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10946,Krascheninnikovia lanata pollen,UNII:0GTO5BR99M,NCIT:C85276,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10947,Ambrosia ambrosioides pollen,UNII:81214Y871U,NCIT:C85101,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10948,Ambrosia chamissonis pollen,UNII:2Z41EEQ491,NCIT:C85104,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10949,Koeleria macrantha pollen,UNII:IIC6H3WF6J,NCIT:C85275,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10950,Phoenix dactylifera pollen,UNII:2FV55IRB5B,NCIT:C85298,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10952,Quercus dumosa pollen,UNII:P5W45RU6E4,NCIT:C85336,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10953,Suaeda moquinii pollen,UNII:FZU040QDS7,NCIT:C85371,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10954,Tilia cordata pollen,UNII:OCO1LJR5YN,NCIT:C85378,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10961,Hordeum vulgare pollen,UNII:2LN3M29LNI,NCIT:C85211,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10962,Agrostis stolonifera pollen,UNII:255H8VT4RK,NCIT:C85090,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10963,Phalaris minor pollen,UNII:VBT3DRA2R9,NCIT:C85296,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10964,Lolium perenne subsp. multiflorum pollen,UNII:VJI0WKK736,NCIT:C85390,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10965,Sorghum bicolor subsp. bicolor pollen,UNII:LD795V73G4,NCIT:C85368,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10967,Amphiachyris dracunculoides pollen,UNII:83X1I1RR5F,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10968,Iva angustifolia pollen,UNII:UBW6O1H50I,NCIT:C85259,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10975,Tanacetum cinerariifolium flower,UNII:CGF76TP7X6,NCIT:C72413,biolink:Food,,plant-food
+DRUGBANK:DB10977,Cocoa,UNII:D9108TZ9KG,NCIT:C121851,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10980,Barley malt,UNII:R3NBG8914U,NCIT:C71879,biolink:Food,,plant-food
+DRUGBANK:DB10981,Radish,UNII:EM5RP35463,NCIT:C72014,biolink:Food,,ncit-food
+DRUGBANK:DB10982,Sage,UNII:065C5D077J,NCIT:C71519,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10983,Thyme,UNII:CW657OBU4N,,biolink:Food,,plant-food
+DRUGBANK:DB10984,Peppermint,UNII:V95R5KMY2B,NCIT:C66347,biolink:Food,,plant-food
+DRUGBANK:DB10985,Ulmus rubra pollen,UNII:GHC6OHK0W0,NCIT:C85386,biolink:Food,,plant-food
+DRUGBANK:DB10986,Pseudotsuga menziesii pollen,UNII:ZEI09763J3,NCIT:C85333,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10987,Carya laciniosa pollen,UNII:5BGG872373,NCIT:C85147,biolink:Food,,plant-food
+DRUGBANK:DB10988,Maclura pomifera pollen,UNII:18JOK51CZH,NCIT:C85283,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11004,Betula pendula pollen,UNII:ZL5TV40C5Y,NCIT:C85135,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11005,Ulmus parvifolia pollen,UNII:IU0Z41653U,NCIT:C85384,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11006,Parkinsonia florida pollen,UNII:57586C96ZL,NCIT:C85151,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11007,Cytisus scoparius flowering top,UNII:XZC6H8R666,,biolink:Food,,plant-food
+DRUGBANK:DB11008,Poultry,UNII:L7WXO2P5HM,NCIT:C53475,biolink:Food,,ncit-food
+DRUGBANK:DB11009,"Quahog, unspecified",UNII:226LY0AFR9,NCIT:C71920,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11010,"Cod, unspecified",UNII:8D6Q5LNG3D,NCIT:C71921,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11011,Crab leg,UNII:S1VF61QLO9,NCIT:C71929,biolink:Food,,ncit-food
+DRUGBANK:DB11014,"Salmon, unspecified",UNII:6122W2M0GB,NCIT:C71905,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11017,Yeast,UNII:3NY3SM6B8U,NCIT:C66676,biolink:Food,,ncit-food
+DRUGBANK:DB11086,Cocoa butter,UNII:512OYT1CRR,NCIT:C83637,biolink:Food,,plant-food
+DRUGBANK:DB11094,Vitamin D,UNII:9VU1KI44GP,NCIT:C941,biolink:Food,,ncit-food
+DRUGBANK:DB11111,Witch hazel,UNII:101I4J0U34,,biolink:Food,,plant-food
+DRUGBANK:DB11113,Castor oil,UNII:D5340Y2I9G,NCIT:C80990,biolink:Food,,plant-food
+DRUGBANK:DB11114,Eucalyptus oil,UNII:2R04ONI662,NCIT:C65603,biolink:Food,,plant-food
+DRUGBANK:DB11130,Opium,UNII:37M3MZ001L,NCIT:C29300,biolink:Food,,plant-food
+DRUGBANK:DB11133,Omega-3 fatty acids,UNII:71M78END5S,NCIT:C493,biolink:Food,,ncit-food
+DRUGBANK:DB11144,Hydrogenated palm kernel oil,UNII:FM8D1RE2VP,,biolink:Food,,plant-food
+DRUGBANK:DB11158,Pectin,UNII:89NA02M4RX,NCIT:C63647,biolink:Food,,ncit-food
+DRUGBANK:DB11172,Sesame oil,UNII:QX10HYY4QV,NCIT:C66537,biolink:Food,,ncit-food
+DRUGBANK:DB11198,Peppermint oil,UNII:AV092KU4JH,NCIT:C84045,biolink:Food,,plant-food
+DRUGBANK:DB11199,Sage oil,UNII:U27K0H1H2O,,biolink:Food,,plant-food
+DRUGBANK:DB11218,Tea tree oil,UNII:VIF565UC2G,NCIT:C74295,biolink:Food,,plant-food
+DRUGBANK:DB11223,Tolu balsam,UNII:TD2LE91MBE,,biolink:Food,,plant-food
+DRUGBANK:DB11224,Liquidambar styraciflua resin,UNII:P41GWD11CX,,biolink:Food,,plant-food
+DRUGBANK:DB11238,Borage oil,UNII:F8XAG1755S,NCIT:C73975,biolink:Food,,plant-food
+DRUGBANK:DB11242,Gelatin,UNII:2G86QN327L,NCIT:C65802,biolink:Food,,ncit-food
+DRUGBANK:DB11247,Sambucus nigra flowering top,UNII:CT03BSA18U,,biolink:Food,,plant-food
+DRUGBANK:DB11251,Tocopherol,UNII:R0ZB2556P8,NCIT:C68313,biolink:Food,,ncit-food
+DRUGBANK:DB11253,Xanthan gum,UNII:TTV12P4NEE,NCIT:C84244,biolink:Food,,ncit-food
+DRUGBANK:DB11265,Curcuma xanthorrhiza oil,UNII:F8VF0V2G7H,NCIT:C107298,biolink:Food,,plant-food
+DRUGBANK:DB11266,Sea salt,UNII:87GE52P74G,NCIT:C75874,biolink:Food,,ncit-food
+DRUGBANK:DB11276,Pine needle oil (pinus mugo),UNII:6KF1RLN1CI,NCIT:C107348,biolink:Food,,plant-food
+DRUGBANK:DB11286,Colloidal oatmeal,UNII:8PI54V663Y,NCIT:C29298,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11293,Rice bran oil,UNII:LZO6K1506A,,biolink:Food,,plant-food
+DRUGBANK:DB11301,Curcuma aromatica root oil,UNII:Q68H9P4S4J,NCIT:C107297,biolink:Food,,plant-food
+DRUGBANK:DB11302,Hydrogenated soybean oil,UNII:A2M91M918C,NCIT:C83765,biolink:Food,,ncit-food
+DRUGBANK:DB11338,Clove oil,UNII:578389D6D0,NCIT:C65346,biolink:Food,,plant-food
+DRUGBANK:DB11357,Linseed oil,UNII:84XB4DV00W,NCIT:C107324,biolink:Food,,plant-food
+DRUGBANK:DB11358,Evening primrose oil,UNII:3Q9L08K71N,NCIT:C72199,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11361,Betula pendula tar oil,UNII:7JK2RXJ8G7,,biolink:Food,,plant-food
+DRUGBANK:DB11482,Balsam of Peru,UNII:8P5F881OCY,NCIT:C66361,biolink:Food,,plant-food
+DRUGBANK:DB11599,"Starch, corn",UNII:O8232NY3SJ,NCIT:C80778,biolink:Food,,ncit-food
+DRUGBANK:DB11605,Myrrh,UNII:JC71GJ1F3L,NCIT:C66216,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB12583,Maltodextrin,UNII:7CVR7L4A2D,NCIT:C68474,biolink:Food,,ncit-food
+DRUGBANK:DB13168,Omega-6 fatty acids,UNII:116Z6MZN1M,NCIT:C2563,biolink:Food,,ncit-food
+DRUGBANK:DB13193,Vitex agnus-castus fruit extract,UNII:433OSF3U8A,NCIT:C72243,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB13194,Hedera helix leaf extract,UNII:ZP9XFG71A7,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB13195,Horse chestnut,UNII:3C18L6RJAZ,NCIT:C80286,biolink:Food,,ncit-food
+DRUGBANK:DB13196,Valerian,UNII:JWF5YAW3QW,NCIT:C38725,biolink:Food,,plant-food
+DRUGBANK:DB13263,Quassia,UNII:S5249Q85HW,,biolink:Food,,plant-food
+DRUGBANK:DB13293,Ipecac,UNII:62I3C8233L,NCIT:C65951,biolink:Food,,plant-food
+DRUGBANK:DB13446,Guar gum,UNII:E89I1637KE,NCIT:C80932,biolink:Food,,plant-food
+DRUGBANK:DB13525,Althea root,UNII:TRW2FUF47H,,biolink:Food,,plant-food
+DRUGBANK:DB13895,Rhus Glabra Pollen,UNII:5THQ6K6J4O,NCIT:C85349,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB13906,Aloe vera leaf,UNII:ZY81Z83H0X,NCIT:C71875,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB13913,Belladonna,UNII:WQZ3G9PF0H,,biolink:Food,,plant-food
+DRUGBANK:DB13964,Peanut oil,UNII:5TL50QU0W4,NCIT:C66332,biolink:Food,,ncit-food
+DRUGBANK:DB13965,Sarracenia Purpurea,UNII:FOP08H143P,NCIT:C72435,biolink:Food,,plant-food
+DRUGBANK:DB13974,Passiflora incarnata flower,UNII:K8F3G29S6Z,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB13975,Black cohosh,UNII:K73E24S6X9,NCIT:C26647,biolink:Food,,plant-food
+DRUGBANK:DB14157,Hydrogenated soybean lecithin,UNII:QHQ97HF0PY,,biolink:Food,,plant-food
+DRUGBANK:DB14161,"Lecithin, soybean",UNII:1DI56QDM62,NCIT:C80292,biolink:Food,,ncit-food
+DRUGBANK:DB14163,Anthoxanthum odoratum,UNII:YMW1K70E4Q,NCIT:C72244,biolink:Food,,plant-food
+DRUGBANK:DB14164,Betula lenta whole,UNII:41A3V2257T,NCIT:C74481,biolink:Food,,plant-food
+DRUGBANK:DB14166,Rumex acetosella whole,UNII:D4MF746504,,biolink:Food,,plant-food
+DRUGBANK:DB14167,Rumex crispus top,UNII:S9T422Q956,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14169,Salix nigra bark,UNII:QU52J3A5B3,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14170,Artemisia vulgaris root,UNII:32MP823R8S,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14179,Phleum pratense top,UNII:S7PW24BX20,,biolink:Food,,plant-food
+DRUGBANK:DB14229,Lowbush blueberry,UNII:G90PX41VP0,,biolink:Food,,plant-food
+DRUGBANK:DB14233,Egg phospholipids,UNII:1Z74184RGV,NCIT:C79998,biolink:Food,,ncit-food
+DRUGBANK:DB14235,Bilberry,UNII:9P2U39H18W,,biolink:Food,,plant-food
+DRUGBANK:DB14236,Aloe vera leaf polysaccharides,UNII:W21O437517,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14237,Echinacea angustifolia root,UNII:D982V7VT3P,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14238,Echinacea purpurea flowering top,UNII:2EMS3QFX65,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14239,Echinacea purpurea,UNII:QI7G114Y98,NCIT:C72304,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14241,"Caviar, unspecified",UNII:020K6HLU0O,NCIT:C72058,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14242,Honey,UNII:Y9H1V576FH,NCIT:C65859,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14252,Jojoba oil,UNII:724GKU717M,NCIT:C107318,biolink:Food,,plant-food
+DRUGBANK:DB14253,Avena sativa flowering top,UNII:MA9CQJ3F7F,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14254,Aloe vera flower,UNII:575DY8C1ER,NCIT:C71796,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14255,Angelica dahurica root,UNII:1V63N2S972,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14256,Centella asiatica,UNII:7M867G6T1U,NCIT:C72337,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14257,Aloe ferox leaf,UNII:0D145J8EME,NCIT:C82715,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14258,Elm,UNII:63POE2M46Y,NCIT:C65510,biolink:Food,,plant-food
+DRUGBANK:DB14259,Eucommia ulmoides bark,UNII:L878N1L0AR,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14261,Panax ginseng fruit,UNII:E35T4MOI3E,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14262,Bird pepper,UNII:JLH5RT8O28,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14263,Calendula officinalis flower,UNII:P0M7O4Y7YD,NCIT:C73866,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14264,Maclura tricuspidata whole,UNII:QOE5U8M2TG,,biolink:Food,,plant-food
+DRUGBANK:DB14265,Momordica charantia fruit,UNII:UA63Y8U89U,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14266,Tribulus terrestris root,UNII:6WY8ROM74K,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14267,Rumex crispus whole,UNII:UQJ679MZAK,NCIT:C72428,biolink:Food,,plant-food
+DRUGBANK:DB14268,Swertia japonica whole flowering,UNII:01X0P6GX6C,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14269,Nardostachys chinensis whole,UNII:FJ4AE60Q9V,,biolink:Food,,plant-food
+DRUGBANK:DB14270,Simmondsia chinensis seed,UNII:D24K2Q1F6H,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14271,Morus alba root bark,UNII:SV6B76DK9N,NCIT:C73906,biolink:Food,,plant-food
+DRUGBANK:DB14272,Rosemary,UNII:8JM482TI79,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14273,Ocimum tenuiflorum top,UNII:34T63W8ULS,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14274,Salix alba bark,UNII:205MXS71H7,NCIT:C71773,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14275,Indian frankincense,UNII:4PW41QCO2M,NCIT:C49089,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14276,Turmeric,UNII:856YO1Z64F,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14277,Tripterygium wilfordii whole,UNII:GBE347P41D,,biolink:Food,,plant-food
+DRUGBANK:DB14278,Carthamus tinctorius flower bud,UNII:B86IS274O0,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14279,Corydalis ambigua tuber,UNII:1DN1EU584R,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14280,Lonicera caprifolium flower,UNII:5N1WD9784U,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14281,Lagerstroemia indica whole,UNII:N47D84L52F,,biolink:Food,,plant-food
+DRUGBANK:DB14283,Angelica archangelica root,UNII:885452N0GZ,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14284,Panax ginseng whole,UNII:9L5JEP7MES,,biolink:Food,,plant-food
+DRUGBANK:DB14285,Ginkgo biloba leaf oil,UNII:Y5967KO1JH,,biolink:Food,,plant-food
+DRUGBANK:DB14286,Panax ginseng root oil,UNII:P9T4K47OM0,,biolink:Food,,plant-food
+DRUGBANK:DB14288,Kaempferia galanga root,UNII:7B7U9D12AI,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14289,Larix sibirica wood,UNII:KSC3PGF73L,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14290,Rehmannia glutinosa root,UNII:1BEM3U6LQQ,NCIT:C80293,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14291,Wormwood,UNII:51PW3BIW1K,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14292,Acorus calamus root,UNII:XY1K7KIQ0F,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14293,Eutrema japonicum whole,UNII:WA34673193,,biolink:Food,,plant-food
+DRUGBANK:DB14294,Styphnolobium japonicum flower bud,UNII:DES4RX1Z3E,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14295,Reynoutria multiflora root,UNII:AUZ3VD75MC,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14296,Panax quinquefolius whole,UNII:0P067WOA1X,,biolink:Food,,plant-food
+DRUGBANK:DB14297,Arnica montana,UNII:O80TY208ZW,NCIT:C71849,biolink:Food,,plant-food
+DRUGBANK:DB14298,Gambir,UNII:3NJQ5D8S6N,,biolink:Food,,plant-food
+DRUGBANK:DB14299,Mucuna pruriens seed,UNII:55G8SQ543S,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14300,Erythroxylum catuaba bark,UNII:3W8LSF0XRN,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14301,Epimedium grandiflorum top,UNII:137PC46F89,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14302,Turnera diffusa leaf,UNII:812R0W1I3K,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14303,Eleuthero,UNII:ZQH6VH092Z,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14304,Panax notoginseng root,UNII:GQX1C1175U,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14305,Tribulus terrestris fruit,UNII:QNL076V6EQ,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14306,Juglans regia shell,UNII:PJ10MT7VKA,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14307,Green tea leaf,UNII:W2ZU1RY8B0,NCIT:C67048,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14308,Camellia japonica seed oil,UNII:U37N0S910T,,biolink:Food,,plant-food
+DRUGBANK:DB14309,Meadowfoam seed oil,UNII:412ZHA4T4Y,NCIT:C72213,biolink:Food,,plant-food
+DRUGBANK:DB14310,Argan oil,UNII:4V59G5UW9X,NCIT:C107265,biolink:Food,,plant-food
+DRUGBANK:DB14311,Shea butter,UNII:K49155WL9Y,NCIT:C73914,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14312,Glycyrrhiza glabra,UNII:2788Z9758H,NCIT:C80295,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14313,Lawsonia inermis leaf,UNII:E5818YZ355,NCIT:C72518,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14314,Indigofera tinctoria leaf,UNII:2K7DF8HZDM,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14315,Calendula officinalis whole,UNII:PFR03EBU0H,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14316,Tangerine peel,UNII:JU3D414057,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14317,Pomegranate,UNII:56687D1Z4D,NCIT:C73929,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14319,Magnolia kobus flowering top,UNII:X2725LP5TL,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14320,Eucalyptus globulus leaf,UNII:S546YLW6E6,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14321,Bambusa vulgaris top,UNII:FIW80T6P6V,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14322,Coconut oil,UNII:Q9L0O73W7L,NCIT:C65347,biolink:Food,,ncit-food
+DRUGBANK:DB14323,Grape seed oil,UNII:930MLC8XGG,NCIT:C107311,biolink:Food,,plant-food
+DRUGBANK:DB14324,Apricot kernel oil,UNII:54JB35T06A,NCIT:C107264,biolink:Food,,plant-food
+DRUGBANK:DB14325,Schisandra chinensis fruit,UNII:ABS794681C,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14326,Amber,UNII:70J9Z0J26P,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14327,Purslane,UNII:M6S840WXG5,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14328,Chamaemelum nobile flower,UNII:O2T154T6OG,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14329,Sunflower oil,UNII:3W1JG795YI,NCIT:C1241,biolink:Food,,ncit-food
+DRUGBANK:DB14330,Macadamia oil,UNII:515610SU8C,,biolink:Food,,plant-food
+DRUGBANK:DB14331,Heterotheca inuloides flower,UNII:W9NZ9OZF68,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14333,Nelumbo nucifera flower,UNII:61W322NLDV,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14335,Bergamot oil,UNII:39W1PKE3JI,NCIT:C107291,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14336,Angelica sinensis root,UNII:697D19QDBN,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14337,Salvia miltiorrhiza root,UNII:1693AM5SBN,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14338,Atractylodes lancea root oil,UNII:EC228KGY00,,biolink:Food,,plant-food
+DRUGBANK:DB14339,Scutellaria lateriflora,UNII:7BP4DH5PDC,NCIT:C73980,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14340,Prunus armeniaca seed,UNII:75356789IW,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14341,Chamaecyparis obtusa wood oil,UNII:P2OMP71Y62,NCIT:C107284,biolink:Food,,plant-food
+DRUGBANK:DB14342,Taraxacum officinale leaf,UNII:0022LFJ74Y,NCIT:C71842,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14343,Arnica montana flower,UNII:OZ0E5Y15PZ,NCIT:C72490,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14344,Lonicera confusa flower,UNII:3JV904IJ0V,,biolink:Food,,plant-food
+DRUGBANK:DB14345,Forsythia suspensa fruit,UNII:P4793M1ES5,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14346,Mentha arvensis top,UNII:8J5Y2F7A5X,,biolink:Food,,plant-food
+DRUGBANK:DB14347,Platycodon grandiflorus root,UNII:2DF0NS0O2Z,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14349,Equisetum arvense top,UNII:1DP6Y6B65Z,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14350,Inula helenium root,UNII:E55SMD6DA8,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14352,Azadirachta indica leaf,UNII:HKY915780T,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14353,Zanthoxylum clava-herculis whole,UNII:Z5VZA25BUK,,biolink:Food,,plant-food
+DRUGBANK:DB14354,Salix alba bark volatile oil,UNII:PW3MX00JXN,,biolink:Food,,plant-food
+DRUGBANK:DB14355,Apple fruit oil,UNII:9NT987I3A8,,biolink:Food,,plant-food
+DRUGBANK:DB14356,Platycodon grandiflorus leaf,UNII:2L64H2X8DY,,biolink:Food,,plant-food
+DRUGBANK:DB14357,Chamomile,UNII:FGL3685T2X,NCIT:C73870,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14358,Tribulus terrestris,UNII:4X4HLN92OT,,biolink:Food,,plant-food
+DRUGBANK:DB14360,Saw palmetto,UNII:J7WWH9M8QS,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14361,Rice bran,UNII:R60QEP13IC,NCIT:C111686,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14362,Moringa oleifera leaf,UNII:4WET1AWO9B,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14363,Rosa centifolia flower oil,UNII:H32V31VMWY,NCIT:C107356,biolink:Food,,plant-food
+DRUGBANK:DB14364,Scutellaria baicalensis root,UNII:7J95K7ID2S,NCIT:C71863,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14365,Garcinia gummi-gutta fruit,UNII:D0QJI8UQVR,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14366,Ilex paraguariensis leaf,UNII:1Q953B4O4F,NCIT:C71770,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14368,Capsicum annuum whole,UNII:7FKZ3QQQ1F,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14369,Typhonium giganteum whole,UNII:C61Y66MY4H,,biolink:Food,,plant-food
+DRUGBANK:DB14370,Phellodendron amurense bark,UNII:PBG27B754G,NCIT:C103230,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14372,Melaleuca alternifolia leaf,UNII:G43C57162K,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14373,Quercus acutissima whole,UNII:0TVP714IPW,,biolink:Food,,plant-food
+DRUGBANK:DB14375,Milk thistle,UNII:U946SH95EE,NCIT:C29261,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14376,Chicory leaf,UNII:WBQ249COFR,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14377,Palm oil,UNII:5QUO05548Z,NCIT:C72211,biolink:Food,,plant-food
+DRUGBANK:DB14378,Camphor leaf oil,UNII:51D0RGY52V,,biolink:Food,,plant-food
+DRUGBANK:DB14379,Zanthoxylum clava-herculis bark,UNII:0QN10WG2A2,,biolink:Food,,plant-food
+DRUGBANK:DB14563,Magnolia kobus bark,UNII:54LVP49595,,biolink:Food,,plant-food
+DRUGBANK:DB14565,Sophora flavescens root,UNII:IYR6K8KQ5K,NCIT:C71831,biolink:Food,,plant-food
+DRUGBANK:DB14566,Lavender oil,UNII:ZBP1YXW0H8,NCIT:C66002,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14585,Plantago ovata seed,UNII:K9NXW456E2,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14588,Bambusa arundinacea stem,UNII:NRA4497HC5,,biolink:Food,,plant-food
+DRUGBANK:DB14590,Anemarrhena asphodeloides root,UNII:U0OC9BJL0I,NCIT:C80316,biolink:Food,,plant-food
+DRUGBANK:DB14601,Barley malt syrup,UNII:22P8DKP670,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14686,Chamaecyparis obtusa leaf,UNII:7OL154J5XB,,biolink:Food,,plant-food
+DRUGBANK:DB14687,Centella asiatica leaf,UNII:6810070TYD,NCIT:C71797,biolink:Food,,plant-food
+DRUGBANK:DB14688,Sambucus nigra flower,UNII:07V4DX094T,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14689,Rosemary oil,UNII:8LGU7VM393,NCIT:C107360,biolink:Food,,plant-food
+DRUGBANK:DB14690,Ginger oil,UNII:SAS9Z1SVUK,NCIT:C107310,biolink:Food,,plant-food
+DRUGBANK:DB14692,Turmeric oil,UNII:6KGS8SP16U,NCIT:C107368,biolink:Food,,plant-food
+DRUGBANK:DB14693,Atractylodes lancea root,UNII:CAZ6282J2O,NCIT:C80318,biolink:Food,,plant-food
+DRUGBANK:DB14694,Beef liver,UNII:W8N8R55022,NCIT:C75669,biolink:Food,,ncit-food
+DRUGBANK:DB14709,Bean,UNII:8WB9PV3YW5,NCIT:C71990,biolink:Food,,ncit-food
+DRUGBANK:DB14745,Olea europaea leaf,UNII:MJ95C3OH47,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14747,Ephedra sinica stem,UNII:55L3XLO37E,NCIT:C71795,biolink:Food,,plant-food
+DRUGBANK:DB14748,Polygala tenuifolia root,UNII:5S7W573MTU,NCIT:C171390,biolink:Food,,plant-food
+DRUGBANK:DB14749,Polygala senega root,UNII:M7T6H7D4IF,NCIT:C71845,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14757,Agrostis gigantea top,UNII:A5ODF78EPD,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14758,Catfish,UNII:EFN1AL1YP0,NCIT:C71919,biolink:Food,,ncit-food
+DRUGBANK:DB14759,Red pepper,UNII:6M47G7C4SY,NCIT:C73793,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14836,Polydextrose,UNII:VH2XOU12IE,NCIT:C81624,biolink:Food,,ncit-food
+DRUGBANK:DB15216,Amylose,UNII:7TDQ74Y18L,NCIT:C68489,biolink:Food,,ncit-food
+DRUGBANK:DB15478,Frangula purshiana bark,UNII:4VBP01X99F,NCIT:C28909,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15502,Baccharis sarothroides whole,UNII:C94X53K2GW,,biolink:Food,,plant-food
+DRUGBANK:DB15503,Amaranthus hybridus pollen,UNII:EK7F0414PI,NCIT:C85096,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15504,Acacia dealbata pollen,UNII:L16Z5HLP8V,NCIT:C85200,biolink:Food,,plant-food
+DRUGBANK:DB15509,Alnus serrulata pollen,UNII:390VZ1D0L5,,biolink:Food,,plant-food
+DRUGBANK:DB15510,Prosopis velutina seed,UNII:R0120Z3YIC,,biolink:Food,,plant-food
+DRUGBANK:DB15529,Leucanthemum vulgare pollen,UNII:H9E0IX4MOX,NCIT:C85278,biolink:Food,,plant-food
+DRUGBANK:DB15530,Trifolium pratense pollen,UNII:3SNK70F46Y,NCIT:C85379,biolink:Food,,plant-food
+DRUGBANK:DB15537,Eucalyptus gum,UNII:72T9EZC2VX,,biolink:Food,,plant-food
+DRUGBANK:DB15544,Myristica fragrans fruit,UNII:GOO22BTU71,,biolink:Food,,plant-food
+DRUGBANK:DB15545,Pisum sativum whole,UNII:J21YE3W98E,,biolink:Food,,plant-food
+DRUGBANK:DB15602,Cashew fruit,UNII:4A10JR4E7E,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15603,"Coffea arabica seed, roasted",UNII:9H58JRT35E,,biolink:Food,,plant-food
+DRUGBANK:DB15604,Lactuca sativa whole,UNII:C0K52765EZ,,biolink:Food,,plant-food
+DRUGBANK:DB15606,White mustard seed,UNII:25VR943RPP,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15607,Hydrolyzed soy protein,UNII:1394NXB9L6,,biolink:Food,,plant-food
+DRUGBANK:DB15608,Theobroma cacao whole,UNII:EB048G1S9J,,biolink:Food,,plant-food
+DRUGBANK:DB15611,Muskmelon,UNII:ZV095H5633,NCIT:C72030,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15612,American hazelnut,UNII:IUP4S55D8S,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15613,Musa acuminata fruit,UNII:T6ENY6RV6W,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15615,Fennel,UNII:557II4LLC3,NCIT:C71970,biolink:Food,,ncit-food
+DRUGBANK:DB15663,Grapefruit oil,UNII:YR377U58W9,,biolink:Food,,plant-food
+DRUGBANK:DB15776,Anise oil,UNII:6Y89129C8H,NCIT:C89792,biolink:Food,,plant-food
+DRUGBANK:DB15786,Maritime pine extract,UNII:50JZ5Z98QY,NCIT:C128889,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15789,Alpinia officinarum leaf,UNII:8584IDD6OR,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15815,Boldo leaf extract,UNII:Q4EWM09M3O,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15836,Cedar leaf oil,UNII:BJ169U4NLG,NCIT:C80991,biolink:Food,,plant-food
+DRUGBANK:DB15838,Orthosiphon aristatus leaf,UNII:DSS8V86H3Y,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15860,Cassia fistula fruit,UNII:J65X53KM9E,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15889,Senna leaf,UNII:AK7JF626KX,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15894,Glycyrrhiza uralensis root,UNII:42B5YD8F0K,NCIT:C80296,biolink:Food,,plant-food
+DRUGBANK:DB15904,Alnus glutinosa,UNII:24A0VB48CA,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15922,Cajuput oil,UNII:J3TO6BUQ37,NCIT:C74291,biolink:Food,,plant-food
+DRUGBANK:DB15928,Asafoetida,UNII:W9FZA51AS1,NCIT:C83538,biolink:Food,,plant-food
+DRUGBANK:DB15986,Cinnamon oil,UNII:A4WO0626T5,NCIT:C65293,biolink:Food,,plant-food
+DRUGBANK:DB15989,Garlic oil,UNII:4WG8U28833,NCIT:C63652,biolink:Food,,plant-food
+DRUGBANK:DB15996,Nutmeg oil,UNII:Z1CLM48948,NCIT:C107336,biolink:Food,,plant-food
+DRUGBANK:DB16536,Birch bark extract,UNII:3R504894L9,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16545,Malpighia emarginata extract,UNII:XDD2WEC9L5,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16546,Medicago sativa top,UNII:SQI2NBY9KR,NCIT:C84406,biolink:Food,,plant-food
+DRUGBANK:DB16558,Rosa canina fruit,UNII:3TNW8D08V3,NCIT:C71789,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16559,Nux vomica extract,UNII:269XH13919,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16566,Gentiana lutea extract,UNII:S72O3284MS,NCIT:C71791,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16570,Wheat germ oil,UNII:14C97E680P,NCIT:C107372,biolink:Food,,plant-food
+DRUGBANK:DB16575,Mentha arvensis leaf oil,UNII:1AEY1M553N,,biolink:Food,,plant-food
+DRUGBANK:DB16576,Cardamom,UNII:8BC4CUT4JL,NCIT:C74464,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16583,Pelargonium sidoides root,UNII:H6J53HEX8E,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16586,Pygeum africanum bark,UNII:709HYI14M4,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16589,Pinus densiflora whole,UNII:U797H98B8Y,,biolink:Food,,plant-food
+DRUGBANK:DB16592,Frankincense,UNII:R9XLF1R1WM,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16593,Chinese cinnamon,UNII:WS4CQ062KM,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16594,Goldenseal,UNII:ZW3Z11D0JV,NCIT:C71859,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16595,Paeonia lactiflora root,UNII:3Z3866YW6P,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16596,Apple cider vinegar,UNII:0UE22Q87VC,,biolink:Food,,plant-food
+DRUGBANK:DB16597,Artemisia annua leaf,UNII:E4M09UY5BL,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16598,Citrus aurantium fruit,UNII:DQD16J2B5O,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16600,Cinnamon leaf oil,UNII:S92U8SQ71V,NCIT:C107290,biolink:Food,,plant-food
+DRUGBANK:DB16601,Citronella oil,UNII:QYO8Q067D0,NCIT:C71856,biolink:Food,,plant-food
+DRUGBANK:DB16606,Vitis vinifera seed,UNII:C34U15ICXA,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16610,Thyme oil,UNII:2UK410MY6B,NCIT:C107367,biolink:Food,,plant-food
+DRUGBANK:DB16618,Niaouli oil,UNII:D50IC2T8FU,NCIT:C72212,biolink:Food,,plant-food
+DRUGBANK:DB16632,Chamaecyparis obtusa whole,UNII:80ZNL1G5XY,,biolink:Food,,plant-food
+DRUGBANK:DB16633,Cryptomeria japonica bark,UNII:5VB6Q5926T,,biolink:Food,,plant-food
+DRUGBANK:DB16636,Gastrodia elata whole,UNII:08F85I5YAV,,biolink:Food,,plant-food
+DRUGBANK:DB16638,Cnidium monnieri fruit,UNII:V1IA3S3CUS,NCIT:C73874,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16639,Juniper tar,UNII:1Q84T0P2G3,NCIT:C71827,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB17721,Astragalus mongholicus root polysaccharides,UNII:71WW2LNL50,NCIT:C103822,biolink:Food,,plant-food
+DRUGBANK:DB17914,Sorghum,UNII:CUL9PN8ELJ,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB18685,Whey,UNII:8617Z5FMF6,NCIT:C71947,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
