@@ -23,27 +23,31 @@ def write_gene_info(path, rows):
             gene_info.write("\t".join(row) + "\n")
 
 
-# The verbatim Synonyms field of gene 828367 (CYP706A2) from gene_info.gz -- the row reported in
-# issue #744. NCBI quoted the comma-containing alias as ''...'' and then turned its internal commas
-# into pipes, so its pieces (cytochrome P450 / family 706 / polypeptide 2 / subfamily A) arrive as
-# separate fragments, *interleaved* with the genuine aliases T12H17.100 and T12H17_100 and in no
-# meaningful order. Note both a quoted and an unquoted copy of the first and last piece are present.
+# The verbatim gene 828367 (CYP706A2) fields from gene_info.gz -- the row reported in issue #744.
+# Named here only because the end-to-end tests below thread them through several columns of a
+# 16-column row and then assert on them; the split_ncbigene_synonym_field cases in SPLIT_CASES spell
+# them out in full instead, so each case can be read on its own.
 GENE_828367_SYNONYMS = (
     "''cytochrome P450|T12H17.100|T12H17_100|cytochrome P450|family 706|polypeptide 2|polypeptide 2''|subfamily A"
 )
-# The same value, intact, as gene_info.gz carries it in Full_name_from_nomenclature_authority /
-# Other_designations / description -- the key to recognising the shredded pieces above (#932).
 GENE_828367_FULL_NAME = "cytochrome P450, family 706, subfamily A, polypeptide 2"
 
 
-# Every case is (Synonyms field, full_name, exactly the synonyms that should come out). Assertions
-# are exact-set, not "contains", so a case pins the whole output and a new error case is one entry
-# rather than a new test function. Add to this table when a new NCBI quoting shape turns up --
-# characterize it against the real gene_info.gz first (see docs/sources/NCBIGene/quoting/).
+# Every case is (Synonyms field, full_name, exactly the synonyms that should come out), written out
+# in full so the shredded field and the intact value can be read side by side: `full_name` is
+# "cytochrome P450, family 706, subfamily A, polypeptide 2", and you can see its comma-pieces
+# scattered through the Synonyms field, interleaved with the genuine aliases T12H17.100 and
+# T12H17_100 that must survive.
+#
+# Assertions are exact-set, not "contains", so a case pins the whole output and a new error case is
+# one entry rather than a new test function. Add to this table when a new NCBI quoting shape turns
+# up -- characterize it against the real gene_info.gz first (see docs/sources/NCBIGene/quoting/).
 SPLIT_CASES = [
+    # The verbatim gene 828367 (CYP706A2) row from gene_info.gz -- the one reported in issue #744.
+    # Note both a quoted and an unquoted copy of the first and last piece are present.
     pytest.param(
-        GENE_828367_SYNONYMS,
-        GENE_828367_FULL_NAME,
+        "''cytochrome P450|T12H17.100|T12H17_100|cytochrome P450|family 706|polypeptide 2|polypeptide 2''|subfamily A",
+        "cytochrome P450, family 706, subfamily A, polypeptide 2",
         {"T12H17.100", "T12H17_100"},
         id="shredded-value-with-full-name-drops-markers-and-middle-pieces",
     ),
@@ -52,17 +56,17 @@ SPLIT_CASES = [
     # ends still go, but the middle pieces carry no '' at all and cannot be identified as junk
     # without the intact value -- so they survive. This is the #932 limitation, not a bug.
     pytest.param(
-        GENE_828367_SYNONYMS,
+        "''cytochrome P450|T12H17.100|T12H17_100|cytochrome P450|family 706|polypeptide 2|polypeptide 2''|subfamily A",
         "",
         {"T12H17.100", "T12H17_100", "cytochrome P450", "family 706", "polypeptide 2", "subfamily A"},
         id="shredded-value-without-full-name-keeps-middle-pieces",
     ),
     # No open marker => nothing was shredded into this field, so every fragment is a real alias --
-    # even one that happens to equal a comma-piece of the full name. Guards the #932 fix against
-    # over-reaching.
+    # even "cytochrome P450", which does equal a comma-piece of the full name. Guards the #932 fix
+    # against over-reaching.
     pytest.param(
         "cytochrome P450|T12H17.100",
-        GENE_828367_FULL_NAME,
+        "cytochrome P450, family 706, subfamily A, polypeptide 2",
         {"cytochrome P450", "T12H17.100"},
         id="no-open-marker-keeps-fragments-matching-full-name-pieces",
     ),
@@ -97,7 +101,7 @@ SPLIT_CASES = [
     # The no-'' fast path.
     pytest.param(
         "CYP706A2|T12H17.100",
-        GENE_828367_FULL_NAME,
+        "cytochrome P450, family 706, subfamily A, polypeptide 2",
         {"CYP706A2", "T12H17.100"},
         id="field-without-any-quotes-passes-through",
     ),
