@@ -1,9 +1,7 @@
 import ast
 import gzip
 import logging
-import os
 from collections import defaultdict
-from os.path import dirname
 
 import jsonlines
 import requests
@@ -47,7 +45,7 @@ from src.prefixes import (
 from src.properties import HAS_ALTERNATIVE_ID, Property
 from src.sdfreader import read_sdf
 from src.ubergraph import UberGraph
-from src.util import Text, get_logger, get_memory_usage_summary
+from src.util import Text, ensure_parent_dir, get_logger, get_memory_usage_summary
 
 logger = get_logger(__name__)
 
@@ -720,7 +718,7 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
     secondary_chebi_id = "secondarychebiid"
 
     # What if we don't have a propfile directory?
-    os.makedirs(dirname(propfile_gz), exist_ok=True)
+    ensure_parent_dir(propfile_gz)
 
     with open(outfile, "w") as outf, gzip.open(propfile_gz, "wt") as propf:
         # Write SDF structured things
