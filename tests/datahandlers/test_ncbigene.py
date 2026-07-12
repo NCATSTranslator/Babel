@@ -31,6 +31,9 @@ def write_gene_info(path, rows):
 GENE_828367_SYNONYMS = (
     "''cytochrome P450|T12H17.100|T12H17_100|cytochrome P450|family 706|polypeptide 2|polypeptide 2''|subfamily A"
 )
+# The same value, intact, as gene_info.gz carries it in Full_name_from_nomenclature_authority /
+# Other_designations / description -- the key to recognising the shredded pieces above (#932).
+GENE_828367_FULL_NAME = "cytochrome P450, family 706, subfamily A, polypeptide 2"
 
 
 @pytest.mark.unit
@@ -43,9 +46,9 @@ def test_split_ncbigene_synonym_field_skips_unbalanced_single_quote_fragments():
     Full_name_from_nomenclature_authority / Other_designations columns instead (asserted in
     test_pull_ncbigene_labels_synonyms_and_taxa_skips_quote_fragments_for_828367 below).
 
-    Known limitation: the bare comma-pieces (`family 706`, `subfamily A`, ...) do still come through
-    as standalone synonyms here. They are junk, but they are not malformed. Pinned below so that
-    fixing them trips this test rather than passing silently.
+    Without the `quoted_value` context the middle pieces of the shredded value (`family 706`,
+    `subfamily A`) cannot be recognised, so they still come through; passing it drops them (#932,
+    covered by the next test).
     """
     synonyms = split_ncbigene_synonym_field(GENE_828367_SYNONYMS)
 
@@ -58,12 +61,27 @@ def test_split_ncbigene_synonym_field_skips_unbalanced_single_quote_fragments():
     assert "T12H17.100" in synonyms
     assert "T12H17_100" in synonyms
 
-    # Pins CURRENT, KNOWN-IMPERFECT behavior, not a guarantee we want to keep: the comma-pieces of
-    # the quoted value are emitted as standalone synonyms. Issue #932
-    # (https://github.com/NCATSTranslator/Babel/issues/932) proposes dropping them by matching them
-    # against the row's Full_name. When that lands, invert this assertion -- do not "repair" the
-    # test by deleting it.
-    assert {"cytochrome P450", "family 706", "polypeptide 2", "subfamily A"} <= synonyms
+
+@pytest.mark.unit
+def test_split_ncbigene_synonym_field_drops_shredded_middle_pieces():
+    """Given the intact value, the shredded value's middle pieces are dropped (issue #932).
+
+    NCBI turned the commas of "cytochrome P450, family 706, subfamily A, polypeptide 2" into pipes,
+    so its pieces arrive as fragments carrying no '' at all and indistinguishable from real aliases
+    by shape. Passing the intact value from Full_name_from_nomenclature_authority identifies them.
+    """
+    synonyms = split_ncbigene_synonym_field(GENE_828367_SYNONYMS, GENE_828367_FULL_NAME)
+
+    # The junk middle pieces are gone.
+    assert synonyms.isdisjoint({"cytochrome P450", "family 706", "polypeptide 2", "subfamily A"})
+
+    # Genuine aliases are untouched, and no '' marker escapes.
+    assert synonyms == {"T12H17.100", "T12H17_100"}
+
+    # Without an open marker there is no shredded value, so nothing is dropped even when the
+    # fragments happen to match a piece of the full name.
+    intact = split_ncbigene_synonym_field("cytochrome P450|T12H17.100", GENE_828367_FULL_NAME)
+    assert intact == {"cytochrome P450", "T12H17.100"}
 
 
 @pytest.mark.unit
@@ -111,12 +129,12 @@ def test_pull_ncbigene_labels_synonyms_and_taxa_skips_quote_fragments_for_828367
                 "Araport:AT4G22710|TAIR:AT4G22710",
                 "4",
                 "-",
-                "cytochrome P450, family 706, subfamily A, polypeptide 2",
+                GENE_828367_FULL_NAME,
                 "protein-coding",
                 "CYP706A2",
-                "cytochrome P450, family 706, subfamily A, polypeptide 2",
+                GENE_828367_FULL_NAME,
                 "O",
-                "cytochrome P450, family 706, subfamily A, polypeptide 2",
+                GENE_828367_FULL_NAME,
                 "20260706",
                 "-",
             ]
@@ -132,15 +150,14 @@ def test_pull_ncbigene_labels_synonyms_and_taxa_skips_quote_fragments_for_828367
     assert not any(s.startswith("''") for s in synonym_values)
     assert ["NCBIGene:828367", "CYP706A2"] in assert_labels_file_valid(str(labels))
     assert ["NCBIGene:828367", "NCBITaxon:3702"] in assert_taxa_file_valid(str(taxa))
-    assert [
-        "NCBIGene:828367",
-        "cytochrome P450, family 706, subfamily A, polypeptide 2",
-    ] in assert_descriptions_file_valid(str(descriptions))
+    assert ["NCBIGene:828367", GENE_828367_FULL_NAME] in assert_descriptions_file_valid(str(descriptions))
 
     # The mangled alias is recovered in full from Full_name_from_nomenclature_authority, not by
     # reassembling the Synonyms fragments.
-    assert ["NCBIGene:828367", HAS_SYNONYM, "cytochrome P450, family 706, subfamily A, polypeptide 2"] in synonym_rows
+    assert ["NCBIGene:828367", HAS_SYNONYM, GENE_828367_FULL_NAME] in synonym_rows
 
-    # Pins CURRENT, KNOWN-IMPERFECT behavior: the junk comma-pieces still reach the synonyms file.
-    # See issue #932 (https://github.com/NCATSTranslator/Babel/issues/932); invert when it lands.
-    assert {"cytochrome P450", "family 706", "polypeptide 2", "subfamily A"} <= synonym_values
+    # The shredded value's middle pieces do not reach the synonyms file (#932).
+    assert synonym_values.isdisjoint({"cytochrome P450", "family 706", "polypeptide 2", "subfamily A"})
+
+    # The gene's real aliases do.
+    assert {"T12H17.100", "T12H17_100", "CYP706A2"} <= synonym_values

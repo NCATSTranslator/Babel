@@ -56,30 +56,43 @@ def is_open_marker(starts_quoted, ends_quoted):
     return starts_quoted and not ends_quoted
 
 
-def split_ncbigene_synonym_field(value):
+def split_ncbigene_synonym_field(value, quoted_value=""):
     """
     Split a pipe-delimited NCBIGene synonym field into standalone synonym strings.
 
-    NCBI wraps some comma-containing values in ''...'' and then splits the whole field on '|',
-    leaving the opening fragment ''cytochrome P450 and the closing fragment polypeptide 2'' as
-    dangling artifacts (issue #744). These are dropped.
+    NCBI wraps some comma-containing values in ''...'' and then turns that value's internal commas
+    into '|' -- the column's own delimiter -- so the value arrives shredded into pipe-fragments
+    (issue #744). The first carries a leading '' and the last a trailing '' (''cytochrome P450 ...
+    polypeptide 2''); both are dropped.
 
     A *trailing* '' by itself, however, is usually legitimate double-prime nomenclature -- real
     values such as U2B'', "RNA polymerase subunit beta''", and "...6''-O-malonyltransferase" end in
     '' and must be kept. An empirical scan of gene_info.gz (see
     docs/sources/NCBIGene/quoting/double_prime_report.md) found ~25,000 genuine double-prime values
-    versus only a few hundred split-span pairs, and confirmed that a *leading* '' never begins a
+    versus only a few hundred shredded values, and confirmed that a *leading* '' never begins a
     genuine name. So a fragment is treated as an artifact only when it is a leading open marker, or
     a trailing close marker in a field that also contains such an open marker.
+
+    That leaves the value's *middle* pieces, which carry no '' at all and are indistinguishable from
+    real aliases by shape alone: `family 706`, `subfamily A`, `MET`, even a bare `3`. They are junk
+    (issue #932). Pass the row's Full_name_from_nomenclature_authority (or Other_designations) as
+    `quoted_value` and they are dropped: it holds the same value intact and correctly
+    comma-formatted, so its comma-pieces are exactly the fragments to remove. The value itself still
+    reaches the synonyms from its own column, so nothing is lost. Only applied when the field
+    actually contains an open marker -- absent one, no value was shredded into it and every fragment
+    is a real alias.
     """
     fragments = [
         (fragment, fragment.startswith("''"), fragment.endswith("''"))
         for fragment in (f.strip() for f in value.split("|"))
     ]
     # An open marker starts with '' but does not also end with '' (that would be a self-contained
-    # ''...'' value). Its presence means the field is a comma-split span, so the matching trailing
-    # close markers in the same field are artifacts too.
+    # ''...'' value). Its presence means a comma-containing value was shredded into this field, so
+    # the matching trailing close marker -- and the value's middle pieces -- are artifacts too.
     has_open_marker = any(is_open_marker(starts_quoted, ends_quoted) for _, starts_quoted, ends_quoted in fragments)
+    shredded_pieces = set()
+    if has_open_marker and quoted_value:
+        shredded_pieces = {piece.strip() for piece in quoted_value.split(",") if piece.strip()}
 
     synonyms = set()
     for fragment, starts_quoted, ends_quoted in fragments:
@@ -92,11 +105,14 @@ def split_ncbigene_synonym_field(value):
                 synonyms.add(stripped)
             continue
         if starts_quoted:
-            # Leading '' = open marker of a #744 comma-split span -> drop.
+            # Leading '' = open marker of a #744 shredded value -> drop.
             continue
         if ends_quoted and has_open_marker:
-            # Trailing '' in a span field = close marker -> drop. Without an open marker, a trailing
-            # '' is genuine double-prime nomenclature and is kept below.
+            # Trailing '' in a shredded field = close marker -> drop. Without an open marker, a
+            # trailing '' is genuine double-prime nomenclature and is kept below.
+            continue
+        if fragment in shredded_pieces:
+            # A middle piece of the shredded value (#932) -> drop.
             continue
         synonyms.add(fragment)
     return synonyms
@@ -146,11 +162,15 @@ def pull_ncbigene_labels_synonyms_and_taxa(
             taxafile.write(f"{gene_id}\tNCBITaxon:{get_ncbigene_field(row, header, '#tax_id')}\n")
 
             # Write out all the synonyms.
-            syns = split_ncbigene_synonym_field(
-                get_ncbigene_field(row, header, "Full_name_from_nomenclature_authority")
-            )
-            syns.update(split_ncbigene_synonym_field(get_ncbigene_field(row, header, "Synonyms")))
-            syns.update(split_ncbigene_synonym_field(get_ncbigene_field(row, header, "Other_designations")))
+            full_name = get_ncbigene_field(row, header, "Full_name_from_nomenclature_authority")
+            other_designations = get_ncbigene_field(row, header, "Other_designations")
+            # Whichever column holds the value intact is the key to un-shredding the Synonyms column
+            # when NCBI has mangled that same value into it (#932). Every shredded field found in
+            # gene_info.gz is in Synonyms, so only that call needs the context.
+            quoted_value = full_name or other_designations
+            syns = split_ncbigene_synonym_field(full_name)
+            syns.update(split_ncbigene_synonym_field(get_ncbigene_field(row, header, "Synonyms"), quoted_value))
+            syns.update(split_ncbigene_synonym_field(other_designations))
             # syns.add(get_ncbigene_field(row, header, "description"))
             syns.add(get_ncbigene_field(row, header, "Symbol_from_nomenclature_authority"))
             syns.add(get_ncbigene_field(row, header, "Symbol"))
