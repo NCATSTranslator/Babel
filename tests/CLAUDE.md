@@ -30,5 +30,9 @@ see [`README.md`](README.md) — this file only covers how to write one once you
 - **Pin known-imperfect behavior, don't leave it unasserted** — when shipping a partial fix, assert
   the wrong-but-harmless behavior that remains, with a comment saying it pins current behavior, a
   link to the tracking issue, and an instruction to **invert** the assertion when the fix lands
-  rather than delete it. Otherwise the eventual fix changes behavior nothing was watching. See the
-  leftover comma-pieces in `tests/datahandlers/test_ncbigene.py` (issue #932).
+  rather than delete it. Otherwise the eventual fix changes behavior nothing was watching. The
+  worked example is `SPLIT_CASES` in `tests/datahandlers/test_ncbigene.py`: the #932 fix drops a
+  shredded value's middle pieces by matching them against the row's intact `Full_name`, so a row
+  that has *no* `Full_name` still leaks them —
+  `shredded-value-without-full-name-keeps-middle-pieces` asserts that leak rather than ignoring it,
+  and is the case to invert if that gap is ever closed.

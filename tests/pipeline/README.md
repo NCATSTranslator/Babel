@@ -188,6 +188,6 @@ Vocabularies not yet covered (candidates):
   (`write_ensembl_gene_ids`). Deferred because the download uses BioMart
   (`pull_ensembl(ensembl_dir, complete_file, ...)`) which is more complex to invoke
   outside Snakemake.
-- **NCBI Gene / HGNC / other single-source** — vocabularies that appear in only one
+- **HGNC / other single-source** — vocabularies that appear in only one
   compendium don't need mutual-exclusivity tests, but could still get non-empty checks
-  in a per-compendium ETL test (see above).
+  in a per-compendium ETL test (see above). NCBI Gene now has one: `test_ncbigene.py`.

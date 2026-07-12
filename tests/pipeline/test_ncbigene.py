@@ -5,38 +5,32 @@ pull_ncbigene_labels_synonyms_and_taxa over every row, so these tests are marked
 `pipeline` and `slow` and are skipped by default.  Run with:
     uv run pytest tests/pipeline/test_ncbigene.py --pipeline --no-cov -v
 
-The synonyms file has tens of millions of rows, so the fix-specific checks stream it
-line by line rather than loading it into memory via assert_synonyms_file_valid.
+Every output here has tens of millions of rows (~70M, 2-3.5 GB each), so all of these tests
+stream line by line rather than materializing the file via the read_tsv()-backed
+assert_*_file_valid helpers, which would cost tens of GB.
 """
 
 import pytest
 
-from tests.conftest import (
-    assert_descriptions_file_valid,
-    assert_labels_file_valid,
-    assert_taxa_file_valid,
-)
+from tests.conftest import assert_large_tsv_file_valid
 
 
 @pytest.mark.pipeline
 @pytest.mark.slow
 def test_ncbigene_labels_file_valid(ncbigene_pipeline_outputs):
-    rows = assert_labels_file_valid(ncbigene_pipeline_outputs["labels"])
-    assert any(r[0].startswith("NCBIGene:") for r in rows), "No NCBIGene: CURIEs found in labels"
+    assert_large_tsv_file_valid(ncbigene_pipeline_outputs["labels"], 2, "NCBIGene:")
 
 
 @pytest.mark.pipeline
 @pytest.mark.slow
 def test_ncbigene_taxa_file_valid(ncbigene_pipeline_outputs):
-    rows = assert_taxa_file_valid(ncbigene_pipeline_outputs["taxa"])
-    assert any(r[0].startswith("NCBIGene:") for r in rows), "No NCBIGene: CURIEs found in taxa"
+    assert_large_tsv_file_valid(ncbigene_pipeline_outputs["taxa"], 2, "NCBIGene:")
 
 
 @pytest.mark.pipeline
 @pytest.mark.slow
 def test_ncbigene_descriptions_file_valid(ncbigene_pipeline_outputs):
-    rows = assert_descriptions_file_valid(ncbigene_pipeline_outputs["descriptions"])
-    assert any(r[0].startswith("NCBIGene:") for r in rows), "No NCBIGene: CURIEs found in descriptions"
+    assert_large_tsv_file_valid(ncbigene_pipeline_outputs["descriptions"], 2, "NCBIGene:")
 
 
 # The exact fragment strings from the issue #744 example row (gene 828367): a comma-containing
@@ -68,21 +62,30 @@ def test_ncbigene_synonyms_have_no_leading_quote_fragments(ncbigene_pipeline_out
     artifact_offenders = []
     shredded_offenders = []
     issue_932_gene_synonyms = set()
+
+    def record(offenders, row):
+        """Keep the first few offending rows as failure evidence; a real break yields millions."""
+        if len(offenders) < 10:
+            offenders.append(row)
+
     with open(ncbigene_pipeline_outputs["synonyms"]) as f:
         for line in f:
-            cols = line.rstrip("\n").split("\t")
+            row = line.rstrip("\n")
+            cols = row.split("\t")
             assert len(cols) == 3, f"Expected 3 columns, got {len(cols)}: {cols}"
             if cols[0].startswith("NCBIGene:"):
                 found_ncbigene = True
             synonym = cols[2]
-            if synonym.startswith("''") and len(leading_offenders) < 10:
-                leading_offenders.append(line.rstrip("\n"))
-            if synonym in ISSUE_744_ARTIFACTS and len(artifact_offenders) < 10:
-                artifact_offenders.append(line.rstrip("\n"))
+            if synonym.startswith("''"):
+                record(leading_offenders, row)
+            # artifact_offenders scans every gene; shredded_offenders is scoped to one gene, whose
+            # middle pieces are ordinary words that are legitimate aliases elsewhere. Don't merge.
+            if synonym in ISSUE_744_ARTIFACTS:
+                record(artifact_offenders, row)
             if cols[0] == ISSUE_932_GENE:
                 issue_932_gene_synonyms.add(synonym)
-                if synonym in ISSUE_932_SHREDDED_PIECES and len(shredded_offenders) < 10:
-                    shredded_offenders.append(line.rstrip("\n"))
+                if synonym in ISSUE_932_SHREDDED_PIECES:
+                    record(shredded_offenders, row)
 
     assert found_ncbigene, "No NCBIGene: CURIEs found in synonyms"
     assert not leading_offenders, f"Found synonyms starting with '' (issue #744): {leading_offenders}"
