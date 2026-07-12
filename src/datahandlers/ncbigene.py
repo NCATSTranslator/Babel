@@ -81,6 +81,14 @@ def split_ncbigene_synonym_field(value, quoted_value=""):
     reaches the synonyms from its own column, so nothing is lost. Only applied when the field
     actually contains an open marker -- absent one, no value was shredded into it and every fragment
     is a real alias.
+
+    This middle-piece removal is an exact-string match against `quoted_value`'s comma-pieces, not a
+    structural link back to the specific shredded value -- it was validated by confirming the full
+    gene_info.gz snapshot only ever drops junk (912 removed, output always a subset of the
+    unfiltered synonyms). A future NCBI release with different alias text could in principle produce
+    a field that has an unrelated open marker *and* a genuine synonym that happens to equal one of
+    `quoted_value`'s comma-pieces; re-run the characterization in
+    docs/sources/NCBIGene/quoting/ (#917) if this fix is revisited against a new dump.
     """
     fragments = [
         (fragment, fragment.startswith("''"), fragment.endswith("''"))
@@ -166,7 +174,11 @@ def pull_ncbigene_labels_synonyms_and_taxa(
             other_designations = get_ncbigene_field(row, header, "Other_designations")
             # Whichever column holds the value intact is the key to un-shredding the Synonyms column
             # when NCBI has mangled that same value into it (#932). Every shredded field found in
-            # gene_info.gz is in Synonyms, so only that call needs the context.
+            # gene_info.gz is in Synonyms, so only that call needs the context. This assumes
+            # full_name (falling back to other_designations) is always the column that was shredded
+            # into Synonyms -- true for every #932 row found in the full-file scan, but not a
+            # structural guarantee; re-check against other_designations too if a future dump shows
+            # unremoved junk pieces.
             quoted_value = full_name or other_designations
             syns = split_ncbigene_synonym_field(full_name)
             syns.update(split_ncbigene_synonym_field(get_ncbigene_field(row, header, "Synonyms"), quoted_value))
@@ -194,8 +206,9 @@ def pull_ncbigene_labels_synonyms_and_taxa(
                 # Fallback to the "Symbol" field.
                 best_symbol = get_ncbigene_field(row, header, "Symbol")
             if not best_symbol and len(syns) > 0:
-                # Fallback to the first synonym.
-                best_symbol = syns[0]
+                # Fallback to the first synonym. syns is a set, so "first" is arbitrary but stable
+                # within a single run.
+                best_symbol = next(iter(syns))
 
             labelfile.write(f"{gene_id}\t{best_symbol}\n")
 
