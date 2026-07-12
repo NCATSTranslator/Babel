@@ -419,7 +419,8 @@ def pull_via_wget(
     :param decompress: Whether this is a Gzip file that should be decompressed after download.
     :param subpath: The subdirectory of `babel_download` where this file should be stored.
     :param outpath: The full output directory to write this file to. Both subpath and outpath cannot be set at the same time.
-    :param continue_incomplete: Should wget continue an incomplete download?
+    :param continue_incomplete: Should wget continue an incomplete download? Ignored (forced off) in a
+        recursive download with timestamping, where resuming can corrupt a file that changed upstream.
     :param recurse: Do we want to download recursively? Should be from Wget_Recursion_Options, such as Wget_Recursion_Options.NO_RECURSION.
     :param retries: The number of retries to attempt.
     :param verify_gzip: If downloading a Gzip file that isn't being decompressed, verify that the
@@ -439,6 +440,18 @@ def pull_via_wget(
         dl_file_name = os.path.join(download_dir, in_file_name)
 
     ensure_parent_dir(dl_file_name)
+
+    # --continue resumes a download by appending to whatever local file it finds, which only makes
+    # sense if that file is a truncated prefix of the server's copy. In a recursive, timestamped
+    # download it may instead meet a file whose *content* has changed upstream (or one carried over
+    # from a previous run), and appending the tail of the new file to the old one silently produces
+    # a corrupt result. --timestamping already re-fetches, in full, any file whose size or mtime
+    # disagrees with the server's, so it makes --continue both unnecessary and unsafe here. (In a
+    # non-recursive download we pass -O, which makes wget ignore --timestamping entirely, so
+    # --continue remains the only resume mechanism and is kept.)
+    if continue_incomplete and timestamping and recurse != WgetRecursionOptions.NO_RECURSION:
+        logger.info(f"Disabling --continue for recursive, timestamped download of {url}: see pull_via_wget().")
+        continue_incomplete = False
 
     # Prepare wget options.
     wget_command_line = [
