@@ -146,6 +146,15 @@ rule export_intermediate_files_to_duckdb:
         config["output_directory"] + "/benchmarks/export_intermediate_files_to_duckdb.tsv"
     resources:
         # Provisional; right-size from the benchmark once we have a real run.
+        #
+        # If this rule turns out to be memory-bound, raising mem= is not the only lever:
+        # export_intermediates_to_parquet() materialises each table in DuckDB before writing it
+        # out, but DuckDB's read_csv() accepts a *list* of files plus filename=true (which supplies
+        # the source-path column for free). The per-file INSERT loop could collapse into one COPY
+        # per group -- concords, one-column ids, two-column ids -- streaming straight to Parquet
+        # and keeping peak memory proportional to a row group rather than the whole corpus. It was
+        # left alone because the empty-tree case then needs its own branch and DuckDB already
+        # spills to disk under the memory cap, so measure before rewriting.
         mem="128G",
     params:
         intermediate_directory=config["intermediate_directory"],
