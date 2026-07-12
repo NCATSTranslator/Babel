@@ -46,7 +46,7 @@ def test_split_ncbigene_synonym_field_skips_unbalanced_single_quote_fragments():
     Full_name_from_nomenclature_authority / Other_designations columns instead (asserted in
     test_pull_ncbigene_labels_synonyms_and_taxa_skips_quote_fragments_for_828367 below).
 
-    Without the `quoted_value` context the middle pieces of the shredded value (`family 706`,
+    Without the `full_name` context the middle pieces of the shredded value (`family 706`,
     `subfamily A`) cannot be recognised, so they still come through; passing it drops them (#932,
     covered by the next test).
     """
@@ -105,8 +105,8 @@ def test_split_ncbigene_synonym_field_keeps_double_prime_without_open_marker():
 
 
 @pytest.mark.unit
-def test_split_ncbigene_synonym_field_keeps_middle_pieces_without_quoted_value():
-    """An open marker with no `quoted_value` still drops the '' markers themselves, but the middle
+def test_split_ncbigene_synonym_field_keeps_middle_pieces_without_full_name():
+    """An open marker with no `full_name` still drops the '' markers themselves, but the middle
     pieces (which carry no '' at all) can't be identified as junk without the intact value to
     compare against, so they pass through. This is the case where a row's
     Full_name_from_nomenclature_authority and Other_designations are both blank.
@@ -177,9 +177,9 @@ def test_pull_ncbigene_labels_synonyms_and_taxa_skips_quote_fragments_for_828367
 
 @pytest.mark.unit
 def test_pull_ncbigene_labels_synonyms_and_taxa_falls_back_to_other_designations(tmp_path):
-    """When Full_name_from_nomenclature_authority is blank, `quoted_value` falls back to
-    Other_designations (ncbigene.py's `quoted_value = full_name or other_designations`) -- the
-    shredded value's middle pieces are still dropped using that column instead.
+    """When Full_name_from_nomenclature_authority is blank, the `full_name` argument falls back to
+    Other_designations (ncbigene.py passes `full_name or other_designations`) -- the shredded
+    value's middle pieces are still dropped using that column instead.
     """
     gene_info = tmp_path / "gene_info.gz"
     labels = tmp_path / "labels"
