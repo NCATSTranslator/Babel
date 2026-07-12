@@ -446,7 +446,13 @@ def pull_via_wget(
     # download it may instead meet a file whose *content* has changed upstream (or one carried over
     # from a previous run), and appending the tail of the new file to the old one silently produces
     # a corrupt result. --timestamping already re-fetches, in full, any file whose size or mtime
-    # disagrees with the server's, so it makes --continue both unnecessary and unsafe here. (In a
+    # disagrees with the server's, so it makes --continue both unnecessary and unsafe here.
+    #
+    # We only drop it when --timestamping is also on, even though the hazard is really "any
+    # recursive download": without -N, --continue is also what stops wget writing a second copy as
+    # `file.1` when a file is already present, so dropping it there would trade corruption for
+    # duplicates. Every recursive caller today passes timestamping=True; if you add a recursive
+    # caller without it, work out which of those two you want before relying on this. (In a
     # non-recursive download we pass -O, which makes wget ignore --timestamping entirely, so
     # --continue remains the only resume mechanism and is kept.)
     if continue_incomplete and timestamping and recurse != WgetRecursionOptions.NO_RECURSION:
