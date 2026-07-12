@@ -1,5 +1,5 @@
 import src.reports.duckdb_reports
-from src.snakefiles.util import get_all_compendia, get_all_synonyms_with_drugchemicalconflated
+from src.snakefiles.util import duckdb_memory_limit_mb, get_all_compendia, get_all_synonyms_with_drugchemicalconflated
 import src.exporters.duckdb_exporters as duckdb_exporters
 import os
 
@@ -80,17 +80,11 @@ rule export_synonyms_to_duckdb:
         mem=lambda wildcards: "512G" if wildcards.filename in ("Protein", "GeneProteinConflated") else "128G",
         runtime="3h",
     run:
-        # Cap DuckDB at 75% of the SLURM allocation so Python + OS overhead
-        # don't push total RSS over the job limit. Without this, DuckDB
-        # auto-sizes to 75% of *total system* RAM, which can far exceed the
-        # SLURM allocation on a multi-tenant HPC node.
-        # resources.mem is a string like "128G" or "512G"; parse to MB.
-        duckdb_memory_limit_mb = int(int(resources.mem.rstrip("G")) * 1024 * 0.75)
         duckdb_exporters.export_synonyms_to_parquet(
             input.synonyms_file,
             output.duckdb_filename,
             output.synonyms_parquet_filename,
-            memory_limit_mb=duckdb_memory_limit_mb,
+            memory_limit_mb=duckdb_memory_limit_mb(resources.mem),
         )
 
 
@@ -156,17 +150,13 @@ rule export_intermediate_files_to_duckdb:
     params:
         intermediate_directory=config["intermediate_directory"],
     run:
-        # Cap DuckDB at 75% of the SLURM allocation so Python + OS overhead don't push total RSS
-        # over the job limit; without this DuckDB auto-sizes to 75% of *total system* RAM, which
-        # can far exceed the allocation on a multi-tenant HPC node. resources.mem is like "128G".
-        duckdb_memory_limit_mb = int(int(resources.mem.rstrip("G")) * 1024 * 0.75)
         duckdb_exporters.export_intermediates_to_parquet(
             params.intermediate_directory,
             output.duckdb_filename,
             output.ids_parquet_filename,
             output.concord_parquet_filename,
             output.metadata_parquet_filename,
-            memory_limit_mb=duckdb_memory_limit_mb,
+            memory_limit_mb=duckdb_memory_limit_mb(resources.mem),
         )
 
 
