@@ -43,6 +43,11 @@ def test_ncbigene_descriptions_file_valid(ncbigene_pipeline_outputs):
 # alias that NCBI wrapped in '' and then pipe-split, leaving these dangling half-quoted pieces.
 ISSUE_744_ARTIFACTS = {"''cytochrome P450", "polypeptide 2''"}
 
+# The same gene's *middle* pieces (issue #932). These carry no '' and are indistinguishable from
+# real aliases by shape, so only the intact Full_name value identifies them as junk.
+ISSUE_932_GENE = "NCBIGene:828367"
+ISSUE_932_SHREDDED_PIECES = {"cytochrome P450", "family 706", "polypeptide 2", "subfamily A"}
+
 
 @pytest.mark.pipeline
 @pytest.mark.slow
@@ -61,6 +66,8 @@ def test_ncbigene_synonyms_have_no_leading_quote_fragments(ncbigene_pipeline_out
     found_ncbigene = False
     leading_offenders = []
     artifact_offenders = []
+    shredded_offenders = []
+    issue_932_gene_synonyms = set()
     with open(ncbigene_pipeline_outputs["synonyms"]) as f:
         for line in f:
             cols = line.rstrip("\n").split("\t")
@@ -72,7 +79,17 @@ def test_ncbigene_synonyms_have_no_leading_quote_fragments(ncbigene_pipeline_out
                 leading_offenders.append(line.rstrip("\n"))
             if synonym in ISSUE_744_ARTIFACTS and len(artifact_offenders) < 10:
                 artifact_offenders.append(line.rstrip("\n"))
+            if cols[0] == ISSUE_932_GENE:
+                issue_932_gene_synonyms.add(synonym)
+                if synonym in ISSUE_932_SHREDDED_PIECES and len(shredded_offenders) < 10:
+                    shredded_offenders.append(line.rstrip("\n"))
 
     assert found_ncbigene, "No NCBIGene: CURIEs found in synonyms"
     assert not leading_offenders, f"Found synonyms starting with '' (issue #744): {leading_offenders}"
     assert not artifact_offenders, f"Found exact issue #744 fragment strings as synonyms: {artifact_offenders}"
+
+    # Issue #932: the shredded value's middle pieces must not survive, but the value itself must —
+    # it comes from Full_name_from_nomenclature_authority, not from reassembling the fragments.
+    assert issue_932_gene_synonyms, f"{ISSUE_932_GENE} has no synonyms at all"
+    assert not shredded_offenders, f"Found shredded middle pieces as synonyms (issue #932): {shredded_offenders}"
+    assert "cytochrome P450, family 706, subfamily A, polypeptide 2" in issue_932_gene_synonyms

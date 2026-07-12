@@ -1,0 +1,913 @@
+gene_id,symbol,tax_id,dropped_synonym,shredded_from,raw_synonyms_field
+814788,CYP71B9,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 9",''cytochrome P450|T8K22.12|T8K22_12|cytochrome P450|family 71|polypeptide 9|polypeptide 9''|subfamily B
+814788,CYP71B9,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 9",''cytochrome P450|T8K22.12|T8K22_12|cytochrome P450|family 71|polypeptide 9|polypeptide 9''|subfamily B
+814788,CYP71B9,3702,polypeptide 9,"cytochrome P450, family 71, subfamily B, polypeptide 9",''cytochrome P450|T8K22.12|T8K22_12|cytochrome P450|family 71|polypeptide 9|polypeptide 9''|subfamily B
+814788,CYP71B9,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 9",''cytochrome P450|T8K22.12|T8K22_12|cytochrome P450|family 71|polypeptide 9|polypeptide 9''|subfamily B
+815066,CYP705A6,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 6",''cytochrome P450|F5G3.8|F5G3_8|cytochrome P450|family 705|polypeptide 6|polypeptide 6''|subfamily A
+815066,CYP705A6,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 6",''cytochrome P450|F5G3.8|F5G3_8|cytochrome P450|family 705|polypeptide 6|polypeptide 6''|subfamily A
+815066,CYP705A6,3702,polypeptide 6,"cytochrome P450, family 705, subfamily A, polypeptide 6",''cytochrome P450|F5G3.8|F5G3_8|cytochrome P450|family 705|polypeptide 6|polypeptide 6''|subfamily A
+815066,CYP705A6,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 6",''cytochrome P450|F5G3.8|F5G3_8|cytochrome P450|family 705|polypeptide 6|polypeptide 6''|subfamily A
+815843,NF-YB7,3702,nuclear factor Y,"nuclear factor Y, subunit B7",''nuclear factor Y|T10F5.11|T10F5_11|nuclear factor Y|subunit B7|subunit B7''
+815843,NF-YB7,3702,subunit B7,"nuclear factor Y, subunit B7",''nuclear factor Y|T10F5.11|T10F5_11|nuclear factor Y|subunit B7|subunit B7''
+815896,CYP705A13,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 13",''cytochrome P450|T22C12.3|T22C12_3|cytochrome P450|family 705|polypeptide 13|polypeptide 13''|subfamily A
+815896,CYP705A13,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 13",''cytochrome P450|T22C12.3|T22C12_3|cytochrome P450|family 705|polypeptide 13|polypeptide 13''|subfamily A
+815896,CYP705A13,3702,polypeptide 13,"cytochrome P450, family 705, subfamily A, polypeptide 13",''cytochrome P450|T22C12.3|T22C12_3|cytochrome P450|family 705|polypeptide 13|polypeptide 13''|subfamily A
+815896,CYP705A13,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 13",''cytochrome P450|T22C12.3|T22C12_3|cytochrome P450|family 705|polypeptide 13|polypeptide 13''|subfamily A
+816316,PIN1AT,3702,NIMA-interacting 1,"peptidylprolyl cis/trans isomerase, NIMA-interacting 1",''peptidylprolyl cis/trans isomerase|NIMA-interacting 1|NIMA-interacting 1''|PROLYL CIS/TRANS ISOMERASE|T27K22.9|T27K22_9|peptidylprolyl cis/trans isomerase
+816316,PIN1AT,3702,peptidylprolyl cis/trans isomerase,"peptidylprolyl cis/trans isomerase, NIMA-interacting 1",''peptidylprolyl cis/trans isomerase|NIMA-interacting 1|NIMA-interacting 1''|PROLYL CIS/TRANS ISOMERASE|T27K22.9|T27K22_9|peptidylprolyl cis/trans isomerase
+816705,GRP7,3702,and rna binding 2,"cold, circadian rhythm, and rna binding 2",''cold|ATGPR7|ATGRP7|CCR2|F2G1.4|GLYCINE RICH PROTEIN 7|GLYCINE-RICH RNA-BINDING PROTEIN 7|GR-RBP7|and rna binding 2|and rna binding 2''|circadian rhythm|cold
+816705,GRP7,3702,circadian rhythm,"cold, circadian rhythm, and rna binding 2",''cold|ATGPR7|ATGRP7|CCR2|F2G1.4|GLYCINE RICH PROTEIN 7|GLYCINE-RICH RNA-BINDING PROTEIN 7|GR-RBP7|and rna binding 2|and rna binding 2''|circadian rhythm|cold
+816705,GRP7,3702,cold,"cold, circadian rhythm, and rna binding 2",''cold|ATGPR7|ATGRP7|CCR2|F2G1.4|GLYCINE RICH PROTEIN 7|GLYCINE-RICH RNA-BINDING PROTEIN 7|GR-RBP7|and rna binding 2|and rna binding 2''|circadian rhythm|cold
+816727,CYP96A5,3702,cytochrome P450,"cytochrome P450, family 96, subfamily A, polypeptide 5",''cytochrome P450|F7D8.23|F7D8_23|cytochrome P450|family 96|polypeptide 5|polypeptide 5''|subfamily A
+816727,CYP96A5,3702,family 96,"cytochrome P450, family 96, subfamily A, polypeptide 5",''cytochrome P450|F7D8.23|F7D8_23|cytochrome P450|family 96|polypeptide 5|polypeptide 5''|subfamily A
+816727,CYP96A5,3702,polypeptide 5,"cytochrome P450, family 96, subfamily A, polypeptide 5",''cytochrome P450|F7D8.23|F7D8_23|cytochrome P450|family 96|polypeptide 5|polypeptide 5''|subfamily A
+816727,CYP96A5,3702,subfamily A,"cytochrome P450, family 96, subfamily A, polypeptide 5",''cytochrome P450|F7D8.23|F7D8_23|cytochrome P450|family 96|polypeptide 5|polypeptide 5''|subfamily A
+816765,CYP79B3,3702,cytochrome P450,"cytochrome P450, family 79, subfamily B, polypeptide 3",''cytochrome P450|T26C19.1|cytochrome P450|family 79|polypeptide 3|polypeptide 3''|subfamily B
+816765,CYP79B3,3702,family 79,"cytochrome P450, family 79, subfamily B, polypeptide 3",''cytochrome P450|T26C19.1|cytochrome P450|family 79|polypeptide 3|polypeptide 3''|subfamily B
+816765,CYP79B3,3702,polypeptide 3,"cytochrome P450, family 79, subfamily B, polypeptide 3",''cytochrome P450|T26C19.1|cytochrome P450|family 79|polypeptide 3|polypeptide 3''|subfamily B
+816765,CYP79B3,3702,subfamily B,"cytochrome P450, family 79, subfamily B, polypeptide 3",''cytochrome P450|T26C19.1|cytochrome P450|family 79|polypeptide 3|polypeptide 3''|subfamily B
+816850,CYP96A1,3702,cytochrome P450,"cytochrome P450, family 96, subfamily A, polypeptide 1",''cytochrome P450|T20D16.19|T20D16_19|cytochrome P450|family 96|polypeptide 1|polypeptide 1''|subfamily A
+816850,CYP96A1,3702,family 96,"cytochrome P450, family 96, subfamily A, polypeptide 1",''cytochrome P450|T20D16.19|T20D16_19|cytochrome P450|family 96|polypeptide 1|polypeptide 1''|subfamily A
+816850,CYP96A1,3702,polypeptide 1,"cytochrome P450, family 96, subfamily A, polypeptide 1",''cytochrome P450|T20D16.19|T20D16_19|cytochrome P450|family 96|polypeptide 1|polypeptide 1''|subfamily A
+816850,CYP96A1,3702,subfamily A,"cytochrome P450, family 96, subfamily A, polypeptide 1",''cytochrome P450|T20D16.19|T20D16_19|cytochrome P450|family 96|polypeptide 1|polypeptide 1''|subfamily A
+816851,CYP81D7,3702,cytochrome P450,"cytochrome P450, family 81, subfamily D, polypeptide 7",''cytochrome P450|T20D16.18|T20D16_18|cytochrome P450|family 81|polypeptide 7|polypeptide 7''|subfamily D
+816851,CYP81D7,3702,family 81,"cytochrome P450, family 81, subfamily D, polypeptide 7",''cytochrome P450|T20D16.18|T20D16_18|cytochrome P450|family 81|polypeptide 7|polypeptide 7''|subfamily D
+816851,CYP81D7,3702,polypeptide 7,"cytochrome P450, family 81, subfamily D, polypeptide 7",''cytochrome P450|T20D16.18|T20D16_18|cytochrome P450|family 81|polypeptide 7|polypeptide 7''|subfamily D
+816851,CYP81D7,3702,subfamily D,"cytochrome P450, family 81, subfamily D, polypeptide 7",''cytochrome P450|T20D16.18|T20D16_18|cytochrome P450|family 81|polypeptide 7|polypeptide 7''|subfamily D
+816854,CYP81D6,3702,cytochrome P450,"cytochrome P450, family 81, subfamily D, polypeptide 6",''cytochrome P450|T20D16.15|T20D16_15|cytochrome P450|family 81|polypeptide 6|polypeptide 6''|subfamily D
+816854,CYP81D6,3702,family 81,"cytochrome P450, family 81, subfamily D, polypeptide 6",''cytochrome P450|T20D16.15|T20D16_15|cytochrome P450|family 81|polypeptide 6|polypeptide 6''|subfamily D
+816854,CYP81D6,3702,polypeptide 6,"cytochrome P450, family 81, subfamily D, polypeptide 6",''cytochrome P450|T20D16.15|T20D16_15|cytochrome P450|family 81|polypeptide 6|polypeptide 6''|subfamily D
+816854,CYP81D6,3702,subfamily D,"cytochrome P450, family 81, subfamily D, polypeptide 6",''cytochrome P450|T20D16.15|T20D16_15|cytochrome P450|family 81|polypeptide 6|polypeptide 6''|subfamily D
+817054,CYP82F1,3702,cytochrome P450,"cytochrome P450, family 82, subfamily F, polypeptide 1",''cytochrome P450|F13D4.120|F13D4_120|cytochrome P450|family 82|polypeptide 1|polypeptide 1''|subfamily F
+817054,CYP82F1,3702,family 82,"cytochrome P450, family 82, subfamily F, polypeptide 1",''cytochrome P450|F13D4.120|F13D4_120|cytochrome P450|family 82|polypeptide 1|polypeptide 1''|subfamily F
+817054,CYP82F1,3702,polypeptide 1,"cytochrome P450, family 82, subfamily F, polypeptide 1",''cytochrome P450|F13D4.120|F13D4_120|cytochrome P450|family 82|polypeptide 1|polypeptide 1''|subfamily F
+817054,CYP82F1,3702,subfamily F,"cytochrome P450, family 82, subfamily F, polypeptide 1",''cytochrome P450|F13D4.120|F13D4_120|cytochrome P450|family 82|polypeptide 1|polypeptide 1''|subfamily F
+817242,CYP705A8,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 8",''cytochrome P450|T20P8.5|T20P8_5|cytochrome P450|family 705|polypeptide 8|polypeptide 8''|subfamily A
+817242,CYP705A8,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 8",''cytochrome P450|T20P8.5|T20P8_5|cytochrome P450|family 705|polypeptide 8|polypeptide 8''|subfamily A
+817242,CYP705A8,3702,polypeptide 8,"cytochrome P450, family 705, subfamily A, polypeptide 8",''cytochrome P450|T20P8.5|T20P8_5|cytochrome P450|family 705|polypeptide 8|polypeptide 8''|subfamily A
+817242,CYP705A8,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 8",''cytochrome P450|T20P8.5|T20P8_5|cytochrome P450|family 705|polypeptide 8|polypeptide 8''|subfamily A
+817243,CYP705A9,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 9",''cytochrome P450|T20P8.6|T20P8_6|cytochrome P450|family 705|polypeptide 9|polypeptide 9''|subfamily A
+817243,CYP705A9,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 9",''cytochrome P450|T20P8.6|T20P8_6|cytochrome P450|family 705|polypeptide 9|polypeptide 9''|subfamily A
+817243,CYP705A9,3702,polypeptide 9,"cytochrome P450, family 705, subfamily A, polypeptide 9",''cytochrome P450|T20P8.6|T20P8_6|cytochrome P450|family 705|polypeptide 9|polypeptide 9''|subfamily A
+817243,CYP705A9,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 9",''cytochrome P450|T20P8.6|T20P8_6|cytochrome P450|family 705|polypeptide 9|polypeptide 9''|subfamily A
+817292,NF-YB11,3702,nuclear factor Y,"nuclear factor Y, subunit B11",''nuclear factor Y|F10A12.15|F10A12_15|nuclear factor Y|subunit B11|subunit B11''
+817292,NF-YB11,3702,subunit B11,"nuclear factor Y, subunit B11",''nuclear factor Y|F10A12.15|F10A12_15|nuclear factor Y|subunit B11|subunit B11''
+817315,CYP94C1,3702,cytochrome P450,"cytochrome P450, family 94, subfamily C, polypeptide 1",''cytochrome P450|F15K20.21|F15K20_21|cytochrome P450|family 94|polypeptide 1|polypeptide 1''|subfamily C
+817315,CYP94C1,3702,family 94,"cytochrome P450, family 94, subfamily C, polypeptide 1",''cytochrome P450|F15K20.21|F15K20_21|cytochrome P450|family 94|polypeptide 1|polypeptide 1''|subfamily C
+817315,CYP94C1,3702,polypeptide 1,"cytochrome P450, family 94, subfamily C, polypeptide 1",''cytochrome P450|F15K20.21|F15K20_21|cytochrome P450|family 94|polypeptide 1|polypeptide 1''|subfamily C
+817315,CYP94C1,3702,subfamily C,"cytochrome P450, family 94, subfamily C, polypeptide 1",''cytochrome P450|F15K20.21|F15K20_21|cytochrome P450|family 94|polypeptide 1|polypeptide 1''|subfamily C
+817457,CYP707A2,3702,cytochrome P450,"cytochrome P450, family 707, subfamily A, polypeptide 2",''cytochrome P450|T9I4.17|T9I4_17|cytochrome P450|family 707|polypeptide 2|polypeptide 2''|subfamily A
+817457,CYP707A2,3702,family 707,"cytochrome P450, family 707, subfamily A, polypeptide 2",''cytochrome P450|T9I4.17|T9I4_17|cytochrome P450|family 707|polypeptide 2|polypeptide 2''|subfamily A
+817457,CYP707A2,3702,polypeptide 2,"cytochrome P450, family 707, subfamily A, polypeptide 2",''cytochrome P450|T9I4.17|T9I4_17|cytochrome P450|family 707|polypeptide 2|polypeptide 2''|subfamily A
+817457,CYP707A2,3702,subfamily A,"cytochrome P450, family 707, subfamily A, polypeptide 2",''cytochrome P450|T9I4.17|T9I4_17|cytochrome P450|family 707|polypeptide 2|polypeptide 2''|subfamily A
+818037,NF-YA4,3702,nuclear factor Y,"nuclear factor Y, subunit A4",''nuclear factor Y|T29F13.7|T29F13_7|nuclear factor Y|subunit A4|subunit A4''
+818037,NF-YA4,3702,subunit A4,"nuclear factor Y, subunit A4",''nuclear factor Y|T29F13.7|T29F13_7|nuclear factor Y|subunit A4|subunit A4''
+818282,NF-YB8,3702,nuclear factor Y,"nuclear factor Y, subunit B8",''nuclear factor Y|T2N18.18|T2N18_18|nuclear factor Y|subunit B8|subunit B8''
+818282,NF-YB8,3702,subunit B8,"nuclear factor Y, subunit B8",''nuclear factor Y|T2N18.18|T2N18_18|nuclear factor Y|subunit B8|subunit B8''
+818472,NF-YB1,3702,nuclear factor Y,"nuclear factor Y, subunit B1",''nuclear factor Y|ATHAP3|ATNF-YB1|HAP3|HAP3A|HEME ACTIVATOR PROTEIN (YEAST) HOMOLOG 3|HEME ACTIVATOR PROTEIN (YEAST) HOMOLOG 3A|NUCLEAR FACTOR Y SUBUNIT B1|T7F6.5|T7F6_5|nuclear factor Y|subunit B1|subunit B1''
+818472,NF-YB1,3702,subunit B1,"nuclear factor Y, subunit B1",''nuclear factor Y|ATHAP3|ATNF-YB1|HAP3|HAP3A|HEME ACTIVATOR PROTEIN (YEAST) HOMOLOG 3|HEME ACTIVATOR PROTEIN (YEAST) HOMOLOG 3A|NUCLEAR FACTOR Y SUBUNIT B1|T7F6.5|T7F6_5|nuclear factor Y|subunit B1|subunit B1''
+818732,RPB5D,3702,D,"RNA polymerase II fifth largest subunit, D",''RNA polymerase II fifth largest subunit|D|D''|F13H10.11|F13H10_11|RNA polymerase II fifth largest subunit
+818732,RPB5D,3702,RNA polymerase II fifth largest subunit,"RNA polymerase II fifth largest subunit, D",''RNA polymerase II fifth largest subunit|D|D''|F13H10.11|F13H10_11|RNA polymerase II fifth largest subunit
+818754,ACA4,3702,autoinhibited Ca(2+)-ATPase,autoinhibited Ca(2+)-ATPase,''autoinhibited Ca(2+)-ATPase|T32G6.8|T32G6_8|autoinhibited Ca(2+)-ATPase|isoform 4|isoform 4''
+818826,CYP712A1,3702,cytochrome P450,"cytochrome P450, family 712, subfamily A, polypeptide 1",''cytochrome P450|T24P15.16|T24P15_16|cytochrome P450|family 712|polypeptide 1|polypeptide 1''|subfamily A
+818826,CYP712A1,3702,family 712,"cytochrome P450, family 712, subfamily A, polypeptide 1",''cytochrome P450|T24P15.16|T24P15_16|cytochrome P450|family 712|polypeptide 1|polypeptide 1''|subfamily A
+818826,CYP712A1,3702,polypeptide 1,"cytochrome P450, family 712, subfamily A, polypeptide 1",''cytochrome P450|T24P15.16|T24P15_16|cytochrome P450|family 712|polypeptide 1|polypeptide 1''|subfamily A
+818826,CYP712A1,3702,subfamily A,"cytochrome P450, family 712, subfamily A, polypeptide 1",''cytochrome P450|T24P15.16|T24P15_16|cytochrome P450|family 712|polypeptide 1|polypeptide 1''|subfamily A
+818885,CYP718,3702,cytochrome P450,"cytochrome P450, family 718",''cytochrome P450|F7D19.15|F7D19_15|cytochrome P450|family 718|family 718''
+818885,CYP718,3702,family 718,"cytochrome P450, family 718",''cytochrome P450|F7D19.15|F7D19_15|cytochrome P450|family 718|family 718''
+818959,CHI,3702,chitinase,chitinase,''chitinase|F18O19.32|chitinase|putative|putative''
+819003,ITPK4,3702,3,"inositol 1,3,4-trisphosphate 5/6-kinase 4",''inositol 1|3|4-trisphosphate 5/6-kinase 4|4-trisphosphate 5/6-kinase 4''|AtITPK4|F6E13.11|inositol 1
+819003,ITPK4,3702,4-trisphosphate 5/6-kinase 4,"inositol 1,3,4-trisphosphate 5/6-kinase 4",''inositol 1|3|4-trisphosphate 5/6-kinase 4|4-trisphosphate 5/6-kinase 4''|AtITPK4|F6E13.11|inositol 1
+819003,ITPK4,3702,inositol 1,"inositol 1,3,4-trisphosphate 5/6-kinase 4",''inositol 1|3|4-trisphosphate 5/6-kinase 4|4-trisphosphate 5/6-kinase 4''|AtITPK4|F6E13.11|inositol 1
+819098,CYP704A1,3702,cytochrome P450,"cytochrome P450, family 704, subfamily A, polypeptide 1",''cytochrome P450|T13E15.10|cytochrome P450|family 704|polypeptide 1|polypeptide 1''|subfamily A
+819098,CYP704A1,3702,family 704,"cytochrome P450, family 704, subfamily A, polypeptide 1",''cytochrome P450|T13E15.10|cytochrome P450|family 704|polypeptide 1|polypeptide 1''|subfamily A
+819098,CYP704A1,3702,polypeptide 1,"cytochrome P450, family 704, subfamily A, polypeptide 1",''cytochrome P450|T13E15.10|cytochrome P450|family 704|polypeptide 1|polypeptide 1''|subfamily A
+819098,CYP704A1,3702,subfamily A,"cytochrome P450, family 704, subfamily A, polypeptide 1",''cytochrome P450|T13E15.10|cytochrome P450|family 704|polypeptide 1|polypeptide 1''|subfamily A
+819159,CYP704A2,3702,cytochrome P450,"cytochrome P450, family 704, subfamily A, polypeptide 2",''cytochrome P450|F17K2.4|cytochrome P450|family 704|polypeptide 2|polypeptide 2''|subfamily A
+819159,CYP704A2,3702,family 704,"cytochrome P450, family 704, subfamily A, polypeptide 2",''cytochrome P450|F17K2.4|cytochrome P450|family 704|polypeptide 2|polypeptide 2''|subfamily A
+819159,CYP704A2,3702,polypeptide 2,"cytochrome P450, family 704, subfamily A, polypeptide 2",''cytochrome P450|F17K2.4|cytochrome P450|family 704|polypeptide 2|polypeptide 2''|subfamily A
+819159,CYP704A2,3702,subfamily A,"cytochrome P450, family 704, subfamily A, polypeptide 2",''cytochrome P450|F17K2.4|cytochrome P450|family 704|polypeptide 2|polypeptide 2''|subfamily A
+819163,CYP76C4,3702,cytochrome P450,"cytochrome P450, family 76, subfamily C, polypeptide 4",''cytochrome P450|F17K2.8|cytochrome P450|family 76|polypeptide 4|polypeptide 4''|subfamily C
+819163,CYP76C4,3702,family 76,"cytochrome P450, family 76, subfamily C, polypeptide 4",''cytochrome P450|F17K2.8|cytochrome P450|family 76|polypeptide 4|polypeptide 4''|subfamily C
+819163,CYP76C4,3702,polypeptide 4,"cytochrome P450, family 76, subfamily C, polypeptide 4",''cytochrome P450|F17K2.8|cytochrome P450|family 76|polypeptide 4|polypeptide 4''|subfamily C
+819163,CYP76C4,3702,subfamily C,"cytochrome P450, family 76, subfamily C, polypeptide 4",''cytochrome P450|F17K2.8|cytochrome P450|family 76|polypeptide 4|polypeptide 4''|subfamily C
+819164,CYP76C1,3702,cytochrome P450,"cytochrome P450, family 76, subfamily C, polypeptide 1",''cytochrome P450|F17K2.9|cytochrome P450|family 76|polypeptide 1|polypeptide 1''|subfamily C
+819164,CYP76C1,3702,family 76,"cytochrome P450, family 76, subfamily C, polypeptide 1",''cytochrome P450|F17K2.9|cytochrome P450|family 76|polypeptide 1|polypeptide 1''|subfamily C
+819164,CYP76C1,3702,polypeptide 1,"cytochrome P450, family 76, subfamily C, polypeptide 1",''cytochrome P450|F17K2.9|cytochrome P450|family 76|polypeptide 1|polypeptide 1''|subfamily C
+819164,CYP76C1,3702,subfamily C,"cytochrome P450, family 76, subfamily C, polypeptide 1",''cytochrome P450|F17K2.9|cytochrome P450|family 76|polypeptide 1|polypeptide 1''|subfamily C
+819165,CYP76C2,3702,cytochrome P450,"cytochrome P450, family 76, subfamily C, polypeptide 2",''cytochrome P450|F17K2.10|cytochrome P450|family 76|polypeptide 2|polypeptide 2''|subfamily C
+819165,CYP76C2,3702,family 76,"cytochrome P450, family 76, subfamily C, polypeptide 2",''cytochrome P450|F17K2.10|cytochrome P450|family 76|polypeptide 2|polypeptide 2''|subfamily C
+819165,CYP76C2,3702,polypeptide 2,"cytochrome P450, family 76, subfamily C, polypeptide 2",''cytochrome P450|F17K2.10|cytochrome P450|family 76|polypeptide 2|polypeptide 2''|subfamily C
+819165,CYP76C2,3702,subfamily C,"cytochrome P450, family 76, subfamily C, polypeptide 2",''cytochrome P450|F17K2.10|cytochrome P450|family 76|polypeptide 2|polypeptide 2''|subfamily C
+819166,CYP76C3,3702,cytochrome P450,"cytochrome P450, family 76, subfamily C, polypeptide 3",''cytochrome P450|F17K2.11|cytochrome P450|family 76|polypeptide 3|polypeptide 3''|subfamily C
+819166,CYP76C3,3702,family 76,"cytochrome P450, family 76, subfamily C, polypeptide 3",''cytochrome P450|F17K2.11|cytochrome P450|family 76|polypeptide 3|polypeptide 3''|subfamily C
+819166,CYP76C3,3702,polypeptide 3,"cytochrome P450, family 76, subfamily C, polypeptide 3",''cytochrome P450|F17K2.11|cytochrome P450|family 76|polypeptide 3|polypeptide 3''|subfamily C
+819166,CYP76C3,3702,subfamily C,"cytochrome P450, family 76, subfamily C, polypeptide 3",''cytochrome P450|F17K2.11|cytochrome P450|family 76|polypeptide 3|polypeptide 3''|subfamily C
+819205,CYP86A8,3702,cytochrome P450,"cytochrome P450, family 86, subfamily A, polypeptide 8",''cytochrome P450|F4I18.5|LACERATA|LCR|cytochrome P450|family 86|polypeptide 8|polypeptide 8''|subfamily A
+819205,CYP86A8,3702,family 86,"cytochrome P450, family 86, subfamily A, polypeptide 8",''cytochrome P450|F4I18.5|LACERATA|LCR|cytochrome P450|family 86|polypeptide 8|polypeptide 8''|subfamily A
+819205,CYP86A8,3702,polypeptide 8,"cytochrome P450, family 86, subfamily A, polypeptide 8",''cytochrome P450|F4I18.5|LACERATA|LCR|cytochrome P450|family 86|polypeptide 8|polypeptide 8''|subfamily A
+819205,CYP86A8,3702,subfamily A,"cytochrome P450, family 86, subfamily A, polypeptide 8",''cytochrome P450|F4I18.5|LACERATA|LCR|cytochrome P450|family 86|polypeptide 8|polypeptide 8''|subfamily A
+819309,CYP709B2,3702,cytochrome P450,"cytochrome P450, family 709, subfamily B, polypeptide 2",''cytochrome P450|F14M4.22|cytochrome P450|family 709|polypeptide 2|polypeptide 2''|subfamily B
+819309,CYP709B2,3702,family 709,"cytochrome P450, family 709, subfamily B, polypeptide 2",''cytochrome P450|F14M4.22|cytochrome P450|family 709|polypeptide 2|polypeptide 2''|subfamily B
+819309,CYP709B2,3702,polypeptide 2,"cytochrome P450, family 709, subfamily B, polypeptide 2",''cytochrome P450|F14M4.22|cytochrome P450|family 709|polypeptide 2|polypeptide 2''|subfamily B
+819309,CYP709B2,3702,subfamily B,"cytochrome P450, family 709, subfamily B, polypeptide 2",''cytochrome P450|F14M4.22|cytochrome P450|family 709|polypeptide 2|polypeptide 2''|subfamily B
+819310,CYP709B1,3702,cytochrome P450,"cytochrome P450, family 709, subfamily B, polypeptide 1",''cytochrome P450|F14M4.21|cytochrome P450|family 709|polypeptide 1|polypeptide 1''|subfamily B
+819310,CYP709B1,3702,family 709,"cytochrome P450, family 709, subfamily B, polypeptide 1",''cytochrome P450|F14M4.21|cytochrome P450|family 709|polypeptide 1|polypeptide 1''|subfamily B
+819310,CYP709B1,3702,polypeptide 1,"cytochrome P450, family 709, subfamily B, polypeptide 1",''cytochrome P450|F14M4.21|cytochrome P450|family 709|polypeptide 1|polypeptide 1''|subfamily B
+819310,CYP709B1,3702,subfamily B,"cytochrome P450, family 709, subfamily B, polypeptide 1",''cytochrome P450|F14M4.21|cytochrome P450|family 709|polypeptide 1|polypeptide 1''|subfamily B
+819393,NF-YB5,3702,nuclear factor Y,"nuclear factor Y, subunit B5",''nuclear factor Y|F17A22.20|nuclear factor Y|subunit B5|subunit B5''
+819393,NF-YB5,3702,subunit B5,"nuclear factor Y, subunit B5",''nuclear factor Y|F17A22.20|nuclear factor Y|subunit B5|subunit B5''
+819738,NF-YA2,3702,nuclear factor Y,"nuclear factor Y, subunit A2",''nuclear factor Y|ATHAP2B|AtNF-YA2|F18C1.4|F18C1_4|HAP2B|HEME ACTIVATOR PROTEIN (YEAST) HOMOLOG 2B|UNE8|UNFERTILIZED EMBRYO SAC 8|nuclear factor Y|subunit A2|subunit A2''
+819738,NF-YA2,3702,subunit A2,"nuclear factor Y, subunit A2",''nuclear factor Y|ATHAP2B|AtNF-YA2|F18C1.4|F18C1_4|HAP2B|HEME ACTIVATOR PROTEIN (YEAST) HOMOLOG 2B|UNE8|UNFERTILIZED EMBRYO SAC 8|nuclear factor Y|subunit A2|subunit A2''
+820222,CYP77A6,3702,cytochrome P450,"cytochrome P450, family 77, subfamily A, polypeptide 6",''cytochrome P450|cytochrome P450|family 77|polypeptide 6|polypeptide 6''|subfamily A
+820222,CYP77A6,3702,family 77,"cytochrome P450, family 77, subfamily A, polypeptide 6",''cytochrome P450|cytochrome P450|family 77|polypeptide 6|polypeptide 6''|subfamily A
+820222,CYP77A6,3702,polypeptide 6,"cytochrome P450, family 77, subfamily A, polypeptide 6",''cytochrome P450|cytochrome P450|family 77|polypeptide 6|polypeptide 6''|subfamily A
+820222,CYP77A6,3702,subfamily A,"cytochrome P450, family 77, subfamily A, polypeptide 6",''cytochrome P450|cytochrome P450|family 77|polypeptide 6|polypeptide 6''|subfamily A
+820427,NF-YC11,3702,nuclear factor Y,"nuclear factor Y, subunit C11",''nuclear factor Y|nuclear factor Y|subunit C11|subunit C11''
+820427,NF-YC11,3702,subunit C11,"nuclear factor Y, subunit C11",''nuclear factor Y|nuclear factor Y|subunit C11|subunit C11''
+820582,CYP90D1,3702,cytochrome P450,"cytochrome P450, family 90, subfamily D, polypeptide 1",''cytochrome P450|cytochrome P450|family 90|polypeptide 1|polypeptide 1''|subfamily D
+820582,CYP90D1,3702,family 90,"cytochrome P450, family 90, subfamily D, polypeptide 1",''cytochrome P450|cytochrome P450|family 90|polypeptide 1|polypeptide 1''|subfamily D
+820582,CYP90D1,3702,polypeptide 1,"cytochrome P450, family 90, subfamily D, polypeptide 1",''cytochrome P450|cytochrome P450|family 90|polypeptide 1|polypeptide 1''|subfamily D
+820582,CYP90D1,3702,subfamily D,"cytochrome P450, family 90, subfamily D, polypeptide 1",''cytochrome P450|cytochrome P450|family 90|polypeptide 1|polypeptide 1''|subfamily D
+820616,NF-YA6,3702,nuclear factor Y,"nuclear factor Y, subunit A6",''nuclear factor Y|nuclear factor Y|subunit A6|subunit A6''
+820616,NF-YA6,3702,subunit A6,"nuclear factor Y, subunit A6",''nuclear factor Y|nuclear factor Y|subunit A6|subunit A6''
+820689,CYP72A7,3702,cytochrome P450,"cytochrome P450, family 72, subfamily A, polypeptide 7",''cytochrome P450|cytochrome P450|family 72|polypeptide 7|polypeptide 7''|subfamily A
+820689,CYP72A7,3702,family 72,"cytochrome P450, family 72, subfamily A, polypeptide 7",''cytochrome P450|cytochrome P450|family 72|polypeptide 7|polypeptide 7''|subfamily A
+820689,CYP72A7,3702,polypeptide 7,"cytochrome P450, family 72, subfamily A, polypeptide 7",''cytochrome P450|cytochrome P450|family 72|polypeptide 7|polypeptide 7''|subfamily A
+820689,CYP72A7,3702,subfamily A,"cytochrome P450, family 72, subfamily A, polypeptide 7",''cytochrome P450|cytochrome P450|family 72|polypeptide 7|polypeptide 7''|subfamily A
+820690,CYP72A8,3702,cytochrome P450,"cytochrome P450, family 72, subfamily A, polypeptide 8",''cytochrome P450|cytochrome P450|family 72|polypeptide 8|polypeptide 8''|subfamily A
+820690,CYP72A8,3702,family 72,"cytochrome P450, family 72, subfamily A, polypeptide 8",''cytochrome P450|cytochrome P450|family 72|polypeptide 8|polypeptide 8''|subfamily A
+820690,CYP72A8,3702,polypeptide 8,"cytochrome P450, family 72, subfamily A, polypeptide 8",''cytochrome P450|cytochrome P450|family 72|polypeptide 8|polypeptide 8''|subfamily A
+820690,CYP72A8,3702,subfamily A,"cytochrome P450, family 72, subfamily A, polypeptide 8",''cytochrome P450|cytochrome P450|family 72|polypeptide 8|polypeptide 8''|subfamily A
+820691,CYP72A9,3702,cytochrome P450,"cytochrome P450, family 72, subfamily A, polypeptide 9",''cytochrome P450|cytochrome P450|family 72|polypeptide 9|polypeptide 9''|subfamily A
+820691,CYP72A9,3702,family 72,"cytochrome P450, family 72, subfamily A, polypeptide 9",''cytochrome P450|cytochrome P450|family 72|polypeptide 9|polypeptide 9''|subfamily A
+820691,CYP72A9,3702,polypeptide 9,"cytochrome P450, family 72, subfamily A, polypeptide 9",''cytochrome P450|cytochrome P450|family 72|polypeptide 9|polypeptide 9''|subfamily A
+820691,CYP72A9,3702,subfamily A,"cytochrome P450, family 72, subfamily A, polypeptide 9",''cytochrome P450|cytochrome P450|family 72|polypeptide 9|polypeptide 9''|subfamily A
+820692,CYP72A10,3702,cytochrome P450,"cytochrome P450, family 72, subfamily A, polypeptide 10",''cytochrome P450|cytochrome P450|family 72|polypeptide 10|polypeptide 10''|subfamily A
+820692,CYP72A10,3702,family 72,"cytochrome P450, family 72, subfamily A, polypeptide 10",''cytochrome P450|cytochrome P450|family 72|polypeptide 10|polypeptide 10''|subfamily A
+820692,CYP72A10,3702,polypeptide 10,"cytochrome P450, family 72, subfamily A, polypeptide 10",''cytochrome P450|cytochrome P450|family 72|polypeptide 10|polypeptide 10''|subfamily A
+820692,CYP72A10,3702,subfamily A,"cytochrome P450, family 72, subfamily A, polypeptide 10",''cytochrome P450|cytochrome P450|family 72|polypeptide 10|polypeptide 10''|subfamily A
+820693,CYP72A11,3702,cytochrome P450,"cytochrome P450, family 72, subfamily A, polypeptide 11",''cytochrome P450|cytochrome P450|family 72|polypeptide 11|polypeptide 11''|subfamily A
+820693,CYP72A11,3702,family 72,"cytochrome P450, family 72, subfamily A, polypeptide 11",''cytochrome P450|cytochrome P450|family 72|polypeptide 11|polypeptide 11''|subfamily A
+820693,CYP72A11,3702,polypeptide 11,"cytochrome P450, family 72, subfamily A, polypeptide 11",''cytochrome P450|cytochrome P450|family 72|polypeptide 11|polypeptide 11''|subfamily A
+820693,CYP72A11,3702,subfamily A,"cytochrome P450, family 72, subfamily A, polypeptide 11",''cytochrome P450|cytochrome P450|family 72|polypeptide 11|polypeptide 11''|subfamily A
+820694,CYP72A13,3702,cytochrome P450,"cytochrome P450, family 72, subfamily A, polypeptide 13",''cytochrome P450|cytochrome P450|family 72|polypeptide 13|polypeptide 13''|subfamily A
+820694,CYP72A13,3702,family 72,"cytochrome P450, family 72, subfamily A, polypeptide 13",''cytochrome P450|cytochrome P450|family 72|polypeptide 13|polypeptide 13''|subfamily A
+820694,CYP72A13,3702,polypeptide 13,"cytochrome P450, family 72, subfamily A, polypeptide 13",''cytochrome P450|cytochrome P450|family 72|polypeptide 13|polypeptide 13''|subfamily A
+820694,CYP72A13,3702,subfamily A,"cytochrome P450, family 72, subfamily A, polypeptide 13",''cytochrome P450|cytochrome P450|family 72|polypeptide 13|polypeptide 13''|subfamily A
+820696,CYP72A14,3702,cytochrome P450,"cytochrome P450, family 72, subfamily A, polypeptide 14",''cytochrome P450|cytochrome P450|family 72|polypeptide 14|polypeptide 14''|subfamily A
+820696,CYP72A14,3702,family 72,"cytochrome P450, family 72, subfamily A, polypeptide 14",''cytochrome P450|cytochrome P450|family 72|polypeptide 14|polypeptide 14''|subfamily A
+820696,CYP72A14,3702,polypeptide 14,"cytochrome P450, family 72, subfamily A, polypeptide 14",''cytochrome P450|cytochrome P450|family 72|polypeptide 14|polypeptide 14''|subfamily A
+820696,CYP72A14,3702,subfamily A,"cytochrome P450, family 72, subfamily A, polypeptide 14",''cytochrome P450|cytochrome P450|family 72|polypeptide 14|polypeptide 14''|subfamily A
+820697,CYP72A15,3702,cytochrome P450,"cytochrome P450, family 72, subfamily A, polypeptide 15",''cytochrome P450|cytochrome P450|family 72|polypeptide 15|polypeptide 15''|subfamily A
+820697,CYP72A15,3702,family 72,"cytochrome P450, family 72, subfamily A, polypeptide 15",''cytochrome P450|cytochrome P450|family 72|polypeptide 15|polypeptide 15''|subfamily A
+820697,CYP72A15,3702,polypeptide 15,"cytochrome P450, family 72, subfamily A, polypeptide 15",''cytochrome P450|cytochrome P450|family 72|polypeptide 15|polypeptide 15''|subfamily A
+820697,CYP72A15,3702,subfamily A,"cytochrome P450, family 72, subfamily A, polypeptide 15",''cytochrome P450|cytochrome P450|family 72|polypeptide 15|polypeptide 15''|subfamily A
+821250,CYP89A9,3702,cytochrome P450,"cytochrome P450, family 87, subfamily A, polypeptide 9",''cytochrome P450|T21P5.11|T21P5_11|cytochrome P450|family 87|polypeptide 9|polypeptide 9''|subfamily A
+821250,CYP89A9,3702,family 87,"cytochrome P450, family 87, subfamily A, polypeptide 9",''cytochrome P450|T21P5.11|T21P5_11|cytochrome P450|family 87|polypeptide 9|polypeptide 9''|subfamily A
+821250,CYP89A9,3702,polypeptide 9,"cytochrome P450, family 87, subfamily A, polypeptide 9",''cytochrome P450|T21P5.11|T21P5_11|cytochrome P450|family 87|polypeptide 9|polypeptide 9''|subfamily A
+821250,CYP89A9,3702,subfamily A,"cytochrome P450, family 87, subfamily A, polypeptide 9",''cytochrome P450|T21P5.11|T21P5_11|cytochrome P450|family 87|polypeptide 9|polypeptide 9''|subfamily A
+821263,CYP94B2,3702,cytochrome P450,"cytochrome P450, family 94, subfamily B, polypeptide 2",''cytochrome P450|F1C9.32|F1C9_32|cytochrome P450|family 94|polypeptide 2|polypeptide 2''|subfamily B
+821263,CYP94B2,3702,family 94,"cytochrome P450, family 94, subfamily B, polypeptide 2",''cytochrome P450|F1C9.32|F1C9_32|cytochrome P450|family 94|polypeptide 2|polypeptide 2''|subfamily B
+821263,CYP94B2,3702,polypeptide 2,"cytochrome P450, family 94, subfamily B, polypeptide 2",''cytochrome P450|F1C9.32|F1C9_32|cytochrome P450|family 94|polypeptide 2|polypeptide 2''|subfamily B
+821263,CYP94B2,3702,subfamily B,"cytochrome P450, family 94, subfamily B, polypeptide 2",''cytochrome P450|F1C9.32|F1C9_32|cytochrome P450|family 94|polypeptide 2|polypeptide 2''|subfamily B
+821355,CYP77A5P,3702,cytochrome P450,"cytochrome P450, family 77, subfamily A, polypeptide 5 pseudogene",''cytochrome P450|cytochrome P450|family 77|polypeptide 5 pseudogene|polypeptide 5 pseudogene''|subfamily A
+821355,CYP77A5P,3702,family 77,"cytochrome P450, family 77, subfamily A, polypeptide 5 pseudogene",''cytochrome P450|cytochrome P450|family 77|polypeptide 5 pseudogene|polypeptide 5 pseudogene''|subfamily A
+821355,CYP77A5P,3702,polypeptide 5 pseudogene,"cytochrome P450, family 77, subfamily A, polypeptide 5 pseudogene",''cytochrome P450|cytochrome P450|family 77|polypeptide 5 pseudogene|polypeptide 5 pseudogene''|subfamily A
+821355,CYP77A5P,3702,subfamily A,"cytochrome P450, family 77, subfamily A, polypeptide 5 pseudogene",''cytochrome P450|cytochrome P450|family 77|polypeptide 5 pseudogene|polypeptide 5 pseudogene''|subfamily A
+821461,CYP707A4,3702,cytochrome P450,"cytochrome P450, family 707, subfamily A, polypeptide 4",''cytochrome P450|cytochrome P450|family 707|polypeptide 4|polypeptide 4''|subfamily A
+821461,CYP707A4,3702,family 707,"cytochrome P450, family 707, subfamily A, polypeptide 4",''cytochrome P450|cytochrome P450|family 707|polypeptide 4|polypeptide 4''|subfamily A
+821461,CYP707A4,3702,polypeptide 4,"cytochrome P450, family 707, subfamily A, polypeptide 4",''cytochrome P450|cytochrome P450|family 707|polypeptide 4|polypeptide 4''|subfamily A
+821461,CYP707A4,3702,subfamily A,"cytochrome P450, family 707, subfamily A, polypeptide 4",''cytochrome P450|cytochrome P450|family 707|polypeptide 4|polypeptide 4''|subfamily A
+821536,FYPP3,3702,flower-specific,"flower-specific, phytochrome-associated protein phosphatase 3",''flower-specific|ATFYPP3|EMB2736|EMBRYO DEFECTIVE 2736|SERINE/THREONINE PROTEIN PHOSPHATASE|STPP|flower-specific|phytochrome-associated protein phosphatase 3|phytochrome-associated protein phosphatase 3''
+821536,FYPP3,3702,phytochrome-associated protein phosphatase 3,"flower-specific, phytochrome-associated protein phosphatase 3",''flower-specific|ATFYPP3|EMB2736|EMBRYO DEFECTIVE 2736|SERINE/THREONINE PROTEIN PHOSPHATASE|STPP|flower-specific|phytochrome-associated protein phosphatase 3|phytochrome-associated protein phosphatase 3''
+821548,CYP705A15,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 15",''cytochrome P450|cytochrome P450|family 705|polypeptide 15|polypeptide 15''|subfamily A
+821548,CYP705A15,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 15",''cytochrome P450|cytochrome P450|family 705|polypeptide 15|polypeptide 15''|subfamily A
+821548,CYP705A15,3702,polypeptide 15,"cytochrome P450, family 705, subfamily A, polypeptide 15",''cytochrome P450|cytochrome P450|family 705|polypeptide 15|polypeptide 15''|subfamily A
+821548,CYP705A15,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 15",''cytochrome P450|cytochrome P450|family 705|polypeptide 15|polypeptide 15''|subfamily A
+821552,CYP705A18,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 18",''cytochrome P450|cytochrome P450|family 705|polypeptide 18|polypeptide 18''|subfamily A
+821552,CYP705A18,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 18",''cytochrome P450|cytochrome P450|family 705|polypeptide 18|polypeptide 18''|subfamily A
+821552,CYP705A18,3702,polypeptide 18,"cytochrome P450, family 705, subfamily A, polypeptide 18",''cytochrome P450|cytochrome P450|family 705|polypeptide 18|polypeptide 18''|subfamily A
+821552,CYP705A18,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 18",''cytochrome P450|cytochrome P450|family 705|polypeptide 18|polypeptide 18''|subfamily A
+821553,CYP705A19,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 19",''cytochrome P450|cytochrome P450|family 705|polypeptide 19|polypeptide 19''|subfamily A
+821553,CYP705A19,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 19",''cytochrome P450|cytochrome P450|family 705|polypeptide 19|polypeptide 19''|subfamily A
+821553,CYP705A19,3702,polypeptide 19,"cytochrome P450, family 705, subfamily A, polypeptide 19",''cytochrome P450|cytochrome P450|family 705|polypeptide 19|polypeptide 19''|subfamily A
+821553,CYP705A19,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 19",''cytochrome P450|cytochrome P450|family 705|polypeptide 19|polypeptide 19''|subfamily A
+821554,CYP705A20,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 20",''cytochrome P450|cytochrome P450|family 705|polypeptide 20|polypeptide 20''|subfamily A
+821554,CYP705A20,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 20",''cytochrome P450|cytochrome P450|family 705|polypeptide 20|polypeptide 20''|subfamily A
+821554,CYP705A20,3702,polypeptide 20,"cytochrome P450, family 705, subfamily A, polypeptide 20",''cytochrome P450|cytochrome P450|family 705|polypeptide 20|polypeptide 20''|subfamily A
+821554,CYP705A20,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 20",''cytochrome P450|cytochrome P450|family 705|polypeptide 20|polypeptide 20''|subfamily A
+821555,CYP705A21,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 21",''cytochrome P450|cytochrome P450|family 705|polypeptide 21|polypeptide 21''|subfamily A
+821555,CYP705A21,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 21",''cytochrome P450|cytochrome P450|family 705|polypeptide 21|polypeptide 21''|subfamily A
+821555,CYP705A21,3702,polypeptide 21,"cytochrome P450, family 705, subfamily A, polypeptide 21",''cytochrome P450|cytochrome P450|family 705|polypeptide 21|polypeptide 21''|subfamily A
+821555,CYP705A21,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 21",''cytochrome P450|cytochrome P450|family 705|polypeptide 21|polypeptide 21''|subfamily A
+821557,CYP705A23,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 23",''cytochrome P450|cytochrome P450|family 705|polypeptide 23|polypeptide 23''|subfamily A
+821557,CYP705A23,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 23",''cytochrome P450|cytochrome P450|family 705|polypeptide 23|polypeptide 23''|subfamily A
+821557,CYP705A23,3702,polypeptide 23,"cytochrome P450, family 705, subfamily A, polypeptide 23",''cytochrome P450|cytochrome P450|family 705|polypeptide 23|polypeptide 23''|subfamily A
+821557,CYP705A23,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 23",''cytochrome P450|cytochrome P450|family 705|polypeptide 23|polypeptide 23''|subfamily A
+821640,NF-YA9,3702,nuclear factor Y,"nuclear factor Y, subunit A9",''nuclear factor Y|nuclear factor Y|subunit A9|subunit A9''
+821640,NF-YA9,3702,subunit A9,"nuclear factor Y, subunit A9",''nuclear factor Y|nuclear factor Y|subunit A9|subunit A9''
+821644,CYP705A30,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 30",''cytochrome P450|cytochrome P450|family 705|polypeptide 30|polypeptide 30''|subfamily A
+821644,CYP705A30,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 30",''cytochrome P450|cytochrome P450|family 705|polypeptide 30|polypeptide 30''|subfamily A
+821644,CYP705A30,3702,polypeptide 30,"cytochrome P450, family 705, subfamily A, polypeptide 30",''cytochrome P450|cytochrome P450|family 705|polypeptide 30|polypeptide 30''|subfamily A
+821644,CYP705A30,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 30",''cytochrome P450|cytochrome P450|family 705|polypeptide 30|polypeptide 30''|subfamily A
+821645,CYP705A32,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 32",''cytochrome P450|cytochrome P450|family 705|polypeptide 32|polypeptide 32''|subfamily A
+821645,CYP705A32,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 32",''cytochrome P450|cytochrome P450|family 705|polypeptide 32|polypeptide 32''|subfamily A
+821645,CYP705A32,3702,polypeptide 32,"cytochrome P450, family 705, subfamily A, polypeptide 32",''cytochrome P450|cytochrome P450|family 705|polypeptide 32|polypeptide 32''|subfamily A
+821645,CYP705A32,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 32",''cytochrome P450|cytochrome P450|family 705|polypeptide 32|polypeptide 32''|subfamily A
+821646,CYP705A33,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 33",''cytochrome P450|cytochrome P450|family 705|polypeptide 33|polypeptide 33''|subfamily A
+821646,CYP705A33,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 33",''cytochrome P450|cytochrome P450|family 705|polypeptide 33|polypeptide 33''|subfamily A
+821646,CYP705A33,3702,polypeptide 33,"cytochrome P450, family 705, subfamily A, polypeptide 33",''cytochrome P450|cytochrome P450|family 705|polypeptide 33|polypeptide 33''|subfamily A
+821646,CYP705A33,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 33",''cytochrome P450|cytochrome P450|family 705|polypeptide 33|polypeptide 33''|subfamily A
+822175,TPS-CIN,3702,8-cineole,"terpene synthase-like sequence-1,8-cineole",''terpene synthase-like sequence-1|8-cineole|8-cineole''|ATTPS-CIN|terpene synthase-like sequence-1
+822175,TPS-CIN,3702,terpene synthase-like sequence-1,"terpene synthase-like sequence-1,8-cineole",''terpene synthase-like sequence-1|8-cineole|8-cineole''|ATTPS-CIN|terpene synthase-like sequence-1
+822177,TPS-CIN,3702,8-cineole,"terpene synthase-like sequence-1,8-cineole",''terpene synthase-like sequence-1|8-cineole|8-cineole''|ATTPS-CIN|terpene synthase-like sequence-1
+822177,TPS-CIN,3702,terpene synthase-like sequence-1,"terpene synthase-like sequence-1,8-cineole",''terpene synthase-like sequence-1|8-cineole|8-cineole''|ATTPS-CIN|terpene synthase-like sequence-1
+822212,CYP86C2,3702,cytochrome P450,"cytochrome P450, family 86, subfamily C, polypeptide 2",''cytochrome P450|cytochrome P450|family 86|polypeptide 2|polypeptide 2''|subfamily C
+822212,CYP86C2,3702,family 86,"cytochrome P450, family 86, subfamily C, polypeptide 2",''cytochrome P450|cytochrome P450|family 86|polypeptide 2|polypeptide 2''|subfamily C
+822212,CYP86C2,3702,polypeptide 2,"cytochrome P450, family 86, subfamily C, polypeptide 2",''cytochrome P450|cytochrome P450|family 86|polypeptide 2|polypeptide 2''|subfamily C
+822212,CYP86C2,3702,subfamily C,"cytochrome P450, family 86, subfamily C, polypeptide 2",''cytochrome P450|cytochrome P450|family 86|polypeptide 2|polypeptide 2''|subfamily C
+822215,CYP71B16,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 16",''cytochrome P450|cytochrome P450|family 71|polypeptide 16|polypeptide 16''|subfamily B
+822215,CYP71B16,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 16",''cytochrome P450|cytochrome P450|family 71|polypeptide 16|polypeptide 16''|subfamily B
+822215,CYP71B16,3702,polypeptide 16,"cytochrome P450, family 71, subfamily B, polypeptide 16",''cytochrome P450|cytochrome P450|family 71|polypeptide 16|polypeptide 16''|subfamily B
+822215,CYP71B16,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 16",''cytochrome P450|cytochrome P450|family 71|polypeptide 16|polypeptide 16''|subfamily B
+822216,CYP71B17,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 17",''cytochrome P450|cytochrome P450|family 71|polypeptide 17|polypeptide 17''|subfamily B
+822216,CYP71B17,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 17",''cytochrome P450|cytochrome P450|family 71|polypeptide 17|polypeptide 17''|subfamily B
+822216,CYP71B17,3702,polypeptide 17,"cytochrome P450, family 71, subfamily B, polypeptide 17",''cytochrome P450|cytochrome P450|family 71|polypeptide 17|polypeptide 17''|subfamily B
+822216,CYP71B17,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 17",''cytochrome P450|cytochrome P450|family 71|polypeptide 17|polypeptide 17''|subfamily B
+822218,CYP71B19,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 19",''cytochrome P450|cytochrome P450|family 71|polypeptide 19|polypeptide 19''|subfamily B
+822218,CYP71B19,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 19",''cytochrome P450|cytochrome P450|family 71|polypeptide 19|polypeptide 19''|subfamily B
+822218,CYP71B19,3702,polypeptide 19,"cytochrome P450, family 71, subfamily B, polypeptide 19",''cytochrome P450|cytochrome P450|family 71|polypeptide 19|polypeptide 19''|subfamily B
+822218,CYP71B19,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 19",''cytochrome P450|cytochrome P450|family 71|polypeptide 19|polypeptide 19''|subfamily B
+822219,CYP71B20,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 20",''cytochrome P450|cytochrome P450|family 71|polypeptide 20|polypeptide 20''|subfamily B
+822219,CYP71B20,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 20",''cytochrome P450|cytochrome P450|family 71|polypeptide 20|polypeptide 20''|subfamily B
+822219,CYP71B20,3702,polypeptide 20,"cytochrome P450, family 71, subfamily B, polypeptide 20",''cytochrome P450|cytochrome P450|family 71|polypeptide 20|polypeptide 20''|subfamily B
+822219,CYP71B20,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 20",''cytochrome P450|cytochrome P450|family 71|polypeptide 20|polypeptide 20''|subfamily B
+822220,CYP71B21,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 21",''cytochrome P450|cytochrome P450|family 71|polypeptide 21|polypeptide 21''|subfamily B
+822220,CYP71B21,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 21",''cytochrome P450|cytochrome P450|family 71|polypeptide 21|polypeptide 21''|subfamily B
+822220,CYP71B21,3702,polypeptide 21,"cytochrome P450, family 71, subfamily B, polypeptide 21",''cytochrome P450|cytochrome P450|family 71|polypeptide 21|polypeptide 21''|subfamily B
+822220,CYP71B21,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 21",''cytochrome P450|cytochrome P450|family 71|polypeptide 21|polypeptide 21''|subfamily B
+822221,CYP71B22,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 22",''cytochrome P450|cytochrome P450|family 71|polypeptide 22|polypeptide 22''|subfamily B
+822221,CYP71B22,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 22",''cytochrome P450|cytochrome P450|family 71|polypeptide 22|polypeptide 22''|subfamily B
+822221,CYP71B22,3702,polypeptide 22,"cytochrome P450, family 71, subfamily B, polypeptide 22",''cytochrome P450|cytochrome P450|family 71|polypeptide 22|polypeptide 22''|subfamily B
+822221,CYP71B22,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 22",''cytochrome P450|cytochrome P450|family 71|polypeptide 22|polypeptide 22''|subfamily B
+822222,CYP71B23,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 23",''cytochrome P450|cytochrome P450|family 71|polypeptide 23|polypeptide 23''|subfamily B
+822222,CYP71B23,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 23",''cytochrome P450|cytochrome P450|family 71|polypeptide 23|polypeptide 23''|subfamily B
+822222,CYP71B23,3702,polypeptide 23,"cytochrome P450, family 71, subfamily B, polypeptide 23",''cytochrome P450|cytochrome P450|family 71|polypeptide 23|polypeptide 23''|subfamily B
+822222,CYP71B23,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 23",''cytochrome P450|cytochrome P450|family 71|polypeptide 23|polypeptide 23''|subfamily B
+822223,CYP71B3,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 3",''cytochrome P450|CYTOCHROME P450 MONOOXYGENASE|cytochrome P450|family 71|polypeptide 3|polypeptide 3''|subfamily B
+822223,CYP71B3,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 3",''cytochrome P450|CYTOCHROME P450 MONOOXYGENASE|cytochrome P450|family 71|polypeptide 3|polypeptide 3''|subfamily B
+822223,CYP71B3,3702,polypeptide 3,"cytochrome P450, family 71, subfamily B, polypeptide 3",''cytochrome P450|CYTOCHROME P450 MONOOXYGENASE|cytochrome P450|family 71|polypeptide 3|polypeptide 3''|subfamily B
+822223,CYP71B3,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 3",''cytochrome P450|CYTOCHROME P450 MONOOXYGENASE|cytochrome P450|family 71|polypeptide 3|polypeptide 3''|subfamily B
+822224,CYP71B24,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 24",''cytochrome P450|cytochrome P450|family 71|polypeptide 24|polypeptide 24''|subfamily B
+822224,CYP71B24,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 24",''cytochrome P450|cytochrome P450|family 71|polypeptide 24|polypeptide 24''|subfamily B
+822224,CYP71B24,3702,polypeptide 24,"cytochrome P450, family 71, subfamily B, polypeptide 24",''cytochrome P450|cytochrome P450|family 71|polypeptide 24|polypeptide 24''|subfamily B
+822224,CYP71B24,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 24",''cytochrome P450|cytochrome P450|family 71|polypeptide 24|polypeptide 24''|subfamily B
+822230,CYP71B25,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 25",''cytochrome P450|cytochrome P450|family 71|polypeptide 25|polypeptide 25''|subfamily B
+822230,CYP71B25,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 25",''cytochrome P450|cytochrome P450|family 71|polypeptide 25|polypeptide 25''|subfamily B
+822230,CYP71B25,3702,polypeptide 25,"cytochrome P450, family 71, subfamily B, polypeptide 25",''cytochrome P450|cytochrome P450|family 71|polypeptide 25|polypeptide 25''|subfamily B
+822230,CYP71B25,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 25",''cytochrome P450|cytochrome P450|family 71|polypeptide 25|polypeptide 25''|subfamily B
+822231,CYP71B4,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 4",''cytochrome P450|CYTOCHROME P450 MONOOXYGENASE|cytochrome P450|family 71|polypeptide 4|polypeptide 4''|subfamily B
+822231,CYP71B4,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 4",''cytochrome P450|CYTOCHROME P450 MONOOXYGENASE|cytochrome P450|family 71|polypeptide 4|polypeptide 4''|subfamily B
+822231,CYP71B4,3702,polypeptide 4,"cytochrome P450, family 71, subfamily B, polypeptide 4",''cytochrome P450|CYTOCHROME P450 MONOOXYGENASE|cytochrome P450|family 71|polypeptide 4|polypeptide 4''|subfamily B
+822231,CYP71B4,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 4",''cytochrome P450|CYTOCHROME P450 MONOOXYGENASE|cytochrome P450|family 71|polypeptide 4|polypeptide 4''|subfamily B
+822232,CYP71B26,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 26",''cytochrome P450|cytochrome P450|family 71|polypeptide 26|polypeptide 26''|subfamily B
+822232,CYP71B26,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 26",''cytochrome P450|cytochrome P450|family 71|polypeptide 26|polypeptide 26''|subfamily B
+822232,CYP71B26,3702,polypeptide 26,"cytochrome P450, family 71, subfamily B, polypeptide 26",''cytochrome P450|cytochrome P450|family 71|polypeptide 26|polypeptide 26''|subfamily B
+822232,CYP71B26,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 26",''cytochrome P450|cytochrome P450|family 71|polypeptide 26|polypeptide 26''|subfamily B
+822234,CYP71B34,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 34",''cytochrome P450|cytochrome P450|family 71|polypeptide 34|polypeptide 34''|subfamily B
+822234,CYP71B34,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 34",''cytochrome P450|cytochrome P450|family 71|polypeptide 34|polypeptide 34''|subfamily B
+822234,CYP71B34,3702,polypeptide 34,"cytochrome P450, family 71, subfamily B, polypeptide 34",''cytochrome P450|cytochrome P450|family 71|polypeptide 34|polypeptide 34''|subfamily B
+822234,CYP71B34,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 34",''cytochrome P450|cytochrome P450|family 71|polypeptide 34|polypeptide 34''|subfamily B
+822235,CYP71B35,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 35",''cytochrome P450|cytochrome P450|family 71|polypeptide 35|polypeptide 35''|subfamily B
+822235,CYP71B35,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 35",''cytochrome P450|cytochrome P450|family 71|polypeptide 35|polypeptide 35''|subfamily B
+822235,CYP71B35,3702,polypeptide 35,"cytochrome P450, family 71, subfamily B, polypeptide 35",''cytochrome P450|cytochrome P450|family 71|polypeptide 35|polypeptide 35''|subfamily B
+822235,CYP71B35,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 35",''cytochrome P450|cytochrome P450|family 71|polypeptide 35|polypeptide 35''|subfamily B
+822236,CYP71B36,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 36",''cytochrome P450|cytochrome P450|family 71|polypeptide 36|polypeptide 36''|subfamily B
+822236,CYP71B36,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 36",''cytochrome P450|cytochrome P450|family 71|polypeptide 36|polypeptide 36''|subfamily B
+822236,CYP71B36,3702,polypeptide 36,"cytochrome P450, family 71, subfamily B, polypeptide 36",''cytochrome P450|cytochrome P450|family 71|polypeptide 36|polypeptide 36''|subfamily B
+822236,CYP71B36,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 36",''cytochrome P450|cytochrome P450|family 71|polypeptide 36|polypeptide 36''|subfamily B
+822237,CYP71B37,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 37",''cytochrome P450|cytochrome P450|family 71|polypeptide 37|polypeptide 37''|subfamily B
+822237,CYP71B37,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 37",''cytochrome P450|cytochrome P450|family 71|polypeptide 37|polypeptide 37''|subfamily B
+822237,CYP71B37,3702,polypeptide 37,"cytochrome P450, family 71, subfamily B, polypeptide 37",''cytochrome P450|cytochrome P450|family 71|polypeptide 37|polypeptide 37''|subfamily B
+822237,CYP71B37,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 37",''cytochrome P450|cytochrome P450|family 71|polypeptide 37|polypeptide 37''|subfamily B
+822729,CYP702A8,3702,cytochrome P450,"cytochrome P450, family 702, subfamily A, polypeptide 8",''cytochrome P450|cytochrome P450|family 702|polypeptide 8|polypeptide 8''|subfamily A
+822729,CYP702A8,3702,family 702,"cytochrome P450, family 702, subfamily A, polypeptide 8",''cytochrome P450|cytochrome P450|family 702|polypeptide 8|polypeptide 8''|subfamily A
+822729,CYP702A8,3702,polypeptide 8,"cytochrome P450, family 702, subfamily A, polypeptide 8",''cytochrome P450|cytochrome P450|family 702|polypeptide 8|polypeptide 8''|subfamily A
+822729,CYP702A8,3702,subfamily A,"cytochrome P450, family 702, subfamily A, polypeptide 8",''cytochrome P450|cytochrome P450|family 702|polypeptide 8|polypeptide 8''|subfamily A
+823550,CYP71B38,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 38",''cytochrome P450|cytochrome P450|family 71|polypeptide 38|polypeptide 38''|subfamily B
+823550,CYP71B38,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 38",''cytochrome P450|cytochrome P450|family 71|polypeptide 38|polypeptide 38''|subfamily B
+823550,CYP71B38,3702,polypeptide 38,"cytochrome P450, family 71, subfamily B, polypeptide 38",''cytochrome P450|cytochrome P450|family 71|polypeptide 38|polypeptide 38''|subfamily B
+823550,CYP71B38,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 38",''cytochrome P450|cytochrome P450|family 71|polypeptide 38|polypeptide 38''|subfamily B
+823948,GLDH,3702,4-lactone dehydrogenase,"L-galactono-1,4-lactone dehydrogenase",''L-galactono-1|4-LACTONE DEHYDOROGENASE|4-lactone dehydrogenase|4-lactone dehydrogenase''|ATGLDH|L-GALACTONO-1|L-galactono-1
+823948,GLDH,3702,L-galactono-1,"L-galactono-1,4-lactone dehydrogenase",''L-galactono-1|4-LACTONE DEHYDOROGENASE|4-lactone dehydrogenase|4-lactone dehydrogenase''|ATGLDH|L-GALACTONO-1|L-galactono-1
+823985,CYP71A26,3702,cytochrome P450,"cytochrome P450, family 71, subfamily A, polypeptide 26",''cytochrome P450|T29H11.210|cytochrome P450|family 71|polypeptide 26|polypeptide 26''|subfamily A
+823985,CYP71A26,3702,family 71,"cytochrome P450, family 71, subfamily A, polypeptide 26",''cytochrome P450|T29H11.210|cytochrome P450|family 71|polypeptide 26|polypeptide 26''|subfamily A
+823985,CYP71A26,3702,polypeptide 26,"cytochrome P450, family 71, subfamily A, polypeptide 26",''cytochrome P450|T29H11.210|cytochrome P450|family 71|polypeptide 26|polypeptide 26''|subfamily A
+823985,CYP71A26,3702,subfamily A,"cytochrome P450, family 71, subfamily A, polypeptide 26",''cytochrome P450|T29H11.210|cytochrome P450|family 71|polypeptide 26|polypeptide 26''|subfamily A
+823986,CYP71A25,3702,cytochrome P450,"cytochrome P450, family 71, subfamily A, polypeptide 25",''cytochrome P450|T29H11.200|cytochrome P450|family 71|polypeptide 25|polypeptide 25''|subfamily A
+823986,CYP71A25,3702,family 71,"cytochrome P450, family 71, subfamily A, polypeptide 25",''cytochrome P450|T29H11.200|cytochrome P450|family 71|polypeptide 25|polypeptide 25''|subfamily A
+823986,CYP71A25,3702,polypeptide 25,"cytochrome P450, family 71, subfamily A, polypeptide 25",''cytochrome P450|T29H11.200|cytochrome P450|family 71|polypeptide 25|polypeptide 25''|subfamily A
+823986,CYP71A25,3702,subfamily A,"cytochrome P450, family 71, subfamily A, polypeptide 25",''cytochrome P450|T29H11.200|cytochrome P450|family 71|polypeptide 25|polypeptide 25''|subfamily A
+823987,CYP71A24,3702,cytochrome P450,"cytochrome P450, family 71, subfamily A, polypeptide 24",''cytochrome P450|T29H11.190|cytochrome P450|family 71|polypeptide 24|polypeptide 24''|subfamily A
+823987,CYP71A24,3702,family 71,"cytochrome P450, family 71, subfamily A, polypeptide 24",''cytochrome P450|T29H11.190|cytochrome P450|family 71|polypeptide 24|polypeptide 24''|subfamily A
+823987,CYP71A24,3702,polypeptide 24,"cytochrome P450, family 71, subfamily A, polypeptide 24",''cytochrome P450|T29H11.190|cytochrome P450|family 71|polypeptide 24|polypeptide 24''|subfamily A
+823987,CYP71A24,3702,subfamily A,"cytochrome P450, family 71, subfamily A, polypeptide 24",''cytochrome P450|T29H11.190|cytochrome P450|family 71|polypeptide 24|polypeptide 24''|subfamily A
+823988,CYP71A23,3702,cytochrome P450,"cytochrome P450, family 71, subfamily A, polypeptide 23",''cytochrome P450|cytochrome P450|family 71|polypeptide 23|polypeptide 23''|subfamily A
+823988,CYP71A23,3702,family 71,"cytochrome P450, family 71, subfamily A, polypeptide 23",''cytochrome P450|cytochrome P450|family 71|polypeptide 23|polypeptide 23''|subfamily A
+823988,CYP71A23,3702,polypeptide 23,"cytochrome P450, family 71, subfamily A, polypeptide 23",''cytochrome P450|cytochrome P450|family 71|polypeptide 23|polypeptide 23''|subfamily A
+823988,CYP71A23,3702,subfamily A,"cytochrome P450, family 71, subfamily A, polypeptide 23",''cytochrome P450|cytochrome P450|family 71|polypeptide 23|polypeptide 23''|subfamily A
+823989,CYP71A22,3702,cytochrome P450,"cytochrome P450, family 71, subfamily A, polypeptide 22",''cytochrome P450|cytochrome P450|family 71|polypeptide 22|polypeptide 22''|subfamily A
+823989,CYP71A22,3702,family 71,"cytochrome P450, family 71, subfamily A, polypeptide 22",''cytochrome P450|cytochrome P450|family 71|polypeptide 22|polypeptide 22''|subfamily A
+823989,CYP71A22,3702,polypeptide 22,"cytochrome P450, family 71, subfamily A, polypeptide 22",''cytochrome P450|cytochrome P450|family 71|polypeptide 22|polypeptide 22''|subfamily A
+823989,CYP71A22,3702,subfamily A,"cytochrome P450, family 71, subfamily A, polypeptide 22",''cytochrome P450|cytochrome P450|family 71|polypeptide 22|polypeptide 22''|subfamily A
+823990,CYP71A21,3702,cytochrome P450,"cytochrome P450, family 71, subfamily A, polypeptide 21",''cytochrome P450|cytochrome P450|family 71|polypeptide 21|polypeptide 21''|subfamily A
+823990,CYP71A21,3702,family 71,"cytochrome P450, family 71, subfamily A, polypeptide 21",''cytochrome P450|cytochrome P450|family 71|polypeptide 21|polypeptide 21''|subfamily A
+823990,CYP71A21,3702,polypeptide 21,"cytochrome P450, family 71, subfamily A, polypeptide 21",''cytochrome P450|cytochrome P450|family 71|polypeptide 21|polypeptide 21''|subfamily A
+823990,CYP71A21,3702,subfamily A,"cytochrome P450, family 71, subfamily A, polypeptide 21",''cytochrome P450|cytochrome P450|family 71|polypeptide 21|polypeptide 21''|subfamily A
+824019,NF-YC1,3702,nuclear factor Y,"nuclear factor Y, subunit C1",''nuclear factor Y|ATHAP5A|HAP5A|nuclear factor Y|subunit C1|subunit C1''
+824019,NF-YC1,3702,subunit C1,"nuclear factor Y, subunit C1",''nuclear factor Y|ATHAP5A|HAP5A|nuclear factor Y|subunit C1|subunit C1''
+824162,CKA2,3702,alpha chain 2,"casein kinase II, alpha chain 2",''casein kinase II|ALPHA CHAIN 2|ATCKA2|ATPK15D|CASEIN KINASE II|alpha chain 2|alpha chain 2''|casein kinase II
+824162,CKA2,3702,casein kinase II,"casein kinase II, alpha chain 2",''casein kinase II|ALPHA CHAIN 2|ATCKA2|ATPK15D|CASEIN KINASE II|alpha chain 2|alpha chain 2''|casein kinase II
+824395,ATPQ,3702,ATP synthase D chain,ATP synthase D chain,''ATP synthase D chain|ATP synthase D chain|mitochondrial|mitochondrial''
+824463,CYP76G1,3702,cytochrome P450,"cytochrome P450, family 76, subfamily G, polypeptide 1",''cytochrome P450|cytochrome P450|family 76|polypeptide 1|polypeptide 1''|subfamily G
+824463,CYP76G1,3702,family 76,"cytochrome P450, family 76, subfamily G, polypeptide 1",''cytochrome P450|cytochrome P450|family 76|polypeptide 1|polypeptide 1''|subfamily G
+824463,CYP76G1,3702,polypeptide 1,"cytochrome P450, family 76, subfamily G, polypeptide 1",''cytochrome P450|cytochrome P450|family 76|polypeptide 1|polypeptide 1''|subfamily G
+824463,CYP76G1,3702,subfamily G,"cytochrome P450, family 76, subfamily G, polypeptide 1",''cytochrome P450|cytochrome P450|family 76|polypeptide 1|polypeptide 1''|subfamily G
+824496,CYP71B30P,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 30 pseudogene",''cytochrome P450|cytochrome P450|family 71|polypeptide 30 pseudogene|polypeptide 30 pseudogene''|subfamily B
+824496,CYP71B30P,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 30 pseudogene",''cytochrome P450|cytochrome P450|family 71|polypeptide 30 pseudogene|polypeptide 30 pseudogene''|subfamily B
+824496,CYP71B30P,3702,polypeptide 30 pseudogene,"cytochrome P450, family 71, subfamily B, polypeptide 30 pseudogene",''cytochrome P450|cytochrome P450|family 71|polypeptide 30 pseudogene|polypeptide 30 pseudogene''|subfamily B
+824496,CYP71B30P,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 30 pseudogene",''cytochrome P450|cytochrome P450|family 71|polypeptide 30 pseudogene|polypeptide 30 pseudogene''|subfamily B
+824497,CYP71B31,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 31",''cytochrome P450|F4P12.1|cytochrome P450|family 71|polypeptide 31|polypeptide 31''|subfamily B
+824497,CYP71B31,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 31",''cytochrome P450|F4P12.1|cytochrome P450|family 71|polypeptide 31|polypeptide 31''|subfamily B
+824497,CYP71B31,3702,polypeptide 31,"cytochrome P450, family 71, subfamily B, polypeptide 31",''cytochrome P450|F4P12.1|cytochrome P450|family 71|polypeptide 31|polypeptide 31''|subfamily B
+824497,CYP71B31,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 31",''cytochrome P450|F4P12.1|cytochrome P450|family 71|polypeptide 31|polypeptide 31''|subfamily B
+824498,CYP71B32,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 32",''cytochrome P450|cytochrome P450|family 71|polypeptide 32|polypeptide 32''|subfamily B
+824498,CYP71B32,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 32",''cytochrome P450|cytochrome P450|family 71|polypeptide 32|polypeptide 32''|subfamily B
+824498,CYP71B32,3702,polypeptide 32,"cytochrome P450, family 71, subfamily B, polypeptide 32",''cytochrome P450|cytochrome P450|family 71|polypeptide 32|polypeptide 32''|subfamily B
+824498,CYP71B32,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 32",''cytochrome P450|cytochrome P450|family 71|polypeptide 32|polypeptide 32''|subfamily B
+824502,NF-YB10,3702,nuclear factor Y,"nuclear factor Y, subunit B10",''nuclear factor Y|nuclear factor Y|subunit B10|subunit B10''
+824502,NF-YB10,3702,subunit B10,"nuclear factor Y, subunit B10",''nuclear factor Y|nuclear factor Y|subunit B10|subunit B10''
+824614,RPB5E,3702,E,"RNA polymerase II fifth largest subunit, E",''RNA polymerase II fifth largest subunit|E|E''|RNA polymerase II fifth largest subunit
+824614,RPB5E,3702,RNA polymerase II fifth largest subunit,"RNA polymerase II fifth largest subunit, E",''RNA polymerase II fifth largest subunit|E|E''|RNA polymerase II fifth largest subunit
+824830,CYP94D2,3702,cytochrome P450,"cytochrome P450, family 94, subfamily D, polypeptide 2",''cytochrome P450|cytochrome P450|family 94|polypeptide 2|polypeptide 2''|subfamily D
+824830,CYP94D2,3702,family 94,"cytochrome P450, family 94, subfamily D, polypeptide 2",''cytochrome P450|cytochrome P450|family 94|polypeptide 2|polypeptide 2''|subfamily D
+824830,CYP94D2,3702,polypeptide 2,"cytochrome P450, family 94, subfamily D, polypeptide 2",''cytochrome P450|cytochrome P450|family 94|polypeptide 2|polypeptide 2''|subfamily D
+824830,CYP94D2,3702,subfamily D,"cytochrome P450, family 94, subfamily D, polypeptide 2",''cytochrome P450|cytochrome P450|family 94|polypeptide 2|polypeptide 2''|subfamily D
+824893,BGL2,3702,3-glucanase 2,"beta-1,3-glucanase 2",''beta-1|3-GLUCANASE|3-GLUCANASE 2|3-glucanase 2|3-glucanase 2''|AtBG2|AtPR2|BETA-1|BG2|PATHOGENESIS-RELATED PROTEIN 2|PR-2|PR2|beta-1
+824893,BGL2,3702,beta-1,"beta-1,3-glucanase 2",''beta-1|3-GLUCANASE|3-GLUCANASE 2|3-glucanase 2|3-glucanase 2''|AtBG2|AtPR2|BETA-1|BG2|PATHOGENESIS-RELATED PROTEIN 2|PR-2|PR2|beta-1
+824894,BG1,3702,3-glucanase 1,"beta-1,3-glucanase 1",''beta-1|3-glucanase 1|3-glucanase 1''|beta-1
+824894,BG1,3702,beta-1,"beta-1,3-glucanase 1",''beta-1|3-glucanase 1|3-glucanase 1''|beta-1
+825276,CYP76C7,3702,cytochrome P450,"cytochrome P450, family 76, subfamily C, polypeptide 7",''cytochrome P450|cytochrome P450|family 76|polypeptide 7|polypeptide 7''|subfamily C
+825276,CYP76C7,3702,family 76,"cytochrome P450, family 76, subfamily C, polypeptide 7",''cytochrome P450|cytochrome P450|family 76|polypeptide 7|polypeptide 7''|subfamily C
+825276,CYP76C7,3702,polypeptide 7,"cytochrome P450, family 76, subfamily C, polypeptide 7",''cytochrome P450|cytochrome P450|family 76|polypeptide 7|polypeptide 7''|subfamily C
+825276,CYP76C7,3702,subfamily C,"cytochrome P450, family 76, subfamily C, polypeptide 7",''cytochrome P450|cytochrome P450|family 76|polypeptide 7|polypeptide 7''|subfamily C
+825494,RRF,3702,chloroplast precursor,"ribosome recycling factor, chloroplast precursor",''ribosome recycling factor|Arabidopsis thaliana chloroplast ribosome recycling factor|AtcpRRF|HFP108|HIGH CHLOROPHYLL FLUORESCENCE AND PALE GREEN MUTANT 108|chloroplast precursor|chloroplast precursor''|chloroplast ribosome recycling factor|cpRRF|ribosome recycling factor
+825494,RRF,3702,ribosome recycling factor,"ribosome recycling factor, chloroplast precursor",''ribosome recycling factor|Arabidopsis thaliana chloroplast ribosome recycling factor|AtcpRRF|HFP108|HIGH CHLOROPHYLL FLUORESCENCE AND PALE GREEN MUTANT 108|chloroplast precursor|chloroplast precursor''|chloroplast ribosome recycling factor|cpRRF|ribosome recycling factor
+826601,CNX7,3702,co-factor for nitrate,"co-factor for nitrate, reductase and xanthine dehydrogenase 7",''co-factor for nitrate|F28M11.20|F28M11_20|MOLYBDOPTERIN SYNTHASE|SIR5|co-factor for nitrate|reductase and xanthine dehydrogenase 7|reductase and xanthine dehydrogenase 7''
+826601,CNX7,3702,reductase and xanthine dehydrogenase 7,"co-factor for nitrate, reductase and xanthine dehydrogenase 7",''co-factor for nitrate|F28M11.20|F28M11_20|MOLYBDOPTERIN SYNTHASE|SIR5|co-factor for nitrate|reductase and xanthine dehydrogenase 7|reductase and xanthine dehydrogenase 7''
+826839,CYP706A4,3702,cytochrome P450,"cytochrome P450, family 706, subfamily A, polypeptide 4",''cytochrome P450|T4C9.140|T4C9_140|cytochrome P450|family 706|polypeptide 4|polypeptide 4''|subfamily A
+826839,CYP706A4,3702,family 706,"cytochrome P450, family 706, subfamily A, polypeptide 4",''cytochrome P450|T4C9.140|T4C9_140|cytochrome P450|family 706|polypeptide 4|polypeptide 4''|subfamily A
+826839,CYP706A4,3702,polypeptide 4,"cytochrome P450, family 706, subfamily A, polypeptide 4",''cytochrome P450|T4C9.140|T4C9_140|cytochrome P450|family 706|polypeptide 4|polypeptide 4''|subfamily A
+826839,CYP706A4,3702,subfamily A,"cytochrome P450, family 706, subfamily A, polypeptide 4",''cytochrome P450|T4C9.140|T4C9_140|cytochrome P450|family 706|polypeptide 4|polypeptide 4''|subfamily A
+826840,CYP706A5,3702,cytochrome P450,"cytochrome P450, family 706, subfamily A, polypeptide 5",''cytochrome P450|T4C9.150|T4C9_150|cytochrome P450|family 706|polypeptide 5|polypeptide 5''|subfamily A
+826840,CYP706A5,3702,family 706,"cytochrome P450, family 706, subfamily A, polypeptide 5",''cytochrome P450|T4C9.150|T4C9_150|cytochrome P450|family 706|polypeptide 5|polypeptide 5''|subfamily A
+826840,CYP706A5,3702,polypeptide 5,"cytochrome P450, family 706, subfamily A, polypeptide 5",''cytochrome P450|T4C9.150|T4C9_150|cytochrome P450|family 706|polypeptide 5|polypeptide 5''|subfamily A
+826840,CYP706A5,3702,subfamily A,"cytochrome P450, family 706, subfamily A, polypeptide 5",''cytochrome P450|T4C9.150|T4C9_150|cytochrome P450|family 706|polypeptide 5|polypeptide 5''|subfamily A
+826841,CYP706A6,3702,cytochrome P450,"cytochrome P450, family 706, subfamily A, polypeptide 6",''cytochrome P450|T4C9.160|T4C9_160|cytochrome P450|family 706|polypeptide 6|polypeptide 6''|subfamily A
+826841,CYP706A6,3702,family 706,"cytochrome P450, family 706, subfamily A, polypeptide 6",''cytochrome P450|T4C9.160|T4C9_160|cytochrome P450|family 706|polypeptide 6|polypeptide 6''|subfamily A
+826841,CYP706A6,3702,polypeptide 6,"cytochrome P450, family 706, subfamily A, polypeptide 6",''cytochrome P450|T4C9.160|T4C9_160|cytochrome P450|family 706|polypeptide 6|polypeptide 6''|subfamily A
+826841,CYP706A6,3702,subfamily A,"cytochrome P450, family 706, subfamily A, polypeptide 6",''cytochrome P450|T4C9.160|T4C9_160|cytochrome P450|family 706|polypeptide 6|polypeptide 6''|subfamily A
+826842,CYP706A7,3702,cytochrome P450,"cytochrome P450, family 706, subfamily A, polypeptide 7",''cytochrome P450|T4C9.170|T4C9_170|cytochrome P450|family 706|polypeptide 7|polypeptide 7''|subfamily A
+826842,CYP706A7,3702,family 706,"cytochrome P450, family 706, subfamily A, polypeptide 7",''cytochrome P450|T4C9.170|T4C9_170|cytochrome P450|family 706|polypeptide 7|polypeptide 7''|subfamily A
+826842,CYP706A7,3702,polypeptide 7,"cytochrome P450, family 706, subfamily A, polypeptide 7",''cytochrome P450|T4C9.170|T4C9_170|cytochrome P450|family 706|polypeptide 7|polypeptide 7''|subfamily A
+826842,CYP706A7,3702,subfamily A,"cytochrome P450, family 706, subfamily A, polypeptide 7",''cytochrome P450|T4C9.170|T4C9_170|cytochrome P450|family 706|polypeptide 7|polypeptide 7''|subfamily A
+826959,CYP71A19,3702,cytochrome P450,"cytochrome P450, family 71, subfamily A, polypeptide 19",''cytochrome P450|T9E8.30|T9E8_30|cytochrome P450|family 71|polypeptide 19|polypeptide 19''|subfamily A
+826959,CYP71A19,3702,family 71,"cytochrome P450, family 71, subfamily A, polypeptide 19",''cytochrome P450|T9E8.30|T9E8_30|cytochrome P450|family 71|polypeptide 19|polypeptide 19''|subfamily A
+826959,CYP71A19,3702,polypeptide 19,"cytochrome P450, family 71, subfamily A, polypeptide 19",''cytochrome P450|T9E8.30|T9E8_30|cytochrome P450|family 71|polypeptide 19|polypeptide 19''|subfamily A
+826959,CYP71A19,3702,subfamily A,"cytochrome P450, family 71, subfamily A, polypeptide 19",''cytochrome P450|T9E8.30|T9E8_30|cytochrome P450|family 71|polypeptide 19|polypeptide 19''|subfamily A
+826961,CYP71A20,3702,cytochrome P450,"cytochrome P450, family 71, subfamily A, polypeptide 20",''cytochrome P450|T9E8.50|T9E8_50|cytochrome P450|family 71|polypeptide 20|polypeptide 20''|subfamily A
+826961,CYP71A20,3702,family 71,"cytochrome P450, family 71, subfamily A, polypeptide 20",''cytochrome P450|T9E8.50|T9E8_50|cytochrome P450|family 71|polypeptide 20|polypeptide 20''|subfamily A
+826961,CYP71A20,3702,polypeptide 20,"cytochrome P450, family 71, subfamily A, polypeptide 20",''cytochrome P450|T9E8.50|T9E8_50|cytochrome P450|family 71|polypeptide 20|polypeptide 20''|subfamily A
+826961,CYP71A20,3702,subfamily A,"cytochrome P450, family 71, subfamily A, polypeptide 20",''cytochrome P450|T9E8.50|T9E8_50|cytochrome P450|family 71|polypeptide 20|polypeptide 20''|subfamily A
+827011,CYP83A1,3702,cytochrome P450,"cytochrome P450, family 83, subfamily A, polypeptide 1",''cytochrome P450|CYTOCHROME P450 MONOOXYGENASE|F18A5.160|F18A5_160|REDUCED EPIDERMAL FLUORESCENCE 2|REF2|cytochrome P450|family 83|polypeptide 1|polypeptide 1''|subfamily A
+827011,CYP83A1,3702,family 83,"cytochrome P450, family 83, subfamily A, polypeptide 1",''cytochrome P450|CYTOCHROME P450 MONOOXYGENASE|F18A5.160|F18A5_160|REDUCED EPIDERMAL FLUORESCENCE 2|REF2|cytochrome P450|family 83|polypeptide 1|polypeptide 1''|subfamily A
+827011,CYP83A1,3702,polypeptide 1,"cytochrome P450, family 83, subfamily A, polypeptide 1",''cytochrome P450|CYTOCHROME P450 MONOOXYGENASE|F18A5.160|F18A5_160|REDUCED EPIDERMAL FLUORESCENCE 2|REF2|cytochrome P450|family 83|polypeptide 1|polypeptide 1''|subfamily A
+827011,CYP83A1,3702,subfamily A,"cytochrome P450, family 83, subfamily A, polypeptide 1",''cytochrome P450|CYTOCHROME P450 MONOOXYGENASE|F18A5.160|F18A5_160|REDUCED EPIDERMAL FLUORESCENCE 2|REF2|cytochrome P450|family 83|polypeptide 1|polypeptide 1''|subfamily A
+827101,NF-YB3,3702,nuclear factor Y,"nuclear factor Y, subunit B3",''nuclear factor Y|DL3310W|FCAALL.252|nuclear factor Y|subunit B3|subunit B3''
+827101,NF-YB3,3702,subunit B3,"nuclear factor Y, subunit B3",''nuclear factor Y|DL3310W|FCAALL.252|nuclear factor Y|subunit B3|subunit B3''
+827177,CYP97B3,3702,cytochrome P450,"cytochrome P450, family 97, subfamily B, polypeptide 3",''cytochrome P450|DL3600C|FCAALL.208|cytochrome P450|family 97|polypeptide 3|polypeptide 3''|subfamily B
+827177,CYP97B3,3702,family 97,"cytochrome P450, family 97, subfamily B, polypeptide 3",''cytochrome P450|DL3600C|FCAALL.208|cytochrome P450|family 97|polypeptide 3|polypeptide 3''|subfamily B
+827177,CYP97B3,3702,polypeptide 3,"cytochrome P450, family 97, subfamily B, polypeptide 3",''cytochrome P450|DL3600C|FCAALL.208|cytochrome P450|family 97|polypeptide 3|polypeptide 3''|subfamily B
+827177,CYP97B3,3702,subfamily B,"cytochrome P450, family 97, subfamily B, polypeptide 3",''cytochrome P450|DL3600C|FCAALL.208|cytochrome P450|family 97|polypeptide 3|polypeptide 3''|subfamily B
+827196,CYP702A2,3702,cytochrome P450,"cytochrome P450, family 702, subfamily A, polypeptide 2",''cytochrome P450|DL3695C|FCAALL.257|cytochrome P450|family 702|polypeptide 2|polypeptide 2''|subfamily A
+827196,CYP702A2,3702,family 702,"cytochrome P450, family 702, subfamily A, polypeptide 2",''cytochrome P450|DL3695C|FCAALL.257|cytochrome P450|family 702|polypeptide 2|polypeptide 2''|subfamily A
+827196,CYP702A2,3702,polypeptide 2,"cytochrome P450, family 702, subfamily A, polypeptide 2",''cytochrome P450|DL3695C|FCAALL.257|cytochrome P450|family 702|polypeptide 2|polypeptide 2''|subfamily A
+827196,CYP702A2,3702,subfamily A,"cytochrome P450, family 702, subfamily A, polypeptide 2",''cytochrome P450|DL3695C|FCAALL.257|cytochrome P450|family 702|polypeptide 2|polypeptide 2''|subfamily A
+827197,CYP702A3,3702,cytochrome P450,"cytochrome P450, family 702, subfamily A, polypeptide 3",''cytochrome P450|DL3700W|FCAALL.266|cytochrome P450|family 702|polypeptide 3|polypeptide 3''|subfamily A
+827197,CYP702A3,3702,family 702,"cytochrome P450, family 702, subfamily A, polypeptide 3",''cytochrome P450|DL3700W|FCAALL.266|cytochrome P450|family 702|polypeptide 3|polypeptide 3''|subfamily A
+827197,CYP702A3,3702,polypeptide 3,"cytochrome P450, family 702, subfamily A, polypeptide 3",''cytochrome P450|DL3700W|FCAALL.266|cytochrome P450|family 702|polypeptide 3|polypeptide 3''|subfamily A
+827197,CYP702A3,3702,subfamily A,"cytochrome P450, family 702, subfamily A, polypeptide 3",''cytochrome P450|DL3700W|FCAALL.266|cytochrome P450|family 702|polypeptide 3|polypeptide 3''|subfamily A
+827199,CYP705A1,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 1",''cytochrome P450|DL3710C|FCAALL.270|cytochrome P450|family 705|polypeptide 1|polypeptide 1''|subfamily A
+827199,CYP705A1,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 1",''cytochrome P450|DL3710C|FCAALL.270|cytochrome P450|family 705|polypeptide 1|polypeptide 1''|subfamily A
+827199,CYP705A1,3702,polypeptide 1,"cytochrome P450, family 705, subfamily A, polypeptide 1",''cytochrome P450|DL3710C|FCAALL.270|cytochrome P450|family 705|polypeptide 1|polypeptide 1''|subfamily A
+827199,CYP705A1,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 1",''cytochrome P450|DL3710C|FCAALL.270|cytochrome P450|family 705|polypeptide 1|polypeptide 1''|subfamily A
+827201,CYP705A2,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 2",''cytochrome P450|DL3720W|FCAALL.274|cytochrome P450|family 705|polypeptide 2|polypeptide 2''|subfamily A
+827201,CYP705A2,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 2",''cytochrome P450|DL3720W|FCAALL.274|cytochrome P450|family 705|polypeptide 2|polypeptide 2''|subfamily A
+827201,CYP705A2,3702,polypeptide 2,"cytochrome P450, family 705, subfamily A, polypeptide 2",''cytochrome P450|DL3720W|FCAALL.274|cytochrome P450|family 705|polypeptide 2|polypeptide 2''|subfamily A
+827201,CYP705A2,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 2",''cytochrome P450|DL3720W|FCAALL.274|cytochrome P450|family 705|polypeptide 2|polypeptide 2''|subfamily A
+827202,CYP705A3,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 3",''cytochrome P450|DL3725W|FCAALL.277|cytochrome P450|family 705|polypeptide 3|polypeptide 3''|subfamily A
+827202,CYP705A3,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 3",''cytochrome P450|DL3725W|FCAALL.277|cytochrome P450|family 705|polypeptide 3|polypeptide 3''|subfamily A
+827202,CYP705A3,3702,polypeptide 3,"cytochrome P450, family 705, subfamily A, polypeptide 3",''cytochrome P450|DL3725W|FCAALL.277|cytochrome P450|family 705|polypeptide 3|polypeptide 3''|subfamily A
+827202,CYP705A3,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 3",''cytochrome P450|DL3725W|FCAALL.277|cytochrome P450|family 705|polypeptide 3|polypeptide 3''|subfamily A
+827204,CYP705A4,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 4",''cytochrome P450|DL3735W|FCAALL.280|cytochrome P450|family 705|polypeptide 4|polypeptide 4''|subfamily A
+827204,CYP705A4,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 4",''cytochrome P450|DL3735W|FCAALL.280|cytochrome P450|family 705|polypeptide 4|polypeptide 4''|subfamily A
+827204,CYP705A4,3702,polypeptide 4,"cytochrome P450, family 705, subfamily A, polypeptide 4",''cytochrome P450|DL3735W|FCAALL.280|cytochrome P450|family 705|polypeptide 4|polypeptide 4''|subfamily A
+827204,CYP705A4,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 4",''cytochrome P450|DL3735W|FCAALL.280|cytochrome P450|family 705|polypeptide 4|polypeptide 4''|subfamily A
+827206,CYP702A5,3702,cytochrome P450,"cytochrome P450, family 702, subfamily A, polypeptide 5",''cytochrome P450|cytochrome P450|family 702|polypeptide 5|polypeptide 5''|subfamily A
+827206,CYP702A5,3702,family 702,"cytochrome P450, family 702, subfamily A, polypeptide 5",''cytochrome P450|cytochrome P450|family 702|polypeptide 5|polypeptide 5''|subfamily A
+827206,CYP702A5,3702,polypeptide 5,"cytochrome P450, family 702, subfamily A, polypeptide 5",''cytochrome P450|cytochrome P450|family 702|polypeptide 5|polypeptide 5''|subfamily A
+827206,CYP702A5,3702,subfamily A,"cytochrome P450, family 702, subfamily A, polypeptide 5",''cytochrome P450|cytochrome P450|family 702|polypeptide 5|polypeptide 5''|subfamily A
+827207,CYP702A6,3702,cytochrome P450,"cytochrome P450, family 702, subfamily A, polypeptide 6",''cytochrome P450|cytochrome P450|family 702|polypeptide 6|polypeptide 6''|subfamily A
+827207,CYP702A6,3702,family 702,"cytochrome P450, family 702, subfamily A, polypeptide 6",''cytochrome P450|cytochrome P450|family 702|polypeptide 6|polypeptide 6''|subfamily A
+827207,CYP702A6,3702,polypeptide 6,"cytochrome P450, family 702, subfamily A, polypeptide 6",''cytochrome P450|cytochrome P450|family 702|polypeptide 6|polypeptide 6''|subfamily A
+827207,CYP702A6,3702,subfamily A,"cytochrome P450, family 702, subfamily A, polypeptide 6",''cytochrome P450|cytochrome P450|family 702|polypeptide 6|polypeptide 6''|subfamily A
+827663,CYP707A1,3702,cytochrome P450,"cytochrome P450, family 707, subfamily A, polypeptide 1",''cytochrome P450|T18B16.200|T18B16_200|cytochrome P450|family 707|polypeptide 1|polypeptide 1''|subfamily A
+827663,CYP707A1,3702,family 707,"cytochrome P450, family 707, subfamily A, polypeptide 1",''cytochrome P450|T18B16.200|T18B16_200|cytochrome P450|family 707|polypeptide 1|polypeptide 1''|subfamily A
+827663,CYP707A1,3702,polypeptide 1,"cytochrome P450, family 707, subfamily A, polypeptide 1",''cytochrome P450|T18B16.200|T18B16_200|cytochrome P450|family 707|polypeptide 1|polypeptide 1''|subfamily A
+827663,CYP707A1,3702,subfamily A,"cytochrome P450, family 707, subfamily A, polypeptide 1",''cytochrome P450|T18B16.200|T18B16_200|cytochrome P450|family 707|polypeptide 1|polypeptide 1''|subfamily A
+827771,CYP71A27,3702,cytochrome P450,"cytochrome P450, family 71, subfamily A, polypeptide 27",''cytochrome P450|F1C12.160|F1C12.160A|F1C12_160|cytochrome P450|family 71|polypeptide 27|polypeptide 27''|subfamily A
+827771,CYP71A27,3702,family 71,"cytochrome P450, family 71, subfamily A, polypeptide 27",''cytochrome P450|F1C12.160|F1C12.160A|F1C12_160|cytochrome P450|family 71|polypeptide 27|polypeptide 27''|subfamily A
+827771,CYP71A27,3702,polypeptide 27,"cytochrome P450, family 71, subfamily A, polypeptide 27",''cytochrome P450|F1C12.160|F1C12.160A|F1C12_160|cytochrome P450|family 71|polypeptide 27|polypeptide 27''|subfamily A
+827771,CYP71A27,3702,subfamily A,"cytochrome P450, family 71, subfamily A, polypeptide 27",''cytochrome P450|F1C12.160|F1C12.160A|F1C12_160|cytochrome P450|family 71|polypeptide 27|polypeptide 27''|subfamily A
+828019,CYP86A2,3702,cytochrome P450,"cytochrome P450, family 86, subfamily A, polypeptide 2",''cytochrome P450|ABERRANT INDUCTION OF TYPE THREE 1|ATT1|A_IG005I10.21|A_IG005I10_21|F5I10.21|F5I10_21|cytochrome P450|family 86|polypeptide 2|polypeptide 2''|subfamily A
+828019,CYP86A2,3702,family 86,"cytochrome P450, family 86, subfamily A, polypeptide 2",''cytochrome P450|ABERRANT INDUCTION OF TYPE THREE 1|ATT1|A_IG005I10.21|A_IG005I10_21|F5I10.21|F5I10_21|cytochrome P450|family 86|polypeptide 2|polypeptide 2''|subfamily A
+828019,CYP86A2,3702,polypeptide 2,"cytochrome P450, family 86, subfamily A, polypeptide 2",''cytochrome P450|ABERRANT INDUCTION OF TYPE THREE 1|ATT1|A_IG005I10.21|A_IG005I10_21|F5I10.21|F5I10_21|cytochrome P450|family 86|polypeptide 2|polypeptide 2''|subfamily A
+828019,CYP86A2,3702,subfamily A,"cytochrome P450, family 86, subfamily A, polypeptide 2",''cytochrome P450|ABERRANT INDUCTION OF TYPE THREE 1|ATT1|A_IG005I10.21|A_IG005I10_21|F5I10.21|F5I10_21|cytochrome P450|family 86|polypeptide 2|polypeptide 2''|subfamily A
+828365,CYP706A1,3702,cytochrome P450,"cytochrome P450, family 706, subfamily A, polypeptide 1",''cytochrome P450|T12H17.80|T12H17_80|cytochrome P450|family 706|polypeptide 1|polypeptide 1''|subfamily A
+828365,CYP706A1,3702,family 706,"cytochrome P450, family 706, subfamily A, polypeptide 1",''cytochrome P450|T12H17.80|T12H17_80|cytochrome P450|family 706|polypeptide 1|polypeptide 1''|subfamily A
+828365,CYP706A1,3702,polypeptide 1,"cytochrome P450, family 706, subfamily A, polypeptide 1",''cytochrome P450|T12H17.80|T12H17_80|cytochrome P450|family 706|polypeptide 1|polypeptide 1''|subfamily A
+828365,CYP706A1,3702,subfamily A,"cytochrome P450, family 706, subfamily A, polypeptide 1",''cytochrome P450|T12H17.80|T12H17_80|cytochrome P450|family 706|polypeptide 1|polypeptide 1''|subfamily A
+828367,CYP706A2,3702,cytochrome P450,"cytochrome P450, family 706, subfamily A, polypeptide 2",''cytochrome P450|T12H17.100|T12H17_100|cytochrome P450|family 706|polypeptide 2|polypeptide 2''|subfamily A
+828367,CYP706A2,3702,family 706,"cytochrome P450, family 706, subfamily A, polypeptide 2",''cytochrome P450|T12H17.100|T12H17_100|cytochrome P450|family 706|polypeptide 2|polypeptide 2''|subfamily A
+828367,CYP706A2,3702,polypeptide 2,"cytochrome P450, family 706, subfamily A, polypeptide 2",''cytochrome P450|T12H17.100|T12H17_100|cytochrome P450|family 706|polypeptide 2|polypeptide 2''|subfamily A
+828367,CYP706A2,3702,subfamily A,"cytochrome P450, family 706, subfamily A, polypeptide 2",''cytochrome P450|T12H17.100|T12H17_100|cytochrome P450|family 706|polypeptide 2|polypeptide 2''|subfamily A
+828885,CYP709B3,3702,cytochrome P450,"cytochrome P450, family 709, subfamily B, polypeptide 3",''cytochrome P450|T29A15.200|T29A15_200|cytochrome P450|family 709|polypeptide 3|polypeptide 3''|subfamily B
+828885,CYP709B3,3702,family 709,"cytochrome P450, family 709, subfamily B, polypeptide 3",''cytochrome P450|T29A15.200|T29A15_200|cytochrome P450|family 709|polypeptide 3|polypeptide 3''|subfamily B
+828885,CYP709B3,3702,polypeptide 3,"cytochrome P450, family 709, subfamily B, polypeptide 3",''cytochrome P450|T29A15.200|T29A15_200|cytochrome P450|family 709|polypeptide 3|polypeptide 3''|subfamily B
+828885,CYP709B3,3702,subfamily B,"cytochrome P450, family 709, subfamily B, polypeptide 3",''cytochrome P450|T29A15.200|T29A15_200|cytochrome P450|family 709|polypeptide 3|polypeptide 3''|subfamily B
+829277,CYP83B1,3702,cytochrome P450,"cytochrome P450, family 83, subfamily B, polypeptide 1",''cytochrome P450|ALTERED TRYPTOPHAN REGULATION 4|ATR4|CYTOCHROME P450 MONOOXYGENASE 83B1|F3L17.70|F3L17_70|RED ELONGATED 1|RED1|RNT1|RUNT 1|SUPERROOT 2|SUR2|cytochrome P450|family 83|polypeptide 1|polypeptide 1''|subfamily B
+829277,CYP83B1,3702,family 83,"cytochrome P450, family 83, subfamily B, polypeptide 1",''cytochrome P450|ALTERED TRYPTOPHAN REGULATION 4|ATR4|CYTOCHROME P450 MONOOXYGENASE 83B1|F3L17.70|F3L17_70|RED ELONGATED 1|RED1|RNT1|RUNT 1|SUPERROOT 2|SUR2|cytochrome P450|family 83|polypeptide 1|polypeptide 1''|subfamily B
+829277,CYP83B1,3702,polypeptide 1,"cytochrome P450, family 83, subfamily B, polypeptide 1",''cytochrome P450|ALTERED TRYPTOPHAN REGULATION 4|ATR4|CYTOCHROME P450 MONOOXYGENASE 83B1|F3L17.70|F3L17_70|RED ELONGATED 1|RED1|RNT1|RUNT 1|SUPERROOT 2|SUR2|cytochrome P450|family 83|polypeptide 1|polypeptide 1''|subfamily B
+829277,CYP83B1,3702,subfamily B,"cytochrome P450, family 83, subfamily B, polypeptide 1",''cytochrome P450|ALTERED TRYPTOPHAN REGULATION 4|ATR4|CYTOCHROME P450 MONOOXYGENASE 83B1|F3L17.70|F3L17_70|RED ELONGATED 1|RED1|RNT1|RUNT 1|SUPERROOT 2|SUR2|cytochrome P450|family 83|polypeptide 1|polypeptide 1''|subfamily B
+829324,CYP82C4,3702,cytochrome P450,"cytochrome P450, family 82, subfamily C, polypeptide 4",''cytochrome P450|F11C18.7|cytochrome P450|family 82|polypeptide 4|polypeptide 4''|subfamily C
+829324,CYP82C4,3702,family 82,"cytochrome P450, family 82, subfamily C, polypeptide 4",''cytochrome P450|F11C18.7|cytochrome P450|family 82|polypeptide 4|polypeptide 4''|subfamily C
+829324,CYP82C4,3702,polypeptide 4,"cytochrome P450, family 82, subfamily C, polypeptide 4",''cytochrome P450|F11C18.7|cytochrome P450|family 82|polypeptide 4|polypeptide 4''|subfamily C
+829324,CYP82C4,3702,subfamily C,"cytochrome P450, family 82, subfamily C, polypeptide 4",''cytochrome P450|F11C18.7|cytochrome P450|family 82|polypeptide 4|polypeptide 4''|subfamily C
+829325,CYP82C3,3702,cytochrome P450,"cytochrome P450, family 82, subfamily C, polypeptide 3",''cytochrome P450|F11C18.9|cytochrome P450|family 82|polypeptide 3|polypeptide 3''|subfamily C
+829325,CYP82C3,3702,family 82,"cytochrome P450, family 82, subfamily C, polypeptide 3",''cytochrome P450|F11C18.9|cytochrome P450|family 82|polypeptide 3|polypeptide 3''|subfamily C
+829325,CYP82C3,3702,polypeptide 3,"cytochrome P450, family 82, subfamily C, polypeptide 3",''cytochrome P450|F11C18.9|cytochrome P450|family 82|polypeptide 3|polypeptide 3''|subfamily C
+829325,CYP82C3,3702,subfamily C,"cytochrome P450, family 82, subfamily C, polypeptide 3",''cytochrome P450|F11C18.9|cytochrome P450|family 82|polypeptide 3|polypeptide 3''|subfamily C
+829327,CYP82C2,3702,cytochrome P450,"cytochrome P450, family 82, subfamily C, polypeptide 2",''cytochrome P450|F11C18.12|cytochrome P450|family 82|polypeptide 2|polypeptide 2''|subfamily C
+829327,CYP82C2,3702,family 82,"cytochrome P450, family 82, subfamily C, polypeptide 2",''cytochrome P450|F11C18.12|cytochrome P450|family 82|polypeptide 2|polypeptide 2''|subfamily C
+829327,CYP82C2,3702,polypeptide 2,"cytochrome P450, family 82, subfamily C, polypeptide 2",''cytochrome P450|F11C18.12|cytochrome P450|family 82|polypeptide 2|polypeptide 2''|subfamily C
+829327,CYP82C2,3702,subfamily C,"cytochrome P450, family 82, subfamily C, polypeptide 2",''cytochrome P450|F11C18.12|cytochrome P450|family 82|polypeptide 2|polypeptide 2''|subfamily C
+829349,CYP96A2,3702,cytochrome P450,"cytochrome P450, family 96, subfamily A, polypeptide 2",''cytochrome P450|F10M6.190|cytochrome P450|family 96|polypeptide 2|polypeptide 2''|subfamily A
+829349,CYP96A2,3702,family 96,"cytochrome P450, family 96, subfamily A, polypeptide 2",''cytochrome P450|F10M6.190|cytochrome P450|family 96|polypeptide 2|polypeptide 2''|subfamily A
+829349,CYP96A2,3702,polypeptide 2,"cytochrome P450, family 96, subfamily A, polypeptide 2",''cytochrome P450|F10M6.190|cytochrome P450|family 96|polypeptide 2|polypeptide 2''|subfamily A
+829349,CYP96A2,3702,subfamily A,"cytochrome P450, family 96, subfamily A, polypeptide 2",''cytochrome P450|F10M6.190|cytochrome P450|family 96|polypeptide 2|polypeptide 2''|subfamily A
+829886,CYP81H1,3702,cytochrome P450,"cytochrome P450, family 81, subfamily H, polypeptide 1",''cytochrome P450|F6G17.6|cytochrome P450|family 81|polypeptide 1|polypeptide 1''|subfamily H
+829886,CYP81H1,3702,family 81,"cytochrome P450, family 81, subfamily H, polypeptide 1",''cytochrome P450|F6G17.6|cytochrome P450|family 81|polypeptide 1|polypeptide 1''|subfamily H
+829886,CYP81H1,3702,polypeptide 1,"cytochrome P450, family 81, subfamily H, polypeptide 1",''cytochrome P450|F6G17.6|cytochrome P450|family 81|polypeptide 1|polypeptide 1''|subfamily H
+829886,CYP81H1,3702,subfamily H,"cytochrome P450, family 81, subfamily H, polypeptide 1",''cytochrome P450|F6G17.6|cytochrome P450|family 81|polypeptide 1|polypeptide 1''|subfamily H
+829887,CYP81D5,3702,cytochrome P450,"cytochrome P450, family 81, subfamily D, polypeptide 5",''cytochrome P450|F6G17.8|cytochrome P450|family 81|polypeptide 5|polypeptide 5''|subfamily D
+829887,CYP81D5,3702,family 81,"cytochrome P450, family 81, subfamily D, polypeptide 5",''cytochrome P450|F6G17.8|cytochrome P450|family 81|polypeptide 5|polypeptide 5''|subfamily D
+829887,CYP81D5,3702,polypeptide 5,"cytochrome P450, family 81, subfamily D, polypeptide 5",''cytochrome P450|F6G17.8|cytochrome P450|family 81|polypeptide 5|polypeptide 5''|subfamily D
+829887,CYP81D5,3702,subfamily D,"cytochrome P450, family 81, subfamily D, polypeptide 5",''cytochrome P450|F6G17.8|cytochrome P450|family 81|polypeptide 5|polypeptide 5''|subfamily D
+829888,CYP81D4,3702,cytochrome P450,"cytochrome P450, family 81, subfamily D, polypeptide 4",''cytochrome P450|F6G17.5|cytochrome P450|family 81|polypeptide 4|polypeptide 4''|subfamily D
+829888,CYP81D4,3702,family 81,"cytochrome P450, family 81, subfamily D, polypeptide 4",''cytochrome P450|F6G17.5|cytochrome P450|family 81|polypeptide 4|polypeptide 4''|subfamily D
+829888,CYP81D4,3702,polypeptide 4,"cytochrome P450, family 81, subfamily D, polypeptide 4",''cytochrome P450|F6G17.5|cytochrome P450|family 81|polypeptide 4|polypeptide 4''|subfamily D
+829888,CYP81D4,3702,subfamily D,"cytochrome P450, family 81, subfamily D, polypeptide 4",''cytochrome P450|F6G17.5|cytochrome P450|family 81|polypeptide 4|polypeptide 4''|subfamily D
+829889,CYP81D3,3702,cytochrome P450,"cytochrome P450, family 81, subfamily D, polypeptide 3",''cytochrome P450|F6G17.1|cytochrome P450|family 81|polypeptide 3|polypeptide 3''|subfamily D
+829889,CYP81D3,3702,family 81,"cytochrome P450, family 81, subfamily D, polypeptide 3",''cytochrome P450|F6G17.1|cytochrome P450|family 81|polypeptide 3|polypeptide 3''|subfamily D
+829889,CYP81D3,3702,polypeptide 3,"cytochrome P450, family 81, subfamily D, polypeptide 3",''cytochrome P450|F6G17.1|cytochrome P450|family 81|polypeptide 3|polypeptide 3''|subfamily D
+829889,CYP81D3,3702,subfamily D,"cytochrome P450, family 81, subfamily D, polypeptide 3",''cytochrome P450|F6G17.1|cytochrome P450|family 81|polypeptide 3|polypeptide 3''|subfamily D
+829890,CYP81D2,3702,cytochrome P450,"cytochrome P450, family 81, subfamily D, polypeptide 2",''cytochrome P450|F6G17.10|F6G17_10|cytochrome P450|family 81|polypeptide 2|polypeptide 2''|subfamily D
+829890,CYP81D2,3702,family 81,"cytochrome P450, family 81, subfamily D, polypeptide 2",''cytochrome P450|F6G17.10|F6G17_10|cytochrome P450|family 81|polypeptide 2|polypeptide 2''|subfamily D
+829890,CYP81D2,3702,polypeptide 2,"cytochrome P450, family 81, subfamily D, polypeptide 2",''cytochrome P450|F6G17.10|F6G17_10|cytochrome P450|family 81|polypeptide 2|polypeptide 2''|subfamily D
+829890,CYP81D2,3702,subfamily D,"cytochrome P450, family 81, subfamily D, polypeptide 2",''cytochrome P450|F6G17.10|F6G17_10|cytochrome P450|family 81|polypeptide 2|polypeptide 2''|subfamily D
+829891,CYP81D8,3702,cytochrome P450,"cytochrome P450, family 81, subfamily D, polypeptide 8",''cytochrome P450|F6G17.20|F6G17_20|cytochrome P450|family 81|polypeptide 8|polypeptide 8''|subfamily D
+829891,CYP81D8,3702,family 81,"cytochrome P450, family 81, subfamily D, polypeptide 8",''cytochrome P450|F6G17.20|F6G17_20|cytochrome P450|family 81|polypeptide 8|polypeptide 8''|subfamily D
+829891,CYP81D8,3702,polypeptide 8,"cytochrome P450, family 81, subfamily D, polypeptide 8",''cytochrome P450|F6G17.20|F6G17_20|cytochrome P450|family 81|polypeptide 8|polypeptide 8''|subfamily D
+829891,CYP81D8,3702,subfamily D,"cytochrome P450, family 81, subfamily D, polypeptide 8",''cytochrome P450|F6G17.20|F6G17_20|cytochrome P450|family 81|polypeptide 8|polypeptide 8''|subfamily D
+829894,CYP81F3,3702,cytochrome P450,"cytochrome P450, family 81, subfamily F, polypeptide 3",''cytochrome P450|F6G17.50|F6G17_50|cytochrome P450|family 81|polypeptide 3|polypeptide 3''|subfamily F
+829894,CYP81F3,3702,family 81,"cytochrome P450, family 81, subfamily F, polypeptide 3",''cytochrome P450|F6G17.50|F6G17_50|cytochrome P450|family 81|polypeptide 3|polypeptide 3''|subfamily F
+829894,CYP81F3,3702,polypeptide 3,"cytochrome P450, family 81, subfamily F, polypeptide 3",''cytochrome P450|F6G17.50|F6G17_50|cytochrome P450|family 81|polypeptide 3|polypeptide 3''|subfamily F
+829894,CYP81F3,3702,subfamily F,"cytochrome P450, family 81, subfamily F, polypeptide 3",''cytochrome P450|F6G17.50|F6G17_50|cytochrome P450|family 81|polypeptide 3|polypeptide 3''|subfamily F
+829895,CYP81F4,3702,cytochrome P450,"cytochrome P450, family 81, subfamily F, polypeptide 4",''cytochrome P450|F6G17.60|F6G17_60|cytochrome P450|family 81|polypeptide 4|polypeptide 4''|subfamily F
+829895,CYP81F4,3702,family 81,"cytochrome P450, family 81, subfamily F, polypeptide 4",''cytochrome P450|F6G17.60|F6G17_60|cytochrome P450|family 81|polypeptide 4|polypeptide 4''|subfamily F
+829895,CYP81F4,3702,polypeptide 4,"cytochrome P450, family 81, subfamily F, polypeptide 4",''cytochrome P450|F6G17.60|F6G17_60|cytochrome P450|family 81|polypeptide 4|polypeptide 4''|subfamily F
+829895,CYP81F4,3702,subfamily F,"cytochrome P450, family 81, subfamily F, polypeptide 4",''cytochrome P450|F6G17.60|F6G17_60|cytochrome P450|family 81|polypeptide 4|polypeptide 4''|subfamily F
+829897,CYP91A2,3702,cytochrome P450,"cytochrome P450, family 91, subfamily A, polypeptide 2",''cytochrome P450|CYP81F1|CYTOCHROME P450 MONOOXYGENASE 81F1|CYTOCHROME P450 MONOOXYGENASE 91A2|F6G17.80|F6G17_80|cytochrome P450|family 91|polypeptide 2|polypeptide 2''|subfamily A
+829897,CYP91A2,3702,family 91,"cytochrome P450, family 91, subfamily A, polypeptide 2",''cytochrome P450|CYP81F1|CYTOCHROME P450 MONOOXYGENASE 81F1|CYTOCHROME P450 MONOOXYGENASE 91A2|F6G17.80|F6G17_80|cytochrome P450|family 91|polypeptide 2|polypeptide 2''|subfamily A
+829897,CYP91A2,3702,polypeptide 2,"cytochrome P450, family 91, subfamily A, polypeptide 2",''cytochrome P450|CYP81F1|CYTOCHROME P450 MONOOXYGENASE 81F1|CYTOCHROME P450 MONOOXYGENASE 91A2|F6G17.80|F6G17_80|cytochrome P450|family 91|polypeptide 2|polypeptide 2''|subfamily A
+829897,CYP91A2,3702,subfamily A,"cytochrome P450, family 91, subfamily A, polypeptide 2",''cytochrome P450|CYP81F1|CYTOCHROME P450 MONOOXYGENASE 81F1|CYTOCHROME P450 MONOOXYGENASE 91A2|F6G17.80|F6G17_80|cytochrome P450|family 91|polypeptide 2|polypeptide 2''|subfamily A
+830103,CYP96A9,3702,cytochrome P450,"cytochrome P450, family 96, subfamily A, polypeptide 9",''cytochrome P450|AT4G39490|F23K16.110|F23K16_110|cytochrome P450|family 96|polypeptide 9|polypeptide 9''|subfamily A
+830103,CYP96A9,3702,family 96,"cytochrome P450, family 96, subfamily A, polypeptide 9",''cytochrome P450|AT4G39490|F23K16.110|F23K16_110|cytochrome P450|family 96|polypeptide 9|polypeptide 9''|subfamily A
+830103,CYP96A9,3702,polypeptide 9,"cytochrome P450, family 96, subfamily A, polypeptide 9",''cytochrome P450|AT4G39490|F23K16.110|F23K16_110|cytochrome P450|family 96|polypeptide 9|polypeptide 9''|subfamily A
+830103,CYP96A9,3702,subfamily A,"cytochrome P450, family 96, subfamily A, polypeptide 9",''cytochrome P450|AT4G39490|F23K16.110|F23K16_110|cytochrome P450|family 96|polypeptide 9|polypeptide 9''|subfamily A
+830104,CYP96A11,3702,cytochrome P450,"cytochrome P450, family 96, subfamily A, polypeptide 11",''cytochrome P450|F23K16.130|F23K16_130|cytochrome P450|family 96|polypeptide 11|polypeptide 11''|subfamily A
+830104,CYP96A11,3702,family 96,"cytochrome P450, family 96, subfamily A, polypeptide 11",''cytochrome P450|F23K16.130|F23K16_130|cytochrome P450|family 96|polypeptide 11|polypeptide 11''|subfamily A
+830104,CYP96A11,3702,polypeptide 11,"cytochrome P450, family 96, subfamily A, polypeptide 11",''cytochrome P450|F23K16.130|F23K16_130|cytochrome P450|family 96|polypeptide 11|polypeptide 11''|subfamily A
+830104,CYP96A11,3702,subfamily A,"cytochrome P450, family 96, subfamily A, polypeptide 11",''cytochrome P450|F23K16.130|F23K16_130|cytochrome P450|family 96|polypeptide 11|polypeptide 11''|subfamily A
+830105,CYP96A12,3702,cytochrome P450,"cytochrome P450, family 96, subfamily A, polypeptide 12",''cytochrome P450|F23K16.140|F23K16_140|cytochrome P450|family 96|polypeptide 12|polypeptide 12''|subfamily A
+830105,CYP96A12,3702,family 96,"cytochrome P450, family 96, subfamily A, polypeptide 12",''cytochrome P450|F23K16.140|F23K16_140|cytochrome P450|family 96|polypeptide 12|polypeptide 12''|subfamily A
+830105,CYP96A12,3702,polypeptide 12,"cytochrome P450, family 96, subfamily A, polypeptide 12",''cytochrome P450|F23K16.140|F23K16_140|cytochrome P450|family 96|polypeptide 12|polypeptide 12''|subfamily A
+830105,CYP96A12,3702,subfamily A,"cytochrome P450, family 96, subfamily A, polypeptide 12",''cytochrome P450|F23K16.140|F23K16_140|cytochrome P450|family 96|polypeptide 12|polypeptide 12''|subfamily A
+830154,CYP79B2,3702,cytochrome P450,"cytochrome P450, family 79, subfamily B, polypeptide 2",''cytochrome P450|T5J17.120|T5J17_120|cytochrome P450|family 79|polypeptide 2|polypeptide 2''|subfamily B
+830154,CYP79B2,3702,family 79,"cytochrome P450, family 79, subfamily B, polypeptide 2",''cytochrome P450|T5J17.120|T5J17_120|cytochrome P450|family 79|polypeptide 2|polypeptide 2''|subfamily B
+830154,CYP79B2,3702,polypeptide 2,"cytochrome P450, family 79, subfamily B, polypeptide 2",''cytochrome P450|T5J17.120|T5J17_120|cytochrome P450|family 79|polypeptide 2|polypeptide 2''|subfamily B
+830154,CYP79B2,3702,subfamily B,"cytochrome P450, family 79, subfamily B, polypeptide 2",''cytochrome P450|T5J17.120|T5J17_120|cytochrome P450|family 79|polypeptide 2|polypeptide 2''|subfamily B
+830340,CYP77A9,3702,cytochrome P450,"cytochrome P450, family 77, subfamily A, polypeptide 9",''cytochrome P450|T1E3.4|cytochrome P450|family 77|polypeptide 9|polypeptide 9''|subfamily A
+830340,CYP77A9,3702,family 77,"cytochrome P450, family 77, subfamily A, polypeptide 9",''cytochrome P450|T1E3.4|cytochrome P450|family 77|polypeptide 9|polypeptide 9''|subfamily A
+830340,CYP77A9,3702,polypeptide 9,"cytochrome P450, family 77, subfamily A, polypeptide 9",''cytochrome P450|T1E3.4|cytochrome P450|family 77|polypeptide 9|polypeptide 9''|subfamily A
+830340,CYP77A9,3702,subfamily A,"cytochrome P450, family 77, subfamily A, polypeptide 9",''cytochrome P450|T1E3.4|cytochrome P450|family 77|polypeptide 9|polypeptide 9''|subfamily A
+830343,CYP77A4,3702,cytochrome P450,"cytochrome P450, family 77, subfamily A, polypeptide 4",''cytochrome P450|T1E3.20|T1E3_20|cytochrome P450|family 77|polypeptide 4|polypeptide 4''|subfamily A
+830343,CYP77A4,3702,family 77,"cytochrome P450, family 77, subfamily A, polypeptide 4",''cytochrome P450|T1E3.20|T1E3_20|cytochrome P450|family 77|polypeptide 4|polypeptide 4''|subfamily A
+830343,CYP77A4,3702,polypeptide 4,"cytochrome P450, family 77, subfamily A, polypeptide 4",''cytochrome P450|T1E3.20|T1E3_20|cytochrome P450|family 77|polypeptide 4|polypeptide 4''|subfamily A
+830343,CYP77A4,3702,subfamily A,"cytochrome P450, family 77, subfamily A, polypeptide 4",''cytochrome P450|T1E3.20|T1E3_20|cytochrome P450|family 77|polypeptide 4|polypeptide 4''|subfamily A
+830539,NF-YA10,3702,nuclear factor Y,"nuclear factor Y, subunit A10",''nuclear factor Y|F15M7.4|F15M7_4|nuclear factor Y|subunit A10|subunit A10''
+830539,NF-YA10,3702,subunit A10,"nuclear factor Y, subunit A10",''nuclear factor Y|F15M7.4|F15M7_4|nuclear factor Y|subunit A10|subunit A10''
+830580,CYP93D1,3702,cytochrome P450,"cytochrome P450, family 93, subfamily D, polypeptide 1",''cytochrome P450|MOJ9.6|MOJ9_6|cytochrome P450|family 93|polypeptide 1|polypeptide 1''|subfamily D
+830580,CYP93D1,3702,family 93,"cytochrome P450, family 93, subfamily D, polypeptide 1",''cytochrome P450|MOJ9.6|MOJ9_6|cytochrome P450|family 93|polypeptide 1|polypeptide 1''|subfamily D
+830580,CYP93D1,3702,polypeptide 1,"cytochrome P450, family 93, subfamily D, polypeptide 1",''cytochrome P450|MOJ9.6|MOJ9_6|cytochrome P450|family 93|polypeptide 1|polypeptide 1''|subfamily D
+830580,CYP93D1,3702,subfamily D,"cytochrome P450, family 93, subfamily D, polypeptide 1",''cytochrome P450|MOJ9.6|MOJ9_6|cytochrome P450|family 93|polypeptide 1|polypeptide 1''|subfamily D
+830581,CYP712A2,3702,cytochrome P450,"cytochrome P450, family 712, subfamily A, polypeptide 2",''cytochrome P450|cytochrome P450|family 712|polypeptide 2|polypeptide 2''|subfamily A
+830581,CYP712A2,3702,family 712,"cytochrome P450, family 712, subfamily A, polypeptide 2",''cytochrome P450|cytochrome P450|family 712|polypeptide 2|polypeptide 2''|subfamily A
+830581,CYP712A2,3702,polypeptide 2,"cytochrome P450, family 712, subfamily A, polypeptide 2",''cytochrome P450|cytochrome P450|family 712|polypeptide 2|polypeptide 2''|subfamily A
+830581,CYP712A2,3702,subfamily A,"cytochrome P450, family 712, subfamily A, polypeptide 2",''cytochrome P450|cytochrome P450|family 712|polypeptide 2|polypeptide 2''|subfamily A
+830694,E13L3,3702,3-beta-glucosidase-like protein 3,"glucan endo-1,3-beta-glucosidase-like protein 3",''glucan endo-1|3-beta-glucosidase-like protein 3|3-beta-glucosidase-like protein 3''|F13G24.200|F13G24_200|PDCB2|PLASMODESMATA CALLOSE-BINDING PROTEIN 2|glucan endo-1
+830694,E13L3,3702,glucan endo-1,"glucan endo-1,3-beta-glucosidase-like protein 3",''glucan endo-1|3-beta-glucosidase-like protein 3|3-beta-glucosidase-like protein 3''|F13G24.200|F13G24_200|PDCB2|PLASMODESMATA CALLOSE-BINDING PROTEIN 2|glucan endo-1
+830715,NF-YB12,3702,nuclear factor Y,"nuclear factor Y, subunit B12",''nuclear factor Y|T22D6.130|T22D6_130|nuclear factor Y|subunit B12|subunit B12''
+830715,NF-YB12,3702,subunit B12,"nuclear factor Y, subunit B12",''nuclear factor Y|T22D6.130|T22D6_130|nuclear factor Y|subunit B12|subunit B12''
+830858,CYP78A7,3702,cytochrome P450,"cytochrome P450, family 78, subfamily A, polypeptide 7",''cytochrome P450|MYH9.18|MYH9_18|cytochrome P450|family 78|polypeptide 7|polypeptide 7''|subfamily A
+830858,CYP78A7,3702,family 78,"cytochrome P450, family 78, subfamily A, polypeptide 7",''cytochrome P450|MYH9.18|MYH9_18|cytochrome P450|family 78|polypeptide 7|polypeptide 7''|subfamily A
+830858,CYP78A7,3702,polypeptide 7,"cytochrome P450, family 78, subfamily A, polypeptide 7",''cytochrome P450|MYH9.18|MYH9_18|cytochrome P450|family 78|polypeptide 7|polypeptide 7''|subfamily A
+830858,CYP78A7,3702,subfamily A,"cytochrome P450, family 78, subfamily A, polypeptide 7",''cytochrome P450|MYH9.18|MYH9_18|cytochrome P450|family 78|polypeptide 7|polypeptide 7''|subfamily A
+830925,CYP81K2,3702,cytochrome P450,"cytochrome P450, family 81, subfamily K, polypeptide 2",''cytochrome P450|F12B17.50|F12B17_50|cytochrome P450|family 81|polypeptide 2|polypeptide 2''|subfamily K
+830925,CYP81K2,3702,family 81,"cytochrome P450, family 81, subfamily K, polypeptide 2",''cytochrome P450|F12B17.50|F12B17_50|cytochrome P450|family 81|polypeptide 2|polypeptide 2''|subfamily K
+830925,CYP81K2,3702,polypeptide 2,"cytochrome P450, family 81, subfamily K, polypeptide 2",''cytochrome P450|F12B17.50|F12B17_50|cytochrome P450|family 81|polypeptide 2|polypeptide 2''|subfamily K
+830925,CYP81K2,3702,subfamily K,"cytochrome P450, family 81, subfamily K, polypeptide 2",''cytochrome P450|F12B17.50|F12B17_50|cytochrome P450|family 81|polypeptide 2|polypeptide 2''|subfamily K
+830926,CYP81K1,3702,cytochrome P450,"cytochrome P450, family 81, subfamily K, polypeptide 1",''cytochrome P450|F12B17.40|F12B17_40|cytochrome P450|family 81|polypeptide 1|polypeptide 1''|subfamily K
+830926,CYP81K1,3702,family 81,"cytochrome P450, family 81, subfamily K, polypeptide 1",''cytochrome P450|F12B17.40|F12B17_40|cytochrome P450|family 81|polypeptide 1|polypeptide 1''|subfamily K
+830926,CYP81K1,3702,polypeptide 1,"cytochrome P450, family 81, subfamily K, polypeptide 1",''cytochrome P450|F12B17.40|F12B17_40|cytochrome P450|family 81|polypeptide 1|polypeptide 1''|subfamily K
+830926,CYP81K1,3702,subfamily K,"cytochrome P450, family 81, subfamily K, polypeptide 1",''cytochrome P450|F12B17.40|F12B17_40|cytochrome P450|family 81|polypeptide 1|polypeptide 1''|subfamily K
+831124,NF-YA1,3702,nuclear factor Y,"nuclear factor Y, subunit A1",''nuclear factor Y|ATHAP2A|AtNFYA1|EMB2220|EMBRYO DEFECTIVE 2220|HAP2A|NFYA1|T24H18.10|T24H18_10|nuclear factor Y|nuclear factor Y subunit A1|subunit A1|subunit A1''
+831124,NF-YA1,3702,subunit A1,"nuclear factor Y, subunit A1",''nuclear factor Y|ATHAP2A|AtNFYA1|EMB2220|EMBRYO DEFECTIVE 2220|HAP2A|NFYA1|T24H18.10|T24H18_10|nuclear factor Y|nuclear factor Y subunit A1|subunit A1|subunit A1''
+831291,CYP724A1,3702,cytochrome P450,"cytochrome P450, family 724, subfamily A, polypeptide 1",''cytochrome P450|F18O22.190|F18O22_190|cytochrome P450|family 724|polypeptide 1|polypeptide 1''|subfamily A
+831291,CYP724A1,3702,family 724,"cytochrome P450, family 724, subfamily A, polypeptide 1",''cytochrome P450|F18O22.190|F18O22_190|cytochrome P450|family 724|polypeptide 1|polypeptide 1''|subfamily A
+831291,CYP724A1,3702,polypeptide 1,"cytochrome P450, family 724, subfamily A, polypeptide 1",''cytochrome P450|F18O22.190|F18O22_190|cytochrome P450|family 724|polypeptide 1|polypeptide 1''|subfamily A
+831291,CYP724A1,3702,subfamily A,"cytochrome P450, family 724, subfamily A, polypeptide 1",''cytochrome P450|F18O22.190|F18O22_190|cytochrome P450|family 724|polypeptide 1|polypeptide 1''|subfamily A
+831752,CYP96A13,3702,cytochrome P450,"cytochrome P450, family 96, subfamily A, polypeptide 13",''cytochrome P450|F9G14.210|F9G14_210|cytochrome P450|family 96|polypeptide 13|polypeptide 13''|subfamily A
+831752,CYP96A13,3702,family 96,"cytochrome P450, family 96, subfamily A, polypeptide 13",''cytochrome P450|F9G14.210|F9G14_210|cytochrome P450|family 96|polypeptide 13|polypeptide 13''|subfamily A
+831752,CYP96A13,3702,polypeptide 13,"cytochrome P450, family 96, subfamily A, polypeptide 13",''cytochrome P450|F9G14.210|F9G14_210|cytochrome P450|family 96|polypeptide 13|polypeptide 13''|subfamily A
+831752,CYP96A13,3702,subfamily A,"cytochrome P450, family 96, subfamily A, polypeptide 13",''cytochrome P450|F9G14.210|F9G14_210|cytochrome P450|family 96|polypeptide 13|polypeptide 13''|subfamily A
+832155,BETAG4,3702,3-glucanase 4,"beta-1,3-glucanase 4",''beta-1|3-glucanase 4|3-glucanase 4''|F5O24.220|F5O24_220|beta-1
+832155,BETAG4,3702,beta-1,"beta-1,3-glucanase 4",''beta-1|3-glucanase 4|3-glucanase 4''|F5O24.220|F5O24_220|beta-1
+832373,NF-YB13,3702,nuclear factor Y,"nuclear factor Y, subunit B13",''nuclear factor Y|MYJ24.8|MYJ24_8|nuclear factor Y|subunit B13|subunit B13''
+832373,NF-YB13,3702,subunit B13,"nuclear factor Y, subunit B13",''nuclear factor Y|MYJ24.8|MYJ24_8|nuclear factor Y|subunit B13|subunit B13''
+832383,CYP86B1,3702,cytochrome P450,"cytochrome P450, family 86, subfamily B, polypeptide 1",''cytochrome P450|MKD15.5|MKD15_5|cytochrome P450|family 86|polypeptide 1|polypeptide 1''|subfamily B
+832383,CYP86B1,3702,family 86,"cytochrome P450, family 86, subfamily B, polypeptide 1",''cytochrome P450|MKD15.5|MKD15_5|cytochrome P450|family 86|polypeptide 1|polypeptide 1''|subfamily B
+832383,CYP86B1,3702,polypeptide 1,"cytochrome P450, family 86, subfamily B, polypeptide 1",''cytochrome P450|MKD15.5|MKD15_5|cytochrome P450|family 86|polypeptide 1|polypeptide 1''|subfamily B
+832383,CYP86B1,3702,subfamily B,"cytochrome P450, family 86, subfamily B, polypeptide 1",''cytochrome P450|MKD15.5|MKD15_5|cytochrome P450|family 86|polypeptide 1|polypeptide 1''|subfamily B
+832565,CYP71A15,3702,cytochrome P450,"cytochrome P450, family 71, subfamily A, polypeptide 15",''cytochrome P450|F6A4.160|F6A4_160|cytochrome P450|family 71|polypeptide 15|polypeptide 15''|subfamily A
+832565,CYP71A15,3702,family 71,"cytochrome P450, family 71, subfamily A, polypeptide 15",''cytochrome P450|F6A4.160|F6A4_160|cytochrome P450|family 71|polypeptide 15|polypeptide 15''|subfamily A
+832565,CYP71A15,3702,polypeptide 15,"cytochrome P450, family 71, subfamily A, polypeptide 15",''cytochrome P450|F6A4.160|F6A4_160|cytochrome P450|family 71|polypeptide 15|polypeptide 15''|subfamily A
+832565,CYP71A15,3702,subfamily A,"cytochrome P450, family 71, subfamily A, polypeptide 15",''cytochrome P450|F6A4.160|F6A4_160|cytochrome P450|family 71|polypeptide 15|polypeptide 15''|subfamily A
+832566,CYP71A14,3702,cytochrome P450,"cytochrome P450, family 71, subfamily A, polypeptide 14",''cytochrome P450|F6A4.170|F6A4_170|cytochrome P450|family 71|polypeptide 14|polypeptide 14''|subfamily A
+832566,CYP71A14,3702,family 71,"cytochrome P450, family 71, subfamily A, polypeptide 14",''cytochrome P450|F6A4.170|F6A4_170|cytochrome P450|family 71|polypeptide 14|polypeptide 14''|subfamily A
+832566,CYP71A14,3702,polypeptide 14,"cytochrome P450, family 71, subfamily A, polypeptide 14",''cytochrome P450|F6A4.170|F6A4_170|cytochrome P450|family 71|polypeptide 14|polypeptide 14''|subfamily A
+832566,CYP71A14,3702,subfamily A,"cytochrome P450, family 71, subfamily A, polypeptide 14",''cytochrome P450|F6A4.170|F6A4_170|cytochrome P450|family 71|polypeptide 14|polypeptide 14''|subfamily A
+832583,CYP71B11,3702,family 71,"cytochrome p450, family 71, subfamily B, polypeptide 11",''ytochrome p450|T11H3.130|T11H3_130|family 71|polypeptide 11|polypeptide 11''|subfamily B|ytochrome p450
+832583,CYP71B11,3702,polypeptide 11,"cytochrome p450, family 71, subfamily B, polypeptide 11",''ytochrome p450|T11H3.130|T11H3_130|family 71|polypeptide 11|polypeptide 11''|subfamily B|ytochrome p450
+832583,CYP71B11,3702,subfamily B,"cytochrome p450, family 71, subfamily B, polypeptide 11",''ytochrome p450|T11H3.130|T11H3_130|family 71|polypeptide 11|polypeptide 11''|subfamily B|ytochrome p450
+832584,CYP71B12,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 12",''cytochrome P450|F21J6.2|cytochrome P450|family 71|polypeptide 12|polypeptide 12''|subfamily B
+832584,CYP71B12,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 12",''cytochrome P450|F21J6.2|cytochrome P450|family 71|polypeptide 12|polypeptide 12''|subfamily B
+832584,CYP71B12,3702,polypeptide 12,"cytochrome P450, family 71, subfamily B, polypeptide 12",''cytochrome P450|F21J6.2|cytochrome P450|family 71|polypeptide 12|polypeptide 12''|subfamily B
+832584,CYP71B12,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 12",''cytochrome P450|F21J6.2|cytochrome P450|family 71|polypeptide 12|polypeptide 12''|subfamily B
+832585,CYP71B13,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 13",''cytochrome P450|F21J6.4|cytochrome P450|family 71|polypeptide 13|polypeptide 13''|subfamily B
+832585,CYP71B13,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 13",''cytochrome P450|F21J6.4|cytochrome P450|family 71|polypeptide 13|polypeptide 13''|subfamily B
+832585,CYP71B13,3702,polypeptide 13,"cytochrome P450, family 71, subfamily B, polypeptide 13",''cytochrome P450|F21J6.4|cytochrome P450|family 71|polypeptide 13|polypeptide 13''|subfamily B
+832585,CYP71B13,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 13",''cytochrome P450|F21J6.4|cytochrome P450|family 71|polypeptide 13|polypeptide 13''|subfamily B
+832589,CYP71B14,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 14",''cytochrome P450|F21J6.102|F21J6_102|cytochrome P450|family 71|polypeptide 14|polypeptide 14''|subfamily B
+832589,CYP71B14,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 14",''cytochrome P450|F21J6.102|F21J6_102|cytochrome P450|family 71|polypeptide 14|polypeptide 14''|subfamily B
+832589,CYP71B14,3702,polypeptide 14,"cytochrome P450, family 71, subfamily B, polypeptide 14",''cytochrome P450|F21J6.102|F21J6_102|cytochrome P450|family 71|polypeptide 14|polypeptide 14''|subfamily B
+832589,CYP71B14,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 14",''cytochrome P450|F21J6.102|F21J6_102|cytochrome P450|family 71|polypeptide 14|polypeptide 14''|subfamily B
+832857,NF-YC8,3702,nuclear factor Y,"nuclear factor Y, subunit C8",''nuclear factor Y|F15F15.1|nuclear factor Y|subunit C8|subunit C8''
+832857,NF-YC8,3702,subunit C8,"nuclear factor Y, subunit C8",''nuclear factor Y|F15F15.1|nuclear factor Y|subunit C8|subunit C8''
+833002,GME,3702,5'-epimerase,"GDP-D-mannose 3',5'-epimerase",''GDP-D-mannose 3'|5'-epimerase|5'-epimerase''|F7P1.20|F7P1_20|GDP-D-mannose 3'
+833002,GME,3702,GDP-D-mannose 3',"GDP-D-mannose 3',5'-epimerase",''GDP-D-mannose 3'|5'-epimerase|5'-epimerase''|F7P1.20|F7P1_20|GDP-D-mannose 3'
+833546,CYP71B8,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 8",''cytochrome P450|cytochrome P450|family 71|polypeptide 8|polypeptide 8''|subfamily B
+833546,CYP71B8,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 8",''cytochrome P450|cytochrome P450|family 71|polypeptide 8|polypeptide 8''|subfamily B
+833546,CYP71B8,3702,polypeptide 8,"cytochrome P450, family 71, subfamily B, polypeptide 8",''cytochrome P450|cytochrome P450|family 71|polypeptide 8|polypeptide 8''|subfamily B
+833546,CYP71B8,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 8",''cytochrome P450|cytochrome P450|family 71|polypeptide 8|polypeptide 8''|subfamily B
+833580,CYP79A3P,3702,cytochrome P450,"cytochrome P450, family 79, subfamily A, polypeptide 3 pseudogene",''cytochrome P450|cytochrome P450|family 79|polypeptide 3 pseudogene|polypeptide 3 pseudogene''|subfamily A
+833580,CYP79A3P,3702,family 79,"cytochrome P450, family 79, subfamily A, polypeptide 3 pseudogene",''cytochrome P450|cytochrome P450|family 79|polypeptide 3 pseudogene|polypeptide 3 pseudogene''|subfamily A
+833580,CYP79A3P,3702,polypeptide 3 pseudogene,"cytochrome P450, family 79, subfamily A, polypeptide 3 pseudogene",''cytochrome P450|cytochrome P450|family 79|polypeptide 3 pseudogene|polypeptide 3 pseudogene''|subfamily A
+833580,CYP79A3P,3702,subfamily A,"cytochrome P450, family 79, subfamily A, polypeptide 3 pseudogene",''cytochrome P450|cytochrome P450|family 79|polypeptide 3 pseudogene|polypeptide 3 pseudogene''|subfamily A
+833581,CYP79A4P,3702,cytochrome P450,"cytochrome P450, family 79, subfamily A, polypeptide 4 pseudogene",''cytochrome P450|F14A1.7|F14A1_7|cytochrome P450|family 79|polypeptide 4 pseudogene|polypeptide 4 pseudogene''|subfamily A
+833581,CYP79A4P,3702,family 79,"cytochrome P450, family 79, subfamily A, polypeptide 4 pseudogene",''cytochrome P450|F14A1.7|F14A1_7|cytochrome P450|family 79|polypeptide 4 pseudogene|polypeptide 4 pseudogene''|subfamily A
+833581,CYP79A4P,3702,polypeptide 4 pseudogene,"cytochrome P450, family 79, subfamily A, polypeptide 4 pseudogene",''cytochrome P450|F14A1.7|F14A1_7|cytochrome P450|family 79|polypeptide 4 pseudogene|polypeptide 4 pseudogene''|subfamily A
+833581,CYP79A4P,3702,subfamily A,"cytochrome P450, family 79, subfamily A, polypeptide 4 pseudogene",''cytochrome P450|F14A1.7|F14A1_7|cytochrome P450|family 79|polypeptide 4 pseudogene|polypeptide 4 pseudogene''|subfamily A
+833607,CYP716A1,3702,cytochrome P450,"cytochrome P450, family 716, subfamily A, polypeptide 1",''cytochrome P450|MAB16.5|MAB16_5|cytochrome P450|family 716|polypeptide 1|polypeptide 1''|subfamily A
+833607,CYP716A1,3702,family 716,"cytochrome P450, family 716, subfamily A, polypeptide 1",''cytochrome P450|MAB16.5|MAB16_5|cytochrome P450|family 716|polypeptide 1|polypeptide 1''|subfamily A
+833607,CYP716A1,3702,polypeptide 1,"cytochrome P450, family 716, subfamily A, polypeptide 1",''cytochrome P450|MAB16.5|MAB16_5|cytochrome P450|family 716|polypeptide 1|polypeptide 1''|subfamily A
+833607,CYP716A1,3702,subfamily A,"cytochrome P450, family 716, subfamily A, polypeptide 1",''cytochrome P450|MAB16.5|MAB16_5|cytochrome P450|family 716|polypeptide 1|polypeptide 1''|subfamily A
+833608,CCB3,3702,cofactor assembly,"cofactor assembly, complex C (B6F)",''cofactor assembly|MAB16.6|MAB16_6|YLMG3|atylmg3|cofactor assembly|complex C (B6F)|complex C (B6F)''
+833608,CCB3,3702,complex C (B6F),"cofactor assembly, complex C (B6F)",''cofactor assembly|MAB16.6|MAB16_6|YLMG3|atylmg3|cofactor assembly|complex C (B6F)|complex C (B6F)''
+833611,CYP716A2,3702,cytochrome P450,"cytochrome P450, family 716, subfamily A, polypeptide 2",''cytochrome P450|MAB16.9|MAB16_9|cytochrome P450|family 716|polypeptide 2|polypeptide 2''|subfamily A
+833611,CYP716A2,3702,family 716,"cytochrome P450, family 716, subfamily A, polypeptide 2",''cytochrome P450|MAB16.9|MAB16_9|cytochrome P450|family 716|polypeptide 2|polypeptide 2''|subfamily A
+833611,CYP716A2,3702,polypeptide 2,"cytochrome P450, family 716, subfamily A, polypeptide 2",''cytochrome P450|MAB16.9|MAB16_9|cytochrome P450|family 716|polypeptide 2|polypeptide 2''|subfamily A
+833611,CYP716A2,3702,subfamily A,"cytochrome P450, family 716, subfamily A, polypeptide 2",''cytochrome P450|MAB16.9|MAB16_9|cytochrome P450|family 716|polypeptide 2|polypeptide 2''|subfamily A
+833794,NF-YC12,3702,nuclear factor Y,"nuclear factor Y, subunit C12",''nuclear factor Y|MXA21.21|MXA21_21|nuclear factor Y|subunit C12|subunit C12''
+833794,NF-YC12,3702,subunit C12,"nuclear factor Y, subunit C12",''nuclear factor Y|MXA21.21|MXA21_21|nuclear factor Y|subunit C12|subunit C12''
+834265,CYP705A12,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 12",''cytochrome P450|K16E1.5|K16E1_5|cytochrome P450|family 705|polypeptide 12|polypeptide 12''|subfamily A
+834265,CYP705A12,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 12",''cytochrome P450|K16E1.5|K16E1_5|cytochrome P450|family 705|polypeptide 12|polypeptide 12''|subfamily A
+834265,CYP705A12,3702,polypeptide 12,"cytochrome P450, family 705, subfamily A, polypeptide 12",''cytochrome P450|K16E1.5|K16E1_5|cytochrome P450|family 705|polypeptide 12|polypeptide 12''|subfamily A
+834265,CYP705A12,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 12",''cytochrome P450|K16E1.5|K16E1_5|cytochrome P450|family 705|polypeptide 12|polypeptide 12''|subfamily A
+834343,NF-YC13,3702,nuclear factor Y,"nuclear factor Y, subunit C13",''nuclear factor Y|MNL12.7|MNL12_7|nuclear factor Y|subunit C13|subunit C13''
+834343,NF-YC13,3702,subunit C13,"nuclear factor Y, subunit C13",''nuclear factor Y|MNL12.7|MNL12_7|nuclear factor Y|subunit C13|subunit C13''
+834346,DCI1,3702,4)-dienoyl-CoA isomerase 1,"delta(3,5),delta(2,4)-dienoyl-CoA isomerase 1",''delta(3|4)-DIENOYL-|4)-DIENOYL-COA ISOMERASE 1|4)-dienoyl-CoA isomerase 1|4)-dienoyl-CoA isomerase 1''|5)|ATDCI1|DELTA(2|DELTA(3|MNL12.10|MNL12_10|delta(2|delta(3
+834346,DCI1,3702,5),"delta(3,5),delta(2,4)-dienoyl-CoA isomerase 1",''delta(3|4)-DIENOYL-|4)-DIENOYL-COA ISOMERASE 1|4)-dienoyl-CoA isomerase 1|4)-dienoyl-CoA isomerase 1''|5)|ATDCI1|DELTA(2|DELTA(3|MNL12.10|MNL12_10|delta(2|delta(3
+834346,DCI1,3702,delta(2,"delta(3,5),delta(2,4)-dienoyl-CoA isomerase 1",''delta(3|4)-DIENOYL-|4)-DIENOYL-COA ISOMERASE 1|4)-dienoyl-CoA isomerase 1|4)-dienoyl-CoA isomerase 1''|5)|ATDCI1|DELTA(2|DELTA(3|MNL12.10|MNL12_10|delta(2|delta(3
+834346,DCI1,3702,delta(3,"delta(3,5),delta(2,4)-dienoyl-CoA isomerase 1",''delta(3|4)-DIENOYL-|4)-DIENOYL-COA ISOMERASE 1|4)-dienoyl-CoA isomerase 1|4)-dienoyl-CoA isomerase 1''|5)|ATDCI1|DELTA(2|DELTA(3|MNL12.10|MNL12_10|delta(2|delta(3
+834490,CYP706A3,3702,cytochrome P450,"cytochrome P450, family 706, subfamily A, polypeptide 3",''cytochrome P450|K15C23.6|K15C23_6|cytochrome P450|family 706|polypeptide 3|polypeptide 3''|subfamily A
+834490,CYP706A3,3702,family 706,"cytochrome P450, family 706, subfamily A, polypeptide 3",''cytochrome P450|K15C23.6|K15C23_6|cytochrome P450|family 706|polypeptide 3|polypeptide 3''|subfamily A
+834490,CYP706A3,3702,polypeptide 3,"cytochrome P450, family 706, subfamily A, polypeptide 3",''cytochrome P450|K15C23.6|K15C23_6|cytochrome P450|family 706|polypeptide 3|polypeptide 3''|subfamily A
+834490,CYP706A3,3702,subfamily A,"cytochrome P450, family 706, subfamily A, polypeptide 3",''cytochrome P450|K15C23.6|K15C23_6|cytochrome P450|family 706|polypeptide 3|polypeptide 3''|subfamily A
+834570,CYP707A3,3702,cytochrome P450,"cytochrome P450, family 707, subfamily A, polypeptide 3",''cytochrome P450|K9E15.12|K9E15_12|cytochrome P450|family 707|polypeptide 3|polypeptide 3''|subfamily A
+834570,CYP707A3,3702,family 707,"cytochrome P450, family 707, subfamily A, polypeptide 3",''cytochrome P450|K9E15.12|K9E15_12|cytochrome P450|family 707|polypeptide 3|polypeptide 3''|subfamily A
+834570,CYP707A3,3702,polypeptide 3,"cytochrome P450, family 707, subfamily A, polypeptide 3",''cytochrome P450|K9E15.12|K9E15_12|cytochrome P450|family 707|polypeptide 3|polypeptide 3''|subfamily A
+834570,CYP707A3,3702,subfamily A,"cytochrome P450, family 707, subfamily A, polypeptide 3",''cytochrome P450|K9E15.12|K9E15_12|cytochrome P450|family 707|polypeptide 3|polypeptide 3''|subfamily A
+834815,NF-YB2,3702,nuclear factor Y,"nuclear factor Y, subunit B2",''nuclear factor Y|MNJ7.23|MNJ7_23|nuclear factor Y|subunit B2|subunit B2''
+834815,NF-YB2,3702,subunit B2,"nuclear factor Y, subunit B2",''nuclear factor Y|MNJ7.23|MNJ7_23|nuclear factor Y|subunit B2|subunit B2''
+834818,NF-YB6,3702,nuclear factor Y,"nuclear factor Y, subunit B6",''nuclear factor Y|L1L|LEC1-LIKE|MNJ7.26|MNJ7_26|nuclear factor Y|subunit B6|subunit B6''
+834818,NF-YB6,3702,subunit B6,"nuclear factor Y, subunit B6",''nuclear factor Y|L1L|LEC1-LIKE|MNJ7.26|MNJ7_26|nuclear factor Y|subunit B6|subunit B6''
+834851,CYP708A2,3702,cytochrome P450,"cytochrome P450, family 708, subfamily A, polypeptide 2",''cytochrome P450|CYP708 A2|CYTOCHROME P450|FAMILY 708|MDN11.7|MDN11_7|POLYPEPTIDE 2|SUBFAMILY A|THAH|THAH1|THALIANOL HYDROXYLASE|THALIANOL HYDROXYLASE 1|cytochrome P450|family 708|polypeptide 2|polypeptide 2''|subfamily A
+834851,CYP708A2,3702,family 708,"cytochrome P450, family 708, subfamily A, polypeptide 2",''cytochrome P450|CYP708 A2|CYTOCHROME P450|FAMILY 708|MDN11.7|MDN11_7|POLYPEPTIDE 2|SUBFAMILY A|THAH|THAH1|THALIANOL HYDROXYLASE|THALIANOL HYDROXYLASE 1|cytochrome P450|family 708|polypeptide 2|polypeptide 2''|subfamily A
+834851,CYP708A2,3702,polypeptide 2,"cytochrome P450, family 708, subfamily A, polypeptide 2",''cytochrome P450|CYP708 A2|CYTOCHROME P450|FAMILY 708|MDN11.7|MDN11_7|POLYPEPTIDE 2|SUBFAMILY A|THAH|THAH1|THALIANOL HYDROXYLASE|THALIANOL HYDROXYLASE 1|cytochrome P450|family 708|polypeptide 2|polypeptide 2''|subfamily A
+834851,CYP708A2,3702,subfamily A,"cytochrome P450, family 708, subfamily A, polypeptide 2",''cytochrome P450|CYP708 A2|CYTOCHROME P450|FAMILY 708|MDN11.7|MDN11_7|POLYPEPTIDE 2|SUBFAMILY A|THAH|THAH1|THALIANOL HYDROXYLASE|THALIANOL HYDROXYLASE 1|cytochrome P450|family 708|polypeptide 2|polypeptide 2''|subfamily A
+835115,NF-YC7,3702,nuclear factor Y,"nuclear factor Y, subunit C7",''nuclear factor Y|MBA10.2|MBA10_2|nuclear factor Y|subunit C7|subunit C7''
+835115,NF-YC7,3702,subunit C7,"nuclear factor Y, subunit C7",''nuclear factor Y|MBA10.2|MBA10_2|nuclear factor Y|subunit C7|subunit C7''
+835116,NF-YC6,3702,nuclear factor Y,"nuclear factor Y, subunit C6",''nuclear factor Y|MBA10.3|MBA10_3|nuclear factor Y|subunit C6|subunit C6''
+835116,NF-YC6,3702,subunit C6,"nuclear factor Y, subunit C6",''nuclear factor Y|MBA10.3|MBA10_3|nuclear factor Y|subunit C6|subunit C6''
+835117,NF-YC5,3702,nuclear factor Y,"nuclear factor Y, subunit C5",''nuclear factor Y|MBA10.4|MBA10_4|nuclear factor Y|subunit C5|subunit C5''
+835117,NF-YC5,3702,subunit C5,"nuclear factor Y, subunit C5",''nuclear factor Y|MBA10.4|MBA10_4|nuclear factor Y|subunit C5|subunit C5''
+835308,CYP96A4,3702,cytochrome P450,"cytochrome P450, family 96, subfamily A, polypeptide 4",''cytochrome P450|K24M7.5|K24M7_5|cytochrome P450|family 96|polypeptide 4|polypeptide 4''|subfamily A
+835308,CYP96A4,3702,family 96,"cytochrome P450, family 96, subfamily A, polypeptide 4",''cytochrome P450|K24M7.5|K24M7_5|cytochrome P450|family 96|polypeptide 4|polypeptide 4''|subfamily A
+835308,CYP96A4,3702,polypeptide 4,"cytochrome P450, family 96, subfamily A, polypeptide 4",''cytochrome P450|K24M7.5|K24M7_5|cytochrome P450|family 96|polypeptide 4|polypeptide 4''|subfamily A
+835308,CYP96A4,3702,subfamily A,"cytochrome P450, family 96, subfamily A, polypeptide 4",''cytochrome P450|K24M7.5|K24M7_5|cytochrome P450|family 96|polypeptide 4|polypeptide 4''|subfamily A
+835316,CYP715A1,3702,cytochrome P450,"cytochrome P450, family 715, subfamily A, polypeptide 1",''cytochrome P450|K24M7.14|K24M7_14|cytochrome P450|family 715|polypeptide 1|polypeptide 1''|subfamily A
+835316,CYP715A1,3702,family 715,"cytochrome P450, family 715, subfamily A, polypeptide 1",''cytochrome P450|K24M7.14|K24M7_14|cytochrome P450|family 715|polypeptide 1|polypeptide 1''|subfamily A
+835316,CYP715A1,3702,polypeptide 1,"cytochrome P450, family 715, subfamily A, polypeptide 1",''cytochrome P450|K24M7.14|K24M7_14|cytochrome P450|family 715|polypeptide 1|polypeptide 1''|subfamily A
+835316,CYP715A1,3702,subfamily A,"cytochrome P450, family 715, subfamily A, polypeptide 1",''cytochrome P450|K24M7.14|K24M7_14|cytochrome P450|family 715|polypeptide 1|polypeptide 1''|subfamily A
+835604,CNX5,3702,co-factor for nitrate,"co-factor for nitrate, reductase and xanthine dehydrogenase 5",''co-factor for nitrate|MCO15.8|MCO15_8|SIR1|SIRTINOL RESISTANT 1|co-factor for nitrate|reductase and xanthine dehydrogenase 5|reductase and xanthine dehydrogenase 5''
+835604,CNX5,3702,reductase and xanthine dehydrogenase 5,"co-factor for nitrate, reductase and xanthine dehydrogenase 5",''co-factor for nitrate|MCO15.8|MCO15_8|SIR1|SIRTINOL RESISTANT 1|co-factor for nitrate|reductase and xanthine dehydrogenase 5|reductase and xanthine dehydrogenase 5''
+835643,XYLT,3702,2-xylosyltransferase,"beta-1,2-xylosyltransferase",''beta-1|2-XYLOSYLTRANSFERASE|2-xylosyltransferase|2-xylosyltransferase''|ARABIDOPSIS THALIANA BETA-1|ATXYLT|beta-1
+835643,XYLT,3702,beta-1,"beta-1,2-xylosyltransferase",''beta-1|2-XYLOSYLTRANSFERASE|2-xylosyltransferase|2-xylosyltransferase''|ARABIDOPSIS THALIANA BETA-1|ATXYLT|beta-1
+835815,ACA8,3702,autoinhibited Ca2+ -ATPase,autoinhibited Ca2+ -ATPase,''AUTOINHIBITED CA2+ -ATPASE|''autoinhibited Ca2+ -ATPase|'autoinhibited Ca2+ -ATPase|AT-ACA8|AUTOINHIBITED CA2+ -ATPASE|ISOFORM 8|ISOFORM 8''|MUL3.5|MUL3_5|autoinhibited Ca2+ -ATPase|isoform 8|isoform 8'|isoform 8''
+835828,CYP81F2,3702,cytochrome P450,"cytochrome P450, family 81, subfamily F, polypeptide 2",''cytochrome P450|MJB24.3|MJB24_3|cytochrome P450|family 81|polypeptide 2|polypeptide 2''|subfamily F
+835828,CYP81F2,3702,family 81,"cytochrome P450, family 81, subfamily F, polypeptide 2",''cytochrome P450|MJB24.3|MJB24_3|cytochrome P450|family 81|polypeptide 2|polypeptide 2''|subfamily F
+835828,CYP81F2,3702,polypeptide 2,"cytochrome P450, family 81, subfamily F, polypeptide 2",''cytochrome P450|MJB24.3|MJB24_3|cytochrome P450|family 81|polypeptide 2|polypeptide 2''|subfamily F
+835828,CYP81F2,3702,subfamily F,"cytochrome P450, family 81, subfamily F, polypeptide 2",''cytochrome P450|MJB24.3|MJB24_3|cytochrome P450|family 81|polypeptide 2|polypeptide 2''|subfamily F
+835831,CYP71B10,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 10",''cytochrome P450|AT5G57250|MJB24.7|MJB24_7|cytochrome P450|family 71|polypeptide 10|polypeptide 10''|subfamily B
+835831,CYP71B10,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 10",''cytochrome P450|AT5G57250|MJB24.7|MJB24_7|cytochrome P450|family 71|polypeptide 10|polypeptide 10''|subfamily B
+835831,CYP71B10,3702,polypeptide 10,"cytochrome P450, family 71, subfamily B, polypeptide 10",''cytochrome P450|AT5G57250|MJB24.7|MJB24_7|cytochrome P450|family 71|polypeptide 10|polypeptide 10''|subfamily B
+835831,CYP71B10,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 10",''cytochrome P450|AT5G57250|MJB24.7|MJB24_7|cytochrome P450|family 71|polypeptide 10|polypeptide 10''|subfamily B
+835909,RPB5C,3702,C,"RNA polymerase II fifth largest subunit, C",''RNA polymerase II fifth largest subunit|C|C''|MTI20.24|MTI20_24|RNA polymerase II fifth largest subunit
+835909,RPB5C,3702,RNA polymerase II fifth largest subunit,"RNA polymerase II fifth largest subunit, C",''RNA polymerase II fifth largest subunit|C|C''|MTI20.24|MTI20_24|RNA polymerase II fifth largest subunit
+836003,CYP86A1,3702,cytochrome P450,"cytochrome P450, family 86, subfamily A, polypeptide 1",''cytochrome P450|CYP86|HORST|K19M22.14|K19M22_14|cytochrome P450|family 86|hydroxylase of root suberized tissue|polypeptide 1|polypeptide 1''|subfamily A
+836003,CYP86A1,3702,family 86,"cytochrome P450, family 86, subfamily A, polypeptide 1",''cytochrome P450|CYP86|HORST|K19M22.14|K19M22_14|cytochrome P450|family 86|hydroxylase of root suberized tissue|polypeptide 1|polypeptide 1''|subfamily A
+836003,CYP86A1,3702,polypeptide 1,"cytochrome P450, family 86, subfamily A, polypeptide 1",''cytochrome P450|CYP86|HORST|K19M22.14|K19M22_14|cytochrome P450|family 86|hydroxylase of root suberized tissue|polypeptide 1|polypeptide 1''|subfamily A
+836003,CYP86A1,3702,subfamily A,"cytochrome P450, family 86, subfamily A, polypeptide 1",''cytochrome P450|CYP86|HORST|K19M22.14|K19M22_14|cytochrome P450|family 86|hydroxylase of root suberized tissue|polypeptide 1|polypeptide 1''|subfamily A
+836253,CYP89A3,3702,cytochrome P450,"cytochrome P450, family 89, subfamily A, polypeptide 3",''cytochrome P450|MFB13.19|MFB13_19|cytochrome P450|family 89|polypeptide 3|polypeptide 3''|subfamily A
+836253,CYP89A3,3702,family 89,"cytochrome P450, family 89, subfamily A, polypeptide 3",''cytochrome P450|MFB13.19|MFB13_19|cytochrome P450|family 89|polypeptide 3|polypeptide 3''|subfamily A
+836253,CYP89A3,3702,polypeptide 3,"cytochrome P450, family 89, subfamily A, polypeptide 3",''cytochrome P450|MFB13.19|MFB13_19|cytochrome P450|family 89|polypeptide 3|polypeptide 3''|subfamily A
+836253,CYP89A3,3702,subfamily A,"cytochrome P450, family 89, subfamily A, polypeptide 3",''cytochrome P450|MFB13.19|MFB13_19|cytochrome P450|family 89|polypeptide 3|polypeptide 3''|subfamily A
+836464,CYP94B1,3702,cytochrome P450,"cytochrome P450, family 94, subfamily B, polypeptide 1",''cytochrome P450|MLE2.8|MLE2_8|cytochrome P450|family 94|polypeptide 1|polypeptide 1''|subfamily B
+836464,CYP94B1,3702,family 94,"cytochrome P450, family 94, subfamily B, polypeptide 1",''cytochrome P450|MLE2.8|MLE2_8|cytochrome P450|family 94|polypeptide 1|polypeptide 1''|subfamily B
+836464,CYP94B1,3702,polypeptide 1,"cytochrome P450, family 94, subfamily B, polypeptide 1",''cytochrome P450|MLE2.8|MLE2_8|cytochrome P450|family 94|polypeptide 1|polypeptide 1''|subfamily B
+836464,CYP94B1,3702,subfamily B,"cytochrome P450, family 94, subfamily B, polypeptide 1",''cytochrome P450|MLE2.8|MLE2_8|cytochrome P450|family 94|polypeptide 1|polypeptide 1''|subfamily B
+836466,NF-YC4,3702,nuclear factor Y,"nuclear factor Y, subunit C4",''nuclear factor Y|MLE2.10|MLE2_10|nuclear factor Y|subunit C4|subunit C4''
+836466,NF-YC4,3702,subunit C4,"nuclear factor Y, subunit C4",''nuclear factor Y|MLE2.10|MLE2_10|nuclear factor Y|subunit C4|subunit C4''
+836476,GSA1,3702,1-aminomutase,"glutamate-1-semialdehyde-2,1-aminomutase",''glutamate-1-semialdehyde-2|1-AMINOMUTASE|1-aminomutase|1-aminomutase''|GLUTAMATE-1-SEMIALDEHYDE-2|GSA-AM|MBK5.3|MBK5_3|glutamate-1-semialdehyde-2
+836476,GSA1,3702,glutamate-1-semialdehyde-2,"glutamate-1-semialdehyde-2,1-aminomutase",''glutamate-1-semialdehyde-2|1-AMINOMUTASE|1-aminomutase|1-aminomutase''|GLUTAMATE-1-SEMIALDEHYDE-2|GSA-AM|MBK5.3|MBK5_3|glutamate-1-semialdehyde-2
+836587,CMPG2,3702,CYS,"CYS, MET, PRO, and GLY protein 2",''CYS|ATCMPG2|CYS|MET|MUB3.18|MUB3_18|PRO|and GLY protein 2|and GLY protein 2''
+836587,CMPG2,3702,MET,"CYS, MET, PRO, and GLY protein 2",''CYS|ATCMPG2|CYS|MET|MUB3.18|MUB3_18|PRO|and GLY protein 2|and GLY protein 2''
+836587,CMPG2,3702,PRO,"CYS, MET, PRO, and GLY protein 2",''CYS|ATCMPG2|CYS|MET|MUB3.18|MUB3_18|PRO|and GLY protein 2|and GLY protein 2''
+836587,CMPG2,3702,and GLY protein 2,"CYS, MET, PRO, and GLY protein 2",''CYS|ATCMPG2|CYS|MET|MUB3.18|MUB3_18|PRO|and GLY protein 2|and GLY protein 2''
+836760,GMD1,3702,6-dehydratase 1,"GDP-D-mannose 4,6-dehydratase 1",''GDP-D-mannose 4|6-DEHYDRATASE 1|6-dehydratase 1|6-dehydratase 1''|GDP-D-MANNOSE 4|GDP-D-mannose 4|K1L20.6|K1L20_6
+836760,GMD1,3702,GDP-D-mannose 4,"GDP-D-mannose 4,6-dehydratase 1",''GDP-D-mannose 4|6-DEHYDRATASE 1|6-dehydratase 1|6-dehydratase 1''|GDP-D-MANNOSE 4|GDP-D-mannose 4|K1L20.6|K1L20_6
+836866,CYP81G1,3702,cytochrome P450,"cytochrome P450, family 81, subfamily G, polypeptide 1",''cytochrome P450|K8K14.3|K8K14_3|cytochrome P450|family 81|polypeptide 1|polypeptide 1''|subfamily G
+836866,CYP81G1,3702,family 81,"cytochrome P450, family 81, subfamily G, polypeptide 1",''cytochrome P450|K8K14.3|K8K14_3|cytochrome P450|family 81|polypeptide 1|polypeptide 1''|subfamily G
+836866,CYP81G1,3702,polypeptide 1,"cytochrome P450, family 81, subfamily G, polypeptide 1",''cytochrome P450|K8K14.3|K8K14_3|cytochrome P450|family 81|polypeptide 1|polypeptide 1''|subfamily G
+836866,CYP81G1,3702,subfamily G,"cytochrome P450, family 81, subfamily G, polypeptide 1",''cytochrome P450|K8K14.3|K8K14_3|cytochrome P450|family 81|polypeptide 1|polypeptide 1''|subfamily G
+837221,F2KP,3702,6-bisphosphatase,"fructose-2,6-bisphosphatase",''fructose-2|6-BISPHOSPHATASE|6-bisphosphatase|6-bisphosphatase''|ATF2KP|F10K1.19|F10K1_19|FKFBP|FRUCTOSE-2|FRUCTOSE-6-PHOSPHATE 2-KINASE|fructose-2
+837221,F2KP,3702,fructose-2,"fructose-2,6-bisphosphatase",''fructose-2|6-BISPHOSPHATASE|6-bisphosphatase|6-bisphosphatase''|ATF2KP|F10K1.19|F10K1_19|FKFBP|FRUCTOSE-2|FRUCTOSE-6-PHOSPHATE 2-KINASE|fructose-2
+837313,NF-YC10,3702,nuclear factor Y,"nuclear factor Y, subunit C10",''nuclear factor Y|T6D22.7|T6D22_7|nuclear factor Y|subunit C10|subunit C10''
+837313,NF-YC10,3702,subunit C10,"nuclear factor Y, subunit C10",''nuclear factor Y|T6D22.7|T6D22_7|nuclear factor Y|subunit C10|subunit C10''
+837417,NF-YC9,3702,nuclear factor Y,"nuclear factor Y, subunit C9",''nuclear factor Y|F7G19.16|F7G19_16|HAP5C|HEME ACTIVATED PROTEIN 5C|nuclear factor Y|subunit C9|subunit C9''
+837417,NF-YC9,3702,subunit C9,"nuclear factor Y, subunit C9",''nuclear factor Y|F7G19.16|F7G19_16|HAP5C|HEME ACTIVATED PROTEIN 5C|nuclear factor Y|subunit C9|subunit C9''
+837424,NF-YB4,3702,nuclear factor Y,"nuclear factor Y, subunit B4",''nuclear factor Y|F7G19.10|F7G19_10|nuclear factor Y|subunit B4|subunit B4''
+837424,NF-YB4,3702,subunit B4,"nuclear factor Y, subunit B4",''nuclear factor Y|F7G19.10|F7G19_10|nuclear factor Y|subunit B4|subunit B4''
+837704,CYP77B1,3702,cytochrome P450,"cytochrome P450, family 77, subfamily B, polypeptide 1",''cytochrome P450|F25C20.25|F25C20_25|cytochrome P450|family 77|polypeptide 1|polypeptide 1''|subfamily B
+837704,CYP77B1,3702,family 77,"cytochrome P450, family 77, subfamily B, polypeptide 1",''cytochrome P450|F25C20.25|F25C20_25|cytochrome P450|family 77|polypeptide 1|polypeptide 1''|subfamily B
+837704,CYP77B1,3702,polypeptide 1,"cytochrome P450, family 77, subfamily B, polypeptide 1",''cytochrome P450|F25C20.25|F25C20_25|cytochrome P450|family 77|polypeptide 1|polypeptide 1''|subfamily B
+837704,CYP77B1,3702,subfamily B,"cytochrome P450, family 77, subfamily B, polypeptide 1",''cytochrome P450|F25C20.25|F25C20_25|cytochrome P450|family 77|polypeptide 1|polypeptide 1''|subfamily B
+837705,CYP71A18,3702,cytochrome P450,"cytochrome P450, family 71, subfamily A, polypeptide 18",''cytochrome P450|F25C20.24|F25C20_24|cytochrome P450|family 71|polypeptide 18|polypeptide 18''|subfamily A
+837705,CYP71A18,3702,family 71,"cytochrome P450, family 71, subfamily A, polypeptide 18",''cytochrome P450|F25C20.24|F25C20_24|cytochrome P450|family 71|polypeptide 18|polypeptide 18''|subfamily A
+837705,CYP71A18,3702,polypeptide 18,"cytochrome P450, family 71, subfamily A, polypeptide 18",''cytochrome P450|F25C20.24|F25C20_24|cytochrome P450|family 71|polypeptide 18|polypeptide 18''|subfamily A
+837705,CYP71A18,3702,subfamily A,"cytochrome P450, family 71, subfamily A, polypeptide 18",''cytochrome P450|F25C20.24|F25C20_24|cytochrome P450|family 71|polypeptide 18|polypeptide 18''|subfamily A
+837830,CYP87A2,3702,cytochrome P450,"cytochrome P450, family 87, subfamily A, polypeptide 2",''cytochrome P450|T12C24.27|T12C24_27|cytochrome P450|family 87|polypeptide 2|polypeptide 2''|subfamily A
+837830,CYP87A2,3702,family 87,"cytochrome P450, family 87, subfamily A, polypeptide 2",''cytochrome P450|T12C24.27|T12C24_27|cytochrome P450|family 87|polypeptide 2|polypeptide 2''|subfamily A
+837830,CYP87A2,3702,polypeptide 2,"cytochrome P450, family 87, subfamily A, polypeptide 2",''cytochrome P450|T12C24.27|T12C24_27|cytochrome P450|family 87|polypeptide 2|polypeptide 2''|subfamily A
+837830,CYP87A2,3702,subfamily A,"cytochrome P450, family 87, subfamily A, polypeptide 2",''cytochrome P450|T12C24.27|T12C24_27|cytochrome P450|family 87|polypeptide 2|polypeptide 2''|subfamily A
+837865,CYP71B2,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 2",''cytochrome P450|CYTOCHROME P450 MONOOXYGENASE 71B2|F3F19.10|F3F19_10|cytochrome P450|family 71|polypeptide 2|polypeptide 2''|subfamily B
+837865,CYP71B2,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 2",''cytochrome P450|CYTOCHROME P450 MONOOXYGENASE 71B2|F3F19.10|F3F19_10|cytochrome P450|family 71|polypeptide 2|polypeptide 2''|subfamily B
+837865,CYP71B2,3702,polypeptide 2,"cytochrome P450, family 71, subfamily B, polypeptide 2",''cytochrome P450|CYTOCHROME P450 MONOOXYGENASE 71B2|F3F19.10|F3F19_10|cytochrome P450|family 71|polypeptide 2|polypeptide 2''|subfamily B
+837865,CYP71B2,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 2",''cytochrome P450|CYTOCHROME P450 MONOOXYGENASE 71B2|F3F19.10|F3F19_10|cytochrome P450|family 71|polypeptide 2|polypeptide 2''|subfamily B
+837866,CYP71B28,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 28",''cytochrome P450|F3F19.11|F3F19_11|cytochrome P450|family 71|polypeptide 28|polypeptide 28''|subfamily B
+837866,CYP71B28,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 28",''cytochrome P450|F3F19.11|F3F19_11|cytochrome P450|family 71|polypeptide 28|polypeptide 28''|subfamily B
+837866,CYP71B28,3702,polypeptide 28,"cytochrome P450, family 71, subfamily B, polypeptide 28",''cytochrome P450|F3F19.11|F3F19_11|cytochrome P450|family 71|polypeptide 28|polypeptide 28''|subfamily B
+837866,CYP71B28,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 28",''cytochrome P450|F3F19.11|F3F19_11|cytochrome P450|family 71|polypeptide 28|polypeptide 28''|subfamily B
+837867,CYP71B29,3702,cytochrome P450,"cytochrome P450, family 71, subfamily B, polypeptide 29",''cytochrome P450|F3F19.12|F3F19_12|cytochrome P450|family 71|polypeptide 29|polypeptide 29''|subfamily B
+837867,CYP71B29,3702,family 71,"cytochrome P450, family 71, subfamily B, polypeptide 29",''cytochrome P450|F3F19.12|F3F19_12|cytochrome P450|family 71|polypeptide 29|polypeptide 29''|subfamily B
+837867,CYP71B29,3702,polypeptide 29,"cytochrome P450, family 71, subfamily B, polypeptide 29",''cytochrome P450|F3F19.12|F3F19_12|cytochrome P450|family 71|polypeptide 29|polypeptide 29''|subfamily B
+837867,CYP71B29,3702,subfamily B,"cytochrome P450, family 71, subfamily B, polypeptide 29",''cytochrome P450|F3F19.12|F3F19_12|cytochrome P450|family 71|polypeptide 29|polypeptide 29''|subfamily B
+837868,CYP71B7,3702,cytochrome P450,"cytochrome P450, family 71 subfamily B, polypeptide 7",''cytochrome P450|F3F19.13|F3F19_13|cytochrome P450|family 71 subfamily B|polypeptide 7|polypeptide 7''
+837868,CYP71B7,3702,family 71 subfamily B,"cytochrome P450, family 71 subfamily B, polypeptide 7",''cytochrome P450|F3F19.13|F3F19_13|cytochrome P450|family 71 subfamily B|polypeptide 7|polypeptide 7''
+837868,CYP71B7,3702,polypeptide 7,"cytochrome P450, family 71 subfamily B, polypeptide 7",''cytochrome P450|F3F19.13|F3F19_13|cytochrome P450|family 71 subfamily B|polypeptide 7|polypeptide 7''
+837871,CYP86C3,3702,cytochrome P450,"cytochrome P450, family 86, subfamily C, polypeptide 3",''cytochrome P450|F3F19.16|F3F19_16|cytochrome P450|family 86|polypeptide 3|polypeptide 3''|subfamily C
+837871,CYP86C3,3702,family 86,"cytochrome P450, family 86, subfamily C, polypeptide 3",''cytochrome P450|F3F19.16|F3F19_16|cytochrome P450|family 86|polypeptide 3|polypeptide 3''|subfamily C
+837871,CYP86C3,3702,polypeptide 3,"cytochrome P450, family 86, subfamily C, polypeptide 3",''cytochrome P450|F3F19.16|F3F19_16|cytochrome P450|family 86|polypeptide 3|polypeptide 3''|subfamily C
+837871,CYP86C3,3702,subfamily C,"cytochrome P450, family 86, subfamily C, polypeptide 3",''cytochrome P450|F3F19.16|F3F19_16|cytochrome P450|family 86|polypeptide 3|polypeptide 3''|subfamily C
+837873,CYP86C4,3702,cytochrome P450,"cytochrome P450, family 86, subfamily C, polypeptide 4",''cytochrome P450|F3F19.17|F3F19_17|cytochrome P450|family 86|polypeptide 4|polypeptide 4''|subfamily C
+837873,CYP86C4,3702,family 86,"cytochrome P450, family 86, subfamily C, polypeptide 4",''cytochrome P450|F3F19.17|F3F19_17|cytochrome P450|family 86|polypeptide 4|polypeptide 4''|subfamily C
+837873,CYP86C4,3702,polypeptide 4,"cytochrome P450, family 86, subfamily C, polypeptide 4",''cytochrome P450|F3F19.17|F3F19_17|cytochrome P450|family 86|polypeptide 4|polypeptide 4''|subfamily C
+837873,CYP86C4,3702,subfamily C,"cytochrome P450, family 86, subfamily C, polypeptide 4",''cytochrome P450|F3F19.17|F3F19_17|cytochrome P450|family 86|polypeptide 4|polypeptide 4''|subfamily C
+837932,CYP78A5,3702,cytochrome P450,"cytochrome P450, family 78, subfamily A, polypeptide 5",''cytochrome P450|F21F23.15|F21F23_15|KLU|KLUH|cytochrome P450|family 78|polypeptide 5|polypeptide 5''|subfamily A
+837932,CYP78A5,3702,family 78,"cytochrome P450, family 78, subfamily A, polypeptide 5",''cytochrome P450|F21F23.15|F21F23_15|KLU|KLUH|cytochrome P450|family 78|polypeptide 5|polypeptide 5''|subfamily A
+837932,CYP78A5,3702,polypeptide 5,"cytochrome P450, family 78, subfamily A, polypeptide 5",''cytochrome P450|F21F23.15|F21F23_15|KLU|KLUH|cytochrome P450|family 78|polypeptide 5|polypeptide 5''|subfamily A
+837932,CYP78A5,3702,subfamily A,"cytochrome P450, family 78, subfamily A, polypeptide 5",''cytochrome P450|F21F23.15|F21F23_15|KLU|KLUH|cytochrome P450|family 78|polypeptide 5|polypeptide 5''|subfamily A
+838210,CYP79F2,3702,cytochrome P450,"cytochrome P450, family 79, subfamily F, polypeptide 2",''cytochrome P450|CYTOCHROME P450 79F2|F3O9.20|F3O9_20|cytochrome P450|family 79|polypeptide 2|polypeptide 2''|subfamily F
+838210,CYP79F2,3702,family 79,"cytochrome P450, family 79, subfamily F, polypeptide 2",''cytochrome P450|CYTOCHROME P450 79F2|F3O9.20|F3O9_20|cytochrome P450|family 79|polypeptide 2|polypeptide 2''|subfamily F
+838210,CYP79F2,3702,polypeptide 2,"cytochrome P450, family 79, subfamily F, polypeptide 2",''cytochrome P450|CYTOCHROME P450 79F2|F3O9.20|F3O9_20|cytochrome P450|family 79|polypeptide 2|polypeptide 2''|subfamily F
+838210,CYP79F2,3702,subfamily F,"cytochrome P450, family 79, subfamily F, polypeptide 2",''cytochrome P450|CYTOCHROME P450 79F2|F3O9.20|F3O9_20|cytochrome P450|family 79|polypeptide 2|polypeptide 2''|subfamily F
+838335,NF-YA8,3702,nuclear factor Y,"nuclear factor Y, subunit A8",''nuclear factor Y|F1L3.29|F1L3_29|nuclear factor Y|subunit A8|subunit A8''
+838335,NF-YA8,3702,subunit A8,"nuclear factor Y, subunit A8",''nuclear factor Y|F1L3.29|F1L3_29|nuclear factor Y|subunit A8|subunit A8''
+838550,CYP722A1,3702,cytochrome P450,"cytochrome P450, family 722, subfamily A, polypeptide 1",''cytochrome P450|F14P1.4|F14P1_4|cytochrome P450|family 722|polypeptide 1|polypeptide 1''|subfamily A
+838550,CYP722A1,3702,family 722,"cytochrome P450, family 722, subfamily A, polypeptide 1",''cytochrome P450|F14P1.4|F14P1_4|cytochrome P450|family 722|polypeptide 1|polypeptide 1''|subfamily A
+838550,CYP722A1,3702,polypeptide 1,"cytochrome P450, family 722, subfamily A, polypeptide 1",''cytochrome P450|F14P1.4|F14P1_4|cytochrome P450|family 722|polypeptide 1|polypeptide 1''|subfamily A
+838550,CYP722A1,3702,subfamily A,"cytochrome P450, family 722, subfamily A, polypeptide 1",''cytochrome P450|F14P1.4|F14P1_4|cytochrome P450|family 722|polypeptide 1|polypeptide 1''|subfamily A
+839069,CYP86C1,3702,cytochrome P450,"cytochrome P450, family 86, subfamily C, polypeptide 1",''cytochrome P450|F21J9.20|cytochrome P450|family 86|polypeptide 1|polypeptide 1''|subfamily C
+839069,CYP86C1,3702,family 86,"cytochrome P450, family 86, subfamily C, polypeptide 1",''cytochrome P450|F21J9.20|cytochrome P450|family 86|polypeptide 1|polypeptide 1''|subfamily C
+839069,CYP86C1,3702,polypeptide 1,"cytochrome P450, family 86, subfamily C, polypeptide 1",''cytochrome P450|F21J9.20|cytochrome P450|family 86|polypeptide 1|polypeptide 1''|subfamily C
+839069,CYP86C1,3702,subfamily C,"cytochrome P450, family 86, subfamily C, polypeptide 1",''cytochrome P450|F21J9.20|cytochrome P450|family 86|polypeptide 1|polypeptide 1''|subfamily C
+839233,CYP78A8,3702,cytochrome P450,"cytochrome P450, family 78, subfamily A, polypeptide 8",''cytochrome P450|F6F3.25|cytochrome P450|family 78|polypeptide 8|polypeptide 8''|subfamily A
+839233,CYP78A8,3702,family 78,"cytochrome P450, family 78, subfamily A, polypeptide 8",''cytochrome P450|F6F3.25|cytochrome P450|family 78|polypeptide 8|polypeptide 8''|subfamily A
+839233,CYP78A8,3702,polypeptide 8,"cytochrome P450, family 78, subfamily A, polypeptide 8",''cytochrome P450|F6F3.25|cytochrome P450|family 78|polypeptide 8|polypeptide 8''|subfamily A
+839233,CYP78A8,3702,subfamily A,"cytochrome P450, family 78, subfamily A, polypeptide 8",''cytochrome P450|F6F3.25|cytochrome P450|family 78|polypeptide 8|polypeptide 8''|subfamily A
+839311,CYP88A3,3702,cytochrome P450,"cytochrome P450, family 88, subfamily A, polypeptide 3",''cytochrome P450|ATKAO1|ENT-KAURENOIC ACID OXYDASE 1|KAO1|YUP8H12.23|YUP8H12_23|cytochrome P450|family 88|polypeptide 3|polypeptide 3''|subfamily A
+839311,CYP88A3,3702,family 88,"cytochrome P450, family 88, subfamily A, polypeptide 3",''cytochrome P450|ATKAO1|ENT-KAURENOIC ACID OXYDASE 1|KAO1|YUP8H12.23|YUP8H12_23|cytochrome P450|family 88|polypeptide 3|polypeptide 3''|subfamily A
+839311,CYP88A3,3702,polypeptide 3,"cytochrome P450, family 88, subfamily A, polypeptide 3",''cytochrome P450|ATKAO1|ENT-KAURENOIC ACID OXYDASE 1|KAO1|YUP8H12.23|YUP8H12_23|cytochrome P450|family 88|polypeptide 3|polypeptide 3''|subfamily A
+839311,CYP88A3,3702,subfamily A,"cytochrome P450, family 88, subfamily A, polypeptide 3",''cytochrome P450|ATKAO1|ENT-KAURENOIC ACID OXYDASE 1|KAO1|YUP8H12.23|YUP8H12_23|cytochrome P450|family 88|polypeptide 3|polypeptide 3''|subfamily A
+839347,CYP86A4,3702,cytochrome P450,"cytochrome P450, family 86, subfamily A, polypeptide 4",''cytochrome P450|F22L4.14|F22L4_14|cytochrome P450|family 86|polypeptide 4|polypeptide 4''|subfamily A
+839347,CYP86A4,3702,family 86,"cytochrome P450, family 86, subfamily A, polypeptide 4",''cytochrome P450|F22L4.14|F22L4_14|cytochrome P450|family 86|polypeptide 4|polypeptide 4''|subfamily A
+839347,CYP86A4,3702,polypeptide 4,"cytochrome P450, family 86, subfamily A, polypeptide 4",''cytochrome P450|F22L4.14|F22L4_14|cytochrome P450|family 86|polypeptide 4|polypeptide 4''|subfamily A
+839347,CYP86A4,3702,subfamily A,"cytochrome P450, family 86, subfamily A, polypeptide 4",''cytochrome P450|F22L4.14|F22L4_14|cytochrome P450|family 86|polypeptide 4|polypeptide 4''|subfamily A
+839470,CYP703A2,3702,cytochrome P450,"cytochrome P450, family 703, subfamily A, polypeptide 2",''cytochrome P450|CYP703|F6F3.8|F6F3_8|cytochrome P450|family 703|polypeptide 2|polypeptide 2''|subfamily A
+839470,CYP703A2,3702,family 703,"cytochrome P450, family 703, subfamily A, polypeptide 2",''cytochrome P450|CYP703|F6F3.8|F6F3_8|cytochrome P450|family 703|polypeptide 2|polypeptide 2''|subfamily A
+839470,CYP703A2,3702,polypeptide 2,"cytochrome P450, family 703, subfamily A, polypeptide 2",''cytochrome P450|CYP703|F6F3.8|F6F3_8|cytochrome P450|family 703|polypeptide 2|polypeptide 2''|subfamily A
+839470,CYP703A2,3702,subfamily A,"cytochrome P450, family 703, subfamily A, polypeptide 2",''cytochrome P450|CYP703|F6F3.8|F6F3_8|cytochrome P450|family 703|polypeptide 2|polypeptide 2''|subfamily A
+839741,CYP705A24,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 24",''cytochrome P450|F3M18.13|F3M18_13|cytochrome P450|family 705|polypeptide 24|polypeptide 24''|subfamily A
+839741,CYP705A24,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 24",''cytochrome P450|F3M18.13|F3M18_13|cytochrome P450|family 705|polypeptide 24|polypeptide 24''|subfamily A
+839741,CYP705A24,3702,polypeptide 24,"cytochrome P450, family 705, subfamily A, polypeptide 24",''cytochrome P450|F3M18.13|F3M18_13|cytochrome P450|family 705|polypeptide 24|polypeptide 24''|subfamily A
+839741,CYP705A24,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 24",''cytochrome P450|F3M18.13|F3M18_13|cytochrome P450|family 705|polypeptide 24|polypeptide 24''|subfamily A
+839929,NF-YA7,3702,nuclear factor Y,"nuclear factor Y, subunit A7",''nuclear factor Y|F26G16.12|F26G16_12|nuclear factor Y|subunit A7|subunit A7''
+839929,NF-YA7,3702,subunit A7,"nuclear factor Y, subunit A7",''nuclear factor Y|F26G16.12|F26G16_12|nuclear factor Y|subunit A7|subunit A7''
+840067,CYP97A3,3702,cytochrome P450,"cytochrome P450, family 97, subfamily A, polypeptide 3",''cytochrome P450|F5M6.19|F5M6_19|LUT5|LUTEIN DEFICIENT 5|cytochrome P450|family 97|polypeptide 3|polypeptide 3''|subfamily A
+840067,CYP97A3,3702,family 97,"cytochrome P450, family 97, subfamily A, polypeptide 3",''cytochrome P450|F5M6.19|F5M6_19|LUT5|LUTEIN DEFICIENT 5|cytochrome P450|family 97|polypeptide 3|polypeptide 3''|subfamily A
+840067,CYP97A3,3702,polypeptide 3,"cytochrome P450, family 97, subfamily A, polypeptide 3",''cytochrome P450|F5M6.19|F5M6_19|LUT5|LUTEIN DEFICIENT 5|cytochrome P450|family 97|polypeptide 3|polypeptide 3''|subfamily A
+840067,CYP97A3,3702,subfamily A,"cytochrome P450, family 97, subfamily A, polypeptide 3",''cytochrome P450|F5M6.19|F5M6_19|LUT5|LUTEIN DEFICIENT 5|cytochrome P450|family 97|polypeptide 3|polypeptide 3''|subfamily A
+840263,CYP76C6,3702,cytochrome P450,"cytochrome P450, family 76, subfamily C, polypeptide 6",''cytochrome P450|F14M2.15|F14M2_15|cytochrome P450|family 76|polypeptide 6|polypeptide 6''|subfamily C
+840263,CYP76C6,3702,family 76,"cytochrome P450, family 76, subfamily C, polypeptide 6",''cytochrome P450|F14M2.15|F14M2_15|cytochrome P450|family 76|polypeptide 6|polypeptide 6''|subfamily C
+840263,CYP76C6,3702,polypeptide 6,"cytochrome P450, family 76, subfamily C, polypeptide 6",''cytochrome P450|F14M2.15|F14M2_15|cytochrome P450|family 76|polypeptide 6|polypeptide 6''|subfamily C
+840263,CYP76C6,3702,subfamily C,"cytochrome P450, family 76, subfamily C, polypeptide 6",''cytochrome P450|F14M2.15|F14M2_15|cytochrome P450|family 76|polypeptide 6|polypeptide 6''|subfamily C
+840264,CYP76C5,3702,cytochrome P450,"cytochrome P450, family 76, subfamily C, polypeptide 5",''cytochrome P450|F14M2.14|F14M2_14|cytochrome P450|family 76|polypeptide 5|polypeptide 5''|subfamily C
+840264,CYP76C5,3702,family 76,"cytochrome P450, family 76, subfamily C, polypeptide 5",''cytochrome P450|F14M2.14|F14M2_14|cytochrome P450|family 76|polypeptide 5|polypeptide 5''|subfamily C
+840264,CYP76C5,3702,polypeptide 5,"cytochrome P450, family 76, subfamily C, polypeptide 5",''cytochrome P450|F14M2.14|F14M2_14|cytochrome P450|family 76|polypeptide 5|polypeptide 5''|subfamily C
+840264,CYP76C5,3702,subfamily C,"cytochrome P450, family 76, subfamily C, polypeptide 5",''cytochrome P450|F14M2.14|F14M2_14|cytochrome P450|family 76|polypeptide 5|polypeptide 5''|subfamily C
+840356,CYP94D1,3702,cytochrome P450,"cytochrome P450, family 94, subfamily D, polypeptide 1",''cytochrome P450|F12K21.15|F12K21_15|cytochrome P450|family 94|polypeptide 1|polypeptide 1''|subfamily D
+840356,CYP94D1,3702,family 94,"cytochrome P450, family 94, subfamily D, polypeptide 1",''cytochrome P450|F12K21.15|F12K21_15|cytochrome P450|family 94|polypeptide 1|polypeptide 1''|subfamily D
+840356,CYP94D1,3702,polypeptide 1,"cytochrome P450, family 94, subfamily D, polypeptide 1",''cytochrome P450|F12K21.15|F12K21_15|cytochrome P450|family 94|polypeptide 1|polypeptide 1''|subfamily D
+840356,CYP94D1,3702,subfamily D,"cytochrome P450, family 94, subfamily D, polypeptide 1",''cytochrome P450|F12K21.15|F12K21_15|cytochrome P450|family 94|polypeptide 1|polypeptide 1''|subfamily D
+841171,CYP96A8,3702,cytochrome P450,"cytochrome P450, family 96, subfamily A, polypeptide 8",''cytochrome P450|F16N3.8|F16N3_8|cytochrome P450|family 96|polypeptide 8|polypeptide 8''|subfamily A
+841171,CYP96A8,3702,family 96,"cytochrome P450, family 96, subfamily A, polypeptide 8",''cytochrome P450|F16N3.8|F16N3_8|cytochrome P450|family 96|polypeptide 8|polypeptide 8''|subfamily A
+841171,CYP96A8,3702,polypeptide 8,"cytochrome P450, family 96, subfamily A, polypeptide 8",''cytochrome P450|F16N3.8|F16N3_8|cytochrome P450|family 96|polypeptide 8|polypeptide 8''|subfamily A
+841171,CYP96A8,3702,subfamily A,"cytochrome P450, family 96, subfamily A, polypeptide 8",''cytochrome P450|F16N3.8|F16N3_8|cytochrome P450|family 96|polypeptide 8|polypeptide 8''|subfamily A
+841474,CYP705A27,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 27",''cytochrome P450|F11F12.13|F11F12_13|cytochrome P450|family 705|polypeptide 27|polypeptide 27''|subfamily A
+841474,CYP705A27,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 27",''cytochrome P450|F11F12.13|F11F12_13|cytochrome P450|family 705|polypeptide 27|polypeptide 27''|subfamily A
+841474,CYP705A27,3702,polypeptide 27,"cytochrome P450, family 705, subfamily A, polypeptide 27",''cytochrome P450|F11F12.13|F11F12_13|cytochrome P450|family 705|polypeptide 27|polypeptide 27''|subfamily A
+841474,CYP705A27,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 27",''cytochrome P450|F11F12.13|F11F12_13|cytochrome P450|family 705|polypeptide 27|polypeptide 27''|subfamily A
+841477,CYP705A25,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 25",''cytochrome P450|F11F12.12|F11F12_12|cytochrome P450|family 705|polypeptide 25|polypeptide 25''|subfamily A
+841477,CYP705A25,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 25",''cytochrome P450|F11F12.12|F11F12_12|cytochrome P450|family 705|polypeptide 25|polypeptide 25''|subfamily A
+841477,CYP705A25,3702,polypeptide 25,"cytochrome P450, family 705, subfamily A, polypeptide 25",''cytochrome P450|F11F12.12|F11F12_12|cytochrome P450|family 705|polypeptide 25|polypeptide 25''|subfamily A
+841477,CYP705A25,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 25",''cytochrome P450|F11F12.12|F11F12_12|cytochrome P450|family 705|polypeptide 25|polypeptide 25''|subfamily A
+841856,NF-YA5,3702,nuclear factor Y,"nuclear factor Y, subunit A5",''nuclear factor Y|F15I1.26|F15I1_26|NFYA5|NUCLEAR FACTOR Y A5|nuclear factor Y|subunit A5|subunit A5''
+841856,NF-YA5,3702,subunit A5,"nuclear factor Y, subunit A5",''nuclear factor Y|F15I1.26|F15I1_26|NFYA5|NUCLEAR FACTOR Y A5|nuclear factor Y|subunit A5|subunit A5''
+841922,NF-YC3,3702,nuclear factor Y,"nuclear factor Y, subunit C3",''nuclear factor Y|F14C21.41|F14C21_41|nuclear factor Y|subunit C3|subunit C3''
+841922,NF-YC3,3702,subunit C3,"nuclear factor Y, subunit C3",''nuclear factor Y|F14C21.41|F14C21_41|nuclear factor Y|subunit C3|subunit C3''
+842070,NF-YC2,3702,nuclear factor Y,"nuclear factor Y, subunit C2",''nuclear factor Y|ATHAP5B|F14G9.21|HAP5B|nuclear factor Y|subunit C2|subunit C2''
+842070,NF-YC2,3702,subunit C2,"nuclear factor Y, subunit C2",''nuclear factor Y|ATHAP5B|F14G9.21|HAP5B|nuclear factor Y|subunit C2|subunit C2''
+842150,CYP96A15,3702,cytochrome P450,"cytochrome P450, family 96, subfamily A, polypeptide 15",''cytochrome P450|MAH1|MID-CHAIN ALKANE HYDROXYLASE 1|T8L23.21|T8L23_21|cytochrome P450|family 96|polypeptide 15|polypeptide 15''|subfamily A
+842150,CYP96A15,3702,family 96,"cytochrome P450, family 96, subfamily A, polypeptide 15",''cytochrome P450|MAH1|MID-CHAIN ALKANE HYDROXYLASE 1|T8L23.21|T8L23_21|cytochrome P450|family 96|polypeptide 15|polypeptide 15''|subfamily A
+842150,CYP96A15,3702,polypeptide 15,"cytochrome P450, family 96, subfamily A, polypeptide 15",''cytochrome P450|MAH1|MID-CHAIN ALKANE HYDROXYLASE 1|T8L23.21|T8L23_21|cytochrome P450|family 96|polypeptide 15|polypeptide 15''|subfamily A
+842150,CYP96A15,3702,subfamily A,"cytochrome P450, family 96, subfamily A, polypeptide 15",''cytochrome P450|MAH1|MID-CHAIN ALKANE HYDROXYLASE 1|T8L23.21|T8L23_21|cytochrome P450|family 96|polypeptide 15|polypeptide 15''|subfamily A
+842603,NRS/ER,3702,nucleotide-rhamnose synthase/epimerase-reductase,nucleotide-rhamnose synthase/epimerase-reductase,''UDP-4-KETO-6-DEOXY-D-GLUCOSE-3|5-EPIMERASE-4-REDUCTASE 1|5-EPIMERASE-4-REDUCTASE 1''|F16P17.17|F16P17_17|UDP-4-KETO-6-DEOXY-D-GLUCOSE-3|UER1|nucleotide-rhamnose synthase/epimerase-reductase
+842675,CYP86A7,3702,cytochrome P450,"cytochrome P450, family 86, subfamily A, polypeptide 7",''cytochrome P450|F24D7.10|F24D7_10|cytochrome P450|family 86|polypeptide 7|polypeptide 7''|subfamily A
+842675,CYP86A7,3702,family 86,"cytochrome P450, family 86, subfamily A, polypeptide 7",''cytochrome P450|F24D7.10|F24D7_10|cytochrome P450|family 86|polypeptide 7|polypeptide 7''|subfamily A
+842675,CYP86A7,3702,polypeptide 7,"cytochrome P450, family 86, subfamily A, polypeptide 7",''cytochrome P450|F24D7.10|F24D7_10|cytochrome P450|family 86|polypeptide 7|polypeptide 7''|subfamily A
+842675,CYP86A7,3702,subfamily A,"cytochrome P450, family 86, subfamily A, polypeptide 7",''cytochrome P450|F24D7.10|F24D7_10|cytochrome P450|family 86|polypeptide 7|polypeptide 7''|subfamily A
+842798,CYP89A2,3702,cytochrome P450,"cytochrome P450, family 89, subfamily A, polypeptide 2",''cytochrome P450|CYP89|F13O11.20|F13O11_20|cytochrome P450|family 89|polypeptide 2|polypeptide 2''|subfamily A
+842798,CYP89A2,3702,family 89,"cytochrome P450, family 89, subfamily A, polypeptide 2",''cytochrome P450|CYP89|F13O11.20|F13O11_20|cytochrome P450|family 89|polypeptide 2|polypeptide 2''|subfamily A
+842798,CYP89A2,3702,polypeptide 2,"cytochrome P450, family 89, subfamily A, polypeptide 2",''cytochrome P450|CYP89|F13O11.20|F13O11_20|cytochrome P450|family 89|polypeptide 2|polypeptide 2''|subfamily A
+842798,CYP89A2,3702,subfamily A,"cytochrome P450, family 89, subfamily A, polypeptide 2",''cytochrome P450|CYP89|F13O11.20|F13O11_20|cytochrome P450|family 89|polypeptide 2|polypeptide 2''|subfamily A
+842801,CYP89A7,3702,cytochrome P450,"cytochrome P450, family 87, subfamily A, polypeptide 7",''cytochrome P450|F13O11.23|F13O11_23|cytochrome P450|family 87|polypeptide 7|polypeptide 7''|subfamily A
+842801,CYP89A7,3702,family 87,"cytochrome P450, family 87, subfamily A, polypeptide 7",''cytochrome P450|F13O11.23|F13O11_23|cytochrome P450|family 87|polypeptide 7|polypeptide 7''|subfamily A
+842801,CYP89A7,3702,polypeptide 7,"cytochrome P450, family 87, subfamily A, polypeptide 7",''cytochrome P450|F13O11.23|F13O11_23|cytochrome P450|family 87|polypeptide 7|polypeptide 7''|subfamily A
+842801,CYP89A7,3702,subfamily A,"cytochrome P450, family 87, subfamily A, polypeptide 7",''cytochrome P450|F13O11.23|F13O11_23|cytochrome P450|family 87|polypeptide 7|polypeptide 7''|subfamily A
+842802,CYP89A6,3702,cytochrome P450,"cytochrome P450, family 87, subfamily A, polypeptide 6",''cytochrome P450|F13O11.24|F13O11_24|cytochrome P450|family 87|polypeptide 6|polypeptide 6''|subfamily A
+842802,CYP89A6,3702,family 87,"cytochrome P450, family 87, subfamily A, polypeptide 6",''cytochrome P450|F13O11.24|F13O11_24|cytochrome P450|family 87|polypeptide 6|polypeptide 6''|subfamily A
+842802,CYP89A6,3702,polypeptide 6,"cytochrome P450, family 87, subfamily A, polypeptide 6",''cytochrome P450|F13O11.24|F13O11_24|cytochrome P450|family 87|polypeptide 6|polypeptide 6''|subfamily A
+842802,CYP89A6,3702,subfamily A,"cytochrome P450, family 87, subfamily A, polypeptide 6",''cytochrome P450|F13O11.24|F13O11_24|cytochrome P450|family 87|polypeptide 6|polypeptide 6''|subfamily A
+842803,CYP89A5,3702,cytochrome P450,"cytochrome P450, family 89, subfamily A, polypeptide 5",''cytochrome P450|F13O11.25|F13O11_25|cytochrome P450|family 89|polypeptide 5|polypeptide 5''|subfamily A
+842803,CYP89A5,3702,family 89,"cytochrome P450, family 89, subfamily A, polypeptide 5",''cytochrome P450|F13O11.25|F13O11_25|cytochrome P450|family 89|polypeptide 5|polypeptide 5''|subfamily A
+842803,CYP89A5,3702,polypeptide 5,"cytochrome P450, family 89, subfamily A, polypeptide 5",''cytochrome P450|F13O11.25|F13O11_25|cytochrome P450|family 89|polypeptide 5|polypeptide 5''|subfamily A
+842803,CYP89A5,3702,subfamily A,"cytochrome P450, family 89, subfamily A, polypeptide 5",''cytochrome P450|F13O11.25|F13O11_25|cytochrome P450|family 89|polypeptide 5|polypeptide 5''|subfamily A
+842842,CYP96A3,3702,cytochrome P450,"cytochrome P450, family 96, subfamily A, polypeptide 3",''cytochrome P450|T8F5.12|T8F5_12|cytochrome P450|family 96|polypeptide 3|polypeptide 3''|subfamily A
+842842,CYP96A3,3702,family 96,"cytochrome P450, family 96, subfamily A, polypeptide 3",''cytochrome P450|T8F5.12|T8F5_12|cytochrome P450|family 96|polypeptide 3|polypeptide 3''|subfamily A
+842842,CYP96A3,3702,polypeptide 3,"cytochrome P450, family 96, subfamily A, polypeptide 3",''cytochrome P450|T8F5.12|T8F5_12|cytochrome P450|family 96|polypeptide 3|polypeptide 3''|subfamily A
+842842,CYP96A3,3702,subfamily A,"cytochrome P450, family 96, subfamily A, polypeptide 3",''cytochrome P450|T8F5.12|T8F5_12|cytochrome P450|family 96|polypeptide 3|polypeptide 3''|subfamily A
+842864,ECI1,3702,delta(2)-enoyl CoA isomerase 1,"delta(3), delta(2)-enoyl CoA isomerase 1",''delta(3)|ARABIDOPSIS THALIANA DELTA(3)|ATECI1|DELTA(2)-ENOYL COA ISOMERASE 1|ECHIC|ENOYL-COA HYDRATASE/ISOMERASE C|F5I14.5|F5I14_5|PEC11|delta(2)-enoyl CoA isomerase 1|delta(2)-enoyl CoA isomerase 1''|delta(3)
+842864,ECI1,3702,delta(3),"delta(3), delta(2)-enoyl CoA isomerase 1",''delta(3)|ARABIDOPSIS THALIANA DELTA(3)|ATECI1|DELTA(2)-ENOYL COA ISOMERASE 1|ECHIC|ENOYL-COA HYDRATASE/ISOMERASE C|F5I14.5|F5I14_5|PEC11|delta(2)-enoyl CoA isomerase 1|delta(2)-enoyl CoA isomerase 1''|delta(3)
+842878,CYP702A1,3702,cytochrome P450,"cytochrome P450, family 702, subfamily A, polypeptide 1",''cytochrome P450|F1E22.5|cytochrome P450|family 702|polypeptide 1|polypeptide 1''|subfamily A
+842878,CYP702A1,3702,family 702,"cytochrome P450, family 702, subfamily A, polypeptide 1",''cytochrome P450|F1E22.5|cytochrome P450|family 702|polypeptide 1|polypeptide 1''|subfamily A
+842878,CYP702A1,3702,polypeptide 1,"cytochrome P450, family 702, subfamily A, polypeptide 1",''cytochrome P450|F1E22.5|cytochrome P450|family 702|polypeptide 1|polypeptide 1''|subfamily A
+842878,CYP702A1,3702,subfamily A,"cytochrome P450, family 702, subfamily A, polypeptide 1",''cytochrome P450|F1E22.5|cytochrome P450|family 702|polypeptide 1|polypeptide 1''|subfamily A
+842916,CYP96A14P,3702,cytochrome P450,"cytochrome P450, family 96, subfamily A, polypeptide 14 pseudogene",''cytochrome P450|F15E12.16|F15E12_16|cytochrome P450|family 96|polypeptide 14 pseudogene|polypeptide 14 pseudogene''|subfamily A
+842916,CYP96A14P,3702,family 96,"cytochrome P450, family 96, subfamily A, polypeptide 14 pseudogene",''cytochrome P450|F15E12.16|F15E12_16|cytochrome P450|family 96|polypeptide 14 pseudogene|polypeptide 14 pseudogene''|subfamily A
+842916,CYP96A14P,3702,polypeptide 14 pseudogene,"cytochrome P450, family 96, subfamily A, polypeptide 14 pseudogene",''cytochrome P450|F15E12.16|F15E12_16|cytochrome P450|family 96|polypeptide 14 pseudogene|polypeptide 14 pseudogene''|subfamily A
+842916,CYP96A14P,3702,subfamily A,"cytochrome P450, family 96, subfamily A, polypeptide 14 pseudogene",''cytochrome P450|F15E12.16|F15E12_16|cytochrome P450|family 96|polypeptide 14 pseudogene|polypeptide 14 pseudogene''|subfamily A
+842931,CMPG1,3702,CYS,"CYS, MET, PRO, and GLY protein 1",''CYS|ATCMPG1|CYS|F15E12.6|F15E12_6|MET|PRO|and GLY protein 1|and GLY protein 1''
+842931,CMPG1,3702,MET,"CYS, MET, PRO, and GLY protein 1",''CYS|ATCMPG1|CYS|F15E12.6|F15E12_6|MET|PRO|and GLY protein 1|and GLY protein 1''
+842931,CMPG1,3702,PRO,"CYS, MET, PRO, and GLY protein 1",''CYS|ATCMPG1|CYS|F15E12.6|F15E12_6|MET|PRO|and GLY protein 1|and GLY protein 1''
+842931,CMPG1,3702,and GLY protein 1,"CYS, MET, PRO, and GLY protein 1",''CYS|ATCMPG1|CYS|F15E12.6|F15E12_6|MET|PRO|and GLY protein 1|and GLY protein 1''
+843133,FKF1,3702,f box 1,"flavin-binding, kelch repeat, f box 1",''flavin-binding|ADO3|T23K23.10|T23K23_10|f box 1|f box 1''|flavin-binding|kelch repeat
+843133,FKF1,3702,flavin-binding,"flavin-binding, kelch repeat, f box 1",''flavin-binding|ADO3|T23K23.10|T23K23_10|f box 1|f box 1''|flavin-binding|kelch repeat
+843133,FKF1,3702,kelch repeat,"flavin-binding, kelch repeat, f box 1",''flavin-binding|ADO3|T23K23.10|T23K23_10|f box 1|f box 1''|flavin-binding|kelch repeat
+843283,CYP704B1,3702,cytochrome P450,"cytochrome P450, family 704, subfamily B, polypeptide 1",''cytochrome P450|F10D13.15|F10D13_15|cytochrome P450|family 704|polypeptide 1|polypeptide 1''|subfamily B
+843283,CYP704B1,3702,family 704,"cytochrome P450, family 704, subfamily B, polypeptide 1",''cytochrome P450|F10D13.15|F10D13_15|cytochrome P450|family 704|polypeptide 1|polypeptide 1''|subfamily B
+843283,CYP704B1,3702,polypeptide 1,"cytochrome P450, family 704, subfamily B, polypeptide 1",''cytochrome P450|F10D13.15|F10D13_15|cytochrome P450|family 704|polypeptide 1|polypeptide 1''|subfamily B
+843283,CYP704B1,3702,subfamily B,"cytochrome P450, family 704, subfamily B, polypeptide 1",''cytochrome P450|F10D13.15|F10D13_15|cytochrome P450|family 704|polypeptide 1|polypeptide 1''|subfamily B
+843614,NF-YA3,3702,nuclear factor Y,"nuclear factor Y, subunit A3",''nuclear factor Y|ATHAP2C|F3N23.3|F3N23_3|HAP2C|nuclear factor Y|subunit A3|subunit A3''
+843614,NF-YA3,3702,subunit A3,"nuclear factor Y, subunit A3",''nuclear factor Y|ATHAP2C|F3N23.3|F3N23_3|HAP2C|nuclear factor Y|subunit A3|subunit A3''
+843659,GER1,3702,5-epimerase-4-reductase 1,"GDP-4-keto-6-deoxymannose-3,5-epimerase-4-reductase 1",''GDP-4-keto-6-deoxymannose-3|5-EPIMERASE-4-REDUCTASE|5-epimerase-4-reductase 1|5-epimerase-4-reductase 1''|ACTIVATING TRANSCRIPTION FACTOR 5|ATFX|GDP-4-KETO-6-DEOXY-D-MANNOSE-3|GDP-4-keto-6-deoxymannose-3|T18K17.8|T18K17_8
+843659,GER1,3702,GDP-4-keto-6-deoxymannose-3,"GDP-4-keto-6-deoxymannose-3,5-epimerase-4-reductase 1",''GDP-4-keto-6-deoxymannose-3|5-EPIMERASE-4-REDUCTASE|5-epimerase-4-reductase 1|5-epimerase-4-reductase 1''|ACTIVATING TRANSCRIPTION FACTOR 5|ATFX|GDP-4-KETO-6-DEOXY-D-MANNOSE-3|GDP-4-keto-6-deoxymannose-3|T18K17.8|T18K17_8
+843751,CYP78A10,3702,cytochrome P450,"cytochrome P450, family 78, subfamily A, polypeptide 10",''cytochrome P450|F2P9.2|F2P9_2|cytochrome P450|family 78|polypeptide 10|polypeptide 10''|subfamily A
+843751,CYP78A10,3702,family 78,"cytochrome P450, family 78, subfamily A, polypeptide 10",''cytochrome P450|F2P9.2|F2P9_2|cytochrome P450|family 78|polypeptide 10|polypeptide 10''|subfamily A
+843751,CYP78A10,3702,polypeptide 10,"cytochrome P450, family 78, subfamily A, polypeptide 10",''cytochrome P450|F2P9.2|F2P9_2|cytochrome P450|family 78|polypeptide 10|polypeptide 10''|subfamily A
+843751,CYP78A10,3702,subfamily A,"cytochrome P450, family 78, subfamily A, polypeptide 10",''cytochrome P450|F2P9.2|F2P9_2|cytochrome P450|family 78|polypeptide 10|polypeptide 10''|subfamily A
+843850,CYP721A1,3702,cytochrome P450,"cytochrome P450, family 721, subfamily A, polypeptide 1",''cytochrome P450|F22H5.19|cytochrome P450|family 721|polypeptide 1|polypeptide 1''|subfamily A
+843850,CYP721A1,3702,family 721,"cytochrome P450, family 721, subfamily A, polypeptide 1",''cytochrome P450|F22H5.19|cytochrome P450|family 721|polypeptide 1|polypeptide 1''|subfamily A
+843850,CYP721A1,3702,polypeptide 1,"cytochrome P450, family 721, subfamily A, polypeptide 1",''cytochrome P450|F22H5.19|cytochrome P450|family 721|polypeptide 1|polypeptide 1''|subfamily A
+843850,CYP721A1,3702,subfamily A,"cytochrome P450, family 721, subfamily A, polypeptide 1",''cytochrome P450|F22H5.19|cytochrome P450|family 721|polypeptide 1|polypeptide 1''|subfamily A
+844185,CYP708A3,3702,cytochrome P450,"cytochrome P450, family 708, subfamily A, polypeptide 3",''cytochrome P450|T30F21.17|T30F21_17|cytochrome P450|family 708|polypeptide 3|polypeptide 3''|subfamily A
+844185,CYP708A3,3702,family 708,"cytochrome P450, family 708, subfamily A, polypeptide 3",''cytochrome P450|T30F21.17|T30F21_17|cytochrome P450|family 708|polypeptide 3|polypeptide 3''|subfamily A
+844185,CYP708A3,3702,polypeptide 3,"cytochrome P450, family 708, subfamily A, polypeptide 3",''cytochrome P450|T30F21.17|T30F21_17|cytochrome P450|family 708|polypeptide 3|polypeptide 3''|subfamily A
+844185,CYP708A3,3702,subfamily A,"cytochrome P450, family 708, subfamily A, polypeptide 3",''cytochrome P450|T30F21.17|T30F21_17|cytochrome P450|family 708|polypeptide 3|polypeptide 3''|subfamily A
+844275,CYP79C1,3702,cytochrome P450,"cytochrome P450, family 79, subfamily C, polypeptide 1",''cytochrome P450|YUP8H12R.1|YUP8H12R_1|cytochrome P450|family 79|polypeptide 1|polypeptide 1''|subfamily C
+844275,CYP79C1,3702,family 79,"cytochrome P450, family 79, subfamily C, polypeptide 1",''cytochrome P450|YUP8H12R.1|YUP8H12R_1|cytochrome P450|family 79|polypeptide 1|polypeptide 1''|subfamily C
+844275,CYP79C1,3702,polypeptide 1,"cytochrome P450, family 79, subfamily C, polypeptide 1",''cytochrome P450|YUP8H12R.1|YUP8H12R_1|cytochrome P450|family 79|polypeptide 1|polypeptide 1''|subfamily C
+844275,CYP79C1,3702,subfamily C,"cytochrome P450, family 79, subfamily C, polypeptide 1",''cytochrome P450|YUP8H12R.1|YUP8H12R_1|cytochrome P450|family 79|polypeptide 1|polypeptide 1''|subfamily C
+3768880,CYP705A28,3702,cytochrome P450,"cytochrome P450, family 705, subfamily A, polypeptide 28",''cytochrome P450|MFD22.6|cytochrome P450|family 705|polypeptide 28|polypeptide 28''|subfamily A
+3768880,CYP705A28,3702,family 705,"cytochrome P450, family 705, subfamily A, polypeptide 28",''cytochrome P450|MFD22.6|cytochrome P450|family 705|polypeptide 28|polypeptide 28''|subfamily A
+3768880,CYP705A28,3702,polypeptide 28,"cytochrome P450, family 705, subfamily A, polypeptide 28",''cytochrome P450|MFD22.6|cytochrome P450|family 705|polypeptide 28|polypeptide 28''|subfamily A
+3768880,CYP705A28,3702,subfamily A,"cytochrome P450, family 705, subfamily A, polypeptide 28",''cytochrome P450|MFD22.6|cytochrome P450|family 705|polypeptide 28|polypeptide 28''|subfamily A
+3770023,CYP71A28,3702,cytochrome P450,"cytochrome P450, family 71, subfamily A, polypeptide 28",''cytochrome P450|F1C12.160B|cytochrome P450|family 71|polypeptide 28|polypeptide 28''|subfamily A
+3770023,CYP71A28,3702,family 71,"cytochrome P450, family 71, subfamily A, polypeptide 28",''cytochrome P450|F1C12.160B|cytochrome P450|family 71|polypeptide 28|polypeptide 28''|subfamily A
+3770023,CYP71A28,3702,polypeptide 28,"cytochrome P450, family 71, subfamily A, polypeptide 28",''cytochrome P450|F1C12.160B|cytochrome P450|family 71|polypeptide 28|polypeptide 28''|subfamily A
+3770023,CYP71A28,3702,subfamily A,"cytochrome P450, family 71, subfamily A, polypeptide 28",''cytochrome P450|F1C12.160B|cytochrome P450|family 71|polypeptide 28|polypeptide 28''|subfamily A
+3770599,CYP96A10,3702,cytochrome P450,"cytochrome P450, family 96, subfamily A, polypeptide 10",''cytochrome P450|F23K16.120|F23K16_120|cytochrome P450|family 96|polypeptide 10|polypeptide 10''|subfamily A
+3770599,CYP96A10,3702,family 96,"cytochrome P450, family 96, subfamily A, polypeptide 10",''cytochrome P450|F23K16.120|F23K16_120|cytochrome P450|family 96|polypeptide 10|polypeptide 10''|subfamily A
+3770599,CYP96A10,3702,polypeptide 10,"cytochrome P450, family 96, subfamily A, polypeptide 10",''cytochrome P450|F23K16.120|F23K16_120|cytochrome P450|family 96|polypeptide 10|polypeptide 10''|subfamily A
+3770599,CYP96A10,3702,subfamily A,"cytochrome P450, family 96, subfamily A, polypeptide 10",''cytochrome P450|F23K16.120|F23K16_120|cytochrome P450|family 96|polypeptide 10|polypeptide 10''|subfamily A
