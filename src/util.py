@@ -52,6 +52,20 @@ def get_logger(name, loglevel=logging.INFO):
     return logger
 
 
+def ensure_parent_dir(filename):
+    """Create the parent directory of `filename` if it has one.
+
+    Call this before writing any output file whose directory might not exist yet. Prefer it to a
+    bare `os.makedirs(os.path.dirname(filename), exist_ok=True)`: `os.path.dirname` returns '' for
+    a filename with no directory component, and `os.makedirs('')` raises FileNotFoundError even
+    though the path is perfectly valid (it names a file in the current working directory, which
+    already exists).
+    """
+    parent = os.path.dirname(filename)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
+
 # loggers = {}
 class LoggingUtil:
     """Logging utility controlling format and setting initial logging level"""

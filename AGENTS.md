@@ -227,6 +227,16 @@ ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandl
   (e.g. `CHEMICAL_ENTITY`, `DRUG`) rather than hardcoding `"biolink:..."` strings; add a missing
   constant there first.
 
+- **Shared helpers before hand-rolled ones** — before writing a small utility (a path, string,
+  logging, or config helper), check [`src/util.py`](src/util.py) for one that already exists:
+  `get_logger()`, `get_config()`, `ensure_parent_dir()`, `get_biolink_prefix_map()`, the `Text`
+  CURIE helpers. `src/babel_utils.py` holds the pipeline-level ones (`glom()`,
+  `write_compendium()`, `pull_via_wget()`, `make_local_name()`). When you *do* hand-roll one,
+  grep for the pattern first: if the same few lines already appear in several modules, promote it
+  to `src/util.py` and route the existing call sites through it rather than adding an
+  n+1th copy. (`ensure_parent_dir()` came from ten hand-rolled copies of
+  `os.makedirs(os.path.dirname(f), exist_ok=True)`, nine of which shared the same latent bug.)
+
 - **Error handling** — raise exceptions (`RuntimeError`, `ValueError`) rather than
   `print(...) + exit(1)`, which bypasses Python's exception machinery and breaks unit testing.
 

@@ -25,7 +25,7 @@ from src.metadata.provenance import write_combined_metadata
 from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory
 from src.properties import HAS_ALTERNATIVE_ID, PropertyList
 from src.synonyms.filter import get_synonym_filter
-from src.util import Text, get_config, get_logger, get_memory_usage_summary
+from src.util import Text, ensure_parent_dir, get_config, get_logger, get_memory_usage_summary
 
 # Configuration items
 WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES = 1_000_000
@@ -300,7 +300,7 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
     else:
         dl_file_name = os.path.join(download_dir, subpath, in_file_name)
 
-    os.makedirs(os.path.dirname(dl_file_name), exist_ok=True)
+    ensure_parent_dir(dl_file_name)
 
     # Add support for redirects
     opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
@@ -419,8 +419,11 @@ def pull_via_wget(
     :param decompress: Whether this is a Gzip file that should be decompressed after download.
     :param subpath: The subdirectory of `babel_download` where this file should be stored.
     :param outpath: The full output directory to write this file to. Both subpath and outpath cannot be set at the same time.
-    :param continue_incomplete: Should wget continue an incomplete download?
-    :param recurse: Do we want to download recursively? Should be from Wget_Recursion_Options, such as Wget_Recursion_Options.NO_RECURSION.
+    :param continue_incomplete: Should wget continue an incomplete download? Must be False in a recursive
+        download, where resuming can corrupt a file whose content changed upstream; we raise if it isn't.
+    :param timestamping: Should wget re-fetch a file only when the server's copy is newer, or differs in
+        size, from ours? Must be True in a recursive download; we raise if it isn't.
+    :param recurse: Do we want to download recursively? Should be from WgetRecursionOptions, such as WgetRecursionOptions.NO_RECURSION.
     :param retries: The number of retries to attempt.
     :param verify_gzip: If downloading a Gzip file that isn't being decompressed, verify that the
         file is valid (by reading it entirely). Has no effect if decompress=True.
@@ -438,7 +441,31 @@ def pull_via_wget(
     else:
         dl_file_name = os.path.join(download_dir, in_file_name)
 
-    os.makedirs(os.path.dirname(os.path.abspath(dl_file_name)), exist_ok=True)
+    ensure_parent_dir(dl_file_name)
+
+    # A recursive download is always timestamped and never continued. --continue resumes by
+    # appending to whatever local file it finds, which is only correct if that file is a truncated
+    # prefix of the server's copy; recursing, we may instead meet a file whose *content* changed
+    # upstream (or one carried over from a previous run), and appending the tail of the new file to
+    # the old one silently produces a corrupt result. --timestamping is what re-fetches such a file,
+    # in full — and it is also what stops wget saving a second copy as `file.1` when the file is
+    # already there, which is the job --continue would otherwise be doing.
+    #
+    # (Non-recursive downloads pass -O, which makes wget ignore --timestamping entirely, so there
+    # --continue is the only resume mechanism and is kept.)
+    if recurse != WgetRecursionOptions.NO_RECURSION:
+        if continue_incomplete:
+            raise ValueError(
+                f"pull_via_wget({url}) cannot combine continue_incomplete=True with recursion: resuming a "
+                f"recursive download can corrupt a file whose content changed upstream. Pass "
+                f"continue_incomplete=False."
+            )
+        if not timestamping:
+            raise ValueError(
+                f"pull_via_wget({url}) cannot disable timestamping in a recursive download: without "
+                f"--timestamping, and with --continue unavailable, wget saves a second copy of every "
+                f"file we already have as `file.1`."
+            )
 
     # Prepare wget options.
     wget_command_line = [

@@ -7,6 +7,22 @@ import src.util
 logger = src.util.LoggingUtil.init_logging(__name__, level="INFO")
 
 
+def duckdb_memory_limit_mb(mem, fraction=0.75):
+    """Convert a Snakemake `resources.mem` string (e.g. "128G") into a DuckDB memory limit in MB.
+
+    DuckDB otherwise auto-sizes its memory limit to 75% of *total system* RAM, which can far exceed
+    the SLURM allocation on a multi-tenant HPC node. We give it `fraction` of the allocation so that
+    Python and OS overhead don't push total RSS over the job's cgroup limit.
+
+    :param mem: A `resources.mem` value, which we only ever set in whole gigabytes ("128G").
+    :param fraction: The fraction of the allocation to give DuckDB.
+    :return: The memory limit in MB.
+    """
+    if not mem.endswith("G"):
+        raise ValueError(f"Expected a memory allocation in whole gigabytes (e.g. '128G'), got '{mem}'")
+    return int(int(mem[:-1]) * 1024 * fraction)
+
+
 def write_done(filename):
     """Write a file to indicate that we are done."""
     with open(filename, "w") as f:
