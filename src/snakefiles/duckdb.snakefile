@@ -125,17 +125,24 @@ rule export_conflation_to_duckdb:
 
 # Export all the intermediate concord, ids, and metadata files into Parquet.
 #
-# `compendia_done` is the rerun trigger. Every intermediate concord/ids file is consumed by a
-# compendium-build rule, so any change to one propagates up the DAG (concord/ids -> compendium ->
-# compendium.duckdb -> compendia_done) and forces compendia_done -- and therefore this rule -- to
-# rebuild. None of the concord/ids files are temp(), so by the time compendia_done exists the full
-# intermediate tree is present on disk for this rule to sweep. The intermediate directory itself is
-# passed as a params path to glob, not an input: Snakemake tracks a directory by mtime, which does
-# not reliably change when a nested file is rewritten, so depending on it would be both unreliable
-# and redundant with compendia_done.
+# `compendia_done` and `conflations_done` together are the rerun trigger, and between them they
+# cover every intermediate concord/ids file:
+#   - Most concord/ids files are consumed by a compendium-build rule, so a change propagates up the
+#     DAG (concord/ids -> compendium -> compendium.duckdb -> compendia_done).
+#   - The drugchemical concords (intermediate/drugchemical/concords/{RXNORM,UMLS,PUBCHEM_RXNORM})
+#     are NOT: they are built straight from the RxNorm/UMLS downloads and consumed only by
+#     drugchemical_conflation, so their only path here is via conflations_done. Without that input
+#     Snakemake could run this rule before they exist (leaving them out of Concord.parquet) and
+#     would not rerun it when they change.
+# None of the concord/ids files are temp(), so by the time both flags exist the full intermediate
+# tree is present on disk for this rule to sweep. The intermediate directory itself is passed as a
+# params path to glob, not an input: Snakemake tracks a directory by mtime, which does not reliably
+# change when a nested file is rewritten, so depending on it would be both unreliable and redundant
+# with the two flag files.
 rule export_intermediate_files_to_duckdb:
     input:
         compendia_done=config["output_directory"] + "/duckdb/compendia_done",
+        conflations_done=config["output_directory"] + "/duckdb/conflations_done",
     output:
         duckdb_filename=temp(config["output_directory"] + "/duckdb/concords.duckdb"),
         ids_parquet_filename=config["output_directory"] + "/duckdb/Identifiers.parquet",
