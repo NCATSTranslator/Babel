@@ -1,16 +1,19 @@
-# DrugBank allergenic extracts: retyping foods and non-food allergens
+# DrugBank allergenic extracts: retyping plant-derived foods and extracts
 
 [Issue #828](https://github.com/NCATSTranslator/Babel/issues/828)
 
-DrugBank ships a large family of **allergenic-extract products** — whole foods, pollens, animal
-danders, molds, mites, and dust used for allergy skin-testing and immunotherapy. In Babel these
-default to `biolink:ChemicalEntity`, which is wrong: the food ones
-([`DRUGBANK:DB10626`](http://identifiers.org/drugbank/DB10626) "Trout",
-[`DRUGBANK:DB10571`](http://identifiers.org/drugbank/DB10571) "Strawberry",
-[`DRUGBANK:DB10500`](http://identifiers.org/drugbank/DB10500) "Almond") should be `biolink:Food`
-so downstream services can filter or treat foods differently, and the non-food ones
-([`DRUGBANK:DB10351`](http://identifiers.org/drugbank/DB10351) "Cynodon dactylon pollen") are not
-chemicals either.
+DrugBank ships a large family of **allergenic-extract products** — whole foods, pollens, plant
+barks/roots/leaves, animal danders, molds, and dust used for allergy skin-testing and immunotherapy.
+In Babel these default to `biolink:ChemicalEntity`, which is accurate but uselessly broad: the food
+ones ([`DRUGBANK:DB10626`](https://go.drugbank.com/drugs/DB10626) "Trout",
+[`DRUGBANK:DB10500`](https://go.drugbank.com/drugs/DB10500) "Almond") should be `biolink:Food`, and
+the plant *extracts* ([`DRUGBANK:DB16536`](https://go.drugbank.com/drugs/DB16536) "Birch bark
+extract") are processed materials, not defined chemicals.
+
+This ingest retypes the **plant-derived** ones now and scopes the rest to follow-up work
+([#926](https://github.com/NCATSTranslator/Babel/issues/926) for the food-vs-taxon question,
+[#929](https://github.com/NCATSTranslator/Babel/issues/929) for a `biolink:ProcessedMaterial`
+output, and [#930](https://github.com/NCATSTranslator/Babel/issues/930) for the NCBI-only set).
 
 ## Why the obvious approaches don't reach these
 
@@ -28,91 +31,110 @@ chemicals either.
 
 ## The signal we use
 
-Each DrugBank entry carries a `UNII`, and the FDA UNII records
-(`Latest_UNII_Records.txt`) give every UNII an NCIt classification. That is the bridge:
+Each DrugBank entry carries a `UNII`, and the FDA UNII records (`Latest_UNII_Records.txt`) give each
+UNII both an NCIt classification and cross-references to organism databases. Those are the bridge.
 
-A DrugBank row is retyped only if it has **no `Standard InChI Key`** (an extract, not a defined
-molecule — a genuine plant-derived small molecule keeps its structure and stays a chemical), and
-then:
+A DrugBank row is considered only if it has **no `Standard InChI Key`** (an extract/material, not a
+defined molecule — a genuine plant-derived small molecule keeps its structure and stays a chemical).
+Then:
 
-- **`biolink:Food`** if its UNII's NCIt class is under
-  [`NCIT:C1949`](http://purl.obolibrary.org/obo/NCIT_C1949) "Food" or
-  [`NCIT:C73913`](http://purl.obolibrary.org/obo/NCIT_C73913) "Seed". Seed is included because NCIt
-  files nuts and grains (almond, cashew, sesame, wheat, oat) under Seed rather than Food. These NCIt
-  subtrees hold only genuine foods — no biologics.
-- **`biolink:ComplexMolecularMixture`** if it is not a food but its name/synonyms mention
-  "allergen" (pollens, danders, molds, mites, dust).
+1. It is treated as **plant/food material** when its UNII's NCIt class is under
+   [`NCIT:C1949`](http://purl.obolibrary.org/obo/NCIT_C1949) "Food" or
+   [`NCIT:C73913`](http://purl.obolibrary.org/obo/NCIT_C73913) "Seed" (Seed covers nuts/grains NCIt
+   files there — almond, cashew, sesame, wheat, oat), **or** when its UNII carries a
+   botanical-database flag (USDA `PLANTS`, GRIN, or MPNS — see "Why plant flags but not NCBI-only"
+   below). Anything else (NCBI-only organisms and unflagged rows) is left as `ChemicalEntity` and
+   deferred.
+2. Among that material, a row whose name/synonyms contain an `extract` marker
+   (`config.yaml: drugbank_extract_markers`) is a processed extract →
+   **`biolink:ComplexMolecularMixture`** (bark/root/pollen extracts, herbal tinctures).
+3. Any other plant/food material → **`biolink:Food`** (whole fruits, roots, seeds, herbs).
 
-Foods are checked first, so a food that also carries allergen text (e.g. "Peanut allergenic
-extract") stays `biolink:Food`.
+The `extract` check is applied **after** material identification and takes precedence over Food, so
+an NCIt-food that is sold as an extract still lands in `ComplexMolecularMixture`.
 
-### Why not a plain organism flag
+`biolink:ComplexMolecularMixture` here is an **interim** type. The right long-term home for an
+"extracted from a living organism" material is
+[`biolink:ProcessedMaterial`](https://biolink.github.io/biolink-model/ProcessedMaterial/); adding it
+as a Babel chemical output is tracked in
+[#929](https://github.com/NCATSTranslator/Babel/issues/929), after which the extract rows flip from
+`ComplexMolecularMixture` to `ProcessedMaterial`. "allergen" is **not** used as a signal (it was too
+broad — it swept in NCBI-only danders/molds/insects and biologics); `extract` is the reliable
+marker.
 
-An earlier attempt used the UNII organism columns (`NCBI/PLANTS/GRIN/MPNS`, the same flags
-`write_unii_ids` uses to drop "a plant or an eye of newt" from chemicals). That over-captures
-badly — 1128 structureless DrugBank entries, including immune globulins, antithymocyte
-immunoglobulin, and live-attenuated virus vaccines, which are biologic **drugs**, not foods. NCIt
-classification cleanly separates the ~222 genuine allergenic-extract products from those biologics.
+### Why plant flags but not NCBI-only
 
-The full over-capture set is recorded in `organism-flag-overcapture.csv` in this directory: all
-1128 structureless DrugBank rows whose UNII carries an organism flag. Its `current_ncit_retype`
-column is the Biolink type the current NCIt approach assigns (blank = not retyped): 175 are genuine
-foods the NCIt approach also catches, and the other **953 are the over-capture** the organism-flag
-approach would wrongly retype as `biolink:Food`/`biolink:ComplexMolecularMixture`. This is why the
-organism-flag check is deliberately **not** used to pick which DrugBank entries to retype — nothing
-is being excluded by it, and switching to it would mis-retype those 953 biologics. (Because DrugBank
-is pinned but the UNII records are re-downloaded fresh, the exact membership can drift slightly
-between refreshes; the count above is against the UNII records current as of this file.)
+`read_plant_uniis` keys on the **botanical** UNII columns only — `PLANTS` / `GRIN` / `MPNS`. A UNII
+in any of those reliably denotes plant material (a whole plant or a plant part/extract), which is
+safely `Food`/extract.
 
-### Why `biolink:ComplexMolecularMixture` for the non-food allergens
-
-Pollen and dander are not foods, so `biolink:Food` is wrong for them, and they are not chemicals.
-`biolink:ComplexMolecularMixture` is the closest existing Biolink class (a heterogeneous biological
-extract). [`biolink:PhysicalEntity`](https://biolink.github.io/biolink-model/PhysicalEntity/) is
-another candidate but is very generic and outside the chemical hierarchy. The likely long-term fix
-is to ask the Biolink Model maintainers for a new class closely related to `biolink:Food` that
-encompasses allergenic extracts; until then these live in `ComplexMolecularMixture`.
+The broader `NCBI` organism flag is deliberately **excluded**: NCBI Taxonomy also covers animals,
+bacteria, fungi, and the source organisms of **biologic drugs**, so "NCBI-flagged" is not a
+food/plant signal. Typing all NCBI-flagged structureless entries would mis-type immune globulins,
+vaccine antigens, antivenins, and CAR-T cell therapies as foods. The NCBI-only structureless entries
+are therefore listed separately (see Snapshot) and deferred to
+[#930](https://github.com/NCATSTranslator/Babel/issues/930), which also has to recover the genuine
+foods hiding there (lobster, flounder, casein, mushroom are NCBI-flagged animals/fungi with no
+botanical flag).
 
 ## How it is wired
 
 - `chemical_ncit_food_codes` (rule) queries UberGraph for the NCIt Food/Seed subtrees
   (`config.yaml: drugbank_food_ncit_roots`) → `ids/ncit_food_codes`.
 - `chemical_drugbank_allergenic_extracts` (rule) reads the DrugBank vocabulary CSV + the UNII
-  records + those NCIt codes and writes `ids/DRUGBANK_allergenic_extracts`
-  (`DRUGBANK:xxx\tbiolink:Type`) —
-  `datahandlers/drugbank.py:extract_drugbank_allergenic_extract_types`.
+  records + those NCIt codes + `config.yaml: drugbank_extract_markers`, and writes
+  `ids/DRUGBANK_allergenic_extracts` (`DRUGBANK:xxx\tbiolink:Type`) —
+  `datahandlers/drugbank.py:extract_drugbank_allergenic_extract_types`. The plant-flag set comes
+  from the same UNII records file (`unii.py:read_plant_uniis`), so the rule needs no extra input.
 - `chemicals.create_typed_sets` forces any clique containing one of those CURIEs to the given type,
   overriding the normal per-identifier type vote (the extracts carry no Babel type of their own, so
   a vote would leave them as `ChemicalEntity`). The retype is clique-level: it assumes an extract
   clique never also contains a genuine chemical, which holds because these are distinct UMLS/RXNORM
-  concepts.
-- Food cliques are written to a new `Food.txt` compendium (added to
-  `config.yaml: chemical_outputs`); the non-food ones join the existing
-  `ComplexMolecularMixture.txt`. `RXCUI` members survive because the chemical build already passes
-  `extra_prefixes=[RXCUI]` (RXCUI is not in either class's Biolink `id_prefixes`). Because
-  `Food.txt` is in `chemical_outputs`, these cliques flow through DrugChemical conflation and every
-  export exactly like any other chemical output, and conflation never re-types them, so the retype
-  survives downstream.
+  concepts and none of them share a clique with a CHEBI/PubChem structure.
+- `Food.txt` and the pre-existing `ComplexMolecularMixture.txt` are both in
+  `config.yaml: chemical_outputs`, so **no new output type is needed** for this change. `RXCUI`
+  members survive because the chemical build already passes `extra_prefixes=[RXCUI]`. These cliques
+  flow through DrugChemical conflation and every export like any other chemical output, and
+  conflation never re-types them, so the retype survives downstream.
 
 ## Snapshot
 
-`allergenic-extracts.csv` in this directory is the retype set from DrugBank vocabulary `5-1-13`
-(the pinned version — DrugBank downloads are currently blocked, so this set is effectively frozen):
-162 `biolink:Food` + 60 `biolink:ComplexMolecularMixture` = 222 entries. Columns:
-`drugbank_curie, label, biolink_type, unii, ncit, signal` (`signal` is `ncit-food` or
-`allergen-text`). The build regenerates the same set from the pinned inputs; the CSV is committed
-for review and to make the classification auditable.
+Two committed files in this directory, regenerated by `scripts/generate_csvs.py` (which imports the
+production `classify_allergenic_extract`, so the CSVs can't drift from the pipeline). They are built
+from DrugBank vocabulary `5-1-13` (pinned — DrugBank downloads are currently blocked) and the
+current FDA UNII records.
 
-To regenerate after a DrugBank or UNII refresh, run the `chemical_ncit_food_codes` and
-`chemical_drugbank_allergenic_extracts` rules and re-derive the CSV from
-`ids/DRUGBANK_allergenic_extracts` joined against the vocabulary CSV.
+- **`allergenic-extracts.csv`** — the retype changes, **687 entries** = **306 `biolink:Food`** (130
+  via NCIt Food/Seed, 176 via a plant flag) + **381 `biolink:ComplexMolecularMixture`** (the
+  extracts). Columns:
+  `drugbank_curie, label, unii, ncit, biolink_type, future_biolink_type, signal`.
+  `future_biolink_type` is `biolink:ProcessedMaterial` on the extract rows (the #929 target), blank
+  on Food rows; `signal` is `ncit-food`, `plant-food`, or `extract`.
+- **`ncbi-only-drugbank-entries.csv`** — the **481** NCBI-only structureless entries left as
+  `ChemicalEntity` for now (the review set for
+  [#930](https://github.com/NCATSTranslator/Babel/issues/930)). Columns:
+  `drugbank_curie, label, unii, unii_ncit`.
+
+To regenerate after a UNII refresh: run the `chemical_ncit_food_codes` rule (or
+`chemicals.write_ncit_descendant_codes`) to produce `ncit_food_codes`, then run
+`scripts/generate_csvs.py`. Its module docstring has the exact commands. Because DrugBank is pinned
+but the UNII records are re-downloaded fresh, exact membership can drift slightly between refreshes.
 
 ## Known limitations
 
-- **Foods with no UNII** are missed by the NCIt-food test and, if they carry allergen text, fall to
-  `ComplexMolecularMixture` instead of `Food` (e.g. "Allergenic extract- beef liver", whose vocab
-  row has an empty UNII). Few entries; acceptable given the type is still corrected off
-  `ChemicalEntity`.
-- **Bare non-food organism names with no "allergen" synonym** (a pollen listed only as
-  "*Genus species* pollen" with no allergen text) are not retyped. Most such entries do carry
-  allergen text, so coverage is high but not total.
+- **The `extract` marker is a proxy, so a botanical category can split.** A pollen listed as
+  "*Genus species* pollen **extract**" lands in `ComplexMolecularMixture` while a bare "*Genus
+  species* pollen" lands in `Food`, purely on incidental wording. Tightening this (and the whole
+  Food-vs-`biolink:OrganismTaxon` question) is deferred to
+  [#926](https://github.com/NCATSTranslator/Babel/issues/926).
+- **Non-food plant materials default to `Food`.** A plant-flagged, non-extract material that is not
+  actually eaten (e.g. [`DRUGBANK:DB00965`](https://go.drugbank.com/drugs/DB00965) "Ethiodized oil",
+  a poppy-seed-oil contrast agent) becomes `Food`. This is still an improvement over
+  `ChemicalEntity` and is acceptable interim; #926 covers the refinement.
+- **NCBI-only entries are not retyped** (#930), including genuine foods that happen to be
+  NCBI-flagged animals/fungi (lobster, flounder, casein, mushroom).
+- **Seven unflagged entries regress.** A handful of entries previously typed
+  `ComplexMolecularMixture` via the old "allergen" match carry **no** organism flag at all and are
+  not NCIt-food — "Pyrethrum extract", "Allergenic extract- beef liver", "Penicillium glaucum", and
+  four `-lerbart` names. They fall outside both files and revert to `ChemicalEntity`; they can be
+  picked up in #930 or by manual mapping.

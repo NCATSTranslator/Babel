@@ -60,3 +60,15 @@ single-identifier clique into `compendia/umls.txt`. The manual `STY_OVERRIDES` /
 never fires for a CUI another pipeline already typed" reach caveat — are documented in the module
 itself. See [`docs/sources/UMLS/Leftover.md`](UMLS/Leftover.md) for the coverage report and the
 drift test that keeps the tables honest.
+
+## Storing generation scripts with the artifact
+
+When a non-trivial script produces a **committed** artifact (an audit CSV, a curated mapping, a
+report table) under a source's task directory, commit the script alongside it in a `scripts/`
+subdirectory — e.g. `docs/sources/<PREFIX>/<task>/scripts/`. That way the artifact can be
+regenerated after an upstream refresh, and the next change can reuse or adapt the script instead of
+reverse-engineering how the file was built. Prefer scripts that
+**import the production classification/parsing code** rather than reimplementing it, so the
+committed artifact cannot drift from the pipeline. Worked example:
+`docs/sources/DRUGBANK/allergenic-extracts/scripts/generate_csvs.py`, which regenerates the two
+DrugBank retype CSVs from the same `classify_allergenic_extract` the build uses.
