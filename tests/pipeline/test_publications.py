@@ -26,12 +26,11 @@ import src.createcompendia.publications as publications
 import src.util
 from src.babel_utils import pull_via_wget
 from src.categories import PUBLICATION
+from src.createcompendia.publications import PUBMED_HTTPS_BASE
 from src.prefixes import PMID
 from src.util import ensure_parent_dir
 
 pytestmark = [pytest.mark.pipeline, pytest.mark.network]
-
-PUBMED_BASE = "https://ftp.ncbi.nlm.nih.gov/pubmed/"
 
 # How many files to take from each of baseline/ and updatefiles/. Each is a few tens of MB; five of
 # each is enough to exercise the parse and the compendium build without downloading the ~50 GB corpus.
@@ -40,7 +39,7 @@ FILES_PER_DIRECTORY = 5
 
 def list_pubmed_files(subdir):
     """Return the sorted names of the .xml.gz files PubMed publishes in `subdir`."""
-    response = requests.get(f"{PUBMED_BASE}{subdir}/", timeout=60)
+    response = requests.get(f"{PUBMED_HTTPS_BASE}{subdir}/", timeout=60)
     response.raise_for_status()
     return sorted(set(re.findall(r'href="(pubmed\d+n\d+\.xml\.gz)"', response.text)))
 
@@ -80,7 +79,7 @@ def pubmed_downloads(pubmed_config):
         for filename in filenames:
             for name in (filename, f"{filename}.md5"):
                 pull_via_wget(
-                    f"{PUBMED_BASE}{subdir}/",
+                    f"{PUBMED_HTTPS_BASE}{subdir}/",
                     name,
                     decompress=False,
                     subpath=f"PubMed/{subdir}",
@@ -116,7 +115,7 @@ def test_redownloading_leaves_the_already_downloaded_files_alone(pubmed_download
     before = {name: os.stat(os.path.join(baseline, name)).st_mtime_ns for name in sorted(os.listdir(baseline))}
 
     filename = min(name for name in before if name.endswith(".xml.gz"))
-    pull_via_wget(f"{PUBMED_BASE}baseline/", filename, decompress=False, subpath="PubMed/baseline")
+    pull_via_wget(f"{PUBMED_HTTPS_BASE}baseline/", filename, decompress=False, subpath="PubMed/baseline")
 
     after = {name: os.stat(os.path.join(baseline, name)).st_mtime_ns for name in sorted(os.listdir(baseline))}
     assert after == before

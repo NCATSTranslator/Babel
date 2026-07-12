@@ -17,10 +17,15 @@ from src.util import ensure_parent_dir, get_logger
 
 logger = get_logger(__name__)
 
+# The same PubMed corpus, reachable two ways. We need both: NCBI's robots.txt
+# (https://ftp.ncbi.nlm.nih.gov/robots.txt) blocks a recursive HTTPS download, so the bulk fetch has
+# to go over FTP — but FTP is the less reliable of the two, so the single-file re-downloads that
+# repair a failed checksum use HTTPS.
+PUBMED_FTP_BASE = "ftp://ftp.ncbi.nlm.nih.gov/pubmed/"
+PUBMED_HTTPS_BASE = "https://ftp.ncbi.nlm.nih.gov/pubmed/"
 
-def download_pubmed(
-    download_file, pubmed_base="ftp://ftp.ncbi.nlm.nih.gov/pubmed/", pmc_base="https://ftp.ncbi.nlm.nih.gov/pub/pmc/"
-):
+
+def download_pubmed(download_file, pubmed_base=PUBMED_FTP_BASE, pmc_base="https://ftp.ncbi.nlm.nih.gov/pub/pmc/"):
     """
     Download PubMed. We download both the PubMed annual baseline and the daily update files,
     which are in the same format, but the baseline is set up at the start of the year and then
@@ -109,7 +114,7 @@ def verify_pubmed_download_against_md5(pubmed_filename, md5_filename):
     return False
 
 
-def verify_pubmed_downloads(pubmed_directories, done_filename, pubmed_base="https://ftp.ncbi.nlm.nih.gov/pubmed/"):
+def verify_pubmed_downloads(pubmed_directories, done_filename, pubmed_base=PUBMED_HTTPS_BASE):
     """
     download_pubmed() does a good job of downloading all the PubMed files, but every once in a while the download
     is corrupted (https://github.com/NCATSTranslator/Babel/issues/352). Luckily, PubMed also gives up `.md5` files
@@ -282,8 +287,8 @@ def parse_pubmed_into_tsvs(
         name="parse_pubmed_into_tsvs()",
         description="Parse PubMed files into TSVs and JSONL status files.",
         sources=[
-            {"type": "download", "name": "PubMed Baseline", "url": "ftp://ftp.ncbi.nlm.nih.gov/pubmed/baseline/"},
-            {"type": "download", "name": "PubMed Updates", "url": "ftp://ftp.ncbi.nlm.nih.gov/pubmed/updatefiles/"},
+            {"type": "download", "name": "PubMed Baseline", "url": f"{PUBMED_FTP_BASE}baseline/"},
+            {"type": "download", "name": "PubMed Updates", "url": f"{PUBMED_FTP_BASE}updatefiles/"},
         ],
         counts={
             "pmid_count": len(pmid_status.keys()),
