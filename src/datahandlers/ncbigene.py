@@ -90,6 +90,9 @@ def split_ncbigene_synonym_field(value, quoted_value=""):
     `quoted_value`'s comma-pieces; re-run the characterization in
     docs/sources/NCBIGene/quoting/ (#917) if this fix is revisited against a new dump.
     """
+    if "''" not in value:
+        return {fragment for fragment in (f.strip() for f in value.split("|")) if fragment}
+
     fragments = [
         (fragment, fragment.startswith("''"), fragment.endswith("''"))
         for fragment in (f.strip() for f in value.split("|"))
