@@ -196,8 +196,10 @@ the isoform enumeration (keep the base name once), not treating `;` as a delimit
 ## Can the quoted value be reconstructed? No
 
 It is tempting to read `''…''` as ordinary quoting — the pieces between the markers are one value,
-so rejoin them with `", "` and recover the original synonym. **That does not work.** Of the 276
-rows whose `Synonyms` column carries an open marker, **zero** rejoin cleanly.
+so rejoin them with `", "` and recover the original synonym. **That does not work.** 276 rows carry
+an open marker in `Synonyms`; 265 of those also have a close marker and a `Full_name` to check
+against, and **zero** of them rejoin to it. (`double_prime_report.py` computes this; see the
+"Can the quoted value be reconstructed by rejoining the span?" section of the generated report.)
 
 The verbatim row for gene 828367 (`CYP706A2`), the one reported in #744:
 
@@ -242,7 +244,7 @@ Once we know which characters are present, the deeper questions (each a likely n
   open-marker fragments (and their paired trailing close-marker), keeping genuine trailing `''`.
 - **(Answered — No; see "Can the quoted value be reconstructed?" above.)** The `''…''` span cannot
   be rejoined into the original synonym: its pieces are interleaved with genuine aliases and
-  reordered (0 of 276 rows rejoin cleanly). The value survives via `Full_name` instead.
+  reordered (0 of the 265 checkable rows rejoin). The value survives via `Full_name` instead.
 - **(Answered — No; see "Should the semicolon be a delimiter too?" above.)** The ~0.6M
   semicolon-joined designations are 95.8% isoform enumerations of the same base name, so splitting
   on `;` would mostly produce near-duplicate synonyms. Left joined.

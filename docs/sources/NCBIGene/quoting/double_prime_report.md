@@ -227,3 +227,69 @@ symbol_field_valid                         12
 | `exonuclease 3''-5'' domain-like 2` | 2 | 0 | 97827 | 10090 | exonuclease 3'-5' domain containing 2 |
 | `malonyl-CoA:isoflavone 7-O-glucoside-6''-O-malonyltransferase` | 2 | 0 | 100127365 | 3847 | malonyl-CoA:isoflavone 7-O-glucoside-6''-O-malonyltransferase |
 | `plastid-encoded DNA-directed RNA polymerase beta'' subunit` | 2 | 0 | 84337931 | 76160 | plastid-encoded DNA-directed RNA polymerase beta'' subunit |
+
+## Can the quoted value be reconstructed by rejoining the span?
+
+Tests the intuitive reading of `''…''` as ordinary quoting: rejoin the fragments between the markers
+with `,` and compare against the row's own `Full_name`/`Other_designations`, which carries the
+value intact.
+
+```text
+rows with an open marker                      276
+  no close marker / no Full_name               11   (not decidable)
+  checkable                                   265
+    naive rejoin == true value                  0
+    rejoin produces something else            265
+```
+
+**Not reconstructable.** The span is not a contiguous run of the value's pieces: genuine, unrelated
+aliases (locus tags and the like) sit *inside* it, the fragment order is meaningless, and the
+value's internal commas became `|` — indistinguishable from the delimiter. Rejoining yields garbage.
+
+This costs nothing: `Full_name_from_nomenclature_authority` / `Other_designations` carry the correct
+value, and Babel already reads both. See issue #932 for the junk comma-pieces that do remain.
+
+### Gene 814788 (`CYP71B9`)
+
+```text
+Synonyms  : ''cytochrome P450|T8K22.12|T8K22_12|cytochrome P450|family 71|polypeptide 9|polypeptide 9''|subfamily B
+true value: cytochrome P450, family 71, subfamily B, polypeptide 9
+rejoined  : cytochrome P450, T8K22.12, T8K22_12, cytochrome P450, family 71, polypeptide 9, polypeptide 9
+foreign fragments inside the span (not part of the value): ['T8K22.12', 'T8K22_12']
+```
+
+### Gene 815066 (`CYP705A6`)
+
+```text
+Synonyms  : ''cytochrome P450|F5G3.8|F5G3_8|cytochrome P450|family 705|polypeptide 6|polypeptide 6''|subfamily A
+true value: cytochrome P450, family 705, subfamily A, polypeptide 6
+rejoined  : cytochrome P450, F5G3.8, F5G3_8, cytochrome P450, family 705, polypeptide 6, polypeptide 6
+foreign fragments inside the span (not part of the value): ['F5G3.8', 'F5G3_8']
+```
+
+### Gene 815843 (`NF-YB7`)
+
+```text
+Synonyms  : ''nuclear factor Y|T10F5.11|T10F5_11|nuclear factor Y|subunit B7|subunit B7''
+true value: nuclear factor Y, subunit B7
+rejoined  : nuclear factor Y, T10F5.11, T10F5_11, nuclear factor Y, subunit B7, subunit B7
+foreign fragments inside the span (not part of the value): ['T10F5.11', 'T10F5_11']
+```
+
+### Gene 815896 (`CYP705A13`)
+
+```text
+Synonyms  : ''cytochrome P450|T22C12.3|T22C12_3|cytochrome P450|family 705|polypeptide 13|polypeptide 13''|subfamily A
+true value: cytochrome P450, family 705, subfamily A, polypeptide 13
+rejoined  : cytochrome P450, T22C12.3, T22C12_3, cytochrome P450, family 705, polypeptide 13, polypeptide 13
+foreign fragments inside the span (not part of the value): ['T22C12.3', 'T22C12_3']
+```
+
+### Gene 816316 (`PIN1AT`)
+
+```text
+Synonyms  : ''peptidylprolyl cis/trans isomerase|NIMA-interacting 1|NIMA-interacting 1''|PROLYL CIS/TRANS ISOMERASE|T27K22.9|T27K22_9|peptidylprolyl cis/trans isomerase
+true value: peptidylprolyl cis/trans isomerase, NIMA-interacting 1
+rejoined  : peptidylprolyl cis/trans isomerase, NIMA-interacting 1, NIMA-interacting 1
+foreign fragments inside the span (not part of the value): []
+```

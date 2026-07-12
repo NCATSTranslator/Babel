@@ -19,6 +19,12 @@ Examples are DEDUPED by the token (the ''-bearing string), because the same symb
 many species; the report shows each distinct token, how many rows carry it, whether it equals the
 gene's own ``Symbol`` (strong evidence it is the real symbol), and one example gene.
 
+The report also answers a question the categories above invite: if ''...'' is just quoting, can the
+quoted value be rebuilt by rejoining the fragments between the markers? ``check_rejoinable`` tests
+that against the row's own ``Full_name``/``Other_designations``, which carries the value intact.
+The answer is no -- see the generated report -- because genuine unrelated aliases sit inside the
+span and the value's internal commas became pipes.
+
 Usage:
     uv run python docs/sources/NCBIGene/quoting/double_prime_report.py [--limit 200] \
         [--input gene_info.gz] [--output double_prime_report.md]
@@ -62,11 +68,48 @@ def classify_field(value: str):
             yield "internal", f
 
 
+def check_rejoinable(row):
+    """Can the ''...''-quoted value be rebuilt by rejoining the fragments between its markers?
+
+    The intuitive reading of ''...'' is ordinary quoting: the fragments between the open and close
+    markers are one comma-containing value, so rejoin them with ", " and recover it. This function
+    tests that reading against the row's own Full_name/Other_designations, which carries the value
+    intact. Returns None if the row has no open marker, else a dict recording whether the naive
+    rejoin reproduces the true value and which fragments inside the span are foreign to it.
+    """
+    frags = [f.strip() for f in row[SYNONYMS].split("|")]
+    flags = [(f, f.startswith("''"), f.endswith("''")) for f in frags]
+    open_i = next((i for i, (_, s, e) in enumerate(flags) if is_open_marker(s, e)), None)
+    if open_i is None:
+        return None
+    close_i = next((i for i in range(open_i + 1, len(frags)) if frags[i].endswith("''")), None)
+    truth = next((row[c] for c in (FULL_NAME, OTHER_DESIG) if row[c] not in ("", "-")), None)
+    if close_i is None or truth is None:
+        # An open marker with no close marker, or with no Full_name to compare against: the rejoin
+        # question is not decidable for this row. Counted separately so the denominators add up.
+        return {"checkable": False}
+
+    span = frags[open_i : close_i + 1]
+    rejoined = ", ".join(f.strip("'") for f in span)
+    # Pieces of the true value, as they would appear once its commas became pipes.
+    pieces = {p.strip() for p in truth.split(",")}
+    # Fragments sitting inside the span that are NOT part of the true value: their presence is what
+    # makes the span un-rejoinable (they are genuine, unrelated aliases, e.g. locus tags).
+    foreign = [f for f in span if f.strip("'").strip() not in pieces]
+    return {
+        "checkable": True,
+        "exact": rejoined == truth,
+        "foreign": foreign,
+        "example": (row[GENE_ID], row[SYMBOL], row[SYNONYMS], truth, rejoined),
+    }
+
+
 def analyze(input_path: Path):
     counts = Counter()
     # potentially-valid tokens: token -> {"rows": n, "is_symbol": n_where_equals_symbol, "example": (...)}
     valid_tokens = defaultdict(lambda: {"rows": 0, "is_symbol": 0, "example": None})
     balanced_tokens = Counter()
+    rejoin = {"rows": 0, "checkable": 0, "exact": 0, "interleaved": 0, "examples": []}
 
     with gzip.open(input_path, "rt", encoding="utf-8") as inf:
         inf.readline()
@@ -75,6 +118,20 @@ def analyze(input_path: Path):
             if len(r) <= OTHER_DESIG:
                 continue
             symbol = r[SYMBOL]
+
+            # Is the quoted span reconstructable by rejoining? (Spoiler: no -- see the report.)
+            rj = check_rejoinable(r)
+            if rj is not None:
+                rejoin["rows"] += 1
+                if rj["checkable"]:
+                    rejoin["checkable"] += 1
+                    if rj["exact"]:
+                        rejoin["exact"] += 1
+                    else:
+                        rejoin["interleaved"] += 1
+                        if len(rejoin["examples"]) < 5:
+                            rejoin["examples"].append(rj)
+
             # Single-value Symbol columns: a trailing '' is unambiguously part of the recorded symbol.
             for col in (SYMBOL, SYMBOL_AUTH):
                 v = r[col]
@@ -94,7 +151,7 @@ def analyze(input_path: Path):
                         _record_valid(valid_tokens, token, r, symbol)
                     elif category == "balanced":
                         balanced_tokens[token] += 1
-    return counts, valid_tokens, balanced_tokens
+    return counts, valid_tokens, balanced_tokens, rejoin
 
 
 def _record_valid(valid_tokens, token, row, symbol):
@@ -107,7 +164,49 @@ def _record_valid(valid_tokens, token, row, symbol):
         entry["example"] = (row[GENE_ID], row[TAX_ID], desc)
 
 
-def write_report(counts, valid_tokens, balanced_tokens, limit, out_path, input_path):
+def write_rejoin_section(lines, rejoin):
+    """Append the "can the quoted span be rejoined?" findings to the report."""
+    lines.append("## Can the quoted value be reconstructed by rejoining the span?\n")
+    if not rejoin["rows"]:
+        lines.append("No rows with an open marker found.\n")
+        return
+    lines.append(
+        "Tests the intuitive reading of `''…''` as ordinary quoting: rejoin the fragments between "
+        "the markers with `, ` and compare against the row's own `Full_name`/`Other_designations`, "
+        "which carries the value intact.\n"
+    )
+    undecidable = rejoin["rows"] - rejoin["checkable"]
+    lines.append("```text")
+    lines.append(f"{'rows with an open marker':38s} {rejoin['rows']:>10,}")
+    lines.append(f"{'  no close marker / no Full_name':38s} {undecidable:>10,}   (not decidable)")
+    lines.append(f"{'  checkable':38s} {rejoin['checkable']:>10,}")
+    lines.append(f"{'    naive rejoin == true value':38s} {rejoin['exact']:>10,}")
+    lines.append(f"{'    rejoin produces something else':38s} {rejoin['interleaved']:>10,}")
+    lines.append("```\n")
+    if not rejoin["exact"]:
+        lines.append(
+            "**Not reconstructable.** The span is not a contiguous run of the value's pieces: "
+            "genuine, unrelated aliases (locus tags and the like) sit *inside* it, the fragment "
+            "order is meaningless, and the value's internal commas became `|` — indistinguishable "
+            "from the delimiter. Rejoining yields garbage.\n"
+        )
+        lines.append(
+            "This costs nothing: `Full_name_from_nomenclature_authority` / `Other_designations` "
+            "carry the correct value, and Babel already reads both. See issue #932 for the junk "
+            "comma-pieces that do remain.\n"
+        )
+    for e in rejoin["examples"]:
+        gid, sym, syn, truth, rejoined = e["example"]
+        lines.append(f"### Gene {gid} (`{sym}`)\n")
+        lines.append("```text")
+        lines.append(f"Synonyms  : {syn}")
+        lines.append(f"true value: {truth}")
+        lines.append(f"rejoined  : {rejoined}")
+        lines.append(f"foreign fragments inside the span (not part of the value): {e['foreign']}")
+        lines.append("```\n")
+
+
+def write_report(counts, valid_tokens, balanced_tokens, rejoin, limit, out_path, input_path):
     total_valid_rows = sum(e["rows"] for e in valid_tokens.values())
     lines = []
     lines.append("# NCBIGene `''` (double single quote): valid vs. split-artifact\n")
@@ -149,6 +248,8 @@ def write_report(counts, valid_tokens, balanced_tokens, limit, out_path, input_p
             lines.append(f"| `{token.replace('|', chr(92) + '|')}` | {n:,} |")
         lines.append("")
 
+    write_rejoin_section(lines, rejoin)
+
     out_path.write_text("\n".join(lines).rstrip("\n") + "\n", encoding="utf-8")
 
 
@@ -158,10 +259,13 @@ def main():
     p.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     p.add_argument("--limit", type=int, default=200, help="max distinct tokens to list (default 200)")
     args = p.parse_args()
-    counts, valid_tokens, balanced_tokens = analyze(args.input)
-    write_report(counts, valid_tokens, balanced_tokens, args.limit, args.output, args.input)
+    counts, valid_tokens, balanced_tokens, rejoin = analyze(args.input)
+    write_report(counts, valid_tokens, balanced_tokens, rejoin, args.limit, args.output, args.input)
     total_valid_rows = sum(e["rows"] for e in valid_tokens.values())
-    print(f"Wrote {args.output}: {total_valid_rows:,} valid-'' rows, {len(valid_tokens):,} distinct tokens")  # noqa: T201
+    print(  # noqa: T201
+        f"Wrote {args.output}: {total_valid_rows:,} valid-'' rows, {len(valid_tokens):,} distinct tokens; "
+        f"{rejoin['exact']:,}/{rejoin['rows']:,} quoted spans rejoin to their true value"
+    )
 
 
 if __name__ == "__main__":
