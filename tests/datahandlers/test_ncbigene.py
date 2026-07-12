@@ -2,7 +2,11 @@ import gzip
 
 import pytest
 
-from src.datahandlers.ncbigene import pull_ncbigene_labels_synonyms_and_taxa, split_ncbigene_synonym_field
+from src.datahandlers.ncbigene import (
+    GENE_INFO_HEADER,
+    pull_ncbigene_labels_synonyms_and_taxa,
+    split_ncbigene_synonym_field,
+)
 from src.predicates import HAS_SYNONYM
 from tests.conftest import (
     assert_descriptions_file_valid,
@@ -11,29 +15,10 @@ from tests.conftest import (
     assert_taxa_file_valid,
 )
 
-NCBIGENE_HEADER = [
-    "#tax_id",
-    "GeneID",
-    "Symbol",
-    "LocusTag",
-    "Synonyms",
-    "dbXrefs",
-    "chromosome",
-    "map_location",
-    "description",
-    "type_of_gene",
-    "Symbol_from_nomenclature_authority",
-    "Full_name_from_nomenclature_authority",
-    "Nomenclature_status",
-    "Other_designations",
-    "Modification_date",
-    "Feature_type",
-]
-
 
 def write_gene_info(path, rows):
     with gzip.open(path, "wt", encoding="utf-8") as gene_info:
-        gene_info.write("\t".join(NCBIGENE_HEADER) + "\n")
+        gene_info.write("\t".join(GENE_INFO_HEADER) + "\n")
         for row in rows:
             gene_info.write("\t".join(row) + "\n")
 

@@ -3,6 +3,26 @@ import gzip
 from src.babel_utils import pull_via_urllib
 from src.predicates import HAS_SYNONYM
 
+# The full 16-column gene_info.gz layout. See https://ftp.ncbi.nlm.nih.gov/gene/DATA/README.
+GENE_INFO_HEADER = [
+    "#tax_id",
+    "GeneID",
+    "Symbol",
+    "LocusTag",
+    "Synonyms",
+    "dbXrefs",
+    "chromosome",
+    "map_location",
+    "description",
+    "type_of_gene",
+    "Symbol_from_nomenclature_authority",
+    "Full_name_from_nomenclature_authority",
+    "Nomenclature_status",
+    "Other_designations",
+    "Modification_date",
+    "Feature_type",
+]
+
 
 def pull_ncbigene(filenames):
     for fn in filenames:
@@ -82,24 +102,7 @@ def pull_ncbigene_labels_synonyms_and_taxa(
     ):
         # Make sure the gene_info.gz columns haven't changed from under us.
         header = inf.readline().decode("utf-8").strip().split("\t")
-        assert header == [
-            "#tax_id",
-            "GeneID",
-            "Symbol",
-            "LocusTag",
-            "Synonyms",
-            "dbXrefs",
-            "chromosome",
-            "map_location",
-            "description",
-            "type_of_gene",
-            "Symbol_from_nomenclature_authority",
-            "Full_name_from_nomenclature_authority",
-            "Nomenclature_status",
-            "Other_designations",
-            "Modification_date",
-            "Feature_type",
-        ]
+        assert header == GENE_INFO_HEADER
 
         for line in inf:
             sline = line.decode("utf-8")
