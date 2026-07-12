@@ -70,7 +70,7 @@ def test_ncbigene_synonyms_have_no_leading_quote_fragments(ncbigene_pipeline_out
             synonym = cols[2]
             if synonym.startswith("''") and len(leading_offenders) < 10:
                 leading_offenders.append(line.rstrip("\n"))
-            if synonym in ISSUE_744_ARTIFACTS:
+            if synonym in ISSUE_744_ARTIFACTS and len(artifact_offenders) < 10:
                 artifact_offenders.append(line.rstrip("\n"))
 
     assert found_ncbigene, "No NCBIGene: CURIEs found in synonyms"
