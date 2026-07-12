@@ -1,5 +1,5 @@
 import src.reports.duckdb_reports
-from src.snakefiles.util import get_all_compendia, get_all_synonyms_with_drugchemicalconflated
+from src.snakefiles.util import duckdb_memory_limit_mb, get_all_compendia, get_all_synonyms_with_drugchemicalconflated
 import src.exporters.duckdb_exporters as duckdb_exporters
 import os
 
@@ -86,17 +86,11 @@ rule export_synonyms_to_duckdb:
         # would pin it to one core. Packing here is memory-bound, so the cores are ~free.
         cpus_per_task=4,
     run:
-        # Cap DuckDB at 75% of the SLURM allocation so Python + OS overhead
-        # don't push total RSS over the job limit. Without this, DuckDB
-        # auto-sizes to 75% of *total system* RAM, which can far exceed the
-        # SLURM allocation on a multi-tenant HPC node.
-        # resources.mem is a string like "128G" or "512G"; parse to MB.
-        duckdb_memory_limit_mb = int(int(resources.mem.rstrip("G")) * 1024 * 0.75)
         duckdb_exporters.export_synonyms_to_parquet(
             input.synonyms_file,
             output.duckdb_filename,
             output.synonyms_parquet_filename,
-            memory_limit_mb=duckdb_memory_limit_mb,
+            memory_limit_mb=duckdb_memory_limit_mb(resources.mem),
         )
 
 
@@ -129,12 +123,67 @@ rule export_conflation_to_duckdb:
         )
 
 
+# Export all the intermediate concord, ids, and metadata files into Parquet.
+#
+# `compendia_done` and `conflations_done` together are the rerun trigger, and between them they
+# cover every intermediate concord/ids file:
+#   - Most concord/ids files are consumed by a compendium-build rule, so a change propagates up the
+#     DAG (concord/ids -> compendium -> compendium.duckdb -> compendia_done).
+#   - The drugchemical concords (intermediate/drugchemical/concords/{RXNORM,UMLS,PUBCHEM_RXNORM})
+#     are NOT: they are built straight from the RxNorm/UMLS downloads and consumed only by
+#     drugchemical_conflation, so their only path here is via conflations_done. Without that input
+#     Snakemake could run this rule before they exist (leaving them out of Concord.parquet) and
+#     would not rerun it when they change.
+# None of the concord/ids files are temp(), so by the time both flags exist the full intermediate
+# tree is present on disk for this rule to sweep. The intermediate directory itself is passed as a
+# params path to glob, not an input: Snakemake tracks a directory by mtime, which does not reliably
+# change when a nested file is rewritten, so depending on it would be both unreliable and redundant
+# with the two flag files.
+rule export_intermediate_files_to_duckdb:
+    input:
+        compendia_done=config["output_directory"] + "/duckdb/compendia_done",
+        conflations_done=config["output_directory"] + "/duckdb/conflations_done",
+    output:
+        duckdb_filename=temp(config["output_directory"] + "/duckdb/concords.duckdb"),
+        ids_parquet_filename=config["output_directory"] + "/duckdb/Identifier.parquet",
+        concord_parquet_filename=config["output_directory"] + "/duckdb/Concord.parquet",
+        metadata_parquet_filename=config["output_directory"] + "/duckdb/Metadata.parquet",
+    benchmark:
+        config["output_directory"] + "/benchmarks/export_intermediate_files_to_duckdb.tsv"
+    resources:
+        # Provisional; right-size from the benchmark once we have a real run.
+        #
+        # If this rule turns out to be memory-bound, raising mem= is not the only lever:
+        # export_intermediates_to_parquet() materialises each table in DuckDB before writing it
+        # out, but DuckDB's read_csv() accepts a *list* of files plus filename=true (which supplies
+        # the source-path column for free). The per-file INSERT loop could collapse into one COPY
+        # per group -- concords, one-column ids, two-column ids -- streaming straight to Parquet
+        # and keeping peak memory proportional to a row group rather than the whole corpus. It was
+        # left alone because the empty-tree case then needs its own branch and DuckDB already
+        # spills to disk under the memory cap, so measure before rewriting.
+        mem="128G",
+    params:
+        intermediate_directory=config["intermediate_directory"],
+    run:
+        duckdb_exporters.export_intermediates_to_parquet(
+            params.intermediate_directory,
+            output.duckdb_filename,
+            output.ids_parquet_filename,
+            output.concord_parquet_filename,
+            output.metadata_parquet_filename,
+            memory_limit_mb=duckdb_memory_limit_mb(resources.mem),
+        )
+
+
 # Create `babel_outputs/duckdb/done` once all the files have been converted.
 rule export_all_to_duckdb:
     input:
         compendia_done=config["output_directory"] + "/duckdb/compendia_done",
         synonyms_done=config["output_directory"] + "/duckdb/synonyms_done",
         conflations_done=config["output_directory"] + "/duckdb/conflations_done",
+        intermediate_ids_parquet=config["output_directory"] + "/duckdb/Identifier.parquet",
+        intermediate_concords_parquet=config["output_directory"] + "/duckdb/Concord.parquet",
+        intermediate_metadata_parquet=config["output_directory"] + "/duckdb/Metadata.parquet",
     output:
         x=config["output_directory"] + "/duckdb/done",
     shell:

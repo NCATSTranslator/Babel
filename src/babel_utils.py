@@ -25,7 +25,7 @@ from src.metadata.provenance import write_combined_metadata
 from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory
 from src.properties import HAS_ALTERNATIVE_ID, PropertyList
 from src.synonyms.filter import get_synonym_filter
-from src.util import Text, get_config, get_logger, get_memory_usage_summary
+from src.util import Text, ensure_parent_dir, get_config, get_logger, get_memory_usage_summary
 
 # Configuration items
 WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES = 1_000_000
@@ -300,7 +300,7 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
     else:
         dl_file_name = os.path.join(download_dir, subpath, in_file_name)
 
-    os.makedirs(os.path.dirname(dl_file_name), exist_ok=True)
+    ensure_parent_dir(dl_file_name)
 
     # Add support for redirects
     opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
@@ -438,7 +438,7 @@ def pull_via_wget(
     else:
         dl_file_name = os.path.join(download_dir, in_file_name)
 
-    os.makedirs(os.path.dirname(os.path.abspath(dl_file_name)), exist_ok=True)
+    ensure_parent_dir(dl_file_name)
 
     # Prepare wget options.
     wget_command_line = [

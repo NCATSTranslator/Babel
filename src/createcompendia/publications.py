@@ -14,7 +14,7 @@ from src.babel_utils import WgetRecursionOptions, glom, pull_via_wget, read_iden
 from src.categories import JOURNAL_ARTICLE, PUBLICATION
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import DOI, PMC, PMID
-from src.util import get_logger
+from src.util import ensure_parent_dir, get_logger
 
 logger = get_logger(__name__)
 
@@ -36,7 +36,7 @@ def download_pubmed(
     """
 
     # Create directories if they don't exist.
-    os.makedirs(os.path.dirname(download_file), exist_ok=True)
+    ensure_parent_dir(download_file)
 
     # Download baseline and updatefiles in parallel — each directory contains ~750 files,
     # so running them concurrently roughly halves wall time on the HPC.
