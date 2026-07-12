@@ -30,11 +30,16 @@ def baseline_dir(tmp_path):
 
 @pytest.fixture
 def no_downloads(monkeypatch):
-    """Fail loudly if verification tries to download anything, and record any attempt."""
+    """Fail loudly if verification tries to download anything, and record any attempt.
+
+    Raising, rather than merely recording, matters: verify_pubmed_downloads() re-downloads in a
+    `while not verified` loop, so a stub that returned without fixing the file would spin forever.
+    """
     attempts = []
 
     def _fail(url_prefix, in_file_name, **kwargs):
         attempts.append(in_file_name)
+        raise AssertionError(f"unexpected re-download of {in_file_name}")
 
     monkeypatch.setattr(publications, "pull_via_wget", _fail)
     return attempts
