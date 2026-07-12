@@ -14,8 +14,7 @@ Babel splits each on `|` and adds the pieces as synonyms
 [Issue #744](https://github.com/NCATSTranslator/Babel/issues/744) reported malformed synonyms:
 NCBI wraps some comma-containing values in `''…''` and then turns their internal commas into `|` —
 the same character that delimits the column — so the value's pieces arrive as separate fragments.
-The fix drops fragments that start *or* end with `''`.
-
+The fix initially dropped fragments that start *or* end with `''`.
 But while validating that fix on the full file we found that a **trailing** `''` is *legitimate*
 "double-prime" gene nomenclature — real `Symbol` values such as `U2B''`, `ycf1''`, `nrdB''`, and
 `trnQ-TTG''` end in `''` and are not artifacts. So the same two-character sequence means two
