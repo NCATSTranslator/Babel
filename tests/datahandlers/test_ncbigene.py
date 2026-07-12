@@ -68,11 +68,50 @@ SPLIT_CASES = [
         {"U2B''", "U2 small nuclear ribonucleoprotein B"},
         id="double-prime-symbol-kept",
     ),
+    # Several double-primes in one field are fine: only a *leading* '' opens a shredded value, so no
+    # number of trailing ones can be mistaken for one.
+    pytest.param(
+        "U2B''|snRNP B''|V-ATPase c''",
+        "",
+        {"U2B''", "snRNP B''", "V-ATPase c''"},
+        id="multiple-double-prime-symbols-all-kept",
+    ),
+    # A '' in the middle of a fragment is likewise untouched -- a marker only ever sits at a fragment
+    # boundary, so an embedded '' cannot be one. Real example: 6''-O-malonyltransferase.
+    pytest.param(
+        "6''-O-malonyltransferase|U2B''",
+        "",
+        {"6''-O-malonyltransferase", "U2B''"},
+        id="internal-double-prime-kept-alongside-trailing-one",
+    ),
     pytest.param(
         "RNA polymerase subunit beta''",
         "",
         {"RNA polymerase subunit beta''"},
         id="standalone-double-prime-designation-kept",
+    ),
+    # Gene 835815 (ACA8), the one row in gene_info.gz with two trailing-'' fragments beside an open
+    # marker. Both ARE close markers: NCBI shredded an upper- and a lower-case copy of the same
+    # comma-containing alias ("autoinhibited Ca2+ -ATPase, isoform 8"), so dropping every trailing
+    # '' in an open-marked field is right here. Note full_name is only the *first* piece of that
+    # alias, which is why the middle pieces (ISOFORM 8, isoform 8) are not recognised as #932 junk.
+    pytest.param(
+        "''autoinhibited Ca2+ -ATPase|isoform 8''|ISOFORM 8''|AT-ACA8",
+        "autoinhibited Ca2+ -ATPase",
+        {"AT-ACA8"},
+        id="two-close-markers-in-one-field-both-dropped",
+    ),
+    # KNOWN LIMITATION, pinned deliberately. Once a field has an open marker, *every* trailing '' in
+    # it is treated as a close marker -- so a genuine double-prime sharing the field would be lost
+    # (U2B'' below). No row in gene_info.gz does this: the only candidate, gene 835815 above, turns
+    # out to have two real close markers. Distinguishing them by checking the fragment against
+    # full_name's comma-pieces would *break* that row, since its full_name is not the whole shredded
+    # alias. Left as is; revisit only if a future dump produces a real instance.
+    pytest.param(
+        "''cytochrome P450|U2B''|polypeptide 2''",
+        "cytochrome P450, family 706, polypeptide 2",
+        set(),
+        id="known-limitation-double-prime-beside-open-marker-is-dropped",
     ),
     # Open marker present, so the trailing '' IS a close marker: both ends go, nothing is left.
     pytest.param(
@@ -120,6 +159,7 @@ GENE_828367_SYNONYMS = (
     "''cytochrome P450|T12H17.100|T12H17_100|cytochrome P450|family 706|polypeptide 2|polypeptide 2''|subfamily A"
 )
 GENE_828367_FULL_NAME = "cytochrome P450, family 706, subfamily A, polypeptide 2"
+
 
 @pytest.mark.unit
 def test_pull_ncbigene_labels_synonyms_and_taxa_skips_quote_fragments_for_828367(tmp_path):
