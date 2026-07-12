@@ -253,7 +253,7 @@ differ.
 When a bug fix is easy to cover with a test, suggest adding one as part of the fix.
 
 To see what type or clique Babel currently assigns a CURIE in the **last released** build without a
-local build, query the production Node Normalization service, e.g.
+local build, query the development Node Normalization service, e.g.
 `https://nodenormalization-sri.renci.org/get_normalized_nodes?curie=DRUGBANK:DB00965&conflate=true&drug_chemical_conflate=true`
 — it returns the clique's `type` and `equivalent_identifiers`, so you can check current typing or
 whether two CURIEs already share a clique (the released-build analogue of the DuckDB `Edge` table).
