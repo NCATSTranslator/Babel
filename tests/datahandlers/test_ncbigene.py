@@ -23,16 +23,6 @@ def write_gene_info(path, rows):
             gene_info.write("\t".join(row) + "\n")
 
 
-# The verbatim gene 828367 (CYP706A2) fields from gene_info.gz -- the row reported in issue #744.
-# Named here only because the end-to-end tests below thread them through several columns of a
-# 16-column row and then assert on them; the split_ncbigene_synonym_field cases in SPLIT_CASES spell
-# them out in full instead, so each case can be read on its own.
-GENE_828367_SYNONYMS = (
-    "''cytochrome P450|T12H17.100|T12H17_100|cytochrome P450|family 706|polypeptide 2|polypeptide 2''|subfamily A"
-)
-GENE_828367_FULL_NAME = "cytochrome P450, family 706, subfamily A, polypeptide 2"
-
-
 # Every case is (Synonyms field, full_name, exactly the synonyms that should come out), written out
 # in full so the shredded field and the intact value can be read side by side: `full_name` is
 # "cytochrome P450, family 706, subfamily A, polypeptide 2", and you can see its comma-pieces
@@ -121,6 +111,15 @@ def test_split_ncbigene_synonym_field(synonyms_field, full_name, expected):
     """
     assert split_ncbigene_synonym_field(synonyms_field, full_name) == expected
 
+
+# The verbatim gene 828367 (CYP706A2) fields from gene_info.gz -- the row reported in issue #744.
+# Named here only because the end-to-end tests below thread them through several columns of a
+# 16-column row and then assert on them; the split_ncbigene_synonym_field cases in SPLIT_CASES above
+# spell them out in full instead, so each case can be read on its own.
+GENE_828367_SYNONYMS = (
+    "''cytochrome P450|T12H17.100|T12H17_100|cytochrome P450|family 706|polypeptide 2|polypeptide 2''|subfamily A"
+)
+GENE_828367_FULL_NAME = "cytochrome P450, family 706, subfamily A, polypeptide 2"
 
 @pytest.mark.unit
 def test_pull_ncbigene_labels_synonyms_and_taxa_skips_quote_fragments_for_828367(tmp_path):
