@@ -12,10 +12,9 @@ Babel splits each on `|` and adds the pieces as synonyms
 ## Why we're studying the quoting
 
 [Issue #744](https://github.com/NCATSTranslator/Babel/issues/744) reported malformed synonyms:
-NCBI wraps some comma-containing values in `''…''` and then splits the whole field on `|`, so a
-value like `''cytochrome P450, family 706, polypeptide 2''` arrives as the dangling fragments
-`''cytochrome P450`, `family 706`, `polypeptide 2''`. The fix drops fragments that start *or* end
-with `''`.
+NCBI wraps some comma-containing values in `''…''` and then turns their internal commas into `|` —
+the same character that delimits the column — so the value's pieces arrive as separate fragments.
+The fix drops fragments that start *or* end with `''`.
 
 But while validating that fix on the full file we found that a **trailing** `''` is *legitimate*
 "double-prime" gene nomenclature — real `Symbol` values such as `U2B''`, `ycf1''`, `nrdB''`, and
@@ -194,17 +193,56 @@ different minority gains little. The only real cost of leaving it joined is that
 produce a long, non-matching combined synonym; if that ever matters the better lever is collapsing
 the isoform enumeration (keep the base name once), not treating `;` as a delimiter.
 
+## Can the quoted value be reconstructed? No
+
+It is tempting to read `''…''` as ordinary quoting — the pieces between the markers are one value,
+so rejoin them with `", "` and recover the original synonym. **That does not work.** Of the 276
+rows whose `Synonyms` column carries an open marker, **zero** rejoin cleanly.
+
+The verbatim row for gene 828367 (`CYP706A2`), the one reported in #744:
+
+```text
+Synonyms[4]  : ''cytochrome P450|T12H17.100|T12H17_100|cytochrome P450|family 706|
+               polypeptide 2|polypeptide 2''|subfamily A
+Full_name[11]: cytochrome P450, family 706, subfamily A, polypeptide 2
+```
+
+Four things break the "rejoin the span" model:
+
+- **The pieces are not contiguous.** `T12H17.100` and `T12H17_100` are genuine, unrelated aliases
+  sitting *inside* the span. Rejoining everything between the markers gives
+  `cytochrome P450, T12H17.100, T12H17_100, cytochrome P450, family 706, polypeptide 2` — garbage.
+- **The order is meaningless.** The fragment list looks like set-iteration order, so the pieces of
+  the quoted value are scattered rather than adjacent.
+- **The commas became pipes.** A `|` separating two aliases is indistinguishable from a `|` that
+  was a comma inside one alias, so the span cannot be delimited by structure alone.
+- **Both a quoted and an unquoted copy** of the first and last piece are present (`''cytochrome
+  P450` *and* a bare `cytochrome P450`; `polypeptide 2` *and* `polypeptide 2''`).
+
+**This costs us nothing, because the value is not lost.** The correct, properly comma-formatted
+string is carried by `Full_name_from_nomenclature_authority` and `Other_designations`, both of
+which Babel already reads and emits as synonyms. So `cytochrome P450, family 706, subfamily A,
+polypeptide 2` is captured regardless.
+
+What *does* remain is junk: the bare comma-pieces (`family 706`, `subfamily A`, …) still come
+through as standalone synonyms — roughly a thousand of them across the 276 rows. They are not
+malformed, just meaningless. Tracked in
+[issue #932](https://github.com/NCATSTranslator/Babel/issues/932), whose proposed fix is to drop
+any `Synonyms` fragment that exactly matches a `", "`-piece of the row's `Full_name`.
+
 ## Deferred follow-up questions
 
 Once we know which characters are present, the deeper questions (each a likely next script here):
 
 - Is a literal single quote always escaped as `''`, or do lone `'` appear unescaped?
-- Are `''` always paired within a single pipe-fragment, or do they span fragments (the #744 case)?
 - Do `''…''`-quoted phrases ever contain characters that would otherwise be read as structure —
   embedded `|`, commas, semicolons, newlines, or backslash escape sequences like `\n`?
 - **(Answered — see above.)** Distinguishing "leading `''`" from "trailing `''`" *does* cleanly
   separate artifacts from legitimate double-prime, so the #744 fix is narrowed to drop only leading
   open-marker fragments (and their paired trailing close-marker), keeping genuine trailing `''`.
+- **(Answered — No; see "Can the quoted value be reconstructed?" above.)** The `''…''` span cannot
+  be rejoined into the original synonym: its pieces are interleaved with genuine aliases and
+  reordered (0 of 276 rows rejoin cleanly). The value survives via `Full_name` instead.
 - **(Answered — No; see "Should the semicolon be a delimiter too?" above.)** The ~0.6M
   semicolon-joined designations are 95.8% isoform enumerations of the same base name, so splitting
   on `;` would mostly produce near-duplicate synonyms. Left joined.
