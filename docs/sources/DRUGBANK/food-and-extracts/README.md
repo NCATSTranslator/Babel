@@ -56,7 +56,7 @@ chemical). Then:
      nuts/grains NCIt files there — almond, cashew, sesame, wheat, oat). NCIt calls a food a food
      regardless of what it came from, so this signal is **not** plant-specific: scallop, perch,
      venison, beef liver and egg phospholipids all arrive this way;
-   - **or** its UNII carries a botanical-database flag (USDA `PLANTS`, GRIN, or MPNS — see "Why the
+   - **or** its UNII carries a botanical-database flag (USDA PLANTS, GRIN, or MPNS — see "Why the
      botanical flags but not NCBI" below), which reaches the plant materials NCIt has no food class
      for (barks, roots, pollens, herbs).
 
