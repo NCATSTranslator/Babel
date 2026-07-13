@@ -1,5 +1,6 @@
 import src.createcompendia.chemicals as chemicals
 import src.datahandlers.drugbank as drugbank
+import src.datahandlers.ncit as ncit
 import src.assess_compendia as assessments
 import src.snakefiles.util as util
 
@@ -150,7 +151,7 @@ rule chemical_ncit_food_codes:
         config["output_directory"] + "/benchmarks/chemical_ncit_food_codes.tsv"
     retries: 3  # UberGraph sometimes fails mid-download and needs a retry.
     run:
-        chemicals.write_ncit_descendant_codes(config["drugbank_food_ncit_roots"], output.outfile)
+        ncit.write_ncit_descendant_codes(config["drugbank_food_ncit_roots"], output.outfile)
 
 
 rule chemical_ncit_nonfood_codes:
@@ -163,7 +164,7 @@ rule chemical_ncit_nonfood_codes:
         config["output_directory"] + "/benchmarks/chemical_ncit_nonfood_codes.tsv"
     retries: 3  # UberGraph sometimes fails mid-download and needs a retry.
     run:
-        chemicals.write_ncit_descendant_codes(config["drugbank_nonfood_ncit_roots"], output.outfile)
+        ncit.write_ncit_descendant_codes(config["drugbank_nonfood_ncit_roots"], output.outfile)
 
 
 rule chemical_drugbank_food_extracts:

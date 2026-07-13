@@ -28,7 +28,7 @@ from src.categories import (
 )
 from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
-from src.datahandlers.unii import UNII_RECORDS_CODE_COLUMN, UNII_RECORDS_ENCODING, read_organism_uniis
+from src.datahandlers.unii import UNII_ORGANISM_COLUMNS, read_unii_records
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.prefixes import (
     CHEBI,
@@ -292,33 +292,13 @@ def write_chebi_ids(outfile):
 def write_unii_ids(infile, outfile):
     """UNII contains a bunch of junk like leaves.   We are going to try to clean it a bit to get things
     that are actually chemicals.  In biolink 2.0 we cn revisit exactly what happens here."""
-    # Whole organisms / crude organism-derived substances (a plant or an eye of newt or something)
-    # are not chemicals; skip them. read_organism_uniis is the shared definition (see issue #828).
-    organism_uniis = read_organism_uniis(infile)
-    with open(infile, encoding=UNII_RECORDS_ENCODING) as inf, open(outfile, "w") as outf:
-        inf.readline()  # header
-        for line in inf:
-            x = line.strip().split("\t")
-            if x[UNII_RECORDS_CODE_COLUMN] not in organism_uniis:
-                outf.write(f"{UNII}:{x[UNII_RECORDS_CODE_COLUMN]}\t{CHEMICAL_ENTITY}\n")
-
-
-def write_ncit_descendant_codes(roots, outfile):
-    """Write every NCIt CURIE that is-a descendant of any root in ``roots``, one per line.
-
-    Used to enumerate the NCIt "Food"/"Seed" subtrees so the DrugBank food-and-extract retype
-    can recognise foods by their UNII's NCIt class (issue #828). Queries UberGraph, so the rule
-    that calls it should carry ``retries``.
-    """
-    ug = UberGraph()
-    codes = set()
-    for root in roots:
-        for row in ug.get_subclasses_of(root):
-            codes.add(row["descendent"])
-    logger.info(f"Found {len(codes)} NCIt descendants of {roots}")
     with open(outfile, "w") as outf:
-        for code in sorted(codes):
-            outf.write(f"{code}\n")
+        for row in read_unii_records(infile):
+            # Whole organisms / crude organism-derived substances (a plant or an eye of newt or
+            # something) are not chemicals; skip them. UNII_ORGANISM_COLUMNS is the shared
+            # definition, also used by the DrugBank food-and-extract retype (issue #828).
+            if not any(row.get(col) for col in UNII_ORGANISM_COLUMNS):
+                outf.write(f"{UNII}:{row['UNII']}\t{CHEMICAL_ENTITY}\n")
 
 
 def write_drugbank_ids(infile, outfile):
@@ -950,11 +930,7 @@ def build_compendia(
     # biolink:Food, non-food allergen extracts (pollens/danders/...) to biolink:ComplexMolecularMixture.
     # These enter chemical cliques via the UMLS/RXNORM concords without a Babel-assigned type, so we
     # retype the whole clique they land in rather than relying on the per-identifier type vote.
-    forced_types = {}
-    with open(food_extract_types_file) as inf:
-        for line in inf:
-            curie, biolink_type = line.strip().split("\t")
-            forced_types[curie] = biolink_type
+    _, forced_types = read_identifier_file(food_extract_types_file)
     logger.info(
         f"Loaded {len(forced_types)} forced food-and-extract types from {food_extract_types_file}: "
         f"{get_memory_usage_summary()}"
@@ -998,7 +974,7 @@ def build_compendia(
             )
 
 
-def create_typed_sets(eqsets, types, forced_types=None):
+def create_typed_sets(eqsets, types, forced_types):
     """
     Given a set of sets of equivalent identifiers, we want to type each one into
     being a subclass of ChemicalEntity.
@@ -1019,15 +995,17 @@ def create_typed_sets(eqsets, types, forced_types=None):
         CHEMICAL_MIXTURE,
         CHEMICAL_ENTITY,
     ]
-    forced_types = forced_types or {}
+    # This loop runs once per chemical clique (tens of millions), and forced_types holds a few hundred
+    # CURIEs, so test membership with a set intersection rather than a per-member dict lookup.
+    forced_curies = frozenset(forced_types)
     typed_sets = defaultdict(set)
     # logging.warning(f"create_typed_sets: eqsets={eqsets}, types=...")
     for equivalent_ids in eqsets:
         # A clique containing a DRUGBANK food/extract is retyped as a whole to its forced type
         # (issue #828). ponytail: coarse clique-level override; an extract clique never contains a real
         # chemical, so retyping the whole clique is safe.
-        forced = {forced_types[c] for c in equivalent_ids if c in forced_types}
-        if forced:
+        if not forced_curies.isdisjoint(equivalent_ids):
+            forced = {forced_types[c] for c in equivalent_ids if c in forced_types}
             typed_sets[min(forced, key=order.index)].add(equivalent_ids)
             continue
         # logging.warning(f"Processing equivalent_ids={equivalent_ids}.")

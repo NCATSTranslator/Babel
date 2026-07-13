@@ -1,21 +1,15 @@
 """Unit tests for the DrugBank food-and-extract retype (issue #828).
 
 Covers datahandlers.drugbank.write_drugbank_food_extract_types (which DRUGBANK ids become
-biolink:Food vs biolink:ComplexMolecularMixture) and the UNII helpers it and write_unii_ids rely on
-(read_unii_ncit, read_organism_uniis, read_plant_uniis).
+biolink:Food vs biolink:ComplexMolecularMixture) and the UNII flag reader it and write_unii_ids rely
+on (read_unii_flags).
 """
 
 import pytest
 
 from src.categories import COMPLEX_MOLECULAR_MIXTURE, FOOD
 from src.datahandlers.drugbank import classify_food_or_extract, write_drugbank_food_extract_types
-from src.datahandlers.unii import (
-    UNII_ORGANISM_COLUMNS,
-    UNII_PLANT_COLUMNS,
-    read_organism_uniis,
-    read_plant_uniis,
-    read_unii_ncit,
-)
+from src.datahandlers.unii import read_unii_flags
 
 # Header for the CC-0 DrugBank vocabulary CSV, in the fixed column order Babel reads.
 DRUGBANK_VOCAB_HEADER = "DrugBank ID,Accession Numbers,Common name,CAS,UNII,Synonyms,Standard InChI Key"
@@ -45,66 +39,31 @@ def _write_unii_records(path, rows):
 
 
 # ----
-# UNII record readers
+# UNII record reader
 # ----
 
 
 @pytest.mark.unit
-def test_read_unii_ncit_returns_ncit_curies(tmp_path):
-    """read_unii_ncit maps each UNII with an NCIt code to its NCIt CURIE, skipping blank codes."""
+def test_read_unii_flags(tmp_path):
+    """read_unii_flags should map each UNII with an NCIt code to its CURIE; flag PLANTS/GRIN/MPNS
+    records as plants; and flag those *plus* NCBI-only records as organisms (which write_unii_ids
+    excludes from the chemical compendium, but which are not reliably plants/foods)."""
     records = tmp_path / "Latest_UNII_Records.txt"
     _write_unii_records(
         records,
         [
-            {"UNII": "7TI7U5PF2U", "NCIT": "C71910"},  # trout
-            {"UNII": "NOCODE0000", "NCIT": ""},  # no NCIt code → skipped
+            {"UNII": "7TI7U5PF2U", "NCIT": "C71910", "NCBI": "8032"},  # trout: NCIt code, organism only
+            {"UNII": "PLANTS0001", "PLANTS": "PRDU"},  # plant → plant + organism
+            {"UNII": "GRINMPNS02", "GRIN": "1", "MPNS": "x"},  # plant → plant + organism
+            {"UNII": "2052SC0X7O", "NCIT": ""},  # defined chemical: no NCIt code, no flags
         ],
     )
-    assert read_unii_ncit(str(records)) == {"7TI7U5PF2U": "NCIT:C71910"}
 
+    unii_to_ncit, plant_uniis, organism_uniis = read_unii_flags(str(records))
 
-@pytest.mark.unit
-def test_read_organism_uniis_flags_organism_records(tmp_path):
-    """A UNII with any of NCBI/PLANTS/GRIN/MPNS populated is an organism (write_unii_ids skips these)."""
-    records = tmp_path / "Latest_UNII_Records.txt"
-    _write_unii_records(
-        records,
-        [
-            {"UNII": "7TI7U5PF2U", "NCBI": "8032"},  # animal → organism
-            {"UNII": "3Z252A2K9G", "PLANTS": "PRDU"},  # plant → organism
-            {"UNII": "2052SC0X7O"},  # defined chemical → not organism
-        ],
-    )
-    assert read_organism_uniis(str(records)) == {"7TI7U5PF2U", "3Z252A2K9G"}
-
-
-@pytest.mark.unit
-def test_read_plant_uniis_flags_only_botanical_records(tmp_path):
-    """read_plant_uniis includes a UNII with any of PLANTS/GRIN/MPNS but excludes NCBI-only records."""
-    records = tmp_path / "Latest_UNII_Records.txt"
-    _write_unii_records(
-        records,
-        [
-            {"UNII": "PLANTS0001", "PLANTS": "PRDU"},  # plant → included
-            {"UNII": "GRINMPNS02", "GRIN": "1", "MPNS": "x"},  # plant → included
-            {"UNII": "NCBIONLY03", "NCBI": "8032"},  # animal, NCBI-only → excluded
-            {"UNII": "NOFLAGS004"},  # defined chemical → excluded
-        ],
-    )
-    assert read_plant_uniis(str(records)) == {"PLANTS0001", "GRINMPNS02"}
-
-
-@pytest.mark.unit
-def test_unii_organism_columns_present_in_header():
-    """The organism columns we key on must exist in the header layout the reader expects."""
-    assert set(UNII_ORGANISM_COLUMNS) <= set(UNII_RECORDS_HEADER)
-
-
-@pytest.mark.unit
-def test_unii_plant_columns_are_botanical_subset():
-    """Plant columns are the botanical subset of the organism columns, excluding NCBI."""
-    assert set(UNII_PLANT_COLUMNS) < set(UNII_ORGANISM_COLUMNS)
-    assert "NCBI" not in UNII_PLANT_COLUMNS
+    assert unii_to_ncit == {"7TI7U5PF2U": "NCIT:C71910"}
+    assert plant_uniis == {"PLANTS0001", "GRINMPNS02"}
+    assert organism_uniis == {"7TI7U5PF2U", "PLANTS0001", "GRINMPNS02"}
 
 
 # ----

@@ -7,7 +7,8 @@ from zipfile import ZipFile
 import requests
 
 from src.categories import COMPLEX_MOLECULAR_MIXTURE, FOOD
-from src.datahandlers.unii import read_plant_uniis, read_unii_ncit
+from src.datahandlers.ncit import read_ncit_code_set
+from src.datahandlers.unii import read_unii_flags
 from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import DRUGBANK
 
@@ -50,12 +51,6 @@ def extract_drugbank_labels_and_synonyms(drugbank_vocab_csv, labels, synonyms):
                 synonyms = line["Synonyms"].split(" | ")
                 for syn in synonyms:
                     synonymsf.write(f"{drugbank_id}\t{HAS_EXACT_SYNONYM}\t{syn}\n")
-
-
-def read_ncit_code_set(codes_file):
-    """Return the set of NCIt CURIEs in a one-CURIE-per-line file (see chemicals.write_ncit_descendant_codes)."""
-    with open(codes_file) as inf:
-        return {line.strip() for line in inf if line.strip()}
 
 
 def classify_food_or_extract(row, unii_to_ncit, food_ncit_codes, nonfood_ncit_codes, plant_uniis, extract_markers):
@@ -118,8 +113,7 @@ def write_drugbank_food_extract_types(
     ``extract_markers`` is the config list of name/synonym substrings that mark an extract. The output
     drives the retype in ``chemicals.create_typed_sets``.
     """
-    unii_to_ncit = read_unii_ncit(unii_records)
-    plant_uniis = read_plant_uniis(unii_records)
+    unii_to_ncit, plant_uniis, _organism_uniis = read_unii_flags(unii_records)
     food_ncit_codes = read_ncit_code_set(food_ncit_codes_file)
     nonfood_ncit_codes = read_ncit_code_set(nonfood_ncit_codes_file)
     with open(drugbank_vocab_csv) as fin, open(outfile, "w") as outf:

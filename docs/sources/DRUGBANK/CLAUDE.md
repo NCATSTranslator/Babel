@@ -18,16 +18,16 @@ artifacts.
 
 `extract_drugbank_labels_and_synonyms` discards the `UNII` column, but that column is the key to
 enriching DrugBank entries. Cross-referenced against the FDA UNII records
-(`Latest_UNII_Records.txt`), a UNII yields an NCIt class and organism/plant-database flags — see the
-readers in `src/datahandlers/unii.py`:
+(`Latest_UNII_Records.txt`), a UNII yields an NCIt class and organism/plant-database flags — all
+three read in one pass by `unii.py:read_unii_flags`, which returns:
 
-- `read_unii_ncit` → the substance's NCIt class CURIE (used to recognise NCIt Food/Seed).
-- `read_plant_uniis` → the botanical flags `PLANTS`/`GRIN`/`MPNS`. A **reliable plant-material
-  signal**.
-- `read_organism_uniis` → any of `NCBI`/`PLANTS`/`GRIN`/`MPNS`. The `NCBI` flag alone is **not**
-  reliable for "is a plant/food": NCBI Taxonomy also covers animals, bacteria, fungi, and
+- `unii_to_ncit` → the substance's NCIt class CURIE (used to recognise NCIt Food/Seed).
+- `plant_uniis` → UNIIs carrying the botanical flags `PLANTS`/`GRIN`/`MPNS`. A **reliable
+  plant-material signal**.
+- `organism_uniis` → UNIIs carrying any of `NCBI`/`PLANTS`/`GRIN`/`MPNS`. The `NCBI` flag alone is
+  **not** reliable for "is a plant/food": NCBI Taxonomy also covers animals, bacteria, fungi, and
   biologic-drug source organisms (immune globulins, vaccine antigens, antivenins, CAR-T). Prefer the
-  botanical subset (`read_plant_uniis`) when you want plants/foods.
+  botanical subset (`plant_uniis`) when you want plants/foods.
 
 A botanical flag means "plant material", not "food", so it must never overrule an NCIt class that
 says the entry is a drug — hence `config.yaml: drugbank_nonfood_ncit_roots`, the never-food veto

@@ -1,3 +1,4 @@
+import csv
 from os import listdir, path, rename
 from zipfile import ZipFile
 
@@ -21,69 +22,47 @@ UNII_ORGANISM_COLUMNS = ["NCBI", "PLANTS", "GRIN", "MPNS"]
 # food-and-extract retype to recognise plant-derived Food/extract entries (issue #828).
 UNII_PLANT_COLUMNS = ["PLANTS", "GRIN", "MPNS"]
 
-# Latest_UNII_Records.txt is Windows-1252 encoded and column 0 is the UNII code.
+# Latest_UNII_Records.txt is a Windows-1252 TSV.
 UNII_RECORDS_ENCODING = "windows-1252"
-UNII_RECORDS_CODE_COLUMN = 0
-
-# Column in Latest_UNII_Records.txt holding the substance's NCIt code (bare, e.g. "C71910"). Used
-# by the DrugBank food-and-extract retype to recognise foods via NCIt classification (issue #828).
-UNII_RECORDS_NCIT_COLUMN = "NCIT"
 
 
-def read_unii_ncit(records_file):
-    """Return {UNII code -> NCIt CURIE (e.g. "NCIT:C71910")} for records that carry an NCIt code.
+def read_unii_records(records_file):
+    """Yield each row of Latest_UNII_Records.txt as a {column name -> value} dict.
 
-    The NCIt code lets the DrugBank food-and-extract retype decide whether a structureless
-    DrugBank entry is a food (its UNII's NCIt class is under NCIt "Food"/"Seed").
+    QUOTE_NONE because the file is a plain tab-separated dump: a bare double quote in a substance
+    name is data, not a quoted field.
     """
-    unii_to_ncit = {}
     with open(records_file, encoding=UNII_RECORDS_ENCODING) as inf:
-        header = inf.readline().rstrip("\n").split("\t")
-        ncit_colno = header.index(UNII_RECORDS_NCIT_COLUMN)
-        for line in inf:
-            row = line.rstrip("\n").split("\t")
-            ncit = row[ncit_colno].strip()
-            if ncit:
-                unii_to_ncit[row[UNII_RECORDS_CODE_COLUMN]] = f"{NCIT}:{ncit}"
-    return unii_to_ncit
+        yield from csv.DictReader(inf, delimiter="\t", quoting=csv.QUOTE_NONE)
 
 
-def _read_uniis_with_any_column(records_file, columns):
-    """Return the set of UNII codes with any of ``columns`` populated in Latest_UNII_Records.txt."""
-    uniis = set()
-    with open(records_file, encoding=UNII_RECORDS_ENCODING) as inf:
-        header = inf.readline().rstrip("\n").split("\t")
-        colnos = [header.index(col) for col in columns]
-        for line in inf:
-            # rstrip("\n") not strip(): the organism columns are near the end and are usually
-            # empty, and strip() would drop those trailing empty fields and misalign the row.
-            row = line.rstrip("\n").split("\t")
-            if any(len(row[colno]) > 0 for colno in colnos):
-                uniis.add(row[UNII_RECORDS_CODE_COLUMN])
-    return uniis
+def read_unii_flags(records_file):
+    """Return ``(unii_to_ncit, plant_uniis, organism_uniis)`` from one pass over Latest_UNII_Records.txt.
 
+    - ``unii_to_ncit``: {UNII code -> NCIt CURIE, e.g. "NCIT:C71910"} for the records that carry an
+      NCIt code. This is what lets the DrugBank food-and-extract retype (issue #828) decide that a
+      structureless DrugBank entry is a food — its UNII's NCIt class is under NCIt "Food"/"Seed".
+    - ``plant_uniis``: UNIIs flagged as plant material (any of UNII_PLANT_COLUMNS populated), which
+      the same retype types biolink:Food, or biolink:ComplexMolecularMixture when the entry is an
+      "extract".
+    - ``organism_uniis``: UNIIs flagged as a whole organism / crude organism-derived substance (any of
+      UNII_ORGANISM_COLUMNS populated), which chemicals.write_unii_ids excludes from the chemical
+      compendium, and which the audit CSVs use to find the NCBI-only entries deferred to issue #930.
 
-def read_organism_uniis(records_file):
-    """Return the set of UNII codes flagged as a whole organism / crude organism-derived
-    substance in Latest_UNII_Records.txt (any of UNII_ORGANISM_COLUMNS populated).
-
-    Shared by chemicals.write_unii_ids (which excludes these from the chemical compendium) and
-    the DrugBank food-and-extract retype so the "this UNII is an organism" definition lives in
-    one place.
+    All three come back together because every caller wants at least two of them and the file is one
+    scan.
     """
-    return _read_uniis_with_any_column(records_file, UNII_ORGANISM_COLUMNS)
-
-
-def read_plant_uniis(records_file):
-    """Return the set of UNII codes flagged as plant material in Latest_UNII_Records.txt (any of
-    UNII_PLANT_COLUMNS — PLANTS/GRIN/MPNS — populated).
-
-    Used by the DrugBank food-and-extract retype (issue #828) to recognise plant-derived entries
-    (whole plants, plant parts, and plant extracts), which are typed biolink:Food or, when described
-    as an "extract", biolink:ComplexMolecularMixture. Unlike read_organism_uniis this excludes
-    NCBI-only records, which mix plants with animals/bacteria/fungi/biologics and are not retyped.
-    """
-    return _read_uniis_with_any_column(records_file, UNII_PLANT_COLUMNS)
+    unii_to_ncit, plant_uniis, organism_uniis = {}, set(), set()
+    for row in read_unii_records(records_file):
+        unii = row["UNII"]
+        ncit = (row.get("NCIT") or "").strip()
+        if ncit:
+            unii_to_ncit[unii] = f"{NCIT}:{ncit}"
+        if any(row.get(col) for col in UNII_PLANT_COLUMNS):
+            plant_uniis.add(unii)
+        if any(row.get(col) for col in UNII_ORGANISM_COLUMNS):
+            organism_uniis.add(unii)
+    return unii_to_ncit, plant_uniis, organism_uniis
 
 
 def pull_unii():

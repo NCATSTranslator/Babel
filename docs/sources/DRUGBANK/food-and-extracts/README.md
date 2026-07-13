@@ -98,9 +98,9 @@ marker.
 
 ### Why the botanical flags but not NCBI
 
-`read_plant_uniis` keys on the **botanical** UNII columns only — `PLANTS` / `GRIN` / `MPNS`. A UNII
-in any of those denotes plant material (a whole plant or a plant part/extract), and a DrugBank plant
-material with no structure is safely `Food`/extract.
+The plant-material signal keys on the **botanical** UNII columns only — `PLANTS` / `GRIN` / `MPNS`.
+A UNII in any of those denotes plant material (a whole plant or a plant part/extract), and a
+DrugBank plant material with no structure is safely `Food`/extract.
 
 The broader `NCBI` organism flag is deliberately **excluded** — not because NCBI-flagged entries
 aren't food (many are), but because the flag says nothing either way. NCBI Taxonomy covers animals,
@@ -149,7 +149,7 @@ Snapshot below) — they are how you decide what the *next* veto root should be.
   records + those NCIt codes + `config.yaml: drugbank_extract_markers`, and writes
   `ids/DRUGBANK_food_extracts` (`DRUGBANK:xxx\tbiolink:Type`) —
   `datahandlers/drugbank.py:write_drugbank_food_extract_types`. The plant-flag set comes
-  from the same UNII records file (`unii.py:read_plant_uniis`), so the rule needs no extra input.
+  from the same UNII records file (`unii.py:read_unii_flags`), so the rule needs no extra input.
 - `chemicals.create_typed_sets` forces any clique containing one of those CURIEs to the given type,
   overriding the normal per-identifier type vote (the extracts carry no Babel type of their own, so
   a vote would leave them as `ChemicalEntity`). The retype is clique-level: it assumes an extract
@@ -196,7 +196,7 @@ type is `T121`/`T130`-ish — or whose parent is plainly an agent class — is h
 `drugbank_nonfood_ncit_roots` entry. That is also how ethiodized oil was found.
 
 To regenerate after a UNII refresh: run the `chemical_ncit_food_codes` and
-`chemical_ncit_nonfood_codes` rules (or `chemicals.write_ncit_descendant_codes`) to produce
+`chemical_ncit_nonfood_codes` rules (or `ncit.write_ncit_descendant_codes`) to produce
 `ncit_food_codes` / `ncit_nonfood_codes`, then run `scripts/generate_csvs.py`. It also needs
 `babel_downloads/NCIT/labels` and `babel_downloads/NCBITaxon/labels` for the label columns, and
 `babel_downloads/UMLS/MRCONSO.RRF` / `MRSTY.RRF` for the semantic types; its module docstring has

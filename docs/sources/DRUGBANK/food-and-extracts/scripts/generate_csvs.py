@@ -40,8 +40,8 @@ Inputs (pinned DrugBank vocabulary; current FDA UNII records):
     subtrees. Produced by the ``chemical_ncit_food_codes`` / ``chemical_ncit_nonfood_codes``
     Snakemake rules, or directly (UberGraph query):
 
-        uv run python -c "import src.createcompendia.chemicals as c, src.util as u; \\
-          c.write_ncit_descendant_codes(u.get_config()['drugbank_food_ncit_roots'], 'ncit_food_codes')"
+        uv run python -c "import src.datahandlers.ncit as ncit, src.util as u; \\
+          ncit.write_ncit_descendant_codes(u.get_config()['drugbank_food_ncit_roots'], 'ncit_food_codes')"
 
 Run (from the repo root):
 
@@ -55,20 +55,13 @@ import csv
 from collections import defaultdict
 from pathlib import Path
 
-from src.categories import COMPLEX_MOLECULAR_MIXTURE
-from src.datahandlers.drugbank import classify_food_or_extract, read_ncit_code_set
-from src.datahandlers.unii import (
-    UNII_RECORDS_ENCODING,
-    read_organism_uniis,
-    read_plant_uniis,
-    read_unii_ncit,
-)
-from src.prefixes import DRUGBANK, NCBITAXON, NCIT
+from src.categories import COMPLEX_MOLECULAR_MIXTURE, FOOD, PROCESSED_MATERIAL
+from src.datahandlers.drugbank import classify_food_or_extract
+from src.datahandlers.ncit import read_ncit_code_set
+from src.datahandlers.unii import read_unii_flags, read_unii_records
+from src.prefixes import DRUGBANK, NCBITAXON, NCIT, UNII
 from src.ubergraph import UberGraph
-from src.util import get_config
-
-# ProcessedMaterial is the eventual home for the "extract" rows once issue #929 adds that output.
-FUTURE_EXTRACT_TYPE = "biolink:ProcessedMaterial"
+from src.util import Text, get_config
 
 # Column offsets in the pipe-delimited UMLS RRF files (see the UMLS Reference Manual): MRCONSO is
 # CUI|LAT|TS|LUI|STT|SUI|ISPREF|AUI|SAUI|SCUI|SDUI|SAB|TTY|CODE|..., MRSTY is CUI|TUI|STN|STY|ATUI|CVF.
@@ -90,12 +83,6 @@ def read_labels(labels_file):
         return dict(line.rstrip("\n").split("\t", 1) for line in inf if "\t" in line)
 
 
-def read_unii_records(unii_records):
-    """Return {UNII code -> raw Latest_UNII_Records.txt row} so File B can report the UNII's own fields."""
-    with open(unii_records, encoding=UNII_RECORDS_ENCODING) as inf:
-        return {row["UNII"]: row for row in csv.DictReader(inf, delimiter="\t")}
-
-
 def read_ncit_semantic_types(mrconso, mrsty, ncit_curies):
     """Return {NCIt CURIE -> "T121=Pharmacologic Substance|..."} for the given NCIt CURIEs.
 
@@ -106,7 +93,7 @@ def read_ncit_semantic_types(mrconso, mrsty, ncit_curies):
     UNII as ``CODE``), but there these products are all FDA drug ingredients, so that route reports
     ``T121`` "Pharmacologic Substance" for even the plainest food.
     """
-    codes = {curie.split(":")[1] for curie in ncit_curies if curie}
+    codes = {Text.un_curie(curie) for curie in ncit_curies if curie}
     cui_to_codes = defaultdict(set)
     with open(mrconso) as inf:
         for line in inf:
@@ -141,14 +128,11 @@ def generate(
     ncbitaxon_labels,
     mrconso,
     mrsty,
-    file_a,
-    file_b,
 ):
-    """Write File A (retype changes) and File B (deferred NCBI-only), returning per-file row counts."""
-    unii_to_ncit = read_unii_ncit(unii_records)
-    plant_uniis = read_plant_uniis(unii_records)
-    organism_uniis = read_organism_uniis(unii_records)
-    unii_rows = read_unii_records(unii_records)
+    """Write File A (retype changes) and File B (deferred NCBI-only), returning the rows of each."""
+    unii_to_ncit, plant_uniis, organism_uniis = read_unii_flags(unii_records)
+    # File B also reports two of the UNII record's own fields (NCBI taxon, Display Name).
+    unii_rows = {row["UNII"]: row for row in read_unii_records(unii_records)}
     ncit_label = read_labels(ncit_labels)
     taxon_label = read_labels(ncbitaxon_labels)
     food_ncit_codes = read_ncit_code_set(ncit_food_codes_file)
@@ -168,13 +152,14 @@ def generate(
                     {
                         "drugbank_curie": curie,
                         "label": row.get("Common name", ""),
-                        "unii": f"UNII:{unii}" if unii else "",
+                        "unii": f"{UNII}:{unii}" if unii else "",
                         "ncit": ncit,
                         "ncit_label": ncit_label.get(ncit, ""),
                         "ncit_parents": "",
                         "ncit_umls_semantic_types": "",
                         "biolink_type": biolink_type,
-                        "future_biolink_type": FUTURE_EXTRACT_TYPE if biolink_type == COMPLEX_MOLECULAR_MIXTURE else "",
+                        # ProcessedMaterial is the eventual home for the extracts (issue #929).
+                        "future_biolink_type": PROCESSED_MATERIAL if biolink_type == COMPLEX_MOLECULAR_MIXTURE else "",
                         "signal": signal,
                     }
                 )
@@ -194,7 +179,7 @@ def generate(
                     {
                         "drugbank_curie": curie,
                         "label": row.get("Common name", ""),
-                        "unii": f"UNII:{unii}" if unii else "",
+                        "unii": f"{UNII}:{unii}" if unii else "",
                         "unii_preferred_name": unii_rows.get(unii, {}).get("Display Name", ""),
                         "ncbitaxon": taxon_curie,
                         "ncbitaxon_label": taxon_label.get(taxon_curie, ""),
@@ -221,46 +206,19 @@ def generate(
 
     a_rows.sort(key=lambda r: r["drugbank_curie"])
     b_rows.sort(key=lambda r: r["drugbank_curie"])
-    _write_csv(
-        file_a,
-        [
-            "drugbank_curie",
-            "label",
-            "unii",
-            "ncit",
-            "ncit_label",
-            "ncit_parents",
-            "ncit_umls_semantic_types",
-            "biolink_type",
-            "future_biolink_type",
-            "signal",
-        ],
-        a_rows,
-    )
-    _write_csv(
-        file_b,
-        [
-            "drugbank_curie",
-            "label",
-            "unii",
-            "unii_preferred_name",
-            "ncbitaxon",
-            "ncbitaxon_label",
-            "unii_ncit",
-            "unii_ncit_label",
-            "unii_ncit_parents",
-            "unii_ncit_semantic_types",
-            "has_extract_marker",
-        ],
-        b_rows,
-    )
+    _write_csv(FILE_A, a_rows)
+    _write_csv(FILE_B, b_rows)
     return a_rows, b_rows
 
 
-def _write_csv(path, fieldnames, rows):
-    """Write ``rows`` to ``path`` as UTF-8 CSV with LF line endings."""
+def _write_csv(path, rows):
+    """Write ``rows`` to ``path`` as UTF-8 CSV with LF line endings.
+
+    The columns are the keys of the first row, in insertion order — so a new column is added once,
+    where the row dict is built, and not again in a separate header list.
+    """
     with open(path, "w", newline="\n") as out:
-        writer = csv.DictWriter(out, fieldnames=fieldnames, lineterminator="\n")
+        writer = csv.DictWriter(out, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -293,10 +251,8 @@ def main():
         args.ncbitaxon_labels,
         args.mrconso,
         args.mrsty,
-        FILE_A,
-        FILE_B,
     )
-    food = sum(1 for r in a_rows if r["biolink_type"] == "biolink:Food")
+    food = sum(1 for r in a_rows if r["biolink_type"] == FOOD)
     cmm = sum(1 for r in a_rows if r["biolink_type"] == COMPLEX_MOLECULAR_MIXTURE)
     print(f"File A {FILE_A.name}: {len(a_rows)} rows ({food} Food + {cmm} ComplexMolecularMixture→ProcessedMaterial)")
     print(f"File B {FILE_B.name}: {len(b_rows)} NCBI-only deferred rows")
