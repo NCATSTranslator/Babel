@@ -298,6 +298,10 @@ class UberGraph:
         :param curies: An iterable of CURIEs to look up.
         :return: A dict of {CURIE -> [(superclass CURIE, superclass label), ...]}.
         """
+        if not curies:
+            # An empty VALUES block is legal SPARQL but the round trip is pointless, and a caller that
+            # filtered every CURIE out wants an empty answer, not a query.
+            return {}
         values = " ".join(Text.curie_to_obo(curie) for curie in curies)
         text = """
         prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
