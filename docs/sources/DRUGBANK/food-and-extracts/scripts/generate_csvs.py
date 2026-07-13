@@ -46,8 +46,8 @@ Inputs (pinned DrugBank vocabulary; current FDA UNII records):
 Run (from the repo root):
 
     uv run python docs/sources/DRUGBANK/food-and-extracts/scripts/generate_csvs.py \\
-        --ncit-food-codes babel_outputs/intermediate/chemicals/ids/ncit_food_codes \\
-        --ncit-nonfood-codes babel_outputs/intermediate/chemicals/ids/ncit_nonfood_codes
+        --ncit-food-codes babel_outputs/intermediate/chemicals/ncit/food_codes \\
+        --ncit-nonfood-codes babel_outputs/intermediate/chemicals/ncit/nonfood_codes
 """
 
 import argparse
@@ -187,7 +187,9 @@ def generate(
                         "unii_ncit_label": ncit_label.get(ncit, ""),
                         "unii_ncit_parents": "",
                         "unii_ncit_semantic_types": "",
-                        "has_extract_marker": str(any(marker in name_and_synonyms for marker in extract_markers)),
+                        "has_extract_marker": str(
+                            any(marker.lower() in name_and_synonyms for marker in extract_markers)
+                        ),
                     }
                 )
 
@@ -217,6 +219,8 @@ def _write_csv(path, rows):
     The columns are the keys of the first row, in insertion order — so a new column is added once,
     where the row dict is built, and not again in a separate header list.
     """
+    if not rows:
+        raise RuntimeError(f"Refusing to write an empty {path}: the classification produced no rows.")
     with open(path, "w", newline="\n") as out:
         writer = csv.DictWriter(out, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
@@ -229,11 +233,9 @@ def main():
     dd = config["download_directory"]
     parser.add_argument("--vocab-csv", default=f"{dd}/DRUGBANK/drugbank vocabulary.csv")
     parser.add_argument("--unii-records", default=f"{dd}/UNII/Latest_UNII_Records.txt")
+    parser.add_argument("--ncit-food-codes", default=f"{config['intermediate_directory']}/chemicals/ncit/food_codes")
     parser.add_argument(
-        "--ncit-food-codes", default=f"{config['intermediate_directory']}/chemicals/ids/ncit_food_codes"
-    )
-    parser.add_argument(
-        "--ncit-nonfood-codes", default=f"{config['intermediate_directory']}/chemicals/ids/ncit_nonfood_codes"
+        "--ncit-nonfood-codes", default=f"{config['intermediate_directory']}/chemicals/ncit/nonfood_codes"
     )
     parser.add_argument("--ncit-labels", default=f"{dd}/NCIT/labels")
     parser.add_argument("--ncbitaxon-labels", default=f"{dd}/NCBITaxon/labels")

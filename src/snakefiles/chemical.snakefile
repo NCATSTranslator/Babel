@@ -146,7 +146,7 @@ rule chemical_ncit_food_codes:
     # Enumerate the NCIt Food/Seed subtrees so the DRUGBANK food-and-extract retype can recognise
     # foods by their UNII's NCIt class (issue #828). Queries UberGraph, hence retries.
     output:
-        outfile=config["intermediate_directory"] + "/chemicals/ids/ncit_food_codes",
+        outfile=config["intermediate_directory"] + "/chemicals/ncit/food_codes",
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_ncit_food_codes.tsv"
     retries: 3  # UberGraph sometimes fails mid-download and needs a retry.
@@ -159,7 +159,7 @@ rule chemical_ncit_nonfood_codes:
     # botanical flag alone cannot type a plant-derived drug as biolink:Food (issue #828). Queries
     # UberGraph, hence retries.
     output:
-        outfile=config["intermediate_directory"] + "/chemicals/ids/ncit_nonfood_codes",
+        outfile=config["intermediate_directory"] + "/chemicals/ncit/nonfood_codes",
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_ncit_nonfood_codes.tsv"
     retries: 3  # UberGraph sometimes fails mid-download and needs a retry.
@@ -177,8 +177,8 @@ rule chemical_drugbank_food_extracts:
     input:
         vocab_csv=config["download_directory"] + "/DRUGBANK/drugbank vocabulary.csv",
         unii_records=config["download_directory"] + "/UNII/Latest_UNII_Records.txt",
-        food_ncit_codes=config["intermediate_directory"] + "/chemicals/ids/ncit_food_codes",
-        nonfood_ncit_codes=config["intermediate_directory"] + "/chemicals/ids/ncit_nonfood_codes",
+        food_ncit_codes=config["intermediate_directory"] + "/chemicals/ncit/food_codes",
+        nonfood_ncit_codes=config["intermediate_directory"] + "/chemicals/ncit/nonfood_codes",
     output:
         outfile=config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts",
     benchmark:

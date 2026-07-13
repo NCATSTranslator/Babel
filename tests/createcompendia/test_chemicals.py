@@ -7,6 +7,7 @@ that already embed their source prefix (e.g. the CHEBI source stores
 """
 
 import gzip
+import logging
 
 import pytest
 
@@ -125,3 +126,20 @@ def test_create_typed_sets_leaves_non_forced_clique_untouched():
 
     assert normal in typed[SMALL_MOLECULE]
     assert normal not in typed[FOOD]
+
+
+@pytest.mark.unit
+def test_create_typed_sets_warns_when_a_forced_clique_holds_a_defined_chemical(caplog):
+    """The clique-level force is coarse: it would retype a whole clique to Food even if a member is a
+    SmallMolecule. No DrugBank food/extract clique contains one today, so this must not fire in a real
+    build — but if a new concord ever bridges one to a defined chemical, the build must say so out loud
+    rather than quietly turning a small molecule into a food (issue #935 replaces the force with a vote)."""
+    honey = frozenset({"DRUGBANK:DB11226", "CHEBI:15377"})
+    types = {"CHEBI:15377": SMALL_MOLECULE}
+
+    with caplog.at_level(logging.WARNING):
+        typed = create_typed_sets({honey}, types, forced_types={"DRUGBANK:DB11226": FOOD})
+
+    assert honey in typed[FOOD]  # current (coarse) behaviour: the forced type still wins
+    assert "CHEBI:15377" in caplog.text
+    assert SMALL_MOLECULE in caplog.text

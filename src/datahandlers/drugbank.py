@@ -93,8 +93,10 @@ def classify_food_or_extract(row, unii_to_ncit, food_ncit_codes, nonfood_ncit_co
     is_plant = unii in plant_uniis
     if not (is_ncit_food or is_plant):
         return None, None
+    # Both sides are lower-cased: the markers come from config, and an entry written "Extract" would
+    # otherwise silently never match.
     text = f"{row.get('Common name', '')} {row.get('Synonyms', '')}".lower()
-    if any(marker in text for marker in extract_markers):
+    if any(marker.lower() in text for marker in extract_markers):
         return COMPLEX_MOLECULAR_MIXTURE, "extract"
     if not is_ncit_food and unii_to_ncit.get(unii) in nonfood_ncit_codes:
         return None, None
@@ -118,9 +120,9 @@ def write_drugbank_food_extract_types(
     nonfood_ncit_codes = read_ncit_code_set(nonfood_ncit_codes_file)
     with open(drugbank_vocab_csv) as fin, open(outfile, "w") as outf:
         reader = csv.DictReader(fin)
-        assert "DrugBank ID" in reader.fieldnames
-        assert "UNII" in reader.fieldnames
-        assert "Standard InChI Key" in reader.fieldnames
+        missing = {"DrugBank ID", "UNII", "Standard InChI Key"} - set(reader.fieldnames or [])
+        if missing:
+            raise RuntimeError(f"{drugbank_vocab_csv} is missing the columns the retype needs: {sorted(missing)}")
         for row in reader:
             biolink_type, _signal = classify_food_or_extract(
                 row, unii_to_ncit, food_ncit_codes, nonfood_ncit_codes, plant_uniis, extract_markers

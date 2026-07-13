@@ -123,6 +123,23 @@ def test_write_drugbank_food_extract_types(tmp_path):
     }
 
 
+@pytest.mark.unit
+def test_write_drugbank_food_extract_types_rejects_a_vocabulary_missing_its_columns(tmp_path):
+    """If DrugBank ever drops a column the retype keys on, fail loudly and name it — silently emitting
+    an empty file would silently un-retype all 685 entries."""
+    vocab = tmp_path / "drugbank vocabulary.csv"
+    vocab.write_text("DrugBank ID,Common name\nDB10626,Trout\n")  # no UNII, no Standard InChI Key
+    records = tmp_path / "Latest_UNII_Records.txt"
+    _write_unii_records(records, [{"UNII": "7TI7U5PF2U", "NCIT": "C71910"}])
+    codes = tmp_path / "codes"
+    codes.write_text("")
+
+    with pytest.raises(RuntimeError, match="Standard InChI Key.*UNII|UNII.*Standard InChI Key"):
+        write_drugbank_food_extract_types(
+            str(vocab), str(records), str(codes), str(codes), EXTRACT_MARKERS, str(tmp_path / "out")
+        )
+
+
 # ----
 # classify_food_or_extract
 # ----
@@ -140,6 +157,15 @@ def test_classify_plant_extract_is_complex_molecular_mixture():
     """A plant-flagged material whose name says 'extract' is biolink:ComplexMolecularMixture."""
     row = {"Common name": "Birch bark extract", "Synonyms": "", "UNII": "BARK", "Standard InChI Key": ""}
     result = classify_food_or_extract(row, {}, set(), set(), {"BARK"}, EXTRACT_MARKERS)
+    assert result == (COMPLEX_MOLECULAR_MIXTURE, "extract")
+
+
+@pytest.mark.unit
+def test_classify_matches_markers_case_insensitively():
+    """Markers are matched case-insensitively on both sides, so a config entry written "Extract" still
+    matches a DrugBank name written "extract" (and vice versa)."""
+    row = {"Common name": "Birch Bark EXTRACT", "Synonyms": "", "UNII": "BARK", "Standard InChI Key": ""}
+    result = classify_food_or_extract(row, {}, set(), set(), {"BARK"}, ["Extract"])
     assert result == (COMPLEX_MOLECULAR_MIXTURE, "extract")
 
 

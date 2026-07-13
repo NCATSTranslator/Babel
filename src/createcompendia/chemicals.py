@@ -51,6 +51,13 @@ from src.util import Text, ensure_parent_dir, get_logger, get_memory_usage_summa
 
 logger = get_logger(__name__)
 
+# Types that a source-forced clique type (create_typed_sets' forced_types, today only the DRUGBANK
+# food-and-extract retype) should never be silently overriding: they say a clique member is a defined
+# chemical, which a whole food or an extract is not. The forced type still wins — these cliques hold
+# nothing but ChemicalEntity members today — but the override is coarse enough that the day one of
+# these appears we want to hear about it rather than quietly retype a small molecule as a food.
+FORCED_TYPE_CONFLICTS = frozenset({DRUG, MOLECULAR_MIXTURE, SMALL_MOLECULE, POLYPEPTIDE})
+
 
 def get_type_from_smiles(smiles):
     if "." in smiles:
@@ -985,7 +992,8 @@ def create_typed_sets(eqsets, types, forced_types):
     :param forced_types: {CURIE -> biolink_type} from the sources that type their own cliques rather
         than voting (today only the DRUGBANK food-and-extract retype, issue #828). A clique containing
         any such CURIE is forced to that type, overriding the normal type vote; if two forced members
-        disagree the most specific type (earliest in ``order``) wins.
+        disagree the most specific type (earliest in ``order``) wins. A forced clique that also holds a
+        structure-bearing member is logged as a warning: see FORCED_TYPE_CONFLICTS.
     """
     order = [
         FOOD,
@@ -1004,10 +1012,17 @@ def create_typed_sets(eqsets, types, forced_types):
     # logging.warning(f"create_typed_sets: eqsets={eqsets}, types=...")
     for equivalent_ids in eqsets:
         # A clique containing a forced-type CURIE is retyped as a whole (issue #828). ponytail: coarse
-        # clique-level override; a DrugBank food/extract clique never contains a real chemical, so
-        # retyping the whole clique is safe.
+        # clique-level override — it is only safe because the forced cliques hold nothing but
+        # ChemicalEntity members today, which is exactly what the warning below watches for.
         if not forced_curies.isdisjoint(equivalent_ids):
             forced = {forced_types[c] for c in equivalent_ids if c in forced_types}
+            conflicting = {c: types[c] for c in equivalent_ids if types.get(c) in FORCED_TYPE_CONFLICTS}
+            if conflicting:
+                logger.warning(
+                    f"Clique forced to {sorted(forced)} contains identifiers Babel has already typed more "
+                    f"specifically: {conflicting}. The forced type wins and those types are discarded — "
+                    f"if this fires, the forced type should become a vote instead (see issue #935)."
+                )
             typed_sets[min(forced, key=order.index)].add(equivalent_ids)
             continue
         # logging.warning(f"Processing equivalent_ids={equivalent_ids}.")

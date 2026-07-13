@@ -142,9 +142,9 @@ Snapshot below) — they are how you decide what the *next* veto root should be.
 ## How it is wired
 
 - `chemical_ncit_food_codes` (rule) queries UberGraph for the NCIt Food/Seed subtrees
-  (`config.yaml: food_ncit_roots`) → `ids/ncit_food_codes`.
+  (`config.yaml: food_ncit_roots`) → `ncit/food_codes`.
 - `chemical_ncit_nonfood_codes` (rule) does the same for the never-food subtrees
-  (`config.yaml: nonfood_ncit_roots`) → `ids/ncit_nonfood_codes`.
+  (`config.yaml: nonfood_ncit_roots`) → `ncit/nonfood_codes`.
 - `chemical_drugbank_food_extracts` (rule) reads the DrugBank vocabulary CSV + the UNII
   records + those NCIt codes + `config.yaml: drugbank_extract_markers`, and writes
   `ids/DRUGBANK_food_extracts` (`DRUGBANK:xxx\tbiolink:Type`) —
