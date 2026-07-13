@@ -129,6 +129,23 @@ GeneProtein and DrugChemical conflations each have dedicated conflation modules
 respective cliques after the initial compendium build. See [Conflation.md](./Conflation.md) for
 details on what conflation means and how it works.
 
+### Chemical compendium output types
+
+The chemical pipeline emits one compendium file per Biolink type, enumerated in one place:
+`config.yaml: chemical_outputs`. That single list fans out to DrugChemical conflation (its input is
+`expand(..., config["chemical_outputs"])`), the KGX/Parquet/JSONL/DuckDB exports (via
+`get_all_compendia`), and the synonym outputs — so **adding a new chemical subtype only needs an
+entry there** (plus, in `create_typed_sets`, whatever routes cliques to it). Conflation reads these
+files but never re-types, so a retype done in the compendium survives downstream.
+
+The one manual extra: the per-type report rules in
+[`src/snakefiles/chemical.snakefile`](../src/snakefiles/chemical.snakefile) are hardcoded
+(`check_drug`, `check_food`, …), and `rule chemical` expands `chemical_outputs` over `reports/`, so
+a new output without a matching `check_*` rule breaks the DAG (no producer for
+`reports/<Type>.txt`). See the DrugBank food-and-extract retype
+([`docs/sources/DRUGBANK/food-and-extracts/README.md`](sources/DRUGBANK/food-and-extracts/README.md))
+for a worked example that added `Food.txt`.
+
 ## Output directories
 
 When the pipeline runs, it creates and populates these directories:
