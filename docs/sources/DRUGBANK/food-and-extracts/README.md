@@ -216,11 +216,15 @@ membership can drift slightly between refreshes.
   veto only catches what NCIt has *classified* — it caught the contrast agent and the
   antineoplastic, but a botanically-flagged material NCIt says nothing useful about still becomes
   `Food`. The 21 pollen entries are what remains of this:
-  [`DRUGBANK:DB10346`](https://go.drugbank.com/drugs/DB10346) "Acacia longifolia pollen" is `Food`
-  today, and pollen is not food (its semantic type is `T002` "Plant", not `T168` "Food"). Fixing
-  that means either a `Pollen` veto root or the broader Food-vs-`biolink:OrganismTaxon` modelling in
-  [#926](https://github.com/NCATSTranslator/Babel/issues/926); the `ncit_umls_semantic_types` column
-  is there to make that call from data.
+  [`DRUGBANK:DB10346`](https://go.drugbank.com/drugs/DB10346) "Acacia longifolia pollen" is `Food`,
+  though NCIt files it under [`NCIT:C79660`](http://purl.obolibrary.org/obo/NCIT_C79660) "Pollen" →
+  "Plant Part" and its semantic type is `T002` "Plant". A `Pollen` veto root was considered and
+  **rejected**: pollen is arguably edible, so `ChemicalEntity` would be a less informative answer,
+  not a more correct one. What pollen actually wants is a type for a *raw organism part used as a
+  substance*, which Biolink has no class for — the nearest are `ComplexMolecularMixture` and the
+  [#929](https://github.com/NCATSTranslator/Babel/issues/929) `ProcessedMaterial` (raw pollen is not
+  processed; pollen *extracts* already go there). Tracked on
+  [#926](https://github.com/NCATSTranslator/Babel/issues/926).
 - **NCBI-only entries are not retyped** (#930), including the genuine foods among them (lobster,
   flounder, casein, mushroom). This is the deliberate trade in the other direction: leave ~481
   entries under-typed rather than call an immune globulin a food.
