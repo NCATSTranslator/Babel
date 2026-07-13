@@ -143,11 +143,14 @@ def geneprotein_conflation_file(tmp_path_factory):
 # Biolink Model version used throughout the test suite.  Should match config.yaml.
 BIOLINK_VERSION = get_config()["biolink_version"]
 
-# Per-mark timeout overrides (pytest-timeout); unit tests inherit the global timeout = 30
+# Per-mark timeout overrides (pytest-timeout); unit tests inherit the global timeout = 30.
+# A test carrying several of these marks gets the longest of them (see max() in
+# pytest_collection_modifyitems), so `slow` is how a pipeline test that really does need an hour
+# asks for one -- the plain `pipeline` budget is deliberately tighter than that.
 MARK_TIMEOUTS = {
-    "network": 600,
-    "slow": 600,
-    "pipeline": 3600,
+    "network": 600,  # a download can stall on a slow mirror; 10 min before we call it hung.
+    "slow": 3600,  # `slow` means genuinely long-running: a full-file scan, an hour to be safe.
+    "pipeline": 900,  # most pipeline tests run in well under 15 min once the download is cached.
 }
 
 
