@@ -151,7 +151,7 @@ rule chemical_ncit_food_codes:
         config["output_directory"] + "/benchmarks/chemical_ncit_food_codes.tsv"
     retries: 3  # UberGraph sometimes fails mid-download and needs a retry.
     run:
-        ncit.write_ncit_descendant_codes(config["drugbank_food_ncit_roots"], output.outfile)
+        ncit.write_ncit_descendant_codes(config["food_ncit_roots"], output.outfile)
 
 
 rule chemical_ncit_nonfood_codes:
@@ -164,7 +164,7 @@ rule chemical_ncit_nonfood_codes:
         config["output_directory"] + "/benchmarks/chemical_ncit_nonfood_codes.tsv"
     retries: 3  # UberGraph sometimes fails mid-download and needs a retry.
     run:
-        ncit.write_ncit_descendant_codes(config["drugbank_nonfood_ncit_roots"], output.outfile)
+        ncit.write_ncit_descendant_codes(config["nonfood_ncit_roots"], output.outfile)
 
 
 rule chemical_drugbank_food_extracts:
@@ -395,7 +395,9 @@ rule chemical_compendia:
         metadata_yamls=[config["intermediate_directory"] + "/chemicals/partials/metadata-untyped_compendium.yaml"],
         properties_jsonl_gz=[config["intermediate_directory"] + "/chemicals/properties/get_chebi_concord.jsonl.gz"],
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
-        food_extract_types=config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts",
+        # Every source that overrides the clique type vote contributes one CURIE->biolink:Type file
+        # here; today that is only the DRUGBANK food-and-extract retype (issue #828).
+        forced_type_files=[config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts"],
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["chemical_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["chemical_outputs"])),
@@ -412,7 +414,7 @@ rule chemical_compendia:
             input.properties_jsonl_gz,
             input.metadata_yamls,
             input.icrdf_filename,
-            input.food_extract_types,
+            input.forced_type_files,
         )
 
 

@@ -30,7 +30,7 @@ three read in one pass by `unii.py:read_unii_flags`, which returns:
   botanical subset (`plant_uniis`) when you want plants/foods.
 
 A botanical flag means "plant material", not "food", so it must never overrule an NCIt class that
-says the entry is a drug — hence `config.yaml: drugbank_nonfood_ncit_roots`, the never-food veto
+says the entry is a drug — hence `config.yaml: nonfood_ncit_roots`, the never-food veto
 that keeps [`DRUGBANK:DB00965`](https://go.drugbank.com/drugs/DB00965) "Ethiodized oil" (a
 poppy-seed-oil contrast agent) out of `biolink:Food`. Keep those roots narrow, and do **not** reach
 for UMLS semantic types instead: they are far coarser than NCIt's classes here, and the

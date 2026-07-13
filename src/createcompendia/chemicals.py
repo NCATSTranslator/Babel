@@ -917,7 +917,7 @@ def build_compendia(
     properties_jsonl_gz_files,
     metadata_yamls,
     icrdf_filename,
-    food_extract_types_file,
+    forced_type_files,
 ):
     types = {}
     with open(type_file) as inf:
@@ -926,15 +926,16 @@ def build_compendia(
             types[x[0]] = x[1]
     logger.info(f"Loaded {len(types)} types from {type_file}: {get_memory_usage_summary()}")
 
-    # DRUGBANK food-and-extract CURIEs to force to a specific Biolink type (issue #828): foods to
-    # biolink:Food, non-food allergen extracts (pollens/danders/...) to biolink:ComplexMolecularMixture.
-    # These enter chemical cliques via the UMLS/RXNORM concords without a Babel-assigned type, so we
-    # retype the whole clique they land in rather than relying on the per-identifier type vote.
-    _, forced_types = read_identifier_file(food_extract_types_file)
-    logger.info(
-        f"Loaded {len(forced_types)} forced food-and-extract types from {food_extract_types_file}: "
-        f"{get_memory_usage_summary()}"
-    )
+    # CURIEs whose clique's type is decided by the source rather than by the per-identifier type vote:
+    # each file in forced_type_files is CURIE\tbiolink:Type. Today the only producer is the DRUGBANK
+    # food-and-extract retype (issue #828) — foods to biolink:Food, extracts (pollens/danders/...) to
+    # biolink:ComplexMolecularMixture — whose CURIEs enter chemical cliques via the UMLS/RXNORM concords
+    # carrying no Babel type of their own, so a vote would leave them as ChemicalEntity.
+    forced_types = {}
+    for forced_type_file in forced_type_files:
+        _, file_types = read_identifier_file(forced_type_file)
+        forced_types.update(file_types)
+    logger.info(f"Loaded {len(forced_types)} forced types from {forced_type_files}: {get_memory_usage_summary()}")
 
     untyped_sets = set()
     with open(untyped_compendia_file) as inf:
@@ -981,9 +982,10 @@ def create_typed_sets(eqsets, types, forced_types):
 
     :param eqsets: A list of lists of identifiers (should NOT be a list of LabeledIDs, but a list of strings).
     :param types: A dictionary of known types for each identifier. (Some identifiers don't have known types.)
-    :param forced_types: {CURIE -> biolink_type} for DRUGBANK food/extracts (issue #828). A clique
-        containing any such CURIE is forced to that type (Food or ComplexMolecularMixture), overriding
-        the normal type vote; if members disagree the most specific type (earliest in ``order``) wins.
+    :param forced_types: {CURIE -> biolink_type} from the sources that type their own cliques rather
+        than voting (today only the DRUGBANK food-and-extract retype, issue #828). A clique containing
+        any such CURIE is forced to that type, overriding the normal type vote; if two forced members
+        disagree the most specific type (earliest in ``order``) wins.
     """
     order = [
         FOOD,
@@ -1001,9 +1003,9 @@ def create_typed_sets(eqsets, types, forced_types):
     typed_sets = defaultdict(set)
     # logging.warning(f"create_typed_sets: eqsets={eqsets}, types=...")
     for equivalent_ids in eqsets:
-        # A clique containing a DRUGBANK food/extract is retyped as a whole to its forced type
-        # (issue #828). ponytail: coarse clique-level override; an extract clique never contains a real
-        # chemical, so retyping the whole clique is safe.
+        # A clique containing a forced-type CURIE is retyped as a whole (issue #828). ponytail: coarse
+        # clique-level override; a DrugBank food/extract clique never contains a real chemical, so
+        # retyping the whole clique is safe.
         if not forced_curies.isdisjoint(equivalent_ids):
             forced = {forced_types[c] for c in equivalent_ids if c in forced_types}
             typed_sets[min(forced, key=order.index)].add(equivalent_ids)
