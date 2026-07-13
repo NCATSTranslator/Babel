@@ -25,12 +25,12 @@ export UV_CACHE_DIR="/projects/babel/runs/uv-cache/"
 #
 # Note that since Snakemake supports slurm executor plugin natively, submitting this as a SLURM batch
 # job is not recommended since that will create an outer SLURM job running Snakemake which then
-# submits innter SLURM jobs for workflow rules as specified in the profile. The recommended way
+# submits inner SLURM jobs for workflow rules as specified in the profile. The recommended way
 # is to run this directly on the login or head node. However, it might not be a good thing to have
 # a long-running process on login/head nodes. So a good compromise is to still use the sbatch wrapper
 # to submit the snakemake job but request minimal resources for the outer job as shown in this job script.
 
-uv run snakemake --profile slurm $@
+uv run snakemake --slurm-jobname-prefix "${BABEL_VERSION:-babel-current}" --profile slurm $@
 snakemake_exit=\$?
 
 if [ \$snakemake_exit -ne 0 ]; then
