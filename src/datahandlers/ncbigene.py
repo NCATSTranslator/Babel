@@ -56,6 +56,21 @@ def is_open_marker(starts_quoted, ends_quoted):
     return starts_quoted and not ends_quoted
 
 
+def field_has_open_marker(value):
+    """True if a raw pipe-delimited field contains a #744 open marker -- i.e. NCBI shredded a
+    ''...''-quoted value into it.
+
+    The cheap `''` substring test first: only ~25,000 of gene_info.gz's ~70 million rows carry a ''
+    at all, so the split is not worth paying for on the rest.
+    """
+    if "''" not in value:
+        return False
+    return any(
+        is_open_marker(fragment.startswith("''"), fragment.endswith("''"))
+        for fragment in (f.strip() for f in value.split("|"))
+    )
+
+
 def split_ncbigene_synonym_field(value, full_name=""):
     """
     Split a pipe-delimited NCBIGene synonym field into standalone synonym strings.

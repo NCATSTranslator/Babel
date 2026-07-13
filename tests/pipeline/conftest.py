@@ -136,18 +136,24 @@ def _intermediate_id_path(compendium: str, vocab: str) -> str:
     return os.path.join(get_config()["intermediate_directory"], _snakemake_dir(compendium), "ids", vocab)
 
 
-def _maybe_run(outfile: str, fn, regenerate: bool) -> str:
+def _maybe_run(outfile: str | list[str], fn, regenerate: bool) -> str:
     """Run fn() to (re)generate outfile unless it exists and regenerate is False.
 
     fn is a zero-argument callable (typically a lambda) that writes to outfile.
-    Creates parent directories as needed.  Always returns outfile.
+    Creates parent directories as needed.  Always returns outfile (the first, if given several).
+
+    Pass a list when one call produces several outputs together (NCBIGene's single pass over
+    gene_info.gz writes labels, synonyms, taxa and descriptions at once): fn() then runs unless
+    *every* output is already present, so a half-finished run is not mistaken for a cached one.
     """
-    if not os.path.exists(outfile) or regenerate:
-        os.makedirs(os.path.dirname(outfile), exist_ok=True)
+    outfiles = [outfile] if isinstance(outfile, str) else outfile
+    if regenerate or not all(os.path.exists(f) for f in outfiles):
+        for f in outfiles:
+            os.makedirs(os.path.dirname(f), exist_ok=True)
         fn()
     else:
-        print(f"[pipeline] reusing cached {outfile} (pass --regenerate to refresh)")  # noqa: T201
-    return outfile
+        print(f"[pipeline] reusing cached {', '.join(outfiles)} (pass --regenerate to refresh)")  # noqa: T201
+    return outfiles[0]
 
 
 # ---------------------------------------------------------------------------
@@ -428,6 +434,50 @@ def omim_pipeline_outputs(omim_mim2gene, regenerate):
 
 
 # ---------------------------------------------------------------------------
+# NCBIGene download + processing fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def ncbigene_gene_info():
+    """Download babel_downloads/NCBIGene/gene_info.gz, or fail if unavailable.
+
+    This is a large file (>1 GB compressed); dependent tests are marked `slow`.
+    """
+    from src.datahandlers.ncbigene import pull_ncbigene  # deferred: only import when NCBIGene tests are requested
+
+    return _download_or_fail(
+        "NCBIGene gene_info.gz",
+        lambda: pull_ncbigene(["gene_info.gz"]),
+        make_local_name("gene_info.gz", subpath="NCBIGene"),
+    )
+
+
+@pytest.fixture(scope="session")
+def ncbigene_pipeline_outputs(ncbigene_gene_info, regenerate):
+    """Run pull_ncbigene_labels_synonyms_and_taxa; returns {labels, synonyms, taxa, descriptions} paths.
+
+    Output files go to babel_downloads/NCBIGene/ and are reused on subsequent runs unless
+    --regenerate is passed.  Processing the full gene_info.gz is slow (millions of rows), so
+    the four outputs are generated together in one pass.
+    """
+    from src.datahandlers.ncbigene import pull_ncbigene_labels_synonyms_and_taxa  # deferred
+
+    labels = make_local_name("labels", subpath="NCBIGene")
+    synonyms = make_local_name("synonyms", subpath="NCBIGene")
+    taxa = make_local_name("taxa", subpath="NCBIGene")
+    descriptions = make_local_name("descriptions", subpath="NCBIGene")
+
+    _maybe_run(
+        [labels, synonyms, taxa, descriptions],
+        lambda: pull_ncbigene_labels_synonyms_and_taxa(ncbigene_gene_info, labels, synonyms, taxa, descriptions),
+        regenerate,
+    )
+
+    return {"labels": labels, "synonyms": synonyms, "taxa": taxa, "descriptions": descriptions}
+
+
+# ---------------------------------------------------------------------------
 # UberGraph connectivity fixture (shared prerequisite for NCIT and GO)
 # ---------------------------------------------------------------------------
 
@@ -573,7 +623,7 @@ VOCABULARY_REGISTRY = {
 # wrapper fixtures (ec_ids_outputs, clo_ids_outputs, efo_ids_outputs) defined
 # near the bottom of this file.
 #
-# Rhea and ChEMBL are NOT registered: they produce labels/concords/smiles but
+# Rhea, ChEMBL and NCBIGene are NOT registered: they produce labels/concords/smiles/synonyms but
 # no IDs file, so they cannot be exercised by test_vocabulary_partitioning.py
 # without adding write_X_ids() functions first.
 # See https://github.com/NCATSTranslator/Babel/issues/749

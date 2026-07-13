@@ -243,6 +243,24 @@ Prefer invoking this repo's existing download code over a fresh API lookup when 
 source database, unless you suspect that code is wrong — then compare the two to see how they
 differ.
 
+Before changing how a source's free-text field is parsed, characterize the *whole* downloaded file
+— stream it and tabulate how characters and delimiters are actually used — rather than generalizing
+from a few sampled rows. A shape that reads as a quoting artifact in a sample is often legitimate at
+scale: NCBIGene's trailing `''` looks like a stray quote but is genuine double-prime nomenclature
+(RNA polymerase `beta''`), so a fix dropping every `''`-terminated value discarded ~4,000 real
+synonyms. Commit the analysis script and its output so the finding stays reproducible; see
+`docs/Development.md` ("Characterize a messy field before you parse it") and the worked example in
+`docs/sources/NCBIGene/quoting/`.
+
+Do not reason about source data from a derived artifact — a hand-written test fixture, a scratch
+script, an earlier summary. Go to the downloaded file. Both errors in the #744 investigation came
+from this: a fixture invented a row shape that `gene_info.gz` never contains, and a one-off shell
+scan produced a count that was wrong in a way nobody could see until the check was committed. A
+fixture standing in for a real record must be copied **verbatim** from the source file, with the
+record's ID in a comment so the next person can re-derive it; and any claim about the data that
+justifies a parsing decision belongs in a committed script that regenerates it, not in a PR
+description.
+
 When a bug fix is easy to cover with a test, suggest adding one as part of the fix.
 
 Two different compendia must never share an identifier, and no valid identifier should be dropped

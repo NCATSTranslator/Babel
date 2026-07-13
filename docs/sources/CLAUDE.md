@@ -5,6 +5,40 @@ narrative docs (what a source is, how it's ingested) live in `docs/sources/<PREF
 [`README.md`](README.md) for the index; add there, not here, when you learn something non-obvious
 about one specific source.
 
+## Investigating a source: commit the check, not the conclusion
+
+When you characterize a source's data to justify a parsing decision — how a field is quoted, whether
+a delimiter is safe to split on, whether a pattern is an artifact or real — the check itself belongs
+in the repo, next to the per-source doc, as a script that regenerates its own output. A conclusion
+recorded only in prose (a PR description, a paragraph here) cannot be re-run against next month's
+download, and cannot be checked by a reviewer who doubts it.
+
+This is not pedantry. In the #744 NCBIGene work, a count computed in a throwaway shell one-liner had
+the wrong denominator, and nobody could see it until the same check was written into a committed
+script — where it immediately disagreed with the prose. Two claims, both stated confidently, both
+wrong, both caught only by making them reproducible.
+
+So: keep the analysis script and its generated output under `docs/sources/<PREFIX>/`, have the
+script import the production predicate it is reasoning about (rather than re-implementing it, which
+lets the two drift), and where the finding constrains real output, add a `pipeline`-marked test that
+asserts it over the full downloaded file. `docs/sources/NCBIGene/quoting/` is the worked example:
+`analyze_quoting.py` and `double_prime_report.py` both import from `src/datahandlers/ncbigene.py`,
+and `tests/pipeline/test_ncbigene.py` enforces the conclusion against every row.
+
+### Markdown gets a sample; the CSV gets the rest
+
+The generated Markdown is an *argument*, read top to bottom by a person: **5–10 examples is plenty**
+to show a shape. Anything longer is a data dump that buries the finding — and if it is ranked purely
+by frequency, its head is usually one shape repeated (NCBIGene's `''` tokens are all protein-subunit
+names for the first dozen rows, hiding the chemical locants entirely). Sample deliberately: spread
+across the list, or take the most common of each shape, and say in the report which you did.
+
+Emit the exhaustive per-row record as a **CSV** beside the Markdown and commit it — that is what a
+reviewer greps and what a future run diffs against (`shredded_pieces.csv`, one row per dropped
+synonym). If the full record is big enough to be unwieldy in Git, leave it out and let the script
+regenerate it locally; say so in the report, and make sure the script's default output path is the
+one the report names.
+
 ## An OBO `hasDbXref` is not an equivalence
 
 Concords are fed to `glom()` as equivalence assertions, but many ontologies use

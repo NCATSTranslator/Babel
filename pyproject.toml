@@ -97,7 +97,7 @@ timeout = 30          # global fallback (seconds); overridden per mark in confte
 markers = [
     "unit: fast offline tests with no external dependencies",
     "network: requires live internet access (use --network to run)",
-    "slow: correct but takes >30s even offline",
+    "slow: genuinely long-running (a full-file scan, a multi-GB load); raises the timeout to an hour",
     "pipeline: invokes Snakemake rules; requires babel_downloads/ (use --pipeline to run)",
     "min_memory_gb(n): test needs at least n GiB of system RAM; auto-skipped on smaller machines",
 ]
