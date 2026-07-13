@@ -22,24 +22,29 @@ already waiting when you log back in. Use it to decide which rules need a code f
 re-run, and to confirm nothing was left silently broken.
 
 ```bash
-uv run babel-slurm-errors <version> [--logs-dir DIR] [--markdown] [--traceback-only] [--lines N]
+uv run babel-slurm-errors <version> [--logs-dir DIR] [--logs] [--markdown] [--traceback-only] [--lines N]
 ```
 
 `<version>` is the tag in the `sbatch-<version>.err` control-node log (e.g. `1.17-try-2`); omit it
 to auto-detect the newest `sbatch-*.err` in the logs directory. `--logs-dir` defaults to
 `babel_outputs/logs`.
 
+By default only the stderr job summary is printed — a failing rule is usually faster to diagnose
+by reproducing it locally (`uv run pytest`, or re-running the rule directly) than by reading its
+log, and a rule that failed and retried several times would otherwise print the same log body
+once per attempt. Pass `--logs` to also print the deduplicated error report on stdout.
+
 ## What it reads and writes
 
 It reads the main `sbatch-<version>.err` log, follows each `Error in rule X` to that rule's
 per-rule `*.log`, and produces two outputs on two streams:
 
-- **stdout — the error report.** One section per distinct failure. Rules whose logs are
-  byte-for-byte identical are grouped together, so a recurring transient failure (an HTTP 503 from a
-  data source hitting many rules) shows up once rather than dozens of times. With `--markdown` each
-  section is a fenced code block (handy for pasting into a review tool or chat); otherwise sections
-  are separated by `===` banners. `slurm/run-babel-on-slurm.sh` redirects this stream to
-  `babel_outputs/logs/error-report-<version>.md`.
+- **stdout — the error report (only with `--logs`).** One section per distinct failure. Rules
+  whose logs are byte-for-byte identical are grouped together, so a recurring transient failure (an
+  HTTP 503 from a data source hitting many rules) shows up once rather than dozens of times. With
+  `--markdown` each section is a fenced code block (handy for pasting into a review tool or chat);
+  otherwise sections are separated by `===` banners. `slurm/run-babel-on-slurm.sh` passes `--logs`
+  and redirects this stream to `babel_outputs/logs/error-report-<version>.md`.
 - **stderr — the job summary.** A roll-up of every job attempt parsed from the control-node log,
   split into three buckets: still-running rules (with elapsed time versus the declared timeout and
   the time remaining), completed rules, and truly-failed jobs (those with no active retry). A rule
