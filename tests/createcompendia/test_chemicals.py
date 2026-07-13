@@ -10,7 +10,7 @@ import gzip
 
 import pytest
 
-from src.categories import COMPLEX_MOLECULAR_MIXTURE, FOOD, SMALL_MOLECULE
+from src.categories import CHEMICAL_ENTITY, COMPLEX_MOLECULAR_MIXTURE, FOOD, SMALL_MOLECULE
 from src.createcompendia.chemicals import create_typed_sets, write_unichem_concords
 from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
@@ -91,37 +91,65 @@ def test_write_unichem_concords_raises_when_source_produces_no_entries(tmp_path)
 
 
 @pytest.mark.unit
-def test_create_typed_sets_forces_food_clique():
-    """A clique containing a DRUGBANK CURIE forced to Food should be typed biolink:Food regardless of
-    its other members' types, and keep every member (incl. RXCUI)."""
+def test_create_typed_sets_food_evidence_beats_chemical_entity():
+    """Food evidence on a clique whose members only vote ChemicalEntity should win: ChemicalEntity is
+    exactly the uninformative type the retype exists to improve on. Every member (incl. RXCUI) is kept."""
     trout = frozenset({"DRUGBANK:DB10626", "UMLS:C2725895", "RXCUI:882482"})
-    # A member is typed ChemicalEntity, which would otherwise win the vote — the forced type must override.
-    types = {"UMLS:C2725895": "biolink:ChemicalEntity"}
+    types = {"UMLS:C2725895": CHEMICAL_ENTITY}
 
-    typed = create_typed_sets({trout}, types, forced_types={"DRUGBANK:DB10626": FOOD})
+    typed = create_typed_sets({trout}, types, food_types={"DRUGBANK:DB10626": FOOD})
 
     assert trout in typed[FOOD]
     assert all(trout not in sets for t, sets in typed.items() if t != FOOD)
 
 
 @pytest.mark.unit
-def test_create_typed_sets_forces_non_food_allergen_to_mixture():
-    """A DRUGBANK allergen extract forced to ComplexMolecularMixture lands there, not in Food."""
+def test_create_typed_sets_food_evidence_loses_to_small_molecule():
+    """Food evidence must NOT demote a defined molecule: NCIt classifies water as a food, but its clique
+    votes SmallMolecule, which is more specific and wins (issue #935)."""
+    water = frozenset({"UNII:059QF0KO0R", "CHEBI:15377", "PUBCHEM.COMPOUND:962"})
+    types = {"CHEBI:15377": SMALL_MOLECULE, "PUBCHEM.COMPOUND:962": SMALL_MOLECULE}
+
+    typed = create_typed_sets({water}, types, food_types={"UNII:059QF0KO0R": FOOD})
+
+    assert water in typed[SMALL_MOLECULE]
+    assert water not in typed[FOOD]
+
+
+@pytest.mark.unit
+def test_create_typed_sets_extract_evidence_becomes_complex_molecular_mixture():
+    """A DrugBank extract carries ComplexMolecularMixture evidence and lands there, not in Food."""
     pollen = frozenset({"DRUGBANK:DB10351", "UMLS:C2684343"})
 
-    typed = create_typed_sets({pollen}, {}, forced_types={"DRUGBANK:DB10351": COMPLEX_MOLECULAR_MIXTURE})
+    typed = create_typed_sets({pollen}, {}, food_types={"DRUGBANK:DB10351": COMPLEX_MOLECULAR_MIXTURE})
 
     assert pollen in typed[COMPLEX_MOLECULAR_MIXTURE]
     assert pollen not in typed[FOOD]
 
 
 @pytest.mark.unit
-def test_create_typed_sets_leaves_non_forced_clique_untouched():
-    """A clique with no forced-type CURIE should keep its normal type (no forced_types leakage)."""
+def test_create_typed_sets_extract_evidence_beats_food_evidence():
+    """When a clique carries both kinds of evidence — DrugBank says extract, NCIt says the same concept is
+    a food — the extract wins, because ComplexMolecularMixture outranks Food."""
+    green_tea = frozenset({"DRUGBANK:DB13246", "UMLS:C0376263"})
+
+    typed = create_typed_sets(
+        {green_tea},
+        {},
+        food_types={"DRUGBANK:DB13246": COMPLEX_MOLECULAR_MIXTURE, "UMLS:C0376263": FOOD},
+    )
+
+    assert green_tea in typed[COMPLEX_MOLECULAR_MIXTURE]
+    assert green_tea not in typed[FOOD]
+
+
+@pytest.mark.unit
+def test_create_typed_sets_leaves_clique_without_food_evidence_untouched():
+    """A clique carrying no food/extract evidence keeps its normal type (no food_types leakage)."""
     normal = frozenset({"CHEBI:15377", "PUBCHEM.COMPOUND:962"})
     types = {"CHEBI:15377": SMALL_MOLECULE, "PUBCHEM.COMPOUND:962": SMALL_MOLECULE}
 
-    typed = create_typed_sets({normal}, types, forced_types={"DRUGBANK:DB10626": FOOD})
+    typed = create_typed_sets({normal}, types, food_types={"DRUGBANK:DB10626": FOOD})
 
     assert normal in typed[SMALL_MOLECULE]
     assert normal not in typed[FOOD]
