@@ -116,6 +116,7 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
         print("Found 0 incomplete rules.", file=sys.stderr)
 
     # Completed: unique rule names on one line.
+    print(file=sys.stderr)
     unique_completed = list(dict.fromkeys(g[0].rule_name for g in completed_groups))
     if unique_completed:
         print(f"Found {len(unique_completed)} completed rule(s): {', '.join(unique_completed)}", file=sys.stderr)
@@ -124,6 +125,7 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
 
     # Failed: only truly-dead tasks (no active retry). Summary line + one detail line per job.
     if failed_groups:
+        print(file=sys.stderr)
         all_failed_jobs = [j for g in failed_groups for j in g]
         # Count total job attempts per rule name (xN shows how many times the rule was retried).
         attempt_counts: Counter[str] = Counter(j.rule_name for j in all_failed_jobs)
