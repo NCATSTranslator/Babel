@@ -171,6 +171,17 @@ chemical_outputs:   [MolecularMixture.txt, SmallMolecule.txt, Polypeptide.txt, C
 drugbank_food_ncit_roots:
   - NCIT:C1949 # "Food" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C1949
   - NCIT:C73913 # "Seed" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C73913
+# NCIt subtrees whose members are NEVER food, however botanical they are (issue #828). A botanical flag
+# says "plant material", not "food", so on its own it must not overrule an NCIt class that says this is a
+# drug: without this veto DRUGBANK:DB00965 "Ethiodized oil" (an iodinated poppy-seed-oil contrast agent)
+# and DRUGBANK:DB05051 "BZL101" (an antineoplastic) are typed biolink:Food. A vetoed entry stays
+# biolink:ChemicalEntity — we make no claim — and an explicit drugbank_food_ncit_roots classification
+# still wins, so a food that is also a diagnostic agent (inulin) is unaffected. Keep these roots NARROW:
+# NCIT:C1909 "Pharmacologic Substance" is deliberately absent because NCIt files cocoa butter, garlic oil,
+# rice bran and green tea under it, and vetoing on it would throw out real foods.
+drugbank_nonfood_ncit_roots:
+  - NCIT:C1966 # "Imaging Agent" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C1966
+  - NCIT:C274 # "Antineoplastic Agent" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C274
 # Case-insensitive name/synonym substrings that mark a DRUGBANK food material as a processed
 # *extract*: such rows become biolink:ComplexMolecularMixture (an interim type — the eventual home is
 # biolink:ProcessedMaterial once issue #929 adds that output) rather than biolink:Food. "allergen" was

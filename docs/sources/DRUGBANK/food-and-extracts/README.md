@@ -11,7 +11,7 @@ the *extracts* ([`DRUGBANK:DB16536`](https://go.drugbank.com/drugs/DB16536) "Bir
 are processed materials, not defined chemicals.
 
 The goal is to type **as many DrugBank food entries as `biolink:Food` as we safely can**. The two
-signals we have (NCIt's Food/Seed classification and the UNII botanical flags) do that for 687
+signals we have (NCIt's Food/Seed classification and the UNII botanical flags) do that for 685
 entries, plant and non-plant alike — NCIt Food covers
 [`DRUGBANK:DB10623`](https://go.drugbank.com/drugs/DB10623) "Scallop",
 [`DRUGBANK:DB10918`](https://go.drugbank.com/drugs/DB10918) "Venison",
@@ -64,10 +64,28 @@ chemical). Then:
 2. Among that material, a row whose name/synonyms contain an `extract` marker
    (`config.yaml: drugbank_extract_markers`) is a processed extract →
    **`biolink:ComplexMolecularMixture`** (bark/root/pollen extracts, herbal tinctures).
-3. Any other food material → **`biolink:Food`** (whole fruits, roots, seeds, herbs, meats).
+3. A botanical flag says "plant material", not "food", so on its own it must not overrule an NCIt
+   class that says the entry is a **drug**. A row whose NCIt class is under
+   `config.yaml: drugbank_nonfood_ncit_roots` —
+   [`NCIT:C1966`](http://purl.obolibrary.org/obo/NCIT_C1966) "Imaging Agent",
+   [`NCIT:C274`](http://purl.obolibrary.org/obo/NCIT_C274) "Antineoplastic Agent" — is left as
+   `ChemicalEntity`. Without this veto, [`DRUGBANK:DB00965`](https://go.drugbank.com/drugs/DB00965)
+   "Ethiodized oil" (an iodinated poppy-seed-oil contrast agent) and
+   [`DRUGBANK:DB05051`](https://go.drugbank.com/drugs/DB05051) "BZL101" (an antineoplastic) are
+   typed `Food`.
+4. Any other food material → **`biolink:Food`** (whole fruits, roots, seeds, herbs, meats).
 
 The `extract` check is applied **after** material identification and takes precedence over Food, so
-an NCIt-food that is sold as an extract still lands in `ComplexMolecularMixture`.
+an NCIt-food that is sold as an extract still lands in `ComplexMolecularMixture`. The never-food
+veto comes after *that*, and only guards the `Food` branch: an explicit NCIt Food/Seed
+classification still wins, so a food that is also a diagnostic agent
+([`NCIT:C61506`](http://purl.obolibrary.org/obo/NCIT_C61506) "Inulin", used to measure GFR) is
+unaffected.
+
+Keep `drugbank_nonfood_ncit_roots` **narrow**.
+[`NCIT:C1909`](http://purl.obolibrary.org/obo/NCIT_C1909) "Pharmacologic Substance" is deliberately
+*not* on it: NCIt files cocoa butter, garlic oil, rice bran and green tea under it, so vetoing on it
+would throw out real foods.
 
 `biolink:ComplexMolecularMixture` here is an **interim** type. The right long-term home for an
 "extracted from a living organism" material is
@@ -98,10 +116,35 @@ hiding there ([`DRUGBANK:DB10541`](https://go.drugbank.com/drugs/DB10541) "Lobst
 animals/fungi, and no NCIt class they carry sits under Food/Seed). The snapshot file carries the
 per-entry evidence for that triage.
 
+### Why the veto keys on NCIt subtrees, not UMLS semantic types
+
+Babel otherwise leans on UMLS semantic types (STY) rather than NCIt classes, so the obvious question
+is whether `drugbank_nonfood_ncit_roots` could be a list of never-food STYs instead. It cannot, for
+three reasons, each measured against this snapshot:
+
+- **STYs are too coarse.** The tightest semantic type that catches ethiodized oil is `T130`
+  "Indicator, Reagent, or Diagnostic Aid" — which also covers
+  [`NCIT:C61506`](http://purl.obolibrary.org/obo/NCIT_C61506) "Inulin" (a real GFR diagnostic, so
+  UMLS is not wrong) and black pepper. `T121` "Pharmacologic Substance" is far worse: it covers 71
+  of the 304 `Food` rows. Every STY veto that catches the contrast agent takes real foods with it,
+  whereas NCIt's "Imaging Agent" catches it and nothing else in the set.
+- **STYs are too sparse here.** A semantic type is only reachable through the entry's NCIt code, and
+  83 of the 304 `Food` rows have no NCIt class at all — they are typed by the botanical flag alone.
+  There is also no Seed concept: barley and cotton seed come back `T002` "Plant", not `T168` "Food".
+- **The tempting wrong route.** UNIIs *do* map into UMLS directly (`MRCONSO`, `SAB=MTHSPL`, UNII as
+  `CODE` — 1071 of the 1168 UNIIs here). Do **not** type from it: in `MTHSPL` these products are all
+  FDA drug ingredients, so it stamps `T121` "Pharmacologic Substance" on 122 of the 130
+  NCIt-*foods*.
+
+The semantic types are still worth having in front of you, so both snapshot CSVs carry them (see
+Snapshot below) — they are how you decide what the *next* veto root should be.
+
 ## How it is wired
 
 - `chemical_ncit_food_codes` (rule) queries UberGraph for the NCIt Food/Seed subtrees
   (`config.yaml: drugbank_food_ncit_roots`) → `ids/ncit_food_codes`.
+- `chemical_ncit_nonfood_codes` (rule) does the same for the never-food subtrees
+  (`config.yaml: drugbank_nonfood_ncit_roots`) → `ids/ncit_nonfood_codes`.
 - `chemical_drugbank_food_extracts` (rule) reads the DrugBank vocabulary CSV + the UNII
   records + those NCIt codes + `config.yaml: drugbank_extract_markers`, and writes
   `ids/DRUGBANK_food_extracts` (`DRUGBANK:xxx\tbiolink:Type`) —
@@ -125,17 +168,18 @@ production `classify_food_or_extract`, so the CSVs can't drift from the pipeline
 from DrugBank vocabulary `5-1-13` (pinned — DrugBank downloads are currently blocked) and the
 current FDA UNII records.
 
-- **`food-and-extracts.csv`** — the retype changes, **687 entries** = **306 `biolink:Food`** (130
-  via NCIt Food/Seed, 176 via a botanical flag) + **381 `biolink:ComplexMolecularMixture`** (the
+- **`food-and-extracts.csv`** — the retype changes, **685 entries** = **304 `biolink:Food`** (130
+  via NCIt Food/Seed, 174 via a botanical flag) + **381 `biolink:ComplexMolecularMixture`** (the
   extracts). Columns:
-  `drugbank_curie, label, unii, ncit, ncit_label, biolink_type, future_biolink_type, signal`.
+  `drugbank_curie, label, unii, ncit, ncit_label, ncit_parents, ncit_umls_semantic_types,
+  biolink_type, future_biolink_type, signal`.
   `future_biolink_type` is `biolink:ProcessedMaterial` on the extract rows (the #929 target), blank
   on Food rows; `signal` is the evidence that fired — `ncit-food`, `botanical-flag`, or `extract`.
 - **`ncbi-only-drugbank-entries.csv`** — the **481** NCBI-only structureless entries left as
   `ChemicalEntity` for now (the review set for
   [#930](https://github.com/NCATSTranslator/Babel/issues/930)). Columns:
   `drugbank_curie, label, unii, unii_preferred_name, ncbitaxon, ncbitaxon_label, unii_ncit,
-  unii_ncit_label, has_extract_marker`.
+  unii_ncit_label, unii_ncit_parents, unii_ncit_semantic_types, has_extract_marker`.
 
   The `ncbitaxon` columns are the point of the file: every one of the 481 has an NCBI taxon, and the
   taxon is the evidence that separates the three groups #930 has to tell apart — a food
@@ -145,12 +189,19 @@ current FDA UNII records.
   empty here (275 of 481 rows) — precisely the entries NCIt gives us no class for, hence no food
   signal. Fourteen taxon ids have no label, which is the usual sign of an id NCBI has since merged.
 
-To regenerate after a UNII refresh: run the `chemical_ncit_food_codes` rule (or
-`chemicals.write_ncit_descendant_codes`) to produce `ncit_food_codes`, then run
-`scripts/generate_csvs.py`. It also needs `babel_downloads/NCIT/labels` and
-`babel_downloads/NCBITaxon/labels` for the label columns; its module docstring has the exact
-commands. Because DrugBank is pinned but the UNII records are re-downloaded fresh, exact membership
-can drift slightly between refreshes.
+Both files carry the same two audit columns, and they exist to be *acted on*: `*_parents` is the
+NCIt class's direct superclasses (`NCIT:C390 (Contrast Agent)`) and `*_semantic_types` its UMLS
+semantic types (`T130=Indicator, Reagent, or Diagnostic Aid`). Reading a `Food` row whose semantic
+type is `T121`/`T130`-ish — or whose parent is plainly an agent class — is how you find the next
+`drugbank_nonfood_ncit_roots` entry. That is also how ethiodized oil was found.
+
+To regenerate after a UNII refresh: run the `chemical_ncit_food_codes` and
+`chemical_ncit_nonfood_codes` rules (or `chemicals.write_ncit_descendant_codes`) to produce
+`ncit_food_codes` / `ncit_nonfood_codes`, then run `scripts/generate_csvs.py`. It also needs
+`babel_downloads/NCIT/labels` and `babel_downloads/NCBITaxon/labels` for the label columns, and
+`babel_downloads/UMLS/MRCONSO.RRF` / `MRSTY.RRF` for the semantic types; its module docstring has
+the exact commands. Because DrugBank is pinned but the UNII records are re-downloaded fresh, exact
+membership can drift slightly between refreshes.
 
 ## Known limitations
 
@@ -161,10 +212,15 @@ can drift slightly between refreshes.
   of its DrugBank synonyms is "Honey Extract". Tightening this (and the whole
   Food-vs-`biolink:OrganismTaxon` question) is deferred to
   [#926](https://github.com/NCATSTranslator/Babel/issues/926).
-- **Non-food plant materials default to `Food`.** A botanically-flagged, non-extract material that
-  is not actually eaten (e.g. [`DRUGBANK:DB00965`](https://go.drugbank.com/drugs/DB00965)
-  "Ethiodized oil", a poppy-seed-oil contrast agent) becomes `Food`. This is still an improvement
-  over `ChemicalEntity` and is acceptable interim; #926 covers the refinement.
+- **Non-food plant materials still default to `Food` unless NCIt calls them a drug.** The never-food
+  veto only catches what NCIt has *classified* — it caught the contrast agent and the
+  antineoplastic, but a botanically-flagged material NCIt says nothing useful about still becomes
+  `Food`. The 21 pollen entries are what remains of this:
+  [`DRUGBANK:DB10346`](https://go.drugbank.com/drugs/DB10346) "Acacia longifolia pollen" is `Food`
+  today, and pollen is not food (its semantic type is `T002` "Plant", not `T168` "Food"). Fixing
+  that means either a `Pollen` veto root or the broader Food-vs-`biolink:OrganismTaxon` modelling in
+  [#926](https://github.com/NCATSTranslator/Babel/issues/926); the `ncit_umls_semantic_types` column
+  is there to make that call from data.
 - **NCBI-only entries are not retyped** (#930), including the genuine foods among them (lobster,
   flounder, casein, mushroom). This is the deliberate trade in the other direction: leave ~481
   entries under-typed rather than call an immune globulin a food.

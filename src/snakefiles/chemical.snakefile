@@ -153,16 +153,31 @@ rule chemical_ncit_food_codes:
         chemicals.write_ncit_descendant_codes(config["drugbank_food_ncit_roots"], output.outfile)
 
 
+rule chemical_ncit_nonfood_codes:
+    # Enumerate the NCIt subtrees that are never food (imaging agents, antineoplastics), so that a
+    # botanical flag alone cannot type a plant-derived drug as biolink:Food (issue #828). Queries
+    # UberGraph, hence retries.
+    output:
+        outfile=config["intermediate_directory"] + "/chemicals/ids/ncit_nonfood_codes",
+    benchmark:
+        config["output_directory"] + "/benchmarks/chemical_ncit_nonfood_codes.tsv"
+    retries: 3  # UberGraph sometimes fails mid-download and needs a retry.
+    run:
+        chemicals.write_ncit_descendant_codes(config["drugbank_nonfood_ncit_roots"], output.outfile)
+
+
 rule chemical_drugbank_food_extracts:
     # DRUGBANK food materials and extracts (whole strawberry, scallop, willow bark, ragweed pollen, ...)
     # that default to biolink:ChemicalEntity but should be biolink:Food, or biolink:ComplexMolecularMixture
     # when they are a processed "extract" — issue #828. Uses the DrugBank vocabulary CSV's UNII column
-    # cross-checked against each UNII's NCIt class and botanical-database (PLANTS/GRIN/MPNS) flags; see
+    # cross-checked against each UNII's NCIt class (both the food and the never-food subtrees) and its
+    # botanical-database (PLANTS/GRIN/MPNS) flags; see
     # datahandlers/drugbank.py:write_drugbank_food_extract_types.
     input:
         vocab_csv=config["download_directory"] + "/DRUGBANK/drugbank vocabulary.csv",
         unii_records=config["download_directory"] + "/UNII/Latest_UNII_Records.txt",
         food_ncit_codes=config["intermediate_directory"] + "/chemicals/ids/ncit_food_codes",
+        nonfood_ncit_codes=config["intermediate_directory"] + "/chemicals/ids/ncit_nonfood_codes",
     output:
         outfile=config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts",
     benchmark:
@@ -172,6 +187,7 @@ rule chemical_drugbank_food_extracts:
             input.vocab_csv,
             input.unii_records,
             input.food_ncit_codes,
+            input.nonfood_ncit_codes,
             config["drugbank_extract_markers"],
             output.outfile,
         )

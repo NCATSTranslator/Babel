@@ -52,7 +52,13 @@ def extract_drugbank_labels_and_synonyms(drugbank_vocab_csv, labels, synonyms):
                     synonymsf.write(f"{drugbank_id}\t{HAS_EXACT_SYNONYM}\t{syn}\n")
 
 
-def classify_food_or_extract(row, unii_to_ncit, food_ncit_codes, plant_uniis, extract_markers):
+def read_ncit_code_set(codes_file):
+    """Return the set of NCIt CURIEs in a one-CURIE-per-line file (see chemicals.write_ncit_descendant_codes)."""
+    with open(codes_file) as inf:
+        return {line.strip() for line in inf if line.strip()}
+
+
+def classify_food_or_extract(row, unii_to_ncit, food_ncit_codes, nonfood_ncit_codes, plant_uniis, extract_markers):
     """Return ``(biolink_type, signal)`` a DrugBank vocabulary row should be retyped to, or
     ``(None, None)`` (issue #828).
 
@@ -74,6 +80,11 @@ def classify_food_or_extract(row, unii_to_ncit, food_ncit_codes, plant_uniis, ex
       (``"extract"``) is a processed extract → **biolink:ComplexMolecularMixture** (an interim type;
       the eventual home is biolink:ProcessedMaterial once issue #929 adds that output). Bark/root/
       leaf/pollen *extracts* land here.
+    - A botanical flag says "plant material", not "food", so on its own it must not overrule an NCIt
+      class that says the entry is a drug: a row whose NCIt class is under ``nonfood_ncit_codes``
+      (imaging agents, antineoplastics) is left as biolink:ChemicalEntity — DrugBank:DB00965
+      "Ethiodized oil", a poppy-seed-oil contrast agent, is the motivating case. Explicit NCIt
+      Food/Seed evidence still wins, so a food that is also a diagnostic agent (inulin) is unaffected.
     - Any other food material → **biolink:Food** (whole fruits, roots, seeds, herbs, meats). The
       finer Food-vs-biolink:OrganismTaxon distinction is deferred to issue #926.
 
@@ -90,23 +101,27 @@ def classify_food_or_extract(row, unii_to_ncit, food_ncit_codes, plant_uniis, ex
     text = f"{row.get('Common name', '')} {row.get('Synonyms', '')}".lower()
     if any(marker in text for marker in extract_markers):
         return COMPLEX_MOLECULAR_MIXTURE, "extract"
+    if not is_ncit_food and unii_to_ncit.get(unii) in nonfood_ncit_codes:
+        return None, None
     return FOOD, ("ncit-food" if is_ncit_food else "botanical-flag")
 
 
-def write_drugbank_food_extract_types(drugbank_vocab_csv, unii_records, food_ncit_codes_file, extract_markers, outfile):
+def write_drugbank_food_extract_types(
+    drugbank_vocab_csv, unii_records, food_ncit_codes_file, nonfood_ncit_codes_file, extract_markers, outfile
+):
     """Write ``DRUGBANK:xxx\\tbiolink:Type`` for DrugBank food/extracts to retype (issue #828).
 
     Reads the raw DrugBank vocabulary CSV (whose ``UNII`` column the label/synonym extractor
     discards), the FDA UNII records (for each UNII's NCIt class and its plant-database flags), and the
-    enumerated NCIt Food/Seed subtree, then classifies each structureless food material as
-    biolink:Food or (for extracts) biolink:ComplexMolecularMixture (see classify_food_or_extract).
+    enumerated NCIt Food/Seed and never-food subtrees, then classifies each structureless food material
+    as biolink:Food or (for extracts) biolink:ComplexMolecularMixture (see classify_food_or_extract).
     ``extract_markers`` is the config list of name/synonym substrings that mark an extract. The output
     drives the retype in ``chemicals.create_typed_sets``.
     """
     unii_to_ncit = read_unii_ncit(unii_records)
     plant_uniis = read_plant_uniis(unii_records)
-    with open(food_ncit_codes_file) as inf:
-        food_ncit_codes = {line.strip() for line in inf if line.strip()}
+    food_ncit_codes = read_ncit_code_set(food_ncit_codes_file)
+    nonfood_ncit_codes = read_ncit_code_set(nonfood_ncit_codes_file)
     with open(drugbank_vocab_csv) as fin, open(outfile, "w") as outf:
         reader = csv.DictReader(fin)
         assert "DrugBank ID" in reader.fieldnames
@@ -114,7 +129,7 @@ def write_drugbank_food_extract_types(drugbank_vocab_csv, unii_records, food_nci
         assert "Standard InChI Key" in reader.fieldnames
         for row in reader:
             biolink_type, _signal = classify_food_or_extract(
-                row, unii_to_ncit, food_ncit_codes, plant_uniis, extract_markers
+                row, unii_to_ncit, food_ncit_codes, nonfood_ncit_codes, plant_uniis, extract_markers
             )
             if biolink_type:
                 outf.write(f"{DRUGBANK}:{row['DrugBank ID']}\t{biolink_type}\n")

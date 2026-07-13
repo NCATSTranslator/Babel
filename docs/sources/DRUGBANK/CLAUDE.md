@@ -29,6 +29,15 @@ readers in `src/datahandlers/unii.py`:
   biologic-drug source organisms (immune globulins, vaccine antigens, antivenins, CAR-T). Prefer the
   botanical subset (`read_plant_uniis`) when you want plants/foods.
 
+A botanical flag means "plant material", not "food", so it must never overrule an NCIt class that
+says the entry is a drug — hence `config.yaml: drugbank_nonfood_ncit_roots`, the never-food veto
+that keeps [`DRUGBANK:DB00965`](https://go.drugbank.com/drugs/DB00965) "Ethiodized oil" (a
+poppy-seed-oil contrast agent) out of `biolink:Food`. Keep those roots narrow, and do **not** reach
+for UMLS semantic types instead: they are far coarser than NCIt's classes here, and the
+UNII→`MTHSPL` route calls almost every one of these products a "Pharmacologic Substance". The
+reasoning, with counts, is in
+[`food-and-extracts/README.md`](food-and-extracts/README.md).
+
 ## No `Standard InChI Key` ⇒ structureless extract/material
 
 A DrugBank row with no InChI Key is an extract or whole-organism material, not a defined molecule:
