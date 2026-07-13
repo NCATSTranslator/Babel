@@ -16,6 +16,12 @@ sbatch <<EOF
 
 source ~/.bashrc
 
+# Force a uv cache two directories above this checkout, overriding whatever UV_CACHE_DIR ~/.bashrc
+# sets: the default cache is on a different partition, so uv can't hardlink packages into .venv and
+# has to copy them instead. Keeping the cache on the same partition as the checkout restores
+# hardlinking, and repeated runs still share it.
+export UV_CACHE_DIR="$(cd "$PWD/../.." && pwd)/uv-cache"
+
 # Run Babel in a distributed fashion as defined in slurm/config.yaml profile
 #
 # Note that since Snakemake supports slurm executor plugin natively, submitting this as a SLURM batch
