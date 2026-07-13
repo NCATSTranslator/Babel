@@ -285,6 +285,46 @@ class UberGraph:
             results.append(y)
         return results
 
+    def get_direct_superclasses_of(self, curies):
+        """Return the direct (asserted) superclasses of each CURIE in ``curies``, in one query.
+
+        The counterpart of get_subclasses_of(), and deliberately *direct-only*: it reads the
+        non-redundant graph, where UberGraph keeps the asserted rdfs:subClassOf edges, rather than
+        the closure in the redundant graph. Written for the DrugBank food-and-extract audit CSVs
+        (issue #828), where a reviewer needs to see what sits immediately above an entry's NCIt class
+        in order to propose the next drugbank_nonfood_ncit_roots entry; the full ancestor closure is
+        too long to read.
+
+        :param curies: An iterable of CURIEs to look up.
+        :return: A dict of {CURIE -> [(superclass CURIE, superclass label), ...]}.
+        """
+        values = " ".join(Text.curie_to_obo(curie) for curie in curies)
+        text = """
+        prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        select distinct ?child ?parent ?parentLabel
+        from <http://reasoner.renci.org/ontology>
+        where {
+            values ?child { $values }
+            graph <http://reasoner.renci.org/nonredundant> {
+                ?child rdfs:subClassOf ?parent .
+            }
+            OPTIONAL {
+                ?parent rdfs:label ?parentLabel .
+            }
+        }
+        """
+        superclasses = defaultdict(list)
+        for row in self.triplestore.query_template(
+            inputs={"values": values},
+            outputs=["child", "parent", "parentLabel"],
+            template_text=text,
+            post=True,  # The VALUES clause makes this query too long for a GET URI.
+        ):
+            if self.is_blank_node(str(row["parent"])):
+                continue
+            superclasses[Text.opt_to_curie(row["child"])].append((Text.opt_to_curie(row["parent"]), row["parentLabel"]))
+        return superclasses
+
     def get_subclasses_and_smiles(self, iri):
         text = """
         prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
