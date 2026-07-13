@@ -173,6 +173,22 @@ Crucially, a **leading** `''` never begins a genuine name (double-prime is alway
 internal locant), so a leading `''` reliably identifies the #744 open marker. That is the basis for
 narrowing the fix (below).
 
+### The open marker is always the first fragment — but only by accident
+
+In all **276** open-marker rows the `''` fragment is fragment **0**, and every one of those rows has
+an **ASCII-sorted** fragment list. That is the explanation, not a coincidence: `'` is `0x27`, below
+every letter and digit, so a fragment beginning with `''` floats to the front of a sorted alias list
+on its own. NCBI is not putting the marker first deliberately — it falls out of the sort. (The same
+sort is why the *close* marker sits mid-list rather than at the end: `polypeptide 2''` sorts among
+the `p`s.)
+
+So the position is not something a parser should lean on. `split_ncbigene_synonym_field` scans every
+fragment for the open-marker shape rather than testing `value.startswith("''")`; the scan survives
+NCBI changing its sort order, and costs nothing, because the `"''" not in value` guard skips the
+~70M rows that carry no `''` at all. The counts are regenerated into
+[`double_prime_report.md`](./double_prime_report.md) ("Is the open marker always the first
+fragment?").
+
 ### Should the semicolon be a delimiter too? (No.)
 
 The ~624,799 semicolon-joined `otherdesignations` rows look at first like distinct designations

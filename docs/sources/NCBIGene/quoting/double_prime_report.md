@@ -44,6 +44,23 @@ tokens are in [`double_prime_tokens.csv`](./double_prime_tokens.csv).
 | `pelargonidin 3-O-(6-caffeoylglucoside) 5-O-(6-O-malonylglucoside) 4'''-malonyltransferase-like` | 183 | 0 | 125491531 | 3555 | pelargonidin 3-O-(6-caffeoylglucoside) 5-O-(6-O-malonylglucoside) 4''' |
 | `malonyl-coenzyme:anthocyanin 5-O-glucoside-6'''-O-malonyltransferase-like` | 181 | 0 | 143848696 | 3420 | malonyl-coenzyme:anthocyanin 5-O-glucoside-6'''-O-malonyltransferase-l |
 
+## Is the open marker always the first fragment?
+
+```text
+rows with an open marker                        276
+  open marker is fragment 0                     276
+  fragment list is ASCII-sorted                 276
+```
+
+Yes today -- and the second count says why. The alias list is ASCII-sorted, and `'` (0x27) sorts
+below every letter and digit, so a fragment starting with `''` floats to the front on its own. NCBI
+is not placing the marker first on purpose; it falls out of the sort. (The same sort is why the
+*close* marker lands mid-list rather than at the end.)
+
+So a parser should not harden this into `value.startswith("''")`. `split_ncbigene_synonym_field`
+scans every fragment for the open-marker shape instead, which survives NCBI changing its sort order,
+and costs nothing: the `"''" not in value` guard skips the ~70M rows that carry no `''` at all.
+
 ## Can the quoted value be reconstructed by rejoining the span?
 
 Tests the intuitive reading of `''…''` as ordinary quoting: rejoin the fragments between the markers

@@ -96,10 +96,15 @@ def check_rejoinable(row):
     open_i = next(i for i, (_, s, e) in enumerate(flags) if is_open_marker(s, e))
     close_i = next((i for i in range(open_i + 1, len(frags)) if frags[i].endswith("''")), None)
     truth = next((row[c] for c in (FULL_NAME, OTHER_DESIG) if row[c] not in ("", "-")), None)
+    # Where the open marker sits, and whether the fragment list is ASCII-sorted. The marker is always
+    # fragment 0 in today's file -- but only because "'" (0x27) sorts below every letter and digit,
+    # so a sorted alias list floats it to the front. That is incidental, which is why
+    # field_has_open_marker() scans every fragment instead of testing value.startswith("''").
+    position = {"open_index": open_i, "ascii_sorted": frags == sorted(frags)}
     if close_i is None or truth is None:
         # An open marker with no close marker, or with no Full_name to compare against: the rejoin
         # question is not decidable for this row. Counted separately so the denominators add up.
-        return {"checkable": False}
+        return {"checkable": False, **position}
 
     span = frags[open_i : close_i + 1]
     rejoined = ", ".join(f.strip("'") for f in span)
@@ -113,6 +118,7 @@ def check_rejoinable(row):
         "exact": rejoined == truth,
         "foreign": foreign,
         "example": (row[GENE_ID], row[SYMBOL], row[SYNONYMS], truth, rejoined),
+        **position,
     }
 
 
@@ -122,6 +128,8 @@ def analyze(input_path: Path):
     valid_tokens = defaultdict(lambda: {"rows": 0, "is_symbol": 0, "example": None})
     balanced_tokens = Counter()
     rejoin = {"rows": 0, "checkable": 0, "exact": 0, "interleaved": 0, "examples": []}
+    # Where the open marker sits among the pipe-fragments, over every row that has one.
+    position = {"open_marker_first": 0, "ascii_sorted": 0}
 
     with gzip.open(input_path, "rt", encoding="utf-8") as inf:
         inf.readline()
@@ -135,6 +143,8 @@ def analyze(input_path: Path):
             rj = check_rejoinable(r)
             if rj is not None:
                 rejoin["rows"] += 1
+                position["open_marker_first"] += rj["open_index"] == 0
+                position["ascii_sorted"] += rj["ascii_sorted"]
                 if rj["checkable"]:
                     rejoin["checkable"] += 1
                     if rj["exact"]:
@@ -163,7 +173,7 @@ def analyze(input_path: Path):
                         _record_valid(valid_tokens, token, r, symbol)
                     elif category == "balanced":
                         balanced_tokens[token] += 1
-    return counts, valid_tokens, balanced_tokens, rejoin
+    return counts, valid_tokens, balanced_tokens, rejoin, position
 
 
 def _record_valid(valid_tokens, token, row, symbol):
@@ -198,6 +208,34 @@ def para(text):
     lint-clean Markdown; otherwise every re-run dirties the committed file.
     """
     return textwrap.fill(text, width=100) + "\n"
+
+
+def write_position_section(lines, rejoin, position):
+    """Where does the open marker sit -- and can a parser rely on it being first?"""
+    n = rejoin["rows"]
+    lines.append("## Is the open marker always the first fragment?\n")
+    lines.append("```text")
+    lines.append(f"{'rows with an open marker':44s} {n:>6,}")
+    lines.append(f"{'  open marker is fragment 0':44s} {position['open_marker_first']:>6,}")
+    lines.append(f"{'  fragment list is ASCII-sorted':44s} {position['ascii_sorted']:>6,}")
+    lines.append("```\n")
+    lines.append(
+        para(
+            "Yes today -- and the second count says why. The alias list is ASCII-sorted, and `'` "
+            "(0x27) sorts below every letter and digit, so a fragment starting with `''` floats to "
+            "the front on its own. NCBI is not placing the marker first on purpose; it falls out of "
+            "the sort. (The same sort is why the *close* marker lands mid-list rather than at the "
+            "end.)"
+        )
+    )
+    lines.append(
+        para(
+            "So a parser should not harden this into `value.startswith(\"''\")`. "
+            "`split_ncbigene_synonym_field` scans every fragment for the open-marker shape instead, "
+            "which survives NCBI changing its sort order, and costs nothing: the `\"''\" not in "
+            "value` guard skips the ~70M rows that carry no `''` at all."
+        )
+    )
 
 
 def write_rejoin_section(lines, rejoin):
@@ -267,7 +305,7 @@ def write_csv(ranked, out_path):
             writer.writerow([token, e["rows"], e["is_symbol"], gid, tax, name])
 
 
-def write_report(counts, valid_tokens, balanced_tokens, rejoin, limit, out_path, csv_path, input_path):
+def write_report(counts, valid_tokens, balanced_tokens, rejoin, position, limit, out_path, csv_path, input_path):
     total_valid_rows = sum(e["rows"] for e in valid_tokens.values())
     lines = []
     lines.append("# NCBIGene `''` (double single quote): valid vs. split-artifact\n")
@@ -320,6 +358,7 @@ def write_report(counts, valid_tokens, balanced_tokens, rejoin, limit, out_path,
             lines.append(f"| `{token.replace('|', chr(92) + '|')}` | {n:,} |")
         lines.append("")
 
+    write_position_section(lines, rejoin, position)
     write_rejoin_section(lines, rejoin)
 
     out_path.write_text("\n".join(lines).rstrip("\n") + "\n", encoding="utf-8")
@@ -332,10 +371,10 @@ def main():
     p.add_argument("--csv", type=Path, default=DEFAULT_CSV)
     p.add_argument("--limit", type=int, default=10, help="distinct tokens to sample into the table (default 10)")
     args = p.parse_args()
-    counts, valid_tokens, balanced_tokens, rejoin = analyze(args.input)
+    counts, valid_tokens, balanced_tokens, rejoin, position = analyze(args.input)
     ranked = sorted(valid_tokens.items(), key=lambda kv: (-kv[1]["rows"], kv[0]))
     write_csv(ranked, args.csv)
-    write_report(counts, valid_tokens, balanced_tokens, rejoin, args.limit, args.output, args.csv, args.input)
+    write_report(counts, valid_tokens, balanced_tokens, rejoin, position, args.limit, args.output, args.csv, args.input)
     total_valid_rows = sum(e["rows"] for e in valid_tokens.values())
     print(  # noqa: T201
         f"Wrote {args.output} and {args.csv}: {total_valid_rows:,} valid-'' rows, "
