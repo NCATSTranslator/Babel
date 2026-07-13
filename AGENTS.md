@@ -15,6 +15,7 @@ loads the nearest one automatically when you edit files there; **other agents sh
 - `src/tools/` (plus `src/tools/clique_diff/`, `src/tools/slurm/`,
   `src/tools/source_impact_report/`) — the "thin CLI frontend" convention and per-tool notes.
 - `docs/sources/` — cross-cutting xref / source-data conventions.
+- `docs/sources/DRUGBANK/` — DrugBank ingest gotchas (CC-0 vocabulary only, the UNII typing bridge).
 
 (Agents that merge nested `AGENTS.md` up the tree won't see these `CLAUDE.md` files — only this
 root file. If per-directory cross-agent context ever matters, pair each with an `AGENTS.md` holding
@@ -140,6 +141,10 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
   `docs/DataFormats.md`); its `Edge` table answers "which clique contains CURIE X" in one query
   (`SELECT DISTINCT clique_leader FROM Edge WHERE curie IN (...)`), far cheaper than re-running glom
   or scanning JSONL.
+- **Chemical compendium output types** — `config.yaml: chemical_outputs` is the single fan-out list
+  for chemical compendium types; adding a subtype needs an entry there *and* a matching hardcoded
+  `check_*` report rule in `chemical.snakefile` or `rule chemical`'s DAG breaks. Full note in
+  [`docs/Architecture.md`](docs/Architecture.md#chemical-compendium-output-types).
 - **Per-compendium metadata YAMLs** — `babel_outputs/metadata/<Type>.yaml` records provenance with
   per-source `prefix_counts` like `xref(CHEBI, DrugCentral): 4302`. Aggregate (prefix-pair) only —
   confirms a join pathway exists, not whether *specific* CURIEs are joinable.
@@ -178,7 +183,9 @@ hook, Snakemake rules, `config.yaml`, docs, tests), then generate and read its s
 build (~500 GB RAM) is impractical. Two things the report exists to catch: an ids file missing its
 Biolink type (see `docs/Development.md`), and a prefix not yet registered in the Biolink Model for
 its class (`write_compendium()` silently drops such CURIEs — EMAPA's
-`biolink:GrossAnatomicalStructure` terms are the current example).
+`biolink:GrossAnatomicalStructure` terms are the current example; `extra_prefixes=[...]` is the
+escape hatch, and it is what keeps members alive when **retyping** a clique to a class that doesn't
+register their prefix — see `docs/AddingNewSources.md`).
 **Generate and commit the report** (`uv run source-impact-report --source <SOURCE>`) and, for
 changes that *restructure* existing cliques, follow up with `babel-clique-diff` — see
 `src/tools/source_impact_report/CLAUDE.md` and `src/tools/clique_diff/CLAUDE.md` for the tool
@@ -262,6 +269,12 @@ justifies a parsing decision belongs in a committed script that regenerates it, 
 description.
 
 When a bug fix is easy to cover with a test, suggest adding one as part of the fix.
+
+To see what type or clique Babel currently assigns a CURIE in the **last released** build without a
+local build, query the development Node Normalization service, e.g.
+`https://nodenormalization-sri.renci.org/get_normalized_nodes?curie=DRUGBANK:DB00965&conflate=true&drug_chemical_conflate=true`
+— it returns the clique's `type` and `equivalent_identifiers`, so you can check current typing or
+whether two CURIEs already share a clique (the released-build analogue of the DuckDB `Edge` table).
 
 Two different compendia must never share an identifier, and no valid identifier should be dropped
 without good reason — when changing how one compendium filters identifiers, check the effect on

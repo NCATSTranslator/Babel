@@ -1,4 +1,6 @@
 import src.createcompendia.chemicals as chemicals
+import src.datahandlers.drugbank as drugbank
+import src.datahandlers.ncit as ncit
 import src.assess_compendia as assessments
 import src.snakefiles.util as util
 
@@ -138,6 +140,58 @@ rule chemical_drugbank_ids:
         config["output_directory"] + "/benchmarks/chemical_drugbank_ids.tsv"
     run:
         chemicals.write_drugbank_ids(input.infile, output.outfile)
+
+
+rule chemical_ncit_food_codes:
+    # Enumerate the NCIt Food/Seed subtrees so the DRUGBANK food-and-extract retype can recognise
+    # foods by their UNII's NCIt class (issue #828). Queries UberGraph, hence retries.
+    output:
+        outfile=config["intermediate_directory"] + "/chemicals/ncit/food_codes",
+    benchmark:
+        config["output_directory"] + "/benchmarks/chemical_ncit_food_codes.tsv"
+    retries: 3  # UberGraph sometimes fails mid-download and needs a retry.
+    run:
+        ncit.write_ncit_descendant_codes(config["food_ncit_roots"], output.outfile)
+
+
+rule chemical_ncit_nonfood_codes:
+    # Enumerate the NCIt subtrees that are never food (imaging agents, antineoplastics), so that a
+    # botanical flag alone cannot type a plant-derived drug as biolink:Food (issue #828). Queries
+    # UberGraph, hence retries.
+    output:
+        outfile=config["intermediate_directory"] + "/chemicals/ncit/nonfood_codes",
+    benchmark:
+        config["output_directory"] + "/benchmarks/chemical_ncit_nonfood_codes.tsv"
+    retries: 3  # UberGraph sometimes fails mid-download and needs a retry.
+    run:
+        ncit.write_ncit_descendant_codes(config["nonfood_ncit_roots"], output.outfile)
+
+
+rule chemical_drugbank_food_extracts:
+    # DRUGBANK food materials and extracts (whole strawberry, scallop, willow bark, ragweed pollen, ...)
+    # that default to biolink:ChemicalEntity but should be biolink:Food, or biolink:ComplexMolecularMixture
+    # when they are a processed "extract" — issue #828. Uses the DrugBank vocabulary CSV's UNII column
+    # cross-checked against each UNII's NCIt class (both the food and the never-food subtrees) and its
+    # botanical-database (PLANTS/GRIN/MPNS) flags; see
+    # datahandlers/drugbank.py:write_drugbank_food_extract_types.
+    input:
+        vocab_csv=config["download_directory"] + "/DRUGBANK/drugbank vocabulary.csv",
+        unii_records=config["download_directory"] + "/UNII/Latest_UNII_Records.txt",
+        food_ncit_codes=config["intermediate_directory"] + "/chemicals/ncit/food_codes",
+        nonfood_ncit_codes=config["intermediate_directory"] + "/chemicals/ncit/nonfood_codes",
+    output:
+        outfile=config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts",
+    benchmark:
+        config["output_directory"] + "/benchmarks/chemical_drugbank_food_extracts.tsv"
+    run:
+        drugbank.write_drugbank_food_extract_types(
+            input.vocab_csv,
+            input.unii_records,
+            input.food_ncit_codes,
+            input.nonfood_ncit_codes,
+            config["drugbank_extract_markers"],
+            output.outfile,
+        )
 
 
 ######
@@ -341,6 +395,9 @@ rule chemical_compendia:
         metadata_yamls=[config["intermediate_directory"] + "/chemicals/partials/metadata-untyped_compendium.yaml"],
         properties_jsonl_gz=[config["intermediate_directory"] + "/chemicals/properties/get_chebi_concord.jsonl.gz"],
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
+        # Every source that overrides the clique type vote contributes one CURIE->biolink:Type file
+        # here; today that is only the DRUGBANK food-and-extract retype (issue #828).
+        forced_type_files=[config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts"],
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["chemical_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["chemical_outputs"])),
@@ -357,6 +414,7 @@ rule chemical_compendia:
             input.properties_jsonl_gz,
             input.metadata_yamls,
             input.icrdf_filename,
+            input.forced_type_files,
         )
 
 
@@ -446,6 +504,17 @@ rule check_drug:
         outfile=config["output_directory"] + "/reports/Drug.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/check_drug.tsv"
+    run:
+        assessments.assess(input.infile, output.outfile)
+
+
+rule check_food:
+    input:
+        infile=config["output_directory"] + "/compendia/Food.txt",
+    output:
+        outfile=config["output_directory"] + "/reports/Food.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_food.tsv"
     run:
         assessments.assess(input.infile, output.outfile)
 

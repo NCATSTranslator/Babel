@@ -308,6 +308,15 @@ The three committed files:
   are the live example: EMAPA is not yet in that class's `id_prefixes`, so they show
   `would_be_added = false`.
 
+`write_compendium(extra_prefixes=[...])` is the escape hatch for that silent drop: a prefix listed
+there is kept even when the clique's Biolink class doesn't register it (the chemical build passes
+`extra_prefixes=[RXCUI]` because RXCUI is in no chemical class's `id_prefixes`). This matters most
+when **retyping** a clique to a different class: members that were valid under the old type but are
+not in the new type's `id_prefixes` silently vanish unless they are covered by `extra_prefixes` — a
+quiet way to lose identifiers. The DrugBank food-and-extract retype
+([`docs/sources/DRUGBANK/food-and-extracts/README.md`](sources/DRUGBANK/food-and-extracts/README.md))
+relies on this to keep `RXCUI` members when moving cliques to `biolink:Food`.
+
 #### Promoted vs. truly added — a common surprise
 
 For ontologies that other Babel sources already xref, the new source's CURIEs may already

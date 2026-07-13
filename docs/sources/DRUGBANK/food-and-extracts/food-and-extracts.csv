@@ -1,0 +1,686 @@
+drugbank_curie,label,unii,ncit,ncit_label,ncit_parents,ncit_umls_semantic_types,biolink_type,future_biolink_type,signal
+DRUGBANK:DB00638,Inulin,UNII:JOS53KRJ01,NCIT:C61506,Inulin,NCIT:C714 (Oligosaccharide),"T109=Organic Chemical|T121=Pharmacologic Substance|T130=Indicator, Reagent, or Diagnostic Aid",biolink:Food,,ncit-food
+DRUGBANK:DB01323,St. John's Wort,UNII:UFH8805FKA,NCIT:C2589,St. John's Wort,NCIT:C106105 (Plant or Plant Part Extract)|NCIT:C1931 (Antineoplastic Plant Product),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB01363,Ephedra sinica root,UNII:D0P20CT40D,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB01381,Ginkgo biloba,UNII:19FUJ2C58T,NCIT:C29072,Ginkgo,NCIT:C106105 (Plant or Plant Part Extract)|NCIT:C93221 (Herbal Supplement),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB01404,Ginseng,UNII:CUQ3A77YXI,NCIT:C69298,Asian Ginseng,NCIT:C91402 (Ginseng Root),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB09341,"Dextrose, unspecified form",UNII:IY9XDZ35W2,NCIT:C2831,Glucose,NCIT:C68479 (Hexose),T109=Organic Chemical|T121=Pharmacologic Substance|T123=Biologically Active Substance,biolink:Food,,ncit-food
+DRUGBANK:DB09344,Invert sugar,UNII:ED959S6ACY,NCIT:C73853,Invert Sugar,NCIT:C71939 (Sugar),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,ncit-food
+DRUGBANK:DB09363,Rauwolfia serpentina root,UNII:H192N84N1G,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB09422,Soybean oil,UNII:241ATL177A,NCIT:C838,Soybean Oil,NCIT:C2562 (Food Oil),T121=Pharmacologic Substance|T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB09446,Safflower oil,UNII:65UEH262IS,NCIT:C820,Safflower Oil,NCIT:C2562 (Food Oil),T109=Organic Chemical|T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB09567,Olive oil,UNII:6UYK2W1W1E,NCIT:C1175,Olive Oil,NCIT:C2562 (Food Oil),T109=Organic Chemical|T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10344,Ginger,UNII:C5529G5JPQ,NCIT:C66725,Ginger,NCIT:C178192 (Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10346,Acacia longifolia pollen,UNII:24SO2J296O,NCIT:C85201,Acacia longifolia Pollen,NCIT:C85083 (Acacia Pollen),T002=Plant,biolink:Food,,botanical-flag
+DRUGBANK:DB10348,Fraxinus americana pollen,UNII:G684LX721Q,NCIT:C85167,Fraxinus americana Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10349,Paspalum notatum pollen,UNII:V003SHB7VK,NCIT:C85293,Paspalum notatum Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10350,Fagus grandifolia pollen,UNII:34X886W1H4,NCIT:C85165,Fagus grandifolia Pollen,NCIT:C79660 (Pollen),"T116=Amino Acid, Peptide, or Protein|T121=Pharmacologic Substance|T129=Immunologic Factor",biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10351,Cynodon dactylon pollen,UNII:175F461W10,NCIT:C85157,Cynodon dactylon Pollen,NCIT:C79660 (Pollen),"T121=Pharmacologic Substance|T129=Immunologic Factor|T130=Indicator, Reagent, or Diagnostic Aid",biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10352,Betula lenta pollen,UNII:JQ5HI5004M,NCIT:C85131,Betula lenta Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10353,Poa annua pollen,UNII:7U437HHU5C,NCIT:C85319,Poa annua Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10354,Acer negundo pollen,UNII:P6K070AR8V,NCIT:C80312,Acer negundo Pollen,NCIT:C79660 (Pollen),"T116=Amino Acid, Peptide, or Protein|T121=Pharmacologic Substance|T129=Immunologic Factor",biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10355,Bromus inermis pollen,UNII:766QT72BK6,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10356,Xanthium strumarium pollen,UNII:2QOF601J1M,NCIT:C85388,Xanthium strumarium Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10357,Zea mays pollen,UNII:74PD8J616H,NCIT:C85205,Zea mays Pollen,NCIT:C79660 (Pollen),T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10359,Rumex acetosella pollen,UNII:N52MIQ81ZW,NCIT:C85352,Rumex acetosella Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10360,Rumex crispus pollen,UNII:V825XJG64G,NCIT:C85354,Rumex crispus Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:Food,,botanical-flag
+DRUGBANK:DB10361,Ulmus americana pollen,UNII:89BAT511BD,NCIT:C85382,Ulmus americana Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10362,Ulmus pumila pollen,UNII:030R993R8E,NCIT:C85385,Ulmus pumila Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10363,Corylus americana pollen,UNII:ZGS382Y3AV,NCIT:C85156,Corylus americana Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10364,Carya ovata pollen,UNII:54UN9R2798,NCIT:C85148,Carya ovata Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10365,Sorghum halepense pollen,UNII:577VA5B4HP,NCIT:C85370,Sorghum halepense Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10366,Poa pratensis pollen,UNII:SCB8J7LS3T,NCIT:C85321,Poa pratensis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10368,Chenopodium album pollen,UNII:098LKX5NCN,NCIT:C85152,Chenopodium album Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10369,Acer saccharum pollen,UNII:V38QUQ7861,NCIT:C80315,Acer saccharum Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10370,Festuca pratensis pollen,UNII:A0WFQ8P6N1,NCIT:C85166,Festuca pratensis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10371,Prosopis juliflora pollen,UNII:6EIJ3D04MR,NCIT:C85332,Prosopis juliflora Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10372,Artemisia vulgaris pollen,UNII:ANT994T71D,NCIT:C85120,Artemisia vulgaris Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10373,Morus rubra pollen,UNII:9LYI4RTZ52,NCIT:C85291,Morus rubra Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10374,Quercus agrifolia pollen,UNII:VOT5MA71M7,NCIT:C85334,Quercus agrifolia Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10375,Quercus virginiana pollen,UNII:8KDG09A4GO,NCIT:C85348,Quercus virginiana Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:Food,,botanical-flag
+DRUGBANK:DB10376,Quercus alba pollen,UNII:Z4Y9ZSV4KK,NCIT:C85335,Quercus alba Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:Food,,botanical-flag
+DRUGBANK:DB10377,Avena sativa pollen,UNII:A7IKY24TR7,NCIT:C85126,Avena sativa Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10378,Olea europaea pollen,UNII:43R41XZ627,NCIT:C80320,Olea europaea Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10379,Dactylis glomerata pollen,UNII:83N78IDA7P,NCIT:C85158,Dactylis glomerata Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10380,Carya illinoinensis pollen,UNII:PYO4JR720Y,NCIT:C85146,Carya illinoinensis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10381,Amaranthus retroflexus pollen,UNII:73B14PX5FW,NCIT:C85098,Amaranthus retroflexus Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:Food,,botanical-flag
+DRUGBANK:DB10382,Plantago lanceolata pollen,UNII:DO87T1U2CI,NCIT:C85314,Plantago lanceolata Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10383,Populus alba pollen,UNII:VU8C8SB23P,NCIT:C85323,Populus alba Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10384,Ambrosia acanthicarpa pollen,UNII:U2AI3H2J5Y,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10385,Ambrosia artemisiifolia pollen,UNII:9W34L2CQ9A,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10386,Ambrosia trifida pollen,UNII:KU1V1898XX,NCIT:C85110,Ambrosia trifida Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10387,Ambrosia psilostachya pollen,UNII:RX18M46K8L,NCIT:C85108,Ambrosia psilostachya Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10388,Salsola kali pollen,UNII:2MH135KC6G,NCIT:C85361,Salsola kali Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10389,Lolium perenne pollen,UNII:4T81LB52R0,NCIT:C85282,Lolium perenne Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10390,Artemisia tridentata pollen,UNII:YI19RB8YFD,NCIT:C85119,Artemisia tridentata Pollen,NCIT:C79660 (Pollen),T109=Organic Chemical|T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10391,Atriplex wrightii pollen,UNII:YB1308W43O,NCIT:C85125,Atriplex wrightii Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10392,Platanus occidentalis pollen,UNII:E03U1K03LK,NCIT:C85317,Platanus occidentalis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:Food,,botanical-flag
+DRUGBANK:DB10393,Platanus racemosa pollen,UNII:BWC8DYU8OS,NCIT:C85318,Platanus racemosa Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10394,Phleum pratense pollen,UNII:0P46LFE4VC,NCIT:C72397,Phleum pratense,NCIT:C14336 (Vascular Plant),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10395,Holcus lanatus pollen,UNII:70O1TP6H01,NCIT:C85209,Holcus lanatus Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10396,Juglans nigra pollen,UNII:1BV28146ZR,NCIT:C85264,Juglans nigra Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10397,Juglans californica pollen,UNII:2147EPR64I,NCIT:C85263,Juglans californica Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10398,Salix nigra pollen,UNII:6M2JIH93ZN,NCIT:C85360,Salix nigra Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:Food,,botanical-flag
+DRUGBANK:DB10403,Agrostis gigantea pollen,UNII:HU8V6E7HOA,NCIT:C85089,Agrostis gigantea Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10404,Anthoxanthum odoratum pollen,UNII:2KIK19R45Y,NCIT:C85111,Anthoxanthum odoratum Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10408,Cotton seed,UNII:DI0ZRJ0MXN,NCIT:C73881,Cotton Seed,NCIT:C73913 (Seed),T002=Plant,biolink:Food,,ncit-food
+DRUGBANK:DB10411,Ceiba pentandra fiber,UNII:758Z9H9WV9,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10413,Orris,UNII:8N6VTJ9IWV,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10451,Acacia,UNII:5C5403N26O,NCIT:C80123,Acacia,NCIT:C14336 (Vascular Plant),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10452,Ailanthus altissima pollen,UNII:2A64U81OQ3,NCIT:C85091,Ailanthus altissima Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:Food,,botanical-flag
+DRUGBANK:DB10453,Alnus incana subsp. rugosa pollen,UNII:605T96G8Y5,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10454,Medicago sativa pollen,UNII:G515RAI9FY,NCIT:C85285,Medicago sativa Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10455,Fraxinus velutina pollen,UNII:LJT6I6Z8FD,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10456,Populus tremuloides pollen,UNII:928OC2TJDA,NCIT:C85330,Populus tremuloides Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10457,Morella cerifera pollen,UNII:LC8MEV9S89,NCIT:C85289,Morella cerifera Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10458,Betula nigra pollen,UNII:93963RFO1P,NCIT:C85132,Betula nigra Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10459,Amaranthus palmeri pollen,UNII:1GH3WV23KH,NCIT:C85097,Amaranthus palmeri Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10460,Juniperus ashei pollen,UNII:544F8MEY0Y,NCIT:C85266,Juniperus ashei Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:Food,,botanical-flag
+DRUGBANK:DB10461,Juniperus virginiana pollen,UNII:PY0JA16R2G,NCIT:C85273,Juniperus virginiana Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10462,Xanthium strumarium var. canadense pollen,UNII:0ZK6G3W3BI,NCIT:C85389,Xanthium strumarium var. canadense Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10463,Populus deltoides pollen,UNII:476DVV63WP,NCIT:C85325,Populus deltoides Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10464,Populus fremontii pollen,UNII:426RHB4302,NCIT:C85328,Populus fremontii Pollen,NCIT:C79660 (Pollen),T109=Organic Chemical|T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10466,Cupressus arizonica pollen,UNII:232DMH0XVF,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10467,Taxodium distichum pollen,UNII:O12H03B41R,NCIT:C85375,Taxodium distichum Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10468,Eupatorium capillifolium pollen,UNII:B67NF86HF0,NCIT:C85164,Eupatorium capillifolium Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10469,Ulmus crassifolia pollen,UNII:G82398SD3I,NCIT:C85383,Ulmus crassifolia Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10470,Eucalyptus globulus pollen,UNII:7XW7TB10X9,NCIT:C85163,Eucalyptus globulus Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:Food,,botanical-flag
+DRUGBANK:DB10471,Solidago canadensis pollen,UNII:644CZ16IR5,NCIT:C85366,Solidago canadensis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10472,Celtis occidentalis pollen,UNII:68R9X9Y96X,NCIT:C85150,Celtis occidentalis Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10473,Juniperus californica pollen,UNII:0H1V4V5V9L,NCIT:C85267,Juniperus californica Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10474,Robinia pseudoacacia pollen,UNII:8003NOJ82F,NCIT:C85351,Robinia pseudoacacia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10475,Acer rubrum pollen,UNII:700NK45C76,NCIT:C80313,Acer rubrum Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:Food,,botanical-flag
+DRUGBANK:DB10478,Melaleuca quinquenervia pollen,UNII:NX974IRT8E,NCIT:C85286,Melaleuca quinquenervia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10479,Chenopodium ambrosioides pollen,UNII:WIB701MW2H,NCIT:C85153,Chenopodium ambrosioides Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10480,Morus alba pollen,UNII:3I9T68187H,NCIT:C85290,Morus alba Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:Food,,botanical-flag
+DRUGBANK:DB10481,Quercus rubra pollen,UNII:SVW19ET93C,NCIT:C85345,Quercus rubra Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:Food,,botanical-flag
+DRUGBANK:DB10482,Syagrus romanzoffiana pollen,UNII:84ZOM591BB,NCIT:C85372,Syagrus romanzoffiana Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10483,Schinus molle pollen,UNII:M0G28FH9K1,NCIT:C85364,Schinus molle Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10484,Amaranthus spinosus pollen,UNII:380W4HYR6N,NCIT:C85099,Amaranthus spinosus Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10485,Casuarina equisetifolia pollen,UNII:OZJ4OE173N,NCIT:C85149,Casuarina equisetifolia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10486,Pinus strobus pollen,UNII:TX1ER5UV3T,NCIT:C85309,Pinus strobus Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10487,Pinus echinata pollen,UNII:96LRW14765,NCIT:C85301,Pinus echinata Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10488,Ligustrum vulgare pollen,UNII:Y3FRX92Z0E,NCIT:C85280,Ligustrum vulgare Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10489,Elymus repens pollen,UNII:ON2T85TA2O,NCIT:C85162,Elymus repens Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10490,Ambrosia tenuifolia pollen,UNII:57W5SO585B,NCIT:C85109,Ambrosia tenuifolia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10491,Ambrosia bidentata pollen,UNII:M3S672G75O,NCIT:C85103,Ambrosia bidentata Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10493,Artemisia frigida pollen,UNII:5AN5LR8L3F,NCIT:C85117,Artemisia frigida Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10494,Distichlis spicata pollen,UNII:GOA51670YV,NCIT:C85160,Distichlis spicata Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10495,Liquidambar styraciflua pollen,UNII:5Q246DS5BS,NCIT:C85281,Liquidambar styraciflua Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10496,Juglans regia pollen,UNII:ARW43087I1,NCIT:C85265,Juglans regia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10497,Amaranthus tuberculatus pollen,UNII:92N6W6KO2G,NCIT:C85100,Amaranthus tuberculatus Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10498,Triticum aestivum pollen,UNII:F1KAH8374D,NCIT:C85380,Triticum aestivum Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10500,Almond,UNII:3Z252A2K9G,NCIT:C74458,Almond,NCIT:C73913 (Seed),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10501,Apple,UNII:B423VGH5S9,NCIT:C71985,Apple,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10502,Apricot,UNII:269CJD5GZ9,NCIT:C71986,Apricot,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10503,Asparagus,UNII:Z1EJP3037Z,NCIT:C71987,Asparagus,NCIT:C71977 (Green Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10504,Avocado,UNII:6VNO72PFC1,NCIT:C107267,Avocado Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB10505,Banana,UNII:4AJZ4765R9,NCIT:C71989,Banana,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10506,Barley,UNII:5PWM7YLI7R,NCIT:C73935,Barley,NCIT:C73913 (Seed),T002=Plant,biolink:Food,,ncit-food
+DRUGBANK:DB10508,String bean,UNII:N9D69B2Q7Y,NCIT:C71951,String Bean,NCIT:C71990 (Bean),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10509,Beef,UNII:4PIB2155QP,NCIT:C71932,Beef,NCIT:C126482 (Meat),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10510,Brazil nut,UNII:XKR79OET1K,NCIT:C72048,Brazil Nut,NCIT:C73913 (Seed),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10511,Broccoli,UNII:UOI4FT57BZ,NCIT:C71997,Broccoli,NCIT:C73795 (Brassica Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10512,Buckwheat,UNII:N0Y68724R3,NCIT:C73936,Buckwheat,NCIT:C73913 (Seed),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,ncit-food
+DRUGBANK:DB10513,Cabbage,UNII:GW0W1Y9I97,NCIT:C71999,Cabbage,NCIT:C73795 (Brassica Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10514,Cantaloupe,UNII:8QF5D5H6UH,NCIT:C72057,Cantaloupe,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10515,Carrot,UNII:L56Z1JK48B,NCIT:C72000,Carrot,NCIT:C178192 (Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10517,Celery,UNII:44IDY6DTKX,NCIT:C71994,Celery,NCIT:C71977 (Green Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10518,Cherry,UNII:BUC5I9595W,NCIT:C65311,Cherry,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10520,Cinnamon,UNII:5S29HWU6QB,NCIT:C65331,Cinnamon,NCIT:C106105 (Plant or Plant Part Extract),T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB10523,Coconut,UNII:3RT3536DHY,NCIT:C71966,Coconut,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10525,Coffee bean,UNII:JFH385Y744,NCIT:C73875,Coffee Bean,NCIT:C73913 (Seed),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10527,Cucumber,UNII:YY7C30VXJT,NCIT:C71968,Cucumber,NCIT:C178192 (Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10528,Egg white,UNII:3E0I92Z2GR,NCIT:C71956,Egg White,NCIT:C62695 (Food),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10529,Egg,UNII:291P45F896,NCIT:C72064,"Egg, Poultry",NCIT:C62695 (Food),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10530,Egg yolk,UNII:4IPS17B70T,NCIT:C71955,Egg Yolk,NCIT:C62695 (Food),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10532,Garlic,UNII:V1V998DC17,NCIT:C38706,Garlic,NCIT:C93221 (Herbal Supplement),T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB10533,Grape,UNII:6X543N684K,NCIT:C71982,Grape,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10534,Grapefruit,UNII:O82C39RR8C,NCIT:C71974,Grapefruit,NCIT:C71965 (Citrus Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10535,Karaya gum,UNII:73W9IQY50Q,NCIT:C83852,Karaya Gum,NCIT:C106105 (Plant or Plant Part Extract),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10536,Honeydew melon,UNII:RN8P45F92A,NCIT:C71979,Honeydew Melon,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10537,Lamb,UNII:FOF26T73HA,NCIT:C71638,Lamb,NCIT:C126482 (Meat),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10538,Lemon,UNII:24RS0A988O,NCIT:C72005,Lemon,NCIT:C71965 (Citrus Fruit),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,ncit-food
+DRUGBANK:DB10539,Lettuce,UNII:5PO6NN3RRJ,NCIT:C72028,Lettuce,NCIT:C71976 (Green Leafy Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10540,Lima bean,UNII:112YH1ZMX2,NCIT:C71950,Lima Bean,NCIT:C71990 (Bean),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10542,Goat milk,UNII:XE5K5I4RP7,NCIT:C72806,Goat Milk,NCIT:C413 (Dairy Product),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10543,Cow milk,UNII:917J3173FT,NCIT:C66153,Cow Milk,NCIT:C413 (Dairy Product),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10545,Mustard seed,UNII:58RXI817UT,NCIT:C73907,Mustard Seed,NCIT:C73913 (Seed),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10546,Oat,UNII:Z6J799EAJK,NCIT:C101357,Oat,NCIT:C73913 (Seed),T002=Plant,biolink:Food,,ncit-food
+DRUGBANK:DB10547,Black olive,UNII:2M6QWV94OC,NCIT:C71983,Black Olive,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10548,Onion,UNII:492225Q21H,NCIT:C72035,Onion,NCIT:C178192 (Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10549,Orange,UNII:5EVU04N5QU,NCIT:C65208,Orange,NCIT:C71965 (Citrus Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10550,Oyster,UNII:0I77C68AWS,NCIT:C85050,Eastern Oyster,NCIT:C71928 (Oyster),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10551,Pea,UNII:W4X7H8GYFM,NCIT:C72056,Pea,NCIT:C71990 (Bean),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10552,Peach,UNII:3OKE88I3QG,NCIT:C72027,Peach,NCIT:C71972 (Fruit),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10553,Peanut,UNII:QE1QX6B99R,NCIT:C72071,Peanut,NCIT:C71990 (Bean),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10554,Pear,UNII:2ZN8DWC0YF,NCIT:C72039,Pear,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10555,Pecan,UNII:F14P91GB5F,NCIT:C72051,Pecan,NCIT:C72067 (Tree Nut),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10556,Green bell pepper,UNII:4J4DOU3HEK,NCIT:C71964,Green Bell Pepper,NCIT:C71993 (Bell Pepper),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10557,Black pepper,UNII:KM66971LVF,NCIT:C72040,Piper nigrum L. Fruit Extract,NCIT:C106105 (Plant or Plant Part Extract),"T121=Pharmacologic Substance|T129=Immunologic Factor|T130=Indicator, Reagent, or Diagnostic Aid",biolink:Food,,botanical-flag
+DRUGBANK:DB10558,Pineapple,UNII:2A88ZO081O,NCIT:C66390,Pineapple,NCIT:C71972 (Fruit),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,ncit-food
+DRUGBANK:DB10559,Pistachio,UNII:6815CPT6ZJ,NCIT:C72053,Pistachio,NCIT:C73913 (Seed),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10560,Plum,UNII:67M3EQ6BE1,NCIT:C72044,Plum,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10561,Pork,UNII:O138UB266J,NCIT:C71958,Pork,NCIT:C126482 (Meat),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10562,Potato,UNII:CFE1S8DYWD,NCIT:C72045,Potato,NCIT:C178192 (Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10563,Rice,UNII:659G217HPG,NCIT:C73972,Brown Rice,NCIT:C62695 (Food),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10564,Rye,UNII:0R4AQI398X,NCIT:C85249,Rye,NCIT:C73913 (Seed),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10566,Sesame seed,UNII:7Y1255HVXR,NCIT:C71942,Sesame Seed,NCIT:C73913 (Seed),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10567,Shrimp,UNII:1891LE191T,NCIT:C71914,Shrimp,NCIT:C71923 (Crustacean),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10568,Soybean,UNII:L7HT8F1ZOD,NCIT:C72010,Soybean,NCIT:C71990 (Bean),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10569,Spinach,UNII:6WO75C6WVB,NCIT:C72012,Spinach,NCIT:C71976 (Green Leafy Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10570,Squash,UNII:9961HBA483,NCIT:C72013,Squash,NCIT:C178192 (Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10571,Strawberry,UNII:4J2TY8Y81V,NCIT:C66565,Strawberry,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10572,Corn,UNII:0N8672707O,NCIT:C72066,Corn,NCIT:C178192 (Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10573,Tomato,UNII:Z4KHF2C175,NCIT:C72019,Tomato,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10574,Tuna,UNII:V2T3IHT3E2,NCIT:C71908,Tuna,NCIT:C72065 (Dietary Fish),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10575,Turkey,UNII:8E9NT44R8I,NCIT:C73855,"Turkey, Poultry",NCIT:C53475 (Poultry),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10576,Vanilla,UNII:Q74T35078H,NCIT:C84613,Vanilla,NCIT:C106105 (Plant or Plant Part Extract),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10577,English walnut,UNII:1V3SHR7QB7,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10578,Watermelon,UNII:231473QB6R,NCIT:C72022,Watermelon,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10579,Wheat,UNII:4J2I0SN84Y,NCIT:C74546,Wheat,NCIT:C73913 (Seed),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10580,Tea leaf,UNII:GH42T47V24,NCIT:C87164,Tea Leaf,NCIT:C79219 (Leaf),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10582,Artemisia annua pollen,UNII:36R82U4DL6,NCIT:C85114,Artemisia annua Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10610,Duck,UNII:28ON068RWM,NCIT:C73850,Duck,NCIT:C53475 (Poultry),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10612,Veal,UNII:0X5GW3050M,NCIT:C71937,Veal,NCIT:C126482 (Meat),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10617,Herring,UNII:34EX28T4C1,NCIT:C71926,Herring,NCIT:C72065 (Dietary Fish),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10618,Mackerel,UNII:CYO6K3VM7F,NCIT:C71641,Mackerel,NCIT:C72065 (Dietary Fish),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10620,Red snapper,UNII:WF621S7K14,NCIT:C71917,Red Snapper,NCIT:C72065 (Dietary Fish),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10623,Scallop,UNII:D380C73WOU,NCIT:C71916,Scallop,NCIT:C71915 (Shellfish),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10625,Swordfish,UNII:01695YPV36,NCIT:C71911,Swordfish,NCIT:C72065 (Dietary Fish),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10626,Trout,UNII:7TI7U5PF2U,NCIT:C71910,Trout,NCIT:C72065 (Dietary Fish),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10627,White fish,UNII:IA4C8ND0DT,NCIT:C71907,Whitefish,NCIT:C72065 (Dietary Fish),T013=Fish,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10628,Blackberry,UNII:8A6OMU3I8L,NCIT:C71601,Blackberry,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10629,Blueberry,UNII:253RUG1X1A,NCIT:C71996,Blueberry,NCIT:C71972 (Fruit),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10630,Sour cherry,UNII:1L29G6428X,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10631,Cranberry,UNII:0MVO31Q3QS,NCIT:C28943,Cranberry,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10632,Date,UNII:H3O7QI5HY7,NCIT:C72063,Date Fruit,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10633,Fig,UNII:TGD87RII2U,NCIT:C71971,Fig,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10634,Wine grape,UNII:3GOV20705G,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10635,Lime (citrus),UNII:8CZS546954,NCIT:C72002,Lime (Citrus),NCIT:C71965 (Citrus Fruit),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10636,Raspberry,UNII:4N14V5R27W,NCIT:C72036,Raspberry,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10637,Tangerine,UNII:KH3E3096OO,NCIT:C72017,Tangerine,NCIT:C71965 (Citrus Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10638,Artichoke,UNII:4F3W47PLBE,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10639,Kidney bean,UNII:M98C8416QO,NCIT:C82900,Kidney Bean,NCIT:C71990 (Bean),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10640,Beet,UNII:N487KM8COK,NCIT:C72003,Beet,NCIT:C178192 (Vegetable),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10641,Kiwi fruit,UNII:71ES77LGJC,NCIT:C71981,Kiwi Fruit,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10642,Brussels sprout,UNII:KHX46H31F8,NCIT:C71998,Brussels Sprout,NCIT:C73795 (Brassica Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10643,Cauliflower,UNII:138LUT2DWV,NCIT:C72055,Cauliflower,NCIT:C73795 (Brassica Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10644,Eggplant,UNII:W5K7RAS4VK,NCIT:C71969,Eggplant,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10645,Lentil,UNII:6O38V6B52O,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10646,Green olive,UNII:6HD2W46UEG,NCIT:C72034,Green Olive,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10647,Parsley,UNII:58FMD0Q0EV,NCIT:C72037,Parsley,NCIT:C71976 (Green Leafy Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10648,Sweet potato,UNII:M9WGG9Z9GK,NCIT:C72015,Sweet Potato,NCIT:C178192 (Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10650,Raphanus sativus,UNII:86R5J6D01D,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10651,Rhubarb,UNII:G280W4MW6E,NCIT:C74269,Rhubarb,NCIT:C178192 (Vegetable),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10652,Turnip,UNII:Z38C7FBM49,NCIT:C72020,Turnip,NCIT:C73795 (Brassica Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10653,Cashew,UNII:3H5U5CX7KO,NCIT:C72049,Cashew,NCIT:C73913 (Seed),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10654,Hazelnut,UNII:IW0OM96F6O,NCIT:C72050,Hazelnut,NCIT:C72067 (Tree Nut),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10655,Macadamia nut,UNII:Y5432RGW8N,NCIT:C71640,Macadamia Nut,NCIT:C73913 (Seed),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10656,Nectarine,UNII:65KD9TD4C3,NCIT:C72032,Nectarine,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10657,Mango,UNII:I629I3NR86,NCIT:C71637,Mango,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10658,Papaya,UNII:KU94FIY6JB,NCIT:C72047,Papaya,NCIT:C71972 (Fruit),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10659,Leek,UNII:RCU76P419D,NCIT:C71973,Leek,NCIT:C178192 (Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10660,Okra,UNII:51ME2L7STL,NCIT:C72033,Okra,NCIT:C178192 (Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10661,Parsnip,UNII:L2V28YP49S,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10662,Chickpea,UNII:N91637DNW9,NCIT:C71992,Chickpea,NCIT:C71990 (Bean),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10663,Black-eyed pea,UNII:786YV7B602,NCIT:C71995,Black-Eyed Pea,NCIT:C71990 (Bean),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10664,Watercress,UNII:K5877MW0LE,NCIT:C75666,Watercress,NCIT:C73795 (Brassica Vegetable),T002=Plant,biolink:Food,,ncit-food
+DRUGBANK:DB10666,Arabica coffee bean,UNII:3SW678MX72,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10667,Tragacanth,UNII:2944357O2O,NCIT:C84223,Tragacanth,NCIT:C45678 (Industrial Aid),T109=Organic Chemical|T121=Pharmacologic Substance|T123=Biologically Active Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10669,Allspice,UNII:I5GZG55B36,NCIT:C73857,Pimenta officinalis Extract,NCIT:C106105 (Plant or Plant Part Extract),T109=Organic Chemical,biolink:Food,,botanical-flag
+DRUGBANK:DB10670,Laurus nobilis,UNII:WS0Y3M85RF,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10671,Caraway seed,UNII:W2FH8O2BBE,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10672,Clove,UNII:K48IKT5321,NCIT:C73872,Clove,NCIT:C79611 (Plant Part),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10673,Dill,UNII:Y05PC4JZRH,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10674,Horseradish,UNII:8DS6G120HJ,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10676,Nutmeg,UNII:AEE24M3MQ9,NCIT:C73928,Nutmeg,NCIT:C106105 (Plant or Plant Part Extract),T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB10677,Oregano,UNII:0E5AT8T16U,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10678,Paprika,UNII:X72Z47861V,NCIT:C73909,Paprika,NCIT:C106105 (Plant or Plant Part Extract),T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB10679,White pepper,UNII:M29DW54Q9E,NCIT:C73922,White Pepper,NCIT:C106105 (Plant or Plant Part Extract),T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB10681,Poppy seed,UNII:60RO23IR87,NCIT:C73910,Poppy Seed,NCIT:C73913 (Seed),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10683,Spearmint,UNII:J7I2T6IV1N,NCIT:C84614,Spearmint,NCIT:C106105 (Plant or Plant Part Extract),T109=Organic Chemical,biolink:Food,,botanical-flag
+DRUGBANK:DB10685,Wheat bran,UNII:6L966A1IMR,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10686,American chestnut,UNII:0XH1TH76XZ,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10687,Hops,UNII:01G73H6H83,NCIT:C73896,Hops,NCIT:C106105 (Plant or Plant Part Extract),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB10707,Cotton,UNII:70LDW53ROO,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10708,Flax seed,UNII:4110YT348C,NCIT:C26650,Flaxseed,NCIT:C93221 (Herbal Supplement),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10710,Tobacco leaf,UNII:6YR2608RSU,NCIT:C891,Tobacco,NCIT:C79611 (Plant Part),T109=Organic Chemical|T131=Hazardous or Poisonous Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10711,Corcorus capsularis fiber,UNII:TVA75O7S63,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10712,Agave sisalana fiber,UNII:MRJ91HVV4H,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10713,Poa compressa pollen,UNII:50HCQ1NYV5,NCIT:C85320,Poa compressa Pollen,NCIT:C79660 (Pollen),"T116=Amino Acid, Peptide, or Protein|T121=Pharmacologic Substance|T129=Immunologic Factor",biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10714,Phalaris arundinacea pollen,UNII:FAY1Y90VJ9,NCIT:C85294,Phalaris arundinacea Pollen,NCIT:C79660 (Pollen),"T121=Pharmacologic Substance|T129=Immunologic Factor|T130=Indicator, Reagent, or Diagnostic Aid",biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10715,Bouteloua gracilis pollen,UNII:2XO08315X1,NCIT:C85137,Bouteloua gracilis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10716,Urochloa mutica pollen,UNII:3ZO9YGZ8ZJ,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10717,Secale cereale pollen,UNII:I6KAZ8AO1O,NCIT:C85365,Secale cereale Pollen,NCIT:C79660 (Pollen),"T121=Pharmacologic Substance|T129=Immunologic Factor|T130=Indicator, Reagent, or Diagnostic Aid",biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10718,Leymus condensatus pollen,UNII:257GC6QO0Q,NCIT:C85279,Leymus condensatus Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10719,Pascopyrum smithii pollen,UNII:6AU0ZD8T1O,NCIT:C85292,Pascopyrum smithii Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10720,Acacia baileyana pollen,UNII:59WAV8G5X5,NCIT:C85084,Acacia baileyana Pollen,NCIT:C85083 (Acacia Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10721,Alnus rubra pollen,UNII:Z0F2YK1B7H,NCIT:C85095,Alnus rubra Pollen,NCIT:C79660 (Pollen),"T116=Amino Acid, Peptide, or Protein|T129=Immunologic Factor|T130=Indicator, Reagent, or Diagnostic Aid",biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10722,Alnus rhombifolia pollen,UNII:7X8HL8GRTM,NCIT:C85094,Alnus rhombifolia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10723,Fraxinus latifolia pollen,UNII:1FH355G8HF,NCIT:C85168,Fraxinus latifolia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10724,Betula populifolia pollen,UNII:23H70FYJ5U,NCIT:C85136,Betula populifolia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10725,Tamarix gallica pollen,UNII:43IR7KR479,NCIT:C85373,Tamarix gallica Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10727,Juniperus monosperma pollen,UNII:PM6E3FG1QK,NCIT:C85268,Juniperus monosperma Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:Food,,botanical-flag
+DRUGBANK:DB10728,Juniperus pinchotii pollen,UNII:S8A4X05W7J,NCIT:C85271,Juniperus pinchotii Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10729,Juniperus scopulorum pollen,UNII:0G82TT8ZFY,NCIT:C85272,Juniperus scopulorum Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10730,Juniperus osteosperma pollen,UNII:15L060HV8H,NCIT:C85270,Juniperus osteosperma Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10731,Juniperus occidentalis pollen,UNII:7JWJ3HXZ9U,NCIT:C85269,Juniperus occidentalis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10732,Tilia americana pollen,UNII:E2B4Q4BXJG,NCIT:C85377,Tilia americana Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10733,Mangifera indica pollen,UNII:BS3OW0RZ4K,NCIT:C85284,Mangifera indica Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10734,Acer macrophyllum pollen,UNII:E4CG5Q55M1,NCIT:C80311,Acer macrophyllum Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10735,Acer saccharinum pollen,UNII:95447163DG,NCIT:C80314,Acer saccharinum Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:Food,,botanical-flag
+DRUGBANK:DB10736,Broussonetia papyrifera pollen,UNII:51I6N3XIML,NCIT:C85140,Broussonetia papyrifera Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10737,Quercus velutina pollen,UNII:294L626TT0,NCIT:C85347,Quercus velutina Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10738,Quercus macrocarpa pollen,UNII:57BTU4547U,NCIT:C85341,Quercus macrocarpa Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10739,Quercus kelloggii pollen,UNII:02RVY6X9EC,NCIT:C85339,Quercus kelloggii Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10740,Quercus gambelii pollen,UNII:9HC15X34LX,NCIT:C85337,Quercus gambelii Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10741,Quercus lobata pollen,UNII:HGH5K3653K,NCIT:C85340,Quercus lobata Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10742,Quercus nigra pollen,UNII:6U600U1326,NCIT:C85343,Quercus nigra Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10743,Citrus sinensis pollen,UNII:0U790UB32K,NCIT:C85155,Citrus sinensis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10744,Pinus taeda pollen,UNII:4O1FFR8ARN,NCIT:C85311,Pinus taeda Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10745,Pinus palustris pollen,UNII:E3A7U1HWIO,NCIT:C85305,Pinus palustris Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10746,Pinus ponderosa pollen,UNII:042SUA2DS9,NCIT:C85306,Pinus ponderosa Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10747,Pinus elliottii pollen,UNII:QJB9OQO689,NCIT:C85302,Pinus elliottii Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10748,Pinus virginiana pollen,UNII:P6818UI2E4,NCIT:C85313,Pinus virginiana Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10749,Pinus monticola pollen,UNII:3MDX759C0W,NCIT:C85303,Pinus monticola Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10750,Populus nigra pollen,UNII:0MGE63QPFJ,NCIT:C85329,Populus nigra Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10751,Elaeagnus angustifolia pollen,UNII:68P4F4M6VD,NCIT:C85161,Elaeagnus angustifolia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10752,Salix lasiolepis pollen,UNII:808UWJ59FI,NCIT:C85358,Salix lasiolepis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10753,Salix discolor pollen,UNII:ER172J09FM,NCIT:C85357,Salix discolor Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10754,Populus balsamifera subsp. trichocarpa pollen,UNII:H8QYU50Z2D,NCIT:C85324,Populus trichocarpa Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10755,Taraxacum officinale pollen,UNII:WQ3S5294XY,NCIT:C85374,Taraxacum officinale Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10756,Atriplex polycarpa pollen,UNII:JQ87AA60GU,NCIT:C85124,Atriplex polycarpa Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10757,Baccharis halimifolia pollen,UNII:BBO1IJ3ZIW,NCIT:C85127,Baccharis halimifolia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10758,Hymenoclea salsola pollen,UNII:662J7FTA7T,NCIT:C85212,Ambrosia salsola Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10759,Allenrolfea occidentalis pollen,UNII:5W6JAI84OI,NCIT:C85092,Allenrolfea occidentalis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10760,Atriplex lentiformis pollen,UNII:86LWA5503I,NCIT:C85123,Atriplex lentiformis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10761,Artemisia douglasiana pollen,UNII:K1301R7883,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10762,Artemisia ludoviciana pollen,UNII:57KIJ4772H,NCIT:C85118,Artemisia ludoviciana Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10763,Urtica dioica pollen,UNII:DNB59M1NVU,NCIT:C85387,Urtica dioica Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10764,Iva axillaris pollen,UNII:13KFG30UBR,NCIT:C85261,Iva axillaris Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10765,Ambrosia deltoidea pollen,UNII:O4AB4546TP,NCIT:C85106,Ambrosia deltoidea Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10766,Sarcobatus vermiculatus pollen,UNII:6532U64A3X,NCIT:C85363,Sarcobatus vermiculatus Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10767,Atriplex canescens pollen,UNII:26U0BU8G83,NCIT:C85121,Atriplex canescens Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10768,Artemisia absinthium pollen,UNII:81GS97HVFO,NCIT:C85113,Artemisia absinthium Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10815,Fraxinus pennsylvanica pollen,UNII:2WZG2G15WX,NCIT:C85169,Fraxinus pennsylvanica Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10816,Atriplex confertifolia pollen,UNII:GG8WX068MX,NCIT:C85122,Atriplex confertifolia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10829,Basil,UNII:2U0KZP0FDW,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10830,Mung bean,UNII:1LIB31N73G,NCIT:C28261,Mung Bean,NCIT:C71990 (Bean),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10831,Betula papyrifera pollen,UNII:3538FNV8AY,NCIT:C85134,Betula papyrifera Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10832,Betula occidentalis pollen,UNII:R889N2L976,NCIT:C85133,Betula occidentalis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10833,Betula alleghaniensis pollen,UNII:3R393IX840,NCIT:C85130,Betula alleghaniensis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10836,Bromus secalinus pollen,UNII:Q4T1SJ3046,NCIT:C85139,Bromus secalinus Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10837,Beta vulgaris pollen,UNII:W7NU4B5CIY,NCIT:C85129,Beta vulgaris Pollen,NCIT:C79660 (Pollen),"T116=Amino Acid, Peptide, or Protein|T129=Immunologic Factor|T130=Indicator, Reagent, or Diagnostic Aid",biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10838,Chenopodium botrys pollen,UNII:IVU789297D,NCIT:C85154,Chenopodium botrys Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10852,Carob,UNII:5MG5Z946UO,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10853,Sweet cherry,UNII:93T4562ZI3,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10858,Melilotus albus pollen,UNII:9L67M8B78R,NCIT:C85287,Melilotus albus Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10859,Melilotus officinalis pollen,UNII:UVC3Z60VTX,NCIT:C85288,Melilotus officinalis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10860,Typha latifolia pollen,UNII:341PDX5PLM,NCIT:C85381,Typha latifolia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10862,Red currant,UNII:Q5YG47WU3D,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10864,Cumin,UNII:AG9BNA51DQ,NCIT:C74527,Cumin,NCIT:C62695 (Food),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10871,Ambrosia dumosa pollen,UNII:ZIO18VN6HJ,NCIT:C85107,Ambrosia dumosa Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10872,Ambrosia confertiflora pollen,UNII:63TBJ590BL,NCIT:C85105,Ambrosia confertiflora Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10875,Concord grape,UNII:T3PW93IB4Q,NCIT:C72007,Concord Grape,NCIT:C71972 (Fruit),T002=Plant,biolink:Food,,ncit-food
+DRUGBANK:DB10879,Arrhenatherum elatius pollen,UNII:B55BD1QM4Q,NCIT:C85112,Arrhenatherum elatius Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10882,Carya cordiformis pollen,UNII:O99P60FU6G,NCIT:C85144,Carya cordiformis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10883,Carya glabra pollen,UNII:KPO1Z9N98A,NCIT:C85145,Carya glabra Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10884,Millet seed,UNII:TJR6B3R47P,NCIT:C73905,Millet Seed,NCIT:C73913 (Seed),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10885,Mustard greens,UNII:5M338IN22E,NCIT:C72031,Mustard Greens,NCIT:C73795 (Brassica Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10886,Quercus muehlenbergii pollen,UNII:434DQ2U4JX,NCIT:C85342,Quercus muehlenbergii Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:Food,,botanical-flag
+DRUGBANK:DB10887,Quercus palustris pollen,UNII:CU781COT7M,NCIT:C85344,Quercus palustris Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10888,Quercus stellata pollen,UNII:W34X0P8636,NCIT:C85346,Quercus stellata Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10889,Quercus garryana pollen,UNII:QQ00BED0DV,NCIT:C85338,Quercus garryana Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10890,Red bell pepper,UNII:E917XHH50V,NCIT:C72006,Ripe Bell Pepper,NCIT:C71993 (Bell Pepper),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10891,Perch,UNII:50Y07N9X03,NCIT:C71924,Perch,NCIT:C72065 (Dietary Fish),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10892,Pumpkin,UNII:SYW0QUB89Y,NCIT:C72016,Pumpkin,NCIT:C178192 (Vegetable),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10894,Pinus contorta pollen,UNII:FB7IP650ET,NCIT:C85300,Pinus contorta Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10895,Pinus sylvestris pollen,UNII:59070I8M63,NCIT:C85310,Pinus sylvestris Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10896,Pinus rigida pollen,UNII:KV6DYF25M4,NCIT:C85308,Pinus rigida Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10897,Capsicum,UNII:00UK7646FG,NCIT:C75665,Capsicum,NCIT:C72041 (Peppers),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10899,Sequoia sempervirens pollen,UNII:NBV527E8B4,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10900,Rumex obtusifolius pollen,UNII:R6H8O3GVL9,NCIT:C85355,Rumex obtusifolius Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10901,Rumex altissimus pollen,UNII:BML0J15H8W,NCIT:C85353,Rumex altissimus Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10902,Rumex salicifolius var. mexicanus pollen,UNII:BHS470V9ON,NCIT:C85356,Rumex mexicanus Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10905,Safflower,UNII:4VBL71TY4Y,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10906,Sugarcane,UNII:81H2R5AOH3,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10907,Sunflower seed,UNII:R9N3379M4Z,NCIT:C71938,Sunflower Seed,NCIT:C62695 (Food)|NCIT:C73913 (Seed),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10909,Artemisia californica pollen,UNII:1EDY616508,NCIT:C85115,Artemisia californica Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10910,Helianthus annuus pollen,UNII:28D6K7E9IP,NCIT:C85206,Helianthus annuus Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10911,Carpinus caroliniana pollen,UNII:9UC4BM3IZ0,NCIT:C85142,Carpinus caroliniana Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10912,Picea pungens pollen,UNII:R9JBC6687X,NCIT:C85299,Picea pungens Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10913,"Starch, tapioca",UNII:24SC3U704I,NCIT:C80781,"Starch, Tapioca",NCIT:C68488 (Starch),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10914,Larix occidentalis pollen,UNII:1L67OBT731,NCIT:C85277,Larix occidentalis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10917,Cedar oil,UNII:PAD4FN7P2G,NCIT:C72190,Juniperus Virginiana Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical,biolink:Food,,botanical-flag
+DRUGBANK:DB10918,Venison,UNII:85EA9K88OY,NCIT:C71936,Venison,NCIT:C126482 (Meat),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10919,Black walnut,UNII:02WM57RXZJ,NCIT:C72054,Black Walnut,NCIT:C72067 (Tree Nut),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10921,Artemisia dracunculus pollen,UNII:UU78E56M7L,NCIT:C85116,Artemisia dracunculus Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10922,Pinus banksiana pollen,UNII:YM2P5UN502,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10923,Pinus resinosa pollen,UNII:Q7Y557L8UZ,NCIT:C85307,Pinus resinosa Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10924,Pinus nigra pollen,UNII:17Q05812N1,NCIT:C85304,Pinus nigra Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10925,Pinus thunbergii pollen,UNII:6607IKD2XX,NCIT:C85312,Pinus thunbergii Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10926,Carya tomentosa pollen,UNII:G2A764T54B,NCIT:C85143,Carya tomentosa Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10927,Iva annua pollen,UNII:Y2U5S5PF22,NCIT:C85260,Iva annua Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10928,Bassia scoparia pollen,UNII:07A108ZKW5,NCIT:C85274,Bassia scoparia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10929,Cyclachaena xanthifolia pollen,UNII:V80TPZ0T6J,NCIT:C85262,Cyclachaena xanthifolia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10930,Amaranthus retroflexus whole,UNII:55W4M8149I,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10941,Bassia hyssopifolia pollen,UNII:35487N1IC9,NCIT:C85128,Bassia hyssopifolia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10942,Brassica rapa pollen,UNII:85Z8OHV3K7,NCIT:C85138,Brassica rapa var. rapa Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10943,Callistemon citrinus pollen,UNII:62OII98F1T,NCIT:C85141,Callistemon citrinus Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10945,Dicoria canescens pollen,UNII:E9H4GR1NMP,NCIT:C85159,Dicoria canescens Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10946,Krascheninnikovia lanata pollen,UNII:0GTO5BR99M,NCIT:C85276,Krascheninnikovia lanata Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10947,Ambrosia ambrosioides pollen,UNII:81214Y871U,NCIT:C85101,Ambrosia ambrosioides Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10948,Ambrosia chamissonis pollen,UNII:2Z41EEQ491,NCIT:C85104,Ambrosia chamissonis Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10949,Koeleria macrantha pollen,UNII:IIC6H3WF6J,NCIT:C85275,Koeleria macrantha Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10950,Phoenix dactylifera pollen,UNII:2FV55IRB5B,NCIT:C85298,Phoenix dactylifera Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10952,Quercus dumosa pollen,UNII:P5W45RU6E4,NCIT:C85336,Quercus dumosa Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10953,Suaeda moquinii pollen,UNII:FZU040QDS7,NCIT:C85371,Suaeda nigra Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10954,Tilia cordata pollen,UNII:OCO1LJR5YN,NCIT:C85378,Tilia cordata Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10961,Hordeum vulgare pollen,UNII:2LN3M29LNI,NCIT:C85211,Hordeum vulgare Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10962,Agrostis stolonifera pollen,UNII:255H8VT4RK,NCIT:C85090,Agrostis stolonifera Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10963,Phalaris minor pollen,UNII:VBT3DRA2R9,NCIT:C85296,Phalaris minor Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10964,Lolium perenne subsp. multiflorum pollen,UNII:VJI0WKK736,NCIT:C85390,Lolium multiflorum Pollen,NCIT:C79660 (Pollen),"T116=Amino Acid, Peptide, or Protein|T121=Pharmacologic Substance|T129=Immunologic Factor|T130=Indicator, Reagent, or Diagnostic Aid",biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10965,Sorghum bicolor subsp. bicolor pollen,UNII:LD795V73G4,NCIT:C85368,Sorghum bicolor Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10967,Amphiachyris dracunculoides pollen,UNII:83X1I1RR5F,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10968,Iva angustifolia pollen,UNII:UBW6O1H50I,NCIT:C85259,Iva angustifolia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10975,Tanacetum cinerariifolium flower,UNII:CGF76TP7X6,NCIT:C72413,Tanacetum cinerariifolium Flower,NCIT:C79636 (Flower),T002=Plant,biolink:Food,,botanical-flag
+DRUGBANK:DB10977,Cocoa,UNII:D9108TZ9KG,NCIT:C121851,Cocoa Extract,NCIT:C93221 (Herbal Supplement),T109=Organic Chemical,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10980,Barley malt,UNII:R3NBG8914U,NCIT:C71879,Barley Malt Extract,NCIT:C106105 (Plant or Plant Part Extract),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB10981,Radish,UNII:EM5RP35463,NCIT:C72014,Radish,NCIT:C73795 (Brassica Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB10982,Sage,UNII:065C5D077J,NCIT:C71519,Salvia Officinalis Extract,NCIT:C106105 (Plant or Plant Part Extract),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10983,Thyme,UNII:CW657OBU4N,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB10984,Peppermint,UNII:V95R5KMY2B,NCIT:C66347,Peppermint,NCIT:C106105 (Plant or Plant Part Extract),T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB10985,Ulmus rubra pollen,UNII:GHC6OHK0W0,NCIT:C85386,Ulmus rubra Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:Food,,botanical-flag
+DRUGBANK:DB10986,Pseudotsuga menziesii pollen,UNII:ZEI09763J3,NCIT:C85333,Pseudotsuga menziesii Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB10987,Carya laciniosa pollen,UNII:5BGG872373,NCIT:C85147,Carya laciniosa Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:Food,,botanical-flag
+DRUGBANK:DB10988,Maclura pomifera pollen,UNII:18JOK51CZH,NCIT:C85283,Maclura pomifera Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11004,Betula pendula pollen,UNII:ZL5TV40C5Y,NCIT:C85135,Betula pendula Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11005,Ulmus parvifolia pollen,UNII:IU0Z41653U,NCIT:C85384,Ulmus parvifolia Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11006,Parkinsonia florida pollen,UNII:57586C96ZL,NCIT:C85151,Parkinsonia florida Pollen,NCIT:C79660 (Pollen),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11007,Cytisus scoparius flowering top,UNII:XZC6H8R666,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB11008,Poultry,UNII:L7WXO2P5HM,NCIT:C53475,Poultry,NCIT:C126482 (Meat),T012=Bird,biolink:Food,,ncit-food
+DRUGBANK:DB11009,"Quahog, unspecified",UNII:226LY0AFR9,NCIT:C71920,Clam,NCIT:C71915 (Shellfish),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11010,"Cod, unspecified",UNII:8D6Q5LNG3D,NCIT:C71921,Cod,NCIT:C72065 (Dietary Fish),"T116=Amino Acid, Peptide, or Protein|T121=Pharmacologic Substance",biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11011,Crab leg,UNII:S1VF61QLO9,NCIT:C71929,Crab,NCIT:C71923 (Crustacean),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB11014,"Salmon, unspecified",UNII:6122W2M0GB,NCIT:C71905,Salmon,NCIT:C72065 (Dietary Fish),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11017,Yeast,UNII:3NY3SM6B8U,NCIT:C66676,Yeast,NCIT:C62695 (Food),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB11086,Cocoa butter,UNII:512OYT1CRR,NCIT:C83637,Cocoa Butter,NCIT:C45678 (Industrial Aid),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB11094,Vitamin D,UNII:9VU1KI44GP,NCIT:C941,D Vitamin,NCIT:C1550 (Fat-Soluble Vitamin),T121=Pharmacologic Substance,biolink:Food,,ncit-food
+DRUGBANK:DB11111,Witch hazel,UNII:101I4J0U34,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB11113,Castor oil,UNII:D5340Y2I9G,NCIT:C80990,Castor Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB11114,Eucalyptus oil,UNII:2R04ONI662,NCIT:C65603,Eucalyptus Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB11130,Opium,UNII:37M3MZ001L,NCIT:C29300,Opium Tincture,NCIT:C1657 (Opiate),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB11133,Omega-3 fatty acids,UNII:71M78END5S,NCIT:C493,Omega-3 Fatty Acid,NCIT:C67038 (Polyunsaturated Fatty Acid),T109=Organic Chemical|T121=Pharmacologic Substance|T123=Biologically Active Substance,biolink:Food,,ncit-food
+DRUGBANK:DB11144,Hydrogenated palm kernel oil,UNII:FM8D1RE2VP,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB11158,Pectin,UNII:89NA02M4RX,NCIT:C63647,Pectin,NCIT:C68492 (Dietary Fiber)|NCIT:C70550 (Dietary Polysaccharide),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,ncit-food
+DRUGBANK:DB11172,Sesame oil,UNII:QX10HYY4QV,NCIT:C66537,Sesame Oil,NCIT:C2562 (Food Oil),T109=Organic Chemical|T121=Pharmacologic Substance|T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB11198,Peppermint oil,UNII:AV092KU4JH,NCIT:C84045,Peppermint Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance|T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB11199,Sage oil,UNII:U27K0H1H2O,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB11218,Tea tree oil,UNII:VIF565UC2G,NCIT:C74295,Tea Tree Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB11223,Tolu balsam,UNII:TD2LE91MBE,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB11224,Liquidambar styraciflua resin,UNII:P41GWD11CX,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB11238,Borage oil,UNII:F8XAG1755S,NCIT:C73975,Borage Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance|T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB11242,Gelatin,UNII:2G86QN327L,NCIT:C65802,Gelatin,NCIT:C62695 (Food),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB11247,Sambucus nigra flowering top,UNII:CT03BSA18U,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB11251,Tocopherol,UNII:R0ZB2556P8,NCIT:C68313,Tocopherol,NCIT:C54060 (Bioactive Food Component),T109=Organic Chemical|T121=Pharmacologic Substance|T127=Vitamin,biolink:Food,,ncit-food
+DRUGBANK:DB11253,Xanthan gum,UNII:TTV12P4NEE,NCIT:C84244,Xanthan Gum,NCIT:C68500 (Dietary Gum),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,ncit-food
+DRUGBANK:DB11265,Curcuma xanthorrhiza oil,UNII:F8VF0V2G7H,NCIT:C107298,Curcuma xanthorrhiza Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical,biolink:Food,,botanical-flag
+DRUGBANK:DB11266,Sea salt,UNII:87GE52P74G,NCIT:C75874,Sea Salt,NCIT:C62695 (Food),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB11276,Pine needle oil (pinus mugo),UNII:6KF1RLN1CI,NCIT:C107348,Pine Needle Oil Pinus mugo,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB11286,Colloidal oatmeal,UNII:8PI54V663Y,NCIT:C29298,Oatmeal Powder,NCIT:C29639 (Topical Preparation),T109=Organic Chemical|T121=Pharmacologic Substance|T200=Clinical Drug,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11293,Rice bran oil,UNII:LZO6K1506A,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB11301,Curcuma aromatica root oil,UNII:Q68H9P4S4J,NCIT:C107297,Curcuma Aromatica Root Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical,biolink:Food,,botanical-flag
+DRUGBANK:DB11302,Hydrogenated soybean oil,UNII:A2M91M918C,NCIT:C83765,Hydrogenated Soybean Oil,NCIT:C2562 (Food Oil),T109=Organic Chemical|T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB11338,Clove oil,UNII:578389D6D0,NCIT:C65346,Clove Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB11357,Linseed oil,UNII:84XB4DV00W,NCIT:C107324,Linseed Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance|T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB11358,Evening primrose oil,UNII:3Q9L08K71N,NCIT:C72199,Evening Primrose Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB11361,Betula pendula tar oil,UNII:7JK2RXJ8G7,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB11482,Balsam of Peru,UNII:8P5F881OCY,NCIT:C66361,Balsam Peru,NCIT:C79662 (Resin),T109=Organic Chemical,biolink:Food,,botanical-flag
+DRUGBANK:DB11599,"Starch, corn",UNII:O8232NY3SJ,NCIT:C80778,"Starch, Corn",NCIT:C68488 (Starch),T109=Organic Chemical|T121=Pharmacologic Substance|T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB11605,Myrrh,UNII:JC71GJ1F3L,NCIT:C66216,Myrrh,NCIT:C79662 (Resin),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB12583,Maltodextrin,UNII:7CVR7L4A2D,NCIT:C68474,Maltodextrin,NCIT:C714 (Oligosaccharide),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,ncit-food
+DRUGBANK:DB13168,Omega-6 fatty acids,UNII:116Z6MZN1M,NCIT:C2563,Omega-6 Fatty Acid,NCIT:C67038 (Polyunsaturated Fatty Acid),T109=Organic Chemical|T123=Biologically Active Substance,biolink:Food,,ncit-food
+DRUGBANK:DB13193,Vitex agnus-castus fruit extract,UNII:433OSF3U8A,NCIT:C72243,Vitex agnus castus,NCIT:C14336 (Vascular Plant),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB13194,Hedera helix leaf extract,UNII:ZP9XFG71A7,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB13195,Horse chestnut,UNII:3C18L6RJAZ,NCIT:C80286,Horse Chestnut,NCIT:C72067 (Tree Nut),T002=Plant,biolink:Food,,ncit-food
+DRUGBANK:DB13196,Valerian,UNII:JWF5YAW3QW,NCIT:C38725,Valerian,NCIT:C29756 (Sedative and Hypnotic)|NCIT:C93221 (Herbal Supplement),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB13263,Quassia,UNII:S5249Q85HW,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB13293,Ipecac,UNII:62I3C8233L,NCIT:C65951,Ipecac,NCIT:C29767 (Expectorant),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB13446,Guar gum,UNII:E89I1637KE,NCIT:C80932,Guar Gum,NCIT:C79611 (Plant Part)|NCIT:C93221 (Herbal Supplement),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB13525,Althea root,UNII:TRW2FUF47H,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB13895,Rhus Glabra Pollen,UNII:5THQ6K6J4O,NCIT:C85349,Rhus glabra Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB13906,Aloe vera leaf,UNII:ZY81Z83H0X,NCIT:C71875,Aloe vera Leaf,NCIT:C79219 (Leaf),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB13913,Belladonna,UNII:WQZ3G9PF0H,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB13964,Peanut oil,UNII:5TL50QU0W4,NCIT:C66332,Peanut Oil,NCIT:C2562 (Food Oil),T109=Organic Chemical|T121=Pharmacologic Substance|T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB13965,Sarracenia Purpurea,UNII:FOP08H143P,NCIT:C72435,Sarracenia purpurea,NCIT:C14336 (Vascular Plant),T002=Plant,biolink:Food,,botanical-flag
+DRUGBANK:DB13974,Passiflora incarnata flower,UNII:K8F3G29S6Z,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB13975,Black cohosh,UNII:K73E24S6X9,NCIT:C26647,Black Cohosh,NCIT:C93221 (Herbal Supplement),T109=Organic Chemical|T121=Pharmacologic Substance|T123=Biologically Active Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB14157,Hydrogenated soybean lecithin,UNII:QHQ97HF0PY,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14161,"Lecithin, soybean",UNII:1DI56QDM62,NCIT:C80292,"Lecithin, Soybean",NCIT:C68386 (Lecithin),T109=Organic Chemical|T121=Pharmacologic Substance|T123=Biologically Active Substance,biolink:Food,,ncit-food
+DRUGBANK:DB14163,Anthoxanthum odoratum,UNII:YMW1K70E4Q,NCIT:C72244,Anthoxanthum odoratum,NCIT:C14336 (Vascular Plant),T002=Plant,biolink:Food,,botanical-flag
+DRUGBANK:DB14164,Betula lenta whole,UNII:41A3V2257T,NCIT:C74481,Betula lenta,NCIT:C14336 (Vascular Plant),T109=Organic Chemical|T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:Food,,botanical-flag
+DRUGBANK:DB14166,Rumex acetosella whole,UNII:D4MF746504,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14167,Rumex crispus top,UNII:S9T422Q956,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14169,Salix nigra bark,UNII:QU52J3A5B3,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14170,Artemisia vulgaris root,UNII:32MP823R8S,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14179,Phleum pratense top,UNII:S7PW24BX20,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14229,Lowbush blueberry,UNII:G90PX41VP0,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14233,Egg phospholipids,UNII:1Z74184RGV,NCIT:C79998,Egg Phospholipid,NCIT:C68340 (Dietary Phospholipid),"T116=Amino Acid, Peptide, or Protein|T121=Pharmacologic Substance",biolink:Food,,ncit-food
+DRUGBANK:DB14235,Bilberry,UNII:9P2U39H18W,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14236,Aloe vera leaf polysaccharides,UNII:W21O437517,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14237,Echinacea angustifolia root,UNII:D982V7VT3P,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14238,Echinacea purpurea flowering top,UNII:2EMS3QFX65,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14239,Echinacea purpurea,UNII:QI7G114Y98,NCIT:C72304,Echinacea purpurea,NCIT:C54160 (Echinacea),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14241,"Caviar, unspecified",UNII:020K6HLU0O,NCIT:C72058,Caviar,NCIT:C62695 (Food),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14242,Honey,UNII:Y9H1V576FH,NCIT:C65859,Honey,NCIT:C62695 (Food),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14252,Jojoba oil,UNII:724GKU717M,NCIT:C107318,Jojoba Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB14253,Avena sativa flowering top,UNII:MA9CQJ3F7F,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14254,Aloe vera flower,UNII:575DY8C1ER,NCIT:C71796,Aloe vera Flower,NCIT:C79636 (Flower),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14255,Angelica dahurica root,UNII:1V63N2S972,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14256,Centella asiatica,UNII:7M867G6T1U,NCIT:C72337,Centella asiatica,NCIT:C14336 (Vascular Plant),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14257,Aloe ferox leaf,UNII:0D145J8EME,NCIT:C82715,Aloe ferox Leaf,NCIT:C79219 (Leaf),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14258,Elm,UNII:63POE2M46Y,NCIT:C65510,Elm,NCIT:C79615 (Bark),T002=Plant,biolink:Food,,botanical-flag
+DRUGBANK:DB14259,Eucommia ulmoides bark,UNII:L878N1L0AR,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14261,Panax ginseng fruit,UNII:E35T4MOI3E,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14262,Bird pepper,UNII:JLH5RT8O28,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14263,Calendula officinalis flower,UNII:P0M7O4Y7YD,NCIT:C73866,Calendula officinalis Flower,NCIT:C79636 (Flower),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14264,Maclura tricuspidata whole,UNII:QOE5U8M2TG,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14265,Momordica charantia fruit,UNII:UA63Y8U89U,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14266,Tribulus terrestris root,UNII:6WY8ROM74K,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14267,Rumex crispus whole,UNII:UQJ679MZAK,NCIT:C72428,Rumex crispus,NCIT:C14336 (Vascular Plant),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB14268,Swertia japonica whole flowering,UNII:01X0P6GX6C,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14269,Nardostachys chinensis whole,UNII:FJ4AE60Q9V,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14270,Simmondsia chinensis seed,UNII:D24K2Q1F6H,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14271,Morus alba root bark,UNII:SV6B76DK9N,NCIT:C73906,Morus alba Root Bark,NCIT:C79615 (Bark),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB14272,Rosemary,UNII:8JM482TI79,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14273,Ocimum tenuiflorum top,UNII:34T63W8ULS,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14274,Salix alba bark,UNII:205MXS71H7,NCIT:C71773,Salix alba Bark,NCIT:C79615 (Bark),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14275,Indian frankincense,UNII:4PW41QCO2M,NCIT:C49089,Boswellia serrata Extract,NCIT:C308 (Immunotherapeutic Agent),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14276,Turmeric,UNII:856YO1Z64F,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14277,Tripterygium wilfordii whole,UNII:GBE347P41D,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14278,Carthamus tinctorius flower bud,UNII:B86IS274O0,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14279,Corydalis ambigua tuber,UNII:1DN1EU584R,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14280,Lonicera caprifolium flower,UNII:5N1WD9784U,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14281,Lagerstroemia indica whole,UNII:N47D84L52F,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14283,Angelica archangelica root,UNII:885452N0GZ,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14284,Panax ginseng whole,UNII:9L5JEP7MES,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14285,Ginkgo biloba leaf oil,UNII:Y5967KO1JH,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14286,Panax ginseng root oil,UNII:P9T4K47OM0,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14288,Kaempferia galanga root,UNII:7B7U9D12AI,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14289,Larix sibirica wood,UNII:KSC3PGF73L,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14290,Rehmannia glutinosa root,UNII:1BEM3U6LQQ,NCIT:C80293,Rehmannia glutinosa Root,NCIT:C79664 (Root),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14291,Wormwood,UNII:51PW3BIW1K,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14292,Acorus calamus root,UNII:XY1K7KIQ0F,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14293,Eutrema japonicum whole,UNII:WA34673193,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14294,Styphnolobium japonicum flower bud,UNII:DES4RX1Z3E,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14295,Reynoutria multiflora root,UNII:AUZ3VD75MC,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14296,Panax quinquefolius whole,UNII:0P067WOA1X,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14297,Arnica montana,UNII:O80TY208ZW,NCIT:C71849,Arnica Montana Extract,NCIT:C106105 (Plant or Plant Part Extract),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB14298,Gambir,UNII:3NJQ5D8S6N,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14299,Mucuna pruriens seed,UNII:55G8SQ543S,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14300,Erythroxylum catuaba bark,UNII:3W8LSF0XRN,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14301,Epimedium grandiflorum top,UNII:137PC46F89,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14302,Turnera diffusa leaf,UNII:812R0W1I3K,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14303,Eleuthero,UNII:ZQH6VH092Z,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14304,Panax notoginseng root,UNII:GQX1C1175U,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14305,Tribulus terrestris fruit,UNII:QNL076V6EQ,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14306,Juglans regia shell,UNII:PJ10MT7VKA,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14307,Green tea leaf,UNII:W2ZU1RY8B0,NCIT:C67048,Green Tea,NCIT:C106105 (Plant or Plant Part Extract)|NCIT:C1892 (Chemopreventive Agent),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14308,Camellia japonica seed oil,UNII:U37N0S910T,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14309,Meadowfoam seed oil,UNII:412ZHA4T4Y,NCIT:C72213,Meadowfoam Seed Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB14310,Argan oil,UNII:4V59G5UW9X,NCIT:C107265,Argan Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB14311,Shea butter,UNII:K49155WL9Y,NCIT:C73914,Shea Butter,NCIT:C106105 (Plant or Plant Part Extract),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14312,Glycyrrhiza glabra,UNII:2788Z9758H,NCIT:C80295,Glycyrrhiza glabra Root,NCIT:C79664 (Root),T002=Plant|T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14313,Lawsonia inermis leaf,UNII:E5818YZ355,NCIT:C72518,Lawsonia inermis Leaf,NCIT:C79219 (Leaf),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14314,Indigofera tinctoria leaf,UNII:2K7DF8HZDM,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14315,Calendula officinalis whole,UNII:PFR03EBU0H,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14316,Tangerine peel,UNII:JU3D414057,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14317,Pomegranate,UNII:56687D1Z4D,NCIT:C73929,Pomegranate,NCIT:C71972 (Fruit),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14319,Magnolia kobus flowering top,UNII:X2725LP5TL,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14320,Eucalyptus globulus leaf,UNII:S546YLW6E6,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14321,Bambusa vulgaris top,UNII:FIW80T6P6V,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14322,Coconut oil,UNII:Q9L0O73W7L,NCIT:C65347,Coconut Oil,NCIT:C2562 (Food Oil),T109=Organic Chemical|T121=Pharmacologic Substance|T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB14323,Grape seed oil,UNII:930MLC8XGG,NCIT:C107311,Grape Seed Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance|T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB14324,Apricot kernel oil,UNII:54JB35T06A,NCIT:C107264,Apricot Kernel Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB14325,Schisandra chinensis fruit,UNII:ABS794681C,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14326,Amber,UNII:70J9Z0J26P,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14327,Purslane,UNII:M6S840WXG5,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14328,Chamaemelum nobile flower,UNII:O2T154T6OG,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14329,Sunflower oil,UNII:3W1JG795YI,NCIT:C1241,Sunflower Oil,NCIT:C2562 (Food Oil),T109=Organic Chemical|T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB14330,Macadamia oil,UNII:515610SU8C,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14331,Heterotheca inuloides flower,UNII:W9NZ9OZF68,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14333,Nelumbo nucifera flower,UNII:61W322NLDV,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14335,Bergamot oil,UNII:39W1PKE3JI,NCIT:C107291,Citrus bergamia Extract,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14336,Angelica sinensis root,UNII:697D19QDBN,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14337,Salvia miltiorrhiza root,UNII:1693AM5SBN,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14338,Atractylodes lancea root oil,UNII:EC228KGY00,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14339,Scutellaria lateriflora,UNII:7BP4DH5PDC,NCIT:C73980,Scutellaria lateriflora,NCIT:C14336 (Vascular Plant),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14340,Prunus armeniaca seed,UNII:75356789IW,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14341,Chamaecyparis obtusa wood oil,UNII:P2OMP71Y62,NCIT:C107284,Chamaecyparis obtusa Wood Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB14342,Taraxacum officinale leaf,UNII:0022LFJ74Y,NCIT:C71842,Taraxacum officinale Leaf,NCIT:C79219 (Leaf),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14343,Arnica montana flower,UNII:OZ0E5Y15PZ,NCIT:C72490,Arnica montana Flower,NCIT:C79636 (Flower),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14344,Lonicera confusa flower,UNII:3JV904IJ0V,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14345,Forsythia suspensa fruit,UNII:P4793M1ES5,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14346,Mentha arvensis top,UNII:8J5Y2F7A5X,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14347,Platycodon grandiflorus root,UNII:2DF0NS0O2Z,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14349,Equisetum arvense top,UNII:1DP6Y6B65Z,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14350,Inula helenium root,UNII:E55SMD6DA8,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14352,Azadirachta indica leaf,UNII:HKY915780T,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14353,Zanthoxylum clava-herculis whole,UNII:Z5VZA25BUK,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14354,Salix alba bark volatile oil,UNII:PW3MX00JXN,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14355,Apple fruit oil,UNII:9NT987I3A8,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14356,Platycodon grandiflorus leaf,UNII:2L64H2X8DY,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14357,Chamomile,UNII:FGL3685T2X,NCIT:C73870,Chamomile Tea,NCIT:C106105 (Plant or Plant Part Extract),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14358,Tribulus terrestris,UNII:4X4HLN92OT,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14360,Saw palmetto,UNII:J7WWH9M8QS,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14361,Rice bran,UNII:R60QEP13IC,NCIT:C111686,Rice Bran,NCIT:C1892 (Chemopreventive Agent),T109=Organic Chemical,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14362,Moringa oleifera leaf,UNII:4WET1AWO9B,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14363,Rosa centifolia flower oil,UNII:H32V31VMWY,NCIT:C107356,Rosa centifolia Flower Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB14364,Scutellaria baicalensis root,UNII:7J95K7ID2S,NCIT:C71863,Scutellaria baicalensis Root,NCIT:C79664 (Root),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14365,Garcinia gummi-gutta fruit,UNII:D0QJI8UQVR,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14366,Ilex paraguariensis leaf,UNII:1Q953B4O4F,NCIT:C71770,Ilex paraguariensis Leaf,NCIT:C79219 (Leaf),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14368,Capsicum annuum whole,UNII:7FKZ3QQQ1F,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14369,Typhonium giganteum whole,UNII:C61Y66MY4H,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14370,Phellodendron amurense bark,UNII:PBG27B754G,NCIT:C103230,Phellodendron amurense Bark Extract,NCIT:C1931 (Antineoplastic Plant Product),T109=Organic Chemical|T123=Biologically Active Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14372,Melaleuca alternifolia leaf,UNII:G43C57162K,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14373,Quercus acutissima whole,UNII:0TVP714IPW,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14375,Milk thistle,UNII:U946SH95EE,NCIT:C29261,Milk Thistle,NCIT:C106105 (Plant or Plant Part Extract)|NCIT:C275 (Antioxidant),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14376,Chicory leaf,UNII:WBQ249COFR,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14377,Palm oil,UNII:5QUO05548Z,NCIT:C72211,Palm Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance|T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB14378,Camphor leaf oil,UNII:51D0RGY52V,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14379,Zanthoxylum clava-herculis bark,UNII:0QN10WG2A2,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14563,Magnolia kobus bark,UNII:54LVP49595,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14565,Sophora flavescens root,UNII:IYR6K8KQ5K,NCIT:C71831,Sophora flavescens Root,NCIT:C79664 (Root),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB14566,Lavender oil,UNII:ZBP1YXW0H8,NCIT:C66002,Lavender Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14585,Plantago ovata seed,UNII:K9NXW456E2,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14588,Bambusa arundinacea stem,UNII:NRA4497HC5,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14590,Anemarrhena asphodeloides root,UNII:U0OC9BJL0I,NCIT:C80316,Anemarrhena asphodeloides Root,NCIT:C79664 (Root),T002=Plant,biolink:Food,,botanical-flag
+DRUGBANK:DB14601,Barley malt syrup,UNII:22P8DKP670,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14686,Chamaecyparis obtusa leaf,UNII:7OL154J5XB,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB14687,Centella asiatica leaf,UNII:6810070TYD,NCIT:C71797,Centella asiatica Leaf,NCIT:C79219 (Leaf),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB14688,Sambucus nigra flower,UNII:07V4DX094T,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14689,Rosemary oil,UNII:8LGU7VM393,NCIT:C107360,Rosemary Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB14690,Ginger oil,UNII:SAS9Z1SVUK,NCIT:C107310,Ginger Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical,biolink:Food,,botanical-flag
+DRUGBANK:DB14692,Turmeric oil,UNII:6KGS8SP16U,NCIT:C107368,Turmeric Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical,biolink:Food,,botanical-flag
+DRUGBANK:DB14693,Atractylodes lancea root,UNII:CAZ6282J2O,NCIT:C80318,Atractylodes lancea Root,NCIT:C79664 (Root),T002=Plant,biolink:Food,,botanical-flag
+DRUGBANK:DB14694,Beef liver,UNII:W8N8R55022,NCIT:C75669,Beef Liver,NCIT:C74543 (Liver (Food)),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB14709,Bean,UNII:8WB9PV3YW5,NCIT:C71990,Bean,NCIT:C178192 (Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB14745,Olea europaea leaf,UNII:MJ95C3OH47,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14747,Ephedra sinica stem,UNII:55L3XLO37E,NCIT:C71795,Ephedra sinica Stem,NCIT:C79676 (Stem),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB14748,Polygala tenuifolia root,UNII:5S7W573MTU,NCIT:C171390,Radix Polygalae Extract PDC-1421,NCIT:C265 (Antidepressant Agent)|NCIT:C29756 (Sedative and Hypnotic),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB14749,Polygala senega root,UNII:M7T6H7D4IF,NCIT:C71845,Polygala senega Root,NCIT:C79664 (Root),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14757,Agrostis gigantea top,UNII:A5ODF78EPD,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14758,Catfish,UNII:EFN1AL1YP0,NCIT:C71919,Catfish,NCIT:C72065 (Dietary Fish),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:Food,,ncit-food
+DRUGBANK:DB14759,Red pepper,UNII:6M47G7C4SY,NCIT:C73793,Red Pepper,NCIT:C72041 (Peppers),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB14836,Polydextrose,UNII:VH2XOU12IE,NCIT:C81624,Polydextrose,NCIT:C283 (Artificial Sweetener),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,ncit-food
+DRUGBANK:DB15216,Amylose,UNII:7TDQ74Y18L,NCIT:C68489,Amylose,NCIT:C68488 (Starch),T109=Organic Chemical,biolink:Food,,ncit-food
+DRUGBANK:DB15478,Frangula purshiana bark,UNII:4VBP01X99F,NCIT:C28909,Frangula purshiana Bark,NCIT:C79615 (Bark),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15502,Baccharis sarothroides whole,UNII:C94X53K2GW,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB15503,Amaranthus hybridus pollen,UNII:EK7F0414PI,NCIT:C85096,Amaranthus hybridus Pollen,NCIT:C79660 (Pollen),T109=Organic Chemical|T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15504,Acacia dealbata pollen,UNII:L16Z5HLP8V,NCIT:C85200,Acacia dealbata Pollen,NCIT:C85083 (Acacia Pollen),T109=Organic Chemical|T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:Food,,botanical-flag
+DRUGBANK:DB15509,Alnus serrulata pollen,UNII:390VZ1D0L5,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB15510,Prosopis velutina seed,UNII:R0120Z3YIC,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB15529,Leucanthemum vulgare pollen,UNII:H9E0IX4MOX,NCIT:C85278,Leucanthemum vulgare Pollen,NCIT:C79660 (Pollen),T121=Pharmacologic Substance|T129=Immunologic Factor,biolink:Food,,botanical-flag
+DRUGBANK:DB15530,Trifolium pratense pollen,UNII:3SNK70F46Y,NCIT:C85379,Trifolium pratense Pollen,NCIT:C79660 (Pollen),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB15537,Eucalyptus gum,UNII:72T9EZC2VX,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB15544,Myristica fragrans fruit,UNII:GOO22BTU71,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB15545,Pisum sativum whole,UNII:J21YE3W98E,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB15602,Cashew fruit,UNII:4A10JR4E7E,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15603,"Coffea arabica seed, roasted",UNII:9H58JRT35E,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB15604,Lactuca sativa whole,UNII:C0K52765EZ,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB15606,White mustard seed,UNII:25VR943RPP,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15607,Hydrolyzed soy protein,UNII:1394NXB9L6,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB15608,Theobroma cacao whole,UNII:EB048G1S9J,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB15611,Muskmelon,UNII:ZV095H5633,NCIT:C72030,Muskmelon,NCIT:C71972 (Fruit),T109=Organic Chemical,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15612,American hazelnut,UNII:IUP4S55D8S,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15613,Musa acuminata fruit,UNII:T6ENY6RV6W,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15615,Fennel,UNII:557II4LLC3,NCIT:C71970,Fennel,NCIT:C178192 (Vegetable),T168=Food,biolink:Food,,ncit-food
+DRUGBANK:DB15663,Grapefruit oil,UNII:YR377U58W9,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB15776,Anise oil,UNII:6Y89129C8H,NCIT:C89792,Anise Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB15786,Maritime pine extract,UNII:50JZ5Z98QY,NCIT:C128889,French Maritime Pine Bark Extract,NCIT:C308 (Immunotherapeutic Agent),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15789,Alpinia officinarum leaf,UNII:8584IDD6OR,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15815,Boldo leaf extract,UNII:Q4EWM09M3O,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15836,Cedar leaf oil,UNII:BJ169U4NLG,NCIT:C80991,Cedar Leaf Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB15838,Orthosiphon aristatus leaf,UNII:DSS8V86H3Y,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15860,Cassia fistula fruit,UNII:J65X53KM9E,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15889,Senna leaf,UNII:AK7JF626KX,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15894,Glycyrrhiza uralensis root,UNII:42B5YD8F0K,NCIT:C80296,Glycyrrhiza uralensis Root,NCIT:C79664 (Root),T109=Organic Chemical,biolink:Food,,botanical-flag
+DRUGBANK:DB15904,Alnus glutinosa,UNII:24A0VB48CA,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB15922,Cajuput oil,UNII:J3TO6BUQ37,NCIT:C74291,Cajuput Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB15928,Asafoetida,UNII:W9FZA51AS1,NCIT:C83538,Asafetida,NCIT:C79662 (Resin),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB15986,Cinnamon oil,UNII:A4WO0626T5,NCIT:C65293,Chinese Cinnamon Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance|T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB15989,Garlic oil,UNII:4WG8U28833,NCIT:C63652,Garlic Oil,NCIT:C275 (Antioxidant)|NCIT:C79688 (Plant Oil),T109=Organic Chemical|T121=Pharmacologic Substance|T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB15996,Nutmeg oil,UNII:Z1CLM48948,NCIT:C107336,Nutmeg Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB16536,Birch bark extract,UNII:3R504894L9,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16545,Malpighia emarginata extract,UNII:XDD2WEC9L5,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16546,Medicago sativa top,UNII:SQI2NBY9KR,NCIT:C84406,Alfalfa Top,NCIT:C79611 (Plant Part),T002=Plant,biolink:Food,,botanical-flag
+DRUGBANK:DB16558,Rosa canina fruit,UNII:3TNW8D08V3,NCIT:C71789,Rosa canina Fruit,NCIT:C71972 (Fruit),T002=Plant,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16559,Nux vomica extract,UNII:269XH13919,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16566,Gentiana lutea extract,UNII:S72O3284MS,NCIT:C71791,Gentiana lutea Root,NCIT:C79664 (Root),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16570,Wheat germ oil,UNII:14C97E680P,NCIT:C107372,Wheat Germ Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB16575,Mentha arvensis leaf oil,UNII:1AEY1M553N,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB16576,Cardamom,UNII:8BC4CUT4JL,NCIT:C74464,Cardamom,NCIT:C106105 (Plant or Plant Part Extract),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16583,Pelargonium sidoides root,UNII:H6J53HEX8E,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16586,Pygeum africanum bark,UNII:709HYI14M4,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16589,Pinus densiflora whole,UNII:U797H98B8Y,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB16592,Frankincense,UNII:R9XLF1R1WM,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16593,Chinese cinnamon,UNII:WS4CQ062KM,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16594,Goldenseal,UNII:ZW3Z11D0JV,NCIT:C71859,Goldenseal,NCIT:C106105 (Plant or Plant Part Extract),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16595,Paeonia lactiflora root,UNII:3Z3866YW6P,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16596,Apple cider vinegar,UNII:0UE22Q87VC,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB16597,Artemisia annua leaf,UNII:E4M09UY5BL,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16598,Citrus aurantium fruit,UNII:DQD16J2B5O,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16600,Cinnamon leaf oil,UNII:S92U8SQ71V,NCIT:C107290,Cinnamon Leaf Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical,biolink:Food,,botanical-flag
+DRUGBANK:DB16601,Citronella oil,UNII:QYO8Q067D0,NCIT:C71856,Citronella Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical,biolink:Food,,botanical-flag
+DRUGBANK:DB16606,Vitis vinifera seed,UNII:C34U15ICXA,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16610,Thyme oil,UNII:2UK410MY6B,NCIT:C107367,Thyme Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical|T168=Food,biolink:Food,,botanical-flag
+DRUGBANK:DB16618,Niaouli oil,UNII:D50IC2T8FU,NCIT:C72212,Niaouli Oil,NCIT:C79688 (Plant Oil),T109=Organic Chemical,biolink:Food,,botanical-flag
+DRUGBANK:DB16632,Chamaecyparis obtusa whole,UNII:80ZNL1G5XY,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB16633,Cryptomeria japonica bark,UNII:5VB6Q5926T,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB16636,Gastrodia elata whole,UNII:08F85I5YAV,,,,,biolink:Food,,botanical-flag
+DRUGBANK:DB16638,Cnidium monnieri fruit,UNII:V1IA3S3CUS,NCIT:C73874,Cnidium monnieri Fruit,NCIT:C71972 (Fruit),T002=Plant|T167=Substance,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB16639,Juniper tar,UNII:1Q84T0P2G3,NCIT:C71827,Juniper Tar,NCIT:C79688 (Plant Oil),T109=Organic Chemical,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB17721,Astragalus mongholicus root polysaccharides,UNII:71WW2LNL50,NCIT:C103822,Injectable Astragalus membranaceus Polysaccharide,NCIT:C308 (Immunotherapeutic Agent),T109=Organic Chemical|T121=Pharmacologic Substance,biolink:Food,,botanical-flag
+DRUGBANK:DB17914,Sorghum,UNII:CUL9PN8ELJ,,,,,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
+DRUGBANK:DB18685,Whey,UNII:8617Z5FMF6,NCIT:C71947,Whey,NCIT:C413 (Dairy Product),T168=Food,biolink:ComplexMolecularMixture,biolink:ProcessedMaterial,extract
