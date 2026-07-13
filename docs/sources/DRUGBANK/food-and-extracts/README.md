@@ -37,7 +37,7 @@ food-vs-taxon question, and [#929](https://github.com/NCATSTranslator/Babel/issu
 - **Structure-based joins never reach them.** With no InChI Key there is no UniChem structure
   match, so these ids are absent from `ids/DRUGBANK` entirely. They enter chemical cliques only
   through the UMLS and RXNORM concords and inherit `ChemicalEntity` from the clique.
-- **DrugBank's rich category data is un-downloadable** (DrugBank blocks the XML). We have only the
+- **DrugBank's rich category data is temporarily un-downloadable**. We have only the
   CC-0 `drugbank vocabulary.csv` (`DrugBank ID, Accession Numbers, Common name, CAS, UNII,
   Synonyms, Standard InChI Key`).
 
