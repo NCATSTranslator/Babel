@@ -16,11 +16,10 @@ sbatch <<EOF
 
 source ~/.bashrc
 
-# Force a uv cache two directories above this checkout, overriding whatever UV_CACHE_DIR ~/.bashrc
-# sets: the default cache is on a different partition, so uv can't hardlink packages into .venv and
-# has to copy them instead. Keeping the cache on the same partition as the checkout restores
-# hardlinking, and repeated runs still share it.
-export UV_CACHE_DIR="$(cd "$PWD/../.." && pwd)/uv-cache"
+# UV likes setting up a local .venv with the packages hardlinked in, but on Hatteras, project directories are on
+# their own partitions and you can't create hardlinks across partition boundaries. So all Babel runs on Hatteras
+# share a UV cache on their own partition.
+export UV_CACHE_DIR="/projects/babel/runs/uv-cache/"
 
 # Run Babel in a distributed fashion as defined in slurm/config.yaml profile
 #
