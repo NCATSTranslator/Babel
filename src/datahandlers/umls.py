@@ -16,6 +16,17 @@ from src.util import get_logger
 
 logger = get_logger(__name__)
 
+# Column offsets in the pipe-delimited UMLS RRF files (UMLS Reference Manual, section 3.3):
+# MRCONSO is CUI|LAT|TS|LUI|STT|SUI|ISPREF|AUI|SAUI|SCUI|SDUI|SAB|TTY|CODE|...,
+# MRSTY is CUI|TUI|STN|STY|ATUI|CVF. Older code in this module still indexes these positionally
+# (x[11], x[13]); prefer these names in new code.
+MRCONSO_CUI_COLUMN = 0
+MRCONSO_SAB_COLUMN = 11
+MRCONSO_CODE_COLUMN = 13
+MRSTY_CUI_COLUMN = 0
+MRSTY_TUI_COLUMN = 1
+MRSTY_STY_COLUMN = 3
+
 
 def check_mrconso_line(line):
     """

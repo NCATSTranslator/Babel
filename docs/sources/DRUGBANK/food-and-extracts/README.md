@@ -66,7 +66,7 @@ chemical). Then:
    **`biolink:ComplexMolecularMixture`** (bark/root/pollen extracts, herbal tinctures).
 3. A botanical flag says "plant material", not "food", so on its own it must not overrule an NCIt
    class that says the entry is a **drug**. A row whose NCIt class is under
-   `config.yaml: drugbank_nonfood_ncit_roots` —
+   `config.yaml: nonfood_ncit_roots` —
    [`NCIT:C1966`](http://purl.obolibrary.org/obo/NCIT_C1966) "Imaging Agent",
    [`NCIT:C274`](http://purl.obolibrary.org/obo/NCIT_C274) "Antineoplastic Agent" — is left as
    `ChemicalEntity`. Without this veto, [`DRUGBANK:DB00965`](https://go.drugbank.com/drugs/DB00965)
@@ -82,7 +82,7 @@ classification still wins, so a food that is also a diagnostic agent
 ([`NCIT:C61506`](http://purl.obolibrary.org/obo/NCIT_C61506) "Inulin", used to measure GFR) is
 unaffected.
 
-Keep `drugbank_nonfood_ncit_roots` **narrow**.
+Keep `nonfood_ncit_roots` **narrow**.
 [`NCIT:C1909`](http://purl.obolibrary.org/obo/NCIT_C1909) "Pharmacologic Substance" is deliberately
 *not* on it: NCIt files cocoa butter, garlic oil, rice bran and green tea under it, so vetoing on it
 would throw out real foods.
@@ -119,7 +119,7 @@ per-entry evidence for that triage.
 ### Why the veto keys on NCIt subtrees, not UMLS semantic types
 
 Babel otherwise leans on UMLS semantic types (STY) rather than NCIt classes, so the obvious question
-is whether `drugbank_nonfood_ncit_roots` could be a list of never-food STYs instead. It cannot, for
+is whether `nonfood_ncit_roots` could be a list of never-food STYs instead. It cannot, for
 three reasons, each measured against this snapshot:
 
 - **STYs are too coarse.** The tightest semantic type that catches ethiodized oil is `T130`
@@ -142,19 +142,25 @@ Snapshot below) — they are how you decide what the *next* veto root should be.
 ## How it is wired
 
 - `chemical_ncit_food_codes` (rule) queries UberGraph for the NCIt Food/Seed subtrees
-  (`config.yaml: drugbank_food_ncit_roots`) → `ids/ncit_food_codes`.
+  (`config.yaml: food_ncit_roots`) → `ids/ncit_food_codes`.
 - `chemical_ncit_nonfood_codes` (rule) does the same for the never-food subtrees
-  (`config.yaml: drugbank_nonfood_ncit_roots`) → `ids/ncit_nonfood_codes`.
+  (`config.yaml: nonfood_ncit_roots`) → `ids/ncit_nonfood_codes`.
 - `chemical_drugbank_food_extracts` (rule) reads the DrugBank vocabulary CSV + the UNII
   records + those NCIt codes + `config.yaml: drugbank_extract_markers`, and writes
   `ids/DRUGBANK_food_extracts` (`DRUGBANK:xxx\tbiolink:Type`) —
   `datahandlers/drugbank.py:write_drugbank_food_extract_types`. The plant-flag set comes
   from the same UNII records file (`unii.py:read_plant_uniis`), so the rule needs no extra input.
-- `chemicals.create_typed_sets` forces any clique containing one of those CURIEs to the given type,
-  overriding the normal per-identifier type vote (the extracts carry no Babel type of their own, so
-  a vote would leave them as `ChemicalEntity`). The retype is clique-level: it assumes an extract
-  clique never also contains a genuine chemical, which holds because these are distinct UMLS/RXNORM
-  concepts and none of them share a clique with a CHEBI/PubChem structure.
+- `chemicals.create_typed_sets` takes those CURIEs as **food/extract evidence** on the clique they
+  land in: the evidence joins the clique's type vote as an extra candidate, and the most specific
+  type wins (`order`). These entries carry no Babel type of their own, and their cliques vote
+  nothing but `ChemicalEntity` — 672 of the 685 have concord partners, 1326 links, every one of them
+  `ChemicalEntity` — so `Food`/`ComplexMolecularMixture` wins and the retype happens.
+
+  The evidence used to be a hard *override* that skipped the vote. It stopped being one in
+  [#935](https://github.com/NCATSTranslator/Babel/issues/935), which types foods from NCIt beyond
+  DrugBank and so has to cope with cliques that *do* contain a real chemical: NCIt calls water a
+  food, and only a vote (with `Food` ranked below `SmallMolecule`) keeps water a small molecule. See
+  [`../../NCIT/food-typing.md`](../../NCIT/food-typing.md).
 - `Food.txt` and the pre-existing `ComplexMolecularMixture.txt` are both in
   `config.yaml: chemical_outputs`, so **no new output type is needed** for this change. `RXCUI`
   members survive because the chemical build already passes `extra_prefixes=[RXCUI]`. These cliques
@@ -193,7 +199,7 @@ Both files carry the same two audit columns, and they exist to be *acted on*: `*
 NCIt class's direct superclasses (`NCIT:C390 (Contrast Agent)`) and `*_semantic_types` its UMLS
 semantic types (`T130=Indicator, Reagent, or Diagnostic Aid`). Reading a `Food` row whose semantic
 type is `T121`/`T130`-ish — or whose parent is plainly an agent class — is how you find the next
-`drugbank_nonfood_ncit_roots` entry. That is also how ethiodized oil was found.
+`nonfood_ncit_roots` entry. That is also how ethiodized oil was found.
 
 To regenerate after a UNII refresh: run the `chemical_ncit_food_codes` and
 `chemical_ncit_nonfood_codes` rules (or `chemicals.write_ncit_descendant_codes`) to produce

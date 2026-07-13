@@ -16,7 +16,7 @@ This is the committed generator for the sibling files:
 
 Both files carry two audit columns — the NCIt class's **direct parents** and its **UMLS semantic
 types** — so that a reviewer can see what sits above an entry and propose the next
-``config.yaml: drugbank_nonfood_ncit_roots`` entry (the never-food veto) from data rather than by
+``config.yaml: nonfood_ncit_roots`` entry (the never-food veto) from data rather than by
 eyeballing labels. The semantic types are derived from the entry's *NCIt* code, not from its UNII:
 UNIIs do map into UMLS directly (``MRCONSO`` ``SAB=MTHSPL``), but these products are all FDA drug
 ingredients there, so that route stamps ``T121`` "Pharmacologic Substance" on almost every one of
@@ -41,7 +41,7 @@ Inputs (pinned DrugBank vocabulary; current FDA UNII records):
     Snakemake rules, or directly (UberGraph query):
 
         uv run python -c "import src.createcompendia.chemicals as c, src.util as u; \\
-          c.write_ncit_descendant_codes(u.get_config()['drugbank_food_ncit_roots'], 'ncit_food_codes')"
+          c.write_ncit_descendant_codes(u.get_config()['food_ncit_roots'], 'ncit_food_codes')"
 
 Run (from the repo root):
 
@@ -208,7 +208,7 @@ def generate(
 
     # The audit columns: what sits directly above each NCIt class, and how UMLS types it. Both are
     # looked up in bulk once every row is known, and both exist so that a reviewer can source the next
-    # drugbank_nonfood_ncit_roots entry from the data (see this module's docstring and the README).
+    # nonfood_ncit_roots entry from the data (see this module's docstring and the README).
     ncit_curies = {r["ncit"] for r in a_rows} | {r["unii_ncit"] for r in b_rows}
     parents = fetch_ncit_parents(ncit_curies)
     semantic_types = read_ncit_semantic_types(mrconso, mrsty, ncit_curies)

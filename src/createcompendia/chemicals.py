@@ -1,4 +1,5 @@
 import ast
+import csv
 import gzip
 import logging
 from collections import defaultdict
@@ -26,6 +27,8 @@ from src.categories import (
     POLYPEPTIDE,
     SMALL_MOLECULE,
 )
+from src.datahandlers.drugbank import read_ncit_code_set
+from src.datahandlers.umls import MRCONSO_CODE_COLUMN, MRCONSO_CUI_COLUMN, MRCONSO_SAB_COLUMN
 from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.datahandlers.unii import UNII_RECORDS_CODE_COLUMN, UNII_RECORDS_ENCODING, read_organism_uniis
@@ -39,6 +42,7 @@ from src.prefixes import (
     INCHIKEY,
     KEGGCOMPOUND,
     MESH,
+    NCIT,
     PUBCHEMCOMPOUND,
     RXCUI,
     UMLS,
@@ -319,6 +323,49 @@ def write_ncit_descendant_codes(roots, outfile):
     with open(outfile, "w") as outf:
         for code in sorted(codes):
             outf.write(f"{code}\n")
+
+
+def write_ncit_food_types(mrconso, unii_records, food_codes_file, nonfood_codes_file, outfile):
+    """Write ``CURIE\\tbiolink:Food`` for every UMLS and UNII concept NCIt classifies as a food (#935).
+
+    #828 reaches DrugBank foods through their UNII's NCIt class. The same NCIt evidence exists for
+    concepts DrugBank never mentions (swordfish, capsicum, cranberry), but NCIt CURIEs are not members
+    of chemical cliques — ``NCIT`` is in neither ``chemical_ids`` nor ``chemical_concords`` — so the
+    classification has to be projected onto identifiers that *are* members:
+
+    - **UMLS**: MRCONSO's ``SAB=NCI`` rows map an NCIt code to its CUI. RxNorm needs no pass of its own;
+      an RXCUI rides along in the same clique.
+    - **UNII**: the UNII records' ``NCIT`` column. UNIIs that carry an InChI Key are skipped: those are
+      defined molecules, which Babel already types from their structure, and calling one a food adds
+      nothing (NCIt classifies water, riboflavin and beta carotene as foods).
+
+    The output feeds ``create_typed_sets`` as food *evidence*, which loses to any more specific type the
+    clique votes for — so a food that is also a small molecule stays a small molecule.
+    """
+    food_codes = read_ncit_code_set(food_codes_file) - read_ncit_code_set(nonfood_codes_file)
+    logger.info(f"Projecting {len(food_codes)} NCIt food codes onto UMLS and UNII concepts")
+
+    with open(outfile, "w") as outf:
+        cuis = set()
+        with open(mrconso) as inf:
+            for line in inf:
+                fields = line.split("|")
+                if fields[MRCONSO_SAB_COLUMN] == "NCI" and f"{NCIT}:{fields[MRCONSO_CODE_COLUMN]}" in food_codes:
+                    cuis.add(fields[MRCONSO_CUI_COLUMN])
+        for cui in sorted(cuis):
+            outf.write(f"{UMLS}:{cui}\t{FOOD}\n")
+
+        uniis = set()
+        with open(unii_records, encoding=UNII_RECORDS_ENCODING) as inf:
+            for row in csv.DictReader(inf, delimiter="\t"):
+                if row["INCHIKEY"].strip():
+                    continue
+                if row["NCIT"].strip() and f"{NCIT}:{row['NCIT'].strip()}" in food_codes:
+                    uniis.add(row["UNII"])
+        for unii in sorted(uniis):
+            outf.write(f"{UNII}:{unii}\t{FOOD}\n")
+
+    logger.info(f"Wrote food evidence for {len(cuis)} UMLS concepts and {len(uniis)} UNIIs to {outfile}")
 
 
 def write_drugbank_ids(infile, outfile):
@@ -937,7 +984,7 @@ def build_compendia(
     properties_jsonl_gz_files,
     metadata_yamls,
     icrdf_filename,
-    food_extract_types_file,
+    food_type_files,
 ):
     types = {}
     with open(type_file) as inf:
@@ -949,15 +996,17 @@ def build_compendia(
     # Food/extract evidence (issues #828, #935): CURIEs whose NCIt class says "food" (biolink:Food) or
     # whose DrugBank name says "extract" (biolink:ComplexMolecularMixture). These enter chemical cliques
     # via the UMLS/RXNORM concords carrying no Babel type of their own, so this evidence joins the
-    # clique's type vote in create_typed_sets as an extra candidate — it does not override it.
+    # clique's type vote in create_typed_sets as an extra candidate — it does not override it. Two files
+    # feed it, over disjoint CURIE spaces: the DrugBank materials (#828, DRUGBANK CURIEs) and the NCIt
+    # projection (#935, UMLS/UNII CURIEs). Where they name different members of the *same* clique and
+    # disagree, create_typed_sets takes the most specific type, so the load order here doesn't matter.
     food_types = {}
-    with open(food_extract_types_file) as inf:
-        for line in inf:
-            curie, biolink_type = line.strip().split("\t")
-            food_types[curie] = biolink_type
-    logger.info(
-        f"Loaded {len(food_types)} food-and-extract types from {food_extract_types_file}: {get_memory_usage_summary()}"
-    )
+    for food_type_file in food_type_files:
+        with open(food_type_file) as inf:
+            for line in inf:
+                curie, biolink_type = line.strip().split("\t")
+                food_types[curie] = biolink_type
+    logger.info(f"Loaded {len(food_types)} food-and-extract types from {food_type_files}: {get_memory_usage_summary()}")
 
     untyped_sets = set()
     with open(untyped_compendia_file) as inf:
