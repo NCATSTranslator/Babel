@@ -161,25 +161,25 @@ chemical_ids:       [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUN
 # this list so those cliques flow into DrugChemical conflation and the exports like any other chemical
 # output. (The processed extracts among them go to the already-present ComplexMolecularMixture.)
 chemical_outputs:   [MolecularMixture.txt, SmallMolecule.txt, Polypeptide.txt, ComplexMolecularMixture.txt, ChemicalEntity.txt, ChemicalMixture.txt, Drug.txt, Food.txt]
-# NCIt subtrees whose members are treated as foods when retyping DRUGBANK food-and-extract entries (issue
-# #828): NCIT:C1949 "Food" plus NCIT:C73913 "Seed" (nuts/grains like almond and wheat that NCIt files under
-# Seed, not Food). NCIt types a food by what it is rather than what it came from, so this covers non-plant
-# foods (scallop, venison, beef liver) too. A structureless DRUGBANK entry counts as food material if its
-# UNII is classified under either root OR its UNII carries a botanical-database flag (PLANTS/GRIN/MPNS,
-# which reaches the plant materials NCIt has no food class for); such material becomes biolink:Food, or
-# biolink:ComplexMolecularMixture when it is an extract (see drugbank_extract_markers).
-drugbank_food_ncit_roots:
+# NCIt subtrees whose members are foods (issues #828, #935): NCIT:C1949 "Food" plus NCIT:C73913 "Seed"
+# (nuts/grains like almond and wheat that NCIt files under Seed, not Food). NCIt types a food by what it is
+# rather than what it came from, so this covers non-plant foods (scallop, venison, beef liver) too.
+# A concept whose NCIt class is under either root contributes biolink:Food evidence to its clique — a
+# DRUGBANK entry via its UNII (#828), and any UNII or UMLS concept via NCIt directly (#935). The evidence
+# is a *vote*, not an override (see chemicals.create_typed_sets): NCIt also calls water and riboflavin
+# foods, and a clique that votes SmallMolecule keeps SmallMolecule.
+food_ncit_roots:
   - NCIT:C1949 # "Food" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C1949
   - NCIT:C73913 # "Seed" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C73913
 # NCIt subtrees whose members are NEVER food, however botanical they are (issue #828). A botanical flag
 # says "plant material", not "food", so on its own it must not overrule an NCIt class that says this is a
 # drug: without this veto DRUGBANK:DB00965 "Ethiodized oil" (an iodinated poppy-seed-oil contrast agent)
-# and DRUGBANK:DB05051 "BZL101" (an antineoplastic) are typed biolink:Food. A vetoed entry stays
-# biolink:ChemicalEntity — we make no claim — and an explicit drugbank_food_ncit_roots classification
-# still wins, so a food that is also a diagnostic agent (inulin) is unaffected. Keep these roots NARROW:
-# NCIT:C1909 "Pharmacologic Substance" is deliberately absent because NCIt files cocoa butter, garlic oil,
-# rice bran and green tea under it, and vetoing on it would throw out real foods.
-drugbank_nonfood_ncit_roots:
+# and DRUGBANK:DB05051 "BZL101" (an antineoplastic) are typed biolink:Food. A vetoed entry contributes no
+# food evidence at all — we make no claim — and an explicit food_ncit_roots classification still wins, so a
+# food that is also a diagnostic agent (inulin) is unaffected. Keep these roots NARROW: NCIT:C1909
+# "Pharmacologic Substance" is deliberately absent because NCIt files cocoa butter, garlic oil, rice bran
+# and green tea under it, and vetoing on it would throw out real foods.
+nonfood_ncit_roots:
   - NCIT:C1966 # "Imaging Agent" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C1966
   - NCIT:C274 # "Antineoplastic Agent" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C274
 # Case-insensitive name/synonym substrings that mark a DRUGBANK food material as a processed

@@ -23,6 +23,10 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   — retyping DrugBank food-and-extract products (foods, pollens, danders) out of
   `biolink:ChemicalEntity`: foods become `biolink:Food` via their UNII's NCIt class, non-food
   allergens become `biolink:ComplexMolecularMixture`.
+- **NCIT** ([NCIT/food-typing.md](./NCIT/food-typing.md)) — typing foods (swordfish, capsicum,
+  cranberry) as `biolink:Food` from NCIt's Food/Seed classification: why the classification has to
+  be *projected* onto UMLS/UNII rather than inherited from an `NCIT:` clique member, and why the
+  evidence is a type *vote* rather than an override (NCIt calls water a food).
 - **ENSEMBL** ([ENSEMBL/Download.md](./ENSEMBL/Download.md)) — how Ensembl identifiers are
   downloaded via the BioMart API: per-dataset retry logic, permanently broken datasets and how to
   skip them, the attribute-batching workaround, and how partial progress is preserved across

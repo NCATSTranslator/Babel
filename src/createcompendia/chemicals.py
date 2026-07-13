@@ -1,4 +1,5 @@
 import ast
+import csv
 import gzip
 import logging
 from collections import defaultdict
@@ -26,6 +27,8 @@ from src.categories import (
     POLYPEPTIDE,
     SMALL_MOLECULE,
 )
+from src.datahandlers.drugbank import read_ncit_code_set
+from src.datahandlers.umls import MRCONSO_CODE_COLUMN, MRCONSO_CUI_COLUMN, MRCONSO_SAB_COLUMN
 from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.datahandlers.unii import UNII_RECORDS_CODE_COLUMN, UNII_RECORDS_ENCODING, read_organism_uniis
@@ -39,6 +42,7 @@ from src.prefixes import (
     INCHIKEY,
     KEGGCOMPOUND,
     MESH,
+    NCIT,
     PUBCHEMCOMPOUND,
     RXCUI,
     UMLS,
@@ -319,6 +323,49 @@ def write_ncit_descendant_codes(roots, outfile):
     with open(outfile, "w") as outf:
         for code in sorted(codes):
             outf.write(f"{code}\n")
+
+
+def write_ncit_food_types(mrconso, unii_records, food_codes_file, nonfood_codes_file, outfile):
+    """Write ``CURIE\\tbiolink:Food`` for every UMLS and UNII concept NCIt classifies as a food (#935).
+
+    #828 reaches DrugBank foods through their UNII's NCIt class. The same NCIt evidence exists for
+    concepts DrugBank never mentions (swordfish, capsicum, cranberry), but NCIt CURIEs are not members
+    of chemical cliques — ``NCIT`` is in neither ``chemical_ids`` nor ``chemical_concords`` — so the
+    classification has to be projected onto identifiers that *are* members:
+
+    - **UMLS**: MRCONSO's ``SAB=NCI`` rows map an NCIt code to its CUI. RxNorm needs no pass of its own;
+      an RXCUI rides along in the same clique.
+    - **UNII**: the UNII records' ``NCIT`` column. UNIIs that carry an InChI Key are skipped: those are
+      defined molecules, which Babel already types from their structure, and calling one a food adds
+      nothing (NCIt classifies water, riboflavin and beta carotene as foods).
+
+    The output feeds ``create_typed_sets`` as food *evidence*, which loses to any more specific type the
+    clique votes for — so a food that is also a small molecule stays a small molecule.
+    """
+    food_codes = read_ncit_code_set(food_codes_file) - read_ncit_code_set(nonfood_codes_file)
+    logger.info(f"Projecting {len(food_codes)} NCIt food codes onto UMLS and UNII concepts")
+
+    with open(outfile, "w") as outf:
+        cuis = set()
+        with open(mrconso) as inf:
+            for line in inf:
+                fields = line.split("|")
+                if fields[MRCONSO_SAB_COLUMN] == "NCI" and f"{NCIT}:{fields[MRCONSO_CODE_COLUMN]}" in food_codes:
+                    cuis.add(fields[MRCONSO_CUI_COLUMN])
+        for cui in sorted(cuis):
+            outf.write(f"{UMLS}:{cui}\t{FOOD}\n")
+
+        uniis = set()
+        with open(unii_records, encoding=UNII_RECORDS_ENCODING) as inf:
+            for row in csv.DictReader(inf, delimiter="\t"):
+                if row["INCHIKEY"].strip():
+                    continue
+                if row["NCIT"].strip() and f"{NCIT}:{row['NCIT'].strip()}" in food_codes:
+                    uniis.add(row["UNII"])
+        for unii in sorted(uniis):
+            outf.write(f"{UNII}:{unii}\t{FOOD}\n")
+
+    logger.info(f"Wrote food evidence for {len(cuis)} UMLS concepts and {len(uniis)} UNIIs to {outfile}")
 
 
 def write_drugbank_ids(infile, outfile):
@@ -937,7 +984,7 @@ def build_compendia(
     properties_jsonl_gz_files,
     metadata_yamls,
     icrdf_filename,
-    food_extract_types_file,
+    food_type_files,
 ):
     types = {}
     with open(type_file) as inf:
@@ -946,19 +993,20 @@ def build_compendia(
             types[x[0]] = x[1]
     logger.info(f"Loaded {len(types)} types from {type_file}: {get_memory_usage_summary()}")
 
-    # DRUGBANK food-and-extract CURIEs to force to a specific Biolink type (issue #828): foods to
-    # biolink:Food, non-food allergen extracts (pollens/danders/...) to biolink:ComplexMolecularMixture.
-    # These enter chemical cliques via the UMLS/RXNORM concords without a Babel-assigned type, so we
-    # retype the whole clique they land in rather than relying on the per-identifier type vote.
-    forced_types = {}
-    with open(food_extract_types_file) as inf:
-        for line in inf:
-            curie, biolink_type = line.strip().split("\t")
-            forced_types[curie] = biolink_type
-    logger.info(
-        f"Loaded {len(forced_types)} forced food-and-extract types from {food_extract_types_file}: "
-        f"{get_memory_usage_summary()}"
-    )
+    # Food/extract evidence (issues #828, #935): CURIEs whose NCIt class says "food" (biolink:Food) or
+    # whose DrugBank name says "extract" (biolink:ComplexMolecularMixture). These enter chemical cliques
+    # via the UMLS/RXNORM concords carrying no Babel type of their own, so this evidence joins the
+    # clique's type vote in create_typed_sets as an extra candidate — it does not override it. Two files
+    # feed it, over disjoint CURIE spaces: the DrugBank materials (#828, DRUGBANK CURIEs) and the NCIt
+    # projection (#935, UMLS/UNII CURIEs). Where they name different members of the *same* clique and
+    # disagree, create_typed_sets takes the most specific type, so the load order here doesn't matter.
+    food_types = {}
+    for food_type_file in food_type_files:
+        with open(food_type_file) as inf:
+            for line in inf:
+                curie, biolink_type = line.strip().split("\t")
+                food_types[curie] = biolink_type
+    logger.info(f"Loaded {len(food_types)} food-and-extract types from {food_type_files}: {get_memory_usage_summary()}")
 
     untyped_sets = set()
     with open(untyped_compendia_file) as inf:
@@ -967,7 +1015,7 @@ def build_compendia(
             untyped_sets.add(frozenset(s))
     logger.info(f"Loaded {len(untyped_sets)} untyped sets from {untyped_compendia_file}: {get_memory_usage_summary()}")
 
-    typed_sets = create_typed_sets(untyped_sets, types, forced_types)
+    typed_sets = create_typed_sets(untyped_sets, types, food_types)
     logger.info(
         f"Created {len(typed_sets)} typed sets from {len(untyped_sets)} untyped sets: {get_memory_usage_summary()}"
     )
@@ -998,38 +1046,47 @@ def build_compendia(
             )
 
 
-def create_typed_sets(eqsets, types, forced_types=None):
+def create_typed_sets(eqsets, types, food_types=None):
     """
     Given a set of sets of equivalent identifiers, we want to type each one into
     being a subclass of ChemicalEntity.
 
     :param eqsets: A list of lists of identifiers (should NOT be a list of LabeledIDs, but a list of strings).
     :param types: A dictionary of known types for each identifier. (Some identifiers don't have known types.)
-    :param forced_types: {CURIE -> biolink_type} for DRUGBANK food/extracts (issue #828). A clique
-        containing any such CURIE is forced to that type (Food or ComplexMolecularMixture), overriding
-        the normal type vote; if members disagree the most specific type (earliest in ``order``) wins.
+    :param food_types: {CURIE -> biolink_type} of food/extract evidence (issues #828, #935): a UNII or
+        UMLS/DRUGBANK CURIE whose NCIt class says "food", or a DrugBank material whose name says
+        "extract". These CURIEs carry no Babel type of their own, so this evidence is added to the
+        clique's type vote as an extra candidate — *not* as an override. The most specific of the voted
+        and the food/extract types wins, per ``order``, which is what keeps water a SmallMolecule: NCIt
+        calls water a food, but its clique also votes SmallMolecule, and SmallMolecule is more specific.
     """
+    # Most specific first. FOOD sits *below* the structure-bearing types (SmallMolecule, MolecularMixture,
+    # Drug, Polypeptide) so that food evidence never demotes a defined molecule (water, riboflavin,
+    # isoleucine and beta carotene are all NCIt foods), and *above* the uninformative ChemicalMixture /
+    # ChemicalEntity, which is what it is meant to improve on. ComplexMolecularMixture outranks FOOD so
+    # that an extract stays an extract even when NCIt also calls it a food (issue #935).
     order = [
-        FOOD,
         DRUG,
         MOLECULAR_MIXTURE,
         SMALL_MOLECULE,
         POLYPEPTIDE,
         COMPLEX_MOLECULAR_MIXTURE,
+        FOOD,
         CHEMICAL_MIXTURE,
         CHEMICAL_ENTITY,
     ]
-    forced_types = forced_types or {}
+    food_types = food_types or {}
     typed_sets = defaultdict(set)
+
+    def assign(biolink_type, ids, food_evidence):
+        """Type a clique as the most specific of its voted type and any food/extract evidence on it."""
+        typed_sets[min({biolink_type} | food_evidence, key=order.index)].add(ids)
+
     # logging.warning(f"create_typed_sets: eqsets={eqsets}, types=...")
     for equivalent_ids in eqsets:
-        # A clique containing a DRUGBANK food/extract is retyped as a whole to its forced type
-        # (issue #828). ponytail: coarse clique-level override; an extract clique never contains a real
-        # chemical, so retyping the whole clique is safe.
-        forced = {forced_types[c] for c in equivalent_ids if c in forced_types}
-        if forced:
-            typed_sets[min(forced, key=order.index)].add(equivalent_ids)
-            continue
+        # The food/extract evidence on this clique, if any (issues #828, #935). It joins the vote below
+        # rather than overriding it.
+        food_evidence = {food_types[c] for c in equivalent_ids if c in food_types}
         # logging.warning(f"Processing equivalent_ids={equivalent_ids}.")
         # prefixes = set([ Text.get_curie(x) for x in equivalent_ids])
         prefixes = get_prefixes(equivalent_ids)
@@ -1046,7 +1103,7 @@ def create_typed_sets(eqsets, types, forced_types=None):
                         pass
 
                 if len(pctypes) == 1:
-                    typed_sets[list(pctypes)[0]].add(equivalent_ids)
+                    assign(list(pctypes)[0], equivalent_ids, food_evidence)
                     found = True
                 elif pctypes == {SMALL_MOLECULE, MOLECULAR_MIXTURE}:
                     # This is a common case (8,178 cases in 2022oct13) which occurs in cases where the InChI for
@@ -1074,8 +1131,8 @@ def create_typed_sets(eqsets, types, forced_types=None):
                         + f"into a biolink:MolecularMixture ({molecular_mixture_ids}) and "
                         + f"a biolink:SmallMolecule ({all_other_ids})"
                     )
-                    typed_sets[MOLECULAR_MIXTURE].add(frozenset(molecular_mixture_ids))
-                    typed_sets[SMALL_MOLECULE].add(frozenset(all_other_ids))
+                    assign(MOLECULAR_MIXTURE, frozenset(molecular_mixture_ids), food_evidence)
+                    assign(SMALL_MOLECULE, frozenset(all_other_ids), food_evidence)
                     found = True
                 else:
                     logging.warning(
@@ -1091,14 +1148,14 @@ def create_typed_sets(eqsets, types, forced_types=None):
                 # print(equivalent_ids)
                 # One thing that happens is that we can have PUBCHEMs that have been deleted, but are still in UNICHEM
                 # then the pubchem doesn't get assigned a type, but still ends up in the compendium
-                typed_sets[CHEMICAL_ENTITY].add(equivalent_ids)
+                assign(CHEMICAL_ENTITY, equivalent_ids, food_evidence)
             elif len(typecounts) == 1:
                 t = list(typecounts.keys())[0]
-                typed_sets[t].add(equivalent_ids)
+                assign(t, equivalent_ids, food_evidence)
             else:
                 # First attempt is majority vote, and after that by most specific
                 otypes = [(-c, order.index(t), t) for t, c in typecounts.items()]
                 otypes.sort()
                 t = otypes[0][2]
-                typed_sets[t].add(equivalent_ids)
+                assign(t, equivalent_ids, food_evidence)
     return typed_sets

@@ -292,7 +292,7 @@ class UberGraph:
         non-redundant graph, where UberGraph keeps the asserted rdfs:subClassOf edges, rather than
         the closure in the redundant graph. Written for the DrugBank food-and-extract audit CSVs
         (issue #828), where a reviewer needs to see what sits immediately above an entry's NCIt class
-        in order to propose the next drugbank_nonfood_ncit_roots entry; the full ancestor closure is
+        in order to propose the next nonfood_ncit_roots entry; the full ancestor closure is
         too long to read.
 
         :param curies: An iterable of CURIEs to look up.

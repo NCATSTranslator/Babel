@@ -150,7 +150,7 @@ rule chemical_ncit_food_codes:
         config["output_directory"] + "/benchmarks/chemical_ncit_food_codes.tsv"
     retries: 3  # UberGraph sometimes fails mid-download and needs a retry.
     run:
-        chemicals.write_ncit_descendant_codes(config["drugbank_food_ncit_roots"], output.outfile)
+        chemicals.write_ncit_descendant_codes(config["food_ncit_roots"], output.outfile)
 
 
 rule chemical_ncit_nonfood_codes:
@@ -163,7 +163,7 @@ rule chemical_ncit_nonfood_codes:
         config["output_directory"] + "/benchmarks/chemical_ncit_nonfood_codes.tsv"
     retries: 3  # UberGraph sometimes fails mid-download and needs a retry.
     run:
-        chemicals.write_ncit_descendant_codes(config["drugbank_nonfood_ncit_roots"], output.outfile)
+        chemicals.write_ncit_descendant_codes(config["nonfood_ncit_roots"], output.outfile)
 
 
 rule chemical_drugbank_food_extracts:
@@ -189,6 +189,31 @@ rule chemical_drugbank_food_extracts:
             input.food_ncit_codes,
             input.nonfood_ncit_codes,
             config["drugbank_extract_markers"],
+            output.outfile,
+        )
+
+
+rule chemical_ncit_food_types:
+    # Foods that DrugBank never mentions (swordfish, capsicum, cranberry): every UMLS and UNII concept
+    # NCIt classifies as a food, projected onto the identifiers that actually sit in chemical cliques —
+    # issue #935. NCIt CURIEs are not clique members themselves, so the classification travels via
+    # MRCONSO (SAB=NCI -> CUI) and the UNII records' NCIT column; RXCUIs ride along in the same cliques.
+    # This is food *evidence* for the type vote, not an override: see chemicals.create_typed_sets.
+    input:
+        mrconso=config["download_directory"] + "/UMLS/MRCONSO.RRF",
+        unii_records=config["download_directory"] + "/UNII/Latest_UNII_Records.txt",
+        food_ncit_codes=config["intermediate_directory"] + "/chemicals/ids/ncit_food_codes",
+        nonfood_ncit_codes=config["intermediate_directory"] + "/chemicals/ids/ncit_nonfood_codes",
+    output:
+        outfile=config["intermediate_directory"] + "/chemicals/ids/ncit_food_types",
+    benchmark:
+        config["output_directory"] + "/benchmarks/chemical_ncit_food_types.tsv"
+    run:
+        chemicals.write_ncit_food_types(
+            input.mrconso,
+            input.unii_records,
+            input.food_ncit_codes,
+            input.nonfood_ncit_codes,
             output.outfile,
         )
 
@@ -394,7 +419,10 @@ rule chemical_compendia:
         metadata_yamls=[config["intermediate_directory"] + "/chemicals/partials/metadata-untyped_compendium.yaml"],
         properties_jsonl_gz=[config["intermediate_directory"] + "/chemicals/properties/get_chebi_concord.jsonl.gz"],
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
-        food_extract_types=config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts",
+        food_types=[
+            config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts",
+            config["intermediate_directory"] + "/chemicals/ids/ncit_food_types",
+        ],
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["chemical_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["chemical_outputs"])),
@@ -411,7 +439,7 @@ rule chemical_compendia:
             input.properties_jsonl_gz,
             input.metadata_yamls,
             input.icrdf_filename,
-            input.food_extract_types,
+            input.food_types,
         )
 
 
