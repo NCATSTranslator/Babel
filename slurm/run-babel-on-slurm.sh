@@ -30,7 +30,7 @@ export UV_CACHE_DIR="/projects/babel/runs/uv-cache/"
 # a long-running process on login/head nodes. So a good compromise is to still use the sbatch wrapper
 # to submit the snakemake job but request minimal resources for the outer job as shown in this job script.
 
-uv run snakemake --slurm-jobname-prefix "${BABEL_VERSION:-babel-current}" --profile slurm $@
+uv run snakemake --profile slurm $@
 snakemake_exit=\$?
 
 if [ \$snakemake_exit -ne 0 ]; then
