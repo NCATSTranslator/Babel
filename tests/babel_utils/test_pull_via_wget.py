@@ -14,6 +14,7 @@ import shutil
 import threading
 import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from unittest.mock import patch
 
 import pytest
 
@@ -138,6 +139,31 @@ def test_recursive_wget_redownloads_a_stale_preloaded_file_rather_than_resuming_
 # UNSAFE OPTION COMBINATIONS
 #
 # These guards fire before wget is invoked, so these tests need neither the server nor the binary.
+
+
+@pytest.mark.unit
+def test_non_recursive_download_omits_timestamping(tmp_path):
+    """wget disables -N (and warns) whenever -O is also passed, so passing --timestamping alongside
+    -O is a pure no-op that just prints a warning. A non-recursive pull_via_wget() call (which
+    always uses -O) should not pass --timestamping even though it defaults to True."""
+
+    def fake_wget(command_line, **kwargs):
+        # -O's argument is the output file; touch it so the post-download file-type check passes.
+        out_file = command_line[command_line.index("-O") + 1]
+        open(out_file, "w").close()
+        return type("Result", (), {"returncode": 0, "stderr": ""})()
+
+    with patch("subprocess.run", side_effect=fake_wget) as mock_run:
+        pull_via_wget(
+            "http://127.0.0.1:1/",
+            "file.txt",
+            decompress=False,
+            outpath=str(tmp_path / "local" / "file.txt"),
+        )
+
+    wget_call = mock_run.call_args_list[0].args[0]
+    assert "--timestamping" not in wget_call
+    assert "-O" in wget_call
 
 
 @pytest.mark.unit

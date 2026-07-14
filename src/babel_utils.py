@@ -496,7 +496,9 @@ def pull_via_wget(
     ]
     if continue_incomplete:
         wget_command_line.append("--continue")
-    if timestamping:
+    # --timestamping is a no-op combined with -O (wget disables -N and warns); only pass it when
+    # we're not writing to a fixed output file via -O.
+    if timestamping and recurse != WgetRecursionOptions.NO_RECURSION:
         wget_command_line.append("--timestamping")
     if retries > 0:
         wget_command_line.append(f"--tries={retries}")
