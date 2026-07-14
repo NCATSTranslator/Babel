@@ -838,17 +838,14 @@ rule chembl_labels_and_smiles:
 
 
 ### DrugBank requires a login... but not for basic vocabulary information.
-rule get_drugbank_labels_and_synonyms:
+rule get_drugbank_vocabulary:
     output:
         outfile=config["download_directory"] + "/DRUGBANK/drugbank vocabulary.csv",
-        labels=config["download_directory"] + "/DRUGBANK/labels",
-        synonyms=config["download_directory"] + "/DRUGBANK/synonyms",
     benchmark:
-        config["output_directory"] + "/benchmarks/get_drugbank_labels_and_synonyms.tsv"
+        config["output_directory"] + "/benchmarks/get_drugbank_vocabulary.tsv"
     retries: 3  # DrugBank download occasionally fails transiently.
     run:
         drugbank.download_drugbank_vocabulary(config["drugbank_version"], output.outfile)
-        drugbank.extract_drugbank_labels_and_synonyms(output.outfile, output.labels, output.synonyms)
 
 
 ### GTOPDB We're only pulling ligands.  Maybe one day we'll want the whole db?

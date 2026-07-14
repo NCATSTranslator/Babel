@@ -5,6 +5,18 @@ import src.assess_compendia as assessments
 import src.snakefiles.util as util
 
 
+rule get_drugbank_labels_and_synonyms:
+    input:
+        infile=config["download_directory"] + "/DRUGBANK/drugbank vocabulary.csv",
+    output:
+        labels=config["download_directory"] + "/DRUGBANK/labels",
+        synonyms=config["download_directory"] + "/DRUGBANK/synonyms",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_drugbank_labels_and_synonyms.tsv"
+    run:
+        drugbank.extract_drugbank_labels_and_synonyms(input.infile, output.labels, output.synonyms)
+
+
 rule chemical_umls_ids:
     input:
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
