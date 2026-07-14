@@ -38,6 +38,8 @@ rule process_rhea_ids:
 
 
 rule process_ec_ids:
+    input:
+        infile=config["download_directory"] + "/EC/enzyme.rdf",
     output:
         outfile=config["intermediate_directory"] + "/process/ids/EC",
     benchmark:
