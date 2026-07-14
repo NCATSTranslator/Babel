@@ -268,6 +268,23 @@ class ThrottledRequester:
                 ntries += 1
 
 
+def raise_if_cloudflare_challenge(download_url: str, local_file_name: str, error: urllib.error.HTTPError):
+    """Fail fast (no retry) if an HTTPError is actually a Cloudflare bot challenge.
+
+    Cloudflare marks a challenge-page response (a 403 with an interactive JS/Turnstile
+    challenge instead of the requested content) with a `cf-mitigated: challenge` header --
+    see https://developers.cloudflare.com/cloudflare-challenges/challenge-types/challenge-pages/detect-response/.
+    Retrying or changing the User-Agent won't help: this is served identically to a real
+    browser. Raise immediately with instructions for a human to download the file manually.
+    """
+    if error.headers is not None and error.headers.get("cf-mitigated") == "challenge":
+        raise RuntimeError(
+            f"{download_url} is behind a Cloudflare bot challenge (cf-mitigated: challenge) and cannot be "
+            "downloaded automatically. Please download the file manually in a browser and place it at "
+            f"{local_file_name}, then re-run this rule."
+        )
+
+
 def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, verify_gzip=False):
     """
     Download a file via the given URL, optionally decompress it, and save it
@@ -337,6 +354,11 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
 
                     # write out the data to the output file
                     compressed_file.write(data)
+        except urllib.error.HTTPError as e:
+            raise_if_cloudflare_challenge(download_url, dl_file_name, e)
+            logger.warning(f"Download attempt {download_attempt} of {download_url} failed with network/HTTP error: {e}")
+            time.sleep(5 * download_attempt)
+            continue
         except urllib.error.URLError as e:
             logger.warning(f"Download attempt {download_attempt} of {download_url} failed with network/HTTP error: {e}")
             time.sleep(5 * download_attempt)
