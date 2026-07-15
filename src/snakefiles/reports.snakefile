@@ -146,7 +146,13 @@ rule generate_prefix_comparison:
     benchmark:
         config["output_directory"] + "/benchmarks/generate_prefix_comparison.tsv"
     params:
-        # The baseline is a committed repo file, read-only during the build.
+        # The baseline is a committed repo file (read-only during the build), passed as a param rather
+        # than an input: an input would hard-error on the first run before any baseline is committed,
+        # and generate_prefix_comparison handles a missing baseline gracefully. Trade-off: because it
+        # isn't a tracked input, bumping previous_release (or editing the baseline) won't by itself
+        # retrigger this rule -- it only reruns when prefix_report.json does. A full run regenerates
+        # prefix_report.json, so this only matters if you rerun reports incrementally after changing
+        # the pin; force it then with `-R generate_prefix_comparison`.
         baseline_json="releases/prefix_reports/" + config["previous_release"] + ".json",
         warn_abs=config["prefix_comparison_warn_abs"],
         warn_pct=config["prefix_comparison_warn_pct"],

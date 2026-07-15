@@ -217,12 +217,10 @@ def test_generate_prefix_report_by_filename(prefix_report):
     assert prefix_report["by_filename"]["Foo"] == {
         "curie_count": 2,
         "distinct_curie_count": 2,
-        "distinct_clique_count": 1,
     }
     assert prefix_report["by_filename"]["Bar"] == {
         "curie_count": 2,
         "distinct_curie_count": 2,
-        "distinct_clique_count": 2,
     }
 
 

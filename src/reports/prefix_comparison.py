@@ -210,9 +210,16 @@ def generate_prefix_comparison(
         by_clique_rows.append(row)
 
         # A row is notable if it was removed entirely, if its absolute change is large, or if it
-        # changed by a large percentage against a non-zero baseline. The percentage rule deliberately
-        # requires prev > 0 so brand-new prefixes (infinite percent) are surfaced only when their
-        # absolute size is itself large, rather than flooding the list with tiny new entries.
+        # changed by a large percentage against a non-zero baseline. Each term earns its place:
+        #   - is_large_pct requires prev > 0 so brand-new prefixes (infinite percent) are surfaced
+        #     only via is_large_abs, not flooded in as tiny new entries.
+        #   - is_removed is NOT redundant with is_large_pct: a removal is always -100%, so is_large_pct
+        #     already catches it whenever warn_pct <= 100, but is_removed guarantees vanished prefixes
+        #     surface even if warn_pct is set above 100 (a "flag only things that more-than-doubled"
+        #     configuration). Don't collapse it into is_large_pct.
+        # By design a small prefix that moves past warn_pct (including any removal) is notable -- that
+        # is what warn_pct controls; raise it to quiet small proportional swings. The list can be long,
+        # but the Markdown shows only the top 50 by absolute magnitude (the CSV keeps them all).
         is_removed = cur == 0
         is_large_abs = abs(absolute) >= warn_abs
         is_large_pct = prev > 0 and abs(100.0 * absolute / prev) >= warn_pct

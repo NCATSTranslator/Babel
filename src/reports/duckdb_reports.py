@@ -197,8 +197,7 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, na
                 "curie_count": <int, exact>, "curie_distinct_count": <int, approx>,
                 "clique_distinct_count": <int, approx>, "filenames": {"<filename>": <int, exact>}}},
             "by_filename": {"<filename>": {                            # additive extension to the baseline schema
-                "curie_count": <int, exact>, "distinct_curie_count": <int, approx>,
-                "distinct_clique_count": <int, approx>}},
+                "curie_count": <int, exact>, "distinct_curie_count": <int, approx>}},
         }
 
     The ``by_filename`` section is not present in the committed baselines and is ignored by the
@@ -216,26 +215,25 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, na
 
     # Section 0: by_filename -- per-compendium-file totals. This is an additive extension to the
     # baseline schema (the committed baselines don't carry it); the comparison report ignores it, but
-    # report_tables.generate_cliques_table needs per-file distinct CURIE / clique counts, which cannot
-    # be recovered from the approximate per-prefix sketches elsewhere in this report.
+    # report_tables.generate_cliques_table needs the per-file exact CURIE count and approximate
+    # distinct CURIE count, which cannot be recovered from the per-prefix sketches elsewhere in this
+    # report.
     logger.info("Generating prefix report: by_filename totals...")
     with log_duckdb_settings_on_error(db, "generate_prefix_report: by_filename totals (approx distinct counts)"):
         by_filename_rows = db.sql("""
             SELECT
                 filename,
                 COUNT(curie) AS curie_count,
-                approx_count_distinct(curie) AS distinct_curie_count,
-                approx_count_distinct(clique_leader) AS distinct_clique_count
+                approx_count_distinct(curie) AS distinct_curie_count
             FROM edges
             WHERE conflation = 'None'
             GROUP BY filename
         """).fetchall()
     by_filename = {}
-    for filename, curie_count, distinct_curie_count, distinct_clique_count in by_filename_rows:
+    for filename, curie_count, distinct_curie_count in by_filename_rows:
         by_filename[filename] = {
             "curie_count": curie_count,
             "distinct_curie_count": distinct_curie_count,
-            "distinct_clique_count": distinct_clique_count,
         }
 
     # Section 1: by_curie_prefix -- one row per CURIE prefix. curie_count is exact; the distinct/clique
