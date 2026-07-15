@@ -18,7 +18,7 @@ drugbank_version: "5-1-13" # The latest is 5-1-21, but since downloads are curre
 # Release naming and the previous-release comparison (see docs/RunningBabel.md).
 # release_name is the date-style name for THIS build; it becomes the "name" in the generated
 # prefix_report.json and names the file when it is archived into releases/prefix_reports/.
-release_name: "2026jul2"
+release_name: "2026jul15"
 # previous_release pins which committed baseline the end-of-run comparison diffs against. Bumping it
 # to the newest release archived in releases/prefix_reports/ is the deliberate "new baseline" action;
 # a unit test fails if a newer baseline was committed without updating this pin.
