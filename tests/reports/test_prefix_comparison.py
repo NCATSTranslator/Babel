@@ -78,6 +78,15 @@ def test_list_release_names_sorted_oldest_to_newest(tmp_path):
     assert prefix_comparison.list_release_names(str(tmp_path)) == ["2025jan23", "2025mar31", "2025sep1"]
 
 
+@pytest.mark.unit
+def test_list_release_names_raises_on_release_shaped_invalid_date(tmp_path):
+    """A stem that looks like a release but is an impossible date must raise, not be silently skipped
+    -- otherwise a mis-dated committed baseline could hide the newest one from the pin guard."""
+    (tmp_path / "2025feb31.json").write_text("{}")  # Feb 31 does not exist
+    with pytest.raises(ValueError):
+        prefix_comparison.list_release_names(str(tmp_path))
+
+
 # ----
 # PIN CONSISTENCY (the weekly-unit-test guard the user asked for)
 # ----

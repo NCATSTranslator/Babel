@@ -64,17 +64,27 @@ def parse_release_date(name: str) -> datetime.date:
 
 def list_release_names(baselines_dir: str) -> list[str]:
     """Return the release names (JSON stems) present in ``baselines_dir``, sorted oldest to newest by
-    parsed release date. Files whose names don't parse as releases are skipped with a warning."""
+    parsed release date.
+
+    Files whose stem doesn't even *look* like a release name (``YYYYmonDD``) are skipped with a
+    warning -- e.g. ``README.json``. A stem that matches the shape but is not a valid release date
+    (a bad month like ``2025xyz1`` or an impossible day like ``2025feb31``) raises instead of being
+    skipped: silently dropping it could hide the newest committed baseline and defeat the
+    ``previous_release`` pin guard, so it must surface immediately.
+
+    :raises ValueError: if a ``.json`` stem matches the release-name shape but is not a valid date.
+    """
     names = []
     for entry in os.listdir(baselines_dir):
         if not entry.endswith(".json"):
             continue
         stem = entry[: -len(".json")]
-        try:
-            parse_release_date(stem)
-        except ValueError:
+        if not _RELEASE_NAME_RE.match(stem):
             logger.warning(f"Skipping non-release-named baseline {entry!r} in {baselines_dir}.")
             continue
+        # Matches the YYYYmonDD shape but has a bad month/day: let parse_release_date raise rather than
+        # silently hide a committed baseline from the "newest baseline" guard.
+        parse_release_date(stem)
         names.append(stem)
     return sorted(names, key=parse_release_date)
 
