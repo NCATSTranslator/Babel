@@ -1,9 +1,7 @@
 import ast
 import gzip
 import logging
-import os
 from collections import defaultdict
-from os.path import dirname
 
 import jsonlines
 import requests
@@ -23,12 +21,14 @@ from src.categories import (
     CHEMICAL_MIXTURE,
     COMPLEX_MOLECULAR_MIXTURE,
     DRUG,
+    FOOD,
     MOLECULAR_MIXTURE,
     POLYPEPTIDE,
     SMALL_MOLECULE,
 )
 from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
+from src.datahandlers.unii import UNII_ORGANISM_COLUMNS, read_unii_records
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.prefixes import (
     CHEBI,
@@ -47,9 +47,16 @@ from src.prefixes import (
 from src.properties import HAS_ALTERNATIVE_ID, Property
 from src.sdfreader import read_sdf
 from src.ubergraph import UberGraph
-from src.util import Text, get_logger, get_memory_usage_summary
+from src.util import Text, ensure_parent_dir, get_logger, get_memory_usage_summary
 
 logger = get_logger(__name__)
+
+# Types that a source-forced clique type (create_typed_sets' forced_types, today only the DRUGBANK
+# food-and-extract retype) should never be silently overriding: they say a clique member is a defined
+# chemical, which a whole food or an extract is not. The forced type still wins — these cliques hold
+# nothing but ChemicalEntity members today — but the override is coarse enough that the day one of
+# these appears we want to hear about it rather than quietly retype a small molecule as a food.
+FORCED_TYPE_CONFLICTS = frozenset({DRUG, MOLECULAR_MIXTURE, SMALL_MOLECULE, POLYPEPTIDE})
 
 
 def get_type_from_smiles(smiles):
@@ -292,22 +299,13 @@ def write_chebi_ids(outfile):
 def write_unii_ids(infile, outfile):
     """UNII contains a bunch of junk like leaves.   We are going to try to clean it a bit to get things
     that are actually chemicals.  In biolink 2.0 we cn revisit exactly what happens here."""
-    with open(infile, encoding="windows-1252") as inf, open(outfile, "w") as outf:
-        h = inf.readline().strip().split("\t")
-        bad_cols = ["NCBI", "PLANTS", "GRIN", "MPNS"]
-        bad_colnos = [h.index(bc) for bc in bad_cols]
-        for line in inf:
-            x = line.strip().split("\t")
-
-            flag_skip = False
-            for bcn in bad_colnos:
-                if len(x[bcn]) > 0:
-                    # This is a plant or an eye of newt or something
-                    flag_skip = True
-                    break
-
-            if not flag_skip:
-                outf.write(f"{UNII}:{x[0]}\t{CHEMICAL_ENTITY}\n")
+    with open(outfile, "w") as outf:
+        for row in read_unii_records(infile):
+            # Whole organisms / crude organism-derived substances (a plant or an eye of newt or
+            # something) are not chemicals; skip them. UNII_ORGANISM_COLUMNS is the shared
+            # definition, also used by the DrugBank food-and-extract retype (issue #828).
+            if not any(row.get(col) for col in UNII_ORGANISM_COLUMNS):
+                outf.write(f"{UNII}:{row['UNII']}\t{CHEMICAL_ENTITY}\n")
 
 
 def write_drugbank_ids(infile, outfile):
@@ -720,7 +718,7 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
     secondary_chebi_id = "secondarychebiid"
 
     # What if we don't have a propfile directory?
-    os.makedirs(dirname(propfile_gz), exist_ok=True)
+    ensure_parent_dir(propfile_gz)
 
     with open(outfile, "w") as outf, gzip.open(propfile_gz, "wt") as propf:
         # Write SDF structured things
@@ -920,13 +918,31 @@ def build_untyped_compendia(
     )
 
 
-def build_compendia(type_file, untyped_compendia_file, properties_jsonl_gz_files, metadata_yamls, icrdf_filename):
+def build_compendia(
+    type_file,
+    untyped_compendia_file,
+    properties_jsonl_gz_files,
+    metadata_yamls,
+    icrdf_filename,
+    forced_type_files,
+):
     types = {}
     with open(type_file) as inf:
         for line in inf:
             x = line.strip().split("\t")
             types[x[0]] = x[1]
     logger.info(f"Loaded {len(types)} types from {type_file}: {get_memory_usage_summary()}")
+
+    # CURIEs whose clique's type is decided by the source rather than by the per-identifier type vote:
+    # each file in forced_type_files is CURIE\tbiolink:Type. Today the only producer is the DRUGBANK
+    # food-and-extract retype (issue #828) — foods to biolink:Food, extracts (pollens/danders/...) to
+    # biolink:ComplexMolecularMixture — whose CURIEs enter chemical cliques via the UMLS/RXNORM concords
+    # carrying no Babel type of their own, so a vote would leave them as ChemicalEntity.
+    forced_types = {}
+    for forced_type_file in forced_type_files:
+        _, file_types = read_identifier_file(forced_type_file)
+        forced_types.update(file_types)
+    logger.info(f"Loaded {len(forced_types)} forced types from {forced_type_files}: {get_memory_usage_summary()}")
 
     untyped_sets = set()
     with open(untyped_compendia_file) as inf:
@@ -935,7 +951,7 @@ def build_compendia(type_file, untyped_compendia_file, properties_jsonl_gz_files
             untyped_sets.add(frozenset(s))
     logger.info(f"Loaded {len(untyped_sets)} untyped sets from {untyped_compendia_file}: {get_memory_usage_summary()}")
 
-    typed_sets = create_typed_sets(untyped_sets, types)
+    typed_sets = create_typed_sets(untyped_sets, types, forced_types)
     logger.info(
         f"Created {len(typed_sets)} typed sets from {len(untyped_sets)} untyped sets: {get_memory_usage_summary()}"
     )
@@ -966,15 +982,21 @@ def build_compendia(type_file, untyped_compendia_file, properties_jsonl_gz_files
             )
 
 
-def create_typed_sets(eqsets, types):
+def create_typed_sets(eqsets, types, forced_types):
     """
     Given a set of sets of equivalent identifiers, we want to type each one into
     being a subclass of ChemicalEntity.
 
     :param eqsets: A list of lists of identifiers (should NOT be a list of LabeledIDs, but a list of strings).
     :param types: A dictionary of known types for each identifier. (Some identifiers don't have known types.)
+    :param forced_types: {CURIE -> biolink_type} from the sources that type their own cliques rather
+        than voting (today only the DRUGBANK food-and-extract retype, issue #828). A clique containing
+        any such CURIE is forced to that type, overriding the normal type vote; if two forced members
+        disagree the most specific type (earliest in ``order``) wins. A forced clique that also holds a
+        structure-bearing member is logged as a warning: see FORCED_TYPE_CONFLICTS.
     """
     order = [
+        FOOD,
         DRUG,
         MOLECULAR_MIXTURE,
         SMALL_MOLECULE,
@@ -983,9 +1005,26 @@ def create_typed_sets(eqsets, types):
         CHEMICAL_MIXTURE,
         CHEMICAL_ENTITY,
     ]
+    # This loop runs once per chemical clique (tens of millions), and forced_types holds a few hundred
+    # CURIEs, so test membership with a set intersection rather than a per-member dict lookup.
+    forced_curies = frozenset(forced_types)
     typed_sets = defaultdict(set)
     # logging.warning(f"create_typed_sets: eqsets={eqsets}, types=...")
     for equivalent_ids in eqsets:
+        # A clique containing a forced-type CURIE is retyped as a whole (issue #828). ponytail: coarse
+        # clique-level override — it is only safe because the forced cliques hold nothing but
+        # ChemicalEntity members today, which is exactly what the warning below watches for.
+        if not forced_curies.isdisjoint(equivalent_ids):
+            forced = {forced_types[c] for c in equivalent_ids if c in forced_types}
+            conflicting = {c: types[c] for c in equivalent_ids if types.get(c) in FORCED_TYPE_CONFLICTS}
+            if conflicting:
+                logger.warning(
+                    f"Clique forced to {sorted(forced)} contains identifiers Babel has already typed more "
+                    f"specifically: {conflicting}. The forced type wins and those types are discarded — "
+                    f"if this fires, the forced type should become a vote instead (see issue #935)."
+                )
+            typed_sets[min(forced, key=order.index)].add(equivalent_ids)
+            continue
         # logging.warning(f"Processing equivalent_ids={equivalent_ids}.")
         # prefixes = set([ Text.get_curie(x) for x in equivalent_ids])
         prefixes = get_prefixes(equivalent_ids)

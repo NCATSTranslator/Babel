@@ -316,4 +316,65 @@ Derived from the conflation JSONL files (`GeneProtein.txt`, `DrugChemical.txt`).
 | curie              | STRING | A member CURIE of the conflation group               |
 | curie_prefix       | STRING | Prefix of the member CURIE                           |
 
+### Intermediate tables (`Concord.parquet`, `Identifier.parquet`, `Metadata.parquet`)
+
+Unlike the tables above, these three are not per-semantic-type; they sweep the whole
+`babel_outputs/intermediate/` tree into three flat Parquet files written directly under
+`babel_outputs/duckdb/` (not under `parquet/filename={Type}/`). They are produced by
+`export_intermediates_to_parquet()` (rule `export_intermediate_files_to_duckdb`) and make the raw
+build inputs — the cross-reference concords and per-source identifier lists — queryable without
+downloading the many original TSV files. The `filename` column on every row is the absolute path of
+the source file, so you can tell which semantic type and which source a row came from.
+
+`Concord.parquet` — one row per cross-reference edge, from every non-empty concord file (including
+the extension-less DrugChemical conflation concords at
+`intermediate/drugchemical/concords/{RXNORM,UMLS,PUBCHEM_RXNORM}`):
+
+| Column   | Type   | Meaning                                                          |
+|----------|--------|------------------------------------------------------------------|
+| filename | STRING | Absolute path of the concord file this edge came from            |
+| subj     | STRING | Subject CURIE of the cross-reference, e.g. `RXCUI:203437`        |
+| pred     | STRING | Relation/predicate, e.g. `eq` or `linked`                        |
+| obj      | STRING | Object CURIE of the cross-reference, e.g. `PUBCHEM.COMPOUND:146037278` |
+
+Finding every raw concord edge that touches a CURIE — the first question a conflation-regression
+triage asks (see Babel [#754](https://github.com/NCATSTranslator/Babel/issues/754)) — is a
+one-liner:
+
+```sql
+SELECT * FROM read_parquet('babel_outputs/duckdb/Concord.parquet')
+WHERE subj = 'CHEBI:3395' OR obj = 'CHEBI:3395';
+```
+
+If the edge you expected is absent, the link was never generated upstream (a compendium-build /
+RxCUI-typing problem); if it is present but the CURIEs still aren't conflated, the pair was dropped
+by a conflation filter — look up the reason in the paired per-run exclusion report
+`babel_outputs/reports/drugchemical/excluded_pairs.tsv.gz` (its `reason` column names the filter).
+`docs/debugging/Conflation.md` walks through this two-report diagnosis flow end to end.
+
+`Identifier.parquet` — one row per identifier extracted into an `ids/` file:
+
+| Column       | Type   | Meaning                                                            |
+|--------------|--------|--------------------------------------------------------------------|
+| filename     | STRING | Absolute path of the ids file this CURIE came from                 |
+| curie        | STRING | The identifier CURIE                                               |
+| biolink_type | STRING | The Biolink type from the ids file's second column, or NULL if the file has only a CURIE column |
+
+`Metadata.parquet` — one row per metadata YAML _inside a `concords/` or `ids/` directory_
+(`metadata-<subject>.yaml` sidecars describing a sibling file, and bare `metadata.yaml` files
+describing their directory). Metadata YAMLs elsewhere in the intermediate tree — e.g.
+`intermediate/chemicals/partials/metadata-untyped_compendium.yaml` — are not exported, since this
+table exists to describe the concord and identifier files above:
+
+| Column            | Type   | Meaning                                                              |
+|-------------------|--------|----------------------------------------------------------------------|
+| filename          | STRING | Absolute path of the metadata YAML file                              |
+| subject_filename  | STRING | The file the metadata describes (the `<subject>` of a sidecar, or the metadata file's own name for a bare `metadata.yaml`) |
+| subject_file_path | STRING | Absolute path of the described file (or its directory, for a bare `metadata.yaml`) |
+| metadata_json     | STRING | The metadata YAML contents                                          |
+
+Labels are intentionally not exported here: `ids/` files carry only `CURIE\tbiolink:Type`, and the
+label for any identifier that landed in a clique is already available in `Node.parquet` (join
+`Identifier.curie` to `Node.curie`).
+
 [`normalizedInformationContent` from Ubergraph]: https://github.com/INCATools/ubergraph/#graph-organization

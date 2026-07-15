@@ -1,7 +1,7 @@
 # Source impact report: MP
 
-- Generated: 2026-07-02 18:33:17 UTC
-- Babel commit: 2240090b11bee68598414bb296e36efed03cdf59
+- Generated: 2026-07-10 00:19:14 UTC
+- Babel commit: f29db754111750b0539397e65f94744087380e58
 - Source pipelines: disease
 - Source prefixes: MP
 - Comparison mode: synthetic
@@ -35,29 +35,19 @@ Totals: 14,750 identifiers across 1 prefix(es) in 1 pipeline(s).
 
 ## 3. Cross-references added
 
-Totals: 663 cross-reference rows across 1 concord file(s).
+Totals: 78 cross-reference rows across 1 concord file(s).
 
 ### By pipeline
 
-- disease / MP: 663
+- disease / MP: 78
 
 ### Partner prefix breakdown (per pipeline)
 
 - disease
-  - Fyler: 257
-  - CL: 112
-  - MA: 85
-  - GO: 76
   - MGI: 70
-  - FMA: 30
-  - https: 11
-  - http: 7
   - MPATH: 4
-  - NLX: 4
   - HP: 2
-  - PMID: 2
   - UMLS: 2
-  - NBO: 1
 
 ## 4. Clique impact
 
@@ -69,9 +59,9 @@ change the source could introduce before that filtering is applied.
 
 ### disease
 
-- 14,750 new cliques composed only of MP identifiers (a 3.46% increase over the 426,266 pre-existing
+- 14,750 new cliques composed only of MP identifiers (a 3.46% increase over the 426,264 pre-existing
   cliques)
-- 0 existing cliques contain MP identifiers in the after state (0.00% of the 426,266 pre-existing
+- 0 existing cliques contain MP identifiers in the after state (0.00% of the 426,264 pre-existing
   cliques). Of these, 0 cliques gain at least one structurally new identifier from MP, and 0 already
   contained the MP CURIE via an xref from another source — MP's ids file now also lists those
   existing CURIEs as first-class typed identifiers.
@@ -79,7 +69,7 @@ change the source could introduce before that filtering is applied.
 - 0 structurally-new MP identifiers are added to existing cliques (0 via expansion, 0 via merges).
   This is distinct from the 0 existing cliques that change, since one clique can gain several
   identifiers.
-- Total cliques in this pipeline go from 426,266 to 441,007
+- Total cliques in this pipeline go from 426,264 to 441,005
 - Full list of new cliques: [`impact-report/new-cliques.csv`](impact-report/new-cliques.csv)
 - Full list of modified cliques (one row per added/preexisting MP identifier):
   [`impact-report/modified-cliques.csv`](impact-report/modified-cliques.csv)
@@ -88,23 +78,18 @@ change the source could introduce before that filtering is applied.
 
 #### Sample pure-new cliques (up to 3)
 
-- [`MP:0011253`](http://purl.obolibrary.org/obo/MP_0011253) "situs inversus with levocardia"
+- [`MP:0003632`](http://purl.obolibrary.org/obo/MP_0003632) "abnormal nervous system morphology"
   **(preferred)**
-  - `Fyler:0102`
+  - [`MGI:2173613`](http://identifiers.org/mgi/2173613)
     **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
-  - `Fyler:102`
+  - [`MGI:2173617`](http://identifiers.org/mgi/2173617)
     **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
-  - [`MPATH:714`](http://purl.obolibrary.org/obo/MPATH_714)
+- [`MP:0003633`](http://purl.obolibrary.org/obo/MP_0003633) "abnormal nervous system physiology"
+  **(preferred)**
+  - [`MGI:2173615`](http://identifiers.org/mgi/2173615)
     **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
-- [`MP:0010913`](http://purl.obolibrary.org/obo/MP_0010913) "abnormal neuroendocrine cell
-  morphology" **(preferred)**
-  - [`CL:0000165`](http://purl.obolibrary.org/obo/CL_0000165)
+  - [`MGI:2173618`](http://identifiers.org/mgi/2173618)
     **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
-  - [`FMA:83810`](http://purl.obolibrary.org/obo/FMA_83810)
-    **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
-- [`MP:0009942`](http://purl.obolibrary.org/obo/MP_0009942) "abnormal olfactory bulb granule cell
-  morphology" **(preferred)**
-  - [`CL:0000626`](http://purl.obolibrary.org/obo/CL_0000626)
-    **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**
-  - `NLX:nifext_123`
+- [`MP:0002080`](http://purl.obolibrary.org/obo/MP_0002080) "prenatal lethality" **(preferred)**
+  - [`MGI:2173525`](http://identifiers.org/mgi/2173525)
     **(NOT emitted — prefix not registered in Biolink Model for `biolink:PhenotypicFeature`)**

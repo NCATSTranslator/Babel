@@ -14,6 +14,11 @@ addition. EMAPA is the worked example throughout.
   file containing multiple Biolink types (leftover_umls.txt -> umls.txt is the only current example
   of this).
 
+A third, unrelated concept: **`umls_semantic_type`** (or `sty`) is a UMLS TUI code / tree string
+used only inside the UMLS ingest (see `docs/sources/UMLS/Leftover.md`) — don't conflate it with
+either pipeline or Biolink type. Avoid the bare phrase "semantic type" for any of the three unless
+quoting an external vocabulary (e.g. "UMLS semantic type").
+
 ## What "adding a source" means
 
 A Babel source contributes two kinds of intermediate artefacts under
@@ -128,8 +133,9 @@ Preferred labels are in `babel_downloads/<PREFIX>/labels` (tab-separated `CURIE\
 
 The synthetic comparison mode needs a per-pipeline compute hook. Anatomy is wired via
 `anatomy.compute_cliques_for_impact_report`. For other pipelines, split that pipeline's
-`build_compendia()` into a "compute cliques in memory" helper and a "write compendia"
-wrapper, then register the helper in `PIPELINE_CONFIG` in `src/cli/source_impact_report.py`.
+`build_compendia()` into a "compute cliques in memory" helper and a "write compendia" wrapper, then
+register the helper in `PIPELINE_CONFIG` in `src/tools/source_impact_report/cli.py` (see
+[docs/tools/SourceImpactReport.md](tools/SourceImpactReport.md)).
 
 The report also loads preferred labels for each prefix listed under `<pipeline>_prefixes` in
 `config.yaml` to enrich the clique samples. Adding the new prefix there (step 5) is therefore
@@ -246,8 +252,9 @@ The generated Markdown has four sections:
    on-disk compendia and lag until compendia are rebuilt.
 3. **Cross-references added** — total concord rows plus partner-prefix breakdown. Unexpected
    prefixes indicate the extraction did not filter the right xref namespaces (compare to
-   the `ignore_list` in `build_anatomy_obo_relationships()` or the equivalent for your
-   pipeline).
+   the `ignore_list` in `build_anatomy_obo_relationships()` or the `allowed_prefixes` in
+   `build_disease_obo_relationships()`). See "Auditing a source's xrefs" below — a clean
+   section 4 does **not** mean section 3 is clean.
 4. **Clique impact** — for each pipeline with a registered compute hook:
    - **new cliques** composed only of source identifiers (with percentage increase over
      the pre-existing count),
@@ -301,6 +308,15 @@ The three committed files:
   are the live example: EMAPA is not yet in that class's `id_prefixes`, so they show
   `would_be_added = false`.
 
+`write_compendium(extra_prefixes=[...])` is the escape hatch for that silent drop: a prefix listed
+there is kept even when the clique's Biolink class doesn't register it (the chemical build passes
+`extra_prefixes=[RXCUI]` because RXCUI is in no chemical class's `id_prefixes`). This matters most
+when **retyping** a clique to a different class: members that were valid under the old type but are
+not in the new type's `id_prefixes` silently vanish unless they are covered by `extra_prefixes` — a
+quiet way to lose identifiers. The DrugBank food-and-extract retype
+([`docs/sources/DRUGBANK/food-and-extracts/README.md`](sources/DRUGBANK/food-and-extracts/README.md))
+relies on this to keep `RXCUI` members when moving cliques to `biolink:Food`.
+
 #### Promoted vs. truly added — a common surprise
 
 For ontologies that other Babel sources already xref, the new source's CURIEs may already
@@ -315,6 +331,45 @@ Even though EMAPA contributes 8,059 identifiers, only 4,802 land in `AnatomicalE
 CellularComponent, or GrossAnatomicalStructure — and `NodeFactory` drops them because EMAPA
 is not in those types' `id_prefixes`. The survival columns make this visible per identifier.
 
+#### Auditing a source's xrefs
+
+Section 4 reporting "0 cliques merged" is **not** evidence that a source's xrefs are good. An xref
+whose target prefix is absent from the pipeline's other concords merges nothing, and one whose
+prefix is absent from the clique type's Biolink `id_prefixes` is dropped by `NodeFactory` at
+`write_compendium`. Such xrefs are *inert*, not *correct* — they still bloat the concord, and they
+become live the moment another source starts emitting that prefix.
+
+So audit section 3 (and `impact-report/new-xrefs.tsv`) on its own terms. Sample a few rows per
+target prefix and ask whether the pair is an equivalence or an "is about" relation. MP's review is
+the worked example: 663 xref rows, of which nine of thirteen target namespaces turned out to be
+anatomy, processes, citations or Wikipedia URLs (see `docs/sources/MP/mappings.md`).
+
+To decide whether a suspect prefix is inert or load-bearing, check both gates:
+
+```bash
+# Gate 1: does the target prefix appear in any OTHER concord of this pipeline?
+#         (if not, it can never bridge this source into an existing clique)
+cd babel_outputs/intermediate/<pipeline>/concords
+for f in $(ls | grep -v '\.yaml$'); do
+  printf '%-12s ' "$f"; cut -f3 "$f" | sed 's/:.*//' | sort -u | tr '\n' ' '; echo
+done
+```
+
+```python
+# Gate 2: is the prefix in the clique type's Biolink id_prefixes?
+#         (if not, write_compendium drops it and it never reaches a compendium)
+from src.util import get_biolink_model_toolkit, get_config
+tk = get_biolink_model_toolkit(get_config()["biolink_version"])
+print(tk.get_element("phenotypic feature").id_prefixes)
+```
+
+If a prefix fails both gates it is inert and can be filtered with no change to compendium output —
+which makes the filtering a safe, reviewable cleanup rather than a behavioral change. If it passes
+either gate, the xrefs are load-bearing and removing them needs a build-vs-build clique diff.
+
+Note that the `Edge` table of the DuckDB export answers gate 1 for a *finished* build much faster
+than scanning concords (`SELECT DISTINCT clique_leader FROM Edge WHERE curie IN (...)`).
+
 ### Comparing across builds
 
 When `--mode remote` or `--mode both` is set, a fifth section summarises clique counts
@@ -323,25 +378,54 @@ synthetic mode is the source of truth for the pure-new/expanded/merged bucketing
 
 ### Build-vs-build clique diff (restructured cliques: split / merge / delete)
 
-The source-impact report only models what *adding* a source does (its "before" is the same
-inputs with the source excluded), so it expresses pure-new / expanded / merged cliques but
-**cannot show cliques that SPLIT, lose members, or disappear**. When a change *restructures
-existing* cliques — a new policy like keeping two prefixes disjoint, a concord-filtering or
-close-match change, or any source whose addition pulls members back out — use
-[`babel-clique-diff`](tools/README.md) instead. It diffs two finished compendium builds and
-reports, per changed before-clique, a `destination_kind` for each group of members: `kept`
-(still under the same leader), `leader_changed` (identical membership, only the preferred
-identifier was reassigned), `regrouped` (members redistributed to a different leader within
-the same compendium file — the split case), `moved` (the CURIE was retyped into a *different*
-compared compendium file), or `dropped` (gone from every compared after compendium):
+The source-impact report models what *adding* a source does: its "before" is a full re-glom of the
+pipeline's intermediate files with the source excluded, its "after" a re-glom with everything.
+`diff_cliques()` then walks only the **after-cliques that contain a source CURIE**, bucketing them
+into pure-new / expanded / merged. So it **does not report** before-cliques that split, lose
+members, or disappear — not because that is unknowable, but because nothing iterates the before
+side. Synthetic mode holds both complete clique states in memory; see
+[#895](https://github.com/NCATSTranslator/Babel/issues/895) for the follow-up that surfaces them.
+
+Two things worth knowing about that gap:
+
+- **It cannot be recovered from the concord files.** Both runs read the *same* concords — the
+  "before" run simply skips the new source's file — so no xref goes missing between them. When a
+  clique does split it is because of a decision made *inside* a run: `glom()` rejects a merge whose
+  union would hold two identifiers sharing a `unique_prefixes` prefix, and pipelines like
+  diseasephenotype run `split_mutually_exclusive_cliques()` after glom. Adding a source can flip
+  either. (`remove_overused_xrefs` is applied per concord file, so a new file cannot push another
+  file's xrefs over the overuse threshold.) The clique dicts, not the concords, are the level to
+  compare at.
+- **A plain source addition rarely splits anything.** Union-find only unions, so absent the two
+  non-monotone paths above a source that just contributes ids and concord rows can only grow and
+  merge cliques.
+
+When a change *restructures existing* cliques — a new policy like keeping two prefixes disjoint, a
+concord-filtering or close-match change, or any source whose addition pulls members back out — use
+[`babel-clique-diff`](tools/CliqueDiff.md) instead. It is also the only option for changes that are
+not "add a source" at all: with no source to exclude, synthetic mode cannot model them even in
+principle. It diffs two finished compendium builds and reports, per changed before-clique, a
+`destination_kind` for each group of members: `kept` (still under the same leader), `leader_changed`
+(identical membership, only the preferred identifier was reassigned), `regrouped` (members
+redistributed to a different leader within the same compendium file — the split case), `moved` (the
+CURIE was retyped into a *different* compared compendium file), or `dropped` (gone from every
+compared after compendium):
 
 ```bash
 uv run babel-clique-diff \
     --before <overlap-or-baseline-compendia-dir> --after <new-compendia-dir> \
     --files Disease.txt PhenotypicFeature.txt \
+    --before-label "<what the before build is>" --after-label "<what the after build is>" \
+    --note "<what this diff isolates>" \
     --out-csv  docs/sources/<SOURCE>/<change>/clique-diff.csv \
     --out-json docs/sources/<SOURCE>/<change>/clique-diff.summary.json
 ```
+
+Pass `--before-label`/`--after-label`/`--note`: they are recorded in the summary's `about` block so
+the committed artifact says which build was which and what it isolates. Remember the summary's
+`clique_count.diff` is where *wholly new* cliques (with no before counterpart) show up — they are
+never per-clique change rows — so a diff that adds many cliques can still have few rows (see the
+reconciliation in `docs/sources/MP/disjointness.md`).
 
 Build both sides from the **same cached intermediates**, changing only the thing under test
 (e.g. build at the commit with the change and again with it reverted/disabled), so the diff
@@ -374,6 +458,12 @@ these in the `dropped` column is expected; a large number suggests an extraction
 - **Remote mode is coarse.** It reports total/with-source/current-only counts but cannot
   classify diffs into pure-new/expanded/merged (compendia are published; intermediate
   concord files are not).
+- **Split / shrunk / dropped cliques are not reported.** `diff_cliques` only walks after-cliques
+  containing a source CURIE, so a before-clique that lost members or was split apart (by
+  `unique_prefixes` rejecting a merge, or by a post-glom split like
+  `split_mutually_exclusive_cliques`) produces no row. Both clique states are computed, so this is a
+  missing pass rather than missing data —
+  [#895](https://github.com/NCATSTranslator/Babel/issues/895). Use `babel-clique-diff` meanwhile.
 - **Typing happens after the diff.** The synthetic diff is over untyped cliques; section 2's
   compendium-assigned view requires on-disk compendia and is blank without them.
 - **Conflation is invisible.** DrugChemical and GeneProtein conflation runs after compendia
@@ -384,8 +474,9 @@ these in the `dropped` column is expected; a large number suggests an extraction
 
 ## Related reading
 
-- `CLAUDE.md` "Adding a new data source" — short, command-focused summary.
+- `AGENTS.md` "Adding a new data source" — short, command-focused summary.
 - `docs/sources/EMAPA/` — the worked example for an OBO-from-UberGraph source.
-- `src/cli/source_impact_report.py` — CLI implementation; `PIPELINE_CONFIG` is the registry.
-- `src/model/source.py` and `src/model/clique_diff.py` — shared primitives.
+- `src/tools/source_impact_report/cli.py` — CLI implementation; `PIPELINE_CONFIG` is the registry.
+  See [docs/tools/SourceImpactReport.md](tools/SourceImpactReport.md).
+- `src/model/source.py` and `src/model/glom_diff.py` — shared primitives.
 - `src/createcompendia/anatomy.py` — template for the compute helper / writer split.

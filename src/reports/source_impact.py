@@ -7,7 +7,7 @@ structured payload for downstream consumers.
 Both inputs are the output of:
 - ``src.model.source.discover_source(name, intermediate_root)`` (the source's filesystem
   contribution), and
-- ``src.model.clique_diff.diff_cliques(before, after, source_curies, ...)`` (one diff per
+- ``src.model.glom_diff.diff_cliques(before, after, source_curies, ...)`` (one diff per
   pipeline the source touches).
 
 The ``LookupContext`` aggregates the per-pipeline helpers the renderer needs to turn
@@ -25,7 +25,7 @@ from collections import defaultdict
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 
-from src.model.clique_diff import ExpandedClique, SourceImpactDiff
+from src.model.glom_diff import ExpandedClique, SourceImpactDiff
 from src.model.source import SourceContribution
 from src.util import get_logger
 

@@ -95,13 +95,13 @@ for compendium_filename in compendia_files:
             generate_content_report_for_compendium(input.compendium_file, output.report_file)
 
 
-rule generate_summary_content_report_for_compendia:
+rule generate_compendia_summary_report:
     input:
         expected_content_reports=expected_content_reports,
     output:
         report_path=config["output_directory"] + "/reports/content/compendia_report.json",
     benchmark:
-        config["output_directory"] + "/benchmarks/generate_summary_content_report_for_compendia.tsv"
+        config["output_directory"] + "/benchmarks/generate_compendia_summary_report.tsv"
     run:
         summarize_content_report_for_compendia(input.expected_content_reports, output.report_path)
 
@@ -181,7 +181,7 @@ rule generate_mapping_sources_table:
 # Optional per-source impact report. Not part of all_reports.
 # Invoke with e.g.:
 #   snakemake babel_outputs/reports/source_impact/EMAPA.md
-# See src/cli/source_impact_report.py for the underlying CLI.
+# See src/tools/source_impact_report/cli.py for the underlying CLI.
 rule report_source_impact:
     output:
         # The markdown report plus the four full detail files written into the

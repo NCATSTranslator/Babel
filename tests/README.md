@@ -40,11 +40,10 @@ considering), see [`docs/Testing.md`](../docs/Testing.md).
   [New pipeline tests](pipeline/README.md#new-pipeline-tests) in the pipeline README.
 - **Pipeline behavior specific to one vocabulary** → add `tests/pipeline/test_X_pipeline.py`
   marked `pipeline`.
-- **A developer tool under `tools/`** → `unit` test in `tests/tools/` (e.g.
-  `tests/tools/test_slurm.py`). Do **not** add `tests/tools/__init__.py`: unlike the other test
-  subdirectories, making `tests/tools` a package puts it on `sys.path` as `tools`, shadowing the
-  real top-level `tools/` package and breaking `from tools.slurm import ...`. The tests import fine
-  via the `pythonpath = ["."]` setting in `pyproject.toml`.
+- **A developer tool under `src/tools/`** → `unit` test in `tests/tools/<tool>/`, mirroring the
+  tool's own package name (e.g. `tests/tools/slurm/test_parse.py`). Test only the CLI layer here:
+  a tool's reusable logic lives in `src/` and is tested beside it (e.g. `src/model/glom_diff.py`
+  → `tests/model/test_glom_diff.py`). See [Developer tools](../docs/tools/README.md).
 
 **Touching a data source that has no pipeline test? Consider writing one.** It is more work up
 front, but it pays off three ways and is worth biting the bullet for:
@@ -80,10 +79,15 @@ Tests are tagged with marks to control which subset runs in a given context:
 |------------|--------------------------------------------------------------------------|-----------|------------------|---------|
 | `unit`     | Pure functions, in-memory logic, small fixtures in `tests/data/`         | No        | Seconds          | 30 s    |
 | `network`  | Requires live internet (FTP, SPARQL, BioMart, external APIs)             | Yes       | Seconds–minutes  | 600 s   |
-| `slow`     | Correct but takes >30s — large fixture processing, SQLite spill, etc.    | Sometimes | >30s             | 600 s   |
-| `pipeline` | Calls `write_*_ids()` directly; source data is auto-downloaded or the test skips — no manual setup required for most vocabularies | Sometimes | Minutes–hours    | 3600 s  |
+| `slow`     | Genuinely long-running — a scan of a full 70M-row pipeline output, a multi-GB RDF load | Sometimes | Many minutes–hours | 3600 s |
+| `pipeline` | Calls `write_*_ids()` directly; source data is auto-downloaded or the test skips — no manual setup required for most vocabularies | Sometimes | Minutes          | 900 s   |
 
-You can adjust the timeout for marks in [conftest.py](conftest.py).
+A test carrying more than one mark gets the **longest** of their timeouts, so `slow` is how a
+pipeline test that really does need an hour asks for one — the plain `pipeline` budget assumes the
+download is already cached and the test itself finishes well inside 15 minutes. Add `slow` when it
+won't. You can adjust the per-mark timeouts in [conftest.py](conftest.py), and disable the timeout
+entirely for a run with `pytest --timeout=0` (pytest-timeout treats 0 as "no limit"); a single test
+can opt out with `@pytest.mark.timeout(0)`, which conftest leaves alone.
 
 There is also a parametrized guard marker, `min_memory_gb(n)`, that combines with the marks
 above rather than replacing them. A test tagged `@pytest.mark.min_memory_gb(n)` is auto-skipped

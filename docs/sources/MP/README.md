@@ -6,7 +6,10 @@ mammalian — primarily mouse — phenotypes.
 In this integration, Babel:
 
 - extracts MP identifiers for disease/phenotype processing;
-- exports MP xref concords from UberGraph;
+- exports MP xref concords from UberGraph, restricted to an allowlist of trusted target prefixes
+  (HP, MGI, MPATH, UMLS) because MP's `oboInOwl:hasDbXref` mostly points at the anatomy, cell type
+  or process a phenotype is *about* rather than an equivalent term — see
+  [`mappings.md`](mappings.md);
 - includes MP in disease/phenotype compendium merge inputs;
 - keeps MP **disjoint from HP**: no clique may contain both an HP and an MP identifier (MP may
   still merge with non-HP disease ids such as MONDO/MESH). See [`disjointness.md`](disjointness.md)
@@ -37,4 +40,4 @@ Additional source details are documented in:
 - `mappings.md`
 - `disjointness.md` (how MP is kept disjoint from HP, with the before/after clique impact)
 - `impact-report.md` (auto-generated; see "Adding a new data source" in
-  `CLAUDE.md` for how to regenerate it)
+  `AGENTS.md` for how to regenerate it)

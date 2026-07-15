@@ -20,6 +20,7 @@ CHEMBL_MIN_MEMORY_GB = 128
 
 
 @pytest.mark.pipeline
+@pytest.mark.slow  # the 17 GB TTL bulk-load blows past the default pipeline timeout
 @pytest.mark.min_memory_gb(CHEMBL_MIN_MEMORY_GB)
 def test_chembl_labels_file_valid(chembl_pipeline_outputs):
     rows = assert_labels_file_valid(chembl_pipeline_outputs["labels"])
@@ -27,6 +28,7 @@ def test_chembl_labels_file_valid(chembl_pipeline_outputs):
 
 
 @pytest.mark.pipeline
+@pytest.mark.slow  # the 17 GB TTL bulk-load blows past the default pipeline timeout
 @pytest.mark.min_memory_gb(CHEMBL_MIN_MEMORY_GB)
 def test_chembl_smiles_file_non_empty(chembl_pipeline_outputs):
     rows = read_tsv(chembl_pipeline_outputs["smiles"])

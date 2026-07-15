@@ -33,7 +33,7 @@ import pathlib
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from src.model.clique_diff import SourceImpactDiff
+from src.model.glom_diff import SourceImpactDiff
 from src.model.source import SourceContribution, scan_concords_for_curies
 from src.reports.source_impact import (
     LookupContext,

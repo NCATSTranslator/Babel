@@ -15,7 +15,7 @@ disease,MP:0000022,abnormal ear shape,biolink:PhenotypicFeature,1,MP:0000022,tru
 disease,MP:0000023,abnormal ear position,biolink:PhenotypicFeature,1,MP:0000023,true,false,
 disease,MP:0000024,lowered ear position,biolink:PhenotypicFeature,1,MP:0000024,true,false,
 disease,MP:0000025,otic hypertelorism,biolink:PhenotypicFeature,1,MP:0000025,true,false,
-disease,MP:0000026,abnormal inner ear morphology,biolink:PhenotypicFeature,2,MP:0000026|GO:0042472,true,false,GO
+disease,MP:0000026,abnormal inner ear morphology,biolink:PhenotypicFeature,1,MP:0000026,true,false,
 disease,MP:0000028,abnormal pars superior vestibularis morphology,biolink:PhenotypicFeature,1,MP:0000028,true,false,
 disease,MP:0000029,abnormal malleus morphology,biolink:PhenotypicFeature,1,MP:0000029,true,false,
 disease,MP:0000030,abnormal tympanic ring morphology,biolink:PhenotypicFeature,1,MP:0000030,true,false,
@@ -139,7 +139,7 @@ disease,MP:0000194,increased circulating calcium level,biolink:PhenotypicFeature
 disease,MP:0000195,decreased circulating calcium level,biolink:PhenotypicFeature,1,MP:0000195,true,false,
 disease,MP:0000198,decreased circulating phosphate level,biolink:PhenotypicFeature,1,MP:0000198,true,false,
 disease,MP:0000199,abnormal circulating serum albumin level,biolink:PhenotypicFeature,1,MP:0000199,true,false,
-disease,MP:0000202,abnormal circulating alkaline phosphatase level,biolink:PhenotypicFeature,2,MP:0000202|GO:0004035,true,false,GO
+disease,MP:0000202,abnormal circulating alkaline phosphatase level,biolink:PhenotypicFeature,1,MP:0000202,true,false,
 disease,MP:0000203,abnormal circulating aspartate transaminase level,biolink:PhenotypicFeature,1,MP:0000203,true,false,
 disease,MP:0000208,decreased hematocrit,biolink:PhenotypicFeature,1,MP:0000208,true,false,
 disease,MP:0000215,absent erythrocytes,biolink:PhenotypicFeature,1,MP:0000215,true,false,
@@ -191,7 +191,7 @@ disease,MP:0000281,abnormal interventricular septum morphology,biolink:Phenotypi
 disease,MP:0000282,abnormal interatrial septum morphology,biolink:PhenotypicFeature,1,MP:0000282,true,false,
 disease,MP:0000284,double outlet right ventricle,biolink:PhenotypicFeature,1,MP:0000284,true,false,
 disease,MP:0000285,abnormal heart valve morphology,biolink:PhenotypicFeature,1,MP:0000285,true,false,
-disease,MP:0000286,abnormal mitral valve morphology,biolink:PhenotypicFeature,2,MP:0000286|Fyler:1508,true,false,Fyler
+disease,MP:0000286,abnormal mitral valve morphology,biolink:PhenotypicFeature,1,MP:0000286,true,false,
 disease,MP:0000287,heart valve hypoplasia,biolink:PhenotypicFeature,1,MP:0000287,true,false,
 disease,MP:0000288,abnormal pericardium morphology,biolink:PhenotypicFeature,1,MP:0000288,true,false,
 disease,MP:0000291,enlarged pericardium,biolink:PhenotypicFeature,1,MP:0000291,true,false,
@@ -292,7 +292,7 @@ disease,MP:0000434,megacephaly,biolink:PhenotypicFeature,1,MP:0000434,true,false
 disease,MP:0000435,shortened head,biolink:PhenotypicFeature,1,MP:0000435,true,false,
 disease,MP:0000436,abnormal head movements,biolink:PhenotypicFeature,1,MP:0000436,true,false,
 disease,MP:0000437,taut facial appearance,biolink:PhenotypicFeature,1,MP:0000437,true,false,
-disease,MP:0000438,abnormal cranium morphology,biolink:PhenotypicFeature,3,MP:0000438|Fyler:4134|MA:0000316,true,false,Fyler|MA
+disease,MP:0000438,abnormal cranium morphology,biolink:PhenotypicFeature,1,MP:0000438,true,false,
 disease,MP:0000439,enlarged cranium,biolink:PhenotypicFeature,1,MP:0000439,true,false,
 disease,MP:0000440,domed cranium,biolink:PhenotypicFeature,1,MP:0000440,true,false,
 disease,MP:0000441,increased cranium width,biolink:PhenotypicFeature,1,MP:0000441,true,false,
@@ -377,7 +377,7 @@ disease,MP:0000537,abnormal urethra morphology,biolink:PhenotypicFeature,1,MP:00
 disease,MP:0000538,abnormal urinary bladder morphology,biolink:PhenotypicFeature,1,MP:0000538,true,false,
 disease,MP:0000539,distended urinary bladder,biolink:PhenotypicFeature,1,MP:0000539,true,false,
 disease,MP:0000540,abnormal urinary bladder urothelium morphology,biolink:PhenotypicFeature,1,MP:0000540,true,false,
-disease,MP:0000542,left-sided isomerism,biolink:PhenotypicFeature,3,MP:0000542|Fyler:0192|Fyler:192,true,false,Fyler
+disease,MP:0000542,left-sided isomerism,biolink:PhenotypicFeature,1,MP:0000542,true,false,
 disease,MP:0000543,absent urinary bladder urothelium,biolink:PhenotypicFeature,1,MP:0000543,true,false,
 disease,MP:0000544,thin urinary bladder urothelium,biolink:PhenotypicFeature,1,MP:0000544,true,false,
 disease,MP:0000547,short limbs,biolink:PhenotypicFeature,1,MP:0000547,true,false,
@@ -402,7 +402,7 @@ disease,MP:0000567,truncated digits,biolink:PhenotypicFeature,1,MP:0000567,true,
 disease,MP:0000568,ectopic digits,biolink:PhenotypicFeature,1,MP:0000568,true,false,
 disease,MP:0000569,abnormal digit pigmentation,biolink:PhenotypicFeature,1,MP:0000569,true,false,
 disease,MP:0000571,interdigital webbing,biolink:PhenotypicFeature,1,MP:0000571,true,false,
-disease,MP:0000572,abnormal autopod morphology,biolink:PhenotypicFeature,2,MP:0000572|Fyler:4170,true,false,Fyler
+disease,MP:0000572,abnormal autopod morphology,biolink:PhenotypicFeature,1,MP:0000572,true,false,
 disease,MP:0000573,increased hindlimb autopod size,biolink:PhenotypicFeature,1,MP:0000573,true,false,
 disease,MP:0000574,abnormal foot pad morphology,biolink:PhenotypicFeature,1,MP:0000574,true,false,
 disease,MP:0000575,increased foot pad pigmentation,biolink:PhenotypicFeature,1,MP:0000575,true,false,
@@ -582,7 +582,7 @@ disease,MP:0000813,abnormal hippocampus layer morphology,biolink:PhenotypicFeatu
 disease,MP:0000814,absent dentate gyrus,biolink:PhenotypicFeature,1,MP:0000814,true,false,
 disease,MP:0000815,abnormal Ammon gyrus morphology,biolink:PhenotypicFeature,1,MP:0000815,true,false,
 disease,MP:0000818,abnormal amygdala morphology,biolink:PhenotypicFeature,1,MP:0000818,true,false,
-disease,MP:0000819,abnormal olfactory bulb morphology,biolink:PhenotypicFeature,2,MP:0000819|MA:0000194,true,false,MA
+disease,MP:0000819,abnormal olfactory bulb morphology,biolink:PhenotypicFeature,1,MP:0000819,true,false,
 disease,MP:0000820,abnormal choroid plexus morphology,biolink:PhenotypicFeature,1,MP:0000820,true,false,
 disease,MP:0000821,choroid plexus hyperplasia,biolink:PhenotypicFeature,1,MP:0000821,true,false,
 disease,MP:0000822,abnormal brain ventricle morphology,biolink:PhenotypicFeature,1,MP:0000822,true,false,
@@ -624,7 +624,7 @@ disease,MP:0000860,abnormal primary somatosensory cortex morphology,biolink:Phen
 disease,MP:0000861,disorganized barrel cortex,biolink:PhenotypicFeature,1,MP:0000861,true,false,
 disease,MP:0000862,absent barrels in primary somatosensory cortex,biolink:PhenotypicFeature,1,MP:0000862,true,false,
 disease,MP:0000863,abnormal secondary somatosensory cortex morphology,biolink:PhenotypicFeature,1,MP:0000863,true,false,
-disease,MP:0000864,abnormal cerebellum vermis morphology,biolink:PhenotypicFeature,2,MP:0000864|MA:0000202,true,false,MA
+disease,MP:0000864,abnormal cerebellum vermis morphology,biolink:PhenotypicFeature,1,MP:0000864,true,false,
 disease,MP:0000865,absent cerebellum vermis,biolink:PhenotypicFeature,1,MP:0000865,true,false,
 disease,MP:0000866,cerebellum vermis hypoplasia,biolink:PhenotypicFeature,1,MP:0000866,true,false,
 disease,MP:0000867,abnormal cerebellum anterior vermis morphology,biolink:PhenotypicFeature,1,MP:0000867,true,false,
@@ -655,18 +655,18 @@ disease,MP:0000900,decreased colliculi size,biolink:PhenotypicFeature,1,MP:00009
 disease,MP:0000901,abnormal position of colliculi,biolink:PhenotypicFeature,1,MP:0000901,true,false,
 disease,MP:0000904,abnormal superior colliculus morphology,biolink:PhenotypicFeature,1,MP:0000904,true,false,
 disease,MP:0000905,increased superior colliculus size,biolink:PhenotypicFeature,1,MP:0000905,true,false,
-disease,MP:0000906,abnormal trigeminal V mesencephalic nucleus morphology,biolink:PhenotypicFeature,2,MP:0000906|MA:0001057,true,false,MA
+disease,MP:0000906,abnormal trigeminal V mesencephalic nucleus morphology,biolink:PhenotypicFeature,1,MP:0000906,true,false,
 disease,MP:0000907,small mesencephalic trigeminal nucleus,biolink:PhenotypicFeature,1,MP:0000907,true,false,
 disease,MP:0000908,absent mesencephalic trigeminal nucleus,biolink:PhenotypicFeature,1,MP:0000908,true,false,
 disease,MP:0000909,abnormal facial motor nucleus morphology,biolink:PhenotypicFeature,1,MP:0000909,true,false,
 disease,MP:0000910,small facial motor nucleus,biolink:PhenotypicFeature,1,MP:0000910,true,false,
 disease,MP:0000911,abnormal trigeminal motor nucleus morphology,biolink:PhenotypicFeature,1,MP:0000911,true,false,
 disease,MP:0000912,small trigeminal motor nucleus,biolink:PhenotypicFeature,1,MP:0000912,true,false,
-disease,MP:0000913,abnormal brain development,biolink:PhenotypicFeature,2,MP:0000913|GO:0007420,true,false,GO
+disease,MP:0000913,abnormal brain development,biolink:PhenotypicFeature,1,MP:0000913,true,false,
 disease,MP:0000914,exencephaly,biolink:PhenotypicFeature,1,MP:0000914,true,false,
 disease,MP:0000917,obstructive hydrocephaly,biolink:PhenotypicFeature,1,MP:0000917,true,false,
 disease,MP:0000919,cranioschisis,biolink:PhenotypicFeature,1,MP:0000919,true,false,
-disease,MP:0000920,abnormal myelination,biolink:PhenotypicFeature,2,MP:0000920|GO:0042552,true,false,GO
+disease,MP:0000920,abnormal myelination,biolink:PhenotypicFeature,1,MP:0000920,true,false,
 disease,MP:0000921,demyelination,biolink:PhenotypicFeature,1,MP:0000921,true,false,
 disease,MP:0000923,abnormal roof plate morphology,biolink:PhenotypicFeature,1,MP:0000923,true,false,
 disease,MP:0000924,absent roof plate,biolink:PhenotypicFeature,1,MP:0000924,true,false,
@@ -738,9 +738,9 @@ disease,MP:0000999,abnormal golgi tendon organ morphology,biolink:PhenotypicFeat
 disease,MP:0001000,absent golgi tendon organ,biolink:PhenotypicFeature,1,MP:0001000,true,false,
 disease,MP:0001001,abnormal chemoreceptor morphology,biolink:PhenotypicFeature,1,MP:0001001,true,false,
 disease,MP:0001003,abnormal olfactory receptor morphology,biolink:PhenotypicFeature,1,MP:0001003,true,false,
-disease,MP:0001004,abnormal retina photoreceptor morphology,biolink:PhenotypicFeature,2,MP:0001004|CL:0000210,true,false,CL
-disease,MP:0001005,abnormal retina rod cell morphology,biolink:PhenotypicFeature,2,MP:0001005|CL:0000604,true,false,CL
-disease,MP:0001006,abnormal retina cone cell morphology,biolink:PhenotypicFeature,2,MP:0001006|CL:0000573,true,false,CL
+disease,MP:0001004,abnormal retina photoreceptor morphology,biolink:PhenotypicFeature,1,MP:0001004,true,false,
+disease,MP:0001005,abnormal retina rod cell morphology,biolink:PhenotypicFeature,1,MP:0001005,true,false,
+disease,MP:0001006,abnormal retina cone cell morphology,biolink:PhenotypicFeature,1,MP:0001006,true,false,
 disease,MP:0001007,abnormal sympathetic system morphology,biolink:PhenotypicFeature,1,MP:0001007,true,false,
 disease,MP:0001008,abnormal sympathetic ganglion morphology,biolink:PhenotypicFeature,1,MP:0001008,true,false,
 disease,MP:0001009,paravertebral ganglia hyperplasia,biolink:PhenotypicFeature,1,MP:0001009,true,false,
@@ -763,7 +763,7 @@ disease,MP:0001026,abnormal adrenergic neuron morphology,biolink:PhenotypicFeatu
 disease,MP:0001032,abnormal peptidergic neuron morphology,biolink:PhenotypicFeature,1,MP:0001032,true,false,
 disease,MP:0001033,abnormal parasympathetic system morphology,biolink:PhenotypicFeature,1,MP:0001033,true,false,
 disease,MP:0001034,abnormal parasympathetic ganglion morphology,biolink:PhenotypicFeature,1,MP:0001034,true,false,
-disease,MP:0001035,abnormal submandibular ganglion morphology,biolink:PhenotypicFeature,2,MP:0001035|MA:0002470,true,false,MA
+disease,MP:0001035,abnormal submandibular ganglion morphology,biolink:PhenotypicFeature,1,MP:0001035,true,false,
 disease,MP:0001036,small submandibular ganglion,biolink:PhenotypicFeature,1,MP:0001036,true,false,
 disease,MP:0001037,abnormal parasympathetic neuron morphology,biolink:PhenotypicFeature,1,MP:0001037,true,false,
 disease,MP:0001038,abnormal cholinergic neuron morphology,biolink:PhenotypicFeature,1,MP:0001038,true,false,
@@ -864,11 +864,11 @@ disease,MP:0001154,seminiferous tubule degeneration,biolink:PhenotypicFeature,1,
 disease,MP:0001155,arrest of spermatogenesis,biolink:PhenotypicFeature,1,MP:0001155,true,false,
 disease,MP:0001156,abnormal spermatogenesis,biolink:PhenotypicFeature,1,MP:0001156,true,false,
 disease,MP:0001157,small seminal vesicle,biolink:PhenotypicFeature,1,MP:0001157,true,false,
-disease,MP:0001158,abnormal prostate gland morphology,biolink:PhenotypicFeature,2,MP:0001158|MA:0000404,true,false,MA
+disease,MP:0001158,abnormal prostate gland morphology,biolink:PhenotypicFeature,1,MP:0001158,true,false,
 disease,MP:0001159,absent prostate gland,biolink:PhenotypicFeature,1,MP:0001159,true,false,
-disease,MP:0001163,abnormal prostate gland anterior lobe morphology,biolink:PhenotypicFeature,2,MP:0001163|MA:0002422,true,false,MA
+disease,MP:0001163,abnormal prostate gland anterior lobe morphology,biolink:PhenotypicFeature,1,MP:0001163,true,false,
 disease,MP:0001167,prostate gland epithelial hyperplasia,biolink:PhenotypicFeature,1,MP:0001167,true,false,
-disease,MP:0001168,abnormal prostate gland epithelium morphology,biolink:PhenotypicFeature,2,MP:0001168|MA:0001737,true,false,MA
+disease,MP:0001168,abnormal prostate gland epithelium morphology,biolink:PhenotypicFeature,1,MP:0001168,true,false,
 disease,MP:0001169,abnormal bulbourethral gland morphology,biolink:PhenotypicFeature,1,MP:0001169,true,false,
 disease,MP:0001170,bulbourethral gland hyperplasia,biolink:PhenotypicFeature,1,MP:0001170,true,false,
 disease,MP:0001175,abnormal lung morphology,biolink:PhenotypicFeature,1,MP:0001175,true,false,
@@ -913,7 +913,7 @@ disease,MP:0001219,thick epidermis,biolink:PhenotypicFeature,1,MP:0001219,true,f
 disease,MP:0001220,epidermal necrosis,biolink:PhenotypicFeature,1,MP:0001220,true,false,
 disease,MP:0001221,epidermal atrophy,biolink:PhenotypicFeature,1,MP:0001221,true,false,
 disease,MP:0001222,epidermal hyperplasia,biolink:PhenotypicFeature,1,MP:0001222,true,false,
-disease,MP:0001224,abnormal keratinocyte apoptosis,biolink:PhenotypicFeature,2,MP:0001224|GO:0030216,true,false,GO
+disease,MP:0001224,abnormal keratinocyte apoptosis,biolink:PhenotypicFeature,1,MP:0001224,true,false,
 disease,MP:0001230,epidermal desquamation,biolink:PhenotypicFeature,1,MP:0001230,true,false,
 disease,MP:0001231,abnormal epidermis stratum basale morphology,biolink:PhenotypicFeature,1,MP:0001231,true,false,
 disease,MP:0001232,absent epidermis stratum basale,biolink:PhenotypicFeature,1,MP:0001232,true,false,
@@ -1171,9 +1171,9 @@ disease,MP:0001668,abnormal intestinal fructose absorption,biolink:PhenotypicFea
 disease,MP:0001669,abnormal intestinal glucose absorption,biolink:PhenotypicFeature,1,MP:0001669,true,false,
 disease,MP:0001670,abnormal intestinal mineral absorption,biolink:PhenotypicFeature,1,MP:0001670,true,false,
 disease,MP:0001671,abnormal vitamin absorption,biolink:PhenotypicFeature,1,MP:0001671,true,false,
-disease,MP:0001672,abnormal embryo development,biolink:PhenotypicFeature,2,MP:0001672|GO:0007275,true,false,GO
+disease,MP:0001672,abnormal embryo development,biolink:PhenotypicFeature,1,MP:0001672,true,false,
 disease,MP:0001674,abnormal germ layer development,biolink:PhenotypicFeature,1,MP:0001674,true,false,
-disease,MP:0001675,abnormal ectoderm development,biolink:PhenotypicFeature,2,MP:0001675|GO:0001705,true,false,GO
+disease,MP:0001675,abnormal ectoderm development,biolink:PhenotypicFeature,1,MP:0001675,true,false,
 disease,MP:0001676,abnormal apical ectodermal ridge morphology,biolink:PhenotypicFeature,1,MP:0001676,true,false,
 disease,MP:0001677,absent apical ectodermal ridge,biolink:PhenotypicFeature,1,MP:0001677,true,false,
 disease,MP:0001678,thick apical ectodermal ridge,biolink:PhenotypicFeature,1,MP:0001678,true,false,
@@ -1181,13 +1181,13 @@ disease,MP:0001679,thin apical ectodermal ridge,biolink:PhenotypicFeature,1,MP:0
 disease,MP:0001680,abnormal mesoderm development,biolink:PhenotypicFeature,1,MP:0001680,true,false,
 disease,MP:0001683,absent mesoderm,biolink:PhenotypicFeature,1,MP:0001683,true,false,
 disease,MP:0001684,abnormal axial mesoderm morphology,biolink:PhenotypicFeature,1,MP:0001684,true,false,
-disease,MP:0001685,abnormal endoderm development,biolink:PhenotypicFeature,2,MP:0001685|GO:0001706,true,false,GO
+disease,MP:0001685,abnormal endoderm development,biolink:PhenotypicFeature,1,MP:0001685,true,false,
 disease,MP:0001687,thin endoderm,biolink:PhenotypicFeature,1,MP:0001687,true,false,
 disease,MP:0001688,abnormal somite development,biolink:PhenotypicFeature,1,MP:0001688,true,false,
 disease,MP:0001689,incomplete somite formation,biolink:PhenotypicFeature,1,MP:0001689,true,false,
 disease,MP:0001690,failure of somite differentiation,biolink:PhenotypicFeature,1,MP:0001690,true,false,
 disease,MP:0001691,abnormal somite shape,biolink:PhenotypicFeature,1,MP:0001691,true,false,
-disease,MP:0001693,failure of primitive streak formation,biolink:PhenotypicFeature,2,MP:0001693|GO:0007369,true,false,GO
+disease,MP:0001693,failure of primitive streak formation,biolink:PhenotypicFeature,1,MP:0001693,true,false,
 disease,MP:0001694,absent egg cylinders,biolink:PhenotypicFeature,1,MP:0001694,true,false,
 disease,MP:0001695,abnormal gastrulation,biolink:PhenotypicFeature,1,MP:0001695,true,false,
 disease,MP:0001696,failure to gastrulate,biolink:PhenotypicFeature,1,MP:0001696,true,false,
@@ -1236,7 +1236,7 @@ disease,MP:0001751,increased circulating luteinizing hormone level,biolink:Pheno
 disease,MP:0001752,abnormal hypothalamus secretion,biolink:PhenotypicFeature,1,MP:0001752,true,false,
 disease,MP:0001753,hypersecretion of corticotropin-releasing hormone,biolink:PhenotypicFeature,1,MP:0001753,true,false,
 disease,MP:0001754,increased circulating corticotropin-releasing hormone level,biolink:PhenotypicFeature,1,MP:0001754,true,false,
-disease,MP:0001756,abnormal urination,biolink:PhenotypicFeature,2,MP:0001756|GO:0060073,true,false,GO
+disease,MP:0001756,abnormal urination,biolink:PhenotypicFeature,1,MP:0001756,true,false,
 disease,MP:0001758,abnormal urine glucose level,biolink:PhenotypicFeature,1,MP:0001758,true,false,
 disease,MP:0001759,increased urine glucose level,biolink:PhenotypicFeature,1,MP:0001759,true,false,
 disease,MP:0001760,abnormal urine enzyme level,biolink:PhenotypicFeature,1,MP:0001760,true,false,
@@ -1258,7 +1258,7 @@ disease,MP:0001785,edema,biolink:PhenotypicFeature,1,MP:0001785,true,false,
 disease,MP:0001786,skin edema,biolink:PhenotypicFeature,1,MP:0001786,true,false,
 disease,MP:0001787,pericardial edema,biolink:PhenotypicFeature,1,MP:0001787,true,false,
 disease,MP:0001788,periorbital edema,biolink:PhenotypicFeature,1,MP:0001788,true,false,
-disease,MP:0001790,abnormal immune system physiology,biolink:PhenotypicFeature,2,MP:0001790|GO:0006955,true,false,GO
+disease,MP:0001790,abnormal immune system physiology,biolink:PhenotypicFeature,1,MP:0001790,true,false,
 disease,MP:0001792,impaired wound healing,biolink:PhenotypicFeature,1,MP:0001792,true,false,
 disease,MP:0001793,abnormal susceptibility to infection,biolink:PhenotypicFeature,1,MP:0001793,true,false,
 disease,MP:0001798,impaired macrophage phagocytosis,biolink:PhenotypicFeature,1,MP:0001798,true,false,
@@ -1456,11 +1456,11 @@ disease,MP:0002086,abnormal extraembryonic tissue morphology,biolink:PhenotypicF
 disease,MP:0002088,abnormal embryonic growth/weight/body size,biolink:PhenotypicFeature,2,MP:0002088|MGI:2173533,true,false,MGI
 disease,MP:0002089,abnormal postnatal growth/weight/body size,biolink:PhenotypicFeature,2,MP:0002089|MGI:2173534,true,false,MGI
 disease,MP:0002090,abnormal vision,biolink:PhenotypicFeature,1,MP:0002090,true,false,
-disease,MP:0002092,abnormal eye morphology,biolink:PhenotypicFeature,1,MP:0002092,true,false,
+disease,MP:0002092,abnormal eye morphology,biolink:PhenotypicFeature,2,MP:0002092|MGI:2173536,true,false,MGI
 disease,MP:0002095,abnormal skin pigmentation,biolink:PhenotypicFeature,2,MP:0002095|MGI:2173544,true,false,MGI
 disease,MP:0002098,abnormal vibrissa morphology,biolink:PhenotypicFeature,2,MP:0002098|MGI:2173547,true,false,MGI
 disease,MP:0002100,abnormal tooth morphology,biolink:PhenotypicFeature,2,MP:0002100|MGI:2173553,true,false,MGI
-disease,MP:0002102,abnormal ear morphology,biolink:PhenotypicFeature,1,MP:0002102,true,false,
+disease,MP:0002102,abnormal ear morphology,biolink:PhenotypicFeature,2,MP:0002102|MGI:2173556,true,false,MGI
 disease,MP:0002106,abnormal muscle physiology,biolink:PhenotypicFeature,2,MP:0002106|MGI:2173559,true,false,MGI
 disease,MP:0002108,abnormal muscle morphology,biolink:PhenotypicFeature,2,MP:0002108|MGI:2173558,true,false,MGI
 disease,MP:0002109,abnormal limb morphology,biolink:PhenotypicFeature,2,MP:0002109|MGI:2173549,true,false,MGI
@@ -1475,16 +1475,16 @@ disease,MP:0002119,dipsosis,biolink:PhenotypicFeature,1,MP:0002119,true,false,
 disease,MP:0002123,abnormal definitive hematopoiesis,biolink:PhenotypicFeature,2,MP:0002123|MGI:2173583,true,false,MGI
 disease,MP:0002127,abnormal cardiovascular system morphology,biolink:PhenotypicFeature,2,MP:0002127|MGI:2173587,true,false,MGI
 disease,MP:0002128,abnormal blood circulation,biolink:PhenotypicFeature,2,MP:0002128|MGI:2173588,true,false,MGI
-disease,MP:0002132,abnormal respiratory system morphology,biolink:PhenotypicFeature,1,MP:0002132,true,false,
+disease,MP:0002132,abnormal respiratory system morphology,biolink:PhenotypicFeature,2,MP:0002132|MGI:2173592,true,false,MGI
 disease,MP:0002133,abnormal respiratory system physiology,biolink:PhenotypicFeature,2,MP:0002133|MGI:2173593,true,false,MGI
-disease,MP:0002135,abnormal kidney morphology,biolink:PhenotypicFeature,1,MP:0002135,true,false,
+disease,MP:0002135,abnormal kidney morphology,biolink:PhenotypicFeature,2,MP:0002135|MGI:2173595,true,false,MGI
 disease,MP:0002136,abnormal kidney physiology,biolink:PhenotypicFeature,2,MP:0002136|MGI:2173596,true,false,MGI
 disease,MP:0002138,abnormal hepatobiliary system morphology,biolink:PhenotypicFeature,2,MP:0002138|MGI:2173598,true,false,MGI
 disease,MP:0002139,abnormal hepatobiliary system physiology,biolink:PhenotypicFeature,2,MP:0002139|MGI:2173599,true,false,MGI
 disease,MP:0002144,abnormal B cell differentiation,biolink:PhenotypicFeature,2,MP:0002144|MGI:2173604,true,false,MGI
 disease,MP:0002145,abnormal T cell differentiation,biolink:PhenotypicFeature,2,MP:0002145|MGI:2173605,true,false,MGI
 disease,MP:0002148,abnormal hypersensitivity reaction,biolink:PhenotypicFeature,2,MP:0002148|MGI:2173608,true,false,MGI
-disease,MP:0002151,abnormal neural tube morphology,biolink:PhenotypicFeature,1,MP:0002151,true,false,
+disease,MP:0002151,abnormal neural tube morphology,biolink:PhenotypicFeature,2,MP:0002151|MGI:2173611,true,false,MGI
 disease,MP:0002152,abnormal brain morphology,biolink:PhenotypicFeature,2,MP:0002152|MGI:2173612,true,false,MGI
 disease,MP:0002160,abnormal reproductive system morphology,biolink:PhenotypicFeature,2,MP:0002160|MGI:2173620,true,false,MGI
 disease,MP:0002161,abnormal fertility/fecundity,biolink:PhenotypicFeature,2,MP:0002161|MGI:2173621,true,false,MGI
@@ -1630,8 +1630,8 @@ disease,MP:0002345,abnormal lymph node primary follicle morphology,biolink:Pheno
 disease,MP:0002346,abnormal lymph node secondary follicle morphology,biolink:PhenotypicFeature,1,MP:0002346,true,false,
 disease,MP:0002347,abnormal lymph node T cell domain morphology,biolink:PhenotypicFeature,1,MP:0002347,true,false,
 disease,MP:0002348,abnormal lymph node medulla morphology,biolink:PhenotypicFeature,1,MP:0002348,true,false,
-disease,MP:0002349,abnormal afferent lymphatic vessel morphology,biolink:PhenotypicFeature,2,MP:0002349|MA:0000748,true,false,MA
-disease,MP:0002350,abnormal efferent lymphatic vessel morphology,biolink:PhenotypicFeature,2,MP:0002350|MA:0000749,true,false,MA
+disease,MP:0002349,abnormal afferent lymphatic vessel morphology,biolink:PhenotypicFeature,1,MP:0002349,true,false,
+disease,MP:0002350,abnormal efferent lymphatic vessel morphology,biolink:PhenotypicFeature,1,MP:0002350,true,false,
 disease,MP:0002351,abnormal cervical lymph node morphology,biolink:PhenotypicFeature,1,MP:0002351,true,false,
 disease,MP:0002352,abnormal popliteal lymph node morphology,biolink:PhenotypicFeature,1,MP:0002352,true,false,
 disease,MP:0002353,abnormal inguinal lymph node morphology,biolink:PhenotypicFeature,1,MP:0002353,true,false,
@@ -1700,7 +1700,7 @@ disease,MP:0002432,"abnormal CD4-positive, alpha beta T cell morphology",biolink
 disease,MP:0002433,abnormal T-helper 1 cell morphology,biolink:PhenotypicFeature,1,MP:0002433,true,false,
 disease,MP:0002434,abnormal T-helper 2 cell morphology,biolink:PhenotypicFeature,1,MP:0002434,true,false,
 disease,MP:0002435,abnormal effector T cell morphology,biolink:PhenotypicFeature,1,MP:0002435,true,false,
-disease,MP:0002436,"abnormal CD8-positive, alpha-beta cytotoxic T cell morphology",biolink:PhenotypicFeature,2,MP:0002436|CL:0000794,true,false,CL
+disease,MP:0002436,"abnormal CD8-positive, alpha-beta cytotoxic T cell morphology",biolink:PhenotypicFeature,1,MP:0002436,true,false,
 disease,MP:0002439,abnormal plasma cell morphology,biolink:PhenotypicFeature,1,MP:0002439,true,false,
 disease,MP:0002440,abnormal memory B cell morphology,biolink:PhenotypicFeature,1,MP:0002440,true,false,
 disease,MP:0002441,abnormal granulocyte morphology,biolink:PhenotypicFeature,1,MP:0002441,true,false,
@@ -1726,7 +1726,7 @@ disease,MP:0002463,abnormal neutrophil physiology,biolink:PhenotypicFeature,1,MP
 disease,MP:0002464,abnormal basophil physiology,biolink:PhenotypicFeature,1,MP:0002464,true,false,
 disease,MP:0002465,abnormal eosinophil physiology,biolink:PhenotypicFeature,1,MP:0002465,true,false,
 disease,MP:0002467,impaired neutrophil phagocytosis,biolink:PhenotypicFeature,1,MP:0002467,true,false,
-disease,MP:0002471,abnormal complement pathway,biolink:PhenotypicFeature,2,MP:0002471|GO:0006956,true,false,GO
+disease,MP:0002471,abnormal complement pathway,biolink:PhenotypicFeature,1,MP:0002471,true,false,
 disease,MP:0002472,impaired complement alternative pathway,biolink:PhenotypicFeature,1,MP:0002472,true,false,
 disease,MP:0002473,impaired complement classical pathway,biolink:PhenotypicFeature,1,MP:0002473,true,false,
 disease,MP:0002490,abnormal immunoglobulin level,biolink:PhenotypicFeature,1,MP:0002490,true,false,
@@ -1903,7 +1903,7 @@ disease,MP:0002748,abnormal pulmonary valve morphology,biolink:PhenotypicFeature
 disease,MP:0002750,exophthalmos,biolink:PhenotypicFeature,1,MP:0002750,true,false,
 disease,MP:0002751,abnormal autonomic nervous system morphology,biolink:PhenotypicFeature,1,MP:0002751,true,false,
 disease,MP:0002752,abnormal somatic nervous system morphology,biolink:PhenotypicFeature,1,MP:0002752,true,false,
-disease,MP:0002753,dilated heart left ventricle,biolink:PhenotypicFeature,2,MP:0002753|Fyler:1817,true,false,Fyler
+disease,MP:0002753,dilated heart left ventricle,biolink:PhenotypicFeature,1,MP:0002753,true,false,
 disease,MP:0002754,dilated heart right ventricle,biolink:PhenotypicFeature,1,MP:0002754,true,false,
 disease,MP:0002757,decreased vertical activity,biolink:PhenotypicFeature,1,MP:0002757,true,false,
 disease,MP:0002758,long tail,biolink:PhenotypicFeature,1,MP:0002758,true,false,
@@ -2127,7 +2127,7 @@ disease,MP:0002993,autoimmune arthritis,biolink:PhenotypicFeature,1,MP:0002993,t
 disease,MP:0002995,primary sex reversal,biolink:PhenotypicFeature,1,MP:0002995,true,false,
 disease,MP:0002996,ovotestis,biolink:PhenotypicFeature,1,MP:0002996,true,false,
 disease,MP:0002997,enlarged seminal vesicle,biolink:PhenotypicFeature,1,MP:0002997,true,false,
-disease,MP:0002998,abnormal bone remodeling,biolink:PhenotypicFeature,2,MP:0002998|GO:0046849,true,false,GO
+disease,MP:0002998,abnormal bone remodeling,biolink:PhenotypicFeature,1,MP:0002998,true,false,
 disease,MP:0002999,abnormal bone healing,biolink:PhenotypicFeature,1,MP:0002999,true,false,
 disease,MP:0003005,abnormal hippocampal fimbria morphology,biolink:PhenotypicFeature,1,MP:0003005,true,false,
 disease,MP:0003006,abnormal hippocampal fornix morphology,biolink:PhenotypicFeature,1,MP:0003006,true,false,
@@ -2730,7 +2730,7 @@ disease,MP:0003627,abnormal leukocyte tethering or rolling,biolink:PhenotypicFea
 disease,MP:0003628,abnormal leukocyte adhesion,biolink:PhenotypicFeature,1,MP:0003628,true,false,
 disease,MP:0003630,abnormal urothelium morphology,biolink:PhenotypicFeature,1,MP:0003630,true,false,
 disease,MP:0003631,nervous system phenotype,biolink:PhenotypicFeature,1,MP:0003631,true,false,
-disease,MP:0003632,abnormal nervous system morphology,biolink:PhenotypicFeature,1,MP:0003632,true,false,
+disease,MP:0003632,abnormal nervous system morphology,biolink:PhenotypicFeature,3,MP:0003632|MGI:2173613|MGI:2173617,true,false,MGI
 disease,MP:0003633,abnormal nervous system physiology,biolink:PhenotypicFeature,3,MP:0003633|MGI:2173615|MGI:2173618,true,false,MGI
 disease,MP:0003634,abnormal glial cell morphology,biolink:PhenotypicFeature,1,MP:0003634,true,false,
 disease,MP:0003635,abnormal synaptic transmission,biolink:PhenotypicFeature,1,MP:0003635,true,false,
@@ -2804,7 +2804,7 @@ disease,MP:0003706,abnormal cell nucleus count,biolink:PhenotypicFeature,1,MP:00
 disease,MP:0003707,increased cell nucleus count,biolink:PhenotypicFeature,1,MP:0003707,true,false,
 disease,MP:0003708,binucleate,biolink:PhenotypicFeature,1,MP:0003708,true,false,
 disease,MP:0003709,anucleate,biolink:PhenotypicFeature,1,MP:0003709,true,false,
-disease,MP:0003710,abnormal physiological neovascularization,biolink:PhenotypicFeature,2,MP:0003710|GO:0060055,true,false,GO
+disease,MP:0003710,abnormal physiological neovascularization,biolink:PhenotypicFeature,1,MP:0003710,true,false,
 disease,MP:0003711,pathological neovascularization,biolink:PhenotypicFeature,1,MP:0003711,true,false,
 disease,MP:0003712,raised ear position,biolink:PhenotypicFeature,1,MP:0003712,true,false,
 disease,MP:0003713,abnormal ear rotation,biolink:PhenotypicFeature,1,MP:0003713,true,false,
@@ -2823,8 +2823,8 @@ disease,MP:0003725,increased autoantibody level,biolink:PhenotypicFeature,1,MP:0
 disease,MP:0003726,decreased autoantibody level,biolink:PhenotypicFeature,1,MP:0003726,true,false,
 disease,MP:0003727,abnormal retina layer morphology,biolink:PhenotypicFeature,1,MP:0003727,true,false,
 disease,MP:0003728,abnormal retina photoreceptor layer morphology,biolink:PhenotypicFeature,1,MP:0003728,true,false,
-disease,MP:0003729,abnormal photoreceptor outer segment morphology,biolink:PhenotypicFeature,2,MP:0003729|GO:0001750,true,false,GO
-disease,MP:0003730,abnormal photoreceptor inner segment morphology,biolink:PhenotypicFeature,2,MP:0003730|GO:0001917,true,false,GO
+disease,MP:0003729,abnormal photoreceptor outer segment morphology,biolink:PhenotypicFeature,1,MP:0003729,true,false,
+disease,MP:0003730,abnormal photoreceptor inner segment morphology,biolink:PhenotypicFeature,1,MP:0003730,true,false,
 disease,MP:0003731,abnormal retina outer nuclear layer morphology,biolink:PhenotypicFeature,1,MP:0003731,true,false,
 disease,MP:0003732,abnormal retina outer plexiform layer morphology,biolink:PhenotypicFeature,1,MP:0003732,true,false,
 disease,MP:0003733,abnormal retina inner nuclear layer morphology,biolink:PhenotypicFeature,1,MP:0003733,true,false,
@@ -3110,7 +3110,7 @@ disease,MP:0004034,belly blaze,biolink:PhenotypicFeature,1,MP:0004034,true,false
 disease,MP:0004035,abnormal sublingual gland morphology,biolink:PhenotypicFeature,1,MP:0004035,true,false,
 disease,MP:0004036,abnormal muscle relaxation,biolink:PhenotypicFeature,1,MP:0004036,true,false,
 disease,MP:0004037,increased muscle relaxation,biolink:PhenotypicFeature,1,MP:0004037,true,false,
-disease,MP:0004038,lymphangiectasis,biolink:PhenotypicFeature,2,MP:0004038|Fyler:4042,true,false,Fyler
+disease,MP:0004038,lymphangiectasis,biolink:PhenotypicFeature,1,MP:0004038,true,false,
 disease,MP:0004039,abnormal cardiac muscle cell glucose uptake,biolink:PhenotypicFeature,1,MP:0004039,true,false,
 disease,MP:0004040,abnormal susceptibility to kidney reperfusion injury,biolink:PhenotypicFeature,1,MP:0004040,true,false,
 disease,MP:0004041,increased susceptibility to kidney reperfusion injury,biolink:PhenotypicFeature,1,MP:0004041,true,false,
@@ -3191,7 +3191,7 @@ disease,MP:0004118,abnormal baroreceptor morphology,biolink:PhenotypicFeature,1,
 disease,MP:0004119,hypokalemia,biolink:PhenotypicFeature,1,MP:0004119,true,false,
 disease,MP:0004120,cardiac ischemia,biolink:PhenotypicFeature,1,MP:0004120,true,false,
 disease,MP:0004121,abnormal sarcolemma morphology,biolink:PhenotypicFeature,1,MP:0004121,true,false,
-disease,MP:0004122,abnormal sinus arrhythmia,biolink:PhenotypicFeature,2,MP:0004122|Fyler:7011,true,false,Fyler
+disease,MP:0004122,abnormal sinus arrhythmia,biolink:PhenotypicFeature,1,MP:0004122,true,false,
 disease,MP:0004123,abnormal impulse conducting system morphology,biolink:PhenotypicFeature,1,MP:0004123,true,false,
 disease,MP:0004124,abnormal Purkinje fiber morphology,biolink:PhenotypicFeature,1,MP:0004124,true,false,
 disease,MP:0004125,abnormal venule morphology,biolink:PhenotypicFeature,1,MP:0004125,true,false,
@@ -3201,7 +3201,7 @@ disease,MP:0004129,abnormal respiratory quotient,biolink:PhenotypicFeature,1,MP:
 disease,MP:0004130,abnormal muscle cell glucose uptake,biolink:PhenotypicFeature,1,MP:0004130,true,false,
 disease,MP:0004131,abnormal motile primary cilium morphology,biolink:PhenotypicFeature,1,MP:0004131,true,false,
 disease,MP:0004132,absent embryonic cilia,biolink:PhenotypicFeature,1,MP:0004132,true,false,
-disease,MP:0004133,heterotaxia,biolink:PhenotypicFeature,1,MP:0004133,true,false,
+disease,MP:0004133,heterotaxia,biolink:PhenotypicFeature,2,MP:0004133|MPATH:712,true,false,MPATH
 disease,MP:0004134,abnormal chest morphology,biolink:PhenotypicFeature,1,MP:0004134,true,false,
 disease,MP:0004135,abnormal mammary gland embryonic development,biolink:PhenotypicFeature,1,MP:0004135,true,false,
 disease,MP:0004136,abnormal tongue muscle morphology,biolink:PhenotypicFeature,1,MP:0004136,true,false,
@@ -3263,7 +3263,7 @@ disease,MP:0004191,neuronal intranuclear inclusions,biolink:PhenotypicFeature,1,
 disease,MP:0004192,abnormal kidney pyramid morphology,biolink:PhenotypicFeature,1,MP:0004192,true,false,
 disease,MP:0004193,abnormal kidney papilla morphology,biolink:PhenotypicFeature,1,MP:0004193,true,false,
 disease,MP:0004194,abnormal kidney pelvis morphology,biolink:PhenotypicFeature,1,MP:0004194,true,false,
-disease,MP:0004195,abnormal kidney calyx morphology,biolink:PhenotypicFeature,2,MP:0004195|MA:0000369,true,false,MA
+disease,MP:0004195,abnormal kidney calyx morphology,biolink:PhenotypicFeature,1,MP:0004195,true,false,
 disease,MP:0004196,abnormal prenatal growth/weight/body size,biolink:PhenotypicFeature,1,MP:0004196,true,false,
 disease,MP:0004197,abnormal fetal growth/weight/body size,biolink:PhenotypicFeature,1,MP:0004197,true,false,
 disease,MP:0004198,abnormal fetal size,biolink:PhenotypicFeature,1,MP:0004198,true,false,
@@ -3298,8 +3298,8 @@ disease,MP:0004226,absent Schlemm's canal,biolink:PhenotypicFeature,1,MP:0004226
 disease,MP:0004227,increased cellular sensitivity to ionizing radiation induced cell death,biolink:PhenotypicFeature,1,MP:0004227,true,false,
 disease,MP:0004228,decreased cellular sensitivity to ionizing radiation induced cell death,biolink:PhenotypicFeature,1,MP:0004228,true,false,
 disease,MP:0004229,abnormal embryonic erythropoiesis,biolink:PhenotypicFeature,1,MP:0004229,true,false,
-disease,MP:0004230,abnormal embryonic erythrocyte morphology,biolink:PhenotypicFeature,2,MP:0004230|CL:0002355,true,false,CL
-disease,MP:0004231,abnormal calcium ion homeostasis,biolink:PhenotypicFeature,2,MP:0004231|GO:0006874,true,false,GO
+disease,MP:0004230,abnormal embryonic erythrocyte morphology,biolink:PhenotypicFeature,1,MP:0004230,true,false,
+disease,MP:0004231,abnormal calcium ion homeostasis,biolink:PhenotypicFeature,1,MP:0004231,true,false,
 disease,MP:0004232,decreased muscle weight,biolink:PhenotypicFeature,1,MP:0004232,true,false,
 disease,MP:0004233,abnormal muscle weight,biolink:PhenotypicFeature,1,MP:0004233,true,false,
 disease,MP:0004234,abnormal masticatory muscle morphology,biolink:PhenotypicFeature,1,MP:0004234,true,false,
@@ -3317,7 +3317,7 @@ disease,MP:0004245,genital hemorrhage,biolink:PhenotypicFeature,1,MP:0004245,tru
 disease,MP:0004246,abnormal extensor digitorum longus morphology,biolink:PhenotypicFeature,1,MP:0004246,true,false,
 disease,MP:0004247,small pancreas,biolink:PhenotypicFeature,1,MP:0004247,true,false,
 disease,MP:0004248,abnormal epaxial muscle morphology,biolink:PhenotypicFeature,1,MP:0004248,true,false,
-disease,MP:0004249,abnormal crista ampullaris morphology,biolink:PhenotypicFeature,2,MP:0004249|MA:0002771,true,false,MA
+disease,MP:0004249,abnormal crista ampullaris morphology,biolink:PhenotypicFeature,1,MP:0004249,true,false,
 disease,MP:0004250,tau protein deposits,biolink:PhenotypicFeature,1,MP:0004250,true,false,
 disease,MP:0004251,failure of heart looping,biolink:PhenotypicFeature,1,MP:0004251,true,false,
 disease,MP:0004252,abnormal direction of heart looping,biolink:PhenotypicFeature,1,MP:0004252,true,false,
@@ -3475,7 +3475,7 @@ disease,MP:0004405,absent cochlear hair cells,biolink:PhenotypicFeature,1,MP:000
 disease,MP:0004406,abnormal cochlear hair cell number,biolink:PhenotypicFeature,1,MP:0004406,true,false,
 disease,MP:0004407,increased cochlear hair cell number,biolink:PhenotypicFeature,1,MP:0004407,true,false,
 disease,MP:0004408,decreased cochlear hair cell number,biolink:PhenotypicFeature,1,MP:0004408,true,false,
-disease,MP:0004409,abnormal crista ampullaris neuroepithelium morphology,biolink:PhenotypicFeature,2,MP:0004409|MA:0002870,true,false,MA
+disease,MP:0004409,abnormal crista ampullaris neuroepithelium morphology,biolink:PhenotypicFeature,1,MP:0004409,true,false,
 disease,MP:0004410,absent endocochlear potential,biolink:PhenotypicFeature,1,MP:0004410,true,false,
 disease,MP:0004411,decreased endocochlear potential,biolink:PhenotypicFeature,1,MP:0004411,true,false,
 disease,MP:0004412,abnormal cochlear microphonics,biolink:PhenotypicFeature,1,MP:0004412,true,false,
@@ -3820,7 +3820,7 @@ disease,MP:0004751,increased length of allograft survival,biolink:PhenotypicFeat
 disease,MP:0004752,decreased length of allograft survival,biolink:PhenotypicFeature,1,MP:0004752,true,false,
 disease,MP:0004753,abnormal miniature excitatory postsynaptic currents,biolink:PhenotypicFeature,1,MP:0004753,true,false,
 disease,MP:0004754,abnormal kidney collecting duct morphology,biolink:PhenotypicFeature,1,MP:0004754,true,false,
-disease,MP:0004755,abnormal loop of Henle morphology,biolink:PhenotypicFeature,2,MP:0004755|MA:0001675,true,false,MA
+disease,MP:0004755,abnormal loop of Henle morphology,biolink:PhenotypicFeature,1,MP:0004755,true,false,
 disease,MP:0004756,abnormal proximal convoluted tubule morphology,biolink:PhenotypicFeature,1,MP:0004756,true,false,
 disease,MP:0004757,abnormal distal convoluted tubule morphology,biolink:PhenotypicFeature,1,MP:0004757,true,false,
 disease,MP:0004758,absent strial marginal cells,biolink:PhenotypicFeature,1,MP:0004758,true,false,
@@ -4002,10 +4002,10 @@ disease,MP:0004937,dilated heart,biolink:PhenotypicFeature,1,MP:0004937,true,fal
 disease,MP:0004938,dilated vasculature,biolink:PhenotypicFeature,1,MP:0004938,true,false,
 disease,MP:0004939,abnormal B cell morphology,biolink:PhenotypicFeature,1,MP:0004939,true,false,
 disease,MP:0004940,abnormal B-1 B cell morphology,biolink:PhenotypicFeature,1,MP:0004940,true,false,
-disease,MP:0004941,abnormal regulatory T cell morphology,biolink:PhenotypicFeature,2,MP:0004941|CL:0000815,true,false,CL
-disease,MP:0004942,abnormal B cell selection,biolink:PhenotypicFeature,2,MP:0004942|GO:0002339,true,false,GO
-disease,MP:0004943,abnormal B cell positive selection,biolink:PhenotypicFeature,2,MP:0004943|GO:0002346,true,false,GO
-disease,MP:0004944,abnormal B cell negative selection,biolink:PhenotypicFeature,2,MP:0004944|GO:0002352,true,false,GO
+disease,MP:0004941,abnormal regulatory T cell morphology,biolink:PhenotypicFeature,1,MP:0004941,true,false,
+disease,MP:0004942,abnormal B cell selection,biolink:PhenotypicFeature,1,MP:0004942,true,false,
+disease,MP:0004943,abnormal B cell positive selection,biolink:PhenotypicFeature,1,MP:0004943,true,false,
+disease,MP:0004944,abnormal B cell negative selection,biolink:PhenotypicFeature,1,MP:0004944,true,false,
 disease,MP:0004945,abnormal bone resorption,biolink:PhenotypicFeature,1,MP:0004945,true,false,
 disease,MP:0004946,abnormal regulatory T cell physiology,biolink:PhenotypicFeature,1,MP:0004946,true,false,
 disease,MP:0004947,skin inflammation,biolink:PhenotypicFeature,1,MP:0004947,true,false,
@@ -4102,8 +4102,8 @@ disease,MP:0005044,sepsis,biolink:PhenotypicFeature,1,MP:0005044,true,false,
 disease,MP:0005046,absent spleen white pulp,biolink:PhenotypicFeature,1,MP:0005046,true,false,
 disease,MP:0005047,enlarged celiac lymph nodes,biolink:PhenotypicFeature,1,MP:0005047,true,false,
 disease,MP:0005048,abnormal thrombosis,biolink:PhenotypicFeature,1,MP:0005048,true,false,
-disease,MP:0005058,abnormal lysosome morphology,biolink:PhenotypicFeature,2,MP:0005058|GO:0005764,true,false,GO
-disease,MP:0005059,lysosomal protein accumulation,biolink:PhenotypicFeature,2,MP:0005059|GO:0007041,true,false,GO
+disease,MP:0005058,abnormal lysosome morphology,biolink:PhenotypicFeature,1,MP:0005058,true,false,
+disease,MP:0005059,lysosomal protein accumulation,biolink:PhenotypicFeature,1,MP:0005059,true,false,
 disease,MP:0005060,accumulation of giant lysosomes in kidney/renal tubule cells,biolink:PhenotypicFeature,1,MP:0005060,true,false,
 disease,MP:0005061,abnormal eosinophil morphology,biolink:PhenotypicFeature,1,MP:0005061,true,false,
 disease,MP:0005065,abnormal neutrophil morphology,biolink:PhenotypicFeature,1,MP:0005065,true,false,
@@ -4112,8 +4112,8 @@ disease,MP:0005070,impaired natural killer cell mediated cytotoxicity,biolink:Ph
 disease,MP:0005071,enlarged hair follicle melanin granules,biolink:PhenotypicFeature,1,MP:0005071,true,false,
 disease,MP:0005072,abnormal hair follicle melanin granule morphology,biolink:PhenotypicFeature,1,MP:0005072,true,false,
 disease,MP:0005074,impaired granulocyte bactericidal activity,biolink:PhenotypicFeature,1,MP:0005074,true,false,
-disease,MP:0005075,abnormal melanosome morphology,biolink:PhenotypicFeature,2,MP:0005075|GO:0042470,true,false,GO
-disease,MP:0005076,abnormal cell differentiation,biolink:PhenotypicFeature,2,MP:0005076|GO:0030154,true,false,GO
+disease,MP:0005075,abnormal melanosome morphology,biolink:PhenotypicFeature,1,MP:0005075,true,false,
+disease,MP:0005076,abnormal cell differentiation,biolink:PhenotypicFeature,1,MP:0005076,true,false,
 disease,MP:0005077,abnormal melanogenesis,biolink:PhenotypicFeature,1,MP:0005077,true,false,
 disease,MP:0005078,abnormal cytotoxic T cell physiology,biolink:PhenotypicFeature,1,MP:0005078,true,false,
 disease,MP:0005079,decreased cytotoxic T cell cytolysis,biolink:PhenotypicFeature,1,MP:0005079,true,false,
@@ -4146,7 +4146,7 @@ disease,MP:0005108,abnormal ulna morphology,biolink:PhenotypicFeature,1,MP:00051
 disease,MP:0005109,abnormal talus morphology,biolink:PhenotypicFeature,1,MP:0005109,true,false,
 disease,MP:0005110,absent talus,biolink:PhenotypicFeature,1,MP:0005110,true,false,
 disease,MP:0005111,hyperdipsia,biolink:PhenotypicFeature,1,MP:0005111,true,false,
-disease,MP:0005112,abnormal spinal cord ventral horn morphology,biolink:PhenotypicFeature,2,MP:0005112|MA:0001134,true,false,MA
+disease,MP:0005112,abnormal spinal cord ventral horn morphology,biolink:PhenotypicFeature,1,MP:0005112,true,false,
 disease,MP:0005113,decreased spinal cord ventral horn cell number,biolink:PhenotypicFeature,1,MP:0005113,true,false,
 disease,MP:0005114,premature hair loss,biolink:PhenotypicFeature,1,MP:0005114,true,false,
 disease,MP:0005116,abnormal circulating pituitary hormone level,biolink:PhenotypicFeature,1,MP:0005116,true,false,
@@ -4195,8 +4195,8 @@ disease,MP:0005164,abnormal response to injury,biolink:PhenotypicFeature,1,MP:00
 disease,MP:0005165,increased susceptibility to injury,biolink:PhenotypicFeature,1,MP:0005165,true,false,
 disease,MP:0005166,decreased susceptibility to injury,biolink:PhenotypicFeature,1,MP:0005166,true,false,
 disease,MP:0005167,abnormal blood-brain barrier function,biolink:PhenotypicFeature,1,MP:0005167,true,false,
-disease,MP:0005168,abnormal female meiosis,biolink:PhenotypicFeature,2,MP:0005168|GO:0007143,true,false,GO
-disease,MP:0005169,abnormal male meiosis,biolink:PhenotypicFeature,2,MP:0005169|GO:0007140,true,false,GO
+disease,MP:0005168,abnormal female meiosis,biolink:PhenotypicFeature,1,MP:0005168,true,false,
+disease,MP:0005169,abnormal male meiosis,biolink:PhenotypicFeature,1,MP:0005169,true,false,
 disease,MP:0005170,cleft upper lip,biolink:PhenotypicFeature,1,MP:0005170,true,false,
 disease,MP:0005171,absent coat pigmentation,biolink:PhenotypicFeature,1,MP:0005171,true,false,
 disease,MP:0005172,decreased eye pigmentation,biolink:PhenotypicFeature,1,MP:0005172,true,false,
@@ -4253,7 +4253,7 @@ disease,MP:0005230,ectrodactyly,biolink:PhenotypicFeature,1,MP:0005230,true,fals
 disease,MP:0005231,abnormal brachial lymph node morphology,biolink:PhenotypicFeature,1,MP:0005231,true,false,
 disease,MP:0005232,abnormal mesenteric lymph node morphology,biolink:PhenotypicFeature,1,MP:0005232,true,false,
 disease,MP:0005236,abnormal olfactory nerve morphology,biolink:PhenotypicFeature,1,MP:0005236,true,false,
-disease,MP:0005237,abnormal olfactory tract morphology,biolink:PhenotypicFeature,2,MP:0005237|MA:0000975,true,false,MA
+disease,MP:0005237,abnormal olfactory tract morphology,biolink:PhenotypicFeature,1,MP:0005237,true,false,
 disease,MP:0005238,increased brain size,biolink:PhenotypicFeature,1,MP:0005238,true,false,
 disease,MP:0005239,abnormal Bruch membrane morphology,biolink:PhenotypicFeature,1,MP:0005239,true,false,
 disease,MP:0005240,abnormal amacrine cell morphology,biolink:PhenotypicFeature,1,MP:0005240,true,false,
@@ -4262,7 +4262,7 @@ disease,MP:0005242,cryptophthalmos,biolink:PhenotypicFeature,1,MP:0005242,true,f
 disease,MP:0005243,hemothorax,biolink:PhenotypicFeature,1,MP:0005243,true,false,
 disease,MP:0005244,hemopericardium,biolink:PhenotypicFeature,1,MP:0005244,true,false,
 disease,MP:0005245,hemarthrosis,biolink:PhenotypicFeature,1,MP:0005245,true,false,
-disease,MP:0005247,abnormal extraocular muscle morphology,biolink:PhenotypicFeature,3,MP:0005247|http://teachmeanatomy.info/head/organs/eye/extraocular-muscles/|https://en.wikipedia.org/wiki/Extraocular_muscles,true,false,http|https
+disease,MP:0005247,abnormal extraocular muscle morphology,biolink:PhenotypicFeature,1,MP:0005247,true,false,
 disease,MP:0005248,abnormal Harderian gland morphology,biolink:PhenotypicFeature,1,MP:0005248,true,false,
 disease,MP:0005249,abnormal palatine bone morphology,biolink:PhenotypicFeature,1,MP:0005249,true,false,
 disease,MP:0005250,decreased Sertoli cell number,biolink:PhenotypicFeature,1,MP:0005250,true,false,
@@ -4280,7 +4280,7 @@ disease,MP:0005262,coloboma,biolink:PhenotypicFeature,1,MP:0005262,true,false,
 disease,MP:0005264,glomerulosclerosis,biolink:PhenotypicFeature,1,MP:0005264,true,false,
 disease,MP:0005265,abnormal blood urea nitrogen level,biolink:PhenotypicFeature,1,MP:0005265,true,false,
 disease,MP:0005266,abnormal metabolism,biolink:PhenotypicFeature,1,MP:0005266,true,false,
-disease,MP:0005267,abnormal olfactory cortex morphology,biolink:PhenotypicFeature,2,MP:0005267|MA:0000193,true,false,MA
+disease,MP:0005267,abnormal olfactory cortex morphology,biolink:PhenotypicFeature,1,MP:0005267,true,false,
 disease,MP:0005269,abnormal occipital bone morphology,biolink:PhenotypicFeature,1,MP:0005269,true,false,
 disease,MP:0005270,abnormal zygomatic bone morphology,biolink:PhenotypicFeature,1,MP:0005270,true,false,
 disease,MP:0005271,abnormal lacrimal bone morphology,biolink:PhenotypicFeature,1,MP:0005271,true,false,
@@ -4709,7 +4709,7 @@ disease,MP:0006077,inguinal hernia,biolink:PhenotypicFeature,1,MP:0006077,true,f
 disease,MP:0006078,abnormal nipple morphology,biolink:PhenotypicFeature,1,MP:0006078,true,false,
 disease,MP:0006080,brain ischemia,biolink:PhenotypicFeature,1,MP:0006080,true,false,
 disease,MP:0006082,CNS inflammation,biolink:PhenotypicFeature,1,MP:0006082,true,false,
-disease,MP:0006083,abnormal blood vessel elastic tissue morphology,biolink:PhenotypicFeature,2,MP:0006083|MA:0002856,true,false,MA
+disease,MP:0006083,abnormal blood vessel elastic tissue morphology,biolink:PhenotypicFeature,1,MP:0006083,true,false,
 disease,MP:0006084,abnormal circulating phospholipid level,biolink:PhenotypicFeature,1,MP:0006084,true,false,
 disease,MP:0006085,myocardium necrosis,biolink:PhenotypicFeature,1,MP:0006085,true,false,
 disease,MP:0006086,decreased body mass index,biolink:PhenotypicFeature,1,MP:0006086,true,false,
@@ -4887,7 +4887,7 @@ disease,MP:0006278,aortic aneurysm,biolink:PhenotypicFeature,1,MP:0006278,true,f
 disease,MP:0006279,abnormal limb development,biolink:PhenotypicFeature,1,MP:0006279,true,false,
 disease,MP:0006280,abnormal digit development,biolink:PhenotypicFeature,1,MP:0006280,true,false,
 disease,MP:0006281,abnormal tail development,biolink:PhenotypicFeature,1,MP:0006281,true,false,
-disease,MP:0006282,abnormal spinal cord dorsal horn morphology,biolink:PhenotypicFeature,2,MP:0006282|MA:0001119,true,false,MA
+disease,MP:0006282,abnormal spinal cord dorsal horn morphology,biolink:PhenotypicFeature,1,MP:0006282,true,false,
 disease,MP:0006283,increased medulloblastoma incidence,biolink:PhenotypicFeature,1,MP:0006283,true,false,
 disease,MP:0006284,absent hypaxial muscle,biolink:PhenotypicFeature,1,MP:0006284,true,false,
 disease,MP:0006285,absent inner ear,biolink:PhenotypicFeature,1,MP:0006285,true,false,
@@ -5051,7 +5051,7 @@ disease,MP:0008023,abnormal styloid process morphology,biolink:PhenotypicFeature
 disease,MP:0008024,absent lymph nodes,biolink:PhenotypicFeature,1,MP:0008024,true,false,
 disease,MP:0008025,brain vacuoles,biolink:PhenotypicFeature,1,MP:0008025,true,false,
 disease,MP:0008026,abnormal brain white matter morphology,biolink:PhenotypicFeature,1,MP:0008026,true,false,
-disease,MP:0008027,abnormal spinal cord white matter morphology,biolink:PhenotypicFeature,2,MP:0008027|MA:0000910,true,false,MA
+disease,MP:0008027,abnormal spinal cord white matter morphology,biolink:PhenotypicFeature,1,MP:0008027,true,false,
 disease,MP:0008028,pregnancy-related premature death,biolink:PhenotypicFeature,1,MP:0008028,true,false,
 disease,MP:0008029,abnormal paraxial mesoderm morphology,biolink:PhenotypicFeature,1,MP:0008029,true,false,
 disease,MP:0008030,abnormal Cajal-Retzius cell morphology,biolink:PhenotypicFeature,1,MP:0008030,true,false,
@@ -5081,8 +5081,8 @@ disease,MP:0008053,abnormal NK cell differentiation,biolink:PhenotypicFeature,1,
 disease,MP:0008054,abnormal uterine NK cell morphology,biolink:PhenotypicFeature,1,MP:0008054,true,false,
 disease,MP:0008055,increased urine osmolality,biolink:PhenotypicFeature,1,MP:0008055,true,false,
 disease,MP:0008056,abnormal retina ganglion cell morphology,biolink:PhenotypicFeature,1,MP:0008056,true,false,
-disease,MP:0008057,abnormal DNA replication,biolink:PhenotypicFeature,2,MP:0008057|GO:0006260,true,false,GO
-disease,MP:0008058,abnormal DNA repair,biolink:PhenotypicFeature,2,MP:0008058|GO:0006281,true,false,GO
+disease,MP:0008057,abnormal DNA replication,biolink:PhenotypicFeature,1,MP:0008057,true,false,
+disease,MP:0008058,abnormal DNA repair,biolink:PhenotypicFeature,1,MP:0008058,true,false,
 disease,MP:0008059,abnormal podocyte foot process morphology,biolink:PhenotypicFeature,1,MP:0008059,true,false,
 disease,MP:0008060,abnormal podocyte slit diaphragm morphology,biolink:PhenotypicFeature,1,MP:0008060,true,false,
 disease,MP:0008061,absent podocyte slit diaphragm,biolink:PhenotypicFeature,1,MP:0008061,true,false,
@@ -5314,7 +5314,7 @@ disease,MP:0008292,enlarged adrenocortical cell nuclei,biolink:PhenotypicFeature
 disease,MP:0008293,abnormal adrenal gland zona glomerulosa morphology,biolink:PhenotypicFeature,1,MP:0008293,true,false,
 disease,MP:0008294,abnormal adrenal gland zona fasciculata morphology,biolink:PhenotypicFeature,1,MP:0008294,true,false,
 disease,MP:0008295,abnormal adrenal gland zona reticularis morphology,biolink:PhenotypicFeature,1,MP:0008295,true,false,
-disease,MP:0008296,abnormal adrenal gland x-zone morphology,biolink:PhenotypicFeature,2,MP:0008296|MA:0001887,true,false,MA
+disease,MP:0008296,abnormal adrenal gland x-zone morphology,biolink:PhenotypicFeature,1,MP:0008296,true,false,
 disease,MP:0008297,retention of the adrenal gland x-zone,biolink:PhenotypicFeature,1,MP:0008297,true,false,
 disease,MP:0008298,adrenergic chromaffin cell hyperplasia,biolink:PhenotypicFeature,1,MP:0008298,true,false,
 disease,MP:0008299,adrenal cortical hyperplasia,biolink:PhenotypicFeature,1,MP:0008299,true,false,
@@ -5409,17 +5409,17 @@ disease,MP:0008387,hypochromic anemia,biolink:PhenotypicFeature,1,MP:0008387,tru
 disease,MP:0008388,hypochromic microcytic anemia,biolink:PhenotypicFeature,1,MP:0008388,true,false,
 disease,MP:0008389,hypochromic macrocytic anemia,biolink:PhenotypicFeature,1,MP:0008389,true,false,
 disease,MP:0008390,abnormal primordial germ cell proliferation,biolink:PhenotypicFeature,1,MP:0008390,true,false,
-disease,MP:0008391,abnormal primordial germ cell morphology,biolink:PhenotypicFeature,2,MP:0008391|CL:0000670,true,false,CL
+disease,MP:0008391,abnormal primordial germ cell morphology,biolink:PhenotypicFeature,1,MP:0008391,true,false,
 disease,MP:0008392,decreased primordial germ cell number,biolink:PhenotypicFeature,1,MP:0008392,true,false,
 disease,MP:0008393,absent primordial germ cells,biolink:PhenotypicFeature,1,MP:0008393,true,false,
 disease,MP:0008394,increased primordial germ cell number,biolink:PhenotypicFeature,1,MP:0008394,true,false,
 disease,MP:0008395,abnormal osteoblast differentiation,biolink:PhenotypicFeature,1,MP:0008395,true,false,
 disease,MP:0008396,abnormal osteoclast differentiation,biolink:PhenotypicFeature,1,MP:0008396,true,false,
 disease,MP:0008397,"abnormal CD4-positive, CD25-positive, alpha-beta regulatory T cell morphology",biolink:PhenotypicFeature,1,MP:0008397,true,false,
-disease,MP:0008398,"abnormal CD8-positive, alpha-beta regulatory T cell morphology",biolink:PhenotypicFeature,2,MP:0008398|CL:0000795,true,false,CL
-disease,MP:0008399,abnormal alpha-beta intraepithelial T cell morphology,biolink:PhenotypicFeature,2,MP:0008399|CL:0000797,true,false,CL
-disease,MP:0008400,"abnormal CD4-positive, alpha-beta intraepithelial T cell morphology",biolink:PhenotypicFeature,2,MP:0008400|CL:0000793,true,false,CL
-disease,MP:0008401,"abnormal CD8-positive, alpha-beta intraepithelial T cell morphology",biolink:PhenotypicFeature,2,MP:0008401|CL:0000796,true,false,CL
+disease,MP:0008398,"abnormal CD8-positive, alpha-beta regulatory T cell morphology",biolink:PhenotypicFeature,1,MP:0008398,true,false,
+disease,MP:0008399,abnormal alpha-beta intraepithelial T cell morphology,biolink:PhenotypicFeature,1,MP:0008399,true,false,
+disease,MP:0008400,"abnormal CD4-positive, alpha-beta intraepithelial T cell morphology",biolink:PhenotypicFeature,1,MP:0008400,true,false,
+disease,MP:0008401,"abnormal CD8-positive, alpha-beta intraepithelial T cell morphology",biolink:PhenotypicFeature,1,MP:0008401,true,false,
 disease,MP:0008402,increased cellular sensitivity to alkylating agent induced cell death,biolink:PhenotypicFeature,1,MP:0008402,true,false,
 disease,MP:0008403,decreased cellular sensitivity to alkylating agent induced cell death,biolink:PhenotypicFeature,1,MP:0008403,true,false,
 disease,MP:0008404,increased cellular sensitivity to methylmethanesulfonate induced cell death,biolink:PhenotypicFeature,1,MP:0008404,true,false,
@@ -5521,7 +5521,7 @@ disease,MP:0008499,increased IgG1 level,biolink:PhenotypicFeature,1,MP:0008499,t
 disease,MP:0008500,increased IgG2a level,biolink:PhenotypicFeature,1,MP:0008500,true,false,
 disease,MP:0008501,increased IgG2b level,biolink:PhenotypicFeature,1,MP:0008501,true,false,
 disease,MP:0008502,increased IgG3 level,biolink:PhenotypicFeature,1,MP:0008502,true,false,
-disease,MP:0008503,abnormal spinal cord grey matter morphology,biolink:PhenotypicFeature,2,MP:0008503|MA:0000002,true,false,MA
+disease,MP:0008503,abnormal spinal cord grey matter morphology,biolink:PhenotypicFeature,1,MP:0008503,true,false,
 disease,MP:0008504,abnormal adrenal chromaffin cell morphology,biolink:PhenotypicFeature,1,MP:0008504,true,false,
 disease,MP:0008505,absent adrenal chromaffin cells,biolink:PhenotypicFeature,1,MP:0008505,true,false,
 disease,MP:0008506,abnormal noradrenergic chromaffin cell morphology,biolink:PhenotypicFeature,1,MP:0008506,true,false,
@@ -6395,8 +6395,8 @@ disease,MP:0009376,abnormal manchette morphology,biolink:PhenotypicFeature,1,MP:
 disease,MP:0009377,ectopic manchette,biolink:PhenotypicFeature,1,MP:0009377,true,false,
 disease,MP:0009378,abnormal endoplasmic reticulum morphology,biolink:PhenotypicFeature,1,MP:0009378,true,false,
 disease,MP:0009379,abnormal foot pigmentation,biolink:PhenotypicFeature,1,MP:0009379,true,false,
-disease,MP:0009380,abnormal prostate gland ventral lobe morphology,biolink:PhenotypicFeature,2,MP:0009380|MA:0001740,true,false,MA
-disease,MP:0009381,abnormal prostate gland dorsolateral lobe morphology,biolink:PhenotypicFeature,2,MP:0009381|MA:0001739,true,false,MA
+disease,MP:0009380,abnormal prostate gland ventral lobe morphology,biolink:PhenotypicFeature,1,MP:0009380,true,false,
+disease,MP:0009381,abnormal prostate gland dorsolateral lobe morphology,biolink:PhenotypicFeature,1,MP:0009381,true,false,
 disease,MP:0009382,abnormal cardiac jelly morphology,biolink:PhenotypicFeature,1,MP:0009382,true,false,
 disease,MP:0009384,cardiac valve regurgitation,biolink:PhenotypicFeature,1,MP:0009384,true,false,
 disease,MP:0009385,abnormal dermal pigmentation,biolink:PhenotypicFeature,1,MP:0009385,true,false,
@@ -6464,8 +6464,8 @@ disease,MP:0009446,abnormal platelet dense granule physiology,biolink:Phenotypic
 disease,MP:0009447,abnormal platelet ATP level,biolink:PhenotypicFeature,1,MP:0009447,true,false,
 disease,MP:0009448,decreased platelet ATP level,biolink:PhenotypicFeature,1,MP:0009448,true,false,
 disease,MP:0009449,increased platelet ATP level,biolink:PhenotypicFeature,1,MP:0009449,true,false,
-disease,MP:0009450,abnormal axon fasciculation,biolink:PhenotypicFeature,2,MP:0009450|GO:0007413,true,false,GO
-disease,MP:0009451,abnormal chromosomal synapsis,biolink:PhenotypicFeature,2,MP:0009451|GO:0007129,true,false,GO
+disease,MP:0009450,abnormal axon fasciculation,biolink:PhenotypicFeature,1,MP:0009450,true,false,
+disease,MP:0009451,abnormal chromosomal synapsis,biolink:PhenotypicFeature,1,MP:0009451,true,false,
 disease,MP:0009452,abnormal synaptonemal complex,biolink:PhenotypicFeature,1,MP:0009452,true,false,
 disease,MP:0009453,enhanced contextual conditioning behavior,biolink:PhenotypicFeature,1,MP:0009453,true,false,
 disease,MP:0009454,impaired contextual conditioning behavior,biolink:PhenotypicFeature,1,MP:0009454,true,false,
@@ -6502,7 +6502,7 @@ disease,MP:0009485,distended ileum,biolink:PhenotypicFeature,1,MP:0009485,true,f
 disease,MP:0009486,rectovaginal fusion,biolink:PhenotypicFeature,1,MP:0009486,true,false,
 disease,MP:0009487,rectourethral fusion,biolink:PhenotypicFeature,1,MP:0009487,true,false,
 disease,MP:0009488,abnormal pancreatic islet cell apoptosis,biolink:PhenotypicFeature,1,MP:0009488,true,false,
-disease,MP:0009489,abnormal blood vessel endothelium morphology,biolink:PhenotypicFeature,2,MP:0009489|MA:0000709,true,false,MA
+disease,MP:0009489,abnormal blood vessel endothelium morphology,biolink:PhenotypicFeature,1,MP:0009489,true,false,
 disease,MP:0009490,abnormal heart left atrium auricular region morphology,biolink:PhenotypicFeature,1,MP:0009490,true,false,
 disease,MP:0009491,abnormal heart right atrium auricular region morphology,biolink:PhenotypicFeature,1,MP:0009491,true,false,
 disease,MP:0009492,abnormal gallbladder epithelium morphology,biolink:PhenotypicFeature,1,MP:0009492,true,false,
@@ -6651,7 +6651,7 @@ disease,MP:0009636,small popliteal lymph nodes,biolink:PhenotypicFeature,1,MP:00
 disease,MP:0009637,abnormal pretectal region morphology,biolink:PhenotypicFeature,1,MP:0009637,true,false,
 disease,MP:0009638,abnormal pretectal nuclei morphology,biolink:PhenotypicFeature,1,MP:0009638,true,false,
 disease,MP:0009639,abnormal olivary pretectal nucleus morphology,biolink:PhenotypicFeature,1,MP:0009639,true,false,
-disease,MP:0009640,abnormal renal tubule epithelium morphology,biolink:PhenotypicFeature,2,MP:0009640|MA:0001681,true,false,MA
+disease,MP:0009640,abnormal renal tubule epithelium morphology,biolink:PhenotypicFeature,1,MP:0009640,true,false,
 disease,MP:0009641,kidney degeneration,biolink:PhenotypicFeature,1,MP:0009641,true,false,
 disease,MP:0009642,abnormal blood homeostasis,biolink:PhenotypicFeature,1,MP:0009642,true,false,
 disease,MP:0009643,abnormal urine homeostasis,biolink:PhenotypicFeature,1,MP:0009643,true,false,
@@ -6687,15 +6687,15 @@ disease,MP:0009672,abnormal birth weight,biolink:PhenotypicFeature,1,MP:0009672,
 disease,MP:0009673,increased birth weight,biolink:PhenotypicFeature,1,MP:0009673,true,false,
 disease,MP:0009674,decreased birth weight,biolink:PhenotypicFeature,1,MP:0009674,true,false,
 disease,MP:0009675,orthokeratosis,biolink:PhenotypicFeature,1,MP:0009675,true,false,
-disease,MP:0009676,abnormal hemostasis,biolink:PhenotypicFeature,2,MP:0009676|GO:0007599,true,false,GO
-disease,MP:0009677,abnormal spinal cord dorsal column morphology,biolink:PhenotypicFeature,2,MP:0009677|MA:0002749,true,false,MA
-disease,MP:0009678,abnormal spinal cord lateral column morphology,biolink:PhenotypicFeature,2,MP:0009678|MA:0002750,true,false,MA
-disease,MP:0009679,abnormal spinal cord ventral column morphology,biolink:PhenotypicFeature,2,MP:0009679|MA:0002751,true,false,MA
+disease,MP:0009676,abnormal hemostasis,biolink:PhenotypicFeature,1,MP:0009676,true,false,
+disease,MP:0009677,abnormal spinal cord dorsal column morphology,biolink:PhenotypicFeature,1,MP:0009677,true,false,
+disease,MP:0009678,abnormal spinal cord lateral column morphology,biolink:PhenotypicFeature,1,MP:0009678,true,false,
+disease,MP:0009679,abnormal spinal cord ventral column morphology,biolink:PhenotypicFeature,1,MP:0009679,true,false,
 disease,MP:0009680,abnormal medulla oblongata anterior median fissure morphology,biolink:PhenotypicFeature,1,MP:0009680,true,false,
 disease,MP:0009681,abnormal pyramidal decussation morphology,biolink:PhenotypicFeature,1,MP:0009681,true,false,
 disease,MP:0009682,abnormal anterior corticospinal tract morphology,biolink:PhenotypicFeature,1,MP:0009682,true,false,
 disease,MP:0009683,abnormal lateral corticospinal tract morphology,biolink:PhenotypicFeature,1,MP:0009683,true,false,
-disease,MP:0009684,abnormal spinal cord lateral motor column morphology,biolink:PhenotypicFeature,2,MP:0009684|MA:0001129,true,false,MA
+disease,MP:0009684,abnormal spinal cord lateral motor column morphology,biolink:PhenotypicFeature,1,MP:0009684,true,false,
 disease,MP:0009685,abnormal spinal cord motor column morphology,biolink:PhenotypicFeature,1,MP:0009685,true,false,
 disease,MP:0009686,abnormal spinal cord medial motor column morphology,biolink:PhenotypicFeature,1,MP:0009686,true,false,
 disease,MP:0009687,empty decidua capsularis,biolink:PhenotypicFeature,1,MP:0009687,true,false,
@@ -6743,7 +6743,7 @@ disease,MP:0009729,absent tarsus bones,biolink:PhenotypicFeature,1,MP:0009729,tr
 disease,MP:0009731,abnormal offspring retrieval,biolink:PhenotypicFeature,1,MP:0009731,true,false,
 disease,MP:0009732,ventricular premature beat,biolink:PhenotypicFeature,1,MP:0009732,true,false,
 disease,MP:0009733,absent nipple,biolink:PhenotypicFeature,1,MP:0009733,true,false,
-disease,MP:0009734,abnormal prostate gland duct morphology,biolink:PhenotypicFeature,2,MP:0009734|MA:0002785,true,false,MA
+disease,MP:0009734,abnormal prostate gland duct morphology,biolink:PhenotypicFeature,1,MP:0009734,true,false,
 disease,MP:0009735,abnormal prostate gland development,biolink:PhenotypicFeature,1,MP:0009735,true,false,
 disease,MP:0009736,abnormal prostate gland branching morphogenesis,biolink:PhenotypicFeature,1,MP:0009736,true,false,
 disease,MP:0009737,prostate gland cyst,biolink:PhenotypicFeature,1,MP:0009737,true,false,
@@ -6869,19 +6869,19 @@ disease,MP:0009857,absent kidney cortex,biolink:PhenotypicFeature,1,MP:0009857,t
 disease,MP:0009858,abnormal cellular extravasation,biolink:PhenotypicFeature,1,MP:0009858,true,false,
 disease,MP:0009859,eye opacity,biolink:PhenotypicFeature,1,MP:0009859,true,false,
 disease,MP:0009860,nephrosclerosis,biolink:PhenotypicFeature,1,MP:0009860,true,false,
-disease,MP:0009861,abnormal pyloric sphincter morphology,biolink:PhenotypicFeature,2,MP:0009861|MA:0002952,true,false,MA
-disease,MP:0009862,abnormal aorta elastic tissue morphology,biolink:PhenotypicFeature,2,MP:0009862|MA:0002859,true,false,MA
-disease,MP:0009863,abnormal heart elastic tissue morphology,biolink:PhenotypicFeature,2,MP:0009863|MA:0002858,true,false,MA
-disease,MP:0009864,abnormal aorta endothelium morphology,biolink:PhenotypicFeature,2,MP:0009864|MA:0000701,true,false,MA
-disease,MP:0009865,abnormal aorta smooth muscle morphology,biolink:PhenotypicFeature,2,MP:0009865|MA:0000702,true,false,MA
-disease,MP:0009866,abnormal aorta wall morphology,biolink:PhenotypicFeature,2,MP:0009866|MA:0002901,true,false,MA
+disease,MP:0009861,abnormal pyloric sphincter morphology,biolink:PhenotypicFeature,1,MP:0009861,true,false,
+disease,MP:0009862,abnormal aorta elastic tissue morphology,biolink:PhenotypicFeature,1,MP:0009862,true,false,
+disease,MP:0009863,abnormal heart elastic tissue morphology,biolink:PhenotypicFeature,1,MP:0009863,true,false,
+disease,MP:0009864,abnormal aorta endothelium morphology,biolink:PhenotypicFeature,1,MP:0009864,true,false,
+disease,MP:0009865,abnormal aorta smooth muscle morphology,biolink:PhenotypicFeature,1,MP:0009865,true,false,
+disease,MP:0009866,abnormal aorta wall morphology,biolink:PhenotypicFeature,1,MP:0009866,true,false,
 disease,MP:0009867,abnormal ascending aorta morphology,biolink:PhenotypicFeature,1,MP:0009867,true,false,
-disease,MP:0009868,abnormal descending thoracic aorta morphology,biolink:PhenotypicFeature,2,MP:0009868|MA:0002572,true,false,MA
-disease,MP:0009869,abnormal descending aorta morphology,biolink:PhenotypicFeature,2,MP:0009869|MA:0002571,true,false,MA
-disease,MP:0009870,abnormal abdominal aorta morphology,biolink:PhenotypicFeature,2,MP:0009870|MA:0000474,true,false,MA
-disease,MP:0009871,abnormal aorta tunica adventitia morphology,biolink:PhenotypicFeature,2,MP:0009871|MA:0002902,true,false,MA
-disease,MP:0009872,abnormal aorta tunica intima morphology,biolink:PhenotypicFeature,2,MP:0009872|MA:0002904,true,false,MA
-disease,MP:0009873,abnormal aorta tunica media morphology,biolink:PhenotypicFeature,2,MP:0009873|MA:0002903,true,false,MA
+disease,MP:0009868,abnormal descending thoracic aorta morphology,biolink:PhenotypicFeature,1,MP:0009868,true,false,
+disease,MP:0009869,abnormal descending aorta morphology,biolink:PhenotypicFeature,1,MP:0009869,true,false,
+disease,MP:0009870,abnormal abdominal aorta morphology,biolink:PhenotypicFeature,1,MP:0009870,true,false,
+disease,MP:0009871,abnormal aorta tunica adventitia morphology,biolink:PhenotypicFeature,1,MP:0009871,true,false,
+disease,MP:0009872,abnormal aorta tunica intima morphology,biolink:PhenotypicFeature,1,MP:0009872,true,false,
+disease,MP:0009873,abnormal aorta tunica media morphology,biolink:PhenotypicFeature,1,MP:0009873,true,false,
 disease,MP:0009874,abnormal interdigital cell death,biolink:PhenotypicFeature,1,MP:0009874,true,false,
 disease,MP:0009875,absent interdigital cell death,biolink:PhenotypicFeature,2,MP:0009875|MGI:llw2,true,false,MGI
 disease,MP:0009876,increased cellular sensitivity to thiophosphamide induced DNA damage,biolink:PhenotypicFeature,1,MP:0009876,true,false,
@@ -6946,29 +6946,29 @@ disease,MP:0009934,abnormal hind foot hair pigmentation,biolink:PhenotypicFeatur
 disease,MP:0009935,abnormal Meibomian gland acinus morphology,biolink:PhenotypicFeature,1,MP:0009935,true,false,
 disease,MP:0009936,abnormal dendritic spine morphology,biolink:PhenotypicFeature,1,MP:0009936,true,false,
 disease,MP:0009937,abnormal neuron differentiation,biolink:PhenotypicFeature,1,MP:0009937,true,false,
-disease,MP:0009938,abnormal hippocampus granule cell morphology,biolink:PhenotypicFeature,2,MP:0009938|CL:0001033,true,false,CL
+disease,MP:0009938,abnormal hippocampus granule cell morphology,biolink:PhenotypicFeature,1,MP:0009938,true,false,
 disease,MP:0009939,abnormal hippocampus neuron morphology,biolink:PhenotypicFeature,1,MP:0009939,true,false,
 disease,MP:0009940,abnormal hippocampus pyramidal cell morphology,biolink:PhenotypicFeature,1,MP:0009940,true,false,
 disease,MP:0009941,abnormal olfactory bulb interneuron morphology,biolink:PhenotypicFeature,1,MP:0009941,true,false,
-disease,MP:0009942,abnormal olfactory bulb granule cell morphology,biolink:PhenotypicFeature,3,MP:0009942|CL:0000626|NLX:nifext_123,true,false,CL|NLX
-disease,MP:0009943,abnormal olfactory bulb periglomerular cell morphology,biolink:PhenotypicFeature,2,MP:0009943|NLX:nlx_cell_091202,true,false,NLX
-disease,MP:0009944,abnormal olfactory lobe morphology,biolink:PhenotypicFeature,2,MP:0009944|MA:0002413,true,false,MA
-disease,MP:0009945,abnormal accessory olfactory bulb morphology,biolink:PhenotypicFeature,2,MP:0009945|MA:0000966,true,false,MA
+disease,MP:0009942,abnormal olfactory bulb granule cell morphology,biolink:PhenotypicFeature,1,MP:0009942,true,false,
+disease,MP:0009943,abnormal olfactory bulb periglomerular cell morphology,biolink:PhenotypicFeature,1,MP:0009943,true,false,
+disease,MP:0009944,abnormal olfactory lobe morphology,biolink:PhenotypicFeature,1,MP:0009944,true,false,
+disease,MP:0009945,abnormal accessory olfactory bulb morphology,biolink:PhenotypicFeature,1,MP:0009945,true,false,
 disease,MP:0009946,abnormal olfactory bulb layer morphology,biolink:PhenotypicFeature,1,MP:0009946,true,false,
-disease,MP:0009947,abnormal olfactory bulb external plexiform layer morphology,biolink:PhenotypicFeature,3,MP:0009947|MA:0000969|NLX:nlx_96,true,false,MA|NLX
-disease,MP:0009948,abnormal olfactory bulb glomerular layer morphology,biolink:PhenotypicFeature,2,MP:0009948|MA:0000970,true,false,MA
-disease,MP:0009949,abnormal olfactory bulb granule cell layer morphology,biolink:PhenotypicFeature,2,MP:0009949|MA:0000971,true,false,MA
-disease,MP:0009950,abnormal olfactory bulb internal plexiform layer morphology,biolink:PhenotypicFeature,2,MP:0009950|MA:0000972,true,false,MA
-disease,MP:0009951,abnormal olfactory bulb mitral cell layer morphology,biolink:PhenotypicFeature,2,MP:0009951|MA:0000973,true,false,MA
-disease,MP:0009952,abnormal olfactory bulb subventricular zone morphology,biolink:PhenotypicFeature,2,MP:0009952|MA:0000974,true,false,MA
-disease,MP:0009953,abnormal olfactory tubercle morphology,biolink:PhenotypicFeature,2,MP:0009953|MA:0000976,true,false,MA
+disease,MP:0009947,abnormal olfactory bulb external plexiform layer morphology,biolink:PhenotypicFeature,1,MP:0009947,true,false,
+disease,MP:0009948,abnormal olfactory bulb glomerular layer morphology,biolink:PhenotypicFeature,1,MP:0009948,true,false,
+disease,MP:0009949,abnormal olfactory bulb granule cell layer morphology,biolink:PhenotypicFeature,1,MP:0009949,true,false,
+disease,MP:0009950,abnormal olfactory bulb internal plexiform layer morphology,biolink:PhenotypicFeature,1,MP:0009950,true,false,
+disease,MP:0009951,abnormal olfactory bulb mitral cell layer morphology,biolink:PhenotypicFeature,1,MP:0009951,true,false,
+disease,MP:0009952,abnormal olfactory bulb subventricular zone morphology,biolink:PhenotypicFeature,1,MP:0009952,true,false,
+disease,MP:0009953,abnormal olfactory tubercle morphology,biolink:PhenotypicFeature,1,MP:0009953,true,false,
 disease,MP:0009954,abnormal mitral cell morphology,biolink:PhenotypicFeature,1,MP:0009954,true,false,
-disease,MP:0009955,abnormal olfactory bulb tufted cell morphology,biolink:PhenotypicFeature,2,MP:0009955|NLX:nifext_121,true,false,NLX
-disease,MP:0009956,abnormal cerebellar layer morphology,biolink:PhenotypicFeature,2,MP:0009956|MA:0000201,true,false,MA
+disease,MP:0009955,abnormal olfactory bulb tufted cell morphology,biolink:PhenotypicFeature,1,MP:0009955,true,false,
+disease,MP:0009956,abnormal cerebellar layer morphology,biolink:PhenotypicFeature,1,MP:0009956,true,false,
 disease,MP:0009957,abnormal cerebellum vermis lobule morphology,biolink:PhenotypicFeature,1,MP:0009957,true,false,
 disease,MP:0009958,absent cerebellar granule cells,biolink:PhenotypicFeature,1,MP:0009958,true,false,
-disease,MP:0009959,abnormal cerebellar hemisphere morphology,biolink:PhenotypicFeature,2,MP:0009959|MA:0000200,true,false,MA
-disease,MP:0009960,abnormal cerebellum anterior lobe morphology,biolink:PhenotypicFeature,2,MP:0009960|MA:0000991,true,false,MA
+disease,MP:0009959,abnormal cerebellar hemisphere morphology,biolink:PhenotypicFeature,1,MP:0009959,true,false,
+disease,MP:0009960,abnormal cerebellum anterior lobe morphology,biolink:PhenotypicFeature,1,MP:0009960,true,false,
 disease,MP:0009961,abnormal flocculonodular lobe morphology,biolink:PhenotypicFeature,1,MP:0009961,true,false,
 disease,MP:0009962,abnormal cerebellum posterior lobe morphology,biolink:PhenotypicFeature,1,MP:0009962,true,false,
 disease,MP:0009963,abnormal cerebellum hemisphere lobule morphology,biolink:PhenotypicFeature,1,MP:0009963,true,false,
@@ -6984,14 +6984,14 @@ disease,MP:0009972,absent hippocampus pyramidal cells,biolink:PhenotypicFeature,
 disease,MP:0009973,increased cerebral cortex pyramidal cell number,biolink:PhenotypicFeature,1,MP:0009973,true,false,
 disease,MP:0009974,decreased cerebral cortex pyramidal cell number,biolink:PhenotypicFeature,1,MP:0009974,true,false,
 disease,MP:0009975,absent cerebral cortex pyramidal cells,biolink:PhenotypicFeature,1,MP:0009975,true,false,
-disease,MP:0009976,abnormal cerebellar peduncle morphology,biolink:PhenotypicFeature,2,MP:0009976|MA:0002742,true,false,MA
+disease,MP:0009976,abnormal cerebellar peduncle morphology,biolink:PhenotypicFeature,1,MP:0009976,true,false,
 disease,MP:0009977,abnormal cerebellar granule cell migration,biolink:PhenotypicFeature,1,MP:0009977,true,false,
-disease,MP:0009978,abnormal cerebellum white matter morphology,biolink:PhenotypicFeature,2,MP:0009978|MA:0002430,true,false,MA
-disease,MP:0009979,abnormal cerebellum deep nucleus morphology,biolink:PhenotypicFeature,2,MP:0009979|MA:0000203,true,false,MA
-disease,MP:0009980,abnormal cerebellum dentate nucleus morphology,biolink:PhenotypicFeature,2,MP:0009980|MA:0001008,true,false,MA
+disease,MP:0009978,abnormal cerebellum white matter morphology,biolink:PhenotypicFeature,1,MP:0009978,true,false,
+disease,MP:0009979,abnormal cerebellum deep nucleus morphology,biolink:PhenotypicFeature,1,MP:0009979,true,false,
+disease,MP:0009980,abnormal cerebellum dentate nucleus morphology,biolink:PhenotypicFeature,1,MP:0009980,true,false,
 disease,MP:0009981,abnormal cerebellum emboliform nucleus morphology,biolink:PhenotypicFeature,1,MP:0009981,true,false,
 disease,MP:0009982,abnormal cerebellum globose nucleus morphology,biolink:PhenotypicFeature,1,MP:0009982,true,false,
-disease,MP:0009983,abnormal cerebellum fastigial nucleus morphology,biolink:PhenotypicFeature,2,MP:0009983|MA:0001009,true,false,MA
+disease,MP:0009983,abnormal cerebellum fastigial nucleus morphology,biolink:PhenotypicFeature,1,MP:0009983,true,false,
 disease,MP:0009984,abnormal cerebellum interpositus nucleus morphology,biolink:PhenotypicFeature,1,MP:0009984,true,false,
 disease,MP:0009985,abnormal inferior cerebellar peduncle morphology,biolink:PhenotypicFeature,1,MP:0009985,true,false,
 disease,MP:0009986,abnormal middle cerebellar peduncle morphology,biolink:PhenotypicFeature,1,MP:0009986,true,false,
@@ -7017,8 +7017,8 @@ disease,MP:0010005,abnormal lobule simplex morphology,biolink:PhenotypicFeature,
 disease,MP:0010006,abnormal flocculus morphology,biolink:PhenotypicFeature,1,MP:0010006,true,false,
 disease,MP:0010007,abnormal paraflocculus morphology,biolink:PhenotypicFeature,1,MP:0010007,true,false,
 disease,MP:0010008,abnormal Purkinje cell migration,biolink:PhenotypicFeature,1,MP:0010008,true,false,
-disease,MP:0010009,abnormal piriform cortex morphology,biolink:PhenotypicFeature,2,MP:0010009|MA:0000978,true,false,MA
-disease,MP:0010010,abnormal islands of Calleja morphology,biolink:PhenotypicFeature,2,MP:0010010|MA:0000977,true,false,MA
+disease,MP:0010009,abnormal piriform cortex morphology,biolink:PhenotypicFeature,1,MP:0010009,true,false,
+disease,MP:0010010,abnormal islands of Calleja morphology,biolink:PhenotypicFeature,1,MP:0010010,true,false,
 disease,MP:0010011,ectopic hippocampus pyramidal cells,biolink:PhenotypicFeature,1,MP:0010011,true,false,
 disease,MP:0010012,ectopic cerebral cortex pyramidal cells,biolink:PhenotypicFeature,1,MP:0010012,true,false,
 disease,MP:0010013,cerebral cortex pyramidal cell degeneration,biolink:PhenotypicFeature,1,MP:0010013,true,false,
@@ -7038,7 +7038,7 @@ disease,MP:0010026,decreased liver cholesterol level,biolink:PhenotypicFeature,1
 disease,MP:0010027,increased liver cholesterol level,biolink:PhenotypicFeature,1,MP:0010027,true,false,
 disease,MP:0010028,aciduria,biolink:PhenotypicFeature,1,MP:0010028,true,false,
 disease,MP:0010029,abnormal basicranium morphology,biolink:PhenotypicFeature,1,MP:0010029,true,false,
-disease,MP:0010030,abnormal orbit morphology,biolink:PhenotypicFeature,2,MP:0010030|MA:0002482,true,false,MA
+disease,MP:0010030,abnormal orbit morphology,biolink:PhenotypicFeature,1,MP:0010030,true,false,
 disease,MP:0010031,abnormal cranium size,biolink:PhenotypicFeature,1,MP:0010031,true,false,
 disease,MP:0010033,paraphimosis,biolink:PhenotypicFeature,1,MP:0010033,true,false,
 disease,MP:0010034,abnormal erythrocyte clearance,biolink:PhenotypicFeature,1,MP:0010034,true,false,
@@ -7109,9 +7109,9 @@ disease,MP:0010101,increased sacral vertebrae number,biolink:PhenotypicFeature,1
 disease,MP:0010102,increased caudal vertebrae number,biolink:PhenotypicFeature,1,MP:0010102,true,false,
 disease,MP:0010103,small thoracic cage,biolink:PhenotypicFeature,1,MP:0010103,true,false,
 disease,MP:0010104,enlarged thoracic cage,biolink:PhenotypicFeature,1,MP:0010104,true,false,
-disease,MP:0010105,abnormal sublingual ganglion morphology,biolink:PhenotypicFeature,2,MP:0010105|MA:0002982,true,false,MA
+disease,MP:0010105,abnormal sublingual ganglion morphology,biolink:PhenotypicFeature,1,MP:0010105,true,false,
 disease,MP:0010106,abnormal circulating pyruvate kinase level,biolink:PhenotypicFeature,1,MP:0010106,true,false,
-disease,MP:0010107,abnormal renal reabsorption,biolink:PhenotypicFeature,2,MP:0010107|GO:0070293,true,false,GO
+disease,MP:0010107,abnormal renal reabsorption,biolink:PhenotypicFeature,1,MP:0010107,true,false,
 disease,MP:0010108,abnormal renal water reabsorption,biolink:PhenotypicFeature,1,MP:0010108,true,false,
 disease,MP:0010109,abnormal renal sodium reabsorption,biolink:PhenotypicFeature,1,MP:0010109,true,false,
 disease,MP:0010110,abnormal renal phosphate reabsorption,biolink:PhenotypicFeature,1,MP:0010110,true,false,
@@ -7183,7 +7183,7 @@ disease,MP:0010179,rough coat,biolink:PhenotypicFeature,1,MP:0010179,true,false,
 disease,MP:0010180,increased susceptibility to weight loss,biolink:PhenotypicFeature,1,MP:0010180,true,false,
 disease,MP:0010181,decreased susceptibility to weight loss,biolink:PhenotypicFeature,1,MP:0010181,true,false,
 disease,MP:0010182,decreased susceptibility to weight gain,biolink:PhenotypicFeature,1,MP:0010182,true,false,
-disease,MP:0010183,abnormal CD4-positive helper T cell morphology,biolink:PhenotypicFeature,2,MP:0010183|FMA:70572,true,false,FMA
+disease,MP:0010183,abnormal CD4-positive helper T cell morphology,biolink:PhenotypicFeature,1,MP:0010183,true,false,
 disease,MP:0010184,abnormal T follicular helper cell morphology,biolink:PhenotypicFeature,1,MP:0010184,true,false,
 disease,MP:0010185,abnormal T follicular helper cell number,biolink:PhenotypicFeature,1,MP:0010185,true,false,
 disease,MP:0010186,increased T follicular helper cell number,biolink:PhenotypicFeature,1,MP:0010186,true,false,
@@ -7195,8 +7195,8 @@ disease,MP:0010191,abnormal choroid melanocyte morphology,biolink:PhenotypicFeat
 disease,MP:0010192,abnormal retina melanin granule morphology,biolink:PhenotypicFeature,1,MP:0010192,true,false,
 disease,MP:0010193,abnormal choroid melanin granule morphology,biolink:PhenotypicFeature,1,MP:0010193,true,false,
 disease,MP:0010194,absent lymphatic vessels,biolink:PhenotypicFeature,1,MP:0010194,true,false,
-disease,MP:0010195,abnormal lymphatic vessel endothelium morphology,biolink:PhenotypicFeature,2,MP:0010195|MA:0000750,true,false,MA
-disease,MP:0010196,abnormal lymphatic vessel smooth muscle morphology,biolink:PhenotypicFeature,2,MP:0010196|MA:0000751,true,false,MA
+disease,MP:0010195,abnormal lymphatic vessel endothelium morphology,biolink:PhenotypicFeature,1,MP:0010195,true,false,
+disease,MP:0010196,abnormal lymphatic vessel smooth muscle morphology,biolink:PhenotypicFeature,1,MP:0010196,true,false,
 disease,MP:0010197,abnormal lymphatic vessel endothelial cell morphology,biolink:PhenotypicFeature,1,MP:0010197,true,false,
 disease,MP:0010198,decreased lymphatic vessel endothelial cell number,biolink:PhenotypicFeature,1,MP:0010198,true,false,
 disease,MP:0010199,absent lymphatic vessel endothelial cells,biolink:PhenotypicFeature,1,MP:0010199,true,false,
@@ -7445,10 +7445,10 @@ disease,MP:0010442,partial anomalous pulmonary venous connection,biolink:Phenoty
 disease,MP:0010443,"total anomalous pulmonary venous connection, intracardiac",biolink:PhenotypicFeature,1,MP:0010443,true,false,
 disease,MP:0010444,"total anomalous pulmonary venous connection, infracardiac",biolink:PhenotypicFeature,1,MP:0010444,true,false,
 disease,MP:0010445,"total anomalous pulmonary venous connection, mixed",biolink:PhenotypicFeature,1,MP:0010445,true,false,
-disease,MP:0010446,heart left ventricle hypoplasia,biolink:PhenotypicFeature,2,MP:0010446|Fyler:1811,true,false,Fyler
-disease,MP:0010447,heart left ventricle aneurysm,biolink:PhenotypicFeature,2,MP:0010447|Fyler:2340,true,false,Fyler
-disease,MP:0010448,heart left ventricle outflow tract stenosis,biolink:PhenotypicFeature,2,MP:0010448|Fyler:1470,true,false,Fyler
-disease,MP:0010449,heart right ventricle outflow tract stenosis,biolink:PhenotypicFeature,2,MP:0010449|Fyler:1639,true,false,Fyler
+disease,MP:0010446,heart left ventricle hypoplasia,biolink:PhenotypicFeature,1,MP:0010446,true,false,
+disease,MP:0010447,heart left ventricle aneurysm,biolink:PhenotypicFeature,1,MP:0010447,true,false,
+disease,MP:0010448,heart left ventricle outflow tract stenosis,biolink:PhenotypicFeature,1,MP:0010448,true,false,
+disease,MP:0010449,heart right ventricle outflow tract stenosis,biolink:PhenotypicFeature,1,MP:0010449,true,false,
 disease,MP:0010450,atrial septal aneurysm,biolink:PhenotypicFeature,1,MP:0010450,true,false,
 disease,MP:0010451,kidney microaneurysm,biolink:PhenotypicFeature,1,MP:0010451,true,false,
 disease,MP:0010452,retina microaneurysm,biolink:PhenotypicFeature,1,MP:0010452,true,false,
@@ -7463,24 +7463,24 @@ disease,MP:0010460,pulmonary artery hypoplasia,biolink:PhenotypicFeature,1,MP:00
 disease,MP:0010461,discontinuous pulmonary artery,biolink:PhenotypicFeature,1,MP:0010461,true,false,
 disease,MP:0010462,pulmonary artery aneurysm,biolink:PhenotypicFeature,1,MP:0010462,true,false,
 disease,MP:0010463,aorta stenosis,biolink:PhenotypicFeature,1,MP:0010463,true,false,
-disease,MP:0010464,abnormal aortic arch and aortic arch branch attachment,biolink:PhenotypicFeature,2,MP:0010464|Fyler:2705,true,false,Fyler
+disease,MP:0010464,abnormal aortic arch and aortic arch branch attachment,biolink:PhenotypicFeature,1,MP:0010464,true,false,
 disease,MP:0010465,aberrant origin of the right subclavian artery,biolink:PhenotypicFeature,1,MP:0010465,true,false,
 disease,MP:0010466,vascular ring,biolink:PhenotypicFeature,1,MP:0010466,true,false,
 disease,MP:0010467,pulmonary artery sling,biolink:PhenotypicFeature,1,MP:0010467,true,false,
-disease,MP:0010468,abnormal thoracic aorta morphology,biolink:PhenotypicFeature,2,MP:0010468|MA:0002569,true,false,MA
-disease,MP:0010469,ascending aorta hypoplasia,biolink:PhenotypicFeature,2,MP:0010469|Fyler:2703,true,false,Fyler
+disease,MP:0010468,abnormal thoracic aorta morphology,biolink:PhenotypicFeature,1,MP:0010468,true,false,
+disease,MP:0010469,ascending aorta hypoplasia,biolink:PhenotypicFeature,1,MP:0010469,true,false,
 disease,MP:0010470,dilated ascending aorta,biolink:PhenotypicFeature,1,MP:0010470,true,false,
 disease,MP:0010471,supravalvar aortic stenosis,biolink:PhenotypicFeature,1,MP:0010471,true,false,
 disease,MP:0010472,abnormal ascending aorta and coronary artery attachment,biolink:PhenotypicFeature,1,MP:0010472,true,false,
 disease,MP:0010473,descending aorta dilation,biolink:PhenotypicFeature,1,MP:0010473,true,false,
-disease,MP:0010474,descending aorta hypoplasia,biolink:PhenotypicFeature,2,MP:0010474|Fyler:2753,true,false,Fyler
+disease,MP:0010474,descending aorta hypoplasia,biolink:PhenotypicFeature,1,MP:0010474,true,false,
 disease,MP:0010475,anomalous pulmonary origin of left coronary artery,biolink:PhenotypicFeature,1,MP:0010475,true,false,
 disease,MP:0010476,coronary fistula,biolink:PhenotypicFeature,1,MP:0010476,true,false,
 disease,MP:0010477,coronary artery aneurysm,biolink:PhenotypicFeature,1,MP:0010477,true,false,
 disease,MP:0010478,intracranial aneurysm,biolink:PhenotypicFeature,1,MP:0010478,true,false,
 disease,MP:0010479,brain aneurysm,biolink:PhenotypicFeature,1,MP:0010479,true,false,
 disease,MP:0010480,pulmonary arteriovenous malformation,biolink:PhenotypicFeature,1,MP:0010480,true,false,
-disease,MP:0010481,heart left ventricle to aorta tunnel,biolink:PhenotypicFeature,2,MP:0010481|Fyler:1460,true,false,Fyler
+disease,MP:0010481,heart left ventricle to aorta tunnel,biolink:PhenotypicFeature,1,MP:0010481,true,false,
 disease,MP:0010482,abnormal aortic sinus morphology,biolink:PhenotypicFeature,1,MP:0010482,true,false,
 disease,MP:0010483,aortic sinus aneurysm,biolink:PhenotypicFeature,1,MP:0010483,true,false,
 disease,MP:0010484,bicuspid aortic valve,biolink:PhenotypicFeature,1,MP:0010484,true,false,
@@ -7587,7 +7587,7 @@ disease,MP:0010586,absent conotruncal ridges,biolink:PhenotypicFeature,1,MP:0010
 disease,MP:0010587,conotruncal ridge hypoplasia,biolink:PhenotypicFeature,1,MP:0010587,true,false,
 disease,MP:0010588,conotruncal ridge hyperplasia,biolink:PhenotypicFeature,1,MP:0010588,true,false,
 disease,MP:0010589,common truncal valve,biolink:PhenotypicFeature,1,MP:0010589,true,false,
-disease,MP:0010590,common truncal valve stenosis,biolink:PhenotypicFeature,2,MP:0010590|Fyler:1440,true,false,Fyler
+disease,MP:0010590,common truncal valve stenosis,biolink:PhenotypicFeature,1,MP:0010590,true,false,
 disease,MP:0010591,enlarged aortic valve,biolink:PhenotypicFeature,1,MP:0010591,true,false,
 disease,MP:0010592,abnormal atrioventricular septum morphology,biolink:PhenotypicFeature,1,MP:0010592,true,false,
 disease,MP:0010593,thick aortic valve cusps,biolink:PhenotypicFeature,1,MP:0010593,true,false,
@@ -7604,7 +7604,7 @@ disease,MP:0010603,unicuspid pulmonary valve,biolink:PhenotypicFeature,1,MP:0010
 disease,MP:0010604,absent pulmonary valve cusps,biolink:PhenotypicFeature,1,MP:0010604,true,false,
 disease,MP:0010605,thick pulmonary valve cusps,biolink:PhenotypicFeature,1,MP:0010605,true,false,
 disease,MP:0010606,abnormal pulmonary valve annulus morphology,biolink:PhenotypicFeature,1,MP:0010606,true,false,
-disease,MP:0010607,common atrioventricular valve,biolink:PhenotypicFeature,2,MP:0010607|Fyler:1170,true,false,Fyler
+disease,MP:0010607,common atrioventricular valve,biolink:PhenotypicFeature,1,MP:0010607,true,false,
 disease,MP:0010608,abnormal chordae tendineae morphology,biolink:PhenotypicFeature,1,MP:0010608,true,false,
 disease,MP:0010609,absent chordae tendineae,biolink:PhenotypicFeature,1,MP:0010609,true,false,
 disease,MP:0010610,patent aortic valve,biolink:PhenotypicFeature,1,MP:0010610,true,false,
@@ -7632,7 +7632,7 @@ disease,MP:0010631,increased Q wave amplitude,biolink:PhenotypicFeature,1,MP:001
 disease,MP:0010632,cardiac muscle necrosis,biolink:PhenotypicFeature,1,MP:0010632,true,false,
 disease,MP:0010633,myocardium hypertrophy,biolink:PhenotypicFeature,1,MP:0010633,true,false,
 disease,MP:0010634,increased QRS amplitude,biolink:PhenotypicFeature,1,MP:0010634,true,false,
-disease,MP:0010635,aorta pulmonary collateral arteries,biolink:PhenotypicFeature,2,MP:0010635|Fyler:2770,true,false,Fyler
+disease,MP:0010635,aorta pulmonary collateral arteries,biolink:PhenotypicFeature,1,MP:0010635,true,false,
 disease,MP:0010636,bundle branch block,biolink:PhenotypicFeature,1,MP:0010636,true,false,
 disease,MP:0010637,sinus bradycardia,biolink:PhenotypicFeature,1,MP:0010637,true,false,
 disease,MP:0010638,absent intercalated disks,biolink:PhenotypicFeature,1,MP:0010638,true,false,
@@ -7771,9 +7771,9 @@ disease,MP:0010770,preweaning lethality,biolink:PhenotypicFeature,1,MP:0010770,t
 disease,MP:0010771,integument phenotype,biolink:PhenotypicFeature,1,MP:0010771,true,false,
 disease,MP:0010772,abnormal pollex morphology,biolink:PhenotypicFeature,1,MP:0010772,true,false,
 disease,MP:0010773,supernumerary molars,biolink:PhenotypicFeature,1,MP:0010773,true,false,
-disease,MP:0010774,abnormal lymph node follicular mantle morphology,biolink:PhenotypicFeature,2,MP:0010774|MA:0002990,true,false,MA
-disease,MP:0010775,abnormal scaphoid morphology,biolink:PhenotypicFeature,2,MP:0010775|MA:0002555,true,false,MA
-disease,MP:0010776,abnormal placenta metrial gland morphology,biolink:PhenotypicFeature,2,MP:0010776|MA:0000386,true,false,MA
+disease,MP:0010774,abnormal lymph node follicular mantle morphology,biolink:PhenotypicFeature,1,MP:0010774,true,false,
+disease,MP:0010775,abnormal scaphoid morphology,biolink:PhenotypicFeature,1,MP:0010775,true,false,
+disease,MP:0010776,abnormal placenta metrial gland morphology,biolink:PhenotypicFeature,1,MP:0010776,true,false,
 disease,MP:0010777,absent placenta metrial gland,biolink:PhenotypicFeature,1,MP:0010777,true,false,
 disease,MP:0010778,abnormal stomach fundus morphology,biolink:PhenotypicFeature,1,MP:0010778,true,false,
 disease,MP:0010779,abnormal stomach muscularis externa morphology,biolink:PhenotypicFeature,1,MP:0010779,true,false,
@@ -7789,7 +7789,7 @@ disease,MP:0010788,stomach hypoplasia,biolink:PhenotypicFeature,1,MP:0010788,tru
 disease,MP:0010789,abnormal stomach mesentery morphology,biolink:PhenotypicFeature,1,MP:0010789,true,false,
 disease,MP:0010790,abnormal stomach pyloric antrum morphology,biolink:PhenotypicFeature,1,MP:0010790,true,false,
 disease,MP:0010791,abnormal pyloric canal morphology,biolink:PhenotypicFeature,1,MP:0010791,true,false,
-disease,MP:0010792,abnormal stomach mucosa morphology,biolink:PhenotypicFeature,2,MP:0010792|MA:0002683,true,false,MA
+disease,MP:0010792,abnormal stomach mucosa morphology,biolink:PhenotypicFeature,1,MP:0010792,true,false,
 disease,MP:0010793,abnormal stomach serosa morphology,biolink:PhenotypicFeature,1,MP:0010793,true,false,
 disease,MP:0010794,abnormal stomach submucosa morphology,biolink:PhenotypicFeature,1,MP:0010794,true,false,
 disease,MP:0010795,abnormal cardiac gastric gland morphology,biolink:PhenotypicFeature,1,MP:0010795,true,false,
@@ -7909,7 +7909,7 @@ disease,MP:0010909,pulmonary alveolar hemorrhage,biolink:PhenotypicFeature,1,MP:
 disease,MP:0010910,bronchiolar epithelial hyperplasia,biolink:PhenotypicFeature,1,MP:0010910,true,false,
 disease,MP:0010911,abnormal pulmonary acinus morphology,biolink:PhenotypicFeature,1,MP:0010911,true,false,
 disease,MP:0010912,herniated liver,biolink:PhenotypicFeature,1,MP:0010912,true,false,
-disease,MP:0010913,abnormal neuroendocrine cell morphology,biolink:PhenotypicFeature,3,MP:0010913|CL:0000165|FMA:83810,true,false,CL|FMA
+disease,MP:0010913,abnormal neuroendocrine cell morphology,biolink:PhenotypicFeature,1,MP:0010913,true,false,
 disease,MP:0010914,abnormal solitary pulmonary neuroendocrine cell morphology,biolink:PhenotypicFeature,1,MP:0010914,true,false,
 disease,MP:0010915,increased solitary pulmonary neuroendocrine cell number,biolink:PhenotypicFeature,1,MP:0010915,true,false,
 disease,MP:0010916,decreased solitary pulmonary neuroendocrine cell number,biolink:PhenotypicFeature,1,MP:0010916,true,false,
@@ -7943,19 +7943,19 @@ disease,MP:0010943,abnormal bronchus epithelium morphology,biolink:PhenotypicFea
 disease,MP:0010944,respiratory epithelium hypertrophy,biolink:PhenotypicFeature,1,MP:0010944,true,false,
 disease,MP:0010945,lung epithelium hyperplasia,biolink:PhenotypicFeature,1,MP:0010945,true,false,
 disease,MP:0010946,hyperpnea,biolink:PhenotypicFeature,1,MP:0010946,true,false,
-disease,MP:0010947,abnormal single-strand DNA break repair,biolink:PhenotypicFeature,2,MP:0010947|GO:0000012,true,false,GO
+disease,MP:0010947,abnormal single-strand DNA break repair,biolink:PhenotypicFeature,1,MP:0010947,true,false,
 disease,MP:0010948,abnormal double-strand DNA break repair,biolink:PhenotypicFeature,1,MP:0010948,true,false,
 disease,MP:0010949,decreased club cell number,biolink:PhenotypicFeature,1,MP:0010949,true,false,
 disease,MP:0010950,abnormal lung hysteresivity,biolink:PhenotypicFeature,1,MP:0010950,true,false,
 disease,MP:0010951,abnormal lipid oxidation,biolink:PhenotypicFeature,1,MP:0010951,true,false,
 disease,MP:0010952,abnormal fatty acid beta-oxidation,biolink:PhenotypicFeature,1,MP:0010952,true,false,
 disease,MP:0010953,abnormal fatty acid oxidation,biolink:PhenotypicFeature,1,MP:0010953,true,false,
-disease,MP:0010954,abnormal cellular respiration,biolink:PhenotypicFeature,2,MP:0010954|GO:0045333,true,false,GO
-disease,MP:0010955,abnormal respiratory electron transport chain,biolink:PhenotypicFeature,2,MP:0010955|GO:0022904,true,false,GO
+disease,MP:0010954,abnormal cellular respiration,biolink:PhenotypicFeature,1,MP:0010954,true,false,
+disease,MP:0010955,abnormal respiratory electron transport chain,biolink:PhenotypicFeature,1,MP:0010955,true,false,
 disease,MP:0010956,abnormal mitochondrial ATP synthesis coupled electron transport,biolink:PhenotypicFeature,1,MP:0010956,true,false,
-disease,MP:0010957,abnormal aerobic respiration,biolink:PhenotypicFeature,2,MP:0010957|GO:0009060,true,false,GO
-disease,MP:0010958,abnormal tricarboxylic acid cycle,biolink:PhenotypicFeature,2,MP:0010958|GO:0006099,true,false,GO
-disease,MP:0010959,abnormal oxidative phosphorylation,biolink:PhenotypicFeature,2,MP:0010959|GO:0006119,true,false,GO
+disease,MP:0010957,abnormal aerobic respiration,biolink:PhenotypicFeature,1,MP:0010957,true,false,
+disease,MP:0010958,abnormal tricarboxylic acid cycle,biolink:PhenotypicFeature,1,MP:0010958,true,false,
+disease,MP:0010959,abnormal oxidative phosphorylation,biolink:PhenotypicFeature,1,MP:0010959,true,false,
 disease,MP:0010960,abnormal compact bone mass,biolink:PhenotypicFeature,1,MP:0010960,true,false,
 disease,MP:0010961,increased compact bone mass,biolink:PhenotypicFeature,1,MP:0010961,true,false,
 disease,MP:0010962,decreased compact bone mass,biolink:PhenotypicFeature,1,MP:0010962,true,false,
@@ -7977,7 +7977,7 @@ disease,MP:0010977,fused right lung lobes,biolink:PhenotypicFeature,1,MP:0010977
 disease,MP:0010978,absent ureteric bud,biolink:PhenotypicFeature,1,MP:0010978,true,false,
 disease,MP:0010979,small ureteric bud,biolink:PhenotypicFeature,1,MP:0010979,true,false,
 disease,MP:0010980,ectopic ureteric bud,biolink:PhenotypicFeature,1,MP:0010980,true,false,
-disease,MP:0010981,abnormal branching involved in ureteric bud morphogenesis,biolink:PhenotypicFeature,2,MP:0010981|GO:0001658,true,false,GO
+disease,MP:0010981,abnormal branching involved in ureteric bud morphogenesis,biolink:PhenotypicFeature,1,MP:0010981,true,false,
 disease,MP:0010982,abnormal ureteric bud elongation,biolink:PhenotypicFeature,1,MP:0010982,true,false,
 disease,MP:0010983,abnormal ureteric bud invasion,biolink:PhenotypicFeature,1,MP:0010983,true,false,
 disease,MP:0010984,abnormal metanephric mesenchyme morphology,biolink:PhenotypicFeature,1,MP:0010984,true,false,
@@ -7998,7 +7998,7 @@ disease,MP:0011000,abnormal allogrooming behavior,biolink:PhenotypicFeature,1,MP
 disease,MP:0011001,absence of AMPA-mediated synaptic currents,biolink:PhenotypicFeature,1,MP:0011001,true,false,
 disease,MP:0011002,enhanced AMPA-mediated synaptic currents,biolink:PhenotypicFeature,1,MP:0011002,true,false,
 disease,MP:0011003,reduced AMPA-mediated synaptic currents,biolink:PhenotypicFeature,1,MP:0011003,true,false,
-disease,MP:0011004,abnormal epidermal stem cell morphology,biolink:PhenotypicFeature,3,MP:0011004|CL:1000428|FMA:70541,true,false,CL|FMA
+disease,MP:0011004,abnormal epidermal stem cell morphology,biolink:PhenotypicFeature,1,MP:0011004,true,false,
 disease,MP:0011005,abnormal epidermal stem cell physiology,biolink:PhenotypicFeature,1,MP:0011005,true,false,
 disease,MP:0011006,abnormal epidermal stem cell proliferation,biolink:PhenotypicFeature,1,MP:0011006,true,false,
 disease,MP:0011007,abnormal epidermal stem cell apoptosis,biolink:PhenotypicFeature,1,MP:0011007,true,false,
@@ -8152,7 +8152,7 @@ disease,MP:0011155,absent hippocampus stratum oriens,biolink:PhenotypicFeature,1
 disease,MP:0011156,abnormal hypodermis fat layer morphology,biolink:PhenotypicFeature,1,MP:0011156,true,false,
 disease,MP:0011157,abnormal hypodermis muscle layer morphology,biolink:PhenotypicFeature,1,MP:0011157,true,false,
 disease,MP:0011158,absent hypodermis muscle layer,biolink:PhenotypicFeature,1,MP:0011158,true,false,
-disease,MP:0011159,abnormal epidermal-dermal junction morphology,biolink:PhenotypicFeature,2,MP:0011159|FMA:70963,true,false,FMA
+disease,MP:0011159,abnormal epidermal-dermal junction morphology,biolink:PhenotypicFeature,1,MP:0011159,true,false,
 disease,MP:0011160,dermal-epidermal separation,biolink:PhenotypicFeature,1,MP:0011160,true,false,
 disease,MP:0011161,increased hypodermis neovascularization,biolink:PhenotypicFeature,1,MP:0011161,true,false,
 disease,MP:0011162,abnormal wet-to-dry lung weight ratio,biolink:PhenotypicFeature,1,MP:0011162,true,false,
@@ -8203,8 +8203,8 @@ disease,MP:0011206,absent visceral yolk sac,biolink:PhenotypicFeature,1,MP:00112
 disease,MP:0011207,absent ectoplacental cavity,biolink:PhenotypicFeature,1,MP:0011207,true,false,
 disease,MP:0011208,small proamniotic cavity,biolink:PhenotypicFeature,1,MP:0011208,true,false,
 disease,MP:0011209,absent extraembryonic coelom,biolink:PhenotypicFeature,1,MP:0011209,true,false,
-disease,MP:0011210,abnormal temporomandibular joint morphology,biolink:PhenotypicFeature,3,MP:0011210|FMA:54832|MA:0002899,true,false,FMA|MA
-disease,MP:0011211,abnormal common peroneal nerve morphology,biolink:PhenotypicFeature,3,MP:0011211|FMA:19039|MA:0001169,true,false,FMA|MA
+disease,MP:0011210,abnormal temporomandibular joint morphology,biolink:PhenotypicFeature,1,MP:0011210,true,false,
+disease,MP:0011211,abnormal common peroneal nerve morphology,biolink:PhenotypicFeature,1,MP:0011211,true,false,
 disease,MP:0011212,absent common peroneal nerve,biolink:PhenotypicFeature,1,MP:0011212,true,false,
 disease,MP:0011213,abnormal brain copper level,biolink:PhenotypicFeature,1,MP:0011213,true,false,
 disease,MP:0011214,increased brain copper level,biolink:PhenotypicFeature,1,MP:0011214,true,false,
@@ -8239,14 +8239,14 @@ disease,MP:0011242,increased fetal derived definitive erythrocyte cell number,bi
 disease,MP:0011243,decreased fetal derived definitive erythrocyte cell number,biolink:PhenotypicFeature,1,MP:0011243,true,false,
 disease,MP:0011244,absent fetal derived definitive erythrocytes,biolink:PhenotypicFeature,1,MP:0011244,true,false,
 disease,MP:0011245,abnormal fetal derived definitive erythrocyte physiology,biolink:PhenotypicFeature,1,MP:0011245,true,false,
-disease,MP:0011246,abnormal fetal liver hematopoietic progenitor cell morphology,biolink:PhenotypicFeature,2,MP:0011246|CL:0002353,true,false,CL
+disease,MP:0011246,abnormal fetal liver hematopoietic progenitor cell morphology,biolink:PhenotypicFeature,1,MP:0011246,true,false,
 disease,MP:0011247,abnormal yolk sac hematopoietic stem cell morphology,biolink:PhenotypicFeature,1,MP:0011247,true,false,
 disease,MP:0011248,visceral organ asymmetry,biolink:PhenotypicFeature,1,MP:0011248,true,false,
 disease,MP:0011249,abdominal situs inversus,biolink:PhenotypicFeature,1,MP:0011249,true,false,
 disease,MP:0011250,abdominal situs ambiguus,biolink:PhenotypicFeature,1,MP:0011250,true,false,
-disease,MP:0011251,bronchial situs inversus,biolink:PhenotypicFeature,2,MP:0011251|Fyler:4237,true,false,Fyler
+disease,MP:0011251,bronchial situs inversus,biolink:PhenotypicFeature,1,MP:0011251,true,false,
 disease,MP:0011252,situs inversus totalis,biolink:PhenotypicFeature,1,MP:0011252,true,false,
-disease,MP:0011253,situs inversus with levocardia,biolink:PhenotypicFeature,4,MP:0011253|Fyler:0102|Fyler:102|MPATH:714,true,false,Fyler|MPATH
+disease,MP:0011253,situs inversus with levocardia,biolink:PhenotypicFeature,2,MP:0011253|MPATH:714,true,false,MPATH
 disease,MP:0011254,superior-inferior ventricles,biolink:PhenotypicFeature,1,MP:0011254,true,false,
 disease,MP:0011255,abnormal anterior visceral endoderm cell migration,biolink:PhenotypicFeature,1,MP:0011255,true,false,
 disease,MP:0011256,abnormal neural fold morphology,biolink:PhenotypicFeature,1,MP:0011256,true,false,
@@ -8332,12 +8332,12 @@ disease,MP:0011335,abnormal kidney pelvis smooth muscle morphology,biolink:Pheno
 disease,MP:0011336,abnormal kidney pelvis urothelium morphology,biolink:PhenotypicFeature,1,MP:0011336,true,false,
 disease,MP:0011337,abnormal perihilar interstitium morphology,biolink:PhenotypicFeature,1,MP:0011337,true,false,
 disease,MP:0011338,abnormal mesangial matrix morphology,biolink:PhenotypicFeature,1,MP:0011338,true,false,
-disease,MP:0011339,abnormal glomerular mesangium morphology,biolink:PhenotypicFeature,2,MP:0011339|MA:0002606,true,false,MA
+disease,MP:0011339,abnormal glomerular mesangium morphology,biolink:PhenotypicFeature,1,MP:0011339,true,false,
 disease,MP:0011340,abnormal extraglomerular mesangium morphology,biolink:PhenotypicFeature,1,MP:0011340,true,false,
-disease,MP:0011341,abnormal loop of Henle descending limb morphology,biolink:PhenotypicFeature,2,MP:0011341|MA:0001679,true,false,MA
-disease,MP:0011342,abnormal loop of Henle ascending limb morphology,biolink:PhenotypicFeature,2,MP:0011342|MA:0001676,true,false,MA
-disease,MP:0011343,abnormal loop of Henle ascending limb thin segment morphology,biolink:PhenotypicFeature,2,MP:0011343|MA:0001678,true,false,MA
-disease,MP:0011344,abnormal loop of Henle ascending limb thick segment morphology,biolink:PhenotypicFeature,2,MP:0011344|MA:0001677,true,false,MA
+disease,MP:0011341,abnormal loop of Henle descending limb morphology,biolink:PhenotypicFeature,1,MP:0011341,true,false,
+disease,MP:0011342,abnormal loop of Henle ascending limb morphology,biolink:PhenotypicFeature,1,MP:0011342,true,false,
+disease,MP:0011343,abnormal loop of Henle ascending limb thin segment morphology,biolink:PhenotypicFeature,1,MP:0011343,true,false,
+disease,MP:0011344,abnormal loop of Henle ascending limb thick segment morphology,biolink:PhenotypicFeature,1,MP:0011344,true,false,
 disease,MP:0011345,truncated loop of Henle,biolink:PhenotypicFeature,1,MP:0011345,true,false,
 disease,MP:0011346,renal tubule atrophy,biolink:PhenotypicFeature,1,MP:0011346,true,false,
 disease,MP:0011347,abnormal kidney medullary ray morphology,biolink:PhenotypicFeature,1,MP:0011347,true,false,
@@ -8409,7 +8409,7 @@ disease,MP:0011412,gonadal ridge hypoplasia,biolink:PhenotypicFeature,1,MP:00114
 disease,MP:0011413,colorless urine,biolink:PhenotypicFeature,1,MP:0011413,true,false,
 disease,MP:0011414,erythruria,biolink:PhenotypicFeature,1,MP:0011414,true,false,
 disease,MP:0011415,abnormal aldosterone level,biolink:PhenotypicFeature,1,MP:0011415,true,false,
-disease,MP:0011416,abnormal testis interstitial tissue morphology,biolink:PhenotypicFeature,2,MP:0011416|MA:0002713,true,false,MA
+disease,MP:0011416,abnormal testis interstitial tissue morphology,biolink:PhenotypicFeature,1,MP:0011416,true,false,
 disease,MP:0011417,abnormal renal transport,biolink:PhenotypicFeature,1,MP:0011417,true,false,
 disease,MP:0011418,leukocyturia,biolink:PhenotypicFeature,1,MP:0011418,true,false,
 disease,MP:0011419,erythrocyturia,biolink:PhenotypicFeature,1,MP:0011419,true,false,
@@ -8503,10 +8503,10 @@ disease,MP:0011506,glomerular crescent,biolink:PhenotypicFeature,1,MP:0011506,tr
 disease,MP:0011507,abnormal kidney thrombosis,biolink:PhenotypicFeature,1,MP:0011507,true,false,
 disease,MP:0011508,abnormal glomerular capillary thrombosis,biolink:PhenotypicFeature,1,MP:0011508,true,false,
 disease,MP:0011509,dilated glomerular capillary,biolink:PhenotypicFeature,1,MP:0011509,true,false,
-disease,MP:0011510,"biventricular, discordant atrioventricular connection",biolink:PhenotypicFeature,3,MP:0011510|Fyler:0159|Fyler:159,true,false,Fyler
-disease,MP:0011511,"biventricular, ambiguous atrioventricular connection",biolink:PhenotypicFeature,3,MP:0011511|Fyler:0160|Fyler:160,true,false,Fyler
+disease,MP:0011510,"biventricular, discordant atrioventricular connection",biolink:PhenotypicFeature,1,MP:0011510,true,false,
+disease,MP:0011511,"biventricular, ambiguous atrioventricular connection",biolink:PhenotypicFeature,1,MP:0011511,true,false,
 disease,MP:0011512,mesangial cell interposition,biolink:PhenotypicFeature,1,MP:0011512,true,false,
-disease,MP:0011513,abnormal vertebral artery morphology,biolink:PhenotypicFeature,2,MP:0011513|MA:0002077,true,false,MA
+disease,MP:0011513,abnormal vertebral artery morphology,biolink:PhenotypicFeature,1,MP:0011513,true,false,
 disease,MP:0011514,skin hemorrhage,biolink:PhenotypicFeature,1,MP:0011514,true,false,
 disease,MP:0011515,purpura,biolink:PhenotypicFeature,1,MP:0011515,true,false,
 disease,MP:0011516,aspartylglucosaminuria,biolink:PhenotypicFeature,1,MP:0011516,true,false,
@@ -8521,7 +8521,7 @@ disease,MP:0011524,thick placenta labyrinth,biolink:PhenotypicFeature,1,MP:00115
 disease,MP:0011525,abnormal placenta intervillous maternal lacunae morphology,biolink:PhenotypicFeature,1,MP:0011525,true,false,
 disease,MP:0011526,abnormal placenta fetal blood space morphology,biolink:PhenotypicFeature,1,MP:0011526,true,false,
 disease,MP:0011527,disorganized placental labyrinth,biolink:PhenotypicFeature,1,MP:0011527,true,false,
-disease,MP:0011528,abnormal placental labyrinth villi branching morphogenesis,biolink:PhenotypicFeature,2,MP:0011528|GO:0060670,true,false,GO
+disease,MP:0011528,abnormal placental labyrinth villi branching morphogenesis,biolink:PhenotypicFeature,1,MP:0011528,true,false,
 disease,MP:0011529,increased placenta intervillous maternal lacunae size,biolink:PhenotypicFeature,1,MP:0011529,true,false,
 disease,MP:0011530,fused radius and ulna,biolink:PhenotypicFeature,1,MP:0011530,true,false,
 disease,MP:0011531,abnormal syncytiotrophoblast morphology,biolink:PhenotypicFeature,1,MP:0011531,true,false,
@@ -8564,8 +8564,8 @@ disease,MP:0011567,increased renal glomerulus lobularity,biolink:PhenotypicFeatu
 disease,MP:0011568,decreased foot pigmentation,biolink:PhenotypicFeature,1,MP:0011568,true,false,
 disease,MP:0011569,abnormal azygos vein morphology,biolink:PhenotypicFeature,1,MP:0011569,true,false,
 disease,MP:0011570,esophageal achalasia,biolink:PhenotypicFeature,1,MP:0011570,true,false,
-disease,MP:0011571,enlarged inferior vena cava valve,biolink:PhenotypicFeature,2,MP:0011571|Fyler:2852,true,false,Fyler
-disease,MP:0011572,abnormal aorta bulb morphology,biolink:PhenotypicFeature,2,MP:0011572|FMA:3740,true,false,FMA
+disease,MP:0011571,enlarged inferior vena cava valve,biolink:PhenotypicFeature,1,MP:0011571,true,false,
+disease,MP:0011572,abnormal aorta bulb morphology,biolink:PhenotypicFeature,1,MP:0011572,true,false,
 disease,MP:0011573,abnormal sinotubular junction morphology,biolink:PhenotypicFeature,1,MP:0011573,true,false,
 disease,MP:0011574,dilated sinotubular junction,biolink:PhenotypicFeature,1,MP:0011574,true,false,
 disease,MP:0011575,dilated aorta bulb,biolink:PhenotypicFeature,1,MP:0011575,true,false,
@@ -8659,15 +8659,15 @@ disease,MP:0011662,persistent truncus arteriosus type ii,biolink:PhenotypicFeatu
 disease,MP:0011663,persistent truncus arteriosus type iii,biolink:PhenotypicFeature,1,MP:0011663,true,false,
 disease,MP:0011664,persistent truncus arteriosus type iv,biolink:PhenotypicFeature,1,MP:0011664,true,false,
 disease,MP:0011665,d-loop transposition of the great arteries,biolink:PhenotypicFeature,1,MP:0011665,true,false,
-disease,MP:0011666,"double outlet right ventricle, ventricular defect committed to aorta",biolink:PhenotypicFeature,3,MP:0011666|Fyler:0602|Fyler:602,true,false,Fyler
-disease,MP:0011667,double outlet right ventricle with atrioventricular septal defect,biolink:PhenotypicFeature,2,MP:0011667|Fyler:606,true,false,Fyler
-disease,MP:0011668,"double outlet right ventricle, Taussig bing type",biolink:PhenotypicFeature,3,MP:0011668|Fyler:0610|Fyler:610,true,false,Fyler
+disease,MP:0011666,"double outlet right ventricle, ventricular defect committed to aorta",biolink:PhenotypicFeature,1,MP:0011666,true,false,
+disease,MP:0011667,double outlet right ventricle with atrioventricular septal defect,biolink:PhenotypicFeature,1,MP:0011667,true,false,
+disease,MP:0011668,"double outlet right ventricle, Taussig bing type",biolink:PhenotypicFeature,1,MP:0011668,true,false,
 disease,MP:0011669,"double outlet right ventricle, doubly committed ventricular septal defect",biolink:PhenotypicFeature,1,MP:0011669,true,false,
 disease,MP:0011670,"double outlet right ventricle, noncommitted ventricular septal defect",biolink:PhenotypicFeature,1,MP:0011670,true,false,
-disease,MP:0011671,balanced complete atrioventricular canal,biolink:PhenotypicFeature,2,MP:0011671|Fyler:1124,true,false,Fyler
-disease,MP:0011672,"unbalanced complete atrioventricular canal, left dominant",biolink:PhenotypicFeature,2,MP:0011672|Fyler:1125,true,false,Fyler
-disease,MP:0011673,unbalanced complete common atrioventricular canal,biolink:PhenotypicFeature,2,MP:0011673|Fyler:1132,true,false,Fyler
-disease,MP:0011674,multiple major aortopulmonary collateral arteries,biolink:PhenotypicFeature,2,MP:0011674|Fyler:2271,true,false,Fyler
+disease,MP:0011671,balanced complete atrioventricular canal,biolink:PhenotypicFeature,1,MP:0011671,true,false,
+disease,MP:0011672,"unbalanced complete atrioventricular canal, left dominant",biolink:PhenotypicFeature,1,MP:0011672,true,false,
+disease,MP:0011673,unbalanced complete common atrioventricular canal,biolink:PhenotypicFeature,1,MP:0011673,true,false,
+disease,MP:0011674,multiple major aortopulmonary collateral arteries,biolink:PhenotypicFeature,1,MP:0011674,true,false,
 disease,MP:0011675,"double aortic arch, balanced arches",biolink:PhenotypicFeature,1,MP:0011675,true,false,
 disease,MP:0011676,aortic arch obstruction,biolink:PhenotypicFeature,1,MP:0011676,true,false,
 disease,MP:0011677,abnormal olfactory sensory neuron physiology,biolink:PhenotypicFeature,1,MP:0011677,true,false,
@@ -8695,11 +8695,11 @@ disease,MP:0011698,abnormal brown adipose tissue physiology,biolink:PhenotypicFe
 disease,MP:0011699,abnormal brown adipose tissue thermogenesis,biolink:PhenotypicFeature,1,MP:0011699,true,false,
 disease,MP:0011700,increased cumulus expansion,biolink:PhenotypicFeature,1,MP:0011700,true,false,
 disease,MP:0011701,decreased cumulus expansion,biolink:PhenotypicFeature,1,MP:0011701,true,false,
-disease,MP:0011702,abnormal fibroblast proliferation,biolink:PhenotypicFeature,2,MP:0011702|GO:0048144,true,false,GO
+disease,MP:0011702,abnormal fibroblast proliferation,biolink:PhenotypicFeature,1,MP:0011702,true,false,
 disease,MP:0011703,increased fibroblast proliferation,biolink:PhenotypicFeature,1,MP:0011703,true,false,
 disease,MP:0011704,decreased fibroblast proliferation,biolink:PhenotypicFeature,1,MP:0011704,true,false,
 disease,MP:0011705,absent fibroblast proliferation,biolink:PhenotypicFeature,1,MP:0011705,true,false,
-disease,MP:0011706,abnormal fibroblast migration,biolink:PhenotypicFeature,2,MP:0011706|GO:0010761,true,false,GO
+disease,MP:0011706,abnormal fibroblast migration,biolink:PhenotypicFeature,1,MP:0011706,true,false,
 disease,MP:0011707,impaired fibroblast cell migration,biolink:PhenotypicFeature,1,MP:0011707,true,false,
 disease,MP:0011708,decreased fibroblast cell migration,biolink:PhenotypicFeature,1,MP:0011708,true,false,
 disease,MP:0011709,increased fibroblast cell migration,biolink:PhenotypicFeature,1,MP:0011709,true,false,
@@ -8712,7 +8712,7 @@ disease,MP:0011715,decreased circulating interleukin-8 level,biolink:PhenotypicF
 disease,MP:0011716,abnormal interleukin-8 secretion,biolink:PhenotypicFeature,1,MP:0011716,true,false,
 disease,MP:0011717,increased interleukin-8 secretion,biolink:PhenotypicFeature,1,MP:0011717,true,false,
 disease,MP:0011718,decreased interleukin-8 secretion,biolink:PhenotypicFeature,1,MP:0011718,true,false,
-disease,MP:0011719,abnormal natural killer cell mediated cytotoxicity,biolink:PhenotypicFeature,2,MP:0011719|GO:0042267,true,false,GO
+disease,MP:0011719,abnormal natural killer cell mediated cytotoxicity,biolink:PhenotypicFeature,1,MP:0011719,true,false,
 disease,MP:0011720,abnormal ossification involved in bone remodeling,biolink:PhenotypicFeature,1,MP:0011720,true,false,
 disease,MP:0011721,abnormal bone mineralization involved in bone maturation,biolink:PhenotypicFeature,1,MP:0011721,true,false,
 disease,MP:0011722,abnormal ossification involved in bone maturation,biolink:PhenotypicFeature,1,MP:0011722,true,false,
@@ -8732,7 +8732,7 @@ disease,MP:0011735,increased urine ammonia level,biolink:PhenotypicFeature,1,MP:
 disease,MP:0011736,decreased urine ammonia level,biolink:PhenotypicFeature,1,MP:0011736,true,false,
 disease,MP:0011737,hypodipsia,biolink:PhenotypicFeature,1,MP:0011737,true,false,
 disease,MP:0011738,anasarca,biolink:PhenotypicFeature,1,MP:0011738,true,false,
-disease,MP:0011739,abnormal Boettcher cell morphology,biolink:PhenotypicFeature,2,MP:0011739|CL:0002084,true,false,CL
+disease,MP:0011739,abnormal Boettcher cell morphology,biolink:PhenotypicFeature,1,MP:0011739,true,false,
 disease,MP:0011740,abnormal urine nitrite level,biolink:PhenotypicFeature,1,MP:0011740,true,false,
 disease,MP:0011741,increased urine nitrite level,biolink:PhenotypicFeature,1,MP:0011741,true,false,
 disease,MP:0011742,decreased urine nitrite level,biolink:PhenotypicFeature,1,MP:0011742,true,false,
@@ -9006,7 +9006,7 @@ disease,MP:0012009,early parturition,biolink:PhenotypicFeature,1,MP:0012009,true
 disease,MP:0012010,parturition failure,biolink:PhenotypicFeature,1,MP:0012010,true,false,
 disease,MP:0012011,febrile seizures,biolink:PhenotypicFeature,1,MP:0012011,true,false,
 disease,MP:0012012,abnormal innate olfactory avoidance response,biolink:PhenotypicFeature,1,MP:0012012,true,false,
-disease,MP:0012013,abnormal innate avoidance response,biolink:PhenotypicFeature,2,MP:0012013|NBO:0000635,true,false,NBO
+disease,MP:0012013,abnormal innate avoidance response,biolink:PhenotypicFeature,1,MP:0012013,true,false,
 disease,MP:0012014,abnormal olfactory neuron innervation pattern,biolink:PhenotypicFeature,1,MP:0012014,true,false,
 disease,MP:0012015,abnormal eumelanosome eumelanin content,biolink:PhenotypicFeature,1,MP:0012015,true,false,
 disease,MP:0012016,abnormal hair follicle eumelanosome eumelanin content,biolink:PhenotypicFeature,1,MP:0012016,true,false,
@@ -9072,7 +9072,7 @@ disease,MP:0012075,impaired mammary gland growth during pregnancy,biolink:Phenot
 disease,MP:0012076,abnormal agouti pigmentation,biolink:PhenotypicFeature,1,MP:0012076,true,false,
 disease,MP:0012077,webbed neck,biolink:PhenotypicFeature,1,MP:0012077,true,false,
 disease,MP:0012078,abnormal tail ring morphology,biolink:PhenotypicFeature,1,MP:0012078,true,false,
-disease,MP:0012079,abnormal spinal reflex,biolink:PhenotypicFeature,2,MP:0012079|GO:0050883,true,false,GO
+disease,MP:0012079,abnormal spinal reflex,biolink:PhenotypicFeature,1,MP:0012079,true,false,
 disease,MP:0012080,chylous ascites,biolink:PhenotypicFeature,1,MP:0012080,true,false,
 disease,MP:0012081,absent heart tube,biolink:PhenotypicFeature,1,MP:0012081,true,false,
 disease,MP:0012082,delayed heart development,biolink:PhenotypicFeature,1,MP:0012082,true,false,
@@ -11366,7 +11366,7 @@ disease,MP:0014567,increased circulating pancreatic peptide level,biolink:Phenot
 disease,MP:0014568,decreased circulating pancreatic peptide level,biolink:PhenotypicFeature,1,MP:0014568,true,false,
 disease,MP:0014569,abnormal circulating peptide YY level,biolink:PhenotypicFeature,1,MP:0014569,true,false,
 disease,MP:0014570,increased circulating peptide YY level,biolink:PhenotypicFeature,1,MP:0014570,true,false,
-disease,MP:0014571,decreased circulating peptide YY level,biolink:PhenotypicFeature,2,MP:0014571|PMID:26125465,true,false,PMID
+disease,MP:0014571,decreased circulating peptide YY level,biolink:PhenotypicFeature,1,MP:0014571,true,false,
 disease,MP:0014572,abnormal circulating resistin level,biolink:PhenotypicFeature,1,MP:0014572,true,false,
 disease,MP:0014573,increased circulating resistin level,biolink:PhenotypicFeature,1,MP:0014573,true,false,
 disease,MP:0014574,decreased circulating resistin level,biolink:PhenotypicFeature,1,MP:0014574,true,false,
@@ -13041,7 +13041,7 @@ disease,MP:0030018,increased cardiac muscle cell glucose uptake,biolink:Phenotyp
 disease,MP:0030020,decreased cardiac muscle cell glucose uptake,biolink:PhenotypicFeature,1,MP:0030020,true,false,
 disease,MP:0030021,increased muscle cell glucose uptake,biolink:PhenotypicFeature,1,MP:0030021,true,false,
 disease,MP:0030022,decreased muscle cell glucose uptake,biolink:PhenotypicFeature,1,MP:0030022,true,false,
-disease,MP:0030023,abnormal meiotic telomere clustering,biolink:PhenotypicFeature,3,MP:0030023|GO:0045141|PMID:1754386,true,false,GO|PMID
+disease,MP:0030023,abnormal meiotic telomere clustering,biolink:PhenotypicFeature,1,MP:0030023,true,false,
 disease,MP:0030024,abnormal meiotic attachment of telomere to nuclear envelope,biolink:PhenotypicFeature,1,MP:0030024,true,false,
 disease,MP:0030025,giant platelets,biolink:PhenotypicFeature,1,MP:0030025,true,false,
 disease,MP:0030026,small Meckel's cartilage,biolink:PhenotypicFeature,1,MP:0030026,true,false,
@@ -13166,15 +13166,15 @@ disease,MP:0030144,abnormal facial muscle physiology,biolink:PhenotypicFeature,1
 disease,MP:0030145,abnormal digastric anterior belly morphology,biolink:PhenotypicFeature,1,MP:0030145,true,false,
 disease,MP:0030146,abnormal digastric posterior belly morphology,biolink:PhenotypicFeature,1,MP:0030146,true,false,
 disease,MP:0030147,abnormal digastric muscle physiology,biolink:PhenotypicFeature,1,MP:0030147,true,false,
-disease,MP:0030148,abnormal mylohyoid muscle morphology,biolink:PhenotypicFeature,2,MP:0030148|https://en.wikipedia.org/wiki/Mylohyoid_muscle,true,false,https
-disease,MP:0030149,abnormal stylohyoid muscle morphology,biolink:PhenotypicFeature,2,MP:0030149|https://en.wikipedia.org/wiki/Stylohyoid_muscle,true,false,https
+disease,MP:0030148,abnormal mylohyoid muscle morphology,biolink:PhenotypicFeature,1,MP:0030148,true,false,
+disease,MP:0030149,abnormal stylohyoid muscle morphology,biolink:PhenotypicFeature,1,MP:0030149,true,false,
 disease,MP:0030150,absent stylohyoid muscle,biolink:PhenotypicFeature,1,MP:0030150,true,false,
-disease,MP:0030151,abnormal buccinator muscle morphology,biolink:PhenotypicFeature,2,MP:0030151|https://en.wikipedia.org/wiki/Buccinator_muscle,true,false,https
-disease,MP:0030152,abnormal depressor anguli oris muscle morphology,biolink:PhenotypicFeature,2,MP:0030152|https://en.wikipedia.org/wiki/Depressor_anguli_oris_muscle,true,false,https
+disease,MP:0030151,abnormal buccinator muscle morphology,biolink:PhenotypicFeature,1,MP:0030151,true,false,
+disease,MP:0030152,abnormal depressor anguli oris muscle morphology,biolink:PhenotypicFeature,1,MP:0030152,true,false,
 disease,MP:0030153,dental pulp inflammation,biolink:PhenotypicFeature,1,MP:0030153,true,false,
-disease,MP:0030154,abnormal tympanic cavity morphology,biolink:PhenotypicFeature,3,MP:0030154|https://radiopaedia.org/articles/middle-ear|https://www.kenhub.com/en/start/c/ear,true,false,https
+disease,MP:0030154,abnormal tympanic cavity morphology,biolink:PhenotypicFeature,1,MP:0030154,true,false,
 disease,MP:0030155,absent tympanic cavity,biolink:PhenotypicFeature,1,MP:0030155,true,false,
-disease,MP:0030156,abnormal tympanic cavity muscle morphology,biolink:PhenotypicFeature,3,MP:0030156|http://emedicine.medscape.com/article/874456-overview#a6|http://teachmeanatomy.info/head/organs/ear/middle-ear/,true,false,http
+disease,MP:0030156,abnormal tympanic cavity muscle morphology,biolink:PhenotypicFeature,1,MP:0030156,true,false,
 disease,MP:0030157,abnormal stapedius muscle morphology,biolink:PhenotypicFeature,1,MP:0030157,true,false,
 disease,MP:0030158,absent stapedius muscle,biolink:PhenotypicFeature,1,MP:0030158,true,false,
 disease,MP:0030159,abnormal tensor tympani muscle morphology,biolink:PhenotypicFeature,1,MP:0030159,true,false,

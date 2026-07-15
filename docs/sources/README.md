@@ -11,7 +11,7 @@ One directory per data source, named by the source's CURIE prefix (the same pref
 files when there is enough to say (ingestion, synonyms, known issues, etc.).
 
 When you learn something non-obvious about how a source is ingested, add it here rather than
-letting it accumulate in `CLAUDE.md` — `CLAUDE.md` should point here, not duplicate the detail.
+letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not duplicate the detail.
 
 ## Sources documented so far
 
@@ -19,6 +19,10 @@ letting it accumulate in `CLAUDE.md` — `CLAUDE.md` should point here, not dupl
   `MacromolecularComplex` source: which ComplexTAB columns Babel reads, downloading all species
   files, the manifest-as-download-sentinel pattern, and the per-output cross-species
   deduplication rules (labels, IDs, synonyms, taxa, descriptions).
+- **DRUGBANK** ([DRUGBANK/food-and-extracts/README.md](./DRUGBANK/food-and-extracts/README.md))
+  — retyping DrugBank food-and-extract products (foods, pollens, danders) out of
+  `biolink:ChemicalEntity`: foods become `biolink:Food` via their UNII's NCIt class, non-food
+  allergens become `biolink:ComplexMolecularMixture`.
 - **ENSEMBL** ([ENSEMBL/Download.md](./ENSEMBL/Download.md)) — how Ensembl identifiers are
   downloaded via the BioMart API: per-dataset retry logic, permanently broken datasets and how to
   skip them, the attribute-batching workaround, and how partial progress is preserved across
@@ -39,6 +43,10 @@ letting it accumulate in `CLAUDE.md` — `CLAUDE.md` should point here, not dupl
 - **UMLS** ([UMLS/Leftover.md](./UMLS/Leftover.md)) — the "leftover UMLS" compendium: how
   unclaimed UMLS concepts are swept up and typed, the manual STY→Biolink override tables and the
   drift test that keeps them honest, and the coverage report under `reports/umls/`.
+- **NCBIGene** ([NCBIGene/quoting/README.md](./NCBIGene/quoting/README.md)) — an investigation into
+  how the two free-text synonym columns (`Synonyms`/`otheraliases`, `Other_designations`/
+  `otherdesignations`) in `gene_info.gz` are quoted, prompted by issue #744's `''…''` fragments and
+  the discovery that a trailing `''` is legitimate "double-prime" gene nomenclature.
 
 ## Cross-cutting patterns
 

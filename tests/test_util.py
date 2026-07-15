@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.util import _biolink_ref
+from src.util import _biolink_ref, ensure_parent_dir
 
 
 @pytest.mark.unit
@@ -65,3 +65,28 @@ class TestGetBiolinkModelToolkitNetwork:
         assert toolkit is not None
         element = toolkit.get_element("chemical entity")
         assert element is not None
+
+
+@pytest.mark.unit
+class TestEnsureParentDir:
+    """Unit tests for ensure_parent_dir(), which every output-writing module calls before writing."""
+
+    def test_missing_parents_are_created(self, tmp_path):
+        """A path several directories deep should have all of its parents created."""
+        output_file = tmp_path / "does" / "not" / "exist" / "output.txt"
+        ensure_parent_dir(str(output_file))
+        assert output_file.parent.is_dir()
+
+    def test_existing_parent_is_not_an_error(self, tmp_path):
+        """An already-existing parent directory should be left alone rather than raising."""
+        output_file = tmp_path / "output.txt"
+        ensure_parent_dir(str(output_file))
+        assert tmp_path.is_dir()
+
+    def test_bare_filename_does_not_raise(self, tmp_path, monkeypatch):
+        """A bare filename has no directory component (os.path.dirname returns ''), and
+        os.makedirs('') raises FileNotFoundError even though the path is valid in the CWD --
+        so this should be a no-op rather than an error."""
+        monkeypatch.chdir(tmp_path)
+        ensure_parent_dir("output.txt")
+        assert list(tmp_path.iterdir()) == []

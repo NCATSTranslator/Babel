@@ -1,99 +1,63 @@
 # Developer tools
 
-The `tools/` directory holds developer and operations tooling that supports building and
-debugging Babel but is not part of the compendium pipeline itself. Each is run with `uv run` so it
-picks up the project's pinned environment.
+Tooling that helps you build, debug, and analyse Babel but is not part of the compendium
+pipeline. Each tool lives in `src/tools/<tool>/` and is installed as a console script by
+`uv sync`, so it picks up the project's pinned environment.
 
-## `tools/slurm` — analyze a SLURM run
+## The tools
 
-`tools/slurm` analyzes a (possibly partial) Snakemake-on-SLURM run. It exposes two commands
-installed by `uv sync`, which share a single parsing layer (`tools/slurm/parse.py`):
+| Tool | Command | What it answers |
+|------|---------|-----------------|
+| [Source impact report](SourceImpactReport.md) | `uv run source-impact-report --source <SOURCE>` | "What does adding *this data source* do to the cliques?" |
+| [Clique diff](CliqueDiff.md) | `uv run babel-clique-diff --before <dir> --after <dir> …` | "How did the cliques change between *build A* and *build B*?" |
+| [SLURM errors](Errors.md) | `uv run babel-slurm-errors <version>` | "Which rules failed in this cluster run, and why?" |
+| [SLURM resources](Resources.md) | `uv run babel-slurm-resources <run-dir>` | "How much `mem`/`cpus` should each rule actually request?" |
+| [RDF load memory](Memory.md) | `uv run python src/tools/memory/estimate_rdf_load_memory.py FILE` | "How much RAM will bulk-loading this RDF dump need?" |
 
-```bash
-uv run babel-slurm-errors <version> --markdown     # failure triage during a run
-uv run babel-slurm-resources <run-dir>             # capacity tuning between runs
-```
+The two clique tools are easy to confuse. `source-impact-report` re-gloms the intermediate
+ids/concords **with and without one source**, over the same code. `babel-clique-diff` compares
+**two finished builds** whose inputs are the same but whose code, config, or upstream data
+differ — so it is the only one that can see cliques that *split, shrank, or disappeared*, and
+the only option for a change that isn't "add a source" at all. See
+[CliqueDiff.md](CliqueDiff.md).
 
-- **`errors`** aggregates the logs of failing rules into one copy-pasteable report and prints a
-  completed / failed / still-running job summary. Run it on a loop during an active cluster job to
-  catch failures early and feed them to a coding agent while the rest of the DAG keeps running; it
-  is also invoked automatically by
-  [`slurm/run-babel-on-slurm.sh`](../../slurm/run-babel-on-slurm.sh) when a run exits non-zero. It
-  is the successor to the former `tools/babel-errors.py` script. See
-  [Errors.md](Errors.md).
-- **`resources`** joins each rule's *actual* usage (Snakemake `benchmark:` TSVs) against its
-  *requested* resources and recommends right-sized `mem`/`cpus`, flagging the rules that would need
-  an explicit override before the cluster-wide default can be lowered. See
-  [Resources.md](Resources.md).
+Bash scripts that *operate* a build rather than analyse one — launching snakemake, staging
+inputs, publishing outputs — live in [`scripts/`](../../scripts/README.md) instead.
 
-The two answer different questions — failure triage versus capacity planning — so they are kept as
-separate subcommands, but they live in one package because both parse the same run artifacts.
+## Writing a new tool
 
-## `tools/memory` — estimate RDF load memory
+**A tool is a thin CLI frontend.** It parses arguments, reads and writes files, and prints. That
+is all.
 
-`tools/memory/estimate_rdf_load_memory.py` streams an RDF dump into an in-memory
-`pyoxigraph.Store`, samples RSS, and extrapolates the full-load peak, so you can size a rule's
-`mem=` resource or a test's `min_memory_gb` guard from a machine far smaller than the eventual
-requirement. See [../../tools/memory/README.md](../../tools/memory/README.md).
+**Logic that models Babel data — cliques, compendia, concords, ids — belongs in `src/`,** beside
+the code it models, never in the tool. A tool that reimplements pipeline functionality is a bug:
+the reimplementation drifts from the pipeline it is supposed to describe, and the next tool that
+needs the same logic writes a third copy. `babel-clique-diff` is the worked example. Its diff
+lives in `src/model/compendium_diff.py`; `src/tools/clique_diff/cli.py` is sixty lines of
+argparse and CSV writing over it.
 
-## `tools/clique_diff` — diff the cliques of two builds
+So a new tool is:
 
-`tools/clique_diff` compares the finished JSONL compendia of two Babel builds and reports
-which cliques split, merged, or lost members, and — most usefully — which CURIEs were
-*dropped* from the output entirely.
+1. `src/tools/<tool>/cli.py` — `main(argv=None)`, plus an `__init__.py` explaining what the tool
+   is and where its logic lives.
+2. Whatever library code it needs, added to `src/` (`src/model/` for data structures,
+   `src/reports/` for renderers) and importable by anything else.
+3. An entry in `[project.scripts]` in `pyproject.toml`, pointing at `src.tools.<tool>.cli:main`.
+4. A `unit` test of the CLI in `tests/tools/<tool>/`, and tests of the library code beside it
+   (e.g. `tests/model/`). Everything under `src/` is covered by `--cov=src` automatically.
+5. A page in this directory, and a row in the table above.
 
-```bash
-uv run babel-clique-diff \
-    --before <baseline-compendia-dir> --after <comparison-compendia-dir> \
-    --files Disease.txt PhenotypicFeature.txt \
-    --out-csv diff.csv --out-json summary.json
-```
+### The exceptions
 
-It is distinct from `source-impact-report`: that answers "what does adding *source X* do?"
-by re-glomming intermediate ids/concords with vs. without one source; this answers "how did
-the cliques change between *build A* and *build B*?" given the same inputs but different code,
-config, or upstream data. Because it works on finished compendia rather than glom state, it
-can compare a local build against a published `stars.renci.org` build without re-running
-glom, which makes it a fit for validating any glom-logic change (close-match handling,
-`unique_prefixes`, overuse filtering) or as a release regression check. Commit a worked
-example's output alongside the change that motivated it, under
-`docs/sources/<SOURCE>/<change>/` or `docs/pipelines/<pipeline>/<change>/` (always the small
-`clique-diff.summary.json`, plus the per-row `clique-diff.csv` when reasonably sized).
+`slurm` and `memory` are self-contained: `slurm/parse.py` models Snakemake `benchmark:` TSVs and
+SLURM `.err` files, and the memory estimator models `pyoxigraph`'s RSS. Neither reads Babel data,
+so neither has anything to hoist into `src/` and no pipeline rule will ever import them. Leave
+them alone.
 
-### What is (and isn't) diffed
+They may not stay exceptions forever. Once output reading/writing
+([#759](https://github.com/NCATSTranslator/Babel/issues/759)) and intermediate reading/writing
+([#736](https://github.com/NCATSTranslator/Babel/issues/736)) are centralized, they may have
+something to reuse — though probably not.
 
-Per compendium line, the tool reads exactly two fields: the clique's **leader** (the
-preferred identifier, `identifiers[0].i`) and its **membership** (the full set of
-`identifiers[*].i` CURIEs). A clique is unchanged only if *both* are identical between
-builds; if either changed, every before-clique member is classified into one row per
-`destination_kind`:
-
-- `kept` — same leader, and the member is still under it.
-- `leader_changed` — the whole clique's membership is byte-identical, but its preferred
-  identifier was reassigned to a different member (e.g. a Biolink `id_prefixes` priority
-  change, or `NodeFactory` tie-breaking, picked a new leader).
-- `regrouped` — the member moved to a different clique within the same compared compendium
-  file (a real split/merge).
-- `moved` — the CURIE still exists in the after build, but under a different compendium
-  file (e.g. `Disease.txt` → `PhenotypicFeature.txt`) — it was retyped to a different
-  Biolink type.
-- `dropped` — the CURIE is absent from every compared after compendium.
-
-Everything else in a compendium record — `type` (Biolink type), `identifiers[*].l`
-(labels), `identifiers[*].d`/`t` (descriptions/taxa), `preferred_name`, `ic`, and
-`clique_identifier_count` — is **not compared**. In particular:
-
-- A clique's Biolink `type` is not diffed directly. A type change is only visible
-  indirectly, as `moved`, and only when the before- and after-type's compendium files are
-  both passed to `--files` — a type change between two files neither of which was passed
-  is invisible to this tool.
-- Label, description, and taxon changes on an otherwise-unchanged clique are invisible;
-  such a clique is reported as fully unchanged (no row at all).
-
-Labels and Biolink types are not part of change detection, but they *are* emitted as
-read-only annotation columns to make the CSV legible without a separate lookup:
-`before_leader_label` and `before_leader_type` (the before-build label and type of the
-clique leader), `destination_type` (the Biolink type the grouped members ended up as in the
-after build — the after-clique's type for real destinations, the `|`-joined distinct types
-of the members for `moved`, empty for `dropped`), and `example_members`, which lists up to
-five members as `CURIE "label"` using before-build labels.
+Tools-or-core is a judgement call, made per tool as the need arises, not a law. Once the code
+exists it is easy to move; the rule above is the default, not a gate.

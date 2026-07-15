@@ -64,6 +64,14 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
   **`test_efo.py`** (`pipeline`) — Output format and content checks for the EC, Rhea,
   ChEMBL, CLO, and EFO data handlers.
 
+- **`test_ncbigene.py`** (`pipeline` + `slow`) — Output format checks for the NCBIGene
+  labels/synonyms/taxa/descriptions files, plus a real-data regression check for issue #744:
+  no emitted synonym may *start* with `''` (a leading `''` is always a pipe-split fragment of a
+  `''…''`-quoted alias). A *trailing* `''` is deliberately allowed — it is legitimate
+  "double-prime" gene nomenclature (real symbols such as `U2B''` and `ycf1''` end in `''`). The
+  test also asserts the two exact fragment strings from the issue's example row are absent. Marked
+  `slow` because it downloads the full `gene_info.gz` (>1 GB compressed) and processes every row.
+
 - **`checks/`** (`pipeline`) — Per-compendium regression assertions tied to specific GitHub
   issues, designed for test-driven development. See [Pipeline Checks](#pipeline-checks) below.
 
@@ -180,6 +188,6 @@ Vocabularies not yet covered (candidates):
   (`write_ensembl_gene_ids`). Deferred because the download uses BioMart
   (`pull_ensembl(ensembl_dir, complete_file, ...)`) which is more complex to invoke
   outside Snakemake.
-- **NCBI Gene / HGNC / other single-source** — vocabularies that appear in only one
+- **HGNC / other single-source** — vocabularies that appear in only one
   compendium don't need mutual-exclusivity tests, but could still get non-empty checks
-  in a per-compendium ETL test (see above).
+  in a per-compendium ETL test (see above). NCBI Gene now has one: `test_ncbigene.py`.

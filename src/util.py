@@ -26,6 +26,13 @@ def get_logger(name, loglevel=logging.INFO):
     The LoggingUtil is inconsistently used, and we don't want rolling logs anyway -- just logging everything to STDERR
     so that Snakemake can capture it is fine. However, we do want every logger to be configured identically and without
     duplicated handlers.
+
+    Always call this instead of `logging.getLogger()` directly: it installs the shared stderr
+    handler/formatter below, so a bare `logging.getLogger()` logger can produce unformatted output
+    if it logs before any other module has called this function. A module that sits early in the
+    import graph and must defer this import to avoid triggering config loading at import time
+    (see `src/synonyms/filter.py`) should reassign its module-level `logger` inside the deferred
+    block rather than at module scope.
     """
 
     # Set up the root handler for a logger. Ideally we would call this in one central location, but I'm not sure
@@ -43,6 +50,20 @@ def get_logger(name, loglevel=logging.INFO):
     logger = logging.getLogger(name)
     logger.setLevel(loglevel)
     return logger
+
+
+def ensure_parent_dir(filename):
+    """Create the parent directory of `filename` if it has one.
+
+    Call this before writing any output file whose directory might not exist yet. Prefer it to a
+    bare `os.makedirs(os.path.dirname(filename), exist_ok=True)`: `os.path.dirname` returns '' for
+    a filename with no directory component, and `os.makedirs('')` raises FileNotFoundError even
+    though the path is perfectly valid (it names a file in the current working directory, which
+    already exists).
+    """
+    parent = os.path.dirname(filename)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
 
 
 # loggers = {}
