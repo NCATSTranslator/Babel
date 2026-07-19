@@ -173,6 +173,20 @@ running a job, which would delete anything preloaded into them.
 * **Partial/incomplete state from a prior aborted run.** Add `--rerun-incomplete` to force
   Snakemake to regenerate any outputs it considers possibly-stale, which is the safest
   default after a kill.
+* **A stale target sentinel silently skips a rebuild.** Deleting intermediates to force a
+  rebuild is *not* enough. Each pipeline target's own output is a sentinel file —
+  `babel_outputs/reports/<pipeline>_done` — and Snakemake only asks whether the requested
+  target is up to date. With the sentinel present it prints
+
+  ```text
+  Nothing to be done (all requested files are present and up to date).
+  ```
+
+  and exits 0, having rebuilt nothing, even with `--rerun-incomplete` and even though the
+  concords and compendia you deleted are missing. The exit code and the log both look like
+  success, so a code fix can appear to have "no effect" when it was never actually run. Delete
+  the sentinel along with the files you want regenerated, then confirm with `-n` that the rules
+  you expect are actually scheduled before starting the real run.
 
 ### Oversized UberGraph queries
 

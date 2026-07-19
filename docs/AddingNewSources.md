@@ -78,6 +78,30 @@ In `src/createcompendia/<pipeline>.py`:
 - Include the source's prefix in the `unique_prefixes` argument to `glom()` if its
   identifiers must remain pairwise-unique within a clique.
 
+  **This can silently delete identifiers, so check what it makes compete.** `glom()` keeps
+  whichever CURIE of a restricted prefix it encounters **first** and refuses the rest. A refused
+  CURIE falls back to its own ids-file row and becomes a singleton clique — but a CURIE that
+  appears only in someone else's concord has no row to fall back on and disappears from the
+  compendia entirely. Adding `EMAPA` to `anatomy_unique_prefixes` put 263 EMAPA CURIEs into
+  contests over 122 UBERON cliques, because that many UBERON terms xref more than one EMAPA term.
+  Count the contests your prefix creates before adding it:
+
+  ```bash
+  awk -F'\t' '$3 ~ /^<PREFIX>:/ {c[$1]++} END {for (k in c) if (c[k]>1) n++; print n+0}' \
+      babel_outputs/intermediate/<pipeline>/concords/<OTHER_SOURCE>
+  ```
+
+  Because the winner is "first written", the concord's **row order decides clique membership**.
+  `build_sets()` therefore sorts its output; do not reintroduce unordered iteration there (see
+  `tests/test_ubergraph_build_sets.py`). Before that sort existed the order came from a set of
+  strings under hash randomization, so the same code and data produced different cliques on each
+  run — one build seated the deprecated, label-less
+  [`EMAPA:35459`](http://purl.obolibrary.org/obo/EMAPA_35459) in
+  [`UBERON:0005185`](http://purl.obolibrary.org/obo/UBERON_0005185) "renal medulla collecting
+  duct" and stranded the live
+  [`EMAPA:28061`](http://purl.obolibrary.org/obo/EMAPA_28061) "medullary collecting duct" as a
+  singleton; the next build did the reverse.
+
 ### 4. Wire Snakemake rules
 
 In `src/snakefiles/<pipeline>.snakefile`:
@@ -259,6 +283,22 @@ on a laptop is to assemble the inputs from a published build:
 
 `--compendia-root` is read only for section 2's "final compendium-assigned" counts; with
 no local compendia, leave it pointing at a non-existent path.
+
+**Regenerating a report from scratch** — delete `impact-report.md` and the whole
+`impact-report/` subdirectory first, so every file in the result provably comes from the new
+build rather than a leftover from the old one. Note the intermediate tree may hold files written
+by the *pipeline tests* rather than by a build: the fixtures in `tests/pipeline/conftest.py` write
+to the same stable `intermediate/<pipeline>/{ids,concords}/<SOURCE>` paths the real rules use. A
+report generated over those is badly wrong in a way that looks plausible — for EMAPA it would show
+the source joining nothing, because the load-bearing UBERON concord is simply absent. Check
+timestamps, or rebuild the pipeline, before trusting an intermediate tree you did not just build.
+
+**Comparing a regenerated report against an older one** — expect the totals to move a little and
+diff the detail files rather than trusting the summary counts, which can hide offsetting changes.
+Between two EMAPA reports the summary showed a net −1 clique while 62 identifiers had actually left
+the pure-new set and 61 had entered it. The useful check is whether the churn is *confined to a
+population you can explain*: every one of those 101 identifiers was in the `unique_prefixes`
+contest set above and none outside it, which is what established that nothing else had changed.
 
 **Refreshing a report after a typing or extraction change** — regenerate the affected source
 files before re-running the tool. Calling the writer directly is cheapest:

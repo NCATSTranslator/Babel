@@ -140,6 +140,11 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
   for the three hooks); route a pipeline's `build_compendia` and
   `compute_cliques_for_impact_report` through the same wrapper so the impact report provably matches
   the build.
+- **Concord row order is load-bearing** — `glom()`'s `unique_prefixes` keeps whichever CURIE of a
+  restricted prefix it sees *first*, and a loser with no ids-file row is dropped from the compendia
+  outright. `build_sets()` (`src/ubergraph.py`) sorts its output so this is reproducible; never
+  reintroduce unordered iteration over its results, and think about what contests you create before
+  adding a prefix to a pipeline's `*_unique_prefixes`. See `docs/AddingNewSources.md` step 3.
 - **`SynonymFilter`** (`src/synonyms/filter.py`) checks every label/synonym against
   `input_data/obsolete_synonyms.yaml` before it enters a compendium — see its docstring for the
   `action` field and the `should_suppress()` contract.
