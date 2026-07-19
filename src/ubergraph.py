@@ -668,13 +668,21 @@ def build_sets(
         uberres = uber.get_subclasses_and_exacts(iri)
     elif set_type == "close":
         uberres = uber.get_subclasses_and_close(iri)
-    for k, v in uberres.items():
+    # Sort both levels so the concord is byte-identical across runs. Neither source of ordering
+    # is stable otherwise: the SPARQL queries carry no ORDER BY (so `uberres` insertion order
+    # follows arbitrary endpoint row order) and `v` is a set of strings, whose iteration order
+    # varies per process under hash randomization. That matters because glom's `unique_prefixes`
+    # keeps whichever CURIE of a restricted prefix it sees *first* -- so unsorted output makes
+    # clique membership differ between builds of identical code and data. See
+    # docs/sources/EMAPA/mappings.md for the case that exposed this (122 UBERON terms xref more
+    # than one EMAPA term, and the loser is dropped entirely when it has no ids-file row).
+    for k, v in sorted(uberres.items()):
         if not hop_ontologies:
             subclass_prefix = Text.get_prefix_or_none(k)
             if subclass_prefix != prefix:
                 continue
         v = set([norm(x, other_prefixes) for x in v])
-        for x in v:
+        for x in sorted(v):
             target_prefix = Text.get_prefix_or_none(x)
             if target_prefix in ignore_list:
                 continue
