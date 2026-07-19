@@ -2,6 +2,8 @@ from contextlib import contextmanager
 
 import pytest
 
+from src.ubergraph import HIERARCHY_PART_OF, build_sets
+
 # These tests require a live connection to ubergraph.apps.renci.org.
 # They are only run when pytest is invoked with --network or --all
 # (see tests/conftest.py for CLI options).
@@ -66,6 +68,14 @@ def test_get_subclasses_exact(ubergraph):
     for k, v in subs.items():
         print(k)
         print(v)
+
+
+def test_build_sets_rejects_custom_hierarchy_predicate_for_non_xref():
+    """build_sets() must raise ValueError immediately if a non-default hierarchy_predicate
+    is combined with set_type != 'xref', because those code paths hardcode rdfs:subClassOf."""
+    for set_type in ("exact", "close"):
+        with pytest.raises(ValueError, match="hierarchy_predicate"):
+            build_sets("EMAPA:0", {}, set_type=set_type, hierarchy_predicate=HIERARCHY_PART_OF)
 
 
 def test_get_sub_exact_no_exact(ubergraph):
