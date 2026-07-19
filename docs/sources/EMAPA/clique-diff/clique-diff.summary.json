@@ -1,29 +1,29 @@
 {
   "about": {
-    "after": "anatomy built at add-emapa-actual (EMAPA ids + concord + anatomy_unique_prefixes)",
-    "before": "anatomy built at main (no EMAPA source)",
+    "after": "anatomy at babel-1.18 + #781 (EMAPA ids + concord + anatomy_unique_prefixes)",
+    "before": "anatomy at babel-1.18 + #781 with EMAPA removed from anatomy_prefixes/ids/concords/unique_prefixes",
     "files": [
       "AnatomicalEntity.txt",
       "Cell.txt",
       "CellularComponent.txt",
       "GrossAnatomicalStructure.txt"
     ],
-    "note": "Isolates adding EMAPA as an anatomy source, from identical cached intermediates"
+    "note": "Isolates adding EMAPA as an anatomy source. Both sides built from identical cached intermediates with the deterministic build_sets() ordering fix applied, so the only variable is EMAPA itself."
   },
   "compendia": {
     "AnatomicalEntity.txt": {
       "changed_before_cliques": 31,
       "clique_count": {
-        "after": 147638,
+        "after": 147632,
         "before": 145743,
-        "diff": 1895,
+        "diff": 1889,
         "diff_percent": 1.3
       },
       "cliques_with_dropped_members": 0,
       "dropped_member_count": 0,
       "leader_changed_count": 0,
-      "moved_member_count": 16,
-      "regrouped_member_count": 18
+      "moved_member_count": 17,
+      "regrouped_member_count": 17
     },
     "Cell.txt": {
       "changed_before_cliques": 0,
@@ -56,16 +56,16 @@
     "GrossAnatomicalStructure.txt": {
       "changed_before_cliques": 91,
       "clique_count": {
-        "after": 12702,
+        "after": 12707,
         "before": 10706,
-        "diff": 1996,
-        "diff_percent": 18.64
+        "diff": 2001,
+        "diff_percent": 18.69
       },
-      "cliques_with_dropped_members": 2,
-      "dropped_member_count": 2,
+      "cliques_with_dropped_members": 3,
+      "dropped_member_count": 3,
       "leader_changed_count": 0,
-      "moved_member_count": 55,
-      "regrouped_member_count": 49
+      "moved_member_count": 50,
+      "regrouped_member_count": 53
     }
   }
 }
