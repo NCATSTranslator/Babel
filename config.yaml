@@ -94,10 +94,10 @@ ncbi_files:
   - gene_refseq_uniprotkb_collab.gz
   - mim2gene_medgen
 
-generate_dirs_for_labels_and_synonyms_prefixes: [GO, CL, NCIT, UBERON, CHEBI, HP, MP, MONDO, PR]
+generate_dirs_for_labels_and_synonyms_prefixes: [GO, CL, NCIT, UBERON, EMAPA, CHEBI, HP, MP, MONDO, PR]
 
 # TODO: This doesn't appear to be used anywhere -- but it might be neat to use this list to make sure we got all of them.
-ubergraph_ontologies: [UBERON, CL, GO, NCIT, ECO, ECTO, ENVO, HP, MP, UPHENO, BFO, BSPO, CARO, CHEBI, CP, GOREL, IAO, MAXO, MONDO, PATO, PR, RO, UBPROP]
+ubergraph_ontologies: [UBERON, CL, EMAPA, GO, NCIT, ECO, ECTO, ENVO, HP, MP, UPHENO, BFO, BSPO, CARO, CHEBI, CP, GOREL, IAO, MAXO, MONDO, PATO, PR, RO, UBPROP]
 
 mods: [WormBase, FB, MGI, ZFIN, RGD, SGD]
 
@@ -106,17 +106,17 @@ common:
   synonyms: [ubergraph/synonyms.jsonl]
   descriptions: [ubergraph/descriptions.jsonl]
 
-anatomy_prefixes:  [UBERON, GO, CL, UMLS, MESH, NCIT, SNOMEDCT]
-anatomy_ids:       [UBERON, GO, CL, UMLS, MESH, NCIT]
-anatomy_concords:  [UBERON, GO, CL, UMLS, WIKIDATA]
+anatomy_prefixes:  [UBERON, GO, CL, EMAPA, UMLS, MESH, NCIT, SNOMEDCT]
+anatomy_ids:       [UBERON, GO, CL, EMAPA, UMLS, MESH, NCIT]
+anatomy_concords:  [UBERON, GO, CL, EMAPA, UMLS, WIKIDATA]
 anatomy_outputs:   [AnatomicalEntity.txt, Cell.txt, CellularComponent.txt, GrossAnatomicalStructure.txt]
 # Prefixes whose identifiers are treated as globally unique within a clique: if merging two
 # cliques would produce a clique containing more than one identifier with one of these prefixes,
-# the merge is blocked.  UBERON and GO are authoritative enough that two distinct terms from
-# either ontology should never be collapsed into the same equivalence set.  If you add a new
-# anatomy source whose concord file links to UBERON or GO, verify that it doesn't introduce
-# spurious merges before removing either prefix from this list.
-anatomy_unique_prefixes: [UBERON, GO]
+# the merge is blocked.  UBERON, GO and EMAPA are authoritative enough that two distinct terms
+# from any one of them should never be collapsed into the same equivalence set.  If you add a new
+# anatomy source whose concord file links to one of these prefixes, verify that it doesn't
+# introduce spurious merges before removing that prefix from this list.
+anatomy_unique_prefixes: [UBERON, GO, EMAPA]
 
 gene_labels:   [HGNC, NCBIGene, UMLS, OMIM]
 gene_ids:      [ENSEMBL, HGNC, NCBIGene, UMLS, OMIM, ZFIN, WormBase, FB, MGI, RGD, SGD]
