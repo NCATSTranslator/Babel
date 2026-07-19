@@ -30,6 +30,16 @@ equivalence sets of identifiers across biomedical vocabularies (e.g., recognizin
 and DRUGBANK:DB09145 both refer to water). Output is consumed by Node Normalization and Name
 Resolver services.
 
+## Scratch space: use `data/`
+
+`data/` is a gitignored scratch directory. Put ad hoc files there: one-off downloads, analysis
+notebooks, build comparisons, extracted intermediates, anything you need to write while digging
+into a problem. It is never committed, so nothing you leave behind will pollute the repository.
+
+Prefer `data/` over `/tmp` for anything you might want to look at again later in a session or
+across sessions — a partial download, a clique diff, a snapshot pulled from `stars.renci.org`.
+Never write scratch files into the repository root, `input_data/`, or `docs/`.
+
 ## Key Commands
 
 ### Setup
@@ -106,6 +116,10 @@ session.
 
 The Biolink Model version is set in `config.yaml` — read it via `get_config()["biolink_version"]`
 rather than hard-coding a version — and feeds both `NodeFactory` and `get_biolink_model_toolkit()`.
+That helper takes the version as a **required** argument, and the version may be a git SHA rather
+than an `x.y.z` tag. To check whether a prefix is registered for a Biolink class — the check that
+decides whether `NodeFactory.create_node()` keeps or silently drops a CURIE — use
+`get_biolink_model_toolkit(version).get_element(<class>).id_prefixes`.
 
 Always use the mapped `biolink:`-prefixed class URI (`biolink:ChemicalEntity`), never the raw
 element name (`chemical entity`); `get_element()` (no `.get()` method — see `get_prefixes()`'s
@@ -148,8 +162,6 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
 - **Per-compendium metadata YAMLs** — `babel_outputs/metadata/<Type>.yaml` records provenance with
   per-source `prefix_counts` like `xref(CHEBI, DrugCentral): 4302`. Aggregate (prefix-pair) only —
   confirms a join pathway exists, not whether *specific* CURIEs are joinable.
-- **`data/`** — gitignored local scratch space for ad hoc files (analysis notebooks, one-off
-  downloads, intermediate digging); never committed.
 
 ### Per-source & developer-tool docs
 
@@ -203,11 +215,31 @@ ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandl
 [`src/datahandlers/CLAUDE.md`](src/datahandlers/CLAUDE.md); test conventions are in
 [`tests/CLAUDE.md`](tests/CLAUDE.md). The rules below apply repo-wide.
 
-- **Configuration over constants** — prefer `config.yaml` over module-level Python constants for
-  any value that is a data-level choice (a list of prefixes, a threshold, a flag) rather than pure
-  logic. Constants buried in Python files are invisible to readers of `config.yaml` and are easily
-  missed when related settings change. Module-level constants are fine for values that are pure
-  implementation details with no user-facing meaning.
+- **Configuration over constants** — `config.yaml` records the *big decisions that shape a build*:
+  which ontologies a pipeline includes, which version of a download is used, which prefixes are
+  unique within a clique, thresholds and flags that a maintainer would want to review or change
+  between runs. Those belong in `config.yaml`, where they are visible to anyone reading the build's
+  shape and where related settings sit next to each other.
+
+  A value that is *closely tied to the content of one source* — above all, how that source is
+  cleaned before Babel uses it — can stay as a documented module-level constant in that source's
+  Python file. Lifting it into `config.yaml` would separate it from the parsing code it explains
+  and would imply it is a knob to be tuned, when in practice it only changes if the upstream source
+  changes. The xref ignore-lists and allowlists (`ANATOMY_OBO_IGNORE_LIST` in
+  `src/createcompendia/anatomy.py`, `MP_XREF_ALLOWED_PREFIXES` in
+  `src/createcompendia/diseasephenotype.py`) are the canonical examples: they encode "these xref
+  targets in *this* ontology are junk or out of scope", not "this is how we want the build
+  configured." Keep them beside the code that applies them.
+
+  This split is safe because the provenance is captured elsewhere, twice over. The whole package is
+  git-tagged when a pipeline run takes place, so the exact cleaning rules used for any given build
+  can always be recovered from the tag. And important or variable information can be recorded in a
+  `metadata.yaml`: per-source metadata YAMLs are folded into a pipeline's final `metadata.yaml`,
+  preserving that information alongside the results. If a constant matters enough that someone
+  reading the output would want to know its value, write it into the source's concord metadata
+  rather than moving it into `config.yaml`.
+
+  Pure implementation details with no user-facing meaning stay in Python without further thought.
 
 - **Document every configuration value** — every entry in `config.yaml` and every module-level
   constant that remains in Python must have an inline comment explaining *what it controls* and

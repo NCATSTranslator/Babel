@@ -169,11 +169,15 @@ The Snakemake convenience rule writes the same output to the build-artifact tree
 uv run snakemake -c 1 babel_outputs/reports/source_impact/<SOURCE>.md
 ```
 
-### Running a full local build
+### Running a full local build (do this first)
 
-If the pipeline fits on a single machine, build all its intermediates and compendia locally
-and run the report against the populated `babel_outputs/` tree. Anatomy is comfortably
-tractable; other pipelines may not be.
+Build the pipeline's intermediates and compendia locally, then run the report against the
+populated `babel_outputs/` tree. **This is the normal path.** Most pipelines are small enough to
+build on a laptop — only `gene`, `protein` and `chemical` (and the conflations and full pipeline
+that depend on them) need a workstation or HPC node. `anatomy`, `disease`, `process`, `taxon`,
+`genefamily`, `publications`, `cell_line` and `macromolecular_complex` all build locally; see
+[RunningBabel.md](./RunningBabel.md#per-target-sizing) for sizing. `anatomy` takes roughly 25
+minutes end to end, and much less with a warm `babel_downloads/`.
 
 ```bash
 export UMLS_API_KEY=...   # required for UMLS-backed rules
@@ -182,18 +186,44 @@ uv run snakemake -c all <pipeline>
 uv run source-impact-report --source <SOURCE>
 ```
 
-The Snakemake target name matches the pipeline name (e.g. `anatomy`, `chemical`). Building
-the full target also produces compendia, which populates section 2's "final
-compendium-assigned" counts; without compendia present that section is blank.
+The Snakemake target name usually matches the pipeline name (`anatomy`, `chemical`), but not
+always — the disease/phenotype pipeline lives in `intermediate/diseasephenotype/` and is built by
+the target `disease`. Building the full target also produces compendia, which populates section
+2's "final compendium-assigned" counts; without compendia present that section is blank.
+
+A local build is worth preferring over the synthetic assembly below because it exercises the real
+Snakemake rules — a rule that fails, or an ids file the compendium build silently drops, shows up
+here and cannot show up in a hand-assembled intermediate tree.
 
 Caveats:
 
-- A previous interrupted run can leave the working directory locked. Clear it with
-  `uv run snakemake --unlock` before retrying.
+- A previous interrupted run can leave the working directory locked. Check that no build is
+  still alive (`pgrep -fl snakemake`) and only then clear it with `uv run snakemake --unlock`.
+  Never run two Snakemake invocations against the same working directory — they interleave writes
+  and corrupt the compendia. See RunningBabel.md → "Common build issues".
 - UberGraph-backed rules carry `retries: 3`, but a full UberGraph outage will propagate.
 - The full target rebuilds upstream sources, so numbers reflect data fetched at build time.
+- **The pipeline target does not build the per-prefix label files.** Section 3's sample tables and
+  `new-xrefs.tsv` enrich CURIEs with preferred labels read from
+  `babel_downloads/<PREFIX>/labels` (`--downloads-root`). Those files come from the
+  `get_obo_labels` rule in `datacollect.snakefile`, which a pipeline target such as `anatomy` does
+  not depend on — so a report generated straight after a fresh pipeline build has a blank
+  `object_label` column for the new source, with no warning. Each per-prefix file is exactly the
+  subset of `babel_downloads/common/ubergraph/labels` whose CURIEs carry that prefix (see
+  `obo.pull_uber_labels`), so if you already have the common file you can slice it rather than
+  re-querying all of UberGraph:
 
-### Generating the report without a full pipeline build
+  ```bash
+  mkdir -p babel_downloads/<PREFIX>
+  grep '^<PREFIX>:' babel_downloads/common/ubergraph/labels > babel_downloads/<PREFIX>/labels
+  ```
+
+  Confirm the tool logs `loaded N labels for <PREFIX>` before trusting the report.
+
+### Fallback: generating the report without a full pipeline build
+
+Use this only for the pipelines that genuinely do not fit locally (`gene`, `protein`,
+`chemical`), or when you cannot spare the build time.
 
 Synthetic mode re-runs `glom()` over the intermediate files of **every** source for the
 pipeline, not just the new one, so it needs that whole set on disk. The practical approach
@@ -296,6 +326,12 @@ The three committed files:
   `from_other_source` = another source's concord touches a source CURIE).
 
 `modified-cliques.json` is written locally but gitignored.
+
+**Parse the CSVs with a real CSV reader.** `equivalent_ids` is a comma-joined list inside a single
+quoted field, so `awk -F,` (or `cut -d,`) silently shifts every column after it and will happily
+report, say, a non-zero `needs_biolink_registration` count that is really fragments of a CURIE
+list. Use `csv.DictReader` (or `pandas`) instead. `new-xrefs.tsv` is tab-separated and safe for
+`awk -F'\t'`, but note its columns are `subject`/`object`, not the first two fields.
 
 ##### Survival columns
 
