@@ -407,9 +407,10 @@ rule chemical_compendia:
         metadata_yamls=[config["intermediate_directory"] + "/chemicals/partials/metadata-untyped_compendium.yaml"],
         properties_jsonl_gz=[config["intermediate_directory"] + "/chemicals/properties/get_chebi_concord.jsonl.gz"],
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
-        # Every source that overrides the clique type vote contributes one CURIE->biolink:Type file
-        # here; today that is only the DRUGBANK food-and-extract retype (issue #828).
-        forced_type_files=[config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts"],
+        # Every source contributing food/extract evidence to the clique type vote adds one
+        # CURIE->biolink:Type file here; today that is only the DRUGBANK food-and-extract retype
+        # (issues #828, #935).
+        food_type_files=[config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts"],
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["chemical_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["chemical_outputs"])),
@@ -426,7 +427,7 @@ rule chemical_compendia:
             input.properties_jsonl_gz,
             input.metadata_yamls,
             input.icrdf_filename,
-            input.forced_type_files,
+            input.food_type_files,
         )
 
 

@@ -7,11 +7,10 @@ that already embed their source prefix (e.g. the CHEBI source stores
 """
 
 import gzip
-import logging
 
 import pytest
 
-from src.categories import COMPLEX_MOLECULAR_MIXTURE, FOOD, SMALL_MOLECULE
+from src.categories import CHEMICAL_ENTITY, COMPLEX_MOLECULAR_MIXTURE, FOOD, SMALL_MOLECULE
 from src.createcompendia.chemicals import create_typed_sets, write_unichem_concords
 from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
@@ -87,59 +86,79 @@ def test_write_unichem_concords_raises_when_source_produces_no_entries(tmp_path)
 
 
 # ----
-# FOOD-AND-EXTRACT RETYPE (issue #828)
+# FOOD-AND-EXTRACT TYPE VOTE (issues #828, #935)
 # ----
 
 
 @pytest.mark.unit
-def test_create_typed_sets_forces_food_clique():
-    """A clique containing a DRUGBANK CURIE forced to Food should be typed biolink:Food regardless of
-    its other members' types, and keep every member (incl. RXCUI)."""
+def test_create_typed_sets_types_a_structureless_food_clique_as_food():
+    """A clique whose only evidence is a DRUGBANK food CURIE, and whose members are all
+    biolink:ChemicalEntity, should be typed biolink:Food and keep every member (incl. RXCUI).
+    This is the #828/#918 behaviour that must survive the change to a vote."""
     trout = frozenset({"DRUGBANK:DB10626", "UMLS:C2725895", "RXCUI:882482"})
-    # A member is typed ChemicalEntity, which would otherwise win the vote — the forced type must override.
-    types = {"UMLS:C2725895": "biolink:ChemicalEntity"}
+    # ChemicalEntity is what these cliques vote today; Food outranks it, so the evidence wins.
+    types = {"UMLS:C2725895": CHEMICAL_ENTITY}
 
-    typed = create_typed_sets({trout}, types, forced_types={"DRUGBANK:DB10626": FOOD})
+    typed = create_typed_sets({trout}, types, food_types={"DRUGBANK:DB10626": FOOD})
 
     assert trout in typed[FOOD]
     assert all(trout not in sets for t, sets in typed.items() if t != FOOD)
 
 
 @pytest.mark.unit
-def test_create_typed_sets_forces_non_food_allergen_to_mixture():
-    """A DRUGBANK allergen extract forced to ComplexMolecularMixture lands there, not in Food."""
+def test_create_typed_sets_does_not_demote_a_small_molecule_to_food():
+    """Food evidence must NOT retype a clique that votes for a structure-bearing type (issue #935).
+
+    This is the D-glucose clique from the babel-1.18 build, which the old clique-level override
+    typed biolink:Food. DRUGBANK:DB09341 "Dextrose, unspecified form" is a structureless DrugBank
+    food row that gloms into the real D-glucose clique via its UMLS/RxNorm concords; the clique
+    votes SmallMolecule, which outranks Food, so it must stay a SmallMolecule -- with the food
+    CURIE still a member.
+    """
+    glucose = frozenset(
+        {
+            "CHEBI:17234",
+            "PUBCHEM.COMPOUND:107526",
+            "DRUGBANK:DB01914",
+            "DRUGBANK:DB09341",
+            "MESH:D005947",
+            "UMLS:C0017725",
+            "RXCUI:4850",
+        }
+    )
+    types = {
+        "PUBCHEM.COMPOUND:107526": SMALL_MOLECULE,
+        "CHEBI:17234": CHEMICAL_ENTITY,
+        "DRUGBANK:DB01914": CHEMICAL_ENTITY,
+        "MESH:D005947": CHEMICAL_ENTITY,
+    }
+
+    typed = create_typed_sets({glucose}, types, food_types={"DRUGBANK:DB09341": FOOD})
+
+    assert glucose in typed[SMALL_MOLECULE]
+    assert glucose not in typed[FOOD]
+
+
+@pytest.mark.unit
+def test_create_typed_sets_types_an_extract_as_a_complex_molecular_mixture():
+    """A DRUGBANK allergen extract with ComplexMolecularMixture evidence lands there, not in Food:
+    ComplexMolecularMixture outranks Food, so an extract stays an extract."""
     pollen = frozenset({"DRUGBANK:DB10351", "UMLS:C2684343"})
 
-    typed = create_typed_sets({pollen}, {}, forced_types={"DRUGBANK:DB10351": COMPLEX_MOLECULAR_MIXTURE})
+    typed = create_typed_sets({pollen}, {}, food_types={"DRUGBANK:DB10351": COMPLEX_MOLECULAR_MIXTURE})
 
     assert pollen in typed[COMPLEX_MOLECULAR_MIXTURE]
     assert pollen not in typed[FOOD]
 
 
 @pytest.mark.unit
-def test_create_typed_sets_leaves_non_forced_clique_untouched():
-    """A clique with no forced-type CURIE should keep its normal type (no forced_types leakage)."""
+def test_create_typed_sets_leaves_a_clique_without_food_evidence_untouched():
+    """A clique holding none of the food/extract CURIEs should keep its normal voted type
+    (no food_types leakage across cliques)."""
     normal = frozenset({"CHEBI:15377", "PUBCHEM.COMPOUND:962"})
     types = {"CHEBI:15377": SMALL_MOLECULE, "PUBCHEM.COMPOUND:962": SMALL_MOLECULE}
 
-    typed = create_typed_sets({normal}, types, forced_types={"DRUGBANK:DB10626": FOOD})
+    typed = create_typed_sets({normal}, types, food_types={"DRUGBANK:DB10626": FOOD})
 
     assert normal in typed[SMALL_MOLECULE]
     assert normal not in typed[FOOD]
-
-
-@pytest.mark.unit
-def test_create_typed_sets_warns_when_a_forced_clique_holds_a_defined_chemical(caplog):
-    """The clique-level force is coarse: it would retype a whole clique to Food even if a member is a
-    SmallMolecule. No DrugBank food/extract clique contains one today, so this must not fire in a real
-    build — but if a new concord ever bridges one to a defined chemical, the build must say so out loud
-    rather than quietly turning a small molecule into a food (issue #935 replaces the force with a vote)."""
-    honey = frozenset({"DRUGBANK:DB11226", "CHEBI:15377"})
-    types = {"CHEBI:15377": SMALL_MOLECULE}
-
-    with caplog.at_level(logging.WARNING):
-        typed = create_typed_sets({honey}, types, forced_types={"DRUGBANK:DB11226": FOOD})
-
-    assert honey in typed[FOOD]  # current (coarse) behaviour: the forced type still wins
-    assert "CHEBI:15377" in caplog.text
-    assert SMALL_MOLECULE in caplog.text
