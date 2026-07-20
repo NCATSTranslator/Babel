@@ -10,11 +10,20 @@ import gzip
 
 import pytest
 
-from src.categories import CHEMICAL_ENTITY, COMPLEX_MOLECULAR_MIXTURE, FOOD, SMALL_MOLECULE
+from src import categories
+from src.categories import (
+    CHEMICAL_ENTITY,
+    COMPLEX_MOLECULAR_MIXTURE,
+    FOOD,
+    MOLECULAR_MIXTURE,
+    POLYPEPTIDE,
+    SMALL_MOLECULE,
+)
 from src.createcompendia.chemicals import create_typed_sets, write_unichem_concords
 from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.prefixes import CHEBI
+from src.util import get_config
 
 # Derive CHEBI's UniChem source ID from the authoritative dict rather than hardcoding it.
 CHEBI_SRC_ID = next(k for k, v in unichem_data_sources.items() if v == CHEBI)
@@ -149,6 +158,32 @@ def test_create_typed_sets_types_an_extract_as_a_complex_molecular_mixture():
 
     assert pollen in typed[COMPLEX_MOLECULAR_MIXTURE]
     assert pollen not in typed[FOOD]
+
+
+@pytest.mark.unit
+def test_chemical_type_order_is_well_formed():
+    """Every entry in config.yaml's chemical_type_order should be a known src/categories.py constant,
+    with no duplicates. create_typed_sets() calls order.index() on every type it sees, so a typo or a
+    missing entry is a ValueError tens of millions of cliques into a build."""
+    order = get_config()["chemical_type_order"]
+    known = {value for name, value in vars(categories).items() if name.isupper() and isinstance(value, str)}
+
+    assert len(order) == len(set(order)), "chemical_type_order contains duplicates"
+    assert set(order) <= known, f"unknown Biolink types in chemical_type_order: {set(order) - known}"
+
+
+@pytest.mark.unit
+def test_chemical_type_order_ranks_food_below_structure_bearing_types():
+    """Food must rank below every structure-bearing type and above ChemicalEntity (issue #935).
+
+    This is the property that keeps food evidence from demoting a defined molecule, and it is what
+    the babel-1.18 D-glucose bug came down to. ComplexMolecularMixture must also outrank Food so an
+    extract stays an extract when NCIt also calls the concept a food."""
+    order = get_config()["chemical_type_order"]
+
+    for structural in (SMALL_MOLECULE, MOLECULAR_MIXTURE, POLYPEPTIDE, COMPLEX_MOLECULAR_MIXTURE):
+        assert order.index(structural) < order.index(FOOD), f"{structural} must outrank {FOOD}"
+    assert order.index(FOOD) < order.index(CHEMICAL_ENTITY), f"{FOOD} must outrank {CHEMICAL_ENTITY}"
 
 
 @pytest.mark.unit

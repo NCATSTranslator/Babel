@@ -163,6 +163,45 @@ chemical_ids:       [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUN
 # output. (The processed extracts among them go to the already-present ComplexMolecularMixture.)
 chemical_outputs:   [MolecularMixture.txt, SmallMolecule.txt, Polypeptide.txt, ComplexMolecularMixture.txt, ChemicalEntity.txt, ChemicalMixture.txt, Drug.txt, Food.txt]
 
+# Chemical clique type precedence, most preferred first. create_typed_sets() (src/createcompendia/
+# chemicals.py) uses it in two places: as the tie-break when a clique's members vote for several types
+# with equal counts, and to rank food/extract evidence against the clique's voted type (issues #828,
+# #935). It does NOT decide the ordinary case -- the vote is majority-count first, and a clique whose
+# PubChem members agree short-circuits the vote entirely -- so this list only settles ties.
+#
+# The ranking reflects Babel's chemical-tree design: identify as many biolink:SmallMolecule cliques as
+# possible, and treat the vaguer types as fallbacks for cliques we could not resolve any better.
+#
+# biolink:Drug sits BELOW biolink:ChemicalEntity on purpose. It comes almost entirely from RxNorm drug
+# formulations -- a level of detail neither Babel nor Translator needs -- so we keep it only for cliques
+# where we could not merge the formulation with its active small molecule or mixture. Ranking it above
+# ChemicalEntity puts RXCUI CURIEs ahead of chemical entities like UNII:PVI5M0M1GW "Filgrastim".
+#
+# biolink:Food sits below every structure-bearing type, so food evidence never demotes a defined
+# molecule (NCIt classifies water, riboflavin, isoleucine and beta carotene as foods), and above the
+# uninformative ChemicalEntity it exists to improve on. Note that it therefore outranks Drug: if a
+# clique carrying food evidence ever votes Drug it would be typed Food, which is wrong. That does not
+# happen today (scripts/replay_type_vote.py checks for it), but it is the pairing to revisit first if
+# Food starts appearing where a drug formulation belongs.
+#
+# The types marked "not produced today" never appear in intermediate/chemicals/partials/types, but a
+# type missing from this list raises ValueError mid-build, so they are ranked here in advance. Counts
+# are identifiers, not cliques, from the babel-1.18 build.
+chemical_type_order:
+  - biolink:SmallMolecule                 # 115,171,614 identifiers
+  - biolink:Polypeptide                   # 15,282
+  - biolink:NucleicAcidEntity             # not produced today
+  - biolink:MolecularEntity               # not produced today
+  - biolink:ComplexMolecularMixture       # 244
+  - biolink:ChemicalMixture               # 675
+  - biolink:MolecularMixture              # 11,924,009
+  - biolink:ProcessedMaterial             # not produced today; the eventual home for extracts (#929)
+  - biolink:FoodAdditive                  # not produced today
+  - biolink:Food                          # from food evidence only, never from partials/types
+  - biolink:EnvironmentalFoodContaminant  # not produced today
+  - biolink:ChemicalEntity                # 862,541
+  - biolink:Drug                          # 361,554 -- see above for why this is last
+
 # A bunch of food related-configuration items.
 #
 # NCIt subtrees whose members are foods: NCIT:C1949 "Food" plus NCIT:C73913 "Seed" (nuts/grains like

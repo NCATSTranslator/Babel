@@ -9,22 +9,6 @@ import jsonlines
 from humanfriendly import format_timespan
 
 from src.babel_utils import get_numerical_curie_suffix, glom
-
-# from src.categories import (
-#     SMALL_MOLECULE,
-#     POLYPEPTIDE,
-#     CHEMICAL_ENTITY,
-#     ENVIRONMENTAL_FOOD_CONTAMINANT,
-#     FOOD,
-#     FOOD_ADDITIVE,
-#     DRUG,
-#     PROCESSED_MATERIAL,
-#     MOLECULAR_MIXTURE,
-#     CHEMICAL_MIXTURE,
-#     COMPLEX_MOLECULAR_MIXTURE,
-#     MOLECULAR_ENTITY,
-#     NUCLEIC_ACID_ENTITY,
-# )
 from src.categories import CHEMICAL_ENTITY
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.node import InformationContentFactory
@@ -33,27 +17,9 @@ from src.util import LoggingUtil, Text, get_biolink_model_toolkit, get_config, g
 
 logger = LoggingUtil.init_logging(__name__, level=logging.INFO)
 
-# When ordering cliques within a conflation, we do it in a particular order based on what types are
-# the most common for a particular application.
-#
-# I've also listed the number of entities as of 2024mar24 to give an idea of how common these are.
-# PREFERRED_CONFLATION_TYPE_ORDER = {
-#     SMALL_MOLECULE: 1,                      # 107,459,280 cliques
-#     POLYPEPTIDE: 2,                         # 622 cliques
-#     NUCLEIC_ACID_ENTITY: 3,                 # N/A
-#     MOLECULAR_ENTITY: 4,                    # N/A
-#     COMPLEX_MOLECULAR_MIXTURE: 5,           # 177 cliques
-#     CHEMICAL_MIXTURE: 6,                    # 498 cliques
-#     MOLECULAR_MIXTURE: 7,                   # 10,371,847 cliques
-#     PROCESSED_MATERIAL: 8,                  # N/A
-#     FOOD_ADDITIVE: 10,                      # N/A
-#     FOOD: 11,                               # N/A
-#     ENVIRONMENTAL_FOOD_CONTAMINANT: 12,     # N/A
-#     CHEMICAL_ENTITY: 13,                    # 7,398,124 cliques
-#     DRUG: 14,                               # 145,677 cliques
-#         # We have to put biolink:Drug at the bottom because otherwise we get RXCUI CURIEs appearing higher in the
-#         # conflation order than chemical entities (e.g. UNII:PVI5M0M1GW "Filgrastim") which is not ideal.
-# }
+# This module used to carry a commented-out PREFERRED_CONFLATION_TYPE_ORDER for ordering cliques
+# within a conflation. That ranking now lives -- and is used -- as config.yaml: chemical_type_order,
+# where create_typed_sets() reads it to break ties in the chemical clique type vote (issue #935).
 
 # RXNORM has lots of relationships.
 # RXNREL contains both directions of each relationship, just to make the file bigger

@@ -97,11 +97,16 @@ def main():
     for biolink_type, n in counts.most_common():
         print(f"  {biolink_type}: {n}")
 
-    moved = {biolink_type: sets for biolink_type, sets in typed.items() if biolink_type != FOOD}
-    print(f"\n{sum(len(s) for s in moved.values())} clique(s) leave Food:")
-    for biolink_type, sets in sorted(moved.items()):
-        for clique in sets:
-            print(f"  {biolink_type}: {sorted(clique)}")
+    # Sorted so that re-running this script on the same build produces a byte-identical report.
+    moved = sorted(
+        (biolink_type, sorted(clique))
+        for biolink_type, sets in typed.items()
+        if biolink_type != FOOD
+        for clique in sets
+    )
+    print(f"\n{len(moved)} clique(s) leave Food:")
+    for biolink_type, clique in moved:
+        print(f"  {biolink_type}: {clique}")
 
     # Check 2: the reported bug. D-glucose must come back a SmallMolecule, still holding its food CURIE.
     glucose = next(c for c in cliques if GLUCOSE_SMALL_MOLECULE_CURIE in c)

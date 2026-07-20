@@ -21,7 +21,6 @@ from src.categories import (
     CHEMICAL_MIXTURE,
     COMPLEX_MOLECULAR_MIXTURE,
     DRUG,
-    FOOD,
     MOLECULAR_MIXTURE,
     POLYPEPTIDE,
     SMALL_MOLECULE,
@@ -47,7 +46,7 @@ from src.prefixes import (
 from src.properties import HAS_ALTERNATIVE_ID, Property
 from src.sdfreader import read_sdf
 from src.ubergraph import UberGraph
-from src.util import Text, ensure_parent_dir, get_logger, get_memory_usage_summary
+from src.util import Text, ensure_parent_dir, get_config, get_logger, get_memory_usage_summary
 
 logger = get_logger(__name__)
 
@@ -991,22 +990,9 @@ def create_typed_sets(eqsets, types, food_types=None):
         "Dextrose, unspecified form" is a food, but the clique it gloms into votes SmallMolecule, and
         SmallMolecule is preferred.
     """
-    # Most preferred first. FOOD sits *below* the structure-bearing types (SmallMolecule,
-    # MolecularMixture, Drug, Polypeptide) so that food evidence never demotes a defined molecule
-    # (water, riboflavin, isoleucine and beta carotene are all NCIt foods), and *above* the
-    # uninformative ChemicalMixture / ChemicalEntity, which is what it exists to improve on.
-    # ComplexMolecularMixture outranks FOOD so that an extract stays an extract even when NCIt also
-    # calls it a food (issue #935).
-    order = [
-        DRUG,
-        MOLECULAR_MIXTURE,
-        SMALL_MOLECULE,
-        POLYPEPTIDE,
-        COMPLEX_MOLECULAR_MIXTURE,
-        FOOD,
-        CHEMICAL_MIXTURE,
-        CHEMICAL_ENTITY,
-    ]
+    # Most preferred first; see config.yaml: chemical_type_order for the ranking's rationale. Read once
+    # here rather than per clique -- this function iterates tens of millions of them.
+    order = get_config()["chemical_type_order"]
     food_types = food_types or {}
     # This loop runs once per chemical clique (tens of millions), and food_types holds a few hundred
     # CURIEs, so test membership with a set intersection rather than a per-member dict lookup.
