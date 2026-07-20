@@ -179,10 +179,11 @@ chemical_outputs:   [MolecularMixture.txt, SmallMolecule.txt, Polypeptide.txt, C
 #
 # biolink:Food sits below every structure-bearing type, so food evidence never demotes a defined
 # molecule (NCIt classifies water, riboflavin, isoleucine and beta carotene as foods), and above the
-# uninformative ChemicalEntity it exists to improve on. Note that it therefore outranks Drug: if a
-# clique carrying food evidence ever votes Drug it would be typed Food, which is wrong. That does not
-# happen today (scripts/replay_type_vote.py checks for it), but it is the pairing to revisit first if
-# Food starts appearing where a drug formulation belongs.
+# uninformative ChemicalEntity it exists to improve on. Note that it therefore outranks Drug: a clique
+# carrying food evidence that votes Drug is typed Food, which is mildly wrong -- a drug formulation is
+# not a food. That is an ACCEPTED tradeoff, not an oversight: it does not occur in any build so far
+# (scripts/replay_type_vote.py reports the count), and both a reorder and a special case cost more
+# than the error does. Revisit only if Food starts appearing where a drug formulation belongs.
 #
 # The types marked "not produced today" never appear in intermediate/chemicals/partials/types, but a
 # type missing from this list raises ValueError mid-build, so they are ranked here in advance. Counts

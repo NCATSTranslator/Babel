@@ -14,6 +14,7 @@ from src import categories
 from src.categories import (
     CHEMICAL_ENTITY,
     COMPLEX_MOLECULAR_MIXTURE,
+    DRUG,
     FOOD,
     MOLECULAR_MIXTURE,
     POLYPEPTIDE,
@@ -158,6 +159,26 @@ def test_create_typed_sets_types_an_extract_as_a_complex_molecular_mixture():
 
     assert pollen in typed[COMPLEX_MOLECULAR_MIXTURE]
     assert pollen not in typed[FOOD]
+
+
+@pytest.mark.unit
+def test_food_evidence_beats_a_drug_vote():
+    """PINS KNOWN-IMPERFECT BEHAVIOUR (issue #935). chemical_type_order ranks biolink:Drug last, below
+    biolink:Food, so a clique that votes Drug and also carries food evidence is typed Food. That is
+    mildly wrong -- a drug formulation is not a food -- but it is accepted rather than special-cased:
+    it does not occur in any build so far (no clique carrying food evidence holds a Drug member), and
+    Drug is last for good reason (see config.yaml: chemical_type_order).
+
+    INVERT this assertion, don't delete it, if the tradeoff is ever revisited -- i.e. if Food starts
+    appearing where a drug formulation belongs and Drug is promoted above Food.
+    """
+    formulation = frozenset({"DRUGBANK:DB09341", "RXCUI:4850"})
+    types = {"RXCUI:4850": DRUG}
+
+    typed = create_typed_sets({formulation}, types, food_types={"DRUGBANK:DB09341": FOOD})
+
+    assert formulation in typed[FOOD]
+    assert formulation not in typed[DRUG]
 
 
 @pytest.mark.unit

@@ -247,10 +247,14 @@ specific stay `Food`, including the ones that *should*: inulin
 ([`CHEBI:15443`](http://purl.obolibrary.org/obo/CHEBI_15443) "inulin") is both a food and a GFR
 diagnostic, and gelatin votes only `ChemicalMixture`, which `Food` outranks.
 
-The script also checks the one pairing the ordering leaves exposed: `chemical_type_order` ranks
-`biolink:Drug` *last*, below `Food`, so a clique that voted `Drug` and carried food evidence would
-be typed `Food`. No clique does today (none of the 674 typed members is a `Drug`), but that is the
-rank to revisit first if a drug formulation ever shows up in `Food.txt`.
+The script also reports the one pairing the ordering leaves exposed: `chemical_type_order` ranks
+`biolink:Drug` *last*, below `Food`, so a clique that votes `Drug` and carries food evidence is
+typed `Food`. That is mildly wrong — a drug formulation is not a food — but it is an **accepted
+tradeoff**, not an oversight. No clique does it today (none of the 674 typed members is a `Drug`),
+`Drug` is last for its own good reasons, and both a reorder and a special case would cost more than
+the error does. `test_food_evidence_beats_a_drug_vote` pins the behaviour so it cannot change
+silently; invert that assertion rather than deleting it if `Food` ever starts appearing where a drug
+formulation belongs.
 
 ## Known limitations
 
