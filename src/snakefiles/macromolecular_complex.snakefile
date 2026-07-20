@@ -13,7 +13,7 @@ rule macromolecular_complex_compendia:
         metadata_yaml=config["download_directory"] + "/ComplexPortal/metadata.yaml",
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
-        config["output_directory"] + "/compendia/MacromolecularComplex.txt",
+        temp(config["output_directory"] + "/compendia/MacromolecularComplex.txt"),
         temp(config["output_directory"] + "/synonyms/MacromolecularComplex.txt"),
         output_metadata_yaml=config["output_directory"] + "/metadata/MacromolecularComplex.txt.yaml",
     benchmark:

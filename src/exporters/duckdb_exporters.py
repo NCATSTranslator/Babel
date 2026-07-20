@@ -61,6 +61,10 @@ def log_duckdb_settings_on_error(db, operation):
 
 
 # Some configuration items for controlling loads.
+# NOTE: the over-threshold path below chunks the compendium with a plain open(), so it requires an
+# uncompressed input. That holds because export_compendia_to_duckdb runs strictly before
+# rule compress_compendium (see the root Snakefile), so it always sees the .txt. If that ordering
+# ever changes, this chunker needs a gzip-aware reader — DuckDB's read_json() already handles .gz.
 MIN_FILE_SIZE_FOR_SPLITTING_LOAD = 44_000_000_000
 CHUNK_LINE_SIZE = 60_000_000
 

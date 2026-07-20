@@ -76,7 +76,7 @@ rule taxon_compendia:
         idlists=expand("{dd}/taxon/ids/{ap}", dd=config["intermediate_directory"], ap=config["taxon_ids"]),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
-        expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["taxon_outputs"]),
+        temp(expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["taxon_outputs"])),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["taxon_outputs"])),
         output_metadata=expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["taxon_outputs"]),
     benchmark:

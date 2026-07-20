@@ -195,7 +195,7 @@ rule gene_compendia:
         idlists=expand("{dd}/gene/ids/{ap}", dd=config["intermediate_directory"], ap=config["gene_ids"]),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
-        expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["gene_outputs"]),
+        temp(expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["gene_outputs"])),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["gene_outputs"])),
         expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["gene_outputs"]),
     benchmark:

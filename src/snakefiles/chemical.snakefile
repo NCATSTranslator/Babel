@@ -399,7 +399,7 @@ rule chemical_compendia:
         # here; today that is only the DRUGBANK food-and-extract retype (issue #828).
         forced_type_files=[config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts"],
     output:
-        expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["chemical_outputs"]),
+        temp(expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["chemical_outputs"])),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["chemical_outputs"])),
         expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["chemical_outputs"]),
     benchmark:

@@ -38,7 +38,7 @@ rule leftover_umls:
         umls_metadata_yaml=config["download_directory"] + "/UMLS/UMLS.metadata.yaml",
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
-        umls_compendium=config["output_directory"] + "/compendia/umls.txt",
+        umls_compendium=temp(config["output_directory"] + "/compendia/umls.txt"),
         umls_synonyms=temp(config["output_directory"] + "/synonyms/umls.txt"),
         umls_metadata_yaml=config["output_directory"] + "/metadata/umls.txt.yaml",
         report=config["output_directory"] + "/reports/umls/log.txt",

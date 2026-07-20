@@ -278,7 +278,7 @@ rule disease_compendia:
         taxa=expand("{dd}/{ap}/taxa", dd=config["download_directory"], ap=config["disease_phenotype_taxa"]),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
-        expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["disease_outputs"]),
+        temp(expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["disease_outputs"])),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["disease_outputs"])),
         expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["disease_outputs"]),
     benchmark:
