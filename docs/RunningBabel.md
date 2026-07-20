@@ -119,6 +119,27 @@ The `baseline/` and `updatefiles/` directories are deliberately *not* declared a
 outputs of `download_pubmed`. Snakemake recursively deletes existing `directory()` outputs before
 running a job, which would delete anything preloaded into them.
 
+### Compendia are compressed at the end of a full build
+
+A finished build ships `compendia/*.txt.gz`, not `compendia/*.txt`. The uncompressed file is a
+Snakemake `temp()` output: `rule compress_compendium` (root `Snakefile`) gzips each compendium and
+Snakemake then deletes the `.txt`. That rule is gated behind every job that reads an uncompressed
+compendium — the DuckDB/Parquet export, the KGX export, `leftover_umls`, both conflations, and the
+per-compendium content reports — so the `.txt` survives for exactly as long as something needs it,
+and the two copies never sit on disk together for long.
+
+Two consequences worth knowing:
+
+* **Partial targets are unaffected.** `temp()` only fires for consumers that are actually in the
+  DAG, and a per-type target such as `uv run snakemake --cores 1 anatomy` does not pull in
+  `compress_compendium`. Partial builds leave their `compendia/*.txt` in place, uncompressed, which
+  is what you want while iterating on one semantic type.
+* **Getting a `.txt` back.** There is deliberately no `uncompress_compendium_file` rule — a wildcard
+  `.txt.gz → .txt` rule alongside the wildcard `.txt → .txt.gz` one would be mutually satisfiable
+  and risks an `AmbiguousRuleException`. Use `gunzip -k compendia/Gene.txt.gz` by hand. The repo's
+  own tools do not need this: `babel-clique-diff` and `source-impact-report` read either form (see
+  `resolve_compendium_path` in `src/model/compendium_diff.py`).
+
 ### Common build issues
 
 * **Stale Snakemake lock.** If a previous run was killed (Ctrl-C, OOM, power loss) Snakemake
