@@ -240,6 +240,17 @@ ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandl
 - **Error handling** — raise exceptions (`RuntimeError`, `ValueError`) rather than
   `print(...) + exit(1)`, which bypasses Python's exception machinery and breaks unit testing.
 
+- **A log warning is not a control.** When you ship a deliberate simplification whose risk you can
+  name, decide whether its detection needs to *block* something. A `logger.warning` in a rule that
+  runs for hours and emits thousands of lines will not be read; if the condition means the output is
+  wrong, raise, or make the fix unnecessary. PR #918 is the cautionary case: it shipped a coarse
+  clique-level retype, wrote a comment saying the retype "must never fire in a real build; if it
+  does, the forced type should become a vote instead", added a warning to detect exactly that, filed
+  the issue (#935) *and* drafted the fix (#936) — then shipped the override anyway. The warning
+  fired seven times in `babel-1.18` and nobody saw it until the bad output was noticed downstream.
+  If you have already written the safer version, prefer shipping it over shipping a detector for the
+  version you know is wrong.
+
 - **Docstrings** — give modules, classes, and non-trivial functions a docstring covering what they
   do and any non-obvious behavior. Name functions for what they do — `fetch_*` (not `get_*`) when
   the call hits the network.
@@ -267,6 +278,30 @@ fixture standing in for a real record must be copied **verbatim** from the sourc
 record's ID in a comment so the next person can re-derive it; and any claim about the data that
 justifies a parsing decision belongs in a committed script that regenerates it, not in a PR
 description.
+
+The same rule applies one level up, to **clique structure**: concords are a derived artifact
+relative to cliques, so they cannot answer "what else is in this clique?". `glom()` merges
+*transitively* — two identifiers with no concord edge between them still share a clique via a third.
+PR #918 justified a coarse clique-level retype with "every concord partner of these 685 cliques is
+typed `ChemicalEntity`, so there is nothing to clobber", which was true of the concords and false of
+the build: `DRUGBANK:DB09341` "Dextrose, unspecified form" reaches the D-glucose clique through
+`RXCUI`/`UMLS`, and the retype shipped glucose, tocopherol and five others as `biolink:Food`
+(#935/#948). Answer clique-membership questions from a finished build —
+`partials/untyped_compendium` and the compendia themselves, the DuckDB `Edge` table, or Node
+Normalization — never from the concords that fed it.
+
+**Replay a pipeline function offline instead of rebuilding to measure a change.** A completed
+build's `babel_outputs/intermediate/` holds exactly the inputs its compendium-building functions
+consumed, so a change to one of them can be measured in seconds by importing the production function
+and re-running it over those files, rather than paying for a multi-hour rebuild. `create_typed_sets`
+re-typed `babel-1.18`'s 293 `Food.txt` cliques from `partials/types` + `ids/DRUGBANK_food_extracts`
+in 20 seconds and gave the exact per-clique before/after split. Import the production function so
+the measurement cannot drift from the pipeline, sort the output so re-runs diff cleanly, and commit
+the script with its output (see
+`docs/sources/DRUGBANK/food-and-extracts/scripts/replay_type_vote.py`). This is a complement to
+`babel-clique-diff`, not a replacement: a replay only sees the cliques the build already produced,
+so it cannot show cliques that a change *creates, splits, or moves between compendia*. Use it to
+iterate cheaply, then confirm with a real build-vs-build diff.
 
 When a bug fix is easy to cover with a test, suggest adding one as part of the fix.
 
