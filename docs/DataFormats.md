@@ -5,8 +5,13 @@ There are three custom formats used within Babel outputs.
 ## Compendia files
 
 Compendia files are JSON Lines (JSONL) files in the `compendia/` directory. Each line consists of a
-single "clique" -- a set of identifiers that Babel believes represents the same concept. Here is an
-example from `compendia/Gene.txt` for the
+single "clique" -- a set of identifiers that Babel believes represents the same concept.
+
+A finished build distributes these gzipped, as `compendia/Gene.txt.gz`. The uncompressed
+`compendia/Gene.txt` exists only while the build is running: it is a Snakemake `temp()` output that
+`rule compress_compendium` replaces once every job that reads it has finished (see
+[Running Babel](RunningBabel.md#compendia-are-compressed-at-the-end-of-a-full-build)). Consumers
+should therefore expect `.txt.gz`. Here is an example from `compendia/Gene.txt.gz` for the
 [glucose-6-phosphatase catalytic subunit 1 (G6PC1)](https://www.ncbi.nlm.nih.gov/gene/2538) gene.
 
 ```json

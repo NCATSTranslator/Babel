@@ -149,7 +149,7 @@ rule protein_compendia:
         # Include the taxon information from UniProtKB
         uniprotkb_taxa_file=config["download_directory"] + "/UniProtKB/taxa",
     output:
-        expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["protein_outputs"]),
+        temp(expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["protein_outputs"])),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["protein_outputs"])),
         expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["protein_outputs"]),
     benchmark:

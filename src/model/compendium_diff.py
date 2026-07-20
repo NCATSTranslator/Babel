@@ -31,6 +31,7 @@ The CLI wrapper is :mod:`src.tools.clique_diff.cli` (``babel-clique-diff``); see
 
 from __future__ import annotations
 
+import gzip
 import heapq
 import json
 import pathlib
@@ -64,12 +65,33 @@ DROPPED_KEY = ("", DROPPED)
 
 
 def load_compendium(path: pathlib.Path | str) -> Iterator[dict]:
-    """Stream clique dicts from a JSONL compendium file, skipping blank lines."""
-    with open(path) as inf:
+    """Stream clique dicts from a JSONL compendium file, skipping blank lines.
+
+    Accepts both the uncompressed ``.txt`` a running pipeline produces and the ``.txt.gz`` a
+    finished build distributes (see ``rule compress_compendium`` in the root ``Snakefile``), so
+    the diff tools work against either an in-progress or a released build.
+    """
+    opener = gzip.open if str(path).endswith(".gz") else open
+    with opener(path, "rt") as inf:
         for line in inf:
             line = line.strip()
             if line:
                 yield json.loads(line)
+
+
+def resolve_compendium_path(root: pathlib.Path | str, filename: str) -> pathlib.Path | None:
+    """Find a compendium in ``root``, preferring the uncompressed form over the gzipped one.
+
+    ``filename`` is the bare compendium name as it appears in ``config.yaml``'s ``*_outputs``
+    lists (e.g. ``Disease.txt``). A build in progress has the ``.txt``; a finished one has only
+    the ``.txt.gz``. Returns ``None`` when neither exists, so callers keep their existing
+    "skip what isn't there" behaviour.
+    """
+    root = pathlib.Path(root)
+    for candidate in (root / filename, root / f"{filename}.gz"):
+        if candidate.exists():
+            return candidate
+    return None
 
 
 @dataclass
@@ -230,10 +252,13 @@ def diff_builds(before_dir, after_dir, filenames):
     before_by_file, after_by_file = {}, {}
     after_location = {}
     for fname in filenames:
-        before_path = pathlib.Path(before_dir) / fname
-        after_path = pathlib.Path(after_dir) / fname
-        if not before_path.exists() or not after_path.exists():
-            raise FileNotFoundError(f"Missing compendium {fname} in before ({before_path}) or after ({after_path})")
+        # Either build may be an in-progress one (.txt) or a released one (.txt.gz).
+        before_path = resolve_compendium_path(before_dir, fname)
+        after_path = resolve_compendium_path(after_dir, fname)
+        if before_path is None or after_path is None:
+            raise FileNotFoundError(
+                f"Missing compendium {fname} (as .txt or .txt.gz) in before ({before_dir}) or after ({after_dir})"
+            )
         before_by_file[fname] = load_cliques(before_path, need_curie_to_leader=False)
         after = load_cliques(after_path)
         after_by_file[fname] = after

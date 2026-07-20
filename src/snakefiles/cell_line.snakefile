@@ -32,7 +32,7 @@ rule cell_line_compendia:
         metadatafile=config["download_directory"] + "/CLO/metadata.yaml",
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
-        config["output_directory"] + "/compendia/CellLine.txt",
+        temp(config["output_directory"] + "/compendia/CellLine.txt"),
         temp(config["output_directory"] + "/synonyms/CellLine.txt"),
         config["output_directory"] + "/metadata/CellLine.txt.yaml",
     benchmark:

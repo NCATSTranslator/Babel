@@ -28,17 +28,19 @@ localrules:
     all_reports,
 
 
-# Make sure we have all the expected Compendia files.
-rule check_compendia_files:
+# Make sure we have all the expected Compendia files, in their distributed (gzipped) form.
+rule check_compendia_gzipped_files:
     input:
-        # Don't run this until all the outputs have been generated.
-        config["output_directory"] + "/reports/outputs_done",
+        # Taking the .gz files themselves as input (rather than reports/outputs_done) is what
+        # orders this check after rule compress_compendium. That rule in turn gates on the
+        # individual content reports rather than on reports_done, so this does not form a cycle.
+        gzipped=expand("{od}/compendia/{fn}.gz", od=config["output_directory"], fn=get_all_compendia(config)),
     output:
         donefile=config["output_directory"] + "/reports/check_compendia_files.done",
     benchmark:
-        config["output_directory"] + "/benchmarks/check_compendia_files.tsv"
+        config["output_directory"] + "/benchmarks/check_compendia_gzipped_files.tsv"
     run:
-        assert_files_in_directory(compendia_path, compendia_files, output.donefile)
+        assert_files_in_directory(compendia_path, get_all_gzipped(compendia_files), output.donefile)
 
 
 # Make sure we have all the expected Synonyms files.

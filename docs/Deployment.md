@@ -15,12 +15,19 @@ to users who aren't system administrators for these tools:
 1. Create a new Babel release (see README.md for information).
 2. Store the Babel outputs alongside other Babel releases on Hatteras.
 3. Deploy a new NodeNorm instance
-   1. Split the Babel outputs into smaller files to improve load times and put them on a public web
-      server.
-   2. Update the Translator-devops repo with the URL to these Babel output files.
-   3. Create a [Redis R3 External] instance to store identifiers.
-   4. Run the [NodeNorm loader] to load the Babel outputs into a Redis instance.
-   5. Create a [NodeNorm web server] to share the data in a Redis instance.
+   1. Put the Babel outputs on a public web server. Compendia are distributed gzipped
+      (`compendia/Gene.txt.gz`) — see [Compendia files](DataFormats.md#compendia-files). **This
+      requires a NodeNorm loader that can read gzipped compendia**; see
+      [Loader requirements](#loader-requirements) below.
+   2. Historically this step also split the largest compendia (`Protein.txt`, `Publication.txt`,
+      `SmallMolecule.txt`, `Gene.txt`) with `split -d -l 10000000`, because the loader was slow on
+      large files. The loader rewrite in
+      [NodeNormalization#384](https://github.com/NCATSTranslator/NodeNormalization/pull/384) is
+      substantially faster, so check whether splitting is still needed before doing it.
+   3. Update the Translator-devops repo with the URL to these Babel output files.
+   4. Create a [Redis R3 External] instance to store identifiers.
+   5. Run the [NodeNorm loader] to load the Babel outputs into a Redis instance.
+   6. Create a [NodeNorm web server] to share the data in a Redis instance.
 4. Deploy a new NameRes instance (either
    [locally](https://github.com/NCATSTranslator/NameResolution/blob/master/documentation/Deployment.md)
    or
@@ -52,6 +59,19 @@ to users who aren't system administrators for these tools:
     9. Ask ITRB to start the NodeNorm Prod instance.
 11. Use the [Babel Validator] to test this release and check how it performs compared to the
     previous release. As a side-benefit, running these tests will warm up NameRes Solr's caches.
+
+## Loader requirements
+
+Babel compresses its compendia (`compendia/*.txt.gz`) as of the change that added
+`rule compress_compendium`. The [NodeNorm loader] must therefore be able to read gzipped compendia
+before a release built this way can be deployed. At the time of writing the loader opens compendia
+with a plain `open()` in `node_normalizer/loader/loader.py` (the validation read and the main
+ingest read), so it needs a suffix-keyed `gzip.open(..., "rt")`; Babel's output is standard gzip,
+so nothing more exotic is required. Tracked as
+[NodeNormalization#397](https://github.com/NCATSTranslator/NodeNormalization/issues/397).
+
+If you are deploying against a loader that predates that change, gunzip the compendia as part of
+step 3.1 rather than serving the `.gz` directly.
 
 [Babel Validator]: https://github.com/TranslatorSRI/babel-validation
 [Redis R3 External]: https://github.com/helxplatform/translator-devops/tree/ed25b5f5bfe2383ade8457da97341c90500f5291/helm/redis-r3-external

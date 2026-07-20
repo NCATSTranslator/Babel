@@ -23,7 +23,8 @@ include: "src/snakefiles/exports.snakefile"
 
 # Some general imports.
 import shutil
-from src.snakefiles.util import write_done
+from src.snakefiles import util
+from src.snakefiles.util import get_all_compendia, write_done
 
 # Some global settings.
 import os
@@ -110,3 +111,49 @@ rule uncompress_synonym_file:
         config["output_directory"] + "/benchmarks/uncompress_synonym_file_{synonym_file}.tsv"
     shell:
         "gunzip {input} -c > {output}"
+
+
+# Compendia are distributed as .txt.gz. Unlike a synonyms file -- which has exactly one consumer,
+# its own semantic type's rule, and so is compressed there -- a compendium is read by jobs across
+# the pipeline (DuckDB/Parquet export, KGX export, leftover_umls, both conflations, and the
+# per-compendium content reports). So compression gets its own rule, gated behind all of them.
+#
+# The compendia .txt are temp(), so Snakemake deletes each one as soon as its last consumer job
+# finishes. Because this rule is gated last, that is immediately after compression, and the two
+# copies never sit on disk together for long. Note that temp() only fires for consumers actually
+# in the DAG: a partial target such as `snakemake chemical` does not pull this rule in, so partial
+# builds leave their .txt files in place.
+#
+# There is deliberately no uncompress_compendium_file counterpart: a wildcard .txt.gz -> .txt rule
+# alongside this wildcard .txt -> .txt.gz one would be mutually satisfiable and risks an
+# AmbiguousRuleException. Use `gunzip -k` by hand if you need a .txt back from a finished build.
+rule compress_compendium:
+    input:
+        compendium=config["output_directory"] + "/compendia/{filename}.txt",
+        # Every job that reads an uncompressed compendium, so that temp() can reclaim the .txt
+        # the moment this rule finishes.
+        outputs_done=config["output_directory"] + "/reports/outputs_done",
+        duckdb_done=config["output_directory"] + "/duckdb/done",
+        kgx_done=config["output_directory"] + "/kgx/done",
+        # The individual content reports rather than reports/reports_done, so that
+        # check_compendia_gzipped_files can depend on this rule's output without a cycle.
+        content_reports=expand(
+            "{od}/reports/content/compendia/{stem}.json",
+            od=config["output_directory"],
+            stem=[os.path.splitext(fn)[0] for fn in get_all_compendia(config)],
+        ),
+    output:
+        gzipped=config["output_directory"] + "/compendia/{filename}.txt.gz",
+    benchmark:
+        config["output_directory"] + "/benchmarks/compress_compendium_{filename}.tsv"
+    resources:
+        # Single-threaded stdlib gzip; Protein.txt is the worst case. Matches the budget
+        # `rule protein` already carries for the comparable synonyms compression.
+        runtime="6h",
+    run:
+        # gzip_files() is the stdlib gzip module, so this is single-threaded, and all 25 of these
+        # jobs sit at the tail of the DAG. If that tail dominates wall-clock time, switch to pigz:
+        # it is multi-threaded and its output is standard gzip, so no consumer changes. Check
+        # benchmarks/compress_compendium_Protein.tsv after a full cluster run before deciding.
+        # See https://github.com/NCATSTranslator/Babel/issues/946.
+        util.gzip_files([input.compendium])

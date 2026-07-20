@@ -32,7 +32,7 @@ from src.categories import (
     GROSS_ANATOMICAL_STRUCTURE,
     PHENOTYPIC_FEATURE,
 )
-from src.model.compendium_diff import load_compendium
+from src.model.compendium_diff import load_compendium, resolve_compendium_path
 from src.model.glom_diff import (
     SourceImpactDiff,
     cliques_from_compendia,
@@ -175,8 +175,8 @@ def _final_compendium_breakdown(
     for st, cfg, source_curies in _iter_pipeline_contributions(contribution, pipelines):
         per_file: dict[str, int] = {}
         for fname in cfg["compendium_files"]:
-            path = compendia_root / fname
-            if not path.exists():
+            path = resolve_compendium_path(compendia_root, fname)
+            if path is None:
                 continue
             count = sum(
                 len({ident["i"] for ident in clique.get("identifiers", [])} & source_curies)
@@ -217,21 +217,28 @@ def _remote_comparison_summary(
         current_paths: list[pathlib.Path] = []
         missing = 0
         for fname in cfg["compendium_files"]:
-            current = compendia_root / fname
-            if not current.exists():
+            current = resolve_compendium_path(compendia_root, fname)
+            if current is None:
                 continue
-            cached = remote_cache_dir / fname
-            if not cached.exists():
-                url = f"{base}/compendia/{fname}"
-                logger.info("downloading remote compendium %s", url)
-                with requests.get(url, stream=True, timeout=60) as resp:
-                    if not resp.ok:
-                        logger.warning("remote download failed for %s: %s %s", url, resp.status_code, resp.reason)
-                        missing += 1
-                        continue
-                    with cached.open("wb") as out:
-                        for chunk in resp.iter_content(chunk_size=64 * 1024):
-                            out.write(chunk)
+            cached = resolve_compendium_path(remote_cache_dir, fname)
+            if cached is None:
+                # Builds published before compendia were gzipped host the plain .txt; newer ones
+                # host only the .txt.gz. Try both so the report can compare against either.
+                for name in (fname, f"{fname}.gz"):
+                    url = f"{base}/compendia/{name}"
+                    logger.info("downloading remote compendium %s", url)
+                    with requests.get(url, stream=True, timeout=60) as resp:
+                        if not resp.ok:
+                            logger.warning("remote download failed for %s: %s %s", url, resp.status_code, resp.reason)
+                            continue
+                        cached = remote_cache_dir / name
+                        with cached.open("wb") as out:
+                            for chunk in resp.iter_content(chunk_size=64 * 1024):
+                                out.write(chunk)
+                    break
+                if cached is None:
+                    missing += 1
+                    continue
             # Only compare a current compendium against its remote counterpart when we
             # actually obtained that counterpart; otherwise a missing remote file would make
             # every current clique in it look "current only" and inflate the net-new estimate.

@@ -4,11 +4,18 @@ The CLI wrapper that drives these functions is tested separately in
 ``tests/tools/clique_diff/test_cli.py``.
 """
 
+import gzip
 import json
 
 import pytest
 
-from src.model.compendium_diff import diff_builds, diff_compendium, load_cliques, load_compendium
+from src.model.compendium_diff import (
+    diff_builds,
+    diff_compendium,
+    load_cliques,
+    load_compendium,
+    resolve_compendium_path,
+)
 
 
 def _clique(*curies, biolink_type="biolink:Disease"):
@@ -51,6 +58,34 @@ def test_load_compendium_skips_blank_lines(tmp_path):
     path = tmp_path / "Disease.txt"
     path.write_text(json.dumps(_clique("MONDO:1")) + "\n\n" + json.dumps(_clique("MONDO:2")) + "\n\n")
     assert len(list(load_compendium(path))) == 2
+
+
+@pytest.mark.unit
+def test_load_compendium_reads_gzipped(tmp_path):
+    """A gzipped compendium must yield exactly what the uncompressed one does.
+
+    Finished builds distribute compendia as ``.txt.gz`` (``rule compress_compendium``), so the
+    diff tools only ever see the compressed form once a build is done.
+    """
+    cliques = [_clique("MONDO:1"), _clique("MONDO:2")]
+    plain = _write_jsonl(tmp_path / "Disease.txt", cliques)
+    gzipped = tmp_path / "DiseaseGz.txt.gz"
+    with gzip.open(gzipped, "wt") as f:
+        f.write("".join(json.dumps(c) + "\n" for c in cliques))
+
+    assert list(load_compendium(gzipped)) == list(load_compendium(plain))
+
+
+@pytest.mark.unit
+def test_resolve_compendium_path_prefers_txt_then_gz(tmp_path):
+    """Uncompressed wins when both exist; the .gz is the fallback; None when neither is there."""
+    assert resolve_compendium_path(tmp_path, "Disease.txt") is None
+
+    (tmp_path / "Disease.txt.gz").write_bytes(gzip.compress(b""))
+    assert resolve_compendium_path(tmp_path, "Disease.txt") == tmp_path / "Disease.txt.gz"
+
+    (tmp_path / "Disease.txt").write_text("")
+    assert resolve_compendium_path(tmp_path, "Disease.txt") == tmp_path / "Disease.txt"
 
 
 @pytest.mark.unit
