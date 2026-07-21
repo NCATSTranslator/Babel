@@ -1,5 +1,6 @@
 import pytest
 
+import src.node as node_module
 import src.prefixes as pref
 from src import categories
 from src.LabeledID import LabeledID
@@ -313,3 +314,114 @@ def test_load_extra_labels_tab_in_label(tmp_path):
     fac.common_labels = {}
     fac.load_extra_labels("CHEMBL.COMPOUND")
     assert fac.extra_labels["CHEMBL.COMPOUND"]["CHEMBL.COMPOUND:CHEMBL3"] == "Water\tbottle"
+
+
+# ---------------------------------------------------------------------------
+# ENCODING CHECK
+#
+# check_encoding() (src/synonyms/encoding.py) raises on an encoding-damaged label, so these are the
+# wiring tests for the three label paths NodeFactory owns. The detector itself is tested in
+# tests/synonyms/test_encoding.py; these only prove it is reached.
+# ---------------------------------------------------------------------------
+
+
+def _patch_common_labels_config(monkeypatch, download_dir, filenames):
+    """Point apply_labels()'s common-labels loading at ``download_dir/common/``.
+
+    Patches ``src.node.get_config`` only, so the real config still backs the encoding check and the
+    synonym filter, which resolve get_config through their own modules.
+    """
+    monkeypatch.setattr(
+        node_module,
+        "get_config",
+        lambda: {"download_directory": str(download_dir), "common": {"labels": filenames}},
+        raising=True,
+    )
+
+
+@pytest.mark.unit
+def test_load_extra_labels_rejects_a_damaged_label(tmp_path):
+    """A mojibake label in a <PREFIX>/labels file must abort the build, naming CURIE and file."""
+    label_dir = tmp_path / "PUBCHEM.COMPOUND"
+    label_dir.mkdir()
+    (label_dir / "labels").write_text("PUBCHEM.COMPOUND:1\tÃ©tude\n", encoding="utf-8")
+    fac = NodeFactory(str(tmp_path), BIOLINK_VERSION)
+    fac.common_labels = {}
+
+    with pytest.raises(RuntimeError) as excinfo:
+        fac.load_extra_labels("PUBCHEM.COMPOUND")
+
+    message = str(excinfo.value)
+    assert "PUBCHEM.COMPOUND:1" in message
+    assert "labels" in message
+    assert "étude" in message  # the repaired guess, which is what makes the error actionable
+
+
+@pytest.mark.unit
+def test_load_extra_labels_accepts_legitimate_non_ascii(tmp_path):
+    """Real accented labels must load untouched — a false positive here would halt the pipeline."""
+    label_dir = tmp_path / "MONDO"
+    label_dir.mkdir()
+    (label_dir / "labels").write_text("MONDO:1\tMénière disease\n", encoding="utf-8")
+    fac = NodeFactory(str(tmp_path), BIOLINK_VERSION)
+    fac.common_labels = {}
+
+    fac.load_extra_labels("MONDO")
+
+    assert fac.extra_labels["MONDO"]["MONDO:1"] == "Ménière disease"
+
+
+@pytest.mark.unit
+def test_apply_labels_rejects_a_damaged_explicit_label(tmp_path):
+    """The labels dict passed to write_compendium() is the one label path with no file behind it.
+
+    Nothing else checks it, so this is the only place a damaged label supplied by a calling
+    pipeline (rather than read from babel_downloads) can be caught.
+    """
+    fac = NodeFactory(str(tmp_path), BIOLINK_VERSION)
+    fac.common_labels = {}
+
+    with pytest.raises(RuntimeError) as excinfo:
+        fac.apply_labels([f"{pref.CHEBI}:1"], {f"{pref.CHEBI}:1": "Ã©tude"})
+
+    message = str(excinfo.value)
+    assert f"{pref.CHEBI}:1" in message
+    assert "write_compendium()" in message
+
+
+@pytest.mark.unit
+def test_apply_labels_accepts_a_clean_explicit_label(tmp_path):
+    fac = NodeFactory(str(tmp_path), BIOLINK_VERSION)
+    fac.common_labels = {}
+
+    labeled = fac.apply_labels([f"{pref.CHEBI}:1"], {f"{pref.CHEBI}:1": "Ménière disease"})
+
+    assert labeled[0].label == "Ménière disease"
+
+
+@pytest.mark.unit
+def test_apply_labels_rejects_a_damaged_common_label(tmp_path, monkeypatch):
+    """The common/ labels files are a fallback for any prefix, so they are checked on load too."""
+    common_dir = tmp_path / "common"
+    common_dir.mkdir()
+    (common_dir / "common_labels.tsv").write_text("PUBCHEM.COMPOUND:1\tÃ©tude\n", encoding="utf-8")
+    _patch_common_labels_config(monkeypatch, tmp_path, ["common_labels.tsv"])
+
+    fac = NodeFactory(str(tmp_path), BIOLINK_VERSION)
+    assert fac.common_labels is None  # force the load path rather than the preset shortcut
+
+    with pytest.raises(RuntimeError, match="PUBCHEM.COMPOUND:1"):
+        fac.apply_labels([f"{pref.CHEBI}:1"], {})
+
+
+@pytest.mark.unit
+def test_apply_labels_accepts_clean_common_labels(tmp_path, monkeypatch):
+    common_dir = tmp_path / "common"
+    common_dir.mkdir()
+    (common_dir / "common_labels.tsv").write_text("MONDO:1\tMénière disease\n", encoding="utf-8")
+    _patch_common_labels_config(monkeypatch, tmp_path, ["common_labels.tsv"])
+
+    fac = NodeFactory(str(tmp_path), BIOLINK_VERSION)
+    fac.apply_labels([f"{pref.CHEBI}:1"], {})
+
+    assert fac.common_labels["MONDO:1"] == "Ménière disease"

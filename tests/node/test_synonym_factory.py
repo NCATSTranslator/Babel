@@ -1,7 +1,9 @@
+import json
 from collections import defaultdict
 
 import pytest
 
+import src.node as node_module
 from src.node import SynonymFactory
 from src.util import get_config
 
@@ -80,3 +82,31 @@ def test_load_synonyms_accepts_legitimate_non_ascii(tmp_path):
     sf.load_synonyms("MONDO")
 
     assert (HAS_EXACT_SYNONYM, "Ménière disease") in sf.synonyms["MONDO"]["MONDO:1"]
+
+
+@pytest.mark.unit
+def test_init_rejects_a_damaged_common_synonym(tmp_path, monkeypatch):
+    """The common/ synonyms files are a fallback for any CURIE, so they are checked on load too.
+
+    Patches ``src.node.get_config`` only: the encoding check and the synonym filter resolve
+    get_config through their own modules, so both keep using the real config.
+    """
+    common_dir = tmp_path / "common"
+    common_dir.mkdir()
+    (common_dir / "common_synonyms.jsonl").write_text(
+        json.dumps({"curie": "PUBCHEM.COMPOUND:1", "predicate": HAS_EXACT_SYNONYM, "synonym": "Ã©tude"}) + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        node_module,
+        "get_config",
+        lambda: {"download_directory": str(tmp_path), "common": {"synonyms": ["common_synonyms.jsonl"]}},
+        raising=True,
+    )
+
+    with pytest.raises(RuntimeError) as excinfo:
+        SynonymFactory(str(tmp_path))
+
+    message = str(excinfo.value)
+    assert "PUBCHEM.COMPOUND:1" in message
+    assert "étude" in message
