@@ -813,8 +813,10 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
             if pk in props:
                 # Bare compound IDs, semicolon-delimited. This used to be a single "PubChem Database
                 # Links" tag holding "SID: nnn CID: nnn" pairs, which is why older code here parsed
-                # on those labels; ChEBI now splits substances and compounds into separate tags and
-                # we only want the compounds.
+                # on those labels; ChEBI now splits substances and compounds into separate tags.
+                # The SDF's ~191,000 PubChem *substance* xrefs are deliberately left alone -- they
+                # are submitter-deposited records and so a much weaker equivalence assertion than a
+                # compound. See docs/sources/CHEBI/README.md if we ever want them.
                 for pubchem_id in split_chebi_sdf_values(props[pk]):
                     outf.write(f"{cid}\txref\t{PUBCHEMCOMPOUND}:{pubchem_id}\n")
                     count_xrefs += 1

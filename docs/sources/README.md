@@ -19,9 +19,11 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   `MacromolecularComplex` source: which ComplexTAB columns Babel reads, downloading all species
   files, the manifest-as-download-sentinel pattern, and the per-output cross-species
   deduplication rules (labels, IDs, synonyms, taxa, descriptions).
-- **CHEBI** ([CHEBI/sdf_tags/README.md](./CHEBI/sdf_tags/README.md)) — the data-item tags Babel
-  reads out of `ChEBI_complete.sdf`, the renames that silently emptied the secondary-ID and PubChem
-  ingests in `babel-1.18`, the checks that now catch a rename, and how to re-audit a new SDF.
+- **CHEBI** ([CHEBI/README.md](./CHEBI/README.md)) — which files ChEBI is ingested from, and why
+  PubChem *substance* xrefs are deliberately left on the floor while compound xrefs are taken. Also
+  ([CHEBI/sdf_tags/README.md](./CHEBI/sdf_tags/README.md)) the data-item tags Babel reads out of
+  `ChEBI_complete.sdf`, the renames that silently emptied the secondary-ID and PubChem ingests in
+  `babel-1.18`, the checks that now catch a rename, and how to re-audit a new SDF.
 - **DRUGBANK** ([DRUGBANK/food-and-extracts/README.md](./DRUGBANK/food-and-extracts/README.md))
   — retyping DrugBank food-and-extract products (foods, pollens, danders) out of
   `biolink:ChemicalEntity`: foods become `biolink:Food` via their UNII's NCIt class, non-food
