@@ -14,6 +14,10 @@ SLEEP_BETWEEN_UBERGRAPH_QUERIES = 5  # seconds
 # UberGraph.get_subclasses_of). subClassOf suits is_a ontologies such as UBERON, GO and
 # CL; part_of suits partonomy ontologies whose structure is meronymic rather than
 # taxonomic, such as EMAPA. Values are full IRIs so they drop straight into a query.
+#
+# These are interpolated into the SPARQL text verbatim, not bound as query parameters, so a
+# hierarchy_predicate argument must only ever be one of these constants. Never pass a value
+# derived from source data, a config file, or any other caller-supplied string.
 HIERARCHY_SUBCLASS_OF = "<http://www.w3.org/2000/01/rdf-schema#subClassOf>"
 HIERARCHY_PART_OF = "<http://purl.obolibrary.org/obo/BFO_0000050>"
 
@@ -676,7 +680,7 @@ def build_sets(
     # clique membership differ between builds of identical code and data. See
     # docs/sources/EMAPA/mappings.md for the case that exposed this (122 UBERON terms xref more
     # than one EMAPA term, and the loser is dropped entirely when it has no ids-file row).
-    for k, v in sorted(uberres.items()):
+    for k, v in sorted(uberres.items(), key=lambda kv: kv[0]):
         if not hop_ontologies:
             subclass_prefix = Text.get_prefix_or_none(k)
             if subclass_prefix != prefix:
