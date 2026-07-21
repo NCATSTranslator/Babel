@@ -58,6 +58,31 @@ logger = get_logger(__name__)
 # these appears we want to hear about it rather than quietly retype a small molecule as a food.
 FORCED_TYPE_CONFLICTS = frozenset({DRUG, MOLECULAR_MIXTURE, SMALL_MOLECULE, POLYPEPTIDE})
 
+# The ChEBI SDF data-item tags make_chebi_relations() reads, normalized the way
+# chebi_sdf_entry_to_dict() normalizes them: lowercased, spaces stripped, underscores kept.
+#
+# ChEBI renames these between releases and the parser silently omits a tag it does not recognize, so
+# a rename empties the corresponding ingest without any error. That is how babel-1.18 shipped with
+# no ChEBI secondary IDs at all: `Secondary ChEBI ID` had become `SECONDARY_ID`, and at the same time
+# `PubChem Database Links` had split into separate Compound and Substance tags. Both of our keys
+# stopped matching anything. `check_chebi_sdf_keys()` below now fails the build instead.
+#
+# Re-audit these against a new SDF with docs/sources/CHEBI/sdf_tags/audit_sdf_tags.py.
+CHEBI_SDF_KEY_SECONDARY_ID = "secondary_id"
+CHEBI_SDF_KEY_KEGG = "keggcompounddatabaselinks"
+CHEBI_SDF_KEY_PUBCHEM = "pubchemcompounddatabaselinks"
+CHEBI_SDF_KEYS = frozenset(
+    {
+        "chebiname",
+        "chebiid",
+        "inchikey",
+        "smiles",
+        CHEBI_SDF_KEY_SECONDARY_ID,
+        CHEBI_SDF_KEY_KEGG,
+        CHEBI_SDF_KEY_PUBCHEM,
+    }
+)
+
 
 def get_type_from_smiles(smiles):
     if "." in smiles:
@@ -688,6 +713,58 @@ def make_gtopdb_relations(infile, outfile, metadata_yaml):
     )
 
 
+def split_chebi_sdf_values(value_lines):
+    """
+    Split the value lines of a ChEBI SDF data item into individual values.
+
+    ChEBI packs multiple values for one tag as a semicolon-delimited list on a single line (and
+    occasionally across several lines), so a tag whose value is "C00001;C00002" is two KEGG
+    accessions, not one. Splitting matters for correctness, not just completeness: joining an
+    unsplit value onto a prefix produces a CURIE like `KEGG.COMPOUND:C00001;C00002` that matches
+    nothing downstream.
+
+    :param value_lines: The list of raw value lines read for one tag.
+    :return: A list of individual values, stripped, with empties dropped.
+    """
+    values = []
+    for line in value_lines:
+        for value in line.split(";"):
+            value = value.strip()
+            if value:
+                values.append(value)
+    return values
+
+
+def check_chebi_sdf_keys(chebi_sdf_dat, sdf):
+    """
+    Fail if any tag make_chebi_relations() reads is absent from every entry of the ChEBI SDF.
+
+    This is the ChEBI SDF's equivalent of checking a CSV header. read_sdf() matches tags by exact
+    string and drops anything it doesn't recognize, so when ChEBI renames a tag the ingest doesn't
+    error -- it just produces nothing for that field, for every compound, and the build completes
+    looking healthy. babel-1.18 shipped that way: `Secondary ChEBI ID` had become `SECONDARY_ID`,
+    so every ChEBI secondary identifier silently stopped normalizing.
+
+    Checking key presence rather than merely "did we write a non-zero number of rows" means the
+    error names the tag that vanished, which is the part that takes the time to work out.
+
+    :param chebi_sdf_dat: The parsed SDF, as returned by read_sdf().
+    :param sdf: The SDF filename, for the error message.
+    :raise ValueError: If any key in CHEBI_SDF_KEYS appears in no entry at all.
+    """
+    keys_seen = set()
+    for props in chebi_sdf_dat.values():
+        keys_seen.update(props.keys())
+
+    missing = CHEBI_SDF_KEYS - keys_seen
+    if missing:
+        raise ValueError(
+            f"ChEBI SDF file {sdf} contains no entries carrying these expected tags: "
+            f"{sorted(missing)}. ChEBI has probably renamed them -- re-audit the file's tags with "
+            f"docs/sources/CHEBI/sdf_tags/audit_sdf_tags.py and update CHEBI_SDF_KEYS to match."
+        )
+
+
 def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
     """CHEBI contains relations both about chemicals with and without inchikeys.  You might think that because
     everything is based on unichem, we could avoid the with structures part, but history has shown that we lose
@@ -695,37 +772,31 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
     # THE SDF and XREF stuff are handled in the same function because knowing what we found in the SDF impacts
     # what we want to get out of the xrefs. But the function is quite unwieldy
     # READ SDF
-    ikeys = {
-        x: x
-        for x in [
-            "chebiname",
-            "chebiid",
-            "secondarychebiid",
-            "inchikey",
-            "smiles",
-            "keggcompounddatabaselinks",
-            "pubchemdatabaselinks",
-        ]
-    }
+    ikeys = {x: x for x in CHEBI_SDF_KEYS}
     chebi_sdf_dat = read_sdf(sdf, ikeys)
+    check_chebi_sdf_keys(chebi_sdf_dat, sdf)
     # CHEBIs in the sdf by definition have structure (the sdf is a structure file)
     structured_chebi = set(chebi_sdf_dat.keys())
     # READ xrefs
     with open(dbx) as inf:
         dbxdata = inf.read()
-    kk = "keggcompounddatabaselinks"
-    pk = "pubchemdatabaselinks"
-    secondary_chebi_id = "secondarychebiid"
+    kk = CHEBI_SDF_KEY_KEGG
+    pk = CHEBI_SDF_KEY_PUBCHEM
+    secondary_chebi_id = CHEBI_SDF_KEY_SECONDARY_ID
 
     # What if we don't have a propfile directory?
     ensure_parent_dir(propfile_gz)
 
+    count_secondary_ids = 0
+    count_xrefs = 0
     with open(outfile, "w") as outf, gzip.open(propfile_gz, "wt") as propf:
         # Write SDF structured things
         for cid, props in chebi_sdf_dat.items():
             if secondary_chebi_id in props:
-                secondary_ids = props[secondary_chebi_id]
-                for secondary_id in secondary_ids:
+                # SECONDARY_ID holds already-prefixed CURIEs, semicolon-delimited on one line, e.g.
+                # CHEBI:421707 "abacavir" carries
+                # "CHEBI:193608;CHEBI:441792;CHEBI:2360;CHEBI:525912;CHEBI:520984".
+                for secondary_id in split_chebi_sdf_values(props[secondary_chebi_id]):
                     propf.write(
                         Property(
                             curie=cid,
@@ -734,24 +805,19 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
                             source=f"Listed as a CHEBI secondary ID in the ChEBI SDF file ({sdf})",
                         ).to_json_line()
                     )
+                    count_secondary_ids += 1
             if kk in props:
-                # This is apparently a list now sometimes?
-                kegg_ids = props[kk]
-                if not isinstance(kegg_ids, list):
-                    kegg_ids = [kegg_ids]
-                for kegg_id in kegg_ids:
+                for kegg_id in split_chebi_sdf_values(props[kk]):
                     outf.write(f"{cid}\txref\t{KEGGCOMPOUND}:{kegg_id}\n")
+                    count_xrefs += 1
             if pk in props:
-                # Apparently there's a lot of structure here?
-                database_links = props[pk]
-                # To simulate previous behavior, I'll concatenate previous values together.
-                v = "".join(database_links)
-                parts = v.split("SID: ")
-                for p in parts:
-                    if "CID" in p:
-                        # mapped = True
-                        x = p.split("CID: ")[1]
-                        outf.write(f"{cid}\txref\t{PUBCHEMCOMPOUND}:{x}\n")
+                # Bare compound IDs, semicolon-delimited. This used to be a single "PubChem Database
+                # Links" tag holding "SID: nnn CID: nnn" pairs, which is why older code here parsed
+                # on those labels; ChEBI now splits substances and compounds into separate tags and
+                # we only want the compounds.
+                for pubchem_id in split_chebi_sdf_values(props[pk]):
+                    outf.write(f"{cid}\txref\t{PUBCHEMCOMPOUND}:{pubchem_id}\n")
+                    count_xrefs += 1
         # DO THE xref stuff
         lines = dbxdata.split("\n")
         for line in lines[1:]:
@@ -763,8 +829,23 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
                 continue
             if x[3] == "KEGG COMPOUND accession":
                 outf.write(f"{cid}\txref\t{KEGGCOMPOUND}:{x[4]}\n")
+                count_xrefs += 1
             if x[3] == "Pubchem accession":
                 outf.write(f"{cid}\txref\t{PUBCHEMCOMPOUND}:{x[4]}\n")
+                count_xrefs += 1
+
+    # Backstop to check_chebi_sdf_keys(): that catches a renamed tag, this catches any other way
+    # these outputs could come out empty (a truncated download, a reformatted value, a changed
+    # dbx column layout). Either output being empty means a silently broken release, so fail here
+    # rather than let the build carry on and look healthy.
+    if count_secondary_ids == 0:
+        raise ValueError(
+            f"No CHEBI secondary IDs were found in {sdf}, but ChEBI always publishes them. "
+            f"Refusing to write an empty property file to {propfile_gz}."
+        )
+    if count_xrefs == 0:
+        raise ValueError(f"No ChEBI xrefs were generated from {sdf} and {dbx}. Refusing to write an empty {outfile}.")
+    logger.info(f"make_chebi_relations() wrote {count_xrefs} xrefs and {count_secondary_ids} secondary IDs.")
 
     write_concord_metadata(
         metadata_yaml,
