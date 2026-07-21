@@ -6,8 +6,34 @@ before-cliques that split, lose members, or disappear (see
 [#895](https://github.com/NCATSTranslator/Babel/issues/895)). This page records a full
 build-vs-build [`babel-clique-diff`](../../tools/CliqueDiff.md) that closes that gap.
 
-Artifacts in [`clique-diff/`](./clique-diff/): `clique-diff.csv` (262 change rows) and
-`clique-diff.summary.json`.
+Artifacts in [`clique-diff/`](./clique-diff/): `clique-diff.csv` (empty apart from its header, since
+there are no change rows) and `clique-diff.summary.json`.
+
+## Headline: adding EMAPA is purely additive
+
+**No before-clique changes in any way.** Nothing splits, nothing is retyped, nothing loses a member,
+and no identifier is dropped from any of the four anatomy compendia. Every difference between the
+two sides is a brand-new clique made only of EMAPA identifiers.
+
+| destination_kind | rows | meaning |
+|---|---|---|
+| `regrouped` | 0 | no members redistributed to a different leader |
+| `moved` | 0 | no members retyped into a different compendium file |
+| `dropped` | 0 | no members gone from the compared compendia |
+
+Clique counts per compendium:
+
+| compendium | before | after | diff |
+|---|---|---|---|
+| `AnatomicalEntity.txt` | 145,743 | 147,565 | +1,822 |
+| `Cell.txt` | 9,197 | 9,197 | 0 |
+| `CellularComponent.txt` | 9,469 | 9,469 | 0 |
+| `GrossAnatomicalStructure.txt` | 10,706 | 12,637 | +1,931 |
+
+The +1,822 and +1,931 sum to **+3,753**, exactly the pure-new clique count in the source-impact
+report, and the totals go 175,115 → 178,868. `Cell` and `CellularComponent` are untouched, as
+expected: EMAPA is not among the Biolink `id_prefixes` for either class, so no EMAPA CURIE can
+reach them.
 
 ## What was compared
 
@@ -15,20 +41,22 @@ Both sides were built from the **same cached intermediates**
 (`babel_outputs/intermediate/anatomy/`), on the same commit, changing only the configuration under
 test:
 
-- **before** — `anatomy` with `EMAPA` removed from `anatomy_prefixes`, `anatomy_ids`,
-  `anatomy_concords` and `anatomy_unique_prefixes` (which is then `[UBERON, GO]`).
-- **after** — `anatomy` as this branch ships it: the EMAPA ids file, the (empty) EMAPA concord,
-  and `EMAPA` in `anatomy_unique_prefixes`.
+- **before** — `anatomy` with `EMAPA` removed from `anatomy_prefixes`, `anatomy_ids` and
+  `anatomy_concords`.
+- **after** — `anatomy` as this branch ships it: the EMAPA ids file and the (empty) EMAPA concord.
+
+Neither side lists `EMAPA` in `anatomy_unique_prefixes`; see
+[README.md](./README.md#emapa-is-not-a-unique-prefix-sme-check) for that decision and why it is the
+single biggest determinant of this diff.
 
 Toggling configuration rather than checking out the pre-EMAPA branch matters, because the
 deterministic `build_sets()` ordering fix
 ([#945](https://github.com/NCATSTranslator/Babel/issues/945)) must be present on **both** sides.
-Built against a branch lacking it, the before side would draw its `unique_prefixes` tie-breaks at
-random and the diff would not be reproducible. As a cross-check, the before side's 175,115 cliques
-match the "pre-existing cliques" count the source-impact report computes independently.
+As a cross-check, the before side's 175,115 cliques match the "pre-existing cliques" count the
+source-impact report computes independently.
 
 Because both runs read the same concord files, no cross-reference goes missing between them. Every
-difference below is a decision made *inside* a run.
+difference is a decision made *inside* a run.
 
 ## EMAPA was already in the compendia before this PR
 
@@ -40,117 +68,49 @@ anatomy cliques long before EMAPA existed as a source:
 | | cliques | cliques holding an EMAPA CURIE | distinct EMAPA CURIEs |
 |---|---|---|---|
 | before | 175,115 | 4,203 | 4,343 |
-| after | 179,005 | 8,093 | 8,093 |
+| after | 178,868 | 7,956 | 8,096 |
 
-Note the before row: 4,203 cliques hold 4,343 EMAPA CURIEs, so some cliques held **more than one**.
-After, the counts are equal — every clique holds at most one EMAPA identifier. That is
-`anatomy_unique_prefixes` doing its job, and it is the source of most of the churn below.
+On both sides some cliques hold **more than one** EMAPA CURIE (140 more CURIEs than cliques, after).
+That is the direct consequence of leaving `EMAPA` out of `anatomy_unique_prefixes`, and it is what
+keeps this diff free of splits and drops. The 122 UBERON terms that carry multiple EMAPA xrefs are
+listed in full in [`multi-emapa-xrefs.csv`](./multi-emapa-xrefs.csv).
 
-## Summary of changes
+## Why an earlier version of this diff showed 262 changes
 
-262 change rows across 122 changed before-cliques.
+An earlier revision of this PR did list `EMAPA` in `anatomy_unique_prefixes`, and the diff then
+showed 262 change rows across 122 changed before-cliques: 70 members regrouped, 67 retyped, and
+**three identifiers dropped from the compendia entirely** (`EMAPA:35358`, `EMAPA:35459`,
+`EMAPA:16271` — each a deprecated or dangling CURIE that lost a `unique_prefixes` contest and had
+no ids-file row to fall back on).
 
-| destination_kind | rows | members | meaning |
-|---|---|---|---|
-| `kept` | 122 | 492 | stayed under the same leader |
-| `regrouped` | 70 | 70 | members redistributed to a different leader (the split case) |
-| `moved` | 67 | 67 | retyped into a different compendium file |
-| `dropped` | 3 | 3 | gone from every compared compendium |
+All of that was an artifact of the restriction, not of adding EMAPA. With EMAPA unrestricted:
 
-Clique counts per compendium:
+- the 70 regroupings do not happen — a UBERON term keeps all of its EMAPA mappings in one clique;
+- the 67 retypings do not happen — they were downstream of those splits;
+- the three dropped CURIEs stay exactly where they were before this PR, so **no published
+  identifier is withdrawn** and the sign-offs that removal required are moot.
 
-| compendium | before | after | diff |
-|---|---|---|---|
-| `AnatomicalEntity.txt` | 145,743 | 147,632 | +1,889 |
-| `Cell.txt` | 9,197 | 9,197 | 0 |
-| `CellularComponent.txt` | 9,469 | 9,469 | 0 |
-| `GrossAnatomicalStructure.txt` | 10,706 | 12,707 | +2,001 |
-
-The +1,889 and +2,001 sum to **+3,890**, exactly the pure-new clique count in the source-impact
-report. `Cell` and `CellularComponent` are untouched, as expected: EMAPA is not among the Biolink
-`id_prefixes` for either class, so no EMAPA CURIE can reach them.
-
-## The 67 moved members
-
-50 members moved `GrossAnatomicalStructure → AnatomicalEntity` and 17 moved the other way. These
-are retypings, not restructurings. `classify_anatomy_clique()` trusts source ontologies in the
-order GO, CL, UBERON, EMAPA; adding EMAPA to that precedence, and typing its organ/tissue
-descendants as `biolink:GrossAnatomicalStructure`, reassigns the type of cliques whose only typed
-member is now an EMAPA term.
-
-## The 70 regrouped members
-
-These are cliques that held two or more EMAPA CURIEs before, and are split apart now that `EMAPA`
-is a unique prefix. 122 UBERON terms cross-reference more than one EMAPA term, so this was
-expected; `glom()` refuses any merge whose union would hold two identifiers sharing a
-`unique_prefixes` prefix.
-
-## The 3 dropped members — all are non-terms
-
-Three identifiers disappear from the anatomy compendia entirely, and all three are EMAPA CURIEs
-with no `rdfs:label`:
-
-| before leader | before leader label | dropped CURIE | surviving CURIE |
-|---|---|---|---|
-| [`UBERON:0002490`](http://purl.obolibrary.org/obo/UBERON_0002490) | "frontal suture" | `EMAPA:35358` | [`EMAPA:19226`](http://purl.obolibrary.org/obo/EMAPA_19226) "frontal suture" |
-| [`UBERON:0005185`](http://purl.obolibrary.org/obo/UBERON_0005185) | "renal medulla collecting duct" | `EMAPA:35459` | [`EMAPA:28061`](http://purl.obolibrary.org/obo/EMAPA_28061) "medullary collecting duct" |
-| [`UBERON:0007213`](http://purl.obolibrary.org/obo/UBERON_0007213) | "mesenchyme derived from head neural crest" | `EMAPA:16271` | [`EMAPA:16169`](http://purl.obolibrary.org/obo/EMAPA_16169) "head mesenchyme derived from neural crest" |
-
-The mechanism is the same in all three cases. Each UBERON term cross-references *two* EMAPA terms,
-and before the change both sat in one clique. After, `anatomy_unique_prefixes` forbids that, so
-only one can stay — and the one that stays is the one present in the EMAPA ids file. The dropped
-CURIE is in no ids file, so there is no row to seed a clique of its own, and it disappears.
-
-None of the three is a live EMAPA term, and for two of them the ontology explicitly says so:
-
-| CURIE | `owl:deprecated` | [`IAO:0100001`](http://purl.obolibrary.org/obo/IAO_0100001) "term replaced by" |
-|---|---|---|
-| `EMAPA:35358` | `true` | `EMAPA:19226` — the CURIE that survives |
-| `EMAPA:35459` | `true` | `EMAPA:28061` — the CURIE that survives |
-| `EMAPA:16271` | *not set* | *none* |
-
-For `EMAPA:35358` and `EMAPA:35459`, EMAPA itself records the term as obsolete with obsolescence
-reason [`IAO:0000227`](http://purl.obolibrary.org/obo/IAO_0000227) "terms merged", and names as its
-replacement exactly the CURIE Babel keeps. The outcome is the one the ontology asks for.
-
-`EMAPA:16271` is a different case: it carries **no axioms at all** — no `owl:deprecated`, no label,
-no replacement. It is a dangling xref target, a CURIE UBERON references that never existed as an
-EMAPA term. A deprecation-based rule would not identify it; absence from the ids file does. See
-[#911](https://github.com/NCATSTranslator/Babel/issues/911).
-
-All three are absent from `babel_downloads/EMAPA/labels`, which is why `write_emapa_ids()` never
-collected them: they are not reachable by `part_of` or `subClassOf` from
-[`EMAPA:0`](http://purl.obolibrary.org/obo/EMAPA_0) "anatomical structure" because they are not
-live terms in the ontology.
-
-So this PR **removes three obsolete identifiers** that the build was carrying purely because a
-stale UBERON xref pointed at them. That is a correctness improvement, not a regression.
-
-### Which CURIE wins is not yet decided on merit
-
-Worth knowing when reading the table above: `glom()` keeps whichever competing CURIE it encounters
-**first**, and since `build_sets()` now sorts its output, that is the lexicographically smallest
-one. In all three cases the live term happens to sort below the obsolete one
-(`19226 < 35358`, `28061 < 35459`, `16169 < 16271`), so the right term wins — but that is luck, not
-policy. A future release pairing a live term with an obsolete one that sorts lower would strand the
-live term instead, stably and silently.
-[#945](https://github.com/NCATSTranslator/Babel/issues/945) tracks deciding the tie-break on
-validity rather than sort order.
+The three CURIEs are still not live EMAPA terms, and Babel still carries them only because a stale
+UBERON xref points at them. Cleaning that up is a real task — but it is a *deprecation* problem
+([#911](https://github.com/NCATSTranslator/Babel/issues/911)), not something adding a new source
+should do as a side effect, and a rule keyed on validity will handle all such CURIEs rather than
+only the handful that happened to collide with an EMAPA sibling.
 
 ## Reproducing
 
 Both sides come from one set of cached intermediates; only the compendium-building rules re-run,
-so the second build takes minutes and needs no network.
+so each build takes minutes and needs no network.
 
 ```bash
 # after: build anatomy as this branch ships it
-uv run snakemake -c all anatomy
+rm -f babel_outputs/reports/anatomy_done
+uv run snakemake -c all anatomy --rerun-triggers mtime
 mkdir -p data/clique-diff/after && cp babel_outputs/compendia/*.txt data/clique-diff/after/
 
-# before: remove EMAPA from anatomy_prefixes / anatomy_ids / anatomy_concords /
-# anatomy_unique_prefixes in config.yaml, then rebuild only the compendia.
-# Delete the target sentinel too -- without it Snakemake reports "Nothing to be done"
-# and silently rebuilds nothing (see docs/RunningBabel.md, "Common build issues").
+# before: remove EMAPA from anatomy_prefixes / anatomy_ids / anatomy_concords in config.yaml,
+# then rebuild only the compendia. Delete the target sentinel too -- without it Snakemake reports
+# "Nothing to be done" and silently rebuilds nothing (see docs/RunningBabel.md, "Common build
+# issues").
 rm -f babel_outputs/reports/anatomy_done babel_outputs/compendia/*.txt
 uv run snakemake -c all anatomy --rerun-triggers mtime
 mkdir -p data/clique-diff/before && cp babel_outputs/compendia/*.txt data/clique-diff/before/
@@ -159,8 +119,8 @@ git checkout config.yaml
 uv run babel-clique-diff \
     --before data/clique-diff/before --after data/clique-diff/after \
     --files AnatomicalEntity.txt Cell.txt CellularComponent.txt GrossAnatomicalStructure.txt \
-    --before-label "anatomy at babel-1.18 + #781 with EMAPA removed from anatomy_prefixes/ids/concords/unique_prefixes" \
-    --after-label  "anatomy at babel-1.18 + #781 (EMAPA ids + concord + anatomy_unique_prefixes)" \
+    --before-label "anatomy at main + #781 with EMAPA removed from anatomy_prefixes/ids/concords" \
+    --after-label  "anatomy at main + #781 (EMAPA ids + concord; EMAPA NOT in anatomy_unique_prefixes)" \
     --note "Isolates adding EMAPA as an anatomy source. Both sides built from identical cached intermediates with the deterministic build_sets() ordering fix applied, so the only variable is EMAPA itself." \
     --out-csv  docs/sources/EMAPA/clique-diff/clique-diff.csv \
     --out-json docs/sources/EMAPA/clique-diff/clique-diff.summary.json
@@ -168,3 +128,8 @@ uv run babel-clique-diff \
 
 `--rerun-triggers mtime` keeps a `config.yaml` edit from invalidating the expensive
 UberGraph-backed ids and concord rules, which must stay byte-identical across the two sides.
+
+Restore the after-side compendia (`cp data/clique-diff/after/*.txt babel_outputs/compendia/`)
+before regenerating the source-impact report: its "final compendium-assigned" counts read whatever
+is in `babel_outputs/compendia/`, and reporting them off the before side is a silent, plausible
+error.

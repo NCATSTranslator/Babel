@@ -82,8 +82,18 @@ In `src/createcompendia/<pipeline>.py`:
   whichever CURIE of a restricted prefix it encounters **first** and refuses the rest. A refused
   CURIE falls back to its own ids-file row and becomes a singleton clique — but a CURIE that
   appears only in someone else's concord has no row to fall back on and disappears from the
-  compendia entirely. Adding `EMAPA` to `anatomy_unique_prefixes` put 263 EMAPA CURIEs into
-  contests over 122 UBERON cliques, because that many UBERON terms xref more than one EMAPA term.
+  compendia entirely.
+
+  EMAPA is the worked example of deciding *not* to restrict a prefix. Adding `EMAPA` to
+  `anatomy_unique_prefixes` would have put 263 EMAPA CURIEs into contests over 122 UBERON cliques,
+  because that many UBERON terms xref more than one EMAPA term — and three already-published
+  identifiers would have been withdrawn from the compendia as a result. Inspecting the contested
+  mappings showed they were mostly genuine 1:n relationships (a developmental partonomy resolving
+  finer than the adult UBERON term), so EMAPA was left unrestricted and the ingest became purely
+  additive. See `docs/sources/EMAPA/README.md`. The lesson generalizes: restricting a prefix does
+  not make a bad mapping good, it only picks an arbitrary winner — if the mappings are wrong, filter
+  the xrefs instead.
+
   Count the contests your prefix creates before adding it:
 
   ```bash
@@ -100,7 +110,9 @@ In `src/createcompendia/<pipeline>.py`:
   [`UBERON:0005185`](http://purl.obolibrary.org/obo/UBERON_0005185) "renal medulla collecting
   duct" and stranded the live
   [`EMAPA:28061`](http://purl.obolibrary.org/obo/EMAPA_28061) "medullary collecting duct" as a
-  singleton; the next build did the reverse.
+  singleton; the next build did the reverse. (That specific pairing no longer arises, since EMAPA
+  ended up unrestricted — but UBERON and GO are still restricted, so the ordering guarantee is what
+  makes any such tie-break reproducible.)
 
 ### 4. Wire Snakemake rules
 

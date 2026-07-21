@@ -1,7 +1,7 @@
 {
   "about": {
-    "after": "anatomy at babel-1.18 + #781 (EMAPA ids + concord + anatomy_unique_prefixes)",
-    "before": "anatomy at babel-1.18 + #781 with EMAPA removed from anatomy_prefixes/ids/concords/unique_prefixes",
+    "after": "anatomy at main + #781 (EMAPA ids + concord; EMAPA NOT in anatomy_unique_prefixes)",
+    "before": "anatomy at main + #781 with EMAPA removed from anatomy_prefixes/ids/concords",
     "files": [
       "AnatomicalEntity.txt",
       "Cell.txt",
@@ -12,18 +12,18 @@
   },
   "compendia": {
     "AnatomicalEntity.txt": {
-      "changed_before_cliques": 31,
+      "changed_before_cliques": 0,
       "clique_count": {
-        "after": 147632,
+        "after": 147565,
         "before": 145743,
-        "diff": 1889,
-        "diff_percent": 1.3
+        "diff": 1822,
+        "diff_percent": 1.25
       },
       "cliques_with_dropped_members": 0,
       "dropped_member_count": 0,
       "leader_changed_count": 0,
-      "moved_member_count": 17,
-      "regrouped_member_count": 17
+      "moved_member_count": 0,
+      "regrouped_member_count": 0
     },
     "Cell.txt": {
       "changed_before_cliques": 0,
@@ -54,18 +54,18 @@
       "regrouped_member_count": 0
     },
     "GrossAnatomicalStructure.txt": {
-      "changed_before_cliques": 91,
+      "changed_before_cliques": 0,
       "clique_count": {
-        "after": 12707,
+        "after": 12637,
         "before": 10706,
-        "diff": 2001,
-        "diff_percent": 18.69
+        "diff": 1931,
+        "diff_percent": 18.04
       },
-      "cliques_with_dropped_members": 3,
-      "dropped_member_count": 3,
+      "cliques_with_dropped_members": 0,
+      "dropped_member_count": 0,
       "leader_changed_count": 0,
-      "moved_member_count": 50,
-      "regrouped_member_count": 53
+      "moved_member_count": 0,
+      "regrouped_member_count": 0
     }
   }
 }

@@ -38,10 +38,15 @@ and is written to:
   `hierarchy_predicate` plumbing on `build_sets()` / `get_subclasses_and_xrefs()` currently has
   no production effect for EMAPA, since there are no xrefs to walk to. It is retained (guarded
   by a `ValueError` and a unit test) so the ingest stays correct if EMAPA ever adds xrefs.
-- 116 UBERON terms cross-reference more than one EMAPA term. Since `EMAPA` is listed in
-  `anatomy_unique_prefixes`, each of those merges is deliberately blocked, and this is the single
-  biggest driver of the before/after clique counts in the source-impact report. (Only 5 EMAPA
-  terms are referenced from more than one UBERON term, so the asymmetry runs one way.)
+- **122** UBERON terms cross-reference more than one EMAPA term, covering 263 EMAPA CURIEs; for
+  **116** of those UBERON terms, more than one target is a live, labelled EMAPA term (the other 6
+  pair a live term with a deprecated or dangling CURIE). Both figures are computed by
+  `scripts/multi_emapa_uberon_xrefs.py`, which writes the full list to
+  [`multi-emapa-xrefs.csv`](./multi-emapa-xrefs.csv) — quote whichever number you mean, they are
+  not interchangeable. `EMAPA` is deliberately **not** in `anatomy_unique_prefixes`, so all of
+  these mappings land in one clique; see
+  [README.md](./README.md#emapa-is-not-a-unique-prefix-sme-check). (Only 5 EMAPA terms are
+  referenced from more than one UBERON term, so the asymmetry runs one way.)
 - Mapping coverage depends on UberGraph content and can change across updates. If EMAPA ever
   starts asserting xrefs, revisit whether the concord should use a fail-closed
   `allowed_prefixes` allowlist (as MP does) rather than the fail-open `ANATOMY_OBO_IGNORE_LIST`.

@@ -204,10 +204,10 @@ hook, Snakemake rules, `config.yaml`, docs, tests), then generate and read its s
 — including assembling the intermediate inputs from a `stars.renci.org` snapshot when a full local
 build (~500 GB RAM) is impractical. Two things the report exists to catch: an ids file missing its
 Biolink type (see `docs/Development.md`), and a prefix not yet registered in the Biolink Model for
-its class (`write_compendium()` silently drops such CURIEs — EMAPA's
-`biolink:GrossAnatomicalStructure` terms are the current example; `extra_prefixes=[...]` is the
-escape hatch, and it is what keeps members alive when **retyping** a clique to a class that doesn't
-register their prefix — see `docs/AddingNewSources.md`).
+its class (`write_compendium()` silently drops such CURIEs; check with
+`get_biolink_model_toolkit(version).get_element(<class>).id_prefixes` before assuming either way.
+`extra_prefixes=[...]` is the escape hatch, and it is what keeps members alive when **retyping** a
+clique to a class that doesn't register their prefix — see `docs/AddingNewSources.md`).
 **Generate and commit the report** (`uv run source-impact-report --source <SOURCE>`) and, for
 changes that *restructure* existing cliques, follow up with `babel-clique-diff` — see
 `src/tools/source_impact_report/CLAUDE.md` and `src/tools/clique_diff/CLAUDE.md` for the tool
