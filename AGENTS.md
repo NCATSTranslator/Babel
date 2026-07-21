@@ -129,6 +129,10 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
 - **`SynonymFilter`** (`src/synonyms/filter.py`) checks every label/synonym against
   `input_data/obsolete_synonyms.yaml` before it enters a compendium — see its docstring for the
   `action` field and the `should_suppress()` contract.
+- **Encoding check** (`src/synonyms/encoding.py`) — every label/synonym is checked as it loads in
+  `src/node.py`, and mojibake **aborts the build**. If a run dies with `RuntimeError: Encoding issue
+  in ...`, see [`docs/Development.md`](docs/Development.md#the-encoding-check) for the fix and the
+  `config.yaml` escape hatches; `uv run babel-check-encoding` surveys files without raising.
 - **Logging** — always use `get_logger(__name__)` from `src.util`, never `logging.getLogger`
   directly (see its docstring for why and the deferred-import exception).
 - **Leftover UMLS** — `src/createcompendia/leftover_umls.py` (rule `leftover_umls`) runs last and
