@@ -8,6 +8,7 @@ build:
   branch: babel-1.18
   workarounds:
   - DrugBank downloads are currently disabled https://github.com/cthoyt/drugbank-downloader/issues/23 -- I used the previously downloaded 5-1-13.
+  - HMDB is now behind a Cloudflare bot challenge, so the pipeline can't download it (see docs/sources/DownloadPatterns.md). Unlike DrugBank, this is not a reused old download -- I downloaded it fresh in a browser on my laptop and copied it to the HPC.
 
 # Versions that need to be updated on every release.
 biolink_version: "4.4.3"
