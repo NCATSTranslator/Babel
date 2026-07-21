@@ -9,7 +9,7 @@ import io
 
 import pytest
 
-from src.ubergraph import build_sets
+from src.ubergraph import HIERARCHY_PART_OF, build_sets
 
 pytestmark = [pytest.mark.unit]
 
@@ -90,10 +90,29 @@ def test_build_sets_keeps_the_lowest_curie_first_for_competing_xrefs(monkeypatch
 
     This pins the case that exposed the ordering bug: [`UBERON:0005185`] xrefs both
     ``EMAPA:28061`` "medullary collecting duct" and the label-less, deprecated
-    ``EMAPA:35459``. With ``EMAPA`` in ``anatomy_unique_prefixes`` only the first-written
-    of the two joins the clique, and the loser is dropped entirely when it has no ids-file
-    row -- so which one wins must not vary between builds.
+    ``EMAPA:35459``. Whenever the target prefix is one of a pipeline's ``unique_prefixes``,
+    only the first-written of two competing CURIEs joins the clique and the loser is dropped
+    entirely if it has no ids-file row -- so which one wins must not vary between builds.
+    EMAPA is no longer restricted this way (see ``anatomy_unique_prefixes`` in config.yaml),
+    but UBERON and GO still are, and the guarantee is what makes any such choice reproducible.
     """
     lines = _run_build_sets(monkeypatch, {"UBERON:0005185": {"EMAPA:35459", "EMAPA:28061"}})
 
     assert [line.split("\t")[2] for line in lines] == ["EMAPA:28061", "EMAPA:35459"]
+
+
+# ---
+# ARGUMENT VALIDATION
+# ---
+
+
+def test_build_sets_rejects_custom_hierarchy_predicate_for_non_xref():
+    """build_sets() should raise ValueError immediately if a non-default hierarchy_predicate
+    is combined with set_type != 'xref', because those code paths hardcode rdfs:subClassOf.
+
+    Offline by construction: the check fires before any UberGraph instance is built, which is
+    why this lives here rather than in the network-marked tests/test_uber.py.
+    """
+    for set_type in ("exact", "close"):
+        with pytest.raises(ValueError, match="hierarchy_predicate"):
+            build_sets("EMAPA:0", {}, set_type=set_type, hierarchy_predicate=HIERARCHY_PART_OF)

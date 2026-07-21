@@ -1,11 +1,13 @@
-"""Unit tests for EMAPA ID typing and concord generation in ``src.createcompendia.anatomy``.
+"""Unit tests for EMAPA ID typing, concord generation and clique typing in
+``src.createcompendia.anatomy``.
 
-Both tests run offline (``unit``) by monkeypatching the UberGraph-facing calls.
+All tests run offline (``unit``) by monkeypatching the UberGraph-facing calls.
 """
 
 import pytest
 
 import src.createcompendia.anatomy as anatomy
+from src.categories import ANATOMICAL_ENTITY, CELL, GROSS_ANATOMICAL_STRUCTURE
 from src.prefixes import EMAPA
 from src.ubergraph import HIERARCHY_PART_OF
 
@@ -83,6 +85,51 @@ def test_build_emapa_obo_relationships_walks_part_of_with_ignore_list(monkeypatc
     assert captured["hierarchy_predicate"] == HIERARCHY_PART_OF
     assert captured["ignore_list"] == anatomy.ANATOMY_OBO_IGNORE_LIST
     assert captured["concordfiles"] == {EMAPA: sentinel}
+
+
+# --- Clique typing ---
+
+
+@pytest.mark.unit
+def test_classify_anatomy_clique_trusts_emapa_when_no_other_ontology_is_typed():
+    """EMAPA should decide a clique's type when no GO/CL/UBERON member carries one.
+
+    ``classify_anatomy_clique()`` trusts source ontologies in the order GO, CL, UBERON,
+    EMAPA. EMAPA is last, so it only speaks for cliques the three established ontologies
+    are silent on -- typically an EMAPA term joined to untyped MESH/UMLS CURIEs.
+    """
+    equivalent_ids = ["MESH:D000001", "EMAPA:35949"]
+    types = {"EMAPA:35949": GROSS_ANATOMICAL_STRUCTURE}
+
+    assert anatomy.classify_anatomy_clique(equivalent_ids, types) == GROSS_ANATOMICAL_STRUCTURE
+
+
+@pytest.mark.unit
+def test_classify_anatomy_clique_prefers_uberon_over_emapa():
+    """A typed UBERON member should outrank a typed EMAPA member.
+
+    This is the property that keeps adding EMAPA from retyping established cliques: EMAPA
+    sits behind UBERON in the precedence list, so it can only add typing, never override it.
+    """
+    equivalent_ids = ["UBERON:0001062", "EMAPA:35949"]
+    types = {"UBERON:0001062": ANATOMICAL_ENTITY, "EMAPA:35949": GROSS_ANATOMICAL_STRUCTURE}
+
+    assert anatomy.classify_anatomy_clique(equivalent_ids, types) == ANATOMICAL_ENTITY
+
+
+@pytest.mark.unit
+def test_classify_anatomy_clique_prefers_go_and_cl_over_emapa():
+    """GO and CL should both outrank EMAPA, in that order."""
+    equivalent_ids = ["CL:0000000", "EMAPA:35949"]
+    types = {"CL:0000000": CELL, "EMAPA:35949": GROSS_ANATOMICAL_STRUCTURE}
+
+    assert anatomy.classify_anatomy_clique(equivalent_ids, types) == CELL
+
+
+@pytest.mark.unit
+def test_classify_anatomy_clique_returns_none_when_nothing_is_typed():
+    """A clique whose members all lack a declared type should classify as None."""
+    assert anatomy.classify_anatomy_clique(["MESH:D000001", "EMAPA:35949"], {}) is None
 
 
 @pytest.mark.unit
