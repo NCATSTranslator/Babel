@@ -99,6 +99,48 @@ See [`tests/README.md`](../tests/README.md) and
   per-source doc so the conclusion is reproducible and reviewable; see
   [`docs/sources/NCBIGene/quoting/`](sources/NCBIGene/quoting/).
 
+## The encoding check
+
+Every label and synonym is checked for encoding damage as it is loaded, in `src/node.py`, by
+`check_encoding()` from [`src/synonyms/encoding.py`](../src/synonyms/encoding.py). Damage means
+mojibake (UTF-8 misread as cp1252 — `Ã©` where `é` was meant), a control character, or a
+replacement character. **The check raises**, aborting the build.
+
+Failing loudly is deliberate. Mojibake is valid UTF-8, just wrong text, so nothing downstream would
+ever notice it: it flows through the compendia, the synonyms files, and into Node Normalization as
+if it were a real name. And it is far cheaper to re-run one download rule than to discover the
+problem in a released build.
+
+The check runs at _load_ time rather than at write time because there is no single place labels are
+written — twenty-odd datahandlers each write their own `babel_downloads/<PREFIX>/labels`. There is
+exactly one place they are all read, which is also where `SynonymFilter` hooks in. Checking there
+means each string is validated once per prefix load, and the error names the file the damage lives
+in, which is what you need in order to fix it.
+
+### When it fires
+
+The error names the CURIE, the source file, the offending text, and the repaired guess:
+
+```text
+RuntimeError: Encoding issue in babel_downloads/PUBCHEM.COMPOUND/labels for PUBCHEM.COMPOUND:1:
+looks like mojibake (UTF-8 read as cp1252); probably meant to be 'étude'. The text was 'Ã©tude'.
+```
+
+Fix the ingest that produced it. `src/datahandlers/datacollect.py` (PubChem) and
+`src/datahandlers/unii.py` (UNII) read their sources as `latin-1`/`windows-1252` and are the
+likeliest culprits. Before changing how one of those files is read, characterize the whole download
+first — see "Characterize a messy field before you parse it" above.
+
+If the text is genuinely correct and the heuristic is wrong, add the exact string to
+`encoding_check_allowlist` in `config.yaml` with a comment saying how you confirmed it against the
+source. `encoding_check_enabled: false` turns the check off entirely, which is a way to push a
+build through while a fix is in progress, not a fix.
+
+To survey a build without waiting for it to fail — or to check outputs that predate this check —
+use [`babel-check-encoding`](tools/CheckEncoding.md), which reports instead of raising.
+`check_for_encoding_issues` in `src/reports/duckdb_reports.py` runs the same idea over the finished
+Parquet as a backstop, writing `reports/duckdb/encoding_issues.tsv`.
+
 ## Current Development Process
 
 Developing a change to Babel is significantly more complicated than developing most software,
