@@ -10,6 +10,7 @@ import curies
 from src.LabeledID import LabeledID
 from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import PUBCHEMCOMPOUND
+from src.synonyms.encoding import check_encoding
 from src.synonyms.filter import get_synonym_filter
 from src.util import (
     Text,
@@ -59,6 +60,7 @@ class SynonymFactory:
                 # option.
                 for line in synonymsf:
                     row = json.loads(line)
+                    check_encoding(row["synonym"], row["curie"], common_synonyms_path)
                     self.common_synonyms[row["curie"]].add((row["predicate"], row["synonym"]))
                     count_common_file_synonyms += 1
             logger.info(
@@ -80,6 +82,7 @@ class SynonymFactory:
                     if len(x) == 1:
                         lbs[x[0]].add((HAS_EXACT_SYNONYM, ""))
                     elif len(x) == 2:
+                        check_encoding(x[1], x[0], labelfname)
                         lbs[x[0]].add((HAS_EXACT_SYNONYM, x[1]))
                         if x[1]:
                             count_labels += 1
@@ -90,6 +93,7 @@ class SynonymFactory:
                     x = line.strip().split("\t")
                     if len(x) < 3:
                         continue
+                    check_encoding(x[2], x[0], synfname)
                     lbs[x[0]].add((x[1], x[2]))
                     count_synonyms += 1
         self.synonyms[prefix] = lbs
@@ -549,6 +553,7 @@ class NodeFactory:
                     if len(x) == 1:
                         lbs[x[0]] = ""
                     else:
+                        check_encoding(x[1], x[0], labelfname)
                         lbs[x[0]] = x[1]
         self.extra_labels[prefix] = lbs
 
@@ -569,6 +574,7 @@ class NodeFactory:
                         x = line.strip().split("\t")
                         curie = x[0]
                         new_label = x[1]
+                        check_encoding(new_label, curie, common_labels_path)
                         if curie in self.common_labels:
                             # We have multiple labels! For simplicity's sake, let's choose the longest one.
                             if len(new_label) <= len(self.common_labels[curie]):
@@ -590,6 +596,9 @@ class NodeFactory:
                 raise ValueError(f"LabeledID don't belong here ({iid}), pass in labels separately.")
             if iid in labels:
                 label = labels[iid]
+                # The only label path that doesn't come from a labels file on disk: whatever the
+                # calling pipeline passed to write_compendium(). Check it here or nowhere.
+                check_encoding(label, iid, "labels passed to write_compendium()")
                 if synonym_filter.should_suppress(label, source=f"explicit labels for {iid}", node_types=node_types):
                     label = ""
                 labeled_list.append(LabeledID(identifier=iid, label=label))
