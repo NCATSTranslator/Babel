@@ -229,6 +229,34 @@ rule check_for_identically_labeled_cliques:
         )
 
 
+rule check_for_encoding_issues:
+    input:
+        config["output_directory"] + "/duckdb/done",
+        config["output_directory"] + "/duckdb/compendia_done",
+    output:
+        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/encoding_issues.duckdb"),
+        encoding_issues=config["output_directory"] + "/reports/duckdb/encoding_issues.tsv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_for_encoding_issues.tsv"
+    resources:
+        # A streaming regex filter with no aggregate, so this is far cheaper than its report
+        # siblings: nothing is materialised beyond the (expected to be tiny) result set.
+        mem="200G",
+    params:
+        parquet_dir=config["output_directory"] + "/duckdb/parquet/",
+    run:
+        src.reports.duckdb_reports.check_for_encoding_issues(
+            params.parquet_dir,
+            output.duckdb_filename,
+            output.encoding_issues,
+            {
+                "memory_limit": "150G",
+                "threads": 1,
+                "preserve_insertion_order": False,
+            },
+        )
+
+
 rule check_for_duplicate_curies:
     input:
         config["output_directory"] + "/duckdb/done",
@@ -359,6 +387,7 @@ rule all_duckdb_reports:
         identically_labeled_cliques_tsv=config["output_directory"]
         + "/reports/duckdb/identically_labeled_cliques.tsv.gz",
         duplicate_curies=config["output_directory"] + "/reports/duckdb/duplicate_curies.tsv",
+        encoding_issues=config["output_directory"] + "/reports/duckdb/encoding_issues.tsv",
         duplicate_clique_leaders_tsv=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.tsv",
         curie_report_json=config["output_directory"] + "/reports/duckdb/curie_report.json",
         by_clique_report_json=config["output_directory"] + "/reports/duckdb/clique_leaders.json",

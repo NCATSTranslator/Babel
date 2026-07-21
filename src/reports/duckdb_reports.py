@@ -74,6 +74,64 @@ def check_for_identically_labeled_cliques(
         db.close()
 
 
+# Encoding damage, as a regex DuckDB can evaluate over a Parquet column. This is the backstop for
+# the raising check in src/synonyms/encoding.py, which runs at load time in src/node.py; it catches
+# anything that reached an output without passing through a labels/synonyms file (the properties
+# path), plus any build made before that check existed.
+#
+# DuckDB can't do the cp1252 round-trip the Python detector uses, so this is the pattern half of it:
+#
+#   [ÂÃ][\x80-\xbf]   a 2-byte UTF-8 sequence read as cp1252 -- 'é' becomes 'Ã©', '°' becomes 'Â°'.
+#                     Covers the Latin-1 supplement, which is the bulk of real damage.
+#   â€               the same for 3-byte punctuation -- ''' becomes 'â€™', '—' becomes 'â€"'.
+#   ï¿½              U+FFFD that was itself misread, i.e. damage applied twice.
+#   \x{FFFD}          an actual replacement character: proof of a lossy decode.
+#   [\x00-\x08...]    C0 controls (minus tab/newline) and DEL.
+#
+# RE2 interprets the \x escapes itself, so the backslashes pass through DuckDB's string literal
+# untouched. In UTF-8 mode these ranges are codepoints, not bytes, which is what we want.
+ENCODING_ISSUE_REGEX = r"[ÂÃ][\x80-\xbf]|â€|ï¿½|\x{FFFD}|[\x00-\x08\x0b-\x1f\x7f]"
+
+
+def check_for_encoding_issues(parquet_root, duckdb_filename, encoding_issues_tsv, duckdb_config=None):
+    """
+    Generate a list of labels and synonyms that look encoding-damaged.
+
+    :param parquet_root: The root directory for the Parquet files. We expect these to have subdirectories named
+        e.g. `filename=AnatomicalEntity/Node.parquet`, etc.
+    :param duckdb_filename: A temporary DuckDB file to use.
+    :param encoding_issues_tsv: The output file listing damaged labels and synonyms.
+    """
+
+    db = setup_duckdb(duckdb_filename, duckdb_config)
+    nodes = db.read_parquet(os.path.join(parquet_root, "**/Node.parquet"), hive_partitioning=True)
+    synonyms = db.read_parquet(os.path.join(parquet_root, "**/Synonyms.parquet"), hive_partitioning=True)
+
+    # A single streaming filter over both tables -- no aggregate, so nothing to spill and no need
+    # for the two-pass treatment the duplicate-detection reports require.
+    with log_duckdb_settings_on_error(db, "check_for_encoding_issues (regex scan over Node and Synonyms)"):
+        db.sql(f"""
+            SELECT 'Node.label' AS source, filename, curie, label AS text
+            FROM nodes
+            WHERE label IS NOT NULL AND regexp_matches(label, '{ENCODING_ISSUE_REGEX}')
+            UNION ALL
+            SELECT 'Synonyms.label' AS source, filename, clique_leader AS curie, label AS text
+            FROM synonyms
+            WHERE label IS NOT NULL AND regexp_matches(label, '{ENCODING_ISSUE_REGEX}')
+            UNION ALL
+            SELECT 'Synonyms.preferred_name' AS source, filename, clique_leader AS curie, preferred_name AS text
+            FROM synonyms
+            WHERE preferred_name IS NOT NULL AND regexp_matches(preferred_name, '{ENCODING_ISSUE_REGEX}')
+            ORDER BY source, filename, curie
+        """).write_csv(encoding_issues_tsv, sep="\t")
+
+    log_memory_snapshot(db, "check_for_encoding_issues complete")
+    with log_duckdb_settings_on_error(db, "check_for_encoding_issues teardown"):
+        nodes.close()
+        synonyms.close()
+        db.close()
+
+
 def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_tsv, duckdb_config=None):
     """
     Generate a list of duplicate CURIEs.

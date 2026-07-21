@@ -225,3 +225,72 @@ def test_generate_clique_leaders_report_totals(parquet_root, tmp_path):
         "approx_distinct_curie_count": 2,
         "curie_count": 2,
     }
+
+
+@pytest.fixture
+def encoding_parquet_root(tmp_path):
+    """A hive-partitioned tree with Node.parquet and Synonyms.parquet, for the encoding check.
+
+    Kept separate from the ``parquet_root`` fixture, which only carries the Clique and Edge tables
+    the duplicate-detection reports read.
+    """
+    con = duckdb.connect()
+    foo_dir = tmp_path / "filename=Foo"
+    foo_dir.mkdir()
+
+    _write_parquet(
+        con,
+        str(foo_dir / "Node.parquet"),
+        ["curie", "curie_prefix", "label", "label_lc", "description", "taxa"],
+        [
+            ("CHEBI:15377", "CHEBI", "water", "water", "", ""),
+            # 'é' read as cp1252 -- the damage PUBCHEM.COMPOUND's latin-1 ingest can produce.
+            ("PUBCHEM.COMPOUND:1", "PUBCHEM.COMPOUND", "Ã©tude", "ã©tude", "", ""),
+            # Legitimate non-ASCII, which must not be reported.
+            ("MONDO:1", "MONDO", "Ménière disease", "ménière disease", "", ""),
+        ],
+    )
+    _write_parquet(
+        con,
+        str(foo_dir / "Synonyms.parquet"),
+        ["clique_leader", "preferred_name", "preferred_name_lc", "biolink_type", "label", "label_lc"],
+        [
+            ("CHEBI:15377", "water", "water", "biolink:SmallMolecule", "dihydrogen oxide", "dihydrogen oxide"),
+            # A damaged synonym under a clean preferred name.
+            ("CHEBI:15377", "water", "water", "biolink:SmallMolecule", "Ã©au", "ã©au"),
+            # A replacement character in the preferred name.
+            ("MESH:1", "acetyl�choline", "acetyl�choline", "biolink:SmallMolecule", "ACh", "ach"),
+        ],
+    )
+    con.close()
+    return str(tmp_path) + "/"
+
+
+@pytest.mark.unit
+def test_check_for_encoding_issues(encoding_parquet_root, tmp_path):
+    out = str(tmp_path / "encoding_issues.tsv")
+    duckdb_reports.check_for_encoding_issues(encoding_parquet_root, str(tmp_path / "db.duckdb"), out)
+
+    rows = _read_tsv(out)
+    header, data = rows[0], rows[1:]
+    assert header == ["source", "filename", "curie", "text"]
+
+    found = {(r[0], r[2], r[3]) for r in data}
+    assert found == {
+        ("Node.label", "PUBCHEM.COMPOUND:1", "Ã©tude"),
+        ("Synonyms.label", "CHEBI:15377", "Ã©au"),
+        ("Synonyms.preferred_name", "MESH:1", "acetyl�choline"),
+    }
+
+
+@pytest.mark.unit
+def test_check_for_encoding_issues_ignores_legitimate_text(encoding_parquet_root, tmp_path):
+    """Accented text and plain ASCII must never be reported -- false positives are the failure
+    mode that matters, since the sibling check in src/synonyms/encoding.py aborts the build."""
+    out = str(tmp_path / "encoding_issues.tsv")
+    duckdb_reports.check_for_encoding_issues(encoding_parquet_root, str(tmp_path / "db.duckdb"), out)
+
+    reported = {r[3] for r in _read_tsv(out)[1:]}
+    assert "Ménière disease" not in reported
+    assert "water" not in reported
+    assert "dihydrogen oxide" not in reported
