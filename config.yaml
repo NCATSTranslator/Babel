@@ -177,8 +177,9 @@ chemical_outputs:   [MolecularMixture.txt, SmallMolecule.txt, Polypeptide.txt, C
 # where we could not merge the formulation with its active small molecule or mixture. Ranking it above
 # ChemicalEntity puts RXCUI CURIEs ahead of chemical entities like UNII:PVI5M0M1GW "Filgrastim".
 #
-# biolink:Food sits below every structure-bearing type, so food evidence never demotes a defined
-# molecule (NCIt classifies water, riboflavin, isoleucine and beta carotene as foods), and above the
+# biolink:Food sits below every structure-bearing type -- including the mixture types, which assert a
+# composition a whole food does not -- so food evidence never demotes a defined molecule (NCIt
+# classifies water, riboflavin, isoleucine and beta carotene as foods). It sits above only the
 # uninformative ChemicalEntity it exists to improve on. Note that it therefore outranks Drug: a clique
 # carrying food evidence that votes Drug is typed Food, which is mildly wrong -- a drug formulation is
 # not a food. That is an ACCEPTED tradeoff, not an oversight: it does not occur in any build so far

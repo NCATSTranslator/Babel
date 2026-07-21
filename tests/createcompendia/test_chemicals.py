@@ -13,6 +13,7 @@ import pytest
 from src import categories
 from src.categories import (
     CHEMICAL_ENTITY,
+    CHEMICAL_MIXTURE,
     COMPLEX_MOLECULAR_MIXTURE,
     DRUG,
     FOOD,
@@ -223,10 +224,17 @@ def test_chemical_type_order_ranks_food_below_structure_bearing_types():
 
     This is the property that keeps food evidence from demoting a defined molecule, and it is what
     the babel-1.18 D-glucose bug came down to. ComplexMolecularMixture must also outrank Food so an
-    extract stays an extract when NCIt also calls the concept a food."""
+    extract stays an extract when NCIt also calls the concept a food, and ChemicalMixture likewise:
+    a mixture asserts a composition that a whole food does not."""
     order = get_config()["chemical_type_order"]
 
-    for structural in (SMALL_MOLECULE, MOLECULAR_MIXTURE, POLYPEPTIDE, COMPLEX_MOLECULAR_MIXTURE):
+    for structural in (
+        SMALL_MOLECULE,
+        MOLECULAR_MIXTURE,
+        POLYPEPTIDE,
+        COMPLEX_MOLECULAR_MIXTURE,
+        CHEMICAL_MIXTURE,
+    ):
         assert order.index(structural) < order.index(FOOD), f"{structural} must outrank {FOOD}"
     assert order.index(FOOD) < order.index(CHEMICAL_ENTITY), f"{FOOD} must outrank {CHEMICAL_ENTITY}"
 

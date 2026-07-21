@@ -245,7 +245,12 @@ Only the eight broken cliques move, and no identifier is dropped — `DRUGBANK:D
 member of the D-glucose clique, which is now a `SmallMolecule` again. Cliques that vote nothing more
 specific stay `Food`, including the ones that *should*: inulin
 ([`CHEBI:15443`](http://purl.obolibrary.org/obo/CHEBI_15443) "inulin") is both a food and a GFR
-diagnostic, and gelatin votes only `ChemicalMixture`, which `Food` outranks.
+diagnostic.
+
+Note which direction the ordering runs: `ChemicalMixture` outranks `Food`, so a clique that *voted*
+`ChemicalMixture` would keep it rather than become a food. None of the 293 does — the two
+`ChemicalMixture` members in the set sit in cliques whose majority vote is `ChemicalEntity`, which
+`Food` does outrank.
 
 The script also reports the one pairing the ordering leaves exposed: `chemical_type_order` ranks
 `biolink:Drug` *last*, below `Food`, so a clique that votes `Drug` and carries food evidence is
