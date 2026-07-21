@@ -409,9 +409,12 @@ def test_make_chebi_relations_drops_every_database_accession_xref(tmp_path):
     name moved to a numeric `source_id` resolved via the sibling source.tsv.gz. It also reads the
     accession from column 4 (`status_id`) rather than column 2 (`accession_number`).
 
-    The branch fires on 0 of 422,561 rows in the file fetched 2026-07-21, losing 28,941 KEGG COMPOUND
-    and 194 PubChem Compound xrefs. It is the same failure this PR fixes for the SDF, on the other
+    The branch fires on 0 of 422,561 rows in the file fetched 2026-07-21, losing 18,465 KEGG COMPOUND
+    and 55 PubChem Compound xrefs. It is the same failure this PR fixes for the SDF, on the other
     input, and the count_xrefs guard cannot see it because the SDF supplies ~197,000 xrefs by itself.
+
+    A fix must filter on `type == MANUAL_X_REF` as well as source_id: both sources also carry
+    CAS-typed rows whose accession is a CAS number. See docs/sources/CHEBI/README.md.
 
     INVERT this assertion, don't delete it, when that half is fixed: DBX_KEGG_ROW should then produce
     "CHEBI:3\txref\tKEGG.COMPOUND:C06147".

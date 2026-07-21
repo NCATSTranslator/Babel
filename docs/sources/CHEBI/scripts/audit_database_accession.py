@@ -28,6 +28,12 @@ from collections import Counter
 KEGG_COMPOUND_SOURCE_ID = "45"
 PUBCHEM_COMPOUND_SOURCE_ID = "68"
 
+# A source_id alone does not identify an accession: rows are also tagged with a `type`, and both
+# sources below carry CAS-typed rows whose accession_number is a CAS registry number rather than a
+# KEGG or PubChem ID (e.g. `17 7 498-15-7 CAS 1 45`). Only MANUAL_X_REF rows hold the source's own
+# accession, so any fix must filter on both columns.
+ACCESSION_TYPE = "MANUAL_X_REF"
+
 
 def open_maybe_gzipped(filename):
     """Open a .tsv or .tsv.gz for text reading."""
@@ -38,11 +44,11 @@ def audit(filename):
     """
     Replay make_chebi_relations()' dbx parse over the file and count what it accepts vs. what's there.
 
-    :return: (rows parsed, rows the production match accepts, Counter of source_id -> row count)
+    :return: (rows parsed, rows the production match accepts, Counter of (source_id, type) -> count)
     """
     rows = 0
     accepted = 0
-    by_source = Counter()
+    by_source_and_type = Counter()
 
     with open_maybe_gzipped(filename) as inf:
         next(inf, None)  # header
@@ -55,9 +61,9 @@ def audit(filename):
             if x[3] in ("KEGG COMPOUND accession", "Pubchem accession"):
                 accepted += 1
             if len(x) >= 6:
-                by_source[x[5]] += 1
+                by_source_and_type[(x[5], x[3])] += 1
 
-    return rows, accepted, by_source
+    return rows, accepted, by_source_and_type
 
 
 def main():
@@ -65,15 +71,22 @@ def main():
         raise SystemExit(f"Usage: {sys.argv[0]} <database_accession.tsv[.gz]>")
     filename = sys.argv[1]
 
-    rows, accepted, by_source = audit(filename)
+    rows, accepted, by_source_and_type = audit(filename)
 
     print(f"# ChEBI database_accession.tsv xref audit\n\nSource file: `{filename}`\n")
     print(f"- Data rows parsed: **{rows}**")
     print(f"- Rows accepted by make_chebi_relations(): **{accepted}**\n")
-    print("| Source | source_id | Rows in file |")
-    print("| --- | --- | --- |")
-    print(f"| KEGG COMPOUND | {KEGG_COMPOUND_SOURCE_ID} | {by_source[KEGG_COMPOUND_SOURCE_ID]} |")
-    print(f"| PubChem Compound | {PUBCHEM_COMPOUND_SOURCE_ID} | {by_source[PUBCHEM_COMPOUND_SOURCE_ID]} |")
+    print(f"Recoverable rows are those tagged `{ACCESSION_TYPE}`; the rest carry a different")
+    print("identifier under the same source_id and must not be read as an accession.\n")
+    print(f"| Source | source_id | `{ACCESSION_TYPE}` rows | Rows of other types |")
+    print("| --- | --- | --- | --- |")
+    for name, source_id in (
+        ("KEGG COMPOUND", KEGG_COMPOUND_SOURCE_ID),
+        ("PubChem Compound", PUBCHEM_COMPOUND_SOURCE_ID),
+    ):
+        usable = by_source_and_type[(source_id, ACCESSION_TYPE)]
+        other = sum(count for (sid, _type), count in by_source_and_type.items() if sid == source_id) - usable
+        print(f"| {name} | {source_id} | {usable} | {other} |")
 
     if accepted == 0:
         print(
