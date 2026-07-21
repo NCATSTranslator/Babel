@@ -79,30 +79,42 @@ per-concord key to disambiguate — and with no key there is no two-place regist
 It is wired through the `concord_pair_filter` hook that `glom_from_files()` already exposes, so it
 needed no new plumbing.
 
-### An unexpected Biolink type is the cheapest signal that a merge went wrong
+## Where an identifier ends up is a claim about it — check that claim
 
-Both anatomy entries were found the same way: by noticing an identifier in a compendium it had no
-business being in. A cell type merged with the gross structure it sits in, or an anatomical
-structure merged with a cellular component, shows up as a clique whose members disagree about what
-kind of thing they are — and the compendium a clique lands in is that disagreement made visible.
+Every compendium file is an assertion about the *kind* of thing each clique is. So the file an
+identifier lands in, or fails to land in, is free evidence about whether the clique that produced it
+is sound. Two questions are worth asking after any build, in any pipeline:
 
-So after a build, scan `Cell.txt` and `CellularComponent.txt` for members whose prefix or label
-looks structural. `CL:0000166` "chromaffin cell" sharing a clique with `UBERON:0001236` "adrenal
-medulla" was obvious on sight and had been shipping for a long time. This is also how the two EMAPA
-terms that vanished were found: an identifier dropped by `write_compendium()`'s prefix check leaves
-*no* trace in any compendium, so a build-vs-build clique diff cannot see it, but the mistyped clique
-that swallowed it is sitting in plain view. Comparing an ids file against the CURIEs that actually
-reached the compendia is the direct check:
+**Is anything in a compendium it has no business being in?** A clique whose members disagree about
+what kind of thing they are has usually been merged across a category boundary, and the compendium
+it was typed into makes that disagreement visible from the outside. Look for members whose prefix or
+label belongs to a different kind than the file they are in: a structure among cells, a process among
+substances, a gene among proteins, a taxon anywhere. Chase whatever the source of that clique's
+type-vote was, and expect the culprit to be a single bad pair rather than a broken rule.
+
+**Did anything in an `ids` file reach no compendium at all?** `write_compendium()` drops identifiers
+whose prefix is not registered for the clique's Biolink type, silently. That is invisible to
+`babel-clique-diff` — a CURIE that appears on neither side is not a difference — and invisible to
+the source-impact report's clique counts, so the only way to see it is to ask directly. This check
+is worth running for any new source, whatever the pipeline:
 
 ```bash
 uv run python -c "
 import re, glob
-ids = {l.split(chr(9))[0] for l in open('babel_outputs/intermediate/anatomy/ids/EMAPA')}
+PIPELINE, PREFIX = 'anatomy', 'EMAPA'   # <- the pipeline and source you are checking
+ids = {l.split(chr(9))[0] for l in open(f'babel_outputs/intermediate/{PIPELINE}/ids/{PREFIX}')}
 seen = set()
 for f in glob.glob('babel_outputs/compendia/*.txt'):
-    for line in open(f): seen.update(re.findall(r'\"(EMAPA:[0-9]+)\"', line))
-print(sorted(ids - seen))"
+    for line in open(f): seen.update(re.findall(rf'\"({PREFIX}:[^\"]+)\"', line))
+print(f'{len(ids - seen)} of {len(ids)} not in any compendium:', sorted(ids - seen)[:20])"
 ```
+
+The two questions are related: an identifier dropped by the prefix check often got there because a
+bad merge put it in a clique of the wrong type, so the loss and the mistyped clique are the same
+bug seen from two sides. Worked example: `CL:0000166` "chromaffin cell" had been shipping in a
+`biolink:Cell` clique with `UBERON:0001236` "adrenal medulla" — the cell type merged with the
+structure it sits in — and that clique was also swallowing two EMAPA terms and dropping them. One
+bad xref (`input_data/anatomy_badxrefs.txt`) caused both.
 
 ## Keeping two prefixes disjoint
 
