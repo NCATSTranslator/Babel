@@ -50,8 +50,8 @@ from src.util import Text, ensure_parent_dir, get_config, get_logger, get_memory
 
 logger = get_logger(__name__)
 
-# The ChEBI SDF data-item tags make_chebi_relations() reads, normalized the way
-# chebi_sdf_entry_to_dict() normalizes them: lowercased, spaces stripped, underscores kept.
+# The ChEBI SDF data-item tags make_chebi_relations() asks read_sdf() for, normalized the way
+# normalize_sdf_tag() normalizes them: lowercased, spaces stripped, underscores kept.
 #
 # ChEBI renames these between releases and the parser silently omits a tag it does not recognize, so
 # a rename empties the corresponding ingest without any error. That is how babel-1.18 shipped with
@@ -63,10 +63,17 @@ logger = get_logger(__name__)
 CHEBI_SDF_KEY_SECONDARY_ID = "secondary_id"
 CHEBI_SDF_KEY_KEGG = "keggcompounddatabaselinks"
 CHEBI_SDF_KEY_PUBCHEM = "pubchemcompounddatabaselinks"
+
+# Only the three keys above are consumed by make_chebi_relations(). chebiid is what read_sdf() keys
+# its entries by, and chebiname/inchikey/smiles are carried purely as canaries: they cost nothing to
+# watch, and a rename that trips one of them says "ChEBI has reworked this file, re-audit all of it"
+# well before the rename lands on a tag we do consume. check_chebi_sdf_keys() fails the build on any
+# key in this set, canaries included -- that is deliberate. To stop watching one, delete it from here
+# rather than softening the check.
 CHEBI_SDF_KEYS = frozenset(
     {
-        "chebiname",
         "chebiid",
+        "chebiname",
         "inchikey",
         "smiles",
         CHEBI_SDF_KEY_SECONDARY_ID,
@@ -709,11 +716,15 @@ def split_chebi_sdf_values(value_lines):
     """
     Split the value lines of a ChEBI SDF data item into individual values.
 
-    ChEBI packs multiple values for one tag as a semicolon-delimited list on a single line (and
-    occasionally across several lines), so a tag whose value is "C00001;C00002" is two KEGG
-    accessions, not one. Splitting matters for correctness, not just completeness: joining an
-    unsplit value onto a prefix produces a CURIE like `KEGG.COMPOUND:C00001;C00002` that matches
-    nothing downstream.
+    ChEBI packs multiple values for one tag as a semicolon-delimited list, so a tag whose value is
+    "C00001;C00002" is two KEGG accessions, not one. Splitting matters for correctness, not just
+    completeness: joining an unsplit value onto a prefix produces a CURIE like
+    `KEGG.COMPOUND:C00001;C00002` that matches nothing downstream.
+
+    read_sdf() always hands back a *list* of the lines under a tag, so this iterates lines as well
+    as splitting each one. In the babel-1.18 SDF no tag we read spans more than one line -- only
+    `DEFINITION`, which we don't read, does (5 entries) -- but the older code here concatenated
+    multiple lines, so the behaviour is kept rather than assumed away.
 
     :param value_lines: The list of raw value lines read for one tag.
     :return: A list of individual values, stripped, with empties dropped.
@@ -832,13 +843,20 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
     # these outputs could come out empty (a truncated download, a reformatted value, a changed
     # dbx column layout). Either output being empty means a silently broken release, so fail here
     # rather than let the build carry on and look healthy.
+    #
+    # Both files have already been written and closed by this point, so the empty file exists on
+    # disk when we raise; Snakemake deletes a failed job's outputs, but a direct call leaves it
+    # behind. Hence "wrote an empty ..." rather than "refusing to write".
     if count_secondary_ids == 0:
         raise ValueError(
             f"No CHEBI secondary IDs were found in {sdf}, but ChEBI always publishes them. "
-            f"Refusing to write an empty property file to {propfile_gz}."
+            f"Wrote an empty property file to {propfile_gz}; delete it and re-run once the cause is fixed."
         )
     if count_xrefs == 0:
-        raise ValueError(f"No ChEBI xrefs were generated from {sdf} and {dbx}. Refusing to write an empty {outfile}.")
+        raise ValueError(
+            f"No ChEBI xrefs were generated from {sdf} and {dbx}. "
+            f"Wrote an empty concord to {outfile}; delete it and re-run once the cause is fixed."
+        )
     logger.info(f"make_chebi_relations() wrote {count_xrefs} xrefs and {count_secondary_ids} secondary IDs.")
 
     write_concord_metadata(
