@@ -82,20 +82,32 @@ CHEBI_SDF_KEYS = frozenset(
     }
 )
 
-# ChEBI's database_accession.tsv names each xref's database only by a numeric source_id, which is
-# resolved against source.tsv. We match on the *name* rather than pinning the current numbers (45 and
-# 68) so that a renumbering raises instead of silently emptying this ingest -- the same failure mode
-# as the SDF tag renames. The names come from source.tsv's `name` column.
+# How to read database_accession.tsv, because `source_id` does not mean one thing:
+#
+#   - For `type = MANUAL_X_REF`, source_id is the *target* database and accession_number is that
+#     database's own identifier. `9  3  C06147  MANUAL_X_REF  3  45` is CHEBI:3 -> KEGG.COMPOUND:C06147.
+#   - For every other type the namespace is fixed by `type`, and source_id records only *where ChEBI
+#     got the value*. The same CAS numbers arrive under ChemIDplus (19,720 rows), KEGG COMPOUND
+#     (10,476), NIST Chemistry WebBook (4,707) and others; CITATION rows are attributed to PubMed,
+#     Agricola and so on the same way.
+#
+# So a source_id match alone does not identify an accession, and the two constants below have to be
+# applied together. See docs/sources/CHEBI/README.md.
+
+# Sources whose MANUAL_X_REF rows we take, matched on source.tsv's `name` column rather than on the
+# current id numbers (45 and 68) so that a renumbering raises instead of silently emptying this
+# ingest -- the same failure mode as the SDF tag renames.
 CHEBI_DBX_SOURCE_NAMES = {
     "KEGG COMPOUND": KEGGCOMPOUND,
     "PubChem Compound": PUBCHEMCOMPOUND,
 }
 
-# The only `type` whose accession_number is the source's own identifier. Rows under the same
-# source_id can carry other types -- notably CAS, whose accession_number is a CAS registry number
-# (`17  7  498-15-7  CAS  1  45`, a CAS number filed against KEGG COMPOUND). Matching on source_id
-# alone would emit 10,615 CAS numbers as KEGG/PubChem CURIEs, so both columns must be checked.
-# See docs/sources/CHEBI/README.md.
+# The only `type` whose accession_number is the source database's own identifier. Restricting to it
+# is what keeps provenance-tagged rows out: `17  7  498-15-7  CAS  1  45` is a CAS registry number
+# ChEBI sourced *from* KEGG COMPOUND, not a KEGG accession, and taking source_id at face value would
+# emit 10,615 such CAS numbers as KEGG/PubChem CURIEs.
+#
+# Ingesting those rows as CAS: xrefs in their own right is issue #956, not an oversight here.
 CHEBI_DBX_ACCESSION_TYPE = "MANUAL_X_REF"
 
 
@@ -758,9 +770,13 @@ def read_chebi_dbx_source_ids(source_tsv):
     """
     Map ChEBI source_id -> Babel prefix for the databases make_chebi_relations() takes xrefs from.
 
-    database_accession.tsv identifies each xref's database only by a numeric source_id; source.tsv
-    is the lookup table. Resolving by name means ChEBI renumbering a source fails here rather than
-    quietly producing no xrefs for it, which is exactly how the SDF tag renames went unnoticed.
+    database_accession.tsv refers to sources only by a numeric source_id; source.tsv is the lookup
+    table. Note that a source_id identifies the *target* database only on MANUAL_X_REF rows -- on
+    rows of other types it records where ChEBI sourced the value instead, which is why callers must
+    pair this with CHEBI_DBX_ACCESSION_TYPE rather than matching on the source alone.
+
+    Resolving by name means ChEBI renumbering a source fails here rather than quietly producing no
+    xrefs for it, which is exactly how the SDF tag renames went unnoticed.
 
     :param source_tsv: Path to ChEBI's source.tsv (columns: id, name, url, prefix, description).
     :return: {source_id -> Babel prefix} for every name in CHEBI_DBX_SOURCE_NAMES.
@@ -886,9 +902,8 @@ def make_chebi_relations(sdf, dbx, dbx_source, outfile, propfile_gz, metadata_ya
                     counts[pk] += 1
         # DO THE xref stuff
         # database_accession.tsv columns: id, compound_id, accession_number, type, status_id,
-        # source_id. Both the source (a numeric source_id resolved via source.tsv) and the type must
-        # match: rows of other types under the same source_id carry a different kind of identifier
-        # entirely, e.g. a CAS registry number filed against KEGG COMPOUND.
+        # source_id. Both must match, because source_id only names the target database on
+        # MANUAL_X_REF rows; elsewhere it is provenance. See CHEBI_DBX_SOURCE_NAMES above.
         lines = dbxdata.split("\n")
         for line in lines[1:]:
             x = line.strip().split("\t")

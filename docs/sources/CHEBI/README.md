@@ -20,16 +20,36 @@ id  compound_id  accession_number  type  status_id  source_id
 9   3            C06147            MANUAL_X_REF     3   45
 ```
 
+### `source_id` does not mean one thing
+
+The trap in this file is that `source_id` changes meaning depending on `type`:
+
+- On **`MANUAL_X_REF`** rows, `source_id` is the **target database** and `accession_number` is that
+  database's own identifier. `9  3  C06147  MANUAL_X_REF  3  45` is
+  CHEBI:3 → `KEGG.COMPOUND:C06147`.
+- On every other type, the namespace is fixed by `type` and `source_id` records only **where ChEBI
+  got the value**. The same CAS registry numbers arrive attributed to ChemIDplus (19,720 rows),
+  KEGG COMPOUND (10,476), NIST Chemistry WebBook (4,707), DrugCentral (1,566) and others;
+  `CITATION` rows are attributed to PubMed, Agricola and so on the same way.
+
+So `source_id` on its own never identifies an accession. Reading it as "the target database" for
+every row is the mistake that makes `17  7  498-15-7  CAS  1  45` — a CAS number ChEBI sourced
+*from* KEGG COMPOUND — look like the KEGG accession `498-15-7`.
+
+### The filter
+
 A row is taken as a cross-reference only when **both** of these hold:
 
+- `type` is `MANUAL_X_REF`, so that `source_id` really does name the target database. Dropping this
+  condition would emit 10,615 CAS numbers as KEGG/PubChem CURIEs (10,476 under KEGG COMPOUND, 139
+  under PubChem Compound).
 - `source_id` resolves, via `source.tsv`, to a name in `CHEBI_DBX_SOURCE_NAMES` — today
   `KEGG COMPOUND` (45) and `PubChem Compound` (68). Resolving by *name* rather than pinning the
   numbers means a renumbering raises instead of silently emptying the ingest.
-- `type` is `MANUAL_X_REF`. This is not optional: `source_id` alone does not identify an accession.
-  Both sources also carry `CAS`-typed rows whose `accession_number` is a CAS registry number rather
-  than the source's own ID (`17  7  498-15-7  CAS  1  45`) — 10,476 under KEGG COMPOUND and 139
-  under PubChem Compound. Matching on `source_id` alone would emit 10,615 CAS numbers as
-  KEGG/PubChem CURIEs.
+
+Ingesting the `CAS`-typed rows as `CAS:` cross-references in their own right is a separate question,
+tracked in [#956](https://github.com/NCATSTranslator/Babel/issues/956) — they are excluded here
+because they are not KEGG or PubChem accessions, not because CAS is unwanted.
 
 Filtered that way the file yields 18,465 KEGG COMPOUND and 55 PubChem Compound cross-references, and
 every accession matches its expected shape (`C\d+`, and all-digits respectively). Rows whose CHEBI

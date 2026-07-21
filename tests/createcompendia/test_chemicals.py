@@ -281,9 +281,9 @@ DBX_KEGG_ROW = "9\t3\tC06147\tMANUAL_X_REF\t3\t45\n"
 # A PubChem Compound row, verbatim: CHEBI:132338 -> PUBCHEM.COMPOUND:101936044.
 DBX_PUBCHEM_ROW = "970951\t132338\t101936044\tMANUAL_X_REF\t1\t68\n"
 
-# A CAS row filed against source_id 45 (KEGG COMPOUND), verbatim. Its accession_number is a CAS
-# registry number, not a KEGG accession, so matching on source_id alone would emit
-# "KEGG.COMPOUND:498-15-7". 10,476 rows in the real file have this shape.
+# A CAS row attributed to source_id 45 (KEGG COMPOUND), verbatim. On a CAS row source_id is
+# provenance, so this is a CAS registry number ChEBI got *from* KEGG COMPOUND, not a KEGG accession;
+# reading source_id at face value would emit "KEGG.COMPOUND:498-15-7". 10,476 real rows look like this.
 DBX_CAS_ROW_UNDER_KEGG_SOURCE = "17\t7\t498-15-7\tCAS\t1\t45\n"
 
 # source.tsv, subset to the rows these tests need. Header and the two source rows are verbatim from
@@ -458,11 +458,12 @@ def test_make_chebi_relations_emits_database_accession_xrefs(tmp_path):
 
 @pytest.mark.unit
 def test_make_chebi_relations_ignores_non_accession_rows_of_a_wanted_source(tmp_path):
-    """A CAS-typed row filed against the KEGG COMPOUND source must not become a KEGG xref.
+    """A CAS-typed row attributed to the KEGG COMPOUND source must not become a KEGG xref.
 
-    source_id alone does not identify an accession: 10,476 rows in the real file are CAS registry
-    numbers filed under source_id 45, so matching on source_id alone would emit
-    "KEGG.COMPOUND:498-15-7". Only MANUAL_X_REF rows carry the source's own identifier.
+    On a CAS row, source_id is provenance -- where ChEBI got the number -- not the target database;
+    the same CAS numbers also arrive attributed to ChemIDplus, NIST and others. Only on MANUAL_X_REF
+    rows does source_id name the target. 10,476 rows in the real file are CAS numbers attributed to
+    source_id 45, so reading source_id at face value would emit "KEGG.COMPOUND:498-15-7".
     """
     concord_lines, _ = _run_make_chebi_relations(
         tmp_path, dbx_contents=DBX_HEADER + DBX_KEGG_ROW + DBX_CAS_ROW_UNDER_KEGG_SOURCE
