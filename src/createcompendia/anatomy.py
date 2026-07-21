@@ -28,11 +28,6 @@ EMAPA_ORGAN = f"{EMAPA}:35949"
 EMAPA_TISSUE = f"{EMAPA}:35868"
 
 
-def _write_ontology_ids(source_prefix, outfile):
-    source = ANATOMY_OBO_SOURCES[source_prefix]
-    write_obo_ids([(source["root"], source["type"])], outfile)
-
-
 def remove_overused_xrefs_dict(kv):
     """Given a dict of iri->list of xrefs, look through them for xrefs that are in more than one list.
     Remove those anywhere they occur, as they will only lead to pain further on."""
@@ -91,7 +86,7 @@ def write_uberon_ids(outfile):
 
 
 def write_cl_ids(outfile):
-    _write_ontology_ids(CL, outfile)
+    write_obo_ids([(ANATOMY_OBO_SOURCES[CL]["root"], ANATOMY_OBO_SOURCES[CL]["type"])], outfile)
 
 
 def _emapa_descendants(uber, root):
@@ -129,10 +124,11 @@ def write_emapa_ids(outfile):
     (the ``order`` list ranks GrossAnatomicalStructure above AnatomicalEntity) and UBERON's
     gross-branch override in write_uberon_ids().
 
-    NOTE: EMAPA is not (yet) one of GrossAnatomicalStructure's id_prefixes in the Biolink
-    Model, so EMAPA terms typed as gross are dropped by write_compendium() until EMAPA is
-    registered for that class. The source-impact report flags this; see
-    docs/AddingNewSources.md.
+    Both types survive write_compendium(): EMAPA is registered as an id_prefix for
+    biolink:AnatomicalEntity and biolink:GrossAnatomicalStructure in the Biolink Model
+    version this build uses. If a future version drops either registration, gross-typed
+    EMAPA CURIEs would start being silently dropped, and the source-impact report's
+    survival columns are what would catch it.
     """
     root = ANATOMY_OBO_SOURCES[EMAPA]["root"]
     uber = UberGraph()
@@ -147,7 +143,7 @@ def write_emapa_ids(outfile):
 
 
 def write_go_ids(outfile):
-    _write_ontology_ids(GO, outfile)
+    write_obo_ids([(ANATOMY_OBO_SOURCES[GO]["root"], ANATOMY_OBO_SOURCES[GO]["type"])], outfile)
 
 
 def write_mesh_ids(outfile):
