@@ -1241,21 +1241,30 @@ def read_identifier_file(infile):
 def read_badxrefs(fn):
     """Read an ``input_data/*_badxrefs.txt`` file into a set of ``(subject, object)`` tuples.
 
-    Format is one space-separated pair per line, with ``#`` comment lines. These files drop
-    individually wrong cross-reference pairs that survive prefix-level filtering, for cases where
-    the target prefix is legitimate in general but this particular pair is not.
+    Format is one space-separated pair per line; ``#`` comment lines and blank lines are
+    skipped. These files drop individually wrong cross-reference pairs that survive
+    prefix-level filtering, for cases where the target prefix is legitimate in general but
+    this particular pair is not.
 
-    The tuples are returned in the order written. Callers decide whether to match directionally
-    (diseasephenotype) or in either direction (anatomy, which builds frozensets from these).
+    Callers decide whether to match directionally (diseasephenotype) or in either direction
+    (anatomy, which builds frozensets from these); the returned set is unordered either way.
+
+    A line that is neither blank, a comment, nor exactly two space-separated tokens raises
+    ``ValueError``. Skipping it instead would mean an entry a maintainer believed was
+    suppressing a bad xref silently does nothing — the pair reappears in the compendia and
+    nothing anywhere says why. A tab instead of a space is the easy way to write one.
     """
     morebad = set()
     with open(fn) as inf:
-        for line in inf:
+        for lineno, line in enumerate(inf, 1):
             if line.startswith("#"):
                 continue
-            x = line.strip().split(" ")
-            if len(x) < 2:
+            stripped = line.strip()
+            if not stripped:
                 continue
+            x = stripped.split(" ")
+            if len(x) != 2:
+                raise ValueError(f"{fn}:{lineno}: expected two space-separated CURIEs, got {len(x)}: {line.rstrip()!r}")
             morebad.add((x[0], x[1]))
     return morebad
 

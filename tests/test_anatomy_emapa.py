@@ -124,6 +124,47 @@ def test_anatomy_bad_xref_filter_still_applies_the_umls_go_rule():
 
 
 @pytest.mark.unit
+def test_badxrefs_path_is_threaded_through_to_clique_building(tmp_path):
+    """A pair in the bad-xrefs file should stop the merge in ``compute_cliques_for_impact_report``.
+
+    The filter is unit-tested above in isolation, but the value of the file depends on the whole
+    chain — path argument, ``read_badxrefs``, frozenset conversion, the ``concord_pair_filter``
+    hook, ``glom_from_files`` — actually being connected. Running the same two ids files and
+    concord with and without the file is the cheapest assertion that it is: without, the two
+    CURIEs land in one clique; with, they stay apart.
+    """
+    ids = tmp_path / "UBERON"
+    ids.write_text(f"UBERON:0001236\t{GROSS_ANATOMICAL_STRUCTURE}\nMESH:D019439\t{CELL}\n")
+    concord = tmp_path / "UBERON_concord"
+    concord.write_text("UBERON:0001236\txref\tMESH:D019439\n")
+    badxrefs = tmp_path / "badxrefs.txt"
+    badxrefs.write_text("# drop it\nUBERON:0001236 MESH:D019439\n")
+
+    # Passing "" disables the filter, so this is the un-suppressed baseline.
+    merged, _ = anatomy.compute_cliques_for_impact_report([str(concord)], [str(ids)], badxrefs="")
+    assert merged["UBERON:0001236"] == merged["MESH:D019439"], "expected the xref to merge them without the file"
+
+    split, _ = anatomy.compute_cliques_for_impact_report([str(concord)], [str(ids)], badxrefs=str(badxrefs))
+    assert split["UBERON:0001236"] != split["MESH:D019439"], "the bad-xrefs file should have blocked the merge"
+
+
+@pytest.mark.unit
+def test_read_badxrefs_rejects_a_line_that_is_not_a_pair(tmp_path):
+    """A malformed entry should raise, not be skipped.
+
+    Skipping it would mean a maintainer's suppression silently does nothing — the bad xref
+    reappears in the compendia with nothing anywhere saying why. A tab instead of a space is
+    the easy way to write one, so that is the case used here. Blank and comment lines must
+    still be tolerated; the shipped anatomy file has both.
+    """
+    bad = tmp_path / "badxrefs.txt"
+    bad.write_text("# fine\n\nUBERON:0001236\tMESH:D019439\n")
+
+    with pytest.raises(ValueError, match="expected two space-separated CURIEs"):
+        read_badxrefs(str(bad))
+
+
+@pytest.mark.unit
 def test_shipped_anatomy_badxrefs_file_parses_and_lists_the_known_pairs():
     """The committed bad-xrefs file should parse and contain the two conflations it documents.
 

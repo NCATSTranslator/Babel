@@ -64,7 +64,11 @@ upper-case: `"MPATH"`, `"HTTP"` — a lower-case entry silently never matches. W
 ## Bad-xref files
 
 `input_data/*_badxrefs.txt` drop individual `subject object` pairs (**space** separated, `#`
-comments) from a concord before glom — for individually wrong pairs that survive prefix filtering.
+comments, blank lines allowed) from a concord before glom — for individually wrong pairs that
+survive prefix filtering. `read_badxrefs()` **raises** on a line that is not exactly two
+space-separated tokens rather than skipping it: a suppression that silently does nothing lets the
+bad xref back into the compendia with nothing anywhere saying why, and a tab instead of a space is
+the easy way to write one.
 See the code comments at `diseasephenotype.DEFAULT_BAD_XREFS` and the `disease_compendia`
 Snakemake rule (`src/snakefiles/diseasephenotype.snakefile`) for the registration gotcha: a key
 must be added in **both** places. `compute_cliques_for_impact_report()` now raises if a key names
