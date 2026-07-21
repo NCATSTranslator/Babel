@@ -91,7 +91,7 @@ CHEBI_SDF_KEYS = frozenset(
 #     (10,476), NIST Chemistry WebBook (4,707) and others; CITATION rows are attributed to PubMed,
 #     Agricola and so on the same way.
 #
-# So a source_id match alone does not identify an accession, and the two constants below have to be
+# So a source_id match alone does not identify an accession, and the three constants below have to be
 # applied together. See docs/sources/CHEBI/README.md.
 
 # Sources whose MANUAL_X_REF rows we take, matched on source.tsv's `name` column rather than on the
@@ -109,6 +109,14 @@ CHEBI_DBX_SOURCE_NAMES = {
 #
 # Ingesting those rows as CAS: xrefs in their own right is issue #956, not an oversight here.
 CHEBI_DBX_ACCESSION_TYPE = "MANUAL_X_REF"
+
+# Curation states we accept, resolved by name against status.tsv. ChEBI also publishes SUBMITTED
+# rows -- a depositor's unreviewed claim -- which we exclude: 793 of the KEGG COMPOUND rows and 30 of
+# the 55 PubChem Compound ones, so the exclusion costs little and these feed glom() as equivalences.
+#
+# Whether SUBMITTED is in fact reviewed by some other route is issue #957; if it turns out to be
+# trustworthy, adding it here is the whole change.
+CHEBI_DBX_ACCEPTED_STATUSES = frozenset({"CHECKED", "OK"})
 
 
 def get_type_from_smiles(smiles):
@@ -766,45 +774,49 @@ def split_chebi_sdf_values(value_lines):
     return values
 
 
-def read_chebi_dbx_source_ids(source_tsv):
+def read_chebi_lookup_ids(lookup_tsv, wanted_names=None):
     """
-    Map ChEBI source_id -> Babel prefix for the databases make_chebi_relations() takes xrefs from.
+    Map id -> name for the wanted rows of one of ChEBI's id/name lookup tables.
 
-    database_accession.tsv refers to sources only by a numeric source_id; source.tsv is the lookup
-    table. Note that a source_id identifies the *target* database only on MANUAL_X_REF rows -- on
-    rows of other types it records where ChEBI sourced the value instead, which is why callers must
-    pair this with CHEBI_DBX_ACCESSION_TYPE rather than matching on the source alone.
+    database_accession.tsv refers to both its source and its curation status by number only;
+    source.tsv and status.tsv are the lookup tables. Resolving by name means a ChEBI renumbering
+    fails here rather than quietly changing which rows we accept, which is exactly how the SDF tag
+    renames went unnoticed.
 
-    Resolving by name means ChEBI renumbering a source fails here rather than quietly producing no
-    xrefs for it, which is exactly how the SDF tag renames went unnoticed.
+    Note that on database_accession.tsv a source_id identifies the *target* database only on
+    MANUAL_X_REF rows -- on rows of other types it records where ChEBI sourced the value instead,
+    which is why callers must pair the source with CHEBI_DBX_ACCESSION_TYPE rather than matching on
+    the source alone.
 
-    :param source_tsv: Path to ChEBI's source.tsv (columns: id, name, url, prefix, description).
-    :return: {source_id -> Babel prefix} for every name in CHEBI_DBX_SOURCE_NAMES.
-    :raise ValueError: If any expected source name is absent from the file.
+    :param lookup_tsv: Path to a ChEBI lookup table whose first two columns are `id` and `name`
+        (source.tsv, status.tsv).
+    :param wanted_names: The names to look up, or None for every row (in which case there is nothing
+        to be missing, so no completeness check runs -- used for labelling, not for matching).
+    :return: {id -> name}, restricted to wanted_names.
+    :raise ValueError: If the header is not id/name, or any wanted name is absent from the file.
     """
-    source_ids = {}
-    with open(source_tsv) as inf:
+    ids_by_name = {}
+    with open(lookup_tsv) as inf:
         header = inf.readline().rstrip("\n").split("\t")
         if header[:2] != ["id", "name"]:
             raise ValueError(
-                f"Unexpected columns in ChEBI source file {source_tsv}: {header}. "
+                f"Unexpected columns in ChEBI lookup file {lookup_tsv}: {header}. "
                 f"Expected it to start with 'id' and 'name'."
             )
         for line in inf:
             row = line.rstrip("\n").split("\t")
             if len(row) < 2:
                 continue
-            if row[1] in CHEBI_DBX_SOURCE_NAMES:
-                source_ids[row[0]] = CHEBI_DBX_SOURCE_NAMES[row[1]]
+            if wanted_names is None or row[1] in wanted_names:
+                ids_by_name[row[0]] = row[1]
 
-    found_names = {name for name, prefix in CHEBI_DBX_SOURCE_NAMES.items() if prefix in source_ids.values()}
-    missing = set(CHEBI_DBX_SOURCE_NAMES) - found_names
+    missing = set() if wanted_names is None else set(wanted_names) - set(ids_by_name.values())
     if missing:
         raise ValueError(
-            f"ChEBI source file {source_tsv} does not list these expected sources: {sorted(missing)}. "
-            f"ChEBI has probably renamed them; update CHEBI_DBX_SOURCE_NAMES to match."
+            f"ChEBI lookup file {lookup_tsv} does not list these expected names: {sorted(missing)}. "
+            f"ChEBI has probably renamed them; update the matching constant in chemicals.py."
         )
-    return source_ids
+    return ids_by_name
 
 
 def check_chebi_sdf_keys(chebi_sdf_dat, sdf):
@@ -837,7 +849,7 @@ def check_chebi_sdf_keys(chebi_sdf_dat, sdf):
         )
 
 
-def make_chebi_relations(sdf, dbx, dbx_source, outfile, propfile_gz, metadata_yaml):
+def make_chebi_relations(sdf, dbx, dbx_source, dbx_status, outfile, propfile_gz, metadata_yaml):
     """CHEBI contains relations both about chemicals with and without inchikeys.  You might think that because
     everything is based on unichem, we could avoid the with structures part, but history has shown that we lose
     links in that case, so we will use both the structured and unstructured chemical entries."""
@@ -849,7 +861,11 @@ def make_chebi_relations(sdf, dbx, dbx_source, outfile, propfile_gz, metadata_ya
     # CHEBIs in the sdf by definition have structure (the sdf is a structure file)
     structured_chebi = set(chebi_sdf_dat.keys())
     # READ xrefs
-    dbx_prefixes_by_source_id = read_chebi_dbx_source_ids(dbx_source)
+    dbx_prefixes_by_source_id = {
+        source_id: CHEBI_DBX_SOURCE_NAMES[name]
+        for source_id, name in read_chebi_lookup_ids(dbx_source, set(CHEBI_DBX_SOURCE_NAMES)).items()
+    }
+    dbx_accepted_status_ids = set(read_chebi_lookup_ids(dbx_status, CHEBI_DBX_ACCEPTED_STATUSES))
     with open(dbx) as inf:
         dbxdata = inf.read()
     kk = CHEBI_SDF_KEY_KEGG
@@ -902,14 +918,17 @@ def make_chebi_relations(sdf, dbx, dbx_source, outfile, propfile_gz, metadata_ya
                     counts[pk] += 1
         # DO THE xref stuff
         # database_accession.tsv columns: id, compound_id, accession_number, type, status_id,
-        # source_id. Both must match, because source_id only names the target database on
-        # MANUAL_X_REF rows; elsewhere it is provenance. See CHEBI_DBX_SOURCE_NAMES above.
+        # source_id. Type, source and status must all match: source_id only names the target database
+        # on MANUAL_X_REF rows (elsewhere it is provenance), and SUBMITTED rows are unreviewed
+        # depositor claims. See CHEBI_DBX_SOURCE_NAMES above.
         lines = dbxdata.split("\n")
         for line in lines[1:]:
             x = line.strip().split("\t")
             if len(x) < 6:
                 continue
             if x[3] != CHEBI_DBX_ACCESSION_TYPE:
+                continue
+            if x[4] not in dbx_accepted_status_ids:
                 continue
             prefix = dbx_prefixes_by_source_id.get(x[5])
             if prefix is None:
@@ -925,6 +944,11 @@ def make_chebi_relations(sdf, dbx, dbx_source, outfile, propfile_gz, metadata_ya
     # publishes all four of these in every release, so any one coming out empty means a silently
     # broken build. Counted per input rather than in aggregate: both bugs this function has shipped
     # were one input going quiet while the others kept a whole-output guard satisfied.
+    #
+    # The dbx count is of rows actually *written*, so it is zero either when that file is broken or,
+    # in principle, when every one of its rows was skipped as already-structured. The second case is
+    # not distinguished, deliberately: it needs all ~18,000 of its accessions to be for SDF entries,
+    # which has never been close to true, and a build where it became true is one worth stopping for.
     #
     # Both files have already been written and closed by this point, so the empty file exists on
     # disk when we raise; Snakemake deletes a failed job's outputs, but a direct call leaves it

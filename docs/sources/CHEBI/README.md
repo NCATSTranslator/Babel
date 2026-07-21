@@ -8,8 +8,8 @@ ChEBI is ingested from two files pulled by `src/datahandlers/chebi.py`:
   `CHEBI_SDF_KEYS`.)
 - `database_accession.tsv` — the flat cross-reference table, covering the ChEBI entries that have no
   structure and so never appear in the SDF.
-- `source.tsv` — the lookup table that turns `database_accession.tsv`'s numeric `source_id` into a
-  database name.
+- `source.tsv` and `status.tsv` — the lookup tables that turn `database_accession.tsv`'s numeric
+  `source_id` and `status_id` into a database name and a curation state.
 
 ## Reading `database_accession.tsv`
 
@@ -38,7 +38,7 @@ every row is the mistake that makes `17  7  498-15-7  CAS  1  45` — a CAS numb
 
 ### The filter
 
-A row is taken as a cross-reference only when **both** of these hold:
+A row is taken as a cross-reference only when **all three** of these hold:
 
 - `type` is `MANUAL_X_REF`, so that `source_id` really does name the target database. Dropping this
   condition would emit 10,615 CAS numbers as KEGG/PubChem CURIEs (10,476 under KEGG COMPOUND, 139
@@ -46,14 +46,26 @@ A row is taken as a cross-reference only when **both** of these hold:
 - `source_id` resolves, via `source.tsv`, to a name in `CHEBI_DBX_SOURCE_NAMES` — today
   `KEGG COMPOUND` (45) and `PubChem Compound` (68). Resolving by *name* rather than pinning the
   numbers means a renumbering raises instead of silently emptying the ingest.
+- `status_id` resolves, via `status.tsv`, to `CHECKED` or `OK`. ChEBI's third state is `SUBMITTED`
+  — a depositor's claim that has not been reviewed. Concord rows feed `glom()` as equivalences, so
+  an unreviewed one merges cliques on nobody's authority; 793 KEGG COMPOUND rows and 30 of the 55
+  PubChem Compound rows are `SUBMITTED`, so excluding them costs little.
+  [#957](https://github.com/NCATSTranslator/Babel/issues/957) tracks checking against ChEBI's own
+  documentation whether `SUBMITTED` is in fact verified by some other route.
 
 Ingesting the `CAS`-typed rows as `CAS:` cross-references in their own right is a separate question,
 tracked in [#956](https://github.com/NCATSTranslator/Babel/issues/956) — they are excluded here
 because they are not KEGG or PubChem accessions, not because CAS is unwanted.
 
-Filtered that way the file yields 18,465 KEGG COMPOUND and 55 PubChem Compound cross-references, and
-every accession matches its expected shape (`C\d+`, and all-digits respectively). Rows whose CHEBI
-already appears in the SDF are skipped, since the SDF is authoritative for those.
+Filtered that way the file yields **17,672 KEGG COMPOUND and 25 PubChem Compound** cross-references,
+and every accession matches its expected shape (`C\d+`, and all-digits respectively). Rows whose
+CHEBI already appears in the SDF are skipped, since the SDF is authoritative for those.
+
+Note that `KEGG.COMPOUND` is not in `config.yaml`'s `chemical_ids` (it was dropped from UniChem in
+[#834](https://github.com/NCATSTranslator/Babel/issues/834)), so these xrefs act as *bridges* rather
+than adding compendium members: 1,058 KEGG accessions are shared by more than one ChEBI entry, which
+lets `glom()` merge the 2,196 ChEBI entries involved. That merging is the point — it is also the
+main risk of this ingest, and worth a `babel-clique-diff` if something downstream looks wrong.
 
 Regenerate those counts with
 [`scripts/audit_database_accession.py`](./scripts/audit_database_accession.py), which imports the
@@ -63,7 +75,7 @@ cannot drift from the pipeline. Its output for the 2026-07-21 file is committed 
 
 ```bash
 uv run python docs/sources/CHEBI/scripts/audit_database_accession.py \
-    database_accession.tsv.gz source.tsv.gz
+    database_accession.tsv.gz source.tsv.gz status.tsv.gz
 ```
 
 ### History: this half read nothing at all until #954

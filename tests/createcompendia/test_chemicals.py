@@ -295,15 +295,30 @@ SOURCE_TSV = (
     "68\tPubChem Compound\thttps://bioregistry.io/pubchem.compound:*\tpubchem.compound\t\n"
 )
 
+# status.tsv in full, verbatim from the same directory (fetched 2026-07-21) -- it really is this
+# short. DBX_KEGG_ROW is status 3 (OK) and DBX_PUBCHEM_ROW is status 1 (CHECKED); 9 (SUBMITTED) is
+# the one the ingest drops.
+STATUS_TSV = "id\tname\n1\tCHECKED\n3\tOK\n9\tSUBMITTED\n"
+
+# A KEGG row identical in shape to DBX_KEGG_ROW but SUBMITTED (status 9): CHEBI:1690 -> C05478.
+# Verbatim from database_accession.tsv; 793 KEGG rows look like this and none are ingested.
+DBX_SUBMITTED_KEGG_ROW = "1071122\t1690\tC05478\tMANUAL_X_REF\t9\t45\n"
+
 
 def _run_make_chebi_relations(
-    tmp_path, sdf=ABACAVIR_SDF, dbx_contents=DBX_HEADER + DBX_KEGG_ROW, source_contents=SOURCE_TSV
+    tmp_path,
+    sdf=ABACAVIR_SDF,
+    dbx_contents=DBX_HEADER + DBX_KEGG_ROW,
+    source_contents=SOURCE_TSV,
+    status_contents=STATUS_TSV,
 ):
     """Run make_chebi_relations() over a fixture SDF, returning (concord lines, Property dicts)."""
     dbx = tmp_path / "database_accession.tsv"
     dbx.write_text(dbx_contents)
     dbx_source = tmp_path / "source.tsv"
     dbx_source.write_text(source_contents)
+    dbx_status = tmp_path / "status.tsv"
+    dbx_status.write_text(status_contents)
     concord = tmp_path / "CHEBI"
     propfile = tmp_path / "props.jsonl.gz"
 
@@ -311,6 +326,7 @@ def _run_make_chebi_relations(
         str(sdf),
         str(dbx),
         str(dbx_source),
+        str(dbx_status),
         str(concord),
         propfile_gz=str(propfile),
         metadata_yaml=str(tmp_path / "metadata.yaml"),
@@ -497,6 +513,34 @@ def test_make_chebi_relations_skips_dbx_rows_for_structured_chebis(tmp_path):
     concord_lines, _ = _run_make_chebi_relations(tmp_path, dbx_contents=DBX_HEADER + duplicate + DBX_KEGG_ROW)
 
     assert concord_lines.count(f"CHEBI:421707\txref\t{KEGGCOMPOUND}:C07624") == 1
+
+
+@pytest.mark.unit
+def test_make_chebi_relations_ignores_submitted_dbx_rows(tmp_path):
+    """A SUBMITTED row is a depositor's unreviewed claim and must not become an xref, while its
+    CHECKED/OK siblings do.
+
+    These feed glom() as equivalences, so an unreviewed one merges cliques on a claim nobody
+    checked. 793 KEGG and 30 of the 55 PubChem rows are SUBMITTED, so excluding them costs little.
+    Revisit if issue #957 establishes that SUBMITTED is verified some other way.
+    """
+    concord_lines, _ = _run_make_chebi_relations(
+        tmp_path, dbx_contents=DBX_HEADER + DBX_KEGG_ROW + DBX_SUBMITTED_KEGG_ROW
+    )
+
+    assert f"CHEBI:3\txref\t{KEGGCOMPOUND}:C06147" in concord_lines
+    assert not any("C05478" in line for line in concord_lines)
+
+
+@pytest.mark.unit
+def test_make_chebi_relations_raises_when_a_lookup_table_is_reshaped(tmp_path):
+    """A lookup table whose first two columns are no longer id/name should fail, naming the file.
+
+    source.tsv and status.tsv decide which rows are accepted, so a column reshuffle there would
+    silently change the ingest -- the same class of failure as #954 itself, one file further out.
+    """
+    with pytest.raises(ValueError, match="Unexpected columns"):
+        _run_make_chebi_relations(tmp_path, source_contents="source_id\tsource_name\n45\tKEGG COMPOUND\n")
 
 
 @pytest.mark.unit
