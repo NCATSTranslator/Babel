@@ -146,6 +146,23 @@ a new output without a matching `check_*` rule breaks the DAG (no producer for
 ([`docs/sources/DRUGBANK/food-and-extracts/README.md`](sources/DRUGBANK/food-and-extracts/README.md))
 for a worked example that added `Food.txt`.
 
+### Which Biolink type a chemical clique gets
+
+`create_typed_sets` in [`src/createcompendia/chemicals.py`](../src/createcompendia/chemicals.py)
+types each glommed clique by a vote over its members' per-identifier types (from
+`intermediate/chemicals/partials/types`), with two wrinkles: a clique whose PubChem members all
+agree short-circuits the vote, and sources can contribute *extra candidates* — today only the
+DrugBank food/extract evidence — that join the vote rather than overriding it.
+
+Ties are broken by `config.yaml: chemical_type_order`, most preferred first. Two things about that
+ranking are deliberate and easy to get backwards: `biolink:Drug` is **last**, below
+`biolink:ChemicalEntity`, because it comes almost entirely from RxNorm formulations and is only
+useful where we failed to merge one with its active ingredient; and `biolink:Food` sits below every
+structure-bearing type, so food evidence can improve on a vague `ChemicalEntity` but can never
+demote a defined molecule. That second rule is a bug fix — see
+[the food-and-extracts README](sources/DRUGBANK/food-and-extracts/README.md) for what happened when
+the evidence was an override instead (issue #935).
+
 ## Output directories
 
 When the pipeline runs, it creates and populates these directories:

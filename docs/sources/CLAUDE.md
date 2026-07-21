@@ -106,3 +106,19 @@ reverse-engineering how the file was built. Prefer scripts that
 committed artifact cannot drift from the pipeline. Worked example:
 `docs/sources/DRUGBANK/food-and-extracts/scripts/generate_csvs.py`, which regenerates the two
 DrugBank retype CSVs from the same `classify_food_or_extract` the build uses.
+
+### Replaying a pipeline function beats rebuilding to measure a change
+
+The same shape works for *measuring* a change, not just regenerating an artifact. A completed
+build's `babel_outputs/intermediate/` holds exactly the inputs its compendium-building functions
+consumed, so a change to one of them can be measured in seconds by importing the production
+function and re-running it over those files, rather than paying for a multi-hour rebuild.
+`create_typed_sets` re-typed `babel-1.18`'s 293 `Food.txt` cliques from `partials/types` plus
+`ids/DRUGBANK_food_extracts` in 20 seconds, giving the exact per-clique before/after split. Import
+the production function so the measurement cannot drift from the pipeline, sort the output so
+re-runs diff cleanly, and commit the script with its output — worked example:
+`docs/sources/DRUGBANK/food-and-extracts/scripts/replay_type_vote.py`.
+
+This complements `babel-clique-diff`, it does not replace it. A replay only sees the cliques the
+build already produced, so it cannot show cliques that a change *creates, splits, or moves between
+compendia*. Use it to iterate cheaply, then confirm with a real build-vs-build diff.
