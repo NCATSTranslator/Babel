@@ -15,8 +15,9 @@ def normalize_sdf_tag(tag_line):
 
 
 def read_sdf(infile, interesting_keys):
-    """Given an sdf file name and a set of keys that we'd like to extract, return a dictionary going
-    chebiid -> {properties} where the properties are chosen from the interesting keys"""
+    """Given an sdf file name and a set of normalized tag keys (see normalize_sdf_tag()) that we'd
+    like to extract, return a dictionary going chebiid -> {properties} where the properties are
+    chosen from the interesting keys"""
     with open(infile) as inf:
         chebisdf = inf.read()
     lines = chebisdf.split("\n")
@@ -34,9 +35,9 @@ def read_sdf(infile, interesting_keys):
     return chebi_props
 
 
-def chebi_sdf_entry_to_dict(sdf_chunk, interesting_keys={}):
+def chebi_sdf_entry_to_dict(sdf_chunk, interesting_keys=frozenset()):
     """
-    Converts each SDF entry to a dictionary
+    Converts each SDF entry to a dictionary keyed by the normalized tag names in interesting_keys.
     """
     final_dict = {}
     current_key = "mol_file"
@@ -46,10 +47,10 @@ def chebi_sdf_entry_to_dict(sdf_chunk, interesting_keys={}):
             if ">" == line[0]:
                 current_key = normalize_sdf_tag(line)
                 if current_key in interesting_keys:
-                    final_dict[interesting_keys[current_key]] = []
+                    final_dict[current_key] = []
                 continue
             if current_key == "chebiid":
                 chebi_id = line
             if current_key in interesting_keys:
-                final_dict[interesting_keys[current_key]].append(line)
+                final_dict[current_key].append(line)
     return (chebi_id, final_dict)
