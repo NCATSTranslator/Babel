@@ -700,7 +700,7 @@ rule get_EC_labels:
     benchmark:
         config["output_directory"] + "/benchmarks/get_EC_labels.tsv"
     run:
-        ec.make_labels(output.labelfile, output.synonymfile)
+        ec.make_labels(input.infile, output.labelfile, output.synonymfile)
 
 
 ### SMPDB
@@ -846,6 +846,20 @@ rule get_drugbank_vocabulary:
     retries: 3  # DrugBank download occasionally fails transiently.
     run:
         drugbank.download_drugbank_vocabulary(config["drugbank_version"], output.outfile)
+
+
+# Split out from get_drugbank_vocabulary so that rule's `retries: 3` only re-runs the flaky
+# download, not the label/synonym extraction.
+rule get_drugbank_labels_and_synonyms:
+    input:
+        infile=config["download_directory"] + "/DRUGBANK/drugbank vocabulary.csv",
+    output:
+        labels=config["download_directory"] + "/DRUGBANK/labels",
+        synonyms=config["download_directory"] + "/DRUGBANK/synonyms",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_drugbank_labels_and_synonyms.tsv"
+    run:
+        drugbank.extract_drugbank_labels_and_synonyms(input.infile, output.labels, output.synonyms)
 
 
 ### GTOPDB We're only pulling ligands.  Maybe one day we'll want the whole db?
@@ -1083,6 +1097,8 @@ rule get_chebi:
     output:
         config["download_directory"] + "/CHEBI/ChEBI_complete.sdf",
         config["download_directory"] + "/CHEBI/database_accession.tsv",
+        config["download_directory"] + "/CHEBI/source.tsv",
+        config["download_directory"] + "/CHEBI/status.tsv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_chebi.tsv"
     retries: 3  # ChEBI FTP download occasionally fails transiently.

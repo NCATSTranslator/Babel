@@ -5,18 +5,6 @@ import src.assess_compendia as assessments
 import src.snakefiles.util as util
 
 
-rule get_drugbank_labels_and_synonyms:
-    input:
-        infile=config["download_directory"] + "/DRUGBANK/drugbank vocabulary.csv",
-    output:
-        labels=config["download_directory"] + "/DRUGBANK/labels",
-        synonyms=config["download_directory"] + "/DRUGBANK/synonyms",
-    benchmark:
-        config["output_directory"] + "/benchmarks/get_drugbank_labels_and_synonyms.tsv"
-    run:
-        drugbank.extract_drugbank_labels_and_synonyms(input.infile, output.labels, output.synonyms)
-
-
 rule chemical_umls_ids:
     input:
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
@@ -337,6 +325,8 @@ rule get_chebi_concord:
     input:
         sdf=config["download_directory"] + "/CHEBI/ChEBI_complete.sdf",
         dbx=config["download_directory"] + "/CHEBI/database_accession.tsv",
+        dbx_source=config["download_directory"] + "/CHEBI/source.tsv",
+        dbx_status=config["download_directory"] + "/CHEBI/status.tsv",
     output:
         outfile=config["intermediate_directory"] + "/chemicals/concords/CHEBI",
         propfile=config["intermediate_directory"] + "/chemicals/properties/get_chebi_concord.jsonl.gz",
@@ -345,7 +335,13 @@ rule get_chebi_concord:
         config["output_directory"] + "/benchmarks/get_chebi_concord.tsv"
     run:
         chemicals.make_chebi_relations(
-            input.sdf, input.dbx, output.outfile, propfile_gz=output.propfile, metadata_yaml=output.metadata_yaml
+            input.sdf,
+            input.dbx,
+            input.dbx_source,
+            input.dbx_status,
+            output.outfile,
+            propfile_gz=output.propfile,
+            metadata_yaml=output.metadata_yaml,
         )
 
 
@@ -407,9 +403,10 @@ rule chemical_compendia:
         metadata_yamls=[config["intermediate_directory"] + "/chemicals/partials/metadata-untyped_compendium.yaml"],
         properties_jsonl_gz=[config["intermediate_directory"] + "/chemicals/properties/get_chebi_concord.jsonl.gz"],
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
-        # Every source that overrides the clique type vote contributes one CURIE->biolink:Type file
-        # here; today that is only the DRUGBANK food-and-extract retype (issue #828).
-        forced_type_files=[config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts"],
+        # Every source contributing food/extract evidence to the clique type vote adds one
+        # CURIE->biolink:Type file here; today that is only the DRUGBANK food-and-extract retype
+        # (issues #828, #935).
+        food_type_files=[config["intermediate_directory"] + "/chemicals/ids/DRUGBANK_food_extracts"],
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["chemical_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["chemical_outputs"])),
@@ -426,7 +423,7 @@ rule chemical_compendia:
             input.properties_jsonl_gz,
             input.metadata_yamls,
             input.icrdf_filename,
-            input.forced_type_files,
+            input.food_type_files,
         )
 
 

@@ -35,3 +35,25 @@ without sacrificing download reliability. The FTP URL for EBI is
 
 **When to prefer FTP listing from the start** — if the HTTP mirror does not serve an Apache-style
 autoindex (no `<a href>` links to files), use FTP `NLST`/`MLSD` for discovery instead.
+
+## Sources behind a Cloudflare bot challenge
+
+Some sources (HMDB is the first) front their download URLs with a Cloudflare challenge page: the
+request comes back as a 403 whose body is an interactive JS/Turnstile challenge rather than the file
+you asked for. Cloudflare marks these responses with a
+[`cf-mitigated: challenge` header](https://developers.cloudflare.com/cloudflare-challenges/challenge-types/challenge-pages/detect-response/).
+
+**Retrying does not help, and neither does the User-Agent.** The challenge is served identically to
+a real browser; only a browser that can execute the challenge gets through. Left alone, a download
+would burn its whole retry budget (and, under Snakemake `retries`, the whole rule's) on a URL that
+cannot succeed unattended.
+
+**What Babel does** — `pull_via_urllib()` calls `raise_if_cloudflare_challenge()`
+(`src/babel_utils.py`) before its retry/backoff path. On a challenge response it raises immediately
+with a `RuntimeError` naming both the URL and the local path the file is expected at, so the
+operator can download it in a browser, drop it in place, and re-run the rule.
+
+**When a new source starts doing this** — the detection is generic, so no code change is needed; the
+rule will simply fail fast with instructions. Record the manual download in `config.yaml` under
+`build.workarounds` for that release, the same way the DrugBank login restriction is recorded, so
+the next person running a build knows a file needs placing by hand.

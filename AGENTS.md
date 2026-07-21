@@ -164,6 +164,11 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
   for chemical compendium types; adding a subtype needs an entry there *and* a matching hardcoded
   `check_*` report rule in `chemical.snakefile` or `rule chemical`'s DAG breaks. Full note in
   [`docs/Architecture.md`](docs/Architecture.md#chemical-compendium-output-types).
+- **Snakemake `resources.mem` in a `run:` block** — read `resources.mem_mb`, never `resources.mem`.
+  Snakemake normalizes every sized resource to `mem_mb` internally and re-exposes `mem` as a
+  *humanfriendly string*, so a rule's `mem="512G"` reaches Python as `"512 GB"` — and `mem_mb` is
+  decimal, so it is `512000`, not `524288`. See `duckdb_memory_limit_mb()` in
+  `src/snakefiles/util.py`, whose `.endswith("G")` parse of `resources.mem` broke on exactly this.
 - **Per-compendium metadata YAMLs** — `babel_outputs/metadata/<Type>.yaml` records provenance with
   per-source `prefix_counts` like `xref(CHEBI, DrugCentral): 4302`. Aggregate (prefix-pair) only —
   confirms a join pathway exists, not whether *specific* CURIEs are joinable.
@@ -277,6 +282,17 @@ ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandl
 - **Error handling** — raise exceptions (`RuntimeError`, `ValueError`) rather than
   `print(...) + exit(1)`, which bypasses Python's exception machinery and breaks unit testing.
 
+- **A log warning is not a control.** When you ship a deliberate simplification whose risk you can
+  name, decide whether its detection needs to *block* something. A `logger.warning` in a rule that
+  runs for hours and emits thousands of lines will not be read; if the condition means the output is
+  wrong, raise, or make the fix unnecessary. PR #918 is the cautionary case: it shipped a coarse
+  clique-level retype, wrote a comment saying the retype "must never fire in a real build; if it
+  does, the forced type should become a vote instead", added a warning to detect exactly that, filed
+  the issue (#935) *and* drafted the fix (#936) — then shipped the override anyway. The warning
+  fired seven times in `babel-1.18` and nobody saw it until the bad output was noticed downstream.
+  If you have already written the safer version, prefer shipping it over shipping a detector for the
+  version you know is wrong.
+
 - **Docstrings** — give modules, classes, and non-trivial functions a docstring covering what they
   do and any non-obvious behavior. Name functions for what they do — `fetch_*` (not `get_*`) when
   the call hits the network.
@@ -304,6 +320,21 @@ fixture standing in for a real record must be copied **verbatim** from the sourc
 record's ID in a comment so the next person can re-derive it; and any claim about the data that
 justifies a parsing decision belongs in a committed script that regenerates it, not in a PR
 description.
+
+The same rule applies one level up, to **clique structure**: concords are a derived artifact
+relative to cliques, so they cannot answer "what else is in this clique?". `glom()` merges
+*transitively* — two identifiers with no concord edge between them still share a clique via a third.
+PR #918 justified a coarse clique-level retype with "every concord partner of these 685 cliques is
+typed `ChemicalEntity`, so there is nothing to clobber", which was true of the concords and false of
+the build: `DRUGBANK:DB09341` "Dextrose, unspecified form" reaches the D-glucose clique through
+`RXCUI`/`UMLS`, and the retype shipped glucose, tocopherol and five others as `biolink:Food`
+(#935/#948). Answer clique-membership questions from a finished build —
+`partials/untyped_compendium` and the compendia themselves, the DuckDB `Edge` table, or Node
+Normalization — never from the concords that fed it.
+
+To measure a change to a compendium-building function, replaying it over a finished build's
+`intermediate/` is seconds where a rebuild is hours — see `docs/sources/CLAUDE.md` ("Replaying a
+pipeline function beats rebuilding to measure a change") for how, and for what it cannot show.
 
 When a bug fix is easy to cover with a test, suggest adding one as part of the fix.
 

@@ -45,7 +45,7 @@ rule process_ec_ids:
     benchmark:
         config["output_directory"] + "/benchmarks/process_ec_ids.tsv"
     run:
-        pap.write_ec_ids(output.outfile)
+        pap.write_ec_ids(input.infile, output.outfile)
 
 
 rule process_smpdb_ids:
