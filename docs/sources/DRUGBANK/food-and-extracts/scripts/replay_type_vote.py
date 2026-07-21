@@ -11,13 +11,15 @@ amylose, castor oil, omega-3/omega-6 fatty acids) shipped as foods.
 
 Issue #935 makes the evidence a *vote* instead. This script measures the effect of that change
 without a rebuild, by replaying the real ``create_typed_sets`` over the inputs a completed build
-already has on disk. It reports, and asserts, three things:
+already has on disk. It reports three things, and asserts the first two:
 
   1. how the existing Food.txt cliques re-type under the vote (expected: only the broken ones move);
   2. that D-glucose comes back as ``biolink:SmallMolecule`` with its food CURIE still a member;
-  3. that no clique carrying food evidence votes ``biolink:Drug`` -- the one type ranked *below*
-     Food, and therefore the one combination where the vote could still call a drug a food. If this
-     ever reports a clique, Drug's rank needs revisiting before Food can outrank it.
+  3. how many cliques carrying food evidence hold a ``biolink:Drug`` member. ``biolink:Drug`` is the
+     one type ranked *below* Food, so such a clique is typed Food -- a drug formulation called a
+     food. That is an **accepted** tradeoff, not a pending bug (see config.yaml:
+     chemical_type_order and the README for why Drug is last), so this is reported rather than
+     asserted: it is the number to watch. Revisit Drug's rank only if it starts growing.
 
 Usage (against a directory holding a build's ``compendia/`` and ``intermediate/``)::
 
@@ -117,10 +119,15 @@ def main():
     # Check 3: chemical_type_order ranks Drug last, below Food, so a clique voting Drug plus food
     # evidence is typed Food. That is mildly wrong but accepted rather than special-cased (see the
     # README). Report it rather than failing: this is the number to watch, not a build-breaker.
+    #
+    # Deliberately conservative -- it counts cliques holding *any* Drug member, which is a superset
+    # of those that would vote Drug (the vote is majority-count first, so a lone Drug member among
+    # ChemicalEntity ones loses). Zero here therefore proves zero Drug-votes-Food cliques; a nonzero
+    # count is an upper bound worth reading clique by clique.
     drugs = sorted(sorted(c) for c in cliques if any(types.get(curie) == DRUG for curie in c))
     if drugs:
-        print(f"\nNOTE: {len(drugs)} clique(s) carrying food evidence hold a {DRUG} member, so they")
-        print(f"      type as {FOOD} rather than {DRUG}. Accepted today; revisit Drug's rank if this grows.")
+        print(f"\nNOTE: {len(drugs)} clique(s) carrying food evidence hold a {DRUG} member. Any that")
+        print(f"      vote {DRUG} are typed {FOOD}. Accepted today; revisit Drug's rank if this grows.")
         for clique in drugs:
             print(f"  {clique}")
     else:
