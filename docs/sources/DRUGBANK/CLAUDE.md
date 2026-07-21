@@ -46,12 +46,13 @@ through the UMLS/RXNORM concords — inheriting `biolink:ChemicalEntity` from th
 an InChI Key are defined molecules that keep their normal chemical type. The Food/extract retype
 keys off exactly this (`classify_food_or_extract`).
 
-**That guard is now belt-and-braces, not the real protection.** It only filters the DrugBank row
-itself; it says nothing about the clique that row later gloms into. `chemicals.create_typed_sets`
-used to *force* the whole clique to the retyped value, and in `babel-1.18` that shipped D-glucose,
-ergocalciferol and tocopherol as `biolink:Food` — a structureless food row and a real small molecule
-had reached the same clique through UMLS/RxNorm. The evidence is now a **vote** ranked by
-`config.yaml: chemical_type_order`, where `biolink:Food` sits below every structure-bearing type, so
-a clique that votes `SmallMolecule` keeps it (issue #935). When reasoning about which cliques a
-retype will touch, remember that glom is transitive: two identifiers with no direct concord edge
-still share a clique via a third, so the concords cannot answer the question — a finished build can.
+**That guard is now a redundant second layer, not the real protection.** It only filters the
+DrugBank row itself; it says nothing about the clique that row later gloms into.
+`chemicals.create_typed_sets` used to *force* the whole clique to the retyped value, and in
+`babel-1.18` that shipped D-glucose, ergocalciferol and tocopherol as `biolink:Food` — a
+structureless food row and a real small molecule had reached the same clique through UMLS/RxNorm.
+The evidence is now a **vote** ranked by `config.yaml: chemical_type_order`, where `biolink:Food`
+sits below every structure-bearing type, so a clique that votes `SmallMolecule` keeps it
+(issue #935). When reasoning about which cliques a retype will touch, remember that glom is
+transitive: two identifiers with no direct concord edge still share a clique via a third, so the
+concords cannot answer the question — a finished build can.
