@@ -305,6 +305,14 @@ report generated over those is badly wrong in a way that looks plausible — for
 the source joining nothing, because the load-bearing UBERON concord is simply absent. Check
 timestamps, or rebuild the pipeline, before trusting an intermediate tree you did not just build.
 
+**Generating a report right after a clique diff** — section 2's "final compendium-assigned" counts
+are read from `babel_outputs/compendia/` *at generation time*, not from the intermediates the rest
+of the report uses. A two-sided clique diff leaves whichever side you built last sitting there, so
+generating the report straight afterwards can silently describe the **before** build: every other
+section is correct, and only that one block is wrong. Restore the after-side compendia first
+(`cp data/clique-diff/after/*.txt babel_outputs/compendia/`). The tell is that the
+compendium-assigned counts are far below the identifiers-added total in section 1.
+
 **Comparing a regenerated report against an older one** — expect the totals to move a little and
 diff the detail files rather than trusting the summary counts, which can hide offsetting changes.
 Between two EMAPA reports the summary showed a net −1 clique while 62 identifiers had actually left

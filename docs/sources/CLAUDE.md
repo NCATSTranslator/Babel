@@ -107,6 +107,18 @@ committed artifact cannot drift from the pipeline. Worked example:
 `docs/sources/DRUGBANK/food-and-extracts/scripts/generate_csvs.py`, which regenerates the two
 DrugBank retype CSVs from the same `classify_food_or_extract` the build uses.
 
+### Do not write unit tests for these scripts
+
+They are documentation, not production code. Their job is to show how a committed artifact was
+derived and to be *rewritten* — possibly from scratch, possibly quite differently — by whoever next
+needs to redo that analysis. Tests pinning their internals only make that rewrite more expensive,
+and they are not on any code path a build depends on. This applies to `/wrap` and any other
+coverage sweep: a source script with no tests is the intended state, not a gap.
+
+What *is* worth asserting is the finding itself, where it constrains real output — as a
+`pipeline`-marked test over the full downloaded file (see "Investigating a source" above), not as a
+unit test of the script that discovered it.
+
 ### Replaying a pipeline function beats rebuilding to measure a change
 
 The same shape works for *measuring* a change, not just regenerating an artifact. A completed
