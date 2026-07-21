@@ -6,8 +6,10 @@ before-cliques that split, lose members, or disappear (see
 [#895](https://github.com/NCATSTranslator/Babel/issues/895)). This page records a full
 build-vs-build [`babel-clique-diff`](../../tools/CliqueDiff.md) that closes that gap.
 
-Artifacts in [`clique-diff/`](./clique-diff/): `clique-diff.csv` (empty apart from its header, since
-there are no change rows) and `clique-diff.summary.json`.
+Artifacts in [`on-addition/`](./on-addition/): `clique-diff.csv` (empty apart from its header, since
+there are no change rows) and `clique-diff.summary.json`. The directory is named for the *change*
+being measured, not for the tool, so a later diff of a different EMAPA change gets its own sibling
+directory — see `docs/AddingNewSources.md` and `docs/sources/MP/disjointness/`.
 
 ## Headline: adding EMAPA is purely additive
 
@@ -146,8 +148,8 @@ uv run babel-clique-diff \
     --before-label "anatomy at main + #781 with EMAPA removed from anatomy_prefixes/ids/concords" \
     --after-label  "anatomy at main + #781 (EMAPA ids + concord; EMAPA NOT in anatomy_unique_prefixes)" \
     --note "Isolates adding EMAPA as an anatomy source. Both sides built from identical cached intermediates with the deterministic build_sets() ordering fix applied, so the only variable is EMAPA itself." \
-    --out-csv  docs/sources/EMAPA/clique-diff/clique-diff.csv \
-    --out-json docs/sources/EMAPA/clique-diff/clique-diff.summary.json
+    --out-csv  docs/sources/EMAPA/on-addition/clique-diff.csv \
+    --out-json docs/sources/EMAPA/on-addition/clique-diff.summary.json
 ```
 
 `--rerun-triggers mtime` keeps a `config.yaml` edit from invalidating the expensive
