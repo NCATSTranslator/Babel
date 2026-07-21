@@ -90,11 +90,35 @@ All of that was an artifact of the restriction, not of adding EMAPA. With EMAPA 
 - the three dropped CURIEs stay exactly where they were before this PR, so **no published
   identifier is withdrawn** and the sign-offs that removal required are moot.
 
-The three CURIEs are still not live EMAPA terms, and Babel still carries them only because a stale
-UBERON xref points at them. Cleaning that up is a real task — but it is a *deprecation* problem
-([#911](https://github.com/NCATSTranslator/Babel/issues/911)), not something adding a new source
-should do as a side effect, and a rule keyed on validity will handle all such CURIEs rather than
-only the handful that happened to collide with an EMAPA sibling.
+### The three CURIEs fail in two different ways
+
+They are still not live EMAPA terms, and Babel still carries them only because a UBERON xref points
+at them. But they are not the same kind of problem, which matters for how they eventually get
+cleaned up. Queried against `<http://reasoner.renci.org/ontology>` in UberGraph:
+
+| CURIE | triples | `owl:deprecated` | [`IAO:0100001`](http://purl.obolibrary.org/obo/IAO_0100001) "term replaced by" | `rdfs:label` |
+|---|---|---|---|---|
+| `EMAPA:35358` | 9 | `true` | [`EMAPA:19226`](http://purl.obolibrary.org/obo/EMAPA_19226) "frontal suture" | none |
+| `EMAPA:35459` | 9 | `true` | [`EMAPA:28061`](http://purl.obolibrary.org/obo/EMAPA_28061) "medullary collecting duct" | none |
+| `EMAPA:16271` | **0** | — | — | none |
+
+`EMAPA:35358` and `EMAPA:35459` are **properly deprecated**, and in each case the replacement EMAPA
+nominates is exactly the CURIE that already leads the clique — so the ontology endorses the outcome.
+
+`EMAPA:16271` is a different case entirely: it has **no triples at all**. It is not deprecated; it
+simply is not an EMAPA term in this snapshot. It is a dangling xref target, a CURIE
+[`UBERON:0007213`](http://purl.obolibrary.org/obo/UBERON_0007213) "mesenchyme derived from head
+neural crest" references that was never there to begin with. (The query covers the `ontology` graph
+only, so this means "not asserted there", not "never existed in any EMAPA release".)
+
+The consequence: **a deprecation-keyed rule would clean up the first two and miss the third**, since
+there is no `owl:deprecated` flag to key on. What excludes `EMAPA:16271` today is its absence from
+the EMAPA ids file, which `write_emapa_ids()` builds by traversal from
+[`EMAPA:0`](http://purl.obolibrary.org/obo/EMAPA_0) "anatomical structure" — a term with no axioms
+is unreachable and so never collected. Any eventual fix
+([#911](https://github.com/NCATSTranslator/Babel/issues/911)) needs to handle both shapes. Either
+way it is a deprecation/validity problem, not something adding a new source should do as a side
+effect.
 
 ## Reproducing
 
