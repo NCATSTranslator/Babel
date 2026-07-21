@@ -145,6 +145,11 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
   for chemical compendium types; adding a subtype needs an entry there *and* a matching hardcoded
   `check_*` report rule in `chemical.snakefile` or `rule chemical`'s DAG breaks. Full note in
   [`docs/Architecture.md`](docs/Architecture.md#chemical-compendium-output-types).
+- **Snakemake `resources.mem` in a `run:` block** — read `resources.mem_mb`, never `resources.mem`.
+  Snakemake normalizes every sized resource to `mem_mb` internally and re-exposes `mem` as a
+  *humanfriendly string*, so a rule's `mem="512G"` reaches Python as `"512 GB"` — and `mem_mb` is
+  decimal, so it is `512000`, not `524288`. See `duckdb_memory_limit_mb()` in
+  `src/snakefiles/util.py`, whose `.endswith("G")` parse of `resources.mem` broke on exactly this.
 - **Per-compendium metadata YAMLs** — `babel_outputs/metadata/<Type>.yaml` records provenance with
   per-source `prefix_counts` like `xref(CHEBI, DrugCentral): 4302`. Aggregate (prefix-pair) only —
   confirms a join pathway exists, not whether *specific* CURIEs are joinable.
