@@ -19,7 +19,7 @@ Writes a Markdown report to stdout.
 """
 
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 
 from src.createcompendia.chemicals import CHEBI_SDF_KEYS
 from src.sdfreader import normalize_sdf_tag
@@ -29,10 +29,15 @@ def count_tags(sdf_filename):
     """
     Count how many SDF entries carry each tag, keyed by the tag's normalized form.
 
-    :return: (Counter of normalized_key -> count, dict of normalized_key -> raw tag text)
+    Normalization is many-to-one -- it folds case, strips spaces, and maps `formulae` onto
+    `formula` -- so several raw tags can share a key. Every raw form seen for a key is collected
+    rather than the last one overwriting the rest, otherwise the report names a tag the count
+    doesn't correspond to.
+
+    :return: (Counter of normalized_key -> count, dict of normalized_key -> sorted list of raw tags)
     """
     counts = Counter()
-    raw_forms = {}
+    raw_forms = defaultdict(set)
     with open(sdf_filename) as inf:
         for line in inf:
             if not line.startswith("> <"):
@@ -40,8 +45,13 @@ def count_tags(sdf_filename):
             raw = line.strip()
             key = normalize_sdf_tag(raw)
             counts[key] += 1
-            raw_forms[key] = raw
-    return counts, raw_forms
+            raw_forms[key].add(raw)
+    return counts, {key: sorted(forms) for key, forms in raw_forms.items()}
+
+
+def format_raw_forms(forms):
+    """Render the raw tag(s) that normalize to one key as a Markdown table cell."""
+    return ", ".join(f"`{form}`" for form in forms)
 
 
 def main():
@@ -59,7 +69,7 @@ def main():
     missing = []
     for key in sorted(CHEBI_SDF_KEYS):
         if key in counts:
-            print(f"| `{key}` | yes | `{raw_forms[key]}` | {counts[key]} |")
+            print(f"| `{key}` | yes | {format_raw_forms(raw_forms[key])} | {counts[key]} |")
         else:
             missing.append(key)
             print(f"| `{key}` | **NO** | — | 0 |")
@@ -69,7 +79,7 @@ def main():
     print("| --- | --- | --- | --- |")
     for key, count in counts.most_common():
         requested = "yes" if key in CHEBI_SDF_KEYS else ""
-        print(f"| `{raw_forms[key]}` | `{key}` | {count} | {requested} |")
+        print(f"| {format_raw_forms(raw_forms[key])} | `{key}` | {count} | {requested} |")
 
     if missing:
         print(f"\n**{len(missing)} requested key(s) absent from this SDF: {', '.join(sorted(missing))}**")
