@@ -34,3 +34,4 @@ UNII:2S9ZZM9Q9V	skos:exactMatch	UMLS:C0796392	"UNII:2S9ZZM9Q9V includes UMLS:C07
 CHEBI:3395	skos:closeMatch	CHEBI:39585	CHEBI:3395 is carbidopa hydrate, CHEBI:39585 is the non-hydrate form	https://github.com/NCATSTranslator/Babel/issues/754
 PUBCHEM.COMPOUND:43805	skos:closeMatch	CHEBI:31941		https://github.com/NCATSTranslator/Babel/issues/715
 CHEBI:31941	skos:closeMatch	UMLS:C1314429	Formulation of this chemical?	https://github.com/NCATSTranslator/Babel/issues/715
+UNII:N19A0T0E5J	skos:exactMatch	UMLS:C0030520	Parathyroid hormone
