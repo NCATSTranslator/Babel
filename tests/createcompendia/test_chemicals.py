@@ -23,7 +23,12 @@ from src.categories import (
     POLYPEPTIDE,
     SMALL_MOLECULE,
 )
-from src.createcompendia.chemicals import create_typed_sets, make_chebi_relations, write_unichem_concords
+from src.createcompendia.chemicals import (
+    create_typed_sets,
+    make_chebi_relations,
+    split_chebi_sdf_values,
+    write_unichem_concords,
+)
 from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.predicates import HAS_ALTERNATIVE_ID
@@ -264,9 +269,14 @@ def test_create_typed_sets_leaves_a_clique_without_food_evidence_untouched():
 # tag holds CHEBI:421707.
 ABACAVIR_SDF = Path(__file__).parent.parent / "data" / "chebi_abacavir.sdf"
 
-# The empty database_accession.tsv that make_chebi_relations() also takes: header only, so these
-# tests measure the SDF half alone.
-DBX_HEADER = "ID\tCOMPOUND_ID\tSOURCE\tTYPE\tACCESSION_NUMBER\n"
+# The header of database_accession.tsv, copied verbatim from
+# https://ftp.ebi.ac.uk/pub/databases/chebi/flat_files/database_accession.tsv.gz (fetched 2026-07-21).
+# Passing it alone gives an empty dbx, so a test using only this measures the SDF half.
+DBX_HEADER = "id\tcompound_id\taccession_number\ttype\tstatus_id\tsource_id\n"
+
+# The first KEGG COMPOUND row of that same file, verbatim: CHEBI:3 -> KEGG.COMPOUND:C06147.
+# source_id 45 is "KEGG COMPOUND" in the sibling source.tsv.gz.
+DBX_KEGG_ROW = "9\t3\tC06147\tMANUAL_X_REF\t3\t45\n"
 
 
 def _run_make_chebi_relations(tmp_path, sdf=ABACAVIR_SDF, dbx_contents=DBX_HEADER):
@@ -357,3 +367,56 @@ def test_make_chebi_relations_raises_when_an_output_would_be_empty(tmp_path):
 
     with pytest.raises(ValueError, match="No CHEBI secondary IDs"):
         _run_make_chebi_relations(tmp_path, sdf=emptied)
+
+
+@pytest.mark.unit
+def test_make_chebi_relations_raises_when_no_xrefs_would_be_written(tmp_path):
+    """An SDF with no KEGG or PubChem links and an empty dbx should fail rather than write an empty
+    concord. This is the count_xrefs guard, which the secondary-ID test above never reaches."""
+    no_xrefs = tmp_path / "no_xrefs.sdf"
+    no_xrefs.write_text(
+        ABACAVIR_SDF.read_text()
+        .replace("> <KEGG COMPOUND Database Links>\nC07624", "> <KEGG COMPOUND Database Links>\n ")
+        .replace("> <PubChem Compound Database Links>\n441300", "> <PubChem Compound Database Links>\n ")
+    )
+
+    with pytest.raises(ValueError, match="No ChEBI xrefs"):
+        _run_make_chebi_relations(tmp_path, sdf=no_xrefs)
+
+
+@pytest.mark.unit
+def test_split_chebi_sdf_values_joins_values_across_lines():
+    """read_sdf() returns a tag's value as a list of lines, so splitting must cover both axes: several
+    values on one line and several lines under one tag.
+
+    No tag make_chebi_relations() reads spans more than one line in the babel-1.18 SDF (only
+    DEFINITION does, in 5 entries), but the code this replaced concatenated multiple lines, so the
+    behaviour is asserted rather than assumed away.
+    """
+    assert split_chebi_sdf_values(["C00001;C00002", "  C00003  ", "", "  ", "C00004;"]) == [
+        "C00001",
+        "C00002",
+        "C00003",
+        "C00004",
+    ]
+
+
+@pytest.mark.unit
+def test_make_chebi_relations_drops_every_database_accession_xref(tmp_path):
+    """PINS KNOWN-IMPERFECT BEHAVIOUR. The database_accession.tsv half of make_chebi_relations() is
+    dead code: it matches column 3 against "KEGG COMPOUND accession"/"Pubchem accession", but that
+    column is `type` and only ever holds MANUAL_X_REF, CITATION, CAS or REGISTRY_NUMBER -- the source
+    name moved to a numeric `source_id` resolved via the sibling source.tsv.gz. It also reads the
+    accession from column 4 (`status_id`) rather than column 2 (`accession_number`).
+
+    The branch fires on 0 of 422,561 rows in the file fetched 2026-07-21, losing 28,941 KEGG COMPOUND
+    and 194 PubChem Compound xrefs. It is the same failure this PR fixes for the SDF, on the other
+    input, and the count_xrefs guard cannot see it because the SDF supplies ~197,000 xrefs by itself.
+
+    INVERT this assertion, don't delete it, when that half is fixed: DBX_KEGG_ROW should then produce
+    "CHEBI:3\txref\tKEGG.COMPOUND:C06147".
+    """
+    concord_lines, _ = _run_make_chebi_relations(tmp_path, dbx_contents=DBX_HEADER + DBX_KEGG_ROW)
+
+    assert not any(line.startswith("CHEBI:3\t") for line in concord_lines)
+    assert f"CHEBI:3\txref\t{KEGGCOMPOUND}:C06147" not in concord_lines
