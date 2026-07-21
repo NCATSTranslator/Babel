@@ -69,8 +69,9 @@ main risk of this ingest, and worth a `babel-clique-diff` if something downstrea
 
 Regenerate those counts with
 [`scripts/audit_database_accession.py`](./scripts/audit_database_accession.py), which imports the
-same `read_chebi_dbx_source_ids()` and `CHEBI_DBX_ACCESSION_TYPE` the build matches on, so the audit
-cannot drift from the pipeline. Its output for the 2026-07-21 file is committed as
+same `read_chebi_lookup_ids()`, `CHEBI_DBX_ACCESSION_TYPE` and `CHEBI_DBX_ACCEPTED_STATUSES` the
+build matches on, so the audit cannot drift from the pipeline. Its output for the 2026-07-21 file is
+committed as
 [`dbx_audit_2026-07-21.md`](./dbx_audit_2026-07-21.md):
 
 ```bash
@@ -78,7 +79,7 @@ uv run python docs/sources/CHEBI/scripts/audit_database_accession.py \
     database_accession.tsv.gz source.tsv.gz status.tsv.gz
 ```
 
-### History: this half read nothing at all until #954
+### History: this half read nothing at all until #955
 
 The code originally expected columns `ID / COMPOUND_ID / SOURCE / TYPE / ACCESSION_NUMBER`, matching
 column 3 against the literal strings `KEGG COMPOUND accession` and `Pubchem accession`. After ChEBI
