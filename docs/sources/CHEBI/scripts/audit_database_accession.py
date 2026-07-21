@@ -20,7 +20,6 @@ All three files come from https://ftp.ebi.ac.uk/pub/databases/chebi/flat_files/.
 Writes a Markdown report to stdout.
 """
 
-import gzip
 import os
 import re
 import sys
@@ -33,6 +32,7 @@ from src.createcompendia.chemicals import (
     read_chebi_lookup_ids,
 )
 from src.prefixes import KEGGCOMPOUND, PUBCHEMCOMPOUND
+from src.util import open_maybe_gzipped
 
 # The shape each database's own accessions take, so a mismatched column shows up as a shape error
 # rather than as a plausible-looking CURIE. KEGG COMPOUND accessions are C-prefixed numbers; PubChem
@@ -41,11 +41,6 @@ ACCESSION_SHAPES = {
     KEGGCOMPOUND: re.compile(r"^C\d+$"),
     PUBCHEMCOMPOUND: re.compile(r"^\d+$"),
 }
-
-
-def open_maybe_gzipped(filename):
-    """Open a .tsv or .tsv.gz for text reading."""
-    return gzip.open(filename, "rt") if filename.endswith(".gz") else open(filename)
 
 
 def audit(dbx_filename, prefixes_by_source_id, accepted_status_ids, status_names_by_id):

@@ -1,4 +1,5 @@
 import copy
+import gzip
 import json
 import logging
 import os
@@ -64,6 +65,17 @@ def ensure_parent_dir(filename):
     parent = os.path.dirname(filename)
     if parent:
         os.makedirs(parent, exist_ok=True)
+
+
+def open_maybe_gzipped(filename, mode="rt"):
+    """Open `filename` for text I/O, transparently gunzipping it when the name ends in `.gz`.
+
+    Useful wherever a file may reach us either as the pipeline's decompressed copy or straight
+    from an upstream download: several sources publish `.tsv.gz`, `pull_via_ftp(decompress_data=True)`
+    stores the `.tsv`, and an analysis script pointed at the raw download would otherwise read gzip
+    bytes as UTF-8 and fail somewhere far from the cause.
+    """
+    return gzip.open(filename, mode) if filename.endswith(".gz") else open(filename, mode)
 
 
 # loggers = {}

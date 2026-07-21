@@ -24,8 +24,10 @@ from src.categories import (
     SMALL_MOLECULE,
 )
 from src.createcompendia.chemicals import (
+    CHEBI_DBX_SOURCE_NAMES,
     create_typed_sets,
     make_chebi_relations,
+    read_chebi_lookup_ids,
     split_chebi_sdf_values,
     write_unichem_concords,
 )
@@ -530,6 +532,24 @@ def test_make_chebi_relations_ignores_submitted_dbx_rows(tmp_path):
 
     assert f"CHEBI:3\txref\t{KEGGCOMPOUND}:C06147" in concord_lines
     assert not any("C05478" in line for line in concord_lines)
+
+
+@pytest.mark.unit
+def test_make_chebi_relations_reads_gzipped_lookup_tables(tmp_path):
+    """source.tsv/status.tsv should work gzipped as well as plain.
+
+    ChEBI publishes them as .tsv.gz and the pipeline stores the decompressed copies, so both forms
+    are in circulation -- docs/sources/CHEBI/README.md's audit invocation points straight at the
+    downloads. Reading gzip bytes as UTF-8 fails far from the cause.
+    """
+    gz_source = tmp_path / "source.tsv.gz"
+    with gzip.open(gz_source, "wt") as out:
+        out.write(SOURCE_TSV)
+
+    assert read_chebi_lookup_ids(str(gz_source), set(CHEBI_DBX_SOURCE_NAMES)) == {
+        "45": "KEGG COMPOUND",
+        "68": "PubChem Compound",
+    }
 
 
 @pytest.mark.unit

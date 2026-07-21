@@ -46,7 +46,14 @@ from src.prefixes import (
 from src.properties import HAS_ALTERNATIVE_ID, Property
 from src.sdfreader import read_sdf
 from src.ubergraph import UberGraph
-from src.util import Text, ensure_parent_dir, get_config, get_logger, get_memory_usage_summary
+from src.util import (
+    Text,
+    ensure_parent_dir,
+    get_config,
+    get_logger,
+    get_memory_usage_summary,
+    open_maybe_gzipped,
+)
 
 logger = get_logger(__name__)
 
@@ -796,7 +803,9 @@ def read_chebi_lookup_ids(lookup_tsv, wanted_names=None):
     :raise ValueError: If the header is not id/name, or any wanted name is absent from the file.
     """
     ids_by_name = {}
-    with open(lookup_tsv) as inf:
+    # Gzip-aware so the documented audit invocation, which points straight at the FTP downloads,
+    # works on the .tsv.gz files as well as the pipeline's decompressed copies.
+    with open_maybe_gzipped(lookup_tsv) as inf:
         header = inf.readline().rstrip("\n").split("\t")
         if header[:2] != ["id", "name"]:
             raise ValueError(
