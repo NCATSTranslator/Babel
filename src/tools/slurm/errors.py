@@ -217,8 +217,8 @@ def run(args: argparse.Namespace) -> None:
         print(f"error: {exc}", file=sys.stderr)
         sys.exit(1)
 
-    failures = parse_failures(err_file)
     if args.logs:
+        failures = parse_failures(err_file)
         print(build_report(failures, args.markdown, args.traceback_only, args.lines, logs_dir))
         sys.stdout.flush()
 
