@@ -271,23 +271,49 @@ ABACAVIR_SDF = Path(__file__).parent.parent / "data" / "chebi_abacavir.sdf"
 
 # The header of database_accession.tsv, copied verbatim from
 # https://ftp.ebi.ac.uk/pub/databases/chebi/flat_files/database_accession.tsv.gz (fetched 2026-07-21).
-# Passing it alone gives an empty dbx, so a test using only this measures the SDF half.
+# Passing it alone gives a dbx with no usable rows, which make_chebi_relations() now rejects -- so
+# every test that isn't specifically about that rejection supplies at least one row as well.
 DBX_HEADER = "id\tcompound_id\taccession_number\ttype\tstatus_id\tsource_id\n"
 
 # The first KEGG COMPOUND row of that same file, verbatim: CHEBI:3 -> KEGG.COMPOUND:C06147.
-# source_id 45 is "KEGG COMPOUND" in the sibling source.tsv.gz.
 DBX_KEGG_ROW = "9\t3\tC06147\tMANUAL_X_REF\t3\t45\n"
 
+# A PubChem Compound row, verbatim: CHEBI:132338 -> PUBCHEM.COMPOUND:101936044.
+DBX_PUBCHEM_ROW = "970951\t132338\t101936044\tMANUAL_X_REF\t1\t68\n"
 
-def _run_make_chebi_relations(tmp_path, sdf=ABACAVIR_SDF, dbx_contents=DBX_HEADER):
+# A CAS row filed against source_id 45 (KEGG COMPOUND), verbatim. Its accession_number is a CAS
+# registry number, not a KEGG accession, so matching on source_id alone would emit
+# "KEGG.COMPOUND:498-15-7". 10,476 rows in the real file have this shape.
+DBX_CAS_ROW_UNDER_KEGG_SOURCE = "17\t7\t498-15-7\tCAS\t1\t45\n"
+
+# source.tsv, subset to the rows these tests need. Header and the two source rows are verbatim from
+# https://ftp.ebi.ac.uk/pub/databases/chebi/flat_files/source.tsv.gz (fetched 2026-07-21); the
+# trailing description column of the PubChem row is elided for width, which the parser ignores.
+SOURCE_TSV = (
+    "id\tname\turl\tprefix\tdescription\n"
+    "45\tKEGG COMPOUND\thttps://bioregistry.io/kegg.compound:*\tkegg.compound\t\n"
+    "68\tPubChem Compound\thttps://bioregistry.io/pubchem.compound:*\tpubchem.compound\t\n"
+)
+
+
+def _run_make_chebi_relations(
+    tmp_path, sdf=ABACAVIR_SDF, dbx_contents=DBX_HEADER + DBX_KEGG_ROW, source_contents=SOURCE_TSV
+):
     """Run make_chebi_relations() over a fixture SDF, returning (concord lines, Property dicts)."""
     dbx = tmp_path / "database_accession.tsv"
     dbx.write_text(dbx_contents)
+    dbx_source = tmp_path / "source.tsv"
+    dbx_source.write_text(source_contents)
     concord = tmp_path / "CHEBI"
     propfile = tmp_path / "props.jsonl.gz"
 
     make_chebi_relations(
-        str(sdf), str(dbx), str(concord), propfile_gz=str(propfile), metadata_yaml=str(tmp_path / "metadata.yaml")
+        str(sdf),
+        str(dbx),
+        str(dbx_source),
+        str(concord),
+        propfile_gz=str(propfile),
+        metadata_yaml=str(tmp_path / "metadata.yaml"),
     )
 
     with gzip.open(propfile, "rt") as inf:
@@ -416,20 +442,69 @@ def test_split_chebi_sdf_values_joins_values_across_lines():
 
 
 @pytest.mark.unit
-def test_make_chebi_relations_drops_every_database_accession_xref(tmp_path):
-    """PINS KNOWN-IMPERFECT BEHAVIOUR (issue #954). The database_accession.tsv half of
-    make_chebi_relations() is dead code: it matches column 3 against "KEGG COMPOUND
-    accession"/"Pubchem accession", but that column is `type` and never holds either, so the branch
-    fires on 0 of 422,561 rows.
+def test_make_chebi_relations_emits_database_accession_xrefs(tmp_path):
+    """A database_accession.tsv row should become a concord xref, with its prefix resolved through
+    source.tsv and its accession read from the accession_number column.
 
-    It is the same silent-upstream-reshape failure this PR fixes for the SDF, on the other input,
-    and the per-tag counts added here cannot see it -- they cover the SDF's tags, not this file.
-    The analysis and the fix are #955.
-
-    INVERT this assertion, don't delete it, when that half is fixed: DBX_KEGG_ROW should then produce
-    "CHEBI:3\txref\tKEGG.COMPOUND:C06147".
+    This is the inverted form of the assertion that pinned issue #954: the branch used to match
+    column 3 against "KEGG COMPOUND accession", but that column is `type`, and it read the accession
+    from `status_id`. It fired on 0 of 422,561 rows.
     """
-    concord_lines, _ = _run_make_chebi_relations(tmp_path, dbx_contents=DBX_HEADER + DBX_KEGG_ROW)
+    concord_lines, _ = _run_make_chebi_relations(tmp_path, dbx_contents=DBX_HEADER + DBX_KEGG_ROW + DBX_PUBCHEM_ROW)
 
-    assert not any(line.startswith("CHEBI:3\t") for line in concord_lines)
-    assert f"CHEBI:3\txref\t{KEGGCOMPOUND}:C06147" not in concord_lines
+    assert f"CHEBI:3\txref\t{KEGGCOMPOUND}:C06147" in concord_lines
+    assert f"CHEBI:132338\txref\t{PUBCHEMCOMPOUND}:101936044" in concord_lines
+
+
+@pytest.mark.unit
+def test_make_chebi_relations_ignores_non_accession_rows_of_a_wanted_source(tmp_path):
+    """A CAS-typed row filed against the KEGG COMPOUND source must not become a KEGG xref.
+
+    source_id alone does not identify an accession: 10,476 rows in the real file are CAS registry
+    numbers filed under source_id 45, so matching on source_id alone would emit
+    "KEGG.COMPOUND:498-15-7". Only MANUAL_X_REF rows carry the source's own identifier.
+    """
+    concord_lines, _ = _run_make_chebi_relations(
+        tmp_path, dbx_contents=DBX_HEADER + DBX_KEGG_ROW + DBX_CAS_ROW_UNDER_KEGG_SOURCE
+    )
+
+    assert f"CHEBI:3\txref\t{KEGGCOMPOUND}:C06147" in concord_lines
+    assert not any("498-15-7" in line for line in concord_lines)
+
+
+@pytest.mark.unit
+def test_make_chebi_relations_raises_when_chebi_renames_a_dbx_source(tmp_path):
+    """A source.tsv that no longer lists an expected source name should fail the build, naming it.
+
+    Resolving source_id by name is what makes a renumbering safe; it is only safe if a *rename* is
+    loud, otherwise we have swapped one silent-empty failure for another.
+    """
+    renamed = SOURCE_TSV.replace("KEGG COMPOUND", "KEGG Compound")
+
+    with pytest.raises(ValueError, match="KEGG COMPOUND"):
+        _run_make_chebi_relations(tmp_path, source_contents=renamed)
+
+
+@pytest.mark.unit
+def test_make_chebi_relations_skips_dbx_rows_for_structured_chebis(tmp_path):
+    """A dbx row for a CHEBI already in the SDF should be skipped, since the SDF is authoritative for
+    those. CHEBI:421707 is the fixture SDF's entry, so its dbx row must not be written twice."""
+    duplicate = "1\t421707\tC07624\tMANUAL_X_REF\t1\t45\n"
+
+    # DBX_KEGG_ROW rides along so the dbx still contributes something; a dbx whose every row is
+    # skipped trips the empty-input guard, which is the subject of the test below rather than this one.
+    concord_lines, _ = _run_make_chebi_relations(tmp_path, dbx_contents=DBX_HEADER + duplicate + DBX_KEGG_ROW)
+
+    assert concord_lines.count(f"CHEBI:421707\txref\t{KEGGCOMPOUND}:C07624") == 1
+
+
+@pytest.mark.unit
+def test_make_chebi_relations_raises_when_the_dbx_contributes_nothing(tmp_path):
+    """A database_accession.tsv that yields no xrefs at all should fail the build, naming that file.
+
+    This is the check that would have caught issue #954 the release it appeared. The SDF's ~197,000
+    xrefs meant any whole-output guard stayed satisfied while this input silently contributed zero
+    rows for an entire release, so it is counted and checked on its own.
+    """
+    with pytest.raises(ValueError, match="database_accession.tsv"):
+        _run_make_chebi_relations(tmp_path, dbx_contents=DBX_HEADER)

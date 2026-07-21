@@ -7,9 +7,58 @@ ChEBI is ingested from two files pulled by `src/datahandlers/chebi.py`:
   ontology via UberGraph, not from here; the SDF's `ChEBI NAME` tag is read only as a canary — see
   `CHEBI_SDF_KEYS`.)
 - `database_accession.tsv` — the flat cross-reference table, covering the ChEBI entries that have no
-  structure and so never appear in the SDF. **This half currently contributes nothing** — it is read
-  with the columns ChEBI used to ship rather than the ones it does; see issue #954, fixed in #955.
-  `test_make_chebi_relations_drops_every_database_accession_xref` pins that behaviour meanwhile.
+  structure and so never appear in the SDF.
+- `source.tsv` — the lookup table that turns `database_accession.tsv`'s numeric `source_id` into a
+  database name.
+
+## Reading `database_accession.tsv`
+
+The file has six columns:
+
+```text
+id  compound_id  accession_number  type  status_id  source_id
+9   3            C06147            MANUAL_X_REF     3   45
+```
+
+A row is taken as a cross-reference only when **both** of these hold:
+
+- `source_id` resolves, via `source.tsv`, to a name in `CHEBI_DBX_SOURCE_NAMES` — today
+  `KEGG COMPOUND` (45) and `PubChem Compound` (68). Resolving by *name* rather than pinning the
+  numbers means a renumbering raises instead of silently emptying the ingest.
+- `type` is `MANUAL_X_REF`. This is not optional: `source_id` alone does not identify an accession.
+  Both sources also carry `CAS`-typed rows whose `accession_number` is a CAS registry number rather
+  than the source's own ID (`17  7  498-15-7  CAS  1  45`) — 10,476 under KEGG COMPOUND and 139
+  under PubChem Compound. Matching on `source_id` alone would emit 10,615 CAS numbers as
+  KEGG/PubChem CURIEs.
+
+Filtered that way the file yields 18,465 KEGG COMPOUND and 55 PubChem Compound cross-references, and
+every accession matches its expected shape (`C\d+`, and all-digits respectively). Rows whose CHEBI
+already appears in the SDF are skipped, since the SDF is authoritative for those.
+
+Regenerate those counts with
+[`scripts/audit_database_accession.py`](./scripts/audit_database_accession.py), which imports the
+same `read_chebi_dbx_source_ids()` and `CHEBI_DBX_ACCESSION_TYPE` the build matches on, so the audit
+cannot drift from the pipeline. Its output for the 2026-07-21 file is committed as
+[`dbx_audit_2026-07-21.md`](./dbx_audit_2026-07-21.md):
+
+```bash
+uv run python docs/sources/CHEBI/scripts/audit_database_accession.py \
+    database_accession.tsv.gz source.tsv.gz
+```
+
+### History: this half read nothing at all until #954
+
+The code originally expected columns `ID / COMPOUND_ID / SOURCE / TYPE / ACCESSION_NUMBER`, matching
+column 3 against the literal strings `KEGG COMPOUND accession` and `Pubchem accession`. After ChEBI
+reshaped the file, column 3 was `type` (only ever `MANUAL_X_REF`, `CITATION`, `CAS` or
+`REGISTRY_NUMBER`), so neither branch could fire — and the accession was being read from column 4,
+by then `status_id`. The branch matched **0 of 422,561 rows**.
+
+This is the same silent-upstream-reshape failure as the SDF tag renames (#951), on the other input.
+Neither `check_chebi_sdf_keys()` nor the `count_xrefs` guard could catch it, because the SDF
+supplies ~197,000 xrefs on its own — a reminder that a whole-output emptiness check does not protect
+an individual input. `make_chebi_relations()` now counts this file's contribution separately from
+the SDF's and raises if it is zero, which is what would have caught this the release it appeared.
 
 ## Deliberately ignored: PubChem substance xrefs
 
