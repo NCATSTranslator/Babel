@@ -8,8 +8,9 @@ is how babel-1.18 shipped an empty ChEBI secondary-ID property file (issue: CHEB
 every other secondary ID stopped normalizing).
 
 This script regenerates the evidence for that finding. It tabulates every tag actually present
-in the SDF, normalizes each one the way the parser does, and reports which of the keys we ask
-for are matched and which are missing.
+in the SDF, normalizes each one with the parser's own normalize_sdf_tag(), and reports which of
+the keys we ask for are matched and which are missing. It imports both that function and
+CHEBI_SDF_KEYS rather than restating them, so the audit cannot drift from what the build does.
 
 Usage:
     uv run python docs/sources/CHEBI/sdf_tags/audit_sdf_tags.py <path-to-ChEBI_complete.sdf>
@@ -21,16 +22,7 @@ import sys
 from collections import Counter
 
 from src.createcompendia.chemicals import CHEBI_SDF_KEYS
-
-
-def normalize_tag(tag_line):
-    """
-    Normalize an SDF tag line ('> <ChEBI ID>') to the key chebi_sdf_entry_to_dict() would use.
-
-    Kept deliberately identical to the normalization in src/sdfreader.py; if that changes, this
-    audit is measuring the wrong thing.
-    """
-    return tag_line.replace(">", "").replace("<", "").strip().replace(" ", "").lower()
+from src.sdfreader import normalize_sdf_tag
 
 
 def count_tags(sdf_filename):
@@ -46,7 +38,7 @@ def count_tags(sdf_filename):
             if not line.startswith("> <"):
                 continue
             raw = line.strip()
-            key = normalize_tag(raw)
+            key = normalize_sdf_tag(raw)
             counts[key] += 1
             raw_forms[key] = raw
     return counts, raw_forms
