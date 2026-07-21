@@ -30,8 +30,8 @@ def write_react_ids(infile, outfile):
     reactome.write_ids(infile, outfile)
 
 
-def write_ec_ids(outfile):
-    ec.make_ids(outfile)
+def write_ec_ids(infile, outfile):
+    ec.make_ids(infile, outfile)
 
 
 def write_umls_ids(mrsty, outfile):

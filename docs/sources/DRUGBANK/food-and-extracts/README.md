@@ -150,11 +150,16 @@ Snapshot below) — they are how you decide what the *next* veto root should be.
   `ids/DRUGBANK_food_extracts` (`DRUGBANK:xxx\tbiolink:Type`) —
   `datahandlers/drugbank.py:write_drugbank_food_extract_types`. The plant-flag set comes
   from the same UNII records file (`unii.py:read_unii_flags`), so the rule needs no extra input.
-- `chemicals.create_typed_sets` forces any clique containing one of those CURIEs to the given type,
-  overriding the normal per-identifier type vote (the extracts carry no Babel type of their own, so
-  a vote would leave them as `ChemicalEntity`). The retype is clique-level: it assumes an extract
-  clique never also contains a genuine chemical, which holds because these are distinct UMLS/RXNORM
-  concepts and none of them share a clique with a CHEBI/PubChem structure.
+- `chemicals.create_typed_sets` adds that type to the clique's type vote as an extra **candidate**
+  (the entries carry no Babel type of their own, so a vote over their members alone would leave them
+  as `ChemicalEntity`). The most preferred of the voted type and this evidence wins, ranked by
+  `config.yaml: chemical_type_order` — where `biolink:Food` sits below every structure-bearing type
+  and above `ChemicalMixture`/`ChemicalEntity`. So a clique that votes nothing but `ChemicalEntity`
+  becomes `Food`, and one that votes `SmallMolecule` stays a `SmallMolecule`.
+
+  This started out as a clique-level *override* that skipped the vote entirely, on the assumption
+  that a food clique never also contains a genuine chemical. That assumption was derived from the
+  concords and was wrong: see "The override that had to become a vote" below (issue #935).
 - `Food.txt` and the pre-existing `ComplexMolecularMixture.txt` are both in
   `config.yaml: chemical_outputs`, so **no new output type is needed** for this change. `RXCUI`
   members survive because the chemical build already passes `extra_prefixes=[RXCUI]`. These cliques
@@ -202,6 +207,59 @@ To regenerate after a UNII refresh: run the `chemical_ncit_food_codes` and
 `babel_downloads/UMLS/MRCONSO.RRF` / `MRSTY.RRF` for the semantic types; its module docstring has
 the exact commands. Because DrugBank is pinned but the UNII records are re-downloaded fresh, exact
 membership can drift slightly between refreshes.
+
+## The override that had to become a vote
+
+The original wiring **forced** any clique holding one of these CURIEs to `Food` or
+`ComplexMolecularMixture`, skipping the type vote. That was justified here with a claim derived from
+the concords: *672 of the 685 cliques have concord partners (1326 links), and every partner is typed
+`ChemicalEntity`, so there is nothing to clobber.* A warning was added to catch it if that ever
+stopped being true.
+
+It was never true of a real build. The `babel-1.18` run fired that warning **seven** times, and
+shipped seven small molecules in `Food.txt`. The clearest case is D-glucose:
+[`DRUGBANK:DB09341`](https://go.drugbank.com/drugs/DB09341) "Dextrose, unspecified form" is a
+structureless DrugBank row that NCIt correctly classifies as a food — but its UMLS/RxNorm concords
+glom it into the real D-glucose clique, next to
+[`CHEBI:17234`](http://purl.obolibrary.org/obo/CHEBI_17234) "glucose",
+`PUBCHEM.COMPOUND:107526` (typed `biolink:SmallMolecule`) and an InChI Key. The override then
+discarded that `SmallMolecule` and typed the whole clique `Food`.
+
+The lesson is about the evidence, not the rule: a claim about clique membership cannot be checked
+against the *concords*, because glom builds cliques transitively — a food CURIE and a small molecule
+that share no direct concord edge still land in one clique via a third identifier.
+
+Issue [#935](https://github.com/NCATSTranslator/Babel/issues/935) fixes this by making the evidence
+a vote (see "How it is wired"). `scripts/replay_type_vote.py` replays `create_typed_sets` over a
+finished build's `Food.txt` to measure the effect without a rebuild; `replay_type_vote.txt` is its
+output for `babel-1.18`:
+
+| Type after the vote | Cliques |
+| --- | --- |
+| `biolink:Food` | 285 |
+| `biolink:SmallMolecule` | 5 |
+| `biolink:MolecularMixture` | 2 |
+| `biolink:ComplexMolecularMixture` | 1 |
+
+Only the eight broken cliques move, and no identifier is dropped — `DRUGBANK:DB09341` is still a
+member of the D-glucose clique, which is now a `SmallMolecule` again. Cliques that vote nothing more
+specific stay `Food`, including the ones that *should*: inulin
+([`CHEBI:15443`](http://purl.obolibrary.org/obo/CHEBI_15443) "inulin") is both a food and a GFR
+diagnostic.
+
+Note which direction the ordering runs: `ChemicalMixture` outranks `Food`, so a clique that *voted*
+`ChemicalMixture` would keep it rather than become a food. None of the 293 does — the two
+`ChemicalMixture` members in the set sit in cliques whose majority vote is `ChemicalEntity`, which
+`Food` does outrank.
+
+The script also reports the one pairing the ordering leaves exposed: `chemical_type_order` ranks
+`biolink:Drug` *last*, below `Food`, so a clique that votes `Drug` and carries food evidence is
+typed `Food`. That is mildly wrong — a drug formulation is not a food — but it is an **accepted
+tradeoff**, not an oversight. No clique does it today (none of the 674 typed members is a `Drug`),
+`Drug` is last for its own good reasons, and both a reorder and a special case would cost more than
+the error does. `test_food_evidence_beats_a_drug_vote` pins the behaviour so it cannot change
+silently; invert that assertion rather than deleting it if `Food` ever starts appearing where a drug
+formulation belongs.
 
 ## Known limitations
 

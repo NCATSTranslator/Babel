@@ -21,7 +21,6 @@ from src.categories import (
     CHEMICAL_MIXTURE,
     COMPLEX_MOLECULAR_MIXTURE,
     DRUG,
-    FOOD,
     MOLECULAR_MIXTURE,
     POLYPEPTIDE,
     SMALL_MOLECULE,
@@ -47,16 +46,9 @@ from src.prefixes import (
 from src.properties import HAS_ALTERNATIVE_ID, Property
 from src.sdfreader import read_sdf
 from src.ubergraph import UberGraph
-from src.util import Text, ensure_parent_dir, get_logger, get_memory_usage_summary
+from src.util import Text, ensure_parent_dir, get_config, get_logger, get_memory_usage_summary
 
 logger = get_logger(__name__)
-
-# Types that a source-forced clique type (create_typed_sets' forced_types, today only the DRUGBANK
-# food-and-extract retype) should never be silently overriding: they say a clique member is a defined
-# chemical, which a whole food or an extract is not. The forced type still wins — these cliques hold
-# nothing but ChemicalEntity members today — but the override is coarse enough that the day one of
-# these appears we want to hear about it rather than quietly retype a small molecule as a food.
-FORCED_TYPE_CONFLICTS = frozenset({DRUG, MOLECULAR_MIXTURE, SMALL_MOLECULE, POLYPEPTIDE})
 
 # The ChEBI SDF data-item tags make_chebi_relations() reads, normalized the way
 # chebi_sdf_entry_to_dict() normalizes them: lowercased, spaces stripped, underscores kept.
@@ -1007,7 +999,7 @@ def build_compendia(
     properties_jsonl_gz_files,
     metadata_yamls,
     icrdf_filename,
-    forced_type_files,
+    food_type_files,
 ):
     types = {}
     with open(type_file) as inf:
@@ -1016,16 +1008,27 @@ def build_compendia(
             types[x[0]] = x[1]
     logger.info(f"Loaded {len(types)} types from {type_file}: {get_memory_usage_summary()}")
 
-    # CURIEs whose clique's type is decided by the source rather than by the per-identifier type vote:
-    # each file in forced_type_files is CURIE\tbiolink:Type. Today the only producer is the DRUGBANK
-    # food-and-extract retype (issue #828) — foods to biolink:Food, extracts (pollens/danders/...) to
-    # biolink:ComplexMolecularMixture — whose CURIEs enter chemical cliques via the UMLS/RXNORM concords
-    # carrying no Babel type of their own, so a vote would leave them as ChemicalEntity.
-    forced_types = {}
-    for forced_type_file in forced_type_files:
-        _, file_types = read_identifier_file(forced_type_file)
-        forced_types.update(file_types)
-    logger.info(f"Loaded {len(forced_types)} forced types from {forced_type_files}: {get_memory_usage_summary()}")
+    # Food/extract evidence (issues #828, #935): each file in food_type_files is CURIE\tbiolink:Type.
+    # Today the only producer is the DRUGBANK food-and-extract retype — foods to biolink:Food, extracts
+    # (pollens/danders/...) to biolink:ComplexMolecularMixture. These CURIEs enter chemical cliques via
+    # the UMLS/RXNORM concords carrying no Babel type of their own, so the per-identifier vote alone
+    # would leave them as ChemicalEntity; create_typed_sets adds this evidence to the vote as an extra
+    # candidate.
+    food_types = {}
+    for food_type_file in food_type_files:
+        _, file_types = read_identifier_file(food_type_file)
+        food_types.update(file_types)
+    logger.info(f"Loaded {len(food_types)} food/extract types from {food_type_files}: {get_memory_usage_summary()}")
+
+    # create_typed_sets() ranks this evidence with order.index(), so a type missing from
+    # chemical_type_order is a ValueError tens of millions of cliques into the build. Check it here,
+    # where it costs one pass over a few hundred CURIEs and fails in the first second instead.
+    unrankable = set(food_types.values()) - set(get_config()["chemical_type_order"])
+    if unrankable:
+        raise ValueError(
+            f"Food/extract evidence in {food_type_files} uses types absent from config.yaml's "
+            f"chemical_type_order, so they cannot be ranked against a clique's voted type: {sorted(unrankable)}"
+        )
 
     untyped_sets = set()
     with open(untyped_compendia_file) as inf:
@@ -1034,7 +1037,7 @@ def build_compendia(
             untyped_sets.add(frozenset(s))
     logger.info(f"Loaded {len(untyped_sets)} untyped sets from {untyped_compendia_file}: {get_memory_usage_summary()}")
 
-    typed_sets = create_typed_sets(untyped_sets, types, forced_types)
+    typed_sets = create_typed_sets(untyped_sets, types, food_types)
     logger.info(
         f"Created {len(typed_sets)} typed sets from {len(untyped_sets)} untyped sets: {get_memory_usage_summary()}"
     )
@@ -1065,49 +1068,44 @@ def build_compendia(
             )
 
 
-def create_typed_sets(eqsets, types, forced_types):
+def create_typed_sets(eqsets, types, food_types):
     """
     Given a set of sets of equivalent identifiers, we want to type each one into
     being a subclass of ChemicalEntity.
 
     :param eqsets: A list of lists of identifiers (should NOT be a list of LabeledIDs, but a list of strings).
     :param types: A dictionary of known types for each identifier. (Some identifiers don't have known types.)
-    :param forced_types: {CURIE -> biolink_type} from the sources that type their own cliques rather
-        than voting (today only the DRUGBANK food-and-extract retype, issue #828). A clique containing
-        any such CURIE is forced to that type, overriding the normal type vote; if two forced members
-        disagree the most specific type (earliest in ``order``) wins. A forced clique that also holds a
-        structure-bearing member is logged as a warning: see FORCED_TYPE_CONFLICTS.
+    :param food_types: {CURIE -> biolink_type} of food/extract evidence (issues #828, #935): a DrugBank
+        material whose UNII's NCIt class says "food", or whose name says "extract". These CURIEs carry no
+        Babel type of their own, so the evidence is added to the clique's type vote as an extra
+        candidate -- *not* as an override. The most preferred of the voted and the food/extract types
+        wins, per ``order``, which is what keeps glucose a SmallMolecule: DrugBank's structureless
+        "Dextrose, unspecified form" is a food, but the clique it gloms into votes SmallMolecule, and
+        SmallMolecule is preferred.
     """
-    order = [
-        FOOD,
-        DRUG,
-        MOLECULAR_MIXTURE,
-        SMALL_MOLECULE,
-        POLYPEPTIDE,
-        COMPLEX_MOLECULAR_MIXTURE,
-        CHEMICAL_MIXTURE,
-        CHEMICAL_ENTITY,
-    ]
-    # This loop runs once per chemical clique (tens of millions), and forced_types holds a few hundred
+    # Most preferred first; see config.yaml: chemical_type_order for the ranking's rationale. Read once
+    # here rather than per clique -- this function iterates tens of millions of them.
+    order = get_config()["chemical_type_order"]
+    # This loop runs once per chemical clique (tens of millions), and food_types holds a few hundred
     # CURIEs, so test membership with a set intersection rather than a per-member dict lookup.
-    forced_curies = frozenset(forced_types)
+    food_curies = frozenset(food_types)
     typed_sets = defaultdict(set)
+
+    def evidence_for(ids):
+        """The food/extract evidence carried by ``ids``, if any (issues #828, #935)."""
+        if food_curies.isdisjoint(ids):
+            return frozenset()
+        return frozenset(food_types[c] for c in ids if c in food_types)
+
+    def assign(biolink_type, ids, food_evidence):
+        """Type a clique as the most preferred of its voted type and any food/extract evidence on it."""
+        typed_sets[min({biolink_type} | food_evidence, key=order.index) if food_evidence else biolink_type].add(ids)
+
     # logging.warning(f"create_typed_sets: eqsets={eqsets}, types=...")
     for equivalent_ids in eqsets:
-        # A clique containing a forced-type CURIE is retyped as a whole (issue #828). ponytail: coarse
-        # clique-level override — it is only safe because the forced cliques hold nothing but
-        # ChemicalEntity members today, which is exactly what the warning below watches for.
-        if not forced_curies.isdisjoint(equivalent_ids):
-            forced = {forced_types[c] for c in equivalent_ids if c in forced_types}
-            conflicting = {c: types[c] for c in equivalent_ids if types.get(c) in FORCED_TYPE_CONFLICTS}
-            if conflicting:
-                logger.warning(
-                    f"Clique forced to {sorted(forced)} contains identifiers Babel has already typed more "
-                    f"specifically: {conflicting}. The forced type wins and those types are discarded — "
-                    f"if this fires, the forced type should become a vote instead (see issue #935)."
-                )
-            typed_sets[min(forced, key=order.index)].add(equivalent_ids)
-            continue
+        # The evidence joins the vote below rather than overriding it. Recomputed per output clique in
+        # the split branch, since a split sends the evidence CURIE to only one of the two halves.
+        food_evidence = evidence_for(equivalent_ids)
         # logging.warning(f"Processing equivalent_ids={equivalent_ids}.")
         # prefixes = set([ Text.get_curie(x) for x in equivalent_ids])
         prefixes = get_prefixes(equivalent_ids)
@@ -1124,7 +1122,7 @@ def create_typed_sets(eqsets, types, forced_types):
                         pass
 
                 if len(pctypes) == 1:
-                    typed_sets[list(pctypes)[0]].add(equivalent_ids)
+                    assign(list(pctypes)[0], equivalent_ids, food_evidence)
                     found = True
                 elif pctypes == {SMALL_MOLECULE, MOLECULAR_MIXTURE}:
                     # This is a common case (8,178 cases in 2022oct13) which occurs in cases where the InChI for
@@ -1152,8 +1150,10 @@ def create_typed_sets(eqsets, types, forced_types):
                         + f"into a biolink:MolecularMixture ({molecular_mixture_ids}) and "
                         + f"a biolink:SmallMolecule ({all_other_ids})"
                     )
-                    typed_sets[MOLECULAR_MIXTURE].add(frozenset(molecular_mixture_ids))
-                    typed_sets[SMALL_MOLECULE].add(frozenset(all_other_ids))
+                    # Each half votes on its own evidence: an extract CURIE that lands in the small
+                    # molecule half must not retype the mixture half to ComplexMolecularMixture.
+                    assign(MOLECULAR_MIXTURE, frozenset(molecular_mixture_ids), evidence_for(molecular_mixture_ids))
+                    assign(SMALL_MOLECULE, frozenset(all_other_ids), evidence_for(all_other_ids))
                     found = True
                 else:
                     logging.warning(
@@ -1169,14 +1169,14 @@ def create_typed_sets(eqsets, types, forced_types):
                 # print(equivalent_ids)
                 # One thing that happens is that we can have PUBCHEMs that have been deleted, but are still in UNICHEM
                 # then the pubchem doesn't get assigned a type, but still ends up in the compendium
-                typed_sets[CHEMICAL_ENTITY].add(equivalent_ids)
+                assign(CHEMICAL_ENTITY, equivalent_ids, food_evidence)
             elif len(typecounts) == 1:
                 t = list(typecounts.keys())[0]
-                typed_sets[t].add(equivalent_ids)
+                assign(t, equivalent_ids, food_evidence)
             else:
                 # First attempt is majority vote, and after that by most specific
                 otypes = [(-c, order.index(t), t) for t, c in typecounts.items()]
                 otypes.sort()
                 t = otypes[0][2]
-                typed_sets[t].add(equivalent_ids)
+                assign(t, equivalent_ids, food_evidence)
     return typed_sets
