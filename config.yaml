@@ -264,6 +264,21 @@ ensembl_datasets_to_skip:
 #  - aocellaris_gene_ensembl
   - omykiss_gene_ensembl        # 2026jun5: keeps getting stuck with this dataset for some reason.
 
+# Encoding damage check (src/synonyms/encoding.py). Every label and synonym is checked as it is
+# loaded in src/node.py; anything that looks like mojibake (UTF-8 misread as cp1252, e.g. 'Ã©' for
+# 'é'), a control character, or a replacement character aborts the build with a RuntimeError naming
+# the CURIE and the file. Failing loudly is the point: a mojibake label is valid UTF-8, so nothing
+# downstream would catch it, and it is far cheaper to re-run one download rule than a whole build.
+#
+# Set to false to push a build through while an encoding problem is still being fixed. Prefer the
+# allowlist below for individual strings -- disabling this turns the check off for everything.
+encoding_check_enabled: true
+
+# Exact strings that trip the check but are actually correct, so the build should not fail on them.
+# Add an entry only after confirming against the source file that the text is genuinely what the
+# source intends, and say so in a comment -- an unexplained entry here silently hides a real bug.
+encoding_check_allowlist: []
+
 # Labels longer than this limit are demoted (not used as preferred label if a shorter alternative exists).
 # Keyed by Biolink type; types not listed here are never demoted. Uses ancestor traversal, so
 # biolink:ChemicalEntity applies to all chemical subtypes (SmallMolecule, Drug, etc.).

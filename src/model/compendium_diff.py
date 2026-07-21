@@ -64,8 +64,13 @@ DROPPED_KEY = ("", DROPPED)
 
 
 def load_compendium(path: pathlib.Path | str) -> Iterator[dict]:
-    """Stream clique dicts from a JSONL compendium file, skipping blank lines."""
-    with open(path) as inf:
+    """Stream clique dicts from a JSONL compendium file, skipping blank lines.
+
+    Compendia are written as UTF-8, so read them as UTF-8 rather than inheriting the locale
+    default -- which varies by machine and would decode a non-ASCII label differently (or fail)
+    depending on where the tool runs.
+    """
+    with open(path, encoding="utf-8") as inf:
         for line in inf:
             line = line.strip()
             if line:

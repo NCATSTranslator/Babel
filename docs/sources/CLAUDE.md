@@ -106,3 +106,20 @@ reverse-engineering how the file was built. Prefer scripts that
 committed artifact cannot drift from the pipeline. Worked example:
 `docs/sources/DRUGBANK/food-and-extracts/scripts/generate_csvs.py`, which regenerates the two
 DrugBank retype CSVs from the same `classify_food_or_extract` the build uses.
+
+## Read source files as UTF-8
+
+Default to UTF-8 when opening a downloaded source file. Reaching for `latin-1` or `windows-1252`
+because a decode failed converts a loud `UnicodeDecodeError` into silent mojibake: the bytes always
+decode, and `é` quietly becomes `Ã©` in every label and synonym the source contributes. Mojibake is
+valid UTF-8, so it survives every downstream step and lands in Node Normalization as a real name.
+
+Only use a single-byte codec when the source genuinely publishes in one, and say so in a comment
+naming the evidence — `src/datahandlers/unii.py`'s `UNII_RECORDS_ENCODING` is the shape to follow.
+`src/datahandlers/datacollect.py` (PubChem) reads `latin-1` and predates this rule; treat it as a
+thing to verify, not a precedent.
+
+Labels and synonyms are checked as they load and a damaged one aborts the build — see
+[the encoding check](../Development.md#the-encoding-check). Survey a source's files before wiring
+it in with `uv run babel-check-encoding babel_downloads/<PREFIX>/labels`
+([docs](../tools/CheckEncoding.md)).

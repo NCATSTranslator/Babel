@@ -10,6 +10,7 @@ pipeline. Each tool lives in `src/tools/<tool>/` and is installed as a console s
 |------|---------|-----------------|
 | [Source impact report](SourceImpactReport.md) | `uv run source-impact-report --source <SOURCE>` | "What does adding *this data source* do to the cliques?" |
 | [Clique diff](CliqueDiff.md) | `uv run babel-clique-diff --before <dir> --after <dir> …` | "How did the cliques change between *build A* and *build B*?" |
+| [Check encoding](CheckEncoding.md) | `uv run babel-check-encoding --recursive <dir>` | "Are any labels or synonyms encoding-damaged?" |
 | [SLURM errors](Errors.md) | `uv run babel-slurm-errors <version>` | "Which rules failed in this cluster run, and why?" |
 | [SLURM resources](Resources.md) | `uv run babel-slurm-resources <run-dir>` | "How much `mem`/`cpus` should each rule actually request?" |
 | [RDF load memory](Memory.md) | `uv run python src/tools/memory/estimate_rdf_load_memory.py FILE` | "How much RAM will bulk-loading this RDF dump need?" |
