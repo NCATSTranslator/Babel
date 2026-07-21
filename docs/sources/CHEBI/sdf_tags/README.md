@@ -33,9 +33,13 @@ was already happening to 77 multi-value KEGG entries before anyone noticed.
 ## What now prevents a silent recurrence
 
 `check_chebi_sdf_keys()` raises if any expected tag appears in no SDF entry at all, naming the tags
-that vanished. A second check refuses to write an empty concord or property file, which catches the
-failure modes a tag-name check cannot see — a value-format change, a truncated download, a reshaped
-`database_accession.tsv`.
+that vanished. A second check then counts the rows written **per tag** and raises if any of the
+three tags we consume produced none, which catches the failure modes a tag-name check cannot see —
+a value-format change, a truncated download, a parse bug.
+
+Counting per tag rather than in aggregate is the point. A whole-output check does not protect an
+individual input: the SDF's ~181,000 PubChem xrefs could vanish entirely and KEGG's ~16,000 would
+keep a total-count guard quiet — which is the exact shape of the bug being fixed here.
 
 ## Re-auditing against a new SDF
 

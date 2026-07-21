@@ -340,48 +340,62 @@ def test_make_chebi_relations_splits_multivalue_tags(tmp_path):
 
 
 @pytest.mark.unit
-def test_make_chebi_relations_raises_when_chebi_renames_a_tag(tmp_path):
+@pytest.mark.parametrize(
+    "renamed_tag,expected_key",
+    [
+        # The rename that actually happened: `Secondary ChEBI ID` became `SECONDARY_ID` in
+        # babel-1.18, every secondary identifier vanished from the release, and nothing complained.
+        ("> <SECONDARY_ID>", "secondary_id"),
+        ("> <KEGG COMPOUND Database Links>", "keggcompounddatabaselinks"),
+        ("> <PubChem Compound Database Links>", "pubchemcompounddatabaselinks"),
+        # The canary keys. make_chebi_relations() reads none of these, but a rename landing on one
+        # means ChEBI has reworked the file and the tags we do consume need re-auditing, so the
+        # check must fail the build for them too.
+        ("> <ChEBI NAME>", "chebiname"),
+        ("> <INCHIKEY>", "inchikey"),
+        ("> <SMILES>", "smiles"),
+    ],
+)
+def test_make_chebi_relations_raises_when_chebi_renames_a_tag(tmp_path, renamed_tag, expected_key):
     """A renamed SDF tag should fail the build, naming the tag, rather than silently emitting nothing.
 
-    This is the check that babel-1.18 lacked: `Secondary ChEBI ID` became `SECONDARY_ID`, every
-    secondary identifier vanished from the release, and nothing complained.
+    This is the check that babel-1.18 lacked. Canary tags are covered as well as consumed ones: a
+    rename we tolerate is a rename nobody re-audits.
     """
     renamed = tmp_path / "renamed.sdf"
-    renamed.write_text(ABACAVIR_SDF.read_text().replace("> <SECONDARY_ID>", "> <Secondary ChEBI ID>"))
+    renamed.write_text(ABACAVIR_SDF.read_text().replace(renamed_tag, "> <Renamed By ChEBI>"))
 
-    with pytest.raises(ValueError, match="secondary_id"):
+    with pytest.raises(ValueError, match=expected_key):
         _run_make_chebi_relations(tmp_path, sdf=renamed)
 
 
 @pytest.mark.unit
-def test_make_chebi_relations_raises_when_an_output_would_be_empty(tmp_path):
-    """An SDF carrying every expected tag but yielding no secondary IDs should still fail.
+@pytest.mark.parametrize(
+    "emptied_value,expected_key",
+    [
+        ("CHEBI:193608;CHEBI:441792;CHEBI:2360;CHEBI:525912;CHEBI:520984", "secondary_id"),
+        ("> <KEGG COMPOUND Database Links>\nC07624", "keggcompounddatabaselinks"),
+        ("> <PubChem Compound Database Links>\n441300", "pubchemcompounddatabaselinks"),
+    ],
+)
+def test_make_chebi_relations_raises_when_one_tag_yields_nothing(tmp_path, emptied_value, expected_key):
+    """A tag that is present but yields no values should fail the build, naming that tag.
 
-    The tag-name check can't catch a value-format change, a truncated download, or any other reason
-    the ingest goes quiet, so the counts are checked independently before the outputs are accepted.
+    Each consumed tag is counted separately rather than in aggregate, because a total-row check
+    cannot protect an individual input: PubChem's ~181,000 xrefs could vanish entirely and KEGG's
+    ~16,000 would keep it quiet. That is the exact shape of the bug this ingest shipped.
+
+    A tag-name check can't see this at all — the tag is still there, only its values changed shape,
+    were truncated, or stopped parsing.
     """
     emptied = tmp_path / "emptied.sdf"
-    emptied.write_text(
-        ABACAVIR_SDF.read_text().replace("CHEBI:193608;CHEBI:441792;CHEBI:2360;CHEBI:525912;CHEBI:520984", " ")
-    )
+    # Keep the tag line, blank the value, so check_chebi_sdf_keys() passes and this check is what
+    # fires. The replaced text starts with the tag line for the two xref cases, so re-emit it.
+    replacement = emptied_value.split("\n")[0] + "\n " if emptied_value.startswith("> <") else " "
+    emptied.write_text(ABACAVIR_SDF.read_text().replace(emptied_value, replacement))
 
-    with pytest.raises(ValueError, match="No CHEBI secondary IDs"):
+    with pytest.raises(ValueError, match=expected_key):
         _run_make_chebi_relations(tmp_path, sdf=emptied)
-
-
-@pytest.mark.unit
-def test_make_chebi_relations_raises_when_no_xrefs_would_be_written(tmp_path):
-    """An SDF with no KEGG or PubChem links and an empty dbx should fail rather than write an empty
-    concord. This is the count_xrefs guard, which the secondary-ID test above never reaches."""
-    no_xrefs = tmp_path / "no_xrefs.sdf"
-    no_xrefs.write_text(
-        ABACAVIR_SDF.read_text()
-        .replace("> <KEGG COMPOUND Database Links>\nC07624", "> <KEGG COMPOUND Database Links>\n ")
-        .replace("> <PubChem Compound Database Links>\n441300", "> <PubChem Compound Database Links>\n ")
-    )
-
-    with pytest.raises(ValueError, match="No ChEBI xrefs"):
-        _run_make_chebi_relations(tmp_path, sdf=no_xrefs)
 
 
 @pytest.mark.unit
@@ -403,18 +417,14 @@ def test_split_chebi_sdf_values_joins_values_across_lines():
 
 @pytest.mark.unit
 def test_make_chebi_relations_drops_every_database_accession_xref(tmp_path):
-    """PINS KNOWN-IMPERFECT BEHAVIOUR. The database_accession.tsv half of make_chebi_relations() is
-    dead code: it matches column 3 against "KEGG COMPOUND accession"/"Pubchem accession", but that
-    column is `type` and only ever holds MANUAL_X_REF, CITATION, CAS or REGISTRY_NUMBER -- the source
-    name moved to a numeric `source_id` resolved via the sibling source.tsv.gz. It also reads the
-    accession from column 4 (`status_id`) rather than column 2 (`accession_number`).
+    """PINS KNOWN-IMPERFECT BEHAVIOUR (issue #954). The database_accession.tsv half of
+    make_chebi_relations() is dead code: it matches column 3 against "KEGG COMPOUND
+    accession"/"Pubchem accession", but that column is `type` and never holds either, so the branch
+    fires on 0 of 422,561 rows.
 
-    The branch fires on 0 of 422,561 rows in the file fetched 2026-07-21, losing 18,465 KEGG COMPOUND
-    and 55 PubChem Compound xrefs. It is the same failure this PR fixes for the SDF, on the other
-    input, and the count_xrefs guard cannot see it because the SDF supplies ~197,000 xrefs by itself.
-
-    A fix must filter on `type == MANUAL_X_REF` as well as source_id: both sources also carry
-    CAS-typed rows whose accession is a CAS number. See docs/sources/CHEBI/README.md.
+    It is the same silent-upstream-reshape failure this PR fixes for the SDF, on the other input,
+    and the per-tag counts added here cannot see it -- they cover the SDF's tags, not this file.
+    The analysis and the fix are #955.
 
     INVERT this assertion, don't delete it, when that half is fixed: DBX_KEGG_ROW should then produce
     "CHEBI:3\txref\tKEGG.COMPOUND:C06147".

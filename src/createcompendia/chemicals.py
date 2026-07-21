@@ -1,7 +1,7 @@
 import ast
 import gzip
 import logging
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 import jsonlines
 import requests
@@ -775,8 +775,7 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
     # THE SDF and XREF stuff are handled in the same function because knowing what we found in the SDF impacts
     # what we want to get out of the xrefs. But the function is quite unwieldy
     # READ SDF
-    ikeys = {x: x for x in CHEBI_SDF_KEYS}
-    chebi_sdf_dat = read_sdf(sdf, ikeys)
+    chebi_sdf_dat = read_sdf(sdf, CHEBI_SDF_KEYS)
     check_chebi_sdf_keys(chebi_sdf_dat, sdf)
     # CHEBIs in the sdf by definition have structure (the sdf is a structure file)
     structured_chebi = set(chebi_sdf_dat.keys())
@@ -790,8 +789,15 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
     # What if we don't have a propfile directory?
     ensure_parent_dir(propfile_gz)
 
-    count_secondary_ids = 0
-    count_xrefs = 0
+    # Output rows counted per source key rather than in aggregate. A total-count check does not
+    # protect an individual input: the SDF's ~181,000 PubChem xrefs could vanish entirely and KEGG's
+    # ~16,000 would keep it quiet -- which is exactly the shape of the bug this function is being
+    # fixed for. Each key is therefore checked on its own below.
+    counts = Counter()
+    # database_accession.tsv is counted but deliberately not checked: it contributes 0 rows today
+    # because it is read with the wrong columns (issue #954). Log it so the number is visible.
+    dbx_key = "database_accession.tsv"
+
     with open(outfile, "w") as outf, gzip.open(propfile_gz, "wt") as propf:
         # Write SDF structured things
         for cid, props in chebi_sdf_dat.items():
@@ -808,11 +814,11 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
                             source=f"Listed as a CHEBI secondary ID in the ChEBI SDF file ({sdf})",
                         ).to_json_line()
                     )
-                    count_secondary_ids += 1
+                    counts[secondary_chebi_id] += 1
             if kk in props:
                 for kegg_id in split_chebi_sdf_values(props[kk]):
                     outf.write(f"{cid}\txref\t{KEGGCOMPOUND}:{kegg_id}\n")
-                    count_xrefs += 1
+                    counts[kk] += 1
             if pk in props:
                 # Bare compound IDs, semicolon-delimited. This used to be a single "PubChem Database
                 # Links" tag holding "SID: nnn CID: nnn" pairs, which is why older code here parsed
@@ -822,7 +828,7 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
                 # compound. See docs/sources/CHEBI/README.md if we ever want them.
                 for pubchem_id in split_chebi_sdf_values(props[pk]):
                     outf.write(f"{cid}\txref\t{PUBCHEMCOMPOUND}:{pubchem_id}\n")
-                    count_xrefs += 1
+                    counts[pk] += 1
         # DO THE xref stuff
         lines = dbxdata.split("\n")
         for line in lines[1:]:
@@ -834,30 +840,28 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
                 continue
             if x[3] == "KEGG COMPOUND accession":
                 outf.write(f"{cid}\txref\t{KEGGCOMPOUND}:{x[4]}\n")
-                count_xrefs += 1
+                counts[dbx_key] += 1
             if x[3] == "Pubchem accession":
                 outf.write(f"{cid}\txref\t{PUBCHEMCOMPOUND}:{x[4]}\n")
-                count_xrefs += 1
+                counts[dbx_key] += 1
 
-    # Backstop to check_chebi_sdf_keys(): that catches a renamed tag, this catches any other way
-    # these outputs could come out empty (a truncated download, a reformatted value, a changed
-    # dbx column layout). Either output being empty means a silently broken release, so fail here
-    # rather than let the build carry on and look healthy.
+    # Backstop to check_chebi_sdf_keys(): that catches a renamed tag, this catches the failures a
+    # tag name cannot show -- a changed value format, a truncated download, a parse bug. ChEBI
+    # publishes all three of these in every release, so any one of them coming out empty means a
+    # silently broken build.
     #
     # Both files have already been written and closed by this point, so the empty file exists on
     # disk when we raise; Snakemake deletes a failed job's outputs, but a direct call leaves it
     # behind. Hence "wrote an empty ..." rather than "refusing to write".
-    if count_secondary_ids == 0:
+    empty_keys = sorted(key for key in (secondary_chebi_id, kk, pk) if counts[key] == 0)
+    if empty_keys:
         raise ValueError(
-            f"No CHEBI secondary IDs were found in {sdf}, but ChEBI always publishes them. "
-            f"Wrote an empty property file to {propfile_gz}; delete it and re-run once the cause is fixed."
+            f"ChEBI SDF {sdf} yielded no values at all for these tags: {empty_keys}. The tags "
+            f"themselves are present, so this is not a rename -- look for a changed value format or "
+            f"a truncated download. Wrote empty output to {outfile} and {propfile_gz}; delete both "
+            f"and re-run once the cause is fixed."
         )
-    if count_xrefs == 0:
-        raise ValueError(
-            f"No ChEBI xrefs were generated from {sdf} and {dbx}. "
-            f"Wrote an empty concord to {outfile}; delete it and re-run once the cause is fixed."
-        )
-    logger.info(f"make_chebi_relations() wrote {count_xrefs} xrefs and {count_secondary_ids} secondary IDs.")
+    logger.info(f"make_chebi_relations() wrote {dict(counts)}.")
 
     write_concord_metadata(
         metadata_yaml,
