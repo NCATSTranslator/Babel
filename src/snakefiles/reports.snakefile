@@ -1,4 +1,5 @@
 from src.reports import report_tables
+from src.reports import prefix_comparison
 from src.snakefiles.util import get_all_compendia, get_all_synonyms, get_all_gzipped
 import os
 
@@ -113,25 +114,58 @@ rule generate_compendia_summary_report:
 # Generate a prefix table.
 rule generate_prefix_table:
     input:
-        curie_report=config["output_directory"] + "/reports/duckdb/curie_report.json",
+        prefix_report=config["output_directory"] + "/reports/duckdb/prefix_report.json",
     output:
         prefix_table=config["output_directory"] + "/reports/tables/prefix_table.csv",
     benchmark:
         config["output_directory"] + "/benchmarks/generate_prefix_table.tsv"
     run:
-        report_tables.generate_prefix_table(input.curie_report, output.prefix_table)
+        report_tables.generate_prefix_table(input.prefix_report, output.prefix_table)
 
 
 # Generate a cliques table.
 rule generate_cliques_table:
     input:
-        cliques_report=config["output_directory"] + "/reports/duckdb/clique_leaders.json",
+        prefix_report=config["output_directory"] + "/reports/duckdb/prefix_report.json",
     output:
         cliques_table=config["output_directory"] + "/reports/tables/cliques_table.csv",
     benchmark:
         config["output_directory"] + "/benchmarks/generate_cliques_table.tsv"
     run:
-        report_tables.generate_cliques_table(input.cliques_report, output.cliques_table)
+        report_tables.generate_cliques_table(input.prefix_report, output.cliques_table)
+
+
+# Compare this build's prefix report against the previous release pinned in config.yaml.
+rule generate_prefix_comparison:
+    input:
+        prefix_report=config["output_directory"] + "/reports/duckdb/prefix_report.json",
+    output:
+        overall_csv=config["output_directory"] + "/reports/tables/prefix_comparison_overall.csv",
+        by_clique_csv=config["output_directory"] + "/reports/tables/prefix_comparison_by_clique_prefix.csv",
+        md=config["output_directory"] + "/reports/tables/prefix_comparison.md",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_prefix_comparison.tsv"
+    params:
+        # The baseline is a committed repo file (read-only during the build), passed as a param rather
+        # than an input: an input would hard-error on the first run before any baseline is committed,
+        # and generate_prefix_comparison handles a missing baseline gracefully. Trade-off: because it
+        # isn't a tracked input, bumping previous_release (or editing the baseline) won't by itself
+        # retrigger this rule -- it only reruns when prefix_report.json does. A full run regenerates
+        # prefix_report.json, so this only matters if you rerun reports incrementally after changing
+        # the pin; force it then with `-R generate_prefix_comparison`.
+        baseline_json="releases/prefix_reports/" + config["previous_release"] + ".json",
+        warn_abs=config["prefix_comparison_warn_abs"],
+        warn_pct=config["prefix_comparison_warn_pct"],
+    run:
+        prefix_comparison.generate_prefix_comparison(
+            input.prefix_report,
+            params.baseline_json,
+            output.overall_csv,
+            output.by_clique_csv,
+            output.md,
+            params.warn_abs,
+            params.warn_pct,
+        )
 
 
 # Generate a table of mapping sources.
@@ -189,6 +223,7 @@ rule all_reports:
         config["output_directory"] + "/reports/tables/prefix_table.csv",
         config["output_directory"] + "/reports/tables/cliques_table.csv",
         config["output_directory"] + "/reports/tables/mapping_sources_table.csv",
+        config["output_directory"] + "/reports/tables/prefix_comparison.md",
     output:
         x=config["output_directory"] + "/reports/reports_done",
     shell:
