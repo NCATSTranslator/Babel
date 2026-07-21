@@ -23,7 +23,7 @@ Writes a Markdown report to stdout.
 import os
 import re
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 
 from src.createcompendia.chemicals import (
     CHEBI_DBX_ACCEPTED_STATUSES,
@@ -84,6 +84,35 @@ def audit(dbx_filename, prefixes_by_source_id, accepted_status_ids, status_names
     return rows, accepted, rejected, misshapen
 
 
+def namespace_evidence(dbx_filename, source_names_by_id):
+    """
+    Per type, count how many accession values appear under more than one source.
+
+    This is the evidence for the claim the filter rests on. If a type's identifiers belong to the
+    source that supplied them (MANUAL_X_REF, CITATION, REGISTRY_NUMBER), a value should essentially
+    never be shared across sources -- a PMID belongs to PubMed, a Reaxys number to Reaxys. If the
+    type instead names a shared namespace that many databases redistribute (CAS), the same value
+    turns up under many sources, and source_id is provenance rather than the target namespace.
+
+    :return: {type -> (distinct sources, distinct accessions, accessions seen under >1 source)}
+    """
+    sources_per_value = defaultdict(lambda: defaultdict(set))
+    with open_maybe_gzipped(dbx_filename) as inf:
+        next(inf, None)
+        for line in inf:
+            x = line.rstrip("\n").split("\t")
+            if len(x) < 6:
+                continue
+            sources_per_value[x[3]][x[2]].add(x[5])
+
+    summary = {}
+    for row_type, values in sources_per_value.items():
+        shared = sum(1 for sources in values.values() if len(sources) > 1)
+        distinct_sources = len({sid for sources in values.values() for sid in sources})
+        summary[row_type] = (distinct_sources, len(values), shared)
+    return summary
+
+
 def main():
     if len(sys.argv) != 4:
         raise SystemExit(f"Usage: {sys.argv[0]} <database_accession.tsv[.gz]> <source.tsv[.gz]> <status.tsv[.gz]>")
@@ -129,6 +158,19 @@ def main():
     print("| --- | --- | --- |")
     for (prefix, reason), count in sorted(rejected.items()):
         print(f"| `{prefix}` | `{reason}` | {count} |")
+
+    print("\n## Does `source_id` name the identifier's namespace?\n")
+    print("A value shared across many sources suggests the namespace is fixed by `type` and that")
+    print("`source_id` is only provenance; a value essentially never shared suggests the source *is*")
+    print("the namespace. Read the rates, not the raw counts, and note the confound: types whose IDs")
+    print("are bare integers (MANUAL_X_REF across 37 sources, REGISTRY_NUMBER across 3) collide by")
+    print("coincidence, so a few percent means nothing there. The signal is the contrast between CAS")
+    print("-- 27% of structurally distinctive `nnnnn-nn-n` values shared, which coincidence cannot")
+    print("explain -- and CITATION's 2 in 106,179 despite PMIDs also being bare integers.\n")
+    print("| Type | Distinct sources | Distinct accessions | Accessions under >1 source |")
+    print("| --- | --- | --- | --- |")
+    for row_type, (sources, values, shared) in sorted(namespace_evidence(dbx_filename, source_names_by_id).items()):
+        print(f"| `{row_type}` | {sources} | {values} | {shared} |")
 
     if sum(misshapen.values()):
         print(f"\n**{sum(misshapen.values())} accepted accession(s) do not match their database's shape.**")

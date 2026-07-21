@@ -89,17 +89,17 @@ CHEBI_SDF_KEYS = frozenset(
     }
 )
 
-# How to read database_accession.tsv, because `source_id` does not mean one thing:
+# How to read database_accession.tsv. `source_id` names the database ChEBI recorded a value from; for
+# MANUAL_X_REF, CITATION and REGISTRY_NUMBER that database is also the identifier's namespace (it is
+# source.tsv's `prefix` column: kegg.compound, pubmed, reaxys).
 #
-#   - For `type = MANUAL_X_REF`, source_id is the *target* database and accession_number is that
-#     database's own identifier. `9  3  C06147  MANUAL_X_REF  3  45` is CHEBI:3 -> KEGG.COMPOUND:C06147.
-#   - For every other type the namespace is fixed by `type`, and source_id records only *where ChEBI
-#     got the value*. The same CAS numbers arrive under ChemIDplus (19,720 rows), KEGG COMPOUND
-#     (10,476), NIST Chemistry WebBook (4,707) and others; CITATION rows are attributed to PubMed,
-#     Agricola and so on the same way.
+# CAS is the exception. A CAS registry number is a shared identifier many databases redistribute, so
+# there the namespace is fixed by `type` and source_id records only who supplied it -- `498-15-7`
+# arrives under KEGG COMPOUND, ChemIDplus and NIST alike, and 27% of CAS values are shared across
+# sources against 2 of 106,179 for CITATION.
 #
 # So a source_id match alone does not identify an accession, and the three constants below have to be
-# applied together. See docs/sources/CHEBI/README.md.
+# applied together. See docs/sources/CHEBI/README.md, whose audit script regenerates that evidence.
 
 # Sources whose MANUAL_X_REF rows we take, matched on source.tsv's `name` column rather than on the
 # current id numbers (45 and 68) so that a renumbering raises instead of silently emptying this
@@ -109,10 +109,10 @@ CHEBI_DBX_SOURCE_NAMES = {
     "PubChem Compound": PUBCHEMCOMPOUND,
 }
 
-# The only `type` whose accession_number is the source database's own identifier. Restricting to it
-# is what keeps provenance-tagged rows out: `17  7  498-15-7  CAS  1  45` is a CAS registry number
-# ChEBI sourced *from* KEGG COMPOUND, not a KEGG accession, and taking source_id at face value would
-# emit 10,615 such CAS numbers as KEGG/PubChem CURIEs.
+# The type whose accession_number is the source database's own identifier. Restricting to it is what
+# keeps shared-namespace rows out: `17  7  498-15-7  CAS  1  45` is a CAS registry number ChEBI
+# sourced *from* KEGG COMPOUND, not a KEGG accession, and taking source_id at face value would emit
+# 10,615 such CAS numbers as KEGG/PubChem CURIEs.
 #
 # Ingesting those rows as CAS: xrefs in their own right is issue #956, not an oversight here.
 CHEBI_DBX_ACCESSION_TYPE = "MANUAL_X_REF"
@@ -927,9 +927,9 @@ def make_chebi_relations(sdf, dbx, dbx_source, dbx_status, outfile, propfile_gz,
                     counts[pk] += 1
         # DO THE xref stuff
         # database_accession.tsv columns: id, compound_id, accession_number, type, status_id,
-        # source_id. Type, source and status must all match: source_id only names the target database
-        # on MANUAL_X_REF rows (elsewhere it is provenance), and SUBMITTED rows are unreviewed
-        # depositor claims. See CHEBI_DBX_SOURCE_NAMES above.
+        # source_id. Type, source and status must all match: on a CAS row the accession belongs to
+        # CAS rather than to the source that supplied it, and SUBMITTED rows are unreviewed depositor
+        # claims. See CHEBI_DBX_SOURCE_NAMES above.
         lines = dbxdata.split("\n")
         for line in lines[1:]:
             x = line.strip().split("\t")
