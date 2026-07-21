@@ -340,3 +340,43 @@ staying behind on the release branch.
 7. **Reintegrate.** Once the theme PRs are merged into `main`, merge or rebase `main` into
    the release branch. The commits that were split out arrive via `main` and drop out of
    the release branch's own diff, leaving only the stay-behind commits there.
+
+### Comparing a build against the previous release
+
+Every full run produces a combined prefix report at
+`babel_outputs/reports/duckdb/prefix_report.json` (via the `generate_prefix_report` rule) that
+counts the CURIEs and cliques per prefix, per clique-leader prefix, and per compendium file. At the
+end of the reports phase, the `generate_prefix_comparison` rule diffs this build against the
+previous release and writes, into `babel_outputs/reports/tables/`:
+
+* `prefix_comparison_overall.csv` — All CURIEs, All cliques, and per-filename CURIE totals, each
+  with the absolute and percentage change.
+* `prefix_comparison_by_clique_prefix.csv` — one row per (filename, clique-leader prefix, CURIE
+  prefix), sorted by absolute change (largest first, ignoring sign), so the biggest swings surface
+  at the top. For example, a row might read "8,443,204 fewer INCHIKEY identifiers in SmallMolecule
+  cliques led by PUBCHEM.COMPOUND".
+* `prefix_comparison.md` — a human summary that names exactly which baseline was compared against
+  and lists the notable changes (anything removed, or beyond the `prefix_comparison_warn_abs` /
+  `prefix_comparison_warn_pct` thresholds in `config.yaml`).
+
+CURIE occurrence counts are exact; clique counts are approximate (HyperLogLog, ~2% error). This
+report supersedes the manual comparison previously done in babel-validation's
+`PrefixComparator.vue`.
+
+Which release it compares against is pinned explicitly by `previous_release` in `config.yaml` —
+there is no date guessing. A unit test (`tests/reports/test_prefix_comparison.py`) fails if a newer
+baseline was committed to `releases/prefix_reports/` without bumping the pin, so a stale pin is
+caught by the weekly unit run before the next build starts.
+
+### Archiving the prefix report for the next comparison
+
+After a healthy release run, archive this build's prefix report so the *next* release can be
+compared against it:
+
+1. Copy `babel_outputs/reports/duckdb/prefix_report.json` to
+   `releases/prefix_reports/<release_name>.json` (using the `release_name` from `config.yaml`). The
+   file is copied verbatim — it already carries the correct `name` and schema.
+2. Link it from the release's `releases/<release_name>.md` notes.
+3. In the same commit, bump `previous_release` in `config.yaml` to `<release_name>` (and set
+   `release_name` to the next planned release), so the next run compares against this one.
+4. Commit. This copy becomes the reviewed baseline for the next release.
