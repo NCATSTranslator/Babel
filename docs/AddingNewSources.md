@@ -387,11 +387,8 @@ The three committed files:
 
 `modified-cliques.json` is written locally but gitignored.
 
-**Parse the CSVs with a real CSV reader.** `equivalent_ids` is a comma-joined list inside a single
-quoted field, so `awk -F,` (or `cut -d,`) silently shifts every column after it and will happily
-report, say, a non-zero `needs_biolink_registration` count that is really fragments of a CURIE
-list. Use `csv.DictReader` (or `pandas`) instead. `new-xrefs.tsv` is tab-separated and safe for
-`awk -F'\t'`, but note its columns are `subject`/`object`, not the first two fields.
+Note that `equivalent_ids` is a comma-joined list inside one quoted CSV field, so these files need
+a real CSV parser rather than splitting on commas.
 
 ##### Survival columns
 
@@ -400,9 +397,14 @@ list. Use `csv.DictReader` (or `pandas`) instead. `new-xrefs.tsv` is tab-separat
 
 - `would_be_added` — `true`/`false`/blank (blank if no clique type or `--no-biolink-lookup`).
 - `needs_biolink_registration = true` — the prefix must be registered in the Biolink Model
-  for that class before Babel can emit it. EMAPA's `biolink:GrossAnatomicalStructure` terms
-  are the live example: EMAPA is not yet in that class's `id_prefixes`, so they show
-  `would_be_added = false`.
+  for that class before Babel can emit it. What matters is the *clique's* type, not the type the
+  ids file declared: EMAPA is registered for both `biolink:AnatomicalEntity` and
+  `biolink:GrossAnatomicalStructure`, so all 8,078 of its identifiers survive — but it is
+  registered for neither `biolink:Cell` nor `biolink:CellularComponent`, so an EMAPA term dragged
+  into a cell clique by a bad xref vanishes without a trace. That is exactly how
+  [`EMAPA:18428`](http://purl.obolibrary.org/obo/EMAPA_18428) "adrenal medulla" and
+  [`EMAPA:16112`](http://purl.obolibrary.org/obo/EMAPA_16112) "chorion" were being lost before
+  `input_data/anatomy_badxrefs.txt` broke the two offending merges.
 
 `write_compendium(extra_prefixes=[...])` is the escape hatch for that silent drop: a prefix listed
 there is kept even when the clique's Biolink class doesn't register it (the chemical build passes
@@ -422,10 +424,13 @@ example: its 4,188 "expanded" cliques are all promotion-only, because UBERON's c
 already brings EMAPA CURIEs into the relevant cliques. Read the truly-grown vs.
 promotion-only split in section 4 before drawing conclusions about structural change.
 
-Even though EMAPA contributes 8,059 identifiers, only 4,802 land in `AnatomicalEntity.txt`
-(section 2). The remainder live in cliques whose dominant Biolink type ends up as Cell,
-CellularComponent, or GrossAnatomicalStructure — and `NodeFactory` drops them because EMAPA
-is not in those types' `id_prefixes`. The survival columns make this visible per identifier.
+The same split shows up between declared and final type. EMAPA's ids file declares 4,090
+`biolink:AnatomicalEntity` and 3,988 `biolink:GrossAnatomicalStructure`, but the compendia end up
+with 2,787 and 5,291 — the clique's type wins over the ids file's, so roughly 1,300 terms EMAPA
+called anatomical entities land in `GrossAnatomicalStructure.txt` because a UBERON member of the
+same clique is typed that way. The totals match (8,078 either way), which is what tells you the
+difference is retyping rather than loss; when they do *not* match, the survival columns say which
+identifiers went missing and why.
 
 #### Auditing a source's xrefs
 
