@@ -1097,6 +1097,8 @@ rule get_chebi:
     output:
         config["download_directory"] + "/CHEBI/ChEBI_complete.sdf",
         config["download_directory"] + "/CHEBI/database_accession.tsv",
+        config["download_directory"] + "/CHEBI/source.tsv",
+        config["download_directory"] + "/CHEBI/status.tsv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_chebi.tsv"
     retries: 3  # ChEBI FTP download occasionally fails transiently.

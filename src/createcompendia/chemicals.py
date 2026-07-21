@@ -46,7 +46,14 @@ from src.prefixes import (
 from src.properties import HAS_ALTERNATIVE_ID, Property
 from src.sdfreader import read_sdf
 from src.ubergraph import UberGraph
-from src.util import Text, ensure_parent_dir, get_config, get_logger, get_memory_usage_summary
+from src.util import (
+    Text,
+    ensure_parent_dir,
+    get_config,
+    get_logger,
+    get_memory_usage_summary,
+    open_maybe_gzipped,
+)
 
 logger = get_logger(__name__)
 
@@ -81,6 +88,42 @@ CHEBI_SDF_KEYS = frozenset(
         CHEBI_SDF_KEY_PUBCHEM,
     }
 )
+
+# How to read database_accession.tsv. `source_id` names the database ChEBI recorded a value from; for
+# MANUAL_X_REF, CITATION and REGISTRY_NUMBER that database is also the identifier's namespace (it is
+# source.tsv's `prefix` column: kegg.compound, pubmed, reaxys).
+#
+# CAS is the exception. A CAS registry number is a shared identifier many databases redistribute, so
+# there the namespace is fixed by `type` and source_id records only who supplied it -- `498-15-7`
+# arrives under KEGG COMPOUND, ChemIDplus and NIST alike, and 27% of CAS values are shared across
+# sources against 2 of 106,179 for CITATION.
+#
+# So a source_id match alone does not identify an accession, and the three constants below have to be
+# applied together. See docs/sources/CHEBI/README.md, whose audit script regenerates that evidence.
+
+# Sources whose MANUAL_X_REF rows we take, matched on source.tsv's `name` column rather than on the
+# current id numbers (45 and 68) so that a renumbering raises instead of silently emptying this
+# ingest -- the same failure mode as the SDF tag renames.
+CHEBI_DBX_SOURCE_NAMES = {
+    "KEGG COMPOUND": KEGGCOMPOUND,
+    "PubChem Compound": PUBCHEMCOMPOUND,
+}
+
+# The type whose accession_number is the source database's own identifier. Restricting to it is what
+# keeps shared-namespace rows out: `17  7  498-15-7  CAS  1  45` is a CAS registry number ChEBI
+# sourced *from* KEGG COMPOUND, not a KEGG accession, and taking source_id at face value would emit
+# 10,615 such CAS numbers as KEGG/PubChem CURIEs.
+#
+# Ingesting those rows as CAS: xrefs in their own right is issue #956, not an oversight here.
+CHEBI_DBX_ACCESSION_TYPE = "MANUAL_X_REF"
+
+# Curation states we accept, resolved by name against status.tsv. ChEBI also publishes SUBMITTED
+# rows -- a depositor's unreviewed claim -- which we exclude: 793 of the KEGG COMPOUND rows and 30 of
+# the 55 PubChem Compound ones, so the exclusion costs little and these feed glom() as equivalences.
+#
+# Whether SUBMITTED is in fact reviewed by some other route is issue #957; if it turns out to be
+# trustworthy, adding it here is the whole change.
+CHEBI_DBX_ACCEPTED_STATUSES = frozenset({"CHECKED", "OK"})
 
 
 def get_type_from_smiles(smiles):
@@ -738,6 +781,53 @@ def split_chebi_sdf_values(value_lines):
     return values
 
 
+def read_chebi_lookup_ids(lookup_tsv, wanted_names=None):
+    """
+    Map id -> name for the wanted rows of one of ChEBI's id/name lookup tables.
+
+    database_accession.tsv refers to both its source and its curation status by number only;
+    source.tsv and status.tsv are the lookup tables. Resolving by name means a ChEBI renumbering
+    fails here rather than quietly changing which rows we accept, which is exactly how the SDF tag
+    renames went unnoticed.
+
+    Note that on database_accession.tsv a source_id identifies the *target* database only on
+    MANUAL_X_REF rows -- on rows of other types it records where ChEBI sourced the value instead,
+    which is why callers must pair the source with CHEBI_DBX_ACCESSION_TYPE rather than matching on
+    the source alone.
+
+    :param lookup_tsv: Path to a ChEBI lookup table whose first two columns are `id` and `name`
+        (source.tsv, status.tsv).
+    :param wanted_names: The names to look up, or None for every row (in which case there is nothing
+        to be missing, so no completeness check runs -- used for labelling, not for matching).
+    :return: {id -> name}, restricted to wanted_names.
+    :raise ValueError: If the header is not id/name, or any wanted name is absent from the file.
+    """
+    ids_by_name = {}
+    # Gzip-aware so the documented audit invocation, which points straight at the FTP downloads,
+    # works on the .tsv.gz files as well as the pipeline's decompressed copies.
+    with open_maybe_gzipped(lookup_tsv) as inf:
+        header = inf.readline().rstrip("\n").split("\t")
+        if header[:2] != ["id", "name"]:
+            raise ValueError(
+                f"Unexpected columns in ChEBI lookup file {lookup_tsv}: {header}. "
+                f"Expected it to start with 'id' and 'name'."
+            )
+        for line in inf:
+            row = line.rstrip("\n").split("\t")
+            if len(row) < 2:
+                continue
+            if wanted_names is None or row[1] in wanted_names:
+                ids_by_name[row[0]] = row[1]
+
+    missing = set() if wanted_names is None else set(wanted_names) - set(ids_by_name.values())
+    if missing:
+        raise ValueError(
+            f"ChEBI lookup file {lookup_tsv} does not list these expected names: {sorted(missing)}. "
+            f"ChEBI has probably renamed them; update the matching constant in chemicals.py."
+        )
+    return ids_by_name
+
+
 def check_chebi_sdf_keys(chebi_sdf_dat, sdf):
     """
     Fail if any tag make_chebi_relations() reads is absent from every entry of the ChEBI SDF.
@@ -768,7 +858,7 @@ def check_chebi_sdf_keys(chebi_sdf_dat, sdf):
         )
 
 
-def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
+def make_chebi_relations(sdf, dbx, dbx_source, dbx_status, outfile, propfile_gz, metadata_yaml):
     """CHEBI contains relations both about chemicals with and without inchikeys.  You might think that because
     everything is based on unichem, we could avoid the with structures part, but history has shown that we lose
     links in that case, so we will use both the structured and unstructured chemical entries."""
@@ -780,6 +870,11 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
     # CHEBIs in the sdf by definition have structure (the sdf is a structure file)
     structured_chebi = set(chebi_sdf_dat.keys())
     # READ xrefs
+    dbx_prefixes_by_source_id = {
+        source_id: CHEBI_DBX_SOURCE_NAMES[name]
+        for source_id, name in read_chebi_lookup_ids(dbx_source, set(CHEBI_DBX_SOURCE_NAMES)).items()
+    }
+    dbx_accepted_status_ids = set(read_chebi_lookup_ids(dbx_status, CHEBI_DBX_ACCEPTED_STATUSES))
     with open(dbx) as inf:
         dbxdata = inf.read()
     kk = CHEBI_SDF_KEY_KEGG
@@ -794,8 +889,9 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
     # ~16,000 would keep it quiet -- which is exactly the shape of the bug this function is being
     # fixed for. Each key is therefore checked on its own below.
     counts = Counter()
-    # database_accession.tsv is counted but deliberately not checked: it contributes 0 rows today
-    # because it is read with the wrong columns (issue #954). Log it so the number is visible.
+    # database_accession.tsv is checked alongside the SDF's tags. It is the input that spent a
+    # release contributing nothing (issue #954) precisely because no check covered it on its own --
+    # the SDF's ~197,000 xrefs kept any whole-output guard quiet.
     dbx_key = "database_accession.tsv"
 
     with open(outfile, "w") as outf, gzip.open(propfile_gz, "wt") as propf:
@@ -830,36 +926,49 @@ def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
                     outf.write(f"{cid}\txref\t{PUBCHEMCOMPOUND}:{pubchem_id}\n")
                     counts[pk] += 1
         # DO THE xref stuff
+        # database_accession.tsv columns: id, compound_id, accession_number, type, status_id,
+        # source_id. Type, source and status must all match: on a CAS row the accession belongs to
+        # CAS rather than to the source that supplied it, and SUBMITTED rows are unreviewed depositor
+        # claims. See CHEBI_DBX_SOURCE_NAMES above.
         lines = dbxdata.split("\n")
         for line in lines[1:]:
             x = line.strip().split("\t")
-            if len(x) < 4:
+            if len(x) < 6:
+                continue
+            if x[3] != CHEBI_DBX_ACCESSION_TYPE:
+                continue
+            if x[4] not in dbx_accepted_status_ids:
+                continue
+            prefix = dbx_prefixes_by_source_id.get(x[5])
+            if prefix is None:
                 continue
             cid = f"{CHEBI}:{x[1]}"
             if cid in structured_chebi:
                 continue
-            if x[3] == "KEGG COMPOUND accession":
-                outf.write(f"{cid}\txref\t{KEGGCOMPOUND}:{x[4]}\n")
-                counts[dbx_key] += 1
-            if x[3] == "Pubchem accession":
-                outf.write(f"{cid}\txref\t{PUBCHEMCOMPOUND}:{x[4]}\n")
-                counts[dbx_key] += 1
+            outf.write(f"{cid}\txref\t{prefix}:{x[2]}\n")
+            counts[dbx_key] += 1
 
-    # Backstop to check_chebi_sdf_keys(): that catches a renamed tag, this catches the failures a
-    # tag name cannot show -- a changed value format, a truncated download, a parse bug. ChEBI
-    # publishes all three of these in every release, so any one of them coming out empty means a
-    # silently broken build.
+    # Backstop to check_chebi_sdf_keys(): that catches a renamed SDF tag, this catches the failures
+    # a tag name cannot show -- a changed value format, a truncated download, a parse bug. ChEBI
+    # publishes all four of these in every release, so any one coming out empty means a silently
+    # broken build. Counted per input rather than in aggregate: both bugs this function has shipped
+    # were one input going quiet while the others kept a whole-output guard satisfied.
+    #
+    # The dbx count is of rows actually *written*, so it is zero either when that file is broken or,
+    # in principle, when every one of its rows was skipped as already-structured. The second case is
+    # not distinguished, deliberately: it needs all ~18,000 of its accessions to be for SDF entries,
+    # which has never been close to true, and a build where it became true is one worth stopping for.
     #
     # Both files have already been written and closed by this point, so the empty file exists on
     # disk when we raise; Snakemake deletes a failed job's outputs, but a direct call leaves it
     # behind. Hence "wrote an empty ..." rather than "refusing to write".
-    empty_keys = sorted(key for key in (secondary_chebi_id, kk, pk) if counts[key] == 0)
+    empty_keys = sorted(key for key in (secondary_chebi_id, kk, pk, dbx_key) if counts[key] == 0)
     if empty_keys:
         raise ValueError(
-            f"ChEBI SDF {sdf} yielded no values at all for these tags: {empty_keys}. The tags "
-            f"themselves are present, so this is not a rename -- look for a changed value format or "
-            f"a truncated download. Wrote empty output to {outfile} and {propfile_gz}; delete both "
-            f"and re-run once the cause is fixed."
+            f"ChEBI ingest from {sdf} and {dbx} produced no rows at all for: {empty_keys}. The SDF "
+            f"tags themselves are present, so this is not a rename -- look for a changed value "
+            f"format, a changed column layout, or a truncated download. Wrote empty output to "
+            f"{outfile} and {propfile_gz}; delete both and re-run once the cause is fixed."
         )
     logger.info(f"make_chebi_relations() wrote {dict(counts)}.")
 

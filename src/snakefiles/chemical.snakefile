@@ -325,6 +325,8 @@ rule get_chebi_concord:
     input:
         sdf=config["download_directory"] + "/CHEBI/ChEBI_complete.sdf",
         dbx=config["download_directory"] + "/CHEBI/database_accession.tsv",
+        dbx_source=config["download_directory"] + "/CHEBI/source.tsv",
+        dbx_status=config["download_directory"] + "/CHEBI/status.tsv",
     output:
         outfile=config["intermediate_directory"] + "/chemicals/concords/CHEBI",
         propfile=config["intermediate_directory"] + "/chemicals/properties/get_chebi_concord.jsonl.gz",
@@ -333,7 +335,13 @@ rule get_chebi_concord:
         config["output_directory"] + "/benchmarks/get_chebi_concord.tsv"
     run:
         chemicals.make_chebi_relations(
-            input.sdf, input.dbx, output.outfile, propfile_gz=output.propfile, metadata_yaml=output.metadata_yaml
+            input.sdf,
+            input.dbx,
+            input.dbx_source,
+            input.dbx_status,
+            output.outfile,
+            propfile_gz=output.propfile,
+            metadata_yaml=output.metadata_yaml,
         )
 
 
