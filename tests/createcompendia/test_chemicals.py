@@ -162,6 +162,30 @@ def test_create_typed_sets_types_an_extract_as_a_complex_molecular_mixture():
 
 
 @pytest.mark.unit
+def test_a_split_cliques_halves_vote_on_their_own_food_evidence():
+    """When a clique is split into a MolecularMixture and a SmallMolecule half (issue #83), each half
+    must be typed by the evidence *it* holds, not by the whole pre-split clique's.
+
+    ComplexMolecularMixture outranks MolecularMixture (but not SmallMolecule), so an extract CURIE
+    that lands in the small molecule half — where it correctly loses the vote — would otherwise
+    still retype the *mixture* half it isn't even a member of.
+    """
+    clique = frozenset({"PUBCHEM.COMPOUND:962", "PUBCHEM.COMPOUND:22247451", "DRUGBANK:DB10351"})
+    types = {
+        "PUBCHEM.COMPOUND:962": SMALL_MOLECULE,
+        "PUBCHEM.COMPOUND:22247451": MOLECULAR_MIXTURE,
+    }
+
+    typed = create_typed_sets({clique}, types, food_types={"DRUGBANK:DB10351": COMPLEX_MOLECULAR_MIXTURE})
+
+    # The extract CURIE is in the small-molecule half, so the mixture half never sees the evidence.
+    assert frozenset({"PUBCHEM.COMPOUND:22247451"}) in typed[MOLECULAR_MIXTURE]
+    # ...and in its own half SmallMolecule outranks it, so it loses there too.
+    assert frozenset({"PUBCHEM.COMPOUND:962", "DRUGBANK:DB10351"}) in typed[SMALL_MOLECULE]
+    assert not typed[COMPLEX_MOLECULAR_MIXTURE]
+
+
+@pytest.mark.unit
 def test_food_evidence_beats_a_drug_vote():
     """PINS KNOWN-IMPERFECT BEHAVIOUR (issue #935). chemical_type_order ranks biolink:Drug last, below
     biolink:Food, so a clique that votes Drug and also carries food evidence is typed Food. That is

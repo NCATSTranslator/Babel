@@ -937,6 +937,16 @@ def build_compendia(
         food_types.update(file_types)
     logger.info(f"Loaded {len(food_types)} food/extract types from {food_type_files}: {get_memory_usage_summary()}")
 
+    # create_typed_sets() ranks this evidence with order.index(), so a type missing from
+    # chemical_type_order is a ValueError tens of millions of cliques into the build. Check it here,
+    # where it costs one pass over a few hundred CURIEs and fails in the first second instead.
+    unrankable = set(food_types.values()) - set(get_config()["chemical_type_order"])
+    if unrankable:
+        raise ValueError(
+            f"Food/extract evidence in {food_type_files} uses types absent from config.yaml's "
+            f"chemical_type_order, so they cannot be ranked against a clique's voted type: {sorted(unrankable)}"
+        )
+
     untyped_sets = set()
     with open(untyped_compendia_file) as inf:
         for line in inf:
@@ -975,7 +985,7 @@ def build_compendia(
             )
 
 
-def create_typed_sets(eqsets, types, food_types=None):
+def create_typed_sets(eqsets, types, food_types):
     """
     Given a set of sets of equivalent identifiers, we want to type each one into
     being a subclass of ChemicalEntity.
@@ -993,11 +1003,16 @@ def create_typed_sets(eqsets, types, food_types=None):
     # Most preferred first; see config.yaml: chemical_type_order for the ranking's rationale. Read once
     # here rather than per clique -- this function iterates tens of millions of them.
     order = get_config()["chemical_type_order"]
-    food_types = food_types or {}
     # This loop runs once per chemical clique (tens of millions), and food_types holds a few hundred
     # CURIEs, so test membership with a set intersection rather than a per-member dict lookup.
     food_curies = frozenset(food_types)
     typed_sets = defaultdict(set)
+
+    def evidence_for(ids):
+        """The food/extract evidence carried by ``ids``, if any (issues #828, #935)."""
+        if food_curies.isdisjoint(ids):
+            return frozenset()
+        return frozenset(food_types[c] for c in ids if c in food_types)
 
     def assign(biolink_type, ids, food_evidence):
         """Type a clique as the most preferred of its voted type and any food/extract evidence on it."""
@@ -1005,13 +1020,9 @@ def create_typed_sets(eqsets, types, food_types=None):
 
     # logging.warning(f"create_typed_sets: eqsets={eqsets}, types=...")
     for equivalent_ids in eqsets:
-        # The food/extract evidence on this clique, if any (issues #828, #935). It joins the vote below
-        # rather than overriding it.
-        food_evidence = (
-            frozenset()
-            if food_curies.isdisjoint(equivalent_ids)
-            else {food_types[c] for c in equivalent_ids if c in food_types}
-        )
+        # The evidence joins the vote below rather than overriding it. Recomputed per output clique in
+        # the split branch, since a split sends the evidence CURIE to only one of the two halves.
+        food_evidence = evidence_for(equivalent_ids)
         # logging.warning(f"Processing equivalent_ids={equivalent_ids}.")
         # prefixes = set([ Text.get_curie(x) for x in equivalent_ids])
         prefixes = get_prefixes(equivalent_ids)
@@ -1056,8 +1067,10 @@ def create_typed_sets(eqsets, types, food_types=None):
                         + f"into a biolink:MolecularMixture ({molecular_mixture_ids}) and "
                         + f"a biolink:SmallMolecule ({all_other_ids})"
                     )
-                    assign(MOLECULAR_MIXTURE, frozenset(molecular_mixture_ids), food_evidence)
-                    assign(SMALL_MOLECULE, frozenset(all_other_ids), food_evidence)
+                    # Each half votes on its own evidence: an extract CURIE that lands in the small
+                    # molecule half must not retype the mixture half to ComplexMolecularMixture.
+                    assign(MOLECULAR_MIXTURE, frozenset(molecular_mixture_ids), evidence_for(molecular_mixture_ids))
+                    assign(SMALL_MOLECULE, frozenset(all_other_ids), evidence_for(all_other_ids))
                     found = True
                 else:
                     logging.warning(
