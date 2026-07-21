@@ -88,9 +88,9 @@ is sound. Two questions are worth asking after any build, in any pipeline:
 **Is anything in a compendium it has no business being in?** A clique whose members disagree about
 what kind of thing they are has usually been merged across a category boundary, and the compendium
 it was typed into makes that disagreement visible from the outside. Look for members whose prefix or
-label belongs to a different kind than the file they are in: a structure among cells, a process among
-substances, a gene among proteins, a taxon anywhere. Chase whatever the source of that clique's
-type-vote was, and expect the culprit to be a single bad pair rather than a broken rule.
+label belongs to a different kind than the file they are in: a structure among cells, a process
+among substances, a gene among proteins, a taxon anywhere. Chase whatever the source of that
+clique's type-vote was, and expect the culprit to be a single bad pair rather than a broken rule.
 
 **Did anything in an `ids` file reach no compendium at all?** `write_compendium()` drops identifiers
 whose prefix is not registered for the clique's Biolink type, silently. That is invisible to
