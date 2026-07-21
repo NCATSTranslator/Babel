@@ -72,6 +72,38 @@ no concord basename (a typo), but a key added to one dict and not the other — 
 entirely — still fails open, so a unit test asserting a new key exists and its pairs parse remains
 the cheap guard for that.
 
+Anatomy uses a simpler shape worth copying for a new pipeline: one file
+(`input_data/anatomy_badxrefs.txt`, `anatomy.ANATOMY_BAD_XREFS`) applied to **every** concord, with
+pairs matched in either direction. A pair names both of its CURIEs, so there is nothing for a
+per-concord key to disambiguate — and with no key there is no two-place registration to get wrong.
+It is wired through the `concord_pair_filter` hook that `glom_from_files()` already exposes, so it
+needed no new plumbing.
+
+### An unexpected Biolink type is the cheapest signal that a merge went wrong
+
+Both anatomy entries were found the same way: by noticing an identifier in a compendium it had no
+business being in. A cell type merged with the gross structure it sits in, or an anatomical
+structure merged with a cellular component, shows up as a clique whose members disagree about what
+kind of thing they are — and the compendium a clique lands in is that disagreement made visible.
+
+So after a build, scan `Cell.txt` and `CellularComponent.txt` for members whose prefix or label
+looks structural. `CL:0000166` "chromaffin cell" sharing a clique with `UBERON:0001236` "adrenal
+medulla" was obvious on sight and had been shipping for a long time. This is also how the two EMAPA
+terms that vanished were found: an identifier dropped by `write_compendium()`'s prefix check leaves
+*no* trace in any compendium, so a build-vs-build clique diff cannot see it, but the mistyped clique
+that swallowed it is sitting in plain view. Comparing an ids file against the CURIEs that actually
+reached the compendia is the direct check:
+
+```bash
+uv run python -c "
+import re, glob
+ids = {l.split(chr(9))[0] for l in open('babel_outputs/intermediate/anatomy/ids/EMAPA')}
+seen = set()
+for f in glob.glob('babel_outputs/compendia/*.txt'):
+    for line in open(f): seen.update(re.findall(r'\"(EMAPA:[0-9]+)\"', line))
+print(sorted(ids - seen))"
+```
+
 ## Keeping two prefixes disjoint
 
 `glom()`'s `unique_prefixes` only forbids *duplicate same-prefix* identifiers in a clique; it does

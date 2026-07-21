@@ -1,7 +1,7 @@
 # Source impact report: EMAPA
 
-- Generated: 2026-07-21 22:35:12 UTC
-- Babel commit: 0511bced02b0c73703ebefdff98622f26f171f9b
+- Generated: 2026-07-21 23:27:05 UTC
+- Babel commit: cdca1d255a17d0c7f1b1bbd99efbd90d5f51a17e
 - Source pipelines: anatomy
 - Source prefixes: EMAPA
 - Comparison mode: synthetic
@@ -34,7 +34,7 @@ Totals: 8,078 identifiers across 1 prefix(es) in 1 pipeline(s).
 ### Final compendium-assigned (after glom)
 
 - anatomy / AnatomicalEntity.txt: 2,787 EMAPA identifiers
-- anatomy / GrossAnatomicalStructure.txt: 5,289 EMAPA identifiers
+- anatomy / GrossAnatomicalStructure.txt: 5,291 EMAPA identifiers
 
 ## 3. Cross-references added
 
@@ -59,9 +59,9 @@ change the source could introduce before that filtering is applied.
 
 ### anatomy
 
-- 3,753 new cliques composed only of EMAPA identifiers (a 2.14% increase over the 175,115
+- 3,753 new cliques composed only of EMAPA identifiers (a 2.14% increase over the 175,117
   pre-existing cliques)
-- 4,191 existing cliques contain EMAPA identifiers in the after state (2.39% of the 175,115
+- 4,191 existing cliques contain EMAPA identifiers in the after state (2.39% of the 175,117
   pre-existing cliques). Of these, 0 cliques gain at least one structurally new identifier from
   EMAPA, and 4,191 already contained the EMAPA CURIE via an xref from another source — EMAPA's ids
   file now also lists those existing CURIEs as first-class typed identifiers.
@@ -69,7 +69,7 @@ change the source could introduce before that filtering is applied.
 - 0 structurally-new EMAPA identifiers are added to existing cliques (0 via expansion, 0 via
   merges). This is distinct from the 0 existing cliques that change, since one clique can gain
   several identifiers.
-- Total cliques in this pipeline go from 175,115 to 178,868
+- Total cliques in this pipeline go from 175,117 to 178,870
 - Full list of new cliques: [`impact-report/new-cliques.csv`](impact-report/new-cliques.csv)
 - Full list of modified cliques (one row per added/preexisting EMAPA identifier):
   [`impact-report/modified-cliques.csv`](impact-report/modified-cliques.csv)

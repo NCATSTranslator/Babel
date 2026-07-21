@@ -30,10 +30,10 @@ Clique counts per compendium:
 | `AnatomicalEntity.txt` | 145,743 | 147,565 | +1,822 |
 | `Cell.txt` | 9,197 | 9,197 | 0 |
 | `CellularComponent.txt` | 9,469 | 9,469 | 0 |
-| `GrossAnatomicalStructure.txt` | 10,706 | 12,637 | +1,931 |
+| `GrossAnatomicalStructure.txt` | 10,708 | 12,639 | +1,931 |
 
 The +1,822 and +1,931 sum to **+3,753**, exactly the pure-new clique count in the source-impact
-report, and the totals go 175,115 → 178,868. `Cell` and `CellularComponent` are untouched, as
+report, and the totals go 175,117 → 178,870. `Cell` and `CellularComponent` are untouched, as
 expected: EMAPA is not among the Biolink `id_prefixes` for either class, so no EMAPA CURIE can
 reach them.
 
@@ -51,10 +51,13 @@ Neither side lists `EMAPA` in `anatomy_unique_prefixes`; see
 [README.md](./README.md#emapa-is-not-a-unique-prefix-sme-check) for that decision and why it is the
 single biggest determinant of this diff.
 
-Toggling configuration rather than checking out the pre-EMAPA branch matters, because the
-deterministic `build_sets()` ordering fix
-([#945](https://github.com/NCATSTranslator/Babel/issues/945)) must be present on **both** sides.
-As a cross-check, the before side's 175,115 cliques match the "pre-existing cliques" count the
+Toggling configuration rather than checking out the pre-EMAPA branch matters, because two other
+changes on this branch — the deterministic `build_sets()` ordering fix
+([#945](https://github.com/NCATSTranslator/Babel/issues/945)) and the anatomy bad-xrefs filter
+(`input_data/anatomy_badxrefs.txt`) — must be present on **both** sides. Neither is EMAPA-specific,
+so building the before side without them would fold their effects into this diff and misattribute
+them to EMAPA.
+As a cross-check, the before side's 175,117 cliques match the "pre-existing cliques" count the
 source-impact report computes independently.
 
 Because both runs read the same concord files, no cross-reference goes missing between them. Every
@@ -69,8 +72,8 @@ anatomy cliques long before EMAPA existed as a source:
 
 | | cliques | cliques holding an EMAPA CURIE | distinct EMAPA CURIEs |
 |---|---|---|---|
-| before | 175,115 | 4,203 | 4,343 |
-| after | 178,868 | 7,956 | 8,096 |
+| before | 175,117 | 4,205 | 4,345 |
+| after | 178,870 | 7,958 | 8,098 |
 
 On both sides some cliques hold **more than one** EMAPA CURIE (140 more CURIEs than cliques, after).
 That is the direct consequence of leaving `EMAPA` out of `anatomy_unique_prefixes`, and it is what

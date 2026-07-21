@@ -136,6 +136,7 @@ rule anatomy_compendia:
             ap=config["anatomy_concords"],
         ),
         idlists=expand("{dd}/anatomy/ids/{ap}", dd=config["intermediate_directory"], ap=config["anatomy_ids"]),
+        badxrefs="input_data/anatomy_badxrefs.txt",
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["anatomy_outputs"]),
@@ -144,7 +145,9 @@ rule anatomy_compendia:
     benchmark:
         config["output_directory"] + "/benchmarks/anatomy_compendia.tsv"
     run:
-        anatomy.build_compendia(input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename)
+        anatomy.build_compendia(
+            input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename, badxrefs=input.badxrefs
+        )
 
 
 rule check_anatomy_completeness:

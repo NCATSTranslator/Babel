@@ -7,6 +7,7 @@ All tests run offline (``unit``) by monkeypatching the UberGraph-facing calls.
 import pytest
 
 import src.createcompendia.anatomy as anatomy
+from src.babel_utils import read_badxrefs
 from src.categories import ANATOMICAL_ENTITY, CELL, GROSS_ANATOMICAL_STRUCTURE
 from src.prefixes import EMAPA
 from src.ubergraph import HIERARCHY_PART_OF
@@ -85,6 +86,54 @@ def test_build_emapa_obo_relationships_walks_part_of_with_ignore_list(monkeypatc
     assert captured["hierarchy_predicate"] == HIERARCHY_PART_OF
     assert captured["ignore_list"] == anatomy.ANATOMY_OBO_IGNORE_LIST
     assert captured["concordfiles"] == {EMAPA: sentinel}
+
+
+# --- Bad-xref filtering ---
+
+
+@pytest.mark.unit
+def test_anatomy_bad_xref_pairs_are_dropped_in_either_direction():
+    """A pair listed in the bad-xrefs file should be dropped whichever way the concord writes it.
+
+    The two shipped pairs come from different concords (UBERON writes
+    ``UBERON:0001236 xref MESH:D019439``; UMLS writes ``UMLS:C0008503 eq GO:0042600``), so the
+    filter must not assume an orientation. Matching only one direction would silently let the
+    pair through if a source ever flipped it.
+    """
+    bad_pairs = {frozenset(("UBERON:0001236", "MESH:D019439"))}
+    pair_filter = anatomy._make_anatomy_concord_pair_filter(bad_pairs)
+
+    assert not pair_filter(["UBERON:0001236", "xref", "MESH:D019439"], "UBERON", {})
+    assert not pair_filter(["MESH:D019439", "xref", "UBERON:0001236"], "UBERON", {})
+    # An unlisted pair is kept.
+    assert pair_filter(["UBERON:0001236", "xref", "MESH:D000313"], "UBERON", {})
+
+
+@pytest.mark.unit
+def test_anatomy_bad_xref_filter_still_applies_the_umls_go_rule():
+    """Wrapping the UMLS<->GO rule must not disable it.
+
+    UMLS<->GO pairs are only kept when both CURIEs are already in the clique state, so a pair
+    whose members are absent from ``dicts`` is dropped even though it is not in the bad-xrefs
+    file. Pinning this catches a refactor that returned True before delegating.
+    """
+    pair_filter = anatomy._make_anatomy_concord_pair_filter(set())
+
+    assert not pair_filter(["UMLS:C0000001", "eq", "GO:0000001"], "UMLS", {})
+    assert pair_filter(["UMLS:C0000001", "eq", "GO:0000001"], "UMLS", {"UMLS:C0000001": {}, "GO:0000001": {}})
+
+
+@pytest.mark.unit
+def test_shipped_anatomy_badxrefs_file_parses_and_lists_the_known_pairs():
+    """The committed bad-xrefs file should parse and contain the two conflations it documents.
+
+    Both entries exist to stop a gross anatomical structure being merged with a cell or cellular
+    component; if either silently disappeared, the merge would come back.
+    """
+    pairs = {frozenset(pair) for pair in read_badxrefs(anatomy.ANATOMY_BAD_XREFS)}
+
+    assert frozenset(("UBERON:0001236", "MESH:D019439")) in pairs
+    assert frozenset(("UMLS:C0008503", "GO:0042600")) in pairs
 
 
 # --- Clique typing ---

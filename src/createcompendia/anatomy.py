@@ -5,15 +5,23 @@ import requests
 import src.datahandlers.mesh as mesh
 import src.datahandlers.obo as obo
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, remove_overused_xrefs, write_compendium
+from src.babel_utils import get_prefixes, read_badxrefs, remove_overused_xrefs, write_compendium
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
 from src.metadata.provenance import write_concord_metadata
 from src.model.cliques import glom_from_files
 from src.prefixes import CL, EMAPA, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import HIERARCHY_PART_OF, UberGraph, build_sets
-from src.util import Text, get_config, get_logger
+from src.util import Text, get_config, get_logger, get_repo_root
 
 logger = get_logger(__name__)
+
+# Individually wrong xref pairs to drop, for cases where the target prefix is legitimate in general
+# (MESH and GO really are anatomy xref targets) so ANATOMY_OBO_IGNORE_LIST cannot help. Unlike
+# diseasephenotype's DEFAULT_BAD_XREFS this is a single file applied to every anatomy concord
+# rather than a per-concord mapping: a pair names both of its CURIEs, so there is nothing for a
+# per-concord key to disambiguate, and one file avoids the two-place-registration footgun described
+# in docs/sources/CLAUDE.md. See the file itself for why each pair is listed.
+ANATOMY_BAD_XREFS = str(get_repo_root() / "input_data/anatomy_badxrefs.txt")
 
 ANATOMY_OBO_SOURCES = {
     UBERON: {"root": f"{UBERON}:0001062", "type": ANATOMICAL_ENTITY},
@@ -324,6 +332,23 @@ def build_anatomy_umls_relationships(mrconso, idfile, outfile, umls_metadata):
     )
 
 
+def _make_anatomy_concord_pair_filter(bad_pairs):
+    """Build the ``(parts, infile, dicts) -> bool`` hook glom_from_files applies to every pair.
+
+    ``bad_pairs`` is a set of frozensets, so a listed pair is dropped whichever way round the
+    concord happens to write it. It is captured in a closure because the hook runs once per
+    concord row and the file must not be re-read that many times.
+    """
+
+    def _filter(parts, infile, dicts):
+        if frozenset((parts[0], parts[2])) in bad_pairs:
+            logger.debug("Skipping bad xref pair %s from %s (see %s)", parts, infile, ANATOMY_BAD_XREFS)
+            return False
+        return _anatomy_concord_pair_filter(parts, infile, dicts)
+
+    return _filter
+
+
 def _anatomy_concord_pair_filter(parts, infile, dicts):
     """Drop UMLS<->GO concord pairs unless both CURIEs are already in the clique state.
 
@@ -347,7 +372,7 @@ def _anatomy_concord_pair_filter(parts, infile, dicts):
     return True
 
 
-def compute_cliques_for_impact_report(concordances, identifiers, excluded_sources=()):
+def compute_cliques_for_impact_report(concordances, identifiers, excluded_sources=(), badxrefs=None):
     """Load anatomy identifier and concord files and return the union-find clique state
     without writing compendia.
 
@@ -363,23 +388,30 @@ def compute_cliques_for_impact_report(concordances, identifiers, excluded_source
     :param identifiers: list of paths to ids files
     :param excluded_sources: set of source names (file basenames) to skip; used to compute
         the "before-new-source" state for the impact report
+    :param badxrefs: path to a bad-xrefs file; defaults to ``ANATOMY_BAD_XREFS``. Pass an
+        empty string to disable the filter (used by tests).
     :returns: (dicts, types) where dicts is the glom dict-of-sets and types maps CURIE
         to its declared biolink type
     """
+    if badxrefs is None:
+        badxrefs = ANATOMY_BAD_XREFS
+    bad_pairs = {frozenset(pair) for pair in read_badxrefs(badxrefs)} if badxrefs else set()
+    logger.info("Loaded %d bad xref pair(s) from %s", len(bad_pairs), badxrefs or "(disabled)")
     return glom_from_files(
         concordances,
         identifiers,
         unique_prefixes=get_config()["anatomy_unique_prefixes"],
-        concord_pair_filter=_anatomy_concord_pair_filter,
+        concord_pair_filter=_make_anatomy_concord_pair_filter(bad_pairs),
         overused_xref_remover=lambda pairs, infile: remove_overused_xrefs(pairs),
         excluded_sources=excluded_sources,
     )
 
 
-def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
+def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, badxrefs=None):
     """:concordances: a list of files from which to read relationships
-    :identifiers: a list of files from which to read identifiers and optional categories"""
-    dicts, types = compute_cliques_for_impact_report(concordances, identifiers)
+    :identifiers: a list of files from which to read identifiers and optional categories
+    :badxrefs: path to a bad-xrefs file; defaults to ``ANATOMY_BAD_XREFS``"""
+    dicts, types = compute_cliques_for_impact_report(concordances, identifiers, badxrefs=badxrefs)
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]

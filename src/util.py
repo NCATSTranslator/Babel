@@ -7,6 +7,7 @@ import re
 import sys
 from collections import namedtuple
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from time import gmtime
 
 import curies
@@ -51,6 +52,18 @@ def get_logger(name, loglevel=logging.INFO):
     logger = logging.getLogger(name)
     logger.setLevel(loglevel)
     return logger
+
+
+def get_repo_root():
+    """Return the repository root as a :class:`pathlib.Path`.
+
+    Use this to resolve a checked-in input file (``get_repo_root() / "input_data/foo.txt"``)
+    rather than a bare relative path. Snakemake always runs from the repo root, so a relative
+    path works there — but the CLI entry points (the source-impact report, the clique diff) can
+    be invoked from anywhere, and a module-level constant built from a relative path would then
+    silently point at nothing.
+    """
+    return Path(__file__).resolve().parents[1]
 
 
 def ensure_parent_dir(filename):

@@ -8,7 +8,7 @@
       "CellularComponent.txt",
       "GrossAnatomicalStructure.txt"
     ],
-    "note": "Isolates adding EMAPA as an anatomy source. Both sides built from identical cached intermediates with the deterministic build_sets() ordering fix applied, so the only variable is EMAPA itself."
+    "note": "Isolates adding EMAPA as an anatomy source. Both sides built from identical cached intermediates, with the deterministic build_sets() ordering fix and the anatomy bad-xrefs filter present on both, so the only variable is EMAPA itself."
   },
   "compendia": {
     "AnatomicalEntity.txt": {
@@ -56,10 +56,10 @@
     "GrossAnatomicalStructure.txt": {
       "changed_before_cliques": 0,
       "clique_count": {
-        "after": 12637,
-        "before": 10706,
+        "after": 12639,
+        "before": 10708,
         "diff": 1931,
-        "diff_percent": 18.04
+        "diff_percent": 18.03
       },
       "cliques_with_dropped_members": 0,
       "dropped_member_count": 0,

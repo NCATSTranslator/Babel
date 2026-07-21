@@ -1238,6 +1238,28 @@ def read_identifier_file(infile):
     return identifiers, types
 
 
+def read_badxrefs(fn):
+    """Read an ``input_data/*_badxrefs.txt`` file into a set of ``(subject, object)`` tuples.
+
+    Format is one space-separated pair per line, with ``#`` comment lines. These files drop
+    individually wrong cross-reference pairs that survive prefix-level filtering, for cases where
+    the target prefix is legitimate in general but this particular pair is not.
+
+    The tuples are returned in the order written. Callers decide whether to match directionally
+    (diseasephenotype) or in either direction (anatomy, which builds frozensets from these).
+    """
+    morebad = set()
+    with open(fn) as inf:
+        for line in inf:
+            if line.startswith("#"):
+                continue
+            x = line.strip().split(" ")
+            if len(x) < 2:
+                continue
+            morebad.add((x[0], x[1]))
+    return morebad
+
+
 def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
     """Given a list of tuples (id1, id2) meaning id1-[xref]->id2, remove any id2 that are associated with more
     than one id1.  The idea is that if e.g. id1 is made up of UBERONS and 2 of those have an xref to say a UMLS

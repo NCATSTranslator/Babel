@@ -76,7 +76,7 @@ term, since EMAPA is by definition a mouse ontology. **We decided against it.**
 
 The tempting precedent is MP, where tagging the taxon cleanly separates MP (mammal) terms from HP
 (human) ones. EMAPA is not analogous, because EMAPA terms do not all sit in EMAPA-only cliques. Of
-the 8,096 EMAPA CURIEs in the built compendia, **4,343 share a clique with a UBERON term** and the
+the 8,098 EMAPA CURIEs in the built compendia, **4,345 share a clique with a UBERON term** and the
 remaining 3,753 form new EMAPA-only cliques (see [clique-diff.md](./clique-diff.md)). UBERON is a
 multi-species ontology covering a broad range of animals, so marking that first group as
 mouse-specific would be **incorrect** —

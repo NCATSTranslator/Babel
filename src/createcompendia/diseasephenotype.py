@@ -1,13 +1,19 @@
 from collections import defaultdict
 from os import path
-from pathlib import Path
 
 import src.datahandlers.doid as doid
 import src.datahandlers.efo as efo
 import src.datahandlers.mesh as mesh
 import src.datahandlers.obo as obo
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.babel_utils import (
+    get_prefixes,
+    glom,
+    read_badxrefs,
+    read_identifier_file,
+    remove_overused_xrefs,
+    write_compendium,
+)
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import (
@@ -28,14 +34,9 @@ from src.prefixes import (
     UMLS,
 )
 from src.ubergraph import build_sets
-from src.util import Text, get_logger
+from src.util import Text, get_logger, get_repo_root
 
 logger = get_logger(__name__)
-
-# Repo root, so DEFAULT_BAD_XREFS resolves regardless of the caller's working directory. The
-# Snakemake rules pass their own repo-relative paths (Snakemake always runs from the root), but
-# the source-impact report CLI can be invoked from anywhere.
-_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 DISEASE_OBO_SOURCES = {
     MP: {"root": f"{MP}:0000001", "type": PHENOTYPIC_FEATURE},
@@ -104,10 +105,10 @@ OVERUSE_FILTERED_CONCORDS = {"MONDO", "HP", "EFO", "MP"}
 # passed in simply never filters anything; a key that matches no concord basename (a typo, or the
 # two dicts drifting apart) is caught by the guard in compute_cliques_for_impact_report().
 DEFAULT_BAD_XREFS = {
-    "HP": str(_REPO_ROOT / "input_data/badHPx.txt"),
-    "MONDO": str(_REPO_ROOT / "input_data/mondo_badxrefs.txt"),
-    "MP": str(_REPO_ROOT / "input_data/mp_badxrefs.txt"),
-    "UMLS": str(_REPO_ROOT / "input_data/umls_badxrefs.txt"),
+    "HP": str(get_repo_root() / "input_data/badHPx.txt"),
+    "MONDO": str(get_repo_root() / "input_data/mondo_badxrefs.txt"),
+    "MP": str(get_repo_root() / "input_data/mp_badxrefs.txt"),
+    "UMLS": str(get_repo_root() / "input_data/umls_badxrefs.txt"),
 }
 
 # MONDO_close lives in the same intermediate concords/ directory as ordinary concord
@@ -690,17 +691,6 @@ def create_typed_sets(eqsets, types):
         # visible in the Snakemake log without counting individual warnings.
         logger.warning("Dropped %d untypeable disease/phenotype cliques out of %d.", dropped, len(eqsets))
     return typed_sets
-
-
-def read_badxrefs(fn):
-    morebad = set()
-    with open(fn) as inf:
-        for line in inf:
-            if line.startswith("#"):
-                continue
-            x = line.strip().split(" ")
-            morebad.add((x[0], x[1]))
-    return morebad
 
 
 # def load_diseases_and_phenotypes(concords, idlists, badhpos, badhpoxrefs, icrdf_filename):
