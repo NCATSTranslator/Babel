@@ -290,18 +290,9 @@ the build: `DRUGBANK:DB09341` "Dextrose, unspecified form" reaches the D-glucose
 `partials/untyped_compendium` and the compendia themselves, the DuckDB `Edge` table, or Node
 Normalization — never from the concords that fed it.
 
-**Replay a pipeline function offline instead of rebuilding to measure a change.** A completed
-build's `babel_outputs/intermediate/` holds exactly the inputs its compendium-building functions
-consumed, so a change to one of them can be measured in seconds by importing the production function
-and re-running it over those files, rather than paying for a multi-hour rebuild. `create_typed_sets`
-re-typed `babel-1.18`'s 293 `Food.txt` cliques from `partials/types` + `ids/DRUGBANK_food_extracts`
-in 20 seconds and gave the exact per-clique before/after split. Import the production function so
-the measurement cannot drift from the pipeline, sort the output so re-runs diff cleanly, and commit
-the script with its output (see
-`docs/sources/DRUGBANK/food-and-extracts/scripts/replay_type_vote.py`). This is a complement to
-`babel-clique-diff`, not a replacement: a replay only sees the cliques the build already produced,
-so it cannot show cliques that a change *creates, splits, or moves between compendia*. Use it to
-iterate cheaply, then confirm with a real build-vs-build diff.
+To measure a change to a compendium-building function, replaying it over a finished build's
+`intermediate/` is seconds where a rebuild is hours — see `docs/sources/CLAUDE.md` ("Replaying a
+pipeline function beats rebuilding to measure a change") for how, and for what it cannot show.
 
 When a bug fix is easy to cover with a test, suggest adding one as part of the fix.
 
