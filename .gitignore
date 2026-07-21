@@ -42,3 +42,6 @@ htmlcov/
 # and is only useful on the maintainer's machine.
 *.numbers
 *.xlsx
+
+# macOS Finder metadata.
+.DS_Store
