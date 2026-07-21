@@ -131,10 +131,11 @@ anatomy_outputs:   [AnatomicalEntity.txt, Cell.txt, CellularComponent.txt, Gross
 # anatomy source whose concord file links to UBERON or GO, verify that it doesn't introduce
 # spurious merges before removing either prefix from this list.
 #
-# EMAPA is deliberately NOT listed, even though it is an anatomy ids source.  116 UBERON terms
-# cross-reference more than one EMAPA term, and those are mostly genuine 1:n mappings (a mouse
-# developmental partonomy resolving finer than the adult UBERON structure), not merge errors.
-# Restricting EMAPA would block all 116 merges and would silently delete any EMAPA CURIE that
+# EMAPA is deliberately NOT listed, even though it is an anatomy ids source.  122 UBERON terms
+# cross-reference more than one EMAPA term (116 of them more than one *live* EMAPA term), and
+# those are mostly genuine 1:n mappings (a mouse developmental partonomy resolving finer than the
+# adult UBERON structure), not merge errors.
+# Restricting EMAPA would block all 122 merges and would silently delete any EMAPA CURIE that
 # lost the resulting contest without having its own ids-file row.  See
 # docs/sources/EMAPA/README.md, which flags this for SME review.
 anatomy_unique_prefixes: [UBERON, GO]
