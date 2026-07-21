@@ -32,12 +32,8 @@ Resolver services.
 
 ## Scratch space: use `data/`
 
-`data/` is a gitignored scratch directory. Put ad hoc files there: one-off downloads, analysis
-notebooks, build comparisons, extracted intermediates, anything you need to write while digging
-into a problem. It is never committed, so nothing you leave behind will pollute the repository.
-
-Prefer `data/` over `/tmp` for anything you might want to look at again later in a session or
-across sessions — a partial download, a clique diff, a snapshot pulled from `stars.renci.org`.
+`data/` is a gitignored scratch directory — put ad hoc files there (downloads, build comparisons,
+extracted intermediates), and prefer it over `/tmp` for anything worth keeping across a session.
 Never write scratch files into the repository root, `input_data/`, or `docs/`.
 
 ## Key Commands
@@ -141,10 +137,10 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
   `compute_cliques_for_impact_report` through the same wrapper so the impact report provably matches
   the build.
 - **Concord row order is load-bearing** — `glom()`'s `unique_prefixes` keeps whichever CURIE of a
-  restricted prefix it sees *first*, and a loser with no ids-file row is dropped from the compendia
-  outright. `build_sets()` (`src/ubergraph.py`) sorts its output so this is reproducible; never
-  reintroduce unordered iteration over its results, and think about what contests you create before
-  adding a prefix to a pipeline's `*_unique_prefixes`. See `docs/AddingNewSources.md` step 3.
+  restricted prefix it sees *first*, and a loser with no ids-file row is dropped outright.
+  `build_sets()` sorts its output so this is reproducible; never reintroduce unordered iteration
+  there. Before restricting a prefix, count what it makes compete: `docs/AddingNewSources.md` step
+  3.
 - **`SynonymFilter`** (`src/synonyms/filter.py`) checks every label/synonym against
   `input_data/obsolete_synonyms.yaml` before it enters a compendium — see its docstring for the
   `action` field and the `should_suppress()` contract.
@@ -204,8 +200,7 @@ hook, Snakemake rules, `config.yaml`, docs, tests), then generate and read its s
 — including assembling the intermediate inputs from a `stars.renci.org` snapshot when a full local
 build (~500 GB RAM) is impractical. Two things the report exists to catch: an ids file missing its
 Biolink type (see `docs/Development.md`), and a prefix not yet registered in the Biolink Model for
-its class (`write_compendium()` silently drops such CURIEs; check with
-`get_biolink_model_toolkit(version).get_element(<class>).id_prefixes` before assuming either way.
+its class (`write_compendium()` silently drops such CURIEs — check, don't assume.
 `extra_prefixes=[...]` is the escape hatch, and it is what keeps members alive when **retyping** a
 clique to a class that doesn't register their prefix — see `docs/AddingNewSources.md`).
 **Generate and commit the report** (`uv run source-impact-report --source <SOURCE>`) and, for
@@ -241,15 +236,8 @@ ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandl
   targets in *this* ontology are junk or out of scope", not "this is how we want the build
   configured." Keep them beside the code that applies them.
 
-  This split is safe because the provenance is captured elsewhere, twice over. The whole package is
-  git-tagged when a pipeline run takes place, so the exact cleaning rules used for any given build
-  can always be recovered from the tag. And important or variable information can be recorded in a
-  `metadata.yaml`: per-source metadata YAMLs are folded into a pipeline's final `metadata.yaml`,
-  preserving that information alongside the results. If a constant matters enough that someone
-  reading the output would want to know its value, write it into the source's concord metadata
-  rather than moving it into `config.yaml`.
-
   Pure implementation details with no user-facing meaning stay in Python without further thought.
+  Why that split is safe (git tags, `metadata.yaml`): `docs/Development.md`.
 
 - **Document every configuration value** — every entry in `config.yaml` and every module-level
   constant that remains in Python must have an inline comment explaining *what it controls* and

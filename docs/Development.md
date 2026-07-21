@@ -9,6 +9,16 @@ This document describes the current development workflow for Babel and ideas for
 If a needed constant is missing, add it to `src/categories.py` first. This keeps all Biolink class
 names in one place so a rename only requires a single-file update.
 
+**Why some constants stay in Python** — `AGENTS.md` states the rule ("configuration over
+constants", with source-cleaning rules staying beside the parsing code). The reason that split is
+safe is that the provenance is captured elsewhere, twice over. The whole package is git-tagged when
+a pipeline run takes place, so the exact cleaning rules used for any given build can always be
+recovered from the tag. And important or variable information can be recorded in a `metadata.yaml`:
+per-source metadata YAMLs are folded into a pipeline's final `metadata.yaml`, preserving that
+information alongside the results. If a constant matters enough that someone reading the output
+would want to know its value, write it into the source's concord metadata rather than moving it
+into `config.yaml`.
+
 ## Enhancing a data source ingest
 
 When you add a new data source or extend an existing one (the
