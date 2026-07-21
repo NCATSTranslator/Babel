@@ -12,10 +12,12 @@ succeed automatically.
 import email
 import io
 import urllib.error
+from unittest.mock import patch
 
 import pytest
 
-from src.babel_utils import raise_if_cloudflare_challenge
+from src.babel_utils import pull_via_urllib, raise_if_cloudflare_challenge
+from src.util import get_config
 
 
 def _http_error(raw_headers: str) -> urllib.error.HTTPError:
@@ -59,3 +61,58 @@ def test_urlerror_without_headers_is_not_treated_as_a_challenge():
     error = urllib.error.URLError("Name or service not known")
 
     raise_if_cloudflare_challenge("https://example.com/file.zip", "/downloads/SOURCE/file.zip", error)
+
+
+# PULL_VIA_URLLIB -- the check has to actually abort the download loop, not just be callable.
+
+
+def _pull_with_opener_raising(error, tmp_path):
+    """Run pull_via_urllib() against an opener that always raises `error`, into tmp_path.
+
+    Returns the mock for babel_utils' time.sleep so a test can assert whether the retry
+    backoff was reached.
+    """
+    # Overlay the real config rather than stubbing one: pull_via_urllib also reaches
+    # get_user_agent(), which wants build.branch and babel.github_url.
+    config = {**get_config(), "download_directory": str(tmp_path)}
+    with (
+        patch("src.babel_utils.get_config", return_value=config),
+        patch("src.babel_utils.urllib.request.build_opener") as build_opener,
+        patch("src.babel_utils.time.sleep") as sleep,
+    ):
+        build_opener.return_value.open.side_effect = error
+        yield_error = None
+        try:
+            pull_via_urllib("https://example.com/", "file.zip", decompress=False, subpath="SOURCE")
+        except BaseException as exc:  # noqa: BLE001 -- the test inspects whatever came out
+            yield_error = exc
+    return yield_error, sleep
+
+
+@pytest.mark.unit
+def test_pull_via_urllib_aborts_immediately_on_a_challenge(tmp_path):
+    """A challenge response should abort with the actionable RuntimeError and without sleeping.
+
+    This is the behavior the whole check exists for: the generic path would instead sleep, retry,
+    and eventually fail with "more than N attempts", which tells the operator nothing about needing
+    to fetch the file by hand.
+    """
+    error, sleep = _pull_with_opener_raising(_http_error("cf-mitigated: challenge"), tmp_path)
+
+    assert isinstance(error, RuntimeError)
+    assert "Cloudflare bot challenge" in str(error)
+    # The local path is what the operator needs in order to place the file by hand.
+    assert str(tmp_path / "SOURCE" / "file.zip") in str(error)
+    sleep.assert_not_called()
+
+
+@pytest.mark.unit
+def test_pull_via_urllib_still_retries_a_plain_403(tmp_path):
+    """A 403 without the Cloudflare header must keep the old behavior -- back off, retry, and fail
+    with the attempt-count message -- so the fast path is scoped to challenges alone."""
+    error, sleep = _pull_with_opener_raising(_http_error(""), tmp_path)
+
+    assert isinstance(error, RuntimeError)
+    assert "attempts" in str(error)
+    assert "Cloudflare" not in str(error)
+    sleep.assert_called()
