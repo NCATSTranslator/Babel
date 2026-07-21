@@ -36,3 +36,9 @@ docs/sources/*/impact-report/modified-cliques.json
 .coverage
 .coverage.*
 htmlcov/
+
+# Spreadsheet sources for the hand-curated manual concords. The .tsv the pipeline reads is
+# committed; the Numbers/Excel file it was exported from is a 170 KB binary that diffs as a blob
+# and is only useful on the maintainer's machine.
+*.numbers
+*.xlsx
