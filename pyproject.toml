@@ -49,6 +49,7 @@ dev = [
 babel-slurm-errors = "src.tools.slurm.errors:main"
 babel-slurm-resources = "src.tools.slurm.resources:main"
 babel-clique-diff = "src.tools.clique_diff.cli:main"
+babel-check-encoding = "src.tools.check_encoding.cli:main"
 source-impact-report = "src.tools.source_impact_report.cli:main"
 
 [tool.uv]
