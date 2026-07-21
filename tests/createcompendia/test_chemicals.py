@@ -1,12 +1,14 @@
 """Unit tests for src.createcompendia.chemicals.
 
-Currently focused on write_unichem_concords()'s handling of UniChem compound IDs
-that already embed their source prefix (e.g. the CHEBI source stores
-"CHEBI:12345" rather than a bare "12345"), which previously produced invalid
-"CHEBI:CHEBI:12345" CURIEs across the chemical compendia.
+Covers write_unichem_concords()'s handling of UniChem compound IDs that already embed their source
+prefix (e.g. the CHEBI source stores "CHEBI:12345" rather than a bare "12345"), which previously
+produced invalid "CHEBI:CHEBI:12345" CURIEs across the chemical compendia; and make_chebi_relations()'s
+reading of the ChEBI SDF, whose tags ChEBI renames between releases.
 """
 
 import gzip
+import json
+from pathlib import Path
 
 import pytest
 
@@ -21,10 +23,16 @@ from src.categories import (
     POLYPEPTIDE,
     SMALL_MOLECULE,
 )
-from src.createcompendia.chemicals import create_typed_sets, write_unichem_concords
+from src.createcompendia.chemicals import (
+    create_typed_sets,
+    make_chebi_relations,
+    split_chebi_sdf_values,
+    write_unichem_concords,
+)
 from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
-from src.prefixes import CHEBI
+from src.predicates import HAS_ALTERNATIVE_ID
+from src.prefixes import CHEBI, KEGGCOMPOUND, PUBCHEMCOMPOUND
 from src.util import get_config
 
 # Derive CHEBI's UniChem source ID from the authoritative dict rather than hardcoding it.
@@ -250,3 +258,178 @@ def test_create_typed_sets_leaves_a_clique_without_food_evidence_untouched():
 
     assert normal in typed[SMALL_MOLECULE]
     assert normal not in typed[FOOD]
+
+
+# MAKE_CHEBI_RELATIONS / CHEBI SDF TAG NAMES
+
+# tests/data/chebi_abacavir.sdf is the CHEBI:421707 "abacavir" entry copied verbatim out of
+# babel_downloads/CHEBI/ChEBI_complete.sdf as downloaded for babel-1.18. It is the single record
+# that motivated this fix, and it happens to carry every tag make_chebi_relations() reads, so one
+# entry exercises all of CHEBI_SDF_KEYS. Re-derive it by extracting the chunk whose "> <ChEBI ID>"
+# tag holds CHEBI:421707.
+ABACAVIR_SDF = Path(__file__).parent.parent / "data" / "chebi_abacavir.sdf"
+
+# The header of database_accession.tsv, copied verbatim from
+# https://ftp.ebi.ac.uk/pub/databases/chebi/flat_files/database_accession.tsv.gz (fetched 2026-07-21).
+# Passing it alone gives an empty dbx, so a test using only this measures the SDF half.
+DBX_HEADER = "id\tcompound_id\taccession_number\ttype\tstatus_id\tsource_id\n"
+
+# The first KEGG COMPOUND row of that same file, verbatim: CHEBI:3 -> KEGG.COMPOUND:C06147.
+# source_id 45 is "KEGG COMPOUND" in the sibling source.tsv.gz.
+DBX_KEGG_ROW = "9\t3\tC06147\tMANUAL_X_REF\t3\t45\n"
+
+
+def _run_make_chebi_relations(tmp_path, sdf=ABACAVIR_SDF, dbx_contents=DBX_HEADER):
+    """Run make_chebi_relations() over a fixture SDF, returning (concord lines, Property dicts)."""
+    dbx = tmp_path / "database_accession.tsv"
+    dbx.write_text(dbx_contents)
+    concord = tmp_path / "CHEBI"
+    propfile = tmp_path / "props.jsonl.gz"
+
+    make_chebi_relations(
+        str(sdf), str(dbx), str(concord), propfile_gz=str(propfile), metadata_yaml=str(tmp_path / "metadata.yaml")
+    )
+
+    with gzip.open(propfile, "rt") as inf:
+        props = [json.loads(line) for line in inf]
+    return concord.read_text().splitlines(), props
+
+
+@pytest.mark.unit
+def test_make_chebi_relations_emits_secondary_chebi_ids(tmp_path):
+    """Every ID in a SECONDARY_ID tag should become a hasAlternativeId property on the primary CURIE.
+
+    ChEBI packs them semicolon-delimited onto one line, so a parser that treats the line as a single
+    value emits one nonsense CURIE instead of five real ones. CHEBI:520984 is the secondary ID that
+    stopped normalizing in babel-1.18 when this ingest broke.
+    """
+    _, props = _run_make_chebi_relations(tmp_path)
+
+    secondary_ids = {p["value"] for p in props if p["predicate"] == HAS_ALTERNATIVE_ID}
+    assert secondary_ids == {"CHEBI:193608", "CHEBI:441792", "CHEBI:2360", "CHEBI:525912", "CHEBI:520984"}
+    assert {p["curie"] for p in props} == {"CHEBI:421707"}
+
+
+@pytest.mark.unit
+def test_make_chebi_relations_emits_kegg_and_pubchem_xrefs(tmp_path):
+    """The SDF's KEGG COMPOUND and PubChem *Compound* links should both become concord xrefs.
+
+    PubChem is the regression-prone one: ChEBI split a single "PubChem Database Links" tag into
+    separate Compound and Substance tags, and only the Compound side belongs in the concord.
+    """
+    concord_lines, _ = _run_make_chebi_relations(tmp_path)
+
+    assert f"CHEBI:421707\txref\t{KEGGCOMPOUND}:C07624" in concord_lines
+    assert f"CHEBI:421707\txref\t{PUBCHEMCOMPOUND}:441300" in concord_lines
+    # 85612588 is this entry's "PubChem Substance Database Links" value; a substance ID must never be
+    # picked up as a compound.
+    assert not any(f"{PUBCHEMCOMPOUND}:85612588" in line for line in concord_lines)
+
+
+@pytest.mark.unit
+def test_make_chebi_relations_splits_multivalue_tags(tmp_path):
+    """A semicolon-delimited tag value should never survive into a CURIE.
+
+    Before the fix, a multi-value KEGG line produced "KEGG.COMPOUND:C00001;C00002", which matches
+    nothing downstream and was invisible because it still looked like a populated concord.
+    """
+    concord_lines, props = _run_make_chebi_relations(tmp_path)
+
+    assert not any(";" in line for line in concord_lines)
+    assert not any(";" in p["value"] for p in props)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "renamed_tag,expected_key",
+    [
+        # The rename that actually happened: `Secondary ChEBI ID` became `SECONDARY_ID` in
+        # babel-1.18, every secondary identifier vanished from the release, and nothing complained.
+        ("> <SECONDARY_ID>", "secondary_id"),
+        ("> <KEGG COMPOUND Database Links>", "keggcompounddatabaselinks"),
+        ("> <PubChem Compound Database Links>", "pubchemcompounddatabaselinks"),
+        # The canary keys. make_chebi_relations() reads none of these, but a rename landing on one
+        # means ChEBI has reworked the file and the tags we do consume need re-auditing, so the
+        # check must fail the build for them too.
+        ("> <ChEBI NAME>", "chebiname"),
+        ("> <INCHIKEY>", "inchikey"),
+        ("> <SMILES>", "smiles"),
+    ],
+)
+def test_make_chebi_relations_raises_when_chebi_renames_a_tag(tmp_path, renamed_tag, expected_key):
+    """A renamed SDF tag should fail the build, naming the tag, rather than silently emitting nothing.
+
+    This is the check that babel-1.18 lacked. Canary tags are covered as well as consumed ones: a
+    rename we tolerate is a rename nobody re-audits.
+    """
+    renamed = tmp_path / "renamed.sdf"
+    renamed.write_text(ABACAVIR_SDF.read_text().replace(renamed_tag, "> <Renamed By ChEBI>"))
+
+    with pytest.raises(ValueError, match=expected_key):
+        _run_make_chebi_relations(tmp_path, sdf=renamed)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "emptied_value,expected_key",
+    [
+        ("CHEBI:193608;CHEBI:441792;CHEBI:2360;CHEBI:525912;CHEBI:520984", "secondary_id"),
+        ("> <KEGG COMPOUND Database Links>\nC07624", "keggcompounddatabaselinks"),
+        ("> <PubChem Compound Database Links>\n441300", "pubchemcompounddatabaselinks"),
+    ],
+)
+def test_make_chebi_relations_raises_when_one_tag_yields_nothing(tmp_path, emptied_value, expected_key):
+    """A tag that is present but yields no values should fail the build, naming that tag.
+
+    Each consumed tag is counted separately rather than in aggregate, because a total-row check
+    cannot protect an individual input: PubChem's ~181,000 xrefs could vanish entirely and KEGG's
+    ~16,000 would keep it quiet. That is the exact shape of the bug this ingest shipped.
+
+    A tag-name check can't see this at all — the tag is still there, only its values changed shape,
+    were truncated, or stopped parsing.
+    """
+    emptied = tmp_path / "emptied.sdf"
+    # Keep the tag line, blank the value, so check_chebi_sdf_keys() passes and this check is what
+    # fires. The replaced text starts with the tag line for the two xref cases, so re-emit it.
+    replacement = emptied_value.split("\n")[0] + "\n " if emptied_value.startswith("> <") else " "
+    emptied.write_text(ABACAVIR_SDF.read_text().replace(emptied_value, replacement))
+
+    with pytest.raises(ValueError, match=expected_key):
+        _run_make_chebi_relations(tmp_path, sdf=emptied)
+
+
+@pytest.mark.unit
+def test_split_chebi_sdf_values_joins_values_across_lines():
+    """read_sdf() returns a tag's value as a list of lines, so splitting must cover both axes: several
+    values on one line and several lines under one tag.
+
+    No tag make_chebi_relations() reads spans more than one line in the babel-1.18 SDF (only
+    DEFINITION does, in 5 entries), but the code this replaced concatenated multiple lines, so the
+    behaviour is asserted rather than assumed away.
+    """
+    assert split_chebi_sdf_values(["C00001;C00002", "  C00003  ", "", "  ", "C00004;"]) == [
+        "C00001",
+        "C00002",
+        "C00003",
+        "C00004",
+    ]
+
+
+@pytest.mark.unit
+def test_make_chebi_relations_drops_every_database_accession_xref(tmp_path):
+    """PINS KNOWN-IMPERFECT BEHAVIOUR (issue #954). The database_accession.tsv half of
+    make_chebi_relations() is dead code: it matches column 3 against "KEGG COMPOUND
+    accession"/"Pubchem accession", but that column is `type` and never holds either, so the branch
+    fires on 0 of 422,561 rows.
+
+    It is the same silent-upstream-reshape failure this PR fixes for the SDF, on the other input,
+    and the per-tag counts added here cannot see it -- they cover the SDF's tags, not this file.
+    The analysis and the fix are #955.
+
+    INVERT this assertion, don't delete it, when that half is fixed: DBX_KEGG_ROW should then produce
+    "CHEBI:3\txref\tKEGG.COMPOUND:C06147".
+    """
+    concord_lines, _ = _run_make_chebi_relations(tmp_path, dbx_contents=DBX_HEADER + DBX_KEGG_ROW)
+
+    assert not any(line.startswith("CHEBI:3\t") for line in concord_lines)
+    assert f"CHEBI:3\txref\t{KEGGCOMPOUND}:C06147" not in concord_lines
