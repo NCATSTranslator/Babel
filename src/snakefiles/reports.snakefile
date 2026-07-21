@@ -94,13 +94,13 @@ for compendium_filename in compendia_files:
             generate_content_report_for_compendium(input.compendium_file, output.report_file)
 
 
-rule generate_summary_content_report_for_compendia:
+rule generate_compendia_summary_report:
     input:
         expected_content_reports=expected_content_reports,
     output:
         report_path=config["output_directory"] + "/reports/content/compendia_report.json",
     benchmark:
-        config["output_directory"] + "/benchmarks/generate_summary_content_report_for_compendia.tsv"
+        config["output_directory"] + "/benchmarks/generate_compendia_summary_report.tsv"
     run:
         summarize_content_report_for_compendia(input.expected_content_reports, output.report_path)
 

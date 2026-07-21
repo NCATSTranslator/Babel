@@ -284,8 +284,9 @@ def build_gene_medgen_relationships(infile, outfile, metadata_yaml):
         description=f"Extracts gene-OMIM relationships from the mim2gene_medgen file ({infile})",
         sources=[
             {
-                "name": "MIM2Gene MEDGEN",
+                "name": "mim2gene_medgen",
                 "filename": infile,
+                "url": "https://ftp.ncbi.nlm.nih.gov/gene/DATA/mim2gene_medgen",
             }
         ],
         concord_filename=outfile,

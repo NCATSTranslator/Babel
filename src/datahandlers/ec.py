@@ -1,6 +1,6 @@
 import pyoxigraph
 
-from src.babel_utils import make_local_name, parse_rdf_literal, pull_via_urllib
+from src.babel_utils import parse_rdf_literal, pull_via_urllib
 from src.categories import MOLECULAR_ACTIVITY
 from src.prefixes import EC
 
@@ -12,15 +12,17 @@ def pull_ec():
 class ECgraph:
     """Load the mesh rdf file for querying"""
 
-    def __init__(self):
+    def __init__(self, ifname):
         """There is a problem with enzyme.rdf.  As pulled from expasy, it includes this:
 
         <owl:Ontology rdf:about="">
         <owl:imports rdf:resource="http://purl.uniprot.org/core/"/>
         </owl:Ontology>
 
-        That about='' really makes pyoxigraph annoyed. So we have to give it a base_iri on load, then its ok"""
-        ifname = make_local_name("enzyme.rdf", subpath="EC")
+        That about='' really makes pyoxigraph annoyed. So we have to give it a base_iri on load, then its ok
+
+        :param ifname: The path to the downloaded enzyme.rdf file.
+        """
         from datetime import datetime as dt
 
         print("loading EC")
@@ -69,11 +71,11 @@ class ECgraph:
                 idfile.write(f"{EC}:{ecid}\t{MOLECULAR_ACTIVITY}\n")
 
 
-def make_labels(labelfile, synfile):
-    m = ECgraph()
+def make_labels(infile, labelfile, synfile):
+    m = ECgraph(infile)
     m.pull_EC_labels_and_synonyms(labelfile, synfile)
 
 
-def make_ids(idfname):
-    m = ECgraph()
+def make_ids(infile, idfname):
+    m = ECgraph(infile)
     m.pull_EC_ids(idfname)

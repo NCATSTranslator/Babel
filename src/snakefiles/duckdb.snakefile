@@ -90,7 +90,7 @@ rule export_synonyms_to_duckdb:
             input.synonyms_file,
             output.duckdb_filename,
             output.synonyms_parquet_filename,
-            memory_limit_mb=duckdb_memory_limit_mb(resources.mem),
+            memory_limit_mb=duckdb_memory_limit_mb(resources.mem_mb),
         )
 
 
@@ -171,7 +171,7 @@ rule export_intermediate_files_to_duckdb:
             output.ids_parquet_filename,
             output.concord_parquet_filename,
             output.metadata_parquet_filename,
-            memory_limit_mb=duckdb_memory_limit_mb(resources.mem),
+            memory_limit_mb=duckdb_memory_limit_mb(resources.mem_mb),
         )
 
 

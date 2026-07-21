@@ -406,7 +406,7 @@ rule chemical_compendia:
         config["output_directory"] + "/benchmarks/chemical_compendia.tsv"
     resources:
         mem="512G",
-        runtime="6h",
+        runtime="7h",  # This used to fully happen inside 6h, but after adding Food.txt it takes 5.5h, so let's give it a bit more time.
     run:
         chemicals.build_compendia(
             input.typesfile,

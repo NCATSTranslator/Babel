@@ -7,19 +7,20 @@ from src.snakefiles.util import duckdb_memory_limit_mb
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    "mem,expected",
+    "mem_mb,expected",
     [
-        ("128G", 98304),  # 128 * 1024 * 0.75
-        ("512G", 393216),
+        # Snakemake parses a rule's mem= with decimal suffixes, so mem="128G" reaches us as
+        # mem_mb=128000, not 131072. These are the values the pipeline actually passes in.
+        (128000, 96000),  # mem="128G" * 0.75
+        (512000, 384000),  # mem="512G" * 0.75
+        (1001, 750),  # a non-round allocation truncates rather than rounding up
     ],
 )
-def test_duckdb_memory_limit_mb(mem, expected):
-    assert duckdb_memory_limit_mb(mem) == expected
+def test_duckdb_memory_limit_mb(mem_mb, expected):
+    """Should take resources.mem_mb (a plain int) and return `fraction` of it in MB, truncated.
 
-
-@pytest.mark.unit
-def test_duckdb_memory_limit_mb_rejects_non_gigabyte_allocation():
-    """A `mem` we can't parse must fail loudly rather than silently handing DuckDB a wrong limit
-    (and letting it overshoot the job's cgroup allocation)."""
-    with pytest.raises(ValueError, match="whole gigabytes"):
-        duckdb_memory_limit_mb("128000M")
+    Not resources.mem: Snakemake stores every sized resource as mem_mb internally and re-exposes
+    `mem` through humanfriendly formatting for display, so our "512G" rule setting comes back as
+    the string "512 GB". mem_mb sidesteps that round-trip entirely.
+    """
+    assert duckdb_memory_limit_mb(mem_mb) == expected

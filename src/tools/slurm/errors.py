@@ -116,6 +116,7 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
         print("Found 0 incomplete rules.", file=sys.stderr)
 
     # Completed: unique rule names on one line.
+    print(file=sys.stderr)
     unique_completed = list(dict.fromkeys(g[0].rule_name for g in completed_groups))
     if unique_completed:
         print(f"Found {len(unique_completed)} completed rule(s): {', '.join(unique_completed)}", file=sys.stderr)
@@ -124,6 +125,7 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
 
     # Failed: only truly-dead tasks (no active retry). Summary line + one detail line per job.
     if failed_groups:
+        print(file=sys.stderr)
         all_failed_jobs = [j for g in failed_groups for j in g]
         # Count total job attempts per rule name (xN shows how many times the rule was retried).
         attempt_counts: Counter[str] = Counter(j.rule_name for j in all_failed_jobs)
@@ -168,6 +170,12 @@ def _add_args(parser: argparse.ArgumentParser) -> None:
         metavar="N",
         help="Cap long logs to a head+tail of N lines total with an elision marker (default: 1000).",
     )
+    parser.add_argument(
+        "--logs",
+        action="store_true",
+        help="Print the deduplicated error log contents (default: only the job summary is printed; "
+        "logs are usually redundant across retries or better reproduced locally).",
+    )
 
 
 def add_subparser(subparsers: argparse._SubParsersAction) -> None:
@@ -178,8 +186,8 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples:
   babel-slurm-errors 1.17-try-2
-  babel-slurm-errors 1.17-try-2 --markdown
-  babel-slurm-errors --traceback-only
+  babel-slurm-errors 1.17-try-2 --logs --markdown
+  babel-slurm-errors --logs --traceback-only
 """,
     )
     _add_args(parser)
@@ -193,8 +201,8 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples:
   babel-slurm-errors 1.17-try-2
-  babel-slurm-errors 1.17-try-2 --markdown
-  babel-slurm-errors --traceback-only
+  babel-slurm-errors 1.17-try-2 --logs --markdown
+  babel-slurm-errors --logs --traceback-only
 """,
     )
     _add_args(parser)
@@ -209,9 +217,10 @@ def run(args: argparse.Namespace) -> None:
         print(f"error: {exc}", file=sys.stderr)
         sys.exit(1)
 
-    failures = parse_failures(err_file)
-    print(build_report(failures, args.markdown, args.traceback_only, args.lines, logs_dir))
+    if args.logs:
+        failures = parse_failures(err_file)
+        print(build_report(failures, args.markdown, args.traceback_only, args.lines, logs_dir))
+        sys.stdout.flush()
 
-    sys.stdout.flush()
     print(f"\n--- Summary (read {err_file}) ---", file=sys.stderr)
     print_job_summary(err_file, logs_dir)

@@ -38,12 +38,14 @@ rule process_rhea_ids:
 
 
 rule process_ec_ids:
+    input:
+        infile=config["download_directory"] + "/EC/enzyme.rdf",
     output:
         outfile=config["intermediate_directory"] + "/process/ids/EC",
     benchmark:
         config["output_directory"] + "/benchmarks/process_ec_ids.tsv"
     run:
-        pap.write_ec_ids(output.outfile)
+        pap.write_ec_ids(input.infile, output.outfile)
 
 
 rule process_smpdb_ids:

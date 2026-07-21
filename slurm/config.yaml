@@ -5,12 +5,14 @@
 #   $ snakemake --profile slurm
 #
 executor: slurm
-slurm-jobname: "babel-{rule}.{wildcards}"
 jobs: 50 # maximum number of parallel cluster jobs
 latency-wait: 60 # seconds
 slurm-delete-logfiles-older-than: 0 # Don't delete log files automatically.
 rerun-incomplete: true  # Re-run any jobs that failed with an incomplete status previously.
 keep-going: true # Keep going with independent jobs if a job fails.
+
+# Make the job names look pretty.
+slurm-jobname-prefix: babel
 
 # Wrap Python execution with `time -v` to report on memory usage for each rule.
 python:
