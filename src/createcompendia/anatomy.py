@@ -21,6 +21,12 @@ logger = get_logger(__name__)
 # rather than a per-concord mapping: a pair names both of its CURIEs, so there is nothing for a
 # per-concord key to disambiguate, and one file avoids the two-place-registration footgun described
 # in docs/sources/CLAUDE.md. See the file itself for why each pair is listed.
+#
+# Two consumers resolve this file: the real build, where the anatomy_compendia rule declares it as
+# an input (so an edit re-triggers the rule) and passes the path in, and the source-impact report,
+# which takes this default. The snakefile references this constant rather than repeating the
+# literal, so there is one path and the report cannot drift from the build. Absolute, because the
+# report CLI can be invoked from any directory.
 ANATOMY_BAD_XREFS = str(get_repo_root() / "input_data/anatomy_badxrefs.txt")
 
 ANATOMY_OBO_SOURCES = {

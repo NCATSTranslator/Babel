@@ -136,7 +136,10 @@ rule anatomy_compendia:
             ap=config["anatomy_concords"],
         ),
         idlists=expand("{dd}/anatomy/ids/{ap}", dd=config["intermediate_directory"], ap=config["anatomy_ids"]),
-        badxrefs="input_data/anatomy_badxrefs.txt",
+        # Declared as an input so editing the file re-triggers this rule. Referenced through the
+        # constant rather than repeating the literal: the impact report resolves the same file via
+        # ANATOMY_BAD_XREFS, and if the two drifted the report would stop matching the build.
+        badxrefs=anatomy.ANATOMY_BAD_XREFS,
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["anatomy_outputs"]),
