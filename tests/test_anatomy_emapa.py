@@ -8,8 +8,8 @@ import pytest
 
 import src.createcompendia.anatomy as anatomy
 from src.babel_utils import read_badxrefs
-from src.categories import ANATOMICAL_ENTITY, CELL, GROSS_ANATOMICAL_STRUCTURE
-from src.prefixes import EMAPA
+from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
+from src.prefixes import CL, EMAPA, GO, UBERON
 from src.ubergraph import HIERARCHY_PART_OF
 
 # Fixed part_of descendant closures keyed by root IRI. Mirrors UberGraph.get_subclasses_of,
@@ -55,6 +55,31 @@ def test_write_emapa_ids_types_organ_and_tissue_as_gross(tmp_path, monkeypatch):
     # Output is sorted by CURIE for deterministic, clean diffs.
     curies = [curie for curie, _ in rows]
     assert curies == sorted(curies)
+
+
+# --- Source registry ---
+
+
+@pytest.mark.unit
+def test_obo_id_roots_match_the_literals_they_replaced():
+    """ANATOMY_OBO_SOURCES should resolve to exactly the root lists that used to be hardcoded.
+
+    UBERON's GrossAnatomicalStructure branch and EMAPA's organ/tissue branches were once
+    literals inside their write_*_ids() functions; they now live in the registry as
+    ``subtype_roots``. Pinning the resolved lists is what makes that move checkable, and
+    guards the registry as it grows to cover more of each ontology.
+    """
+    assert anatomy._obo_id_roots(UBERON) == [
+        ("UBERON:0001062", ANATOMICAL_ENTITY),
+        ("UBERON:0010000", GROSS_ANATOMICAL_STRUCTURE),
+    ]
+    assert anatomy._obo_id_roots(CL) == [("CL:0000000", CELL)]
+    assert anatomy._obo_id_roots(GO) == [("GO:0005575", CELLULAR_COMPONENT)]
+    assert anatomy._obo_id_roots(EMAPA) == [
+        ("EMAPA:0", ANATOMICAL_ENTITY),
+        ("EMAPA:35868", GROSS_ANATOMICAL_STRUCTURE),
+        ("EMAPA:35949", GROSS_ANATOMICAL_STRUCTURE),
+    ]
 
 
 # --- Concord generation ---

@@ -29,17 +29,45 @@ logger = get_logger(__name__)
 # report CLI can be invoked from any directory.
 ANATOMY_BAD_XREFS = str(get_repo_root() / "input_data/anatomy_badxrefs.txt")
 
+# Which parts of each source ontology the anatomy pipeline takes, and as what Biolink type.
+#
+# "root" is the traversal root: the term whose descendants define the source's contribution, and
+# the type every term below it gets by default. "subtype_roots" names the subtrees that override
+# that default — UBERON's dedicated gross-anatomy branch, EMAPA's organ and tissue branches. A term
+# at or below a subtype root takes the subtype's type; the subtype root itself is included.
+#
+# This is meant to be the one place to look for "which parts of this ontology does anatomy take,
+# and as what". MESH and UMLS are not here: they span many Biolink types and are keyed by tree
+# number and semantic type rather than by a CURIE root, so they still carry their own maps in
+# write_mesh_ids() and write_umls_ids(). Folding those in is the natural next step.
 ANATOMY_OBO_SOURCES = {
-    UBERON: {"root": f"{UBERON}:0001062", "type": ANATOMICAL_ENTITY},
-    CL: {"root": f"{CL}:0000000", "type": CELL},
-    GO: {"root": f"{GO}:0005575", "type": CELLULAR_COMPONENT},
-    EMAPA: {"root": f"{EMAPA}:0", "type": ANATOMICAL_ENTITY},
+    UBERON: {
+        "root": f"{UBERON}:0001062",  # "anatomical entity"
+        "type": ANATOMICAL_ENTITY,
+        "subtype_roots": {f"{UBERON}:0010000": GROSS_ANATOMICAL_STRUCTURE},  # "anatomical structure"
+    },
+    CL: {"root": f"{CL}:0000000", "type": CELL, "subtype_roots": {}},  # "cell"
+    GO: {"root": f"{GO}:0005575", "type": CELLULAR_COMPONENT, "subtype_roots": {}},  # "cellular_component"
+    EMAPA: {
+        "root": f"{EMAPA}:0",  # "anatomical structure"
+        "type": ANATOMICAL_ENTITY,
+        "subtype_roots": {
+            f"{EMAPA}:35949": GROSS_ANATOMICAL_STRUCTURE,  # "organ"
+            f"{EMAPA}:35868": GROSS_ANATOMICAL_STRUCTURE,  # "tissue"
+        },
+    },
 }
 
-# Roots of the EMAPA "organ" and "tissue" subtrees. Terms at or below these are typed as
-# GrossAnatomicalStructure (see write_emapa_ids); everything else defaults to AnatomicalEntity.
-EMAPA_ORGAN = f"{EMAPA}:35949"
-EMAPA_TISSUE = f"{EMAPA}:35868"
+
+def _obo_id_roots(prefix):
+    """Return the ``[(root CURIE, biolink type)]`` list :func:`write_obo_ids` takes for one source.
+
+    The source's own root first, then its subtype roots sorted by CURIE. Order does not decide
+    typing — ``write_obo_ids`` resolves an overlap through its ``order`` precedence list — but
+    sorting keeps the ids file byte-identical between runs.
+    """
+    source = ANATOMY_OBO_SOURCES[prefix]
+    return [(source["root"], source["type"]), *sorted(source["subtype_roots"].items())]
 
 
 def remove_overused_xrefs_dict(kv):
@@ -88,19 +116,11 @@ def write_ncit_ids(outfile):
 
 
 def write_uberon_ids(outfile):
-    # Keep GrossAnatomicalStructure typing from the dedicated UBERON gross root.
-    gross_id = f"{UBERON}:0010000"
-    write_obo_ids(
-        [
-            (ANATOMY_OBO_SOURCES[UBERON]["root"], ANATOMY_OBO_SOURCES[UBERON]["type"]),
-            (gross_id, GROSS_ANATOMICAL_STRUCTURE),
-        ],
-        outfile,
-    )
+    write_obo_ids(_obo_id_roots(UBERON), outfile)
 
 
 def write_cl_ids(outfile):
-    write_obo_ids([(ANATOMY_OBO_SOURCES[CL]["root"], ANATOMY_OBO_SOURCES[CL]["type"])], outfile)
+    write_obo_ids(_obo_id_roots(CL), outfile)
 
 
 def _emapa_descendants(uber, root):
@@ -127,16 +147,13 @@ def write_emapa_ids(outfile):
     the EMAPA root reaches only a handful of terms. We walk part_of from the root instead
     (plus the few is_a links), and keep every EMAPA-prefixed term.
 
-    Biolink typing rule (one type per CURIE, written in column 2 of the ids file):
-
-    - Terms at or below EMAPA:35949 "organ" or EMAPA:35868 "tissue" are typed as
-      biolink:GrossAnatomicalStructure. The two roots are themselves gross structures, so
-      they are included.
-    - Every other EMAPA term defaults to biolink:AnatomicalEntity.
-
-    Gross typing takes precedence on overlap, matching the precedence in write_obo_ids()
-    (the ``order`` list ranks GrossAnatomicalStructure above AnatomicalEntity) and UBERON's
-    gross-branch override in write_uberon_ids().
+    Biolink typing rule (one type per CURIE, written in column 2 of the ids file): terms at or
+    below one of EMAPA's ``subtype_roots`` take that subtree's type, everything else takes the
+    source's default ``type``. Both come from ANATOMY_OBO_SOURCES, so the branches this source
+    splits on are declared in one place rather than here — today that is EMAPA:35949 "organ" and
+    EMAPA:35868 "tissue" as biolink:GrossAnatomicalStructure, over a biolink:AnatomicalEntity
+    default. This is the partonomy equivalent of UBERON's gross-branch override, which
+    write_obo_ids() applies through its ``order`` precedence list.
 
     Both types survive write_compendium(): EMAPA is registered as an id_prefix for
     biolink:AnatomicalEntity and biolink:GrossAnatomicalStructure in the Biolink Model
@@ -144,20 +161,23 @@ def write_emapa_ids(outfile):
     EMAPA CURIEs would start being silently dropped, and the source-impact report's
     survival columns are what would catch it.
     """
-    root = ANATOMY_OBO_SOURCES[EMAPA]["root"]
+    source = ANATOMY_OBO_SOURCES[EMAPA]
     uber = UberGraph()
-    curies = {root} | _emapa_descendants(uber, root)
-    gross_curies = (
-        {EMAPA_ORGAN, EMAPA_TISSUE} | _emapa_descendants(uber, EMAPA_ORGAN) | _emapa_descendants(uber, EMAPA_TISSUE)
-    )
+    curies = {source["root"]} | _emapa_descendants(uber, source["root"])
+    # Each subtype root's own subtree overrides the default type. Sorted so that if two subtype
+    # roots ever overlap with *different* types, which one wins is at least reproducible; today
+    # both EMAPA subtrees are GrossAnatomicalStructure, so the case does not arise.
+    subtypes = {}
+    for subtype_root, subtype in sorted(source["subtype_roots"].items()):
+        for curie in {subtype_root} | _emapa_descendants(uber, subtype_root):
+            subtypes[curie] = subtype
     with open(outfile, "w") as idfile:
         for curie in sorted(curies):
-            biolink_type = GROSS_ANATOMICAL_STRUCTURE if curie in gross_curies else ANATOMICAL_ENTITY
-            idfile.write(f"{curie}\t{biolink_type}\n")
+            idfile.write(f"{curie}\t{subtypes.get(curie, source['type'])}\n")
 
 
 def write_go_ids(outfile):
-    write_obo_ids([(ANATOMY_OBO_SOURCES[GO]["root"], ANATOMY_OBO_SOURCES[GO]["type"])], outfile)
+    write_obo_ids(_obo_id_roots(GO), outfile)
 
 
 def write_mesh_ids(outfile):
