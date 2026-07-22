@@ -22,6 +22,29 @@ def read_tsv(path: str) -> list[list[str]]:
     return rows
 
 
+def assert_large_tsv_file_valid(path: str, num_columns: int, expected_prefix: str) -> None:
+    """Stream-validate a TSV too large to hold in memory: every line has num_columns, column 0 is a
+    CURIE, and at least one CURIE carries expected_prefix.
+
+    The assert_*_file_valid helpers below all go through read_tsv(), which materializes the whole
+    file as a list. That is fine for a handler test over a tmp_path fixture, but NCBIGene's real
+    labels/taxa/descriptions files are ~70 million rows (2-3.5 GB each), where the list costs tens of
+    GB. Use this instead when the file is a full pipeline output rather than a fixture.
+    """
+    found_prefix = False
+    with open(path) as f:
+        for line in f:
+            stripped = line.rstrip("\n")
+            if not stripped:
+                continue
+            cols = stripped.split("\t")
+            assert len(cols) == num_columns, f"Expected {num_columns} columns, got {len(cols)}: {cols}"
+            assert ":" in cols[0], f"First column is not a CURIE: {cols[0]}"
+            if not found_prefix and cols[0].startswith(expected_prefix):
+                found_prefix = True
+    assert found_prefix, f"No {expected_prefix} CURIEs found in {path}"
+
+
 def assert_labels_file_valid(path: str) -> list[list[str]]:
     """Assert the file is non-empty and every line is PREFIX:ID\\tLabel; return the rows."""
     rows = read_tsv(path)
@@ -74,6 +97,17 @@ def assert_taxa_file_valid(path: str) -> list[list[str]]:
     return rows
 
 
+def glom_dict_from_cliques(cliques) -> dict:
+    """Build a glom-style {curie: set} dict where every CURIE in a clique points to that
+    clique's shared set object, mirroring how src.babel_utils.glom stores cliques."""
+    out = {}
+    for members in cliques:
+        s = set(members)
+        for c in members:
+            out[c] = s
+    return out
+
+
 def assert_descriptions_file_valid(path: str) -> list[list[str]]:
     """Assert the file is non-empty and every line is CURIE\\tdescription; return the rows."""
     rows = []
@@ -109,11 +143,14 @@ def geneprotein_conflation_file(tmp_path_factory):
 # Biolink Model version used throughout the test suite.  Should match config.yaml.
 BIOLINK_VERSION = get_config()["biolink_version"]
 
-# Per-mark timeout overrides (pytest-timeout); unit tests inherit the global timeout = 30
+# Per-mark timeout overrides (pytest-timeout); unit tests inherit the global timeout = 30.
+# A test carrying several of these marks gets the longest of them (see max() in
+# pytest_collection_modifyitems), so `slow` is how a pipeline test that really does need an hour
+# asks for one -- the plain `pipeline` budget is deliberately tighter than that.
 MARK_TIMEOUTS = {
-    "network": 600,
-    "slow": 600,
-    "pipeline": 3600,
+    "network": 600,  # a download can stall on a slow mirror; 10 min before we call it hung.
+    "slow": 3600,  # `slow` means genuinely long-running: a full-file scan, an hour to be safe.
+    "pipeline": 900,  # most pipeline tests run in well under 15 min once the download is cached.
 }
 
 

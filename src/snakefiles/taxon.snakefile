@@ -64,6 +64,8 @@ rule get_taxon_relationships:
 
 
 rule taxon_compendia:
+    # Peaks at ~14 GB on babel-1.17, just under the 16 GB default, so no override; the tightest
+    # rule on the default and the first to watch for an OOM as NCBITaxon grows (see docs/tools/Resources.md).
     input:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["taxon_labels"]),
         synonyms=expand("{dd}/{ap}/synonyms", dd=config["download_directory"], ap=config["taxon_synonyms"]),

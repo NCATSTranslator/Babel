@@ -7,12 +7,13 @@ import pytest
 
 from src.categories import DISEASE
 from src.datahandlers.efo import EFOgraph
-from src.prefixes import EFO
+from src.prefixes import EFO, MP
 from tests.datahandlers.conftest import RDFS_NS, SKOS_NS, lit, make_graph_from_store, nn, quad
 
 _EFO_NS = "http://www.ebi.ac.uk/efo/EFO_"
 _MONDO_NS = "http://purl.obolibrary.org/obo/MONDO_"
 _MONDOH_NS = "http://purl.obolibrary.org/obo/mondo#"
+_MP_NS = "http://purl.obolibrary.org/obo/MP_"
 _OBO_NS = "http://www.geneontology.org/formats/oboInOwl#"
 _ORPHANET_IRI = "http://www.orpha.net/ORDO/Orphanet_123456"
 
@@ -23,7 +24,9 @@ def _make_efo_store() -> pyoxigraph.Store:
     EFO:0000001  — root entity; prefLabel + altLabel + lang-tagged rdfs:label
                    + SKOS exactMatch to MONDO:0001234
                    + SKOS exactMatch to Orphanet (should be filtered)
+                   + SKOS exactMatch to MP:0002975 (dropped only when MP prefix excluded)
                    + hasDbXref "MESH:D001234" (valid CURIE string xref)
+                   + hasDbXref "MP:0001625" (dropped only when MP prefix excluded)
                    + hasDbXref "not-a-curie" (invalid, should be skipped)
 
     EFO:0001234  — subClassOf EFO:0000001
@@ -45,10 +48,12 @@ def _make_efo_store() -> pyoxigraph.Store:
 
     store.add(quad(root, nn(f"{SKOS_NS}exactMatch"), nn(f"{_MONDO_NS}0001234")))
     store.add(quad(root, nn(f"{SKOS_NS}exactMatch"), nn(_ORPHANET_IRI)))
+    store.add(quad(root, nn(f"{SKOS_NS}exactMatch"), nn(f"{_MP_NS}0002975")))
     # mondo#exactMatch is normalised to skos:exactMatch in output
     store.add(quad(root, nn(f"{_MONDOH_NS}exactMatch"), nn(f"{_MONDO_NS}9999999")))
 
     store.add(quad(root, nn(f"{_OBO_NS}hasDbXref"), lit("MESH:D001234")))
+    store.add(quad(root, nn(f"{_OBO_NS}hasDbXref"), lit("MP:0001625")))
     store.add(quad(root, nn(f"{_OBO_NS}hasDbXref"), lit("not-a-curie")))
 
     return store
@@ -139,6 +144,26 @@ def test_get_exacts_filters_orphanet(efograph):
         assert "orphanet" not in line.lower(), f"Unexpected Orphanet line: {line}"
 
 
+@pytest.mark.unit
+def test_get_exacts_excludes_mp_prefix(efograph):
+    """With MP in excluded_target_prefixes, an EFO->MP exactMatch should be dropped while
+    other exactMatch targets (MONDO) are still written."""
+    out = io.StringIO()
+    efograph.get_exacts("EFO:0000001", out, excluded_target_prefixes=[MP])
+    written = out.getvalue()
+    assert f"{MP}:0002975" not in written
+    assert "EFO:0000001\tskos:exactMatch\tMONDO:0001234" in written
+
+
+@pytest.mark.unit
+def test_get_exacts_default_keeps_mp(efograph):
+    """With no exclusion (the default), the EFO->MP exactMatch is emitted — the filter is opt-in
+    and the handler's default behavior is unchanged."""
+    out = io.StringIO()
+    efograph.get_exacts("EFO:0000001", out)
+    assert f"EFO:0000001\tskos:exactMatch\t{MP}:0002975" in out.getvalue()
+
+
 # ---------------------------------------------------------------------------
 # get_xrefs
 # ---------------------------------------------------------------------------
@@ -156,3 +181,24 @@ def test_get_xrefs_skips_non_curie(efograph):
     out = io.StringIO()
     efograph.get_xrefs("EFO:0000001", out)
     assert "not-a-curie" not in out.getvalue()
+
+
+@pytest.mark.unit
+def test_get_xrefs_excludes_mp_prefix(efograph):
+    """With MP in excluded_target_prefixes, an EFO->MP hasDbXref should be dropped while other
+    xref targets (MESH) are still written. This is how EFO->MP links are kept out of
+    concords/EFO so MP stays disjoint from EFO (see docs/sources/MP/disjointness.md)."""
+    out = io.StringIO()
+    efograph.get_xrefs("EFO:0000001", out, excluded_target_prefixes=[MP])
+    written = out.getvalue()
+    assert f"{MP}:0001625" not in written
+    assert "EFO:0000001\toboInOwl:hasDbXref\tMESH:D001234" in written
+
+
+@pytest.mark.unit
+def test_get_xrefs_default_keeps_mp(efograph):
+    """With no exclusion (the default), the EFO->MP hasDbXref is emitted — the filter is opt-in
+    and the handler's default behavior is unchanged."""
+    out = io.StringIO()
+    efograph.get_xrefs("EFO:0000001", out)
+    assert f"EFO:0000001\toboInOwl:hasDbXref\t{MP}:0001625" in out.getvalue()

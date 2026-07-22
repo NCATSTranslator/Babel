@@ -166,206 +166,164 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
         db.close()
 
 
-def generate_curie_report(parquet_root, duckdb_filename, curie_report_json, duckdb_config=None):
+def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, name, duckdb_config=None):
     """
-    Generate a report about all the prefixes within this system.
+    Generate the combined prefix report describing every CURIE and clique-leader prefix in the build.
 
     See thoughts at https://github.com/NCATSTranslator/Babel/issues/359
 
+    This revives the output of the original ``generate_prefix_report`` (added in PR #363, later split
+    into ``generate_curie_report``/``generate_clique_leaders_report``), but implemented with only
+    *spillable* aggregates. The original OOM-killed the full graph because it used two non-spillable
+    DuckDB operators -- ``COUNT(DISTINCT ...)`` (a full distinct hash set per group) and
+    ``STRING_AGG(... '||' ...)`` (one giant delimited string per prefix). Neither can spill to disk,
+    so no ``memory_limit`` setting saves them. Here every count comes from a plain ``GROUP BY <prefix>``
+    (spillable) and every distinct/clique count from ``approx_count_distinct`` (a fixed-size HLL sketch,
+    ~2% error). The exact occurrence counts (``COUNT``) stay exact; only distinct/clique counts are
+    approximate.
+
+    The output schema is the one used by the committed baselines in ``releases/prefix_reports/*.json``
+    (and by babel-validation's PrefixComparator), so a freshly built report drops in beside them with
+    no migration::
+
+        {
+            "name": <release name>,
+            "count_curies": <int, exact>,
+            "count_cliques": <int, approx>,
+            "by_clique": {"<clique_leader_prefix>": {
+                "by_file": {"<filename>": {"<curie_prefix>": <int, exact>}},
+                "count_curies": <int, exact>, "count_cliques": <int, approx>}},
+            "by_curie_prefix": {"<curie_prefix>": {
+                "curie_count": <int, exact>, "curie_distinct_count": <int, approx>,
+                "clique_distinct_count": <int, approx>, "filenames": {"<filename>": <int, exact>}}},
+            "by_filename": {"<filename>": {                            # additive extension to the baseline schema
+                "curie_count": <int, exact>, "distinct_curie_count": <int, approx>}},
+        }
+
+    The ``by_filename`` section is not present in the committed baselines and is ignored by the
+    comparison report; it exists only so report_tables can build the per-file cliques table.
+
     :param parquet_root: The root directory for the Parquet files. We expect these to have subdirectories named
-        e.g. `filename=AnatomicalEntity/Clique.parquet`, etc.
+        e.g. `filename=AnatomicalEntity/Edge.parquet`, etc.
     :param duckdb_filename: A temporary DuckDB file to use.
-    :param curie_report_json: The prefix report as JSON.
+    :param prefix_report_json: The combined prefix report to write as JSON.
+    :param name: The release name to store in the report's top-level ``name`` field.
     """
 
     db = setup_duckdb(duckdb_filename, duckdb_config)
     edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
 
-    # Step 2. Generate a prefix report by Biolink type.
-    #
-    # biolink_type is read straight off the Edge table (it is denormalized there at export time), so
-    # this is a plain grouped scan. It used to join the full Edge table against the Clique table to
-    # recover biolink_type, but that large-vs-large join overshot the cgroup hard limit and was
-    # OOM-killed even on a largemem node; the denormalized column removes the join entirely.
-    #
-    # The distinct counts use approx_count_distinct() (HyperLogLog), not COUNT(DISTINCT): an exact
-    # grouped COUNT(DISTINCT) over the full Edge set keeps a distinct hash set per group in RAM and
-    # is not spillable. approx_count_distinct keeps a fixed, tiny sketch per group instead. These are
-    # summary statistics for a diagnostic report, so the ~2% HLL error is acceptable; the exact total
-    # (COUNT) stays exact.
-    logger.info("Generating prefix report by Biolink type...")
-    with log_duckdb_settings_on_error(
-        db, "generate_curie_report: prefix report by Biolink type (approx distinct counts)"
-    ):
-        curie_prefix_by_type = db.sql("""
-            SELECT
-                curie_prefix,
-                biolink_type,
-                COUNT(curie) AS curie_count,
-                approx_count_distinct(curie) AS approx_curie_distinct_count,
-                approx_count_distinct(clique_leader) AS approx_clique_distinct_count
-            FROM edges
-            WHERE conflation = 'None'
-            GROUP BY curie_prefix, biolink_type
-        """)
-        logger.info("Done generating prefix report by Biolink type, retrieving results...")
-        prefix_by_type_report = curie_prefix_by_type.fetchall()
-    logger.info("Done retrieving prefix report by Biolink type.")
-
-    # This is split up by filename, so we need to stitch it back together again.
-    sorted_rows = sorted(prefix_by_type_report, key=lambda x: (x[0], x[1]))
-    by_curie_prefix_results = defaultdict(dict)
-    for row in sorted_rows:
-        by_curie_prefix_results[row[0]][row[1]] = {
-            "curie_count": row[2],
-            "approx_curie_distinct_count": row[3],
-            "approx_clique_distinct_count": row[4],
-        }
-
-    # Step 1. Generate a prefix total report. Same approx_count_distinct approach as Step 2,
-    # grouped by curie prefix alone.
-    logger.info("Generating prefix totals report...")
-    with log_duckdb_settings_on_error(db, "generate_curie_report: prefix totals (approx distinct counts)"):
-        curie_prefix_totals = db.sql("""
-                                     SELECT
-                                         curie_prefix,
-                                         COUNT(curie) AS curie_count,
-                                         approx_count_distinct(curie) AS approx_curie_distinct_count,
-                                         approx_count_distinct(clique_leader) AS approx_clique_distinct_count
-                                     FROM
-                                         edges
-                                     WHERE
-                                         edges.conflation = 'None'
-                                     GROUP BY
-                                         curie_prefix
-                                     """)
-        logger.info("Done generating prefix totals report, retrieving results...")
-        prefix_totals_report = curie_prefix_totals.fetchall()
-    prefix_totals_report_by_curie_prefix = defaultdict(dict)
-    for row in prefix_totals_report:
-        prefix_totals_report_by_curie_prefix[row[0]] = {
-            "curie_count": row[1],
-            "approx_curie_distinct_count": row[2],
-            "approx_clique_distinct_count": row[3],
-        }
-    logger.info("Done retrieving prefix totals report.")
-
-    # Add total counts back in.
-    for curie_prefix in by_curie_prefix_results.keys():
-        by_curie_prefix_results[curie_prefix]["_totals"] = prefix_totals_report_by_curie_prefix[curie_prefix]
-
-    with open(curie_report_json, "w") as fout:
-        json.dump(by_curie_prefix_results, fout, indent=2, sort_keys=True)
-
-    log_memory_snapshot(db, "generate_curie_report complete")
-    with log_duckdb_settings_on_error(db, "generate_curie_report teardown"):
-        edges.close()
-        db.close()
-
-
-def generate_clique_leaders_report(parquet_root, duckdb_filename, by_clique_report_json, duckdb_config=None):
-    """
-    Generate a report about all the prefixes within this system, grouped by filename.
-
-    See thoughts at https://github.com/NCATSTranslator/Babel/issues/359
-
-    :param parquet_root: The root directory for the Parquet files. We expect these to have subdirectories named
-        e.g. `filename=AnatomicalEntity/Clique.parquet`, etc.
-    :param duckdb_filename: A temporary DuckDB file to use.
-    :param by_clique_report_json: The prefix report as JSON.
-    """
-
-    db = setup_duckdb(duckdb_filename, duckdb_config)
-
-    edges = db.read_parquet(os.path.join(parquet_root, "**/Edge.parquet"), hive_partitioning=True)
-    # cliques = db.read_parquet(os.path.join(parquet_root, "**/Clique.parquet"), hive_partitioning=True)
-
-    # Step 1. Generate a by-clique report.
-    #
-    # As in generate_curie_report, the distinct counts use approx_count_distinct() (a fixed-size HLL
-    # sketch per group) rather than an exact, non-spillable COUNT(DISTINCT) over the full Edge set.
-    logger.info("Generating clique report...")
-    with log_duckdb_settings_on_error(
-        db, "generate_clique_leaders_report: per-filename totals (approx distinct counts)"
-    ):
-        cliques = db.sql("""
+    # Section 0: by_filename -- per-compendium-file totals. This is an additive extension to the
+    # baseline schema (the committed baselines don't carry it); the comparison report ignores it, but
+    # report_tables.generate_cliques_table needs the per-file exact CURIE count and approximate
+    # distinct CURIE count, which cannot be recovered from the per-prefix sketches elsewhere in this
+    # report.
+    logger.info("Generating prefix report: by_filename totals...")
+    with log_duckdb_settings_on_error(db, "generate_prefix_report: by_filename totals (approx distinct counts)"):
+        by_filename_rows = db.sql("""
             SELECT
                 filename,
-                approx_count_distinct(clique_leader) AS approx_distinct_clique_count,
-                approx_count_distinct(curie) AS approx_distinct_curie_count,
-                COUNT(curie) AS curie_count
-            FROM
-                edges
-            WHERE
-                conflation = 'None'
-            GROUP BY
-                filename
-        """)
-        logger.info("Done generating clique report, retrieving results...")
-        clique_totals = cliques.fetchall()
-    clique_totals_by_curie_prefix = defaultdict(dict)
-    for row in clique_totals:
-        clique_totals_by_curie_prefix[row[0]] = {
-            "approx_distinct_clique_count": row[1],
-            "approx_distinct_curie_count": row[2],
-            "curie_count": row[3],
+                COUNT(curie) AS curie_count,
+                approx_count_distinct(curie) AS distinct_curie_count
+            FROM edges
+            WHERE conflation = 'None'
+            GROUP BY filename
+        """).fetchall()
+    by_filename = {}
+    for filename, curie_count, distinct_curie_count in by_filename_rows:
+        by_filename[filename] = {
+            "curie_count": curie_count,
+            "distinct_curie_count": distinct_curie_count,
         }
-    logger.info("Done retrieving results.")
 
-    # Step 2. Generate a by-clique report .
-    logger.info("Generating clique report for each CURIE prefix...")
-    with log_duckdb_settings_on_error(
-        db, "generate_clique_leaders_report: per-prefix breakdown (approx distinct counts)"
-    ):
-        clique_per_curie = db.sql("""
+    # Section 1: by_curie_prefix -- one row per CURIE prefix. curie_count is exact; the distinct/clique
+    # counts use approx_count_distinct (see the module/function note on non-spillability).
+    logger.info("Generating prefix report: by_curie_prefix totals...")
+    with log_duckdb_settings_on_error(db, "generate_prefix_report: by_curie_prefix (approx distinct counts)"):
+        by_curie_prefix_rows = db.sql("""
+            SELECT
+                curie_prefix,
+                COUNT(curie) AS curie_count,
+                approx_count_distinct(curie) AS curie_distinct_count,
+                approx_count_distinct(clique_leader) AS clique_distinct_count
+            FROM edges
+            WHERE conflation = 'None'
+            GROUP BY curie_prefix
+        """).fetchall()
+    by_curie_prefix = {}
+    for curie_prefix, curie_count, curie_distinct_count, clique_distinct_count in by_curie_prefix_rows:
+        by_curie_prefix[curie_prefix] = {
+            "curie_count": curie_count,
+            "curie_distinct_count": curie_distinct_count,
+            "clique_distinct_count": clique_distinct_count,
+            "filenames": defaultdict(int),
+        }
+
+    # Section 2: the (filename, clique_leader_prefix, curie_prefix) breakdown. This single grouped scan
+    # feeds both by_clique[leader].by_file[filename][curie_prefix] (directly) and
+    # by_curie_prefix[curie_prefix].filenames[filename] (folded over clique_leader_prefix below).
+    logger.info("Generating prefix report: by_file breakdown...")
+    with log_duckdb_settings_on_error(db, "generate_prefix_report: by_file breakdown"):
+        by_file_rows = db.sql("""
             SELECT
                 filename,
                 clique_leader_prefix,
                 curie_prefix,
-                approx_count_distinct(curie) AS approx_distinct_curie_count,
                 COUNT(curie) AS curie_count
-            FROM
-                edges
-            WHERE
-                conflation = 'None'
-            GROUP BY
-                filename, clique_leader_prefix, curie_prefix
-        """)
-        logger.info("Done generating clique report, retrieving results...")
-        all_rows = clique_per_curie.fetchall()
-    logger.info("Done retrieving results.")
+            FROM edges
+            WHERE conflation = 'None'
+            GROUP BY filename, clique_leader_prefix, curie_prefix
+        """).fetchall()
+    by_clique = {}
+    for filename, clique_leader_prefix, curie_prefix, curie_count in by_file_rows:
+        leader_entry = by_clique.setdefault(clique_leader_prefix, {"by_file": {}})
+        leader_entry["by_file"].setdefault(filename, {})[curie_prefix] = curie_count
+        # Fold into by_curie_prefix.filenames. A curie_prefix is guaranteed to be in by_curie_prefix
+        # because both queries scan the same conflation='None' edges.
+        by_curie_prefix[curie_prefix]["filenames"][filename] += curie_count
 
-    clique_leaders_by_filename = dict()
-    sorted_rows = sorted(all_rows, key=lambda x: (x[0], x[1], x[2]))
-    for row in sorted_rows:
-        filename = row[0]
-        clique_leader_prefix = row[1]
-        curie_prefix = row[2]
+    # Section 3: per-clique-leader-prefix totals. count_curies is exact; count_cliques uses
+    # approx_count_distinct. A clique has exactly one leader (hence one leader prefix), so leader
+    # prefixes partition the cliques -- summing these count_cliques never double-counts a clique.
+    logger.info("Generating prefix report: by_clique totals...")
+    with log_duckdb_settings_on_error(db, "generate_prefix_report: by_clique totals (approx distinct counts)"):
+        by_clique_total_rows = db.sql("""
+            SELECT
+                clique_leader_prefix,
+                COUNT(curie) AS count_curies,
+                approx_count_distinct(clique_leader) AS count_cliques
+            FROM edges
+            WHERE conflation = 'None'
+            GROUP BY clique_leader_prefix
+        """).fetchall()
 
-        if filename not in clique_leaders_by_filename:
-            clique_leaders_by_filename[filename] = defaultdict(dict)
+    count_curies = 0
+    count_cliques = 0
+    for clique_leader_prefix, leader_count_curies, leader_count_cliques in by_clique_total_rows:
+        # Every clique_leader_prefix here also appeared in the by_file breakdown (same edges).
+        leader_entry = by_clique.setdefault(clique_leader_prefix, {"by_file": {}})
+        leader_entry["count_curies"] = leader_count_curies
+        leader_entry["count_cliques"] = leader_count_cliques
+        count_curies += leader_count_curies
+        count_cliques += leader_count_cliques
 
-        clique_leaders_by_filename[filename][clique_leader_prefix][curie_prefix] = {
-            "approx_distinct_curie_count": row[3],
-            "curie_count": row[4],
-        }
+    # Convert the defaultdict filenames maps to plain dicts for a clean JSON dump.
+    for entry in by_curie_prefix.values():
+        entry["filenames"] = dict(entry["filenames"])
 
-    # Step 3. Add total counts back in.
-    for filename, clique_leader_prefix_entries in clique_leaders_by_filename.items():
-        if filename in clique_totals_by_curie_prefix:
-            clique_leaders_by_filename[filename]["_totals"] = clique_totals_by_curie_prefix[filename]
+    report = {
+        "name": name,
+        "count_curies": count_curies,
+        "count_cliques": count_cliques,
+        "by_clique": by_clique,
+        "by_curie_prefix": by_curie_prefix,
+        "by_filename": by_filename,
+    }
+    with open(prefix_report_json, "w") as fout:
+        json.dump(report, fout, indent=2, sort_keys=True)
 
-    # Step 4. Write out by-clique report in JSON.
-    with open(by_clique_report_json, "w") as fout:
-        json.dump(
-            clique_leaders_by_filename,
-            fout,
-            indent=2,
-            sort_keys=True,
-        )
-
-    log_memory_snapshot(db, "generate_clique_leaders_report complete")
-    with log_duckdb_settings_on_error(db, "generate_clique_leaders_report teardown"):
+    log_memory_snapshot(db, "generate_prefix_report complete")
+    with log_duckdb_settings_on_error(db, "generate_prefix_report teardown"):
         edges.close()
         db.close()
 

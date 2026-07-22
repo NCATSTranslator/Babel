@@ -30,8 +30,8 @@ uv run snakemake --profile slurm chemical
 |---------|-------|-------|
 | `executor` | `slurm` | Uses Snakemake's built-in SLURM executor |
 | `jobs` | 50 | Max parallel SLURM jobs |
-| `default-resources.mem` | 64G | Per-job default RAM |
-| `default-resources.cpus_per_task` | 4 | Per-job default CPUs |
+| `default-resources.mem` | 16G | Per-job default RAM (90% of rules peak below 8G) |
+| `default-resources.cpus_per_task` | 1 | Per-job default CPUs (only DuckDB rules use more) |
 | `default-resources.runtime` | 120 min | Per-job default wall time |
 | `python.executable` | `/usr/bin/time -v python` | Captures memory/time to job stderr |
 | `slurm-efficiency-report` | True | Writes per-job efficiency CSV |
@@ -95,7 +95,7 @@ Snakemake benchmark TSVs. The two sources measure slightly different things:
   Hatteras its `MaxRSS`/`TotalCPU` columns come back empty (the `jobacct_gather`/cgroup accounting
   isn't capturing them), so the benchmark TSVs are authoritative for actual usage.
 
-The `tools/slurm resources` subcommand reads and merges all shards in this directory; see
+The `src.tools.slurm resources` subcommand reads and merges all shards in this directory; see
 [`../docs/tools/Resources.md`](../docs/tools/Resources.md).
 
 ## Known Resource Hotspots
@@ -108,7 +108,8 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 | `chemical_compendia` | `chemical.snakefile` | 512G | 6h | Full chemical graph |
 | `untyped_chemical_compendia` | `chemical.snakefile` | 512G | — | Pre-typing step |
 | `gene_compendia` | `gene.snakefile` | 256G | 6h | Gene graph |
-| `export_compendia_to_duckdb` | `duckdb.snakefile` | 512G | 6h | Per-compendium DuckDB export |
+| `export_compendia_to_duckdb` | `duckdb.snakefile` | 512G | 6h | Per-compendium DuckDB export; `cpus_per_task=4` (DuckDB auto-threads) |
+| `export_synonyms_to_duckdb` | `duckdb.snakefile` | 512G / 128G | 3h | Per-synonyms DuckDB export (512G for Protein/GeneProteinConflated); `cpus_per_task=4` |
 | `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 512G | — | Two-pass: GROUP BY hash(LOWER(preferred_name)) + streaming-join pair output; memory_limit **16G**, 1 thread — capped low to bound the buffer-pool mapping count under vm.max_map_count (see Known Issues) |
 | `check_for_duplicate_curies` | `duckdb.snakefile` | 1500G | — | GROUP BY curie over all edges; memory_limit 1000G, 1 thread |
 | `check_for_duplicate_clique_leaders` | `duckdb.snakefile` | 512G | — | Two-pass over the smaller Clique table; memory_limit 400G, 4 threads |
@@ -119,6 +120,16 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 | `generate_pubmed_concords` | `publications.snakefile` | 128G | 24h | Full PubMed parse |
 | `generate_pubmed_compendia` | `publications.snakefile` | 128G | — | PubMed compendium build |
 | `geneprotein_conflated_synonyms` | `geneprotein.snakefile` | 512G | 6h | Conflated synonym merge |
+| `drugchemical_conflation` | `drugchemical.snakefile` | 64G | — | Drug/chemical conflation (~57G peak) |
+| `geneprotein_conflation` | `geneprotein.snakefile` | 64G | — | Gene/protein conflation (~48G peak) |
+| `get_uniprotkb_labels` | `datacollect.snakefile` | 48G | — | UniProtKB label parse (~40G peak) |
+| `hmdb_labels_and_synonyms` | `datacollect.snakefile` | 48G | — | HMDB XML parse (~30G peak) |
+| `check_protein_completeness` | `protein.snakefile` | 24G | — | Loads full Protein compendium (~21G peak) |
+| `get_chemical_unichem_relationships` | `chemical.snakefile` | 24G | — | UniChem structure parse (~21G peak) |
+
+The block below the divider was added when the default dropped from 64G to 16G: these rules ran on
+the old default with no explicit block and peak above 16G, so they need one now. `taxon_compendia`
+(~14G peak) is the tightest rule still on the default — watch it first for an OOM.
 
 ## Temporary Scratch Space
 
@@ -238,7 +249,7 @@ may have at `vm.max_map_count` (the old default is 65530), and a new mmap-backed
 with `ENOMEM` once that ceiling is reached.
 
 How to confirm: look at the `Address-space snapshot (…)` line that `log_memory_snapshot()` writes
-(`src/exporters/duckdb_exporters.py`); it is surfaced automatically by `tools/babel-errors.py`. If
+(`src/exporters/duckdb_exporters.py`); it is surfaced automatically by `babel-slurm-errors`. If
 `mappings` is at or near `max_map_count` while `Committed_AS` is well under `CommitLimit` and
 `MemAvailable` is large, it is this issue. (Compare against the RAM shapes documented under
 "Temporary Scratch Space" above.)
@@ -312,10 +323,10 @@ The following improvements are tracked here for visibility but not yet implement
 - **Per-rule resource tuning**: After collecting benchmark data from a full run, add explicit
   `resources:` to every rule based on observed `max_rss + 30% headroom`. This will greatly reduce
   wasted SLURM allocations across the ~100+ rules currently defaulting to 64G/4-CPU. The
-  `tools/slurm resources` subcommand automates the measurement and recommends per-rule sizes from a
-  run's benchmark TSVs (see [`../docs/tools/Resources.md`](../docs/tools/Resources.md)). Applying
-  the recommendations — the `slurm/config.yaml` default and the per-rule overrides — is tracked
-  separately.
+  `src.tools.slurm resources` subcommand automates the measurement and recommends per-rule sizes
+  from a run's benchmark TSVs (see [`../docs/tools/Resources.md`](../docs/tools/Resources.md)).
+  Applying the recommendations — the `slurm/config.yaml` default and the per-rule overrides — is
+  tracked separately.
 
 - **`--local-cores N` flag**: Use this to limit the number of CPUs consumed by local rules
   when running on a shared login node.

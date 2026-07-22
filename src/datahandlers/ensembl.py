@@ -6,7 +6,7 @@ import time
 import apybiomart.classes as _apy_classes
 from apybiomart import find_attributes, find_datasets, query
 
-from src.util import get_config, get_logger
+from src.util import ensure_parent_dir, get_config, get_logger
 
 logger = get_logger(__name__)
 
@@ -177,7 +177,7 @@ def pull_ensembl(
 
                 # Write out the data frame after sorting it by Gene stable ID.
                 df.sort_values(by=["Gene stable ID"], inplace=True)
-                os.makedirs(os.path.dirname(outfile), exist_ok=True)
+                ensure_parent_dir(outfile)
                 df.to_csv(outfile, index=False, sep="\t")
                 break
             except Exception as exc:

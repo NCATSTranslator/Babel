@@ -129,6 +129,40 @@ GeneProtein and DrugChemical conflations each have dedicated conflation modules
 respective cliques after the initial compendium build. See [Conflation.md](./Conflation.md) for
 details on what conflation means and how it works.
 
+### Chemical compendium output types
+
+The chemical pipeline emits one compendium file per Biolink type, enumerated in one place:
+`config.yaml: chemical_outputs`. That single list fans out to DrugChemical conflation (its input is
+`expand(..., config["chemical_outputs"])`), the KGX/Parquet/JSONL/DuckDB exports (via
+`get_all_compendia`), and the synonym outputs — so **adding a new chemical subtype only needs an
+entry there** (plus, in `create_typed_sets`, whatever routes cliques to it). Conflation reads these
+files but never re-types, so a retype done in the compendium survives downstream.
+
+The one manual extra: the per-type report rules in
+[`src/snakefiles/chemical.snakefile`](../src/snakefiles/chemical.snakefile) are hardcoded
+(`check_drug`, `check_food`, …), and `rule chemical` expands `chemical_outputs` over `reports/`, so
+a new output without a matching `check_*` rule breaks the DAG (no producer for
+`reports/<Type>.txt`). See the DrugBank food-and-extract retype
+([`docs/sources/DRUGBANK/food-and-extracts/README.md`](sources/DRUGBANK/food-and-extracts/README.md))
+for a worked example that added `Food.txt`.
+
+### Which Biolink type a chemical clique gets
+
+`create_typed_sets` in [`src/createcompendia/chemicals.py`](../src/createcompendia/chemicals.py)
+types each glommed clique by a vote over its members' per-identifier types (from
+`intermediate/chemicals/partials/types`), with two wrinkles: a clique whose PubChem members all
+agree short-circuits the vote, and sources can contribute *extra candidates* — today only the
+DrugBank food/extract evidence — that join the vote rather than overriding it.
+
+Ties are broken by `config.yaml: chemical_type_order`, most preferred first. Two things about that
+ranking are deliberate and easy to get backwards: `biolink:Drug` is **last**, below
+`biolink:ChemicalEntity`, because it comes almost entirely from RxNorm formulations and is only
+useful where we failed to merge one with its active ingredient; and `biolink:Food` sits below every
+structure-bearing type, so food evidence can improve on a vague `ChemicalEntity` but can never
+demote a defined molecule. That second rule is a bug fix — see
+[the food-and-extracts README](sources/DRUGBANK/food-and-extracts/README.md) for what happened when
+the evidence was an override instead (issue #935).
+
 ## Output directories
 
 When the pipeline runs, it creates and populates these directories:

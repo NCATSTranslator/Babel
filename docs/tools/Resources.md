@@ -1,4 +1,4 @@
-# `tools.slurm resources` — right-size SLURM resources
+# `babel-slurm-resources` — right-size SLURM resources
 
 Babel runs on the RENCI Hatteras cluster as a Snakemake-on-SLURM pipeline. Each rule reserves
 memory, CPUs, and wall time. Over-reserving throttles parallelism (a 191 GB batch node fits only
@@ -12,6 +12,10 @@ uv run babel-slurm-resources <run-dir> [--csv PATH] [--safety F] [--floor-gb N] 
 
 `<run-dir>` is a directory containing `benchmarks/`, `logs/`, and (optionally) `reports/slurm/` —
 either `babel_outputs/` itself or a copy archived for analysis, such as `data/babel-1.17/`.
+
+A captured example of the full report — the analysis behind the current `slurm/config.yaml`
+defaults and per-rule overrides — is committed at
+[`examples/babel-slurm-resources-babel-1.17.md`](examples/babel-slurm-resources-babel-1.17.md).
 
 ## The data a run produces
 
@@ -56,6 +60,14 @@ For each rule with a benchmark, it joins actual usage against the requested reso
   `--new-default-cpus`, default 1). This is the safety gate: lowering the cluster-wide default
   without giving these rules an explicit `resources:` block would silently starve them.
 
+  **This list is a superset of the rules you must act on**, and a `ran on default` column splits it:
+  **yes** means the rule requested the run's default mem (no explicit `resources:` block) and needs
+  a *new* one before the default drops — the actionable subset; **no** means it already carries a
+  block (e.g. `protein_compendia` at 512G) and is safe; **?** means there was no requested-side data
+  for it (usually a DuckDB rule the efficiency report missed — check that one by hand). The default
+  the run used is auto-detected as the modal requested mem and printed in the header, so there's no
+  need to know or pass it.
+
 Each rule is classified `over` (requested ≥ 2× the recommendation), `at-risk` (actual > 80% of the
 request), `ok`, or `no-request-data` (a benchmark with no matching requested-side row). Pass `--csv`
 to also write the full per-rule table for further analysis.
@@ -63,10 +75,18 @@ to also write the full per-rule table for further analysis.
 ## Workflow
 
 1. Run the pipeline; let it write `benchmarks/`, `logs/`, and `reports/slurm/`.
-2. If the run stalls, use [`tools.slurm errors`](Errors.md) to find which rules failed (often
+2. If the run stalls, use [`babel-slurm-errors`](Errors.md) to find which rules failed (often
    transient HTTP errors from data sources) and re-run them.
-3. After a complete run, run `tools.slurm resources <run-dir>` and apply the "needs an explicit
-   override" list: add a `resources:` block to those rules, and adjust the default in
-   `slurm/config.yaml` if the whole distribution has shifted. The known heavy rules and the current
-   defaults are documented in [`slurm/README.md`](../../slurm/README.md).
-4. Re-run the analyzer to confirm the override list is empty — every rule now fits its allocation.
+3. After a complete run, run `babel-slurm-resources <run-dir>` and, for each rule in the override
+   list marked `ran on default = yes`, add a `resources:` block. Bias the numbers
+   **down**: pick the smallest bucket comfortably above the observed peak (~10-15% headroom is fine)
+   rather than the padded `--safety 1.5` recommendation. An OOM is cheap — we track per-rule peak
+   RSS, so it's easy to bump the limit and re-run — whereas padding every rule slowly ratchets the
+   whole cluster's reservation upward, which is exactly the over-provisioning we lowered the default
+   to escape. The known heavy rules and the current defaults are documented in
+   [`slurm/README.md`](../../slurm/README.md).
+4. Re-run the analyzer to confirm the override list is empty (modulo rules that already carry a
+   block) — every rule now fits its allocation.
+5. On later runs, re-check the *existing* override rules against the "req mem" vs "actual RSS"
+   columns and trim any that have grown over-provisioned. There is no CI guard for this (it would
+   require committing benchmark data); it's a periodic manual pass on the files a run leaves behind.

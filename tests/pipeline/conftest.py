@@ -34,6 +34,8 @@ import pytest
 from src.babel_utils import make_local_name
 from src.createcompendia import anatomy, chemicals, diseasephenotype, protein, taxon
 from src.datahandlers.mesh import Mesh, pull_mesh
+from src.prefixes import MP
+from src.ubergraph import build_sets
 
 # ---------------------------------------------------------------------------
 # Shared helpers (not fixtures — importable by test files)
@@ -134,18 +136,24 @@ def _intermediate_id_path(compendium: str, vocab: str) -> str:
     return os.path.join(get_config()["intermediate_directory"], _snakemake_dir(compendium), "ids", vocab)
 
 
-def _maybe_run(outfile: str, fn, regenerate: bool) -> str:
+def _maybe_run(outfile: str | list[str], fn, regenerate: bool) -> str:
     """Run fn() to (re)generate outfile unless it exists and regenerate is False.
 
     fn is a zero-argument callable (typically a lambda) that writes to outfile.
-    Creates parent directories as needed.  Always returns outfile.
+    Creates parent directories as needed.  Always returns outfile (the first, if given several).
+
+    Pass a list when one call produces several outputs together (NCBIGene's single pass over
+    gene_info.gz writes labels, synonyms, taxa and descriptions at once): fn() then runs unless
+    *every* output is already present, so a half-finished run is not mistaken for a cached one.
     """
-    if not os.path.exists(outfile) or regenerate:
-        os.makedirs(os.path.dirname(outfile), exist_ok=True)
+    outfiles = [outfile] if isinstance(outfile, str) else outfile
+    if regenerate or not all(os.path.exists(f) for f in outfiles):
+        for f in outfiles:
+            os.makedirs(os.path.dirname(f), exist_ok=True)
         fn()
     else:
-        print(f"[pipeline] reusing cached {outfile} (pass --regenerate to refresh)")  # noqa: T201
-    return outfile
+        print(f"[pipeline] reusing cached {', '.join(outfiles)} (pass --regenerate to refresh)")  # noqa: T201
+    return outfiles[0]
 
 
 # ---------------------------------------------------------------------------
@@ -426,6 +434,50 @@ def omim_pipeline_outputs(omim_mim2gene, regenerate):
 
 
 # ---------------------------------------------------------------------------
+# NCBIGene download + processing fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def ncbigene_gene_info():
+    """Download babel_downloads/NCBIGene/gene_info.gz, or fail if unavailable.
+
+    This is a large file (>1 GB compressed); dependent tests are marked `slow`.
+    """
+    from src.datahandlers.ncbigene import pull_ncbigene  # deferred: only import when NCBIGene tests are requested
+
+    return _download_or_fail(
+        "NCBIGene gene_info.gz",
+        lambda: pull_ncbigene(["gene_info.gz"]),
+        make_local_name("gene_info.gz", subpath="NCBIGene"),
+    )
+
+
+@pytest.fixture(scope="session")
+def ncbigene_pipeline_outputs(ncbigene_gene_info, regenerate):
+    """Run pull_ncbigene_labels_synonyms_and_taxa; returns {labels, synonyms, taxa, descriptions} paths.
+
+    Output files go to babel_downloads/NCBIGene/ and are reused on subsequent runs unless
+    --regenerate is passed.  Processing the full gene_info.gz is slow (millions of rows), so
+    the four outputs are generated together in one pass.
+    """
+    from src.datahandlers.ncbigene import pull_ncbigene_labels_synonyms_and_taxa  # deferred
+
+    labels = make_local_name("labels", subpath="NCBIGene")
+    synonyms = make_local_name("synonyms", subpath="NCBIGene")
+    taxa = make_local_name("taxa", subpath="NCBIGene")
+    descriptions = make_local_name("descriptions", subpath="NCBIGene")
+
+    _maybe_run(
+        [labels, synonyms, taxa, descriptions],
+        lambda: pull_ncbigene_labels_synonyms_and_taxa(ncbigene_gene_info, labels, synonyms, taxa, descriptions),
+        regenerate,
+    )
+
+    return {"labels": labels, "synonyms": synonyms, "taxa": taxa, "descriptions": descriptions}
+
+
+# ---------------------------------------------------------------------------
 # UberGraph connectivity fixture (shared prerequisite for NCIT and GO)
 # ---------------------------------------------------------------------------
 
@@ -504,6 +556,47 @@ def go_pipeline_outputs(ubergraph_connection, regenerate):
 
 
 # ---------------------------------------------------------------------------
+# MP processing fixture (uses UberGraph, no file download)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def mp_pipeline_outputs(ubergraph_connection, regenerate):
+    """Run MP disease/phenotype ID extraction and ensure MP concord generation is available."""
+
+    id_path = _intermediate_id_path("diseasephenotype", "MP")
+    concord_path = _intermediate_concord_path("diseasephenotype", "MP")
+
+    _maybe_run(id_path, lambda: diseasephenotype.write_mp_ids(id_path), regenerate)
+    _maybe_run(
+        concord_path,
+        lambda: _write_mp_concord(concord_path),
+        regenerate,
+    )
+
+    return {"diseasephenotype": id_path}
+
+
+def _write_mp_concord(concord_path: str) -> None:
+    """Build the MP concord exactly as build_disease_obo_relationships() does.
+
+    MP_XREF_ALLOWED_PREFIXES is not optional here. Without it this writes the raw ~663-row xref
+    dump (anatomy, processes, citations, Wikipedia URLs) to the same stable intermediate path the
+    real build uses, so a later Snakemake run would treat the unfiltered file as up to date and
+    glom category-error xrefs as equivalences. It would also leave the allowlist -- the whole point
+    of MP's ingest -- untested.
+    """
+    os.makedirs(os.path.dirname(concord_path), exist_ok=True)
+    with open(concord_path, "w") as mp_file:
+        build_sets(
+            f"{MP}:0000001",
+            {MP: mp_file},
+            "xref",
+            allowed_prefixes=diseasephenotype.MP_XREF_ALLOWED_PREFIXES,
+        )
+
+
+# ---------------------------------------------------------------------------
 # Vocabulary registry + parametrized fixture for test_vocabulary_partitioning.py
 # ---------------------------------------------------------------------------
 
@@ -516,6 +609,7 @@ VOCABULARY_REGISTRY = {
     "OMIM": "omim_pipeline_outputs",
     "NCIT": "ncit_pipeline_outputs",
     "GO": "go_pipeline_outputs",
+    "MP": "mp_pipeline_outputs",
     "EC": "ec_ids_outputs",
     "CLO": "clo_ids_outputs",
     "EFO": "efo_ids_outputs",
@@ -529,7 +623,7 @@ VOCABULARY_REGISTRY = {
 # wrapper fixtures (ec_ids_outputs, clo_ids_outputs, efo_ids_outputs) defined
 # near the bottom of this file.
 #
-# Rhea and ChEMBL are NOT registered: they produce labels/concords/smiles but
+# Rhea, ChEMBL and NCBIGene are NOT registered: they produce labels/concords/smiles/synonyms but
 # no IDs file, so they cannot be exercised by test_vocabulary_partitioning.py
 # without adding write_X_ids() functions first.
 # See https://github.com/NCATSTranslator/Babel/issues/749

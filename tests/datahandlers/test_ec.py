@@ -4,7 +4,7 @@ import pyoxigraph
 import pytest
 
 from src.categories import MOLECULAR_ACTIVITY
-from src.datahandlers.ec import ECgraph
+from src.datahandlers.ec import ECgraph, make_ids, make_labels
 from src.prefixes import EC
 from tests.datahandlers.conftest import RDF_NS, RDFS_NS, SKOS_NS, lit, make_graph_from_store, nn, quad
 
@@ -63,3 +63,32 @@ def test_pull_EC_labels_altlabel_in_syn_only(ec_output):
 def test_pull_EC_labels_rdfs_label_in_both_files(ec_output):
     assert f"{EC}:5.6.7.8\tSome enzyme" in ec_output["labels"]
     assert f"{EC}:5.6.7.8\trdfs:label\tSome enzyme" in ec_output["syns"]
+
+
+# ENTRY POINTS -- the caller-supplied enzyme.rdf path must actually be the file we load.
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda infile, tmp: make_ids(infile, str(tmp / "ids.tsv")), id="make_ids"),
+        pytest.param(
+            lambda infile, tmp: make_labels(infile, str(tmp / "labels.tsv"), str(tmp / "syns.tsv")),
+            id="make_labels",
+        ),
+    ],
+)
+def test_entry_points_load_the_infile_they_are_given(call, tmp_path):
+    """Both entry points should open the path passed to them, not one re-derived from the download
+    directory. ECgraph used to call make_local_name("enzyme.rdf", subpath="EC") itself, so the
+    Snakemake rules' declared input was ignored and the filename lived in two places -- a rule could
+    depend on one file and read another. Pointing them at a missing path proves which one is opened:
+    the error must name our path.
+    """
+    missing = tmp_path / "not-the-download-dir" / "enzyme.rdf"
+
+    with pytest.raises(FileNotFoundError) as excinfo:
+        call(str(missing), tmp_path)
+
+    assert str(missing) in str(excinfo.value)

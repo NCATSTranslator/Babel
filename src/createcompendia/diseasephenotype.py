@@ -1,5 +1,6 @@
 from collections import defaultdict
 from os import path
+from pathlib import Path
 
 import src.datahandlers.doid as doid
 import src.datahandlers.efo as efo
@@ -9,8 +10,111 @@ import src.datahandlers.umls as umls
 from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.metadata.provenance import write_concord_metadata
-from src.prefixes import HP, ICD0, ICD9, ICD10, KEGGDISEASE, MEDDRA, MESH, MONDO, NCIT, OMIM, ORPHANET, SNOMEDCT, UMLS
+from src.prefixes import (
+    HP,
+    ICD0,
+    ICD9,
+    ICD10,
+    KEGGDISEASE,
+    MEDDRA,
+    MESH,
+    MGI,
+    MONDO,
+    MP,
+    NCIT,
+    OMIM,
+    ORPHANET,
+    SNOMEDCT,
+    UMLS,
+)
 from src.ubergraph import build_sets
+from src.util import Text, get_logger
+
+logger = get_logger(__name__)
+
+# Repo root, so DEFAULT_BAD_XREFS resolves regardless of the caller's working directory. The
+# Snakemake rules pass their own repo-relative paths (Snakemake always runs from the root), but
+# the source-impact report CLI can be invoked from anywhere.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+
+DISEASE_OBO_SOURCES = {
+    MP: {"root": f"{MP}:0000001", "type": PHENOTYPIC_FEATURE},
+}
+
+# Prefixes glom() rejects a *same-prefix* merge for: if a clique would end up holding two
+# distinct identifiers of one of these prefixes (e.g. two different MONDO ids, or two
+# different HP/MP ids), the merge is refused rather than silently accepted. MONDO, HP, and MP
+# are each meant to be the single authoritative identifier of their kind within a clique, so
+# an accidental same-prefix collision (e.g. via a bad transitive MESH/SNOMED bridge) is a
+# data-quality signal worth catching rather than merging through.
+DISEASE_UNIQUE_PREFIXES = [MONDO, HP, MP]
+
+# Prefix groups that must never co-occur in a single clique. After glom, any clique that
+# holds identifiers from two or more prefixes within a group is split: the first-listed
+# prefix (and every identifier whose prefix is not in the group) stays in the clique, and
+# each subsequent prefix's identifiers are peeled into their own clique. HP (human) and MP
+# (mammalian) phenotypes are kept disjoint at the SMEs' request: a human phenotype clique
+# must not absorb a mouse-phenotype identifier (and vice versa), even though UberGraph xrefs
+# (e.g. HP↔MP, EFO↔MP, or transitively via MESH/SNOMED/MONDO) would otherwise merge them.
+# HP is listed first so the existing human/disease clique is preserved and MP is the part
+# that splits off. MP may still merge with non-HP disease ids (MONDO/MESH); only HP triggers
+# a split. See docs/sources/MP/disjointness.md.
+MUTUALLY_EXCLUSIVE_PREFIX_GROUPS = [[HP, MP]]
+
+# EFO's direct xrefs to MP are dropped when building concords/EFO. EFO is a species-agnostic /
+# human-leaning ontology, so an EFO phenotype term xref'd to an MP term is ambiguous: it may be
+# human-scoped (which, like HP, must stay disjoint from MP) or genuinely mammalian, and we have
+# no reliable signal to tell them apart. Per the SMEs' MP/HP disjointness request we therefore do
+# not trust EFO->MP xrefs and remove them at the source. This is the EFO-source complement to the
+# [HP, MP] post-glom split above (HP->MP is handled there); it is applied via
+# efo.make_concords(..., excluded_target_prefixes=...). See docs/sources/MP/disjointness.md.
+EFO_EXCLUDED_XREF_PREFIXES = [MP]
+
+# Target prefixes we accept from MP's UberGraph xrefs; every other target is dropped. MP uses
+# oboInOwl:hasDbXref to mean "this phenotype is *about* that thing", not "is equivalent to it",
+# so most of its xref targets are category errors: CL/MA/FMA are the cell or anatomical structure
+# the abnormality occurs in (MP:0009873 "abnormal aorta tunica media morphology" -> MA:0002903
+# "aorta tunica media"), GO is the process the phenotype perturbs (MP:0002998 "abnormal bone
+# remodeling" -> GO:0046849 "bone remodeling"), NBO is a behavior, NLX a cell type, and
+# Fyler/PMID/http(s) are registry codes, citations and Wikipedia links. What survives:
+#   HP    - genuine phenotype equivalences (the [HP, MP] split above still separates them).
+#   MGI   - MGI phenotype-slim terms, the same kind of thing as the MP term.
+#   MPATH - mouse pathology lesions, phenotype-shaped.
+#   UMLS  - phenotype concepts, and a prefix the disease compendia actually carry.
+# This is an allowlist rather than an ignore_list so that a namespace MP newly starts emitting is
+# rejected by default and surfaces as a review decision instead of a silent regression. Matched
+# against Text.get_prefix_or_none(), which upper-cases, hence "MPATH" (no prefixes.py constant
+# exists for it; Babel does not ingest MPATH). See docs/sources/MP/mappings.md.
+MP_XREF_ALLOWED_PREFIXES = [HP, MGI, "MPATH", UMLS]
+
+# Concord file basenames whose pair stream is filtered through remove_overused_xrefs
+# before glom. Other concord sources are trusted as-is. MP is included alongside the other
+# OBO-sourced concords (MONDO, HP, EFO) since its UberGraph xrefs are ordinary ontology xrefs
+# with the same "one xref target claimed by many source ids" failure mode the filter guards
+# against, and there's no reason to trust MP's xrefs more than HP's.
+OVERUSE_FILTERED_CONCORDS = {"MONDO", "HP", "EFO", "MP"}
+
+# Per-source bad-xref files used when build_compendium is called without explicit
+# badxrefs (e.g. by the source-impact report CLI). The Snakemake call site still
+# passes its own explicit dict so production behaviour is unchanged. Anchored at the repo
+# root because the CLI, unlike Snakemake, need not run from there.
+#
+# A new prefix's key must be added HERE and in the `disease_compendia` rule's explicit dict
+# (src/snakefiles/diseasephenotype.snakefile). A prefix missing from whichever dict was actually
+# passed in simply never filters anything; a key that matches no concord basename (a typo, or the
+# two dicts drifting apart) is caught by the guard in compute_cliques_for_impact_report().
+DEFAULT_BAD_XREFS = {
+    "HP": str(_REPO_ROOT / "input_data/badHPx.txt"),
+    "MONDO": str(_REPO_ROOT / "input_data/mondo_badxrefs.txt"),
+    "MP": str(_REPO_ROOT / "input_data/mp_badxrefs.txt"),
+    "UMLS": str(_REPO_ROOT / "input_data/umls_badxrefs.txt"),
+}
+
+# MONDO_close lives in the same intermediate concords/ directory as ordinary concord
+# files but is fed to glom() as `close={MONDO: ...}` rather than as a pair stream.
+# When discovering inputs from disk (impact-report CLI) we have to recognise it by
+# name and pull it out of the iterated list.
+MONDO_CLOSE_BASENAME = "MONDO_close"
 
 
 def write_obo_ids(irisandtypes, outfile, exclude=[]):
@@ -42,6 +146,45 @@ def write_hp_ids(outfile):
     # Phenotype
     phenotype_id = "HP:0000118"
     write_obo_ids([(phenotype_id, PHENOTYPIC_FEATURE)], outfile)
+
+
+def write_mp_ids(outfile):
+    """Collect MP (Mammalian Phenotype Ontology) identifiers from UberGraph.
+
+    MP is a standard rdfs:subClassOf hierarchy rooted at MP:0000001, so the default
+    subClassOf walk (write_obo_ids, same as write_hp_ids) reaches every term. Every MP
+    term is typed as PhenotypicFeature.
+    """
+    root = DISEASE_OBO_SOURCES[MP]["root"]
+    biolink_type = DISEASE_OBO_SOURCES[MP]["type"]
+    write_obo_ids([(root, biolink_type)], outfile)
+
+
+def write_phenotype_taxa(idfile, taxon, outfile):
+    """Write a ``babel_downloads/<PREFIX>/taxa`` file assigning a fixed taxon to every
+    identifier in a phenotype ontology's ids file.
+
+    HP and MP terms are inherently taxon-scoped: every HP term we ingest describes a human
+    (NCBITaxon:9606) phenotype and every MP term a mammalian (NCBITaxon:40674) phenotype.
+    Rather than re-walk the ontology, we read the already-built ids file (the authoritative
+    set of identifiers Babel ingests for that prefix, ``CURIE\\tbiolink:Type`` per row) so the
+    taxa file covers exactly those CURIEs and never drifts from what lands in the compendia.
+    TaxonFactory then reads this file to populate each identifier's ``t`` field; a clique that
+    mixes HP and MP members ends up with both taxa via the per-clique union in write_compendium.
+
+    :param idfile: path to the prefix's ids file (``CURIE\\tbiolink:Type`` rows)
+    :param taxon: the NCBITaxon CURIE to assign to every identifier (e.g. ``"NCBITaxon:9606"``)
+    :param outfile: path to the taxa file to write (``CURIE\\tNCBITaxon:NNNN`` rows)
+    """
+    if not taxon.startswith("NCBITaxon:"):
+        raise ValueError(f"Phenotype taxon must be an NCBITaxon CURIE, got {taxon!r}")
+    with open(idfile) as inf, open(outfile, "w") as outf:
+        for line in inf:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            curie = stripped.split("\t", maxsplit=1)[0]
+            outf.write(f"{curie}\t{taxon}\n")
 
 
 def write_omim_ids(infile, outfile):
@@ -189,9 +332,32 @@ def build_disease_obo_relationships(outdir, metadata_yamls):
         concord_filename=f"{outdir}/{MONDO}_close",
     )
 
+    # MP cross-references. Standard subClassOf walk from the MP root. Most of MP's declared
+    # xrefs point at anatomy, processes or citations rather than equivalent phenotypes, so only
+    # the MP_XREF_ALLOWED_PREFIXES targets are kept. SSSOM-derived MP↔HP mappings are
+    # intentionally not loaded here — see docs/sources/MP/mappings.md.
+    mp_root = DISEASE_OBO_SOURCES[MP]["root"]
+    with open(f"{outdir}/{MP}", "w") as outfile:
+        build_sets(mp_root, {MP: outfile}, set_type="xref", allowed_prefixes=MP_XREF_ALLOWED_PREFIXES)
+
+    write_concord_metadata(
+        metadata_yamls[MP],
+        name="build_disease_obo_relationships()",
+        sources=[{"type": "UberGraph", "name": MP}],
+        description=f"ubergraph.build_sets() (xref) of {mp_root}, "
+        f"restricted to target prefixes {MP_XREF_ALLOWED_PREFIXES}",
+        concord_filename=f"{outdir}/{MP}",
+    )
+
 
 def build_disease_efo_relationships(owlfile, idfile, outfile, metadata_yaml):
-    efo.make_concords(owlfile, idfile, outfile, provenance_metadata=metadata_yaml)
+    efo.make_concords(
+        owlfile,
+        idfile,
+        outfile,
+        provenance_metadata=metadata_yaml,
+        excluded_target_prefixes=EFO_EXCLUDED_XREF_PREFIXES,
+    )
 
 
 def build_disease_umls_relationships(mrconso, idfile, outfile, omimfile, ncitfile, metadata_yaml):
@@ -237,32 +403,120 @@ def build_disease_doid_relationships(idfile, outfile, metadata_yaml):
     )
 
 
-def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badxrefs, icrdf_filename):
-    """:concordances: a list of files from which to read relationships
-    :identifiers: a list of files from which to read identifiers and optional categories"""
+def compute_cliques_for_impact_report(
+    concordances,
+    identifiers,
+    excluded_sources=(),
+    *,
+    mondoclose=None,
+    badxrefs=None,
+):
+    """Load disease/phenotype identifier and concord files and return the union-find
+    clique state without writing compendia.
+
+    Production build_compendium() calls this once with everything included; the
+    source-impact report CLI calls it twice (once with the new source's basename in
+    `excluded_sources`, once without) to compute a before/after diff.
+
+    Unlike the anatomy version, this has to be aware of two disease-specific quirks:
+
+    * `MONDO_close` lives alongside regular concord files but is fed to glom() as
+      ``close={MONDO: ...}`` rather than as a pair stream. If `mondoclose` is None we
+      look for a path in `concordances` whose basename matches MONDO_CLOSE_BASENAME
+      and pull it out of the iterated list. If absent the close map is empty (which
+      preserves the CLI's ability to run before all intermediates are built).
+    * Per-source bad-xrefs filtering for HP/MONDO/UMLS, and `remove_overused_xrefs`
+      only for MONDO/HP/EFO. If `badxrefs` is None we use ``DEFAULT_BAD_XREFS``.
+
+    :param concordances: list of paths to concord files
+    :param identifiers: list of paths to ids files
+    :param excluded_sources: set of source basenames (e.g. ``{"MP"}``) to skip
+    :param mondoclose: explicit MONDO_close path; otherwise discovered by basename
+    :param badxrefs: explicit basename->path dict; otherwise DEFAULT_BAD_XREFS
+    :returns: ``(dicts, types)`` — glom dict-of-sets and the CURIE->biolink-type map
+    """
+    excluded = set(excluded_sources)
+    if badxrefs is None:
+        badxrefs = DEFAULT_BAD_XREFS
+
+    # A bad-xrefs key is looked up by concord basename (`pref in badxrefs`, below), so a key that
+    # matches no concord silently never filters anything -- the two-place-registration footgun the
+    # DEFAULT_BAD_XREFS docstring warns about (a typo, or a key added to one dict but not the
+    # other). Fail loud here instead. Validated against the full concordances list rather than the
+    # post-exclusion subset, so a `--source X` impact-report before-run (which keeps X's concord in
+    # the list but skips it inside the loop) doesn't trip on X's own bad-xrefs entry.
+    concord_basenames = {path.basename(c) for c in concordances}
+    unknown_badxrefs = set(badxrefs) - concord_basenames
+    if unknown_badxrefs:
+        raise ValueError(
+            f"bad-xrefs keys match no concord basename: {sorted(unknown_badxrefs)} "
+            f"(known concords: {sorted(concord_basenames)}). Fix the key or register the concord."
+        )
+
+    # MONDO_close is not a regular concord; pull it out of the iterated list so it
+    # isn't double-loaded. Production already passes it as a separate `mondoclose`
+    # argument and doesn't include it in `concordances`; this branch only fires when
+    # the impact-report CLI auto-discovered concord files from disk. MONDO_close is
+    # MONDO's own close-match data, so it must be skipped whenever "MONDO" itself is
+    # excluded -- otherwise a `--source MONDO` impact-report "before" computation would
+    # still apply the close-match guard even though MONDO is supposed to be fully absent.
+    iterated_concords = []
+    discovered_mondoclose = None
+    for c in concordances:
+        if path.basename(c) == MONDO_CLOSE_BASENAME:
+            if MONDO not in excluded:
+                discovered_mondoclose = c
+        else:
+            iterated_concords.append(c)
+    if mondoclose is None:
+        mondoclose = discovered_mondoclose
+    elif MONDO in excluded:
+        mondoclose = None
+
     dicts = {}
     types = {}
     for ifile in identifiers:
-        print(ifile)
+        if path.basename(ifile) in excluded:
+            continue
+        logger.info("Reading identifiers from %s", ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=[MONDO, HP])
+        glom(dicts, new_identifiers, unique_prefixes=DISEASE_UNIQUE_PREFIXES)
         types.update(new_types)
-    # Load close Mondos
-    with open(mondoclose) as inf:
-        close_mondos = defaultdict(set)
-        for line in inf:
-            x = tuple(line.strip().split("\t"))
-            close_mondos[x[0]].add(x[1])
-    # Load and glom concords
-    for infile in concordances:
-        print(infile)
+
+    close_mondos = defaultdict(set)
+    if mondoclose is not None:
+        with open(mondoclose) as inf:
+            for line in inf:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                # MONDO_close is a 3-column concord (subject, predicate, object), written by
+                # ubergraph.build_sets() exactly like the regular concords below.
+                #
+                # NOTE: this intentionally preserves the long-standing behaviour from `main` of
+                # keying on x[1] (the predicate, e.g. "oio:closeMatch") rather than x[2] (the
+                # close-match object). Because no clique ever contains the literal predicate
+                # string, glom()'s `close=` guard never matches and has effectively been a no-op.
+                # Fixing it to x[2] activates the guard and changes disease clique merging
+                # broadly (it drops ~1,219 MEDDRA identifiers from Disease.txt), so it is deferred
+                # to a dedicated follow-up PR (#888, `fix-mondo-close-guard`) with its own
+                # before/after impact analysis rather than riding along with the MP addition.
+                x = tuple(stripped.split("\t"))
+                if len(x) != 3:
+                    raise RuntimeError(f'Line "{stripped}" is not a valid MONDO_close entry: {x}')
+                close_mondos[x[0]].add(x[1])
+
+    for infile in iterated_concords:
+        if path.basename(infile) in excluded:
+            continue
+        logger.info("Reading concords from %s", infile)
         pairs = []
         pref = path.basename(infile)
         if pref in badxrefs:
-            print("reading bad xrefs", pref)
+            logger.info("Reading bad xrefs for %s", pref)
             bad_pairs = read_badxrefs(badxrefs[pref])
         else:
-            print("no bad pairs", pref)
+            logger.info("No bad xrefs configured for %s", pref)
             bad_pairs = set()
         with open(infile) as inf:
             for line in inf:
@@ -272,19 +526,137 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
                 x = tuple([stuff[0].strip(), stuff[2].strip()])
                 if x not in bad_pairs:
                     pairs.append(x)
-        if pref in ["MONDO", "HP", "EFO"]:
+        if pref in OVERUSE_FILTERED_CONCORDS:
             newpairs = remove_overused_xrefs(pairs)
         else:
             newpairs = pairs
-        glom(dicts, newpairs, unique_prefixes=[MONDO, HP], close={MONDO: close_mondos})
-        try:
-            print(dicts["OMIM:607644"])
-        except Exception:
-            print("notyet")
+        glom(dicts, newpairs, unique_prefixes=DISEASE_UNIQUE_PREFIXES, close={MONDO: close_mondos})
+
+    # Enforce HP/MP (and any other configured) disjointness as the final step, so BOTH the
+    # real build (build_compendium) and the source-impact report (which diffs these dicts)
+    # see identical, already-split cliques. Must stay the last statement before the return.
+    split_mutually_exclusive_cliques(dicts)
+    return dicts, types
+
+
+def split_mutually_exclusive_cliques(dicts, exclusive_prefix_groups=None):
+    """Split glommed cliques so no clique holds identifiers from two prefixes in one group.
+
+    ``dicts`` is glom's dict-of-sets: every clique member maps to the *same* set object
+    (its clique). For each clique containing identifiers from two or more prefixes within a
+    group in ``exclusive_prefix_groups``, the group's earliest-listed *occupied* prefix stays
+    put (along with every identifier whose prefix is outside the group), and each subsequent
+    occupied prefix's identifiers are peeled into a clique of their own. Mutates ``dicts`` in
+    place (re-pointing each affected member's key to a fresh set object) and returns it.
+
+    Order within a group is significant: ``[[HP, MP]]`` keeps the HP-bearing clique intact and
+    pulls MP out. It is the earliest *occupied* prefix that is kept, not ``group[0]``
+    unconditionally: for a group ``[A, B, C]`` and a clique holding only B, C and out-of-group
+    identifiers, B keeps the out-of-group members and C is peeled off. (Peeling every prefix
+    after ``group[0]`` instead would strand the out-of-group members in a clique of their own.)
+    No empty clique is ever produced.
+
+    Multiple groups are supported. Each group is applied to what the previous group left behind,
+    and the cliques peeled off along the way need no further checking: a peeled clique holds the
+    identifiers of exactly one prefix, so it can never hold two prefixes of a later group.
+
+    :param exclusive_prefix_groups: defaults to ``MUTUALLY_EXCLUSIVE_PREFIX_GROUPS``. Not
+        given a mutable default directly, since a shared mutable default is re-used across
+        every call and any accidental in-place edit (e.g. ``exclusive_prefix_groups.append``
+        by a caller) would leak into all other callers for the lifetime of the process.
+        Prefixes are matched case-insensitively, so a lower-case constant (prefixes.ORPHANET
+        is ``"orphanet"``) works as a group member.
+    """
+    if exclusive_prefix_groups is None:
+        exclusive_prefix_groups = MUTUALLY_EXCLUSIVE_PREFIX_GROUPS
+
+    # Text.get_prefix_or_none() upper-cases, so compare everything in upper case. Group order is
+    # preserved, since `occupied` below relies on it to decide which prefix keeps the remainder.
+    upper_groups = [[prefix.upper() for prefix in group] for group in exclusive_prefix_groups]
+
+    # dicts spans the whole disease/phenotype build (MONDO/DOID/Orphanet/HP/MP/MESH/NCIT/
+    # UMLS/OMIM/EFO), but only cliques touching a group prefix (HP/MP) can possibly need
+    # splitting. Find just those cliques with a single pass over dicts' keys, rather than
+    # dedupe-by-identity over every clique in the whole dict and then re-scan every member of
+    # every clique (most of which are pure MONDO/UMLS/MESH/etc. and can never match).
+    group_prefixes = {prefix for group in upper_groups for prefix in group}
+    candidate_cliques = {}
+    for curie, clique in dicts.items():
+        if Text.get_prefix_or_none(curie) in group_prefixes:
+            candidate_cliques[id(clique)] = clique
+
+    for clique in candidate_cliques.values():
+        for group in upper_groups:
+            members_by_prefix = {prefix: set() for prefix in group}
+            for curie in clique:
+                prefix = Text.get_prefix_or_none(curie)
+                if prefix in members_by_prefix:
+                    members_by_prefix[prefix].add(curie)
+            occupied = [prefix for prefix in group if members_by_prefix[prefix]]
+            if len(occupied) < 2:
+                continue  # at most one of the group's prefixes is present; nothing to split
+            # Keep the earliest occupied prefix with the remainder; peel every later one out.
+            for peel_prefix in occupied[1:]:
+                peel_ids = members_by_prefix[peel_prefix]
+                rest_ids = clique - peel_ids
+                for curie in peel_ids:
+                    dicts[curie] = peel_ids
+                for curie in rest_ids:
+                    dicts[curie] = rest_ids
+                clique = rest_ids  # later peels, and later groups, see only the remainder
+    return dicts
+
+
+def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badxrefs, icrdf_filename):
+    """:concordances: a list of files from which to read relationships
+    :identifiers: a list of files from which to read identifiers and optional categories"""
+    dicts, types = compute_cliques_for_impact_report(
+        concordances,
+        identifiers,
+        mondoclose=mondoclose,
+        badxrefs=badxrefs,
+    )
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]
         write_compendium(metadata_yamls, sets, f"{baretype}.txt", biotype, {}, icrdf_filename=icrdf_filename)
+
+
+def classify_disease_clique(equivalent_ids, types):
+    """Pick a biolink type for one disease/phenotype clique using the same precedence as
+    ``create_typed_sets``: trust MONDO, then HP, then MP (MP is always PhenotypicFeature),
+    then fall back to a majority vote over the declared types of the clique's members,
+    breaking ties by most-specific type.
+
+    Returns the biolink type string (e.g. ``"biolink:Disease"``) or ``None`` if no member
+    of the clique has any declared type.
+
+    Used both by ``create_typed_sets`` (the real build) and by the source-impact report,
+    via the ``clique_classifier`` hook in ``PIPELINE_CONFIG``, so the report labels each
+    clique with the same type and preferred CURIE the build would assign.
+    """
+    order = [DISEASE, PHENOTYPIC_FEATURE]
+    prefixes = get_prefixes(equivalent_ids)
+    for prefix in [MONDO, HP, MP]:
+        if prefix in prefixes:
+            try:
+                return types[prefixes[prefix][0]]
+            except KeyError:
+                # This can happen if the concords are out of sync. Typically, e.g. there might be an HP
+                # that doesn't exist anymore but is still in UMLS. Fall through to the next trusted prefix.
+                pass
+    typecounts = defaultdict(int)
+    for eid in equivalent_ids:
+        if eid in types:
+            typecounts[types[eid]] += 1
+    if not typecounts:
+        return None
+    if len(typecounts) == 1:
+        return next(iter(typecounts.keys()))
+    # First attempt is majority vote, and after that by most specific
+    otypes = [(-c, order.index(t), t) for t, c in typecounts.items()]
+    otypes.sort()
+    return otypes[0][2]
 
 
 def create_typed_sets(eqsets, types):
@@ -293,43 +665,30 @@ def create_typed_sets(eqsets, types):
     chuck out here.
     Current rules: If it has MONDO trust the MONDO's type
                   If it has a HP trust the HP's type
-                   If it has an UBERON trust the UBERON's type
+                  If it has an MP trust the MP's type (always PhenotypicFeature)
     After that, check the types dict to see if we know anything.
     """
-    order = [DISEASE, PHENOTYPIC_FEATURE]
     typed_sets = defaultdict(set)
+    dropped = 0
     for equivalent_ids in eqsets:
-        # prefixes = set([ Text.get_curie(x) for x in equivalent_ids])
-        prefixes = get_prefixes(equivalent_ids)
-        found = False
-        for prefix in [MONDO, HP]:
-            if prefix in prefixes and not found:
-                try:
-                    mytype = types[prefixes[prefix][0]]
-                    typed_sets[mytype].add(equivalent_ids)
-                    found = True
-                except Exception:
-                    # This can happen if the concords are out of sync. Typically, e,g there might be an HP that
-                    # doesn't exist anymroe but ist still in UMLS
-                    pass
-        if not found:
-            typecounts = defaultdict(int)
-            for eid in equivalent_ids:
-                if eid in types:
-                    typecounts[types[eid]] += 1
-            if len(typecounts) == 0:
-                print("how did we not get any types?")
-                print(equivalent_ids)
-                exit()
-            elif len(typecounts) == 1:
-                t = list(typecounts.keys())[0]
-                typed_sets[t].add(equivalent_ids)
-            else:
-                # First attempt is majority vote, and after that by most specific
-                otypes = [(-c, order.index(t), t) for t, c in typecounts.items()]
-                otypes.sort()
-                t = otypes[0][2]
-                typed_sets[t].add(equivalent_ids)
+        t = classify_disease_clique(equivalent_ids, types)
+        if t is None:
+            # No member carries a declared type, so we can't assign a Biolink type and can't
+            # emit the clique. This is normally an empty set in practice, but the HP/MP split
+            # can strand a lone identifier that is referenced in a concord yet absent from any
+            # ids file (e.g. an obsolete MP). Drop it with a warning rather than aborting the
+            # whole build over one untypeable stray.
+            dropped += 1
+            logger.warning(
+                "Dropping untypeable disease/phenotype clique (no member has a declared type): %s",
+                sorted(equivalent_ids),
+            )
+            continue
+        typed_sets[t].add(equivalent_ids)
+    if dropped:
+        # A one-line total, so a mass drop (e.g. an ids file that silently failed to build) is
+        # visible in the Snakemake log without counting individual warnings.
+        logger.warning("Dropped %d untypeable disease/phenotype cliques out of %d.", dropped, len(eqsets))
     return typed_sets
 
 

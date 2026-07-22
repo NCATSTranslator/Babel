@@ -1,37 +1,63 @@
 # Developer tools
 
-The `tools/` directory holds developer and operations tooling that supports building and
-debugging Babel but is not part of the compendium pipeline itself. Each is run with `uv run` so it
-picks up the project's pinned environment.
+Tooling that helps you build, debug, and analyse Babel but is not part of the compendium
+pipeline. Each tool lives in `src/tools/<tool>/` and is installed as a console script by
+`uv sync`, so it picks up the project's pinned environment.
 
-## `tools/slurm` — analyze a SLURM run
+## The tools
 
-`tools/slurm` analyzes a (possibly partial) Snakemake-on-SLURM run. It exposes two commands
-installed by `uv sync`, which share a single parsing layer (`tools/slurm/parse.py`):
+| Tool | Command | What it answers |
+|------|---------|-----------------|
+| [Source impact report](SourceImpactReport.md) | `uv run source-impact-report --source <SOURCE>` | "What does adding *this data source* do to the cliques?" |
+| [Clique diff](CliqueDiff.md) | `uv run babel-clique-diff --before <dir> --after <dir> …` | "How did the cliques change between *build A* and *build B*?" |
+| [SLURM errors](Errors.md) | `uv run babel-slurm-errors <version>` | "Which rules failed in this cluster run, and why?" |
+| [SLURM resources](Resources.md) | `uv run babel-slurm-resources <run-dir>` | "How much `mem`/`cpus` should each rule actually request?" |
+| [RDF load memory](Memory.md) | `uv run python src/tools/memory/estimate_rdf_load_memory.py FILE` | "How much RAM will bulk-loading this RDF dump need?" |
 
-```bash
-uv run babel-slurm-errors <version> --markdown     # failure triage during a run
-uv run babel-slurm-resources <run-dir>             # capacity tuning between runs
-```
+The two clique tools are easy to confuse. `source-impact-report` re-gloms the intermediate
+ids/concords **with and without one source**, over the same code. `babel-clique-diff` compares
+**two finished builds** whose inputs are the same but whose code, config, or upstream data
+differ — so it is the only one that can see cliques that *split, shrank, or disappeared*, and
+the only option for a change that isn't "add a source" at all. See
+[CliqueDiff.md](CliqueDiff.md).
 
-- **`errors`** aggregates the logs of failing rules into one copy-pasteable report and prints a
-  completed / failed / still-running job summary. Run it on a loop during an active cluster job to
-  catch failures early and feed them to a coding agent while the rest of the DAG keeps running; it
-  is also invoked automatically by
-  [`slurm/run-babel-on-slurm.sh`](../../slurm/run-babel-on-slurm.sh) when a run exits non-zero. It
-  is the successor to the former `tools/babel-errors.py` script. See
-  [Errors.md](Errors.md).
-- **`resources`** joins each rule's *actual* usage (Snakemake `benchmark:` TSVs) against its
-  *requested* resources and recommends right-sized `mem`/`cpus`, flagging the rules that would need
-  an explicit override before the cluster-wide default can be lowered. See
-  [Resources.md](Resources.md).
+Bash scripts that *operate* a build rather than analyse one — launching snakemake, staging
+inputs, publishing outputs — live in [`scripts/`](../../scripts/README.md) instead.
 
-The two answer different questions — failure triage versus capacity planning — so they are kept as
-separate subcommands, but they live in one package because both parse the same run artifacts.
+## Writing a new tool
 
-## `tools/memory` — estimate RDF load memory
+**A tool is a thin CLI frontend.** It parses arguments, reads and writes files, and prints. That
+is all.
 
-`tools/memory/estimate_rdf_load_memory.py` streams an RDF dump into an in-memory
-`pyoxigraph.Store`, samples RSS, and extrapolates the full-load peak, so you can size a rule's
-`mem=` resource or a test's `min_memory_gb` guard from a machine far smaller than the eventual
-requirement. See [../../tools/memory/README.md](../../tools/memory/README.md).
+**Logic that models Babel data — cliques, compendia, concords, ids — belongs in `src/`,** beside
+the code it models, never in the tool. A tool that reimplements pipeline functionality is a bug:
+the reimplementation drifts from the pipeline it is supposed to describe, and the next tool that
+needs the same logic writes a third copy. `babel-clique-diff` is the worked example. Its diff
+lives in `src/model/compendium_diff.py`; `src/tools/clique_diff/cli.py` is sixty lines of
+argparse and CSV writing over it.
+
+So a new tool is:
+
+1. `src/tools/<tool>/cli.py` — `main(argv=None)`, plus an `__init__.py` explaining what the tool
+   is and where its logic lives.
+2. Whatever library code it needs, added to `src/` (`src/model/` for data structures,
+   `src/reports/` for renderers) and importable by anything else.
+3. An entry in `[project.scripts]` in `pyproject.toml`, pointing at `src.tools.<tool>.cli:main`.
+4. A `unit` test of the CLI in `tests/tools/<tool>/`, and tests of the library code beside it
+   (e.g. `tests/model/`). Everything under `src/` is covered by `--cov=src` automatically.
+5. A page in this directory, and a row in the table above.
+
+### The exceptions
+
+`slurm` and `memory` are self-contained: `slurm/parse.py` models Snakemake `benchmark:` TSVs and
+SLURM `.err` files, and the memory estimator models `pyoxigraph`'s RSS. Neither reads Babel data,
+so neither has anything to hoist into `src/` and no pipeline rule will ever import them. Leave
+them alone.
+
+They may not stay exceptions forever. Once output reading/writing
+([#759](https://github.com/NCATSTranslator/Babel/issues/759)) and intermediate reading/writing
+([#736](https://github.com/NCATSTranslator/Babel/issues/736)) are centralized, they may have
+something to reuse — though probably not.
+
+Tools-or-core is a judgement call, made per tool as the need arises, not a law. Once the code
+exists it is easy to move; the rule above is the default, not a gate.

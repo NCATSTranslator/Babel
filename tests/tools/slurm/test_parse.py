@@ -1,11 +1,11 @@
-"""Unit tests for tools.slurm.parse."""
+"""Unit tests for src.tools.slurm.parse."""
 
 import os
 from pathlib import Path
 
 import pytest
 
-from tools.slurm import parse
+from src.tools.slurm import parse
 
 pytestmark = pytest.mark.unit
 
@@ -269,7 +269,7 @@ def test_parse_failures_returns_empty_for_clean_log(tmp_path):
 
 def test_parse_ts_normalises_non_utc_offsets():
     """_parse_ts must handle non-UTC offsets like -0400 and +0530, not just +0000."""
-    from tools.slurm.parse import _parse_ts
+    from src.tools.slurm.parse import _parse_ts
 
     dt_utc = _parse_ts("2026-06-04T05:00:00+0000")
     assert dt_utc.utcoffset().total_seconds() == 0
