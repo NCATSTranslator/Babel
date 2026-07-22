@@ -146,6 +146,12 @@ Create `docs/sources/<SOURCE>/` with at least:
 
 Optional expansion files: `download.md`, `filtering.md`, `mappings.md`.
 
+The PR itself is read by a subject-matter expert rather than a code reviewer, so lead its
+description with what the addition does to existing cliques and how the source will be
+represented, and put each judgement call to them as a checkbox. See "Writing the PR for a new
+source" in [`docs/sources/CLAUDE.md`](sources/CLAUDE.md) for the section order that works, and
+[#781](https://github.com/NCATSTranslator/Babel/pull/781) for the worked example.
+
 Wherever a doc file mentions a specific ontology term by CURIE, link it to its OBO PURL
 and include the preferred label in double-quotes:
 

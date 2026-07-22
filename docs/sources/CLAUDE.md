@@ -182,3 +182,50 @@ re-runs diff cleanly, and commit the script with its output — worked example:
 This complements `babel-clique-diff`, it does not replace it. A replay only sees the cliques the
 build already produced, so it cannot show cliques that a change *creates, splits, or moves between
 compendia*. Use it to iterate cheaply, then confirm with a real build-vs-build diff.
+
+## Writing the PR for a new source
+
+The PR description for a source addition is read by a **subject-matter expert**, not primarily by a
+code reviewer. An SME wants to know two things: *what does this do to the cliques that already
+exist*, and *how will this source be represented in Babel*. Everything else is supporting evidence
+or belongs in the commits. #781 (EMAPA) is the worked example.
+
+Lead with the effect, not the implementation. This order works:
+
+1. **Summary** — what the source is, how many identifiers it contributes, where the generated
+   artifacts live. Two or three sentences.
+2. **What this does to existing cliques** — the `babel-clique-diff` result, with the per-compendium
+   before/after table. "Zero change rows" is the strongest thing a source addition can say; if it
+   is not zero, this is the section that has to explain every row.
+3. **How the source is represented** — the typing rule, where the source sits in the pipeline's
+   type-precedence order, and a *declared vs. final* count table. Matching totals across that table
+   are what show a difference is retyping rather than loss.
+4. **Anything the addition fixes or exposes** — pre-existing conflations, identifiers that were
+   being silently dropped. Say plainly which problems predate the PR and already ship.
+5. **SME sign-off** — each judgement call as its own `- [ ]` checkbox, stating the alternative that
+   was rejected and why it is not simply better. A question an SME can answer yes/no to beats a
+   paragraph inviting them to form an opinion.
+6. **Implementation notes** — compressed to a handful of bullets, prefaced with "none of this
+   changes the answers above".
+7. **Test plan.**
+
+Spell out the biology where a judgement depends on it. "`GO:0042600` is a cellular component" asks
+the SME to look it up; "a mammalian extraembryonic membrane merged with the acellular envelope of
+an insect egg" lets them rule on it directly. Link every CURIE to its OBO PURL with the preferred
+label, as everywhere else in these docs.
+
+### What to leave out
+
+These accrete over a long review and are worth deleting before asking for sign-off:
+
+- **A changelog of the review iterations** ("what changed since the earlier review"). Once a
+  concern is addressed, the current description should read as though it were always correct.
+- **Repository housekeeping** — files deleted, `.gitignore` rules, formatting.
+- **Follow-up issues about other pipelines.** A registry refactor or a duplicated path in
+  `diseasephenotype` is not evidence about this source; the issue links back to the PR anyway.
+- **Internal mechanics that no longer affect the outcome.** A latent bug the work surfaced deserves
+  one bullet, not a section, once the final configuration means it decides nothing here.
+
+Two failure modes to check for after trimming: a **number that drifts between sections** (#781 had
+both 8,078 and 8,098 for the same count — the ids file settled it), and a **forward reference to a
+section that was cut**.
