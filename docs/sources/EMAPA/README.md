@@ -24,8 +24,10 @@ Additional source details are documented in:
 - `mappings.md` — how EMAPA cross-references to other prefixes are extracted from UberGraph
   xrefs and written as concord rows.
 - `impact-report.md` — auto-generated report quantifying the identifiers, biolink types, and
-  clique changes EMAPA adds to the anatomy compendium. See "Adding a new data source" in
-  `CLAUDE.md` for how to regenerate it.
+  clique changes EMAPA adds to the anatomy compendium. Regenerate with
+  `uv run source-impact-report --source EMAPA`; see
+  [`docs/AddingNewSources.md`](../../AddingNewSources.md) for what the sections mean and how to
+  assemble the inputs.
 - `clique-diff.md` — a full build-vs-build diff of the anatomy compendia with and without EMAPA,
   covering the restructured and dropped cliques the impact report cannot see. Confirms that
   adding EMAPA changes no pre-existing clique at all: every difference is a new EMAPA-only clique.

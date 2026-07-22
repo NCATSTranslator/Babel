@@ -31,11 +31,21 @@ The gross/anatomical subtrees are found the same way the root set is: the `part_
 
 ### Biolink Model registration caveat
 
-`EMAPA` is in the Biolink Model's `id_prefixes` list for `AnatomicalEntity` but **not** for
-`GrossAnatomicalStructure`. `NodeFactory.create_node()` drops identifiers whose prefix is not
-permitted for a clique's biolink class, so EMAPA terms typed as gross are not written to the
-compendium until `EMAPA` is added to `GrossAnatomicalStructure`'s `id_prefixes`. The
-source-impact report flags these with `would_be_added = false` /
+`EMAPA` is in the Biolink Model's `id_prefixes` list for **both** `AnatomicalEntity` and
+`GrossAnatomicalStructure`, so every EMAPA identifier this pipeline types survives
+`write_compendium()`. All 8,078 reach a compendium: 2,787 in `AnatomicalEntity.txt` and 5,291 in
+`GrossAnatomicalStructure.txt`.
+
+The caveat is the two anatomy classes EMAPA is **not** registered for: `Cell` and
+`CellularComponent`. `NodeFactory.create_node()` drops identifiers whose prefix is not permitted
+for a clique's biolink class, silently — so an EMAPA term pulled into a cell or cellular-component
+clique by a bad cross-reference disappears from every compendium, and a clique diff cannot see it
+(a CURIE absent from both sides is not a difference). That is how
+[`EMAPA:18428`](http://purl.obolibrary.org/obo/EMAPA_18428) "adrenal medulla" and
+[`EMAPA:16112`](http://purl.obolibrary.org/obo/EMAPA_16112) "chorion" were being lost until
+`input_data/anatomy_badxrefs.txt` broke the two merges responsible.
+
+The source-impact report flags this class of loss per identifier with `would_be_added = false` /
 `needs_biolink_registration = true`; see `docs/AddingNewSources.md`.
 
 ## Exclusions
