@@ -1,6 +1,7 @@
 # Shared code used by Snakemake files
 import gzip
 import shutil
+from typing import Any
 
 import src.util
 
@@ -46,6 +47,16 @@ def gzip_files(input_filenames):
     logger.info(f"Done compressing: {input_filenames}")
 
 
+def unstable_enabled(config: dict[str, Any]) -> bool:
+    """True iff experimental compendia are opted in via ``--config unstable=true``.
+
+    Default (absent / False / "false") keeps the build identical to the stable pipeline.
+    Accepts both bool and string because Snakemake --config values may arrive as strings.
+    """
+    value = config.get("unstable", False)
+    return value is True or (isinstance(value, str) and value.strip().lower() == "true")
+
+
 # List of all the compendia files that need to be converted.
 def get_all_compendia(config):
     return (
@@ -61,6 +72,7 @@ def get_all_compendia(config):
         + config["umls_outputs"]
         + config["macromolecularcomplex_outputs"]
         + config["publication_outputs"]
+        + (config["manual_outputs"] if unstable_enabled(config) else [])
     )
 
 
@@ -89,6 +101,7 @@ def get_all_synonyms(config):
         +
         # Publication.txt is empty, but it's still created, so it needs to be here.
         config["publication_outputs"]
+        + (config["manual_outputs"] if unstable_enabled(config) else [])
     )
 
 
@@ -114,6 +127,7 @@ def get_all_synonyms_except_drugchemicalconflated(config):
         config["geneproteinconflated_synonym_outputs"]
         + config["umls_outputs"]
         + config["macromolecularcomplex_outputs"]
+        + (config["manual_outputs"] if unstable_enabled(config) else [])
     )
 
 
@@ -139,6 +153,7 @@ def get_all_synonyms_with_drugchemicalconflated(config):
         + config["geneproteinconflated_synonym_outputs"]
         + config["umls_outputs"]
         + config["macromolecularcomplex_outputs"]
+        + (config["manual_outputs"] if unstable_enabled(config) else [])
     )
 
 

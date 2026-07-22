@@ -269,6 +269,15 @@ umls_outputs: [umls.txt]
 
 macromolecularcomplex_outputs: [MacromolecularComplex.txt]
 
+# Hand-curated identifiers not sourced from any download. Prefixes here MUST cover every prefix used
+# in input_data/manual_terms.ndjson (see src/createcompendia/manual.py).
+manual_prefixes: [EUPATH]
+manual_outputs: [Manual.txt]
+
+# When true (e.g. --config unstable=true), opt-in/experimental compendia are built.
+# Currently gates the manual compendium. Default keeps the build identical to stable.
+unstable: false
+
 ubergraph_iri_stem_to_prefix_map:
   "https://identifiers.org/ncbigene/": NCBIGene
   "http://www.ncbi.nlm.nih.gov/gene/": NCBIGene
