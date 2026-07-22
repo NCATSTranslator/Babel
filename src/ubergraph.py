@@ -10,6 +10,39 @@ from src.util import Text, get_logger
 SLEEP_BETWEEN_UBERGRAPH_QUERIES = 5  # seconds
 
 
+# Hierarchy predicates for the get_subclasses_* query family (see the note in
+# UberGraph.get_subclasses_of). subClassOf suits is_a ontologies such as UBERON, GO and
+# CL; part_of suits partonomy ontologies whose structure is meronymic rather than
+# taxonomic, such as EMAPA. Values are full IRIs so they drop straight into a query.
+#
+# These are interpolated into the SPARQL text verbatim, not bound as query parameters
+# (query_template() is a string.Template.safe_substitute), so a hierarchy_predicate argument must
+# only ever be one of these constants -- anything else is arbitrary SPARQL injected into the query
+# body. Never pass a value derived from source data, a config file, or any other caller-supplied
+# string. This is checked at every interpolation site, not merely documented; see
+# _assert_known_hierarchy_predicate().
+HIERARCHY_SUBCLASS_OF = "<http://www.w3.org/2000/01/rdf-schema#subClassOf>"
+HIERARCHY_PART_OF = "<http://purl.obolibrary.org/obo/BFO_0000050>"
+
+HIERARCHY_PREDICATES = frozenset({HIERARCHY_SUBCLASS_OF, HIERARCHY_PART_OF})
+
+
+def _assert_known_hierarchy_predicate(hierarchy_predicate):
+    """Reject any hierarchy predicate that is not one of the module's constants.
+
+    The value reaches the SPARQL text through verbatim substitution, so an unvetted string is an
+    injection vector rather than merely a wrong query. Raising here keeps that guarantee at the
+    point of use: adding a new traversal predicate means adding a constant, which is a reviewable
+    change, rather than passing a literal from a caller.
+    """
+    if hierarchy_predicate not in HIERARCHY_PREDICATES:
+        raise ValueError(
+            f"hierarchy_predicate must be one of the HIERARCHY_* constants in src/ubergraph.py, "
+            f"got {hierarchy_predicate!r}. It is interpolated into the SPARQL query verbatim, so "
+            f"an arbitrary string would be injected into the query body."
+        )
+
+
 class UberGraph:
     # Some of these get_subclass_and_whatever things can/should be merged...
 
@@ -244,11 +277,27 @@ class UberGraph:
 
         return results
 
-    def get_subclasses_of(self, iri):
+    def get_subclasses_of(self, iri, hierarchy_predicate=HIERARCHY_SUBCLASS_OF):
+        """Return everything below `iri` in a hierarchy, each with its label.
+
+        Despite the name, the traversal predicate is configurable. It defaults to
+        rdfs:subClassOf — the is_a hierarchy of ontologies like UBERON, GO and CL — but
+        can be set to HIERARCHY_PART_OF for partonomy ontologies such as EMAPA, whose
+        anatomy terms are linked by part_of rather than subClassOf.
+
+        A strictly accurate name would be get_descendants_of(), but the get_subclasses_*
+        family is called from many places and for nearly every caller subClassOf *is*
+        the hierarchy; renaming would be churn that makes the common case read less
+        naturally for the sake of the rare one. Keeping the name and surfacing the
+        exception through an explicit hierarchy_predicate argument leaves the common
+        call sites unchanged and makes the non-default ones self-documenting.
+        """
+        _assert_known_hierarchy_predicate(hierarchy_predicate)
         text = """
         prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
         prefix CL: <http://purl.obolibrary.org/obo/CL_>
+        prefix EMAPA: <http://purl.obolibrary.org/obo/EMAPA_>
         prefix GO: <http://purl.obolibrary.org/obo/GO_>
         prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
         prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
@@ -261,7 +310,7 @@ class UberGraph:
         from <http://reasoner.renci.org/ontology>
         where {
             graph <http://reasoner.renci.org/redundant> {
-                ?descendent rdfs:subClassOf $sourcedefclass .
+                ?descendent $hierarchy_predicate $sourcedefclass .
             }
             OPTIONAL {
                 ?descendent rdfs:label ?descendentLabel .
@@ -269,7 +318,9 @@ class UberGraph:
         }
         """
         rr = self.triplestore.query_template(
-            inputs={"sourcedefclass": iri}, outputs=["descendent", "descendentLabel"], template_text=text
+            inputs={"sourcedefclass": iri, "hierarchy_predicate": hierarchy_predicate},
+            outputs=["descendent", "descendentLabel"],
+            template_text=text,
         )
         results = []
         for x in rr:
@@ -334,6 +385,7 @@ class UberGraph:
         prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
         prefix CL: <http://purl.obolibrary.org/obo/CL_>
+        prefix EMAPA: <http://purl.obolibrary.org/obo/EMAPA_>
         prefix GO: <http://purl.obolibrary.org/obo/GO_>
         prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
         prefix CHEBIP: <http://purl.obolibrary.org/obo/chebi/>
@@ -372,13 +424,21 @@ class UberGraph:
             results.append(y)
         return results
 
-    def get_subclasses_and_xrefs(self, iri):
-        """Return all subclasses of iri that have an xref as well as the xref.
-        Does not return subclasses that lack an xref."""
+    def get_subclasses_and_xrefs(self, iri, hierarchy_predicate=HIERARCHY_SUBCLASS_OF):
+        """Return every term below `iri` in a hierarchy that has an xref, with its xrefs.
+        Terms with no xref are not returned.
+
+        As with get_subclasses_of(), the traversal predicate is configurable and the
+        "subclasses" in the name is the common case rather than a constraint: pass
+        HIERARCHY_PART_OF for partonomy ontologies such as EMAPA. See get_subclasses_of()
+        for why the get_subclasses_* family keeps this name rather than being renamed to
+        get_descendants_*."""
+        _assert_known_hierarchy_predicate(hierarchy_predicate)
         text = """
         prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
         prefix CL: <http://purl.obolibrary.org/obo/CL_>
+        prefix EMAPA: <http://purl.obolibrary.org/obo/EMAPA_>
         prefix GO: <http://purl.obolibrary.org/obo/GO_>
         prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
         prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
@@ -391,13 +451,15 @@ class UberGraph:
         from <http://reasoner.renci.org/ontology>
         where {
           graph <http://reasoner.renci.org/redundant> {
-                ?descendent rdfs:subClassOf $sourcedefclass .
+                ?descendent $hierarchy_predicate $sourcedefclass .
           }
           ?descendent <http://www.geneontology.org/formats/oboInOwl#hasDbXref> ?xref .
         }
         """
         resultmap = self.triplestore.query_template(
-            inputs={"sourcedefclass": iri}, outputs=["descendent", "xref"], template_text=text
+            inputs={"sourcedefclass": iri, "hierarchy_predicate": hierarchy_predicate},
+            outputs=["descendent", "xref"],
+            template_text=text,
         )
         results = defaultdict(set)
         for row in resultmap:
@@ -417,6 +479,7 @@ class UberGraph:
                 prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                 prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
                 prefix CL: <http://purl.obolibrary.org/obo/CL_>
+                prefix EMAPA: <http://purl.obolibrary.org/obo/EMAPA_>
                 prefix GO: <http://purl.obolibrary.org/obo/GO_>
                 prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
                 prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
@@ -478,6 +541,7 @@ class UberGraph:
                 prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                 prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
                 prefix CL: <http://purl.obolibrary.org/obo/CL_>
+                prefix EMAPA: <http://purl.obolibrary.org/obo/EMAPA_>
                 prefix GO: <http://purl.obolibrary.org/obo/GO_>
                 prefix CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
                 prefix MONDO: <http://purl.obolibrary.org/obo/MONDO_>
@@ -590,37 +654,63 @@ def _assert_upper_case_prefixes(argument_name, prefixes):
 
 
 def build_sets(
-    iri, concordfiles, set_type, ignore_list=[], other_prefixes={}, hop_ontologies=False, allowed_prefixes=None
+    iri,
+    concordfiles,
+    set_type,
+    ignore_list=[],
+    other_prefixes={},
+    hop_ontologies=False,
+    allowed_prefixes=None,
+    hierarchy_predicate=HIERARCHY_SUBCLASS_OF,
 ):
     """Given an IRI create a list of sets.  Each set is a set of equivalent LabeledIDs, and there
-    is a set for each subclass of the input iri.  Write these lists to concord files, indexed by the prefix
+    is a set for each descendent of the input iri.  Write these lists to concord files, indexed by the prefix
 
     `ignore_list` blocks the named target prefixes (fail-open: anything unlisted is written).
     `allowed_prefixes`, if not None, is the complement (fail-closed): only targets whose prefix is
     listed are written, so a namespace the source newly starts emitting is rejected until someone
     reviews it. Both are matched against `Text.get_prefix_or_none()`, which upper-cases, so entries
-    must be upper-case (e.g. "HTTP", not "http") -- this is checked, not merely documented."""
+    must be upper-case (e.g. "HTTP", not "http") -- this is checked, not merely documented.
+
+    `hierarchy_predicate` selects how descendents of `iri` are found; it currently applies only to
+    set_type="xref" (pass HIERARCHY_PART_OF for partonomy ontologies like EMAPA)."""
     _assert_upper_case_prefixes("ignore_list", ignore_list)
+    _assert_known_hierarchy_predicate(hierarchy_predicate)
     if allowed_prefixes is not None:
         _assert_upper_case_prefixes("allowed_prefixes", allowed_prefixes)
     prefix = Text.get_prefix_or_none(iri)
     types2relations = {"xref": "xref", "exact": "oio:exactMatch", "close": "oio:closeMatch"}
     if set_type not in types2relations:
         return
+    if hierarchy_predicate != HIERARCHY_SUBCLASS_OF and set_type != "xref":
+        raise ValueError(
+            f"hierarchy_predicate={hierarchy_predicate!r} is only supported for "
+            f"set_type='xref'; set_type={set_type!r} hardcodes rdfs:subClassOf. "
+            "Extend get_subclasses_and_exacts() / get_subclasses_and_close() "
+            "before using a custom hierarchy predicate with those set types."
+        )
     uber = UberGraph()
     if set_type == "xref":
-        uberres = uber.get_subclasses_and_xrefs(iri)
+        uberres = uber.get_subclasses_and_xrefs(iri, hierarchy_predicate=hierarchy_predicate)
     elif set_type == "exact":
         uberres = uber.get_subclasses_and_exacts(iri)
     elif set_type == "close":
         uberres = uber.get_subclasses_and_close(iri)
-    for k, v in uberres.items():
+    # Sort both levels so the concord is byte-identical across runs. Neither source of ordering
+    # is stable otherwise: the SPARQL queries carry no ORDER BY (so `uberres` insertion order
+    # follows arbitrary endpoint row order) and `v` is a set of strings, whose iteration order
+    # varies per process under hash randomization. That matters because glom's `unique_prefixes`
+    # keeps whichever CURIE of a restricted prefix it sees *first* -- so unsorted output makes
+    # clique membership differ between builds of identical code and data. See
+    # docs/sources/EMAPA/mappings.md for the case that exposed this (122 UBERON terms xref more
+    # than one EMAPA term, and the loser is dropped entirely when it has no ids-file row).
+    for k, v in sorted(uberres.items(), key=lambda kv: kv[0]):
         if not hop_ontologies:
             subclass_prefix = Text.get_prefix_or_none(k)
             if subclass_prefix != prefix:
                 continue
         v = set([norm(x, other_prefixes) for x in v])
-        for x in v:
+        for x in sorted(v):
             target_prefix = Text.get_prefix_or_none(x)
             if target_prefix in ignore_list:
                 continue

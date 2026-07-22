@@ -1238,6 +1238,43 @@ def read_identifier_file(infile):
     return identifiers, types
 
 
+def read_badxrefs(fn):
+    """Read an ``input_data/*_badxrefs.txt`` file into a set of ``(subject, object)`` tuples.
+
+    Format is one space-separated pair per line; ``#`` comment lines and blank lines are
+    skipped. These files drop individually wrong cross-reference pairs that survive
+    prefix-level filtering, for cases where the target prefix is legitimate in general but
+    this particular pair is not.
+
+    Callers decide whether to match directionally (diseasephenotype) or in either direction
+    (anatomy, which builds frozensets from these); the returned set is unordered either way.
+
+    A line that is neither blank, a comment, nor exactly two space-separated tokens raises
+    ``ValueError``. Skipping it instead would mean an entry a maintainer believed was
+    suppressing a bad xref silently does nothing — the pair reappears in the compendia and
+    nothing anywhere says why.
+
+    Tabs are rejected explicitly, because a tab-separated pair is the easy way to write a line
+    that looks right and parses wrong. Runs of spaces are not: ``split()`` collapses them, so a
+    stray double space is unambiguous and is accepted rather than failing a build over it.
+    """
+    morebad = set()
+    with open(fn) as inf:
+        for lineno, line in enumerate(inf, 1):
+            if line.startswith("#"):
+                continue
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if "\t" in stripped:
+                raise ValueError(f"{fn}:{lineno}: CURIEs must be separated by a space, not a tab: {line.rstrip()!r}")
+            x = stripped.split()
+            if len(x) != 2:
+                raise ValueError(f"{fn}:{lineno}: expected two space-separated CURIEs, got {len(x)}: {line.rstrip()!r}")
+            morebad.add((x[0], x[1]))
+    return morebad
+
+
 def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
     """Given a list of tuples (id1, id2) meaning id1-[xref]->id2, remove any id2 that are associated with more
     than one id1.  The idea is that if e.g. id1 is made up of UBERONS and 2 of those have an xref to say a UMLS
