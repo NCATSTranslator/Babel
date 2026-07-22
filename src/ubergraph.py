@@ -15,11 +15,32 @@ SLEEP_BETWEEN_UBERGRAPH_QUERIES = 5  # seconds
 # CL; part_of suits partonomy ontologies whose structure is meronymic rather than
 # taxonomic, such as EMAPA. Values are full IRIs so they drop straight into a query.
 #
-# These are interpolated into the SPARQL text verbatim, not bound as query parameters, so a
-# hierarchy_predicate argument must only ever be one of these constants. Never pass a value
-# derived from source data, a config file, or any other caller-supplied string.
+# These are interpolated into the SPARQL text verbatim, not bound as query parameters
+# (query_template() is a string.Template.safe_substitute), so a hierarchy_predicate argument must
+# only ever be one of these constants -- anything else is arbitrary SPARQL injected into the query
+# body. Never pass a value derived from source data, a config file, or any other caller-supplied
+# string. This is checked at every interpolation site, not merely documented; see
+# _assert_known_hierarchy_predicate().
 HIERARCHY_SUBCLASS_OF = "<http://www.w3.org/2000/01/rdf-schema#subClassOf>"
 HIERARCHY_PART_OF = "<http://purl.obolibrary.org/obo/BFO_0000050>"
+
+HIERARCHY_PREDICATES = frozenset({HIERARCHY_SUBCLASS_OF, HIERARCHY_PART_OF})
+
+
+def _assert_known_hierarchy_predicate(hierarchy_predicate):
+    """Reject any hierarchy predicate that is not one of the module's constants.
+
+    The value reaches the SPARQL text through verbatim substitution, so an unvetted string is an
+    injection vector rather than merely a wrong query. Raising here keeps that guarantee at the
+    point of use: adding a new traversal predicate means adding a constant, which is a reviewable
+    change, rather than passing a literal from a caller.
+    """
+    if hierarchy_predicate not in HIERARCHY_PREDICATES:
+        raise ValueError(
+            f"hierarchy_predicate must be one of the HIERARCHY_* constants in src/ubergraph.py, "
+            f"got {hierarchy_predicate!r}. It is interpolated into the SPARQL query verbatim, so "
+            f"an arbitrary string would be injected into the query body."
+        )
 
 
 class UberGraph:
@@ -271,6 +292,7 @@ class UberGraph:
         exception through an explicit hierarchy_predicate argument leaves the common
         call sites unchanged and makes the non-default ones self-documenting.
         """
+        _assert_known_hierarchy_predicate(hierarchy_predicate)
         text = """
         prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
@@ -411,6 +433,7 @@ class UberGraph:
         HIERARCHY_PART_OF for partonomy ontologies such as EMAPA. See get_subclasses_of()
         for why the get_subclasses_* family keeps this name rather than being renamed to
         get_descendants_*."""
+        _assert_known_hierarchy_predicate(hierarchy_predicate)
         text = """
         prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
@@ -652,6 +675,7 @@ def build_sets(
     `hierarchy_predicate` selects how descendents of `iri` are found; it currently applies only to
     set_type="xref" (pass HIERARCHY_PART_OF for partonomy ontologies like EMAPA)."""
     _assert_upper_case_prefixes("ignore_list", ignore_list)
+    _assert_known_hierarchy_predicate(hierarchy_predicate)
     if allowed_prefixes is not None:
         _assert_upper_case_prefixes("allowed_prefixes", allowed_prefixes)
     prefix = Text.get_prefix_or_none(iri)

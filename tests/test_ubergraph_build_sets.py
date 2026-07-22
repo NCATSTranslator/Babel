@@ -106,6 +106,24 @@ def test_build_sets_keeps_the_lowest_curie_first_for_competing_xrefs(monkeypatch
 # ---
 
 
+def test_build_sets_rejects_an_unknown_hierarchy_predicate(monkeypatch):
+    """An arbitrary hierarchy_predicate should raise before it reaches the SPARQL text.
+
+    query_template() substitutes the value into the query body verbatim, so an unvetted string is
+    SPARQL injection rather than merely a wrong query. Adding a traversal predicate has to mean
+    adding a HIERARCHY_* constant. The stub would happily return rows, so this fails loudly if the
+    guard is ever removed.
+    """
+    monkeypatch.setattr("src.ubergraph.UberGraph", lambda: _StubUberGraph({"UBERON:1": {"EMAPA:1"}}))
+    with pytest.raises(ValueError, match="HIERARCHY_"):
+        build_sets(
+            "UBERON:0001062",
+            {"UBERON": io.StringIO()},
+            set_type="xref",
+            hierarchy_predicate="<http://example.org/evil> . } ; DROP ALL ; #",
+        )
+
+
 def test_build_sets_rejects_custom_hierarchy_predicate_for_non_xref():
     """build_sets() should raise ValueError immediately if a non-default hierarchy_predicate
     is combined with set_type != 'xref', because those code paths hardcode rdfs:subClassOf.
