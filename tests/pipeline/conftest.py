@@ -34,7 +34,7 @@ import pytest
 from src.babel_utils import make_local_name
 from src.createcompendia import anatomy, chemicals, diseasephenotype, protein, taxon
 from src.datahandlers.mesh import Mesh, pull_mesh
-from src.prefixes import MP
+from src.prefixes import EMAPA, MP
 from src.ubergraph import build_sets
 
 # ---------------------------------------------------------------------------
@@ -556,8 +556,38 @@ def go_pipeline_outputs(ubergraph_connection, regenerate):
 
 
 # ---------------------------------------------------------------------------
-# MP processing fixture (uses UberGraph, no file download)
+# EMAPA / MP processing fixtures (use UberGraph, no file download)
 # ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def emapa_pipeline_outputs(ubergraph_connection, regenerate):
+    """Run EMAPA anatomy ID extraction and ensure EMAPA concord generation is available."""
+
+    id_path = _intermediate_id_path("anatomy", "EMAPA")
+    concord_path = _intermediate_concord_path("anatomy", "EMAPA")
+
+    _maybe_run(id_path, lambda: anatomy.write_emapa_ids(id_path), regenerate)
+    _maybe_run(
+        concord_path,
+        lambda: _write_emapa_concord(concord_path),
+        regenerate,
+    )
+
+    return {"anatomy": id_path}
+
+
+def _write_emapa_concord(concord_path: str) -> None:
+    """Build the EMAPA concord exactly as build_anatomy_obo_relationships() does.
+
+    Delegating to anatomy.build_emapa_obo_relationships() is what keeps the part_of
+    traversal and the ignore_list in step with the real build. Calling build_sets()
+    directly here once wrote a subClassOf-only, unfiltered concord to this same stable
+    intermediate path, which a later Snakemake run would then treat as up to date.
+    """
+    os.makedirs(os.path.dirname(concord_path), exist_ok=True)
+    with open(concord_path, "w") as emapa_file:
+        anatomy.build_emapa_obo_relationships({EMAPA: emapa_file})
 
 
 @pytest.fixture(scope="session")
@@ -609,6 +639,7 @@ VOCABULARY_REGISTRY = {
     "OMIM": "omim_pipeline_outputs",
     "NCIT": "ncit_pipeline_outputs",
     "GO": "go_pipeline_outputs",
+    "EMAPA": "emapa_pipeline_outputs",
     "MP": "mp_pipeline_outputs",
     "EC": "ec_ids_outputs",
     "CLO": "clo_ids_outputs",
