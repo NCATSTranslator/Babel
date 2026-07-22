@@ -224,8 +224,8 @@ uv run source-impact-report --source <SOURCE>
 
 The Snakemake target name usually matches the pipeline name (`anatomy`, `chemical`), but not
 always — the disease/phenotype pipeline lives in `intermediate/diseasephenotype/` and is built by
-the target `disease`. Building the full target also produces compendia, which populates section
-2's "final compendium-assigned" counts; without compendia present that section is blank.
+the target `disease`. Building the full target also produces compendia, which populates
+section 2's "final compendium-assigned" counts; without compendia present that section is blank.
 
 A local build is worth preferring over the synthetic assembly below because it exercises the real
 Snakemake rules — a rule that fails, or an ids file the compendium build silently drops, shows up

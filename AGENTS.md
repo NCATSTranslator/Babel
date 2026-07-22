@@ -91,8 +91,8 @@ uv run rumdl fmt .                       # Markdown auto-fix
 
 ### Configuration
 
-- Line length is 120 for both Python (ruff) and Snakemake (snakefmt). Markdown (`rumdl`, rule
-  `MD013`) wraps at 100 instead, though tables are exempt.
+- Line length is 120 for both Python (ruff) and Snakemake (snakefmt). Markdown (`rumdl`,
+  rule `MD013`) wraps at 100 instead, though tables are exempt.
 - Main config: `config.yaml` (directory paths, version strings, prefix lists per semantic type).
 - `UMLS_API_KEY` environment variable required for UMLS/RxNorm downloads.
 - `compendium_directories` in `config.yaml` maps Python compendium names to the Snakemake
@@ -139,8 +139,8 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
 - **Concord row order is load-bearing** — `glom()`'s `unique_prefixes` keeps whichever CURIE of a
   restricted prefix it sees *first*, and a loser with no ids-file row is dropped outright.
   `build_sets()` sorts its output so this is reproducible; never reintroduce unordered iteration
-  there. Before restricting a prefix, count what it makes compete: `docs/AddingNewSources.md` step
-  3.
+  there. Before restricting a prefix, count what it makes compete — see step 3 of
+  `docs/AddingNewSources.md`.
 - **`SynonymFilter`** (`src/synonyms/filter.py`) checks every label/synonym against
   `input_data/obsolete_synonyms.yaml` before it enters a compendium — see its docstring for the
   `action` field and the `should_suppress()` contract.
