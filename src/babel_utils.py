@@ -1252,7 +1252,11 @@ def read_badxrefs(fn):
     A line that is neither blank, a comment, nor exactly two space-separated tokens raises
     ``ValueError``. Skipping it instead would mean an entry a maintainer believed was
     suppressing a bad xref silently does nothing — the pair reappears in the compendia and
-    nothing anywhere says why. A tab instead of a space is the easy way to write one.
+    nothing anywhere says why.
+
+    Tabs are rejected explicitly, because a tab-separated pair is the easy way to write a line
+    that looks right and parses wrong. Runs of spaces are not: ``split()`` collapses them, so a
+    stray double space is unambiguous and is accepted rather than failing a build over it.
     """
     morebad = set()
     with open(fn) as inf:
@@ -1262,7 +1266,9 @@ def read_badxrefs(fn):
             stripped = line.strip()
             if not stripped:
                 continue
-            x = stripped.split(" ")
+            if "\t" in stripped:
+                raise ValueError(f"{fn}:{lineno}: CURIEs must be separated by a space, not a tab: {line.rstrip()!r}")
+            x = stripped.split()
             if len(x) != 2:
                 raise ValueError(f"{fn}:{lineno}: expected two space-separated CURIEs, got {len(x)}: {line.rstrip()!r}")
             morebad.add((x[0], x[1]))

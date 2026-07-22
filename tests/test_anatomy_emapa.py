@@ -185,8 +185,21 @@ def test_read_badxrefs_rejects_a_line_that_is_not_a_pair(tmp_path):
     bad = tmp_path / "badxrefs.txt"
     bad.write_text("# fine\n\nUBERON:0001236\tMESH:D019439\n")
 
-    with pytest.raises(ValueError, match="expected two space-separated CURIEs"):
+    with pytest.raises(ValueError, match="not a tab"):
         read_badxrefs(str(bad))
+
+
+@pytest.mark.unit
+def test_read_badxrefs_tolerates_repeated_spaces(tmp_path):
+    """A stray double space should parse, not fail the build.
+
+    Only tabs are rejected. A run of spaces is still unambiguously two CURIEs, so raising on it
+    would fail a build over a harmless typo; ``split()`` collapses the run.
+    """
+    ok = tmp_path / "badxrefs.txt"
+    ok.write_text("UBERON:0001236   MESH:D019439\n")
+
+    assert read_badxrefs(str(ok)) == {("UBERON:0001236", "MESH:D019439")}
 
 
 @pytest.mark.unit
