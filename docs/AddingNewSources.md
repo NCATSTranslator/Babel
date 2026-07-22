@@ -78,6 +78,42 @@ In `src/createcompendia/<pipeline>.py`:
 - Include the source's prefix in the `unique_prefixes` argument to `glom()` if its
   identifiers must remain pairwise-unique within a clique.
 
+  **This can silently delete identifiers, so check what it makes compete.** `glom()` keeps
+  whichever CURIE of a restricted prefix it encounters **first** and refuses the rest. A refused
+  CURIE falls back to its own ids-file row and becomes a singleton clique — but a CURIE that
+  appears only in someone else's concord has no row to fall back on and disappears from the
+  compendia entirely.
+
+  EMAPA is the worked example of deciding *not* to restrict a prefix. Adding `EMAPA` to
+  `anatomy_unique_prefixes` would have put 263 EMAPA CURIEs into contests over 122 UBERON cliques,
+  because that many UBERON terms xref more than one EMAPA term — and three already-published
+  identifiers would have been withdrawn from the compendia as a result. Inspecting the contested
+  mappings showed they were mostly genuine 1:n relationships (a developmental partonomy resolving
+  finer than the adult UBERON term), so EMAPA was left unrestricted and the ingest became purely
+  additive. See `docs/sources/EMAPA/README.md`. The lesson generalizes: restricting a prefix does
+  not make a bad mapping good, it only picks an arbitrary winner — if the mappings are wrong, filter
+  the xrefs instead.
+
+  Count the contests your prefix creates before adding it:
+
+  ```bash
+  awk -F'\t' '$3 ~ /^<PREFIX>:/ {c[$1]++} END {for (k in c) if (c[k]>1) n++; print n+0}' \
+      babel_outputs/intermediate/<pipeline>/concords/<OTHER_SOURCE>
+  ```
+
+  Because the winner is "first written", the concord's **row order decides clique membership**.
+  `build_sets()` therefore sorts its output; do not reintroduce unordered iteration there (see
+  `tests/test_ubergraph_build_sets.py`). Before that sort existed the order came from a set of
+  strings under hash randomization, so the same code and data produced different cliques on each
+  run — one build seated the deprecated, label-less
+  [`EMAPA:35459`](http://purl.obolibrary.org/obo/EMAPA_35459) in
+  [`UBERON:0005185`](http://purl.obolibrary.org/obo/UBERON_0005185) "renal medulla collecting
+  duct" and stranded the live
+  [`EMAPA:28061`](http://purl.obolibrary.org/obo/EMAPA_28061) "medullary collecting duct" as a
+  singleton; the next build did the reverse. (That specific pairing no longer arises, since EMAPA
+  ended up unrestricted — but UBERON and GO are still restricted, so the ordering guarantee is what
+  makes any such tie-break reproducible.)
+
 ### 4. Wire Snakemake rules
 
 In `src/snakefiles/<pipeline>.snakefile`:
@@ -109,6 +145,12 @@ Create `docs/sources/<SOURCE>/` with at least:
   subdirectory of full detail files.
 
 Optional expansion files: `download.md`, `filtering.md`, `mappings.md`.
+
+The PR itself is read by a subject-matter expert rather than a code reviewer, so lead its
+description with what the addition does to existing cliques and how the source will be
+represented, and put each judgement call to them as a checkbox. See "Writing the PR for a new
+source" in [`docs/sources/CLAUDE.md`](sources/CLAUDE.md) for the section order that works, and
+[#781](https://github.com/NCATSTranslator/Babel/pull/781) for the worked example.
 
 Wherever a doc file mentions a specific ontology term by CURIE, link it to its OBO PURL
 and include the preferred label in double-quotes:
@@ -169,11 +211,15 @@ The Snakemake convenience rule writes the same output to the build-artifact tree
 uv run snakemake -c 1 babel_outputs/reports/source_impact/<SOURCE>.md
 ```
 
-### Running a full local build
+### Running a full local build (do this first)
 
-If the pipeline fits on a single machine, build all its intermediates and compendia locally
-and run the report against the populated `babel_outputs/` tree. Anatomy is comfortably
-tractable; other pipelines may not be.
+Build the pipeline's intermediates and compendia locally, then run the report against the
+populated `babel_outputs/` tree. **This is the normal path.** Most pipelines are small enough to
+build on a laptop — only `gene`, `protein` and `chemical` (and the conflations and full pipeline
+that depend on them) need a workstation or HPC node. `anatomy`, `disease`, `process`, `taxon`,
+`genefamily`, `publications`, `cell_line` and `macromolecular_complex` all build locally; see
+[RunningBabel.md](./RunningBabel.md#per-target-sizing) for sizing. `anatomy` takes roughly 25
+minutes end to end, and much less with a warm `babel_downloads/`.
 
 ```bash
 export UMLS_API_KEY=...   # required for UMLS-backed rules
@@ -182,18 +228,44 @@ uv run snakemake -c all <pipeline>
 uv run source-impact-report --source <SOURCE>
 ```
 
-The Snakemake target name matches the pipeline name (e.g. `anatomy`, `chemical`). Building
-the full target also produces compendia, which populates section 2's "final
-compendium-assigned" counts; without compendia present that section is blank.
+The Snakemake target name usually matches the pipeline name (`anatomy`, `chemical`), but not
+always — the disease/phenotype pipeline lives in `intermediate/diseasephenotype/` and is built by
+the target `disease`. Building the full target also produces compendia, which populates
+section 2's "final compendium-assigned" counts; without compendia present that section is blank.
+
+A local build is worth preferring over the synthetic assembly below because it exercises the real
+Snakemake rules — a rule that fails, or an ids file the compendium build silently drops, shows up
+here and cannot show up in a hand-assembled intermediate tree.
 
 Caveats:
 
-- A previous interrupted run can leave the working directory locked. Clear it with
-  `uv run snakemake --unlock` before retrying.
+- A previous interrupted run can leave the working directory locked. Check that no build is
+  still alive (`pgrep -fl snakemake`) and only then clear it with `uv run snakemake --unlock`.
+  Never run two Snakemake invocations against the same working directory — they interleave writes
+  and corrupt the compendia. See RunningBabel.md → "Common build issues".
 - UberGraph-backed rules carry `retries: 3`, but a full UberGraph outage will propagate.
 - The full target rebuilds upstream sources, so numbers reflect data fetched at build time.
+- **The pipeline target does not build the per-prefix label files.** Section 3's sample tables and
+  `new-xrefs.tsv` enrich CURIEs with preferred labels read from
+  `babel_downloads/<PREFIX>/labels` (`--downloads-root`). Those files come from the
+  `get_obo_labels` rule in `datacollect.snakefile`, which a pipeline target such as `anatomy` does
+  not depend on — so a report generated straight after a fresh pipeline build has a blank
+  `object_label` column for the new source, with no warning. Each per-prefix file is exactly the
+  subset of `babel_downloads/common/ubergraph/labels` whose CURIEs carry that prefix (see
+  `obo.pull_uber_labels`), so if you already have the common file you can slice it rather than
+  re-querying all of UberGraph:
 
-### Generating the report without a full pipeline build
+  ```bash
+  mkdir -p babel_downloads/<PREFIX>
+  grep '^<PREFIX>:' babel_downloads/common/ubergraph/labels > babel_downloads/<PREFIX>/labels
+  ```
+
+  Confirm the tool logs `loaded N labels for <PREFIX>` before trusting the report.
+
+### Fallback: generating the report without a full pipeline build
+
+Use this only for the pipelines that genuinely do not fit locally (`gene`, `protein`,
+`chemical`), or when you cannot spare the build time.
 
 Synthetic mode re-runs `glom()` over the intermediate files of **every** source for the
 pipeline, not just the new one, so it needs that whole set on disk. The practical approach
@@ -229,6 +301,30 @@ on a laptop is to assemble the inputs from a published build:
 
 `--compendia-root` is read only for section 2's "final compendium-assigned" counts; with
 no local compendia, leave it pointing at a non-existent path.
+
+**Regenerating a report from scratch** — delete `impact-report.md` and the whole
+`impact-report/` subdirectory first, so every file in the result provably comes from the new
+build rather than a leftover from the old one. Note the intermediate tree may hold files written
+by the *pipeline tests* rather than by a build: the fixtures in `tests/pipeline/conftest.py` write
+to the same stable `intermediate/<pipeline>/{ids,concords}/<SOURCE>` paths the real rules use. A
+report generated over those is badly wrong in a way that looks plausible — for EMAPA it would show
+the source joining nothing, because the load-bearing UBERON concord is simply absent. Check
+timestamps, or rebuild the pipeline, before trusting an intermediate tree you did not just build.
+
+**Generating a report right after a clique diff** — section 2's "final compendium-assigned" counts
+are read from `babel_outputs/compendia/` *at generation time*, not from the intermediates the rest
+of the report uses. A two-sided clique diff leaves whichever side you built last sitting there, so
+generating the report straight afterwards can silently describe the **before** build: every other
+section is correct, and only that one block is wrong. Restore the after-side compendia first
+(`cp data/clique-diff/after/*.txt babel_outputs/compendia/`). The tell is that the
+compendium-assigned counts are far below the identifiers-added total in section 1.
+
+**Comparing a regenerated report against an older one** — expect the totals to move a little and
+diff the detail files rather than trusting the summary counts, which can hide offsetting changes.
+Between two EMAPA reports the summary showed a net −1 clique while 62 identifiers had actually left
+the pure-new set and 61 had entered it. The useful check is whether the churn is *confined to a
+population you can explain*: every one of those 101 identifiers was in the `unique_prefixes`
+contest set above and none outside it, which is what established that nothing else had changed.
 
 **Refreshing a report after a typing or extraction change** — regenerate the affected source
 files before re-running the tool. Calling the writer directly is cheapest:
@@ -297,6 +393,9 @@ The three committed files:
 
 `modified-cliques.json` is written locally but gitignored.
 
+Note that `equivalent_ids` is a comma-joined list inside one quoted CSV field, so these files need
+a real CSV parser rather than splitting on commas.
+
 ##### Survival columns
 
 `write_compendium` keeps only identifiers whose prefix is in the Biolink Model's
@@ -304,9 +403,14 @@ The three committed files:
 
 - `would_be_added` — `true`/`false`/blank (blank if no clique type or `--no-biolink-lookup`).
 - `needs_biolink_registration = true` — the prefix must be registered in the Biolink Model
-  for that class before Babel can emit it. EMAPA's `biolink:GrossAnatomicalStructure` terms
-  are the live example: EMAPA is not yet in that class's `id_prefixes`, so they show
-  `would_be_added = false`.
+  for that class before Babel can emit it. What matters is the *clique's* type, not the type the
+  ids file declared: EMAPA is registered for both `biolink:AnatomicalEntity` and
+  `biolink:GrossAnatomicalStructure`, so all 8,078 of its identifiers survive — but it is
+  registered for neither `biolink:Cell` nor `biolink:CellularComponent`, so an EMAPA term dragged
+  into a cell clique by a bad xref vanishes without a trace. That is exactly how
+  [`EMAPA:18428`](http://purl.obolibrary.org/obo/EMAPA_18428) "adrenal medulla" and
+  [`EMAPA:16112`](http://purl.obolibrary.org/obo/EMAPA_16112) "chorion" were being lost before
+  `input_data/anatomy_badxrefs.txt` broke the two offending merges.
 
 `write_compendium(extra_prefixes=[...])` is the escape hatch for that silent drop: a prefix listed
 there is kept even when the clique's Biolink class doesn't register it (the chemical build passes
@@ -326,10 +430,13 @@ example: its 4,188 "expanded" cliques are all promotion-only, because UBERON's c
 already brings EMAPA CURIEs into the relevant cliques. Read the truly-grown vs.
 promotion-only split in section 4 before drawing conclusions about structural change.
 
-Even though EMAPA contributes 8,059 identifiers, only 4,802 land in `AnatomicalEntity.txt`
-(section 2). The remainder live in cliques whose dominant Biolink type ends up as Cell,
-CellularComponent, or GrossAnatomicalStructure — and `NodeFactory` drops them because EMAPA
-is not in those types' `id_prefixes`. The survival columns make this visible per identifier.
+The same split shows up between declared and final type. EMAPA's ids file declares 4,090
+`biolink:AnatomicalEntity` and 3,988 `biolink:GrossAnatomicalStructure`, but the compendia end up
+with 2,787 and 5,291 — the clique's type wins over the ids file's, so roughly 1,300 terms EMAPA
+called anatomical entities land in `GrossAnatomicalStructure.txt` because a UBERON member of the
+same clique is typed that way. The totals match (8,078 either way), which is what tells you the
+difference is retyping rather than loss; when they do *not* match, the survival columns say which
+identifiers went missing and why.
 
 #### Auditing a source's xrefs
 

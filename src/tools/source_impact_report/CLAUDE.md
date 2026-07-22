@@ -5,6 +5,20 @@
 `PIPELINE_CONFIG` registry (what each entry needs and what breaks if you omit a key) and what the
 report cannot see (split/shrunk/dropped cliques — use `babel-clique-diff` for those).
 
+## Reading the detail files it writes
+
+Parse `new-cliques.csv` / `modified-cliques.csv` with `csv.DictReader` (or `pandas`), never
+`awk -F,` or `cut -d,`. `equivalent_ids` is a comma-joined CURIE list inside a single quoted
+field, so a comma split silently shifts every column after it — and the result still looks like
+a valid table. The failure mode is a confidently-wrong number: a non-zero
+`needs_biolink_registration` count that is really fragments of a CURIE list. Read the columns by
+name; do not index by position.
+
+`new-xrefs.tsv` is tab-separated and safe for `awk -F'\t'`, but its CURIE columns are
+`subject`/`object`, which are not the first two fields.
+
+## Registry and diffing internals
+
 `PIPELINE_CONFIG` in `cli.py` is the registry mapping each pipeline to its hooks; the diffing
 logic itself lives in [`src/model/glom_diff.py`](../../model/glom_diff.py) (not
 `compendium_diff.py`, which backs `babel-clique-diff`) and

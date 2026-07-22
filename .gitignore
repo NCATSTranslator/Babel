@@ -19,10 +19,14 @@ babel_outputs/
 .idea
 htmlcov/
 
-# Source-impact detail file: generated locally for digging/sharing, but not committed —
-# it grows roughly linearly with the source and is useless to commit for large additions.
-# The smaller CSV/TSV detail files in the same directory are committed.
+# Source-impact detail files: generated locally for digging/sharing, but not committed —
+# they grow roughly linearly with the source and are useless to commit for large additions.
+# One row per identifier in an existing clique, so for a source the size of EMAPA the CSV alone
+# is 1.2 MB. The other detail files in the same directory are committed when they are small
+# enough to be worth reading in the diff; drop one by hand when it is not (EMAPA's new-xrefs.tsv,
+# 464 KB).
 docs/sources/*/impact-report/modified-cliques.json
+docs/sources/*/impact-report/modified-cliques.csv
 
 # Local scratch space for ad hoc files (analysis notebooks, one-off downloads, intermediates).
 # Anchored to the repo root: unanchored, this also swallowed tests/data/, so every committed test
@@ -36,3 +40,12 @@ docs/sources/*/impact-report/modified-cliques.json
 .coverage
 .coverage.*
 htmlcov/
+
+# Spreadsheet sources for the hand-curated manual concords. The .tsv the pipeline reads is
+# committed; the Numbers/Excel file it was exported from is a 170 KB binary that diffs as a blob
+# and is only useful on the maintainer's machine.
+*.numbers
+*.xlsx
+
+# macOS Finder metadata.
+.DS_Store
