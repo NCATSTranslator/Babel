@@ -29,10 +29,17 @@ MARKDOWN_FILES = sorted(p for p in REPO_ROOT.rglob("*.md") if _ours(p))
 
 #: Pipeline source that carries URLs -- snakefiles report download and provenance URLs to users,
 #: and CITATION.cff carries the canonical repository URL that Zenodo reads.
+#: Everything else that can carry a GitHub link. Globbed by extension rather than listed,
+#: because an explicit list is exactly what let a stale Colab badge and a wrong CITATION.cff sit
+#: unnoticed in sibling repos. Scanned only for banned URL forms -- relative links and heading
+#: anchors are a Markdown concern.
+LINK_BEARING_SUFFIXES = {".py", ".yml", ".yaml", ".ipynb", ".cff", ".xml", ".sh", ".toml",
+                         ".snakefile"}
+
 SOURCE_WITH_LINKS = sorted(
-    [p for p in REPO_ROOT.rglob("*.snakefile") if _ours(p)]
-    + [p for p in (REPO_ROOT / "src").rglob("*.py") if _ours(p)]
-    + [REPO_ROOT / "CITATION.cff"]
+    p for p in REPO_ROOT.rglob("*")
+    if p.is_file() and _ours(p)
+    and (p.suffix in LINK_BEARING_SUFFIXES or p.name.startswith("Dockerfile"))
 )
 
 INLINE_LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
