@@ -36,6 +36,10 @@ RUN adduser --home ${ROOT} --uid 1000 nru
 # Set up a $ROOT directory with the source code to work in.
 RUN mkdir -p ${ROOT}
 WORKDIR ${ROOT}
+
+# Rust toolchain — required because the build backend is maturin (compiles a native extension).
+RUN apt-get update && apt-get install -y cargo
+
 USER nru
 COPY --chown=nru . ${ROOT}
 

@@ -39,6 +39,7 @@ Issues = "https://github.com/NCATSTranslator/Babel/issues"
 [dependency-groups]
 dev = [
     "ipykernel>=7.1.0",
+    "maturin>=1.0,<2.0",
     "py-spy>=0.4.2",
     "ruff>=0.14.14",
     "rumdl>=0.2.4",
@@ -55,12 +56,16 @@ source-impact-report = "src.tools.source_impact_report.cli:main"
 package = true
 
 [build-system]
-requires = ["setuptools>=83.0.0"]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["src", "src.*"]
+[tool.maturin]
+# The importable Python package is literally named `src` (flat layout). A dotted module-name
+# places the compiled extension at `src/rs.*` and tells maturin the package to bundle is `src`
+# (auto-resolved to the repo root since src-layout detection won't fire).
+module-name = "src.rs"
+# Rust source lives under rust/ so Cargo never collides with the Python `src/` dir.
+manifest-path = "rust/Cargo.toml"
 
 
 # Linting/formatting configuration

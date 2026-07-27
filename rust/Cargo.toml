@@ -1,0 +1,11 @@
+[package]
+name = "babel-pipeline"
+version = "1.17.0"   # valid SemVer (3 parts); published version is "1.17" from root pyproject
+edition = "2021"
+
+[lib]
+name = "rs"                   # matches the #[pymodule] fn + module-name's last component
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.23", features = ["abi3-py311", "extension-module"] }

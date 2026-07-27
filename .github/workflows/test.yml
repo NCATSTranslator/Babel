@@ -17,6 +17,7 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.11"
+      - uses: dtolnay/rust-toolchain@stable
       - run: uv sync --frozen
       - run: PYTHONPATH=. uv run pytest --collect-only -q
       - run: PYTHONPATH=. uv run pytest -m unit --no-cov -q
@@ -34,5 +35,6 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.11"
+      - uses: dtolnay/rust-toolchain@stable
       - run: uv sync --frozen
       - run: PYTHONPATH=. uv run pytest --network -m "unit or network or slow" --no-cov -q
