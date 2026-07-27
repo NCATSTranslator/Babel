@@ -103,3 +103,27 @@ def test_no_master_branch_links():
             if MASTER_LINK.search(line):
                 offenders.append(f"{path.relative_to(REPO_ROOT)}:{line_no}")
     assert not offenders, "Links pinned to `master` instead of `main`:\n  " + "\n  ".join(offenders)
+
+
+#: The three repositories that moved from the TranslatorSRI org to NCATSTranslator. Scoped to
+#: these by name on purpose -- TranslatorSRI/babel-validation, referenced from docs/Deployment.md,
+#: docs/Triage.md and src/exporters/sapbert.py, really does still live under that org. A blanket
+#: ban on the string would push someone to "fix" those correct links into 404s.
+MOVED_TO_NCATSTRANSLATOR = re.compile(r"TranslatorSRI/(Babel|NameResolution|NodeNormalization)\b")
+
+
+def test_no_stale_org_links():
+    """These three repositories are under NCATSTranslator now. The old URLs resolve through
+    GitHub's org-rename redirect, which is more durable than the branch-rename one, but they
+    still name an org that no longer owns the code. Babel is clean today; this keeps it that
+    way, and is the same check NameResolution#262 and NodeNormalization#403 add."""
+    offenders = []
+    for path in MARKDOWN_FILES + SOURCE_WITH_LINKS:
+        if not path.exists():
+            continue
+        for line_no, line in enumerate(path.read_text().splitlines(), start=1):
+            if MOVED_TO_NCATSTRANSLATOR.search(line):
+                offenders.append(f"{path.relative_to(REPO_ROOT)}:{line_no}")
+    assert not offenders, (
+        "Links naming the pre-rename TranslatorSRI org:\n  " + "\n  ".join(offenders)
+    )
