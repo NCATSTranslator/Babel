@@ -79,11 +79,12 @@ equivalence cliques.
 
 Each line of a compendium file is a JSON object representing one clique. A clique includes:
 
-- `identifiers` — list of all equivalent CURIEs, in preferred-prefix order
+- `identifiers` — list of all equivalent CURIEs, in preferred-prefix order. Each entry carries its
+  own label (`l`), descriptions (`d`, collected from UberGraph and sorted shortest first) and taxa
+  (`t`). There is no clique-level `descriptions` field
 - `ic` — information content score (from UberGraph)
-- `taxa` — associated taxa (for genes, proteins, etc.)
+- `taxa` — associated taxa (for genes, proteins, etc.); the union of the per-identifier `t` values
 - `preferred_name` — the preferred human-readable label for the clique
-- `descriptions` — descriptions collected from UberGraph
 - `type` — Biolink semantic type
 
 The first identifier in `identifiers` is the preferred identifier for the clique. See
