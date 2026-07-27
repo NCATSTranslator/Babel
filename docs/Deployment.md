@@ -16,7 +16,8 @@ to users who aren't system administrators for these tools:
 2. Store the Babel outputs alongside other Babel releases on Hatteras.
 3. Deploy a new NodeNorm instance
    1. Split the Babel outputs into smaller files to improve load times and put them on a public web
-      server.
+      server. The split sizes and the reason for splitting are documented in
+      [NodeNorm's loader documentation](https://github.com/NCATSTranslator/NodeNormalization/blob/master/documentation/Loader.md).
    2. Update the Translator-devops repo with the URL to these Babel output files.
    3. Create a [Redis R3 External] instance to store identifiers.
    4. Run the [NodeNorm loader] to load the Babel outputs into a Redis instance.
