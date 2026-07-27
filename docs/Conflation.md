@@ -27,7 +27,7 @@ on, NodeNorm will:
    all the cliques included in that conflation.
 
 For how to turn each conflation on when querying, see the
-[NodeNorm API documentation](https://github.com/NCATSTranslator/NodeNormalization/blob/master/documentation/API.md).
+[NodeNorm API documentation](https://github.com/NCATSTranslator/NodeNormalization/blob/main/documentation/API.md).
 
 ## How are types handled for conflated cliques?
 
