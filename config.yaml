@@ -143,8 +143,14 @@ protein_ids:      [ENSEMBL, MESH, UniProtKB, PR, UMLS]
 protein_concords: [UniProtKB, PR, NCIT_UniProtKB, NCIT_UMLS, UMLS, UMLS_UniProtKB]
 protein_outputs:  [Protein.txt]
 
-disease_labelsandsynonyms: [MONDO, DOID, Orphanet, HP, MP, MESH, NCIT, UMLS, SNOMEDCT, EFO]
-disease_ids:               [MONDO, DOID, Orphanet, HP, MP, MESH, NCIT, UMLS, OMIM, EFO]
+# NCATS GARD (Genetic and Rare Diseases) rare-disease registry distribution. A Salesforce
+# ContentVersion download link (query string, no stable filename) for the canonical GARD term
+# list (CURIE, preferred label, pipe-separated synonyms). Pin or repoint it here when NCATS
+# publishes a new version; the get_gard rule fetches it via src.datahandlers.gard.pull_gard().
+gard_download_url: "https://ncats.file.force.com/sfc/dist/version/download/?oid=00Dt00000004XG2&ids=068SJ00001HZAaEYAX&d=%2Fa%2FSJ00000BC4Xl%2FUj7U9WuHII571Akz5AUBLe6WSCeelaMBynbjWybmhuA&asPdf=false"
+
+disease_labelsandsynonyms: [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UMLS, SNOMEDCT, EFO]
+disease_ids:               [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UMLS, OMIM, EFO]
 disease_concords:          [HP, MP, MONDO, UMLS, DOID, EFO, Manual]
 disease_outputs:           [Disease.txt, PhenotypicFeature.txt]
 # Taxon assigned to each phenotype ontology's identifiers in the compendia. Every HP term we

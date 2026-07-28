@@ -44,6 +44,20 @@ rule disease_orphanet_ids:
         "awk '{{print $1\"\tbiolink:Disease\"}}' {input.infile} > {output.outfile}"
 
 
+rule disease_gard_ids:
+    # Every GARD term is a rare disease; the ids file is a simple transform of the labels file,
+    # mirroring the DOID/Orphanet ids rules.
+    input:
+        infile=config["download_directory"] + "/GARD/labels",
+    output:
+        outfile=config["intermediate_directory"] + "/disease/ids/GARD",
+    benchmark:
+        config["output_directory"] + "/benchmarks/disease_gard_ids.tsv"
+    shell:
+        #This one is a simple enough transform to do with awk
+        "awk '{{print $1\"\tbiolink:Disease\"}}' {input.infile} > {output.outfile}"
+
+
 rule disease_efo_ids:
     input:
         efo_owl_file_path=config["download_directory"] + "/EFO/efo.owl",

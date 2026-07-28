@@ -36,6 +36,10 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   source: extracting identifiers from the [`HP:0000118`](http://purl.obolibrary.org/obo/HP_0000118)
   "Phenotypic abnormality" subtree, and tagging every ingested term with the taxon
   [`NCBITaxon:9606`](http://purl.obolibrary.org/obo/NCBITaxon_9606) "Homo sapiens".
+- **GARD** ([GARD/README.md](./GARD/README.md)) — the NCATS Genetic and Rare Diseases registry as
+  a `biolink:Disease` source: a flat CSV of rare-disease terms (labels + pipe-separated synonyms,
+  no cross-references), typed Disease and kept via `extra_prefixes=[GARD]` because GARD is not yet
+  in the Biolink Model's `disease` `id_prefixes`.
 - **MESH** ([MESH/Ingestion.md](./MESH/Ingestion.md)) — how MeSH is partitioned across compendia
   by tree letter, how Supplementary Concept Records (SCRs) are typed and routed, the
   chemical/protein D-tree split, and which MeSH branches/SCR classes we deliberately skip.
