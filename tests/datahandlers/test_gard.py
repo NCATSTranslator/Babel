@@ -1,11 +1,12 @@
 """Unit tests for src.datahandlers/gard.py (NCATS GARD rare-disease registry).
 
 The fixture `tests/data/gard_sample.csv` holds two rows copied verbatim from the GARD distribution
-CSV (BOM + CRLF, as published): one real rare disease with a URL + pipe-separated synonyms
-([`GARD:0021052`](https://rarediseases.info.nih.gov/?gard_id=0021052)) and one with no URL
-([`GARD:0027416`](https://rarediseases.info.nih.gov/?gard_id=0027416)), which is excluded because
-a GARD term with no public page is not a real rare disease. Re-derive either row from the
-`gard_download_url` in `config.yaml`.
+CSV (BOM + CRLF, as published): one term with pipe-separated synonyms
+([`GARD:0021052`](https://rarediseases.info.nih.gov/?gard_id=0021052)) and one with neither
+synonyms nor a URL ([`GARD:0027416`](https://rarediseases.info.nih.gov/?gard_id=0027416)) -- both
+are kept, since the presence of a `URL` is not a reliable signal that a row is a real rare disease
+(a term may simply lack a GARD page). Re-derive either row from the `gard_download_url` in
+`config.yaml`.
 """
 
 from pathlib import Path
@@ -22,17 +23,18 @@ from tests.conftest import assert_labels_file_valid, assert_synonyms_file_valid
 FIXTURE = Path(__file__).resolve().parent.parent / "data" / "gard_sample.csv"
 
 # Verbatim rows from the GARD distribution CSV.
-_KEPT = "GARD:0021052"  # has a URL + synonyms -> kept
-_KEPT_NAME = "10q22.3q23.3 microduplication syndrome"
-_KEPT_SYNS = ["dup(10)(q22.3q23.3)", "trisomy 10q22.3q23.3"]
-_EXCLUDED_NO_URL = "GARD:0027416"  # no URL -> not a real rare disease, excluded
+_WITH_SYNS = "GARD:0021052"  # has a URL + pipe-separated synonyms
+_WITH_SYNS_NAME = "10q22.3q23.3 microduplication syndrome"
+_WITH_SYNS_SYNS = ["dup(10)(q22.3q23.3)", "trisomy 10q22.3q23.3"]
+_NO_SYNS = "GARD:0027416"  # no synonyms and no URL -- still a real rare disease, kept
+_NO_SYNS_NAME = "10p13-p14 deletion syndrome"
 
 
 @pytest.mark.unit
-def test_pull_gard_labels_and_synonyms_keeps_url_rows_excludes_no_url(tmp_path):
-    """A GARD term with a URL is kept (label + the DisplayName and each pipe-split synonym as
-    exact synonyms); a GARD term with no URL is excluded entirely -- it is not a real rare
-    disease."""
+def test_pull_gard_labels_and_synonyms_writes_label_and_synonyms(tmp_path):
+    """The DisplayName is written as a label and as an exact synonym, and each pipe-separated
+    synonym becomes its own exact-synonym row. Rows without a URL are kept -- a missing GARD page
+    does not mean the term is not a rare disease."""
     labels = str(tmp_path / "labels")
     syns = str(tmp_path / "synonyms")
     pull_gard_labels_and_synonyms(str(FIXTURE), labels, syns)
@@ -40,36 +42,37 @@ def test_pull_gard_labels_and_synonyms_keeps_url_rows_excludes_no_url(tmp_path):
     label_rows = assert_labels_file_valid(labels)
     syn_rows = assert_synonyms_file_valid(syns)
 
-    # The URL-bearing term is kept: it gets a label row.
+    # Both terms get a label row (GARD:<id>\t<name>), including the no-synonym, no-URL term.
     label_map = {r[0]: r[1] for r in label_rows}
-    assert label_map[_KEPT] == _KEPT_NAME
+    assert label_map[_WITH_SYNS] == _WITH_SYNS_NAME
+    assert label_map[_NO_SYNS] == _NO_SYNS_NAME
 
-    # The DisplayName is emitted as an exact synonym, and each pipe-split synonym is its own row.
-    assert [_KEPT, f"{OIO}:hasExactSynonym", _KEPT_NAME] in syn_rows
-    for syn in _KEPT_SYNS:
-        assert [_KEPT, f"{OIO}:hasExactSynonym", syn] in syn_rows
+    # The term with synonyms: DisplayName as an exact synonym, plus each pipe-split synonym.
+    assert [_WITH_SYNS, f"{OIO}:hasExactSynonym", _WITH_SYNS_NAME] in syn_rows
+    for syn in _WITH_SYNS_SYNS:
+        assert [_WITH_SYNS, f"{OIO}:hasExactSynonym", syn] in syn_rows
 
-    # The no-URL term is excluded: it appears in neither labels nor synonyms.
-    assert _EXCLUDED_NO_URL not in {r[0] for r in label_rows}
-    assert _EXCLUDED_NO_URL not in {r[0] for r in syn_rows}
+    # The no-synonym term gets exactly one synonym row (its DisplayName); no pipe-split rows.
+    no_syn_rows = [r for r in syn_rows if r[0] == _NO_SYNS]
+    assert no_syn_rows == [[_NO_SYNS, f"{OIO}:hasExactSynonym", _NO_SYNS_NAME]]
 
 
 @pytest.mark.unit
-def test_pull_gard_labels_and_synonyms_skips_non_gard_and_no_url_rows(tmp_path):
-    """Only a real GARD term (``GARD:`` id *and* a URL) reaches the labels/synonyms files; a
-    non-``GARD:`` id, a ``GARD:`` id with no URL, and a row with no id at all are all skipped.
+def test_pull_gard_labels_and_synonyms_skips_non_gard_rows(tmp_path):
+    """A row whose ID is not a ``GARD:`` CURIE (a malformed/trailing row the registry does not
+    actually contain) is skipped, so only real GARD terms reach the labels/synonyms files.
 
     This is a defensive-branch test over a synthetic CSV (not a verbatim GARD record), built in
-    the test so the skip paths are genuinely exercised rather than trivially true against the
-    GARD-only fixture.
+    the test so the skip path is genuinely exercised rather than trivially true against the
+    GARD-only fixture. The ``URL`` column is intentionally left empty to confirm it does not gate
+    inclusion.
     """
     synth = tmp_path / "synthetic.csv"
     synth.write_text(
         "ID,DisplayName,Synonyms,URL\n"
-        "GARD:0000001,Real rare disease,,https://rarediseases.info.nih.gov/?gard_id=0000001\n"
-        "GARD:0000002,Excluded no url,,\n"
-        "BOGUS:9999,Non-GARD id,,https://example.com\n"
-        ",No id,,https://example.com\n",
+        "GARD:0000001,Real rare disease,,\n"
+        "BOGUS:9999,Should be skipped,,\n"
+        ",No id either,,\n",
         encoding="utf-8",
     )
     labels = str(tmp_path / "labels")

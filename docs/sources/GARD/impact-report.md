@@ -1,33 +1,33 @@
 # Source impact report: GARD
 
-- Generated: 2026-07-28 21:57:38 UTC
-- Babel commit: 2833524a06c3966de1d4b672db0a7ea98570b4b0
+- Generated: 2026-07-28 22:22:49 UTC
+- Babel commit: 4c434100dff1cfa2a879a35b65d8b1955d0433ca
 - Source pipelines: disease
 - Source prefixes: GARD
 - Comparison mode: synthetic
 
 ## 1. Identifiers added
 
-Totals: 6,265 identifiers across 1 prefix(es) in 1 pipeline(s).
+Totals: 16,214 identifiers across 1 prefix(es) in 1 pipeline(s).
 
 ### By prefix
 
-- GARD: 6,265
+- GARD: 16,214
 
 ### By pipeline
 
-- disease: 6,265
+- disease: 16,214
 
 ## 2. Biolink types
 
 ### Overall declared type breakdown
 
-- biolink:Disease: 6,265
+- biolink:Disease: 16,214
 
 ### Source-declared (from each ids file)
 
 - disease / GARD
-  - biolink:Disease: 6,265
+  - biolink:Disease: 16,214
 
 ### Final compendium-assigned (after glom)
 
@@ -56,7 +56,7 @@ change the source could introduce before that filtering is applied.
 
 ### disease
 
-- 6,265 new cliques composed only of GARD identifiers (a 2.60% increase over the 241,269
+- 16,214 new cliques composed only of GARD identifiers (a 6.72% increase over the 241,269
   pre-existing cliques)
 - 0 existing cliques contain GARD identifiers in the after state (0.00% of the 241,269 pre-existing
   cliques). Of these, 0 cliques gain at least one structurally new identifier from GARD, and 0
@@ -66,7 +66,7 @@ change the source could introduce before that filtering is applied.
 - 0 structurally-new GARD identifiers are added to existing cliques (0 via expansion, 0 via merges).
   This is distinct from the 0 existing cliques that change, since one clique can gain several
   identifiers.
-- Total cliques in this pipeline go from 241,269 to 247,534
+- Total cliques in this pipeline go from 241,269 to 257,483
 - Full list of new cliques: [`impact-report/new-cliques.csv`](impact-report/new-cliques.csv)
 - Full list of modified cliques (one row per added/preexisting GARD identifier):
   [`impact-report/modified-cliques.csv`](impact-report/modified-cliques.csv)

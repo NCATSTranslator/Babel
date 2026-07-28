@@ -14,10 +14,6 @@ labels/synonyms only** -- there is no GARD concord file. Every GARD term is type
 that no other source already maps joins the build as a single-identifier clique (a new clique);
 the source-impact report's "pure-new cliques" count reflects this.
 
-The published CSV lists ~16k rows, but only the ~6,265 that carry a `URL` (a public
-rarediseases.info.nih.gov page) are real rare diseases; rows with an empty `URL` are
-candidate/provisional terms and are excluded from the ingest (see `src/datahandlers/gard.py`).
-
 ## Biolink registration (the `extra_prefixes` escape hatch)
 
 `GARD` is **not** in the Biolink Model's `disease` `id_prefixes` (verified against the pinned
@@ -40,10 +36,8 @@ server, so the `get_gard` rule (in `src/snakefiles/datacollect.snakefile`) calls
 Pin or repoint the URL in `config.yaml` when NCATS publishes a new version.
 
 The CSV is UTF-8 with a BOM and CRLF line endings, with columns `ID,DisplayName,Synonyms,URL`.
-The `URL` column (the rarediseases.info.nih.gov page) is load-bearing for filtering: a row with
-no `URL` is not a real rare disease (the registry also lists candidate/provisional terms), so
-`pull_gard_labels_and_synonyms` excludes such rows. The URL value itself is otherwise unused --
-the CURIE resolves via the Biolink prefix map.
+The `URL` column (the rarediseases.info.nih.gov page) is read for reference only and is not
+ingested -- the CURIE itself resolves via the Biolink prefix map.
 
 ## Wiring
 
@@ -70,9 +64,9 @@ were built locally.
 
 Summary:
 
-- **6,265 identifiers** added (all `GARD:`, all `biolink:Disease`) and **6,265 new cliques** --
-  one single-identifier clique per GARD term (a 2.60% increase over the 241,269 pre-existing
-  disease cliques). Total cliques go from 241,269 to 247,534.
+- **16,214 identifiers** added (all `GARD:`, all `biolink:Disease`) and **16,214 new cliques** --
+  one single-identifier clique per GARD term (a 6.72% increase over the 241,269 pre-existing
+  disease cliques). Total cliques go from 241,269 to 257,483.
 - **0 merges, 0 modified cliques, 0 cross-references** -- GARD has no concord and no other
   source xrefs GARD, so it cannot bridge or disturb any existing clique. The addition is purely
   additive.
