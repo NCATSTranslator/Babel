@@ -52,6 +52,11 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   how the two free-text synonym columns (`Synonyms`/`otheraliases`, `Other_designations`/
   `otherdesignations`) in `gene_info.gz` are quoted, prompted by issue #744's `''…''` fragments and
   the discovery that a trailing `''` is legitimate "double-prime" gene nomenclature.
+- **TRANSCRIPT** ([TRANSCRIPT/README.md](./TRANSCRIPT/README.md)) — the `biolink:Transcript`
+  compendium: exposing Ensembl transcript identifiers (`ENST*`) that Babel already downloaded in
+  NCBIGene's `gene2ensembl.gz` but parsed away, why transcripts live in their own compendium with no
+  transcript↔gene/protein concords (`glom` merges every concord pair), and the versioned↔unversioned
+  equivalence that lets a versioned `ENST` query normalize.
 
 ## Cross-cutting patterns
 

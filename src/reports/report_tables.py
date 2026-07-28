@@ -92,6 +92,10 @@ pipeline_descriptions = {
         "description": "Taxonomic entities, including species, genera, families, and so on from the NCBI Taxonomy",
         "filenames": ["OrganismTaxon"],
     },
+    "Transcript": {
+        "description": "Ensembl transcripts (ENST*) from all species, exposed from NCBIGene's gene2ensembl",
+        "filenames": ["Transcript"],
+    },
 }
 
 
