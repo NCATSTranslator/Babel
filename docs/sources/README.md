@@ -32,6 +32,10 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   downloaded via the BioMart API: per-dataset retry logic, permanently broken datasets and how to
   skip them, the attribute-batching workaround, and how partial progress is preserved across
   failed runs.
+- **GTDB** ([GTDB/README.md](./GTDB/README.md)) — the Genome Taxonomy Database as a taxon source:
+  turning each genome's `gtdb_taxonomy` string into rank-prefixed `GTDB` CURIEs in the `taxon`
+  pipeline, the species-rank `GTDB`↔`NCBITaxon` link, and why GTDB needs `extra_prefixes` and a
+  `unique_prefixes` entry (the many-to-one NCBI mapping).
 - **HP** ([HP/README.md](./HP/README.md)) — the Human Phenotype Ontology as a disease/phenotype
   source: extracting identifiers from the [`HP:0000118`](http://purl.obolibrary.org/obo/HP_0000118)
   "Phenotypic abnormality" subtree, and tagging every ingested term with the taxon

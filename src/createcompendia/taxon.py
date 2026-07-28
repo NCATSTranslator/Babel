@@ -5,7 +5,7 @@ import src.datahandlers.umls as umls
 from src.babel_utils import glom, read_identifier_file, write_compendium
 from src.categories import ORGANISM_TAXON
 from src.metadata.provenance import write_concord_metadata
-from src.prefixes import MESH, NCBITAXON, UMLS
+from src.prefixes import GTDB, MESH, NCBITAXON, UMLS
 from src.util import LoggingUtil
 
 logger = LoggingUtil.init_logging(__name__, level=logging.ERROR)
@@ -108,7 +108,9 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
     :identifiers: a list of files from which to read identifiers and optional categories"""
     dicts = {}
     types = {}
-    uniques = [NCBITAXON, MESH, UMLS]
+    # GTDB is a unique prefix so two GTDB species that share an NCBI taxid are never merged into one
+    # clique (the GTDB<->NCBI mapping is many-to-one; see src/datahandlers/gtdb.py).
+    uniques = [NCBITAXON, MESH, UMLS, GTDB]
     for ifile in identifiers:
         print("loading", ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
@@ -125,6 +127,14 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
         glom(dicts, pairs, unique_prefixes=uniques)
     gene_sets = set([frozenset(x) for x in dicts.values()])
     baretype = ORGANISM_TAXON.split(":")[-1]
-    # We need to use extra_prefixes since UMLS is not listed as an identifier prefix at
-    # https://biolink.github.io/biolink-model/docs/OrganismTaxon.html
-    write_compendium(metadata_yamls, gene_sets, f"{baretype}.txt", ORGANISM_TAXON, {}, icrdf_filename=icrdf_filename)
+    # GTDB is not in the Biolink Model's organism-taxon id_prefixes ([NCBITaxon, MESH, UMLS]), so it must
+    # be passed via extra_prefixes or write_compendium silently drops every GTDB CURIE.
+    write_compendium(
+        metadata_yamls,
+        gene_sets,
+        f"{baretype}.txt",
+        ORGANISM_TAXON,
+        {},
+        extra_prefixes=[GTDB],
+        icrdf_filename=icrdf_filename,
+    )
