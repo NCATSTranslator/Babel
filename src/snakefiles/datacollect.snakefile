@@ -412,6 +412,25 @@ rule get_ncbigene_labels_synonyms_and_taxa:
         )
 
 
+### ClinVar
+
+
+rule get_clinvar:
+    output:
+        config["download_directory"] + "/CLINVAR/variant_summary.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_clinvar.tsv"
+    retries: 3  # ClinVar download may be interrupted transiently.
+    resources:
+        mem="8G",
+        cpus_per_task=1,
+        runtime="6h",
+    run:
+        pull_via_wget(
+            config["clinvar_download_url_prefix"], "variant_summary.txt.gz", decompress=True, subpath="CLINVAR"
+        )
+
+
 ### ENSEMBL
 
 

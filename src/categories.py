@@ -46,6 +46,7 @@ PUBLICATION = "biolink:Publication"
 JOURNAL_ARTICLE = "biolink:JournalArticle"
 SMALL_MOLECULE = "biolink:SmallMolecule"
 TRANSCRIPT = "biolink:Transcript"
+SEQUENCE_VARIANT = "biolink:SequenceVariant"
 
 # Added by Gaurav on April 16, 2024 based on ChemicalEntity children from
 # https://biolink.github.io/biolink-model/categories.html

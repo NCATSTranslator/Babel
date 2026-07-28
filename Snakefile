@@ -13,6 +13,7 @@ include: "src/snakefiles/chemical.snakefile"
 include: "src/snakefiles/drugchemical.snakefile"
 include: "src/snakefiles/taxon.snakefile"
 include: "src/snakefiles/transcript.snakefile"
+include: "src/snakefiles/sequencevariant.snakefile"
 include: "src/snakefiles/genefamily.snakefile"
 include: "src/snakefiles/leftover_umls.snakefile"
 include: "src/snakefiles/macromolecular_complex.snakefile"
@@ -76,6 +77,7 @@ rule all_outputs:
         config["output_directory"] + "/reports/protein_done",
         config["output_directory"] + "/reports/taxon_done",
         config["output_directory"] + "/reports/transcript_done",
+        config["output_directory"] + "/reports/sequencevariant_done",
         config["output_directory"] + "/reports/cell_line_done",
         config["output_directory"] + "/reports/umls_done",
         config["output_directory"] + "/reports/macromolecular_complex_done",

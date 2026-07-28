@@ -96,6 +96,10 @@ pipeline_descriptions = {
         "description": "Ensembl transcripts (ENST*) from all species, exposed from NCBIGene's gene2ensembl",
         "filenames": ["Transcript"],
     },
+    "SequenceVariant": {
+        "description": "Genomic sequence variants (SNVs, deletions, indels) from ClinVar, linked to dbSNP rs identifiers",
+        "filenames": ["SequenceVariant"],
+    },
 }
 
 
