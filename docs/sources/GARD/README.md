@@ -14,6 +14,10 @@ labels/synonyms only** -- there is no GARD concord file. Every GARD term is type
 that no other source already maps joins the build as a single-identifier clique (a new clique);
 the source-impact report's "pure-new cliques" count reflects this.
 
+The published CSV lists ~16k rows, but only the ~6,265 that carry a `URL` (a public
+rarediseases.info.nih.gov page) are real rare diseases; rows with an empty `URL` are
+candidate/provisional terms and are excluded from the ingest (see `src/datahandlers/gard.py`).
+
 ## Biolink registration (the `extra_prefixes` escape hatch)
 
 `GARD` is **not** in the Biolink Model's `disease` `id_prefixes` (verified against the pinned
@@ -36,8 +40,10 @@ server, so the `get_gard` rule (in `src/snakefiles/datacollect.snakefile`) calls
 Pin or repoint the URL in `config.yaml` when NCATS publishes a new version.
 
 The CSV is UTF-8 with a BOM and CRLF line endings, with columns `ID,DisplayName,Synonyms,URL`.
-The `URL` column (the rarediseases.info.nih.gov page) is read for reference only and is not
-ingested -- the CURIE itself resolves via the Biolink prefix map.
+The `URL` column (the rarediseases.info.nih.gov page) is load-bearing for filtering: a row with
+no `URL` is not a real rare disease (the registry also lists candidate/provisional terms), so
+`pull_gard_labels_and_synonyms` excludes such rows. The URL value itself is otherwise unused --
+the CURIE resolves via the Biolink prefix map.
 
 ## Wiring
 
@@ -56,8 +62,29 @@ Disease), mirroring the DOID/Orphanet ids rules.
 
 ## Source-impact report
 
-Not yet generated. Run, once intermediates are built (or assembled from a published build snapshot
-per [`docs/AddingNewSources.md`](../../AddingNewSources.md)):
+Generated (synthetic mode) and committed at [`impact-report.md`](impact-report.md), with full
+detail in [`impact-report/`](impact-report/). The baseline intermediates were assembled from the
+`2025dec11` published build snapshot (whose disease concords predate the MP-in-disease addition,
+so MP's concord was rebuilt locally from UberGraph for the baseline); GARD's own intermediates
+were built locally.
+
+Summary:
+
+- **6,265 identifiers** added (all `GARD:`, all `biolink:Disease`) and **6,265 new cliques** --
+  one single-identifier clique per GARD term (a 2.60% increase over the 241,269 pre-existing
+  disease cliques). Total cliques go from 241,269 to 247,534.
+- **0 merges, 0 modified cliques, 0 cross-references** -- GARD has no concord and no other
+  source xrefs GARD, so it cannot bridge or disturb any existing clique. The addition is purely
+  additive.
+- **Section 4 is a worst-case (upper-bound) view:** it is computed before the Biolink per-class
+  prefix filter runs, so the sample cliques are flagged "NOT emitted -- prefix not registered in
+  Biolink Model for `biolink:Disease`". That flag is *exactly* why the build passes
+  `extra_prefixes=[GARD]` (see above); with it, the identifiers are kept at `write_compendium`
+  time. Registering GARD upstream removes both the flag and the need for `extra_prefixes`.
+- Section 2's "Final compendium-assigned" counts are blank because there are no local compendia
+  on this machine (they require a full `disease` build); expected for a synthetic-only run.
+
+Regenerate after a typing or extraction change:
 
 ```bash
 uv run source-impact-report --source GARD

@@ -6,8 +6,10 @@ BOM, CRLF line endings) with four columns -- ``ID``, ``DisplayName``, ``Synonyms
 * ``ID`` -- a ``GARD:NNNNNNNN`` CURIE (zero-padded numeric local id).
 * ``DisplayName`` -- the preferred label.
 * ``Synonyms`` -- pipe-separated (``|``) alternative names; empty for many rows.
-* ``URL`` -- the rarediseases.info.nih.gov page, carried for reference only (the CURIE itself
-  resolves via the Biolink prefix map), so it is not ingested.
+* ``URL`` -- the rarediseases.info.nih.gov page. A row with no ``URL`` has no public GARD
+  page and is not a real rare disease (the registry also lists candidate/provisional terms), so
+  rows with an empty ``URL`` are excluded from the ingest. The CURIE itself resolves via the
+  Biolink prefix map, so the URL value is otherwise unused.
 
 The registry carries no cross-references to other disease vocabularies (MONDO/DOID/UMLS/...), so
 GARD contributes identifiers and labels/synonyms only -- there is no concord file. Every GARD term
@@ -66,12 +68,15 @@ def pull_gard_labels_and_synonyms(infile, labelfile, synonymfile):
     The CSV is UTF-8 with a BOM and CRLF line endings; ``utf-8-sig`` strips the BOM and
     ``newline=""`` lets the ``csv`` module handle embedded/CRLF quoting correctly. Rows whose
     ``ID`` is not a ``GARD:`` CURIE are skipped defensively (the registry contains only GARD ids,
-    but a malformed trailing row must never abort the whole ingest). A parse summary is logged at
+    but a malformed trailing row must never abort the whole ingest). Rows with an empty ``URL``
+    are excluded as non-rare-disease (no public GARD page); since the labels file drives the ids
+    file, dropping them here also keeps them out of the ids file and the compendium. A parse summary is logged at
     the end so a future NCATS format change (e.g. a header or ID-column rename that silently
     zeroes the output) is visible in the build log rather than producing an empty file quietly.
     """
     parsed = 0
     skipped_non_gard = 0
+    skipped_no_url = 0
     empty_name = 0
     with (
         open(infile, encoding="utf-8-sig", newline="") as inf,
@@ -83,6 +88,13 @@ def pull_gard_labels_and_synonyms(infile, labelfile, synonymfile):
             curie = (row.get("ID") or "").strip()
             if not curie.startswith(f"{GARD}:"):
                 skipped_non_gard += 1
+                continue
+            # A GARD term with no URL has no public rarediseases.info.nih.gov page and is not a
+            # real rare disease (the registry also lists candidate/provisional terms); the labels
+            # file drives the ids file, so dropping the row here also keeps it out of the ids
+            # file and the compendium.
+            if not (row.get("URL") or "").strip():
+                skipped_no_url += 1
                 continue
             name = (row.get("DisplayName") or "").strip()
             if not name:
@@ -104,8 +116,10 @@ def pull_gard_labels_and_synonyms(infile, labelfile, synonymfile):
                 if syn:
                     syns.write(f"{curie}\t{OIO}:hasExactSynonym\t{syn}\n")
     logger.info(
-        "GARD parse: %d terms written, %d non-GARD rows skipped, %d GARD rows with no DisplayName",
+        "GARD parse: %d terms written, %d non-GARD rows skipped, %d rows with no URL excluded, "
+        "%d GARD rows with no DisplayName",
         parsed,
         skipped_non_gard,
+        skipped_no_url,
         empty_name,
     )
