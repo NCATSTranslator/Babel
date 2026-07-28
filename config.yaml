@@ -160,6 +160,19 @@ disease_phenotype_taxa:
   HP: NCBITaxon:9606 # Homo sapiens
   MP: NCBITaxon:40674 # Mammalia
 
+# ClinicalFinding compendium (biolink:ClinicalFinding): currently LOINC clinical terms (loinc.csv
+# CLASSTYPE=2). A dedicated pipeline (see docs/sources/LOINC/) kept separate from diseasephenotype
+# because LOINC has no concord linking it to HP/MP/MONDO in v1 (its terms are singleton cliques).
+clinicalfinding_labels:  [LOINC]
+clinicalfinding_ids:     [LOINC]
+clinicalfinding_outputs: [ClinicalFinding.txt]
+
+# LOINC requires a free account (https://loinc.org/downloads) and cannot be downloaded anonymously.
+# Set this to the directory-prefix URL serving loinc.csv (an authenticated URL; it MUST end with "/",
+# since the filename is appended directly), OR place loinc.csv manually at babel_downloads/LOINC/loinc.csv
+# (the get_loinc rule is then skipped). Empty by default.
+loinc_download_url: ""
+
 process_labels:   [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
 process_ids:      [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
 process_concords: [GO, RHEA, UMLS]

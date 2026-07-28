@@ -412,6 +412,32 @@ rule get_ncbigene_labels_synonyms_and_taxa:
         )
 
 
+### LOINC
+
+
+rule get_loinc:
+    output:
+        loinc_csv=config["download_directory"] + "/LOINC/loinc.csv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_loinc.tsv"
+    retries: 3  # LOINC download may be interrupted transiently.
+    resources:
+        mem="8G",
+        cpus_per_task=1,
+        runtime="6h",
+    run:
+        # LOINC requires a free account (https://loinc.org/downloads); it cannot be downloaded
+        # anonymously. If loinc.csv is already present (manually placed) this rule is skipped.
+        url = config.get("loinc_download_url", "")
+        if not url:
+            raise RuntimeError(
+                "LOINC cannot be downloaded anonymously (it needs a free account at "
+                "https://loinc.org/downloads). Set config loinc_download_url to an authenticated "
+                f"directory-prefix URL serving loinc.csv, or place loinc.csv manually at {output.loinc_csv}."
+            )
+        pull_via_wget(url, "loinc.csv", decompress=False, subpath="LOINC")
+
+
 ### ENSEMBL
 
 

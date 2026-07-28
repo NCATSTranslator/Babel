@@ -48,6 +48,10 @@ pipeline_descriptions = {
             "Drug",
         ],
     },
+    "ClinicalFinding": {
+        "description": "Clinical findings and observations (LOINC clinical terms)",
+        "filenames": ["ClinicalFinding"],
+    },
     "DiseasePhenotype": {
         "description": "Diseases and phenotypes",
         "filenames": ["Disease", "PhenotypicFeature"],

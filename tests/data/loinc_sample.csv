@@ -1,0 +1,10 @@
+LOINC_NUM,COMPONENT,PROPERTY,TIME_ASPCT,SYSTEM,SCALE_TYP,METHOD_TYP,CLASS,CLASSTYPE,STATUS,LONG_COMMON_NAME
+1111-1,Example component A,Press,Pnt,XXX,Quant,,CLINICAL,2,ACTIVE,Clinical finding example one
+2222-2,Example component B,Press,Pnt,XXX,Quant,,CLINICAL,2,ACTIVE,Clinical finding example two
+3333-3,Example component C,MCnt,Pnt,Ser/Plas,Quant,,CHEM,1,ACTIVE,Laboratory test example
+4444-4,Example component D,Find,Pnt,XXX,Doc,,CLIN,4,ACTIVE,Survey example
+5555-5,Example component E,Find,Pnt,XXX,Doc,,CLIN,3,ACTIVE,Claims attachment example
+2222-2,Example component B dup,Press,Pnt,XXX,Quant,,CLINICAL,2,ACTIVE,Duplicate of clinical finding two
+6666-6,Example component F,Press,Pnt,XXX,Quant,,CLINICAL,2,ACTIVE,"Clinical finding, with a comma"
+7777-7,Example component G,Press,Pnt,XXX,Quant,,CLINICAL,2,ACTIVE,
+8888-8,Example component H,Press,Pnt,XXX,Quant,,CLINICAL,,ACTIVE,Missing classtype example
