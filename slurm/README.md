@@ -12,6 +12,14 @@ running it in a low-memory low-CPU node (by running `sbatch run-babel-on-slurm.s
 [run-babel-on-slurm.sh](./run-babel-on-slurm.sh)) works fine, and ensures that you don't get
 complaints from your cluster manager about long-running login node processes.
 
+`uv sync` now needs a Rust toolchain on the login node: the build backend is maturin, which
+compiles a native extension (see [`docs/Rust.md`](../docs/Rust.md)). Without `cargo` on `$PATH`, uv
+downloads a toolchain itself into a platform cache directory that the `UV_CACHE_DIR` override in
+[`run-babel-on-slurm.sh`](./run-babel-on-slurm.sh) does **not** cover, which on a quota'd home
+directory is its own problem — so install rustup (or `module load` a Rust toolchain) first. Only
+the login node needs it: `uv sync` runs once there and the compute nodes reuse the resulting
+`.venv` from `/projects`.
+
 ```bash
 # Activate the environment
 uv sync

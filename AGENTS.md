@@ -70,7 +70,7 @@ Memory-hungry tests also carry a parametrized `min_memory_gb(n)` guard (register
 - `docs/Testing.md` — testing strategy: cadence per environment (per-PR, nightly, weekly,
   pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other strategies.
 
-### Linting (all four checked in CI on PRs)
+### Linting (all five checked in CI on PRs)
 
 ```bash
 uv run ruff check                        # Python lint
@@ -81,6 +81,8 @@ uv run snakefmt --check --compact-diff . # Snakemake format check
 uv run snakefmt .                        # Snakemake auto-fix
 uv run rumdl check .                     # Markdown lint
 uv run rumdl fmt .                       # Markdown auto-fix
+cargo fmt --manifest-path rust/Cargo.toml           # Rust format
+cargo clippy --manifest-path rust/Cargo.toml        # Rust lint
 ```
 
 ### Configuration
@@ -259,6 +261,15 @@ ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandl
 - **Docstrings** — give modules, classes, and non-trivial functions a docstring covering what they
   do and any non-obvious behavior. Name functions for what they do — `fetch_*` (not `get_*`) when
   the call hits the network.
+
+- **Rust accelerators** — a `#[pyfunction]` takes a file path and returns the whole parsed result;
+  never export one that is called once per row, because crossing pyo3 per CURIE costs more than the
+  Python it replaces. Every accelerated function keeps its Python implementation as the reference,
+  with a test asserting the two agree, and is reached through `src/accel.py` (never `src._accel`
+  directly) so a missing extension falls back rather than breaking DAG parsing for all 245 rules.
+  Pick targets from a run's `benchmark:` TSVs, not by reading code — see
+  [`docs/Rust.md`](docs/Rust.md), which also records the three targets chosen that way that turned
+  out to be pure-Python bugs.
 
 ## Debugging
 
