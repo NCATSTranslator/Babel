@@ -1,8 +1,16 @@
-"""Tests for the helpers shared across the Snakemake files (src/snakefiles/util.py)."""
+"""Tests for the helpers shared across the Snakemake files (src/snakefiles/util.py).
+
+Offline / unit-only: covers the DuckDB memory-limit helper and the manual compendium's
+registration in the compendium/synonym aggregators.
+"""
 
 import pytest
 
-from src.snakefiles.util import duckdb_memory_limit_mb
+from src.snakefiles.util import (
+    duckdb_memory_limit_mb,
+    get_all_compendia,
+    get_all_synonyms,
+)
 
 
 @pytest.mark.unit
@@ -24,3 +32,34 @@ def test_duckdb_memory_limit_mb(mem_mb, expected):
     the string "512 GB". mem_mb sidesteps that round-trip entirely.
     """
     assert duckdb_memory_limit_mb(mem_mb) == expected
+
+
+def _full_config() -> dict[str, object]:
+    """A config with every key the aggregators read; only manual_outputs carries a filename."""
+    keys = [
+        "anatomy_outputs",
+        "chemical_outputs",
+        "disease_outputs",
+        "gene_outputs",
+        "genefamily_outputs",
+        "process_outputs",
+        "protein_outputs",
+        "taxon_outputs",
+        "cell_line_outputs",
+        "umls_outputs",
+        "macromolecularcomplex_outputs",
+        "publication_outputs",
+        "drugchemicalconflated_synonym_outputs",
+        "geneproteinconflated_synonym_outputs",
+    ]
+    cfg: dict[str, object] = {key: [] for key in keys}
+    cfg["manual_outputs"] = ["Manual.txt"]
+    return cfg
+
+
+@pytest.mark.unit
+def test_get_all_compendia_includes_manual() -> None:
+    """The manual compendium is always registered (it is part of the normal build, not opt-in)."""
+    cfg = _full_config()
+    assert get_all_compendia(cfg) == ["Manual.txt"]
+    assert "Manual.txt" in get_all_synonyms(cfg)

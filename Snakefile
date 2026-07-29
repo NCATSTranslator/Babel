@@ -1,6 +1,9 @@
 configfile: "config.yaml"
 
 
+from src.snakefiles.util import write_done
+
+
 include: "src/snakefiles/datacollect.snakefile"
 include: "src/snakefiles/anatomy.snakefile"
 include: "src/snakefiles/cell_line.snakefile"
@@ -16,6 +19,7 @@ include: "src/snakefiles/genefamily.snakefile"
 include: "src/snakefiles/leftover_umls.snakefile"
 include: "src/snakefiles/macromolecular_complex.snakefile"
 include: "src/snakefiles/publications.snakefile"
+include: "src/snakefiles/manual.snakefile"
 include: "src/snakefiles/duckdb.snakefile"
 include: "src/snakefiles/reports.snakefile"
 include: "src/snakefiles/exports.snakefile"
@@ -23,7 +27,6 @@ include: "src/snakefiles/exports.snakefile"
 
 # Some general imports.
 import shutil
-from src.snakefiles.util import write_done
 
 # Some global settings.
 import os
@@ -79,6 +82,7 @@ rule all_outputs:
         config["output_directory"] + "/reports/macromolecular_complex_done",
         config["output_directory"] + "/reports/drugchemical_done",
         config["output_directory"] + "/reports/publications_done",
+        config["output_directory"] + "/reports/manual_done",
     output:
         x=config["output_directory"] + "/reports/outputs_done",
     run:
