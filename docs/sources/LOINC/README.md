@@ -7,13 +7,14 @@ ingests the **clinical** subset as
 dedicated `clinicalfinding` pipeline (`src/createcompendia/clinicalfinding.py`,
 `src/snakefiles/clinicalfinding.snakefile`).
 
-> **⚠ Download is credential-gated — this source cannot be built or validated without a free LOINC
-> account.** The full LOINC release (`loinc.csv`) is available only by logging in at
-> <https://loinc.org/downloads>; it cannot be fetched anonymously. The `get_loinc` rule pulls it
-> from `loinc_download_url` in `config.yaml` (an authenticated URL the operator supplies);
-> alternatively, place `loinc.csv` manually at `babel_downloads/LOINC/loinc.csv` and the rule is
-> skipped. **The unit tests use a synthetic fixture (see below) and do not validate against real
-> LOINC data — run a real build with credentials before relying on this source.**
+> **ⓘ Anonymous download by default.** LOINC's official full release (`loinc.csv`) requires a free
+> account at <https://loinc.org/downloads> and cannot be fetched anonymously. When
+> `loinc_download_url` is empty (the default), the `get_loinc` rule falls back to the **Tuva
+> Project's public S3 mirror** — the same LOINC release (104k+ codes, same `CLASSTYPE` semantics)
+> redistributed as a headerless CSV at no credential cost. To use the official authenticated
+> `loinc.csv` instead, set `loinc_download_url` to its directory-prefix URL; or place `loinc.csv`
+> manually at `babel_downloads/LOINC/loinc.csv` and the rule is skipped on reruns. **Both formats —
+> headered (official) and headerless (Tuva mirror) — are unit-tested.**
 
 ## What is ingested
 
@@ -41,13 +42,32 @@ columns matter:
 - **No concord in v1.** No comprehensive LOINC↔HP/EFO/UMLS equivalence source is identified; adding
   one is the main follow-up.
 
-## Testing caveat — synthetic fixture
+## Testing — synthetic fixtures for both formats
 
-Because `loinc.csv` is credential-gated, `tests/data/loinc_sample.csv` is **synthetic**: the
-documented LOINC Table Structure columns with placeholder codes (`1111-1`, …). It exercises the
-parser mechanics (by-name column lookup, the `CLASSTYPE=2` filter, id/label emission) and asserts
-**no** guarantee about real LOINC data. Validate against the real file (with credentials) before
-use.
+Two fixtures exercise the parser:
+
+- `tests/data/loinc_sample.csv` — **headered** (official `loinc.csv` format) with placeholder codes
+  (`1111-1`, …) and the documented LOINC Table Structure columns. Validates by-name column lookup,
+  the `CLASSTYPE=2` filter, dedup, and RFC-4180 comma quoting.
+- `tests/data/loinc_tuva_sample.csv` — **headerless** (Tuva mirror format) with positional columns
+  (col 0 = `LOINC_NUM`, col 2 = `LONG_COMMON_NAME`, col 11 = `CLASSTYPE`). Validates that
+  `_loinc_has_header` detects the format and `_iter_clinical_loinc` switches to positional access.
+
+Both assert **no** guarantee about real-world LOINC data — they exercise parser mechanics only.
+
+## Anonymous download (no credentials)
+
+The Tuva Project (`https://thetuvaproject.com/terminology/loinc`) mirrors the LOINC release on a
+public AWS S3 bucket:
+
+```text
+https://tuva-public-resources.s3.amazonaws.com/versioned_terminology/latest/loinc.csv_0_0_0.csv.gz
+```
+
+Downloaded as a gzip, decompressed, and renamed to `loinc.csv`, this headerless CSV contains the
+same 104,672 LOINC codes and `CLASSTYPE` values as the official release — just with a different
+(on-disk, headerless) layout. The `_loinc_has_header` helper detects this layout and switches
+`_iter_clinical_loinc` to positional column access (col 0 / 2 / 11).
 
 ## Registration in the build
 

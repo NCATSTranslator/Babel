@@ -4,13 +4,13 @@ LOINC (https://loinc.org) is a terminology of clinical observations (lab tests, 
 survey items, ...). Babel ingests the *clinical* subset as ``biolink:ClinicalFinding`` in a dedicated
 ``clinicalfinding`` pipeline.
 
-Download caveat (load-bearing): the full LOINC release (``loinc.csv``) is available only under a FREE
-LOINC account (https://loinc.org/downloads) — it cannot be fetched anonymously. The ``get_loinc`` rule
-pulls it from ``loinc_download_url`` in ``config.yaml`` (an authenticated URL the operator supplies);
-absent that, place ``loinc.csv`` at ``babel_downloads/LOINC/loinc.csv`` manually. Consequently this
-module is unit-tested against an *illustrative* fixture built from the documented LOINC Table Structure
-and public LOINC codes — NOT a verbatim download extract — and must be validated against the real file
-(with credentials) on a build machine before relying on it.
+Download: LOINC's official full release (``loinc.csv``) requires a free account at
+https://loinc.org/downloads and cannot be fetched anonymously. When ``loinc_download_url`` is empty
+(the default), the ``get_loinc`` rule falls back to the Tuva Project's public S3 mirror, which
+re-distributes the LOINC release (same 104k+ codes, same CLASSTYPE semantics) as a headerless CSV —
+no credentials required. That headerless format is handled by ``_loinc_has_header`` / the positional
+branch of ``_iter_clinical_loinc``. When ``loinc_download_url`` is set, the official headered
+loinc.csv is downloaded instead. The unit tests cover both formats.
 
 Design notes:
 
@@ -40,6 +40,25 @@ _LONG_NAME_COLUMN = "LONG_COMMON_NAME"
 # CLASSTYPE primary-key value for the Clinical class (the only class v1 ingests).
 _CLINICAL_CLASSTYPE = "2"
 
+# Tuva mirror CSV column indices (headerless, same LOINC data, positional layout). See
+# _loinc_has_header / _iter_clinical_loinc: the anonymous Tuva fallback ships a headerless file.
+_TUVA_LOINC_NUM_INDEX = 0
+_TUVA_LONG_NAME_INDEX = 2
+_TUVA_CLASSTYPE_INDEX = 11
+
+
+def _loinc_has_header(loinc_csv):
+    """Detect whether ``loinc_csv`` carries a header row.
+
+    The official LOINC release uses the documented column names (``LOINC_NUM``, ``CLASSTYPE``,
+    ``LONG_COMMON_NAME``) and is read by name. The Tuva Project mirror — the anonymous fallback
+    used when no credential-gated ``loinc_download_url`` is configured — ships a headerless CSV
+    with positional columns: same data, different layout.
+    """
+    with open(loinc_csv, newline="", encoding="utf-8-sig") as inf:
+        first_row = next(csv.reader(inf), [])
+    return bool(first_row) and "LOINC_NUM" in first_row
+
 
 def _iter_clinical_loinc(loinc_csv):
     """Yield ``(loinc_num, long_common_name)`` for each Clinical-class (``CLASSTYPE=2``) LOINC row.
@@ -47,24 +66,42 @@ def _iter_clinical_loinc(loinc_csv):
     Opens with ``utf-8-sig`` so a UTF-8 BOM (which would otherwise corrupt the first header name,
     ``LOINC_NUM``, and silently skip every row) is stripped; it is identical to ``utf-8`` when no BOM is
     present.
+
+    Handles two on-disk formats:
+    - **Official ``loinc.csv``** (header present): read by column name, robust to reordering.
+    - **Tuva mirror** (headerless): read by fixed column index (0=LOINC_NUM, 2=LONG_COMMON_NAME,
+      11=CLASSTYPE).
     """
-    with open(loinc_csv, newline="", encoding="utf-8-sig") as inf:
-        reader = csv.DictReader(inf)
-        for row in reader:
-            if (row.get(_CLASSTYPE_COLUMN) or "").strip() != _CLINICAL_CLASSTYPE:
-                continue
-            loinc_num = (row.get(_LOINC_NUM_COLUMN) or "").strip()
-            if not loinc_num:
-                continue
-            yield loinc_num, (row.get(_LONG_NAME_COLUMN) or "").strip()
+    if _loinc_has_header(loinc_csv):
+        with open(loinc_csv, newline="", encoding="utf-8-sig") as inf:
+            reader = csv.DictReader(inf)
+            for row in reader:
+                if (row.get(_CLASSTYPE_COLUMN) or "").strip() != _CLINICAL_CLASSTYPE:
+                    continue
+                loinc_num = (row.get(_LOINC_NUM_COLUMN) or "").strip()
+                if not loinc_num:
+                    continue
+                yield loinc_num, (row.get(_LONG_NAME_COLUMN) or "").strip()
+    else:
+        with open(loinc_csv, newline="", encoding="utf-8-sig") as inf:
+            reader = csv.reader(inf)
+            for row in reader:
+                if len(row) <= _TUVA_CLASSTYPE_INDEX:
+                    continue
+                if row[_TUVA_CLASSTYPE_INDEX].strip() != _CLINICAL_CLASSTYPE:
+                    continue
+                loinc_num = row[_TUVA_LOINC_NUM_INDEX].strip()
+                if not loinc_num:
+                    continue
+                yield loinc_num, row[_TUVA_LONG_NAME_INDEX].strip()
 
 
 def write_loinc_ids(loinc_csv, outfile):
     """Write Clinical-class LOINC identifiers as a Babel ids file typed ``biolink:ClinicalFinding``.
 
-    Raises ``RuntimeError`` if no Clinical-class rows are parsed: because the download is
-    credential-gated, a failed download (e.g. an expired credential returning an HTML login page that wget
-    saves as ``loinc.csv``) would otherwise produce a silent empty compendium.
+    Raises ``RuntimeError`` if no Clinical-class rows are parsed: the default anonymous download
+    (the Tuva mirror's ``loinc.csv_0_0_0.csv.gz``) can still fail — e.g. a network error leaving a stale
+    or truncated file — and a silent empty compendium is worse than a loud failure.
     """
     ensure_parent_dir(outfile)
     wrote = set()

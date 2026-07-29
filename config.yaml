@@ -167,11 +167,17 @@ clinicalfinding_labels:  [LOINC]
 clinicalfinding_ids:     [LOINC]
 clinicalfinding_outputs: [ClinicalFinding.txt]
 
-# LOINC requires a free account (https://loinc.org/downloads) and cannot be downloaded anonymously.
-# Set this to the directory-prefix URL serving loinc.csv (an authenticated URL; it MUST end with "/",
-# since the filename is appended directly), OR place loinc.csv manually at babel_downloads/LOINC/loinc.csv
-# (the get_loinc rule is then skipped). Empty by default.
+# LOINC's official full release (loinc.csv) requires a free account at https://loinc.org/downloads
+# and cannot be downloaded anonymously. When loinc_download_url is empty (the default), the get_loinc
+# rule falls back to the Tuva Project's public S3 mirror, which re-distributes the LOINC release (same
+# 104k+ codes, same CLASSTYPE semantics) as a headerless CSV with no credentials required. Set this to
+# an authenticated directory-prefix URL serving loinc.csv (it MUST end with "/", since the filename is
+# appended directly) to use the official release instead, OR place loinc.csv manually at
+# babel_downloads/LOINC/loinc.csv (the get_loinc rule is then skipped on reruns).
 loinc_download_url: ""
+# Anonymous fallback URL for LOINC when loinc_download_url is empty (Tuva Project public S3 mirror).
+# Documented here for reference; the get_loinc rule hard-codes it so operators don't need to set it.
+loinc_anonymous_url: "https://tuva-public-resources.s3.amazonaws.com/versioned_terminology/latest/loinc.csv_0_0_0.csv.gz"
 
 process_labels:   [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
 process_ids:      [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
