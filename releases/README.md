@@ -6,6 +6,7 @@
 
 ## Translator-specific releases
 
+- [2026jul22](2026jul22.md)
 - [2025sep1](2025sep1.md)
 - [Babel 1.11](v1.11.md)
 - [2025mar31](2025mar31.md)
@@ -15,3 +16,25 @@
 - [Translator "Fugu" July 2024](TranslatorFuguJuly2024.md)
 - [May 2024](TranslatorMay2024.md)
 - [December 2023](TranslatorDecember2023.md)
+
+## Preparing a release note
+
+[`releases.yaml`](releases.yaml) records which Babel build shipped with which NodeNorm and NameRes
+versions. It is the input to [`scripts/draft_release_notes.py`](scripts/draft_release_notes.py),
+which drafts the mechanical parts of a new note -- the pull request list across all three
+repositories, the upstream version bumps, and the per-compendium count table:
+
+```bash
+uv run python releases/scripts/draft_release_notes.py 2026jul22 \
+    --build-dir /path/to/a/copy/of/the/build > releases/2026jul22.md
+```
+
+Add the new release to `releases.yaml` first; the entry below it supplies the comparison baselines,
+so the pull request ranges are derived rather than remembered. Then triage: every PR comes out as an
+unchecked checklist item, to be promoted into Bugfixes / Updates / New features or deleted.
+
+The remaining steps -- archiving the prefix report and CURIE summary, bumping `release_name` and
+`previous_release` in `config.yaml`, adding the index line above, and setting the previous note's
+`Next release:` link -- are listed in
+[`docs/RunningBabel.md`](../docs/RunningBabel.md#archiving-the-prefix-report-for-the-next-comparison).
+Claude Code users can run `/release-notes`, which walks the whole process.
