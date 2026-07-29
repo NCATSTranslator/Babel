@@ -1,10 +1,17 @@
 [package]
 name = "babel-pipeline"
-version = "1.17.0"   # valid SemVer (3 parts); published version is "1.17" from root pyproject
+# Not the distribution version: maturin takes that from the root pyproject.toml (the built wheel is
+# babel_pipeline-<pyproject version>-cp311-abi3-*.whl), and nothing publishes this crate to
+# crates.io. Kept at 0.0.0 so there is no second version number to remember to bump.
+version = "0.0.0"
 edition = "2021"
+# The floor pyo3 0.23 itself requires. Declared so a too-old cargo fails with a clear MSRV message
+# rather than a syntax error from somewhere inside a dependency. Note this binds rustup-managed
+# toolchains only -- see docs/Rust.md on why the Dockerfile installs rustup rather than apt cargo.
+rust-version = "1.63"
 
 [lib]
-name = "rs"                   # matches the #[pymodule] fn + module-name's last component
+name = "_accel"               # matches the #[pymodule] fn + module-name's last component
 crate-type = ["cdylib"]
 
 [dependencies]

@@ -1,0 +1,5 @@
+# Pin the channel, not an exact version: nothing here publishes a wheel, so the value of pinning is
+# that everyone's cargo comes from the same place rather than from whatever a distro packages.
+# The hard floor is `rust-version` in rust/Cargo.toml.
+[toolchain]
+channel = "stable"

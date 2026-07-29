@@ -1,13 +1,36 @@
-//! Placeholder native extension for babel-pipeline.
+//! Native accelerators for babel-pipeline, importable as `from src import _accel`.
 //!
-//! The build backend is maturin; this empty module exists only so the project builds as a
-//! mixed Rust/Python package. Real functionality will land in a follow-up PR.
+//! Every function here must have a byte-identical Python implementation that stays in the tree as
+//! the reference, and a test asserting the two agree (see `src/accel.py` and docs/Rust.md). Rust is
+//! an optimisation, never the only way to produce a given output: `src/accel.py` falls back to the
+//! Python implementation when this extension is missing, because every snakefile imports `src.*` at
+//! DAG-parse time and a hard import failure would take down all 245 rules for anyone without a
+//! Rust toolchain.
+//!
+//! **The FFI boundary is coarse, and that is a rule, not a preference.** A `#[pyfunction]` here
+//! takes a file path and returns the whole parsed result; it never takes one row. Crossing pyo3
+//! once per CURIE costs more than the Python it would replace, so a per-row entry point would be
+//! slower while looking like an optimisation. Functions open their own files so there is no entry
+//! point that *could* accept a row.
+//!
+//! Real accelerators land once the Python `read_concord_file` they mirror is on main; this module
+//! currently exports only the ABI version that guards against a stale build.
 
 use pyo3::prelude::*;
 
-/// Empty pyo3 module, importable as `from src import rs`. Name must match the last component
-/// of `[tool.maturin] module-name` ("src.rs" → `rs`).
+/// Bumped by hand whenever a function's signature or semantics change, in the same commit.
+///
+/// `src/accel.py` compares this against its own `_REQUIRED_ABI_VERSION` at import time and raises
+/// if they disagree. That matters because the extension is installed editable: the compiled
+/// artifact sits in the checkout at `src/_accel.*.so` and a `git pull` does not rebuild it, so
+/// without this check a stale binary would be used silently for a 12-hour rule.
+///
+// ponytail: a hand-bumped integer. Move to a build-time hash of this crate's sources if anyone
+// forgets to bump it twice.
+const ABI_VERSION: u32 = 1;
+
 #[pymodule]
-fn rs(_m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _accel(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add("ABI_VERSION", ABI_VERSION)?;
     Ok(())
 }
