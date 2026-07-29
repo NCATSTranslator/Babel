@@ -175,3 +175,73 @@ def test_provenance_block_hedges_an_approximate_babel_version():
     manifest = drn.load_manifest(get_repo_root() / "releases" / "releases.yaml")
     entry, _ = drn.find_release(manifest, "TranslatorGuppyAugust2024")
     assert "approx [Babel v1.8.0]" in "\n".join(drn.provenance_block(entry, None))
+
+
+# STATUS ENDPOINTS
+
+# Trimmed from the real responses, so the shapes are the ones actually served:
+#   https://nodenormalization-exp.apps.renci.org/status
+#   https://name-resolution-sri.renci.org/status
+NODENORM_STATUS = {
+    "status": "running",
+    "version": "2.5.1",
+    "babel_version": "2026jul22",
+    "databases": {
+        "eq_id_to_id_db": {"dbname": "id-id", "count": 605837726, "used_memory_rss_human": "53.78G"},
+        "chemical_drug_db": {"dbname": "chemical-drug-db", "count": 104863, "used_memory_rss_human": "210.54M"},
+        "id_to_eqids_db": {"dbname": "id-eq-id", "count": 398664426, "used_memory_rss_human": "94.61G"},
+    },
+}
+NAMERES_STATUS = {
+    "status": "ok",
+    "babel_version": "2025sep1",
+    "nameres_version": "v1.5.2",
+    "solr": {"numDocs": 425583002, "maxDoc": 425586610, "size": "142.17 GB"},
+}
+
+
+@pytest.mark.unit
+def test_summary_table_uses_the_published_row_order_not_the_json_order():
+    """NodeNorm returns its databases in whatever order it likes; the note's order is fixed."""
+    rows = [line for line in drn.summary_table(NODENORM_STATUS, NAMERES_STATUS) if line.startswith("| ")]
+    ids = [row.split("|")[2].strip() for row in rows[1:]]
+    assert ids == ["eq_id_to_id_db", "id_to_eqids_db", "chemical_drug_db", "name_lookup"]
+    assert "605,837,726" in rows[1] and "53.78G" in rows[1]
+    # The Solr row comes from NameRes, not NodeNorm.
+    assert "425,583,002" in rows[-1] and "142.17 GB" in rows[-1]
+
+
+@pytest.mark.unit
+def test_summary_table_keeps_a_database_it_has_never_seen():
+    """A new Redis database must be appended, not silently dropped for being unrecognised."""
+    status = {"databases": dict(NODENORM_STATUS["databases"])}
+    status["databases"]["brand_new_db"] = {"dbname": "new-thing", "count": 7, "used_memory_rss_human": "1M"}
+    rows = [line for line in drn.summary_table(status, None) if line.startswith("| ")]
+    assert rows[-2].split("|")[2].strip() == "brand_new_db"
+
+
+@pytest.mark.unit
+def test_summary_table_falls_back_to_a_blank_skeleton_when_nodenorm_is_unreachable():
+    rows = [line for line in drn.summary_table(None, None) if line.startswith("| ")]
+    ids = [row.split("|")[2].strip() for row in rows[1:]]
+    assert ids == drn.SUMMARY_DB_ORDER + ["name_lookup"]
+    assert all(row.split("|")[3].strip() == "" for row in rows[1:])
+
+
+@pytest.mark.unit
+def test_deployed_version_check_warns_only_on_a_mismatch():
+    """NameRes was still serving 2025sep1 when 2026jul22's note was written; copying its Solr
+    numbers in unremarked would have described the previous release."""
+    assert drn.check_deployed_version(NODENORM_STATUS, "NodeNorm", "2026jul22") == []
+    warning = drn.check_deployed_version(NAMERES_STATUS, "NameRes", "2026jul22")
+    assert len(warning) == 1
+    assert "serving Babel 2025sep1, not 2026jul22" in warning[0]
+    # An unreachable service is not a mismatch; the blank table already says the numbers are missing.
+    assert drn.check_deployed_version(None, "NameRes", "2026jul22") == []
+
+
+@pytest.mark.unit
+def test_fetch_status_returns_none_instead_of_raising(capsys):
+    """A note is worth drafting when the services are down or not yet deployed."""
+    assert drn.fetch_status("http://127.0.0.1:1/status") is None
+    assert "warning: could not read" in capsys.readouterr().err

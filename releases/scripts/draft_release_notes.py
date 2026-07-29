@@ -26,6 +26,8 @@ import json
 import re
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -77,18 +79,25 @@ _MERGE_RE = re.compile(r"^Merge pull request #(?P<number>\d+) from ")
 # The `## Notable changes` section of the build's own prefix_comparison.md, up to the next heading.
 _NOTABLE_RE = re.compile(r"^## Notable changes\s*\n(.*?)(?=^## |\Z)", re.M | re.S)
 
-# Rows of the `## Summary` table. The numbers come from the deployed Redis and Solr instances, which
-# this script cannot reach, so it emits the skeleton and leaves the cells blank.
-SUMMARY_DB_ROWS = [
-    ("id-id", "eq_id_to_id_db"),
-    ("id-eq-id", "id_to_eqids_db"),
-    ("id-categories", "id_to_type_db"),
-    ("semantic-count", "curie_to_bl_type_db"),
-    ("info-content", "info_content_db"),
-    ("conflation-db", "gene_protein_db"),
-    ("chemical-drug-db", "chemical_drug_db"),
-    ("Solr", "name_lookup"),
+# The `## Summary` table's Redis rows, in the order the published notes have always used. NodeNorm's
+# /status names every database it has, so this list only fixes the ordering of the ones we know --
+# any database not listed here is appended rather than dropped.
+SUMMARY_DB_ORDER = [
+    "eq_id_to_id_db",
+    "id_to_eqids_db",
+    "id_to_type_db",
+    "curie_to_bl_type_db",
+    "info_content_db",
+    "gene_protein_db",
+    "chemical_drug_db",
 ]
+
+# Deployed instances whose /status endpoints report the numbers for the `## Summary` table. These are
+# the RENCI development deployments -- the ones a release is tested against before it goes to ITRB
+# (see docs/Deployment.md). Override per run when a release is staged somewhere else.
+NODENORM_STATUS_URL = "https://nodenormalization-exp.apps.renci.org/status"
+NAMERES_STATUS_URL = "https://name-resolution-sri.renci.org/status"
+STATUS_TIMEOUT_SECONDS = 30
 
 
 @dataclass(frozen=True)
@@ -218,6 +227,89 @@ def notable_changes(build_dir: Path) -> str | None:
     return match.group(1).strip() if match else None
 
 
+def fetch_status(url: str) -> dict | None:
+    """GET a NodeNorm or NameRes ``/status`` document, or None if it can't be reached.
+
+    A release note is worth drafting even when the services are down or not yet deployed, so a
+    failure here degrades to the blank table skeleton rather than aborting.
+    """
+    try:
+        with urllib.request.urlopen(url, timeout=STATUS_TIMEOUT_SECONDS) as response:
+            return json.loads(response.read())
+    except (urllib.error.URLError, TimeoutError, ValueError) as error:
+        print(f"warning: could not read {url}: {error}", file=sys.stderr)
+        return None
+
+
+def check_deployed_version(status: dict | None, service: str, release_id: str) -> list[str]:
+    """Warn if a service is not actually serving the release being drafted.
+
+    Worth checking rather than assuming: at the time 2026jul22 was written, NodeNorm had been
+    updated but NameRes was still answering from 2025sep1, so its Solr numbers described the
+    *previous* release. Silently copying them into the table would have been wrong and invisible.
+    """
+    if not status:
+        return []
+    deployed = status.get("babel_version")
+    if deployed and deployed != release_id:
+        return [
+            f"<!-- WARNING: {service} at this URL is serving Babel {deployed}, not {release_id}. "
+            f"Its numbers below describe {deployed}; re-run once {release_id} is deployed. -->"
+        ]
+    return []
+
+
+def summary_table(nodenorm: dict | None, nameres: dict | None) -> list[str]:
+    """The `## Summary` table of deployed database sizes, from the two services' /status endpoints."""
+    rows: list[tuple[str, str, str, str]] = []
+
+    databases = (nodenorm or {}).get("databases") or {}
+    ordered = [key for key in SUMMARY_DB_ORDER if key in databases]
+    ordered += [key for key in databases if key not in SUMMARY_DB_ORDER]
+    for key in ordered:
+        entry = databases[key]
+        rows.append(
+            (
+                str(entry.get("dbname", "")),
+                key,
+                f"{entry['count']:,}" if isinstance(entry.get("count"), int) else "",
+                str(entry.get("used_memory_rss_human", "")),
+            )
+        )
+
+    solr = (nameres or {}).get("solr") or {}
+    num_docs = solr.get("numDocs")
+    rows.append(
+        ("Solr", "name_lookup", f"{num_docs:,}" if isinstance(num_docs, int) else "", str(solr.get("size", "")))
+    )
+
+    if not databases:
+        # No NodeNorm data: emit the known row skeleton so the numbers can be filled in by hand.
+        rows = [(name, key, "", "") for name, key in zip(_SKELETON_NAMES, SUMMARY_DB_ORDER)] + rows[-1:]
+
+    header = ("Database name", "Database ID", "Number of keys", "Memory used")
+    widths = [max(len(header[i]), *(len(r[i]) for r in rows)) for i in range(4)]
+    lines = [
+        "| " + " | ".join(h.ljust(w) for h, w in zip(header, widths)) + " |",
+        "|" + "|".join("-" * (w + 2) for w in widths) + "|",
+    ]
+    lines += ["| " + " | ".join(c.ljust(w) for c, w in zip(row, widths)) + " |" for row in rows]
+    return lines
+
+
+# Display names for the Redis databases, used only when NodeNorm is unreachable and the table has to
+# be emitted blank; when it responds, /status supplies the real `dbname` for each.
+_SKELETON_NAMES = [
+    "id-id",
+    "id-eq-id",
+    "id-categories",
+    "semantic-count",
+    "info-content",
+    "conflation-db",
+    "chemical-drug-db",
+]
+
+
 def _format_count(value: str) -> str:
     return f"{int(value):,}"
 
@@ -343,8 +435,17 @@ def pull_request_sections(prs_by_repo: dict[str, list[PullRequest]]) -> list[str
     return lines
 
 
-def draft(entry: dict, previous: dict | None, build_dir: Path | None, repo_root: Path) -> str:
+def draft(
+    entry: dict,
+    previous: dict | None,
+    build_dir: Path | None,
+    repo_root: Path,
+    nodenorm_url: str | None = None,
+    nameres_url: str | None = None,
+) -> str:
     release_id = entry["id"]
+    nodenorm = fetch_status(nodenorm_url) if nodenorm_url else None
+    nameres = fetch_status(nameres_url) if nameres_url else None
     lines = [f"# {entry['title']}", ""]
     lines += provenance_block(entry, previous)
 
@@ -384,16 +485,14 @@ def draft(entry: dict, previous: dict | None, build_dir: Path | None, repo_root:
 
     lines += ["", *pull_request_sections(prs_by_repo)]
 
-    lines += [
-        "",
-        "## Summary",
-        "",
-        "<!-- TODO: fill in from the deployed Redis and Solr instances. -->",
-        "",
-        "| Database name    | Database ID         | Number of keys | Memory used |",
-        "|------------------|---------------------|----------------|-------------|",
-    ]
-    lines += [f"| {name:<16} | {db:<19} |                |             |" for name, db in SUMMARY_DB_ROWS]
+    lines += ["", "## Summary", ""]
+    if nodenorm or nameres:
+        lines += [f"Sizes of the deployed databases, read from `{nodenorm_url}` and `{nameres_url}`.", ""]
+        lines += check_deployed_version(nodenorm, "NodeNorm", release_id)
+        lines += check_deployed_version(nameres, "NameRes", release_id)
+    else:
+        lines += ["<!-- TODO: fill in from the deployed Redis and Solr instances. -->", ""]
+    lines += summary_table(nodenorm, nameres)
 
     lines += ["", "## Summary of changes", ""]
     lines += [table] if table else ["_TODO: no `prefix_comparison_overall.csv` found in the build directory._"]
@@ -429,6 +528,21 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Path to releases.yaml (default: releases/releases.yaml in the repo root).",
     )
+    parser.add_argument(
+        "--nodenorm-status",
+        default=NODENORM_STATUS_URL,
+        help=f"NodeNorm /status URL supplying the Summary table's Redis rows (default: {NODENORM_STATUS_URL}).",
+    )
+    parser.add_argument(
+        "--nameres-status",
+        default=NAMERES_STATUS_URL,
+        help=f"NameRes /status URL supplying the Summary table's Solr row (default: {NAMERES_STATUS_URL}).",
+    )
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="Skip the /status lookups and emit the Summary table blank. The GitHub queries still run.",
+    )
     args = parser.parse_args(argv)
 
     repo_root = REPO_ROOT
@@ -437,7 +551,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.build_dir and not args.build_dir.is_dir():
         parser.error(f"--build-dir {args.build_dir} is not a directory")
 
-    print(draft(entry, previous, args.build_dir, repo_root), end="")
+    print(
+        draft(
+            entry,
+            previous,
+            args.build_dir,
+            repo_root,
+            nodenorm_url=None if args.offline else args.nodenorm_status,
+            nameres_url=None if args.offline else args.nameres_status,
+        ),
+        end="",
+    )
     return 0
 
 

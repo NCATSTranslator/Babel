@@ -385,11 +385,12 @@ rule untyped_chemical_compendia:
     benchmark:
         config["output_directory"] + "/benchmarks/untyped_chemical_compendia.tsv"
     resources:
-        # Peaked at 132.0 GB on babel-1.17 and 132.1 GB on 2026jul22 -- unusually stable, so 512G was
-        # reserving ~4x what it uses and only one could run per 1.5 TB largemem node. 192G fits three.
-        # (160G would fit a 191 GB batch node and take it off largemem entirely, but leaves only ~21%
-        # headroom on a compendium that grows; revisit if largemem contention becomes the bottleneck.)
-        mem="192G",
+        # Peaked at 132.0 GB on babel-1.17 and 132.1 GB on 2026jul22 -- stable to within 0.1%, so the
+        # old 512G was reserving ~4x what it uses and forced the job onto a largemem node. 160G fits
+        # a 191 GB batch partition node (see slurm/config.yaml), taking it off largemem entirely,
+        # with ~21% headroom. If chemical growth pushes the peak past ~145 GB, go back to 192G and
+        # accept largemem rather than shaving the headroom further.
+        mem="160G",
     run:
         chemicals.build_untyped_compendia(
             input.concords,
