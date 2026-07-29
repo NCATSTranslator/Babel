@@ -60,6 +60,31 @@ so it flows through the DuckDB, Parquet, and KGX exports, and `reports/transcrip
 top-level `all_outputs` rule. Config: `transcript_ids`, `transcript_concords`, `transcript_outputs`
 in `config.yaml`.
 
+## Source-impact report
+
+Generated (synthetic mode) and committed at [`impact-report.md`](impact-report.md). Transcript is a
+new, isolated pipeline, so there is no published baseline: the "before" state is empty and section 4
+reports every transcript clique as pure-new. The per-clique detail CSVs are skipped
+(`--no-detail-files`): at ~15.8M cliques they would be multi-GB and are impractical to commit
+(regenerate with `uv run source-impact-report --source ENSEMBL` if needed).
+
+Summary:
+
+- **15,803,119 Ensembl transcript identifiers** added (all `biolink:Transcript`) -> **15,803,119 new
+  cliques** (mostly singletons + versioned<->unversioned ENST pairs).
+- **10,117,291 new cross-references** (versioned<->unversioned Ensembl transcript `eq` equivalences
+  from `gene2ensembl.gz`, the issue #72 pattern).
+- **0 merges** (transcript-internal concords only; no transcript<->gene/protein edges -- see Design
+  constraints).
+- `ENSEMBL` is registered for `biolink:Transcript` in the pinned Biolink Model, so no
+  `extra_prefixes` escape hatch is needed and no "NOT emitted" flag appears.
+
+Regenerate after a typing or extraction change:
+
+```bash
+uv run source-impact-report --source ENSEMBL
+```
+
 ## Related
 
 - `src/createcompendia/transcript.py` — `write_transcript_ids`,

@@ -24,6 +24,8 @@ from collections.abc import Callable, Iterator
 
 import src.createcompendia.anatomy as anatomy
 import src.createcompendia.diseasephenotype as diseasephenotype
+import src.createcompendia.sequencevariant as sequencevariant
+import src.createcompendia.transcript as transcript
 from src.categories import (
     ANATOMICAL_ENTITY,
     CELL,
@@ -31,6 +33,8 @@ from src.categories import (
     DISEASE,
     GROSS_ANATOMICAL_STRUCTURE,
     PHENOTYPIC_FEATURE,
+    SEQUENCE_VARIANT,
+    TRANSCRIPT,
 )
 from src.model.compendium_diff import load_compendium
 from src.model.glom_diff import (
@@ -88,6 +92,10 @@ _ANATOMY_BIOLINK_TYPES = [ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANA
 # names (``Disease.txt``, ``PhenotypicFeature.txt``) are derived from these so they can't drift,
 # and the same test pins them to config.yaml's ``disease_outputs``.
 _DISEASE_BIOLINK_TYPES = [DISEASE, PHENOTYPIC_FEATURE]
+# The biolink type transcript cliques carry (the single ``Transcript.txt`` compendium).
+_TRANSCRIPT_BIOLINK_TYPES = [TRANSCRIPT]
+# The biolink type SequenceVariant cliques carry (the single ``SequenceVariant.txt`` compendium).
+_SEQUENCE_VARIANT_BIOLINK_TYPES = [SEQUENCE_VARIANT]
 
 PIPELINE_CONFIG: dict[str, dict] = {
     "anatomy": {
@@ -103,6 +111,20 @@ PIPELINE_CONFIG: dict[str, dict] = {
         "compendium_prefixes": get_config()["disease_labelsandsynonyms"],
         "clique_classifier": diseasephenotype.classify_disease_clique,
         "biolink_types": _DISEASE_BIOLINK_TYPES,
+    },
+    "transcript": {
+        "compute_fn": transcript.compute_cliques_for_impact_report,
+        "compendium_files": [f"{bt.split(':')[-1]}.txt" for bt in _TRANSCRIPT_BIOLINK_TYPES],
+        "compendium_prefixes": get_config()["transcript_ids"],
+        "clique_classifier": transcript.classify_transcript_clique,
+        "biolink_types": _TRANSCRIPT_BIOLINK_TYPES,
+    },
+    "sequencevariant": {
+        "compute_fn": sequencevariant.compute_cliques_for_impact_report,
+        "compendium_files": [f"{bt.split(':')[-1]}.txt" for bt in _SEQUENCE_VARIANT_BIOLINK_TYPES],
+        "compendium_prefixes": get_config()["sequencevariant_labels"],
+        "clique_classifier": sequencevariant.classify_sequencevariant_clique,
+        "biolink_types": _SEQUENCE_VARIANT_BIOLINK_TYPES,
     },
 }
 

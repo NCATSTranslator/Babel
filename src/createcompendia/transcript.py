@@ -159,3 +159,17 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
     transcript_sets = set(frozenset(clique) for clique in dicts.values())
     baretype = TRANSCRIPT.split(":")[-1]  # "Transcript"
     write_compendium(metadata_yamls, transcript_sets, f"{baretype}.txt", TRANSCRIPT, {}, icrdf_filename=icrdf_filename)
+
+
+def classify_transcript_clique(equivalent_ids, types):
+    """Pick a biolink type for one transcript clique.
+
+    Every transcript identifier is declared ``biolink:Transcript`` (the single ``Transcript.txt``
+    compendium), so return that if any member of the clique carries a declared type, else ``None``
+    (the clique cannot be typed and is dropped). Used by ``create_typed_sets`` and the source-impact
+    report's ``clique_classifier`` hook so both label cliques identically.
+    """
+    for eid in equivalent_ids:
+        if eid in types:
+            return TRANSCRIPT
+    return None

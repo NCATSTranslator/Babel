@@ -65,6 +65,30 @@ HGVS labels, the `_rs_curies` comma/`rs`-prefix handling, and the empty-download
 - Source-impact report / clique diff deferred (per maintainer); `compute_cliques_for_impact_report`
   is staged but not yet registered in `PIPELINE_CONFIG`.
 
+## Source-impact report
+
+Generated (synthetic mode) and committed at [`impact-report.md`](impact-report.md). SequenceVariant
+is a new, dedicated pipeline, so there is no published baseline: the "before" state is empty and
+section 4 reports every variant clique as pure-new. The per-clique detail CSVs are skipped
+(`--no-detail-files`): at ~4.3M cliques they are impractically large to commit (regenerate with
+`uv run source-impact-report --source CLINVAR` if needed).
+
+Summary:
+
+- **4,548,781 ClinVar identifiers** added (all `biolink:SequenceVariant`) ->
+  **4,297,854 new cliques** (some variants share a clique via their dbSNP rs id).
+- **2,896,403 new cross-references** (CLINVAR<->DBSNP `eq` equivalences from the `RS# (dbSNP)`
+  column).
+- **0 merges** with existing cliques (new pipeline; no prior state).
+- `CLINVAR` is registered for `biolink:SequenceVariant` in the pinned Biolink Model, so no
+  `extra_prefixes` escape hatch is needed and no "NOT emitted" flag appears.
+
+Regenerate after a typing or extraction change:
+
+```bash
+uv run source-impact-report --source CLINVAR
+```
+
 ## Related
 
 - `src/datahandlers/clinvar.py` — `write_clinvar_ids`, `write_clinvar_labels`,
