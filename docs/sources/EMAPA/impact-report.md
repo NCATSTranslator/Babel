@@ -71,10 +71,11 @@ change the source could introduce before that filtering is applied.
   several identifiers.
 - Total cliques in this pipeline go from 175,117 to 178,870
 - Full list of new cliques: [`impact-report/new-cliques.csv`](impact-report/new-cliques.csv)
-- The per-row modified-clique and new-xref records (`modified-cliques.csv`, 4,325 rows;
-  `new-xrefs.tsv`, 4,337 rows) are not committed — together they are ~1.7 MB of detail that is
-  only useful while reviewing this addition. Regenerate them, and this report, with
-  `uv run source-impact-report --source EMAPA`.
+- Full list of new / activated cross-references:
+  [`impact-report/new-xrefs.tsv`](impact-report/new-xrefs.tsv)
+- The per-row modified-clique records (`modified-cliques.csv`, 4,325 rows) are the one detail file
+  not committed here — 1.2 MB that is only useful while reviewing this addition. Regenerate it,
+  and this report, with `uv run source-impact-report --source EMAPA`.
 
 #### Sample pure-new cliques (up to 3)
 
