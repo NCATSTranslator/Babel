@@ -62,7 +62,8 @@ rule generate_pubmed_concords:
     benchmark:
         config["output_directory"] + "/benchmarks/generate_pubmed_concords.tsv"
     resources:
-        runtime="24h",
+        # 2026jul22 took 20.0h of the 24h limit -- 83%, close enough that one slow run is a timeout.
+        runtime="36h",
         mem="128G",
     params:
         # Not inputs: see the comment on download_pubmed for why these directories are untracked.
@@ -97,7 +98,10 @@ rule generate_pubmed_compendia:
     benchmark:
         config["output_directory"] + "/benchmarks/generate_pubmed_compendia.tsv"
     resources:
-        mem="128G",
+        # 2026jul22 peaked at 123.4G of 128G (96%) and ran 1.8h against the 2h cluster default --
+        # tight on both axes, and Publication grows every release.
+        mem="192G",
+        runtime="4h",
     run:
         publications.generate_compendium(
             [input.pmid_doi_concord_file],

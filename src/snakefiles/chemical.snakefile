@@ -275,8 +275,9 @@ rule get_chemical_unichem_relationships:
     benchmark:
         config["output_directory"] + "/benchmarks/get_chemical_unichem_relationships.tsv"
     resources:
-        # Peaks at ~21 GB on babel-1.17 (see docs/tools/Resources.md); over the 16 GB default.
-        mem="24G",
+        # Peaked at ~21 GB on both babel-1.17 and 2026jul22 (see docs/tools/Resources.md), which is
+        # 87% of 24 GB -- raised a bucket so a growing UniChem doesn't OOM it.
+        mem="32G",
     run:
         chemicals.write_unichem_concords(
             input.structfile, input.reffile, config["intermediate_directory"] + "/chemicals/concords/UNICHEM"
@@ -357,7 +358,8 @@ rule chemical_unichem_concordia:
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_unichem_concordia.tsv"
     resources:
-        mem="128G",
+        # 2026jul22 peaked at 111.6G of 128G (87%); UniChem grows every release.
+        mem="192G",
     run:
         chemicals.combine_unichem(input.concords, output.unichemgroup)
 
@@ -383,7 +385,11 @@ rule untyped_chemical_compendia:
     benchmark:
         config["output_directory"] + "/benchmarks/untyped_chemical_compendia.tsv"
     resources:
-        mem="512G",
+        # Peaked at 132.0 GB on babel-1.17 and 132.1 GB on 2026jul22 -- unusually stable, so 512G was
+        # reserving ~4x what it uses and only one could run per 1.5 TB largemem node. 192G fits three.
+        # (160G would fit a 191 GB batch node and take it off largemem entirely, but leaves only ~21%
+        # headroom on a compendium that grows; revisit if largemem contention becomes the bottleneck.)
+        mem="192G",
     run:
         chemicals.build_untyped_compendia(
             input.concords,
@@ -434,6 +440,9 @@ rule check_chemical_completeness:
         report_file=config["output_directory"] + "/reports/chemical_completeness.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/check_chemical_completeness.tsv"
+    resources:
+        # 2026jul22 peaked at 13.7G against the 16G cluster default (86%), with no explicit block.
+        mem="24G",
     run:
         assessments.assess_completeness(
             config["intermediate_directory"] + "/chemicals/ids", input.input_compendia, output.report_file
@@ -539,6 +548,10 @@ rule chemical:
         x=config["output_directory"] + "/reports/chemicals_done",
     benchmark:
         config["output_directory"] + "/benchmarks/chemical.tsv"
+    resources:
+        # Gzipping every chemical synonyms file took 1.9h on 2026jul22 -- 93% of the 2h cluster
+        # default, and the closest any rule came to a timeout in that run.
+        runtime="4h",
     run:
         util.gzip_files(input.synonyms)
         util.write_done(output.x)
