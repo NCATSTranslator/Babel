@@ -4,7 +4,7 @@ import re
 import src.datahandlers.mesh as mesh
 import src.datahandlers.obo as obo
 import src.datahandlers.umls as umls
-from src.babel_utils import Text, glom, read_identifier_file, write_compendium
+from src.babel_utils import Text, glom, read_concord_file, read_identifier_file, write_compendium
 from src.categories import PROTEIN
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import DRUGBANK, ENSEMBL, MESH, NCBITAXON, NCIT, PR, UNIPROTKB
@@ -251,13 +251,8 @@ def build_protein_compendia(concordances, metadata_yamls, identifiers, icrdf_fil
     logger.info(f"Finished loading identifiers, memory usage: {get_memory_usage_summary()}")
     for infile in concordances:
         logger.info(f"Loading concordance file {infile}")
-        pairs = []
-        with open(infile) as inf:
-            for line_index, line in enumerate(inf):
-                if line_index % 1000000 == 0:
-                    logger.info(f"Loading concordance file {infile}: line {line_index:,}")
-                x = line.strip().split("\t")
-                pairs.append(set([x[0], x[2]]))
+        pairs = read_concord_file(infile)
+        logger.info(f"Read {len(pairs):,} pairs from concordance file {infile}")
         # print("glomming", infile) # This takes a while, but doesn't add much to the memory
         glom(dicts, pairs, unique_prefixes=uniques)
         logger.info(f"Loaded concordance file {infile}: {get_memory_usage_summary()}")

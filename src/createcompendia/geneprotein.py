@@ -3,7 +3,7 @@ from collections import defaultdict
 
 import jsonlines
 
-from src.babel_utils import glom
+from src.babel_utils import glom, read_concord_file
 from src.categories import GENE
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import NCBIGENE, UNIPROTKB
@@ -87,12 +87,7 @@ def build_conflation(geneprotein_concord, gene_compendium, protein_compendium, o
     collect_valid_ids(gene_compendium, all_ids)
     collect_valid_ids(protein_compendium, all_ids)
     conf = {}
-    pairs = []
-    with open(geneprotein_concord) as inf:
-        for line in inf:
-            x = line.strip().split("\t")
-            if (x[0] in all_ids) and (x[2] in all_ids):
-                pairs.append((x[0], x[2]))
+    pairs = [pair for pair in read_concord_file(geneprotein_concord) if pair[0] in all_ids and pair[1] in all_ids]
     glom(conf, pairs)
     conf_sets = set([frozenset(x) for x in conf.values()])
     with jsonlines.open(outfile, "w") as outf:

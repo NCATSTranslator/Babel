@@ -79,8 +79,8 @@ def test_concord_pair_filter_can_gate_on_clique_state(tmp_path):
     # present should drop this pair, leaving FOO:1 un-merged.
     concord = write_lines(tmp_path / "SRC.concord", ["FOO:1\teq\tNEW:1"])
 
-    def both_present(parts, infile, dicts):
-        return parts[0] in dicts and parts[2] in dicts
+    def both_present(pair, infile, dicts):
+        return all(curie in dicts for curie in pair)
 
     dicts, _ = cliques.glom_from_files([concord], [ids], unique_prefixes=[], concord_pair_filter=both_present)
     assert _clique_of(dicts, "FOO:1") == frozenset({"FOO:1"})
@@ -111,7 +111,7 @@ def test_overused_xref_remover_is_invoked(tmp_path):
 
     dicts, _ = cliques.glom_from_files([concord], [ids], unique_prefixes=[], overused_xref_remover=drop_everything)
 
-    assert seen and seen[0][1] == [["FOO:1", "BAR:1"]]
+    assert seen and seen[0][1] == [("FOO:1", "BAR:1")]
     # The remover dropped the only pair, so nothing merged with FOO:1.
     assert _clique_of(dicts, "FOO:1") == frozenset({"FOO:1"})
 

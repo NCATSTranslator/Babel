@@ -12,6 +12,7 @@ from src.babel_utils import (
     get_prefixes,
     get_user_agent,
     glom,
+    read_concord_file,
     read_identifier_file,
     remove_overused_xrefs,
     write_compendium,
@@ -581,19 +582,12 @@ def combine_unichem(concordances, output):
     for infile in concordances:
         print(infile)
         print("loading", infile)
-        pairs = []
+        pairs = read_concord_file(infile)
 
         # We will want to only remove overused xrefs for specific prefixes.
         # UniChem files should only have a single prefix in the first column,
         # but out of paranoia we'll double-check that.
-        prefixes_in_file = set()
-
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                pairs.append([x[0], x[2]])
-                # Get the prefix from the first row to determine if we need to remove overused xrefs
-                prefixes_in_file.add(Text.get_prefix(x[0]))
+        prefixes_in_file = {Text.get_prefix(subject) for subject, _ in pairs}
 
         # Was there exactly one prefix in the first column?
         if len(prefixes_in_file) == 0:
@@ -1079,31 +1073,10 @@ def build_untyped_compendia(
     for infile in concordances:
         print(infile)
         print("loading", infile)
-        pairs = []
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                pairs.append([x[0], x[2]])
-        p = False
-        if DRUGCENTRAL in [n.split(":")[0] for n in pairs[0]]:
-            p = True
-            i = "DrugCentral:4970"
-        if p:
-            print("before filtering:")
-            for pair in pairs:
-                if i in pair:
-                    print(pair)
+        pairs = read_concord_file(infile)
         newpairs = remove_overused_xrefs(pairs)
         setpairs = [set(x) for x in newpairs]
-        if p:
-            print("after filtering:")
-            for pair in newpairs:
-                if i in pair:
-                    print(pair)
         glom(dicts, setpairs, unique_prefixes=[INCHIKEY])
-        if p:
-            print("after glomming:")
-            print(dicts[i])
     with open(type_file, "w") as outf:
         for x, y in types.items():
             outf.write(f"{x}\t{y}\n")
