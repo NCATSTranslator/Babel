@@ -121,3 +121,57 @@ def test_every_release_note_is_listed_in_the_manifest():
     on_disk = {path.stem for path in releases_dir.glob("*.md")} - {"README"}
     in_manifest = {entry["id"] for entry in drn.load_manifest(releases_dir / "releases.yaml")}
     assert on_disk == in_manifest
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "message,expected",
+    [
+        # Squash merges, the normal case across all three repos.
+        ("Add MP, kept disjoint from HP (#886)", (886, "Add MP, kept disjoint from HP")),
+        # A title that itself cites an issue number must not be mistaken for the PR number.
+        ("Type DrugBank foods as biolink:Food (#828) (#918)", (918, "Type DrugBank foods as biolink:Food (#828)")),
+        # Older merge commits name the PR but carry no title.
+        ("Merge pull request #472 from TranslatorSRI/remove-redundant-ensembl-id-code", (472, None)),
+        # Direct commits with no PR reference are skipped, not guessed at.
+        ("Fixed a typo", None),
+        ("Refs #123 but not a squash merge", None),
+    ],
+)
+def test_commit_message_pr_extraction(message, expected):
+    squash = drn._SQUASH_RE.match(message)
+    merge = drn._MERGE_RE.match(message)
+    if expected is None:
+        assert squash is None and merge is None
+        return
+    number, title = expected
+    if title is None:
+        assert squash is None
+        assert int(merge.group("number")) == number
+    else:
+        assert int(squash.group("number")) == number
+        assert squash.group("title") == title
+
+
+@pytest.mark.unit
+def test_provenance_block_records_the_deployed_service_versions():
+    """The whole point of releases.yaml: a note must say which NodeNorm/NameRes shipped with it."""
+    manifest = drn.load_manifest(get_repo_root() / "releases" / "releases.yaml")
+    entry, previous = drn.find_release(manifest, "2026jul22")
+    block = "\n".join(drn.provenance_block(entry, previous))
+
+    assert "https://stars.renci.org/var/babel_outputs/2026jul22/" in block
+    assert "branch `babel-1.18.1`" in block
+    assert "Biolink Model v4.4.3" in block
+    # Both NodeNorm versions deployed against this build are listed, not just the latest.
+    assert "NodeNorm: [v2.5.0]" in block and "[v2.5.1]" in block
+    assert "NameRes: [v1.7.0]" in block
+    assert "Previous release: [Babel 2025sep1](./2025sep1.md)" in block
+
+
+@pytest.mark.unit
+def test_provenance_block_hedges_an_approximate_babel_version():
+    """The 2024 notes say "approx"; a manifest entry marked approx must not imply precision."""
+    manifest = drn.load_manifest(get_repo_root() / "releases" / "releases.yaml")
+    entry, _ = drn.find_release(manifest, "TranslatorGuppyAugust2024")
+    assert "approx [Babel v1.8.0]" in "\n".join(drn.provenance_block(entry, None))

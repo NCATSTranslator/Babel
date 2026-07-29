@@ -193,6 +193,17 @@ Most semantic-type targets are much cheaper than the full pipeline (anatomy buil
 laptop in ~25 minutes; the README's 500 GB figure is for the heaviest targets only). See
 `docs/RunningBabel.md` for a per-target sizing breakdown and common build issues.
 
+## Releasing a build
+
+A Babel release is a build *plus* the NodeNorm and NameRes versions deployed against it, and the
+combined note lives in `releases/<release>.md`. `releases/releases.yaml` records which versions
+shipped with which build — that mapping is not derivable from anywhere else, and each entry is the
+next release's comparison baseline. [`releases/README.md`](releases/README.md) is the process, and
+`releases/scripts/draft_release_notes.py` drafts the mechanical parts.
+
+A release is also the natural cadence for re-checking SLURM sizing against the run's benchmarks
+(`docs/tools/Resources.md`), and for the archive/pin steps in `docs/RunningBabel.md`.
+
 ## Adding a new data source
 
 `docs/AddingNewSources.md` is the full guide: how to wire a source (prefix, data handler, compendium

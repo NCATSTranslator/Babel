@@ -455,9 +455,17 @@ After a healthy release run, archive this build's prefix report so the *next* re
 compared against it:
 
 1. Copy `babel_outputs/reports/duckdb/prefix_report.json` to
-   `releases/prefix_reports/<release_name>.json` (using the `release_name` from `config.yaml`). The
-   file is copied verbatim — it already carries the correct `name` and schema.
+   `releases/prefix_reports/<release_name>.json` (using the `release_name` from `config.yaml`).
+   **Check the `name` field inside the copy before committing it.** It is written from
+   `release_name` at build time, so a run that started before the pin was updated stamps the
+   *previous* release's name into it — and this field is what labels the baseline in the next
+   release's comparison report, so a wrong value propagates forward. The 2026jul22 build shipped
+   with `"name": "2026jul15"` for exactly this reason.
 2. Link it from the release's `releases/<release_name>.md` notes.
 3. In the same commit, bump `previous_release` in `config.yaml` to `<release_name>` (and set
-   `release_name` to the next planned release), so the next run compares against this one.
+   `release_name` to the next planned release), so the next run compares against this one. Setting
+   both to the same value makes the next run compare against its own baseline.
 4. Commit. This copy becomes the reviewed baseline for the next release.
+
+Steps 1–3 are part of the wider release-note process in
+[`releases/README.md`](../releases/README.md), which also drafts the note itself.

@@ -179,3 +179,26 @@ def test_analyze_only_calls_a_declared_runtime_over_provisioned(tmp_path):
     rec = resources.analyze(tmp_path, snakefile_dir=snakefiles)[0]
     assert rec.runtime_limit_min == 360
     assert rec.time_classification == "over"
+
+
+def test_analyze_falls_back_to_the_snakefile_for_requested_mem(tmp_path):
+    """A reports-only snapshot often has no requested-side row; the snakefile still declares one.
+
+    Without this fallback the rule lands in `no-request-data` and its memory fit goes unchecked --
+    which is how generate_pubmed_compendia sat at 96% of its limit unnoticed.
+    """
+    bdir = tmp_path / "benchmarks"
+    bdir.mkdir()
+    # Benchmark max_rss is in MB, matching Snakemake's unit and the decimal "128G" == 128000 MB.
+    _write_benchmark(bdir / "lonely_rule.tsv", [[100.0, "0:01:40", 110_000, 0, 0, 0, 1, 1, 98.0, 90.0]])
+    (tmp_path / "logs").mkdir()
+    snakefiles = _write_snakefile(
+        tmp_path, 'rule lonely_rule:\n    resources:\n        mem="128G",\n    run:\n        x()\n'
+    )
+
+    rec = resources.analyze(tmp_path, snakefile_dir=snakefiles)[0]
+    assert rec.requested_mem_mb == 128000
+    assert rec.classification == "at-risk"  # 110,000 MB of a 128,000 MB request is 86%
+
+    # With no snakefile to fall back on, it is honestly reported as unknown rather than guessed.
+    assert resources.analyze(tmp_path)[0].classification == "no-request-data"
