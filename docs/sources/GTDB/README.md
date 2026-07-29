@@ -58,11 +58,43 @@ labeled singletons.
 flows through the taxon compendium (`OrganismTaxon.txt`) and hence the DuckDB/KGX/Parquet/report
 exports like every other taxon source.
 
+## Source-impact report
+
+Generated (synthetic mode) and committed at [`impact-report.md`](impact-report.md), with full
+detail in [`impact-report/`](impact-report/). The baseline taxon intermediates were assembled
+from the `2025dec11` published build snapshot (NCBITaxon/MESH/UMLS ids + NCBI_MESH/UMLS
+concords); GTDB's own intermediates were built locally from the bac120/ar53 metadata. The
+report's `Babel commit` header pins the exact tree.
+
+Summary:
+
+- **247,368 GTDB identifiers** added (all `biolink:OrganismTaxon`), contributing **198,259 new
+  cliques** (a 5.81% increase over the 3,410,629 pre-existing taxon cliques; mostly higher-rank
+  GTDB taxa and novel GTDB species with no NCBI mapping) and **49,109 existing NCBITaxon cliques
+  expanded** -- the species GTDB maps to an NCBI taxid join that taxon's clique. Total cliques
+  go from 3,410,629 to 3,608,888.
+- **0 merges** -- `GTDB` is a `unique_prefixes` entry, so two GTDB species sharing one NCBI taxid
+  never merge; at most one GTDB species joins a given NCBITaxon clique.
+- **297,327 new cross-references** (species-rank `GTDB`<->`NCBITaxon` `eq` edges from the
+  `ncbi_species_taxid` column).
+- **Section 4 is a worst-case (upper-bound) view:** it is computed before the Biolink per-class
+  prefix filter runs. `GTDB` is not in the `organism taxon` `id_prefixes` (`[NCBITaxon, MESH,
+  UMLS]`), so GTDB CURIEs would be flagged "NOT emitted -- prefix not registered"; that flag is
+  *exactly* why the build passes `extra_prefixes=[GTDB]` (see Design constraints). Registering
+  GTDB upstream removes both the flag and the need for `extra_prefixes`.
+
+Regenerate after a typing or extraction change:
+
+```bash
+uv run source-impact-report --source GTDB
+```
+
 ## Related
 
 - `src/datahandlers/gtdb.py` — `parse_gtdb_taxonomy`, `write_gtdb_labels`,
   `build_gtdb_relationships`.
-- `src/createcompendia/taxon.py` — `build_compendia` (`extra_prefixes=[GTDB]`, `GTDB` in
-  `unique_prefixes`).
+- `src/createcompendia/taxon.py` — `build_compendia` / `compute_cliques_for_impact_report`
+  (`extra_prefixes=[GTDB]`, `GTDB` in `unique_prefixes`), plus `classify_taxon_clique` for the
+  source-impact report.
 - `tests/datahandlers/test_gtdb.py` — offline unit tests over `tests/data/gtdb_metadata_sample.tsv`
   (verbatim, all 113 metadata columns).
