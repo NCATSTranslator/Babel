@@ -41,6 +41,36 @@ fix in a pull request:
   - You can run this locally by running `uv run rumdl check .`.
   - You can use `uv run rumdl fmt .` to automatically fix some issues.
 
+### Upgrading dependencies
+
+[Dependabot](.github/dependabot.yml) opens upgrade PRs weekly, so most upgrades arrive one package
+at a time with CI on each. To sweep everything at once:
+
+```bash
+uv tree --outdated --depth 1   # what the lockfile is behind on
+uv lock --upgrade              # take the latest release of everything
+uv sync
+PYTHONPATH=. uv run pytest     # then the four linter commands above
+```
+
+No `npm-check-updates`-style step is needed: every dependency in `pyproject.toml` is an unbounded
+`>=`, so nothing caps a package below its latest release and `uv lock --upgrade` already goes
+there. Run the formatters as well as the tests — a `ruff` or `rumdl` bump can change their output
+and fail the formatting workflow on an otherwise untouched file.
+
+When a package refuses to move, `uv lock --upgrade-package 'name==version' --dry-run` prints the
+conflict. `bmt` is held at 1.4.6 this way: 1.4.8 pulls in `biolink-model`, which requires
+`click<8.2`, while `snakefmt` requires `click>=8.2`.
+
+The `>=` floors are minimums rather than what we test, since every install path uses `uv.lock` —
+`uv sync` locally and in the `Dockerfile`, `uv sync --frozen` in CI. To check a floor is still
+honest, resolve down to it, then put the real lockfile back:
+
+```bash
+uv sync --resolution lowest-direct && PYTHONPATH=. uv run pytest -m unit
+git checkout uv.lock && uv sync
+```
+
 ### Contributing tests
 
 Tests are written using [pytest](https://pytest.org/) and are present in the
