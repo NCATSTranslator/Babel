@@ -66,6 +66,10 @@ include = ["src", "src.*"]
 # Linting/formatting configuration
 [tool.ruff]
 line-length = 120
+# Ruff 0.16 began formatting Python inside Markdown code blocks. Our snippets are illustrative
+# fragments, not runnable modules, and Ruff mangles them (it wraps a trailing-comma list element in
+# tests/pipeline/README.md into a single-element tuple). rumdl owns the Markdown files instead.
+extend-exclude = ["*.md"]
 
 [tool.ruff.lint]
 # Enable all rules that ruff format would normally apply
