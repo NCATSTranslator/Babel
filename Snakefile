@@ -1,7 +1,7 @@
 configfile: "config.yaml"
 
 
-from src.snakefiles.util import unstable_enabled, write_done
+from src.snakefiles.util import write_done
 
 
 include: "src/snakefiles/datacollect.snakefile"
@@ -19,13 +19,7 @@ include: "src/snakefiles/genefamily.snakefile"
 include: "src/snakefiles/leftover_umls.snakefile"
 include: "src/snakefiles/macromolecular_complex.snakefile"
 include: "src/snakefiles/publications.snakefile"
-
-
-if unstable_enabled(config):
-
-    include: "src/snakefiles/manual.snakefile"
-
-
+include: "src/snakefiles/manual.snakefile"
 include: "src/snakefiles/duckdb.snakefile"
 include: "src/snakefiles/reports.snakefile"
 include: "src/snakefiles/exports.snakefile"
@@ -72,9 +66,6 @@ rule all:
         write_done(output.x)
 
 
-manual_done = [config["output_directory"] + "/reports/manual_done"] if unstable_enabled(config) else []
-
-
 rule all_outputs:
     input:
         config["output_directory"] + "/reports/anatomy_done",
@@ -91,7 +82,7 @@ rule all_outputs:
         config["output_directory"] + "/reports/macromolecular_complex_done",
         config["output_directory"] + "/reports/drugchemical_done",
         config["output_directory"] + "/reports/publications_done",
-        manual_done,
+        config["output_directory"] + "/reports/manual_done",
     output:
         x=config["output_directory"] + "/reports/outputs_done",
     run:

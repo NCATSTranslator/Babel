@@ -18,9 +18,6 @@ Unlike most Babel sources, the manual compendium has:
 - no intermediate `ids/` or `concords/` files;
 - one hand-maintained input file, `input_data/manual_terms.ndjson`.
 
-It is also currently **opt-in / unstable**: the stable build excludes it unless Snakemake is run
-with `--config unstable=true`. The toggle is `config["unstable"]` in `config.yaml`.
-
 ## Source of truth
 
 `input_data/manual_terms.ndjson` contains one JSON object per line. Each object has:
@@ -88,7 +85,6 @@ the manual clique would either lose members or disappear entirely.
 
 ## Current scope and limits
 
-- The manual compendium is currently unstable/opt-in.
 - It is designed for a small number of explicit additions, not for bulk ingest.
 - It does not create normal per-source `ids/` or `concords/` intermediates.
 - It does not currently participate in source-impact-report synthetic re-glom flows the way a
@@ -99,5 +95,5 @@ the manual clique would either lose members or disappear entirely.
 - `input_data/manual_terms.ndjson` — source of truth
 - `src/createcompendia/manual.py` — parser, label/synonym writer, clique builder
 - `src/snakefiles/manual.snakefile` — Snakemake rules
-- `config.yaml` — `manual_prefixes`, `manual_outputs`, `unstable`
+- `config.yaml` — `manual_prefixes`, `manual_outputs`
 - `docs/sources/EUPATH/README.md` — current concrete example

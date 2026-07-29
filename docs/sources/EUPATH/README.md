@@ -31,10 +31,7 @@ The preferred label is written to both files; every listed alternative is writte
 
 ## How EUPATH reaches final outputs
 
-The EUPATH term is emitted only when the manual compendium is opted in with
-`--config unstable=true`.
-
-That build path produces:
+The EUPATH term is emitted as part of the normal build. That build path produces:
 
 - `babel_outputs/compendia/Manual.txt`
 - `babel_outputs/synonyms/Manual.txt`

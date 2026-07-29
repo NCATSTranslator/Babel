@@ -39,8 +39,7 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   "Phenotypic abnormality" subtree, and tagging every ingested term with the taxon
   [`NCBITaxon:9606`](http://purl.obolibrary.org/obo/NCBITaxon_9606) "Homo sapiens".
 - **MANUAL** ([MANUAL/README.md](./MANUAL/README.md)) — Babel's hand-curated NDJSON ingestion
-  path: unstable gating, per-prefix labels/synonyms materialization, and multi-CURIE manual
-  cliques.
+  path: per-prefix labels/synonyms materialization and multi-CURIE manual cliques.
 - **MESH** ([MESH/Ingestion.md](./MESH/Ingestion.md)) — how MeSH is partitioned across compendia
   by tree letter, how Supplementary Concept Records (SCRs) are typed and routed, the
   chemical/protein D-tree split, and which MeSH branches/SCR classes we deliberately skip.
