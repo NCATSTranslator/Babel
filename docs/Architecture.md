@@ -81,7 +81,7 @@ Each line of a compendium file is a JSON object representing one clique. A cliqu
 
 - `identifiers` — list of all equivalent CURIEs, in preferred-prefix order. Each entry carries its
   own label (`l`), descriptions (`d`, collected from UberGraph and sorted shortest first) and taxa
-  (`t`). There is no clique-level `descriptions` field
+  (`t`)
 - `ic` — information content score (from UberGraph)
 - `taxa` — associated taxa (for genes, proteins, etc.); the union of the per-identifier `t` values
 - `preferred_name` — the preferred human-readable label for the clique
