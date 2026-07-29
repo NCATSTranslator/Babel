@@ -7,14 +7,18 @@ measures what rules actually used on a past run and turns that into recommended,
 `resources:`.
 
 ```bash
-uv run babel-slurm-resources <run-dir> [--csv PATH] [--safety F] [--floor-gb N] [--new-default-mem-gb N] [--new-default-cpus N]
+uv run babel-slurm-resources <run-dir> [--csv PATH] [--safety F] [--floor-gb N] \
+    [--new-default-mem-gb N] [--new-default-cpus N] \
+    [--snakefile-dir DIR] [--default-runtime-min N]
 ```
 
 `<run-dir>` is a directory containing `benchmarks/`, `logs/`, and (optionally) `reports/slurm/` —
 either `babel_outputs/` itself or a copy archived for analysis, such as `data/babel-1.17/`.
 
-A captured example of the full report — the analysis behind the current `slurm/config.yaml`
-defaults and per-rule overrides — is committed at
+Captured examples of the full report — the analysis behind the current `slurm/config.yaml` defaults
+and per-rule overrides — are committed at
+[`examples/babel-slurm-resources-2026jul22.md`](examples/babel-slurm-resources-2026jul22.md) (the
+most recent pass, and the first with the runtime analysis) and
 [`examples/babel-slurm-resources-babel-1.17.md`](examples/babel-slurm-resources-babel-1.17.md).
 
 ## The data a run produces
@@ -72,6 +76,37 @@ Each rule is classified `over` (requested ≥ 2× the recommendation), `at-risk`
 request), `ok`, or `no-request-data` (a benchmark with no matching requested-side row). Pass `--csv`
 to also write the full per-rule table for further analysis.
 
+### Runtime fit
+
+A **Runtime fit** section does the same for wall time. The limit comes from the rule's log, then its
+snakefile's declared `runtime`, then the cluster default (`--default-runtime-min`, 120 to match
+`slurm/config.yaml`). The snakefile is what makes this usable: the efficiency report has no
+time-limit column and a run usually retains logs for only a handful of rules, so without
+`--snakefile-dir` (defaulting to this repo's `src/snakefiles`) a rule declaring `runtime="24h"`
+would look like a catastrophic overrun against the 2-hour default.
+
+Time matters in *both* directions, which is why the recommendation isn't simply generous. Too little
+and the job is killed outright; too much and Snakemake's remaining-time estimate becomes useless and
+a job that has become pathologically slow no longer stands out. Rules are `at-risk` above 80% of
+their limit and `over` when the limit is at least twice what they need.
+
+**`over` only applies to a rule that declares its own `runtime`.** Nearly every rule runs for
+seconds against the cluster-wide default, so classifying those would bury the real findings under
+hundreds of rows nobody can act on. Whether the *default itself* is too generous is one decision,
+reported as a single line naming the slowest rule still on it.
+
+Two traps the 2026jul22 pass hit, both worth checking before trimming anything:
+
+- **A rule whose input shrank is not over-provisioned.** UniProtKB dropped ~41% upstream in
+  2026jul22, so `protein_compendia` ran 5.5h/246G there against 7.6h/337G on babel-1.17. Sizing from
+  the smaller run alone would have set limits that OOM the next normal release.
+- **Network-bound rules vary by an order of magnitude.** `get_ensembl` took 3 minutes on babel-1.17
+  and 1.9h on 2026jul22. Their generous runtimes are deliberate; leave them.
+
+Always compare against a second run's benchmarks before trimming — the numbers for a compute-bound
+rule are usually stable to within a percent or two (`untyped_chemical_compendia` peaked at 132.0G
+and 132.1G across the two runs), so a rule that *isn't* stable is telling you something.
+
 ## Workflow
 
 1. Run the pipeline; let it write `benchmarks/`, `logs/`, and `reports/slurm/`.
@@ -85,8 +120,12 @@ to also write the full per-rule table for further analysis.
    whole cluster's reservation upward, which is exactly the over-provisioning we lowered the default
    to escape. The known heavy rules and the current defaults are documented in
    [`slurm/README.md`](../../slurm/README.md).
-4. Re-run the analyzer to confirm the override list is empty (modulo rules that already carry a
-   block) — every rule now fits its allocation.
-5. On later runs, re-check the *existing* override rules against the "req mem" vs "actual RSS"
+4. Work the **Runtime fit** section the same way: give every `at-risk` rule an explicit `runtime`
+   (or raise the one it has), and trim the `over` rules that declare their own. Check each against a
+   second run's benchmarks first — see the two traps above.
+5. Re-run the analyzer to confirm the override list is empty (modulo rules that already carry a
+   block) and that no rule is left `at-risk` on either axis — every rule now fits its allocation.
+6. On later runs, re-check the *existing* override rules against the "req mem" vs "actual RSS"
    columns and trim any that have grown over-provisioned. There is no CI guard for this (it would
    require committing benchmark data); it's a periodic manual pass on the files a run leaves behind.
+   A release is the natural cadence — see the `release-notes` skill.

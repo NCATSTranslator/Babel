@@ -279,3 +279,40 @@ def test_parse_ts_normalises_non_utc_offsets():
 
     dt_pos = _parse_ts("2026-06-04T05:00:00+0530")
     assert dt_pos.utcoffset().total_seconds() == 5.5 * 3600
+
+
+def test_read_snakefile_resources_parses_literals_and_skips_callables(tmp_path):
+    """A `mem=lambda wildcards: ...` has no single declared value; it must read as None, not a bad parse."""
+    (tmp_path / "a.snakefile").write_text(
+        "rule plain:\n"
+        "    input:\n"
+        '        mem="not a resource",\n'
+        "    resources:\n"
+        '        mem="512G",\n'
+        '        runtime="7h",\n'
+        "        cpus_per_task=4,\n"
+        "    run:\n"
+        "        go()\n"
+        "\n"
+        "rule callable_mem:\n"
+        "    resources:\n"
+        '        mem=lambda wildcards: "512G" if wildcards.filename == "Protein" else "128G",\n'
+        "        runtime=240,\n"
+        "    run:\n"
+        "        go()\n"
+        "\n"
+        "rule no_resources:\n"
+        "    run:\n"
+        "        go()\n"
+    )
+    parsed = parse.read_snakefile_resources(tmp_path)
+
+    # "512G" is 512000 MB, not 524288: Snakemake's sized resources are decimal.
+    assert parsed["plain"].mem_mb == 512000
+    assert parsed["plain"].runtime_min == 420  # "7h"
+    assert parsed["plain"].cpus == 4
+    # A callable mem yields None while the rule's other literals still parse.
+    assert parsed["callable_mem"].mem_mb is None
+    assert parsed["callable_mem"].runtime_min == 240  # a bare number is already minutes
+    # A rule with no resources: block is present but empty, not missing.
+    assert parsed["no_resources"] == parse.DeclaredResources("no_resources", None, None, None)

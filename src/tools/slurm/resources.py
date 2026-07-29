@@ -24,17 +24,27 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
-from .parse import read_benchmarks, read_efficiency_report, read_rule_logs
+from src.util import get_repo_root
+
+from .parse import read_benchmarks, read_efficiency_report, read_rule_logs, read_snakefile_resources
 
 # Buckets in MB (8, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768 GB, 1, 1.5 TB).
 _GIB = 1024
 MEM_BUCKETS_MB: list[int] = [b * _GIB for b in (8, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024, 1536)]
+
+# Wall-time buckets in minutes (30m, 1h, 2h, 3h, 4h, 6h, 8h, 12h, 18h, 24h, 36h, 48h). Snakemake's
+# `runtime` is minutes; these are the round numbers a `resources:` block would actually declare.
+RUNTIME_BUCKETS_MIN: list[int] = [30, 60, 120, 180, 240, 360, 480, 720, 1080, 1440, 2160, 2880]
 
 DEFAULT_SAFETY = 1.5
 DEFAULT_FLOOR_MB = 8 * _GIB
 # Proposed new cluster-wide default to test rules against (slurm/config.yaml).
 DEFAULT_NEW_DEFAULT_MEM_MB = 16 * _GIB
 DEFAULT_NEW_DEFAULT_CPUS = 1
+# The cluster-wide default runtime a rule gets with no `resources:` block (slurm/config.yaml).
+DEFAULT_RUNTIME_MIN = 120
+# A rule using more than this fraction of its limit is one bad run away from being killed.
+AT_RISK_FRACTION = 0.8
 
 
 def recommend_mem_mb(actual_mb: float, safety: float, floor_mb: int) -> int:
@@ -52,10 +62,48 @@ def recommend_cpus(cores_used: float) -> int:
     return max(1, math.ceil(cores_used - 1e-9))
 
 
+def recommend_runtime_min(wall_sec: float, safety: float) -> int:
+    """Round ``wall_sec * safety`` up to the next runtime bucket.
+
+    Same reasoning as the memory recommendation -- a timeout kills the job outright and one run's
+    wall time is a single sample -- but time also matters in the other direction: a limit far above
+    the real duration makes Snakemake's remaining-time estimates useless and hides a job that has
+    become pathologically slow, so the buckets stay tight rather than defaulting to "plenty".
+    """
+    target = wall_sec * safety / 60.0
+    for bucket in RUNTIME_BUCKETS_MIN:
+        if bucket >= target:
+            return bucket
+    return int(math.ceil(target / 60.0) * 60)
+
+
+def rule_for_benchmark(stem: str, rule_names: list[str]) -> str:
+    """Map a benchmark filename stem back to its rule name.
+
+    A wildcard rule writes one benchmark per wildcard value
+    (``export_compendia_to_duckdb_SmallMolecule.tsv`` for rule ``export_compendia_to_duckdb``), so an
+    exact match is tried first and then the longest rule name the stem extends. Falls back to the
+    stem itself, which is what a rule with no snakefile match would have been keyed by anyway.
+    """
+    if stem in rule_names:
+        return stem
+    for name in sorted(rule_names, key=len, reverse=True):
+        if stem.startswith(name + "_"):
+            return name
+    return stem
+
+
 def _fmt_gb(mb: float | None) -> str:
     if mb is None:
         return "-"
     return f"{mb / _GIB:.1f}G"
+
+
+def _fmt_min(minutes: float | None) -> str:
+    """Minutes as `45m` or `7.0h`, so a 24-hour limit doesn't read as a four-digit number."""
+    if minutes is None:
+        return "-"
+    return f"{minutes:.0f}m" if minutes < 90 else f"{minutes / 60:.1f}h"
 
 
 def detect_run_default_mem_mb(recs: list[Recommendation]) -> float | None:
@@ -86,6 +134,13 @@ class Recommendation:
     rec_cpus: int
     classification: str  # over | ok | at-risk | no-request-data
     needs_override: bool
+    # Runtime fit, resolved independently of the memory fit above: rules almost never declare a
+    # `runtime`, so the limit usually comes from the snakefiles or the cluster-wide default.
+    rec_runtime_min: int = 0
+    time_classification: str = "ok"  # over | ok | at-risk
+    # True if the rule declares its own `runtime` in a snakefile; False if it runs on the cluster
+    # default. Only a declared runtime can be trimmed rule-by-rule.
+    declared_runtime: bool = False
     # True if the rule ran on the run's default mem (no explicit `resources:` block, so it needs a
     # new one before the default drops); False if it carried an explicit request; None if unknown
     # (no requested-side data). Set by analyze() from the run's modal requested mem.
@@ -97,6 +152,13 @@ class Recommendation:
             return None
         return 100.0 * self.actual_mem_mb / self.requested_mem_mb
 
+    @property
+    def wall_pct(self) -> float | None:
+        """Wall time as a percentage of the declared limit."""
+        if not self.runtime_limit_min:
+            return None
+        return 100.0 * (self.wall_sec / 60.0) / self.runtime_limit_min
+
 
 def analyze(
     run_dir: str | Path,
@@ -105,6 +167,8 @@ def analyze(
     floor_mb: int = DEFAULT_FLOOR_MB,
     new_default_mem_mb: int = DEFAULT_NEW_DEFAULT_MEM_MB,
     new_default_cpus: int = DEFAULT_NEW_DEFAULT_CPUS,
+    snakefile_dir: str | Path | None = None,
+    default_runtime_min: int = DEFAULT_RUNTIME_MIN,
 ) -> list[Recommendation]:
     """Build per-rule recommendations from the artifacts under ``run_dir``.
 
@@ -112,6 +176,12 @@ def analyze(
     ``reports/slurm/``. Rules are keyed by the benchmark set (actual usage); the
     requested side comes from the efficiency report, falling back to the per-rule
     log's declared ``mem_mb`` / ``cpus_per_task``.
+
+    ``snakefile_dir`` supplies each rule's statically-declared ``resources:``. It matters most for
+    the runtime fit: the efficiency report has no time-limit column and a run usually retains logs
+    for only a handful of rules, so without it nearly every rule falls back to
+    ``default_runtime_min`` and a rule with an explicit ``runtime="24h"`` looks like a catastrophic
+    overrun.
     """
     run_dir = Path(run_dir)
     benchmarks = read_benchmarks(run_dir / "benchmarks")
@@ -120,22 +190,47 @@ def analyze(
     except FileNotFoundError:
         efficiency = {}
     logs = read_rule_logs(run_dir / "logs")
+    declared = read_snakefile_resources(snakefile_dir) if snakefile_dir else {}
+    rule_names = list(declared)
 
     recs: list[Recommendation] = []
-    for rule, bench in benchmarks.items():
-        eff = efficiency.get(rule)
-        log = logs.get(rule)
+    for stem, bench in benchmarks.items():
+        # Benchmarks are keyed by filename stem; a wildcard rule's stem carries the wildcard value.
+        rule = rule_for_benchmark(stem, rule_names)
+        eff = efficiency.get(rule) or efficiency.get(stem)
+        log = logs.get(rule) or logs.get(stem)
+        decl = declared.get(rule)
 
         requested_mem = eff.requested_mem_mb if eff and eff.requested_mem_mb else (log.mem_mb if log else None)
+        if not requested_mem and decl:
+            requested_mem = decl.mem_mb
         requested_cpus = eff.ncpus if eff and eff.ncpus else (log.cpus if log else None)
-        runtime_limit = log.runtime_min if log else None
+        # Prefer what the job actually ran with (the log), then the snakefile, then the profile
+        # default -- a rule with no explicit block really does get the cluster-wide runtime.
+        runtime_limit = (
+            (log.runtime_min if log else None) or (decl.runtime_min if decl else None) or default_runtime_min
+        )
 
         rec_mem = recommend_mem_mb(bench.max_rss_mb, safety, floor_mb)
         rec_cpus = recommend_cpus(bench.cores_used)
+        rec_runtime = recommend_runtime_min(bench.seconds, safety)
+
+        # Only a runtime someone actually wrote in a snakefile is trimmable. Almost every rule runs
+        # for seconds against the cluster-wide default, so classifying those as over-provisioned
+        # would bury the handful of real findings under three hundred rows nobody can act on --
+        # whether the *default* is too generous is one decision, reported separately below.
+        declared_runtime = bool(decl and decl.runtime_min)
+        wall_min = bench.seconds / 60.0
+        if wall_min > AT_RISK_FRACTION * runtime_limit:
+            time_classification = "at-risk"
+        elif declared_runtime and runtime_limit >= 2 * rec_runtime:
+            time_classification = "over"
+        else:
+            time_classification = "ok"
 
         if not requested_mem:
             classification = "no-request-data"
-        elif bench.max_rss_mb > 0.8 * requested_mem:
+        elif bench.max_rss_mb > AT_RISK_FRACTION * requested_mem:
             classification = "at-risk"
         elif requested_mem >= 2 * rec_mem:
             classification = "over"
@@ -146,7 +241,7 @@ def analyze(
 
         recs.append(
             Recommendation(
-                rule=rule,
+                rule=stem,
                 actual_mem_mb=bench.max_rss_mb,
                 requested_mem_mb=requested_mem,
                 cores_used=bench.cores_used,
@@ -157,6 +252,9 @@ def analyze(
                 rec_cpus=rec_cpus,
                 classification=classification,
                 needs_override=needs_override,
+                rec_runtime_min=rec_runtime,
+                time_classification=time_classification,
+                declared_runtime=declared_runtime,
             )
         )
     # Mark which rules ran on the run's default (no explicit block) vs declared their own, so the
@@ -231,6 +329,42 @@ def build_markdown(recs: list[Recommendation], new_default_mem_mb: int, new_defa
     else:
         lines.append("(none — the proposed default already covers every rule)")
     lines.append("")
+    lines.append("## Runtime fit")
+    lines.append("")
+    lines.append(
+        "Wall time against the declared `runtime` limit (from the rule's log, else its snakefile, "
+        "else the cluster default). **at-risk** rules are close to being killed; **over** rules have "
+        "a limit at least twice what they need, which makes Snakemake's remaining-time estimate "
+        "useless and hides a job that has become pathologically slow."
+    )
+    lines.append("")
+    time_at_risk = [r for r in recs if r.time_classification == "at-risk"]
+    time_over = [r for r in recs if r.time_classification == "over"]
+    lines.append(
+        f"Rules at risk of timing out: {len(time_at_risk)}  |  declaring more time than they need: {len(time_over)}"
+    )
+    # Whether the cluster-wide default is too generous is one decision, not N rows in the table.
+    on_default = [r for r in recs if not r.declared_runtime]
+    if on_default:
+        slowest = max(on_default, key=lambda r: r.wall_sec)
+        lines.append(
+            f"{len(on_default)} rules ran on the default runtime; the slowest was `{slowest.rule}` at "
+            f"{_fmt_min(slowest.wall_sec / 60)}, so the default could drop to "
+            f"{_fmt_min(recommend_runtime_min(slowest.wall_sec, 1.0))} before any of them is at risk."
+        )
+    lines.append("")
+    if time_at_risk or time_over:
+        lines.append("rule | wall | limit | wall% | rec runtime | class")
+        lines.append("---- | ---- | ----- | ----- | ----------- | -----")
+        for r in sorted(time_at_risk + time_over, key=lambda r: -(r.wall_pct or 0)):
+            pct = f"{r.wall_pct:.0f}%" if r.wall_pct is not None else "-"
+            lines.append(
+                f"{r.rule} | {_fmt_min(r.wall_sec / 60)} | {_fmt_min(r.runtime_limit_min)} | {pct} | "
+                f"{_fmt_min(r.rec_runtime_min)} | {r.time_classification}"
+            )
+    else:
+        lines.append("(none — every rule fits its runtime limit without wasting it)")
+    lines.append("")
     lines.append("## All rules (by actual peak RSS)")
     lines.append("")
     lines.append("rule | actual RSS | req mem | mem% | cores | req cpus | wall | rec mem | rec cpus | class")
@@ -258,9 +392,12 @@ def write_csv(recs: list[Recommendation], path: str | Path) -> None:
                 "requested_cpus",
                 "wall_sec",
                 "runtime_limit_min",
+                "wall_pct",
                 "rec_mem_mb",
                 "rec_cpus",
+                "rec_runtime_min",
                 "classification",
+                "time_classification",
                 "needs_override",
                 "ran_on_default",
             ]
@@ -276,9 +413,12 @@ def write_csv(recs: list[Recommendation], path: str | Path) -> None:
                     r.requested_cpus if r.requested_cpus else "",
                     f"{r.wall_sec:.0f}",
                     r.runtime_limit_min if r.runtime_limit_min else "",
+                    f"{r.wall_pct:.1f}" if r.wall_pct is not None else "",
                     r.rec_mem_mb,
                     r.rec_cpus,
+                    r.rec_runtime_min,
                     r.classification,
+                    r.time_classification,
                     int(r.needs_override),
                     "" if r.ran_on_default is None else int(r.ran_on_default),
                 ]
@@ -304,6 +444,20 @@ def _add_args(parser: argparse.ArgumentParser) -> None:
         type=int,
         default=DEFAULT_NEW_DEFAULT_CPUS,
         help="Proposed new cluster default cpus to test rules against (default: 1).",
+    )
+    parser.add_argument(
+        "--snakefile-dir",
+        default=str(get_repo_root() / "src" / "snakefiles"),
+        help="Directory of .snakefile files supplying each rule's declared resources (default: this "
+        "repo's src/snakefiles). Mainly needed for the runtime fit: a run's logs usually cover only "
+        "a handful of rules and the efficiency report has no time-limit column.",
+    )
+    parser.add_argument(
+        "--default-runtime-min",
+        type=int,
+        default=DEFAULT_RUNTIME_MIN,
+        help=f"Cluster-wide default runtime in minutes for rules that declare none, matching "
+        f"slurm/config.yaml (default: {DEFAULT_RUNTIME_MIN}).",
     )
     parser.add_argument("--csv", metavar="PATH", help="Also write the full per-rule table to this CSV.")
 
@@ -352,6 +506,8 @@ def run(args: argparse.Namespace) -> None:
         floor_mb=args.floor_gb * _GIB,
         new_default_mem_mb=new_default_mem_mb,
         new_default_cpus=args.new_default_cpus,
+        snakefile_dir=args.snakefile_dir,
+        default_runtime_min=args.default_runtime_min,
     )
     if args.csv:
         write_csv(recs, args.csv)

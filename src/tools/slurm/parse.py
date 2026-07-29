@@ -447,3 +447,73 @@ def parse_job_events(err_file: Path) -> list[JobEvent]:
                 current[snakemake_id].finished_at = _parse_ts(m.group(1))
     all_jobs.extend(current.values())
     return all_jobs
+
+
+# --- declared resources in the snakefiles ------------------------------------
+
+# `mem="512G"` / `mem=8000`, `runtime="7h"` / `runtime=240`, `cpus_per_task=4`. Only literals are
+# matched: `mem=lambda wildcards: ...` (export_synonyms_to_duckdb) resolves per-wildcard at runtime
+# and has no single declared value, so it is left as None rather than mis-parsed.
+_DECL_RULE_RE = re.compile(r"^rule\s+(\w+)\s*:")
+_DECL_RESOURCE_RE = re.compile(r'^\s+(mem|runtime|cpus_per_task)=("?)([0-9]+(?:\.[0-9]+)?[GgMmHh]?)\2\s*,')
+# A `resources:` block ends at the next top-level directive (`run:`, `shell:`, `input:`, ...).
+_DECL_SECTION_RE = re.compile(r"^\s{4}\w+:")
+
+
+@dataclass
+class DeclaredResources:
+    """The static ``resources:`` a rule declares in its snakefile.
+
+    The efficiency report has no time-limit column and a run's ``logs/`` are often incomplete, so the
+    snakefiles are the only broad source of the declared ``runtime``. Any field may be None: the rule
+    declares nothing (and gets the profile default) or declares a callable.
+    """
+
+    rule: str
+    mem_mb: int | None
+    runtime_min: int | None
+    cpus: int | None
+
+
+def _parse_size_mb(value: str) -> int:
+    """``"512G"`` -> 512000. Snakemake's sized resources are decimal, not binary."""
+    return int(float(value[:-1]) * 1000) if value[-1] in "Gg" else int(float(value.rstrip("Mm")))
+
+
+def _parse_runtime_min(value: str) -> int:
+    """``"7h"`` -> 420; a bare number is already minutes."""
+    return int(float(value[:-1]) * 60) if value[-1] in "Hh" else int(float(value))
+
+
+def read_snakefile_resources(snakefile_dir: str | Path) -> dict[str, DeclaredResources]:
+    """Read every rule's statically-declared ``resources:`` from the snakefiles in a directory.
+
+    Also reads a sibling ``Snakefile`` if ``snakefile_dir`` is the repo root.
+    """
+    snakefile_dir = Path(snakefile_dir)
+    paths = sorted(snakefile_dir.glob("*.snakefile"))
+    if (snakefile_dir / "Snakefile").exists():
+        paths.append(snakefile_dir / "Snakefile")
+
+    result: dict[str, DeclaredResources] = {}
+    for path in paths:
+        rule: str | None = None
+        in_resources = False
+        values: dict[str, int] = {}
+        for line in path.read_text(errors="replace").splitlines():
+            if match := _DECL_RULE_RE.match(line):
+                if rule:
+                    result[rule] = DeclaredResources(
+                        rule, values.get("mem"), values.get("runtime"), values.get("cpus_per_task")
+                    )
+                rule, in_resources, values = match.group(1), False, {}
+            elif rule and _DECL_SECTION_RE.match(line):
+                in_resources = line.strip().startswith("resources:")
+            elif rule and in_resources and (match := _DECL_RESOURCE_RE.match(line)):
+                key, raw = match.group(1), match.group(3)
+                values[key] = _parse_size_mb(raw) if key == "mem" else _parse_runtime_min(raw)
+        if rule:
+            result[rule] = DeclaredResources(
+                rule, values.get("mem"), values.get("runtime"), values.get("cpus_per_task")
+            )
+    return result

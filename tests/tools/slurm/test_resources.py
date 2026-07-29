@@ -107,3 +107,75 @@ def test_analyze_handles_missing_efficiency_report(tmp_path):
     recs = resources.analyze(tmp_path)
     assert recs[0].classification == "no-request-data"
     assert recs[0].requested_mem_mb is None
+
+
+# --- runtime fit -------------------------------------------------------------
+
+
+def test_recommend_runtime_rounds_up_to_bucket():
+    # 100 min * 1.5 = 150 min -> next bucket is 180 (3h)
+    assert resources.recommend_runtime_min(100 * 60, safety=1.5) == 180
+    # 20h * 1.5 = 30h -> next bucket is 36h
+    assert resources.recommend_runtime_min(20 * 3600, safety=1.5) == 2160
+    # Above the largest bucket, round up to a whole hour.
+    assert resources.recommend_runtime_min(60 * 3600, safety=1.5) == 5400
+
+
+def test_rule_for_benchmark_maps_wildcard_stems_to_their_rule():
+    names = ["export_compendia_to_duckdb", "export_compendia_to_duckdb_extra", "chemical"]
+    # An exact match wins over any prefix match.
+    assert resources.rule_for_benchmark("chemical", names) == "chemical"
+    # A wildcard instance resolves to its rule...
+    assert resources.rule_for_benchmark("export_compendia_to_duckdb_SmallMolecule", names) == (
+        "export_compendia_to_duckdb"
+    )
+    # ...and the longest matching rule name wins, so a longer sibling rule isn't shadowed.
+    assert resources.rule_for_benchmark("export_compendia_to_duckdb_extra_Foo", names) == (
+        "export_compendia_to_duckdb_extra"
+    )
+    # An unknown stem is left alone rather than mis-attributed.
+    assert resources.rule_for_benchmark("something_else", names) == "something_else"
+
+
+def _write_snakefile(tmp_path, body):
+    snakefiles = tmp_path / "snakefiles"
+    snakefiles.mkdir(exist_ok=True)
+    (snakefiles / "test.snakefile").write_text(body)
+    return snakefiles
+
+
+def test_analyze_flags_a_rule_close_to_its_declared_runtime(tmp_path):
+    """20h against a declared 24h limit is at-risk; one slow run is a timeout."""
+    _make_run(tmp_path, "generate_pubmed_concords", rss_mb=1000.0, mean_load=98.0, requested_mem_mb=128000)
+    _write_benchmark(
+        tmp_path / "benchmarks" / "generate_pubmed_concords.tsv",
+        [[20 * 3600, "20:00:00", 1000.0, 1000.0, 1000.0, 1000.0, 1, 1, 98.0, 90.0]],
+    )
+    snakefiles = _write_snakefile(
+        tmp_path,
+        'rule generate_pubmed_concords:\n    resources:\n        runtime="24h",\n        mem="128G",\n    run:\n        x()\n',
+    )
+    rec = resources.analyze(tmp_path, snakefile_dir=snakefiles)[0]
+    assert rec.runtime_limit_min == 1440
+    assert rec.time_classification == "at-risk"
+    assert rec.rec_runtime_min == 2160  # 20h * 1.5 -> 36h
+    assert rec.declared_runtime is True
+
+
+def test_analyze_only_calls_a_declared_runtime_over_provisioned(tmp_path):
+    """A rule on the cluster default is never 'over': that is one decision about the default,
+    not a finding about each of ~250 rules that run for seconds."""
+    _make_run(tmp_path, "quick_rule", rss_mb=100.0, mean_load=98.0, requested_mem_mb=16000)
+    snakefiles = _write_snakefile(tmp_path, "rule quick_rule:\n    run:\n        x()\n")
+    rec = resources.analyze(tmp_path, snakefile_dir=snakefiles, default_runtime_min=120)[0]
+    assert rec.runtime_limit_min == 120  # inherited from the cluster default
+    assert rec.declared_runtime is False
+    assert rec.time_classification == "ok"
+
+    # The same rule, now declaring a 6h limit for a 100-second job, IS trimmable.
+    snakefiles = _write_snakefile(
+        tmp_path, 'rule quick_rule:\n    resources:\n        runtime="6h",\n    run:\n        x()\n'
+    )
+    rec = resources.analyze(tmp_path, snakefile_dir=snakefiles)[0]
+    assert rec.runtime_limit_min == 360
+    assert rec.time_classification == "over"
