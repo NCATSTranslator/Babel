@@ -63,7 +63,7 @@ This entry consists of the following fields:
 | identifiers[0].l | G6PC1                                                       | A label for this identifier. This will almost always be from the source of the CURIE (in this case, the label is from the NCBI Gene database).                                                                                                                        |
 | identifiers[0].d | (blank in this example, but usually 1-3 sentences)          | A description of this identifier or concept from this source.                                                                                                                                                                                                         |
 | identifiers[0].t | ["NCBITaxon:9606"]                                          | A list of taxa that this concept is found in as NCBITaxon CURIEs. NCBITaxon:9606 refers to the species _Homo sapiens_.                                                                                                                                                |
-| preferred_name   | G6PC1                                                       | The preferred name for this clique. This is not currently used by NodeNorm, but will be in the future.                                                                                                                                                                |
+| preferred_name   | G6PC1                                                       | The preferred name for this clique. NodeNorm returns this as the `label` of the normalized clique. Note that it is not necessarily the label of the clique leader — see below.                                                                                        |
 | taxa             | ["NCBITaxon:9606"]                                          | A list of taxa that this concept is found in as NCBITaxon CURIEs. This is combined from all the individual taxa from each identifier.                                                                                                                                 |
 | type             | biolink:Gene                                                | The Biolink type of this concept. Must be a class from the [Biolink model](https://biolink.github.io/biolink-model/) with a `biolink:` prefix.                                                                                                                        |
 
@@ -140,8 +140,10 @@ This entry consists of the following fields:
 | taxon_specific          | true or false                      | True if this concept is associated with one or more specific taxa; false if it is not taxon-specific.                                                                                                                                       |
 | types                   | ["Gene", "GeneOrGeneProduct", ...] | A list of Biolink types (without the `biolink:` prefix) for this concept. This is arranged in the same order provided by the Biolink Model Toolkit, starting with the narrowest concept, expanding to the broadest, followed by mixins.     |
 
-Note that the synonym files are generated with DrugChemical conflation turned on, but GeneProtein
-conflation turned off.
+Note that the per-type synonym files are generated with DrugChemical conflation turned on, but
+GeneProtein conflation turned off. A separate `synonyms/GeneProteinConflated.txt.gz` is also
+produced, containing the same concepts with GeneProtein conflation applied, so that NameRes can be
+loaded with that conflation turned on.
 
 ## Conflation files
 
@@ -350,7 +352,6 @@ If the edge you expected is absent, the link was never generated upstream (a com
 RxCUI-typing problem); if it is present but the CURIEs still aren't conflated, the pair was dropped
 by a conflation filter — look up the reason in the paired per-run exclusion report
 `babel_outputs/reports/drugchemical/excluded_pairs.tsv.gz` (its `reason` column names the filter).
-`docs/debugging/Conflation.md` walks through this two-report diagnosis flow end to end.
 
 `Identifier.parquet` — one row per identifier extracted into an `ids/` file:
 

@@ -18,7 +18,7 @@ Next release: [Translator "Fugu" July 2024](TranslatorFuguJuly2024.md)
   in synonyms file.
 * Minor fixes.
 
-## Releases since [December 2023](TranslatorDecember2023)
+## Releases since [December 2023](TranslatorDecember2023.md)
 
 * [Babel v1.5.0](https://github.com/NCATSTranslator/Babel/releases/tag/v1.5.0):
   * Normalize DrugChemical conflation IDs by @gaurav in #250
