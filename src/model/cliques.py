@@ -26,16 +26,16 @@ drop-in change:
 import os
 from collections.abc import Callable
 
-from src.babel_utils import glom, read_identifier_file
+from src.babel_utils import glom, read_concord_file, read_identifier_file
 from src.util import get_logger
 
 logger = get_logger(__name__)
 
-# A concord-pair filter receives the tab-split concord line, the concord file path, and
-# the current clique state, and returns True to keep the pair. The clique state is passed
-# so a filter can gate a pair on whether its CURIEs were already glommed in (e.g. anatomy
-# only trusts UMLS<->GO pairs when both terms are already present).
-ConcordPairFilter = Callable[[list[str], str, dict], bool]
+# A concord-pair filter receives the `(subject, object)` CURIE pair read from a concord line, the
+# concord file path, and the current clique state, and returns True to keep the pair. The clique
+# state is passed so a filter can gate a pair on whether its CURIEs were already glommed in (e.g.
+# anatomy only trusts UMLS<->GO pairs when both terms are already present).
+ConcordPairFilter = Callable[[tuple[str, str], str, dict], bool]
 
 # An overused-xref remover receives the list of ``[curie1, curie2]`` pairs read from one
 # concord file (plus the file path, so it can vary behaviour per source) and returns the
@@ -62,9 +62,9 @@ def glom_from_files(
     :param identifiers: list of paths to ids files
     :param unique_prefixes: passed through to :func:`glom`; prefixes for which at most one
         identifier may appear per clique
-    :param concord_pair_filter: optional ``(parts, infile, dicts) -> bool`` hook; return
-        False to drop a concord pair. ``parts`` is the tab-split line, ``dicts`` is the
-        clique state built so far.
+    :param concord_pair_filter: optional ``(pair, infile, dicts) -> bool`` hook; return
+        False to drop a concord pair. ``pair`` is the ``(subject, object)`` CURIE tuple the
+        concord row asserts, ``dicts`` is the clique state built so far.
     :param overused_xref_remover: optional ``(pairs, infile) -> pairs`` hook applied to
         each concord file's pairs before they are glommed.
     :param glom_kwargs: optional extra keyword arguments forwarded to every :func:`glom`
@@ -89,19 +89,12 @@ def glom_from_files(
         if os.path.basename(infile) in excluded:
             continue
         logger.info("loading concordance file %s", infile)
-        pairs = []
-        with open(infile) as inf:
-            for line in inf:
-                parts = line.strip().split("\t")
-                # Skip blank/malformed lines before indexing parts[2]: a concord row is
-                # `CURIE1 \t REL \t CURIE2`, so anything with fewer than 3 fields would
-                # IndexError here and in concord_pair_filter hooks (e.g. anatomy's, which
-                # reads parts[0]/parts[2]).
-                if len(parts) < 3:
-                    continue
-                if concord_pair_filter is not None and not concord_pair_filter(parts, infile, dicts):
-                    continue
-                pairs.append([parts[0], parts[2]])
+        # Filtering after the whole file is read, rather than per line, is equivalent: `dicts` is
+        # only mutated by the glom() below, outside this loop, so it is frozen for the duration of
+        # one file. It does change *between* files, which is why the read stays per file.
+        pairs = read_concord_file(infile)
+        if concord_pair_filter is not None:
+            pairs = [pair for pair in pairs if concord_pair_filter(pair, infile, dicts)]
         if overused_xref_remover is not None:
             pairs = overused_xref_remover(pairs, infile)
         setpairs = [set(x) for x in pairs]

@@ -213,7 +213,7 @@ def build_anatomy_umls_relationships(mrconso, idfile, outfile, umls_metadata):
     )
 
 
-def _anatomy_concord_pair_filter(parts, infile, dicts):
+def _anatomy_concord_pair_filter(pair, infile, dicts):
     """Drop UMLS<->GO concord pairs unless both CURIEs are already in the clique state.
 
     UMLS includes obsolete GO terms we don't want to add, so we limit UMLS<->GO concords
@@ -221,14 +221,14 @@ def _anatomy_concord_pair_filter(parts, infile, dicts):
     trust the other concords to retrieve decent identifiers. Returns True to keep the pair.
     """
     bs = frozenset([UMLS, GO])
-    prefixes = frozenset(xi.split(":")[0] for xi in parts[0:3:2])  # leave out the predicate
+    prefixes = frozenset(xi.split(":")[0] for xi in pair)
     if prefixes != bs:
         return True
-    for xi in (parts[0], parts[2]):
+    for xi in pair:
         if xi not in dicts:
             logger.debug(
                 "Skipping pair %s from %s: terms with prefixes %s are skipped unless they are already in the concords.",
-                parts,
+                pair,
                 infile,
                 bs,
             )

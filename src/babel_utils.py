@@ -1238,6 +1238,46 @@ def read_identifier_file(infile):
     return identifiers, types
 
 
+def read_concord_file(infile) -> list[tuple[str, str]]:
+    """Read a concord file and return its ``(subject, object)`` CURIE pairs, in file order.
+
+    A concord row is ``CURIE1 \\t PREDICATE \\t CURIE2``; the predicate is dropped, since every
+    caller feeds these to :func:`glom` as equivalences. Blank lines are skipped -- a file ending
+    in a newline yields one -- but a non-blank row with fewer than three fields raises, because
+    that means a truncated or malformed concord and silently dropping rows from it would quietly
+    shrink cliques. (Only ``glom_from_files`` used to skip such rows; the eight other call sites
+    this replaces raised IndexError on them.)
+
+    Order matters and is preserved: :func:`glom` is order-sensitive, so which pair merges first
+    decides which later pair a ``unique_prefixes`` conflict rejects.
+
+    Pairs are 2-tuples rather than 2-sets. :func:`glom` accepts either, but
+    :func:`remove_overused_xrefs` unpacks ``for k, v in pairlist`` and so needs them ordered, and
+    a 2-tuple is roughly half the resident size of a 2-set -- which matters in the rules that
+    read concords under ``mem=512G``.
+
+    Callers that need to drop pairs should filter the returned list. Deliberately no filter hook:
+    keeping this a plain "parse this file" makes the whole file a single unit of work.
+
+    :param infile: path to the concord file.
+    :raises ValueError: if a non-blank row has fewer than three tab-separated fields.
+    """
+    pairs = []
+    with open(infile) as inf:
+        for line_number, line in enumerate(inf, start=1):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            parts = stripped.split("\t")
+            if len(parts) < 3:
+                raise ValueError(
+                    f"{infile} line {line_number} has {len(parts)} tab-separated field(s), expected at least 3 "
+                    f"(CURIE1\\tPREDICATE\\tCURIE2): {line!r}"
+                )
+            pairs.append((parts[0], parts[2]))
+    return pairs
+
+
 def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
     """Given a list of tuples (id1, id2) meaning id1-[xref]->id2, remove any id2 that are associated with more
     than one id1.  The idea is that if e.g. id1 is made up of UBERONS and 2 of those have an xref to say a UMLS

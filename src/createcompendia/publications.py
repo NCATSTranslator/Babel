@@ -9,7 +9,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from mmap import ACCESS_READ, mmap
 from pathlib import Path
 
-from src.babel_utils import WgetRecursionOptions, glom, pull_via_wget, read_identifier_file, write_compendium
+from src.babel_utils import (
+    WgetRecursionOptions,
+    glom,
+    pull_via_wget,
+    read_concord_file,
+    read_identifier_file,
+    write_compendium,
+)
 from src.categories import JOURNAL_ARTICLE, PUBLICATION
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import DOI, PMC, PMID
@@ -322,11 +329,7 @@ def generate_compendium(concordances, metadata_yamls, identifiers, titles, publi
     for infile in concordances:
         print(infile)
         print("loading", infile)
-        pairs = []
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                pairs.append({x[0], x[2]})
+        pairs = read_concord_file(infile)
         glom(dicts, pairs, unique_prefixes=uniques)
 
     # Publications have titles, not labels. We load them here.

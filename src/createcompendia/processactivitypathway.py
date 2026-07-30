@@ -5,7 +5,14 @@ import src.datahandlers.obo as obo
 import src.datahandlers.reactome as reactome
 import src.datahandlers.rhea as rhea
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.babel_utils import (
+    get_prefixes,
+    glom,
+    read_concord_file,
+    read_identifier_file,
+    remove_overused_xrefs,
+    write_compendium,
+)
 from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import GO, REACT, TCDB, WIKIPATHWAYS
@@ -99,22 +106,16 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
         # We have a concordance problem with UMLS - it is including GO terms that are obsolete and we don't want
         # them added. So we want to limit concordances to terms that are already in the dicts. But that's ONLY for the
         # UMLS concord.  We trust the others to retrieve decent identifiers.
+        # Filtering after the whole file is read is equivalent to filtering per line: `dicts` is
+        # only mutated by the glom() below, outside this loop, so it is frozen for one file's read.
+        gate_on_dicts = infile.endswith("UMLS")
         pairs = []
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                if infile.endswith("UMLS"):
-                    use = True
-                    for xi in (x[0], x[2]):
-                        if xi not in dicts:
-                            print(f"Skipping pair {x} from {infile} because {xi} is not in dicts")
-                            use = False
-                    if not use:
-                        continue
-                pair = [x[0], x[2]]
-                fspair = frozenset(pair)
-                if fspair not in bad_concords:
-                    pairs.append(pair)
+        for pair in read_concord_file(infile):
+            if gate_on_dicts and any(xi not in dicts for xi in pair):
+                print(f"Skipping pair {pair} from {infile} because it is not in dicts")
+                continue
+            if frozenset(pair) not in bad_concords:
+                pairs.append(pair)
         # one kind of error is that GO->Reactome xrefs are freqently more like subclass relations. So
         # GO:0004674 (protein serine/threonine kinase) has over 400 Reactome xrefs
         # remove_overused_xrefs assumes that we want to remove pairs where the second pair is overused

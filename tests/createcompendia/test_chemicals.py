@@ -2,8 +2,9 @@
 
 Covers write_unichem_concords()'s handling of UniChem compound IDs that already embed their source
 prefix (e.g. the CHEBI source stores "CHEBI:12345" rather than a bare "12345"), which previously
-produced invalid "CHEBI:CHEBI:12345" CURIEs across the chemical compendia; and make_chebi_relations()'s
-reading of the ChEBI SDF, whose tags ChEBI renames between releases.
+produced invalid "CHEBI:CHEBI:12345" CURIEs across the chemical compendia; make_chebi_relations()'s
+reading of the ChEBI SDF, whose tags ChEBI renames between releases; and combine_unichem()'s
+one-prefix-per-file guards, which decide whether remove_overused_xrefs() runs for a given source.
 """
 
 import gzip
@@ -25,6 +26,7 @@ from src.categories import (
 )
 from src.createcompendia.chemicals import (
     CHEBI_DBX_SOURCE_NAMES,
+    combine_unichem,
     create_typed_sets,
     make_chebi_relations,
     read_chebi_lookup_ids,
@@ -34,7 +36,7 @@ from src.createcompendia.chemicals import (
 from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.predicates import HAS_ALTERNATIVE_ID
-from src.prefixes import CHEBI, KEGGCOMPOUND, PUBCHEMCOMPOUND
+from src.prefixes import CHEBI, DRUGBANK, INCHIKEY, KEGGCOMPOUND, PUBCHEMCOMPOUND
 from src.util import get_config
 
 # Derive CHEBI's UniChem source ID from the authoritative dict rather than hardcoding it.
@@ -574,3 +576,59 @@ def test_make_chebi_relations_raises_when_the_dbx_contributes_nothing(tmp_path):
     """
     with pytest.raises(ValueError, match="database_accession.tsv"):
         _run_make_chebi_relations(tmp_path, dbx_contents=DBX_HEADER)
+
+
+# COMBINING UNICHEM CONCORDS
+
+
+def _write_unichem_concord(path, pairs):
+    """Write a UniChem concord file: tab-separated `subject \t eq \t object` rows."""
+    path.write_text("".join(f"{subject}\teq\t{obj}\n" for subject, obj in pairs))
+    return path
+
+
+@pytest.mark.unit
+def test_combine_unichem_gloms_a_single_prefix_file_into_cliques(tmp_path):
+    """Pairs sharing an INCHIKEY should be glommed into one clique and written as a JSON array."""
+    concord = _write_unichem_concord(
+        tmp_path / f"UNICHEM_{CHEBI}",
+        [(f"{CHEBI}:15377", f"{INCHIKEY}:XLYOFNOQVPJJNP-UHFFFAOYSA-N"), (f"{CHEBI}:16234", f"{INCHIKEY}:OTHERKEY-N")],
+    )
+    output = tmp_path / "UNICHEM"
+
+    combine_unichem([str(concord)], str(output))
+
+    cliques = {frozenset(json.loads(line)) for line in output.read_text().splitlines()}
+    assert cliques == {
+        frozenset({f"{CHEBI}:15377", f"{INCHIKEY}:XLYOFNOQVPJJNP-UHFFFAOYSA-N"}),
+        frozenset({f"{CHEBI}:16234", f"{INCHIKEY}:OTHERKEY-N"}),
+    }
+
+
+@pytest.mark.unit
+def test_combine_unichem_raises_on_an_empty_concord(tmp_path):
+    """An empty UniChem concord means the upstream extract produced nothing, and must fail loudly.
+
+    This is the guard that depends on how `prefixes_in_file` is derived: read_concord_file() returns
+    an empty list for an empty file, so the "no prefixes" branch is what catches it.
+    """
+    concord = _write_unichem_concord(tmp_path / f"UNICHEM_{CHEBI}", [])
+
+    with pytest.raises(RuntimeError, match="No prefixes found"):
+        combine_unichem([str(concord)], str(tmp_path / "UNICHEM"))
+
+
+@pytest.mark.unit
+def test_combine_unichem_raises_when_a_file_mixes_prefixes_in_column_1(tmp_path):
+    """Each UniChem concord covers exactly one source, so two prefixes in column 1 is a format change.
+
+    The subject prefix decides whether remove_overused_xrefs() runs for the file, so a mixed file
+    would silently apply one source's policy to another's rows.
+    """
+    concord = _write_unichem_concord(
+        tmp_path / f"UNICHEM_{CHEBI}",
+        [(f"{CHEBI}:15377", f"{INCHIKEY}:AAA-N"), (f"{DRUGBANK}:DB00898", f"{INCHIKEY}:BBB-N")],
+    )
+
+    with pytest.raises(RuntimeError, match="Multiple prefixes found"):
+        combine_unichem([str(concord)], str(tmp_path / "UNICHEM"))
