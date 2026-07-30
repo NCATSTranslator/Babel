@@ -17,7 +17,7 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.11"
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.95.0 # pinned; keep in sync with rust-toolchain.toml
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
@@ -38,9 +38,9 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.11"
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.95.0 # pinned; keep in sync with rust-toolchain.toml
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
       - run: uv sync --frozen
-      - run: PYTHONPATH=. uv run pytest --network -m "unit or network or slow" --no-cov -q
+      - run: uv run pytest --network -m "unit or network or slow" --no-cov -q

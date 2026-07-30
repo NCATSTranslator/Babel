@@ -1,5 +1,6 @@
-# Pin the channel, not an exact version: nothing here publishes a wheel, so the value of pinning is
-# that everyone's cargo comes from the same place rather than from whatever a distro packages.
+# Pin the Rust toolchain so local builds, CI, and any rustup-based environment all compile the
+# maturin/PyO3 extension with the same compiler version. The CI action ref (dtolnay/rust-toolchain
+# in .github/workflows/test.yml) is pinned to match this; bump both together when upgrading Rust.
 # The hard floor is `rust-version` in rust/Cargo.toml.
 [toolchain]
-channel = "stable"
+channel = "1.95.0"

@@ -51,10 +51,11 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
 USER nru
 COPY --chown=nru . ${ROOT}
 
-# Install and run `uv sync` to install packages.
+# Install uv and sync packages. `--frozen` installs exactly the committed uv.lock
+# (no re-resolution), keeping the image reproducible and matching CI's `uv sync --frozen`.
 RUN pipx install uv
 ENV PATH="${ROOT}/.local/bin:${PATH}"
-RUN uv sync
+RUN uv sync --frozen
 
 # Our default entrypoint is to start the Babel run.
 ENTRYPOINT ["bash", "-c", "uv run snakemake --cores ${CORES}"]
