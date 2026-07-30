@@ -38,7 +38,7 @@ from src.model.glom_diff import (
     cliques_from_compendia,
     diff_cliques,
 )
-from src.model.source import SourceContribution, discover_source, scan_concords_for_curies
+from src.model.source import SourceContribution, discover_source, scan_concords_for_curies, summarize_xref_groups
 from src.reports.source_impact import (
     EXPANDED_SAMPLE_LIMIT,
     PURE_NEW_SAMPLE_LIMIT,
@@ -48,7 +48,7 @@ from src.reports.source_impact import (
     render_json,
     render_markdown,
 )
-from src.reports.source_impact_details import write_detail_files
+from src.reports.source_impact_details import NEW_CLIQUES_CSV, NEW_XREFS_SUMMARY_CSV, write_detail_files
 from src.util import get_config, get_logger
 
 logger = get_logger(__name__)
@@ -261,17 +261,32 @@ def _remote_comparison_summary(
     return summary
 
 
+def _scan_xref_rows(
+    contribution: SourceContribution,
+    intermediate_root: pathlib.Path,
+) -> dict[str, list[tuple[str, str, str, str]]]:
+    """Scan every pipeline's concord tree once for rows touching a source CURIE.
+
+    Three consumers need these rows — the label-needed CURIE set, the markdown's join-pathway
+    table, and the xref detail files — so the walk happens here rather than inside each of them.
+    """
+    return {
+        st: scan_concords_for_curies(intermediate_root / st / "concords", source_curies)
+        for st, _cfg, source_curies in _iter_pipeline_contributions(contribution, list(contribution.pipelines))
+    }
+
+
 def _curies_needing_labels(
     diffs_by_pipeline: dict[str, SourceImpactDiff],
     contribution: SourceContribution,
-    intermediate_root: pathlib.Path,
+    xref_rows_by_pipeline: dict[str, list[tuple[str, str, str, str]]],
 ) -> set[str]:
     """Collect every CURIE whose label the report or detail files will render.
 
     This is the exact set ``load_labels_for_prefixes`` needs to keep, so it can stream the
     (potentially huge) per-prefix ``labels`` files once and discard everything else. It
     covers the members of every diffed clique (rendered in the markdown samples and the
-    new-/modified-clique detail files) plus the concord-row endpoints in ``new-xrefs.tsv``
+    new-/modified-clique detail files) plus the concord-row endpoints in the xref detail files
     and the source's own CURIEs.
     """
     needed: set[str] = set()
@@ -285,10 +300,10 @@ def _curies_needing_labels(
             needed.update(mc.after_clique)
             for bc in mc.before_cliques:
                 needed.update(bc)
-    for st, _cfg, source_curies in _iter_pipeline_contributions(contribution, list(contribution.pipelines)):
+    for _st, _cfg, source_curies in _iter_pipeline_contributions(contribution, list(contribution.pipelines)):
         needed.update(source_curies)
-        concords_dir = intermediate_root / st / "concords"
-        for subject, _predicate, obj, _asserted_by in scan_concords_for_curies(concords_dir, source_curies):
+    for rows in xref_rows_by_pipeline.values():
+        for subject, _predicate, obj, _asserted_by in rows:
             needed.add(subject)
             needed.add(obj)
     return needed
@@ -445,9 +460,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--no-detail-files",
         action="store_true",
-        help="Skip writing the full CSV/JSON/TSV detail files (new-cliques.csv, "
-        "modified-cliques.{csv,json}, new-xrefs.tsv) into the <output-stem>/ "
-        "subdirectory beside the markdown report.",
+        help=f"Skip writing the CSV/JSON detail files ({NEW_CLIQUES_CSV}, {NEW_XREFS_SUMMARY_CSV} and the "
+        "full new-cliques.csv / new-xrefs.csv / modified-cliques.{csv,json} they reduce) into the "
+        "<output-stem>/ subdirectory beside the markdown report.",
     )
     parser.add_argument("--format", choices=("md", "json", "both"), default="md")
     parser.add_argument(
@@ -546,12 +561,21 @@ def main(argv: list[str] | None = None) -> int:
 
     final_breakdown = _final_compendium_breakdown(contribution, pipelines, compendia_root)
 
+    # Scanned once here and threaded through: the label-needed set, the markdown's join-pathway
+    # table and the two xref detail files all read the same rows.
+    xref_rows_by_pipeline = _scan_xref_rows(contribution, intermediate_root)
+    xref_groups = [
+        group
+        for st in sorted(xref_rows_by_pipeline)
+        for group in summarize_xref_groups(xref_rows_by_pipeline[st], st, contribution.name)
+    ]
+
     lookup = _build_lookup_context(
         pipelines=pipelines,
         types_by_pipeline=types_by_pipeline,
         downloads_root=pathlib.Path(args.downloads_root),
         skip_biolink=args.no_biolink_lookup,
-        needed_curies=_curies_needing_labels(diffs_by_pipeline, contribution, intermediate_root),
+        needed_curies=_curies_needing_labels(diffs_by_pipeline, contribution, xref_rows_by_pipeline),
     )
 
     generated_at = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -581,6 +605,7 @@ def main(argv: list[str] | None = None) -> int:
             remote_summary=remote_summary,
             lookup=lookup,
             details_dirname=details_dirname,
+            xref_groups=xref_groups,
             sample_limit=sample_limit,
             pure_new_sample_limit=pure_new_sample_limit,
             expanded_sample_limit=expanded_sample_limit,
@@ -595,7 +620,8 @@ def main(argv: list[str] | None = None) -> int:
             details_dir,
             contribution,
             diffs_by_pipeline,
-            intermediate_root,
+            xref_rows_by_pipeline,
+            xref_groups,
             lookup,
         )
         logger.info("wrote detail files to %s: %s", details_dir, counts)

@@ -1,23 +1,29 @@
-"""Full, uncapped detail-file writers for the source-impact report.
+"""Detail-file writers for the source-impact report.
 
 While ``src.reports.source_impact`` renders the human-readable markdown (and a summary
-JSON capped at a few samples), this module writes the *complete* detail files an SME
-reviews in a PR — one subdirectory (``<output-stem>/``) beside the markdown report:
+JSON capped at a few samples), this module writes the detail files an SME reviews in a PR —
+one subdirectory (``<output-stem>/``) beside the markdown report:
 
-- ``new-cliques.csv`` — every pure-new clique the source introduces (the common case is a
-  brand-new single-identifier clique; multi-member pure-new cliques carry ``member_count``).
+- ``new-cliques-top-<N>.csv`` — the ``NEW_CLIQUES_TOP_N`` most review-worthy pure-new cliques
+  the source introduces (the common case is a brand-new single-identifier clique; multi-member
+  pure-new cliques carry ``member_count``). The **only capped file** here: see
+  ``NEW_CLIQUES_TOP_N`` for why, and ``write_new_cliques_csv`` for the ranking. Re-run the tool
+  for the full list.
 - ``modified-cliques.json`` / ``modified-cliques.csv`` — every existing clique the source
   expands or merges. The JSON keeps the full before/after structure; the CSV has one row
   per source identifier landing in the clique, flagged ``added`` (structurally new) or
   ``preexisting`` (already pulled in via another source's xref, now a typed identifier).
-- ``new-xrefs.tsv`` — every cross-reference row touching a source CURIE, with the predicate
+- ``new-xrefs.csv`` — every cross-reference row touching a source CURIE, with the predicate
   (which for SSSOM-style sources distinguishes exact/close match) and the concord file that
   asserted it.
+- ``new-xrefs-summary.csv`` — the committed aggregate of the above: one row per *join pathway*
+  (predicate over a canonical prefix pair, per asserting concord file) with its total and a handful
+  of example rows. See ``write_new_xrefs_summary_csv`` and ``src.model.source.summarize_xref_groups``.
 
 All files are deterministically sorted so re-running the tool yields byte-identical output
 (clean git diffs). The tool cannot see downstream Biolink-class prefix filtering directly,
 so the clique/xref *counts* are an *upper bound* of what could land in the build — but the
-``new-cliques.csv`` / ``modified-cliques.csv`` rows carry per-identifier survival columns
+``new-cliques-top-<N>.csv`` / ``modified-cliques.csv`` rows carry per-identifier survival columns
 (``would_be_added`` / ``needs_biolink_registration``) that predict that filtering by
 checking each identifier's prefix against the Biolink Model ``id_prefixes`` for the
 *clique's* assigned biolink type (the single ``node_type`` ``NodeFactory.create_node()``
@@ -34,7 +40,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 from src.model.glom_diff import SourceImpactDiff
-from src.model.source import SourceContribution, scan_concords_for_curies
+from src.model.source import SourceContribution, XrefGroup
 from src.reports.source_impact import (
     LookupContext,
     biolink_registration_note,
@@ -47,10 +53,30 @@ from src.reports.source_impact import (
 )
 
 # Detail-file names, written inside the report's per-source subdirectory.
-NEW_CLIQUES_CSV = "new-cliques.csv"
+#
+# Two of these are committed and four are generated locally and gitignored. The convention is that
+# the *unqualified* name is the full table and the *qualified* name is the committed reduction:
+#
+#   new-cliques.csv          full, gitignored   <->  new-cliques-top-100.csv   committed
+#   new-xrefs.csv            full, gitignored   <->  new-xrefs-summary.csv     committed
+#   modified-cliques.{csv,json}                       gitignored, no reduction
+#
+# Both full tables run to hundreds of KB or more and go stale on the next build, so they are not
+# worth a place in the diff; both reductions are permanent records of what the ingest looked like on
+# first commit. The full tables are still always written, so "regenerate and upload for SME review"
+# is a copy rather than a rebuild — see docs/AddingNewSources.md.
+#
+# The new-cliques reduction is a *ranked slice* (see write_new_cliques_csv) and embeds its limit in
+# the filename so a reader knows it is a sample without opening it. The new-xrefs reduction is an
+# *aggregate* (see write_new_xrefs_summary_csv), because what matters about a source's xrefs is which
+# join pathways it opens, not which individual rows carry them.
+NEW_CLIQUES_TOP_N = 100
+NEW_CLIQUES_CSV = f"new-cliques-top-{NEW_CLIQUES_TOP_N}.csv"
+NEW_CLIQUES_FULL_CSV = "new-cliques.csv"
 MODIFIED_CLIQUES_JSON = "modified-cliques.json"
 MODIFIED_CLIQUES_CSV = "modified-cliques.csv"
-NEW_XREFS_TSV = "new-xrefs.tsv"
+NEW_XREFS_SUMMARY_CSV = "new-xrefs-summary.csv"
+NEW_XREFS_FULL_CSV = "new-xrefs.csv"
 
 PIPE = "|"
 
@@ -139,8 +165,15 @@ def write_new_cliques_csv(
     path: pathlib.Path,
     diffs: dict[str, SourceImpactDiff],
     lookup: LookupContext,
+    limit: int | None = NEW_CLIQUES_TOP_N,
 ) -> int:
-    """Write one row per pure-new clique. Returns the number of cliques written.
+    """Write one row per pure-new clique, ranked, and capped at *limit* rows (``None`` for all).
+
+    The same ranking applies either way, so the committed capped file is always a prefix of the full
+    one — the two calls in ``write_detail_files`` differ only in *limit*.
+
+    Returns the number of rows actually written (so up to the cap, *not* the total number of
+    pure-new cliques — the report's headline count comes from the diff, not from here).
 
     Survival columns predict downstream Biolink prefix filtering. ``preferred_id_would_survive``
     judges the preferred (highest-priority) identifier; ``needs_biolink_registration`` is set
@@ -184,7 +217,14 @@ def write_new_cliques_csv(
                     PIPE.join(unsupported),
                 ]
             )
-    rows.sort(key=lambda r: (r[0], r[1]))
+    # Rank before capping, so the rows an SME must not miss are the ones kept.
+    # Key, by column: preferred_id_would_survive ("false" = the Biolink prefix filter drops this
+    # clique) first, then member_count descending (the structurally interesting merges — most
+    # pure-new cliques are singletons), then (pipeline, preferred_id) so the retained set and its
+    # git diff are stable across re-runs.
+    rows.sort(key=lambda r: (r[6] != "false", -r[4], r[0], r[1]))
+    if limit is not None:
+        del rows[limit:]
     _write_rows(path, header, rows)
     return len(rows)
 
@@ -307,13 +347,18 @@ def write_modified_cliques_json(
     return len(entries)
 
 
-def write_new_xrefs_tsv(
+def write_new_xrefs_csv(
     path: pathlib.Path,
-    contribution: SourceContribution,
-    intermediate_root: pathlib.Path,
+    xref_rows_by_pipeline: dict[str, list[tuple[str, str, str, str]]],
+    source_name: str,
     lookup: LookupContext,
 ) -> int:
     """Write one row per concord row touching a source CURIE, across all concord files.
+
+    This is the **full** table, generated locally and gitignored; ``write_new_xrefs_summary_csv``
+    writes the aggregate that gets committed. *xref_rows_by_pipeline* holds the already-scanned
+    ``scan_concords_for_curies`` output, keyed by pipeline, so the concord tree is walked once per
+    report rather than once per consumer.
 
     ``status`` reflects *which* concord file asserts the row, not before/after novelty
     (this writer does not diff the pre-source glom state, so it cannot tell whether the
@@ -333,11 +378,8 @@ def write_new_xrefs_tsv(
         "status",
     ]
     rows: list[list] = []
-    source_name = contribution.name
-    for st in sorted(contribution.pipelines):
-        stc = contribution.by_pipeline[st]
-        concords_dir = pathlib.Path(intermediate_root) / st / "concords"
-        for subject, predicate, obj, asserted_by in scan_concords_for_curies(concords_dir, stc.all_curies):
+    for st in sorted(xref_rows_by_pipeline):
+        for subject, predicate, obj, asserted_by in xref_rows_by_pipeline[st]:
             status = "added" if asserted_by == source_name else "from_other_source"
             rows.append(
                 [
@@ -352,7 +394,61 @@ def write_new_xrefs_tsv(
                 ]
             )
     rows.sort(key=lambda r: (r[0], r[1], r[4], r[6]))
-    _write_rows(path, header, rows, delimiter="\t")
+    _write_rows(path, header, rows)
+    return len(rows)
+
+
+def write_new_xrefs_summary_csv(
+    path: pathlib.Path,
+    groups: Iterable[XrefGroup],
+    lookup: LookupContext,
+) -> int:
+    """Write the committed xref aggregate: one row per example, group columns repeated.
+
+    The long layout (rather than one row per group with ``example_1..example_n`` columns) keeps the
+    file a flat table that GitHub renders and sorts, reuses the ``subject``/``object`` column
+    vocabulary of the full table, and avoids nesting quoted example strings inside quoted CSV
+    fields. The aggregate view is this table deduplicated on its first seven columns; ``xref_count``
+    is the group's total, so it repeats across that group's example rows.
+
+    Note that ``subject``/``object`` keep the orientation the concord file wrote, which may not match
+    the sorted ``prefix_1``/``prefix_2`` order — ``asserted_by`` is what says which side asserted the
+    mapping. Returns the number of rows written.
+    """
+    header = [
+        "pipeline",
+        "predicate",
+        "prefix_1",
+        "prefix_2",
+        "asserted_by",
+        "status",
+        "xref_count",
+        "subject",
+        "subject_label",
+        "object",
+        "object_label",
+    ]
+    rows: list[list] = []
+    for group in groups:
+        for subject, obj in group.examples:
+            rows.append(
+                [
+                    group.pipeline,
+                    group.predicate,
+                    group.prefix_1,
+                    group.prefix_2,
+                    group.asserted_by,
+                    group.status,
+                    group.count,
+                    subject,
+                    curie_label(subject, lookup.labels_by_prefix) or "",
+                    obj,
+                    curie_label(obj, lookup.labels_by_prefix) or "",
+                ]
+            )
+    # summarize_xref_groups already orders groups (biggest pathway first) and their examples, so the
+    # rows are emitted in that order rather than re-sorted here.
+    _write_rows(path, header, rows)
     return len(rows)
 
 
@@ -360,14 +456,23 @@ def write_detail_files(
     details_dir: pathlib.Path,
     contribution: SourceContribution,
     diffs: dict[str, SourceImpactDiff],
-    intermediate_root: pathlib.Path,
+    xref_rows_by_pipeline: dict[str, list[tuple[str, str, str, str]]],
+    xref_groups: Iterable[XrefGroup],
     lookup: LookupContext,
 ) -> dict[str, int]:
-    """Write all four detail files into ``details_dir``; return a {filename: row_count} map."""
+    """Write all six detail files into ``details_dir``; return a {filename: row_count} map.
+
+    The two committed reductions and their four locally-generated companions — see the filename
+    constants at the top of this module for which is which.
+    """
     details_dir.mkdir(parents=True, exist_ok=True)
     return {
         NEW_CLIQUES_CSV: write_new_cliques_csv(details_dir / NEW_CLIQUES_CSV, diffs, lookup),
+        NEW_CLIQUES_FULL_CSV: write_new_cliques_csv(details_dir / NEW_CLIQUES_FULL_CSV, diffs, lookup, limit=None),
         MODIFIED_CLIQUES_CSV: write_modified_cliques_csv(details_dir / MODIFIED_CLIQUES_CSV, diffs, lookup),
         MODIFIED_CLIQUES_JSON: write_modified_cliques_json(details_dir / MODIFIED_CLIQUES_JSON, diffs, lookup),
-        NEW_XREFS_TSV: write_new_xrefs_tsv(details_dir / NEW_XREFS_TSV, contribution, intermediate_root, lookup),
+        NEW_XREFS_SUMMARY_CSV: write_new_xrefs_summary_csv(details_dir / NEW_XREFS_SUMMARY_CSV, xref_groups, lookup),
+        NEW_XREFS_FULL_CSV: write_new_xrefs_csv(
+            details_dir / NEW_XREFS_FULL_CSV, xref_rows_by_pipeline, contribution.name, lookup
+        ),
     }

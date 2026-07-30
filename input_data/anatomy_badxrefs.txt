@@ -1,0 +1,28 @@
+# Individually wrong cross-reference pairs to drop from the anatomy concords.
+#
+# Format: "SUBJECT OBJECT", space separated, one pair per line, "#" comments. Matched in EITHER
+# direction, so the orientation a concord happens to write does not matter.
+#
+# This file is for pairs that survive prefix-level filtering (ANATOMY_OBO_IGNORE_LIST) because the
+# target prefix is legitimate in general -- MESH and GO really are anatomy xref targets -- but this
+# particular pair is wrong. Prefer fixing upstream where possible; each entry here is a standing
+# assertion that an ontology's own xref is incorrect, so state the reason.
+#
+# The characteristic symptom is a clique whose members disagree about what kind of thing they are:
+# a cell type merged with the gross structure it sits in, or an anatomical structure merged with a
+# cellular component. Those show up as identifiers landing in an unexpected compendium
+# (Cell.txt / CellularComponent.txt), which is a cheap thing to scan for after a build.
+
+# UBERON:0001236 "adrenal medulla" hasDbXref MESH:D019439, which is "Chromaffin Cells" -- the cell
+# type found in the adrenal medulla, not the medulla itself. This one xref welded the chromaffin
+# cell clique (CL:0000166) to the adrenal medulla clique (UBERON:0001236), producing a
+# biolink:Cell clique that also claimed to be the gross structure. UBERON reaches the correct MeSH
+# term (D000313 "Adrenal Medulla") independently via UMLS:C0001629, so nothing is lost by dropping
+# this pair.
+UBERON:0001236 MESH:D019439
+
+# UMLS:C0008503 "Chorion" is equated to GO:0042600 "egg chorion" in the UMLS concord. The GO term
+# is a cellular component (the acellular envelope of an insect/fish egg); the UMLS concept is the
+# mammalian extraembryonic membrane. This merged UBERON:0003124 "chorion membrane" into a
+# biolink:CellularComponent clique.
+UMLS:C0008503 GO:0042600

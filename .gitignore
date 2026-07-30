@@ -19,10 +19,17 @@ babel_outputs/
 .idea
 htmlcov/
 
-# Source-impact detail file: generated locally for digging/sharing, but not committed —
-# it grows roughly linearly with the source and is useless to commit for large additions.
-# The smaller CSV/TSV detail files in the same directory are committed.
+# Full source-impact detail tables: always generated locally for digging and for sharing with an
+# SME, never committed. Each grows roughly linearly with the source (for EMAPA: 1.2 MB of
+# modified-cliques, 464 KB of xrefs, 388 KB of new cliques) and goes stale on the next build, so
+# committing them adds megabytes nobody reads. What *is* committed is the two reductions the tool
+# writes beside them — new-cliques-top-100.csv and new-xrefs-summary.csv — which is why this list
+# is a fixed rule rather than the old "commit it when it happens to be small" judgement call.
+# To share a full table, re-run the tool and upload it; see docs/AddingNewSources.md.
 docs/sources/*/impact-report/modified-cliques.json
+docs/sources/*/impact-report/modified-cliques.csv
+docs/sources/*/impact-report/new-cliques.csv
+docs/sources/*/impact-report/new-xrefs.csv
 
 # Local scratch space for ad hoc files (analysis notebooks, one-off downloads, intermediates).
 # Anchored to the repo root: unanchored, this also swallowed tests/data/, so every committed test
@@ -39,3 +46,12 @@ docs/sources/*/impact-report/modified-cliques.json
 .coverage
 .coverage.*
 htmlcov/
+
+# Spreadsheet sources for the hand-curated manual concords. The .tsv the pipeline reads is
+# committed; the Numbers/Excel file it was exported from is a 170 KB binary that diffs as a blob
+# and is only useful on the maintainer's machine.
+*.numbers
+*.xlsx
+
+# macOS Finder metadata.
+.DS_Store
