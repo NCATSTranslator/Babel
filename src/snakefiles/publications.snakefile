@@ -62,8 +62,11 @@ rule generate_pubmed_concords:
     benchmark:
         config["output_directory"] + "/benchmarks/generate_pubmed_concords.tsv"
     resources:
-        # 2026jul22 took 20.0h of the 24h limit -- 83%, close enough that one slow run is a timeout.
-        runtime="36h",
+        # Deliberately left at 24h even though 2026jul22 took 20.0h of it (83%), which
+        # `babel-slurm-resources` reports as at-risk: 24h is known to work, 4h of slack has been
+        # enough so far, and a rewrite that removes this rule's cost is in progress. Raise it only
+        # if a run actually times out, and prefer fixing the rule.
+        runtime="24h",
         mem="128G",
     params:
         # Not inputs: see the comment on download_pubmed for why these directories are untracked.

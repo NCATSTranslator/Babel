@@ -140,7 +140,11 @@ and 132.1G across the two runs), so a rule that *isn't* stable is telling you so
    (or raise the one it has), and trim the `over` rules that declare their own. Check each against a
    second run's benchmarks first — see the two traps above.
 5. Re-run the analyzer to confirm the override list is empty (modulo rules that already carry a
-   block) and that no rule is left `at-risk` on either axis — every rule now fits its allocation.
+   block) and that every rule left `at-risk` on either axis is one you *decided* to leave. A
+   deliberate exception is fine — `generate_pubmed_concords` sits at 83% of its 24h limit because
+   that limit is known to work and the real fix is to make the rule cheaper — but it belongs in
+   [`slurm/README.md`](../../slurm/README.md) with the reasoning, or the next sizing pass will
+   "fix" it by reserving wall time nobody needed.
 6. On later runs, re-check the *existing* override rules against the "req mem" vs "actual RSS"
    columns and trim any that have grown over-provisioned. There is no CI guard for this (it would
    require committing benchmark data); it's a periodic manual pass on the files a run leaves behind.

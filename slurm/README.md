@@ -116,7 +116,7 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 | `generate_prefix_report` | `duckdb.snakefile` | 1500G | — | approx_count_distinct() over all edges, biolink_type read from the denormalized Edge column (no join); memory_limit 1000G, 1 thread. Replaced the former `generate_curie_report` + `generate_clique_leader_report`, scanning the Edge set once instead of twice |
 | `chembl_labels_and_smiles` | `datacollect.snakefile` | 128G | — | RDF parse |
 | `chemical_unichem_concordia` | `chemical.snakefile` | 192G | — | UniChem merge (117.0 GB peak, was 91% of 128G) |
-| `generate_pubmed_concords` | `publications.snakefile` | 128G | 36h | Full PubMed parse; 17.5h on babel-1.17, 20.0h on 2026jul22 and still growing |
+| `generate_pubmed_concords` | `publications.snakefile` | 128G | 24h | Full PubMed parse; 17.5h on babel-1.17, 20.0h on 2026jul22. Reported at-risk (83%) and left alone on purpose — see below |
 | `generate_pubmed_compendia` | `publications.snakefile` | 192G | 4h | PubMed compendium build; 132.5 GB peak was at or past its own 128G request, and 88% of the 2h default |
 | `geneprotein_conflated_synonyms` | `geneprotein.snakefile` | 512G | 6h | Conflated synonym merge |
 | `drugchemical_conflation` | `drugchemical.snakefile` | 96G | — | Drug/chemical conflation (59.8 GB peak, was 93% of 64G) |
@@ -150,9 +150,14 @@ review also reports runtime fit). Two cautions from it:
 - `get_ensembl` swung from 3 minutes (babel-1.17) to 1.9h (2026jul22). Network-bound rules vary
   by an order of magnitude between runs, so their runtimes are deliberately generous.
 
-After the 2026jul22 sizing pass no rule is within 80% of its runtime limit. The slowest rule
-still on the default runtime is `untyped_chemical_compendia` at 58 minutes, so the 120-minute
-default has roughly 2x headroom and was left alone.
+After the 2026jul22 sizing pass one rule is still within 80% of its runtime limit, deliberately:
+`generate_pubmed_concords` sits at 83% of 24h. That limit is known to work, 4h of slack has been
+enough across two runs, and a rewrite that removes the rule's cost is in progress — so the fix is
+to make the rule cheaper, not to reserve a day and a half of wall time for it. Raise it only if a
+run actually times out.
+
+The slowest rule still on the *default* runtime is `untyped_chemical_compendia` at 58 minutes, so
+the 120-minute default has roughly 2x headroom and was left alone.
 
 ## Temporary Scratch Space
 
