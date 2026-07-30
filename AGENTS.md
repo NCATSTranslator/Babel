@@ -266,7 +266,7 @@ ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandl
   never export one that is called once per row, because crossing pyo3 per CURIE costs more than the
   Python it replaces. Every accelerated function keeps its Python implementation as the reference,
   with a test asserting the two agree, and is reached through `src/accel.py` (never `src._accel`
-  directly) so a missing extension falls back rather than breaking DAG parsing for all 245 rules.
+  directly) so a missing extension falls back rather than breaking DAG parsing for all 243 rules.
   Pick targets from a run's `benchmark:` TSVs, not by reading code — see
   [`docs/Rust.md`](docs/Rust.md), which also records the three targets chosen that way that turned
   out to be pure-Python bugs.
