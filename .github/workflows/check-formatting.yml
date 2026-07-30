@@ -9,12 +9,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
-      - uses: astral-sh/ruff-action@v3
+      # version-file so CI runs the ruff in uv.lock. Without it the action installs the latest
+      # release, so a ruff that nobody has locally can fail this job on a PR that did not touch
+      # any Python -- 0.16 did exactly that by adding Markdown formatting. ruff is a standalone
+      # binary, so no setup-python step is needed.
+      #
+      # Pinned to an exact version because ruff-action publishes immutable releases from v4 on:
+      # there is no moving `v4` tag to track, and `@v4` fails to resolve.
+      - uses: astral-sh/ruff-action@v4.1.0
         with:
+          version-file: "uv.lock"
           args: "check --output-format github"
-      - uses: astral-sh/ruff-action@v3
+      - uses: astral-sh/ruff-action@v4.1.0
         with:
+          version-file: "uv.lock"
           args: "format --check"
 
   check-formatting-with-snakefmt:
