@@ -39,6 +39,13 @@ uv run python releases/scripts/draft_release_notes.py <release> \
 `--build-dir` needs `reports/tables/` from the build; without it the count table and the
 notable-changes section come out as TODOs. The user usually has a copy under `data/`.
 
+Draft while the release is on **Exp**, not Dev. That is the order the release actually happens in —
+Exp is publicly reachable, so the note is what tells people they can test the new build before it is
+promoted — and it is what the `--nodenorm-status` / `--nameres-status` defaults point at. If either
+service still reports the *previous* Babel version, the script emits an HTML warning comment above
+the `## Summary` table; treat that as "not ready to draft this section yet" rather than editing the
+comment out.
+
 ## 3. Triage the pull request checklist
 
 Every PR lands as `- [ ]` under `## All changes in this release`. Move what matters up into

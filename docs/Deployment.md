@@ -44,9 +44,12 @@ to users who aren't system administrators for these tools:
    which had to have both reports uploaded to it by hand.
 
    `releases/scripts/draft_release_notes.py` turns those reports, the three repositories' pull
-   request lists, and the deployed services' `/status` endpoints into a draft note. Run it once
-   NodeNorm and NameRes are up (step 8), so the `## Summary` table is populated — it warns if a
-   service is still answering from the previous Babel version. The full process is in
+   request lists, and the deployed services' `/status` endpoints into a draft note. Run it once the
+   build is up on **Exp** (step 3/4), which is what the `/status` defaults point at — the note is
+   written while the release is on Exp and before it is promoted to Dev, because Exp is publicly
+   reachable, so the note is what tells people they can test against it. The script warns if a
+   service is still answering from the previous Babel version, which is what pointing either URL at
+   Dev too early looks like. The full process is in
    [`releases/README.md`](../releases/README.md); archiving the prefix report and bumping the pins
    is in [`RunningBabel.md`](RunningBabel.md#archiving-the-prefix-report-for-the-next-comparison).
 7. **Check with RENCI NodeNorm users before updating RENCI NodeNorm and NameRes instances**

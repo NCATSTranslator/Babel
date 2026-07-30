@@ -192,11 +192,25 @@ NODENORM_STATUS = {
         "id_to_eqids_db": {"dbname": "id-eq-id", "count": 398664426, "used_memory_rss_human": "94.61G"},
     },
 }
+# NameRes v1.5.2 (Dev at the time of writing) nests the Solr counters under "solr"...
 NAMERES_STATUS = {
     "status": "ok",
     "babel_version": "2025sep1",
     "nameres_version": "v1.5.2",
     "solr": {"numDocs": 425583002, "maxDoc": 425586610, "size": "142.17 GB"},
+}
+# ...while v1.7.0 (Exp, serving 2026jul22) promotes them to the top level. Trimmed verbatim from
+# https://name-resolution-exp.apps.renci.org/status -- both shapes are live simultaneously, and
+# reading only the nested one yields a blank Solr row rather than an error.
+NAMERES_STATUS_V17 = {
+    "status": "ok",
+    "message": "Reporting results from primary core.",
+    "babel_version": "2026jul22",
+    "nameres_version": "v1.7.0",
+    "numDocs": 331513708,
+    "maxDoc": 331516999,
+    "deletedDocs": 3291,
+    "size": "109.75 GB",
 }
 
 
@@ -209,6 +223,22 @@ def test_summary_table_uses_the_published_row_order_not_the_json_order():
     assert "605,837,726" in rows[1] and "53.78G" in rows[1]
     # The Solr row comes from NameRes, not NodeNorm.
     assert "425,583,002" in rows[-1] and "142.17 GB" in rows[-1]
+
+
+@pytest.mark.unit
+def test_summary_table_reads_solr_counters_from_either_nameres_shape():
+    """v1.5.2 nests them under `solr`, v1.7.0 puts them at the top level; both must populate the row.
+
+    Reading only one shape leaves the Solr row *blank* rather than erroring, so the note would ship
+    with a missing number that nothing flags.
+    """
+    for status, docs, size in (
+        (NAMERES_STATUS, "425,583,002", "142.17 GB"),
+        (NAMERES_STATUS_V17, "331,513,708", "109.75 GB"),
+    ):
+        row = [line for line in drn.summary_table(NODENORM_STATUS, status) if line.startswith("| ")][-1]
+        assert row.split("|")[2].strip() == "name_lookup"
+        assert docs in row and size in row
 
 
 @pytest.mark.unit

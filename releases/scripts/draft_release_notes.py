@@ -92,11 +92,14 @@ SUMMARY_DB_ORDER = [
     "chemical_drug_db",
 ]
 
-# Deployed instances whose /status endpoints report the numbers for the `## Summary` table. These are
-# the RENCI development deployments -- the ones a release is tested against before it goes to ITRB
-# (see docs/Deployment.md). Override per run when a release is staged somewhere else.
+# Deployed instances whose /status endpoints report the numbers for the `## Summary` table. Both are
+# the RENCI **Exp** deployments, which is where a release lands first: the note is written while the
+# build is on Exp, before it is promoted to Dev, because Exp is publicly reachable and the note is
+# what tells people they can test against it. Pointing either of these at Dev reports the *previous*
+# release until the promotion happens (see docs/Deployment.md). Override per run when a release is
+# staged somewhere else.
 NODENORM_STATUS_URL = "https://nodenormalization-exp.apps.renci.org/status"
-NAMERES_STATUS_URL = "https://name-resolution-sri.renci.org/status"
+NAMERES_STATUS_URL = "https://name-resolution-exp.apps.renci.org/status"
 STATUS_TIMEOUT_SECONDS = 30
 
 
@@ -273,6 +276,21 @@ def _column_widths(header, rows) -> list[int]:
     return [max([len(h), *(len(row[i]) for row in rows)]) for i, h in enumerate(header)]
 
 
+def _solr_stats(nameres: dict | None) -> dict:
+    """The Solr counters from a NameRes ``/status``, whichever shape that version serves.
+
+    NameRes v1.5.2 nests them under ``solr``; v1.7.0 promotes ``numDocs``/``maxDoc``/``size`` to the
+    top level. Both shapes are live right now (Dev is on v1.5.2, Exp on v1.7.0), and reading only the
+    nested one yields a silently *blank* Solr row rather than an error -- which is the failure this
+    table exists to prevent.
+    """
+    nameres = nameres or {}
+    nested = nameres.get("solr")
+    if isinstance(nested, dict) and "numDocs" in nested:
+        return nested
+    return nameres if "numDocs" in nameres else {}
+
+
 def summary_table(nodenorm: dict | None, nameres: dict | None) -> list[str]:
     """The `## Summary` table of deployed database sizes, from the two services' /status endpoints."""
     rows: list[tuple[str, str, str, str]] = []
@@ -291,7 +309,7 @@ def summary_table(nodenorm: dict | None, nameres: dict | None) -> list[str]:
             )
         )
 
-    solr = (nameres or {}).get("solr") or {}
+    solr = _solr_stats(nameres)
     num_docs = solr.get("numDocs")
     rows.append(
         ("Solr", "name_lookup", f"{num_docs:,}" if isinstance(num_docs, int) else "", str(solr.get("size", "")))
