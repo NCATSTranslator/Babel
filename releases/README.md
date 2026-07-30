@@ -2,7 +2,9 @@
 
 ## General releases
 
-- TODO
+- The `babel-pipeline` wheel now bundles the pipeline `.snakefile`s, so an installed package can
+  actually run the pipeline (previously it shipped no non-Python files) — maturin build-backend swap,
+  [PR #975](https://github.com/NCATSTranslator/Babel/pull/975).
 
 ## Translator-specific releases
 
