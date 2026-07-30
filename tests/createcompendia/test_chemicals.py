@@ -32,8 +32,10 @@ from src.createcompendia.chemicals import (
     create_typed_sets,
     make_chebi_relations,
     read_chebi_lookup_ids,
+    read_untyped_compendium,
     split_chebi_sdf_values,
     write_unichem_concords,
+    write_untyped_compendium,
 )
 from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
@@ -617,9 +619,7 @@ def _untyped_sets(tmp_path, badxrefs_text, **kwargs):
         badxrefs=str(badxrefs),
         **kwargs,
     )
-    import ast
-
-    return [ast.literal_eval(line) for line in untyped.read_text().splitlines()]
+    return list(read_untyped_compendium(untyped))
 
 
 @pytest.mark.unit
@@ -803,3 +803,61 @@ def test_build_untyped_compendia_survives_a_concord_with_no_pairs_left(tmp_path,
     )
 
     assert untyped_concord.read_text().count("\n") == 1
+
+
+# THE UNTYPED-COMPENDIUM HANDOFF
+
+
+@pytest.mark.unit
+def test_untyped_compendium_round_trips(tmp_path):
+    """What build_untyped_compendia writes must be exactly what build_compendia reads back."""
+    path = tmp_path / "untyped_compendium"
+    cliques = {
+        frozenset({"CHEBI:15377", "PUBCHEM.COMPOUND:962", "INCHIKEY:XLYOFNOQVPJJNP-UHFFFAOYSA-N"}),
+        frozenset({"CHEBI:16234"}),
+    }
+
+    write_untyped_compendium(path, cliques)
+
+    assert read_untyped_compendium(path) == cliques
+
+
+@pytest.mark.unit
+def test_a_cliques_line_does_not_depend_on_member_insertion_order(tmp_path):
+    """A given clique must always serialise to the same text, so two builds' files can be compared
+    with `sort | diff` rather than re-parsed.
+
+    Only within-line order is stable. Line order still follows set iteration and is not reproducible
+    between runs -- sorting ~100M lines to fix that would cost more than the diffability is worth.
+    """
+    members = ["CHEBI:15377", "PUBCHEM.COMPOUND:962", "MESH:D005947"]
+    forwards, backwards = tmp_path / "a", tmp_path / "b"
+
+    write_untyped_compendium(forwards, [frozenset(members)])
+    write_untyped_compendium(backwards, [frozenset(reversed(members))])
+
+    assert forwards.read_text() == backwards.read_text()
+
+
+@pytest.mark.unit
+def test_reading_a_pre_jsonl_partial_says_to_delete_it(tmp_path):
+    """A partial left over from before the format switch must fail with an actionable message.
+
+    Snakemake will not rebuild a partial that is newer than its inputs, so a tree carried over from
+    an older checkout reaches build_compendia still holding repr(set) lines. Failing inside
+    json.loads would name neither the cause nor the fix.
+    """
+    path = tmp_path / "untyped_compendium"
+    path.write_text("{'CHEBI:15377', 'PUBCHEM.COMPOUND:962'}\n")
+
+    with pytest.raises(RuntimeError, match=r"pre-JSONL `repr\(set\)` format"):
+        read_untyped_compendium(path)
+
+
+@pytest.mark.unit
+def test_blank_lines_are_skipped(tmp_path):
+    """A trailing newline is not a clique."""
+    path = tmp_path / "untyped_compendium"
+    path.write_text('["CHEBI:15377"]\n\n')
+
+    assert read_untyped_compendium(path) == {frozenset({"CHEBI:15377"})}
