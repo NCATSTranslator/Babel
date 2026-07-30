@@ -6,6 +6,7 @@ import os
 import re
 import sys
 from collections import namedtuple
+from functools import cache
 from logging.handlers import RotatingFileHandler
 from time import gmtime
 
@@ -402,9 +403,18 @@ def _biolink_ref(biolink_version: str) -> str:
     return f"v{biolink_version}"
 
 
+@cache
 def get_biolink_model_toolkit(biolink_version):
     """
     Return a BMT Toolkit object for the specified Biolink Model version.
+
+    Cached per version: constructing a Toolkit fetches ``biolink-model.yaml`` over the network and
+    parses it through linkml, and callers construct one far more often than the handful of distinct
+    versions in play would suggest. ``write_compendium`` builds a ``NodeFactory`` -- and therefore a
+    Toolkit -- on every call, and the chemical build calls it once per entry in
+    ``config.yaml: chemical_outputs``, so an uncached Toolkit meant eight fetches and eight full
+    model parses in a single rule. A build uses exactly one ``biolink_version``, so in practice this
+    cache holds one entry.
 
     The model YAML is fetched from GitHub on first use. Pass the version string from
     config.yaml (``biolink_version`` key, e.g. ``"4.3.6"`` or a Git commit SHA).

@@ -66,6 +66,19 @@ class TestGetBiolinkModelToolkitNetwork:
         element = toolkit.get_element("chemical entity")
         assert element is not None
 
+    def test_toolkit_is_cached_per_version(self):
+        """Two calls for the same version must return the same Toolkit, and different versions must not share one.
+
+        Constructing a Toolkit fetches biolink-model.yaml over the network and parses it through
+        linkml. write_compendium() builds a NodeFactory -- and so a Toolkit -- on every call, and
+        the chemical build calls write_compendium once per entry in config.yaml: chemical_outputs,
+        so without the cache that is eight fetches and eight parses in one rule.
+        """
+        from src.util import get_biolink_model_toolkit
+
+        assert get_biolink_model_toolkit("4.4.2") is get_biolink_model_toolkit("4.4.2")
+        assert get_biolink_model_toolkit("4.4.2") is not get_biolink_model_toolkit("4.4.1")
+
 
 @pytest.mark.unit
 class TestEnsureParentDir:
