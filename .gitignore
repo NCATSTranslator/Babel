@@ -39,7 +39,7 @@ htmlcov/
 
 # maturin / Rust build artifacts
 rust/target/
-# native extension dropped into src/ by `maturin develop` (don't commit compiled binaries)
-src/rs.*.so
-src/rs.*.pyd
-src/rs.*.dylib
+# native extension dropped into src/ by an editable install (don't commit compiled binaries)
+src/_accel*.so
+src/_accel*.pyd
+src/_accel*.dylib

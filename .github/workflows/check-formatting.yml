@@ -24,7 +24,24 @@ jobs:
       - uses: actions/checkout@v7
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v7
-      - run: uv run snakefmt --check --compact-diff .
+      # --no-project: snakefmt does not need babel-pipeline installed, and a plain `uv run` here
+      # would sync the project, which since the maturin swap means invoking cargo. That left a lint
+      # job depending on the runner image happening to ship a Rust toolchain.
+      - run: uv run --no-project --with snakefmt snakefmt --check --compact-diff .
+
+  check-formatting-with-cargo:
+    name: Check Rust formatting and lints with cargo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - run: cargo fmt --manifest-path rust/Cargo.toml --check
+      - run: cargo clippy --manifest-path rust/Cargo.toml --all-targets -- -D warnings
 
   check-formatting-with-rumdl:
     name: Check Markdown formatting with rumdl
