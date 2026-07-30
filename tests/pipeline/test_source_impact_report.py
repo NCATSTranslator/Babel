@@ -10,7 +10,13 @@ import os
 
 import pytest
 
-from src.reports.source_impact_details import NEW_CLIQUES_CSV, NEW_CLIQUES_TOP_N
+from src.reports.source_impact_details import (
+    NEW_CLIQUES_CSV,
+    NEW_CLIQUES_FULL_CSV,
+    NEW_CLIQUES_TOP_N,
+    NEW_XREFS_FULL_CSV,
+    NEW_XREFS_SUMMARY_CSV,
+)
 from src.tools.source_impact_report.cli import main as run_cli
 
 
@@ -49,13 +55,15 @@ def test_source_impact_report_runs_for_emapa(emapa_pipeline_outputs, tmp_path):
     assert "biolink:AnatomicalEntity" in report
     assert "Comparison mode: synthetic" in report
 
-    # The four detail files land in the report's <output-stem>/ subdirectory.
+    # The six detail files land in the report's <output-stem>/ subdirectory.
     details = output_path.parent / output_path.stem
     for fname in (
         NEW_CLIQUES_CSV,
+        NEW_CLIQUES_FULL_CSV,
         "modified-cliques.csv",
         "modified-cliques.json",
-        "new-xrefs.tsv",
+        NEW_XREFS_SUMMARY_CSV,
+        NEW_XREFS_FULL_CSV,
     ):
         path = details / fname
         assert path.exists(), f"expected detail file {path}"
@@ -63,5 +71,14 @@ def test_source_impact_report_runs_for_emapa(emapa_pipeline_outputs, tmp_path):
     # EMAPA contributes thousands of pure-new cliques, so this file must be capped (header + N rows).
     new_cliques_lines = (details / NEW_CLIQUES_CSV).read_text().splitlines()
     assert len(new_cliques_lines) == NEW_CLIQUES_TOP_N + 1, "new-cliques file should be capped for EMAPA"
+    # EMAPA's xrefs all arrive through a single UBERON->EMAPA pathway, so the committed summary is a
+    # tiny fraction of the full table it reduces.
+    summary_rows = len((details / NEW_XREFS_SUMMARY_CSV).read_text().splitlines())
+    full_rows = len((details / NEW_XREFS_FULL_CSV).read_text().splitlines())
+    assert summary_rows < full_rows / 100, "xref summary should be far smaller than the full table"
+    # Section 3's join-pathway table sees the UBERON-asserted xrefs the source-asserted counts miss.
+    assert "### Join pathways" in report
+    assert "from_other_source" in report
     # The markdown links into that subdirectory by its relative name.
     assert f"{output_path.stem}/{NEW_CLIQUES_CSV}" in report
+    assert f"{output_path.stem}/{NEW_XREFS_SUMMARY_CSV}" in report
