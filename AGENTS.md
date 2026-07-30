@@ -165,6 +165,12 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
   *humanfriendly string*, so a rule's `mem="512G"` reaches Python as `"512 GB"` — and `mem_mb` is
   decimal, so it is `512000`, not `524288`. See `duckdb_memory_limit_mb()` in
   `src/snakefiles/util.py`, whose `.endswith("G")` parse of `resources.mem` broke on exactly this.
+- **Benchmark memory is mebibytes; `mem` is decimal MB** — the two are ~4.9% apart and the same
+  rule's numbers appear in both units. A `benchmark:` TSV's `max_rss` is labelled "MB" but computed
+  as bytes `/ 1024 / 1024`, so a rule "peaking at 132G" needs `mem="142G"` to be at 100% of its
+  limit. Comparing them unconverted always errs toward *looking safe*. See the Units section of
+  [`docs/tools/Resources.md`](docs/tools/Resources.md); `babel-slurm-resources` converts on the way
+  in and reports decimal throughout, so its recommendation is the string to paste into a rule.
 - **Per-compendium metadata YAMLs** — `babel_outputs/metadata/<Type>.yaml` records provenance with
   per-source `prefix_counts` like `xref(CHEBI, DrugCentral): 4302`. Aggregate (prefix-pair) only —
   confirms a join pathway exists, not whether *specific* CURIEs are joinable.
