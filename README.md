@@ -113,7 +113,7 @@ other APIs intended primarily for Translator users.
 
 You can find out more about NodeNorm at its
 [Swagger interface](https://nodenormalization-sri.renci.org/docs) or
-[in this Jupyter Notebook](https://github.com/NCATSTranslator/NodeNormalization/blob/master/documentation/NodeNormalization.ipynb).
+[in this Jupyter Notebook](https://github.com/NCATSTranslator/NodeNormalization/blob/main/documentation/NodeNormalization.ipynb).
 
 ### What is the Name Resolver (NameRes)?
 
@@ -125,7 +125,7 @@ autocomplete text fields, it has also been used for named-entity linkage.
 
 You can find out more about NameRes at its
 [Swagger interface](https://name-resolution-sri.renci.org/docs) or
-[in this Jupyter Notebook](https://github.com/NCATSTranslator/NameResolution/blob/master/documentation/NameResolution.ipynb).
+[in this Jupyter Notebook](https://github.com/NCATSTranslator/NameResolution/blob/main/documentation/NameResolution.ipynb).
 
 ## Understanding Babel outputs
 

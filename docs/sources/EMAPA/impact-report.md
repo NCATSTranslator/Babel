@@ -49,6 +49,16 @@ Totals: 0 cross-reference rows across 1 concord file(s).
 - anatomy
   - (no concord rows)
 
+### Join pathways (every asserted cross-reference, not only this source's own)
+
+`status` is `added` when EMAPA's own concord file asserts the pathway and
+`from_other_source` when another source's does — the latter may predate this addition. The
+prefix pair is sorted, so `asserted_by` is what tells you which side declared it.
+
+| pipeline | predicate | prefix pair | asserted by | status | xrefs |
+|---|---|---|---|---|---|
+| anatomy | `xref` | EMAPA ↔ UBERON | `UBERON` | from_other_source | 4,336 |
+
 ## 4. Clique impact
 
 **Worst-case view.** This report is computed from the intermediate identifier and concord files and
@@ -70,11 +80,17 @@ change the source could introduce before that filtering is applied.
   merges). This is distinct from the 0 existing cliques that change, since one clique can gain
   several identifiers.
 - Total cliques in this pipeline go from 175,117 to 178,870
-- Full list of new cliques: [`impact-report/new-cliques.csv`](impact-report/new-cliques.csv)
-- The per-row modified-clique and new-xref records (`modified-cliques.csv`, 4,325 rows;
-  `new-xrefs.tsv`, 4,337 rows) are not committed — together they are ~1.7 MB of detail that is
-  only useful while reviewing this addition. Regenerate them, and this report, with
-  `uv run source-impact-report --source EMAPA`.
+- Sample of new cliques (top 100, unsurvivable and largest first):
+  [`impact-report/new-cliques-top-100.csv`](impact-report/new-cliques-top-100.csv)
+- Cross-reference summary (join pathways with counts and example rows):
+  [`impact-report/new-xrefs-summary.csv`](impact-report/new-xrefs-summary.csv)
+- No detail table is committed here in full, because each is large and only useful while reviewing
+  this addition: the new-cliques list is capped at its top 100 of 3,753 rows (all single-identifier
+  cliques with no survival problems); the cross-references are aggregated from 4,336 rows into the
+  single UBERON↔EMAPA pathway above, with ten example rows; and the per-row modified-clique records
+  (`modified-cliques.csv`, 4,325 rows, 1.2 MB) are omitted entirely. `uv run source-impact-report
+  --source EMAPA` regenerates this report and writes all three full tables next to it. If an SME
+  needs to audit individual rows, upload the relevant full table and link it read-only from the PR.
 
 #### Sample pure-new cliques (up to 3)
 

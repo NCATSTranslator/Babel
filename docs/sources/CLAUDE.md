@@ -143,6 +143,40 @@ never fires for a CUI another pipeline already typed" reach caveat — are docum
 itself. See [`docs/sources/UMLS/Leftover.md`](UMLS/Leftover.md) for the coverage report and the
 drift test that keeps the tables honest.
 
+## Commit a ranked sample, not a huge derived table
+
+A per-row artifact that runs to thousands of near-identical rows should be committed as a **ranked
+top-N slice**, not in full and not gitignored away. The full file is megabytes that no SME reads and
+that goes stale on the next build; nothing at all loses the record of what the output looked like on
+first ingest. Name the file for the cap (`new-cliques-top-100.csv`) so a reader knows it is a sample
+without opening it, and say in the prose page how to regenerate the full version.
+
+The cap is only safe if the writer **ranks before truncating**, and the ranking must put the rows
+that would change someone's mind first — for the source-impact report that means identifiers the
+Biolink prefix filter would drop, then the largest cliques, then CURIE order for a stable diff. A
+blind `rows[:N]` over a CURIE-sorted file keeps an arbitrary identifier-range prefix and can hide
+exactly the problems the artifact exists to surface. `write_new_cliques_csv` in
+`src/reports/source_impact_details.py` is the worked example; see
+[`src/tools/source_impact_report/CLAUDE.md`](../../src/tools/source_impact_report/CLAUDE.md).
+
+### Aggregate when rows are not the unit of interest
+
+A slice is only the right reduction when the rows themselves are what a reviewer reads. When the
+interesting structure is *what kinds of rows there are*, aggregate instead: group on the columns
+that identify a kind, give each group its total, and attach a handful of example rows so the groups
+stay judgeable. The source-impact `new-xrefs-summary.csv` is the worked case — EMAPA's 4,336 xrefs
+are one join pathway, so listing 100 of them tells a reviewer far less than one row saying "UBERON
+asserts 4,336 `xref`s to EMAPA" plus ten examples.
+
+Two rules that generalise from it:
+
+- **Canonicalise the grouping key, but only where the variation is an artifact.** Sorting a prefix
+  pair is right, because which side a concord file writes first is arbitrary. Merging the two
+  *asserters* of that pair is wrong, because that is the difference between a mapping this change
+  introduces and one that already existed.
+- **Keep the examples honest.** Spread them across the group rather than taking the first N, or the
+  sample silently becomes "the lowest identifiers".
+
 ## Storing generation scripts with the artifact
 
 When a non-trivial script produces a **committed** artifact (an audit CSV, a curated mapping, a
