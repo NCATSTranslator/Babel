@@ -143,6 +143,25 @@ never fires for a CUI another pipeline already typed" reach caveat — are docum
 itself. See [`docs/sources/UMLS/Leftover.md`](UMLS/Leftover.md) for the coverage report and the
 drift test that keeps the tables honest.
 
+## Commit a ranked sample, not a huge derived table
+
+A per-row artifact that runs to thousands of near-identical rows should be committed as a **ranked
+top-N slice**, not in full and not gitignored away. The full file is megabytes that no SME reads and
+that goes stale on the next build; nothing at all loses the record of what the output looked like on
+first ingest. Name the file for the cap (`new-cliques-top-100.csv`) so a reader knows it is a sample
+without opening it, and say in the prose page how to regenerate the full version.
+
+The cap is only safe if the writer **ranks before truncating**, and the ranking must put the rows
+that would change someone's mind first — for the source-impact report that means identifiers the
+Biolink prefix filter would drop, then the largest cliques, then CURIE order for a stable diff. A
+blind `rows[:N]` over a CURIE-sorted file keeps an arbitrary identifier-range prefix and can hide
+exactly the problems the artifact exists to surface. `write_new_cliques_csv` in
+`src/reports/source_impact_details.py` is the worked example; see
+[`src/tools/source_impact_report/CLAUDE.md`](../../src/tools/source_impact_report/CLAUDE.md).
+
+An artifact that is *not* derivable from another committed file — the source-impact `new-xrefs.tsv`,
+which records the joins the source actually made — stays uncapped.
+
 ## Storing generation scripts with the artifact
 
 When a non-trivial script produces a **committed** artifact (an audit CSV, a curated mapping, a

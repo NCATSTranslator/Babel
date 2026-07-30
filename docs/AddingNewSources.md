@@ -372,15 +372,16 @@ If the report shows no synthetic diff for your pipeline, either it is not regist
 
 #### Detail files for SME review
 
-Alongside `impact-report.md`, the tool writes an `impact-report/` subdirectory with the
-full, uncapped data as CSV/TSV files (GitHub renders these as sortable tables). Pass
-`--no-detail-files` to skip. All files are deterministically sorted (clean diffs).
+Alongside `impact-report.md`, the tool writes an `impact-report/` subdirectory with the data as
+CSV/TSV files (GitHub renders these as sortable tables). Pass `--no-detail-files` to skip. All
+files are deterministically sorted (clean diffs).
 
 The three committed files:
 
-- **`new-cliques.csv`** — one row per pure-new clique. Columns: `pipeline, preferred_id,
-  preferred_label, biolink_type, member_count, equivalent_ids`, plus survival columns
-  `preferred_id_would_survive, needs_biolink_registration, unsupported_prefixes`.
+- **`new-cliques-top-100.csv`** — one row per pure-new clique, **capped at the top 100 rows**
+  (see below). Columns: `pipeline, preferred_id, preferred_label, biolink_type, member_count,
+  equivalent_ids`, plus survival columns `preferred_id_would_survive,
+  needs_biolink_registration, unsupported_prefixes`.
 - **`modified-cliques.csv`** — one row per source identifier landing in an existing clique.
   Includes `change_kind` (`expanded`/`merged`), `added_kind` (`added` = structurally new,
   `preexisting` = already present via xref), survival columns, and the clique's full
@@ -393,8 +394,27 @@ The three committed files:
 
 `modified-cliques.json` is written locally but gitignored.
 
-Note that `equivalent_ids` is a comma-joined list inside one quoted CSV field, so these files need
-a real CSV parser rather than splitting on commas.
+Note that ontology labels contain commas, so `preferred_label` is a quoted CSV field and these files
+need a real CSV parser rather than splitting on commas. (`equivalent_ids` is *pipe*-joined, so split
+that column on `|`.)
+
+##### Why the new-cliques file is capped
+
+`new-cliques-top-100.csv` is the only capped detail file, and this is the pattern to follow for
+every new source: **commit the capped file, never the full list.** A source contributes thousands of
+pure-new cliques (3,753 for EMAPA, 14,750 for MP) and almost all of them are clean
+single-identifier cliques, so the full file is megabytes that no reviewer reads and that goes stale
+on the next build. 100 rows is enough to record what the ingest's output looked like on original
+ingest and to give an SME a representative sample. Re-run the tool for the full list.
+
+The cap is only safe because the writer ranks first: identifiers the Biolink prefix filter would
+drop come first, then the largest cliques, then CURIE order. That keeps the rows worth reviewing —
+above all the survival failures this report exists to catch — from being truncated away, and keeps
+the retained set stable across re-runs. `NEW_CLIQUES_TOP_N` in
+`src/reports/source_impact_details.py` is the single knob; the filename derives from it.
+
+`new-xrefs.tsv` is deliberately *not* capped: it is the non-derivable record of the joins the source
+actually made, which is the part of a new ingest worth keeping in full.
 
 ##### Survival columns
 
@@ -544,9 +564,9 @@ Commit convention: put the artifacts in a change-named subdirectory —
 `docs/pipelines/<pipeline>/<change>/` for a pipeline-wide one — alongside a short prose page
 explaining what was compared and summarising added/split/moved/deleted (see
 `docs/sources/MP/disjointness.md`). Always commit the tiny `clique-diff.summary.json`; commit
-the per-row `clique-diff.csv` when it is reasonably sized (it is the same class of artifact as
-the source-impact `new-cliques.csv`), and gitignore it like `modified-cliques.json` only if it
-is very large.
+the per-row `clique-diff.csv` when it is reasonably sized, and when it is not, prefer committing a
+ranked top-N slice over either the full file or nothing — the same treatment the source-impact
+`new-cliques-top-100.csv` gets, and for the same reasons.
 
 **Stranded concord-only identifiers.** A clique-restructuring change can strand an identifier
 that appears in a concord but in no ids file (an out-of-date mapping). With no member carrying

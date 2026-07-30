@@ -8,9 +8,16 @@ diffing the two clique states.
 uv run source-impact-report --source EMAPA
 ```
 
-Writes `docs/sources/<SOURCE>/impact-report.md` plus an `impact-report/` subdirectory holding
-the full detail files. Commit `new-cliques.csv`, `modified-cliques.csv`, and `new-xrefs.tsv`;
+Writes `docs/sources/<SOURCE>/impact-report.md` plus an `impact-report/` subdirectory holding the
+detail files. Commit `new-cliques-top-100.csv`, `modified-cliques.csv`, and `new-xrefs.tsv`;
 `modified-cliques.json` is gitignored because it grows roughly linearly with the source.
+
+`new-cliques-top-100.csv` is the one capped detail file — a source's full pure-new-clique list runs
+to thousands of near-identical singleton rows and goes stale on the next build, so only the 100 most
+review-worthy rows are committed (unsurvivable identifiers first, then the largest cliques, then
+CURIE order). `NEW_CLIQUES_TOP_N` in `src/reports/source_impact_details.py` is the knob and the
+filename derives from it. Re-run the tool for the full list; see
+[`docs/AddingNewSources.md`](../AddingNewSources.md) for the rationale in full.
 
 [`docs/AddingNewSources.md`](../AddingNewSources.md) is the workflow guide — when to run this,
 how to read it, and how to assemble the intermediate inputs from a `stars.renci.org` snapshot

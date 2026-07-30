@@ -7,15 +7,32 @@ report cannot see (split/shrunk/dropped cliques — use `babel-clique-diff` for 
 
 ## Reading the detail files it writes
 
-Parse `new-cliques.csv` / `modified-cliques.csv` with `csv.DictReader` (or `pandas`), never
-`awk -F,` or `cut -d,`. `equivalent_ids` is a comma-joined CURIE list inside a single quoted
-field, so a comma split silently shifts every column after it — and the result still looks like
-a valid table. The failure mode is a confidently-wrong number: a non-zero
-`needs_biolink_registration` count that is really fragments of a CURIE list. Read the columns by
-name; do not index by position.
+Parse `new-cliques-top-100.csv` / `modified-cliques.csv` with `csv.DictReader` (or `pandas`), never
+`awk -F,` or `cut -d,`. Ontology labels contain commas and are therefore quoted — e.g.
+`"nephric duct, mesonephric portion"` — so a comma split silently shifts every column after
+`preferred_label`, and the result still looks like a valid table. The failure mode is a
+confidently-wrong number: a non-zero `needs_biolink_registration` count that is really fragments of
+a label. Read the columns by name; do not index by position. (`equivalent_ids` is a *pipe*-joined
+CURIE list — `PIPE` in `src/reports/source_impact_details.py` — so split it on `|`, not `,`.)
 
 `new-xrefs.tsv` is tab-separated and safe for `awk -F'\t'`, but its CURIE columns are
 `subject`/`object`, which are not the first two fields.
+
+## The new-cliques file is a capped sample — never commit the full list
+
+`new-cliques-top-100.csv` is the one detail file the writer truncates. Sources produce thousands of
+pure-new cliques (3,753 for EMAPA, 14,750 for MP), almost all clean single-identifier cliques, and
+the full list goes stale on the next build; committing it added megabytes that no SME read. The
+committed file is a permanent record of the ingest's output shape, not an inventory.
+
+`NEW_CLIQUES_TOP_N` in
+[`src/reports/source_impact_details.py`](../../reports/source_impact_details.py) sets the cap and
+the filename derives from it, so both move together — and `write_new_cliques_csv`
+**ranks before truncating**: rows whose preferred identifier the Biolink prefix filter would drop
+come first, then the largest cliques, then CURIE order for a stable diff. If you change either the
+cap or the ranking, keep that property. A blind `rows[:N]` on CURIE order would keep an arbitrary
+`EMAPA:16*` prefix and could hide the survival failures the report exists to surface, which is what
+`test_new_cliques_csv_cap_keeps_unsurvivable_and_largest_rows` guards.
 
 ## Registry and diffing internals
 
