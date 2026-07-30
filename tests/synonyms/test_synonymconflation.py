@@ -153,7 +153,7 @@ def test_a_synonym_named_in_no_conflation_passes_through_unchanged(tmp_path):
 def test_a_synonym_keyed_on_a_non_leader_identifier_is_dropped(tmp_path):
     """A synonym keyed on a clique member the conflation file does not name is silently dropped.
 
-    This pins current, wrong behaviour; the tracking issue is not filed yet.
+    This pins current, wrong behaviour -- see https://github.com/NCATSTranslator/Babel/issues/989.
     Step 1.1 of conflate_synonyms is meant to map every identifier of a conflated clique onto that
     clique's preferred ID so records keyed on a non-leader identifier still get folded in. It does
     not work: `ids` (synonymconflation.py:87) is a one-shot `map` object, so the outer loop that
@@ -162,7 +162,7 @@ def test_a_synonym_keyed_on_a_non_leader_identifier_is_dropped(tmp_path):
     conflation file names, and the one step 3 looks up -- is therefore never registered, so the
     expansion never fires and the record is neither merged nor passed through.
 
-    **Invert this assertion when that is fixed**: FMA:70347's "Thyrocervical trunk" should appear
+    **Invert this assertion when #989 is fixed**: FMA:70347's "Thyrocervical trunk" should appear
     in the conflated record's names, and nothing should be lost.
     """
     fma_keyed = dict(THYROCERVICAL_SYNONYM, curie="FMA:70347", names=["Thyrocervical trunk"])
