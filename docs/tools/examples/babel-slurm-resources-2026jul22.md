@@ -1,6 +1,13 @@
 <!-- Captured output of `babel-slurm-resources` on the 2026jul22 run, BEFORE the sizing changes
      it prompted. Kept as the evidence behind the current `resources:` blocks and the hotspot
-     table in slurm/README.md. See docs/tools/Resources.md. -->
+     table in slurm/README.md. See docs/tools/Resources.md.
+
+     UNITS: captured before the mebibyte/megabyte fix, so every "actual RSS" here is in mebibytes
+     while every "req mem" is decimal MB rendered as if binary. Read the actual-RSS figures as
+     ~4.9% LOW relative to the request, and the req-mem figures as ~4.9% low in absolute terms
+     (`500.0G` is a rule declaring `mem="512G"`). The mem% column is correspondingly optimistic:
+     `untyped_chemical_compendia` is the case that mattered. Re-running the tool today prints
+     decimal throughout; the numbers quoted in slurm/README.md are the corrected ones. -->
 
 # SLURM resource analysis
 

@@ -45,8 +45,12 @@ class Benchmark:
 
     A benchmark TSV usually holds one row, but ``repeat()`` runs append more; we
     keep the per-column maximum so sizing decisions reflect the worst observed run.
-    Memory figures are megabytes (Snakemake's benchmark unit); ``mean_load`` is a
-    percentage where 100% == one fully-used core.
+
+    Memory figures are **mebibytes**, not megabytes: Snakemake labels the columns "MB" but
+    computes them as ``psutil`` bytes ``/ 1024 / 1024``. SLURM's ``mem`` and the efficiency
+    report's ``RequestedMem_MB`` are decimal MB, so anything comparing the two must convert --
+    see ``MIB_TO_MB`` in ``resources.py``. ``mean_load`` is a percentage where 100% == one
+    fully-used core.
     """
 
     rule: str
@@ -454,8 +458,10 @@ def parse_job_events(err_file: Path) -> list[JobEvent]:
 # `mem="512G"` / `mem=8000`, `runtime="7h"` / `runtime=240`, `cpus_per_task=4`. Only literals are
 # matched: `mem=lambda wildcards: ...` (export_synonyms_to_duckdb) resolves per-wildcard at runtime
 # and has no single declared value, so it is left as None rather than mis-parsed.
-_DECL_RULE_RE = re.compile(r"^rule\s+(\w+)\s*:")
-_DECL_RESOURCE_RE = re.compile(r'^\s+(mem|runtime|cpus_per_task)=("?)([0-9]+(?:\.[0-9]+)?[GgMmHh]?)\2\s*,')
+_DECL_RULE_RE = re.compile(r"^(?:rule|checkpoint)\s+(\w+)\s*:")
+# The trailing comma is optional (snakefmt supplies one, a hand-edited last entry may not) and a
+# trailing `# ...` comment is common -- `chemical_compendia` explains its runtime that way.
+_DECL_RESOURCE_RE = re.compile(r'^\s+(mem|runtime|cpus_per_task)=("?)([0-9]+(?:\.[0-9]+)?[GgMmHh]?)\2\s*,?\s*(?:#.*)?$')
 # A `resources:` block ends at the next top-level directive (`run:`, `shell:`, `input:`, ...).
 _DECL_SECTION_RE = re.compile(r"^\s{4}\w+:")
 

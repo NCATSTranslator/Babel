@@ -28,18 +28,28 @@ from src.util import get_repo_root
 
 from .parse import read_benchmarks, read_efficiency_report, read_rule_logs, read_snakefile_resources
 
-# Buckets in MB (8, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768 GB, 1, 1.5 TB).
-_GIB = 1024
-MEM_BUCKETS_MB: list[int] = [b * _GIB for b in (8, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024, 1536)]
+# Every memory figure in this module is **decimal MB**, the unit SLURM and Snakemake use: `mem="8G"`
+# reaches the scheduler as 8000 MB, and the efficiency report's RequestedMem_MB is decimal too. That
+# makes a recommendation here literally the string to paste into a `resources:` block.
+#
+# Snakemake's benchmark TSVs are the one exception -- their "MB" columns are really mebibytes
+# (psutil bytes / 1024 / 1024) -- so they are converted on the way in, at the single point in
+# analyze() that reads them. Getting this wrong is a ~4.9% error in the *unsafe* direction: it makes
+# a rule look further from its limit than it is.
+_MB_PER_GB = 1000
+MIB_TO_MB = 1.048576
+MEM_BUCKETS_MB: list[int] = [
+    b * _MB_PER_GB for b in (8, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024, 1536)
+]
 
 # Wall-time buckets in minutes (30m, 1h, 2h, 3h, 4h, 6h, 8h, 12h, 18h, 24h, 36h, 48h). Snakemake's
 # `runtime` is minutes; these are the round numbers a `resources:` block would actually declare.
 RUNTIME_BUCKETS_MIN: list[int] = [30, 60, 120, 180, 240, 360, 480, 720, 1080, 1440, 2160, 2880]
 
 DEFAULT_SAFETY = 1.5
-DEFAULT_FLOOR_MB = 8 * _GIB
+DEFAULT_FLOOR_MB = 8 * _MB_PER_GB
 # Proposed new cluster-wide default to test rules against (slurm/config.yaml).
-DEFAULT_NEW_DEFAULT_MEM_MB = 16 * _GIB
+DEFAULT_NEW_DEFAULT_MEM_MB = 16 * _MB_PER_GB
 DEFAULT_NEW_DEFAULT_CPUS = 1
 # The cluster-wide default runtime a rule gets with no `resources:` block (slurm/config.yaml).
 DEFAULT_RUNTIME_MIN = 120
@@ -53,8 +63,8 @@ def recommend_mem_mb(actual_mb: float, safety: float, floor_mb: int) -> int:
     for bucket in MEM_BUCKETS_MB:
         if bucket >= target:
             return bucket
-    # Above the largest bucket: round up to the next whole GiB.
-    return int(math.ceil(target / _GIB) * _GIB)
+    # Above the largest bucket: round up to the next whole GB.
+    return int(math.ceil(target / _MB_PER_GB) * _MB_PER_GB)
 
 
 def recommend_cpus(cores_used: float) -> int:
@@ -96,7 +106,7 @@ def rule_for_benchmark(stem: str, rule_names: list[str]) -> str:
 def _fmt_gb(mb: float | None) -> str:
     if mb is None:
         return "-"
-    return f"{mb / _GIB:.1f}G"
+    return f"{mb / _MB_PER_GB:.1f}G"
 
 
 def _fmt_min(minutes: float | None) -> str:
@@ -211,7 +221,11 @@ def analyze(
             (log.runtime_min if log else None) or (decl.runtime_min if decl else None) or default_runtime_min
         )
 
-        rec_mem = recommend_mem_mb(bench.max_rss_mb, safety, floor_mb)
+        # The one unit conversion in this module: benchmark "MB" columns are mebibytes, everything
+        # on the requested side is decimal MB. See the note beside MIB_TO_MB.
+        actual_mem_mb = bench.max_rss_mb * MIB_TO_MB
+
+        rec_mem = recommend_mem_mb(actual_mem_mb, safety, floor_mb)
         rec_cpus = recommend_cpus(bench.cores_used)
         rec_runtime = recommend_runtime_min(bench.seconds, safety)
 
@@ -230,7 +244,7 @@ def analyze(
 
         if not requested_mem:
             classification = "no-request-data"
-        elif bench.max_rss_mb > AT_RISK_FRACTION * requested_mem:
+        elif actual_mem_mb > AT_RISK_FRACTION * requested_mem:
             classification = "at-risk"
         elif requested_mem >= 2 * rec_mem:
             classification = "over"
@@ -242,7 +256,7 @@ def analyze(
         recs.append(
             Recommendation(
                 rule=stem,
-                actual_mem_mb=bench.max_rss_mb,
+                actual_mem_mb=actual_mem_mb,
                 requested_mem_mb=requested_mem,
                 cores_used=bench.cores_used,
                 requested_cpus=requested_cpus,
@@ -288,7 +302,7 @@ def build_markdown(recs: list[Recommendation], new_default_mem_mb: int, new_defa
             for r in recs
             if r.requested_mem_mb and r.requested_mem_mb > r.actual_mem_mb
         )
-        / _GIB
+        / _MB_PER_GB
     )
 
     lines: list[str] = []
@@ -303,7 +317,7 @@ def build_markdown(recs: list[Recommendation], new_default_mem_mb: int, new_defa
     actionable = [r for r in overrides if r.ran_on_default is True]
     unknown = [r for r in overrides if r.ran_on_default is None]
     lines.append(
-        f"Proposed new default: mem={new_default_mem_mb // _GIB}G, cpus={new_default_cpus}. "
+        f"Proposed new default: mem={new_default_mem_mb // _MB_PER_GB}G, cpus={new_default_cpus}. "
         f"Detected run default: mem={_fmt_gb(run_default_mb)}."
     )
     lines.append(
@@ -431,12 +445,15 @@ def _add_args(parser: argparse.ArgumentParser) -> None:
         "--safety", type=float, default=DEFAULT_SAFETY, help=f"Safety factor on peak RSS (default: {DEFAULT_SAFETY})."
     )
     parser.add_argument(
-        "--floor-gb", type=int, default=DEFAULT_FLOOR_MB // _GIB, help="Minimum recommended mem in GB (default: 8)."
+        "--floor-gb",
+        type=int,
+        default=DEFAULT_FLOOR_MB // _MB_PER_GB,
+        help="Minimum recommended mem in GB (default: 8).",
     )
     parser.add_argument(
         "--new-default-mem-gb",
         type=int,
-        default=DEFAULT_NEW_DEFAULT_MEM_MB // _GIB,
+        default=DEFAULT_NEW_DEFAULT_MEM_MB // _MB_PER_GB,
         help="Proposed new cluster default mem in GB to test rules against (default: 16).",
     )
     parser.add_argument(
@@ -499,11 +516,11 @@ def run(args: argparse.Namespace) -> None:
         print(f"error: not a directory: {run_dir}", file=sys.stderr)
         sys.exit(1)
 
-    new_default_mem_mb = args.new_default_mem_gb * _GIB
+    new_default_mem_mb = args.new_default_mem_gb * _MB_PER_GB
     recs = analyze(
         run_dir,
         safety=args.safety,
-        floor_mb=args.floor_gb * _GIB,
+        floor_mb=args.floor_gb * _MB_PER_GB,
         new_default_mem_mb=new_default_mem_mb,
         new_default_cpus=args.new_default_cpus,
         snakefile_dir=args.snakefile_dir,

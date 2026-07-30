@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from src.tools.slurm import parse
+from src.util import get_repo_root
 
 pytestmark = pytest.mark.unit
 
@@ -316,3 +317,37 @@ def test_read_snakefile_resources_parses_literals_and_skips_callables(tmp_path):
     assert parsed["callable_mem"].runtime_min == 240  # a bare number is already minutes
     # A rule with no resources: block is present but empty, not missing.
     assert parsed["no_resources"] == parse.DeclaredResources("no_resources", None, None, None)
+
+
+def test_read_snakefile_resources_reads_checkpoints_comments_and_a_missing_trailing_comma(tmp_path):
+    """snakefmt supplies a trailing comma, but a hand-edited last entry may not have one; a
+    `checkpoint` declares resources exactly like a `rule`; and a trailing `# ...` comment is how
+    several rules explain their limit. Missing any of these silently drops the rule's declared
+    limits, which then read as the cluster default -- `chemical_compendia`'s commented
+    `runtime="7h"` is the real case.
+    """
+    (tmp_path / "b.snakefile").write_text(
+        "checkpoint split_things:\n"
+        "    resources:\n"
+        '        mem="64G",  # explained inline, as chemical_compendia does\n'
+        '        runtime="4h"\n'  # no trailing comma
+        "    run:\n"
+        "        go()\n"
+    )
+    parsed = parse.read_snakefile_resources(tmp_path)
+    assert parsed["split_things"].mem_mb == 64000
+    assert parsed["split_things"].runtime_min == 240
+
+
+def test_read_snakefile_resources_matches_the_real_snakefiles(tmp_path):
+    """Guard against a regex tightening that silently stops matching real declarations.
+
+    A resource the parser misses reads as the cluster-wide default, which makes an over-provisioned
+    rule look correctly sized -- the failure is invisible in the report.
+    """
+    parsed = parse.read_snakefile_resources(get_repo_root() / "src" / "snakefiles")
+    # chemical_compendia declares both, and its runtime carries a trailing `# ...` comment.
+    assert parsed["chemical_compendia"].mem_mb == 512000
+    assert parsed["chemical_compendia"].runtime_min == 420
+    # Across all snakefiles, a healthy number of rules declare something; a broken regex zeroes this.
+    assert sum(1 for d in parsed.values() if d.mem_mb or d.runtime_min) > 20

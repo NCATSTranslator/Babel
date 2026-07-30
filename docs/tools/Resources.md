@@ -26,10 +26,11 @@ most recent pass, and the first with the runtime analysis) and
 A Snakemake-on-SLURM run leaves three kinds of artifact under `babel_outputs/`:
 
 - `benchmarks/<rule>.tsv` — Snakemake `benchmark:` output, written from *inside* each job. The
-  columns include `s` (wall seconds), `max_rss` (peak RAM, MB), `mean_load` (%CPU, where 100 = one
+  columns include `s` (wall seconds), `max_rss` (peak RAM), `mean_load` (%CPU, where 100 = one
   fully-used core), and `cpu_time`. This is the **authoritative source for actual memory and CPU
   usage**. When a rule has several benchmark rows (from retries or `repeat()`), the reader keeps the
-  per-column worst case.
+  per-column worst case. Snakemake labels the memory columns "MB" but computes them as bytes
+  `/ 1024 / 1024`, so they are really **mebibytes** — see "Units" below.
 - `reports/slurm/` — the SLURM executor's efficiency report. The executor appends a **fresh
   `efficiency_report_<uuid>.csv` shard on every Snakemake (re)start**, and each shard covers only
   that invocation's jobs, so a run that restarted several times leaves many shards and the final one
@@ -48,6 +49,21 @@ accounting isn't capturing per-step usage, so every `CPU Efficiency (%)` and `Me
 (`RequestedMem_MB`, `NCPUS`, elapsed wall time) and relies on the `benchmark:` TSVs for actual
 usage. Because the recommendations come from the benchmarks, the override list (below) is reliable
 even when the requested side is sparse.
+
+### Units
+
+Everything the tool prints is **decimal GB/MB**, so a recommended `mem` is literally the string to
+paste into a `resources:` block: `mem="8G"` reaches SLURM as 8000 MB, and the efficiency report's
+`RequestedMem_MB` is decimal too.
+
+The benchmark TSVs are the exception — their "MB" columns are mebibytes — so they are converted on
+the way in (`MIB_TO_MB` in `src/tools/slurm/resources.py`). Comparing the two unconverted is a ~4.9%
+error, and always in the unsafe direction: a rule looks further from its limit than it is. This is
+the same trap as `duckdb_memory_limit_mb()` in `src/snakefiles/util.py`, where Snakemake's
+`resources.mem` re-exposes `mem="512G"` as the decimal `"512 GB"` and `mem_mb` as `512000`.
+
+Practical consequence when reading a rule's comment: a benchmark peak of "132G" needs `mem="142G"`
+to be at 100% of its limit, not `mem="132G"`.
 
 ## What it reports
 

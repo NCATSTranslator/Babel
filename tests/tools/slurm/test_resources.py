@@ -30,12 +30,25 @@ def _make_run(tmp_path, rule, rss_mb, mean_load, requested_mem_mb):
 
 
 def test_recommend_mem_rounds_up_to_bucket_with_floor():
+    """Buckets are decimal MB, so a recommendation is the `mem="NG"` string to paste in."""
     # 0.5 GB * 1.5 = 0.75 GB, floored to the 8 GB minimum
-    assert resources.recommend_mem_mb(512, safety=1.5, floor_mb=8192) == 8192
+    assert resources.recommend_mem_mb(500, safety=1.5, floor_mb=8000) == 8000
     # 14 GB * 1.5 = 21 GB -> next bucket is 24 GB
-    assert resources.recommend_mem_mb(14 * 1024, safety=1.5, floor_mb=8192) == 24 * 1024
+    assert resources.recommend_mem_mb(14 * 1000, safety=1.5, floor_mb=8000) == 24 * 1000
     # 41 GB * 1.5 = 61.5 GB -> next bucket is 64 GB
-    assert resources.recommend_mem_mb(41 * 1024, safety=1.5, floor_mb=8192) == 64 * 1024
+    assert resources.recommend_mem_mb(41 * 1000, safety=1.5, floor_mb=8000) == 64 * 1000
+
+
+def test_benchmark_mebibytes_are_converted_to_decimal_mb():
+    """Snakemake's benchmark "MB" columns are mebibytes; SLURM's `mem` is decimal MB.
+
+    Comparing the two unconverted understates a rule's fit by ~4.9% in the unsafe direction, which
+    is how `untyped_chemical_compendia` read as 84% of a 160G limit when it was really 89%.
+    """
+    assert resources.MIB_TO_MB == pytest.approx(1.048576)
+    # 132.1 GiB (as a benchmark reports it) is 141.8 GB, not 132.1 GB -- the untyped_chemical_compendia
+    # peak, and the reason its limit is 184G rather than the 160G that looked like 21% of headroom.
+    assert 132.1 * 1024 * resources.MIB_TO_MB == pytest.approx(141_841, rel=1e-4)
 
 
 def test_recommend_cpus_rounds_up():
@@ -45,23 +58,25 @@ def test_recommend_cpus_rounds_up():
 
 
 def test_analyze_flags_rule_needing_override(tmp_path):
-    # 41 GB peak on a 16 GB proposed default -> must be flagged for an explicit override.
-    _make_run(tmp_path, "get_uniprotkb_labels", rss_mb=41 * 1024, mean_load=70.0, requested_mem_mb=64000)
-    recs = resources.analyze(tmp_path, new_default_mem_mb=16 * 1024, new_default_cpus=1)
+    # 40,000 MiB peak (41.9 GB) on a 16 GB proposed default -> flagged for an explicit override.
+    # 41.9 GB * 1.5 = 62.9 GB, so the recommendation is the 64 GB bucket.
+    _make_run(tmp_path, "get_uniprotkb_labels", rss_mb=40_000, mean_load=70.0, requested_mem_mb=64000)
+    recs = resources.analyze(tmp_path, new_default_mem_mb=16 * 1000, new_default_cpus=1)
     assert len(recs) == 1
     rec = recs[0]
     assert rec.rule == "get_uniprotkb_labels"
-    assert rec.rec_mem_mb == 64 * 1024
+    assert rec.actual_mem_mb == pytest.approx(41_943, rel=1e-4)  # converted from mebibytes
+    assert rec.rec_mem_mb == 64 * 1000
     assert rec.needs_override is True
 
 
 def test_analyze_classifies_over_provisioned_and_fits_default(tmp_path):
     # 0.2 GB peak with a 64 GB request -> heavily over-provisioned, no override needed.
     _make_run(tmp_path, "tiny_rule", rss_mb=200.0, mean_load=98.0, requested_mem_mb=64000)
-    rec = resources.analyze(tmp_path, new_default_mem_mb=16 * 1024, new_default_cpus=1)[0]
+    rec = resources.analyze(tmp_path, new_default_mem_mb=16 * 1000, new_default_cpus=1)[0]
     assert rec.classification == "over"
     assert rec.needs_override is False
-    assert rec.rec_mem_mb == 8 * 1024
+    assert rec.rec_mem_mb == 8 * 1000
 
 
 def test_analyze_marks_ran_on_default(tmp_path):
@@ -91,7 +106,7 @@ def test_analyze_marks_ran_on_default(tmp_path):
     )
     (tmp_path / "logs").mkdir()
 
-    recs = {r.rule: r for r in resources.analyze(tmp_path, new_default_mem_mb=16 * 1024, new_default_cpus=1)}
+    recs = {r.rule: r for r in resources.analyze(tmp_path, new_default_mem_mb=16 * 1000, new_default_cpus=1)}
     assert resources.detect_run_default_mem_mb(list(recs.values())) == 64000
     assert recs["on_default_a"].ran_on_default is True
     assert recs["on_default_b"].ran_on_default is True
@@ -189,7 +204,7 @@ def test_analyze_falls_back_to_the_snakefile_for_requested_mem(tmp_path):
     """
     bdir = tmp_path / "benchmarks"
     bdir.mkdir()
-    # Benchmark max_rss is in MB, matching Snakemake's unit and the decimal "128G" == 128000 MB.
+    # Benchmark max_rss is in mebibytes; 110,000 MiB is 115,343 MB against the decimal 128,000.
     _write_benchmark(bdir / "lonely_rule.tsv", [[100.0, "0:01:40", 110_000, 0, 0, 0, 1, 1, 98.0, 90.0]])
     (tmp_path / "logs").mkdir()
     snakefiles = _write_snakefile(
@@ -198,7 +213,7 @@ def test_analyze_falls_back_to_the_snakefile_for_requested_mem(tmp_path):
 
     rec = resources.analyze(tmp_path, snakefile_dir=snakefiles)[0]
     assert rec.requested_mem_mb == 128000
-    assert rec.classification == "at-risk"  # 110,000 MB of a 128,000 MB request is 86%
+    assert rec.classification == "at-risk"  # 115,343 MB of a 128,000 MB request is 90%
 
     # With no snakefile to fall back on, it is honestly reported as unknown rather than guessed.
     assert resources.analyze(tmp_path)[0].classification == "no-request-data"
