@@ -20,6 +20,7 @@ import json
 
 import pytest
 
+from src.reports.source_impact_details import NEW_CLIQUES_CSV
 from src.tools.source_impact_report.cli import main
 
 
@@ -89,7 +90,7 @@ def _read_csv(path):
 def test_detail_files_written_with_expected_content(synthetic_intermediate, tmp_path):
     """All four detail files are created and contain the rows expected from the synthetic fixture.
 
-    Checks new-cliques.csv (two pure-new singletons), modified-cliques.csv (one expanded, one
+    Checks new-cliques-top-N.csv (two pure-new singletons), modified-cliques.csv (one expanded, one
     merged row), modified-cliques.json (full structure including before_clique_leaders), and
     new-xrefs.tsv (three rows from NEWSOURCE's own concord, all status=added).
     """
@@ -99,8 +100,8 @@ def test_detail_files_written_with_expected_content(synthetic_intermediate, tmp_
     details = tmp_path / "impact-report"
     assert details.is_dir()
 
-    # new-cliques.csv — the two pure-new singletons (NEWSRC:1, NEWSRC:4).
-    new_cliques = _read_csv(details / "new-cliques.csv")
+    # new-cliques-top-N.csv — the two pure-new singletons (NEWSRC:1, NEWSRC:4), both under the cap.
+    new_cliques = _read_csv(details / NEW_CLIQUES_CSV)
     ids = {r["preferred_id"] for r in new_cliques}
     assert ids == {"NEWSRC:1", "NEWSRC:4"}
     assert all(r["member_count"] == "1" for r in new_cliques)
@@ -136,7 +137,7 @@ def test_detail_files_are_deterministic(synthetic_intermediate, tmp_path):
     out_b = tmp_path / "b" / "impact-report.md"
     assert _run(synthetic_intermediate, out_a) == 0
     assert _run(synthetic_intermediate, out_b) == 0
-    for fname in ("new-cliques.csv", "modified-cliques.csv", "modified-cliques.json", "new-xrefs.tsv"):
+    for fname in (NEW_CLIQUES_CSV, "modified-cliques.csv", "modified-cliques.json", "new-xrefs.tsv"):
         a = (tmp_path / "a" / "impact-report" / fname).read_bytes()
         b = (tmp_path / "b" / "impact-report" / fname).read_bytes()
         assert a == b, f"{fname} differs between runs — output is not deterministic"

@@ -1,11 +1,14 @@
-"""Full, uncapped detail-file writers for the source-impact report.
+"""Detail-file writers for the source-impact report.
 
 While ``src.reports.source_impact`` renders the human-readable markdown (and a summary
-JSON capped at a few samples), this module writes the *complete* detail files an SME
-reviews in a PR — one subdirectory (``<output-stem>/``) beside the markdown report:
+JSON capped at a few samples), this module writes the detail files an SME reviews in a PR —
+one subdirectory (``<output-stem>/``) beside the markdown report:
 
-- ``new-cliques.csv`` — every pure-new clique the source introduces (the common case is a
-  brand-new single-identifier clique; multi-member pure-new cliques carry ``member_count``).
+- ``new-cliques-top-<N>.csv`` — the ``NEW_CLIQUES_TOP_N`` most review-worthy pure-new cliques
+  the source introduces (the common case is a brand-new single-identifier clique; multi-member
+  pure-new cliques carry ``member_count``). The **only capped file** here: see
+  ``NEW_CLIQUES_TOP_N`` for why, and ``write_new_cliques_csv`` for the ranking. Re-run the tool
+  for the full list.
 - ``modified-cliques.json`` / ``modified-cliques.csv`` — every existing clique the source
   expands or merges. The JSON keeps the full before/after structure; the CSV has one row
   per source identifier landing in the clique, flagged ``added`` (structurally new) or
@@ -17,7 +20,7 @@ reviews in a PR — one subdirectory (``<output-stem>/``) beside the markdown re
 All files are deterministically sorted so re-running the tool yields byte-identical output
 (clean git diffs). The tool cannot see downstream Biolink-class prefix filtering directly,
 so the clique/xref *counts* are an *upper bound* of what could land in the build — but the
-``new-cliques.csv`` / ``modified-cliques.csv`` rows carry per-identifier survival columns
+``new-cliques-top-<N>.csv`` / ``modified-cliques.csv`` rows carry per-identifier survival columns
 (``would_be_added`` / ``needs_biolink_registration``) that predict that filtering by
 checking each identifier's prefix against the Biolink Model ``id_prefixes`` for the
 *clique's* assigned biolink type (the single ``node_type`` ``NodeFactory.create_node()``
@@ -47,7 +50,14 @@ from src.reports.source_impact import (
 )
 
 # Detail-file names, written inside the report's per-source subdirectory.
-NEW_CLIQUES_CSV = "new-cliques.csv"
+#
+# The new-cliques file is the one capped detail file: the full list runs to thousands of rows per
+# source (3,753 for EMAPA, 14,750 for MP), is dominated by single-identifier cliques, and goes
+# stale on the next build. 100 rows keeps a permanent, PR-readable record of the ingest's output
+# shape, ranked (see write_new_cliques_csv) so the rows worth reviewing survive the cut. The limit
+# is embedded in the filename so a reader knows the file is a sample without opening it.
+NEW_CLIQUES_TOP_N = 100
+NEW_CLIQUES_CSV = f"new-cliques-top-{NEW_CLIQUES_TOP_N}.csv"
 MODIFIED_CLIQUES_JSON = "modified-cliques.json"
 MODIFIED_CLIQUES_CSV = "modified-cliques.csv"
 NEW_XREFS_TSV = "new-xrefs.tsv"
@@ -140,7 +150,10 @@ def write_new_cliques_csv(
     diffs: dict[str, SourceImpactDiff],
     lookup: LookupContext,
 ) -> int:
-    """Write one row per pure-new clique. Returns the number of cliques written.
+    """Write one row per pure-new clique, ranked and capped at ``NEW_CLIQUES_TOP_N``.
+
+    Returns the number of rows actually written (so up to the cap, *not* the total number of
+    pure-new cliques — the report's headline count comes from the diff, not from here).
 
     Survival columns predict downstream Biolink prefix filtering. ``preferred_id_would_survive``
     judges the preferred (highest-priority) identifier; ``needs_biolink_registration`` is set
@@ -184,7 +197,13 @@ def write_new_cliques_csv(
                     PIPE.join(unsupported),
                 ]
             )
-    rows.sort(key=lambda r: (r[0], r[1]))
+    # Rank before capping at NEW_CLIQUES_TOP_N, so the rows an SME must not miss are the ones kept.
+    # Key, by column: preferred_id_would_survive ("false" = the Biolink prefix filter drops this
+    # clique) first, then member_count descending (the structurally interesting merges — most
+    # pure-new cliques are singletons), then (pipeline, preferred_id) so the retained set and its
+    # git diff are stable across re-runs.
+    rows.sort(key=lambda r: (r[6] != "false", -r[4], r[0], r[1]))
+    del rows[NEW_CLIQUES_TOP_N:]
     _write_rows(path, header, rows)
     return len(rows)
 

@@ -373,7 +373,14 @@ def _render_clique_impact(
         )
         lines.append("")
 
-        link = _detail_link(details_dirname, "new-cliques.csv", "Full list of new cliques")
+        # Literal filename, not source_impact_details.NEW_CLIQUES_CSV: that module imports from
+        # this one, so importing it back would be circular. tests/pipeline/test_source_impact_report.py
+        # asserts this link resolves to the file actually written, which is what catches drift.
+        link = _detail_link(
+            details_dirname,
+            "new-cliques-top-100.csv",
+            "Sample of new cliques (top 100, unsurvivable and largest first)",
+        )
         if link:
             lines.append(link)
         link = _detail_link(

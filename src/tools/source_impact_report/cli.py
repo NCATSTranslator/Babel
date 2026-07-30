@@ -48,7 +48,7 @@ from src.reports.source_impact import (
     render_json,
     render_markdown,
 )
-from src.reports.source_impact_details import write_detail_files
+from src.reports.source_impact_details import NEW_CLIQUES_CSV, write_detail_files
 from src.util import get_config, get_logger
 
 logger = get_logger(__name__)
@@ -445,7 +445,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--no-detail-files",
         action="store_true",
-        help="Skip writing the full CSV/JSON/TSV detail files (new-cliques.csv, "
+        help=f"Skip writing the CSV/JSON/TSV detail files ({NEW_CLIQUES_CSV}, "
         "modified-cliques.{csv,json}, new-xrefs.tsv) into the <output-stem>/ "
         "subdirectory beside the markdown report.",
     )

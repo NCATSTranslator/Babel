@@ -1,5 +1,6 @@
 from src.reports import report_tables
 from src.reports import prefix_comparison
+from src.reports.source_impact_details import NEW_CLIQUES_CSV
 from src.snakefiles.util import get_all_compendia, get_all_synonyms, get_all_gzipped
 import os
 
@@ -190,10 +191,12 @@ rule generate_mapping_sources_table:
 # See src/tools/source_impact_report/cli.py for the underlying CLI.
 rule report_source_impact:
     output:
-        # The markdown report plus the four full detail files written into the
-        # <output-stem>/ subdirectory beside it (see src/reports/source_impact_details.py).
+        # The markdown report plus the four detail files written into the <output-stem>/
+        # subdirectory beside it (see src/reports/source_impact_details.py). The new-cliques file
+        # is capped at NEW_CLIQUES_TOP_N rows and its name embeds the limit, so take the name from
+        # the writer's constant rather than repeating a literal that could drift.
         md=config["output_directory"] + "/reports/source_impact/{source}.md",
-        new_cliques=config["output_directory"] + "/reports/source_impact/{source}/new-cliques.csv",
+        new_cliques=config["output_directory"] + f"/reports/source_impact/{{source}}/{NEW_CLIQUES_CSV}",
         modified_csv=config["output_directory"] + "/reports/source_impact/{source}/modified-cliques.csv",
         modified_json=config["output_directory"] + "/reports/source_impact/{source}/modified-cliques.json",
         new_xrefs=config["output_directory"] + "/reports/source_impact/{source}/new-xrefs.tsv",
