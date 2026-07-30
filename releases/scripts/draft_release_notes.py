@@ -150,20 +150,28 @@ def fetch_pull_requests(repo_key: str, repo: str, base: str, head: str) -> list[
 
     Titles and authors come from the commits themselves, so this costs one paginated request per
     repository rather than one per PR.
+
+    :raises RuntimeError: if the ``gh`` CLI is not installed.
     """
-    result = subprocess.run(
-        [
-            "gh",
-            "api",
-            f"repos/{repo}/compare/{base}...{head}?per_page=250",
-            "--paginate",
-            "-q",
-            '.commits[] | {m: (.commit.message | split("\\n")[0]), a: (.author.login // .commit.author.name)} | @json',
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    try:
+        result = subprocess.run(
+            [
+                "gh",
+                "api",
+                f"repos/{repo}/compare/{base}...{head}?per_page=250",
+                "--paginate",
+                "-q",
+                '.commits[] | {m: (.commit.message | split("\\n")[0]), '
+                "a: (.author.login // .commit.author.name)} | @json",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except FileNotFoundError as error:
+        raise RuntimeError(
+            "The `gh` CLI is required to list pull requests; install it from https://cli.github.com/."
+        ) from error
 
     by_number: dict[int, PullRequest] = {}
     for line in result.stdout.splitlines():
@@ -259,6 +267,12 @@ def check_deployed_version(status: dict | None, service: str, release_id: str) -
     return []
 
 
+def _column_widths(header, rows) -> list[int]:
+    """Per-column Markdown width. Tolerates no data rows -- a header-only CSV is a report that ran
+    and found nothing, which should still render rather than crash the whole draft."""
+    return [max([len(h), *(len(row[i]) for row in rows)]) for i, h in enumerate(header)]
+
+
 def summary_table(nodenorm: dict | None, nameres: dict | None) -> list[str]:
     """The `## Summary` table of deployed database sizes, from the two services' /status endpoints."""
     rows: list[tuple[str, str, str, str]] = []
@@ -288,7 +302,7 @@ def summary_table(nodenorm: dict | None, nameres: dict | None) -> list[str]:
         rows = [(name, key, "", "") for name, key in zip(_SKELETON_NAMES, SUMMARY_DB_ORDER)] + rows[-1:]
 
     header = ("Database name", "Database ID", "Number of keys", "Memory used")
-    widths = [max(len(header[i]), *(len(r[i]) for r in rows)) for i in range(4)]
+    widths = _column_widths(header, rows)
     lines = [
         "| " + " | ".join(h.ljust(w) for h, w in zip(header, widths)) + " |",
         "|" + "|".join("-" * (w + 2) for w in widths) + "|",
@@ -363,7 +377,7 @@ def summary_of_changes(build_dir: Path, previous_id: str, release_id: str) -> st
             )
 
     header = ["Filename", previous_id, release_id, "Diff", "% Diff"]
-    widths = [max(len(header[i]), *(len(r[i]) for r in rows)) for i in range(5)]
+    widths = _column_widths(header, rows)
     lines = [
         "| " + " | ".join(h.ljust(w) for h, w in zip(header, widths)) + " |",
         "| " + " | ".join("-" * w for w in widths) + " |",
