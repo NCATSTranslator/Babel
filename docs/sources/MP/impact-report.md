@@ -70,7 +70,8 @@ change the source could introduce before that filtering is applied.
   This is distinct from the 0 existing cliques that change, since one clique can gain several
   identifiers.
 - Total cliques in this pipeline go from 426,264 to 441,005
-- Full list of new cliques: [`impact-report/new-cliques.csv`](impact-report/new-cliques.csv)
+- Sample of new cliques (top 100, unsurvivable and largest first):
+  [`impact-report/new-cliques-top-100.csv`](impact-report/new-cliques-top-100.csv)
 - Full list of modified cliques (one row per added/preexisting MP identifier):
   [`impact-report/modified-cliques.csv`](impact-report/modified-cliques.csv)
 - Full list of new / activated cross-references:
