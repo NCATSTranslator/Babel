@@ -49,6 +49,20 @@ Totals: 78 cross-reference rows across 1 concord file(s).
   - HP: 2
   - UMLS: 2
 
+### Join pathways (every asserted cross-reference, not only this source's own)
+
+`status` is `added` when MP's own concord file asserts the pathway and
+`from_other_source` when another source's does — the latter may predate this addition. The
+prefix pair is sorted, so `asserted_by` is what tells you which side declared it.
+
+| pipeline | predicate | prefix pair | asserted by | status | xrefs |
+|---|---|---|---|---|---|
+| disease | `xref` | MGI ↔ MP | `MP` | added | 70 |
+| disease | `xref` | HP ↔ MP | `HP` | from_other_source | 9 |
+| disease | `xref` | MP ↔ MPATH | `MP` | added | 4 |
+| disease | `xref` | HP ↔ MP | `MP` | added | 2 |
+| disease | `xref` | MP ↔ UMLS | `MP` | added | 2 |
+
 ## 4. Clique impact
 
 **Worst-case view.** This report is computed from the intermediate identifier and concord files and
@@ -74,8 +88,8 @@ change the source could introduce before that filtering is applied.
   [`impact-report/new-cliques-top-100.csv`](impact-report/new-cliques-top-100.csv)
 - Full list of modified cliques (one row per added/preexisting MP identifier):
   [`impact-report/modified-cliques.csv`](impact-report/modified-cliques.csv)
-- Full list of new / activated cross-references:
-  [`impact-report/new-xrefs.tsv`](impact-report/new-xrefs.tsv)
+- Cross-reference summary (join pathways with counts and example rows):
+  [`impact-report/new-xrefs-summary.csv`](impact-report/new-xrefs-summary.csv)
 
 #### Sample pure-new cliques (up to 3)
 

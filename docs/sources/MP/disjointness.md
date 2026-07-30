@@ -112,7 +112,8 @@ number substitutes for the other.
 MP is also kept out of EFO cliques, but by a different mechanism. The source-impact report
 surfaced ~15 cliques where an EFO phenotype term and an MP term co-occurred, every one of them
 created by a **direct `oboInOwl:hasDbXref` row asserted by EFO** in
-`intermediate/disease/concords/EFO` (see the impact report's `new-xrefs.tsv`).
+`intermediate/disease/concords/EFO` (see the impact report's `new-xrefs-summary.csv`, where such
+rows appear as an `EFO ↔ MP` pathway asserted by `EFO`).
 
 EFO is a species-agnostic / human-leaning ontology, so an EFO term xref'd to an MP term is
 ambiguous: it may denote a human-specific phenotype (which, like HP, must stay disjoint from MP)
@@ -136,7 +137,9 @@ xrefs."
 
 This removes *direct* evidence only. The regenerated source-impact report is the check that it is
 enough: after filtering, no EFO-led `expanded` rows remain in `modified-cliques.csv` and no EFO→MP
-rows remain in `new-xrefs.tsv`. If a future EFO/MP release introduced a transitive bridge (a shared
+rows remain in `new-xrefs-summary.csv` — an absent pathway row means zero such xrefs, which the
+summary answers more directly than the full table did. If a future EFO/MP release introduced a
+transitive bridge (a shared
 MESH/UMLS/SNOMED identifier), it would reappear there, at which point adding `[EFO, MP]` to
 `MUTUALLY_EXCLUSIVE_PREFIX_GROUPS` is the backstop. (HP→MP direct xrefs are unaffected by this
 filter and continue to be handled by the `[HP, MP]` split above.)
