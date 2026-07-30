@@ -13,7 +13,7 @@ makes a Rust port reviewable: the Python is the specification, and the test is t
 matches it. It also means a differential test can be written before the Rust exists.
 
 **A missing extension falls back to Python; it does not raise.** Every snakefile does a top-level
-``import src.foo`` at DAG-parse time, so an ImportError here would take down all 245 rules for a
+``import src.foo`` at DAG-parse time, so an ImportError here would take down every rule for a
 contributor without a Rust toolchain, for a reviewer, and for a fork's CI. AGENTS.md's "a log
 warning is not a control" is about *wrong output*; a slower path that produces identical bytes is
 not that. The active implementation is logged once, at INFO, so it lands in the SLURM job log.

@@ -4,7 +4,7 @@
 //! the reference, and a test asserting the two agree (see `src/accel.py` and docs/Rust.md). Rust is
 //! an optimisation, never the only way to produce a given output: `src/accel.py` falls back to the
 //! Python implementation when this extension is missing, because every snakefile imports `src.*` at
-//! DAG-parse time and a hard import failure would take down all 245 rules for anyone without a
+//! DAG-parse time and a hard import failure would take down every rule for anyone without a
 //! Rust toolchain.
 //!
 //! **The FFI boundary is coarse, and that is a rule, not a preference.** A `#[pyfunction]` here
