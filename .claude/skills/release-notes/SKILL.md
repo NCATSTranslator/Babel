@@ -90,9 +90,11 @@ answer from the finished build's reports, the DuckDB `Edge` table, or Node Norma
    Check the archived prefix report's `name` field matches the release. It is written from
    `release_name` in `config.yaml`, which is easy to leave pointing at a previous build — and it is
    what labels the *next* release's comparison report.
-2. In `config.yaml`, set `previous_release` to this release (a unit test enforces it) and
-   `release_name` to the **next** planned build. Leaving both the same makes the next run compare
-   itself against its own baseline.
+2. Leave `config.yaml`'s two pins alone until the **next** build is planned, then move both in one
+   commit: `previous_release` to this release, `release_name` to the new build. They must never be
+   equal — a run whose `release_name` matches its `previous_release` diffs its own baseline and
+   reports that nothing changed, so `generate_prefix_comparison()` raises rather than write it. A
+   unit test enforces the pairing.
 3. Add the index line to `releases/README.md` (newest first).
 4. Set the previous note's `Next release:` line to point at this one.
 5. Fill in the `## Summary` table from the deployed Redis and Solr instances. The script emits the
@@ -106,5 +108,6 @@ uv run rumdl fmt releases/   # the generated PR lines are longer than the 100-co
 uv run rumdl check releases/
 ```
 
-The drift test fails if a note exists without a `releases.yaml` entry, and the pin test fails if a
-newer baseline was archived without bumping `previous_release`.
+The drift test fails if a note exists without a `releases.yaml` entry, and the pin test fails if
+`previous_release` is not the newest committed baseline older than `release_name` — which catches
+both a stale pin and a pair left equal.

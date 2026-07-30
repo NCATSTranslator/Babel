@@ -462,10 +462,14 @@ compared against it:
    release's comparison report, so a wrong value propagates forward. The 2026jul22 build shipped
    with `"name": "2026jul15"` for exactly this reason.
 2. Link it from the release's `releases/<release_name>.md` notes.
-3. In the same commit, bump `previous_release` in `config.yaml` to `<release_name>` (and set
-   `release_name` to the next planned release), so the next run compares against this one. Setting
-   both to the same value makes the next run compare against its own baseline.
-4. Commit. This copy becomes the reviewed baseline for the next release.
+3. Commit. This copy becomes the reviewed baseline for the next release. Leave `config.yaml` alone
+   here: `release_name` still names the build you just archived, and `previous_release` still names
+   the baseline it was compared against.
+4. When the *next* build is planned, move both pins in one commit: `previous_release` to the release
+   just archived, `release_name` to the new build. They always move together, and they must never be
+   equal — a run whose `release_name` matches its `previous_release` diffs its own baseline and
+   reports that nothing changed. `generate_prefix_comparison()` raises rather than write that
+   report, and a unit test catches the drift before a build ever starts.
 
 Steps 1–3 are part of the wider release-note process in
 [`releases/README.md`](../releases/README.md), which also drafts the note itself.

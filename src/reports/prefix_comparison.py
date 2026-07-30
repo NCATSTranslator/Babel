@@ -163,9 +163,22 @@ def generate_prefix_comparison(
     :param out_md: Markdown summary naming the baseline and listing notable changes.
     :param warn_abs: Flag any by-clique-prefix row whose absolute CURIE change is >= this.
     :param warn_pct: Flag any by-clique-prefix row whose |percent change| is >= this.
+    :raises ValueError: if the build is comparing against itself (see below).
     """
     current = _load_report(current_prefix_report_json)
     release_name = current.get("name", "current")
+
+    # Once a release is archived, config.yaml's `previous_release` is bumped to it -- and if
+    # `release_name` was not moved on to the *next* build at the same time, the two are equal and
+    # this run diffs its own baseline. That produces a perfectly well-formed all-zeros report, which
+    # is worse than no report: it reads as "nothing changed this release". Fail instead, at the point
+    # the mistake actually bites. See docs/RunningBabel.md, "Archiving the prefix report".
+    if release_name == Path(baseline_json).stem:
+        raise ValueError(
+            f"Prefix comparison for {release_name!r} would use its own report as the baseline "
+            f"({baseline_json}). Set `release_name` in config.yaml to the build being made now; "
+            f"`previous_release` should name the release before it."
+        )
 
     for path in (out_overall_csv, out_by_clique_csv, out_md):
         Path(path).parent.mkdir(parents=True, exist_ok=True)

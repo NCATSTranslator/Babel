@@ -91,22 +91,34 @@ def test_list_release_names_raises_on_release_shaped_invalid_date(tmp_path):
 
 
 @pytest.mark.unit
-def test_previous_release_pin_is_newest_committed_baseline():
-    """config.yaml's previous_release must point at the newest baseline in releases/prefix_reports/.
+def test_previous_release_pin_is_the_baseline_immediately_before_release_name():
+    """config.yaml's previous_release must be the newest committed baseline older than release_name.
 
-    This catches the failure mode where a newer prefix report was committed but the pin was not bumped
-    (the two silently out of sync). Running weekly, it flags the drift before the next build starts.
+    Two failure modes, one guard. A newer prefix report committed without bumping the pin leaves the
+    build comparing against a stale baseline; bumping the pin without moving release_name on leaves
+    the build comparing against *itself*, which yields a well-formed all-zeros report that reads as
+    "nothing changed this release". The two settings only ever move together, in the archive commit.
     """
     config = get_config()
     pinned = config["previous_release"]
+    current = config["release_name"]
+
+    assert pinned != current, (
+        f"config.yaml release_name and previous_release are both {current!r}; the build would diff "
+        f"its own baseline. previous_release names the release BEFORE release_name."
+    )
 
     names = prefix_comparison.list_release_names(str(BASELINES_DIR))
     assert names, f"No committed baselines found in {BASELINES_DIR}"
-    newest = names[-1]
+    # The newest archived baseline that is older than the build being made. Once this build is
+    # archived its own report joins the directory, so "newest overall" is not the right anchor.
+    current_date = prefix_comparison.parse_release_date(current)
+    older = [name for name in names if prefix_comparison.parse_release_date(name) < current_date]
+    assert older, f"No committed baseline older than release_name={current!r} in {BASELINES_DIR}"
 
-    assert pinned == newest, (
-        f"config.yaml previous_release={pinned!r} is not the newest committed baseline ({newest!r}); "
-        f"bump previous_release when you archive a newer prefix report."
+    assert pinned == older[-1], (
+        f"config.yaml previous_release={pinned!r} is not the newest committed baseline before "
+        f"release_name={current!r} ({older[-1]!r}); bump both together when you archive a report."
     )
     assert (BASELINES_DIR / f"{pinned}.json").exists()
 
@@ -237,3 +249,28 @@ def test_missing_baseline_is_graceful(tmp_path):
     assert _read_csv(overall_csv) == [["Metric", "Previous", "Current", "Absolute change", "Percent change"]]
     assert len(_read_csv(by_clique_csv)) == 1  # header only
     assert "No prior baseline" in md.read_text()
+
+
+@pytest.mark.unit
+def test_comparing_a_release_against_itself_raises(tmp_path):
+    """release_name == previous_release must fail loudly, not emit an all-zeros comparison.
+
+    Archiving a report and bumping `previous_release` without moving `release_name` on to the next
+    build leaves the two equal. The resulting report is perfectly well-formed and entirely wrong: it
+    says nothing changed this release.
+    """
+    current_json = tmp_path / "prefix_report.json"
+    _write_json(current_json, _make_report("2026jul22", {}, 0, 0))
+    baseline_json = tmp_path / "2026jul22.json"
+    _write_json(baseline_json, _make_report("2026jul22", {}, 0, 0))
+
+    with pytest.raises(ValueError, match="would use its own report as the baseline"):
+        prefix_comparison.generate_prefix_comparison(
+            str(current_json),
+            str(baseline_json),
+            str(tmp_path / "overall.csv"),
+            str(tmp_path / "by_clique.csv"),
+            str(tmp_path / "prefix_comparison.md"),
+            1,
+            1,
+        )
