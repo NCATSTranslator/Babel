@@ -96,6 +96,30 @@ def test_summary_of_changes_is_none_without_a_report(tmp_path):
 
 
 @pytest.mark.unit
+def test_summary_of_changes_renders_a_header_only_report(tmp_path):
+    """A comparison that ran and produced no rows should still render a table, not crash the draft.
+
+    The column-width calculation reduces over the data rows, so an empty set used to raise
+    `TypeError` from `max()` and take the whole note with it.
+    """
+    tables = tmp_path / "reports" / "tables"
+    tables.mkdir(parents=True)
+    (tables / "prefix_comparison_overall.csv").write_text("Metric,Previous,Current,Absolute change,Percent change\n")
+
+    table = drn.summary_of_changes(tmp_path, "2025sep1", "2026jul22")
+
+    lines = table.splitlines()
+    assert len(lines) == 2  # header and separator, no data rows
+    assert [cell.strip() for cell in lines[0].strip("|").split("|")] == [
+        "Filename",
+        "2025sep1",
+        "2026jul22",
+        "Diff",
+        "% Diff",
+    ]
+
+
+@pytest.mark.unit
 def test_baseline_skips_releases_that_were_never_deployed():
     """v1.11 sits between 2025sep1 and 2025mar31 but never shipped, so it cannot be a baseline."""
     manifest = drn.load_manifest(get_repo_root() / "releases" / "releases.yaml")
