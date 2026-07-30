@@ -275,8 +275,8 @@ rule get_chemical_unichem_relationships:
     benchmark:
         config["output_directory"] + "/benchmarks/get_chemical_unichem_relationships.tsv"
     resources:
-        # Peaked at ~21 GB on both babel-1.17 and 2026jul22 (see docs/tools/Resources.md), which is
-        # 87% of 24 GB -- raised a bucket so a growing UniChem doesn't OOM it.
+        # Peaked at 20.9 GiB = 21.9 GB on both babel-1.17 and 2026jul22 (see docs/tools/Resources.md),
+        # i.e. 91% of 24 GB -- raised a bucket so a growing UniChem doesn't OOM it.
         mem="32G",
     run:
         chemicals.write_unichem_concords(
@@ -358,7 +358,7 @@ rule chemical_unichem_concordia:
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_unichem_concordia.tsv"
     resources:
-        # 2026jul22 peaked at 111.6G of 128G (87%); UniChem grows every release.
+        # 2026jul22 peaked at 111.6 GiB = 117.0 GB, 91% of 128G; UniChem grows every release.
         mem="192G",
     run:
         chemicals.combine_unichem(input.concords, output.unichemgroup)
@@ -385,12 +385,13 @@ rule untyped_chemical_compendia:
     benchmark:
         config["output_directory"] + "/benchmarks/untyped_chemical_compendia.tsv"
     resources:
-        # Peaked at 132.0 GB on babel-1.17 and 132.1 GB on 2026jul22 -- stable to within 0.1%, so the
-        # old 512G was reserving ~4x what it uses and forced the job onto a largemem node. 160G fits
-        # a 191 GB batch partition node (see slurm/config.yaml), taking it off largemem entirely,
-        # with ~21% headroom. If chemical growth pushes the peak past ~145 GB, go back to 192G and
-        # accept largemem rather than shaving the headroom further.
-        mem="160G",
+        # Peaked at 132.0 and 132.1 GiB on babel-1.17 and 2026jul22 -- stable to within 0.1%. Those
+        # are the benchmark's mebibytes; `mem` is decimal, so the peak is 141.8 GB and the old 512G
+        # was reserving ~3.6x what it uses while forcing the job onto a largemem node. 184G fits a
+        # 191 GB batch partition node (see slurm/config.yaml), taking it off largemem entirely, at
+        # 77% used. Past ~150 GB there is no batch-node size left with headroom: go back to 512G and
+        # accept largemem rather than shaving this further.
+        mem="184G",
     run:
         chemicals.build_untyped_compendia(
             input.concords,
@@ -442,7 +443,8 @@ rule check_chemical_completeness:
     benchmark:
         config["output_directory"] + "/benchmarks/check_chemical_completeness.tsv"
     resources:
-        # 2026jul22 peaked at 13.7G against the 16G cluster default (86%), with no explicit block.
+        # 2026jul22 peaked at 13.7 GiB = 14.4 GB against the 16G cluster default (90%), with no
+        # explicit block.
         mem="24G",
     run:
         assessments.assess_completeness(

@@ -81,7 +81,8 @@ rule taxon_compendia:
         config["output_directory"] + "/benchmarks/taxon_compendia.tsv"
     resources:
         # babel-1.17 flagged this as the tightest rule still on the 16 GB default and the first to
-        # watch for an OOM as NCBITaxon grows; 2026jul22 peaked at 14.1 GB (88%), so it gets a block.
+        # watch for an OOM as NCBITaxon grows; 2026jul22 peaked at 14.1 GiB = 14.8 GB, 92% of the
+        # default, so it gets a block.
         mem="24G",
     run:
         taxon.build_compendia(input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename)

@@ -98,8 +98,10 @@ rule generate_pubmed_compendia:
     benchmark:
         config["output_directory"] + "/benchmarks/generate_pubmed_compendia.tsv"
     resources:
-        # 2026jul22 peaked at 123.4G of 128G (96%) and ran 1.8h against the 2h cluster default --
-        # tight on both axes, and Publication grows every release.
+        # 2026jul22 peaked at 123.4 GiB = 132.5 GB against a 128G request -- at or past its own
+        # limit (summed process-tree RSS double-counts shared pages, which is likely why it was not
+        # killed) -- and ran 1.8h against the 2h cluster default. Tight on both axes, and Publication
+        # grows every release.
         mem="192G",
         runtime="4h",
     run:
