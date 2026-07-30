@@ -55,8 +55,8 @@ publishing — it is scaffolding, not output.
 House style, from `releases/2025sep1.md`:
 
 - `[MAJOR]` prefixes anything a consumer would notice or should act on.
-- Related PRs collapse into one bullet with several links:
-  `([PR #473](…), [PR #483](…))`. Prefer one clear sentence about the change over one bullet per PR.
+- Related PRs collapse into one bullet ending in a parenthesised list of `[PR #473]`-style links to
+  each one. Prefer one clear sentence about the change over one bullet per PR.
 - Sub-bullets carry the rationale and any known follow-up issue.
 - Non-PR changes are fine as prose (`Updated RxNorm from X to Y` — the script generates these).
 
