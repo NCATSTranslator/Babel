@@ -159,8 +159,23 @@ exactly the problems the artifact exists to surface. `write_new_cliques_csv` in
 `src/reports/source_impact_details.py` is the worked example; see
 [`src/tools/source_impact_report/CLAUDE.md`](../../src/tools/source_impact_report/CLAUDE.md).
 
-An artifact that is *not* derivable from another committed file — the source-impact `new-xrefs.tsv`,
-which records the joins the source actually made — stays uncapped.
+### Aggregate when rows are not the unit of interest
+
+A slice is only the right reduction when the rows themselves are what a reviewer reads. When the
+interesting structure is *what kinds of rows there are*, aggregate instead: group on the columns
+that identify a kind, give each group its total, and attach a handful of example rows so the groups
+stay judgeable. The source-impact `new-xrefs-summary.csv` is the worked case — EMAPA's 4,336 xrefs
+are one join pathway, so listing 100 of them tells a reviewer far less than one row saying "UBERON
+asserts 4,336 `xref`s to EMAPA" plus ten examples.
+
+Two rules that generalise from it:
+
+- **Canonicalise the grouping key, but only where the variation is an artifact.** Sorting a prefix
+  pair is right, because which side a concord file writes first is arbitrary. Merging the two
+  *asserters* of that pair is wrong, because that is the difference between a mapping this change
+  introduces and one that already existed.
+- **Keep the examples honest.** Spread them across the group rather than taking the first N, or the
+  sample silently becomes "the lowest identifiers".
 
 ## Storing generation scripts with the artifact
 

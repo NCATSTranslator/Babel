@@ -246,11 +246,13 @@ Caveats:
 - UberGraph-backed rules carry `retries: 3`, but a full UberGraph outage will propagate.
 - The full target rebuilds upstream sources, so numbers reflect data fetched at build time.
 - **The pipeline target does not build the per-prefix label files.** Section 3's sample tables and
-  `new-xrefs.tsv` enrich CURIEs with preferred labels read from
+  the xref detail files enrich CURIEs with preferred labels read from
   `babel_downloads/<PREFIX>/labels` (`--downloads-root`). Those files come from the
   `get_obo_labels` rule in `datacollect.snakefile`, which a pipeline target such as `anatomy` does
   not depend on — so a report generated straight after a fresh pipeline build has a blank
-  `object_label` column for the new source, with no warning. Each per-prefix file is exactly the
+  `object_label` column for the new source, with no warning. Fix this *before* committing a report:
+  the labels are what make `new-xrefs-summary.csv`'s example rows judgeable, so a summary of bare
+  CURIE pairs defeats the point of committing it. Each per-prefix file is exactly the
   subset of `babel_downloads/common/ubergraph/labels` whose CURIEs carry that prefix (see
   `obo.pull_uber_labels`), so if you already have the common file you can slice it rather than
   re-querying all of UberGraph:
@@ -372,40 +374,67 @@ If the report shows no synthetic diff for your pipeline, either it is not regist
 
 #### Detail files for SME review
 
-Alongside `impact-report.md`, the tool writes an `impact-report/` subdirectory with the data as
-CSV/TSV files (GitHub renders these as sortable tables). Pass `--no-detail-files` to skip. All
-files are deterministically sorted (clean diffs).
+Alongside `impact-report.md`, the tool writes an `impact-report/` subdirectory of CSV files (GitHub
+renders these as sortable tables). Pass `--no-detail-files` to skip. All files are deterministically
+sorted (clean diffs).
 
-The three committed files:
+**Two are committed; the four full tables they reduce are gitignored.** The rule is fixed, not a
+per-source judgement call: the unqualified filename is always the full table and always local, and
+the qualified filename is always the committed reduction.
 
-- **`new-cliques-top-100.csv`** — one row per pure-new clique, **capped at the top 100 rows**
-  (see below). Columns: `pipeline, preferred_id, preferred_label, biolink_type, member_count,
+The two committed files:
+
+- **`new-cliques-top-100.csv`** — one row per pure-new clique, **capped at the top 100 rows** (see
+  below). Columns: `pipeline, preferred_id, preferred_label, biolink_type, member_count,
   equivalent_ids`, plus survival columns `preferred_id_would_survive,
   needs_biolink_registration, unsupported_prefixes`.
+- **`new-xrefs-summary.csv`** — the cross-references **aggregated into join pathways** (see below).
+  One row per example xref, with its group's columns repeated: `pipeline, predicate, prefix_1,
+  prefix_2, asserted_by, status, xref_count`, then `subject, subject_label, object, object_label`
+  for the example itself. `status` is `added` when the new source's own concord asserts the pathway
+  and `from_other_source` when another source's does. Deduplicate on the first seven columns for the
+  pathway table alone; `xref_count` is the group total, so it repeats across the group's examples.
+
+The four generated locally and gitignored:
+
+- **`new-cliques.csv`** — the full pure-new-clique list the top-100 file ranks and truncates.
+- **`new-xrefs.csv`** — one row per cross-reference touching a source CURIE, scanned across all
+  concord files. Columns: `pipeline, subject, subject_label, predicate, object, object_label,
+  asserted_by, status`.
 - **`modified-cliques.csv`** — one row per source identifier landing in an existing clique.
   Includes `change_kind` (`expanded`/`merged`), `added_kind` (`added` = structurally new,
   `preexisting` = already present via xref), survival columns, and the clique's full
   `equivalent_ids`. Filter `added_kind = added` for structural growth, or
   `would_be_added = false` for identifiers that will be dropped downstream.
-- **`new-xrefs.tsv`** — one row per cross-reference touching a source CURIE, scanned across
-  all concord files. Columns: `pipeline, subject, subject_label, predicate, object,
-  object_label, asserted_by, status` (`added` = new source's concord asserts it;
-  `from_other_source` = another source's concord touches a source CURIE).
+- **`modified-cliques.json`** — the same data with the full before/after clique structure.
 
-`modified-cliques.json` is written locally but gitignored.
+Note that ontology labels contain commas, so `preferred_label` and the label columns are quoted CSV
+fields and these files need a real CSV parser rather than splitting on commas. (`equivalent_ids` is
+*pipe*-joined, so split that column on `|`.)
 
-Note that ontology labels contain commas, so `preferred_label` is a quoted CSV field and these files
-need a real CSV parser rather than splitting on commas. (`equivalent_ids` is *pipe*-joined, so split
-that column on `|`.)
+##### Sharing a full table with an SME
+
+The committed reductions answer *which* cliques and pathways a source introduces. They cannot answer
+"is **this** mapping right", which is the question an SME sometimes needs the full table for. When
+that comes up:
+
+```bash
+uv run source-impact-report --source EMAPA     # rewrites the report and all six detail files
+ls docs/sources/EMAPA/impact-report/           # the full tables are the unqualified filenames
+```
+
+Upload the relevant full table to Google Drive (or any host the reviewers can reach), share it
+**read-only**, and put the link in the PR description beside the committed reduction. Do not commit
+it, and do not paste it into the PR body. The link is review scaffolding: it does not need to
+outlive the review, which is exactly why the reduction is what gets committed.
 
 ##### Why the new-cliques file is capped
 
-`new-cliques-top-100.csv` is the only capped detail file, and this is the pattern to follow for
-every new source: **commit the capped file, never the full list.** A source contributes thousands of
-pure-new cliques (3,753 for EMAPA, 14,750 for MP) and almost all of them are clean
-single-identifier cliques, so the full file is megabytes that no reviewer reads and that goes stale
-on the next build. 100 rows is enough to record what the ingest's output looked like on original
-ingest and to give an SME a representative sample. Re-run the tool for the full list.
+**Commit the capped file, never the full list.** A source contributes thousands of pure-new cliques
+(3,753 for EMAPA, 14,750 for MP) and almost all of them are clean single-identifier cliques, so the
+full file is megabytes that no reviewer reads and that goes stale on the next build. 100 rows is
+enough to record what the ingest's output looked like on original ingest and to give an SME a
+representative sample.
 
 The cap is only safe because the writer ranks first: identifiers the Biolink prefix filter would
 drop come first, then the largest cliques, then CURIE order. That keeps the rows worth reviewing —
@@ -413,8 +442,29 @@ above all the survival failures this report exists to catch — from being trunc
 the retained set stable across re-runs. `NEW_CLIQUES_TOP_N` in
 `src/reports/source_impact_details.py` is the single knob; the filename derives from it.
 
-`new-xrefs.tsv` is deliberately *not* capped: it is the non-derivable record of the joins the source
-actually made, which is the part of a new ingest worth keeping in full.
+##### Why the xrefs are aggregated rather than capped
+
+A slice is the wrong reduction for xrefs, because what matters is not *which rows* a source
+contributes but *which join pathways* it opens — and there are far fewer pathways than rows. EMAPA's
+4,336 xrefs are a **single** pathway (UBERON asserting `xref` to EMAPA); MP's 87 are five. So the
+committed file enumerates every pathway with its total, and attaches ten example rows per pathway so
+a reviewer can still judge the mappings.
+
+That grouping is also what the xref audit below asks you to do by hand, so it is now precomputed.
+
+Two properties to preserve if you touch `summarize_xref_groups` in `src/model/source.py`:
+
+- **The prefix pair is sorted** (matching how `src/metadata/provenance.py` keys its metadata
+  counts), so a pathway does not appear twice just because one concord file writes `A → B` and
+  another writes `B → A`.
+- **`asserted_by` and `status` stay in the group key.** MP asserting a mapping to HP is a bridge the
+  addition introduces; HP asserting one to MP may predate it entirely. They share a sorted prefix
+  pair, and merging them would erase the distinction the report exists to draw. MP's committed
+  summary has both rows.
+
+Because each example is a real row rather than a compound string, the file stays a flat table that
+GitHub sorts. Note that `subject`/`object` keep the orientation the concord wrote, which may not
+match the sorted `prefix_1`/`prefix_2` order — `asserted_by` is what says which side asserted.
 
 ##### Survival columns
 
@@ -466,10 +516,17 @@ prefix is absent from the clique type's Biolink `id_prefixes` is dropped by `Nod
 `write_compendium`. Such xrefs are *inert*, not *correct* — they still bloat the concord, and they
 become live the moment another source starts emitting that prefix.
 
-So audit section 3 (and `impact-report/new-xrefs.tsv`) on its own terms. Sample a few rows per
-target prefix and ask whether the pair is an equivalence or an "is about" relation. MP's review is
-the worked example: 663 xref rows, of which nine of thirteen target namespaces turned out to be
-anatomy, processes, citations or Wikipedia URLs (see `docs/sources/MP/mappings.md`).
+So audit section 3's join-pathway table and `impact-report/new-xrefs-summary.csv` on their own
+terms. Work down the pathways and, for each, read the example rows and ask whether the pair is an
+equivalence or an "is about" relation. That per-prefix sampling used to be manual, which is why the
+summary is grouped this way — but note that section 3's *totals* count only the source's own
+assertions, while the pathway table and the summary cover every concord file, so audit the pathways
+rather than the totals. MP's review is the worked example: 663 xref rows, of which nine of thirteen
+target namespaces turned out to be anatomy, processes, citations or Wikipedia URLs (see
+`docs/sources/MP/mappings.md`).
+
+If a pathway looks wrong, pull the full `new-xrefs.csv` (regenerated beside the summary) and filter
+it to that prefix pair rather than relying on the ten examples.
 
 To decide whether a suspect prefix is inert or load-bearing, check both gates:
 
