@@ -15,11 +15,13 @@ uv run babel-slurm-resources <run-dir> [--csv PATH] [--safety F] [--floor-gb N] 
 `<run-dir>` is a directory containing `benchmarks/`, `logs/`, and (optionally) `reports/slurm/` —
 either `babel_outputs/` itself or a copy archived for analysis, such as `data/babel-1.17/`.
 
-Captured examples of the full report — the analysis behind the current `slurm/config.yaml` defaults
-and per-rule overrides — are committed at
-[`examples/babel-slurm-resources-2026jul22.md`](examples/babel-slurm-resources-2026jul22.md) (the
-most recent pass, and the first with the runtime analysis) and
+A captured example of the full report is committed at
 [`examples/babel-slurm-resources-babel-1.17.md`](examples/babel-slurm-resources-babel-1.17.md).
+The 2026jul22 pass has no committed capture: it was run before the mebibyte/megabyte fix below, so
+every figure in it needed a mental ×1.048576 to be read correctly, which is not something a captured
+example should ask of anyone. The conclusions it produced live where they are useful instead — in
+each rule's `resources:` comment and in the hotspot table in
+[`slurm/README.md`](../../slurm/README.md), both in corrected decimal GB.
 
 ## The data a run produces
 
@@ -133,6 +135,24 @@ Two traps the 2026jul22 pass hit, both worth checking before trimming anything:
 Always compare against a second run's benchmarks before trimming — the numbers for a compute-bound
 rule are usually stable to within a percent or two (`untyped_chemical_compendia` peaked at 132.0G
 and 132.1G across the two runs), so a rule that *isn't* stable is telling you something.
+
+### Two ways the declared side can be wrong
+
+The actual-usage side comes from the run; the declared side comes from wherever the tool can find
+it, and those two can describe different worlds.
+
+- **`--snakefile-dir` reads the checkout you are standing in, not the one that produced the run.**
+  It defaults to this repo's `src/snakefiles`, so re-running the tool over an old run *after* a
+  sizing pass compares that run against limits it never had — every rule you just re-sized reports
+  against the new number. Point `--snakefile-dir` at a checkout of the run's own tag
+  (`git worktree add ../babel-2026jul22 2026jul22`) whenever the declarations have moved since,
+  which is exactly the case when comparing two sizing passes.
+- **A `mem=lambda wildcards: ...` rule attributes its largest request to every wildcard instance.**
+  Benchmarks are per wildcard (`export_synonyms_to_duckdb_Disease`) but the efficiency report is
+  keyed by rule name and merged worst-case across shards, so the small instances are scored against
+  the *biggest* branch of the lambda — 0.7G of actual usage against Protein's 512G request — and
+  come out classified `over`. `export_synonyms_to_duckdb` is the only such rule today; size its
+  branches from the per-instance `actual RSS` column, not from the classification.
 
 ## Workflow
 
