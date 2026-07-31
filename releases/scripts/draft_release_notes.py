@@ -102,6 +102,13 @@ NODENORM_STATUS_URL = "https://nodenormalization-exp.apps.renci.org/status"
 NAMERES_STATUS_URL = "https://name-resolution-exp.apps.renci.org/status"
 STATUS_TIMEOUT_SECONDS = 30
 
+# A compendium moving by at least this percentage gets an unchecked triage item under `Areas that
+# changed substantially`. Deliberately *not* config.yaml's `prefix_comparison_warn_pct`, which is the
+# same number for a different granularity: that one flags a prefix row inside the build's own report,
+# this one flags a whole compendium in the published note. 25% is loose enough that a routine
+# release surfaces only a handful, and tight enough to have caught Polypeptide's 97% drop.
+MOVER_THRESHOLD_PCT = 25.0
+
 
 @dataclass(frozen=True)
 class PullRequest:
@@ -411,6 +418,45 @@ def summary_of_changes(build_dir: Path, previous_id: str, release_id: str) -> st
     return "\n".join(lines)
 
 
+def unexplained_movers(build_dir: Path, threshold_pct: float = MOVER_THRESHOLD_PCT) -> list[str]:
+    """A checklist of every compendium that moved enough to need an explanation in the note.
+
+    The build's own prefix comparison flags large drifts *per prefix*; nothing flags them per
+    compendium, which is the granularity the note's table and its `Areas that changed substantially`
+    section are written at. So a compendium can move 97% and reach publication unmentioned -- that is
+    exactly what happened to `Polypeptide` in 2026jul22.
+
+    Emitted as unchecked items rather than prose: under time pressure the honest outcome is often
+    "investigated enough to file an issue, not enough to explain", and an unchecked box says that
+    while a missing paragraph says nothing.
+    """
+    path = build_dir / "reports" / "tables" / "prefix_comparison_overall.csv"
+    if not path.exists():
+        return []
+
+    movers = []
+    with open(path, newline="") as f:
+        for row in csv.DictReader(f):
+            metric, percent = row["Metric"], row["Percent change"]
+            # The two "All ..." rows are the whole-build aggregates, explained by the rest of the list.
+            if metric.startswith("All "):
+                continue
+            name = metric.removesuffix(" CURIEs")  # match the table's row labels
+            if percent == "NEW":
+                movers.append((name, "new this release"))
+            elif abs(float(percent.rstrip("%"))) >= threshold_pct:
+                movers.append((name, f"{percent}, {_format_diff(row['Absolute change'])} CURIEs"))
+    if not movers:
+        return []
+
+    return [
+        f"Every compendium that moved by {threshold_pct:.0f}% or more, for triage. Explain it above, or",
+        "file an issue and link it here — but do not publish one of these unaddressed:",
+        "",
+        *[f"- [ ] **{name}** ({detail})" for name, detail in movers],
+    ]
+
+
 def provenance_block(entry: dict, previous: dict | None) -> list[str]:
     """The bullet block at the top of the note: what was built, and what was deployed with it."""
     release_id, build = entry["id"], entry.get("build")
@@ -502,29 +548,48 @@ def draft(
     notable = notable_changes(build_dir) if build_dir else None
     table = summary_of_changes(build_dir, previous["id"], release_id) if build_dir and previous else None
 
-    lines += ["", "## Bugfixes", "", "- _TODO_.", "", "## Updates", ""]
+    # `## Bugfixes` leads, deliberately empty. It is not "PRs labelled bug" -- it is the much
+    # narrower set a consumer has to act on: behaviour they may have relied on that was wrong before
+    # and is right now. Emitting it empty rather than omitting it makes "this release had none" a
+    # decision someone made, and the section is cheap to delete when that is the answer.
+    lines += [
+        "",
+        "## Bugfixes",
+        "",
+        '<!-- Wrong behaviour a consumer may have relied on, now corrected: "you used to see X, you',
+        "     now see Y -- check whether X affected your downstream analyses, and whether Y is the",
+        '     behaviour you want." Promote items here during triage, or delete the whole section if',
+        "     this release has none. -->",
+        "",
+        "- _TODO_.",
+        "",
+        "## Babel changes",
+        "",
+        "### Updates",
+        "",
+    ]
     lines += bumps or ["- _TODO_."]
-    lines += ["", "## New features", "", "- _TODO_."]
+    for heading in (
+        "New features and identifier/mapping additions",
+        "Improvements to Babel's output",
+        "Development and infrastructure",
+        "Minor changes and fixes",
+    ):
+        lines += ["", f"### {heading}", "", "- _TODO_."]
 
-    if workarounds:
-        lines += ["", "## Known issues and caveats", ""]
-        lines += [f"- {note}" for note in workarounds]
+    lines += ["", "### Known issues and caveats", ""]
+    lines += [f"- {note}" for note in workarounds] or ["- _TODO_."]
 
-    if notable:
-        lines += [
-            "",
-            "## Areas that changed substantially",
-            "",
-            "Straight from this build's own `reports/tables/prefix_comparison.md`. Every large change",
-            "here should trace back to a pull request below; one that doesn't is a bug to file before",
-            "this release ships.",
-            "",
-            notable,
-        ]
+    # NodeNorm and NameRes get their own top-level sections, named for the store each one serves --
+    # which is also how the `## Deployed database sizes` table below is laid out. The PR checklist is
+    # already grouped by repository, so triage is "move each PR up into its own section" rather than
+    # re-deriving the grouping by hand.
+    for heading in ("NodeNorm Redis", "NameRes Solr"):
+        lines += ["", f"## {heading}", "", "- _TODO_."]
 
     lines += ["", *pull_request_sections(prs_by_repo)]
 
-    lines += ["", "## Summary", ""]
+    lines += ["", "## Deployed database sizes", ""]
     if nodenorm or nameres:
         lines += [f"Sizes of the deployed databases, read from `{nodenorm_url}` and `{nameres_url}`.", ""]
         lines += check_deployed_version(nodenorm, "NodeNorm", release_id)
@@ -533,8 +598,26 @@ def draft(
         lines += ["<!-- TODO: fill in from the deployed Redis and Solr instances. -->", ""]
     lines += summary_table(nodenorm, nameres)
 
-    lines += ["", "## Summary of changes", ""]
+    lines += ["", "## Compendium size comparison", ""]
     lines += [table] if table else ["_TODO: no `prefix_comparison_overall.csv` found in the build directory._"]
+
+    # `## Areas that changed substantially` sits with the tables, not up with the headlines: the same
+    # change is often worth a one-line headline near the top *and* a paragraph of explanation here,
+    # and separating the two keeps that from reading as a repetition.
+    if notable or build_dir:
+        lines += [
+            "",
+            "## Areas that changed substantially",
+            "",
+            "Explanations for the movements in the table above. Every large change here should trace",
+            "back to a pull request in this release; one that doesn't is either an upstream data",
+            "change (say so, and say how you checked) or a bug to file before this release ships.",
+        ]
+        if notable:
+            lines += ["", "Straight from this build's own `reports/tables/prefix_comparison.md`:", "", notable]
+        movers = unexplained_movers(build_dir) if build_dir else []
+        if movers:
+            lines += ["", *movers]
 
     return "\n".join(lines) + "\n"
 

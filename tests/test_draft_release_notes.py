@@ -317,3 +317,74 @@ def test_fetch_pull_requests_surfaces_ghs_own_error(monkeypatch):
     monkeypatch.setattr(drn.subprocess, "run", fake_run)
     with pytest.raises(RuntimeError, match="Not Found"):
         drn.fetch_pull_requests("Babel", "NCATSTranslator/Babel", "2025sep1", "2026jul22")
+
+
+# SECTION STRUCTURE
+
+
+@pytest.mark.unit
+def test_draft_emits_the_house_section_order():
+    """The skeleton must match the structure `releases/2026jul22.md` converged on.
+
+    That note was hand-reorganized twice (c22e83b4, 5ac3dff0) away from the Bugfixes/Updates/New
+    features skeleton the script used to emit, and both passes moved the same direction. Pinning the
+    order here is what stops the next release being hand-rebuilt a third time.
+
+    Two orderings are load-bearing rather than cosmetic:
+
+    - `## Bugfixes` leads, so the section a consumer must act on is the first thing they see.
+    - `## Areas that changed substantially` trails the two tables it explains. The same change is
+      often worth a headline near the top *and* a paragraph here; separating them keeps that from
+      reading as an accident.
+    """
+    entry = {"id": "2026jul22", "title": "Babel 2026jul22", "build": "2026jul22"}
+    text = drn.draft(entry, None, None, drn.REPO_ROOT)
+    headings = [line for line in text.splitlines() if line.startswith("#")]
+
+    assert headings == [
+        "# Babel 2026jul22",
+        "## Bugfixes",
+        "## Babel changes",
+        "### Updates",
+        "### New features and identifier/mapping additions",
+        "### Improvements to Babel's output",
+        "### Development and infrastructure",
+        "### Minor changes and fixes",
+        "### Known issues and caveats",
+        "## NodeNorm Redis",
+        "## NameRes Solr",
+        "## All changes in this release",
+        "## Deployed database sizes",
+        "## Compendium size comparison",
+    ]
+
+
+@pytest.mark.unit
+def test_unexplained_movers_flags_every_large_compendium_move(tmp_path):
+    """A compendium that moved a lot but is explained nowhere must surface as an unchecked item.
+
+    Nothing flagged these before: the build's own comparison warns per *prefix*, while the note is
+    written per *compendium*. Polypeptide fell 97% in 2026jul22 and reached review unmentioned.
+    """
+    tables = tmp_path / "reports" / "tables"
+    tables.mkdir(parents=True)
+    (tables / "prefix_comparison_overall.csv").write_text(
+        "Metric,Previous,Current,Absolute change,Percent change\n"
+        "All CURIEs,688983999,605864191,-83119808,-12.1%\n"  # aggregate: never a mover
+        "Polypeptide CURIEs,166,5,-161,-97.0%\n"
+        "Food CURIEs,0,932,932,NEW\n"
+        "Disease CURIEs,632330,639398,7068,1.1%\n"  # below threshold
+    )
+
+    movers = drn.unexplained_movers(tmp_path)
+
+    assert "- [ ] **Polypeptide** (-97.0%, \\-161 CURIEs)" in movers
+    assert "- [ ] **Food** (new this release)" in movers
+    assert not [line for line in movers if "Disease" in line]
+    assert not [line for line in movers if "All CURIEs" in line]
+
+
+@pytest.mark.unit
+def test_unexplained_movers_is_silent_without_a_build(tmp_path):
+    """No CSV means no claim either way, rather than an empty checklist that reads as 'all clear'."""
+    assert drn.unexplained_movers(tmp_path) == []
