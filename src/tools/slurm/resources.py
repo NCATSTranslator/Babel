@@ -405,7 +405,10 @@ def write_csv(recs: list[Recommendation], path: str | Path) -> None:
                 "cores_used",
                 "requested_cpus",
                 "wall_sec",
+                # runtime_limit_min is always populated: a rule declaring none inherits the cluster
+                # default, so declared_runtime is what says whether it can be trimmed rule-by-rule.
                 "runtime_limit_min",
+                "declared_runtime",
                 "wall_pct",
                 "rec_mem_mb",
                 "rec_cpus",
@@ -427,6 +430,7 @@ def write_csv(recs: list[Recommendation], path: str | Path) -> None:
                     r.requested_cpus if r.requested_cpus else "",
                     f"{r.wall_sec:.0f}",
                     r.runtime_limit_min if r.runtime_limit_min else "",
+                    int(r.declared_runtime),
                     f"{r.wall_pct:.1f}" if r.wall_pct is not None else "",
                     r.rec_mem_mb,
                     r.rec_cpus,

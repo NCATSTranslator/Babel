@@ -25,6 +25,9 @@ pytestmark = pytest.mark.unit
 README = get_repo_root() / "slurm" / "README.md"
 SNAKEFILE_DIR = get_repo_root() / "src" / "snakefiles"
 
+#: The hotspot table's heading, so a second table elsewhere in the README with the same row shape
+#: can't quietly join the checks. The section runs to the next `## `.
+_SECTION_RE = re.compile(r"^## Known Resource Hotspots\s*$.*?(?=^## |\Z)", re.M | re.S)
 #: `| `rule` | `file.snakefile` | 512G | 12h | Notes |` -- the four columns the snakefiles can confirm.
 _ROW_RE = re.compile(r"^\| `(\w+)` \| `([\w.]+)` \| ([^|]+?) \| ([^|]+?) \|", re.M)
 
@@ -40,7 +43,9 @@ def _fmt_runtime(minutes: int | None) -> str:
 
 
 def _rows():
-    return _ROW_RE.findall(README.read_text(encoding="utf-8"))
+    section = _SECTION_RE.search(README.read_text(encoding="utf-8"))
+    assert section, "slurm/README.md has no `## Known Resource Hotspots` section for this guard to read"
+    return _ROW_RE.findall(section.group(0))
 
 
 def test_the_hotspot_table_was_found():

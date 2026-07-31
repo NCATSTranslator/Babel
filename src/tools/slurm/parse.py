@@ -492,14 +492,15 @@ def _parse_runtime_min(value: str) -> int:
 
 
 def read_snakefile_resources(snakefile_dir: str | Path) -> dict[str, DeclaredResources]:
-    """Read every rule's statically-declared ``resources:`` from the snakefiles in a directory.
+    """Read every rule's statically-declared ``resources:`` from the ``*.snakefile`` files in a
+    directory.
 
-    Also reads a sibling ``Snakefile`` if ``snakefile_dir`` is the repo root.
+    Only ``src/snakefiles/*.snakefile`` is read, not the root ``Snakefile``: the rules it defines
+    (``all``, ``clean_*``, ``uncompress_synonym_file``) declare no ``resources:`` and never appear in
+    a sizing pass. Add it here if that changes.
     """
     snakefile_dir = Path(snakefile_dir)
     paths = sorted(snakefile_dir.glob("*.snakefile"))
-    if (snakefile_dir / "Snakefile").exists():
-        paths.append(snakefile_dir / "Snakefile")
 
     result: dict[str, DeclaredResources] = {}
     for path in paths:
