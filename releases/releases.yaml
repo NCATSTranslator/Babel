@@ -34,7 +34,12 @@ releases:
   - id: 2026jul22
     title: Babel 2026jul22
     build: 2026jul22
-    babel: v1.18
+    # v1.18.1, not v1.18: the `2026jul22` tag was cut from the babel-1.18.1 branch *before* v1.18.1
+    # was tagged, so git ancestry puts v1.18.1 outside the build -- but the build carries the ChEBI
+    # ingest fixes (#951, #955) that v1.18 does not, and only version-bump and wrap-up commits
+    # separate the build tag from v1.18.1. v1.18.1 is the closest release; hence `approx`.
+    babel: v1.18.1
+    approx: true
     branch: babel-1.18.1
     biolink: "4.4.3"
     nodenorm: ["v2.5.0", "v2.5.1"]
