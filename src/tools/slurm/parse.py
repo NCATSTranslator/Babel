@@ -460,13 +460,15 @@ def parse_job_events(err_file: Path) -> list[JobEvent]:
 # and has no single declared value, so it is left as None rather than mis-parsed.
 _DECL_RULE_RE = re.compile(r"^(?:rule|checkpoint)\s+(\w+)\s*:")
 # The trailing comma is optional (snakefmt supplies one, a hand-edited last entry may not) and a
-# trailing `# ...` comment is common -- `chemical_compendia` explains its runtime that way.
-_DECL_RESOURCE_RE = re.compile(
-    r'^\s+(mem|runtime|cpus_per_task)=("?)([0-9]+(?:\.[0-9]+)?[GgMmHhTt]?)\2\s*,?\s*(?:#.*)?$'
-)
-# The same three keys with *any* value. A line matching this but not the regex above is a
-# declaration this parser cannot read; it is recorded rather than dropped (see DeclaredResources).
-_DECL_RESOURCE_KEY_RE = re.compile(r"^\s+(?:mem|runtime|cpus_per_task)\s*=")
+# trailing `# ...` comment is common -- `chemical_compendia` explains its runtime that way. Any unit
+# suffix is matched here and checked against the key in _parse_resource(), so a swapped unit
+# (`mem="7h"`) is recorded as unreadable rather than crashing the parse.
+_DECL_RESOURCE_RE = re.compile(r'^\s+(mem|runtime|cpus_per_task)=("?)([0-9]+(?:\.[0-9]+)?[A-Za-z]?)\2\s*,?\s*(?:#.*)?$')
+# The same keys with *any* value. A line matching this but not the regex above is a declaration this
+# parser cannot read; it is recorded rather than dropped (see DeclaredResources). `mem\w*` so that
+# `mem_mb=8000` -- the name Snakemake normalizes `mem` to internally, and a spelling a rule could
+# reasonably use -- is recorded rather than matching neither pattern and vanishing.
+_DECL_RESOURCE_KEY_RE = re.compile(r"^\s+(?:mem\w*|runtime|cpus_per_task)\s*=")
 # A `resources:` block ends at the next top-level directive (`run:`, `shell:`, `input:`, ...).
 _DECL_SECTION_RE = re.compile(r"^\s{4}\w+:")
 
@@ -492,16 +494,28 @@ class DeclaredResources:
     unparsed: tuple[str, ...] = ()
 
 
-def _parse_size_mb(value: str) -> int:
-    """``"512G"`` -> 512000. Snakemake's sized resources are decimal, not binary."""
-    if value[-1] in "Tt":
-        return int(float(value[:-1]) * 1_000_000)
-    return int(float(value[:-1]) * 1000) if value[-1] in "Gg" else int(float(value.rstrip("Mm")))
+# The unit suffixes each key accepts, lowercased. Sized resources are decimal, not binary:
+# Snakemake reads `mem="512G"` as 512000 MB, not 524288.
+_RESOURCE_UNITS: dict[str, dict[str, float]] = {
+    "mem": {"": 1, "m": 1, "g": 1000, "t": 1_000_000},  # -> MB
+    "runtime": {"": 1, "h": 60},  # -> minutes
+    "cpus_per_task": {"": 1},  # -> cores; a unit here is a typo
+}
 
 
-def _parse_runtime_min(value: str) -> int:
-    """``"7h"`` -> 420; a bare number is already minutes."""
-    return int(float(value[:-1]) * 60) if value[-1] in "Hh" else int(float(value))
+def _parse_resource(key: str, value: str) -> int | None:
+    """``("mem", "512G")`` -> 512000, ``("runtime", "7h")`` -> 420, a bare number as-is.
+
+    Returns None when the value carries a unit that key does not take (``mem="7h"``). That is a
+    declaration this parser cannot read, not a value to guess at, so it goes to
+    :attr:`DeclaredResources.unparsed` -- which is loud in the report and asserted against the real
+    snakefiles -- rather than raising a ``ValueError`` with no file or line to point at.
+    """
+    suffix = value[-1].lower() if value[-1].isalpha() else ""
+    units = _RESOURCE_UNITS[key]
+    if suffix not in units:
+        return None
+    return int(float(value[:-1] if suffix else value) * units[suffix])
 
 
 def read_snakefile_resources(snakefile_dir: str | Path) -> dict[str, DeclaredResources]:
@@ -531,8 +545,11 @@ def read_snakefile_resources(snakefile_dir: str | Path) -> dict[str, DeclaredRes
             elif rule and _DECL_SECTION_RE.match(line):
                 in_resources = line.strip().startswith("resources:")
             elif rule and in_resources and (match := _DECL_RESOURCE_RE.match(line)):
-                key, raw = match.group(1), match.group(3)
-                values[key] = _parse_size_mb(raw) if key == "mem" else _parse_runtime_min(raw)
+                parsed = _parse_resource(match.group(1), match.group(3))
+                if parsed is None:
+                    unparsed.append(line.strip())  # a literal, but in a unit that key doesn't take
+                else:
+                    values[match.group(1)] = parsed
             elif rule and in_resources and _DECL_RESOURCE_KEY_RE.match(line):
                 unparsed.append(line.strip())
         if rule:

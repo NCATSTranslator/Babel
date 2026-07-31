@@ -376,3 +376,29 @@ def test_read_snakefile_resources_records_a_declaration_it_cannot_read(tmp_path)
     assert parsed["terabyte"].mem_mb == 1_500_000
     assert parsed["terabyte"].runtime_min is None
     assert parsed["terabyte"].unparsed == ("runtime=config['runtime'],",)
+
+
+def test_read_snakefile_resources_records_a_unit_the_key_does_not_take(tmp_path):
+    """`mem="7h"` is a typo, not a size. It must be recorded like any other unreadable declaration
+    rather than raising `ValueError: could not convert string to float: '7h'` from somewhere with no
+    file or line to point at."""
+    (tmp_path / "d.snakefile").write_text(
+        'rule swapped_units:\n    resources:\n        mem="7h",\n        runtime="512G",\n    run:\n        go()\n'
+    )
+    parsed = parse.read_snakefile_resources(tmp_path)
+    assert parsed["swapped_units"].mem_mb is None
+    assert parsed["swapped_units"].runtime_min is None
+    assert parsed["swapped_units"].unparsed == ('mem="7h",', 'runtime="512G",')
+
+
+def test_read_snakefile_resources_records_a_key_spelling_it_does_not_parse(tmp_path):
+    """`mem_mb=` is what Snakemake normalizes `mem` to internally, so a rule could reasonably be
+    written that way. It matches neither the value pattern nor `mem=`, so without `mem\\w*` in the
+    key pattern it would vanish -- reading as "declares nothing", i.e. as the cluster default, which
+    is the failure `unparsed` exists to make visible."""
+    (tmp_path / "e.snakefile").write_text(
+        "rule normalized:\n    resources:\n        mem_mb=8000,\n    run:\n        go()\n"
+    )
+    parsed = parse.read_snakefile_resources(tmp_path)
+    assert parsed["normalized"].mem_mb is None
+    assert parsed["normalized"].unparsed == ("mem_mb=8000,",)
