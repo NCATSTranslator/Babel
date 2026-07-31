@@ -65,6 +65,17 @@ the same trap as `duckdb_memory_limit_mb()` in `src/snakefiles/util.py`, where S
 Practical consequence when reading a rule's comment: a benchmark peak of "132G" needs `mem="142G"`
 to be at 100% of its limit, not `mem="132G"`.
 
+Converting a peak by hand — as the `resources:` comments quote it — needs the right one of two
+factors, and they are easy to swap:
+
+| From | To | Factor | Use it on |
+|------|----|--------|-----------|
+| MiB | MB | ×1.048576 | a benchmark's raw `max_rss` column |
+| GiB | GB | ×1.073741824 | a peak already displayed in GiB, e.g. `132.1G` in a captured report |
+
+Applying the MiB factor to a GiB figure leaves you ~2.4% low, which is small enough to look right:
+`111.6 GiB` is `119.8 GB`, not the `117.0 GB` that factor gives.
+
 ## What it reports
 
 For each rule with a benchmark, it joins actual usage against the requested resources and prints:
