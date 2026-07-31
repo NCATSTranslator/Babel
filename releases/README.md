@@ -31,7 +31,9 @@ uv run python releases/scripts/draft_release_notes.py 2026jul22 \
 
 Add the new release to `releases.yaml` first; the entry below it supplies the comparison baselines,
 so the pull request ranges are derived rather than remembered. Then triage: every PR comes out as an
-unchecked checklist item, to be promoted into Bugfixes / Updates / New features or deleted.
+unchecked checklist item, to be promoted into the section it belongs in or deleted. `## Bugfixes`
+leads the note and is deliberately empty: it is for behaviour a consumer may have relied on that was
+wrong before and is right now, so they can check whether it affected their analyses.
 
 The remaining steps -- archiving the prefix report and CURIE summary, bumping `release_name` and
 `previous_release` in `config.yaml`, adding the index line above, and setting the previous note's

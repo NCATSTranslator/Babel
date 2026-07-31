@@ -43,22 +43,47 @@ Draft while the release is on **Exp**, not Dev. That is the order the release ac
 Exp is publicly reachable, so the note is what tells people they can test the new build before it is
 promoted — and it is what the `--nodenorm-status` / `--nameres-status` defaults point at. If either
 service still reports the *previous* Babel version, the script emits an HTML warning comment above
-the `## Summary` table; treat that as "not ready to draft this section yet" rather than editing the
-comment out.
+the `## Deployed database sizes` table; treat that as "not ready to draft this section yet" rather
+than editing the comment out.
 
 ## 3. Triage the pull request checklist
 
-Every PR lands as `- [ ]` under `## All changes in this release`. Move what matters up into
-`## Bugfixes` / `## Updates` / `## New features`, then **delete the checklist section** before
-publishing — it is scaffolding, not output.
+Every PR lands as `- [ ]` under `## All changes in this release`, already grouped by repository.
+Move what matters up into the section it belongs in, then **delete the checklist section** before
+publishing — it is scaffolding, not output. The NodeNorm and NameRes PRs move into the
+`## NodeNorm Redis` and `## NameRes Solr` sections directly above them.
 
-House style, from `releases/2025sep1.md`:
+Where a Babel PR goes:
+
+| Section | What belongs there |
+|---|---|
+| `## Bugfixes` | Wrong behaviour a consumer may have relied on, now corrected. See below — this bar is high. |
+| `### Updates` | Upstream data version bumps. The script generates these. |
+| `### New features and identifier/mapping additions` | New sources, ontologies, compendia, outputs, or user-facing tools. |
+| `### Improvements to Babel's output` | Changes to what Babel *produces*: typing, conflation, labels, synonyms, xref filtering. |
+| `### Development and infrastructure` | Packaging, CI, formatting, testing, docs, SLURM, refactors. Real work, no output change. |
+| `### Minor changes and fixes` | Small bug fixes and maintainer tooling. |
+| `### Known issues and caveats` | Still true of *this* build: reused downloads, hand-carried files, shipped bugs. |
+
+`## Bugfixes` is not "PRs labelled bug". It is the narrow set a consumer has to **act** on: *you
+used to see X, you now see Y — check whether X affected your downstream analyses, and whether Y is
+the behaviour you want.* A fix for something nobody could have noticed is a Minor change. The script
+emits this section empty and first; promote into it, or delete the section if this release has none.
+Leaving it empty is not an option — "no bugs worth flagging" should be a decision someone made.
+
+House style, from `releases/2026jul22.md`:
 
 - `[MAJOR]` prefixes anything a consumer would notice or should act on.
-- Related PRs collapse into one bullet ending in a parenthesised list of `[PR #473]`-style links to
-  each one. Prefer one clear sentence about the change over one bullet per PR.
+- Related PRs collapse into one bullet ending in a parenthesised list of `[Babel #473]`-style links
+  to each one. Prefer one clear sentence about the change over one bullet per PR.
+- One link style throughout: `[Babel #NNN]` / `[NodeNorm #NNN]` / `[NameRes #NNN]`, which is what
+  the checklist already emits and what disambiguates three repositories. Not `[PR #NNN]`, not a bare
+  URL.
 - Sub-bullets carry the rationale and any known follow-up issue.
 - Non-PR changes are fine as prose (`Updated RxNorm from X to Y` — the script generates these).
+- **Third person**, except in `### Known issues and caveats`, where "I downloaded HMDB in a browser
+  and copied it to the HPC" *is* the fact being reported and first person is the honest way to say
+  it. Everywhere else the actor is Babel, not whoever cut the release.
 
 The `#### N routine ... changes` sub-sections are dependency bumps, version increments and merge
 commits. Summarise them in one line or delete them wholesale, but don't quietly drop a few and keep
@@ -104,8 +129,8 @@ answer from the finished build's reports, the DuckDB `Edge` table, or Node Norma
    unit test enforces the pairing.
 3. Add the index line to `releases/README.md` (newest first).
 4. Set the previous note's `Next release:` line to point at this one.
-5. Fill in the `## Summary` table from the deployed Redis and Solr instances. The script emits the
-   row skeleton; the numbers are not available from the build.
+5. Fill in the `## Deployed database sizes` table from the deployed Redis and Solr instances. The
+   script emits the row skeleton; the numbers are not available from the build.
 
 ## 6. Check
 
@@ -118,3 +143,44 @@ uv run rumdl check releases/
 The drift test fails if a note exists without a `releases.yaml` entry, and the pin test fails if
 `previous_release` is not the newest committed baseline older than `release_name` — which catches
 both a stale pin and a pair left equal.
+
+## 7. Final review
+
+**Do this only once triage is finished.** These are checks on the assembled note, and running them
+while sorting PRs would be guidance about mistakes that haven't happened yet.
+
+Report findings, don't silently apply them: several turn on judgement only the author has. Collect
+the cut candidates into a temporary `## Suggested deletions` section at the end of the note, each
+with a one-line note saying where it came from and why it's a candidate, so the decision is a
+reading pass rather than a re-derivation.
+
+1. **Unlinked bullets.** Find every bullet with no `[Babel #NNN]` link and try to supply one — the
+   `## All changes in this release` checklist is still in the working copy and usually has it, since
+   both were generated from the same PR range. If the PR turns out to be cited in an *earlier* note,
+   the bullet is describing a change that already shipped: move it to `## Suggested deletions`.
+2. **Already-shipped PRs.** Check every cited PR against the earlier notes, not just the unlinked
+   ones:
+
+   ```bash
+   for pr in $(grep -oE 'pull/[0-9]+' releases/<release>.md | cut -d/ -f2 | sort -u); do
+     hits=$(grep -l "pull/$pr\b" releases/*.md | grep -v "<release>" | tr '\n' ' ')
+     [ -n "$hits" ] && echo "#$pr also in: $hits"
+   done
+   ```
+
+   A hit is not automatically a deletion — an old PR is legitimately cited as *context* for new work
+   ("the design in #506 gave bad results, so #626 replaced it"). Distinguish the two by reading how
+   the bullet uses it, and say which is which. Note that `v1.11` never deployed, so a PR appearing
+   only there may never have reached a shipped note.
+3. **Duplication across sections.** The same change often appears as a headline near the top and as
+   a paragraph under `## Areas that changed substantially`. That is deliberate — the two serve
+   different readers. Verify the two agree on the numbers and the PR links, and that they are far
+   enough apart not to read as a stutter. Flag it if one says something the other contradicts.
+4. **Unexplained movers.** The script emits an unchecked item per compendium that moved ≥25%. Every
+   box should end up ticked, explained above, or carrying a filed issue link. Do not delete an
+   unticked one.
+5. **Overstated claims.** Check what a bullet asserts against what its PR actually did. `#482` was
+   written up as "updated `*Factory` methods to use SQLite" when it converted `TaxonFactory` alone
+   and explicitly deferred the rest. Prefer the specific name — a note is searchable history, and
+   someone grepping `TaxonFactory` years later should land here.
+6. **Voice and link style.** One voice, one link form (see the house style above).
