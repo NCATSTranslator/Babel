@@ -154,14 +154,15 @@ def fetch_pull_requests(repo_key: str, repo: str, base: str, head: str) -> list[
     Titles and authors come from the commits themselves, so this costs one paginated request per
     repository rather than one per PR.
 
-    :raises RuntimeError: if the ``gh`` CLI is not installed.
+    :raises RuntimeError: if the ``gh`` CLI is not installed, or the query fails.
     """
     try:
         result = subprocess.run(
             [
                 "gh",
                 "api",
-                f"repos/{repo}/compare/{base}...{head}?per_page=250",
+                # 100 is GitHub's per_page maximum; anything larger is silently clamped.
+                f"repos/{repo}/compare/{base}...{head}?per_page=100",
                 "--paginate",
                 "-q",
                 '.commits[] | {m: (.commit.message | split("\\n")[0]), '
@@ -174,6 +175,12 @@ def fetch_pull_requests(repo_key: str, repo: str, base: str, head: str) -> list[
     except FileNotFoundError as error:
         raise RuntimeError(
             "The `gh` CLI is required to list pull requests; install it from https://cli.github.com/."
+        ) from error
+    except subprocess.CalledProcessError as error:
+        # capture_output hides gh's diagnosis (an unknown tag, an expired token, a rate limit), and
+        # that message is the whole answer -- surface it rather than a bare non-zero exit.
+        raise RuntimeError(
+            f"`gh api` failed comparing {base}...{head} in {repo}: {(error.stderr or '').strip()}"
         ) from error
 
     by_number: dict[int, PullRequest] = {}

@@ -299,3 +299,21 @@ def test_fetch_status_returns_none_instead_of_raising(capsys):
     """A note is worth drafting when the services are down or not yet deployed."""
     assert drn.fetch_status("http://127.0.0.1:1/status") is None
     assert "warning: could not read" in capsys.readouterr().err
+
+
+@pytest.mark.unit
+def test_fetch_pull_requests_surfaces_ghs_own_error(monkeypatch):
+    """A failing `gh api` must report *why*, not just that it exited non-zero.
+
+    `capture_output=True` hides gh's stderr, and that message -- an unknown tag, an expired token, a
+    rate limit -- is the entire diagnosis. Unlike a missing tag, none of these is guessable from the
+    exit code.
+    """
+    import subprocess
+
+    def fake_run(*_args, **_kwargs):
+        raise subprocess.CalledProcessError(1, "gh", stderr="gh: Not Found (HTTP 404)\n")
+
+    monkeypatch.setattr(drn.subprocess, "run", fake_run)
+    with pytest.raises(RuntimeError, match="Not Found"):
+        drn.fetch_pull_requests("Babel", "NCATSTranslator/Babel", "2025sep1", "2026jul22")
