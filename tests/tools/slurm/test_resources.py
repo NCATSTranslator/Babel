@@ -217,3 +217,34 @@ def test_analyze_falls_back_to_the_snakefile_for_requested_mem(tmp_path):
 
     # With no snakefile to fall back on, it is honestly reported as unknown rather than guessed.
     assert resources.analyze(tmp_path)[0].classification == "no-request-data"
+
+
+def test_a_snakefile_declared_mem_never_counts_as_the_run_default(tmp_path):
+    """The fallback above must not leak into `ran_on_default`.
+
+    `detect_run_default_mem_mb()` infers the cluster default as the modal *requested* mem, which
+    works because most rules carry no explicit block. A mem read from a snakefile is the opposite --
+    the rule declaring its own. In a reports-only snapshot every value comes from the snakefiles, so
+    folding them in elects one declared value as "the default" and mis-marks every rule sharing it
+    as needing a new block.
+    """
+    bdir = tmp_path / "benchmarks"
+    bdir.mkdir()
+    for rule in ("declared_a", "declared_b", "declared_c"):
+        _write_benchmark(bdir / f"{rule}.tsv", [[100.0, "0:01:40", 1000, 0, 0, 0, 1, 1, 98.0, 90.0]])
+    (tmp_path / "logs").mkdir()
+    # Three rules, all declaring the same 64G, and no efficiency report at all.
+    snakefiles = _write_snakefile(
+        tmp_path,
+        "".join(
+            f'rule {rule}:\n    resources:\n        mem="64G",\n    run:\n        x()\n\n'
+            for rule in ("declared_a", "declared_b", "declared_c")
+        ),
+    )
+
+    recs = resources.analyze(tmp_path, snakefile_dir=snakefiles)
+
+    assert [r.requested_mem_mb for r in recs] == [64000, 64000, 64000]
+    assert all(r.declared_mem_only for r in recs)
+    # 64G is the mode, but it is nobody's default: each of these rules declares it.
+    assert all(r.ran_on_default is False for r in recs)

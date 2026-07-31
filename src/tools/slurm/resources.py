@@ -151,6 +151,10 @@ class Recommendation:
     # True if the rule declares its own `runtime` in a snakefile; False if it runs on the cluster
     # default. Only a declared runtime can be trimmed rule-by-rule.
     declared_runtime: bool = False
+    # True if `requested_mem_mb` was read from the snakefile rather than from what the scheduler was
+    # actually asked for. Such a rule declares its own block by definition, so it never ran on the
+    # default -- and its value must stay out of detect_run_default_mem_mb()'s mode.
+    declared_mem_only: bool = False
     # True if the rule ran on the run's default mem (no explicit `resources:` block, so it needs a
     # new one before the default drops); False if it carried an explicit request; None if unknown
     # (no requested-side data). Set by analyze() from the run's modal requested mem.
@@ -164,7 +168,8 @@ class Recommendation:
 
     @property
     def wall_pct(self) -> float | None:
-        """Wall time as a percentage of the declared limit."""
+        """Wall time as a percentage of ``runtime_limit_min``, which is usually the cluster-wide
+        default rather than anything the rule declared -- see ``declared_runtime``."""
         if not self.runtime_limit_min:
             return None
         return 100.0 * (self.wall_sec / 60.0) / self.runtime_limit_min
@@ -212,8 +217,14 @@ def analyze(
         decl = declared.get(rule)
 
         requested_mem = eff.requested_mem_mb if eff and eff.requested_mem_mb else (log.mem_mb if log else None)
-        if not requested_mem and decl:
-            requested_mem = decl.mem_mb
+        # A mem read from the snakefile is a *declared* block, not what the scheduler was asked for.
+        # Keep the two apart: detect_run_default_mem_mb() infers the run's default as the modal
+        # requested mem, and a declared value is by definition not the default -- folding them in
+        # would let a reports-only snapshot (no efficiency report, so every value comes from here)
+        # elect one of them as "the default" and mis-mark every rule sharing it as ran_on_default.
+        declared_mem_only = False
+        if not requested_mem and decl and decl.mem_mb:
+            requested_mem, declared_mem_only = decl.mem_mb, True
         requested_cpus = eff.ncpus if eff and eff.ncpus else (log.cpus if log else None)
         # Prefer what the job actually ran with (the log), then the snakefile, then the profile
         # default -- a rule with no explicit block really does get the cluster-wide runtime.
@@ -269,14 +280,17 @@ def analyze(
                 rec_runtime_min=rec_runtime,
                 time_classification=time_classification,
                 declared_runtime=declared_runtime,
+                declared_mem_only=declared_mem_only,
             )
         )
     # Mark which rules ran on the run's default (no explicit block) vs declared their own, so the
     # override list separates rules that need a *new* block from those that already carry one.
-    run_default_mb = detect_run_default_mem_mb(recs)
+    run_default_mb = detect_run_default_mem_mb([r for r in recs if not r.declared_mem_only])
     for rec in recs:
         if rec.requested_mem_mb is None:
             rec.ran_on_default = None
+        elif rec.declared_mem_only:
+            rec.ran_on_default = False
         elif run_default_mb is not None and abs(rec.requested_mem_mb - run_default_mb) <= 0.02 * run_default_mb:
             rec.ran_on_default = True
         else:
