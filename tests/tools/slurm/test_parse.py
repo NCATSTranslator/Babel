@@ -351,3 +351,28 @@ def test_read_snakefile_resources_matches_the_real_snakefiles(tmp_path):
     assert parsed["chemical_compendia"].runtime_min == 420
     # Across all snakefiles, a healthy number of rules declare something; a broken regex zeroes this.
     assert sum(1 for d in parsed.values() if d.mem_mb or d.runtime_min) > 20
+
+    # The count above survives a single dropped rule, so check the misses directly: every
+    # mem/runtime/cpus_per_task line the parser could not read is recorded, and there is exactly one
+    # in the repo -- export_synonyms_to_duckdb's per-wildcard `mem=lambda`. Anything else here is a
+    # declaration silently reading as the cluster default, which makes an over-provisioned rule look
+    # correctly sized.
+    unparsed = {rule: d.unparsed for rule, d in parsed.items() if d.unparsed}
+    assert list(unparsed) == ["export_synonyms_to_duckdb"], f"unreadable resource declarations: {unparsed}"
+    assert unparsed["export_synonyms_to_duckdb"][0].startswith("mem=lambda wildcards:")
+
+
+def test_read_snakefile_resources_records_a_declaration_it_cannot_read(tmp_path):
+    """A unit the parser doesn't know must be recorded, not silently read as "declares nothing"."""
+    (tmp_path / "c.snakefile").write_text(
+        "rule terabyte:\n"
+        "    resources:\n"
+        '        mem="1.5T",\n'  # known unit: parsed
+        "        runtime=config['runtime'],\n"  # unknown shape: recorded
+        "    run:\n"
+        "        go()\n"
+    )
+    parsed = parse.read_snakefile_resources(tmp_path)
+    assert parsed["terabyte"].mem_mb == 1_500_000
+    assert parsed["terabyte"].runtime_min is None
+    assert parsed["terabyte"].unparsed == ("runtime=config['runtime'],",)

@@ -461,7 +461,12 @@ def parse_job_events(err_file: Path) -> list[JobEvent]:
 _DECL_RULE_RE = re.compile(r"^(?:rule|checkpoint)\s+(\w+)\s*:")
 # The trailing comma is optional (snakefmt supplies one, a hand-edited last entry may not) and a
 # trailing `# ...` comment is common -- `chemical_compendia` explains its runtime that way.
-_DECL_RESOURCE_RE = re.compile(r'^\s+(mem|runtime|cpus_per_task)=("?)([0-9]+(?:\.[0-9]+)?[GgMmHh]?)\2\s*,?\s*(?:#.*)?$')
+_DECL_RESOURCE_RE = re.compile(
+    r'^\s+(mem|runtime|cpus_per_task)=("?)([0-9]+(?:\.[0-9]+)?[GgMmHhTt]?)\2\s*,?\s*(?:#.*)?$'
+)
+# The same three keys with *any* value. A line matching this but not the regex above is a
+# declaration this parser cannot read; it is recorded rather than dropped (see DeclaredResources).
+_DECL_RESOURCE_KEY_RE = re.compile(r"^\s+(?:mem|runtime|cpus_per_task)\s*=")
 # A `resources:` block ends at the next top-level directive (`run:`, `shell:`, `input:`, ...).
 _DECL_SECTION_RE = re.compile(r"^\s{4}\w+:")
 
@@ -479,10 +484,18 @@ class DeclaredResources:
     mem_mb: int | None
     runtime_min: int | None
     cpus: int | None
+    #: ``resources:`` lines naming one of the three keys whose value this parser could not read -- a
+    #: callable, or a unit it does not know. A missed declaration would otherwise read as "declares
+    #: nothing", i.e. as the cluster-wide default, which makes an over-provisioned rule look
+    #: correctly sized; the failure is invisible in the report, so it is recorded here and asserted
+    #: against the real snakefiles in ``tests/tools/slurm/test_parse.py``.
+    unparsed: tuple[str, ...] = ()
 
 
 def _parse_size_mb(value: str) -> int:
     """``"512G"`` -> 512000. Snakemake's sized resources are decimal, not binary."""
+    if value[-1] in "Tt":
+        return int(float(value[:-1]) * 1_000_000)
     return int(float(value[:-1]) * 1000) if value[-1] in "Gg" else int(float(value.rstrip("Mm")))
 
 
@@ -507,20 +520,23 @@ def read_snakefile_resources(snakefile_dir: str | Path) -> dict[str, DeclaredRes
         rule: str | None = None
         in_resources = False
         values: dict[str, int] = {}
+        unparsed: list[str] = []
         for line in path.read_text(errors="replace").splitlines():
             if match := _DECL_RULE_RE.match(line):
                 if rule:
                     result[rule] = DeclaredResources(
-                        rule, values.get("mem"), values.get("runtime"), values.get("cpus_per_task")
+                        rule, values.get("mem"), values.get("runtime"), values.get("cpus_per_task"), tuple(unparsed)
                     )
-                rule, in_resources, values = match.group(1), False, {}
+                rule, in_resources, values, unparsed = match.group(1), False, {}, []
             elif rule and _DECL_SECTION_RE.match(line):
                 in_resources = line.strip().startswith("resources:")
             elif rule and in_resources and (match := _DECL_RESOURCE_RE.match(line)):
                 key, raw = match.group(1), match.group(3)
                 values[key] = _parse_size_mb(raw) if key == "mem" else _parse_runtime_min(raw)
+            elif rule and in_resources and _DECL_RESOURCE_KEY_RE.match(line):
+                unparsed.append(line.strip())
         if rule:
             result[rule] = DeclaredResources(
-                rule, values.get("mem"), values.get("runtime"), values.get("cpus_per_task")
+                rule, values.get("mem"), values.get("runtime"), values.get("cpus_per_task"), tuple(unparsed)
             )
     return result
