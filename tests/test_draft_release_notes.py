@@ -27,8 +27,8 @@ def _load_module():
 drn = _load_module()
 
 
-def _pr(title, author="gaurav", number=1):
-    return drn.PullRequest("Babel", "NCATSTranslator/Babel", number, title, author)
+def _pr(title, author="gaurav", number=1, title_known=True):
+    return drn.PullRequest("Babel", "NCATSTranslator/Babel", number, title, author, title_known)
 
 
 @pytest.mark.unit
@@ -52,6 +52,38 @@ def _pr(title, author="gaurav", number=1):
 )
 def test_routine_classification(title, author, expected):
     assert _pr(title, author).is_routine is expected
+
+
+@pytest.mark.unit
+def test_a_pr_with_no_known_title_is_never_routine():
+    """A merge commit's subject matches ROUTINE_TITLE_PATTERNS, but it describes how the PR was
+    merged, not what it did.
+
+    Babel squash-merges, so every PR arrives with its real title; NodeNorm and NameRes need not, and
+    folding a substantive service change into the collapsed "routine" section is how it gets skipped
+    during triage. Unknown is a reason to look, not to fold away -- but a bot's merge commit is
+    still a bot's.
+    """
+    merge_subject = "Merge pull request #472 from TranslatorSRI/remove-redundant-ensembl-id-code"
+    assert _pr(merge_subject, title_known=False).is_routine is False
+    assert _pr(merge_subject, title_known=True).is_routine is True
+    assert _pr(merge_subject, author="dependabot[bot]", title_known=False).is_routine is True
+
+
+@pytest.mark.unit
+def test_a_repository_with_no_baseline_version_gets_a_visible_todo():
+    """A repository whose PR range can't be derived must say so, not vanish from the checklist.
+
+    The manifest entries from 2025mar31 back predate the practice of recording NodeNorm/NameRes
+    versions, so drafting against one of those leaves a repository with no baseline. An omitted
+    section reads as "nothing changed there", which is exactly what this checklist exists to stop.
+    """
+    lines = drn.pull_request_sections({"Babel": [_pr("Something real")], "NameRes": None})
+    text = "\n".join(lines)
+
+    assert "### NameRes (range unknown)" in text
+    assert "_TODO: `releases/releases.yaml` records no baseline NameRes version" in text
+    assert "### Babel (1 PRs)" in text
 
 
 @pytest.mark.unit

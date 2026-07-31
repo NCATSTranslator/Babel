@@ -117,6 +117,9 @@ class PullRequest:
     number: int
     title: str
     author: str
+    # False when `title` is a merge commit's subject rather than the PR's own title (see
+    # _MERGE_RE below), so the routine-folding patterns have nothing real to match against.
+    title_known: bool = True
 
     @property
     def url(self) -> str:
@@ -126,6 +129,11 @@ class PullRequest:
     def is_routine(self) -> bool:
         if self.author in ROUTINE_AUTHORS:
             return True
+        if not self.title_known:
+            # "Merge pull request #123 from foo/bar" matches ROUTINE_TITLE_PATTERNS, but that says
+            # how the PR was merged, not what it did. Repositories that don't squash-merge would
+            # otherwise fold every substantive change into the collapsed section nobody reads.
+            return False
         return any(pattern.match(self.title) for pattern in ROUTINE_TITLE_PATTERNS)
 
     def as_markdown(self) -> str:
@@ -199,13 +207,13 @@ def fetch_pull_requests(repo_key: str, repo: str, base: str, head: str) -> list[
         squash = _SQUASH_RE.match(message)
         merge = _MERGE_RE.match(message)
         if squash:
-            number, title = int(squash.group("number")), squash.group("title")
+            number, title, title_known = int(squash.group("number")), squash.group("title"), True
         elif merge:
             # A merge commit names the PR but not its title; the number is what makes it findable.
-            number, title = int(merge.group("number")), message
+            number, title, title_known = int(merge.group("number")), message, False
         else:
             continue
-        by_number[number] = PullRequest(repo_key, repo, number, title, author)
+        by_number[number] = PullRequest(repo_key, repo, number, title, author, title_known)
     return [by_number[n] for n in sorted(by_number)]
 
 
@@ -354,6 +362,9 @@ _SKELETON_NAMES = [
     "conflation-db",
     "chemical-drug-db",
 ]
+# Zipped against SUMMARY_DB_ORDER, which silently truncates to the shorter list -- and a skeleton
+# row missing its name is exactly the kind of quiet gap the blank table is meant to make obvious.
+assert len(_SKELETON_NAMES) == len(SUMMARY_DB_ORDER), "_SKELETON_NAMES must name every SUMMARY_DB_ORDER database"
 
 
 def _format_count(value: str) -> str:
@@ -492,8 +503,12 @@ def provenance_block(entry: dict, previous: dict | None) -> list[str]:
     return lines
 
 
-def pull_request_sections(prs_by_repo: dict[str, list[PullRequest]]) -> list[str]:
-    """The triage checklist: every PR in the release, substantive ones first, routine ones folded."""
+def pull_request_sections(prs_by_repo: dict[str, list[PullRequest] | None]) -> list[str]:
+    """The triage checklist: every PR in the release, substantive ones first, routine ones folded.
+
+    A ``None`` value means the range could not be worked out (``releases.yaml`` records no baseline
+    version for that repository). That gets a visible TODO rather than a missing section.
+    """
     lines = [
         "## All changes in this release",
         "",
@@ -501,6 +516,16 @@ def pull_request_sections(prs_by_repo: dict[str, list[PullRequest]]) -> list[str
         "matters into the sections above, then delete the rest of this section before publishing.",
     ]
     for repo_key, prs in prs_by_repo.items():
+        if prs is None:
+            lines += [
+                "",
+                f"### {repo_key} (range unknown)",
+                "",
+                f"_TODO: `releases/releases.yaml` records no baseline {repo_key} version for the "
+                f"previous release, so its pull requests could not be listed. Fill the version in "
+                f"and re-run, or list them by hand._",
+            ]
+            continue
         substantive = [pr for pr in prs if not pr.is_routine]
         routine = [pr for pr in prs if pr.is_routine]
         lines += ["", f"### {repo_key} ({len(prs)} PRs)", ""]
@@ -534,14 +559,23 @@ def draft(
     lines = [f"# {entry['title']}", ""]
     lines += provenance_block(entry, previous)
 
+    # None (rather than an absent key) for a repository whose PR range can't be worked out, so the
+    # checklist says so instead of quietly omitting the section -- an omitted section reads as
+    # "nothing changed in that repository", which is the failure this whole checklist exists to
+    # prevent. With no baseline release at all there is no checklist to speak of, hence the outer if.
+    prs_by_repo: dict[str, list[PullRequest] | None] = {}
     if previous:
-        prs_by_repo: dict[str, list[PullRequest]] = {}
         for repo_key, repo in REPOS.items():
             base, head = _range_for(repo_key, entry, previous)
             if base and head:
                 prs_by_repo[repo_key] = fetch_pull_requests(repo_key, repo, base, head)
-    else:
-        prs_by_repo = {}
+            else:
+                print(
+                    f"warning: releases.yaml records no {repo_key} baseline for {previous['id']!r} "
+                    f"(or no version for {release_id!r}), so its pull requests cannot be listed.",
+                    file=sys.stderr,
+                )
+                prs_by_repo[repo_key] = None
 
     bumps = version_bumps(repo_root, previous["build"]) if previous else []
     workarounds = build_workarounds(repo_root)
