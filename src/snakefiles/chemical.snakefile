@@ -387,11 +387,11 @@ rule untyped_chemical_compendia:
     resources:
         # Peaked at 132.0 and 132.1 GiB on babel-1.17 and 2026jul22 -- stable to within 0.1%. Those
         # are the benchmark's mebibytes; `mem` is decimal, so the peak is 141.8 GB and the old 512G
-        # was reserving ~3.6x what it uses while forcing the job onto a largemem node. 184G fits a
-        # 191 GB batch partition node (see slurm/config.yaml), taking it off largemem entirely, at
-        # 77% used. Past ~150 GB there is no batch-node size left with headroom: go back to 512G and
-        # accept largemem rather than shaving this further.
-        mem="184G",
+        # was reserving ~3.6x what it uses. 256G is the standard 1.5x safety factor rounded to a
+        # bucket. A 184G variant would have fit a 191 GB batch node and kept the job off largemem
+        # entirely, but only at 77% used with no room for one release's growth; revisit after the
+        # next full run, when there are three peaks to size from rather than two.
+        mem="256G",
     run:
         chemicals.build_untyped_compendia(
             input.concords,

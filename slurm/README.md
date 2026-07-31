@@ -106,7 +106,7 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 |------|------|-------|-----------|-------|
 | `protein_compendia` | `protein.snakefile` | 512G | 12h | Largest protein join |
 | `chemical_compendia` | `chemical.snakefile` | 512G | 7h | Full chemical graph; raised from 6h when Food.txt pushed it to 5.5h |
-| `untyped_chemical_compendia` | `chemical.snakefile` | 184G | — | Pre-typing step; 132 GiB = 141.8 GB peak on both babel-1.17 and 2026jul22. Cut from 512G to the largest size that still fits a 191 GB batch node |
+| `untyped_chemical_compendia` | `chemical.snakefile` | 256G | — | Pre-typing step; 132 GiB = 141.8 GB peak on both babel-1.17 and 2026jul22. Cut from 512G to the peak plus the standard 1.5x safety factor; revisit after the next full run |
 | `gene_compendia` | `gene.snakefile` | 256G | 6h | Gene graph |
 | `export_compendia_to_duckdb` | `duckdb.snakefile` | 512G | 4h | Per-compendium DuckDB export; `cpus_per_task=4` (DuckDB auto-threads) |
 | `export_synonyms_to_duckdb` | `duckdb.snakefile` | 512G / 128G | 1h | Per-synonyms DuckDB export (512G for Protein/GeneProteinConflated); `cpus_per_task=4` |
