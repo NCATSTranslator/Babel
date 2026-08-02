@@ -39,6 +39,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: rvben/rumdl@v0 # v0 = latest stable
+      - uses: rvben/rumdl@v0.2.46 # v0 = latest stable
         with:
           report-type: annotations
