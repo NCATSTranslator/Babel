@@ -14,15 +14,13 @@ omit the ``by_curie_prefix``/``by_filename`` sections the comparison never touch
 
 import csv
 import json
-from pathlib import Path
 
 import pytest
 
 from src.reports import prefix_comparison
-from src.util import get_config
+from src.util import get_config, get_repo_root
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-BASELINES_DIR = REPO_ROOT / "releases" / "prefix_reports"
+BASELINES_DIR = get_repo_root() / "releases" / "prefix_reports"
 
 
 def _make_report(name, by_clique, count_curies, count_cliques):

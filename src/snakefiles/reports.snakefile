@@ -1,5 +1,6 @@
 from src.reports import report_tables
 from src.reports import prefix_comparison
+from src.reports.source_impact_details import NEW_CLIQUES_CSV, NEW_XREFS_SUMMARY_CSV
 from src.snakefiles.util import get_all_compendia, get_all_synonyms, get_all_gzipped
 import os
 
@@ -190,13 +191,16 @@ rule generate_mapping_sources_table:
 # See src/tools/source_impact_report/cli.py for the underlying CLI.
 rule report_source_impact:
     output:
-        # The markdown report plus the four full detail files written into the
-        # <output-stem>/ subdirectory beside it (see src/reports/source_impact_details.py).
+        # The markdown report plus the four detail files written into the <output-stem>/
+        # subdirectory beside it (see src/reports/source_impact_details.py). The new-cliques file
+        # and new-xrefs files are the two committed reductions, whose names encode how they reduce,
+        # so take both from the writer's constants rather than repeating literals that could drift.
+        # The full tables they reduce land in the same directory but are not declared outputs.
         md=config["output_directory"] + "/reports/source_impact/{source}.md",
-        new_cliques=config["output_directory"] + "/reports/source_impact/{source}/new-cliques.csv",
+        new_cliques=config["output_directory"] + f"/reports/source_impact/{{source}}/{NEW_CLIQUES_CSV}",
         modified_csv=config["output_directory"] + "/reports/source_impact/{source}/modified-cliques.csv",
         modified_json=config["output_directory"] + "/reports/source_impact/{source}/modified-cliques.json",
-        new_xrefs=config["output_directory"] + "/reports/source_impact/{source}/new-xrefs.tsv",
+        new_xrefs=config["output_directory"] + f"/reports/source_impact/{{source}}/{NEW_XREFS_SUMMARY_CSV}",
     benchmark:
         config["output_directory"] + "/benchmarks/report_source_impact_{source}.tsv"
     params:

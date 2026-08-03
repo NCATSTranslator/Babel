@@ -29,6 +29,6 @@ Next release: [TranslatorGuppyAugust2024](./TranslatorGuppyAugust2024.md)
 * Updated PANTHER pathways from SequenceAssociationPathway3.6.7.txt to
   SequenceAssociationPathway3.6.8.txt.
 
-## Releases since [May 2024](TranslatorMay2024)
+## Releases since [May 2024](TranslatorMay2024.md)
 
 * No official releases

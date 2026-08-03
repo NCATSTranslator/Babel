@@ -26,7 +26,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 
 from src.model.glom_diff import ExpandedClique, SourceImpactDiff
-from src.model.source import SourceContribution
+from src.model.source import SourceContribution, XrefGroup
 from src.util import get_logger
 
 logger = get_logger(__name__)
@@ -278,6 +278,34 @@ def _render_remote_section(remote_summary: dict[str, dict[str, int]]) -> list[st
     return lines
 
 
+def _render_join_pathways(name: str, xref_groups: list[XrefGroup] | None) -> list[str]:
+    """Render the join-pathway table: every asserted xref, not only the ones this source declares.
+
+    The counts above this table come from the source's *own* concord file, which understates —
+    sometimes to zero — a source whose cross-references live elsewhere. EMAPA is the worked case: its
+    own concord is empty, so the totals above read 0, while UBERON's concord carries 4,336
+    ``UBERON:… xref EMAPA:…`` rows that are the entire reason EMAPA joins any existing clique. This
+    table is grouped over every concord file in the tree, so those rows appear.
+    """
+    lines = ["### Join pathways (every asserted cross-reference, not only this source's own)", ""]
+    if not xref_groups:
+        lines.extend(["- (no cross-reference rows touch a source identifier)", ""])
+        return lines
+    lines.append(
+        f"`status` is `added` when {name}'s own concord file asserts the pathway and "
+        "`from_other_source` when another source's does — the latter may predate this addition. "
+        "The prefix pair is sorted, so `asserted_by` is what tells you which side declared it."
+    )
+    lines.append("")
+    lines.append("| pipeline | predicate | prefix pair | asserted by | status | xrefs |")
+    lines.append("|---|---|---|---|---|---|")
+    for g in xref_groups:
+        pair = f"{g.prefix_1} ↔ {g.prefix_2}"
+        lines.append(f"| {g.pipeline} | `{g.predicate}` | {pair} | `{g.asserted_by}` | {g.status} | {_fmt(g.count)} |")
+    lines.append("")
+    return lines
+
+
 def _detail_link(details_dirname: str | None, filename: str, text: str) -> str | None:
     """Render a bullet linking to one of the full detail files, or None if not emitted."""
     if not details_dirname:
@@ -373,7 +401,14 @@ def _render_clique_impact(
         )
         lines.append("")
 
-        link = _detail_link(details_dirname, "new-cliques.csv", "Full list of new cliques")
+        # Literal filename, not source_impact_details.NEW_CLIQUES_CSV: that module imports from
+        # this one, so importing it back would be circular. tests/pipeline/test_source_impact_report.py
+        # asserts this link resolves to the file actually written, which is what catches drift.
+        link = _detail_link(
+            details_dirname,
+            "new-cliques-top-100.csv",
+            "Sample of new cliques (top 100, unsurvivable and largest first)",
+        )
         if link:
             lines.append(link)
         link = _detail_link(
@@ -383,7 +418,11 @@ def _render_clique_impact(
         )
         if link:
             lines.append(link)
-        link = _detail_link(details_dirname, "new-xrefs.tsv", "Full list of new / activated cross-references")
+        link = _detail_link(
+            details_dirname,
+            "new-xrefs-summary.csv",
+            "Cross-reference summary (join pathways with counts and example rows)",
+        )
         if link:
             lines.append(link)
         if details_dirname:
@@ -521,6 +560,7 @@ def render_markdown(
     remote_summary: dict[str, dict[str, int]] | None = None,
     lookup: LookupContext | None = None,
     details_dirname: str | None = None,
+    xref_groups: list[XrefGroup] | None = None,
     sample_limit: int = SAMPLE_LIMIT,
     pure_new_sample_limit: int = PURE_NEW_SAMPLE_LIMIT,
     expanded_sample_limit: int = EXPANDED_SAMPLE_LIMIT,
@@ -638,6 +678,7 @@ def render_markdown(
     else:
         lines.append("- (no pipelines discovered)")
     lines.append("")
+    lines.extend(_render_join_pathways(name, xref_groups))
 
     lines.extend(
         _render_clique_impact(
