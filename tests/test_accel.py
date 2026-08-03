@@ -109,12 +109,13 @@ def test_a_mismatched_abi_version_raises_with_a_rebuild_instruction(version, des
 
 @pytest.mark.unit
 def test_the_built_extension_matches_the_version_python_expects():
-    """If the extension is built, its ABI_VERSION must be the one this checkout expects.
+    """The built extension's ABI_VERSION must be the one this checkout expects.
 
-    Both constants are bumped by hand in the same commit. Failing in CI after a Rust change means
-    the bump was forgotten; failing locally means the checkout needs
+    Every `uv sync` builds the extension (uv bootstraps a Rust toolchain if cargo is missing), so
+    its absence means the build silently regressed -- a failure, not a skip, so that regression
+    can't hide. Both constants are bumped by hand in the same commit: failing in CI after a Rust
+    change means the bump was forgotten; a version mismatch locally means the checkout needs
     `uv sync --reinstall-package babel-pipeline`.
     """
-    if src.accel.accel is None:
-        pytest.skip("compiled extension not built")
+    assert src.accel.accel is not None, "compiled extension not built -- run `uv sync`"
     assert src.accel.accel.ABI_VERSION == src.accel._REQUIRED_ABI_VERSION
