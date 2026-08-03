@@ -7,7 +7,7 @@ version = "0.0.0"
 edition = "2021"
 # The floor pyo3 0.23 itself requires. Declared so a too-old cargo fails with a clear MSRV message
 # rather than a syntax error from somewhere inside a dependency. Note this binds rustup-managed
-# toolchains only -- see docs/README.md on why the Dockerfile installs rustup rather than apt cargo.
+# toolchains only -- see README.md on why the Dockerfile installs rustup rather than apt cargo.
 rust-version = "1.63"
 
 [lib]

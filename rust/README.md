@@ -12,8 +12,8 @@ Babel's expensive rules are CPU-bound single-threaded Python. From the `babel-1.
 | `gene_compendia` | 15,400 s | 15,178 s | 98.5% | 179 GB |
 
 The build backend is therefore [maturin](https://www.maturin.rs/), and the project builds as a
-mixed Rust/Python package: a `cdylib` crate under `` compiled into `src/_accel`, alongside the
-ordinary Python in `../src`.
+mixed Rust/Python package: a `cdylib` crate under this directory compiled into `src/_accel`,
+alongside the ordinary Python in `../src`.
 
 ## Rules for adding a Rust function
 
@@ -31,6 +31,15 @@ result. It never takes one row. Crossing pyo3 once per CURIE costs more than the
 replaces, so a per-row entry point would be *slower* while looking like an optimisation. This is
 enforced structurally: Rust functions open their own files, so there is no entry point that could
 accept a row.
+
+**A/B it before it replaces the Python it's based on, then delete that Python.** Write the Rust
+against the existing Python implementation, and set `BABEL_DISABLE_RUST=1` to force the Python path
+so the two can be timed and diffed against each other in one checkout. Once the Rust side is
+confirmed correct and faster, delete the Python implementation it replaced — don't keep both in the
+tree indefinitely. `BABEL_DISABLE_RUST=1` is an environment variable rather than a `config.yaml`
+entry deliberately: which of two byte-identical implementations runs is an implementation detail
+with no user-facing meaning, and `config.yaml` is threaded into Snakemake `params` and output paths,
+where changing it risks perturbing the DAG of a running build. Precedent: `BABEL_DUCKDB_TEMP_DIR`.
 
 **Bump `ABI_VERSION` in the same commit** as any change to an accelerated function's signature or
 semantics — in both `src/lib.rs` and `_REQUIRED_ABI_VERSION` in `../src/accel.py`. See
@@ -73,9 +82,9 @@ fails in the first second of a run. To fix one:
 uv sync --reinstall-package babel-pipeline
 ```
 
-What the guard does not catch is editing the Rust body without bumping the constant. That is what
-the differential tests are for — they compare against the Python reference regardless of where the
-`.so` came from, which also covers a `.so` served from a stale uv or cargo cache in CI.
+What the guard does not catch is editing the Rust body without bumping the constant — there is no
+permanent Python copy left to diff against once a port has graduated, so review is the only check
+on that. Bump early, bump often.
 
 ## Building
 

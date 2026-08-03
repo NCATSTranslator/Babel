@@ -1,8 +1,9 @@
 //! Native accelerators for babel-pipeline, importable as `from src import _accel`.
 //!
-//! Every function here must have a byte-identical Python implementation that stays in the tree as
-//! the reference, and a test asserting the two agree (see `src/accel.py` and docs/Rust.md). Rust is
-//! an optimisation, never the only way to produce a given output: `src/accel.py` falls back to the
+//! A function lands here only once benchmarking justifies it (see README.md), and is A/B tested
+//! against its Python original with `BABEL_DISABLE_RUST=1` before replacing it -- see `src/accel.py`.
+//! Once a port is confirmed correct and faster, the Python it replaced is deleted rather than kept
+//! as a permanent parallel copy. Until that decision is made, `src/accel.py` falls back to the
 //! Python implementation when this extension is missing, because every snakefile imports `src.*` at
 //! DAG-parse time and a hard import failure would take down every rule for anyone without a
 //! Rust toolchain.

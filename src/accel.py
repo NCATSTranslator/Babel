@@ -7,10 +7,11 @@ use. Nothing else should import ``src._accel`` directly.
 
 Three rules govern how Rust is used here, and each exists for a specific reason:
 
-**Rust is an accelerator, never the only implementation.** Every accelerated function keeps its
-Python version in the tree, and a unit test asserts the two produce identical output. That is what
-makes a Rust port reviewable: the Python is the specification, and the test is the proof the Rust
-matches it. It also means a differential test can be written before the Rust exists.
+**Rust is written only when benchmarking justifies it, and is A/B tested before it replaces
+Python.** While a port is being proven out, ``BABEL_DISABLE_RUST=1`` forces the Python path so the
+two can be timed and diffed against each other in one checkout. Once the Rust side is confirmed
+correct and faster, the Python implementation it replaced is deleted rather than kept indefinitely
+as a parallel copy -- see AGENTS.md and rust/README.md.
 
 **A missing extension falls back to Python; it does not raise.** Every snakefile does a top-level
 ``import src.foo`` at DAG-parse time, so an ImportError here would take down every rule for a
@@ -75,7 +76,7 @@ else:
         # docstring on why this must not take down the whole DAG.
         logger.info(
             "The Rust extension src/_accel is not built; using the Python implementations. "
-            "Build it with `uv sync` (see docs/README.md)."
+            "Build it with `uv sync` (see rust/README.md)."
         )
     else:
         accel = check_abi_version(_compiled)
