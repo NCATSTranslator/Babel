@@ -293,7 +293,7 @@ ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandl
   with a test asserting the two agree, and is reached through `src/accel.py` (never `src._accel`
   directly) so a missing extension falls back rather than breaking DAG parsing for all 245 rules.
   Pick targets from a run's `benchmark:` TSVs, not by reading code — see
-  [`docs/Rust.md`](docs/Rust.md), which also records the three targets chosen that way that turned
+  [`rust/README.md`](rust/README.md), which also records the three targets chosen that way that turned
   out to be pure-Python bugs.
 
 ## Debugging

@@ -12,14 +12,14 @@ Babel's expensive rules are CPU-bound single-threaded Python. From the `babel-1.
 | `gene_compendia` | 15,400 s | 15,178 s | 98.5% | 179 GB |
 
 The build backend is therefore [maturin](https://www.maturin.rs/), and the project builds as a
-mixed Rust/Python package: a `cdylib` crate under `rust/` compiled into `src/_accel`, alongside the
-ordinary Python in `src/`.
+mixed Rust/Python package: a `cdylib` crate under `` compiled into `src/_accel`, alongside the
+ordinary Python in `../src`.
 
 ## Rules for adding a Rust function
 
 **Measure first, from the benchmark TSVs.** Not from reading code for quadratic-looking shapes.
 Three candidate targets picked that way all turned out to be wrong: `SynonymFilter.should_suppress`
-looks like an O(labels × entries) scan but `input_data/obsolete_synonyms.yaml` holds three entries;
+looks like an O(labels × entries) scan but `../input_data/obsolete_synonyms.yaml` holds three entries;
 concord parsing looks like the obvious string-manipulation target but runs 159,283 lines in
 0.148 s; and each genuinely expensive rule examined had a pure-Python defect (an eagerly evaluated
 f-string feeding a suppressed `logger.debug`, a missing `elem.clear()`) worth more than any port.
@@ -32,18 +32,13 @@ replaces, so a per-row entry point would be *slower* while looking like an optim
 enforced structurally: Rust functions open their own files, so there is no entry point that could
 accept a row.
 
-**Keep the Python implementation as the reference.** Every accelerated function keeps its Python
-version in the tree, and a unit test asserts the two produce identical output over the same input.
-The Python is the specification; the test is the proof the Rust matches it. This is also what makes
-the fallback below safe, and what lets a differential test be written before the Rust exists.
-
 **Bump `ABI_VERSION` in the same commit** as any change to an accelerated function's signature or
-semantics — in both `rust/src/lib.rs` and `_REQUIRED_ABI_VERSION` in `src/accel.py`. See
+semantics — in both `src/lib.rs` and `_REQUIRED_ABI_VERSION` in `../src/accel.py`. See
 "Staleness" below.
 
 ## Using it from Python
 
-Import through [`src/accel.py`](../src/accel.py), never `src._accel` directly:
+Import through [`../src/accel.py`](../src/accel.py), never `src._accel` directly:
 
 ```python
 from src.accel import accel
@@ -63,12 +58,6 @@ would have used Rust. AGENTS.md's "a log warning is not a control" is about *wro
 path producing identical bytes is not that. The active implementation is logged once at INFO, which
 lands in the SLURM job log that `babel-slurm-errors` reads.
 
-**`BABEL_DISABLE_RUST=1` forces the Python path**, which is how you A/B a port in one checkout. It
-is an environment variable rather than a `config.yaml` entry deliberately: which of two
-byte-identical implementations runs is an implementation detail with no user-facing meaning, and
-`config.yaml` is threaded into Snakemake `params` and output paths, where changing it risks
-perturbing the DAG of a running build. Precedent: `BABEL_DUCKDB_TEMP_DIR`.
-
 ## Staleness
 
 The extension is installed **editable**: the compiled artifact lands in the checkout at
@@ -76,7 +65,7 @@ The extension is installed **editable**: the compiled artifact lands in the chec
 new Rust source does **not** rebuild it, so without a guard a stale binary would be used silently
 — potentially for a 12-hour rule.
 
-So `src/accel.py` compares the extension's `ABI_VERSION` against its own `_REQUIRED_ABI_VERSION`
+So `../src/accel.py` compares the extension's `ABI_VERSION` against its own `_REQUIRED_ABI_VERSION`
 and raises if they disagree. The check runs at import, i.e. at DAG-parse time, so a stale build
 fails in the first second of a run. To fix one:
 
@@ -103,26 +92,26 @@ cargo.
   not build the project at all.
 - **Docker:** the image installs rustup rather than `apt install cargo`. Debian bookworm ships
   cargo 1.63, which is *exactly* pyo3 0.23's minimum, so the next pyo3 bump would break the image
-  with an error that reads as unrelated. rustup also honours `rust-toolchain.toml`, which apt's
+  with an error that reads as unrelated. rustup also honours `../rust-toolchain.toml`, which apt's
   cargo ignores.
 - **Hatteras:** `uv sync` runs once on the login node and compute nodes reuse the `.venv` from
   `/projects`, so compilation happens in one place. Make sure a toolchain is available there before
   a build — `uv sync --frozen` fails outright without one, before Snakemake starts. See
-  [`slurm/README.md`](../slurm/README.md).
+  [`../slurm/README.md`](../slurm/README.md).
 
-`rust-toolchain.toml` pins the channel (`stable`) rather than an exact version: nothing here
+`../rust-toolchain.toml` pins the channel (`stable`) rather than an exact version: nothing here
 publishes a wheel, so the value of pinning is that everyone's cargo comes from the same place
-rather than from whatever a distro packages. The hard floor is `rust-version` in `rust/Cargo.toml`.
+rather than from whatever a distro packages. The hard floor is `rust-version` in `Cargo.toml`.
 
 ## Layout
 
-| Path | What |
-|------|------|
-| `rust/Cargo.toml` | the crate. `version` is `0.0.0` on purpose — maturin takes the distribution version from the root `pyproject.toml`, and nothing publishes this crate |
-| `rust/src/lib.rs` | the `#[pymodule]`: module doc, `ABI_VERSION`, registrations. Functions go in their own modules, split from the first one |
-| `src/accel.py` | the only thing that imports the compiled module |
-| `src/_accel.pyi` | hand-written stub. There is no mypy here, so it enforces nothing; it exists so a reader who does not read Rust can see what the module offers |
-| `rust-toolchain.toml` | channel pin |
+| Path                     | What                                                                                                                                                    |
+|--------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Cargo.toml`             | The crate. `version` is `0.0.0` on purpose — maturin takes the distribution version from the root `../pyproject.toml`, and nothing publishes this crate |
+| `src/lib.rs`             | The `#[pymodule]`: module doc, `ABI_VERSION`, registrations. Functions go in their own modules, split from the first one                                |
+| `../src/accel.py`        | The only thing that imports the compiled module                                                                                                         |
+| `src/_accel.pyi`         | Hand-written stub. There is no mypy here, so it enforces nothing; it exists so a reader who does not read Rust can see what the module offers           |
+| `../rust-toolchain.toml` | Channel pin                                                                                                                                             |
 
 ## History
 

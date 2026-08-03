@@ -75,7 +75,7 @@ else:
         # docstring on why this must not take down the whole DAG.
         logger.info(
             "The Rust extension src/_accel is not built; using the Python implementations. "
-            "Build it with `uv sync` (see docs/Rust.md)."
+            "Build it with `uv sync` (see docs/README.md)."
         )
     else:
         accel = check_abi_version(_compiled)

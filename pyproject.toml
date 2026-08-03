@@ -63,7 +63,7 @@ build-backend = "maturin"
 # The importable Python package is literally named `src` (flat layout). A dotted module-name
 # places the compiled extension at `src/_accel.*` and tells maturin the package to bundle is `src`
 # (auto-resolved to the repo root since src-layout detection won't fire). Import it through
-# src/accel.py, never directly -- see docs/Rust.md.
+# src/accel.py, never directly -- see docs/README.md.
 module-name = "src._accel"
 # Rust source lives under rust/ so Cargo never collides with the Python `src/` dir.
 manifest-path = "rust/Cargo.toml"
