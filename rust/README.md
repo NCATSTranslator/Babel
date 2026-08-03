@@ -19,8 +19,8 @@ alongside the ordinary Python in `../src`.
 
 **Measure first, from the benchmark TSVs.** Not from reading code for quadratic-looking shapes.
 Three candidate targets picked that way all turned out to be wrong: `SynonymFilter.should_suppress`
-looks like an O(labels × entries) scan but `../input_data/obsolete_synonyms.yaml` holds three entries;
-concord parsing looks like the obvious string-manipulation target but runs 159,283 lines in
+looks like an O(labels × entries) scan but `../input_data/obsolete_synonyms.yaml` holds three
+entries; concord parsing looks like the obvious string-manipulation target but runs 159,283 lines in
 0.148 s; and each genuinely expensive rule examined had a pure-Python defect (an eagerly evaluated
 f-string feeding a suppressed `logger.debug`, a missing `elem.clear()`) worth more than any port.
 Check `mean_load` before assuming a slow rule is CPU-bound — `get_ensembl` is 6,665 s wall but only
