@@ -16,16 +16,17 @@ Rust might provide better performance and more efficient memory use for these jo
 most Babel developers are most familiar with Python, so Rust must be carefully incorporated
 only where the Rust code is limited, works well with the overall Snakemake pipelines, and provides
 either:
+
 1. A significant performance improvement that cannot be easily replicated in Python, e.g. by
    improving the algorithm used by the Python code, or
 2. Using Rust code allows well-maintained Rust libraries to replace older, unmaintained or
    poorly performing Python libraries.
 
-This directory allows the [maturin](https://www.maturin.rs/) backend that uv uses for Babel to build it as a
-mixed Rust/Python package: a `cdylib` crate under this directory compiled into `src/_accel`,
-alongside the ordinary Python in `../src`. Code within this directory can be organized in
-any way that makes sense going forward -- if we end up with a lot of Rust code, we can also
-consider mixing the two codebases more closely.
+This directory allows the [maturin](https://www.maturin.rs/) backend that uv uses for Babel to build
+it as a mixed Rust/Python package: a `cdylib` crate under this directory compiled into `src/_accel`,
+alongside the ordinary Python in `../src`. Code within this directory can be organized in any way
+that makes sense going forward -- if we end up with a lot of Rust code, we can also consider mixing
+the two codebases more closely.
 
 ## Rules for adding a Rust function
 
