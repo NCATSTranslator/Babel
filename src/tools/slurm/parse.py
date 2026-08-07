@@ -525,9 +525,17 @@ def read_snakefile_resources(snakefile_dir: str | Path) -> dict[str, DeclaredRes
     Only ``src/snakefiles/*.snakefile`` is read, not the root ``Snakefile``: the rules it defines
     (``all``, ``clean_*``, ``uncompress_synonym_file``) declare no ``resources:`` and never appear in
     a sizing pass. Add it here if that changes.
+
+    Raises ``FileNotFoundError`` when the directory is missing or holds no ``*.snakefile``. Returning
+    an empty mapping instead would be the :attr:`DeclaredResources.unparsed` failure one level up: a
+    typo'd ``--snakefile-dir`` would yield a full, plausible report in which every rule inherits the
+    cluster-wide default, so ``generate_pubmed_concords`` (``runtime="24h"``) reads as a 1000%
+    overrun and every genuinely trimmable rule vanishes from the report.
     """
     snakefile_dir = Path(snakefile_dir)
     paths = sorted(snakefile_dir.glob("*.snakefile"))
+    if not paths:
+        raise FileNotFoundError(f"no *.snakefile files in {snakefile_dir}")
 
     result: dict[str, DeclaredResources] = {}
     for path in paths:

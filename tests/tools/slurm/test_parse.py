@@ -402,3 +402,15 @@ def test_read_snakefile_resources_records_a_key_spelling_it_does_not_parse(tmp_p
     parsed = parse.read_snakefile_resources(tmp_path)
     assert parsed["normalized"].mem_mb is None
     assert parsed["normalized"].unparsed == ("mem_mb=8000,",)
+
+
+def test_read_snakefile_resources_raises_when_it_finds_no_snakefiles(tmp_path):
+    """A typo'd --snakefile-dir must fail loudly, not return an empty mapping.
+
+    Empty means "no rule declares anything", so every rule inherits the cluster-wide default and the
+    report reads as plausible: `generate_pubmed_concords` (`runtime="24h"`) becomes a 1000% overrun
+    and every genuinely trimmable rule disappears. That is the `unparsed` failure one level up."""
+    with pytest.raises(FileNotFoundError):
+        parse.read_snakefile_resources(tmp_path / "does_not_exist")
+    with pytest.raises(FileNotFoundError):
+        parse.read_snakefile_resources(tmp_path)  # exists, but holds no *.snakefile
