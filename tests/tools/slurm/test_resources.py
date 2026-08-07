@@ -248,3 +248,27 @@ def test_a_snakefile_declared_mem_never_counts_as_the_run_default(tmp_path):
     assert all(r.declared_mem_only for r in recs)
     # 64G is the mode, but it is nobody's default: each of these rules declares it.
     assert all(r.ran_on_default is False for r in recs)
+    # The report headline must say the same thing as the table below it: the exclusion lives inside
+    # detect_run_default_mem_mb() precisely so build_markdown() cannot recompute it differently.
+    assert "Detected run default: mem=-." in resources.build_markdown(recs, 16 * 1000, 1)
+
+
+def test_the_suggested_default_runtime_leaves_the_slowest_rule_off_the_at_risk_line(tmp_path):
+    """The "could drop to X" sentence must produce a default the slowest rule is *not* at risk under.
+
+    at-risk is `wall > AT_RISK_FRACTION * limit`, so a bucket merely >= the wall time is the wrong
+    answer: at 58 minutes -- untyped_chemical_compendia's real 2026jul22 wall time -- it suggests 60m,
+    where that rule sits at 97% of its limit and is at-risk on arrival.
+    """
+    _make_run(tmp_path, "slow_rule", rss_mb=1000, mean_load=90.0, requested_mem_mb=64000)
+    _write_benchmark(
+        tmp_path / "benchmarks" / "slow_rule.tsv",
+        [[58 * 60.0, "0:58:00", 1000, 1000, 1000, 1000, 1, 1, 90.0, 90.0]],
+    )
+
+    recs = resources.analyze(tmp_path, default_runtime_min=120)
+    markdown = resources.build_markdown(recs, 16 * 1000, 1)
+
+    assert "the default could drop to 2.0h before any of them is at risk" in markdown
+    # The sanity check the sentence is making: 58m is under 80% of the 120m it suggests.
+    assert 58 <= resources.AT_RISK_FRACTION * 120

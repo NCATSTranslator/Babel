@@ -124,8 +124,14 @@ def detect_run_default_mem_mb(recs: list[Recommendation]) -> float | None:
     avoids hard-coding the default (and the SLURM 1000-vs-1024 GB ambiguity in how ``64G`` is
     recorded): a rule requesting the mode ran on the default and needs a new block before the
     default is lowered; a rule requesting anything else already declares its own.
+
+    ``declared_mem_only`` rules are excluded here rather than at the call sites: their mem came from
+    a snakefile ``resources:`` block, which is by definition not the default, and on a snapshot with
+    no efficiency report *every* value comes from there -- so folding them in would elect one of
+    those declarations as "the default". Filtering inside means the report headline and the
+    ``ran_on_default`` marks can never disagree about which value the default is.
     """
-    values = [round(r.requested_mem_mb) for r in recs if r.requested_mem_mb]
+    values = [round(r.requested_mem_mb) for r in recs if r.requested_mem_mb and not r.declared_mem_only]
     if not values:
         return None
     return float(Counter(values).most_common(1)[0][0])
@@ -285,7 +291,7 @@ def analyze(
         )
     # Mark which rules ran on the run's default (no explicit block) vs declared their own, so the
     # override list separates rules that need a *new* block from those that already carry one.
-    run_default_mb = detect_run_default_mem_mb([r for r in recs if not r.declared_mem_only])
+    run_default_mb = detect_run_default_mem_mb(recs)
     for rec in recs:
         if rec.requested_mem_mb is None:
             rec.ran_on_default = None
@@ -375,10 +381,14 @@ def build_markdown(recs: list[Recommendation], new_default_mem_mb: int, new_defa
     on_default = [r for r in recs if not r.declared_runtime]
     if on_default:
         slowest = max(on_default, key=lambda r: r.wall_sec)
+        # Divide by AT_RISK_FRACTION before bucketing: "not at risk" means the wall time is under
+        # that fraction of the limit, so a bucket merely >= the wall time lands the slowest rule at
+        # ~97% of the new default -- at-risk on arrival, the opposite of what this sentence promises.
+        safe_default = recommend_runtime_min(slowest.wall_sec, 1 / AT_RISK_FRACTION)
         lines.append(
             f"{len(on_default)} rules ran on the default runtime; the slowest was `{slowest.rule}` at "
             f"{_fmt_min(slowest.wall_sec / 60)}, so the default could drop to "
-            f"{_fmt_min(recommend_runtime_min(slowest.wall_sec, 1.0))} before any of them is at risk."
+            f"{_fmt_min(safe_default)} before any of them is at risk."
         )
     lines.append("")
     if time_at_risk or time_over:

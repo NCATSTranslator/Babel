@@ -122,7 +122,9 @@ their limit and `over` when the limit is at least twice what they need.
 **`over` only applies to a rule that declares its own `runtime`.** Nearly every rule runs for
 seconds against the cluster-wide default, so classifying those would bury the real findings under
 hundreds of rows nobody can act on. Whether the *default itself* is too generous is one decision,
-reported as a single line naming the slowest rule still on it.
+reported as a single line naming the slowest rule still on it. The value that line suggests leaves
+that rule *below* the 80% at-risk line, not merely above its wall time — a bucket chosen to just
+cover a 58-minute rule would put it at 97% of the new default, at-risk from the first run.
 
 Two traps the 2026jul22 pass hit, both worth checking before trimming anything:
 
@@ -146,7 +148,10 @@ it, and those two can describe different worlds.
   sizing pass compares that run against limits it never had — every rule you just re-sized reports
   against the new number. Point `--snakefile-dir` at a checkout of the run's own tag
   (`git worktree add ../babel-2026jul22 2026jul22`) whenever the declarations have moved since,
-  which is exactly the case when comparing two sizing passes.
+  which is exactly the case when comparing two sizing passes. A path holding no `*.snakefile` is a
+  hard error rather than an empty result: silently reading nothing would make every rule inherit the
+  cluster default, so `generate_pubmed_concords` (`runtime="24h"`) would read as a 1000% overrun and
+  every genuinely trimmable rule would vanish from the report.
 - **A `mem=lambda wildcards: ...` rule attributes its largest request to every wildcard instance.**
   Benchmarks are per wildcard (`export_synonyms_to_duckdb_Disease`) but the efficiency report is
   keyed by rule name and merged worst-case across shards, so the small instances are scored against
