@@ -287,6 +287,8 @@ profile in [`slurm/`](../slurm/). See [`slurm/README.md`](../slurm/README.md) fo
 * Per-rule memory and runtime allocations, including which rules need a largemem node.
 * DuckDB memory tuning: `memory_limit` caps, single-threaded query settings, per-job spill
   subdirectories, and `write_buffer_row_group_count`.
+* Where a finished run is stored on Hatteras and on RENCI Stars, and the retention policy for how
+  long past runs are kept.
 * Known issues and their mitigations — notably the `vm.max_map_count` mmap-count limit that causes
   `bad allocation` failures with plenty of free RAM, what was investigated (`MALLOC_ARENA_MAX=2`,
   disabling the external file cache) and ruled out, and the `memory_limit` cap that keeps the rules

@@ -238,6 +238,100 @@ filesystem — set `BABEL_DUCKDB_TEMP_DIR` in the job environment; an individual
 `temp_directory` / `max_temp_directory_size` in its `duckdb_config`. Do not point the
 500 GB-spilling `export_*` rules at `/tmp` or `/dev/shm`.
 
+## Storage and Archiving on Hatteras
+
+This section is the current retention policy for past Babel runs. It came out of
+[issue #454](https://github.com/NCATSTranslator/Babel/issues/454), which remains the record of how
+the policy was arrived at and of the 2025 cleanup that applied it; the sizes below are that issue's
+measurements. Update this section, not the issue, when the policy changes.
+
+Three sizes are worth remembering, per run:
+
+| Directory                                 | Size  | Kept? |
+|-------------------------------------------|-------|-------|
+| `babel_downloads/`                        | ~200G | **No** — see below |
+| `babel_outputs/` (compendia uncompressed) | ~800G | Yes — this is what "a run" means for archiving purposes |
+| `babel_outputs/` (compendia compressed)   | ~600G | Yes |
+
+`intermediate/` lives inside `babel_outputs/` and is archived along with everything else there; it
+is not a separate tier.
+
+What *is* lost is `babel_downloads/` — the per-source snapshot the run was built from: each source's
+downloaded files plus the `labels`, `synonyms` and related extracts derived from them. It is never
+archived, and it is not reproducible after the fact: re-running the download rules fetches whatever
+the upstream sources hold *today*, not what they held when the run was built. Deleting a run's
+downloads therefore permanently forecloses questions of the form "what did this source actually say
+at the time?" — those have to be answered from `babel_outputs/intermediate/` instead.
+
+### Where a run lives
+
+Hatteras holds the **working copy** under `/projects/babel/runs/<version>/` — the whole
+`babel_outputs/` tree as the pipeline wrote it.
+
+RENCI Stars holds the **published copy** at `https://stars.renci.org/var/babel_outputs/<version>/`,
+written by [`../scripts/rsync-to-server.sh`](../scripts/rsync-to-server.sh). That script copies all
+of `babel_outputs/` *except* `duckdb/duckdbs/`, so the `.duckdb` databases are the only current
+output not published — and they can be rebuilt from the Parquet exports, which are. See
+[`../docs/Downloads.md`](../docs/Downloads.md) for what the published tree contains.
+
+### Retention policy
+
+- Keep every run from the past 12 months.
+- Keep the most recent run of each earlier calendar year, so gross year-to-year comparisons stay
+  possible.
+- Delete every other run from Hatteras. The Stars copy stays.
+
+### Before deleting a run, check what Stars actually has for it
+
+The policy assumes deleting from Hatteras is safe because Stars holds a copy. **That assumption does
+not hold for every run** — check the specific run rather than trusting the assumption. Spot-checking
+`https://stars.renci.org/var/babel_outputs/` on 2026-07-31 found both failure modes:
+
+- **No copy at all.** `2024oct24` and `2025dec11-umls-level-0` both 404, even though `2024oct24` is
+  the build linked from
+  [`releases/TranslatorHammerheadNovember2024.md`](../releases/TranslatorHammerheadNovember2024.md).
+  Deleting these from Hatteras would lose them outright.
+- **A partial copy.** Older runs were published more selectively than `rsync-to-server.sh` does
+  today: `2023nov5` and `2022dec2-2` have `compendia/`, `conflation/` and `synonyms/` but no
+  `intermediate/` or `metadata/`, whereas `2025sep1` has the full tree.
+
+So: list the run's Stars directory, diff it against the Hatteras copy, and re-publish anything
+missing before removing anything.
+
+`intermediate/` is the part most likely to be wanted later, and the part most often absent from an
+older Stars copy. It is what [`../docs/AddingNewSources.md`](../docs/AddingNewSources.md) and
+[`../docs/tools/SourceImpactReport.md`](../docs/tools/SourceImpactReport.md) assemble a
+source-impact report from, and what makes it possible to replay a compendium-building function over
+a finished build instead of rebuilding it (see
+[`../docs/sources/CLAUDE.md`](../docs/sources/CLAUDE.md)). With `babel_downloads/` already gone, it
+is also the only surviving evidence of what the run's sources contained.
+
+`babel_outputs/benchmarks/` and `babel_outputs/reports/slurm/slurm_efficiency_reports/` are tiny and
+worth copying somewhere durable even for a run you are deleting — they are what
+`babel-slurm-resources` reads to right-size the allocations in this file
+([`../docs/tools/Resources.md`](../docs/tools/Resources.md)).
+
+### Housekeeping
+
+Run this when Hatteras space runs short — it is not on a schedule:
+
+```bash
+du -sh /projects/babel/runs/*
+```
+
+Apply the policy above to the listing, verify the Stars copy of each run you plan to remove (and
+re-publish it if it is missing or partial), then delete. Some run directories are owned by other
+users and can only be removed by their owner, so expect to ask.
+
+### Options if the policy stops being enough
+
+Issue #454 weighed three, and only the first is in place today:
+
+1. **Delete**, keeping the Stars copy. This is the current policy.
+2. **Low-cost archiving at RENCI** — not investigated.
+3. **Cloud cold storage** — e.g. Amazon S3 Glacier Deep Archive at ~$0.00099/GB/month (≈$1/TB/month,
+   up to 12 hours to restore), which is roughly $0.60 per month per retained run. Not set up.
+
 ## Known Issues
 
 ### `bad allocation` with plenty of free RAM (`vm.max_map_count` / mmap-count exhaustion)

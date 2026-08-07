@@ -2,7 +2,10 @@
 
 Babel downloads are available at <https://stars.renci.org/var/babel_outputs/> with subdirectories
 for each release. Significant releases are documented in the
-[Releases directory](../releases/README.md).
+[Releases directory](../releases/README.md). This published copy is intended to be the permanent
+one — the working copies on Hatteras are pruned under the retention policy in
+[`slurm/README.md`](../slurm/README.md#storage-and-archiving-on-hatteras), which also records which
+older releases were published only partially, or not at all.
 
 There are several different Babel outputs that we make available for download:
 

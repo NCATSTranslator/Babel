@@ -13,7 +13,9 @@ to users who aren't system administrators for these tools:
 ## Release process and checkpoints
 
 1. Create a new Babel release (see README.md for information).
-2. Store the Babel outputs alongside other Babel releases on Hatteras.
+2. Store the Babel outputs alongside other Babel releases on Hatteras. How long past runs are kept
+   there is set by the retention policy in
+   [`slurm/README.md`](../slurm/README.md#storage-and-archiving-on-hatteras).
 3. Deploy a new NodeNorm instance
    1. Split the Babel outputs into smaller files to improve load times and put them on a public web
       server. The split sizes and the reason for splitting are documented in
