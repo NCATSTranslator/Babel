@@ -223,7 +223,7 @@ requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.14.2" },
     { name = "biopython", specifier = ">=1.85" },
     { name = "bmt", specifier = ">=1.4.6" },
-    { name = "curies", specifier = ">=0.12.1" },
+    { name = "curies", specifier = ">=0.14.6" },
     { name = "duckdb", specifier = ">=1.4.1" },
     { name = "humanfriendly", specifier = ">=10.0" },
     { name = "jsonlines", specifier = ">=4.0.0" },
@@ -634,16 +634,16 @@ toml = [
 
 [[package]]
 name = "curies"
-version = "0.14.1"
+version = "0.14.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "pystow" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/51/df/e1e3c2f5130e13aa0443a68f44c86efb901f993ba45b85ed7eabbcdd20b7/curies-0.14.1.tar.gz", hash = "sha256:543942892d1da01ba59e63720d223d504d97908d5c2c83458f33af54b87c92b3", size = 72008, upload-time = "2026-07-03T12:07:09.601Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9f/b2/aa2f21c1ef42b046600538aa3221d84b1f5ee4199e383f2014624fc8e047/curies-0.14.6.tar.gz", hash = "sha256:17cde129aba90c151f38aae762b6c26fa2dceda8ed51103c829e805ee11d231c", size = 73340, upload-time = "2026-08-05T08:11:46.482Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3a/ca/d0ac8050ed500f9cf839d07832ab2ea9f390a65916f420b5d7cf4b829e64/curies-0.14.1-py3-none-any.whl", hash = "sha256:04de52080536881108b52ca864e8d4096140a7c3f5f556d8c2836c8ff99adc8f", size = 81631, upload-time = "2026-07-03T12:07:10.582Z" },
+    { url = "https://files.pythonhosted.org/packages/9e/e9/bfa4d4a47c03180422343be8c69df75f5942276e815a367ae377f32db2d5/curies-0.14.6-py3-none-any.whl", hash = "sha256:a3653afa27576029c491e6ef97d2bc7d9c388afbbf44973e993b8d24fbb0c99c", size = 82629, upload-time = "2026-08-05T08:11:45.123Z" },
 ]
 
 [[package]]
