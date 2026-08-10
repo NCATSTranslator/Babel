@@ -1,19 +1,32 @@
 # Rust in Babel
 
-Babel's expensive rules are CPU-bound single-threaded Python. From the `babel-1.18` Snakemake
+Several developers have expressed an interest in adding Rust code to Babel. We know that some
+expensive rules are CPU-bound single-threaded Python. From the `babel-1.18` Snakemake
 `benchmark:` TSVs, the five costliest rules all run at ~100% of one core:
 
-| Rule | Wall | CPU | `mean_load` | `max_rss` |
-|------|------|-----|-------------|-----------|
-| `generate_pubmed_concords` | 71,947 s (20 h) | 71,753 s | 99.7% | 31 GB |
-| `protein_compendia` | 19,876 s | 19,844 s | 99.8% | 246 GB |
-| `chemical_compendia` | 19,643 s | 19,569 s | 99.5% | 335 GB |
-| `geneprotein_conflated_synonyms` | 15,719 s | 15,702 s | 99.8% | 98 GB |
-| `gene_compendia` | 15,400 s | 15,178 s | 98.5% | 179 GB |
+| Rule                             | Wall            | CPU      | `mean_load` | `max_rss` |
+|----------------------------------|-----------------|----------|-------------|-----------|
+| `generate_pubmed_concords`       | 71,947 s (20 h) | 71,753 s | 99.7%       | 31 GB     |
+| `protein_compendia`              | 19,876 s        | 19,844 s | 99.8%       | 246 GB    |
+| `chemical_compendia`             | 19,643 s        | 19,569 s | 99.5%       | 335 GB    |
+| `geneprotein_conflated_synonyms` | 15,719 s        | 15,702 s | 99.8%       | 98 GB     |
+| `gene_compendia`                 | 15,400 s        | 15,178 s | 98.5%       | 179 GB    |
 
-The build backend is therefore [maturin](https://www.maturin.rs/), and the project builds as a
-mixed Rust/Python package: a `cdylib` crate under this directory compiled into `src/_accel`,
-alongside the ordinary Python in `../src`.
+Rust might provide better performance and more efficient memory use for these jobs. However,
+most Babel developers are most familiar with Python, so Rust must be carefully incorporated
+only where the Rust code is limited, works well with the overall Snakemake pipelines, and provides
+either:
+
+1. A significant performance improvement that cannot be easily replicated in Python, e.g. by
+   improving the algorithm used by the Python code, or
+2. Using Rust code allows well-maintained Rust libraries to replace older, unmaintained or
+   poorly performing Python libraries.
+
+This directory allows the [maturin](https://www.maturin.rs/) backend that uv uses for Babel to build
+it as a mixed Rust/Python package: a `cdylib` crate under this directory compiled into `src/_accel`,
+alongside the ordinary Python in `../src`. Code within this directory can be organized in any way
+that makes sense going forward -- if we end up with a lot of Rust code, we can also consider mixing
+the two codebases more closely.
 
 ## Rules for adding a Rust function
 
@@ -29,10 +42,9 @@ Check `mean_load` before assuming a slow rule is CPU-bound — `get_ensembl` is 
 **The FFI boundary is coarse.** A `#[pyfunction]` takes a whole input — a file path to parse, or
 the full in-memory state to transform — and does the whole job in one call. It never takes one row
 or one CURIE. Crossing pyo3 once per CURIE costs more than the Python it replaces, so a per-row
-entry point would be *slower* while looking like an optimisation. File-parsing functions open their
+entry point would be *slower* while looking like an optimization. File-parsing functions open their
 own files, so there is no entry point that could accept a row; state transforms like `glom` take
 the entire clique state and a file's worth of groups per call, never a single group.
-
 **Rust is the implementation — there is no Python fallback and no runtime toggle.** Once a function
 lands here it is the only code path; the Python it replaced is deleted, not kept as a parallel copy.
 Correctness is therefore guarded by tests, not by a second implementation to fall back on: the unit
@@ -83,7 +95,7 @@ uv sync --reinstall-package babel-pipeline
 
 What the guard does not catch is editing the Rust body without bumping the constant — there is no
 parallel Python implementation to diff against, so review and the unit suite are the only checks on
-that. Bump early, bump often.
+that. Bump the ABI_VERSION on EVERY change.
 
 ## Building
 
