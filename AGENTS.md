@@ -291,11 +291,12 @@ ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandl
   reading code for quadratic-looking shapes — see [`rust/README.md`](rust/README.md), which records
   three targets picked that way that turned out to be pure-Python bugs, not Rust candidates. A
   `#[pyfunction]` takes a file path and returns the whole parsed result; never export one that is
-  called once per row, because crossing pyo3 per CURIE costs more than the Python it replaces. While
-  a port is being proven out, A/B it against the existing Python with `BABEL_DISABLE_RUST=1`; once
-  the Rust side is confirmed correct and faster, delete the Python implementation rather than
-  keeping both indefinitely. Reach the extension through `src/accel.py` (never `src._accel`
-  directly) so a missing build falls back rather than breaking DAG parsing for all 245 rules.
+  called once per row, because crossing pyo3 per CURIE costs more than the Python it replaces. Rust
+  is the implementation, not an optional overlay: there is no Python fallback and no runtime toggle.
+  Correctness is guarded by the unit suite (which exercises each accelerator through its real
+  callers) plus targeted synthetic tests. Reach the extension through `src/accel.py` (never
+  `src._accel` directly); since a Rust toolchain is a hard build prerequisite, a missing or stale
+  build fails loudly at DAG-parse time by design.
 
 ## Debugging
 

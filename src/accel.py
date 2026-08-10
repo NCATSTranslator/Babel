@@ -1,23 +1,18 @@
-"""Access to the optional Rust accelerators, with the Python implementations as the reference.
+"""Access to the Rust accelerators. Rust is the implementation, not an optional overlay.
 
 Babel's expensive rules are CPU-bound single-threaded Python (`generate_pubmed_concords` alone is
-20 h at 99.7% CPU in the babel-1.18 benchmarks), so some of them will get Rust implementations.
-This module is the one place that decides whether a Rust implementation is available and safe to
-use. Nothing else should import ``src._accel`` directly.
+20 h at 99.7% CPU in the babel-1.18 benchmarks), so the hot ones get Rust implementations. This
+module is the one place that imports the compiled extension; nothing else should import
+``src._accel`` directly.
 
-Three rules govern how Rust is used here, and each exists for a specific reason:
+There is no Python fallback and no runtime toggle. A Rust toolchain is a hard build prerequisite
+(#975 made the project a mixed Rust/Python package built by maturin), so every environment that can
+run Babel at all has the extension. Two rules govern what happens at import:
 
-**Rust is written only when benchmarking justifies it, and is A/B tested before it replaces
-Python.** While a port is being proven out, ``BABEL_DISABLE_RUST=1`` forces the Python path so the
-two can be timed and diffed against each other in one checkout. Once the Rust side is confirmed
-correct and faster, the Python implementation it replaced is deleted rather than kept indefinitely
-as a parallel copy -- see AGENTS.md and rust/README.md.
-
-**A missing extension falls back to Python; it does not raise.** Every snakefile does a top-level
-``import src.foo`` at DAG-parse time, so an ImportError here would take down every rule for a
-contributor without a Rust toolchain, for a reviewer, and for a fork's CI. AGENTS.md's "a log
-warning is not a control" is about *wrong output*; a slower path that produces identical bytes is
-not that. The active implementation is logged once, at INFO, so it lands in the SLURM job log.
+**A missing extension raises.** Every snakefile does a top-level ``import src.foo`` at DAG-parse
+time, so a missing build fails in the first second of a run, with the fix in the message, rather
+than silently producing nothing. Since the toolchain is mandatory, a missing extension means the
+build regressed -- a failure to surface, not a configuration to work around.
 
 **A stale extension raises.** That is a bug, not a configuration. The extension is installed
 editable -- the compiled artifact lives in the checkout at ``src/_accel.*.so`` -- so ``git pull``
@@ -25,29 +20,24 @@ does not rebuild it and a stale binary would otherwise be used silently. The che
 of this module, i.e. at DAG-parse time, so a stale build fails in the first second of a run rather
 than eleven hours into a 12-hour rule.
 
-Set ``BABEL_DISABLE_RUST=1`` to force the Python path (for an A/B measurement, or to rule the
-extension out while debugging). This is an environment variable rather than a ``config.yaml``
-entry deliberately: which of two byte-identical implementations runs is an implementation detail
-with no user-facing meaning, and ``config.yaml`` is threaded into Snakemake ``params`` and output
-paths where changing it risks perturbing the DAG of a running build. Precedent:
-``BABEL_DUCKDB_TEMP_DIR`` in ``src/exporters/duckdb_exporters.py``.
+Correctness of each Rust implementation is guarded by the unit suite (which exercises the functions
+through their real callers) plus targeted synthetic tests -- see ``tests/`` and ``rust/README.md``.
 """
 
-import os
-
+from src import _accel as _compiled
 from src.util import get_logger
 
 logger = get_logger(__name__)
 
 # Must equal ABI_VERSION in rust/src/lib.rs. Both are bumped by hand, in the same commit, whenever
 # an accelerated function's signature or semantics change.
-_REQUIRED_ABI_VERSION = 1
+_REQUIRED_ABI_VERSION = 2
 
 
 def check_abi_version(compiled, required=_REQUIRED_ABI_VERSION):
     """Return ``compiled`` if its ABI_VERSION matches ``required``, else raise RuntimeError.
 
-    Separate from the import below so it can be tested against a stub module: building a genuinely
+    Separate from the import above so it can be tested against a stub module: building a genuinely
     stale extension to exercise this would mean compiling Rust inside a unit test.
     """
     found = getattr(compiled, "ABI_VERSION", None)
@@ -56,28 +46,11 @@ def check_abi_version(compiled, required=_REQUIRED_ABI_VERSION):
             f"The compiled Rust extension src/_accel is stale: it reports ABI_VERSION {found!r}, "
             f"but this checkout needs {required!r}. The extension is installed editable, so "
             f"pulling new Rust source does not rebuild it. Run "
-            f"`uv sync --reinstall-package babel-pipeline`, or set BABEL_DISABLE_RUST=1 to run "
-            f"the Python implementations instead."
+            f"`uv sync --reinstall-package babel-pipeline`."
         )
     return compiled
 
 
-# Set to the compiled module when it is present, importable and current; None otherwise. Callers
-# should treat it as "use the Rust path if this is not None".
-accel = None
-
-if os.environ.get("BABEL_DISABLE_RUST"):
-    logger.info("BABEL_DISABLE_RUST is set; using the Python implementations.")
-else:
-    try:
-        from src import _accel as _compiled
-    except ImportError:
-        # Expected whenever the extension has not been built. Not an error: see the module
-        # docstring on why this must not take down the whole DAG.
-        logger.info(
-            "The Rust extension src/_accel is not built; using the Python implementations. "
-            "Build it with `uv sync` (see rust/README.md)."
-        )
-    else:
-        accel = check_abi_version(_compiled)
-        logger.info("Using the Rust extension src/_accel (ABI_VERSION %s).", accel.ABI_VERSION)
+# The compiled module, guaranteed present and current (both conditions raise otherwise).
+accel = check_abi_version(_compiled)
+logger.info("Using the Rust extension src/_accel (ABI_VERSION %s).", accel.ABI_VERSION)

@@ -26,20 +26,19 @@ f-string feeding a suppressed `logger.debug`, a missing `elem.clear()`) worth mo
 Check `mean_load` before assuming a slow rule is CPU-bound — `get_ensembl` is 6,665 s wall but only
 257 s CPU, so Rust would do nothing for it.
 
-**The FFI boundary is coarse.** A `#[pyfunction]` takes a file path and returns the whole parsed
-result. It never takes one row. Crossing pyo3 once per CURIE costs more than the Python it
-replaces, so a per-row entry point would be *slower* while looking like an optimisation. This is
-enforced structurally: Rust functions open their own files, so there is no entry point that could
-accept a row.
+**The FFI boundary is coarse.** A `#[pyfunction]` takes a whole input — a file path to parse, or
+the full in-memory state to transform — and does the whole job in one call. It never takes one row
+or one CURIE. Crossing pyo3 once per CURIE costs more than the Python it replaces, so a per-row
+entry point would be *slower* while looking like an optimisation. File-parsing functions open their
+own files, so there is no entry point that could accept a row; state transforms like `glom` take
+the entire clique state and a file's worth of groups per call, never a single group.
 
-**A/B it before it replaces the Python it's based on, then delete that Python.** Write the Rust
-against the existing Python implementation, and set `BABEL_DISABLE_RUST=1` to force the Python path
-so the two can be timed and diffed against each other in one checkout. Once the Rust side is
-confirmed correct and faster, delete the Python implementation it replaced — don't keep both in the
-tree indefinitely. `BABEL_DISABLE_RUST=1` is an environment variable rather than a `config.yaml`
-entry deliberately: which of two byte-identical implementations runs is an implementation detail
-with no user-facing meaning, and `config.yaml` is threaded into Snakemake `params` and output paths,
-where changing it risks perturbing the DAG of a running build. Precedent: `BABEL_DUCKDB_TEMP_DIR`.
+**Rust is the implementation — there is no Python fallback and no runtime toggle.** Once a function
+lands here it is the only code path; the Python it replaced is deleted, not kept as a parallel copy.
+Correctness is therefore guarded by tests, not by a second implementation to fall back on: the unit
+suite exercises each accelerator through its real callers, and targeted synthetic tests pin the
+exact semantics (see `../tests/test_glom.py`). A Rust toolchain is a hard build prerequisite, so a
+missing or stale build fails loudly at DAG-parse time rather than silently running a slower path.
 
 **Bump `ABI_VERSION` in the same commit** as any change to an accelerated function's signature or
 semantics — in both `src/lib.rs` and `_REQUIRED_ABI_VERSION` in `../src/accel.py`. See
@@ -52,20 +51,20 @@ Import through [`../src/accel.py`](../src/accel.py), never `src._accel` directly
 ```python
 from src.accel import accel
 
-def read_something(path):
-    if accel is not None:
-        return accel.read_something(path)
-    return _read_something_python(path)
+accel.glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"])
 ```
 
-`accel` is the compiled module when it is present, importable and current, and `None` otherwise.
+`accel` is the compiled module, guaranteed present and current — `src/accel.py` raises at import if
+either condition fails (see below). Most callers don't import it at all: the accelerated function is
+re-exported from the module that used to hold the Python version (e.g. `src.babel_utils.glom`), so
+call sites are unchanged.
 
-**A missing extension falls back to Python rather than raising.** Every snakefile does a top-level
-`import src.foo` at DAG-parse time, so an `ImportError` would take down all 245 rules for a
-contributor without a Rust toolchain, for a reviewer, and for a fork's CI — not just the rules that
-would have used Rust. AGENTS.md's "a log warning is not a control" is about *wrong output*; a slower
-path producing identical bytes is not that. The active implementation is logged once at INFO, which
-lands in the SLURM job log that `babel-slurm-errors` reads.
+**A missing or stale extension raises; it does not fall back.** Every snakefile does a top-level
+`import src.foo` at DAG-parse time, so a build that regressed fails in the first second of a run,
+with the fix in the message, instead of silently producing nothing eleven hours in. This is correct
+because a Rust toolchain is a hard build prerequisite (#975): anyone who can run Babel at all has
+the extension, so its absence means the build broke, not that the environment lacks Rust. The active
+extension is logged once at INFO, which lands in the SLURM job log that `babel-slurm-errors` reads.
 
 ## Staleness
 
@@ -83,8 +82,8 @@ uv sync --reinstall-package babel-pipeline
 ```
 
 What the guard does not catch is editing the Rust body without bumping the constant — there is no
-permanent Python copy left to diff against once a port has graduated, so review is the only check
-on that. Bump early, bump often.
+parallel Python implementation to diff against, so review and the unit suite are the only checks on
+that. Bump early, bump often.
 
 ## Building
 
@@ -118,6 +117,7 @@ rather than from whatever a distro packages. The hard floor is `rust-version` in
 |--------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Cargo.toml`             | The crate. `version` is `0.0.0` on purpose — maturin takes the distribution version from the root `../pyproject.toml`, and nothing publishes this crate |
 | `src/lib.rs`             | The `#[pymodule]`: module doc, `ABI_VERSION`, registrations. Functions go in their own modules, split from the first one                                |
+| `src/glom.rs`            | The union-find clique builder that replaced `babel_utils.glom` (re-exported there); see its module docs for the algorithm and parallelism               |
 | `../src/accel.py`        | The only thing that imports the compiled module                                                                                                         |
 | `src/_accel.pyi`         | Hand-written stub. There is no mypy here, so it enforces nothing; it exists so a reader who does not read Rust can see what the module offers           |
 | `../rust-toolchain.toml` | Channel pin                                                                                                                                             |

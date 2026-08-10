@@ -20,6 +20,7 @@ import jsonlines
 import requests
 from humanfriendly import format_timespan
 
+from src.accel import accel as _accel
 from src.LabeledID import LabeledID
 from src.metadata.provenance import write_combined_metadata
 from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory
@@ -1024,140 +1025,11 @@ def write_compendium(
     taxon_factory.close()
 
 
-def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={}):
-    """We want to construct sets containing equivalent identifiers.
-    conc_set is a dictionary where the values are these equivalent identifier sets and
-    the keys are all of the elements in the set.   For each element in a set, there is a key
-    in the dictionary that points to the set.
-    newgroups is an iterable that of new equivalence groups (expressed as sets,tuples,or lists)
-    with which we want to update conc_set."""
-    n = 0
-    bad = 0
-    shit_prefixes = set(["KEGG", "PUBCHEM"])
-    test_id = "xUBERON:0002262"
-    debugit = False
-    # excised = set()
-    for xgroup in newgroups:
-        if isinstance(xgroup, frozenset):
-            group = set(xgroup)
-        else:
-            group = xgroup
-        # As of now, xgroup should never be more than two things
-        if len(xgroup) > 2:
-            print(xgroup)
-            print("nope nope nope")
-            raise ValueError
-        n += 1
-        if debugit:
-            print("new group", group)
-        if test_id in group:
-            print("higroup", group)
-        # Find all the equivalence sets that already correspond to any of the identifiers in the new set.
-        existing_sets_w_x = [(conc_set[x], x) for x in group if x in conc_set]
-        # All of these sets are now going to be combined through the equivalence of our new set.
-        existing_sets = [es[0] for es in existing_sets_w_x]
-        # x = [es[1] for es in existing_sets_w_x]
-        newset = set().union(*existing_sets)
-        if debugit:
-            print("merges:", existing_sets)
-        # put all the new stuff in it.  Do it element-wise, cause we don't know the type of the new group
-        for element in group:
-            newset.add(element)
-        if test_id in newset:
-            print("hiset", newset)
-            print("input_set", group)
-            print("esets")
-            for eset in existing_sets:
-                print(" ", eset, group.intersection(eset))
-        for check_element in newset:
-            prefix = check_element.split(":")[0]
-            if prefix in shit_prefixes:
-                print(prefix)
-                print(check_element)
-                raise Exception("garbage")
-        if debugit:
-            print("final set", newset)
-        # make sure we didn't combine anything we want to keep separate
-        setok = True
-        if test_id in group:
-            print("setok?", setok)
-        for up in unique_prefixes:
-            if test_id in group:
-                print("up?", up)
-            idents = [e if isinstance(e, str) else e.identifier for e in newset]
-            if len(set([e for e in idents if (e.split(":")[0] == up)])) > 1:
-                bad += 1
-                setok = False
-                wrote = set()
-                for s in existing_sets:
-                    fs = frozenset(s)
-                    wrote.add(fs)
-                for gel in group:
-                    if Text.get_prefix_or_none(gel) == pref:
-                        # killer = gel
-                        pass
-                # for preset in wrote:
-                #    print(f'{killer}\t{set(group).intersection(preset)}\t{preset}\n')
-                # print('------------')
-        NPC = sum(1 for s in newset if s.startswith("PUBCHEM.COMPOUND:"))
-        if ("PUBCHEM.COMPOUND:3100" in newset) and (NPC > 3):
-            if debugit:
-                raise ValueError(f"Debugging information: {sorted(list(newset))}")
-        if not setok:
-            # Our new group created a new set that merged stuff we didn't want to merge.
-            # Previously we did a lot of fooling around at this point.  But now we're just going to say, I have a
-            # pairwise concordance.  That can at most link two groups.  just don't link them. In other words,
-            # we are simply ignoring this concordance.
-            continue
-            # Let's figure out the culprit(s) and excise them
-            # counts = defaultdict(int)
-            # for x in group:
-            #    counts[x] += 1
-            ##THe way existing sets was created, means that the same set can be in there twice, and we don't want to
-            # count things that way
-            # unique_existing_sets = []
-            # for ex in existing_sets:
-            #    u = True
-            #    for q in unique_existing_sets:
-            #        if ex == q:
-            #            u = False
-            #    if u:
-            #        unique_existing_sets.append(ex)
-            # for es in unique_existing_sets:
-            #    for y in es:
-            #        counts[y] += 1
-            # bads = [ x for x,y in counts.items() if y > 1 ]
-            # now we know which identifiers are causing trouble.
-            # We don't want to completely throw them out, but we can't allow them to gum things up.
-            # So, we need to first remove them from all the sets, then we need to put them in their own set
-            # It might be good to track this somehow?
-            # excised.update(bads)
-            # for b in bads:
-            #    if b in group:
-            #        group.remove(b)
-            #    for exset in existing_sets:
-            #        if b in exset:
-            #            exset.remove(b)
-            #    conc_set[b] = set([b])
-            # for x in group:
-            #    conc_set[x] = group
-            # continue
-        # Now check the 'close' dictionary to see if we've accidentally gotten to a close match becoming an exact match
-        setok = True
-        for cpref, closedict in close.items():
-            idents = set([e if isinstance(e, str) else e.identifier for e in newset])
-            prefidents = [e for e in idents if e.startswith(cpref)]
-            for pident in prefidents:
-                for cd in closedict[pident]:
-                    if cd in newset:
-                        setok = False
-            if len(prefidents) == 0:
-                continue
-        if not setok:
-            continue
-        # Now make all the elements point to this new set:
-        for element in newset:
-            conc_set[element] = newset
+# glom is implemented in Rust (rust/src/glom.rs, exported as src/_accel.glom). It mutates
+# conc_set in place and returns None, exactly like the Python implementation it replaced, so
+# every caller keeps working unchanged. It is re-exported here because all callers import it
+# from src.babel_utils.
+glom = _accel.glom
 
 
 def get_prefixes(idlist):

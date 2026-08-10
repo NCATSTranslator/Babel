@@ -1,23 +1,24 @@
 //! Native accelerators for babel-pipeline, importable as `from src import _accel`.
 //!
-//! A function lands here only once benchmarking justifies it (see README.md), and is A/B tested
-//! against its Python original with `BABEL_DISABLE_RUST=1` before replacing it -- see `src/accel.py`.
-//! Once a port is confirmed correct and faster, the Python it replaced is deleted rather than kept
-//! as a permanent parallel copy. Until that decision is made, `src/accel.py` falls back to the
-//! Python implementation when this extension is missing, because every snakefile imports `src.*` at
-//! DAG-parse time and a hard import failure would take down every rule for anyone without a
-//! Rust toolchain.
+//! A function lands here only once benchmarking justifies it (see README.md). Rust is the
+//! implementation, not an optional overlay: there is no Python fallback and no runtime toggle. A
+//! missing or stale build fails loudly at DAG-parse time (every snakefile imports `src.*`), which is
+//! correct now that a Rust toolchain is a hard build prerequisite — see `src/accel.py`. Correctness
+//! is guarded by the unit suite (which exercises these functions through their real callers) plus
+//! targeted synthetic tests, not by a parallel Python copy kept in the tree.
 //!
 //! **The FFI boundary is coarse, and that is a rule, not a preference.** A `#[pyfunction]` here
-//! takes a file path and returns the whole parsed result; it never takes one row. Crossing pyo3
-//! once per CURIE costs more than the Python it would replace, so a per-row entry point would be
-//! slower while looking like an optimisation. Functions open their own files so there is no entry
-//! point that *could* accept a row.
+//! takes a file path or a whole dataset and returns the whole result; it never takes one row.
+//! Crossing pyo3 once per CURIE costs more than the Python it would replace, so a per-row entry
+//! point would be slower while looking like an optimisation.
 //!
-//! Real accelerators land once the Python `read_concord_file` they mirror is on main; this module
-//! currently exports only the ABI version that guards against a stale build.
+//! **Parallelism.** Embarrassingly-parallel phases (interning, clique materialization) use rayon over
+//! sharded maps so threads don't stall on one lock. Loops whose *order* is load-bearing — e.g. glom's
+//! merge/reject decisions — stay sequential, because reordering them would change the output.
 
 use pyo3::prelude::*;
+
+mod glom;
 
 /// Bumped by hand whenever a function's signature or semantics change, in the same commit.
 ///
@@ -28,10 +29,11 @@ use pyo3::prelude::*;
 ///
 // ponytail: a hand-bumped integer. Move to a build-time hash of this crate's sources if anyone
 // forgets to bump it twice.
-const ABI_VERSION: u32 = 1;
+const ABI_VERSION: u32 = 2;
 
 #[pymodule]
 fn _accel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("ABI_VERSION", ABI_VERSION)?;
+    m.add_function(wrap_pyfunction!(glom::glom, m)?)?;
     Ok(())
 }

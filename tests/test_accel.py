@@ -1,17 +1,18 @@
-"""Unit tests for src/accel.py, the gateway to the optional Rust extension.
+"""Unit tests for src/accel.py, the gateway to the Rust extension.
 
-src/accel.py decides whether the compiled extension is available and safe to use. Its three
-branches each have a consequence that is expensive to discover late:
+Rust is the implementation, not an optional overlay: there is no Python fallback and no runtime
+toggle. src/accel.py therefore has just two behaviors, each with a consequence that is expensive
+to discover late:
 
-- a missing extension must fall back to Python, because every snakefile imports `src.*` at
-  DAG-parse time and raising would take down all 245 rules for anyone without a Rust toolchain;
+- a missing extension must raise, because a Rust toolchain is a hard build prerequisite (#975) --
+  anyone who can run Babel at all has the extension, so its absence means the build regressed and
+  should fail loudly at DAG-parse time rather than silently produce nothing;
 - a stale extension must raise, because the extension is installed editable and a `git pull` does
-  not rebuild it, so a silent stale binary could run for a 12-hour rule;
-- `BABEL_DISABLE_RUST` must force the Python path, which is what makes an A/B measurement possible.
+  not rebuild it, so a silent stale binary could run for a 12-hour rule.
 
-The module resolves availability at import time, so the fallback branches are tested by reloading
-it under a patched environment. The staleness check is tested directly against stub modules --
-building a genuinely stale extension would mean compiling Rust inside a unit test.
+The missing-extension branch is tested by reloading under a patched import; the staleness check is
+tested directly against stub modules -- building a genuinely stale extension would mean compiling
+Rust inside a unit test.
 """
 
 import builtins
@@ -23,12 +24,8 @@ import pytest
 import src.accel
 
 
-def reload_accel(monkeypatch, *, disable=None, hide_extension=False):
-    """Re-import src.accel under a patched environment and return the fresh module."""
-    monkeypatch.delenv("BABEL_DISABLE_RUST", raising=False)
-    if disable is not None:
-        monkeypatch.setenv("BABEL_DISABLE_RUST", disable)
-
+def reload_accel(monkeypatch, *, hide_extension=False):
+    """Re-import src.accel and return the fresh module (letting any import error propagate)."""
     if hide_extension:
         real_import = builtins.__import__
 
@@ -57,24 +54,19 @@ def stub_extension(version):
     return module
 
 
-# FALLING BACK TO PYTHON
+# A MISSING BUILD FAILS LOUDLY
 
 
 @pytest.mark.unit
-def test_a_missing_extension_falls_back_instead_of_raising(monkeypatch):
-    """Without a compiled extension, importing src.accel must succeed and expose accel = None.
+def test_a_missing_extension_raises(monkeypatch):
+    """Without the compiled extension, importing src.accel must raise.
 
-    Raising here would break every Snakemake target for a contributor with no Rust toolchain, not
-    just the rules that would have used Rust.
+    A Rust toolchain is a hard build prerequisite (#975), so anyone who can run Babel has the
+    extension; its absence means the build silently regressed, and failing at DAG-parse time (with
+    the ImportError) is better than silently producing nothing.
     """
-    assert reload_accel(monkeypatch, hide_extension=True).accel is None
-
-
-@pytest.mark.unit
-def test_babel_disable_rust_forces_the_python_path(monkeypatch):
-    """BABEL_DISABLE_RUST=1 should select the Python implementations even when the extension is
-    built, so the two can be timed against each other in one checkout."""
-    assert reload_accel(monkeypatch, disable="1").accel is None
+    with pytest.raises(ImportError):
+        reload_accel(monkeypatch, hide_extension=True)
 
 
 # GUARDING AGAINST A STALE BUILD
