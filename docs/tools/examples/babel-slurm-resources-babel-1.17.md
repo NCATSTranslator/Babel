@@ -194,7 +194,7 @@ get_pubchem | 0.2G | 8.0G | 3% | 0.2 | 1 | 25s | 8.0G | 1 | ok
 get_chemical_rxnorm_relationships | 0.2G | 64.0G | 0% | 0.0 | 4 | 2s | 8.0G | 1 | over
 get_uniprotkb_idmapping | 0.2G | 8.0G | 3% | 0.7 | 1 | 1042s | 8.0G | 1 | ok
 disease_hp_ids | 0.2G | 64.0G | 0% | 0.0 | 4 | 7s | 8.0G | 1 | over
-download_unichem_structure | 0.2G | 8.0G | 3% | 0.2 | - | 1996s | 8.0G | 1 | ok
+download_unichem_structure | 0.2G | 8.0G | 3% | 0.2 | 1 | 1996s | 8.0G | 1 | ok
 get_process_go_relationships | 0.2G | 64.0G | 0% | 0.1 | 4 | 5s | 8.0G | 1 | over
 gene | 0.2G | 64.0G | 0% | 1.0 | 4 | 3252s | 8.0G | 1 | over
 gene_ensembl_ids | 0.2G | - | - | 1.0 | - | 21s | 8.0G | 1 | no-request-data
@@ -243,7 +243,7 @@ check_anatomical_entity | 0.2G | - | - | 0.0 | - | 1s | 8.0G | 1 | no-request-da
 extract_taxon_ids_from_uniprotkb | 0.2G | 64.0G | 0% | 1.0 | 4 | 1072s | 8.0G | 1 | over
 generate_content_report_for_compendium_Disease | 0.2G | - | - | 0.4 | - | 4s | 8.0G | 1 | no-request-data
 generate_content_report_for_compendium_ChemicalEntity | 0.2G | 64.0G | 0% | 0.4 | 4 | 3s | 8.0G | 1 | over
-download_unichem_reference | 0.2G | 8.0G | 3% | 0.1 | - | 382s | 8.0G | 1 | ok
+download_unichem_reference | 0.2G | 8.0G | 3% | 0.1 | 1 | 382s | 8.0G | 1 | ok
 generate_content_report_for_compendium_Drug | 0.2G | 64.0G | 0% | 0.0 | 4 | 2s | 8.0G | 1 | over
 generate_content_report_for_compendium_umls | 0.2G | 64.0G | 0% | 0.4 | 4 | 10s | 8.0G | 1 | over
 check_drug | 0.2G | 64.0G | 0% | 0.0 | 4 | 2s | 8.0G | 1 | over
