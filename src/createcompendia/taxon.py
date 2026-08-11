@@ -2,10 +2,11 @@ import logging
 
 import src.datahandlers.mesh as mesh
 import src.datahandlers.umls as umls
-from src.babel_utils import glom, read_identifier_file, write_compendium
+from src.babel_utils import write_compendium
 from src.categories import ORGANISM_TAXON
 from src.metadata.provenance import write_concord_metadata
-from src.prefixes import MESH, NCBITAXON, UMLS
+from src.model.cliques import glom_from_files
+from src.prefixes import GTDB, MESH, NCBITAXON, UMLS
 from src.util import LoggingUtil
 
 logger = LoggingUtil.init_logging(__name__, level=logging.ERROR)
@@ -103,28 +104,62 @@ def build_relationships(outfile, mesh_ids, metadata_yaml):
     )
 
 
+def compute_cliques_for_impact_report(concordances, identifiers, excluded_sources=()):
+    """Load taxon identifier and concord files and return the union-find clique state
+    without writing compendia.
+
+    Thin wrapper over :func:`src.model.cliques.glom_from_files` supplying taxon's
+    unique-prefix hook (NCBITaxon/MESH/UMLS/GTDB -- GTDB is unique so two GTDB species
+    sharing one NCBI taxid are never merged into one clique; the GTDB<->NCBI mapping is
+    many-to-one, see ``src/datahandlers/gtdb.py``). ``build_compendia`` calls this too, so
+    the source-impact report's reglom uses the same code path as the real build.
+
+    The source-impact report CLI calls this twice -- once with the new source's files
+    excluded, once with everything -- to compute a before/after diff.
+
+    :param concordances: list of paths to concord files
+    :param identifiers: list of paths to ids files
+    :param excluded_sources: set of source basenames to skip (the "before-new-source" state)
+    :returns: ``(dicts, types)`` where dicts is the glom dict-of-sets and types maps CURIE
+        to its declared biolink type
+    """
+    return glom_from_files(
+        concordances,
+        identifiers,
+        unique_prefixes=[NCBITAXON, MESH, UMLS, GTDB],
+        excluded_sources=excluded_sources,
+    )
+
+
 def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
     """:concordances: a list of files from which to read relationships
     :identifiers: a list of files from which to read identifiers and optional categories"""
-    dicts = {}
-    types = {}
-    uniques = [NCBITAXON, MESH, UMLS]
-    for ifile in identifiers:
-        print("loading", ifile)
-        new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=uniques)
-        types.update(new_types)
-    for infile in concordances:
-        print(infile)
-        print("loading", infile)
-        pairs = []
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                pairs.append(set([x[0], x[2]]))
-        glom(dicts, pairs, unique_prefixes=uniques)
+    dicts, _ = compute_cliques_for_impact_report(concordances, identifiers)
     gene_sets = set([frozenset(x) for x in dicts.values()])
     baretype = ORGANISM_TAXON.split(":")[-1]
-    # We need to use extra_prefixes since UMLS is not listed as an identifier prefix at
-    # https://biolink.github.io/biolink-model/docs/OrganismTaxon.html
-    write_compendium(metadata_yamls, gene_sets, f"{baretype}.txt", ORGANISM_TAXON, {}, icrdf_filename=icrdf_filename)
+    # GTDB is not in the Biolink Model's organism-taxon id_prefixes ([NCBITaxon, MESH, UMLS]), so it must
+    # be passed via extra_prefixes or write_compendium silently drops every GTDB CURIE.
+    write_compendium(
+        metadata_yamls,
+        gene_sets,
+        f"{baretype}.txt",
+        ORGANISM_TAXON,
+        {},
+        extra_prefixes=[GTDB],
+        icrdf_filename=icrdf_filename,
+    )
+
+
+def classify_taxon_clique(equivalent_ids, types):
+    """Pick a biolink type for one taxon clique.
+
+    Every taxon identifier is declared ``biolink:OrganismTaxon`` (the taxon pipeline emits a
+    single compendium, ``OrganismTaxon.txt``), so return that if any member of the clique
+    carries a declared type, else ``None`` (the clique cannot be typed and is dropped).
+    Used by ``create_typed_sets`` and the source-impact report's ``clique_classifier`` hook
+    so both label cliques identically.
+    """
+    for eid in equivalent_ids:
+        if eid in types:
+            return ORGANISM_TAXON
+    return None

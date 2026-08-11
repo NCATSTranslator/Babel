@@ -1,4 +1,5 @@
 import src.createcompendia.taxon as taxon
+import src.datahandlers.gtdb as gtdb
 import src.assess_compendia as assessments
 import src.snakefiles.util as util
 
@@ -35,6 +36,45 @@ rule taxon_umls_ids:
         config["output_directory"] + "/benchmarks/taxon_umls_ids.tsv"
     run:
         taxon.write_umls_ids(input.mrsty, output.outfile)
+
+
+rule gtdb_labels:
+    input:
+        bac120=config["download_directory"] + "/GTDB/bac120_metadata.tsv",
+        ar53=config["download_directory"] + "/GTDB/ar53_metadata.tsv",
+    output:
+        labels=config["download_directory"] + "/GTDB/labels",
+    benchmark:
+        config["output_directory"] + "/benchmarks/gtdb_labels.tsv"
+    run:
+        gtdb.write_gtdb_labels([input.bac120, input.ar53], output.labels)
+
+
+rule gtdb_ids:
+    input:
+        infile=config["download_directory"] + "/GTDB/labels",
+    output:
+        outfile=config["intermediate_directory"] + "/taxon/ids/GTDB",
+    benchmark:
+        config["output_directory"] + "/benchmarks/gtdb_ids.tsv"
+    shell:
+        # Same transform as taxon_ncbi_ids: the labels file's first column is the CURIE.
+        "awk '{{print $1\"\tbiolink:OrganismTaxon\"}}' {input.infile} > {output.outfile}"
+
+
+rule get_gtdb_relationships:
+    input:
+        bac120=config["download_directory"] + "/GTDB/bac120_metadata.tsv",
+        ar53=config["download_directory"] + "/GTDB/ar53_metadata.tsv",
+    output:
+        outfile=config["intermediate_directory"] + "/taxon/concords/GTDB",
+        metadata_yaml=config["intermediate_directory"] + "/taxon/concords/metadata-GTDB.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_gtdb_relationships.tsv"
+    run:
+        gtdb.build_gtdb_relationships(
+            [input.bac120, input.ar53], output.outfile, output.metadata_yaml, config["gtdb_metadata_url_prefix"]
+        )
 
 
 rule get_taxon_umls_relationships:

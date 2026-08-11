@@ -412,6 +412,37 @@ rule get_ncbigene_labels_synonyms_and_taxa:
         )
 
 
+### GTDB
+
+
+rule get_gtdb_bac120:
+    output:
+        config["download_directory"] + "/GTDB/bac120_metadata.tsv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_gtdb_bac120.tsv"
+    retries: 3  # GTDB HTTP download may be interrupted transiently.
+    resources:
+        mem="8G",
+        cpus_per_task=1,
+        runtime="6h",
+    run:
+        pull_via_wget(config["gtdb_metadata_url_prefix"], "bac120_metadata.tsv.gz", decompress=True, subpath="GTDB")
+
+
+rule get_gtdb_ar53:
+    output:
+        config["download_directory"] + "/GTDB/ar53_metadata.tsv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_gtdb_ar53.tsv"
+    retries: 3  # GTDB HTTP download may be interrupted transiently.
+    resources:
+        mem="8G",
+        cpus_per_task=1,
+        runtime="6h",
+    run:
+        pull_via_wget(config["gtdb_metadata_url_prefix"], "ar53_metadata.tsv.gz", decompress=True, subpath="GTDB")
+
+
 ### ENSEMBL
 
 

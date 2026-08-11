@@ -262,11 +262,17 @@ drugbank_extract_markers: [extract]
 drugchemicalconflated_synonym_outputs: [DrugChemicalConflated.txt]
 geneproteinconflated_synonym_outputs:  [GeneProteinConflated.txt]
 
-taxon_labels:   [NCBITaxon, MESH, UMLS]
+taxon_labels:   [NCBITaxon, MESH, UMLS, GTDB]
 taxon_synonyms: [NCBITaxon, UMLS]
-taxon_ids:      [NCBITaxon, MESH, UMLS]
-taxon_concords: [NCBI_MESH, UMLS]
+taxon_ids:      [NCBITaxon, MESH, UMLS, GTDB]
+taxon_concords: [NCBI_MESH, UMLS, GTDB]
 taxon_outputs:  [OrganismTaxon.txt]
+
+# GTDB (Genome Taxonomy Database) bacterial/archaeal taxonomy metadata, ingested as biolink:OrganismTaxon
+# in the taxon pipeline (see docs/sources/GTDB/). bac120 = bacteria, ar53 = archaea. 'latest' is convenient
+# but moves; pin a specific release (e.g. https://data.gtdb.ecogenomic.org/releases/release232/232.0/) for a
+# reproducible production build.
+gtdb_metadata_url_prefix: "https://data.gtdb.ecogenomic.org/releases/latest/"
 
 cell_line_outputs: [CellLine.txt]
 
