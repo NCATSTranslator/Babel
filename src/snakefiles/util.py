@@ -61,6 +61,8 @@ def get_all_compendia(config):
         + config["umls_outputs"]
         + config["macromolecularcomplex_outputs"]
         + config["publication_outputs"]
+        + config["transcript_outputs"]
+        + config["sequencevariant_outputs"]
     )
 
 
@@ -89,6 +91,8 @@ def get_all_synonyms(config):
         +
         # Publication.txt is empty, but it's still created, so it needs to be here.
         config["publication_outputs"]
+        + config["transcript_outputs"]
+        + config["sequencevariant_outputs"]
     )
 
 
@@ -114,6 +118,8 @@ def get_all_synonyms_except_drugchemicalconflated(config):
         config["geneproteinconflated_synonym_outputs"]
         + config["umls_outputs"]
         + config["macromolecularcomplex_outputs"]
+        + config["transcript_outputs"]
+        + config["sequencevariant_outputs"]
     )
 
 
@@ -139,6 +145,8 @@ def get_all_synonyms_with_drugchemicalconflated(config):
         + config["geneproteinconflated_synonym_outputs"]
         + config["umls_outputs"]
         + config["macromolecularcomplex_outputs"]
+        + config["transcript_outputs"]
+        + config["sequencevariant_outputs"]
     )
 
 

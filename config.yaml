@@ -268,6 +268,30 @@ taxon_ids:      [NCBITaxon, MESH, UMLS]
 taxon_concords: [NCBI_MESH, UMLS]
 taxon_outputs:  [OrganismTaxon.txt]
 
+# Transcript compendium (biolink:Transcript): Ensembl transcript identifiers (ENST*) extracted from
+# NCBIGene's gene2ensembl.gz (Ensembl_rna_identifier column). The ids file carries the unversioned ENST;
+# the single concord links versioned<->unversioned ENST (issue #72 pattern). There are deliberately no
+# transcript<->gene or transcript<->protein concords: glom merges every concord pair, which would pull a
+# transcript into a gene/protein clique and mis-type it (see src/createcompendia/transcript.py). ENSEMBL
+# is registered for biolink:Transcript in the pinned Biolink Model, so no extra_prefixes is needed.
+# See docs/sources/TRANSCRIPT/.
+transcript_ids:      [ENSEMBL]
+transcript_concords: [ENSEMBL]
+transcript_outputs:  [Transcript.txt]
+
+# SequenceVariant compendium (biolink:SequenceVariant): currently ClinVar variants. A dedicated pipeline
+# (see docs/sources/CLINVAR/). ClinVar is a public NCBI download (no credentials). The single concord links
+# CLINVAR<->DBSNP (rs); there is deliberately no CLINVAR<->gene eq concord (a variant is not a gene). Both
+# CLINVAR and DBSNP are registered for biolink:SequenceVariant, so no extra_prefixes is needed.
+sequencevariant_labels:   [CLINVAR]
+sequencevariant_ids:      [CLINVAR]
+sequencevariant_concords: [CLINVAR]
+sequencevariant_outputs:  [SequenceVariant.txt]
+
+# ClinVar variant_summary.txt download (public NCBI FTP, no credentials). Directory-prefix URL; the
+# filename variant_summary.txt.gz is appended (and decompressed to variant_summary.txt).
+clinvar_download_url_prefix: "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/tab_delimited/"
+
 cell_line_outputs: [CellLine.txt]
 
 genefamily_labels:  [PANTHER.FAMILY, HGNC.FAMILY]
