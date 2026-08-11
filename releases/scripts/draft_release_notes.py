@@ -543,8 +543,13 @@ def provenance_block(entry: dict, previous: dict | None, repo_root: Path = REPO_
     lines.append(f"- Babel: {target}" + (f" ({', '.join(babel_bits)})" if babel_bits else ""))
     if entry.get("biolink"):
         lines.append(f"  - Built against Biolink Model v{entry['biolink']}")
-    lines.append(f"  - [CURIE summary](./summaries/{release_id}.json)")
-    lines.append(f"  - [Prefix report](./prefix_reports/{release_id}.json)")
+    if build:
+        # Archived artifacts are keyed by *build*, not release id -- for the Translator-named
+        # releases those differ (id TranslatorFuguJuly2024, build 2024jul13), and linking by id
+        # pointed at files that were never there. See releases/ARTIFACTS.md.
+        lines.append(f"  - [Summary tables](./{build}/reports/tables/)")
+        lines.append(f"  - [CURIE summary](./{build}/reports/content/compendia_report.json)")
+        lines.append(f"  - [Prefix report](./{build}/reports/duckdb/prefix_report.json)")
 
     for key, repo_key in (("nodenorm", "NodeNorm"), ("nameres", "NameRes")):
         versions = entry.get(key) or []
@@ -733,8 +738,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--build-dir",
         type=Path,
-        help="A copy of the build's output directory, used for reports/tables/. Without it the count "
-        "table and the notable-changes section are left as TODOs.",
+        help="A copy of the build's output directory, used for reports/tables/. Defaults to the "
+        "release's own archive under releases/<build>/ when that exists, which holds the same files "
+        "at the same paths. Without either, the count table and notable-changes section are TODOs.",
     )
     parser.add_argument(
         "--manifest",
@@ -764,6 +770,13 @@ def main(argv: list[str] | None = None) -> int:
     entry, previous = find_release(load_manifest(manifest_path), args.release)
     if args.build_dir and not args.build_dir.is_dir():
         parser.error(f"--build-dir {args.build_dir} is not a directory")
+    if not args.build_dir and entry.get("build"):
+        # The archive mirrors the build directory, so it answers the same four questions. This is
+        # what makes an old note re-draftable from the repository alone.
+        archived = manifest_path.parent / entry["build"]
+        if archived.is_dir():
+            args.build_dir = archived
+            print(f"Reading build reports from the archived release {archived}.", file=sys.stderr)
 
     print(
         draft(

@@ -143,7 +143,8 @@ def test_summary_of_changes_labels_the_baseline_the_build_actually_used(tmp_path
     )
     (tables / "prefix_comparison.md").write_text(
         "# Prefix comparison: 2026jul22 vs 2025mar31\n\n"
-        "Compared release `2026jul22` against baseline `2025mar31` (`releases/prefix_reports/2025mar31.json`).\n"
+        "Compared release `2026jul22` against baseline `2025mar31` "
+        "(`releases/2025mar31/reports/duckdb/prefix_report.json`).\n"
     )
 
     table = drn.summary_of_changes(tmp_path, "2025sep1", "2026jul22")
@@ -154,6 +155,23 @@ def test_summary_of_changes_labels_the_baseline_the_build_actually_used(tmp_path
         "2026jul22",
     ]
     assert "comparison is against 2025mar31, not the manifest's previous release 2025sep1" in capsys.readouterr().err
+
+
+@pytest.mark.unit
+def test_the_committed_archive_works_as_a_build_dir():
+    """`releases/<build>/` mirrors the build directory, so every build-dir reader must accept it.
+
+    This is the whole reason the archive is not flattened by kind: a note stays re-draftable from the
+    repository alone, years after the build directory is gone. A layout change that breaks it would
+    otherwise only show up the next time someone needed an old note.
+    """
+    archive = get_repo_root() / "releases" / "2026jul22"
+
+    assert drn.comparison_baseline(archive) == "2025sep1"
+    assert drn.notable_changes(archive)
+    table = drn.summary_of_changes(archive, "2025sep1", "2026jul22")
+    assert "Count of CURIEs in all files" in table
+    assert drn.unexplained_movers(archive)
 
 
 @pytest.mark.unit
@@ -208,7 +226,9 @@ def test_ranges_use_the_last_service_version_deployed_against_each_build():
 def test_every_release_note_is_listed_in_the_manifest():
     """Drift guard: a new note in releases/ must be added to releases.yaml or the tooling won't see it."""
     releases_dir = get_repo_root() / "releases"
-    on_disk = {path.stem for path in releases_dir.glob("*.md")} - {"README"}
+    # README.md indexes the notes and ARTIFACTS.md documents the archived build reports; neither is
+    # a release note.
+    on_disk = {path.stem for path in releases_dir.glob("*.md")} - {"README", "ARTIFACTS"}
     in_manifest = {entry["id"] for entry in drn.load_manifest(releases_dir / "releases.yaml")}
     assert on_disk == in_manifest
 
@@ -259,6 +279,26 @@ def test_provenance_block_records_the_deployed_service_versions():
     assert "Previous release: [Babel 2025sep1](./2025sep1.md)" in block
     # 2026jul22 is a real tag, so the tag link is emitted.
     assert "[tagged 2026jul22](https://github.com/NCATSTranslator/Babel/releases/tag/2026jul22)" in block
+    assert "[Summary tables](./2026jul22/reports/tables/)" in block
+    assert "[Prefix report](./2026jul22/reports/duckdb/prefix_report.json)" in block
+
+
+@pytest.mark.unit
+def test_archived_artifacts_are_linked_by_build_not_release_id():
+    """The archive directories are named by build, and for the older releases that is not the id.
+
+    `TranslatorFuguJuly2024`'s build is `2024jul13`, which is what its CURIE summary has always been
+    filed under -- but the link was written from the release id, so it pointed at a path that never
+    existed. Nothing caught it because the four notes carrying it are historical.
+    """
+    manifest = drn.load_manifest(get_repo_root() / "releases" / "releases.yaml")
+    entry, previous = drn.find_release(manifest, "TranslatorFuguJuly2024")
+    block = "\n".join(drn.provenance_block(entry, previous, get_repo_root()))
+
+    assert "[CURIE summary](./2024jul13/reports/content/compendia_report.json)" in block
+    assert "TranslatorFuguJuly2024/reports" not in block
+    # And the file it points at is really there.
+    assert (get_repo_root() / "releases" / "2024jul13" / "reports" / "content" / "compendia_report.json").exists()
 
 
 @pytest.mark.unit
