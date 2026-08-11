@@ -2,7 +2,7 @@
 
 * Babel: [2024jul13](https://stars.renci.org/var/babel_outputs/2024jul13/) (approx
   [Babel 2024jul13](https://github.com/NCATSTranslator/Babel/releases/tag/2024jul13))
-  * [CURIE summary](./summaries/2024jul13.json)
+  * [CURIE summary](./2024jul13/reports/content/compendia_report.json)
 
 Next release: [TranslatorGuppyAugust2024](./TranslatorGuppyAugust2024.md)
 

@@ -182,9 +182,9 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, na
     ~2% error). The exact occurrence counts (``COUNT``) stay exact; only distinct/clique counts are
     approximate.
 
-    The output schema is the one used by the committed baselines in ``releases/prefix_reports/*.json``
-    (and by babel-validation's PrefixComparator), so a freshly built report drops in beside them with
-    no migration::
+    The output schema is the one used by the committed baselines in
+    ``releases/<release>/reports/duckdb/prefix_report.json`` (and by babel-validation's
+    PrefixComparator), so a freshly built report drops in beside them with no migration::
 
         {
             "name": <release name>,

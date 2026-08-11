@@ -19,14 +19,14 @@ drugbank_version: "5-1-13" # The latest is 5-1-21, but since downloads are curre
 
 # Release naming and the previous-release comparison (see docs/RunningBabel.md).
 # release_name is the date-style name for THIS build; it becomes the "name" in the generated
-# prefix_report.json and names the file when it is archived into releases/prefix_reports/. Set it to
+# prefix_report.json and names the directory it is archived into, releases/<release_name>/. Set it to
 # the build you are about to make BEFORE starting a run.
 release_name: "2026jul22"
 # previous_release pins which committed baseline the end-of-run comparison diffs against: it is the
 # release immediately BEFORE release_name, never release_name itself -- a build that diffs its own
 # baseline produces a well-formed all-zeros report that reads as "nothing changed", so
 # generate_prefix_comparison() raises rather than write one. Moving this on to the release just
-# archived in releases/prefix_reports/ is the deliberate "new baseline" action, done in the same
+# archived under releases/ is the deliberate "new baseline" action, done in the same
 # commit that moves release_name to the next build; a unit test fails if the two drift apart.
 previous_release: "2025sep1"
 # Thresholds for the "Notable changes" section of reports/tables/prefix_comparison.md (informational

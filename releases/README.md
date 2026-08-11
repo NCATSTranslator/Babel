@@ -1,12 +1,16 @@
 # Babel Releases
 
+Each release below has a note, and most also have an archive of that build's summary tables and
+provenance metadata under `releases/<build>/` — see [`ARTIFACTS.md`](ARTIFACTS.md) for what those
+files are and how to read them.
+
 ## General releases
 
 - TODO
 
 ## Translator-specific releases
 
-- [2026jul22](2026jul22.md)
+- [2026jul22](2026jul22.md) ([summary tables](2026jul22/reports/tables/))
 - [2025sep1](2025sep1.md)
 - [Babel 1.11](v1.11.md)
 - [2025mar31](2025mar31.md)
@@ -35,8 +39,14 @@ unchecked checklist item, to be promoted into the section it belongs in or delet
 leads the note and is deliberately empty: it is for behaviour a consumer may have relied on that was
 wrong before and is right now, so they can check whether it affected their analyses.
 
-The remaining steps -- archiving the prefix report and CURIE summary, bumping `release_name` and
-`previous_release` in `config.yaml`, adding the index line above, and setting the previous note's
-`Next release:` link -- are listed in
-[`docs/RunningBabel.md`](../docs/RunningBabel.md#archiving-the-prefix-report-for-the-next-comparison).
+Archive the build's reports under the release name in the same pass, which is also what commits the
+baseline the *next* release will be compared against:
+
+```bash
+uv run python releases/scripts/archive_build.py 2026jul22 --build-dir /path/to/a/copy/of/the/build
+```
+
+The remaining steps -- bumping `release_name` and `previous_release` in `config.yaml`, adding the
+index line above, and setting the previous note's `Next release:` link -- are listed in
+[`docs/RunningBabel.md`](../docs/RunningBabel.md#archiving-a-builds-reports).
 Claude Code users can run `/release-notes`, which walks the whole process.
