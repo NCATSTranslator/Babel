@@ -37,7 +37,10 @@ uv run python releases/scripts/draft_release_notes.py <release> \
 ```
 
 `--build-dir` needs `reports/tables/` from the build; without it the count table and the
-notable-changes section come out as TODOs. The user usually has a copy under `data/`.
+notable-changes section come out as TODOs. The user usually has a copy under `data/`. An
+already-archived release works too — `releases/<build>/` mirrors the build directory's paths, and
+the script falls back to it when `--build-dir` is omitted, so re-drafting an old note needs nothing
+but the repository.
 
 Draft while the release is on **Exp**, not Dev. That is the order the release actually happens in —
 Exp is publicly reachable, so the note is what tells people they can test the new build before it is
@@ -100,13 +103,14 @@ say how you checked) or a bug to file **before** the release ships. Do not hand-
 
 Where to check:
 
-- `<build-dir>/reports/content/compendia/<Type>.json` — `count_by_prefix` for this build; the same
-  numbers for the baseline come out of `releases/prefix_reports/<previous>.json` under
-  `by_clique[*].by_file[<Type>]`. Comparing per-prefix is what turns "Protein is down 38%" into
-  "UniProtKB is down 103.8M and nothing else moved".
+- `<build-dir>/reports/content/compendia/<Type>.json` — `count_by_prefix` for this build. The
+  baseline's is the same file in its own archive, under
+  `releases/<previous>/reports/content/compendia/`.
+  Comparing per-prefix is what turns "Protein is down 38%" into "UniProtKB is down 103.8M and
+  nothing else moved".
 - `<build-dir>/reports/<pipeline>_completeness.txt` — `Missing identifiers: 0` rules out a
-  dropped-identifier bug.
-- `<build-dir>/logs/error-report-*.md` — rule failures during the run.
+  dropped-identifier bug. **Not archived** — this one needs the real build directory.
+- `<build-dir>/logs/error-report-*.md` — rule failures during the run. Also not archived.
 - `git log <previous-tag>..<tag> --grep="(#NNN)"` — whether a specific fix actually made the build.
   Check this rather than asserting a known issue is or isn't fixed.
 
@@ -115,13 +119,19 @@ answer from the finished build's reports, the DuckDB `Edge` table, or Node Norma
 
 ## 5. Finish the release bookkeeping
 
-1. Archive the two artifacts under the release name:
-   - `<build-dir>/reports/duckdb/prefix_report.json` → `releases/prefix_reports/<release>.json`
-   - `<build-dir>/reports/content/compendia_report.json` → `releases/summaries/<release>.json`
+1. Archive the build's reports into `releases/<build>/` — the summary tables, the per-compendium
+   content reports, the provenance metadata, and the prefix report that becomes the next release's
+   baseline (~420 KB; see `releases/ARTIFACTS.md`):
 
-   Check the archived prefix report's `name` field matches the release. It is written from
-   `release_name` in `config.yaml`, which is easy to leave pointing at a previous build — and it is
-   what labels the *next* release's comparison report.
+   ```bash
+   uv run python releases/scripts/archive_build.py <build> --build-dir <build-dir>
+   ```
+
+   Use the **build** name, not the release id — for the older Translator-named releases they differ.
+   The script checks that the prefix report's `name` field matches, and fails if it does not: that
+   field is written from `release_name` in `config.yaml`, which is easy to leave pointing at a
+   previous build, and it is what labels the *next* release's comparison report. If it fires, work
+   out which release the value names before correcting it — do not just overwrite it.
 2. Leave `config.yaml`'s two pins alone until the **next** build is planned, then move both in one
    commit: `previous_release` to this release, `release_name` to the new build. They must never be
    equal — a run whose `release_name` matches its `previous_release` diffs its own baseline and

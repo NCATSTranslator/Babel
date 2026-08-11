@@ -446,22 +446,33 @@ report supersedes the manual comparison previously done in babel-validation's
 
 Which release it compares against is pinned explicitly by `previous_release` in `config.yaml` —
 there is no date guessing. A unit test (`tests/reports/test_prefix_comparison.py`) fails if a newer
-baseline was committed to `releases/prefix_reports/` without bumping the pin, so a stale pin is
-caught by the weekly unit run before the next build starts.
+baseline was committed under `releases/` without bumping the pin, so a stale pin is caught by the
+weekly unit run before the next build starts.
 
-### Archiving the prefix report for the next comparison
+### Archiving a build's reports
 
-After a healthy release run, archive this build's prefix report so the *next* release can be
-compared against it:
+After a healthy release run, archive the build's summary reports into the repository. This is both
+how the tables stay readable after the build directory is gone and how the *next* release gets a
+baseline to compare against:
 
-1. Copy `babel_outputs/reports/duckdb/prefix_report.json` to
-   `releases/prefix_reports/<release_name>.json` (using the `release_name` from `config.yaml`).
-   **Check the `name` field inside the copy before committing it.** It is written from
-   `release_name` at build time, so a run that started before the pin was updated stamps the
-   *previous* release's name into it — and this field is what labels the baseline in the next
-   release's comparison report, so a wrong value propagates forward. The 2026jul22 build shipped
-   with `"name": "2026jul15"` for exactly this reason.
-2. Link it from the release's `releases/<release_name>.md` notes.
+1. Run the archiver. It copies ~420 KB — the summary tables, the per-compendium content reports, the
+   provenance metadata, and the prefix report — into `releases/<build>/`, mirroring the build
+   directory's own paths. [`releases/ARTIFACTS.md`](../releases/ARTIFACTS.md) describes each file
+   and what is deliberately left out.
+
+   ```bash
+   uv run python releases/scripts/archive_build.py <build> --build-dir <build directory> --dry-run
+   uv run python releases/scripts/archive_build.py <build> --build-dir <build directory>
+   ```
+
+   It fails rather than archive a prefix report whose `name` field is not `<build>`. That field is
+   written from `release_name` at build time, so a run that started before the pin was updated
+   stamps the *previous* release's name into it — and it is what labels the baseline in the next
+   release's comparison, so a wrong value propagates forward. The 2026jul22 build shipped with
+   `"name": "2026jul15"` for exactly this reason, which is why the check is no longer left to a
+   human. If it fires, work out which release the value names before correcting it.
+2. Link the archive from the release's `releases/<release>.md` notes —
+   `draft_release_notes.py` emits those three links, keyed by build name.
 3. Commit. This copy becomes the reviewed baseline for the next release. Leave `config.yaml` alone
    here: `release_name` still names the build you just archived, and `previous_release` still names
    the baseline it was compared against.

@@ -52,7 +52,7 @@ to users who aren't system administrators for these tools:
    service is still answering from the previous Babel version, which is what pointing either URL at
    Dev too early looks like. The full process is in
    [`releases/README.md`](../releases/README.md); archiving the prefix report and bumping the pins
-   is in [`RunningBabel.md`](RunningBabel.md#archiving-the-prefix-report-for-the-next-comparison).
+   is in [`RunningBabel.md`](RunningBabel.md#archiving-a-builds-reports).
 7. **Check with RENCI NodeNorm users before updating RENCI NodeNorm and NameRes instances**
 8. Update RENCI NodeNorm and NameRes instances.
 9. Announce on Translator and RENCI channels and ask people to try it out.

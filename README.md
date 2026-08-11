@@ -67,6 +67,12 @@ Three [Babel data formats](./docs/DataFormats.md) are available:
 You can find out about [downloading Babel outputs](docs/Downloads.md). You can
 find a list of Babel releases in the [Releases list](./releases/README.md).
 
+Without downloading anything, each release also archives its own summary tables in this repository —
+what identifier prefixes it contains, how many cliques each compendium holds, which sources
+contributed which mappings, and how all of that changed since the previous release. The newest is
+the top entry in the [Releases list](./releases/README.md);
+[`releases/ARTIFACTS.md`](./releases/ARTIFACTS.md) explains each file.
+
 ### How can I deploy Babel outputs?
 
 Information on [deploying Babel outputs](./docs/Deployment.md) is available.
