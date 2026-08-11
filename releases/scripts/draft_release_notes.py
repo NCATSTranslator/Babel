@@ -78,6 +78,8 @@ _MERGE_RE = re.compile(r"^Merge pull request #(?P<number>\d+) from ")
 
 # The `## Notable changes` section of the build's own prefix_comparison.md, up to the next heading.
 _NOTABLE_RE = re.compile(r"^## Notable changes\s*\n(.*?)(?=^## |\Z)", re.M | re.S)
+# That report's own statement of what it compared against: "against baseline `2025sep1`".
+_BASELINE_RE = re.compile(r"against baseline `([^`]+)`")
 
 # The `## Summary` table's Redis rows, in the order the published notes have always used. NodeNorm's
 # /status names every database it has, so this list only fixes the ordering of the ones we know --
@@ -389,15 +391,42 @@ def _format_percent(value: str) -> str:
     return f"\\{value}" if value.startswith("-") else value
 
 
+def comparison_baseline(build_dir: Path) -> str | None:
+    """The release the build's own prefix comparison actually ran against, per its own report.
+
+    Not the same thing as the manifest's previous entry: the build compared itself against whatever
+    ``previous_release`` was pinned in ``config.yaml`` at build time, and a build that skipped a
+    release (or was built before one shipped) compares against something older.
+    """
+    path = build_dir / "reports" / "tables" / "prefix_comparison.md"
+    if not path.exists():
+        return None
+    match = _BASELINE_RE.search(path.read_text())
+    return match.group(1) if match else None
+
+
 def summary_of_changes(build_dir: Path, previous_id: str, release_id: str) -> str | None:
     """Rebuild the release note's `Summary of changes` table from the build's comparison CSV.
 
-    The CSV is already the exact comparison the note wants (this build against the baseline pinned in
-    config.yaml); this only reformats it -- no numbers are recomputed here.
+    The CSV is already a comparison of this build against the baseline pinned in config.yaml; this
+    only reformats it -- no numbers are recomputed here. Which is why the baseline column is labelled
+    from the report rather than from ``previous_id``: the caller's idea of the previous release comes
+    from ``releases.yaml`` and the numbers come from the build, and nothing keeps those two in step.
+    Label the column with the manifest's answer and a build pinned to an older `previous_release`
+    silently gets the wrong year's numbers under the right name.
     """
     path = build_dir / "reports" / "tables" / "prefix_comparison_overall.csv"
     if not path.exists():
         return None
+
+    baseline = comparison_baseline(build_dir)
+    if baseline and baseline != previous_id:
+        print(
+            f"warning: {build_dir}'s comparison is against {baseline}, not the manifest's previous "
+            f"release {previous_id}; labelling the column {baseline}. Check that is what you want.",
+            file=sys.stderr,
+        )
+        previous_id = baseline
 
     rows = []
     with open(path, newline="") as f:

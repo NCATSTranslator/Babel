@@ -123,6 +123,35 @@ def test_summary_of_changes_formats_every_kind_of_row(tmp_path):
 
 
 @pytest.mark.unit
+def test_summary_of_changes_labels_the_baseline_the_build_actually_used(tmp_path, capsys):
+    """The baseline column must name the release the *numbers* came from.
+
+    The caller passes the manifest's nearest earlier deployed release, but the CSV was produced
+    against whatever `previous_release` was pinned in config.yaml at build time. Those agree today
+    and nothing enforces it: a build pinned to 2025mar31 would publish 2025mar31's numbers under a
+    2025sep1 heading, with no way to tell from the note.
+    """
+    tables = tmp_path / "reports" / "tables"
+    tables.mkdir(parents=True)
+    (tables / "prefix_comparison_overall.csv").write_text(
+        "Metric,Previous,Current,Absolute change,Percent change\nAll CURIEs,100,200,100,+100.0%\n"
+    )
+    (tables / "prefix_comparison.md").write_text(
+        "# Prefix comparison: 2026jul22 vs 2025mar31\n\n"
+        "Compared release `2026jul22` against baseline `2025mar31` (`releases/prefix_reports/2025mar31.json`).\n"
+    )
+
+    table = drn.summary_of_changes(tmp_path, "2025sep1", "2026jul22")
+
+    assert [cell.strip() for cell in table.splitlines()[0].strip("|").split("|")][:3] == [
+        "Filename",
+        "2025mar31",
+        "2026jul22",
+    ]
+    assert "comparison is against 2025mar31, not the manifest's previous release 2025sep1" in capsys.readouterr().err
+
+
+@pytest.mark.unit
 def test_summary_of_changes_is_none_without_a_report(tmp_path):
     assert drn.summary_of_changes(tmp_path, "2025sep1", "2026jul22") is None
 
