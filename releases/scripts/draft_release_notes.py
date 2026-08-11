@@ -22,11 +22,11 @@ from __future__ import annotations
 
 import argparse
 import csv
+import http.client
 import json
 import re
 import subprocess
 import sys
-import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -267,11 +267,17 @@ def fetch_status(url: str) -> dict | None:
 
     A release note is worth drafting even when the services are down or not yet deployed, so a
     failure here degrades to the blank table skeleton rather than aborting.
+
+    The except clause has to be wider than ``urllib.error``: urllib wraps what happens while
+    *opening* the connection, but a failure part-way through ``response.read()`` comes through raw --
+    ``http.client.RemoteDisconnected`` (an ``OSError``), ``http.client.IncompleteRead`` (an
+    ``HTTPException``), some ``ssl.SSLError`` paths -- and a half-read /status is exactly the failure
+    a service being restarted mid-draft produces.
     """
     try:
         with urllib.request.urlopen(url, timeout=STATUS_TIMEOUT_SECONDS) as response:
             return json.loads(response.read())
-    except (urllib.error.URLError, TimeoutError, ValueError) as error:
+    except (OSError, http.client.HTTPException, ValueError) as error:
         print(f"warning: could not read {url}: {error}", file=sys.stderr)
         return None
 
@@ -532,11 +538,12 @@ def provenance_block(entry: dict, previous: dict | None) -> list[str]:
     return lines
 
 
-def pull_request_sections(prs_by_repo: dict[str, list[PullRequest] | None]) -> list[str]:
+def pull_request_sections(prs_by_repo: dict[str, list[PullRequest] | str]) -> list[str]:
     """The triage checklist: every PR in the release, substantive ones first, routine ones folded.
 
-    A ``None`` value means the range could not be worked out (``releases.yaml`` records no baseline
-    version for that repository). That gets a visible TODO rather than a missing section.
+    A ``str`` value in place of a list is the reason that repository's range could not be listed --
+    no baseline version in ``releases.yaml``, or a compare that GitHub refused. Either way it gets a
+    visible TODO carrying the reason rather than a missing section.
     """
     lines = [
         "## All changes in this release",
@@ -545,15 +552,8 @@ def pull_request_sections(prs_by_repo: dict[str, list[PullRequest] | None]) -> l
         "matters into the sections above, then delete the rest of this section before publishing.",
     ]
     for repo_key, prs in prs_by_repo.items():
-        if prs is None:
-            lines += [
-                "",
-                f"### {repo_key} (range unknown)",
-                "",
-                f"_TODO: `releases/releases.yaml` records no baseline {repo_key} version for the "
-                f"previous release, so its pull requests could not be listed. Fill the version in "
-                f"and re-run, or list them by hand._",
-            ]
+        if isinstance(prs, str):
+            lines += ["", f"### {repo_key} (range unknown)", "", f"_TODO: {prs}_"]
             continue
         substantive = [pr for pr in prs if not pr.is_routine]
         routine = [pr for pr in prs if pr.is_routine]
@@ -588,23 +588,30 @@ def draft(
     lines = [f"# {entry['title']}", ""]
     lines += provenance_block(entry, previous)
 
-    # None (rather than an absent key) for a repository whose PR range can't be worked out, so the
-    # checklist says so instead of quietly omitting the section -- an omitted section reads as
-    # "nothing changed in that repository", which is the failure this whole checklist exists to
-    # prevent. With no baseline release at all there is no checklist to speak of, hence the outer if.
-    prs_by_repo: dict[str, list[PullRequest] | None] = {}
+    # A reason string (rather than an absent key) for a repository whose PR range can't be worked
+    # out, so the checklist says so instead of quietly omitting the section -- an omitted section
+    # reads as "nothing changed in that repository", which is the failure this whole checklist exists
+    # to prevent. That covers a failed `gh` compare too: three of the build names in releases.yaml
+    # (2024aug18, 2024mar24, 2023nov5) were never tagged in this repo, and letting that abort the run
+    # trades a note with one TODO section for no note at all.
+    prs_by_repo: dict[str, list[PullRequest] | str] = {}
     if previous:
         for repo_key, repo in REPOS.items():
             base, head = _range_for(repo_key, entry, previous)
-            if base and head:
-                prs_by_repo[repo_key] = fetch_pull_requests(repo_key, repo, base, head)
-            else:
-                print(
-                    f"warning: releases.yaml records no {repo_key} baseline for {previous['id']!r} "
-                    f"(or no version for {release_id!r}), so its pull requests cannot be listed.",
-                    file=sys.stderr,
+            if not (base and head):
+                reason = (
+                    f"`releases/releases.yaml` records no baseline {repo_key} version for the "
+                    f"previous release, so its pull requests could not be listed. Fill the version "
+                    f"in and re-run, or list them by hand."
                 )
-                prs_by_repo[repo_key] = None
+            else:
+                try:
+                    prs_by_repo[repo_key] = fetch_pull_requests(repo_key, repo, base, head)
+                    continue
+                except RuntimeError as error:
+                    reason = f"Could not list {repo_key} pull requests: {error}"
+            print(f"warning: {reason}", file=sys.stderr)
+            prs_by_repo[repo_key] = reason
 
     bumps = version_bumps(repo_root, previous["build"]) if previous else []
     workarounds = build_workarounds(repo_root)

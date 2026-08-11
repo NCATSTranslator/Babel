@@ -5,6 +5,7 @@ the number formatting in the `Summary of changes` table (a dropped `\\-` escape 
 from-zero row is invisible until the published note renders).
 """
 
+import http.client
 import importlib.util
 import sys
 
@@ -78,11 +79,12 @@ def test_a_repository_with_no_baseline_version_gets_a_visible_todo():
     versions, so drafting against one of those leaves a repository with no baseline. An omitted
     section reads as "nothing changed there", which is exactly what this checklist exists to stop.
     """
-    lines = drn.pull_request_sections({"Babel": [_pr("Something real")], "NameRes": None})
+    reason = "`releases/releases.yaml` records no baseline NameRes version for the previous release."
+    lines = drn.pull_request_sections({"Babel": [_pr("Something real")], "NameRes": reason})
     text = "\n".join(lines)
 
     assert "### NameRes (range unknown)" in text
-    assert "_TODO: `releases/releases.yaml` records no baseline NameRes version" in text
+    assert f"_TODO: {reason}_" in text
     assert "### Babel (1 PRs)" in text
 
 
@@ -363,6 +365,37 @@ def test_fetch_status_returns_none_instead_of_raising(capsys):
 
 
 @pytest.mark.unit
+@pytest.mark.parametrize(
+    "error",
+    [
+        # urllib wraps what happens while *opening* the connection, but these are raised out of
+        # `response.read()` and reach the caller unwrapped: a RemoteDisconnected is an OSError and an
+        # IncompleteRead is an HTTPException, so neither is caught by `except urllib.error.URLError`.
+        http.client.RemoteDisconnected("Remote end closed connection without response"),
+        http.client.IncompleteRead(b'{"databases"'),
+        ValueError("Expecting value: line 1 column 1 (char 0)"),
+    ],
+)
+def test_fetch_status_survives_a_connection_dropped_mid_read(monkeypatch, capsys, error):
+    """A service restarted mid-draft must degrade to the blank table, not abort the whole note."""
+
+    class _Dying:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_exc):
+            return False
+
+        def read(self):
+            raise error
+
+    monkeypatch.setattr(drn.urllib.request, "urlopen", lambda *_a, **_kw: _Dying())
+
+    assert drn.fetch_status("https://nodenormalization-exp.apps.renci.org/status") is None
+    assert "warning: could not read" in capsys.readouterr().err
+
+
+@pytest.mark.unit
 def test_fetch_pull_requests_surfaces_ghs_own_error(monkeypatch):
     """A failing `gh api` must report *why*, not just that it exited non-zero.
 
@@ -378,6 +411,34 @@ def test_fetch_pull_requests_surfaces_ghs_own_error(monkeypatch):
     monkeypatch.setattr(drn.subprocess, "run", fake_run)
     with pytest.raises(RuntimeError, match="Not Found"):
         drn.fetch_pull_requests("Babel", "NCATSTranslator/Babel", "2025sep1", "2026jul22")
+
+
+@pytest.mark.unit
+def test_a_failed_compare_degrades_like_a_missing_baseline(monkeypatch, capsys):
+    """A build name GitHub can't resolve must cost one section, not the whole note.
+
+    `releases.yaml` records three build names that were never tagged in this repo (2024aug18,
+    2024mar24, 2023nov5), so drafting against one of them raises out of `fetch_pull_requests()` --
+    where the sibling case, a repository with no recorded baseline version, already degrades to a
+    visible TODO.
+    """
+
+    def fake_fetch(repo_key, *_args):
+        if repo_key == "Babel":
+            raise RuntimeError("`gh api` failed comparing 2024aug18...2026jul22: gh: Not Found (HTTP 404)")
+        return []
+
+    monkeypatch.setattr(drn, "fetch_pull_requests", fake_fetch)
+    entry = {"id": "2026jul22", "title": "Babel 2026jul22", "build": "2026jul22", "nodenorm": ["v1.1.0"]}
+    previous = {"id": "2024aug18", "title": "Old", "build": "2024aug18", "nodenorm": ["v1.0.0"]}
+
+    text = drn.draft(entry, previous, None, drn.REPO_ROOT)
+
+    assert "### Babel (range unknown)" in text
+    assert "Could not list Babel pull requests: `gh api` failed" in text
+    assert "Not Found (HTTP 404)" in capsys.readouterr().err
+    # The repositories that did resolve are still listed.
+    assert "### NodeNorm (0 PRs)" in text
 
 
 # SECTION STRUCTURE
