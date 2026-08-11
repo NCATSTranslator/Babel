@@ -441,7 +441,12 @@ def summary_of_changes(build_dir: Path, previous_id: str, release_id: str) -> st
             if metric == "All CURIEs":
                 label = "Count of CURIEs in all files"
             elif metric.startswith("All cliques"):
-                label = "Count of cliques in all files"
+                # Keep the source metric's "(approx)". These counts are HyperLogLog estimates
+                # (~2% error, as the build's own prefix_comparison.md says), and the gap is wide
+                # enough to matter: 2026jul22's table says 388,490,111 where the exact
+                # `clique_count` in its CURIE summary is 398,671,998. Published notes through
+                # 2025sep1 used the unqualified label and read as exact totals.
+                label = "Count of cliques in all files (approx)"
             else:
                 label = metric.removesuffix(" CURIEs")
             rows.append(
@@ -503,14 +508,31 @@ def unexplained_movers(build_dir: Path, threshold_pct: float = MOVER_THRESHOLD_P
     ]
 
 
-def provenance_block(entry: dict, previous: dict | None) -> list[str]:
+def is_tag(repo_root: Path, ref: str) -> bool:
+    """Whether ``ref`` resolves to a tag in the local checkout (so a link to it will not 404)."""
+    return (
+        subprocess.run(
+            ["git", "-C", str(repo_root), "rev-parse", "-q", "--verify", f"refs/tags/{ref}"],
+            capture_output=True,
+        ).returncode
+        == 0
+    )
+
+
+def provenance_block(entry: dict, previous: dict | None, repo_root: Path = REPO_ROOT) -> list[str]:
     """The bullet block at the top of the note: what was built, and what was deployed with it."""
     release_id, build = entry["id"], entry.get("build")
     lines = []
 
     babel_bits = []
     if build:
-        babel_bits.append(f"[tagged {build}](https://github.com/{REPOS['Babel']}/releases/tag/{build})")
+        # `build` names the output directory, which for a modern release is *also* a git tag -- but
+        # not always: 2024aug18, 2024mar24 and 2023nov5 were never tagged, and linking them anyway
+        # publishes a 404 as provenance. Say "untagged" rather than guess.
+        if is_tag(repo_root, build):
+            babel_bits.append(f"[tagged {build}](https://github.com/{REPOS['Babel']}/releases/tag/{build})")
+        else:
+            babel_bits.append(f"untagged in this repository as of drafting (`{build}`)")
     if entry.get("babel"):
         version = entry["babel"]
         approx = "approx " if entry.get("approx") else ""
@@ -586,7 +608,7 @@ def draft(
     nodenorm = fetch_status(nodenorm_url) if nodenorm_url else None
     nameres = fetch_status(nameres_url) if nameres_url else None
     lines = [f"# {entry['title']}", ""]
-    lines += provenance_block(entry, previous)
+    lines += provenance_block(entry, previous, repo_root)
 
     # A reason string (rather than an absent key) for a repository whose PR range can't be worked
     # out, so the checklist says so instead of quietly omitting the section -- an omitted section

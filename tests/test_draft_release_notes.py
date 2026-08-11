@@ -116,7 +116,10 @@ def test_summary_of_changes_formats_every_kind_of_row(tmp_path):
     assert rows[0] == ["Filename", "2025sep1", "2026jul22", "Diff", "% Diff"]
     # "All CURIEs"/"All cliques" are renamed to the labels the published notes have always used.
     assert rows[2] == ["Count of CURIEs in all files", "688,983,999", "605,864,191", "\\-83,119,808", "\\-12.1%"]
-    assert rows[3][0] == "Count of cliques in all files"
+    # The source metric is `All cliques (approx)` -- a HyperLogLog estimate, ~2% out. 2026jul22's
+    # table says 388,490,111 where the exact `clique_count` in its summary JSON is 398,671,998, so
+    # the label has to keep saying so.
+    assert rows[3][0] == "Count of cliques in all files (approx)"
     assert rows[4] == ["AnatomicalEntity", "249,584", "252,287", "+2,703", "+1.1%"]
     # An unchanged row is a bare "0", not "+0".
     assert rows[5] == ["CellLine", "38,810", "38,810", "0", "+0.0%"]
@@ -254,6 +257,26 @@ def test_provenance_block_records_the_deployed_service_versions():
     assert "NodeNorm: [v2.5.0]" in block and "[v2.5.1]" in block
     assert "NameRes: [v1.7.0]" in block
     assert "Previous release: [Babel 2025sep1](./2025sep1.md)" in block
+    # 2026jul22 is a real tag, so the tag link is emitted.
+    assert "[tagged 2026jul22](https://github.com/NCATSTranslator/Babel/releases/tag/2026jul22)" in block
+
+
+@pytest.mark.unit
+def test_provenance_does_not_link_a_build_that_was_never_tagged():
+    """`build` names the output directory, which is usually -- not always -- also a git tag.
+
+    `releases.yaml` carries three builds that were never tagged in this repo (2024aug18, 2024mar24,
+    2023nov5), and rendering them as `[tagged X](.../releases/tag/X)` publishes a 404 as the note's
+    provenance.
+    """
+    manifest = drn.load_manifest(get_repo_root() / "releases" / "releases.yaml")
+    entry, previous = drn.find_release(manifest, "TranslatorGuppyAugust2024")
+    block = "\n".join(drn.provenance_block(entry, previous, get_repo_root()))
+
+    assert "releases/tag/2024aug18" not in block
+    assert "untagged in this repository as of drafting (`2024aug18`)" in block
+    # The build's own output directory is still linked -- that URL is real.
+    assert "https://stars.renci.org/var/babel_outputs/2024aug18/" in block
 
 
 @pytest.mark.unit
