@@ -54,7 +54,8 @@ def test_benchmark_mebibytes_are_converted_to_decimal_mb():
     """
     assert resources.MIB_TO_MB == pytest.approx(1.048576)
     # 132.1 GiB (as a benchmark reports it) is 141.8 GB, not 132.1 GB -- the untyped_chemical_compendia
-    # peak, and the reason its limit is 184G rather than the 160G that looked like 21% of headroom.
+    # peak. The conversion is what ruled out the 160G that looked like 21% of headroom; the rule now
+    # declares `mem="256G"`, the standard 1.5x safety bucket above the converted peak.
     assert 132.1 * 1024 * resources.MIB_TO_MB == pytest.approx(141_841, rel=1e-4)
 
 
@@ -287,12 +288,16 @@ def test_analyze_falls_back_to_the_snakefile_for_requested_mem(tmp_path):
     _write_benchmark(bdir / "lonely_rule.tsv", [[100.0, "0:01:40", 110_000, 0, 0, 0, 1, 1, 98.0, 90.0]])
     (tmp_path / "logs").mkdir()
     snakefiles = _write_snakefile(
-        tmp_path, 'rule lonely_rule:\n    resources:\n        mem="128G",\n    run:\n        x()\n'
+        tmp_path,
+        'rule lonely_rule:\n    resources:\n        mem="128G",\n        cpus_per_task=4,\n    run:\n        x()\n',
     )
 
     rec = resources.analyze(tmp_path, snakefile_dir=snakefiles)[0]
     assert rec.requested_mem_mb == 128000
     assert rec.classification == "at-risk"  # 115,343 MB of a 128,000 MB request is 90%
+    # `cpus_per_task` falls back the same way; without it the snapshot's `req cpus` column is blank
+    # for every rule, including the ones that declare it.
+    assert rec.requested_cpus == 4
 
     # With no snakefile to fall back on, it is honestly reported as unknown rather than guessed.
     assert resources.analyze(tmp_path)[0].classification == "no-request-data"

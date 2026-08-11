@@ -273,7 +273,14 @@ def analyze(
         declared_mem_only = False
         if not requested_mem and decl and decl.mem_mb:
             requested_mem, declared_mem_only = decl.mem_mb, True
-        requested_cpus = max((row.ncpus for row in eff_rows if row.ncpus), default=None) or (log.cpus if log else None)
+        # Same three-step fallback as mem and runtime: what the scheduler was asked for, then the
+        # job's log, then the snakefile. Without the last step a reports-only snapshot reports a
+        # blank `req cpus` for every rule, including the ones that declare `cpus_per_task`.
+        requested_cpus = (
+            max((row.ncpus for row in eff_rows if row.ncpus), default=None)
+            or (log.cpus if log else None)
+            or (decl.cpus if decl else None)
+        )
         # Prefer what the job actually ran with (the log), then the snakefile, then the profile
         # default -- a rule with no explicit block really does get the cluster-wide runtime.
         runtime_limit = (
