@@ -21,12 +21,13 @@ import csv
 import math
 import sys
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
+from typing import TypeVar
 
 from src.util import get_repo_root
 
-from .parse import read_benchmarks, read_efficiency_report, read_rule_logs, read_snakefile_resources
+from .parse import Benchmark, read_benchmarks, read_efficiency_report, read_rule_logs, read_snakefile_resources
 
 # Every memory figure in this module is **decimal MB**, the unit SLURM and Snakemake use: `mem="8G"`
 # reaches the scheduler as 8000 MB, and the efficiency report's RequestedMem_MB is decimal too. That
@@ -88,12 +89,13 @@ def recommend_runtime_min(wall_sec: float, safety: float) -> int:
 
 
 def rule_for_benchmark(stem: str, rule_names: list[str]) -> str:
-    """Map a benchmark filename stem back to its rule name.
+    """Map a per-instance artifact key back to its rule name.
 
     A wildcard rule writes one benchmark per wildcard value
-    (``export_compendia_to_duckdb_SmallMolecule.tsv`` for rule ``export_compendia_to_duckdb``), so an
-    exact match is tried first and then the longest rule name the stem extends. Falls back to the
-    stem itself, which is what a rule with no snakefile match would have been keyed by anyway.
+    (``export_compendia_to_duckdb_SmallMolecule.tsv`` for rule ``export_compendia_to_duckdb``) and one
+    efficiency-report row per SLURM job (``export_compendia_to_duckdb_wildcards_SmallMolecule``), so an
+    exact match is tried first and then the longest rule name the key extends. Falls back to the key
+    itself, which is what a rule with no snakefile match would have been keyed by anyway.
     """
     if stem in rule_names:
         return stem
@@ -101,6 +103,38 @@ def rule_for_benchmark(stem: str, rule_names: list[str]) -> str:
         if stem.startswith(name + "_"):
             return name
     return stem
+
+
+_T = TypeVar("_T")
+
+
+def group_by_rule(items: dict[str, _T], rule_names: list[str]) -> dict[str, list[_T]]:
+    """Bucket per-instance artifacts (benchmarks, efficiency rows) under the rule they belong to.
+
+    Everything on the *declared* side -- a snakefile's ``resources:`` block, ``slurm/README.md``,
+    the recommendation this tool prints -- is per rule, so the analysis has to be too. Scoring each
+    wildcard instance separately is wrong in both directions: the small instances are measured
+    against a limit sized for the largest one (all ~24 ``generate_kgx`` instances read as ``over``
+    against the limit ``generate_kgx_Publication`` needs), and each of them casts its own vote in
+    :func:`detect_run_default_mem_mb`'s mode, which is enough to elect a wildcard rule's declared mem
+    as "the run default".
+    """
+    grouped: dict[str, list[_T]] = {}
+    for key, value in items.items():
+        grouped.setdefault(rule_for_benchmark(key, rule_names), []).append(value)
+    return grouped
+
+
+def worst_case(rule: str, benchmarks: list[Benchmark]) -> Benchmark:
+    """Fold a rule's wildcard instances into one per-column worst case.
+
+    The same reduction :func:`read_benchmarks` already applies across the rows of a single
+    ``repeat()``-ed benchmark, one level up: a rule needs enough memory and wall time for its
+    *largest* instance. Columns may come from different instances, which is what a single limit
+    covering all of them has to allow for anyway.
+    """
+    peaks = {f.name: max(getattr(b, f.name) for b in benchmarks) for f in fields(Benchmark) if f.name != "rule"}
+    return Benchmark(rule=rule, **peaks)
 
 
 def _fmt_gb(mb: float | None) -> str:
@@ -165,6 +199,9 @@ class Recommendation:
     # new one before the default drops); False if it carried an explicit request; None if unknown
     # (no requested-side data). Set by analyze() from the run's modal requested mem.
     ran_on_default: bool | None = None
+    # How many benchmark files this row folds together: 1 for an ordinary rule, one per wildcard
+    # value for a wildcard rule, whose usage columns are then the worst case across them.
+    instances: int = 1
 
     @property
     def mem_pct(self) -> float | None:
@@ -214,15 +251,20 @@ def analyze(
     declared = read_snakefile_resources(snakefile_dir) if snakefile_dir else {}
     rule_names = list(declared)
 
+    # One row per *rule*, not per benchmark file: a wildcard rule's instances are folded into their
+    # worst case, because a `resources:` block is declared once for the rule. See group_by_rule().
+    grouped_efficiency = group_by_rule(efficiency, rule_names)
+
     recs: list[Recommendation] = []
-    for stem, bench in benchmarks.items():
-        # Benchmarks are keyed by filename stem; a wildcard rule's stem carries the wildcard value.
-        rule = rule_for_benchmark(stem, rule_names)
-        eff = efficiency.get(rule) or efficiency.get(stem)
-        log = logs.get(rule) or logs.get(stem)
+    for rule, instances in group_by_rule(benchmarks, rule_names).items():
+        bench = worst_case(rule, instances)
+        eff_rows = grouped_efficiency.get(rule, [])
+        log = logs.get(rule)
         decl = declared.get(rule)
 
-        requested_mem = eff.requested_mem_mb if eff and eff.requested_mem_mb else (log.mem_mb if log else None)
+        requested_mem = max((row.requested_mem_mb for row in eff_rows if row.requested_mem_mb), default=None) or (
+            log.mem_mb if log else None
+        )
         # A mem read from the snakefile is a *declared* block, not what the scheduler was asked for.
         # Keep the two apart: detect_run_default_mem_mb() infers the run's default as the modal
         # requested mem, and a declared value is by definition not the default -- folding them in
@@ -231,7 +273,7 @@ def analyze(
         declared_mem_only = False
         if not requested_mem and decl and decl.mem_mb:
             requested_mem, declared_mem_only = decl.mem_mb, True
-        requested_cpus = eff.ncpus if eff and eff.ncpus else (log.cpus if log else None)
+        requested_cpus = max((row.ncpus for row in eff_rows if row.ncpus), default=None) or (log.cpus if log else None)
         # Prefer what the job actually ran with (the log), then the snakefile, then the profile
         # default -- a rule with no explicit block really does get the cluster-wide runtime.
         runtime_limit = (
@@ -272,7 +314,8 @@ def analyze(
 
         recs.append(
             Recommendation(
-                rule=stem,
+                rule=rule,
+                instances=len(instances),
                 actual_mem_mb=actual_mem_mb,
                 requested_mem_mb=requested_mem,
                 cores_used=bench.cores_used,
@@ -306,7 +349,17 @@ def analyze(
     return recs
 
 
-def build_markdown(recs: list[Recommendation], new_default_mem_mb: int, new_default_cpus: int) -> str:
+def _label(rec: Recommendation) -> str:
+    """The rule's name, marked with how many wildcard instances its numbers cover."""
+    return rec.rule if rec.instances == 1 else f"{rec.rule} (×{rec.instances})"
+
+
+def build_markdown(
+    recs: list[Recommendation],
+    new_default_mem_mb: int,
+    new_default_cpus: int,
+    default_runtime_min: int = DEFAULT_RUNTIME_MIN,
+) -> str:
     if not recs:
         return "No benchmark data found."
 
@@ -359,7 +412,7 @@ def build_markdown(recs: list[Recommendation], new_default_mem_mb: int, new_defa
         lines.append("---- | ---------- | ------- | -------- | --------------")
         for r in sorted(overrides, key=lambda r: (order[r.ran_on_default], -r.actual_mem_mb)):
             flag = {True: "yes", False: "no", None: "?"}[r.ran_on_default]
-            lines.append(f"{r.rule} | {_fmt_gb(r.actual_mem_mb)} | {_fmt_gb(r.rec_mem_mb)} | {r.rec_cpus} | {flag}")
+            lines.append(f"{_label(r)} | {_fmt_gb(r.actual_mem_mb)} | {_fmt_gb(r.rec_mem_mb)} | {r.rec_cpus} | {flag}")
     else:
         lines.append("(none — the proposed default already covers every rule)")
     lines.append("")
@@ -385,10 +438,21 @@ def build_markdown(recs: list[Recommendation], new_default_mem_mb: int, new_defa
         # that fraction of the limit, so a bucket merely >= the wall time lands the slowest rule at
         # ~97% of the new default -- at-risk on arrival, the opposite of what this sentence promises.
         safe_default = recommend_runtime_min(slowest.wall_sec, 1 / AT_RISK_FRACTION)
+        # Which direction that is depends on the current default, which is why it has to be passed
+        # in: the same computation reads as a trim on one run and a *raise* on another, and printing
+        # "could drop to 3.0h" against a 2.0h default is an instruction to do the opposite.
+        if safe_default < default_runtime_min:
+            verdict = f"so the default could drop from {_fmt_min(default_runtime_min)} to {_fmt_min(safe_default)}"
+        elif safe_default > default_runtime_min:
+            verdict = (
+                f"so the {_fmt_min(default_runtime_min)} default is too tight and should rise to "
+                f"{_fmt_min(safe_default)}"
+            )
+        else:
+            verdict = f"so the current {_fmt_min(default_runtime_min)} default is already the tightest safe value"
         lines.append(
             f"{len(on_default)} rules ran on the default runtime; the slowest was `{slowest.rule}` at "
-            f"{_fmt_min(slowest.wall_sec / 60)}, so the default could drop to "
-            f"{_fmt_min(safe_default)} before any of them is at risk."
+            f"{_fmt_min(slowest.wall_sec / 60)}, {verdict} — at that value none of them is at risk."
         )
     lines.append("")
     if time_at_risk or time_over:
@@ -397,7 +461,7 @@ def build_markdown(recs: list[Recommendation], new_default_mem_mb: int, new_defa
         for r in sorted(time_at_risk + time_over, key=lambda r: -(r.wall_pct or 0)):
             pct = f"{r.wall_pct:.0f}%" if r.wall_pct is not None else "-"
             lines.append(
-                f"{r.rule} | {_fmt_min(r.wall_sec / 60)} | {_fmt_min(r.runtime_limit_min)} | {pct} | "
+                f"{_label(r)} | {_fmt_min(r.wall_sec / 60)} | {_fmt_min(r.runtime_limit_min)} | {pct} | "
                 f"{_fmt_min(r.rec_runtime_min)} | {r.time_classification}"
             )
     else:
@@ -410,7 +474,7 @@ def build_markdown(recs: list[Recommendation], new_default_mem_mb: int, new_defa
     for r in recs:
         pct = f"{r.mem_pct:.0f}%" if r.mem_pct is not None else "-"
         lines.append(
-            f"{r.rule} | {_fmt_gb(r.actual_mem_mb)} | {_fmt_gb(r.requested_mem_mb)} | {pct} | "
+            f"{_label(r)} | {_fmt_gb(r.actual_mem_mb)} | {_fmt_gb(r.requested_mem_mb)} | {pct} | "
             f"{r.cores_used:.1f} | {r.requested_cpus or '-'} | {r.wall_sec:.0f}s | "
             f"{_fmt_gb(r.rec_mem_mb)} | {r.rec_cpus} | {r.classification}"
         )
@@ -423,6 +487,9 @@ def write_csv(recs: list[Recommendation], path: str | Path) -> None:
         writer.writerow(
             [
                 "rule",
+                # Benchmark files folded into this row: >1 for a wildcard rule, whose usage columns
+                # are then the worst case across its instances.
+                "instances",
                 "actual_rss_mb",
                 "requested_mem_mb",
                 "mem_pct",
@@ -447,6 +514,7 @@ def write_csv(recs: list[Recommendation], path: str | Path) -> None:
             writer.writerow(
                 [
                     r.rule,
+                    r.instances,
                     f"{r.actual_mem_mb:.1f}",
                     f"{r.requested_mem_mb:.0f}" if r.requested_mem_mb else "",
                     f"{r.mem_pct:.1f}" if r.mem_pct is not None else "",
@@ -557,4 +625,4 @@ def run(args: argparse.Namespace) -> None:
     if args.csv:
         write_csv(recs, args.csv)
         print(f"Wrote {len(recs)} rows to {args.csv}", file=sys.stderr)
-    print(build_markdown(recs, new_default_mem_mb, args.new_default_cpus))
+    print(build_markdown(recs, new_default_mem_mb, args.new_default_cpus, args.default_runtime_min))

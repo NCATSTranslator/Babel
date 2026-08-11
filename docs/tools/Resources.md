@@ -97,13 +97,23 @@ For each rule with a benchmark, it joins actual usage against the requested reso
   **yes** means the rule requested the run's default mem (no explicit `resources:` block) and needs
   a *new* one before the default drops — the actionable subset; **no** means it already carries a
   block (e.g. `protein_compendia` at 512G) and is safe; **?** means there was no requested-side data
-  for it (usually a DuckDB rule the efficiency report missed — check that one by hand). The default
+  for it at all — neither an efficiency-report row nor a declared `mem` — so check that one by hand.
+  The default
   the run used is auto-detected as the modal requested mem and printed in the header, so there's no
   need to know or pass it.
 
 Each rule is classified `over` (requested ≥ 2× the recommendation), `at-risk` (actual > 80% of the
 request), `ok`, or `no-request-data` (a benchmark with no matching requested-side row). Pass `--csv`
 to also write the full per-rule table for further analysis.
+
+**One row per rule, not per wildcard.** A wildcard rule writes a benchmark per wildcard value
+(`export_compendia_to_duckdb_Food`) but declares its `resources:` once, so its instances are folded
+into a single row whose usage columns are the worst case across them — marked `(×25)` in the report
+and counted in the CSV's `instances` column. Scoring the instances separately measures every small
+one against a limit sized for the largest (`export_compendia_to_duckdb_Food`: 20 seconds and 0.5 GB
+against Protein's `runtime="4h", mem="512G"`), which added ~80 unactionable `over` rows across the
+four wildcard rules, and let a 25-instance rule outvote 24 ordinary ones in the run-default
+detection below.
 
 ### Runtime fit
 
@@ -121,10 +131,12 @@ their limit and `over` when the limit is at least twice what they need.
 
 **`over` only applies to a rule that declares its own `runtime`.** Nearly every rule runs for
 seconds against the cluster-wide default, so classifying those would bury the real findings under
-hundreds of rows nobody can act on. Whether the *default itself* is too generous is one decision,
+hundreds of rows nobody can act on. Whether the *default itself* is the right size is one decision,
 reported as a single line naming the slowest rule still on it. The value that line suggests leaves
 that rule *below* the 80% at-risk line, not merely above its wall time — a bucket chosen to just
-cover a 58-minute rule would put it at 97% of the new default, at-risk from the first run.
+cover a 58-minute rule would put it at 97% of the new default, at-risk from the first run. That
+value can be *above* the current default (the slowest rule on it is already at risk), so the line
+says which direction to move: it is compared against `--default-runtime-min` before being phrased.
 
 Two traps the 2026jul22 pass hit, both worth checking before trimming anything:
 
@@ -152,12 +164,13 @@ it, and those two can describe different worlds.
   hard error rather than an empty result: silently reading nothing would make every rule inherit the
   cluster default, so `generate_pubmed_concords` (`runtime="24h"`) would read as a 1000% overrun and
   every genuinely trimmable rule would vanish from the report.
-- **A `mem=lambda wildcards: ...` rule attributes its largest request to every wildcard instance.**
-  Benchmarks are per wildcard (`export_synonyms_to_duckdb_Disease`) but the efficiency report is
-  keyed by rule name and merged worst-case across shards, so the small instances are scored against
-  the *biggest* branch of the lambda — 0.7G of actual usage against Protein's 512G request — and
-  come out classified `over`. `export_synonyms_to_duckdb` is the only such rule today; size its
-  branches from the per-instance `actual RSS` column, not from the classification.
+- **A `mem=lambda wildcards: ...` rule is summarised by its largest branch.** The report is per
+  rule (see "One row per rule" above), and a rule whose request *varies* per wildcard has no single
+  declared value to report: `export_synonyms_to_duckdb` reads as 136.9G of actual usage against a
+  512G request — the `Protein`/`GeneProteinConflated` branch — and says nothing about the 128G
+  branch the other sixteen instances run under. It is the only such rule today; size its branches
+  from the individual `benchmarks/export_synonyms_to_duckdb_*.tsv` files against the per-instance
+  rows in the efficiency report, not from the classification.
 
 ## Workflow
 

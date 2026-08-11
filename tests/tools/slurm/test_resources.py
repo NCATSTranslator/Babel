@@ -26,6 +26,13 @@ def _make_run(tmp_path, rule, rss_mb, mean_load, requested_mem_mb):
     (tmp_path / "logs").mkdir(exist_ok=True)
 
 
+def _write_snakefile(tmp_path, body):
+    snakefiles = tmp_path / "snakefiles"
+    snakefiles.mkdir(exist_ok=True)
+    (snakefiles / "test.snakefile").write_text(body)
+    return snakefiles
+
+
 # --- resources recommendation logic ------------------------------------------
 
 
@@ -124,9 +131,6 @@ def test_analyze_handles_missing_efficiency_report(tmp_path):
     assert recs[0].requested_mem_mb is None
 
 
-# --- runtime fit -------------------------------------------------------------
-
-
 def test_recommend_runtime_rounds_up_to_bucket():
     # 100 min * 1.5 = 150 min -> next bucket is 180 (3h)
     assert resources.recommend_runtime_min(100 * 60, safety=1.5) == 180
@@ -134,6 +138,9 @@ def test_recommend_runtime_rounds_up_to_bucket():
     assert resources.recommend_runtime_min(20 * 3600, safety=1.5) == 2160
     # Above the largest bucket, round up to a whole hour.
     assert resources.recommend_runtime_min(60 * 3600, safety=1.5) == 5400
+
+
+# --- wildcard rules: one row per rule ----------------------------------------
 
 
 def test_rule_for_benchmark_maps_wildcard_stems_to_their_rule():
@@ -152,11 +159,83 @@ def test_rule_for_benchmark_maps_wildcard_stems_to_their_rule():
     assert resources.rule_for_benchmark("something_else", names) == "something_else"
 
 
-def _write_snakefile(tmp_path, body):
-    snakefiles = tmp_path / "snakefiles"
-    snakefiles.mkdir(exist_ok=True)
-    (snakefiles / "test.snakefile").write_text(body)
-    return snakefiles
+def test_a_wildcard_rules_instances_are_one_row_scored_against_the_largest(tmp_path):
+    """A wildcard rule is sized once, so it is analyzed once -- worst case across its instances.
+
+    Scoring each instance separately measures the small ones against a limit sized for the biggest:
+    `export_compendia_to_duckdb_Food` (20s, 0.5G) came out `over` on both axes against the
+    `runtime="4h", mem="512G"` that Protein needs, which is ~80 unactionable rows across the four
+    wildcard rules -- burying the handful of real findings the report exists for.
+    """
+    bdir = tmp_path / "benchmarks"
+    bdir.mkdir()
+    # Protein peaks at 400 GiB over 3h; Food is 0.5 GiB in 20 seconds. One `mem="512G"` covers both.
+    for name, rss, seconds in [("Protein", 400 * 1024, 3 * 3600), ("Food", 512, 20.0)]:
+        _write_benchmark(
+            bdir / f"export_compendia_to_duckdb_{name}.tsv",
+            [[seconds, "0:00:20", rss, rss, rss, rss, 1, 1, 200.0, 90.0]],
+        )
+    (tmp_path / "logs").mkdir()
+    snakefiles = _write_snakefile(
+        tmp_path,
+        'rule export_compendia_to_duckdb:\n    resources:\n        runtime="4h",\n        mem="512G",\n'
+        "    run:\n        x()\n",
+    )
+
+    recs = resources.analyze(tmp_path, snakefile_dir=snakefiles)
+
+    assert len(recs) == 1
+    rec = recs[0]
+    assert rec.rule == "export_compendia_to_duckdb"
+    assert rec.instances == 2
+    assert rec.actual_mem_mb == pytest.approx(400 * 1024 * resources.MIB_TO_MB, rel=1e-6)
+    assert rec.wall_sec == 3 * 3600
+    # 419 GB of a 512 GB request and 3h of a 4h limit: correctly sized, on both axes.
+    assert (rec.classification, rec.time_classification) == ("at-risk", "ok")
+    assert "export_compendia_to_duckdb (×2)" in resources.build_markdown(recs, 16 * 1000, 1)
+
+
+def test_a_wildcard_rule_casts_one_vote_for_the_run_default(tmp_path):
+    """Each instance of a wildcard rule must not vote separately for the modal requested mem.
+
+    `detect_run_default_mem_mb()` elects the run's cluster-wide default as the most common requested
+    value, which works because most *rules* carry no explicit block. A wildcard rule with 25
+    instances outvotes 24 ordinary rules on its own, electing its declared mem as "the default" and
+    marking every rule that requested it as needing a new `resources:` block.
+    """
+    bdir = tmp_path / "benchmarks"
+    bdir.mkdir()
+    rows = []
+    for i, name in enumerate(["Protein", "Gene", "Food", "Cell"]):
+        _write_benchmark(bdir / f"big_wildcard_rule_{name}.tsv", [[10.0, "0:00:10", 1000, 0, 0, 0, 1, 1, 90.0, 9.0]])
+        rows.append(f"{i},rule_big_wildcard_rule_wildcards_{name},4,10.0,0.0,,512000")
+    for i, name in enumerate(["plain_rule_a", "plain_rule_b"], start=len(rows)):
+        _write_benchmark(bdir / f"{name}.tsv", [[10.0, "0:00:10", 1000, 0, 0, 0, 1, 1, 90.0, 9.0]])
+        rows.append(f"{i},rule_{name},4,10.0,0.0,,64000")
+    rep = tmp_path / "reports" / "slurm" / "slurm_efficiency_reports"
+    rep.mkdir(parents=True)
+    (rep / "efficiency_report_x.csv").write_text(
+        ",RuleName,NCPUS,Elapsed_sec,TotalCPU_sec,MaxRSS_MB,RequestedMem_MB\n" + "\n".join(rows) + "\n"
+    )
+    (tmp_path / "logs").mkdir()
+    snakefiles = _write_snakefile(
+        tmp_path,
+        "".join(
+            f"rule {rule}:\n    run:\n        x()\n\n" for rule in ("big_wildcard_rule", "plain_rule_a", "plain_rule_b")
+        ),
+    )
+
+    recs = resources.analyze(tmp_path, snakefile_dir=snakefiles)
+
+    # Two rules requested 64000 and one requested 512000; the 512000 rule's four instances are one
+    # rule, so they do not outvote them.
+    assert resources.detect_run_default_mem_mb(recs) == 64000
+    by_rule = {r.rule: r for r in recs}
+    assert by_rule["plain_rule_a"].ran_on_default is True
+    assert by_rule["big_wildcard_rule"].ran_on_default is False
+
+
+# --- runtime fit -------------------------------------------------------------
 
 
 def test_analyze_flags_a_rule_close_to_its_declared_runtime(tmp_path):
@@ -267,8 +346,31 @@ def test_the_suggested_default_runtime_leaves_the_slowest_rule_off_the_at_risk_l
     )
 
     recs = resources.analyze(tmp_path, default_runtime_min=120)
-    markdown = resources.build_markdown(recs, 16 * 1000, 1)
+    markdown = resources.build_markdown(recs, 16 * 1000, 1, 120)
 
-    assert "the default could drop to 2.0h before any of them is at risk" in markdown
+    # 2.0h is what it suggests, and against a 2.0h default that is "leave it alone", not "drop".
+    assert "the current 2.0h default is already the tightest safe value" in markdown
     # The sanity check the sentence is making: 58m is under 80% of the 120m it suggests.
     assert 58 <= resources.AT_RISK_FRACTION * 120
+
+
+def test_the_default_runtime_sentence_says_which_direction_to_move(tmp_path):
+    """ "Could drop to X" must never print an X above the current default.
+
+    `build_markdown()` computes the smallest default the slowest rule is not at risk under, which is
+    a *raise* whenever that rule is already at risk -- on the pre-sizing 2026jul22 data the slowest
+    rule on the default was `chemical` at 1.9h, so the sentence read "the default could drop to 3.0h"
+    against a 120-minute default: an instruction to raise it, phrased as a trim.
+    """
+    _make_run(tmp_path, "slow_rule", rss_mb=1000, mean_load=90.0, requested_mem_mb=64000)
+    _write_benchmark(
+        tmp_path / "benchmarks" / "slow_rule.tsv",
+        [[1.9 * 3600, "1:54:00", 1000, 1000, 1000, 1000, 1, 1, 90.0, 90.0]],
+    )
+
+    # 1.9h needs a 3.0h limit to stay under the 80% line, which is more than the 2.0h default.
+    tight = resources.analyze(tmp_path, default_runtime_min=120)
+    assert "the 2.0h default is too tight and should rise to 3.0h" in resources.build_markdown(tight, 16 * 1000, 1, 120)
+    # The same run against a generous default is the trim the sentence was written for.
+    loose = resources.analyze(tmp_path, default_runtime_min=480)
+    assert "the default could drop from 8.0h to 3.0h" in resources.build_markdown(loose, 16 * 1000, 1, 480)
