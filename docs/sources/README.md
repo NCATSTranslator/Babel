@@ -43,6 +43,10 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
 - **MESH** ([MESH/Ingestion.md](./MESH/Ingestion.md)) — how MeSH is partitioned across compendia
   by tree letter, how Supplementary Concept Records (SCRs) are typed and routed, the
   chemical/protein D-tree split, and which MeSH branches/SCR classes we deliberately skip.
+- **LOINC** ([LOINC/README.md](./LOINC/README.md)) — LOINC clinical observations as
+  `biolink:ClinicalFinding` in a dedicated `clinicalfinding` pipeline: the `CLASSTYPE=2` (Clinical)
+  filter, by-name column parsing, and the credential-gated download (the unit tests use a synthetic
+  fixture; the source must be validated against the real `loinc.csv` with a free LOINC account).
 - **MP** ([MP/README.md](./MP/README.md)) — the Mammalian Phenotype Ontology as a
   disease/phenotype source: extracting identifiers from UberGraph via a `subClassOf` walk from
   [`MP:0000001`](http://purl.obolibrary.org/obo/MP_0000001) "mammalian phenotype", typing every

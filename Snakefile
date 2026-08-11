@@ -8,6 +8,7 @@ include: "src/snakefiles/gene.snakefile"
 include: "src/snakefiles/protein.snakefile"
 include: "src/snakefiles/geneprotein.snakefile"
 include: "src/snakefiles/diseasephenotype.snakefile"
+include: "src/snakefiles/clinicalfinding.snakefile"
 include: "src/snakefiles/process.snakefile"
 include: "src/snakefiles/chemical.snakefile"
 include: "src/snakefiles/drugchemical.snakefile"
@@ -68,6 +69,7 @@ rule all_outputs:
         config["output_directory"] + "/reports/anatomy_done",
         config["output_directory"] + "/reports/chemicals_done",
         config["output_directory"] + "/reports/disease_done",
+        config["output_directory"] + "/reports/clinicalfinding_done",
         config["output_directory"] + "/reports/gene_done",
         config["output_directory"] + "/reports/genefamily_done",
         config["output_directory"] + "/reports/geneprotein_done",

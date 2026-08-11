@@ -412,6 +412,39 @@ rule get_ncbigene_labels_synonyms_and_taxa:
         )
 
 
+### LOINC
+
+
+rule get_loinc:
+    output:
+        loinc_csv=config["download_directory"] + "/LOINC/loinc.csv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_loinc.tsv"
+    retries: 3  # LOINC download may be interrupted transiently.
+    resources:
+        mem="8G",
+        cpus_per_task=1,
+        runtime="6h",
+    run:
+        # LOINC's official full release (loinc.csv) requires a free account at
+        # https://loinc.org/downloads and cannot be downloaded anonymously. When
+        # loinc_download_url is set (an authenticated directory-prefix URL), download the
+        # official headered loinc.csv from it. When it is empty (the default), fall back to
+        # the Tuva Project's public S3 mirror, which re-distributes the LOINC release — same
+        # 104k+ codes, same CLASSTYPE semantics — as a headerless CSV with no credentials
+        # required. Downloaded as loinc.csv_0_0_0.csv.gz, decompressed and renamed to loinc.csv.
+        url = config.get("loinc_download_url", "")
+        loinc_dir = os.path.join(config["download_directory"], "LOINC")
+        if url:
+            pull_via_wget(url, "loinc.csv", decompress=False, subpath="LOINC")
+        else:
+            tuva_prefix = "https://tuva-public-resources.s3.amazonaws.com/versioned_terminology/latest/"
+            tuva_file = "loinc.csv_0_0_0.csv.gz"
+            pull_via_wget(tuva_prefix, tuva_file, decompress=True, subpath="LOINC")
+            downloaded = os.path.join(loinc_dir, "loinc.csv_0_0_0.csv")
+            os.replace(downloaded, os.path.join(loinc_dir, "loinc.csv"))
+
+
 ### ENSEMBL
 
 

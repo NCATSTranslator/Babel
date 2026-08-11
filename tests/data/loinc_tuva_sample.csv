@@ -1,0 +1,5 @@
+1111-1,short one,Clinical finding example one,comp1,Finding,time1,sys1,Ord,method1,CL,Clinical desc,2,Clinical,,Observation,,Copyright,ACTIVE,2.68,2.68
+2222-2,short two,Clinical finding example two,comp2,Finding,time2,sys2,Ord,method2,CL,Clinical desc,2,Clinical,,Observation,,Copyright,ACTIVE,2.68,2.68
+3333-3,short three,Laboratory test example,comp3,MCnt,time3,sys3,Quant,method3,CHEM,Laboratory desc,1,Laboratory,,Observation,,Copyright,ACTIVE,2.68,2.68
+4444-4,short four,Survey example,comp4,Finding,time4,sys4,Ord,method4,SURV,Survey desc,4,Surveys,,Observation,,Copyright,ACTIVE,2.68,2.68
+2222-2,short two dup,Clinical finding example two duplicate,comp2b,Finding,time2b,sys2b,Ord,method2b,CL,Clinical desc,2,Clinical,,Observation,,Copyright,ACTIVE,2.68,2.68
