@@ -1,0 +1,109 @@
+created_at: '2026-07-13T01:17:53.006219'
+type: compendium
+name: MacromolecularComplex.txt
+url: ''
+description: ''
+sources: []
+counts:
+  cliques: 20579
+  eq_ids: 20579
+  synonyms: 33342
+  property_sources: {}
+combined_from:
+  ComplexPortal:
+    created_at: '2026-07-13T00:59:11.863851'
+    type: transform
+    name: ComplexPortal
+    url: ''
+    description: Labels, synonyms, taxa, and descriptions extracted from ComplexPortal
+      ComplexTAB downloads
+    sources:
+    - type: download
+      name: ComplexPortal for organism 10090
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/10090.tsv
+    - type: download
+      name: ComplexPortal for organism 10116
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/10116.tsv
+    - type: download
+      name: ComplexPortal for organism 1235996
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/1235996.tsv
+    - type: download
+      name: ComplexPortal for organism 1263720
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/1263720.tsv
+    - type: download
+      name: ComplexPortal for organism 208964
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/208964.tsv
+    - type: download
+      name: ComplexPortal for organism 243277
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/243277.tsv
+    - type: download
+      name: ComplexPortal for organism 2697049
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/2697049.tsv
+    - type: download
+      name: ComplexPortal for organism 284812
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/284812.tsv
+    - type: download
+      name: ComplexPortal for organism 3702
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/3702.tsv
+    - type: download
+      name: ComplexPortal for organism 559292
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/559292.tsv
+    - type: download
+      name: ComplexPortal for organism 562
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/562.tsv
+    - type: download
+      name: ComplexPortal for organism 6239
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/6239.tsv
+    - type: download
+      name: ComplexPortal for organism 6523
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/6523.tsv
+    - type: download
+      name: ComplexPortal for organism 694009
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/694009.tsv
+    - type: download
+      name: ComplexPortal for organism 7227
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/7227.tsv
+    - type: download
+      name: ComplexPortal for organism 7787
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/7787.tsv
+    - type: download
+      name: ComplexPortal for organism 7788
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/7788.tsv
+    - type: download
+      name: ComplexPortal for organism 7955
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/7955.tsv
+    - type: download
+      name: ComplexPortal for organism 83333
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/83333.tsv
+    - type: download
+      name: ComplexPortal for organism 8355
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/8355.tsv
+    - type: download
+      name: ComplexPortal for organism 8732
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/8732.tsv
+    - type: download
+      name: ComplexPortal for organism 9031
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/9031.tsv
+    - type: download
+      name: ComplexPortal for organism 9606
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/9606.tsv
+    - type: download
+      name: ComplexPortal for organism 9606_predicted
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/9606_predicted.tsv
+    - type: download
+      name: ComplexPortal for organism 9615
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/9615.tsv
+    - type: download
+      name: ComplexPortal for organism 9823
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/9823.tsv
+    - type: download
+      name: ComplexPortal for organism 9913
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/9913.tsv
+    - type: download
+      name: ComplexPortal for organism 9940
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/9940.tsv
+    - type: download
+      name: ComplexPortal for organism 9986
+      url: https://ftp.ebi.ac.uk/pub/databases/intact/complex/current/complextab/9986.tsv
+    counts: []
+    combined_from: []

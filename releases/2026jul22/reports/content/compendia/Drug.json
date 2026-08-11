@@ -1,0 +1,39 @@
+{
+  "compendium_path": "babel_outputs/compendia/Drug.txt",
+  "count_by_biolink_type": {
+    "biolink:Drug": 262329
+  },
+  "count_by_prefix": {
+    "DRUGBANK": 1,
+    "MESH": 5,
+    "RXCUI": 99375,
+    "UMLS": 259078
+  },
+  "count_lines": 262329,
+  "counters": {
+    "clique_count": 262329,
+    "cliques_by_description_count": {
+      "0": 262329
+    },
+    "cliques_by_id_count": {
+      "1": 166204,
+      "2": 96120,
+      "3": 5
+    },
+    "cliques_by_label_count": {
+      "0": 118777,
+      "1": 143547,
+      "2": 5
+    },
+    "cliques_by_unique_description_count": {
+      "0": 262329
+    },
+    "cliques_by_unique_label_count": {
+      "0": 118777,
+      "1": 143548,
+      "2": 4
+    }
+  },
+  "name": "Drug",
+  "report_path": "babel_outputs/reports/content/compendia/Drug.json"
+}

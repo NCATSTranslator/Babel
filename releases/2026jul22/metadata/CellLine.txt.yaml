@@ -1,0 +1,21 @@
+created_at: '2026-07-13T01:17:51.541607'
+type: compendium
+name: CellLine.txt
+url: ''
+description: ''
+sources: []
+counts:
+  cliques: 38896
+  eq_ids: 38896
+  synonyms: 38896
+  property_sources: {}
+combined_from:
+  Cell Line Ontology:
+    created_at: '2026-07-13T00:57:05.919972'
+    type: download
+    name: Cell Line Ontology
+    url: http://purl.obolibrary.org/obo/clo.owl
+    description: ''
+    sources: []
+    counts: []
+    combined_from: []

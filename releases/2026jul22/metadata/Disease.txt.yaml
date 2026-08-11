@@ -1,0 +1,257 @@
+created_at: '2026-07-13T01:19:30.303246'
+type: compendium
+name: Disease.txt
+url: ''
+description: ''
+sources: []
+counts:
+  cliques: 365483
+  eq_ids: 662751
+  synonyms: 1299177
+  property_sources: {}
+combined_from:
+  build_disease_obo_relationships():
+  - created_at: '2026-07-13T00:58:14.760216'
+    type: concord
+    name: build_disease_obo_relationships()
+    url: ''
+    description: 'ubergraph.build_sets() of HP:0000118 with other_prefixes {''MSH'':
+      ''MESH'', ''SNOMEDCT_US'': ''SNOMEDCT'', ''SNOMED_CT'': ''SNOMEDCT'', ''ORPHANET'':
+      ''orphanet'', ''ICD-9'': ''ICD9'', ''ICD-10'': ''ICD10'', ''ICD-0'': ''ICD0'',
+      ''ICD-O'': ''ICD0''}'
+    sources:
+    - type: UberGraph
+      name: HP
+    counts:
+      concords:
+        count_concords: 17892
+        count_distinct_curies: 28753
+        predicates:
+          xref: 17892
+        prefix_counts:
+          xref(HP, SNOMEDCT): 4563
+          xref(HP, UMLS): 12714
+          xref(Fyler, HP): 222
+          xref(EPCC, HP): 13
+          xref(HP, ICD10): 39
+          xref(HP, MEDDRA): 92
+          xref(EFO, HP): 1
+          xref(COHD, HP): 1
+          xref(HP, NCIT): 221
+          xref(HP, ICD9): 4
+          xref(HP, MONDO): 1
+          xref(DOID, HP): 2
+          xref(HP, ICD0): 3
+          xref(HP, MP): 10
+          xref(HP, MPATH): 4
+          xref(HP, PMID): 2
+    combined_from: []
+  - created_at: '2026-07-13T00:58:31.017731'
+    type: concord
+    name: build_disease_obo_relationships()
+    url: ''
+    description: ubergraph.build_sets() (xref) of MP:0000001, restricted to target
+      prefixes ['HP', 'MGI', 'MPATH', 'UMLS']
+    sources:
+    - type: UberGraph
+      name: MP
+    counts:
+      concords:
+        count_concords: 78
+        count_distinct_curies: 153
+        predicates:
+          xref: 78
+        prefix_counts:
+          xref(MGI, MP): 70
+          xref(MP, MPATH): 4
+          xref(HP, MP): 2
+          xref(MP, UMLS): 2
+    combined_from: []
+  - created_at: '2026-07-13T00:58:20.034102'
+    type: concord
+    name: build_disease_obo_relationships()
+    url: ''
+    description: ubergraph.build_sets() (exact) of MONDO:0000001 and MONDO:0042489,
+      including ORPHANET prefixes
+    sources:
+    - type: UberGraph
+      name: MONDO
+    counts:
+      concords:
+        count_concords: 108230
+        count_distinct_curies: 129769
+        predicates:
+          oio:exactMatch: 108230
+        prefix_counts:
+          oio:exactMatch(MEDGEN, MONDO): 21738
+          oio:exactMatch(DOID, MONDO): 11921
+          oio:exactMatch(MONDO, UMLS): 21738
+          oio:exactMatch(ICD10CM, MONDO): 2030
+          oio:exactMatch(MONDO, SNOMEDCT): 9025
+          oio:exactMatch(MESH, MONDO): 8121
+          oio:exactMatch(MONDO, http): 4606
+          oio:exactMatch(EFO, MONDO): 2379
+          oio:exactMatch(MONDO, NCIT): 7329
+          oio:exactMatch(MONDO, orphanet): 8551
+          oio:exactMatch(MONDO, OMIM.PS): 624
+          oio:exactMatch(MONDO, https): 205
+          oio:exactMatch(MONDO, OMIM): 9960
+          oio:exactMatch(MEDDRA, MONDO): 3
+    combined_from: []
+  umls.build_sets():
+    created_at: '2026-07-13T00:59:46.979307'
+    type: concord
+    name: umls.build_sets()
+    url: ''
+    description: 'umls.build_sets() using UMLS MRCONSO with prefixes: {''SNOMEDCT_US'':
+      ''SNOMEDCT'', ''MSH'': ''MESH'', ''NCI'': ''NCIT'', ''HPO'': ''HP'', ''MDR'':
+      ''MEDDRA'', ''OMIM'': ''OMIM''} with cui_prefix set to UMLS'
+    sources:
+    - type: UMLS
+      name: MRCONSO
+    counts:
+      concords:
+        count_concords: 222015
+        count_distinct_curies: 374628
+        predicates:
+          eq: 222015
+        prefix_counts:
+          eq(MESH, UMLS): 11667
+          eq(MEDDRA, UMLS): 53746
+          eq(HP, UMLS): 11220
+          eq(SNOMEDCT, UMLS): 106639
+          eq(NCIT, UMLS): 28242
+          eq(OMIM, UMLS): 10501
+    combined_from: []
+  build_disease_doid_relationships():
+    created_at: '2026-07-13T00:59:09.681216'
+    type: concord
+    name: build_disease_doid_relationships()
+    url: ''
+    description: 'build_disease_doid_relationships() using the DOID ID file babel_downloads/DOID/doid.json
+      and other_prefixes {''ICD10CM'': ''ICD10'', ''ICD9CM'': ''ICD9'', ''ICDO'':
+      ''ICD0'', ''NCI'': ''NCIT'', ''SNOMEDCT_US_2018_03_01'': ''SNOMEDCT'', ''SNOMEDCT_US_2019_09_01'':
+      ''SNOMEDCT'', ''SNOMEDCT_US_2020_03_01'': ''SNOMEDCT'', ''SNOMEDCT_US_2020_09_01'':
+      ''SNOMEDCT'', ''UMLS_CUI'': ''UMLS'', ''KEGG'': ''KEGG.DISEASE''}'
+    sources:
+    - type: DOID
+      name: doid.build_xrefs
+    counts:
+      concords:
+        count_concords: 39215
+        count_distinct_curies: 48748
+        predicates:
+          xref: 39215
+        prefix_counts:
+          xref(DOID, ICD0): 495
+          xref(DOID, MESH): 4088
+          xref(DOID, NCIT): 5059
+          xref(DOID, SNOMEDCT_US_2025_09_01): 5294
+          xref(DOID, UMLS): 7114
+          xref(DOID, ICD10): 3686
+          xref(DOID, ICD9): 2238
+          xref(DOID, SNOMEDCT_US_2021_09_01): 28
+          xref(DOID, ORDO): 2315
+          xref(DOID, GARD): 2205
+          xref(DOID, MIM): 6460
+          xref(DOID, EFO): 110
+          xref(DOID, KEGG.DISEASE): 42
+          xref(DOID, ICD11): 5
+          xref(DOID, SNOMEDCT_US_2023_03_01): 6
+          xref(DOID, MEDDRA): 42
+          xref(DOID, SNOMEDCT_US_2021_07_31): 1
+          xref(DOID, SNOMEDCT): 1
+          xref(DOID, SNOMEDCT_US_2026_03_01): 25
+          xref(DOID, SNOMEDCT_US_2022_07_31): 1
+    combined_from: []
+  Experimental Factor Ontology (EFO) cross-references:
+    created_at: '2026-07-13T00:59:32.566785'
+    type: concord
+    name: Experimental Factor Ontology (EFO) cross-references
+    url: ''
+    description: 'Cross-references from the Experimental Factor Ontology (EFO) for
+      the EFO IDs in babel_outputs/intermediate/disease/ids/EFO. Xref targets with
+      these prefixes were excluded: [''MP''].'
+    sources:
+    - name: Experimental Factor Ontology
+      url: http://www.ebi.ac.uk/efo/efo.owl
+    counts:
+      concords:
+        count_concords: 9850
+        count_distinct_curies: 11021
+        predicates:
+          oboInOwl:hasDbXref: 9850
+        prefix_counts:
+          oboInOwl:hasDbXref(EFO, SNOMEDCT): 157
+          oboInOwl:hasDbXref(EFO, MESH): 109
+          oboInOwl:hasDbXref(EFO, ICD10): 44
+          oboInOwl:hasDbXref(DOID, EFO): 25
+          oboInOwl:hasDbXref(EFO, https): 21
+          oboInOwl:hasDbXref(EFO, SYMP): 2
+          oboInOwl:hasDbXref(EFO, PMID): 6105
+          oboInOwl:hasDbXref(EFO, MEDDRA): 154
+          oboInOwl:hasDbXref(EFO, NCIT): 266
+          oboInOwl:hasDbXref(EFO, Wikipedia): 26
+          oboInOwl:hasDbXref(EFO, ICD9): 18
+          oboInOwl:hasDbXref(EFO, OMIM): 7
+          oboInOwl:hasDbXref(EFO, NIFSTD): 4
+          oboInOwl:hasDbXref(EFO, MO): 7
+          oboInOwl:hasDbXref(EFO, UMLS): 34
+          oboInOwl:hasDbXref(EFO, MONDO): 2
+          oboInOwl:hasDbXref(EFO, SCTID): 3
+          oboInOwl:hasDbXref(EFO, HP): 10
+          oboInOwl:hasDbXref(EFO, SCDO): 1
+          oboInOwl:hasDbXref(EFO, MPATH): 1
+          oboInOwl:hasDbXref(EFO, http): 6
+          oboInOwl:hasDbXref(EFO, MEDGEN): 1
+          oboInOwl:hasDbXref(EFO, uniprot): 2560
+          oboInOwl:hasDbXref(EFO, KEGG COMPOUND): 99
+          oboInOwl:hasDbXref(EFO, HMDB): 90
+          oboInOwl:hasDbXref(EFO, PubChem): 24
+          oboInOwl:hasDbXref(CAS, EFO): 20
+          oboInOwl:hasDbXref(EFO, T3DB): 9
+          oboInOwl:hasDbXref(CMO, EFO): 19
+          oboInOwl:hasDbXref(ADO, EFO): 1
+          oboInOwl:hasDbXref(EFO, ORCID): 5
+          oboInOwl:hasDbXref(EFO, UKBiobank Data Field): 10
+          oboInOwl:hasDbXref(EFO, modelled on http): 1
+          oboInOwl:hasDbXref(CHEBI, EFO): 1
+          oboInOwl:hasDbXref(EFO, doi): 1
+          oboInOwl:hasDbXref(EFO, PR): 1
+          oboInOwl:hasDbXref(EFO, PERSON): 2
+          oboInOwl:hasDbXref(EFO, EFO): 1
+          oboInOwl:hasDbXref(EFO, GO): 1
+          oboInOwl:hasDbXref(EFO, OMIT): 2
+    combined_from: []
+  Manual Disease/Phenotype Concords:
+    created_at: '2026-07-13T00:57:17.067918'
+    type: concord
+    name: Manual Disease/Phenotype Concords
+    url: https://github.com/NCATSTranslator/Babel/blob/master/input_data/manual_concords/disease.txt
+    description: Manually curated Disease/Phenotype cross-references from the Babel
+      repository
+    sources:
+    - name: Babel repository
+      url: https://github.com/NCATSTranslator/Babel
+    counts:
+      concords:
+        count_concords: 88
+        count_distinct_curies: 105
+        predicates:
+          xref: 6
+          oio:closeMatch: 81
+          oio:exactMatch: 1
+        prefix_counts:
+          xref(MONDO, UMLS): 2
+          xref(EFO, UMLS): 1
+          oio:closeMatch(MONDO, UMLS): 61
+          oio:closeMatch(UMLS, UMLS): 8
+          xref(HP, MONDO): 2
+          oio:closeMatch(EFO, MONDO): 1
+          xref(MESH, MONDO): 1
+          oio:closeMatch(DOID, MONDO): 3
+          oio:closeMatch(HP, NCIT): 1
+          oio:closeMatch(EFO, UMLS): 6
+          oio:closeMatch(HP, UMLS): 1
+          oio:exactMatch(MONDO, UMLS): 1
+    combined_from: []
