@@ -167,30 +167,13 @@ the evidence was an override instead (issue #935).
 ### `Polypeptide.txt` is a residue, not a compendium
 
 `compendia/Polypeptide.txt` is tiny (166 cliques in 2025sep1, 5 in 2026jul22) and its size swings
-wildly between builds. That is expected, and worth knowing before anyone reads a movement in it as a
-lost ingest.
-
-Babel assigns `biolink:Polypeptide` from exactly two places, both in
-[`src/createcompendia/chemicals.py`](../src/createcompendia/chemicals.py): ChEBI's peptide
-subclasses (`write_chebi_ids`, under
-[`CHEBI:16670`](http://purl.obolibrary.org/obo/CHEBI_16670) "peptide") and MeSH tree numbers
-`D12.125` "Amino Acids" and `D12.644` "Peptides" (`write_mesh_ids`). The Biolink Model registers
-neither `CHEBI` nor `MESH` in that class's `id_prefixes` — only `UniProtKB`, `PR`, `ENSEMBL`, `FB`
-and `UMLS`, unchanged across every model version Babel has used. `write_compendium()` silently drops
-a CURIE whose prefix isn't registered for its class, so **every identifier Babel actually types as a
-polypeptide is dropped on write**. What lands in the file is the residue: those cliques that also
-picked up a `UMLS` (or `PR`, …) CURIE through `glom()`, which is an accident of the chemical
-concords rather than anything about peptides.
-
-Two consequences. A build that rearranges chemical cliques or refreshes UMLS moves this number by
-large percentages on a base of a few hundred, so the percentage is noise. And the cliques themselves
-are not lost — they are counted under `biolink:Polypeptide` in the content report
-(380 in 2025sep1, 219 in 2026jul22) and mostly live in `compendia/umls.txt`, written by the
-`leftover_umls` rule
-([`src/createcompendia/leftover_umls.py`](../src/createcompendia/leftover_umls.py)).
-Fixing this means either giving the class an
-`extra_prefixes=[CHEBI, MESH]` on write or not typing ChEBI/MeSH peptides as `Polypeptide` at all;
-neither has been decided.
+wildly between builds. Neither `CHEBI` nor `MESH` is registered in `biolink:Polypeptide`'s
+`id_prefixes`, so `write_compendium()` silently drops every identifier Babel types as a polypeptide;
+what lands in the file is the handful of cliques that also picked up a `UMLS` CURIE through
+`glom()`. Read a movement in this file as noise, not as a lost ingest — the cliques are still
+counted in the content report and mostly live in `compendia/umls.txt`. Details and the two candidate
+fixes are in [issue #1015](https://github.com/NCATSTranslator/Babel/issues/1015); delete this note
+once it is closed.
 
 ## Output directories
 
