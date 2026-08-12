@@ -54,6 +54,11 @@ even when the requested side is sparse.
 
 ### Units
 
+> **TODO** ([#1014](https://github.com/NCATSTranslator/Babel/issues/1014)): this whole section
+> exists to help readers navigate an inconsistency, not to document a design. Once memory is
+> reported in one unit everywhere, cut it down to a single sentence naming that unit and delete the
+> two-factor table below.
+
 Everything the tool prints is **decimal GB/MB**, so a recommended `mem` is literally the string to
 paste into a `resources:` block: `mem="8G"` reaches SLURM as 8000 MB, and the efficiency report's
 `RequestedMem_MB` is decimal too.
