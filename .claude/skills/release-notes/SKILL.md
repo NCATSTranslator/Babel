@@ -1,6 +1,6 @@
 ---
 name: release-notes
-description: Prepare the combined Babel/NodeNorm/NameRes release note for a Babel build that is shipping to Translator. Use when asked to write, draft or update release notes for a Babel release, or when a build has finished and needs its note in releases/.
+description: Prepare the combined Babel/NodeNorm/NameRes release notes. Use when asked to write, draft or update release notes for a Babel release, or when a build has finished and needs its note in releases/.
 ---
 
 # Preparing a Babel release note
