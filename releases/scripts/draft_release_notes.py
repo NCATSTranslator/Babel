@@ -659,6 +659,30 @@ def draft(
         "     this release has none. -->",
         "",
         "- _TODO_.",
+    ]
+
+    # `## Areas that changed substantially` sits directly under the bugfixes, above the Babel notes:
+    # after "what must I act on", "what moved" is what a consumer reads next. It is deliberately far
+    # from the two tables it explains -- a reader who wants the numbers can scroll to them, and the
+    # same change is often worth a one-line headline here *and* a paragraph in the per-repository
+    # notes below, which reads as repetition when the two are adjacent.
+    if notable or build_dir:
+        lines += [
+            "",
+            "## Areas that changed substantially",
+            "",
+            "Explanations for the movements in the `Compendium size comparison` table at the end of",
+            "this note. Every large change here should trace back to a pull request in this release;",
+            "one that doesn't is either an upstream data change (say so, and say how you checked) or",
+            "a bug to file before this release ships.",
+        ]
+        if notable:
+            lines += ["", "Straight from this build's own `reports/tables/prefix_comparison.md`:", "", notable]
+        movers = unexplained_movers(build_dir) if build_dir else []
+        if movers:
+            lines += ["", *movers]
+
+    lines += [
         "",
         "## Babel changes",
         "",
@@ -697,24 +721,6 @@ def draft(
 
     lines += ["", "## Compendium size comparison", ""]
     lines += [table] if table else ["_TODO: no `prefix_comparison_overall.csv` found in the build directory._"]
-
-    # `## Areas that changed substantially` sits with the tables, not up with the headlines: the same
-    # change is often worth a one-line headline near the top *and* a paragraph of explanation here,
-    # and separating the two keeps that from reading as a repetition.
-    if notable or build_dir:
-        lines += [
-            "",
-            "## Areas that changed substantially",
-            "",
-            "Explanations for the movements in the table above. Every large change here should trace",
-            "back to a pull request in this release; one that doesn't is either an upstream data",
-            "change (say so, and say how you checked) or a bug to file before this release ships.",
-        ]
-        if notable:
-            lines += ["", "Straight from this build's own `reports/tables/prefix_comparison.md`:", "", notable]
-        movers = unexplained_movers(build_dir) if build_dir else []
-        if movers:
-            lines += ["", *movers]
 
     return "\n".join(lines) + "\n"
 

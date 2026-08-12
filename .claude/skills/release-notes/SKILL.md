@@ -182,8 +182,9 @@ reading pass rather than a re-derivation.
    ("the design in #506 gave bad results, so #626 replaced it"). Distinguish the two by reading how
    the bullet uses it, and say which is which. Note that `v1.11` never deployed, so a PR appearing
    only there may never have reached a shipped note.
-3. **Duplication across sections.** The same change often appears as a headline near the top and as
-   a paragraph under `## Areas that changed substantially`. That is deliberate — the two serve
+3. **Duplication across sections.** The same change often appears as a headline under
+   `## Areas that changed substantially` and as a paragraph in the per-repository notes below it.
+   That is deliberate — the two serve
    different readers. Verify the two agree on the numbers and the PR links, and that they are far
    enough apart not to read as a stutter. Flag it if one says something the other contradicts.
 4. **Unexplained movers.** The script emits an unchecked item per compendium that moved ≥25%. Every

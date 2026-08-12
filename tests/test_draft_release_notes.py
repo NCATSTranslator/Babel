@@ -518,9 +518,12 @@ def test_draft_emits_the_house_section_order():
     Two orderings are load-bearing rather than cosmetic:
 
     - `## Bugfixes` leads, so the section a consumer must act on is the first thing they see.
-    - `## Areas that changed substantially` trails the two tables it explains. The same change is
-      often worth a headline near the top *and* a paragraph here; separating them keeps that from
-      reading as an accident.
+    - `## Areas that changed substantially` follows it, above the per-repository notes: after "what
+      must I act on", "what moved" is what a consumer reads next. It is deliberately far from the
+      two tables it explains, which a reader who wants the numbers can scroll to.
+
+    The section is only emitted when there is a build directory to draw movements from, so the
+    second case below passes the committed 2026jul22 archive.
     """
     entry = {"id": "2026jul22", "title": "Babel 2026jul22", "build": "2026jul22"}
     text = drn.draft(entry, None, None, drn.REPO_ROOT)
@@ -541,6 +544,15 @@ def test_draft_emits_the_house_section_order():
         "## All changes in this release",
         "## Deployed database sizes",
         "## Compendium size comparison",
+    ]
+
+    with_build = drn.draft(entry, None, drn.REPO_ROOT / "releases" / "2026jul22", drn.REPO_ROOT)
+    with_headings = [line for line in with_build.splitlines() if line.startswith("## ")]
+
+    assert with_headings[:3] == [
+        "## Bugfixes",
+        "## Areas that changed substantially",
+        "## Babel changes",
     ]
 
 
