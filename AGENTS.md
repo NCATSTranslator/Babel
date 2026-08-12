@@ -209,6 +209,11 @@ shipped with which build — that mapping is not derivable from anywhere else, a
 next release's comparison baseline. [`releases/README.md`](releases/README.md) is the process, and
 `releases/scripts/draft_release_notes.py` drafts the mechanical parts.
 
+Each release also archives ~420 KB of that build's summary reports under `releases/<build>/`,
+mirroring the build directory's own paths so a release directory *is* a (tiny) build directory —
+`--build-dir releases/2026jul22` works unchanged. [`releases/ARTIFACTS.md`](releases/ARTIFACTS.md)
+says what each file is, and why a repo-wide lint or scan must exclude them.
+
 A release is also the natural cadence for re-checking SLURM sizing against the run's benchmarks
 (`docs/tools/Resources.md`), and for the archive/pin steps in `docs/RunningBabel.md`.
 

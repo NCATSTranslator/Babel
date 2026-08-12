@@ -175,6 +175,28 @@ def test_the_committed_archive_works_as_a_build_dir():
 
 
 @pytest.mark.unit
+def test_a_note_drafts_from_the_archive_with_no_build_dir(monkeypatch, capsys):
+    """Omitting `--build-dir` falls back to `releases/<build>/`, so an old note needs only the repo.
+
+    The four build-dir readers degrade to TODOs when they get nothing, so a broken fallback does not
+    fail -- it quietly produces a note with an empty count table, which is the failure mode the whole
+    archive exists to prevent. Assert the real numbers arrive.
+    """
+    monkeypatch.setattr(drn, "fetch_pull_requests", lambda *_args: [])
+    entry = {"id": "2026jul22", "title": "Babel 2026jul22", "build": "2026jul22"}
+    previous = {"id": "2025sep1", "title": "Babel 2025sep1", "build": "2025sep1"}
+    monkeypatch.setattr(drn, "find_release", lambda *_args: (entry, previous))
+
+    assert drn.main(["2026jul22", "--offline"]) == 0
+    captured = capsys.readouterr()
+
+    assert "Reading build reports from the archived release" in captured.err
+    assert "Count of cliques in all files (approx)" in captured.out
+    assert "605,864,191" in captured.out  # the real CURIE total, not a TODO
+    assert "no `prefix_comparison_overall.csv` found" not in captured.out
+
+
+@pytest.mark.unit
 def test_summary_of_changes_is_none_without_a_report(tmp_path):
     assert drn.summary_of_changes(tmp_path, "2025sep1", "2026jul22") is None
 

@@ -93,6 +93,24 @@ directory — it is stamped from `release_name` at build time, so a run that sta
 moved carries the previous build's name, and that value labels the baseline in the next comparison.
 `archive_build.py` refuses to archive a report whose `name` disagrees.
 
+## These files are build output, not repository content
+
+Everything under `releases/<build>/` is copied byte-for-byte out of a build. Nothing here is
+authored, and nothing here should be edited: an edit makes the archive disagree with the build it
+claims to be a subset of, which is the one property the layout rests on.
+
+That means **a repo-wide check that walks files has to exclude them**, and two already learned it
+the hard way:
+
+- `rumdl` (`[tool.rumdl] exclude` in `pyproject.toml`) — `prefix_comparison.md` is generated
+  Markdown with long lines, and reflowing it would rewrite build output to satisfy a style rule.
+- `tests/test_docs_links.py` — two provenance YAMLs record an upstream URL pinned to `master`. That
+  is what the build recorded, not a link this repository offers.
+
+If you add a third such check, exclude `releases/<build>/reports/` and `releases/<build>/metadata/`
+before the first archived release trips it. `releases/scripts/`, the notes and this file are
+ordinary repository content and stay in scope.
+
 ## What is not archived
 
 Everything else in a build directory, on purpose:
