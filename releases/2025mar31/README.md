@@ -3,11 +3,11 @@
 - Babel: [2025mar31](https://stars.renci.org/var/babel_outputs/2025mar31/)
   ([tagged 2025mar31](https://github.com/NCATSTranslator/Babel/releases/tag/2025mar31),
   [Babel v1.10.0](https://github.com/NCATSTranslator/Babel/releases/tag/v1.10.0))
-  - [CURIE summary](./2025mar31/reports/content/compendia_report.json)
-  - [Prefix report](./2025mar31/reports/duckdb/prefix_report.json)
+  - [CURIE summary](./reports/content/compendia_report.json)
+  - [Prefix report](./reports/duckdb/prefix_report.json)
 
-Next release: [v1.11](./v1.11.md)
-Previous release: [Translator "Hammerhead" November 2024](./TranslatorHammerheadNovember2024.md)
+Next release: [v1.11](../2025sep1/v1.11.md)
+Previous release: [Translator "Hammerhead" November 2024](../2024oct24/README.md)
 
 ## New features
 

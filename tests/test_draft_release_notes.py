@@ -248,10 +248,15 @@ def test_ranges_use_the_last_service_version_deployed_against_each_build():
 def test_every_release_note_is_listed_in_the_manifest():
     """Drift guard: a new note in releases/ must be added to releases.yaml or the tooling won't see it."""
     releases_dir = get_repo_root() / "releases"
-    # README.md indexes the notes and ARTIFACTS.md documents the archived build reports; neither is
-    # a release note.
-    on_disk = {path.stem for path in releases_dir.glob("*.md")} - {"README", "ARTIFACTS"}
-    in_manifest = {entry["id"] for entry in drn.load_manifest(releases_dir / "releases.yaml")}
+    # A note is `releases/<build>/README.md`, keyed by the directory it sits in. The one exception is
+    # v1.11, which has no build of its own and is filed under 2025sep1 as `v1.11.md`, so a note that
+    # is not a README is keyed by its own stem instead. Top-level `*.md` is deliberately out of
+    # scope: README.md and ARTIFACTS.md are not notes, and the transitional redirect stubs left
+    # behind by https://github.com/NCATSTranslator/Babel/issues/1021 are not either.
+    on_disk = {p.parent.name if p.stem == "README" else p.stem for p in releases_dir.glob("*/*.md")}
+    # Keyed by build, because that is what the directory is named; entries with no build (v1.11) are
+    # keyed by id, which is the name their note file carries.
+    in_manifest = {entry.get("build") or entry["id"] for entry in drn.load_manifest(releases_dir / "releases.yaml")}
     assert on_disk == in_manifest
 
 

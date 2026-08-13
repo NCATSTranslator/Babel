@@ -3,10 +3,10 @@
 - Babel: [2024oct24](https://stars.renci.org/var/babel_outputs/2024oct24/)
   ([tagged 2024oct24](https://github.com/NCATSTranslator/Babel/releases/tag/2024oct24),
   approx [Babel 1.8.0](https://github.com/NCATSTranslator/Babel/releases/tag/v1.8.0))
-  - [CURIE summary](./2024oct24/reports/content/compendia_report.json)
+  - [CURIE summary](./reports/content/compendia_report.json)
 
-Next release: [Babel 2025jan23](./2025jan23.md)
-Previous release: [Translator Guppy August 2024](./TranslatorGuppyAugust2024.md)
+Next release: [Babel 2025jan23](../2025jan23/README.md)
+Previous release: [Translator Guppy August 2024](../2024aug18/README.md)
 
 ## New features
 

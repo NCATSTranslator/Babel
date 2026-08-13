@@ -1,8 +1,11 @@
 # Babel Releases
 
-Each release below has a note, and most also have an archive of that build's summary tables and
-provenance metadata under `releases/<build>/` — see [`ARTIFACTS.md`](ARTIFACTS.md) for what those
-files are and how to read them.
+Each release has a directory named after its **build**, holding the note as `README.md` and — for
+most releases — an archive of that build's summary tables and provenance metadata. See
+[`ARTIFACTS.md`](ARTIFACTS.md) for what the archived files are and how to read them.
+
+For the Translator-named releases the build name is not the release name (`TranslatorFuguJuly2024`
+was built as `2024jul13`); the note's own title still names the release.
 
 ## General releases
 
@@ -10,16 +13,17 @@ files are and how to read them.
 
 ## Translator-specific releases
 
-- [2026jul22](2026jul22.md) ([summary tables](2026jul22/reports/tables/))
-- [2025sep1](2025sep1.md)
-- [Babel 1.11](v1.11.md)
-- [2025mar31](2025mar31.md)
-- [2025jan23](2025jan23.md)
-- [Translator "Hammerhead" November 2024](TranslatorHammerheadNovember2024.md)
-- [Translator "Guppy" August 2024](TranslatorGuppyAugust2024.md)
-- [Translator "Fugu" July 2024](TranslatorFuguJuly2024.md)
-- [May 2024](TranslatorMay2024.md)
-- [December 2023](TranslatorDecember2023.md)
+- [2026jul22](2026jul22/README.md) ([summary tables](2026jul22/reports/tables/))
+- [2025sep1](2025sep1/README.md)
+- [Babel 1.11](2025sep1/v1.11.md) — tagged but never deployed, so it has no build of its own; its
+  changes first shipped in 2025sep1, and the note is filed there.
+- [2025mar31](2025mar31/README.md)
+- [2025jan23](2025jan23/README.md)
+- [Translator "Hammerhead" November 2024](2024oct24/README.md)
+- [Translator "Guppy" August 2024](2024aug18/README.md)
+- [Translator "Fugu" July 2024](2024jul13/README.md)
+- [May 2024](2024mar24/README.md)
+- [December 2023](2023nov5/README.md)
 
 ## Preparing a release note
 
@@ -30,7 +34,7 @@ repositories, the upstream version bumps, and the per-compendium count table:
 
 ```bash
 uv run python releases/scripts/draft_release_notes.py 2026jul22 \
-    --build-dir /path/to/a/copy/of/the/build > releases/2026jul22.md
+    --build-dir /path/to/a/copy/of/the/build > releases/2026jul22/README.md
 ```
 
 Add the new release to `releases.yaml` first; the entry below it supplies the comparison baselines,

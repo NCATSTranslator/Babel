@@ -6,15 +6,15 @@
   `babel-1.18.1`)
   - Built against
     [Biolink Model v4.4.3](https://github.com/biolink/biolink-model/releases/tag/v4.4.3)
-  - [Summary tables](./2026jul22/reports/tables/)
-  - [CURIE summary](./2026jul22/reports/content/compendia_report.json)
-  - [Prefix report](./2026jul22/reports/duckdb/prefix_report.json)
+  - [Summary tables](./reports/tables/)
+  - [CURIE summary](./reports/content/compendia_report.json)
+  - [Prefix report](./reports/duckdb/prefix_report.json)
 - NodeNorm: [v2.5.0](https://github.com/NCATSTranslator/NodeNormalization/releases/tag/v2.5.0),
   [v2.5.1](https://github.com/NCATSTranslator/NodeNormalization/releases/tag/v2.5.1)
 - NameRes: [v1.7.0](https://github.com/NCATSTranslator/NameResolution/releases/tag/v1.7.0)
 
 Next release: *None as yet*
-Previous release: [Babel 2025sep1](./2025sep1.md)
+Previous release: [Babel 2025sep1](../2025sep1/README.md)
 
 ## Bugfixes
 
@@ -70,10 +70,10 @@ different.
   (22,809 -> 6,409) clique partners with them. Consumers resolving a phenotype by UMLS CUI will now
   get a leftover UMLS clique instead.
 - [MAJOR] **ChemicalEntity is down 87.2%** (4,046,131 -> 518,554), which unwinds the 510% jump
-  reported in [2025sep1](./2025sep1.md). The identifiers moved to SmallMolecule (+4.5%, +9.9M):
-  INCHIKEY in ChemicalEntity went 1,776,876 -> 55,437 and PUBCHEM.COMPOUND 1,647,448 -> 14,116,
-  while the corresponding SmallMolecule rows grew by about the same amounts. Chemicals that were
-  previously typed only as the generic `biolink:ChemicalEntity` now get a definite type.
+  reported in [2025sep1](../2025sep1/README.md). The identifiers moved to SmallMolecule (+4.5%,
+  +9.9M): INCHIKEY in ChemicalEntity went 1,776,876 -> 55,437 and PUBCHEM.COMPOUND 1,647,448 ->
+  14,116, while the corresponding SmallMolecule rows grew by about the same amounts. Chemicals that
+  were previously typed only as the generic `biolink:ChemicalEntity` now get a definite type.
 - **MacromolecularComplex is up 1,536%** (1,258 -> 20,579) -- all ComplexPortal species are now
   ingested ([Babel #831](https://github.com/NCATSTranslator/Babel/pull/831)).
 - **A new `Food` compendium** (932 CURIEs) from the DrugBank retype
@@ -99,7 +99,7 @@ different.
   `Polypeptide.txt` (leftover UMLS) is 214 in both releases -- the whole change is in this one file.
   The underlying prefix-registration mismatch predates this release and is worth an issue in its own
   right; it is written up in
-  [Architecture.md](../docs/Architecture.md#polypeptidetxt-is-a-residue-not-a-compendium).
+  [Architecture.md](../../docs/Architecture.md#polypeptidetxt-is-a-residue-not-a-compendium).
 
 ## Babel changes
 

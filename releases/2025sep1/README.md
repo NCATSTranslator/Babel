@@ -4,15 +4,15 @@
   ([tagged 2025sep1](https://github.com/NCATSTranslator/Babel/releases/tag/2025sep1),
   [Babel v1.13](https://github.com/NCATSTranslator/Babel/releases/tag/v1.13))
   - Built against Biolink Model v4.2.6-rc5
-  - [CURIE summary](./2025sep1/reports/content/compendia_report.json)
-  - [Prefix report](./2025sep1/reports/duckdb/prefix_report.json)
+  - [CURIE summary](./reports/content/compendia_report.json)
+  - [Prefix report](./reports/duckdb/prefix_report.json)
 - NodeNorm: [v2.4.1](https://github.com/NCATSTranslator/NodeNormalization/releases/tag/v2.4.1)
 - NameRes: [v1.5.1](https://github.com/NCATSTranslator/NameResolution/releases/tag/v1.5.1),
   later updated in place to
   [v1.5.2](https://github.com/NCATSTranslator/NameResolution/releases/tag/v1.5.2)
 
-Next release: [2026jul22](./2026jul22.md)
-Previous release: [2025mar31](./2025mar31.md)
+Next release: [2026jul22](../2026jul22/README.md)
+Previous release: [2025mar31](../2025mar31/README.md)
 
 ## Bugfixes
 

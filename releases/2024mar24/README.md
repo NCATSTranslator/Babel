@@ -2,9 +2,9 @@
 
 * Babel: [2024mar24](https://stars.renci.org/var/babel_outputs/2024mar24/) (approx
   [Babel v1.5.0](https://github.com/NCATSTranslator/Babel/releases/tag/v1.5.0))
-  * [CURIE summary](./2024mar24/reports/content/compendia_report.json)
+  * [CURIE summary](./reports/content/compendia_report.json)
 
-Next release: [Translator "Fugu" July 2024](TranslatorFuguJuly2024.md)
+Next release: [Translator "Fugu" July 2024](../2024jul13/README.md)
 
 ## New features
 
@@ -18,7 +18,7 @@ Next release: [Translator "Fugu" July 2024](TranslatorFuguJuly2024.md)
   in synonyms file.
 * Minor fixes.
 
-## Releases since [December 2023](TranslatorDecember2023.md)
+## Releases since [December 2023](../2023nov5/README.md)
 
 * [Babel v1.5.0](https://github.com/NCATSTranslator/Babel/releases/tag/v1.5.0):
   * Normalize DrugChemical conflation IDs by @gaurav in #250
