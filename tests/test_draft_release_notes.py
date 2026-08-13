@@ -303,29 +303,33 @@ def test_provenance_block_records_the_deployed_service_versions():
     # Both NodeNorm versions deployed against this build are listed, not just the latest.
     assert "NodeNorm: [v2.5.0]" in block and "[v2.5.1]" in block
     assert "NameRes: [v1.7.0]" in block
-    assert "Previous release: [Babel 2025sep1](./2025sep1.md)" in block
+    # The note is written to `releases/2026jul22/README.md`, so the archive is a sibling of the note
+    # and the previous release is one directory over.
+    assert "Previous release: [Babel 2025sep1](../2025sep1/README.md)" in block
     # 2026jul22 is a real tag, so the tag link is emitted.
     assert "[tagged 2026jul22](https://github.com/NCATSTranslator/Babel/releases/tag/2026jul22)" in block
-    assert "[Summary tables](./2026jul22/reports/tables/)" in block
-    assert "[Prefix report](./2026jul22/reports/duckdb/prefix_report.json)" in block
+    assert "[Summary tables](./reports/tables/)" in block
+    assert "[Prefix report](./reports/duckdb/prefix_report.json)" in block
 
 
 @pytest.mark.unit
-def test_archived_artifacts_are_linked_by_build_not_release_id():
-    """The archive directories are named by build, and for the older releases that is not the id.
+def test_a_sibling_note_is_linked_by_build_not_release_id():
+    """Release directories are named by build, and for the older releases that is not the id.
 
-    `TranslatorFuguJuly2024`'s build is `2024jul13`, which is what its CURIE summary has always been
-    filed under -- but the link was written from the release id, so it pointed at a path that never
-    existed. Nothing caught it because the four notes carrying it are historical.
+    `TranslatorFuguJuly2024`'s note and archive both live under `2024jul13`, so a link written from
+    the release id points at a path that never existed -- which is what the archive links used to
+    do, uncaught because the four notes carrying them are historical. The archive is now a sibling
+    of the note and needs no name at all; the cross-note link is where the distinction still bites.
     """
     manifest = drn.load_manifest(get_repo_root() / "releases" / "releases.yaml")
-    entry, previous = drn.find_release(manifest, "TranslatorFuguJuly2024")
+    entry, previous = drn.find_release(manifest, "TranslatorGuppyAugust2024")
     block = "\n".join(drn.provenance_block(entry, previous, get_repo_root()))
 
-    assert "[CURIE summary](./2024jul13/reports/content/compendia_report.json)" in block
-    assert "TranslatorFuguJuly2024/reports" not in block
-    # And the file it points at is really there.
-    assert (get_repo_root() / "releases" / "2024jul13" / "reports" / "content" / "compendia_report.json").exists()
+    assert 'Previous release: [Translator "Fugu" July 2024](../2024jul13/README.md)' in block
+    assert "TranslatorFuguJuly2024" not in block
+    # And the files both links point at are really there.
+    assert (get_repo_root() / "releases" / "2024jul13" / "README.md").exists()
+    assert (get_repo_root() / "releases" / "2024aug18" / "reports" / "content" / "compendia_report.json").exists()
 
 
 @pytest.mark.unit

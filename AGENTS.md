@@ -204,15 +204,15 @@ laptop in ~25 minutes; the README's 500 GB figure is for the heaviest targets on
 ## Releasing a build
 
 A Babel release is a build *plus* the NodeNorm and NameRes versions deployed against it, and the
-combined note lives in `releases/<release>.md`. `releases/releases.yaml` records which versions
+combined note lives in `releases/<build>/README.md`. `releases/releases.yaml` records which versions
 shipped with which build — that mapping is not derivable from anywhere else, and each entry is the
 next release's comparison baseline. [`releases/README.md`](releases/README.md) is the process, and
 `releases/scripts/draft_release_notes.py` drafts the mechanical parts.
 
-Each release also archives ~420 KB of that build's summary reports under `releases/<build>/`,
-mirroring the build directory's own paths so a release directory *is* a (tiny) build directory —
-`--build-dir releases/2026jul22` works unchanged. [`releases/ARTIFACTS.md`](releases/ARTIFACTS.md)
-says what each file is, and why a repo-wide lint or scan must exclude them.
+That directory also holds ~420 KB of the build's summary reports, mirroring the build directory's
+own paths so a release directory *is* a (tiny) build directory — `--build-dir releases/2026jul22`
+works unchanged. [`releases/ARTIFACTS.md`](releases/ARTIFACTS.md) says what each file is, and why a
+repo-wide lint or scan must exclude `reports/` and `metadata/` — but not the note beside them.
 
 A release is also the natural cadence for re-checking SLURM sizing against the run's benchmarks
 (`docs/tools/Resources.md`), and for the archive/pin steps in `docs/RunningBabel.md`.
