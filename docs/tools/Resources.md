@@ -39,8 +39,11 @@ A Snakemake-on-SLURM run leaves three kinds of artifact under `babel_outputs/`:
   usually holds just a handful of rules. The reader therefore merges *all* shards (worst case per
   rule); reading only the newest would drop the requested-side data for almost every rule. When
   archiving a run, copy the whole directory, not just the newest file.
-- `logs/rule_<name>/<jobid>.log` — per-rule control-node logs: the declared `resources:` line and
-  start/end timestamps, used as a fallback for the requested side and for the runtime limit.
+- `logs/rule_<name>/<jobid>.log` — per-rule control-node logs. What this subcommand reads out of
+  them is the declared `resources:` line, as a fallback for the requested side and as the first
+  choice for the runtime limit. The parser also records each job's start/end timestamps and whether
+  it failed, but the sizing report uses neither: **every** wall-time figure it prints comes from the
+  benchmarks.
 
 ### Why the benchmark TSVs, not the efficiency report
 
@@ -48,9 +51,15 @@ The efficiency report is the natural place to look for memory and CPU usage, but
 `MaxRSS` and `TotalCPU` columns come back **empty** — the cluster's `jobacct_gather`/cgroup
 accounting isn't capturing per-step usage, so every `CPU Efficiency (%)` and `Memory Usage (%)` is
 `0`. The tool therefore uses the efficiency report only for the *requested* side
-(`RequestedMem_MB`, `NCPUS`, elapsed wall time) and relies on the `benchmark:` TSVs for actual
-usage. Because the recommendations come from the benchmarks, the override list (below) is reliable
-even when the requested side is sparse.
+(`RequestedMem_MB` and `NCPUS` — those two columns and no others) and relies on the `benchmark:`
+TSVs for actual usage. Because the recommendations come from the benchmarks, the override list
+(below) is reliable even when the requested side is sparse.
+
+That includes wall time: **every duration in the report is the benchmark TSV's `s` column**
+(`Benchmark.seconds`, the per-column worst case across a rule's rows), never the efficiency
+report's `Elapsed_sec` or the span between a log's timestamps. Snakemake writes `s` from inside
+the job, so it measures execution and excludes SLURM queue time — the conservative choice for
+sizing a time limit, since the limit applies to execution too.
 
 ### Units
 
