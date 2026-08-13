@@ -376,3 +376,20 @@ PURL and include the preferred label in double-quotes:
 
 Resolve CURIEs with `get_biolink_prefix_map()` (see Biolink Model Usage above). Preferred labels
 come from `babel_downloads/<PREFIX>/labels` (tab-separated `CURIE\tlabel`).
+
+### GitHub pull requests and issues
+
+**Do not hard-wrap the body of a pull request or issue.** The 100-column rule is for Markdown files
+in the repository; GitHub renders a description as flowing paragraphs in a variable-width column, so
+wrapped text there is either re-flowed anyway or shows up as ragged half-lines. Write one long line
+per paragraph and per list item, and let the browser wrap it. Write the body to a file and pass it
+with `gh pr edit --body-file` / `gh issue create --body-file` rather than inlining it, so quoting
+and newlines survive.
+
+A description is for what shipped and why, not how the branch got there. Keep it to the final
+methods chosen and the decisions a reviewer has to check; a PR is read again when the *next* release
+is reviewed, so anything meant to last belongs in the code, the docs, or the report it describes —
+never only in the description. Commit messages are effectively invisible after merge, so never
+compress a rationale into "see commit abc1234": if the reasoning matters, and especially if it
+records an alternative that was considered and rejected, put it in a comment or docstring beside the
+code that would have to change to undo it, and let the description point there.
