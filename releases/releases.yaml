@@ -10,11 +10,16 @@
 # v1.5.2" is not "everything numbered above v1.5.2", and a date sort is wrong too. Recording what
 # was actually deployed, and diffing with `gh api .../compare/BASE...HEAD`, gets it right.
 #
+# Notes live in the build's directory, as `releases/<build>/README.md`. `v1.11` is the one entry
+# with no build of its own, so its note is filed under the release its changes first shipped in, as
+# `releases/2025sep1/v1.11.md`.
+#
 # Fields (only `id` and `title` are required):
-#   id       File stem: this entry describes `releases/<id>.md`. For a deployed build this is also
-#            the release_name used for `releases/prefix_reports/<id>.json` and config.yaml.
+#   id       Release id. For a deployed build this is also the release_name used for
+#            `releases/<id>/reports/duckdb/prefix_report.json` and config.yaml.
 #   title    H1 of the note and its label in README.md.
-#   build    Name of the build's output directory on stars.renci.org. Omit if never deployed.
+#   build    Name of the build's output directory on stars.renci.org, and the name of the directory
+#            holding the note and the archived reports. Omit if never deployed.
 #   babel    Babel code release the build was cut from.
 #   branch   Release branch, when the build came off one rather than off the tag itself.
 #   approx   true when `babel` is the closest release rather than the exact commit built (the older
@@ -56,6 +61,8 @@ releases:
     # comparison starts at v1.5.2 and not at the numerically-later v1.6.2.
     nameres: ["v1.5.1", "v1.5.2"]
 
+  # Tagged but never shipped, so there is no build and no directory of its own; the note is filed
+  # under 2025sep1, the release its changes first reached Translator in.
   - id: v1.11
     title: Babel v1.11
     babel: v1.11
