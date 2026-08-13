@@ -165,6 +165,14 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
   *humanfriendly string*, so a rule's `mem="512G"` reaches Python as `"512 GB"` — and `mem_mb` is
   decimal, so it is `512000`, not `524288`. See `duckdb_memory_limit_mb()` in
   `src/snakefiles/util.py`, whose `.endswith("G")` parse of `resources.mem` broke on exactly this.
+- **Benchmark memory is mebibytes; `mem` is decimal MB** — the same rule's numbers appear in both
+  units. A `benchmark:` TSV's `max_rss` is labelled "MB" but computed as bytes `/ 1024 / 1024`, so a
+  rule "peaking at 132G" needs `mem="142G"` to be at 100% of its limit. Two factors, don't mix them:
+  ×1.048576 converts the raw `max_rss` column (MiB→MB), ×1.073741824 converts a figure already
+  displayed in GiB. As a fraction of a rule's limit the error is ~4.9%; on a whole-GiB peak it is
+  ~7.4%. Comparing them unconverted always errs toward *looking safe*. See the Units section of
+  [`docs/tools/Resources.md`](docs/tools/Resources.md); `babel-slurm-resources` converts on the way
+  in and reports decimal throughout, so its recommendation is the string to paste into a rule.
 - **Per-compendium metadata YAMLs** — `babel_outputs/metadata/<Type>.yaml` records provenance with
   per-source `prefix_counts` like `xref(CHEBI, DrugCentral): 4302`. Aggregate (prefix-pair) only —
   confirms a join pathway exists, not whether *specific* CURIEs are joinable.
@@ -192,6 +200,22 @@ with `uv run snakemake --unlock`.
 Most semantic-type targets are much cheaper than the full pipeline (anatomy builds end-to-end on a
 laptop in ~25 minutes; the README's 500 GB figure is for the heaviest targets only). See
 `docs/RunningBabel.md` for a per-target sizing breakdown and common build issues.
+
+## Releasing a build
+
+A Babel release is a build *plus* the NodeNorm and NameRes versions deployed against it, and the
+combined note lives in `releases/<release>.md`. `releases/releases.yaml` records which versions
+shipped with which build — that mapping is not derivable from anywhere else, and each entry is the
+next release's comparison baseline. [`releases/README.md`](releases/README.md) is the process, and
+`releases/scripts/draft_release_notes.py` drafts the mechanical parts.
+
+Each release also archives ~420 KB of that build's summary reports under `releases/<build>/`,
+mirroring the build directory's own paths so a release directory *is* a (tiny) build directory —
+`--build-dir releases/2026jul22` works unchanged. [`releases/ARTIFACTS.md`](releases/ARTIFACTS.md)
+says what each file is, and why a repo-wide lint or scan must exclude them.
+
+A release is also the natural cadence for re-checking SLURM sizing against the run's benchmarks
+(`docs/tools/Resources.md`), and for the archive/pin steps in `docs/RunningBabel.md`.
 
 ## Adding a new data source
 
@@ -352,3 +376,20 @@ PURL and include the preferred label in double-quotes:
 
 Resolve CURIEs with `get_biolink_prefix_map()` (see Biolink Model Usage above). Preferred labels
 come from `babel_downloads/<PREFIX>/labels` (tab-separated `CURIE\tlabel`).
+
+### GitHub pull requests and issues
+
+**Do not hard-wrap the body of a pull request or issue.** The 100-column rule is for Markdown files
+in the repository; GitHub renders a description as flowing paragraphs in a variable-width column, so
+wrapped text there is either re-flowed anyway or shows up as ragged half-lines. Write one long line
+per paragraph and per list item, and let the browser wrap it. Write the body to a file and pass it
+with `gh pr edit --body-file` / `gh issue create --body-file` rather than inlining it, so quoting
+and newlines survive.
+
+A description is for what shipped and why, not how the branch got there. Keep it to the final
+methods chosen and the decisions a reviewer has to check; a PR is read again when the *next* release
+is reviewed, so anything meant to last belongs in the code, the docs, or the report it describes —
+never only in the description. Commit messages are effectively invisible after merge, so never
+compress a rationale into "see commit abc1234": if the reasoning matters, and especially if it
+records an alternative that was considered and rejected, put it in a comment or docstring beside the
+code that would have to change to undo it, and let the description point there.

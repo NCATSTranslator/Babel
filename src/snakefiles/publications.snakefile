@@ -62,6 +62,10 @@ rule generate_pubmed_concords:
     benchmark:
         config["output_directory"] + "/benchmarks/generate_pubmed_concords.tsv"
     resources:
+        # Deliberately left at 24h even though 2026jul22 took 20.0h of it (83%), which
+        # `babel-slurm-resources` reports as at-risk: 24h is known to work, 4h of slack has been
+        # enough so far, and a rewrite that removes this rule's cost is in progress. Raise it only
+        # if a run actually times out, and prefer fixing the rule.
         runtime="24h",
         mem="128G",
     params:
@@ -97,7 +101,12 @@ rule generate_pubmed_compendia:
     benchmark:
         config["output_directory"] + "/benchmarks/generate_pubmed_compendia.tsv"
     resources:
-        mem="128G",
+        # 2026jul22 peaked at 123.4 GiB = 132.5 GB against a 128G request -- at or past its own
+        # limit (summed process-tree RSS double-counts shared pages, which is likely why it was not
+        # killed) -- and ran 1.8h against the 2h cluster default. Tight on both axes, and Publication
+        # grows every release.
+        mem="192G",
+        runtime="4h",
     run:
         publications.generate_compendium(
             [input.pmid_doi_concord_file],

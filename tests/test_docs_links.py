@@ -45,7 +45,20 @@ def _tracked_files():
     return sorted(p for p in (REPO_ROOT / name for name in listing.split("\0") if name) if p.is_file())
 
 
-TRACKED_FILES = _tracked_files()
+def _is_archived_build_report(path: Path) -> bool:
+    """Whether ``path`` is a build artifact copied verbatim into ``releases/<build>/``.
+
+    Those files are byte-for-byte copies of what a build wrote (see `releases/ARTIFACTS.md`), so a
+    URL inside one is a record of what the build recorded, not a link this repository is offering.
+    Two provenance YAMLs carry a `master`-pinned upstream URL for exactly that reason. Editing them
+    to satisfy this guard would make the archive disagree with the build it claims to be a subset
+    of, which is the one property the whole layout rests on.
+    """
+    parts = path.relative_to(REPO_ROOT).parts
+    return len(parts) > 2 and parts[0] == "releases" and parts[2] in {"reports", "metadata"}
+
+
+TRACKED_FILES = [p for p in _tracked_files() if not _is_archived_build_report(p)]
 
 MARKDOWN_FILES = [p for p in TRACKED_FILES if p.suffix == ".md"]
 

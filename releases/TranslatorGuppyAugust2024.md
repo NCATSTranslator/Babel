@@ -2,7 +2,7 @@
 
 * Babel: [2024aug18](https://stars.renci.org/var/babel_outputs/2024aug18/) (approx
   [Babel 1.8.0](https://github.com/NCATSTranslator/Babel/releases/tag/v1.8.0))
-  * [CURIE summary](./summaries/2024aug18.json)
+  * [CURIE summary](./2024aug18/reports/content/compendia_report.json)
 
 Next release: [Translator "Hammerhead" November 2024](./TranslatorHammerheadNovember2024.md)
 Previous release: [TranslatorFuguJuly2024](./TranslatorFuguJuly2024.md)

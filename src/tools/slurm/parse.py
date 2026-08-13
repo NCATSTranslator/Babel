@@ -45,8 +45,12 @@ class Benchmark:
 
     A benchmark TSV usually holds one row, but ``repeat()`` runs append more; we
     keep the per-column maximum so sizing decisions reflect the worst observed run.
-    Memory figures are megabytes (Snakemake's benchmark unit); ``mean_load`` is a
-    percentage where 100% == one fully-used core.
+
+    Memory figures are **mebibytes**, not megabytes: Snakemake labels the columns "MB" but
+    computes them as ``psutil`` bytes ``/ 1024 / 1024``. SLURM's ``mem`` and the efficiency
+    report's ``RequestedMem_MB`` are decimal MB, so anything comparing the two must convert --
+    see ``MIB_TO_MB`` in ``resources.py``. ``mean_load`` is a percentage where 100% == one
+    fully-used core.
     """
 
     rule: str
@@ -447,3 +451,117 @@ def parse_job_events(err_file: Path) -> list[JobEvent]:
                 current[snakemake_id].finished_at = _parse_ts(m.group(1))
     all_jobs.extend(current.values())
     return all_jobs
+
+
+# --- declared resources in the snakefiles ------------------------------------
+
+# `mem="512G"` / `mem=8000`, `runtime="7h"` / `runtime=240`, `cpus_per_task=4`. Only literals are
+# matched: `mem=lambda wildcards: ...` (export_synonyms_to_duckdb) resolves per-wildcard at runtime
+# and has no single declared value, so it is left as None rather than mis-parsed.
+_DECL_RULE_RE = re.compile(r"^(?:rule|checkpoint)\s+(\w+)\s*:")
+# The trailing comma is optional (snakefmt supplies one, a hand-edited last entry may not) and a
+# trailing `# ...` comment is common -- `chemical_compendia` explains its runtime that way. Any unit
+# suffix is matched here and checked against the key in _parse_resource(), so a swapped unit
+# (`mem="7h"`) is recorded as unreadable rather than crashing the parse.
+_DECL_RESOURCE_RE = re.compile(r'^\s+(mem|runtime|cpus_per_task)=("?)([0-9]+(?:\.[0-9]+)?[A-Za-z]?)\2\s*,?\s*(?:#.*)?$')
+# The same keys with *any* value. A line matching this but not the regex above is a declaration this
+# parser cannot read; it is recorded rather than dropped (see DeclaredResources). `mem\w*` so that
+# `mem_mb=8000` -- the name Snakemake normalizes `mem` to internally, and a spelling a rule could
+# reasonably use -- is recorded rather than matching neither pattern and vanishing.
+_DECL_RESOURCE_KEY_RE = re.compile(r"^\s+(?:mem\w*|runtime|cpus_per_task)\s*=")
+# A `resources:` block ends at the next top-level directive (`run:`, `shell:`, `input:`, ...).
+_DECL_SECTION_RE = re.compile(r"^\s{4}\w+:")
+
+
+@dataclass
+class DeclaredResources:
+    """The static ``resources:`` a rule declares in its snakefile.
+
+    The efficiency report has no time-limit column and a run's ``logs/`` are often incomplete, so the
+    snakefiles are the only broad source of the declared ``runtime``. Any field may be None: the rule
+    declares nothing (and gets the profile default) or declares a callable.
+    """
+
+    rule: str
+    mem_mb: int | None
+    runtime_min: int | None
+    cpus: int | None
+    #: ``resources:`` lines naming one of the three keys whose value this parser could not read -- a
+    #: callable, or a unit it does not know. A missed declaration would otherwise read as "declares
+    #: nothing", i.e. as the cluster-wide default, which makes an over-provisioned rule look
+    #: correctly sized; the failure is invisible in the report, so it is recorded here and asserted
+    #: against the real snakefiles in ``tests/tools/slurm/test_parse.py``.
+    unparsed: tuple[str, ...] = ()
+
+
+# The unit suffixes each key accepts, lowercased. Sized resources are decimal, not binary:
+# Snakemake reads `mem="512G"` as 512000 MB, not 524288.
+_RESOURCE_UNITS: dict[str, dict[str, float]] = {
+    "mem": {"": 1, "m": 1, "g": 1000, "t": 1_000_000},  # -> MB
+    "runtime": {"": 1, "h": 60},  # -> minutes
+    "cpus_per_task": {"": 1},  # -> cores; a unit here is a typo
+}
+
+
+def _parse_resource(key: str, value: str) -> int | None:
+    """``("mem", "512G")`` -> 512000, ``("runtime", "7h")`` -> 420, a bare number as-is.
+
+    Returns None when the value carries a unit that key does not take (``mem="7h"``). That is a
+    declaration this parser cannot read, not a value to guess at, so it goes to
+    :attr:`DeclaredResources.unparsed` -- which is loud in the report and asserted against the real
+    snakefiles -- rather than raising a ``ValueError`` with no file or line to point at.
+    """
+    suffix = value[-1].lower() if value[-1].isalpha() else ""
+    units = _RESOURCE_UNITS[key]
+    if suffix not in units:
+        return None
+    return int(float(value[:-1] if suffix else value) * units[suffix])
+
+
+def read_snakefile_resources(snakefile_dir: str | Path) -> dict[str, DeclaredResources]:
+    """Read every rule's statically-declared ``resources:`` from the ``*.snakefile`` files in a
+    directory.
+
+    Only ``src/snakefiles/*.snakefile`` is read, not the root ``Snakefile``: the rules it defines
+    (``all``, ``clean_*``, ``uncompress_synonym_file``) declare no ``resources:`` and never appear in
+    a sizing pass. Add it here if that changes.
+
+    Raises ``FileNotFoundError`` when the directory is missing or holds no ``*.snakefile``. Returning
+    an empty mapping instead would be the :attr:`DeclaredResources.unparsed` failure one level up: a
+    typo'd ``--snakefile-dir`` would yield a full, plausible report in which every rule inherits the
+    cluster-wide default, so ``generate_pubmed_concords`` (``runtime="24h"``) reads as a 1000%
+    overrun and every genuinely trimmable rule vanishes from the report.
+    """
+    snakefile_dir = Path(snakefile_dir)
+    paths = sorted(snakefile_dir.glob("*.snakefile"))
+    if not paths:
+        raise FileNotFoundError(f"no *.snakefile files in {snakefile_dir}")
+
+    result: dict[str, DeclaredResources] = {}
+    for path in paths:
+        rule: str | None = None
+        in_resources = False
+        values: dict[str, int] = {}
+        unparsed: list[str] = []
+        for line in path.read_text(errors="replace").splitlines():
+            if match := _DECL_RULE_RE.match(line):
+                if rule:
+                    result[rule] = DeclaredResources(
+                        rule, values.get("mem"), values.get("runtime"), values.get("cpus_per_task"), tuple(unparsed)
+                    )
+                rule, in_resources, values, unparsed = match.group(1), False, {}, []
+            elif rule and _DECL_SECTION_RE.match(line):
+                in_resources = line.strip().startswith("resources:")
+            elif rule and in_resources and (match := _DECL_RESOURCE_RE.match(line)):
+                parsed = _parse_resource(match.group(1), match.group(3))
+                if parsed is None:
+                    unparsed.append(line.strip())  # a literal, but in a unit that key doesn't take
+                else:
+                    values[match.group(1)] = parsed
+            elif rule and in_resources and _DECL_RESOURCE_KEY_RE.match(line):
+                unparsed.append(line.strip())
+        if rule:
+            result[rule] = DeclaredResources(
+                rule, values.get("mem"), values.get("runtime"), values.get("cpus_per_task"), tuple(unparsed)
+            )
+    return result

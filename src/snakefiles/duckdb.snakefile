@@ -41,7 +41,8 @@ rule export_compendia_to_duckdb:
     benchmark:
         config["output_directory"] + "/benchmarks/export_compendia_to_duckdb_{filename}.tsv"
     resources:
-        runtime="6h",
+        # Slowest of the 25 wildcard instances on 2026jul22 was Protein at 2.5h.
+        runtime="4h",
         mem="512G",
         # DuckDB auto-threads and used up to ~2.6 cores on babel-1.17; the cpus_per_task=1 default
         # would pin it to one core. Packing here is memory-bound (512G), so the cores are ~free.
@@ -81,7 +82,8 @@ rule export_synonyms_to_duckdb:
         # per entry; after unnesting the names array the row count is large
         # enough to OOM at 128G.
         mem=lambda wildcards: "512G" if wildcards.filename in ("Protein", "GeneProteinConflated") else "128G",
-        runtime="3h",
+        # Slowest of the 18 wildcard instances on 2026jul22 was GeneProteinConflated at 13 minutes.
+        runtime="1h",
         # DuckDB auto-threads and used up to ~2.6 cores on babel-1.17; the cpus_per_task=1 default
         # would pin it to one core. Packing here is memory-bound, so the cores are ~free.
         cpus_per_task=4,

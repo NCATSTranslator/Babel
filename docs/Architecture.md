@@ -164,6 +164,17 @@ demote a defined molecule. That second rule is a bug fix — see
 [the food-and-extracts README](sources/DRUGBANK/food-and-extracts/README.md) for what happened when
 the evidence was an override instead (issue #935).
 
+### `Polypeptide.txt` is a residue, not a compendium
+
+`compendia/Polypeptide.txt` is tiny (166 cliques in 2025sep1, 5 in 2026jul22) and its size swings
+wildly between builds. Neither `CHEBI` nor `MESH` is registered in `biolink:Polypeptide`'s
+`id_prefixes`, so `write_compendium()` silently drops every identifier Babel types as a polypeptide;
+what lands in the file is the handful of cliques that also picked up a `UMLS` CURIE through
+`glom()`. Read a movement in this file as noise, not as a lost ingest — the cliques are still
+counted in the content report and mostly live in `compendia/umls.txt`. Details and the two candidate
+fixes are in [issue #1015](https://github.com/NCATSTranslator/Babel/issues/1015); delete this note
+once it is closed.
+
 ## Output directories
 
 When the pipeline runs, it creates and populates these directories:

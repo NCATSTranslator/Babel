@@ -12,7 +12,10 @@ to users who aren't system administrators for these tools:
 
 ## Release process and checkpoints
 
-1. Create a new Babel release (see README.md for information).
+1. Create a new Babel release (see README.md for information) and add it to
+   [`releases/releases.yaml`](../releases/releases.yaml), which records which NodeNorm and NameRes
+   versions ship with which build. Every later step reads from that entry, and the *next* release
+   uses it as its comparison baseline, so fill in the service versions as you deploy them below.
 2. Store the Babel outputs alongside other Babel releases on Hatteras.
 3. Deploy a new NodeNorm instance
    1. Split the Babel outputs into smaller files to improve load times and put them on a public web
@@ -34,9 +37,22 @@ to users who aren't system administrators for these tools:
    6. Create a NameRes instance that will download the Solr backup and start the instance with it.
 5. Use the [Babel Validator] to test this release and check how it performs compared to the previous
    release.
-6. Use the
-   [Babel Validator Prefix Comparator](https://translatorsri.github.io/babel-validation/prefix-comparator/)
-   to compare the prefix counts between releases.
+6. Write the release note. The build has already compared its own prefix counts against the previous
+   release — `babel_outputs/reports/tables/prefix_comparison.md` and the two CSVs beside it,
+   produced by `src/reports/prefix_comparison.py` against the baseline pinned in `config.yaml`. This
+   replaces the external
+   [Babel Validator Prefix Comparator](https://translatorsri.github.io/babel-validation/prefix-comparator/),
+   which had to have both reports uploaded to it by hand.
+
+   `releases/scripts/draft_release_notes.py` turns those reports, the three repositories' pull
+   request lists, and the deployed services' `/status` endpoints into a draft note. Run it once the
+   build is up on **Exp** (step 3/4), which is what the `/status` defaults point at — the note is
+   written while the release is on Exp and before it is promoted to Dev, because Exp is publicly
+   reachable, so the note is what tells people they can test against it. The script warns if a
+   service is still answering from the previous Babel version, which is what pointing either URL at
+   Dev too early looks like. The full process is in
+   [`releases/README.md`](../releases/README.md); archiving the prefix report and bumping the pins
+   is in [`RunningBabel.md`](RunningBabel.md#archiving-a-builds-reports).
 7. **Check with RENCI NodeNorm users before updating RENCI NodeNorm and NameRes instances**
 8. Update RENCI NodeNorm and NameRes instances.
 9. Announce on Translator and RENCI channels and ask people to try it out.

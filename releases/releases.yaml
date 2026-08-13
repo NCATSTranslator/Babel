@@ -1,0 +1,102 @@
+# Manifest of every Babel release note in this directory, newest first.
+#
+# This is the single source of truth for which Babel build shipped with which NodeNorm and NameRes
+# versions. `releases/scripts/draft_release_notes.py` reads it to work out what a new release note
+# should cover: each entry's versions are the *baseline* for the entry above it, so the PR ranges
+# for a new release fall out of the manifest rather than being remembered or guessed.
+#
+# That matters because version order is not release order. NameRes v1.5.2 was cut in April 2026,
+# after v1.6.0/v1.6.1/v1.6.2, as a maintenance release on the v1.5 line -- so "everything since
+# v1.5.2" is not "everything numbered above v1.5.2", and a date sort is wrong too. Recording what
+# was actually deployed, and diffing with `gh api .../compare/BASE...HEAD`, gets it right.
+#
+# Fields (only `id` and `title` are required):
+#   id       File stem: this entry describes `releases/<id>.md`. For a deployed build this is also
+#            the release_name used for `releases/prefix_reports/<id>.json` and config.yaml.
+#   title    H1 of the note and its label in README.md.
+#   build    Name of the build's output directory on stars.renci.org. Omit if never deployed.
+#   babel    Babel code release the build was cut from.
+#   branch   Release branch, when the build came off one rather than off the tag itself.
+#   approx   true when `babel` is the closest release rather than the exact commit built (the older
+#            notes say "approx"/"roughly"; keep that hedge rather than implying precision).
+#   biolink  Biolink Model version the build was made against (config.yaml `biolink_version`).
+#   nodenorm NodeNorm versions deployed against this build, in the order they were deployed. A list
+#            because a build can outlive several NodeNorm releases; the LAST entry is the baseline
+#            for the next release's comparison.
+#   nameres  NameRes versions deployed against this build, same convention.
+#   deployed Set to false for a code release that was tagged but never shipped to Translator. Such
+#            an entry still appears in the index, but is skipped when picking a comparison baseline.
+#
+# Unknown values are left out rather than guessed: the 2024-and-earlier notes predate the practice
+# of recording NodeNorm/NameRes versions, and nothing in the repo records them after the fact.
+
+releases:
+  - id: 2026jul22
+    title: Babel 2026jul22
+    build: 2026jul22
+    # v1.18.1, not v1.18: the `2026jul22` tag was cut from the babel-1.18.1 branch *before* v1.18.1
+    # was tagged, so git ancestry puts v1.18.1 outside the build -- but the build carries the ChEBI
+    # ingest fixes (#951, #955) that v1.18 does not, and only version-bump and wrap-up commits
+    # separate the build tag from v1.18.1. v1.18.1 is the closest release; hence `approx`.
+    babel: v1.18.1
+    approx: true
+    branch: babel-1.18.1
+    biolink: "4.4.3"
+    nodenorm: ["v2.5.0", "v2.5.1"]
+    nameres: ["v1.7.0"]
+
+  - id: 2025sep1
+    title: Babel 2025sep1
+    build: 2025sep1
+    babel: v1.13
+    biolink: "4.2.6-rc5"
+    # NodeNorm v2.4.1 replaced earlier v2.3.x/v2.4.0 deployments against this same build.
+    nodenorm: ["v2.4.1"]
+    # NameRes shipped as v1.5.1 and was later updated in place to v1.5.2, which is why the 2026jul22
+    # comparison starts at v1.5.2 and not at the numerically-later v1.6.2.
+    nameres: ["v1.5.1", "v1.5.2"]
+
+  - id: v1.11
+    title: Babel v1.11
+    babel: v1.11
+    deployed: false
+
+  - id: 2025mar31
+    title: Babel 2025mar31
+    build: 2025mar31
+    babel: v1.10.0
+
+  - id: 2025jan23
+    title: Babel 2025jan23
+    build: 2025jan23
+    babel: v1.9.1
+
+  - id: TranslatorHammerheadNovember2024
+    title: Translator "Hammerhead" November 2024
+    build: 2024oct24
+    babel: v1.8.0
+    approx: true
+
+  - id: TranslatorGuppyAugust2024
+    title: Translator "Guppy" August 2024
+    build: 2024aug18
+    babel: v1.8.0
+    approx: true
+
+  - id: TranslatorFuguJuly2024
+    title: Translator "Fugu" July 2024
+    build: 2024jul13
+    babel: 2024jul13
+    approx: true
+
+  - id: TranslatorMay2024
+    title: Translator May 2024
+    build: 2024mar24
+    babel: v1.5.0
+    approx: true
+
+  - id: TranslatorDecember2023
+    title: Translator December 2023
+    build: 2023nov5
+    babel: v1.3.0
+    approx: true

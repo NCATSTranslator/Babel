@@ -1,0 +1,33 @@
+{
+  "compendium_path": "babel_outputs/compendia/GeneFamily.txt",
+  "count_by_biolink_type": {
+    "biolink:GeneFamily": 28463
+  },
+  "count_by_prefix": {
+    "HGNC.FAMILY": 2323,
+    "PANTHER.FAMILY": 26140
+  },
+  "count_lines": 28463,
+  "counters": {
+    "clique_count": 28463,
+    "cliques_by_description_count": {
+      "0": 27355,
+      "1": 1108
+    },
+    "cliques_by_id_count": {
+      "1": 28463
+    },
+    "cliques_by_label_count": {
+      "1": 28463
+    },
+    "cliques_by_unique_description_count": {
+      "0": 27355,
+      "1": 1108
+    },
+    "cliques_by_unique_label_count": {
+      "1": 28463
+    }
+  },
+  "name": "GeneFamily",
+  "report_path": "babel_outputs/reports/content/compendia/GeneFamily.json"
+}

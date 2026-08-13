@@ -1,0 +1,40 @@
+{
+  "compendium_path": "babel_outputs/compendia/OrganismTaxon.txt",
+  "count_by_biolink_type": {
+    "biolink:OrganismTaxon": 3605819
+  },
+  "count_by_prefix": {
+    "MESH": 70652,
+    "NCBITaxon": 2859704,
+    "UMLS": 814777
+  },
+  "count_lines": 3605819,
+  "counters": {
+    "clique_count": 3605819,
+    "cliques_by_description_count": {
+      "0": 3605819
+    },
+    "cliques_by_id_count": {
+      "1": 3535211,
+      "2": 1902,
+      "3": 68706
+    },
+    "cliques_by_label_count": {
+      "0": 2824,
+      "1": 3533068,
+      "2": 2429,
+      "3": 67498
+    },
+    "cliques_by_unique_description_count": {
+      "0": 3605819
+    },
+    "cliques_by_unique_label_count": {
+      "0": 2824,
+      "1": 3593793,
+      "2": 8927,
+      "3": 275
+    }
+  },
+  "name": "OrganismTaxon",
+  "report_path": "babel_outputs/reports/content/compendia/OrganismTaxon.json"
+}

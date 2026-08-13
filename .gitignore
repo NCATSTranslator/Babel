@@ -55,3 +55,6 @@ htmlcov/
 
 # macOS Finder metadata.
 .DS_Store
+
+# Jupyter autosaves
+.ipynb_checkpoints/

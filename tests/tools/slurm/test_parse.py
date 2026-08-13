@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from src.tools.slurm import parse
+from src.util import get_repo_root
 
 pytestmark = pytest.mark.unit
 
@@ -279,3 +280,137 @@ def test_parse_ts_normalises_non_utc_offsets():
 
     dt_pos = _parse_ts("2026-06-04T05:00:00+0530")
     assert dt_pos.utcoffset().total_seconds() == 5.5 * 3600
+
+
+def test_read_snakefile_resources_parses_literals_and_skips_callables(tmp_path):
+    """A `mem=lambda wildcards: ...` has no single declared value; it must read as None, not a bad parse."""
+    (tmp_path / "a.snakefile").write_text(
+        "rule plain:\n"
+        "    input:\n"
+        '        mem="not a resource",\n'
+        "    resources:\n"
+        '        mem="512G",\n'
+        '        runtime="7h",\n'
+        "        cpus_per_task=4,\n"
+        "    run:\n"
+        "        go()\n"
+        "\n"
+        "rule callable_mem:\n"
+        "    resources:\n"
+        '        mem=lambda wildcards: "512G" if wildcards.filename == "Protein" else "128G",\n'
+        "        runtime=240,\n"
+        "    run:\n"
+        "        go()\n"
+        "\n"
+        "rule no_resources:\n"
+        "    run:\n"
+        "        go()\n"
+    )
+    parsed = parse.read_snakefile_resources(tmp_path)
+
+    # "512G" is 512000 MB, not 524288: Snakemake's sized resources are decimal.
+    assert parsed["plain"].mem_mb == 512000
+    assert parsed["plain"].runtime_min == 420  # "7h"
+    assert parsed["plain"].cpus == 4
+    # A callable mem yields None while the rule's other literals still parse.
+    assert parsed["callable_mem"].mem_mb is None
+    assert parsed["callable_mem"].runtime_min == 240  # a bare number is already minutes
+    # A rule with no resources: block is present but empty, not missing.
+    assert parsed["no_resources"] == parse.DeclaredResources("no_resources", None, None, None)
+
+
+def test_read_snakefile_resources_reads_checkpoints_comments_and_a_missing_trailing_comma(tmp_path):
+    """snakefmt supplies a trailing comma, but a hand-edited last entry may not have one; a
+    `checkpoint` declares resources exactly like a `rule`; and a trailing `# ...` comment is how
+    several rules explain their limit. Missing any of these silently drops the rule's declared
+    limits, which then read as the cluster default -- `chemical_compendia`'s commented
+    `runtime="7h"` is the real case.
+    """
+    (tmp_path / "b.snakefile").write_text(
+        "checkpoint split_things:\n"
+        "    resources:\n"
+        '        mem="64G",  # explained inline, as chemical_compendia does\n'
+        '        runtime="4h"\n'  # no trailing comma
+        "    run:\n"
+        "        go()\n"
+    )
+    parsed = parse.read_snakefile_resources(tmp_path)
+    assert parsed["split_things"].mem_mb == 64000
+    assert parsed["split_things"].runtime_min == 240
+
+
+def test_read_snakefile_resources_matches_the_real_snakefiles(tmp_path):
+    """Guard against a regex tightening that silently stops matching real declarations.
+
+    A resource the parser misses reads as the cluster-wide default, which makes an over-provisioned
+    rule look correctly sized -- the failure is invisible in the report.
+    """
+    parsed = parse.read_snakefile_resources(get_repo_root() / "src" / "snakefiles")
+    # chemical_compendia declares both, and its runtime carries a trailing `# ...` comment.
+    assert parsed["chemical_compendia"].mem_mb == 512000
+    assert parsed["chemical_compendia"].runtime_min == 420
+    # Across all snakefiles, a healthy number of rules declare something; a broken regex zeroes this.
+    assert sum(1 for d in parsed.values() if d.mem_mb or d.runtime_min) > 20
+
+    # The count above survives a single dropped rule, so check the misses directly: every
+    # mem/runtime/cpus_per_task line the parser could not read is recorded, and there is exactly one
+    # in the repo -- export_synonyms_to_duckdb's per-wildcard `mem=lambda`. Anything else here is a
+    # declaration silently reading as the cluster default, which makes an over-provisioned rule look
+    # correctly sized.
+    unparsed = {rule: d.unparsed for rule, d in parsed.items() if d.unparsed}
+    assert list(unparsed) == ["export_synonyms_to_duckdb"], f"unreadable resource declarations: {unparsed}"
+    assert unparsed["export_synonyms_to_duckdb"][0].startswith("mem=lambda wildcards:")
+
+
+def test_read_snakefile_resources_records_a_declaration_it_cannot_read(tmp_path):
+    """A unit the parser doesn't know must be recorded, not silently read as "declares nothing"."""
+    (tmp_path / "c.snakefile").write_text(
+        "rule terabyte:\n"
+        "    resources:\n"
+        '        mem="1.5T",\n'  # known unit: parsed
+        "        runtime=config['runtime'],\n"  # unknown shape: recorded
+        "    run:\n"
+        "        go()\n"
+    )
+    parsed = parse.read_snakefile_resources(tmp_path)
+    assert parsed["terabyte"].mem_mb == 1_500_000
+    assert parsed["terabyte"].runtime_min is None
+    assert parsed["terabyte"].unparsed == ("runtime=config['runtime'],",)
+
+
+def test_read_snakefile_resources_records_a_unit_the_key_does_not_take(tmp_path):
+    """`mem="7h"` is a typo, not a size. It must be recorded like any other unreadable declaration
+    rather than raising `ValueError: could not convert string to float: '7h'` from somewhere with no
+    file or line to point at."""
+    (tmp_path / "d.snakefile").write_text(
+        'rule swapped_units:\n    resources:\n        mem="7h",\n        runtime="512G",\n    run:\n        go()\n'
+    )
+    parsed = parse.read_snakefile_resources(tmp_path)
+    assert parsed["swapped_units"].mem_mb is None
+    assert parsed["swapped_units"].runtime_min is None
+    assert parsed["swapped_units"].unparsed == ('mem="7h",', 'runtime="512G",')
+
+
+def test_read_snakefile_resources_records_a_key_spelling_it_does_not_parse(tmp_path):
+    """`mem_mb=` is what Snakemake normalizes `mem` to internally, so a rule could reasonably be
+    written that way. It matches neither the value pattern nor `mem=`, so without `mem\\w*` in the
+    key pattern it would vanish -- reading as "declares nothing", i.e. as the cluster default, which
+    is the failure `unparsed` exists to make visible."""
+    (tmp_path / "e.snakefile").write_text(
+        "rule normalized:\n    resources:\n        mem_mb=8000,\n    run:\n        go()\n"
+    )
+    parsed = parse.read_snakefile_resources(tmp_path)
+    assert parsed["normalized"].mem_mb is None
+    assert parsed["normalized"].unparsed == ("mem_mb=8000,",)
+
+
+def test_read_snakefile_resources_raises_when_it_finds_no_snakefiles(tmp_path):
+    """A typo'd --snakefile-dir must fail loudly, not return an empty mapping.
+
+    Empty means "no rule declares anything", so every rule inherits the cluster-wide default and the
+    report reads as plausible: `generate_pubmed_concords` (`runtime="24h"`) becomes a 1000% overrun
+    and every genuinely trimmable rule disappears. That is the `unparsed` failure one level up."""
+    with pytest.raises(FileNotFoundError):
+        parse.read_snakefile_resources(tmp_path / "does_not_exist")
+    with pytest.raises(FileNotFoundError):
+        parse.read_snakefile_resources(tmp_path)  # exists, but holds no *.snakefile

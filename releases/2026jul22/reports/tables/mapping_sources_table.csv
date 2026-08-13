@@ -1,0 +1,273 @@
+Compendium Filenames,Mapping Source,Number of Mappings
+"AnatomicalEntity.txt
+Cell.txt
+CellularComponent.txt
+GrossAnatomicalStructure.txt",umls.build_sets(),"159,283 cross-references involving 299,578 distinct CURIEs from umls.build_sets() using UMLS MRCONSO with prefixes: {'SNOMEDCT_US': 'SNOMEDCT', 'MSH': 'MESH', 'NCI': 'NCIT', 'GO': 'GO', 'FMA': 'FMA'} with cui_prefix set to UMLS
+ - FMA, UMLS: 103,206
+ - SNOMEDCT, UMLS: 39,926
+ - NCIT, UMLS: 8,945
+ - GO, UMLS: 5,412
+ - MESH, UMLS: 1,794"
+"AnatomicalEntity.txt
+Cell.txt
+CellularComponent.txt
+GrossAnatomicalStructure.txt",build_anatomy_obo_relationships(),"38,905 cross-references involving 48,695 distinct CURIEs from get_subclasses_and_xrefs() of UBERON:0001062, GO:0005575, and EMAPA:0
+ - EMAPA, UBERON: 4,356
+ - SCTID, UBERON: 4,117
+ - UBERON, Wikipedia: 3,514
+ - UBERON, UMLS: 3,090
+ - MA, UBERON: 3,065
+ - 78 other prefix pairs: 20,763"
+"AnatomicalEntity.txt
+Cell.txt
+CellularComponent.txt
+GrossAnatomicalStructure.txt",build_wikidata_cell_relationships(),"597 cross-references involving 1,194 distinct CURIEs from wd:P7963 (""Cell Ontology ID"") and wd:P2892 (""UMLS CUI"") from Wikidata
+ - CL, UMLS: 597"
+"AnatomicalEntity.txt
+Cell.txt
+CellularComponent.txt
+GrossAnatomicalStructure.txt",build_anatomy_obo_relationships(),"305 cross-references involving 598 distinct CURIEs from get_subclasses_and_xrefs() of UBERON:0001062, GO:0005575, and EMAPA:0
+ - GO, Wikipedia: 255
+ - GO, VZ: 23
+ - CORUM, GO: 12
+ - GO, MetaCyc: 7
+ - GO, SO: 3
+ - 4 other prefix pairs: 5"
+"AnatomicalEntity.txt
+Cell.txt
+CellularComponent.txt
+GrossAnatomicalStructure.txt",build_anatomy_obo_relationships(),"0 cross-references involving 0 distinct CURIEs from get_subclasses_and_xrefs() of UBERON:0001062, GO:0005575, and EMAPA:0
+"
+"AnatomicalEntity.txt
+Cell.txt
+CellularComponent.txt
+GrossAnatomicalStructure.txt",build_anatomy_obo_relationships(),"0 cross-references involving 0 distinct CURIEs from get_subclasses_and_xrefs() of UBERON:0001062, GO:0005575, and EMAPA:0
+"
+"BiologicalProcess.txt
+MolecularActivity.txt
+Pathway.txt",umls.build_sets(),"53,274 cross-references involving 87,176 distinct CURIEs from umls.build_sets() using UMLS MRCONSO with prefixes: {'GO': 'GO'} with cui_prefix set to UMLS
+ - GO, UMLS: 53,274"
+"BiologicalProcess.txt
+MolecularActivity.txt
+Pathway.txt",build_process_obo_relationships(),"29,148 cross-references involving 36,850 distinct CURIEs from Extract GO-GO relationships from UberGraph with get_subclasses_and_xrefs() from GO:0007165, GO:0008150 and GO:0003674,with other_prefixes dict_values(['WIKIPATHWAYS', 'REACT', 'TCDB'])
+ - GO, REACT: 7,895
+ - GO, RHEA: 7,746
+ - GO, MetaCyc: 5,681
+ - EC, GO: 4,830
+ - GO, KEGG.REACTION: 1,767
+ - 21 other prefix pairs: 1,229"
+"BiologicalProcess.txt
+MolecularActivity.txt
+Pathway.txt",Rhea.pull_rhea_ec_concs(),"7,928 cross-references involving 13,834 distinct CURIEs from pull_rhea_ec_concs() extracts the EC number/accession number mappings from the Rhea RDF file (babel_downloads/RHEA/rhea.rdf).
+ - EC, RHEA: 7,928"
+CellLine.txt,Cell Line Ontology,
+"ChemicalEntity.txt
+ChemicalMixture.txt
+ComplexMolecularMixture.txt
+Drug.txt
+Food.txt
+MolecularMixture.txt
+Polypeptide.txt
+SmallMolecule.txt",make_pubchem_cas_concord(),"4,575,716 cross-references involving 8,807,131 distinct CURIEs from make_pubchem_cas_concord() creates xrefs from PUBCHEM identifiers in the PubChem synonyms file (babel_downloads/PUBCHEM.COMPOUND/synonyms) to Chemical Abstracts Service (CAS) identifiers.
+ - CAS, PUBCHEM.COMPOUND: 4,575,716"
+"ChemicalEntity.txt
+ChemicalMixture.txt
+ComplexMolecularMixture.txt
+Drug.txt
+Food.txt
+MolecularMixture.txt
+Polypeptide.txt
+SmallMolecule.txt",umls.build_sets(),"273,709 cross-references involving 536,552 distinct CURIEs from umls.build_sets() using UMLS MRCONSO with prefixes: {'MSH': 'MESH', 'DRUGBANK': 'DRUGBANK', 'RXNORM': 'RXCUI'} with cui_prefix set to UMLS
+ - MESH, UMLS: 148,797
+ - RXCUI, UMLS: 116,826
+ - DRUGBANK, UMLS: 8,086"
+"ChemicalEntity.txt
+ChemicalMixture.txt
+ComplexMolecularMixture.txt
+Drug.txt
+Food.txt
+MolecularMixture.txt
+Polypeptide.txt
+SmallMolecule.txt",make_chebi_relations(),"198,782 cross-references involving 378,812 distinct CURIEs from make_chebi_relations() creates xrefs from the ChEBI database (babel_downloads/CHEBI/ChEBI_complete.sdf) to PUBCHEM.COMPOUND and KEGG.COMPOUND.
+ - CHEBI, PUBCHEM.COMPOUND: 181,136
+ - CHEBI, KEGG.COMPOUND: 17,646"
+"ChemicalEntity.txt
+ChemicalMixture.txt
+ComplexMolecularMixture.txt
+Drug.txt
+Food.txt
+MolecularMixture.txt
+Polypeptide.txt
+SmallMolecule.txt",make_pubchem_mesh_concord(),"77,741 cross-references involving 155,482 distinct CURIEs from make_pubchem_mesh_concord() loads MeSH labels from babel_downloads/MESH/labels, then creates xrefs from PubChem identifiers in the PubChem input file (babel_downloads/PUBCHEM.COMPOUND/CID-MeSH) to those MeSH identifiers using the labels as keys.
+ - MESH, PUBCHEM.COMPOUND: 77,741"
+"ChemicalEntity.txt
+ChemicalMixture.txt
+ComplexMolecularMixture.txt
+Drug.txt
+Food.txt
+MolecularMixture.txt
+Polypeptide.txt
+SmallMolecule.txt",get_mesh_relationships(),"45,225 cross-references involving 90,444 distinct CURIEs from get_mesh_relationships() iterates through the MeSH registry, filters it to the MeSH IDs in babel_outputs/intermediate/chemicals/ids/MESH, then writes out CAS mappings to babel_outputs/intermediate/chemicals/concords/mesh_cas
+ - CAS, MESH: 45,225"
+"ChemicalEntity.txt
+ChemicalMixture.txt
+ComplexMolecularMixture.txt
+Drug.txt
+Food.txt
+MolecularMixture.txt
+Polypeptide.txt
+SmallMolecule.txt",build_drugcentral_relations(),"35,361 cross-references involving 39,172 distinct CURIEs from Build xrefs from DrugCentral (babel_downloads/DrugCentral/xrefs) to DrugCentral using the prefix map {'CHEBI': 'CHEBI', 'ChEMBL_ID': 'CHEMBL.COMPOUND', 'DRUGBANK_ID': 'DRUGBANK', 'IUPHAR_LIGAND_ID': 'GTOPDB', 'MESH_DESCRIPTOR_UI': 'MESH', 'PUBCHEM_CID': 'PUBCHEM.COMPOUND', 'UMLSCUI': 'UMLS', 'UNII': 'UNII'}.
+ - CHEMBL.COMPOUND, DrugCentral: 7,129
+ - DrugCentral, UMLS: 5,244
+ - DrugCentral, UNII: 5,185
+ - DrugCentral, PUBCHEM.COMPOUND: 5,013
+ - DRUGBANK, DrugCentral: 4,368
+ - 3 other prefix pairs: 8,422"
+"ChemicalEntity.txt
+ChemicalMixture.txt
+ComplexMolecularMixture.txt
+Drug.txt
+Food.txt
+MolecularMixture.txt
+Polypeptide.txt
+SmallMolecule.txt",get_mesh_relationships(),"17,401 cross-references involving 34,544 distinct CURIEs from get_mesh_relationships() iterates through the MeSH registry, filters it to the MeSH IDs in babel_outputs/intermediate/chemicals/ids/MESH, then writes out non-CAS mappings (i.e. UNII mappings) to babel_outputs/intermediate/chemicals/concords/mesh_unii
+ - MESH, UNII: 17,401"
+"ChemicalEntity.txt
+ChemicalMixture.txt
+ComplexMolecularMixture.txt
+Drug.txt
+Food.txt
+MolecularMixture.txt
+Polypeptide.txt
+SmallMolecule.txt",make_gtopdb_relations(),"11,469 cross-references involving 22,711 distinct CURIEs from Transform Ligand ID/InChIKey mappings from babel_downloads/GTOPDB/ligands.tsv into a concord.
+ - GTOPDB, INCHIKEY: 11,469"
+"ChemicalEntity.txt
+ChemicalMixture.txt
+ComplexMolecularMixture.txt
+Drug.txt
+Food.txt
+MolecularMixture.txt
+Polypeptide.txt
+SmallMolecule.txt",get_wikipedia_relationships(),"6,212 cross-references involving 12,265 distinct CURIEs from Wikidata SPARQL query to find Wikidata entities with both CHEBI and MESH IDs, and build a concordance between them.
+ - CHEBI, MESH: 6,212"
+"ChemicalEntity.txt
+ChemicalMixture.txt
+ComplexMolecularMixture.txt
+Drug.txt
+Food.txt
+MolecularMixture.txt
+Polypeptide.txt
+SmallMolecule.txt",umls.build_sets(),"5,277 cross-references involving 10,415 distinct CURIEs from umls.build_sets() using UMLS MRCONSO with prefixes: {'MSH': 'MESH', 'DRUGBANK': 'DRUGBANK'} with cui_prefix set to RXCUI
+ - DRUGBANK, RXCUI: 5,277"
+"ChemicalEntity.txt
+ChemicalMixture.txt
+ComplexMolecularMixture.txt
+Drug.txt
+Food.txt
+MolecularMixture.txt
+Polypeptide.txt
+SmallMolecule.txt",chemicals.build_untyped_compendia(),"Generate an untyped compendium from concordances babel_outputs/intermediate/chemicals/concords/wikipedia_mesh_chebi babel_outputs/intermediate/chemicals/concords/PUBCHEM_MESH babel_outputs/intermediate/chemicals/concords/mesh_cas babel_outputs/intermediate/chemicals/concords/mesh_unii babel_outputs/intermediate/chemicals/concords/PUBCHEM_CAS babel_outputs/intermediate/chemicals/concords/GTOPDB babel_outputs/intermediate/chemicals/concords/CHEBI babel_outputs/intermediate/chemicals/concords/UMLS babel_outputs/intermediate/chemicals/concords/DrugCentral babel_outputs/intermediate/chemicals/concords/RXNORM, identifiers babel_outputs/intermediate/chemicals/ids/CHEMBL.COMPOUND babel_outputs/intermediate/chemicals/ids/GTOPDB babel_outputs/intermediate/chemicals/ids/CHEBI babel_outputs/intermediate/chemicals/ids/UNII babel_outputs/intermediate/chemicals/ids/HMDB babel_outputs/intermediate/chemicals/ids/PUBCHEM.COMPOUND babel_outputs/intermediate/chemicals/ids/DrugCentral babel_outputs/intermediate/chemicals/ids/DRUGBANK babel_outputs/intermediate/chemicals/ids/MESH babel_outputs/intermediate/chemicals/ids/UMLS babel_outputs/intermediate/chemicals/ids/RXNORM, "" +unichem_partial babel_outputs/intermediate/chemicals/partials/UNICHEM, untyped_concord babel_outputs/intermediate/chemicals/partials/untyped_compendium, and type file babel_outputs/intermediate/chemicals/partials/types.
+"
+"Disease.txt
+PhenotypicFeature.txt",umls.build_sets(),"222,015 cross-references involving 374,628 distinct CURIEs from umls.build_sets() using UMLS MRCONSO with prefixes: {'SNOMEDCT_US': 'SNOMEDCT', 'MSH': 'MESH', 'NCI': 'NCIT', 'HPO': 'HP', 'MDR': 'MEDDRA', 'OMIM': 'OMIM'} with cui_prefix set to UMLS
+ - SNOMEDCT, UMLS: 106,639
+ - MEDDRA, UMLS: 53,746
+ - NCIT, UMLS: 28,242
+ - MESH, UMLS: 11,667
+ - HP, UMLS: 11,220
+ - 1 other prefix pairs: 10,501"
+"Disease.txt
+PhenotypicFeature.txt",build_disease_obo_relationships(),"108,230 cross-references involving 129,769 distinct CURIEs from ubergraph.build_sets() (exact) of MONDO:0000001 and MONDO:0042489, including ORPHANET prefixes
+ - MEDGEN, MONDO: 21,738
+ - MONDO, UMLS: 21,738
+ - DOID, MONDO: 11,921
+ - MONDO, OMIM: 9,960
+ - MONDO, SNOMEDCT: 9,025
+ - 9 other prefix pairs: 33,848"
+"Disease.txt
+PhenotypicFeature.txt",build_disease_doid_relationships(),"39,215 cross-references involving 48,748 distinct CURIEs from build_disease_doid_relationships() using the DOID ID file babel_downloads/DOID/doid.json and other_prefixes {'ICD10CM': 'ICD10', 'ICD9CM': 'ICD9', 'ICDO': 'ICD0', 'NCI': 'NCIT', 'SNOMEDCT_US_2018_03_01': 'SNOMEDCT', 'SNOMEDCT_US_2019_09_01': 'SNOMEDCT', 'SNOMEDCT_US_2020_03_01': 'SNOMEDCT', 'SNOMEDCT_US_2020_09_01': 'SNOMEDCT', 'UMLS_CUI': 'UMLS', 'KEGG': 'KEGG.DISEASE'}
+ - DOID, UMLS: 7,114
+ - DOID, MIM: 6,460
+ - DOID, SNOMEDCT_US_2025_09_01: 5,294
+ - DOID, NCIT: 5,059
+ - DOID, MESH: 4,088
+ - 15 other prefix pairs: 11,200"
+"Disease.txt
+PhenotypicFeature.txt",build_disease_obo_relationships(),"17,892 cross-references involving 28,753 distinct CURIEs from ubergraph.build_sets() of HP:0000118 with other_prefixes {'MSH': 'MESH', 'SNOMEDCT_US': 'SNOMEDCT', 'SNOMED_CT': 'SNOMEDCT', 'ORPHANET': 'orphanet', 'ICD-9': 'ICD9', 'ICD-10': 'ICD10', 'ICD-0': 'ICD0', 'ICD-O': 'ICD0'}
+ - HP, UMLS: 12,714
+ - HP, SNOMEDCT: 4,563
+ - Fyler, HP: 222
+ - HP, NCIT: 221
+ - HP, MEDDRA: 92
+ - 11 other prefix pairs: 80"
+"Disease.txt
+PhenotypicFeature.txt",Experimental Factor Ontology (EFO) cross-references,"9,850 cross-references involving 11,021 distinct CURIEs from Cross-references from the Experimental Factor Ontology (EFO) for the EFO IDs in babel_outputs/intermediate/disease/ids/EFO. Xref targets with these prefixes were excluded: ['MP'].
+ - EFO, PMID: 6,105
+ - EFO, uniprot: 2,560
+ - EFO, NCIT: 266
+ - EFO, SNOMEDCT: 157
+ - EFO, MEDDRA: 154
+ - 35 other prefix pairs: 608"
+"Disease.txt
+PhenotypicFeature.txt",Manual Disease/Phenotype Concords,"88 cross-references involving 105 distinct CURIEs from Manually curated Disease/Phenotype cross-references from the Babel repository
+ - MONDO, UMLS: 61
+ - UMLS, UMLS: 8
+ - EFO, UMLS: 6
+ - DOID, MONDO: 3
+ - HP, MONDO: 2
+ - 7 other prefix pairs: 8"
+"Disease.txt
+PhenotypicFeature.txt",build_disease_obo_relationships(),"78 cross-references involving 153 distinct CURIEs from ubergraph.build_sets() (xref) of MP:0000001, restricted to target prefixes ['HP', 'MGI', 'MPATH', 'UMLS']
+ - MGI, MP: 70
+ - MP, MPATH: 4
+ - HP, MP: 2
+ - MP, UMLS: 2"
+Gene.txt,build_gene_ncbi_ensembl_relationships(),"13,656,908 cross-references involving 27,264,292 distinct CURIEs from Extracts gene-ensembl relationships from the NCBIGene gene2ensembl.gz file (babel_downloads/NCBIGene/gene2ensembl.gz), filtering to NCBIGene IDs in babel_outputs/intermediate/gene/ids/NCBIGene
+ - ENSEMBL, NCBIGene: 13,656,908"
+Gene.txt,build_gene_ncbigene_xrefs(),"566,964 cross-references involving 1,133,928 distinct CURIEs from Extracts gene-xref relationships from the NCBIGene gene_info.gz file (babel_downloads/NCBIGene/gene_info.gz), filtering to NCBIGene IDs in babel_outputs/intermediate/gene/ids/NCBIGene and extracting mappings for prefixes dict_values(['WormBase', 'FB', 'ZFIN', 'HGNC', 'MGI', 'RGD', 'dictyBase', 'SGD'])
+ - NCBIGene, RGD: 352,076
+ - MGI, NCBIGene: 58,200
+ - NCBIGene, WormBase: 46,890
+ - HGNC, NCBIGene: 44,236
+ - NCBIGene, ZFIN: 27,327
+ - 3 other prefix pairs: 38,235"
+Gene.txt,umls.build_sets(),"44,066 cross-references involving 88,117 distinct CURIEs from umls.build_sets() using UMLS MRCONSO with prefixes: {'HGNC': 'HGNC'} with cui_prefix set to UMLS
+ - HGNC, UMLS: 44,066"
+Gene.txt,get_umls_gene_protein_mappings,"23,036 cross-references involving 27,608 distinct CURIEs from Download UMLS-UniProtKB gene mappings from https://raw.githubusercontent.com/cbizon/UMLS_UniProtKB/refs/heads/main/outputs/UMLS_UniProtKB.tsv
+ - NCBIGene, UMLS: 23,036"
+Gene.txt,build_gene_medgen_relationships(),"17,728 cross-references involving 35,443 distinct CURIEs from Extracts gene-OMIM relationships from the mim2gene_medgen file (babel_downloads/NCBIGene/mim2gene_medgen)
+ - NCBIGene, OMIM: 17,728"
+GeneFamily.txt,pantherfamily.pull_labels(),"Main families and subfamily labels extracted from PANTHER Sequence Classification human.
+"
+GeneFamily.txt,HGNC Gene Family labels,"Labels extracted from HGNC GeneFamily CSV download
+"
+MacromolecularComplex.txt,ComplexPortal,"Labels, synonyms, taxa, and descriptions extracted from ComplexPortal ComplexTAB downloads
+"
+OrganismTaxon.txt,build_relationships(),"70,106 cross-references involving 140,203 distinct CURIEs from Builds relationships between MeSH and NCBI Taxon from the MeSH registry.
+ - MESH, NCBITaxon: 70,106"
+OrganismTaxon.txt,umls.build_sets(),"69,246 cross-references involving 138,463 distinct CURIEs from umls.build_sets() using UMLS MRCONSO with prefixes: {'MSH': 'MESH', 'NCBITaxon': 'NCBITaxon'} with cui_prefix set to UMLS
+ - MESH, UMLS: 69,246"
+Protein.txt,build_protein_uniprotkb_ensemble_relationships(),"16,742,215 cross-references involving 24,834,735 distinct CURIEs from Extracts UniProtKB-to-ENSEMBL relationships from the ENSEMBL id-mapping file (babel_downloads/UniProtKB/idmapping.dat) file.
+ - ENSEMBL, UniProtKB: 8,385,329
+ - ENSEMBL, ENSEMBL: 8,356,886"
+Protein.txt,build_pr_uniprot_relationships(),"206,356 cross-references involving 393,716 distinct CURIEs from Extracts PR xrefs from UberGraph after getting subclasses and xrefs of PR:000000001, ignoring [].
+ - PR, UniProtKB: 174,043
+ - PR, Reactome: 21,441
+ - EcoCyc, PR: 4,039
+ - IUPHARobj, PR: 2,823
+ - DTO, PR: 1,829
+ - 11 other prefix pairs: 2,181"
+Protein.txt,umls.build_sets(),"108,131 cross-references involving 215,083 distinct CURIEs from umls.build_sets() using UMLS MRCONSO with prefixes: {'MSH': 'MESH', 'DRUGBANK': 'DRUGBANK'} with cui_prefix set to UMLS
+ - MESH, UMLS: 105,639
+ - DRUGBANK, UMLS: 2,492"
+Protein.txt,get_umls_gene_protein_mappings,"23,036 cross-references involving 36,787 distinct CURIEs from Download UMLS-UniProtKB protein mappings from https://raw.githubusercontent.com/cbizon/UMLS_UniProtKB/refs/heads/main/outputs/UMLS_UniProtKB.tsv
+ - UMLS, UniProtKB: 23,036"
+Protein.txt,umls.build_sets(),"15,723 cross-references involving 28,419 distinct CURIEs from umls.build_sets() using UMLS MRCONSO with prefixes: {'NCI': 'NCIT'} with cui_prefix set to UMLS
+ - NCIT, UMLS: 15,723"
+Protein.txt,build_ncit_uniprot_relationships(),"6,411 cross-references involving 12,628 distinct CURIEs from Extracts NCIT-to-UniProtKB relationships from the NCIt-SwissProt_Mapping file (babel_downloads/NCIT/NCIt-SwissProt_Mapping.txt).
+ - NCIT, UniProtKB: 6,411"
+Publication.txt,parse_pubmed_into_tsvs(),"46,948,212 cross-references involving 75,763,689 distinct CURIEs from Parse PubMed files into TSVs and JSONL status files.
+ - PMID, doi: 34,633,711
+ - PMC, PMID: 12,314,501"
+umls.txt,UMLS Metathesaurus,"UMLS Metathesaurus 2026AA (full subset), downloaded via the UTS download API.
+"

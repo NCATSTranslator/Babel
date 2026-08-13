@@ -154,13 +154,18 @@ rule generate_prefix_comparison:
         # retrigger this rule -- it only reruns when prefix_report.json does. A full run regenerates
         # prefix_report.json, so this only matters if you rerun reports incrementally after changing
         # the pin; force it then with `-R generate_prefix_comparison`.
-        baseline_json="releases/prefix_reports/" + config["previous_release"] + ".json",
+        baseline_json=prefix_comparison.baseline_path(config["previous_release"]),
+        # The release that baseline belongs to. Passed separately because the file is named
+        # `prefix_report.json` inside a per-release directory, so its name is not recoverable from
+        # the path -- and the self-comparison guard is really a check that the two pins differ.
+        baseline_release=config["previous_release"],
         warn_abs=config["prefix_comparison_warn_abs"],
         warn_pct=config["prefix_comparison_warn_pct"],
     run:
         prefix_comparison.generate_prefix_comparison(
             input.prefix_report,
             params.baseline_json,
+            params.baseline_release,
             output.overall_csv,
             output.by_clique_csv,
             output.md,

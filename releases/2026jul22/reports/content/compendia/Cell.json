@@ -1,0 +1,56 @@
+{
+  "compendium_path": "babel_outputs/compendia/Cell.txt",
+  "count_by_biolink_type": {
+    "biolink:Cell": 9197
+  },
+  "count_by_prefix": {
+    "CL": 3315,
+    "MESH": 330,
+    "NCIT": 2597,
+    "SNOMEDCT": 1246,
+    "UBERON": 2,
+    "UMLS": 6462
+  },
+  "count_lines": 9197,
+  "counters": {
+    "clique_count": 9197,
+    "cliques_by_description_count": {
+      "0": 4504,
+      "1": 4476,
+      "2": 213,
+      "3": 4
+    },
+    "cliques_by_id_count": {
+      "1": 5137,
+      "2": 3641,
+      "3": 230,
+      "4": 109,
+      "5": 73,
+      "6": 7
+    },
+    "cliques_by_label_count": {
+      "0": 6,
+      "1": 6118,
+      "2": 2769,
+      "3": 181,
+      "4": 118,
+      "5": 5
+    },
+    "cliques_by_unique_description_count": {
+      "0": 4504,
+      "1": 4476,
+      "2": 213,
+      "3": 4
+    },
+    "cliques_by_unique_label_count": {
+      "0": 6,
+      "1": 8301,
+      "2": 689,
+      "3": 177,
+      "4": 22,
+      "5": 2
+    }
+  },
+  "name": "Cell",
+  "report_path": "babel_outputs/reports/content/compendia/Cell.json"
+}

@@ -1,0 +1,36 @@
+created_at: '2026-07-13T23:03:28.368537'
+type: compendium
+name: Publication.txt
+url: ''
+description: ''
+sources: []
+counts:
+  cliques: 40819774
+  eq_ids: 83969833
+  synonyms: 0
+  property_sources: {}
+combined_from:
+  parse_pubmed_into_tsvs():
+    created_at: '2026-07-13T21:20:16.151070'
+    type: concord
+    name: parse_pubmed_into_tsvs()
+    url: ''
+    description: Parse PubMed files into TSVs and JSONL status files.
+    sources:
+    - type: download
+      name: PubMed Baseline
+      url: ftp://ftp.ncbi.nlm.nih.gov/pubmed/baseline/
+    - type: download
+      name: PubMed Updates
+      url: ftp://ftp.ncbi.nlm.nih.gov/pubmed/updatefiles/
+    counts:
+      pmid_count: 40819774
+      concords:
+        count_concords: 46948212
+        count_distinct_curies: 75763689
+        predicates:
+          eq: 46948212
+        prefix_counts:
+          eq(PMID, doi): 34633711
+          eq(PMC, PMID): 12314501
+    combined_from: []
