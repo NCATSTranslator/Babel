@@ -10,7 +10,7 @@ Everything except the build directory comes from ``releases/releases.yaml``. The
 being drafted supplies the baselines, so the three PR ranges are derived rather than remembered::
 
     uv run python releases/scripts/draft_release_notes.py 2026jul22 \\
-        --build-dir /path/to/2026jul22 > releases/2026jul22.md
+        --build-dir /path/to/2026jul22 > releases/2026jul22/README.md
 
 PRs are collected with ``gh api .../compare/BASE...HEAD``, which asks GitHub for the commits reachable
 from HEAD but not from BASE. That is the only correct way to do this: NameRes v1.5.2 was cut *after*
@@ -544,12 +544,10 @@ def provenance_block(entry: dict, previous: dict | None, repo_root: Path = REPO_
     if entry.get("biolink"):
         lines.append(f"  - Built against Biolink Model v{entry['biolink']}")
     if build:
-        # Archived artifacts are keyed by *build*, not release id -- for the Translator-named
-        # releases those differ (id TranslatorFuguJuly2024, build 2024jul13), and linking by id
-        # pointed at files that were never there. See releases/ARTIFACTS.md.
-        lines.append(f"  - [Summary tables](./{build}/reports/tables/)")
-        lines.append(f"  - [CURIE summary](./{build}/reports/content/compendia_report.json)")
-        lines.append(f"  - [Prefix report](./{build}/reports/duckdb/prefix_report.json)")
+        # The note is `releases/<build>/README.md`, so it sits beside the archive it links into.
+        lines.append("  - [Summary tables](./reports/tables/)")
+        lines.append("  - [CURIE summary](./reports/content/compendia_report.json)")
+        lines.append("  - [Prefix report](./reports/duckdb/prefix_report.json)")
 
     for key, repo_key in (("nodenorm", "NodeNorm"), ("nameres", "NameRes")):
         versions = entry.get(key) or []
@@ -561,7 +559,11 @@ def provenance_block(entry: dict, previous: dict | None, repo_root: Path = REPO_
     lines.append("")
     lines.append("Next release: _None as yet_")
     if previous:
-        lines.append(f"Previous release: [{previous['title']}](./{previous['id']}.md)")
+        # Note directories are keyed by *build*, not release id -- for the Translator-named releases
+        # those differ (id TranslatorFuguJuly2024, build 2024jul13), and linking by id pointed at
+        # files that were never there. See releases/ARTIFACTS.md. `find_release` skips undeployed
+        # entries, so v1.11 -- the one note not at `<build>/README.md` -- never turns up here.
+        lines.append(f"Previous release: [{previous['title']}](../{previous.get('build') or previous['id']}/README.md)")
     return lines
 
 

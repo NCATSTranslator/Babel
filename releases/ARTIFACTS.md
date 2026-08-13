@@ -1,9 +1,10 @@
 # Archived build reports
 
 Each release directory here — [`2026jul22/`](2026jul22/), [`2025sep1/`](2025sep1/) and so on — holds
-a small subset of that build's own output: the summary tables, the per-compendium content reports,
-and the provenance metadata. A finished build is hundreds of gigabytes on a cluster that is
-eventually cleaned; this is the part worth keeping, about 420 KB per release.
+the release note as `README.md` plus a small subset of that build's own output: the summary tables,
+the per-compendium content reports, and the provenance metadata. A finished build is hundreds of
+gigabytes on a cluster that is eventually cleaned; this is the part worth keeping, about 420 KB per
+release.
 
 Directories are named by **build**, which is what every artifact and `config.yaml`'s
 `previous_release` pin already use. For recent releases that is also the release id; for the older
@@ -95,21 +96,29 @@ moved carries the previous build's name, and that value labels the baseline in t
 
 ## These files are build output, not repository content
 
-Everything under `releases/<build>/` is copied byte-for-byte out of a build. Nothing here is
-authored, and nothing here should be edited: an edit makes the archive disagree with the build it
-claims to be a subset of, which is the one property the layout rests on.
+Everything under `releases/<build>/reports/` and `releases/<build>/metadata/` is copied
+byte-for-byte out of a build. Nothing in those two subdirectories is authored, and nothing in them
+should be edited: an edit makes the archive disagree with the build it claims to be a subset of,
+which is the one property the layout rests on.
 
-That means **a repo-wide check that walks files has to exclude them**, and two already learned it
-the hard way:
+The Markdown at the directory root is the exception — `README.md` is the release note, and
+`2025sep1/v1.11.md` is the note for a release that never got a build of its own. Those are ordinary
+repository content, written by hand and edited like any other document.
+
+That means **a repo-wide check that walks files has to exclude the two build-output subdirectories,
+not the release directory** — a check scoped to the whole of `releases/<build>/` would stop looking
+at the notes, which are exactly the files it should be checking. Two checks already learned the
+first half the hard way:
 
 - `rumdl` (`[tool.rumdl] exclude` in `pyproject.toml`) — `prefix_comparison.md` is generated
   Markdown with long lines, and reflowing it would rewrite build output to satisfy a style rule.
 - `tests/test_docs_links.py` — two provenance YAMLs record an upstream URL pinned to `master`. That
   is what the build recorded, not a link this repository offers.
 
-If you add a third such check, exclude `releases/<build>/reports/` and `releases/<build>/metadata/`
-before the first archived release trips it. `releases/scripts/`, the notes and this file are
-ordinary repository content and stay in scope.
+Both are already scoped that way — rumdl excludes `releases/*/reports/` and
+`test_docs_links.py:_is_archived_build_report()` tests `parts[2] in {"reports", "metadata"}` — so
+neither needed changing when the notes moved in. If you add a third such check, scope it the same
+way. `releases/scripts/`, the notes and this file are ordinary repository content and stay in scope.
 
 ## What is not archived
 

@@ -6,8 +6,8 @@ description: Prepare the combined Babel/NodeNorm/NameRes release notes. Use when
 # Preparing a Babel release note
 
 A Babel release is a build plus the NodeNorm and NameRes versions deployed against it, so the note
-in `releases/<release>.md` covers all three repositories. The goal is a note a Babel consumer can
-skim to answer: what changed, what is new, and what might now look different or broken.
+in `releases/<build>/README.md` covers all three repositories. The goal is a note a Babel consumer
+can skim to answer: what changed, what is new, and what might now look different or broken.
 
 `releases/scripts/draft_release_notes.py` does the mechanical half. This skill is the judgement
 half.
@@ -33,8 +33,11 @@ version was actually deployed. If the previous release's entry has no NodeNorm/N
 
 ```bash
 uv run python releases/scripts/draft_release_notes.py <release> \
-    --build-dir <copy of the build's output directory> > releases/<release>.md
+    --build-dir <copy of the build's output directory> > releases/<build>/README.md
 ```
+
+The note lives in the build's own directory, beside that build's archived reports — see
+`releases/ARTIFACTS.md`. For recent releases the build name and the release id are the same.
 
 `--build-dir` needs `reports/tables/` from the build; without it the count table and the
 notable-changes section come out as TODOs. The user usually has a copy under `data/`. An
@@ -172,8 +175,8 @@ reading pass rather than a re-derivation.
    ones:
 
    ```bash
-   for pr in $(grep -oE 'pull/[0-9]+' releases/<release>.md | cut -d/ -f2 | sort -u); do
-     hits=$(grep -l "pull/$pr\b" releases/*.md | grep -v "<release>" | tr '\n' ' ')
+   for pr in $(grep -oE 'pull/[0-9]+' releases/<build>/README.md | cut -d/ -f2 | sort -u); do
+     hits=$(grep -l "pull/$pr\b" releases/*/*.md | grep -v "<build>" | tr '\n' ' ')
      [ -n "$hits" ] && echo "#$pr also in: $hits"
    done
    ```
