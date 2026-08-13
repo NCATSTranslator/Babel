@@ -105,13 +105,17 @@ class EfficiencyRow:
 
     ``max_rss_mb`` and ``total_cpu_sec`` are frequently 0 on clusters without
     ``jobacct_gather``/cgroup accounting (the reason we trust :class:`Benchmark`
-    for usage). ``requested_mem_mb`` and ``ncpus`` are always reliable.
+    for usage). ``requested_mem_mb`` and ``ncpus`` are always reliable, and they
+    are the only two fields the resources report consumes -- every wall-time
+    figure it prints comes from :attr:`Benchmark.seconds`, i.e. the benchmark
+    TSV's ``s`` column, not from the report's ``Elapsed_sec``. The two usage
+    columns are kept because reading 0 out of them is how you *confirm* the
+    accounting is missing rather than assume it.
     """
 
     rule: str
     requested_mem_mb: float
     ncpus: int
-    elapsed_sec: float
     total_cpu_sec: float
     max_rss_mb: float
 
@@ -156,7 +160,6 @@ def read_efficiency_report(path: str | Path) -> dict[str, EfficiencyRow]:
                     rule=rule,
                     requested_mem_mb=_to_float(row.get("RequestedMem_MB")),
                     ncpus=int(_to_float(row.get("NCPUS"))),
-                    elapsed_sec=_to_float(row.get("Elapsed_sec")),
                     total_cpu_sec=_to_float(row.get("TotalCPU_sec")),
                     max_rss_mb=_to_float(row.get("MaxRSS_MB")),
                 )
@@ -168,7 +171,6 @@ def read_efficiency_report(path: str | Path) -> dict[str, EfficiencyRow]:
                         rule=rule,
                         requested_mem_mb=max(prev.requested_mem_mb, new.requested_mem_mb),
                         ncpus=max(prev.ncpus, new.ncpus),
-                        elapsed_sec=max(prev.elapsed_sec, new.elapsed_sec),
                         total_cpu_sec=max(prev.total_cpu_sec, new.total_cpu_sec),
                         max_rss_mb=max(prev.max_rss_mb, new.max_rss_mb),
                     )
