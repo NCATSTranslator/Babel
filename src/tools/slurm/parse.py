@@ -74,6 +74,13 @@ def read_benchmarks(benchmarks_dir: str | Path) -> dict[str, Benchmark]:
     """Read every ``*.tsv`` benchmark in ``benchmarks_dir`` keyed by rule name.
 
     The rule name is the file stem (``anatomy_compendia.tsv`` -> ``anatomy_compendia``).
+
+    What this measures across retries and repeated runs: Snakemake rewrites the file on each
+    execution and writes nothing for a job that failed, so a rule's row is its **last successful**
+    execution -- a rule that died after 30s and then succeeded in 2h reads as 2h. The per-column
+    worst case taken here therefore only matters for a ``repeat()`` rule; every file in the
+    2026jul22 build held a single row. See "What a retry, or a second run, does to each number" in
+    ``docs/tools/Resources.md``.
     """
     benchmarks_dir = Path(benchmarks_dir)
     result: dict[str, Benchmark] = {}
@@ -159,6 +166,11 @@ def read_efficiency_report(path: str | Path) -> dict[str, EfficiencyRow]:
     Merges every shard (see :func:`_efficiency_csvs`); when a rule appears in more than one shard
     (retries across restarts) we keep the per-column worst case, mirroring how
     :func:`read_benchmarks` keeps the worst observed run.
+
+    Unlike the benchmarks, this includes **failed** attempts: rows are per job step, several per
+    attempt, and no state column is consulted. Harmless for the two fields consumed -- a retry asks
+    for the same memory and CPUs -- but it is why ``elapsed_sec`` would be the wrong source for a
+    duration, since a job killed at its time limit would win the ``max``.
     """
     result: dict[str, EfficiencyRow] = {}
     for csv_path in _efficiency_csvs(path):

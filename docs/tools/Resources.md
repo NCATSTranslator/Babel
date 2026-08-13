@@ -87,6 +87,36 @@ named column read straight into a float, so it cannot quietly start meaning some
 having it parsed and documented is what a future "how long do jobs hold their allocation?" question
 needs.
 
+### What a retry, or a second run, does to each number
+
+A Babel build usually takes several `sbatch` runs to finish, and rules fail and are retried inside
+each one. The three clocks handle that differently, so a number is only comparable to another
+number of the same kind:
+
+- **Benchmarks: the last *successful* execution, and nothing else.** Snakemake rewrites
+  `benchmarks/<rule>.tsv` on each execution (all 355 files from the 2026jul22 build hold exactly
+  one row), and a failed job writes no benchmark at all — the two rules whose every attempt failed
+  in that build left no file. So a rule that died after 30s and then succeeded in 2h reports 2h,
+  with no averaging and no trace of the failure. `leftover_umls` on babel-1.17 is the worked
+  example: attempts failed at 9885s, 17254s and 2148s, succeeded at ~2367s, and the benchmark
+  reads 2292s. `read_benchmarks()` does keep the per-column worst case across rows, but that only
+  fires for a `repeat()` rule.
+
+  Two consequences for a multi-run build. The benchmark set is a **mixture**: each rule's numbers
+  come from whichever run last succeeded at it, not from one coherent run. And a success is
+  *sticky* — a rule that succeeded in run 1 and then failed in run 3 still reports run 1's
+  numbers, which are real but older than the build you think you are sizing.
+
+- **The efficiency report: the per-column maximum over every attempt, failures included.** Its rows
+  are per job *step* (`53155.0`, `53155.1`, …), several per attempt and several attempts per rule,
+  and every shard is merged with `max`. Nothing consults a state column, so a failed attempt cannot
+  be excluded. That is harmless for the two fields actually consumed — a retry requests the same
+  memory and CPUs — but it is another reason not to reach for `Elapsed_sec`, which would take the
+  worst attempt including one killed at its time limit.
+
+- **`babel-slurm-errors`: one entry per attempt**, marked failed or not, which is the only one of
+  the three that can tell you a rule failed twice before it worked.
+
 The per-rule logs' start/end timestamps and failure state are the opposite case and are **not**
 parsed. Extracting those means matching free-form log text, which rots silently when Snakemake
 changes its output — and a test fixture cannot catch that, since it pins the format it was copied
