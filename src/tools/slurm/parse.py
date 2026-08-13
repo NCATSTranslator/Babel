@@ -103,19 +103,31 @@ def read_benchmarks(benchmarks_dir: str | Path) -> dict[str, Benchmark]:
 class EfficiencyRow:
     """Per-rule row from the SLURM executor's efficiency report.
 
-    ``max_rss_mb`` and ``total_cpu_sec`` are frequently 0 on clusters without
-    ``jobacct_gather``/cgroup accounting (the reason we trust :class:`Benchmark`
-    for usage). ``requested_mem_mb`` and ``ncpus`` are always reliable, and they
-    are the only two fields the resources report consumes -- every wall-time
-    figure it prints comes from :attr:`Benchmark.seconds`, i.e. the benchmark
-    TSV's ``s`` column, not from the report's ``Elapsed_sec``. The two usage
-    columns are kept because reading 0 out of them is how you *confirm* the
-    accounting is missing rather than assume it.
+    Only ``requested_mem_mb`` and ``ncpus`` are consumed, by ``resources.py``'s
+    requested side. The rest are parsed and kept deliberately -- reading them is
+    how a future run *confirms* what this cluster does and does not record --
+    so do not delete one on the grounds that nothing imports it:
+
+    - ``max_rss_mb`` and ``total_cpu_sec`` come back 0 on clusters without
+      ``jobacct_gather``/cgroup accounting, which is why :class:`Benchmark` is
+      the authority on usage. A run where they are non-zero means Hatteras
+      started recording per-step accounting, and the tool could stop relying on
+      the benchmarks for rules that have no ``benchmark:`` block.
+    - ``elapsed_sec`` is sacct's ``Elapsed``: the job's **allocation** span,
+      start to end. It is *not* what the report prints -- every wall-time figure
+      there is :attr:`Benchmark.seconds`, the benchmark TSV's ``s`` column,
+      which times the rule body from inside the job. The difference is the job's
+      setup and teardown (``Elapsed`` exceeded ``s`` for 57 of 57 rules on the
+      2026jul22 run, median 5s), and ``--time`` polices ``Elapsed``. Note that
+      neither includes time spent pending in the queue; the only number that
+      does is ``babel-slurm-errors``', which subtracts the *submit* timestamp.
+      See "Three clocks" in ``docs/tools/Resources.md``.
     """
 
     rule: str
     requested_mem_mb: float
     ncpus: int
+    elapsed_sec: float
     total_cpu_sec: float
     max_rss_mb: float
 
@@ -160,6 +172,7 @@ def read_efficiency_report(path: str | Path) -> dict[str, EfficiencyRow]:
                     rule=rule,
                     requested_mem_mb=_to_float(row.get("RequestedMem_MB")),
                     ncpus=int(_to_float(row.get("NCPUS"))),
+                    elapsed_sec=_to_float(row.get("Elapsed_sec")),
                     total_cpu_sec=_to_float(row.get("TotalCPU_sec")),
                     max_rss_mb=_to_float(row.get("MaxRSS_MB")),
                 )
@@ -171,6 +184,7 @@ def read_efficiency_report(path: str | Path) -> dict[str, EfficiencyRow]:
                         rule=rule,
                         requested_mem_mb=max(prev.requested_mem_mb, new.requested_mem_mb),
                         ncpus=max(prev.ncpus, new.ncpus),
+                        elapsed_sec=max(prev.elapsed_sec, new.elapsed_sec),
                         total_cpu_sec=max(prev.total_cpu_sec, new.total_cpu_sec),
                         max_rss_mb=max(prev.max_rss_mb, new.max_rss_mb),
                     )
@@ -188,7 +202,16 @@ _FAILURE_RE = re.compile(r"Error in rule |RuleException|Traceback \(most recent 
 
 @dataclass
 class RuleLog:
-    """Declared resources, wall-clock span, and failure state from a rule's log."""
+    """Declared resources, wall-clock span, and failure state from a rule's log.
+
+    ``resources.py`` consumes only ``mem_mb``/``runtime_min``/``cpus``. ``start``, ``end`` and
+    ``failed`` are kept for the same reason as :class:`EfficiencyRow`'s spare columns, but they
+    carry a risk those don't: they come from matching free-form log text (``_BRACKET_TS_RE``,
+    ``_FAILURE_RE``) rather than reading a named CSV column, so a change to Snakemake's log format
+    would break them silently while nothing consumed them. That is why
+    ``test_read_rule_logs_parses_resources_and_failure`` runs against lines copied verbatim out of
+    a real log rather than an invented one.
+    """
 
     rule: str
     job_id: str

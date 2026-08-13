@@ -81,6 +81,12 @@ a median of 5s: the gap is job startup and teardown around the benchmarked body.
 `s` slightly *understates* the span the limit applies to. At the default `--safety 1.5` that is
 noise, but it is the reason not to trim a runtime to a hair above the benchmark.
 
+`Elapsed_sec` is parsed into `EfficiencyRow` and simply not used, which is deliberate: the column
+is reliable (unlike `MaxRSS`/`TotalCPU` on this cluster), and having it already parsed and
+documented is what a future "how long do jobs actually hold their allocation?" question needs. The
+same goes for `RuleLog.start`/`end`/`failed`. Nothing consumes them today; deleting them would
+throw away the part that took the work — knowing which artifact records which span.
+
 ### Units
 
 > **TODO** ([#1014](https://github.com/NCATSTranslator/Babel/issues/1014)): this whole section
