@@ -57,9 +57,29 @@ TSVs for actual usage. Because the recommendations come from the benchmarks, the
 
 That includes wall time: **every duration in the report is the benchmark TSV's `s` column**
 (`Benchmark.seconds`, the per-column worst case across a rule's rows), never the efficiency
-report's `Elapsed_sec` or the span between a log's timestamps. Snakemake writes `s` from inside
-the job, so it measures execution and excludes SLURM queue time — the conservative choice for
-sizing a time limit, since the limit applies to execution too.
+report's `Elapsed_sec` or the span between a log's timestamps.
+
+### Three clocks, and which one a time limit polices
+
+A run records a job's duration three times, over three different spans:
+
+| Number | Source | Spans |
+|--------|--------|-------|
+| benchmark `s` | Snakemake, from inside the job | the rule's execution |
+| `Elapsed_sec` | sacct, via the efficiency report | job start → end |
+| `babel-slurm-errors`' duration | the control-node log | submit → finish |
+
+They are not interchangeable. [`babel-slurm-errors`](Errors.md) subtracts the Snakemake *submit*
+timestamp, so its figure includes time the job spent **pending in the queue**; sacct's `Elapsed`
+starts when the job is allocated and so excludes it. On the 2026jul22-era run under `data/`,
+submit→finish exceeded `Elapsed_sec` by a median of 35s and a maximum of 306s (over 60s for 15 of
+57 rules) — small only because that cluster was mostly free. Do not read a long duration in the
+errors report as a slow rule without checking whether the job was waiting.
+
+`--time` polices `Elapsed`, which was ≥ the benchmark's `s` for **57 of 57** rules on that run, by
+a median of 5s: the gap is job startup and teardown around the benchmarked body. So sizing from
+`s` slightly *understates* the span the limit applies to. At the default `--safety 1.5` that is
+noise, but it is the reason not to trim a runtime to a hair above the benchmark.
 
 ### Units
 
