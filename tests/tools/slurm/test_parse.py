@@ -235,6 +235,29 @@ def test_parse_job_events_tracks_retries_and_outcomes(tmp_path):
     assert {j.rule_name for j in jobs} == {"get_x"}
 
 
+def test_a_failure_is_timed_from_when_it_died_not_from_the_end_of_the_run(tmp_path):
+    """Snakemake reports a failure twice, and the second report is the run giving up hours later.
+
+    These three lines are copied verbatim from `logs/sbatch-1.18-run-1.err` of the 2026jul22 build
+    (lines 712, 942 and 3240). `process_ec_ids` was submitted at 04:56:58 and died 39 seconds later
+    at 04:57:37; the identical `Error in rule ... jobid: 189` line reappears at 04:21:18 the *next
+    day*, when the workflow finally aborted and listed what had failed. Keeping the later timestamp
+    reported the job as "failed after 23.4h" -- the length of the run, not of the job.
+    """
+    err = tmp_path / "sbatch-1.18-run-1.err"
+    err.write_text(
+        "INFO snakemake.logging [2026-07-13T04:56:58+0000]: Job 189 has been submitted with SLURM jobid 52504"
+        " (log: /projects/babel/runs/gaurav/babel-1.18/babel_outputs/logs/rule_process_ec_ids/52504.log).\n"
+        "ERROR snakemake.logging [2026-07-13T04:57:37+0000]: Error in rule process_ec_ids, jobid: 189\n"
+        "ERROR snakemake.logging [2026-07-14T04:21:18+0000]: Error in rule process_ec_ids, jobid: 189\n"
+    )
+
+    (job,) = parse.parse_job_events(err)
+
+    assert job.failed is True
+    assert (job.finished_at - job.submitted_at).total_seconds() == 39
+
+
 # --- parse.parse_failures ----------------------------------------------------
 
 
