@@ -6,8 +6,9 @@ run-analysis directory such as ``data/babel-1.17/``:
 - ``benchmarks/<rule>.tsv``     — Snakemake ``benchmark:`` output (actual usage).
 - ``reports/slurm/slurm_efficiency_reports/`` — the SLURM executor's efficiency
   report (a *directory* containing ``efficiency_report_*.csv``).
-- ``logs/rule_<name>/<jobid>.log`` — per-rule control-node logs (declared resources,
-  timestamps, tracebacks).
+- ``logs/rule_<name>/<jobid>.log`` — per-rule control-node logs. Only the declared
+  ``resources:`` block is read out of these; see :class:`RuleLog` for what else is in
+  there and why it is documented rather than parsed.
 
 Every reader tolerates partial runs and missing/``NA``/``-`` cells.
 """
@@ -196,21 +197,37 @@ def read_efficiency_report(path: str | Path) -> dict[str, EfficiencyRow]:
 _MEM_RE = re.compile(r"\bmem_mb=(\d+)")
 _RUNTIME_RE = re.compile(r"\bruntime=(\d+)")
 _CPUS_RE = re.compile(r"\bcpus_per_task=(\d+)")
-_BRACKET_TS_RE = re.compile(r"\[(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (\w+ +\d+ [\d:]+ \d{4})\]")
-_FAILURE_RE = re.compile(r"Error in rule |RuleException|Traceback \(most recent call last\):")
+
+# A per-rule log also carries the job's wall-clock span and whether it failed, and this parser used
+# to extract both into fields nothing read. Regexes over free-form log text rot silently when
+# Snakemake changes its output, and a frozen test fixture cannot catch that -- it pins the format we
+# copied it from, not the one the cluster emits next year. So the extraction is written down here
+# instead of carried as code, for whoever needs it:
+#
+# - **Span.** Each phase is announced by a bracketed local timestamp on its own line, e.g.
+#   `[Mon Jul 13 00:57:13 2026]` (`%b %d %H:%M:%S %Y`, day space-padded). Take the first and last
+#   in the file: `re.compile(r"\[(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (\w+ +\d+ [\d:]+ \d{4})\]")`.
+#   That span covers the job's own execution, so it is close to the benchmark's `s` rather than to
+#   sacct's `Elapsed` -- see "Three clocks" in docs/tools/Resources.md before comparing it to
+#   anything.
+# - **Failure.** `Error in rule `, `RuleException`, or `Traceback (most recent call last):` appears
+#   in a failed attempt's log. Note this has to be checked in *every* attempt's log, not just the
+#   newest, since a rule that failed twice and then succeeded leaves all three.
+#
+# Prefer `parse_job_events()` (below) over either: the aggregate sbatch `.err` log names every
+# attempt with submit and finish timestamps in one place, which is what `babel-slurm-errors` reports
+# from. Reach for the per-rule logs only when that file is gone.
+# `logs/rule_process_ec_ids/52504.log` in the babel-1.18 run of 2026-07-13 is a worked example of
+# both markers.
 
 
 @dataclass
 class RuleLog:
-    """Declared resources, wall-clock span, and failure state from a rule's log.
+    """The ``resources:`` a rule's job declared, read from its newest log.
 
-    ``resources.py`` consumes only ``mem_mb``/``runtime_min``/``cpus``. ``start``, ``end`` and
-    ``failed`` are kept for the same reason as :class:`EfficiencyRow`'s spare columns, but they
-    carry a risk those don't: they come from matching free-form log text (``_BRACKET_TS_RE``,
-    ``_FAILURE_RE``) rather than reading a named CSV column, so a change to Snakemake's log format
-    would break them silently while nothing consumed them. That is why
-    ``test_read_rule_logs_parses_resources_and_failure`` runs against lines copied verbatim out of
-    a real log rather than an invented one.
+    Only what ``resources.py`` consumes: the declared block is a fallback for the requested side
+    (:class:`EfficiencyRow` first) and the first choice for the runtime limit. The comment above
+    covers the span and failure state this deliberately does not extract.
     """
 
     rule: str
@@ -219,28 +236,13 @@ class RuleLog:
     mem_mb: int | None
     runtime_min: int | None
     cpus: int | None
-    start: datetime | None
-    end: datetime | None
-    failed: bool
-
-
-def _parse_bracket_timestamps(text: str) -> tuple[datetime | None, datetime | None]:
-    stamps = []
-    for match in _BRACKET_TS_RE.finditer(text):
-        try:
-            stamps.append(datetime.strptime(match.group(1), "%b %d %H:%M:%S %Y"))
-        except ValueError:
-            continue
-    if not stamps:
-        return None, None
-    return stamps[0], stamps[-1]
 
 
 def read_rule_logs(logs_dir: str | Path) -> dict[str, RuleLog]:
-    """Walk ``logs_dir/rule_<name>/<jobid>.log`` and summarize each rule.
+    """Walk ``logs_dir/rule_<name>/<jobid>.log`` and read each rule's declared ``resources:``.
 
-    When a rule has several job logs (retries), the declared resources come from
-    the newest log and ``failed`` is True if *any* attempt's log shows a failure.
+    When a rule has several job logs (retries) only the newest is read: a retry declares the same
+    block as the attempt before it unless the snakefile changed mid-run.
     """
     logs_dir = Path(logs_dir)
     result: dict[str, RuleLog] = {}
@@ -251,20 +253,11 @@ def read_rule_logs(logs_dir: str | Path) -> dict[str, RuleLog]:
         logs = sorted(rule_dir.glob("*.log"), key=lambda p: p.stat().st_mtime)
         if not logs:
             continue
-        any_failed = False
         newest = logs[-1]
-        newest_text = ""
-        for log in logs:
-            text = log.read_text(errors="replace")
-            if _FAILURE_RE.search(text):
-                any_failed = True
-            if log == newest:
-                newest_text = text
-        text = newest_text
+        text = newest.read_text(errors="replace")
         mem = _MEM_RE.search(text)
         runtime = _RUNTIME_RE.search(text)
         cpus = _CPUS_RE.search(text)
-        start, end = _parse_bracket_timestamps(text)
         result[rule] = RuleLog(
             rule=rule,
             job_id=newest.stem,
@@ -272,9 +265,6 @@ def read_rule_logs(logs_dir: str | Path) -> dict[str, RuleLog]:
             mem_mb=int(mem.group(1)) if mem else None,
             runtime_min=int(runtime.group(1)) if runtime else None,
             cpus=int(cpus.group(1)) if cpus else None,
-            start=start,
-            end=end,
-            failed=any_failed,
         )
     return result
 

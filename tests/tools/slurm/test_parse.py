@@ -98,15 +98,18 @@ def test_read_efficiency_report_merges_all_shards_worst_case(tmp_path):
 # --- parse.read_rule_logs ----------------------------------------------------
 
 
-def test_read_rule_logs_parses_resources_and_failure(tmp_path):
+def test_read_rule_logs_parses_declared_resources(tmp_path):
     """Every line here is copied verbatim from a real log, not composed to suit the parser.
 
     Source: `logs/rule_process_ec_ids/52504.log` from the babel-1.18 run of 2026-07-13 (the job
     that failed on a missing `babel_downloads/EC/enzyme.rdf`), lines 31, 32, 37, 81-83, 95 and 96.
     A real `resources:` line carries keys an invented one omits -- `mem_mib` and `disk_mib` sit
     beside `mem_mb`, and `disk_mb` precedes it -- which is exactly what `_MEM_RE`'s `\\bmem_mb=`
-    has to not confuse. `start`/`end`/`failed` have no consumer, so this fixture is the only thing
-    that would notice Snakemake changing the format underneath them.
+    has to not confuse; the fixture this replaced had none of them.
+
+    The failure and timestamp lines are kept in the fixture even though nothing reads them now:
+    they are what a real log looks like around the `resources:` line, and the comment in `parse.py`
+    that documents how to extract them points here.
     """
     logs = tmp_path / "logs"
     rdir = logs / "rule_process_ec_ids"
@@ -127,9 +130,7 @@ def test_read_rule_logs_parses_resources_and_failure(tmp_path):
     log = out["process_ec_ids"]
     # mem_mb, not mem_mib (15259) and not disk_mb (50000).
     assert (log.mem_mb, log.runtime_min, log.cpus) == (16000, 120, 1)
-    assert log.failed is True
-    assert log.start is not None and log.end is not None
-    assert (log.end - log.start).total_seconds() == 4
+    assert log.job_id == "52504"
 
 
 # --- parse.extract_error_content ---------------------------------------------

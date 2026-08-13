@@ -39,10 +39,11 @@ A Snakemake-on-SLURM run leaves three kinds of artifact under `babel_outputs/`:
   usually holds just a handful of rules. The reader therefore merges *all* shards (worst case per
   rule); reading only the newest would drop the requested-side data for almost every rule. When
   archiving a run, copy the whole directory, not just the newest file.
-- `logs/rule_<name>/<jobid>.log` — per-rule control-node logs. What this subcommand reads out of
-  them is the declared `resources:` line, as a fallback for the requested side and as the first
-  choice for the runtime limit. The parser also records each job's start/end timestamps and whether
-  it failed, but the sizing report uses neither: **every** wall-time figure it prints comes from the
+- `logs/rule_<name>/<jobid>.log` — per-rule control-node logs. The only thing read out of them is
+  the declared `resources:` line, as a fallback for the requested side and as the first choice for
+  the runtime limit. A log also carries the job's own start/end timestamps and its failure state;
+  neither is parsed, and the comment above `RuleLog` in `src/tools/slurm/parse.py` says how to
+  extract them if you ever need to. **Every** wall-time figure in the report comes from the
   benchmarks.
 
 ### Why the benchmark TSVs, not the efficiency report
@@ -81,11 +82,18 @@ a median of 5s: the gap is job startup and teardown around the benchmarked body.
 `s` slightly *understates* the span the limit applies to. At the default `--safety 1.5` that is
 noise, but it is the reason not to trim a runtime to a hair above the benchmark.
 
-`Elapsed_sec` is parsed into `EfficiencyRow` and simply not used, which is deliberate: the column
-is reliable (unlike `MaxRSS`/`TotalCPU` on this cluster), and having it already parsed and
-documented is what a future "how long do jobs actually hold their allocation?" question needs. The
-same goes for `RuleLog.start`/`end`/`failed`. Nothing consumes them today; deleting them would
-throw away the part that took the work — knowing which artifact records which span.
+`Elapsed_sec` is parsed into `EfficiencyRow` and simply not used, which is deliberate: it is a
+named column read straight into a float, so it cannot quietly start meaning something else, and
+having it parsed and documented is what a future "how long do jobs hold their allocation?" question
+needs.
+
+The per-rule logs' start/end timestamps and failure state are the opposite case and are **not**
+parsed. Extracting those means matching free-form log text, which rots silently when Snakemake
+changes its output — and a test fixture cannot catch that, since it pins the format it was copied
+from rather than the one the cluster emits next year. The recipe for both lives in a comment above
+`RuleLog` in `src/tools/slurm/parse.py`, so re-deriving them is a few lines rather than an
+investigation. Prefer `parse_job_events()` anyway: the aggregate sbatch `.err` log names every
+attempt with its submit and finish timestamps in one place.
 
 ### Units
 
