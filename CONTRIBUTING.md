@@ -50,7 +50,7 @@ at a time with CI on each. To sweep everything at once:
 uv tree --outdated --depth 1   # what the lockfile is behind on
 uv lock --upgrade              # take the latest release of everything
 uv sync
-PYTHONPATH=. uv run pytest     # then the four linter commands above
+uv run pytest     # then the four linter commands above
 ```
 
 No `npm-check-updates`-style step is needed: every dependency in `pyproject.toml` is an unbounded
@@ -69,7 +69,7 @@ The `>=` floors are minimums rather than what we test, since every install path 
 honest, resolve down to it, then put the real lockfile back:
 
 ```bash
-uv sync --resolution lowest-direct && PYTHONPATH=. uv run pytest -m unit
+uv sync --resolution lowest-direct && uv run pytest -m unit
 git checkout uv.lock && uv sync
 ```
 
@@ -77,7 +77,7 @@ git checkout uv.lock && uv sync
 
 Tests are written using [pytest](https://pytest.org/) and are present in the
 `tests` directory. You can run these tests by running
-`PYTHONPATH=. uv run pytest`.
+`uv run pytest`.
 
 For the full test taxonomy — marks (`unit`, `network`, `slow`, `pipeline`),
 where to add a new test, and how to run specific subsets — see
