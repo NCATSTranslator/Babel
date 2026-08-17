@@ -6,8 +6,12 @@ run-analysis directory such as ``data/babel-1.17/``:
 - ``benchmarks/<rule>.tsv``     — Snakemake ``benchmark:`` output (actual usage).
 - ``reports/slurm/slurm_efficiency_reports/`` — the SLURM executor's efficiency
   report (a *directory* containing ``efficiency_report_*.csv``).
-- ``logs/rule_<name>/<jobid>.log`` — per-rule control-node logs (declared resources,
-  timestamps, tracebacks).
+- ``logs/rule_<name>/<jobid>.log`` — per-rule control-node logs. ``babel-slurm-resources``
+  reads only the declared ``resources:`` block out of these; see :class:`RuleLog` for what
+  else is in there and why it is documented rather than parsed. ``babel-slurm-errors`` reads
+  more: :func:`declared_runtime_min` takes the ``runtime=`` limit and
+  :func:`extract_error_content` quotes the whole log, so an archived run needs these files
+  intact for the failure report, not just for the requested side.
 
 Every reader tolerates partial runs and missing/``NA``/``-`` cells.
 """
@@ -73,6 +77,13 @@ def read_benchmarks(benchmarks_dir: str | Path) -> dict[str, Benchmark]:
     """Read every ``*.tsv`` benchmark in ``benchmarks_dir`` keyed by rule name.
 
     The rule name is the file stem (``anatomy_compendia.tsv`` -> ``anatomy_compendia``).
+
+    What this measures across retries and repeated runs: Snakemake rewrites the file on each
+    execution and writes nothing for a job that failed, so a rule's row is its **last successful**
+    execution -- a rule that died after 30s and then succeeded in 2h reads as 2h. The per-column
+    worst case taken here therefore only matters for a ``repeat()`` rule; every file in the
+    2026jul22 build held a single row. See "What a retry, or a second run, does to each number" in
+    ``docs/tools/Resources.md``.
     """
     benchmarks_dir = Path(benchmarks_dir)
     result: dict[str, Benchmark] = {}
@@ -103,9 +114,25 @@ def read_benchmarks(benchmarks_dir: str | Path) -> dict[str, Benchmark]:
 class EfficiencyRow:
     """Per-rule row from the SLURM executor's efficiency report.
 
-    ``max_rss_mb`` and ``total_cpu_sec`` are frequently 0 on clusters without
-    ``jobacct_gather``/cgroup accounting (the reason we trust :class:`Benchmark`
-    for usage). ``requested_mem_mb`` and ``ncpus`` are always reliable.
+    Only ``requested_mem_mb`` and ``ncpus`` are consumed, by ``resources.py``'s
+    requested side. The rest are parsed and kept deliberately -- reading them is
+    how a future run *confirms* what this cluster does and does not record --
+    so do not delete one on the grounds that nothing imports it:
+
+    - ``max_rss_mb`` and ``total_cpu_sec`` come back 0 on clusters without
+      ``jobacct_gather``/cgroup accounting, which is why :class:`Benchmark` is
+      the authority on usage. A run where they are non-zero means Hatteras
+      started recording per-step accounting, and the tool could stop relying on
+      the benchmarks for rules that have no ``benchmark:`` block.
+    - ``elapsed_sec`` is sacct's ``Elapsed``: the job's **allocation** span,
+      start to end. It is *not* what the report prints -- every wall time
+      measured there is :attr:`Benchmark.seconds`, the benchmark TSV's ``s`` column,
+      which times the rule body from inside the job. The difference is the job's
+      setup and teardown (``Elapsed`` exceeded ``s`` for 57 of 57 rules on the
+      2026jul22 run, median 5s), and ``--time`` polices ``Elapsed``. Note that
+      neither includes time spent pending in the queue; the only number that
+      does is ``babel-slurm-errors``', which subtracts the *submit* timestamp.
+      See "Three clocks" in ``docs/tools/Resources.md``.
     """
 
     rule: str
@@ -142,6 +169,11 @@ def read_efficiency_report(path: str | Path) -> dict[str, EfficiencyRow]:
     Merges every shard (see :func:`_efficiency_csvs`); when a rule appears in more than one shard
     (retries across restarts) we keep the per-column worst case, mirroring how
     :func:`read_benchmarks` keeps the worst observed run.
+
+    Unlike the benchmarks, this includes **failed** attempts: rows are per job step, several per
+    attempt, and no state column is consulted. Harmless for the two fields consumed -- a retry asks
+    for the same memory and CPUs -- but it is why ``elapsed_sec`` would be the wrong source for a
+    duration, since a job killed at its time limit would win the ``max``.
     """
     result: dict[str, EfficiencyRow] = {}
     for csv_path in _efficiency_csvs(path):
@@ -180,13 +212,38 @@ def read_efficiency_report(path: str | Path) -> dict[str, EfficiencyRow]:
 _MEM_RE = re.compile(r"\bmem_mb=(\d+)")
 _RUNTIME_RE = re.compile(r"\bruntime=(\d+)")
 _CPUS_RE = re.compile(r"\bcpus_per_task=(\d+)")
-_BRACKET_TS_RE = re.compile(r"\[(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (\w+ +\d+ [\d:]+ \d{4})\]")
-_FAILURE_RE = re.compile(r"Error in rule |RuleException|Traceback \(most recent call last\):")
+
+# A per-rule log also carries the job's wall-clock span and whether it failed, and this parser used
+# to extract both into fields nothing read. Regexes over free-form log text rot silently when
+# Snakemake changes its output, and a frozen test fixture cannot catch that -- it pins the format we
+# copied it from, not the one the cluster emits next year. So the extraction is written down here
+# instead of carried as code, for whoever needs it:
+#
+# - **Span.** Each phase is announced by a bracketed local timestamp on its own line, e.g.
+#   `[Mon Jul 13 00:57:13 2026]` (`%b %d %H:%M:%S %Y`, day space-padded). Take the first and last
+#   in the file: `re.compile(r"\[(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (\w+ +\d+ [\d:]+ \d{4})\]")`.
+#   That span covers the job's own execution, so it is close to the benchmark's `s` rather than to
+#   sacct's `Elapsed` -- see "Three clocks" in docs/tools/Resources.md before comparing it to
+#   anything.
+# - **Failure.** `Error in rule `, `RuleException`, or `Traceback (most recent call last):` appears
+#   in a failed attempt's log. Note this has to be checked in *every* attempt's log, not just the
+#   newest, since a rule that failed twice and then succeeded leaves all three.
+#
+# Prefer `parse_job_events()` (below) over either: the aggregate sbatch `.err` log names every
+# attempt with submit and finish timestamps in one place, which is what `babel-slurm-errors` reports
+# from. Reach for the per-rule logs only when that file is gone.
+# `logs/rule_process_ec_ids/52504.log` in the babel-1.18 run of 2026-07-13 is a worked example of
+# both markers.
 
 
 @dataclass
 class RuleLog:
-    """Declared resources, wall-clock span, and failure state from a rule's log."""
+    """The ``resources:`` a rule's job declared, read from its newest log.
+
+    Only what ``resources.py`` consumes: the declared block is a fallback for the requested side
+    (:class:`EfficiencyRow` first) and the first choice for the runtime limit. The comment above
+    covers the span and failure state this deliberately does not extract.
+    """
 
     rule: str
     job_id: str
@@ -194,28 +251,13 @@ class RuleLog:
     mem_mb: int | None
     runtime_min: int | None
     cpus: int | None
-    start: datetime | None
-    end: datetime | None
-    failed: bool
-
-
-def _parse_bracket_timestamps(text: str) -> tuple[datetime | None, datetime | None]:
-    stamps = []
-    for match in _BRACKET_TS_RE.finditer(text):
-        try:
-            stamps.append(datetime.strptime(match.group(1), "%b %d %H:%M:%S %Y"))
-        except ValueError:
-            continue
-    if not stamps:
-        return None, None
-    return stamps[0], stamps[-1]
 
 
 def read_rule_logs(logs_dir: str | Path) -> dict[str, RuleLog]:
-    """Walk ``logs_dir/rule_<name>/<jobid>.log`` and summarize each rule.
+    """Walk ``logs_dir/rule_<name>/<jobid>.log`` and read each rule's declared ``resources:``.
 
-    When a rule has several job logs (retries), the declared resources come from
-    the newest log and ``failed`` is True if *any* attempt's log shows a failure.
+    When a rule has several job logs (retries) only the newest is read: a retry declares the same
+    block as the attempt before it unless the snakefile changed mid-run.
     """
     logs_dir = Path(logs_dir)
     result: dict[str, RuleLog] = {}
@@ -226,20 +268,11 @@ def read_rule_logs(logs_dir: str | Path) -> dict[str, RuleLog]:
         logs = sorted(rule_dir.glob("*.log"), key=lambda p: p.stat().st_mtime)
         if not logs:
             continue
-        any_failed = False
         newest = logs[-1]
-        newest_text = ""
-        for log in logs:
-            text = log.read_text(errors="replace")
-            if _FAILURE_RE.search(text):
-                any_failed = True
-            if log == newest:
-                newest_text = text
-        text = newest_text
+        text = newest.read_text(errors="replace")
         mem = _MEM_RE.search(text)
         runtime = _RUNTIME_RE.search(text)
         cpus = _CPUS_RE.search(text)
-        start, end = _parse_bracket_timestamps(text)
         result[rule] = RuleLog(
             rule=rule,
             job_id=newest.stem,
@@ -247,9 +280,6 @@ def read_rule_logs(logs_dir: str | Path) -> dict[str, RuleLog]:
             mem_mb=int(mem.group(1)) if mem else None,
             runtime_min=int(runtime.group(1)) if runtime else None,
             cpus=int(cpus.group(1)) if cpus else None,
-            start=start,
-            end=end,
-            failed=any_failed,
         )
     return result
 

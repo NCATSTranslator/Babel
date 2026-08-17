@@ -98,24 +98,39 @@ def test_read_efficiency_report_merges_all_shards_worst_case(tmp_path):
 # --- parse.read_rule_logs ----------------------------------------------------
 
 
-def test_read_rule_logs_parses_resources_and_failure(tmp_path):
+def test_read_rule_logs_parses_declared_resources(tmp_path):
+    """Every line here is copied verbatim from a real log, not composed to suit the parser.
+
+    Source: `logs/rule_process_ec_ids/52504.log` from the babel-1.18 run of 2026-07-13 (the job
+    that failed on a missing `babel_downloads/EC/enzyme.rdf`), lines 31, 32, 37, 81-83, 95 and 96.
+    A real `resources:` line carries keys an invented one omits -- `mem_mib` and `disk_mib` sit
+    beside `mem_mb`, and `disk_mb` precedes it -- which is exactly what `_MEM_RE`'s `\\bmem_mb=`
+    has to not confuse; the fixture this replaced had none of them.
+
+    The failure and timestamp lines are kept in the fixture even though nothing reads them now:
+    they are what a real log looks like around the `resources:` line, and the comment in `parse.py`
+    that documents how to extract them points here.
+    """
     logs = tmp_path / "logs"
-    rdir = logs / "rule_anatomy_ncit_ids"
+    rdir = logs / "rule_process_ec_ids"
     rdir.mkdir(parents=True)
-    (rdir / "451.log").write_text(
-        "[Thu Jun  4 05:15:08 2026]\n"
-        "rule anatomy_ncit_ids:\n"
-        "    resources: tmpdir=<TBD>, disk_mb=50000, mem_mb=64000, mem=64 GB, runtime=120, cpus_per_task=4\n"
+    (rdir / "52504.log").write_text(
+        "[Mon Jul 13 00:57:13 2026]\n"
+        "rule process_ec_ids:\n"
+        "    resources: tmpdir=<TBD>, disk_mb=50000, disk=50 GB, disk_mib=47684, mem_mb=16000,"
+        " mem=16 GB, mem_mib=15259, runtime=120, cpus_per_task=1\n"
         "RuleException:\n"
-        "HTTP Error 503: Service Temporarily Unavailable\n"
-        "[Thu Jun  4 05:15:26 2026]\n"
+        'FileNotFoundError in file "/projects/babel/runs/gaurav/babel-1.18/src/snakefiles/process.snakefile", line 46:\n'
+        "[Errno 2] No such file or directory: 'babel_downloads/EC/enzyme.rdf'\n"
+        "[Mon Jul 13 00:57:17 2026]\n"
+        "Error in rule process_ec_ids:\n"
     )
     out = parse.read_rule_logs(logs)
-    assert "anatomy_ncit_ids" in out
-    log = out["anatomy_ncit_ids"]
-    assert (log.mem_mb, log.runtime_min, log.cpus) == (64000, 120, 4)
-    assert log.failed is True
-    assert log.start is not None and log.end is not None and log.end > log.start
+    assert "process_ec_ids" in out
+    log = out["process_ec_ids"]
+    # mem_mb, not mem_mib (15259) and not disk_mb (50000).
+    assert (log.mem_mb, log.runtime_min, log.cpus) == (16000, 120, 1)
+    assert log.job_id == "52504"
 
 
 # --- parse.extract_error_content ---------------------------------------------
