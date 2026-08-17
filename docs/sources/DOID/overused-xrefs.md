@@ -34,23 +34,45 @@ MESH 248, ICD10 245, SNOMEDCT 126, ORDO 59, UMLS 41, NCIT 35, ICD0 33, ICD9 20, 
 KEGG.DISEASE 2. So this is not only an ICD problem — but the ICD codes are the ones claimed by
 dozens of terms apiece, and they dominate the head of the list.
 
-The eight most-claimed targets, with one example DOID term each (the full 831 rows are in
-[`overused-xrefs/overused-targets.csv`](overused-xrefs/overused-targets.csv), which lists every
-claiming subject):
+The eight most-claimed targets, with their ICD-10 label and one example DOID term each:
 
-| target | DOID subjects | one of them |
-| --- | --- | --- |
-| `ICD10:H90.3` | 134 | [`DOID:0050566`](http://purl.obolibrary.org/obo/DOID_0050566) "X-linked nonsyndromic deafness" |
-| `ICD10:H35.5` | 107 | [`DOID:0050572`](http://purl.obolibrary.org/obo/DOID_0050572) "cone-rod dystrophy" |
-| `ICD10:G11.4` | 60 | [`DOID:0060245`](http://purl.obolibrary.org/obo/DOID_0060245) "Mast syndrome" |
-| `ICD10:G60.0` | 58 | [`DOID:10595`](http://purl.obolibrary.org/obo/DOID_10595) "Charcot-Marie-Tooth disease" |
-| `ICD10:Q12.0` | 44 | [`DOID:0110260`](http://purl.obolibrary.org/obo/DOID_0110260) "cataract 7" |
-| `ICD10:I42.0` | 38 | [`DOID:12930`](http://purl.obolibrary.org/obo/DOID_12930) "dilated cardiomyopathy" |
-| `ICD10:E23.0` | 32 | [`DOID:9406`](http://purl.obolibrary.org/obo/DOID_9406) "hypopituitarism" |
-| `ICD10:Q34.8` | 32 | [`DOID:0110594`](http://purl.obolibrary.org/obo/DOID_0110594) "primary ciliary dyskinesia 1" |
+| target | ICD-10 label | DOID subjects | one of them |
+| --- | --- | --- | --- |
+| `ICD10:H90.3` | Sensorineural hearing loss, bilateral | 134 | [`DOID:0050566`](http://purl.obolibrary.org/obo/DOID_0050566) "X-linked nonsyndromic deafness" |
+| `ICD10:H35.5` | Hereditary retinal dystrophy | 107 | [`DOID:0050572`](http://purl.obolibrary.org/obo/DOID_0050572) "cone-rod dystrophy" |
+| `ICD10:G11.4` | Hereditary spastic paraplegia | 60 | [`DOID:0060245`](http://purl.obolibrary.org/obo/DOID_0060245) "Mast syndrome" |
+| `ICD10:G60.0` | Hereditary motor and sensory neuropathy | 58 | [`DOID:10595`](http://purl.obolibrary.org/obo/DOID_10595) "Charcot-Marie-Tooth disease" |
+| `ICD10:Q12.0` | Congenital cataract | 44 | [`DOID:0110260`](http://purl.obolibrary.org/obo/DOID_0110260) "cataract 7" |
+| `ICD10:I42.0` | Dilated cardiomyopathy | 38 | [`DOID:12930`](http://purl.obolibrary.org/obo/DOID_12930) "dilated cardiomyopathy" |
+| `ICD10:E23.0` | Hypopituitarism | 32 | [`DOID:9406`](http://purl.obolibrary.org/obo/DOID_9406) "hypopituitarism" |
+| `ICD10:Q34.8` | Other specified congenital malformations of respiratory system | 32 | [`DOID:0110594`](http://purl.obolibrary.org/obo/DOID_0110594) "primary ciliary dyskinesia 1" |
 
 Sampled from the head of the list rather than spread across it, because the point being made is
-about the most-claimed targets specifically.
+about the most-claimed targets specifically. Every ICD-10 label above names a disease *family* or
+a symptom, never one disease — which is precisely why citing one from each subtype fuses them.
+
+### The full record
+
+[`overused-xrefs/overused-targets.csv`](overused-xrefs/overused-targets.csv) has all 831 targets,
+2,833 rows, one row per (target, subject) pair with both endpoints labelled:
+
+```csv
+target,target_label,target_prefix,subject_count,subject,subject_label
+ICD10:G11.4,Hereditary spastic paraplegia,ICD10,60,DOID:0110764,hereditary spastic paraplegia 11
+ICD10:G11.4,Hereditary spastic paraplegia,ICD10,60,DOID:0110782,hereditary spastic paraplegia 31
+```
+
+Sort by `subject_count` and scan `subject_label`: a target whose subjects carry many different
+names is one that fuses unrelated concepts. Every DOID subject is labelled; 84% of target rows
+are. What stays blank is informative in its own right — ORDO (148 rows) and ICD0 (91) have no
+label source in a Babel checkout, and the unlabelled `SNOMEDCT_US_2025_09_01` rows (152) are
+retired SNOMED concepts whose only UMLS strings are marked obsolete, i.e. DOID cross-referencing
+codes that no longer exist. `GARD` cells are labelled only if you also have the GARD download
+from #980.
+
+While generating this: DOID emits Orphanet xrefs as `ORDO:2822`, but
+`build_disease_doid_relationships`'s `other_prefixes` map has no `ORDO` entry, so they are never
+normalized to Babel's `orphanet:` prefix. Unrelated to overuse, but probably worth its own look.
 
 ## Effect on cliques
 
@@ -75,14 +97,25 @@ one disease keeps normalizing to it.
 
 ## Regenerating
 
+Two commands, because the target list is a general concord audit while the clique numbers are
+specific to this decision:
+
 ```bash
+# the CSV -- any concord can be audited this way; see docs/tools/OverusedXrefs.md
+uv run babel-overused-xrefs \
+    --concord babel_outputs/intermediate/disease/concords/DOID \
+    --out docs/sources/DOID/overused-xrefs/overused-targets.csv \
+    --mrconso babel_downloads/UMLS/MRCONSO.RRF
+
+# the clique table above
 uv run python docs/sources/DOID/overused-xrefs/scripts/measure_overused_xrefs.py \
     [--intermediate-root babel_outputs/intermediate]
 ```
 
-The script imports the production `compute_cliques_for_impact_report()` and toggles the production
-`OVERUSE_FILTERED_CONCORDS`, so the measurement cannot drift from what the build does. It rewrites
-`overused-targets.csv` and prints the table above.
+Both go through production code — the tool shares `find_overused_xref_targets()` with the script,
+and the script imports `compute_cliques_for_impact_report()` and toggles the production
+`OVERUSE_FILTERED_CONCORDS` — so neither measurement can drift from what the build does. Drop
+`--mrconso` and the ICD-10/SNOMED label columns come out empty.
 
 ## Open before release
 

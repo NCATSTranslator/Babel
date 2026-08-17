@@ -1,0 +1,116 @@
+"""``babel-overused-xrefs`` — which xref targets in a concord are claimed by many subjects?
+
+Every concord row is fed to ``glom()`` as an equivalence, so one target claimed by many subjects
+fuses all of them into a single clique. That is the failure mode
+:func:`src.babel_utils.remove_overused_xrefs` drops and ``OVERUSE_FILTERED_CONCORDS`` opts a
+source into; this tool shows what is actually in there before or after that decision.
+
+Argument parsing and CSV writing only: the analysis is
+:func:`src.model.concords.find_overused_xref_targets` and labels come from
+:func:`src.reports.source_impact.load_labels_for_prefixes`.
+
+Invocation::
+
+    uv run babel-overused-xrefs --concord babel_outputs/intermediate/disease/concords/DOID \\
+        --out overused-targets.csv [--mrconso babel_downloads/UMLS/MRCONSO.RRF]
+
+Output is **long format** — one row per (target, subject) pair, not one row per target — so the
+result sorts and filters in a spreadsheet without unpacking a delimited cell. Both endpoints
+carry their preferred label where Babel knows one::
+
+    target,target_label,target_prefix,subject_count,subject,subject_label
+    ICD10:G11.4,Other hereditary spastic paraplegia,ICD10,60,DOID:0110764,hereditary spastic paraplegia 11
+
+Labels come from ``babel_downloads/<PREFIX>/labels``. Prefixes Babel references but never
+ingests (ICD-10, ICD-9, SNOMED) have no such file, so pass ``--mrconso`` to fill them in from
+UMLS; without it those cells are empty. Rows are sorted most-claimed target first, then by target
+and subject, so re-runs diff cleanly.
+"""
+
+import argparse
+import csv
+import pathlib
+import sys
+
+from src.model.concords import find_overused_xref_targets, load_mrconso_labels
+from src.reports.source_impact import load_labels_for_prefixes
+from src.util import Text, get_logger
+
+logger = get_logger(__name__)
+
+CSV_COLUMNS = ["target", "target_label", "target_prefix", "subject_count", "subject", "subject_label"]
+
+
+def resolve_labels(curies, downloads_root, mrconso=None):
+    """Return a CURIE->label map, from per-prefix label files plus an optional MRCONSO fallback."""
+    prefixes = {Text.get_prefix_or_none(c) or "" for c in curies}
+    prefixes.discard("")
+    by_prefix = load_labels_for_prefixes(sorted(prefixes), downloads_root, needed_curies=set(curies))
+    labels = {curie: label for prefix_labels in by_prefix.values() for curie, label in prefix_labels.items()}
+    missing = {c for c in curies if c not in labels}
+    if missing and mrconso:
+        labels.update(load_mrconso_labels(mrconso, missing))
+        missing = {c for c in curies if c not in labels}
+    if missing:
+        unlabelled_prefixes = sorted({Text.get_prefix_or_none(c) or "" for c in missing})
+        hint = "" if mrconso else " (pass --mrconso to resolve ICD/SNOMED-style codes from UMLS)"
+        logger.warning(
+            "no label for %d of %d CURIEs, prefixes %s%s", len(missing), len(curies), unlabelled_prefixes, hint
+        )
+    return labels
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--concord", required=True, help="Path to a concord file (subject/predicate/object TSV).")
+    parser.add_argument("--out", required=True, help="Where to write the CSV.")
+    parser.add_argument(
+        "--min-subjects",
+        type=int,
+        default=2,
+        help="Report a target claimed by at least this many distinct subjects (default: 2, "
+        "matching remove_overused_xrefs).",
+    )
+    parser.add_argument(
+        "--downloads-root",
+        default="babel_downloads",
+        help="Root holding per-prefix labels files (default: babel_downloads).",
+    )
+    parser.add_argument(
+        "--mrconso",
+        help="Optional UMLS MRCONSO.RRF, used to label CURIEs with no per-prefix labels file (ICD-10, ICD-9, SNOMED).",
+    )
+    args = parser.parse_args(argv)
+
+    overused = find_overused_xref_targets(args.concord, min_subjects=args.min_subjects)
+    if not overused:
+        logger.warning("no target in %s is claimed by %d+ subjects", args.concord, args.min_subjects)
+
+    curies = {o.target for o in overused} | {s for o in overused for s in o.subjects}
+    labels = resolve_labels(curies, args.downloads_root, mrconso=args.mrconso)
+
+    out_path = pathlib.Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    rows = 0
+    with out_path.open("w", newline="") as out:
+        writer = csv.writer(out)
+        writer.writerow(CSV_COLUMNS)
+        for target in overused:
+            for subject in sorted(target.subjects):
+                writer.writerow(
+                    [
+                        target.target,
+                        labels.get(target.target, ""),
+                        target.prefix,
+                        target.subject_count,
+                        subject,
+                        labels.get(subject, ""),
+                    ]
+                )
+                rows += 1
+    logger.info("wrote %s: %d rows across %d overused targets", out_path, rows, len(overused))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
