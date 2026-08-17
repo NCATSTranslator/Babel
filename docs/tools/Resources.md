@@ -39,12 +39,14 @@ A Snakemake-on-SLURM run leaves three kinds of artifact under `babel_outputs/`:
   usually holds just a handful of rules. The reader therefore merges *all* shards (worst case per
   rule); reading only the newest would drop the requested-side data for almost every rule. When
   archiving a run, copy the whole directory, not just the newest file.
-- `logs/rule_<name>/<jobid>.log` — per-rule control-node logs. The only thing read out of them is
-  the declared `resources:` line, as a fallback for the requested side and as the first choice for
-  the runtime limit. A log also carries the job's own start/end timestamps and its failure state;
-  neither is parsed, and the comment above `RuleLog` in `src/tools/slurm/parse.py` says how to
-  extract them if you ever need to. **Every** wall-time figure in the report comes from the
-  benchmarks.
+- `logs/rule_<name>/<jobid>.log` — per-rule control-node logs. The only thing *this* tool reads out
+  of them is the declared `resources:` line, as a fallback for the requested side and as the first
+  choice for the runtime limit. A log also carries the job's own start/end timestamps and its
+  failure state; neither is parsed here, and the comment above `RuleLog` in
+  `src/tools/slurm/parse.py` says how to extract them if you ever need to. **Every** wall-time
+  figure in the report comes from the benchmarks. Do not trim these logs from an archive on the
+  strength of that, though: [`babel-slurm-errors`](Errors.md) reads the `runtime=` limit *and*
+  quotes the whole log for its failure excerpts.
 
 ### Why the benchmark TSVs, not the efficiency report
 
@@ -68,7 +70,7 @@ A run records a job's duration three times, over three different spans:
 |--------|--------|-------|
 | benchmark `s` | Snakemake, from inside the job | the rule's execution |
 | `Elapsed_sec` | sacct, via the efficiency report | job start → end |
-| `babel-slurm-errors`' duration | the control-node log | submit → finish |
+| `babel-slurm-errors`' duration | the aggregate sbatch `.err` log | submit → finish (but see below) |
 
 They are not interchangeable. [`babel-slurm-errors`](Errors.md) subtracts the Snakemake *submit*
 timestamp, so its figure includes time the job spent **pending in the queue**; sacct's `Elapsed`
@@ -76,6 +78,15 @@ starts when the job is allocated and so excludes it. On the 2026jul22-era run un
 submit→finish exceeded `Elapsed_sec` by a median of 35s and a maximum of 306s (over 60s for 15 of
 57 rules) — small only because that cluster was mostly free. Do not read a long duration in the
 errors report as a slow rule without checking whether the job was waiting.
+
+**For a *failed* attempt, submit → finish is what that row should say and not yet what the tool
+prints.** `parse_job_events()` moves an attempt's finish timestamp on every `Error in rule` line it
+matches, and Snakemake emits that line twice: once when the job dies, and again in the end-of-run
+summary. So a failed job is timed to when the *run* gave up, not when it died. In the babel-1.18
+run, `process_ec_ids` was submitted at 04:56:58 and failed 39s later at 04:57:37; the summary
+repeated the line 23 hours on, and the tool reports "failed after 23h24m". Until
+[#1020](https://github.com/NCATSTranslator/Babel/issues/1020) lands, treat a failed attempt's
+duration as an upper bound on the whole run, not a measurement of the job.
 
 `--time` polices `Elapsed`, which was ≥ the benchmark's `s` for **57 of 57** rules on that run, by
 a median of 5s: the gap is job startup and teardown around the benchmarked body. So sizing from
