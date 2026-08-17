@@ -475,6 +475,17 @@ def test_doid_excluded_xref_prefixes_are_the_icd_families():
 
 
 @pytest.mark.unit
+def test_doid_is_not_overuse_filtered():
+    """DOID must stay OUT of OVERUSE_FILTERED_CONCORDS. Its ICD problem is handled categorically
+    by DOID_EXCLUDED_XREF_PREFIXES; adding the overuse filter on top would additionally discard
+    correct mappings this PR deliberately keeps -- MESH:D010195 "Pancreatitis" is claimed by both
+    DOID:4989 "pancreatitis" and DOID:2913 "acute pancreatitis", and the filter drops the genuine
+    equivalence along with the too-narrow one. Invert this assertion only alongside a decision on
+    the 533 remaining overused targets (docs/sources/DOID/mappings.md, issue #1029)."""
+    assert "DOID" not in diseasephenotype.OVERUSE_FILTERED_CONCORDS
+
+
+@pytest.mark.unit
 def test_build_disease_doid_relationships_forwards_excluded_prefixes():
     """build_disease_doid_relationships must forward DOID_EXCLUDED_XREF_PREFIXES into
     doid.build_xrefs, so the ICD exclusion actually runs during the build (not just when a caller

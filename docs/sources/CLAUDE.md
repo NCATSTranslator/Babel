@@ -59,7 +59,32 @@ Two filters exist on `ubergraph.build_sets()`:
 
 Both are matched against `Text.get_prefix_or_none()`, which **upper-cases**, so entries must be
 upper-case: `"MPATH"`, `"HTTP"` — a lower-case entry silently never matches. Worked example:
-`docs/sources/MP/mappings.md`.
+`docs/sources/MP/mappings.md`. Note the matching is exact *equality*, not `startswith`, so
+`ignore_list=["ICD"]` blocks nothing when the concord holds `ICD10:`/`ICD9:` — a no-op that reads
+like a working filter (HP's build has exactly this).
+
+A source not built through `build_sets()` needs the filter threaded into its own handler; follow
+`excluded_target_prefixes` on `efo.make_concords()` / `doid.build_xrefs()`. Apply it **after**
+`norm()` so it names post-rename prefixes (`ICD10`, not `ICD10CM`).
+
+### Overuse filtering or a prefix exclusion?
+
+`remove_overused_xrefs` (via `OVERUSE_FILTERED_CONCORDS`) drops any target claimed by 2+ subjects,
+whatever its namespace. A prefix exclusion drops a namespace outright. They are not
+interchangeable, and picking by "which shrinks the cliques more" gets it wrong:
+
+- Overuse is a **statistical proxy** — right when a namespace is usually fine but occasionally
+  promiscuous. Its blast radius shifts with every upstream release, and it discards a correct
+  mapping whenever a too-narrow sibling shares the target.
+- A prefix rule states what the namespace **means**, so it stays true. Use it when a whole
+  vocabulary is the wrong kind of thing: an ICD code names a disease *family*, so no DOID→ICD xref
+  is an equivalence however few subjects cite it.
+
+`uv run babel-overused-xrefs` (docs/tools/OverusedXrefs.md) is how you tell them apart, and
+`--min-subjects 1 --target-prefixes …` enumerates what an exclusion would drop. **Generate that
+record before the change lands** — afterwards the rows are gone and cannot be listed. Worked
+example, including the ~4,800 1:1 rows an overuse filter would have kept:
+`docs/sources/DOID/mappings.md`.
 
 ## Bad-xref files
 
