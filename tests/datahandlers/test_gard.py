@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from src.categories import DISEASE
-from src.datahandlers.gard import pull_gard_labels_and_synonyms
+from src.datahandlers.gard import normalize_gard_curie, pull_gard_labels_and_synonyms
 from src.node import NodeFactory
 from src.prefixes import GARD, OIO
 from src.util import get_biolink_model_toolkit, get_config
@@ -22,11 +22,13 @@ from tests.conftest import assert_labels_file_valid, assert_synonyms_file_valid
 
 FIXTURE = Path(__file__).resolve().parent.parent / "data" / "gard_sample.csv"
 
-# Verbatim rows from the GARD distribution CSV.
-_WITH_SYNS = "GARD:0021052"  # has a URL + pipe-separated synonyms
+# Verbatim rows from the GARD distribution CSV. The distribution zero-pads local ids to seven
+# digits; Babel emits the unpadded form (what DOID's xrefs use), so the expected output ids drop
+# the padding the fixture carries.
+_WITH_SYNS = "GARD:21052"  # published as GARD:0021052; has a URL + pipe-separated synonyms
 _WITH_SYNS_NAME = "10q22.3q23.3 microduplication syndrome"
 _WITH_SYNS_SYNS = ["dup(10)(q22.3q23.3)", "trisomy 10q22.3q23.3"]
-_NO_SYNS = "GARD:0027416"  # no synonyms and no URL -- still a real rare disease, kept
+_NO_SYNS = "GARD:27416"  # published as GARD:0027416; no synonyms and no URL -- still kept
 _NO_SYNS_NAME = "10p13-p14 deletion syndrome"
 
 
@@ -81,8 +83,30 @@ def test_pull_gard_labels_and_synonyms_skips_non_gard_rows(tmp_path):
 
     label_rows = assert_labels_file_valid(labels)
     syn_rows = assert_synonyms_file_valid(syns)
-    assert [r[0] for r in label_rows] == ["GARD:0000001"]
-    assert all(r[0] == "GARD:0000001" for r in syn_rows)
+    assert [r[0] for r in label_rows] == ["GARD:1"]
+    assert all(r[0] == "GARD:1" for r in syn_rows)
+
+
+# --- local-id form -------------------------------------------------------------
+#
+# The registry publishes GARD:0006038; DOID xrefs GARD:6038. Babel standardizes on the unpadded
+# form, so the same rare disease is one identifier rather than two cliques.
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "curie,expected",
+    [
+        ("GARD:0006038", "GARD:6038"),  # verbatim registry form for "Chikungunya fever"
+        ("GARD:6038", "GARD:6038"),  # verbatim DOID:0050012 xref form -- already unpadded
+        ("GARD:0000072", "GARD:72"),
+        ("MONDO:0005084", "MONDO:0005084"),  # non-GARD CURIEs are untouched, zero-padding and all
+        ("GARD:not-a-number", "GARD:not-a-number"),  # never seen; must not mangle
+    ],
+)
+def test_normalize_gard_curie(curie, expected):
+    """Zero-padding is stripped from GARD local ids only; everything else passes through."""
+    assert normalize_gard_curie(curie) == expected
 
 
 # --- extra_prefixes regression -------------------------------------------------

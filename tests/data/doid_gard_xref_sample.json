@@ -1,0 +1,72 @@
+{
+ "graphs": [
+  {
+   "nodes": [
+    {
+     "id": "http://purl.obolibrary.org/obo/DOID_0050012",
+     "lbl": "chikungunya",
+     "type": "CLASS",
+     "meta": {
+      "definition": {
+       "val": "A viral infectious disease that results_in infection located_in joint, has_material_basis_in Chikungunya virus (Alphavirus chikungunya), which is transmitted_by Aedes mosquito bite. The infection has_symptom fever, has_symptom arthralgia, and has_symptom maculopapular rash.",
+       "xrefs": [
+        "url:http://en.wikipedia.org/wiki/Chikungunya_virus",
+        "url:https://www.cdc.gov/chikungunya/about/"
+       ]
+      },
+      "subsets": [
+       "http://purl.obolibrary.org/obo/doid#DO_infectious_disease_slim",
+       "http://purl.obolibrary.org/obo/doid#DO_rare_slim",
+       "http://purl.obolibrary.org/obo/doid#zoonotic_infectious_disease"
+      ],
+      "synonyms": [
+       {
+        "pred": "hasExactSynonym",
+        "val": "Chikungunya fever"
+       }
+      ],
+      "xrefs": [
+       {
+        "val": "GARD:6038"
+       }
+      ],
+      "basicPropertyValues": [
+       {
+        "pred": "http://www.geneontology.org/formats/oboInOwl#hasOBONamespace",
+        "val": "disease_ontology"
+       }
+      ]
+     }
+    },
+    {
+     "id": "http://purl.obolibrary.org/obo/DOID_0061030",
+     "lbl": "hemophilia",
+     "type": "CLASS",
+     "meta": {
+      "definition": {
+       "val": "A blood coagulation disease characterized by spontaneous hemorrhage or prolonged bleeding.",
+       "xrefs": [
+        "url:https://medlineplus.gov/hemophilia.html",
+        "url:https://www.nhlbi.nih.gov/health/bleeding-disorders/types"
+       ]
+      },
+      "subsets": [
+       "http://purl.obolibrary.org/obo/doid#DO_rare_slim"
+      ],
+      "xrefs": [
+       {
+        "val": "GARD:0418"
+       }
+      ],
+      "basicPropertyValues": [
+       {
+        "pred": "http://www.geneontology.org/formats/oboInOwl#hasOBONamespace",
+        "val": "disease_ontology"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ]
+}

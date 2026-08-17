@@ -1,6 +1,7 @@
 import json
 
 from src.babel_utils import norm, pull_via_urllib
+from src.datahandlers.gard import normalize_gard_curie
 from src.prefixes import DOID, OIO
 
 
@@ -48,5 +49,9 @@ def build_xrefs(infile, xreffile, other_prefixes={}):
             doid_curie = f"{DOID}:{doid_id.split('_')[-1]}"
             if ("meta" in entry) and ("xrefs" in entry["meta"]):
                 for xref in entry["meta"]["xrefs"]:
-                    other = norm(xref["val"], other_prefixes)
+                    # DOID emits GARD ids in both the unpadded (GARD:6038, 2,164 xrefs) and the
+                    # registry's zero-padded (GARD:0006038, 23 xrefs) form. Babel standardizes on
+                    # the unpadded one, so unpad here too or the same rare disease lands in two
+                    # cliques -- see the "Local-id form" note in src/datahandlers/gard.py.
+                    other = normalize_gard_curie(norm(xref["val"], other_prefixes))
                     xrefs.write(f"{doid_curie}\txref\t{other}\n")

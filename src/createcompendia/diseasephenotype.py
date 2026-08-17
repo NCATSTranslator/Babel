@@ -624,8 +624,9 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
         # biolink_version), so write_compendium would silently drop every GARD CURIE. Pass it via
         # extra_prefixes (the documented escape hatch) so the rare-disease registry surfaces in
         # Disease.txt. Registering GARD with the Biolink team is the long-term fix (same situation
-        # as GTDB, PR #978). GARD contributes ids only (no concords), so this is the only call site
-        # that keeps GARD identifiers; without it ~16k rare-disease terms vanish. Harmless for
+        # as GTDB, PR #978). Without this, ~16k rare-disease terms vanish -- and so do the 2,186
+        # GARD ids DOID cross-references, which reach Disease cliques through DOID's concord
+        # rather than through GARD's own (GARD has no concord). Harmless for
         # PhenotypicFeature.txt -- no GARD member is ever typed PhenotypicFeature.
         write_compendium(
             metadata_yamls, sets, f"{baretype}.txt", biotype, {}, extra_prefixes=[GARD], icrdf_filename=icrdf_filename

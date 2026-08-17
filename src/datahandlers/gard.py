@@ -3,26 +3,40 @@
 GARD is a flat registry of rare-disease terms distributed by NCATS as a single CSV (UTF-8 with
 BOM, CRLF line endings) with four columns -- ``ID``, ``DisplayName``, ``Synonyms``, ``URL``:
 
-* ``ID`` -- a ``GARD:NNNNNNNN`` CURIE (zero-padded numeric local id).
+* ``ID`` -- a ``GARD:NNNNNNN`` CURIE (zero-padded to seven digits in the distribution; see
+  "Local-id form" below -- Babel emits the unpadded form).
 * ``DisplayName`` -- the preferred label.
 * ``Synonyms`` -- pipe-separated (``|``) alternative names; empty for many rows.
-* ``URL`` -- the rarediseases.info.nih.gov page, carried for reference only (the CURIE itself
-  resolves via the Biolink prefix map), so it is not ingested.
+* ``URL`` -- the rarediseases.info.nih.gov page. Babel has no per-identifier URL attribute file
+  (handlers emit only labels/synonyms/taxa/descriptions), so the column is not ingested.
 
-The registry carries no cross-references to other disease vocabularies (MONDO/DOID/UMLS/...), so
-GARD contributes identifiers and labels/synonyms only -- there is no concord file. Every GARD term
-is typed ``biolink:Disease``. Because ``GARD`` is not in the Biolink Model's ``disease``
-``id_prefixes`` (verified against the pinned ``biolink_version``), the disease compendium build
-passes ``extra_prefixes=[GARD]`` to keep the identifiers (see
-``src/createcompendia/diseasephenotype.py``); registering GARD with the Biolink team is the
-long-term fix, the same situation GTDB is in (see PR #978).
+Local-id form
+-------------
+The distribution zero-pads every local id to seven digits (``GARD:0006038``), but DOID -- the one
+other disease source that cross-references GARD -- overwhelmingly emits the unpadded form
+(``GARD:6038``: 2,164 of its 2,187 GARD xrefs, the remaining 23 padded). Babel standardizes on the
+**unpadded** form, so :func:`normalize_gard_curie` strips leading zeros both here and on DOID's
+xref targets (``src/datahandlers/doid.py``). Without that, ``GARD:0006038`` from the registry and
+``GARD:6038`` from DOID are two identifiers for one disease and ~1,886 rare diseases normalize to
+two conflicting cliques.
+
+GARD itself carries no cross-references to other disease vocabularies (MONDO/DOID/UMLS/...), so it
+contributes identifiers and labels/synonyms only -- there is no GARD concord file. Cliques still
+merge, in the other direction: DOID's xrefs pull 1,886 registry terms into existing DOID/MONDO
+disease cliques. (DOID also asserts 300 GARD ids that the current registry no longer publishes;
+those join their DOID clique without a label, the same as any other xref target Babel does not
+ingest.)
+
+Every GARD term is typed ``biolink:Disease``. ``GARD`` is registered neither in the Biolink Model's
+``disease`` ``id_prefixes`` nor in its prefix map (verified against the pinned
+``biolink_version``), so the disease compendium build passes ``extra_prefixes=[GARD]`` to keep the
+identifiers (see ``src/createcompendia/diseasephenotype.py``); registering GARD with the Biolink
+team is the long-term fix, the same situation GTDB is in (see PR #978).
 
 Field-shape note: a scan of the published CSV (16,214 rows) found no ``DisplayName`` or
 ``Synonyms`` value containing an embedded tab or newline, and no row with an empty
 ``DisplayName``. The labels/synonyms writers therefore emit raw values without sanitization,
-matching the Orphanet/DOID handlers; if a future GARD distribution introduces a tab/newline in a
-name, the per-row ``logger.warning`` for an empty name and the end-of-parse summary are the
-safety net that surfaces it rather than silently corrupting the TSV.
+matching the Orphanet/DOID handlers.
 """
 
 import csv
@@ -33,6 +47,19 @@ from src.prefixes import GARD, OIO
 from src.util import get_config, get_logger
 
 logger = get_logger(__name__)
+
+
+def normalize_gard_curie(curie):
+    """Strip the zero-padding from a ``GARD:`` local id, leaving non-GARD CURIEs untouched.
+
+    ``GARD:0006038`` -> ``GARD:6038``. Babel standardizes on the unpadded form because that is what
+    DOID's xrefs overwhelmingly use; see the module docstring. Applied both when reading the
+    registry CSV and to DOID's xref targets, so the two ID spaces meet.
+    """
+    prefix, _, local_id = curie.partition(":")
+    if prefix != GARD or not local_id.lstrip("0").isdigit():
+        return curie
+    return f"{GARD}:{local_id.lstrip('0')}"
 
 
 def pull_gard():
@@ -63,12 +90,16 @@ def pull_gard_labels_and_synonyms(infile, labelfile, synonymfile):
       the ``DisplayName`` itself emitted first as an exact synonym (the Orphanet/DOID convention,
       so the preferred label is searchable as a synonym too).
 
+    Local ids are unpadded via :func:`normalize_gard_curie` so they match DOID's xrefs.
+
     The CSV is UTF-8 with a BOM and CRLF line endings; ``utf-8-sig`` strips the BOM and
     ``newline=""`` lets the ``csv`` module handle embedded/CRLF quoting correctly. Rows whose
     ``ID`` is not a ``GARD:`` CURIE are skipped defensively (the registry contains only GARD ids,
-    but a malformed trailing row must never abort the whole ingest). A parse summary is logged at
-    the end so a future NCATS format change (e.g. a header or ID-column rename that silently
-    zeroes the output) is visible in the build log rather than producing an empty file quietly.
+    but a malformed trailing row must never abort the whole ingest).
+
+    A parse summary is logged at the end so a future NCATS format change (e.g. a header or
+    ID-column rename that silently zeroes the output) is visible in the build log rather than
+    producing an empty file quietly.
     """
     parsed = 0
     skipped_non_gard = 0
@@ -80,7 +111,7 @@ def pull_gard_labels_and_synonyms(infile, labelfile, synonymfile):
     ):
         reader = csv.DictReader(inf)
         for row in reader:
-            curie = (row.get("ID") or "").strip()
+            curie = normalize_gard_curie((row.get("ID") or "").strip())
             if not curie.startswith(f"{GARD}:"):
                 skipped_non_gard += 1
                 continue
