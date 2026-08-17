@@ -10,9 +10,9 @@ produced. This page records the real build-vs-build
 [`babel-clique-diff`](../../../tools/CliqueDiff.md) that closes that gap — the one the PR's own
 "Still to do before merge" section asked for.
 
-Artifacts in [`clique-diff/`](./clique-diff/), reduced from a 31,567-row, 9.2 MB CSV to 88 KB by
-[`scripts/reduce_clique_diff.py`](./clique-diff/scripts/reduce_clique_diff.py), which also prints
-every aggregate quoted below:
+Artifacts in [`clique-diff/`](./clique-diff/), reduced from a 31,567-row, 9.2 MB CSV to under
+100 KB by [`scripts/reduce_clique_diff.py`](./clique-diff/scripts/reduce_clique_diff.py), which
+also prints every aggregate quoted below:
 
 | file | rows | what it is |
 |---|---|---|
