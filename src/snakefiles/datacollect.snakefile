@@ -634,8 +634,12 @@ rule get_gard:
     benchmark:
         config["output_directory"] + "/benchmarks/get_gard.tsv"
     retries: 3  # Salesforce CDN occasionally fails transiently.
+    params:
+        # Declared as params (not read from config inside run:) so that repointing
+        # gard_download_url actually retriggers the download instead of reusing a stale CSV.
+        url=config["gard_download_url"],
     run:
-        gard.pull_gard()
+        gard.pull_gard(params.url, output.outfile)
 
 
 rule get_gard_labels_and_synonyms:

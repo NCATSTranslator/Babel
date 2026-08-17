@@ -109,6 +109,30 @@ def test_normalize_gard_curie(curie, expected):
     assert normalize_gard_curie(curie) == expected
 
 
+# --- ingest guards -------------------------------------------------------------
+#
+# A silently zeroed GARD ingest drops ~16k rare diseases from a build that still exits green, so
+# the parser raises rather than logging (AGENTS.md: "A log warning is not a control").
+
+
+@pytest.mark.unit
+def test_pull_gard_labels_and_synonyms_raises_on_renamed_header(tmp_path):
+    """An NCATS column rename must raise, not write an empty labels file."""
+    synth = tmp_path / "renamed.csv"
+    synth.write_text("GardId,Name,Synonyms,URL\nGARD:0000001,Real rare disease,,\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="missing expected column"):
+        pull_gard_labels_and_synonyms(str(synth), str(tmp_path / "labels"), str(tmp_path / "synonyms"))
+
+
+@pytest.mark.unit
+def test_pull_gard_labels_and_synonyms_raises_when_no_terms_parsed(tmp_path):
+    """A CSV with the right headers but no usable GARD rows must raise."""
+    synth = tmp_path / "empty.csv"
+    synth.write_text("ID,DisplayName,Synonyms,URL\nBOGUS:9999,Not a GARD term,,\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="yielded no terms"):
+        pull_gard_labels_and_synonyms(str(synth), str(tmp_path / "labels"), str(tmp_path / "synonyms"))
+
+
 # --- extra_prefixes regression -------------------------------------------------
 #
 # GARD is not in the Biolink Model's `disease` id_prefixes, so the disease compendium build passes

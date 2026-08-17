@@ -42,11 +42,16 @@ matching the Orphanet/DOID handlers.
 import csv
 import urllib.request
 
-from src.babel_utils import get_user_agent, make_local_name
+from src.babel_utils import get_user_agent
 from src.prefixes import GARD, OIO
-from src.util import get_config, get_logger
+from src.util import get_logger
 
 logger = get_logger(__name__)
+
+# Content types the Salesforce distribution link is allowed to return. The live download answers
+# `text/csv`; an expired or repointed ContentVersion link answers an HTML error page with HTTP 200,
+# which urllib does not raise on, so the type is the only cheap signal that we got a CSV at all.
+_ALLOWED_CONTENT_TYPES = ("text/csv", "application/csv", "application/octet-stream")
 
 
 def normalize_gard_curie(curie):
@@ -62,23 +67,31 @@ def normalize_gard_curie(curie):
     return f"{GARD}:{local_id.lstrip('0')}"
 
 
-def pull_gard():
-    """Download the GARD term CSV to ``babel_downloads/GARD/gard.csv`` and return the path.
+def pull_gard(url, outfile):
+    """Download the GARD term CSV from ``url`` to ``outfile`` and return the path.
 
     The distribution is a Salesforce ContentVersion download link -- a single URL with a query
     string and no stable filename on the server -- so ``pull_via_urllib``'s ``url + in_file_name``
-    assembly does not fit. We fetch the configured URL directly with redirect + User-Agent
-    handling (mirroring ``pull_via_urllib``). The URL lives in ``config.yaml``
-    (``gard_download_url``) so it can be pinned or repointed without a code change.
+    assembly does not fit. We fetch the URL directly with redirect + User-Agent handling
+    (mirroring ``pull_via_urllib``) and reject a response that is not a CSV, so an expired link
+    serving an HTML error page with HTTP 200 fails the rule instead of writing a file that parses
+    to zero terms. The URL lives in ``config.yaml`` (``gard_download_url``) and is passed in as a
+    Snakemake ``params`` value so that repointing it retriggers the download.
     """
-    url = get_config()["gard_download_url"]
-    outfile = make_local_name("gard.csv", subpath=GARD)
-
     opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
     request = urllib.request.Request(url, headers={"User-Agent": get_user_agent()})
     logger.info("Downloading GARD term list from %s", url)
-    with opener.open(request) as response, open(outfile, "wb") as out:
-        out.write(response.read())
+    with opener.open(request) as response:
+        content_type = response.headers.get_content_type()
+        if content_type not in _ALLOWED_CONTENT_TYPES:
+            raise RuntimeError(
+                f"GARD download {url} returned Content-Type {content_type}, not a CSV. "
+                f"The Salesforce ContentVersion link has probably expired or been repointed; "
+                f"update gard_download_url in config.yaml."
+            )
+        body = response.read()
+    with open(outfile, "wb") as out:
+        out.write(body)
     return outfile
 
 
@@ -97,9 +110,9 @@ def pull_gard_labels_and_synonyms(infile, labelfile, synonymfile):
     ``ID`` is not a ``GARD:`` CURIE are skipped defensively (the registry contains only GARD ids,
     but a malformed trailing row must never abort the whole ingest).
 
-    A parse summary is logged at the end so a future NCATS format change (e.g. a header or
-    ID-column rename that silently zeroes the output) is visible in the build log rather than
-    producing an empty file quietly.
+    A missing ``ID``/``DisplayName`` header or a parse that yields no terms raises: an NCATS format
+    change that silently zeroes this output would otherwise drop all ~16k rare diseases from a
+    build that still exits green, and a log line in a multi-hour build is not a control.
     """
     parsed = 0
     skipped_non_gard = 0
@@ -110,6 +123,11 @@ def pull_gard_labels_and_synonyms(infile, labelfile, synonymfile):
         open(synonymfile, "w") as syns,
     ):
         reader = csv.DictReader(inf)
+        missing = {"ID", "DisplayName"} - set(reader.fieldnames or [])
+        if missing:
+            raise ValueError(
+                f"GARD CSV {infile} is missing expected column(s) {sorted(missing)}; got {reader.fieldnames}"
+            )
         for row in reader:
             curie = normalize_gard_curie((row.get("ID") or "").strip())
             if not curie.startswith(f"{GARD}:"):
@@ -134,6 +152,11 @@ def pull_gard_labels_and_synonyms(infile, labelfile, synonymfile):
                 syn = syn.strip()
                 if syn:
                     syns.write(f"{curie}\t{OIO}:hasExactSynonym\t{syn}\n")
+    if parsed == 0:
+        raise ValueError(
+            f"GARD CSV {infile} yielded no terms ({skipped_non_gard} non-GARD rows skipped, "
+            f"{empty_name} GARD rows with no DisplayName). Refusing to write an empty GARD ingest."
+        )
     logger.info(
         "GARD parse: %d terms written, %d non-GARD rows skipped, %d GARD rows with no DisplayName",
         parsed,
