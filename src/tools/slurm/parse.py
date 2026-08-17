@@ -6,9 +6,12 @@ run-analysis directory such as ``data/babel-1.17/``:
 - ``benchmarks/<rule>.tsv``     — Snakemake ``benchmark:`` output (actual usage).
 - ``reports/slurm/slurm_efficiency_reports/`` — the SLURM executor's efficiency
   report (a *directory* containing ``efficiency_report_*.csv``).
-- ``logs/rule_<name>/<jobid>.log`` — per-rule control-node logs. Only the declared
-  ``resources:`` block is read out of these; see :class:`RuleLog` for what else is in
-  there and why it is documented rather than parsed.
+- ``logs/rule_<name>/<jobid>.log`` — per-rule control-node logs. ``babel-slurm-resources``
+  reads only the declared ``resources:`` block out of these; see :class:`RuleLog` for what
+  else is in there and why it is documented rather than parsed. ``babel-slurm-errors`` reads
+  more: :func:`declared_runtime_min` takes the ``runtime=`` limit and
+  :func:`extract_error_content` quotes the whole log, so an archived run needs these files
+  intact for the failure report, not just for the requested side.
 
 Every reader tolerates partial runs and missing/``NA``/``-`` cells.
 """

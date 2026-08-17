@@ -51,8 +51,9 @@ def test_wall_time_comes_from_the_benchmark_not_the_efficiency_report(tmp_path):
 
     The two measure different things -- Snakemake times the job from the inside, SLURM times the
     allocation -- so a report mixing them would size a time limit against a number that includes
-    queue time. The docs claimed the efficiency report's elapsed column was used; it never was, and
-    it is no longer even parsed.
+    queue time. The docs claimed the efficiency report's elapsed column was used; it never was. It
+    is still parsed into `EfficiencyRow.elapsed_sec` -- deliberately, see that class -- just never
+    consumed.
     """
     _make_run(tmp_path, "slow_rule", rss_mb=1000, mean_load=100.0, requested_mem_mb=8000)
     # The efficiency report disagrees with the benchmark by two orders of magnitude.
