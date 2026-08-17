@@ -88,33 +88,30 @@ EFO_EXCLUDED_XREF_PREFIXES = [MP]
 # exists for it; Babel does not ingest MPATH). See docs/sources/MP/mappings.md.
 MP_XREF_ALLOWED_PREFIXES = [HP, MGI, "MPATH", UMLS]
 
+# Target prefixes dropped from DOID's xrefs when building concords/DOID. An ICD code names a
+# disease *family*, never one disease: DOID:2476 "hereditary spastic paraplegia" carries
+# ICD10:G11.4, and so does every one of its 60 subtypes, so glom() fused 61 mutually exclusive
+# diseases into one 223-identifier clique. Human review of docs/sources/DOID/mappings/
+# icd-targets.csv found no DOID->ICD row that is an equivalence, which is why this is a
+# categorical exclusion rather than remove_overused_xrefs. The overuse filter is the wrong
+# instrument here in both directions: it under-cleans ICD (only 245 of 2,476 distinct ICD10
+# targets are overused, leaving ~4,800 bad rows) and over-cleans everything else (MESH:D010195
+# "Pancreatitis" is legitimately claimed by both DOID:4989 "pancreatitis" and DOID:2913 "acute
+# pancreatitis", and dropping it loses the correct mapping along with the too-broad one).
+# "ICD11" is a bare string: DOID emits 5 such rows and prefixes.py has no ICD11 constant
+# (cf. "MPATH" above). Applied inside doid.build_xrefs() *after* norm() renames ICD10CM->ICD10,
+# so these are the post-rename spellings. Being a denylist this is fail-open -- a new ICD
+# spelling DOID starts emitting would be trusted by default -- so
+# tests/pipeline/test_doid.py::test_doid_concord_has_no_icd_targets is the compensating check
+# over the real concord. See docs/sources/DOID/mappings.md.
+DOID_EXCLUDED_XREF_PREFIXES = [ICD10, ICD9, ICD0, "ICD11"]
+
 # Concord file basenames whose pair stream is filtered through remove_overused_xrefs
 # before glom. Other concord sources are trusted as-is. MP is included alongside the other
 # OBO-sourced concords (MONDO, HP, EFO) since its UberGraph xrefs are ordinary ontology xrefs
 # with the same "one xref target claimed by many source ids" failure mode the filter guards
 # against, and there's no reason to trust MP's xrefs more than HP's.
-#
-# DOID is included because it is the worst offender of the lot: it xrefs ICD-10/ICD-9 billing
-# codes, which are one-code-per-disease-family by construction, so a single code merges every
-# subtype that cites it. ICD10:H90.3 "sensorineural hearing loss, bilateral" is claimed by 134
-# DOID terms, ICD10:H35.5 "hereditary retinal dystrophy" by 107, and ICD10:G11.4 "other
-# hereditary spastic paraplegia" by 60 -- transitively collapsing 61 mutually-exclusive HSP
-# subtypes into one 223-identifier clique. Filtering DOID takes the largest disease clique from
-# 294 identifiers to 89 and the count of cliques with >=50 identifiers from 60 to 13, while
-# costing only 505 identifiers overall (a genuinely 1:1 ICD mapping is still merged). See
-# docs/sources/DOID/overused-xrefs.md and issue #1029.
-#
-# Two caveats on DOID's entry, both open at the time it was added (PR #1031) and tracked in that
-# doc's "Open before release" section — check there before treating either as settled:
-#   1. The numbers above come from *replaying* compute_cliques_for_impact_report() over one local
-#      intermediate set, not from a build-vs-build babel-clique-diff, so they cannot account for
-#      cliques moving between compendia.
-#   2. remove_overused_xrefs is prefix-agnostic, so this also drops DOID's overused MESH (248
-#      targets), SNOMEDCT (126), ORDO (59), UMLS (41) and NCIT (35) rows, not only the 245 ICD-10
-#      ones that motivated it. Nobody has yet audited whether those non-ICD drops lose anything
-#      real; if they do, the fix is a fail-closed allowed_prefixes on doid.build_xrefs() (what MP
-#      does) rather than widening this set.
-OVERUSE_FILTERED_CONCORDS = {"MONDO", "HP", "EFO", "MP", "DOID"}
+OVERUSE_FILTERED_CONCORDS = {"MONDO", "HP", "EFO", "MP"}
 
 # Per-source bad-xref files used when build_compendium is called without explicit
 # badxrefs (e.g. by the source-impact report CLI). The Snakemake call site still
@@ -415,11 +412,14 @@ def build_disease_doid_relationships(idfile, outfile, metadata_yaml):
         "UMLS_CUI": UMLS,
         "KEGG": KEGGDISEASE,
     }
-    doid.build_xrefs(idfile, outfile, other_prefixes=other_prefixes)
+    doid.build_xrefs(
+        idfile, outfile, other_prefixes=other_prefixes, excluded_target_prefixes=DOID_EXCLUDED_XREF_PREFIXES
+    )
     write_concord_metadata(
         metadata_yaml,
         name="build_disease_doid_relationships()",
-        description=f"build_disease_doid_relationships() using the DOID ID file {idfile} and other_prefixes {other_prefixes}",
+        description=f"build_disease_doid_relationships() using the DOID ID file {idfile} and other_prefixes "
+        f"{other_prefixes}, excluding target prefixes {DOID_EXCLUDED_XREF_PREFIXES}",
         concord_filename=outfile,
         sources=[{"type": "DOID", "name": "doid.build_xrefs"}],
     )
