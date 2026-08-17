@@ -81,6 +81,23 @@ def test_min_subjects_is_configurable(tmp_path):
 
 
 @pytest.mark.unit
+def test_target_prefixes_restricts_to_the_named_prefixes(tmp_path):
+    """--target-prefixes with --min-subjects 1 enumerates every row targeting those namespaces,
+    which is how a categorical prefix exclusion (DOID's ICD rows) is written out for review.
+    Prefixes are matched case-insensitively, hence the lower-case argument here."""
+    concord = _write_concord(
+        tmp_path / "DOID",
+        [("DOID:0110764", "ICD10:G11.4"), ("DOID:0110764", "MIM:604360"), ("DOID:2476", "ICD10:G11.4")],
+    )
+
+    icd_only = find_overused_xref_targets(concord, min_subjects=1, target_prefixes=["icd10"])
+    assert [o.target for o in icd_only] == ["ICD10:G11.4"]
+
+    # Without the restriction the 1:1 MIM row is reported too.
+    assert [o.target for o in find_overused_xref_targets(concord, min_subjects=1)] == ["ICD10:G11.4", "MIM:604360"]
+
+
+@pytest.mark.unit
 def test_malformed_row_raises(tmp_path):
     """A row that is not exactly three tab-separated columns must raise, not be mis-parsed."""
     concord = tmp_path / "DOID"

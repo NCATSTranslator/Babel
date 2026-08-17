@@ -14,11 +14,20 @@ make it worse: an ICD-10 billing code names a whole disease *family*, so every s
 it collapses together. See [`docs/sources/CLAUDE.md`](../sources/CLAUDE.md) ("An OBO `hasDbXref` is
 not an equivalence").
 
-Babel's defence is `remove_overused_xrefs()`, which drops any target claimed by two or more
-subjects; a disease source opts into it by joining `OVERUSE_FILTERED_CONCORDS` in
-`src/createcompendia/diseasephenotype.py`. This tool is how you decide whether a source needs
-that, and what it costs — run it **before** trusting a new source's xrefs, and again after a
-filtering change to see what is left.
+Babel has two defences, and this tool is how you choose between them. `remove_overused_xrefs()`
+drops any target claimed by two or more subjects, whatever its namespace; a disease source opts
+into it by joining `OVERUSE_FILTERED_CONCORDS` in `src/createcompendia/diseasephenotype.py`. A
+**categorical prefix exclusion** instead drops every row targeting a namespace, at the point the
+concord is built (`DOID_EXCLUDED_XREF_PREFIXES`, `EFO_EXCLUDED_XREF_PREFIXES`,
+`ubergraph.build_sets(ignore_list=…)`).
+
+Overuse is a statistical proxy; a prefix rule is a statement about what the namespace *means*.
+Reach for the exclusion when a whole vocabulary is the wrong kind of thing — ICD codes name
+disease families, so no DOID→ICD xref is an equivalence no matter how few subjects cite it — and
+for the overuse filter when a namespace is usually right but occasionally promiscuous. Run this
+tool **before** trusting a new source's xrefs, and again after a filtering change to see what is
+left. `--min-subjects 1 --target-prefixes …` enumerates exactly what a categorical exclusion
+would drop, which is what makes a wholesale removal reviewable.
 
 ## Output
 
@@ -59,13 +68,17 @@ itself worth noticing.
 |---|---|---|
 | `--concord` | required | Concord file to audit (`subject<TAB>predicate<TAB>object`). |
 | `--out` | required | Where to write the CSV. Parent directories are created. |
-| `--min-subjects` | `2` | Report a target claimed by at least this many subjects. The default matches `remove_overused_xrefs`, so the output is exactly the rows that filter would drop; raise it to see only the worst offenders. |
+| `--min-subjects` | `2` | Report a target claimed by at least this many subjects. The default matches `remove_overused_xrefs`, so the output is exactly the rows that filter would drop; raise it to see only the worst offenders, or set `1` to list every row. |
+| `--target-prefixes` | *(all)* | Comma-separated target namespaces to restrict to, matched case-insensitively (e.g. `ICD10,ICD9,ICD0,ICD11`). With `--min-subjects 1`, this enumerates every row a categorical prefix exclusion would drop. |
 | `--downloads-root` | `babel_downloads` | Root holding the per-prefix `labels` files. |
 | `--mrconso` | *(none)* | UMLS `MRCONSO.RRF`, used only for CURIEs with no per-prefix labels file. |
 
 ## Worked example
 
-[`docs/sources/DOID/overused-xrefs.md`](../sources/DOID/overused-xrefs.md) is the case this tool
-was built for: DOID's ICD-10 xrefs merged 61 hereditary spastic paraplegia subtypes into one
-223-identifier clique, and 831 of its xref targets turned out to be overused. Its committed
-`overused-targets.csv` is this tool's output.
+[`docs/sources/DOID/mappings.md`](../sources/DOID/mappings.md) is the case this tool was built
+for: DOID's ICD-10 xrefs merged 61 hereditary spastic paraplegia subtypes into one 223-identifier
+clique. Both of its committed CSVs are this tool's output, and together they show the two
+treatments a source's xrefs can get — `icd-targets.csv` (`--min-subjects 1 --target-prefixes
+ICD10,ICD9,ICD0,ICD11`) enumerates the 6,420 rows a *categorical prefix exclusion* drops, while
+`overused-targets.csv` (the default audit, run after that exclusion) is the record for the 533
+targets whose overuse is still an open question.

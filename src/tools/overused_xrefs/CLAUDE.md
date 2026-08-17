@@ -19,12 +19,18 @@ User-facing docs: [`docs/tools/OverusedXrefs.md`](../../../docs/tools/OverusedXr
   trade for an audit artifact; do not reuse it anywhere a label is authoritative.
 
 - **Two filters on MRCONSO are load-bearing**, both learned the hard way while generating
-  `docs/sources/DOID/overused-xrefs/overused-targets.csv`:
+  `docs/sources/DOID/mappings/overused-targets.csv`:
   - `LAT == language` (default `ENG`) — MRCONSO is multilingual and a Dutch string wins the TTY
     race for many ICD-10 codes. The first CSV generated was in Dutch.
   - `SUPPRESS == "N"` — DOID xrefs retired SNOMED concepts whose only strings are `SUPPRESS=O`
     obsolete forms. An empty cell beats an obsolete string presented as the current label.
 
 - **Output is long format** (one row per target/subject pair), so it sorts and filters in a
-  spreadsheet without unpacking a delimited cell. If you change the columns, regenerate the
-  committed DOID CSV in the same commit.
+  spreadsheet without unpacking a delimited cell. If you change the columns, regenerate both
+  committed DOID CSVs in the same commit.
+
+- **`--min-subjects 1 --target-prefixes …` is the other mode.** It stops being an overuse audit and
+  becomes "every row targeting these namespaces", which is how a *categorical prefix exclusion*
+  (`DOID_EXCLUDED_XREF_PREFIXES`) is enumerated for human review before a wholesale removal.
+  `docs/sources/DOID/mappings/icd-targets.csv` is that output; note it must be generated from a
+  **pre-exclusion** concord, since afterwards those rows no longer exist.

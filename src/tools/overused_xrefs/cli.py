@@ -72,6 +72,12 @@ def main(argv=None):
         "matching remove_overused_xrefs).",
     )
     parser.add_argument(
+        "--target-prefixes",
+        help="Comma-separated target prefixes to restrict the audit to (e.g. ICD10,ICD9). "
+        "With --min-subjects 1 this enumerates every row targeting those namespaces, which is "
+        "how a categorical prefix exclusion is reviewed.",
+    )
+    parser.add_argument(
         "--downloads-root",
         default="babel_downloads",
         help="Root holding per-prefix labels files (default: babel_downloads).",
@@ -82,9 +88,17 @@ def main(argv=None):
     )
     args = parser.parse_args(argv)
 
-    overused = find_overused_xref_targets(args.concord, min_subjects=args.min_subjects)
+    target_prefixes = (
+        [p.strip() for p in args.target_prefixes.split(",") if p.strip()] if args.target_prefixes else None
+    )
+    overused = find_overused_xref_targets(args.concord, min_subjects=args.min_subjects, target_prefixes=target_prefixes)
     if not overused:
-        logger.warning("no target in %s is claimed by %d+ subjects", args.concord, args.min_subjects)
+        logger.warning(
+            "no target in %s is claimed by %d+ subjects%s",
+            args.concord,
+            args.min_subjects,
+            f" within prefixes {target_prefixes}" if target_prefixes else "",
+        )
 
     curies = {o.target for o in overused} | {s for o in overused for s in o.subjects}
     labels = resolve_labels(curies, args.downloads_root, mrconso=args.mrconso)

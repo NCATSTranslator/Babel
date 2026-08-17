@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import pathlib
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 from src.util import Text, get_logger
@@ -57,13 +58,23 @@ class OverusedTarget:
         return len(self.subjects)
 
 
-def find_overused_xref_targets(concord_path: pathlib.Path | str, min_subjects: int = 2) -> list[OverusedTarget]:
+def find_overused_xref_targets(
+    concord_path: pathlib.Path | str,
+    min_subjects: int = 2,
+    target_prefixes: Iterable[str] | None = None,
+) -> list[OverusedTarget]:
     """Return every xref target in ``concord_path`` claimed by ``min_subjects`` or more subjects.
 
     Sorted most-claimed first, then by target, so re-runs diff cleanly. The default of 2 matches
     :func:`src.babel_utils.remove_overused_xrefs`, which drops a target the moment a second
     subject claims it -- so the default result is exactly the set of rows that filter would remove.
+
+    ``target_prefixes`` (matched case-insensitively) restricts the result to targets in those
+    namespaces. Combined with ``min_subjects=1`` that turns the audit into "every row targeting
+    these prefixes", which is how a *categorical* prefix exclusion -- the other treatment a
+    source's xrefs can get, e.g. ``DOID_EXCLUDED_XREF_PREFIXES`` -- is enumerated for review.
     """
+    wanted_prefixes = {p.upper() for p in target_prefixes} if target_prefixes is not None else None
     subjects_by_target: dict[str, set[str]] = defaultdict(set)
     with open(concord_path) as inf:
         for line_no, line in enumerate(inf, start=1):
@@ -79,6 +90,7 @@ def find_overused_xref_targets(concord_path: pathlib.Path | str, min_subjects: i
         OverusedTarget(target=target, subjects=subjects)
         for target, subjects in subjects_by_target.items()
         if len(subjects) >= min_subjects
+        and (wanted_prefixes is None or (Text.get_prefix_or_none(target) or "").upper() in wanted_prefixes)
     ]
     overused.sort(key=lambda o: (-o.subject_count, o.target))
     return overused
