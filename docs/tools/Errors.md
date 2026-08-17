@@ -60,7 +60,7 @@ A few behaviors exist because of the specific failure shapes this pipeline produ
   `Error in rule X, jobid: N` twice: once as the job fails, and again in the summary it prints when
   the workflow finally aborts — which on a long build is many hours later. The parser keeps the
   **first**, because the second is a property of the run, not of the job. Across the 2026jul22 and
-  babel-1.17 builds this affected 62 of 103 failed attempts, overstating them by a median of ~3.9
+  babel-1.17 builds this affected 63 of 103 failed attempts, overstating them by a median of ~3.9
   hours: `get_ensembl` read as `85,777s` where the job actually died after `20s`. A duration here
   spans submit → finish, so unlike the durations
   [`babel-slurm-resources`](Resources.md) reports it *does* include time spent queueing.
