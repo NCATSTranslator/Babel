@@ -2,9 +2,9 @@
 
 * Babel: [2024jul13](https://stars.renci.org/var/babel_outputs/2024jul13/) (approx
   [Babel 2024jul13](https://github.com/NCATSTranslator/Babel/releases/tag/2024jul13))
-  * [CURIE summary](./2024jul13/reports/content/compendia_report.json)
+  * [CURIE summary](./reports/content/compendia_report.json)
 
-Next release: [TranslatorGuppyAugust2024](./TranslatorGuppyAugust2024.md)
+Next release: [TranslatorGuppyAugust2024](../2024aug18/README.md)
 
 ## New features
 
@@ -29,6 +29,6 @@ Next release: [TranslatorGuppyAugust2024](./TranslatorGuppyAugust2024.md)
 * Updated PANTHER pathways from SequenceAssociationPathway3.6.7.txt to
   SequenceAssociationPathway3.6.8.txt.
 
-## Releases since [May 2024](TranslatorMay2024.md)
+## Releases since [May 2024](../2024mar24/README.md)
 
 * No official releases

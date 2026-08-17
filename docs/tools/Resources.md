@@ -39,18 +39,105 @@ A Snakemake-on-SLURM run leaves three kinds of artifact under `babel_outputs/`:
   usually holds just a handful of rules. The reader therefore merges *all* shards (worst case per
   rule); reading only the newest would drop the requested-side data for almost every rule. When
   archiving a run, copy the whole directory, not just the newest file.
-- `logs/rule_<name>/<jobid>.log` — per-rule control-node logs: the declared `resources:` line and
-  start/end timestamps, used as a fallback for the requested side and for the runtime limit.
+- `logs/rule_<name>/<jobid>.log` — per-rule control-node logs. The only thing *this* tool reads out
+  of them is the declared `resources:` line, as a fallback for the requested side and as the first
+  choice for the runtime limit. A log also carries the job's own start/end timestamps and its
+  failure state; neither is parsed here, and the comment above `RuleLog` in
+  `src/tools/slurm/parse.py` says how to extract them if you ever need to. **Every** wall time the
+  report *measures* comes from the benchmarks. Do not trim these logs from an archive on the
+  strength of that, though: [`babel-slurm-errors`](Errors.md) reads the `runtime=` limit *and*
+  quotes the whole log for its failure excerpts.
 
 ### Why the benchmark TSVs, not the efficiency report
 
 The efficiency report is the natural place to look for memory and CPU usage, but on Hatteras its
 `MaxRSS` and `TotalCPU` columns come back **empty** — the cluster's `jobacct_gather`/cgroup
 accounting isn't capturing per-step usage, so every `CPU Efficiency (%)` and `Memory Usage (%)` is
-`0`. The tool therefore uses the efficiency report only for the *requested* side
-(`RequestedMem_MB`, `NCPUS`, elapsed wall time) and relies on the `benchmark:` TSVs for actual
-usage. Because the recommendations come from the benchmarks, the override list (below) is reliable
-even when the requested side is sparse.
+`0`. The tool therefore consumes the efficiency report only for the *requested* side
+(`RequestedMem_MB` and `NCPUS` — those two columns and no others; the rest are parsed but unread,
+see `EfficiencyRow`) and relies on the `benchmark:` TSVs for actual usage. Because the
+recommendations come from the benchmarks, the override list (below) is reliable even when the
+requested side is sparse.
+
+That includes wall time: **every duration the report measures is the benchmark TSV's `s` column**
+(`Benchmark.seconds`, the per-column worst case across a rule's rows), never the efficiency
+report's `Elapsed_sec` or the span between a log's timestamps. The durations it does *not* measure
+are the runtime limits it prints beside them, which come from the log, the snakefile, or the
+cluster default (see "Runtime fit" below).
+
+### Three clocks, and which one a time limit polices
+
+A run records a job's duration three times, over three different spans:
+
+| Number | Source | Spans |
+|--------|--------|-------|
+| benchmark `s` | Snakemake, from inside the job | the rule's execution |
+| `Elapsed_sec` | sacct, via the efficiency report | job start → end |
+| `babel-slurm-errors`' duration | the aggregate sbatch `.err` log | submit → finish (but see below) |
+
+They are not interchangeable. [`babel-slurm-errors`](Errors.md) subtracts the Snakemake *submit*
+timestamp, so its figure includes time the job spent **pending in the queue**; sacct's `Elapsed`
+starts when the job is allocated and so excludes it. On the 2026jul22-era run under `data/`,
+submit→finish exceeded `Elapsed_sec` by a median of 35s and a maximum of 306s (over 60s for 15 of
+57 rules) — small only because that cluster was mostly free. Do not read a long duration in the
+errors report as a slow rule without checking whether the job was waiting.
+
+**For a *failed* attempt, submit → finish is what that row should say and not yet what the tool
+prints.** `parse_job_events()` moves an attempt's finish timestamp on every `Error in rule` line it
+matches, and Snakemake emits that line twice: once when the job dies, and again in the end-of-run
+summary. So a failed job is timed to when the *run* gave up, not when it died. In the babel-1.18
+run, `process_ec_ids` was submitted at 04:56:58 and failed 39s later at 04:57:37; the summary
+repeated the line 23 hours on, and the tool reports "failed after 23h24m". Until
+[#1020](https://github.com/NCATSTranslator/Babel/issues/1020) lands, treat a failed attempt's
+duration as an upper bound on the whole run, not a measurement of the job.
+
+`--time` polices `Elapsed`, which was ≥ the benchmark's `s` for **57 of 57** rules on that run, by
+a median of 5s: the gap is job startup and teardown around the benchmarked body. So sizing from
+`s` slightly *understates* the span the limit applies to. At the default `--safety 1.5` that is
+noise, but it is the reason not to trim a runtime to a hair above the benchmark.
+
+`Elapsed_sec` is parsed into `EfficiencyRow` and simply not used, which is deliberate: it is a
+named column read straight into a float, so it cannot quietly start meaning something else, and
+having it parsed and documented is what a future "how long do jobs hold their allocation?" question
+needs.
+
+### What a retry, or a second run, does to each number
+
+A Babel build usually takes several `sbatch` runs to finish, and rules fail and are retried inside
+each one. The three clocks handle that differently, so a number is only comparable to another
+number of the same kind:
+
+- **Benchmarks: the last *successful* execution, and nothing else.** Snakemake rewrites
+  `benchmarks/<rule>.tsv` on each execution (all 355 files from the 2026jul22 build hold exactly
+  one row), and a failed job writes no benchmark at all — the two rules whose every attempt failed
+  in that build left no file. So a rule that died after 30s and then succeeded in 2h reports 2h,
+  with no averaging and no trace of the failure. `leftover_umls` on babel-1.17 is the worked
+  example: attempts failed at 9885s, 17254s and 2148s, succeeded at ~2367s, and the benchmark
+  reads 2292s. `read_benchmarks()` does keep the per-column worst case across rows, but that only
+  fires for a `repeat()` rule.
+
+  Two consequences for a multi-run build. The benchmark set is a **mixture**: each rule's numbers
+  come from whichever run last succeeded at it, not from one coherent run. And a success is
+  *sticky* — a rule that succeeded in run 1 and then failed in run 3 still reports run 1's
+  numbers, which are real but older than the build you think you are sizing.
+
+- **The efficiency report: the per-column maximum over every attempt, failures included.** Its rows
+  are per job *step* (`53155.0`, `53155.1`, …), several per attempt and several attempts per rule,
+  and every shard is merged with `max`. Nothing consults a state column, so a failed attempt cannot
+  be excluded. That is harmless for the two fields actually consumed — a retry requests the same
+  memory and CPUs — but it is another reason not to reach for `Elapsed_sec`, which would take the
+  worst attempt including one killed at its time limit.
+
+- **`babel-slurm-errors`: one entry per attempt**, marked failed or not, which is the only one of
+  the three that can tell you a rule failed twice before it worked.
+
+The per-rule logs' start/end timestamps and failure state are the opposite case and are **not**
+parsed. Extracting those means matching free-form log text, which rots silently when Snakemake
+changes its output — and a test fixture cannot catch that, since it pins the format it was copied
+from rather than the one the cluster emits next year. The recipe for both lives in a comment above
+`RuleLog` in `src/tools/slurm/parse.py`, so re-deriving them is a few lines rather than an
+investigation. Prefer `parse_job_events()` anyway: the aggregate sbatch `.err` log names every
+attempt with its submit and finish timestamps in one place.
 
 ### Units
 

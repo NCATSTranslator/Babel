@@ -471,8 +471,8 @@ baseline to compare against:
    release's comparison, so a wrong value propagates forward. The 2026jul22 build shipped with
    `"name": "2026jul15"` for exactly this reason, which is why the check is no longer left to a
    human. If it fires, work out which release the value names before correcting it.
-2. Link the archive from the release's `releases/<release>.md` notes —
-   `draft_release_notes.py` emits those three links, keyed by build name.
+2. Link the archive from the release's `releases/<build>/README.md` note — `draft_release_notes.py`
+   emits those three links, now relative, since the note sits beside the archive.
 3. Commit. This copy becomes the reviewed baseline for the next release. Leave `config.yaml` alone
    here: `release_name` still names the build you just archived, and `previous_release` still names
    the baseline it was compared against.

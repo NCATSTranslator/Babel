@@ -46,6 +46,28 @@ def test_recommend_mem_rounds_up_to_bucket_with_floor():
     assert resources.recommend_mem_mb(41 * 1000, safety=1.5, floor_mb=8000) == 64 * 1000
 
 
+def test_wall_time_comes_from_the_benchmark_not_the_efficiency_report(tmp_path):
+    """`wall_sec` is the benchmark TSV's `s` column, never the efficiency report's `Elapsed_sec`.
+
+    The two measure different things -- Snakemake times the rule body from inside the job, SLURM
+    times the allocation, which also covers the job's setup and teardown (`Elapsed_sec` >= `s` for
+    57 of 57 rules on the 2026jul22 run, median +5s). Neither includes queue wait; that is the
+    third clock, `babel-slurm-errors`'. The docs claimed the efficiency report's elapsed column was
+    used; it never was. It is still parsed into `EfficiencyRow.elapsed_sec` -- deliberately, see
+    that class -- just never consumed.
+    """
+    _make_run(tmp_path, "slow_rule", rss_mb=1000, mean_load=100.0, requested_mem_mb=8000)
+    # The efficiency report disagrees with the benchmark by two orders of magnitude.
+    rep = tmp_path / "reports" / "slurm" / "slurm_efficiency_reports" / "efficiency_report_x.csv"
+    rep.write_text(
+        ",RuleName,NCPUS,Elapsed_sec,TotalCPU_sec,MaxRSS_MB,RequestedMem_MB\n0,rule_slow_rule,4,99999.0,0.0,,8000\n"
+    )
+
+    (rec,) = resources.analyze(tmp_path)
+
+    assert rec.wall_sec == 100.0
+
+
 def test_benchmark_mebibytes_are_converted_to_decimal_mb():
     """Snakemake's benchmark "MB" columns are mebibytes; SLURM's `mem` is decimal MB.
 
