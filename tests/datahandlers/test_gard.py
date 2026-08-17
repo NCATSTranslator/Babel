@@ -9,6 +9,7 @@ are kept, since the presence of a `URL` is not a reliable signal that a row is a
 `config.yaml`.
 """
 
+import csv
 from pathlib import Path
 
 import pytest
@@ -121,6 +122,18 @@ def test_pull_gard_labels_and_synonyms_raises_on_renamed_header(tmp_path):
     synth = tmp_path / "renamed.csv"
     synth.write_text("GardId,Name,Synonyms,URL\nGARD:0000001,Real rare disease,,\n", encoding="utf-8")
     with pytest.raises(ValueError, match="missing expected column"):
+        pull_gard_labels_and_synonyms(str(synth), str(tmp_path / "labels"), str(tmp_path / "synonyms"))
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("bad_value", ["Rare\tdisease", "Rare\ndisease"])
+def test_pull_gard_labels_and_synonyms_raises_on_tsv_control_chars(tmp_path, bad_value):
+    """A tab or newline in a name would split one TSV record into two malformed ones, so the
+    writer rejects it rather than trusting that no future GARD distribution introduces one."""
+    synth = tmp_path / "control_chars.csv"
+    with open(synth, "w", newline="", encoding="utf-8") as f:
+        csv.writer(f).writerows([["ID", "DisplayName", "Synonyms", "URL"], ["GARD:0000001", bad_value, "", ""]])
+    with pytest.raises(ValueError, match="tab or newline"):
         pull_gard_labels_and_synonyms(str(synth), str(tmp_path / "labels"), str(tmp_path / "synonyms"))
 
 

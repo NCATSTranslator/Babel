@@ -36,7 +36,9 @@ team is the long-term fix, the same situation GTDB is in (see PR #978).
 Field-shape note: a scan of the published CSV (16,214 rows) found no ``DisplayName`` or
 ``Synonyms`` value containing an embedded tab or newline, and no row with an empty
 ``DisplayName``. The labels/synonyms writers therefore emit raw values without sanitization,
-matching the Orphanet/DOID handlers.
+matching the Orphanet/DOID handlers -- but that scan describes one distribution, not the next one,
+so :func:`_reject_tsv_control_chars` enforces it at write time rather than leaving the TSV's
+integrity resting on a finding that nothing re-checks.
 """
 
 import csv
@@ -52,6 +54,18 @@ logger = get_logger(__name__)
 # `text/csv`; an expired or repointed ContentVersion link answers an HTML error page with HTTP 200,
 # which urllib does not raise on, so the type is the only cheap signal that we got a CSV at all.
 _ALLOWED_CONTENT_TYPES = ("text/csv", "application/csv", "application/octet-stream")
+
+
+def _reject_tsv_control_chars(curie, field, value):
+    """Raise if ``value`` carries a character that would corrupt the TSV it is about to be written to.
+
+    The labels/synonyms files are tab-separated with one record per line, so an embedded tab or
+    newline silently splits one record into two malformed ones. The published CSV has none, but
+    enforcing that at write time is what makes it safe to emit raw values -- a one-off scan of one
+    distribution cannot speak for the next one.
+    """
+    if any(ch in value for ch in "\t\r\n"):
+        raise ValueError(f"GARD term {curie} has a tab or newline in its {field} ({value!r}); it would corrupt the TSV")
 
 
 def normalize_gard_curie(curie):
@@ -123,7 +137,7 @@ def pull_gard_labels_and_synonyms(infile, labelfile, synonymfile):
         open(synonymfile, "w") as syns,
     ):
         reader = csv.DictReader(inf)
-        missing = {"ID", "DisplayName"} - set(reader.fieldnames or [])
+        missing = {"ID", "DisplayName", "Synonyms"} - set(reader.fieldnames or [])
         if missing:
             raise ValueError(
                 f"GARD CSV {infile} is missing expected column(s) {sorted(missing)}; got {reader.fieldnames}"
@@ -142,6 +156,7 @@ def pull_gard_labels_and_synonyms(infile, labelfile, synonymfile):
                 empty_name += 1
                 logger.warning("GARD term %s has no DisplayName; it will not be ingested", curie)
                 continue
+            _reject_tsv_control_chars(curie, "DisplayName", name)
             parsed += 1
             labels.write(f"{curie}\t{name}\n")
             syns.write(f"{curie}\t{OIO}:hasExactSynonym\t{name}\n")
@@ -151,6 +166,7 @@ def pull_gard_labels_and_synonyms(infile, labelfile, synonymfile):
             for syn in synonyms_field.split("|"):
                 syn = syn.strip()
                 if syn:
+                    _reject_tsv_control_chars(curie, "synonym", syn)
                     syns.write(f"{curie}\t{OIO}:hasExactSynonym\t{syn}\n")
     if parsed == 0:
         raise ValueError(
