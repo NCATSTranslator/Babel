@@ -1,7 +1,7 @@
 # Source impact report: GARD
 
-- Generated: 2026-08-17 21:06:25 UTC
-- Babel commit: b191bab05d064cdd80a75c732bf664bf34fbd3b6
+- Generated: 2026-08-17 22:21:22 UTC
+- Babel commit: 4805fcf2453e0e61126087aa28eef02fdfe45bd2
 - Source pipelines: disease
 - Source prefixes: GARD
 - Comparison mode: synthetic
