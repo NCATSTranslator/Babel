@@ -84,15 +84,23 @@ The script imports the production `compute_cliques_for_impact_report()` and togg
 `OVERUSE_FILTERED_CONCORDS`, so the measurement cannot drift from what the build does. It rewrites
 `overused-targets.csv` and prints the table above.
 
-## Limits of this measurement
+## Open before release
 
-- It is a **replay**, not a build-vs-build diff. A replay only sees cliques the build already
-  produced, so it cannot show cliques that move *between* compendia. Confirm with
-  `babel-clique-diff` on a real build.
-- `remove_overused_xrefs` is **prefix-agnostic**: it also drops DOID's MESH/SNOMEDCT/UMLS rows
-  whose target is claimed by 2+ DOID terms, not only the ICD ones. That is the same treatment
-  MONDO/HP/EFO/MP already get, but it is a broader change than "stop trusting ICD codes". A
-  fail-closed `allowed_prefixes` on `doid.build_xrefs()` (the MP treatment,
-  [`docs/sources/MP/mappings.md`](../MP/mappings.md)) would state the intent more explicitly at the
-  cost of a curated prefix list.
-- The intermediate set is one local build of the `disease` pipeline, not a released build.
+Two questions this measurement could not settle. Both were raised on PR #1031 and are unresolved
+as of this note; whoever closes them should update this section rather than delete it.
+
+- [ ] **Confirm on a real build with `babel-clique-diff`.** Everything above is a *replay*, which
+  only sees cliques the build already produced — it cannot show cliques that a change creates,
+  splits, or moves *between* compendia (see [`docs/sources/CLAUDE.md`](../CLAUDE.md), "Replaying a
+  pipeline function beats rebuilding to measure a change"). The clique-size table is therefore a
+  strong signal, not a build guarantee, and the "cliques" totals in particular are the numbers most
+  likely to move. The intermediate set behind it is one local `disease` build, not a released one.
+- [ ] **Decide whether prefix-agnostic filtering is the treatment we want.**
+  `remove_overused_xrefs` drops *any* target claimed by 2+ DOID subjects, so it also removes DOID's
+  MESH (248 targets), SNOMEDCT (126), ORDO (59), UMLS (41) and NCIT (35) rows, not only the 245
+  ICD-10 ones — see `overused-xrefs/overused-targets.csv` for exactly which. That is the same
+  treatment MONDO/HP/EFO/MP already get, and it is why the fix is one line; but it is broader than
+  "stop trusting ICD codes", and no one has looked at whether the non-ICD drops are losses. The
+  surgical alternative is a fail-closed `allowed_prefixes` on `doid.build_xrefs()` (the MP
+  treatment, [`docs/sources/MP/mappings.md`](../MP/mappings.md)), which states the intent
+  explicitly at the cost of a curated prefix list that has to be maintained.

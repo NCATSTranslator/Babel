@@ -103,6 +103,17 @@ MP_XREF_ALLOWED_PREFIXES = [HP, MGI, "MPATH", UMLS]
 # 294 identifiers to 89 and the count of cliques with >=50 identifiers from 60 to 13, while
 # costing only 505 identifiers overall (a genuinely 1:1 ICD mapping is still merged). See
 # docs/sources/DOID/overused-xrefs.md and issue #1029.
+#
+# Two caveats on DOID's entry, both open at the time it was added (PR #1031) and tracked in that
+# doc's "Open before release" section — check there before treating either as settled:
+#   1. The numbers above come from *replaying* compute_cliques_for_impact_report() over one local
+#      intermediate set, not from a build-vs-build babel-clique-diff, so they cannot account for
+#      cliques moving between compendia.
+#   2. remove_overused_xrefs is prefix-agnostic, so this also drops DOID's overused MESH (248
+#      targets), SNOMEDCT (126), ORDO (59), UMLS (41) and NCIT (35) rows, not only the 245 ICD-10
+#      ones that motivated it. Nobody has yet audited whether those non-ICD drops lose anything
+#      real; if they do, the fix is a fail-closed allowed_prefixes on doid.build_xrefs() (what MP
+#      does) rather than widening this set.
 OVERUSE_FILTERED_CONCORDS = {"MONDO", "HP", "EFO", "MP", "DOID"}
 
 # Per-source bad-xref files used when build_compendium is called without explicit
