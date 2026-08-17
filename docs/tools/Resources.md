@@ -43,8 +43,8 @@ A Snakemake-on-SLURM run leaves three kinds of artifact under `babel_outputs/`:
   of them is the declared `resources:` line, as a fallback for the requested side and as the first
   choice for the runtime limit. A log also carries the job's own start/end timestamps and its
   failure state; neither is parsed here, and the comment above `RuleLog` in
-  `src/tools/slurm/parse.py` says how to extract them if you ever need to. **Every** wall-time
-  figure in the report comes from the benchmarks. Do not trim these logs from an archive on the
+  `src/tools/slurm/parse.py` says how to extract them if you ever need to. **Every** wall time the
+  report *measures* comes from the benchmarks. Do not trim these logs from an archive on the
   strength of that, though: [`babel-slurm-errors`](Errors.md) reads the `runtime=` limit *and*
   quotes the whole log for its failure excerpts.
 
@@ -53,14 +53,17 @@ A Snakemake-on-SLURM run leaves three kinds of artifact under `babel_outputs/`:
 The efficiency report is the natural place to look for memory and CPU usage, but on Hatteras its
 `MaxRSS` and `TotalCPU` columns come back **empty** — the cluster's `jobacct_gather`/cgroup
 accounting isn't capturing per-step usage, so every `CPU Efficiency (%)` and `Memory Usage (%)` is
-`0`. The tool therefore uses the efficiency report only for the *requested* side
-(`RequestedMem_MB` and `NCPUS` — those two columns and no others) and relies on the `benchmark:`
-TSVs for actual usage. Because the recommendations come from the benchmarks, the override list
-(below) is reliable even when the requested side is sparse.
+`0`. The tool therefore consumes the efficiency report only for the *requested* side
+(`RequestedMem_MB` and `NCPUS` — those two columns and no others; the rest are parsed but unread,
+see `EfficiencyRow`) and relies on the `benchmark:` TSVs for actual usage. Because the
+recommendations come from the benchmarks, the override list (below) is reliable even when the
+requested side is sparse.
 
-That includes wall time: **every duration in the report is the benchmark TSV's `s` column**
+That includes wall time: **every duration the report measures is the benchmark TSV's `s` column**
 (`Benchmark.seconds`, the per-column worst case across a rule's rows), never the efficiency
-report's `Elapsed_sec` or the span between a log's timestamps.
+report's `Elapsed_sec` or the span between a log's timestamps. The durations it does *not* measure
+are the runtime limits it prints beside them, which come from the log, the snakefile, or the
+cluster default (see "Runtime fit" below).
 
 ### Three clocks, and which one a time limit polices
 

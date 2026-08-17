@@ -125,8 +125,8 @@ class EfficiencyRow:
       started recording per-step accounting, and the tool could stop relying on
       the benchmarks for rules that have no ``benchmark:`` block.
     - ``elapsed_sec`` is sacct's ``Elapsed``: the job's **allocation** span,
-      start to end. It is *not* what the report prints -- every wall-time figure
-      there is :attr:`Benchmark.seconds`, the benchmark TSV's ``s`` column,
+      start to end. It is *not* what the report prints -- every wall time
+      measured there is :attr:`Benchmark.seconds`, the benchmark TSV's ``s`` column,
       which times the rule body from inside the job. The difference is the job's
       setup and teardown (``Elapsed`` exceeded ``s`` for 57 of 57 rules on the
       2026jul22 run, median 5s), and ``--time`` polices ``Elapsed``. Note that

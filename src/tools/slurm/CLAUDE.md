@@ -7,8 +7,10 @@ run. Full reference: [`docs/tools/Errors.md`](../../../docs/tools/Errors.md) and
 Both subcommands share `parse.py`. The one gotcha worth knowing before touching either: on Hatteras,
 `sacct`'s `MaxRSS`/`TotalCPU` come back empty, so the Snakemake `benchmark:` TSVs are the
 authoritative source for actual memory/CPU usage — never trust the SLURM efficiency report's usage
-columns. Wall time too: every duration `babel-slurm-resources` reports is the benchmark's `s`
-column, and the only efficiency-report columns it reads are `RequestedMem_MB` and `NCPUS`.
+columns. Wall time too: every duration `babel-slurm-resources` *measures* is the benchmark's `s`
+column (the runtime limits it prints alongside come from the log, the snakefile, or the cluster
+default), and the only efficiency-report columns it *consumes* are `RequestedMem_MB` and `NCPUS` —
+`parse.py` parses five, deliberately; see `EfficiencyRow`.
 `reports/slurm/slurm_efficiency_reports/` is a *directory* that accumulates one
 `efficiency_report_<uuid>.csv` shard per Snakemake restart (each covering only that invocation's
 jobs); `parse.py` merges them all, so copy the whole directory when archiving a run.
