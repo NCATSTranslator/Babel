@@ -24,6 +24,10 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   ([CHEBI/sdf_tags/README.md](./CHEBI/sdf_tags/README.md)) the data-item tags Babel reads out of
   `ChEBI_complete.sdf`, the renames that silently emptied the secondary-ID and PubChem ingests in
   `babel-1.18`, the checks that now catch a rename, and how to re-audit a new SDF.
+- **DOID** ([DOID/overused-xrefs.md](./DOID/overused-xrefs.md)) — why DOID's concord is filtered
+  through `remove_overused_xrefs`: it xrefs ICD-10 billing codes, which name a whole disease
+  family, so one code merged every subtype citing it (61 hereditary spastic paraplegia subtypes in
+  a single clique). Includes the measurement script and the full list of overused xref targets.
 - **DRUGBANK** ([DRUGBANK/food-and-extracts/README.md](./DRUGBANK/food-and-extracts/README.md))
   — retyping DrugBank food-and-extract products (foods, pollens, danders) out of
   `biolink:ChemicalEntity`: foods become `biolink:Food` via their UNII's NCIt class, non-food

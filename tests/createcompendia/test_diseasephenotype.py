@@ -20,6 +20,9 @@ Sections:
 - ``# --- MP data-quality guards ---`` checks that MP gets the same same-prefix
   overmerge guard (``DISEASE_UNIQUE_PREFIXES``) and overused-xref filtering
   (``OVERUSE_FILTERED_CONCORDS``) that MONDO/HP already have.
+- ``# --- DOID data-quality guards ---`` checks that DOID's ICD-10 xrefs are
+  overuse-filtered, so one billing code no longer merges every subtype of a
+  disease family into a single clique.
 """
 
 from unittest.mock import MagicMock, patch
@@ -455,6 +458,54 @@ def test_mp_concords_are_overuse_filtered(tmp_path):
 
     assert dicts["MP:0000001"] == {"MP:0000001"}
     assert dicts["MP:0000002"] == {"MP:0000002"}
+
+
+# --- DOID data-quality guards ---
+
+
+@pytest.mark.unit
+def test_doid_icd_xrefs_do_not_merge_disease_subtypes(tmp_path):
+    """OVERUSE_FILTERED_CONCORDS must include "DOID" so its ICD-10 xrefs stop merging every
+    subtype of a disease family into one clique.
+
+    ICD-10 codes are one-per-disease-family by construction, and DOID xrefs them from each
+    subtype: ICD10:G11.4 "other hereditary spastic paraplegia" is claimed by 60 DOID terms, which
+    transitively collapsed 61 mutually-exclusive HSP subtypes into a single 223-identifier clique.
+    The three concord rows below are verbatim from `intermediate/disease/concords/DOID`; the
+    shared ICD10:G11.4 target must be dropped, leaving each subtype in its own clique, while the
+    1:1 MIM xrefs still merge. See docs/sources/DOID/overused-xrefs.md and issue #1029.
+    """
+    ids = _write_lines(
+        tmp_path / "DOID_ids",
+        [f"DOID:0110764\t{DISEASE}", f"DOID:0110782\t{DISEASE}", f"DOID:2476\t{DISEASE}"],
+    )
+    concord_dir = tmp_path / "concords"
+    concord_dir.mkdir()
+    concord = _write_lines(
+        concord_dir / "DOID",  # basename must be "DOID" to hit OVERUSE_FILTERED_CONCORDS
+        [
+            # DOID:0110764 "hereditary spastic paraplegia 11", DOID:0110782 "...31", DOID:2476
+            # "hereditary spastic paraplegia" (the grouping term). All three cite ICD10:G11.4.
+            "DOID:0110764\txref\tICD10:G11.4",
+            "DOID:0110764\txref\tMIM:604360",
+            "DOID:0110782\txref\tICD10:G11.4",
+            "DOID:0110782\txref\tMIM:610250",
+            "DOID:2476\txref\tICD10:G11.4",
+        ],
+    )
+
+    dicts, _types = diseasephenotype.compute_cliques_for_impact_report(
+        concordances=[concord],
+        identifiers=[ids],
+        badxrefs={},
+    )
+
+    # The overused ICD-10 code is dropped, so the subtypes never meet...
+    assert dicts["DOID:0110764"] == {"DOID:0110764", "MIM:604360"}
+    assert dicts["DOID:0110782"] == {"DOID:0110782", "MIM:610250"}
+    assert dicts["DOID:2476"] == {"DOID:2476"}
+    # ...and ICD10:G11.4 is not carried into any clique at all.
+    assert not any("ICD10:G11.4" in clique for clique in dicts.values())
 
 
 # --- EFO->MP xref exclusion (MP disjointness at the EFO source) ---

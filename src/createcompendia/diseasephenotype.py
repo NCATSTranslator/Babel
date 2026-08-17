@@ -93,7 +93,17 @@ MP_XREF_ALLOWED_PREFIXES = [HP, MGI, "MPATH", UMLS]
 # OBO-sourced concords (MONDO, HP, EFO) since its UberGraph xrefs are ordinary ontology xrefs
 # with the same "one xref target claimed by many source ids" failure mode the filter guards
 # against, and there's no reason to trust MP's xrefs more than HP's.
-OVERUSE_FILTERED_CONCORDS = {"MONDO", "HP", "EFO", "MP"}
+#
+# DOID is included because it is the worst offender of the lot: it xrefs ICD-10/ICD-9 billing
+# codes, which are one-code-per-disease-family by construction, so a single code merges every
+# subtype that cites it. ICD10:H90.3 "sensorineural hearing loss, bilateral" is claimed by 134
+# DOID terms, ICD10:H35.5 "hereditary retinal dystrophy" by 107, and ICD10:G11.4 "other
+# hereditary spastic paraplegia" by 60 -- transitively collapsing 61 mutually-exclusive HSP
+# subtypes into one 223-identifier clique. Filtering DOID takes the largest disease clique from
+# 294 identifiers to 89 and the count of cliques with >=50 identifiers from 60 to 13, while
+# costing only 505 identifiers overall (a genuinely 1:1 ICD mapping is still merged). See
+# docs/sources/DOID/overused-xrefs.md and issue #1029.
+OVERUSE_FILTERED_CONCORDS = {"MONDO", "HP", "EFO", "MP", "DOID"}
 
 # Per-source bad-xref files used when build_compendium is called without explicit
 # badxrefs (e.g. by the source-impact report CLI). The Snakemake call site still
