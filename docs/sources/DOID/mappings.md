@@ -1,10 +1,9 @@
-# DOID overused xrefs: one ICD code, one mega-clique
+# DOID mappings: an ICD code is not an equivalence
 
-DOID's concord was not filtered through `remove_overused_xrefs`, so its `hasDbXref` rows were fed
-to `glom()` as equivalences. DOID xrefs ICD-10 billing codes, which are one-per-disease-family by
-construction, so a single code merged every subtype that cited it. This note records the
-measurement behind adding `"DOID"` to `OVERUSE_FILTERED_CONCORDS`
-(`src/createcompendia/diseasephenotype.py`); see issue #1029.
+DOID cross-references ICD-10, ICD-9 and ICD-O codes with `hasDbXref`, and every concord row is fed
+to `glom()` as an equivalence assertion. An ICD code names a disease *family*, so one code merges
+every subtype that cites it. Babel therefore drops DOID's ICD xrefs where the concord is built,
+via `DOID_EXCLUDED_XREF_PREFIXES` in `src/createcompendia/diseasephenotype.py`; see issue #1029.
 
 ## The mechanism
 
@@ -17,123 +16,131 @@ DOID:0110782 "hereditary spastic paraplegia 31" --xref--> ICD10:G11.4
 ... 60 DOID terms, all citing the same code
 ```
 
-`ICD10:G11.4` is the code [`DOID:2476`](http://purl.obolibrary.org/obo/DOID_2476) "hereditary
-spastic paraplegia" carries — one code for the whole family. Because every subtype carries it too,
-`glom()` merged 61 mutually-exclusive HSP subtypes into one 223-identifier clique.
+`ICD10:G11.4` is "Hereditary spastic paraplegia" — one code for the whole family. Because every
+subtype carries it too, `glom()` merged 61 mutually-exclusive HSP subtypes into one 223-identifier
+clique.
 
-MONDO is not at fault. Its concord's most-shared target is claimed by just two subjects, i.e.
-essentially 1:1 curated exact matches, and the `MONDO:0019064 -> DOID:2476` edge is correct. Every
-many-to-one edge here is DOID's. This is the failure mode
-[`docs/sources/CLAUDE.md`](../CLAUDE.md) documents under "An OBO `hasDbXref` is not an
-equivalence".
+MONDO is not at fault. Its concord's most-shared target is claimed by just two subjects — i.e.
+essentially 1:1 curated exact matches — and the `MONDO:0019064 -> DOID:2476` edge is correct. Every
+many-to-one edge here is DOID's. This is the failure mode [`docs/sources/CLAUDE.md`](../CLAUDE.md)
+documents under "An OBO `hasDbXref` is not an equivalence".
 
-## What is overused
+## Why all ICD rows go, not just the overused ones
 
-831 xref targets in DOID's concord are claimed by two or more DOID subjects. By target prefix:
-MESH 248, ICD10 245, SNOMEDCT 126, ORDO 59, UMLS 41, NCIT 35, ICD0 33, ICD9 20, GARD 11, MIM 11,
-KEGG.DISEASE 2. So this is not only an ICD problem — but the ICD codes are the ones claimed by
-dozens of terms apiece, and they dominate the head of the list.
+The obvious fix is `remove_overused_xrefs` (drop any target claimed by 2+ subjects), which is what
+MONDO/HP/EFO/MP already get. It is the wrong instrument for DOID's ICD problem in *both*
+directions:
 
-The eight most-claimed targets, with their ICD-10 label and one example DOID term each:
+- **It under-cleans ICD.** Only 245 of DOID's 2,476 distinct ICD-10 targets are overused, so
+  **4,837 of the 6,420 ICD rows are 1:1** and survive the filter untouched.
+- **It over-cleans everything else.** It drops 618 MeSH, 271 SNOMED, 148 ORDO and 88 UMLS rows,
+  including correct ones. [`MESH:D010195`](http://id.nlm.nih.gov/mesh/D010195) "Pancreatitis" is
+  claimed by both [`DOID:4989`](http://purl.obolibrary.org/obo/DOID_4989) "pancreatitis" (correct)
+  and [`DOID:2913`](http://purl.obolibrary.org/obo/DOID_2913) "acute pancreatitis" (too narrow) —
+  the filter discards both, losing a genuine equivalence to suppress an over-broad one.
 
-| target | ICD-10 label | DOID subjects | one of them |
+Overuse is a statistical proxy; "an ICD code names a disease family" is a statement about what the
+namespace *means*, so it stays true across DOID releases instead of shifting with each one.
+
+Measured by rebuilding the DOID concord through `build_disease_doid_relationships()` and replaying
+`compute_cliques_for_impact_report()` over a complete local `disease` intermediate set:
+
+| | as built | overuse-filtered | **ICD excluded** |
 | --- | --- | --- | --- |
-| `ICD10:H90.3` | Sensorineural hearing loss, bilateral | 134 | [`DOID:0050566`](http://purl.obolibrary.org/obo/DOID_0050566) "X-linked nonsyndromic deafness" |
-| `ICD10:H35.5` | Hereditary retinal dystrophy | 107 | [`DOID:0050572`](http://purl.obolibrary.org/obo/DOID_0050572) "cone-rod dystrophy" |
-| `ICD10:G11.4` | Hereditary spastic paraplegia | 60 | [`DOID:0060245`](http://purl.obolibrary.org/obo/DOID_0060245) "Mast syndrome" |
-| `ICD10:G60.0` | Hereditary motor and sensory neuropathy | 58 | [`DOID:10595`](http://purl.obolibrary.org/obo/DOID_10595) "Charcot-Marie-Tooth disease" |
-| `ICD10:Q12.0` | Congenital cataract | 44 | [`DOID:0110260`](http://purl.obolibrary.org/obo/DOID_0110260) "cataract 7" |
-| `ICD10:I42.0` | Dilated cardiomyopathy | 38 | [`DOID:12930`](http://purl.obolibrary.org/obo/DOID_12930) "dilated cardiomyopathy" |
-| `ICD10:E23.0` | Hypopituitarism | 32 | [`DOID:9406`](http://purl.obolibrary.org/obo/DOID_9406) "hypopituitarism" |
-| `ICD10:Q34.8` | Other specified congenital malformations of respiratory system | 32 | [`DOID:0110594`](http://purl.obolibrary.org/obo/DOID_0110594) "primary ciliary dyskinesia 1" |
+| identifiers | 770,091 | 769,586 | 764,974 |
+| cliques | 440,990 | 440,972 | 440,985 |
+| largest clique | 294 | 89 | 103 |
+| cliques with >=50 identifiers | 60 | 13 | 20 |
+| cliques with >=20 identifiers | 923 | 698 | **681** |
+| `MONDO:0019064` "hereditary spastic paraplegia" | 223 | 16 | 15 |
+| `MONDO:0000912` "AR nonsyndromic hearing loss 5" | 281 | 7 | 7 |
+| `MONDO:0000910` "retinitis pigmentosa 6" | 294 | 7 | 7 |
 
-Sampled from the head of the list rather than spread across it, because the point being made is
-about the most-claimed targets specifically. Every ICD-10 label above names a disease *family* or
-a symptom, never one disease — which is precisely why citing one from each subtype fuses them.
+Both treatments fix the three mega-cliques. The overuse filter wins on the largest-clique and
+`>=50` counts, because it also breaks up MeSH/SNOMED merges this change deliberately leaves alone;
+the exclusion wins on `>=20`. **The argument for the exclusion is correctness, not the smaller
+number.**
 
-### The full record
+## What is dropped, and what that costs
 
-[`overused-xrefs/overused-targets.csv`](overused-xrefs/overused-targets.csv) has all 831 targets,
-2,833 rows, one row per (target, subject) pair with both endpoints labelled:
+6,420 rows: ICD10 3,683, ICD9 2,237, ICD0 495, ICD11 5. Every one is listed with both endpoints
+labelled in [`mappings/icd-targets.csv`](mappings/icd-targets.csv).
 
-```csv
-target,target_label,target_prefix,subject_count,subject,subject_label
-ICD10:G11.4,Hereditary spastic paraplegia,ICD10,60,DOID:0110764,hereditary spastic paraplegia 11
-ICD10:G11.4,Hereditary spastic paraplegia,ICD10,60,DOID:0110782,hereditary spastic paraplegia 31
-```
+The rows that motivated the change — one code, dozens of mutually-exclusive subtypes:
 
-Sort by `subject_count` and scan `subject_label`: a target whose subjects carry many different
-names is one that fuses unrelated concepts. Every DOID subject is labelled; 84% of target rows
-are. What stays blank is informative in its own right — ORDO (148 rows) and ICD0 (91) have no
-label source in a Babel checkout, and the unlabelled `SNOMEDCT_US_2025_09_01` rows (152) are
-retired SNOMED concepts whose only UMLS strings are marked obsolete, i.e. DOID cross-referencing
-codes that no longer exist. `GARD` cells are labelled only if you also have the GARD download
-from #980.
-
-While generating this: DOID emits Orphanet xrefs as `ORDO:2822`, but
-`build_disease_doid_relationships`'s `other_prefixes` map has no `ORDO` entry, so they are never
-normalized to Babel's `orphanet:` prefix. Unrelated to overuse, but probably worth its own look.
-
-## Effect on cliques
-
-Replaying `compute_cliques_for_impact_report()` over a complete local `disease` intermediate set
-(all 10 ids files, all 8 concords), with and without `"DOID"` in `OVERUSE_FILTERED_CONCORDS`:
-
-| | DOID unfiltered | DOID filtered |
+| target | label | DOID terms citing it |
 | --- | --- | --- |
-| identifiers | 770,091 | 769,586 |
-| cliques | 440,990 | 440,972 |
-| largest clique | 294 | 89 |
-| cliques with >=50 identifiers | 60 | 13 |
-| cliques with >=20 identifiers | 923 | 698 |
-| `MONDO:0019064` "hereditary spastic paraplegia" | 223 | 16 |
-| `MONDO:0000912` "autosomal recessive nonsyndromic hearing loss 5" | 281 | 7 |
-| `MONDO:0000910` "retinitis pigmentosa 6" | 294 | 7 |
+| `ICD10:H90.3` | Sensorineural hearing loss, bilateral | 134 |
+| `ICD10:H35.5` | Hereditary retinal dystrophy | 107 |
+| `ICD10:G11.4` | Hereditary spastic paraplegia | 60 |
+| `ICD10:G60.0` | Hereditary motor and sensory neuropathy | 58 |
 
-Roughly three-quarters of the largest disease cliques existed only because of these xrefs. The
-cost is small: 505 identifiers leave the graph, because `remove_overused_xrefs` drops only the
-*overused* rows — a genuinely 1:1 ICD mapping is still merged, so an ICD code that names exactly
-one disease keeps normalizing to it.
+**Be clear about the cost:** 4,837 of the dropped rows are 1:1, and some of those read as perfectly
+good equivalences:
 
-## Regenerating
+| target | label | subject |
+| --- | --- | --- |
+| `ICD10:A01.0` | Typhoid fever | [`DOID:13258`](http://purl.obolibrary.org/obo/DOID_13258) "typhoid fever" |
+| `ICD10:G56.3` | Lesion of radial nerve | [`DOID:12170`](http://purl.obolibrary.org/obo/DOID_12170) "radial nerve lesion" |
+| `ICD9:363.43` | Angioid streaks of choroid | [`DOID:979`](http://purl.obolibrary.org/obo/DOID_979) "angioid streaks of choroid" |
 
-Two commands, because the target list is a general concord audit while the clique numbers are
-specific to this decision:
+Those merges are lost. The judgement this doc records is that an ICD code is a classification for
+billing and statistics rather than an identifier for a disease, so a 1:1 mapping today is an
+accident of granularity rather than a guarantee — `ICD10:A01.0` would fuse every typhoid subtype
+DOID might add tomorrow, exactly as `ICD10:G11.4` does now. If that trade is judged wrong, the
+alternative is a curated allowlist of the 1:1 codes, which `mappings/icd-targets.csv` is the
+worksheet for.
 
-```bash
-# the CSV -- any concord can be audited this way; see docs/tools/OverusedXrefs.md
-uv run babel-overused-xrefs \
-    --concord babel_outputs/intermediate/disease/concords/DOID \
-    --out docs/sources/DOID/overused-xrefs/overused-targets.csv \
-    --mrconso babel_downloads/UMLS/MRCONSO.RRF
+Samples above are drawn from opposite ends of the file — the most-cited targets, then 1:1 rows
+spread across it — rather than its head, since the point turns on both shapes existing.
 
-# the clique table above
-uv run python docs/sources/DOID/overused-xrefs/scripts/measure_overused_xrefs.py \
-    [--intermediate-root babel_outputs/intermediate]
-```
+## Overuse in DOID's other namespaces is still open
 
-Both go through production code — the tool shares `find_overused_xref_targets()` with the script,
-and the script imports `compute_cliques_for_impact_report()` and toggles the production
-`OVERUSE_FILTERED_CONCORDS` — so neither measurement can drift from what the build does. Drop
-`--mrconso` and the ICD-10/SNOMED label columns come out empty.
+- [ ] DOID is deliberately **not** in `OVERUSE_FILTERED_CONCORDS`. After the ICD exclusion, 533 of
+  its xref targets are still claimed by 2+ subjects: MESH 248, SNOMEDCT 126, ORDO 59, UMLS 41,
+  NCIT 35, GARD 11, MIM 11, KEGG.DISEASE 2. Some are wrong and some (pancreatitis, papilloma) are
+  right, so this needs per-case review rather than a blanket filter, plus the question of whether
+  MONDO/UMLS already supply the correct mappings anyway. The record is
+  [`mappings/overused-targets.csv`](mappings/overused-targets.csv), generated from the
+  post-exclusion concord so it and `icd-targets.csv` do not overlap.
 
 ## Open before release
 
-Two questions this measurement could not settle. Both were raised on PR #1031 and are unresolved
-as of this note; whoever closes them should update this section rather than delete it.
+- [ ] **Confirm on a real build with `babel-clique-diff`.** Everything here is a *replay*, which
+  only sees cliques the build already produced — it cannot show cliques a change creates, splits,
+  or moves *between* compendia (see [`docs/sources/CLAUDE.md`](../CLAUDE.md), "Replaying a pipeline
+  function beats rebuilding to measure a change"). The intermediate set behind these numbers is one
+  local `disease` build, not a released one.
+- [ ] **EFO and HP leak ICD xrefs too** (62 and 46 rows). Their treatment is not obviously DOID's:
+  both are already overuse-filtered, and what survives is largely 1:1 and often correct —
+  `HP:0000421` "Epistaxis" -> `ICD10:R04.0` is a genuine equivalence, since ICD-10 R-codes are
+  symptom codes. Separately, `diseasephenotype.py`'s HP build passes `ignore_list=["ICD"]`, which
+  never matches `ICD10:`/`ICD9:`/`ICD0:` because `ubergraph.build_sets` compares prefixes by exact
+  equality — a latent no-op, though "fixing" it would delete the good rows.
 
-- [ ] **Confirm on a real build with `babel-clique-diff`.** Everything above is a *replay*, which
-  only sees cliques the build already produced — it cannot show cliques that a change creates,
-  splits, or moves *between* compendia (see [`docs/sources/CLAUDE.md`](../CLAUDE.md), "Replaying a
-  pipeline function beats rebuilding to measure a change"). The clique-size table is therefore a
-  strong signal, not a build guarantee, and the "cliques" totals in particular are the numbers most
-  likely to move. The intermediate set behind it is one local `disease` build, not a released one.
-- [ ] **Decide whether prefix-agnostic filtering is the treatment we want.**
-  `remove_overused_xrefs` drops *any* target claimed by 2+ DOID subjects, so it also removes DOID's
-  MESH (248 targets), SNOMEDCT (126), ORDO (59), UMLS (41) and NCIT (35) rows, not only the 245
-  ICD-10 ones — see `overused-xrefs/overused-targets.csv` for exactly which. That is the same
-  treatment MONDO/HP/EFO/MP already get, and it is why the fix is one line; but it is broader than
-  "stop trusting ICD codes", and no one has looked at whether the non-ICD drops are losses. The
-  surgical alternative is a fail-closed `allowed_prefixes` on `doid.build_xrefs()` (the MP
-  treatment, [`docs/sources/MP/mappings.md`](../MP/mappings.md)), which states the intent
-  explicitly at the cost of a curated prefix list that has to be maintained.
+## An unrelated prefix oddity
+
+DOID emits Orphanet xrefs as `ORDO:2822`, but `build_disease_doid_relationships`'s `other_prefixes`
+map has no `ORDO` entry, so they are never normalized to Babel's `orphanet:` prefix. Likewise
+DOID/EFO/HP emit `ICD10:` while MONDO emits `ICD10CM:` — two namespaces for one vocabulary. Both
+are worth their own look; neither is an overuse or ICD-equivalence problem.
+
+## Regenerating
+
+```bash
+# every row the ICD exclusion drops -- needs a concord built with DOID_EXCLUDED_XREF_PREFIXES=[]
+uv run babel-overused-xrefs --concord <pre-exclusion DOID concord> \
+    --min-subjects 1 --target-prefixes ICD10,ICD9,ICD0,ICD11 \
+    --out docs/sources/DOID/mappings/icd-targets.csv --mrconso babel_downloads/UMLS/MRCONSO.RRF
+
+# what overuse remains afterwards
+uv run babel-overused-xrefs --concord babel_outputs/intermediate/disease/concords/DOID \
+    --out docs/sources/DOID/mappings/overused-targets.csv --mrconso babel_downloads/UMLS/MRCONSO.RRF
+
+# the clique table above, all three scenarios
+uv run python docs/sources/DOID/mappings/scripts/measure_icd_xrefs.py
+```
+
+The measurement script rebuilds the concord through production
+`build_disease_doid_relationships()` and toggles the production constants, and the tool shares
+`find_overused_xref_targets()` with it, so neither can drift from what the build does.
