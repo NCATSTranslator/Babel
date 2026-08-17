@@ -166,14 +166,23 @@ def test_gard_not_in_biolink_disease_id_prefixes():
     fails -- drop the extra_prefixes=[GARD] line in diseasephenotype.py and update the GARD docs.
     """
     tk = get_biolink_model_toolkit(get_config()["biolink_version"])
-    assert "GARD" not in tk.get_element("disease").id_prefixes
+    assert GARD not in tk.get_element(DISEASE).id_prefixes
 
 
 @pytest.mark.network
-def test_disease_node_factory_tolerates_extra_prefixes_gard():
-    """NodeFactory.create_node() for biolink:Disease must not raise when given extra_prefixes=[GARD]
-    (the disease build's escape hatch). Mirrors test_all_override_target_types_are_writable in
-    tests/createcompendia/test_leftover_umls.py."""
+def test_disease_node_factory_keeps_gard_only_with_extra_prefixes():
+    """A GARD CURIE survives NodeFactory.create_node() for biolink:Disease only when the build's
+    extra_prefixes=[GARD] escape hatch is passed; without it the identifier is dropped and the
+    clique disappears entirely. This is the behavior the disease build depends on."""
     factory = NodeFactory(label_dir=None, biolink_version=get_config()["biolink_version"])
-    # Must not raise. Returns None because input_identifiers is empty.
-    factory.create_node(input_identifiers=[], node_type=DISEASE, labels={}, extra_prefixes=[GARD])
+    # GARD:6038 "Chikungunya fever" -- the registry term DOID:0050012 "chikungunya" xrefs. The
+    # label is passed explicitly, as the build does; NodeFactory(label_dir=None) cannot read one.
+    curie = "GARD:6038"
+    labels = {curie: "Chikungunya fever"}
+
+    node = factory.create_node(input_identifiers=[curie], node_type=DISEASE, labels=labels, extra_prefixes=[GARD])
+    assert node["identifiers"] == [{"identifier": curie, "label": "Chikungunya fever"}]
+    assert node["type"] == DISEASE
+
+    # Without the escape hatch there is no permitted prefix left, so create_node returns None.
+    assert factory.create_node(input_identifiers=[curie], node_type=DISEASE, labels=labels) is None
