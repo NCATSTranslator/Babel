@@ -20,6 +20,12 @@ every aggregate quoted below:
 | `food-moves.csv` | 8 of 8 | every clique that left `Food.txt` — complete, no cap |
 | `drug-moves-top-100.csv` | 100 of 4,269 | ranked slice of the `Drug` demotions |
 | `leader-churn-top-100.csv` | 100 of 27,290 | ranked slice of the PubChem leader flips |
+| `reduce_clique_diff.txt` | — | the script's own output, capturing every aggregate below |
+
+Every count on this page comes from one of those two files. The aggregates are computed over the
+full CSV, which is *not* committed, so `reduce_clique_diff.txt` is what keeps them checkable now
+that the CSV is gone — the same role [`replay_type_vote.txt`](./replay_type_vote.txt) plays for its
+script.
 
 ## Headline: the intended retype, and nothing else moved
 

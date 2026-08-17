@@ -19,7 +19,10 @@ It writes, into ``--out-dir``:
 
 and prints the aggregate tables that belong in the prose page rather than in a CSV: the
 per-compendium kind breakdown, the type transitions, the leader prefix pairs, the clique-size
-distribution, and the label-emptiness counts.
+distribution, a member-prefix census, and the label-emptiness counts. **Redirect that output to
+``reduce_clique_diff.txt`` beside the slices and commit it** — as ``replay_type_vote.txt`` already
+is in the parent directory — because those aggregates are computed over the *full* CSV, which is
+not committed, so without the capture they stop being checkable once it is deleted.
 
 **Ranking before truncation matters** (same reason as ``write_new_cliques_csv``): a blind
 ``rows[:N]`` over a CURIE-sorted file keeps an arbitrary identifier range and hides exactly the
@@ -41,6 +44,7 @@ import argparse
 import collections
 import csv
 import pathlib
+import re
 
 # Rows to keep when a group is too big to commit whole. 100 matches the source-impact report's
 # NEW_CLIQUES_TOP_N, so the two committed samples are read the same way.
@@ -132,6 +136,20 @@ def print_aggregates(rows):
     for kind in sorted({r["destination_kind"] for r in rows}):
         sizes = collections.Counter(int(r["before_size"]) for r in rows if r["destination_kind"] == kind)
         print(f"  {kind}: " + ", ".join(f"{size}={n:,}" for size, n in sorted(sizes.items())))
+
+    # example_members lists at most five members, so this census is only exhaustive for a group whose
+    # cliques are all that small -- which is why the largest before_size is printed beside it. For the
+    # #948 Drug group (max 3) it is a complete answer to "does any demoted clique hold a structural
+    # identifier?"; for a group with bigger cliques, read it as a sample.
+    print("\n## Member prefixes seen in example_members (<=5 members shown per row)\n")
+    for compendium in sorted({r["compendium"] for r in rows}):
+        group = [r for r in rows if r["compendium"] == compendium]
+        prefixes = collections.Counter(
+            prefix(m) for r in group for m in re.findall(r'([^ ;]+) "', r["example_members"])
+        )
+        biggest = max(int(r["before_size"]) for r in group)
+        census = ", ".join(f"{p}={n:,}" for p, n in prefixes.most_common()) or "(none listed)"
+        print(f"  {compendium:28} largest clique={biggest}: {census}")
 
     print("\n## Integrity checks\n")
     size_mismatch = [r for r in rows if r["before_size"] != r["after_size"] or r["before_size"] != r["member_count"]]
