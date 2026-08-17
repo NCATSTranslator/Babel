@@ -626,10 +626,18 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
         # Disease.txt. Registering GARD with the Biolink team is the long-term fix (same situation
         # as GTDB, PR #978). Without this, ~16k rare-disease terms vanish -- and so do the 2,186
         # GARD ids DOID cross-references, which reach Disease cliques through DOID's concord
-        # rather than through GARD's own (GARD has no concord). Harmless for
-        # PhenotypicFeature.txt -- no GARD member is ever typed PhenotypicFeature.
+        # rather than through GARD's own (GARD has no concord). extra_prefixes is a per-class
+        # allowlist, so scope it to DISEASE: a future HP/MP mapping onto a GARD CURIE must still
+        # face PhenotypicFeature's own prefix filter rather than inheriting this exemption.
+        extra_prefixes = [GARD] if biotype == DISEASE else []
         write_compendium(
-            metadata_yamls, sets, f"{baretype}.txt", biotype, {}, extra_prefixes=[GARD], icrdf_filename=icrdf_filename
+            metadata_yamls,
+            sets,
+            f"{baretype}.txt",
+            biotype,
+            {},
+            extra_prefixes=extra_prefixes,
+            icrdf_filename=icrdf_filename,
         )
 
 
