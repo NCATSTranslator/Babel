@@ -161,6 +161,22 @@ disease_ids:               [MONDO, DOID, Orphanet, HP, MP, MESH, NCIT, UMLS, OMI
 disease_concords:          [HP, MP, MONDO, UMLS, DOID, EFO, Manual]
 disease_outputs:           [Disease.txt, PhenotypicFeature.txt]
 
+# Prefixes written into the disease compendia even though the Biolink Model does not register them
+# for biolink:Disease or biolink:PhenotypicFeature. write_compendium() otherwise drops an
+# unregistered prefix silently, *after* it has already merged cliques in glom() -- so the merge
+# effect ships and the identifier does not.
+#
+# ICD10CM is MONDO's spelling of ICD-10 (DOID/EFO/HP write ICD10:), covering ~2,030 xref rows that
+# are near-perfectly 1:1. Emitting them is deliberately ahead of the Biolink Model: they will not
+# normalize until ICD10CM is registered or the spelling is unified onto ICD10, but having them in
+# the output beats discarding curated mappings we would then have to re-derive. Reconcile and
+# remove this entry when https://github.com/NCATSTranslator/Babel/issues/1033 is resolved.
+#
+# ICD0 is deliberately NOT here: ICD-O codes are tumour *morphology* codes and may not be disease
+# equivalents at all, so emitting them would assert something we have not decided. See
+# https://github.com/NCATSTranslator/Babel/issues/1037.
+disease_extra_prefixes:    [ICD10CM]
+
 # How each disease source spells *other* vocabularies' prefixes in its cross-references, and the
 # Babel prefix each one becomes. Applied by babel_utils.norm() while the source's concord is built,
 # keyed on the UPPER-CASED source prefix. Values are checked against src/prefixes.py when the map is

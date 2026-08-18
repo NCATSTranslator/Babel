@@ -37,7 +37,7 @@ from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
 from src.prefixes import DOID
 from src.ubergraph import build_sets
-from src.util import Text
+from src.util import Text, get_config
 from tests.conftest import assert_taxa_file_valid, glom_dict_from_cliques
 
 # --- UMLS semantic-type tree mapping ---
@@ -745,3 +745,34 @@ def test_doid_xref_prefix_map_covers_every_prefix_doid_emits():
     assert norm("MIM:115210", mapping) == "OMIM:115210"
     # Lower-case target: the rename must land on Babel's spelling, which MONDO and HP already use.
     assert norm("ORDO:2822", mapping) == "orphanet:2822"
+
+
+@pytest.mark.unit
+def test_disease_extra_prefixes_are_registered_and_deliberate():
+    """config.yaml: disease_extra_prefixes overrides the Biolink Model, so it must stay short.
+
+    Each entry ships a prefix Biolink does not register for biolink:Disease -- deliberately, since
+    write_compendium() would otherwise drop it silently *after* it had already merged cliques. The
+    entries must be real prefixes from src/prefixes.py, and ICD0 must stay out: an ICD-O code is a
+    tumour morphology, so emitting one asserts a disease equivalence nobody has decided (#1037).
+    Update this test alongside the config, not instead of it."""
+    from src.prefixes import ICD0, ICD10CM
+
+    extra = get_config()["disease_extra_prefixes"]
+
+    assert extra == [ICD10CM], "adding a prefix here overrides Biolink; say why in config.yaml first"
+    assert set(extra) <= set(Text.prefixmap.values()), "every entry must be a src/prefixes.py constant"
+    assert ICD0 not in extra
+
+
+@pytest.mark.unit
+def test_build_compendium_passes_the_extra_prefixes_through():
+    """The override is useless unless it reaches write_compendium, so pin the wiring."""
+    with (
+        patch.object(diseasephenotype, "compute_cliques_for_impact_report", return_value=({}, {})),
+        patch.object(diseasephenotype, "create_typed_sets", return_value={DISEASE: [["MONDO:1"]]}),
+        patch.object(diseasephenotype, "write_compendium") as mock_write,
+    ):
+        diseasephenotype.build_compendium([], {}, [], None, {}, "icRDF.tsv")
+
+    assert mock_write.call_args.kwargs["extra_prefixes"] == get_config()["disease_extra_prefixes"]

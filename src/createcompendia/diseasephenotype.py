@@ -653,9 +653,21 @@ def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badx
         badxrefs=badxrefs,
     )
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
+    # Prefixes Biolink does not register for these classes but that we ship anyway; without this
+    # write_compendium() drops them silently after they have already merged cliques. See
+    # config.yaml: disease_extra_prefixes for which, and why each one is there.
+    extra_prefixes = get_config()["disease_extra_prefixes"]
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]
-        write_compendium(metadata_yamls, sets, f"{baretype}.txt", biotype, {}, icrdf_filename=icrdf_filename)
+        write_compendium(
+            metadata_yamls,
+            sets,
+            f"{baretype}.txt",
+            biotype,
+            {},
+            extra_prefixes=extra_prefixes,
+            icrdf_filename=icrdf_filename,
+        )
 
 
 def classify_disease_clique(equivalent_ids, types):
