@@ -158,7 +158,6 @@ OVERUSE_FILTERED_CONCORDS = {
 # passed in simply never filters anything; a key that matches no concord basename (a typo, or the
 # two dicts drifting apart) is caught by the guard in compute_cliques_for_impact_report().
 DEFAULT_BAD_XREFS = {
-    "DOID": str(get_repo_root() / "input_data/doid_badxrefs.txt"),
     "HP": str(get_repo_root() / "input_data/badHPx.txt"),
     "MONDO": str(get_repo_root() / "input_data/mondo_badxrefs.txt"),
     "MP": str(get_repo_root() / "input_data/mp_badxrefs.txt"),
