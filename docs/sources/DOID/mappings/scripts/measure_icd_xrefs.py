@@ -1,12 +1,25 @@
 """Measure what DOID's ICD xrefs do to disease clique sizes.
 
-Prints the three-scenario table quoted in ``docs/sources/DOID/mappings.md``: the disease cliques
-as they were built, with `remove_overused_xrefs` applied to DOID instead, and with the ICD
-prefixes excluded (what the pipeline now does).
+Prints the four-scenario table quoted in ``docs/sources/DOID/mappings.md``:
+
+* **ICD kept** -- every DOID ICD xref fed to glom(), the merge problem in the raw.
+* **overuse-filtered** -- ``remove_overused_xrefs`` over the whole DOID concord, unscoped.
+* **ICD overuse-filtered** -- what the pipeline does: the same filter scoped to the ICD prefixes.
+* **ICD excluded** -- the ICD namespaces dropped outright, the treatment this replaced.
+
+The middle two columns are why this script exists and why it survives the build-vs-build clique
+diff: only one of the four is a build that will ever be made, and no diff can price the three that
+will not.
+
+All three columns sit on top of the *current* `config.yaml: disease_xref_prefixes` rename map, so
+they isolate the ICD decision and nothing else. None of them reproduces a historical build --
+before the renames landed, DOID's MIM:, SNOMEDCT_US_* and ORDO: rows reached glom() un-renamed. Use
+`babel-clique-diff` for "what did this change do to the last build"; use this for "which ICD
+treatment should we pick".
 
 Each scenario rebuilds the DOID concord through the production
 ``build_disease_doid_relationships()`` -- toggling the production
-``DOID_EXCLUDED_XREF_PREFIXES`` -- and then replays the production
+``OVERUSE_FILTERED_CONCORDS`` -- and then replays the production
 ``compute_cliques_for_impact_report()`` over a finished build's ``intermediate/disease/``. Nothing
 here reimplements the pipeline, so the measurement cannot drift from it (see docs/sources/CLAUDE.md,
 "Replaying a pipeline function beats rebuilding to measure a change"). A replay only sees the
@@ -16,11 +29,11 @@ confirm with ``babel-clique-diff`` on a real build before trusting the totals.
 The companion artifacts are not written here: both CSVs come from the ``babel-overused-xrefs``
 tool (docs/tools/OverusedXrefs.md). Regenerate everything together::
 
-    # every row the ICD exclusion drops -- must run against a PRE-exclusion concord
-    uv run babel-overused-xrefs --concord <concord built with DOID_EXCLUDED_XREF_PREFIXES=[]> \
+    # every ICD row, kept or dropped -- subject_count says which side of the filter each is on
+    uv run babel-overused-xrefs --concord babel_outputs/intermediate/disease/concords/DOID \
         --min-subjects 1 --target-prefixes ICD10,ICD9,ICD0,ICD11 \
         --out docs/sources/DOID/mappings/icd-targets.csv --mrconso babel_downloads/UMLS/MRCONSO.RRF
-    # what overuse remains afterwards
+    # every overused target in the concord, ICD and not
     uv run babel-overused-xrefs --concord babel_outputs/intermediate/disease/concords/DOID \
         --out docs/sources/DOID/mappings/overused-targets.csv --mrconso babel_downloads/UMLS/MRCONSO.RRF
     uv run python docs/sources/DOID/mappings/scripts/measure_icd_xrefs.py
@@ -38,6 +51,8 @@ import os
 import tempfile
 
 import src.createcompendia.diseasephenotype as dp
+import src.datahandlers.doid as doid
+from src.prefixes import DOID
 
 # Cliques probed individually in the report. Each is the preferred identifier of a clique that one
 # ICD-10 code inflated; the label is MONDO's.
@@ -48,24 +63,39 @@ PROBES = {
 }
 
 
-def build_concord(doid_json, outdir, excluded_prefixes):
-    """Build one DOID concord through the production path with a given exclusion list."""
+def build_concord(doid_json, outdir, exclude_icd=False):
+    """Build one DOID concord through the production path, optionally excluding ICD outright.
+
+    Both branches are production functions composed, not reimplemented: the pipeline no longer
+    passes `excluded_target_prefixes`, so the "ICD excluded" scenario has to ask `doid.build_xrefs`
+    for it directly, with the same rename map the build uses.
+    """
     outfile = os.path.join(outdir, "DOID")
-    saved = dp.DOID_EXCLUDED_XREF_PREFIXES
-    try:
-        dp.DOID_EXCLUDED_XREF_PREFIXES = excluded_prefixes
+    if exclude_icd:
+        doid.build_xrefs(
+            doid_json,
+            outfile,
+            other_prefixes=dp.get_xref_prefix_map(DOID),
+            excluded_target_prefixes=dp.DOID_ICD_XREF_PREFIXES,
+        )
+    else:
         dp.build_disease_doid_relationships(doid_json, outfile, os.path.join(outdir, "metadata-DOID.yaml"))
-    finally:
-        dp.DOID_EXCLUDED_XREF_PREFIXES = saved
     return outfile
 
 
-def clique_stats(concords, ids, overuse_filter_doid=False):
+# Sentinel for "do not overuse-filter the DOID concord at all", distinct from None, which is the
+# production spelling of "filter it over every namespace".
+UNFILTERED = object()
+
+
+def clique_stats(concords, ids, doid_filter=UNFILTERED):
     """Replay the production clique builder and summarize the clique-size distribution."""
     saved = dp.OVERUSE_FILTERED_CONCORDS
     try:
-        if overuse_filter_doid:
-            dp.OVERUSE_FILTERED_CONCORDS = saved | {"DOID"}
+        if doid_filter is UNFILTERED:
+            dp.OVERUSE_FILTERED_CONCORDS = {k: v for k, v in saved.items() if k != "DOID"}
+        else:
+            dp.OVERUSE_FILTERED_CONCORDS = saved | {"DOID": doid_filter}
         dicts, _types = dp.compute_cliques_for_impact_report(concords, ids)
     finally:
         dp.OVERUSE_FILTERED_CONCORDS = saved
@@ -96,17 +126,17 @@ def main():
         unfiltered_dir, filtered_dir = os.path.join(tmp, "all"), os.path.join(tmp, "no-icd")
         os.makedirs(unfiltered_dir)
         os.makedirs(filtered_dir)
-        unfiltered = build_concord(args.doid_json, unfiltered_dir, [])
-        filtered = build_concord(args.doid_json, filtered_dir, dp.DOID_EXCLUDED_XREF_PREFIXES)
+        unfiltered = build_concord(args.doid_json, unfiltered_dir)
+        filtered = build_concord(args.doid_json, filtered_dir, exclude_icd=True)
 
-        dropped = collections.Counter()
+        icd = collections.Counter()
         with open(unfiltered) as inf:
             for line in inf:
                 prefix = line.rstrip("\n").split("\t")[-1].split(":", 1)[0]
                 if prefix.upper().startswith("ICD"):
-                    dropped[prefix] += 1
+                    icd[prefix] += 1
         total = sum(1 for _ in open(unfiltered))
-        print(f"DOID concord: {total} rows, {sum(dropped.values())} dropped as ICD {dict(dropped.most_common())}\n")
+        print(f"DOID concord: {total} rows, {sum(icd.values())} of them ICD {dict(icd.most_common())}\n")
 
         # Every scenario differs only in which DOID concord is substituted in, so a concords list
         # that does not contain the built one silently yields three identical columns presented as
@@ -120,26 +150,26 @@ def main():
 
         # The intermediate on disk may predate the current doid.json; say so rather than silently
         # comparing against a concord the rest of the numbers don't come from.
-        if sum(1 for _ in open(built_concord)) not in (
-            total,
-            total - sum(dropped.values()),
-        ):
+        if sum(1 for _ in open(built_concord)) not in (total, total - sum(icd.values())):
             print(f"NOTE: {built_concord} matches neither rebuild; doid.json has moved since it was built.\n")
 
         def with_doid(path):
             return [path if c == built_concord else c for c in concords]
 
+        # "ICD kept", not "as built": every column is built with the current rename map, so none of
+        # them is the build that shipped before this change.
         scenarios = {
-            "as built": clique_stats(with_doid(unfiltered), ids),
-            "overuse-filtered": clique_stats(with_doid(unfiltered), ids, overuse_filter_doid=True),
+            "ICD kept": clique_stats(with_doid(unfiltered), ids),
+            "overuse-filtered": clique_stats(with_doid(unfiltered), ids, doid_filter=None),
+            "ICD overuse-filtered": clique_stats(with_doid(unfiltered), ids, doid_filter=dp.DOID_ICD_XREF_PREFIXES),
             "ICD excluded": clique_stats(with_doid(filtered), ids),
         }
 
     keys = list(next(iter(scenarios.values())))
     width = max(len(k) for k in keys)
-    print(f"{'':{width}}" + "".join(f"{name:>20}" for name in scenarios))
+    print(f"{'':{width}}" + "".join(f"{name:>23}" for name in scenarios))
     for key in keys:
-        print(f"{key:{width}}" + "".join(f"{s[key]:>20,}" for s in scenarios.values()))
+        print(f"{key:{width}}" + "".join(f"{s[key]:>23,}" for s in scenarios.values()))
 
 
 if __name__ == "__main__":

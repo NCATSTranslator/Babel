@@ -90,7 +90,7 @@ def find_overused_xref_targets(
     ``target_prefixes`` (matched case-insensitively) restricts the result to targets in those
     namespaces. Combined with ``min_subjects=1`` that turns the audit into "every row targeting
     these prefixes", which is how a *categorical* prefix exclusion -- the other treatment a
-    source's xrefs can get, e.g. ``DOID_EXCLUDED_XREF_PREFIXES`` -- is enumerated for review.
+    source's xrefs can get, e.g. ``EFO_EXCLUDED_XREF_PREFIXES`` -- is enumerated for review.
     """
     wanted_prefixes = {p.upper() for p in target_prefixes} if target_prefixes is not None else None
     subjects_by_target: dict[str, set[str]] = defaultdict(set)

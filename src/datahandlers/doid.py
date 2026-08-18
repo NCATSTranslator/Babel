@@ -38,13 +38,19 @@ def build_xrefs(infile, xreffile, other_prefixes={}, excluded_target_prefixes=()
     """Write DOID's hasDbXref rows to a concord as ``DOID:x<TAB>xref<TAB>target``.
 
     :param other_prefixes: source-prefix renames handed to ``norm()`` (e.g. ICD10CM -> ICD10).
-    :param excluded_target_prefixes: targets whose CURIE prefix is in this collection are dropped.
-        The disease build passes the ICD families: an ICD code names a disease *family*, not a
-        disease, so no DOID->ICD xref is an equivalence, and feeding them to glom() as one fuses
-        every subtype citing a code into a single clique. Matched **after** ``norm()``, i.e.
-        against the renamed prefix (``ICD10``, not ``ICD10CM``), case-insensitively, using a raw
-        split rather than ``Text.get_prefix()`` because a DOID xref value can be colonless.
-        See ``diseasephenotype.DOID_EXCLUDED_XREF_PREFIXES`` and docs/sources/DOID/mappings.md.
+    :param excluded_target_prefixes: targets whose CURIE prefix is in this collection are dropped
+        outright. Matched **after** ``norm()``, i.e. against the renamed prefix (``ICD10``, not
+        ``ICD10CM``), case-insensitively, using a raw split rather than ``Text.get_prefix()``
+        because a DOID xref value can be colonless.
+
+        The disease build passes nothing here. Its ICD problem -- an ICD code names a disease
+        *family*, so one code fuses every subtype citing it -- is handled at glom time instead, by
+        scoping ``remove_overused_xrefs`` to the ICD prefixes
+        (``diseasephenotype.OVERUSE_FILTERED_CONCORDS``), which drops only the codes claimed by 2+
+        DOID terms and keeps the 4,837 that are 1:1. A categorical exclusion remains the right
+        instrument when *no* row of a namespace can be an equivalence; compare
+        ``efo.make_concords(excluded_target_prefixes=EFO_EXCLUDED_XREF_PREFIXES)``, which drops MP
+        outright to keep phenotype and disease apart. See docs/sources/DOID/mappings.md.
     """
     excluded_upper = {prefix.upper() for prefix in excluded_target_prefixes}
     # Everything in DOID is a disease.

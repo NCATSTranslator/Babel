@@ -1275,10 +1275,22 @@ def read_badxrefs(fn):
     return morebad
 
 
-def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
+def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False, target_prefixes=None):
     """Given a list of tuples (id1, id2) meaning id1-[xref]->id2, remove any id2 that are associated with more
     than one id1.  The idea is that if e.g. id1 is made up of UBERONS and 2 of those have an xref to say a UMLS
-    then it doesn't mean that all of those should be identified.  We don't really know what it means, so remove it."""
+    then it doesn't mean that all of those should be identified.  We don't really know what it means, so remove it.
+
+    :param target_prefixes: if given, only targets in these namespaces are eligible to be dropped;
+        a target in any other namespace is kept however many subjects claim it. This scopes the
+        filter to the vocabulary that is actually causing merges, instead of trading one source's
+        real problem against the collateral damage to its other namespaces. DOID is the worked
+        case: its ICD codes name disease *families* and fuse every subtype citing one, while its
+        MeSH/SNOMED/UMLS targets are mostly fine -- so an unscoped filter under-cleans ICD (most
+        ICD rows are 1:1) and over-cleans everything else. Matched against
+        ``Text.get_prefix_or_none()``, which upper-cases, so the comparison is case-insensitive.
+        See ``diseasephenotype.OVERUSE_FILTERED_CONCORDS`` and docs/sources/DOID/mappings.md.
+    """
+    eligible = {p.upper() for p in target_prefixes} if target_prefixes is not None else None
     xref_counts_v = defaultdict(int)
     xref_counts_k = defaultdict(int)
     for k, v in pairlist:
@@ -1286,6 +1298,9 @@ def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
         xref_counts_k[k] += 1
     improved_pairs = []
     for k, v in pairlist:
+        if eligible is not None and (Text.get_prefix_or_none(v) or "") not in eligible:
+            improved_pairs.append((k, v))
+            continue
         if xref_counts_v[v] < 2:
             if bothways:
                 if xref_counts_k[k] < 2:

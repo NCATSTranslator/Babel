@@ -20,8 +20,9 @@ Sections:
 - ``# --- MP data-quality guards ---`` checks that MP gets the same same-prefix
   overmerge guard (``DISEASE_UNIQUE_PREFIXES``) and overused-xref filtering
   (``OVERUSE_FILTERED_CONCORDS``) that MONDO/HP already have.
-- ``# --- DOID ICD xref exclusion ---`` checks that DOID's ICD xrefs never reach a
-  concord at all, since an ICD code names a disease *family* rather than one disease.
+- ``# --- DOID ICD xref overuse filtering ---`` checks that a DOID ICD xref is dropped exactly
+  when its code is claimed by 2+ DOID terms -- an ICD code names a disease *family* -- while
+  DOID's 1:1 ICD rows and its other namespaces are left alone.
 - ``# CURIE PREFIX NORMALIZATION`` checks the per-source rename maps in
   ``config.yaml: disease_xref_prefixes``: that every target is a prefix Babel defines, that an
   unknown one raises, and that DOID's map covers every prefix DOID actually emits.
@@ -31,7 +32,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.babel_utils import glom, norm
+from src.babel_utils import glom, norm, remove_overused_xrefs
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
 from src.prefixes import DOID
@@ -464,39 +465,66 @@ def test_mp_concords_are_overuse_filtered(tmp_path):
     assert dicts["MP:0000002"] == {"MP:0000002"}
 
 
-# --- DOID ICD xref exclusion ---
+# --- DOID ICD xref overuse filtering ---
 
 
 @pytest.mark.unit
-def test_doid_excluded_xref_prefixes_are_the_icd_families():
-    """DOID_EXCLUDED_XREF_PREFIXES must list every ICD flavour DOID emits. An ICD code names a
-    disease family, not a disease, so none of these xrefs is an equivalence -- see
-    docs/sources/DOID/mappings.md and issue #1029. Regression guard against the constant being
-    emptied or a flavour being dropped."""
+def test_doid_icd_xref_prefixes_are_the_icd_families():
+    """DOID_ICD_XREF_PREFIXES must list every ICD flavour DOID emits, in post-norm() spelling.
+
+    These are the prefixes the overuse filter is scoped to, so a flavour missing here is a
+    namespace whose family codes go back to fusing every subtype that cites them. Regression
+    guard against the list being emptied or a flavour dropped -- see docs/sources/DOID/mappings.md
+    and issue #1029."""
     from src.prefixes import ICD0, ICD9, ICD10, ICD11
 
-    assert diseasephenotype.DOID_EXCLUDED_XREF_PREFIXES == [ICD10, ICD9, ICD0, ICD11]
+    assert diseasephenotype.DOID_ICD_XREF_PREFIXES == [ICD10, ICD9, ICD0, ICD11]
 
 
 @pytest.mark.unit
-def test_doid_is_not_overuse_filtered():
-    """DOID must stay OUT of OVERUSE_FILTERED_CONCORDS. Its ICD problem is handled categorically
-    by DOID_EXCLUDED_XREF_PREFIXES; adding the overuse filter on top would additionally discard
-    correct mappings this PR deliberately keeps -- MESH:D010195 "Pancreatitis" is claimed by both
-    DOID:4989 "pancreatitis" and DOID:2913 "acute pancreatitis", and the filter drops the genuine
-    equivalence along with the too-narrow one. Invert this assertion only alongside a decision on
-    the 533 remaining overused targets (docs/sources/DOID/mappings.md, issue #1029)."""
-    assert "DOID" not in diseasephenotype.OVERUSE_FILTERED_CONCORDS
+def test_doid_overuse_filter_is_scoped_to_icd():
+    """DOID must be overuse-filtered, but only over its ICD prefixes.
+
+    Unscoped (None, as MONDO/HP/EFO/MP are) the filter would also discard correct mappings:
+    MESH:D010195 "Pancreatitis" is claimed by both DOID:4989 "pancreatitis" and DOID:2913 "acute
+    pancreatitis", and dropping the target loses the genuine equivalence along with the too-narrow
+    one. Scoped to ICD it drops only the family codes."""
+    assert diseasephenotype.OVERUSE_FILTERED_CONCORDS["DOID"] == diseasephenotype.DOID_ICD_XREF_PREFIXES
+    assert all(diseasephenotype.OVERUSE_FILTERED_CONCORDS[c] is None for c in ("MONDO", "HP", "EFO", "MP"))
 
 
 @pytest.mark.unit
-def test_build_disease_doid_relationships_forwards_excluded_prefixes():
-    """build_disease_doid_relationships must forward DOID_EXCLUDED_XREF_PREFIXES into
-    doid.build_xrefs, so the ICD exclusion actually runs during the build (not just when a caller
-    opts in), and must record it in the concord's provenance.
+def test_scoped_overuse_filter_drops_only_the_named_namespace():
+    """remove_overused_xrefs(target_prefixes=...) must leave other namespaces alone.
 
-    write_concord_metadata is patched too because it opens concord_filename to count rows, which
-    would fail here against a path no build produced."""
+    This is the whole point of the scoping: an ICD family code claimed twice goes, while a MeSH
+    target claimed twice -- the pancreatitis case -- stays."""
+    pairs = [
+        ("DOID:2476", "ICD10:G11.4"),
+        ("DOID:0110764", "ICD10:G11.4"),
+        ("DOID:13258", "ICD10:A01.0"),
+        ("DOID:4989", "MESH:D010195"),
+        ("DOID:2913", "MESH:D010195"),
+    ]
+    kept = remove_overused_xrefs(pairs, target_prefixes=diseasephenotype.DOID_ICD_XREF_PREFIXES)
+
+    assert ("DOID:13258", "ICD10:A01.0") in kept, "a 1:1 ICD row must survive"
+    assert not [pair for pair in kept if pair[1] == "ICD10:G11.4"], "an overused ICD row must go"
+    assert [pair for pair in kept if pair[1] == "MESH:D010195"] == pairs[3:], "MeSH is out of scope"
+    # Unscoped, the same call takes the MeSH rows too -- the behaviour the scoping avoids.
+    assert not [pair for pair in remove_overused_xrefs(pairs) if pair[1] == "MESH:D010195"]
+
+
+@pytest.mark.unit
+def test_build_disease_doid_relationships_keeps_icd_in_the_concord():
+    """The concord must KEEP DOID's ICD rows -- they are filtered at glom time, not at build time.
+
+    Excluding them here instead would drop the 4,837 1:1 rows along with the 1,583 overused ones,
+    and would erase them from the concord the audit tools read. Invert this only alongside a
+    decision to go back to a categorical exclusion.
+
+    write_concord_metadata is patched because it opens concord_filename to count rows, which would
+    fail here against a path no build produced."""
     with (
         patch.object(diseasephenotype.doid, "build_xrefs") as mock_build,
         patch.object(diseasephenotype, "write_concord_metadata") as mock_meta,
@@ -504,8 +532,8 @@ def test_build_disease_doid_relationships_forwards_excluded_prefixes():
         diseasephenotype.build_disease_doid_relationships("doid.json", "out", "meta.yaml")
 
     assert mock_build.call_count == 1
-    assert mock_build.call_args.kwargs["excluded_target_prefixes"] == diseasephenotype.DOID_EXCLUDED_XREF_PREFIXES
-    assert "excluding target prefixes" in mock_meta.call_args.kwargs["description"]
+    assert "excluded_target_prefixes" not in mock_build.call_args.kwargs
+    assert "overuse-filtered at glom" in mock_meta.call_args.kwargs["description"]
 
 
 # --- EFO->MP xref exclusion (MP disjointness at the EFO source) ---

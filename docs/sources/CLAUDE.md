@@ -92,16 +92,29 @@ depends on the local id (OMIM's `PS` phenotypic series) cannot be expressed in Y
 
 ### Overuse filtering or a prefix exclusion?
 
-`remove_overused_xrefs` (via `OVERUSE_FILTERED_CONCORDS`) drops any target claimed by 2+ subjects,
-whatever its namespace. A prefix exclusion drops a namespace outright. They are not
-interchangeable, and picking by "which shrinks the cliques more" gets it wrong:
+`remove_overused_xrefs` drops any target claimed by 2+ subjects. A prefix exclusion drops a
+namespace outright. They are not interchangeable, and picking by "which shrinks the cliques more"
+gets it wrong:
 
 - Overuse is a **statistical proxy** — right when a namespace is usually fine but occasionally
   promiscuous. Its blast radius shifts with every upstream release, and it discards a correct
   mapping whenever a too-narrow sibling shares the target.
 - A prefix rule states what the namespace **means**, so it stays true. Use it when a whole
-  vocabulary is the wrong kind of thing: an ICD code names a disease *family*, so no DOID→ICD xref
-  is an equivalence however few subjects cite it.
+  vocabulary is the wrong kind of thing: EFO→MP xrefs cross the phenotype/disease line however few
+  subjects cite them, so `EFO_EXCLUDED_XREF_PREFIXES` drops them all.
+
+**Most often you want both at once**, which is what `OVERUSE_FILTERED_CONCORDS` encodes: it maps a
+concord basename to the target prefixes the filter may act on (`None` = all of them). Scoping says
+*which namespace is suspect* while the count says *which rows in it actually misbehave*, so neither
+instrument has to answer a question it is bad at. DOID's ICD codes are the worked case — the
+namespace is suspect (an ICD code often names a disease family) but 4,837 of its 6,425 rows are 1:1
+and many are correct, so a categorical drop destroys them and an unscoped filter instead savages
+DOID's MeSH and SNOMED rows. Scoped, it drops the 1,583 rows on codes claimed twice and nothing
+else. Reach for a categorical exclusion only when *no* row of the namespace could be an equivalence.
+
+A scoped filter fails **open**: a namespace missing from the list is not policed at all. Pair it
+with a `pipeline`-marked check over the real concord asserting every spelling present is in scope —
+`tests/pipeline/test_doid.py` is the example.
 
 `uv run babel-overused-xrefs` (docs/tools/OverusedXrefs.md) is how you tell them apart, and
 `--min-subjects 1 --target-prefixes …` enumerates what an exclusion would drop. **Generate that

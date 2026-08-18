@@ -117,31 +117,36 @@ EFO_EXCLUDED_XREF_PREFIXES = [MP]
 # exists for it; Babel does not ingest MPATH). See docs/sources/MP/mappings.md.
 MP_XREF_ALLOWED_PREFIXES = [HP, MGI, "MPATH", UMLS]
 
-# Target prefixes dropped from DOID's xrefs when building concords/DOID. An ICD code names a
-# disease *family*, never one disease: DOID:2476 "hereditary spastic paraplegia" carries
-# ICD10:G11.4, and so does every one of its 60 subtypes, so glom() fused 61 mutually exclusive
-# diseases into one 223-identifier clique. Human review of docs/sources/DOID/mappings/
-# icd-targets.csv found no DOID->ICD row that is an equivalence, which is why this is a
-# categorical exclusion rather than remove_overused_xrefs. The overuse filter is the wrong
-# instrument here in both directions: it under-cleans ICD (only 245 of 2,476 distinct ICD10
-# targets are overused, leaving ~4,800 bad rows) and over-cleans everything else (MESH:D010195
-# "Pancreatitis" is legitimately claimed by both DOID:4989 "pancreatitis" and DOID:2913 "acute
-# pancreatitis", and dropping it loses the correct mapping along with the too-broad one).
-# DOID emits 5 ICD11 rows. Applied inside doid.build_xrefs() *after* norm() renames
-# ICD10CM->ICD10, so these are the post-rename spellings. Being a denylist this is fail-open --
-# a new ICD spelling DOID starts emitting would be trusted by default -- so
-# tests/pipeline/test_doid.py::test_doid_concord_has_no_icd_targets is the compensating check over
-# the real concord -- note it is `pipeline`-marked, so it runs only under `pytest --pipeline` against
-# a checkout that has built the disease intermediates, not on every PR. See
-# docs/sources/DOID/mappings.md.
-DOID_EXCLUDED_XREF_PREFIXES = [ICD10, ICD9, ICD0, ICD11]
+# DOID's ICD target prefixes. An ICD code names a disease *family*, never one disease: DOID:2476
+# "hereditary spastic paraplegia" carries ICD10:G11.4, and so does every one of its 60 subtypes, so
+# glom() fused 61 mutually exclusive diseases into one 223-identifier clique. These are the
+# post-norm() spellings (ICD10, not ICD10CM); DOID emits 5 ICD11 rows.
+#
+# They are NOT excluded categorically. Of 6,420 ICD rows only 1,583 sit on a target claimed by 2+
+# DOID terms; the other 4,837 are 1:1 and many are plainly right (ICD10:A01.0 "Typhoid fever" ->
+# DOID:13258 "typhoid fever"). Dropping the namespace outright deleted all 4,837 to suppress the
+# 1,583. Instead OVERUSE_FILTERED_CONCORDS scopes remove_overused_xrefs to exactly these prefixes:
+# the four merge engines go (ICD10:H90.3 with 134 subjects, H35.5 with 107, G11.4 with 60, G60.0
+# with 58) and the 1:1 rows stay. The objection that a 1:1 code today could fuse a subtype DOID adds
+# tomorrow is handled by construction -- the filter recounts every build, so the row goes the day a
+# second subtype cites it. See docs/sources/DOID/mappings.md.
+DOID_ICD_XREF_PREFIXES = [ICD10, ICD9, ICD0, ICD11]
 
-# Concord file basenames whose pair stream is filtered through remove_overused_xrefs
-# before glom. Other concord sources are trusted as-is. MP is included alongside the other
-# OBO-sourced concords (MONDO, HP, EFO) since its UberGraph xrefs are ordinary ontology xrefs
-# with the same "one xref target claimed by many source ids" failure mode the filter guards
-# against, and there's no reason to trust MP's xrefs more than HP's.
-OVERUSE_FILTERED_CONCORDS = {"MONDO", "HP", "EFO", "MP"}
+# Concord file basenames whose pair stream is filtered through remove_overused_xrefs before glom,
+# mapped to the target prefixes the filter may drop (None = every namespace, the original
+# behaviour). Other concord sources are trusted as-is. MONDO/HP/EFO/MP are unscoped because their
+# UberGraph xrefs have the "one xref target claimed by many source ids" failure mode across the
+# board; DOID is scoped to ICD because that is the only namespace of its xrefs where being claimed
+# twice reliably means the mapping is wrong -- MESH:D010195 "Pancreatitis" is legitimately claimed
+# by both DOID:4989 "pancreatitis" and DOID:2913 "acute pancreatitis", and an unscoped filter would
+# discard the correct mapping along with the too-broad one.
+OVERUSE_FILTERED_CONCORDS = {
+    "MONDO": None,
+    "HP": None,
+    "EFO": None,
+    "MP": None,
+    "DOID": DOID_ICD_XREF_PREFIXES,
+}
 
 # Per-source bad-xref files used when build_compendium is called without explicit
 # badxrefs (e.g. by the source-impact report CLI). The Snakemake call site still
@@ -420,14 +425,15 @@ def build_disease_umls_relationships(mrconso, idfile, outfile, omimfile, ncitfil
 
 def build_disease_doid_relationships(idfile, outfile, metadata_yaml):
     other_prefixes = get_xref_prefix_map(DOID)
-    doid.build_xrefs(
-        idfile, outfile, other_prefixes=other_prefixes, excluded_target_prefixes=DOID_EXCLUDED_XREF_PREFIXES
-    )
+    # No excluded_target_prefixes: DOID's ICD rows stay in the concord and are filtered at glom
+    # time by OVERUSE_FILTERED_CONCORDS, which drops only the codes claimed by 2+ DOID terms. That
+    # keeps the audit trail -- babel-overused-xrefs can still see every row that was considered.
+    doid.build_xrefs(idfile, outfile, other_prefixes=other_prefixes)
     write_concord_metadata(
         metadata_yaml,
         name="build_disease_doid_relationships()",
         description=f"build_disease_doid_relationships() using the DOID ID file {idfile} and other_prefixes "
-        f"{other_prefixes}, excluding target prefixes {DOID_EXCLUDED_XREF_PREFIXES}",
+        f"{other_prefixes}; ICD targets ({DOID_ICD_XREF_PREFIXES}) are kept here and overuse-filtered at glom",
         concord_filename=outfile,
         sources=[{"type": "DOID", "name": "doid.build_xrefs"}],
     )
@@ -557,7 +563,7 @@ def compute_cliques_for_impact_report(
                 if x not in bad_pairs:
                     pairs.append(x)
         if pref in OVERUSE_FILTERED_CONCORDS:
-            newpairs = remove_overused_xrefs(pairs)
+            newpairs = remove_overused_xrefs(pairs, target_prefixes=OVERUSE_FILTERED_CONCORDS[pref])
         else:
             newpairs = pairs
         glom(dicts, newpairs, unique_prefixes=DISEASE_UNIQUE_PREFIXES, close={MONDO: close_mondos})

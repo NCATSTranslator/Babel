@@ -18,7 +18,7 @@ Babel has two defences, and this tool is how you choose between them. `remove_ov
 drops any target claimed by two or more subjects, whatever its namespace; a disease source opts
 into it by joining `OVERUSE_FILTERED_CONCORDS` in `src/createcompendia/diseasephenotype.py`. A
 **categorical prefix exclusion** instead drops every row targeting a namespace, at the point the
-concord is built (`DOID_EXCLUDED_XREF_PREFIXES`, `EFO_EXCLUDED_XREF_PREFIXES`,
+concord is built (`EFO_EXCLUDED_XREF_PREFIXES`,
 `ubergraph.build_sets(ignore_list=…)`).
 
 Overuse is a statistical proxy; a prefix rule is a statement about what the namespace *means*.

@@ -31,6 +31,7 @@ User-facing docs: [`docs/tools/OverusedXrefs.md`](../../../docs/tools/OverusedXr
 
 - **`--min-subjects 1 --target-prefixes …` is the other mode.** It stops being an overuse audit and
   becomes "every row targeting these namespaces", which is how a *categorical prefix exclusion*
-  (`DOID_EXCLUDED_XREF_PREFIXES`) is enumerated for human review before a wholesale removal.
+  (`EFO_EXCLUDED_XREF_PREFIXES`) is enumerated for human review before a wholesale removal, and
+  how a *scoped* overuse filter's namespace list (`DOID_ICD_XREF_PREFIXES`) is reviewed.
   `docs/sources/DOID/mappings/icd-targets.csv` is that output; note it must be generated from a
   **pre-exclusion** concord, since afterwards those rows no longer exist.

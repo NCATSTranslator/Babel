@@ -713,20 +713,21 @@ ICD10:E75.4,Neuronal ceroid lipofuscinosis,ICD10,15,DOID:0110731,neuronal ceroid
 ICD10:E75.4,Neuronal ceroid lipofuscinosis,ICD10,15,DOID:0110732,neuronal ceroid lipofuscinosis 11
 ICD10:E75.4,Neuronal ceroid lipofuscinosis,ICD10,15,DOID:0110733,neuronal ceroid lipofuscinosis 9
 ICD10:E75.4,Neuronal ceroid lipofuscinosis,ICD10,15,DOID:14503,neuronal ceroid lipofuscinosis
-ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,14,DOID:0060316,orofaciodigital syndrome I
-ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,14,DOID:0060359,Sakati-Nyhan syndrome
-ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,14,DOID:0060380,orofaciodigital syndrome X
-ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,14,DOID:0070757,Pilarowski-Bjornsson syndrome
-ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,14,DOID:0090001,Fraser syndrome
-ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,14,DOID:0110716,Warburg micro syndrome 1
-ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,14,DOID:0110717,Warburg micro syndrome 2
-ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,14,DOID:0110718,Warburg micro syndrome 3
-ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,14,DOID:0110719,Warburg micro syndrome 4
-ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,14,DOID:0111604,Freeman-Sheldon syndrome
-ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,14,DOID:13501,Moebius syndrome
-ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,14,DOID:2907,Goldenhar syndrome
-ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,14,DOID:4258,Weissenbacher-Zweymuller syndrome
-ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,14,DOID:4501,orofaciodigital syndrome
+ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,15,DOID:0060316,orofaciodigital syndrome I
+ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,15,DOID:0060359,Sakati-Nyhan syndrome
+ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,15,DOID:0060380,orofaciodigital syndrome X
+ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,15,DOID:0070757,Pilarowski-Bjornsson syndrome
+ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,15,DOID:0070791,craniofaciocardiohepatic syndrome
+ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,15,DOID:0090001,Fraser syndrome
+ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,15,DOID:0110716,Warburg micro syndrome 1
+ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,15,DOID:0110717,Warburg micro syndrome 2
+ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,15,DOID:0110718,Warburg micro syndrome 3
+ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,15,DOID:0110719,Warburg micro syndrome 4
+ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,15,DOID:0111604,Freeman-Sheldon syndrome
+ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,15,DOID:13501,Moebius syndrome
+ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,15,DOID:2907,Goldenhar syndrome
+ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,15,DOID:4258,Weissenbacher-Zweymuller syndrome
+ICD10:Q87.0,Congenital malformation syndromes predominantly affecting facial appearance,ICD10,15,DOID:4501,orofaciodigital syndrome
 ICD10:Q87.1,Congenital malformation syndromes predominantly associated with short stature,ICD10,13,DOID:0050569,Seckel syndrome
 ICD10:Q87.1,Congenital malformation syndromes predominantly associated with short stature,ICD10,13,DOID:0060578,Noonan syndrome 1
 ICD10:Q87.1,Congenital malformation syndromes predominantly associated with short stature,ICD10,13,DOID:0060580,Noonan syndrome 2
@@ -2583,6 +2584,7 @@ ICD10:D55-D59,,ICD10,1,DOID:583,hemolytic anemia
 ICD10:D55.0,Anemia due to glucose-6-phosphate dehydrogenase [G6PD] deficiency,ICD10,1,DOID:13628,favism
 ICD10:D56,,ICD10,1,DOID:10241,thalassemia
 ICD10:D56.1,Beta thalassemia,ICD10,1,DOID:12241,beta thalassemia
+ICD10:D56.2,Delta-beta thalassemia,ICD10,1,DOID:0080773,delta beta-thalassemia
 ICD10:D57.1,Sickle-cell disease without crisis,ICD10,1,DOID:10923,sickle cell anemia
 ICD10:D57.2,Double heterozygous sickling disorders,ICD10,1,DOID:0081445,sickle cell disease
 ICD10:D58.0,Hereditary spherocytosis,ICD10,1,DOID:12971,hereditary spherocytosis
@@ -2918,6 +2920,7 @@ ICD10:F65.51,Sexual masochism,ICD10,1,DOID:10849,sexual masochism
 ICD10:F65.52,Sexual sadism,ICD10,1,DOID:10817,sexual sadism
 ICD10:F71.1,"Moderate mental retardation, significant impairment of behavior requiring attention or treatment",ICD10,1,DOID:0060827,X-linked intellectual disability-psychosis-macroorchidism syndrome
 ICD10:F72,Severe intellectual disabilities,ICD10,1,DOID:0060823,syndromic X-linked intellectual disability 94
+ICD10:F78.A,,ICD10,1,DOID:0070777,"syndromic X-linked intellectual developmental disorder, Snijders Blok type"
 ICD10:F80.1,Expressive language disorder,ICD10,1,DOID:11385,expressive language disorder
 ICD10:F80.2,Receptive language disorder,ICD10,1,DOID:12685,mixed receptive-expressive language disorder
 ICD10:F80.81,Childhood onset fluency disorder,ICD10,1,DOID:0060243,stuttering
@@ -3878,7 +3881,7 @@ ICD10:M81.0,Postmenopausal osteoporosis,ICD10,1,DOID:11476,osteoporosis
 ICD10:M86.3,Chronic multifocal osteomyelitis,ICD10,1,DOID:0060645,chronic recurrent multifocal osteomyelitis
 ICD10:M87,avascular necrosis of bone,ICD10,1,DOID:10159,osteonecrosis
 ICD10:M87.9,"Osteonecrosis, unspecified",ICD10,1,DOID:10159,osteonecrosis
-ICD10:M88,,ICD10,1,DOID:5408,Paget's disease of bone
+ICD10:M88,,ICD10,1,DOID:5408,Paget disease of bone
 ICD10:M89.0,Algoneurodystrophy,ICD10,1,DOID:14022,algoneurodystrophy
 ICD10:M89.3,Hypertrophy of bone,ICD10,1,DOID:205,hyperostosis
 ICD10:M89.8,Other specified disorders of bone,ICD10,1,DOID:4257,Caffey disease
@@ -4174,6 +4177,7 @@ ICD10:Q87.11,Prader-Willi syndrome,ICD10,1,DOID:11983,Prader-Willi syndrome
 ICD10:Q87.4,Marfan's syndrome,ICD10,1,DOID:14323,Marfan syndrome
 ICD10:Q87.83,Bardet-Biedl syndrome,ICD10,1,DOID:1935,Bardet-Biedl syndrome
 ICD10:Q87.84,Laurence-Moon syndrome,ICD10,1,DOID:1930,Laurence-Moon syndrome
+ICD10:Q87.85,MED13L syndrome,ICD10,1,DOID:0070776,impaired intellectual development and distinctive facial features with or without cardiac defects
 ICD10:Q87.86,Kleefstra syndrome,ICD10,1,DOID:0060352,Kleefstra syndrome 1
 ICD10:Q89.3,Situs inversus,ICD10,1,DOID:758,visceral heterotaxy 5
 ICD10:Q89.81,Kabuki syndrome,ICD10,1,DOID:0060473,Kabuki syndrome
@@ -4945,6 +4949,7 @@ ICD9:282.1,Hereditary elliptocytosis,ICD9,1,DOID:2373,hereditary elliptocytosis
 ICD9:282.4,,ICD9,1,DOID:10241,thalassemia
 ICD9:282.43,Alpha thalassemia,ICD9,1,DOID:1099,alpha thalassemia
 ICD9:282.44,Beta thalassemia,ICD9,1,DOID:12241,beta thalassemia
+ICD9:282.45,Delta-beta thalassemia,ICD9,1,DOID:0080773,delta beta-thalassemia
 ICD9:282.6,,ICD9,1,DOID:10923,sickle cell anemia
 ICD9:282.63,Sickle-cell/Hb-C disease without crisis,ICD9,1,DOID:0081445,sickle cell disease
 ICD9:283.0,Autoimmune hemolytic anemias,ICD9,1,DOID:718,autoimmune hemolytic anemia
