@@ -2,3 +2,11 @@
 #UMLS:C0029221 is organic brain syndrome, but it's linked directly to 'delirium' in other vocabs.  it's more of a superclass
 #This mesh term is for Estrogen, and it maps correctly to, but it also maps to C0877035, which is "Estrogen Effect"
 UMLS:C0877035 MESH:D004967
+# https://github.com/NCATSTranslator/Babel/issues/1029 (found by the clique diff for PR #1031)
+# UMLS:C0015306 "Hereditary Multiple Exostoses" is a disease, and UMLS equates it with the
+# phenotype HP:0002762 "Multiple exostoses". That one edge is what pulls DOID:206 "hereditary
+# multiple exostoses", OMIM:133700/133701/600209 "exostoses, multiple, type I/II/III" and
+# orphanet:321 "Multiple osteochondromas" into a biolink:PhenotypicFeature clique -- which
+# registers none of DOID, OMIM or orphanet, so write_compendium() silently drops every one of
+# them. Cut with the two HP-side pairs in badHPx.txt; all three are needed.
+UMLS:C0015306 HP:0002762

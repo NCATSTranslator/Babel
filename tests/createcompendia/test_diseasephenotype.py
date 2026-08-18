@@ -20,16 +20,24 @@ Sections:
 - ``# --- MP data-quality guards ---`` checks that MP gets the same same-prefix
   overmerge guard (``DISEASE_UNIQUE_PREFIXES``) and overused-xref filtering
   (``OVERUSE_FILTERED_CONCORDS``) that MONDO/HP already have.
+- ``# --- DOID ICD xref overuse filtering ---`` checks that a DOID ICD xref is dropped exactly
+  when its code is claimed by 2+ DOID terms -- an ICD code names a disease *family* -- while
+  DOID's 1:1 ICD rows and its other namespaces are left alone.
+- ``# CURIE PREFIX NORMALIZATION`` checks the per-source rename maps in
+  ``config.yaml: disease_xref_prefixes``: that every target is a prefix Babel defines, that an
+  unknown one raises, and that DOID's map covers every prefix DOID actually emits.
 """
 
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.babel_utils import glom
+from src.babel_utils import glom, norm, remove_overused_xrefs
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
+from src.prefixes import DOID, ICD10CM, MONDO
 from src.ubergraph import build_sets
+from src.util import Text, get_config
 from tests.conftest import assert_taxa_file_valid, glom_dict_from_cliques
 
 # --- UMLS semantic-type tree mapping ---
@@ -457,6 +465,77 @@ def test_mp_concords_are_overuse_filtered(tmp_path):
     assert dicts["MP:0000002"] == {"MP:0000002"}
 
 
+# --- DOID ICD xref overuse filtering ---
+
+
+@pytest.mark.unit
+def test_doid_icd_xref_prefixes_are_the_icd_families():
+    """DOID_ICD_XREF_PREFIXES must list every ICD flavour DOID emits, in post-norm() spelling.
+
+    These are the prefixes the overuse filter is scoped to, so a flavour missing here is a
+    namespace whose family codes go back to fusing every subtype that cites them. Regression
+    guard against the list being emptied or a flavour dropped -- see docs/sources/DOID/mappings.md
+    and issue #1029."""
+    from src.prefixes import ICD0, ICD9, ICD10, ICD11
+
+    assert diseasephenotype.DOID_ICD_XREF_PREFIXES == [ICD10, ICD9, ICD0, ICD11]
+
+
+@pytest.mark.unit
+def test_doid_overuse_filter_is_scoped_to_icd():
+    """DOID must be overuse-filtered, but only over its ICD prefixes.
+
+    Unscoped (None, as MONDO/HP/EFO/MP are) the filter would also discard correct mappings:
+    MESH:D010195 "Pancreatitis" is claimed by both DOID:4989 "pancreatitis" and DOID:2913 "acute
+    pancreatitis", and dropping the target loses the genuine equivalence along with the too-narrow
+    one. Scoped to ICD it drops only the family codes."""
+    assert diseasephenotype.OVERUSE_FILTERED_CONCORDS["DOID"] == diseasephenotype.DOID_ICD_XREF_PREFIXES
+    assert all(diseasephenotype.OVERUSE_FILTERED_CONCORDS[c] is None for c in ("MONDO", "HP", "EFO", "MP"))
+
+
+@pytest.mark.unit
+def test_scoped_overuse_filter_drops_only_the_named_namespace():
+    """remove_overused_xrefs(target_prefixes=...) must leave other namespaces alone.
+
+    This is the whole point of the scoping: an ICD family code claimed twice goes, while a MeSH
+    target claimed twice -- the pancreatitis case -- stays."""
+    pairs = [
+        ("DOID:2476", "ICD10:G11.4"),
+        ("DOID:0110764", "ICD10:G11.4"),
+        ("DOID:13258", "ICD10:A01.0"),
+        ("DOID:4989", "MESH:D010195"),
+        ("DOID:2913", "MESH:D010195"),
+    ]
+    kept = remove_overused_xrefs(pairs, target_prefixes=diseasephenotype.DOID_ICD_XREF_PREFIXES)
+
+    assert ("DOID:13258", "ICD10:A01.0") in kept, "a 1:1 ICD row must survive"
+    assert not [pair for pair in kept if pair[1] == "ICD10:G11.4"], "an overused ICD row must go"
+    assert [pair for pair in kept if pair[1] == "MESH:D010195"] == pairs[3:], "MeSH is out of scope"
+    # Unscoped, the same call takes the MeSH rows too -- the behaviour the scoping avoids.
+    assert not [pair for pair in remove_overused_xrefs(pairs) if pair[1] == "MESH:D010195"]
+
+
+@pytest.mark.unit
+def test_build_disease_doid_relationships_keeps_icd_in_the_concord():
+    """The concord must KEEP DOID's ICD rows -- they are filtered at glom time, not at build time.
+
+    Excluding them here instead would drop the 4,841 1:1 rows along with the 1,584 overused ones,
+    and would erase them from the concord the audit tools read. Invert this only alongside a
+    decision to go back to a categorical exclusion.
+
+    write_concord_metadata is patched because it opens concord_filename to count rows, which would
+    fail here against a path no build produced."""
+    with (
+        patch.object(diseasephenotype.doid, "build_xrefs") as mock_build,
+        patch.object(diseasephenotype, "write_concord_metadata") as mock_meta,
+    ):
+        diseasephenotype.build_disease_doid_relationships("doid.json", "out", "meta.yaml")
+
+    assert mock_build.call_count == 1
+    assert "excluded_target_prefixes" not in mock_build.call_args.kwargs
+    assert "overuse-filtered at glom" in mock_meta.call_args.kwargs["description"]
+
+
 # --- EFO->MP xref exclusion (MP disjointness at the EFO source) ---
 
 
@@ -617,3 +696,149 @@ def test_build_sets_accepts_the_allowlist_this_module_ships():
     xref of that namespace."""
     diseasephenotype_allowlist = diseasephenotype.MP_XREF_ALLOWED_PREFIXES
     assert diseasephenotype_allowlist == [p.upper() for p in diseasephenotype_allowlist]
+
+
+# CURIE PREFIX NORMALIZATION (config.yaml: disease_xref_prefixes)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("source", ["DOID", "HP", "MONDO"])
+def test_xref_prefix_map_targets_are_registered_prefixes(source):
+    """Every rename target in config.yaml must be a prefix src/prefixes.py defines.
+
+    A typo'd target renames CURIEs into a namespace no ids file carries, which norm() cannot
+    detect and glom() happily merges through -- the same silent failure the config block exists
+    to prevent, just moved one step later."""
+    known = set(Text.prefixmap.values())
+    assert (
+        set(diseasephenotype.get_xref_prefix_map(source).values())
+        - known
+        - {rename for rename in diseasephenotype.LOCAL_ID_DEPENDENT_RENAMES.values()}
+        == set()
+    )
+
+
+@pytest.mark.unit
+def test_xref_prefix_map_raises_on_an_unregistered_target(monkeypatch):
+    """An unknown target prefix should fail loudly at load, naming the offender."""
+    monkeypatch.setattr(
+        diseasephenotype,
+        "get_config",
+        lambda: {"disease_xref_prefixes": {"DOID": {"NCI": "NOT_A_REAL_PREFIX"}}},
+    )
+    with pytest.raises(ValueError, match="NOT_A_REAL_PREFIX"):
+        diseasephenotype.get_xref_prefix_map("DOID")
+
+
+@pytest.mark.unit
+def test_doid_xref_prefix_map_covers_every_prefix_doid_emits():
+    """DOID's map must rename every non-Babel prefix DOID uses, and reach it via the stem.
+
+    These are the spellings in the DOID release of 2026-08-18. `MIM`, `SNOMEDCT_US` and `ORDO`
+    were the three that were missing -- 6,483, 5,358 and 2,321 rows respectively, every one of
+    them reaching glom() un-renamed, joining nothing and fusing its subjects anyway."""
+    mapping = diseasephenotype.get_xref_prefix_map(DOID)
+    assert set(mapping) == {"ICD10CM", "ICD9CM", "ICDO", "NCI", "SNOMEDCT_US", "UMLS_CUI", "KEGG", "MIM", "ORDO"}
+    # The stem entry has to cover the dated spellings, which is norm()'s job, not the map's.
+    assert norm("SNOMEDCT_US_2026_03_01:267692008", mapping) == "SNOMEDCT:267692008"
+    assert norm("MIM:PS303350", mapping) == "OMIM.PS:303350"
+    assert norm("MIM:115210", mapping) == "OMIM:115210"
+    # Lower-case target: the rename must land on Babel's spelling, which MONDO and HP already use.
+    assert norm("ORDO:2822", mapping) == "orphanet:2822"
+
+
+@pytest.mark.unit
+def test_disease_extra_prefixes_are_registered_and_deliberate():
+    """config.yaml: disease_extra_prefixes overrides the Biolink Model, so it must stay short.
+
+    Each entry ships a prefix Biolink does not register for biolink:Disease -- deliberately, since
+    write_compendium() would otherwise drop it silently *after* it had already merged cliques. The
+    entries must be real prefixes from src/prefixes.py, and ICD0 must stay out: an ICD-O code is a
+    tumour morphology, so emitting one asserts a disease equivalence nobody has decided (#1037).
+    Update this test alongside the config, not instead of it."""
+    from src.prefixes import ICD0, ICD10CM
+
+    extra = get_config()["disease_extra_prefixes"]
+
+    assert extra == [ICD10CM], "adding a prefix here overrides Biolink; say why in config.yaml first"
+    assert set(extra) <= set(Text.prefixmap.values()), "every entry must be a src/prefixes.py constant"
+    assert ICD0 not in extra
+
+
+@pytest.mark.unit
+def test_icd10cm_override_expires_when_the_spelling_is_unified():
+    """The ICD10CM override must not outlive the reason for it.
+
+    It exists only because MONDO emits `ICD10CM:` while DOID/EFO/HP emit `ICD10:`, and Biolink
+    registers only the latter -- so without it MONDO's ~2,030 curated ICD-10 mappings merge cliques
+    in glom() and are then dropped by write_compendium(). When
+    https://github.com/NCATSTranslator/Babel/issues/1033 lands and MONDO's map renames ICD10CM to
+    ICD10, the override becomes dead weight that keeps a non-Biolink prefix alive for no reason.
+
+    Nothing else would notice, so this fails the moment the two config entries disagree: if MONDO
+    renames ICD10CM away, ICD10CM must come out of disease_extra_prefixes in the same change."""
+    mondo_renames = get_config()["disease_xref_prefixes"][MONDO]
+    extra = get_config()["disease_extra_prefixes"]
+
+    if "ICD10CM" in mondo_renames:
+        assert ICD10CM not in extra, (
+            "MONDO now renames ICD10CM, so nothing emits that prefix any more -- drop it from "
+            "config.yaml: disease_extra_prefixes (see issue #1033)."
+        )
+
+
+@pytest.mark.unit
+def test_build_compendium_passes_the_extra_prefixes_through():
+    """The override is useless unless it reaches write_compendium, so pin the wiring."""
+    with (
+        patch.object(diseasephenotype, "compute_cliques_for_impact_report", return_value=({}, {})),
+        patch.object(diseasephenotype, "create_typed_sets", return_value={DISEASE: [["MONDO:1"]]}),
+        patch.object(diseasephenotype, "write_compendium") as mock_write,
+    ):
+        diseasephenotype.build_compendium([], {}, [], None, {}, "icRDF.tsv")
+
+    assert mock_write.call_args.kwargs["extra_prefixes"] == get_config()["disease_extra_prefixes"]
+
+
+@pytest.mark.unit
+def test_disease_phenotype_boundary_badxrefs_are_shipped_and_parse():
+    """The four pairs that keep two diseases out of the phenotype cliques named after them must
+    survive in the shipped files, split across the two concords they belong to.
+
+    All four are load-bearing: a replay over a built intermediate set showed that dropping any one
+    of them puts DOID:206 "hereditary multiple exostoses" or DOID:0050424 "familial adenomatous
+    polyposis" back into a biolink:PhenotypicFeature clique, which registers none of DOID, OMIM or
+    orphanet -- so write_compendium() silently drops those identifiers. The clique diff for #1031
+    caught exactly that, losing 5 identifiers.
+
+    Note the bridge runs both ways: UMLS asserts C0015306 -> HP:0002762 and HP asserts the reverse,
+    so blocking one direction is not enough. Cutting DOID's own edges instead does NOT work --
+    DOID:206 still reaches the phenotype through OMIM:133700 -- which is why these sit on the
+    UMLS and HP concords rather than a DOID one."""
+    umls_pairs = diseasephenotype.read_badxrefs("input_data/umls_badxrefs.txt")
+    hp_pairs = diseasephenotype.read_badxrefs("input_data/badHPx.txt")
+
+    assert ("UMLS:C0015306", "HP:0002762") in umls_pairs
+    assert ("HP:0002762", "UMLS:C0015306") in hp_pairs
+    assert ("HP:0002762", "SNOMEDCT:254044004") in hp_pairs
+    assert ("HP:0005227", "MEDDRA:10056981") in hp_pairs
+    # HP:0005227's own UMLS mapping is a leaf and must stay -- blocking it would strip a correct
+    # phenotype mapping to fix a transitive problem it does not cause.
+    assert ("HP:0005227", "UMLS:C1868071") not in hp_pairs
+
+
+@pytest.mark.unit
+def test_badxrefs_files_are_registered_for_the_concords_they_name():
+    """Every DEFAULT_BAD_XREFS key must name a concord the disease build actually produces.
+
+    A bad-xrefs file has to be registered in two places (this dict and the disease_compendia rule),
+    and a key matching no concord silently filters nothing -- the footgun docs/sources/CLAUDE.md
+    warns about. compute_cliques_for_impact_report() raises on an unknown key, but only once it has
+    a concord list to check against; this pins the dict itself against config.yaml."""
+    known_concords = set(get_config()["disease_concords"])
+
+    assert set(diseasephenotype.DEFAULT_BAD_XREFS) <= known_concords, (
+        f"bad-xrefs keys naming no concord: {sorted(set(diseasephenotype.DEFAULT_BAD_XREFS) - known_concords)}"
+    )
+    for name, path in diseasephenotype.DEFAULT_BAD_XREFS.items():
+        assert diseasephenotype.read_badxrefs(path) is not None, f"{name} bad-xrefs file failed to parse"

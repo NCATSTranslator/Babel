@@ -58,3 +58,8 @@ htmlcov/
 
 # Jupyter autosaves
 .ipynb_checkpoints/
+
+# Compiled Rust extension modules built into src/ by maturin (see PR #975). Build output, not
+# source: the .so is platform- and Python-ABI-specific, so committing one breaks every other
+# machine that imports it.
+src/*.so

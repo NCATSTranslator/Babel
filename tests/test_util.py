@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.util import _biolink_ref, ensure_parent_dir
+from src.util import Text, _biolink_ref, ensure_parent_dir
 
 
 @pytest.mark.unit
@@ -90,3 +90,24 @@ class TestEnsureParentDir:
         monkeypatch.chdir(tmp_path)
         ensure_parent_dir("output.txt")
         assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.unit
+class TestOmimCurie:
+    """Unit tests for Text.omim_curie(), which splits OMIM phenotypic series off to OMIM.PS."""
+
+    def test_plain_entry_becomes_an_omim_curie(self):
+        """An ordinary MIM number is an OMIM identifier."""
+        assert Text.omim_curie("115210") == "OMIM:115210"
+
+    def test_phenotypic_series_becomes_an_omim_ps_curie(self):
+        """OMIM writes a phenotypic series "PS303350"; the "PS" belongs to Babel's prefix, so it
+        must be stripped from the local id rather than carried into OMIM:PS303350 -- which would
+        ship an identifier no ids file carries but write_compendium still keeps, OMIM being a
+        registered biolink:Disease prefix."""
+        assert Text.omim_curie("PS303350") == "OMIM.PS:303350"
+
+    def test_opt_to_curie_uses_the_same_rule(self):
+        """omim.org URLs reach the same helper, so the two call sites cannot drift."""
+        assert Text.opt_to_curie("https://omim.org/PS303350") == "OMIM.PS:303350"
+        assert Text.opt_to_curie("https://omim.org/115210") == "OMIM:115210"

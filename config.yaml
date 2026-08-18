@@ -160,6 +160,69 @@ disease_labelsandsynonyms: [MONDO, DOID, Orphanet, HP, MP, MESH, NCIT, UMLS, SNO
 disease_ids:               [MONDO, DOID, Orphanet, HP, MP, MESH, NCIT, UMLS, OMIM, EFO]
 disease_concords:          [HP, MP, MONDO, UMLS, DOID, EFO, Manual]
 disease_outputs:           [Disease.txt, PhenotypicFeature.txt]
+
+# Prefixes written into the disease compendia even though the Biolink Model does not register them
+# for biolink:Disease or biolink:PhenotypicFeature. write_compendium() otherwise drops an
+# unregistered prefix silently, *after* it has already merged cliques in glom() -- so the merge
+# effect ships and the identifier does not.
+#
+# ICD10CM is MONDO's spelling of ICD-10 (DOID/EFO/HP write ICD10:), covering ~2,030 xref rows that
+# are near-perfectly 1:1. Emitting them is deliberately ahead of the Biolink Model: they will not
+# normalize until ICD10CM is registered or the spelling is unified onto ICD10, but having them in
+# the output beats discarding curated mappings we would then have to re-derive. Reconcile and
+# remove this entry when https://github.com/NCATSTranslator/Babel/issues/1033 is resolved.
+#
+# ICD0 is deliberately NOT here: ICD-O codes are tumour *morphology* codes and may not be disease
+# equivalents at all, so emitting them would assert something we have not decided. See
+# https://github.com/NCATSTranslator/Babel/issues/1037.
+disease_extra_prefixes:    [ICD10CM]
+
+# How each disease source spells *other* vocabularies' prefixes in its cross-references, and the
+# Babel prefix each one becomes. Applied by babel_utils.norm() while the source's concord is built,
+# keyed on the UPPER-CASED source prefix. Values are checked against src/prefixes.py when the map is
+# loaded, so a typo fails the build rather than silently renaming nothing.
+#
+# A *missing* entry is not an error and that is the danger: the un-renamed CURIE still reaches
+# glom(), joins nothing (no ids file carries that spelling, and write_compendium drops the prefix as
+# unregistered), yet still fuses every subject that cites it into a single clique. That silent
+# failure is why these maps sit here, in one reviewable block, instead of inline beside each build
+# function -- reviewing "which prefixes does this source need renamed" is the whole job.
+#
+# A key may name the *stem* of a release-stamped prefix: SNOMEDCT_US matches DOID's
+# SNOMEDCT_US_2025_09_01 and the six other dates it currently emits, without pinning a date list
+# that goes stale on the next DOID release (norm() retries with a trailing _YYYY_MM_DD stripped).
+disease_xref_prefixes:
+  DOID:
+    ICD10CM:     ICD10
+    ICD9CM:      ICD9
+    ICDO:        ICD0
+    NCI:         NCIT
+    SNOMEDCT_US: SNOMEDCT
+    UMLS_CUI:    UMLS
+    KEGG:        KEGG.DISEASE
+    # DOID spells OMIM "MIM:" -- see https://github.com/NCATSTranslator/Babel/issues/321, which
+    # tracks making MIM the canonical spelling once the Biolink Model registers it. Until then both
+    # standardize to OMIM. 332 of these 6,483 rows are phenotypic series ("MIM:PS303350"), which
+    # Babel spells OMIM.PS:303350 -- the "PS" belongs to the prefix, not to the local id. YAML
+    # cannot express a rename that depends on the local id, so this value is resolved to a callable:
+    # see LOCAL_ID_DEPENDENT_RENAMES in src/createcompendia/diseasephenotype.py.
+    MIM:         OMIM
+    # DOID's spelling of Orphanet, 2,321 rows. MONDO and HP already write orphanet:, so before this
+    # entry none of DOID's Orphanet mappings could join theirs.
+    ORDO:        orphanet
+  HP:
+    MSH:         MESH
+    SNOMEDCT_US: SNOMEDCT
+    SNOMED_CT:   SNOMEDCT
+    # MONDO writes Orphanet mixed case ("Orphanet:2822"); the key is matched upper-cased, so this
+    # one entry catches every casing and maps it to Babel's lower-case orphanet: prefix.
+    ORPHANET:    orphanet
+    ICD-9:       ICD9
+    ICD-10:      ICD10
+    ICD-0:       ICD0
+    ICD-O:       ICD0
+  MONDO:
+    ORPHANET:    orphanet
 # Taxon assigned to each phenotype ontology's identifiers in the compendia. Every HP term we
 # ingest (the HP:0000118 "Phenotypic abnormality" subtree) describes a human (Homo sapiens)
 # phenotype; every MP term describes a mammalian (Mammalia) phenotype. These are written to

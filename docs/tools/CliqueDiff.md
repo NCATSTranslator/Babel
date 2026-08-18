@@ -121,3 +121,28 @@ in the change rows (we may add an optional `--include-additions` options in the 
 this if needed). The [source impact report](SourceImpactReport.md) is really interested in new
 additions and tracks those. See `docs/sources/MP/disjointness.md` for a worked example of this exact
 reconciliation.
+
+## Producing the two builds
+
+The tool compares two directories of finished compendia, so the work is mostly in getting two
+builds of the *same* intermediates that differ only by the change under test. Build the target at
+the base commit, copy the compendia somewhere, check out the head commit, rebuild, copy again.
+
+Three traps, each of which silently yields a diff of a build against itself:
+
+- **Snakemake's `code` rerun trigger hashes a rule's own `run:` block, not the modules it
+  imports.** A change inside `babel_utils.norm()` or a `createcompendia` helper leaves every
+  affected rule looking up to date, so the second pass reuses the first pass's concords.
+- **Deleting the intermediates is not enough.** A target rule like `disease` has its own outputs
+  (`reports/disease_done`, the gzipped synonyms), and while those exist Snakemake answers
+  `Nothing to be done` without ever looking at what you deleted. Delete the target's outputs and
+  the per-compendium `compendia/`, `reports/`, `synonyms/` and `metadata/` files as well.
+- **`--forcerun` is the wrong instrument.** Forcing the concord and compendium rules re-evaluates
+  their whole DAG, which for `disease` pulls in ~326 steps across chemicals, genes and proteins —
+  hours of unrelated work. Deleting exactly the outputs that can change reruns exactly the rules
+  that produce them.
+
+Assert that something was actually rebuilt (`test -s babel_outputs/compendia/<Type>.txt` after the
+delete-and-rebuild) so a no-op pass fails loudly rather than producing an all-zeroes diff. A diff
+whose `dropped_member_count` is 0 *and* whose `changed_before_cliques` is 0 usually means the
+second build never happened, not that the change is inert.
