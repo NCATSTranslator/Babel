@@ -776,3 +776,47 @@ def test_build_compendium_passes_the_extra_prefixes_through():
         diseasephenotype.build_compendium([], {}, [], None, {}, "icRDF.tsv")
 
     assert mock_write.call_args.kwargs["extra_prefixes"] == get_config()["disease_extra_prefixes"]
+
+
+@pytest.mark.unit
+def test_disease_phenotype_boundary_badxrefs_are_shipped_and_parse():
+    """The four pairs that keep two diseases out of the phenotype cliques named after them must
+    survive in the shipped files, split across the two concords they belong to.
+
+    All four are load-bearing: a replay over a built intermediate set showed that dropping any one
+    of them puts DOID:206 "hereditary multiple exostoses" or DOID:0050424 "familial adenomatous
+    polyposis" back into a biolink:PhenotypicFeature clique, which registers none of DOID, OMIM or
+    orphanet -- so write_compendium() silently drops those identifiers. The clique diff for #1031
+    caught exactly that, losing 5 identifiers.
+
+    Note the bridge runs both ways: UMLS asserts C0015306 -> HP:0002762 and HP asserts the reverse,
+    so blocking one direction is not enough. Cutting DOID's own edges instead does NOT work --
+    DOID:206 still reaches the phenotype through OMIM:133700 -- which is why these sit on the
+    UMLS and HP concords rather than a DOID one."""
+    umls_pairs = diseasephenotype.read_badxrefs("input_data/umls_badxrefs.txt")
+    hp_pairs = diseasephenotype.read_badxrefs("input_data/badHPx.txt")
+
+    assert ("UMLS:C0015306", "HP:0002762") in umls_pairs
+    assert ("HP:0002762", "UMLS:C0015306") in hp_pairs
+    assert ("HP:0002762", "SNOMEDCT:254044004") in hp_pairs
+    assert ("HP:0005227", "MEDDRA:10056981") in hp_pairs
+    # HP:0005227's own UMLS mapping is a leaf and must stay -- blocking it would strip a correct
+    # phenotype mapping to fix a transitive problem it does not cause.
+    assert ("HP:0005227", "UMLS:C1868071") not in hp_pairs
+
+
+@pytest.mark.unit
+def test_badxrefs_files_are_registered_for_the_concords_they_name():
+    """Every DEFAULT_BAD_XREFS key must name a concord the disease build actually produces.
+
+    A bad-xrefs file has to be registered in two places (this dict and the disease_compendia rule),
+    and a key matching no concord silently filters nothing -- the footgun docs/sources/CLAUDE.md
+    warns about. compute_cliques_for_impact_report() raises on an unknown key, but only once it has
+    a concord list to check against; this pins the dict itself against config.yaml."""
+    known_concords = set(get_config()["disease_concords"])
+
+    assert set(diseasephenotype.DEFAULT_BAD_XREFS) <= known_concords, (
+        f"bad-xrefs keys naming no concord: {sorted(set(diseasephenotype.DEFAULT_BAD_XREFS) - known_concords)}"
+    )
+    for name, path in diseasephenotype.DEFAULT_BAD_XREFS.items():
+        assert diseasephenotype.read_badxrefs(path) is not None, f"{name} bad-xrefs file failed to parse"

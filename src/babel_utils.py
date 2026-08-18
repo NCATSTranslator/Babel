@@ -686,7 +686,12 @@ def write_compendium(
     :param labels: A map of identifiers
         Not needed if each identifier will have a label in the correct directory (i.e. downloads/PMID/labels for PMID:xxx).
     :param extra_prefixes: We default to only allowing the prefixes allowed for a particular type in Biolink.
-        If you want to allow additional prefixes, list them here.
+        If you want to allow additional prefixes, list them here. They are appended *after* the
+        Biolink-registered ones, so an extra prefix keeps its identifiers alive in the clique but can
+        never win the preferred-CURIE contest -- which also means such an identifier will not
+        normalize on its own, and is visible only in the clique's equivalent identifiers. That is the
+        intended shape for shipping a prefix ahead of the Biolink Model (see
+        `config.yaml: disease_extra_prefixes`), and the reason it is safe to do so.
     :param icrdf_filename: (REQUIRED) The file to read the information content from (icRDF.tsv). Although this is a
         named parameter to make it easier to specify this when calling write_compendium(), it is REQUIRED, and
         write_compendium() will throw a RuntimeError if it is not specified. This is to ensure that it has been
