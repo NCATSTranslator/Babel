@@ -1295,9 +1295,31 @@ def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
     return improved_pairs
 
 
+# A prefix carrying a release stamp, e.g. DOID's "SNOMEDCT_US_2025_09_01:267692008". Sources that
+# do this mint a new prefix on every upstream release, so an `op` map naming the stamped spellings
+# silently goes stale -- and the un-renamed CURIE still reaches glom(), fusing subjects through a
+# namespace no compendium can ever join. Match on the stem instead of pinning the dates.
+VERSION_STAMPED_PREFIX = re.compile(r"^(.*)_\d{4}_\d{2}_\d{2}$")
+
+
 def norm(x, op):
+    """Rename a CURIE's prefix per the `op` map, keying on the upper-cased prefix.
+
+    A prefix that misses is retried without a trailing `_YYYY_MM_DD` release stamp, so `op` names
+    the stem (`SNOMEDCT_US`) once rather than every dated spelling a source has ever emitted.
+
+    An `op` value is normally the replacement prefix. It may instead be a callable taking the whole
+    CURIE and returning the rewritten one, for the cases where the target prefix depends on the
+    local id and not just the source prefix -- OMIM is the one that needs this, since `MIM:PS303350`
+    is a phenotypic series (`OMIM.PS:303350`) while `MIM:115210` is a plain entry (`OMIM:115210`).
+    """
     # Get curie returns the uppercase
     pref = Text.get_prefix_or_none(x)
-    if pref in op:
-        return Text.recurie(x, op[pref])
+    if pref is None:
+        return x
+    stamped = VERSION_STAMPED_PREFIX.match(pref)
+    for candidate in (pref, stamped.group(1) if stamped else None):
+        if candidate in op:
+            rename = op[candidate]
+            return rename(x) if callable(rename) else Text.recurie(x, rename)
     return x
