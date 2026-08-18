@@ -293,6 +293,13 @@ HP:0006846 SNOMEDCT:2776000
 # two apart leaves the disease identifiers in a disease clique instead of being dropped as
 # unregistered prefixes in a phenotype one. Paired with UMLS:C0015306 HP:0002762 in
 # umls_badxrefs.txt -- the bridge runs both ways and both directions have to go.
+#
+# Do not try cutting DOID's own edges instead. Blocking DOID:206 -> UMLS:C0015306 / SNOMEDCT /
+# MESH / NCIT looks like the targeted fix and rescues nothing: DOID:206 still reaches the phenotype
+# clique through DOID:206 -> OMIM:133700 -> UMLS:C0015306 -> HP:0002762, and blocking that last
+# DOID edge too would suppress a mapping that is correct. The bridge is the disease/phenotype
+# equation itself, so it has to be cut there. Verified by replaying
+# compute_cliques_for_impact_report() over a built intermediate set with each candidate pair set.
 HP:0002762 UMLS:C0015306
 HP:0002762 SNOMEDCT:254044004
 # Same shape for polyposis: HP:0005227 "Adenomatous colonic polyposis" reaches the disease cluster
