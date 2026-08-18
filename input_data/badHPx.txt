@@ -287,3 +287,17 @@ HP:0100324 SNOMEDCT:89155008
 HP:0100255 MESH:C536252
 #Added by hand
 HP:0006846 SNOMEDCT:2776000
+# https://github.com/NCATSTranslator/Babel/issues/1029 (found by the clique diff for PR #1031)
+# HP:0002762 "Multiple exostoses" is a phenotype; UMLS:C0015306 "Hereditary Multiple Exostoses"
+# and SNOMEDCT:254044004 (its SNOMED code, UMLS-equated to C0015306) are the disease. Keeping the
+# two apart leaves the disease identifiers in a disease clique instead of being dropped as
+# unregistered prefixes in a phenotype one. Paired with UMLS:C0015306 HP:0002762 in
+# umls_badxrefs.txt -- the bridge runs both ways and both directions have to go.
+HP:0002762 UMLS:C0015306
+HP:0002762 SNOMEDCT:254044004
+# Same shape for polyposis: HP:0005227 "Adenomatous colonic polyposis" reaches the disease cluster
+# (NCIT:C3339 "Familial Adenomatous Polyposis", UMLS:C0032580 "Adenomatous Polyposis Coli",
+# UMLS:C0017097 "Gardner Syndrome", DOID:0050424, DOID:0080409, OMIM:175100, orphanet:733) solely
+# through this MedDRA code. HP:0005227's own UMLS mapping, UMLS:C1868071 "Adenomatous polyposis of
+# colon", is a leaf and is deliberately left alone.
+HP:0005227 MEDDRA:10056981
