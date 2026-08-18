@@ -15,7 +15,10 @@ from tests.pipeline.conftest import _intermediate_concord_path
 @pytest.fixture
 def doid_disease_concord():
     """The built disease/concords/DOID file, or skip if this checkout has no disease build."""
-    path = _intermediate_concord_path("disease", "DOID")
+    # "diseasephenotype" is the Python compendium name, which config.yaml's compendium_directories
+    # maps to the "disease" snakemake directory. Passing "disease" happens to resolve today only via
+    # the unmapped-name fallback, and would start silently skipping if that key were ever added.
+    path = _intermediate_concord_path("diseasephenotype", "DOID")
     if not os.path.exists(path):
         pytest.skip(f"{path} not built; run `uv run snakemake -c all get_disease_doid_relationships` first")
     return path

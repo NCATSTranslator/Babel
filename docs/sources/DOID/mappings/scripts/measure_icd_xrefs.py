@@ -108,9 +108,19 @@ def main():
         total = sum(1 for _ in open(unfiltered))
         print(f"DOID concord: {total} rows, {sum(dropped.values())} dropped as ICD {dict(dropped.most_common())}\n")
 
+        # Every scenario differs only in which DOID concord is substituted in, so a concords list
+        # that does not contain the built one silently yields three identical columns presented as
+        # a comparison. Fail instead of printing that.
+        if built_concord not in concords:
+            raise RuntimeError(
+                f"{built_concord} is not among the concords found under {root}/concords -- the three "
+                f"scenarios would be identical. Build the disease intermediates first "
+                f"(`uv run snakemake -c all get_disease_doid_relationships`)."
+            )
+
         # The intermediate on disk may predate the current doid.json; say so rather than silently
         # comparing against a concord the rest of the numbers don't come from.
-        if os.path.exists(built_concord) and sum(1 for _ in open(built_concord)) not in (
+        if sum(1 for _ in open(built_concord)) not in (
             total,
             total - sum(dropped.values()),
         ):
