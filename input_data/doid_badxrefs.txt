@@ -1,0 +1,28 @@
+# DOID xref pairs dropped before glom. Format: "<subject> <object>", space separated, matched in
+# the direction the concord writes them. See docs/sources/CLAUDE.md ("Bad-xref files").
+#
+# https://github.com/NCATSTranslator/Babel/issues/1029 (found by the clique diff for PR #1031)
+#
+# DOID equates a disease with the phenotype named after it. DOID:206 "hereditary multiple
+# exostoses" is a disease, but each of these four targets is also carried by HP:0002762 "Multiple
+# exostoses", so DOID:206 lands in a biolink:PhenotypicFeature clique -- which registers neither
+# DOID nor OMIM nor orphanet, so write_compendium() silently drops every one of them. Cutting
+# DOID's four edges leaves the phenotype clique intact and lets the disease keep its own, taking
+# OMIM:133700/133701/600209 "exostoses, multiple, type I/II/III" and orphanet:321 "Multiple
+# osteochondromas" with it. Note UMLS:C0015306 "Hereditary Multiple Exostoses" and NCIT:C5183 of
+# the same name are diseases sitting inside the phenotype clique; that is the upstream error these
+# pairs work around, and it is HP's or UMLS's to fix, not DOID's.
+DOID:206 UMLS:C0015306
+DOID:206 SNOMEDCT:254044004
+DOID:206 MESH:D005097
+DOID:206 NCIT:C5183
+#
+# The same shape for polyposis. DOID:0050424 "familial adenomatous polyposis" is a disease; all
+# four targets are in the HP:0005227 "Adenomatous colonic polyposis" clique, which likewise holds
+# the diseases UMLS:C0032580 "Adenomatous Polyposis Coli", NCIT:C3339 "Familial Adenomatous
+# Polyposis" and UMLS:C0017097 "Gardner Syndrome". Cutting these keeps orphanet:733 "Familial
+# adenomatous polyposis" in a disease clique.
+DOID:0050424 UMLS:C0032580
+DOID:0050424 SNOMEDCT:72900001
+DOID:0050424 MESH:D011125
+DOID:0050424 NCIT:C3339
