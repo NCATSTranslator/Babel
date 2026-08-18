@@ -29,6 +29,10 @@ from src.util import Text, get_logger
 logger = get_logger(__name__)
 
 # MRCONSO.RRF is pipe-separated and positional; these are the columns this module reads.
+# These names exist only here: five other modules index the same columns with bare integers, and
+# datahandlers/umls.check_mrconso_line() applies a *different* SUPPRESS policy from the one below.
+# Centralizing both is https://github.com/NCATSTranslator/Babel/issues/1040 -- move these constants
+# there rather than adding a seventh private copy.
 _MRCONSO_LAT = 1
 _MRCONSO_SAB = 11
 _MRCONSO_TTY = 12
