@@ -8,9 +8,27 @@ diffing the two clique states.
 uv run source-impact-report --source EMAPA
 ```
 
-Writes `docs/sources/<SOURCE>/impact-report.md` plus an `impact-report/` subdirectory holding
-the full detail files. Commit `new-cliques.csv`, `modified-cliques.csv`, and `new-xrefs.tsv`;
-`modified-cliques.json` is gitignored because it grows roughly linearly with the source.
+Writes `docs/sources/<SOURCE>/impact-report.md` plus an `impact-report/` subdirectory holding six
+detail files: two reductions that are **committed**, and the four full tables they reduce, which are
+gitignored. The unqualified filename is always the full table; the qualified one is the reduction.
+
+| file | committed? | what it is |
+|---|---|---|
+| `new-cliques-top-100.csv` | yes | ranked slice of the pure-new cliques |
+| `new-xrefs-summary.csv` | yes | xrefs aggregated into join pathways, with example rows |
+| `new-cliques.csv` | no | every pure-new clique |
+| `new-xrefs.csv` | no | every cross-reference row touching a source CURIE |
+| `modified-cliques.csv` / `.json` | no | every existing clique the source expands or merges |
+
+Each reduction takes the shape its data calls for. The cliques file is a **slice**, ranked so that
+identifiers the Biolink prefix filter would drop come first, then the largest cliques, then CURIE
+order; `NEW_CLIQUES_TOP_N` is the knob. The xrefs file is an **aggregate**, because a source's 4,336
+xrefs can be a single join pathway (EMAPA's are) and the pathway is what a reviewer needs — so it
+enumerates every pathway with its total plus `XREF_EXAMPLES_PER_GROUP` examples each. Both constants
+live in `src/reports/source_impact_details.py` / `src/model/source.py`.
+
+Re-run the tool to regenerate the full tables for SME review; see
+[`docs/AddingNewSources.md`](../AddingNewSources.md) for the rationale and the upload convention.
 
 [`docs/AddingNewSources.md`](../AddingNewSources.md) is the workflow guide — when to run this,
 how to read it, and how to assemble the intermediate inputs from a `stars.renci.org` snapshot

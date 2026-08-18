@@ -41,6 +41,7 @@ OIO = "OIO"
 ORPHANET = "orphanet"
 GARD = "GARD"  # NCATS Genetic and Rare Diseases rare-disease registry
 HP = "HP"
+EMAPA = "EMAPA"
 MP = "MP"
 MEDDRA = "MEDDRA"
 EFO = "EFO"
@@ -48,6 +49,12 @@ ICD9 = "ICD9"
 ICD10 = "ICD10"
 ICD10CM = "ICD10CM"
 ICD0 = "ICD0"
+# Lower case to match biolink:Disease's id_prefixes, which spell it "icd11" (as does the existing
+# ICD11FOUNDATION below) -- note that biolink_model_prefix_map.json has no ICD-11 entry at all, so
+# the prefix map is not the thing to check here. The data spells it "ICD11:", and Text.recurie()
+# rewrites that to "icd11:" via Text.prefixmap; that is the intended normalization, and it does not
+# change what survives write_compendium(), which buckets identifiers by upper-cased prefix.
+ICD11 = "icd11"
 RHEA = "RHEA"
 EC = "EC"
 PANTHERPATHWAY = "PANTHER.PATHWAY"

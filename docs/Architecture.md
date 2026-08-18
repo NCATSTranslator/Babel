@@ -79,11 +79,12 @@ equivalence cliques.
 
 Each line of a compendium file is a JSON object representing one clique. A clique includes:
 
-- `identifiers` — list of all equivalent CURIEs, in preferred-prefix order
+- `identifiers` — list of all equivalent CURIEs, in preferred-prefix order. Each entry carries its
+  own label (`l`), descriptions (`d`, collected from UberGraph and sorted shortest first) and taxa
+  (`t`)
 - `ic` — information content score (from UberGraph)
-- `taxa` — associated taxa (for genes, proteins, etc.)
+- `taxa` — associated taxa (for genes, proteins, etc.); the union of the per-identifier `t` values
 - `preferred_name` — the preferred human-readable label for the clique
-- `descriptions` — descriptions collected from UberGraph
 - `type` — Biolink semantic type
 
 The first identifier in `identifiers` is the preferred identifier for the clique. See
@@ -162,6 +163,17 @@ structure-bearing type, so food evidence can improve on a vague `ChemicalEntity`
 demote a defined molecule. That second rule is a bug fix — see
 [the food-and-extracts README](sources/DRUGBANK/food-and-extracts/README.md) for what happened when
 the evidence was an override instead (issue #935).
+
+### `Polypeptide.txt` is a residue, not a compendium
+
+`compendia/Polypeptide.txt` is tiny (166 cliques in 2025sep1, 5 in 2026jul22) and its size swings
+wildly between builds. Neither `CHEBI` nor `MESH` is registered in `biolink:Polypeptide`'s
+`id_prefixes`, so `write_compendium()` silently drops every identifier Babel types as a polypeptide;
+what lands in the file is the handful of cliques that also picked up a `UMLS` CURIE through
+`glom()`. Read a movement in this file as noise, not as a lost ingest — the cliques are still
+counted in the content report and mostly live in `compendia/umls.txt`. Details and the two candidate
+fixes are in [issue #1015](https://github.com/NCATSTranslator/Babel/issues/1015); delete this note
+once it is closed.
 
 ## Output directories
 

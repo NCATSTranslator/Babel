@@ -18,6 +18,10 @@ scan_concords_for_curies:
     the asserter; skips ``metadata-*`` sidecars; recurses into subdirectories
     (e.g. ``UNICHEM/UNICHEM_*``).
 
+summarize_xref_groups:
+    Grouping concord rows into join pathways: prefix-pair canonicalisation, keeping the two
+    assertion directions apart, predicate separation, example sampling, and no dedupe.
+
 discover_source — structure:
     Baseline (single everything) plus one test per axis, confirming that
     ``SourceContribution`` correctly aggregates across each dimension.
@@ -28,7 +32,7 @@ discover_source — edge cases:
 
 import pytest
 
-from src.model.source import discover_source, scan_concords_for_curies
+from src.model.source import discover_source, scan_concords_for_curies, summarize_xref_groups
 
 # ---------------------------------------------------------------------------
 # scan_concords_for_curies
@@ -68,6 +72,94 @@ def test_scan_concords_for_curies_matches_either_endpoint_and_records_asserter(t
 def test_scan_concords_for_curies_missing_dir_returns_empty(tmp_path):
     """Returns an empty list rather than raising when the concords directory does not exist."""
     assert scan_concords_for_curies(tmp_path / "nope", {"EMAPA:1"}) == []
+
+
+# ---------------------------------------------------------------------------
+# summarize_xref_groups
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_summarize_xref_groups_canonicalizes_the_prefix_pair():
+    """Rows written in opposite directions by the same file should collapse into one pathway.
+
+    Whether a concord writes ``A -> B`` or ``B -> A`` is an artifact of how that source generates
+    its file, so the pair is sorted and both orientations count towards the same group.
+    """
+    rows = [
+        ("EMAPA:1", "xref", "UBERON:1", "UBERON"),
+        ("UBERON:2", "xref", "EMAPA:2", "UBERON"),
+    ]
+    groups = summarize_xref_groups(rows, "anatomy", "EMAPA")
+    assert len(groups) == 1
+    assert (groups[0].prefix_1, groups[0].prefix_2) == ("EMAPA", "UBERON")
+    assert groups[0].count == 2
+
+
+@pytest.mark.unit
+def test_summarize_xref_groups_keeps_the_two_assertion_directions_apart():
+    """A pathway asserted by the new source must stay separate from the same pair asserted elsewhere.
+
+    This is the regression that matters when canonicalising the prefix pair: MP asserting a mapping
+    to HP is a bridge this addition introduces (``added``), while HP asserting one to MP may predate
+    it entirely (``from_other_source``). They share a sorted prefix pair, so only ``asserted_by`` and
+    ``status`` being part of the group key keeps them distinguishable — which is the whole question
+    the impact report answers.
+    """
+    rows = [
+        ("MP:1", "xref", "HP:1", "MP"),
+        ("HP:2", "xref", "MP:2", "HP"),
+    ]
+    groups = summarize_xref_groups(rows, "disease", "MP")
+    assert {(g.asserted_by, g.status, g.count) for g in groups} == {
+        ("MP", "added", 1),
+        ("HP", "from_other_source", 1),
+    }
+    assert all((g.prefix_1, g.prefix_2) == ("HP", "MP") for g in groups)
+
+
+@pytest.mark.unit
+def test_summarize_xref_groups_separates_predicates_and_orders_by_count():
+    """Each predicate is its own pathway, and the biggest pathway is listed first."""
+    rows = [("MP:1", "exactMatch", "HP:1", "MP")]
+    rows += [(f"MP:{i}", "closeMatch", f"HP:{i}", "MP") for i in range(2, 6)]
+    groups = summarize_xref_groups(rows, "disease", "MP")
+    assert [(g.predicate, g.count) for g in groups] == [("closeMatch", 4), ("exactMatch", 1)]
+
+
+@pytest.mark.unit
+def test_summarize_xref_groups_examples_span_the_group_and_are_stable():
+    """Examples are evenly spread across a large group, capped, and identical across calls.
+
+    Even spacing rather than the first N, so the sample covers the identifier range instead of
+    clustering on the lowest IDs. A group smaller than the budget keeps every row.
+    """
+    rows = [(f"UBERON:{i:04d}", "xref", f"EMAPA:{i:04d}", "UBERON") for i in range(100)]
+    (group,) = summarize_xref_groups(rows, "anatomy", "EMAPA", examples_per_group=5)
+    assert group.count == 100
+    assert group.examples == (
+        ("UBERON:0000", "EMAPA:0000"),
+        ("UBERON:0020", "EMAPA:0020"),
+        ("UBERON:0040", "EMAPA:0040"),
+        ("UBERON:0060", "EMAPA:0060"),
+        ("UBERON:0080", "EMAPA:0080"),
+    )
+    assert summarize_xref_groups(rows, "anatomy", "EMAPA", examples_per_group=5)[0].examples == group.examples
+
+    (small,) = summarize_xref_groups(rows[:3], "anatomy", "EMAPA", examples_per_group=5)
+    assert len(small.examples) == 3
+
+
+@pytest.mark.unit
+def test_summarize_xref_groups_does_not_dedupe_identical_triples():
+    """The same triple asserted by two files is two assertions, so it lands in two groups."""
+    rows = [
+        ("UBERON:1", "xref", "EMAPA:1", "UBERON"),
+        ("UBERON:1", "xref", "EMAPA:1", "MA"),
+    ]
+    groups = summarize_xref_groups(rows, "anatomy", "EMAPA")
+    assert sorted(g.asserted_by for g in groups) == ["MA", "UBERON"]
+    assert all(g.count == 1 for g in groups)
 
 
 # ---------------------------------------------------------------------------

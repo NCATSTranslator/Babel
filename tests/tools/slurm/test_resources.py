@@ -26,16 +26,59 @@ def _make_run(tmp_path, rule, rss_mb, mean_load, requested_mem_mb):
     (tmp_path / "logs").mkdir(exist_ok=True)
 
 
+def _write_snakefile(tmp_path, body):
+    snakefiles = tmp_path / "snakefiles"
+    snakefiles.mkdir(exist_ok=True)
+    (snakefiles / "test.snakefile").write_text(body)
+    return snakefiles
+
+
 # --- resources recommendation logic ------------------------------------------
 
 
 def test_recommend_mem_rounds_up_to_bucket_with_floor():
+    """Buckets are decimal MB, so a recommendation is the `mem="NG"` string to paste in."""
     # 0.5 GB * 1.5 = 0.75 GB, floored to the 8 GB minimum
-    assert resources.recommend_mem_mb(512, safety=1.5, floor_mb=8192) == 8192
+    assert resources.recommend_mem_mb(500, safety=1.5, floor_mb=8000) == 8000
     # 14 GB * 1.5 = 21 GB -> next bucket is 24 GB
-    assert resources.recommend_mem_mb(14 * 1024, safety=1.5, floor_mb=8192) == 24 * 1024
+    assert resources.recommend_mem_mb(14 * 1000, safety=1.5, floor_mb=8000) == 24 * 1000
     # 41 GB * 1.5 = 61.5 GB -> next bucket is 64 GB
-    assert resources.recommend_mem_mb(41 * 1024, safety=1.5, floor_mb=8192) == 64 * 1024
+    assert resources.recommend_mem_mb(41 * 1000, safety=1.5, floor_mb=8000) == 64 * 1000
+
+
+def test_wall_time_comes_from_the_benchmark_not_the_efficiency_report(tmp_path):
+    """`wall_sec` is the benchmark TSV's `s` column, never the efficiency report's `Elapsed_sec`.
+
+    The two measure different things -- Snakemake times the rule body from inside the job, SLURM
+    times the allocation, which also covers the job's setup and teardown (`Elapsed_sec` >= `s` for
+    57 of 57 rules on the 2026jul22 run, median +5s). Neither includes queue wait; that is the
+    third clock, `babel-slurm-errors`'. The docs claimed the efficiency report's elapsed column was
+    used; it never was. It is still parsed into `EfficiencyRow.elapsed_sec` -- deliberately, see
+    that class -- just never consumed.
+    """
+    _make_run(tmp_path, "slow_rule", rss_mb=1000, mean_load=100.0, requested_mem_mb=8000)
+    # The efficiency report disagrees with the benchmark by two orders of magnitude.
+    rep = tmp_path / "reports" / "slurm" / "slurm_efficiency_reports" / "efficiency_report_x.csv"
+    rep.write_text(
+        ",RuleName,NCPUS,Elapsed_sec,TotalCPU_sec,MaxRSS_MB,RequestedMem_MB\n0,rule_slow_rule,4,99999.0,0.0,,8000\n"
+    )
+
+    (rec,) = resources.analyze(tmp_path)
+
+    assert rec.wall_sec == 100.0
+
+
+def test_benchmark_mebibytes_are_converted_to_decimal_mb():
+    """Snakemake's benchmark "MB" columns are mebibytes; SLURM's `mem` is decimal MB.
+
+    Comparing the two unconverted understates a rule's fit by ~4.9% in the unsafe direction, which
+    is how `untyped_chemical_compendia` read as 84% of a 160G limit when it was really 89%.
+    """
+    assert resources.MIB_TO_MB == pytest.approx(1.048576)
+    # 132.1 GiB (as a benchmark reports it) is 141.8 GB, not 132.1 GB -- the untyped_chemical_compendia
+    # peak. The conversion is what ruled out the 160G that looked like 21% of headroom; the rule now
+    # declares `mem="256G"`, the standard 1.5x safety bucket above the converted peak.
+    assert 132.1 * 1024 * resources.MIB_TO_MB == pytest.approx(141_841, rel=1e-4)
 
 
 def test_recommend_cpus_rounds_up():
@@ -45,23 +88,25 @@ def test_recommend_cpus_rounds_up():
 
 
 def test_analyze_flags_rule_needing_override(tmp_path):
-    # 41 GB peak on a 16 GB proposed default -> must be flagged for an explicit override.
-    _make_run(tmp_path, "get_uniprotkb_labels", rss_mb=41 * 1024, mean_load=70.0, requested_mem_mb=64000)
-    recs = resources.analyze(tmp_path, new_default_mem_mb=16 * 1024, new_default_cpus=1)
+    # 40,000 MiB peak (41.9 GB) on a 16 GB proposed default -> flagged for an explicit override.
+    # 41.9 GB * 1.5 = 62.9 GB, so the recommendation is the 64 GB bucket.
+    _make_run(tmp_path, "get_uniprotkb_labels", rss_mb=40_000, mean_load=70.0, requested_mem_mb=64000)
+    recs = resources.analyze(tmp_path, new_default_mem_mb=16 * 1000, new_default_cpus=1)
     assert len(recs) == 1
     rec = recs[0]
     assert rec.rule == "get_uniprotkb_labels"
-    assert rec.rec_mem_mb == 64 * 1024
+    assert rec.actual_mem_mb == pytest.approx(41_943, rel=1e-4)  # converted from mebibytes
+    assert rec.rec_mem_mb == 64 * 1000
     assert rec.needs_override is True
 
 
 def test_analyze_classifies_over_provisioned_and_fits_default(tmp_path):
     # 0.2 GB peak with a 64 GB request -> heavily over-provisioned, no override needed.
     _make_run(tmp_path, "tiny_rule", rss_mb=200.0, mean_load=98.0, requested_mem_mb=64000)
-    rec = resources.analyze(tmp_path, new_default_mem_mb=16 * 1024, new_default_cpus=1)[0]
+    rec = resources.analyze(tmp_path, new_default_mem_mb=16 * 1000, new_default_cpus=1)[0]
     assert rec.classification == "over"
     assert rec.needs_override is False
-    assert rec.rec_mem_mb == 8 * 1024
+    assert rec.rec_mem_mb == 8 * 1000
 
 
 def test_analyze_marks_ran_on_default(tmp_path):
@@ -91,7 +136,7 @@ def test_analyze_marks_ran_on_default(tmp_path):
     )
     (tmp_path / "logs").mkdir()
 
-    recs = {r.rule: r for r in resources.analyze(tmp_path, new_default_mem_mb=16 * 1024, new_default_cpus=1)}
+    recs = {r.rule: r for r in resources.analyze(tmp_path, new_default_mem_mb=16 * 1000, new_default_cpus=1)}
     assert resources.detect_run_default_mem_mb(list(recs.values())) == 64000
     assert recs["on_default_a"].ran_on_default is True
     assert recs["on_default_b"].ran_on_default is True
@@ -107,3 +152,252 @@ def test_analyze_handles_missing_efficiency_report(tmp_path):
     recs = resources.analyze(tmp_path)
     assert recs[0].classification == "no-request-data"
     assert recs[0].requested_mem_mb is None
+
+
+def test_recommend_runtime_rounds_up_to_bucket():
+    # 100 min * 1.5 = 150 min -> next bucket is 180 (3h)
+    assert resources.recommend_runtime_min(100 * 60, safety=1.5) == 180
+    # 20h * 1.5 = 30h -> next bucket is 36h
+    assert resources.recommend_runtime_min(20 * 3600, safety=1.5) == 2160
+    # Above the largest bucket, round up to a whole hour.
+    assert resources.recommend_runtime_min(60 * 3600, safety=1.5) == 5400
+
+
+# --- wildcard rules: one row per rule ----------------------------------------
+
+
+def test_rule_for_benchmark_maps_wildcard_stems_to_their_rule():
+    names = ["export_compendia_to_duckdb", "export_compendia_to_duckdb_extra", "chemical"]
+    # An exact match wins over any prefix match.
+    assert resources.rule_for_benchmark("chemical", names) == "chemical"
+    # A wildcard instance resolves to its rule...
+    assert resources.rule_for_benchmark("export_compendia_to_duckdb_SmallMolecule", names) == (
+        "export_compendia_to_duckdb"
+    )
+    # ...and the longest matching rule name wins, so a longer sibling rule isn't shadowed.
+    assert resources.rule_for_benchmark("export_compendia_to_duckdb_extra_Foo", names) == (
+        "export_compendia_to_duckdb_extra"
+    )
+    # An unknown stem is left alone rather than mis-attributed.
+    assert resources.rule_for_benchmark("something_else", names) == "something_else"
+
+
+def test_a_wildcard_rules_instances_are_one_row_scored_against_the_largest(tmp_path):
+    """A wildcard rule is sized once, so it is analyzed once -- worst case across its instances.
+
+    Scoring each instance separately measures the small ones against a limit sized for the biggest:
+    `export_compendia_to_duckdb_Food` (20s, 0.5G) came out `over` on both axes against the
+    `runtime="4h", mem="512G"` that Protein needs, which is ~80 unactionable rows across the four
+    wildcard rules -- burying the handful of real findings the report exists for.
+    """
+    bdir = tmp_path / "benchmarks"
+    bdir.mkdir()
+    # Protein peaks at 400 GiB over 3h; Food is 0.5 GiB in 20 seconds. One `mem="512G"` covers both.
+    for name, rss, seconds in [("Protein", 400 * 1024, 3 * 3600), ("Food", 512, 20.0)]:
+        _write_benchmark(
+            bdir / f"export_compendia_to_duckdb_{name}.tsv",
+            [[seconds, "0:00:20", rss, rss, rss, rss, 1, 1, 200.0, 90.0]],
+        )
+    (tmp_path / "logs").mkdir()
+    snakefiles = _write_snakefile(
+        tmp_path,
+        'rule export_compendia_to_duckdb:\n    resources:\n        runtime="4h",\n        mem="512G",\n'
+        "    run:\n        x()\n",
+    )
+
+    recs = resources.analyze(tmp_path, snakefile_dir=snakefiles)
+
+    assert len(recs) == 1
+    rec = recs[0]
+    assert rec.rule == "export_compendia_to_duckdb"
+    assert rec.instances == 2
+    assert rec.actual_mem_mb == pytest.approx(400 * 1024 * resources.MIB_TO_MB, rel=1e-6)
+    assert rec.wall_sec == 3 * 3600
+    # 419 GB of a 512 GB request and 3h of a 4h limit: correctly sized, on both axes.
+    assert (rec.classification, rec.time_classification) == ("at-risk", "ok")
+    assert "export_compendia_to_duckdb (×2)" in resources.build_markdown(recs, 16 * 1000, 1)
+
+
+def test_a_wildcard_rule_casts_one_vote_for_the_run_default(tmp_path):
+    """Each instance of a wildcard rule must not vote separately for the modal requested mem.
+
+    `detect_run_default_mem_mb()` elects the run's cluster-wide default as the most common requested
+    value, which works because most *rules* carry no explicit block. A wildcard rule with 25
+    instances outvotes 24 ordinary rules on its own, electing its declared mem as "the default" and
+    marking every rule that requested it as needing a new `resources:` block.
+    """
+    bdir = tmp_path / "benchmarks"
+    bdir.mkdir()
+    rows = []
+    for i, name in enumerate(["Protein", "Gene", "Food", "Cell"]):
+        _write_benchmark(bdir / f"big_wildcard_rule_{name}.tsv", [[10.0, "0:00:10", 1000, 0, 0, 0, 1, 1, 90.0, 9.0]])
+        rows.append(f"{i},rule_big_wildcard_rule_wildcards_{name},4,10.0,0.0,,512000")
+    for i, name in enumerate(["plain_rule_a", "plain_rule_b"], start=len(rows)):
+        _write_benchmark(bdir / f"{name}.tsv", [[10.0, "0:00:10", 1000, 0, 0, 0, 1, 1, 90.0, 9.0]])
+        rows.append(f"{i},rule_{name},4,10.0,0.0,,64000")
+    rep = tmp_path / "reports" / "slurm" / "slurm_efficiency_reports"
+    rep.mkdir(parents=True)
+    (rep / "efficiency_report_x.csv").write_text(
+        ",RuleName,NCPUS,Elapsed_sec,TotalCPU_sec,MaxRSS_MB,RequestedMem_MB\n" + "\n".join(rows) + "\n"
+    )
+    (tmp_path / "logs").mkdir()
+    snakefiles = _write_snakefile(
+        tmp_path,
+        "".join(
+            f"rule {rule}:\n    run:\n        x()\n\n" for rule in ("big_wildcard_rule", "plain_rule_a", "plain_rule_b")
+        ),
+    )
+
+    recs = resources.analyze(tmp_path, snakefile_dir=snakefiles)
+
+    # Two rules requested 64000 and one requested 512000; the 512000 rule's four instances are one
+    # rule, so they do not outvote them.
+    assert resources.detect_run_default_mem_mb(recs) == 64000
+    by_rule = {r.rule: r for r in recs}
+    assert by_rule["plain_rule_a"].ran_on_default is True
+    assert by_rule["big_wildcard_rule"].ran_on_default is False
+
+
+# --- runtime fit -------------------------------------------------------------
+
+
+def test_analyze_flags_a_rule_close_to_its_declared_runtime(tmp_path):
+    """20h against a declared 24h limit is at-risk; one slow run is a timeout."""
+    _make_run(tmp_path, "generate_pubmed_concords", rss_mb=1000.0, mean_load=98.0, requested_mem_mb=128000)
+    _write_benchmark(
+        tmp_path / "benchmarks" / "generate_pubmed_concords.tsv",
+        [[20 * 3600, "20:00:00", 1000.0, 1000.0, 1000.0, 1000.0, 1, 1, 98.0, 90.0]],
+    )
+    snakefiles = _write_snakefile(
+        tmp_path,
+        'rule generate_pubmed_concords:\n    resources:\n        runtime="24h",\n        mem="128G",\n    run:\n        x()\n',
+    )
+    rec = resources.analyze(tmp_path, snakefile_dir=snakefiles)[0]
+    assert rec.runtime_limit_min == 1440
+    assert rec.time_classification == "at-risk"
+    assert rec.rec_runtime_min == 2160  # 20h * 1.5 -> 36h
+    assert rec.declared_runtime is True
+
+
+def test_analyze_only_calls_a_declared_runtime_over_provisioned(tmp_path):
+    """A rule on the cluster default is never 'over': that is one decision about the default,
+    not a finding about each of ~250 rules that run for seconds."""
+    _make_run(tmp_path, "quick_rule", rss_mb=100.0, mean_load=98.0, requested_mem_mb=16000)
+    snakefiles = _write_snakefile(tmp_path, "rule quick_rule:\n    run:\n        x()\n")
+    rec = resources.analyze(tmp_path, snakefile_dir=snakefiles, default_runtime_min=120)[0]
+    assert rec.runtime_limit_min == 120  # inherited from the cluster default
+    assert rec.declared_runtime is False
+    assert rec.time_classification == "ok"
+
+    # The same rule, now declaring a 6h limit for a 100-second job, IS trimmable.
+    snakefiles = _write_snakefile(
+        tmp_path, 'rule quick_rule:\n    resources:\n        runtime="6h",\n    run:\n        x()\n'
+    )
+    rec = resources.analyze(tmp_path, snakefile_dir=snakefiles)[0]
+    assert rec.runtime_limit_min == 360
+    assert rec.time_classification == "over"
+
+
+def test_analyze_falls_back_to_the_snakefile_for_requested_mem(tmp_path):
+    """A reports-only snapshot often has no requested-side row; the snakefile still declares one.
+
+    Without this fallback the rule lands in `no-request-data` and its memory fit goes unchecked --
+    which is how generate_pubmed_compendia sat at 96% of its limit unnoticed.
+    """
+    bdir = tmp_path / "benchmarks"
+    bdir.mkdir()
+    # Benchmark max_rss is in mebibytes; 110,000 MiB is 115,343 MB against the decimal 128,000.
+    _write_benchmark(bdir / "lonely_rule.tsv", [[100.0, "0:01:40", 110_000, 0, 0, 0, 1, 1, 98.0, 90.0]])
+    (tmp_path / "logs").mkdir()
+    snakefiles = _write_snakefile(
+        tmp_path,
+        'rule lonely_rule:\n    resources:\n        mem="128G",\n        cpus_per_task=4,\n    run:\n        x()\n',
+    )
+
+    rec = resources.analyze(tmp_path, snakefile_dir=snakefiles)[0]
+    assert rec.requested_mem_mb == 128000
+    assert rec.classification == "at-risk"  # 115,343 MB of a 128,000 MB request is 90%
+    # `cpus_per_task` falls back the same way; without it the snapshot's `req cpus` column is blank
+    # for every rule, including the ones that declare it.
+    assert rec.requested_cpus == 4
+
+    # With no snakefile to fall back on, it is honestly reported as unknown rather than guessed.
+    assert resources.analyze(tmp_path)[0].classification == "no-request-data"
+
+
+def test_a_snakefile_declared_mem_never_counts_as_the_run_default(tmp_path):
+    """The fallback above must not leak into `ran_on_default`.
+
+    `detect_run_default_mem_mb()` infers the cluster default as the modal *requested* mem, which
+    works because most rules carry no explicit block. A mem read from a snakefile is the opposite --
+    the rule declaring its own. In a reports-only snapshot every value comes from the snakefiles, so
+    folding them in elects one declared value as "the default" and mis-marks every rule sharing it
+    as needing a new block.
+    """
+    bdir = tmp_path / "benchmarks"
+    bdir.mkdir()
+    for rule in ("declared_a", "declared_b", "declared_c"):
+        _write_benchmark(bdir / f"{rule}.tsv", [[100.0, "0:01:40", 1000, 0, 0, 0, 1, 1, 98.0, 90.0]])
+    (tmp_path / "logs").mkdir()
+    # Three rules, all declaring the same 64G, and no efficiency report at all.
+    snakefiles = _write_snakefile(
+        tmp_path,
+        "".join(
+            f'rule {rule}:\n    resources:\n        mem="64G",\n    run:\n        x()\n\n'
+            for rule in ("declared_a", "declared_b", "declared_c")
+        ),
+    )
+
+    recs = resources.analyze(tmp_path, snakefile_dir=snakefiles)
+
+    assert [r.requested_mem_mb for r in recs] == [64000, 64000, 64000]
+    assert all(r.declared_mem_only for r in recs)
+    # 64G is the mode, but it is nobody's default: each of these rules declares it.
+    assert all(r.ran_on_default is False for r in recs)
+    # The report headline must say the same thing as the table below it: the exclusion lives inside
+    # detect_run_default_mem_mb() precisely so build_markdown() cannot recompute it differently.
+    assert "Detected run default: mem=-." in resources.build_markdown(recs, 16 * 1000, 1)
+
+
+def test_the_suggested_default_runtime_leaves_the_slowest_rule_off_the_at_risk_line(tmp_path):
+    """The "could drop to X" sentence must produce a default the slowest rule is *not* at risk under.
+
+    at-risk is `wall > AT_RISK_FRACTION * limit`, so a bucket merely >= the wall time is the wrong
+    answer: at 58 minutes -- untyped_chemical_compendia's real 2026jul22 wall time -- it suggests 60m,
+    where that rule sits at 97% of its limit and is at-risk on arrival.
+    """
+    _make_run(tmp_path, "slow_rule", rss_mb=1000, mean_load=90.0, requested_mem_mb=64000)
+    _write_benchmark(
+        tmp_path / "benchmarks" / "slow_rule.tsv",
+        [[58 * 60.0, "0:58:00", 1000, 1000, 1000, 1000, 1, 1, 90.0, 90.0]],
+    )
+
+    recs = resources.analyze(tmp_path, default_runtime_min=120)
+    markdown = resources.build_markdown(recs, 16 * 1000, 1, 120)
+
+    # 2.0h is what it suggests, and against a 2.0h default that is "leave it alone", not "drop".
+    assert "the current 2.0h default is already the tightest safe value" in markdown
+    # The sanity check the sentence is making: 58m is under 80% of the 120m it suggests.
+    assert 58 <= resources.AT_RISK_FRACTION * 120
+
+
+def test_the_default_runtime_sentence_says_which_direction_to_move(tmp_path):
+    """ "Could drop to X" must never print an X above the current default.
+
+    `build_markdown()` computes the smallest default the slowest rule is not at risk under, which is
+    a *raise* whenever that rule is already at risk -- on the pre-sizing 2026jul22 data the slowest
+    rule on the default was `chemical` at 1.9h, so the sentence read "the default could drop to 3.0h"
+    against a 120-minute default: an instruction to raise it, phrased as a trim.
+    """
+    _make_run(tmp_path, "slow_rule", rss_mb=1000, mean_load=90.0, requested_mem_mb=64000)
+    _write_benchmark(
+        tmp_path / "benchmarks" / "slow_rule.tsv",
+        [[1.9 * 3600, "1:54:00", 1000, 1000, 1000, 1000, 1, 1, 90.0, 90.0]],
+    )
+
+    # 1.9h needs a 3.0h limit to stay under the 80% line, which is more than the 2.0h default.
+    tight = resources.analyze(tmp_path, default_runtime_min=120)
+    assert "the 2.0h default is too tight and should rise to 3.0h" in resources.build_markdown(tight, 16 * 1000, 1, 120)
+    # The same run against a generous default is the trim the sentence was written for.
+    loose = resources.analyze(tmp_path, default_runtime_min=480)
+    assert "the default could drop from 8.0h to 3.0h" in resources.build_markdown(loose, 16 * 1000, 1, 480)

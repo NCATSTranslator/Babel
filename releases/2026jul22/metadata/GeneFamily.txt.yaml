@@ -1,0 +1,38 @@
+created_at: '2026-07-13T01:17:52.048567'
+type: compendium
+name: GeneFamily.txt
+url: ''
+description: ''
+sources: []
+counts:
+  cliques: 28463
+  eq_ids: 28463
+  synonyms: 28463
+  property_sources: {}
+combined_from:
+  pantherfamily.pull_labels():
+    created_at: '2026-07-13T01:01:54.785796'
+    type: transform
+    name: pantherfamily.pull_labels()
+    url: ''
+    description: Main families and subfamily labels extracted from PANTHER Sequence
+      Classification human.
+    sources:
+    - type: download
+      name: 'PANTHER Sequence Classification: Human'
+      url: ftp://ftp.pantherdb.org/sequence_classifications/current_release/PANTHER_Sequence_Classification_files/PTHR19.0_human
+    counts: []
+    combined_from: []
+  HGNC Gene Family labels:
+    created_at: '2026-07-13T00:58:27.299359'
+    type: transform
+    name: HGNC Gene Family labels
+    url: ''
+    description: Labels extracted from HGNC GeneFamily CSV download
+    sources:
+    - type: download
+      name: HGNC Gene Family
+      url: https://storage.googleapis.com/public-download-files/hgnc/csv/csv/genefamily_db_tables/family.csv
+      description: HGNC GeneFamily CSV download
+    counts: []
+    combined_from: []

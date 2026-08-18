@@ -67,6 +67,12 @@ Three [Babel data formats](./docs/DataFormats.md) are available:
 You can find out about [downloading Babel outputs](docs/Downloads.md). You can
 find a list of Babel releases in the [Releases list](./releases/README.md).
 
+Without downloading anything, each release also archives its own summary tables in this repository —
+what identifier prefixes it contains, how many cliques each compendium holds, which sources
+contributed which mappings, and how all of that changed since the previous release. The newest is
+the top entry in the [Releases list](./releases/README.md);
+[`releases/ARTIFACTS.md`](./releases/ARTIFACTS.md) explains each file.
+
 ### How can I deploy Babel outputs?
 
 Information on [deploying Babel outputs](./docs/Deployment.md) is available.
@@ -113,7 +119,7 @@ other APIs intended primarily for Translator users.
 
 You can find out more about NodeNorm at its
 [Swagger interface](https://nodenormalization-sri.renci.org/docs) or
-[in this Jupyter Notebook](https://github.com/NCATSTranslator/NodeNormalization/blob/master/documentation/NodeNormalization.ipynb).
+[in this Jupyter Notebook](https://github.com/NCATSTranslator/NodeNormalization/blob/main/documentation/NodeNormalization.ipynb).
 
 ### What is the Name Resolver (NameRes)?
 
@@ -125,7 +131,7 @@ autocomplete text fields, it has also been used for named-entity linkage.
 
 You can find out more about NameRes at its
 [Swagger interface](https://name-resolution-sri.renci.org/docs) or
-[in this Jupyter Notebook](https://github.com/NCATSTranslator/NameResolution/blob/master/documentation/NameResolution.ipynb).
+[in this Jupyter Notebook](https://github.com/NCATSTranslator/NameResolution/blob/main/documentation/NameResolution.ipynb).
 
 ## Understanding Babel outputs
 

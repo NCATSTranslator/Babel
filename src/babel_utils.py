@@ -686,7 +686,12 @@ def write_compendium(
     :param labels: A map of identifiers
         Not needed if each identifier will have a label in the correct directory (i.e. downloads/PMID/labels for PMID:xxx).
     :param extra_prefixes: We default to only allowing the prefixes allowed for a particular type in Biolink.
-        If you want to allow additional prefixes, list them here.
+        If you want to allow additional prefixes, list them here. They are appended *after* the
+        Biolink-registered ones, so an extra prefix keeps its identifiers alive in the clique but can
+        never win the preferred-CURIE contest -- which also means such an identifier will not
+        normalize on its own, and is visible only in the clique's equivalent identifiers. That is the
+        intended shape for shipping a prefix ahead of the Biolink Model (see
+        `config.yaml: disease_extra_prefixes`), and the reason it is safe to do so.
     :param icrdf_filename: (REQUIRED) The file to read the information content from (icRDF.tsv). Although this is a
         named parameter to make it easier to specify this when calling write_compendium(), it is REQUIRED, and
         write_compendium() will throw a RuntimeError if it is not specified. This is to ensure that it has been
@@ -1238,10 +1243,59 @@ def read_identifier_file(infile):
     return identifiers, types
 
 
-def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
+def read_badxrefs(fn):
+    """Read an ``input_data/*_badxrefs.txt`` file into a set of ``(subject, object)`` tuples.
+
+    Format is one space-separated pair per line; ``#`` comment lines and blank lines are
+    skipped. These files drop individually wrong cross-reference pairs that survive
+    prefix-level filtering, for cases where the target prefix is legitimate in general but
+    this particular pair is not.
+
+    Callers decide whether to match directionally (diseasephenotype) or in either direction
+    (anatomy, which builds frozensets from these); the returned set is unordered either way.
+
+    A line that is neither blank, a comment, nor exactly two space-separated tokens raises
+    ``ValueError``. Skipping it instead would mean an entry a maintainer believed was
+    suppressing a bad xref silently does nothing — the pair reappears in the compendia and
+    nothing anywhere says why.
+
+    Tabs are rejected explicitly, because a tab-separated pair is the easy way to write a line
+    that looks right and parses wrong. Runs of spaces are not: ``split()`` collapses them, so a
+    stray double space is unambiguous and is accepted rather than failing a build over it.
+    """
+    morebad = set()
+    with open(fn) as inf:
+        for lineno, line in enumerate(inf, 1):
+            if line.startswith("#"):
+                continue
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if "\t" in stripped:
+                raise ValueError(f"{fn}:{lineno}: CURIEs must be separated by a space, not a tab: {line.rstrip()!r}")
+            x = stripped.split()
+            if len(x) != 2:
+                raise ValueError(f"{fn}:{lineno}: expected two space-separated CURIEs, got {len(x)}: {line.rstrip()!r}")
+            morebad.add((x[0], x[1]))
+    return morebad
+
+
+def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False, target_prefixes=None):
     """Given a list of tuples (id1, id2) meaning id1-[xref]->id2, remove any id2 that are associated with more
     than one id1.  The idea is that if e.g. id1 is made up of UBERONS and 2 of those have an xref to say a UMLS
-    then it doesn't mean that all of those should be identified.  We don't really know what it means, so remove it."""
+    then it doesn't mean that all of those should be identified.  We don't really know what it means, so remove it.
+
+    :param target_prefixes: if given, only targets in these namespaces are eligible to be dropped;
+        a target in any other namespace is kept however many subjects claim it. This scopes the
+        filter to the vocabulary that is actually causing merges, instead of trading one source's
+        real problem against the collateral damage to its other namespaces. DOID is the worked
+        case: its ICD codes name disease *families* and fuse every subtype citing one, while its
+        MeSH/SNOMED/UMLS targets are mostly fine -- so an unscoped filter under-cleans ICD (most
+        ICD rows are 1:1) and over-cleans everything else. Matched against
+        ``Text.get_prefix_or_none()``, which upper-cases, so the comparison is case-insensitive.
+        See ``diseasephenotype.OVERUSE_FILTERED_CONCORDS`` and docs/sources/DOID/mappings.md.
+    """
+    eligible = {p.upper() for p in target_prefixes} if target_prefixes is not None else None
     xref_counts_v = defaultdict(int)
     xref_counts_k = defaultdict(int)
     for k, v in pairlist:
@@ -1249,6 +1303,9 @@ def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
         xref_counts_k[k] += 1
     improved_pairs = []
     for k, v in pairlist:
+        if eligible is not None and (Text.get_prefix_or_none(v) or "") not in eligible:
+            improved_pairs.append((k, v))
+            continue
         if xref_counts_v[v] < 2:
             if bothways:
                 if xref_counts_k[k] < 2:
@@ -1258,9 +1315,31 @@ def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
     return improved_pairs
 
 
+# A prefix carrying a release stamp, e.g. DOID's "SNOMEDCT_US_2025_09_01:267692008". Sources that
+# do this mint a new prefix on every upstream release, so an `op` map naming the stamped spellings
+# silently goes stale -- and the un-renamed CURIE still reaches glom(), fusing subjects through a
+# namespace no compendium can ever join. Match on the stem instead of pinning the dates.
+VERSION_STAMPED_PREFIX = re.compile(r"^(.*)_\d{4}_\d{2}_\d{2}$")
+
+
 def norm(x, op):
+    """Rename a CURIE's prefix per the `op` map, keying on the upper-cased prefix.
+
+    A prefix that misses is retried without a trailing `_YYYY_MM_DD` release stamp, so `op` names
+    the stem (`SNOMEDCT_US`) once rather than every dated spelling a source has ever emitted.
+
+    An `op` value is normally the replacement prefix. It may instead be a callable taking the whole
+    CURIE and returning the rewritten one, for the cases where the target prefix depends on the
+    local id and not just the source prefix -- OMIM is the one that needs this, since `MIM:PS303350`
+    is a phenotypic series (`OMIM.PS:303350`) while `MIM:115210` is a plain entry (`OMIM:115210`).
+    """
     # Get curie returns the uppercase
     pref = Text.get_prefix_or_none(x)
-    if pref in op:
-        return Text.recurie(x, op[pref])
+    if pref is None:
+        return x
+    stamped = VERSION_STAMPED_PREFIX.match(pref)
+    for candidate in (pref, stamped.group(1) if stamped else None):
+        if candidate in op:
+            rename = op[candidate]
+            return rename(x) if callable(rename) else Text.recurie(x, rename)
     return x

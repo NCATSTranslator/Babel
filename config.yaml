@@ -5,8 +5,9 @@ babel:
 # Build information. Currently unstructured -- you can use this to write down any notes on what is going on with
 # this specific build of Babel.
 build:
-  branch: babel-1.18
+  branch: babel-1.18.1
   workarounds:
+  - Continued with the downloads from 2026jul15 under babel-1.18, but redownloaded CHEBI given many parsing changes.
   - DrugBank downloads are currently disabled https://github.com/cthoyt/drugbank-downloader/issues/23 -- I used the previously downloaded 5-1-13.
   - HMDB is now behind a Cloudflare bot challenge, so the pipeline can't download it (see docs/sources/DownloadPatterns.md). Unlike DrugBank, this is not a reused old download -- I downloaded it fresh in a browser on my laptop and copied it to the HPC.
 
@@ -18,11 +19,15 @@ drugbank_version: "5-1-13" # The latest is 5-1-21, but since downloads are curre
 
 # Release naming and the previous-release comparison (see docs/RunningBabel.md).
 # release_name is the date-style name for THIS build; it becomes the "name" in the generated
-# prefix_report.json and names the file when it is archived into releases/prefix_reports/.
-release_name: "2026jul15"
-# previous_release pins which committed baseline the end-of-run comparison diffs against. Bumping it
-# to the newest release archived in releases/prefix_reports/ is the deliberate "new baseline" action;
-# a unit test fails if a newer baseline was committed without updating this pin.
+# prefix_report.json and names the directory it is archived into, releases/<release_name>/. Set it to
+# the build you are about to make BEFORE starting a run.
+release_name: "2026jul22"
+# previous_release pins which committed baseline the end-of-run comparison diffs against: it is the
+# release immediately BEFORE release_name, never release_name itself -- a build that diffs its own
+# baseline produces a well-formed all-zeros report that reads as "nothing changed", so
+# generate_prefix_comparison() raises rather than write one. Moving this on to the release just
+# archived under releases/ is the deliberate "new baseline" action, done in the same
+# commit that moves release_name to the next build; a unit test fails if the two drift apart.
 previous_release: "2025sep1"
 # Thresholds for the "Notable changes" section of reports/tables/prefix_comparison.md (informational
 # only -- large drifts are flagged, never fail the build).
@@ -108,10 +113,10 @@ ncbi_files:
   - gene_refseq_uniprotkb_collab.gz
   - mim2gene_medgen
 
-generate_dirs_for_labels_and_synonyms_prefixes: [GO, CL, NCIT, UBERON, CHEBI, HP, MP, MONDO, PR]
+generate_dirs_for_labels_and_synonyms_prefixes: [GO, CL, NCIT, UBERON, EMAPA, CHEBI, HP, MP, MONDO, PR]
 
 # TODO: This doesn't appear to be used anywhere -- but it might be neat to use this list to make sure we got all of them.
-ubergraph_ontologies: [UBERON, CL, GO, NCIT, ECO, ECTO, ENVO, HP, MP, UPHENO, BFO, BSPO, CARO, CHEBI, CP, GOREL, IAO, MAXO, MONDO, PATO, PR, RO, UBPROP]
+ubergraph_ontologies: [UBERON, CL, EMAPA, GO, NCIT, ECO, ECTO, ENVO, HP, MP, UPHENO, BFO, BSPO, CARO, CHEBI, CP, GOREL, IAO, MAXO, MONDO, PATO, PR, RO, UBPROP]
 
 mods: [WormBase, FB, MGI, ZFIN, RGD, SGD]
 
@@ -120,9 +125,9 @@ common:
   synonyms: [ubergraph/synonyms.jsonl]
   descriptions: [ubergraph/descriptions.jsonl]
 
-anatomy_prefixes:  [UBERON, GO, CL, UMLS, MESH, NCIT, SNOMEDCT]
-anatomy_ids:       [UBERON, GO, CL, UMLS, MESH, NCIT]
-anatomy_concords:  [UBERON, GO, CL, UMLS, WIKIDATA]
+anatomy_prefixes:  [UBERON, GO, CL, EMAPA, UMLS, MESH, NCIT, SNOMEDCT]
+anatomy_ids:       [UBERON, GO, CL, EMAPA, UMLS, MESH, NCIT]
+anatomy_concords:  [UBERON, GO, CL, EMAPA, UMLS, WIKIDATA]
 anatomy_outputs:   [AnatomicalEntity.txt, Cell.txt, CellularComponent.txt, GrossAnatomicalStructure.txt]
 # Prefixes whose identifiers are treated as globally unique within a clique: if merging two
 # cliques would produce a clique containing more than one identifier with one of these prefixes,
@@ -130,6 +135,14 @@ anatomy_outputs:   [AnatomicalEntity.txt, Cell.txt, CellularComponent.txt, Gross
 # either ontology should never be collapsed into the same equivalence set.  If you add a new
 # anatomy source whose concord file links to UBERON or GO, verify that it doesn't introduce
 # spurious merges before removing either prefix from this list.
+#
+# EMAPA is deliberately NOT listed, even though it is an anatomy ids source.  122 UBERON terms
+# cross-reference more than one EMAPA term (116 of them more than one *live* EMAPA term), and
+# those are mostly genuine 1:n mappings (a mouse developmental partonomy resolving finer than the
+# adult UBERON structure), not merge errors.
+# Restricting EMAPA would block all 122 merges and would silently delete any EMAPA CURIE that
+# lost the resulting contest without having its own ids-file row.  See
+# docs/sources/EMAPA/README.md, which flags this for SME review.
 anatomy_unique_prefixes: [UBERON, GO]
 
 gene_labels:   [HGNC, NCBIGene, UMLS, OMIM]
@@ -153,6 +166,77 @@ disease_labelsandsynonyms: [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UML
 disease_ids:               [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UMLS, OMIM, EFO]
 disease_concords:          [HP, MP, MONDO, UMLS, DOID, EFO, Manual]
 disease_outputs:           [Disease.txt, PhenotypicFeature.txt]
+
+# Prefixes written into Disease.txt even though the Biolink Model does not register them for
+# biolink:Disease. write_compendium() otherwise drops an unregistered prefix silently, *after* it
+# has already merged cliques in glom() -- so the merge effect ships and the identifier does not.
+#
+# Applied to biolink:Disease ONLY (see build_compendium): extra_prefixes is a per-class allowlist,
+# and one of these CURIEs landing in a phenotype clique must still face PhenotypicFeature's own
+# filter rather than inheriting an exemption granted on disease grounds.
+#
+# ICD10CM is MONDO's spelling of ICD-10 (DOID/EFO/HP write ICD10:), covering ~2,030 xref rows that
+# are near-perfectly 1:1. Emitting them is deliberately ahead of the Biolink Model: they will not
+# normalize until ICD10CM is registered or the spelling is unified onto ICD10, but having them in
+# the output beats discarding curated mappings we would then have to re-derive. Reconcile and
+# remove this entry when https://github.com/NCATSTranslator/Babel/issues/1033 is resolved.
+#
+# GARD is the NCATS rare-disease registry, also unregistered. Without it ~16k rare-disease terms
+# vanish from Disease.txt, and so do the ~2,200 GARD ids DOID cross-references -- which reach
+# cliques through DOID's concord rather than GARD's own, since GARD has no concord. Registering
+# GARD with the Biolink team is the long-term fix (same situation as GTDB, PR #978).
+#
+# ICD0 is deliberately NOT here: ICD-O codes are tumour *morphology* codes and may not be disease
+# equivalents at all, so emitting them would assert something we have not decided. See
+# https://github.com/NCATSTranslator/Babel/issues/1037.
+disease_extra_prefixes:    [ICD10CM, GARD]
+
+# How each disease source spells *other* vocabularies' prefixes in its cross-references, and the
+# Babel prefix each one becomes. Applied by babel_utils.norm() while the source's concord is built,
+# keyed on the UPPER-CASED source prefix. Values are checked against src/prefixes.py when the map is
+# loaded, so a typo fails the build rather than silently renaming nothing.
+#
+# A *missing* entry is not an error and that is the danger: the un-renamed CURIE still reaches
+# glom(), joins nothing (no ids file carries that spelling, and write_compendium drops the prefix as
+# unregistered), yet still fuses every subject that cites it into a single clique. That silent
+# failure is why these maps sit here, in one reviewable block, instead of inline beside each build
+# function -- reviewing "which prefixes does this source need renamed" is the whole job.
+#
+# A key may name the *stem* of a release-stamped prefix: SNOMEDCT_US matches DOID's
+# SNOMEDCT_US_2025_09_01 and the six other dates it currently emits, without pinning a date list
+# that goes stale on the next DOID release (norm() retries with a trailing _YYYY_MM_DD stripped).
+disease_xref_prefixes:
+  DOID:
+    ICD10CM:     ICD10
+    ICD9CM:      ICD9
+    ICDO:        ICD0
+    NCI:         NCIT
+    SNOMEDCT_US: SNOMEDCT
+    UMLS_CUI:    UMLS
+    KEGG:        KEGG.DISEASE
+    # DOID spells OMIM "MIM:" -- see https://github.com/NCATSTranslator/Babel/issues/321, which
+    # tracks making MIM the canonical spelling once the Biolink Model registers it. Until then both
+    # standardize to OMIM. 332 of these 6,483 rows are phenotypic series ("MIM:PS303350"), which
+    # Babel spells OMIM.PS:303350 -- the "PS" belongs to the prefix, not to the local id. YAML
+    # cannot express a rename that depends on the local id, so this value is resolved to a callable:
+    # see LOCAL_ID_DEPENDENT_RENAMES in src/createcompendia/diseasephenotype.py.
+    MIM:         OMIM
+    # DOID's spelling of Orphanet, 2,321 rows. MONDO and HP already write orphanet:, so before this
+    # entry none of DOID's Orphanet mappings could join theirs.
+    ORDO:        orphanet
+  HP:
+    MSH:         MESH
+    SNOMEDCT_US: SNOMEDCT
+    SNOMED_CT:   SNOMEDCT
+    # MONDO writes Orphanet mixed case ("Orphanet:2822"); the key is matched upper-cased, so this
+    # one entry catches every casing and maps it to Babel's lower-case orphanet: prefix.
+    ORPHANET:    orphanet
+    ICD-9:       ICD9
+    ICD-10:      ICD10
+    ICD-0:       ICD0
+    ICD-O:       ICD0
+  MONDO:
+    ORPHANET:    orphanet
 # Taxon assigned to each phenotype ontology's identifiers in the compendia. Every HP term we
 # ingest (the HP:0000118 "Phenotypic abnormality" subtree) describes a human (Homo sapiens)
 # phenotype; every MP term describes a mammalian (Mammalia) phenotype. These are written to

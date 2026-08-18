@@ -30,6 +30,12 @@ equivalence sets of identifiers across biomedical vocabularies (e.g., recognizin
 and DRUGBANK:DB09145 both refer to water). Output is consumed by Node Normalization and Name
 Resolver services.
 
+## Scratch space: use `data/`
+
+`data/` is a gitignored scratch directory — put ad hoc files there (downloads, build comparisons,
+extracted intermediates), and prefer it over `/tmp` for anything worth keeping across a session.
+Never write scratch files into the repository root, `input_data/`, or `docs/`.
+
 ## Key Commands
 
 ### Setup
@@ -85,8 +91,8 @@ uv run rumdl fmt .                       # Markdown auto-fix
 
 ### Configuration
 
-- Line length is 120 for both Python (ruff) and Snakemake (snakefmt). Markdown (`rumdl`, rule
-  `MD013`) wraps at 100 instead, though tables are exempt.
+- Line length is 120 for both Python (ruff) and Snakemake (snakefmt). Markdown (`rumdl`,
+  rule `MD013`) wraps at 100 instead, though tables are exempt.
 - Main config: `config.yaml` (directory paths, version strings, prefix lists per semantic type).
 - `UMLS_API_KEY` environment variable required for UMLS/RxNorm downloads.
 - `compendium_directories` in `config.yaml` maps Python compendium names to the Snakemake
@@ -106,6 +112,10 @@ session.
 
 The Biolink Model version is set in `config.yaml` — read it via `get_config()["biolink_version"]`
 rather than hard-coding a version — and feeds both `NodeFactory` and `get_biolink_model_toolkit()`.
+That helper takes the version as a **required** argument, and the version may be a git SHA rather
+than an `x.y.z` tag. To check whether a prefix is registered for a Biolink class — the check that
+decides whether `NodeFactory.create_node()` keeps or silently drops a CURIE — use
+`get_biolink_model_toolkit(version).get_element(<class>).id_prefixes`.
 
 Always use the mapped `biolink:`-prefixed class URI (`biolink:ChemicalEntity`), never the raw
 element name (`chemical entity`); `get_element()` (no `.get()` method — see `get_prefixes()`'s
@@ -126,6 +136,11 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
   for the three hooks); route a pipeline's `build_compendia` and
   `compute_cliques_for_impact_report` through the same wrapper so the impact report provably matches
   the build.
+- **Concord row order is load-bearing** — `glom()`'s `unique_prefixes` keeps whichever CURIE of a
+  restricted prefix it sees *first*, and a loser with no ids-file row is dropped outright.
+  `build_sets()` sorts its output so this is reproducible; never reintroduce unordered iteration
+  there. Before restricting a prefix, count what it makes compete — see step 3 of
+  `docs/AddingNewSources.md`.
 - **`SynonymFilter`** (`src/synonyms/filter.py`) checks every label/synonym against
   `input_data/obsolete_synonyms.yaml` before it enters a compendium — see its docstring for the
   `action` field and the `should_suppress()` contract.
@@ -150,11 +165,17 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
   *humanfriendly string*, so a rule's `mem="512G"` reaches Python as `"512 GB"` — and `mem_mb` is
   decimal, so it is `512000`, not `524288`. See `duckdb_memory_limit_mb()` in
   `src/snakefiles/util.py`, whose `.endswith("G")` parse of `resources.mem` broke on exactly this.
+- **Benchmark memory is mebibytes; `mem` is decimal MB** — the same rule's numbers appear in both
+  units. A `benchmark:` TSV's `max_rss` is labelled "MB" but computed as bytes `/ 1024 / 1024`, so a
+  rule "peaking at 132G" needs `mem="142G"` to be at 100% of its limit. Two factors, don't mix them:
+  ×1.048576 converts the raw `max_rss` column (MiB→MB), ×1.073741824 converts a figure already
+  displayed in GiB. As a fraction of a rule's limit the error is ~4.9%; on a whole-GiB peak it is
+  ~7.4%. Comparing them unconverted always errs toward *looking safe*. See the Units section of
+  [`docs/tools/Resources.md`](docs/tools/Resources.md); `babel-slurm-resources` converts on the way
+  in and reports decimal throughout, so its recommendation is the string to paste into a rule.
 - **Per-compendium metadata YAMLs** — `babel_outputs/metadata/<Type>.yaml` records provenance with
   per-source `prefix_counts` like `xref(CHEBI, DrugCentral): 4302`. Aggregate (prefix-pair) only —
   confirms a join pathway exists, not whether *specific* CURIEs are joinable.
-- **`data/`** — gitignored local scratch space for ad hoc files (analysis notebooks, one-off
-  downloads, intermediate digging); never committed.
 
 ### Per-source & developer-tool docs
 
@@ -180,6 +201,22 @@ Most semantic-type targets are much cheaper than the full pipeline (anatomy buil
 laptop in ~25 minutes; the README's 500 GB figure is for the heaviest targets only). See
 `docs/RunningBabel.md` for a per-target sizing breakdown and common build issues.
 
+## Releasing a build
+
+A Babel release is a build *plus* the NodeNorm and NameRes versions deployed against it, and the
+combined note lives in `releases/<build>/README.md`. `releases/releases.yaml` records which versions
+shipped with which build — that mapping is not derivable from anywhere else, and each entry is the
+next release's comparison baseline. [`releases/README.md`](releases/README.md) is the process, and
+`releases/scripts/draft_release_notes.py` drafts the mechanical parts.
+
+That directory also holds ~420 KB of the build's summary reports, mirroring the build directory's
+own paths so a release directory *is* a (tiny) build directory — `--build-dir releases/2026jul22`
+works unchanged. [`releases/ARTIFACTS.md`](releases/ARTIFACTS.md) says what each file is, and why a
+repo-wide lint or scan must exclude `reports/` and `metadata/` — but not the note beside them.
+
+A release is also the natural cadence for re-checking SLURM sizing against the run's benchmarks
+(`docs/tools/Resources.md`), and for the archive/pin steps in `docs/RunningBabel.md`.
+
 ## Adding a new data source
 
 `docs/AddingNewSources.md` is the full guide: how to wire a source (prefix, data handler, compendium
@@ -187,10 +224,9 @@ hook, Snakemake rules, `config.yaml`, docs, tests), then generate and read its s
 — including assembling the intermediate inputs from a `stars.renci.org` snapshot when a full local
 build (~500 GB RAM) is impractical. Two things the report exists to catch: an ids file missing its
 Biolink type (see `docs/Development.md`), and a prefix not yet registered in the Biolink Model for
-its class (`write_compendium()` silently drops such CURIEs — EMAPA's
-`biolink:GrossAnatomicalStructure` terms are the current example; `extra_prefixes=[...]` is the
-escape hatch, and it is what keeps members alive when **retyping** a clique to a class that doesn't
-register their prefix — see `docs/AddingNewSources.md`).
+its class (`write_compendium()` silently drops such CURIEs — check, don't assume.
+`extra_prefixes=[...]` is the escape hatch, and it is what keeps members alive when **retyping** a
+clique to a class that doesn't register their prefix — see `docs/AddingNewSources.md`).
 **Generate and commit the report** (`uv run source-impact-report --source <SOURCE>`) and, for
 changes that *restructure* existing cliques, follow up with `babel-clique-diff` — see
 `src/tools/source_impact_report/CLAUDE.md` and `src/tools/clique_diff/CLAUDE.md` for the tool
@@ -208,11 +244,24 @@ ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandl
 [`src/datahandlers/CLAUDE.md`](src/datahandlers/CLAUDE.md); test conventions are in
 [`tests/CLAUDE.md`](tests/CLAUDE.md). The rules below apply repo-wide.
 
-- **Configuration over constants** — prefer `config.yaml` over module-level Python constants for
-  any value that is a data-level choice (a list of prefixes, a threshold, a flag) rather than pure
-  logic. Constants buried in Python files are invisible to readers of `config.yaml` and are easily
-  missed when related settings change. Module-level constants are fine for values that are pure
-  implementation details with no user-facing meaning.
+- **Configuration over constants** — `config.yaml` records the *big decisions that shape a build*:
+  which ontologies a pipeline includes, which version of a download is used, which prefixes are
+  unique within a clique, thresholds and flags that a maintainer would want to review or change
+  between runs. Those belong in `config.yaml`, where they are visible to anyone reading the build's
+  shape and where related settings sit next to each other.
+
+  A value that is *closely tied to the content of one source* — above all, how that source is
+  cleaned before Babel uses it — can stay as a documented module-level constant in that source's
+  Python file. Lifting it into `config.yaml` would separate it from the parsing code it explains
+  and would imply it is a knob to be tuned, when in practice it only changes if the upstream source
+  changes. The xref ignore-lists and allowlists (`ANATOMY_OBO_IGNORE_LIST` in
+  `src/createcompendia/anatomy.py`, `MP_XREF_ALLOWED_PREFIXES` in
+  `src/createcompendia/diseasephenotype.py`) are the canonical examples: they encode "these xref
+  targets in *this* ontology are junk or out of scope", not "this is how we want the build
+  configured." Keep them beside the code that applies them.
+
+  Pure implementation details with no user-facing meaning stay in Python without further thought.
+  Why that split is safe (git tags, `metadata.yaml`): `docs/Development.md`.
 
 - **Document every configuration value** — every entry in `config.yaml` and every module-level
   constant that remains in Python must have an inline comment explaining *what it controls* and
@@ -327,3 +376,20 @@ PURL and include the preferred label in double-quotes:
 
 Resolve CURIEs with `get_biolink_prefix_map()` (see Biolink Model Usage above). Preferred labels
 come from `babel_downloads/<PREFIX>/labels` (tab-separated `CURIE\tlabel`).
+
+### GitHub pull requests and issues
+
+**Do not hard-wrap the body of a pull request or issue.** The 100-column rule is for Markdown files
+in the repository; GitHub renders a description as flowing paragraphs in a variable-width column, so
+wrapped text there is either re-flowed anyway or shows up as ragged half-lines. Write one long line
+per paragraph and per list item, and let the browser wrap it. Write the body to a file and pass it
+with `gh pr edit --body-file` / `gh issue create --body-file` rather than inlining it, so quoting
+and newlines survive.
+
+A description is for what shipped and why, not how the branch got there. Keep it to the final
+methods chosen and the decisions a reviewer has to check; a PR is read again when the *next* release
+is reviewed, so anything meant to last belongs in the code, the docs, or the report it describes —
+never only in the description. Commit messages are effectively invisible after merge, so never
+compress a rationale into "see commit abc1234": if the reasoning matters, and especially if it
+records an alternative that was considered and rejected, put it in a comment or docstring beside the
+code that would have to change to undo it, and let the description point there.

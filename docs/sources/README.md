@@ -24,10 +24,19 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   ([CHEBI/sdf_tags/README.md](./CHEBI/sdf_tags/README.md)) the data-item tags Babel reads out of
   `ChEBI_complete.sdf`, the renames that silently emptied the secondary-ID and PubChem ingests in
   `babel-1.18`, the checks that now catch a rename, and how to re-audit a new SDF.
+- **DOID** ([DOID/mappings.md](./DOID/mappings.md)) — why DOID's ICD xrefs are dropped where the
+  concord is built: an ICD code names a whole disease family, so one code merged every subtype
+  citing it (61 hereditary spastic paraplegia subtypes in a single clique), and *no* DOID→ICD row
+  is an equivalence. Includes the measurement script, the full record of the 6,420 dropped rows,
+  and the still-open question of DOID's remaining overused xref targets.
 - **DRUGBANK** ([DRUGBANK/food-and-extracts/README.md](./DRUGBANK/food-and-extracts/README.md))
   — retyping DrugBank food-and-extract products (foods, pollens, danders) out of
   `biolink:ChemicalEntity`: foods become `biolink:Food` via their UNII's NCIt class, non-food
   allergens become `biolink:ComplexMolecularMixture`.
+- **EMAPA** ([EMAPA/README.md](./EMAPA/README.md)) — the Mouse Developmental Anatomy Ontology as
+  an anatomy source: extracting identifiers from UberGraph via a `part_of` traversal, exporting
+  xref concords, and how its terms are typed and routed into the anatomy compendia. The worked
+  example for an OBO-from-UberGraph source, with an auto-generated source-impact report.
 - **ENSEMBL** ([ENSEMBL/Download.md](./ENSEMBL/Download.md)) — how Ensembl identifiers are
   downloaded via the BioMart API: per-dataset retry logic, permanently broken datasets and how to
   skip them, the attribute-batching workaround, and how partial progress is preserved across

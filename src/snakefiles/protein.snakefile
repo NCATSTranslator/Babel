@@ -155,6 +155,10 @@ rule protein_compendia:
     benchmark:
         config["output_directory"] + "/benchmarks/protein_compendia.tsv"
     resources:
+        # Do NOT size this from 2026jul22 alone: UniProtKB shrank ~41% upstream that release, so it
+        # ran 5.5h/246G where babel-1.17 took 7.6h/337G. Against the babel-1.17 figures these limits
+        # are 63% and 66% used, which is right. `babel-slurm-resources` will report this rule as
+        # over-provisioned until UniProtKB recovers; ignore that unless a second full-size run agrees.
         runtime="12h",
         mem="512G",
     run:
@@ -200,7 +204,8 @@ rule protein:
         config["output_directory"] + "/benchmarks/protein.tsv"
     resources:
         cpus_per_task=6,
-        runtime="6h",
+        # 2.1h on babel-1.17, 1.6h on 2026jul22.
+        runtime="4h",
     run:
         util.gzip_files(input.synonyms)
         util.write_done(output.x)

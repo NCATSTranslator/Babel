@@ -264,7 +264,7 @@ rule disease_manual_concord:
                     "url": "https://github.com/NCATSTranslator/Babel",
                 }
             ],
-            url="https://github.com/NCATSTranslator/Babel/blob/master/input_data/manual_concords/disease.txt",
+            url="https://github.com/NCATSTranslator/Babel/blob/main/input_data/manual_concords/disease.txt",
             concord_filename=output.outfile,
         )
 

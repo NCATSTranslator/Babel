@@ -62,12 +62,24 @@ in parallel.
 ### Per-target sizing
 
 Memory and time requirements vary widely by target. The README's 500 GB figure refers to the
-largest builds (protein, drugchemical-conflated, and the full pipeline together). Many
-individual targets are tractable on a laptop. Concretely, `anatomy` builds end-to-end on a Mac
-in roughly 25 minutes wall time, with UMLS downloading dominating the runtime; peak memory is
-in the low GBs. `cell_line`, `taxon`, `genefamily`, and `macromolecular_complex` are similarly
-small. `chemical`, `gene`, `protein`, `disease`, and the conflations need a workstation or HPC
-node.
+largest builds (protein, drugchemical-conflated, and the full pipeline together), not to every
+target.
+
+**Only `gene`, `protein` and `chemical` need a workstation or HPC node**, along with the two
+conflations and the full no-target pipeline. The conflations are expensive because of what they
+depend on, not because conflation itself is costly: `geneprotein` takes `Gene.txt` and
+`Protein.txt` as inputs, and `drugchemical` takes `Drug.txt` and the chemical outputs, so asking
+for either transitively builds the heavy targets underneath it.
+
+Every other target is small enough to build locally, and building one locally is the default way
+to work on it: `anatomy`, `disease`, `process`, `taxon`, `genefamily`, `publications`,
+`cell_line` and `macromolecular_complex`. (Note the Snakemake target is `disease`, while the
+intermediate directory and Python module are `diseasephenotype`.)
+
+Concretely, `anatomy` builds end-to-end on a Mac in roughly 25 minutes wall time, with the UMLS
+download dominating the runtime; peak memory is in the low GBs. The other local targets are in
+the same range. A first build is usually dominated by downloads rather than computation, so a
+warm `babel_downloads/` makes a rebuild dramatically faster.
 
 If you only need the intermediates for a single semantic type (for example, to generate a
 source-impact report — see [AddingNewSources.md](./AddingNewSources.md)), building just that
@@ -123,11 +135,37 @@ running a job, which would delete anything preloaded into them.
 
 * **Stale Snakemake lock.** If a previous run was killed (Ctrl-C, OOM, power loss) Snakemake
   may refuse to start with `LockException: Directory cannot be locked`. Clear it with
-  `uv run snakemake --unlock` and retry.
+  `uv run snakemake --unlock` and retry. **Check first that no Snakemake process is actually
+  still running** (`pgrep -fl snakemake`) — see the next bullet for why.
+* **Never run two Snakemake invocations against the same working directory.** The directory
+  lock is the only thing preventing this, so `--unlock` while a build is still alive lets a
+  second run start on top of the first. When a rule fails, Snakemake keeps executing unrelated
+  jobs rather than exiting immediately, so a build that printed `Error in rule ...` may still
+  be running for many minutes afterwards. Two runs then execute the same rule concurrently and
+  interleave their writes. The symptom is a compendium that fails JSON parsing partway through,
+  with one record spliced into the middle of another:
+
+  ```text
+  {"type": "biolink:Ana{"type": "biolink:AnatomicalEntity", "ic": 77.6, ...
+  ```
+
+  and `check_*` rules failing with `line contains invalid json`. Only a small fraction of lines
+  is usually affected (157 of 147,523 in one observed case), so eyeballing the head of the file
+  will not catch it. The intermediate `ids/` and `concords/` files usually survive (each is
+  written by a single rule); it is the compendia that get corrupted. Recovery: kill every
+  Snakemake process, delete the affected compendia, synonyms, reports and metadata for that
+  pipeline, then rerun the target once. Validate before trusting a rebuild — every line of a
+  compendium must be parseable JSON. `write_compendium()` does not write atomically, which is
+  what makes this possible; tracked in
+  [#910](https://github.com/NCATSTranslator/Babel/issues/910).
 * **UberGraph transient failures.** Rules that fetch from UberGraph (anatomy's UBERON, GO, CL,
-  EMAPA rules; similar elsewhere) sometimes time out or 5xx. They carry `retries: 10` and the
-  underlying `TripleStore` adds bounded retry/backoff, so most transient blips heal
-  themselves. A full UberGraph outage will still propagate as a job failure — wait and rerun.
+  EMAPA rules; similar elsewhere) sometimes time out, 5xx, or return truncated JSON. They carry
+  `retries: 3` and the underlying `TripleStore` adds bounded retry/backoff, so most transient
+  blips heal themselves. A full UberGraph outage will still propagate as a job failure — wait
+  and rerun. A `JSONDecodeError` reporting a character offset in the hundreds of millions is a
+  truncated response to an oversized query, not malformed data; see "Oversized UberGraph
+  queries" below. Running two heavy UberGraph rules in parallel (`-c all` will happily schedule
+  `get_icrdf` alongside `get_anatomy_obo_relationships`) makes it markedly more likely.
 * **UMLS_API_KEY not set.** The UMLS download rule fails fast with a clear error if this is
   missing. Set it in your shell before invoking Snakemake, not just inline (`UMLS_API_KEY=… uv
   run snakemake …` works only for the parent process and may not propagate into all subjobs
@@ -135,6 +173,49 @@ running a job, which would delete anything preloaded into them.
 * **Partial/incomplete state from a prior aborted run.** Add `--rerun-incomplete` to force
   Snakemake to regenerate any outputs it considers possibly-stale, which is the safest
   default after a kill.
+* **A stale target sentinel silently skips a rebuild.** Deleting intermediates to force a
+  rebuild is *not* enough. Each pipeline target's own output is a sentinel file —
+  `babel_outputs/reports/<pipeline>_done` — and Snakemake only asks whether the requested
+  target is up to date. With the sentinel present it prints
+
+  ```text
+  Nothing to be done (all requested files are present and up to date).
+  ```
+
+  and exits 0, having rebuilt nothing, even with `--rerun-incomplete` and even though the
+  concords and compendia you deleted are missing. The exit code and the log both look like
+  success, so a code fix can appear to have "no effect" when it was never actually run. Delete
+  the sentinel along with the files you want regenerated, then confirm with `-n` that the rules
+  you expect are actually scheduled before starting the real run.
+
+### Oversized UberGraph queries
+
+`UberGraph.get_subclasses_and_xrefs()` (and its `_exacts`/`_close` siblings) fetch every
+descendant of a root **across all ontologies loaded into UberGraph**, because the redundant
+graph's `rdfs:subClassOf` closure crosses ontology boundaries. `build_sets()` then throws away
+every row whose subject prefix differs from the root's, client-side.
+
+For `UBERON:0001062` "anatomical entity" that means downloading **2,885,566 rows (~396 MB of
+SPARQL JSON) and keeping 48,592** — under 2%. The full response regularly gets truncated
+mid-stream, surfacing as:
+
+```text
+JSONDecodeError: Expecting property name enclosed in double quotes: line 14182994 column 7 (char 396247040)
+```
+
+`retries: 3` plus `TripleStore`'s own backoff usually gets it through eventually, so this reads
+as a flaky endpoint rather than the design problem it is. Tracked in
+[#909](https://github.com/NCATSTranslator/Babel/issues/909).
+
+The fix is to push the prefix filter into the SPARQL query (a `FILTER(STRSTARTS(STR(?descendent),
+"<root prefix IRI>"))` when `hop_ontologies` is false) rather than to batch the download.
+Batching would page 396 MB in chunks; filtering avoids transferring 98% of it in the first
+place. This belongs in `UberGraph`, not in a single caller — `build_sets()` applies the same
+client-side prefix filter for every source, so every caller of the `get_subclasses_*` family
+pays this cost today. Note that `UberGraph` already has a batching idiom (`QUERY_BATCH_SIZE`
+with a `COUNT` then `OFFSET`/`LIMIT`, used by `get_all_labels`, `get_all_descriptions`,
+`get_all_synonyms` and `write_normalized_information_content`); reach for it only if a query is
+still too large *after* filtering.
 
 ## Analyzing and tuning a SLURM run
 
@@ -365,18 +446,41 @@ report supersedes the manual comparison previously done in babel-validation's
 
 Which release it compares against is pinned explicitly by `previous_release` in `config.yaml` —
 there is no date guessing. A unit test (`tests/reports/test_prefix_comparison.py`) fails if a newer
-baseline was committed to `releases/prefix_reports/` without bumping the pin, so a stale pin is
-caught by the weekly unit run before the next build starts.
+baseline was committed under `releases/` without bumping the pin, so a stale pin is caught by the
+weekly unit run before the next build starts.
 
-### Archiving the prefix report for the next comparison
+### Archiving a build's reports
 
-After a healthy release run, archive this build's prefix report so the *next* release can be
-compared against it:
+After a healthy release run, archive the build's summary reports into the repository. This is both
+how the tables stay readable after the build directory is gone and how the *next* release gets a
+baseline to compare against:
 
-1. Copy `babel_outputs/reports/duckdb/prefix_report.json` to
-   `releases/prefix_reports/<release_name>.json` (using the `release_name` from `config.yaml`). The
-   file is copied verbatim — it already carries the correct `name` and schema.
-2. Link it from the release's `releases/<release_name>.md` notes.
-3. In the same commit, bump `previous_release` in `config.yaml` to `<release_name>` (and set
-   `release_name` to the next planned release), so the next run compares against this one.
-4. Commit. This copy becomes the reviewed baseline for the next release.
+1. Run the archiver. It copies ~420 KB — the summary tables, the per-compendium content reports, the
+   provenance metadata, and the prefix report — into `releases/<build>/`, mirroring the build
+   directory's own paths. [`releases/ARTIFACTS.md`](../releases/ARTIFACTS.md) describes each file
+   and what is deliberately left out.
+
+   ```bash
+   uv run python releases/scripts/archive_build.py <build> --build-dir <build directory> --dry-run
+   uv run python releases/scripts/archive_build.py <build> --build-dir <build directory>
+   ```
+
+   It fails rather than archive a prefix report whose `name` field is not `<build>`. That field is
+   written from `release_name` at build time, so a run that started before the pin was updated
+   stamps the *previous* release's name into it — and it is what labels the baseline in the next
+   release's comparison, so a wrong value propagates forward. The 2026jul22 build shipped with
+   `"name": "2026jul15"` for exactly this reason, which is why the check is no longer left to a
+   human. If it fires, work out which release the value names before correcting it.
+2. Link the archive from the release's `releases/<build>/README.md` note — `draft_release_notes.py`
+   emits those three links, now relative, since the note sits beside the archive.
+3. Commit. This copy becomes the reviewed baseline for the next release. Leave `config.yaml` alone
+   here: `release_name` still names the build you just archived, and `previous_release` still names
+   the baseline it was compared against.
+4. When the *next* build is planned, move both pins in one commit: `previous_release` to the release
+   just archived, `release_name` to the new build. They always move together, and they must never be
+   equal — a run whose `release_name` matches its `previous_release` diffs its own baseline and
+   reports that nothing changed. `generate_prefix_comparison()` raises rather than write that
+   report, and a unit test catches the drift before a build ever starts.
+
+Steps 1–3 are part of the wider release-note process in
+[`releases/README.md`](../releases/README.md), which also drafts the note itself.

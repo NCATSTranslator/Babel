@@ -1,0 +1,56 @@
+{
+  "compendium_path": "babel_outputs/compendia/Food.txt",
+  "count_by_biolink_type": {
+    "biolink:Food": 285
+  },
+  "count_by_prefix": {
+    "CAS": 8,
+    "CHEBI": 2,
+    "CHEMBL.COMPOUND": 2,
+    "DRUGBANK": 289,
+    "DrugCentral": 3,
+    "KEGG.COMPOUND": 2,
+    "MESH": 37,
+    "RXCUI": 284,
+    "UMLS": 283,
+    "UNII": 22
+  },
+  "count_lines": 285,
+  "counters": {
+    "clique_count": 285,
+    "cliques_by_description_count": {
+      "0": 284,
+      "1": 1
+    },
+    "cliques_by_id_count": {
+      "2": 5,
+      "3": 239,
+      "4": 12,
+      "5": 26,
+      "8": 1,
+      "9": 1,
+      "10": 1
+    },
+    "cliques_by_label_count": {
+      "1": 3,
+      "2": 241,
+      "3": 19,
+      "4": 19,
+      "6": 1,
+      "7": 2
+    },
+    "cliques_by_unique_description_count": {
+      "0": 284,
+      "1": 1
+    },
+    "cliques_by_unique_label_count": {
+      "1": 14,
+      "2": 234,
+      "3": 34,
+      "4": 2,
+      "5": 1
+    }
+  },
+  "name": "Food",
+  "report_path": "babel_outputs/reports/content/compendia/Food.json"
+}

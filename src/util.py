@@ -7,6 +7,7 @@ import re
 import sys
 from collections import namedtuple
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from time import gmtime
 
 import curies
@@ -51,6 +52,18 @@ def get_logger(name, loglevel=logging.INFO):
     logger = logging.getLogger(name)
     logger.setLevel(loglevel)
     return logger
+
+
+def get_repo_root():
+    """Return the repository root as a :class:`pathlib.Path`.
+
+    Use this to resolve a checked-in input file (``get_repo_root() / "input_data/foo.txt"``)
+    rather than a bare relative path. Snakemake always runs from the repo root, so a relative
+    path works there — but the CLI entry points (the source-impact report, the clique diff) can
+    be invoked from anywhere, and a module-level constant built from a relative path would then
+    silently point at nothing.
+    """
+    return Path(__file__).resolve().parents[1]
 
 
 def ensure_parent_dir(filename):
@@ -212,6 +225,19 @@ class Text:
         return ":".join(text.split("/")[-1].split("_"))
 
     @staticmethod
+    def omim_curie(local_id):
+        """Return the Babel CURIE for a bare OMIM number, splitting phenotypic series off to OMIM.PS.
+
+        OMIM numbers a phenotypic series "PS303350"; Babel spells that ``OMIM.PS:303350`` -- the
+        "PS" belongs to the prefix, not to the local id -- and a plain entry ``OMIM:303350``. Both
+        spellings arrive from more than one direction (omim.org URLs via :meth:`opt_to_curie`, and
+        DOID's ``MIM:`` xrefs via ``norm()``), so the rule lives here rather than at each call site.
+        """
+        if local_id.startswith("PS"):
+            return f"{OMIMPS}:{local_id[2:]}"
+        return f"{OMIM}:{local_id}"
+
+    @staticmethod
     def opt_to_curie(text):
         if text is None:
             return None
@@ -227,10 +253,7 @@ class Text:
             p = text.split("/")[-1].split("_")
             r = ":".join(p)
         elif text.startswith("https://omim.org/"):
-            ident = text.split("/")[-1]
-            if ident.startswith("PS"):
-                return f"{OMIMPS}:{ident[2:]}"
-            r = f"{OMIM}:{ident}"
+            r = Text.omim_curie(text.split("/")[-1])
         elif text.startswith("http://linkedlifedata.com/resource/umls"):
             r = f"{UMLS}:{text.split('/')[-1]}"
         elif text.startswith("http://identifiers.org/"):

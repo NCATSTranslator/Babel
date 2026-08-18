@@ -64,8 +64,6 @@ rule get_taxon_relationships:
 
 
 rule taxon_compendia:
-    # Peaks at ~14 GB on babel-1.17, just under the 16 GB default, so no override; the tightest
-    # rule on the default and the first to watch for an OOM as NCBITaxon grows (see docs/tools/Resources.md).
     input:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["taxon_labels"]),
         synonyms=expand("{dd}/{ap}/synonyms", dd=config["download_directory"], ap=config["taxon_synonyms"]),
@@ -81,6 +79,11 @@ rule taxon_compendia:
         output_metadata=expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["taxon_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/taxon_compendia.tsv"
+    resources:
+        # babel-1.17 flagged this as the tightest rule still on the 16 GB default and the first to
+        # watch for an OOM as NCBITaxon grows; 2026jul22 peaked at 14.1 GiB = 15.1 GB, 95% of the
+        # default, so it gets a block.
+        mem="24G",
     run:
         taxon.build_compendia(input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename)
 

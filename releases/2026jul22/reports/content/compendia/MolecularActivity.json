@@ -1,0 +1,51 @@
+{
+  "compendium_path": "babel_outputs/compendia/MolecularActivity.txt",
+  "count_by_biolink_type": {
+    "biolink:MolecularActivity": 201074
+  },
+  "count_by_prefix": {
+    "EC": 8866,
+    "GO": 10052,
+    "KEGG.REACTION": 5,
+    "REACT": 91955,
+    "RHEA": 74232,
+    "TCDB": 20,
+    "UMLS": 28584
+  },
+  "count_lines": 201074,
+  "counters": {
+    "clique_count": 201074,
+    "cliques_by_description_count": {
+      "0": 191022,
+      "1": 10051,
+      "2": 1
+    },
+    "cliques_by_id_count": {
+      "1": 188957,
+      "2": 11598,
+      "3": 515,
+      "4": 4
+    },
+    "cliques_by_label_count": {
+      "0": 7093,
+      "1": 181879,
+      "2": 11593,
+      "3": 505,
+      "4": 4
+    },
+    "cliques_by_unique_description_count": {
+      "0": 191022,
+      "1": 10051,
+      "2": 1
+    },
+    "cliques_by_unique_label_count": {
+      "0": 7093,
+      "1": 187973,
+      "2": 5973,
+      "3": 34,
+      "4": 1
+    }
+  },
+  "name": "MolecularActivity",
+  "report_path": "babel_outputs/reports/content/compendia/MolecularActivity.json"
+}

@@ -23,6 +23,16 @@ rule anatomy_cl_ids:
         anatomy.write_cl_ids(output.outfile)
 
 
+rule anatomy_emapa_ids:
+    output:
+        outfile=config["intermediate_directory"] + "/anatomy/ids/EMAPA",
+    benchmark:
+        config["output_directory"] + "/benchmarks/anatomy_emapa_ids.tsv"
+    retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
+    run:
+        anatomy.write_emapa_ids(output.outfile)
+
+
 rule anatomy_go_ids:
     output:
         outfile=config["intermediate_directory"] + "/anatomy/ids/GO",
@@ -68,9 +78,11 @@ rule get_anatomy_obo_relationships:
         config["intermediate_directory"] + "/anatomy/concords/UBERON",
         config["intermediate_directory"] + "/anatomy/concords/CL",
         config["intermediate_directory"] + "/anatomy/concords/GO",
+        config["intermediate_directory"] + "/anatomy/concords/EMAPA",
         uberon_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-UBERON.yaml",
         cl_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-CL.yaml",
         go_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-GO.yaml",
+        emapa_metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-EMAPA.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/get_anatomy_obo_relationships.tsv"
     retries: 3  # Ubergraph sometimes fails mid-download and needs a retry.
@@ -81,6 +93,7 @@ rule get_anatomy_obo_relationships:
                 "UBERON": output.uberon_metadata,
                 "CL": output.cl_metadata,
                 "GO": output.go_metadata,
+                "EMAPA": output.emapa_metadata,
             },
         )
 
@@ -123,6 +136,10 @@ rule anatomy_compendia:
             ap=config["anatomy_concords"],
         ),
         idlists=expand("{dd}/anatomy/ids/{ap}", dd=config["intermediate_directory"], ap=config["anatomy_ids"]),
+        # Declared as an input so editing the file re-triggers this rule. Referenced through the
+        # constant rather than repeating the literal: the impact report resolves the same file via
+        # ANATOMY_BAD_XREFS, and if the two drifted the report would stop matching the build.
+        badxrefs=anatomy.ANATOMY_BAD_XREFS,
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["anatomy_outputs"]),
@@ -131,7 +148,9 @@ rule anatomy_compendia:
     benchmark:
         config["output_directory"] + "/benchmarks/anatomy_compendia.tsv"
     run:
-        anatomy.build_compendia(input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename)
+        anatomy.build_compendia(
+            input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename, badxrefs=input.badxrefs
+        )
 
 
 rule check_anatomy_completeness:
