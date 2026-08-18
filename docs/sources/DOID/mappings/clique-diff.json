@@ -1,0 +1,41 @@
+{
+  "about": {
+    "after": "3b65f5ae (renames + scoped ICD overuse filter)",
+    "before": "47051aaf (PR head as reviewed)",
+    "files": [
+      "Disease.txt",
+      "PhenotypicFeature.txt"
+    ],
+    "note": "DOID: SNOMEDCT_US/MIM/ORDO renames, plus ICD overuse-filtered instead of excluded"
+  },
+  "compendia": {
+    "Disease.txt": {
+      "changed_before_cliques": 3729,
+      "clique_count": {
+        "after": 365085,
+        "before": 365510,
+        "diff": -425,
+        "diff_percent": -0.12
+      },
+      "cliques_with_dropped_members": 5,
+      "dropped_member_count": 5,
+      "leader_changed_count": 0,
+      "moved_member_count": 3,
+      "regrouped_member_count": 699
+    },
+    "PhenotypicFeature.txt": {
+      "changed_before_cliques": 11,
+      "clique_count": {
+        "after": 75477,
+        "before": 75478,
+        "diff": -1,
+        "diff_percent": -0.0
+      },
+      "cliques_with_dropped_members": 0,
+      "dropped_member_count": 0,
+      "leader_changed_count": 0,
+      "moved_member_count": 5,
+      "regrouped_member_count": 0
+    }
+  }
+}

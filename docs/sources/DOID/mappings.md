@@ -121,6 +121,16 @@ By prefix, the dropped 298 codes are ICD10 245, ICD0 33, ICD9 20. Samples above 
 opposite ends of the file — the most-cited codes, then 1:1 rows spread across it — rather than its
 head, since the point turns on both shapes existing.
 
+**`ICD0` rows survive the filter but never reach a compendium.** `ICD0` is not registered in
+`biolink:Disease`'s `id_prefixes`, so `write_compendium()` drops every one of the 462 that the
+filter keeps — after they have already done their merging in `glom()`. A build-vs-build count
+confirms it: ICD members go from 38 to 4,438 across the two disease compendia, all of them `ICD10`
+(2,241), `ICD9` (2,192) and `icd11` (5), with `ICD0` contributing nothing either side. That is the
+same defect as MONDO's `ICD10CM:`, so it is tracked with it in
+[issue #1035](https://github.com/NCATSTranslator/Babel/issues/1035) rather than here; it is not a
+regression this change introduces, and dropping `ICD0` at the source would be a second, separate
+judgement about whether an ICD-O morphology code is ever a disease equivalence.
+
 ## Overuse in DOID's other namespaces is still open
 
 DOID is in `OVERUSE_FILTERED_CONCORDS` **scoped to ICD**, so overuse outside ICD is untouched.
@@ -139,11 +149,34 @@ DOID is in `OVERUSE_FILTERED_CONCORDS` **scoped to ICD**, so overuse outside ICD
 
 ## Open before release
 
-- [ ] **Confirm on a real build with `babel-clique-diff`.** Everything here is a *replay*, which
-  only sees cliques the build already produced — it cannot show cliques a change creates, splits,
-  or moves *between* compendia (see [`docs/sources/CLAUDE.md`](../CLAUDE.md), "Replaying a pipeline
-  function beats rebuilding to measure a change"). The intermediate set behind these numbers is one
-  local `disease` build, not a released one.
+- [x] **Confirmed on a real build with `babel-clique-diff`**, two local `disease` builds of the same
+  intermediates — the PR's base commit against its head. Result in
+  [`mappings/clique-diff.csv`](mappings/clique-diff.csv) and
+  [`mappings/clique-diff.json`](mappings/clique-diff.json):
+
+  | | before | after |
+  | --- | --- | --- |
+  | identifiers across both compendia | 738,483 | **744,528** |
+  | `Disease.txt` cliques | 365,510 | 365,085 |
+  | `PhenotypicFeature.txt` cliques | 75,478 | 75,477 |
+
+  3,740 cliques changed, 699 members regrouped, 8 moved between compendia, **5 dropped**. The
+  clique count falls by 425 while identifiers rise by 6,045: the renames and the kept ICD rows
+  mostly *add members to existing cliques* rather than merging cliques together, which is what a
+  mapping that was previously joining nothing should do.
+- [ ] **5 identifiers are lost, and they need an SME.** `DOID:0080409` "familial adenomatous
+      polyposis 1", `orphanet:733` "Familial adenomatous polyposis", `orphanet:321` "Multiple
+      osteochondromas", `OMIM:133701` and `OMIM:600209` are in a compendium before this change and
+      in none after. The mechanism is not a filter: the new mappings pull them into cliques that
+      HP's type-vote turns into `biolink:PhenotypicFeature`, and none of `DOID`/`OMIM`/`orphanet` is
+      registered for that class, so `write_compendium()` drops them silently. `UMLS:C1851413`
+      "EXOSTOSES, MULTIPLE, TYPE II" moving into the
+      [`HP:0002762`](http://purl.obolibrary.org/obo/HP_0002762) "Exostoses" clique is the worked
+      case. The question is whether the merge is right — a disease and the phenotype named for it
+      are not obviously the same clique — and if it is not, the fix is a pair in
+      `input_data/disease_badxrefs.txt`, not a change here. This is the check
+      [`docs/sources/CLAUDE.md`](../CLAUDE.md) describes under "Where an identifier ends up is a
+      claim about it".
 - [ ] **EFO and HP emit ICD xrefs too** (62 and 46 rows), and MONDO emits 2,030 under the other
       spelling, `ICD10CM:`. Tracked in
       [issue #1035](https://github.com/NCATSTranslator/Babel/issues/1035), which also records the 21
