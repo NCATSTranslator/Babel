@@ -28,11 +28,17 @@ from src.util import Text, get_logger
 
 logger = get_logger(__name__)
 
-# MRCONSO.RRF is pipe-separated and positional; these are the columns this module reads.
-# These names exist only here: five other modules index the same columns with bare integers, and
-# datahandlers/umls.check_mrconso_line() applies a *different* SUPPRESS policy from the one below.
-# Centralizing both is https://github.com/NCATSTranslator/Babel/issues/1040 -- move these constants
-# there rather than adding a seventh private copy.
+# MRCONSO.RRF is pipe-separated and positional; these are the columns this module reads. These names
+# exist only here -- five other modules index the same columns with bare integers -- so when the
+# column layout moves to one place (https://github.com/NCATSTranslator/Babel/issues/1040), move these
+# rather than adding a seventh private copy.
+#
+# Note that this module deliberately applies a *stricter* SUPPRESS rule than
+# datahandlers/umls.check_mrconso_line(), which gates the build: that one rejects O and E and so
+# keeps Y, while load_mrconso_labels() below keeps only N. The difference is intentional and was
+# introduced with this module, not inherited -- a string you *display* should be filtered harder
+# than a row you *join on*, and SUPPRESS=Y means "do not show this string". Nothing here touches the
+# compendia; load_mrconso_labels() only fills label cells in an audit CSV.
 _MRCONSO_LAT = 1
 _MRCONSO_SAB = 11
 _MRCONSO_TTY = 12
