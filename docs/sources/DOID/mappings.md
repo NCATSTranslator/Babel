@@ -62,7 +62,7 @@ the alternative fix, which a before/after clique diff structurally cannot do.
 | | ICD kept | overuse-filtered | **ICD overuse-filtered** | ICD excluded |
 | --- | --- | --- | --- | --- |
 | identifiers | 757,770 | 757,389 | **757,474** | 752,649 |
-| cliques | 440,661 | 440,616 | 440,645 | 440,645 |
+| cliques | 440,663 | 440,618 | 440,647 | 440,647 |
 | largest clique | 307 | 83 | 99 | 92 |
 | cliques with >=50 identifiers | 53 | 11 | 23 | 16 |
 | cliques with >=20 identifiers | 834 | 599 | 747 | 609 |
@@ -150,8 +150,8 @@ DOID is in `OVERUSE_FILTERED_CONCORDS` **scoped to ICD**, so overuse outside ICD
 ## Open before release
 
 - [x] **Confirmed on a real build with `babel-clique-diff`**, two local `disease` builds of the same
-  intermediates — the PR's base commit against its head. Result in
-  [`mappings/clique-diff-top-100.csv`](mappings/clique-diff-top-100.csv) — the full diff is 3,746
+  intermediates — the branch's base commit against its head. Result in
+  [`mappings/clique-diff-top-100.csv`](mappings/clique-diff-top-100.csv) — the full diff is 3,747
   rows, so this is the ranked head of it: every dropped member first, then every cross-compendium
   move, then the largest cliques. The per-compendium totals are in
   [`mappings/clique-diff.json`](mappings/clique-diff.json), and "Regenerating" below rebuilds the
@@ -159,27 +159,29 @@ DOID is in `OVERUSE_FILTERED_CONCORDS` **scoped to ICD**, so overuse outside ICD
 
   | | before | after |
   | --- | --- | --- |
-  | identifiers across both compendia | 738,483 | **744,528** |
-  | `Disease.txt` cliques | 365,510 | 365,085 |
+  | identifiers across both compendia | 738,483 | **744,540** |
+  | `Disease.txt` cliques | 365,510 | 365,087 |
   | `PhenotypicFeature.txt` cliques | 75,478 | 75,477 |
+  | `ICD10` / `ICD9` / `icd11` members | 30 / 8 / 0 | **2,243 / 2,192 / 5** |
 
-  3,740 cliques changed, 699 members regrouped, 8 moved between compendia, **5 dropped**. The
-  clique count falls by 425 while identifiers rise by 6,045: the renames and the kept ICD rows
-  mostly *add members to existing cliques* rather than merging cliques together, which is what a
-  mapping that was previously joining nothing should do.
-- [ ] **5 identifiers are lost, and they need an SME.** `DOID:0080409` "familial adenomatous
-      polyposis 1", `orphanet:733` "Familial adenomatous polyposis", `orphanet:321` "Multiple
-      osteochondromas", `OMIM:133701` and `OMIM:600209` are in a compendium before this change and
-      in none after. The mechanism is not a filter: the new mappings pull them into cliques that
-      HP's type-vote turns into `biolink:PhenotypicFeature`, and none of `DOID`/`OMIM`/`orphanet` is
-      registered for that class, so `write_compendium()` drops them silently. `UMLS:C1851413`
-      "EXOSTOSES, MULTIPLE, TYPE II" moving into the
-      [`HP:0002762`](http://purl.obolibrary.org/obo/HP_0002762) "Exostoses" clique is the worked
-      case. The question is whether the merge is right — a disease and the phenotype named for it
-      are not obviously the same clique — and if it is not, the fix is a pair in
-      `input_data/disease_badxrefs.txt`, not a change here. This is the check
-      [`docs/sources/CLAUDE.md`](../CLAUDE.md) describes under "Where an identifier ends up is a
-      claim about it".
+  3,741 cliques changed, 707 members regrouped, 37 moved between compendia, and **no member is
+  dropped**. Identifiers rise by 6,057 while cliques fall by 424: the renames and the kept ICD rows
+  mostly *add members to existing cliques* rather than merging cliques together, which is what
+  mappings that were previously joining nothing should do.
+
+- [x] **No identifier is lost.** An earlier run of this diff lost five — `DOID:0080409` "familial
+  adenomatous polyposis 1", `orphanet:733`, `orphanet:321` "Multiple osteochondromas",
+  `OMIM:133701` and `OMIM:600209` — because the new mappings followed
+  [`DOID:206`](http://purl.obolibrary.org/obo/DOID_206) "hereditary multiple exostoses" and
+  [`DOID:0050424`](http://purl.obolibrary.org/obo/DOID_0050424) "familial adenomatous polyposis"
+  into `biolink:PhenotypicFeature` cliques, which register none of `DOID`/`OMIM`/`orphanet`, so
+  `write_compendium()` dropped them silently. Four bad-xref pairs now cut the disease/phenotype
+  boundary — see `input_data/umls_badxrefs.txt` and `input_data/badHPx.txt`. The upstream error is
+  that `UMLS:C0015306` "Hereditary Multiple Exostoses" and `NCIT:C3339` "Familial Adenomatous
+  Polyposis", both diseases, sit inside HP phenotype cliques; those pairs work around it rather
+  than fixing it. This is the check [`docs/sources/CLAUDE.md`](../CLAUDE.md) describes under "Where
+  an identifier ends up is a claim about it".
+
 - [ ] **EFO and HP emit ICD xrefs too** (62 and 46 rows), and MONDO emits 2,030 under the other
       spelling, `ICD10CM:`. Tracked in
       [issue #1035](https://github.com/NCATSTranslator/Babel/issues/1035), which also records the 21
