@@ -151,8 +151,11 @@ DOID is in `OVERUSE_FILTERED_CONCORDS` **scoped to ICD**, so overuse outside ICD
 
 - [x] **Confirmed on a real build with `babel-clique-diff`**, two local `disease` builds of the same
   intermediates — the PR's base commit against its head. Result in
-  [`mappings/clique-diff.csv`](mappings/clique-diff.csv) and
-  [`mappings/clique-diff.json`](mappings/clique-diff.json):
+  [`mappings/clique-diff-top-100.csv`](mappings/clique-diff-top-100.csv) — the full diff is 3,746
+  rows, so this is the ranked head of it: every dropped member first, then every cross-compendium
+  move, then the largest cliques. The per-compendium totals are in
+  [`mappings/clique-diff.json`](mappings/clique-diff.json), and "Regenerating" below rebuilds the
+  whole CSV.
 
   | | before | after |
   | --- | --- | --- |
@@ -233,6 +236,21 @@ uv run babel-overused-xrefs --concord babel_outputs/intermediate/disease/concord
 # the clique table above, all four scenarios
 uv run python docs/sources/DOID/mappings/scripts/measure_icd_xrefs.py
 ```
+
+The build-vs-build diff needs two `disease` builds of the same intermediates, one at this change's
+base commit and one at its head, each keeping
+`babel_outputs/compendia/{Disease,PhenotypicFeature}.txt`:
+
+```bash
+uv run babel-clique-diff --before <base build> --after <head build> \
+    --files Disease.txt PhenotypicFeature.txt \
+    --out-csv <full diff>.csv --out-json docs/sources/DOID/mappings/clique-diff.json
+```
+
+Delete `intermediate/disease/concords` and the `disease` rule's own outputs between the two passes.
+Snakemake's "code has changed" trigger hashes a rule's `run:` block, not the modules it imports, so
+a change inside `norm()` or `get_xref_prefix_map()` otherwise leaves the first pass's concords in
+place and diffs a build against itself.
 
 The measurement script rebuilds the concord through production
 `build_disease_doid_relationships()` and toggles the production constants, and the tool shares
