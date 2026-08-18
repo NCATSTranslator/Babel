@@ -519,7 +519,7 @@ def test_scoped_overuse_filter_drops_only_the_named_namespace():
 def test_build_disease_doid_relationships_keeps_icd_in_the_concord():
     """The concord must KEEP DOID's ICD rows -- they are filtered at glom time, not at build time.
 
-    Excluding them here instead would drop the 4,837 1:1 rows along with the 1,583 overused ones,
+    Excluding them here instead would drop the 4,841 1:1 rows along with the 1,584 overused ones,
     and would erase them from the concord the audit tools read. Invert this only alongside a
     decision to go back to a categorical exclusion.
 

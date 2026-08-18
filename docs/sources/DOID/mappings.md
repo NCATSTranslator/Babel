@@ -20,7 +20,9 @@ DOID:0110782 "hereditary spastic paraplegia 31" --xref--> ICD10:G11.4
 
 `ICD10:G11.4` is "Hereditary spastic paraplegia" — one code for the whole family. Because every
 subtype carries it too, `glom()` merged 61 mutually-exclusive HSP subtypes into one 223-identifier
-clique.
+clique. That 223 was measured on the build as it stood before any of this work; the `ICD kept`
+column of the table below no longer reproduces it, for the fragmentation reason given under the
+table, so read `largest clique` there rather than this figure.
 
 MONDO is not at fault. Its concord's most-shared target is claimed by just two subjects — i.e.
 essentially 1:1 curated exact matches — and the `MONDO:0019064 -> DOID:2476` edge is correct. Every
@@ -33,16 +35,17 @@ Two instruments were available and neither is right on its own, which is why the
 argument naming the namespaces it may act on:
 
 - **`remove_overused_xrefs` unscoped** — what MONDO/HP/EFO/MP get — **over-cleans everything else.**
-  It drops 618 MeSH, 271 SNOMED, 148 ORDO and 88 UMLS rows, including correct ones.
+  It drops 1,258 rows — 618 MeSH, 279 SNOMEDCT, 148 orphanet, 88 UMLS, 76 NCIT and 42 others —
+  including correct ones.
   [`MESH:D010195`](http://id.nlm.nih.gov/mesh/D010195) "Pancreatitis" is claimed by both
   [`DOID:4989`](http://purl.obolibrary.org/obo/DOID_4989) "pancreatitis" (correct) and
   [`DOID:2913`](http://purl.obolibrary.org/obo/DOID_2913) "acute pancreatitis" (too narrow) — the
   filter discards both, losing a genuine equivalence to suppress an over-broad one.
-- **A categorical prefix exclusion over-cleans ICD.** Only 298 of DOID's 5,135 distinct ICD targets
-  are claimed twice; **4,837 of the 6,425 ICD rows are 1:1**, and many are plainly right
+- **A categorical prefix exclusion over-cleans ICD.** Only 298 of DOID's 5,139 distinct ICD targets
+  are claimed twice; **4,841 of the 6,425 ICD rows are 1:1**, and many are plainly right
   ([`ICD10:A01.0`](https://icd.who.int/browse10/2019/en#/A01.0) "Typhoid fever" ->
   [`DOID:13258`](http://purl.obolibrary.org/obo/DOID_13258) "typhoid fever"). Dropping the
-  namespace deleted all 4,837 to suppress the 1,583.
+  namespace deleted all 4,841 to suppress the 1,584.
 
 Scoping the overuse filter to the ICD prefixes takes the useful half of each: only ICD is policed,
 and within ICD only the codes that demonstrably name more than one DOID term. The four merge engines
@@ -51,13 +54,13 @@ go and the 1:1 rows stay.
 The argument for the categorical exclusion was that a 1:1 code today is an accident of granularity —
 `ICD10:A01.0` would fuse every typhoid subtype DOID might add tomorrow. The scoped filter answers
 that by construction: it recounts on every build, so the row goes the day a second subtype cites it.
-Paying the cost of 4,837 deleted mappings today to insure against that is the worse trade.
+Paying the cost of 4,841 deleted mappings today to insure against that is the worse trade.
 
 Measured by rebuilding the DOID concord through `build_disease_doid_relationships()` and replaying
-`compute_cliques_for_impact_report()` over a complete local `disease` intermediate set. All three
-columns use the current prefix rename map (below), so they differ only in ICD treatment — none of
-them is a build that ever shipped, and the middle column never will be. That is the point: it prices
-the alternative fix, which a before/after clique diff structurally cannot do.
+`compute_cliques_for_impact_report()` over a complete local `disease` intermediate set. All four
+columns use the current prefix rename map (below), so they differ only in ICD treatment — only one
+of them is a build that will ever be made. That is the point: the table prices the three
+alternatives, which a before/after clique diff structurally cannot do.
 
 | | ICD kept | overuse-filtered | **ICD overuse-filtered** | ICD excluded |
 | --- | --- | --- | --- | --- |
@@ -69,14 +72,14 @@ the alternative fix, which a before/after clique diff structurally cannot do.
 | `MONDO:0000912` "AR nonsyndromic hearing loss 5" | 288 | 6 | 6 | 6 |
 
 The third column is what ships. Against the categorical exclusion it **keeps 4,825 more
-identifiers** — very nearly the 4,837 1:1 rows — while fixing the same mega-cliques:
+identifiers** — very nearly the 4,841 1:1 rows — while fixing the same mega-cliques:
 `MONDO:0000912` goes from 288 members to 6 either way, and the largest clique in the build falls
 from 307 to 99.
 
 It does leave more large cliques than the exclusion (23 vs 16 at `>=50`, 747 vs 609 at `>=20`).
 That residue is real and worth naming: a DOID ICD row that is 1:1 *within DOID* can still bridge
 DOID to HP or EFO, which emit ICD codes of their own — the cross-source overlap counted in
-[issue #1035](https://github.com/NCATSTranslator/Babel/issues/1035). The filter only sees one
+[issue #1033](https://github.com/NCATSTranslator/Babel/issues/1033). The filter only sees one
 concord at a time, so it cannot catch those; that is the ICD question that remains open, not this
 one.
 
@@ -90,12 +93,12 @@ problem; only `MONDO:0000912` is kept above, as the one probe the fragmentation 
 
 ## What is dropped, and what is kept
 
-DOID's concord carries **6,425 ICD rows** (ICD10 3,687, ICD9 2,238, ICD0 495, ICD11 5) across 5,135
+DOID's concord carries **6,425 ICD rows** (ICD10 3,687, ICD9 2,238, ICD0 495, ICD11 5) across 5,139
 distinct codes. They all stay in the concord — the filter runs at glom time — so
 [`mappings/icd-targets.csv`](mappings/icd-targets.csv) lists every one with both endpoints
 labelled, and `babel-overused-xrefs` can still audit them.
 
-**Dropped: 1,583 rows on 298 codes claimed by 2+ DOID terms.** These are the merge engines:
+**Dropped: 1,584 rows on 298 codes claimed by 2+ DOID terms.** These are the merge engines:
 
 | target | label | DOID terms citing it |
 | --- | --- | --- |
@@ -108,7 +111,7 @@ labelled, and `babel-overused-xrefs` can still audit them.
 "Hereditary spastic paraplegia", carried by [`DOID:2476`](http://purl.obolibrary.org/obo/DOID_2476)
 and by all 60 of its subtypes, so `glom()` fused 61 mutually-exclusive diseases into one clique.
 
-**Kept: 4,837 rows on 4,837 codes cited by exactly one DOID term.** These read as ordinary
+**Kept: 4,841 rows on 4,841 codes cited by exactly one DOID term.** These read as ordinary
 equivalences and are the reason the categorical exclusion was replaced:
 
 | target | label | subject |
@@ -122,9 +125,11 @@ claimant whose label matches the code's label** — a parent term sharing its co
 subtypes, e.g. `ICD10:G20` "Parkinson's disease" claimed by
 [`DOID:14330`](http://purl.obolibrary.org/obo/DOID_14330) "Parkinson's disease" together with
 Parkinson's disease 4, 19A and 23. The filter counts subjects and cannot read labels, so it takes
-all four. 47 of those 58 are already asserted by MONDO under `ICD10CM:` and would ship the moment
-issue #1033 lands; the other 11, and the question of whether a label match is evidence of
-equivalence at all, are
+all four. But 47 of those 58 are also asserted by MONDO under `ICD10CM:`, and this change emits that
+prefix (see "Open before release"), so those mappings do reach the compendia — as
+`ICD10CM:G20` rather than `ICD10:G20`, which means they will not normalize under the `ICD10:`
+spelling until [issue #1033](https://github.com/NCATSTranslator/Babel/issues/1033) unifies it. The
+other 11, and the question of whether a label match is evidence of equivalence at all, are
 [issue #1038](https://github.com/NCATSTranslator/Babel/issues/1038), with the record in
 [`mappings/icd-label-matches.csv`](mappings/icd-label-matches.csv). Samples above are drawn from
 opposite ends of the file — the most-cited codes, then 1:1 rows spread across it — rather than its
@@ -133,12 +138,15 @@ head, since the point turns on both shapes existing.
 **`ICD0` rows survive the filter but never reach a compendium.** `ICD0` is not registered in
 `biolink:Disease`'s `id_prefixes`, so `write_compendium()` drops every one of the 462 that the
 filter keeps — after they have already done their merging in `glom()`. A build-vs-build count
-confirms it: ICD members go from 38 to 4,438 across the two disease compendia, all of them `ICD10`
-(2,241), `ICD9` (2,192) and `icd11` (5), with `ICD0` contributing nothing either side. That is the
-same defect as MONDO's `ICD10CM:`, so it is tracked with it in
-[issue #1035](https://github.com/NCATSTranslator/Babel/issues/1035) rather than here; it is not a
-regression this change introduces, and dropping `ICD0` at the source would be a second, separate
-judgement about whether an ICD-O morphology code is ever a disease equivalence.
+confirms it: ICD members go from 38 to 6,452 across the two disease compendia — `ICD10` 2,243,
+`ICD9` 2,192, `ICD10CM` 2,012 and `icd11` 5 — with `ICD0` contributing nothing on either side.
+
+MONDO's `ICD10CM:` had the same defect and is worked around here, by listing the prefix in
+`config.yaml: disease_extra_prefixes` so `write_compendium()` keeps it (see "Open before release"
+below). `ICD0` is deliberately **not** given the same treatment: an ICD-O code is a tumour
+*morphology*, so emitting one asserts a disease equivalence nobody has decided. That question is
+[issue #1037](https://github.com/NCATSTranslator/Babel/issues/1037). Neither is a regression this
+change introduces.
 
 ## Overuse in DOID's other namespaces is still open
 
@@ -160,7 +168,7 @@ DOID is in `OVERUSE_FILTERED_CONCORDS` **scoped to ICD**, so overuse outside ICD
 
 - [x] **Confirmed on a real build with `babel-clique-diff`**, two local `disease` builds of the same
   intermediates — the branch's base commit against its head. Result in
-  [`mappings/clique-diff-top-100.csv`](mappings/clique-diff-top-100.csv) — the full diff is 3,747
+  [`mappings/clique-diff-top-100.csv`](mappings/clique-diff-top-100.csv) — the full diff is 4,302
   rows, so this is the ranked head of it: every dropped member first, then every cross-compendium
   move, then the largest cliques. The per-compendium totals are in
   [`mappings/clique-diff.json`](mappings/clique-diff.json), and "Regenerating" below rebuilds the
@@ -202,7 +210,7 @@ DOID is in `OVERUSE_FILTERED_CONCORDS` **scoped to ICD**, so overuse outside ICD
 
 - [ ] **EFO and HP emit ICD xrefs too** (62 and 46 rows), and MONDO emits 2,030 under the other
       spelling, `ICD10CM:`. Tracked in
-      [issue #1035](https://github.com/NCATSTranslator/Babel/issues/1035), which also records the 21
+      [issue #1033](https://github.com/NCATSTranslator/Babel/issues/1033), which also records the 21
       codes that unifying the spellings would newly merge, and why `diseasephenotype.py`'s HP
       `ignore_list=["ICD"]` — a latent no-op — must not be "fixed" before that question is settled.
 
@@ -233,14 +241,17 @@ The renames each disease source needs now live in one reviewable block,
   and HP already emit `orphanet:`, so until now none of DOID's Orphanet mappings could join theirs.
 
 One is known and deliberately left for its own change: **`ICD10:` vs `ICD10CM:`**, where DOID, EFO
-and HP emit one spelling and MONDO the other — two namespaces for one vocabulary. DOID's ICD rows
-are dropped outright by this change, so what remains is a MONDO/EFO/HP question with a different
-answer (their ICD xrefs are largely 1:1 and often correct). See issue #1035.
+and HP emit one spelling and MONDO the other — two namespaces for one vocabulary that never merge.
+This change stops short of renaming them: it emits MONDO's `ICD10CM:` CURIEs rather than discarding
+them (see "Open before release"), but unifying the spellings would newly merge 21 codes across
+MONDO, EFO and HP, and each of those bridges a disease to a phenotype. That review is
+[issue #1033](https://github.com/NCATSTranslator/Babel/issues/1033).
 
 ## Regenerating
 
-Both CSVs come from the built concord, which now keeps its ICD rows — no special pre-filter build
-is needed any more.
+The audit CSVs come from the built concord, which now keeps its ICD rows — no special pre-filter
+build is needed any more. `icd-label-matches.csv` is derived from `icd-targets.csv` by the snippet
+in [issue #1038](https://github.com/NCATSTranslator/Babel/issues/1038).
 
 ```bash
 # every ICD row, kept or dropped: --min-subjects 1 lists them all, and subject_count says which

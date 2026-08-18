@@ -122,10 +122,10 @@ MP_XREF_ALLOWED_PREFIXES = [HP, MGI, "MPATH", UMLS]
 # glom() fused 61 mutually exclusive diseases into one 223-identifier clique. These are the
 # post-norm() spellings (ICD10, not ICD10CM); DOID emits 5 ICD11 rows.
 #
-# They are NOT excluded categorically. Of 6,420 ICD rows only 1,583 sit on a target claimed by 2+
-# DOID terms; the other 4,837 are 1:1 and many are plainly right (ICD10:A01.0 "Typhoid fever" ->
-# DOID:13258 "typhoid fever"). Dropping the namespace outright deleted all 4,837 to suppress the
-# 1,583. Instead OVERUSE_FILTERED_CONCORDS scopes remove_overused_xrefs to exactly these prefixes:
+# They are NOT excluded categorically. Of 6,425 ICD rows only 1,584 sit on a target claimed by 2+
+# DOID terms; the other 4,841 are 1:1 and many are plainly right (ICD10:A01.0 "Typhoid fever" ->
+# DOID:13258 "typhoid fever"). Dropping the namespace outright deleted all 4,841 to suppress the
+# 1,584. Instead OVERUSE_FILTERED_CONCORDS scopes remove_overused_xrefs to exactly these prefixes:
 # the four merge engines go (ICD10:H90.3 with 134 subjects, H35.5 with 107, G11.4 with 60, G60.0
 # with 58) and the 1:1 rows stay. The objection that a 1:1 code today could fuse a subtype DOID adds
 # tomorrow is handled by construction -- the filter recounts every build, so the row goes the day a

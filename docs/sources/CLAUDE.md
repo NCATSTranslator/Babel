@@ -107,9 +107,9 @@ gets it wrong:
 concord basename to the target prefixes the filter may act on (`None` = all of them). Scoping says
 *which namespace is suspect* while the count says *which rows in it actually misbehave*, so neither
 instrument has to answer a question it is bad at. DOID's ICD codes are the worked case — the
-namespace is suspect (an ICD code often names a disease family) but 4,837 of its 6,425 rows are 1:1
+namespace is suspect (an ICD code often names a disease family) but 4,841 of its 6,425 rows are 1:1
 and many are correct, so a categorical drop destroys them and an unscoped filter instead savages
-DOID's MeSH and SNOMED rows. Scoped, it drops the 1,583 rows on codes claimed twice and nothing
+DOID's MeSH and SNOMED rows. Scoped, it drops the 1,584 rows on codes claimed twice and nothing
 else. Reach for a categorical exclusion only when *no* row of the namespace could be an equivalence.
 
 A scoped filter fails **open**: a namespace missing from the list is not policed at all. Pair it

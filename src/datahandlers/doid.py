@@ -47,7 +47,7 @@ def build_xrefs(infile, xreffile, other_prefixes={}, excluded_target_prefixes=()
         *family*, so one code fuses every subtype citing it -- is handled at glom time instead, by
         scoping ``remove_overused_xrefs`` to the ICD prefixes
         (``diseasephenotype.OVERUSE_FILTERED_CONCORDS``), which drops only the codes claimed by 2+
-        DOID terms and keeps the 4,837 that are 1:1. A categorical exclusion remains the right
+        DOID terms and keeps the 4,841 that are 1:1. A categorical exclusion remains the right
         instrument when *no* row of a namespace can be an equivalence; compare
         ``efo.make_concords(excluded_target_prefixes=EFO_EXCLUDED_XREF_PREFIXES)``, which drops MP
         outright to keep phenotype and disease apart. See docs/sources/DOID/mappings.md.
