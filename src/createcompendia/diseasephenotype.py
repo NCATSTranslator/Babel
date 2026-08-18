@@ -21,6 +21,7 @@ from src.prefixes import (
     ICD0,
     ICD9,
     ICD10,
+    ICD11,
     KEGGDISEASE,
     MEDDRA,
     MESH,
@@ -98,13 +99,12 @@ MP_XREF_ALLOWED_PREFIXES = [HP, MGI, "MPATH", UMLS]
 # targets are overused, leaving ~4,800 bad rows) and over-cleans everything else (MESH:D010195
 # "Pancreatitis" is legitimately claimed by both DOID:4989 "pancreatitis" and DOID:2913 "acute
 # pancreatitis", and dropping it loses the correct mapping along with the too-broad one).
-# "ICD11" is a bare string: DOID emits 5 such rows and prefixes.py has no ICD11 constant
-# (cf. "MPATH" above). Applied inside doid.build_xrefs() *after* norm() renames ICD10CM->ICD10,
-# so these are the post-rename spellings. Being a denylist this is fail-open -- a new ICD
-# spelling DOID starts emitting would be trusted by default -- so
+# DOID emits 5 ICD11 rows. Applied inside doid.build_xrefs() *after* norm() renames
+# ICD10CM->ICD10, so these are the post-rename spellings. Being a denylist this is fail-open --
+# a new ICD spelling DOID starts emitting would be trusted by default -- so
 # tests/pipeline/test_doid.py::test_doid_concord_has_no_icd_targets is the compensating check
 # over the real concord. See docs/sources/DOID/mappings.md.
-DOID_EXCLUDED_XREF_PREFIXES = [ICD10, ICD9, ICD0, "ICD11"]
+DOID_EXCLUDED_XREF_PREFIXES = [ICD10, ICD9, ICD0, ICD11]
 
 # Concord file basenames whose pair stream is filtered through remove_overused_xrefs
 # before glom. Other concord sources are trusted as-is. MP is included alongside the other

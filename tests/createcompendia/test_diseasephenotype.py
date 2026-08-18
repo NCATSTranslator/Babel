@@ -467,11 +467,10 @@ def test_doid_excluded_xref_prefixes_are_the_icd_families():
     """DOID_EXCLUDED_XREF_PREFIXES must list every ICD flavour DOID emits. An ICD code names a
     disease family, not a disease, so none of these xrefs is an equivalence -- see
     docs/sources/DOID/mappings.md and issue #1029. Regression guard against the constant being
-    emptied or a flavour being dropped; "ICD11" is a bare string because prefixes.py has no
-    constant for it."""
-    from src.prefixes import ICD0, ICD9, ICD10
+    emptied or a flavour being dropped."""
+    from src.prefixes import ICD0, ICD9, ICD10, ICD11
 
-    assert diseasephenotype.DOID_EXCLUDED_XREF_PREFIXES == [ICD10, ICD9, ICD0, "ICD11"]
+    assert diseasephenotype.DOID_EXCLUDED_XREF_PREFIXES == [ICD10, ICD9, ICD0, ICD11]
 
 
 @pytest.mark.unit
