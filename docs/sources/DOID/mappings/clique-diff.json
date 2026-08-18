@@ -1,16 +1,16 @@
 {
   "about": {
-    "after": "00b725bb (final)",
+    "after": "final",
     "before": "47051aaf (branch base)",
     "files": [
       "Disease.txt",
       "PhenotypicFeature.txt"
     ],
-    "note": "DOID prefix renames, ICD overuse filter scoped to ICD, disease/phenotype boundary badxrefs"
+    "note": "DOID prefix renames, ICD overuse filter scoped to ICD, boundary badxrefs, ICD10CM emitted"
   },
   "compendia": {
     "Disease.txt": {
-      "changed_before_cliques": 3729,
+      "changed_before_cliques": 4284,
       "clique_count": {
         "after": 365087,
         "before": 365510,

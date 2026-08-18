@@ -168,15 +168,24 @@ DOID is in `OVERUSE_FILTERED_CONCORDS` **scoped to ICD**, so overuse outside ICD
 
   | | before | after |
   | --- | --- | --- |
-  | identifiers across both compendia | 738,483 | **744,540** |
+  | identifiers across both compendia | 738,483 | **746,552** |
   | `Disease.txt` cliques | 365,510 | 365,087 |
   | `PhenotypicFeature.txt` cliques | 75,478 | 75,477 |
   | `ICD10` / `ICD9` / `icd11` members | 30 / 8 / 0 | **2,243 / 2,192 / 5** |
+  | `ICD10CM` members | 0 | **2,012** |
 
-  3,741 cliques changed, 707 members regrouped, 37 moved between compendia, and **no member is
-  dropped**. Identifiers rise by 6,057 while cliques fall by 424: the renames and the kept ICD rows
-  mostly *add members to existing cliques* rather than merging cliques together, which is what
-  mappings that were previously joining nothing should do.
+  4,296 cliques changed, 37 members moved between compendia, and **no member is dropped**.
+  Identifiers rise by 8,069 while cliques fall by 424: the renames, the kept ICD rows and the
+  newly-emitted `ICD10CM:` CURIEs mostly *add members to existing cliques* rather than merging
+  cliques together, which is what mappings that were previously joining nothing should do.
+
+  The `ICD10CM:` members are emitted deliberately ahead of the Biolink Model, which registers no
+  such prefix for `biolink:Disease` — see `config.yaml: disease_extra_prefixes`. They ride along as
+  clique members and can never be the preferred CURIE (`write_compendium()` appends
+  `extra_prefixes` after the registered ones), so they will not normalize until
+  [issue #1033](https://github.com/NCATSTranslator/Babel/issues/1033) unifies the spelling. Keeping
+  MONDO's ~2,030 curated ICD-10 mappings in the output beats discarding them and re-deriving them
+  later.
 
 - [x] **No identifier is lost.** An earlier run of this diff lost five — `DOID:0080409` "familial
   adenomatous polyposis 1", `orphanet:733`, `orphanet:321` "Multiple osteochondromas",
