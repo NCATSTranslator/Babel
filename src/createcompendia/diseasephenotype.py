@@ -17,12 +17,12 @@ from src.babel_utils import (
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import (
+    DOID,
     HP,
     ICD0,
     ICD9,
     ICD10,
     ICD11,
-    KEGGDISEASE,
     MEDDRA,
     MESH,
     MGI,
@@ -35,13 +35,41 @@ from src.prefixes import (
     UMLS,
 )
 from src.ubergraph import build_sets
-from src.util import Text, get_logger, get_repo_root
+from src.util import Text, get_config, get_logger, get_repo_root
 
 logger = get_logger(__name__)
 
 DISEASE_OBO_SOURCES = {
     MP: {"root": f"{MP}:0000001", "type": PHENOTYPIC_FEATURE},
 }
+
+# Renames whose target prefix depends on the CURIE's *local id*, not just its source prefix, keyed
+# by the Babel prefix `config.yaml: disease_xref_prefixes` names. YAML cannot say "OMIM, unless the
+# id starts with PS, in which case OMIM.PS", so the config states the common case and the exception
+# lives here; norm() accepts either a replacement prefix or a callable taking the whole CURIE.
+LOCAL_ID_DEPENDENT_RENAMES = {
+    OMIM: lambda curie: Text.omim_curie(Text.un_curie(curie)),
+}
+
+
+def get_xref_prefix_map(source):
+    """Return `config.yaml: disease_xref_prefixes[source]` as an `other_prefixes` map for `norm()`.
+
+    Every target prefix is checked against src/prefixes.py (via `Text.prefixmap`, which is built
+    from it) so a typo fails the build here, rather than renaming CURIEs into a namespace no ids
+    file carries -- which `norm()` cannot detect and `glom()` happily merges through. A value listed
+    in `LOCAL_ID_DEPENDENT_RENAMES` is swapped for its callable.
+    """
+    mapping = get_config()["disease_xref_prefixes"][source]
+    known = set(Text.prefixmap.values())
+    unknown = sorted({v for v in mapping.values() if v not in known})
+    if unknown:
+        raise ValueError(
+            f"config.yaml: disease_xref_prefixes[{source}] renames to {unknown}, which src/prefixes.py "
+            f"does not define. Add the constant there first, so the rename lands on a prefix Babel uses."
+        )
+    return {key: LOCAL_ID_DEPENDENT_RENAMES.get(value, value) for key, value in mapping.items()}
+
 
 # Prefixes glom() rejects a *same-prefix* merge for: if a clique would end up holding two
 # distinct identifiers of one of these prefixes (e.g. two different MONDO ids, or two
@@ -102,8 +130,10 @@ MP_XREF_ALLOWED_PREFIXES = [HP, MGI, "MPATH", UMLS]
 # DOID emits 5 ICD11 rows. Applied inside doid.build_xrefs() *after* norm() renames
 # ICD10CM->ICD10, so these are the post-rename spellings. Being a denylist this is fail-open --
 # a new ICD spelling DOID starts emitting would be trusted by default -- so
-# tests/pipeline/test_doid.py::test_doid_concord_has_no_icd_targets is the compensating check
-# over the real concord. See docs/sources/DOID/mappings.md.
+# tests/pipeline/test_doid.py::test_doid_concord_has_no_icd_targets is the compensating check over
+# the real concord -- note it is `pipeline`-marked, so it runs only under `pytest --pipeline` against
+# a checkout that has built the disease intermediates, not on every PR. See
+# docs/sources/DOID/mappings.md.
 DOID_EXCLUDED_XREF_PREFIXES = [ICD10, ICD9, ICD0, ICD11]
 
 # Concord file basenames whose pair stream is filtered through remove_overused_xrefs
@@ -304,16 +334,7 @@ def write_umls_ids(mrsty, outfile, badumlsfile):
 def build_disease_obo_relationships(outdir, metadata_yamls):
     # Create the equivalence pairs
     with open(f"{outdir}/{HP}", "w") as outfile:
-        other_prefixes = {
-            "MSH": MESH,
-            "SNOMEDCT_US": SNOMEDCT,
-            "SNOMED_CT": SNOMEDCT,
-            "ORPHANET": ORPHANET,
-            "ICD-9": ICD9,
-            "ICD-10": ICD10,
-            "ICD-0": ICD0,
-            "ICD-O": ICD0,
-        }
+        other_prefixes = get_xref_prefix_map(HP)
         build_sets(f"{HP}:0000118", {HP: outfile}, ignore_list=["ICD"], other_prefixes=other_prefixes, set_type="xref")
 
     write_concord_metadata(
@@ -324,12 +345,10 @@ def build_disease_obo_relationships(outdir, metadata_yamls):
         concord_filename=f"{outdir}/{HP}",
     )
 
+    mondo_prefixes = get_xref_prefix_map(MONDO)
     with open(f"{outdir}/{MONDO}", "w") as outfile:
-        # Orphanet here is confusing.  In mondo it comes out mixed case like "Orphanet" and we want to cap it.  We have a normer
-        # in build sets, but it is based on the UPPERCASED prefix.  So we're passing in that we want to change uppercase orphanet to uppercase
-        # orphanet.  In actuality that matching key will pick up any case orphanet, including the one that actually occurs.
-        build_sets("MONDO:0000001", {MONDO: outfile}, set_type="exact", other_prefixes={"ORPHANET": ORPHANET})
-        build_sets("MONDO:0042489", {MONDO: outfile}, set_type="exact", other_prefixes={"ORPHANET": ORPHANET})
+        build_sets("MONDO:0000001", {MONDO: outfile}, set_type="exact", other_prefixes=mondo_prefixes)
+        build_sets("MONDO:0042489", {MONDO: outfile}, set_type="exact", other_prefixes=mondo_prefixes)
 
     write_concord_metadata(
         metadata_yamls["MONDO"],
@@ -340,8 +359,8 @@ def build_disease_obo_relationships(outdir, metadata_yamls):
     )
 
     with open(f"{outdir}/{MONDO}_close", "w") as outfile:
-        build_sets("MONDO:0000001", {MONDO: outfile}, set_type="close", other_prefixes={"ORPHANET": ORPHANET})
-        build_sets("MONDO:0042489", {MONDO: outfile}, set_type="close", other_prefixes={"ORPHANET": ORPHANET})
+        build_sets("MONDO:0000001", {MONDO: outfile}, set_type="close", other_prefixes=mondo_prefixes)
+        build_sets("MONDO:0042489", {MONDO: outfile}, set_type="close", other_prefixes=mondo_prefixes)
 
     write_concord_metadata(
         metadata_yamls["MONDO_close"],
@@ -400,18 +419,7 @@ def build_disease_umls_relationships(mrconso, idfile, outfile, omimfile, ncitfil
 
 
 def build_disease_doid_relationships(idfile, outfile, metadata_yaml):
-    other_prefixes = {
-        "ICD10CM": ICD10,
-        "ICD9CM": ICD9,
-        "ICDO": ICD0,
-        "NCI": NCIT,
-        "SNOMEDCT_US_2018_03_01": SNOMEDCT,
-        "SNOMEDCT_US_2019_09_01": SNOMEDCT,
-        "SNOMEDCT_US_2020_03_01": SNOMEDCT,
-        "SNOMEDCT_US_2020_09_01": SNOMEDCT,
-        "UMLS_CUI": UMLS,
-        "KEGG": KEGGDISEASE,
-    }
+    other_prefixes = get_xref_prefix_map(DOID)
     doid.build_xrefs(
         idfile, outfile, other_prefixes=other_prefixes, excluded_target_prefixes=DOID_EXCLUDED_XREF_PREFIXES
     )

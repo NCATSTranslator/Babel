@@ -5,8 +5,11 @@ The fixture `tests/data/doid_icd_xref_sample.json` holds one node copied verbati
 "hereditary spastic paraplegia", the grouping term whose `ICD10:G11.4` xref -- shared with all 60
 of its subtypes -- fused 61 mutually exclusive diseases into one 223-identifier clique. Its eight
 xrefs cover both halves of the exclusion in a single record: two ICD targets that must go, and six
-non-ICD targets that must stay, three of which (`NCI:`, `UMLS_CUI:`, `ICD10CM:`) are renamed by
-`norm()` first. Re-derive it from the DOID release.
+non-ICD targets that must stay, five of which (`NCI:`, `UMLS_CUI:`, `ICD10CM:`, `MIM:`,
+`SNOMEDCT_US_2025_09_01:`) are renamed by `norm()` first. Re-derive it from the DOID release.
+
+These run against the *production* rename map from `config.yaml: disease_xref_prefixes[DOID]`
+rather than a hand-written copy, so an entry dropped there fails here.
 """
 
 import json
@@ -14,22 +17,27 @@ from pathlib import Path
 
 import pytest
 
+from src.createcompendia.diseasephenotype import get_xref_prefix_map
 from src.datahandlers.doid import build_xrefs
-from src.prefixes import ICD0, ICD9, ICD10, NCIT, UMLS
+from src.prefixes import DOID, ICD9, ICD10
 from tests.conftest import assert_concordance_file_valid
 
 FIXTURE = Path(__file__).resolve().parent.parent / "data" / "doid_icd_xref_sample.json"
 
-# The `other_prefixes` renames the disease build passes (a subset covering this fixture's xrefs).
-OTHER_PREFIXES = {"ICD10CM": ICD10, "ICD9CM": ICD9, "ICDO": ICD0, "NCI": NCIT, "UMLS_CUI": UMLS}
+# The renames the disease build actually passes, read from config.yaml -- not a copy.
+OTHER_PREFIXES = get_xref_prefix_map(DOID)
 
-# Every target the fixture's node carries, after norm() applies OTHER_PREFIXES.
+# Every target the fixture's node carries, after norm() applies OTHER_PREFIXES. Two of these are
+# regression pins: `SNOMEDCT_US_2025_09_01:` must reach `SNOMEDCT:` (the map names the stem, so a
+# DOID release stamping a new date still lands), and `MIM:PS303350` must reach `OMIM.PS:303350`
+# rather than `OMIM:PS303350` -- the "PS" belongs to the prefix. Both were previously left
+# un-renamed, joining nothing while still fusing every DOID term that cited them.
 _NON_ICD_TARGETS = {
     "GARD:6637",
     "MESH:D015419",
-    "MIM:PS303350",
+    "OMIM.PS:303350",
     "NCIT:C140267",
-    "SNOMEDCT_US_2025_09_01:267692008",
+    "SNOMEDCT:267692008",
     "UMLS:C0037773",
 }
 _ICD_TARGETS = {"ICD10:G11.4", "ICD9:334.1"}

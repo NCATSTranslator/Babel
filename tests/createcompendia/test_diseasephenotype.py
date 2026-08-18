@@ -22,16 +22,21 @@ Sections:
   (``OVERUSE_FILTERED_CONCORDS``) that MONDO/HP already have.
 - ``# --- DOID ICD xref exclusion ---`` checks that DOID's ICD xrefs never reach a
   concord at all, since an ICD code names a disease *family* rather than one disease.
+- ``# CURIE PREFIX NORMALIZATION`` checks the per-source rename maps in
+  ``config.yaml: disease_xref_prefixes``: that every target is a prefix Babel defines, that an
+  unknown one raises, and that DOID's map covers every prefix DOID actually emits.
 """
 
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.babel_utils import glom
+from src.babel_utils import glom, norm
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
+from src.prefixes import DOID
 from src.ubergraph import build_sets
+from src.util import Text
 from tests.conftest import assert_taxa_file_valid, glom_dict_from_cliques
 
 # --- UMLS semantic-type tree mapping ---
@@ -663,3 +668,50 @@ def test_build_sets_accepts_the_allowlist_this_module_ships():
     xref of that namespace."""
     diseasephenotype_allowlist = diseasephenotype.MP_XREF_ALLOWED_PREFIXES
     assert diseasephenotype_allowlist == [p.upper() for p in diseasephenotype_allowlist]
+
+
+# CURIE PREFIX NORMALIZATION (config.yaml: disease_xref_prefixes)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("source", ["DOID", "HP", "MONDO"])
+def test_xref_prefix_map_targets_are_registered_prefixes(source):
+    """Every rename target in config.yaml must be a prefix src/prefixes.py defines.
+
+    A typo'd target renames CURIEs into a namespace no ids file carries, which norm() cannot
+    detect and glom() happily merges through -- the same silent failure the config block exists
+    to prevent, just moved one step later."""
+    known = set(Text.prefixmap.values())
+    assert (
+        set(diseasephenotype.get_xref_prefix_map(source).values())
+        - known
+        - {rename for rename in diseasephenotype.LOCAL_ID_DEPENDENT_RENAMES.values()}
+        == set()
+    )
+
+
+@pytest.mark.unit
+def test_xref_prefix_map_raises_on_an_unregistered_target(monkeypatch):
+    """An unknown target prefix should fail loudly at load, naming the offender."""
+    monkeypatch.setattr(
+        diseasephenotype,
+        "get_config",
+        lambda: {"disease_xref_prefixes": {"DOID": {"NCI": "NOT_A_REAL_PREFIX"}}},
+    )
+    with pytest.raises(ValueError, match="NOT_A_REAL_PREFIX"):
+        diseasephenotype.get_xref_prefix_map("DOID")
+
+
+@pytest.mark.unit
+def test_doid_xref_prefix_map_covers_every_prefix_doid_emits():
+    """DOID's map must rename every non-Babel prefix DOID uses, and reach it via the stem.
+
+    These are the spellings in the DOID release of 2026-08-18. `MIM` and `SNOMEDCT_US` are the
+    two that were missing (6,483 and 5,358 rows respectively, all reaching glom() un-renamed);
+    `ORDO` is deliberately still absent -- see docs/sources/DOID/mappings.md."""
+    mapping = diseasephenotype.get_xref_prefix_map(DOID)
+    assert set(mapping) == {"ICD10CM", "ICD9CM", "ICDO", "NCI", "SNOMEDCT_US", "UMLS_CUI", "KEGG", "MIM"}
+    # The stem entry has to cover the dated spellings, which is norm()'s job, not the map's.
+    assert norm("SNOMEDCT_US_2026_03_01:267692008", mapping) == "SNOMEDCT:267692008"
+    assert norm("MIM:PS303350", mapping) == "OMIM.PS:303350"
+    assert norm("MIM:115210", mapping) == "OMIM:115210"
