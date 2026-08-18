@@ -756,11 +756,11 @@ def test_disease_extra_prefixes_are_registered_and_deliberate():
     entries must be real prefixes from src/prefixes.py, and ICD0 must stay out: an ICD-O code is a
     tumour morphology, so emitting one asserts a disease equivalence nobody has decided (#1037).
     Update this test alongside the config, not instead of it."""
-    from src.prefixes import ICD0, ICD10CM
+    from src.prefixes import GARD, ICD0, ICD10CM
 
     extra = get_config()["disease_extra_prefixes"]
 
-    assert extra == [ICD10CM], "adding a prefix here overrides Biolink; say why in config.yaml first"
+    assert extra == [ICD10CM, GARD], "adding a prefix here overrides Biolink; say why in config.yaml first"
     assert set(extra) <= set(Text.prefixmap.values()), "every entry must be a src/prefixes.py constant"
     assert ICD0 not in extra
 
@@ -798,6 +798,29 @@ def test_build_compendium_passes_the_extra_prefixes_through():
         diseasephenotype.build_compendium([], {}, [], None, {}, "icRDF.tsv")
 
     assert mock_write.call_args.kwargs["extra_prefixes"] == get_config()["disease_extra_prefixes"]
+
+
+@pytest.mark.unit
+def test_extra_prefixes_are_scoped_to_disease():
+    """The override must reach Disease.txt and NOT PhenotypicFeature.txt.
+
+    extra_prefixes is a per-class allowlist, and every entry in disease_extra_prefixes is justified
+    on disease grounds -- ICD10CM is a disease classification, GARD a rare-disease registry. Passing
+    the list unscoped would let both into a phenotype clique without either facing
+    PhenotypicFeature's own prefix filter, which is the check that is supposed to catch a
+    disease/phenotype merge going wrong."""
+    typed = {DISEASE: [["MONDO:1"]], PHENOTYPIC_FEATURE: [["HP:1"]]}
+    with (
+        patch.object(diseasephenotype, "compute_cliques_for_impact_report", return_value=({}, {})),
+        patch.object(diseasephenotype, "create_typed_sets", return_value=typed),
+        patch.object(diseasephenotype, "write_compendium") as mock_write,
+    ):
+        diseasephenotype.build_compendium([], {}, [], None, {}, "icRDF.tsv")
+
+    by_type = {call.args[3]: call.kwargs["extra_prefixes"] for call in mock_write.call_args_list}
+
+    assert by_type[DISEASE] == get_config()["disease_extra_prefixes"]
+    assert by_type[PHENOTYPIC_FEATURE] == []
 
 
 @pytest.mark.unit
