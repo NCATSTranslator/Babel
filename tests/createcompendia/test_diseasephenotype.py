@@ -706,12 +706,14 @@ def test_xref_prefix_map_raises_on_an_unregistered_target(monkeypatch):
 def test_doid_xref_prefix_map_covers_every_prefix_doid_emits():
     """DOID's map must rename every non-Babel prefix DOID uses, and reach it via the stem.
 
-    These are the spellings in the DOID release of 2026-08-18. `MIM` and `SNOMEDCT_US` are the
-    two that were missing (6,483 and 5,358 rows respectively, all reaching glom() un-renamed);
-    `ORDO` is deliberately still absent -- see docs/sources/DOID/mappings.md."""
+    These are the spellings in the DOID release of 2026-08-18. `MIM`, `SNOMEDCT_US` and `ORDO`
+    were the three that were missing -- 6,483, 5,358 and 2,321 rows respectively, every one of
+    them reaching glom() un-renamed, joining nothing and fusing its subjects anyway."""
     mapping = diseasephenotype.get_xref_prefix_map(DOID)
-    assert set(mapping) == {"ICD10CM", "ICD9CM", "ICDO", "NCI", "SNOMEDCT_US", "UMLS_CUI", "KEGG", "MIM"}
+    assert set(mapping) == {"ICD10CM", "ICD9CM", "ICDO", "NCI", "SNOMEDCT_US", "UMLS_CUI", "KEGG", "MIM", "ORDO"}
     # The stem entry has to cover the dated spellings, which is norm()'s job, not the map's.
     assert norm("SNOMEDCT_US_2026_03_01:267692008", mapping) == "SNOMEDCT:267692008"
     assert norm("MIM:PS303350", mapping) == "OMIM.PS:303350"
     assert norm("MIM:115210", mapping) == "OMIM:115210"
+    # Lower-case target: the rename must land on Babel's spelling, which MONDO and HP already use.
+    assert norm("ORDO:2822", mapping) == "orphanet:2822"

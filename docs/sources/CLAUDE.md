@@ -67,6 +67,29 @@ A source not built through `build_sets()` needs the filter threaded into its own
 `excluded_target_prefixes` on `efo.make_concords()` / `doid.build_xrefs()`. Apply it **after**
 `norm()` so it names post-rename prefixes (`ICD10`, not `ICD10CM`).
 
+### A missing prefix rename is the same bug, spelled differently
+
+`norm()` renames a source's spelling of another vocabulary (`MSH`, `UMLS_CUI`, `MIM`,
+`SNOMEDCT_US_2025_09_01`) to Babel's. A prefix it does **not** rename produces no error and no log
+line: the CURIE joins nothing (no ids file carries that spelling, and `write_compendium()` drops the
+prefix as unregistered) yet still reaches `glom()`, where it fuses every subject that cites it into
+one clique. That is the overused-xref failure with a different cause, and it is invisible in the
+per-compendium metadata YAMLs — a prefix pair that never joins simply has no `prefix_counts` row.
+
+So **tabulate a source's xref target prefixes against its rename map** before trusting a concord,
+the same way you tabulate them for junk targets.
+`cut -f3 <concord> | sed 's/:.*//' | sort | uniq -c` against
+`config.yaml: disease_xref_prefixes[<SOURCE>]` is the whole check; DOID had 5,358 SNOMED and 6,483
+OMIM rows falling through it (see [`DOID/mappings.md`](DOID/mappings.md)).
+
+The maps live in `config.yaml`, not beside the code, precisely because the review question is "what
+is missing" — which you cannot ask of a dict you have to go find. This is the deliberate exception
+to AGENTS.md's "source-content cleaning stays a Python constant": an ignore-list says *this source's
+targets are junk*, while a rename says *these two spellings are the same vocabulary*, which is a
+fact about the vocabularies and belongs where all of them can be seen at once. A rename whose target
+depends on the local id (OMIM's `PS` phenotypic series) cannot be expressed in YAML; those are
+`LOCAL_ID_DEPENDENT_RENAMES` in `diseasephenotype.py`, and `norm()` takes the callable.
+
 ### Overuse filtering or a prefix exclusion?
 
 `remove_overused_xrefs` (via `OVERUSE_FILTERED_CONCORDS`) drops any target claimed by 2+ subjects,

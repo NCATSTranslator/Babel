@@ -118,12 +118,36 @@ spread across it — rather than its head, since the point turns on both shapes 
   never matches `ICD10:`/`ICD9:`/`ICD0:` because `ubergraph.build_sets` compares prefixes by exact
   equality — a latent no-op, though "fixing" it would delete the good rows.
 
-## An unrelated prefix oddity
+## Prefixes DOID spells its own way
 
-DOID emits Orphanet xrefs as `ORDO:2822`, but `build_disease_doid_relationships`'s `other_prefixes`
-map has no `ORDO` entry, so they are never normalized to Babel's `orphanet:` prefix. Likewise
-DOID/EFO/HP emit `ICD10:` while MONDO emits `ICD10CM:` — two namespaces for one vocabulary. Both
-are worth their own look; neither is an overuse or ICD-equivalence problem.
+The ICD rows are dropped, but every *other* xref target has to reach the Babel prefix its clique
+uses, or it is a merge hazard of exactly the same shape: a CURIE no ids file carries joins nothing,
+gets dropped by `write_compendium()` as an unregistered prefix — and still reaches `glom()` first,
+fusing every DOID term that cites it. A rename that is missing does not error. It is silent.
+
+The renames each disease source needs now live in one reviewable block,
+`config.yaml: disease_xref_prefixes`, applied by `babel_utils.norm()` and validated against
+`src/prefixes.py` when loaded. Three were missing for DOID:
+
+- **`SNOMEDCT_US_2025_09_01:` and six other release stamps.** DOID stamps its SNOMED prefix with
+  the release it was drawn from, so the map's four pinned dates had gone stale: of the 5,358 SNOMED
+  rows in the release measured here, exactly **one** matched a listed date. `norm()` now retries a
+  missed prefix with a trailing `_YYYY_MM_DD` stripped, so the map names the stem `SNOMEDCT_US`
+  once — the spelling HP's map already used — and a future DOID release needs no edit.
+- **`MIM:` — 6,483 rows.** `MIM` is an alternative CURIE prefix for OMIM
+  ([issue #321](https://github.com/NCATSTranslator/Babel/issues/321)); both now standardize to
+  `OMIM` until the Biolink Model registers `MIM`, at which point that issue flips the direction.
+  332 of those rows are phenotypic series (`MIM:PS303350`), which Babel spells
+  `OMIM.PS:303350` — the `PS` belongs to the prefix, not to the local id — so this one rename
+  depends on the local id and not just the source prefix. `Text.omim_curie()` holds that rule for
+  both `norm()` and `Text.opt_to_curie()`.
+- **`ORDO:2822` — 2,321 rows.** DOID's spelling of Orphanet, which Babel writes `orphanet:`. MONDO
+  and HP already emit `orphanet:`, so until now none of DOID's Orphanet mappings could join theirs.
+
+One is known and deliberately left for its own change: **`ICD10:` vs `ICD10CM:`**, where DOID, EFO
+and HP emit one spelling and MONDO the other — two namespaces for one vocabulary. DOID's ICD rows
+are dropped outright by this change, so what remains is a MONDO/EFO/HP question with a different
+answer (their ICD xrefs are largely 1:1 and often correct). See issue #1032.
 
 ## Regenerating
 

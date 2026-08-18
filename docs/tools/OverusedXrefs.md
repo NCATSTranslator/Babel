@@ -57,8 +57,12 @@ from UMLS. Without it those cells are empty and the audit is a page of bare code
 how many CURIEs it could not label and their prefixes.
 
 The MRCONSO match is a heuristic — code equality plus a `SAB` that starts with the CURIE prefix's
-first token, rather than a curated SAB table — so it is generous by design and fine for an audit,
-but not a source of authoritative labels. Only English (`LAT=ENG`) non-suppressed
+first token, upper-cased, rather than a curated SAB table — so it is generous by design and fine
+for an audit, but not a source of authoritative labels. The upper-casing matters because a concord
+prefix need not be spelled like its SAB: MONDO and HP write `orphanet:558`, and matching that
+case-sensitively left every Orphanet row blank on a case-sensitive filesystem while looking correct
+on macOS. `MIM:` is aliased to `SAB=OMIM`, which no prefix-of-SAB rule could bridge. Only English
+(`LAT=ENG`) non-suppressed
 (`SUPPRESS=N`) rows are used; a CURIE whose only strings are obsolete stays unlabelled, which is
 itself worth noticing.
 

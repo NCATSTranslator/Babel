@@ -191,9 +191,9 @@ disease_xref_prefixes:
     # cannot express a rename that depends on the local id, so this value is resolved to a callable:
     # see LOCAL_ID_DEPENDENT_RENAMES in src/createcompendia/diseasephenotype.py.
     MIM:         OMIM
-    # Not renamed here, deliberately: DOID's 2,321 ORDO: rows are Orphanet and never join Babel's
-    # orphanet: cliques, but fixing that adds joins rather than removing them and so needs its own
-    # clique diff. Tracked separately -- see docs/sources/DOID/mappings.md.
+    # DOID's spelling of Orphanet, 2,321 rows. MONDO and HP already write orphanet:, so before this
+    # entry none of DOID's Orphanet mappings could join theirs.
+    ORDO:        orphanet
   HP:
     MSH:         MESH
     SNOMEDCT_US: SNOMEDCT
