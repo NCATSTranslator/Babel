@@ -20,9 +20,8 @@ DOID:0110782 "hereditary spastic paraplegia 31" --xref--> ICD10:G11.4
 
 `ICD10:G11.4` is "Hereditary spastic paraplegia" — one code for the whole family. Because every
 subtype carries it too, `glom()` merged 61 mutually-exclusive HSP subtypes into one 223-identifier
-clique. That 223 was measured on the build as it stood before any of this work; the `ICD kept`
-column of the table below no longer reproduces it, for the fragmentation reason given under the
-table, so read `largest clique` there rather than this figure.
+clique. The `ICD kept` column of the table below reproduces that at 222, the two differing by a
+single member the prefix renames moved.
 
 MONDO is not at fault. Its concord's most-shared target is claimed by just two subjects — i.e.
 essentially 1:1 curated exact matches — and the `MONDO:0019064 -> DOID:2476` edge is correct. Every
@@ -69,12 +68,18 @@ alternatives, which a before/after clique diff structurally cannot do.
 | largest clique | 307 | 83 | 99 | 92 |
 | cliques with >=50 identifiers | 53 | 11 | 23 | 16 |
 | cliques with >=20 identifiers | 834 | 599 | 747 | 609 |
-| `MONDO:0000912` "AR nonsyndromic hearing loss 5" | 288 | 6 | 6 | 6 |
+| `DOID:2476` "hereditary spastic paraplegia" (`ICD10:G11.4`, 60 claimants) | 222 | 15 | 15 | 14 |
+| `DOID:8500` "hereditary retinal dystrophy" (`ICD10:H35.5`, 107) | 307 | 19 | 19 | 18 |
+| `DOID:0050564` "AD nonsyndromic deafness" (`ICD10:H90.3`, 134) | 288 | 6 | 6 | 6 |
 
 The third column is what ships. Against the categorical exclusion it **keeps 4,825 more
-identifiers** — very nearly the 4,841 1:1 rows — while fixing the same mega-cliques:
-`MONDO:0000912` goes from 288 members to 6 either way, and the largest clique in the build falls
-from 307 to 99.
+identifiers** — very nearly the 4,841 1:1 rows — while fixing the same mega-cliques: every probe
+collapses to the same size either way, and the largest clique in the build falls from 307 to 99.
+
+The probes are anchored on **DOID**, not MONDO. `glom()`'s `DISEASE_UNIQUE_PREFIXES` refuses a merge
+that would put two MONDO ids in one clique, so in the `ICD kept` column an inflated family
+*fragments* and a MONDO probe lands in an arbitrary small piece of it — reading as though the
+problem were absent. DOID is unrestricted, so a DOID probe measures the merge itself.
 
 It does leave more large cliques than the exclusion (23 vs 16 at `>=50`, 747 vs 609 at `>=20`).
 That residue is real and worth naming: a DOID ICD row that is 1:1 *within DOID* can still bridge
@@ -83,13 +88,9 @@ DOID to HP or EFO, which emit ICD codes of their own — the cross-source overla
 concord at a time, so it cannot catch those; that is the ICD question that remains open, not this
 one.
 
-Two cautions on reading the table. The `>=50` and `>=20` rows are not a like-for-like ranking of
+One caution on reading the table: the `>=50` and `>=20` rows are not a like-for-like ranking of
 "which is cleaner", because the unscoped filter also breaks up MeSH/SNOMED merges this change
-deliberately leaves alone. And the per-clique probes are no longer a clean signal in the `ICD kept`
-column: with every ICD row present, `glom()`'s `DISEASE_UNIQUE_PREFIXES` refuses merges that would
-put two MONDO ids in one clique, so the family fragments instead of showing up at full size and a
-given MONDO can land in a small piece of it. `largest clique` is the honest measure of the raw
-problem; only `MONDO:0000912` is kept above, as the one probe the fragmentation does not distort.
+deliberately leaves alone.
 
 ## What is dropped, and what is kept
 

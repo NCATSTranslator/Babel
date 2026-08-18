@@ -54,12 +54,18 @@ import src.createcompendia.diseasephenotype as dp
 import src.datahandlers.doid as doid
 from src.prefixes import DOID
 
-# Cliques probed individually in the report. Each is the preferred identifier of a clique that one
-# ICD-10 code inflated; the label is MONDO's.
+# Cliques probed individually in the report, one per ICD-10 code that inflated a clique.
+#
+# Anchored on DOID, not MONDO. glom()'s DISEASE_UNIQUE_PREFIXES refuses a merge that would put two
+# MONDO ids in one clique, so in the "ICD kept" scenario the inflated family *fragments* and a MONDO
+# probe lands in an arbitrary small piece of it -- reading as though the problem were absent. DOID is
+# not a restricted prefix, so a DOID probe measures the merge itself. Each of these is the family
+# parent whose subtypes all cite the same code (H90.3 has no label-identical parent, so its
+# lowest-numbered claimant stands in).
 PROBES = {
-    "MONDO:0019064": "hereditary spastic paraplegia",
-    "MONDO:0000912": "autosomal recessive nonsyndromic hearing loss 5",
-    "MONDO:0000910": "retinitis pigmentosa 6",
+    "DOID:2476": "hereditary spastic paraplegia (ICD10:G11.4, 60 claimants)",
+    "DOID:8500": "hereditary retinal dystrophy (ICD10:H35.5, 107 claimants)",
+    "DOID:0050564": "AD nonsyndromic deafness (ICD10:H90.3, 134 claimants)",
 }
 
 

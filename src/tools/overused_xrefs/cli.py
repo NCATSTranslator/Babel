@@ -52,7 +52,19 @@ def resolve_labels(curies, downloads_root, mrconso=None):
     labels = {curie: label for prefix_labels in by_prefix.values() for curie, label in prefix_labels.items()}
     missing = {c for c in curies if c not in labels}
     if missing and mrconso:
-        labels.update(load_mrconso_labels(mrconso, missing))
+        from_mrconso = load_mrconso_labels(mrconso, missing)
+        if not from_mrconso:
+            # Asking for MRCONSO labels and getting none back means the file is not the one you
+            # think it is -- truncated, a different release, or an RRF that is not MRCONSO. A
+            # regenerated audit would otherwise be a page of bare codes with only a warning to say
+            # so, and the committed CSV would look like a real result. See AGENTS.md, "A log
+            # warning is not a control."
+            raise RuntimeError(
+                f"{mrconso} resolved no labels at all for {len(missing)} unlabelled CURIEs "
+                f"(e.g. {sorted(missing)[:3]}). Expected a UMLS MRCONSO.RRF; check the path and "
+                f"that the file is complete."
+            )
+        labels.update(from_mrconso)
         missing = {c for c in curies if c not in labels}
     if missing:
         unlabelled_prefixes = sorted({Text.get_prefix(c) for c in missing if ":" in c})

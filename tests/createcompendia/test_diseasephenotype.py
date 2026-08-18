@@ -35,7 +35,7 @@ import pytest
 from src.babel_utils import glom, norm, remove_overused_xrefs
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
-from src.prefixes import DOID
+from src.prefixes import DOID, ICD10CM, MONDO
 from src.ubergraph import build_sets
 from src.util import Text, get_config
 from tests.conftest import assert_taxa_file_valid, glom_dict_from_cliques
@@ -763,6 +763,28 @@ def test_disease_extra_prefixes_are_registered_and_deliberate():
     assert extra == [ICD10CM], "adding a prefix here overrides Biolink; say why in config.yaml first"
     assert set(extra) <= set(Text.prefixmap.values()), "every entry must be a src/prefixes.py constant"
     assert ICD0 not in extra
+
+
+@pytest.mark.unit
+def test_icd10cm_override_expires_when_the_spelling_is_unified():
+    """The ICD10CM override must not outlive the reason for it.
+
+    It exists only because MONDO emits `ICD10CM:` while DOID/EFO/HP emit `ICD10:`, and Biolink
+    registers only the latter -- so without it MONDO's ~2,030 curated ICD-10 mappings merge cliques
+    in glom() and are then dropped by write_compendium(). When
+    https://github.com/NCATSTranslator/Babel/issues/1033 lands and MONDO's map renames ICD10CM to
+    ICD10, the override becomes dead weight that keeps a non-Biolink prefix alive for no reason.
+
+    Nothing else would notice, so this fails the moment the two config entries disagree: if MONDO
+    renames ICD10CM away, ICD10CM must come out of disease_extra_prefixes in the same change."""
+    mondo_renames = get_config()["disease_xref_prefixes"][MONDO]
+    extra = get_config()["disease_extra_prefixes"]
+
+    if "ICD10CM" in mondo_renames:
+        assert ICD10CM not in extra, (
+            "MONDO now renames ICD10CM, so nothing emits that prefix any more -- drop it from "
+            "config.yaml: disease_extra_prefixes (see issue #1033)."
+        )
 
 
 @pytest.mark.unit
