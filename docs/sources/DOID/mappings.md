@@ -117,7 +117,16 @@ equivalences and are the reason the categorical exclusion was replaced:
 | `ICD10:G56.3` | Lesion of radial nerve | [`DOID:12170`](http://purl.obolibrary.org/obo/DOID_12170) "radial nerve lesion" |
 | `ICD9:363.43` | Angioid streaks of choroid | [`DOID:979`](http://purl.obolibrary.org/obo/DOID_979) "angioid streaks of choroid" |
 
-By prefix, the dropped 298 codes are ICD10 245, ICD0 33, ICD9 20. Samples above are drawn from
+By prefix, the dropped 298 codes are ICD10 245, ICD0 33, ICD9 20. **58 of them have exactly one
+claimant whose label matches the code's label** — a parent term sharing its code with its own
+subtypes, e.g. `ICD10:G20` "Parkinson's disease" claimed by
+[`DOID:14330`](http://purl.obolibrary.org/obo/DOID_14330) "Parkinson's disease" together with
+Parkinson's disease 4, 19A and 23. The filter counts subjects and cannot read labels, so it takes
+all four. 47 of those 58 are already asserted by MONDO under `ICD10CM:` and would ship the moment
+issue #1033 lands; the other 11, and the question of whether a label match is evidence of
+equivalence at all, are
+[issue #1038](https://github.com/NCATSTranslator/Babel/issues/1038), with the record in
+[`mappings/icd-label-matches.csv`](mappings/icd-label-matches.csv). Samples above are drawn from
 opposite ends of the file — the most-cited codes, then 1:1 rows spread across it — rather than its
 head, since the point turns on both shapes existing.
 
