@@ -147,7 +147,7 @@ The renames each disease source needs now live in one reviewable block,
 One is known and deliberately left for its own change: **`ICD10:` vs `ICD10CM:`**, where DOID, EFO
 and HP emit one spelling and MONDO the other — two namespaces for one vocabulary. DOID's ICD rows
 are dropped outright by this change, so what remains is a MONDO/EFO/HP question with a different
-answer (their ICD xrefs are largely 1:1 and often correct). See issue #1032.
+answer (their ICD xrefs are largely 1:1 and often correct). See issue #1035.
 
 ## Regenerating
 
