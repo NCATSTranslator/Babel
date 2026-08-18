@@ -43,8 +43,11 @@ CSV_COLUMNS = ["target", "target_label", "target_prefix", "subject_count", "subj
 
 def resolve_labels(curies, downloads_root, mrconso=None):
     """Return a CURIE->label map, from per-prefix label files plus an optional MRCONSO fallback."""
-    prefixes = {Text.get_prefix_or_none(c) or "" for c in curies}
-    prefixes.discard("")
+    # get_prefix(), not get_prefix_or_none(): the latter upper-cases, and a label file is looked
+    # up by directory name, so `orphanet:558` would send us to babel_downloads/ORPHANET/labels --
+    # a miss on any case-sensitive filesystem, i.e. every row blank on the cluster but fine on a
+    # developer's Mac. Same for ComplexPortal, wikipedia.en and icd11.
+    prefixes = {Text.get_prefix(c) for c in curies if ":" in c}
     by_prefix = load_labels_for_prefixes(sorted(prefixes), downloads_root, needed_curies=set(curies))
     labels = {curie: label for prefix_labels in by_prefix.values() for curie, label in prefix_labels.items()}
     missing = {c for c in curies if c not in labels}
@@ -52,7 +55,7 @@ def resolve_labels(curies, downloads_root, mrconso=None):
         labels.update(load_mrconso_labels(mrconso, missing))
         missing = {c for c in curies if c not in labels}
     if missing:
-        unlabelled_prefixes = sorted({Text.get_prefix_or_none(c) or "" for c in missing})
+        unlabelled_prefixes = sorted({Text.get_prefix(c) for c in missing if ":" in c})
         hint = "" if mrconso else " (pass --mrconso to resolve ICD/SNOMED-style codes from UMLS)"
         logger.warning(
             "no label for %d of %d CURIEs, prefixes %s%s", len(missing), len(curies), unlabelled_prefixes, hint

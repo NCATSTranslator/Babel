@@ -10,7 +10,7 @@ Sections:
 
 import pytest
 
-from src.model.concords import find_overused_xref_targets, load_mrconso_labels
+from src.model.concords import OverusedTarget, find_overused_xref_targets, load_mrconso_labels
 
 # --- find_overused_xref_targets ---
 
@@ -114,6 +114,8 @@ def test_malformed_row_raises(tmp_path):
 # existed, and an obsolete SNOMED row (SUPPRESS=O) that must not be used as a label.
 _MRCONSO_ROWS = [
     "C0037773|ENG|P|L0037773|VCW|S0377908|N|A17774363|||G11.4|ICD10CM|PT|G11.4|Hereditary spastic paraplegia|4|N||",
+    "C0751337|ENG|P|L1500000|PF|S1500000|N|A15000000|||558|ORPHANET|PT|558|Marfan syndrome|0|N||",
+    "C0024796|ENG|P|L1600000|PF|S1600000|N|A16000000|||154700|OMIM|PT|154700|MARFAN SYNDROME; MFS|0|N||",
     "C0037773|ENG|P|L0037773|VCW|S0377908|N|A20097855|||G11.4|ICD10CM|AB|G11.4|Hereditary spastic paraplegia|4|Y||",
     "C0037773|DUT|P|L1000000|PF|S1000000|N|A10000000|||G11.4|ICD10DUT|PT|G11.4|Hereditaire spastische paraplegie|3|N||",
     "C0037773|ENG|S|L0037773|PF|S0377908|N|A22000000|166113012|267692008||SNOMEDCT_US|OAS|267692008|Hereditary spastic paraplegia|9|O||",
@@ -157,3 +159,27 @@ def test_obsolete_rows_do_not_supply_a_label(mrconso):
 def test_unknown_curie_yields_no_entry(mrconso):
     """A CURIE MRCONSO has nothing for is simply absent, not an empty string."""
     assert load_mrconso_labels(mrconso, {"ICD10:Z99.9"}) == {}
+
+
+@pytest.mark.unit
+def test_lower_case_prefix_matches_an_upper_case_sab(mrconso):
+    """A concord's prefix need not be spelled like the SAB: MONDO and HP emit `orphanet:558`.
+
+    Matching case-sensitively left every Orphanet row in the audit unlabelled -- and only on a
+    case-sensitive filesystem, so it looked fine on a developer's Mac and blank on the cluster.
+    """
+    assert load_mrconso_labels(mrconso, {"orphanet:558"}) == {"orphanet:558": "Marfan syndrome"}
+
+
+@pytest.mark.unit
+def test_mim_prefix_resolves_against_the_omim_sab(mrconso):
+    """`MIM:` is a spelling of OMIM (issue #321) that no SAB starts with, so the startswith()
+    heuristic alone can never match it -- this is why _SAB_ALIASES exists."""
+    assert load_mrconso_labels(mrconso, {"MIM:154700"}) == {"MIM:154700": "MARFAN SYNDROME; MFS"}
+
+
+@pytest.mark.unit
+def test_overused_target_prefix_preserves_case():
+    """The audit's target_prefix column must echo the CURIE, not an upper-cased version of it."""
+    assert OverusedTarget(target="orphanet:558", subjects={"DOID:1", "DOID:2"}).prefix == "orphanet"
+    assert OverusedTarget(target="no-colon", subjects={"DOID:1"}).prefix == ""

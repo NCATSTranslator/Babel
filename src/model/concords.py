@@ -41,6 +41,22 @@ _MRCONSO_SUPPRESS = 16
 # some ICD-10-CM codes carry.
 _MRCONSO_TTY_PRIORITY = ("PT", "PN", "ET")
 
+# CURIE prefixes whose MRCONSO SAB is spelled differently enough that the startswith() heuristic
+# below cannot bridge them. Kept to the aliases actually seen in Babel's concords rather than grown
+# into a curated SAB map -- an audit wants a readable string, not an authoritative one.
+_SAB_ALIASES = {"MIM": "OMIM"}
+
+
+def _sab_token(prefix: str) -> str:
+    """Reduce a CURIE prefix to the upper-cased token its MRCONSO SAB should start with.
+
+    Upper-cased because SABs are, and a concord prefix need not be: without this `orphanet:558`
+    never matches `SAB=ORPHANET`. The first underscore-delimited token is taken so DOID's
+    release-stamped `SNOMEDCT_US_2025_09_01:` still finds `SAB=SNOMEDCT_US`.
+    """
+    token = prefix.upper().split("_")[0]
+    return _SAB_ALIASES.get(token, token)
+
 
 @dataclass
 class OverusedTarget:
@@ -51,7 +67,9 @@ class OverusedTarget:
 
     @property
     def prefix(self) -> str:
-        return Text.get_prefix_or_none(self.target) or ""
+        # get_prefix(), not get_prefix_or_none(): the latter upper-cases, which would report
+        # "ORPHANET" in the audit's target_prefix column for a CURIE that reads "orphanet:558".
+        return Text.get_prefix(self.target) if ":" in self.target else ""
 
     @property
     def subject_count(self) -> int:
@@ -106,11 +124,12 @@ def load_mrconso_labels(
     them as bare codes. MRCONSO carries their strings.
 
     A CURIE is matched to an MRCONSO row when the row's ``CODE`` equals the CURIE's local id and
-    the row's ``SAB`` starts with the CURIE prefix's first underscore-delimited token -- so
-    ``ICD10:G11.4`` matches ``SAB=ICD10CM``, and DOID's version-stamped
-    ``SNOMEDCT_US_2025_09_01:267692008`` matches ``SAB=SNOMEDCT_US``. That is a heuristic, not a
-    curated SAB map: it is generous by design (an audit wants a readable string, not an
-    authoritative one), and it can attach a label from a sibling vocabulary sharing a code space.
+    the row's ``SAB`` starts with the CURIE prefix's leading token, upper-cased (see
+    :func:`_sab_token`) -- so ``ICD10:G11.4`` matches ``SAB=ICD10CM``, DOID's release-stamped
+    ``SNOMEDCT_US_2025_09_01:267692008`` matches ``SAB=SNOMEDCT_US``, and ``orphanet:558`` matches
+    ``SAB=ORPHANET`` rather than missing on case. That is a heuristic, not a curated SAB map: it is
+    generous by design (an audit wants a readable string, not an authoritative one), and it can
+    attach a label from a sibling vocabulary sharing a code space.
     Suppressed rows are skipped, only ``language`` rows are considered (MRCONSO is multilingual,
     and without this filter a Dutch or Spanish string wins the race for many ICD-10 codes), and
     the best available TTY wins (see ``_MRCONSO_TTY_PRIORITY``).
@@ -123,7 +142,7 @@ def load_mrconso_labels(
         prefix, _, local_id = curie.partition(":")
         if not local_id:
             continue
-        wanted_by_code[local_id].append((prefix.split("_")[0], curie))
+        wanted_by_code[local_id].append((_sab_token(prefix), curie))
     if not wanted_by_code:
         return {}
 
@@ -145,7 +164,7 @@ def load_mrconso_labels(
             candidates = wanted_by_code.get(cols[_MRCONSO_CODE])
             if not candidates:
                 continue
-            sab = cols[_MRCONSO_SAB]
+            sab = cols[_MRCONSO_SAB].upper()
             rank = _MRCONSO_TTY_PRIORITY.index(tty)
             for prefix_token, curie in candidates:
                 if not sab.startswith(prefix_token):
