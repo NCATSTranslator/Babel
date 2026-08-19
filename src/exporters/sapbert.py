@@ -114,14 +114,12 @@ def convert_synonyms_to_sapbert(synonym_filename_gz, sapbert_filename_gzipped):
                 if preferred_name_normalized == names[0]:
                     # no need to write the synonym pair if they are identical
                     continue
-                name_pairs = [(preferred_name_normalized, names[0])]                
+                name_pairs = [(preferred_name_normalized, names[0])]
             else:
                 name_pairs = list(itertools.combinations(set(names), 2))
 
-            name_pairs = [
-                name_pair for name_pair in name_pairs if (biolink_type, *sorted(name_pair)) not in seen_pairs
-            ]
-            
+            name_pairs = [name_pair for name_pair in name_pairs if (biolink_type, *sorted(name_pair)) not in seen_pairs]
+
             if len(name_pairs) > MAX_SYNONYM_PAIRS:
                 # Randomly select 50 pairs.
                 name_pairs = random.sample(name_pairs, MAX_SYNONYM_PAIRS)
