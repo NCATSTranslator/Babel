@@ -1,7 +1,7 @@
 # Source impact report: GARD
 
-- Generated: 2026-08-18 23:14:46 UTC
-- Babel commit: 41cc8275b3c3a84a780d73d7f717729082bdca32
+- Generated: 2026-08-19 05:53:57 UTC
+- Babel commit: 183907c558bae95a9bbfcb6f2f14f4e1e8eabb96
 - Source pipelines: disease
 - Source prefixes: GARD
 - Comparison mode: synthetic
@@ -54,6 +54,7 @@ another source's does — the latter may predate this addition. The prefix pair 
 
 | pipeline | predicate | prefix pair | asserted by | status | xrefs |
 |---|---|---|---|---|---|
+| disease | `xref` | GARD ↔ MONDO | `MONDO_GARD` | from_other_source | 16,212 |
 | disease | `xref` | DOID ↔ GARD | `DOID` | from_other_source | 1,902 |
 
 ## 4. Clique impact
@@ -66,17 +67,17 @@ change the source could introduce before that filtering is applied.
 
 ### disease
 
-- 14,319 new cliques composed only of GARD identifiers (a 3.25% increase over the 440,647
-  pre-existing cliques)
-- 1,809 existing cliques contain GARD identifiers in the after state (0.41% of the 440,647
+- 277 new cliques composed only of GARD identifiers (a 0.06% increase over the 440,628 pre-existing
+  cliques)
+- 15,643 existing cliques contain GARD identifiers in the after state (3.55% of the 440,628
   pre-existing cliques). Of these, 0 cliques gain at least one structurally new identifier from
-  GARD, and 1,809 already contained the GARD CURIE via an xref from another source — GARD's ids file
-  now also lists those existing CURIEs as first-class typed identifiers.
+  GARD, and 15,643 already contained the GARD CURIE via an xref from another source — GARD's ids
+  file now also lists those existing CURIEs as first-class typed identifiers.
 - 0 existing cliques will be merged because of new GARD cross-references
 - 0 structurally-new GARD identifiers are added to existing cliques (0 via expansion, 0 via merges).
   This is distinct from the 0 existing cliques that change, since one clique can gain several
   identifiers.
-- Total cliques in this pipeline go from 440,647 to 454,966
+- Total cliques in this pipeline go from 440,628 to 440,905
 - Sample of new cliques (top 100, unsurvivable and largest first):
   [`impact-report/new-cliques-top-100.csv`](impact-report/new-cliques-top-100.csv)
 - Full list of modified cliques (one row per added/preexisting GARD identifier):
@@ -86,16 +87,16 @@ change the source could introduce before that filtering is applied.
 
 #### Sample pure-new cliques (up to 3)
 
-- `GARD:10001` "Congenital secretory diarrhea, chloride type"
+- `GARD:15005` "Pacak-Zhung syndrome"
   **(NOT emitted — prefix not registered in Biolink Model for `biolink:Disease`)**
-- `GARD:10002` "Chromosome 8Q12.1-q21.2 deletion syndrome"
+- `GARD:15006` "STAT5 Haploinsufficiency"
   **(NOT emitted — prefix not registered in Biolink Model for `biolink:Disease`)**
-- `GARD:10004` "GRN-related frontotemporal lobar degeneration with Tdp43 inclusions"
-  **(NOT emitted — prefix not registered in Biolink Model for `biolink:Disease`)**
+- `GARD:15009` "Monocytosis/myelocytosis, Autoimmunity, Gain of function, Immunodeficiency, Short
+  stature" **(NOT emitted — prefix not registered in Biolink Model for `biolink:Disease`)**
 
 #### Sample expanded cliques (up to 3)
 
-Of the 1,809 cliques that contain GARD identifiers in the after state, 0 would also see their
+Of the 15,643 cliques that contain GARD identifiers in the after state, 0 would also see their
 preferred identifier change as a result of adding GARD. The sample below leads with
 preferred-id-change cliques (if any), then structurally grown cliques, then cliques where GARD only
 adds CURIEs that were already present via xref. Within each clique, identifiers are listed in the
@@ -294,7 +295,7 @@ prefix).
   - `ICD0:9533/0`
   - `ICD0:9534/0`
   - `ICD0:9537/0`
-- Clique with 67 identifiers — typed as `biolink:Disease` — GARD CURIE already present via xref:
+- Clique with 68 identifiers — typed as `biolink:Disease` — GARD CURIE already present via xref:
   - [`MONDO:0004604`](http://purl.obolibrary.org/obo/MONDO_0004604) "Hodgkin's lymphoma,
     lymphocytic-histiocytic predominance" **(preferred)**
   - [`DOID:8543`](http://purl.obolibrary.org/obo/DOID_8543) "Hodgkin's lymphoma,
@@ -367,6 +368,9 @@ prefix).
   - [`ICD9:201.6`](http://translator.ncats.nih.gov/ICD9_201.6)
   - [`ICD9:201.7`](http://translator.ncats.nih.gov/ICD9_201.7)
   - [`HP:0012189`](http://purl.obolibrary.org/obo/HP_0012189) "Hodgkin lymphoma"
+  - `GARD:19593` "Classic Hodgkin lymphoma, lymphocyte-rich type"
+    **(existing identifier, also added by GARD)**
+    **(NOT emitted — prefix not registered in Biolink Model for `biolink:Disease`)**
   - `GARD:2714` "Hodgkins lymphoma" **(existing identifier, also added by GARD)**
     **(NOT emitted — prefix not registered in Biolink Model for `biolink:Disease`)**
   - `http://id.who.int/icd/entity/352299041`

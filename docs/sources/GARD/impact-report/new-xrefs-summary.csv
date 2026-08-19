@@ -1,4 +1,14 @@
 pipeline,predicate,prefix_1,prefix_2,asserted_by,status,xref_count,subject,subject_label,object,object_label
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0000009,"inherited bleeding disorder, platelet-type",GARD:22702,"Inherited bleeding disorder, platelet-type"
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0004397,benign mediastinal psammomatous neurilemmoma,GARD:23977,Benign mediastinal psammomatous neurilemmoma
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0008118,odontomatosis-aortae esophagus stenosis syndrome,GARD:238,Odontomatosis-aortae esophagus stenosis syndrome
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0010311,Becker muscular dystrophy,GARD:5900,Becker muscular dystrophy
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0012502,normophosphatemic familial tumoral calcinosis,GARD:10878,Normophosphatemic familial tumoral calcinosis
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0014379,ADNP-related multiple congenital anomalies - intellectual disability - autism spectrum disorder,GARD:12931,ADNP-related multiple congenital anomalies - intellectual disability - autism spectrum disorder
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0016575,primary ciliary dyskinesia,GARD:4484,Primary ciliary dyskinesia
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0018944,gestational trophoblastic neoplasm,GARD:6498,Gestational trophoblastic neoplasm
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0024535,Singleton-Merten syndrome 1,GARD:25417,Singleton-Merten syndrome 1
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0100223,"mitochondrial complex I deficiency, nuclear type",GARD:26087,"Mitochondrial complex I deficiency, nuclear type"
 disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0050012,chikungunya,GARD:6038,Chikungunya fever
 disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0050970,spinocerebellar ataxia 19/22,GARD:12365,Spinocerebellar ataxia type 19/22
 disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0060851,pemphigus vulgaris,GARD:7355,Pemphigus vulgaris

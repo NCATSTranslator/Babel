@@ -1,27 +1,27 @@
 {
   "about": {
-    "after": "feat/gard-disease (GARD ingested)",
+    "after": "feat/gard-disease (GARD ingested, MONDO_GARD concord)",
     "before": "main a3ae3e4d (no GARD)",
     "files": [
       "Disease.txt",
       "PhenotypicFeature.txt"
     ],
-    "note": "PR #980: adds the GARD registry as a biolink:Disease source, unpads DOID's GARD xrefs, and drops DOID's mistyped GARD:0418 on DOID:0061030 hemophilia (input_data/doid_badxrefs.txt)"
+    "note": "PR #980: adds the GARD registry as a biolink:Disease source, with MONDO's GARD hasDbXrefs as the MONDO_GARD concord and DOID's mistyped GARD:0418 dropped"
   },
   "compendia": {
     "Disease.txt": {
-      "changed_before_cliques": 2160,
+      "changed_before_cliques": 16123,
       "clique_count": {
-        "after": 379406,
+        "after": 365345,
         "before": 365087,
-        "diff": 14319,
-        "diff_percent": 3.92
+        "diff": 258,
+        "diff_percent": 0.07
       },
       "cliques_with_dropped_members": 0,
       "dropped_member_count": 0,
       "leader_changed_count": 0,
       "moved_member_count": 0,
-      "regrouped_member_count": 0
+      "regrouped_member_count": 250
     },
     "PhenotypicFeature.txt": {
       "changed_before_cliques": 0,

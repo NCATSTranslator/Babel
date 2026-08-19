@@ -3,84 +3,113 @@
 The [source-impact report](./impact-report.md) models what *adding* GARD contributes, but by
 construction it only walks after-cliques that contain a GARD CURIE. It therefore cannot report
 before-cliques that split, lose members, or disappear (see
-[#895](https://github.com/NCATSTranslator/Babel/issues/895)), and — as this page shows — it also
-cannot say *which* clique a newly added GARD identifier landed in when two of them compete for it.
-Two build-vs-build [`babel-clique-diff`](../../tools/CliqueDiff.md) runs close both gaps.
+[#895](https://github.com/NCATSTranslator/Babel/issues/895)) — and this addition does restructure
+existing cliques, so that gap is load-bearing here. This page records the build-vs-build
+[`babel-clique-diff`](../../tools/CliqueDiff.md) that closes it.
 
-Each directory is named for the *change* it measures, not for the tool:
+Artifacts in [`on-addition/`](./on-addition/): `clique-diff.summary.json`, and
+`clique-diff-regrouped.csv` — every one of the 31 rows that is not a plain `kept`, which is the
+reduction worth reading. The full per-row CSV is 16,135 rows, almost all `kept`, and is not
+committed.
 
-- [`on-addition/`](./on-addition/) — `main` vs this branch. Answers "does adding GARD restructure
-  anything?"
-A second diff — this branch with vs without the `input_data/doid_badxrefs.txt` entry — is described
-below but not committed: it is three rows that the table below reproduces in full, and the upstream
-report ([DiseaseOntology#1620](https://github.com/DiseaseOntology/HumanDiseaseOntology/issues/1620))
-carries the rest.
-
-## Headline: adding GARD is purely additive
-
-**No before-clique loses, gains a different leader, is retyped, or splits.** All 2,160 changed
-before-cliques are changed only because they *gained* GARD identifiers; every one of their existing
-members is classified `kept`.
-
-| destination_kind | rows | meaning |
-|---|---|---|
-| `regrouped` | 0 | no members redistributed to a different leader |
-| `leader_changed` | 0 | no clique's preferred identifier was reassigned |
-| `moved` | 0 | no members retyped into a different compendium file |
-| `dropped` | 0 | no members gone from the compared compendia |
-
-Clique counts per compendium:
+## Headline: GARD joins existing cliques rather than forming its own
 
 | compendium | before | after | diff |
-|---|---|---|---|
-| `Disease.txt` | 365,087 | 379,406 | +14,319 |
+| --- | ---: | ---: | ---: |
+| `Disease.txt` | 365,087 | 365,345 | **+258** |
 | `PhenotypicFeature.txt` | 75,477 | 75,477 | 0 |
 
-The +14,319 is exactly the pure-new clique count in the source-impact report, and it is the whole
-difference: 440,564 → 454,883 across the two compendia. `PhenotypicFeature.txt` is untouched, as
-expected — `disease_extra_prefixes` is a per-class allowlist applied to `biolink:Disease` only, so
-no GARD CURIE can reach a phenotype clique even if one were xrefed into it.
+16,214 identifiers arrive and the disease compendium grows by 258 cliques (+0.07%), because 16,102
+of the 16,379 cliques that end up holding a GARD identifier are cliques that already existed. Only
+277 registry terms are new concepts to Babel.
 
-## What the additive headline hides: a mistyped DOID xref
+That ratio is the whole point of the `MONDO_GARD` concord. Without it — reading only DOID's
+xrefs — the same 16,214 identifiers produce **14,319** single-identifier cliques and grow
+`Disease.txt` by 3.92%, every one of them a second clique for a concept MONDO already names. See
+[`docs/AddingNewSources.md`](../../AddingNewSources.md) ("Prefer joining an existing clique") and
+[`docs/sources/MONDO/README.md`](../MONDO/README.md).
+
+`PhenotypicFeature.txt` is untouched, as expected: `disease_extra_prefixes` is a per-class allowlist
+applied to `biolink:Disease` only, so no GARD CURIE can survive in a phenotype clique.
+
+## Nothing is lost; 31 cliques are restructured
+
+| destination_kind | rows | members | meaning |
+| --- | ---: | ---: | --- |
+| `kept` | 16,104 | — | member stayed under the same leader |
+| `regrouped` | 31 | 250 | members moved to a different leader in the same compendium |
+| `leader_changed` | 0 | 0 | no clique's preferred identifier was reassigned |
+| `moved` | 0 | 0 | no member retyped into a different compendium file |
+| `dropped` | 0 | 0 | **no identifier disappeared from the compendia** |
+
+The 31 `regrouped` rows are in
+[`on-addition/clique-diff-regrouped.csv`](./on-addition/clique-diff-regrouped.csv) and fall into two
+shapes.
+
+### Shape 1 — a stranded MONDO term rejoins its disease (19 rows)
+
+A DOID-led clique gains exactly two members: a MONDO identifier and a GARD one. These are cliques
+where MONDO and DOID describe the same disease but MONDO asserted no `skos:exactMatch` to it, so the
+MONDO term sat alone in its own clique. GARD is the bridge: DOID xrefs the GARD id, MONDO xrefs the
+same GARD id, and the two cliques join. The labels agree on both sides:
+
+| before leader | joins | after size |
+| --- | --- | ---: |
+| [`DOID:0050465`](http://purl.obolibrary.org/obo/DOID_0050465) "Muir-Torre syndrome" (7) | [`MONDO:0008018`](http://purl.obolibrary.org/obo/MONDO_0008018) "Muir-Torre syndrome" | 9 |
+| [`DOID:0070026`](http://purl.obolibrary.org/obo/DOID_0070026) "Revesz syndrome" (6) | [`MONDO:0009990`](http://purl.obolibrary.org/obo/MONDO_0009990) "Revesz syndrome" | 8 |
+| [`DOID:5572`](http://purl.obolibrary.org/obo/DOID_5572) "Beckwith-Wiedemann syndrome" (8) | [`MONDO:0007534`](http://purl.obolibrary.org/obo/MONDO_0007534) "Beckwith-Wiedemann syndrome" | 10 |
+
+This is a **fix**: before this PR each of these diseases had two Babel cliques, and Node
+Normalization answered differently depending on which identifier you held.
+
+### Shape 2 — a pre-existing over-merge splits (12 rows)
+
+A clique that had absorbed a second disease sheds it. `glom()` cannot hold two MONDO identifiers
+(`DISEASE_UNIQUE_PREFIXES`), so where the new GARD edges give a better-supported home to members
+that were only loosely attached, those members move. The largest:
+
+| before leader | members move to | count |
+| --- | --- | ---: |
+| [`MONDO:0010029`](http://purl.obolibrary.org/obo/MONDO_0010029) "situs inversus" (34) | [`MONDO:0001734`](http://purl.obolibrary.org/obo/MONDO_0001734) "tuberous sclerosis" | 19 |
+| [`MONDO:0016063`](http://purl.obolibrary.org/obo/MONDO_0016063) "Cowden disease" (30) | [`MONDO:0017623`](http://purl.obolibrary.org/obo/MONDO_0017623) "PTEN hamartoma tumor syndrome" | 15 |
+| [`MONDO:0006365`](http://purl.obolibrary.org/obo/MONDO_0006365) "Peutz-Jeghers polyp" (18) | [`MONDO:0008280`](http://purl.obolibrary.org/obo/MONDO_0008280) "Peutz-Jeghers syndrome" | 12 |
+| [`MONDO:0008145`](http://purl.obolibrary.org/obo/MONDO_0008145) "Ollier disease" (22) | [`MONDO:0013808`](http://purl.obolibrary.org/obo/MONDO_0013808) "Maffucci syndrome" | 7 |
+| [`MONDO:0016755`](http://purl.obolibrary.org/obo/MONDO_0016755) "neurofibroma" (25) | [`MONDO:0021061`](http://purl.obolibrary.org/obo/MONDO_0021061) "neurofibromatosis" | 6 |
+
+Each of these separates two things that should not have been one clique — a syndrome from the polyp
+it produces, a hamartoma syndrome from Cowden disease, tuberous sclerosis from situs inversus. **The
+over-merges predate this PR and ship today**; GARD's mappings are what pull them apart. They are the
+strongest single argument for the `MONDO_GARD` concord, and the rows an SME should read first: the
+full 31 are in the CSV with before/after sizes and example members.
+
+## The mistyped DOID xref this also fixes
 
 [`DOID:0061030`](http://purl.obolibrary.org/obo/DOID_0061030) "hemophilia" writes its GARD xref as
 `GARD:0418`, a typo for [`GARD:10418`](https://rarediseases.info.nih.gov/?gard_id=10418)
-"Hemophilia". Unpadded it becomes `GARD:418` "Essential pentosuria" — which
-[`DOID:0111258`](http://purl.obolibrary.org/obo/DOID_0111258) "pentosuria" also xrefs. Two cliques
-therefore claim the same new identifier.
+"Hemophilia" — MONDO independently maps
+[`MONDO:0018660`](http://purl.obolibrary.org/obo/MONDO_0018660) "hemophilia" to `GARD:10418`, which
+confirms the diagnosis. Unpadded, DOID's typo becomes `GARD:418` "Essential pentosuria", which
+[`DOID:0111258`](http://purl.obolibrary.org/obo/DOID_0111258) "pentosuria" also xrefs.
 
-They do not merge: `DISEASE_UNIQUE_PREFIXES` includes MONDO, and both cliques already hold one
-([`MONDO:0018660`](http://purl.obolibrary.org/obo/MONDO_0018660) "hemophilia" and
-[`MONDO:0009846`](http://purl.obolibrary.org/obo/MONDO_0009846) "pentosuria"), so `glom()` refuses
-the union. Instead the contested identifier is awarded to whichever clique claims it first, and
-DOID's concord lists hemophilia's row before pentosuria's — so **the hemophilia clique ends up
-holding a rare-disease identifier labelled "Essential pentosuria", and pentosuria never gets its own
-registry term.** `input_data/doid_badxrefs.txt` drops the hemophilia row, which puts `GARD:418`
-where it belongs.
+The two cliques do not merge — both hold a MONDO identifier — but the contested id goes to whichever
+clique claims it first, and DOID's concord lists hemophilia's row first, so the hemophilia clique
+would carry an identifier labelled "Essential pentosuria" while pentosuria got none.
+`input_data/doid_badxrefs.txt` drops that row; reported upstream as
+[DiseaseOntology#1620](https://github.com/DiseaseOntology/HumanDiseaseOntology/issues/1620).
 
-Diffing the branch against itself with the entry disabled gives that change in isolation — three
-rows, the whole effect of the entry:
+**Neither standard artifact can see that bug**, which is worth recording as a property of the
+tooling rather than of this change. The impact report only knows `GARD:418` joined *an* existing
+clique — landing in the wrong one is not a category it has. And a main-vs-branch clique diff is
+byte-identical with and without the fix, because `GARD:418` is a *new* identifier on both sides and
+`babel-clique-diff` classifies *before*-clique members, none of which move. Diffing the branch
+against itself with the entry disabled does show it, as one `regrouped` row:
 
 | before clique | destination | kind | members |
 |---|---|---|---|
 | `MONDO:0018660` "hemophilia" (11) | `MONDO:0009846` "pentosuria" (12) | `regrouped` | 1 — `GARD:418` "Essential pentosuria" |
-| `MONDO:0018660` "hemophilia" (11) | `MONDO:0018660` "hemophilia" (10) | `kept` | 10 |
-| `MONDO:0009846` "pentosuria" (11) | `MONDO:0009846` "pentosuria" (12) | `kept` | 11 |
-
-### Neither standard artifact would have caught this
-
-Worth recording, because it is a limit of the tooling rather than of this change:
-
-- The **source-impact report** sees only that `GARD:418` joined *an* existing clique. Landing in the
-  wrong one is not a category it has.
-- The **`on-addition/` clique diff is byte-identical with and without the fix.** `GARD:418` is a new
-  identifier in both builds, and `babel-clique-diff` classifies *before*-clique members — no
-  before-member moves either way. Both builds report the same 2,160 `kept` rows.
 
 What surfaced it was reading the two cliques out of the finished compendia directly, which is the
-rule [`AGENTS.md`](../../../AGENTS.md) states for clique-membership questions. It is also why the
-isolating diff above is run branch-vs-branch rather than main-vs-branch: with the disputed CURIE
-present on *both* sides, its move becomes visible.
+rule [`AGENTS.md`](../../../AGENTS.md) states for clique-membership questions.
 
 ## What was compared
 
@@ -88,14 +117,15 @@ Both sides were built from the **same cached intermediates**
 (`babel_outputs/intermediate/disease/`), with only the code and configuration under test changing:
 
 | | before | after |
-|---|---|---|
-| `on-addition/` | `main` at `a3ae3e4d` — no GARD ingest, DOID concord built without GARD unpadding | this branch — GARD ingested, DOID's GARD xrefs unpadded, bad-xref entry active |
+| --- | --- | --- |
+| `on-addition/` | `main` at `a3ae3e4d` — no GARD ingest, no `MONDO_GARD` concord, DOID concord built without GARD unpadding | this branch |
 | the isolating diff (not committed) | this branch, `DOID:0061030 GARD:418` commented out of `input_data/doid_badxrefs.txt` | this branch, entry active |
 
 Reproduce with:
 
 ```bash
-uv run snakemake -c 4 babel_outputs/compendia/Disease.txt --forcerun get_disease_doid_relationships
+uv run snakemake -c 4 babel_outputs/compendia/Disease.txt \
+    --forcerun get_disease_obo_relationships get_disease_doid_relationships
 uv run babel-clique-diff --before <before-dir> --after <after-dir> \
     --files Disease.txt PhenotypicFeature.txt \
     --out-csv clique-diff.csv --out-json clique-diff.summary.json
@@ -103,7 +133,3 @@ uv run babel-clique-diff --before <before-dir> --after <after-dir> \
 
 Put the target *before* `--forcerun`: `--forcerun` takes a list, so a target written after it is
 swallowed as another rule name and Snakemake falls back to building the entire pipeline.
-
-Neither per-row CSV is committed. The `on-addition/` one is 737 KB of `kept` rows carrying nothing
-the summary lacks, and the isolating one is the three rows already tabulated above — both go stale
-on the next build, and both are a two-command rebuild away.
