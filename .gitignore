@@ -47,6 +47,13 @@ docs/sources/*/impact-report/new-xrefs.csv
 .coverage.*
 htmlcov/
 
+# maturin / Rust build artifacts
+rust/target/
+# native extension dropped into src/ by an editable install (don't commit compiled binaries)
+src/_accel*.so
+src/_accel*.pyd
+src/_accel*.dylib
+
 # Spreadsheet sources for the hand-curated manual concords. The .tsv the pipeline reads is
 # committed; the Numbers/Excel file it was exported from is a 170 KB binary that diffs as a blob
 # and is only useful on the maintainer's machine.

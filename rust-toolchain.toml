@@ -1,0 +1,6 @@
+# Pin the Rust toolchain so local builds, CI, and any rustup-based environment all compile the
+# maturin/PyO3 extension with the same compiler version. The CI action ref (dtolnay/rust-toolchain
+# in .github/workflows/test.yml) is pinned to match this; bump both together when upgrading Rust.
+# The hard floor is `rust-version` in rust/Cargo.toml.
+[toolchain]
+channel = "1.95.0"

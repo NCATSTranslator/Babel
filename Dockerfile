@@ -36,13 +36,26 @@ RUN adduser --home ${ROOT} --uid 1000 nru
 # Set up a $ROOT directory with the source code to work in.
 RUN mkdir -p ${ROOT}
 WORKDIR ${ROOT}
+
+# Rust toolchain — required because the build backend is maturin, which compiles a native
+# extension on every `uv sync`. Installed via rustup rather than `apt install cargo`: Debian
+# bookworm ships cargo 1.63, which is *exactly* pyo3 0.23's minimum, so the next pyo3 bump would
+# break this image with an error that reads as unrelated. rustup also honours rust-toolchain.toml,
+# which apt's cargo ignores.
+ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
+ENV PATH=${CARGO_HOME}/bin:${PATH}
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable \
+    && chmod -R a+rX ${RUSTUP_HOME} ${CARGO_HOME}
+
 USER nru
 COPY --chown=nru . ${ROOT}
 
-# Install and run `uv sync` to install packages.
+# Install uv and sync packages. `--frozen` installs exactly the committed uv.lock
+# (no re-resolution), keeping the image reproducible and matching CI's `uv sync --frozen`.
 RUN pipx install uv
 ENV PATH="${ROOT}/.local/bin:${PATH}"
-RUN uv sync
+RUN uv sync --frozen
 
 # Our default entrypoint is to start the Babel run.
 ENTRYPOINT ["bash", "-c", "uv run snakemake --cores ${CORES}"]

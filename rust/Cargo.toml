@@ -1,0 +1,30 @@
+[package]
+name = "babel-pipeline"
+# Not the distribution version: maturin takes that from the root pyproject.toml (the built wheel is
+# babel_pipeline-<pyproject version>-cp311-abi3-*.whl), and nothing publishes this crate to
+# crates.io. Kept at 0.0.0 so there is no second version number to remember to bump.
+version = "0.0.0"
+edition = "2021"
+# The floor our dependencies require (pyo3 0.23 needs 1.63; std::sync::LazyLock in glom.rs needs
+# 1.80). Declared so a too-old cargo fails with a clear MSRV message rather than a syntax error from
+# somewhere inside a dependency. Note this binds rustup-managed toolchains only -- see README.md on
+# why the Dockerfile installs rustup rather than apt cargo.
+rust-version = "1.80"
+
+[lib]
+name = "_accel"               # matches the #[pymodule] fn + module-name's last component
+# cdylib is what maturin loads as the Python extension; rlib is added so `cargo test` can build the
+# pure-Rust union-find unit tests without Python. maturin only ships the cdylib.
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3 = { version = "0.23", features = ["abi3-py311", "extension-module"] }
+# Parallel interning + clique materialization. The merge/reject loop itself is order-sensitive and
+# stays sequential; rayon accelerates the embarrassingly-parallel phases around it (see glom.rs).
+rayon = "1.10"
+# Fast non-cryptographic hashing for the CURIE interner (identifiers are short ASCII, no adversarial
+# input -- this is a build pipeline, not a network service).
+rustc-hash = "2"
+# Lighter, faster mutexes than std for the sharded interner's per-shard locks; no poisoning (a
+# poisoned lock can only happen on panic, and we abort the whole build on panic anyway).
+parking_lot = "0.12"

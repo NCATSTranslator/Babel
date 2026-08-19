@@ -9,7 +9,7 @@ was built as `2024jul13`); the note's own title still names the release.
 
 ## General releases
 
-- TODO
+- 2025dec11: TODO
 
 ## Translator-specific releases
 

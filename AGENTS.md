@@ -76,7 +76,7 @@ Memory-hungry tests also carry a parametrized `min_memory_gb(n)` guard (register
 - `docs/Testing.md` — testing strategy: cadence per environment (per-PR, nightly, weekly,
   pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other strategies.
 
-### Linting (all four checked in CI on PRs)
+### Linting (all five checked in CI on PRs)
 
 ```bash
 uv run ruff check                        # Python lint
@@ -87,6 +87,8 @@ uv run snakefmt --check --compact-diff . # Snakemake format check
 uv run snakefmt .                        # Snakemake auto-fix
 uv run rumdl check .                     # Markdown lint
 uv run rumdl fmt .                       # Markdown auto-fix
+cargo fmt --manifest-path rust/Cargo.toml           # Rust format
+cargo clippy --manifest-path rust/Cargo.toml        # Rust lint
 ```
 
 ### Configuration
@@ -308,6 +310,17 @@ ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandl
 - **Docstrings** — give modules, classes, and non-trivial functions a docstring covering what they
   do and any non-obvious behavior. Name functions for what they do — `fetch_*` (not `get_*`) when
   the call hits the network.
+
+- **Rust accelerators** — write one only when a run's `benchmark:` TSVs justify it; don't guess from
+  reading code for quadratic-looking shapes — see [`rust/README.md`](rust/README.md), which records
+  three targets picked that way that turned out to be pure-Python bugs, not Rust candidates. A
+  `#[pyfunction]` takes a file path and returns the whole parsed result; never export one that is
+  called once per row, because crossing pyo3 per CURIE costs more than the Python it replaces. Rust
+  is the implementation, not an optional overlay: there is no Python fallback and no runtime toggle.
+  Correctness is guarded by the unit suite (which exercises each accelerator through its real
+  callers) plus targeted synthetic tests. Reach the extension through `src/accel.py` (never
+  `src._accel` directly); since a Rust toolchain is a hard build prerequisite, a missing or stale
+  build fails loudly at DAG-parse time by design.
 
 ## Debugging
 

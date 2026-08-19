@@ -39,6 +39,7 @@ Issues = "https://github.com/NCATSTranslator/Babel/issues"
 [dependency-groups]
 dev = [
     "ipykernel>=7.1.0",
+    "maturin>=1.0,<2.0",
     "py-spy>=0.4.2",
     "ruff>=0.14.14",
     "rumdl>=0.2.4",
@@ -56,12 +57,20 @@ babel-overused-xrefs = "src.tools.overused_xrefs.cli:main"
 package = true
 
 [build-system]
-requires = ["setuptools>=83.0.0"]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["src", "src.*"]
+[tool.maturin]
+# The importable Python package is literally named `src` (flat layout). A dotted module-name
+# places the compiled extension at `src/_accel.*` and tells maturin the package to bundle is `src`
+# (auto-resolved to the repo root since src-layout detection won't fire). Import it through
+# src/accel.py, never directly -- see rust/README.md.
+module-name = "src._accel"
+# Rust source lives under rust/ so Cargo never collides with the Python `src/` dir.
+manifest-path = "rust/Cargo.toml"
+# maturin bundles the whole `src` tree, which otherwise ships the per-directory agent instruction
+# files to anyone who installs the wheel.
+exclude = ["**/CLAUDE.md"]
 
 
 # Linting/formatting configuration
@@ -88,6 +97,13 @@ ignore = [
 
 fixable = ["ALL"]
 unfixable = []
+
+[tool.ruff.format]
+# Ruff 0.16.0 began formatting Python code fences inside Markdown, which overlaps with the
+# dedicated rumdl Markdown check and broke CI when astral-sh/ruff-action@v3 floated to 0.16.0
+# (pyproject pins only a floor, >=0.14.14). Keep ruff's formatter scoped to Python source and
+# leave Markdown to rumdl so formatting CI stays deterministic across ruff releases.
+exclude = ["*.md"]
 
 [tool.snakefmt]
 line_length = 120
