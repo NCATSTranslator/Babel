@@ -140,8 +140,8 @@ def pull_gard_labels_and_synonyms(infile, labelfile, synonymfile):
     empty_name = 0
     with (
         open(infile, encoding="utf-8-sig", newline="") as inf,
-        open(labelfile, "w") as labels,
-        open(synonymfile, "w") as syns,
+        open(labelfile, "w", encoding="utf-8") as labels,
+        open(synonymfile, "w", encoding="utf-8") as syns,
     ):
         reader = csv.DictReader(inf)
         missing = {"ID", "DisplayName", "Synonyms"} - set(reader.fieldnames or [])
