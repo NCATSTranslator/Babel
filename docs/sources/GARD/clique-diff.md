@@ -11,8 +11,10 @@ Each directory is named for the *change* it measures, not for the tool:
 
 - [`on-addition/`](./on-addition/) — `main` vs this branch. Answers "does adding GARD restructure
   anything?"
-- [`mistyped-xref/`](./mistyped-xref/) — this branch with vs without the
-  `input_data/doid_badxrefs.txt` entry. Answers "what does that one dropped row actually change?"
+A second diff — this branch with vs without the `input_data/doid_badxrefs.txt` entry — is described
+below but not committed: it is three rows that the table below reproduces in full, and the upstream
+report ([DiseaseOntology#1620](https://github.com/DiseaseOntology/HumanDiseaseOntology/issues/1620))
+carries the rest.
 
 ## Headline: adding GARD is purely additive
 
@@ -56,8 +58,8 @@ holding a rare-disease identifier labelled "Essential pentosuria", and pentosuri
 registry term.** `input_data/doid_badxrefs.txt` drops the hemophilia row, which puts `GARD:418`
 where it belongs.
 
-[`mistyped-xref/clique-diff.csv`](./mistyped-xref/clique-diff.csv) is that one change in isolation —
-three rows, the whole effect of the entry:
+Diffing the branch against itself with the entry disabled gives that change in isolation — three
+rows, the whole effect of the entry:
 
 | before clique | destination | kind | members |
 |---|---|---|---|
@@ -88,7 +90,7 @@ Both sides were built from the **same cached intermediates**
 | | before | after |
 |---|---|---|
 | `on-addition/` | `main` at `a3ae3e4d` — no GARD ingest, DOID concord built without GARD unpadding | this branch — GARD ingested, DOID's GARD xrefs unpadded, bad-xref entry active |
-| `mistyped-xref/` | this branch, `DOID:0061030 GARD:418` commented out of `input_data/doid_badxrefs.txt` | this branch, entry active |
+| the isolating diff (not committed) | this branch, `DOID:0061030 GARD:418` commented out of `input_data/doid_badxrefs.txt` | this branch, entry active |
 
 Reproduce with:
 
@@ -102,6 +104,6 @@ uv run babel-clique-diff --before <before-dir> --after <after-dir> \
 Put the target *before* `--forcerun`: `--forcerun` takes a list, so a target written after it is
 swallowed as another rule name and Snakemake falls back to building the entire pipeline.
 
-The full `on-addition/` per-row CSV (2,160 rows, all `kept`) is not committed: it is 737 KB
-carrying no information the summary lacks, and it goes stale on the next build.
-`mistyped-xref/clique-diff.csv` is committed in full, at three rows.
+Neither per-row CSV is committed. The `on-addition/` one is 737 KB of `kept` rows carrying nothing
+the summary lacks, and the isolating one is the three rows already tabulated above — both go stale
+on the next build, and both are a two-command rebuild away.

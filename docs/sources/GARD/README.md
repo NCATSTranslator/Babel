@@ -63,7 +63,7 @@ cliques do not merge — both hold a MONDO identifier and MONDO is in `DISEASE_U
 `glom()` refuses the union — but the contested identifier goes to whichever clique claims it first,
 and DOID's concord lists hemophilia's row first. Left alone, the hemophilia clique carries an
 identifier labelled "Essential pentosuria" and pentosuria never gets its registry term;
-[`mistyped-xref/clique-diff.csv`](mistyped-xref/clique-diff.csv) measures exactly that.
+[`clique-diff.md`](clique-diff.md) measures exactly that.
 
 `input_data/doid_badxrefs.txt` drops the pair, using the same per-concord bad-xref mechanism as
 MONDO/HP/MP/UMLS, and the typo is reported upstream as
@@ -164,4 +164,5 @@ competing cliques a new GARD identifier joined. [`clique-diff.md`](clique-diff.m
 `babel-clique-diff` runs that close both gaps: `main` vs this branch
 ([`on-addition/`](on-addition/), which confirms the addition is purely additive — 0 regrouped, 0
 moved, 0 dropped, 0 leader changes) and this branch with vs without the bad-xref entry
-([`mistyped-xref/`](mistyped-xref/), three rows isolating the hemophilia/pentosuria fix).
+(and a second, uncommitted diff isolating the hemophilia/pentosuria fix, tabulated in full on that
+page).

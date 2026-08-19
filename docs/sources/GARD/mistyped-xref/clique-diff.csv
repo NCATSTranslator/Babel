@@ -1,4 +1,0 @@
-compendium,before_leader,before_leader_label,before_leader_type,before_size,destination,destination_label,destination_kind,destination_compendium,destination_type,after_size,member_count,example_members
-Disease.txt,MONDO:0009846,pentosuria,biolink:Disease,11,MONDO:0009846,pentosuria,kept,Disease.txt,biolink:Disease,12,11,"DOID:0111258 ""pentosuria""; ICD10:E74.89 """"; MEDDRA:10064170 """"; MESH:C536652 ""Pentosuria""; MONDO:0009846 ""pentosuria"""
-Disease.txt,MONDO:0018660,hemophilia,biolink:Disease,11,MONDO:0009846,pentosuria,regrouped,Disease.txt,biolink:Disease,12,1,"GARD:418 ""Essential pentosuria"""
-Disease.txt,MONDO:0018660,hemophilia,biolink:Disease,11,MONDO:0018660,hemophilia,kept,Disease.txt,biolink:Disease,10,10,"DOID:0061030 ""hemophilia""; MEDDRA:10018941 """"; MEDDRA:10061992 """"; MEDDRA:10066439 """"; MONDO:0018660 ""hemophilia"""
