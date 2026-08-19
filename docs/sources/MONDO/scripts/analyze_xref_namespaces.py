@@ -97,7 +97,8 @@ def main():
     rows.sort(key=lambda r: -r["hasdbxref_rows"])
 
     with open(args.out, "w", encoding="utf8", newline="") as outf:
-        writer = csv.DictWriter(outf, fieldnames=list(rows[0]))
+        # lineterminator="\n": the default is CRLF, which git rewrites on commit.
+        writer = csv.DictWriter(outf, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
