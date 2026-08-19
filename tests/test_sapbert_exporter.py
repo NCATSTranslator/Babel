@@ -88,3 +88,41 @@ def test_convert_synonyms_to_sapbert_deduplicates_after_normalization(tmp_path):
     assert len(rows) == 1
     assert rows[0][:3] == ["biolink:NamedThing", "EXAMPLE:1", "Example Label"]
     assert set(rows[0][3:]) == {"alpha|beta", "gamma"}
+
+
+@pytest.mark.unit
+def test_convert_synonyms_to_sapbert_deduplicates_pairs_within_biolink_type(tmp_path):
+    """The same normalized name pair should be written once per Biolink type across the output file."""
+    synonym_file = tmp_path / "Mixed.txt.gz"
+    sapbert_file = tmp_path / "sapbert" / "Mixed.txt.gz"
+    _write_synonyms(
+        synonym_file,
+        [
+            {
+                "curie": "MONDO:0000001",
+                "preferred_name": "Disease One",
+                "names": ["shared one", "shared two"],
+                "types": ["Disease"],
+            },
+            {
+                "curie": "MONDO:0000002",
+                "preferred_name": "Disease Two",
+                "names": ["shared two", "shared one"],
+                "types": ["Disease"],
+            },
+            {
+                "curie": "HP:0000001",
+                "preferred_name": "Phenotype One",
+                "names": ["shared one", "shared two"],
+                "types": ["PhenotypicFeature"],
+            },
+        ],
+    )
+
+    convert_synonyms_to_sapbert(str(synonym_file), str(sapbert_file))
+
+    rows = _read_sapbert_rows(sapbert_file)
+    assert len(rows) == 2
+    assert rows[0][:3] == ["biolink:Disease", "MONDO:0000001", "Disease One"]
+    assert rows[1][:3] == ["biolink:PhenotypicFeature", "HP:0000001", "Phenotype One"]
+    assert {frozenset(row[3:]) for row in rows} == {frozenset({"shared one", "shared two"})}

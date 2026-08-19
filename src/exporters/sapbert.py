@@ -62,6 +62,7 @@ def convert_synonyms_to_sapbert(synonym_filename_gz, sapbert_filename_gzipped):
     count_entry = 0
     count_training_rows = 0
     count_smaller_rows = 0
+    seen_pairs = set()
     with (
         gzip.open(synonym_filename_gz, "rt", encoding="utf-8") as synonymf,
         gzip.open(sapbert_filename_gzipped, "wt", encoding="utf-8") as sapbertf,
@@ -116,12 +117,17 @@ def convert_synonyms_to_sapbert(synonym_filename_gz, sapbert_filename_gzipped):
                 name_pairs = [(preferred_name_normalized, names[0])]                
             else:
                 name_pairs = list(itertools.combinations(set(names), 2))
+
+            name_pairs = [
+                name_pair for name_pair in name_pairs if (biolink_type, *sorted(name_pair)) not in seen_pairs
+            ]
             
             if len(name_pairs) > MAX_SYNONYM_PAIRS:
                 # Randomly select 50 pairs.
                 name_pairs = random.sample(name_pairs, MAX_SYNONYM_PAIRS)
 
             for name_pair in name_pairs:
+                seen_pairs.add((biolink_type, *sorted(name_pair)))
                 line = f"biolink:{biolink_type}||{curie}||{preferred_name}||{name_pair[0]}||{name_pair[1]}\n"
                 sapbertf.write(line)
                 count_training_rows += 1
