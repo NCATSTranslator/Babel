@@ -87,7 +87,7 @@ def convert_synonyms_to_sapbert(synonym_filename_gz, sapbert_filename_gzipped):
             names = entry.get("names", [])
             # Strip whitespace and drop empty strings if any
             names = [name.strip() for name in names if name.strip()]
-            
+
             if LOWERCASE_ALL_NAMES:
                 names = [name.lower() for name in names]
 
