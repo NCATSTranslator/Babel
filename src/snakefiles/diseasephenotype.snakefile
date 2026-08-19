@@ -165,10 +165,12 @@ rule get_disease_obo_relationships:
     output:
         config["intermediate_directory"] + "/disease/concords/MONDO",
         config["intermediate_directory"] + "/disease/concords/MONDO_close",
+        config["intermediate_directory"] + "/disease/concords/MONDO_GARD",
         config["intermediate_directory"] + "/disease/concords/HP",
         config["intermediate_directory"] + "/disease/concords/MP",
         mondo_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MONDO.yaml",
         mondo_close_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MONDO_close.yaml",
+        mondo_gard_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MONDO_GARD.yaml",
         hp_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-HP.yaml",
         mp_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MP.yaml",
     benchmark:
@@ -180,6 +182,7 @@ rule get_disease_obo_relationships:
             {
                 "MONDO": output.mondo_metadata_yaml,
                 "MONDO_close": output.mondo_close_metadata_yaml,
+                "MONDO_GARD": output.mondo_gard_metadata_yaml,
                 "HP": output.hp_metadata_yaml,
                 "MP": output.mp_metadata_yaml,
             },

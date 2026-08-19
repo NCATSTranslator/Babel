@@ -35,7 +35,7 @@ import pytest
 from src.babel_utils import glom, norm, remove_overused_xrefs
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
-from src.prefixes import DOID, ICD10CM, MONDO
+from src.prefixes import DOID, GARD, ICD10CM, MONDO
 from src.ubergraph import build_sets
 from src.util import Text, get_config
 from tests.conftest import assert_taxa_file_valid, glom_dict_from_cliques
@@ -867,6 +867,19 @@ def test_disease_phenotype_boundary_badxrefs_are_shipped_and_parse():
     # HP:0005227's own UMLS mapping is a leaf and must stay -- blocking it would strip a correct
     # phenotype mapping to fix a transitive problem it does not cause.
     assert ("HP:0005227", "UMLS:C1868071") not in hp_pairs
+
+
+@pytest.mark.unit
+def test_mondo_gard_concord_is_registered_in_disease_concords():
+    """The MONDO_GARD concord must be listed in config.yaml: disease_concords.
+
+    build_disease_obo_relationships() writes the file either way, and the Snakemake rule declares it
+    as an output either way -- but build_compendia only reads the concords config lists. Omitted, the
+    file is built on every run, looks correct on disk, and contributes nothing: 15,930 GARD
+    identifiers silently revert to single-identifier cliques duplicating MONDO concepts. That is a
+    failure with no error message anywhere, which is what makes it worth pinning.
+    """
+    assert f"{MONDO}_{GARD}" in get_config()["disease_concords"]
 
 
 @pytest.mark.unit

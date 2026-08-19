@@ -15,9 +15,11 @@ from src.babel_utils import (
     write_compendium,
 )
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
+from src.datahandlers.gard import normalize_gard_curie
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import (
     DOID,
+    GARD,
     HP,
     ICD0,
     ICD9,
@@ -374,6 +376,51 @@ def build_disease_obo_relationships(outdir, metadata_yamls):
         sources=[{"type": "UberGraph", "name": "MONDO"}],
         description=f"ubergraph.build_sets() (close matches) of {MONDO}:0000001 and {MONDO}:0042489, including ORPHANET prefixes",
         concord_filename=f"{outdir}/{MONDO}_close",
+    )
+
+    # MONDO's GARD mappings are the one hasDbXref exception in this build. MONDO asserts all
+    # ~15,930 of them as oboInOwl:hasDbXref and *none* as skos:exactMatch/closeMatch, so the two
+    # concords above see none of them -- and GARD, being a registry rather than an ontology,
+    # asserts no mappings of its own. Without this file 98% of GARD lands in single-identifier
+    # cliques that duplicate concepts MONDO already names, which is exactly the split-clique
+    # outcome an ingest is supposed to avoid (see docs/AddingNewSources.md, "Prefer joining an
+    # existing clique").
+    #
+    # It gets its own concord rather than being folded into MONDO's, and the allowlist is
+    # fail-closed at exactly one prefix, because MONDO's *other* hasDbXref targets are emphatically
+    # not equivalences -- an unrestricted pass would merge on ICD/MEDDRA family codes the way
+    # DOID's did (#1031). Keeping it separate puts the exception in `disease_concords` where a
+    # reviewer sees it, and lets it be filtered or dropped without touching MONDO's exact matches.
+    # The mapping is 1:1 in both directions, which is what makes it safe to take unfiltered;
+    # tests/pipeline/test_mondo_gard.py holds that assertion against the real concord.
+    #
+    # MONDO writes GARD in the registry's zero-padded form (GARD:0022702), so normalize_gard_curie
+    # is passed as norm()'s rename callable to strip the padding -- without it these would not join
+    # DOID's unpadded xrefs or GARD's own ids file. See docs/sources/MONDO/README.md.
+    with open(f"{outdir}/{MONDO}_{GARD}", "w") as outfile:
+        for mondo_root in ("MONDO:0000001", "MONDO:0042489"):
+            build_sets(
+                mondo_root,
+                {MONDO: outfile},
+                set_type="xref",
+                other_prefixes={GARD: normalize_gard_curie},
+                allowed_prefixes={GARD},
+            )
+
+    write_concord_metadata(
+        metadata_yamls[f"{MONDO}_{GARD}"],
+        name="build_disease_obo_relationships()",
+        sources=[{"type": "UberGraph", "name": "MONDO"}],
+        description=(
+            "ubergraph.build_sets() (oboInOwl:hasDbXref) of MONDO:0000001 and MONDO:0042489, "
+            f"restricted to target prefix {GARD} and unpadded by gard.normalize_gard_curie(). "
+            "MONDO asserts its GARD mappings only as hasDbXref, never as skos:exactMatch, so they "
+            "are invisible to the MONDO/MONDO_close concords; every other hasDbXref target is "
+            "deliberately excluded. Rationale and the excluded namespaces: "
+            "docs/sources/MONDO/README.md"
+        ),
+        url="https://github.com/NCATSTranslator/Babel/blob/main/docs/sources/MONDO/README.md",
+        concord_filename=f"{outdir}/{MONDO}_{GARD}",
     )
 
     # MP cross-references. Standard subClassOf walk from the MP root. Most of MP's declared

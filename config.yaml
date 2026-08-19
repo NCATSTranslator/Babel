@@ -164,7 +164,11 @@ gard_download_url: "https://ncats.file.force.com/sfc/dist/version/download/?oid=
 
 disease_labelsandsynonyms: [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UMLS, SNOMEDCT, EFO]
 disease_ids:               [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UMLS, OMIM, EFO]
-disease_concords:          [HP, MP, MONDO, UMLS, DOID, EFO, Manual]
+# MONDO_GARD is MONDO's GARD hasDbXrefs, the one hasDbXref exception in this pipeline: MONDO
+# asserts its ~15,930 GARD mappings only as hasDbXref, never as skos:exactMatch, so the MONDO
+# concord (exact matches only) sees none of them. Kept as its own file so the exception is visible
+# here and can be filtered without touching MONDO's exact matches -- docs/sources/MONDO/README.md.
+disease_concords:          [HP, MP, MONDO, MONDO_GARD, UMLS, DOID, EFO, Manual]
 disease_outputs:           [Disease.txt, PhenotypicFeature.txt]
 
 # Prefixes written into Disease.txt even though the Biolink Model does not register them for
