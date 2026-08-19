@@ -62,6 +62,7 @@ def convert_synonyms_to_sapbert(synonym_filename_gz, sapbert_filename_gzipped):
     count_entry = 0
     count_training_rows = 0
     count_smaller_rows = 0
+    seen_pairs = set()
     with (
         gzip.open(synonym_filename_gz, "rt", encoding="utf-8") as synonymf,
         gzip.open(sapbert_filename_gzipped, "wt", encoding="utf-8") as sapbertf,
@@ -83,7 +84,10 @@ def convert_synonyms_to_sapbert(synonym_filename_gz, sapbert_filename_gzipped):
             #    logging.warning(f"CURIE {curie} (preferred name: {preferred_name}) will be excluded from the Smaller training file.")
 
             # Collect and process the list of names.
-            names = entry["names"]
+            names = entry.get("names", [])
+            # Strip whitespace and drop empty strings if any
+            names = [name.strip() for name in names if name.strip()]
+
             if LOWERCASE_ALL_NAMES:
                 names = [name.lower() for name in names]
 
@@ -102,37 +106,35 @@ def convert_synonyms_to_sapbert(synonym_filename_gz, sapbert_filename_gzipped):
             # How many names do we have?
             if len(names) == 0:
                 # This shouldn't happen, but let's anticipate this anyway.
-                line = f"biolink:{biolink_type}||{curie}||{preferred_name}||{preferred_name.lower()}||{preferred_name.lower()}\n"
-                sapbertf.write(line)
-                count_training_rows += 1
-                if generate_smaller_file and is_preferred_name_short:
-                    generate_smaller_file.write(line)
-                    count_smaller_rows += 1
+                continue
             elif len(names) == 1:
                 # If we have less than two names, we don't have anything to randomize.
-                line = f"biolink:{biolink_type}||{curie}||{preferred_name}||{preferred_name.lower()}||{names[0]}\n"
-                sapbertf.write(line)
-                count_training_rows += 1
-                if generate_smaller_file and is_preferred_name_short:
-                    generate_smaller_file.write(line)
-                    count_smaller_rows += 1
+                preferred_name_normalized = preferred_name.lower()
+                preferred_name_normalized = re.sub(r"\|\|+", "|", preferred_name_normalized)
+                if preferred_name_normalized == names[0]:
+                    # no need to write the synonym pair if they are identical
+                    continue
+                name_pairs = [(preferred_name_normalized, names[0])]
             else:
                 name_pairs = list(itertools.combinations(set(names), 2))
 
-                if len(name_pairs) > MAX_SYNONYM_PAIRS:
-                    # Randomly select 50 pairs.
-                    name_pairs = random.sample(name_pairs, MAX_SYNONYM_PAIRS)
+            name_pairs = [name_pair for name_pair in name_pairs if (biolink_type, *sorted(name_pair)) not in seen_pairs]
 
-                for name_pair in name_pairs:
-                    line = f"biolink:{biolink_type}||{curie}||{preferred_name}||{name_pair[0]}||{name_pair[1]}\n"
-                    sapbertf.write(line)
-                    count_training_rows += 1
+            if len(name_pairs) > MAX_SYNONYM_PAIRS:
+                # Randomly select 50 pairs.
+                name_pairs = random.sample(name_pairs, MAX_SYNONYM_PAIRS)
 
-                    # As long as the preferred name is shorter than the right size, we should add this clique to the
-                    # smaller file as well.
-                    if generate_smaller_file and is_preferred_name_short:
-                        generate_smaller_file.write(line)
-                        count_smaller_rows += 1
+            for name_pair in name_pairs:
+                seen_pairs.add((biolink_type, *sorted(name_pair)))
+                line = f"biolink:{biolink_type}||{curie}||{preferred_name}||{name_pair[0]}||{name_pair[1]}\n"
+                sapbertf.write(line)
+                count_training_rows += 1
+
+                # As long as the preferred name is shorter than the right size, we should add this clique to the
+                # smaller file as well.
+                if generate_smaller_file and is_preferred_name_short:
+                    generate_smaller_file.write(line)
+                    count_smaller_rows += 1
 
     logger.info(
         f"Converted {synonym_filename_gz} to SAPBERT training file {synonym_filename_gz}: "
@@ -142,7 +144,7 @@ def convert_synonyms_to_sapbert(synonym_filename_gz, sapbert_filename_gzipped):
     # Close SmallerFile if needed.
     if generate_smaller_file:
         generate_smaller_file.close()
-        percentage = count_smaller_rows / float(count_training_rows) * 100
+        percentage = count_smaller_rows / float(count_training_rows) * 100 if count_training_rows else 0
         logger.info(
             f"Converted {synonym_filename_gz} to smaller SAPBERT training file {generate_smaller_filename}: "
             + f"read {count_entry} entries and wrote out {count_smaller_rows} training rows ({percentage:.2f}%)."
