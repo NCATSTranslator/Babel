@@ -1,0 +1,101 @@
+pipeline,preferred_id,preferred_label,biolink_type,member_count,equivalent_ids,preferred_id_would_survive,needs_biolink_registration,unsupported_prefixes
+disease,GARD:10001,"Congenital secretory diarrhea, chloride type",biolink:Disease,1,GARD:10001,false,true,GARD
+disease,GARD:10002,Chromosome 8Q12.1-q21.2 deletion syndrome,biolink:Disease,1,GARD:10002,false,true,GARD
+disease,GARD:10004,GRN-related frontotemporal lobar degeneration with Tdp43 inclusions,biolink:Disease,1,GARD:10004,false,true,GARD
+disease,GARD:10005,Progressive familial heart block,biolink:Disease,1,GARD:10005,false,true,GARD
+disease,GARD:10007,Immunodeficiency 61,biolink:Disease,1,GARD:10007,false,true,GARD
+disease,GARD:10009,Opsoclonus-myoclonus syndrome,biolink:Disease,1,GARD:10009,false,true,GARD
+disease,GARD:10011,Agammaglobulinemia-microcephaly-craniosynostosis-severe dermatitis syndrome,biolink:Disease,1,GARD:10011,false,true,GARD
+disease,GARD:10012,Camptodactyly-tall stature-scoliosis-hearing loss syndrome,biolink:Disease,1,GARD:10012,false,true,GARD
+disease,GARD:1002,X-linked mandibulofacial dysostosis,biolink:Disease,1,GARD:1002,false,true,GARD
+disease,GARD:10023,Bruck syndrome 2,biolink:Disease,1,GARD:10023,false,true,GARD
+disease,GARD:10024,"Whistling face syndrome, recessive form",biolink:Disease,1,GARD:10024,false,true,GARD
+disease,GARD:10026,Piriformis syndrome,biolink:Disease,1,GARD:10026,false,true,GARD
+disease,GARD:10033,"Aneurysm, intracranial berry, 2",biolink:Disease,1,GARD:10033,false,true,GARD
+disease,GARD:10034,Congenital trigeminal anesthesia,biolink:Disease,1,GARD:10034,false,true,GARD
+disease,GARD:10035,"Prosopagnosia, hereditary",biolink:Disease,1,GARD:10035,false,true,GARD
+disease,GARD:10043,Usher syndrome type 1F,biolink:Disease,1,GARD:10043,false,true,GARD
+disease,GARD:10048,Anonychia,biolink:Disease,1,GARD:10048,false,true,GARD
+disease,GARD:10049,Central areolar choroidal dystrophy,biolink:Disease,1,GARD:10049,false,true,GARD
+disease,GARD:10051,Limb-mammary syndrome,biolink:Disease,1,GARD:10051,false,true,GARD
+disease,GARD:10053,Lipomyelomeningocele,biolink:Disease,1,GARD:10053,false,true,GARD
+disease,GARD:10054,Al-Gazali syndrome,biolink:Disease,1,GARD:10054,false,true,GARD
+disease,GARD:10061,Talo-patello-scaphoid osteolysis,biolink:Disease,1,GARD:10061,false,true,GARD
+disease,GARD:10066,"Metaphyseal undermodeling, spondylar dysplasia, and overgrowth",biolink:Disease,1,GARD:10066,false,true,GARD
+disease,GARD:10070,Subependymal glioma,biolink:Disease,1,GARD:10070,false,true,GARD
+disease,GARD:10071,Pulmonic stenosis,biolink:Disease,1,GARD:10071,false,true,GARD
+disease,GARD:10073,Cerebral sarcoma,biolink:Disease,1,GARD:10073,false,true,GARD
+disease,GARD:10074,Nephropathic cystinosis,biolink:Disease,1,GARD:10074,false,true,GARD
+disease,GARD:10075,Dermatitis herpetiformis,biolink:Disease,1,GARD:10075,false,true,GARD
+disease,GARD:10077,Acromesomelic dysplasia 3,biolink:Disease,1,GARD:10077,false,true,GARD
+disease,GARD:10079,"Hydroa vacciniforme, familial",biolink:Disease,1,GARD:10079,false,true,GARD
+disease,GARD:10081,White forelock with malformations,biolink:Disease,1,GARD:10081,false,true,GARD
+disease,GARD:10082,Infantile osteopetrosis with neuroaxonal dysplasia,biolink:Disease,1,GARD:10082,false,true,GARD
+disease,GARD:10084,Hemifacial myohyperplasia,biolink:Disease,1,GARD:10084,false,true,GARD
+disease,GARD:10088,Majeed syndrome,biolink:Disease,1,GARD:10088,false,true,GARD
+disease,GARD:10090,Pierre Robin sequence with pectus excavatum and rib and scapular anomalies,biolink:Disease,1,GARD:10090,false,true,GARD
+disease,GARD:10096,Hereditary leiomyomatosis and renal cell cancer,biolink:Disease,1,GARD:10096,false,true,GARD
+disease,GARD:10097,Leiomyoma of vulva and esophagus,biolink:Disease,1,GARD:10097,false,true,GARD
+disease,GARD:10101,Spondyloepimetaphyseal dysplasia-hypotrichosis syndrome,biolink:Disease,1,GARD:10101,false,true,GARD
+disease,GARD:10102,"Ehlers-Danlos syndrome, Beasley-Cohen type",biolink:Disease,1,GARD:10102,false,true,GARD
+disease,GARD:10103,Elastosis perforans serpiginosa,biolink:Disease,1,GARD:10103,false,true,GARD
+disease,GARD:10104,"Pseudoxanthoma elasticum, forme fruste",biolink:Disease,1,GARD:10104,false,true,GARD
+disease,GARD:10108,Congenital myasthenic syndrome 4C,biolink:Disease,1,GARD:10108,false,true,GARD
+disease,GARD:10111,Actin accumulation myopathy,biolink:Disease,1,GARD:10111,false,true,GARD
+disease,GARD:10116,Autosomal recessive congenital ichthyosis 11,biolink:Disease,1,GARD:10116,false,true,GARD
+disease,GARD:10118,Oguchi disease,biolink:Disease,1,GARD:10118,false,true,GARD
+disease,GARD:10119,"Cone dystrophy, X-linked, with tapetal-like sheen",biolink:Disease,1,GARD:10119,false,true,GARD
+disease,GARD:10121,MORM syndrome,biolink:Disease,1,GARD:10121,false,true,GARD
+disease,GARD:10123,Progressive bifocal chorioretinal atrophy,biolink:Disease,1,GARD:10123,false,true,GARD
+disease,GARD:10126,GM1 gangliosidosis type 2,biolink:Disease,1,GARD:10126,false,true,GARD
+disease,GARD:10127,Isolated lutropin deficiency,biolink:Disease,1,GARD:10127,false,true,GARD
+disease,GARD:10128,Hypogonadotropic hypogonadism 24 without anosmia,biolink:Disease,1,GARD:10128,false,true,GARD
+disease,GARD:10129,Isolated thyroid-stimulating hormone deficiency,biolink:Disease,1,GARD:10129,false,true,GARD
+disease,GARD:10131,"Hereditary motor and sensory neuropathy, Okinawa type",biolink:Disease,1,GARD:10131,false,true,GARD
+disease,GARD:10132,Charcot-Marie-Tooth disease type 4G,biolink:Disease,1,GARD:10132,false,true,GARD
+disease,GARD:10135,"Arthrogryposis, distal, type 2E",biolink:Disease,1,GARD:10135,false,true,GARD
+disease,GARD:10138,Torsion dystonia 4,biolink:Disease,1,GARD:10138,false,true,GARD
+disease,GARD:10140,Bohring-Opitz syndrome,biolink:Disease,1,GARD:10140,false,true,GARD
+disease,GARD:10141,Familial chronic myelocytic leukemia-like syndrome,biolink:Disease,1,GARD:10141,false,true,GARD
+disease,GARD:10144,Dentinogenesis imperfecta type 3,biolink:Disease,1,GARD:10144,false,true,GARD
+disease,GARD:10149,Kyphomelic dysplasia,biolink:Disease,1,GARD:10149,false,true,GARD
+disease,GARD:10151,Aicardi-Goutieres syndrome 5,biolink:Disease,1,GARD:10151,false,true,GARD
+disease,GARD:10156,Congenital chylothorax,biolink:Disease,1,GARD:10156,false,true,GARD
+disease,GARD:10161,Onychotrichodysplasia and neutropenia,biolink:Disease,1,GARD:10161,false,true,GARD
+disease,GARD:10163,Curly hair - acral keratoderma - caries syndrome,biolink:Disease,1,GARD:10163,false,true,GARD
+disease,GARD:10168,Joubert syndrome with ocular defect,biolink:Disease,1,GARD:10168,false,true,GARD
+disease,GARD:10173,Florid cemento-osseous dysplasia,biolink:Disease,1,GARD:10173,false,true,GARD
+disease,GARD:10177,Mirizzi syndrome,biolink:Disease,1,GARD:10177,false,true,GARD
+disease,GARD:10184,Cryohydrocytosis,biolink:Disease,1,GARD:10184,false,true,GARD
+disease,GARD:10186,Bladder urachal adenocarcinoma,biolink:Disease,1,GARD:10186,false,true,GARD
+disease,GARD:10188,"Angioma serpiginosum, X-linked",biolink:Disease,1,GARD:10188,false,true,GARD
+disease,GARD:10189,"Angioma serpiginosum, autosomal dominant",biolink:Disease,1,GARD:10189,false,true,GARD
+disease,GARD:10190,Isolated focal cortical dysplasia type II,biolink:Disease,1,GARD:10190,false,true,GARD
+disease,GARD:10193,Subcutaneous panniculitis-like T-cell lymphoma,biolink:Disease,1,GARD:10193,false,true,GARD
+disease,GARD:10195,"Parasomnia, sleep bruxism type",biolink:Disease,1,GARD:10195,false,true,GARD
+disease,GARD:10198,Immunoglobulin A deficiency 2,biolink:Disease,1,GARD:10198,false,true,GARD
+disease,GARD:10199,Optic atrophy 2,biolink:Disease,1,GARD:10199,false,true,GARD
+disease,GARD:102,Neu-Laxova syndrome,biolink:Disease,1,GARD:102,false,true,GARD
+disease,GARD:10200,Optic atrophy 6,biolink:Disease,1,GARD:10200,false,true,GARD
+disease,GARD:10201,Optic atrophy 5,biolink:Disease,1,GARD:10201,false,true,GARD
+disease,GARD:10202,Chromosome 2q37 deletion syndrome,biolink:Disease,1,GARD:10202,false,true,GARD
+disease,GARD:10213,Blepharophimosis-ptosis-epicanthus inversus syndrome type 2,biolink:Disease,1,GARD:10213,false,true,GARD
+disease,GARD:10215,Citrullinemia type II,biolink:Disease,1,GARD:10215,false,true,GARD
+disease,GARD:10216,NDE1-related microhydranencephaly,biolink:Disease,1,GARD:10216,false,true,GARD
+disease,GARD:10220,Spondyloepiphyseal dysplasia with metatarsal shortening,biolink:Disease,1,GARD:10220,false,true,GARD
+disease,GARD:10221,Renal cysts and diabetes syndrome,biolink:Disease,1,GARD:10221,false,true,GARD
+disease,GARD:10223,Deficiency of isobutyryl-CoA dehydrogenase,biolink:Disease,1,GARD:10223,false,true,GARD
+disease,GARD:10224,Zygomycosis,biolink:Disease,1,GARD:10224,false,true,GARD
+disease,GARD:10225,Multiple endocrine neoplasia type 2B,biolink:Disease,1,GARD:10225,false,true,GARD
+disease,GARD:10227,Cataract 31 multiple types,biolink:Disease,1,GARD:10227,false,true,GARD
+disease,GARD:10228,Cataract 11 multiple types,biolink:Disease,1,GARD:10228,false,true,GARD
+disease,GARD:10230,"Emery-Dreifuss muscular dystrophy 2, autosomal dominant",biolink:Disease,1,GARD:10230,false,true,GARD
+disease,GARD:10234,Cataract 6 multiple types,biolink:Disease,1,GARD:10234,false,true,GARD
+disease,GARD:10236,Cataract 32,biolink:Disease,1,GARD:10236,false,true,GARD
+disease,GARD:10237,Biotin-responsive basal ganglia disease,biolink:Disease,1,GARD:10237,false,true,GARD
+disease,GARD:10239,H syndrome,biolink:Disease,1,GARD:10239,false,true,GARD
+disease,GARD:10241,Diamond-Blackfan anemia 3,biolink:Disease,1,GARD:10241,false,true,GARD
+disease,GARD:10244,"Lipase deficiency, combined",biolink:Disease,1,GARD:10244,false,true,GARD
+disease,GARD:1025,Bronchogenic cyst,biolink:Disease,1,GARD:1025,false,true,GARD
+disease,GARD:10263,Hydatidiform mole,biolink:Disease,1,GARD:10263,false,true,GARD
+disease,GARD:10265,Pityriasis lichenoides,biolink:Disease,1,GARD:10265,false,true,GARD

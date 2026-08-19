@@ -1,0 +1,11 @@
+pipeline,predicate,prefix_1,prefix_2,asserted_by,status,xref_count,subject,subject_label,object,object_label
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0050012,chikungunya,GARD:6038,Chikungunya fever
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0050970,spinocerebellar ataxia 19/22,GARD:12365,Spinocerebellar ataxia type 19/22
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0060851,pemphigus vulgaris,GARD:7355,Pemphigus vulgaris
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0080156,X-linked adrenal hypoplasia congenita,GARD:555,"Congenital adrenal hypoplasia, X-linked"
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0090116,spondylocarpotarsal synostosis syndrome,GARD:4974,Spondylocarpotarsal synostosis syndrome
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0111329,pyridoxamine 5'-phosphate oxidase deficiency,GARD:10730,Pyridoxal phosphate-responsive seizures
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0112151,corpus callosum agenesis-abnormal genitalia syndrome,GARD:4528,Corpus callosum agenesis-abnormal genitalia syndrome
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:1278,tolosa-hunt syndrome,GARD:7777,Tolosa-Hunt syndrome
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:2297,leptospirosis,GARD:7881,Leptospirosis
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:4927,Klatskin's tumor,GARD:10175,Klatskin tumor
