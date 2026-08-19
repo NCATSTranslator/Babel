@@ -67,10 +67,13 @@ def build_xrefs(infile, xreffile, other_prefixes={}, excluded_target_prefixes=()
             doid_curie = f"{DOID}:{doid_id.split('_')[-1]}"
             if ("meta" in entry) and ("xrefs" in entry["meta"]):
                 for xref in entry["meta"]["xrefs"]:
-                    # DOID emits GARD ids in both the unpadded (GARD:6038, 2,164 xrefs) and the
-                    # registry's zero-padded (GARD:0006038, 23 xrefs) form. Babel standardizes on
-                    # the unpadded one, so unpad here too or the same rare disease lands in two
-                    # cliques -- see the "Local-id form" note in src/datahandlers/gard.py.
+                    # DOID emits GARD ids in both the unpadded (GARD:6038) and the registry's
+                    # zero-padded (GARD:0006038, 28 xrefs) form. Babel standardizes on the
+                    # unpadded one, so unpad here too or the same rare disease lands in two
+                    # cliques -- see the "Local-id form" note in src/datahandlers/gard.py. The one
+                    # leading-zero xref that is NOT padding (GARD:0418, a typo for GARD:10418 on
+                    # DOID:0061030) unpads to a real but unrelated id and is dropped downstream by
+                    # input_data/doid_badxrefs.txt.
                     other = normalize_gard_curie(norm(xref["val"], other_prefixes))
                     if other.split(":", 1)[0].upper() in excluded_upper:
                         continue

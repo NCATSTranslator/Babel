@@ -1,0 +1,19 @@
+# DOID xrefs (in intermediate/disease/concords/DOID) that assert an equivalence that isn't one.
+# Hand maintained. Space-separated `subject object` pairs; `#` starts a comment.
+#
+# DOID:0061030 is "hemophilia"; its GARD xref is written `GARD:0418`, which normalizes to
+# GARD:418 "Essential pentosuria", already xrefed by DOID:0111258 "pentosuria". The two cliques
+# do not merge -- both hold a MONDO id and MONDO is in DISEASE_UNIQUE_PREFIXES, so glom() refuses
+# the union -- so the contested id goes to whichever clique claims it first, and DOID's concord
+# lists hemophilia's row first. Keeping the row therefore puts an identifier labelled "Essential
+# pentosuria" in the hemophilia clique and leaves pentosuria without its registry term.
+# Measured in docs/sources/GARD/mistyped-xref/clique-diff.csv.
+#
+# It is a typo upstream, not a padding artifact: hemophilia is
+# https://rarediseases.info.nih.gov/?gard_id=10418, so the intended value was GARD:10418, and
+# `GARD:0418` is the one GARD xref in the release whose local id is neither the unpadded form
+# nor the registry's 7-digit padding (the other 28 padded ones are all `GARD:0018564`-shaped).
+# We drop the row rather than rewrite it to GARD:10418: Babel reports upstream xrefs, it does
+# not invent them, and the correct edge arrives on its own once DOID fixes the typo.
+# Reported upstream: https://github.com/DiseaseOntology/HumanDiseaseOntology/issues/1620
+DOID:0061030 GARD:418

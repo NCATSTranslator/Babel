@@ -593,6 +593,25 @@ def test_mp_badxrefs_is_wired_up_and_drops_the_bifid_scrotum_xref():
 
 
 @pytest.mark.unit
+def test_doid_badxrefs_drops_the_mistyped_hemophilia_gard_xref():
+    """The DOID concord must be filtered through input_data/doid_badxrefs.txt, which must still
+    drop DOID:0061030 -> GARD:418.
+
+    DOID:0061030 "hemophilia" writes its GARD xref as ``GARD:0418``, which unpads to GARD:418
+    "Essential pentosuria" -- already xrefed by DOID:0111258 "pentosuria". The two cliques cannot
+    merge (both hold a MONDO id, and MONDO is in DISEASE_UNIQUE_PREFIXES), so without this pair the
+    contested identifier is awarded to hemophilia, whose concord row comes first: the hemophilia
+    clique carries an id labelled "Essential pentosuria" and pentosuria gets none. It is an upstream
+    typo for GARD:10418, not the registry's 7-digit zero-padding, so it is dropped here rather than
+    handled in normalize_gard_curie(); see input_data/doid_badxrefs.txt and
+    docs/sources/GARD/mistyped-xref/clique-diff.csv.
+    """
+    assert "DOID" in diseasephenotype.DEFAULT_BAD_XREFS
+    bad_pairs = diseasephenotype.read_badxrefs(diseasephenotype.DEFAULT_BAD_XREFS["DOID"])
+    assert ("DOID:0061030", "GARD:418") in bad_pairs
+
+
+@pytest.mark.unit
 def test_badxrefs_key_matching_no_concord_raises(tmp_path):
     """A bad-xrefs key that matches no concord basename (a typo, or DEFAULT_BAD_XREFS and the
     snakefile dict drifting apart) must raise rather than silently never filtering -- the

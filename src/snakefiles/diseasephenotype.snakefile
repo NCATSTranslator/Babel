@@ -271,6 +271,7 @@ rule disease_manual_concord:
 
 rule disease_compendia:
     input:
+        bad_doid_xrefs="input_data/doid_badxrefs.txt",
         bad_hpo_xrefs="input_data/badHPx.txt",
         bad_mondo_xrefs="input_data/mondo_badxrefs.txt",
         bad_mp_xrefs="input_data/mp_badxrefs.txt",
@@ -307,6 +308,7 @@ rule disease_compendia:
             input.idlists,
             input.close_matches,
             {
+                "DOID": input.bad_doid_xrefs,
                 "HP": input.bad_hpo_xrefs,
                 "MONDO": input.bad_mondo_xrefs,
                 "MP": input.bad_mp_xrefs,

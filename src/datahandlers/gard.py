@@ -14,11 +14,17 @@ Local-id form
 -------------
 The distribution zero-pads every local id to seven digits (``GARD:0006038``), but DOID -- the one
 other disease source that cross-references GARD -- overwhelmingly emits the unpadded form
-(``GARD:6038``: 2,164 of its 2,187 GARD xrefs, the remaining 23 padded). Babel standardizes on the
+(``GARD:6038``: all but 29 of its 2,196 distinct GARD xrefs). Babel standardizes on the
 **unpadded** form, so :func:`normalize_gard_curie` strips leading zeros both here and on DOID's
 xref targets (``src/datahandlers/doid.py``). Without that, ``GARD:0006038`` from the registry and
 ``GARD:6038`` from DOID are two identifiers for one disease and ~1,886 rare diseases normalize to
 two conflicting cliques.
+
+28 of those 29 carry the registry's 7-digit padding. The 29th, ``GARD:0418`` on
+``DOID:0061030`` "hemophilia", is an upstream typo for ``GARD:10418``: it unpads to ``GARD:418``
+"Essential pentosuria", which ``DOID:0111258`` "pentosuria" also xrefs, and the hemophilia clique
+wins the contest -- so ``input_data/doid_badxrefs.txt`` drops that concord row. See
+docs/sources/GARD/README.md for why it is dropped rather than corrected here.
 
 GARD itself carries no cross-references to other disease vocabularies (MONDO/DOID/UMLS/...), so it
 contributes identifiers and labels/synonyms only -- there is no GARD concord file. Cliques still
@@ -30,7 +36,8 @@ ingest.)
 Every GARD term is typed ``biolink:Disease``. ``GARD`` is registered neither in the Biolink Model's
 ``disease`` ``id_prefixes`` nor in its prefix map (verified against the pinned
 ``biolink_version``), so the disease compendium build passes ``extra_prefixes=[GARD]`` to keep the
-identifiers (see ``src/createcompendia/diseasephenotype.py``); registering GARD with the Biolink
+identifiers (``disease_extra_prefixes`` in ``config.yaml``, read by
+``src/createcompendia/diseasephenotype.py``); registering GARD with the Biolink
 team is the long-term fix, the same situation GTDB is in (see PR #978).
 
 Field-shape note: a scan of the published CSV (16,214 rows) found no ``DisplayName`` or
