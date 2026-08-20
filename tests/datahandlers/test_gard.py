@@ -10,6 +10,7 @@ are kept, since the presence of a `URL` is not a reliable signal that a row is a
 """
 
 import csv
+import locale
 from pathlib import Path
 
 import pytest
@@ -186,3 +187,32 @@ def test_disease_node_factory_keeps_gard_only_with_extra_prefixes():
 
     # Without the escape hatch there is no permitted prefix left, so create_node returns None.
     assert factory.create_node(input_identifiers=[curie], node_type=DISEASE, labels=labels) is None
+
+
+@pytest.mark.unit
+def test_labels_and_synonyms_are_written_utf8_under_a_c_locale(tmp_path, monkeypatch):
+    """Non-ASCII rare-disease names must survive the write whatever the process locale is.
+
+    ``open(..., "w")`` inherits the locale encoding on Python < 3.14 (this repo pins >=3.11,<3.14),
+    so on an HPC batch node running under LC_ALL=C an unqualified open() raises UnicodeEncodeError
+    partway through and leaves a truncated labels file. GARD is full of names like these, so the
+    writers pass encoding="utf-8" explicitly.
+
+    ``monkeypatch`` of locale.getpreferredencoding is what a C locale looks like from inside the
+    process; setting LC_ALL after interpreter start would not change what open() picks.
+    """
+    monkeypatch.setattr(locale, "getpreferredencoding", lambda do_setlocale=True: "ascii")
+
+    synth = tmp_path / "synthetic.csv"
+    synth.write_text(
+        "ID,DisplayName,Synonyms,URL\nGARD:0006038,Ménière disease,Chédiak–Higashi syndrome|Béhçet,\n",
+        encoding="utf-8",
+    )
+    labels = str(tmp_path / "labels")
+    syns = str(tmp_path / "synonyms")
+
+    pull_gard_labels_and_synonyms(str(synth), labels, syns)
+
+    assert Path(labels).read_text(encoding="utf-8").rstrip("\n") == "GARD:6038\tMénière disease"
+    synonym_values = [line.split("\t")[2] for line in Path(syns).read_text(encoding="utf-8").splitlines()]
+    assert "Chédiak–Higashi syndrome" in synonym_values

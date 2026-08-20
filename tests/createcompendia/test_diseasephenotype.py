@@ -646,6 +646,50 @@ def test_badxrefs_key_for_excluded_source_does_not_raise(tmp_path):
     assert set(dicts.keys()) == {"HP:0000001"}
 
 
+# --- MONDO GARD xref exception ---
+
+
+@pytest.mark.unit
+def test_mondo_gard_concord_keeps_only_unpadded_gard_targets(tmp_path):
+    """build_disease_obo_relationships must write MONDO's GARD hasDbXrefs, and *only* those.
+
+    Exercises the real call site rather than re-specifying it, because both arguments it passes are
+    load-bearing and neither is visible anywhere else: `allowed_prefixes={GARD}` is what keeps
+    MONDO's other hasDbXref targets out (ICD9:759.89 alone is claimed by 167 MONDO terms), and
+    `other_prefixes={GARD: normalize_gard_curie}` is what strips the registry padding MONDO writes
+    -- a padded GARD:0010418 here would join neither GARD's ids file nor DOID's unpadded xrefs, so
+    the row would look present and do nothing.
+
+    The targets below are the shapes MONDO really emits; GARD:0010418 is its mapping for
+    MONDO:0018660 "hemophilia". See docs/sources/MONDO/README.md.
+    """
+    xrefs = {
+        "MONDO:0018660": {  # "hemophilia"
+            "GARD:0010418",  # the registry mapping, zero-padded -- kept, unpadded to GARD:10418
+            "ICD9:759.89",  # a family code claimed by 167 MONDO terms -- dropped
+            "MedDRA:10001843",  # not 1:1, and unreviewed -- dropped
+            "HP:0002754",  # crosses the disease/phenotype boundary -- dropped
+            "https://en.wikipedia.org/wiki/Haemophilia",  # a web page -- dropped
+        }
+    }
+    fake_uber = MagicMock()
+    fake_uber.get_subclasses_and_xrefs.return_value = xrefs
+    fake_uber.get_subclasses_and_exacts.return_value = {}
+    fake_uber.get_subclasses_and_close.return_value = {}
+
+    outdir = tmp_path / "concords"
+    outdir.mkdir()
+    metadata_yamls = {
+        name: str(tmp_path / f"metadata-{name}.yaml") for name in ("HP", "MONDO", "MONDO_close", "MONDO_GARD", "MP")
+    }
+
+    with patch("src.ubergraph.UberGraph", return_value=fake_uber):
+        diseasephenotype.build_disease_obo_relationships(str(outdir), metadata_yamls)
+
+    rows = (outdir / f"{MONDO}_{GARD}").read_text().splitlines()
+    assert rows == [f"{MONDO}:0018660\txref\t{GARD}:10418"] * 2  # once per root walked
+
+
 # --- MP xref allowlist ---
 
 
