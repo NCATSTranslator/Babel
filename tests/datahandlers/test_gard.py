@@ -11,12 +11,19 @@ are kept, since the presence of a `URL` is not a reliable signal that a row is a
 
 import csv
 import locale
+import warnings
 from pathlib import Path
 
 import pytest
 
 from src.categories import DISEASE
-from src.datahandlers.gard import normalize_gard_curie, pull_gard, pull_gard_labels_and_synonyms
+from src.datahandlers.gard import (
+    fetch_gard_about_page,
+    find_gard_download_links,
+    normalize_gard_curie,
+    pull_gard,
+    pull_gard_labels_and_synonyms,
+)
 from src.node import NodeFactory
 from src.prefixes import GARD, OIO
 from src.util import get_biolink_model_toolkit, get_config
@@ -282,3 +289,50 @@ def test_labels_and_synonyms_are_written_utf8_under_a_c_locale(tmp_path, monkeyp
     assert Path(labels).read_text(encoding="utf-8").rstrip("\n") == "GARD:21527\tAttenuated Chédiak-Higashi syndrome"
     synonym_values = [line.split("\t")[2] for line in Path(syns).read_text(encoding="utf-8").splitlines()]
     assert "atypical chédiak-higashi syndrome" in synonym_values
+
+
+# --- keeping gard_download_url current ----------------------------------------
+#
+# NCATS publishes the list only as a link on its About page, and each upload is a new Salesforce
+# ContentVersion URL. The config pins one; these tests notice when the page has moved on.
+
+# The anchor, verbatim from https://rarediseases.info.nih.gov/about on 2026-08-21.
+_ABOUT_PAGE_ANCHOR = (
+    '<a href="https://ncats.file.force.com/sfc/dist/version/download/?oid=00Dt00000004XG2&amp;ids=068SJ00001HZAaEYAX'
+    '&amp;d=%2Fa%2FSJ00000BC4Xl%2FUj7U9WuHII571Akz5AUBLe6WSCeelaMBynbjWybmhuA&amp;asPdf=false" target="_blank" '
+    'rel="noopener noreferrer">GARD Rare Disease List Jun2026.csv <i class="icon-gard-open-link"></i></a>'
+)
+
+
+@pytest.mark.unit
+def test_find_gard_download_links_decodes_href_and_reads_link_text():
+    """The page writes &amp; between query parameters and puts an icon inside the anchor; the
+    parsed URL must equal the config value byte-for-byte and the text must carry the version."""
+    page = f"<html><body><p>downloaded here: {_ABOUT_PAGE_ANCHOR}</p><a href='/other'>x</a></body></html>"
+    assert find_gard_download_links(page) == [
+        (get_config()["gard_download_url"], "GARD Rare Disease List Jun2026.csv"),
+    ]
+
+
+@pytest.mark.network
+def test_gard_download_url_is_current():
+    """gard_download_url must still be the link NCATS publishes on the GARD About page.
+
+    Fails if the configured URL is no longer on the page -- get_gard will fail too, since an old
+    ContentVersion link stops resolving. Warns (without failing) if the page also carries a
+    distribution link that is NOT the configured one: that is most likely a newer upload, and the
+    warning names it so the config can be repointed before the next release.
+    """
+    configured = get_config()["gard_download_url"]
+    links = find_gard_download_links(fetch_gard_about_page())
+    assert links, "no GARD distribution link found on the About page at all; has its markup changed?"
+
+    others = [(url, text) for url, text in links if url != configured]
+    if others:
+        listing = "; ".join(f"{text!r} -> {url}" for url, text in others)
+        warnings.warn(f"GARD About page carries a distribution link that is not gard_download_url: {listing}")
+
+    assert configured in {url for url, _ in links}, (
+        "gard_download_url is no longer linked from the GARD About page; repoint config.yaml to the "
+        f"current link: {others}"
+    )

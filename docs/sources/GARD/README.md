@@ -116,7 +116,11 @@ publishes no stable or documented data URL. The link is a Salesforce file-distri
 ContentVersion id, which names **one uploaded version** of the file: the link pinned in
 `config.yaml` as `gard_download_url` is "GARD Rare Disease List Jun2026.csv". When NCATS uploads a
 new list the About page gets a new link, and the old one may stop resolving, so **re-check the About
-page before each release** and repoint `gard_download_url`. The URL is passed to the `get_gard`
+page before each release** and repoint `gard_download_url`. `uv run pytest
+tests/datahandlers/test_gard.py::test_gard_download_url_is_current --network` does the check: it
+fails if the configured link has gone from the page, and warns if the page carries another
+distribution link (most likely a newer upload), naming it. `gard_download_url` therefore sits with
+the other per-release versions at the top of `config.yaml`. The URL is passed to the `get_gard`
 rule (in `src/snakefiles/datacollect.snakefile`) as a `params` value, so repointing it retriggers
 the download. It is a query-string URL with no stable filename on the server, so the rule calls
 `src.datahandlers.gard.pull_gard()` directly rather than the shared `pull_via_urllib` helper.

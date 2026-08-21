@@ -53,12 +53,64 @@ empty ``DisplayName``) rather than left resting on a finding that nothing re-che
 
 import csv
 import urllib.request
+from html.parser import HTMLParser
 
 from src.babel_utils import get_user_agent
 from src.prefixes import GARD, OIO
 from src.util import get_logger
 
 logger = get_logger(__name__)
+
+# Where NCATS publishes the list: the About page carries a "GARD Rare Disease List <Mon><Year>.csv"
+# link, and there is no other documented data URL. The link is a Salesforce file-distribution URL
+# whose `ids=068...` is a ContentVersion id -- one uploaded version of the file -- so every new
+# upload is a new URL. `gard_download_url` in config.yaml pins one; find_gard_download_links() is
+# how we notice it has moved.
+GARD_ABOUT_PAGE_URL = "https://rarediseases.info.nih.gov/about"
+_DISTRIBUTION_URL_STEM = "ncats.file.force.com/sfc/dist/version/download/"
+
+
+class _DistributionLinkParser(HTMLParser):
+    """Collect (href, link text) for every Salesforce distribution link on a page."""
+
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._current = None
+
+    def handle_starttag(self, tag, attrs):
+        href = dict(attrs).get("href") or ""
+        if tag == "a" and _DISTRIBUTION_URL_STEM in href:
+            self._current = [href, ""]
+
+    def handle_data(self, data):
+        if self._current is not None:
+            self._current[1] += data
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current is not None:
+            href, text = self._current
+            self.links.append((href, " ".join(text.split())))
+            self._current = None
+
+
+def find_gard_download_links(page_html):
+    """Return ``[(url, link_text), ...]`` for every GARD distribution link in ``page_html``.
+
+    ``url`` is the href with HTML entities decoded (the page writes ``&amp;`` between query
+    parameters), so it compares equal to ``gard_download_url`` in config.yaml; ``link_text`` is the
+    anchor text, e.g. ``"GARD Rare Disease List Jun2026.csv"``, which is where the version lives.
+    """
+    parser = _DistributionLinkParser()
+    parser.feed(page_html)
+    return parser.links
+
+
+def fetch_gard_about_page():
+    """Download the GARD About page HTML (the only place the list's download link is published)."""
+    request = urllib.request.Request(GARD_ABOUT_PAGE_URL, headers={"User-Agent": get_user_agent()})
+    with urllib.request.urlopen(request) as response:
+        return response.read().decode("utf-8", errors="replace")
 
 
 def _reject_tsv_control_chars(curie, field, value):
