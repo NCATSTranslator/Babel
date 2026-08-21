@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from src.categories import DISEASE
-from src.datahandlers.gard import normalize_gard_curie, pull_gard_labels_and_synonyms
+from src.datahandlers.gard import normalize_gard_curie, pull_gard, pull_gard_labels_and_synonyms
 from src.node import NodeFactory
 from src.prefixes import GARD, OIO
 from src.util import get_biolink_model_toolkit, get_config
@@ -117,6 +117,56 @@ def test_normalize_gard_curie(curie, expected):
 #
 # A silently zeroed GARD ingest drops ~16k rare diseases from a build that still exits green, so
 # the parser raises rather than logging (AGENTS.md: "A log warning is not a control").
+
+
+class _FakeResponse:
+    """Stand-in for urllib's response: a content type and a body, usable as a context manager."""
+
+    def __init__(self, content_type, body):
+        self._content_type = content_type
+        self._body = body
+        self.headers = self
+
+    def get_content_type(self):
+        return self._content_type
+
+    def read(self):
+        return self._body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def _patch_opener(monkeypatch, response):
+    opener = type("Opener", (), {"open": lambda self, request: response})()
+    monkeypatch.setattr("src.datahandlers.gard.urllib.request.build_opener", lambda *handlers: opener)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("content_type", ["text/csv", "text/plain", "application/vnd.ms-excel"])
+def test_pull_gard_accepts_any_non_html_content_type(tmp_path, monkeypatch, content_type):
+    """Only an HTML body is refused: a valid CSV served as text/plain or vnd.ms-excel is still a CSV,
+    and the parser's header check is what decides whether the bytes are usable."""
+    response = _FakeResponse(content_type, b"ID,DisplayName,Synonyms,URL\n")
+    _patch_opener(monkeypatch, response)
+    out = tmp_path / "gard.csv"
+    assert pull_gard("https://example.invalid/gard", str(out)) == str(out)
+    assert out.read_bytes() == b"ID,DisplayName,Synonyms,URL\n"
+
+
+@pytest.mark.unit
+def test_pull_gard_rejects_html(tmp_path, monkeypatch):
+    """An expired ContentVersion link serves an HTML error page with HTTP 200; that must fail the
+    rule with a message naming the config key, not write a file that parses to zero terms."""
+    response = _FakeResponse("text/html", b"<html>expired</html>")
+    _patch_opener(monkeypatch, response)
+    out = tmp_path / "gard.csv"
+    with pytest.raises(RuntimeError, match="gard_download_url"):
+        pull_gard("https://example.invalid/gard", str(out))
+    assert not out.exists()
 
 
 @pytest.mark.unit
