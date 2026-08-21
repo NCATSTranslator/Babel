@@ -109,10 +109,16 @@ is in for `biolink:OrganismTaxon` (PR #978 ships GTDB under the same `extra_pref
 
 ## Download
 
-The GARD term list is a Salesforce ContentVersion download link configured as
-`gard_download_url` in `config.yaml` and passed to the `get_gard` rule (in
-`src/snakefiles/datacollect.snakefile`) as a `params` value, so repointing the URL retriggers the
-download. It is a query-string URL with no stable filename on the server, so the rule calls
+The GARD term list is the "GARD Rare Disease List \<Mon\>\<Year\>.csv" link on
+<https://rarediseases.info.nih.gov/about>, under "Which rare diseases are included in GARD?" — NCATS
+publishes no stable or documented data URL. The link is a Salesforce file-distribution URL
+(`https://ncats.file.force.com/sfc/dist/version/download/?...&ids=068...`) whose `ids` value is a
+ContentVersion id, which names **one uploaded version** of the file: the link pinned in
+`config.yaml` as `gard_download_url` is "GARD Rare Disease List Jun2026.csv". When NCATS uploads a
+new list the About page gets a new link, and the old one may stop resolving, so **re-check the About
+page before each release** and repoint `gard_download_url`. The URL is passed to the `get_gard`
+rule (in `src/snakefiles/datacollect.snakefile`) as a `params` value, so repointing it retriggers
+the download. It is a query-string URL with no stable filename on the server, so the rule calls
 `src.datahandlers.gard.pull_gard()` directly rather than the shared `pull_via_urllib` helper.
 
 Three guards keep a broken distribution from producing a green build with rare diseases missing
