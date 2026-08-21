@@ -169,9 +169,9 @@ disease_ids:               [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UML
 # concord (exact matches only) sees none of them. Kept as its own file so the exception is visible
 # here and can be filtered without touching MONDO's exact matches -- docs/sources/MONDO/README.md.
 #
-# ORDER IS LOAD-BEARING: MONDO_GARD must precede DOID. 173 of DOID's ~2,200 GARD xrefs put a GARD
-# id on a different MONDO clique than MONDO itself does (e.g. DOID:0050120 -> GARD:6589, which MONDO
-# maps to MONDO:0015541). MONDO is a unique prefix, so glom() cannot merge the two cliques and the
+# ORDER IS LOAD-BEARING: MONDO_GARD must precede DOID. 148 of DOID's 2,208 GARD xref rows put a
+# GARD id on a different MONDO clique than MONDO itself does (e.g. DOID:0050120 -> GARD:6589, which
+# MONDO maps to MONDO:0015541; docs/sources/GARD/scripts/count_doid_mondo_gard_disagreements.py). MONDO is a unique prefix, so glom() cannot merge the two cliques and the
 # id stays with whichever concord claimed it first; listing MONDO's own mapping first is what makes
 # MONDO, not DOID, the authority. A unit test pins the relative order.
 disease_concords:          [HP, MP, MONDO, MONDO_GARD, UMLS, DOID, EFO, Manual]

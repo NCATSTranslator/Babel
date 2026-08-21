@@ -979,10 +979,10 @@ def test_mondo_gard_concord_is_registered_in_disease_concords():
     identifiers silently revert to single-identifier cliques duplicating MONDO concepts. That is a
     failure with no error message anywhere, which is what makes it worth pinning.
 
-    It must also come BEFORE DOID. 173 of DOID's GARD xrefs put a GARD id on a different MONDO
+    It must also come BEFORE DOID. 148 of DOID's GARD xref rows put a GARD id on a different MONDO
     clique than MONDO does; MONDO is a unique prefix so the cliques cannot merge, and glom() leaves
     the id with whichever concord claimed it first. An alphabetical tidy-up of the list would
-    silently re-home those 173 ids -- see the comment on disease_concords in config.yaml.
+    silently re-home those ids -- see the comment on disease_concords in config.yaml.
     """
     concords = get_config()["disease_concords"]
     assert f"{MONDO}_{GARD}" in concords

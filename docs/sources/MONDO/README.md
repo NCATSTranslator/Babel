@@ -54,9 +54,10 @@ Three things scope the exception:
    [GARD]` turns that into "neither claims it" instead. (The file is deduplicated when written —
    a term under both MONDO roots would otherwise be a doubled row, which the row-counting filter
    would read as a double claim.)
-4. **Glommed before DOID.** 173 of DOID's GARD xrefs disagree with MONDO about which MONDO clique
-   a GARD id belongs to; listing `MONDO_GARD` before `DOID` in `disease_concords` is what makes
-   MONDO the authority. A unit test pins the order.
+4. **Glommed before DOID.** 148 of DOID's GARD xref rows disagree with MONDO about which MONDO
+   clique a GARD id belongs to (`docs/sources/GARD/scripts/count_doid_mondo_gard_disagreements.py`);
+   listing `MONDO_GARD` before `DOID` in `disease_concords` is what makes MONDO the authority. A
+   unit test pins the order.
 
 MONDO writes GARD in the registry's zero-padded form (`GARD:0022702`); the `GARD: GARD` entry of
 `disease_xref_prefixes[MONDO]` in `config.yaml` resolves to `gard.normalize_gard_curie` via
