@@ -187,6 +187,29 @@ def test_excluding_mondo_skips_basename_discovered_mondo_close(tmp_path):
 
 
 @pytest.mark.unit
+@pytest.mark.parametrize("excluded", ["MONDO", "GARD"])
+def test_excluding_either_side_skips_mondo_gard(tmp_path, excluded):
+    """MONDO_GARD is MONDO's data about GARD, so excluding either source must skip it.
+
+    Otherwise a ``--source GARD`` impact-report "before" run already holds every GARD CURIE through
+    MONDO_GARD and reports that adding GARD merged nothing, and a ``--source MONDO`` run under-counts
+    MONDO by the ~15.9k joins that concord carries.
+    """
+    ids = _write_lines(tmp_path / "HP", [f"HP:0000001\t{PHENOTYPIC_FEATURE}"])
+    mondo_gard = _write_lines(tmp_path / f"{MONDO}_{GARD}", ["MONDO:0009846\txref\tGARD:418"])
+
+    dicts, _ = diseasephenotype.compute_cliques_for_impact_report(
+        concordances=[mondo_gard], identifiers=[ids], badxrefs={}
+    )
+    assert dicts["MONDO:0009846"] == {"MONDO:0009846", "GARD:418"}
+
+    dicts, _ = diseasephenotype.compute_cliques_for_impact_report(
+        concordances=[mondo_gard], identifiers=[ids], excluded_sources={excluded}, badxrefs={}
+    )
+    assert set(dicts.keys()) == {"HP:0000001"}
+
+
+@pytest.mark.unit
 def test_excluding_mondo_skips_explicit_mondoclose_argument(tmp_path):
     """Excluding MONDO must skip MONDO_close even when `mondoclose` is passed explicitly
     (the production build_compendium() call shape), not only when auto-discovered."""
@@ -482,14 +505,19 @@ def test_doid_icd_xref_prefixes_are_the_icd_families():
 
 
 @pytest.mark.unit
-def test_doid_overuse_filter_is_scoped_to_icd():
-    """DOID must be overuse-filtered, but only over its ICD prefixes.
+def test_doid_overuse_filter_is_scoped_to_icd_and_gard():
+    """DOID must be overuse-filtered, but only over its ICD prefixes and GARD.
 
     Unscoped (None, as MONDO/HP/EFO/MP are) the filter would also discard correct mappings:
     MESH:D010195 "Pancreatitis" is claimed by both DOID:4989 "pancreatitis" and DOID:2913 "acute
     pancreatitis", and dropping the target loses the genuine equivalence along with the too-narrow
-    one. Scoped to ICD it drops only the family codes."""
-    assert diseasephenotype.OVERUSE_FILTERED_CONCORDS["DOID"] == diseasephenotype.DOID_ICD_XREF_PREFIXES
+    one. Scoped to ICD and GARD it drops only the family codes and the doubly-claimed registry ids.
+
+    MONDO_GARD is scoped to GARD for a different reason: MONDO is a unique prefix, so a GARD id
+    a future MONDO release maps twice would otherwise be silently awarded to whichever row sorts
+    first."""
+    assert diseasephenotype.OVERUSE_FILTERED_CONCORDS["DOID"] == diseasephenotype.DOID_ICD_XREF_PREFIXES + [GARD]
+    assert diseasephenotype.OVERUSE_FILTERED_CONCORDS[f"{MONDO}_{GARD}"] == [GARD]
     assert all(diseasephenotype.OVERUSE_FILTERED_CONCORDS[c] is None for c in ("MONDO", "HP", "EFO", "MP"))
 
 
@@ -593,22 +621,29 @@ def test_mp_badxrefs_is_wired_up_and_drops_the_bifid_scrotum_xref():
 
 
 @pytest.mark.unit
-def test_doid_badxrefs_drops_the_mistyped_hemophilia_gard_xref():
-    """The DOID concord must be filtered through input_data/doid_badxrefs.txt, which must still
-    drop DOID:0061030 -> GARD:418.
+def test_doid_overuse_filter_drops_gard_ids_claimed_twice():
+    """A GARD id cited by two DOID terms must be dropped from DOID's concord, like an ICD family code.
 
-    DOID:0061030 "hemophilia" writes its GARD xref as ``GARD:0418``, which unpads to GARD:418
-    "Essential pentosuria" -- already xrefed by DOID:0111258 "pentosuria". The two cliques cannot
-    merge (both hold a MONDO id, and MONDO is in DISEASE_UNIQUE_PREFIXES), so without this pair the
-    contested identifier is awarded to hemophilia, whose concord row comes first: the hemophilia
-    clique carries an id labelled "Essential pentosuria" and pentosuria gets none. It is an upstream
-    typo for GARD:10418, not the registry's 7-digit zero-padding, so it is dropped here rather than
-    handled in normalize_gard_curie(); see input_data/doid_badxrefs.txt and
-    docs/sources/GARD/mistyped-xref/clique-diff.csv.
+    GARD:418 "Essential pentosuria" is the worked case: DOID:0111258 "pentosuria" xrefs it correctly
+    and DOID:0061030 "hemophilia" xrefs it by typo (``GARD:0418`` for GARD:10418; reported as
+    DiseaseOntology/HumanDiseaseOntology#1620). Both cliques hold a MONDO id, so glom() could not
+    merge them and would hand the contested id to whichever row it saw first. Scoping the overuse
+    filter to GARD as well as ICD removes both rows; MONDO_GARD, glommed earlier, already places
+    GARD:418 in the pentosuria clique, so nothing is lost. 12 of DOID's GARD targets are in this
+    position (GARD:625 Alport 3B/2, GARD:7674 childhood SMA, ...).
     """
-    assert "DOID" in diseasephenotype.DEFAULT_BAD_XREFS
-    bad_pairs = diseasephenotype.read_badxrefs(diseasephenotype.DEFAULT_BAD_XREFS["DOID"])
-    assert ("DOID:0061030", "GARD:418") in bad_pairs
+    pairs = [
+        ("DOID:0111258", "GARD:418"),
+        ("DOID:0061030", "GARD:418"),
+        ("DOID:0050012", "GARD:6038"),
+        ("DOID:4989", "MESH:D010195"),
+        ("DOID:2913", "MESH:D010195"),
+    ]
+    kept = remove_overused_xrefs(pairs, target_prefixes=diseasephenotype.OVERUSE_FILTERED_CONCORDS["DOID"])
+
+    assert not [pair for pair in kept if pair[1] == "GARD:418"], "a GARD id claimed twice must go"
+    assert ("DOID:0050012", "GARD:6038") in kept, "a 1:1 GARD row must survive"
+    assert [pair for pair in kept if pair[1] == "MESH:D010195"] == pairs[3:], "MeSH stays out of scope"
 
 
 @pytest.mark.unit
@@ -656,9 +691,13 @@ def test_mondo_gard_concord_keeps_only_unpadded_gard_targets(tmp_path):
     Exercises the real call site rather than re-specifying it, because both arguments it passes are
     load-bearing and neither is visible anywhere else: `allowed_prefixes={GARD}` is what keeps
     MONDO's other hasDbXref targets out (ICD9:759.89 alone is claimed by 167 MONDO terms), and
-    `other_prefixes={GARD: normalize_gard_curie}` is what strips the registry padding MONDO writes
-    -- a padded GARD:0010418 here would join neither GARD's ids file nor DOID's unpadded xrefs, so
-    the row would look present and do nothing.
+    the `GARD: GARD` entry of config.yaml's disease_xref_prefixes[MONDO] (resolved to
+    normalize_gard_curie) is what strips the registry padding MONDO writes -- a padded GARD:0010418
+    here would join neither GARD's ids file nor DOID's unpadded xrefs, so the row would look present
+    and do nothing.
+
+    The same term is returned for both MONDO roots walked, and must be written once: the overuse
+    filter counts rows, so a doubled pair would read as a GARD id claimed by two MONDO terms.
 
     The targets below are the shapes MONDO really emits; GARD:0010418 is its mapping for
     MONDO:0018660 "hemophilia". See docs/sources/MONDO/README.md.
@@ -687,7 +726,7 @@ def test_mondo_gard_concord_keeps_only_unpadded_gard_targets(tmp_path):
         diseasephenotype.build_disease_obo_relationships(str(outdir), metadata_yamls)
 
     rows = (outdir / f"{MONDO}_{GARD}").read_text().splitlines()
-    assert rows == [f"{MONDO}:0018660\txref\t{GARD}:10418"] * 2  # once per root walked
+    assert rows == [f"{MONDO}:0018660\txref\t{GARD}:10418"]
 
 
 # --- MP xref allowlist ---
@@ -799,15 +838,32 @@ def test_doid_xref_prefix_map_covers_every_prefix_doid_emits():
 
     These are the spellings in the DOID release of 2026-08-18. `MIM`, `SNOMEDCT_US` and `ORDO`
     were the three that were missing -- 6,483, 5,358 and 2,321 rows respectively, every one of
-    them reaching glom() un-renamed, joining nothing and fusing its subjects anyway."""
+    them reaching glom() un-renamed, joining nothing and fusing its subjects anyway. GARD is a
+    local-id rename, not a prefix one: 28 of DOID's GARD xrefs carry the registry's zero padding."""
     mapping = diseasephenotype.get_xref_prefix_map(DOID)
-    assert set(mapping) == {"ICD10CM", "ICD9CM", "ICDO", "NCI", "SNOMEDCT_US", "UMLS_CUI", "KEGG", "MIM", "ORDO"}
+    assert set(mapping) == {
+        "ICD10CM",
+        "ICD9CM",
+        "ICDO",
+        "NCI",
+        "SNOMEDCT_US",
+        "UMLS_CUI",
+        "KEGG",
+        "MIM",
+        "ORDO",
+        "GARD",
+    }
     # The stem entry has to cover the dated spellings, which is norm()'s job, not the map's.
     assert norm("SNOMEDCT_US_2026_03_01:267692008", mapping) == "SNOMEDCT:267692008"
     assert norm("MIM:PS303350", mapping) == "OMIM.PS:303350"
     assert norm("MIM:115210", mapping) == "OMIM:115210"
     # Lower-case target: the rename must land on Babel's spelling, which MONDO and HP already use.
     assert norm("ORDO:2822", mapping) == "orphanet:2822"
+    # Local-id rename: the prefix stays, the padding goes (the 28 padded ones are all this shape).
+    assert norm("GARD:0018564", mapping) == "GARD:18564"
+    assert norm("GARD:6038", mapping) == "GARD:6038"
+    # MONDO pads every GARD id, and its map must unpad them too or MONDO_GARD joins nothing.
+    assert norm("GARD:0010418", diseasephenotype.get_xref_prefix_map(MONDO)) == "GARD:10418"
 
 
 @pytest.mark.unit
@@ -922,8 +978,15 @@ def test_mondo_gard_concord_is_registered_in_disease_concords():
     file is built on every run, looks correct on disk, and contributes nothing: 15,930 GARD
     identifiers silently revert to single-identifier cliques duplicating MONDO concepts. That is a
     failure with no error message anywhere, which is what makes it worth pinning.
+
+    It must also come BEFORE DOID. 173 of DOID's GARD xrefs put a GARD id on a different MONDO
+    clique than MONDO does; MONDO is a unique prefix so the cliques cannot merge, and glom() leaves
+    the id with whichever concord claimed it first. An alphabetical tidy-up of the list would
+    silently re-home those 173 ids -- see the comment on disease_concords in config.yaml.
     """
-    assert f"{MONDO}_{GARD}" in get_config()["disease_concords"]
+    concords = get_config()["disease_concords"]
+    assert f"{MONDO}_{GARD}" in concords
+    assert concords.index(f"{MONDO}_{GARD}") < concords.index(DOID), "MONDO_GARD must be glommed before DOID"
 
 
 @pytest.mark.unit

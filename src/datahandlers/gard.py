@@ -15,23 +15,26 @@ Local-id form
 The distribution zero-pads every local id to seven digits (``GARD:0006038``), but DOID -- the one
 other disease source that cross-references GARD -- overwhelmingly emits the unpadded form
 (``GARD:6038``: all but 29 of its 2,196 distinct GARD xrefs). Babel standardizes on the
-**unpadded** form, so :func:`normalize_gard_curie` strips leading zeros both here and on DOID's
-xref targets (``src/datahandlers/doid.py``). Without that, ``GARD:0006038`` from the registry and
+**unpadded** form, so :func:`normalize_gard_curie` strips leading zeros both here and -- via
+``LOCAL_ID_DEPENDENT_RENAMES`` in ``src/createcompendia/diseasephenotype.py``, keyed from
+``config.yaml: disease_xref_prefixes`` -- on every source's GARD xref targets. Without that, ``GARD:0006038`` from the registry and
 ``GARD:6038`` from DOID are two identifiers for one disease and ~1,886 rare diseases normalize to
 two conflicting cliques.
 
 28 of those 29 carry the registry's 7-digit padding. The 29th, ``GARD:0418`` on
 ``DOID:0061030`` "hemophilia", is an upstream typo for ``GARD:10418``: it unpads to ``GARD:418``
-"Essential pentosuria", which ``DOID:0111258`` "pentosuria" also xrefs, and the hemophilia clique
-wins the contest -- so ``input_data/doid_badxrefs.txt`` drops that concord row. See
-docs/sources/GARD/README.md for why it is dropped rather than corrected here.
+"Essential pentosuria", which ``DOID:0111258`` "pentosuria" also xrefs. A GARD id claimed by two
+DOID terms is dropped from DOID's concord by ``remove_overused_xrefs`` (``OVERUSE_FILTERED_CONCORDS``
+in ``src/createcompendia/diseasephenotype.py``), and MONDO's own mapping puts ``GARD:418`` in the
+pentosuria clique, so the typo costs nothing. Reported upstream as
+https://github.com/DiseaseOntology/HumanDiseaseOntology/issues/1620.
 
 GARD itself carries no cross-references to other disease vocabularies (MONDO/DOID/UMLS/...), so it
 contributes identifiers and labels/synonyms only -- there is no GARD concord file. Cliques still
-merge, in the other direction: DOID's xrefs pull 1,886 registry terms into existing DOID/MONDO
-disease cliques. (DOID also asserts 300 GARD ids that the current registry no longer publishes;
-those join their DOID clique without a label, the same as any other xref target Babel does not
-ingest.)
+merge, in the other direction: MONDO's ``hasDbXref`` mappings (the ``MONDO_GARD`` concord, ~15.9k
+of the ~16k registry terms) and DOID's xrefs (~2.2k) pull registry terms into existing disease
+cliques. (DOID also asserts 300 GARD ids that the current registry no longer publishes; those join
+their DOID clique without a label, the same as any other xref target Babel does not ingest.)
 
 Every GARD term is typed ``biolink:Disease``. ``GARD`` is registered neither in the Biolink Model's
 ``disease`` ``id_prefixes`` nor in its prefix map (verified against the pinned
@@ -44,8 +47,8 @@ Field-shape note: a scan of the published CSV (16,214 rows) found no ``DisplayNa
 ``Synonyms`` value containing an embedded tab or newline, and no row with an empty
 ``DisplayName``. The labels/synonyms writers therefore emit raw values without sanitization,
 matching the Orphanet/DOID handlers -- but that scan describes one distribution, not the next one,
-so :func:`_reject_tsv_control_chars` enforces it at write time rather than leaving the TSV's
-integrity resting on a finding that nothing re-checks.
+so both findings are enforced at parse time (:func:`_reject_tsv_control_chars`, and a raise on an
+empty ``DisplayName``) rather than left resting on a finding that nothing re-checks.
 """
 
 import csv
@@ -56,11 +59,6 @@ from src.prefixes import GARD, OIO
 from src.util import get_logger
 
 logger = get_logger(__name__)
-
-# Content types the Salesforce distribution link is allowed to return. The live download answers
-# `text/csv`; an expired or repointed ContentVersion link answers an HTML error page with HTTP 200,
-# which urllib does not raise on, so the type is the only cheap signal that we got a CSV at all.
-_ALLOWED_CONTENT_TYPES = ("text/csv", "application/csv", "application/octet-stream")
 
 
 def _reject_tsv_control_chars(curie, field, value):
@@ -80,12 +78,16 @@ def normalize_gard_curie(curie):
 
     ``GARD:0006038`` -> ``GARD:6038``. Babel standardizes on the unpadded form because that is what
     DOID's xrefs overwhelmingly use; see the module docstring. Applied both when reading the
-    registry CSV and to DOID's xref targets, so the two ID spaces meet.
+    registry CSV and, as the ``GARD`` entry of ``diseasephenotype.LOCAL_ID_DEPENDENT_RENAMES``, to
+    DOID's and MONDO's xref targets, so the ID spaces meet.
     """
     prefix, _, local_id = curie.partition(":")
-    if prefix != GARD or not local_id.lstrip("0").isdigit():
+    # Case-insensitive on the prefix, because norm()/build_sets() dispatch on the upper-cased
+    # prefix and MONDO does emit mixed-case prefixes (Orphanet:); int() also maps GARD:0000000 to
+    # GARD:0 rather than leaving an all-zero id padded.
+    if prefix.upper() != GARD or not local_id.isdigit():
         return curie
-    return f"{GARD}:{local_id.lstrip('0')}"
+    return f"{GARD}:{int(local_id)}"
 
 
 def pull_gard(url, outfile):
@@ -94,9 +96,11 @@ def pull_gard(url, outfile):
     The distribution is a Salesforce ContentVersion download link -- a single URL with a query
     string and no stable filename on the server -- so ``pull_via_urllib``'s ``url + in_file_name``
     assembly does not fit. We fetch the URL directly with redirect + User-Agent handling
-    (mirroring ``pull_via_urllib``) and reject a response that is not a CSV, so an expired link
-    serving an HTML error page with HTTP 200 fails the rule instead of writing a file that parses
-    to zero terms. The URL lives in ``config.yaml`` (``gard_download_url``) and is passed in as a
+    (mirroring ``pull_via_urllib``) and reject an HTML response, so an expired link serving an
+    HTML error page with HTTP 200 fails the rule with a clear message (the parser's header check
+    would catch it anyway, less legibly). Any other content type is accepted: the live link answers
+    `text/csv`, but a valid CSV served as `text/plain` or `application/vnd.ms-excel` is still a
+    CSV. The URL lives in ``config.yaml`` (``gard_download_url``) and is passed in as a
     Snakemake ``params`` value so that repointing it retriggers the download.
     """
     opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
@@ -104,9 +108,9 @@ def pull_gard(url, outfile):
     logger.info("Downloading GARD term list from %s", url)
     with opener.open(request) as response:
         content_type = response.headers.get_content_type()
-        if content_type not in _ALLOWED_CONTENT_TYPES:
+        if content_type == "text/html":
             raise RuntimeError(
-                f"GARD download {url} returned Content-Type {content_type}, not a CSV. "
+                f"GARD download {url} returned an HTML page, not a CSV. "
                 f"The Salesforce ContentVersion link has probably expired or been repointed; "
                 f"update gard_download_url in config.yaml."
             )
@@ -131,13 +135,13 @@ def pull_gard_labels_and_synonyms(infile, labelfile, synonymfile):
     ``ID`` is not a ``GARD:`` CURIE are skipped defensively (the registry contains only GARD ids,
     but a malformed trailing row must never abort the whole ingest).
 
-    A missing ``ID``/``DisplayName`` header or a parse that yields no terms raises: an NCATS format
-    change that silently zeroes this output would otherwise drop all ~16k rare diseases from a
-    build that still exits green, and a log line in a multi-hour build is not a control.
+    A missing ``ID``/``DisplayName`` header, a GARD row with an empty ``DisplayName``, or a parse
+    that yields no terms raises: an NCATS format change that silently blanked names or zeroed this
+    output would otherwise drop rare diseases from a build that still exits green, and a log line
+    in a multi-hour build is not a control.
     """
     parsed = 0
     skipped_non_gard = 0
-    empty_name = 0
     with (
         open(infile, encoding="utf-8-sig", newline="") as inf,
         open(labelfile, "w", encoding="utf-8") as labels,
@@ -158,11 +162,9 @@ def pull_gard_labels_and_synonyms(infile, labelfile, synonymfile):
             if not name:
                 # A GARD term with no name yields no label row, so disease_gard_ids' awk (which
                 # derives ids from the labels file) would never emit it and the term would be
-                # silently lost. The published CSV has none, but warn per-row so a future
-                # distribution change can't quietly drop terms.
-                empty_name += 1
-                logger.warning("GARD term %s has no DisplayName; it will not be ingested", curie)
-                continue
+                # silently lost. The published CSV has none; raise so a distribution that blanks
+                # names is a failed build, not a green one that quietly dropped terms.
+                raise ValueError(f"GARD CSV {infile}: term {curie} has no DisplayName")
             _reject_tsv_control_chars(curie, "DisplayName", name)
             parsed += 1
             labels.write(f"{curie}\t{name}\n")
@@ -177,12 +179,7 @@ def pull_gard_labels_and_synonyms(infile, labelfile, synonymfile):
                     syns.write(f"{curie}\t{OIO}:hasExactSynonym\t{syn}\n")
     if parsed == 0:
         raise ValueError(
-            f"GARD CSV {infile} yielded no terms ({skipped_non_gard} non-GARD rows skipped, "
-            f"{empty_name} GARD rows with no DisplayName). Refusing to write an empty GARD ingest."
+            f"GARD CSV {infile} yielded no terms ({skipped_non_gard} non-GARD rows skipped). "
+            f"Refusing to write an empty GARD ingest."
         )
-    logger.info(
-        "GARD parse: %d terms written, %d non-GARD rows skipped, %d GARD rows with no DisplayName",
-        parsed,
-        skipped_non_gard,
-        empty_name,
-    )
+    logger.info("GARD parse: %d terms written, %d non-GARD rows skipped", parsed, skipped_non_gard)

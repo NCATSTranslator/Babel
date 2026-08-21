@@ -102,6 +102,8 @@ def test_pull_gard_labels_and_synonyms_skips_non_gard_rows(tmp_path):
         ("GARD:0006038", "GARD:6038"),  # verbatim registry form for "Chikungunya fever"
         ("GARD:6038", "GARD:6038"),  # verbatim DOID:0050012 xref form -- already unpadded
         ("GARD:0000072", "GARD:72"),
+        ("gard:0001234", "GARD:1234"),  # norm() dispatches on the upper-cased prefix; so must this
+        ("GARD:0000000", "GARD:0"),  # an all-zero id is still unpadded, not left alone
         ("MONDO:0005084", "MONDO:0005084"),  # non-GARD CURIEs are untouched, zero-padding and all
         ("GARD:not-a-number", "GARD:not-a-number"),  # never seen; must not mangle
     ],
@@ -135,6 +137,16 @@ def test_pull_gard_labels_and_synonyms_raises_on_tsv_control_chars(tmp_path, bad
     with open(synth, "w", newline="", encoding="utf-8") as f:
         csv.writer(f).writerows([["ID", "DisplayName", "Synonyms", "URL"], ["GARD:0000001", bad_value, "", ""]])
     with pytest.raises(ValueError, match="tab or newline"):
+        pull_gard_labels_and_synonyms(str(synth), str(tmp_path / "labels"), str(tmp_path / "synonyms"))
+
+
+@pytest.mark.unit
+def test_pull_gard_labels_and_synonyms_raises_on_empty_display_name(tmp_path):
+    """A GARD row with no DisplayName yields no label row, so the term would vanish from the ids
+    file; that is a failed build, not a warning line scrolling past in a green one."""
+    synth = tmp_path / "blank_name.csv"
+    synth.write_text("ID,DisplayName,Synonyms,URL\nGARD:0000001,,,\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="has no DisplayName"):
         pull_gard_labels_and_synonyms(str(synth), str(tmp_path / "labels"), str(tmp_path / "synonyms"))
 
 
@@ -203,16 +215,20 @@ def test_labels_and_synonyms_are_written_utf8_under_a_c_locale(tmp_path, monkeyp
     """
     monkeypatch.setattr(locale, "getpreferredencoding", lambda do_setlocale=True: "ascii")
 
-    synth = tmp_path / "synthetic.csv"
-    synth.write_text(
-        "ID,DisplayName,Synonyms,URL\nGARD:0006038,Ménière disease,Chédiak–Higashi syndrome|Béhçet,\n",
+    # GARD:0021527 "Attenuated Chédiak-Higashi syndrome", copied verbatim from gard.csv.
+    csv_file = tmp_path / "gard.csv"
+    csv_file.write_text(
+        "ID,DisplayName,Synonyms,URL\n"
+        "GARD:0021527,Attenuated Chédiak-Higashi syndrome,attenuated chediak-higashi syndrome"
+        "|atypical chediak-higashi syndrome|atypical chédiak-higashi syndrome,"
+        "https://rarediseases.info.nih.gov/?gard_id=0021527\n",
         encoding="utf-8",
     )
     labels = str(tmp_path / "labels")
     syns = str(tmp_path / "synonyms")
 
-    pull_gard_labels_and_synonyms(str(synth), labels, syns)
+    pull_gard_labels_and_synonyms(str(csv_file), labels, syns)
 
-    assert Path(labels).read_text(encoding="utf-8").rstrip("\n") == "GARD:6038\tMénière disease"
+    assert Path(labels).read_text(encoding="utf-8").rstrip("\n") == "GARD:21527\tAttenuated Chédiak-Higashi syndrome"
     synonym_values = [line.split("\t")[2] for line in Path(syns).read_text(encoding="utf-8").splitlines()]
-    assert "Chédiak–Higashi syndrome" in synonym_values
+    assert "atypical chédiak-higashi syndrome" in synonym_values

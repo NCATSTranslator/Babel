@@ -26,8 +26,9 @@ adds 258 net cliques to `Disease.txt` (365,087 → 365,345, +0.07%).
 DOID also asserts 300 GARD ids the current registry no longer publishes (MONDO asserts none). Those
 join their DOID clique without a label, exactly like any other xref target Babel does not ingest —
 retired ids are worth keeping, since data that still cites them normalizes to the right clique.
-(299 reach `Disease.txt`; `GARD:10191` does not, because its only subject `DOID:1824` reaches
-neither disease compendium — a pre-existing condition, absent from the `main` build too, unrelated
+(299 reach `Disease.txt`; `GARD:10191` does not, because its only subject
+[`DOID:1824`](http://purl.obolibrary.org/obo/DOID_1824) "neuroretinitis" reaches neither disease
+compendium — a pre-existing condition, absent from the `main` build too, unrelated
 to GARD, and now tracked as
 [#1042](https://github.com/NCATSTranslator/Babel/issues/1042).)
 
@@ -44,7 +45,11 @@ Babel standardizes on the unpadded form. `normalize_gard_curie()` in `src/dataha
 strips leading zeros, and is applied in two places:
 
 1. when parsing the registry CSV, so `labels`, `synonyms` and the `ids/GARD` file are all unpadded;
-2. in `doid.build_xrefs()`, so DOID's padded xrefs match too.
+2. to every source's GARD xref targets, through the rename map: `config.yaml:
+   disease_xref_prefixes` lists `GARD: GARD` under both `DOID` and `MONDO`, and
+   `LOCAL_ID_DEPENDENT_RENAMES` in `src/createcompendia/diseasephenotype.py` resolves that entry to
+   `normalize_gard_curie` (the same mechanism as `MIM` → `OMIM`/`OMIM.PS`). A source that starts
+   emitting GARD xrefs needs that one config line, and nothing in its handler.
 
 Without this, `GARD:0006038` and `GARD:6038` are two identifiers for one disease: 1,886 rare
 diseases would normalize to two conflicting cliques, and none of DOID's GARD xrefs would ever pick
@@ -63,19 +68,27 @@ Hemophilia is [`GARD:10418`](https://rarediseases.info.nih.gov/?gard_id=10418); 
 typo, and it unpads to `GARD:418` "Essential pentosuria", which
 [`DOID:0111258`](http://purl.obolibrary.org/obo/DOID_0111258) "pentosuria" already xrefs. The two
 cliques do not merge — both hold a MONDO identifier and MONDO is in `DISEASE_UNIQUE_PREFIXES`, so
-`glom()` refuses the union — but the contested identifier goes to whichever clique claims it first,
-and DOID's concord lists hemophilia's row first. Left alone, the hemophilia clique carries an
-identifier labelled "Essential pentosuria" and pentosuria never gets its registry term;
-[`clique-diff.md`](clique-diff.md) measures exactly that.
+`glom()` refuses the union — so the contested identifier goes to whichever concord claims it first.
 
-`input_data/doid_badxrefs.txt` drops the pair, using the same per-concord bad-xref mechanism as
-MONDO/HP/MP/UMLS, and the typo is reported upstream as
-[DiseaseOntology#1620](https://github.com/DiseaseOntology/HumanDiseaseOntology/issues/1620). It is
-dropped rather than rewritten to `GARD:10418`: Babel reports upstream xrefs, it does not invent
-them, and the correct edge arrives on its own once DOID fixes the typo. Restricting
-`normalize_gard_curie()` to 7-digit local ids would also have unmerged the two, but by accident — it
-would leave a dangling `GARD:0418` in the concord and silently swallow the next mistyped id instead
-of recording it.
+Two things settle it, neither specific to this row. `MONDO_GARD` is glommed before `DOID`
+(`disease_concords` order is load-bearing, and a unit test pins it), and MONDO maps
+[`MONDO:0009846`](http://purl.obolibrary.org/obo/MONDO_0009846) "pentosuria" to `GARD:418`, so
+the id is in the pentosuria clique before DOID's concord is read. And DOID's concord is
+overuse-filtered on GARD as well as ICD (`OVERUSE_FILTERED_CONCORDS["DOID"]`): a GARD id claimed
+by two DOID terms is dropped, the same family-code logic as ICD, since a registry term names one
+rare disease. Twelve of DOID's 2,196 GARD targets are in that position — `GARD:625` would
+otherwise fuse [`DOID:0051080`](http://purl.obolibrary.org/obo/DOID_0051080) "Alport syndrome 3B"
+with [`DOID:0110033`](http://purl.obolibrary.org/obo/DOID_0110033) "Alport syndrome 2", and
+`GARD:7674` would pull [`DOID:0060160`](http://purl.obolibrary.org/obo/DOID_0060160) "childhood
+spinal muscular atrophy" out of its MONDO clique — and MONDO's own mapping places every one of the
+twelve, so the filter costs nothing.
+
+The typo is reported upstream as
+[DiseaseOntology#1620](https://github.com/DiseaseOntology/HumanDiseaseOntology/issues/1620); Babel
+reports upstream xrefs, it does not rewrite them, and the correct edge arrives on its own once DOID
+fixes it. Restricting `normalize_gard_curie()` to 7-digit local ids would also have unmerged the
+two, but by accident — it would leave a dangling `GARD:0418` in the concord and silently swallow the
+next mistyped id instead of recording it.
 
 ## Biolink registration (the `extra_prefixes` escape hatch)
 
@@ -101,10 +114,11 @@ The GARD term list is a Salesforce ContentVersion download link configured as
 download. It is a query-string URL with no stable filename on the server, so the rule calls
 `src.datahandlers.gard.pull_gard()` directly rather than the shared `pull_via_urllib` helper.
 
-Two guards keep a broken distribution from producing a green build with no rare diseases in it: the
-download rejects a response whose `Content-Type` is not a CSV (an expired ContentVersion link
-serves an HTML error page with HTTP 200, which `urllib` does not raise on), and the parser raises
-if the `ID`/`DisplayName` headers are missing or if no term parses at all.
+Three guards keep a broken distribution from producing a green build with rare diseases missing
+from it: the download rejects an HTML response (an expired ContentVersion link serves an HTML error
+page with HTTP 200, which `urllib` does not raise on), and the parser raises if the
+`ID`/`DisplayName` headers are missing, if a GARD row has an empty `DisplayName`, or if no term
+parses at all.
 
 The CSV is UTF-8 with a BOM and CRLF line endings, with columns `ID,DisplayName,Synonyms,URL`. The
 `URL` column (the rarediseases.info.nih.gov page) is not ingested: Babel handlers emit only
@@ -117,13 +131,13 @@ to go in.
 | --- | --- |
 | Prefix constant | `src/prefixes.py` (`GARD = "GARD"`) |
 | Data handler | `src/datahandlers/gard.py` |
-| Local-id normalization | `normalize_gard_curie()` in `src/datahandlers/gard.py`, also called from `src/datahandlers/doid.py` |
+| Local-id normalization | `normalize_gard_curie()` in `src/datahandlers/gard.py`; for xref targets, the `GARD: GARD` entries of `disease_xref_prefixes` in `config.yaml`, resolved by `LOCAL_ID_DEPENDENT_RENAMES` in `src/createcompendia/diseasephenotype.py` |
 | Download rule | `get_gard` in `src/snakefiles/datacollect.snakefile` |
 | Labels/synonyms rule | `get_gard_labels_and_synonyms` in `src/snakefiles/datacollect.snakefile` |
 | ids rule | `disease_gard_ids` in `src/snakefiles/diseasephenotype.snakefile` |
 | `extra_prefixes=[GARD]` | `disease_extra_prefixes` in `config.yaml`, read by `build_compendium` in `src/createcompendia/diseasephenotype.py` |
 | MONDO's GARD xrefs | `MONDO_GARD` concord, written by `build_disease_obo_relationships()`; see [`docs/sources/MONDO/README.md`](../MONDO/README.md) |
-| Mistyped DOID xref | `input_data/doid_badxrefs.txt`, registered in `DEFAULT_BAD_XREFS` and the `disease_compendia` rule |
+| Doubly-claimed DOID xrefs | `OVERUSE_FILTERED_CONCORDS["DOID"]` (ICD + GARD) and `["MONDO_GARD"]` in `src/createcompendia/diseasephenotype.py` |
 | Config lists | `disease_ids`, `disease_labelsandsynonyms`, `disease_concords` (`MONDO_GARD`), `disease_extra_prefixes`, `gard_download_url` in `config.yaml` |
 
 The `disease_gard_ids` rule is a simple `awk` transform of the labels file (every GARD term is a
@@ -167,6 +181,5 @@ before-clique that splits, shrinks, or loses its leader — and it cannot show *
 competing cliques a new GARD identifier joined. [`clique-diff.md`](clique-diff.md) records two
 `babel-clique-diff` runs that close both gaps: `main` vs this branch
 ([`on-addition/`](on-addition/), which confirms the addition is purely additive — 0 regrouped, 0
-moved, 0 dropped, 0 leader changes) and this branch with vs without the bad-xref entry
-(and a second, uncommitted diff isolating the hemophilia/pentosuria fix, tabulated in full on that
-page).
+moved, 0 dropped, 0 leader changes) and a second, uncommitted diff isolating the
+hemophilia/pentosuria fix, tabulated in full on that page.

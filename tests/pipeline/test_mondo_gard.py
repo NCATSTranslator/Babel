@@ -3,10 +3,10 @@
 Skipped by default unless pytest is run with --pipeline.  Run with:
     uv run pytest tests/pipeline/test_mondo_gard.py --pipeline --no-cov -v
 
-MONDO_GARD is the one place this pipeline reads `oboInOwl:hasDbXref`, and it is taken unfiltered --
-no `remove_overused_xrefs`, no bad-xrefs file. That is only safe because the mapping is 1:1 in both
-directions, so these assertions are what stands in for the filtering. See
-docs/sources/MONDO/README.md.
+MONDO_GARD is the one place this pipeline reads `oboInOwl:hasDbXref`, and it has no bad-xrefs file.
+The build enforces the 1:1 property it relies on (OVERUSE_FILTERED_CONCORDS drops a GARD id two MONDO
+terms claim); these assertions say whether the *source* still has that property, so a MONDO release
+that loses it is noticed rather than silently filtered. See docs/sources/MONDO/README.md.
 """
 
 import collections

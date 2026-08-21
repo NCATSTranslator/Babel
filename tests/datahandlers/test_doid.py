@@ -9,8 +9,9 @@ Two fixtures, both copied verbatim from `babel_downloads/DOID/doid.json`:
   targets, five of which (`NCI:`, `UMLS_CUI:`, `ICD10CM:`, `MIM:`, `SNOMEDCT_US_2025_09_01:`) are
   renamed by `norm()` first.
 - `doid_gard_xref_sample.json` holds two nodes covering the two forms DOID mixes for GARD:
-  [`DOID:0050012`](http://purl.obolibrary.org/obo/DOID_0050012) "chikungunya", already unpadded, and
-  [`DOID:0061030`](http://purl.obolibrary.org/obo/DOID_0061030) "hemophilia", zero-padded.
+  [`DOID:0050012`](http://purl.obolibrary.org/obo/DOID_0050012) "chikungunya", already unpadded
+  (`GARD:6038`), and [`DOID:0080774`](http://purl.obolibrary.org/obo/DOID_0080774) "thalassemia
+  minor", carrying the registry's 7-digit zero padding (`GARD:0025885`, one of the 28 such xrefs).
 
 Re-derive either from the DOID release if a future one changes them.
 
@@ -62,17 +63,19 @@ def _targets(outfile):
 
 @pytest.mark.unit
 def test_build_xrefs_unpads_gard_ids(tmp_path):
-    """DOID emits GARD ids in both forms (GARD:6038 and GARD:0418); both must reach the concord
+    """DOID emits GARD ids in both forms (GARD:6038 and GARD:0025885); both must reach the concord
     unpadded, so they join the GARD registry's identifiers instead of forming parallel cliques.
 
-    Unpadded is the correct form: GARD:1234, never GARD:0001234."""
+    Unpadded is the correct form: GARD:1234, never GARD:0001234. The unpadding is the `GARD: GARD`
+    entry of config.yaml's disease_xref_prefixes[DOID], resolved to normalize_gard_curie by
+    LOCAL_ID_DEPENDENT_RENAMES -- so this runs the production map, not a copy."""
     outfile = tmp_path / "DOID"
     build_xrefs(str(GARD_FIXTURE), str(outfile), other_prefixes=OTHER_PREFIXES)
 
     rows = assert_concordance_file_valid(str(outfile))
     assert {(r[0], r[2]) for r in rows} == {
         ("DOID:0050012", "GARD:6038"),
-        ("DOID:0061030", "GARD:418"),
+        ("DOID:0080774", "GARD:25885"),
     }
 
 
@@ -144,5 +147,7 @@ def test_gard_fixture_carries_both_local_id_forms():
         x["val"] for node in nodes for x in node.get("meta", {}).get("xrefs", []) if x["val"].startswith("GARD:")
     }
 
-    assert any(v.split(":", 1)[1].startswith("0") for v in gard_xrefs), "no zero-padded GARD id left"
+    assert any(len(v.split(":", 1)[1]) == 7 and v.startswith("GARD:0") for v in gard_xrefs), (
+        "no zero-padded GARD id left"
+    )
     assert any(not v.split(":", 1)[1].startswith("0") for v in gard_xrefs), "no unpadded GARD id left"

@@ -92,9 +92,11 @@ confirms the diagnosis. Unpadded, DOID's typo becomes `GARD:418` "Essential pent
 [`DOID:0111258`](http://purl.obolibrary.org/obo/DOID_0111258) "pentosuria" also xrefs.
 
 The two cliques do not merge — both hold a MONDO identifier — but the contested id goes to whichever
-clique claims it first, and DOID's concord lists hemophilia's row first, so the hemophilia clique
-would carry an identifier labelled "Essential pentosuria" while pentosuria got none.
-`input_data/doid_badxrefs.txt` drops that row; reported upstream as
+concord claims it first. With DOID's concord alone, hemophilia's row came first, so the hemophilia
+clique carried an identifier labelled "Essential pentosuria" while pentosuria got none. Two general
+rules now settle it (see [`README.md`](README.md), "The one xref that is not padding"): `MONDO_GARD`
+is glommed before `DOID` and maps pentosuria to `GARD:418`, and DOID's concord is overuse-filtered
+on GARD, which drops both DOID rows. Reported upstream as
 [DiseaseOntology#1620](https://github.com/DiseaseOntology/HumanDiseaseOntology/issues/1620).
 
 **Neither standard artifact can see that bug**, which is worth recording as a property of the
@@ -119,7 +121,7 @@ Both sides were built from the **same cached intermediates**
 | | before | after |
 | --- | --- | --- |
 | `on-addition/` | `main` at `a3ae3e4d` — no GARD ingest, no `MONDO_GARD` concord, DOID concord built without GARD unpadding | this branch |
-| the isolating diff (not committed) | this branch, `DOID:0061030 GARD:418` commented out of `input_data/doid_badxrefs.txt` | this branch, entry active |
+| the isolating diff (not committed) | this branch, with the `DOID:0061030 GARD:418` concord row kept | this branch, row dropped |
 
 Reproduce with:
 

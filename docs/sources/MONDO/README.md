@@ -46,15 +46,22 @@ Three things scope the exception:
    `metadata-MONDO_GARD.yaml` recording how the rows were selected.
 2. **A fail-closed allowlist of exactly one prefix.** `allowed_prefixes={GARD}` means a namespace
    MONDO newly starts emitting is dropped rather than silently trusted.
-3. **The 1:1 property, asserted in a test.** The 15,936 pairs are one-to-one in both directions —
-   no GARD id claimed by two MONDO terms, no MONDO term claiming two GARD ids — which is what makes
-   it safe to glom them unfiltered. `tests/pipeline/test_mondo_gard.py` pins that, plus the
-   GARD-only targeting and the unpadding, against the real built concord.
+3. **The 1:1 property, enforced at build time.** The 15,936 pairs are one-to-one in both
+   directions today — no GARD id claimed by two MONDO terms, no MONDO term claiming two GARD ids —
+   and `tests/pipeline/test_mondo_gard.py` pins that against the real built concord. But MONDO is
+   a unique prefix, so a future release mapping one GARD id to two MONDO terms would make `glom()`
+   hand it to whichever row sorts first, silently. `OVERUSE_FILTERED_CONCORDS["MONDO_GARD"] =
+   [GARD]` turns that into "neither claims it" instead. (The file is deduplicated when written —
+   a term under both MONDO roots would otherwise be a doubled row, which the row-counting filter
+   would read as a double claim.)
+4. **Glommed before DOID.** 173 of DOID's GARD xrefs disagree with MONDO about which MONDO clique
+   a GARD id belongs to; listing `MONDO_GARD` before `DOID` in `disease_concords` is what makes
+   MONDO the authority. A unit test pins the order.
 
-MONDO writes GARD in the registry's zero-padded form (`GARD:0022702`), so
-`gard.normalize_gard_curie` is passed as `norm()`'s rename callable; without it these rows would
-join neither GARD's own ids file nor DOID's unpadded xrefs. See
-[`docs/sources/GARD/README.md`](../GARD/README.md).
+MONDO writes GARD in the registry's zero-padded form (`GARD:0022702`); the `GARD: GARD` entry of
+`disease_xref_prefixes[MONDO]` in `config.yaml` resolves to `gard.normalize_gard_curie` via
+`LOCAL_ID_DEPENDENT_RENAMES` and strips it. Without that these rows would join neither GARD's own
+ids file nor DOID's unpadded xrefs. See [`docs/sources/GARD/README.md`](../GARD/README.md).
 
 ## The `hasDbXref` namespaces Babel does not read
 
