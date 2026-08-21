@@ -1,0 +1,21 @@
+pipeline,predicate,prefix_1,prefix_2,asserted_by,status,xref_count,subject,subject_label,object,object_label
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0000009,"inherited bleeding disorder, platelet-type",GARD:22702,"Inherited bleeding disorder, platelet-type"
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0004358,subglottis carcinoma,GARD:27678,Subglottis carcinoma
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0008083,"ceroid lipofuscinosis, neuronal, 4 (Kufs type)",GARD:1222,"Ceroid lipofuscinosis, neuronal, 4 (Kufs type)"
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0010273,"lymphoma, Hodgkin, X-linked pseudoautosomal",GARD:9899,"Lymphoma, Hodgkin, X-linked pseudoautosomal"
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0012464,cone-rod dystrophy 10,GARD:15477,Cone-rod dystrophy 10
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0014392,"developmental and epileptic encephalopathy, 25",GARD:12901,"Developmental and epileptic encephalopathy, 25"
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0016591,sporadic adult-onset ataxia of unknown etiology,GARD:20654,Sporadic adult-onset ataxia of unknown etiology
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0018945,XK-related neurodegenerative disease,GARD:10731,McLeod neuroacanthocytosis syndrome
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0024525,Fanconi renotubular syndrome 1,GARD:25412,Fanconi renotubular syndrome 1
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0100175,TTN-related myopathy,GARD:26073,TTN-related myopathy
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0050012,chikungunya,GARD:6038,Chikungunya fever
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0050970,spinocerebellar ataxia 19/22,GARD:12365,Spinocerebellar ataxia type 19/22
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0060851,pemphigus vulgaris,GARD:7355,Pemphigus vulgaris
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0080156,X-linked adrenal hypoplasia congenita,GARD:555,"Congenital adrenal hypoplasia, X-linked"
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0090116,spondylocarpotarsal synostosis syndrome,GARD:4974,Spondylocarpotarsal synostosis syndrome
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0111329,pyridoxamine 5'-phosphate oxidase deficiency,GARD:10730,Pyridoxal phosphate-responsive seizures
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0112151,corpus callosum agenesis-abnormal genitalia syndrome,GARD:4528,Corpus callosum agenesis-abnormal genitalia syndrome
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:1278,tolosa-hunt syndrome,GARD:7777,Tolosa-Hunt syndrome
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:2297,leptospirosis,GARD:7881,Leptospirosis
+disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:4927,Klatskin's tumor,GARD:10175,Klatskin tumor

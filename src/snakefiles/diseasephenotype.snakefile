@@ -44,6 +44,20 @@ rule disease_orphanet_ids:
         "awk '{{print $1\"\tbiolink:Disease\"}}' {input.infile} > {output.outfile}"
 
 
+rule disease_gard_ids:
+    # Every GARD term is a rare disease; the ids file is a simple transform of the labels file,
+    # mirroring the DOID/Orphanet ids rules.
+    input:
+        infile=config["download_directory"] + "/GARD/labels",
+    output:
+        outfile=config["intermediate_directory"] + "/disease/ids/GARD",
+    benchmark:
+        config["output_directory"] + "/benchmarks/disease_gard_ids.tsv"
+    shell:
+        #This one is a simple enough transform to do with awk
+        "awk '{{print $1\"\tbiolink:Disease\"}}' {input.infile} > {output.outfile}"
+
+
 rule disease_efo_ids:
     input:
         efo_owl_file_path=config["download_directory"] + "/EFO/efo.owl",
@@ -151,10 +165,12 @@ rule get_disease_obo_relationships:
     output:
         config["intermediate_directory"] + "/disease/concords/MONDO",
         config["intermediate_directory"] + "/disease/concords/MONDO_close",
+        config["intermediate_directory"] + "/disease/concords/MONDO_GARD",
         config["intermediate_directory"] + "/disease/concords/HP",
         config["intermediate_directory"] + "/disease/concords/MP",
         mondo_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MONDO.yaml",
         mondo_close_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MONDO_close.yaml",
+        mondo_gard_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MONDO_GARD.yaml",
         hp_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-HP.yaml",
         mp_metadata_yaml=config["intermediate_directory"] + "/disease/concords/metadata-MP.yaml",
     benchmark:
@@ -166,6 +182,7 @@ rule get_disease_obo_relationships:
             {
                 "MONDO": output.mondo_metadata_yaml,
                 "MONDO_close": output.mondo_close_metadata_yaml,
+                "MONDO_GARD": output.mondo_gard_metadata_yaml,
                 "HP": output.hp_metadata_yaml,
                 "MP": output.mp_metadata_yaml,
             },

@@ -73,6 +73,15 @@ Everything else in a compendium record — `type` (Biolink type), `identifiers[*
   is invisible to this tool.
 - Label, description, and taxon changes on an otherwise-unchanged clique are invisible;
   such a clique is reported as fully unchanged (no row at all).
+- **Where a *newly added* identifier lands is invisible.** The tool classifies *before*-clique
+  members, so a CURIE absent from the before build produces no row wherever it ends up. If a change
+  adds identifiers that two existing cliques both claim, the diff looks identical whichever clique
+  wins — a wrong destination is not a difference it can see. Diff the change against *itself* with
+  the deciding input disabled, so the disputed CURIE is present on both sides and its move becomes a
+  `regrouped` row; or read the two cliques out of the finished compendia directly. Worked example:
+  `docs/sources/GARD/clique-diff.md`, where a mistyped DOID xref sent a GARD identifier to the
+  hemophilia clique instead of the pentosuria one and both the source-impact report and a
+  main-vs-branch diff were blind to it.
 - Not every row is caused by the change under test. When a build uses
   `glom(..., unique_prefixes=…)`, a cross-reference contested by two same-prefix cliques is awarded
   to one of them by a tie-break that is sensitive to the input *set*, so adding or removing an
