@@ -1,14 +1,14 @@
 pipeline,predicate,prefix_1,prefix_2,asserted_by,status,xref_count,subject,subject_label,object,object_label
-disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0000009,"inherited bleeding disorder, platelet-type",GARD:22702,"Inherited bleeding disorder, platelet-type"
-disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0004397,benign mediastinal psammomatous neurilemmoma,GARD:23977,Benign mediastinal psammomatous neurilemmoma
-disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0008118,odontomatosis-aortae esophagus stenosis syndrome,GARD:238,Odontomatosis-aortae esophagus stenosis syndrome
-disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0010311,Becker muscular dystrophy,GARD:5900,Becker muscular dystrophy
-disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0012502,normophosphatemic familial tumoral calcinosis,GARD:10878,Normophosphatemic familial tumoral calcinosis
-disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0014379,ADNP-related multiple congenital anomalies - intellectual disability - autism spectrum disorder,GARD:12931,ADNP-related multiple congenital anomalies - intellectual disability - autism spectrum disorder
-disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0016575,primary ciliary dyskinesia,GARD:4484,Primary ciliary dyskinesia
-disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0018944,gestational trophoblastic neoplasm,GARD:6498,Gestational trophoblastic neoplasm
-disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0024535,Singleton-Merten syndrome 1,GARD:25417,Singleton-Merten syndrome 1
-disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,16212,MONDO:0100223,"mitochondrial complex I deficiency, nuclear type",GARD:26087,"Mitochondrial complex I deficiency, nuclear type"
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0000009,"inherited bleeding disorder, platelet-type",GARD:22702,"Inherited bleeding disorder, platelet-type"
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0004358,subglottis carcinoma,GARD:27678,Subglottis carcinoma
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0008083,"ceroid lipofuscinosis, neuronal, 4 (Kufs type)",GARD:1222,"Ceroid lipofuscinosis, neuronal, 4 (Kufs type)"
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0010273,"lymphoma, Hodgkin, X-linked pseudoautosomal",GARD:9899,"Lymphoma, Hodgkin, X-linked pseudoautosomal"
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0012464,cone-rod dystrophy 10,GARD:15477,Cone-rod dystrophy 10
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0014392,"developmental and epileptic encephalopathy, 25",GARD:12901,"Developmental and epileptic encephalopathy, 25"
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0016591,sporadic adult-onset ataxia of unknown etiology,GARD:20654,Sporadic adult-onset ataxia of unknown etiology
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0018945,XK-related neurodegenerative disease,GARD:10731,McLeod neuroacanthocytosis syndrome
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0024525,Fanconi renotubular syndrome 1,GARD:25412,Fanconi renotubular syndrome 1
+disease,xref,GARD,MONDO,MONDO_GARD,from_other_source,15936,MONDO:0100175,TTN-related myopathy,GARD:26073,TTN-related myopathy
 disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0050012,chikungunya,GARD:6038,Chikungunya fever
 disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0050970,spinocerebellar ataxia 19/22,GARD:12365,Spinocerebellar ataxia type 19/22
 disease,xref,DOID,GARD,DOID,from_other_source,1902,DOID:0060851,pemphigus vulgaris,GARD:7355,Pemphigus vulgaris

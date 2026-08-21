@@ -19,16 +19,17 @@ forming its own. MONDO's mappings needed a new concord to reach Babel at all: it
 `oboInOwl:hasDbXref`, and the `MONDO` concord reads only `skos:exactMatch`. See
 [`docs/sources/MONDO/README.md`](../MONDO/README.md) for that exception and its scoping.
 
-Measured on the finished build: `Disease.txt` holds 16,513 distinct GARD identifiers across 16,379
-cliques — **16,102 of them shared with another vocabulary, and only 277 GARD-only.** Ingesting GARD
+Measured on the finished build: `Disease.txt` holds 16,508 distinct GARD identifiers across 16,377
+cliques — **16,100 of them shared with another vocabulary, and only 277 GARD-only.** Ingesting GARD
 adds 258 net cliques to `Disease.txt` (365,087 → 365,345, +0.07%).
 
 DOID also asserts 300 GARD ids the current registry no longer publishes (MONDO asserts none). Those
 join their DOID clique without a label, exactly like any other xref target Babel does not ingest —
-retired ids are worth keeping, since data that still cites them normalizes to the right clique.
-(299 reach `Disease.txt`; `GARD:10191` does not, because its only subject
-[`DOID:1824`](http://purl.obolibrary.org/obo/DOID_1824) "neuroretinitis" reaches neither disease
-compendium — a pre-existing condition, absent from the `main` build too, unrelated
+retired ids are worth keeping, since data that still cites them normalizes to the right clique. (294
+reach `Disease.txt`; five are cited by two DOID terms each and are dropped by the overuse filter
+described below, since nothing says which of the two they meant; `GARD:10191` does not, because its
+only subject [`DOID:1824`](http://purl.obolibrary.org/obo/DOID_1824) "neuroretinitis" reaches
+neither disease compendium — a pre-existing condition, absent from the `main` build too, unrelated
 to GARD, and now tracked as
 [#1042](https://github.com/NCATSTranslator/Babel/issues/1042).)
 
@@ -155,11 +156,12 @@ Summary:
 - **16,214 identifiers** added (all `GARD:`, all `biolink:Disease`).
 - **277 new cliques** -- one single-identifier clique per registry term that neither MONDO nor DOID
   maps (a 0.06% increase over the 440,628 pre-existing disease cliques).
-- **15,643 existing cliques contain GARD identifiers**, all of them via MONDO's and DOID's xrefs
-  rather than a GARD concord: GARD's ids file promotes CURIEs that were already in the clique to
-  first-class typed identifiers, and gives them a label.
+- **15,621 existing cliques contain GARD identifiers**, all of them via MONDO's and DOID's xrefs
+  rather than a GARD concord. The report excludes `MONDO_GARD` along with GARD's ids file (it is
+  MONDO's data *about GARD*, so a "before" state that kept it would already hold every GARD CURIE),
+  which is why it sees 14,049 cliques gaining a structurally new GARD identifier and 22 merges.
 - **0 cross-reference rows** contributed -- GARD has no concord of its own. Section 3's join-pathway
-  table shows both inbound pathways: `MONDO_GARD` (16,212 rows) and `DOID` (1,902).
+  table shows both inbound pathways: `MONDO_GARD` (15,936 rows) and `DOID` (1,902).
 - **Section 4 is a worst-case (upper-bound) view:** it is computed before the Biolink per-class
   prefix filter runs, so the sample cliques are flagged "NOT emitted -- prefix not registered in
   Biolink Model for `biolink:Disease`". That flag is *exactly* why the build passes

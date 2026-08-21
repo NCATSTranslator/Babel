@@ -6,11 +6,11 @@
       "Disease.txt",
       "PhenotypicFeature.txt"
     ],
-    "note": "PR #980: adds the GARD registry as a biolink:Disease source, with MONDO's GARD hasDbXrefs as the MONDO_GARD concord and DOID's mistyped GARD:0418 dropped"
+    "note": "PR #980: adds the GARD registry as a biolink:Disease source, with MONDO's GARD hasDbXrefs as the MONDO_GARD concord; DOID's and MONDO_GARD's GARD targets overuse-filtered"
   },
   "compendia": {
     "Disease.txt": {
-      "changed_before_cliques": 16123,
+      "changed_before_cliques": 16121,
       "clique_count": {
         "after": 365345,
         "before": 365087,
@@ -21,7 +21,7 @@
       "dropped_member_count": 0,
       "leader_changed_count": 0,
       "moved_member_count": 0,
-      "regrouped_member_count": 250
+      "regrouped_member_count": 248
     },
     "PhenotypicFeature.txt": {
       "changed_before_cliques": 0,

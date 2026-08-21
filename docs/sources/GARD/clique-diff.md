@@ -8,8 +8,8 @@ existing cliques, so that gap is load-bearing here. This page records the build-
 [`babel-clique-diff`](../../tools/CliqueDiff.md) that closes it.
 
 Artifacts in [`on-addition/`](./on-addition/): `clique-diff.summary.json`, and
-`clique-diff-regrouped.csv` — every one of the 31 rows that is not a plain `kept`, which is the
-reduction worth reading. The full per-row CSV is 16,135 rows, almost all `kept`, and is not
+`clique-diff-regrouped.csv` — every one of the 29 rows that is not a plain `kept`, which is the
+reduction worth reading. The full per-row CSV is 16,133 rows, almost all `kept`, and is not
 committed.
 
 ## Headline: GARD joins existing cliques rather than forming its own
@@ -32,17 +32,17 @@ xrefs — the same 16,214 identifiers produce **14,319** single-identifier cliqu
 `PhenotypicFeature.txt` is untouched, as expected: `disease_extra_prefixes` is a per-class allowlist
 applied to `biolink:Disease` only, so no GARD CURIE can survive in a phenotype clique.
 
-## Nothing is lost; 31 cliques are restructured
+## Nothing is lost; 29 cliques are restructured
 
 | destination_kind | rows | members | meaning |
 | --- | ---: | ---: | --- |
 | `kept` | 16,104 | — | member stayed under the same leader |
-| `regrouped` | 31 | 250 | members moved to a different leader in the same compendium |
+| `regrouped` | 29 | 248 | members moved to a different leader in the same compendium |
 | `leader_changed` | 0 | 0 | no clique's preferred identifier was reassigned |
 | `moved` | 0 | 0 | no member retyped into a different compendium file |
 | `dropped` | 0 | 0 | **no identifier disappeared from the compendia** |
 
-The 31 `regrouped` rows are in
+The 29 `regrouped` rows are in
 [`on-addition/clique-diff-regrouped.csv`](./on-addition/clique-diff-regrouped.csv) and fall into two
 shapes.
 
@@ -62,7 +62,7 @@ same GARD id, and the two cliques join. The labels agree on both sides:
 This is a **fix**: before this PR each of these diseases had two Babel cliques, and Node
 Normalization answered differently depending on which identifier you held.
 
-### Shape 2 — a pre-existing over-merge splits (12 rows)
+### Shape 2 — a pre-existing over-merge splits (10 rows)
 
 A clique that had absorbed a second disease sheds it. `glom()` cannot hold two MONDO identifiers
 (`DISEASE_UNIQUE_PREFIXES`), so where the new GARD edges give a better-supported home to members
@@ -80,7 +80,30 @@ Each of these separates two things that should not have been one clique — a sy
 it produces, a hamartoma syndrome from Cowden disease, tuberous sclerosis from situs inversus. **The
 over-merges predate this PR and ship today**; GARD's mappings are what pull them apart. They are the
 strongest single argument for the `MONDO_GARD` concord, and the rows an SME should read first: the
-full 31 are in the CSV with before/after sizes and example members.
+full 29 are in the CSV with before/after sizes and example members.
+
+### Two splits that were wrong, and the filter that undoes them
+
+An earlier run of this diff had 31 rows. The two no longer present were splits in the *wrong*
+direction, caused by one GARD id being xrefed by two DOID terms: `GARD:625` "Autosomal recessive
+Alport syndrome" is cited by both [`DOID:0110033`](http://purl.obolibrary.org/obo/DOID_0110033)
+"Alport syndrome 2" and [`DOID:0051080`](http://purl.obolibrary.org/obo/DOID_0051080) "Alport
+syndrome 3B", which pulled 3B out of
+[`MONDO:0957811`](http://purl.obolibrary.org/obo/MONDO_0957811) "Alport syndrome 3b, autosomal
+recessive" and into the general autosomal recessive clique; `GARD:7674` "Spinal muscular atrophy"
+did the same to [`DOID:0060160`](http://purl.obolibrary.org/obo/DOID_0060160) "childhood spinal
+muscular atrophy", pulling it out of
+[`MONDO:0009673`](http://purl.obolibrary.org/obo/MONDO_0009673) "spinal muscular atrophy, type II".
+Twelve of DOID's GARD targets are claimed by two or more DOID terms in this way. DOID's concord is
+now overuse-filtered on GARD as well as ICD (`OVERUSE_FILTERED_CONCORDS["DOID"]` in
+`src/createcompendia/diseasephenotype.py`), which drops all twelve from DOID's concord; MONDO's own
+mapping still places every one of them, and both DOID terms stay in their MONDO cliques.
+
+The only visible cost is five *retired* GARD ids — `GARD:7220`, `GARD:8609`, `GARD:9226`,
+`GARD:9948` and `GARD:9971` — that the registry no longer publishes and that only DOID cited, each
+from two terms. With no registry row and no MONDO mapping, nothing
+else carries them, so they are no longer emitted; they had no label and there was no way to tell
+which of their two DOID subjects they meant.
 
 ## The mistyped DOID xref this also fixes
 
