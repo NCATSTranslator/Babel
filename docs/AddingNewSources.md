@@ -149,10 +149,12 @@ namespace rather than being settled once per source. Two signals worth weighing:
 When the answer is yes for one namespace and no for the rest, scope the exception rather than
 widening the rule: a separate concord file with `allowed_prefixes` fixed at that one prefix keeps
 the exception visible in `config.yaml: <pipeline>_concords`, lets it be filtered or dropped on its
-own, and gives it a metadata block that records why it exists. Pair it with a `pipeline`-marked test
-asserting the property you relied on — here, that the mapping is still 1:1 — since taking a concord
-unfiltered means those assertions are the only thing standing between you and the next release's
-mistake.
+own, and gives it a metadata block that records why it exists. Then make the build enforce the
+property you relied on rather than only testing it: here, an `OVERUSE_FILTERED_CONCORDS` entry
+scoped to GARD drops any id a future MONDO release maps twice, so the 1:1 assumption fails closed
+instead of silently awarding the id to whichever row sorts first. A `pipeline`-marked test on top
+(`tests/pipeline/test_mondo_gard.py`) tells you *when* the source loses the property, which the
+filter alone would hide.
 
 ### 4. Wire Snakemake rules
 
