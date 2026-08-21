@@ -91,5 +91,6 @@ rename every PMC CURIE. Two things to know:
 The XML parser also wrote `babel_downloads/PubMed/statuses.jsonl.gz`, every `PubStatus` a PMID had
 ever carried, as a placeholder for one day exposing whether a publication had been retracted
 (#155). Nothing ever read it and pubmed2db does not export statuses, so it is gone. The idea — a
-per-version status such as "Retracted" or "Updated" — is tracked as a Babel issue and a pubmed2db
-issue (see the links in `src/createcompendia/publications.py`'s module docstring once filed).
+per-version status such as "Retracted" or "Updated" — is tracked as
+[Babel#1049](https://github.com/NCATSTranslator/Babel/issues/1049) and
+[pubmed2db#45](https://github.com/TranslatorSRI/pubmed2db/issues/45), which links the old code.
