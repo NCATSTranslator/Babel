@@ -3,12 +3,14 @@ import csv
 import json
 import logging
 import os
+import re
+from pathlib import Path
 
 import pytest
 import requests
 from apybiomart import find_attributes, find_datasets
 
-from src.datahandlers.ensembl import BIOMART_ATTRIBUTES, pull_ensembl
+from src.datahandlers.ensembl import BIOMART_ATTRIBUTES, BIOMART_MAX_ATTRIBUTE_COUNT, pull_ensembl
 
 logging.basicConfig(level=logging.INFO)
 
@@ -209,3 +211,41 @@ def test_biomart_find_datasets_response_format():
     print(f"\nfind_datasets() returned {len(df)} rows with columns: {list(df.columns)}")
     assert "Dataset_ID" in df.columns, f"Expected 'Dataset_ID' column, got: {list(df.columns)}"
     assert len(df) > 0, "find_datasets() returned an empty dataframe"
+
+
+# --- documentation drift -------------------------------------------------------
+#
+# docs/sources/ENSEMBL/Download.md hand-mirrors BIOMART_ATTRIBUTES as a table (each row pairs an
+# attribute with what Babel uses it for, which the constant cannot carry). A hand-kept copy of a
+# constant is exactly the duplication that goes stale silently, so it is asserted rather than
+# trusted. These are `unit` tests: they read a committed file and never touch BioMart.
+
+_DOWNLOAD_DOC = Path(__file__).resolve().parents[2] / "docs" / "sources" / "ENSEMBL" / "Download.md"
+
+
+@pytest.mark.unit
+def test_download_doc_attribute_table_matches_biomart_attributes():
+    """Every attribute Babel requests is in the doc's table, and the table invents none.
+
+    Adding an attribute to BIOMART_ATTRIBUTES without saying what it is for leaves the table --
+    the only place that explains why each column is fetched -- quietly incomplete.
+    """
+    # Table rows look like: | `ensembl_gene_id` | primary ENSEMBL gene CURIE |
+    documented = set(re.findall(r"^\|\s*`([a-z_]+)`\s*\|", _DOWNLOAD_DOC.read_text(), re.MULTILINE))
+    assert documented == BIOMART_ATTRIBUTES, (
+        "docs/sources/ENSEMBL/Download.md's attribute table has drifted from BIOMART_ATTRIBUTES; "
+        f"undocumented: {sorted(BIOMART_ATTRIBUTES - documented)}, "
+        f"documented but not requested: {sorted(documented - BIOMART_ATTRIBUTES)}"
+    )
+
+
+@pytest.mark.unit
+def test_download_doc_quotes_the_current_batch_size():
+    """The doc states BIOMART_MAX_ATTRIBUTE_COUNT's value twice, in prose; keep both honest.
+
+    The value is load-bearing for a reader deciding whether a dataset will be batched, so a doc
+    still saying 6 after the constant moved would send them to the wrong conclusion.
+    """
+    text = _DOWNLOAD_DOC.read_text()
+    assert f"`BIOMART_MAX_ATTRIBUTE_COUNT` ({BIOMART_MAX_ATTRIBUTE_COUNT})" in text
+    assert f"The flat count of {BIOMART_MAX_ATTRIBUTE_COUNT} is a conservative stand-in" in text
