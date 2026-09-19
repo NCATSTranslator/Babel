@@ -6,9 +6,9 @@ import os
 
 import pytest
 import requests
-from apybiomart import find_datasets
+from apybiomart import find_attributes, find_datasets
 
-from src.datahandlers.ensembl import pull_ensembl
+from src.datahandlers.ensembl import BIOMART_ATTRIBUTES, pull_ensembl
 
 logging.basicConfig(level=logging.INFO)
 
@@ -44,53 +44,107 @@ def normalize_list_of_dictionaries(dict_list):
     return sorted(json.dumps(dictionary, sort_keys=True) for dictionary in dict_list)
 
 
+# The dataset the unsplit/split comparison uses. It is small (~16k genes) and exposes none of the
+# External References attributes, which is what lets it be fetched whole -- see _ISSUE_193_DATASET.
+_DATASET = "choffmanni_gene_ensembl"
+
+# The dataset from https://github.com/NCATSTranslator/Babel/issues/193, which pull_ensembl()'s
+# batching exists to rescue: it carries five External References attributes and BioMart rejects a
+# query asking for more than about three of them ("Too many attributes selected for External
+# References"). Downloading it at the default BIOMART_MAX_ATTRIBUTE_COUNT is the regression check.
+_ISSUE_193_DATASET = "hgfemale_gene_ensembl"
+
+
+def _biomart_attribute_count(dataset):
+    """How many of BIOMART_ATTRIBUTES this dataset exposes -- pull_ensembl()'s own batching input.
+
+    The unsplit arm below passes this as max_attribute_count so the download is a single query by
+    construction. Deriving it is the fix for a stale assumption: the arm used to rely on the default
+    BIOMART_MAX_ATTRIBUTE_COUNT (6) exceeding what _DATASET exposes, and when Ensembl grew the
+    dataset to 8 attributes both arms silently became batched downloads and the comparison below
+    stopped comparing what it claimed to.
+    """
+    return len(BIOMART_ATTRIBUTES & set(find_attributes(dataset)["Attribute_ID"].to_list()))
+
+
+def _pull_or_xfail(*args, **kwargs):
+    """Call pull_ensembl(), turning a BioMart outage into an xfail but leaving real failures alone.
+
+    This test used to carry a blanket ``xfail(strict=False)`` reading "requires network access to
+    the Ensembl BioMart service". BioMart came back, the test started running, and the assertion
+    about single-query downloads had gone stale -- but the blanket marker reported that as a routine
+    xfail, so nothing surfaced it. Guarding only the unreachable-service case keeps every assertion
+    live. pull_ensembl() retries a failing dataset BIOMART_MAX_RETRIES times before giving up, so
+    reaching this handler means BioMart was unusable for minutes, not that it blipped once.
+    """
+    try:
+        return pull_ensembl(*args, **kwargs)
+    except Exception as e:
+        pytest.xfail(f"Ensembl BioMart is unusable: {e}")
+
+
 @pytest.mark.network
-@pytest.mark.xfail(
-    reason="requires network access to the Ensembl BioMart service. "
-    "To fix: record a VCR cassette or use responses/pytest-httpserver to "
-    "replay the BioMart HTTP responses without a live connection.",
-    strict=False,
-)
 def test_pull_ensembl(tmp_path):
+    """Splitting a dataset across several BioMart queries must reproduce the single-query download.
+
+    pull_ensembl() batches a dataset that exposes more of BIOMART_ATTRIBUTES than
+    ``max_attribute_count``, then merges the batches back together on ``ensembl_gene_id``. This
+    downloads _DATASET both ways and compares the two TSVs row for row, and downloads
+    _ISSUE_193_DATASET alongside it to confirm the dataset that motivated the batching still
+    arrives intact.
+    """
     # Make a temporary directory for testing.
     pull_ensembl_test_dir = tmp_path / "pull_ensembl_test"
-    output_dir = pull_ensembl_test_dir / "download"
-    os.makedirs(output_dir)
+    batched_dir = pull_ensembl_test_dir / "download"
+    os.makedirs(batched_dir)
 
-    # Pull a single ENSEMBL file to that. This should trigger https://github.com/NCATSTranslator/Babel/issues/193
-    single_query_report = pull_ensembl(
-        output_dir, output_dir / "download_complete", ["choffmanni_gene_ensembl", "hgfemale_gene_ensembl"]
+    # Both datasets at the default limit, so both are batched: _DATASET as the split half of the
+    # comparison, _ISSUE_193_DATASET as the issue #193 regression.
+    batched_query_report = _pull_or_xfail(
+        batched_dir, batched_dir / "download_complete", [_DATASET, _ISSUE_193_DATASET]
     )
 
-    # uamericanus_gene_ensembl should be downloadable as a single file in the above example, but we're going to
-    # deliberately download it in multiple chunks so it's clearer.
-    download_as_splits = pull_ensembl_test_dir / "download_as_splits"
-    os.makedirs(download_as_splits)
-    split_query_report = pull_ensembl(
-        download_as_splits, download_as_splits / "download_complete", ["choffmanni_gene_ensembl"], max_attribute_count=4
+    # Now the same dataset again, asking for every attribute it has at once so nothing is batched.
+    unsplit_dir = pull_ensembl_test_dir / "download_unsplit"
+    os.makedirs(unsplit_dir)
+    unsplit_query_report = _pull_or_xfail(
+        unsplit_dir,
+        unsplit_dir / "download_complete",
+        [_DATASET],
+        max_attribute_count=_biomart_attribute_count(_DATASET),
     )
 
     # We need to check two things:
     # 1. Whether the single/split reports make sense.
-    single_uamericanus = single_query_report["choffmanni_gene_ensembl"]
-    split_uamericanus = split_query_report["choffmanni_gene_ensembl"]
+    single_report = unsplit_query_report[_DATASET]
+    split_report = batched_query_report[_DATASET]
 
-    # No batches with the single query, two batches with the artificially lowered max_attribute_count limit.
-    assert len(single_uamericanus["batches"]) == 0
-    assert len(split_uamericanus["batches"]) == 2
+    # No batches with the single query; the default limit must actually have split the download.
+    # The batch counts are asserted as ">= 2" rather than exact numbers because they are a function
+    # of how many attributes Ensembl exposes for a dataset, which changes without notice -- the
+    # property under test is that batching happened and reassembled correctly, not how many pieces
+    # it took. An exact count here is what went stale last time.
+    assert len(single_report["batches"]) == 0
+    assert len(split_report["batches"]) >= 2
+
+    # Issue #193: the naked mole rat dataset has more External References attributes than BioMart
+    # will serve in one query, so it downloads only if the batching works.
+    issue_193_report = batched_query_report[_ISSUE_193_DATASET]
+    assert issue_193_report["status"] == "downloaded", issue_193_report["message"]
+    assert len(issue_193_report["batches"]) >= 2
 
     # Make sure we have the right counts in the reports returned by pull_ensembl().
-    assert split_uamericanus["num_rows"] == single_uamericanus["num_rows"]
-    expected_attributes = set(single_uamericanus["attributes"])
-    assert set(split_uamericanus["attributes"]) == expected_attributes
+    assert split_report["num_rows"] == single_report["num_rows"]
+    expected_attributes = set(single_report["attributes"])
+    assert set(split_report["attributes"]) == expected_attributes
     batched_attributes = {"ensembl_gene_id"}
-    for batch in split_uamericanus["batches"]:
+    for batch in split_report["batches"]:
         batched_attributes.update(batch["attributes"])
     assert batched_attributes == expected_attributes
 
     # 2. Whether the unsplit file is identical to the split file.
-    unsplit_tsv = output_dir / "choffmanni_gene_ensembl" / "BioMart.tsv"
-    split_tsv = download_as_splits / "choffmanni_gene_ensembl" / "BioMart.tsv"
+    unsplit_tsv = unsplit_dir / _DATASET / "BioMart.tsv"
+    split_tsv = batched_dir / _DATASET / "BioMart.tsv"
     assert unsplit_tsv.exists()
     assert split_tsv.exists()
     with open(unsplit_tsv) as unsplit_file, open(split_tsv) as split_file:
