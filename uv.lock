@@ -3,10 +3,10 @@ revision = 3
 requires-python = ">=3.11, <3.14"
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.12' and sys_platform == 'win32'",
     "python_full_version >= '3.12' and sys_platform == 'emscripten'",
-    "python_full_version < '3.12' and sys_platform == 'emscripten'",
     "python_full_version >= '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.12' and sys_platform == 'win32'",
+    "python_full_version < '3.12' and sys_platform == 'emscripten'",
     "python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
@@ -685,15 +685,16 @@ toml = [
 
 [[package]]
 name = "curies"
-version = "0.15.0"
+version = "0.15.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "pystow" },
+    { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ab/c7/9f82321225b2554ffa22877e75905501589f89a6856ec460421cbefb0ecf/curies-0.15.0.tar.gz", hash = "sha256:969cbc7aa6668ee2a6d2be8f3b036c1d9c66d4860644fb517cfd80b7232626b2", size = 73297, upload-time = "2026-08-10T10:40:06.012Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/12/ba/1419008f223e84fc6164c481db4ed8397f2eadfa39c9f52339d12348696d/curies-0.15.1.tar.gz", hash = "sha256:f0c0c2dccc1e34dc9fa508c1bcb4bd87931f143986a5cd93d44bb8f429736310", size = 73726, upload-time = "2026-09-11T18:04:57.644Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/55/62/3bcf988945065eb9f6ce91d8f5ecdcab59093a539549c3d0d9ec777d75e5/curies-0.15.0-py3-none-any.whl", hash = "sha256:cea20aa3f9911aeb2c955ad03112dfe1df658a8c8b260336bb84595df6838001", size = 82584, upload-time = "2026-08-10T10:40:04.504Z" },
+    { url = "https://files.pythonhosted.org/packages/52/43/883eeb9fe0d68268f82523805809d7842902077fb88da276114810b4b19f/curies-0.15.1-py3-none-any.whl", hash = "sha256:97868ccc6fb8af20468c4a617e9596984c3bbd6f7b1f215a916da1ed64256a16", size = 82935, upload-time = "2026-09-11T18:04:56.108Z" },
 ]
 
 [[package]]
