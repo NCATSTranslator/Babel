@@ -400,3 +400,17 @@ never only in the description. Commit messages are effectively invisible after m
 compress a rationale into "see commit abc1234": if the reasoning matters, and especially if it
 records an alternative that was considered and rejected, put it in a comment or docstring beside the
 code that would have to change to undo it, and let the description point there.
+
+**Add or update BabelTests whenever you file or edit a Babel issue about output data** — a CURIE's
+clique, type, label, or whether it normalizes at all. The
+[babel-validation](https://github.com/TranslatorSRI/babel-validation) harness scans this repo's
+issues for `babel_tests:` YAML blocks (or one-line `BabelTest` markers) and runs them against live
+NodeNorm and NameRes; its README documents the assertion types. Assert the state the fix should
+produce (`DoesNotResolve`, `ResolvesWith`, `HasLabel`, …), plus `Resolves` guards for what the fix
+must not break. An open issue is one strict expected failure: it reports as passing unexpectedly
+(XPASS) only once *every* assertion passes, which says the issue can be closed. A closed issue's
+assertions become regression tests. Check a new block with
+`uv run pytest tests/github_issues --target dev --issue 'NCATSTranslator/Babel#N'` from
+babel-validation, which needs `GITHUB_TOKEN` (`gh auth token` works). Never put a complete marker
+in prose that only explains the syntax: the harness runs it wherever it appears. #1109 and #1111
+are worked examples.
