@@ -722,14 +722,13 @@ def write_compendium(
     :param properties_files: (OPTIONAL) A list of SQLite3 files containing properties to be added to the output.
     :return:
     """
-    logger.info(
-        f"Starting write_compendium({metadata_yamls}, {len(synonym_list)} slists, {ofname}, {node_type}, {len(labels)} labels, {extra_prefixes}, {icrdf_filename}, {properties_jsonl_gz_files}): {get_memory_usage_summary()}"
-    )
-
     if extra_prefixes is None:
         extra_prefixes = []
     if labels is None:
         labels = {}
+    logger.info(
+        f"Starting write_compendium({metadata_yamls}, {len(synonym_list)} slists, {ofname}, {node_type}, {len(labels)} labels, {extra_prefixes}, {icrdf_filename}, {properties_jsonl_gz_files}): {get_memory_usage_summary()}"
+    )
     config = get_config()
     cdir = config["output_directory"]
     biolink_version = config["biolink_version"]
