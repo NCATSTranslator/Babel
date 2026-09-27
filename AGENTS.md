@@ -32,9 +32,27 @@ Resolver services.
 
 ## Scratch space: use `data/`
 
-`data/` is a gitignored scratch directory — put ad hoc files there (downloads, build comparisons,
-extracted intermediates), and prefer it over `/tmp` for anything worth keeping across a session.
-Never write scratch files into the repository root, `input_data/`, or `docs/`.
+`data/` is a gitignored scratch directory — put ad hoc files there (one-off downloads, build
+comparisons, extracted intermediates, reports). Prefer it over `/tmp`: it survives across sessions,
+so a later investigation can reuse an earlier one's outputs. Never write scratch files into the
+repository root, `input_data/`, or `docs/`.
+
+- **Work in a descriptively named subdirectory** (`data/clique-diff/`, `data/branch-mp/`), not
+  loose files at the top level — the name is often the only record of what's inside.
+- **When outputs are worth keeping**, put a short untracked `README.md` *inside that
+  subdirectory*: what produced them, from which build or inputs, and what they're good for. Nothing
+  else needs cataloguing. Don't add a top-level `data/README.md`; the only tracked file is the
+  force-added `data/.gitkeep`, which keeps the directory in every checkout.
+- **Everything here is disposable.** Delete a subdirectory once it's clearly no longer needed, and
+  expect the maintainer to clear `data/` whenever disk runs low. Anything that must last — an
+  analysis a parsing decision rests on, a report — belongs in a committed script or doc (see
+  Debugging), not only in `data/`.
+
+`babel_downloads/` and `babel_outputs/` (also gitignored) are cleared less often and are the place
+for pipeline downloads and partial builds. Local runs reuse existing downloads so testing a change
+doesn't re-fetch every source; full runs on the HPC start from scratch to pick up the latest
+upstream files. So don't copy pipeline downloads into `data/` — use `babel_downloads/` — and don't
+assume a local download is current.
 
 ## Key Commands
 
