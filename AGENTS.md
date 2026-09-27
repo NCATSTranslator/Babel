@@ -407,8 +407,9 @@ clique, type, label, or whether it normalizes at all. The
 issues for `babel_tests:` YAML blocks (or one-line `BabelTest` markers) and runs them against live
 NodeNorm and NameRes; its README documents the assertion types. Assert the state the fix should
 produce (`DoesNotResolve`, `ResolvesWith`, `HasLabel`, …), plus `Resolves` guards for what the fix
-must not break. An open issue is one strict expected failure: it reports as passing unexpectedly
-(XPASS) only once *every* assertion passes, which says the issue can be closed. A closed issue's
+must not break. An open issue is one strict expected failure, so pytest reports it as FAILED
+`[XPASS(strict)]` once *every* assertion passes. That red result means the issue can be closed, not
+that the block is broken, so don't weaken its assertions to make it go away. A closed issue's
 assertions become regression tests. Check a new block with
 `uv run pytest tests/github_issues --target dev --issue 'NCATSTranslator/Babel#N'` from
 babel-validation, which needs `GITHUB_TOKEN` (`gh auth token` works). Never put a complete marker
