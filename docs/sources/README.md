@@ -39,8 +39,8 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   example for an OBO-from-UberGraph source, with an auto-generated source-impact report.
 - **ENSEMBL** ([ENSEMBL/Download.md](./ENSEMBL/Download.md)) — how Ensembl identifiers are
   downloaded via the BioMart API: per-dataset retry logic, permanently broken datasets and how to
-  skip them, the attribute-batching workaround, and how partial progress is preserved across
-  failed runs.
+  skip them, the attribute-batching workaround, how partial progress is preserved across
+  failed runs, and why yeast protein IDs are not protein ids.
 - **GARD** ([GARD/README.md](./GARD/README.md)) — the NCATS Genetic and Rare Diseases registry as
   a `biolink:Disease` source: a flat CSV of rare-disease terms (labels + pipe-separated synonyms,
   no cross-references), typed Disease and kept via `extra_prefixes=[GARD]` because GARD is not yet
