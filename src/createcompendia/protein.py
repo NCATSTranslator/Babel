@@ -28,7 +28,14 @@ def extract_taxon_ids_from_uniprotkb(idmapping_filename, uniprotkb_taxa_filename
                 outf.write(f"{UNIPROTKB}:{x[0]}\t{NCBITAXON}:{x[2]}\n")
 
 
-def write_umls_ids(mrsty, outfile):
+def write_umls_ids(mrsty, outfile, *, mrconso=None, own_mesh_ids_files=None, foreign_mesh_ids_files=None):
+    """Select the UMLS CUIs the protein pipeline claims by semantic type.
+
+    The three keyword arguments enable "a CUI follows its MeSH descriptor" (umls.apply_mesh_ownership): given
+    MRCONSO plus this pipeline's and every other MeSH-owning pipeline's ``ids/MESH`` files, a CUI whose
+    descriptor another pipeline claims is dropped here and a CUI whose descriptor this pipeline claims is added.
+    Re-homing T116 CUIs whose descriptor is in a chemical D-tree is https://github.com/NCATSTranslator/Babel/issues/308.
+    """
     # Compare with src/createcompendia/chemicals.py (see source code at
     # https://github.com/NCATSTranslator/Babel/blob/c91654411923b86300cc2f6b5a21b96ea857817f/src/createcompendia/chemicals.py#L54-L76)
     #
@@ -42,7 +49,14 @@ def write_umls_ids(mrsty, outfile):
         "A1.4.1.1.3.6": PROTEIN,  # Receptor -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T192
         "A1.4.1.1.3.3": PROTEIN,  # Enzyme -- https://uts.nlm.nih.gov/uts/umls/semantic-network/T126
     }
-    umls.write_umls_ids(mrsty, umlsmap, outfile)
+    umls.write_umls_ids(
+        mrsty,
+        umlsmap,
+        outfile,
+        mrconso=mrconso,
+        own_mesh_ids_files=own_mesh_ids_files,
+        foreign_mesh_ids_files=foreign_mesh_ids_files,
+    )
 
 
 def write_mesh_ids(outfile):

@@ -187,7 +187,13 @@ def write_mesh_ids(outfile):
     mesh.write_ids(meshmap, outfile)
 
 
-def write_umls_ids(mrsty, outfile):
+def write_umls_ids(mrsty, outfile, *, mrconso=None, own_mesh_ids_files=None, foreign_mesh_ids_files=None):
+    """Select the UMLS CUIs the anatomy pipeline claims by semantic type.
+
+    The three keyword arguments enable "a CUI follows its MeSH descriptor" (umls.apply_mesh_ownership): given
+    MRCONSO plus this pipeline's and every other MeSH-owning pipeline's ``ids/MESH`` files, a CUI whose
+    descriptor another pipeline claims is dropped here and a CUI whose descriptor this pipeline claims is added.
+    """
     # UMLS categories:
     # A1.2 Anatomical Structure
     # A1.2.1 Embryonic Structure
@@ -204,7 +210,14 @@ def write_umls_ids(mrsty, outfile):
     }
     umlsmap["A1.2.3.3"] = CELL
     umlsmap["A1.2.3.4"] = CELLULAR_COMPONENT
-    umls.write_umls_ids(mrsty, umlsmap, outfile)
+    umls.write_umls_ids(
+        mrsty,
+        umlsmap,
+        outfile,
+        mrconso=mrconso,
+        own_mesh_ids_files=own_mesh_ids_files,
+        foreign_mesh_ids_files=foreign_mesh_ids_files,
+    )
 
 
 # Ignore list notes:

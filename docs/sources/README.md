@@ -69,6 +69,9 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
 - **UMLS** ([UMLS/Leftover.md](./UMLS/Leftover.md)) — the "leftover UMLS" compendium: how
   unclaimed UMLS concepts are swept up and typed, the manual STY→Biolink override tables and the
   drift test that keeps them honest, and the coverage report under `reports/umls/`.
+  [UMLS/CuiFollowsMesh.md](./UMLS/CuiFollowsMesh.md) — how a CUI is assigned to the pipeline that
+  claims its MeSH descriptor when its semantic type says otherwise, the replay that measures the
+  rule against a published build, and the duplicate-clique-leader control behind it.
 - **NCBIGene** ([NCBIGene/quoting/README.md](./NCBIGene/quoting/README.md)) — an investigation into
   how the two free-text synonym columns (`Synonyms`/`otheraliases`, `Other_designations`/
   `otherdesignations`) in `gene_info.gz` are quoted, prompted by issue #744's `''…''` fragments and

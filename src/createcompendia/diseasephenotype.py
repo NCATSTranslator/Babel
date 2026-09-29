@@ -313,7 +313,13 @@ def write_mesh_ids(outfile):
     mesh.write_ids(meshmap, outfile, order=[DISEASE, PHENOTYPIC_FEATURE])
 
 
-def write_umls_ids(mrsty, outfile, badumlsfile):
+def write_umls_ids(mrsty, outfile, badumlsfile, *, mrconso=None, own_mesh_ids_files=None, foreign_mesh_ids_files=None):
+    """Select the UMLS CUIs the disease/phenotype pipeline claims by semantic type, minus ``badumls``.
+
+    The three keyword arguments enable "a CUI follows its MeSH descriptor" (umls.apply_mesh_ownership): given
+    MRCONSO plus this pipeline's and every other MeSH-owning pipeline's ``ids/MESH`` files, a CUI whose
+    descriptor another pipeline claims is dropped here and a CUI whose descriptor this pipeline claims is added.
+    """
     badumls = set()
     with open(badumlsfile) as inf:
         for line in inf:
@@ -359,7 +365,15 @@ def write_umls_ids(mrsty, outfile, badumlsfile):
     # A2.3 Organism Attribute
     # Includes things like "Age" which will merge with EFOs
     umlsmap["A2.3"] = PHENOTYPIC_FEATURE
-    umls.write_umls_ids(mrsty, umlsmap, outfile, blocklist_umls_ids=badumls)
+    umls.write_umls_ids(
+        mrsty,
+        umlsmap,
+        outfile,
+        blocklist_umls_ids=badumls,
+        mrconso=mrconso,
+        own_mesh_ids_files=own_mesh_ids_files,
+        foreign_mesh_ids_files=foreign_mesh_ids_files,
+    )
 
 
 def build_disease_obo_relationships(outdir, metadata_yamls):

@@ -34,7 +34,13 @@ def write_ec_ids(infile, outfile):
     ec.make_ids(infile, outfile)
 
 
-def write_umls_ids(mrsty, outfile):
+def write_umls_ids(mrsty, outfile, *, mrconso=None, foreign_mesh_ids_files=None):
+    """Select the UMLS CUIs the process pipeline claims by semantic type.
+
+    ``mrconso`` and ``foreign_mesh_ids_files`` enable "a CUI follows its MeSH descriptor"
+    (umls.apply_mesh_ownership): this pipeline writes no ids/MESH of its own, so it only ever *drops* a CUI,
+    when a MeSH-owning pipeline claims the CUI's descriptor and therefore the CUI itself.
+    """
     umlsmap = {
         "B2.2.1.1.4": MOLECULAR_ACTIVITY,  # Molecular Function
         "B2.2.1.1": BIOLOGICAL_PROCESS,  # Physiologic Function
@@ -43,7 +49,14 @@ def write_umls_ids(mrsty, outfile):
         "B2.2.1.1.3": BIOLOGICAL_PROCESS,  #  Cell Function
         "B2.2.1.1.4.1": BIOLOGICAL_PROCESS,  # Genetic Function
     }
-    umls.write_umls_ids(mrsty, umlsmap, outfile)
+    umls.write_umls_ids(
+        mrsty,
+        umlsmap,
+        outfile,
+        mrconso=mrconso,
+        own_mesh_ids_files=None if mrconso is None else [],
+        foreign_mesh_ids_files=foreign_mesh_ids_files,
+    )
 
 
 def build_process_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
