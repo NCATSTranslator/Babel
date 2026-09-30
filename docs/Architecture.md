@@ -175,6 +175,24 @@ counted in the content report and mostly live in `compendia/umls.txt`. Details a
 fixes are in [issue #1015](https://github.com/NCATSTranslator/Babel/issues/1015); delete this note
 once it is closed.
 
+## Build controls
+
+Most of the pipeline's checks only report: the DuckDB reports under `reports/duckdb/`, the
+per-compendium content reports, the leftover-UMLS diagnostics. A report nobody reads is not a
+control (see the "A log warning is not a control" rule in `AGENTS.md`), so the conditions that make
+a build unusable downstream fail it instead:
+
+- **Duplicate clique leaders.** A CURIE that leads a clique in two compendia breaks NodeNorm-ES,
+  which keys documents by leader ([#276](https://github.com/NCATSTranslator/Babel/issues/276)).
+  `rule assert_no_unexpected_duplicate_clique_leaders` (`src/snakefiles/duckdb.snakefile`) reads
+  `reports/duckdb/duplicate_clique_leaders.tsv` after it is written and raises for any row not in
+  `input_data/known_duplicate_clique_leaders.tsv`, which names the issue accepting each remaining
+  duplicate. The failure stops `reports/duckdb/done` and therefore `rule all`, but every other
+  output still completes, so the TSV is there to read. Fix the source (the known mechanisms are in
+  [`docs/sources/UMLS/CuiFollowsMesh.md`](sources/UMLS/CuiFollowsMesh.md)) or, for a duplicate an
+  issue accepts for now, add the row with that issue. Member-level duplicates
+  (`duplicate_curies.tsv`) stay report-only.
+
 ## Output directories
 
 When the pipeline runs, it creates and populates these directories:
