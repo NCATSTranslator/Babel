@@ -220,6 +220,10 @@ def build_sets(
     # will be the ones that we pull, as they correspond to the "main" name or heading of the mesh entry.
     # Because drugbank IDs are for active ingredients, we only want the UMLS IDs that map to a TTY of IN (ingredient)
     # Otherwise, you get the same DBID mapping to multiple UMLS IDs in a loose way.
+    # GO has the same problem: UMLS keeps GO synonym atoms (SY, ET, ...) with the GO code of the term they came from,
+    # but often places them in different CUIs (e.g. "activation of X" for "positive regulation of X"). Taking all of
+    # them maps one GO term to several CUIs, and the downstream overused-xref filter then drops every pair for that
+    # GO term. So we only take GO's preferred term (PT), plus MTH_PT where NLM has altered the preferred name.
     umls_ids = set()
     with open(umls_input) as inf:
         for line in inf:
@@ -228,6 +232,7 @@ def build_sets(
     lookfor = set(other_prefixes.keys())
     acceptable_mesh_tty = set(["MH", "NM", "HT", "QAB"])
     acceptable_drugbank_tty = set(["IN", "PIN", "MIN"])
+    acceptable_go_tty = set(["PT", "MTH_PT"])
     pairs = set()
     # test_cui = 'C0026827'
     with open(mrconso) as inf, open(umls_output, "w") as concordfile:
@@ -248,6 +253,8 @@ def build_sets(
             if (source == "MSH") and (tty not in acceptable_mesh_tty):
                 continue
             if (source == "DRUGBANK") and (tty not in acceptable_drugbank_tty):
+                continue
+            if (source == "GO") and (tty not in acceptable_go_tty):
                 continue
             # For some dippy reason, in the id column they say "HGNC:76"
             pref = other_prefixes[source]
