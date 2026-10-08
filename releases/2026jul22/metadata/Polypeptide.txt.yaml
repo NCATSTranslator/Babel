@@ -1,0 +1,230 @@
+created_at: '2026-07-22T03:16:36.686285'
+type: compendium
+name: Polypeptide.txt
+url: ''
+description: ''
+sources: []
+counts:
+  cliques: 5
+  eq_ids: 10
+  synonyms: 46
+  property_sources: {}
+combined_from:
+  chemicals.build_untyped_compendia():
+    created_at: '2026-07-21T22:10:49.670246'
+    type: untyped_compendium
+    name: chemicals.build_untyped_compendia()
+    url: ''
+    description: Generate an untyped compendium from concordances babel_outputs/intermediate/chemicals/concords/wikipedia_mesh_chebi
+      babel_outputs/intermediate/chemicals/concords/PUBCHEM_MESH babel_outputs/intermediate/chemicals/concords/mesh_cas
+      babel_outputs/intermediate/chemicals/concords/mesh_unii babel_outputs/intermediate/chemicals/concords/PUBCHEM_CAS
+      babel_outputs/intermediate/chemicals/concords/GTOPDB babel_outputs/intermediate/chemicals/concords/CHEBI
+      babel_outputs/intermediate/chemicals/concords/UMLS babel_outputs/intermediate/chemicals/concords/DrugCentral
+      babel_outputs/intermediate/chemicals/concords/RXNORM, identifiers babel_outputs/intermediate/chemicals/ids/CHEMBL.COMPOUND
+      babel_outputs/intermediate/chemicals/ids/GTOPDB babel_outputs/intermediate/chemicals/ids/CHEBI
+      babel_outputs/intermediate/chemicals/ids/UNII babel_outputs/intermediate/chemicals/ids/HMDB
+      babel_outputs/intermediate/chemicals/ids/PUBCHEM.COMPOUND babel_outputs/intermediate/chemicals/ids/DrugCentral
+      babel_outputs/intermediate/chemicals/ids/DRUGBANK babel_outputs/intermediate/chemicals/ids/MESH
+      babel_outputs/intermediate/chemicals/ids/UMLS babel_outputs/intermediate/chemicals/ids/RXNORM,
+      " +unichem_partial babel_outputs/intermediate/chemicals/partials/UNICHEM, untyped_concord
+      babel_outputs/intermediate/chemicals/partials/untyped_compendium, and type file
+      babel_outputs/intermediate/chemicals/partials/types.
+    sources: []
+    counts: []
+    combined_from:
+      get_wikipedia_relationships():
+        created_at: '2026-07-13T00:57:07.259457'
+        type: concord
+        name: get_wikipedia_relationships()
+        url: ''
+        description: Wikidata SPARQL query to find Wikidata entities with both CHEBI
+          and MESH IDs, and build a concordance between them.
+        sources:
+        - type: Wikidata
+          name: Wikidata SPARQL query
+        counts:
+          concords:
+            count_concords: 6212
+            count_distinct_curies: 12265
+            predicates:
+              xref: 6212
+            prefix_counts:
+              xref(CHEBI, MESH): 6212
+        combined_from: []
+      make_pubchem_mesh_concord():
+        created_at: '2026-07-13T01:01:57.438473'
+        type: concord
+        name: make_pubchem_mesh_concord()
+        url: ''
+        description: make_pubchem_mesh_concord() loads MeSH labels from babel_downloads/MESH/labels,
+          then creates xrefs from PubChem identifiers in the PubChem input file (babel_downloads/PUBCHEM.COMPOUND/CID-MeSH)
+          to those MeSH identifiers using the labels as keys.
+        sources: []
+        counts:
+          concords:
+            count_concords: 77741
+            count_distinct_curies: 155482
+            predicates:
+              xref: 77741
+            prefix_counts:
+              xref(MESH, PUBCHEM.COMPOUND): 77741
+        combined_from: []
+      get_mesh_relationships():
+      - created_at: '2026-07-13T01:03:43.348739'
+        type: concord
+        name: get_mesh_relationships()
+        url: ''
+        description: get_mesh_relationships() iterates through the MeSH registry,
+          filters it to the MeSH IDs in babel_outputs/intermediate/chemicals/ids/MESH,
+          then writes out CAS mappings to babel_outputs/intermediate/chemicals/concords/mesh_cas
+        sources:
+        - type: MeSH Registry
+          name: MeSH Registry
+        counts:
+          concords:
+            count_concords: 45225
+            count_distinct_curies: 90444
+            predicates:
+              xref: 45225
+            prefix_counts:
+              xref(CAS, MESH): 45225
+        combined_from: []
+      - created_at: '2026-07-13T01:03:43.423810'
+        type: concord
+        name: get_mesh_relationships()
+        url: ''
+        description: get_mesh_relationships() iterates through the MeSH registry,
+          filters it to the MeSH IDs in babel_outputs/intermediate/chemicals/ids/MESH,
+          then writes out non-CAS mappings (i.e. UNII mappings) to babel_outputs/intermediate/chemicals/concords/mesh_unii
+        sources:
+        - type: MeSH Registry
+          name: MeSH Registry
+        counts:
+          concords:
+            count_concords: 17401
+            count_distinct_curies: 34544
+            predicates:
+              xref: 17401
+            prefix_counts:
+              xref(MESH, UNII): 17401
+        combined_from: []
+      make_pubchem_cas_concord():
+        created_at: '2026-07-13T01:03:37.411076'
+        type: concord
+        name: make_pubchem_cas_concord()
+        url: ''
+        description: make_pubchem_cas_concord() creates xrefs from PUBCHEM identifiers
+          in the PubChem synonyms file (babel_downloads/PUBCHEM.COMPOUND/synonyms)
+          to Chemical Abstracts Service (CAS) identifiers.
+        sources: []
+        counts:
+          concords:
+            count_concords: 4575716
+            count_distinct_curies: 8807131
+            predicates:
+              xref: 4575716
+            prefix_counts:
+              xref(CAS, PUBCHEM.COMPOUND): 4575716
+        combined_from: []
+      make_gtopdb_relations():
+        created_at: '2026-07-13T00:57:44.989155'
+        type: concord
+        name: make_gtopdb_relations()
+        url: ''
+        description: Transform Ligand ID/InChIKey mappings from babel_downloads/GTOPDB/ligands.tsv
+          into a concord.
+        sources: []
+        counts:
+          concords:
+            count_concords: 11469
+            count_distinct_curies: 22711
+            predicates:
+              xref: 11469
+            prefix_counts:
+              xref(GTOPDB, INCHIKEY): 11469
+        combined_from: []
+      make_chebi_relations():
+        created_at: '2026-07-21T21:14:58.966808'
+        type: concord
+        name: make_chebi_relations()
+        url: ''
+        description: make_chebi_relations() creates xrefs from the ChEBI database
+          (babel_downloads/CHEBI/ChEBI_complete.sdf) to PUBCHEM.COMPOUND and KEGG.COMPOUND.
+        sources: []
+        counts:
+          concords:
+            count_concords: 198782
+            count_distinct_curies: 378812
+            predicates:
+              xref: 198782
+            prefix_counts:
+              xref(CHEBI, KEGG.COMPOUND): 17646
+              xref(CHEBI, PUBCHEM.COMPOUND): 181136
+        combined_from: []
+      umls.build_sets():
+      - created_at: '2026-07-13T00:59:05.797033'
+        type: concord
+        name: umls.build_sets()
+        url: ''
+        description: 'umls.build_sets() using UMLS MRCONSO with prefixes: {''MSH'':
+          ''MESH'', ''DRUGBANK'': ''DRUGBANK'', ''RXNORM'': ''RXCUI''} with cui_prefix
+          set to UMLS'
+        sources:
+        - type: UMLS
+          name: MRCONSO
+        counts:
+          concords:
+            count_concords: 273709
+            count_distinct_curies: 536552
+            predicates:
+              eq: 273709
+            prefix_counts:
+              eq(RXCUI, UMLS): 116826
+              eq(MESH, UMLS): 148797
+              eq(DRUGBANK, UMLS): 8086
+        combined_from: []
+      - created_at: '2026-07-13T00:59:53.500581'
+        type: concord
+        name: umls.build_sets()
+        url: ''
+        description: 'umls.build_sets() using UMLS MRCONSO with prefixes: {''MSH'':
+          ''MESH'', ''DRUGBANK'': ''DRUGBANK''} with cui_prefix set to RXCUI'
+        sources:
+        - type: UMLS
+          name: MRCONSO
+        counts:
+          concords:
+            count_concords: 5277
+            count_distinct_curies: 10415
+            predicates:
+              eq: 5277
+            prefix_counts:
+              eq(DRUGBANK, RXCUI): 5277
+        combined_from: []
+      build_drugcentral_relations():
+        created_at: '2026-07-13T00:58:29.986074'
+        type: concord
+        name: build_drugcentral_relations()
+        url: ''
+        description: 'Build xrefs from DrugCentral (babel_downloads/DrugCentral/xrefs)
+          to DrugCentral using the prefix map {''CHEBI'': ''CHEBI'', ''ChEMBL_ID'':
+          ''CHEMBL.COMPOUND'', ''DRUGBANK_ID'': ''DRUGBANK'', ''IUPHAR_LIGAND_ID'':
+          ''GTOPDB'', ''MESH_DESCRIPTOR_UI'': ''MESH'', ''PUBCHEM_CID'': ''PUBCHEM.COMPOUND'',
+          ''UMLSCUI'': ''UMLS'', ''UNII'': ''UNII''}.'
+        sources: []
+        counts:
+          concords:
+            count_concords: 35361
+            count_distinct_curies: 39172
+            predicates:
+              xref: 35361
+            prefix_counts:
+              xref(DrugCentral, UNII): 5185
+              xref(DrugCentral, UMLS): 5244
+              xref(CHEBI, DrugCentral): 4302
+              xref(CHEMBL.COMPOUND, DrugCentral): 7129
+              xref(DrugCentral, PUBCHEM.COMPOUND): 5013
+              xref(DRUGBANK, DrugCentral): 4368
+              xref(DrugCentral, MESH): 2014
+              xref(DrugCentral, GTOPDB): 2106
+        combined_from: []

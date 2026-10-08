@@ -1,0 +1,30 @@
+{
+  "compendium_path": "babel_outputs/compendia/CellLine.txt",
+  "count_by_biolink_type": {
+    "biolink:CellLine": 38896
+  },
+  "count_by_prefix": {
+    "CLO": 38896
+  },
+  "count_lines": 38896,
+  "counters": {
+    "clique_count": 38896,
+    "cliques_by_description_count": {
+      "0": 38896
+    },
+    "cliques_by_id_count": {
+      "1": 38896
+    },
+    "cliques_by_label_count": {
+      "1": 38896
+    },
+    "cliques_by_unique_description_count": {
+      "0": 38896
+    },
+    "cliques_by_unique_label_count": {
+      "1": 38896
+    }
+  },
+  "name": "CellLine",
+  "report_path": "babel_outputs/reports/content/compendia/CellLine.json"
+}

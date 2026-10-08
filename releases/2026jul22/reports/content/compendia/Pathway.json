@@ -1,0 +1,35 @@
+{
+  "compendium_path": "babel_outputs/compendia/Pathway.txt",
+  "count_by_biolink_type": {
+    "biolink:Pathway": 53772
+  },
+  "count_by_prefix": {
+    "GO": 543,
+    "PANTHER.PATHWAY": 175,
+    "REACT": 22806,
+    "SMPDB": 30248
+  },
+  "count_lines": 53772,
+  "counters": {
+    "clique_count": 53772,
+    "cliques_by_description_count": {
+      "0": 53229,
+      "1": 543
+    },
+    "cliques_by_id_count": {
+      "1": 53772
+    },
+    "cliques_by_label_count": {
+      "1": 53772
+    },
+    "cliques_by_unique_description_count": {
+      "0": 53229,
+      "1": 543
+    },
+    "cliques_by_unique_label_count": {
+      "1": 53772
+    }
+  },
+  "name": "Pathway",
+  "report_path": "babel_outputs/reports/content/compendia/Pathway.json"
+}

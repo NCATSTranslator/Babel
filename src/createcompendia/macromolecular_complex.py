@@ -15,4 +15,12 @@ def build_compendia(identifiers, metadata_yamls, icrdf_filename):
         types.update(new_types)
     sets = set([frozenset(x) for x in dicts.values()])
     type = MACROMOLECULAR_COMPLEX.split(":")[-1]
-    write_compendium(metadata_yamls, sets, f"{type}.txt", MACROMOLECULAR_COMPLEX, {}, extra_prefixes=[COMPLEXPORTAL], icrdf_filename=icrdf_filename)
+    write_compendium(
+        metadata_yamls,
+        sets,
+        f"{type}.txt",
+        MACROMOLECULAR_COMPLEX,
+        {},
+        extra_prefixes=[COMPLEXPORTAL],
+        icrdf_filename=icrdf_filename,
+    )

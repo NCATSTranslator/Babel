@@ -4,14 +4,31 @@ import src.createcompendia.publications as publications
 import src.assess_compendia as assessments
 from src.snakefiles import util
 
+
+# Trivial done-marker rule runs locally so it doesn't consume a SLURM slot.
+localrules:
+    publications,
+
+
 ### PubMed
 
 
+# The baseline/ and updatefiles/ directories are deliberately NOT declared as directory() outputs:
+# Snakemake recursively deletes existing directory() outputs before running a job, which would wipe
+# any PubMed files preloaded from a previous run. Keeping them undeclared lets wget --timestamping
+# skip files we already have (see docs/RunningBabel.md, "Preloading PubMed downloads"). The done
+# marker is what the downstream rules depend on.
 rule download_pubmed:
     output:
-        baseline_dir=directory(config["download_directory"] + "/PubMed/baseline"),
-        updatefiles_dir=directory(config["download_directory"] + "/PubMed/updatefiles"),
         done_file=config["download_directory"] + "/PubMed/downloaded",
+    benchmark:
+        config["output_directory"] + "/benchmarks/download_pubmed.tsv"
+    resources:
+        mem="8G",
+        cpus_per_task=1,
+        # Two hours got ~50% through ~1500 files; parallelizing baseline+updatefiles should halve
+        # that, so 6h is conservative. Tighten once benchmark TSVs give real-world data.
+        runtime="6h",
     run:
         publications.download_pubmed(output.done_file)
 
@@ -21,6 +38,8 @@ rule verify_pubmed:
         config["download_directory"] + "/PubMed/downloaded",
     output:
         done_file=config["download_directory"] + "/PubMed/verified",
+    benchmark:
+        config["output_directory"] + "/benchmarks/verify_pubmed.tsv"
     run:
         publications.verify_pubmed_downloads(
             [
@@ -32,23 +51,31 @@ rule verify_pubmed:
 
 
 rule generate_pubmed_concords:
-    resources:
-        runtime="24h",
-        mem="128G",
     input:
         config["download_directory"] + "/PubMed/verified",
-        baseline_dir=config["download_directory"] + "/PubMed/baseline",
-        updatefiles_dir=config["download_directory"] + "/PubMed/updatefiles",
     output:
         titles_file=config["download_directory"] + "/PubMed/titles.tsv",
         status_file=config["download_directory"] + "/PubMed/statuses.jsonl.gz",
         pmid_id_file=config["intermediate_directory"] + "/publications/ids/PMID",
         pmid_doi_concord_file=config["intermediate_directory"] + "/publications/concords/PMID_DOI",
         metadata_yaml=config["intermediate_directory"] + "/publications/concords/metadata.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_pubmed_concords.tsv"
+    resources:
+        # Deliberately left at 24h even though 2026jul22 took 20.0h of it (83%), which
+        # `babel-slurm-resources` reports as at-risk: 24h is known to work, 4h of slack has been
+        # enough so far, and a rewrite that removes this rule's cost is in progress. Raise it only
+        # if a run actually times out, and prefer fixing the rule.
+        runtime="24h",
+        mem="128G",
+    params:
+        # Not inputs: see the comment on download_pubmed for why these directories are untracked.
+        baseline_dir=config["download_directory"] + "/PubMed/baseline",
+        updatefiles_dir=config["download_directory"] + "/PubMed/updatefiles",
     run:
         publications.parse_pubmed_into_tsvs(
-            input.baseline_dir,
-            input.updatefiles_dir,
+            params.baseline_dir,
+            params.updatefiles_dir,
             output.titles_file,
             output.status_file,
             output.pmid_id_file,
@@ -58,8 +85,6 @@ rule generate_pubmed_concords:
 
 
 rule generate_pubmed_compendia:
-    resources:
-        mem="128G",
     input:
         pmid_id_file=config["intermediate_directory"] + "/publications/ids/PMID",
         pmid_doi_concord_file=config["intermediate_directory"] + "/publications/concords/PMID_DOI",
@@ -72,6 +97,16 @@ rule generate_pubmed_compendia:
         publication_compendium=config["output_directory"] + "/compendia/Publication.txt",
         # We generate an empty Publication Synonyms files, but we still need to generate one.
         publication_synonyms_gz=config["output_directory"] + "/synonyms/Publication.txt.gz",
+        publication_metadata_yaml=config["output_directory"] + "/metadata/Publication.txt.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/generate_pubmed_compendia.tsv"
+    resources:
+        # 2026jul22 peaked at 123.4 GiB = 132.5 GB against a 128G request -- at or past its own
+        # limit (summed process-tree RSS double-counts shared pages, which is likely why it was not
+        # killed) -- and ran 1.8h against the 2h cluster default. Tight on both axes, and Publication
+        # grows every release.
+        mem="192G",
+        runtime="4h",
     run:
         publications.generate_compendium(
             [input.pmid_doi_concord_file],
@@ -93,6 +128,8 @@ rule check_publications_completeness:
         input_compendia=expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["publication_outputs"]),
     output:
         report_file=config["output_directory"] + "/reports/publication_completeness.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_publications_completeness.tsv"
     run:
         assessments.assess_completeness(
             config["intermediate_directory"] + "/publications/ids", input.input_compendia, output.report_file
@@ -104,6 +141,8 @@ rule check_publications:
         infile=config["output_directory"] + "/compendia/Publication.txt",
     output:
         outfile=config["output_directory"] + "/reports/Publication.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_publications.tsv"
     run:
         assessments.assess(input.infile, output.outfile)
 

@@ -1,0 +1,26 @@
+created_at: '2026-07-22T04:06:32.720459'
+type: compendium
+name: umls.txt
+url: ''
+description: ''
+sources: []
+counts:
+  cliques: 1274014
+  eq_ids: 1274014
+  synonyms: 3034980
+  property_sources: {}
+combined_from:
+  UMLS Metathesaurus:
+    created_at: '2026-06-04T05:30:39.885843'
+    type: download
+    name: UMLS Metathesaurus
+    url: https://download.nlm.nih.gov/umls/kss/2026AA/umls-2026AA-metathesaurus-full.zip
+    description: UMLS Metathesaurus 2026AA (full subset), downloaded via the UTS download
+      API.
+    sources:
+    - name: UMLS Metathesaurus MRCONSO.RRF, MRSTY.RRF and MRREL.RRF
+      version: 2026AA
+      subset: full
+      url: https://download.nlm.nih.gov/umls/kss/2026AA/umls-2026AA-metathesaurus-full.zip
+    counts: []
+    combined_from: []

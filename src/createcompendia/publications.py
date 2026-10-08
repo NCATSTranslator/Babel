@@ -1,11 +1,11 @@
 import gzip
 import hashlib
 import json
-import logging
 import os
 import time
 import xml.etree.ElementTree as ET
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from mmap import ACCESS_READ, mmap
 from pathlib import Path
 
@@ -13,9 +13,19 @@ from src.babel_utils import WgetRecursionOptions, glom, pull_via_wget, read_iden
 from src.categories import JOURNAL_ARTICLE, PUBLICATION
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import DOI, PMC, PMID
+from src.util import ensure_parent_dir, get_logger
+
+logger = get_logger(__name__)
+
+# The same PubMed corpus, reachable two ways. We need both: NCBI's robots.txt
+# (https://ftp.ncbi.nlm.nih.gov/robots.txt) blocks a recursive HTTPS download, so the bulk fetch has
+# to go over FTP — but FTP is the less reliable of the two, so the single-file re-downloads that
+# repair a failed checksum use HTTPS.
+PUBMED_FTP_BASE = "ftp://ftp.ncbi.nlm.nih.gov/pubmed/"
+PUBMED_HTTPS_BASE = "https://ftp.ncbi.nlm.nih.gov/pubmed/"
 
 
-def download_pubmed(download_file, pubmed_base="ftp://ftp.ncbi.nlm.nih.gov/pubmed/", pmc_base="https://ftp.ncbi.nlm.nih.gov/pub/pmc/"):
+def download_pubmed(download_file, pubmed_base=PUBMED_FTP_BASE, pmc_base="https://ftp.ncbi.nlm.nih.gov/pub/pmc/"):
     """
     Download PubMed. We download both the PubMed annual baseline and the daily update files,
     which are in the same format, but the baseline is set up at the start of the year and then
@@ -30,13 +40,32 @@ def download_pubmed(download_file, pubmed_base="ftp://ftp.ncbi.nlm.nih.gov/pubme
     """
 
     # Create directories if they don't exist.
-    os.makedirs(os.path.dirname(download_file), exist_ok=True)
+    ensure_parent_dir(download_file)
 
-    # Step 1. Download all the files for the PubMed annual baseline.
-    pull_via_wget(pubmed_base, "baseline", decompress=False, subpath="PubMed", recurse=WgetRecursionOptions.RECURSE_SUBFOLDERS, timestamping=True)
+    # Download baseline and updatefiles in parallel — each directory contains ~750 files,
+    # so running them concurrently roughly halves wall time on the HPC.
+    subdirs = ["baseline", "updatefiles"]
 
-    # Step 2. Download all the files for the PubMed update files.
-    pull_via_wget(pubmed_base, "updatefiles", decompress=False, subpath="PubMed", recurse=WgetRecursionOptions.RECURSE_SUBFOLDERS, timestamping=True)
+    def _download_subdir(subdir):
+        pull_via_wget(
+            pubmed_base,
+            subdir,
+            decompress=False,
+            subpath="PubMed",
+            recurse=WgetRecursionOptions.RECURSE_SUBFOLDERS,
+            # A recursive download must be timestamped and must not resume: see pull_via_wget().
+            timestamping=True,
+            continue_incomplete=False,
+        )
+
+    with ThreadPoolExecutor(max_workers=len(subdirs)) as pool:
+        futures = {pool.submit(_download_subdir, sd): sd for sd in subdirs}
+        for future in as_completed(futures):
+            subdir = futures[future]
+            exc = future.exception()
+            if exc:
+                raise RuntimeError(f"Failed to download PubMed/{subdir}: {exc}") from exc
+            logger.info(f"Finished downloading PubMed/{subdir}.")
 
     # Step 3. Download the PMC/PMID mapping file from PMC.
     # We don't actually use this file -- we currently only use the PMC IDs already included in the PubMed XML files.
@@ -57,7 +86,7 @@ def verify_pubmed_download_against_md5(pubmed_filename, md5_filename):
 
     # Is the PubMed file readable? Non-zero size?
     if not os.path.exists(pubmed_filename) or os.path.getsize(pubmed_filename) == 0:
-        logging.warning(f"Could not verify {pubmed_filename}: no such file or zero size.")
+        logger.warning(f"Could not verify {pubmed_filename}: no such file or zero size.")
         return False
 
     # Calculate the MD5 sum of the PubMed file.
@@ -66,25 +95,29 @@ def verify_pubmed_download_against_md5(pubmed_filename, md5_filename):
 
     # Read the expected MD5 checksum.
     if not os.path.exists(md5_filename):
-        logging.warning(f"Could not verify {pubmed_filename}: no MD5 file found at {md5_filename}.")
+        logger.warning(f"Could not verify {pubmed_filename}: no MD5 file found at {md5_filename}.")
         return False
 
     with open(md5_filename) as md5f:
         md5_line = md5f.readline().strip()
         expected_md5 = md5_line.split("= ")[1]
         if len(expected_md5) != 32:
-            raise RuntimeError(f"Could not verify {pubmed_filename}: could not read MD5 hash from MD5 file {md5_filename}: '{md5_line}'")
+            raise RuntimeError(
+                f"Could not verify {pubmed_filename}: could not read MD5 hash from MD5 file {md5_filename}: '{md5_line}'"
+            )
 
     if md5hash == expected_md5:
         return True
-    logging.warning(f"Could not verify {pubmed_filename}: calculated MD5 hash {md5hash} is not equal to expected MD5 hash {expected_md5} in {md5_filename}.")
+    logger.warning(
+        f"Could not verify {pubmed_filename}: calculated MD5 hash {md5hash} is not equal to expected MD5 hash {expected_md5} in {md5_filename}."
+    )
     return False
 
 
-def verify_pubmed_downloads(pubmed_directories, done_filename, pubmed_base="https://ftp.ncbi.nlm.nih.gov/pubmed/"):
+def verify_pubmed_downloads(pubmed_directories, done_filename, pubmed_base=PUBMED_HTTPS_BASE):
     """
     download_pubmed() does a good job of downloading all the PubMed files, but every once in a while the download
-    is corrupted (https://github.com/TranslatorSRI/Babel/issues/352). Luckily, PubMed also gives up `.md5` files
+    is corrupted (https://github.com/NCATSTranslator/Babel/issues/352). Luckily, PubMed also gives up `.md5` files
     for all the downloaded files, so we can use those to verify each file. If a file is incorrect, we can re-download
     it using the more reliable HTTPS URL.
 
@@ -95,6 +128,15 @@ def verify_pubmed_downloads(pubmed_directories, done_filename, pubmed_base="http
     """
 
     for pubmed_directory in pubmed_directories:
+        # These directories aren't Snakemake outputs (see the comment on rule download_pubmed), so
+        # Snakemake won't rebuild them if they go missing: say what to do instead of dying in
+        # os.listdir() with a bare FileNotFoundError.
+        if not os.path.isdir(pubmed_directory):
+            raise RuntimeError(
+                f"PubMed download directory {pubmed_directory} does not exist: delete the "
+                f"'downloaded' marker file beside it to re-run download_pubmed."
+            )
+
         for filename in os.listdir(pubmed_directory):
             file_path = os.path.join(pubmed_directory, filename)
             subdir = os.path.basename(pubmed_directory)
@@ -105,7 +147,7 @@ def verify_pubmed_downloads(pubmed_directories, done_filename, pubmed_base="http
 
                 while not verify_pubmed_download_against_md5(file_path, file_path + ".md5"):
                     pubmed_url_base = pubmed_base + subdir + "/"
-                    logging.warning(f"Re-downloading {file_path} from HTTPS URL {pubmed_url_base}{filename}.")
+                    logger.warning(f"Re-downloading {file_path} from HTTPS URL {pubmed_url_base}{filename}.")
 
                     # We should delete the files before redownloading them, but if we did that and the download
                     # failed, we would not retry the download again. So instead, we truncate both files -- this
@@ -123,7 +165,9 @@ def verify_pubmed_downloads(pubmed_directories, done_filename, pubmed_base="http
     Path.touch(done_filename)
 
 
-def parse_pubmed_into_tsvs(baseline_dir, updatefiles_dir, titles_file, status_file, pmid_id_file, pmid_doi_concord_file, metadata_yaml):
+def parse_pubmed_into_tsvs(
+    baseline_dir, updatefiles_dir, titles_file, status_file, pmid_id_file, pmid_doi_concord_file, metadata_yaml
+):
     """
     Read through the PubMed files in the baseline_dir and updatefiles_dir, and writes out label and status information.
 
@@ -136,25 +180,31 @@ def parse_pubmed_into_tsvs(baseline_dir, updatefiles_dir, titles_file, status_fi
     """
 
     # We can write labels and concords as we go.
-    with open(titles_file, "w") as titlesf, open(pmid_id_file, "w") as pmidf, open(pmid_doi_concord_file, "w") as concordf:
+    with (
+        open(titles_file, "w") as titlesf,
+        open(pmid_id_file, "w") as pmidf,
+        open(pmid_doi_concord_file, "w") as concordf,
+    ):
         # Track PubMed article statuses. In theory the final PubMed entry should have all the dates, which should
         # tell us the final status of a publication, but really we just want to know if the article has ever been
         # marked as retracted, so instead we track every status that has ever been attached to any article. We
-        # don't have a way of tracking properties yet (https://github.com/TranslatorSRI/Babel/issues/155), so for now
+        # don't have a way of tracking properties yet (https://github.com/NCATSTranslator/Babel/issues/155), so for now
         # we write this out in JSON to the status_file.
         pmid_status = defaultdict(set)
 
         # Read every file in the baseline and updatefiles directories (they have the same format).
         baseline_filenames = list(map(lambda fn: os.path.join(baseline_dir, fn), sorted(os.listdir(baseline_dir))))
-        updatefiles_filenames = list(map(lambda fn: os.path.join(updatefiles_dir, fn), sorted(os.listdir(updatefiles_dir))))
+        updatefiles_filenames = list(
+            map(lambda fn: os.path.join(updatefiles_dir, fn), sorted(os.listdir(updatefiles_dir)))
+        )
 
         for pubmed_filename in baseline_filenames + updatefiles_filenames:
             if not pubmed_filename.endswith(".xml.gz"):
-                logging.warning(f"Skipping non-gzipped-XML file {pubmed_filename} in PubMed files.")
+                logger.warning(f"Skipping non-gzipped-XML file {pubmed_filename} in PubMed files.")
                 continue
 
             with gzip.open(pubmed_filename, "rt") as pubmedf:
-                logging.info(f"Parsing PubMed Baseline {pubmed_filename}")
+                logger.info(f"Parsing PubMed Baseline {pubmed_filename}")
 
                 start_time = time.time_ns()
                 count_articles = 0
@@ -219,7 +269,7 @@ def parse_pubmed_into_tsvs(baseline_dir, updatefiles_dir, titles_file, status_fi
                                     concordf.write(f"{PMID}:{pmid.text}\teq\t{PMC}:{pmc.text}\n")
 
                 time_taken_in_seconds = float(time.time_ns() - start_time) / 1_000_000_000
-                logging.info(
+                logger.info(
                     f"Parsed {count_articles} articles from PubMed {pubmed_filename} in "
                     + f"{time_taken_in_seconds:.4f} seconds: {count_pmids} PMIDs, {count_dois} DOIs, "
                     + f"{count_pmcs} PMCs, "
@@ -237,8 +287,8 @@ def parse_pubmed_into_tsvs(baseline_dir, updatefiles_dir, titles_file, status_fi
         name="parse_pubmed_into_tsvs()",
         description="Parse PubMed files into TSVs and JSONL status files.",
         sources=[
-            {"type": "download", "name": "PubMed Baseline", "url": "ftp://ftp.ncbi.nlm.nih.gov/pubmed/baseline/"},
-            {"type": "download", "name": "PubMed Updates", "url": "ftp://ftp.ncbi.nlm.nih.gov/pubmed/updatefiles/"},
+            {"type": "download", "name": "PubMed Baseline", "url": f"{PUBMED_FTP_BASE}baseline/"},
+            {"type": "download", "name": "PubMed Updates", "url": f"{PUBMED_FTP_BASE}updatefiles/"},
         ],
         counts={
             "pmid_count": len(pmid_status.keys()),
@@ -289,9 +339,18 @@ def generate_compendium(concordances, metadata_yamls, identifiers, titles, publi
                 if id in labels:
                     # Don't emit a warning unless the title has actually changed.
                     if labels[id] != title:
-                        logging.warning(f"Duplicate title for {id}: ignoring previous title '{labels[id]}', using new title '{title}'.")
+                        logger.warning(
+                            f"Duplicate title for {id}: ignoring previous title '{labels[id]}', using new title '{title}'."
+                        )
                 labels[id] = title
 
     # Write out the compendium.
     publication_sets = set([frozenset(x) for x in dicts.values()])
-    write_compendium(metadata_yamls, publication_sets, os.path.basename(publication_compendium), PUBLICATION, labels, icrdf_filename=icrdf_filename)
+    write_compendium(
+        metadata_yamls,
+        publication_sets,
+        os.path.basename(publication_compendium),
+        PUBLICATION,
+        labels,
+        icrdf_filename=icrdf_filename,
+    )

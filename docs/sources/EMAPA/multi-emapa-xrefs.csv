@@ -1,0 +1,264 @@
+uberon_curie,uberon_label,emapa_curie,emapa_label,emapa_has_label,emapa_terms_for_uberon_term,labelled_emapa_terms_for_uberon_term
+UBERON:0000044,dorsal root ganglion,EMAPA:16667,spinal ganglion,True,3,3
+UBERON:0000044,dorsal root ganglion,EMAPA:16668,dorsal root ganglion,True,3,3
+UBERON:0000044,dorsal root ganglion,EMAPA:18372,tail dorsal root ganglion,True,3,3
+UBERON:0000167,oral cavity,EMAPA:17411,oral cavity,True,2,2
+UBERON:0000167,oral cavity,EMAPA:18399,oral region cavity,True,2,2
+UBERON:0001017,central nervous system,EMAPA:16470,central nervous system,True,2,2
+UBERON:0001017,central nervous system,EMAPA:16754,tail central nervous system,True,2,2
+UBERON:0001021,nerve,EMAPA:32808,nerve,True,2,2
+UBERON:0001021,nerve,EMAPA:32815,peripheral nerve,True,2,2
+UBERON:0001049,neural tube,EMAPA:16164,neural tube,True,2,2
+UBERON:0001049,neural tube,EMAPA:16757,tail neural tube,True,2,2
+UBERON:0001074,pericardial cavity,EMAPA:16131,pericardial component,True,2,2
+UBERON:0001074,pericardial cavity,EMAPA:16132,pericardial cavity,True,2,2
+UBERON:0001229,renal corpuscle,EMAPA:28236,mature renal corpuscle,True,2,2
+UBERON:0001229,renal corpuscle,EMAPA:35726,renal corpuscle,True,2,2
+UBERON:0001230,glomerular capsule,EMAPA:27973,Bowman's capsule of maturing renal corpuscle,True,2,2
+UBERON:0001230,glomerular capsule,EMAPA:28257,Bowman's capsule of mature renal corpuscle,True,2,2
+UBERON:0001285,nephron,EMAPA:28491,mature nephron,True,2,2
+UBERON:0001285,nephron,EMAPA:35592,nephron,True,2,2
+UBERON:0001286,Bowman's space,EMAPA:27985,urinary space of maturing renal corpuscle,True,2,2
+UBERON:0001286,Bowman's space,EMAPA:28263,urinary space of mature renal corpuscle,True,2,2
+UBERON:0001290,proximal straight tubule,EMAPA:29661,"proximal straight tubule, cortical portion",True,2,2
+UBERON:0001290,proximal straight tubule,EMAPA:29669,proximal straight tubule of outer stripe of outer medulla,True,2,2
+UBERON:0001291,thick ascending limb of loop of Henle,EMAPA:28396,distal straight tubule of renal cortex,True,3,3
+UBERON:0001291,thick ascending limb of loop of Henle,EMAPA:29671,distal straight tubule of outer stripe of outer medulla,True,3,3
+UBERON:0001291,thick ascending limb of loop of Henle,EMAPA:35512,loop of Henle distal straight tubule,True,3,3
+UBERON:0001310,umbilical artery,EMAPA:16331,umbilical artery embryonic part,True,2,2
+UBERON:0001310,umbilical artery,EMAPA:16372,umbilical artery extraembryonic part,True,2,2
+UBERON:0001343,seminiferous tubule of testis,EMAPA:18685,seminiferous cord,True,2,2
+UBERON:0001343,seminiferous tubule of testis,EMAPA:31476,seminiferous tubule,True,2,2
+UBERON:0001448,metatarsal bone,EMAPA:32940,metatarsus,True,2,2
+UBERON:0001448,metatarsal bone,EMAPA:36159,metatarsal bone,True,2,2
+UBERON:0001740,arytenoid cartilage,EMAPA:17977,,False,2,1
+UBERON:0001740,arytenoid cartilage,EMAPA:18695,arytenoid cartilage,True,2,1
+UBERON:0001782,pigmented layer of retina,EMAPA:17172,pigmented retinal epithelium,True,2,2
+UBERON:0001782,pigmented layer of retina,EMAPA:35738,retina epithelium,True,2,2
+UBERON:0001876,amygdala,EMAPA:32672,amygdala,True,2,2
+UBERON:0001876,amygdala,EMAPA:36051,amygdaloid nucleus,True,2,2
+UBERON:0001887,internal capsule of telencephalon,EMAPA:18206,diencephalon internal capsule,True,2,2
+UBERON:0001887,internal capsule of telencephalon,EMAPA:35437,cerebral internal capsule,True,2,2
+UBERON:0001901,epithelium of trachea,EMAPA:16855,trachea epithelium,True,2,2
+UBERON:0001901,epithelium of trachea,EMAPA:18409,carina trachea epithelium,True,2,2
+UBERON:0001950,neocortex,EMAPA:32842,neocortex,True,2,2
+UBERON:0001950,neocortex,EMAPA:35589,neocortex region,True,2,2
+UBERON:0001981,blood vessel,EMAPA:32743,blood vessel,True,2,2
+UBERON:0001981,blood vessel,EMAPA:35993,vascular element,True,2,2
+UBERON:0002066,umbilical vein,EMAPA:16243,umbilical vein embryonic part,True,2,2
+UBERON:0002066,umbilical vein,EMAPA:16375,umbilical vein extraembryonic part,True,2,2
+UBERON:0002073,hair follicle,EMAPA:18771,hair follicle,True,2,2
+UBERON:0002073,hair follicle,EMAPA:29741,hair follicle of scrotum dermal layer,True,2,2
+UBERON:0002165,endocardium,EMAPA:17868,endocardial tissue,True,2,2
+UBERON:0002165,endocardium,EMAPA:32686,endocardial lining,True,2,2
+UBERON:0002192,ventricular system choroidal fissure,EMAPA:17548,choroid invagination,True,2,2
+UBERON:0002192,ventricular system choroidal fissure,EMAPA:17768,choroid fissure,True,2,2
+UBERON:0002256,dorsal horn of spinal cord,EMAPA:18574,dorsal grey horn,True,2,2
+UBERON:0002256,dorsal horn of spinal cord,EMAPA:35790,spinal cord dorsal horn,True,2,2
+UBERON:0002257,ventral horn of spinal cord,EMAPA:18575,ventral grey horn,True,2,2
+UBERON:0002257,ventral horn of spinal cord,EMAPA:35794,spinal cord ventral horn,True,2,2
+UBERON:0002263,lentiform nucleus,EMAPA:18208,lentiform nucleus,True,2,2
+UBERON:0002263,lentiform nucleus,EMAPA:19147,lenticular nucleus,True,2,2
+UBERON:0002402,pleural cavity,EMAPA:16773,pleural component,True,2,2
+UBERON:0002402,pleural cavity,EMAPA:16774,pleural cavity,True,2,2
+UBERON:0002424,oral epithelium,EMAPA:16839,oral region epithelium,True,2,2
+UBERON:0002424,oral epithelium,EMAPA:26942,oral epithelium,True,2,2
+UBERON:0002490,frontal suture,EMAPA:19226,frontal suture,True,2,1
+UBERON:0002490,frontal suture,EMAPA:35358,,False,2,1
+UBERON:0002709,posterior nuclear complex of thalamus,EMAPA:35697,posterior thalamic group,True,2,2
+UBERON:0002709,posterior nuclear complex of thalamus,EMAPA:35698,posterior thalamic nucleus,True,2,2
+UBERON:0002827,vestibulocochlear ganglion,EMAPA:16982,acoustic ganglion,True,2,2
+UBERON:0002827,vestibulocochlear ganglion,EMAPA:17571,vestibulo-cochlear ganglion,True,2,2
+UBERON:0003054,roof plate,EMAPA:16168,neural tube roof plate,True,2,2
+UBERON:0003054,roof plate,EMAPA:35361,future brain roof plate,True,2,2
+UBERON:0003059,presomitic mesoderm,EMAPA:16189,trunk unsegmented mesenchyme,True,2,2
+UBERON:0003059,presomitic mesoderm,EMAPA:16752,tail unsegmented mesenchyme,True,2,2
+UBERON:0003064,intermediate mesoderm,EMAPA:16056,intermediate endoderm,True,2,2
+UBERON:0003064,intermediate mesoderm,EMAPA:16178,intermediate mesenchyme,True,2,2
+UBERON:0003077,paraxial mesoderm,EMAPA:16183,trunk paraxial mesenchyme,True,2,2
+UBERON:0003077,paraxial mesoderm,EMAPA:16751,tail paraxial mesenchyme,True,2,2
+UBERON:0003118,pharyngeal arch artery 1,EMAPA:16202,,False,2,1
+UBERON:0003118,pharyngeal arch artery 1,EMAPA:16685,1st arch artery,True,2,1
+UBERON:0003119,pharyngeal arch artery 2,EMAPA:16203,,False,2,1
+UBERON:0003119,pharyngeal arch artery 2,EMAPA:16686,2nd arch artery,True,2,1
+UBERON:0003262,amniotic mesoderm,EMAPA:16111,amnion mesoderm,True,2,2
+UBERON:0003262,amniotic mesoderm,EMAPA:16265,amnion mesenchyme,True,2,2
+UBERON:0003265,chorionic mesenchyme,EMAPA:16114,chorion mesoderm,True,2,2
+UBERON:0003265,chorionic mesenchyme,EMAPA:16266,chorion mesenchyme,True,2,2
+UBERON:0003284,mesentery of midgut,EMAPA:16721,midgut mesentery,True,3,3
+UBERON:0003284,mesentery of midgut,EMAPA:17039,midgut loop mesentery,True,3,3
+UBERON:0003284,mesentery of midgut,EMAPA:17197,duodenum caudal part mesentery,True,3,3
+UBERON:0003316,mesenchyme of yolk sac,EMAPA:16087,yolk sac mesoderm,True,2,2
+UBERON:0003316,mesenchyme of yolk sac,EMAPA:16267,yolk sac mesenchyme,True,2,2
+UBERON:0003328,mesenchyme of footplate,EMAPA:17252,footplate mesenchyme,True,2,2
+UBERON:0003328,mesenchyme of footplate,EMAPA:17488,foot mesenchyme,True,2,2
+UBERON:0003329,submucosa of anal canal,EMAPA:27217,anal canal caudal part submucosa,True,3,3
+UBERON:0003329,submucosa of anal canal,EMAPA:27227,anal canal rostral part submucosa,True,3,3
+UBERON:0003329,submucosa of anal canal,EMAPA:27535,anal canal submucosa,True,3,3
+UBERON:0003332,submucosa of duodenum,EMAPA:27027,duodenum rostral part submucosa,True,3,3
+UBERON:0003332,submucosa of duodenum,EMAPA:27097,duodenum caudal part submucosa,True,3,3
+UBERON:0003332,submucosa of duodenum,EMAPA:27239,duodenum submucosa,True,3,3
+UBERON:0003405,lobar bronchus of left lung,EMAPA:17388,left lung rudiment lobar bronchus,True,2,2
+UBERON:0003405,lobar bronchus of left lung,EMAPA:17656,left lung lobar bronchus,True,2,2
+UBERON:0003422,mesenchyme of umbilical cord,EMAPA:26127,umbilical cord mesenchyme,True,2,2
+UBERON:0003422,mesenchyme of umbilical cord,EMAPA:35925,Wharton's jelly,True,2,2
+UBERON:0003462,facial bone,EMAPA:19019,facial bone,True,2,2
+UBERON:0003462,facial bone,EMAPA:35924,viscerocranium bone,True,2,2
+UBERON:0003504,respiratory system blood vessel,EMAPA:35731,respiratory system blood vessel,True,2,2
+UBERON:0003504,respiratory system blood vessel,EMAPA:35995,respiratory system vascular element,True,2,2
+UBERON:0003570,respiratory system connective tissue,EMAPA:35968,respiratory system mesenchyme,True,2,2
+UBERON:0003570,respiratory system connective tissue,EMAPA:35977,respiratory system connective tissue,True,2,2
+UBERON:0003592,bronchus connective tissue,EMAPA:32690,bronchus mesenchyme,True,2,2
+UBERON:0003592,bronchus connective tissue,EMAPA:35193,bronchus connective tissue,True,2,2
+UBERON:0003604,trachea cartilage,EMAPA:18699,trachea cartilaginous ring,True,2,2
+UBERON:0003604,trachea cartilage,EMAPA:35875,trachea cartilage,True,2,2
+UBERON:0003853,spinal cord neural crest,EMAPA:16163,future spinal cord neural crest,True,2,2
+UBERON:0003853,spinal cord neural crest,EMAPA:16881,tail neural crest,True,2,2
+UBERON:0003855,gonad mesenchyme,EMAPA:16858,gonad primordium mesenchyme,True,2,2
+UBERON:0003855,gonad mesenchyme,EMAPA:17385,gonadal mesenchyme,True,2,2
+UBERON:0003902,retinal neural layer,EMAPA:17171,neural retinal epithelium,True,2,2
+UBERON:0003902,retinal neural layer,EMAPA:18590,neural retina,True,2,2
+UBERON:0004040,cortical intermediate zone,EMAPA:17545,cerebral cortex mantle layer,True,2,2
+UBERON:0004040,cortical intermediate zone,EMAPA:32712,cerebral cortex intermediate zone,True,2,2
+UBERON:0004060,neural tube ventricular layer,EMAPA:17152,neural tube ventricular layer,True,2,2
+UBERON:0004060,neural tube ventricular layer,EMAPA:35362,future brain ventricular layer,True,2,2
+UBERON:0004061,neural tube mantle layer,EMAPA:17148,neural tube mantle layer,True,2,2
+UBERON:0004061,neural tube mantle layer,EMAPA:35360,future brain marginal layer,True,2,2
+UBERON:0004063,spinal cord alar plate,EMAPA:17149,neural tube alar columns,True,2,2
+UBERON:0004063,spinal cord alar plate,EMAPA:17581,alar columns,True,2,2
+UBERON:0004193,loop of Henle ascending limb thin segment,EMAPA:28328,thin ascending limb of outer medulla,True,2,2
+UBERON:0004193,loop of Henle ascending limb thin segment,EMAPA:28361,thin ascending limb of inner medulla,True,2,2
+UBERON:0004221,intestine smooth muscle,EMAPA:35441,intestine muscularis,True,2,2
+UBERON:0004221,intestine smooth muscle,EMAPA:35443,intestine smooth muscle,True,2,2
+UBERON:0004253,skin muscle,EMAPA:18187,integumental system muscle,True,2,2
+UBERON:0004253,skin muscle,EMAPA:35776,skin muscle,True,2,2
+UBERON:0004452,carpal region,EMAPA:19122,carpus,True,2,2
+UBERON:0004452,carpal region,EMAPA:32784,wrist,True,2,2
+UBERON:0004572,arterial system,EMAPA:16201,arterial system,True,2,2
+UBERON:0004572,arterial system,EMAPA:16371,extraembryonic arterial system,True,2,2
+UBERON:0004639,renal afferent arteriole,EMAPA:28230,afferent arteriole of maturing renal corpuscle,True,2,2
+UBERON:0004639,renal afferent arteriole,EMAPA:28266,afferent arteriole of mature renal corpuscle,True,2,2
+UBERON:0004640,renal efferent arteriole,EMAPA:28233,efferent arteriole of maturing renal corpuscle,True,2,2
+UBERON:0004640,renal efferent arteriole,EMAPA:28275,efferent arteriole of mature renal corpuscle,True,2,2
+UBERON:0004760,gland of anal canal,EMAPA:27221,anal canal caudal part gland,True,3,3
+UBERON:0004760,gland of anal canal,EMAPA:27233,anal canal rostral part gland,True,3,3
+UBERON:0004760,gland of anal canal,EMAPA:27543,anal canal gland,True,3,3
+UBERON:0005097,renal connecting tubule,EMAPA:27758,renal connecting tubule of s-shaped body,True,3,3
+UBERON:0005097,renal connecting tubule,EMAPA:27790,renal connecting tubule of capillary loop nephron,True,3,3
+UBERON:0005097,renal connecting tubule,EMAPA:28011,renal connecting tubule,True,3,3
+UBERON:0005185,renal medulla collecting duct,EMAPA:28061,medullary collecting duct,True,2,1
+UBERON:0005185,renal medulla collecting duct,EMAPA:35459,,False,2,1
+UBERON:0005197,segmental spinal nerve,EMAPA:16990,segmental spinal nerve,True,2,2
+UBERON:0005197,segmental spinal nerve,EMAPA:25149,tail segmental spinal nerve,True,2,2
+UBERON:0005261,atrium cardiac jelly,EMAPA:16343,common atrial chamber cardiac jelly,True,3,3
+UBERON:0005261,atrium cardiac jelly,EMAPA:16814,common atrial chamber left part cardiac jelly,True,3,3
+UBERON:0005261,atrium cardiac jelly,EMAPA:16821,common atrial chamber right part cardiac jelly,True,3,3
+UBERON:0005305,thyroid follicle,EMAPA:19307,thyroid gland left lobe colloid-filled follicles,True,2,2
+UBERON:0005305,thyroid follicle,EMAPA:19308,thyroid gland right lobe colloid-filled follicles,True,2,2
+UBERON:0005410,cartilaginous otic capsule,EMAPA:18803,otic cartilage,True,2,2
+UBERON:0005410,cartilaginous otic capsule,EMAPA:37467,cartilaginous otic capsule,True,2,2
+UBERON:0005459,left umbilical vein,EMAPA:16358,left umbilical vein embryonic part,True,2,2
+UBERON:0005459,left umbilical vein,EMAPA:16377,left umbilical vein extraembryonic part,True,2,2
+UBERON:0005460,left vitelline vein,EMAPA:16380,left vitelline vein extraembryonic part,True,2,2
+UBERON:0005460,left vitelline vein,EMAPA:16698,left vitelline vein embryonic part,True,2,2
+UBERON:0005471,right umbilical vein,EMAPA:16359,right umbilical vein embryonic part,True,2,2
+UBERON:0005471,right umbilical vein,EMAPA:16378,right umbilical vein extraembryonic part,True,2,2
+UBERON:0005472,right vitelline vein,EMAPA:16381,right vitelline vein extraembryonic part,True,2,2
+UBERON:0005472,right vitelline vein,EMAPA:16699,right vitelline vein embryonic part,True,2,2
+UBERON:0005501,rhombomere lateral wall,EMAPA:32819,rhombomere lateral wall,True,2,2
+UBERON:0005501,rhombomere lateral wall,EMAPA:35364,future hindbrain lateral wall,True,2,2
+UBERON:0005502,rhombomere roof plate,EMAPA:32824,rhombomere roof plate,True,2,2
+UBERON:0005502,rhombomere roof plate,EMAPA:35367,future hindbrain roof plate,True,2,2
+UBERON:0005614,lens anterior epithelium,EMAPA:17304,lens vesicle anterior epithelium,True,2,2
+UBERON:0005614,lens anterior epithelium,EMAPA:17839,lens anterior epithelium,True,2,2
+UBERON:0005660,2nd arch ectoderm,EMAPA:16277,2nd branchial arch ectoderm,True,3,3
+UBERON:0005660,2nd arch ectoderm,EMAPA:16397,2nd branchial groove ectoderm,True,3,3
+UBERON:0005660,2nd arch ectoderm,EMAPA:16398,2nd branchial membrane ectoderm,True,3,3
+UBERON:0005661,3rd arch ectoderm,EMAPA:16400,3rd branchial arch ectoderm,True,3,3
+UBERON:0005661,3rd arch ectoderm,EMAPA:16582,3rd branchial groove ectoderm,True,3,3
+UBERON:0005661,3rd arch ectoderm,EMAPA:16584,3rd branchial membrane ectoderm,True,3,3
+UBERON:0005662,4th arch ectoderm,EMAPA:16762,4th branchial groove ectoderm,True,3,3
+UBERON:0005662,4th arch ectoderm,EMAPA:16764,4th branchial membrane ectoderm,True,3,3
+UBERON:0005662,4th arch ectoderm,EMAPA:16768,4th branchial arch ectoderm,True,3,3
+UBERON:0005664,2nd arch endoderm,EMAPA:16274,2nd branchial membrane endoderm,True,3,3
+UBERON:0005664,2nd arch endoderm,EMAPA:16276,2nd branchial pouch endoderm,True,3,3
+UBERON:0005664,2nd arch endoderm,EMAPA:16278,2nd branchial arch endoderm,True,3,3
+UBERON:0005665,3rd arch endoderm,EMAPA:16401,3rd branchial arch endoderm,True,3,3
+UBERON:0005665,3rd arch endoderm,EMAPA:16585,3rd branchial membrane endoderm,True,3,3
+UBERON:0005665,3rd arch endoderm,EMAPA:16587,3rd branchial pouch endoderm,True,3,3
+UBERON:0005666,4th arch endoderm,EMAPA:16765,4th branchial membrane endoderm,True,3,3
+UBERON:0005666,4th arch endoderm,EMAPA:16767,4th branchial pouch endoderm,True,3,3
+UBERON:0005666,4th arch endoderm,EMAPA:16769,4th branchial arch endoderm,True,3,3
+UBERON:0005685,midgut dorsal mesentery,EMAPA:16722,midgut dorsal mesentery,True,3,3
+UBERON:0005685,midgut dorsal mesentery,EMAPA:17040,midgut loop dorsal mesentery,True,3,3
+UBERON:0005685,midgut dorsal mesentery,EMAPA:18671,jejunum dorsal mesentery,True,3,3
+UBERON:0005728,extraembryonic mesoderm,EMAPA:31862,extraembryonic mesoderm,True,2,2
+UBERON:0005728,extraembryonic mesoderm,EMAPA:31863,extraembryonic mesenchyme,True,2,2
+UBERON:0005750,glomerular parietal epithelium,EMAPA:27979,parietal epithelium of maturing renal corpuscle,True,3,3
+UBERON:0005750,glomerular parietal epithelium,EMAPA:28260,parietal epithelium of mature renal corpuscle,True,3,3
+UBERON:0005750,glomerular parietal epithelium,EMAPA:35969,metanephros parietal epithelium,True,3,3
+UBERON:0005777,glomerular basement membrane,EMAPA:28251,glomerular basement membrane of mature renal corpuscle,True,2,2
+UBERON:0005777,glomerular basement membrane,EMAPA:30965,glomerular basement membrane of maturing renal corpuscle,True,2,2
+UBERON:0005890,gonad germinal epithelium,EMAPA:17384,coelomic epithelium of gonad,True,3,3
+UBERON:0005890,gonad germinal epithelium,EMAPA:27564,coelomic epithelium of gonad primordium,True,3,3
+UBERON:0005890,gonad germinal epithelium,EMAPA:35382,gonad germinal epithelium,True,3,3
+UBERON:0006241,future spinal cord,EMAPA:16092,future spinal cord,True,2,2
+UBERON:0006241,future spinal cord,EMAPA:16755,tail future spinal cord,True,2,2
+UBERON:0006253,embryonic intraretinal space,EMAPA:16676,optic cup intraretinal space,True,2,2
+UBERON:0006253,embryonic intraretinal space,EMAPA:17170,intraretinal space,True,2,2
+UBERON:0006270,optic pit,EMAPA:16199,optic sulcus,True,2,2
+UBERON:0006270,optic pit,EMAPA:16325,optic pit,True,2,2
+UBERON:0006337,distal early tubule,EMAPA:27788,early distal tubule,True,2,2
+UBERON:0006337,distal early tubule,EMAPA:28007,cortical early distal tubule,True,2,2
+UBERON:0006359,mesoduodenum,EMAPA:17183,duodenum rostral part mesoduodenum,True,3,3
+UBERON:0006359,mesoduodenum,EMAPA:17198,duodenum caudal part mesoduodenum,True,3,3
+UBERON:0006359,mesoduodenum,EMAPA:19082,mesoduodenum,True,3,3
+UBERON:0006630,left atrium auricular region,EMAPA:16816,left auricular region,True,2,2
+UBERON:0006630,left atrium auricular region,EMAPA:17316,left atrium auricular region,True,2,2
+UBERON:0006631,right atrium auricular region,EMAPA:16824,right auricular region,True,2,2
+UBERON:0006631,right atrium auricular region,EMAPA:17322,right atrium auricular region,True,2,2
+UBERON:0006651,appendix testis,EMAPA:19087,appendix testis,True,2,2
+UBERON:0006651,appendix testis,EMAPA:29304,male cystic vesicular appendage,True,2,2
+UBERON:0006932,vestibular epithelium,EMAPA:32884,vestibular component epithelium,True,2,2
+UBERON:0006932,vestibular epithelium,EMAPA:35921,vestibular epithelium,True,2,2
+UBERON:0007122,pharyngeal pouch 1,EMAPA:16124,1st branchial pouch,True,2,2
+UBERON:0007122,pharyngeal pouch 1,EMAPA:16125,1st branchial pouch endoderm,True,2,2
+UBERON:0007213,mesenchyme derived from head neural crest,EMAPA:16169,head mesenchyme derived from neural crest,True,2,1
+UBERON:0007213,mesenchyme derived from head neural crest,EMAPA:16271,,False,2,1
+UBERON:0009213,pharyngeal membrane of 1st arch,EMAPA:16121,1st branchial membrane,True,3,3
+UBERON:0009213,pharyngeal membrane of 1st arch,EMAPA:16992,branchial membrane,True,3,3
+UBERON:0009213,pharyngeal membrane of 1st arch,EMAPA:17281,future tympanic membrane,True,3,3
+UBERON:0009523,mesenchyme of handplate,EMAPA:17248,handplate mesenchyme,True,2,2
+UBERON:0009523,mesenchyme of handplate,EMAPA:17457,hand mesenchyme,True,2,2
+UBERON:0009602,left lung associated mesenchyme,EMAPA:16730,left lung rudiment mesenchyme,True,2,2
+UBERON:0009602,left lung associated mesenchyme,EMAPA:17654,left lung mesenchyme,True,2,2
+UBERON:0009779,cardiac muscle tissue of right auricle,EMAPA:16826,right auricular region cardiac muscle,True,2,2
+UBERON:0009779,cardiac muscle tissue of right auricle,EMAPA:17324,right atrium auricular region cardiac muscle,True,2,2
+UBERON:0009780,cardiac muscle tissue of left auricle,EMAPA:16818,left auricular region cardiac muscle,True,2,2
+UBERON:0009780,cardiac muscle tissue of left auricle,EMAPA:17318,left atrium auricular region cardiac muscle,True,2,2
+UBERON:0010047,oral gland,EMAPA:16572,stomatodeum gland,True,2,2
+UBERON:0010047,oral gland,EMAPA:16723,oral region gland,True,2,2
+UBERON:0010145,paraurethral gland,EMAPA:36133,urethral gland of pelvic urethra of female,True,2,2
+UBERON:0010145,paraurethral gland,EMAPA:36134,urethral gland of clitoral urethra,True,2,2
+UBERON:0010189,right atrium venous valve,EMAPA:17010,common atrial chamber right part venous valve,True,2,2
+UBERON:0010189,right atrium venous valve,EMAPA:17328,right atrium venous valve,True,2,2
+UBERON:0010687,pedal digit metatarsal pre-cartilage condensation,EMAPA:32956,metatarsus pre-cartilage condensation,True,2,2
+UBERON:0010687,pedal digit metatarsal pre-cartilage condensation,EMAPA:35568,metatarsus mesenchyme,True,2,2
+UBERON:0011754,genital swelling,EMAPA:30074,genital swelling,True,2,2
+UBERON:0011754,genital swelling,EMAPA:35377,genital swelling of genital tubercle,True,2,2
+UBERON:0011755,female labial swelling,EMAPA:18329,labial fold,True,2,2
+UBERON:0011755,female labial swelling,EMAPA:30423,labial swelling,True,2,2
+UBERON:0012238,ureteric bud trunk,EMAPA:27608,ureteric stalk,True,2,2
+UBERON:0012238,ureteric bud trunk,EMAPA:27697,ureteric trunk,True,2,2
+UBERON:0012481,cloacal epithelium,EMAPA:27577,cloacal epithelium,True,2,2
+UBERON:0012481,cloacal epithelium,EMAPA:36070,cloacal epithelium of cloacal membrane,True,2,2
+UBERON:0012494,muscularis mucosae of duodenum,EMAPA:27243,duodenum muscularis,True,2,2
+UBERON:0012494,muscularis mucosae of duodenum,EMAPA:27259,duodenum muscularis mucosa,True,2,2
+UBERON:0013247,male paramesonephric duct,EMAPA:29161,degenerating mesonephric portion of male paramesonephric duct,True,2,2
+UBERON:0013247,male paramesonephric duct,EMAPA:35661,paramesonephric duct of male,True,2,2
+UBERON:0014935,cerebral cortex marginal layer,EMAPA:17546,cerebral cortex marginal layer,True,2,2
+UBERON:0014935,cerebral cortex marginal layer,EMAPA:32713,cerebral cortex marginal zone,True,2,2
+UBERON:0014936,cerebral cortex ventricular layer,EMAPA:17547,cerebral cortex ventricular layer,True,2,2
+UBERON:0014936,cerebral cortex ventricular layer,EMAPA:32707,cerebral cortex ventricular zone,True,2,2
+UBERON:0034995,jaw mesenchyme,EMAPA:32907,jaw mesenchyme,True,2,2
+UBERON:0034995,jaw mesenchyme,EMAPA:35454,jaw primordium mesenchyme,True,2,2

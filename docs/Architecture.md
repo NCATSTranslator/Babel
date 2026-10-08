@@ -20,12 +20,12 @@ Babel's pipeline has two phases, orchestrated by [Snakemake](https://snakemake.g
    These files are written into `babel_downloads/[PREFIX]/`.
 
 2. **Compendium building** — for each semantic type (e.g. chemicals, genes, anatomy), a compendium
-   creator module reads the relevant label and synonym files, extracts the identifiers for that
-   type into `babel_outputs/intermediate/[PIPELINE]/ids/`, produces pairwise cross-reference files
+   creator module reads the relevant label and synonym files, extracts the identifiers for that type
+   into `babel_outputs/intermediate/[SEMANTIC_TYPE]/ids/`, produces pairwise cross-reference files
    called **concords**, merges the concords into equivalence cliques using a union-find algorithm,
    and writes enriched JSONL compendia to `babel_outputs/compendia/[BIOLINK TYPE].txt`.
 
-The top-level `Snakefile` coordinates the whole pipeline by including ~20 specialized snakefiles
+The top-level `Snakefile` coordinates the whole pipeline by including 18 specialized snakefiles
 from `src/snakefiles/` — one per semantic type, plus files for data collection, reports, exports,
 and DuckDB integration.
 
@@ -48,8 +48,8 @@ All Python and Snakemake source code lives under `src/`:
 
 | Directory / file       | Purpose                                                                                                                                                                           |
 |------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `src/datahandlers/`    | ~37 modules, one per external data source. Each module downloads, parses, and normalizes data from a specific source (ChEBI, UniProt, NCBI Gene, DrugBank, MeSH, etc.).           |
-| `src/createcompendia/` | ~15 modules, one per semantic type (chemicals, genes, proteins, anatomy, disease/phenotype, etc.). These consume data handler outputs, build concords, and write final compendia. |
+| `src/datahandlers/`    | ~35 modules, one per external data source. Each module downloads, parses, and normalizes data from a specific source (ChEBI, UniProt, NCBI Gene, DrugBank, MeSH, etc.).           |
+| `src/createcompendia/` | ~14 modules, one per semantic type (chemicals, genes, proteins, anatomy, disease/phenotype, etc.). These consume data handler outputs, build concords, and write final compendia. |
 | `src/snakefiles/`      | Snakemake rule files that wire data handlers to compendium creators and define the full dependency graph.                                                                         |
 | `src/node.py`          | Core factory classes: `NodeFactory`, `SynonymFactory`, `DescriptionFactory`, `TaxonFactory`, `InformationContentFactory`, `TSVSQLiteLoader`.                                      |
 | `src/babel_utils.py`   | Core pipeline utilities: download/FTP helpers, `glom()` (clique merging), `write_compendium()` (compendium builder), and state management helpers.                                |
@@ -79,11 +79,12 @@ equivalence cliques.
 
 Each line of a compendium file is a JSON object representing one clique. A clique includes:
 
-- `identifiers` — list of all equivalent CURIEs, in preferred-prefix order
+- `identifiers` — list of all equivalent CURIEs, in preferred-prefix order. Each entry carries its
+  own label (`l`), descriptions (`d`, collected from UberGraph and sorted shortest first) and taxa
+  (`t`)
 - `ic` — information content score (from UberGraph)
-- `taxa` — associated taxa (for genes, proteins, etc.)
+- `taxa` — associated taxa (for genes, proteins, etc.); the union of the per-identifier `t` values
 - `preferred_name` — the preferred human-readable label for the clique
-- `descriptions` — descriptions collected from UberGraph
 - `type` — Biolink semantic type
 
 The first identifier in `identifiers` is the preferred identifier for the clique. See
@@ -128,6 +129,51 @@ GeneProtein and DrugChemical conflations each have dedicated conflation modules
 [`src/createcompendia/drugchemical.py`](../src/createcompendia/drugchemical.py)) that merge their
 respective cliques after the initial compendium build. See [Conflation.md](./Conflation.md) for
 details on what conflation means and how it works.
+
+### Chemical compendium output types
+
+The chemical pipeline emits one compendium file per Biolink type, enumerated in one place:
+`config.yaml: chemical_outputs`. That single list fans out to DrugChemical conflation (its input is
+`expand(..., config["chemical_outputs"])`), the KGX/Parquet/JSONL/DuckDB exports (via
+`get_all_compendia`), and the synonym outputs — so **adding a new chemical subtype only needs an
+entry there** (plus, in `create_typed_sets`, whatever routes cliques to it). Conflation reads these
+files but never re-types, so a retype done in the compendium survives downstream.
+
+The one manual extra: the per-type report rules in
+[`src/snakefiles/chemical.snakefile`](../src/snakefiles/chemical.snakefile) are hardcoded
+(`check_drug`, `check_food`, …), and `rule chemical` expands `chemical_outputs` over `reports/`, so
+a new output without a matching `check_*` rule breaks the DAG (no producer for
+`reports/<Type>.txt`). See the DrugBank food-and-extract retype
+([`docs/sources/DRUGBANK/food-and-extracts/README.md`](sources/DRUGBANK/food-and-extracts/README.md))
+for a worked example that added `Food.txt`.
+
+### Which Biolink type a chemical clique gets
+
+`create_typed_sets` in [`src/createcompendia/chemicals.py`](../src/createcompendia/chemicals.py)
+types each glommed clique by a vote over its members' per-identifier types (from
+`intermediate/chemicals/partials/types`), with two wrinkles: a clique whose PubChem members all
+agree short-circuits the vote, and sources can contribute *extra candidates* — today only the
+DrugBank food/extract evidence — that join the vote rather than overriding it.
+
+Ties are broken by `config.yaml: chemical_type_order`, most preferred first. Two things about that
+ranking are deliberate and easy to get backwards: `biolink:Drug` is **last**, below
+`biolink:ChemicalEntity`, because it comes almost entirely from RxNorm formulations and is only
+useful where we failed to merge one with its active ingredient; and `biolink:Food` sits below every
+structure-bearing type, so food evidence can improve on a vague `ChemicalEntity` but can never
+demote a defined molecule. That second rule is a bug fix — see
+[the food-and-extracts README](sources/DRUGBANK/food-and-extracts/README.md) for what happened when
+the evidence was an override instead (issue #935).
+
+### `Polypeptide.txt` is a residue, not a compendium
+
+`compendia/Polypeptide.txt` is tiny (166 cliques in 2025sep1, 5 in 2026jul22) and its size swings
+wildly between builds. Neither `CHEBI` nor `MESH` is registered in `biolink:Polypeptide`'s
+`id_prefixes`, so `write_compendium()` silently drops every identifier Babel types as a polypeptide;
+what lands in the file is the handful of cliques that also picked up a `UMLS` CURIE through
+`glom()`. Read a movement in this file as noise, not as a lost ingest — the cliques are still
+counted in the content report and mostly live in `compendia/umls.txt`. Details and the two candidate
+fixes are in [issue #1015](https://github.com/NCATSTranslator/Babel/issues/1015); delete this note
+once it is closed.
 
 ## Output directories
 

@@ -2,7 +2,7 @@
 # to the GitHub Packages repository. It is triggered when a new package is released.
 #
 # Based on the NameRes release.yaml file at
-# https://github.com/TranslatorSRI/NameResolution/blob/a4f72e3c283dcb40a7280b55650dae63c5625e82/.github/workflows/release.yml
+# https://github.com/NCATSTranslator/NameResolution/blob/a4f72e3c283dcb40a7280b55650dae63c5625e82/.github/workflows/release.yml
 
 name: 'Release a new version to Github Packages'
 
@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         # When debugging/bugfixing Babel, it's helpful to have the entire Git history
         # with you. This also makes it possible to fetch additional branches from
         # GitHub if you need to.
@@ -30,18 +30,18 @@ jobs:
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v6
         with:
           images:
             ghcr.io/${{ github.repository }}
       - name: Login to ghcr
-        uses: docker/login-action@v1
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push to GitHub Packages
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true

@@ -1,9 +1,8 @@
 import logging
-import re
 
 import pyoxigraph
 
-from src.babel_utils import pull_via_urllib
+from src.babel_utils import parse_rdf_literal, pull_via_urllib
 from src.categories import CELL_LINE
 from src.metadata.provenance import write_download_metadata
 from src.prefixes import CLO, ORPHANET
@@ -48,14 +47,7 @@ class CLOgraph:
                 qres = self.m.query(s)
                 for row in list(qres):
                     iterm = str(row["x"])
-                    label = str(row["label"])
-                    if label.startswith('"'):
-                        # If the label ends with '"@[language code]", edit that out.
-                        pattern = re.compile(r"^\"(.*)\"@\w+$")
-                        if pattern.match(label):
-                            label = re.sub(pattern, r"\1", label)
-                        else:
-                            label = label[1:-1]
+                    label = parse_rdf_literal(str(row["label"]))
                     cloid = iterm[:-1].split("/")[-1]
                     if not cloid.startswith("CLO_"):
                         continue
@@ -139,7 +131,10 @@ class CLOgraph:
             try:
                 other_id = Text.opt_to_curie(other_without_brackets)
             except ValueError as verr:
-                logger.warning(f"Could not translate '{other_without_brackets}' into a CURIE in " + f"EFOgraph.get_xrefs({iri}), skipping: {verr}")
+                logger.warning(
+                    f"Could not translate '{other_without_brackets}' into a CURIE in "
+                    + f"EFOgraph.get_xrefs({iri}), skipping: {verr}"
+                )
                 continue
             if other_id.upper().startswith(ORPHANET.upper()):
                 logger.warning(f"Skipping Orphanet xref '{other_without_brackets}' in EFOgraph.get_xrefs({iri})")
@@ -151,7 +146,9 @@ class CLOgraph:
             if ":" in other_id and not other_id.startswith(":"):
                 outfile.write(f"{iri}\toboInOwl:hasDbXref\t{other_id}\n")
             else:
-                logging.warning(f"Skipping xref '{other_without_brackets}' in EFOgraph.get_xrefs({iri}): " + "not a valid CURIE")
+                logging.warning(
+                    f"Skipping xref '{other_without_brackets}' in EFOgraph.get_xrefs({iri}): " + "not a valid CURIE"
+                )
 
 
 def make_labels(infile, labelfile, synfile):

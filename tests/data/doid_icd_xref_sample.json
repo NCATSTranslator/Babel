@@ -1,0 +1,79 @@
+{
+ "graphs": [
+  {
+   "nodes": [
+    {
+     "id": "http://purl.obolibrary.org/obo/DOID_2476",
+     "lbl": "hereditary spastic paraplegia",
+     "type": "CLASS",
+     "meta": {
+      "definition": {
+       "val": "A paraplegia that is characterized by progressive stiffness and contraction (spasticity) in the lower limbs.",
+       "xrefs": [
+        "url:http://en.wikipedia.org/wiki/Familial_spastic_paraplegia"
+       ]
+      },
+      "comments": [
+       "Xref MGI."
+      ],
+      "subsets": [
+       "http://purl.obolibrary.org/obo/doid#DO_FlyBase_slim",
+       "http://purl.obolibrary.org/obo/doid#DO_rare_slim",
+       "http://purl.obolibrary.org/obo/doid#NCIthesaurus"
+      ],
+      "synonyms": [
+       {
+        "pred": "hasExactSynonym",
+        "val": "French settlement disease"
+       },
+       {
+        "pred": "hasExactSynonym",
+        "val": "Strumpell-Lorrain disease"
+       },
+       {
+        "pred": "hasExactSynonym",
+        "val": "familial spastic paraplegia"
+       },
+       {
+        "pred": "hasExactSynonym",
+        "val": "hereditary spastic paraparesis"
+       }
+      ],
+      "xrefs": [
+       {
+        "val": "GARD:6637"
+       },
+       {
+        "val": "ICD10CM:G11.4"
+       },
+       {
+        "val": "ICD9CM:334.1"
+       },
+       {
+        "val": "MESH:D015419"
+       },
+       {
+        "val": "MIM:PS303350"
+       },
+       {
+        "val": "NCI:C140267"
+       },
+       {
+        "val": "SNOMEDCT_US_2025_09_01:267692008"
+       },
+       {
+        "val": "UMLS_CUI:C0037773"
+       }
+      ],
+      "basicPropertyValues": [
+       {
+        "pred": "http://www.geneontology.org/formats/oboInOwl#hasOBONamespace",
+        "val": "disease_ontology"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -26,7 +26,9 @@ def test_build_sets_go_uses_preferred_terms_only(tmp_path):
         mrconso_row("C1158785", "GO", "PT", "GO:0045943", "positive regulation of transcription by RNA polymerase I"),
         mrconso_row("C1158785", "GO", "SY", "GO:0045943", "up regulation of transcription by RNA polymerase I"),
         mrconso_row("C2249862", "GO", "ET", "GO:0045943", "activation of transcription from RNA polymerase I promoter"),
-        mrconso_row("C2249863", "GO", "SY", "GO:0045943", "stimulation of transcription from RNA polymerase I promoter"),
+        mrconso_row(
+            "C2249863", "GO", "SY", "GO:0045943", "stimulation of transcription from RNA polymerase I promoter"
+        ),
         # MTH_PT is NLM's adjusted preferred name and is kept.
         mrconso_row("C0000002", "GO", "MTH_PT", "GO:0000002", "some activity"),
         # Non-GO sources are unaffected by the GO term type filter.
@@ -37,7 +39,12 @@ def test_build_sets_go_uses_preferred_terms_only(tmp_path):
     mrconso = tmp_path / "MRCONSO.RRF"
     mrconso.write_text("".join(rows))
     idfile = tmp_path / "ids"
-    idfile.write_text("".join(f"UMLS:{cui}\tbiolink:BiologicalProcess\n" for cui in ["C1158785", "C2249862", "C2249863", "C0000002", "C0000003"]))
+    idfile.write_text(
+        "".join(
+            f"UMLS:{cui}\tbiolink:BiologicalProcess\n"
+            for cui in ["C1158785", "C2249862", "C2249863", "C0000002", "C0000003"]
+        )
+    )
     outfile = tmp_path / "concord"
 
     build_sets(str(mrconso), str(idfile), str(outfile), {"GO": "GO", "MSH": "MESH"}, go_preferred_terms_only=True)
@@ -65,7 +72,9 @@ def test_build_sets_go_uses_preferred_terms_only(tmp_path):
 @pytest.mark.unit
 def test_pull_umls_skips_go_synonyms(tmp_path, monkeypatch):
     monkeypatch.setattr(umls, "make_local_name", lambda fname, subpath=None: str(tmp_path / f"{subpath}_{fname}"))
-    monkeypatch.setattr(umls, "read_umls_priority", lambda: {("MSH", "MH", "N"): 0, ("GO", "PT", "N"): 1, ("GO", "ET", "N"): 2})
+    monkeypatch.setattr(
+        umls, "read_umls_priority", lambda: {("MSH", "MH", "N"): 0, ("GO", "PT", "N"): 1, ("GO", "ET", "N"): 2}
+    )
     rows = [
         # A CUI with clinical and GO atoms, including a GO entry term carrying a different GO ID.
         mrconso_row("C0000001", "MSH", "MH", "D000001", "Lipolysis"),

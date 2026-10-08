@@ -4,7 +4,7 @@ import src.snakefiles.util as util
 
 ##
 ## This Snakefile implements the algorithm proposed in
-## https://github.com/TranslatorSRI/NodeNormalization/issues/119#issuecomment-1154751451
+## https://github.com/NCATSTranslator/NodeNormalization/issues/119#issuecomment-1154751451
 ##
 ## 1. Once all the other targets have been generated, we make a list of every UMLS term
 ##    that has been mapped in all the output compendia files.
@@ -24,32 +24,37 @@ configfile: "config.yaml"
 
 rule leftover_umls:
     input:
+        # Listed only to force these files to be generated; write_leftover_umls() reads labels
+        # from MRCONSO, not from these files.
+        config["download_directory"] + "/UMLS/labels",
+        config["download_directory"] + "/UMLS/synonyms",
         input_compendia=expand(
             "{output}/compendia/{compendium}",
             output=config["output_directory"],
             compendium=[x for x in get_all_compendia(config) if x not in {"umls.txt"}],
         ),
-        umls_label_filename=config["download_directory"] + "/UMLS/labels",
         mrconso=config["download_directory"] + "/UMLS/MRCONSO.RRF",
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
-        synonyms=config["download_directory"] + "/UMLS/synonyms",
+        umls_metadata_yaml=config["download_directory"] + "/UMLS/UMLS.metadata.yaml",
+        icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
         umls_compendium=config["output_directory"] + "/compendia/umls.txt",
         umls_synonyms=temp(config["output_directory"] + "/synonyms/umls.txt"),
         umls_metadata_yaml=config["output_directory"] + "/metadata/umls.txt.yaml",
-        report=config["output_directory"] + "/reports/umls.txt",
+        report=config["output_directory"] + "/reports/umls/log.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/leftover_umls.tsv"
     run:
         write_leftover_umls(
-            output.umls_metadata_yaml,
+            [input.umls_metadata_yaml],
             input.input_compendia,
-            input.umls_label_filename,
             input.mrconso,
             input.mrsty,
-            input.synonyms,
             output.umls_compendium,
             output.umls_synonyms,
             output.report,
             config["biolink_version"],
+            input.icrdf_filename,
         )
 
 
@@ -59,6 +64,8 @@ rule compress_umls:
     output:
         umls_synonyms_gzipped=config["output_directory"] + "/synonyms/umls.txt.gz",
         done=config["output_directory"] + "/reports/umls_done",
+    benchmark:
+        config["output_directory"] + "/benchmarks/compress_umls.tsv"
     run:
         util.gzip_files([input.umls_synonyms])
         util.write_done(output.done)

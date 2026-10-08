@@ -1,27 +1,100 @@
+# Information about Babel
+babel:
+  github_url: "https://github.com/NCATSTranslator/Babel"
+
 # Build information. Currently unstructured -- you can use this to write down any notes on what is going on with
 # this specific build of Babel.
 build:
-  branch: babel-1.15
+  branch: babel-1.18.1
+  workarounds:
+  - Continued with the downloads from 2026jul15 under babel-1.18, but redownloaded CHEBI given many parsing changes.
+  - DrugBank downloads are currently disabled https://github.com/cthoyt/drugbank-downloader/issues/23 -- I used the previously downloaded 5-1-13.
+  - HMDB is now behind a Cloudflare bot challenge, so the pipeline can't download it (see docs/sources/DownloadPatterns.md). Unlike DrugBank, this is not a reused old download -- I downloaded it fresh in a browser on my laptop and copied it to the HPC.
 
 # Versions that need to be updated on every release.
-biolink_version: "4.3.6"
-umls_version: "2025AB"
-rxnorm_version: "12012025"
-drugbank_version: "5-1-13"
+biolink_version: "4.4.3"
+umls_version: "2026AA"
+rxnorm_version: "07062026"
+drugbank_version: "5-1-13" # The latest is 5-1-21, but since downloads are currently not allowed, we need to reuse our most recent download.
+# GARD has no version number to bump, only a link that goes stale: this is the "GARD Rare Disease
+# List <Mon><Year>.csv" link on https://rarediseases.info.nih.gov/about (under "Which rare diseases
+# are included in GARD?"); NCATS publishes no stable data URL. The Salesforce `ids=068...` value is
+# a ContentVersion id, i.e. ONE uploaded version of the file, so a new upload gets a new link and
+# this one may stop resolving. Re-check the About page before each release (the network test
+# tests/datahandlers/test_gard.py::test_gard_download_url_is_current does it for you) and repoint
+# it; get_gard fetches it via src.datahandlers.gard.pull_gard(), and an expired link fails the rule
+# rather than silently reusing the old file. Currently: "GARD Rare Disease List Jun2026.csv".
+gard_download_url: "https://ncats.file.force.com/sfc/dist/version/download/?oid=00Dt00000004XG2&ids=068SJ00001HZAaEYAX&d=%2Fa%2FSJ00000BC4Xl%2FUj7U9WuHII571Akz5AUBLe6WSCeelaMBynbjWybmhuA&asPdf=false"
+
+# Release naming and the previous-release comparison (see docs/RunningBabel.md).
+# release_name is the date-style name for THIS build; it becomes the "name" in the generated
+# prefix_report.json and names the directory it is archived into, releases/<release_name>/. Set it to
+# the build you are about to make BEFORE starting a run.
+release_name: "2026jul22"
+# previous_release pins which committed baseline the end-of-run comparison diffs against: it is the
+# release immediately BEFORE release_name, never release_name itself -- a build that diffs its own
+# baseline produces a well-formed all-zeros report that reads as "nothing changed", so
+# generate_prefix_comparison() raises rather than write one. Moving this on to the release just
+# archived under releases/ is the deliberate "new baseline" action, done in the same
+# commit that moves release_name to the next build; a unit test fails if the two drift apart.
+previous_release: "2025sep1"
+# Thresholds for the "Notable changes" section of reports/tables/prefix_comparison.md (informational
+# only -- large drifts are flagged, never fail the build).
+prefix_comparison_warn_abs: 100000 # flag any prefix whose absolute CURIE change is >= this
+prefix_comparison_warn_pct: 25 # flag any prefix whose |percent change| is >= this
 
 # Overall inputs and outputs.
 input_directory: input_data
 download_directory: babel_downloads
 intermediate_directory: babel_outputs/intermediate
 output_directory: babel_outputs
+# Where DuckDB spills larger-than-memory intermediates. setup_duckdb() gives each job its own
+# duckdb-$SLURM_JOB_ID subdirectory here. Override per run with the BABEL_DUCKDB_TEMP_DIR
+# environment variable; see slurm/README.md ("Temporary Scratch Space") for the trade-offs.
 tmp_directory: babel_downloads/tmp
+
+# HTTP settings.
+http: {}
+
+# SPARQL query settings.
+sparql:
+  # Total number of attempts (initial try + retries) before giving up; must be >= 1.
+  # Example: max_attempts=3 → one initial try, then up to two retries.
+  max_attempts: 3
+  # Base delay in seconds between attempts; must be >= 0. Actual delay grows exponentially
+  # (attempt 1 → 1 s, attempt 2 → 2 s, attempt 3 → 4 s, …). Accepts fractional values.
+  retry_base_delay_seconds: 1
+
+# Maps Python compendium names (as used in src/createcompendia/ and tests) to the
+# directory names that Snakemake uses under intermediate_directory.
+# Compendia not listed here use their own name as the directory name.
+# Update this whenever a new semantic type uses a shortened or different directory name.
+compendium_directories:
+  diseasephenotype: disease
+  processactivitypathway: process
 
 #
 # SHARED
 #
 
-# DuckDB settings for use in all DuckDB connections:
-duckdb_config: {}
+# DuckDB settings for use in all DuckDB connections.
+# write_buffer_row_group_count=1: flush Parquet row groups to disk eagerly. The default of 5
+# means DuckDB holds 5 row groups × threads × ~4 GiB in write buffers before flushing (~76 GiB
+# peak at 128 GB allocation). Setting it to 1 keeps write-buffer RAM proportional to one row
+# group, at no cost to compression ratio or query performance.
+#
+# enable_external_file_cache=false: DuckDB's external file cache keeps Parquet file blocks mmapped
+# across queries, which is one source of memory mappings. The cross-compendium report rules were
+# hitting the kernel's per-process mapping limit (vm.max_map_count, default 65530) and failing with
+# `bad allocation` on a small allocation despite free RAM -- an address-space (mmap-count) limit.
+# Disabling this cache removes it as a mapping source, but note it was NOT sufficient on its own:
+# the dominant source is DuckDB's buffer pool (its allocator retains ~1.3 MB mappings up to the
+# query's peak memory), so the report rules also cap memory_limit far below their natural peak. The
+# definitive fix is for the cluster to raise vm.max_map_count (issue #846); until then we keep this
+# off (it only costs a re-read from disk for our read-once/scan-twice queries, no correctness change).
+duckdb_config:
+  write_buffer_row_group_count: 1
+  enable_external_file_cache: false
 
 #
 # UMLS
@@ -49,316 +122,306 @@ ncbi_files:
   - gene_refseq_uniprotkb_collab.gz
   - mim2gene_medgen
 
-generate_dirs_for_labels_and_synonyms_prefixes:
-  - GO
-  - CL
-  - NCIT
-  - UBERON
-  - CHEBI
-  - HP
-  - MONDO
-  - PR
+generate_dirs_for_labels_and_synonyms_prefixes: [GO, CL, NCIT, UBERON, EMAPA, CHEBI, HP, MP, MONDO, PR]
 
 # TODO: This doesn't appear to be used anywhere -- but it might be neat to use this list to make sure we got all of them.
-ubergraph_ontologies:
-  - UBERON
-  - CL
-  - GO
-  - NCIT
-  - ECO
-  - ECTO
-  - ENVO
-  - HP
-  - UPHENO
-  - BFO
-  - BSPO
-  - CARO
-  - CHEBI
-  - CP
-  - GOREL
-  - IAO
-  - MAXO
-  - MONDO
-  - PATO
-  - PR
-  - RO
-  - UBPROP
+ubergraph_ontologies: [UBERON, CL, EMAPA, GO, NCIT, ECO, ECTO, ENVO, HP, MP, UPHENO, BFO, BSPO, CARO, CHEBI, CP, GOREL, IAO, MAXO, MONDO, PATO, PR, RO, UBPROP]
 
-mods:
-  - WormBase
-  - FB
-  - MGI
-  - ZFIN
-  - RGD
-  - SGD
+mods: [WormBase, FB, MGI, ZFIN, RGD, SGD]
 
 common:
-  labels:
-    - ubergraph/labels
-  synonyms:
-    - ubergraph/synonyms.jsonl
-  descriptions:
-    - ubergraph/descriptions.jsonl
+  labels: [ubergraph/labels]
+  synonyms: [ubergraph/synonyms.jsonl]
+  descriptions: [ubergraph/descriptions.jsonl]
 
-anatomy_prefixes:
-  - UBERON
-  - GO
-  - CL
-  - UMLS
-  - MESH
-  - NCIT
-  - SNOMEDCT
+anatomy_prefixes:  [UBERON, GO, CL, EMAPA, UMLS, MESH, NCIT, SNOMEDCT]
+anatomy_ids:       [UBERON, GO, CL, EMAPA, UMLS, MESH, NCIT]
+anatomy_concords:  [UBERON, GO, CL, EMAPA, UMLS, WIKIDATA]
+anatomy_outputs:   [AnatomicalEntity.txt, Cell.txt, CellularComponent.txt, GrossAnatomicalStructure.txt]
+# Prefixes whose identifiers are treated as globally unique within a clique: if merging two
+# cliques would produce a clique containing more than one identifier with one of these prefixes,
+# the merge is blocked.  UBERON and GO are authoritative enough that two distinct terms from
+# either ontology should never be collapsed into the same equivalence set.  If you add a new
+# anatomy source whose concord file links to UBERON or GO, verify that it doesn't introduce
+# spurious merges before removing either prefix from this list.
+#
+# EMAPA is deliberately NOT listed, even though it is an anatomy ids source.  122 UBERON terms
+# cross-reference more than one EMAPA term (116 of them more than one *live* EMAPA term), and
+# those are mostly genuine 1:n mappings (a mouse developmental partonomy resolving finer than the
+# adult UBERON structure), not merge errors.
+# Restricting EMAPA would block all 122 merges and would silently delete any EMAPA CURIE that
+# lost the resulting contest without having its own ids-file row.  See
+# docs/sources/EMAPA/README.md, which flags this for SME review.
+anatomy_unique_prefixes: [UBERON, GO]
 
-anatomy_ids:
-  - UBERON
-  - GO
-  - CL
-  - UMLS
-  - MESH
-  - NCIT
+gene_labels:   [HGNC, NCBIGene, UMLS, OMIM]
+gene_ids:      [ENSEMBL, HGNC, NCBIGene, UMLS, OMIM, ZFIN, WormBase, FB, MGI, RGD, SGD]
+gene_concords: [NCBIGene, NCBIGeneENSEMBL, medgen, UMLS, UMLS_NCBIGene]
+gene_outputs:  [Gene.txt]
 
-anatomy_concords:
-  - UBERON
-  - GO
-  - CL
-  - UMLS
-  - WIKIDATA
+protein_labels:   [UniProtKB, PR, UMLS]
+protein_synonyms: [PR, UMLS]
+protein_ids:      [ENSEMBL, MESH, UniProtKB, PR, UMLS]
+protein_concords: [UniProtKB, PR, NCIT_UniProtKB, NCIT_UMLS, UMLS, UMLS_UniProtKB]
+protein_outputs:  [Protein.txt]
 
-anatomy_outputs:
-  - AnatomicalEntity.txt
-  - Cell.txt
-  - CellularComponent.txt
-  - GrossAnatomicalStructure.txt
+disease_labelsandsynonyms: [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UMLS, SNOMEDCT, EFO]
+disease_ids:               [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UMLS, OMIM, EFO]
+# MONDO_GARD is MONDO's GARD hasDbXrefs, the one hasDbXref exception in this pipeline: MONDO
+# asserts its ~15,930 GARD mappings only as hasDbXref, never as skos:exactMatch, so the MONDO
+# concord (exact matches only) sees none of them. Kept as its own file so the exception is visible
+# here and can be filtered without touching MONDO's exact matches -- docs/sources/MONDO/README.md.
+#
+# ORDER IS LOAD-BEARING: MONDO_GARD must precede DOID. 148 of DOID's 2,208 GARD xref rows put a
+# GARD id on a different MONDO clique than MONDO itself does (e.g. DOID:0050120 -> GARD:6589, which
+# MONDO maps to MONDO:0015541; docs/sources/GARD/scripts/count_doid_mondo_gard_disagreements.py). MONDO is a unique prefix, so glom() cannot merge the two cliques and the
+# id stays with whichever concord claimed it first; listing MONDO's own mapping first is what makes
+# MONDO, not DOID, the authority. A unit test pins the relative order.
+#
+# GARD_label must be LAST. It is the only concord in this pipeline derived from labels rather than
+# from an asserted mapping, so it should decide nothing another concord has an opinion about; and
+# its safety guard is "skip any GARD id another concord names", which is defined by the rest of
+# this list. A unit test pins its position.
+disease_concords:          [HP, MP, MONDO, MONDO_GARD, UMLS, DOID, EFO, Manual, GARD_label]
+disease_outputs:           [Disease.txt, PhenotypicFeature.txt]
 
-gene_labels:
-  - HGNC
-  - NCBIGene
-  - UMLS
+# The vocabularies build_gard_label_concord() may match a GARD label against, in PRIORITY ORDER:
+# the first entry holding an identifier with the GARD term's label wins, and the term is skipped if
+# that vocabulary holds two. MONDO/DOID/Orphanet lead because a curated disease ontology is a better
+# thing to join than a Metathesaurus concept; UMLS is last of the large ones because it is the
+# noisiest. Each entry names both an ids file (intermediate/disease/ids/<entry>, the authoritative
+# identifier set for this pipeline) and a labels file (babel_downloads/<entry>/labels), so an entry
+# must appear in BOTH disease_ids and disease_labelsandsynonyms -- a unit test checks that.
+#
+# HP and MP are deliberately absent. split_mutually_exclusive_cliques() keeps phenotype and disease
+# cliques disjoint on purpose and disease_gard_ids types every registry term biolink:Disease, so
+# matching a GARD term onto an HP or MP term asserts an identity this pipeline is built to refuse.
+# OMIM is absent for a duller reason: it has an ids file but no babel_downloads/OMIM/labels.
+# SNOMEDCT is absent because it has no disease ids file.
+disease_gard_label_match_prefixes: [MONDO, DOID, Orphanet, MESH, NCIT, UMLS, EFO]
 
-gene_ids:
-  - ENSEMBL
-  - HGNC
-  - NCBIGene
-  - UMLS
-  - OMIM
-  - ZFIN
-  - WormBase
-  - FB
-  - MGI
-  - RGD
-  - SGD
+# Prefixes this pipeline ships even though the Biolink Model does not register them for the clique's
+# class. write_compendium() otherwise drops an unregistered prefix silently, *after* glom() has
+# already merged cliques on it -- so the merge effect ships and the identifier does not.
+#
+# KEYED BY BIOLINK CLASS, because extra_prefixes is a per-class allowlist and build_compendium
+# writes several classes from one call. A single flat list passed to every class grants each of
+# them an exemption that was argued for one of them; spelling the map out per class is what makes
+# that unspellable. Look up each class's registered prefixes with
+# get_biolink_model_toolkit(biolink_version).get_element(<class>).id_prefixes.
+#
+# EVERY ENTRY IS TEMPORARY AND EVERY ENTRY LINKS TO THE ISSUE THAT REMOVES IT. Once Biolink
+# registers a prefix, its entry becomes a no-op that still suppresses the CURIE from leading its
+# clique (extra prefixes are appended *after* the registered ones, so they can never win the
+# preferred-CURIE contest) -- a stale entry is worse than dead config. Adding a prefix here without
+# an issue link leaves nothing to close the loop. https://github.com/NCATSTranslator/Babel/issues/1061
+# tracks the test that will fail when an entry goes stale.
+#
+# ICD0 is deliberately NOT here under any class: ICD-O codes are tumour *morphology* codes and may
+# not be disease equivalents at all, so emitting them would assert something we have not decided.
+# See https://github.com/NCATSTranslator/Babel/issues/1037.
+disease_extra_prefixes_by_biolink_class:
+  biolink:Disease:
+    # MONDO's spelling of ICD-10 (DOID/EFO/HP write ICD10:), ~2,030 near-perfectly 1:1 xref rows.
+    # Biolink registers ICD10 for biolink:Disease but not ICD10CM, so the fix is to normalise onto
+    # the registered spelling rather than to ask for a second one; until then, shipping the rows
+    # beats discarding curated MONDO mappings we would have to re-derive.
+    # Retire with https://github.com/NCATSTranslator/Babel/issues/1060 (blocked on #1033).
+    - ICD10CM
+    # The NCATS rare-disease registry, unregistered for every Biolink class. Without this ~16k rare
+    # diseases vanish from Disease.txt. GARD asserts no cross-references of its own; its ids reach
+    # cliques through MONDO's hasDbXrefs (MONDO_GARD, ~15.9k), DOID's xrefs (~2.2k), and -- for the
+    # ~277 terms neither maps -- the label matches in GARD_label. Same situation as GTDB for
+    # biolink:OrganismTaxon (PR #978).
+    # Retire with https://github.com/NCATSTranslator/Babel/issues/1051.
+    - GARD
+  biolink:PhenotypicFeature:
+    # GARD again, and for the same reason: it is unregistered for *every* class, so this exemption
+    # is not one earned on disease grounds and lent to phenotypes. disease_gard_ids types every
+    # registry term biolink:Disease, but a handful name concepts HP also names, and the clique type
+    # vote (classify_disease_clique) rightly trusts HP -- five terms today, "Chilblains" among them.
+    # Without this entry those GARD ids are deleted rather than moved, so build_gard_label_concord()
+    # had to refuse to link them at all and shipped a duplicate single-identifier Disease clique
+    # beside the phenotype clique naming the same thing. One concept, one clique, wherever the
+    # clique lands.
+    # Retire with https://github.com/NCATSTranslator/Babel/issues/1051, the same issue as above.
+    - GARD
 
-gene_concords:
-  - NCBIGene
-  - NCBIGeneENSEMBL
-  - medgen
-  - UMLS
-  - UMLS_NCBIGene
+# How each disease source spells *other* vocabularies' prefixes in its cross-references, and the
+# Babel prefix each one becomes. Applied by babel_utils.norm() while the source's concord is built,
+# keyed on the UPPER-CASED source prefix. Values are checked against src/prefixes.py when the map is
+# loaded, so a typo fails the build rather than silently renaming nothing.
+#
+# A *missing* entry is not an error and that is the danger: the un-renamed CURIE still reaches
+# glom(), joins nothing (no ids file carries that spelling, and write_compendium drops the prefix as
+# unregistered), yet still fuses every subject that cites it into a single clique. That silent
+# failure is why these maps sit here, in one reviewable block, instead of inline beside each build
+# function -- reviewing "which prefixes does this source need renamed" is the whole job.
+#
+# A key may name the *stem* of a release-stamped prefix: SNOMEDCT_US matches DOID's
+# SNOMEDCT_US_2025_09_01 and the six other dates it currently emits, without pinning a date list
+# that goes stale on the next DOID release (norm() retries with a trailing _YYYY_MM_DD stripped).
+disease_xref_prefixes:
+  DOID:
+    ICD10CM:     ICD10
+    ICD9CM:      ICD9
+    ICDO:        ICD0
+    NCI:         NCIT
+    SNOMEDCT_US: SNOMEDCT
+    UMLS_CUI:    UMLS
+    KEGG:        KEGG.DISEASE
+    # DOID spells OMIM "MIM:" -- see https://github.com/NCATSTranslator/Babel/issues/321, which
+    # tracks making MIM the canonical spelling once the Biolink Model registers it. Until then both
+    # standardize to OMIM. 332 of these 6,483 rows are phenotypic series ("MIM:PS303350"), which
+    # Babel spells OMIM.PS:303350 -- the "PS" belongs to the prefix, not to the local id. YAML
+    # cannot express a rename that depends on the local id, so this value is resolved to a callable:
+    # see LOCAL_ID_DEPENDENT_RENAMES in src/createcompendia/diseasephenotype.py.
+    MIM:         OMIM
+    # DOID's spelling of Orphanet, 2,321 rows. MONDO and HP already write orphanet:, so before this
+    # entry none of DOID's Orphanet mappings could join theirs.
+    ORDO:        orphanet
+    # Not a prefix rename: the prefix stays GARD, but the local id loses the registry's zero
+    # padding (GARD:0006038 -> GARD:6038; 28 of DOID's GARD xrefs are padded, the rest are not).
+    # Resolved to gard.normalize_gard_curie via LOCAL_ID_DEPENDENT_RENAMES, like MIM above. Every
+    # source that emits GARD xrefs needs this entry or its ids split from the registry's.
+    GARD:        GARD
+  HP:
+    MSH:         MESH
+    SNOMEDCT_US: SNOMEDCT
+    SNOMED_CT:   SNOMEDCT
+    # MONDO writes Orphanet mixed case ("Orphanet:2822"); the key is matched upper-cased, so this
+    # one entry catches every casing and maps it to Babel's lower-case orphanet: prefix.
+    ORPHANET:    orphanet
+    ICD-9:       ICD9
+    ICD-10:      ICD10
+    ICD-0:       ICD0
+    ICD-O:       ICD0
+  MONDO:
+    ORPHANET:    orphanet
+    # MONDO writes every GARD id zero-padded; unpadded via LOCAL_ID_DEPENDENT_RENAMES (see DOID's
+    # GARD entry). Feeds the MONDO_GARD concord.
+    GARD:        GARD
+# Taxon assigned to each phenotype ontology's identifiers in the compendia. Every HP term we
+# ingest (the HP:0000118 "Phenotypic abnormality" subtree) describes a human (Homo sapiens)
+# phenotype; every MP term describes a mammalian (Mammalia) phenotype. These are written to
+# babel_downloads/<PREFIX>/taxa from each prefix's disease_ids file (the authoritative set of
+# ingested identifiers) and read by TaxonFactory to populate the per-identifier `t` field. HP
+# and MP are kept disjoint (see split_mutually_exclusive_cliques), so no clique ever carries
+# both taxa in practice -- each clique's taxon set comes from whichever one of HP/MP (if
+# either) is present. Keyed by prefix so the mapping stays adjacent to disease_ids, which
+# defines the identifier set these taxa annotate.
+disease_phenotype_taxa:
+  HP: NCBITaxon:9606 # Homo sapiens
+  MP: NCBITaxon:40674 # Mammalia
 
-gene_outputs:
-  - Gene.txt
+process_labels:   [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
+process_ids:      [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
+process_concords: [GO, RHEA, UMLS]
+process_outputs:  [Pathway.txt, BiologicalProcess.txt, MolecularActivity.txt]
 
-protein_labels:
-  - UniProtKB
-  - PR
-  - UMLS
+unichem_datasources: [CHEMBL.COMPOUND, DRUGBANK, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
 
-protein_synonyms:
-  - PR
-  - UMLS
+chemical_labels:    [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, UMLS, DRUGBANK]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
+chemical_synonyms:  [GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, UMLS, DRUGBANK]
+chemical_concords:  [wikipedia_mesh_chebi, PUBCHEM_MESH, mesh_cas, mesh_unii, PUBCHEM_CAS, GTOPDB, CHEBI, UMLS, DrugCentral, RXNORM]
+chemical_ids:       [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, DRUGBANK, MESH, UMLS, RXNORM]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
 
-protein_ids:
-  - ENSEMBL
-  - UniProtKB
-  - PR
-  - UMLS
+# Food.txt holds DRUGBANK food entries retyped from ChemicalEntity to Food (issue #828); it must stay in
+# this list so those cliques flow into DrugChemical conflation and the exports like any other chemical
+# output. (The processed extracts among them go to the already-present ComplexMolecularMixture.)
+chemical_outputs:   [MolecularMixture.txt, SmallMolecule.txt, Polypeptide.txt, ComplexMolecularMixture.txt, ChemicalEntity.txt, ChemicalMixture.txt, Drug.txt, Food.txt]
 
-protein_concords:
-  - UniProtKB
-  - PR
-  - NCIT_UniProtKB
-  - NCIT_UMLS
-  - UMLS
-  - UMLS_UniProtKB
+# Chemical clique type precedence, most preferred first. create_typed_sets() (src/createcompendia/
+# chemicals.py) uses it in two places: as the tie-break when a clique's members vote for several types
+# with equal counts, and to rank food/extract evidence against the clique's voted type (issues #828,
+# #935). It does NOT decide the ordinary case -- the vote is majority-count first, and a clique whose
+# PubChem members agree short-circuits the vote entirely -- so this list only settles ties.
+#
+# The ranking reflects Babel's chemical-tree design: identify as many biolink:SmallMolecule cliques as
+# possible, and treat the vaguer types as fallbacks for cliques we could not resolve any better.
+#
+# biolink:Drug sits BELOW biolink:ChemicalEntity on purpose. It comes almost entirely from RxNorm drug
+# formulations -- a level of detail neither Babel nor Translator needs -- so we keep it only for cliques
+# where we could not merge the formulation with its active small molecule or mixture. Ranking it above
+# ChemicalEntity puts RXCUI CURIEs ahead of chemical entities like UNII:PVI5M0M1GW "Filgrastim".
+#
+# biolink:Food sits below every structure-bearing type -- including the mixture types, which assert a
+# composition a whole food does not -- so food evidence never demotes a defined molecule (NCIt
+# classifies water, riboflavin, isoleucine and beta carotene as foods). It sits above only the
+# uninformative ChemicalEntity it exists to improve on. Note that it therefore outranks Drug: a clique
+# carrying food evidence that votes Drug is typed Food, which is mildly wrong -- a drug formulation is
+# not a food. That is an ACCEPTED tradeoff, not an oversight: it does not occur in any build so far
+# (scripts/replay_type_vote.py reports the count), and both a reorder and a special case cost more
+# than the error does. Revisit only if Food starts appearing where a drug formulation belongs.
+#
+# The types marked "not produced today" never appear in intermediate/chemicals/partials/types, but a
+# type missing from this list raises ValueError mid-build, so they are ranked here in advance. Counts
+# are identifiers, not cliques, from the babel-1.18 build.
+chemical_type_order:
+  - biolink:SmallMolecule                 # 115,171,614 identifiers
+  - biolink:Polypeptide                   # 15,282
+  - biolink:NucleicAcidEntity             # not produced today
+  - biolink:MolecularEntity               # not produced today
+  - biolink:ComplexMolecularMixture       # 244
+  - biolink:ChemicalMixture               # 675
+  - biolink:MolecularMixture              # 11,924,009
+  - biolink:ProcessedMaterial             # not produced today; the eventual home for extracts (#929)
+  - biolink:FoodAdditive                  # not produced today
+  - biolink:Food                          # from food evidence only, never from partials/types
+  - biolink:EnvironmentalFoodContaminant  # not produced today
+  - biolink:ChemicalEntity                # 862,541
+  - biolink:Drug                          # 361,554 -- see above for why this is last
 
-protein_outputs:
-  - Protein.txt
+# A bunch of food related-configuration items.
+#
+# NCIt subtrees whose members are foods: NCIT:C1949 "Food" plus NCIT:C73913 "Seed" (nuts/grains like
+# almond and wheat that NCIt files under Seed, not Food). NCIt types a food by what it is rather than what
+# it came from, so this covers non-plant foods (scallop, venison, beef liver) too. These are facts about
+# NCIt, not about any one consumer; today the only consumer is the DRUGBANK food-and-extract retype
+# (issue #828), where a structureless entry counts as food material if its UNII is classified under either
+# root OR its UNII carries a botanical-database flag (PLANTS/GRIN/MPNS, which reaches the plant materials
+# NCIt has no food class for). Such material becomes biolink:Food, or biolink:ComplexMolecularMixture when
+# it is an extract (see drugbank_extract_markers).
+food_ncit_roots:
+  - NCIT:C1949 # "Food" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C1949
+  - NCIT:C73913 # "Seed" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C73913
 
-disease_labelsandsynonyms:
-  - MONDO
-  - DOID
-  - Orphanet
-  - HP
-  - MESH
-  - NCIT
-  - UMLS
-  - SNOMEDCT
-  - EFO
+# NCIt subtrees whose members are NEVER food, however botanical they are (issue #828). A botanical flag
+# says "plant material", not "food", so on its own it must not overrule an NCIt class that says this is a
+# drug: without this veto DRUGBANK:DB00965 "Ethiodized oil" (an iodinated poppy-seed-oil contrast agent)
+# and DRUGBANK:DB05051 "BZL101" (an antineoplastic) are typed biolink:Food. A vetoed entry stays
+# biolink:ChemicalEntity — we make no claim — and an explicit food_ncit_roots classification still wins, so
+# a food that is also a diagnostic agent (inulin) is unaffected. Keep these roots NARROW: NCIT:C1909
+# "Pharmacologic Substance" is deliberately absent because NCIt files cocoa butter, garlic oil, rice bran
+# and green tea under it, and vetoing on it would throw out real foods.
+nonfood_ncit_roots:
+  - NCIT:C1966 # "Imaging Agent" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C1966
+  - NCIT:C274 # "Antineoplastic Agent" -- https://ncithesaurus.nci.nih.gov/ncitbrowser/ConceptReport.jsp?dictionary=NCI_Thesaurus&code=C274
 
-disease_ids:
-  - MONDO
-  - DOID
-  - Orphanet
-  - HP
-  - MESH
-  - NCIT
-  - UMLS
-  - OMIM
-  - EFO
+# Case-insensitive name/synonym substrings that mark a DRUGBANK food material as a processed
+# *extract*: such rows become biolink:ComplexMolecularMixture (an interim type — the eventual home is
+# biolink:ProcessedMaterial once issue #929 adds that output) rather than biolink:Food. "allergen" was
+# deliberately dropped as a marker (too broad); "extract" is the reliable signal (issue #828).
+drugbank_extract_markers: [extract]
 
-disease_concords:
-  - HP
-  - MONDO
-  - UMLS
-  - DOID
-  - EFO
-  - Manual
+drugchemicalconflated_synonym_outputs: [DrugChemicalConflated.txt]
+geneproteinconflated_synonym_outputs:  [GeneProteinConflated.txt]
 
-disease_outputs:
-  - Disease.txt
-  - PhenotypicFeature.txt
+taxon_labels:   [NCBITaxon, MESH, UMLS]
+taxon_synonyms: [NCBITaxon, UMLS]
+taxon_ids:      [NCBITaxon, MESH, UMLS]
+taxon_concords: [NCBI_MESH, UMLS]
+taxon_outputs:  [OrganismTaxon.txt]
 
-process_labels:
-  - GO
-  - REACT
-  - RHEA
-  - EC
-  - SMPDB
-  - PANTHER.PATHWAY
-  - UMLS
+cell_line_outputs: [CellLine.txt]
 
-process_ids:
-  - GO
-  - REACT
-  - RHEA
-  - EC
-  - SMPDB
-  - PANTHER.PATHWAY
-  - UMLS
+genefamily_labels:  [PANTHER.FAMILY, HGNC.FAMILY]
+genefamily_ids:     [PANTHER.FAMILY, HGNC.FAMILY]
+genefamily_outputs: [GeneFamily.txt]
 
-process_concords:
-  - GO
-  - RHEA
-  - UMLS
+umls_outputs: [umls.txt]
 
-process_outputs:
-  - Pathway.txt
-  - BiologicalProcess.txt
-  - MolecularActivity.txt
-
-unichem_datasources:
-  - CHEMBL.COMPOUND
-  - DRUGBANK
-  - GTOPDB
-  - KEGG.COMPOUND
-  - CHEBI
-  - UNII
-  - HMDB
-  - PUBCHEM.COMPOUND
-  - DrugCentral
-
-chemical_labels:
-  - CHEMBL.COMPOUND
-  - GTOPDB
-  - KEGG.COMPOUND
-  - CHEBI
-  - UNII
-  - HMDB
-  - PUBCHEM.COMPOUND
-  - DrugCentral
-  - UMLS
-  - DRUGBANK
-
-chemical_synonyms:
-  - GTOPDB
-  - CHEBI
-  - UNII
-  - HMDB
-  - PUBCHEM.COMPOUND
-  - UMLS
-  - DRUGBANK
-
-chemical_concords:
-  - wikipedia_mesh_chebi
-  - PUBCHEM_MESH
-  - mesh_cas
-  - mesh_unii
-  - PUBCHEM_CAS
-  - GTOPDB
-  - CHEBI
-  - UMLS
-  - DrugCentral
-  - RXNORM
-
-chemical_ids:
-  - CHEMBL.COMPOUND
-  - GTOPDB
-  - KEGG.COMPOUND
-  - CHEBI
-  - UNII
-  - HMDB
-  - PUBCHEM.COMPOUND
-  - DrugCentral
-  - DRUGBANK
-  - MESH
-  - UMLS
-  - RXNORM
-
-chemical_outputs:
-  - MolecularMixture.txt
-  - SmallMolecule.txt
-  - Polypeptide.txt
-  - ComplexMolecularMixture.txt
-  - ChemicalEntity.txt
-  - ChemicalMixture.txt
-  - Drug.txt
-
-drugchemicalconflated_synonym_outputs:
-  - DrugChemicalConflated.txt
-
-geneproteinconflated_synonym_outputs:
-  - GeneProteinConflated.txt
-
-taxon_labels:
-  - NCBITaxon
-  - MESH
-  - UMLS
-
-taxon_synonyms:
-  - NCBITaxon
-  - UMLS
-
-taxon_ids:
-  - NCBITaxon
-  - MESH
-  - UMLS
-
-taxon_concords:
-  - NCBI_MESH
-  - UMLS
-
-taxon_outputs:
-  - OrganismTaxon.txt
-
-cell_line_outputs:
-  - CellLine.txt
-
-genefamily_labels:
-  - PANTHER.FAMILY
-  - HGNC.FAMILY
-
-genefamily_ids:
-  - PANTHER.FAMILY
-  - HGNC.FAMILY
-
-genefamily_outputs:
-  - GeneFamily.txt
-
-umls_outputs:
-  - umls.txt
-
-macromolecularcomplex_outputs:
-  - MacromolecularComplex.txt
+macromolecularcomplex_outputs: [MacromolecularComplex.txt]
 
 ubergraph_iri_stem_to_prefix_map:
   "https://identifiers.org/ncbigene/": NCBIGene
@@ -393,29 +456,27 @@ ubergraph_iri_stem_to_prefix_map:
   "http://purl.obolibrary.org/obo/PCO_": PCO
   "http://rgd.mcw.edu/rgdweb/report/gene/main.html?id=": RGD
 
-publication_outputs:
-  - Publication.txt
+publication_outputs: [Publication.txt]
 
-geneprotein_outputs:
-  - GeneProtein.txt
+geneprotein_outputs: [GeneProtein.txt]
 
-drugchemical_outputs:
-  - DrugChemical.txt
+drugchemical_outputs: [DrugChemical.txt]
 
 preferred_name_boost_prefixes:
-  biolink:ChemicalEntity:
-    - DRUGBANK
-    - DrugCentral
-    - CHEBI
-    - MESH
-    - GTOPDB
+  biolink:ChemicalEntity: [DRUGBANK, DrugCentral, CHEBI, MESH, GTOPDB]
 
 ensembl_datasets_to_skip:
-  - elucius_gene_ensembl
-  - hgfemale_gene_ensembl
-  - charengus_gene_ensembl
-  - otshawytscha_gene_ensembl
-  - aocellaris_gene_ensembl
+#  - elucius_gene_ensembl
+#  - hgfemale_gene_ensembl
+#  - charengus_gene_ensembl
+#  - otshawytscha_gene_ensembl
+#  - aocellaris_gene_ensembl
+  - omykiss_gene_ensembl        # 2026jun5: keeps getting stuck with this dataset for some reason.
 
-demote_labels_longer_than: 25
+# Labels longer than this limit are demoted (not used as preferred label if a shorter alternative exists).
+# Keyed by Biolink type; types not listed here are never demoted. Uses ancestor traversal, so
+# biolink:ChemicalEntity applies to all chemical subtypes (SmallMolecule, Drug, etc.).
+# See https://github.com/NCATSTranslator/Babel/issues/597
+demote_labels_longer_than:
+  biolink:ChemicalEntity: 25
 

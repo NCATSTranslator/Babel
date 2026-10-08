@@ -1,0 +1,32 @@
+{
+  "compendium_path": "babel_outputs/compendia/MacromolecularComplex.txt",
+  "count_by_biolink_type": {
+    "biolink:MacromolecularComplex": 20579
+  },
+  "count_by_prefix": {
+    "ComplexPortal": 20579
+  },
+  "count_lines": 20579,
+  "counters": {
+    "clique_count": 20579,
+    "cliques_by_description_count": {
+      "0": 15284,
+      "1": 5295
+    },
+    "cliques_by_id_count": {
+      "1": 20579
+    },
+    "cliques_by_label_count": {
+      "1": 20579
+    },
+    "cliques_by_unique_description_count": {
+      "0": 15284,
+      "1": 5295
+    },
+    "cliques_by_unique_label_count": {
+      "1": 20579
+    }
+  },
+  "name": "MacromolecularComplex",
+  "report_path": "babel_outputs/reports/content/compendia/MacromolecularComplex.json"
+}

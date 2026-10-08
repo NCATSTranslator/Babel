@@ -1,0 +1,145 @@
+
+  Ketcher 04082012352D 1   1.00000     0.00000     0
+
+ 21 24  0     1  0            999 V2000
+    3.9510   -1.3960    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    4.8681   -1.6781    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0
+    3.9510   -0.4284    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    3.1295    0.0454    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    3.1295   -1.8646    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0
+    4.8681   -0.1411    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0
+    2.2980   -0.4284    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0
+    5.4275   -0.8971    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    2.2980   -1.3960    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    4.8581   -3.6788    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    3.1295    1.0079    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0
+    4.5557   -4.6111    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    2.3031    1.4816    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    3.6032   -4.6111    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    1.3455    1.4916    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    1.8193    2.3131    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    4.0971   -3.1346    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    1.4665   -1.8646    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0
+    3.3260   -3.7040    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    1.6983   -3.5730    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
+    2.5903   -3.1346    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+  2  1  1  0     0  0
+  3  1  2  0     0  0
+  4  3  1  0     0  0
+  5  1  1  0     0  0
+  6  3  1  0     0  0
+  7  9  1  0     0  0
+  8  2  1  0     0  0
+  9  5  2  0     0  0
+ 10  2  1  1     0  0
+ 11  4  1  0     0  0
+ 12 10  1  0     0  0
+ 13 11  1  0     0  0
+ 14 12  2  0     0  0
+ 15 13  1  0     0  0
+ 16 13  1  0     0  0
+ 17 10  1  0     0  0
+ 18  9  1  0     0  0
+ 19 17  1  0     0  0
+ 20 21  1  0     0  0
+ 19 21  1  1     0  0
+  8  6  2  0     0  0
+  7  4  2  0     0  0
+ 19 14  1  0     0  0
+ 16 15  1  0     0  0
+M  END
+
+> <ChEBI ID>
+CHEBI:421707
+
+> <ChEBI NAME>
+abacavir
+
+> <STAR>
+3
+
+> <DEFINITION>
+A 2,6-diaminopurine that is (1<i>S</i>)-cyclopent-2-en-1-ylmethanol in which the <em>pro</em>-<i>R</i> hydrogen at the 4-position is substituted by a 2-amino-6-(cyclopropylamino)-9<em>H</em>-purin-9-yl group. A nucleoside analogue reverse transcriptase inhibitor (NRTI) with antiretroviral activity against HIV, it is used (particularly as the sulfate) with other antiretrovirals in combination therapy of HIV infection.
+
+> <MASS>
+286.339
+
+> <FORMULA>
+C14H18N6O
+
+> <MONOISOTOPIC_MASS>
+286.15421
+
+> <SMILES>
+Nc1nc(NC2CC2)c2ncn([C@H]3C=C[C@@H](CO)C3)c2n1
+
+> <INCHI>
+InChI=1S/C14H18N6O/c15-14-18-12(17-9-2-3-9)11-13(19-14)20(7-16-11)10-4-1-8(5-10)6-21/h1,4,7-10,21H,2-3,5-6H2,(H3,15,17,18,19)/t8-,10+/m1/s1
+
+> <INCHIKEY>
+MCGSCOLBFJQGHM-SCZZXKLOSA-N
+
+> <IUPAC_NAME>
+{(1S,4R)-4-[2-amino-6-(cyclopropylamino)-9H-purin-9-yl]cyclopent-2-en-1-yl}methanol;{(1S,4R)-4-[2-amino-6-(cyclopropylamino)-9H-purin-9-yl]cyclopent-2-en-1-yl}methanol
+
+> <SYNONYM>
+abacavir;{(1S-cis)-4-[2-amino-6-(cyclopropylamino)-9H-purin-9-yl]cyclopent-2-en-1-yl}methanol;ABC;Abacavir
+
+> <SECONDARY_ID>
+CHEBI:193608;CHEBI:441792;CHEBI:2360;CHEBI:525912;CHEBI:520984
+
+> <PubMed Database Links>
+11678376;11806176;12781181;15887959;16458506;16539393;16759112;17172311;17870541;18029175;18549801;24751900;25017682;25674793;26024233
+
+> <CAS Registry Numbers>
+136470-78-5
+
+> <DrugCentral Database Links>
+34
+
+> <PDB Database Links>
+3upr;3vri;3vrj;5u98
+
+> <PubChem Compound Database Links>
+441300
+
+> <BindingDB Database Links>
+50366816
+
+> <Beilstein Registry Numbers>
+7493116
+
+> <Reaxys Registry Numbers>
+7493116
+
+> <PubChem Substance Database Links>
+85612588
+
+> <Wikipedia Database Links>
+Abacavir
+
+> <KEGG COMPOUND Database Links>
+C07624
+
+> <ChEMBL Database Links>
+CHEMBL1380
+
+> <KEGG DRUG Database Links>
+D07057
+
+> <DrugBank Database Links>
+DB01048
+
+> <MetaboLights Database Links>
+MTBLS1918;MTBLS2291;MTBLS2349;MTBLS2871;MTBLS3129;MTBLS3750;MTBLS379;MTBLS4861;MTBLS4967;MTBLS4980;MTBLS5665;MTBLS6890;MTBLS8950;MTBLS9100;MTBLS9409;MTBLS9451
+
+> <UniProt Database Links>
+Q73368;P03367;Q9QBZ5;Q9WC63;Q79666;O93215;O12158;P04589;P12497;O89290;Q75002;P18802;P04585;P20892;Q9QBY3;P05959;Q9QBZ9;P20875;O41798;Q9WC54;P03369;P0C6F2;Q9QBZ1;Q77373;P04588;P03366;P04587;P05961;Q9QSR3;P05897;P12502;P35963;P19505;Q9IDV9;O91080;P12499;Q8AII1;P27973;O89940;P17283;P27980;Q1A249;P05895;Q02836;P24740;P22382;P05896;Q9Q720;Q1A267
+
+> <Reactome Database Links>
+R-HSA-2161193;R-HSA-2161500;R-HSA-2161506;R-HSA-2161538;R-HSA-2162078;R-HSA-2162099
+
+> <SureChEMBL Database Links>
+SCHEMBL38632
+
+$$$$

@@ -1,10 +1,13 @@
 import copy
+import gzip
 import json
 import logging
 import os
+import re
 import sys
 from collections import namedtuple
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from time import gmtime
 
 import curies
@@ -25,6 +28,13 @@ def get_logger(name, loglevel=logging.INFO):
     The LoggingUtil is inconsistently used, and we don't want rolling logs anyway -- just logging everything to STDERR
     so that Snakemake can capture it is fine. However, we do want every logger to be configured identically and without
     duplicated handlers.
+
+    Always call this instead of `logging.getLogger()` directly: it installs the shared stderr
+    handler/formatter below, so a bare `logging.getLogger()` logger can produce unformatted output
+    if it logs before any other module has called this function. A module that sits early in the
+    import graph and must defer this import to avoid triggering config loading at import time
+    (see `src/synonyms/filter.py`) should reassign its module-level `logger` inside the deferred
+    block rather than at module scope.
     """
 
     # Set up the root handler for a logger. Ideally we would call this in one central location, but I'm not sure
@@ -42,6 +52,43 @@ def get_logger(name, loglevel=logging.INFO):
     logger = logging.getLogger(name)
     logger.setLevel(loglevel)
     return logger
+
+
+def get_repo_root():
+    """Return the repository root as a :class:`pathlib.Path`.
+
+    Use this to resolve a checked-in input file (``get_repo_root() / "input_data/foo.txt"``)
+    rather than a bare relative path. Snakemake always runs from the repo root, so a relative
+    path works there — but the CLI entry points (the source-impact report, the clique diff) can
+    be invoked from anywhere, and a module-level constant built from a relative path would then
+    silently point at nothing.
+    """
+    return Path(__file__).resolve().parents[1]
+
+
+def ensure_parent_dir(filename):
+    """Create the parent directory of `filename` if it has one.
+
+    Call this before writing any output file whose directory might not exist yet. Prefer it to a
+    bare `os.makedirs(os.path.dirname(filename), exist_ok=True)`: `os.path.dirname` returns '' for
+    a filename with no directory component, and `os.makedirs('')` raises FileNotFoundError even
+    though the path is perfectly valid (it names a file in the current working directory, which
+    already exists).
+    """
+    parent = os.path.dirname(filename)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
+
+def open_maybe_gzipped(filename, mode="rt"):
+    """Open `filename` for text I/O, transparently gunzipping it when the name ends in `.gz`.
+
+    Useful wherever a file may reach us either as the pipeline's decompressed copy or straight
+    from an upstream download: several sources publish `.tsv.gz`, `pull_via_ftp(decompress_data=True)`
+    stores the `.tsv`, and an analysis script pointed at the raw download would otherwise read gzip
+    bytes as UTF-8 and fail somewhere far from the cause.
+    """
+    return gzip.open(filename, mode) if filename.endswith(".gz") else open(filename, mode)
 
 
 # loggers = {}
@@ -178,6 +225,19 @@ class Text:
         return ":".join(text.split("/")[-1].split("_"))
 
     @staticmethod
+    def omim_curie(local_id):
+        """Return the Babel CURIE for a bare OMIM number, splitting phenotypic series off to OMIM.PS.
+
+        OMIM numbers a phenotypic series "PS303350"; Babel spells that ``OMIM.PS:303350`` -- the
+        "PS" belongs to the prefix, not to the local id -- and a plain entry ``OMIM:303350``. Both
+        spellings arrive from more than one direction (omim.org URLs via :meth:`opt_to_curie`, and
+        DOID's ``MIM:`` xrefs via ``norm()``), so the rule lives here rather than at each call site.
+        """
+        if local_id.startswith("PS"):
+            return f"{OMIMPS}:{local_id[2:]}"
+        return f"{OMIM}:{local_id}"
+
+    @staticmethod
     def opt_to_curie(text):
         if text is None:
             return None
@@ -185,14 +245,15 @@ class Text:
         if text.startswith("http://purl.obolibrary.org/obo/mondo/sources/icd11foundation/"):
             # This has to go on top because it's a 'purl.obolibrary.org' which doesn't follow the same pattern as the others.
             r = f"{ICD11FOUNDATION}:{text[61:]}"
-        elif text.startswith("http://purl.obolibrary.org") or text.startswith("http://www.orpha.net") or text.startswith("http://www.ebi.ac.uk/efo"):
+        elif (
+            text.startswith("http://purl.obolibrary.org")
+            or text.startswith("http://www.orpha.net")
+            or text.startswith("http://www.ebi.ac.uk/efo")
+        ):
             p = text.split("/")[-1].split("_")
             r = ":".join(p)
         elif text.startswith("https://omim.org/"):
-            ident = text.split("/")[-1]
-            if ident.startswith("PS"):
-                return f"{OMIMPS}:{ident[2:]}"
-            r = f"{OMIM}:{ident}"
+            r = Text.omim_curie(text.split("/")[-1])
         elif text.startswith("http://linkedlifedata.com/resource/umls"):
             r = f"{UMLS}:{text.split('/')[-1]}"
         elif text.startswith("http://identifiers.org/"):
@@ -349,20 +410,37 @@ def get_config():
     return config_yaml
 
 
+_GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+
+
+def _biolink_ref(biolink_version: str) -> str:
+    """Return the git ref to use in a GitHub URL for a Biolink Model version string.
+
+    Version strings (e.g. ``"4.3.6"``) are prefixed with ``v`` as GitHub release tags
+    require.  Commit SHAs (40 lowercase hex characters) are returned unchanged — adding
+    ``v`` would produce an invalid ref.
+    """
+    if _GIT_SHA_RE.match(biolink_version):
+        return biolink_version
+    return f"v{biolink_version}"
+
+
 def get_biolink_model_toolkit(biolink_version):
     """
     Return a BMT Toolkit object for the specified Biolink Model version.
 
     The model YAML is fetched from GitHub on first use. Pass the version string from
-    config.yaml (``biolink_version`` key, e.g. ``"4.3.6"``). Do not include the leading
-    ``v``; it is prepended here. Always use mapped class URIs from the returned toolkit
+    config.yaml (``biolink_version`` key, e.g. ``"4.3.6"`` or a Git commit SHA).
+    Do not include the leading ``v`` for version numbers; it is prepended automatically.
+    Always use mapped class URIs from the returned toolkit
     (e.g. ``get_element(x)["class_uri"]`` → ``"biolink:ChemicalEntity"``), not raw
     element names.
 
-    :param biolink_version: The Biolink Model version to use (e.g. ``"4.3.6"``).
+    :param biolink_version: The Biolink Model version to use (e.g. ``"4.3.6"`` or a commit SHA).
     :return: A Toolkit instance from the bmt library using the specified Biolink version.
     """
-    return Toolkit(f"https://raw.githubusercontent.com/biolink/biolink-model/v{biolink_version}/biolink-model.yaml")
+    ref = _biolink_ref(biolink_version)
+    return Toolkit(f"https://raw.githubusercontent.com/biolink/biolink-model/{ref}/biolink-model.yaml")
 
 
 def get_biolink_prefix_map():
@@ -376,15 +454,16 @@ def get_biolink_prefix_map():
     biolink_version = config["biolink_version"]
     if biolink_version.startswith("1.") or biolink_version.startswith("2."):
         raise RuntimeError(f"Biolink version {biolink_version} is not supported.")
-    elif biolink_version.startswith("3."):
+    ref = _biolink_ref(biolink_version)
+    if biolink_version.startswith("3."):
         # biolink-model v3.* releases keeps the prefix map in a different place.
         return curies.Converter.from_prefix_map(
-            "https://raw.githubusercontent.com/biolink/biolink-model/v" + biolink_version + "/prefix-map/biolink-model-prefix-map.json"
+            f"https://raw.githubusercontent.com/biolink/biolink-model/{ref}/prefix-map/biolink-model-prefix-map.json"
         )
     else:
-        # biolink-model v4.0.0 and beyond is in the /project directory.
+        # biolink-model v4.0.0 and beyond (including commit SHAs) is in the /project directory.
         return curies.Converter.from_prefix_map(
-            "https://raw.githubusercontent.com/biolink/biolink-model/v" + biolink_version + "/project/prefixmap/biolink_model_prefix_map.json"
+            f"https://raw.githubusercontent.com/biolink/biolink-model/{ref}/project/prefixmap/biolink_model_prefix_map.json"
         )
 
 

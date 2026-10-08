@@ -1,0 +1,59 @@
+target,target_label,subject,subject_label,other_subjects,mondo_asserts_icd10cm
+ICD10:C92.0,Acute myeloid leukemia,DOID:9119,acute myeloid leukemia,3,yes
+ICD10:D47.01,Cutaneous mastocytosis,DOID:3663,cutaneous mastocytosis,3,yes
+ICD10:D47.02,Systemic mastocytosis,DOID:349,systemic mastocytosis,1,yes
+ICD10:D56.0,Alpha thalassemia,DOID:1099,alpha thalassemia,3,yes
+ICD10:D70,Agranulocytosis,DOID:12987,agranulocytosis,2,yes
+ICD10:E06.0,Acute thyroiditis,DOID:14353,acute thyroiditis,1,yes
+ICD10:E23.0,Hypopituitarism,DOID:9406,hypopituitarism,31,yes
+ICD10:E74.0,Glycogen storage disease,DOID:2747,glycogen storage disease,5,yes
+ICD10:E75.4,Neuronal ceroid lipofuscinosis,DOID:14503,neuronal ceroid lipofuscinosis,14,yes
+ICD10:F34.1,Dysthymic disorder,DOID:12139,dysthymic disorder,1,yes
+ICD10:F45.0,Somatization disorder,DOID:13918,somatization disorder,1,yes
+ICD10:F60.3,Borderline personality disorder,DOID:10930,borderline personality disorder,1,yes
+ICD10:G10,Huntington's disease,DOID:12858,Huntington's disease,2,yes
+ICD10:G11.4,Hereditary spastic paraplegia,DOID:2476,hereditary spastic paraplegia,59,yes
+ICD10:G12.2,Motor neuron disease,DOID:231,motor neuron disease,4,yes
+ICD10:G20,Parkinson's disease,DOID:14330,Parkinson's disease,3,yes
+ICD10:G47.3,Sleep apnea,DOID:0050847,sleep apnea,1,yes
+ICD10:G51.0,Bell's palsy,DOID:12506,Bell's palsy,1,yes
+ICD10:G61.0,Guillain-Barre syndrome,DOID:12842,Guillain-Barre syndrome,1,yes
+ICD10:G61.81,Chronic inflammatory demyelinating polyneuritis,DOID:2536,chronic inflammatory demyelinating polyneuritis,1,yes
+ICD10:G71.0,Muscular dystrophy,DOID:9884,muscular dystrophy,30,yes
+ICD10:G93.42,Megalencephalic leukoencephalopathy with subcortical cysts,DOID:0080315,megalencephalic leukoencephalopathy with subcortical cysts,1,no
+ICD10:H35.5,Hereditary retinal dystrophy,DOID:8500,hereditary retinal dystrophy,106,yes
+ICD10:H35.81,Retinal edema,DOID:6929,retinal edema,1,yes
+ICD10:H43.81,Vitreous detachment,DOID:9726,vitreous detachment,1,no
+ICD10:H81.0,Meniere's disease,DOID:9849,Meniere's disease,1,no
+ICD10:I42.0,Dilated cardiomyopathy,DOID:12930,dilated cardiomyopathy,37,yes
+ICD10:I70,arteriosclerosis,DOID:2349,arteriosclerosis,2,yes
+ICD10:J32.0,Chronic maxillary sinusitis,DOID:10792,chronic maxillary sinusitis,1,yes
+ICD10:J32.1,Chronic frontal sinusitis,DOID:10790,chronic frontal sinusitis,1,yes
+ICD10:J32.3,Chronic sphenoidal sinusitis,DOID:10793,chronic sphenoidal sinusitis,1,yes
+ICD10:J82.81,Chronic eosinophilic pneumonia,DOID:9502,chronic eosinophilic pneumonia,1,yes
+ICD10:K00.0,Anodontia,DOID:13714,anodontia,1,yes
+ICD10:K04.2,Pulp degeneration,DOID:11189,pulp degeneration,1,yes
+ICD10:K04.5,Chronic apical periodontitis,DOID:11269,chronic apical periodontitis,1,yes
+ICD10:L74.4,Anhidrosis,DOID:11156,anhidrosis,1,yes
+ICD10:L82,Seborrheic keratosis,DOID:6498,seborrheic keratosis,1,yes
+ICD10:M72.2,Plantar fascial fibromatosis,DOID:8936,plantar fascial fibromatosis,1,no
+ICD10:N04,lipoid nephrosis,DOID:10966,lipoid nephrosis,2,yes
+ICD10:N60.0,Solitary cyst of breast,DOID:10349,solitary cyst of breast,1,yes
+ICD10:N62,Hypertrophy of breast,DOID:10688,hypertrophy of breast,1,yes
+ICD10:N70,pyosalpinx,DOID:5732,pyosalpinx,1,no
+ICD10:N80.0,Endometriosis of uterus,DOID:288,endometriosis of uterus,1,yes
+ICD10:P70.2,Neonatal diabetes mellitus,DOID:11717,neonatal diabetes mellitus,1,yes
+ICD10:Q35.3,Cleft soft palate,DOID:0110214,cleft soft palate,1,yes
+ICD10:Q77.3,Chondrodysplasia punctata,DOID:2581,chondrodysplasia punctata,5,yes
+ICD10:Q77.4,Achondroplasia,DOID:4480,achondroplasia,1,yes
+ICD10:Q78.0,Osteogenesis imperfecta,DOID:12347,osteogenesis imperfecta,17,yes
+ICD10:Q78.2,Osteopetrosis,DOID:13533,osteopetrosis,2,yes
+ICD10:Q81.0,Epidermolysis bullosa simplex,DOID:4644,epidermolysis bullosa simplex,3,yes
+ICD10:Q81.2,Epidermolysis bullosa dystrophica,DOID:4959,epidermolysis bullosa dystrophica,1,yes
+ICD10:Q82.1,Xeroderma pigmentosum,DOID:0050427,xeroderma pigmentosum,8,yes
+ICD9:300.81,Somatization disorder,DOID:13918,somatization disorder,1,no
+ICD9:357.81,Chronic inflammatory demyelinating polyneuritis,DOID:2536,chronic inflammatory demyelinating polyneuritis,1,no
+ICD9:362.83,Retinal edema,DOID:6929,retinal edema,1,no
+ICD9:520.0,Anodontia,DOID:13714,anodontia,1,no
+ICD9:585.6,End stage renal disease,DOID:783,end stage renal disease,1,no
+ICD9:756.72,Omphalocele,DOID:0060327,omphalocele,1,no

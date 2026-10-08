@@ -42,7 +42,9 @@ def test_pull_gzip_to_memory():
 def test_pull_gzip_to_uncompressed_file():
     """Pull a gzipped file into memory, decompressed"""
     ofname = "test_gz_text"
-    outname = pull_via_ftp("ftp.ncbi.nlm.nih.gov", "gene/DATA/", "gene_group.gz", decompress_data=True, outfilename=ofname)
+    outname = pull_via_ftp(
+        "ftp.ncbi.nlm.nih.gov", "gene/DATA/", "gene_group.gz", decompress_data=True, outfilename=ofname
+    )
     with open(outname) as inf:
         lines = inf.read().split("\n")
     assert len(lines) > 1000

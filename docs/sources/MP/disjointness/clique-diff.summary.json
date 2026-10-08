@@ -1,0 +1,41 @@
+{
+  "about": {
+    "after": "disjoint (HP/MP split enabled)",
+    "before": "overlap-allowed (split disabled)",
+    "files": [
+      "Disease.txt",
+      "PhenotypicFeature.txt"
+    ],
+    "note": "Both built from the identical data/branch-mp/intermediate/disease concords (one UberGraph pull) -- isolates the HP/MP disjointness split with no concord-ordering noise."
+  },
+  "compendia": {
+    "Disease.txt": {
+      "changed_before_cliques": 88,
+      "clique_count": {
+        "after": 365466,
+        "before": 365466,
+        "diff": 0,
+        "diff_percent": 0.0
+      },
+      "cliques_with_dropped_members": 0,
+      "dropped_member_count": 0,
+      "leader_changed_count": 0,
+      "moved_member_count": 88,
+      "regrouped_member_count": 0
+    },
+    "PhenotypicFeature.txt": {
+      "changed_before_cliques": 107,
+      "clique_count": {
+        "after": 75469,
+        "before": 75275,
+        "diff": 194,
+        "diff_percent": 0.26
+      },
+      "cliques_with_dropped_members": 1,
+      "dropped_member_count": 1,
+      "leader_changed_count": 0,
+      "moved_member_count": 0,
+      "regrouped_member_count": 106
+    }
+  }
+}

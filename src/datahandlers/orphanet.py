@@ -7,7 +7,12 @@ from src.prefixes import OIO, ORPHANET
 
 
 def pull_orphanet():
-    pull_via_urllib("http://www.orphadata.org/data/RD-CODE/Packs/", "Orphanet_Nomenclature_Pack_EN.zip", subpath="Orphanet", decompress=False)
+    pull_via_urllib(
+        "http://www.orphadata.org/data/RD-CODE/Packs/",
+        "Orphanet_Nomenclature_Pack_EN.zip",
+        subpath="Orphanet",
+        decompress=False,
+    )
 
 
 def pull_orphanet_labels_and_synonyms(infile, labelfile, synonymfile):

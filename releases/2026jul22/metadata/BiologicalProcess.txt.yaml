@@ -1,0 +1,100 @@
+created_at: '2026-07-14T02:29:19.118479'
+type: compendium
+name: BiologicalProcess.txt
+url: ''
+description: ''
+sources: []
+counts:
+  cliques: 48903
+  eq_ids: 65974
+  synonyms: 151254
+  property_sources: {}
+combined_from:
+  build_process_obo_relationships():
+    created_at: '2026-07-13T00:58:11.851347'
+    type: concord
+    name: build_process_obo_relationships()
+    url: ''
+    description: Extract GO-GO relationships from UberGraph with get_subclasses_and_xrefs()
+      from GO:0007165, GO:0008150 and GO:0003674,with other_prefixes dict_values(['WIKIPATHWAYS',
+      'REACT', 'TCDB'])
+    sources:
+    - type: UberGraph
+      name: GO-GO relationships from UberGraph
+    counts:
+      concords:
+        count_concords: 29148
+        count_distinct_curies: 36850
+        predicates:
+          xref: 29148
+        prefix_counts:
+          xref(GO, REACT): 7895
+          xref(GO, WIKIPATHWAYS): 505
+          xref(GO, MetaCyc): 5681
+          xref(GO, UM-BBD_pathwayID): 87
+          xref(GO, MetaCyx): 1
+          xref(GO, KEGG.PATHWAY): 3
+          xref(GO, VZ): 119
+          xref(GO, RESID): 117
+          xref(GO, kegg.module): 2
+          xref(GO, MetyaCyc): 1
+          xref(GO, PO): 1
+          xref(GO, PMID): 2
+          xref(GO, UniProtKB-KW): 1
+          xref(GO, TXPO): 1
+          xref(GO, WBbt): 2
+          xref(GO, UniPathway): 2
+          xref(GO, RHEA): 7746
+          xref(EC, GO): 4830
+          xref(GO, KEGG.REACTION): 1767
+          xref(GO, UM-BBD_reactionID): 259
+          xref(GO, UM-BBD_enzymeID): 61
+          xref(GO, TCDB): 61
+          xref(GO, SABIO-RK): 1
+          xref(GO, https): 1
+          xref(GO, InterPro): 1
+          xref(CHEBI, GO): 1
+    combined_from: []
+  Rhea.pull_rhea_ec_concs():
+    created_at: '2026-07-13T00:59:19.827170'
+    type: concord
+    name: Rhea.pull_rhea_ec_concs()
+    url: ''
+    description: pull_rhea_ec_concs() extracts the EC number/accession number mappings
+      from the Rhea RDF file (babel_downloads/RHEA/rhea.rdf).
+    sources:
+    - type: rdf
+      name: rhea.rdf
+      filename: babel_downloads/RHEA/rhea.rdf
+      sources:
+      - type: download
+        name: rhea.rdf
+        url: https://ftp.expasy.org/databases/rhea/rdf/rhea.rdf.gz
+    counts:
+      concords:
+        count_concords: 7928
+        count_distinct_curies: 13834
+        predicates:
+          oio:equivalent: 7928
+        prefix_counts:
+          oio:equivalent(EC, RHEA): 7928
+    combined_from: []
+  umls.build_sets():
+    created_at: '2026-07-13T00:59:42.660396'
+    type: concord
+    name: umls.build_sets()
+    url: ''
+    description: 'umls.build_sets() using UMLS MRCONSO with prefixes: {''GO'': ''GO''}
+      with cui_prefix set to UMLS'
+    sources:
+    - type: UMLS
+      name: MRCONSO
+    counts:
+      concords:
+        count_concords: 53274
+        count_distinct_curies: 87176
+        predicates:
+          eq: 53274
+        prefix_counts:
+          eq(GO, UMLS): 53274
+    combined_from: []

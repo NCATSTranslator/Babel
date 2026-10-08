@@ -1,6 +1,13 @@
+# Classes
+
+# OWL classes
+OWL = "http://www.w3.org/2002/07/owl#"
+OWL_CLASS = OWL + "Class"
+OWL_ONTOLOGY = OWL + "Ontology"
+
+# Biolink classes
 # Keep all the biolink classes as constants to keep from having to handle name changes.
 # of course bigger changes will require code changes as well.
-
 ACTIVITY = "biolink:Activity"
 AGENT = "biolink:Agent"
 ANATOMICAL_ENTITY = "biolink:AnatomicalEntity"
@@ -11,6 +18,8 @@ CELL_LINE = "biolink:CellLine"
 CELLULAR_COMPONENT = "biolink:CellularComponent"
 CHEMICAL_ENTITY = "biolink:ChemicalEntity"
 CHEMICAL_MIXTURE = "biolink:ChemicalMixture"
+CLINICAL_FINDING = "biolink:ClinicalFinding"
+CLINICAL_INTERVENTION = "biolink:ClinicalIntervention"
 COMPLEX_MOLECULAR_MIXTURE = "biolink:ComplexMolecularMixture"
 DEVICE = "biolink:Device"
 DISEASE = "biolink:Disease"
@@ -23,8 +32,11 @@ GROSS_ANATOMICAL_STRUCTURE = "biolink:GrossAnatomicalStructure"
 MACROMOLECULAR_COMPLEX = "biolink:MacromolecularComplex"
 MOLECULAR_ACTIVITY = "biolink:MolecularActivity"
 MOLECULAR_MIXTURE = "biolink:MolecularMixture"
+COHORT = "biolink:Cohort"
 ORGANISM_TAXON = "biolink:OrganismTaxon"
+POPULATION_OF_INDIVIDUAL_ORGANISMS = "biolink:PopulationOfIndividualOrganisms"
 PATHWAY = "biolink:Pathway"
+PHENOMENON = "biolink:Phenomenon"
 PHENOTYPIC_FEATURE = "biolink:PhenotypicFeature"
 PHYSICAL_ENTITY = "biolink:PhysicalEntity"
 POLYPEPTIDE = "biolink:Polypeptide"
@@ -38,6 +50,7 @@ SMALL_MOLECULE = "biolink:SmallMolecule"
 # https://biolink.github.io/biolink-model/categories.html
 NUCLEIC_ACID_ENTITY = "biolink:NucleicAcidEntity"
 MOLECULAR_ENTITY = "biolink:MolecularEntity"
+NAMED_THING = "biolink:NamedThing"
 FOOD_ADDITIVE = "biolink:FoodAdditive"
 ENVIRONMENTAL_FOOD_CONTAMINANT = "biolink:EnvironmentalFoodContaminant"
 PROCESSED_MATERIAL = "biolink:ProcessedMaterial"

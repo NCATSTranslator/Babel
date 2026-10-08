@@ -109,7 +109,12 @@ def generate_content_report_for_compendium(compendium_path, report_path):
 
                 # Since descriptions are currently lists, we have to first flatten the list with
                 # itertools.chain.from_iterable() before we can count them.
-                descriptions = list(filter(lambda x: x.strip() != "", itertools.chain.from_iterable(map(lambda x: x.get("d", ""), identifiers))))
+                descriptions = list(
+                    filter(
+                        lambda x: x.strip() != "",
+                        itertools.chain.from_iterable(map(lambda x: x.get("d", ""), identifiers)),
+                    )
+                )
                 counters["cliques_by_description_count"][len(descriptions)] += 1
                 unique_descriptions = set(descriptions)
                 counters["cliques_by_unique_description_count"][len(unique_descriptions)] += 1

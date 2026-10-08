@@ -1,7 +1,10 @@
 import gzip
 import os
+import re
+import shutil
 import sqlite3
 import subprocess
+import tempfile
 import time
 import traceback
 import urllib
@@ -11,6 +14,7 @@ from enum import Enum
 from ftplib import FTP
 from io import BytesIO
 from pathlib import Path
+from typing import NamedTuple
 
 import jsonlines
 import requests
@@ -20,14 +24,102 @@ from src.LabeledID import LabeledID
 from src.metadata.provenance import write_combined_metadata
 from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory
 from src.properties import HAS_ALTERNATIVE_ID, PropertyList
-from src.util import Text, get_config, get_logger, get_memory_usage_summary
+from src.synonyms.filter import get_synonym_filter
+from src.util import Text, ensure_parent_dir, get_config, get_logger, get_memory_usage_summary
 
 # Configuration items
 WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES = 1_000_000
-MAX_DOWNLOAD_ERROR = 10
+MAX_DOWNLOAD_ERROR = 1
+
+
+def get_user_agent() -> str:
+    """Return the User-Agent string for outbound HTTP requests, including the build branch."""
+    config = get_config()
+    branch = config["build"]["branch"]
+    github_url = config["babel"]["github_url"]
+    return f"TranslatorBabel/{branch} ({github_url})"
+
 
 # Set up a logger.
 logger = get_logger(__name__)
+
+# Matches an RDF language-tagged literal as returned by pyoxigraph as a raw string, e.g. "value"@en
+_RDF_LANG_LITERAL_RE = re.compile(r'^"(.*)"@\w+$')
+
+
+class TypedClique(NamedTuple):
+    """A clique that carries its own Biolink node type.
+
+    Used as an element of the ``synonym_list`` passed to :func:`write_compendium` when the
+    cliques in a single compendium run do not all share the same Biolink type.  Passing a
+    heterogeneous list of ``TypedClique`` objects (with ``node_type=None`` in
+    ``write_compendium``) lets each clique declare its own type independently, which is how
+    the leftover-UMLS compendium handles entities that span many Biolink classes.
+
+    :param node_type: The ``biolink:``-prefixed class URI for this clique
+        (e.g. ``"biolink:Disease"``).  Use the named constants in ``src/categories.py``
+        rather than raw strings.
+    :param identifiers: The list of CURIEs that belong to this clique.
+    """
+
+    node_type: str
+    identifiers: list[str]
+
+
+def parse_rdf_literal(literal: str) -> str:
+    """Strip quoting from a pyoxigraph SPARQL literal string.
+
+    pyoxigraph returns plain literals as '"value"' and language-tagged literals as '"value"@en'.
+    Both forms are reduced to just the inner value string.  Typed literals of the form
+    '"value"^^<xsd:type>' are not yet handled and will be returned incorrectly; this is
+    acceptable because none of the current RDF sources use typed literals in label/synonym
+    positions.  See https://github.com/NCATSTranslator/Babel/issues/760
+    """
+    if not literal.startswith('"'):
+        return literal
+    m = _RDF_LANG_LITERAL_RE.match(literal)
+    if m:
+        return m.group(1)
+    return literal[1:-1]
+
+
+def reduce_to_most_specific_tree_codes(codes, code_to_tree):
+    """Reduce a set of hierarchy codes to only the most specific ones.
+
+    Given an iterable of ``codes`` and a ``code_to_tree`` map from each code to its
+    dot-delimited tree number (e.g. a UMLS TUI ``"T116"`` -> ``"A1.4.1.2.1.7"``, or a MeSH
+    tree number like ``"C04.557"``), return the subset of codes whose tree number is NOT a
+    proper ancestor of another code's tree number in the set.
+
+    A tree number is a proper ancestor of another when it is a strict dot-*component* prefix
+    of it: ``"A1.2"`` is an ancestor of ``"A1.2.3"`` but NOT of ``"A1.20"`` (comparison is on
+    ``tree.split(".")`` component lists, not raw string prefixes). Unrelated codes (siblings or
+    codes in different subtrees) all survive. A code with no entry in ``code_to_tree`` -- or an
+    empty tree number -- has no ancestor relationship to anything and is always kept.
+
+    This is vocabulary-agnostic: it only needs a code -> tree-number mapping, so it works for
+    UMLS semantic-type tree numbers (MRSTY STN) and MeSH tree numbers alike.
+
+    :param codes: An iterable of codes to reduce.
+    :param code_to_tree: A mapping from code to its dot-delimited tree number string.
+    :return: A set of the most-specific codes.
+    """
+    codes = set(codes)
+    tree_components = {code: code_to_tree.get(code, "").split(".") if code_to_tree.get(code) else [] for code in codes}
+    survivors = set()
+    for code in codes:
+        components = tree_components[code]
+        # Keep this code unless its tree number is a proper ancestor of some other code's.
+        is_ancestor_of_other = any(
+            other != code
+            and components
+            and len(tree_components[other]) > len(components)
+            and tree_components[other][: len(components)] == components
+            for other in codes
+        )
+        if not is_ancestor_of_other:
+            survivors.add(code)
+    return survivors
 
 
 def make_local_name(fname, subpath=None):
@@ -99,12 +191,20 @@ def pull_via_ftp(ftpsite, ftpdir, ftpfile, decompress_data=False, outfilename=No
             ftp.retrbinary(f"RETR {ftpfile}", ofile.write)
             ftp.quit()
     else:
-        with BytesIO() as data:
-            ftp.retrbinary(f"RETR {ftpfile}", data.write)
-            ftp.quit()
-            value = gzip.decompress(data.getvalue()).decode()
-        with open(ofilename, "w") as ofile:
-            ofile.write(value)
+        # Stream the compressed file to a temp file rather than buffering it all in
+        # memory with BytesIO+gzip.decompress — the old approach needed ~2× the
+        # uncompressed size in RAM (e.g. ~35+ GB for ChEMBL's 17 GB TTL).
+        tmp_path = None  # set before try so finally can always check it
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, dir=odir, suffix=".gz") as tmp:
+                tmp_path = tmp.name
+                ftp.retrbinary(f"RETR {ftpfile}", tmp.write)
+                ftp.quit()
+            with gzip.open(tmp_path, "rt") as gz_in, open(ofilename, "w") as ofile:
+                shutil.copyfileobj(gz_in, ofile)
+        finally:
+            if tmp_path is not None and os.path.exists(tmp_path):
+                os.unlink(tmp_path)
     return ofilename
 
 
@@ -149,7 +249,7 @@ class ThrottledRequester:
             cdelta = now - self.last_time
             if cdelta < self.delta:
                 waittime = self.delta - cdelta
-                time.sleep(waittime.microseconds / 1e6)
+                time.sleep(waittime.total_seconds())
                 throttled = True
         self.last_time = datetime.now()
         response = requests.get(url)
@@ -166,6 +266,44 @@ class ThrottledRequester:
                 return result
             except Exception:
                 ntries += 1
+
+
+def raise_if_cloudflare_challenge(download_url: str, local_file_name: str, error: urllib.error.URLError):
+    """Fail fast (no retry) if a URLError is actually a Cloudflare bot challenge.
+
+    Cloudflare marks a challenge-page response (a 403 with an interactive JS/Turnstile
+    challenge instead of the requested content) with a `cf-mitigated: challenge` header --
+    see https://developers.cloudflare.com/cloudflare-challenges/challenge-types/challenge-pages/detect-response/.
+    Retrying or changing the User-Agent won't help: this is served identically to a real
+    browser. Raise immediately with instructions for a human to download the file manually.
+
+    A challenge page also has to load Cloudflare's widget, so it carries a Content-Security-Policy
+    naming `challenges.cloudflare.com`. That is checked as a fallback: it is a property of how the
+    page works rather than a label Cloudflare chose, so it still identifies a challenge if
+    `cf-mitigated` is ever renamed. A plain 403 (a wrong URL, an IP block) carries neither signal
+    and keeps the caller's normal retry.
+
+    Only an HTTPError carries response headers; a plain URLError (DNS failure, connection
+    refused) has no `.headers` at all, so we getattr() rather than narrowing the caller's
+    except clause to HTTPError and duplicating its retry body.
+    """
+    headers = getattr(error, "headers", None)
+    if headers is None:
+        return
+
+    if headers.get("cf-mitigated") == "challenge":
+        signal = "cf-mitigated: challenge"
+    elif "challenges.cloudflare.com" in (headers.get("content-security-policy") or ""):
+        signal = "a content-security-policy allowing challenges.cloudflare.com"
+    else:
+        return
+
+    raise RuntimeError(
+        f"{download_url} is behind a Cloudflare bot challenge ({signal}) and cannot be downloaded "
+        "automatically: the challenge is served to real browsers too, so neither retrying nor changing "
+        "the User-Agent will get past it. Please download the file manually in a browser and place it at "
+        f"{local_file_name}, then re-run this rule -- an already-present file is used as-is."
+    )
 
 
 def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, verify_gzip=False):
@@ -200,13 +338,14 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
     else:
         dl_file_name = os.path.join(download_dir, subpath, in_file_name)
 
+    ensure_parent_dir(dl_file_name)
+
     # Add support for redirects
     opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
 
-    # get a handle to the ftp file
     download_url = url + in_file_name
     logger.info(f"Downloading {download_url}")
-    handle = opener.open(download_url)
+    user_agent = get_user_agent()
 
     # create the compressed file
     download_verified = False
@@ -215,21 +354,32 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
         Path(dl_file_name).unlink(missing_ok=True)
         download_attempt += 1
         if download_attempt > MAX_DOWNLOAD_ERROR:
-            raise RuntimeError(f"Could not download and verify {download_url}: more than {MAX_DOWNLOAD_ERROR} attempts.")
+            raise RuntimeError(
+                f"Could not download and verify {download_url}: more than {MAX_DOWNLOAD_ERROR} attempts."
+            )
         logger.info(f"Downloading {dl_file_name} using urllib, attempt {download_attempt}...")
 
-        with open(dl_file_name, "wb") as compressed_file:
-            # while there is data
-            while True:
-                # read a block of data
-                data = handle.read(1024)
+        # Open a fresh connection on each attempt so a truncated response doesn't
+        # leave us reading from an exhausted handle on the next retry.
+        try:
+            req = urllib.request.Request(download_url, headers={"User-Agent": user_agent})
+            with opener.open(req) as handle, open(dl_file_name, "wb") as compressed_file:
+                # while there is data
+                while True:
+                    # read a block of data
+                    data = handle.read(1024)
 
-                # fif nothing read about
-                if len(data) == 0:
-                    break
+                    # if nothing read, abort
+                    if len(data) == 0:
+                        break
 
-                # write out the data to the output file
-                compressed_file.write(data)
+                    # write out the data to the output file
+                    compressed_file.write(data)
+        except urllib.error.URLError as e:
+            raise_if_cloudflare_challenge(download_url, dl_file_name, e)
+            logger.warning(f"Download attempt {download_attempt} of {download_url} failed with network/HTTP error: {e}")
+            time.sleep(5 * download_attempt)
+            continue
 
         if decompress:
             out_file_name = dl_file_name[:-3]
@@ -255,7 +405,9 @@ def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, 
                 # Is it blank/very small? If so, we immediately fail verification.
                 file_size = os.path.getsize(out_file_name)
                 if file_size < 1024:
-                    logger.warning(f"Downloaded Gzip file {out_file_name} is too small ({file_size} bytes), skipping verification.")
+                    logger.warning(
+                        f"Downloaded Gzip file {out_file_name} is too small ({file_size} bytes), skipping verification."
+                    )
                     download_verified = False
                     continue
 
@@ -290,7 +442,10 @@ def pull_via_wget(
     continue_incomplete: bool = True,
     timestamping=True,
     recurse: WgetRecursionOptions = WgetRecursionOptions.NO_RECURSION,
-    retries: int = 10,
+    retries: int = 1,
+    connect_timeout: int = 60,
+    read_timeout: int = 300,
+    verify_gzip: bool = False,
 ):
     """
     Download a file using wget. We call wget from the command line, and use command line options to
@@ -303,9 +458,14 @@ def pull_via_wget(
     :param decompress: Whether this is a Gzip file that should be decompressed after download.
     :param subpath: The subdirectory of `babel_download` where this file should be stored.
     :param outpath: The full output directory to write this file to. Both subpath and outpath cannot be set at the same time.
-    :param continue_incomplete: Should wget continue an incomplete download?
-    :param recurse: Do we want to download recursively? Should be from Wget_Recursion_Options, such as Wget_Recursion_Options.NO_RECURSION.
+    :param continue_incomplete: Should wget continue an incomplete download? Must be False in a recursive
+        download, where resuming can corrupt a file whose content changed upstream; we raise if it isn't.
+    :param timestamping: Should wget re-fetch a file only when the server's copy is newer, or differs in
+        size, from ours? Must be True in a recursive download; we raise if it isn't.
+    :param recurse: Do we want to download recursively? Should be from WgetRecursionOptions, such as WgetRecursionOptions.NO_RECURSION.
     :param retries: The number of retries to attempt.
+    :param verify_gzip: If downloading a Gzip file that isn't being decompressed, verify that the
+        file is valid (by reading it entirely). Has no effect if decompress=True.
     """
 
     # Prepare download URL and location
@@ -320,6 +480,32 @@ def pull_via_wget(
     else:
         dl_file_name = os.path.join(download_dir, in_file_name)
 
+    ensure_parent_dir(dl_file_name)
+
+    # A recursive download is always timestamped and never continued. --continue resumes by
+    # appending to whatever local file it finds, which is only correct if that file is a truncated
+    # prefix of the server's copy; recursing, we may instead meet a file whose *content* changed
+    # upstream (or one carried over from a previous run), and appending the tail of the new file to
+    # the old one silently produces a corrupt result. --timestamping is what re-fetches such a file,
+    # in full — and it is also what stops wget saving a second copy as `file.1` when the file is
+    # already there, which is the job --continue would otherwise be doing.
+    #
+    # (Non-recursive downloads pass -O, which makes wget ignore --timestamping entirely, so there
+    # --continue is the only resume mechanism and is kept.)
+    if recurse != WgetRecursionOptions.NO_RECURSION:
+        if continue_incomplete:
+            raise ValueError(
+                f"pull_via_wget({url}) cannot combine continue_incomplete=True with recursion: resuming a "
+                f"recursive download can corrupt a file whose content changed upstream. Pass "
+                f"continue_incomplete=False."
+            )
+        if not timestamping:
+            raise ValueError(
+                f"pull_via_wget({url}) cannot disable timestamping in a recursive download: without "
+                f"--timestamping, and with --continue unavailable, wget saves a second copy of every "
+                f"file we already have as `file.1`."
+            )
+
     # Prepare wget options.
     wget_command_line = [
         "wget",
@@ -327,10 +513,16 @@ def pull_via_wget(
     ]
     if continue_incomplete:
         wget_command_line.append("--continue")
-    if timestamping:
+    # --timestamping is a no-op combined with -O (wget disables -N and warns); only pass it when
+    # we're not writing to a fixed output file via -O.
+    if timestamping and recurse != WgetRecursionOptions.NO_RECURSION:
         wget_command_line.append("--timestamping")
     if retries > 0:
         wget_command_line.append(f"--tries={retries}")
+    if connect_timeout > 0:
+        wget_command_line.append(f"--connect-timeout={connect_timeout}")
+    if read_timeout > 0:
+        wget_command_line.append(f"--read-timeout={read_timeout}")
 
     # Add URL and output file.
     wget_command_line.append(url)
@@ -342,10 +534,14 @@ def pull_via_wget(
             wget_command_line.extend(["-O", dl_file_name])
         case WgetRecursionOptions.RECURSE_SUBFOLDERS:
             # dl_file_name should be a directory name.
-            wget_command_line.extend(["--recursive", "--no-parent", "--no-directories", "--directory-prefix=" + dl_file_name])
+            wget_command_line.extend(
+                ["--recursive", "--no-parent", "--no-directories", "--directory-prefix=" + dl_file_name]
+            )
         case WgetRecursionOptions.RECURSE_DIRECTORY_ONLY:
             # dl_file_name should be a directory name.
-            wget_command_line.extend(["--recursive", "--no-parent", "--no-directories", "--level=1", "--directory-prefix=" + dl_file_name])
+            wget_command_line.extend(
+                ["--recursive", "--no-parent", "--no-directories", "--level=1", "--directory-prefix=" + dl_file_name]
+            )
 
     # Execute wget.
     logger.info(f"Downloading {dl_file_name} using wget: {wget_command_line}")
@@ -362,7 +558,9 @@ def pull_via_wget(
             if process.returncode != 0:
                 raise RuntimeError(f"Could not execute gunzip ['gunzip', {dl_file_name}]: {process.stderr}")
         else:
-            raise RuntimeError(f"Don't know how to decompress {in_file_name}, which was downloaded as '{dl_file_name}'.")
+            raise RuntimeError(
+                f"Don't know how to decompress {in_file_name}, which was downloaded as '{dl_file_name}'."
+            )
 
         if os.path.isfile(uncompressed_filename):
             file_size = os.path.getsize(uncompressed_filename)
@@ -373,9 +571,24 @@ def pull_via_wget(
         if os.path.isfile(dl_file_name):
             file_size = os.path.getsize(dl_file_name)
             logger.info(f"Downloaded {dl_file_name} from {url}, file size {file_size} bytes.")
+            if verify_gzip:
+                if file_size < 1024:
+                    raise RuntimeError(
+                        f"Downloaded Gzip file {dl_file_name} is too small ({file_size} bytes) to be valid."
+                    )
+                result = subprocess.run(["gzip", "-t", dl_file_name], capture_output=True, text=True)
+                if result.returncode != 0:
+                    raise RuntimeError(
+                        f"Downloaded Gzip file {dl_file_name} failed verification: {result.stderr.strip()}"
+                    )
+                logger.info(f"Verified {dl_file_name} as a valid Gzip file.")
         elif os.path.isdir(dl_file_name):
             # Count the number of files in directory dl_file_name
-            dir_size = sum(os.path.getsize(os.path.join(dl_file_name, f)) for f in os.listdir(dl_file_name) if os.path.isfile(os.path.join(dl_file_name, f)))
+            dir_size = sum(
+                os.path.getsize(os.path.join(dl_file_name, f))
+                for f in os.listdir(dl_file_name)
+                if os.path.isfile(os.path.join(dl_file_name, f))
+            )
             logger.info(f"Downloaded {dir_size} files from {url} to {dl_file_name}.")
         else:
             raise RuntimeError(f"Unknown file type {dl_file_name}")
@@ -398,10 +611,60 @@ def sort_identifiers_with_boosted_prefixes(identifiers, prefixes):
     # Thanks to JetBrains AI.
     return sorted(
         identifiers,
-        key=lambda identifier: prefixes.index(identifier["identifier"].split(":", 1)[0])
-        if identifier["identifier"].split(":", 1)[0] in prefixes
-        else len(prefixes),
+        key=lambda identifier: (
+            prefixes.index(identifier["identifier"].split(":", 1)[0])
+            if identifier["identifier"].split(":", 1)[0] in prefixes
+            else len(prefixes)
+        ),
     )
+
+
+def choose_preferred_name(node, types, preferred_name_boost_prefixes, demote_labels_longer_than):
+    """Return the preferred name for a node, or "" if none is available."""
+    # Walk the ancestor chain (most-specific type first) to find the first matching entry
+    # for each config dict. Using the most specific type ensures a SmallMolecule, for example,
+    # picks up boost/demotion rules defined on ChemicalEntity without overriding a more
+    # specific rule that might exist on SmallMolecule itself.
+    boost_prefixes = None
+    length_limit = None
+    for typ in types:
+        if boost_prefixes is None and typ in preferred_name_boost_prefixes:
+            boost_prefixes = preferred_name_boost_prefixes[typ]
+        if length_limit is None and typ in demote_labels_longer_than:
+            length_limit = demote_labels_longer_than[typ]
+        if boost_prefixes is not None and length_limit is not None:
+            break  # Both resolved — no need to scan further up the hierarchy.
+
+    # Build the candidate label list in priority order.
+    # If boost prefixes apply, promoted prefixes move to the front; all other identifiers
+    # follow in their original Biolink prefix order.
+    if boost_prefixes is not None:
+        ordered_identifiers = sort_identifiers_with_boosted_prefixes(node["identifiers"], boost_prefixes)
+    else:
+        ordered_identifiers = node["identifiers"]
+
+    # Drop blank/missing labels and apply the label filter as a safety net.
+    # (Labels should already have been cleared by apply_labels(), but this catches
+    # anything supplied via the explicit labels dict or through an unforeseen path.)
+    synonym_filter = get_synonym_filter()
+    filtered = []
+    for id_entry in ordered_identifiers:
+        label = id_entry.get("label", "")
+        if not label:
+            continue
+        prefix = id_entry["identifier"].split(":", 1)[0]
+        if synonym_filter.should_suppress(label, source=f"{prefix} (preferred name)", node_types=types):
+            continue
+        filtered.append(label)
+
+    # Demote long labels: if any label fits within the limit, discard those that don't.
+    # If *all* labels exceed the limit we keep them rather than returning empty.
+    if length_limit is not None:
+        shorter = [label for label in filtered if len(label) <= length_limit]
+        if shorter:
+            filtered = shorter
+
+    return filtered[0] if filtered else ""
 
 
 def get_numerical_curie_suffix(curie):
@@ -420,16 +683,37 @@ def get_numerical_curie_suffix(curie):
     return None
 
 
-def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=None, extra_prefixes=None, icrdf_filename=None, properties_jsonl_gz_files=None):
+def write_compendium(
+    metadata_yamls,
+    synonym_list,
+    ofname,
+    node_type,
+    labels=None,
+    extra_prefixes=None,
+    icrdf_filename=None,
+    properties_jsonl_gz_files=None,
+):
     """
     :param metadata_yaml: The YAML files containing the metadata for this compendium.
     :param synonym_list:
     :param ofname: Output filename. A file with this filename will be created in both the `compendia` and `synonyms` output directories.
-    :param node_type: The Biolink type of this compendium (including `biolink:` prefix).
+    :param node_type: The Biolink type of this compendium (including `biolink:` prefix). Set this to None
+        only if every item in synonym_list is a TypedClique with its own node_type.
     :param labels: A map of identifiers
         Not needed if each identifier will have a label in the correct directory (i.e. downloads/PMID/labels for PMID:xxx).
     :param extra_prefixes: We default to only allowing the prefixes allowed for a particular type in Biolink.
-        If you want to allow additional prefixes, list them here.
+        If you want to allow additional prefixes, list them here. They are appended *after* the
+        Biolink-registered ones, so an extra prefix keeps its identifiers alive in the clique but can
+        never win the preferred-CURIE contest -- which also means such an identifier will not
+        normalize on its own, and is visible only in the clique's equivalent identifiers. That is the
+        intended shape for shipping a prefix ahead of the Biolink Model (see
+        `config.yaml: disease_extra_prefixes_by_biolink_class`), and the reason it is safe to do so.
+
+        It is a **per-class** allowlist. A caller that loops over several node types must scope the
+        list to the class it was reasoned about, or an exemption earned on one class's grounds is
+        silently granted to all of them -- e.g. passing a disease-derived list unscoped also lets
+        those prefixes into `PhenotypicFeature.txt`. See `diseasephenotype.build_compendium`, which
+        applies its list to `DISEASE` only.
     :param icrdf_filename: (REQUIRED) The file to read the information content from (icRDF.tsv). Although this is a
         named parameter to make it easier to specify this when calling write_compendium(), it is REQUIRED, and
         write_compendium() will throw a RuntimeError if it is not specified. This is to ensure that it has been
@@ -459,6 +743,9 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
     # coming up with a preferred label for a particular Biolink class.
     preferred_name_boost_prefixes = config["preferred_name_boost_prefixes"]
 
+    # Load the per-type label length demotion config. Types not listed here are never demoted.
+    demote_labels_longer_than = config.get("demote_labels_longer_than", {})
+
     # Create an InformationContentFactory based on the specified icRDF.tsv file. Default to the one in the download
     # directory.
     if not icrdf_filename:
@@ -472,8 +759,13 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
     taxon_factory = TaxonFactory(make_local_name(""))
     logger.info(f"TaxonFactory ready: {taxon_factory} with {get_memory_usage_summary()}")
 
-    node_test = node_factory.create_node(input_identifiers=[], node_type=node_type, labels={}, extra_prefixes=extra_prefixes)
-    logger.info(f"NodeFactory test complete: {node_test} with {get_memory_usage_summary()}")
+    if node_type is not None:
+        node_test = node_factory.create_node(
+            input_identifiers=[], node_type=node_type, labels={}, extra_prefixes=extra_prefixes
+        )
+        logger.info(f"NodeFactory test complete: {node_test} with {get_memory_usage_summary()}")
+    else:
+        logger.info("Skipping NodeFactory type test for heterogeneous typed cliques.")
 
     # Create compendia and synonyms directories, just in case they haven't been created yet.
     os.makedirs(os.path.join(cdir, "compendia"), exist_ok=True)
@@ -494,19 +786,34 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
 
     property_source_count = defaultdict(int)
 
+    synonym_filter = get_synonym_filter()
+    filter_count_snapshot = synonym_filter.filtered_count
+
     # Counts.
     count_cliques = 0
     count_eq_ids = 0
     count_synonyms = 0
 
     # Write compendium and synonym files.
-    with jsonlines.open(os.path.join(cdir, "compendia", ofname), "w") as outf, jsonlines.open(os.path.join(cdir, "synonyms", ofname), "w") as sfile:
+    with (
+        jsonlines.open(os.path.join(cdir, "compendia", ofname), "w") as outf,
+        jsonlines.open(os.path.join(cdir, "synonyms", ofname), "w") as sfile,
+    ):
         # Calculate an estimated time to completion.
         start_time = time.time_ns()
         count_slist = 0
         total_slist = len(synonym_list)
 
         for slist in synonym_list:
+            if isinstance(slist, TypedClique):
+                current_node_type = slist.node_type
+                input_identifiers = slist.identifiers
+            else:
+                if node_type is None:
+                    raise RuntimeError("write_compendium() requires node_type unless every clique is a TypedClique.")
+                current_node_type = node_type
+                input_identifiers = slist
+
             # Before we get started, let's estimate where we're at.
             count_slist += 1
             if (count_slist == 1) or (count_slist % WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES == 0):
@@ -528,16 +835,23 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                 time_remaining_seconds = time_elapsed_seconds / count_slist * remaining_slist
                 logger.info(f" - Estimated time remaining: {format_timespan(time_remaining_seconds)}")
 
-            node = node_factory.create_node(input_identifiers=slist, node_type=node_type, labels=labels, extra_prefixes=extra_prefixes)
+            node = node_factory.create_node(
+                input_identifiers=input_identifiers,
+                node_type=current_node_type,
+                labels=labels,
+                extra_prefixes=extra_prefixes,
+            )
             if node is None:
                 # This usually happens because every CURIE in the node is not in the id_prefixes list for that node_type.
                 # Something to fix at some point, but we don't want to break the pipeline for this, so
                 # we emit a warning and skip this clique.
-                logger.warning(f"Could not create node for ({slist}, {node_type}, {labels}, {extra_prefixes}): returned None.")
+                logger.warning(
+                    f"Could not create node for ({input_identifiers}, {current_node_type}, {labels}, {extra_prefixes}): returned None."
+                )
                 continue
             else:
                 count_cliques += 1
-                count_eq_ids += len(slist)
+                count_eq_ids += len(input_identifiers)
 
                 nw = {"type": node["type"]}
                 ic = ic_factory.get_ic(node)
@@ -546,61 +860,10 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                 # Determine types.
                 types = node_factory.get_ancestors(node["type"])
 
-                # Generate a preferred label for this clique.
-                #
-                # To pick a preferred label for this clique, we need to do three things:
-                # 1. We sort all labels in the preferred-name order. By default, this should be
-                #    the preferred CURIE order, but if this clique is in one of the Biolink classes in
-                #    preferred_name_boost_prefixes, we boost those prefixes in that order to the top of the list.
-                # 2. We filter out any suspicious labels.
-                #    (If this simple filter doesn't work, and if prefixes are inconsistent, we can build upon the
-                #    algorithm proposed by Jeff at
-                #    https://github.com/NCATSTranslator/Feedback/issues/259#issuecomment-1605140850)
-                # 3. We filter out any labels longer than config['demote_labels_longer_than'], but only if there is
-                #    at least one label shorter than this limit.
-                # 4. We choose the first label that isn't blank (that allows us to use our rule of smallest-prefix-first to find the broadest name for this concept). If no labels remain, we generate a warning.
-
-                # Step 1.1. Sort labels in boosted prefix order if possible.
-                possible_labels = []
-                for typ in types:
-                    if typ in preferred_name_boost_prefixes:
-                        # This is the most specific matching type, so we use this and then break.
-                        possible_labels = list(
-                            map(
-                                lambda identifier: identifier.get("label", ""),
-                                sort_identifiers_with_boosted_prefixes(node["identifiers"], preferred_name_boost_prefixes[typ]),
-                            )
-                        )
-
-                        # Add in all the other labels -- we'd still like to consider them, but at a lower priority.
-                        for id in node["identifiers"]:
-                            label = id.get("label", "")
-                            if label not in possible_labels:
-                                possible_labels.append(label)
-
-                        # Since this is the most specific matching type, we shouldn't do other (presumably higher-level)
-                        # categories: so let's break here.
-                        break
-
-                # Step 1.2. If we didn't have a preferred_name_boost_prefixes, just use the identifiers in their
-                # Biolink prefix order.
-                if not possible_labels:
-                    possible_labels = map(lambda identifier: identifier.get("label", ""), node["identifiers"])
-
-                # Step 2. Filter out any suspicious labels.
-                filtered_possible_labels = [label for label in possible_labels if label]  # Ignore blank or empty names.
-
-                # Step 3. Filter out labels longer than config['demote_labels_longer_than'], but only if there is at
-                # least one label shorter than this limit.
-                labels_shorter_than_limit = [label for label in filtered_possible_labels if label and len(label) <= config["demote_labels_longer_than"]]
-                if labels_shorter_than_limit:
-                    filtered_possible_labels = labels_shorter_than_limit
-
-                # Step 4. Pick the first label if it isn't blank.
-                if filtered_possible_labels:
-                    preferred_name = filtered_possible_labels[0]
-                else:
-                    preferred_name = ""
+                # Generate a preferred label for this clique using choose_preferred_name().
+                preferred_name = choose_preferred_name(
+                    node, types, preferred_name_boost_prefixes, demote_labels_longer_than
+                )
 
                 # At this point, we insert any HAS_ADDITIONAL_ID IDs we have.
                 # The logic we use is: we insert all additional IDs for a CURIE *AFTER* that CURIE, in a random order, as long
@@ -631,12 +894,16 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
 
                         # ac_labelled will be a list that consists of either LabeledID (if the CURIE could be labeled)
                         # or str objects (consisting of an unlabeled CURIE).
-                        ac_labelled = node_factory.apply_labels(input_identifiers=additional_curies, labels=labels)
+                        ac_labelled = node_factory.apply_labels(
+                            input_identifiers=additional_curies, labels=labels, node_types=types
+                        )
 
                         for prop, label in zip(props, ac_labelled):
                             additional_curie = Text.get_curie(label)
                             if ":" not in additional_curie:
-                                raise ValueError(f"Additional ID '{additional_curie}' for '{iid}' is not a valid CURIE: {prop}, {label} (from {ac_labelled})")
+                                raise ValueError(
+                                    f"Additional ID '{additional_curie}' for '{iid}' is not a valid CURIE: {prop}, {label} (from {ac_labelled})"
+                                )
                             if additional_curie not in current_curies:
                                 identifier_list.append(additional_curie)
                                 current_curies.add(additional_curie)
@@ -691,11 +958,17 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                 # get_synonyms() returns a list of tuples, where each tuple is a relation and a synonym.
                 # So we extract just the synonyms here, ditching the relations (result[0]), then unique-ify the
                 # synonyms.
-                synonyms = [result[1] for result in synonym_factory.get_synonyms(identifier_list)]
+                synonyms = [
+                    result[1] for result in synonym_factory.get_synonyms(identifier_list, node_types=types) if result[1]
+                ]
                 synonyms_list = sorted(set(synonyms), key=lambda x: len(x))
 
                 try:
-                    document = {"curie": curie, "names": synonyms_list, "types": [t[8:] for t in types]}  # remove biolink:
+                    document = {
+                        "curie": curie,
+                        "names": synonyms_list,
+                        "types": [t[8:] for t in types],
+                    }  # remove biolink:
 
                     count_synonyms += len(synonyms_list)
 
@@ -703,7 +976,9 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                     if preferred_name:
                         document["preferred_name"] = preferred_name
                     else:
-                        logger.debug(f"No preferred name for {nw}, probably because all names were filtered out, skipping.")
+                        logger.debug(
+                            f"No preferred name for {nw}, probably because all names were filtered out, skipping."
+                        )
                         continue
 
                     # We previously used the shortest length of a name as a proxy for how good a match it is, i.e. given
@@ -750,6 +1025,13 @@ def write_compendium(metadata_yamls, synonym_list, ofname, node_type, labels=Non
                     print(node_factory.get_ancestors(nw["type"]))
                     traceback.print_exc()
                     raise ex
+
+    # Log a per-compendium summary of any obsolete labels that were filtered.
+    filtered_this_run = synonym_filter.filtered_count - filter_count_snapshot
+    if filtered_this_run > 0:
+        logger.warning(f"SynonymFilter: matched {filtered_this_run} obsolete label(s)/synonym(s) in {ofname}")
+    else:
+        logger.info(f"SynonymFilter: no obsolete labels found in {ofname}")
 
     # Write out the metadata.yaml file combining information from all the metadata.yaml files.
     write_combined_metadata(
@@ -983,10 +1265,59 @@ def read_identifier_file(infile):
     return identifiers, types
 
 
-def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
+def read_badxrefs(fn):
+    """Read an ``input_data/*_badxrefs.txt`` file into a set of ``(subject, object)`` tuples.
+
+    Format is one space-separated pair per line; ``#`` comment lines and blank lines are
+    skipped. These files drop individually wrong cross-reference pairs that survive
+    prefix-level filtering, for cases where the target prefix is legitimate in general but
+    this particular pair is not.
+
+    Callers decide whether to match directionally (diseasephenotype) or in either direction
+    (anatomy, which builds frozensets from these); the returned set is unordered either way.
+
+    A line that is neither blank, a comment, nor exactly two space-separated tokens raises
+    ``ValueError``. Skipping it instead would mean an entry a maintainer believed was
+    suppressing a bad xref silently does nothing — the pair reappears in the compendia and
+    nothing anywhere says why.
+
+    Tabs are rejected explicitly, because a tab-separated pair is the easy way to write a line
+    that looks right and parses wrong. Runs of spaces are not: ``split()`` collapses them, so a
+    stray double space is unambiguous and is accepted rather than failing a build over it.
+    """
+    morebad = set()
+    with open(fn) as inf:
+        for lineno, line in enumerate(inf, 1):
+            if line.startswith("#"):
+                continue
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if "\t" in stripped:
+                raise ValueError(f"{fn}:{lineno}: CURIEs must be separated by a space, not a tab: {line.rstrip()!r}")
+            x = stripped.split()
+            if len(x) != 2:
+                raise ValueError(f"{fn}:{lineno}: expected two space-separated CURIEs, got {len(x)}: {line.rstrip()!r}")
+            morebad.add((x[0], x[1]))
+    return morebad
+
+
+def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False, target_prefixes=None):
     """Given a list of tuples (id1, id2) meaning id1-[xref]->id2, remove any id2 that are associated with more
     than one id1.  The idea is that if e.g. id1 is made up of UBERONS and 2 of those have an xref to say a UMLS
-    then it doesn't mean that all of those should be identified.  We don't really know what it means, so remove it."""
+    then it doesn't mean that all of those should be identified.  We don't really know what it means, so remove it.
+
+    :param target_prefixes: if given, only targets in these namespaces are eligible to be dropped;
+        a target in any other namespace is kept however many subjects claim it. This scopes the
+        filter to the vocabulary that is actually causing merges, instead of trading one source's
+        real problem against the collateral damage to its other namespaces. DOID is the worked
+        case: its ICD codes name disease *families* and fuse every subtype citing one, while its
+        MeSH/SNOMED/UMLS targets are mostly fine -- so an unscoped filter under-cleans ICD (most
+        ICD rows are 1:1) and over-cleans everything else. Matched against
+        ``Text.get_prefix_or_none()``, which upper-cases, so the comparison is case-insensitive.
+        See ``diseasephenotype.OVERUSE_FILTERED_CONCORDS`` and docs/sources/DOID/mappings.md.
+    """
+    eligible = {p.upper() for p in target_prefixes} if target_prefixes is not None else None
     xref_counts_v = defaultdict(int)
     xref_counts_k = defaultdict(int)
     for k, v in pairlist:
@@ -994,6 +1325,9 @@ def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
         xref_counts_k[k] += 1
     improved_pairs = []
     for k, v in pairlist:
+        if eligible is not None and (Text.get_prefix_or_none(v) or "") not in eligible:
+            improved_pairs.append((k, v))
+            continue
         if xref_counts_v[v] < 2:
             if bothways:
                 if xref_counts_k[k] < 2:
@@ -1003,9 +1337,31 @@ def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
     return improved_pairs
 
 
+# A prefix carrying a release stamp, e.g. DOID's "SNOMEDCT_US_2025_09_01:267692008". Sources that
+# do this mint a new prefix on every upstream release, so an `op` map naming the stamped spellings
+# silently goes stale -- and the un-renamed CURIE still reaches glom(), fusing subjects through a
+# namespace no compendium can ever join. Match on the stem instead of pinning the dates.
+VERSION_STAMPED_PREFIX = re.compile(r"^(.*)_\d{4}_\d{2}_\d{2}$")
+
+
 def norm(x, op):
+    """Rename a CURIE's prefix per the `op` map, keying on the upper-cased prefix.
+
+    A prefix that misses is retried without a trailing `_YYYY_MM_DD` release stamp, so `op` names
+    the stem (`SNOMEDCT_US`) once rather than every dated spelling a source has ever emitted.
+
+    An `op` value is normally the replacement prefix. It may instead be a callable taking the whole
+    CURIE and returning the rewritten one, for the cases where the target prefix depends on the
+    local id and not just the source prefix -- OMIM is the one that needs this, since `MIM:PS303350`
+    is a phenotypic series (`OMIM.PS:303350`) while `MIM:115210` is a plain entry (`OMIM:115210`).
+    """
     # Get curie returns the uppercase
     pref = Text.get_prefix_or_none(x)
-    if pref in op:
-        return Text.recurie(x, op[pref])
+    if pref is None:
+        return x
+    stamped = VERSION_STAMPED_PREFIX.match(pref)
+    for candidate in (pref, stamped.group(1) if stamped else None):
+        if candidate in op:
+            rename = op[candidate]
+            return rename(x) if callable(rename) else Text.recurie(x, rename)
     return x

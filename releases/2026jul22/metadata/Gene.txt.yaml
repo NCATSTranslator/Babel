@@ -1,0 +1,118 @@
+created_at: '2026-07-13T07:05:22.804507'
+type: compendium
+name: Gene.txt
+url: ''
+description: ''
+sources: []
+counts:
+  cliques: 74504046
+  eq_ids: 88740328
+  synonyms: 143063292
+  property_sources: {}
+combined_from:
+  build_gene_ncbigene_xrefs():
+    created_at: '2026-07-13T01:17:06.282601'
+    type: concord
+    name: build_gene_ncbigene_xrefs()
+    url: ''
+    description: Extracts gene-xref relationships from the NCBIGene gene_info.gz file
+      (babel_downloads/NCBIGene/gene_info.gz), filtering to NCBIGene IDs in babel_outputs/intermediate/gene/ids/NCBIGene
+      and extracting mappings for prefixes dict_values(['WormBase', 'FB', 'ZFIN',
+      'HGNC', 'MGI', 'RGD', 'dictyBase', 'SGD'])
+    sources:
+    - type: NCBIGENE
+      name: NCBIGene gene_info.gz
+      filename: babel_downloads/NCBIGene/gene_info.gz
+    counts:
+      concords:
+        count_concords: 566964
+        count_distinct_curies: 1133928
+        predicates:
+          xref: 566964
+        prefix_counts:
+          xref(NCBIGene, WormBase): 46890
+          xref(FB, NCBIGene): 17872
+          xref(NCBIGene, ZFIN): 27327
+          xref(NCBIGene, RGD): 352076
+          xref(HGNC, NCBIGene): 44236
+          xref(MGI, NCBIGene): 58200
+          xref(NCBIGene, dictyBase): 13892
+          xref(NCBIGene, SGD): 6471
+    combined_from: []
+  build_gene_ncbi_ensembl_relationships():
+    created_at: '2026-07-13T01:14:58.521038'
+    type: concord
+    name: build_gene_ncbi_ensembl_relationships()
+    url: ''
+    description: Extracts gene-ensembl relationships from the NCBIGene gene2ensembl.gz
+      file (babel_downloads/NCBIGene/gene2ensembl.gz), filtering to NCBIGene IDs in
+      babel_outputs/intermediate/gene/ids/NCBIGene
+    sources:
+    - type: NCBIGENE
+      name: NCBIGene gene2ensembl.gz
+      filename: babel_downloads/NCBIGene/gene2ensembl.gz
+    counts:
+      concords:
+        count_concords: 13656908
+        count_distinct_curies: 27264292
+        predicates:
+          eq: 13656908
+        prefix_counts:
+          eq(ENSEMBL, NCBIGene): 13656908
+    combined_from: []
+  build_gene_medgen_relationships():
+    created_at: '2026-07-13T00:57:44.686340'
+    type: concord
+    name: build_gene_medgen_relationships()
+    url: ''
+    description: Extracts gene-OMIM relationships from the mim2gene_medgen file (babel_downloads/NCBIGene/mim2gene_medgen)
+    sources:
+    - name: MIM2Gene MEDGEN
+      filename: babel_downloads/NCBIGene/mim2gene_medgen
+    counts:
+      concords:
+        count_concords: 17728
+        count_distinct_curies: 35443
+        predicates:
+          eq: 17728
+        prefix_counts:
+          eq(NCBIGene, OMIM): 17728
+    combined_from: []
+  umls.build_sets():
+    created_at: '2026-07-13T00:58:59.614868'
+    type: concord
+    name: umls.build_sets()
+    url: ''
+    description: 'umls.build_sets() using UMLS MRCONSO with prefixes: {''HGNC'': ''HGNC''}
+      with cui_prefix set to UMLS'
+    sources:
+    - type: UMLS
+      name: MRCONSO
+    counts:
+      concords:
+        count_concords: 44066
+        count_distinct_curies: 88117
+        predicates:
+          eq: 44066
+        prefix_counts:
+          eq(HGNC, UMLS): 44066
+    combined_from: []
+  get_umls_gene_protein_mappings:
+    created_at: '2026-07-13T00:57:45.279641'
+    type: concord
+    name: get_umls_gene_protein_mappings
+    url: ''
+    description: Download UMLS-UniProtKB gene mappings from https://raw.githubusercontent.com/cbizon/UMLS_UniProtKB/refs/heads/main/outputs/UMLS_UniProtKB.tsv
+    sources:
+    - type: download
+      name: UMLS-UniProtKB mappings
+      url: https://raw.githubusercontent.com/cbizon/UMLS_UniProtKB/refs/heads/main/outputs/UMLS_UniProtKB.tsv
+    counts:
+      concords:
+        count_concords: 23036
+        count_distinct_curies: 27608
+        predicates:
+          oio:closeMatch: 23036
+        prefix_counts:
+          oio:closeMatch(NCBIGene, UMLS): 23036
+    combined_from: []

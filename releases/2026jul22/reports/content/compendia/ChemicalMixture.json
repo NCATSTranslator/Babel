@@ -1,0 +1,43 @@
+{
+  "compendium_path": "babel_outputs/compendia/ChemicalMixture.txt",
+  "count_by_biolink_type": {
+    "biolink:ChemicalMixture": 489
+  },
+  "count_by_prefix": {
+    "CHEBI": 490,
+    "INCHIKEY": 11,
+    "KEGG.COMPOUND": 105,
+    "MESH": 2,
+    "UNII": 1
+  },
+  "count_lines": 489,
+  "counters": {
+    "clique_count": 489,
+    "cliques_by_description_count": {
+      "0": 125,
+      "1": 363,
+      "2": 1
+    },
+    "cliques_by_id_count": {
+      "1": 372,
+      "2": 115,
+      "3": 1,
+      "4": 1
+    },
+    "cliques_by_label_count": {
+      "1": 485,
+      "2": 4
+    },
+    "cliques_by_unique_description_count": {
+      "0": 125,
+      "1": 363,
+      "2": 1
+    },
+    "cliques_by_unique_label_count": {
+      "1": 485,
+      "2": 4
+    }
+  },
+  "name": "ChemicalMixture",
+  "report_path": "babel_outputs/reports/content/compendia/ChemicalMixture.json"
+}

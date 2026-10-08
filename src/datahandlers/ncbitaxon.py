@@ -7,7 +7,13 @@ from src.prefixes import NCBITAXON
 
 
 def pull_ncbitaxon():
-    pull_via_ftp("ftp.ncbi.nlm.nih.gov", "/pub/taxonomy", "taxdump.tar.gz", decompress_data=True, outfilename=f"{NCBITAXON}/taxdump.tar")
+    pull_via_ftp(
+        "ftp.ncbi.nlm.nih.gov",
+        "/pub/taxonomy",
+        "taxdump.tar.gz",
+        decompress_data=True,
+        outfilename=f"{NCBITAXON}/taxdump.tar",
+    )
 
 
 def make_labels_and_synonyms(infile, labelfile, synfile, propfilegz):
@@ -40,7 +46,7 @@ def make_labels_and_synonyms(infile, labelfile, synfile, propfilegz):
 
             name_class = parts[3]
             # name_class can be one of the following values (counts from May 1, 2023 release of NCBITaxon,
-            # possibly -- from https://github.com/TranslatorSRI/NameResolution/issues/71#issuecomment-1618909473):
+            # possibly -- from https://github.com/NCATSTranslator/NameResolution/issues/71#issuecomment-1618909473):
             #      25 	genbank acronym             <no examples in Mar 13, 2025>
             #     230 	blast name                  "false scorpions"
             #     667 	in-part                     "Nucleopolyhedrovirus"

@@ -1,16 +1,21 @@
 import ast
 import gzip
 import logging
-import os
-from collections import defaultdict
-from os.path import dirname
+from collections import Counter, defaultdict
 
 import jsonlines
 import requests
 
 import src.datahandlers.mesh as mesh
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.babel_utils import (
+    get_prefixes,
+    get_user_agent,
+    glom,
+    read_identifier_file,
+    remove_overused_xrefs,
+    write_compendium,
+)
 from src.categories import (
     CHEMICAL_ENTITY,
     CHEMICAL_MIXTURE,
@@ -20,7 +25,9 @@ from src.categories import (
     POLYPEPTIDE,
     SMALL_MOLECULE,
 )
+from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
+from src.datahandlers.unii import UNII_ORGANISM_COLUMNS, read_unii_records
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.prefixes import (
     CHEBI,
@@ -39,9 +46,84 @@ from src.prefixes import (
 from src.properties import HAS_ALTERNATIVE_ID, Property
 from src.sdfreader import read_sdf
 from src.ubergraph import UberGraph
-from src.util import Text, get_logger, get_memory_usage_summary
+from src.util import (
+    Text,
+    ensure_parent_dir,
+    get_config,
+    get_logger,
+    get_memory_usage_summary,
+    open_maybe_gzipped,
+)
 
 logger = get_logger(__name__)
+
+# The ChEBI SDF data-item tags make_chebi_relations() asks read_sdf() for, normalized the way
+# normalize_sdf_tag() normalizes them: lowercased, spaces stripped, underscores kept.
+#
+# ChEBI renames these between releases and the parser silently omits a tag it does not recognize, so
+# a rename empties the corresponding ingest without any error. That is how babel-1.18 shipped with
+# no ChEBI secondary IDs at all: `Secondary ChEBI ID` had become `SECONDARY_ID`, and at the same time
+# `PubChem Database Links` had split into separate Compound and Substance tags. Both of our keys
+# stopped matching anything. `check_chebi_sdf_keys()` below now fails the build instead.
+#
+# Re-audit these against a new SDF with docs/sources/CHEBI/sdf_tags/audit_sdf_tags.py.
+CHEBI_SDF_KEY_SECONDARY_ID = "secondary_id"
+CHEBI_SDF_KEY_KEGG = "keggcompounddatabaselinks"
+CHEBI_SDF_KEY_PUBCHEM = "pubchemcompounddatabaselinks"
+
+# Only the three keys above are consumed by make_chebi_relations(). chebiid is what read_sdf() keys
+# its entries by, and chebiname/inchikey/smiles are carried purely as canaries: they cost nothing to
+# watch, and a rename that trips one of them says "ChEBI has reworked this file, re-audit all of it"
+# well before the rename lands on a tag we do consume. check_chebi_sdf_keys() fails the build on any
+# key in this set, canaries included -- that is deliberate. To stop watching one, delete it from here
+# rather than softening the check.
+CHEBI_SDF_KEYS = frozenset(
+    {
+        "chebiid",
+        "chebiname",
+        "inchikey",
+        "smiles",
+        CHEBI_SDF_KEY_SECONDARY_ID,
+        CHEBI_SDF_KEY_KEGG,
+        CHEBI_SDF_KEY_PUBCHEM,
+    }
+)
+
+# How to read database_accession.tsv. `source_id` names the database ChEBI recorded a value from; for
+# MANUAL_X_REF, CITATION and REGISTRY_NUMBER that database is also the identifier's namespace (it is
+# source.tsv's `prefix` column: kegg.compound, pubmed, reaxys).
+#
+# CAS is the exception. A CAS registry number is a shared identifier many databases redistribute, so
+# there the namespace is fixed by `type` and source_id records only who supplied it -- `498-15-7`
+# arrives under KEGG COMPOUND, ChemIDplus and NIST alike, and 27% of CAS values are shared across
+# sources against 2 of 106,179 for CITATION.
+#
+# So a source_id match alone does not identify an accession, and the three constants below have to be
+# applied together. See docs/sources/CHEBI/README.md, whose audit script regenerates that evidence.
+
+# Sources whose MANUAL_X_REF rows we take, matched on source.tsv's `name` column rather than on the
+# current id numbers (45 and 68) so that a renumbering raises instead of silently emptying this
+# ingest -- the same failure mode as the SDF tag renames.
+CHEBI_DBX_SOURCE_NAMES = {
+    "KEGG COMPOUND": KEGGCOMPOUND,
+    "PubChem Compound": PUBCHEMCOMPOUND,
+}
+
+# The type whose accession_number is the source database's own identifier. Restricting to it is what
+# keeps shared-namespace rows out: `17  7  498-15-7  CAS  1  45` is a CAS registry number ChEBI
+# sourced *from* KEGG COMPOUND, not a KEGG accession, and taking source_id at face value would emit
+# 10,615 such CAS numbers as KEGG/PubChem CURIEs.
+#
+# Ingesting those rows as CAS: xrefs in their own right is issue #956, not an oversight here.
+CHEBI_DBX_ACCESSION_TYPE = "MANUAL_X_REF"
+
+# Curation states we accept, resolved by name against status.tsv. ChEBI also publishes SUBMITTED
+# rows -- a depositor's unreviewed claim -- which we exclude: 793 of the KEGG COMPOUND rows and 30 of
+# the 55 PubChem Compound ones, so the exclusion costs little and these feed glom() as equivalences.
+#
+# Whether SUBMITTED is in fact reviewed by some other route is issue #957; if it turns out to be
+# trustworthy, adding it here is the whole change.
+CHEBI_DBX_ACCEPTED_STATUSES = frozenset({"CHECKED", "OK"})
 
 
 def get_type_from_smiles(smiles):
@@ -105,17 +187,34 @@ def write_rxnorm_ids(infile, outfile):
 
 
 def build_chemical_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
-    umls.build_sets(mrconso, idfile, outfile, {"MSH": MESH, "DRUGBANK": DRUGBANK, "RXNORM": RXCUI}, provenance_metadata_yaml=metadata_yaml)
+    umls.build_sets(
+        mrconso,
+        idfile,
+        outfile,
+        {"MSH": MESH, "DRUGBANK": DRUGBANK, "RXNORM": RXCUI},
+        provenance_metadata_yaml=metadata_yaml,
+    )
 
 
 def build_chemical_rxnorm_relationships(conso, idfile, outfile, metadata_yaml):
-    umls.build_sets(conso, idfile, outfile, {"MSH": MESH, "DRUGBANK": DRUGBANK}, cui_prefix=RXCUI, provenance_metadata_yaml=metadata_yaml)
+    umls.build_sets(
+        conso,
+        idfile,
+        outfile,
+        {"MSH": MESH, "DRUGBANK": DRUGBANK},
+        cui_prefix=RXCUI,
+        provenance_metadata_yaml=metadata_yaml,
+    )
 
 
 def write_pubchem_ids(labelfile, smilesfile, outfile):
     # Trying to be memory efficient here.  We could just ingest the whole smilesfile which would make this code easier
     # but since they're already sorted, let's give it a shot
-    with open(labelfile) as inlabels, gzip.open(smilesfile, "rt", encoding="utf-8") as insmiles, open(outfile, "w") as outf:
+    with (
+        open(labelfile) as inlabels,
+        gzip.open(smilesfile, "rt", encoding="utf-8") as insmiles,
+        open(outfile, "w") as outf,
+    ):
         sn = -1
         flag_file_ended = False
         for labelline in inlabels:
@@ -144,36 +243,88 @@ def write_pubchem_ids(labelfile, smilesfile, outfile):
 
 
 def write_mesh_ids(outfile):
-    # Get the D tree,
-    # D01	Inorganic Chemicals
-    # D02	Organic Chemicals
-    # D03	Heterocyclic Compounds
-    # D04	Polycyclic Compounds
-    # D05	Macromolecular Substances  NO
-    # D06	Hormones, Hormone Substitutes, and Hormone Antagonists
-    # D08	Enzymes and Coenzymes  NO, include with ... Activities?
-    # D09	Carbohydrates
-    # D10	Lipids
-    # D12	Amino Acids, Peptides, and Proteins
-    # D12.125 AA yes
-    # D12.644 Peptides yes
-    # D12.776 proteins  NO
-    # D13	Nucleic Acids, Nucleotides, and Nucleosides
-    # D20	Complex Mixtures
-    # D23	Biological Factors
-    # D25	Biomedical and Dental Materials
-    # D26	Pharmaceutical Preparations
-    # D27	Chemical Actions and Uses NO
+    # MeSH D tree — chemical-related subtrees.
+    # Included as CHEMICAL_ENTITY (via the D01–D26 base range):
+    #   D01  Inorganic Chemicals
+    #   D02  Organic Chemicals
+    #   D03  Heterocyclic Compounds
+    #   D04  Polycyclic Compounds
+    #   D06  Hormones, Hormone Substitutes, and Hormone Antagonists
+    #   D07  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
+    #   D08.211  Coenzymes (e.g. NAD, Coenzyme A, FAD) — non-protein small molecules
+    #   D09  Carbohydrates
+    #   D10  Lipids
+    #   D11  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
+    #   D12  Amino Acids, Peptides, and Proteins (partially — see POLYPEPTIDE below)
+    #   D14–D19  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
+    #   D21–D22  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
+    #   D23  Biological Factors
+    #   D24  (no terms currently assigned in MeSH, but covered by the D01–D26 range)
+    #   D25  Biomedical and Dental Materials
+    #   D26  Pharmaceutical Preparations
+    #
+    # Included as POLYPEPTIDE:
+    #   D12.125  Amino Acids
+    #   D12.644  Peptides
+    #
+    # Included as CHEMICAL_ENTITY (via D01–D26 base range, no override needed):
+    #   D13  Nucleic Acids, Nucleotides, and Nucleosides — nucleotides such as NAD also
+    #        appear in D08.211 (Coenzymes); CHEMICAL_ENTITY is the correct type for both.
+    #
+    # Included as COMPLEX_MOLECULAR_MIXTURE:
+    #   D20  Complex Mixtures
+    #
+    # EXCLUDED — protein subtrees (handled by protein.write_mesh_ids instead):
+    #   D05.500  Multiprotein Complexes
+    #   D05.875  Protein Aggregates
+    #   D08.244  Cytochromes
+    #   D08.622  Enzyme Precursors
+    #   D08.811  Enzymes
+    #   D12.776  Proteins
+    #
+    # INCLUDED as CHEMICAL_ENTITY for now — TODO: assign a more specific Biolink type
+    # when the Biolink Model gains a suitable type for non-protein macromolecules:
+    #   D05.374  Micelles
+    #   D05.750  Polymers
+    #   D05.937  Smart Materials
+    #
+    # D27 (Chemical Actions and Uses) is implicitly excluded by the range D01–D26.
+    #
+    # TODO: The MeSH tree assignments for chemicals and proteins are currently defined
+    # independently in chemicals.write_mesh_ids() and protein.write_mesh_ids(). These
+    # should be unified into a shared mapping (e.g. in config.yaml or a dedicated module)
+    # so both compendia are derived from the same source of truth. This would also make it
+    # easier to handle edge cases like SCR_Chemical terms mapped to non-protein descriptors
+    # that are nonetheless proteins (e.g. scorpion venom toxins under D23 Biological Factors).
     meshmap = {f"D{str(i).zfill(2)}": CHEMICAL_ENTITY for i in range(1, 27)}
-    meshmap["D05"] = "EXCLUDE"
-    meshmap["D08"] = "EXCLUDE"
+    # D05 protein subtrees → excluded (protein compendium handles these)
+    meshmap["D05.500"] = "EXCLUDE"
+    meshmap["D05.875"] = "EXCLUDE"
+    # D05.374 Micelles, D05.750 Polymers, D05.937 Smart Materials inherit CHEMICAL_ENTITY
+    # TODO: assign a more specific Biolink type for these non-protein macromolecules
+    # D08 protein subtrees → excluded (protein compendium handles these)
+    meshmap["D08.811"] = "EXCLUDE"
+    meshmap["D08.622"] = "EXCLUDE"
+    meshmap["D08.244"] = "EXCLUDE"
+    # D08.211 Coenzymes inherits CHEMICAL_ENTITY from the D01–D26 base range above
     meshmap["D12.776"] = "EXCLUDE"
     meshmap["D12.125"] = POLYPEPTIDE
     meshmap["D12.644"] = POLYPEPTIDE
-    meshmap["D13"] = POLYPEPTIDE
+    # D13 (Nucleic Acids, Nucleotides, and Nucleosides) inherits CHEMICAL_ENTITY from the
+    # D01–D26 base range. No override needed — nucleotides like NAD (D009243) appear in
+    # both D08.211 (Coenzymes) and D13; both correctly map to CHEMICAL_ENTITY.
     meshmap["D20"] = COMPLEX_MOLECULAR_MIXTURE
-    # Also add anything from SCR_Chemical, if it doesn't have a tree map
-    mesh.write_ids(meshmap, outfile, order=["EXCLUDE", POLYPEPTIDE, COMPLEX_MOLECULAR_MIXTURE, CHEMICAL_ENTITY], extra_vocab={"SCR_Chemical": CHEMICAL_ENTITY})
+    # Also add anything from SCR_Chemical, if it doesn't have a tree map.
+    # SCR terms don't have tree numbers, so we need to separately exclude SCRs
+    # mapped to descriptors under excluded trees (proteins, macromolecules, enzymes).
+    excluded_trees = [treenum for treenum, category in meshmap.items() if category == "EXCLUDE"]
+    mesh.write_ids(
+        meshmap,
+        outfile,
+        order=["EXCLUDE", POLYPEPTIDE, COMPLEX_MOLECULAR_MIXTURE, CHEMICAL_ENTITY],
+        extra_vocab={"SCR_Chemical": CHEMICAL_ENTITY},
+        scr_exclude_trees=excluded_trees,
+    )
 
 
 # def write_obo_ids(irisandtypes,outfile,exclude=[]):
@@ -215,22 +366,13 @@ def write_chebi_ids(outfile):
 def write_unii_ids(infile, outfile):
     """UNII contains a bunch of junk like leaves.   We are going to try to clean it a bit to get things
     that are actually chemicals.  In biolink 2.0 we cn revisit exactly what happens here."""
-    with open(infile, encoding="windows-1252") as inf, open(outfile, "w") as outf:
-        h = inf.readline().strip().split("\t")
-        bad_cols = ["NCBI", "PLANTS", "GRIN", "MPNS"]
-        bad_colnos = [h.index(bc) for bc in bad_cols]
-        for line in inf:
-            x = line.strip().split("\t")
-
-            flag_skip = False
-            for bcn in bad_colnos:
-                if len(x[bcn]) > 0:
-                    # This is a plant or an eye of newt or something
-                    flag_skip = True
-                    break
-
-            if not flag_skip:
-                outf.write(f"{UNII}:{x[0]}\t{CHEMICAL_ENTITY}\n")
+    with open(outfile, "w") as outf:
+        for row in read_unii_records(infile):
+            # Whole organisms / crude organism-derived substances (a plant or an eye of newt or
+            # something) are not chemicals; skip them. UNII_ORGANISM_COLUMNS is the shared
+            # definition, also used by the DrugBank food-and-extract retype (issue #828).
+            if not any(row.get(col) for col in UNII_ORGANISM_COLUMNS):
+                outf.write(f"{UNII}:{row['UNII']}\t{CHEMICAL_ENTITY}\n")
 
 
 def write_drugbank_ids(infile, outfile):
@@ -241,7 +383,7 @@ def write_drugbank_ids(infile, outfile):
     written = set()
     with open(infile) as inf, open(outfile, "w") as outf:
         header_line = inf.readline()
-        assert header_line == "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", f"Incorrect header line in {infile}: {header_line}"
+        assert header_line == UNICHEM_REFERENCE_TSV_HEADER, f"Incorrect header line in {infile}: {header_line}"
         for line in inf:
             x = line.rstrip().split("\t")
             if x[1] == drugbank_id:
@@ -353,21 +495,68 @@ def write_gtopdb_ids(infile, outfile):
 def write_unichem_concords(structfile, reffile, outdir):
     inchikeys = read_inchikeys(structfile)
     concfiles = {}
+    row_counts = {}
+    double_prefix_warned = set()  # sources where we already logged the strip-warning
     for num, name in unichem_data_sources.items():
         concname = f"{outdir}/UNICHEM_{name}"
         print(concname)
         concfiles[num] = open(concname, "w")
-    with open(reffile) as inf:
-        header_line = inf.readline()
-        assert header_line == "UCI\tSRC_ID\tSRC_COMPOUND_ID\tASSIGNMENT\n", f"Incorrect header line in {reffile}: {header_line}"
-        for line in inf:
-            x = line.rstrip().split("\t")
-            outf = concfiles[x[1]]
-            assert x[3] == "1"  # Only '1' (current) assignments should be in this file
-            # (see https://chembl.gitbook.io/unichem/definitions/what-is-an-assignment).
-            outf.write(f"{unichem_data_sources[x[1]]}:{x[2]}\toio:equivalent\t{inchikeys[x[0]]}\n")
-    for outf in concfiles.values():
-        outf.close()
+        row_counts[num] = 0
+    try:
+        with open(reffile) as inf:
+            header_line = inf.readline()
+            assert header_line == UNICHEM_REFERENCE_TSV_HEADER, f"Incorrect header line in {reffile}: {header_line}"
+            for line in inf:
+                x = line.rstrip().split("\t")
+                src_id = x[1]
+                compound_id = x[2]
+                expected_prefix = unichem_data_sources[src_id]
+                outf = concfiles[src_id]
+                assert x[3] == "1", (  # Only '1' (current) assignments should be in this file
+                    f"Expected assignment '1' (current) but got {x[3]!r} for src_id={src_id!r}, "
+                    f"compound_id={compound_id!r}; filter_unichem should have excluded non-current rows "
+                    f"(see https://chembl.gitbook.io/unichem/definitions/what-is-an-assignment)"
+                )
+
+                # Guard against UniChem embedding the prefix inside the compound ID.
+                # e.g. CHEBI source stores "CHEBI:12345" instead of bare "12345".
+                if ":" in compound_id:
+                    embedded_prefix, bare_id = compound_id.split(":", 1)
+                    if embedded_prefix == expected_prefix:
+                        # Double prefix — strip the embedded one and warn once per source.
+                        if src_id not in double_prefix_warned:
+                            logger.warning(
+                                f"UniChem source {src_id} ({expected_prefix}): compound ID already contains "
+                                f"the prefix (e.g. {compound_id!r}). Stripping embedded prefix. "
+                                f"Consider reporting this to UniChem."
+                            )
+                            double_prefix_warned.add(src_id)
+                        compound_id = bare_id
+                    else:
+                        raise ValueError(
+                            f"UniChem source {src_id} ({expected_prefix}): compound ID {compound_id!r} "
+                            f"contains an unexpected embedded prefix {embedded_prefix!r}. "
+                            f"Expected either a bare ID or one prefixed with {expected_prefix!r}. "
+                            f"Update unichem_data_sources in src/datahandlers/unichem.py if this source "
+                            f"has changed its identifier scheme."
+                        )
+
+                outf.write(f"{expected_prefix}:{compound_id}\toio:equivalent\t{inchikeys[x[0]]}\n")
+                row_counts[src_id] += 1
+    finally:
+        for outf in concfiles.values():
+            outf.close()
+
+    empty_sources = [(num, unichem_data_sources[num]) for num, count in row_counts.items() if count == 0]
+    if empty_sources:
+        descriptions = ", ".join(f"{name!r} (source ID {num!r})" for num, name in empty_sources)
+        raise RuntimeError(
+            f"UniChem reference file produced no entries for the following sources: {descriptions}. "
+            f"These sources may have been removed or renumbered in the current UniChem release. "
+            f"To fix: remove them from unichem_data_sources in src/datahandlers/unichem.py and "
+            f"from unichem_datasources (and chemical_labels/chemical_ids if present) in config.yaml, "
+            f"then rerun this step."
+        )
 
 
 def read_inchikeys(struct_file):
@@ -375,7 +564,7 @@ def read_inchikeys(struct_file):
     inchikeys = {}
     with gzip.open(struct_file, "rt") as inf:
         header_line = inf.readline()
-        assert header_line == "UCI\tSTANDARDINCHI\tSTANDARDINCHIKEY\n", f"Unexpected header line in {struct_file}: {header_line}"
+        assert header_line == UNICHEM_STRUCT_TSV_HEADER, f"Unexpected header line in {struct_file}: {header_line}"
         for sline in inf:
             line = sline.rstrip().split("\t")
             if len(line) == 0:
@@ -406,9 +595,15 @@ def combine_unichem(concordances, output):
                 # Get the prefix from the first row to determine if we need to remove overused xrefs
                 prefixes_in_file.add(Text.get_prefix(x[0]))
 
-        # Was there more than one prefix in the first column?
-        if len(prefixes_in_file) != 1:
-            raise RuntimeError(f"More than one prefix found in {infile}: {prefixes_in_file}. All UNICHEM files should have only one prefix.")
+        # Was there exactly one prefix in the first column?
+        if len(prefixes_in_file) == 0:
+            raise RuntimeError(
+                f"No prefixes found in {infile} (file may be empty or have no valid CURIE in column 1). All UNICHEM files should have exactly one prefix."
+            )
+        if len(prefixes_in_file) > 1:
+            raise RuntimeError(
+                f"Multiple prefixes found in {infile}: {prefixes_in_file}. All UNICHEM files should have exactly one prefix."
+            )
         prefix_to_check = prefixes_in_file.pop()
 
         # Only remove overused xrefs for specific prefixes
@@ -523,7 +718,9 @@ def build_drugcentral_relations(infile, outfile, metadata_yaml):
             if external_ns not in prefixmap:
                 continue
             # print('ok')
-            outf.write(f"{DRUGCENTRAL}:{parts[drugcentral_id_col]}\txref\t{prefixmap[external_ns]}:{parts[external_id_col]}\n")
+            outf.write(
+                f"{DRUGCENTRAL}:{parts[drugcentral_id_col]}\txref\t{prefixmap[external_ns]}:{parts[external_id_col]}\n"
+            )
 
     write_concord_metadata(
         metadata_yaml,
@@ -558,69 +755,222 @@ def make_gtopdb_relations(infile, outfile, metadata_yaml):
     )
 
 
-def make_chebi_relations(sdf, dbx, outfile, propfile_gz, metadata_yaml):
+def split_chebi_sdf_values(value_lines):
+    """
+    Split the value lines of a ChEBI SDF data item into individual values.
+
+    ChEBI packs multiple values for one tag as a semicolon-delimited list, so a tag whose value is
+    "C00001;C00002" is two KEGG accessions, not one. Splitting matters for correctness, not just
+    completeness: joining an unsplit value onto a prefix produces a CURIE like
+    `KEGG.COMPOUND:C00001;C00002` that matches nothing downstream.
+
+    read_sdf() always hands back a *list* of the lines under a tag, so this iterates lines as well
+    as splitting each one. In the babel-1.18 SDF no tag we read spans more than one line -- only
+    `DEFINITION`, which we don't read, does (5 entries) -- but the older code here concatenated
+    multiple lines, so the behaviour is kept rather than assumed away.
+
+    :param value_lines: The list of raw value lines read for one tag.
+    :return: A list of individual values, stripped, with empties dropped.
+    """
+    values = []
+    for line in value_lines:
+        for value in line.split(";"):
+            value = value.strip()
+            if value:
+                values.append(value)
+    return values
+
+
+def read_chebi_lookup_ids(lookup_tsv, wanted_names=None):
+    """
+    Map id -> name for the wanted rows of one of ChEBI's id/name lookup tables.
+
+    database_accession.tsv refers to both its source and its curation status by number only;
+    source.tsv and status.tsv are the lookup tables. Resolving by name means a ChEBI renumbering
+    fails here rather than quietly changing which rows we accept, which is exactly how the SDF tag
+    renames went unnoticed.
+
+    Note that on database_accession.tsv a source_id identifies the *target* database only on
+    MANUAL_X_REF rows -- on rows of other types it records where ChEBI sourced the value instead,
+    which is why callers must pair the source with CHEBI_DBX_ACCESSION_TYPE rather than matching on
+    the source alone.
+
+    :param lookup_tsv: Path to a ChEBI lookup table whose first two columns are `id` and `name`
+        (source.tsv, status.tsv).
+    :param wanted_names: The names to look up, or None for every row (in which case there is nothing
+        to be missing, so no completeness check runs -- used for labelling, not for matching).
+    :return: {id -> name}, restricted to wanted_names.
+    :raise ValueError: If the header is not id/name, or any wanted name is absent from the file.
+    """
+    ids_by_name = {}
+    # Gzip-aware so the documented audit invocation, which points straight at the FTP downloads,
+    # works on the .tsv.gz files as well as the pipeline's decompressed copies.
+    with open_maybe_gzipped(lookup_tsv) as inf:
+        header = inf.readline().rstrip("\n").split("\t")
+        if header[:2] != ["id", "name"]:
+            raise ValueError(
+                f"Unexpected columns in ChEBI lookup file {lookup_tsv}: {header}. "
+                f"Expected it to start with 'id' and 'name'."
+            )
+        for line in inf:
+            row = line.rstrip("\n").split("\t")
+            if len(row) < 2:
+                continue
+            if wanted_names is None or row[1] in wanted_names:
+                ids_by_name[row[0]] = row[1]
+
+    missing = set() if wanted_names is None else set(wanted_names) - set(ids_by_name.values())
+    if missing:
+        raise ValueError(
+            f"ChEBI lookup file {lookup_tsv} does not list these expected names: {sorted(missing)}. "
+            f"ChEBI has probably renamed them; update the matching constant in chemicals.py."
+        )
+    return ids_by_name
+
+
+def check_chebi_sdf_keys(chebi_sdf_dat, sdf):
+    """
+    Fail if any tag make_chebi_relations() reads is absent from every entry of the ChEBI SDF.
+
+    This is the ChEBI SDF's equivalent of checking a CSV header. read_sdf() matches tags by exact
+    string and drops anything it doesn't recognize, so when ChEBI renames a tag the ingest doesn't
+    error -- it just produces nothing for that field, for every compound, and the build completes
+    looking healthy. babel-1.18 shipped that way: `Secondary ChEBI ID` had become `SECONDARY_ID`,
+    so every ChEBI secondary identifier silently stopped normalizing.
+
+    Checking key presence rather than merely "did we write a non-zero number of rows" means the
+    error names the tag that vanished, which is the part that takes the time to work out.
+
+    :param chebi_sdf_dat: The parsed SDF, as returned by read_sdf().
+    :param sdf: The SDF filename, for the error message.
+    :raise ValueError: If any key in CHEBI_SDF_KEYS appears in no entry at all.
+    """
+    keys_seen = set()
+    for props in chebi_sdf_dat.values():
+        keys_seen.update(props.keys())
+
+    missing = CHEBI_SDF_KEYS - keys_seen
+    if missing:
+        raise ValueError(
+            f"ChEBI SDF file {sdf} contains no entries carrying these expected tags: "
+            f"{sorted(missing)}. ChEBI has probably renamed them -- re-audit the file's tags with "
+            f"docs/sources/CHEBI/sdf_tags/audit_sdf_tags.py and update CHEBI_SDF_KEYS to match."
+        )
+
+
+def make_chebi_relations(sdf, dbx, dbx_source, dbx_status, outfile, propfile_gz, metadata_yaml):
     """CHEBI contains relations both about chemicals with and without inchikeys.  You might think that because
     everything is based on unichem, we could avoid the with structures part, but history has shown that we lose
     links in that case, so we will use both the structured and unstructured chemical entries."""
     # THE SDF and XREF stuff are handled in the same function because knowing what we found in the SDF impacts
     # what we want to get out of the xrefs. But the function is quite unwieldy
     # READ SDF
-    ikeys = {x: x for x in ["chebiname", "chebiid", "secondarychebiid", "inchikey", "smiles", "keggcompounddatabaselinks", "pubchemdatabaselinks"]}
-    chebi_sdf_dat = read_sdf(sdf, ikeys)
+    chebi_sdf_dat = read_sdf(sdf, CHEBI_SDF_KEYS)
+    check_chebi_sdf_keys(chebi_sdf_dat, sdf)
     # CHEBIs in the sdf by definition have structure (the sdf is a structure file)
     structured_chebi = set(chebi_sdf_dat.keys())
     # READ xrefs
+    dbx_prefixes_by_source_id = {
+        source_id: CHEBI_DBX_SOURCE_NAMES[name]
+        for source_id, name in read_chebi_lookup_ids(dbx_source, set(CHEBI_DBX_SOURCE_NAMES)).items()
+    }
+    dbx_accepted_status_ids = set(read_chebi_lookup_ids(dbx_status, CHEBI_DBX_ACCEPTED_STATUSES))
     with open(dbx) as inf:
         dbxdata = inf.read()
-    kk = "keggcompounddatabaselinks"
-    pk = "pubchemdatabaselinks"
-    secondary_chebi_id = "secondarychebiid"
+    kk = CHEBI_SDF_KEY_KEGG
+    pk = CHEBI_SDF_KEY_PUBCHEM
+    secondary_chebi_id = CHEBI_SDF_KEY_SECONDARY_ID
 
     # What if we don't have a propfile directory?
-    os.makedirs(dirname(propfile_gz), exist_ok=True)
+    ensure_parent_dir(propfile_gz)
+
+    # Output rows counted per source key rather than in aggregate. A total-count check does not
+    # protect an individual input: the SDF's ~181,000 PubChem xrefs could vanish entirely and KEGG's
+    # ~16,000 would keep it quiet -- which is exactly the shape of the bug this function is being
+    # fixed for. Each key is therefore checked on its own below.
+    counts = Counter()
+    # database_accession.tsv is checked alongside the SDF's tags. It is the input that spent a
+    # release contributing nothing (issue #954) precisely because no check covered it on its own --
+    # the SDF's ~197,000 xrefs kept any whole-output guard quiet.
+    dbx_key = "database_accession.tsv"
 
     with open(outfile, "w") as outf, gzip.open(propfile_gz, "wt") as propf:
         # Write SDF structured things
         for cid, props in chebi_sdf_dat.items():
             if secondary_chebi_id in props:
-                secondary_ids = props[secondary_chebi_id]
-                for secondary_id in secondary_ids:
+                # SECONDARY_ID holds already-prefixed CURIEs, semicolon-delimited on one line, e.g.
+                # CHEBI:421707 "abacavir" carries
+                # "CHEBI:193608;CHEBI:441792;CHEBI:2360;CHEBI:525912;CHEBI:520984".
+                for secondary_id in split_chebi_sdf_values(props[secondary_chebi_id]):
                     propf.write(
                         Property(
-                            curie=cid, predicate=HAS_ALTERNATIVE_ID, value=secondary_id, source=f"Listed as a CHEBI secondary ID in the ChEBI SDF file ({sdf})"
+                            curie=cid,
+                            predicate=HAS_ALTERNATIVE_ID,
+                            value=secondary_id,
+                            source=f"Listed as a CHEBI secondary ID in the ChEBI SDF file ({sdf})",
                         ).to_json_line()
                     )
+                    counts[secondary_chebi_id] += 1
             if kk in props:
-                # This is apparently a list now sometimes?
-                kegg_ids = props[kk]
-                if not isinstance(kegg_ids, list):
-                    kegg_ids = [kegg_ids]
-                for kegg_id in kegg_ids:
+                for kegg_id in split_chebi_sdf_values(props[kk]):
                     outf.write(f"{cid}\txref\t{KEGGCOMPOUND}:{kegg_id}\n")
+                    counts[kk] += 1
             if pk in props:
-                # Apparently there's a lot of structure here?
-                database_links = props[pk]
-                # To simulate previous behavior, I'll concatenate previous values together.
-                v = "".join(database_links)
-                parts = v.split("SID: ")
-                for p in parts:
-                    if "CID" in p:
-                        # mapped = True
-                        x = p.split("CID: ")[1]
-                        outf.write(f"{cid}\txref\t{PUBCHEMCOMPOUND}:{x}\n")
+                # Bare compound IDs, semicolon-delimited. This used to be a single "PubChem Database
+                # Links" tag holding "SID: nnn CID: nnn" pairs, which is why older code here parsed
+                # on those labels; ChEBI now splits substances and compounds into separate tags.
+                # The SDF's ~191,000 PubChem *substance* xrefs are deliberately left alone -- they
+                # are submitter-deposited records and so a much weaker equivalence assertion than a
+                # compound. See docs/sources/CHEBI/README.md if we ever want them.
+                for pubchem_id in split_chebi_sdf_values(props[pk]):
+                    outf.write(f"{cid}\txref\t{PUBCHEMCOMPOUND}:{pubchem_id}\n")
+                    counts[pk] += 1
         # DO THE xref stuff
+        # database_accession.tsv columns: id, compound_id, accession_number, type, status_id,
+        # source_id. Type, source and status must all match: on a CAS row the accession belongs to
+        # CAS rather than to the source that supplied it, and SUBMITTED rows are unreviewed depositor
+        # claims. See CHEBI_DBX_SOURCE_NAMES above.
         lines = dbxdata.split("\n")
         for line in lines[1:]:
             x = line.strip().split("\t")
-            if len(x) < 4:
+            if len(x) < 6:
+                continue
+            if x[3] != CHEBI_DBX_ACCESSION_TYPE:
+                continue
+            if x[4] not in dbx_accepted_status_ids:
+                continue
+            prefix = dbx_prefixes_by_source_id.get(x[5])
+            if prefix is None:
                 continue
             cid = f"{CHEBI}:{x[1]}"
             if cid in structured_chebi:
                 continue
-            if x[3] == "KEGG COMPOUND accession":
-                outf.write(f"{cid}\txref\t{KEGGCOMPOUND}:{x[4]}\n")
-            if x[3] == "Pubchem accession":
-                outf.write(f"{cid}\txref\t{PUBCHEMCOMPOUND}:{x[4]}\n")
+            outf.write(f"{cid}\txref\t{prefix}:{x[2]}\n")
+            counts[dbx_key] += 1
+
+    # Backstop to check_chebi_sdf_keys(): that catches a renamed SDF tag, this catches the failures
+    # a tag name cannot show -- a changed value format, a truncated download, a parse bug. ChEBI
+    # publishes all four of these in every release, so any one coming out empty means a silently
+    # broken build. Counted per input rather than in aggregate: both bugs this function has shipped
+    # were one input going quiet while the others kept a whole-output guard satisfied.
+    #
+    # The dbx count is of rows actually *written*, so it is zero either when that file is broken or,
+    # in principle, when every one of its rows was skipped as already-structured. The second case is
+    # not distinguished, deliberately: it needs all ~18,000 of its accessions to be for SDF entries,
+    # which has never been close to true, and a build where it became true is one worth stopping for.
+    #
+    # Both files have already been written and closed by this point, so the empty file exists on
+    # disk when we raise; Snakemake deletes a failed job's outputs, but a direct call leaves it
+    # behind. Hence "wrote an empty ..." rather than "refusing to write".
+    empty_keys = sorted(key for key in (secondary_chebi_id, kk, pk, dbx_key) if counts[key] == 0)
+    if empty_keys:
+        raise ValueError(
+            f"ChEBI ingest from {sdf} and {dbx} produced no rows at all for: {empty_keys}. The SDF "
+            f"tags themselves are present, so this is not a rename -- look for a changed value "
+            f"format, a changed column layout, or a truncated download. Wrote empty output to "
+            f"{outfile} and {propfile_gz}; delete both and re-run once the cause is fixed."
+        )
+    logger.info(f"make_chebi_relations() wrote {dict(counts)}.")
 
     write_concord_metadata(
         metadata_yaml,
@@ -681,11 +1031,13 @@ def get_mesh_relationships(mesh_id_file, cas_out, unii_out, cas_metadata, unii_m
     )
 
 
-def get_wikipedia_relationships(outfile, metadata_yaml):
+def get_wikipedia_relationships(outfile, config, metadata_yaml):
     url = "https://query.wikidata.org/sparql?format=json&query=SELECT ?chebi ?mesh WHERE { ?compound wdt:P683 ?chebi . ?compound wdt:P486 ?mesh. }"
-    results = requests.get(url).json()
+    results = requests.get(url, headers={"User-Agent": get_user_agent()}).json()
     pairs = [
-        (f"{MESH}:{r['mesh']['value']}", f"{CHEBI}:{r['chebi']['value']}") for r in results["results"]["bindings"] if not r["mesh"]["value"].startswith("M")
+        (f"{MESH}:{r['mesh']['value']}", f"{CHEBI}:{r['chebi']['value']}")
+        for r in results["results"]["bindings"]
+        if not r["mesh"]["value"].startswith("M")
     ]
     # Wikidata is great, except when it sucks.   One thing it likes to do is to
     # have multiple CHEBIs for a concept, say ignoring stereochemistry or
@@ -712,7 +1064,9 @@ def get_wikipedia_relationships(outfile, metadata_yaml):
     )
 
 
-def build_untyped_compendia(concordances, identifiers, unichem_partial, untyped_concord, type_file, metadata_yaml, input_metadata_yamls):
+def build_untyped_compendia(
+    concordances, identifiers, unichem_partial, untyped_concord, type_file, metadata_yaml, input_metadata_yamls
+):
     """:concordances: a list of files from which to read relationships
     :identifiers: a list of files from which to read identifiers and optional categories"""
     dicts = read_partial_unichem(unichem_partial)
@@ -770,13 +1124,42 @@ def build_untyped_compendia(concordances, identifiers, unichem_partial, untyped_
     )
 
 
-def build_compendia(type_file, untyped_compendia_file, properties_jsonl_gz_files, metadata_yamls, icrdf_filename):
+def build_compendia(
+    type_file,
+    untyped_compendia_file,
+    properties_jsonl_gz_files,
+    metadata_yamls,
+    icrdf_filename,
+    food_type_files,
+):
     types = {}
     with open(type_file) as inf:
         for line in inf:
             x = line.strip().split("\t")
             types[x[0]] = x[1]
     logger.info(f"Loaded {len(types)} types from {type_file}: {get_memory_usage_summary()}")
+
+    # Food/extract evidence (issues #828, #935): each file in food_type_files is CURIE\tbiolink:Type.
+    # Today the only producer is the DRUGBANK food-and-extract retype — foods to biolink:Food, extracts
+    # (pollens/danders/...) to biolink:ComplexMolecularMixture. These CURIEs enter chemical cliques via
+    # the UMLS/RXNORM concords carrying no Babel type of their own, so the per-identifier vote alone
+    # would leave them as ChemicalEntity; create_typed_sets adds this evidence to the vote as an extra
+    # candidate.
+    food_types = {}
+    for food_type_file in food_type_files:
+        _, file_types = read_identifier_file(food_type_file)
+        food_types.update(file_types)
+    logger.info(f"Loaded {len(food_types)} food/extract types from {food_type_files}: {get_memory_usage_summary()}")
+
+    # create_typed_sets() ranks this evidence with order.index(), so a type missing from
+    # chemical_type_order is a ValueError tens of millions of cliques into the build. Check it here,
+    # where it costs one pass over a few hundred CURIEs and fails in the first second instead.
+    unrankable = set(food_types.values()) - set(get_config()["chemical_type_order"])
+    if unrankable:
+        raise ValueError(
+            f"Food/extract evidence in {food_type_files} uses types absent from config.yaml's "
+            f"chemical_type_order, so they cannot be ranked against a clique's voted type: {sorted(unrankable)}"
+        )
 
     untyped_sets = set()
     with open(untyped_compendia_file) as inf:
@@ -785,8 +1168,10 @@ def build_compendia(type_file, untyped_compendia_file, properties_jsonl_gz_files
             untyped_sets.add(frozenset(s))
     logger.info(f"Loaded {len(untyped_sets)} untyped sets from {untyped_compendia_file}: {get_memory_usage_summary()}")
 
-    typed_sets = create_typed_sets(untyped_sets, types)
-    logger.info(f"Created {len(typed_sets)} typed sets from {len(untyped_sets)} untyped sets: {get_memory_usage_summary()}")
+    typed_sets = create_typed_sets(untyped_sets, types, food_types)
+    logger.info(
+        f"Created {len(typed_sets)} typed sets from {len(untyped_sets)} untyped sets: {get_memory_usage_summary()}"
+    )
 
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]
@@ -814,18 +1199,44 @@ def build_compendia(type_file, untyped_compendia_file, properties_jsonl_gz_files
             )
 
 
-def create_typed_sets(eqsets, types):
+def create_typed_sets(eqsets, types, food_types):
     """
     Given a set of sets of equivalent identifiers, we want to type each one into
     being a subclass of ChemicalEntity.
 
     :param eqsets: A list of lists of identifiers (should NOT be a list of LabeledIDs, but a list of strings).
     :param types: A dictionary of known types for each identifier. (Some identifiers don't have known types.)
+    :param food_types: {CURIE -> biolink_type} of food/extract evidence (issues #828, #935): a DrugBank
+        material whose UNII's NCIt class says "food", or whose name says "extract". These CURIEs carry no
+        Babel type of their own, so the evidence is added to the clique's type vote as an extra
+        candidate -- *not* as an override. The most preferred of the voted and the food/extract types
+        wins, per ``order``, which is what keeps glucose a SmallMolecule: DrugBank's structureless
+        "Dextrose, unspecified form" is a food, but the clique it gloms into votes SmallMolecule, and
+        SmallMolecule is preferred.
     """
-    order = [DRUG, MOLECULAR_MIXTURE, SMALL_MOLECULE, POLYPEPTIDE, COMPLEX_MOLECULAR_MIXTURE, CHEMICAL_MIXTURE, CHEMICAL_ENTITY]
+    # Most preferred first; see config.yaml: chemical_type_order for the ranking's rationale. Read once
+    # here rather than per clique -- this function iterates tens of millions of them.
+    order = get_config()["chemical_type_order"]
+    # This loop runs once per chemical clique (tens of millions), and food_types holds a few hundred
+    # CURIEs, so test membership with a set intersection rather than a per-member dict lookup.
+    food_curies = frozenset(food_types)
     typed_sets = defaultdict(set)
+
+    def evidence_for(ids):
+        """The food/extract evidence carried by ``ids``, if any (issues #828, #935)."""
+        if food_curies.isdisjoint(ids):
+            return frozenset()
+        return frozenset(food_types[c] for c in ids if c in food_types)
+
+    def assign(biolink_type, ids, food_evidence):
+        """Type a clique as the most preferred of its voted type and any food/extract evidence on it."""
+        typed_sets[min({biolink_type} | food_evidence, key=order.index) if food_evidence else biolink_type].add(ids)
+
     # logging.warning(f"create_typed_sets: eqsets={eqsets}, types=...")
     for equivalent_ids in eqsets:
+        # The evidence joins the vote below rather than overriding it. Recomputed per output clique in
+        # the split branch, since a split sends the evidence CURIE to only one of the two halves.
+        food_evidence = evidence_for(equivalent_ids)
         # logging.warning(f"Processing equivalent_ids={equivalent_ids}.")
         # prefixes = set([ Text.get_curie(x) for x in equivalent_ids])
         prefixes = get_prefixes(equivalent_ids)
@@ -842,9 +1253,9 @@ def create_typed_sets(eqsets, types):
                         pass
 
                 if len(pctypes) == 1:
-                    typed_sets[list(pctypes)[0]].add(equivalent_ids)
+                    assign(list(pctypes)[0], equivalent_ids, food_evidence)
                     found = True
-                elif pctypes == {"biolink:SmallMolecule", "biolink:MolecularMixture"}:
+                elif pctypes == {SMALL_MOLECULE, MOLECULAR_MIXTURE}:
                     # This is a common case (8,178 cases in 2022oct13) which occurs in cases where the InChI for
                     # e.g. water (SMILES: O) and hydron;hydroxide ([H+].[OH-]) are identical, causing them to be
                     # merged. (They may also be merged if we combine two identifiers into a single clique that is
@@ -855,11 +1266,11 @@ def create_typed_sets(eqsets, types):
                     # everything we're _sure_ is a biolink:MolecularMixture into a separate clique, and leave all
                     # the other identifiers as a biolink:SmallMolecule.
                     #
-                    # First reported in https://github.com/TranslatorSRI/Babel/issues/83
+                    # First reported in https://github.com/NCATSTranslator/Babel/issues/83
                     molecular_mixture_ids = set()
                     all_other_ids = set()
                     for eq_id in equivalent_ids:
-                        if eq_id in types and types[eq_id] == "biolink:MolecularMixture":
+                        if eq_id in types and types[eq_id] == MOLECULAR_MIXTURE:
                             molecular_mixture_ids.add(eq_id)
                         else:
                             all_other_ids.add(eq_id)
@@ -870,11 +1281,15 @@ def create_typed_sets(eqsets, types):
                         + f"into a biolink:MolecularMixture ({molecular_mixture_ids}) and "
                         + f"a biolink:SmallMolecule ({all_other_ids})"
                     )
-                    typed_sets["biolink:MolecularMixture"].add(frozenset(molecular_mixture_ids))
-                    typed_sets["biolink:SmallMolecule"].add(frozenset(all_other_ids))
+                    # Each half votes on its own evidence: an extract CURIE that lands in the small
+                    # molecule half must not retype the mixture half to ComplexMolecularMixture.
+                    assign(MOLECULAR_MIXTURE, frozenset(molecular_mixture_ids), evidence_for(molecular_mixture_ids))
+                    assign(SMALL_MOLECULE, frozenset(all_other_ids), evidence_for(all_other_ids))
                     found = True
                 else:
-                    logging.warning(f"An unexpected number of PUBCHEM types found for {equivalent_ids} ({len(pctypes)}): {pctypes}")
+                    logging.warning(
+                        f"An unexpected number of PUBCHEM types found for {equivalent_ids} ({len(pctypes)}): {pctypes}"
+                    )
         if not found:
             typecounts = defaultdict(int)
             for eid in equivalent_ids:
@@ -885,14 +1300,14 @@ def create_typed_sets(eqsets, types):
                 # print(equivalent_ids)
                 # One thing that happens is that we can have PUBCHEMs that have been deleted, but are still in UNICHEM
                 # then the pubchem doesn't get assigned a type, but still ends up in the compendium
-                typed_sets[CHEMICAL_ENTITY].add(equivalent_ids)
+                assign(CHEMICAL_ENTITY, equivalent_ids, food_evidence)
             elif len(typecounts) == 1:
                 t = list(typecounts.keys())[0]
-                typed_sets[t].add(equivalent_ids)
+                assign(t, equivalent_ids, food_evidence)
             else:
                 # First attempt is majority vote, and after that by most specific
                 otypes = [(-c, order.index(t), t) for t, c in typecounts.items()]
                 otypes.sort()
                 t = otypes[0][2]
-                typed_sets[t].add(equivalent_ids)
+                assign(t, equivalent_ids, food_evidence)
     return typed_sets

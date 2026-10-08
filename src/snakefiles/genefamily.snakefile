@@ -8,6 +8,8 @@ rule genefamily_pantherfamily_ids:
         infile=config["download_directory"] + "/PANTHER.FAMILY/labels",
     output:
         outfile=config["intermediate_directory"] + "/genefamily/ids/PANTHER.FAMILY",
+    benchmark:
+        config["output_directory"] + "/benchmarks/genefamily_pantherfamily_ids.tsv"
     shell:
         #This one is a simple enough transform to do with awk
         "awk '{{print $1\"\tbiolink:GeneFamily\"}}' {input.infile} > {output.outfile}"
@@ -18,6 +20,8 @@ rule genefamily_hgncfamily_ids:
         infile=config["download_directory"] + "/HGNC.FAMILY/labels",
     output:
         outfile=config["intermediate_directory"] + "/genefamily/ids/HGNC.FAMILY",
+    benchmark:
+        config["output_directory"] + "/benchmarks/genefamily_hgncfamily_ids.tsv"
     shell:
         #This one is a simple enough transform to do with awk
         "awk '{{print $1\"\tbiolink:GeneFamily\"}}' {input.infile} > {output.outfile}"
@@ -35,6 +39,8 @@ rule genefamily_compendia:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["genefamily_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["genefamily_outputs"])),
         metadata_yaml=config["output_directory"] + "/metadata/GeneFamily.txt.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/genefamily_compendia.tsv"
     run:
         genefamily.build_compendia(input.idlists, input.metadata_yamls, input.icrdf_filename)
 
@@ -44,6 +50,8 @@ rule check_genefamily_completeness:
         input_compendia=expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["genefamily_outputs"]),
     output:
         report_file=config["output_directory"] + "/reports/genefamily_completeness.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_genefamily_completeness.tsv"
     run:
         assessments.assess_completeness(
             config["intermediate_directory"] + "/genefamily/ids", input.input_compendia, output.report_file
@@ -55,6 +63,8 @@ rule check_genefamily:
         infile=config["output_directory"] + "/compendia/GeneFamily.txt",
     output:
         outfile=config["output_directory"] + "/reports/GeneFamily.txt",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_genefamily.tsv"
     run:
         assessments.assess(input.infile, output.outfile)
 
@@ -67,6 +77,8 @@ rule genefamily:
     output:
         synonyms_gzipped=expand("{od}/synonyms/{ap}.gz", od=config["output_directory"], ap=config["genefamily_outputs"]),
         x=config["output_directory"] + "/reports/genefamily_done",
+    benchmark:
+        config["output_directory"] + "/benchmarks/genefamily.tsv"
     run:
         util.gzip_files(input.synonyms)
         util.write_done(output.x)

@@ -1,0 +1,40 @@
+{
+  "compendium_path": "babel_outputs/compendia/Publication.txt",
+  "count_by_biolink_type": {
+    "biolink:Publication": 40819774
+  },
+  "count_by_prefix": {
+    "PMC": 11265870,
+    "PMID": 40819774,
+    "doi": 31884189
+  },
+  "count_lines": 40819774,
+  "counters": {
+    "clique_count": 40819774,
+    "cliques_by_description_count": {
+      "0": 40819774
+    },
+    "cliques_by_id_count": {
+      "1": 8222765,
+      "2": 22044446,
+      "3": 10552112,
+      "4": 423,
+      "5": 22,
+      "6": 4,
+      "7": 2
+    },
+    "cliques_by_label_count": {
+      "0": 106089,
+      "1": 40713685
+    },
+    "cliques_by_unique_description_count": {
+      "0": 40819774
+    },
+    "cliques_by_unique_label_count": {
+      "0": 106089,
+      "1": 40713685
+    }
+  },
+  "name": "Publication",
+  "report_path": "babel_outputs/reports/content/compendia/Publication.json"
+}

@@ -3,12 +3,12 @@
 #
 # OPIOID USE DISORDER
 #
-# As per https://github.com/TranslatorSRI/Babel/issues/265, we would like to combine
+# As per https://github.com/NCATSTranslator/Babel/issues/265, we would like to combine
 # a bunch of opioid use order cliques.
 
 # Opioid dependence (which we combine incorrectly with opiate dependence following MONDO)
 MONDO:0005530	xref	UMLS:C4324621
-# This combination is as per https://github.com/TranslatorSRI/Babel/issues/270
+# This combination is as per https://github.com/NCATSTranslator/Babel/issues/270
 UMLS:C4324621	xref	EFO:0010702
 
 # For these UMLS terms, we rather imprecisely connect them with:
@@ -112,7 +112,7 @@ MONDO:0007079	oio:closeMatch	UMLS:C4536264
 # See https://github.com/NCATSTranslator/Tests/issues/92
 MONDO:0005799	xref	MESH:D006725
 
-# These pairs were reported by Gwenlyn in https://github.com/TranslatorSRI/Babel/issues/333
+# These pairs were reported by Gwenlyn in https://github.com/NCATSTranslator/Babel/issues/333
 MONDO:0007540	oio:closeMatch	DOID:10017
 HP:0003124	oio:closeMatch	NCIT:C37967
 EFO:1001393	oio:closeMatch	UMLS:C0031094
