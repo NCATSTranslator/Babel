@@ -1,7 +1,8 @@
 # Tests for datahandlers/umls.py
 import pytest
 
-from src.datahandlers.umls import build_sets
+import src.datahandlers.umls as umls
+from src.datahandlers.umls import build_sets, pull_umls
 
 
 def mrconso_row(cui, sab, tty, code, label, lat="ENG", suppress="N"):
@@ -47,3 +48,26 @@ def test_build_sets_go_uses_preferred_terms_only(tmp_path):
         ("UMLS:C0000002", "eq", "GO:0000002"),
         ("UMLS:C0000002", "eq", "MESH:D000002"),
     }
+
+
+@pytest.mark.unit
+def test_pull_umls_skips_go_synonyms(tmp_path, monkeypatch):
+    monkeypatch.setattr(umls, "make_local_name", lambda fname, subpath=None: str(tmp_path / f"{subpath}_{fname}"))
+    monkeypatch.setattr(umls, "read_umls_priority", lambda: {("MSH", "MH", "N"): 0, ("GO", "PT", "N"): 1, ("GO", "ET", "N"): 2})
+    rows = [
+        # A CUI with clinical and GO atoms, including a GO entry term carrying a different GO ID.
+        mrconso_row("C0000001", "MSH", "MH", "D000001", "Lipolysis"),
+        mrconso_row("C0000001", "GO", "PT", "GO:0016042", "lipid catabolic process"),
+        mrconso_row("C0000001", "GO", "ET", "GO:0000002", "some other GO term"),
+        # A GO-only CUI still gets its label from GO.
+        mrconso_row("C0000002", "GO", "PT", "GO:0000003", "only from GO"),
+    ]
+    mrconso = tmp_path / "MRCONSO.RRF"
+    mrconso.write_text("".join(rows))
+
+    pull_umls(str(mrconso))
+
+    labels = dict(line.split("\t") for line in (tmp_path / "UMLS_labels").read_text().splitlines())
+    assert labels == {"UMLS:C0000001": "Lipolysis", "UMLS:C0000002": "only from GO"}
+    synonyms = {tuple(line.split("\t")[::2]) for line in (tmp_path / "UMLS_synonyms").read_text().splitlines()}
+    assert synonyms == {("UMLS:C0000001", "Lipolysis")}

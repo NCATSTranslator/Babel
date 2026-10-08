@@ -436,7 +436,7 @@ def pull_umls(mrconso):
                 logger.warning(f"Priority not found for key {pkey}. Defaulting to high priority (1000000).")
                 # print(pkey)
                 pri = 1000000
-            rows[cui].append((pri, term, line))
+            rows[cui].append((pri, term, source))
     lname = make_local_name("labels", subpath="UMLS")
     sname = make_local_name("synonyms", subpath="UMLS")
     re_numerical = re.compile(r"^\s*[+-]*[\d\.]+\s*$")
@@ -444,7 +444,10 @@ def pull_umls(mrconso):
         for cui, crows in rows.items():
             crows.sort()
             labels.write(f"{UMLS}:{cui}\t{crows[0][1]}\n")
-            syns = set([crow[1] for crow in crows])
+            # GO atoms are still used for labels (many CUIs are GO-only), but not for synonyms. Babel loads GO's
+            # synonyms from GO itself, so UMLS's copy only adds strings that are stale (GO has since dropped or moved
+            # them) or that belong to a different GO term in CUIs where UMLS has lumped several GO terms together.
+            syns = set([crow[1] for crow in crows if crow[2] != "GO"])
             for s in syns:
                 # Skip any synonyms that are purely numerical, since those are unlikely to be useful.
                 if re_numerical.fullmatch(s):
