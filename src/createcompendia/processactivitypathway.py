@@ -47,7 +47,7 @@ def write_umls_ids(mrsty, outfile):
 
 
 def build_process_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
-    umls.build_sets(mrconso, idfile, outfile, {"GO": GO}, provenance_metadata_yaml=metadata_yaml)
+    umls.build_sets(mrconso, idfile, outfile, {"GO": GO}, provenance_metadata_yaml=metadata_yaml, go_preferred_terms_only=True)
 
 
 def build_process_obo_relationships(outdir, metadata_yaml):

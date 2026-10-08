@@ -40,11 +40,23 @@ def test_build_sets_go_uses_preferred_terms_only(tmp_path):
     idfile.write_text("".join(f"UMLS:{cui}\tbiolink:BiologicalProcess\n" for cui in ["C1158785", "C2249862", "C2249863", "C0000002", "C0000003"]))
     outfile = tmp_path / "concord"
 
+    build_sets(str(mrconso), str(idfile), str(outfile), {"GO": "GO", "MSH": "MESH"}, go_preferred_terms_only=True)
+
+    pairs = {tuple(line.rstrip("\n").split("\t")) for line in outfile.read_text().splitlines()}
+    assert pairs == {
+        ("UMLS:C1158785", "eq", "GO:0045943"),
+        ("UMLS:C0000002", "eq", "GO:0000002"),
+        ("UMLS:C0000002", "eq", "MESH:D000002"),
+    }
+
+    # Without the flag (as used for anatomy), every non-suppressed GO atom is used.
     build_sets(str(mrconso), str(idfile), str(outfile), {"GO": "GO", "MSH": "MESH"})
 
     pairs = {tuple(line.rstrip("\n").split("\t")) for line in outfile.read_text().splitlines()}
     assert pairs == {
         ("UMLS:C1158785", "eq", "GO:0045943"),
+        ("UMLS:C2249862", "eq", "GO:0045943"),
+        ("UMLS:C2249863", "eq", "GO:0045943"),
         ("UMLS:C0000002", "eq", "GO:0000002"),
         ("UMLS:C0000002", "eq", "MESH:D000002"),
     }

@@ -209,7 +209,15 @@ def write_rxnorm_ids(category_map, bad_categories, infile, outfile, prefix=RXCUI
 # The second is because I want to use the UMLS as a source for some terminologies (SNOMED) even if there's another
 #  way.  I'm going to modify this to do one thing at a time, and if it takes a little longer, then so be it.
 def build_sets(
-    mrconso, umls_input, umls_output, other_prefixes, bad_mappings=defaultdict(set), acceptable_identifiers={}, cui_prefix=UMLS, provenance_metadata_yaml=None
+    mrconso,
+    umls_input,
+    umls_output,
+    other_prefixes,
+    bad_mappings=defaultdict(set),
+    acceptable_identifiers={},
+    cui_prefix=UMLS,
+    provenance_metadata_yaml=None,
+    go_preferred_terms_only=False,
 ):
     """Given a list of umls identifiers we want to generate all the concordances
     between UMLS and that other entity"""
@@ -223,7 +231,9 @@ def build_sets(
     # GO has the same problem: UMLS keeps GO synonym atoms (SY, ET, ...) with the GO code of the term they came from,
     # but often places them in different CUIs (e.g. "activation of X" for "positive regulation of X"). Taking all of
     # them maps one GO term to several CUIs, and the downstream overused-xref filter then drops every pair for that
-    # GO term. So we only take GO's preferred term (PT), plus MTH_PT where NLM has altered the preferred name.
+    # GO term. With go_preferred_terms_only, we only take GO's preferred term (PT), plus MTH_PT where NLM has altered
+    # the preferred name. This is opt-in because in anatomy (cellular component), CUIs also link to MESH, SNOMEDCT,
+    # NCIT and FMA, and the extra GO mappings it produces join existing cliques that have not been reviewed yet.
     umls_ids = set()
     with open(umls_input) as inf:
         for line in inf:
@@ -254,7 +264,7 @@ def build_sets(
                 continue
             if (source == "DRUGBANK") and (tty not in acceptable_drugbank_tty):
                 continue
-            if (source == "GO") and (tty not in acceptable_go_tty):
+            if go_preferred_terms_only and (source == "GO") and (tty not in acceptable_go_tty):
                 continue
             # For some dippy reason, in the id column they say "HGNC:76"
             pref = other_prefixes[source]
@@ -281,7 +291,8 @@ def build_sets(
             provenance_metadata_yaml,
             name="umls.build_sets()",
             sources=[{"type": "UMLS", "name": "MRCONSO"}],
-            description=f"umls.build_sets() using UMLS MRCONSO with prefixes: {other_prefixes} with cui_prefix set to {cui_prefix}",
+            description=f"umls.build_sets() using UMLS MRCONSO with prefixes: {other_prefixes} with cui_prefix set to {cui_prefix}"
+            + (f", using only GO atoms with term types {sorted(acceptable_go_tty)}" if go_preferred_terms_only else ""),
             concord_filename=umls_output,
         )
 
