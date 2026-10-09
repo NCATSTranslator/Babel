@@ -122,7 +122,6 @@ anatomy_concords:
   - GO
   - CL
   - UMLS
-  - UMLS_SNOMED_ENTIRE
   - WIKIDATA
 
 anatomy_outputs:

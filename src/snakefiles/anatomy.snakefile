@@ -92,17 +92,6 @@ rule get_anatomy_umls_relationships:
         anatomy.build_anatomy_umls_relationships(input.mrconso, input.infile, output.outfile, output.umls_metadata)
 
 
-rule get_anatomy_snomed_entire_relationships:
-    input:
-        mrrel=config["download_directory"] + "/UMLS/MRREL.RRF",
-        infile=config["intermediate_directory"] + "/anatomy/ids/UMLS",
-    output:
-        outfile=config["intermediate_directory"] + "/anatomy/concords/UMLS_SNOMED_ENTIRE",
-        metadata=config["intermediate_directory"] + "/anatomy/concords/metadata-UMLS_SNOMED_ENTIRE.yaml",
-    run:
-        anatomy.build_anatomy_snomed_entire_relationships(input.mrrel, input.infile, output.outfile, output.metadata)
-
-
 rule anatomy_compendia:
     input:
         labels=os.path.join(config["download_directory"], "common", config["common"]["labels"][0]),
