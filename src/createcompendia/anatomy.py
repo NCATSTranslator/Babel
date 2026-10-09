@@ -177,6 +177,10 @@ def build_anatomy_umls_relationships(mrconso, idfile, outfile, umls_metadata):
     umls.build_sets(mrconso, idfile, outfile, {"SNOMEDCT_US": SNOMEDCT, "MSH": MESH, "NCI": NCIT, "GO": GO, "FMA": FMA}, provenance_metadata_yaml=umls_metadata)
 
 
+def build_anatomy_snomed_entire_relationships(mrrel, idfile, outfile, metadata_yaml):
+    umls.build_snomed_entire_structure_pairs(mrrel, idfile, outfile, metadata_yaml)
+
+
 def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
     """:concordances: a list of files from which to read relationships
     :identifiers: a list of files from which to read identifiers and optional categories"""

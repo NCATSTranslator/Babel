@@ -279,6 +279,50 @@ def build_sets(
         )
 
 
+def build_snomed_entire_structure_pairs(mrrel, umls_input, umls_output, provenance_metadata_yaml):
+    """Write UMLS-UMLS concords linking SNOMED CT "X structure" concepts to their "Entire X" concepts.
+
+    SNOMED CT models anatomy with structure/entire/part triplets, so most anatomical concepts appear as two
+    SNOMED concepts (e.g. "Spiral ganglion structure" and "Entire spiral ganglion") that UMLS keeps as separate
+    CUIs.  SNOMED links them explicitly with has_entire_anatomy_structure, which we read from MRREL.  We only
+    keep active relationships between CUIs in umls_input, and only pairs where each CUI occurs in exactly one
+    pair, so that a CUI with several entire/structure partners doesn't pull them all together.
+
+    In MRREL, the RELA is the relationship of CUI2 to CUI1, so a has_entire_anatomy_structure row has the
+    structure in CUI2 and the entire concept in CUI1.
+    """
+    umls_ids = set()
+    with open(umls_input) as inf:
+        for line in inf:
+            umls_ids.add(line.strip().split("\t")[0].split(":")[1])
+    pairs = set()
+    with open(mrrel) as inf:
+        for line in inf:
+            x = line.split("|")
+            # x[10] is SAB, x[7] is RELA, x[14] is SUPPRESS
+            if x[10] != "SNOMEDCT_US" or x[7] != "has_entire_anatomy_structure" or x[14] != "N":
+                continue
+            entire, structure = x[0], x[4]
+            if entire != structure and entire in umls_ids and structure in umls_ids:
+                pairs.add((structure, entire))
+    counts = defaultdict(int)
+    for structure, entire in pairs:
+        counts[structure] += 1
+        counts[entire] += 1
+    with open(umls_output, "w") as outf:
+        for structure, entire in sorted(pairs):
+            if counts[structure] == 1 and counts[entire] == 1:
+                outf.write(f"{UMLS}:{structure}\teq\t{UMLS}:{entire}\n")
+
+    write_concord_metadata(
+        provenance_metadata_yaml,
+        name="umls.build_snomed_entire_structure_pairs()",
+        sources=[{"type": "UMLS", "name": "MRREL"}],
+        description="SNOMEDCT_US has_entire_anatomy_structure relationships from UMLS MRREL, restricted to active one-to-one pairs",
+        concord_filename=umls_output,
+    )
+
+
 def read_umls_priority():
     mrp = os.path.join("input_data", "umls_precedence.txt")
     pris = []
