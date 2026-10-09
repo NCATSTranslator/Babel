@@ -163,7 +163,7 @@ anatomy_xref_prefixes:
     # no UBERON SNOMED xref joined anything. Most point at SNOMED "Entire X" concepts, which UBERON
     # treats as equivalent; "X structure" concepts mean "X or any part of X" and are deliberately NOT
     # linked to their "Entire X" partner here (obophenotype/uberon#3287, #3786;
-    # docs/sources/UBERON/README.md).
+    # docs/sources/UBERON/umls-joins/README.md).
     SCTID: SNOMEDCT
   GO: {}
   EMAPA: {}

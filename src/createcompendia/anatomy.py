@@ -241,8 +241,8 @@ ANATOMY_OBO_IGNORE_LIST = [
 # xrefs to mean "part of", but CL subclasses are never written from the UBERON root (build_sets drops
 # other ontologies' terms) and CL now comes from Wikidata. UBERON's FMA xrefs are mostly exact, and are
 # the only bridge to the many UMLS concepts whose sole source is FMA/UWDA: the full-build comparison in
-# docs/sources/UBERON/README.md found ~3,000 more UBERON/UMLS joins from FMA and only a handful of
-# wrong merges, each traced to an imprecise UBERON xref or a UMLS concept that bundles two FMA terms.
+# docs/sources/UBERON/umls-joins/README.md found ~2,900 more UBERON/UMLS joins from FMA, and the wrong
+# merges it found traced to individual UBERON xrefs now listed in input_data/anatomy_badxrefs.txt.
 # GO and EMAPA keep the shared list; their FMA xrefs have not been reviewed.
 UBERON_OBO_IGNORE_LIST = [prefix for prefix in ANATOMY_OBO_IGNORE_LIST if prefix != FMA]
 

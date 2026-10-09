@@ -21,7 +21,7 @@ from src.util import get_biolink_model_toolkit, get_config
 def test_uberon_sctid_xrefs_are_renamed_to_snomedct():
     """UBERON's SCTID xrefs should be renamed to SNOMEDCT, the spelling the UMLS concord uses.
 
-    Without the rename no UBERON SNOMED xref can join a UMLS concept (docs/sources/UBERON/README.md).
+    Without the rename no UBERON SNOMED xref can join a UMLS concept (docs/sources/UBERON/umls-joins/README.md).
     """
     assert get_anatomy_xref_prefix_map(UBERON) == {"SCTID": SNOMEDCT}
 
