@@ -11,7 +11,7 @@ from src.metadata.provenance import write_concord_metadata
 from src.model.cliques import glom_from_files
 from src.prefixes import CL, EMAPA, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import HIERARCHY_PART_OF, UberGraph, build_sets
-from src.util import Text, get_config, get_logger, get_repo_root
+from src.util import Text, get_config, get_logger, get_repo_root, validate_xref_prefix_map
 
 logger = get_logger(__name__)
 
@@ -209,7 +209,7 @@ def write_umls_ids(mrsty, outfile):
 
 # Ignore list notes:
 # The BTO and BAMs and HTTP (braininfo) identifiers promote over-glommed nodes
-# FMA is a specific problem where in CL they use FMA xref to mean 'part of'
+# FMA is a specific problem where in CL they use FMA xref to mean 'part of' (but see UBERON_OBO_IGNORE_LIST)
 # CALOHA is a specific problem where in CL they use FMA xref to mean 'part of'
 # GOC is a specific problem where in CL they use FMA xref to mean 'part of'
 # wikipedia.en is a specific problem where in CL they use FMA xref to mean 'part of'
@@ -237,6 +237,20 @@ ANATOMY_OBO_IGNORE_LIST = [
     "OPENCYC",
 ]
 
+# UBERON's own ignore list: ANATOMY_OBO_IGNORE_LIST minus FMA. FMA was excluded because CL uses FMA
+# xrefs to mean "part of", but CL subclasses are never written from the UBERON root (build_sets drops
+# other ontologies' terms) and CL now comes from Wikidata. UBERON's FMA xrefs are mostly exact, and are
+# the only bridge to the many UMLS concepts whose sole source is FMA/UWDA: the full-build comparison in
+# docs/sources/UBERON/README.md found ~3,000 more UBERON/UMLS joins from FMA and only a handful of
+# wrong merges, each traced to an imprecise UBERON xref or a UMLS concept that bundles two FMA terms.
+# GO and EMAPA keep the shared list; their FMA xrefs have not been reviewed.
+UBERON_OBO_IGNORE_LIST = [prefix for prefix in ANATOMY_OBO_IGNORE_LIST if prefix != FMA]
+
+
+def get_anatomy_xref_prefix_map(source):
+    """Return `config.yaml: anatomy_xref_prefixes[source]`, the renames applied to a source's xref targets."""
+    return validate_xref_prefix_map(get_config()["anatomy_xref_prefixes"][source], f"anatomy_xref_prefixes[{source}]")
+
 
 def build_emapa_obo_relationships(concordfiles):
     """Write EMAPA's xref concords into ``concordfiles`` (a {prefix: open file} mapping).
@@ -255,6 +269,7 @@ def build_emapa_obo_relationships(concordfiles):
         concordfiles,
         "xref",
         ignore_list=ANATOMY_OBO_IGNORE_LIST,
+        other_prefixes=get_anatomy_xref_prefix_map(EMAPA),
         hierarchy_predicate=HIERARCHY_PART_OF,
     )
 
@@ -268,12 +283,13 @@ def build_anatomy_obo_relationships(outdir, metadata_yamls):
         open(f"{outdir}/{EMAPA}", "w") as emapa,
     ):
         source_to_concord = {UBERON: uberon, GO: go, CL: cl, EMAPA: emapa}
-        for source_prefix in [UBERON, GO]:
+        for source_prefix, ignore_list in [(UBERON, UBERON_OBO_IGNORE_LIST), (GO, ANATOMY_OBO_IGNORE_LIST)]:
             build_sets(
                 ANATOMY_OBO_SOURCES[source_prefix]["root"],
                 source_to_concord,
                 "xref",
-                ignore_list=ANATOMY_OBO_IGNORE_LIST,
+                ignore_list=ignore_list,
+                other_prefixes=get_anatomy_xref_prefix_map(source_prefix),
             )
         build_emapa_obo_relationships(source_to_concord)
         # CL is now being handled by Wikidata (build_wikidata_cell_relationships), so we can probably remove it from here.
@@ -293,7 +309,7 @@ def build_anatomy_obo_relationships(outdir, metadata_yamls):
                 "get_subclasses_and_xrefs() of "
                 f"{ANATOMY_OBO_SOURCES[UBERON]['root']}, "
                 f"{ANATOMY_OBO_SOURCES[GO]['root']}, and "
-                f"{ANATOMY_OBO_SOURCES[EMAPA]['root']}"
+                f"{ANATOMY_OBO_SOURCES[EMAPA]['root']}, with renames from config.yaml: anatomy_xref_prefixes"
             ),
             concord_filename=f"{outdir}/{metadata_name}",
         )

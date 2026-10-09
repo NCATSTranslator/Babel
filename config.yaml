@@ -153,6 +153,20 @@ anatomy_outputs:   [AnatomicalEntity.txt, Cell.txt, CellularComponent.txt, Gross
 # lost the resulting contest without having its own ids-file row.  See
 # docs/sources/EMAPA/README.md, which flags this for SME review.
 anatomy_unique_prefixes: [UBERON, GO]
+# Renames applied by norm() to each anatomy OBO source's xref targets, so they use the spelling the
+# other anatomy concords use (see docs/sources/CLAUDE.md, "A missing prefix rename is the same bug,
+# spelled differently"). Every source built by build_anatomy_obo_relationships needs an entry, even
+# an empty one, so a missing source fails loudly instead of silently skipping its renames.
+anatomy_xref_prefixes:
+  UBERON:
+    # UBERON writes SNOMED CT as SCTID (~4,100 xrefs); the UMLS concord writes SNOMEDCT. Without this,
+    # no UBERON SNOMED xref joined anything. Most point at SNOMED "Entire X" concepts, which UBERON
+    # treats as equivalent; "X structure" concepts mean "X or any part of X" and are deliberately NOT
+    # linked to their "Entire X" partner here (obophenotype/uberon#3287, #3786;
+    # docs/sources/UBERON/README.md).
+    SCTID: SNOMEDCT
+  GO: {}
+  EMAPA: {}
 
 gene_labels:   [HGNC, NCBIGene, UMLS, OMIM]
 gene_ids:      [ENSEMBL, HGNC, NCBIGene, UMLS, OMIM, ZFIN, WormBase, FB, MGI, RGD, SGD]
