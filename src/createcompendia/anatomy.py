@@ -457,7 +457,25 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, b
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]
-        write_compendium(metadata_yamls, sets, f"{baretype}.txt", biotype, {}, icrdf_filename=icrdf_filename)
+        write_compendium(
+            metadata_yamls,
+            sets,
+            f"{baretype}.txt",
+            biotype,
+            {},
+            extra_prefixes=get_anatomy_extra_prefixes(biotype),
+            icrdf_filename=icrdf_filename,
+        )
+
+
+def get_anatomy_extra_prefixes(biotype):
+    """Return the prefixes to ship for one Biolink class beyond those Biolink registers for it.
+
+    Read per class from `config.yaml: anatomy_extra_prefixes_by_biolink_class`: extra_prefixes is a
+    per-class allowlist, so an exemption argued for one class must not be granted to the others. A class
+    with no entry gets nothing.
+    """
+    return list(get_config()["anatomy_extra_prefixes_by_biolink_class"].get(biotype, []))
 
 
 def classify_anatomy_clique(equivalent_ids, types):
