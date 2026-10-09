@@ -92,7 +92,8 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
     # files, and maybe we should here too?
     # GO:0034227/EC:2.8.1.4 is because that go term is a biological process, but EC is not a valid prefix for that,
     #  leading to a loss of the EC term (and a unified RHEA) on output.
-    bad_concords = set(frozenset(["GO:0034227", "EC:2.8.1.4"]))
+    # A set *of* frozensets: set(frozenset([...])) would be a set of the two CURIE strings, which no pair matches.
+    bad_concords = {frozenset(["GO:0034227", "EC:2.8.1.4"])}
     dicts = {}
     types = {}
     for ifile in identifiers:
