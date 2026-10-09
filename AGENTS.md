@@ -214,6 +214,9 @@ rule's resource requirements to decide.
 
 A killed run can leave `LockException: Directory cannot be locked` on the next invocation; clear it
 with `uv run snakemake --unlock`.
+Before running Snakemake by hand, read "Common build issues" in `docs/RunningBabel.md`. Above all,
+put the target *before* `--forcerun`: after it, the target is read as a rule name and Snakemake
+builds the whole pipeline.
 
 Most semantic-type targets are much cheaper than the full pipeline (anatomy builds end-to-end on a
 laptop in ~25 minutes; the README's 500 GB figure is for the heaviest targets only). See
