@@ -31,5 +31,22 @@
     "dropped from CUIs in a GO clique, already a name of that GO term": 4,
     "dropped from CUIs in a GO clique, not a current GO name": 1,
     "dropped from CUIs not in a GO clique (names lost)": 18
-  }
+  },
+  "synonyms, drop GO atoms of other GO terms: kept on CUIs in a GO clique, a name of a different GO term": {
+    "on CUIs with several GO preferred terms": 21,
+    "on CUIs with one GO preferred term (GO has since moved the name)": 13
+  },
+  "synonyms, examples of those kept strings": [
+    "UMLS:C0021721 (in a clique with GO:0030054): 'cell-cell junction'",
+    "UMLS:C0242358 (in a clique with GO:0070160): 'bicellular tight junction'",
+    "UMLS:C0887869 (in a clique with GO:0030055): 'cell-matrix adhesion'",
+    "UMLS:C0887883 (in a clique with GO:0005769): 'endocytotic vesicle'",
+    "UMLS:C1151365 (in a clique with GO:0004128): 'NADH 5alpha-reductase activity'",
+    "UMLS:C1151365 (in a clique with GO:0004128): 'NADH-ferricytochrome b5 oxidoreductase activity'",
+    "UMLS:C1151365 (in a clique with GO:0004128): 'reduced nicotinamide adeninedinucleotide-cytochrome b5 reductase activity'",
+    "UMLS:C1156885 (in a clique with GO:0006041): 'glucosamines metabolism'",
+    "UMLS:C1324140 (in a clique with GO:0047995): 'hydroxyphenylpyruvate reductase activity'",
+    "UMLS:C1324882 (in a clique with GO:0035251): 'UDP-glucose:phenol beta-D-glucosyltransferase activity'"
+  ],
+  "labels: CUIs whose UMLS label comes from a GO atom the shipped rule skips": 0
 }

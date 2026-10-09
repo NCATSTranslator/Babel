@@ -74,7 +74,22 @@ activity" and [`GO:0090483`](http://purl.obolibrary.org/obo/GO_0090483)
 preferred term, like `C2249862`, keeps all its GO atoms, since those are its own names.
 
 Against 2026jul22, this drops 163 strings that are names of a different GO term from CUIs that join
-a GO clique (of 197 such strings), and 18 strings from CUIs that don't.
+a GO clique (of 197 such strings), and 18 strings from CUIs that don't. The rule is
+`umls.is_other_go_term_atom()`, which the report script imports.
+
+It keeps the other 34, because MRCONSO alone can't identify them:
+
+- 21 are on CUIs with more than one GO preferred term. All of those terms count as the CUI's own,
+  but it can join only one of them. For example, `C0021721` "Intercellular Junctions" joins
+  [`GO:0030054`](http://purl.obolibrary.org/obo/GO_0030054) "cell junction" and keeps "cell-cell
+  junction". Most of these CUIs are in anatomy, where
+  [#1137](https://github.com/NCATSTranslator/Babel/issues/1137) covers them.
+- 13 are filed under the CUI's own GO code, but current GO gives that name only to another term.
+  Catching them would need GO's current names in `pull_umls()`, which reads only MRCONSO.
+
+Labels need no such check. `input_data/umls_precedence.txt` ranks GO's `PT` above every other GO
+term type, so a CUI with a GO preferred term never takes its label from an atom this rule skips. The
+report confirms this: 0 such CUIs.
 
 ### Considered and rejected: dropping every GO atom
 
