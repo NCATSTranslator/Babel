@@ -94,7 +94,9 @@ def write_umls_ids(mrsty, outfile):
 
 # Ignore list notes:
 # The BTO and BAMs and HTTP (braininfo) identifiers promote over-glommed nodes
-# FMA is a specific problem where in CL they use FMA xref to mean 'part of'
+# FMA is a specific problem where in CL they use FMA xref to mean 'part of'.  CL terms are never written by these
+#   queries (build_sets skips subclasses from other ontologies), so UBERON's FMA xrefs are allowed.  They are good
+#   quality and are the main bridge to UMLS CUIs that only come from FMA/UWDA.  FMA is still ignored for GO.
 # CALOHA is a specific problem where in CL they use FMA xref to mean 'part of'
 # GOC is a specific problem where in CL they use FMA xref to mean 'part of'
 # wikipedia.en is a specific problem where in CL they use FMA xref to mean 'part of'
@@ -102,12 +104,15 @@ def write_umls_ids(mrsty, outfile):
 # CL only shows up as an xref once in uberon, and it's a mistake.  It doesn't show up in anything else.
 # GO only shows up as an xref once in uberon, and it's a mistake.  It doesn't show up in anything else.
 # PMID is just wrong
+# UBERON writes SNOMED CT xrefs as SCTID, but the UMLS concord uses SNOMEDCT, so we normalize them to match.
 def build_anatomy_obo_relationships(outdir, metadata_yamls):
-    ignore_list = ["PMID", "BTO", "BAMS", "FMA", "CALOHA", "GOC", "WIKIPEDIA.EN", "CL", "GO", "NIF_SUBCELLULAR", "HTTP", "OPENCYC"]
+    uberon_ignore_list = ["PMID", "BTO", "BAMS", "CALOHA", "GOC", "WIKIPEDIA.EN", "CL", "GO", "NIF_SUBCELLULAR", "HTTP", "OPENCYC"]
+    go_ignore_list = uberon_ignore_list + ["FMA"]
+    other_prefixes = {"SCTID": SNOMEDCT}
     # Create the equivalence pairs
     with open(f"{outdir}/{UBERON}", "w") as uberon, open(f"{outdir}/{GO}", "w") as go, open(f"{outdir}/{CL}", "w") as cl:
-        build_sets(f"{UBERON}:0001062", {UBERON: uberon, GO: go, CL: cl}, "xref", ignore_list=ignore_list)
-        build_sets(f"{GO}:0005575", {UBERON: uberon, GO: go, CL: cl}, "xref", ignore_list=ignore_list)
+        build_sets(f"{UBERON}:0001062", {UBERON: uberon, GO: go, CL: cl}, "xref", ignore_list=uberon_ignore_list, other_prefixes=other_prefixes)
+        build_sets(f"{GO}:0005575", {UBERON: uberon, GO: go, CL: cl}, "xref", ignore_list=go_ignore_list, other_prefixes=other_prefixes)
         # CL is now being handled by Wikidata (build_wikidata_cell_relationships), so we can probably remove it from here.
 
     # Write out metadata.
@@ -116,7 +121,7 @@ def build_anatomy_obo_relationships(outdir, metadata_yamls):
             metadata_yamls[metadata_name],
             name="build_anatomy_obo_relationships()",
             sources=[{"type": "UberGraph", "name": "UBERON"}, {"type": "UberGraph", "name": "GO"}, {"type": "UberGraph", "name": "CL"}],
-            description=f"get_subclasses_and_xrefs() of {UBERON}:0001062 and {GO}:0005575",
+            description=f"get_subclasses_and_xrefs() of {UBERON}:0001062 and {GO}:0005575 with other_prefixes {other_prefixes}",
             concord_filename=f"{outdir}/{metadata_name}",
         )
 
