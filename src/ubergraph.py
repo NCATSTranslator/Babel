@@ -303,9 +303,15 @@ class UberGraph:
             results.append(y)
         return results
 
-    def get_subclasses_and_xrefs(self, iri):
+    def get_subclasses_and_xrefs(self, iri, descendent_prefix=None):
         """Return all subclasses of iri that have an xref as well as the xref.
-        Does not return subclasses that lack an xref."""
+        Does not return subclasses that lack an xref.
+        If descendent_prefix is given, only return subclasses from that OBO ontology.  Filtering in the query matters:
+        UberGraph infers some other ontologies' classes (e.g. every NCBITaxon) to be subclasses of UBERON anatomy,
+        and returning all of their xrefs makes the query time out."""
+        descendent_filter = ""
+        if descendent_prefix is not None:
+            descendent_filter = f'FILTER(STRSTARTS(STR(?descendent), "http://purl.obolibrary.org/obo/{descendent_prefix}_"))'
         text = """
         prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         prefix UBERON: <http://purl.obolibrary.org/obo/UBERON_>
@@ -323,10 +329,13 @@ class UberGraph:
           graph <http://reasoner.renci.org/redundant> {
                 ?descendent rdfs:subClassOf $sourcedefclass .
           }
+          $descendentfilter
           ?descendent <http://www.geneontology.org/formats/oboInOwl#hasDbXref> ?xref .
         }
         """
-        resultmap = self.triplestore.query_template(inputs={"sourcedefclass": iri}, outputs=["descendent", "xref"], template_text=text)
+        resultmap = self.triplestore.query_template(
+            inputs={"sourcedefclass": iri, "descendentfilter": descendent_filter}, outputs=["descendent", "xref"], template_text=text
+        )
         results = defaultdict(set)
         for row in resultmap:
             # Sometimes we're getting back just strings that aren't curies, skip those (but complain)
@@ -482,7 +491,8 @@ def build_sets(iri, concordfiles, set_type, ignore_list=[], other_prefixes={}, h
         return
     uber = UberGraph()
     if set_type == "xref":
-        uberres = uber.get_subclasses_and_xrefs(iri)
+        # Subclasses from other ontologies are dropped below unless hop_ontologies, so filter them out in the query.
+        uberres = uber.get_subclasses_and_xrefs(iri, descendent_prefix=None if hop_ontologies else prefix)
     elif set_type == "exact":
         uberres = uber.get_subclasses_and_exacts(iri)
     elif set_type == "close":
