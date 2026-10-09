@@ -5,7 +5,6 @@ Every MRCONSO row below is copied verbatim from the 2026AA MRCONSO.RRF; each gro
 
 import pytest
 
-import src.datahandlers.umls as umls
 from src.datahandlers.umls import DEFAULT_ACCEPTABLE_TTYS, GO_PREFERRED_TTYS, build_sets, pull_umls
 from tests.conftest import assert_concordance_file_valid, assert_labels_file_valid, assert_synonyms_file_valid
 
@@ -91,20 +90,22 @@ def test_build_sets_go_term_type_restriction(tmp_path):
 
 
 @pytest.mark.unit
-def test_pull_umls_skips_go_atoms_of_other_go_terms(tmp_path, monkeypatch):
+def test_pull_umls_skips_go_atoms_of_other_go_terms(tmp_path):
     """A CUI's GO atoms should become synonyms only when they carry one of the CUI's own GO preferred-term codes;
     a CUI with no GO preferred term (C2249862) should keep all of its GO atoms."""
-    monkeypatch.setattr(umls, "make_local_name", lambda fname, subpath=None: str(tmp_path / f"{subpath}_{fname}"))
     mrconso = write_mrconso(tmp_path, C1152464_ROWS + GO_0045943_ROWS[2:3])
 
-    pull_umls(mrconso)
+    labels_file, synonyms_file = str(tmp_path / "UMLS_labels"), str(tmp_path / "UMLS_synonyms")
+    pull_umls(
+        mrconso, labels_file, synonyms_file, str(tmp_path / "SNOMEDCT_labels"), str(tmp_path / "SNOMEDCT_synonyms")
+    )
 
-    labels = {tuple(row) for row in assert_labels_file_valid(str(tmp_path / "UMLS_labels"))}
+    labels = {tuple(row) for row in assert_labels_file_valid(labels_file)}
     assert labels == {
         ("UMLS:C1152464", "cardiolipin synthase activity"),
         ("UMLS:C2249862", "activation of transcription from RNA polymerase I promoter"),
     }
-    synonyms = {(curie, synonym) for curie, _, synonym in assert_synonyms_file_valid(str(tmp_path / "UMLS_synonyms"))}
+    synonyms = {(curie, synonym) for curie, _, synonym in assert_synonyms_file_valid(synonyms_file)}
     assert synonyms == {
         ("UMLS:C1152464", "cardiolipin synthase activity"),
         ("UMLS:C1152464", "diphosphatidylglycerol synthase activity"),

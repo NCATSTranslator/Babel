@@ -7,7 +7,6 @@ from zipfile import ZipFile
 
 import requests
 
-from src.babel_utils import make_local_name
 from src.categories import CHEMICAL_ENTITY, DRUG, MOLECULAR_MIXTURE
 from src.metadata.provenance import write_concord_metadata, write_download_metadata
 from src.predicates import HAS_EXACT_SYNONYM
@@ -467,15 +466,36 @@ def download_rxnorm(rxnorm_version, download_dir):
     shutil.copy2(os.path.join(download_dir, "rrf", "RXNREL.RRF"), download_dir)
 
 
-def pull_umls(mrconso):
-    """Run through MRCONSO.RRF creating label and synonym files for UMLS and SNOMEDCT"""
+def is_other_go_term_atom(go_code, own_go_codes):
+    """Return True for a GO atom that UMLS attributes to a different GO term than the CUI's own, which pull_umls()
+    leaves out of the CUI's synonyms.
+
+    UMLS often files another GO term's entry terms under a CUI: C1152464 "cardiolipin synthase activity"
+    (GO:0008808) carries ET "cardiolipin synthase" from GO:0043337. As synonyms, they would name the wrong clique.
+    A CUI's own GO terms are the codes of its GO_PREFERRED_TTYS atoms; a CUI with none keeps all its GO atoms, since
+    those are its own names.
+
+    Considered and rejected: dropping every GO atom, on the grounds that GO's own synonyms reach the clique from
+    UberGraph. That only holds for CUIs that end up in a GO clique; against the 2026jul22 build it removed ~40,000
+    strings from CUIs that never do (leftover CUIs, CUIs whose GO term is obsolete), to remove ~200 wrong-term
+    strings. See docs/sources/UMLS/GO.md.
+
+    Labels need no such check: input_data/umls_precedence.txt ranks GO's PT above every other GO term type, so a CUI
+    with a GO preferred term never takes its label from one of these atoms.
+
+    :param go_code: the atom's GO code, or "" for an atom from another source.
+    :param own_go_codes: the GO codes of the CUI's GO_PREFERRED_TTYS atoms (may be empty).
+    """
+    return bool(go_code and own_go_codes and go_code not in own_go_codes)
+
+
+def pull_umls(mrconso, umls_labels, umls_synonyms, snomed_labels, snomed_synonyms):
+    """Run through MRCONSO.RRF writing label and synonym files for UMLS and SNOMEDCT to the given paths."""
     rows = defaultdict(list)
-    # CUI -> GO codes of its GO preferred-term atoms; see the synonym filter below.
+    # CUI -> GO codes of its GO preferred-term atoms; see is_other_go_term_atom().
     go_preferred_codes = defaultdict(set)
     priority = read_umls_priority()
-    snomed_label_name = make_local_name("labels", subpath="SNOMEDCT")
-    snomed_syn_name = make_local_name("synonyms", subpath="SNOMEDCT")
-    with open(mrconso) as inf, open(snomed_label_name, "w") as snolabels, open(snomed_syn_name, "w") as snosyns:
+    with open(mrconso) as inf, open(snomed_labels, "w") as snolabels, open(snomed_synonyms, "w") as snosyns:
         for line in inf:
             if not check_mrconso_line(line):
                 continue
@@ -507,26 +527,13 @@ def pull_umls(mrconso):
             if go_code and termtype in GO_PREFERRED_TTYS:
                 go_preferred_codes[cui].add(go_code)
             rows[cui].append((pri, term, go_code))
-    lname = make_local_name("labels", subpath="UMLS")
-    sname = make_local_name("synonyms", subpath="UMLS")
     re_numerical = re.compile(r"^\s*[+-]*[\d\.]+\s*$")
-    with open(lname, "w") as labels, open(sname, "w") as synonyms:
+    with open(umls_labels, "w") as labels, open(umls_synonyms, "w") as synonyms:
         for cui, crows in rows.items():
             crows.sort()
             labels.write(f"{UMLS}:{cui}\t{crows[0][1]}\n")
-            # Skip GO atoms that UMLS itself attributes to a different GO term than the CUI's own GO preferred
-            # term(s): UMLS often files another GO term's entry terms under a CUI (C1152464 "cardiolipin synthase
-            # activity" carries ET "cardiolipin synthase" from GO:0043337), and they would become synonyms of the
-            # wrong clique. CUIs with no GO preferred term keep all their GO atoms, since those are their own names.
-            #
-            # Considered and rejected: dropping every GO atom, on the grounds that GO's own synonyms reach the clique
-            # from UberGraph. That only holds for CUIs that end up in a GO clique; against the 2026jul22 build it
-            # removed ~40,000 strings from CUIs that never do (leftover CUIs, CUIs whose GO term is obsolete), to
-            # remove ~200 wrong-term strings. See docs/sources/UMLS/GO.md.
             own_go_codes = go_preferred_codes.get(cui)
-            syns = set(
-                term for _, term, go_code in crows if not (go_code and own_go_codes and go_code not in own_go_codes)
-            )
+            syns = set(term for _, term, go_code in crows if not is_other_go_term_atom(go_code, own_go_codes))
             for s in syns:
                 # Skip any synonyms that are purely numerical, since those are unlikely to be useful.
                 if re_numerical.fullmatch(s):
