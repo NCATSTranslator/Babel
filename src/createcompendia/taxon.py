@@ -67,9 +67,8 @@ def write_umls_ids(mrsty, outfile):
 
 
 def build_taxon_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
-    umls.build_sets(
-        mrconso, idfile, outfile, {"MSH": MESH, "NCBITaxon": NCBITAXON}, provenance_metadata_yaml=metadata_yaml
-    )
+    # The keys are UMLS source abbreviations (the MRCONSO SAB column): NCBI Taxonomy is "NCBI" in UMLS, not "NCBITaxon".
+    umls.build_sets(mrconso, idfile, outfile, {"MSH": MESH, "NCBI": NCBITAXON}, provenance_metadata_yaml=metadata_yaml)
 
 
 def build_relationships(outfile, mesh_ids, metadata_yaml):
