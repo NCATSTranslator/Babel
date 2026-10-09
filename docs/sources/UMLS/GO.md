@@ -5,9 +5,9 @@ Biomappings. So the GO atoms that UMLS keeps in `MRCONSO.RRF` are Babel's only s
 mappings, and they also become UMLS labels and synonyms. Two parts of `src/datahandlers/umls.py`
 decide which GO atoms count, and this page records what each choice does to a real build.
 
-[`go/scripts/go_atoms_report.py`](go/scripts/go_atoms_report.py) regenerates every number below from
+[`GO/scripts/go_atoms_report.py`](GO/scripts/go_atoms_report.py) regenerates every number below from
 MRCONSO and a finished build's `intermediate/` directory. It writes
-[`go/go_atoms_report.json`](go/go_atoms_report.json), which was produced from the 2026AA MRCONSO and
+[`GO/go_atoms_report.json`](GO/go_atoms_report.json), which was produced from the 2026AA MRCONSO and
 the 2026jul22 intermediates. The full command is in the script's docstring.
 
 ## Which GO atoms map a CUI to a GO term
@@ -57,6 +57,10 @@ would add mappings that join existing cliques, and the ones reviewed so far need
   order.
 - Cell projection membrane maps to the MeSH term for cell surface extensions.
 
+Switching anatomy over is tracked in
+[#1137](https://github.com/NCATSTranslator/Babel/issues/1137), which lists every join it would make
+and the CUIs that carry more than one GO preferred term.
+
 ## Which GO atoms become UMLS synonyms
 
 `pull_umls()` still uses GO atoms for labels, because many process CUIs have no other source. For
@@ -70,7 +74,22 @@ activity" and [`GO:0090483`](http://purl.obolibrary.org/obo/GO_0090483)
 preferred term, like `C2249862`, keeps all its GO atoms, since those are its own names.
 
 Against 2026jul22, this drops 163 strings that are names of a different GO term from CUIs that join
-a GO clique (of 197 such strings), and 18 strings from CUIs that don't.
+a GO clique (of 197 such strings), and 18 strings from CUIs that don't. The rule is
+`umls.is_other_go_term_atom()`, which the report script imports.
+
+It keeps the other 34, because MRCONSO alone can't identify them:
+
+- 21 are on CUIs with more than one GO preferred term. All of those terms count as the CUI's own,
+  but it can join only one of them. For example, `C0021721` "Intercellular Junctions" joins
+  [`GO:0030054`](http://purl.obolibrary.org/obo/GO_0030054) "cell junction" and keeps "cell-cell
+  junction". Most of these CUIs are in anatomy, where
+  [#1137](https://github.com/NCATSTranslator/Babel/issues/1137) covers them.
+- 13 are filed under the CUI's own GO code, but current GO gives that name only to another term.
+  Catching them would need GO's current names in `pull_umls()`, which reads only MRCONSO.
+
+Labels need no such check. `input_data/umls_precedence.txt` ranks GO's `PT` above every other GO
+term type, so a CUI with a GO preferred term never takes its label from an atom this rule skips. The
+report confirms this: 0 such CUIs.
 
 ### Considered and rejected: dropping every GO atom
 

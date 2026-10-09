@@ -9,15 +9,17 @@ Replays the process/activity clique build (and the anatomy one, which also joins
   (considered and rejected; see docs/sources/UMLS/GO.md).
 
 It then counts, for two rules about which GO atoms pull_umls() turns into UMLS synonyms, how many strings each rule
-drops from CUIs that do or do not end up in a clique with a GO term. "GO's own names" are GO labels plus the GO
-synonyms in UberGraph's synonyms.jsonl, which is where SynonymFactory gets them.
+drops from CUIs that do or do not end up in a clique with a GO term, and which wrong-term strings the shipped rule
+(umls.is_other_go_term_atom()) still keeps. "GO's own names" are GO labels plus the GO synonyms in UberGraph's
+synonyms.jsonl, which is where SynonymFactory gets them. Finally it checks that no CUI takes its UMLS label from an
+atom that the shipped rule skips.
 
 Usage (from the repository root):
 
-    uv run python docs/sources/UMLS/go/scripts/go_atoms_report.py \\
+    uv run python docs/sources/UMLS/GO/scripts/go_atoms_report.py \\
         --mrconso babel_downloads/UMLS/MRCONSO.RRF --intermediate data/2026jul22/intermediate \\
         --go-labels babel_downloads/GO/labels --ubergraph-synonyms babel_downloads/common/ubergraph/synonyms.jsonl \\
-        > docs/sources/UMLS/go/go_atoms_report.json
+        > docs/sources/UMLS/GO/go_atoms_report.json
 """
 
 import argparse
@@ -30,42 +32,51 @@ import sys
 import tempfile
 from collections import defaultdict
 
-from src.babel_utils import remove_overused_xrefs
-from src.createcompendia import anatomy
-from src.datahandlers.umls import DEFAULT_ACCEPTABLE_TTYS, GO_PREFERRED_TTYS, build_sets, check_mrconso_line
-from src.model.cliques import glom_from_files
+from src.createcompendia import anatomy, processactivitypathway
+from src.datahandlers.umls import (
+    DEFAULT_ACCEPTABLE_TTYS,
+    GO_PREFERRED_TTYS,
+    build_sets,
+    check_mrconso_line,
+    is_other_go_term_atom,
+    read_umls_priority,
+)
 
 
 def read_go_atoms(mrconso):
-    """Return (cui -> [(tty, go_code, string)] for GO atoms, cui -> set of non-GO strings) for CUIs with GO atoms."""
+    """For CUIs with GO atoms, return (cui -> [(tty, go_code, string)] for its GO atoms, cui -> set of its non-GO
+    strings, cui -> the GO code of the atom pull_umls() picks as its label, or "" for a non-GO atom)."""
+    priority = read_umls_priority()
     go_atoms = defaultdict(list)
     other_strings = defaultdict(set)
+    # The atom pull_umls() would pick as the CUI's label: the lowest (priority, term, go_code).
+    label_atom = {}
     with open(mrconso) as f:
         for line in f:
             if not check_mrconso_line(line):
                 continue
             x = line.split("|")
-            if x[11] == "GO":
-                go_atoms[x[0]].append((x[12], x[13], x[14]))
+            go_code = x[13] if x[11] == "GO" else ""
+            if go_code:
+                go_atoms[x[0]].append((x[12], go_code, x[14]))
             else:
                 other_strings[x[0]].add(x[14])
-    return go_atoms, {cui: other_strings[cui] for cui in go_atoms}
+            atom = (priority.get((x[11], x[12], x[16]), 1000000), x[14], go_code)
+            if x[0] not in label_atom or atom < label_atom[x[0]]:
+                label_atom[x[0]] = atom
+    return (
+        go_atoms,
+        {cui: other_strings[cui] for cui in go_atoms},
+        {cui: label_atom[cui][2] for cui in go_atoms},
+    )
 
 
 def process_cliques(intermediate, umls_concord):
-    """Replay processactivitypathway.build_compendia() with the given UMLS concord file."""
+    """Replay the process/activity clique build with the given UMLS concord file, which must be named "UMLS" (the
+    pipeline recognizes its UMLS concord by name)."""
     concords = [f"{intermediate}/process/concords/{source}" for source in ("GO", "RHEA")] + [umls_concord]
-
-    # build_compendia() only keeps UMLS pairs whose two CURIEs are both already in a clique.
-    def pair_filter(parts, infile, dicts):
-        return infile != umls_concord or (parts[0] in dicts and parts[2] in dicts)
-
-    dicts, _ = glom_from_files(
-        concords,
-        sorted(glob.glob(f"{intermediate}/process/ids/*")),
-        unique_prefixes=["GO"],
-        concord_pair_filter=pair_filter,
-        overused_xref_remover=lambda pairs, infile: remove_overused_xrefs(pairs, bothways=True),
+    dicts, _ = processactivitypathway.compute_cliques_for_impact_report(
+        concords, sorted(glob.glob(f"{intermediate}/process/ids/*"))
     )
     return dicts
 
@@ -91,7 +102,7 @@ def main():
     args = parser.parse_args()
     inter = args.intermediate
 
-    go_atoms, other_strings = read_go_atoms(args.mrconso)
+    go_atoms, other_strings, label_go_code = read_go_atoms(args.mrconso)
     process_ids = f"{inter}/process/ids/UMLS"
     with open(process_ids) as f:
         process_cuis = {line.split("\t")[0][len("UMLS:") :] for line in f}
@@ -107,8 +118,10 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         variants = {"all": DEFAULT_ACCEPTABLE_TTYS, "preferred": {**DEFAULT_ACCEPTABLE_TTYS, "GO": GO_PREFERRED_TTYS}}
         concords = {}
+        for name in ("all", "preferred", "fallback"):
+            os.mkdir(os.path.join(tmp, name))
+            concords[name] = os.path.join(tmp, name, "UMLS")
         for name, ttys in variants.items():
-            concords[name] = os.path.join(tmp, f"UMLS_{name}")
             build_sets(args.mrconso, process_ids, concords[name], {"GO": "GO"}, acceptable_ttys=ttys)
 
         # fallback = preferred + every process-CUI atom of a GO term that has no preferred atom in a process CUI.
@@ -123,7 +136,6 @@ def main():
                 if code not in covered
             }
         )
-        concords["fallback"] = os.path.join(tmp, "UMLS_fallback")
         with open(concords["fallback"], "w") as f:
             f.writelines("\t".join(p) + "\n" for p in sorted(preferred_pairs) + restored)
 
@@ -165,10 +177,15 @@ def main():
     def drop_all(cui):
         return {s for _, _, s in go_atoms[cui]}
 
-    # Mirrors the synonym filter in umls.pull_umls(), which works on rows it reads itself and so can't be called here.
+    def own_go_codes(cui):
+        return {code for tty, code, _ in go_atoms[cui] if tty in GO_PREFERRED_TTYS}
+
+    def kept_by_shipped_rule(cui):
+        own = own_go_codes(cui)
+        return {s for _, code, s in go_atoms[cui] if not is_other_go_term_atom(code, own)}
+
     def drop_other_go_terms(cui):
-        own = {code for tty, code, _ in go_atoms[cui] if tty in GO_PREFERRED_TTYS}
-        return {s for _, _, s in go_atoms[cui]} - {s for _, code, s in go_atoms[cui] if not own or code in own}
+        return {s for _, _, s in go_atoms[cui]} - kept_by_shipped_rule(cui)
 
     cui_go = joined["preferred"]
     for rule_name, rule in (("drop every GO atom", drop_all), ("drop GO atoms of other GO terms", drop_other_go_terms)):
@@ -185,6 +202,29 @@ def main():
                 else:
                     counts["dropped from CUIs in a GO clique, not a current GO name"] += 1
         report[f"synonyms, {rule_name}"] = dict(sorted(counts.items()))
+
+    # Wrong-term strings the shipped rule keeps: MRCONSO files them under the CUI's own GO code, but current GO
+    # names them only for another term, so nothing in MRCONSO alone can catch them.
+    missed = sorted(
+        (cui, s)
+        for cui in go_atoms
+        if cui in cui_go
+        for s in kept_by_shipped_rule(cui) - other_strings[cui]
+        if is_go_name[s.lower()] and not any(s.lower() in go_names[go] for go in cui_go[cui])
+    )
+    # A CUI with several GO preferred terms keeps all of their names, though it can join only one of them.
+    multi = sum(1 for cui, _ in missed if len(own_go_codes(cui)) > 1)
+    report["synonyms, drop GO atoms of other GO terms: kept on CUIs in a GO clique, a name of a different GO term"] = {
+        "on CUIs with several GO preferred terms": multi,
+        "on CUIs with one GO preferred term (GO has since moved the name)": len(missed) - multi,
+    }
+    report["synonyms, examples of those kept strings"] = [
+        f"UMLS:{cui} (in a clique with {', '.join(sorted(cui_go[cui]))}): {s!r}"
+        for cui, s in missed[:: max(1, len(missed) // 10)][:10]
+    ]
+    report["labels: CUIs whose UMLS label comes from a GO atom the shipped rule skips"] = sum(
+        1 for cui in go_atoms if is_other_go_term_atom(label_go_code[cui], own_go_codes(cui))
+    )
 
     json.dump(report, sys.stdout, indent=2)
     sys.stdout.write("\n")
