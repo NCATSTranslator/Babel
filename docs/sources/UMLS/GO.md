@@ -57,6 +57,10 @@ would add mappings that join existing cliques, and the ones reviewed so far need
   order.
 - Cell projection membrane maps to the MeSH term for cell surface extensions.
 
+Switching anatomy over is tracked in
+[#1137](https://github.com/NCATSTranslator/Babel/issues/1137), which lists every join it would make
+and the CUIs that carry more than one GO preferred term.
+
 ## Which GO atoms become UMLS synonyms
 
 `pull_umls()` still uses GO atoms for labels, because many process CUIs have no other source. For
