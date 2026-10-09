@@ -168,7 +168,13 @@ running a job, which would delete anything preloaded into them.
   failure in a rule you were not building (an unrelated download, typically). `--rerun-incomplete`
   makes it worse: it pulls every incomplete file from *any* previous run into that DAG.
   `snakemake -c 4 babel_outputs/compendia/Disease.txt --forcerun get_disease_doid_relationships`
-  is right; the same words with the path last is not.
+  is right; the same words with the path last is not. A dry run only protects you if it uses the
+  real command's argument order: `--forcerun rule -n path` ends the rule list at `-n`, so it shows
+  the one job you meant, and then the real run, without `-n`, builds everything.
+* **`OSError: [Errno 86] Bad CPU type in executable: .../pulp/.../cbc`** on Apple Silicon.
+  Snakemake's default ILP scheduler runs the `cbc` solver that comes with `pulp`, which is an
+  x86-64 binary. Without Rosetta, any run that schedules jobs (not `-n`) fails with this error
+  before doing anything. Add `--scheduler greedy`.
 * **UberGraph transient failures.** Rules that fetch from UberGraph (anatomy's UBERON, GO, CL,
   EMAPA rules; similar elsewhere) sometimes time out, 5xx, or return truncated JSON. They carry
   `retries: 3` and the underlying `TripleStore` adds bounded retry/backoff, so most transient
