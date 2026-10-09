@@ -470,6 +470,8 @@ def download_rxnorm(rxnorm_version, download_dir):
 def pull_umls(mrconso):
     """Run through MRCONSO.RRF creating label and synonym files for UMLS and SNOMEDCT"""
     rows = defaultdict(list)
+    # CUI -> GO codes of its GO preferred-term atoms; see the synonym filter below.
+    go_preferred_codes = defaultdict(set)
     priority = read_umls_priority()
     snomed_label_name = make_local_name("labels", subpath="SNOMEDCT")
     snomed_syn_name = make_local_name("synonyms", subpath="SNOMEDCT")
@@ -501,7 +503,10 @@ def pull_umls(mrconso):
                 logger.warning(f"Priority not found for key {pkey}. Defaulting to high priority (1000000).")
                 # print(pkey)
                 pri = 1000000
-            rows[cui].append((pri, term, source))
+            go_code = x[13] if source == "GO" else ""
+            if go_code and termtype in GO_PREFERRED_TTYS:
+                go_preferred_codes[cui].add(go_code)
+            rows[cui].append((pri, term, go_code))
     lname = make_local_name("labels", subpath="UMLS")
     sname = make_local_name("synonyms", subpath="UMLS")
     re_numerical = re.compile(r"^\s*[+-]*[\d\.]+\s*$")
@@ -509,10 +514,19 @@ def pull_umls(mrconso):
         for cui, crows in rows.items():
             crows.sort()
             labels.write(f"{UMLS}:{cui}\t{crows[0][1]}\n")
-            # GO atoms are still used for labels (many CUIs are GO-only), but not for synonyms. Babel loads GO's
-            # synonyms from GO itself, so UMLS's copy only adds strings that are stale (GO has since dropped or moved
-            # them) or that belong to a different GO term in CUIs where UMLS has lumped several GO terms together.
-            syns = set([crow[1] for crow in crows if crow[2] != "GO"])
+            # Skip GO atoms that UMLS itself attributes to a different GO term than the CUI's own GO preferred
+            # term(s): UMLS often files another GO term's entry terms under a CUI (C1152464 "cardiolipin synthase
+            # activity" carries ET "cardiolipin synthase" from GO:0043337), and they would become synonyms of the
+            # wrong clique. CUIs with no GO preferred term keep all their GO atoms, since those are their own names.
+            #
+            # Considered and rejected: dropping every GO atom, on the grounds that GO's own synonyms reach the clique
+            # from UberGraph. That only holds for CUIs that end up in a GO clique; against the 2026jul22 build it
+            # removed ~40,000 strings from CUIs that never do (leftover CUIs, CUIs whose GO term is obsolete), to
+            # remove ~200 wrong-term strings. See docs/sources/UMLS/GO.md.
+            own_go_codes = go_preferred_codes.get(cui)
+            syns = set(
+                term for _, term, go_code in crows if not (go_code and own_go_codes and go_code not in own_go_codes)
+            )
             for s in syns:
                 # Skip any synonyms that are purely numerical, since those are unlikely to be useful.
                 if re_numerical.fullmatch(s):

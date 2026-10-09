@@ -7,7 +7,7 @@ import pytest
 
 import src.datahandlers.umls as umls
 from src.datahandlers.umls import DEFAULT_ACCEPTABLE_TTYS, GO_PREFERRED_TTYS, build_sets, pull_umls
-from tests.conftest import assert_concordance_file_valid
+from tests.conftest import assert_concordance_file_valid, assert_labels_file_valid, assert_synonyms_file_valid
 
 # GO:0045943: the GO preferred term is in C1158785, but UMLS files two GO entry terms in CUIs of their own.
 GO_0045943_ROWS = [
@@ -90,39 +90,24 @@ def test_build_sets_go_term_type_restriction(tmp_path):
 # PULL_UMLS
 
 
-def mrconso_row(cui, sab, tty, code, label, lat="ENG", suppress="N"):
-    """Build a synthetic MRCONSO.RRF row with the columns that build_sets() reads filled in."""
-    cols = [""] * 18
-    cols[0] = cui
-    cols[1] = lat
-    cols[11] = sab
-    cols[12] = tty
-    cols[13] = code
-    cols[14] = label
-    cols[16] = suppress
-    return "|".join(cols) + "|\n"
-
-
 @pytest.mark.unit
-def test_pull_umls_skips_go_synonyms(tmp_path, monkeypatch):
+def test_pull_umls_skips_go_atoms_of_other_go_terms(tmp_path, monkeypatch):
+    """A CUI's GO atoms should become synonyms only when they carry one of the CUI's own GO preferred-term codes;
+    a CUI with no GO preferred term (C2249862) should keep all of its GO atoms."""
     monkeypatch.setattr(umls, "make_local_name", lambda fname, subpath=None: str(tmp_path / f"{subpath}_{fname}"))
-    monkeypatch.setattr(
-        umls, "read_umls_priority", lambda: {("MSH", "MH", "N"): 0, ("GO", "PT", "N"): 1, ("GO", "ET", "N"): 2}
-    )
-    rows = [
-        # A CUI with clinical and GO atoms, including a GO entry term carrying a different GO ID.
-        mrconso_row("C0000001", "MSH", "MH", "D000001", "Lipolysis"),
-        mrconso_row("C0000001", "GO", "PT", "GO:0016042", "lipid catabolic process"),
-        mrconso_row("C0000001", "GO", "ET", "GO:0000002", "some other GO term"),
-        # A GO-only CUI still gets its label from GO.
-        mrconso_row("C0000002", "GO", "PT", "GO:0000003", "only from GO"),
-    ]
-    mrconso = tmp_path / "MRCONSO.RRF"
-    mrconso.write_text("".join(rows))
+    mrconso = write_mrconso(tmp_path, C1152464_ROWS + GO_0045943_ROWS[2:3])
 
-    pull_umls(str(mrconso))
+    pull_umls(mrconso)
 
-    labels = dict(line.split("\t") for line in (tmp_path / "UMLS_labels").read_text().splitlines())
-    assert labels == {"UMLS:C0000001": "Lipolysis", "UMLS:C0000002": "only from GO"}
-    synonyms = {tuple(line.split("\t")[::2]) for line in (tmp_path / "UMLS_synonyms").read_text().splitlines()}
-    assert synonyms == {("UMLS:C0000001", "Lipolysis")}
+    labels = {tuple(row) for row in assert_labels_file_valid(str(tmp_path / "UMLS_labels"))}
+    assert labels == {
+        ("UMLS:C1152464", "cardiolipin synthase activity"),
+        ("UMLS:C2249862", "activation of transcription from RNA polymerase I promoter"),
+    }
+    synonyms = {(curie, synonym) for curie, _, synonym in assert_synonyms_file_valid(str(tmp_path / "UMLS_synonyms"))}
+    assert synonyms == {
+        ("UMLS:C1152464", "cardiolipin synthase activity"),
+        ("UMLS:C1152464", "diphosphatidylglycerol synthase activity"),
+        ("UMLS:C1152464", "cardiolipin synthetase activity"),
+        ("UMLS:C2249862", "activation of transcription from RNA polymerase I promoter"),
+    }
