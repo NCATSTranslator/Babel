@@ -14,10 +14,10 @@ synonyms in UberGraph's synonyms.jsonl, which is where SynonymFactory gets them.
 
 Usage (from the repository root):
 
-    uv run python docs/sources/UMLS/go/scripts/go_atoms_report.py \\
+    uv run python docs/sources/UMLS/GO/scripts/go_atoms_report.py \\
         --mrconso babel_downloads/UMLS/MRCONSO.RRF --intermediate data/2026jul22/intermediate \\
         --go-labels babel_downloads/GO/labels --ubergraph-synonyms babel_downloads/common/ubergraph/synonyms.jsonl \\
-        > docs/sources/UMLS/go/go_atoms_report.json
+        > docs/sources/UMLS/GO/go_atoms_report.json
 """
 
 import argparse

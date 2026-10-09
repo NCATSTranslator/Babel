@@ -5,9 +5,9 @@ Biomappings. So the GO atoms that UMLS keeps in `MRCONSO.RRF` are Babel's only s
 mappings, and they also become UMLS labels and synonyms. Two parts of `src/datahandlers/umls.py`
 decide which GO atoms count, and this page records what each choice does to a real build.
 
-[`go/scripts/go_atoms_report.py`](go/scripts/go_atoms_report.py) regenerates every number below from
+[`GO/scripts/go_atoms_report.py`](GO/scripts/go_atoms_report.py) regenerates every number below from
 MRCONSO and a finished build's `intermediate/` directory. It writes
-[`go/go_atoms_report.json`](go/go_atoms_report.json), which was produced from the 2026AA MRCONSO and
+[`GO/go_atoms_report.json`](GO/go_atoms_report.json), which was produced from the 2026AA MRCONSO and
 the 2026jul22 intermediates. The full command is in the script's docstring.
 
 ## Which GO atoms map a CUI to a GO term
