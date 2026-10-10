@@ -137,6 +137,13 @@ running a job, which would delete anything preloaded into them.
 
 ### Common build issues
 
+* **`Error in rule assert_no_unexpected_duplicate_clique_leaders`.** A CURIE leads a clique in
+  two compendia and is not on `input_data/known_duplicate_clique_leaders.tsv`; the error names the
+  compendia pairs and the first rows, and `reports/duckdb/duplicate_clique_leaders.tsv` has the full
+  list. This is the control working, not a flake: find the ids file or concord that put the CURIE in
+  the second compendium (`docs/sources/UMLS/CuiFollowsMesh.md` lists the known mechanisms and the
+  replay script), fix it, and rerun from the affected pipeline. Only a duplicate that an open issue
+  accepts goes on the allowlist, with that issue. See "Build controls" in `docs/Architecture.md`.
 * **Stale Snakemake lock.** If a previous run was killed (Ctrl-C, OOM, power loss) Snakemake
   may refuse to start with `LockException: Directory cannot be locked`. Clear it with
   `uv run snakemake --unlock` and retry. **Check first that no Snakemake process is actually

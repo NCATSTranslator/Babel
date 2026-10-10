@@ -1,6 +1,7 @@
+import csv
 import json
 import os
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 from src import util
 from src.exporters.duckdb_exporters import log_duckdb_settings_on_error, setup_duckdb
@@ -164,6 +165,79 @@ def check_for_duplicate_clique_leaders(parquet_root, duckdb_filename, duplicate_
     with log_duckdb_settings_on_error(db, "check_for_duplicate_clique_leaders teardown"):
         cliques.close()
         db.close()
+
+
+def _parse_filenames(text):
+    """Parse a compendia list as check_for_duplicate_clique_leaders() writes it ("[Gene, Protein]") or as the
+    allowlist spells it ("Gene,Protein") into a sorted tuple of compendium names."""
+    return tuple(sorted(name.strip().strip("'\"") for name in text.strip().strip("[]").split(",") if name.strip()))
+
+
+def read_known_duplicate_clique_leaders(allowlist_tsv):
+    """Read input_data/known_duplicate_clique_leaders.tsv: a TSV with a header (clique_leader, filenames, issue,
+    note), `#` comment lines allowed, keyed like the duplicate-leader report."""
+    allowed = {}
+    with open(allowlist_tsv) as inf:
+        rows = (line for line in inf if line.strip() and not line.startswith("#"))
+        for row in csv.DictReader(rows, delimiter="\t"):
+            allowed[(row["clique_leader"], _parse_filenames(row["filenames"]))] = row
+    return allowed
+
+
+def assert_no_unexpected_duplicate_clique_leaders(duplicate_clique_leaders_tsv, allowlist_tsv, checked_file):
+    """Fail the build when a CURIE leads a clique in two compendia and is not on the committed allowlist.
+
+    A clique leader shared by two compendia is the one duplicate NodeNorm cannot tolerate: NodeNorm-ES keys its
+    documents by leader and merges the two cliques into one document whose type is a list of two Biolink
+    classes (biothings/NodeNormalizationAPI#41); Redis NodeNorm serves whichever compendium loaded last.
+    check_for_duplicate_clique_leaders() has reported these since 2025 without anything reading the report,
+    and 7,571 of them shipped in babel-1.18 (https://github.com/NCATSTranslator/Babel/issues/276). This
+    check reads that report *after* it is written -- so the TSV is there to inspect when the build goes red --
+    and compares each (leader, compendia) pair against `input_data/known_duplicate_clique_leaders.tsv`, which
+    lists the duplicates a named issue accepts for now. Every other duplicate leader raises, which stops
+    `reports/duckdb/done` and therefore `rule all`, while every other build output completes.
+
+    Member-level duplicates (duplicate_curies.tsv) stay report-only: NodeNorm handles them as two well-formed
+    cliques, and the residue after the source fixes needs per-source work rather than a gate.
+
+    :param duplicate_clique_leaders_tsv: The report written by check_for_duplicate_clique_leaders().
+    :param allowlist_tsv: The committed allowlist (see read_known_duplicate_clique_leaders()).
+    :param checked_file: Written (with a summary) only when every duplicate leader is allowlisted.
+    :raises RuntimeError: listing the unexpected duplicate leaders by compendia pair.
+    """
+    allowed = read_known_duplicate_clique_leaders(allowlist_tsv)
+    found = {}
+    with open(duplicate_clique_leaders_tsv) as inf:
+        for row in csv.DictReader(inf, delimiter="\t"):
+            found[(row["clique_leader"], _parse_filenames(row["filenames"]))] = row
+    unexpected = {key: row for key, row in found.items() if key not in allowed}
+    stale = sorted(key for key in allowed if key not in found)
+    summary = [
+        f"{len(found)} duplicate clique leaders in {duplicate_clique_leaders_tsv}; "
+        f"{len(found) - len(unexpected)} allowlisted in {allowlist_tsv}, {len(unexpected)} unexpected, "
+        f"{len(stale)} allowlist entries no longer duplicated (prune them): "
+        + ", ".join(f"{leader} [{', '.join(filenames)}]" for leader, filenames in stale[:20])
+    ]
+    if unexpected:
+        by_pair = Counter(filenames for _, filenames in unexpected)
+        summary.append(
+            "Unexpected duplicate clique leaders by compendia: "
+            + "; ".join(f"[{', '.join(pair)}]: {n}" for pair, n in by_pair.most_common())
+        )
+        summary.append(
+            "First unexpected rows: "
+            + "; ".join(
+                f"{leader} [{', '.join(filenames)}] types={row['biolink_types']}"
+                for (leader, filenames), row in list(unexpected.items())[:20]
+            )
+        )
+        summary.append(
+            "Fix the source (docs/sources/UMLS/CuiFollowsMesh.md lists the known mechanisms) or, for a duplicate an issue accepts, add it to the allowlist with that issue."
+        )
+        raise RuntimeError("\n".join(summary))
+    logger.info(summary[0])
+    with open(checked_file, "w") as outf:
+        outf.write(summary[0] + "\n")
 
 
 def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, name, duckdb_config=None):

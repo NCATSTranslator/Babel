@@ -23,7 +23,15 @@ def write_mesh_ids(outfile):
     mesh.write_ids(meshmap, outfile, order=[ORGANISM_TAXON], extra_vocab={"SCR_Organism": ORGANISM_TAXON})
 
 
-def write_umls_ids(mrsty, outfile):
+def write_umls_ids(mrsty, outfile, *, mrconso=None, own_mesh_ids_files=None, foreign_mesh_ids_files=None):
+    """Select the UMLS CUIs the taxon pipeline claims by semantic type.
+
+    The three keyword arguments enable "a CUI follows its MeSH descriptor" (umls.apply_mesh_ownership): given
+    MRCONSO plus this pipeline's and every other MeSH-owning pipeline's ``ids/MESH`` files, a CUI whose
+    descriptor another pipeline claims is dropped here and a CUI whose descriptor this pipeline claims is added.
+    A plant or virus CUI whose descriptor is an anatomy A-tree or SCR_Chemical record leaves taxon this way
+    (https://github.com/NCATSTranslator/Babel/issues/1123).
+    """
     # UMLS categories that should be classified as taxa:
     # - A1.1.3: Eukaryote (https://uts.nlm.nih.gov/uts/umls/semantic-network/T204)
     # - A1.1.2: Bacterium (https://uts.nlm.nih.gov/uts/umls/semantic-network/T007)
@@ -63,7 +71,14 @@ def write_umls_ids(mrsty, outfile):
             "A1.1.3.1.1",
         ]
     }
-    umls.write_umls_ids(mrsty, umlsmap, outfile)
+    umls.write_umls_ids(
+        mrsty,
+        umlsmap,
+        outfile,
+        mrconso=mrconso,
+        own_mesh_ids_files=own_mesh_ids_files,
+        foreign_mesh_ids_files=foreign_mesh_ids_files,
+    )
 
 
 def build_taxon_umls_relationships(mrconso, idfile, outfile, metadata_yaml):

@@ -29,12 +29,24 @@ rule taxon_mesh_ids:
 rule taxon_umls_ids:
     input:
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
+        mrconso=config["download_directory"] + "/UMLS/MRCONSO.RRF",
+        own_mesh_ids=util.mesh_ids_inputs(config, "taxon")[0],
+        foreign_mesh_ids=util.mesh_ids_inputs(config, "taxon")[1],
     output:
         outfile=config["intermediate_directory"] + "/taxon/ids/UMLS",
     benchmark:
         config["output_directory"] + "/benchmarks/taxon_umls_ids.tsv"
+    resources:
+        # A single pass over MRCONSO (2.3 GB) keeping only the ~355k CUI->MeSH atoms, plus MRSTY.
+        mem="16G",
     run:
-        taxon.write_umls_ids(input.mrsty, output.outfile)
+        taxon.write_umls_ids(
+            input.mrsty,
+            output.outfile,
+            mrconso=input.mrconso,
+            own_mesh_ids_files=input.own_mesh_ids,
+            foreign_mesh_ids_files=input.foreign_mesh_ids,
+        )
 
 
 rule get_taxon_umls_relationships:

@@ -350,11 +350,12 @@ def umls_rrf_files():
 
 
 @pytest.fixture(scope="session")
-def umls_pipeline_outputs(umls_rrf_files, regenerate):
+def umls_pipeline_outputs(umls_rrf_files, mesh_pipeline_outputs, regenerate):
     """Run write_umls_ids for all seven compendia; returns dict of output paths.
 
-    Output files are written to babel_outputs/intermediate/{type}/ids/UMLS and
-    reused on subsequent runs unless --regenerate is passed.
+    The five MeSH-owning pipelines (config.yaml: umls_mesh_owning_pipelines) run with MeSH ownership, so this
+    needs the MeSH ids files too (mesh_pipeline_outputs, i.e. mesh.nt). Output files are written to
+    babel_outputs/intermediate/{type}/ids/UMLS and reused on subsequent runs unless --regenerate is passed.
     """
     from src.createcompendia import (  # deferred: gene and processactivitypathway are not in the module-level imports to avoid loading every compendium at collection time; they are only needed for UMLS
         gene,
@@ -370,21 +371,44 @@ def umls_pipeline_outputs(umls_rrf_files, regenerate):
     def p(compendium):
         return _intermediate_id_path(compendium, "UMLS")
 
-    _maybe_run(p("chemicals"), lambda: chemicals.write_umls_ids(mrsty, p("chemicals")), regenerate)
-    _maybe_run(p("protein"), lambda: protein.write_umls_ids(mrsty, p("protein")), regenerate)
-    _maybe_run(p("anatomy"), lambda: anatomy.write_umls_ids(mrsty, p("anatomy")), regenerate)
+    def mesh_kwargs(compendium):
+        """The MeSH-ownership keyword arguments for one of the five MeSH-owning pipelines."""
+        return {
+            "mrconso": mrconso,
+            "own_mesh_ids_files": [mesh_pipeline_outputs[compendium]],
+            "foreign_mesh_ids_files": [path for name, path in mesh_pipeline_outputs.items() if name != compendium],
+        }
+
+    _maybe_run(
+        p("chemicals"), lambda: chemicals.write_umls_ids(mrsty, p("chemicals"), **mesh_kwargs("chemicals")), regenerate
+    )
+    _maybe_run(p("protein"), lambda: protein.write_umls_ids(mrsty, p("protein"), **mesh_kwargs("protein")), regenerate)
+    _maybe_run(p("anatomy"), lambda: anatomy.write_umls_ids(mrsty, p("anatomy"), **mesh_kwargs("anatomy")), regenerate)
     _maybe_run(
         p("diseasephenotype"),
-        lambda: diseasephenotype.write_umls_ids(mrsty, p("diseasephenotype"), badumlsfile),
+        lambda: diseasephenotype.write_umls_ids(
+            mrsty, p("diseasephenotype"), badumlsfile, **mesh_kwargs("diseasephenotype")
+        ),
         regenerate,
     )
     _maybe_run(
         p("processactivitypathway"),
-        lambda: processactivitypathway.write_umls_ids(mrsty, p("processactivitypathway")),
+        lambda: processactivitypathway.write_umls_ids(
+            mrsty,
+            p("processactivitypathway"),
+            mrconso=mrconso,
+            foreign_mesh_ids_files=list(mesh_pipeline_outputs.values()),
+        ),
         regenerate,
     )
-    _maybe_run(p("taxon"), lambda: taxon.write_umls_ids(mrsty, p("taxon")), regenerate)
-    _maybe_run(p("gene"), lambda: gene.write_umls_ids(mrconso, mrsty, p("gene")), regenerate)
+    _maybe_run(p("taxon"), lambda: taxon.write_umls_ids(mrsty, p("taxon"), **mesh_kwargs("taxon")), regenerate)
+    _maybe_run(
+        p("gene"),
+        lambda: gene.write_umls_ids(
+            mrconso, mrsty, p("gene"), foreign_mesh_ids_files=list(mesh_pipeline_outputs.values())
+        ),
+        regenerate,
+    )
 
     return {
         name: p(name)
