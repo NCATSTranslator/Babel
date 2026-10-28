@@ -56,12 +56,6 @@ assume a local download is current.
 
 ## Key Commands
 
-### Setup
-
-```bash
-uv sync
-```
-
 ### Running the Pipeline
 
 ```bash
@@ -73,13 +67,9 @@ uv run snakemake --cores 1 chemical
 ### Testing
 
 ```bash
-uv run pytest                           # All tests
-uv run pytest --cov=src                 # With coverage report
-uv run pytest tests/test_node_factory.py  # Single test file
 uv run pytest -m unit -q               # Unit tests only (CI default)
 uv run pytest --network                # Include network tests
 uv run pytest --all                    # Run every test
-uv run pytest -n auto                  # Parallel (all CPUs)
 ```
 
 Tests use four marks (`unit`/`network`/`slow`/`pipeline`); network and pipeline tests are skipped
@@ -96,21 +86,12 @@ Memory-hungry tests also carry a parametrized `min_memory_gb(n)` guard (register
 
 ### Linting (all four checked in CI on PRs)
 
-```bash
-uv run ruff check                        # Python lint
-uv run ruff check --fix                  # Python auto-fix
-uv run ruff format --check               # Python format check
-uv run ruff format                       # Python auto-format
-uv run snakefmt --check --compact-diff . # Snakemake format check
-uv run snakefmt .                        # Snakemake auto-fix
-uv run rumdl check .                     # Markdown lint
-uv run rumdl fmt .                       # Markdown auto-fix
-```
+Ruff (`check` and `format`), `snakefmt`, and `rumdl`, each run through `uv run`; the exact
+invocations CI uses are in `.github/workflows/check-formatting.yml`, and their line lengths are set
+in `pyproject.toml`.
 
 ### Configuration
 
-- Line length is 120 for both Python (ruff) and Snakemake (snakefmt). Markdown (`rumdl`,
-  rule `MD013`) wraps at 100 instead, though tables are exempt.
 - Main config: `config.yaml` (directory paths, version strings, prefix lists per semantic type).
 - `UMLS_API_KEY` environment variable required for UMLS/RxNorm downloads.
 - `compendium_directories` in `config.yaml` maps Python compendium names to the Snakemake
@@ -142,11 +123,7 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
 `NodeFactory` picks as preferred. To resolve a CURIE to a URL use
 `src/util.py:get_biolink_prefix_map()` (`converter.expand("EMAPA:0")`), not a hand-rolled map.
 
-**Node output schema** — see `NodeFactory.create_node()`'s docstring in `src/node.py`:
-
-```python
-{"identifiers": [{"identifier": CURIE, "label": str}, ...], "type": "biolink:Foo", "id": {"identifier": CURIE, "label": str}}
-```
+**Node output schema** — see `NodeFactory.create_node()`'s docstring in `src/node.py`.
 
 ### Subsystem gotchas
 
