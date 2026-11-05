@@ -1,0 +1,569 @@
+curie,label,pr_category,protein_clique_leader,clique_has_sequence,clique_size
+PR:000000002,E3 ubiquitin ligase SFC complex Skp1 subunit,family,PR:000000002,0,1
+PR:000000003,HLH DNA-binding protein inhibitor,family,PR:000000003,0,1
+PR:000000004,RING-box protein,family,PR:000000004,0,1
+PR:000000006,TGF-beta superfamily receptor type-1,family,PR:000000006,0,1
+PR:000000007,TGF-beta superfamily receptor type-2 with activin receptor domain,family,PR:000000007,0,1
+PR:000000008,TGF-beta-like cystine-knot cytokine,family,PR:000000008,0,1
+PR:000000011,class 1 small leucine-rich proteoglycan,family,PR:000000011,0,1
+PR:000000013,cullin,family,PR:000000013,0,1
+PR:000000014,cyclin-dependent kinase inhibitor,family,PR:000000014,0,1
+PR:000000016,HECT domain-containing E3 ubiquitin-protein ligase with WW domains,family,PR:000000016,0,1
+PR:000000018,latent TGF-beta-binding protein,family,PR:000000018,0,1
+PR:000000019,mitogen-activated protein kinase,family,PR:000000019,0,1
+PR:000000020,Myc protein,family,PR:000000020,0,1
+PR:000000022,ptx homeobox protein,family,PR:000000022,0,1
+PR:000000023,retinoblastoma-like protein,family,PR:000000023,0,1
+PR:000000024,Rho-associated protein kinase,family,PR:000000024,0,1
+PR:000000025,ribosomal protein S6 kinase beta,family,PR:000000025,0,1
+PR:000000026,sara-type zinc finger FYVE domain-containing protein,family,PR:000000026,0,1
+PR:000000027,SMAD family member protein,family,PR:000000027,0,1
+PR:000000028,small GTPase,family,PR:000000028,0,1
+PR:000000029,thrombospondin subgroup A,family,PR:000000029,0,1
+PR:000000030,thrombospondin subgroup B,family,PR:000000030,0,1
+PR:000000031,"transcription adapter with TAZ, KIX and bromo-domains",family,PR:000000031,0,1
+PR:000000032,transcription factor Sp,family,PR:000000032,0,1
+PR:000000033,"tumor necrosis factor, TNF-like",family,PR:000000033,0,1
+PR:000000034,bone morphogenetic protein,family,PR:000000034,0,1
+PR:000000038,BMP receptor-regulated SMAD family member protein,family,PR:000000038,0,1
+PR:000000046,TGF-beta,family,PR:000000046,0,1
+PR:000000066,TGF-beta receptor-regulated SMAD family member protein,family,PR:000000066,0,1
+PR:000000072,activin/inhibin beta subunit,family,PR:000000072,0,1
+PR:000000098,growth/differentiation factor,family,PR:000000098,0,1
+PR:000000099,inhibitory SMAD family member protein,family,PR:000000099,0,1
+PR:000000102,lefty protein,family,PR:000000102,0,1
+PR:000000122,Rho-related small GTPase,family,PR:000000122,0,1
+PR:000000127,smad ubiquitination regulatory factor,family,PR:000000127,0,1
+PR:000000668,calcium-activated calmodulin-binding potassium channel alpha subunit,family,PR:000000668,0,1
+PR:000000673,cyclic nucleotide-gated channel alpha subunit,family,PR:000000673,0,1
+PR:000000674,cyclic nucleotide-gated channel beta subunit,family,PR:000000674,0,1
+PR:000000675,platelet-derived growth factor with CUB domain,family,PR:000000675,0,1
+PR:000000676,potassium/sodium hyperpolarization-activated cyclic nucleotide-gated channel protein,family,PR:000000676,0,1
+PR:000000677,shab-related voltage-gated potassium channel alpha subunit,family,PR:000000677,0,1
+PR:000000679,transient receptor potential cation channel TRPA,family,PR:000000679,0,1
+PR:000000680,transient receptor potential cation channel TRPC,family,PR:000000680,0,1
+PR:000000681,transient receptor potential cation channel TRPV,family,PR:000000681,0,1
+PR:000000682,voltage-gated potassium channel alpha subunit with PAS domain,family,PR:000000682,0,1
+PR:000000684,voltage-gated potassium channel subunit KQT,family,PR:000000684,0,1
+PR:000000685,voltage-gated potassium channel alpha subunit,family,PR:000000685,0,1
+PR:000000687,calcium-selective transient receptor potential cation channel TRPV,family,PR:000000687,0,1
+PR:000000701,modulatory voltage-gated potassium channel subunit KCNG,family,PR:000000701,0,1
+PR:000000702,modulatory voltage-gated potassium channel subunit KCNS,family,PR:000000702,0,1
+PR:000000709,shaker-related voltage-gated potassium channel alpha subunit,family,PR:000000709,0,1
+PR:000000710,shal-related voltage-gated potassium channel alpha subunit,family,PR:000000710,0,1
+PR:000000711,shaw-related voltage-gated potassium channel alpha subunit,family,PR:000000711,0,1
+PR:000000718,transient receptor potential cation channel TRPC3/6/7,family,PR:000000718,0,1
+PR:000000719,voltage-gated potassium channel Eag alpha subunit,family,PR:000000719,0,1
+PR:000000720,voltage-gated potassium channel Elk alpha subunit,family,PR:000000720,0,1
+PR:000000721,voltage-gated potassium channel Erg alpha subunit,family,PR:000000721,0,1
+PR:000001005,integrin alpha with A domain,family,PR:000001005,0,1
+PR:000001018,CD3 subunit with immunoglobulin domain,family,PR:000001018,0,1
+PR:000001022,neural cell adhesion molecule,family,PR:000001022,0,1
+PR:000001023,neural cell adhesion molecule NCAM,family,PR:000001023,0,1
+PR:000001025,C-type lectin with multiple lectin domains,family,PR:000001025,0,1
+PR:000001030,erm protein,family,PR:000001030,0,1
+PR:000001043,Na(+)/H(+) exchange regulatory cofactor with ERM-binding domain,family,PR:000001043,0,1
+PR:000001074,transient receptor potential cation channel TRPC with PDZ-binding motif,family,PR:000001074,0,1
+PR:000001086,VVC2C2C2 Ig-like domain arrangement-containing protein,family,PR:000001086,0,1
+PR:000001087,adhesion G-protein coupled receptor,family,PR:000001087,0,1
+PR:000001091,interleukin-1,family,PR:000001091,0,1
+PR:000001092,interleukin-17,family,PR:000001092,0,1
+PR:000001094,rhodopsin-like G-protein coupled receptor,family,PR:000001094,0,1
+PR:000001095,secretin-like G-protein coupled receptor,family,PR:000001095,0,1
+PR:000001096,Toll-like receptor,family,PR:000001096,0,1
+PR:000001098,5-hydroxytryptamine receptor 1,family,PR:000001098,0,1
+PR:000001099,5-hydroxytryptamine receptor 2,family,PR:000001099,0,1
+PR:000001101,5-hydroxytryptamine receptor 5,family,PR:000001101,0,1
+PR:000001105,C5a anaphylatoxin chemotactic receptor,family,PR:000001105,0,1
+PR:000001107,D(1)-like dopamine receptor,family,PR:000001107,0,1
+PR:000001108,D(2)-like dopamine receptor,family,PR:000001108,0,1
+PR:000001115,alpha-1 adrenergic receptor,family,PR:000001115,0,1
+PR:000001116,alpha-2 adrenergic receptor,family,PR:000001116,0,1
+PR:000001118,angiotensin II receptor,family,PR:000001118,0,1
+PR:000001119,animal opsin,family,PR:000001119,0,1
+PR:000001121,beta adrenergic receptor,family,PR:000001121,0,1
+PR:000001122,bombesin receptor,family,PR:000001122,0,1
+PR:000001123,bradykinin receptor,family,PR:000001123,0,1
+PR:000001124,calcium-independent alpha-latrotoxin receptor,family,PR:000001124,0,1
+PR:000001128,chemokine receptor,family,PR:000001128,0,1
+PR:000001130,cholecystokinin receptor,family,PR:000001130,0,1
+PR:000001131,cysteinyl leukotriene receptor,family,PR:000001131,0,1
+PR:000001133,endothelin receptor,family,PR:000001133,0,1
+PR:000001134,growth hormone secretagogue/motilin receptor,family,PR:000001134,0,1
+PR:000001146,melanocortin receptor,family,PR:000001146,0,1
+PR:000001150,tachykinin receptor,family,PR:000001150,0,1
+PR:000001197,chemokine receptor CCR1/3/1L,family,PR:000001197,0,1
+PR:000001226,high affinity interleukin-8 receptor,family,PR:000001226,0,1
+PR:000001281,ADP-ribosyl cyclase,family,PR:000001281,0,1
+PR:000001290,B7-related protein,family,PR:000001290,0,1
+PR:000001291,C-type asialoglycoprotein receptor,family,PR:000001291,0,1
+PR:000001304,CD300 molecule-like protein,family,PR:000001304,0,1
+PR:000001313,E/P-selectin,family,PR:000001313,0,1
+PR:000001315,frizzled-like G-protein coupled receptor,family,PR:000001315,0,1
+PR:000001320,"alpha-(1,3)-fucosyltransferase",family,PR:000001320,0,1
+PR:000001325,"beta-1,3-glucuronyltransferase",family,PR:000001325,0,1
+PR:000001327,cadherin,family,PR:000001327,0,1
+PR:000001335,"class 2 cytokine, IL-10 type",family,PR:000001335,0,1
+PR:000001336,CD55-like protein,family,PR:000001336,0,1
+PR:000001342,discoidin domain-containing receptor,family,PR:000001342,0,1
+PR:000001348,erythrocyte membrane protein Rh,family,PR:000001348,0,1
+PR:000001349,fibroblast growth factor receptor,family,PR:000001349,0,1
+PR:000001351,gamma-glutamyltranspeptidase,family,PR:000001351,0,1
+PR:000001352,glycophorin,family,PR:000001352,0,1
+PR:000001355,immunoglobulin gamma Fc receptor II/III/IV,family,PR:000001355,0,1
+PR:000001356,immunoglobulin gamma Fc receptor I,family,PR:000001356,0,1
+PR:000001357,intercellular adhesion molecule 1/3,family,PR:000001357,0,1
+PR:000001362,interferon lambda,family,PR:000001362,0,1
+PR:000001403,tetraspanin,family,PR:000001403,0,1
+PR:000001407,tumor-associated calcium signal transducer,family,PR:000001407,0,1
+PR:000001416,neurotensin receptor,family,PR:000001416,0,1
+PR:000001420,GPR4-like G-protein coupled receptor,family,PR:000001420,0,1
+PR:000001421,GPR6-like G-protein coupled receptor,family,PR:000001421,0,1
+PR:000001427,LPAR1/S1PR1-like lysophospholipid receptor,family,PR:000001427,0,1
+PR:000001429,MT1-like melatonin receptor,family,PR:000001429,0,1
+PR:000001431,N-formyl peptide receptor,family,PR:000001431,0,1
+PR:000001439,adenosine receptor protein,family,PR:000001439,0,1
+PR:000001452,free fatty acid receptor,family,PR:000001452,0,1
+PR:000001457,galanin receptor,family,PR:000001457,0,1
+PR:000001463,glycoprotein hormone receptor,family,PR:000001463,0,1
+PR:000001464,gonadotropin-releasing hormone receptor,family,PR:000001464,0,1
+PR:000001477,leucine-rich repeat-containing G-protein coupled receptor 4/5/6,family,PR:000001477,0,1
+PR:000001478,leukotriene B4 receptor,family,PR:000001478,0,1
+PR:000001487,Mas-related G-protein coupled receptor,family,PR:000001487,0,1
+PR:000001488,muscarinic acetylcholine receptor,family,PR:000001488,0,1
+PR:000001489,neuromedin-U receptor,family,PR:000001489,0,1
+PR:000001490,neuropeptide FF/neuropeptide AF receptor,family,PR:000001490,0,1
+PR:000001495,neuropeptides B/W receptor,family,PR:000001495,0,1
+PR:000001496,hydroxycarboxylic acid receptor protein,family,PR:000001496,0,1
+PR:000001497,opioid receptor protein,family,PR:000001497,0,1
+PR:000001499,orexin receptor,family,PR:000001499,0,1
+PR:000001545,prokineticin receptor,family,PR:000001545,0,1
+PR:000001549,prostanoid receptor,family,PR:000001549,0,1
+PR:000001550,proteinase-activated receptor,family,PR:000001550,0,1
+PR:000001551,relaxin family peptide receptor protein,family,PR:000001551,0,1
+PR:000001555,somatostatin receptor,family,PR:000001555,0,1
+PR:000001558,trace amine receptor,family,PR:000001558,0,1
+PR:000001562,vasopressin/oxytocin receptor,family,PR:000001562,0,1
+PR:000001599,Mas-related G-protein coupled receptor A,family,PR:000001599,0,1
+PR:000001600,Mas-related G-protein coupled receptor B,family,PR:000001600,0,1
+PR:000001608,Mas-related G-protein coupled receptor X,family,PR:000001608,0,1
+PR:000001673,lysophospholipid (S1P) receptor,family,PR:000001673,0,1
+PR:000001678,trace amine-associated receptor 1-4,family,PR:000001678,0,1
+PR:000001680,trace amine-associated receptor 6-9,family,PR:000001680,0,1
+PR:000001716,trace amine-associated receptor 7,family,PR:000001716,0,1
+PR:000001744,translocation-associated membrane protein,family,PR:000001744,0,1
+PR:000001753,transcription factor NF-kappa-B subunit,family,PR:000001753,0,1
+PR:000001769,mitogen-activated protein kinase kinase kinase 7-interacting protein 2/3,family,PR:000001769,0,1
+PR:000001774,inhibitor of nuclear factor kappa-B kinase complex alpha/beta subunits,family,PR:000001774,0,1
+PR:000001777,IKK-related kinase,family,PR:000001777,0,1
+PR:000001781,interleukin-1 receptor-associated kinase IRAK1/3,family,PR:000001781,0,1
+PR:000001785,prominin,family,PR:000001785,0,1
+PR:000001808,C/C-C motif small inducible chemokine,family,PR:000001808,0,1
+PR:000001810,CSF-1/PDGF receptor-type tyrosine-protein kinase,family,PR:000001810,0,1
+PR:000001812,EGF receptor type tyrosine-protein kinase,family,PR:000001812,0,1
+PR:000001814,G protein-activated inward rectifier potassium channel,family,PR:000001814,0,1
+PR:000001816,HGF/MSP receptor type tyrosine-protein kinase,family,PR:000001816,0,1
+PR:000001817,LDL receptor-related protein,family,PR:000001817,0,1
+PR:000001818,MHC class I histocompatibility antigen alpha chain,family,PR:000001818,0,1
+PR:000001820,MHC class II histocompatibility antigen alpha chain,family,PR:000001820,0,1
+PR:000001821,MHC class II histocompatibility antigen beta chain,family,PR:000001821,0,1
+PR:000001832,SIRP/SHPS-1 family protein,family,PR:000001832,0,1
+PR:000001838,T-cell surface glycoprotein CD1,family,PR:000001838,0,1
+PR:000001845,band 3-like protein,family,PR:000001845,0,1
+PR:000001848,butyrophilin,family,PR:000001848,0,1
+PR:000001861,integrin beta,family,PR:000001861,0,1
+PR:000001862,interferon regulatory factor 1/2,family,PR:000001862,0,1
+PR:000001863,interferon regulatory factor 3-9,family,PR:000001863,0,1
+PR:000001864,interferon-induced transmembrane protein,family,PR:000001864,0,1
+PR:000001874,KLRB1-like protein,family,PR:000001874,0,1
+PR:000001883,lysosome-associated membrane protein,family,PR:000001883,0,1
+PR:000001888,membrane alanyl aminopeptidase-like metallopeptidase,family,PR:000001888,0,1
+PR:000001897,natural killer cell receptor NKG2,family,PR:000001897,0,1
+PR:000001899,neural cell adhesion molecule-like protein,family,PR:000001899,0,1
+PR:000001911,poliovirus receptor-related protein,family,PR:000001911,0,1
+PR:000001916,potassium channel subfamily T,family,PR:000001916,0,1
+PR:000001917,"potassium channel, TWIK-1-related",family,PR:000001917,0,1
+PR:000001923,receptor-type tyrosine-protein kinase Tie,family,PR:000001923,0,1
+PR:000001926,semaphorin,family,PR:000001926,0,1
+PR:000001933,signal transducer and transcription activator STAT,family,PR:000001933,0,1
+PR:000001938,thrombomodulin-like receptor,family,PR:000001938,0,1
+PR:000001946,tumor necrosis factor ligand superfamily member 10/11,family,PR:000001946,0,1
+PR:000001951,tumor necrosis factor receptor superfamily member 10A/B,family,PR:000001951,0,1
+PR:000001967,TEC-type tyrosine-protein kinase,family,PR:000001967,0,1
+PR:000001971,vascular endothelial growth factor receptor,family,PR:000001971,0,1
+PR:000001974,voltage-gated calcium channel subunit alpha,family,PR:000001974,0,1
+PR:000001975,voltage-gated sodium channel subunit alpha,family,PR:000001975,0,1
+PR:000001998,C-C motif chemokine 3/4,family,PR:000001998,0,1
+PR:000002038,eotaxin-like cytokine,family,PR:000002038,0,1
+PR:000002059,lymphotactin-like chemokine,family,PR:000002059,0,1
+PR:000002156,NAD(P)(+)--arginine ADP-ribosyltransferase,family,PR:000002156,0,1
+PR:000002159,T-cell ecto-ADP-ribosyltransferase,family,PR:000002159,0,1
+PR:000002186,Bcl-2-like apoptosis inhibitor,family,PR:000002186,0,1
+PR:000002191,TNF receptor-associated factor,family,PR:000002191,0,1
+PR:000002195,caspase-1-like protease,family,PR:000002195,0,1
+PR:000002196,caspase-3-like protease,family,PR:000002196,0,1
+PR:000002197,caspase-8-like protease,family,PR:000002197,0,1
+PR:000002199,cytochrome c protein,family,PR:000002199,0,1
+PR:000002201,dynein light chain,family,PR:000002201,0,1
+PR:000002210,"protein kinase C, delta-like",family,PR:000002210,0,1
+PR:000002212,"serine/threonine-protein kinase, MST4-like",family,PR:000002212,0,1
+PR:000002973,ataxin-1/ataxin-1-like,family,PR:000002973,0,1
+PR:000002976,Ly-6-like protein,family,PR:000002976,0,1
+PR:000002986,Ikaros-like zinc finger transcription factor,family,PR:000002986,0,1
+PR:000002992,NRAMP-like divalent ion transporter,family,PR:000002992,0,1
+PR:000002997,proto-oncogene SRC-like tyrosine-protein kinase,family,PR:000002997,0,1
+PR:000003030,focal adhesion kinase,family,PR:000003030,0,1
+PR:000003057,conventional protein kinase C,family,PR:000003057,0,1
+PR:000003063,SYK/ZAP-70 family tyrosine-protein kinase,family,PR:000003063,0,1
+PR:000003106,map kinase p38,family,PR:000003106,0,1
+PR:000003112,NFAT protein,family,PR:000003112,0,1
+PR:000003136,subtilisin/kexin-type proprotein convertase,family,PR:000003136,0,1
+PR:000003140,protein pellino,family,PR:000003140,0,1
+PR:000003153,UBA domain-containing ubiquitin-conjugating enzyme E2,family,PR:000003153,0,1
+PR:000003165,spectrin beta subunit,family,PR:000003165,0,1
+PR:000003171,IGFBP-related protein,family,PR:000003171,0,1
+PR:000003177,shc-transforming protein,family,PR:000003177,0,1
+PR:000003197,calcium/calmodulin-dependent protein kinase type II chain,family,PR:000003197,0,1
+PR:000003208,conventional serine/threonine-protein phosphatase,family,PR:000003208,0,1
+PR:000003212,serine/threonine-protein phosphatase 2A 55 kDa regulatory subunit B,family,PR:000003212,0,1
+PR:000003222,fragile X-related protein,family,PR:000003222,0,1
+PR:000003237,14-3-3 protein,family,PR:000003237,0,1
+PR:000003262,collagen alpha chain,family,PR:000003262,0,1
+PR:000003263,collagen type I alpha chain,family,PR:000003263,0,1
+PR:000003270,CDK2-related kinase,family,PR:000003270,0,1
+PR:000003272,insulin receptor-related receptor,family,PR:000003272,0,1
+PR:000003285,TRAF-interacting protein with FHA domain-containing protein,family,PR:000003285,0,1
+PR:000003288,typical ubiquitin-conjugating enzyme E2,family,PR:000003288,0,1
+PR:000003290,ubiquitin-conjugating enzyme variant,family,PR:000003290,0,1
+PR:000003292,NF-kappa-B inhibitor,family,PR:000003292,0,1
+PR:000003316,syntaxin-binding protein,family,PR:000003316,0,1
+PR:000003386,collagen type VI alpha chain,family,PR:000003386,0,1
+PR:000003387,collagen type V alpha chain,family,PR:000003387,0,1
+PR:000003388,collagen type IV alpha chain,family,PR:000003388,0,1
+PR:000003413,HSPH protein,family,PR:000003413,0,1
+PR:000003415,heat shock protein SSE,family,PR:000003415,0,1
+PR:000003425,Hsp70 family chaperone,family,PR:000003425,0,1
+PR:000003426,HSPA protein,family,PR:000003426,0,1
+PR:000003444,E3 SUMO-protein ligase PIAS,family,PR:000003444,0,1
+PR:000003505,leukocyte granule-associated proteinase,family,PR:000003505,0,1
+PR:000003506,T-brain transcription factor,family,PR:000003506,0,1
+PR:000008425,histone H3.3,family,PR:000008425,0,1
+PR:000021983,cereal lectin with Chitin recognition protein domains,family,PR:000021983,0,1
+PR:000021986,plant L-type lectin,family,PR:000021986,0,1
+PR:000021990,dual specificity mitogen-activated protein kinase kinase 3/6,family,PR:000021990,0,1
+PR:000021997,TRK receptor,family,PR:000021997,0,1
+PR:000021998,neurotrophin,family,PR:000021998,0,1
+PR:000021999,death receptor,family,PR:000021999,0,1
+PR:000022000,class III plant peroxidase,family,PR:000022000,0,1
+PR:000022001,vertebrate G-type lysozyme,family,PR:000022001,0,1
+PR:000022007,vertebrate-like neuraminidase,family,PR:000022007,0,1
+PR:000023005,branched-chain-amino-acid aminotransferase,family,PR:000023005,0,1
+PR:000024849,UDP-glucuronosyltransferase,family,PR:000024849,0,1
+PR:000024938,interferon alpha,family,PR:000024938,0,1
+PR:000024939,interferon beta,family,PR:000024939,0,1
+PR:000024990,type II interferon,family,PR:000024990,0,1
+PR:000024998,vomeronasal type-1 receptor,family,PR:000024998,0,1
+PR:000024999,vomeronasal type-2 receptor,family,PR:000024999,0,1
+PR:000025000,M-factor precursor,family,PR:000025000,0,1
+PR:000025020,interferon omega,family,PR:000025020,0,1
+PR:000025021,interferon tau,family,PR:000025021,0,1
+PR:000025304,interferon regulatory factor,family,PR:000025304,0,1
+PR:000025349,HSPB protein,family,PR:000025349,0,1
+PR:000025350,HSPC protein,family,PR:000025350,0,1
+PR:000025351,CCT protein,family,PR:000025351,0,1
+PR:000025748,Janus kinase,family,PR:000025748,0,1
+PR:000025796,integrin alpha,family,PR:000025796,0,1
+PR:000025797,integrin alpha lacking A domain,family,PR:000025797,0,1
+PR:000025823,solute carrier organic anion transporter family member,family,PR:000025823,0,1
+PR:000025824,Axin,family,PR:000025824,0,1
+PR:000025840,gamma-glutamyltranspeptidase light chain,family,PR:000025840,0,1
+PR:000025841,single domain alpha-type carbonic anhydrase,family,PR:000025841,0,1
+PR:000025842,contactin-associated protein,family,PR:000025842,0,1
+PR:000025843,copine,family,PR:000025843,0,1
+PR:000025844,ephrin,family,PR:000025844,0,1
+PR:000025845,ephrin receptor,family,PR:000025845,0,1
+PR:000025846,fatty acid-binding protein,family,PR:000025846,0,1
+PR:000025847,dimethylaniline monooxygenase [N-oxide-forming],family,PR:000025847,0,1
+PR:000025848,type I interferon,family,PR:000025848,0,1
+PR:000025865,bacterial glutaminase,family,PR:000025865,0,1
+PR:000025875,serpin,family,PR:000025875,0,1
+PR:000025879,siroheme synthase,family,PR:000025879,0,1
+PR:000025988,max dimerization protein,family,PR:000025988,0,1
+PR:000025989,bacteria/chloroplast-type chaperonin GroEL,family,PR:000025989,0,1
+PR:000026013,insulin-like protein,family,PR:000026013,0,1
+PR:000026027,paired amphipathic helix protein Sin3,family,PR:000026027,0,1
+PR:000026089,translation initiation factor 2 subunit 3/gamma,family,PR:000026089,0,1
+PR:000026124,PLP-dependent alpha-oxoamine synthase,family,PR:000026124,0,1
+PR:000026125,5-aminolevulinate synthase,family,PR:000026125,0,1
+PR:000026126,eukaryotic serine palmitoyltransferase,family,PR:000026126,0,1
+PR:000026147,small subunit of serine palmitoyltransferase,family,PR:000026147,0,1
+PR:000026156,metal-dependent decarboxylating R-hydroxyacid dehydrogenase,family,PR:000026156,0,1
+PR:000026157,"isocitrate dehydrogenase [NAD], mitochondrial",family,PR:000026157,0,1
+PR:000026287,complex IV component 6a (mouse),organism-family,PR:000026287,0,1
+PR:000026288,complex IV component 6b (mouse),organism-family,PR:000026288,0,1
+PR:000026289,complex IV component 7a (mouse),organism-family,PR:000026289,0,1
+PR:000026290,complex IV component 8 (mouse),organism-family,PR:000026290,0,1
+PR:000027101,mitogen-activated protein kinase kinase kinase 7-interacting protein 2/3 (mouse),organism-family,PR:000027101,0,1
+PR:000027103,mitogen-activated protein kinase kinase kinase 7-interacting protein 2/3 (human),organism-family,PR:000027103,0,1
+PR:000027108,"transcription adapter with TAZ, KIX and bromo-domains (human)",organism-family,PR:000027108,0,1
+PR:000027109,"transcription adapter with TAZ, KIX and bromo-domains (mouse)",organism-family,PR:000027109,0,1
+PR:000027496,cytochrome c oxidase 7B (mouse),organism-family,PR:000027496,0,1
+PR:000027497,cytochrome c oxidase 7B,family,PR:000027497,0,1
+PR:000027498,p38-like stress-activated mitogen-activated protein kinase,family,PR:000027498,0,1
+PR:000027547,histone H2A,family,PR:000027547,0,1
+PR:000027594,histone H3,family,PR:000027594,0,1
+PR:000027622,CDC14-type phosphatase,family,PR:000027622,0,1
+PR:000027717,"ribonucleoside-diphosphate reductase class I, small subunit",family,PR:000027717,0,1
+PR:000027795,trypsin,family,PR:000027795,0,1
+PR:000027804,basic helix-loop-helix transcription factor HAND,family,PR:000027804,0,1
+PR:000027825,twist-related protein,family,PR:000027825,0,1
+PR:000027961,RING-box protein 1 related protein,family,PR:000027961,0,1
+PR:000028205,type III interferon,family,PR:000028205,0,1
+PR:000028456,RING-box protein 1 (Arabidopsis thaliana),organism-family,PR:000028456,0,1
+PR:000028506,auxin-responsive protein,family,PR:000028506,0,1
+PR:000028799,tubulin,family,PR:000028799,0,1
+PR:000028988,sterol regulatory element-binding protein,family,PR:000028988,0,1
+PR:000029187,ribosomal protein S6 kinase alpha,family,PR:000029187,0,1
+PR:000029188,cAMP-dependent protein kinase catalytic subunit,family,PR:000029188,0,1
+PR:000029189,AKT kinase,family,PR:000029189,0,1
+PR:000029191,cyclin-related protein,family,PR:000029191,0,1
+PR:000029192,G2/mitotic-specific cyclin-B,family,PR:000029192,0,1
+PR:000029896,death-associated protein kinase,family,PR:000029896,0,1
+PR:000029945,glutathione S-transferase,family,PR:000029945,0,1
+PR:000029946,glutathione S-transferase alpha,family,PR:000029946,0,1
+PR:000029947,glutathione S-transferase kappa,family,PR:000029947,0,1
+PR:000029948,glutathione S-transferase mu,family,PR:000029948,0,1
+PR:000029949,glutathione S-transferase omega,family,PR:000029949,0,1
+PR:000029950,glutathione S-transferase pi,family,PR:000029950,0,1
+PR:000029951,glutathione S-transferase theta,family,PR:000029951,0,1
+PR:000029952,glutathione S-transferase zeta,family,PR:000029952,0,1
+PR:000029953,microsomal glutathione S-transferase,family,PR:000029953,0,1
+PR:000029968,somatotropin hormone family member,family,PR:000029968,0,1
+PR:000029971,creatine kinase,family,PR:000029971,0,1
+PR:000029977,"6-phosphofructo-2-kinase/fructose-2,6-bisphosphatase",family,PR:000029977,0,1
+PR:000029980,PRAME family member,family,PR:000029980,0,1
+PR:000029983,protein-glutamine gamma-glutamyltransferase,family,PR:000029983,0,1
+PR:000030035,G-protein coupled receptor,family,PR:000030035,0,1
+PR:000030038,glutamate G-protein coupled receptor,family,PR:000030038,0,1
+PR:000030047,interferon delta,family,PR:000030047,0,1
+PR:000033719,prokaryotic-type lysine--tRNA ligase,family,PR:000033719,0,1
+PR:000034208,fatty acid oxidation complex subunit alpha,family,PR:000034208,0,1
+PR:000035365,aurora kinase,family,PR:000035365,0,1
+PR:000035665,BUB1/BUB1B protein,family,PR:000035665,0,1
+PR:000035899,GSK3-like glycogen synthase kinase,family,PR:000035899,0,1
+PR:000035980,plant U-box E3 ubiquitin ligase,family,PR:000035980,0,1
+PR:000036147,plant leucine rich repeat receptor-like kinase,family,PR:000036147,0,1
+PR:000036336,taste receptor type 1,family,PR:000036336,0,1
+PR:000036337,taste receptor type 2,family,PR:000036337,0,1
+PR:000036509,histone H2B,family,PR:000036509,0,1
+PR:000036794,histone H3.2,family,PR:000036794,0,1
+PR:000036844,G-protein coupled olfactory receptor,family,PR:000036844,0,1
+PR:000036845,class I olfactory receptor,family,PR:000036845,0,1
+PR:000036846,class II olfactory receptor,family,PR:000036846,0,1
+PR:000036926,ubiquitin-ribosomal protein eL40 fusion protein (yeast),organism-family,PR:000036926,0,1
+PR:000036928,elongation factor 1-alpha (Dictyostelium discoideum),organism-family,PR:000036928,0,1
+PR:000036929,tandem-copy polyubiquitin,family,PR:000036929,0,1
+PR:000036947,T-cell surface glycoprotein CD1 (human),organism-family,PR:000036947,0,1
+PR:000036951,HLA class I histocompatibility antigen alpha chain (human),organism-family,PR:000036951,0,1
+PR:000036952,MHC class II histocompatibility antigen beta chain DRB (human),organism-family,PR:000036952,0,1
+PR:000036953,butyrophilin subfamily 3 member A (human),organism-family,PR:000036953,0,1
+PR:000036985,histone H3.3 (fruit fly),organism-family,PR:000036985,0,1
+PR:000037019,putative ADP-ribosylation factor-like protein 17,family,PR:000037019,0,1
+PR:000037377,ethylene-responsive transcription factor,family,PR:000037377,0,1
+PR:000037380,R2R3-type MYB protein,family,PR:000037380,0,1
+PR:000037395,1-aminocyclopropane-1-carboxylate synthase,family,PR:000037395,0,1
+PR:000037417,DNA damage-binding protein 1 (Arabidopsis thaliana),organism-family,PR:000037417,0,1
+PR:000037420,eukaryotic-type nitrate reductase,family,PR:000037420,0,1
+PR:000037797,paired box protein PAX,family,PR:000037797,0,1
+PR:000037798,paired box protein PAX group IV,family,PR:000037798,0,1
+PR:000037799,paired box protein PAX group III,family,PR:000037799,0,1
+PR:000037800,paired box protein PAX group II,family,PR:000037800,0,1
+PR:000037801,paired box protein PAX group I,family,PR:000037801,0,1
+PR:000038372,histone H1,family,PR:000038372,0,1
+PR:000039919,longin and synaptobrevin domains protein,family,PR:000039919,0,1
+PR:000039979,HMA and SODC domains protein,family,PR:000039979,0,1
+PR:000039980,SODC domain protein,family,PR:000039980,0,1
+PR:000040123,GTPase IMAP family member,family,PR:000040123,0,1
+PR:000040662,cathepsin-like protease,family,PR:000040662,0,1
+PR:000041205,cyclin-A,family,PR:000041205,0,1
+PR:000041293,core histone (Schizosaccharomyces pombe),organism-family,PR:000041293,0,1
+PR:000043452,core histone,family,PR:000043452,0,1
+PR:000043453,linker histone,family,PR:000043453,0,1
+PR:000044430,cyclin-E,family,PR:000044430,0,1
+PR:000044507,14-3-3 protein (human),organism-family,PR:000044507,0,1
+PR:000044515,protocadherin,family,PR:000044515,0,1
+PR:000044516,protocadherin alpha,family,PR:000044516,0,1
+PR:000044517,protocadherin beta,family,PR:000044517,0,1
+PR:000044518,protocadherin gamma,family,PR:000044518,0,1
+PR:000044519,protocadherin Fat,family,PR:000044519,0,1
+PR:000044624,CK1 homologs hhp1/hhp2 (Schizosaccharomyces pombe),organism-family,PR:000044624,0,1
+PR:000044625,5-hydroxytryptamine receptor,family,PR:000044625,0,1
+PR:000044626,orai channel protein,family,PR:000044626,0,1
+PR:000044627,store-operated ion channel protein,family,PR:000044627,0,1
+PR:000044628,voltage-gated ion channel protein,family,PR:000044628,0,1
+PR:000044630,corticotropin-releasing factor receptor,family,PR:000044630,0,1
+PR:000044631,adrenoceptor protein,family,PR:000044631,0,1
+PR:000044633,dopamine receptor,family,PR:000044633,0,1
+PR:000044634,G-protein coupled bile acid receptor,family,PR:000044634,0,1
+PR:000044637,calcitonin receptor protein,family,PR:000044637,0,1
+PR:000044639,cannabinoid receptor,family,PR:000044639,0,1
+PR:000044640,chemerin receptor,family,PR:000044640,0,1
+PR:000044641,fumarylacetoacetate hydrolase domain-containing protein 2,family,PR:000044641,0,1
+PR:000044643,complement peptide receptor,family,PR:000044643,0,1
+PR:000044645,CatSper channel protein,family,PR:000044645,0,1
+PR:000044646,two-pore channel protein,family,PR:000044646,0,1
+PR:000044647,CatSper and two-pore channel protein,family,PR:000044647,0,1
+PR:000044648,cyclic nucleotide-regulated channel protein,family,PR:000044648,0,1
+PR:000044649,calcium-activated potassium channel protein,family,PR:000044649,0,1
+PR:000044650,sodium-activated potassium channel protein,family,PR:000044650,0,1
+PR:000044651,calcium- and sodium-activated potassium channel protein,family,PR:000044651,0,1
+PR:000044652,inwardly rectifying potassium channel protein,family,PR:000044652,0,1
+PR:000044653,two P domain potassium channel protein,family,PR:000044653,0,1
+PR:000044654,voltage-gated potassium channel protein,family,PR:000044654,0,1
+PR:000044655,potassium channel protein,family,PR:000044655,0,1
+PR:000044656,ryanodine receptor,family,PR:000044656,0,1
+PR:000044657,transient receptor potential channel protein,family,PR:000044657,0,1
+PR:000044658,voltage-gated calcium channel protein,family,PR:000044658,0,1
+PR:000044659,voltage-gated proton channel protein,family,PR:000044659,0,1
+PR:000044660,voltage-gated sodium channel protein,family,PR:000044660,0,1
+PR:000044661,5-HT3 receptor protein,family,PR:000044661,0,1
+PR:000044662,pH-gated ion channel protein,family,PR:000044662,0,1
+PR:000044663,epithelial sodium channel protein,family,PR:000044663,0,1
+PR:000044664,GABA(A) receptor protein,family,PR:000044664,0,1
+PR:000044665,glycine receptor protein,family,PR:000044665,0,1
+PR:000044666,ionotropic glutamate receptor protein,family,PR:000044666,0,1
+PR:000044667,IP(3) receptor,family,PR:000044667,0,1
+PR:000044668,nicotinic acetylcholine receptor protein,family,PR:000044668,0,1
+PR:000044669,P2X receptor protein,family,PR:000044669,0,1
+PR:000044671,ligand-gated ion channel protein,family,PR:000044671,0,1
+PR:000044672,aquaporin protein,family,PR:000044672,0,1
+PR:000044673,CIC family protein,family,PR:000044673,0,1
+PR:000044675,calcium activated chloride channel protein,family,PR:000044675,0,1
+PR:000044676,channel protein,family,PR:000044676,0,1
+PR:000044677,volume regulated chloride channel,family,PR:000044677,0,1
+PR:000044678,chloride channel protein,family,PR:000044678,0,1
+PR:000044679,connexin protein,family,PR:000044679,0,1
+PR:000044680,pannexin protein,family,PR:000044680,0,1
+PR:000044681,connexin and pannexin protein,family,PR:000044681,0,1
+PR:000044682,piezo channel protein,family,PR:000044682,0,1
+PR:000044692,molybdopterin synthase catalytic subunit,family,PR:000044692,0,1
+PR:000044693,molybdopterin synthase sulfur carrier subunit,family,PR:000044693,0,1
+PR:000044694,interferon alpha (human),organism-family,PR:000044694,0,1
+PR:000044732,N-acetyltransferase 8/8B,family,PR:000044732,0,1
+PR:000044733,tripartite motif-containing protein,family,PR:000044733,0,1
+PR:000044779,contactin,family,PR:000044779,0,1
+PR:000044780,leukocyte immunoglobulin-like receptor subfamily member,family,PR:000044780,0,1
+PR:000044782,pregnancy-specific beta-1-glycoprotein,family,PR:000044782,0,1
+PR:000044783,leucine-rich repeat and immunoglobulin-like domain-containing nogo receptor-interacting protein,family,PR:000044783,0,1
+PR:000044784,leucine-rich repeat and fibronectin type-III domain-containing protein,family,PR:000044784,0,1
+PR:000044785,IgLON family member,family,PR:000044785,0,1
+PR:000044786,hyaluronan and proteoglycan link protein,family,PR:000044786,0,1
+PR:000044789,tubulin (pig),organism-family,PR:000044789,0,1
+PR:000044813,glycoprotein hormone beta chain,family,PR:000044813,0,1
+PR:000045358,insulin family protein,family,PR:000045358,0,1
+PR:000045383,"protein kinase C, iota-like",family,PR:000045383,0,1
+PR:000045384,protein kinase D,family,PR:000045384,0,1
+PR:000049738,calmodulin (mouse),organism-family,PR:000049738,0,1
+PR:000049739,calmodulin (rat),organism-family,PR:000049739,0,1
+PR:000049814,friend of GATA,family,PR:000049814,0,1
+PR:000049859,calmodulin (human),organism-family,PR:000049859,0,1
+PR:000049983,ion channel protein,family,PR:000049983,0,1
+PR:000049984,protein DDI1 homolog,family,PR:000049984,0,1
+PR:000049986,GABA(B) receptor protein,family,PR:000049986,0,1
+PR:000049987,coatomer subunit gamma,family,PR:000049987,0,1
+PR:000049988,cytochrome P450 11B,family,PR:000049988,0,1
+PR:000049989,glucagon-like receptor,family,PR:000049989,0,1
+PR:000049990,cytochrome P450 2A,family,PR:000049990,0,1
+PR:000049992,G-protein coupled receptor 18/55/119,family,PR:000049992,0,1
+PR:000049993,G-protein coupled estrogen receptor,family,PR:000049993,0,1
+PR:000049994,histamine receptor,family,PR:000049994,0,1
+PR:000049995,active alpha-amylase isozyme,family,PR:000049995,0,1
+PR:000049996,active alpha-amylase isozyme (human),organism-family,PR:000049996,0,1
+PR:000049997,leukotriene receptor,family,PR:000049997,0,1
+PR:000049998,lysophospholipid (LPA) receptor,family,PR:000049998,0,1
+PR:000050000,melanin-concentrating hormone receptor,family,PR:000050000,0,1
+PR:000050002,melatonin receptor,family,PR:000050002,0,1
+PR:000050003,metabotropic glutamate receptor protein,family,PR:000050003,0,1
+PR:000050004,major urinary protein,family,PR:000050004,0,1
+PR:000050007,E2F protein,family,PR:000050007,0,1
+PR:000050008,ELMO protein,family,PR:000050008,0,1
+PR:000050009,neuropeptide Y receptor,family,PR:000050009,0,1
+PR:000050010,EMX protein,family,PR:000050010,0,1
+PR:000050011,amyloid beta precursor like protein,family,PR:000050011,0,1
+PR:000050012,annexin A,family,PR:000050012,0,1
+PR:000050013,BRCA protein,family,PR:000050013,0,1
+PR:000050014,flotillin,family,PR:000050014,0,1
+PR:000050015,P2Y receptor,family,PR:000050015,0,1
+PR:000050016,parathyroid hormone receptor,family,PR:000050016,0,1
+PR:000050017,platelet-activating factor receptor,family,PR:000050017,0,1
+PR:000050018,GLI protein,family,PR:000050018,0,1
+PR:000050019,glycogen synthase kinase 3,family,PR:000050019,0,1
+PR:000050020,CLASP protein,family,PR:000050020,0,1
+PR:000050021,CNNM protein,family,PR:000050021,0,1
+PR:000050022,cyclin-D,family,PR:000050022,0,1
+PR:000050025,angiotensinogenase,family,PR:000050025,0,1
+PR:000050027,F-actin-capping protein subunit alpha,family,PR:000050027,0,1
+PR:000050029,thyrotropin-releasing hormone receptor,family,PR:000050029,0,1
+PR:000050033,VIP and PACAP receptor,family,PR:000050033,0,1
+PR:000050040,alpha-catenin,family,PR:000050040,0,1
+PR:000050041,delta-like protein,family,PR:000050041,0,1
+PR:000050042,homer protein homolog,family,PR:000050042,0,1
+PR:000050043,lymphotoxin,family,PR:000050043,0,1
+PR:000050044,NOTCH protein,family,PR:000050044,0,1
+PR:000050045,NOVA protein,family,PR:000050045,0,1
+PR:000050046,NXF protein,family,PR:000050046,0,1
+PR:000050047,OTX protein,family,PR:000050047,0,1
+PR:000050048,patched homolog protein,family,PR:000050048,0,1
+PR:000050049,phospholipase C-gamma,family,PR:000050049,0,1
+PR:000050050,profilin,family,PR:000050050,0,1
+PR:000050051,ROBO protein,family,PR:000050051,0,1
+PR:000050052,SLIT protein,family,PR:000050052,0,1
+PR:000050053,"Dol-P-Glc:Glc(2)Man(9)GlcNAc(2)-PP-Dol alpha-1,2-glucosyltransferase",family,PR:000050053,0,1
+PR:000050055,complement C1q and tumor necrosis factor-related protein 9,family,PR:000050055,0,1
+PR:000050056,sphingosine-1-phosphate phosphatase,family,PR:000050056,0,1
+PR:000050057,trafficking protein particle complex subunit 2 (human),organism-family,PR:000050057,0,1
+PR:000050058,oncomodulin,family,PR:000050058,0,1
+PR:000050059,doublecortin-like kinase,family,PR:000050059,0,1
+PR:000050060,glucose-6-phosphate dehydrogenase,family,PR:000050060,0,1
+PR:000050062,56kDa selenium binding protein,family,PR:000050062,0,1
+PR:000050097,creatine kinase (human),organism-family,PR:000050097,0,1
+PR:000050099,Boreoeutherial-type ATP-dependent 6-phosphofructokinase,family,PR:000050099,0,1
+PR:000050150,period circadian protein homolog,family,PR:000050150,0,1
+PR:000050151,cryptochrome,family,PR:000050151,0,1
+PR:000050154,eukaryotic inorganic pyrophosphatase,family,PR:000050154,0,1
+PR:000050164,"GAF-containing cyclic nucleotide-dependent 3',5'-cyclic phosphodiesterase",family,PR:000050164,0,1
+PR:000050174,immunoglobulin heavy chain protein,family,PR:000050174,0,1
+PR:000050175,immunoglobulin light chain protein,family,PR:000050175,0,1
+PR:000050176,IgA heavy chain protein,family,PR:000050176,0,1
+PR:000050183,immunoglobulin light chain protein (human),organism-family,PR:000050183,0,1
+PR:000050196,DNA restriction-modification system protein,family,PR:000050196,0,1
+PR:000050197,DNA restriction-modification endonuclease,family,PR:000050197,0,1
+PR:000050198,DNA restriction-modification methylase,family,PR:000050198,0,1
+PR:000050199,DNA restriction-modification specificity subunit,family,PR:000050199,0,1
+PR:000050219,alanine aminotransferase,family,PR:000050219,0,1
+PR:000050252,IgG heavy chain protein,family,PR:000050252,0,1
+PR:000050317,tubulin alpha-3 chain (human),organism-family,PR:000050317,0,1
+PR:000050341,alanine aminotransferase (human),organism-family,PR:000050341,0,1
+PR:000050343,alkaline phosphatase (human),organism-family,PR:000050343,0,1
+PR:000050353,aspartate aminotransferase (human),organism-family,PR:000050353,0,1
+PR:000050385,histone H3 (human),organism-family,PR:000050385,0,1
+PR:000050391,serum amyloid A protein (human),organism-family,PR:000050391,0,1
+PR:000050393,late cornified envelope protein,family,PR:000050393,0,1
+PR:000050420,glutathione S-transferase beta,family,PR:000050420,0,1
+PR:000050421,glutathione S-transferase delta,family,PR:000050421,0,1
+PR:000050422,glutathione S-transferase epsilon,family,PR:000050422,0,1
+PR:000050423,glutathione S-transferase nu,family,PR:000050423,0,1
+PR:000050424,glutathione S-transferase tau,family,PR:000050424,0,1
+PR:000050425,glutathione S-transferase phi,family,PR:000050425,0,1
+PR:000050467,hemoglobin subunit,family,PR:000050467,0,1
+PR:000050478,sulfotransferase family 2A member (mouse),organism-family,PR:000050478,0,1
+PR:000050522,medium-wave-sensitive opsin (human),organism-family,PR:000050522,0,1
+PR:000050525,histone H4 (Schizosaccharomyces pombe),organism-family,PR:000050525,0,1
+PR:000050554,transposase InsE for insertion sequence IS3 (Escherichia coli K-12),organism-family,PR:000050554,0,1
+PR:000050555,insertion element IS1 protein InsB (Escherichia coli K-12),organism-family,PR:000050555,0,1
+PR:000050556,sperm motility kinase 3 (mouse),organism-family,PR:000050556,0,1
+PR:000085771,serine/threonine protein kinase,family,PR:000085771,0,1
+PR:000085772,proline-directed serine/threonine protein kinase,family,PR:000085772,0,1
+PR:000085773,AGC group protein kinase,family,PR:000085773,0,1
+PR:000086277,nitrate reductase alpha chain,family,,,0
+PR:P04745,alpha-amylase 1 (human),organism-family,PR:P04745,0,1

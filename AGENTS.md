@@ -222,9 +222,11 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
 Source-specific notes live under `docs/sources/<PREFIX>/` — see
 [`docs/sources/README.md`](docs/sources/README.md) for the index and
 [`docs/sources/CLAUDE.md`](docs/sources/CLAUDE.md) for cross-cutting xref/data-quality conventions
-(read it before adding or filtering a source's cross-references). Developer tools each live in
-`src/tools/<tool>/` with their own `CLAUDE.md`, documented in `docs/tools/`; see
-`src/tools/CLAUDE.md` for the "thin CLI frontend" convention.
+(read it before adding or filtering a source's cross-references). Notes organised by Biolink class
+rather than by source (how Babel represents, or deliberately does not represent, a class, and the
+modelling questions still open for it) live under `docs/biolink/`; `docs/biolink/ProteinFamily.md`
+is the first. Developer tools each live in `src/tools/<tool>/` with their own `CLAUDE.md`,
+documented in `docs/tools/`; see `src/tools/CLAUDE.md` for the "thin CLI frontend" convention.
 
 ## Running Babel
 
