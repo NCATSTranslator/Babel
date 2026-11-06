@@ -150,20 +150,12 @@ def test_a_synonym_named_in_no_conflation_passes_through_unchanged(tmp_path):
 
 
 @pytest.mark.unit
-def test_a_synonym_keyed_on_a_non_leader_identifier_is_dropped(tmp_path):
-    """A synonym keyed on a clique member the conflation file does not name is silently dropped.
+def test_a_synonym_keyed_on_a_non_leader_identifier_is_merged(tmp_path):
+    """A synonym keyed on a clique member the conflation file does not name should still be folded
+    into the conflated record, via the compendium that puts it in a conflated clique (#989).
 
-    This pins current, wrong behaviour -- see https://github.com/NCATSTranslator/Babel/issues/989.
-    Step 1.1 of conflate_synonyms is meant to map every identifier of a conflated clique onto that
-    clique's preferred ID so records keyed on a non-leader identifier still get folded in. It does
-    not work: `ids = map(...)` in step 1.1 is a one-shot `map` object, so the outer loop that
-    searches for a conflated identifier consumes it and the inner loop that registers the clique
-    sees only whatever came after the match. The matching identifier itself -- the one the
-    conflation file names, and the one step 3 looks up -- is therefore never registered, so the
-    expansion never fires and the record is neither merged nor passed through.
-
-    **Invert this assertion when #989 is fixed**: FMA:70347's "Thyrocervical trunk" should appear
-    in the conflated record's names, and nothing should be lost.
+    This used to be silently dropped: step 1.1 iterated a one-shot `map` twice, so the identifier the
+    conflation file names was never registered against its clique and step 3 never expanded it.
     """
     fma_keyed = dict(THYROCERVICAL_SYNONYM, curie="FMA:70347", names=["Thyrocervical trunk"])
     records = run_conflation(
@@ -175,4 +167,5 @@ def test_a_synonym_keyed_on_a_non_leader_identifier_is_dropped(tmp_path):
 
     assert len(records) == 1
     assert records[0]["curie"] == "UMLS:C0733999"
-    assert "Thyrocervical trunk" not in records[0]["names"]
+    assert records[0]["names"] == ["Scapular line", "Linea scapularis", "Thyrocervical trunk"]
+    assert records[0]["clique_identifier_count"] == 4

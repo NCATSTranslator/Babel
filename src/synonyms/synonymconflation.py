@@ -84,7 +84,9 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
             for line in compendiumf:
                 clique = json.loads(line)
                 identifiers = clique.get("identifiers", [])
-                ids = map(lambda i: i["i"], identifiers)
+                # A list, not a map(): the inner loop below re-iterates it from the start, and a one-shot
+                # iterator would hand it only the IDs after the match, dropping the matching ID itself (#989).
+                ids = [i["i"] for i in identifiers]
 
                 # Is this clique being conflated? If not, we can just ignore it.
                 for id in ids:
