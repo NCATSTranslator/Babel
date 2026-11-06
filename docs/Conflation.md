@@ -36,3 +36,9 @@ conflation turned on, it determines the types of a conflated clique by:
    determined by the [Biolink Model Toolkit](https://github.com/biolink/biolink-model-toolkit).
 3. Add all the types and ancestors for all the other identifiers in the conflation without
    duplication.
+
+The conflated synonym files (`GeneProteinConflated.txt.gz`, `DrugChemicalConflated.txt.gz`, built by
+`src/synonyms/synonymconflation.py`) merge types the same way: the types of each clique in conflation
+order, without duplication. They leave out `OntologyClass`, which unconflated synonym records still
+carry. Issue #1178 is to settle what every output does with `OntologyClass`, `NamedThing` and
+`Entity`.
