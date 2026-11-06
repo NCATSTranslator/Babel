@@ -75,6 +75,8 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
 
     # Step 1.1. What if we have synonyms connected with identifiers that are not primary identifiers? To solve that
     # problem, we further enrich these identifiers with information from the compendia files.
+    # Every member of a conflated clique -> the identifier lists of the cliques it belongs to. Only the identifiers are
+    # kept, not the parsed clique: step 3 reads nothing else, and labels and descriptions would just hold memory.
     cliques_with_conflations = defaultdict(list)
     count_clique_ids_added = 0
 
@@ -97,7 +99,7 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
                             # We add all the other identifiers in this clique to the conflation index. That way,
                             # if someone refers to PUBCHEM.COMPOUND:962 when the preferred ID is CHEBI:15377, we will
                             # pull in synonyms from CHEBI:15377 as well.
-                            cliques_with_conflations[id_inner].append(clique)
+                            cliques_with_conflations[id_inner].append(ids)
                             if id_inner not in conflation_index:
                                 conflation_index[id_inner] = conflation_index[id]
                                 count_clique_ids_added += 1
@@ -155,10 +157,7 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
             conflation_ids_seen = set()
             for conflation_id_not_normalized in conflation_order:
                 if conflation_id_not_normalized in cliques_with_conflations:
-                    conflation_ids = []
-                    for clique in cliques_with_conflations[conflation_id_not_normalized]:
-                        for ident in clique.get("identifiers", []):
-                            conflation_ids.append(ident["i"])
+                    conflation_ids = [i for ids in cliques_with_conflations[conflation_id_not_normalized] for i in ids]
                 else:
                     conflation_ids = [conflation_id_not_normalized]
                 logger.debug("Expanded %s into %s.", conflation_id_not_normalized, conflation_ids)
