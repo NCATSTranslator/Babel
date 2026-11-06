@@ -128,7 +128,7 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
                         preferred_id = conflation_index[curie]
                         if curie in synonyms_to_conflate[preferred_id]:
                             logger.warning(
-                                f"Duplicate CURIE in conflation: {preferred_id} appears multiple times in {curie}"
+                                f"Duplicate CURIE in conflation: {curie} appears multiple times in {preferred_id}"
                             )
                         synonyms_to_conflate[preferred_id][curie].append(synonym)
 
@@ -160,7 +160,8 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
                 logger.debug("Expanded %s into %s.", conflation_id_not_normalized, conflation_ids)
                 for conflation_id in conflation_ids:
                     logger.debug("Looking into conflation ID %s for %s.", conflation_id, conflation_id_not_normalized)
-                    for synonym in synonyms_by_curie[conflation_id]:
+                    # .get(), not [], so a clique member with no synonym record doesn't grow the defaultdict.
+                    for synonym in synonyms_by_curie.get(conflation_id, ()):
                         if "curie" not in final_conflation:
                             final_conflation["curie"] = synonym["curie"]
 
