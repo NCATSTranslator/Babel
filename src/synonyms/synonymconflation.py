@@ -75,6 +75,8 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
 
     # Step 1.1. What if we have synonyms connected with identifiers that are not primary identifiers? To solve that
     # problem, we further enrich these identifiers with information from the compendia files.
+    # Every member of a conflated clique -> the identifier lists of the cliques it belongs to. Only the identifiers are
+    # kept, not the parsed clique: step 3 reads nothing else, and labels and descriptions would just hold memory.
     cliques_with_conflations = defaultdict(list)
     count_clique_ids_added = 0
 
@@ -84,7 +86,9 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
             for line in compendiumf:
                 clique = json.loads(line)
                 identifiers = clique.get("identifiers", [])
-                ids = map(lambda i: i["i"], identifiers)
+                # A list, not a map(): the inner loop below re-iterates it from the start, and a one-shot
+                # iterator would hand it only the IDs after the match, dropping the matching ID itself (#989).
+                ids = [i["i"] for i in identifiers]
 
                 # Is this clique being conflated? If not, we can just ignore it.
                 for id in ids:
@@ -95,10 +99,21 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
                             # We add all the other identifiers in this clique to the conflation index. That way,
                             # if someone refers to PUBCHEM.COMPOUND:962 when the preferred ID is CHEBI:15377, we will
                             # pull in synonyms from CHEBI:15377 as well.
-                            cliques_with_conflations[id_inner].append(clique)
+                            cliques_with_conflations[id_inner].append(ids)
                             if id_inner not in conflation_index:
                                 conflation_index[id_inner] = conflation_index[id]
                                 count_clique_ids_added += 1
+                            elif conflation_index[id_inner] != conflation_index[id]:
+                                # Should never happen: the conflation file puts one clique in two groups, so
+                                # this clique's records are split between them rather than merged into one.
+                                logger.warning(
+                                    "Clique %s spans two conflations: %s is in %s's, but %s is in %s's.",
+                                    ids[0],
+                                    id,
+                                    conflation_index[id],
+                                    id_inner,
+                                    conflation_index[id_inner],
+                                )
 
                         # Once we've done this for one of the identifiers, we don't need to do it for any others.
                         break
@@ -149,71 +164,84 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
             names_included = set()
             types_included = set()
             types_to_ignore = set("OntologyClass")
+            # Expand each conflation ID to every member of its clique, in conflation order. Two conflation IDs can
+            # reach the same member (e.g. both are in one clique), so each member is listed once; otherwise its
+            # record would be merged, and its identifier count summed, twice.
+            merge_order = []
+            conflation_ids_seen = set()
             for conflation_id_not_normalized in conflation_order:
                 if conflation_id_not_normalized in cliques_with_conflations:
-                    conflation_ids = []
-                    for clique in cliques_with_conflations[conflation_id_not_normalized]:
-                        for ident in clique.get("identifiers", []):
-                            conflation_ids.append(ident["i"])
+                    conflation_ids = [i for ids in cliques_with_conflations[conflation_id_not_normalized] for i in ids]
                 else:
                     conflation_ids = [conflation_id_not_normalized]
                 logger.debug("Expanded %s into %s.", conflation_id_not_normalized, conflation_ids)
                 for conflation_id in conflation_ids:
-                    logger.debug("Looking into conflation ID %s for %s.", conflation_id, conflation_id_not_normalized)
-                    # .get(), not [], so a clique member with no synonym record doesn't grow the defaultdict.
-                    for synonym in synonyms_by_curie.get(conflation_id, ()):
-                        if "curie" not in final_conflation:
-                            final_conflation["curie"] = synonym["curie"]
+                    if conflation_id not in conflation_ids_seen:
+                        conflation_ids_seen.add(conflation_id)
+                        merge_order.append(conflation_id)
 
-                        if "preferred_name" not in final_conflation and "preferred_name" in synonym:
-                            final_conflation["preferred_name"] = synonym["preferred_name"]
+            # Merge last, rather than drop, any record of this group that the expansion didn't reach, e.g. one keyed
+            # on an ID from an earlier conflation line with the same primary ID (`conflations` keeps only the last).
+            unreached = [c for c in synonyms_by_curie if c not in conflation_ids_seen]
+            if unreached:
+                logger.warning("Conflation %s does not reach %s; merging them after its own members.", curie, unreached)
+                merge_order.extend(unreached)
 
-                        if "names" not in final_conflation:
-                            final_conflation["names"] = list()
+            for conflation_id in merge_order:
+                # .get(), not [], so a clique member with no synonym record doesn't grow the defaultdict.
+                for synonym in synonyms_by_curie.get(conflation_id, ()):
+                    if "curie" not in final_conflation:
+                        final_conflation["curie"] = synonym["curie"]
 
-                        for name in synonym["names"]:
-                            # Don't repeat names that are already in the final conflation.
-                            if name not in names_included:
-                                final_conflation["names"].append(name)
-                                names_included.add(name)
+                    if "preferred_name" not in final_conflation and "preferred_name" in synonym:
+                        final_conflation["preferred_name"] = synonym["preferred_name"]
 
-                        if "types" not in final_conflation:
-                            final_conflation["types"] = list()
+                    if "names" not in final_conflation:
+                        final_conflation["names"] = list()
 
-                        for typ in synonym["types"]:
-                            # Ignore types to be ignored.
-                            if typ in types_to_ignore:
-                                continue
+                    for name in synonym["names"]:
+                        # Don't repeat names that are already in the final conflation.
+                        if name not in names_included:
+                            final_conflation["names"].append(name)
+                            names_included.add(name)
 
-                            # Don't repeat types that are already in the final conflation.
-                            if typ not in types_included:
-                                final_conflation["types"].append(typ)
-                                types_included.add(typ)
+                    if "types" not in final_conflation:
+                        final_conflation["types"] = list()
 
-                        # Handle shortest_name_length.
-                        if "shortest_name_length" in synonym:
-                            # If we don't have a shortest_name_length in final_conflation OR if
-                            # it is smaller than synonym['shortest_name_length'], use that instead.
-                            if (
-                                "shortest_name_length" not in final_conflation
-                                or synonym["shortest_name_length"] < final_conflation["shortest_name_length"]
-                            ):
-                                final_conflation["shortest_name_length"] = synonym["shortest_name_length"]
+                    for typ in synonym["types"]:
+                        # Ignore types to be ignored.
+                        if typ in types_to_ignore:
+                            continue
 
-                        # Handle clique_identifier_count.
-                        if "clique_identifier_count" in synonym:
-                            if "clique_identifier_count" not in final_conflation:
-                                # If we don't have a clique_identifier_count in final_conflation, set it to zero.
-                                final_conflation["clique_identifier_count"] = 0
+                        # Don't repeat types that are already in the final conflation.
+                        if typ not in types_included:
+                            final_conflation["types"].append(typ)
+                            types_included.add(typ)
 
-                            # If we do have a clique_identifier_count in final_conflation, add the count from this synonym.
-                            final_conflation["clique_identifier_count"] += synonym["clique_identifier_count"]
+                    # Handle shortest_name_length.
+                    if "shortest_name_length" in synonym:
+                        # If we don't have a shortest_name_length in final_conflation OR if
+                        # it is smaller than synonym['shortest_name_length'], use that instead.
+                        if (
+                            "shortest_name_length" not in final_conflation
+                            or synonym["shortest_name_length"] < final_conflation["shortest_name_length"]
+                        ):
+                            final_conflation["shortest_name_length"] = synonym["shortest_name_length"]
 
-                        # Handle taxa.
-                        if "taxa" in synonym:
-                            if "taxa" not in final_conflation:
-                                final_conflation["taxa"] = set()
-                            final_conflation["taxa"].update(synonym["taxa"])
+                    # Handle clique_identifier_count.
+                    if "clique_identifier_count" in synonym:
+                        if "clique_identifier_count" not in final_conflation:
+                            # If we don't have a clique_identifier_count in final_conflation, set it to zero.
+                            final_conflation["clique_identifier_count"] = 0
+
+                        # If we do have a clique_identifier_count in final_conflation, add the count from this synonym.
+                        final_conflation["clique_identifier_count"] += synonym["clique_identifier_count"]
+
+                    # Handle taxa.
+                    if "taxa" in synonym:
+                        if "taxa" not in final_conflation:
+                            final_conflation["taxa"] = set()
+                        final_conflation["taxa"].update(synonym["taxa"])
 
             # Convert the taxa into a list.
             final_conflation["taxa"] = sorted(final_conflation["taxa"], key=get_numerical_curie_suffix)
