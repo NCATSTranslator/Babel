@@ -219,8 +219,7 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
                             final_conflation["taxa"].update(synonym["taxa"])
 
             # Convert the taxa into a list.
-            # .get(): a group none of whose records carries a "taxa" key has none to sort.
-            final_conflation["taxa"] = sorted(final_conflation.get("taxa", ()), key=get_numerical_curie_suffix)
+            final_conflation["taxa"] = sorted(final_conflation["taxa"], key=get_numerical_curie_suffix)
             if len(final_conflation["taxa"]) > 0:
                 final_conflation["taxon_specific"] = True
             else:

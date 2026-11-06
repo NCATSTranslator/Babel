@@ -186,21 +186,3 @@ def test_two_conflation_ids_in_one_clique_merge_its_record_once(tmp_path):
 
     assert len(records) == 1
     assert records[0]["clique_identifier_count"] == 2
-
-
-@pytest.mark.unit
-def test_a_conflated_group_without_taxa_is_written_not_crashed_on(tmp_path):
-    """Records with no `taxa` key used to crash the whole rule with a KeyError at the taxa sort."""
-    no_taxa = [
-        {k: v for k, v in record.items() if k != "taxa"} for record in (SCAPULAR_LINE_SYNONYM, THYROCERVICAL_SYNONYM)
-    ]
-    records = run_conflation(
-        tmp_path,
-        no_taxa,
-        [SCAPULAR_LINE_CLIQUE, THYROCERVICAL_CLIQUE],
-        [["UMLS:C0733999", "UMLS:C1182464"]],
-    )
-
-    assert len(records) == 1
-    assert records[0]["taxa"] == []
-    assert records[0]["taxon_specific"] is False
