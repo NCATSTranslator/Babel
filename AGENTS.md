@@ -182,7 +182,14 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
   `input_data/known_duplicate_clique_leaders.tsv` (each row names its issue). Never add a row
   without an issue; fix the source instead (`docs/Architecture.md`, "Build controls").
 - **Logging** — always use `get_logger(__name__)` from `src.util`, never `logging.getLogger`
-  directly (see its docstring for why and the deferred-import exception).
+  directly (see its docstring for why and the deferred-import exception). **`get_logger()` defaults
+  to `INFO`, so `logger.debug(...)` output is suppressed — but an f-string argument is still
+  evaluated in full before the call.** In a per-record loop that makes a suppressed debug line a
+  real cost, and `logger.debug(f"...{json.dumps(big_structure)}...")` is unbounded: it serialises
+  the whole structure and throws it away. Pass lazy `%s` arguments
+  (`logger.debug("dropped %s", curie)`), and for anything expensive to build, guard with
+  `logger.isEnabledFor(logging.DEBUG)` or delete it. Worth grepping for when a per-record loop is
+  slower than it looks.
 - **Leftover UMLS** — `src/createcompendia/leftover_umls.py` (rule `leftover_umls`) runs last and
   writes every unclaimed valid MRCONSO concept as a single-identifier clique into
   `compendia/umls.txt` so its label survives downstream. Manual Biolink-type override tables and
