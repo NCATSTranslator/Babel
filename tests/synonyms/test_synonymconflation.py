@@ -132,6 +132,8 @@ def test_synonyms_of_conflated_cliques_are_merged_into_the_lead_record(tmp_path)
     assert conflated["shortest_name_length"] == 13
     assert conflated["clique_identifier_count"] == 4
     assert conflated["taxon_specific"] is False
+    # Types are the union in order of first appearance; OntologyClass is kept, as in unconflated records.
+    assert conflated["types"] == SCAPULAR_LINE_SYNONYM["types"]
 
 
 @pytest.mark.unit

@@ -150,7 +150,6 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
 
             names_included = set()
             types_included = set()
-            types_to_ignore = set("OntologyClass")
             # Expanding two conflation IDs can reach the same clique member (e.g. both are in one clique);
             # visit each member once so its record isn't merged, and its identifier count summed, twice.
             conflation_ids_seen = set()
@@ -189,10 +188,6 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
                             final_conflation["types"] = list()
 
                         for typ in synonym["types"]:
-                            # Ignore types to be ignored.
-                            if typ in types_to_ignore:
-                                continue
-
                             # Don't repeat types that are already in the final conflation.
                             if typ not in types_included:
                                 final_conflation["types"].append(typ)
