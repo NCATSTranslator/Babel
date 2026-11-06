@@ -202,9 +202,10 @@ def merge_conflated_group(primary_id, conflation_order, synonyms_by_curie, cliqu
     :raises RuntimeError: If a record of this group is not reached by expanding `conflation_order`. Step 1.1 only
         gives a group the members of cliques its listed IDs belong to, so this means the two steps disagree.
     """
-    # BUG: set("OntologyClass") is the set of the string's letters, so this filter has never matched a type and every
-    # conflated record keeps OntologyClass. #1179 (stacked on #1176) makes it {"OntologyClass"}.
-    types_to_ignore = set("OntologyClass")
+    # OntologyClass is an ancestor of nearly every Biolink class, so it says nothing about what the entity is: a femur
+    # is a NamedThing, but only philosophically an OntologyClass. A set literal, not set("..."), which would be the set
+    # of the string's letters. Unconflated synonym records still carry it; see #1178.
+    types_to_ignore = {"OntologyClass"}
 
     preferred_name = None
     names = []
