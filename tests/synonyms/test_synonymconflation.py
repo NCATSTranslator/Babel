@@ -136,8 +136,8 @@ def test_synonyms_of_conflated_cliques_are_merged_into_the_lead_record(tmp_path)
 
 @pytest.mark.unit
 def test_a_synonym_named_in_no_conflation_passes_through_unchanged(tmp_path):
-    """A record whose CURIE appears in no conflation should be written out byte-for-byte as read,
-    not rebuilt -- that is the path the overwhelming majority of records take."""
+    """A record whose CURIE appears in no conflation should be written out with the same content
+    (re-serialised, not merged with anything) -- that is the path the overwhelming majority of records take."""
     records = run_conflation(
         tmp_path,
         [UNCONFLATED_SYNONYM, SCAPULAR_LINE_SYNONYM, THYROCERVICAL_SYNONYM],
@@ -156,7 +156,7 @@ def test_a_synonym_keyed_on_a_non_leader_identifier_is_dropped(tmp_path):
     This pins current, wrong behaviour -- see https://github.com/NCATSTranslator/Babel/issues/989.
     Step 1.1 of conflate_synonyms is meant to map every identifier of a conflated clique onto that
     clique's preferred ID so records keyed on a non-leader identifier still get folded in. It does
-    not work: `ids` (synonymconflation.py:87) is a one-shot `map` object, so the outer loop that
+    not work: `ids = map(...)` in step 1.1 is a one-shot `map` object, so the outer loop that
     searches for a conflated identifier consumes it and the inner loop that registers the clique
     sees only whatever came after the match. The matching identifier itself -- the one the
     conflation file names, and the one step 3 looks up -- is therefore never registered, so the
