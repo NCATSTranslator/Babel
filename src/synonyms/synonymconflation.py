@@ -151,6 +151,9 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
             names_included = set()
             types_included = set()
             types_to_ignore = set("OntologyClass")
+            # Expanding two conflation IDs can reach the same clique member (e.g. both are in one clique);
+            # visit each member once so its record isn't merged, and its identifier count summed, twice.
+            conflation_ids_seen = set()
             for conflation_id_not_normalized in conflation_order:
                 if conflation_id_not_normalized in cliques_with_conflations:
                     conflation_ids = []
@@ -161,6 +164,9 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
                     conflation_ids = [conflation_id_not_normalized]
                 logger.debug("Expanded %s into %s.", conflation_id_not_normalized, conflation_ids)
                 for conflation_id in conflation_ids:
+                    if conflation_id in conflation_ids_seen:
+                        continue
+                    conflation_ids_seen.add(conflation_id)
                     logger.debug("Looking into conflation ID %s for %s.", conflation_id, conflation_id_not_normalized)
                     # .get(), not [], so a clique member with no synonym record doesn't grow the defaultdict.
                     for synonym in synonyms_by_curie.get(conflation_id, ()):

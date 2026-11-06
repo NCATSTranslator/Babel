@@ -169,3 +169,18 @@ def test_a_synonym_keyed_on_a_non_leader_identifier_is_merged(tmp_path):
     assert records[0]["curie"] == "UMLS:C0733999"
     assert records[0]["names"] == ["Scapular line", "Linea scapularis", "Thyrocervical trunk"]
     assert records[0]["clique_identifier_count"] == 4
+
+
+@pytest.mark.unit
+def test_two_conflation_ids_in_one_clique_merge_its_record_once(tmp_path):
+    """When the conflation file names two members of the same clique, expanding each reaches the
+    same synonym record; it should be merged once, not have its identifier count summed twice."""
+    records = run_conflation(
+        tmp_path,
+        [SCAPULAR_LINE_SYNONYM],
+        [SCAPULAR_LINE_CLIQUE],
+        [["UMLS:C0733999", "FMA:14613"]],
+    )
+
+    assert len(records) == 1
+    assert records[0]["clique_identifier_count"] == 2
