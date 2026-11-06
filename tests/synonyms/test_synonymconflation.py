@@ -186,3 +186,26 @@ def test_two_conflation_ids_in_one_clique_merge_its_record_once(tmp_path):
 
     assert len(records) == 1
     assert records[0]["clique_identifier_count"] == 2
+
+
+@pytest.mark.unit
+def test_a_record_the_conflation_order_does_not_reach_is_merged_not_dropped(tmp_path):
+    """Two conflation lines with the same primary ID map both secondaries to it, but only the last line is
+    kept as the merge order. The earlier line's record should still be merged (after the order's own
+    members), not silently dropped."""
+    records = run_conflation(
+        tmp_path,
+        [SCAPULAR_LINE_SYNONYM, THYROCERVICAL_SYNONYM, UNCONFLATED_SYNONYM],
+        [SCAPULAR_LINE_CLIQUE, THYROCERVICAL_CLIQUE, UNCONFLATED_CLIQUE],
+        [["UMLS:C0733999", "UMLS:C1182464"], ["UMLS:C0733999", "UMLS:C0450491"]],
+    )
+
+    assert len(records) == 1
+    assert records[0]["names"] == [
+        "Scapular line",
+        "Linea scapularis",
+        "LI15",
+        "LI15 (body structure)",
+        "Right thyrocervical artery",
+    ]
+    assert records[0]["clique_identifier_count"] == 5
