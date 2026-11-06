@@ -209,3 +209,19 @@ def test_a_record_the_conflation_order_does_not_reach_is_merged_not_dropped(tmp_
         "Right thyrocervical artery",
     ]
     assert records[0]["clique_identifier_count"] == 5
+
+
+@pytest.mark.unit
+def test_a_clique_in_two_conflations_is_warned_about(tmp_path, caplog):
+    """A clique whose members are named by two different conflation lines can't be merged into one
+    record; this should never happen, so it is logged as a warning to make it detectable."""
+    with caplog.at_level("WARNING"):
+        run_conflation(
+            tmp_path,
+            [SCAPULAR_LINE_SYNONYM, THYROCERVICAL_SYNONYM, UNCONFLATED_SYNONYM],
+            [SCAPULAR_LINE_CLIQUE, THYROCERVICAL_CLIQUE, UNCONFLATED_CLIQUE],
+            # UMLS:C0733999 and FMA:14613 are both members of SCAPULAR_LINE_CLIQUE.
+            [["UMLS:C0733999", "UMLS:C1182464"], ["UMLS:C0450491", "FMA:14613"]],
+        )
+
+    assert "Clique UMLS:C0733999 spans two conflations" in caplog.text

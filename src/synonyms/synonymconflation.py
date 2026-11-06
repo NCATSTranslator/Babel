@@ -103,6 +103,17 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
                             if id_inner not in conflation_index:
                                 conflation_index[id_inner] = conflation_index[id]
                                 count_clique_ids_added += 1
+                            elif conflation_index[id_inner] != conflation_index[id]:
+                                # Should never happen: the conflation file puts one clique in two groups, so
+                                # this clique's records are split between them rather than merged into one.
+                                logger.warning(
+                                    "Clique %s spans two conflations: %s is in %s's, but %s is in %s's.",
+                                    ids[0],
+                                    id,
+                                    conflation_index[id],
+                                    id_inner,
+                                    conflation_index[id_inner],
+                                )
 
                         # Once we've done this for one of the identifiers, we don't need to do it for any others.
                         break
