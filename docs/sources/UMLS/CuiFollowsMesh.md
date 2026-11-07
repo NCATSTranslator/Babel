@@ -146,6 +146,9 @@ local UMLS download. The replay itself takes about a minute. Read `VERSION.txt` 
   keeps a re-homed CUI out of the UniProtKB-led Protein clique it maps to, so the CUI and its
   descriptor are a chemical clique and the accession stays a Protein clique. Whether a protein drug
   belongs in one clique with its accession (the 16 in [#308]) is [#849].
+- Nothing here says whether a T116 CUI names one protein or a family ("Claudins", "Lipoproteins");
+  UMLS has no semantic type for that. The options for families, and how they fit [#849], are in
+  [`docs/biolink/ProteinFamily.md`](../../biolink/ProteinFamily.md).
 - Identifiers no ids file claims that two pipelines' concords both reach (NCIT through UMLS xrefs
   into Anatomy and Protein, OMIM through Gene and Disease) are the member-level residue in
   `reports/duckdb/duplicate_curies.tsv`.

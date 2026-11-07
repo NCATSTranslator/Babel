@@ -34,6 +34,11 @@ def write_umls_ids(mrsty, outfile, *, mesh_ownership=None):
     ``mesh_ownership`` (the umls_mesh_ownership rule's output) makes a CUI follow its MeSH descriptor
     (umls.apply_mesh_ownership): a CUI another pipeline owns is dropped here and a CUI this pipeline owns is added.
     Re-homing T116 CUIs whose descriptor is in a chemical D-tree is https://github.com/NCATSTranslator/Babel/issues/308.
+
+    T116 "Amino Acid, Peptide, or Protein" does not distinguish one protein from a family of them ("Claudins",
+    "Lipoproteins"); UMLS has no semantic type for a family, so every family-level CUI it selects is typed
+    biolink:Protein here. The options for modelling families are in docs/biolink/ProteinFamily.md
+    (https://github.com/NCATSTranslator/Babel/issues/1170).
     """
     # Compare with src/createcompendia/chemicals.py (see source code at
     # https://github.com/NCATSTranslator/Babel/blob/c91654411923b86300cc2f6b5a21b96ea857817f/src/createcompendia/chemicals.py#L54-L76)
