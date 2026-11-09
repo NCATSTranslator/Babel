@@ -1,5 +1,10 @@
 import src.reports.duckdb_reports
-from src.snakefiles.util import duckdb_memory_limit_mb, get_all_compendia, get_all_synonyms_with_drugchemicalconflated
+from src.snakefiles.util import (
+    duckdb_memory_limit_mb,
+    get_all_compendia,
+    get_all_synonyms_with_drugchemicalconflated,
+    get_shared_synonym_audit_filenames,
+)
 import src.exporters.duckdb_exporters as duckdb_exporters
 import os
 
@@ -231,6 +236,51 @@ rule check_for_identically_labeled_cliques:
         )
 
 
+# Report every synonym carried by more than one clique within an audit group (config.yaml:
+# shared_synonym_audit_groups; issue #638). Report only -- see check_for_shared_synonyms().
+#
+# The inputs are exactly the group's Synonyms.parquet files. For the `chemical` group these are the
+# pre-conflation chemical synonym files, which export_all_synonyms_to_duckdb does not export (it uses
+# DrugChemicalConflated instead), so requesting them here is what runs export_synonyms_to_duckdb on them.
+rule check_for_shared_synonyms:
+    input:
+        synonyms_parquet=lambda wildcards: expand(
+            "{od}/duckdb/parquet/filename={fn}/Synonyms.parquet",
+            od=config["output_directory"],
+            fn=get_shared_synonym_audit_filenames(config, wildcards.audit_group),
+        ),
+    output:
+        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/shared_synonyms_{audit_group}.duckdb"),
+        shared_synonyms_tsv=config["output_directory"] + "/reports/duckdb/shared_synonyms/{audit_group}.tsv.gz",
+        summary_json=config["output_directory"] + "/reports/duckdb/shared_synonyms/{audit_group}.json",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_for_shared_synonyms_{audit_group}.tsv"
+    wildcard_constraints:
+        audit_group="|".join(config["shared_synonym_audit_groups"]),
+    resources:
+        # Provisional; right-size from the benchmarks once a real run has them. Sized for the chemical
+        # groups, which read billions of (clique, synonym) rows -- the same headroom as
+        # check_for_identically_labeled_cliques. The disease group finishes in seconds, so a per-group
+        # lambda (which babel-slurm-resources cannot read) is not worth it. memory_limit is capped at
+        # 16G below for the same reason as there (the vm.max_map_count mmap-count limit, issue #846);
+        # the hash aggregates spill instead.
+        mem="512G",
+        runtime="12h",
+    run:
+        src.reports.duckdb_reports.check_for_shared_synonyms(
+            input.synonyms_parquet,
+            output.duckdb_filename,
+            output.shared_synonyms_tsv,
+            output.summary_json,
+            wildcards.audit_group,
+            {
+                "memory_limit": "16G",
+                "threads": 1,
+                "preserve_insertion_order": False,
+            },
+        )
+
+
 rule check_for_duplicate_curies:
     input:
         config["output_directory"] + "/duckdb/done",
@@ -352,6 +402,11 @@ rule all_duckdb_reports:
         config["output_directory"] + "/duckdb/done",
         identically_labeled_cliques_tsv=config["output_directory"]
         + "/reports/duckdb/identically_labeled_cliques.tsv.gz",
+        shared_synonyms_json=expand(
+            "{od}/reports/duckdb/shared_synonyms/{group}.json",
+            od=config["output_directory"],
+            group=config["shared_synonym_audit_groups"],
+        ),
         duplicate_curies=config["output_directory"] + "/reports/duckdb/duplicate_curies.tsv",
         duplicate_clique_leaders_checked=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.checked",
         prefix_report_json=config["output_directory"] + "/reports/duckdb/prefix_report.json",

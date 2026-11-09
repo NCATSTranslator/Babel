@@ -9,11 +9,13 @@ caused the original out-of-memory failures.
 """
 
 import csv
+import gzip
 import json
 
 import duckdb
 import pytest
 
+import src.exporters.duckdb_exporters as duckdb_exporters
 import src.reports.duckdb_reports as duckdb_reports
 
 
@@ -319,3 +321,151 @@ def test_report_tables_consume_prefix_report(parquet_root, tmp_path, monkeypatch
     # Foo (a SmallMolecule compendium in the fixture) lists CHEBI as a clique-leader prefix.
     foo_rows = [dict(zip(header, r)) for r in clique_rows[1:] if r[header.index("Biolink Types")] == "Foo"]
     assert foo_rows and "CHEBI" in foo_rows[0]["Clique leader prefixes"]
+
+
+# SHARED SYNONYMS
+
+
+def _write_synonyms_parquet(tmp_path, filename, entries):
+    """Write `entries` as a gzipped synonym JSONL file and export it with the real synonym exporter.
+
+    Going through export_synonyms_to_parquet() keeps the fixture's columns identical to a build's
+    `filename=<X>/Synonyms.parquet`.
+    """
+    jsonl_gz = tmp_path / f"{filename}.txt.gz"
+    with gzip.open(jsonl_gz, "wt") as f:
+        for curie, preferred_name, biolink_type, names in entries:
+            f.write(
+                json.dumps({"curie": curie, "preferred_name": preferred_name, "types": [biolink_type], "names": names})
+            )
+            f.write("\n")
+    parquet_dir = tmp_path / "parquet" / f"filename={filename}"
+    parquet_dir.mkdir(parents=True)
+    parquet = parquet_dir / "Synonyms.parquet"
+    duckdb_exporters.export_synonyms_to_parquet(str(jsonl_gz), str(tmp_path / f"{filename}.duckdb"), str(parquet))
+    return str(parquet)
+
+
+@pytest.fixture
+def disease_synonym_parquets(tmp_path):
+    """A two-file audit group (Disease + PhenotypicFeature) with one shared string per category.
+
+    - "pd": a synonym of MONDO:1 and MONDO:2, preferred by neither -> preferred_by_none.
+    - "parkinson's disease": a synonym of MONDO:1 and HP:1, across files -> preferred_by_none.
+    - "parkinson disease": preferred name of MONDO:1 and (differently cased) MONDO:3 -> preferred_by_several.
+      MONDO:1 does not list its own preferred name in `names`, so it is only seen as the preferred name.
+    - "pallidal degeneration": MONDO:2's preferred name, and a synonym of HP:1 -> preferred_by_one.
+    - "parkinsonism": HP:1's preferred name (also twice in its names, in two casings) and a synonym of
+      MONDO:3 -> preferred_by_one, with HP:1 counted once.
+    - "only here" is unique, and "" / '""' are placeholders, so none of them is reported.
+    """
+    return [
+        _write_synonyms_parquet(
+            tmp_path,
+            "Disease",
+            [
+                ("MONDO:1", "Parkinson disease", "Disease", ["Parkinson's disease", "PD", "", "only here"]),
+                ("MONDO:2", "Pallidal degeneration", "Disease", ["pd", "Pallidal degeneration", '""']),
+                ("MONDO:3", "Parkinson Disease", "Disease", ["parkinsonism"]),
+            ],
+        ),
+        _write_synonyms_parquet(
+            tmp_path,
+            "PhenotypicFeature",
+            [
+                (
+                    "HP:1",
+                    "Parkinsonism",
+                    "PhenotypicFeature",
+                    ["Parkinsonism", "PARKINSONISM", "parkinson's disease", "pallidal degeneration", '""'],
+                ),
+            ],
+        ),
+    ]
+
+
+@pytest.mark.unit
+def test_check_for_shared_synonyms_rows(disease_synonym_parquets, tmp_path):
+    """Should write one row per (shared string, clique), categorized by preferred-name use."""
+    out = tmp_path / "shared.tsv.gz"
+    duckdb_reports.check_for_shared_synonyms(
+        disease_synonym_parquets, str(tmp_path / "db.duckdb"), str(out), str(tmp_path / "s.json"), "disease"
+    )
+
+    with gzip.open(out, "rt") as f:
+        rows = list(csv.DictReader(f, delimiter="\t"))
+    got = {
+        (r["synonym"], r["clique_leader"]): (
+            r["category"],
+            r["clique_count"],
+            r["preferred_count"],
+            r["is_preferred_name"],
+        )
+        for r in rows
+    }
+    assert len(got) == len(rows), "each (string, clique) pair should appear once"
+    assert got == {
+        ("pd", "MONDO:1"): ("preferred_by_none", "2", "0", "false"),
+        ("pd", "MONDO:2"): ("preferred_by_none", "2", "0", "false"),
+        ("parkinson's disease", "MONDO:1"): ("preferred_by_none", "2", "0", "false"),
+        ("parkinson's disease", "HP:1"): ("preferred_by_none", "2", "0", "false"),
+        ("parkinson disease", "MONDO:1"): ("preferred_by_several", "2", "2", "true"),
+        ("parkinson disease", "MONDO:3"): ("preferred_by_several", "2", "2", "true"),
+        ("pallidal degeneration", "MONDO:2"): ("preferred_by_one", "2", "1", "true"),
+        ("pallidal degeneration", "HP:1"): ("preferred_by_one", "2", "1", "false"),
+        ("parkinsonism", "HP:1"): ("preferred_by_one", "2", "1", "true"),
+        ("parkinsonism", "MONDO:3"): ("preferred_by_one", "2", "1", "false"),
+    }
+    files = {r["clique_leader"]: r["filename"] for r in rows}
+    assert files == {"MONDO:1": "Disease", "MONDO:2": "Disease", "MONDO:3": "Disease", "HP:1": "PhenotypicFeature"}
+
+
+@pytest.mark.unit
+def test_check_for_shared_synonyms_summary(disease_synonym_parquets, tmp_path):
+    """Should summarize counts per category and Biolink-type set, and list the largest examples."""
+    summary_json = tmp_path / "s.json"
+    duckdb_reports.check_for_shared_synonyms(
+        disease_synonym_parquets,
+        str(tmp_path / "db.duckdb"),
+        str(tmp_path / "shared.tsv.gz"),
+        str(summary_json),
+        "disease",
+        example_cliques=1,
+    )
+    summary = json.loads(summary_json.read_text())
+
+    assert summary["audit_group"] == "disease"
+    assert summary["synonym_files"] == ["Disease", "PhenotypicFeature"]
+    assert summary["shared_synonyms"] == 5
+    assert summary["shared_synonym_clique_pairs"] == 10
+    assert summary["by_category"] == {
+        "preferred_by_one": {"synonyms": 2, "clique_pairs": 4, "non_preferred_clique_pairs": 2},
+        "preferred_by_none": {"synonyms": 2, "clique_pairs": 4, "non_preferred_clique_pairs": 4},
+        "preferred_by_several": {"synonyms": 1, "clique_pairs": 2, "non_preferred_clique_pairs": 0},
+    }
+    assert summary["by_biolink_types"] == {
+        "preferred_by_one": {"biolink:Disease||biolink:PhenotypicFeature": 2},
+        "preferred_by_none": {"biolink:Disease": 1, "biolink:Disease||biolink:PhenotypicFeature": 1},
+        "preferred_by_several": {"biolink:Disease": 1},
+    }
+
+    # Ties on clique_count are listed by string; example_cliques=1 keeps only the preferred-name clique.
+    one = summary["largest"]["preferred_by_one"]
+    assert [e["synonym"] for e in one] == ["pallidal degeneration", "parkinsonism"]
+    assert one[1]["cliques"] == [
+        {
+            "clique_leader": "HP:1",
+            "is_preferred_name": True,
+            "preferred_name": "Parkinsonism",
+            "biolink_type": "biolink:PhenotypicFeature",
+        }
+    ]
+
+
+@pytest.mark.unit
+def test_check_for_shared_synonyms_requires_files(tmp_path):
+    """Should refuse an audit group with no synonym files rather than report nothing shared."""
+    with pytest.raises(ValueError, match="no synonym files"):
+        duckdb_reports.check_for_shared_synonyms(
+            [], str(tmp_path / "db"), str(tmp_path / "o"), str(tmp_path / "s"), "x"
+        )

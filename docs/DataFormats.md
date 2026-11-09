@@ -329,6 +329,12 @@ UniProt synonyms per entry).
 | label            | STRING | One synonym from the `names` list                  |
 | label_lc         | STRING | Lower-cased synonym                                |
 
+Synonym tables are exported for every synonym file NameRes loads, which for chemicals is
+`DrugChemicalConflated`. The eight pre-conflation chemical files (`Drug`, `SmallMolecule`,
+`ChemicalEntity`, …) are exported too, but only as inputs to the shared-synonym audit below, so a
+glob over `**/Synonyms.parquet` counts every chemical synonym twice. Pick the files you need
+instead.
+
 ### Conflation table (`filename={ConflationName}/Conflation.parquet`)
 
 Derived from the conflation JSONL files (`GeneProtein.txt`, `DrugChemical.txt`). One row per
@@ -400,5 +406,50 @@ table exists to describe the concord and identifier files above:
 Labels are intentionally not exported here: `ids/` files carry only `CURIE\tbiolink:Type`, and the
 label for any identifier that landed in a clique is already available in `Node.parquet` (join
 `Identifier.curie` to `Node.curie`).
+
+## Shared-synonym audit (`reports/duckdb/shared_synonyms/`)
+
+A name lookup returns every clique that carries the string it matches, so a synonym attached to the
+wrong clique becomes wrong edges for whoever resolves it
+([#638](https://github.com/NCATSTranslator/Babel/issues/638)). `rule check_for_shared_synonyms`
+reports every string carried by more than one clique within an audit group. The groups are set in
+`config.yaml: shared_synonym_audit_groups`: `disease` (Disease + PhenotypicFeature), `chemical`
+(the pre-conflation chemical files) and `drugchemicalconflated`. It only reports; nothing fails the
+build.
+
+A clique's strings are its `names` plus its preferred name, compared lowercased. Each shared string
+falls in one of three categories, by how many of its cliques use it as their preferred name:
+
+- `preferred_by_one`: the string most likely belongs to the clique it names. Its rows with
+  `is_preferred_name = false` are the likeliest wrong synonyms.
+- `preferred_by_none`: a synonym-only collision, with nothing in the data saying which clique (if
+  any) it belongs to.
+- `preferred_by_several`: identically labelled cliques
+  ([#338](https://github.com/NCATSTranslator/Babel/issues/338)).
+
+`{group}.tsv.gz` has one row per (shared string, clique) and is **unsorted**, because sorting a
+chemical group's rows is too expensive. Every row carries its string's counts, so group or sort it
+with DuckDB:
+
+| Column            | Meaning                                                              |
+|-------------------|----------------------------------------------------------------------|
+| synonym           | The shared string, lowercased                                        |
+| category          | `preferred_by_one`, `preferred_by_none` or `preferred_by_several`    |
+| clique_count      | How many cliques in the group carry the string                       |
+| preferred_count   | How many of them use it as their preferred name                      |
+| clique_leader     | One of those cliques                                                 |
+| is_preferred_name | Whether the string is this clique's preferred name                   |
+| preferred_name    | This clique's preferred name                                         |
+| biolink_type      | This clique's Biolink type                                           |
+| filename          | The synonym file this clique came from                               |
+
+`{group}.json` summarizes the group:
+
+- `by_category`: shared strings, (string, clique) pairs, and pairs where the string is not the
+  clique's preferred name, per category.
+- `by_biolink_types`: shared strings per category, keyed by the set of Biolink types that share
+  them.
+- `largest`: the 50 most widely shared strings per category, each with up to 10 of its cliques,
+  preferred-name cliques first.
 
 [`normalizedInformationContent` from Ubergraph]: https://github.com/INCATools/ubergraph/#graph-organization
