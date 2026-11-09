@@ -184,7 +184,7 @@ wheels = [
 
 [[package]]
 name = "babel-pipeline"
-version = "1.17"
+version = "1.19"
 source = { editable = "." }
 dependencies = [
     { name = "apybiomart" },
