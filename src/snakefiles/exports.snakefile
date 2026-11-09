@@ -41,7 +41,8 @@ rule generate_kgx:
     benchmark:
         config["output_directory"] + "/benchmarks/generate_kgx_{filename}.tsv"
     resources:
-        runtime="6h",
+        # Slowest of the 25 wildcard instances on 2026jul22 was SmallMolecule at 2.7h.
+        runtime="4h",
     run:
         kgx.convert_compendium_to_kgx(input.compendium_file, output.nodes_file, output.edges_file)
 
@@ -69,6 +70,12 @@ rule generate_sapbert_training_data:
     benchmark:
         config["output_directory"] + "/benchmarks/generate_sapbert_training_data_{filename}.tsv"
     resources:
-        runtime="6h",
+        # Slowest of the 18 wildcard instances on 2026jul22 was GeneProteinConflated at 1.9h.
+        runtime="3h",
+        # The exporter remembers a digest of every synonym pair it writes so it can skip duplicates,
+        # so memory grows with the size of the output: GeneProteinConflated is the worst case at
+        # roughly 300M pairs x ~95 bytes per set entry. Recheck against the benchmark TSVs after the
+        # first run that includes the deduplication (see docs/tools/Resources.md).
+        mem="64G",
     run:
         sapbert.convert_synonyms_to_sapbert(input.synonym_file_gz, output.sapbert_training_data_file)

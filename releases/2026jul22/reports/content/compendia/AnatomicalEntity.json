@@ -1,0 +1,78 @@
+{
+  "compendium_path": "babel_outputs/compendia/AnatomicalEntity.txt",
+  "count_by_biolink_type": {
+    "biolink:AnatomicalEntity": 147565
+  },
+  "count_by_prefix": {
+    "EMAPA": 2788,
+    "FBbt": 117,
+    "FMA": 98634,
+    "MESH": 608,
+    "NCIT": 4248,
+    "UBERON": 4195,
+    "UMLS": 141073,
+    "WBbt": 18,
+    "ZFA": 606
+  },
+  "count_lines": 147565,
+  "counters": {
+    "clique_count": 147565,
+    "cliques_by_description_count": {
+      "0": 140862,
+      "1": 5812,
+      "2": 778,
+      "3": 95,
+      "4": 14,
+      "5": 3,
+      "6": 1
+    },
+    "cliques_by_id_count": {
+      "1": 47634,
+      "2": 96756,
+      "3": 2372,
+      "4": 364,
+      "5": 208,
+      "6": 136,
+      "7": 70,
+      "8": 10,
+      "9": 11,
+      "10": 2,
+      "12": 2
+    },
+    "cliques_by_label_count": {
+      "0": 1335,
+      "1": 141855,
+      "2": 3525,
+      "3": 374,
+      "4": 241,
+      "5": 153,
+      "6": 58,
+      "7": 14,
+      "8": 7,
+      "9": 1,
+      "10": 2
+    },
+    "cliques_by_unique_description_count": {
+      "0": 140862,
+      "1": 5937,
+      "2": 664,
+      "3": 86,
+      "4": 12,
+      "5": 3,
+      "6": 1
+    },
+    "cliques_by_unique_label_count": {
+      "0": 1335,
+      "1": 143965,
+      "2": 1672,
+      "3": 382,
+      "4": 162,
+      "5": 38,
+      "6": 7,
+      "7": 3,
+      "8": 1
+    }
+  },
+  "name": "AnatomicalEntity",
+  "report_path": "babel_outputs/reports/content/compendia/AnatomicalEntity.json"
+}

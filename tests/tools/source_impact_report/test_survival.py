@@ -9,8 +9,8 @@ hand-built ``LookupContext`` so no Biolink network lookup is needed.
 Test groups
 -----------
 - ``prefix_survives`` helper: registered, unregistered, unknown type, and case-insensitivity.
-- ``new-cliques.csv`` survival columns: ``would_be_added``, ``needs_biolink_registration``,
-  and ``unsupported_prefixes`` for pure-new cliques.
+- ``new-cliques-top-N.csv`` survival columns: ``would_be_added``, ``needs_biolink_registration``,
+  and ``unsupported_prefixes`` for pure-new cliques, plus the row cap's survival-first ranking.
 - ``modified-cliques.csv`` survival columns: per-added-identifier survival judged on the
   clique type, not the identifier's own declared type.
 - ``modified-cliques.json`` detail: ``added_curie_details`` entries carry survival fields.
@@ -25,6 +25,8 @@ import pytest
 from src.model.glom_diff import ExpandedClique, MergedClique, SourceImpactDiff
 from src.reports.source_impact import LookupContext, prefix_survives
 from src.reports.source_impact_details import (
+    NEW_CLIQUES_CSV,
+    NEW_CLIQUES_TOP_N,
     write_modified_cliques_csv,
     write_modified_cliques_json,
     write_new_cliques_csv,
@@ -89,7 +91,7 @@ def _lookup(types):
 
 @pytest.mark.unit
 def test_new_cliques_csv_survival_columns(tmp_path):
-    """``new-cliques.csv`` carries correct survival columns for registered and unregistered prefixes.
+    """``new-cliques-top-N.csv`` carries correct survival columns for registered and unregistered prefixes.
 
     EMAPA:100 is typed GrossAnatomicalStructure (EMAPA not in id_prefixes → dropped);
     EMAPA:300 is typed AnatomicalEntity (EMAPA registered → survives).
@@ -105,7 +107,7 @@ def test_new_cliques_csv_survival_columns(tmp_path):
             pure_new_cliques=[frozenset({"EMAPA:100"}), frozenset({"EMAPA:300"})],
         )
     }
-    path = tmp_path / "new-cliques.csv"
+    path = tmp_path / NEW_CLIQUES_CSV
     write_new_cliques_csv(path, diffs, _lookup(types))
     with path.open() as f:
         rows = {r["preferred_id"]: r for r in csv.DictReader(f)}
@@ -117,6 +119,45 @@ def test_new_cliques_csv_survival_columns(tmp_path):
     assert rows["EMAPA:300"]["preferred_id_would_survive"] == "true"
     assert rows["EMAPA:300"]["needs_biolink_registration"] == "false"
     assert rows["EMAPA:300"]["unsupported_prefixes"] == ""
+
+
+@pytest.mark.unit
+def test_new_cliques_csv_cap_keeps_unsurvivable_and_largest_rows(tmp_path):
+    """The row cap should keep the rows worth reviewing, not an arbitrary lexicographic prefix.
+
+    Real sources produce thousands of pure-new cliques, almost all clean singletons, so the file
+    is capped at ``NEW_CLIQUES_TOP_N``. The cap is only safe because the ranking runs first: an
+    identifier the Biolink prefix filter would drop must never be truncated away. Here EMAPA:999999
+    is unsurvivable and sorts *last* by CURIE, and the two-member clique sorts mid-pack, yet both
+    must land in the retained rows ahead of the 200 clean singletons.
+    """
+    types = {"EMAPA:999999": "biolink:GrossAnatomicalStructure"}  # EMAPA unregistered there -> dropped
+    singletons = [frozenset({f"EMAPA:{n}"}) for n in range(1000, 1200)]
+    for clique in singletons:
+        types[next(iter(clique))] = "biolink:AnatomicalEntity"
+    # UBERON is the higher-priority prefix for AnatomicalEntity, so UBERON:0001 is the preferred id.
+    pair = frozenset({"EMAPA:2000", "UBERON:0001"})
+    types["EMAPA:2000"] = "biolink:AnatomicalEntity"
+
+    diffs = {
+        "anatomy": SourceImpactDiff(
+            babel_pipeline="anatomy",
+            source_curies=frozenset(types),
+            pure_new_cliques=[*singletons, frozenset({"EMAPA:999999"}), pair],
+        )
+    }
+    path = tmp_path / NEW_CLIQUES_CSV
+    assert write_new_cliques_csv(path, diffs, _lookup(types)) == NEW_CLIQUES_TOP_N
+    with path.open() as f:
+        rows = list(csv.DictReader(f))
+
+    assert len(rows) == NEW_CLIQUES_TOP_N
+    assert rows[0]["preferred_id"] == "EMAPA:999999"
+    assert rows[0]["preferred_id_would_survive"] == "false"
+    assert rows[1]["preferred_id"] == "UBERON:0001"
+    assert rows[1]["member_count"] == "2"
+    # The rest are the clean singletons in CURIE order, so the retained set is stable across re-runs.
+    assert [r["preferred_id"] for r in rows[2:5]] == ["EMAPA:1000", "EMAPA:1001", "EMAPA:1002"]
 
 
 @pytest.mark.unit
@@ -277,7 +318,7 @@ def test_survival_columns_blank_without_biolink_lookup(tmp_path):
             pure_new_cliques=[frozenset({"EMAPA:100"})],
         )
     }
-    path = tmp_path / "new-cliques.csv"
+    path = tmp_path / NEW_CLIQUES_CSV
     write_new_cliques_csv(path, diffs, lookup)
     with path.open() as f:
         row = next(csv.DictReader(f))

@@ -225,3 +225,22 @@ def test_a_clique_in_two_conflations_is_warned_about(tmp_path, caplog):
         )
 
     assert "Clique UMLS:C0733999 spans two conflations" in caplog.text
+
+
+@pytest.mark.unit
+def test_two_records_for_one_clique_are_warned_about(tmp_path, caplog):
+    """A synonym file should hold one record per clique. Records keyed on both a clique's leader and one
+    of its members are both merged, so the clique's identifiers are counted twice; this should never
+    happen, so it is logged as a warning to make it detectable."""
+    fma_keyed = dict(THYROCERVICAL_SYNONYM, curie="FMA:70347", names=["Thyrocervical trunk"])
+    with caplog.at_level("WARNING"):
+        records = run_conflation(
+            tmp_path,
+            [SCAPULAR_LINE_SYNONYM, THYROCERVICAL_SYNONYM, fma_keyed],
+            [SCAPULAR_LINE_CLIQUE, THYROCERVICAL_CLIQUE],
+            [["UMLS:C0733999", "UMLS:C1182464"]],
+        )
+
+    assert "Clique UMLS:C1182464 has synonym records under 2 of its identifiers" in caplog.text
+    # Pins the double count the warning is about: 2 (scapular line) + 2 + 2 (thyrocervical, twice).
+    assert records[0]["clique_identifier_count"] == 6

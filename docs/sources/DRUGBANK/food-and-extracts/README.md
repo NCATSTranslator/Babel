@@ -60,7 +60,8 @@ chemical). Then:
      botanical flags but not NCBI" below), which reaches the plant materials NCIt has no food class
      for (barks, roots, pollens, herbs).
 
-   Anything else — NCBI-only organisms and unflagged rows — is left as `ChemicalEntity` and deferred.
+   Anything else — NCBI-only organisms and unflagged rows — is left as `ChemicalEntity` and
+   deferred.
 2. Among that material, a row whose name/synonyms contain an `extract` marker
    (`config.yaml: drugbank_extract_markers`) is a processed extract →
    **`biolink:ComplexMolecularMixture`** (bark/root/pollen extracts, herbal tinctures).

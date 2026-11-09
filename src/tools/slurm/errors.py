@@ -93,6 +93,13 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
         for group, running in sorted(incomplete_groups, key=lambda x: x[0][0].submitted_at):
             prior_failures = [j for j in group if j.failed]
             j = running[0]
+            # Two different clocks: `elapsed` runs from Snakemake's *submit*, so it includes queue
+            # wait, while `timeout_min` is the rule's `runtime=`, which SLURM applies to `Elapsed`
+            # (allocation start -> end). Nothing in the .err log records the allocation start, so
+            # the queue wait cannot be subtracted without asking sacct. It only ever makes `elapsed`
+            # too big, hence the ">=" on the remaining figure -- the job has at least that much of
+            # its limit left, and more the busier the cluster was. See "Three clocks" in
+            # docs/tools/Resources.md.
             elapsed = (now - j.submitted_at).total_seconds()
             timeout_min = declared_runtime_min(j.log_relative, logs_dir)
             elapsed_str = _fmt_duration(elapsed)
@@ -100,7 +107,7 @@ def print_job_summary(err_file: Path, logs_dir: Path) -> None:
             remaining_str = _fmt_duration(max(0.0, timeout_min * 60 - elapsed))
             print(
                 f" - Rule {j.rule_name} (SLURM jobid {j.slurm_jobid}):"
-                f" {elapsed_str} / {timeout_str} ({remaining_str} left),"
+                f" {elapsed_str} / {timeout_str} (>={remaining_str} left),"
                 f" log at {logs_dir / j.log_relative}",
                 file=sys.stderr,
             )

@@ -173,15 +173,26 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
             merge_order = []
             conflation_ids_seen = set()
             for conflation_id_not_normalized in conflation_order:
-                if conflation_id_not_normalized in cliques_with_conflations:
-                    conflation_ids = [i for ids in cliques_with_conflations[conflation_id_not_normalized] for i in ids]
-                else:
-                    conflation_ids = [conflation_id_not_normalized]
-                logger.debug("Expanded %s into %s.", conflation_id_not_normalized, conflation_ids)
-                for conflation_id in conflation_ids:
-                    if conflation_id not in conflation_ids_seen:
-                        conflation_ids_seen.add(conflation_id)
-                        merge_order.append(conflation_id)
+                # .get(), not [], so an ID in no compendium clique doesn't grow the defaultdict.
+                cliques = cliques_with_conflations.get(conflation_id_not_normalized) or [[conflation_id_not_normalized]]
+                logger.debug("Expanded %s into %s.", conflation_id_not_normalized, cliques)
+                for ids in cliques:
+                    # A synonym file has one record per clique, keyed on its leader. Records under two of a clique's
+                    # identifiers would both be merged, counting its identifiers twice; that should never happen.
+                    keyed = [i for i in ids if i in synonyms_by_curie and i not in conflation_ids_seen]
+                    if len(keyed) > 1:
+                        logger.warning(
+                            "Clique %s has synonym records under %d of its identifiers (%s); merging all of them "
+                            "counts its identifiers %d times.",
+                            ids[0],
+                            len(keyed),
+                            keyed,
+                            len(keyed),
+                        )
+                    for conflation_id in ids:
+                        if conflation_id not in conflation_ids_seen:
+                            conflation_ids_seen.add(conflation_id)
+                            merge_order.append(conflation_id)
 
             # Merge last, rather than drop, any record of this group that the expansion didn't reach, e.g. one keyed
             # on an ID from an earlier conflation line with the same primary ID (`conflations` keeps only the last).

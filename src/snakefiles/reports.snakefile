@@ -1,5 +1,6 @@
 from src.reports import report_tables
 from src.reports import prefix_comparison
+from src.reports.source_impact_details import NEW_CLIQUES_CSV, NEW_XREFS_SUMMARY_CSV
 from src.snakefiles.util import get_all_compendia, get_all_synonyms, get_all_gzipped
 import os
 
@@ -153,13 +154,18 @@ rule generate_prefix_comparison:
         # retrigger this rule -- it only reruns when prefix_report.json does. A full run regenerates
         # prefix_report.json, so this only matters if you rerun reports incrementally after changing
         # the pin; force it then with `-R generate_prefix_comparison`.
-        baseline_json="releases/prefix_reports/" + config["previous_release"] + ".json",
+        baseline_json=prefix_comparison.baseline_path(config["previous_release"]),
+        # The release that baseline belongs to. Passed separately because the file is named
+        # `prefix_report.json` inside a per-release directory, so its name is not recoverable from
+        # the path -- and the self-comparison guard is really a check that the two pins differ.
+        baseline_release=config["previous_release"],
         warn_abs=config["prefix_comparison_warn_abs"],
         warn_pct=config["prefix_comparison_warn_pct"],
     run:
         prefix_comparison.generate_prefix_comparison(
             input.prefix_report,
             params.baseline_json,
+            params.baseline_release,
             output.overall_csv,
             output.by_clique_csv,
             output.md,
@@ -190,13 +196,16 @@ rule generate_mapping_sources_table:
 # See src/tools/source_impact_report/cli.py for the underlying CLI.
 rule report_source_impact:
     output:
-        # The markdown report plus the four full detail files written into the
-        # <output-stem>/ subdirectory beside it (see src/reports/source_impact_details.py).
+        # The markdown report plus the four detail files written into the <output-stem>/
+        # subdirectory beside it (see src/reports/source_impact_details.py). The new-cliques file
+        # and new-xrefs files are the two committed reductions, whose names encode how they reduce,
+        # so take both from the writer's constants rather than repeating literals that could drift.
+        # The full tables they reduce land in the same directory but are not declared outputs.
         md=config["output_directory"] + "/reports/source_impact/{source}.md",
-        new_cliques=config["output_directory"] + "/reports/source_impact/{source}/new-cliques.csv",
+        new_cliques=config["output_directory"] + f"/reports/source_impact/{{source}}/{NEW_CLIQUES_CSV}",
         modified_csv=config["output_directory"] + "/reports/source_impact/{source}/modified-cliques.csv",
         modified_json=config["output_directory"] + "/reports/source_impact/{source}/modified-cliques.json",
-        new_xrefs=config["output_directory"] + "/reports/source_impact/{source}/new-xrefs.tsv",
+        new_xrefs=config["output_directory"] + f"/reports/source_impact/{{source}}/{NEW_XREFS_SUMMARY_CSV}",
     benchmark:
         config["output_directory"] + "/benchmarks/report_source_impact_{source}.tsv"
     params:

@@ -8,7 +8,7 @@ import tempfile
 import time
 import traceback
 import urllib
-from collections import defaultdict
+from collections import ChainMap, Counter, defaultdict
 from datetime import datetime, timedelta
 from enum import Enum
 from ftplib import FTP
@@ -25,7 +25,7 @@ from src.metadata.provenance import write_combined_metadata
 from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory
 from src.properties import HAS_ALTERNATIVE_ID, PropertyList
 from src.synonyms.filter import get_synonym_filter
-from src.util import Text, ensure_parent_dir, get_config, get_logger, get_memory_usage_summary
+from src.util import Text, curie_format_problem, ensure_parent_dir, get_config, get_logger, get_memory_usage_summary
 
 # Configuration items
 WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES = 1_000_000
@@ -60,10 +60,14 @@ class TypedClique(NamedTuple):
         (e.g. ``"biolink:Disease"``).  Use the named constants in ``src/categories.py``
         rather than raw strings.
     :param identifiers: The list of CURIEs that belong to this clique.
+    :param labels: Optional ``{curie: label}`` for this clique only, consulted before the ``labels``
+        mapping passed to :func:`write_compendium`. Lets a caller stream tens of millions of cliques
+        (Publication: one title per PMID) without first building one global labels dict.
     """
 
     node_type: str
     identifiers: list[str]
+    labels: dict[str, str] | None = None
 
 
 def parse_rdf_literal(literal: str) -> str:
@@ -277,17 +281,33 @@ def raise_if_cloudflare_challenge(download_url: str, local_file_name: str, error
     Retrying or changing the User-Agent won't help: this is served identically to a real
     browser. Raise immediately with instructions for a human to download the file manually.
 
+    A challenge page also has to load Cloudflare's widget, so it carries a Content-Security-Policy
+    naming `challenges.cloudflare.com`. That is checked as a fallback: it is a property of how the
+    page works rather than a label Cloudflare chose, so it still identifies a challenge if
+    `cf-mitigated` is ever renamed. A plain 403 (a wrong URL, an IP block) carries neither signal
+    and keeps the caller's normal retry.
+
     Only an HTTPError carries response headers; a plain URLError (DNS failure, connection
     refused) has no `.headers` at all, so we getattr() rather than narrowing the caller's
     except clause to HTTPError and duplicating its retry body.
     """
     headers = getattr(error, "headers", None)
-    if headers is not None and headers.get("cf-mitigated") == "challenge":
-        raise RuntimeError(
-            f"{download_url} is behind a Cloudflare bot challenge (cf-mitigated: challenge) and cannot be "
-            "downloaded automatically. Please download the file manually in a browser and place it at "
-            f"{local_file_name}, then re-run this rule."
-        )
+    if headers is None:
+        return
+
+    if headers.get("cf-mitigated") == "challenge":
+        signal = "cf-mitigated: challenge"
+    elif "challenges.cloudflare.com" in (headers.get("content-security-policy") or ""):
+        signal = "a content-security-policy allowing challenges.cloudflare.com"
+    else:
+        return
+
+    raise RuntimeError(
+        f"{download_url} is behind a Cloudflare bot challenge ({signal}) and cannot be downloaded "
+        "automatically: the challenge is served to real browsers too, so neither retrying nor changing "
+        "the User-Agent will get past it. Please download the file manually in a browser and place it at "
+        f"{local_file_name}, then re-run this rule -- an already-present file is used as-is."
+    )
 
 
 def pull_via_urllib(url: str, in_file_name: str, decompress=True, subpath=None, verify_gzip=False):
@@ -686,7 +706,18 @@ def write_compendium(
     :param labels: A map of identifiers
         Not needed if each identifier will have a label in the correct directory (i.e. downloads/PMID/labels for PMID:xxx).
     :param extra_prefixes: We default to only allowing the prefixes allowed for a particular type in Biolink.
-        If you want to allow additional prefixes, list them here.
+        If you want to allow additional prefixes, list them here. They are appended *after* the
+        Biolink-registered ones, so an extra prefix keeps its identifiers alive in the clique but can
+        never win the preferred-CURIE contest -- which also means such an identifier will not
+        normalize on its own, and is visible only in the clique's equivalent identifiers. That is the
+        intended shape for shipping a prefix ahead of the Biolink Model (see
+        `config.yaml: disease_extra_prefixes_by_biolink_class`), and the reason it is safe to do so.
+
+        It is a **per-class** allowlist. A caller that loops over several node types must scope the
+        list to the class it was reasoned about, or an exemption earned on one class's grounds is
+        silently granted to all of them -- e.g. passing a disease-derived list unscoped also lets
+        those prefixes into `PhenotypicFeature.txt`. See `diseasephenotype.build_compendium`, which
+        applies its list to `DISEASE` only.
     :param icrdf_filename: (REQUIRED) The file to read the information content from (icRDF.tsv). Although this is a
         named parameter to make it easier to specify this when calling write_compendium(), it is REQUIRED, and
         write_compendium() will throw a RuntimeError if it is not specified. This is to ensure that it has been
@@ -695,14 +726,13 @@ def write_compendium(
     :param properties_files: (OPTIONAL) A list of SQLite3 files containing properties to be added to the output.
     :return:
     """
-    logger.info(
-        f"Starting write_compendium({metadata_yamls}, {len(synonym_list)} slists, {ofname}, {node_type}, {len(labels)} labels, {extra_prefixes}, {icrdf_filename}, {properties_jsonl_gz_files}): {get_memory_usage_summary()}"
-    )
-
     if extra_prefixes is None:
         extra_prefixes = []
     if labels is None:
         labels = {}
+    logger.info(
+        f"Starting write_compendium({metadata_yamls}, {len(synonym_list)} slists, {ofname}, {node_type}, {len(labels)} labels, {extra_prefixes}, {icrdf_filename}, {properties_jsonl_gz_files}): {get_memory_usage_summary()}"
+    )
     config = get_config()
     cdir = config["output_directory"]
     biolink_version = config["biolink_version"]
@@ -767,6 +797,9 @@ def write_compendium(
     count_eq_ids = 0
     count_synonyms = 0
 
+    # (curie, problem, clique leader) for every malformed CURIE; see raise_on_malformed_curies().
+    malformed_curies = []
+
     # Write compendium and synonym files.
     with (
         jsonlines.open(os.path.join(cdir, "compendia", ofname), "w") as outf,
@@ -778,9 +811,13 @@ def write_compendium(
         total_slist = len(synonym_list)
 
         for slist in synonym_list:
+            clique_labels = labels
             if isinstance(slist, TypedClique):
                 current_node_type = slist.node_type
                 input_identifiers = slist.identifiers
+                if slist.labels:
+                    # A view, not a merged copy: copying `labels` would cost O(len(labels)) per clique.
+                    clique_labels = ChainMap(slist.labels, labels)
             else:
                 if node_type is None:
                     raise RuntimeError("write_compendium() requires node_type unless every clique is a TypedClique.")
@@ -811,7 +848,7 @@ def write_compendium(
             node = node_factory.create_node(
                 input_identifiers=input_identifiers,
                 node_type=current_node_type,
-                labels=labels,
+                labels=clique_labels,
                 extra_prefixes=extra_prefixes,
             )
             if node is None:
@@ -855,6 +892,8 @@ def write_compendium(
 
                     identifier_list.append(iid)
                     current_curies.add(iid)
+                    if problem := curie_format_problem(iid):
+                        malformed_curies.append((iid, problem, node["identifiers"][0]["identifier"]))
 
                     if "label" in nid:
                         curie_labels[iid] = nid["label"]
@@ -868,18 +907,18 @@ def write_compendium(
                         # ac_labelled will be a list that consists of either LabeledID (if the CURIE could be labeled)
                         # or str objects (consisting of an unlabeled CURIE).
                         ac_labelled = node_factory.apply_labels(
-                            input_identifiers=additional_curies, labels=labels, node_types=types
+                            input_identifiers=additional_curies, labels=clique_labels, node_types=types
                         )
 
                         for prop, label in zip(props, ac_labelled):
                             additional_curie = Text.get_curie(label)
-                            if ":" not in additional_curie:
-                                raise ValueError(
-                                    f"Additional ID '{additional_curie}' for '{iid}' is not a valid CURIE: {prop}, {label} (from {ac_labelled})"
-                                )
                             if additional_curie not in current_curies:
                                 identifier_list.append(additional_curie)
                                 current_curies.add(additional_curie)
+                                if problem := curie_format_problem(additional_curie):
+                                    malformed_curies.append(
+                                        (additional_curie, f"{problem}, additional ID of {iid}", iid)
+                                    )
 
                                 # Track the property sources we used.
                                 property_source_count[prop.source] += 1
@@ -999,6 +1038,8 @@ def write_compendium(
                     traceback.print_exc()
                     raise ex
 
+    raise_on_malformed_curies(malformed_curies, ofname)
+
     # Log a per-compendium summary of any obsolete labels that were filtered.
     filtered_this_run = synonym_filter.filtered_count - filter_count_snapshot
     if filtered_this_run > 0:
@@ -1022,6 +1063,26 @@ def write_compendium(
 
     # Close all the factories.
     taxon_factory.close()
+
+
+def raise_on_malformed_curies(malformed_curies, ofname):
+    """Raise if write_compendium() wrote any malformed CURIE (see curie_format_problem()) into ``ofname``.
+
+    ``malformed_curies`` is a list of (curie, problem, clique leader) tuples. write_compendium()
+    collects every one before calling this, so a single failed run lists them all. A CURIE can
+    reach a compendium through a concord alone, without ever appearing in an ids file (#1109), so
+    this is checked on what is written rather than on the inputs. Fix the source that produced the
+    CURIE; don't catch this error.
+    """
+    if not malformed_curies:
+        return
+    for curie, problem, leader in malformed_curies:
+        logger.error(f"Malformed CURIE in {ofname}: {curie!r} ({problem}) in clique {leader}")
+    by_prefix = Counter(curie.partition(":")[0] for curie, _, _ in malformed_curies)
+    examples = ", ".join(repr(curie) for curie, _, _ in malformed_curies[:10])
+    raise ValueError(
+        f"{len(malformed_curies):,} malformed CURIE(s) in {ofname} (by prefix: {dict(by_prefix)}), e.g. {examples}"
+    )
 
 
 def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={}):
@@ -1238,10 +1299,59 @@ def read_identifier_file(infile):
     return identifiers, types
 
 
-def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
+def read_badxrefs(fn):
+    """Read an ``input_data/*_badxrefs.txt`` file into a set of ``(subject, object)`` tuples.
+
+    Format is one space-separated pair per line; ``#`` comment lines and blank lines are
+    skipped. These files drop individually wrong cross-reference pairs that survive
+    prefix-level filtering, for cases where the target prefix is legitimate in general but
+    this particular pair is not.
+
+    Callers decide whether to match directionally (diseasephenotype) or in either direction
+    (anatomy, which builds frozensets from these); the returned set is unordered either way.
+
+    A line that is neither blank, a comment, nor exactly two space-separated tokens raises
+    ``ValueError``. Skipping it instead would mean an entry a maintainer believed was
+    suppressing a bad xref silently does nothing — the pair reappears in the compendia and
+    nothing anywhere says why.
+
+    Tabs are rejected explicitly, because a tab-separated pair is the easy way to write a line
+    that looks right and parses wrong. Runs of spaces are not: ``split()`` collapses them, so a
+    stray double space is unambiguous and is accepted rather than failing a build over it.
+    """
+    morebad = set()
+    with open(fn) as inf:
+        for lineno, line in enumerate(inf, 1):
+            if line.startswith("#"):
+                continue
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if "\t" in stripped:
+                raise ValueError(f"{fn}:{lineno}: CURIEs must be separated by a space, not a tab: {line.rstrip()!r}")
+            x = stripped.split()
+            if len(x) != 2:
+                raise ValueError(f"{fn}:{lineno}: expected two space-separated CURIEs, got {len(x)}: {line.rstrip()!r}")
+            morebad.add((x[0], x[1]))
+    return morebad
+
+
+def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False, target_prefixes=None):
     """Given a list of tuples (id1, id2) meaning id1-[xref]->id2, remove any id2 that are associated with more
     than one id1.  The idea is that if e.g. id1 is made up of UBERONS and 2 of those have an xref to say a UMLS
-    then it doesn't mean that all of those should be identified.  We don't really know what it means, so remove it."""
+    then it doesn't mean that all of those should be identified.  We don't really know what it means, so remove it.
+
+    :param target_prefixes: if given, only targets in these namespaces are eligible to be dropped;
+        a target in any other namespace is kept however many subjects claim it. This scopes the
+        filter to the vocabulary that is actually causing merges, instead of trading one source's
+        real problem against the collateral damage to its other namespaces. DOID is the worked
+        case: its ICD codes name disease *families* and fuse every subtype citing one, while its
+        MeSH/SNOMED/UMLS targets are mostly fine -- so an unscoped filter under-cleans ICD (most
+        ICD rows are 1:1) and over-cleans everything else. Matched against
+        ``Text.get_prefix_or_none()``, which upper-cases, so the comparison is case-insensitive.
+        See ``diseasephenotype.OVERUSE_FILTERED_CONCORDS`` and docs/sources/DOID/mappings.md.
+    """
+    eligible = {p.upper() for p in target_prefixes} if target_prefixes is not None else None
     xref_counts_v = defaultdict(int)
     xref_counts_k = defaultdict(int)
     for k, v in pairlist:
@@ -1249,6 +1359,9 @@ def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
         xref_counts_k[k] += 1
     improved_pairs = []
     for k, v in pairlist:
+        if eligible is not None and (Text.get_prefix_or_none(v) or "") not in eligible:
+            improved_pairs.append((k, v))
+            continue
         if xref_counts_v[v] < 2:
             if bothways:
                 if xref_counts_k[k] < 2:
@@ -1258,9 +1371,31 @@ def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False):
     return improved_pairs
 
 
+# A prefix carrying a release stamp, e.g. DOID's "SNOMEDCT_US_2025_09_01:267692008". Sources that
+# do this mint a new prefix on every upstream release, so an `op` map naming the stamped spellings
+# silently goes stale -- and the un-renamed CURIE still reaches glom(), fusing subjects through a
+# namespace no compendium can ever join. Match on the stem instead of pinning the dates.
+VERSION_STAMPED_PREFIX = re.compile(r"^(.*)_\d{4}_\d{2}_\d{2}$")
+
+
 def norm(x, op):
+    """Rename a CURIE's prefix per the `op` map, keying on the upper-cased prefix.
+
+    A prefix that misses is retried without a trailing `_YYYY_MM_DD` release stamp, so `op` names
+    the stem (`SNOMEDCT_US`) once rather than every dated spelling a source has ever emitted.
+
+    An `op` value is normally the replacement prefix. It may instead be a callable taking the whole
+    CURIE and returning the rewritten one, for the cases where the target prefix depends on the
+    local id and not just the source prefix -- OMIM is the one that needs this, since `MIM:PS303350`
+    is a phenotypic series (`OMIM.PS:303350`) while `MIM:115210` is a plain entry (`OMIM:115210`).
+    """
     # Get curie returns the uppercase
     pref = Text.get_prefix_or_none(x)
-    if pref in op:
-        return Text.recurie(x, op[pref])
+    if pref is None:
+        return x
+    stamped = VERSION_STAMPED_PREFIX.match(pref)
+    for candidate in (pref, stamped.group(1) if stamped else None):
+        if candidate in op:
+            rename = op[candidate]
+            return rename(x) if callable(rename) else Text.recurie(x, rename)
     return x
