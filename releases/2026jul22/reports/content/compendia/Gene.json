@@ -1,0 +1,55 @@
+{
+  "compendium_path": "babel_outputs/compendia/Gene.txt",
+  "count_by_biolink_type": {
+    "biolink:Gene": 74504046
+  },
+  "count_by_prefix": {
+    "ENSEMBL": 17284916,
+    "FB": 32160,
+    "HGNC": 45130,
+    "MGI": 635946,
+    "NCBIGene": 70201057,
+    "OMIM": 17907,
+    "RGD": 366481,
+    "SGD": 8097,
+    "UMLS": 47237,
+    "WormBase": 49529,
+    "ZFIN": 37976,
+    "dictyBase": 13892
+  },
+  "count_lines": 74504046,
+  "counters": {
+    "clique_count": 74504046,
+    "cliques_by_description_count": {
+      "0": 4307137,
+      "1": 70196909
+    },
+    "cliques_by_id_count": {
+      "1": 60567776,
+      "2": 13688129,
+      "3": 213674,
+      "4": 17063,
+      "5": 17404
+    },
+    "cliques_by_label_count": {
+      "0": 3677433,
+      "1": 70580900,
+      "2": 202266,
+      "3": 25785,
+      "4": 17218,
+      "5": 444
+    },
+    "cliques_by_unique_description_count": {
+      "0": 4307137,
+      "1": 70196909
+    },
+    "cliques_by_unique_label_count": {
+      "0": 3677433,
+      "1": 70781034,
+      "2": 45051,
+      "3": 528
+    }
+  },
+  "name": "Gene",
+  "report_path": "babel_outputs/reports/content/compendia/Gene.json"
+}

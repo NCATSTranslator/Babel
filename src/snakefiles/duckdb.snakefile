@@ -41,7 +41,8 @@ rule export_compendia_to_duckdb:
     benchmark:
         config["output_directory"] + "/benchmarks/export_compendia_to_duckdb_{filename}.tsv"
     resources:
-        runtime="6h",
+        # Slowest of the 25 wildcard instances on 2026jul22 was Protein at 2.5h.
+        runtime="4h",
         mem="512G",
         # DuckDB auto-threads and used up to ~2.6 cores on babel-1.17; the cpus_per_task=1 default
         # would pin it to one core. Packing here is memory-bound (512G), so the cores are ~free.
@@ -81,7 +82,8 @@ rule export_synonyms_to_duckdb:
         # per entry; after unnesting the names array the row count is large
         # enough to OOM at 128G.
         mem=lambda wildcards: "512G" if wildcards.filename in ("Protein", "GeneProteinConflated") else "128G",
-        runtime="3h",
+        # Slowest of the 18 wildcard instances on 2026jul22 was GeneProteinConflated at 13 minutes.
+        runtime="1h",
         # DuckDB auto-threads and used up to ~2.6 cores on babel-1.17; the cpus_per_task=1 default
         # would pin it to one core. Packing here is memory-bound, so the cores are ~free.
         cpus_per_task=4,
@@ -267,6 +269,9 @@ rule check_for_duplicate_curies:
 
 rule check_for_duplicate_clique_leaders:
     input:
+        # Only the compendia's Clique.parquet files are read, but waiting for duckdb/done keeps this 400G DuckDB
+        # aggregation from overlapping the Edge/synonym/conflation exports on a run where mem is not enforced per
+        # job (a local run). Starting it at compendia_done would fail the build a few hours sooner, no more.
         config["output_directory"] + "/duckdb/done",
         config["output_directory"] + "/duckdb/compendia_done",
     output:
@@ -290,6 +295,22 @@ rule check_for_duplicate_clique_leaders:
                 "threads": 4,
                 "preserve_insertion_order": False,
             },
+        )
+
+
+rule assert_no_unexpected_duplicate_clique_leaders:
+    # The control behind the report above: a duplicate clique leader not on the committed allowlist fails
+    # the build (see src.reports.duckdb_reports.assert_no_unexpected_duplicate_clique_leaders). The report is
+    # written first so it can be read when this rule goes red.
+    input:
+        duplicate_clique_leaders_tsv=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.tsv",
+        allowlist=config["input_directory"] + "/known_duplicate_clique_leaders.tsv",
+    output:
+        checked=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.checked",
+    localrule: True
+    run:
+        src.reports.duckdb_reports.assert_no_unexpected_duplicate_clique_leaders(
+            input.duplicate_clique_leaders_tsv, input.allowlist, output.checked
         )
 
 
@@ -332,7 +353,7 @@ rule all_duckdb_reports:
         identically_labeled_cliques_tsv=config["output_directory"]
         + "/reports/duckdb/identically_labeled_cliques.tsv.gz",
         duplicate_curies=config["output_directory"] + "/reports/duckdb/duplicate_curies.tsv",
-        duplicate_clique_leaders_tsv=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.tsv",
+        duplicate_clique_leaders_checked=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.checked",
         prefix_report_json=config["output_directory"] + "/reports/duckdb/prefix_report.json",
     output:
         x=config["output_directory"] + "/reports/duckdb/done",

@@ -1,0 +1,41 @@
+{
+  "about": {
+    "after": "final",
+    "before": "47051aaf (branch base)",
+    "files": [
+      "Disease.txt",
+      "PhenotypicFeature.txt"
+    ],
+    "note": "DOID prefix renames, ICD overuse filter scoped to ICD, boundary badxrefs, ICD10CM emitted"
+  },
+  "compendia": {
+    "Disease.txt": {
+      "changed_before_cliques": 4284,
+      "clique_count": {
+        "after": 365087,
+        "before": 365510,
+        "diff": -423,
+        "diff_percent": -0.12
+      },
+      "cliques_with_dropped_members": 0,
+      "dropped_member_count": 0,
+      "leader_changed_count": 0,
+      "moved_member_count": 0,
+      "regrouped_member_count": 707
+    },
+    "PhenotypicFeature.txt": {
+      "changed_before_cliques": 12,
+      "clique_count": {
+        "after": 75477,
+        "before": 75478,
+        "diff": -1,
+        "diff_percent": -0.0
+      },
+      "cliques_with_dropped_members": 0,
+      "dropped_member_count": 0,
+      "leader_changed_count": 0,
+      "moved_member_count": 37,
+      "regrouped_member_count": 0
+    }
+  }
+}

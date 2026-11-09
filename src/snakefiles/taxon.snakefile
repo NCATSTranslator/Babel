@@ -29,12 +29,13 @@ rule taxon_mesh_ids:
 rule taxon_umls_ids:
     input:
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
         outfile=config["intermediate_directory"] + "/taxon/ids/UMLS",
     benchmark:
         config["output_directory"] + "/benchmarks/taxon_umls_ids.tsv"
     run:
-        taxon.write_umls_ids(input.mrsty, output.outfile)
+        taxon.write_umls_ids(input.mrsty, output.outfile, mesh_ownership=input.mesh_ownership)
 
 
 rule get_taxon_umls_relationships:
@@ -64,8 +65,6 @@ rule get_taxon_relationships:
 
 
 rule taxon_compendia:
-    # Peaks at ~14 GB on babel-1.17, just under the 16 GB default, so no override; the tightest
-    # rule on the default and the first to watch for an OOM as NCBITaxon grows (see docs/tools/Resources.md).
     input:
         labels=expand("{dd}/{ap}/labels", dd=config["download_directory"], ap=config["taxon_labels"]),
         synonyms=expand("{dd}/{ap}/synonyms", dd=config["download_directory"], ap=config["taxon_synonyms"]),
@@ -75,14 +74,26 @@ rule taxon_compendia:
         ),
         idlists=expand("{dd}/taxon/ids/{ap}", dd=config["intermediate_directory"], ap=config["taxon_ids"]),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["taxon_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["taxon_outputs"])),
         output_metadata=expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["taxon_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/taxon_compendia.tsv"
+    resources:
+        # babel-1.17 flagged this as the tightest rule still on the 16 GB default and the first to
+        # watch for an OOM as NCBITaxon grows; 2026jul22 peaked at 14.1 GiB = 15.1 GB, 95% of the
+        # default, so it gets a block.
+        mem="24G",
     run:
-        taxon.build_compendia(input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename)
+        taxon.build_compendia(
+            input.concords,
+            input.metadata_yamls,
+            input.idlists,
+            input.icrdf_filename,
+            mesh_ownership=input.mesh_ownership,
+        )
 
 
 rule check_taxon_completeness:

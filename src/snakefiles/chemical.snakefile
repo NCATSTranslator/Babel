@@ -8,12 +8,13 @@ import src.snakefiles.util as util
 rule chemical_umls_ids:
     input:
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
         outfile=config["intermediate_directory"] + "/chemicals/ids/UMLS",
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_umls_ids.tsv"
     run:
-        chemicals.write_umls_ids(input.mrsty, output.outfile)
+        chemicals.write_umls_ids(input.mrsty, output.outfile, mesh_ownership=input.mesh_ownership)
 
 
 rule chemical_rxnorm_ids:
@@ -275,8 +276,9 @@ rule get_chemical_unichem_relationships:
     benchmark:
         config["output_directory"] + "/benchmarks/get_chemical_unichem_relationships.tsv"
     resources:
-        # Peaks at ~21 GB on babel-1.17 (see docs/tools/Resources.md); over the 16 GB default.
-        mem="24G",
+        # Peaked at 20.9 GiB = 22.4 GB on both babel-1.17 and 2026jul22 (see docs/tools/Resources.md),
+        # i.e. 93% of 24 GB -- raised a bucket so a growing UniChem doesn't OOM it.
+        mem="32G",
     run:
         chemicals.write_unichem_concords(
             input.structfile, input.reffile, config["intermediate_directory"] + "/chemicals/concords/UNICHEM"
@@ -357,7 +359,8 @@ rule chemical_unichem_concordia:
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_unichem_concordia.tsv"
     resources:
-        mem="128G",
+        # 2026jul22 peaked at 111.6 GiB = 119.8 GB, 94% of 128G; UniChem grows every release.
+        mem="192G",
     run:
         chemicals.combine_unichem(input.concords, output.unichemgroup)
 
@@ -376,6 +379,7 @@ rule untyped_chemical_compendia:
             cc=config["chemical_concords"],
         ),
         idlists=expand("{dd}/chemicals/ids/{ap}", dd=config["intermediate_directory"], ap=config["chemical_ids"]),
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
         typesfile=config["intermediate_directory"] + "/chemicals/partials/types",
         untyped_file=config["intermediate_directory"] + "/chemicals/partials/untyped_compendium",
@@ -383,7 +387,13 @@ rule untyped_chemical_compendia:
     benchmark:
         config["output_directory"] + "/benchmarks/untyped_chemical_compendia.tsv"
     resources:
-        mem="512G",
+        # Peaked at 132.0 and 132.1 GiB on babel-1.17 and 2026jul22 -- stable to within 0.1%. Those
+        # are the benchmark's mebibytes; `mem` is decimal, so the peak is 141.8 GB and the old 512G
+        # was reserving ~3.6x what it uses. 256G is the standard 1.5x safety factor rounded to a
+        # bucket. A 184G variant would have fit a 191 GB batch node and kept the job off largemem
+        # entirely, but only at 77% used with no room for one release's growth; revisit after the
+        # next full run, when there are three peaks to size from rather than two.
+        mem="256G",
     run:
         chemicals.build_untyped_compendia(
             input.concords,
@@ -393,6 +403,7 @@ rule untyped_chemical_compendia:
             output.typesfile,
             output.untyped_meta,
             input.metadata_yamls,
+            mesh_ownership=input.mesh_ownership,
         )
 
 
@@ -434,6 +445,10 @@ rule check_chemical_completeness:
         report_file=config["output_directory"] + "/reports/chemical_completeness.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/check_chemical_completeness.tsv"
+    resources:
+        # 2026jul22 peaked at 13.7 GiB = 14.7 GB against the 16G cluster default (92%), with no
+        # explicit block.
+        mem="24G",
     run:
         assessments.assess_completeness(
             config["intermediate_directory"] + "/chemicals/ids", input.input_compendia, output.report_file
@@ -539,6 +554,10 @@ rule chemical:
         x=config["output_directory"] + "/reports/chemicals_done",
     benchmark:
         config["output_directory"] + "/benchmarks/chemical.tsv"
+    resources:
+        # Gzipping every chemical synonyms file took 1.9h on 2026jul22 -- 93% of the 2h cluster
+        # default, and the closest any rule came to a timeout in that run.
+        runtime="4h",
     run:
         util.gzip_files(input.synonyms)
         util.write_done(output.x)

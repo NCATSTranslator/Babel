@@ -79,11 +79,12 @@ equivalence cliques.
 
 Each line of a compendium file is a JSON object representing one clique. A clique includes:
 
-- `identifiers` — list of all equivalent CURIEs, in preferred-prefix order
+- `identifiers` — list of all equivalent CURIEs, in preferred-prefix order. Each entry carries its
+  own label (`l`), descriptions (`d`, collected from UberGraph and sorted shortest first) and taxa
+  (`t`)
 - `ic` — information content score (from UberGraph)
-- `taxa` — associated taxa (for genes, proteins, etc.)
+- `taxa` — associated taxa (for genes, proteins, etc.); the union of the per-identifier `t` values
 - `preferred_name` — the preferred human-readable label for the clique
-- `descriptions` — descriptions collected from UberGraph
 - `type` — Biolink semantic type
 
 The first identifier in `identifiers` is the preferred identifier for the clique. See
@@ -162,6 +163,40 @@ structure-bearing type, so food evidence can improve on a vague `ChemicalEntity`
 demote a defined molecule. That second rule is a bug fix — see
 [the food-and-extracts README](sources/DRUGBANK/food-and-extracts/README.md) for what happened when
 the evidence was an override instead (issue #935).
+
+### `Polypeptide.txt` is a residue, not a compendium
+
+`compendia/Polypeptide.txt` is tiny (166 cliques in 2025sep1, 5 in 2026jul22) and its size swings
+wildly between builds. Neither `CHEBI` nor `MESH` is registered in `biolink:Polypeptide`'s
+`id_prefixes`, so `write_compendium()` silently drops every identifier Babel types as a polypeptide;
+what lands in the file is the handful of cliques that also picked up a `UMLS` CURIE through
+`glom()`. Read a movement in this file as noise, not as a lost ingest — the cliques are still
+counted in the content report and mostly live in `compendia/umls.txt`. Details and the two candidate
+fixes are in [issue #1015](https://github.com/NCATSTranslator/Babel/issues/1015); delete this note
+once it is closed.
+
+## Build controls
+
+Most of the pipeline's checks only report: the DuckDB reports under `reports/duckdb/`, the
+per-compendium content reports, the leftover-UMLS diagnostics. A report nobody reads is not a
+control (see the "A log warning is not a control" rule in `AGENTS.md`), so the conditions that make
+a build unusable downstream fail it instead:
+
+- **Duplicate clique leaders.** A CURIE that leads a clique in two compendia gives NodeNorm two
+  answers for one CURIE ([#276](https://github.com/NCATSTranslator/Babel/issues/276)): Redis
+  NodeNorm serves whichever compendium loaded last, and NodeNorm-ES, which keys documents by leader,
+  merged them until it was changed to handle that in October 2026
+  ([biothings/NodeNormalizationAPI#41](https://github.com/biothings/NodeNormalizationAPI/issues/41)).
+  `rule assert_no_unexpected_duplicate_clique_leaders` (`src/snakefiles/duckdb.snakefile`) reads
+  `reports/duckdb/duplicate_clique_leaders.tsv` after it is written and raises for any row not in
+  `input_data/known_duplicate_clique_leaders.tsv`, which names the issue accepting each remaining
+  duplicate. A row covers its leader in any subset of the compendia it lists, so a duplicate that
+  shrinks still passes and is logged for the row to be narrowed. The failure stops
+  `reports/duckdb/done` and therefore `rule all`, but every other output still completes, so the
+  TSV is there to read. Fix the source (the known mechanisms are in
+  [`docs/sources/UMLS/CuiFollowsMesh.md`](sources/UMLS/CuiFollowsMesh.md)) or, for a duplicate an
+  issue accepts for now, add the row with that issue. Member-level duplicates
+  (`duplicate_curies.tsv`) stay report-only.
 
 ## Output directories
 

@@ -18,6 +18,10 @@ scan_concords_for_curies:
     the asserter; skips ``metadata-*`` sidecars; recurses into subdirectories
     (e.g. ``UNICHEM/UNICHEM_*``).
 
+summarize_xref_groups:
+    Grouping concord rows into join pathways: prefix-pair canonicalisation, keeping the two
+    assertion directions apart, predicate separation, example sampling, and no dedupe.
+
 discover_source — structure:
     Baseline (single everything) plus one test per axis, confirming that
     ``SourceContribution`` correctly aggregates across each dimension.
@@ -28,7 +32,7 @@ discover_source — edge cases:
 
 import pytest
 
-from src.model.source import discover_source, scan_concords_for_curies
+from src.model.source import discover_source, scan_concords_for_curies, summarize_xref_groups
 
 # ---------------------------------------------------------------------------
 # scan_concords_for_curies
@@ -68,6 +72,94 @@ def test_scan_concords_for_curies_matches_either_endpoint_and_records_asserter(t
 def test_scan_concords_for_curies_missing_dir_returns_empty(tmp_path):
     """Returns an empty list rather than raising when the concords directory does not exist."""
     assert scan_concords_for_curies(tmp_path / "nope", {"EMAPA:1"}) == []
+
+
+# ---------------------------------------------------------------------------
+# summarize_xref_groups
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_summarize_xref_groups_canonicalizes_the_prefix_pair():
+    """Rows written in opposite directions by the same file should collapse into one pathway.
+
+    Whether a concord writes ``A -> B`` or ``B -> A`` is an artifact of how that source generates
+    its file, so the pair is sorted and both orientations count towards the same group.
+    """
+    rows = [
+        ("EMAPA:1", "xref", "UBERON:1", "UBERON"),
+        ("UBERON:2", "xref", "EMAPA:2", "UBERON"),
+    ]
+    groups = summarize_xref_groups(rows, "anatomy", "EMAPA")
+    assert len(groups) == 1
+    assert (groups[0].prefix_1, groups[0].prefix_2) == ("EMAPA", "UBERON")
+    assert groups[0].count == 2
+
+
+@pytest.mark.unit
+def test_summarize_xref_groups_keeps_the_two_assertion_directions_apart():
+    """A pathway asserted by the new source must stay separate from the same pair asserted elsewhere.
+
+    This is the regression that matters when canonicalising the prefix pair: MP asserting a mapping
+    to HP is a bridge this addition introduces (``added``), while HP asserting one to MP may predate
+    it entirely (``from_other_source``). They share a sorted prefix pair, so only ``asserted_by`` and
+    ``status`` being part of the group key keeps them distinguishable — which is the whole question
+    the impact report answers.
+    """
+    rows = [
+        ("MP:1", "xref", "HP:1", "MP"),
+        ("HP:2", "xref", "MP:2", "HP"),
+    ]
+    groups = summarize_xref_groups(rows, "disease", "MP")
+    assert {(g.asserted_by, g.status, g.count) for g in groups} == {
+        ("MP", "added", 1),
+        ("HP", "from_other_source", 1),
+    }
+    assert all((g.prefix_1, g.prefix_2) == ("HP", "MP") for g in groups)
+
+
+@pytest.mark.unit
+def test_summarize_xref_groups_separates_predicates_and_orders_by_count():
+    """Each predicate is its own pathway, and the biggest pathway is listed first."""
+    rows = [("MP:1", "exactMatch", "HP:1", "MP")]
+    rows += [(f"MP:{i}", "closeMatch", f"HP:{i}", "MP") for i in range(2, 6)]
+    groups = summarize_xref_groups(rows, "disease", "MP")
+    assert [(g.predicate, g.count) for g in groups] == [("closeMatch", 4), ("exactMatch", 1)]
+
+
+@pytest.mark.unit
+def test_summarize_xref_groups_examples_span_the_group_and_are_stable():
+    """Examples are evenly spread across a large group, capped, and identical across calls.
+
+    Even spacing rather than the first N, so the sample covers the identifier range instead of
+    clustering on the lowest IDs. A group smaller than the budget keeps every row.
+    """
+    rows = [(f"UBERON:{i:04d}", "xref", f"EMAPA:{i:04d}", "UBERON") for i in range(100)]
+    (group,) = summarize_xref_groups(rows, "anatomy", "EMAPA", examples_per_group=5)
+    assert group.count == 100
+    assert group.examples == (
+        ("UBERON:0000", "EMAPA:0000"),
+        ("UBERON:0020", "EMAPA:0020"),
+        ("UBERON:0040", "EMAPA:0040"),
+        ("UBERON:0060", "EMAPA:0060"),
+        ("UBERON:0080", "EMAPA:0080"),
+    )
+    assert summarize_xref_groups(rows, "anatomy", "EMAPA", examples_per_group=5)[0].examples == group.examples
+
+    (small,) = summarize_xref_groups(rows[:3], "anatomy", "EMAPA", examples_per_group=5)
+    assert len(small.examples) == 3
+
+
+@pytest.mark.unit
+def test_summarize_xref_groups_does_not_dedupe_identical_triples():
+    """The same triple asserted by two files is two assertions, so it lands in two groups."""
+    rows = [
+        ("UBERON:1", "xref", "EMAPA:1", "UBERON"),
+        ("UBERON:1", "xref", "EMAPA:1", "MA"),
+    ]
+    groups = summarize_xref_groups(rows, "anatomy", "EMAPA")
+    assert sorted(g.asserted_by for g in groups) == ["MA", "UBERON"]
+    assert all(g.count == 1 for g in groups)
 
 
 # ---------------------------------------------------------------------------
@@ -244,3 +336,48 @@ def test_discover_skips_metadata_yaml_files(tmp_path):
     contrib = discover_source("EMAPA", tmp_path)
     assert contrib.pipelines == frozenset({"anatomy"})
     assert contrib.total_concord_row_count == 1
+
+
+@pytest.mark.unit
+def test_discover_source_counts_only_the_named_concords(tmp_path):
+    """``concord_names`` defaults to the source name, and a differently-named concord is invisible
+    until the caller names it.
+
+    That default is why `source-impact-report --source GARD` alone reported zero cross-references
+    once GARD grew a `GARD_label` concord. A naming rule cannot replace the flag: `GARD_label` is
+    GARD's own data while `MONDO_GARD` is MONDO's data *about* GARD, and both contain "GARD".
+    """
+    _make_source_tree(
+        tmp_path,
+        "GARD",
+        "disease",
+        ids_lines=["GARD:1\tbiolink:Disease"],
+        concord_lines=None,
+    )
+    concords_dir = tmp_path / "disease" / "concords"
+    (concords_dir / "GARD_label").write_text("GARD:1\txref\tNCIT:C1\n")
+    (concords_dir / "MONDO_GARD").write_text("MONDO:1\txref\tGARD:2\n")
+
+    default = discover_source("GARD", tmp_path)
+    assert default.concord_names == frozenset()
+    assert default.total_concord_row_count == 0
+
+    named = discover_source("GARD", tmp_path, concord_names=["GARD", "GARD_label"])
+    assert named.concord_names == frozenset({"GARD_label"}), "a named concord that does not exist is skipped"
+    assert named.total_concord_row_count == 1
+    assert named.by_pipeline["disease"].concord_partner_prefix_counts == {"NCIT": 1}
+    assert "MONDO_GARD" not in named.concord_names, "another source's concord about GARD is not GARD's"
+
+
+@pytest.mark.unit
+def test_discover_source_concatenates_several_concords(tmp_path):
+    """A source may write more than one concord; rows and partner counts come from all of them."""
+    _make_source_tree(tmp_path, "GARD", "disease", ids_lines=["GARD:1\tbiolink:Disease"], concord_lines=None)
+    concords_dir = tmp_path / "disease" / "concords"
+    (concords_dir / "GARD").write_text("GARD:1\txref\tNCIT:C1\n")
+    (concords_dir / "GARD_label").write_text("GARD:2\txref\tMESH:D1\n")
+
+    contrib = discover_source("GARD", tmp_path, concord_names=["GARD", "GARD_label"])
+
+    assert contrib.total_concord_row_count == 2
+    assert contrib.by_pipeline["disease"].concord_partner_prefix_counts == {"NCIT": 1, "MESH": 1}

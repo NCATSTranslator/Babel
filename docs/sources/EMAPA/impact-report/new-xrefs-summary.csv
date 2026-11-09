@@ -1,0 +1,11 @@
+pipeline,predicate,prefix_1,prefix_2,asserted_by,status,xref_count,subject,subject_label,object,object_label
+anatomy,xref,EMAPA,UBERON,UBERON,from_other_source,4336,UBERON:0000002,uterine cervix,EMAPA:29927,cervix uteri
+anatomy,xref,EMAPA,UBERON,UBERON,from_other_source,4336,UBERON:0001315,superior gluteal artery,EMAPA:37120,superior gluteal artery
+anatomy,xref,EMAPA,UBERON,UBERON,from_other_source,4336,UBERON:0001796,aqueous humor of eyeball,EMAPA:18232,aqueous humour
+anatomy,xref,EMAPA,UBERON,UBERON,from_other_source,4336,UBERON:0002298,brainstem,EMAPA:32678,brainstem
+anatomy,xref,EMAPA,UBERON,UBERON,from_other_source,4336,UBERON:0003357,epithelium of tongue,EMAPA:17881,tongue epithelium
+anatomy,xref,EMAPA,UBERON,UBERON,from_other_source,4336,UBERON:0004062,neural tube marginal layer,EMAPA:17151,neural tube marginal layer
+anatomy,xref,EMAPA,UBERON,UBERON,from_other_source,4336,UBERON:0005185,renal medulla collecting duct,EMAPA:28061,medullary collecting duct
+anatomy,xref,EMAPA,UBERON,UBERON,from_other_source,4336,UBERON:0006166,lateral dorsal digital artery for digit 5,EMAPA:37636,lateral dorsal digital artery for digit 5
+anatomy,xref,EMAPA,UBERON,UBERON,from_other_source,4336,UBERON:0007827,external nose,EMAPA:37831,external nose
+anatomy,xref,EMAPA,UBERON,UBERON,from_other_source,4336,UBERON:0011176,oval nucleus of stria terminalis,EMAPA:37667,oval nucleus

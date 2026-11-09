@@ -51,12 +51,13 @@ rule extract_taxon_ids_from_uniprotkb:
 rule protein_umls_ids:
     input:
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
         outfile=config["intermediate_directory"] + "/protein/ids/UMLS",
     benchmark:
         config["output_directory"] + "/benchmarks/protein_umls_ids.tsv"
     run:
-        protein.write_umls_ids(input.mrsty, output.outfile)
+        protein.write_umls_ids(input.mrsty, output.outfile, mesh_ownership=input.mesh_ownership)
 
 
 rule protein_ensembl_ids:
@@ -148,6 +149,7 @@ rule protein_compendia:
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
         # Include the taxon information from UniProtKB
         uniprotkb_taxa_file=config["download_directory"] + "/UniProtKB/taxa",
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["protein_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["protein_outputs"])),
@@ -155,10 +157,20 @@ rule protein_compendia:
     benchmark:
         config["output_directory"] + "/benchmarks/protein_compendia.tsv"
     resources:
+        # Do NOT size this from 2026jul22 alone: UniProtKB shrank ~41% upstream that release, so it
+        # ran 5.5h/246G where babel-1.17 took 7.6h/337G. Against the babel-1.17 figures these limits
+        # are 63% and 66% used, which is right. `babel-slurm-resources` will report this rule as
+        # over-provisioned until UniProtKB recovers; ignore that unless a second full-size run agrees.
         runtime="12h",
         mem="512G",
     run:
-        protein.build_protein_compendia(input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename)
+        protein.build_protein_compendia(
+            input.concords,
+            input.metadata_yamls,
+            input.idlists,
+            input.icrdf_filename,
+            mesh_ownership=input.mesh_ownership,
+        )
 
 
 rule check_protein_completeness:
@@ -200,7 +212,8 @@ rule protein:
         config["output_directory"] + "/benchmarks/protein.tsv"
     resources:
         cpus_per_task=6,
-        runtime="6h",
+        # 2.1h on babel-1.17, 1.6h on 2026jul22.
+        runtime="4h",
     run:
         util.gzip_files(input.synonyms)
         util.write_done(output.x)

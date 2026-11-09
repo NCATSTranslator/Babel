@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.util import _biolink_ref, ensure_parent_dir
+from src.util import Text, _biolink_ref, curie_format_problem, ensure_parent_dir
 
 
 @pytest.mark.unit
@@ -90,3 +90,69 @@ class TestEnsureParentDir:
         monkeypatch.chdir(tmp_path)
         ensure_parent_dir("output.txt")
         assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.unit
+class TestOmimCurie:
+    """Unit tests for Text.omim_curie(), which splits OMIM phenotypic series off to OMIM.PS."""
+
+    def test_plain_entry_becomes_an_omim_curie(self):
+        """An ordinary MIM number is an OMIM identifier."""
+        assert Text.omim_curie("115210") == "OMIM:115210"
+
+    def test_phenotypic_series_becomes_an_omim_ps_curie(self):
+        """OMIM writes a phenotypic series "PS303350"; the "PS" belongs to Babel's prefix, so it
+        must be stripped from the local id rather than carried into OMIM:PS303350 -- which would
+        ship an identifier no ids file carries but write_compendium still keeps, OMIM being a
+        registered biolink:Disease prefix."""
+        assert Text.omim_curie("PS303350") == "OMIM.PS:303350"
+
+    def test_opt_to_curie_uses_the_same_rule(self):
+        """omim.org URLs reach the same helper, so the two call sites cannot drift."""
+        assert Text.opt_to_curie("https://omim.org/PS303350") == "OMIM.PS:303350"
+        assert Text.opt_to_curie("https://omim.org/115210") == "OMIM:115210"
+
+
+# CURIE FORMAT
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "curie",
+    [
+        # Malformed CURIEs shipped in babel-1.18 (2026jul22).
+        "UniProtKB:P0DP24|P0DP23|P0DP25",  # #1109
+        "doi:10.3760/cma. j. issn.2095-4352. 2014. 07.015",  # PMID:25027433, #1112
+        "doi:10.31857/S0026898424050076, EDN: HUNTKB",  # PMID:39970118, #1112
+        "PMID:25167691 ",  # trailing space, from the EFO xrefs
+        "PMID:1\t2",
+        "NCIT:C123 ",  # non-breaking space
+        "MONDO:0000001\x00",
+        "MONDO0000001",
+        ":0000001",
+        "MONDO:",
+    ],
+)
+def test_curie_format_problem_rejects_malformed_curies(curie):
+    """Should report a problem for whitespace, "|", control characters, or a missing prefix/local ID."""
+    assert curie_format_problem(curie) is not None
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "curie",
+    [
+        # Real shipped CURIEs whose local IDs use punctuation that an "alphanumeric only" rule would reject.
+        "INCHIKEY:RGXATDXOZOLMMY-UHFFFAOYSA-N",
+        "PANTHER.FAMILY:PTHR24377:SF1013",
+        "UniProtKB:P0DP24-1",
+        "EC:7.6.2.4",
+        "ENSEMBL:F53B6.2c.1",
+        "REACT:R-HSA-937045",
+        "icd11:2A81.Z",
+        "doi:10.1097/01.brs.0000182083.43553.fa",
+    ],
+)
+def test_curie_format_problem_accepts_valid_punctuation(curie):
+    """Should accept real CURIEs whose local IDs contain punctuation, including further colons."""
+    assert curie_format_problem(curie) is None
