@@ -163,7 +163,10 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
 
             names_included = set()
             types_included = set()
-            types_to_ignore = set("OntologyClass")
+            # OntologyClass is an ancestor of nearly every Biolink class, so it says nothing about what the entity is:
+            # a femur is a NamedThing, but only philosophically an OntologyClass. A set literal, not set("..."), which
+            # would be the set of the string's letters. Unconflated synonym records still carry it; see #1178.
+            types_to_ignore = {"OntologyClass"}
             # Expand each conflation ID to every member of its clique, in conflation order. Two conflation IDs can
             # reach the same member (e.g. both are in one clique), so each member is listed once; otherwise its
             # record would be merged, and its identifier count summed, twice.
