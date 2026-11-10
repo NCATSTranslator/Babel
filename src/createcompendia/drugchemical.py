@@ -538,24 +538,8 @@ def build_conflation(
     # CHEBI:5931 "insulin human" get placed further down in the conflation list than lots of other identifiers,
     # including UNII:AVT680JB39 "Insulin pork", which is NOT good.
     #
-    # So, instead, I'm going to group them by prefix and then to sort it using the ChemicalEntity
-    # prefix sort order.
-    biolink_model_toolkit = get_biolink_model_toolkit(config["biolink_version"])
-    biolink_chemical_entity = biolink_model_toolkit.get_element(CHEMICAL_ENTITY)
-    conflation_prefix_order = biolink_chemical_entity["id_prefixes"]
-    if not conflation_prefix_order:
-        raise RuntimeError(
-            f"Biolink model {config['biolink_version']} doesn't have a ChemicalEntity prefix order: {biolink_chemical_entity}"
-        )
-
-    # Add RXCUI at the bottom.
-    conflation_prefix_order.append("RXCUI")
-
-    # Turn it into a sort order.
-    conflation_prefix_sort_order = {}
-    for i, prefix in enumerate(conflation_prefix_order):
-        conflation_prefix_sort_order[prefix] = i
-
+    # So, instead, we order them by prefix using the ChemicalEntity prefix sort order.
+    conflation_prefix_sort_order = chemical_conflation_prefix_sort_order(config["biolink_version"])
     logger.info(f"Using prefix sort order: {json.dumps(conflation_prefix_sort_order, indent=2)}")
 
     # Write out all the resulting cliques.
@@ -591,9 +575,7 @@ def build_conflation(
                 continue
             conflation_id_list = list(clique)
 
-            # 2. Group identifiers by Biolink type, preserving the order of the clique members.
-            # conflation_ids_by_type = defaultdict(list)
-            conflation_ids_by_prefix = defaultdict(list)
+            # 2. Normalize every member to its clique leader, dropping duplicates and keeping first-seen order.
             normalized_conflation_id_list = list()
             for iid in conflation_id_list:
                 # Normalization shouldn't be needed here, because they're all clique leaders, but just in case.
@@ -613,20 +595,6 @@ def build_conflation(
                 if preferred_curie not in normalized_conflation_id_list:
                     normalized_conflation_id_list.append(preferred_curie)
 
-                # Add it to the dictionary of types in the order of the clique members.
-                # At the moment, we get these from glomming, so the order should not actually be significant.
-                # But maybe in the future it will be if that changes? And it doesn't cost us much to maintain
-                # insertion order.
-                # preferred_curie_type = type_for_preferred_curie[preferred_curie]
-                # if preferred_curie not in conflation_ids_by_type[preferred_curie_type]:
-                #    # Don't add duplicates!
-                #    conflation_ids_by_type[preferred_curie_type].append(preferred_curie)
-
-                # We will use the preferred CURIE prefix to sort instead.
-                preferred_curie_prefix = Text.get_prefix(preferred_curie)
-                if preferred_curie not in conflation_ids_by_prefix[preferred_curie_prefix]:
-                    conflation_ids_by_prefix[preferred_curie_prefix].append(preferred_curie)
-
             # After all the normalization, it's possible that we'll end up with a conflation that only has a
             # single identifier in it. If so, we don't need to add it to the conflation list, because it won't
             # do anything there.
@@ -636,68 +604,19 @@ def build_conflation(
                 )
                 continue
 
-            # Within each of those groups, we want to sort by:
-            #   - information_content (lowest to highest, so that more general concepts are front-loaded)
-            #   - clique size (largest to smallest, so that larger cliques are front-loaded)
-            #   - numerical suffix (lowest to highest)
-            # Note that this does NOT include prefix order for the Biolink type. I think mixing that with multiple
-            # Biolink types will just make the output lists more confusing. Most people will only care about the
-            # clique conflation leader.
-            final_conflation_id_list = []
+            # 3. Order the members (see conflation_member_sort_key()). If we want to put a Biolink type order back,
+            # group by type_for_preferred_curie first -- and remember to sort each group in that type's prefix
+            # order, which the previous implementation forgot to do.
             clique_ics = []
-
-            # If we want to put the biolink type order back, you can generate it with:
-            #   grouped_by_conflation_type = sorted(conflation_ids_by_type.items(), key=lambda bt: preferred_conflation_type_order.get(bt[0], 100))
-            # If you do that, please remember to sort these identifiers in the prefix order for that type,
-            # which I forgot to do in the previous implementation!
-
-            for prefix, ids in sorted(
-                conflation_ids_by_prefix.items(), key=lambda bt: conflation_prefix_sort_order.get(bt[0], 100)
-            ):
-                # Is this Biolink type a chemical type? If not, ignore it.
-                # if biolink_type not in biolink_chemical_types:
-                #     logger.warning(f"Skipping Biolink type {biolink_type} because it's not a chemical type, with IDs: {ids}")
-                #     continue
-
-                # To sort the identifiers, we'll need to calculate a tuple for each identifier to sort on.
-                sorted_ids = {}
-                for curie in ids:
-                    clique_for_id = clique_for_preferred_curie[curie]
-
-                    # Criteria 1: the information content of the clique represented by this identifier (lowest -> highest).
-                    clique_ic = ic_factory.get_ic(
-                        {"identifiers": list(map(lambda c: {"identifier": c}, clique_for_id))}
-                    )
-                    clique_ics.append(clique_ic)
-                    if clique_ic is None:
-                        clique_ic = 100.0
-
-                    # Criteria 2: the size of the clique represented by this identifier (highest -> lowest)
-                    clique_size = len(clique_for_id)
-
-                    # Criteria 3: the numerical suffix of the identifier (lowest -> highest)
-                    numerical_suffix = get_numerical_curie_suffix(curie)
-                    if numerical_suffix is None:
-                        numerical_suffix = sys.maxsize
-
-                    # Put all that information into a tuple for sorting.
-                    sorted_ids[curie] = (
-                        clique_ic,  # clique_ic (smallest -> largest)
-                        -clique_size,  # clique_size DESC (largest -> smallest)
-                        numerical_suffix,  # numerical_suffix ASC (smallest -> largest)
-                    )
-
-                sorted_ids = sorted(ids, key=sorted_ids.get)
-                final_conflation_id_list.extend(sorted_ids)
-
-            # The final conflation list won't match the initial list only if some of the Biolink types weren't
-            # chemical types, and so were skipped that way.
-            if set(final_conflation_id_list) != set(normalized_conflation_id_list):
-                logger.warning(
-                    "Final conflation ID list does not match the normalized conflation ID list:\n"
-                    + f" - Final conflation ID list: {sorted(final_conflation_id_list)}\n"
-                    + f" - Normalized conflation ID list: {sorted(normalized_conflation_id_list)}"
+            sort_keys = {}
+            for curie in normalized_conflation_id_list:
+                clique_for_id = clique_for_preferred_curie[curie]
+                clique_ic = ic_factory.get_ic({"identifiers": list(map(lambda c: {"identifier": c}, clique_for_id))})
+                clique_ics.append(clique_ic)
+                sort_keys[curie] = conflation_member_sort_key(
+                    curie, conflation_prefix_sort_order, clique_ic, len(clique_for_id)
                 )
+            final_conflation_id_list = sorted(normalized_conflation_id_list, key=sort_keys.get)
 
             # Write out all the identifiers.
             logger.info(f"Ordered DrugChemical conflation {final_conflation_id_list} with IC values {clique_ics}.")
@@ -726,6 +645,53 @@ def build_conflation(
                 },
             }
         },
+    )
+
+
+def chemical_conflation_prefix_sort_order(biolink_version):
+    """Map each prefix to its rank for ordering chemical conflation members.
+
+    The order is the Biolink ChemicalEntity ``id_prefixes`` list with RXCUI appended at the bottom; a prefix in
+    neither ranks after all of them (see conflation_member_sort_key()).
+    """
+    biolink_chemical_entity = get_biolink_model_toolkit(biolink_version).get_element(CHEMICAL_ENTITY)
+    conflation_prefix_order = list(biolink_chemical_entity["id_prefixes"])
+    if not conflation_prefix_order:
+        raise RuntimeError(
+            f"Biolink model {biolink_version} doesn't have a ChemicalEntity prefix order: {biolink_chemical_entity}"
+        )
+    conflation_prefix_order.append(RXCUI)
+    return {prefix: i for i, prefix in enumerate(conflation_prefix_order)}
+
+
+# Rank given to a prefix missing from the chemical conflation prefix order, and the IC assumed for a clique that
+# has none: both sort such members after every ranked/scored one.
+UNRANKED_PREFIX_ORDER = 100
+MISSING_CLIQUE_IC = 100.0
+
+
+def conflation_member_sort_key(curie, prefix_sort_order, clique_ic, clique_size):
+    """Sort key for one clique leader in a chemical conflation; the smallest key leads the conflation.
+
+    Members sort by:
+      1. prefix, in ``prefix_sort_order`` (from chemical_conflation_prefix_sort_order()); unranked prefixes come
+         last, alphabetically among themselves;
+      2. the clique's information content, lowest first, so more general concepts lead;
+      3. the clique's size, largest first;
+      4. the CURIE's numerical suffix, smallest first (CURIEs without one last), then the CURIE itself.
+
+    This does NOT order by Biolink type: we identify too many things as ChemicalEntity for a type order to work
+    (see the note in build_conflation()).
+    """
+    prefix = Text.get_prefix(curie)
+    numerical_suffix = get_numerical_curie_suffix(curie)
+    return (
+        prefix_sort_order.get(prefix, UNRANKED_PREFIX_ORDER),
+        prefix,
+        MISSING_CLIQUE_IC if clique_ic is None else float(clique_ic),
+        -clique_size,
+        sys.maxsize if numerical_suffix is None else numerical_suffix,
+        curie,
     )
 
 

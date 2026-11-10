@@ -487,6 +487,12 @@ geneprotein_outputs: [GeneProtein.txt]
 
 drugchemical_outputs: [DrugChemical.txt]
 
+# ChemicalParent conflation (src/createcompendia/chemicalparent.py, issue #1173): groups chemical cliques whose
+# InChIKeys differ only in the final protonation block, i.e. charge states of one structure. A separate file from
+# DrugChemical so NodeNorm can turn it on independently; listed here so the DuckDB export and the conflation
+# file check pick it up.
+chemicalparent_outputs: [ChemicalParent.txt]
+
 preferred_name_boost_prefixes:
   biolink:ChemicalEntity: [DRUGBANK, DrugCentral, CHEBI, MESH, GTOPDB]
 

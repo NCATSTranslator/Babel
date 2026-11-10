@@ -15,6 +15,7 @@ dependencies = [
     "humanfriendly>=10.0",
     "jsonlines>=4.0.0",
     "more-itertools>=10.8.0",
+    "numpy>=2.4.6",
     "psutil>=7.1.1",
     "psycopg2-binary>=2.9.12",
     "pyoxigraph>=0.5.8",

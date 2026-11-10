@@ -52,6 +52,10 @@ pipeline_descriptions = {
         "description": "Diseases and phenotypes",
         "filenames": ["Disease", "PhenotypicFeature"],
     },
+    "ChemicalParent": {
+        "description": "Conflation of chemicals that differ only in charge (protonation) state",
+        "filenames": [],
+    },
     "DrugChemical": {
         "description": "Conflation of drugs with their active ingredients as chemicals",
         "filenames": [],

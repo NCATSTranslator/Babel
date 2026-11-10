@@ -22,7 +22,7 @@ compendia_files = get_all_compendia(config)
 synonyms_files = get_all_synonyms(config)
 
 # Expected conflation files.
-conflation_files = config["geneprotein_outputs"] + config["drugchemical_outputs"]
+conflation_files = config["geneprotein_outputs"] + config["drugchemical_outputs"] + config["chemicalparent_outputs"]
 
 
 # Trivial aggregation rules run locally so they don't consume a SLURM slot.
