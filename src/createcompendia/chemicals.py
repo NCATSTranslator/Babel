@@ -38,6 +38,7 @@ from src.prefixes import (
     INCHIKEY,
     KEGGCOMPOUND,
     MESH,
+    NCIT,
     PUBCHEMCOMPOUND,
     RXCUI,
     UMLS,
@@ -209,6 +210,100 @@ def build_chemical_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
         {"MSH": MESH, "DRUGBANK": DRUGBANK, "RXNORM": RXCUI},
         provenance_metadata_yaml=metadata_yaml,
     )
+
+
+# The UMLS atoms that tie a CUI to one FDA substance, as MRCONSO SAB -> term types:
+# - MTHSPL "SU" (substance) atoms, whose code is the substance's UNII. The other MTHSPL term types (DP,
+#   MTH_RXN_DP) are drug products whose codes are SPL set ids, and 518 SU atoms carry the code NOCODE.
+# - NCI "PT" (preferred term) atoms, whose code is an NCIt concept that the FDA UNII record of the same
+#   substance also names. Every NCIt code has exactly one PT atom. The other NCI term types must not be used:
+#   SY and BN atoms put one code on many CUIs (NCIt C422 "Dexamethasone" reaches 62 CUIs through brand names
+#   such as Decadron and Baycadron).
+# Measured against UMLS 2026AA; see docs/sources/UMLS/UmlsUnii.md.
+UMLS_UNII_MTHSPL_TTYS = frozenset({"SU"})
+UMLS_UNII_NCI_TTYS = frozenset({"PT"})
+
+
+def build_umls_unii_relationships(mrconso, unii_records, umls_ids, unii_ids, outfile, metadata_yaml):
+    """Concord UMLS CUIs to UNIIs, by the CUI's SPL substance code and by the NCIt concept its UNII record names.
+
+    Neither UniChem (structures only) nor the UMLS concord (MeSH, DrugBank, RxNorm) links a UNII with no
+    structure -- a biologic, polymer, oligonucleotide or mixture -- to its CUI, so the two sat in separate
+    cliques under the same name. UMLS and FDA both assert the link: MTHSPL substance atoms carry the UNII,
+    and the FDA UNII record carries the NCIt concept that UMLS gives the CUI.
+
+    A pair is written only when it is **one-to-one over both routes together**: the CUI reaches exactly one
+    UNII and the UNII is reached by exactly one CUI. A CUI with two UNIIs is usually one concept standing for
+    two forms FDA keeps apart (``UMLS:C0972333`` "vardenafil hydrochloride" reaches the trihydrate's UNII
+    through SPL and the anhydrous UNII through NCIt), and writing both would join their cliques through the
+    CUI. The count is taken over every CUI and every UNII in the two sources, before the ids-file filters
+    below, so an ambiguity involving a CUI or UNII outside this pipeline still counts.
+
+    :param mrconso: The file path of MRCONSO.RRF.
+    :param unii_records: The file path of Latest_UNII_Records.txt.
+    :param umls_ids: This pipeline's ``ids/UMLS``; only its CUIs are concorded.
+    :param unii_ids: This pipeline's ``ids/UNII``; only its UNIIs are concorded. write_unii_ids() leaves out
+        whole organisms, and a concord alone would otherwise bring one into a chemical clique.
+    :param outfile: The concord to write, ``CUI<tab>eq<tab>UNII``, sorted.
+    :param metadata_yaml: Where to write the concord's provenance.
+    :return: A Counter of candidate pairs by outcome ("written", or "dropped: <reason>").
+    """
+    known_uniis = set()
+    ncit_to_uniis = defaultdict(set)
+    for row in read_unii_records(unii_records):
+        unii = f"{UNII}:{row['UNII']}"
+        known_uniis.add(unii)
+        ncit = (row.get("NCIT") or "").strip()
+        if ncit:
+            ncit_to_uniis[ncit].add(unii)
+    atoms = umls.read_cui_to_source_ids(
+        mrconso, {"MTHSPL": (UNII, UMLS_UNII_MTHSPL_TTYS), "NCI": (NCIT, UMLS_UNII_NCI_TTYS)}
+    )
+    cui_to_uniis = defaultdict(set)
+    for cui, codes in atoms["MTHSPL"].items():
+        # Drops NOCODE and the few SU codes that are not UNIIs.
+        cui_to_uniis[cui] |= codes & known_uniis
+    for cui, codes in atoms["NCI"].items():
+        for code in codes:
+            cui_to_uniis[cui] |= ncit_to_uniis.get(code.split(":", 1)[1], set())
+    unii_to_cuis = defaultdict(set)
+    for cui, uniis in cui_to_uniis.items():
+        for unii in uniis:
+            unii_to_cuis[unii].add(cui)
+
+    wanted_cuis = umls.read_umls_ids(umls_ids)
+    wanted_uniis = umls.read_umls_ids(unii_ids)
+    counts = Counter()
+    pairs = []
+    for cui, uniis in cui_to_uniis.items():
+        for unii in uniis:
+            if len(uniis) > 1:
+                counts["dropped: CUI has several UNIIs"] += 1
+            elif len(unii_to_cuis[unii]) > 1:
+                counts["dropped: UNII has several CUIs"] += 1
+            elif cui not in wanted_cuis:
+                counts["dropped: CUI not in ids/UMLS"] += 1
+            elif unii not in wanted_uniis:
+                counts["dropped: UNII not in ids/UNII"] += 1
+            else:
+                counts["written"] += 1
+                pairs.append((cui, unii))
+    with open(outfile, "w") as outf:
+        for cui, unii in sorted(pairs):
+            outf.write(f"{cui}\teq\t{unii}\n")
+    logger.info(f"UMLS-UNII concord: {dict(sorted(counts.items()))}")
+
+    write_concord_metadata(
+        metadata_yaml,
+        name="build_umls_unii_relationships()",
+        sources=[{"type": "UMLS", "name": "MRCONSO"}, {"type": "UNII", "name": "Latest_UNII_Records.txt"}],
+        description=(
+            "One-to-one CUI-UNII pairs from UMLS MTHSPL substance atoms and from NCI preferred-term atoms joined "
+            f"to the NCIT column of {unii_records}, restricted to {umls_ids} and {unii_ids}."
+        ),
+        concord_filename=outfile,
+    )
+    return counts
 
 
 def build_chemical_rxnorm_relationships(conso, idfile, outfile, metadata_yaml):

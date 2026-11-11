@@ -9,6 +9,7 @@ pipelines' MESH and UMLS ids files (and the DrugBank-owning pipelines' DRUGBANK 
 
     <output-dir>/ids/<pipeline>/MESH, <output-dir>/ids/<pipeline>/UMLS   (CURIE<tab>biolink type)
     <output-dir>/ids/chemicals/DRUGBANK                                   (config: umls_drugbank_owning_pipelines)
+    <output-dir>/ids/chemicals/UNII                                       (for the UMLS-UNII concord replay)
     <output-dir>/duplicate_clique_leaders.tsv, <output-dir>/duplicate_curies.tsv
 
 The replays also need UMLS and MeSH downloaded locally (``babel_downloads/UMLS/MRCONSO.RRF`` and ``MRSTY.RRF``,
@@ -45,7 +46,7 @@ def main():
     con = duckdb.connect()
     con.execute("INSTALL httpfs; LOAD httpfs;")
     drugbank_pipelines = get_config()["umls_drugbank_owning_pipelines"]
-    pattern = "/intermediate/(" + "|".join(pipelines) + ")/ids/(MESH|UMLS|DRUGBANK)$"
+    pattern = "/intermediate/(" + "|".join(pipelines) + ")/ids/(MESH|UMLS|DRUGBANK|UNII)$"
     rows = con.execute(
         f"""SELECT regexp_extract(filename, '{pattern}', 1) AS pipeline,
                    regexp_extract(filename, '{pattern}', 2) AS vocab, curie, biolink_type
@@ -68,7 +69,12 @@ def main():
     finally:
         for handle in handles.values():
             handle.close()
-    expected = [(p, v) for p in pipelines for v in ("MESH", "UMLS")] + [(p, "DRUGBANK") for p in drugbank_pipelines]
+    expected = (
+        [(p, v) for p in pipelines for v in ("MESH", "UMLS")]
+        + [(p, "DRUGBANK") for p in drugbank_pipelines]
+        # For ../../umls-unii/scripts/replay_umls_unii.py.
+        + [("chemicals", "UNII")]
+    )
     missing = [f"{p}/{v}" for p, v in expected if (p, v) not in written]
     # Gene and process write no ids/MESH; anything else missing means the build or the pattern changed.
     unexpected = [m for m in missing if m not in {f"{p}/MESH" for p in DROP_ONLY_PIPELINES}]

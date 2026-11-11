@@ -63,7 +63,7 @@ MESH_CONCORD_TTYS = frozenset({"MH", "NM", "HT", "QAB"})
 DRUGBANK_CONCORD_TTYS = frozenset({"IN", "PIN", "MIN"})
 
 
-def _read_cui_to_source_ids(mrconso, sources, prefix=UMLS):
+def read_cui_to_source_ids(mrconso, sources, prefix=UMLS):
     """Map every CUI to the identifiers build_sets() would concord it to, for several sources in one MRCONSO pass.
 
     :param mrconso: The file path of MRCONSO.RRF.
@@ -94,7 +94,7 @@ def read_cui_to_mesh_descriptors(mrconso, prefix=UMLS):
         ``SAB=MSH`` atoms with a term type in MESH_CONCORD_TTYS count; a CUI with only entry-term atoms (e.g.
         ``C0000005`` -> ``D012711`` via PEP/ET) is absent, just as build_sets() never concords it.
     """
-    return _read_cui_to_source_ids(mrconso, {"MSH": (MESH, MESH_CONCORD_TTYS)}, prefix)["MSH"]
+    return read_cui_to_source_ids(mrconso, {"MSH": (MESH, MESH_CONCORD_TTYS)}, prefix)["MSH"]
 
 
 def read_cui_to_drugbank_ingredients(mrconso, prefix=UMLS):
@@ -105,7 +105,7 @@ def read_cui_to_drugbank_ingredients(mrconso, prefix=UMLS):
     :return: A dict of ``UMLS:C...`` -> set of ``DRUGBANK:DB...`` CURIEs. Only English, unsuppressed
         ``SAB=DRUGBANK`` atoms with a term type in DRUGBANK_CONCORD_TTYS count.
     """
-    return _read_cui_to_source_ids(mrconso, {"DRUGBANK": (DRUGBANK, DRUGBANK_CONCORD_TTYS)}, prefix)["DRUGBANK"]
+    return read_cui_to_source_ids(mrconso, {"DRUGBANK": (DRUGBANK, DRUGBANK_CONCORD_TTYS)}, prefix)["DRUGBANK"]
 
 
 def read_mesh_ids_types(mesh_ids_files):
@@ -306,7 +306,7 @@ def write_mesh_ownership(
     unownable = set()
     for path in non_mesh_umls_ids_files:
         unownable |= read_umls_ids(path)
-    atoms = _read_cui_to_source_ids(
+    atoms = read_cui_to_source_ids(
         mrconso, {"MSH": (MESH, MESH_CONCORD_TTYS), "DRUGBANK": (DRUGBANK, DRUGBANK_CONCORD_TTYS)}
     )
     mesh_types = {pipeline: read_mesh_ids_types([path]) for pipeline, path in mesh_ids_files_by_pipeline.items()}

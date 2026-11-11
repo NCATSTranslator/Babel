@@ -223,6 +223,25 @@ rule get_chemical_umls_relationships:
         chemicals.build_chemical_umls_relationships(input.mrconso, input.infile, output.outfile, output.metadata_yaml)
 
 
+rule get_chemical_umls_unii_relationships:
+    # UMLS CUI <-> UNII, from SPL substance codes and from the NCIt concept on the FDA UNII record; the only
+    # link a structureless UNII has to its CUI (docs/sources/UMLS/UmlsUnii.md).
+    input:
+        mrconso=config["download_directory"] + "/UMLS/MRCONSO.RRF",
+        unii_records=config["download_directory"] + "/UNII/Latest_UNII_Records.txt",
+        umls_ids=config["intermediate_directory"] + "/chemicals/ids/UMLS",
+        unii_ids=config["intermediate_directory"] + "/chemicals/ids/UNII",
+    output:
+        outfile=config["intermediate_directory"] + "/chemicals/concords/UMLS_UNII",
+        metadata_yaml=config["intermediate_directory"] + "/chemicals/concords/metadata-UMLS_UNII.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_chemical_umls_unii_relationships.tsv"
+    run:
+        chemicals.build_umls_unii_relationships(
+            input.mrconso, input.unii_records, input.umls_ids, input.unii_ids, output.outfile, output.metadata_yaml
+        )
+
+
 rule get_chemical_rxnorm_relationships:
     input:
         infile=config["intermediate_directory"] + "/chemicals/ids/RXNORM",
