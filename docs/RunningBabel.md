@@ -86,10 +86,11 @@ same range. Every MeSH-owning target (`anatomy`, `chemical`, `disease`, `protein
 builds all five of those pipelines' `ids/MESH`, and gene's and process's `ids/UMLS`, because
 `rule umls_mesh_ownership` needs them to decide which pipeline a CUI belongs to
 ([`sources/UMLS/CuiFollowsMesh.md`](sources/UMLS/CuiFollowsMesh.md)); `gene` and `process` do not
-depend on it. That adds the `mesh.nt`
-download and about two minutes and 6 GB per `*_mesh_ids` rule (the 2026jul22 benchmarks), so roughly
-eight more minutes on one core. A first build is usually dominated by downloads rather than
-computation, so a warm `babel_downloads/` makes a rebuild dramatically faster.
+depend on it. The rule also reads `chemicals/ids/DRUGBANK` ("a CUI follows its DrugBank
+ingredient"), which needs the UniChem reference download and `filter_unichem`. That adds the
+`mesh.nt` download and about two minutes and 6 GB per `*_mesh_ids` rule (the 2026jul22 benchmarks),
+so roughly eight more minutes on one core. A first build is usually dominated by downloads rather
+than computation, so a warm `babel_downloads/` makes a rebuild dramatically faster.
 
 If you only need the intermediates for a single semantic type (for example, to generate a
 source-impact report — see [AddingNewSources.md](./AddingNewSources.md)), building just that
