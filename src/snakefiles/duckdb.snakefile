@@ -258,14 +258,15 @@ rule check_for_shared_synonyms:
     wildcard_constraints:
         audit_group="|".join(config["shared_synonym_audit_groups"]),
     resources:
-        # Provisional; right-size from the benchmarks once a real run has them. Sized for the chemical
-        # groups, which read billions of (clique, synonym) rows -- the same headroom as
-        # check_for_identically_labeled_cliques. The disease group finishes in seconds, so a per-group
-        # lambda (which babel-slurm-resources cannot read) is not worth it. memory_limit is capped at
-        # 16G below for the same reason as there (the vm.max_map_count mmap-count limit, issue #846);
-        # the hash aggregates spill instead.
-        mem="512G",
-        runtime="12h",
+        # Measured locally on 2026jul22's DrugChemicalConflated Synonyms.parquet (127M rows, 23 GB), the
+        # largest group: 2.5 minutes, 16.8 GB peak RSS -- i.e. DuckDB filled its 16G memory_limit and
+        # little else. The pre-conflation chemical group holds the same synonyms split across files, and
+        # disease is far smaller. memory_limit is capped at 16G below for the same reason as
+        # check_for_identically_labeled_cliques (the vm.max_map_count mmap-count limit, issue #846), so
+        # mem only needs headroom above it; runtime allows for slower cluster I/O. Re-check against the
+        # benchmarks after the first cluster run.
+        mem="64G",
+        runtime="1h",
     run:
         src.reports.duckdb_reports.check_for_shared_synonyms(
             input.synonyms_parquet,
