@@ -589,9 +589,13 @@ def read_inchikeys(struct_file):
     return inchikeys
 
 
-def combine_unichem(concordances, output):
-    PREFIXES_TO_REMOVE_OVERUSED_XREFS = [UNII, KEGGCOMPOUND, DRUGCENTRAL]
+# UniChem sources whose record->InChIKey concords combine_unichem() passes through remove_overused_xrefs(): a key
+# claimed by two or more records of one of these sources loses all of those links. Module-level so that
+# src/model/glom_edges.py can reproduce the build's filtering exactly rather than keeping its own copy.
+UNICHEM_OVERUSED_XREF_PREFIXES = (UNII, KEGGCOMPOUND, DRUGCENTRAL)
 
+
+def combine_unichem(concordances, output):
     dicts = {}
     for infile in concordances:
         print(infile)
@@ -623,7 +627,7 @@ def combine_unichem(concordances, output):
 
         # Only remove overused xrefs for specific prefixes
         newpairs = pairs
-        if prefix_to_check in PREFIXES_TO_REMOVE_OVERUSED_XREFS:
+        if prefix_to_check in UNICHEM_OVERUSED_XREF_PREFIXES:
             newpairs = remove_overused_xrefs(pairs)
         setpairs = [set(x) for x in newpairs]
         glom(dicts, setpairs, unique_prefixes=[INCHIKEY])
