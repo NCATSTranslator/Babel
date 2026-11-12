@@ -14,10 +14,6 @@ see [`README.md`](README.md) — this file only covers how to write one once you
   instead of hand-rolling TSV checks. When a handler adds a new output kind, add the matching helper
   to the root `conftest.py` rather than a private one in the test file.
 
-- **Ruff lint in test code** — all Python must pass `uv run ruff check`. Two rules are easy to trip
-  in tests: E741 (no single-letter ambiguous names like `l`/`O`/`I`) and F841 (no unread
-  assignments).
-
 - **Fixtures for a real-data bug must be copied verbatim** — when a test stands in for a specific
   record from a source file, paste that record's row exactly as it appears in the downloaded file
   and name the record's ID in a comment, so the next person can re-derive it. Never hand-compose a
