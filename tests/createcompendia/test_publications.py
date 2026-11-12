@@ -25,12 +25,20 @@ Fixture shard 1:
   (cp1252's ellipsis, mis-decoded).
 - ``PMID:5202677`` [5] — no DOI or PubMed Central id.
 - ``PMID:17124311`` [5] — a malformed DOI, ``doi:10.1126/science. 1134405``, which write_compendium() would
-  reject.
+  reject and the repairs table (``input_data/pubmed_doi_repairs.tsv``) turns into
+  ``doi:10.1126/science.1134405``.
 - ``PMID:26146547`` [5] — the lower PMID of the DOI spelled in two cases.
 
 Fixture shard 2:
 
-- ``PMID:113`` [5] — a second record with only a PubMed Central id, so that the fixture has a third shard.
+- ``PMID:113`` [5] — a second record with only a PubMed Central id.
+- ``PMID:16041191`` [0] — a malformed DOI that is in no repairs table, because nothing made of it is a
+  registered DOI: ``doi:10.1097/01.mjt.00001= 32251.03275.3c``.
+- ``PMID:23752222`` [0] — two DOIs in one value, ``doi:10.1001/archdermatol.2012.151a
+  10.1001/archdermatol.2012.151b``, of which only the first is registered and so in the repairs table.
+
+The tests read the committed repairs table, so that they exercise the repairs a build makes; the three
+malformed DOIs above are real rows (or real absences) in it.
 
 ``metadata.json`` and ``validation_report.json`` are cut down to the fields the code reads, in the structure
 of 2026nov08's; ``metadata.json``'s hashes are the real SHA-256s of the three fixture shards, so rebuilding
@@ -56,7 +64,7 @@ FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "pubmed2db")
 EXPORT_URL = "https://stars.renci.org/var/babel_outputs/pubmed2db/2026nov08/"
 SHARED_DOI = "doi:10.1093/ajcn/61.6.1324S"
 SHARED_CASE_DOI = "doi:10.1039/C4BM00222A"  # PMID:26146547's spelling; PMID:26214188 has it lower-cased.
-RECORD_COUNT = 13
+RECORD_COUNT = 15
 
 
 def copy_fixture(tmp_path):
@@ -118,7 +126,7 @@ def test_ids_titles_and_concords(parsed):
     ids = assert_ids_file_valid(parsed["pmid_id_file"])
     assert [row[1] for row in ids] == [JOURNAL_ARTICLE] * RECORD_COUNT
     assert [row[0] for row in ids][:2] == ["PMID:5202740", "PMID:7754983"]
-    assert ids[-1][0] == "PMID:113"
+    assert ids[-1][0] == "PMID:23752222"
 
     concords = assert_concordance_file_valid(parsed["concord_file"])
     assert {relation for _, relation, _ in concords} == {"eq"}
@@ -191,17 +199,102 @@ def test_metadata_records_the_export_url_and_counts(parsed):
     assert "Export 2026nov08, pubmed2db data model 1.0.0" in metadata["description"]
     assert metadata["counts"]["shard_count"] == 3
     assert metadata["counts"]["shared_identifier_count"] == 2
+    assert metadata["counts"]["repaired_malformed_article_ids"] == 2
     assert metadata["counts"]["skipped_malformed_article_ids"] == 1
 
 
-def test_malformed_doi_is_skipped_but_its_pmid_kept(parsed):
-    """A DOI that write_compendium() would reject (here, with an embedded space) should be left out of the
-    concords, while its record still gets an id row and a title (#1112 tracks repairing such DOIs)."""
+def test_malformed_doi_in_the_repairs_table_is_repaired(parsed):
+    """A DOI that write_compendium() would reject (here, with an embedded space) should be written to the
+    concords as the registered DOI the repairs table gives for it (#1112), and never as exported."""
     concords = assert_concordance_file_valid(parsed["concord_file"])
-    assert not any(" " in other for _, _, other in concords)
-    assert not any(pmid == "PMID:17124311" for pmid, _, _ in concords)
-    assert "PMID:17124311" in [row[0] for row in assert_ids_file_valid(parsed["pmid_id_file"])]
+    assert not any(src.util.curie_format_problem(other) for _, _, other in concords)
+    # PMID:17124311 exports doi:10.1126/science. 1134405.
+    assert ["PMID:17124311", "eq", "doi:10.1126/science.1134405"] in concords
     assert read_titles(parsed["titles_file"])["PMID:17124311"] == "Neuroscience. The brain's dark energy."
+
+
+def test_value_holding_two_dois_keeps_only_the_registered_one(parsed):
+    """A value holding two DOIs should be repaired to the ones in the repairs table only: for PMID:23752222
+    doi.org knows 10.1001/archdermatol.2012.151a but not ...151b, so the second is not invented."""
+    concords = assert_concordance_file_valid(parsed["concord_file"])
+    assert [other for pmid, _, other in concords if pmid == "PMID:23752222"] == ["doi:10.1001/archdermatol.2012.151a"]
+
+
+def test_malformed_doi_with_no_repair_is_skipped_but_its_pmid_kept(parsed):
+    """A malformed DOI the repairs table doesn't list (PMID:16041191's, which has a quoted-printable line
+    break in it and no registered reading) should be left out of the concords, while its record still gets an
+    id row and a title."""
+    concords = assert_concordance_file_valid(parsed["concord_file"])
+    assert not any(pmid == "PMID:16041191" for pmid, _, _ in concords)
+    assert "PMID:16041191" in [row[0] for row in assert_ids_file_valid(parsed["pmid_id_file"])]
+    assert "PMID:16041191" in read_titles(parsed["titles_file"])
+
+
+def test_without_a_repairs_table_every_malformed_doi_is_skipped(tmp_path):
+    """With an empty repairs table, all three malformed DOIs in the fixture should be skipped and counted, and
+    none repaired -- the repairs come from the table and nowhere else."""
+    import yaml
+
+    empty = tmp_path / "no_repairs.tsv"
+    empty.write_text("# no repairs\n")
+    publications.parse_pubmed2db_into_tsvs(
+        FIXTURE_DIR,
+        str(tmp_path / "titles.tsv"),
+        str(tmp_path / "PMID"),
+        str(tmp_path / "PMID_DOI"),
+        str(tmp_path / "shared.tsv"),
+        str(tmp_path / "metadata.yaml"),
+        EXPORT_URL,
+        workers=1,
+        doi_repairs_file=str(empty),
+    )
+    concords = assert_concordance_file_valid(str(tmp_path / "PMID_DOI"))
+    assert not {"PMID:17124311", "PMID:16041191", "PMID:23752222"} & {pmid for pmid, _, _ in concords}
+    with open(tmp_path / "metadata.yaml") as f:
+        counts = yaml.safe_load(f)["counts"]
+    assert counts["repaired_malformed_article_ids"] == 0
+    assert counts["skipped_malformed_article_ids"] == 3
+
+
+# THE DOI REPAIRS TABLE
+
+
+def test_committed_repairs_table_loads_and_only_repairs_malformed_dois_to_well_formed_ones():
+    """input_data/pubmed_doi_repairs.tsv should load -- load_doi_repairs() raises on a row that isn't a
+    malformed CURIE and a well-formed doi: one -- and no repair should be a no-op or leave whitespace behind."""
+    repairs = publications.load_doi_repairs(publications.PUBMED_DOI_REPAIRS)
+    assert len(repairs) > 200
+    for malformed, repaired in repairs.items():
+        assert src.util.curie_format_problem(malformed)
+        assert repaired and malformed not in repaired
+        assert all(r.startswith("doi:10.") and not src.util.curie_format_problem(r) for r in repaired)
+
+
+def test_repairs_table_collects_every_repair_of_a_value(tmp_path):
+    """A malformed value with two rows should load as both repairs, in file order, skipping comments and
+    blank lines."""
+    table = tmp_path / "repairs.tsv"
+    table.write_text("# comment\n\ndoi:10.1/a 10.1/b\tdoi:10.1/a\ndoi:10.1/a 10.1/b\tdoi:10.1/b\n")
+    assert publications.load_doi_repairs(str(table)) == {"doi:10.1/a 10.1/b": ("doi:10.1/a", "doi:10.1/b")}
+
+
+@pytest.mark.parametrize(
+    ("row", "message"),
+    [
+        pytest.param("doi:10.1/a b doi:10.1/ab", "tab-separated fields", id="space-instead-of-tab"),
+        pytest.param("doi:10.1/a b\tdoi:10.1/ab\textra", "tab-separated fields", id="three-fields"),
+        pytest.param("doi:10.1/ab\tdoi:10.1/ab", "is not malformed", id="key-is-well-formed"),
+        pytest.param("doi:10.1/a b\tdoi:10.1/a b", "not a well-formed doi", id="repair-still-malformed"),
+        pytest.param("doi:10.1/a b\tPMC:PMC1", "not a well-formed doi", id="repair-is-not-a-doi"),
+    ],
+)
+def test_hand_edited_repairs_table_is_refused(tmp_path, row, message):
+    """A row that could not do what it appears to -- wrong separator, a key that is never looked up, a repair
+    that would itself fail the build -- should raise naming the file and line, not be skipped."""
+    table = tmp_path / "repairs.tsv"
+    table.write_text(row + "\n")
+    with pytest.raises(ValueError, match=rf"repairs\.tsv:1.*{message}"):
+        publications.load_doi_repairs(str(table))
 
 
 def test_record_without_identifiers_raises_naming_the_shard(tmp_path):
@@ -577,8 +670,11 @@ def test_compendium_streams_one_clique_per_record(parsed, babel_config, tmp_path
     assert curies("PMID:5202740") == ["PMID:5202740", "PMC:PMC1712714"]
     assert label("PMID:5202740") == "Renal tubular acidosis: an immunopathological study on four patients."
     assert curies("PMID:5202677") == ["PMID:5202677"]
-    # The malformed DOI is skipped here too, or write_compendium() would fail the build on it.
-    assert curies("PMID:17124311") == ["PMID:17124311"]
+    # Malformed DOIs are repaired or skipped here exactly as in the concords, or write_compendium() would
+    # fail the build on them.
+    assert curies("PMID:17124311") == ["PMID:17124311", "doi:10.1126/science.1134405"]
+    assert curies("PMID:23752222") == ["PMID:23752222", "doi:10.1001/archdermatol.2012.151a"]
+    assert curies("PMID:16041191") == ["PMID:16041191"]
     assert curies("PMID:17072568") == ["PMID:17072568", "doi:10.1007/s00115-006-2195-7"]
     assert label("PMID:17072568") == ""
 

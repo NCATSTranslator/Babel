@@ -136,11 +136,10 @@ Each line of a shard is a flat JSON record; Babel reads three of its fields:
   DOIs are `doi:` and PubMed Central ids are `PMC:PMC123` (see "`PMC:` versus `PMCID:`" below). Only
   those two `ArticleId` types are promoted to CURIEs; the rest stay in pubmed2db. A record whose
   list is empty or doesn't start with its own PMID fails the build. PubMed publishes DOIs as
-  supplied, so a few are malformed (`doi:10.1126/science. 1134405`, ~140 in shard 0 of 2026sep26);
+  supplied, so a few hundred contain a space or stray text (`doi:10.1126/science. 1134405`);
   `write_compendium()` fails the build on any CURIE with whitespace, `|` or a control character, so
-  `_read_shard()` skips those and the concord metadata counts them as
-  `skipped_malformed_article_ids`. Repairing them instead is
-  [Babel#1112](https://github.com/NCATSTranslator/Babel/issues/1112).
+  `_read_shard_records()` repairs the ones it has a verified repair for and skips the rest (see
+  "Malformed DOIs").
 - `article_title` — becomes the PMID's label (see "Titles"). Absent values are `""`, never null.
 
 pubmed2db puts every NDJSON field in its "stable" tier: none of these three changes except with a
@@ -270,6 +269,84 @@ written through `escape_tsv_field()`, which escapes backslash, tab, newline and 
 every row has exactly two fields and the original can be recovered. The XML parser escaped only
 newlines, so the one visible difference from an older `titles.tsv` is that backslashes are now
 doubled. `tests/pipeline/test_publications.py` asserts the two-field shape over a whole export.
+
+## Malformed DOIs
+
+2026nov08 has 655 DOIs, of about 37 million, that `curie_format_problem()` rejects: 654 for a space
+and one for a trailing `DEL` character. No PubMed Central id is malformed in that sense. Until
+[Babel#1112](https://github.com/NCATSTranslator/Babel/issues/1112) all of them were skipped, so
+those PMIDs' cliques had no DOI. Now **290 are repaired and 365 are still skipped**, and both
+numbers are in `intermediate/publications/concords/metadata.yaml` as
+`repaired_malformed_article_ids` and `skipped_malformed_article_ids`.
+
+### Why a table and not a rule
+
+Repairs come from [`input_data/pubmed_doi_repairs.tsv`](../../../input_data/pubmed_doi_repairs.tsv)
+(`malformed doi CURIE<TAB>repaired doi CURIE`), not from a rule such as "delete the spaces",
+because no rule is reliable. [`dois/characterize_dois.py`](dois/characterize_dois.py) streams the
+whole export, gives every malformed DOI a shape, generates what each repair strategy would make of
+it, and asks doi.org's handle API whether the result is a registered DOI
+([`dois/counts.json`](dois/counts.json) has the counts and examples,
+[`dois/malformed_dois.csv`](dois/malformed_dois.csv) every candidate). On 2026-11-12:
+
+| Shape | Example | DOIs | Deleting the whitespace gives a registered DOI | Repaired |
+| --- | --- | ---: | ---: | ---: |
+| space beside `.`, `/`, `-` or `_` | `10.1126/science. 1134405` (`PMID:17124311`) | 362 | 256 | 247 |
+| space between letters or digits | `10.3305/nutr hosp.v28in06.7011` | 253 | 34 | 32 |
+| text, then a DOI | `EDN: XVYYSN 10.7868/S3034555326010025` | 14 | n/a | 3 |
+| a DOI, then text | `10.1101/gr.214102. Article published online…` | 11 | 2 | 2 |
+| two DOIs | `10.1001/archdermatol.2012.151a 10.1001/…151b` | 8 | 0 | 5 |
+| `=` and a space (a quoted-printable line break) | `10.1097/01.mjt.00001= 32251.03275.3c` | 4 | 0 | 0 |
+| not a DOI at all | `http://10 1097/AOG.0b013e318270444f` | 2 | n/a | 0 |
+| a control character | `10.6002/ect.mesot2016.p112` + `DEL` | 1 | 1 | 1 |
+| **all** | | **655** | **293** | **290** |
+
+For comparison, doi.org knew 163 of 163 well-formed DOIs sampled from the same export. So:
+
+- **Deleting the whitespace is right 71% of the time for the most regular shape and 13% for the
+  next.** The misses are whole journal issues: 54 from *Acta Biomedica*
+  (`10.23750/abm.v88i1 -S.6278`) and 28 from one issue of the *Journal of Bone and Joint Surgery*
+  (`10.1302/0301-620x.82b2 .10847`), then 127 from the *Canadian Journal of Ophthalmology*
+  (`10.3129/can j ophthalmol.06-108`) and 60 from *Nutrición Hospitalaria*. Their real DOIs are
+  something else, and a rule would write 325 DOIs that exist nowhere.
+- **Cutting the value at the first space is worse, and looks better than it is.** It gives a
+  registered DOI 54 times, most of them the *wrong* one: `10.1126/science. 1134405` becomes
+  `10.1126/science`, which is the journal's own DOI. So no repair is ever made by truncating.
+- **A DOI that survives the check is the right one.** A candidate made by deleting characters from
+  the whole value is long and specific; it is only registered if the value really was that DOI with
+  stray characters in it.
+
+The table therefore holds a repair only when doi.org confirms it **and no other PMID in the export
+already carries that DOI**. A shared DOI stays on the lowest PMID (see above), so repairing
+`PMID:22710516`'s `…519a 10.1001/archoto.2012.519b` in full would take `…519b` away from
+`PMID:23753705`, which has it cleanly. 16 values have a registered candidate that the guard holds
+back, and 14 of them have no other and stay skipped. For a value holding two
+DOIs, each is kept if it passes on its own, which is why `PMID:23752222` gets `…151a` and not the
+unregistered `…151b`.
+
+### Keeping the table current
+
+The table is generated: don't edit it by hand, and `load_doi_repairs()` refuses a row that couldn't
+do what it appears to (wrong separator, a key that isn't malformed, a repair that is). Regenerate
+it, with `counts.json` and the CSV, whenever `pubmed2db_version` moves:
+
+```shell
+uv run python docs/sources/PubMed/dois/characterize_dois.py
+```
+
+That takes about a minute for the two passes over the export, plus a second per candidate doi.org
+hasn't been asked about (answers are cached in `data/pubmed-dois/`; the first run made about a
+thousand requests). `tests/pipeline/test_publications.py` fails when the pinned export's repaired
+and skipped counts differ from `counts.json`, which is the reminder.
+
+A stale table is harmless rather than wrong. A row for a DOI PubMed has since corrected never
+matches, and a new export's new malformed DOIs are skipped, as all of them used to be, until the
+table is regenerated. Some of the 365 will move on their own: the ten `EDN: … 10.7868/…` DOIs are
+from 2026 and were not registered yet on the day they were checked.
+
+DOIs that are well-formed CURIEs but not DOIs (`doi:20026430`), and the PubMed Central ids that are
+publisher article numbers, are a different problem:
+[Babel#1111](https://github.com/NCATSTranslator/Babel/issues/1111).
 
 ## `PMC:` versus `PMCID:`
 

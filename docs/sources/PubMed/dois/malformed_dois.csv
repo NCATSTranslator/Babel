@@ -1,0 +1,1290 @@
+pmid,identifier,problem,shape,strategy,candidate,registered_at_doi_org,already_on_this_record,other_pmids_with_candidate,in_repairs_table
+PMID:10755417,doi:10.1302/0301-620x.82b2 .10847,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.10847,no,,,
+PMID:10755417,doi:10.1302/0301-620x.82b2 .10847,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755418,doi:10.1302/0301-620x.82b2 .10761,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.10761,no,,,
+PMID:10755418,doi:10.1302/0301-620x.82b2 .10761,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755419,doi:10.1302/0301-620x.82b2 .10707,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.10707,no,,,
+PMID:10755419,doi:10.1302/0301-620x.82b2 .10707,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755420,doi:10.1302/0301-620x.82b2 .10033,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.10033,no,,,
+PMID:10755420,doi:10.1302/0301-620x.82b2 .10033,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755421,doi:10.1302/0301-620x.82b2 .9956,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.9956,no,,,
+PMID:10755421,doi:10.1302/0301-620x.82b2 .9956,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755422,doi:10.1302/0301-620x.82b2 .10278,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.10278,no,,,
+PMID:10755422,doi:10.1302/0301-620x.82b2 .10278,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755423,doi:10.1302/0301-620x.82b2 .9751,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.9751,no,,,
+PMID:10755423,doi:10.1302/0301-620x.82b2 .9751,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755424,doi:10.1302/0301-620x.82b2 .9752,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.9752,no,,,
+PMID:10755424,doi:10.1302/0301-620x.82b2 .9752,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755425,doi:10.1302/0301-620x.82b2 .9342,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.9342,no,,,
+PMID:10755425,doi:10.1302/0301-620x.82b2 .9342,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755426,doi:10.1302/0301-620x.82b2 .9799,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.9799,no,,,
+PMID:10755426,doi:10.1302/0301-620x.82b2 .9799,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755427,doi:10.1302/0301-620x.82b2 .9570,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.9570,no,,,
+PMID:10755427,doi:10.1302/0301-620x.82b2 .9570,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755428,doi:10.1302/0301-620x.82b2 .10130,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.10130,no,,,
+PMID:10755428,doi:10.1302/0301-620x.82b2 .10130,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755429,doi:10.1302/0301-620x.82b2 .9363,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.9363,no,,,
+PMID:10755429,doi:10.1302/0301-620x.82b2 .9363,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755430,doi:10.1302/0301-620x.82b2 .9461,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.9461,no,,,
+PMID:10755430,doi:10.1302/0301-620x.82b2 .9461,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755431,doi:10.1302/0301-620x.82b2 .9443,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.9443,no,,,
+PMID:10755431,doi:10.1302/0301-620x.82b2 .9443,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755432,doi:10.1302/0301-620x.82b2 .9507,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.9507,no,,,
+PMID:10755432,doi:10.1302/0301-620x.82b2 .9507,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755433,doi:10.1302/0301-620x.82b2 .9967,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.9967,no,,,
+PMID:10755433,doi:10.1302/0301-620x.82b2 .9967,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755434,doi:10.1302/0301-620x.82b2 .9301,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.9301,no,,,
+PMID:10755434,doi:10.1302/0301-620x.82b2 .9301,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755435,doi:10.1302/0301-620x.82b2 .10039,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.10039,no,,,
+PMID:10755435,doi:10.1302/0301-620x.82b2 .10039,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755436,doi:10.1302/0301-620x.82b2 .10276,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.10276,no,,,
+PMID:10755436,doi:10.1302/0301-620x.82b2 .10276,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755437,doi:10.1302/0301-620x.82b2 .9863,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.9863,no,,,
+PMID:10755437,doi:10.1302/0301-620x.82b2 .9863,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755438,doi:10.1302/0301-620x.82b2 .10139,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.10139,no,,,
+PMID:10755438,doi:10.1302/0301-620x.82b2 .10139,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755439,doi:10.1302/0301-620x.82b2 .10119,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.10119,no,,,
+PMID:10755439,doi:10.1302/0301-620x.82b2 .10119,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755440,doi:10.1302/0301-620x.82b2 .10257,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.10257,no,,,
+PMID:10755440,doi:10.1302/0301-620x.82b2 .10257,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755441,doi:10.1302/0301-620x.82b2 .9447,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.9447,no,,,
+PMID:10755441,doi:10.1302/0301-620x.82b2 .9447,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755442,doi:10.1302/0301-620x.82b2 .9730,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.9730,no,,,
+PMID:10755442,doi:10.1302/0301-620x.82b2 .9730,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755444,doi:10.1302/0301-620x.82b2 .9613,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.9613,no,,,
+PMID:10755444,doi:10.1302/0301-620x.82b2 .9613,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:10755445,doi:10.1302/0301-620x.82b2 .10931,contains ' ',punctuation_gap,join,doi:10.1302/0301-620x.82b2.10931,no,,,
+PMID:10755445,doi:10.1302/0301-620x.82b2 .10931,contains ' ',punctuation_gap,first_token,doi:10.1302/0301-620x.82b2,no,,,
+PMID:11274255,doi:10.1101/ lm.37401,contains ' ',punctuation_gap,join,doi:10.1101/lm.37401,yes,,,yes
+PMID:11759099,doi:10.1046/j.0960-7439 .2001.00306.x,contains ' ',punctuation_gap,join,doi:10.1046/j.0960-7439.2001.00306.x,yes,,,yes
+PMID:11759099,doi:10.1046/j.0960-7439 .2001.00306.x,contains ' ',punctuation_gap,first_token,doi:10.1046/j.0960-7439,no,,,
+PMID:11827943,doi:10.1101/gr.214102. Article published online before print in January 2002,contains ' ',trailing_text,join,doi:10.1101/gr.214102.ArticlepublishedonlinebeforeprintinJanuary2002,no,,,
+PMID:11827943,doi:10.1101/gr.214102. Article published online before print in January 2002,contains ' ',trailing_text,first_token,doi:10.1101/gr.214102,yes,,,
+PMID:15537185,doi:10.3171/jns.2004.101.supplement 3.0326,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0326,no,,,
+PMID:15537185,doi:10.3171/jns.2004.101.supplement 3.0326,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15537186,doi:10.3171/jns.2004.101.supplement 3.0334,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0334,no,,,
+PMID:15537186,doi:10.3171/jns.2004.101.supplement 3.0334,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15537187,doi:10.3171/jns.2004.101.supplement 3.0341,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0341,no,,,
+PMID:15537187,doi:10.3171/jns.2004.101.supplement 3.0341,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15537188,doi:10.3171/jns.2004.101.supplement 3.0346,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0346,no,,,
+PMID:15537188,doi:10.3171/jns.2004.101.supplement 3.0346,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15537189,doi:10.3171/jns.2004.101.supplement 3.0351,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0351,no,,,
+PMID:15537189,doi:10.3171/jns.2004.101.supplement 3.0351,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15537190,doi:10.3171/jns.2004.101.supplement 3.0356,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0356,no,,,
+PMID:15537190,doi:10.3171/jns.2004.101.supplement 3.0356,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15537191,doi:10.3171/jns.2004.101.supplement 3.0362,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0362,no,,,
+PMID:15537191,doi:10.3171/jns.2004.101.supplement 3.0362,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15537192,doi:10.3171/jns.2004.101.supplement 3.0373,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0373,no,,,
+PMID:15537192,doi:10.3171/jns.2004.101.supplement 3.0373,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15537193,doi:10.3171/jns.2004.101.supplement 3.0381,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0381,no,,,
+PMID:15537193,doi:10.3171/jns.2004.101.supplement 3.0381,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15537194,doi:10.3171/jns.2004.101.supplement 3.0390,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0390,no,,,
+PMID:15537194,doi:10.3171/jns.2004.101.supplement 3.0390,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15537195,doi:10.3171/jns.2004.101.supplement 3.0396,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0396,no,,,
+PMID:15537195,doi:10.3171/jns.2004.101.supplement 3.0396,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15537196,doi:10.3171/jns.2004.101.supplement 3.0402,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0402,no,,,
+PMID:15537196,doi:10.3171/jns.2004.101.supplement 3.0402,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15537197,doi:10.3171/jns.2004.101.supplement 3.0406,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0406,no,,,
+PMID:15537197,doi:10.3171/jns.2004.101.supplement 3.0406,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15537198,doi:10.3171/jns.2004.101.supplement 3.0413,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0413,no,,,
+PMID:15537198,doi:10.3171/jns.2004.101.supplement 3.0413,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15537199,doi:10.3171/jns.2004.101.supplement 3.0419,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0419,no,,,
+PMID:15537199,doi:10.3171/jns.2004.101.supplement 3.0419,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15537200,doi:10.3171/jns.2004.101.supplement 3.0425,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0425,no,,,
+PMID:15537200,doi:10.3171/jns.2004.101.supplement 3.0425,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15537201,doi:10.3171/jns.2004.101.supplement 3.0435,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0435,no,,,
+PMID:15537201,doi:10.3171/jns.2004.101.supplement 3.0435,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:15729749,doi:10.1089/acm.2004.10 .979,contains ' ',punctuation_gap,join,doi:10.1089/acm.2004.10.979,yes,,PMID:15673992,
+PMID:15729749,doi:10.1089/acm.2004.10 .979,contains ' ',punctuation_gap,first_token,doi:10.1089/acm.2004.10,no,,,
+PMID:15879173,doi:10.1126/science. 1109070,contains ' ',punctuation_gap,join,doi:10.1126/science.1109070,yes,,,yes
+PMID:15879173,doi:10.1126/science. 1109070,contains ' ',punctuation_gap,first_token,doi:10.1126/science,yes,,,
+PMID:16041190,doi:10.1097/01.mjt.00001= 26406.29484.9b,contains ' ',soft_line_break,join,doi:10.1097/01.mjt.00001=26406.29484.9b,no,,,
+PMID:16041190,doi:10.1097/01.mjt.00001= 26406.29484.9b,contains ' ',soft_line_break,first_token,doi:10.1097/01.mjt.00001=,no,,,
+PMID:16041190,doi:10.1097/01.mjt.00001= 26406.29484.9b,contains ' ',soft_line_break,soft_line_break,doi:10.1097/01.mjt.0000126406.29484.9b,no,,,
+PMID:16041191,doi:10.1097/01.mjt.00001= 32251.03275.3c,contains ' ',soft_line_break,join,doi:10.1097/01.mjt.00001=32251.03275.3c,no,,,
+PMID:16041191,doi:10.1097/01.mjt.00001= 32251.03275.3c,contains ' ',soft_line_break,first_token,doi:10.1097/01.mjt.00001=,no,,,
+PMID:16041191,doi:10.1097/01.mjt.00001= 32251.03275.3c,contains ' ',soft_line_break,soft_line_break,doi:10.1097/01.mjt.0000132251.03275.3c,no,,,
+PMID:16041200,doi:10.1097/01.mjt.00001= 09849.55405.48,contains ' ',soft_line_break,join,doi:10.1097/01.mjt.00001=09849.55405.48,no,,,
+PMID:16041200,doi:10.1097/01.mjt.00001= 09849.55405.48,contains ' ',soft_line_break,first_token,doi:10.1097/01.mjt.00001=,no,,,
+PMID:16041200,doi:10.1097/01.mjt.00001= 09849.55405.48,contains ' ',soft_line_break,soft_line_break,doi:10.1097/01.mjt.0000109849.55405.48,no,,,
+PMID:16041201,doi:10.1097/01.mjt.00001= 36061.48590.88,contains ' ',soft_line_break,join,doi:10.1097/01.mjt.00001=36061.48590.88,no,,,
+PMID:16041201,doi:10.1097/01.mjt.00001= 36061.48590.88,contains ' ',soft_line_break,first_token,doi:10.1097/01.mjt.00001=,no,,,
+PMID:16041201,doi:10.1097/01.mjt.00001= 36061.48590.88,contains ' ',soft_line_break,soft_line_break,doi:10.1097/01.mjt.0000136061.48590.88,no,,,
+PMID:16227889,doi:10.1097/01. brs.0000182083.43553.fa,contains ' ',punctuation_gap,join,doi:10.1097/01.brs.0000182083.43553.fa,no,,,
+PMID:16227889,doi:10.1097/01. brs.0000182083.43553.fa,contains ' ',punctuation_gap,first_token,doi:10.1097/01,yes,,,
+PMID:16327476,doi:10.1097/01. sap.0000183779.90156.08,contains ' ',punctuation_gap,join,doi:10.1097/01.sap.0000183779.90156.08,no,,,
+PMID:16327476,doi:10.1097/01. sap.0000183779.90156.08,contains ' ',punctuation_gap,first_token,doi:10.1097/01,yes,,,
+PMID:16648734,doi:10.1097/01. brs.0000216446.13205.7a,contains ' ',punctuation_gap,join,doi:10.1097/01.brs.0000216446.13205.7a,no,,,
+PMID:16648734,doi:10.1097/01. brs.0000216446.13205.7a,contains ' ',punctuation_gap,first_token,doi:10.1097/01,yes,,,
+PMID:16670647,doi:10.1097/01 chi.0000205706.78818.ef,contains ' ',word_gap,join,doi:10.1097/01chi.0000205706.78818.ef,no,,,
+PMID:16670647,doi:10.1097/01 chi.0000205706.78818.ef,contains ' ',word_gap,first_token,doi:10.1097/01,yes,,,
+PMID:16755174,doi:10.1097/01. coc.0000214931.01062.01,contains ' ',punctuation_gap,join,doi:10.1097/01.coc.0000214931.01062.01,yes,,,yes
+PMID:16755174,doi:10.1097/01. coc.0000214931.01062.01,contains ' ',punctuation_gap,first_token,doi:10.1097/01,yes,,,
+PMID:16924197,doi:10.1097/01. brs.0000229221.57036.98,contains ' ',punctuation_gap,join,doi:10.1097/01.brs.0000229221.57036.98,no,,,
+PMID:16924197,doi:10.1097/01. brs.0000229221.57036.98,contains ' ',punctuation_gap,first_token,doi:10.1097/01,yes,,,
+PMID:17124311,doi:10.1126/science. 1134405,contains ' ',punctuation_gap,join,doi:10.1126/science.1134405,yes,,,yes
+PMID:17124311,doi:10.1126/science. 1134405,contains ' ',punctuation_gap,first_token,doi:10.1126/science,yes,,,
+PMID:17134447,doi:10.1046/j.1473-2130 .2001.00006.x,contains ' ',punctuation_gap,join,doi:10.1046/j.1473-2130.2001.00006.x,yes,,,yes
+PMID:17134447,doi:10.1046/j.1473-2130 .2001.00006.x,contains ' ',punctuation_gap,first_token,doi:10.1046/j.1473-2130,no,,,
+PMID:17204885,doi:10.1227/01. NEU.0000215386.05760.6D,contains ' ',punctuation_gap,join,doi:10.1227/01.NEU.0000215386.05760.6D,no,,,
+PMID:17204885,doi:10.1227/01. NEU.0000215386.05760.6D,contains ' ',punctuation_gap,first_token,doi:10.1227/01,no,,,
+PMID:17361233,doi:10.3129/can j ophthalmol.06-127,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-127,no,,,
+PMID:17361233,doi:10.3129/can j ophthalmol.06-127,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361234,doi:10.3129/can j ophthalmol.06-122,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-122,no,,,
+PMID:17361234,doi:10.3129/can j ophthalmol.06-122,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361235,doi:10.3129/can j ophthalmol.06-103,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-103,no,,,
+PMID:17361235,doi:10.3129/can j ophthalmol.06-103,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361236,doi:10.3129/can j ophthalmol.06-105,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-105,no,,,
+PMID:17361236,doi:10.3129/can j ophthalmol.06-105,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361238,doi:10.3129/can j ophthalmol.06-115,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-115,no,,,
+PMID:17361238,doi:10.3129/can j ophthalmol.06-115,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361240,doi:10.3129/can j ophthalmol.06-085,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-085,no,,,
+PMID:17361240,doi:10.3129/can j ophthalmol.06-085,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361241,doi:10.3129/can j ophthalmol.06-086,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-086,no,,,
+PMID:17361241,doi:10.3129/can j ophthalmol.06-086,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361242,doi:10.3129/can j ophthalmol.06-087,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-087,no,,,
+PMID:17361242,doi:10.3129/can j ophthalmol.06-087,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361243,doi:10.3129/can j ophthalmol.06-100,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-100,no,,,
+PMID:17361243,doi:10.3129/can j ophthalmol.06-100,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361244,doi:10.3129/can j ophthalmol.06-108,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-108,no,,,
+PMID:17361244,doi:10.3129/can j ophthalmol.06-108,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361245,doi:10.3129/can j ophthalmol.06-096,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-096,no,,,
+PMID:17361245,doi:10.3129/can j ophthalmol.06-096,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361246,doi:10.3129/can j ophthalmol.06-088,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-088,no,,,
+PMID:17361246,doi:10.3129/can j ophthalmol.06-088,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361247,doi:10.3129/can j ophthalmol.06-124,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-124,no,,,
+PMID:17361247,doi:10.3129/can j ophthalmol.06-124,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361248,doi:10.3129/can j ophthalmol.06-089,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-089,no,,,
+PMID:17361248,doi:10.3129/can j ophthalmol.06-089,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361249,doi:10.3129/can j ophthalmol.06-090,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-090,no,,,
+PMID:17361249,doi:10.3129/can j ophthalmol.06-090,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361250,doi:10.3129/can j ophthalmol.06-097,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-097,no,,,
+PMID:17361250,doi:10.3129/can j ophthalmol.06-097,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361251,doi:10.3129/can j ophthalmol.06-099,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-099,no,,,
+PMID:17361251,doi:10.3129/can j ophthalmol.06-099,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361252,doi:10.3129/can j ophthalmol.06-091,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-091,no,,,
+PMID:17361252,doi:10.3129/can j ophthalmol.06-091,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361253,doi:10.3129/can j ophthalmol.06-092,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-092,no,,,
+PMID:17361253,doi:10.3129/can j ophthalmol.06-092,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361254,doi:10.3129/can j ophthalmol.06-093,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-093,no,,,
+PMID:17361254,doi:10.3129/can j ophthalmol.06-093,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361255,doi:10.3129/can j ophthalmol.06-107,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-107,no,,,
+PMID:17361255,doi:10.3129/can j ophthalmol.06-107,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361256,doi:10.3129/can j ophthalmol.06-106,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-106,no,,,
+PMID:17361256,doi:10.3129/can j ophthalmol.06-106,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361258,doi:10.3129/can j ophthalmol.06-094,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-094,no,,,
+PMID:17361258,doi:10.3129/can j ophthalmol.06-094,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361259,doi:10.3129/can j ophthalmol.06-102,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-102,no,,,
+PMID:17361259,doi:10.3129/can j ophthalmol.06-102,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361260,doi:10.3129/can j ophthalmol.06-095,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-095,no,,,
+PMID:17361260,doi:10.3129/can j ophthalmol.06-095,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361261,doi:10.3129/can j ophthalmol.06-110,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-110,no,,,
+PMID:17361261,doi:10.3129/can j ophthalmol.06-110,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361262,doi:10.3129/can j ophthalmol.06-098,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-098,no,,,
+PMID:17361262,doi:10.3129/can j ophthalmol.06-098,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361263,doi:10.3129/can j ophthalmol.06-109,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-109,no,,,
+PMID:17361263,doi:10.3129/can j ophthalmol.06-109,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361264,doi:10.3129/can j ophthalmol.06-123,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-123,no,,,
+PMID:17361264,doi:10.3129/can j ophthalmol.06-123,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361265,doi:10.3129/can j ophthalmol.06-112,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-112,no,,,
+PMID:17361265,doi:10.3129/can j ophthalmol.06-112,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361266,doi:10.3129/can j ophthalmol.06-111,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-111,no,,,
+PMID:17361266,doi:10.3129/can j ophthalmol.06-111,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361267,doi:10.3129/can j ophthalmol.06-113,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-113,no,,,
+PMID:17361267,doi:10.3129/can j ophthalmol.06-113,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361268,doi:10.3129/can j ophthalmol.06-116,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-116,no,,,
+PMID:17361268,doi:10.3129/can j ophthalmol.06-116,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361269,doi:10.3129/can j ophthalmol.06-117,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-117,no,,,
+PMID:17361269,doi:10.3129/can j ophthalmol.06-117,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361270,doi:10.3129/can j ophthalmol.06-118,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-118,no,,,
+PMID:17361270,doi:10.3129/can j ophthalmol.06-118,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361271,doi:10.3129/can j ophthalmol.06-119,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-119,no,,,
+PMID:17361271,doi:10.3129/can j ophthalmol.06-119,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361272,doi:10.3129/can j ophthalmol.06-120,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-120,no,,,
+PMID:17361272,doi:10.3129/can j ophthalmol.06-120,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17361273,doi:10.3129/can j ophthalmol.06-121,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.06-121,no,,,
+PMID:17361273,doi:10.3129/can j ophthalmol.06-121,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392840,doi:10.3129/can j ophthalmol.i07-011,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-011,no,,,
+PMID:17392840,doi:10.3129/can j ophthalmol.i07-011,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392841,doi:10.3129/can j ophthalmol.i07-010,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-010,no,,,
+PMID:17392841,doi:10.3129/can j ophthalmol.i07-010,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392843,doi:10.3129/can j ophthalmol.i07-001,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-001,no,,,
+PMID:17392843,doi:10.3129/can j ophthalmol.i07-001,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392844,doi:10.3129/can j ophthalmol.i07-032,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-032,no,,,
+PMID:17392844,doi:10.3129/can j ophthalmol.i07-032,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392845,doi:10.3129/can j ophthalmol.i07-012,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-012,no,,,
+PMID:17392845,doi:10.3129/can j ophthalmol.i07-012,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392846,doi:10.3129/can j ophthalmol.i07-029,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-029,no,,,
+PMID:17392846,doi:10.3129/can j ophthalmol.i07-029,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392847,doi:10.3129/can j ophthalmol.i07-030,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-030,no,,,
+PMID:17392847,doi:10.3129/can j ophthalmol.i07-030,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392848,doi:10.3129/can j ophthalmol.i07-002,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-002,no,,,
+PMID:17392848,doi:10.3129/can j ophthalmol.i07-002,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392849,doi:10.3129/can j ophthalmol.i07-003,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-003,no,,,
+PMID:17392849,doi:10.3129/can j ophthalmol.i07-003,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392850,doi:10.3129/can j ophthalmol.i07-013,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-013,no,,,
+PMID:17392850,doi:10.3129/can j ophthalmol.i07-013,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392851,doi:10.3129/can j ophthalmol.i07-017,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-017,no,,,
+PMID:17392851,doi:10.3129/can j ophthalmol.i07-017,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392852,doi:10.3129/can j ophthalmol.i07-004,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-004,no,,,
+PMID:17392852,doi:10.3129/can j ophthalmol.i07-004,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392853,doi:10.3129/can j ophthalmol.i07-036,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-036,no,,,
+PMID:17392853,doi:10.3129/can j ophthalmol.i07-036,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392854,doi:10.3129/can j ophthalmol.i07-034,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-034,no,,,
+PMID:17392854,doi:10.3129/can j ophthalmol.i07-034,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392855,doi:10.3129/can j ophthalmol.i07-005,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-005,no,,,
+PMID:17392855,doi:10.3129/can j ophthalmol.i07-005,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392856,doi:10.3129/can j ophthalmol.i07-006,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-006,no,,,
+PMID:17392856,doi:10.3129/can j ophthalmol.i07-006,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392857,doi:10.3129/can j ophthalmol.i07-019,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-019,no,,,
+PMID:17392857,doi:10.3129/can j ophthalmol.i07-019,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392858,doi:10.3129/can j ophthalmol.i07-031,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-031,no,,,
+PMID:17392858,doi:10.3129/can j ophthalmol.i07-031,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392859,doi:10.3129/can j ophthalmol.i07-007,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-007,no,,,
+PMID:17392859,doi:10.3129/can j ophthalmol.i07-007,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392860,doi:10.3129/can j ophthalmol.i07-018,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-018,no,,,
+PMID:17392860,doi:10.3129/can j ophthalmol.i07-018,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392861,doi:10.3129/can j ophthalmol.i07-020,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-020,no,,,
+PMID:17392861,doi:10.3129/can j ophthalmol.i07-020,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392862,doi:10.3129/can j ophthalmol.i07-014,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-014,no,,,
+PMID:17392862,doi:10.3129/can j ophthalmol.i07-014,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392863,doi:10.3129/can j ophthalmol.i07-035,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-035,no,,,
+PMID:17392863,doi:10.3129/can j ophthalmol.i07-035,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392864,doi:10.3129/can j ophthalmol.i07-008,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-008,no,,,
+PMID:17392864,doi:10.3129/can j ophthalmol.i07-008,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392865,doi:10.3129/can j ophthalmol.i07-015,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-015,no,,,
+PMID:17392865,doi:10.3129/can j ophthalmol.i07-015,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392866,doi:10.3129/can j ophthalmol.i07-016,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-016,no,,,
+PMID:17392866,doi:10.3129/can j ophthalmol.i07-016,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392867,doi:10.3129/can j ophthalmol.i07-028,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-028,no,,,
+PMID:17392867,doi:10.3129/can j ophthalmol.i07-028,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392868,doi:10.3129/can j ophthalmol.i07-009,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-009,no,,,
+PMID:17392868,doi:10.3129/can j ophthalmol.i07-009,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392869,doi:10.3129/can j ophthalmol.i07-021,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-021,no,,,
+PMID:17392869,doi:10.3129/can j ophthalmol.i07-021,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392870,doi:10.3129/can j ophthalmol.i07-024,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-024,no,,,
+PMID:17392870,doi:10.3129/can j ophthalmol.i07-024,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392871,doi:10.3129/can j ophthalmol.i07-026,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-026,no,,,
+PMID:17392871,doi:10.3129/can j ophthalmol.i07-026,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392872,doi:10.3129/can j ophthalmol.i07-025,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-025,no,,,
+PMID:17392872,doi:10.3129/can j ophthalmol.i07-025,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392873,doi:10.3129/can j ophthalmol.i07-023,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-023,no,,,
+PMID:17392873,doi:10.3129/can j ophthalmol.i07-023,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392874,doi:10.3129/can j ophthalmol.i07-022,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-022,no,,,
+PMID:17392874,doi:10.3129/can j ophthalmol.i07-022,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392875,doi:10.3129/can j ophthalmol.i07-040,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-040,no,,,
+PMID:17392875,doi:10.3129/can j ophthalmol.i07-040,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392876,doi:10.3129/can j ophthalmol.i07-027,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-027,no,,,
+PMID:17392876,doi:10.3129/can j ophthalmol.i07-027,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392877,doi:10.3129/can j ophthalmol.i07-042,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-042,no,,,
+PMID:17392877,doi:10.3129/can j ophthalmol.i07-042,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17392878,doi:10.3129/can j ophthalmol.i07-041,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-041,no,,,
+PMID:17392878,doi:10.3129/can j ophthalmol.i07-041,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17395791,doi:10.1126/science. 1142696,contains ' ',punctuation_gap,join,doi:10.1126/science.1142696,yes,,,yes
+PMID:17395791,doi:10.1126/science. 1142696,contains ' ',punctuation_gap,first_token,doi:10.1126/science,yes,,,
+PMID:17395792,doi:10.1126/science. 1141051,contains ' ',punctuation_gap,join,doi:10.1126/science.1141051,yes,,,yes
+PMID:17395792,doi:10.1126/science. 1141051,contains ' ',punctuation_gap,first_token,doi:10.1126/science,yes,,,
+PMID:17395793,doi:10.1126/science. 1140516,contains ' ',punctuation_gap,join,doi:10.1126/science.1140516,yes,,,yes
+PMID:17395793,doi:10.1126/science. 1140516,contains ' ',punctuation_gap,first_token,doi:10.1126/science,yes,,,
+PMID:17395795,doi:10.1126/science. 1138113,contains ' ',punctuation_gap,join,doi:10.1126/science.1138113,yes,,,yes
+PMID:17395795,doi:10.1126/science. 1138113,contains ' ',punctuation_gap,first_token,doi:10.1126/science,yes,,,
+PMID:17414543,doi:10.1097/01. rhu.0b013e318053d9bc,contains ' ',punctuation_gap,join,doi:10.1097/01.rhu.0b013e318053d9bc,no,,,
+PMID:17414543,doi:10.1097/01. rhu.0b013e318053d9bc,contains ' ',punctuation_gap,first_token,doi:10.1097/01,yes,,,
+PMID:17508031,doi:10.3129/can j ophthalmol.i07-078,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-078,no,,,
+PMID:17508031,doi:10.3129/can j ophthalmol.i07-078,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508033,doi:10.3129/can j ophthalmol.i07-045,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-045,no,,,
+PMID:17508033,doi:10.3129/can j ophthalmol.i07-045,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508034,doi:10.3129/can j ophthalmol.i07-039,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-039,no,,,
+PMID:17508034,doi:10.3129/can j ophthalmol.i07-039,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508035,doi:10.3129/can j ophthalmol.i07-046,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-046,no,,,
+PMID:17508035,doi:10.3129/can j ophthalmol.i07-046,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508036,doi:10.3129/can j ophthalmol.i07-051,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-051,no,,,
+PMID:17508036,doi:10.3129/can j ophthalmol.i07-051,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508037,doi:10.3129/can j ophthalmol.i07-043,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-043,no,,,
+PMID:17508037,doi:10.3129/can j ophthalmol.i07-043,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508038,doi:10.3129/can j ophthalmol.i07-075,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-075,no,,,
+PMID:17508038,doi:10.3129/can j ophthalmol.i07-075,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508039,doi:10.3129/can j ophthalmol.i07-048,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-048,no,,,
+PMID:17508039,doi:10.3129/can j ophthalmol.i07-048,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508040,doi:10.3129/can j ophthalmol.i07-044,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-044,no,,,
+PMID:17508040,doi:10.3129/can j ophthalmol.i07-044,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508041,doi:10.3129/can j ophthalmol.i07-050,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-050,no,,,
+PMID:17508041,doi:10.3129/can j ophthalmol.i07-050,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508042,doi:10.3129/can j ophthalmol.i07-047,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-047,no,,,
+PMID:17508042,doi:10.3129/can j ophthalmol.i07-047,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508043,doi:10.3129/can j ophthalmol.i07-049,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-049,no,,,
+PMID:17508043,doi:10.3129/can j ophthalmol.i07-049,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508044,doi:10.3129/can j ophthalmol.i07-052,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-052,no,,,
+PMID:17508044,doi:10.3129/can j ophthalmol.i07-052,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508046,doi:10.3129/can j ophthalmol.i07-054,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-054,no,,,
+PMID:17508046,doi:10.3129/can j ophthalmol.i07-054,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508047,doi:10.3129/can j ophthalmol.i07-058,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-058,no,,,
+PMID:17508047,doi:10.3129/can j ophthalmol.i07-058,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508048,doi:10.3129/can j ophthalmol.i07-059,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-059,no,,,
+PMID:17508048,doi:10.3129/can j ophthalmol.i07-059,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508049,doi:10.3129/can j ophthalmol.i07-065,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-065,no,,,
+PMID:17508049,doi:10.3129/can j ophthalmol.i07-065,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508050,doi:10.3129/can j ophthalmol.i07-077,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-077,no,,,
+PMID:17508050,doi:10.3129/can j ophthalmol.i07-077,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508051,doi:10.3129/can j ophthalmol.i07-057,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-057,no,,,
+PMID:17508051,doi:10.3129/can j ophthalmol.i07-057,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508052,doi:10.3129/can j ophthalmol.i07-071,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-071,no,,,
+PMID:17508052,doi:10.3129/can j ophthalmol.i07-071,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508053,doi:10.3129/can j ophthalmol.i07-072,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-072,no,,,
+PMID:17508053,doi:10.3129/can j ophthalmol.i07-072,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508057,doi:10.3129/can j ophthalmol.i07-068,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-068,no,,,
+PMID:17508057,doi:10.3129/can j ophthalmol.i07-068,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508058,doi:10.3129/can j ophthalmol.i07-060,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-060,no,,,
+PMID:17508058,doi:10.3129/can j ophthalmol.i07-060,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508059,doi:10.3129/can j ophthalmol.i07-064,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-064,no,,,
+PMID:17508059,doi:10.3129/can j ophthalmol.i07-064,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508060,doi:10.3129/can j ophthalmol.i07-074,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-074,no,,,
+PMID:17508060,doi:10.3129/can j ophthalmol.i07-074,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508061,doi:10.3129/can j ophthalmol.i07-066,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-066,no,,,
+PMID:17508061,doi:10.3129/can j ophthalmol.i07-066,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17508062,doi:10.3129/can j ophthalmol.i07-067,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-067,no,,,
+PMID:17508062,doi:10.3129/can j ophthalmol.i07-067,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641692,doi:10.3129/can j ophthalmol.i07-096,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-096,no,,,
+PMID:17641692,doi:10.3129/can j ophthalmol.i07-096,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641694,doi:10.3129/can j ophthalmol.i07-105,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-105,no,,,
+PMID:17641694,doi:10.3129/can j ophthalmol.i07-105,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641695,doi:10.3129/can j ophthalmol.i07-094,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-094,no,,,
+PMID:17641695,doi:10.3129/can j ophthalmol.i07-094,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641696,doi:10.3129/can j ophthalmol.i07-090,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-090,no,,,
+PMID:17641696,doi:10.3129/can j ophthalmol.i07-090,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641697,doi:10.3129/can j ophthalmol.i07-079,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-079,no,,,
+PMID:17641697,doi:10.3129/can j ophthalmol.i07-079,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641698,doi:10.3129/can j ophthalmol.i07-095,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-095,no,,,
+PMID:17641698,doi:10.3129/can j ophthalmol.i07-095,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641700,doi:10.3129/can j ophthalmol.i07-081,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-081,no,,,
+PMID:17641700,doi:10.3129/can j ophthalmol.i07-081,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641701,doi:10.3129/can j ophthalmol.i07-099,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-099,no,,,
+PMID:17641701,doi:10.3129/can j ophthalmol.i07-099,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641702,doi:10.3129/can j ophthalmol.i07-082,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-082,no,,,
+PMID:17641702,doi:10.3129/can j ophthalmol.i07-082,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641703,doi:10.3129/can j ophthalmol.i07-080,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-080,no,,,
+PMID:17641703,doi:10.3129/can j ophthalmol.i07-080,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641704,doi:10.3129/can j ophthalmol.i07-100,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-100,no,,,
+PMID:17641704,doi:10.3129/can j ophthalmol.i07-100,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641705,doi:10.3129/can j ophthalmol.i07-093,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-093,no,,,
+PMID:17641705,doi:10.3129/can j ophthalmol.i07-093,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641706,doi:10.3129/can j ophthalmol.i07-097,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-097,no,,,
+PMID:17641706,doi:10.3129/can j ophthalmol.i07-097,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641707,doi:10.3129/can j ophthalmol.i07-104,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-104,no,,,
+PMID:17641707,doi:10.3129/can j ophthalmol.i07-104,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641708,doi:10.3129/can j ophthalmol.i07-083,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-083,no,,,
+PMID:17641708,doi:10.3129/can j ophthalmol.i07-083,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641709,doi:10.3129/can j ophthalmol.i07-101,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-101,no,,,
+PMID:17641709,doi:10.3129/can j ophthalmol.i07-101,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641710,doi:10.3129/can j ophthalmol.i07-106,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-106,no,,,
+PMID:17641710,doi:10.3129/can j ophthalmol.i07-106,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641711,doi:10.3129/can j ophthalmol.i07-084,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-084,no,,,
+PMID:17641711,doi:10.3129/can j ophthalmol.i07-084,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641714,doi:10.3129/can j ophthalmol.i07-087,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-087,no,,,
+PMID:17641714,doi:10.3129/can j ophthalmol.i07-087,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641715,doi:10.3129/can j ophthalmol.i07-089,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-089,no,,,
+PMID:17641715,doi:10.3129/can j ophthalmol.i07-089,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641716,doi:10.3129/can j ophthalmol.i07-086,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-086,no,,,
+PMID:17641716,doi:10.3129/can j ophthalmol.i07-086,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641717,doi:10.3129/can j ophthalmol.i07-088,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-088,no,,,
+PMID:17641717,doi:10.3129/can j ophthalmol.i07-088,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641720,doi:10.3129/can j ophthalmol.i07-092,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-092,no,,,
+PMID:17641720,doi:10.3129/can j ophthalmol.i07-092,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:17641721,doi:10.3129/can j ophthalmol.i07-085,contains ' ',word_gap,join,doi:10.3129/canjophthalmol.i07-085,no,,,
+PMID:17641721,doi:10.3129/can j ophthalmol.i07-085,contains ' ',word_gap,first_token,doi:10.3129/can,no,,,
+PMID:18052690,doi:10.33549/physiolres. 931260,contains ' ',punctuation_gap,join,doi:10.33549/physiolres.931260,yes,,,yes
+PMID:18052690,doi:10.33549/physiolres. 931260,contains ' ',punctuation_gap,first_token,doi:10.33549/physiolres,yes,,,
+PMID:18645420,doi:10.1097/CHI.0b0 13e318179a057,contains ' ',word_gap,join,doi:10.1097/CHI.0b013e318179a057,yes,,,yes
+PMID:18645420,doi:10.1097/CHI.0b0 13e318179a057,contains ' ',word_gap,first_token,doi:10.1097/CHI.0b0,yes,,,
+PMID:18797367,doi:10.1227/01. NEU.0000320420.25035.A7,contains ' ',punctuation_gap,join,doi:10.1227/01.NEU.0000320420.25035.A7,yes,,,yes
+PMID:18797367,doi:10.1227/01. NEU.0000320420.25035.A7,contains ' ',punctuation_gap,first_token,doi:10.1227/01,no,,,
+PMID:19003222,doi:10.1023/B: CYTO.0000039933.04391.29,contains ' ',word_gap,join,doi:10.1023/B:CYTO.0000039933.04391.29,yes,,,yes
+PMID:19003222,doi:10.1023/B: CYTO.0000039933.04391.29,contains ' ',word_gap,first_token,doi:10.1023/B:,no,,,
+PMID:19003224,doi:10.1023/B: CYTO.0000039935.16204.96,contains ' ',word_gap,join,doi:10.1023/B:CYTO.0000039935.16204.96,yes,,,yes
+PMID:19003224,doi:10.1023/B: CYTO.0000039935.16204.96,contains ' ',word_gap,first_token,doi:10.1023/B:,no,,,
+PMID:20023537,doi:10.1227/01. NEU.0000363152.37594. F7,contains ' ',punctuation_gap,join,doi:10.1227/01.NEU.0000363152.37594.F7,no,,,
+PMID:20023537,doi:10.1227/01. NEU.0000363152.37594. F7,contains ' ',punctuation_gap,first_token,doi:10.1227/01,no,,,
+PMID:20404693,doi:10.1227/01. NEU.0000367722.66098.21,contains ' ',punctuation_gap,join,doi:10.1227/01.NEU.0000367722.66098.21,yes,,,yes
+PMID:20404693,doi:10.1227/01. NEU.0000367722.66098.21,contains ' ',punctuation_gap,first_token,doi:10.1227/01,no,,,
+PMID:20404699,doi:10.1227/01. NEU.0000368386.85578.63,contains ' ',punctuation_gap,join,doi:10.1227/01.NEU.0000368386.85578.63,yes,,,yes
+PMID:20404699,doi:10.1227/01. NEU.0000368386.85578.63,contains ' ',punctuation_gap,first_token,doi:10.1227/01,no,,,
+PMID:20529702,doi:10.1109/TUFFC .2010.1546,contains ' ',punctuation_gap,join,doi:10.1109/TUFFC.2010.1546,yes,,,yes
+PMID:20529702,doi:10.1109/TUFFC .2010.1546,contains ' ',punctuation_gap,first_token,doi:10.1109/TUFFC,no,,,
+PMID:20529703,doi:10.1109/TUFFC .2010.1547,contains ' ',punctuation_gap,join,doi:10.1109/TUFFC.2010.1547,yes,,,yes
+PMID:20529703,doi:10.1109/TUFFC .2010.1547,contains ' ',punctuation_gap,first_token,doi:10.1109/TUFFC,no,,,
+PMID:20529704,doi:10.1109/TUFFC .2010.1548,contains ' ',punctuation_gap,join,doi:10.1109/TUFFC.2010.1548,yes,,,yes
+PMID:20529704,doi:10.1109/TUFFC .2010.1548,contains ' ',punctuation_gap,first_token,doi:10.1109/TUFFC,no,,,
+PMID:20529718,doi:10.1109/TUFFC .2010.1562,contains ' ',punctuation_gap,join,doi:10.1109/TUFFC.2010.1562,yes,,,yes
+PMID:20529718,doi:10.1109/TUFFC .2010.1562,contains ' ',punctuation_gap,first_token,doi:10.1109/TUFFC,no,,,
+PMID:20529719,doi:10.1109/TUFFC .2010.1563,contains ' ',punctuation_gap,join,doi:10.1109/TUFFC.2010.1563,yes,,,yes
+PMID:20529719,doi:10.1109/TUFFC .2010.1563,contains ' ',punctuation_gap,first_token,doi:10.1109/TUFFC,no,,,
+PMID:20529722,doi:10.1109/TUFFC 2010.1566,contains ' ',word_gap,join,doi:10.1109/TUFFC2010.1566,no,,,
+PMID:20529722,doi:10.1109/TUFFC 2010.1566,contains ' ',word_gap,first_token,doi:10.1109/TUFFC,no,,,
+PMID:21174355,doi:10.3724/SP.J.1141.2010. 06645,contains ' ',punctuation_gap,join,doi:10.3724/SP.J.1141.2010.06645,no,,,
+PMID:21174355,doi:10.3724/SP.J.1141.2010. 06645,contains ' ',punctuation_gap,first_token,doi:10.3724/SP.J.1141.2010,no,,,
+PMID:21174356,doi:10.3724/SP.J.1141.2010. 06651,contains ' ',punctuation_gap,join,doi:10.3724/SP.J.1141.2010.06651,no,,,
+PMID:21174356,doi:10.3724/SP.J.1141.2010. 06651,contains ' ',punctuation_gap,first_token,doi:10.3724/SP.J.1141.2010,no,,,
+PMID:22194098,doi:10.5137/1019-5149.JTN .3518-10.2,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.3518-10.2,yes,,,yes
+PMID:22194098,doi:10.5137/1019-5149.JTN .3518-10.2,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194099,doi:10.5137/1019-5149.JTN .4012-10.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4012-10.1,yes,,,yes
+PMID:22194099,doi:10.5137/1019-5149.JTN .4012-10.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194100,doi:10.5137/1019-5149.JTN .4028-10.3,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4028-10.3,yes,,,yes
+PMID:22194100,doi:10.5137/1019-5149.JTN .4028-10.3,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194101,doi:10.5137/1019-5149.JTN .4057-10.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4057-10.1,yes,,,yes
+PMID:22194101,doi:10.5137/1019-5149.JTN .4057-10.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194102,doi:10.5137/1019-5149.JTN .4165-11.2,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4165-11.2,yes,,,yes
+PMID:22194102,doi:10.5137/1019-5149.JTN .4165-11.2,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194103,doi:10.5137/1019-5149.JTN .4204-11.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4204-11.1,yes,,,yes
+PMID:22194103,doi:10.5137/1019-5149.JTN .4204-11.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194104,doi:10.5137/1019-5149.JTN .4288-11.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4288-11.1,yes,,,yes
+PMID:22194104,doi:10.5137/1019-5149.JTN .4288-11.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194105,doi:10.5137/1019-5149.JTN .4293-11.0,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4293-11.0,yes,,,yes
+PMID:22194105,doi:10.5137/1019-5149.JTN .4293-11.0,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194106,doi:10.5137/1019-5149.JTN .4277-11.2,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4277-11.2,yes,,,yes
+PMID:22194106,doi:10.5137/1019-5149.JTN .4277-11.2,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194107,doi:10.5137/1019-5149.JTN .4353-11.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4353-11.1,yes,,,yes
+PMID:22194107,doi:10.5137/1019-5149.JTN .4353-11.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194108,doi:10.5137/1019-5149.JTN .4372-11.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4372-11.1,yes,,,yes
+PMID:22194108,doi:10.5137/1019-5149.JTN .4372-11.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194109,doi:10.5137/1019-5149.JTN .4394-11.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4394-11.1,yes,,,yes
+PMID:22194109,doi:10.5137/1019-5149.JTN .4394-11.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194110,doi:10.5137/1019-5149.JTN .4390-11.0,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4390-11.0,yes,,,yes
+PMID:22194110,doi:10.5137/1019-5149.JTN .4390-11.0,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194111,doi:10.5137/1019-5149.JTN .4431-11.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4431-11.1,yes,,,yes
+PMID:22194111,doi:10.5137/1019-5149.JTN .4431-11.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194112,doi:10.5137/1019-5149.JTN .4456-11.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4456-11.1,yes,,,yes
+PMID:22194112,doi:10.5137/1019-5149.JTN .4456-11.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194113,doi:10.5137/1019-5149.JTN .4473-11.2,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4473-11.2,yes,,,yes
+PMID:22194113,doi:10.5137/1019-5149.JTN .4473-11.2,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194114,doi:10.5137/1019-5149.JTN .4305-11.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4305-11.1,yes,,,yes
+PMID:22194114,doi:10.5137/1019-5149.JTN .4305-11.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194115,doi:10.5137/1019-5149.JTN .4525-11.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4525-11.1,yes,,,yes
+PMID:22194115,doi:10.5137/1019-5149.JTN .4525-11.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194116,doi:10.5137/1019-5149.JTN .4552-11.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4552-11.1,yes,,,yes
+PMID:22194116,doi:10.5137/1019-5149.JTN .4552-11.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194117,doi:10.5137/1019-5149.JTN .4553-11.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4553-11.1,yes,,,yes
+PMID:22194117,doi:10.5137/1019-5149.JTN .4553-11.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194118,doi:10.5137/1019-5149.JTN .4474-11.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4474-11.1,yes,,,yes
+PMID:22194118,doi:10.5137/1019-5149.JTN .4474-11.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194119,doi:10.5137/1019-5149.JTN .4639-11.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4639-11.1,yes,,,yes
+PMID:22194119,doi:10.5137/1019-5149.JTN .4639-11.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194120,doi:10.5137/1019-5149.JTN .4656-11.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4656-11.1,yes,,,yes
+PMID:22194120,doi:10.5137/1019-5149.JTN .4656-11.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194121,doi:10.5137/1019-5149.JTN .3570-10.2,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.3570-10.2,yes,,,yes
+PMID:22194121,doi:10.5137/1019-5149.JTN .3570-10.2,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194122,doi:10.5137/1019-5149.JTN .4736-11.0,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4736-11.0,yes,,,yes
+PMID:22194122,doi:10.5137/1019-5149.JTN .4736-11.0,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194123,doi:10.5137/1019-5149.JTN .4739-11.2,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4739-11.2,yes,,,yes
+PMID:22194123,doi:10.5137/1019-5149.JTN .4739-11.2,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194124,doi:10.5137/1019-5149.JTN .3749-10.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.3749-10.1,yes,,,yes
+PMID:22194124,doi:10.5137/1019-5149.JTN .3749-10.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194125,doi:10.5137/1019-5149.JTN .4985-11.0,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4985-11.0,yes,,,yes
+PMID:22194125,doi:10.5137/1019-5149.JTN .4985-11.0,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194126,doi:10.5137/1019-5149.JTN .4524-11.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4524-11.1,yes,,,yes
+PMID:22194126,doi:10.5137/1019-5149.JTN .4524-11.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194127,doi:10.5137/1019-5149.JTN .4954-11.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4954-11.1,yes,,,yes
+PMID:22194127,doi:10.5137/1019-5149.JTN .4954-11.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194128,doi:10.5137/1019-5149.JTN .4974-11.0,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.4974-11.0,yes,,,yes
+PMID:22194128,doi:10.5137/1019-5149.JTN .4974-11.0,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194129,doi:10.5137/1019-5149.JTN .2907-10.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.2907-10.1,yes,,,yes
+PMID:22194129,doi:10.5137/1019-5149.JTN .2907-10.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194130,doi:10.5137/1019-5149.JTN .2950-10.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.2950-10.1,yes,,,yes
+PMID:22194130,doi:10.5137/1019-5149.JTN .2950-10.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194131,doi:10.5137/1019-5149.JTN .2979-10.0,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.2979-10.0,yes,,,yes
+PMID:22194131,doi:10.5137/1019-5149.JTN .2979-10.0,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194132,doi:10.5137/1019-5149.JTN .2989-10.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.2989-10.1,yes,,,yes
+PMID:22194132,doi:10.5137/1019-5149.JTN .2989-10.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194133,doi:10.5137/1019-5149.JTN .2994-10.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.2994-10.1,yes,,,yes
+PMID:22194133,doi:10.5137/1019-5149.JTN .2994-10.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194134,doi:10.5137/1019-5149.JTN .3001-10.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.3001-10.1,yes,,,yes
+PMID:22194134,doi:10.5137/1019-5149.JTN .3001-10.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194135,doi:10.5137/1019-5149.JTN .2677-09.2,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.2677-09.2,yes,,,yes
+PMID:22194135,doi:10.5137/1019-5149.JTN .2677-09.2,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194136,doi:10.5137/1019-5149.JTN .3018-10.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.3018-10.1,yes,,,yes
+PMID:22194136,doi:10.5137/1019-5149.JTN .3018-10.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194137,doi:10.5137/1019-5149.JTN .3035-10.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.3035-10.1,yes,,,yes
+PMID:22194137,doi:10.5137/1019-5149.JTN .3035-10.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194138,doi:10.5137/1019-5149.JTN .3059-10.2,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.3059-10.2,yes,,,yes
+PMID:22194138,doi:10.5137/1019-5149.JTN .3059-10.2,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194139,doi:10.5137/1019-5149.JTN .3120-10.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.3120-10.1,yes,,,yes
+PMID:22194139,doi:10.5137/1019-5149.JTN .3120-10.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22194140,doi:10.5137/1019-5149.JTN .3308-10.1,contains ' ',punctuation_gap,join,doi:10.5137/1019-5149.JTN.3308-10.1,yes,,,yes
+PMID:22194140,doi:10.5137/1019-5149.JTN .3308-10.1,contains ' ',punctuation_gap,first_token,doi:10.5137/1019-5149.JTN,no,,,
+PMID:22710458,doi:10.1001/archdermatol.2012.675a 10.1001/archdermatol.2012.675b,contains ' ',several_dois,join,doi:10.1001/archdermatol.2012.675a10.1001/archdermatol.2012.675b,no,,,
+PMID:22710458,doi:10.1001/archdermatol.2012.675a 10.1001/archdermatol.2012.675b,contains ' ',several_dois,first_token,doi:10.1001/archdermatol.2012.675a,yes,,,
+PMID:22710458,doi:10.1001/archdermatol.2012.675a 10.1001/archdermatol.2012.675b,contains ' ',several_dois,last_token,doi:10.1001/archdermatol.2012.675b,no,,,
+PMID:22710458,doi:10.1001/archdermatol.2012.675a 10.1001/archdermatol.2012.675b,contains ' ',several_dois,each_token,doi:10.1001/archdermatol.2012.675a,yes,,,yes
+PMID:22710458,doi:10.1001/archdermatol.2012.675a 10.1001/archdermatol.2012.675b,contains ' ',several_dois,each_token,doi:10.1001/archdermatol.2012.675b,no,,,
+PMID:22710516,doi:10.1001/archoto.2012.519a 10.1001/archoto.2012.519b,contains ' ',several_dois,join,doi:10.1001/archoto.2012.519a10.1001/archoto.2012.519b,no,,,
+PMID:22710516,doi:10.1001/archoto.2012.519a 10.1001/archoto.2012.519b,contains ' ',several_dois,first_token,doi:10.1001/archoto.2012.519a,yes,,,
+PMID:22710516,doi:10.1001/archoto.2012.519a 10.1001/archoto.2012.519b,contains ' ',several_dois,last_token,doi:10.1001/archoto.2012.519b,yes,,PMID:23753705,
+PMID:22710516,doi:10.1001/archoto.2012.519a 10.1001/archoto.2012.519b,contains ' ',several_dois,each_token,doi:10.1001/archoto.2012.519a,yes,,,yes
+PMID:22710516,doi:10.1001/archoto.2012.519a 10.1001/archoto.2012.519b,contains ' ',several_dois,each_token,doi:10.1001/archoto.2012.519b,yes,,PMID:23753705,
+PMID:22751881,doi:10.1001/archpediatrics.2012.189a 10.1001/archpediatrics.2012.189b,contains ' ',several_dois,join,doi:10.1001/archpediatrics.2012.189a10.1001/archpediatrics.2012.189b,no,,,
+PMID:22751881,doi:10.1001/archpediatrics.2012.189a 10.1001/archpediatrics.2012.189b,contains ' ',several_dois,first_token,doi:10.1001/archpediatrics.2012.189a,yes,,,
+PMID:22751881,doi:10.1001/archpediatrics.2012.189a 10.1001/archpediatrics.2012.189b,contains ' ',several_dois,last_token,doi:10.1001/archpediatrics.2012.189b,yes,,PMID:23753997,
+PMID:22751881,doi:10.1001/archpediatrics.2012.189a 10.1001/archpediatrics.2012.189b,contains ' ',several_dois,each_token,doi:10.1001/archpediatrics.2012.189a,yes,,,yes
+PMID:22751881,doi:10.1001/archpediatrics.2012.189a 10.1001/archpediatrics.2012.189b,contains ' ',several_dois,each_token,doi:10.1001/archpediatrics.2012.189b,yes,,PMID:23753997,
+PMID:22782154,doi:10.1001/archdermatol.2012.151a 10.1001/archdermatol.2012.151b,contains ' ',several_dois,join,doi:10.1001/archdermatol.2012.151a10.1001/archdermatol.2012.151b,no,,,
+PMID:22782154,doi:10.1001/archdermatol.2012.151a 10.1001/archdermatol.2012.151b,contains ' ',several_dois,first_token,doi:10.1001/archdermatol.2012.151a,yes,,,
+PMID:22782154,doi:10.1001/archdermatol.2012.151a 10.1001/archdermatol.2012.151b,contains ' ',several_dois,last_token,doi:10.1001/archdermatol.2012.151b,no,,,
+PMID:22782154,doi:10.1001/archdermatol.2012.151a 10.1001/archdermatol.2012.151b,contains ' ',several_dois,each_token,doi:10.1001/archdermatol.2012.151a,yes,,,yes
+PMID:22782154,doi:10.1001/archdermatol.2012.151a 10.1001/archdermatol.2012.151b,contains ' ',several_dois,each_token,doi:10.1001/archdermatol.2012.151b,no,,,
+PMID:22801623,doi:10.1001/archdermatol.2012.995a 10.1001/archdermatol.2012.995b,contains ' ',several_dois,join,doi:10.1001/archdermatol.2012.995a10.1001/archdermatol.2012.995b,no,,,
+PMID:22801623,doi:10.1001/archdermatol.2012.995a 10.1001/archdermatol.2012.995b,contains ' ',several_dois,first_token,doi:10.1001/archdermatol.2012.995a,yes,,PMID:24901967,
+PMID:22801623,doi:10.1001/archdermatol.2012.995a 10.1001/archdermatol.2012.995b,contains ' ',several_dois,last_token,doi:10.1001/archdermatol.2012.995b,no,,,
+PMID:22801623,doi:10.1001/archdermatol.2012.995a 10.1001/archdermatol.2012.995b,contains ' ',several_dois,each_token,doi:10.1001/archdermatol.2012.995a,yes,,PMID:24901967,
+PMID:22801623,doi:10.1001/archdermatol.2012.995a 10.1001/archdermatol.2012.995b,contains ' ',several_dois,each_token,doi:10.1001/archdermatol.2012.995b,no,,,
+PMID:22864713,doi:10.5505/tjtes.2012. 03453,contains ' ',punctuation_gap,join,doi:10.5505/tjtes.2012.03453,yes,,,yes
+PMID:22864713,doi:10.5505/tjtes.2012. 03453,contains ' ',punctuation_gap,first_token,doi:10.5505/tjtes.2012,no,,,
+PMID:22987191,doi:10.1001/archsurg.2011.1267a 10.1001/archsurg.2011.1267b,contains ' ',several_dois,join,doi:10.1001/archsurg.2011.1267a10.1001/archsurg.2011.1267b,no,,,
+PMID:22987191,doi:10.1001/archsurg.2011.1267a 10.1001/archsurg.2011.1267b,contains ' ',several_dois,first_token,doi:10.1001/archsurg.2011.1267a,yes,,PMID:24901811,
+PMID:22987191,doi:10.1001/archsurg.2011.1267a 10.1001/archsurg.2011.1267b,contains ' ',several_dois,last_token,doi:10.1001/archsurg.2011.1267b,no,,,
+PMID:22987191,doi:10.1001/archsurg.2011.1267a 10.1001/archsurg.2011.1267b,contains ' ',several_dois,each_token,doi:10.1001/archsurg.2011.1267a,yes,,PMID:24901811,
+PMID:22987191,doi:10.1001/archsurg.2011.1267a 10.1001/archsurg.2011.1267b,contains ' ',several_dois,each_token,doi:10.1001/archsurg.2011.1267b,no,,,
+PMID:23247481,doi:10.1001/archdermatol.2012.2964a 10.1001/archdermatol.2012.2964b,contains ' ',several_dois,join,doi:10.1001/archdermatol.2012.2964a10.1001/archdermatol.2012.2964b,no,,,
+PMID:23247481,doi:10.1001/archdermatol.2012.2964a 10.1001/archdermatol.2012.2964b,contains ' ',several_dois,first_token,doi:10.1001/archdermatol.2012.2964a,yes,,PMID:24901808,
+PMID:23247481,doi:10.1001/archdermatol.2012.2964a 10.1001/archdermatol.2012.2964b,contains ' ',several_dois,last_token,doi:10.1001/archdermatol.2012.2964b,no,,,
+PMID:23247481,doi:10.1001/archdermatol.2012.2964a 10.1001/archdermatol.2012.2964b,contains ' ',several_dois,each_token,doi:10.1001/archdermatol.2012.2964a,yes,,PMID:24901808,
+PMID:23247481,doi:10.1001/archdermatol.2012.2964a 10.1001/archdermatol.2012.2964b,contains ' ',several_dois,each_token,doi:10.1001/archdermatol.2012.2964b,no,,,
+PMID:23344409,doi:http://10 1097/AOG.0b013e318270444f,contains ' ',other,,,,,,
+PMID:23700705,doi:10.12961/aprl. 2012.16.2.01,contains ' ',punctuation_gap,join,doi:10.12961/aprl.2012.16.2.01,no,,,
+PMID:23700705,doi:10.12961/aprl. 2012.16.2.01,contains ' ',punctuation_gap,first_token,doi:10.12961/aprl,yes,,,
+PMID:23700706,doi:10.12961/aprl. 2012.16.2.02,contains ' ',punctuation_gap,join,doi:10.12961/aprl.2012.16.2.02,no,,,
+PMID:23700706,doi:10.12961/aprl. 2012.16.2.02,contains ' ',punctuation_gap,first_token,doi:10.12961/aprl,yes,,,
+PMID:23700707,doi:10.12961/aprl. 2012.16.2.03,contains ' ',punctuation_gap,join,doi:10.12961/aprl.2012.16.2.03,no,,,
+PMID:23700707,doi:10.12961/aprl. 2012.16.2.03,contains ' ',punctuation_gap,first_token,doi:10.12961/aprl,yes,,,
+PMID:23739575,doi:10.3760/cma. j. issn.2095-4352. 2013. 06.015,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.06.015,yes,,,yes
+PMID:23739575,doi:10.3760/cma. j. issn.2095-4352. 2013. 06.015,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:23739576,doi:10.3760/cma. j. issn.2095-4352. 2013. 06.016,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.06.016,yes,,PMID:23834944,
+PMID:23739576,doi:10.3760/cma. j. issn.2095-4352. 2013. 06.016,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:23739577,doi:10.3760/cma. j. issn.2095-4352. 2013. 06.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.06.017,yes,,,yes
+PMID:23739577,doi:10.3760/cma. j. issn.2095-4352. 2013. 06.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:23739578,doi:10.3760/cma. j. issn.2095-4352. 2013. 06.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.06.018,yes,,,yes
+PMID:23739578,doi:10.3760/cma. j. issn.2095-4352. 2013. 06.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:23752222,doi:10.1001/archdermatol.2012.151a 10.1001/archdermatol.2012.151b,contains ' ',several_dois,join,doi:10.1001/archdermatol.2012.151a10.1001/archdermatol.2012.151b,no,,,
+PMID:23752222,doi:10.1001/archdermatol.2012.151a 10.1001/archdermatol.2012.151b,contains ' ',several_dois,first_token,doi:10.1001/archdermatol.2012.151a,yes,,,
+PMID:23752222,doi:10.1001/archdermatol.2012.151a 10.1001/archdermatol.2012.151b,contains ' ',several_dois,last_token,doi:10.1001/archdermatol.2012.151b,no,,,
+PMID:23752222,doi:10.1001/archdermatol.2012.151a 10.1001/archdermatol.2012.151b,contains ' ',several_dois,each_token,doi:10.1001/archdermatol.2012.151a,yes,,,yes
+PMID:23752222,doi:10.1001/archdermatol.2012.151a 10.1001/archdermatol.2012.151b,contains ' ',several_dois,each_token,doi:10.1001/archdermatol.2012.151b,no,,,
+PMID:23834933,doi:10.3760/cma. j. issn.2095-4352.2013.07.003,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.07.003,yes,,,yes
+PMID:23834933,doi:10.3760/cma. j. issn.2095-4352.2013.07.003,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:23834934,doi:10.3760/cma. j. issn.2095-4352.2013.07.004,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.07.004,yes,,,yes
+PMID:23834934,doi:10.3760/cma. j. issn.2095-4352.2013.07.004,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:23834945,doi:10.3760/cma. j. issn.2095-4352. 2013. 07.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.07.017,yes,,,yes
+PMID:23834945,doi:10.3760/cma. j. issn.2095-4352. 2013. 07.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:23834946,doi:10.3760/cma. j. issn.2095-4352. 2013. 07.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.07.018,yes,,,yes
+PMID:23834946,doi:10.3760/cma. j. issn.2095-4352. 2013. 07.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:23834947,doi:10.3760/cma. j. issn.2095-4352. 2013. 07.020,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.07.020,yes,,,yes
+PMID:23834947,doi:10.3760/cma. j. issn.2095-4352. 2013. 07.020,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24021037,doi:10.3760/cma. j. issn.2095-4352.2013.08.001,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.08.001,yes,,,yes
+PMID:24021037,doi:10.3760/cma. j. issn.2095-4352.2013.08.001,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24021047,doi:10.3760/cma. j. issn.2095-4352. 2013. 08.011,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.08.011,yes,,,yes
+PMID:24021047,doi:10.3760/cma. j. issn.2095-4352. 2013. 08.011,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24021049,doi:10.3760/cma. j. issn.2095-4352. 2013. 08.013,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.08.013,yes,,,yes
+PMID:24021049,doi:10.3760/cma. j. issn.2095-4352. 2013. 08.013,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24021050,doi:10.3760/cma. j. issn.2095-4352. 2013. 08.014,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.08.014,yes,,,yes
+PMID:24021050,doi:10.3760/cma. j. issn.2095-4352. 2013. 08.014,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24021051,doi:10.3760/cma. j. issn.2095-4352. 2013. 08.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.08.017,yes,,,yes
+PMID:24021051,doi:10.3760/cma. j. issn.2095-4352. 2013. 08.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24021052,doi:10.3760/cma. j. issn.2095-4352. 2013. 08.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.08.018,yes,,,yes
+PMID:24021052,doi:10.3760/cma. j. issn.2095-4352. 2013. 08.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24021053,doi:10.3760/cma. j. issn.2095-4352. 2013. 08.019,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.08.019,yes,,,yes
+PMID:24021053,doi:10.3760/cma. j. issn.2095-4352. 2013. 08.019,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24059413,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.001,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.09.001,yes,,,yes
+PMID:24059413,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.001,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24059420,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.008,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.09.008,yes,,,yes
+PMID:24059420,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.008,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24059424,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.012,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.09.012,yes,,,yes
+PMID:24059424,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.012,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24059425,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.013,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.09.013,yes,,,yes
+PMID:24059425,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.013,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24059426,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.014,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.09.014,yes,,,yes
+PMID:24059426,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.014,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24059427,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.015,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.09.015,yes,,,yes
+PMID:24059427,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.015,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24059428,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.016,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.09.016,yes,,,yes
+PMID:24059428,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.016,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24059430,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.019,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.09.019,yes,,,yes
+PMID:24059430,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.019,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24059431,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.020,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.09.020,yes,,,yes
+PMID:24059431,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.020,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24059432,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.022,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.09.022,yes,,,yes
+PMID:24059432,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.022,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24059433,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.023,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.09.023,yes,,,yes
+PMID:24059433,doi:10.3760/cma. j. issn.2095-4352. 2013. 09.023,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24119703,doi:10.3760/cma. j. issn.2095-4352. 2013. 10.013,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.10.013,yes,,,yes
+PMID:24119703,doi:10.3760/cma. j. issn.2095-4352. 2013. 10.013,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24119704,doi:10.3760/cma. j. issn.2095-4352. 2013. 10.014,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.10.014,yes,,,yes
+PMID:24119704,doi:10.3760/cma. j. issn.2095-4352. 2013. 10.014,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24119705,doi:10.3760/cma. j. issn.2095-4352. 2013. 10.015,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.10.015,yes,,,yes
+PMID:24119705,doi:10.3760/cma. j. issn.2095-4352. 2013. 10.015,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24245716,doi:10.3934/mbe.2014.11. 233,contains ' ',punctuation_gap,join,doi:10.3934/mbe.2014.11.233,yes,,,yes
+PMID:24245716,doi:10.3934/mbe.2014.11. 233,contains ' ',punctuation_gap,first_token,doi:10.3934/mbe.2014.11,no,,,
+PMID:24278935,doi:10.11607/jomi .2833,contains ' ',punctuation_gap,join,doi:10.11607/jomi.2833,yes,,,yes
+PMID:24278935,doi:10.11607/jomi .2833,contains ' ',punctuation_gap,first_token,doi:10.11607/jomi,no,,,
+PMID:24447355,doi:10.3760/cma. j. issn.2095-4352. 2013. 12.010,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.12.010,yes,,,yes
+PMID:24447355,doi:10.3760/cma. j. issn.2095-4352. 2013. 12.010,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24447356,doi:10.3760/cma. j. issn.2095-4352. 2013. 12.011,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.12.011,yes,,,yes
+PMID:24447356,doi:10.3760/cma. j. issn.2095-4352. 2013. 12.011,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24447358,doi:10.3760/cma. j. issn.2095-4352. 2013. 12.014,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.12.014,yes,,,yes
+PMID:24447358,doi:10.3760/cma. j. issn.2095-4352. 2013. 12.014,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24447360,doi:10.3760/cma. j. issn.2095-4352. 2013. 12.016,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.12.016,yes,,,yes
+PMID:24447360,doi:10.3760/cma. j. issn.2095-4352. 2013. 12.016,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24447361,doi:10.3760/cma. j. issn.2095-4352. 2013. 12.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.12.017,yes,,,yes
+PMID:24447361,doi:10.3760/cma. j. issn.2095-4352. 2013. 12.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24447362,doi:10.3760/cma. j. issn.2095-4352. 2013. 12.019,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2013.12.019,yes,,,yes
+PMID:24447362,doi:10.3760/cma. j. issn.2095-4352. 2013. 12.019,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24506349,doi:10.3305/nutr hosp.v28in06.7011,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.7011,no,,,
+PMID:24506349,doi:10.3305/nutr hosp.v28in06.7011,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506350,doi:10.3305/nutr hosp.v28in06.6816,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6816,no,,,
+PMID:24506350,doi:10.3305/nutr hosp.v28in06.6816,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506351,doi:10.3305/nutr hosp.v28in06.6939,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6939,no,,,
+PMID:24506351,doi:10.3305/nutr hosp.v28in06.6939,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506352,doi:10.3305/nutr hosp.v28in06.6769,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6769,no,,,
+PMID:24506352,doi:10.3305/nutr hosp.v28in06.6769,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506353,doi:10.3305/nutr hosp.v28in06.6950,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6950,no,,,
+PMID:24506353,doi:10.3305/nutr hosp.v28in06.6950,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506354,doi:10.3305/nutr hosp.v28in06.6956,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6956,no,,,
+PMID:24506354,doi:10.3305/nutr hosp.v28in06.6956,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506355,doi:10.3305/nutr hosp.v28in06.6892,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6892,no,,,
+PMID:24506355,doi:10.3305/nutr hosp.v28in06.6892,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506356,doi:10.3305/nutr hosp.v28in06.6886,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6886,no,,,
+PMID:24506356,doi:10.3305/nutr hosp.v28in06.6886,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506357,doi:10.3305/nutr hosp.v28in06.6936,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6936,no,,,
+PMID:24506357,doi:10.3305/nutr hosp.v28in06.6936,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506358,doi:10.3305/nutr hosp.v28in06.6981,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6981,no,,,
+PMID:24506358,doi:10.3305/nutr hosp.v28in06.6981,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506359,doi:10.3305/nutr hosp.v28in06.6831,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6831,no,,,
+PMID:24506359,doi:10.3305/nutr hosp.v28in06.6831,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506360,doi:10.3305/nutr hosp.v28in06.6959,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6959,no,,,
+PMID:24506360,doi:10.3305/nutr hosp.v28in06.6959,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506361,doi:10.3305/nutr hosp.v28in06.6784,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6784,no,,,
+PMID:24506361,doi:10.3305/nutr hosp.v28in06.6784,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506362,doi:10.3305/nutr hosp.v28in06.6912,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6912,no,,,
+PMID:24506362,doi:10.3305/nutr hosp.v28in06.6912,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506363,doi:10.3305/nutr hosp.v28in06.6951,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6951,no,,,
+PMID:24506363,doi:10.3305/nutr hosp.v28in06.6951,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506364,doi:10.3305/nutr hosp.v28in06.6881,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6881,no,,,
+PMID:24506364,doi:10.3305/nutr hosp.v28in06.6881,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506365,doi:10.3305/nutr hosp.v28in06.6873,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6873,no,,,
+PMID:24506365,doi:10.3305/nutr hosp.v28in06.6873,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506366,doi:10.3305/nutr hosp.v28in06.6966,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6966,no,,,
+PMID:24506366,doi:10.3305/nutr hosp.v28in06.6966,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506367,doi:10.3305/nutr hosp.v28in06.6946,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6946,no,,,
+PMID:24506367,doi:10.3305/nutr hosp.v28in06.6946,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506368,doi:10.3305/nutr hosp.v28in06.6911,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6911,no,,,
+PMID:24506368,doi:10.3305/nutr hosp.v28in06.6911,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506369,doi:10.3305/nutr hosp.v28in06.6967,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6967,no,,,
+PMID:24506369,doi:10.3305/nutr hosp.v28in06.6967,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506370,doi:10.3305/nutr hosp.v28in06.6412,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6412,no,,,
+PMID:24506370,doi:10.3305/nutr hosp.v28in06.6412,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506371,doi:10.3305/nutr hosp.v28in06.6836,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6836,no,,,
+PMID:24506371,doi:10.3305/nutr hosp.v28in06.6836,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506372,doi:10.3305/nutr hosp.v28in06.6850,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6850,no,,,
+PMID:24506372,doi:10.3305/nutr hosp.v28in06.6850,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506373,doi:10.3305/nutr hosp.v28in06.6860,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6860,no,,,
+PMID:24506373,doi:10.3305/nutr hosp.v28in06.6860,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506374,doi:10.3305/nutr hosp.v28in06.6848,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6848,no,,,
+PMID:24506374,doi:10.3305/nutr hosp.v28in06.6848,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506375,doi:10.3305/nutr hosp.v28in06.6859,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6859,no,,,
+PMID:24506375,doi:10.3305/nutr hosp.v28in06.6859,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506376,doi:10.3305/nutr hosp.v28in06.6909,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6909,no,,,
+PMID:24506376,doi:10.3305/nutr hosp.v28in06.6909,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506377,doi:10.3305/nutr hosp.v28in06.6906,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6906,no,,,
+PMID:24506377,doi:10.3305/nutr hosp.v28in06.6906,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506378,doi:10.3305/nutr hosp.v28in06.6910,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6910,no,,,
+PMID:24506378,doi:10.3305/nutr hosp.v28in06.6910,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506379,doi:10.3305/nutr hosp.v28in06.6653,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6653,no,,,
+PMID:24506379,doi:10.3305/nutr hosp.v28in06.6653,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506380,doi:10.3305/nutr hosp.v28in06.6770,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6770,no,,,
+PMID:24506380,doi:10.3305/nutr hosp.v28in06.6770,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506381,doi:10.3305/nutr hosp.v28in06.6691,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6691,no,,,
+PMID:24506381,doi:10.3305/nutr hosp.v28in06.6691,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506382,doi:10.3305/nutr hosp.v28in06.6630,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6630,no,,,
+PMID:24506382,doi:10.3305/nutr hosp.v28in06.6630,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506383,doi:10.3305/nutr hosp.v28in06.6864,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6864,no,,,
+PMID:24506383,doi:10.3305/nutr hosp.v28in06.6864,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506384,doi:10.3305/nutr hosp.v28in06.6851,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6851,no,,,
+PMID:24506384,doi:10.3305/nutr hosp.v28in06.6851,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506385,doi:10.3305/nutr hosp.v28in06.6759,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6759,no,,,
+PMID:24506385,doi:10.3305/nutr hosp.v28in06.6759,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506386,doi:10.3305/nutr hosp.v28in06.6856,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6856,no,,,
+PMID:24506386,doi:10.3305/nutr hosp.v28in06.6856,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506387,doi:10.3305/nutr hosp.v28in06.7013,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.7013,no,,,
+PMID:24506387,doi:10.3305/nutr hosp.v28in06.7013,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506388,doi:10.3305/nutr hosp.v28in06.6940,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6940,no,,,
+PMID:24506388,doi:10.3305/nutr hosp.v28in06.6940,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506389,doi:10.3305/nutr hosp.v28in06.6952,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6952,no,,,
+PMID:24506389,doi:10.3305/nutr hosp.v28in06.6952,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506390,doi:10.3305/nutr hosp.v28in06.6901,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6901,no,,,
+PMID:24506390,doi:10.3305/nutr hosp.v28in06.6901,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506391,doi:10.3305/nutr hosp.v28in06.6480,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6480,no,,,
+PMID:24506391,doi:10.3305/nutr hosp.v28in06.6480,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506392,doi:10.3305/nutr hosp.v28in06.6961,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6961,no,,,
+PMID:24506392,doi:10.3305/nutr hosp.v28in06.6961,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506393,doi:10.3305/nutr hosp.v28in06.6862,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6862,no,,,
+PMID:24506393,doi:10.3305/nutr hosp.v28in06.6862,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506394,doi:10.3305/nutr hosp.v28in06.6902,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6902,no,,,
+PMID:24506394,doi:10.3305/nutr hosp.v28in06.6902,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506395,doi:10.3305/nutr hosp.v28in06.6659,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6659,no,,,
+PMID:24506395,doi:10.3305/nutr hosp.v28in06.6659,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506396,doi:10.3305/nutr hosp.v28in06.6790,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6790,no,,,
+PMID:24506396,doi:10.3305/nutr hosp.v28in06.6790,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506397,doi:10.3305/nutr hosp.v28in06.7063,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.7063,no,,,
+PMID:24506397,doi:10.3305/nutr hosp.v28in06.7063,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506398,doi:10.3305/nutr hosp.v28in06.6748,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6748,no,,,
+PMID:24506398,doi:10.3305/nutr hosp.v28in06.6748,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506399,doi:10.3305/nutr hosp.v28in06.6807,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6807,no,,,
+PMID:24506399,doi:10.3305/nutr hosp.v28in06.6807,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506400,doi:10.3305/nutr hosp.v28in06.6840,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6840,no,,,
+PMID:24506400,doi:10.3305/nutr hosp.v28in06.6840,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506401,doi:10.3305/nutr hosp.v28in06.6648,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6648,no,,,
+PMID:24506401,doi:10.3305/nutr hosp.v28in06.6648,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506402,doi:10.3305/nutr hosp.v28in06.6894,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6894,no,,,
+PMID:24506402,doi:10.3305/nutr hosp.v28in06.6894,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506403,doi:10.3305/nutr hosp.v28in06.6887,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6887,no,,,
+PMID:24506403,doi:10.3305/nutr hosp.v28in06.6887,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506404,doi:10.3305/nutr hosp.v28in06.6751,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6751,no,,,
+PMID:24506404,doi:10.3305/nutr hosp.v28in06.6751,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506405,doi:10.3305/nutr hosp.v28in06.6983,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6983,no,,,
+PMID:24506405,doi:10.3305/nutr hosp.v28in06.6983,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506406,doi:10.3305/nutr hosp.v28in06.6905,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6905,no,,,
+PMID:24506406,doi:10.3305/nutr hosp.v28in06.6905,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506407,doi:10.3305/nutr hosp.v28in06.6880,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6880,no,,,
+PMID:24506407,doi:10.3305/nutr hosp.v28in06.6880,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506408,doi:10.3305/nutr hosp.v28in06.6885,contains ' ',word_gap,join,doi:10.3305/nutrhosp.v28in06.6885,no,,,
+PMID:24506408,doi:10.3305/nutr hosp.v28in06.6885,contains ' ',word_gap,first_token,doi:10.3305/nutr,no,,,
+PMID:24506856,doi:10.3760/cma. j. issn.2095-4352. 2014. 01.012,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.01.012,yes,,,yes
+PMID:24506856,doi:10.3760/cma. j. issn.2095-4352. 2014. 01.012,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24506857,doi:10.3760/cma. j. issn.2095-4352. 2014. 01.013,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.01.013,yes,,,yes
+PMID:24506857,doi:10.3760/cma. j. issn.2095-4352. 2014. 01.013,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24506858,doi:10.3760/cma. j. issn.2095-4352. 2014.01.014,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.01.014,yes,,,yes
+PMID:24506858,doi:10.3760/cma. j. issn.2095-4352. 2014.01.014,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24506859,doi:10.3760/cma. j. issn.2095-4352. 2014. 01.015,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.01.015,yes,,,yes
+PMID:24506859,doi:10.3760/cma. j. issn.2095-4352. 2014. 01.015,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24524395,doi:10.3760/cma. j. issn.2095-4352. 2014. 02.001,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.02.001,yes,,,yes
+PMID:24524395,doi:10.3760/cma. j. issn.2095-4352. 2014. 02.001,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24524396,doi:10.3760/cma. j. issn.2095-4352. 2014. 02.003,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.02.003,yes,,,yes
+PMID:24524396,doi:10.3760/cma. j. issn.2095-4352. 2014. 02.003,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24524406,doi:10.3760/cma. j. issn.2095-4352. 2014. 02.015,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.02.015,yes,,,yes
+PMID:24524406,doi:10.3760/cma. j. issn.2095-4352. 2014. 02.015,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24912646,doi:10.3760/cma. j. issn.2095-4352. 2014. 06.015,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.06.015,yes,,,yes
+PMID:24912646,doi:10.3760/cma. j. issn.2095-4352. 2014. 06.015,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24912648,doi:10.3760/cma. j. issn.2095-4352. 2014. 06.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.06.018,yes,,,yes
+PMID:24912648,doi:10.3760/cma. j. issn.2095-4352. 2014. 06.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:24912649,doi:10.3760/cma. j. issn.2095-4352. 2014. 06.019,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.06.019,yes,,,yes
+PMID:24912649,doi:10.3760/cma. j. issn.2095-4352. 2014. 06.019,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25027432,doi:10.3760/cma. j. issn.2095-4352. 2014. 07.014,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.07.014,yes,,,yes
+PMID:25027432,doi:10.3760/cma. j. issn.2095-4352. 2014. 07.014,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25027433,doi:10.3760/cma. j. issn.2095-4352. 2014. 07.015,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.07.015,yes,,,yes
+PMID:25027433,doi:10.3760/cma. j. issn.2095-4352. 2014. 07.015,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25027434,doi:10.3760/cma. j. issn.2095-4352. 2014. 07.016,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.07.016,yes,,,yes
+PMID:25027434,doi:10.3760/cma. j. issn.2095-4352. 2014. 07.016,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25027435,doi:10.3760/cma. j. issn.2095-4352. 2014. 07.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.07.017,yes,,,yes
+PMID:25027435,doi:10.3760/cma. j. issn.2095-4352. 2014. 07.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25027436,doi:10.3760/cma. j. issn.2095-4352. 2014. 07.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.07.018,yes,,,yes
+PMID:25027436,doi:10.3760/cma. j. issn.2095-4352. 2014. 07.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25124912,doi:10.3760/cma. j. issn.2095-4352. 2014. 08.015,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.08.015,yes,,,yes
+PMID:25124912,doi:10.3760/cma. j. issn.2095-4352. 2014. 08.015,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25124913,doi:10.3760/cma. j. issn.2095-4352. 2014. 08.016,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.08.016,yes,,,yes
+PMID:25124913,doi:10.3760/cma. j. issn.2095-4352. 2014. 08.016,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25124914,doi:10.3760/cma. j. issn.2095-4352. 2014. 08.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.08.017,yes,,,yes
+PMID:25124914,doi:10.3760/cma. j. issn.2095-4352. 2014. 08.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25124915,doi:10.3760/cma. j. issn.2095-4352. 2014. 08.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.08.018,yes,,,yes
+PMID:25124915,doi:10.3760/cma. j. issn.2095-4352. 2014. 08.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25124916,doi:10.3760/cma. j. issn.2095-4352. 2014. 08.019,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.08.019,yes,,,yes
+PMID:25124916,doi:10.3760/cma. j. issn.2095-4352. 2014. 08.019,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25124917,doi:10.3760/cma. j. issn.2095-4352. 2014. 08.020,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.08.020,yes,,,yes
+PMID:25124917,doi:10.3760/cma. j. issn.2095-4352. 2014. 08.020,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25124918,doi:10.3760/cma. j. issn.2095-4352. 2014. 08.021,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.08.021,yes,,,yes
+PMID:25124918,doi:10.3760/cma. j. issn.2095-4352. 2014. 08.021,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25124919,doi:10.3760/cma. j. issn.2095-4352. 2014. 08.022,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.08.022,yes,,,yes
+PMID:25124919,doi:10.3760/cma. j. issn.2095-4352. 2014. 08.022,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25178175,doi:10.2332/allergolint. 14-RAI-0766,contains ' ',punctuation_gap,join,doi:10.2332/allergolint.14-RAI-0766,yes,,PMID:28942927,
+PMID:25178175,doi:10.2332/allergolint. 14-RAI-0766,contains ' ',punctuation_gap,first_token,doi:10.2332/allergolint,no,,,
+PMID:25230875,doi:10.3760/cma. j. issn.2095-4352. 2014. 09.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.09.017,yes,,,yes
+PMID:25230875,doi:10.3760/cma. j. issn.2095-4352. 2014. 09.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25315952,doi:10.3760/cma. j. issn.2095-4352. 2014. 10.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.10.018,yes,,,yes
+PMID:25315952,doi:10.3760/cma. j. issn.2095-4352. 2014. 10.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25315953,doi:10.3760/cma. j. issn.2095-4352. 2014. 10.019,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.10.019,yes,,,yes
+PMID:25315953,doi:10.3760/cma. j. issn.2095-4352. 2014. 10.019,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25315954,doi:10.3760/cma. j. issn.2095-4352. 2014. 10.021,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.10.021,yes,,,yes
+PMID:25315954,doi:10.3760/cma. j. issn.2095-4352. 2014. 10.021,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25315955,doi:10.3760/cma. j. issn.2095-4352. 2014. 10.022,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.10.022,yes,,,yes
+PMID:25315955,doi:10.3760/cma. j. issn.2095-4352. 2014. 10.022,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25315956,doi:10.3760/cma. j. issn.2095-4352. 2014. 10.023,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.10.023,yes,,,yes
+PMID:25315956,doi:10.3760/cma. j. issn.2095-4352. 2014. 10.023,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25315957,doi:10.3760/cma. j. issn.2095-4352. 2014. 10.024,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.10.024,yes,,,yes
+PMID:25315957,doi:10.3760/cma. j. issn.2095-4352. 2014. 10.024,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25399904,doi:10.3760/cma. j. issn.2095-4352. 2014. 11.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.11.017,yes,,,yes
+PMID:25399904,doi:10.3760/cma. j. issn.2095-4352. 2014. 11.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25399905,doi:10.3760/cma. j. issn.2095-4352. 2014. 11.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.11.018,yes,,,yes
+PMID:25399905,doi:10.3760/cma. j. issn.2095-4352. 2014. 11.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25476090,doi:10.3760/cma. j. issn.2095-4352. 2014. 12.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.12.017,yes,,,yes
+PMID:25476090,doi:10.3760/cma. j. issn.2095-4352. 2014. 12.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25476091,doi:10.3760/cma. j. issn.2095-4352. 2014. 12.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.12.018,yes,,,yes
+PMID:25476091,doi:10.3760/cma. j. issn.2095-4352. 2014. 12.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25476092,doi:10.3760/cma. j. issn.2095-4352. 2014. 12.019,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.12.019,yes,,,yes
+PMID:25476092,doi:10.3760/cma. j. issn.2095-4352. 2014. 12.019,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25591443,doi:10.3760/cma. j. issn.2095-4352. 2015. 01.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.01.017,yes,,,yes
+PMID:25591443,doi:10.3760/cma. j. issn.2095-4352. 2015. 01.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25591444,doi:10.3760/cma. j. issn.2095-4352. 2014. 12.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2014.12.018,yes,,,yes
+PMID:25591444,doi:10.3760/cma. j. issn.2095-4352. 2014. 12.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25665619,doi:10.3760/cma. j. issn.2095-4352.2015.02.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.02.017,yes,,,yes
+PMID:25665619,doi:10.3760/cma. j. issn.2095-4352.2015.02.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25665620,doi:10.3760/cma. j. issn.2095-4352.2015.02.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.02.018,yes,,,yes
+PMID:25665620,doi:10.3760/cma. j. issn.2095-4352.2015.02.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25757978,doi:10.3760/cma. j. issn.2095-4352.2015.03.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.03.017,yes,,,yes
+PMID:25757978,doi:10.3760/cma. j. issn.2095-4352.2015.03.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25757979,doi:10.3760/cma. j. issn.2095-4352.2015.03.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.03.018,yes,,,yes
+PMID:25757979,doi:10.3760/cma. j. issn.2095-4352.2015.03.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25757980,doi:10.3760/cma. j. issn.2095-4352.2015.03.019,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.03.019,yes,,,yes
+PMID:25757980,doi:10.3760/cma. j. issn.2095-4352.2015.03.019,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25757981,doi:10.3760/cma. j. issn.2095-4352.2015.03.020,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.03.020,yes,,,yes
+PMID:25757981,doi:10.3760/cma. j. issn.2095-4352.2015.03.020,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25891464,doi:10.3760/cma. j. issn.2095-4352.2015.04.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.04.017,yes,,,yes
+PMID:25891464,doi:10.3760/cma. j. issn.2095-4352.2015.04.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25891465,doi:10.3760/cma. j. issn.2095-4352.2015.04.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.04.018,yes,,,yes
+PMID:25891465,doi:10.3760/cma. j. issn.2095-4352.2015.04.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25891466,doi:10.3760/cma. j. issn.2095-4352.2015.04.019,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.04.019,yes,,,yes
+PMID:25891466,doi:10.3760/cma. j. issn.2095-4352.2015.04.019,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25891467,doi:10.3760/cma. j. issn.2095-4352.2015.04.020,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.04.020,yes,,,yes
+PMID:25891467,doi:10.3760/cma. j. issn.2095-4352.2015.04.020,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25891468,doi:10.3760/cma. j. issn.2095-4352.2015.04.021,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.04.021,yes,,,yes
+PMID:25891468,doi:10.3760/cma. j. issn.2095-4352.2015.04.021,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25891469,doi:10.3760/cma. j. issn.2095-4352.2015.04.022,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.04.022,yes,,,yes
+PMID:25891469,doi:10.3760/cma. j. issn.2095-4352.2015.04.022,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:25891470,doi:10.3760/cma. j. issn.2095-4352.2015.04.023,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.04.023,yes,,,yes
+PMID:25891470,doi:10.3760/cma. j. issn.2095-4352.2015.04.023,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26003157,doi:10.1331/JAPhA. 2015.14102,contains ' ',punctuation_gap,join,doi:10.1331/JAPhA.2015.14102,yes,,PMID:25815460,
+PMID:26003157,doi:10.1331/JAPhA. 2015.14102,contains ' ',punctuation_gap,first_token,doi:10.1331/JAPhA,no,,,
+PMID:26003649,doi:10.3760/cma. j. issn.2095-4352.2015.05.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.05.017,yes,,,yes
+PMID:26003649,doi:10.3760/cma. j. issn.2095-4352.2015.05.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26003650,doi:10.3760/cma. j. issn.2095-4352.2015.05.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.05.018,yes,,,yes
+PMID:26003650,doi:10.3760/cma. j. issn.2095-4352.2015.05.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26003651,doi:10.3760/cma. j. issn.2095-4352.2015.05.019,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.05.019,yes,,,yes
+PMID:26003651,doi:10.3760/cma. j. issn.2095-4352.2015.05.019,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26049193,doi:10.3760/cma. j. issn.2095-4352.2015.06.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.06.018,yes,,,yes
+PMID:26049193,doi:10.3760/cma. j. issn.2095-4352.2015.06.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26049194,doi:10.3760/cma. j. issn.2095-4352.2015.06.019,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.06.019,yes,,,yes
+PMID:26049194,doi:10.3760/cma. j. issn.2095-4352.2015.06.019,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26049195,doi:10.3760/cma. j. issn.2095-4352.2015.06.020,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.06.020,yes,,,yes
+PMID:26049195,doi:10.3760/cma. j. issn.2095-4352.2015.06.020,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26049196,doi:10.3760/cma. j. issn.2095-4352.2015.06.021,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.06.021,yes,,,yes
+PMID:26049196,doi:10.3760/cma. j. issn.2095-4352.2015.06.021,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26049197,doi:10.3760/cma. j. issn.2095-4352.2015.06.022,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.06.022,yes,,,yes
+PMID:26049197,doi:10.3760/cma. j. issn.2095-4352.2015.06.022,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26049198,doi:10.3760/cma. j. issn.2095-4352.2015.06.023,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.06.023,yes,,,yes
+PMID:26049198,doi:10.3760/cma. j. issn.2095-4352.2015.06.023,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26049199,doi:10.3760/cma. j. issn.2095-4352.2015.06.024,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.06.024,yes,,,yes
+PMID:26049199,doi:10.3760/cma. j. issn.2095-4352.2015.06.024,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26049200,doi:10.3760/cma. j. issn.2095-4352.2015.06.025,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.06.025,yes,,,yes
+PMID:26049200,doi:10.3760/cma. j. issn.2095-4352.2015.06.025,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26049201,doi:10.3760/cma. j. issn.2095-4352.2015.06.026,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.06.026,yes,,,yes
+PMID:26049201,doi:10.3760/cma. j. issn.2095-4352.2015.06.026,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26049202,doi:10.3760/cma. j. issn.2095-4352.2015.06.027,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.06.027,yes,,,yes
+PMID:26049202,doi:10.3760/cma. j. issn.2095-4352.2015.06.027,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26138429,doi:10.3760/cma. j. issn.2095-4352.2015.07.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.07.017,yes,,,yes
+PMID:26138429,doi:10.3760/cma. j. issn.2095-4352.2015.07.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26138430,doi:10.3760/cma. j. issn.2095-4352.2015.07.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.07.018,yes,,,yes
+PMID:26138430,doi:10.3760/cma. j. issn.2095-4352.2015.07.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26255023,doi:10.3760/cma. j. issn.2095-4352.2015.08.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.08.017,yes,,,yes
+PMID:26255023,doi:10.3760/cma. j. issn.2095-4352.2015.08.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26255024,doi:10.3760/cma. j. issn.2095-4352.2015.08.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.08.018,yes,,,yes
+PMID:26255024,doi:10.3760/cma. j. issn.2095-4352.2015.08.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:26280178,doi:10.3934/mbe.2015.12. 1037,contains ' ',punctuation_gap,join,doi:10.3934/mbe.2015.12.1037,yes,,,yes
+PMID:26280178,doi:10.3934/mbe.2015.12. 1037,contains ' ',punctuation_gap,first_token,doi:10.3934/mbe.2015.12,no,,,
+PMID:26288211,doi:10.17116/otorino20158 0350-53,contains ' ',word_gap,join,doi:10.17116/otorino201580350-53,yes,,,yes
+PMID:26288211,doi:10.17116/otorino20158 0350-53,contains ' ',word_gap,first_token,doi:10.17116/otorino20158,no,,,
+PMID:26331162,doi:10.17116/otorino20158 0371-74,contains ' ',word_gap,join,doi:10.17116/otorino201580371-74,yes,,,yes
+PMID:26331162,doi:10.17116/otorino20158 0371-74,contains ' ',word_gap,first_token,doi:10.17116/otorino20158,no,,,
+PMID:26331163,doi:10.17116/otorino20158 0375-79,contains ' ',word_gap,join,doi:10.17116/otorino201580375-79,yes,,,yes
+PMID:26331163,doi:10.17116/otorino20158 0375-79,contains ' ',word_gap,first_token,doi:10.17116/otorino20158,no,,,
+PMID:26331165,doi:10.17116/otorino20158 0380-85,contains ' ',word_gap,join,doi:10.17116/otorino201580380-85,yes,,,yes
+PMID:26331165,doi:10.17116/otorino20158 0380-85,contains ' ',word_gap,first_token,doi:10.17116/otorino20158,no,,,
+PMID:26632458,doi:10.3760/cma.j.issn.0253-2727.2015.11 .001,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.0253-2727.2015.11.001,yes,,,yes
+PMID:26632458,doi:10.3760/cma.j.issn.0253-2727.2015.11 .001,contains ' ',punctuation_gap,first_token,doi:10.3760/cma.j.issn.0253-2727.2015.11,no,,,
+PMID:26649343,doi:10.11152/mu.2013.2066.174. w,contains ' ',punctuation_gap,join,doi:10.11152/mu.2013.2066.174.w,no,,,
+PMID:26649343,doi:10.11152/mu.2013.2066.174. w,contains ' ',punctuation_gap,first_token,doi:10.11152/mu.2013.2066.174,yes,,,
+PMID:26746016,doi:10.1167/ iovs.15-17652,contains ' ',punctuation_gap,join,doi:10.1167/iovs.15-17652,no,,,
+PMID:26962564,doi:10.11152/mu.2013.2066.181. ffz,contains ' ',trailing_text,join,doi:10.11152/mu.2013.2066.181.ffz,yes,,,yes
+PMID:26962564,doi:10.11152/mu.2013.2066.181. ffz,contains ' ',trailing_text,first_token,doi:10.11152/mu.2013.2066.181,yes,,,
+PMID:27294576,doi:10.3760/cma. j. issn.2095-4352.2015.09.017,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.09.017,yes,,,yes
+PMID:27294576,doi:10.3760/cma. j. issn.2095-4352.2015.09.017,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:27294577,doi:10.3760/cma. j. issn.2095-4352.2015.09.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.09.018,yes,,,yes
+PMID:27294577,doi:10.3760/cma. j. issn.2095-4352.2015.09.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:27318351,doi:10.3760/cma. j. issn.2095-4352.2015.12.018,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.issn.2095-4352.2015.12.018,yes,,,yes
+PMID:27318351,doi:10.3760/cma. j. issn.2095-4352.2015.12.018,contains ' ',punctuation_gap,first_token,doi:10.3760/cma,no,,,
+PMID:27894395,doi:10.14715/cmb/ 2016.62.12.4,contains ' ',punctuation_gap,join,doi:10.14715/cmb/2016.62.12.4,no,,,
+PMID:27894395,doi:10.14715/cmb/ 2016.62.12.4,contains ' ',punctuation_gap,first_token,doi:10.14715/cmb/,yes,,,
+PMID:28145851,doi:10.14715/cmb/ 2016.62.14.1,contains ' ',punctuation_gap,join,doi:10.14715/cmb/2016.62.14.1,yes,,,yes
+PMID:28145851,doi:10.14715/cmb/ 2016.62.14.1,contains ' ',punctuation_gap,first_token,doi:10.14715/cmb/,yes,,,
+PMID:28145852,doi:10.14715/cmb/ 2016.62.14.2,contains ' ',punctuation_gap,join,doi:10.14715/cmb/2016.62.14.2,yes,,,yes
+PMID:28145852,doi:10.14715/cmb/ 2016.62.14.2,contains ' ',punctuation_gap,first_token,doi:10.14715/cmb/,yes,,,
+PMID:28145853,doi:10.14715/cmb/ 2016.62.14.4,contains ' ',punctuation_gap,join,doi:10.14715/cmb/2016.62.14.4,yes,,,yes
+PMID:28145853,doi:10.14715/cmb/ 2016.62.14.4,contains ' ',punctuation_gap,first_token,doi:10.14715/cmb/,yes,,,
+PMID:28145854,doi:10.14715/cmb/ 2016.62.14.5,contains ' ',punctuation_gap,join,doi:10.14715/cmb/2016.62.14.5,yes,,,yes
+PMID:28145854,doi:10.14715/cmb/ 2016.62.14.5,contains ' ',punctuation_gap,first_token,doi:10.14715/cmb/,yes,,,
+PMID:28145855,doi:10.14715/cmb/ 2016.62.14.6,contains ' ',punctuation_gap,join,doi:10.14715/cmb/2016.62.14.6,yes,,,yes
+PMID:28145855,doi:10.14715/cmb/ 2016.62.14.6,contains ' ',punctuation_gap,first_token,doi:10.14715/cmb/,yes,,,
+PMID:28145856,doi:10.14715/cmb/ 2016.62.14.8,contains ' ',punctuation_gap,join,doi:10.14715/cmb/2016.62.14.8,yes,,,yes
+PMID:28145856,doi:10.14715/cmb/ 2016.62.14.8,contains ' ',punctuation_gap,first_token,doi:10.14715/cmb/,yes,,,
+PMID:28145857,doi:10.14715/cmb/ 2016.62.14.9,contains ' ',punctuation_gap,join,doi:10.14715/cmb/2016.62.14.9,yes,,,yes
+PMID:28145857,doi:10.14715/cmb/ 2016.62.14.9,contains ' ',punctuation_gap,first_token,doi:10.14715/cmb/,yes,,,
+PMID:28145858,doi:10.14715/cmb/ 2016.62.14.10,contains ' ',punctuation_gap,join,doi:10.14715/cmb/2016.62.14.10,yes,,,yes
+PMID:28145858,doi:10.14715/cmb/ 2016.62.14.10,contains ' ',punctuation_gap,first_token,doi:10.14715/cmb/,yes,,,
+PMID:28145859,doi:10.14715/cmb/ 2016.62.14.12,contains ' ',punctuation_gap,join,doi:10.14715/cmb/2016.62.14.12,yes,,,yes
+PMID:28145859,doi:10.14715/cmb/ 2016.62.14.12,contains ' ',punctuation_gap,first_token,doi:10.14715/cmb/,yes,,,
+PMID:28145860,doi:10.14715/cmb/ 2016.62.14.13,contains ' ',punctuation_gap,join,doi:10.14715/cmb/2016.62.14.13,yes,,,yes
+PMID:28145860,doi:10.14715/cmb/ 2016.62.14.13,contains ' ',punctuation_gap,first_token,doi:10.14715/cmb/,yes,,,
+PMID:28145861,doi:10.14715/cmb/ 2016.62.14.3,contains ' ',punctuation_gap,join,doi:10.14715/cmb/2016.62.14.3,yes,,,yes
+PMID:28145861,doi:10.14715/cmb/ 2016.62.14.3,contains ' ',punctuation_gap,first_token,doi:10.14715/cmb/,yes,,,
+PMID:28145862,doi:10.14715/cmb/ 2016.62.14.11,contains ' ',punctuation_gap,join,doi:10.14715/cmb/2016.62.14.11,yes,,,yes
+PMID:28145862,doi:10.14715/cmb/ 2016.62.14.11,contains ' ',punctuation_gap,first_token,doi:10.14715/cmb/,yes,,,
+PMID:28145863,doi:10.14715/cmb/ 2016.62.14.7,contains ' ',punctuation_gap,join,doi:10.14715/cmb/2016.62.14.7,yes,,,yes
+PMID:28145863,doi:10.14715/cmb/ 2016.62.14.7,contains ' ',punctuation_gap,first_token,doi:10.14715/cmb/,yes,,,
+PMID:28178026,doi:10.11124/JBISRIR-2016- 003277,contains ' ',punctuation_gap,join,doi:10.11124/JBISRIR-2016-003277,yes,,,yes
+PMID:28178026,doi:10.11124/JBISRIR-2016- 003277,contains ' ',punctuation_gap,first_token,doi:10.11124/JBISRIR-2016-,no,,,
+PMID:28245408,doi:10.7534/j.issn.1009-2137.2017.01. 042,contains ' ',punctuation_gap,join,doi:10.7534/j.issn.1009-2137.2017.01.042,no,,,
+PMID:28245408,doi:10.7534/j.issn.1009-2137.2017.01. 042,contains ' ',punctuation_gap,first_token,doi:10.7534/j.issn.1009-2137.2017.01,no,,,
+PMID:28260475,doi:10.6002/ect.mesot2016.p112,contains '\x7f',no_whitespace,join,doi:10.6002/ect.mesot2016.p112,yes,,,yes
+PMID:28260475,doi:10.6002/ect.mesot2016.p112,contains '\x7f',no_whitespace,first_token,doi:10.6002/ect.mesot2016.p112,no,,,
+PMID:28306395,doi:10.3171/jns.2004.101.supplement 3.0325,contains ' ',word_gap,join,doi:10.3171/jns.2004.101.supplement3.0325,no,,,
+PMID:28306395,doi:10.3171/jns.2004.101.supplement 3.0325,contains ' ',word_gap,first_token,doi:10.3171/jns.2004.101.supplement,no,,,
+PMID:28327489,doi:10.23750/abm.v88i1 -S.6278,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i1-S.6278,no,,,
+PMID:28327489,doi:10.23750/abm.v88i1 -S.6278,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i1,no,,,
+PMID:28327490,doi:10.23750/abm.v88i1 -S.6279,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i1-S.6279,no,,,
+PMID:28327490,doi:10.23750/abm.v88i1 -S.6279,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i1,no,,,
+PMID:28327491,doi:10.23750/abm.v88i1 -S.6280,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i1-S.6280,no,,,
+PMID:28327491,doi:10.23750/abm.v88i1 -S.6280,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i1,no,,,
+PMID:28327492,doi:10.23750/abm.v88i1 -S.6281,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i1-S.6281,no,,,
+PMID:28327492,doi:10.23750/abm.v88i1 -S.6281,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i1,no,,,
+PMID:28327493,doi:10.23750/abm.v88i1 -S.6282,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i1-S.6282,no,,,
+PMID:28327493,doi:10.23750/abm.v88i1 -S.6282,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i1,no,,,
+PMID:28327494,doi:10.23750/abm.v88i1 -S.6283,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i1-S.6283,no,,,
+PMID:28327494,doi:10.23750/abm.v88i1 -S.6283,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i1,no,,,
+PMID:28327495,doi:10.23750/abm.v88i1 -S.6156,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i1-S.6156,no,,,
+PMID:28327495,doi:10.23750/abm.v88i1 -S.6156,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i1,no,,,
+PMID:28327496,doi:10.23750/abm.v88i1 -S.6284,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i1-S.6284,no,,,
+PMID:28327496,doi:10.23750/abm.v88i1 -S.6284,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i1,no,,,
+PMID:28327497,doi:10.23750/abm.v88i1 -S.6285,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i1-S.6285,no,,,
+PMID:28327497,doi:10.23750/abm.v88i1 -S.6285,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i1,no,,,
+PMID:28508600,doi:10.17458/per.vol14.2017.SR.endocrinedisorderscranio pharyngioma,contains ' ',trailing_text,join,doi:10.17458/per.vol14.2017.SR.endocrinedisorderscraniopharyngioma,yes,,,yes
+PMID:28508600,doi:10.17458/per.vol14.2017.SR.endocrinedisorderscranio pharyngioma,contains ' ',trailing_text,first_token,doi:10.17458/per.vol14.2017.SR.endocrinedisorderscranio,no,,,
+PMID:28625036,doi:10.6133/ apjcn.062017.s4,contains ' ',punctuation_gap,join,doi:10.6133/apjcn.062017.s4,yes,,,yes
+PMID:28657558,doi:10.23750/abm.v88i2 -S.6506,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6506,no,,,
+PMID:28657558,doi:10.23750/abm.v88i2 -S.6506,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657559,doi:10.23750/abm.v88i2 -S.6508,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6508,no,,,
+PMID:28657559,doi:10.23750/abm.v88i2 -S.6508,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657560,doi:10.23750/abm.v88i2 -S.6507,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6507,no,,,
+PMID:28657560,doi:10.23750/abm.v88i2 -S.6507,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657561,doi:10.23750/abm.v88i2 -S.6509,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6509,no,,,
+PMID:28657561,doi:10.23750/abm.v88i2 -S.6509,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657562,doi:10.23750/abm.v88i2 -S.6511,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6511,no,,,
+PMID:28657562,doi:10.23750/abm.v88i2 -S.6511,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657563,doi:10.23750/abm.v88i2 -S.6510,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6510,no,,,
+PMID:28657563,doi:10.23750/abm.v88i2 -S.6510,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657564,doi:10.23750/abm.v88i2 -S.6513,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6513,no,,,
+PMID:28657564,doi:10.23750/abm.v88i2 -S.6513,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657565,doi:10.23750/abm.v88i2 -S.6514,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6514,no,,,
+PMID:28657565,doi:10.23750/abm.v88i2 -S.6514,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657566,doi:10.23750/abm.v88i2 -S.6515,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6515,no,,,
+PMID:28657566,doi:10.23750/abm.v88i2 -S.6515,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657567,doi:10.23750/abm.v88i2 -S.6516,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6516,no,,,
+PMID:28657567,doi:10.23750/abm.v88i2 -S.6516,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657568,doi:10.23750/abm.v88i2 -S.6517,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6517,no,,,
+PMID:28657568,doi:10.23750/abm.v88i2 -S.6517,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657569,doi:10.23750/abm.v88i2 -S.6518,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6518,no,,,
+PMID:28657569,doi:10.23750/abm.v88i2 -S.6518,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657570,doi:10.23750/abm.v88i2 -S.6519,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6519,no,,,
+PMID:28657570,doi:10.23750/abm.v88i2 -S.6519,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657571,doi:10.23750/abm.v88i2 -S.6520,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6520,no,,,
+PMID:28657571,doi:10.23750/abm.v88i2 -S.6520,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657572,doi:10.23750/abm.v88i2 -S.6521,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6521,no,,,
+PMID:28657572,doi:10.23750/abm.v88i2 -S.6521,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657573,doi:10.23750/abm.v88i2 -S.6522,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6522,no,,,
+PMID:28657573,doi:10.23750/abm.v88i2 -S.6522,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657574,doi:10.23750/abm.v88i2 -S.6523,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6523,no,,,
+PMID:28657574,doi:10.23750/abm.v88i2 -S.6523,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28657575,doi:10.23750/abm.v88i2 -S.6524,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i2-S.6524,no,,,
+PMID:28657575,doi:10.23750/abm.v88i2 -S.6524,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i2,no,,,
+PMID:28752827,doi:10.23750/abm.v88i3 -S.6608,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i3-S.6608,no,,,
+PMID:28752827,doi:10.23750/abm.v88i3 -S.6608,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i3,no,,,
+PMID:28752828,doi:10.23750/abm.v88i3 -S.6609,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i3-S.6609,no,,,
+PMID:28752828,doi:10.23750/abm.v88i3 -S.6609,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i3,no,,,
+PMID:28752829,doi:10.23750/abm.v88i3 -S.6610,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i3-S.6610,no,,,
+PMID:28752829,doi:10.23750/abm.v88i3 -S.6610,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i3,no,,,
+PMID:28752830,doi:10.23750/abm.v88i3 -S.6611,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i3-S.6611,no,,,
+PMID:28752830,doi:10.23750/abm.v88i3 -S.6611,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i3,no,,,
+PMID:28752831,doi:10.23750/abm.v88i3 -S.6612,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i3-S.6612,no,,,
+PMID:28752831,doi:10.23750/abm.v88i3 -S.6612,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i3,no,,,
+PMID:28752832,doi:10.23750/abm.v88i3 -S.6613,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i3-S.6613,no,,,
+PMID:28752832,doi:10.23750/abm.v88i3 -S.6613,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i3,no,,,
+PMID:28752833,doi:10.23750/abm.v88i3 -S.6614,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i3-S.6614,no,,,
+PMID:28752833,doi:10.23750/abm.v88i3 -S.6614,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i3,no,,,
+PMID:28752834,doi:10.23750/abm.v88i3 -S.6615,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i3-S.6615,no,,,
+PMID:28752834,doi:10.23750/abm.v88i3 -S.6615,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i3,no,,,
+PMID:28752835,doi:10.23750/abm.v88i3 -S.6616,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i3-S.6616,no,,,
+PMID:28752835,doi:10.23750/abm.v88i3 -S.6616,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i3,no,,,
+PMID:28886314,doi:10.14715/KLF1; Fetal hemoglobin; Globin genes; Variations.,contains ' ',trailing_text,join,doi:10.14715/KLF1;Fetalhemoglobin;Globingenes;Variations.,no,,,
+PMID:28886314,doi:10.14715/KLF1; Fetal hemoglobin; Globin genes; Variations.,contains ' ',trailing_text,first_token,doi:10.14715/KLF1,no,,,
+PMID:28922308,doi:10.1097/ICB.000000000000037 1,contains ' ',word_gap,join,doi:10.1097/ICB.0000000000000371,yes,,PMID:27508422,
+PMID:28922308,doi:10.1097/ICB.000000000000037 1,contains ' ',word_gap,first_token,doi:10.1097/ICB.000000000000037,no,,,
+PMID:29083347,doi:10.23750/abm.v88i4 -S.6788,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6788,no,,,
+PMID:29083347,doi:10.23750/abm.v88i4 -S.6788,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083348,doi:10.23750/abm.v88i4 -S.6789,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6789,no,,,
+PMID:29083348,doi:10.23750/abm.v88i4 -S.6789,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083349,doi:10.23750/abm.v88i4 -S.6790,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6790,no,,,
+PMID:29083349,doi:10.23750/abm.v88i4 -S.6790,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083350,doi:10.23750/abm.v88i4 -S.6791,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6791,no,,,
+PMID:29083350,doi:10.23750/abm.v88i4 -S.6791,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083351,doi:10.23750/abm.v88i4 -S.6792,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6792,no,,,
+PMID:29083351,doi:10.23750/abm.v88i4 -S.6792,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083352,doi:10.23750/abm.v88i4 -S.6793,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6793,no,,,
+PMID:29083352,doi:10.23750/abm.v88i4 -S.6793,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083353,doi:10.23750/abm.v88i4 -S.6794,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6794,no,,,
+PMID:29083353,doi:10.23750/abm.v88i4 -S.6794,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083354,doi:10.23750/abm.v88i4 -S.5154,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.5154,no,,,
+PMID:29083354,doi:10.23750/abm.v88i4 -S.5154,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083355,doi:10.23750/abm.v88i4 -S.6795,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6795,no,,,
+PMID:29083355,doi:10.23750/abm.v88i4 -S.6795,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083356,doi:10.23750/abm.v88i4 -S.6796,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6796,no,,,
+PMID:29083356,doi:10.23750/abm.v88i4 -S.6796,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083357,doi:10.23750/abm.v88i4 -S.6797,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6797,no,,,
+PMID:29083357,doi:10.23750/abm.v88i4 -S.6797,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083358,doi:10.23750/abm.v88i4 -S.6798,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6798,no,,,
+PMID:29083358,doi:10.23750/abm.v88i4 -S.6798,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083359,doi:10.23750/abm.v88i4 -S.6799,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6799,no,,,
+PMID:29083359,doi:10.23750/abm.v88i4 -S.6799,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083360,doi:10.23750/abm.v88i4 -S.6800,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6800,no,,,
+PMID:29083360,doi:10.23750/abm.v88i4 -S.6800,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083361,doi:10.23750/abm.v88i4 -S.6801,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6801,no,,,
+PMID:29083361,doi:10.23750/abm.v88i4 -S.6801,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083362,doi:10.23750/abm.v88i4 -S.6802,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6802,no,,,
+PMID:29083362,doi:10.23750/abm.v88i4 -S.6802,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083363,doi:10.23750/abm.v88i4 -S.6803,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6803,no,,,
+PMID:29083363,doi:10.23750/abm.v88i4 -S.6803,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:29083364,doi:10.23750/abm.v88i4 -S.6804,contains ' ',punctuation_gap,join,doi:10.23750/abm.v88i4-S.6804,no,,,
+PMID:29083364,doi:10.23750/abm.v88i4 -S.6804,contains ' ',punctuation_gap,first_token,doi:10.23750/abm.v88i4,no,,,
+PMID:30369471,doi:10.16288/j.yczz. 18-194,contains ' ',punctuation_gap,join,doi:10.16288/j.yczz.18-194,yes,,,yes
+PMID:30369471,doi:10.16288/j.yczz. 18-194,contains ' ',punctuation_gap,first_token,doi:10.16288/j.yczz,yes,,,
+PMID:30720955,doi:10.18821/0869-2084 -2018-63-7-410-413,contains ' ',punctuation_gap,join,doi:10.18821/0869-2084-2018-63-7-410-413,no,,,
+PMID:30720955,doi:10.18821/0869-2084 -2018-63-7-410-413,contains ' ',punctuation_gap,first_token,doi:10.18821/0869-2084,yes,,,
+PMID:30995952,doi:10.3238/arztebl. 2019.0159,contains ' ',punctuation_gap,join,doi:10.3238/arztebl.2019.0159,yes,,,yes
+PMID:30995952,doi:10.3238/arztebl. 2019.0159,contains ' ',punctuation_gap,first_token,doi:10.3238/arztebl,no,,,
+PMID:31094170,doi:10.26442/ 00403660.2019.02.000073,contains ' ',punctuation_gap,join,doi:10.26442/00403660.2019.02.000073,yes,,,yes
+PMID:31094171,doi:10.26442/ 00403660.2019.02.000105,contains ' ',punctuation_gap,join,doi:10.26442/00403660.2019.02.000105,yes,,PMID:32598624,
+PMID:31175718,doi:10.12932/ 10.12932/AP-031218-0452,contains ' ',punctuation_gap,join,doi:10.12932/10.12932/AP-031218-0452,no,,,
+PMID:31175718,doi:10.12932/ 10.12932/AP-031218-0452,contains ' ',punctuation_gap,last_token,doi:10.12932/AP-031218-0452,yes,,,
+PMID:31207675,doi:10.31128/ AJGP-03-18-4539,contains ' ',punctuation_gap,join,doi:10.31128/AJGP-03-18-4539,yes,,,yes
+PMID:31210441,doi:10.22074/ cellj.2019.6053,contains ' ',punctuation_gap,join,doi:10.22074/cellj.2019.6053,yes,,,yes
+PMID:31288907,doi:10.3238/arztebl. 2019.0335a,contains ' ',punctuation_gap,join,doi:10.3238/arztebl.2019.0335a,yes,,,yes
+PMID:31288907,doi:10.3238/arztebl. 2019.0335a,contains ' ',punctuation_gap,first_token,doi:10.3238/arztebl,no,,,
+PMID:31380813,doi:10.17712/nsj.2019.3. 20190045,contains ' ',punctuation_gap,join,doi:10.17712/nsj.2019.3.20190045,yes,,,yes
+PMID:31380813,doi:10.17712/nsj.2019.3. 20190045,contains ' ',punctuation_gap,first_token,doi:10.17712/nsj.2019.3,no,,,
+PMID:31465033,doi:10.11607/ofph.INSERT 4 DIGIT DOI,contains ' ',trailing_text,join,doi:10.11607/ofph.INSERT4DIGITDOI,no,,,
+PMID:31465033,doi:10.11607/ofph.INSERT 4 DIGIT DOI,contains ' ',trailing_text,first_token,doi:10.11607/ofph.INSERT,no,,,
+PMID:31507147,doi:10.4274/mirt.galenos .2018.59251,contains ' ',punctuation_gap,join,doi:10.4274/mirt.galenos.2018.59251,yes,,,yes
+PMID:31507147,doi:10.4274/mirt.galenos .2018.59251,contains ' ',punctuation_gap,first_token,doi:10.4274/mirt.galenos,no,,,
+PMID:31855523,doi:10.12968/jowc.2020.29.LatAm sup 1.32,contains ' ',trailing_text,join,doi:10.12968/jowc.2020.29.LatAmsup1.32,no,,,
+PMID:31855523,doi:10.12968/jowc.2020.29.LatAm sup 1.32,contains ' ',trailing_text,first_token,doi:10.12968/jowc.2020.29.LatAm,no,,,
+PMID:31855524,doi:10.12968/jowc.2020.29.LatAm sup 1.1,contains ' ',trailing_text,join,doi:10.12968/jowc.2020.29.LatAmsup1.1,no,,,
+PMID:31855524,doi:10.12968/jowc.2020.29.LatAm sup 1.1,contains ' ',trailing_text,first_token,doi:10.12968/jowc.2020.29.LatAm,no,,,
+PMID:31855525,doi:10.12968/jowc.2020.29.LatAm sup 1.27,contains ' ',trailing_text,join,doi:10.12968/jowc.2020.29.LatAmsup1.27,no,,,
+PMID:31855525,doi:10.12968/jowc.2020.29.LatAm sup 1.27,contains ' ',trailing_text,first_token,doi:10.12968/jowc.2020.29.LatAm,no,,,
+PMID:32103798,doi:10.20529/IJME. 2020.021,contains ' ',punctuation_gap,join,doi:10.20529/IJME.2020.021,no,,,
+PMID:32103798,doi:10.20529/IJME. 2020.021,contains ' ',punctuation_gap,first_token,doi:10.20529/IJME,no,,,
+PMID:32312020,doi:10.3760/cma.j.cn 112338-20200403-00510,contains ' ',word_gap,join,doi:10.3760/cma.j.cn112338-20200403-00510,yes,,PMID:32867424,
+PMID:32312020,doi:10.3760/cma.j.cn 112338-20200403-00510,contains ' ',word_gap,first_token,doi:10.3760/cma.j.cn,yes,,,
+PMID:32520923,doi:10.4317/medoral. 23558,contains ' ',punctuation_gap,join,doi:10.4317/medoral.23558,yes,,,yes
+PMID:32520923,doi:10.4317/medoral. 23558,contains ' ',punctuation_gap,first_token,doi:10.4317/medoral,no,,,
+PMID:32721914,doi:10.5152/tjg. 2020.19477,contains ' ',punctuation_gap,join,doi:10.5152/tjg.2020.19477,yes,,,yes
+PMID:32721914,doi:10.5152/tjg. 2020.19477,contains ' ',punctuation_gap,first_token,doi:10.5152/tjg,yes,,,
+PMID:33151916,doi:10.15585/mmwr. mm6944e1,contains ' ',punctuation_gap,join,doi:10.15585/mmwr.mm6944e1,yes,,,yes
+PMID:33151916,doi:10.15585/mmwr. mm6944e1,contains ' ',punctuation_gap,first_token,doi:10.15585/mmwr,no,,,
+PMID:33751003,doi:10.11607/ijp.INSERT 4 DIGIT DOI,contains ' ',trailing_text,join,doi:10.11607/ijp.INSERT4DIGITDOI,no,,,
+PMID:33751003,doi:10.11607/ijp.INSERT 4 DIGIT DOI,contains ' ',trailing_text,first_token,doi:10.11607/ijp.INSERT,no,,,
+PMID:33963690,doi:10.21614/chirurgia.116.2 Suppl.S5,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.2Suppl.S5,yes,,,yes
+PMID:33963690,doi:10.21614/chirurgia.116.2 Suppl.S5,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.2,no,,,
+PMID:33963691,doi:10.21614/chirurgia.116.2 Suppl.S24,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.2Suppl.S24,yes,,,yes
+PMID:33963691,doi:10.21614/chirurgia.116.2 Suppl.S24,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.2,no,,,
+PMID:33963692,doi:10.21614/chirurgia.116.2 Suppl.S16,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.2Suppl.S16,yes,,,yes
+PMID:33963692,doi:10.21614/chirurgia.116.2 Suppl.S16,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.2,no,,,
+PMID:33963693,doi:10.21614/chirurgia.116.2 Suppl.S35,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.2Suppl.S35,yes,,,yes
+PMID:33963693,doi:10.21614/chirurgia.116.2 Suppl.S35,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.2,no,,,
+PMID:33963694,doi:10.21614/chirurgia.116.2 Suppl.S45,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.2Suppl.S45,yes,,,yes
+PMID:33963694,doi:10.21614/chirurgia.116.2 Suppl.S45,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.2,no,,,
+PMID:33963695,doi:10.21614/chirurgia.116.2 Suppl.S59,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.2Suppl.S59,yes,,,yes
+PMID:33963695,doi:10.21614/chirurgia.116.2 Suppl.S59,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.2,no,,,
+PMID:33963696,doi:10.21614/chirurgia.116.2 Suppl.S73,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.2Suppl.S73,yes,,,yes
+PMID:33963696,doi:10.21614/chirurgia.116.2 Suppl.S73,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.2,no,,,
+PMID:33963697,doi:10.21614/chirurgia.116.2 Suppl.S84,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.2Suppl.S84,yes,,,yes
+PMID:33963697,doi:10.21614/chirurgia.116.2 Suppl.S84,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.2,no,,,
+PMID:33963698,doi:10.21614/rurgia.116.2 Suppl.S91,contains ' ',word_gap,join,doi:10.21614/rurgia.116.2Suppl.S91,yes,,,yes
+PMID:33963698,doi:10.21614/rurgia.116.2 Suppl.S91,contains ' ',word_gap,first_token,doi:10.21614/rurgia.116.2,no,,,
+PMID:33963699,doi:10.21614/chirurgia.116.2 Suppl.S98,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.2Suppl.S98,yes,,,yes
+PMID:33963699,doi:10.21614/chirurgia.116.2 Suppl.S98,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.2,no,,,
+PMID:33963700,doi:10.21614/chirurgia.116.2 Suppl.S105,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.2Suppl.S105,yes,,,yes
+PMID:33963700,doi:10.21614/chirurgia.116.2 Suppl.S105,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.2,no,,,
+PMID:33963701,doi:10.21614/chirurgia.116.2 Suppl.S110,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.2Suppl.S110,yes,,,yes
+PMID:33963701,doi:10.21614/chirurgia.116.2 Suppl.S110,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.2,no,,,
+PMID:33963702,doi:10.21614/chirurgia.116.2 Suppl.S120,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.2Suppl.S120,yes,,,yes
+PMID:33963702,doi:10.21614/chirurgia.116.2 Suppl.S120,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.2,no,,,
+PMID:33963703,doi:10.21614/chirurgia.116.2 Suppl.S127,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.2Suppl.S127,yes,,,yes
+PMID:33963703,doi:10.21614/chirurgia.116.2 Suppl.S127,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.2,no,,,
+PMID:33963704,doi:10.21614/chirurgia.116.2 Suppl.S136,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.2Suppl.S136,yes,,,yes
+PMID:33963704,doi:10.21614/chirurgia.116.2 Suppl.S136,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.2,no,,,
+PMID:34053913,doi:10.5604/ 01.3001.0014.475,contains ' ',punctuation_gap,join,doi:10.5604/01.3001.0014.475,no,,,
+PMID:34154333,doi:10.48095/ ccko2021S71,contains ' ',punctuation_gap,join,doi:10.48095/ccko2021S71,yes,,,yes
+PMID:34625760,doi:10.47102/annals-acad medsg.2020453,contains ' ',word_gap,join,doi:10.47102/annals-acadmedsg.2020453,yes,,,yes
+PMID:34625760,doi:10.47102/annals-acad medsg.2020453,contains ' ',word_gap,first_token,doi:10.47102/annals-acad,no,,,
+PMID:34781321,doi:10.31128/ AJGP-COVID-52,contains ' ',punctuation_gap,join,doi:10.31128/AJGP-COVID-52,yes,,,yes
+PMID:34857074,doi:10.3238/arztebl.m2021.0333 64,contains ' ',word_gap,join,doi:10.3238/arztebl.m2021.033364,no,,,
+PMID:34857074,doi:10.3238/arztebl.m2021.0333 64,contains ' ',word_gap,first_token,doi:10.3238/arztebl.m2021.0333,yes,,PMID:34865687,
+PMID:34964959,doi:10.3760/cma.j.cn 511374-20210202-00104,contains ' ',word_gap,join,doi:10.3760/cma.j.cn511374-20210202-00104,yes,,,yes
+PMID:34964959,doi:10.3760/cma.j.cn 511374-20210202-00104,contains ' ',word_gap,first_token,doi:10.3760/cma.j.cn,yes,,,
+PMID:35236078,doi:10.48095/ ccko202220,contains ' ',punctuation_gap,join,doi:10.48095/ccko202220,yes,,,yes
+PMID:35274607,doi:10.21614/chirurgia.116.6 Suppl.S5,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.6Suppl.S5,no,,,
+PMID:35274607,doi:10.21614/chirurgia.116.6 Suppl.S5,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.6,no,,,
+PMID:35274608,doi:10.21614/chirurgia.116.6 Suppl.S16,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.6Suppl.S16,no,,,
+PMID:35274608,doi:10.21614/chirurgia.116.6 Suppl.S16,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.6,no,,,
+PMID:35274609,doi:10.21614/chirurgia.116.6 Suppl.S28,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.6Suppl.S28,no,,,
+PMID:35274609,doi:10.21614/chirurgia.116.6 Suppl.S28,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.6,no,,,
+PMID:35274610,doi:10.21614/chirurgia.chirurgia.116.6 Suppl.S36Suppl.S36,contains ' ',word_gap,join,doi:10.21614/chirurgia.chirurgia.116.6Suppl.S36Suppl.S36,no,,,
+PMID:35274610,doi:10.21614/chirurgia.chirurgia.116.6 Suppl.S36Suppl.S36,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.chirurgia.116.6,no,,,
+PMID:35274611,doi:10.21614/chirurgia.116.6 Suppl.S43,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.6Suppl.S43,no,,,
+PMID:35274611,doi:10.21614/chirurgia.116.6 Suppl.S43,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.6,no,,,
+PMID:35274612,doi:10.21614/chirurgia.116.6 Suppl.S54,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.6Suppl.S54,no,,,
+PMID:35274612,doi:10.21614/chirurgia.116.6 Suppl.S54,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.6,no,,,
+PMID:35274613,doi:10.21614/chirurgia.116.6 Suppl.S69,contains ' ',word_gap,join,doi:10.21614/chirurgia.116.6Suppl.S69,no,,,
+PMID:35274613,doi:10.21614/chirurgia.116.6 Suppl.S69,contains ' ',word_gap,first_token,doi:10.21614/chirurgia.116.6,no,,,
+PMID:35315047,doi:10.3760/ cma.j.cn511374-20201130-00838,contains ' ',punctuation_gap,join,doi:10.3760/cma.j.cn511374-20201130-00838,no,,,
+PMID:35323823,doi:10.5867/ medwave.2022.02.002096,contains ' ',punctuation_gap,join,doi:10.5867/medwave.2022.02.002096,yes,,,yes
+PMID:35370288,doi:10.5867/ medwave.2022.02.002513,contains ' ',punctuation_gap,join,doi:10.5867/medwave.2022.02.002513,yes,,,yes
+PMID:35400628,doi:10.5543/tkda. 2022.22387,contains ' ',punctuation_gap,join,doi:10.5543/tkda.2022.22387,yes,,,yes
+PMID:35400628,doi:10.5543/tkda. 2022.22387,contains ' ',punctuation_gap,first_token,doi:10.5543/tkda,no,,,
+PMID:35468710,doi:10.52547/ibj. 3713,contains ' ',punctuation_gap,join,doi:10.52547/ibj.3713,yes,,,yes
+PMID:35468710,doi:10.52547/ibj. 3713,contains ' ',punctuation_gap,first_token,doi:10.52547/ibj,no,,,
+PMID:35818216,doi:10.14715/cmb/2021.67.6. 6,contains ' ',punctuation_gap,join,doi:10.14715/cmb/2021.67.6.6,no,,,
+PMID:35818216,doi:10.14715/cmb/2021.67.6. 6,contains ' ',punctuation_gap,first_token,doi:10.14715/cmb/2021.67.6,no,,,
+PMID:35929871,doi:10.5152/ tud.2021.21030,contains ' ',punctuation_gap,join,doi:10.5152/tud.2021.21030,yes,,,yes
+PMID:35950437,doi:10.7146/torture. v32i1-2.131322,contains ' ',punctuation_gap,join,doi:10.7146/torture.v32i1-2.131322,yes,,,yes
+PMID:35950437,doi:10.7146/torture. v32i1-2.131322,contains ' ',punctuation_gap,first_token,doi:10.7146/torture,no,,,
+PMID:36029495,doi:10.14715/cmb/2022.68.5. 8,contains ' ',punctuation_gap,join,doi:10.14715/cmb/2022.68.5.8,yes,,,yes
+PMID:36029495,doi:10.14715/cmb/2022.68.5. 8,contains ' ',punctuation_gap,first_token,doi:10.14715/cmb/2022.68.5,no,,,
+PMID:36369769,doi:10.52547/ibj. 3801,contains ' ',punctuation_gap,join,doi:10.52547/ibj.3801,yes,,,yes
+PMID:36369769,doi:10.52547/ibj. 3801,contains ' ',punctuation_gap,first_token,doi:10.52547/ibj,no,,,
+PMID:36443096,doi:10.48095/ ccko2022408,contains ' ',punctuation_gap,join,doi:10.48095/ccko2022408,yes,,,yes
+PMID:36543594,doi:10.1080/ 13625187.2022.2093850,contains ' ',punctuation_gap,join,doi:10.1080/13625187.2022.2093850,yes,,PMID:35862627,
+PMID:36750343,doi:10.19813/j. cnki. weishengyanjiu.2023.01.24,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2023.01.24,yes,,,yes
+PMID:36750343,doi:10.19813/j. cnki. weishengyanjiu.2023.01.24,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:36800743,doi:10.47391/JPMA.6198 020,contains ' ',word_gap,join,doi:10.47391/JPMA.6198020,no,,,
+PMID:36800743,doi:10.47391/JPMA.6198 020,contains ' ',word_gap,first_token,doi:10.47391/JPMA.6198,yes,,,
+PMID:36854083,doi:10.24425/ fmc.2022.144079,contains ' ',punctuation_gap,join,doi:10.24425/fmc.2022.144079,yes,,,yes
+PMID:36854092,doi:10.24425/ fmc.2022.142372,contains ' ',punctuation_gap,join,doi:10.24425/fmc.2022.142372,yes,,,yes
+PMID:36854093,doi:10.24425/ fmc.2022.144088,contains ' ',punctuation_gap,join,doi:10.24425/fmc.2022.144088,yes,,,yes
+PMID:36872090,doi:10.31128/ AJGP-02-22-6340,contains ' ',punctuation_gap,join,doi:10.31128/AJGP-02-22-6340,yes,,,yes
+PMID:36876357,doi:10.7196/SAMJ.2023. v113i3.3146,contains ' ',punctuation_gap,join,doi:10.7196/SAMJ.2023.v113i3.3146,yes,,,yes
+PMID:36876357,doi:10.7196/SAMJ.2023. v113i3.3146,contains ' ',punctuation_gap,first_token,doi:10.7196/SAMJ.2023,no,,,
+PMID:37469064,doi:10.47391/JPMA .6559,contains ' ',punctuation_gap,join,doi:10.47391/JPMA.6559,yes,,,yes
+PMID:37469064,doi:10.47391/JPMA .6559,contains ' ',punctuation_gap,first_token,doi:10.47391/JPMA,no,,,
+PMID:37555675,doi:10.4088/JCP. muladx3048sho,contains ' ',punctuation_gap,join,doi:10.4088/JCP.muladx3048sho,yes,,,yes
+PMID:37555675,doi:10.4088/JCP. muladx3048sho,contains ' ',punctuation_gap,first_token,doi:10.4088/JCP,no,,,
+PMID:37609885,doi:10.4038/cmj.v68iSI 1.9785,contains ' ',word_gap,join,doi:10.4038/cmj.v68iSI1.9785,yes,,,yes
+PMID:37609885,doi:10.4038/cmj.v68iSI 1.9785,contains ' ',word_gap,first_token,doi:10.4038/cmj.v68iSI,no,,,
+PMID:37609900,doi:10.4038/cmj.v68iSI 1.9787,contains ' ',word_gap,join,doi:10.4038/cmj.v68iSI1.9787,yes,,,yes
+PMID:37609900,doi:10.4038/cmj.v68iSI 1.9787,contains ' ',word_gap,first_token,doi:10.4038/cmj.v68iSI,no,,,
+PMID:37610919,doi:10.4038/cmj.v68iSI 1.9733,contains ' ',word_gap,join,doi:10.4038/cmj.v68iSI1.9733,yes,,,yes
+PMID:37610919,doi:10.4038/cmj.v68iSI 1.9733,contains ' ',word_gap,first_token,doi:10.4038/cmj.v68iSI,no,,,
+PMID:37610920,doi:10.4038/cmj.v68iSI 1.9750,contains ' ',word_gap,join,doi:10.4038/cmj.v68iSI1.9750,yes,,,yes
+PMID:37610920,doi:10.4038/cmj.v68iSI 1.9750,contains ' ',word_gap,first_token,doi:10.4038/cmj.v68iSI,no,,,
+PMID:37610968,doi:10.4038/cmj.v68iSI 1.9767,contains ' ',word_gap,join,doi:10.4038/cmj.v68iSI1.9767,yes,,,yes
+PMID:37610968,doi:10.4038/cmj.v68iSI 1.9767,contains ' ',word_gap,first_token,doi:10.4038/cmj.v68iSI,no,,,
+PMID:37610969,doi:10.4038/cmj.v68iSI 1.9792,contains ' ',word_gap,join,doi:10.4038/cmj.v68iSI1.9792,yes,,,yes
+PMID:37610969,doi:10.4038/cmj.v68iSI 1.9792,contains ' ',word_gap,first_token,doi:10.4038/cmj.v68iSI,no,,,
+PMID:37610975,doi:10.4038/cmj.v68iSI 1.9737,contains ' ',word_gap,join,doi:10.4038/cmj.v68iSI1.9737,yes,,,yes
+PMID:37610975,doi:10.4038/cmj.v68iSI 1.9737,contains ' ',word_gap,first_token,doi:10.4038/cmj.v68iSI,no,,,
+PMID:38037778,doi:10.4103/singaporemedj. SMJ-2021-412,contains ' ',punctuation_gap,join,doi:10.4103/singaporemedj.SMJ-2021-412,yes,,PMID:42085067,
+PMID:38037778,doi:10.4103/singaporemedj. SMJ-2021-412,contains ' ',punctuation_gap,first_token,doi:10.4103/singaporemedj,no,,,
+PMID:38085749,doi:10.11607/ jomi.9836,contains ' ',punctuation_gap,join,doi:10.11607/jomi.9836,yes,,,yes
+PMID:38512188,doi:10.4088/ PCC.23m03647,contains ' ',punctuation_gap,join,doi:10.4088/PCC.23m03647,yes,,,yes
+PMID:38517411,doi:10.46883/2024.Pubmed Id,contains ' ',word_gap,join,doi:10.46883/2024.PubmedId,no,,,
+PMID:38517411,doi:10.46883/2024.Pubmed Id,contains ' ',word_gap,first_token,doi:10.46883/2024.Pubmed,no,,,
+PMID:39099112,doi:10.31128/ AJGP-08-24-1234e,contains ' ',punctuation_gap,join,doi:10.31128/AJGP-08-24-1234e,yes,,PMID:39099121,
+PMID:39255404,doi:10.4317/medoral. 1122335667801,contains ' ',punctuation_gap,join,doi:10.4317/medoral.1122335667801,yes,,,yes
+PMID:39255404,doi:10.4317/medoral. 1122335667801,contains ' ',punctuation_gap,first_token,doi:10.4317/medoral,no,,,
+PMID:39269282,doi:10.29063/ajrh2024/v28i8s 4,contains ' ',word_gap,join,doi:10.29063/ajrh2024/v28i8s4,no,,,
+PMID:39269282,doi:10.29063/ajrh2024/v28i8s 4,contains ' ',word_gap,first_token,doi:10.29063/ajrh2024/v28i8s,yes,,,
+PMID:39479943,doi:10.54589/aol.37/2/105 36,contains ' ',word_gap,join,doi:10.54589/aol.37/2/10536,no,,,
+PMID:39479943,doi:10.54589/aol.37/2/105 36,contains ' ',word_gap,first_token,doi:10.54589/aol.37/2/105,yes,,,
+PMID:39772821,doi:10.48095/ ccko2024408,contains ' ',punctuation_gap,join,doi:10.48095/ccko2024408,yes,,,yes
+PMID:39943647,doi:10.19813/j. cnki.weishengyanjiu.2025.01.001,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.001,yes,,,yes
+PMID:39943647,doi:10.19813/j. cnki.weishengyanjiu.2025.01.001,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943648,doi:10.19813/j. cnki.weishengyanjiu.2025.01.007,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.007,yes,,,yes
+PMID:39943648,doi:10.19813/j. cnki.weishengyanjiu.2025.01.007,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943649,doi:10.19813/j. cnki.weishengyanjiu.2025.01.012,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.012,yes,,,yes
+PMID:39943649,doi:10.19813/j. cnki.weishengyanjiu.2025.01.012,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943650,doi:10.19813/j. cnki.weishengyanjiu.2025.01.013,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.013,yes,,,yes
+PMID:39943650,doi:10.19813/j. cnki.weishengyanjiu.2025.01.013,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943651,doi:10.19813/j. cnki.weishengyanjiu.2025.01.014,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.014,yes,,,yes
+PMID:39943651,doi:10.19813/j. cnki.weishengyanjiu.2025.01.014,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943652,doi:10.19813/j. cnki.weishengyanjiu.2025.01.015,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.015,yes,,,yes
+PMID:39943652,doi:10.19813/j. cnki.weishengyanjiu.2025.01.015,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943653,doi:10.19813/j. cnki.weishengyanjiu.2025.01.016,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.016,yes,,,yes
+PMID:39943653,doi:10.19813/j. cnki.weishengyanjiu.2025.01.016,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943654,doi:10.19813/j. cnki.weishengyanjiu.2025.01.017,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.017,yes,,,yes
+PMID:39943654,doi:10.19813/j. cnki.weishengyanjiu.2025.01.017,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943655,doi:10.19813/j. cnki.weishengyanjiu.2025.01.018,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.018,yes,,,yes
+PMID:39943655,doi:10.19813/j. cnki.weishengyanjiu.2025.01.018,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943656,doi:10.19813/j. cnki.weishengyanjiu.2025.01.019,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.019,yes,,,yes
+PMID:39943656,doi:10.19813/j. cnki.weishengyanjiu.2025.01.019,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943657,doi:10.19813/j. cnki.weishengyanjiu.2025.01.020,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.020,yes,,,yes
+PMID:39943657,doi:10.19813/j. cnki.weishengyanjiu.2025.01.020,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943658,doi:10.19813/j. cnki.weishengyanjiu.2025.01.021,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.021,yes,,,yes
+PMID:39943658,doi:10.19813/j. cnki.weishengyanjiu.2025.01.021,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943659,doi:10.19813/j. cnki.weishengyanjiu.2025.01.022,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.022,yes,,,yes
+PMID:39943659,doi:10.19813/j. cnki.weishengyanjiu.2025.01.022,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943660,doi:10.19813/j. cnki.weishengyanjiu.2025.01.023,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.023,yes,,,yes
+PMID:39943660,doi:10.19813/j. cnki.weishengyanjiu.2025.01.023,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943661,doi:10.19813/j. cnki.weishengyanjiu.2025.01.024,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.024,yes,,,yes
+PMID:39943661,doi:10.19813/j. cnki.weishengyanjiu.2025.01.024,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943662,doi:10.19813/j. cnki.weishengyanjiu.2025.01.004,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.004,yes,,,yes
+PMID:39943662,doi:10.19813/j. cnki.weishengyanjiu.2025.01.004,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943663,doi:10.19813/j. cnki.weishengyanjiu.2025.01.005,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.005,yes,,,yes
+PMID:39943663,doi:10.19813/j. cnki.weishengyanjiu.2025.01.005,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:39943664,doi:10.19813/j. cnki.weishengyanjiu.2025.01.006,contains ' ',punctuation_gap,join,doi:10.19813/j.cnki.weishengyanjiu.2025.01.006,yes,,,yes
+PMID:39943664,doi:10.19813/j. cnki.weishengyanjiu.2025.01.006,contains ' ',punctuation_gap,first_token,doi:10.19813/j,no,,,
+PMID:40152358,doi:10.4274/tao. 2024.2024-8-4,contains ' ',punctuation_gap,join,doi:10.4274/tao.2024.2024-8-4,yes,,,yes
+PMID:40152358,doi:10.4274/tao. 2024.2024-8-4,contains ' ',punctuation_gap,first_token,doi:10.4274/tao,yes,,,
+PMID:40474779,doi:10.7589/JWD D-24-00142,contains ' ',word_gap,join,doi:10.7589/JWDD-24-00142,yes,,,yes
+PMID:40474779,doi:10.7589/JWD D-24-00142,contains ' ',word_gap,first_token,doi:10.7589/JWD,no,,,
+PMID:40476898,doi:10.11607/ jomi.2025suppl4,contains ' ',punctuation_gap,join,doi:10.11607/jomi.2025suppl4,no,,,
+PMID:40762204,doi:10.48095/ ccko2025224,contains ' ',punctuation_gap,join,doi:10.48095/ccko2025224,yes,,,yes
+PMID:41211657,doi:10.1667/ RADE-24-00112.1,contains ' ',punctuation_gap,join,doi:10.1667/RADE-24-00112.1,yes,,PMID:41211662,
+PMID:41412787,doi:10.36290/csf.2025.032 Zajímavé farmakologické účinky fenolickýc,contains ' ',trailing_text,join,doi:10.36290/csf.2025.032Zajímavéfarmakologickéúčinkyfenolickýc,no,,,
+PMID:41412787,doi:10.36290/csf.2025.032 Zajímavé farmakologické účinky fenolickýc,contains ' ',trailing_text,first_token,doi:10.36290/csf.2025.032,yes,,,
+PMID:41620881,doi:: 10.36740/WLek/214410,contains ' ',leading_text,last_token,doi:10.36740/WLek/214410,yes,,,yes
+PMID:41733316,doi:doi 10.17992/lbl.2026.03.881,contains ' ',leading_text,last_token,doi:10.17992/lbl.2026.03.881,yes,,,yes
+PMID:41785015,doi:10.4193/RhinBackground: Fungal rhinosinusitis (FRS) comprises,contains ' ',trailing_text,join,doi:10.4193/RhinBackground:Fungalrhinosinusitis(FRS)comprises,no,,,
+PMID:41785015,doi:10.4193/RhinBackground: Fungal rhinosinusitis (FRS) comprises,contains ' ',trailing_text,first_token,doi:10.4193/RhinBackground:,no,,,
+PMID:41891654,doi:doi 10.17992/lbl.2026.04.885,contains ' ',leading_text,last_token,doi:10.17992/lbl.2026.04.885,yes,,,yes
+PMID:42048070,doi:doi 10.17992/lbl.2026.05.889,contains ' ',leading_text,last_token,doi:10.17992/lbl.2026.05.889,no,,,
+PMID:42087756,doi:Gedeelte van de doi n https://doi.org/.,contains ' ',other,,,,,,
+PMID:42184318,doi:EDN: DNDPXR 10.7868/S3034555326010016,contains ' ',leading_text,last_token,doi:10.7868/S3034555326010016,no,,,
+PMID:42184319,doi:EDN: XVYYSN 10.7868/S3034555326010025,contains ' ',leading_text,last_token,doi:10.7868/S3034555326010025,no,,,
+PMID:42184320,doi:EDN: RYWQJQ 10.7868/S3034555326010038,contains ' ',leading_text,last_token,doi:10.7868/S3034555326010038,no,,,
+PMID:42184321,doi:EDN: PUNKAG 10.7868/S3034555326010041,contains ' ',leading_text,last_token,doi:10.7868/S3034555326010041,no,,,
+PMID:42184322,doi:EDN: CEFGDI 10.7868/S3034555326010053,contains ' ',leading_text,last_token,doi:10.7868/S3034555326010053,no,,,
+PMID:42184323,doi:EDN: ETAEEM 10.7868/S3034555326010067,contains ' ',leading_text,last_token,doi:10.7868/S3034555326010067,no,,,
+PMID:42184324,doi:EDN: VLQCIE 10.7868/S3034555326010073,contains ' ',leading_text,last_token,doi:10.7868/S3034555326010073,no,,,
+PMID:42184325,doi:EDN: VEJRMX 10.7868/S3034555326010086,contains ' ',leading_text,last_token,doi:10.7868/S3034555326010086,no,,,
+PMID:42184326,doi:EDN: WZIJSO 10.7868/S3034555326010096,contains ' ',leading_text,last_token,doi:10.7868/S3034555326010096,no,,,
+PMID:42184327,doi:EDN: TNPKTS 10.7868/S3034555326010103,contains ' ',leading_text,last_token,doi:10.7868/S3034555326010103,no,,,
+PMID:42295072,doi:10.24425/ fmc.2026.158991,contains ' ',punctuation_gap,join,doi:10.24425/fmc.2026.158991,yes,,,yes
+PMID:42295073,doi:10.24425/ fmc.2026.158992,contains ' ',punctuation_gap,join,doi:10.24425/fmc.2026.158992,yes,,,yes
+PMID:42295074,doi:10.24425/ fmc.2026.158993,contains ' ',punctuation_gap,join,doi:10.24425/fmc.2026.158993,yes,,,yes
+PMID:42295075,doi:10.24425/ fmc.2026.158994,contains ' ',punctuation_gap,join,doi:10.24425/fmc.2026.158994,yes,,,yes
+PMID:42295076,doi:10.24425/ fmc.2026.158995,contains ' ',punctuation_gap,join,doi:10.24425/fmc.2026.158995,yes,,,yes
+PMID:42647080,doi:10.17992/lbl.2026. 09.907,contains ' ',punctuation_gap,join,doi:10.17992/lbl.2026.09.907,no,,,
+PMID:42647080,doi:10.17992/lbl.2026. 09.907,contains ' ',punctuation_gap,first_token,doi:10.17992/lbl.2026,no,,,

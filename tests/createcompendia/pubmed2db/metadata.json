@@ -1,7 +1,7 @@
 {
  "data_model_version": "1.0.0",
  "format": "ndjson",
- "records": 13,
+ "records": 15,
  "generated_by": "v1.1.0-153-ga53d2f5",
  "corpus": {
   "build_name": "2026nov08"
@@ -19,8 +19,8 @@
   },
   {
    "name": "pubmed_metadata_2.ndjson.gz",
-   "bytes": 322,
-   "sha256": "69e9aca0854ebe0f963a1d07a65d649b517b88f18f70a5c6837d1362d0c873a9"
+   "bytes": 985,
+   "sha256": "ca174f123b72b574702ec571313d402b01d03dc6a75791abf9d6ff09b931d453"
   }
  ]
 }

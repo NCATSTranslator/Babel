@@ -23,6 +23,7 @@ the shards without glom(): a record *is* a clique. The one thing that needs a co
 PMCID that appears in more than one record -- see ``parse_pubmed2db_into_tsvs()`` for how that is resolved.
 """
 
+import functools
 import gzip
 import hashlib
 import json
@@ -37,7 +38,7 @@ from src.babel_utils import TypedClique, pull_via_wget, write_compendium
 from src.categories import JOURNAL_ARTICLE, PUBLICATION
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import DOI
-from src.util import Text, curie_format_problem, ensure_parent_dir, get_logger
+from src.util import Text, curie_format_problem, ensure_parent_dir, get_logger, get_repo_root
 
 logger = get_logger(__name__)
 
@@ -67,6 +68,27 @@ EXPORT_METADATA = "metadata.json"
 # extra_prefixes=["PMCID"] to write_compendium(), or create_node() will silently drop every one of them as
 # unregistered for biolink:Publication.
 PUBMED2DB_DATA_MODEL_MAJOR = 1
+
+# The malformed DOIs Babel repairs, and what each is repaired to: `malformed doi CURIE<TAB>repaired doi CURIE`,
+# one row per repaired DOI (a value holding two DOIs has two rows), with `#` comments.
+#
+# PubMed publishes ArticleId[@IdType='doi'] as the publisher supplied it, so several hundred DOIs in an export
+# contain a space or stray text (`doi:10.1126/science. 1134405`), and write_compendium() fails the build on
+# any CURIE with whitespace. They are repaired from this table rather than by a rule because no rule is
+# reliable: deleting the whitespace gives a DOI registered at doi.org for only about three quarters of even
+# the most regular shape, against 163 of 163 well-formed DOIs sampled from the same export (see "Malformed
+# DOIs" in docs/sources/PubMed/README.md for the numbers and the rules that were tried). So the table holds
+# only repairs that doi.org confirms and that no other PMID already carries; a malformed DOI not in it is
+# skipped, as all of them were before, and counted in the concord metadata.
+#
+# Never edit it by hand: docs/sources/PubMed/dois/characterize_dois.py regenerates it from a whole export.
+# Re-run that when pubmed2db_version moves, to pick up the new export's malformed DOIs; a stale table is
+# harmless (rows for DOIs PubMed has since corrected simply never match).
+#
+# Two consumers resolve this file: the build, where the PubMed rules declare it as an input (so regenerating
+# it re-runs them) and pass the path in, and the scripts under docs/sources/PubMed/, which take this default.
+# Absolute, because those scripts can be run from any directory.
+PUBMED_DOI_REPAIRS = str(get_repo_root() / "input_data/pubmed_doi_repairs.tsv")
 
 # How much of a shard to hash at a time (shards are ~2 GB, so they are never read whole).
 HASH_CHUNK_BYTES = 8 * 1024 * 1024
@@ -273,18 +295,54 @@ def verify_shard_checksums(download_dir, metadata):
         )
 
 
-def _read_shard(shard_path):
+@functools.cache
+def load_doi_repairs(doi_repairs_file):
+    """
+    The DOI repairs table (see ``PUBMED_DOI_REPAIRS``) as ``{malformed doi CURIE: (repaired doi CURIE, ...)}``.
+
+    Cached per path, so each of ``parse_pubmed2db_into_tsvs()``'s worker processes reads it once. Raises on a
+    row that isn't two tab-separated fields, a repair that is itself malformed, or a "malformed" DOI that
+    isn't: any of those means the table was edited by hand, and a repair that silently does nothing (or
+    writes a CURIE that fails the build an hour later) is worse than stopping here.
+    """
+    repairs = {}
+    with open(doi_repairs_file) as f:
+        for line_number, line in enumerate(f, start=1):
+            line = line.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            fields = line.split("\t")
+            where = f"{doi_repairs_file}:{line_number}"
+            if len(fields) != 2:
+                raise ValueError(f"{where} has {len(fields)} tab-separated fields, not 2: {line!r}")
+            malformed, repaired = fields
+            if not curie_format_problem(malformed):
+                raise ValueError(f"{where}: {malformed!r} is not malformed, so it would never be looked up.")
+            if curie_format_problem(repaired) or Text.get_prefix_or_none(repaired) != DOI.upper():
+                raise ValueError(f"{where}: the repair {repaired!r} is not a well-formed {DOI}: CURIE.")
+            repairs.setdefault(malformed, [])
+            if repaired not in repairs[malformed]:
+                repairs[malformed].append(repaired)
+    return {malformed: tuple(repaired) for malformed, repaired in repairs.items()}
+
+
+def _read_shard(shard_path, doi_repairs=None, repairs_made=None):
     """
     Yield ``(pmid, title, other_identifiers, malformed_identifiers)`` for every record in one shard; see
-    ``_read_shard_records()``, which also yields the raw record.
+    ``_read_shard_records()``, which also yields the raw record and explains the other two arguments.
     """
-    for _, pmid, title, others, malformed in _read_shard_records(shard_path):
+    for _, pmid, title, others, malformed in _read_shard_records(shard_path, doi_repairs, repairs_made):
         yield pmid, title, others, malformed
 
 
-def _read_shard_records(shard_path):
+def _read_shard_records(shard_path, doi_repairs=None, repairs_made=None):
     """
     Yield ``(record, pmid, title, other_identifiers, malformed_identifiers)`` for every record in one shard.
+
+    :param doi_repairs: ``load_doi_repairs()``'s table. The build always passes it; the default of no
+        repairs is for the analysis scripts, which want to see the export as it is.
+    :param repairs_made: If given, a list to which each repair made is appended, as
+        ``(pmid, malformed CURIE, repaired CURIEs)``.
 
     ``record`` is the parsed JSON line, for analysis scripts that read fields the build doesn't
     (docs/sources/PubMed/shared_identifiers/); the build itself uses ``_read_shard()``.
@@ -295,11 +353,11 @@ def _read_shard_records(shard_path):
     ``shared_identifier_key()``, since pubmed2db compares DOIs exactly. ``title`` is ``article_title`` exactly
     as exported, and is ``""`` when the record has none.
 
-    Any of those CURIEs that ``curie_format_problem()`` rejects -- which ``write_compendium()`` would fail the
-    build on -- go in ``malformed_identifiers`` instead of ``other_identifiers``, so both passes skip the same
-    ones. PubMed publishes DOIs as supplied, including some with embedded spaces or appended text
-    (``doi:10.1126/science. 1134405``, PMID:17124311; ~140 in shard 0 of 2026sep26). Repairing them instead
-    is https://github.com/NCATSTranslator/Babel/issues/1112.
+    PubMed publishes DOIs as supplied, including some with embedded spaces or appended text
+    (``doi:10.1126/science. 1134405``, PMID:17124311; 655 in 2026nov08), which ``curie_format_problem()``
+    rejects and ``write_compendium()`` would fail the build on. One that ``doi_repairs`` lists is replaced by
+    its repair, in ``other_identifiers``; any other goes in ``malformed_identifiers`` instead and is skipped.
+    Both passes over the shards read through here with the same table, so they repair and skip the same ones.
 
     A damaged shard raises a RuntimeError naming it, with no checksum needed. pubmed2db writes each shard as a
     single gzip stream, which ends with a CRC32 and the length: a corrupted download fails the CRC if it hasn't
@@ -322,13 +380,22 @@ def _read_shard_records(shard_path):
                 others = []
                 malformed = []
                 keys = set()
-                for other in identifiers[1:]:
-                    # A DOI in two cases is one identifier; keep the first.
-                    key = shared_identifier_key(other)
-                    if key in keys:
-                        continue
-                    keys.add(key)
-                    (malformed if curie_format_problem(other) else others).append(other)
+                for exported in identifiers[1:]:
+                    usable = [exported]
+                    if curie_format_problem(exported):
+                        usable = doi_repairs.get(exported) if doi_repairs else None
+                        if not usable:
+                            malformed.append(exported)
+                            continue
+                        if repairs_made is not None:
+                            repairs_made.append((pmid, exported, usable))
+                    for other in usable:
+                        # A DOI in two cases is one identifier, and a repair can produce a DOI the record
+                        # already carries; keep the first.
+                        key = shared_identifier_key(other)
+                        if key not in keys:
+                            keys.add(key)
+                            others.append(other)
                 count_records += 1
                 yield record, pmid, title, others, malformed
     # OSError covers gzip.BadGzipFile (a failed CRC), EOFError a truncated gzip stream, and the rest a record
@@ -349,23 +416,25 @@ def escape_tsv_field(value):
     return value.replace("\\", "\\\\").replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")
 
 
-def _write_shard_tsvs(shard_path, part_prefix):
+def _write_shard_tsvs(shard_path, part_prefix, doi_repairs_file):
     """
     Write one shard's ids, titles and concords rows to ``<part_prefix>.{ids,titles,concords}``.
 
-    Run in a worker process, so it returns only ``(records, concords, malformed identifiers skipped)`` -- the
-    last a short list -- and holds one record at a time; ``parse_pubmed2db_into_tsvs()`` concatenates the parts
-    in shard order. Module-level so ProcessPoolExecutor can pickle it.
+    Run in a worker process, so it returns only ``(records, concords, malformed identifiers skipped, repairs
+    made)`` -- the last two short lists -- and holds one record at a time; ``parse_pubmed2db_into_tsvs()``
+    concatenates the parts in shard order. Module-level so ProcessPoolExecutor can pickle it.
     """
     count_records = 0
     count_concords = 0
     skipped = []
+    repaired = []
+    doi_repairs = load_doi_repairs(doi_repairs_file)
     with (
         open(part_prefix + ".ids", "w") as pmidf,
         open(part_prefix + ".titles", "w") as titlesf,
         open(part_prefix + ".concords", "w") as concordf,
     ):
-        for pmid, title, others, malformed in _read_shard(shard_path):
+        for pmid, title, others, malformed in _read_shard(shard_path, doi_repairs, repaired):
             count_records += 1
             skipped.extend(malformed)
             pmidf.write(f"{pmid}\t{JOURNAL_ARTICLE}\n")
@@ -375,14 +444,22 @@ def _write_shard_tsvs(shard_path, part_prefix):
                 count_concords += 1
                 concordf.write(f"{pmid}\teq\t{other}\n")
     logger.info(
-        f"Parsed {count_records:,} records and {count_concords:,} concords from {shard_path}, skipping "
-        f"{len(skipped):,} malformed DOIs/PMCIDs."
+        f"Parsed {count_records:,} records and {count_concords:,} concords from {shard_path}, repairing "
+        f"{len(repaired):,} malformed DOIs and skipping {len(skipped):,} malformed DOIs/PMCIDs."
     )
-    return count_records, count_concords, skipped
+    return count_records, count_concords, skipped, repaired
 
 
 def parse_pubmed2db_into_tsvs(
-    download_dir, titles_file, pmid_id_file, concord_file, shared_ids_file, metadata_yaml, url, workers
+    download_dir,
+    titles_file,
+    pmid_id_file,
+    concord_file,
+    shared_ids_file,
+    metadata_yaml,
+    url,
+    workers,
+    doi_repairs_file=PUBMED_DOI_REPAIRS,
 ):
     """
     Write the ids, titles and concords TSVs from a pubmed2db export, and resolve shared identifiers.
@@ -408,14 +485,17 @@ def parse_pubmed2db_into_tsvs(
     roughly PMID order), made independent of shard order. The file doubles as a data-quality report of
     ambiguous identifiers.
 
-    DOIs and PMCIDs that ``write_compendium()`` would reject are skipped (see ``_read_shard()``) and counted
-    in the metadata YAML as ``skipped_malformed_article_ids``.
+    A malformed DOI listed in ``doi_repairs_file`` is replaced by its repair (see ``PUBMED_DOI_REPAIRS``) and
+    counted in the metadata YAML as ``repaired_malformed_article_ids``. Any other DOI or PMCID that
+    ``write_compendium()`` would reject is skipped (see ``_read_shard_records()``) and counted as
+    ``skipped_malformed_article_ids``; all of them are logged.
 
     Raises if the export follows a data model this module doesn't read (``read_export_metadata()``), or if
     any shard holds a different number of records than pubmed2db's validation report says.
 
     :param url: The export URL, recorded in the metadata YAML as the source of this build's PubMed data.
     :param workers: How many shards to parse at once.
+    :param doi_repairs_file: The DOI repairs table; ``generate_compendium()`` must be given the same one.
     """
     for path in (titles_file, pmid_id_file, concord_file, shared_ids_file):
         ensure_parent_dir(path)
@@ -429,11 +509,11 @@ def parse_pubmed2db_into_tsvs(
     with tempfile.TemporaryDirectory(dir=os.path.dirname(concord_file), prefix="pubmed2db-parts-") as parts_dir:
         part_prefixes = [os.path.join(parts_dir, f"{i:05d}") for i in range(len(shards))]
         with ProcessPoolExecutor(max_workers=workers) as pool:
-            results = list(pool.map(_write_shard_tsvs, shard_files, part_prefixes))
+            results = list(pool.map(_write_shard_tsvs, shard_files, part_prefixes, [doi_repairs_file] * len(shards)))
 
         mismatches = [
             f"{shard}: parsed {records:,}, report says {shard_counts[shard]:,}"
-            for shard, (records, _, _) in zip(shards, results)
+            for shard, (records, _, _, _) in zip(shards, results)
             if records != shard_counts[shard]
         ]
         if mismatches:
@@ -449,10 +529,15 @@ def parse_pubmed2db_into_tsvs(
                     with open(part_prefix + suffix, "rb") as inf:
                         shutil.copyfileobj(inf, outf)
 
-    count_records = sum(records for records, _, _ in results)
-    count_concords = sum(concords for _, concords, _ in results)
-    skipped = [curie for _, _, shard_skipped in results for curie in shard_skipped]
-    logger.info(f"Skipped {len(skipped):,} malformed DOIs/PMCIDs, e.g. {skipped[:10]}")
+    count_records = sum(records for records, _, _, _ in results)
+    count_concords = sum(concords for _, concords, _, _ in results)
+    skipped = [curie for _, _, shard_skipped, _ in results for curie in shard_skipped]
+    repaired = [repair for _, _, _, shard_repaired in results for repair in shard_repaired]
+    logger.info(f"Repaired {len(repaired):,} malformed DOIs from {doi_repairs_file}, e.g. {repaired[:5]}")
+    # All of them, not a sample: there are a few hundred, and this list is the input to regenerating the
+    # repairs table (docs/sources/PubMed/dois/characterize_dois.py finds them itself, but a reader of the
+    # log shouldn't have to run it to see what was dropped).
+    logger.info(f"Skipped {len(skipped):,} malformed DOIs/PMCIDs with no repair: {skipped}")
 
     # Find the identifiers carried by more than one record, compared by shared_identifier_key()...
     seen = set()
@@ -502,6 +587,7 @@ def parse_pubmed2db_into_tsvs(
             "pmid_count": count_records,
             "shard_count": len(shards),
             "shared_identifier_count": len(shared),
+            "repaired_malformed_article_ids": len(repaired),
             "skipped_malformed_article_ids": len(skipped),
         },
         concord_filename=concord_file,
@@ -524,9 +610,10 @@ class _PublicationCliques:
     worker.
     """
 
-    def __init__(self, download_dir, winners):
+    def __init__(self, download_dir, winners, doi_repairs):
         self.download_dir = download_dir
         self.winners = winners
+        self.doi_repairs = doi_repairs
         self.shard_counts = expected_shard_counts(download_dir)
 
     def __len__(self):
@@ -534,12 +621,19 @@ class _PublicationCliques:
 
     def __iter__(self):
         for shard in self.shard_counts:
-            for pmid, title, others, _ in _read_shard(os.path.join(self.download_dir, shard)):
+            for pmid, title, others, _ in _read_shard(os.path.join(self.download_dir, shard), self.doi_repairs):
                 identifiers = [pmid] + [o for o in others if self.winners.get(shared_identifier_key(o), pmid) == pmid]
                 yield TypedClique(PUBLICATION, identifiers, {pmid: title} if title else None)
 
 
-def generate_compendium(download_dir, shared_ids_file, metadata_yamls, publication_compendium, icrdf_filename):
+def generate_compendium(
+    download_dir,
+    shared_ids_file,
+    metadata_yamls,
+    publication_compendium,
+    icrdf_filename,
+    doi_repairs_file=PUBMED_DOI_REPAIRS,
+):
     """
     Write the Publication compendium straight from the pubmed2db shards: one record, one clique.
 
@@ -548,6 +642,8 @@ def generate_compendium(download_dir, shared_ids_file, metadata_yamls, publicati
 
     :param shared_ids_file: Output of parse_pubmed2db_into_tsvs(); a shared identifier stays only in the
         PMID named there.
+    :param doi_repairs_file: The DOI repairs table parse_pubmed2db_into_tsvs() was given. It has to be the
+        same one: shared_ids_file was computed from the repaired identifiers.
     """
     winners = {}
     with open(shared_ids_file) as sharedf:
@@ -558,7 +654,7 @@ def generate_compendium(download_dir, shared_ids_file, metadata_yamls, publicati
 
     write_compendium(
         metadata_yamls,
-        _PublicationCliques(download_dir, winners),
+        _PublicationCliques(download_dir, winners, load_doi_repairs(doi_repairs_file)),
         os.path.basename(publication_compendium),
         None,
         # No extra_prefixes: the export spells PubMed Central ids PMC:, which Biolink registers on

@@ -45,6 +45,8 @@ rule download_pubmed2db:
 rule generate_pubmed_concords:
     input:
         PUBMED2DB_DIR + "/downloaded",
+        # An input so that regenerating the table re-runs both rules that apply it.
+        doi_repairs_file=publications.PUBMED_DOI_REPAIRS,
     output:
         titles_file=config["download_directory"] + "/PubMed2DB/titles.tsv",
         pmid_id_file=config["intermediate_directory"] + "/publications/ids/PMID",
@@ -81,12 +83,15 @@ rule generate_pubmed_concords:
             output.metadata_yaml,
             params.url,
             threads,
+            input.doi_repairs_file,
         )
 
 
 rule generate_pubmed_compendia:
     input:
         PUBMED2DB_DIR + "/downloaded",
+        # Must be the table generate_pubmed_concords used: shared_ids_file was computed from its repairs.
+        doi_repairs_file=publications.PUBMED_DOI_REPAIRS,
         shared_ids_file=config["intermediate_directory"] + "/publications/concords/shared_identifiers.tsv",
         metadata_yaml=config["intermediate_directory"] + "/publications/concords/metadata.yaml",
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
@@ -114,6 +119,7 @@ rule generate_pubmed_compendia:
             [input.metadata_yaml],
             output.publication_compendium,
             input.icrdf_filename,
+            input.doi_repairs_file,
         )
         # generate_compendium() will generate an (empty) Publication.txt file, but we need
         # to compress it.
