@@ -31,7 +31,8 @@ rule download_pubmed2db:
     resources:
         mem="2G",
         cpus_per_task=1,
-        # ~17 GB over 8 files from stars.renci.org; 2h is generous for an in-datacenter copy.
+        # ~17 GB over 8 files from stars.renci.org, then a SHA-256 of each (seconds, streamed in 8 MB
+        # chunks); 2h is generous for an in-datacenter copy.
         runtime="2h",
     params:
         url=PUBMED2DB_URL,
@@ -52,7 +53,7 @@ rule generate_pubmed_concords:
         metadata_yaml=config["intermediate_directory"] + "/publications/concords/metadata.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/generate_pubmed_concords.tsv"
-    # One worker per shard; 2026sep26 has 8. More threads than shards buy nothing.
+    # One worker per shard; 2026sep26 and 2026nov08 have 8. More threads than shards buy nothing.
     threads: 8
     resources:
         # The SLURM executor allocates cpus_per_task, not threads, and slurm/config.yaml defaults it to 1:

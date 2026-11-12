@@ -17,61 +17,92 @@ there is one.
 Three settings at the top of `config.yaml` pin the export a build reads:
 
 - `pubmed2db_base_url` — where pubmed2db publishes its exports.
-- `pubmed2db_version` — the export directory under it, e.g. `2026sep26`.
+- `pubmed2db_version` — the export directory under it, e.g. `2026nov08`.
 - `pubmed2db_validation_report` — the export's validation report, relative to that directory. It
-  can't be derived from the version and has moved before, so look it up each time you move
+  can't be derived from the version (2026nov08's is `manifests/validation_report-20261109.json`,
+  dated the day it was validated) and has moved before, so look it up each time you move
   `pubmed2db_version`.
 
-`rule download_pubmed2db` downloads the report, then exactly the shards it lists, into
-`babel_downloads/PubMed2DB/<version>/`; `generate_pubmed_concords` and `generate_pubmed_compendia`
-read the shards from there. Because every path includes the version, moving `pubmed2db_version`
-re-runs all three rules, and nothing from an older export can be reused by mistake. The directory
-can be carried forward between runs — see "Preloading PubMed downloads" in
+`rule download_pubmed2db` downloads the export's `metadata.json` and the report, then exactly the
+shards they list, into `babel_downloads/PubMed2DB/<version>/`, and checks every shard's SHA-256;
+`generate_pubmed_concords` and `generate_pubmed_compendia` read the shards from there. Because every
+path includes the version, moving `pubmed2db_version` re-runs all three rules, and nothing from an
+older export can be reused by mistake. The directory can be carried forward between runs — see
+"Preloading PubMed downloads" in
 [`RunningBabel.md`](../../RunningBabel.md).
 
 ### pubmed2db's data model version
 
 pubmed2db [versions its outputs][p2db-versioning] with a semantic "data model" version, separate
-from its code version. Data model 1.0.0 is still in development
-([pubmed2db#63](https://github.com/TranslatorSRI/pubmed2db/pull/63)), so 2026sep26 and every earlier
-export carry no version. For the NDJSON, 1.0 changes no field (see its [changelog][p2db-changelog]),
-but two things change when you pin the first export made with it:
+from its code version. 1.0.0 is the first, frozen in pubmed2db v1.2.0, and 2026nov08 is the first
+export made with it; 2026sep26 and every earlier export carry no version, and Babel no longer reads
+them. Each export says which data model it follows, as `data_model_version` in its `metadata.json`
+and its validation report.
 
-- **Exports are named for their corpus cutoff**, the UTC date NCBI posted the last file pubmed2db
-  loaded (`metadata.json`'s `corpus.build_name`), rather than the day the export finished. Existing
-  directories keep their names. The latest-dated directory, which is what
-  `test_pinned_export_is_the_newest` looks for, therefore holds the newest corpus.
-- **Each export says which data model it follows**, as `data_model_version` in `metadata.json` and
-  in the validation report. Only a major bump can rename, remove or change the meaning of a field,
-  and pubmed2db's changelog entry for each one says what an NDJSON consumer has to do, so read it
-  before moving `pubmed2db_version` across one. Babel does not check the version yet.
+Babel reads **major version 1** (`PUBMED2DB_DATA_MODEL_MAJOR` in
+`src/createcompendia/publications.py`) and refuses anything else, both before downloading the
+shards and again before parsing them:
 
-[p2db-versioning]: https://github.com/TranslatorSRI/pubmed2db/blob/68eceab/docs/data-model.md#versioning-and-stability
-[p2db-changelog]: https://github.com/TranslatorSRI/pubmed2db/blob/68eceab/docs/data-model.md#changelog
+- A **minor** version only adds tables and fields, so any 1.x is read without change.
+- A **major** version may rename, remove or change the meaning of a field. pubmed2db's
+  [changelog][p2db-changelog] entry for each one says what an NDJSON consumer has to do, so make
+  that change in `publications.py` before raising the constant. The one already foreseeable is the
+  prefix of PubMed Central ids (see "`PMC:` versus `PMCID:`" below).
+- A fix that changes values but not how to read them doesn't change the version at all. pubmed2db's
+  release notes list those, and `metadata.json`'s `generated_by` names the code an export came from.
+
+Since 1.0, exports are named for their corpus cutoff, the UTC date NCBI posted the last file
+pubmed2db loaded (`metadata.json`'s `corpus.build_name`), rather than the day the export finished.
+The latest-dated directory, which is what `test_pinned_export_is_the_newest` looks for, therefore
+holds the newest corpus.
+
+[p2db-versioning]: https://github.com/TranslatorSRI/pubmed2db/blob/v1.2.0/docs/data-model/README.md#versioning-and-stability
+[p2db-changelog]: https://github.com/TranslatorSRI/pubmed2db/blob/v1.2.0/docs/data-model/Changelog.md
 
 ## The export contract Babel relies on
 
 ### Layout
 
-As of 2026sep26, an export directory holds:
+As of 2026nov08, an export directory holds:
 
-- `pubmed_metadata_0.ndjson.gz` … `pubmed_metadata_7.ndjson.gz` — 8 shards of ~2.1 GB, 41,153,516
+- `pubmed_metadata_0.ndjson.gz` … `pubmed_metadata_7.ndjson.gz` — 8 shards of ~2.1 GB, 41,371,020
   records in all.
-- `manifests/validation_report-20260926.json` — pubmed2db's validation report.
-- `manifests/pmids-20260926.txt.gz` and `pubmed.duckdb` (~76 GB) — pubmed2db's own PMID manifest
-  and database. Babel ignores both, which is why it downloads from the report's shard list rather
-  than crawling the directory.
+- `metadata.json` — the export's description of itself: the data model version, the record count,
+  the corpus cutoff, the pubmed2db version that made it, and each shard's size and SHA-256.
+- `SHA256SUMS` — the same hashes, for `sha256sum -c`. Babel reads them from `metadata.json`.
+- `manifests/validation_report-20261109.json` — pubmed2db's validation report.
+- `manifests/pmids-20261109.txt.gz`, `logs/` and `source_file.csv` — pubmed2db's own PMID manifest,
+  Slurm logs and list of the PubMed files it loaded. Babel ignores them, which is why it downloads
+  from a list of shards rather than crawling the directory (2026sep26 also held pubmed2db's ~76 GB
+  DuckDB database).
 
-The layout is not stable between exports. 2026aug5 had 16 shards named `pubmed_metadata_00000` …
-`00015` and a gzipped `validation_report.json.gz` at the top level, whose `records_by_shard` keys
-lacked the `.gz`. Check a new export's layout against this section before pinning it.
+The data model version covers the records, not this layout, which has changed before. 2026aug5 had
+16 shards named `pubmed_metadata_00000` … `00015` and a gzipped `validation_report.json.gz` at the
+top level, whose `records_by_shard` keys lacked the `.gz`. Check a new export's layout against this
+section before pinning it.
 
-Exports made with data model 1.0 also hold `metadata.json` (the data model version, the record
-count, the corpus cutoff, and each file's size and SHA-256) and `SHA256SUMS` (the same hashes, for
-`sha256sum -c`) beside the shards. 2026sep26 and earlier have neither. pubmed2db's
-[recipe for checking a download][p2db-checking] is the one to follow once Babel reads them.
+### `metadata.json` and the checksums
 
-[p2db-checking]: https://github.com/TranslatorSRI/pubmed2db/blob/68eceab/docs/data-model.md#getting-a-build-and-checking-it
+`download_pubmed2db` follows pubmed2db's [recipe for checking a download][p2db-checking]:
+
+1. It fetches `metadata.json` first and refuses an export in another major data model version
+   before downloading anything else.
+2. It checks that `metadata.json` and the validation report list the same shards and the same
+   record total. They are written by different pubmed2db steps (`export` and `validate`), so a
+   disagreement means `pubmed2db_validation_report` names another export's report.
+3. After the download it hashes every shard and compares it with `metadata.json`'s `sha256`
+   (`verify_shard_checksums()`), raising with the name of each shard that differs or is missing.
+   The `downloaded` marker is only written when all of them match.
+
+The checksum is the only check that catches an intact shard from a *different* export whose record
+count happens to match. The likeliest way to get one is a carried-forward download directory, since
+`wget --continue` leaves a complete file alone. Hashing the ~17 GB took 6 s on a laptop.
+
+`generate_pubmed_concords` repeats the version check (a preloaded directory skips the download
+rule) but not the hashing, and writes the export's name, data model version and pubmed2db version
+into the `description` of `intermediate/publications/concords/metadata.yaml`.
+
+[p2db-checking]: https://github.com/TranslatorSRI/pubmed2db/blob/v1.2.0/docs/data-model/README.md#getting-a-build-and-checking-it
 
 ### The validation report
 
@@ -79,18 +110,17 @@ Babel reads three things from the report, and nothing from its human-readable
 `checks_run[].observed` strings:
 
 - `status` — an export whose validator reported `fail` is refused outright. `warn` is accepted.
-  It is worth reading a new export's warnings anyway: of 2026sep26's, `invalid_months` concerns a
-  field Babel doesn't read, but `identifier_mismatches` found one of 240 sampled records (PMID
-  6491726) exported without the DOI Entrez gives it, and `field_mismatches` includes titles whose
-  punctuation and whitespace differ from Entrez's (PMID 10205128 is exported as
-  `"Rationing-talk and action in health care "`, Entrez has `"Rationing-talk and action in health
-  care."`).
+  It is worth reading a new export's warnings anyway. 2026nov08 has one, `invalid_months`, which
+  concerns a field Babel doesn't read; its sample of 240 records compared against Entrez found no
+  identifier or title mismatches. (2026sep26's found one record exported without the DOI Entrez
+  gives it, and titles whose punctuation and whitespace differ from Entrez's.)
 - `checks.structure.records_by_shard` — `{shard filename: record count}`. This is the list of
   shards to download and parse, and `generate_pubmed_concords` raises if any shard parses to a
   different count, naming the shard. A truncated or corrupted shard doesn't need the count: each
   shard is a single gzip stream, so damage already fails decompression in `_read_shard()`. What the
-  count catches is an intact shard from a different export. From data model 1.0, `SHA256SUMS`
-  catches that too, even when the substitute has the same count, but Babel doesn't check it yet.
+  count catches is an intact shard from a different export. The checksums catch that too, even
+  when the substitute has the same count, but only when the download rule runs; the count is
+  checked on every parse.
 - `checks.structure.records_total` — must equal the sum of `records_by_shard`.
 
 ### Records
@@ -103,8 +133,7 @@ Each line of a shard is a flat JSON record; Babel reads three of its fields:
 
 - `id` — the PMID CURIE.
 - `identifiers` — the PMID first, then its DOI and PubMed Central CURIEs, sorted and de-duplicated.
-  DOIs are `doi:`. PubMed Central ids are `PMC:PMC123` in 2026aug5 (2026jun30 has no `identifiers`
-  field at all) and `PMCID:PMC123` from 2026aug21 on, which Babel respells `PMC:` (see below). Only
+  DOIs are `doi:` and PubMed Central ids are `PMC:PMC123` (see "`PMC:` versus `PMCID:`" below). Only
   those two `ArticleId` types are promoted to CURIEs; the rest stay in pubmed2db. A record whose
   list is empty or doesn't start with its own PMID fails the build. PubMed publishes DOIs as
   supplied, so a few are malformed (`doi:10.1126/science. 1134405`, ~140 in shard 0 of 2026sep26);
@@ -114,8 +143,8 @@ Each line of a shard is a flat JSON record; Babel reads three of its fields:
   [Babel#1112](https://github.com/NCATSTranslator/Babel/issues/1112).
 - `article_title` — becomes the PMID's label (see "Titles"). Absent values are `""`, never null.
 
-pubmed2db puts every NDJSON field in its "stable" tier: from data model 1.0, none of these three
-changes except with a major version (see "pubmed2db's data model version" above).
+pubmed2db puts every NDJSON field in its "stable" tier: none of these three changes except with a
+major data model version, which Babel refuses (see "pubmed2db's data model version" above).
 
 What pubmed2db guarantees, and Babel therefore does not re-check record by record:
 
@@ -169,7 +198,7 @@ since DOIs are case-insensitive and PubMed passes on whatever case the publisher
 (`doi:10.1039/C4BM00222A` on PMID:26146547, `doi:10.1039/c4bm00222a` on PMID:26214188). Compared
 exactly, both PMIDs would keep their spelling, and Node Normalization, which looks CURIEs up
 case-insensitively, would resolve both spellings to only one of the two cliques. A PubMed Central
-id is compared as-is, after `PMCID:` is respelled `PMC:`. The key is also what
+id is compared as-is. The key is also what
 `shared_identifiers.tsv` lists, so its DOIs are lower-cased.
 
 **Why the lowest PMID.** The PMIDs sharing a DOI are separate citations, not versions of one record:
@@ -244,32 +273,33 @@ doubled. `tests/pipeline/test_publications.py` asserts the two-field shape over 
 
 ## `PMC:` versus `PMCID:`
 
-Every Babel release so far has written PubMed Central identifiers as `PMC:PMC1234567`. pubmed2db's
-2026aug5 export spells them that way too, but its exports from 2026aug21 on, including the pinned
-2026sep26, spell them `PMCID:PMC1234567`. Babel keeps `PMC:`. `_read_shard()` respells the export's
-`PMCID:` according to `PUBMED2DB_PREFIX_RENAMES` in `src/createcompendia/publications.py`, so the
-concords, `shared_identifiers.tsv` and the compendium all say `PMC:`, whichever spelling the export
-used. The reasons:
+Every Babel release so far has written PubMed Central identifiers as `PMC:PMC1234567`, and
+pubmed2db's data model 1 exports them that way, following Babel. (Its pre-1.0 exports 2026aug21 and
+2026sep26 spelled them `PMCID:PMC1234567`, which Babel respelled while it read those.) The doubled
+`PMC` is expected: PubMed's `ArticleId[@IdType="pmc"]` values already begin with `PMC`, and the PMC
+team has confirmed that local ids keep it.
 
-- **Consistency while the question is open.** Which prefix Translator should use is
-  [Babel#1044](https://github.com/NCATSTranslator/Babel/issues/1044), and
-  [pubmed2db#33](https://github.com/TranslatorSRI/pubmed2db/issues/33) for the export. Consumers of
-  Babel's output already hold `PMC:` CURIEs, and Node Normalization resolves `PMC:PMC1234567` but
-  returned `null` for `PMCID:PMC1234567` on 2026-10-19. Following the export would rename ~12M
-  CURIEs before that is decided, and rename them back if the answer is `PMC:`.
+Which prefix Translator should use is still open:
+[Babel#1044](https://github.com/NCATSTranslator/Babel/issues/1044) here,
+[pubmed2db#33](https://github.com/TranslatorSRI/pubmed2db/issues/33) for the export, and
+[biolink-model#1366](https://github.com/biolink/biolink-model/issues/1366) upstream. Until it is
+settled Babel stays on `PMC:`:
+
+- **Consumers already hold `PMC:` CURIEs.** Node Normalization resolves `PMC:PMC1234567` but
+  returned `null` for `PMCID:PMC1234567` on 2026-10-19. Switching would rename ~12M CURIEs, and
+  rename them back if the answer is `PMC:`.
 - **Biolink registers `PMC` on the type Babel uses.** Biolink 4.4.3 and 4.4.5 register `PMC` on
   `biolink:Publication`, the type of every clique here, and `PMCID` only on
   `biolink:JournalArticle`. `PMC:` therefore needs no `extra_prefixes`, which a `PMCID:` would need
   to avoid being silently dropped by `create_node()`.
 
 Neither spelling expands to a working URL with Biolink's prefix map (#1044 shows both), so that
-doesn't decide it either way. Switching to `PMCID:` later is the change described in the
-`PUBMED2DB_PREFIX_RENAMES` comment: delete the mapping and pass `extra_prefixes=["PMCID"]`.
+doesn't decide it either way.
 
-pubmed2db's data model 1.0 ([pubmed2db#63](https://github.com/TranslatorSRI/pubmed2db/pull/63)) goes
-back to `PMC:` to match Babel, as an interim choice tracked in pubmed2db#33. Once
-`pubmed2db_version` names a 1.0 build, the respelling renames nothing; check pubmed2db#33 then, and
-either delete the mapping or make the `PMCID:` change above.
+If the answer is `PMCID:`, pubmed2db will change the export with a **major** data model bump, which
+Babel refuses until someone raises `PUBMED2DB_DATA_MODEL_MAJOR`. The change to make with it is in
+that constant's comment: pass `extra_prefixes=["PMCID"]` to `write_compendium()` in
+`generate_compendium()`.
 
 ## What was dropped
 

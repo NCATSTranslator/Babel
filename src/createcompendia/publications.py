@@ -4,15 +4,19 @@ Build the Publication compendium from a pubmed2db NDJSON export.
 Babel used to download and parse the PubMed XML baseline and update files itself (~1,500 files, 20 hours
 single-threaded in 2026jul22). That work now happens in pubmed2db (https://github.com/TranslatorSRI/pubmed2db),
 which loads PubMed into DuckDB and exports one NDJSON record per PMID -- latest version only, deleted PMIDs
-removed -- as gzipped ``pubmed_metadata_*.ndjson.gz`` shards, with a validation report that lists every shard
-and how many records it holds. Babel downloads the export pinned by ``config.yaml: pubmed2db_version`` and
-reads just three fields from each record: ``id`` (``PMID:...``), ``identifiers`` (the PMID plus its ``doi:``
-and PubMed Central CURIEs) and ``article_title``.
+removed -- as gzipped ``pubmed_metadata_*.ndjson.gz`` shards, with a ``metadata.json`` that gives the
+export's data model version and every shard's SHA-256, and a validation report that lists every shard and
+how many records it holds. Babel downloads the export pinned by ``config.yaml: pubmed2db_version`` and reads
+just three fields from each record: ``id`` (``PMID:...``), ``identifiers`` (the PMID plus its ``doi:`` and
+PubMed Central CURIEs) and ``article_title``.
 
 **Whenever you change this module, check https://stars.renci.org/var/babel_outputs/pubmed2db/ for a newer
-export** and move the pubmed2db settings at the top of ``config.yaml`` to it. The export's layout has changed
-between versions before (shard count and naming, where the validation report lives), so read the new
-validation report against docs/sources/PubMed/README.md, which describes the contract this module relies on.
+export** and move the pubmed2db settings at the top of ``config.yaml`` to it. pubmed2db versions its outputs
+with a "data model" version, and this module reads major version ``PUBMED2DB_DATA_MODEL_MAJOR``: an export
+from another major version is refused, because only a major bump may rename, remove or change the meaning
+of a field. The layout around the shards is not covered by that promise and has changed before (where the
+validation report lives), so read a new export against docs/sources/PubMed/README.md, which describes the
+contract this module relies on.
 
 Because every record already carries its complete identifier set, the compendium is written straight from
 the shards without glom(): a record *is* a clique. The one thing that needs a corpus-wide view is a DOI or
@@ -20,6 +24,7 @@ PMCID that appears in more than one record -- see ``parse_pubmed2db_into_tsvs()`
 """
 
 import gzip
+import hashlib
 import json
 import os
 import shutil
@@ -31,7 +36,7 @@ from pathlib import Path
 from src.babel_utils import TypedClique, pull_via_wget, write_compendium
 from src.categories import JOURNAL_ARTICLE, PUBLICATION
 from src.metadata.provenance import write_concord_metadata
-from src.prefixes import DOI, PMC
+from src.prefixes import DOI
 from src.util import Text, curie_format_problem, ensure_parent_dir, get_logger
 
 logger = get_logger(__name__)
@@ -40,18 +45,31 @@ logger = get_logger(__name__)
 # pubmed2db_validation_report) and whether or not it is gzipped there.
 VALIDATION_REPORT = "validation_report.json"
 
-# pubmed2db's spelling of a prefix (upper-cased, as Text.get_prefix_or_none() returns it) -> Babel's.
-# pubmed2db exports from 2026aug21 on spell PubMed Central ids PMCID:PMC123 (2026aug5 used PMC:PMC123).
-# Babel keeps PMC:PMC123, the spelling every Babel release so far has shipped and the one Biolink registers
-# on biolink:Publication (PMCID only on biolink:JournalArticle), so a release doesn't rename ~12M CURIEs
-# while the right prefix is still undecided: https://github.com/NCATSTranslator/Babel/issues/1044 and
-# https://github.com/TranslatorSRI/pubmed2db/issues/33. If that settles on PMCID, delete this mapping and
-# pass extra_prefixes=["PMCID"] to write_compendium() in generate_compendium(), or create_node() will drop
-# every one of them as unregistered for biolink:Publication.
-# pubmed2db's data model 1.0 (https://github.com/TranslatorSRI/pubmed2db/pull/63) switches back to PMC:PMC123
-# to match Babel, so once config.yaml's pubmed2db_version names a 1.0 build this mapping renames nothing.
-# Check pubmed2db#33 then: delete the mapping if it still says PMC, or make the PMCID change above if not.
-PUBMED2DB_PREFIX_RENAMES = {"PMCID": PMC}
+# The export's own description of itself, at the top level of every export from data model 1.0 on: its data
+# model version, record count, corpus cutoff, and each shard's size and SHA-256. Unlike the validation
+# report, its path never changes.
+EXPORT_METADATA = "metadata.json"
+
+# The major version of pubmed2db's data model that this module reads. pubmed2db promises
+# (https://github.com/TranslatorSRI/pubmed2db/blob/main/docs/data-model/README.md#versioning-and-stability)
+# that a minor version only adds fields, while a major one may rename, remove or change the meaning of the
+# three this module reads, so read_export_metadata() accepts any 1.x and refuses everything else. Before
+# raising this, read pubmed2db's changelog entry for the new major version
+# (https://github.com/TranslatorSRI/pubmed2db/blob/main/docs/data-model/Changelog.md), which says what an
+# NDJSON consumer has to do, and make that change here.
+#
+# The change most likely to arrive that way is the prefix of PubMed Central ids. Data model 1 spells them
+# PMC:PMC123, the spelling every Babel release has shipped and the one Biolink registers on
+# biolink:Publication (PMCID only on biolink:JournalArticle). Which prefix Translator should use is still
+# open (https://github.com/NCATSTranslator/Babel/issues/1044, and
+# https://github.com/TranslatorSRI/pubmed2db/issues/33 for the export, which follows Babel in the meantime).
+# If that settles on PMCID, the export changes with a major bump, and generate_compendium() must then pass
+# extra_prefixes=["PMCID"] to write_compendium(), or create_node() will silently drop every one of them as
+# unregistered for biolink:Publication.
+PUBMED2DB_DATA_MODEL_MAJOR = 1
+
+# How much of a shard to hash at a time (shards are ~2 GB, so they are never read whole).
+HASH_CHUNK_BYTES = 8 * 1024 * 1024
 
 
 def shared_identifier_key(curie):
@@ -71,15 +89,19 @@ def shared_identifier_key(curie):
 
 def download_pubmed2db(export_url, report_path, download_dir, done_file):
     """
-    Download a pubmed2db export: its validation report, then exactly the shards that report lists.
+    Download a pubmed2db export: its ``metadata.json`` and validation report, then exactly the shards they
+    list, and check every shard against its SHA-256.
 
     The report doubles as the export's manifest, so we never crawl the export directory -- since 2026sep26
     it also holds pubmed2db's own ~76 GB DuckDB database and a ``manifests/`` subdirectory, which a recursive
-    wget would fetch.
+    wget would fetch. ``metadata.json`` is read first, so an export in a data model this module wasn't
+    written for is refused before 17 GB of it is downloaded.
 
     ``download_dir`` belongs to a single export version, and a published export is never modified, so a
     shard left half-downloaded by an interrupted run is safely resumed (``wget --continue``) and a complete
-    one is left alone. That is also what makes carrying ``download_dir`` forward into a new run safe.
+    one is left alone. That is also what makes carrying ``download_dir`` forward into a new run safe -- and
+    the checksums are what catch a carried-forward directory holding another export's shards, which would
+    otherwise be left alone as "complete". The marker is only written once every shard matches.
 
     :param export_url: The export directory URL, ending in ``/``.
     :param report_path: The validation report's path relative to ``export_url``
@@ -88,11 +110,17 @@ def download_pubmed2db(export_url, report_path, download_dir, done_file):
     :param done_file: Marker file to touch once every shard is downloaded.
     """
     report_file = os.path.join(download_dir, VALIDATION_REPORT)
+    metadata_file = os.path.join(download_dir, EXPORT_METADATA)
     report_gzipped = report_path.endswith(".gz")
-    # The report is small and always re-fetched; clear any old copy so gunzip doesn't refuse to overwrite it.
-    for stale in (report_file, report_file + ".gz"):
+    # Both are small and always re-fetched; clear any old copy so that a stale one is never read, and so
+    # gunzip doesn't refuse to overwrite the report.
+    for stale in (metadata_file, report_file, report_file + ".gz"):
         if os.path.exists(stale):
             os.remove(stale)
+    pull_via_wget(export_url, EXPORT_METADATA, decompress=False, outpath=metadata_file, continue_incomplete=False)
+    # Refuse another data model before fetching anything else. The report isn't here yet, so the comparison
+    # of the two shard lists waits for the call below.
+    read_export_metadata(download_dir, check_against_report=False)
     pull_via_wget(
         export_url,
         report_path,
@@ -102,13 +130,15 @@ def download_pubmed2db(export_url, report_path, download_dir, done_file):
     )
 
     shard_counts = expected_shard_counts(download_dir)
+    metadata = read_export_metadata(download_dir)
     for shard in shard_counts:
         pull_via_wget(
             export_url, shard, decompress=False, outpath=os.path.join(download_dir, shard), continue_incomplete=True
         )
+    verify_shard_checksums(download_dir, metadata)
     logger.info(
-        f"Downloaded {len(shard_counts)} pubmed2db shards ({sum(shard_counts.values()):,} records) from "
-        f"{export_url} into {download_dir}."
+        f"Downloaded {len(shard_counts)} pubmed2db shards ({sum(shard_counts.values()):,} records, data model "
+        f"{metadata['data_model_version']}) from {export_url} into {download_dir}; every SHA-256 matches."
     )
     ensure_parent_dir(done_file)
     Path(done_file).touch()
@@ -121,9 +151,9 @@ def expected_shard_counts(download_dir):
 
     The validation report is pubmed2db's statement of what the export contains: it is our manifest of which
     shards to download and read, and the per-shard counts catch an intact shard from a different export (a
-    truncated or corrupted one already fails decompression in ``_read_shard()``). Exports from pubmed2db data
-    model 1.0 on also publish ``SHA256SUMS``, which would catch that too; the pinned export predates them, so
-    Babel doesn't read them yet (docs/sources/PubMed/README.md). Reads ``checks.structure.records_by_shard`` and
+    truncated or corrupted one already fails decompression in ``_read_shard()``). ``verify_shard_checksums()``
+    catches that too, even when the counts happen to match, but only runs when the shards are downloaded;
+    the counts are checked on every parse. Reads ``checks.structure.records_by_shard`` and
     ``records_total`` rather than the human-readable ``checks_run[].observed`` strings. Raises if the report's
     overall status is ``fail`` or those fields are missing or inconsistent.
     """
@@ -158,6 +188,91 @@ def expected_shard_counts(download_dir):
     return dict(sorted(records_by_shard.items()))
 
 
+def read_export_metadata(download_dir, check_against_report=True):
+    """
+    The ``metadata.json`` of the export downloaded into ``download_dir``, once it is known to describe an
+    export this module can read.
+
+    Raises unless its ``data_model_version`` has major version ``PUBMED2DB_DATA_MODEL_MAJOR`` (see that
+    constant for why any minor version is accepted), and unless every entry of ``files`` has a ``name`` and
+    a ``sha256``. With ``check_against_report``, also raises unless it lists exactly the shards the
+    validation report does and gives the same total record count: the two are written by different pubmed2db
+    steps (``export`` and ``validate``), so a disagreement means they describe different exports.
+
+    A missing file raises too, with what to do about it: exports before data model 1.0 (2026sep26 and
+    earlier) have none, and neither does a directory preloaded from a build that predates this check.
+    """
+    metadata_file = os.path.join(download_dir, EXPORT_METADATA)
+    try:
+        with open(metadata_file) as f:
+            metadata = json.load(f)
+    except FileNotFoundError as e:
+        raise RuntimeError(
+            f"{metadata_file} is missing. Every pubmed2db export from data model 1.0 on has one, so either this "
+            f"export predates it (2026sep26 and earlier, which this code no longer reads) or the directory was "
+            f"preloaded without it: delete {os.path.join(download_dir, 'downloaded')} and re-run "
+            f"download_pubmed2db, which fetches it and leaves complete shards alone."
+        ) from e
+
+    version = str(metadata.get("data_model_version", ""))
+    if version.split(".")[0] != str(PUBMED2DB_DATA_MODEL_MAJOR):
+        raise RuntimeError(
+            f"{metadata_file} says this export follows pubmed2db data model {version or '(none)'}, but Babel "
+            f"reads major version {PUBMED2DB_DATA_MODEL_MAJOR}. A major version may rename, remove or change "
+            f"the meaning of the fields Babel reads: see PUBMED2DB_DATA_MODEL_MAJOR in "
+            f"src/createcompendia/publications.py and pubmed2db's data model changelog before changing it."
+        )
+    try:
+        shard_hashes = {entry["name"]: entry["sha256"] for entry in metadata["files"]}
+        records = metadata["records"]
+    except (KeyError, TypeError) as e:
+        raise RuntimeError(
+            f"{metadata_file} has no usable files[].name, files[].sha256 and records ({type(e).__name__}: {e}); "
+            f"see docs/sources/PubMed/README.md."
+        ) from e
+
+    if check_against_report:
+        shard_counts = expected_shard_counts(download_dir)
+        if set(shard_hashes) != set(shard_counts) or records != sum(shard_counts.values()):
+            raise RuntimeError(
+                f"{metadata_file} and the validation report beside it describe different exports: metadata.json "
+                f"lists {sorted(shard_hashes)} with {records:,} records, the report lists {sorted(shard_counts)} "
+                f"with {sum(shard_counts.values()):,}. Check config.yaml: pubmed2db_validation_report names the "
+                f"report of the export that pubmed2db_version names."
+            )
+    return metadata
+
+
+def verify_shard_checksums(download_dir, metadata):
+    """
+    Raise unless every shard ``metadata`` (from ``read_export_metadata()``) lists is in ``download_dir`` with
+    the SHA-256 it gives, naming all the ones that aren't.
+
+    This is step 2 of pubmed2db's recipe for checking a download (``sha256sum -c SHA256SUMS``; the hashes in
+    ``metadata.json`` are the same ones). It is the only check that catches an intact shard from a different
+    export whose record count happens to match -- most likely one already in a carried-forward
+    ``download_dir``, which ``wget --continue`` leaves alone as complete. Hashing the ~17 GB took 6 s
+    on an Apple M-series laptop.
+    """
+    problems = []
+    for entry in metadata["files"]:
+        shard_path = os.path.join(download_dir, entry["name"])
+        if not os.path.exists(shard_path):
+            problems.append(f"{entry['name']} is missing")
+            continue
+        digest = hashlib.sha256()
+        with open(shard_path, "rb") as f:
+            while chunk := f.read(HASH_CHUNK_BYTES):
+                digest.update(chunk)
+        if digest.hexdigest() != entry["sha256"]:
+            problems.append(f"{entry['name']} has SHA-256 {digest.hexdigest()}, expected {entry['sha256']}")
+    if problems:
+        raise RuntimeError(
+            f"Shards in {download_dir} don't match the export's {EXPORT_METADATA}, so they are damaged or come "
+            f"from a different export: {'; '.join(problems)}. Delete those shards and re-run download_pubmed2db."
+        )
+
+
 def _read_shard(shard_path):
     """
     Yield ``(pmid, title, other_identifiers, malformed_identifiers)`` for every record in one shard; see
@@ -175,10 +290,10 @@ def _read_shard_records(shard_path):
     (docs/sources/PubMed/shared_identifiers/); the build itself uses ``_read_shard()``.
 
     This is the only place in the build that knows the export's record format. ``identifiers`` always starts
-    with the record's own PMID, so ``identifiers[1:]`` is its DOI and PMCID CURIEs (sorted and de-duplicated by
-    pubmed2db). They are respelled per ``PUBMED2DB_PREFIX_RENAMES`` here, so every later step sees ``PMC:``
-    whichever spelling the export used, and de-duplicated again by ``shared_identifier_key()``. ``title`` is
-    ``article_title`` exactly as exported, and is ``""`` when the record has none.
+    with the record's own PMID, so ``identifiers[1:]`` is its DOI and PubMed Central CURIEs (``doi:`` and
+    ``PMC:PMC123``; sorted and de-duplicated by pubmed2db). They are de-duplicated again by
+    ``shared_identifier_key()``, since pubmed2db compares DOIs exactly. ``title`` is ``article_title`` exactly
+    as exported, and is ``""`` when the record has none.
 
     Any of those CURIEs that ``curie_format_problem()`` rejects -- which ``write_compendium()`` would fail the
     build on -- go in ``malformed_identifiers`` instead of ``other_identifiers``, so both passes skip the same
@@ -208,10 +323,7 @@ def _read_shard_records(shard_path):
                 malformed = []
                 keys = set()
                 for other in identifiers[1:]:
-                    babel_prefix = PUBMED2DB_PREFIX_RENAMES.get(Text.get_prefix_or_none(other))
-                    if babel_prefix:
-                        other = Text.recurie(other, babel_prefix)
-                    # Respelling, or a DOI in two cases, can make two identifiers one; keep the first.
+                    # A DOI in two cases is one identifier; keep the first.
                     key = shared_identifier_key(other)
                     if key in keys:
                         continue
@@ -299,7 +411,8 @@ def parse_pubmed2db_into_tsvs(
     DOIs and PMCIDs that ``write_compendium()`` would reject are skipped (see ``_read_shard()``) and counted
     in the metadata YAML as ``skipped_malformed_article_ids``.
 
-    Raises if any shard holds a different number of records than pubmed2db's validation report says.
+    Raises if the export follows a data model this module doesn't read (``read_export_metadata()``), or if
+    any shard holds a different number of records than pubmed2db's validation report says.
 
     :param url: The export URL, recorded in the metadata YAML as the source of this build's PubMed data.
     :param workers: How many shards to parse at once.
@@ -308,6 +421,8 @@ def parse_pubmed2db_into_tsvs(
         ensure_parent_dir(path)
 
     shard_counts = expected_shard_counts(download_dir)
+    # Checked here as well as on download, because a preloaded download_dir skips the download rule.
+    export_metadata = read_export_metadata(download_dir)
     shards = list(shard_counts)
     shard_files = [os.path.join(download_dir, shard) for shard in shards]
 
@@ -375,7 +490,12 @@ def parse_pubmed2db_into_tsvs(
     write_concord_metadata(
         metadata_yaml,
         name="parse_pubmed2db_into_tsvs()",
-        description="Parse a pubmed2db NDJSON export into id, title and concord TSVs.",
+        description=(
+            f"Parse a pubmed2db NDJSON export into id, title and concord TSVs. Export "
+            f"{export_metadata.get('corpus', {}).get('build_name', '(unnamed)')}, pubmed2db data model "
+            f"{export_metadata['data_model_version']}, generated by pubmed2db "
+            f"{export_metadata.get('generated_by', '(unknown)')}."
+        ),
         url=url,
         sources=[{"type": "download", "name": "pubmed2db NDJSON export", "url": url}],
         counts={
@@ -441,7 +561,7 @@ def generate_compendium(download_dir, shared_ids_file, metadata_yamls, publicati
         _PublicationCliques(download_dir, winners),
         os.path.basename(publication_compendium),
         None,
-        # No extra_prefixes: _read_shard() has already turned the export's PMCID: into PMC:, which Biolink
-        # registers on biolink:Publication (see PUBMED2DB_PREFIX_RENAMES).
+        # No extra_prefixes: the export spells PubMed Central ids PMC:, which Biolink registers on
+        # biolink:Publication. A PMCID: would need extra_prefixes (see PUBMED2DB_DATA_MODEL_MAJOR).
         icrdf_filename=icrdf_filename,
     )

@@ -1,6 +1,7 @@
 {
  "status": "warn",
  "errors": [],
+ "data_model_version": "1.0.0",
  "checks": {
   "structure": {
    "records_total": 13,

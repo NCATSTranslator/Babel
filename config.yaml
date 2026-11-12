@@ -27,6 +27,8 @@ drugbank_version: "5-1-13" # The latest is 5-1-21, but since downloads are curre
 pubmed2db_base_url: "https://stars.renci.org/var/babel_outputs/pubmed2db/"
 # Checked 2026-11-12: newest of 2026jun30, 2026aug5, 2026aug21, 2026sep26, 2026nov08, and the first export in
 # pubmed2db's data model 1.0 (https://github.com/TranslatorSRI/pubmed2db/blob/main/docs/data-model/README.md).
+# Babel refuses an export in another major data model version: PUBMED2DB_DATA_MODEL_MAJOR in
+# src/createcompendia/publications.py.
 pubmed2db_version: "2026nov08"
 pubmed2db_validation_report: "manifests/validation_report-20261109.json"
 # GARD has no version number to bump, only a link that goes stale: this is the "GARD Rare Disease

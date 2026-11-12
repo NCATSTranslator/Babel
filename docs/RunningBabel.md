@@ -119,9 +119,16 @@ export's files never change: a shard left half-downloaded by an interrupted run 
 the server's copy, so appending the rest is correct. (`pull_via_wget()` refuses `--continue` for a
 *recursive* download, where a preloaded file can have changed upstream; see its comments.) A
 truncated shard that slips through anyway fails the build, because each shard is a single gzip
-stream and a cut-off one fails decompression. `generate_pubmed_concords` also checks every shard
-against the record count in the export's validation report, which catches an intact shard from a
-different export.
+stream and a cut-off one fails decompression.
+
+What `wget --continue` cannot see is a complete shard that belongs to a different export, which it
+leaves alone. So `download_pubmed2db` hashes every shard against the SHA-256 in the export's
+`metadata.json` before it writes the `downloaded` marker, and fails naming any that differ: delete
+those and re-run. `generate_pubmed_concords` does not re-hash, but it does check that the export is
+in a pubmed2db data model Babel reads, and checks every shard against the record count in the
+export's validation report. A directory carried forward from a build that predates these checks has
+no `metadata.json`; delete its `downloaded` marker and the rule fetches it, verifies the shards
+already there, and downloads nothing else.
 
 `PubMed2DB/<version>/` is deliberately *not* declared as a `directory()` output of
 `download_pubmed2db`. Snakemake recursively deletes existing `directory()` outputs before running a
