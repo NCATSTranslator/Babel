@@ -12,6 +12,7 @@ from src.model.inchikey_audit import (
     MATCHING_KEY,
     REVIEW,
     audit_chemical_inchikeys,
+    core_naming_records,
     find_structureless_components,
     heavy_atoms_from_inchi,
     name_agreement,
@@ -201,4 +202,61 @@ def test_ofatumumab_is_flagged_tier_a_likely_wrong_with_its_one_bad_edge(tmp_pat
     ]
     assert con.sql("SELECT source, subj, obj FROM audit_boundary").fetchall() == [
         ("DrugCentral", "DrugCentral:4951", "PUBCHEM.COMPOUND:8254")
+    ]
+
+
+# The chymopapain / Tiron glom set of Babel 2026jul22: applied concord rows copied verbatim from its Concord.parquet,
+# labels from its Node.parquet, and Tiron's row from UniChem's structure.tsv.gz (UCI 651978). CHEBI:193860 and
+# HMDB:HMDB0029845 carry Tiron's structure but are labelled "Chymopapain", so a core label matches the enzyme's name.
+TIRON_KEY = "INCHIKEY:XXAXVMUWHZHZMJ-UHFFFAOYSA-N"
+TIRON_INCHI = "InChI=1S/C6H6O8S2/c7-4-1-3(15(9,10)11)2-5(6(4)8)16(12,13)14/h1-2,7-8H,(H,9,10,11)(H,12,13,14)"
+CHYMOPAPAIN_CONCORDS = [
+    (concord("CHEBI"), "CHEBI:193860", "PUBCHEM.COMPOUND:9002"),
+    (concord("DrugCentral"), "DrugCentral:5131", "CHEMBL.COMPOUND:CHEMBL1201626"),
+    (concord("DrugCentral"), "DrugCentral:5131", "DRUGBANK:DB06752"),
+    (concord("DrugCentral"), "DrugCentral:5131", "MESH:D002917"),
+    (concord("DrugCentral"), "DrugCentral:5131", "PUBCHEM.COMPOUND:9002"),
+    (concord("DrugCentral"), "DrugCentral:5131", "UMLS:C0008736"),
+    (concord("DrugCentral"), "DrugCentral:5131", "UNII:1UK146T40N"),
+    (concord("PUBCHEM_CAS"), "PUBCHEM.COMPOUND:9002", "CAS:149-46-2"),
+    (concord("PUBCHEM_CAS"), "PUBCHEM.COMPOUND:9002", "CAS:205-742-0"),
+    (concord("RXNORM"), "RXCUI:2525", "DRUGBANK:DB06752"),
+    (unichem("CHEBI"), "CHEBI:193860", TIRON_KEY),
+    (unichem("CHEMBL.COMPOUND"), "CHEMBL.COMPOUND:CHEMBL1205542", TIRON_KEY),
+    (unichem("HMDB"), "HMDB:HMDB0029845", TIRON_KEY),
+    (unichem("PUBCHEM.COMPOUND"), "PUBCHEM.COMPOUND:9002", TIRON_KEY),
+    (unichem("UNII"), "UNII:306J0THJ9U", TIRON_KEY),
+]
+CHYMOPAPAIN_LABELS = {
+    "CHEBI:193860": "Chymopapain",
+    "UNII:306J0THJ9U": "TIRON FREE ACID",
+    "HMDB:HMDB0029845": "Chymopapain",
+    "PUBCHEM.COMPOUND:9002": "4,5-Dihydroxy-1,3-benzenedisulfonic acid",
+    "CHEMBL.COMPOUND:CHEMBL1201626": "CHYMOPAPAIN",
+    "UMLS:C0008736": "chymopapain",
+    "UNII:1UK146T40N": "CHYMOPAPAIN",
+    "DrugCentral:5131": "chymopapain",
+    "MESH:D002917": "Chymopapain",
+    "DRUGBANK:DB06752": "Chymopapain",
+}
+
+
+@pytest.mark.unit
+def test_core_naming_records_prefers_pubchem():
+    """Core labels should come from the PubChem CIDs when there are any, and from every core record otherwise."""
+    assert core_naming_records(["CHEBI:193860", "PUBCHEM.COMPOUND:9002"]) == ["PUBCHEM.COMPOUND:9002"]
+    assert core_naming_records(["CHEBI:193860", "HMDB:HMDB0029845"]) == ["CHEBI:193860", "HMDB:HMDB0029845"]
+
+
+@pytest.mark.unit
+def test_a_core_record_named_after_the_biologic_does_not_clear_it(tmp_path):
+    """Chymopapain attached to Tiron should triage likely wrong even though two Tiron-structured core records are
+    labelled "Chymopapain": the core is named by its PubChem CID, 4,5-dihydroxy-1,3-benzenedisulfonic acid."""
+    members = sorted({c for _, s, o in CHYMOPAPAIN_CONCORDS for c in (s, o)})
+    cliques = {"CHEBI:193860": ("SmallMolecule", members)}
+    structures = [("651978", TIRON_INCHI, TIRON_KEY.split(":", 1)[1])]
+    con = run_audit(tmp_path, CHYMOPAPAIN_CONCORDS, cliques, CHYMOPAPAIN_LABELS, structures)
+
+    assert con.sql("SELECT tier, verdict, core_heavy_atoms FROM audit_component").fetchall() == [
+        ("A", LIKELY_WRONG, 16)
     ]

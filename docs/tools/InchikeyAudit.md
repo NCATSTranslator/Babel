@@ -47,7 +47,9 @@ Two steps outside `glom()` are modelled:
      `ChemicalMixture`.
 4. **Triage (tier A only):** does the core's structure match that substance? This uses the core's
    heavy-atom count, from the UniChem standard InChI, and agreement between the names on either
-   side of the boundary.
+   side of the boundary. The core is named by its PubChem CIDs' labels, because a core record can
+   carry the biologic's name too: in 2026jul22, `CHEBI:193860` and `HMDB:HMDB0029845` have Tiron's
+   structure but are labelled "Chymopapain".
    - **`matching key`:** names agree on a non-trivial core.
    - **`likely wrong`:** names disagree on a small-molecule core.
    - **`review`:** everything else.

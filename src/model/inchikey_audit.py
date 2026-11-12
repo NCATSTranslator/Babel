@@ -21,7 +21,8 @@ The audit works on a finished build (see :mod:`src.model.glom_edges` for why no 
    mostly noise: UniChem lags ChEBI and drops records under the overused filter, so those records only look
    structure-less.
 4. Tier A is triaged by asking whether the core's structure *is* that substance (:func:`triage`): the core's heavy
-   atom count (from the UniChem standard InChI) and agreement between the names on either side of the boundary.
+   atom count (from the UniChem standard InChI) and agreement between the names on either side of the boundary,
+   with the core named by its PubChem CIDs (:func:`core_naming_records`).
 
 The verdicts are triage, not judgement. ``likely wrong`` covers both a **misattached** key (an unrelated substance)
 and a **component** key (a real part of the substance -- an ADC payload, a polymer's monomer); ``matching key``
@@ -42,6 +43,7 @@ from src.categories import CHEMICAL_MIXTURE, COMPLEX_MOLECULAR_MIXTURE, POLYPEPT
 from src.datahandlers.unichem import UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.model.glom_edges import APPLIED, REFUSED_INCHIKEY
+from src.prefixes import PUBCHEMCOMPOUND
 from src.util import get_logger
 
 logger = get_logger(__name__)
@@ -189,6 +191,23 @@ def name_agreement(labels_a: Iterable[str], labels_b: Iterable[str]) -> float:
             jaccard = len(ta & tb) / len(ta | tb) if ta | tb else 0.0
             best = max(best, jaccard, SequenceMatcher(None, a.lower(), b.lower()).ratio())
     return best
+
+
+def core_naming_records(core_curies: Iterable[str]) -> list[str]:
+    """The core records whose labels say what the core's structure is: its PubChem CIDs, or every core record when
+    it has none.
+
+    A core record carrying the structure-less substance's name is a symptom of the error, not evidence against it.
+    In 2026jul22 the chymopapain set's core is Tiron (PubChem CID 9002), yet CHEBI:193860 and HMDB:HMDB0029845,
+    both with Tiron's structure, are labelled "Chymopapain"; taking the best name match over every core label
+    cleared it, and likewise thyrotropin alfa -> TRH, defibrotide and lipegfilgrastim. PubChem titles a CID from its
+    structure's depositors, so it is the one label that follows the structure. The cost is that a CID titled by its
+    IUPAC name or "CID nnn" fails to match, which sends genuine matches to review or likely wrong -- the safe
+    direction for a list of edges to block.
+    """
+    core_curies = list(core_curies)
+    pubchem = [c for c in core_curies if c.startswith(f"{PUBCHEMCOMPOUND}:")]
+    return pubchem or core_curies
 
 
 def triage(name_score: float, core_heavy_atoms: int | None) -> str:
@@ -385,7 +404,7 @@ def audit_chemical_inchikeys(
             tier = tier_of(n_sources, non_small)
             key, core_curies = core.get(set_id, (None, []))
             sl_labels = sorted({labels[m] for m in members[(set_id, comp)] if m in labels})
-            core_labels = sorted({labels[c] for c in core_curies if c in labels})
+            core_labels = sorted({labels[c] for c in core_naming_records(core_curies) if c in labels})
             score = name_agreement(sl_labels, core_labels)
             heavy = heavy_atoms_from_inchi(inchis[key]) if key in inchis else None
             verdict = triage(score, heavy) if tier == "A" else NOT_TRIAGED
