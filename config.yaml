@@ -1,3 +1,18 @@
+# Babel's build configuration, read by the Snakefile (`configfile:`) and by get_config() in src/util.py.
+# Every value says what it controls and why it has the value it does (AGENTS.md, "Conventions").
+#
+# Sections, in this order:
+# - BUILD AND RELEASE: build notes, and the versions and downloads to move on before every release.
+# - PATHS AND SERVICES: where downloads and outputs go, and SPARQL settings.
+# - SHARED, UMLS, UBERGRAPH: settings that several pipelines read.
+# - One section per pipeline, from ANATOMY to PUBLICATIONS, each starting with its per-pipeline lists
+#   (described just before ANATOMY).
+# - CONFLATION and PREFERRED NAMES: settings for steps that run over every pipeline's output.
+
+#
+# BUILD AND RELEASE
+#
+
 # Information about Babel
 babel:
   github_url: "https://github.com/NCATSTranslator/Babel"
@@ -52,6 +67,10 @@ previous_release: "2025sep1"
 # only -- large drifts are flagged, never fail the build).
 prefix_comparison_warn_abs: 100000 # flag any prefix whose absolute CURIE change is >= this
 prefix_comparison_warn_pct: 25 # flag any prefix whose |percent change| is >= this
+
+#
+# PATHS AND SERVICES
+#
 
 # Overall inputs and outputs.
 input_directory: input_data
@@ -127,32 +146,72 @@ umls:
 umls_mesh_owning_pipelines: [anatomy, chemicals, disease, protein, taxon]
 
 #
-# PROTEINS
+# UBERGRAPH
 #
 
-# Chris Bizon prepared a list of UMLS/UniProtKB mappings which we download and use.
-UMLS_UniProtKB_download_raw_url: "https://raw.githubusercontent.com/cbizon/UMLS_UniProtKB/refs/heads/main/outputs/UMLS_UniProtKB.tsv"
-
-#
-# The rest of these configs need to be cleaned up.
-#
-
-ncbi_files:
-  - gene2ensembl.gz
-  - gene_info.gz
-  - gene_orthologs.gz
-  - gene_refseq_uniprotkb_collab.gz
-  - mim2gene_medgen
-
+# Prefixes whose labels and synonyms files (babel_downloads/<prefix>/labels and /synonyms) are written from
+# Ubergraph by the OBO label and synonym rules in src/snakefiles/datacollect.snakefile.
 generate_dirs_for_labels_and_synonyms_prefixes: [GO, CL, NCIT, UBERON, EMAPA, CHEBI, HP, MP, MONDO, PR]
 
-mods: [WormBase, FB, MGI, ZFIN, RGD, SGD]
-
+# Ubergraph's labels, synonyms and descriptions for every prefix, under babel_downloads/common/. Babel falls
+# back on these for a prefix that has no file of its own (the label, synonym and description factories in
+# src/node.py).
 common:
   labels: [ubergraph/labels]
   synonyms: [ubergraph/synonyms.jsonl]
   descriptions: [ubergraph/descriptions.jsonl]
 
+# IRI stems the Biolink prefix map doesn't cover, used to turn the IRIs in Ubergraph's information content
+# file (icRDF.tsv) into CURIEs (InformationContentFactory in src/node.py).
+ubergraph_iri_stem_to_prefix_map:
+  "https://identifiers.org/ncbigene/": NCBIGene
+  "http://www.ncbi.nlm.nih.gov/gene/": NCBIGene
+  "http://www.genenames.org/cgi-bin/gene_symbol_report?hgnc_id=": HGNC
+  "http://www.informatics.jax.org/marker/MGI:": MGI
+  "http://www.pombase.org/spombe/result/": PomBase
+  "http://www.wormbase.org/species/c_elegans/gene/": WormBase
+  "http://flybase.org/reports/": FB
+  "http://www.ecogene.org/gene/": ecogene
+  "http://zfin.org/action/marker/view/": ZFIN
+  "http://birdgenenames.org/cgnc/GeneReport?id=": cgnc
+  "http://www.ensemblgenomes.org/id/": ENSEMBL
+  "http://www.ensembl.org/id/": ENSEMBL
+  "http://purl.obolibrary.org/obo/AISM_": AISM
+  "http://purl.obolibrary.org/obo/BCO_": BCO
+  "http://purl.obolibrary.org/obo/CDNO_": CDNO
+  "http://purl.obolibrary.org/obo/CLAO_": CLAO
+  "http://purl.obolibrary.org/obo/GNO_": GNO
+  "http://purl.obolibrary.org/obo/HAO_": HAO
+  "http://purl.obolibrary.org/obo/LEPAO_": LEPAO
+  "http://purl.obolibrary.org/obo/MMO_": MMO
+  "http://purl.obolibrary.org/obo/MRO_": MRO
+  "http://purl.obolibrary.org/obo/MmusDv_": MmusDv
+  "http://purl.obolibrary.org/obo/OARCS_": OARCS
+  "http://purl.obolibrary.org/obo/OBA_": OBA
+  "http://purl.obolibrary.org/obo/PCL_": PCL
+  "http://purl.obolibrary.org/obo/PECO_": PECO
+  "http://purl.obolibrary.org/obo/PPO_": PPO
+  "http://purl.obolibrary.org/obo/TS_": TS
+  "http://purl.obolibrary.org/obo/UO_": UO
+  "http://purl.obolibrary.org/obo/PCO_": PCO
+  "http://rgd.mcw.edu/rgdweb/report/gene/main.html?id=": RGD
+
+# Each pipeline section below starts with lists named <pipeline>_<kind>, whose entries name files by source or
+# prefix; the pipeline's snakefile expands them into paths:
+# - <pipeline>_ids: the ids files, intermediate/<pipeline>/ids/<entry>, which say which identifiers the
+#   pipeline's compendia may hold and give each its Biolink type.
+# - <pipeline>_concords: the concord files, intermediate/<pipeline>/concords/<entry>, whose pairs glom() merges
+#   into cliques. Order can matter: see disease_concords.
+# - <pipeline>_labels, <pipeline>_synonyms (disease: disease_labelsandsynonyms): the babel_downloads/<entry>/
+#   directories whose labels and synonyms files are read.
+# - <pipeline>_outputs: the compendium files the pipeline writes, under compendia/, synonyms/ and metadata/.
+
+#
+# ANATOMY
+#
+
+# The prefixes the source-impact report counts as the anatomy compendium's
+# (src/tools/source_impact_report/cli.py).
 anatomy_prefixes:  [UBERON, GO, CL, EMAPA, UMLS, MESH, NCIT, SNOMEDCT]
 anatomy_ids:       [UBERON, GO, CL, EMAPA, UMLS, MESH, NCIT]
 anatomy_concords:  [UBERON, GO, CL, EMAPA, UMLS, WIKIDATA]
@@ -173,16 +232,52 @@ anatomy_outputs:   [AnatomicalEntity.txt, Cell.txt, CellularComponent.txt, Gross
 # docs/sources/EMAPA/README.md, which flags this for SME review.
 anatomy_unique_prefixes: [UBERON, GO]
 
+#
+# GENES
+#
+
 gene_labels:   [HGNC, NCBIGene, UMLS, OMIM]
 gene_ids:      [ENSEMBL, HGNC, NCBIGene, UMLS, OMIM, ZFIN, WormBase, FB, MGI, RGD, SGD]
 gene_concords: [NCBIGene, NCBIGeneENSEMBL, medgen, UMLS, UMLS_NCBIGene]
 gene_outputs:  [Gene.txt]
+
+# The files src/datahandlers/ncbigene.py:pull_ncbigene() downloads from NCBI Gene.
+ncbi_files:
+  - gene2ensembl.gz
+  - gene_info.gz
+  - gene_orthologs.gz
+  - gene_refseq_uniprotkb_collab.gz
+  - mim2gene_medgen
+
+# Model organism databases whose gene labels are downloaded (datacollect.snakefile) and written out as gene
+# ids files (gene.write_mods_ids()).
+mods: [WormBase, FB, MGI, ZFIN, RGD, SGD]
+
+# Ensembl BioMart datasets the Ensembl download skips (src/datahandlers/ensembl.py); each entry says why.
+ensembl_datasets_to_skip:
+#  - elucius_gene_ensembl
+#  - hgfemale_gene_ensembl
+#  - charengus_gene_ensembl
+#  - otshawytscha_gene_ensembl
+#  - aocellaris_gene_ensembl
+  - omykiss_gene_ensembl        # 2026jun5: keeps getting stuck with this dataset for some reason.
+
+#
+# PROTEINS
+#
+
+# Chris Bizon prepared a list of UMLS/UniProtKB mappings which we download and use.
+UMLS_UniProtKB_download_raw_url: "https://raw.githubusercontent.com/cbizon/UMLS_UniProtKB/refs/heads/main/outputs/UMLS_UniProtKB.tsv"
 
 protein_labels:   [UniProtKB, PR, UMLS]
 protein_synonyms: [PR, UMLS]
 protein_ids:      [ENSEMBL, MESH, UniProtKB, PR, UMLS]
 protein_concords: [UniProtKB, PR, NCIT_UniProtKB, NCIT_UMLS, UMLS, UMLS_UniProtKB]
 protein_outputs:  [Protein.txt]
+
+#
+# DISEASES AND PHENOTYPES
+#
 
 disease_labelsandsynonyms: [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UMLS, SNOMEDCT, EFO]
 disease_ids:               [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UMLS, OMIM, EFO]
@@ -333,10 +428,18 @@ disease_phenotype_taxa:
   HP: NCBITaxon:9606 # Homo sapiens
   MP: NCBITaxon:40674 # Mammalia
 
+#
+# PROCESSES, ACTIVITIES AND PATHWAYS
+#
+
 process_labels:   [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
 process_ids:      [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
 process_concords: [GO, RHEA, UMLS]
 process_outputs:  [Pathway.txt, BiologicalProcess.txt, MolecularActivity.txt]
+
+#
+# CHEMICALS
+#
 
 unichem_datasources: [CHEMBL.COMPOUND, DRUGBANK, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
 
@@ -423,8 +526,21 @@ nonfood_ncit_roots:
 # deliberately dropped as a marker (too broad); "extract" is the reliable signal (issue #828).
 drugbank_extract_markers: [extract]
 
+#
+# CONFLATION
+#
+
+# The conflated synonym files, and the conflation files that the DuckDB export and the reports read.
 drugchemicalconflated_synonym_outputs: [DrugChemicalConflated.txt]
 geneproteinconflated_synonym_outputs:  [GeneProteinConflated.txt]
+
+geneprotein_outputs: [GeneProtein.txt]
+
+drugchemical_outputs: [DrugChemical.txt]
+
+#
+# TAXA
+#
 
 taxon_labels:   [NCBITaxon, MESH, UMLS]
 taxon_synonyms: [NCBITaxon, UMLS]
@@ -432,65 +548,49 @@ taxon_ids:      [NCBITaxon, MESH, UMLS]
 taxon_concords: [NCBI_MESH, UMLS]
 taxon_outputs:  [OrganismTaxon.txt]
 
+#
+# CELL LINES
+#
+
 cell_line_outputs: [CellLine.txt]
+
+#
+# GENE FAMILIES
+#
 
 genefamily_labels:  [PANTHER.FAMILY, HGNC.FAMILY]
 genefamily_ids:     [PANTHER.FAMILY, HGNC.FAMILY]
 genefamily_outputs: [GeneFamily.txt]
 
+#
+# LEFTOVER UMLS
+#
+
+# Every UMLS concept no other pipeline claimed, as a single-identifier clique (src/createcompendia/
+# leftover_umls.py).
 umls_outputs: [umls.txt]
+
+#
+# MACROMOLECULAR COMPLEXES
+#
 
 macromolecularcomplex_outputs: [MacromolecularComplex.txt]
 
-ubergraph_iri_stem_to_prefix_map:
-  "https://identifiers.org/ncbigene/": NCBIGene
-  "http://www.ncbi.nlm.nih.gov/gene/": NCBIGene
-  "http://www.genenames.org/cgi-bin/gene_symbol_report?hgnc_id=": HGNC
-  "http://www.informatics.jax.org/marker/MGI:": MGI
-  "http://www.pombase.org/spombe/result/": PomBase
-  "http://www.wormbase.org/species/c_elegans/gene/": WormBase
-  "http://flybase.org/reports/": FB
-  "http://www.ecogene.org/gene/": ecogene
-  "http://zfin.org/action/marker/view/": ZFIN
-  "http://birdgenenames.org/cgnc/GeneReport?id=": cgnc
-  "http://www.ensemblgenomes.org/id/": ENSEMBL
-  "http://www.ensembl.org/id/": ENSEMBL
-  "http://purl.obolibrary.org/obo/AISM_": AISM
-  "http://purl.obolibrary.org/obo/BCO_": BCO
-  "http://purl.obolibrary.org/obo/CDNO_": CDNO
-  "http://purl.obolibrary.org/obo/CLAO_": CLAO
-  "http://purl.obolibrary.org/obo/GNO_": GNO
-  "http://purl.obolibrary.org/obo/HAO_": HAO
-  "http://purl.obolibrary.org/obo/LEPAO_": LEPAO
-  "http://purl.obolibrary.org/obo/MMO_": MMO
-  "http://purl.obolibrary.org/obo/MRO_": MRO
-  "http://purl.obolibrary.org/obo/MmusDv_": MmusDv
-  "http://purl.obolibrary.org/obo/OARCS_": OARCS
-  "http://purl.obolibrary.org/obo/OBA_": OBA
-  "http://purl.obolibrary.org/obo/PCL_": PCL
-  "http://purl.obolibrary.org/obo/PECO_": PECO
-  "http://purl.obolibrary.org/obo/PPO_": PPO
-  "http://purl.obolibrary.org/obo/TS_": TS
-  "http://purl.obolibrary.org/obo/UO_": UO
-  "http://purl.obolibrary.org/obo/PCO_": PCO
-  "http://rgd.mcw.edu/rgdweb/report/gene/main.html?id=": RGD
+#
+# PUBLICATIONS
+#
 
+# The pubmed2db export this pipeline reads is pinned under BUILD AND RELEASE, since it moves every release.
 publication_outputs: [Publication.txt]
 
-geneprotein_outputs: [GeneProtein.txt]
+#
+# PREFERRED NAMES
+#
 
-drugchemical_outputs: [DrugChemical.txt]
-
+# Per Biolink class (and its subclasses), prefixes whose labels are tried first when choosing a clique's
+# preferred name (choose_preferred_name() in src/babel_utils.py). docs/Understanding.md explains the choice.
 preferred_name_boost_prefixes:
   biolink:ChemicalEntity: [DRUGBANK, DrugCentral, CHEBI, MESH, GTOPDB]
-
-ensembl_datasets_to_skip:
-#  - elucius_gene_ensembl
-#  - hgfemale_gene_ensembl
-#  - charengus_gene_ensembl
-#  - otshawytscha_gene_ensembl
-#  - aocellaris_gene_ensembl
-  - omykiss_gene_ensembl        # 2026jun5: keeps getting stuck with this dataset for some reason.
 
 # Labels longer than this limit are demoted (not used as preferred label if a shorter alternative exists).
 # Keyed by Biolink type; types not listed here are never demoted. Uses ancestor traversal, so
@@ -498,4 +598,3 @@ ensembl_datasets_to_skip:
 # See https://github.com/NCATSTranslator/Babel/issues/597
 demote_labels_longer_than:
   biolink:ChemicalEntity: 25
-
