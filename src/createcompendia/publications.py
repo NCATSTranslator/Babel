@@ -152,7 +152,7 @@ def download_pubmed2db(export_url, report_path, download_dir, done_file):
     )
 
     shard_counts = expected_shard_counts(download_dir)
-    metadata = read_export_metadata(download_dir)
+    metadata = read_export_metadata(download_dir, shard_counts)
     for shard in shard_counts:
         pull_via_wget(
             export_url, shard, decompress=False, outpath=os.path.join(download_dir, shard), continue_incomplete=True
@@ -210,7 +210,7 @@ def expected_shard_counts(download_dir):
     return dict(sorted(records_by_shard.items()))
 
 
-def read_export_metadata(download_dir, check_against_report=True):
+def read_export_metadata(download_dir, shard_counts=None, check_against_report=True):
     """
     The ``metadata.json`` of the export downloaded into ``download_dir``, once it is known to describe an
     export this module can read.
@@ -219,7 +219,9 @@ def read_export_metadata(download_dir, check_against_report=True):
     constant for why any minor version is accepted), and unless every entry of ``files`` has a ``name`` and
     a ``sha256``. With ``check_against_report``, also raises unless it lists exactly the shards the
     validation report does and gives the same total record count: the two are written by different pubmed2db
-    steps (``export`` and ``validate``), so a disagreement means they describe different exports.
+    steps (``export`` and ``validate``), so a disagreement means they describe different exports. A caller
+    that has already read the report passes its ``expected_shard_counts()`` as ``shard_counts``, so it isn't
+    read twice.
 
     A missing file raises too, with what to do about it: exports before data model 1.0 (2026sep26 and
     earlier) have none, and neither does a directory preloaded from a build that predates this check.
@@ -257,7 +259,8 @@ def read_export_metadata(download_dir, check_against_report=True):
         ) from e
 
     if check_against_report:
-        shard_counts = expected_shard_counts(download_dir)
+        if shard_counts is None:
+            shard_counts = expected_shard_counts(download_dir)
         if set(shard_hashes) != set(shard_counts) or records != sum(shard_counts.values()):
             raise RuntimeError(
                 f"{metadata_file} and the validation report beside it describe different exports: metadata.json "
@@ -514,7 +517,7 @@ def parse_pubmed2db_into_tsvs(
 
     shard_counts = expected_shard_counts(download_dir)
     # Checked here as well as on download, because a preloaded download_dir skips the download rule.
-    export_metadata = read_export_metadata(download_dir)
+    export_metadata = read_export_metadata(download_dir, shard_counts)
     shards = list(shard_counts)
     shard_files = [os.path.join(download_dir, shard) for shard in shards]
 
