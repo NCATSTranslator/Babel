@@ -1,5 +1,8 @@
 """Measure the ChemicalParent conflation's charge-state groups over a published build's DuckDB Edge tables.
 
+This measures the charge-state rule only: it passes no salt parents, so salts and hydrates stay apart. Salt coverage
+is measured by ``review_salt_components.py`` beside it.
+
 It runs the production grouping, ``chemicalparent.group_cliques_by_parent_key()``, over every chemical clique that
 has an ``INCHIKEY:`` member, and reports how many groups it makes, which compendia they span, whether each has a neutral
 form to lead it, and how they overlap the build's DrugChemical conflation. That last part matters because NodeNorm
@@ -137,23 +140,23 @@ def main():
             [parquets, example_curies],
         ).fetchall()
     )
-    group_of_leader = {leader: parent for parent, members in groups.items() for leader, _ in members}
+    group_of_leader = {leader: parent for parent, members in groups.items() for leader, _, _ in members}
 
     drugchemical = load_drugchemical(args.drugchemical)
 
     sizes = Counter(len(m) for m in groups.values())
-    flag_combos = Counter("".join(sorted(f for _, flags in members for f in flags)) for members in groups.values())
+    flag_combos = Counter("".join(sorted(f for _, flags, _ in members for f in flags)) for members in groups.values())
     compendium_combos = Counter(
-        " + ".join(sorted({compendium_of[leader] for leader, _ in members})) for members in groups.values()
+        " + ".join(sorted({compendium_of[leader] for leader, _, _ in members})) for members in groups.values()
     )
-    no_neutral = [p for p, m in groups.items() if not any(NEUTRAL_PROTONATION_FLAG in f for _, f in m)]
-    several_neutral = [p for p, m in groups.items() if sum(NEUTRAL_PROTONATION_FLAG in f for _, f in m) > 1]
+    no_neutral = [p for p, m in groups.items() if not any(NEUTRAL_PROTONATION_FLAG in f for _, f, _ in m)]
+    several_neutral = [p for p, m in groups.items() if sum(NEUTRAL_PROTONATION_FLAG in f for _, f, _ in m) > 1]
 
     dc_overlap = Counter()
     split_by_dc = []
     for parent, members in sorted(groups.items()):
-        dc_groups = {drugchemical[leader] for leader, _ in members if leader in drugchemical}
-        in_dc = sum(1 for leader, _ in members if leader in drugchemical)
+        dc_groups = {drugchemical[leader] for leader, _, _ in members if leader in drugchemical}
+        in_dc = sum(1 for leader, _, _ in members if leader in drugchemical)
         if in_dc == 0:
             dc_overlap["no member in DrugChemical"] += 1
         elif len(dc_groups) > 1:
@@ -226,7 +229,7 @@ def main():
             rows.append(
                 [
                     f"`{parent}`",
-                    ", ".join(f"`{leader}` (DC {drugchemical.get(leader, '-')})" for leader, _ in groups[parent]),
+                    ", ".join(f"`{leader}` (DC {drugchemical.get(leader, '-')})" for leader, _, _ in groups[parent]),
                 ]
             )
         out.append(md_table(["Parent key", "Members"], rows))
@@ -242,7 +245,7 @@ def main():
 
     out += ["", "## Example groups", ""]
     rows = [
-        [f"`{p}`", ", ".join(f"`{leader}` ({''.join(sorted(f))})" for leader, f in groups[p])]
+        [f"`{p}`", ", ".join(f"`{leader}` ({''.join(sorted(f))})" for leader, f, _ in groups[p])]
         for p in sorted(groups)[:EXAMPLE_COUNT]
     ]
     out.append(md_table(["Parent key", "Members (protonation)"], rows))

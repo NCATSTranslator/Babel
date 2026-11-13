@@ -1,22 +1,33 @@
-"""Build the ChemicalParent conflation: group chemical cliques that are the same structure in different charge states.
+"""Build the ChemicalParent conflation: group chemical cliques that are one parent compound in different forms.
 
-An InChIKey has three blocks, ``XXXXXXXXXXXXXX-YYYYYYYYFV-P``: a 14-character hash of the connectivity layer, a
-block hashing the remaining layers (stereo, isotopes) followed by a standard flag and a version character, and a
-single protonation character. Two standard InChIKeys that differ *only* in that last character describe the same
-molecule with protons added or removed -- valproic acid (``-N``) and valproate (``-M``), folic acid and folate(2-).
-Babel keeps those as separate cliques, since they are not identical, and this conflation lets a NodeNorm user
-merge them on request (issue #1173, rule 1).
+Two rules from issue #1173 decide the groups, both read off a clique's ``INCHIKEY:`` members.
 
-This is deliberately the only rule so far. #1173 also proposes mapping stereo-unspecified records to a single
-specified stereoisomer, and salts/hydrates to their parent; neither can be read off the InChIKey alone, and both
-have to leave different drugs apart (dexamethasone/betamethasone, estradiol/estradiol valerate). The second block
-is kept in the grouping key exactly so that stereoisomers and isotope-labelled forms never group here.
+**Charge states (rule 1).** An InChIKey has three blocks, ``XXXXXXXXXXXXXX-YYYYYYYYFV-P``: a 14-character hash of
+the connectivity layer, a block hashing the remaining layers (stereo, isotopes) followed by a standard flag and a
+version character, and a single protonation character. Two standard InChIKeys that differ *only* in that last
+character describe the same molecule with protons added or removed -- valproic acid (``-N``) and valproate (``-M``),
+folic acid and folate(2-). The key without its protonation block is the clique's *parent key*.
+
+**Salts and hydrates (rule 3).** A salt or hydrate is a multi-component structure (fluoxetine hydrochloride is
+``C17H18F3NO.ClH``), so its InChIKey hashes every component and shares nothing with its parent's. Such a record's
+parent key is instead the parent key of the one component left after dropping the reviewed counterions and solvents
+(``src/createcompendia/inchi_components.py``, ``input_data/chemical_parent_components.tsv``). The rule
+``chemicalparent_salt_parents`` writes those mappings, keyed by the salt's own parent key so that every charge
+state of a salt follows it -- PubChem often has a multi-component InChI for only one of them. A clique whose own
+parent key has a mapping uses the mapped parent key instead.
+
+Cliques sharing a parent key form a group. Within a group, a clique that reached the parent key directly leads one
+that reached it through a salt, then a neutral (``-N``) form leads charged ones; see order_group().
+
+The second InChIKey block stays in the parent key, so stereoisomers (dexamethasone/betamethasone) and
+isotope-labelled forms never group. #1173's rule 2 (stereo-unspecified to specified) is not implemented.
 
 A clique takes part only through its own ``INCHIKEY:`` members. ``glom()`` restricts INCHIKEY to one per clique,
 but a few cliques still carry several; such a clique is grouped when all its keys share one parent key, and is
 otherwise left out and counted, rather than guessing which of its structures it "is".
 """
 
+import csv
 import json
 import re
 from array import array
@@ -40,6 +51,9 @@ INCHIKEY_PATTERN = re.compile(r"^([A-Z]{14}-[A-Z]{8}[SN][A-Z])-([A-Z])$")
 # is the parent the other forms are charged versions of; "N" is the InChIKey spec's value for zero protons added.
 NEUTRAL_PROTONATION_FLAG = "N"
 
+# Header of the salt-parents file written by inchi_components.write_salt_parents().
+SALT_PARENTS_TSV_HEADER = ["salt_parent_key", "parent_key"]
+
 
 def split_inchikey(curie):
     """Split an ``INCHIKEY:`` CURIE into (parent key, protonation character).
@@ -56,56 +70,110 @@ def split_inchikey(curie):
     return match.group(1), match.group(2)
 
 
-def parent_key_for_clique(inchikey_curies):
-    """Return (parent key, protonation flags) for one clique's INCHIKEY members, or None if it can't be grouped.
+def grouping_key(curie, salt_parents):
+    """Return (parent key, protonation character, reached through a salt) for one ``INCHIKEY:`` CURIE.
+
+    A key whose parent key is in ``salt_parents`` (salt parent key -> parent key) groups under the mapped parent
+    key; any other under its own. The protonation character is the key's own either way.
+    """
+    parent, flag = split_inchikey(curie)
+    salt_parent = salt_parents.get(parent)
+    if salt_parent is not None:
+        return salt_parent, flag, True
+    return parent, flag, False
+
+
+def parent_key_for_clique(inchikey_curies, salt_parents=None):
+    """Return (parent key, protonation flags, via salt) for one clique's INCHIKEY members, or None.
 
     A clique with no InChIKey has no structure to group on. A clique whose InChIKeys have more than one parent key
-    contains several structures, and we don't pick one. A clique whose keys share a parent key but differ in
-    protonation is already a charge-state merge; it groups normally, and every flag it carries is returned.
+    contains several structures, and we don't pick one. ``via salt`` is True when every key reached the parent key
+    through ``salt_parents``: a clique holding the parent compound's own key is a direct member even if it also
+    holds a salt's.
     """
     if not inchikey_curies:
         return None
+    salt_parents = salt_parents or {}
     parents = set()
     flags = set()
+    via_salt = True
     for curie in inchikey_curies:
-        parent, flag = split_inchikey(curie)
+        parent, flag, through_salt = grouping_key(curie, salt_parents)
         parents.add(parent)
         flags.add(flag)
+        via_salt = via_salt and through_salt
     if len(parents) != 1:
         return None
-    return parents.pop(), frozenset(flags)
+    return parents.pop(), frozenset(flags), via_salt
 
 
-def group_cliques_by_parent_key(clique_inchikeys):
-    """Group clique leaders whose InChIKeys differ only in protonation.
+def group_cliques_by_parent_key(clique_inchikeys, salt_parents=None):
+    """Group clique leaders that share a parent key.
 
     :param clique_inchikeys: an iterable of (clique leader, list of the clique's INCHIKEY CURIEs). It may be every
         InChIKey clique or any superset of the cliques that can group (see find_shared_parent_key_hashes()).
-    :return: (groups, counts). ``groups`` maps a parent key to the list of (leader, protonation flags) sharing it,
-        for parent keys shared by two or more cliques, in input order. ``counts`` records how many cliques were
-        considered and how many were left out for carrying several structures.
+    :param salt_parents: salt parent key -> parent key for resolved salts and hydrates (see load_salt_parents()).
+    :return: (groups, counts). ``groups`` maps a parent key to the list of (leader, protonation flags, via salt)
+        sharing it, for parent keys shared by two or more cliques, in input order. ``counts`` records how many
+        cliques were considered and how many were left out for carrying several structures.
     """
     by_parent = defaultdict(list)
     counts = defaultdict(int)
     for leader, inchikey_curies in clique_inchikeys:
         counts["candidate_cliques"] += 1
-        result = parent_key_for_clique(inchikey_curies)
+        result = parent_key_for_clique(inchikey_curies, salt_parents)
         if result is None:
             counts["cliques_skipped_multiple_parent_keys"] += 1
             logger.debug("Skipping %s: its InChIKeys have several parent keys: %s", leader, inchikey_curies)
             continue
         if len(inchikey_curies) > 1:
             counts["cliques_with_several_keys_one_parent"] += 1
-        parent, flags = result
-        by_parent[parent].append((leader, flags))
+        parent, flags, via_salt = result
+        by_parent[parent].append((leader, flags, via_salt))
 
     groups = {parent: members for parent, members in by_parent.items() if len(members) > 1}
     counts["groups"] = len(groups)
     counts["cliques_in_groups"] = sum(len(members) for members in groups.values())
+    counts["cliques_in_groups_via_salt"] = sum(
+        1 for members in groups.values() for _, _, via_salt in members if via_salt
+    )
     counts["groups_with_neutral_member"] = sum(
-        1 for members in groups.values() if any(NEUTRAL_PROTONATION_FLAG in flags for _, flags in members)
+        1
+        for members in groups.values()
+        if any(NEUTRAL_PROTONATION_FLAG in flags and not via_salt for _, flags, via_salt in members)
     )
     return groups, dict(counts)
+
+
+def load_salt_parents(filename):
+    """Read the salt-parents file into ({salt parent key: parent key}, set of conflicting salt parent keys).
+
+    A salt parent key appears once per PubChem record (each charge state, each CID) that resolved, and normally
+    every one gives the same parent. Rarely they disagree: PubChem's sodium silicate ``-O`` record has the extra
+    proton on the silicate, which RDKit keeps as a real hydrogen, so it resolves to hydrogensilicate while the
+    ``-N`` record resolves to silicate (64 of 4.6M salt parent keys, 2026-11-10). The parent is then ambiguous, so
+    such a salt is left out -- it keeps its own key -- and returned in the conflict set for the metadata. A
+    conflict can only remove a mapping, never produce a wrong one.
+    """
+    salt_parents = {}
+    conflicting = set()
+    with open(filename, newline="") as inf:
+        reader = csv.reader(inf, delimiter="\t")
+        header = next(reader)
+        if header != SALT_PARENTS_TSV_HEADER:
+            raise ValueError(f"{filename}: expected header {SALT_PARENTS_TSV_HEADER}, got {header}")
+        for salt_parent_key, parent in reader:
+            if salt_parents.setdefault(salt_parent_key, parent) != parent:
+                conflicting.add(salt_parent_key)
+    for salt_parent_key in conflicting:
+        del salt_parents[salt_parent_key]
+    if conflicting:
+        logger.warning(
+            f"{len(conflicting):,} salt parent keys resolve to different parents in different PubChem records and "
+            f"were left out. Examples: {sorted(conflicting)[:10]}"
+        )
+    logger.info(f"Loaded {len(salt_parents):,} salt and hydrate parent keys from {filename}")
+    return salt_parents, conflicting
 
 
 # Finds each INCHIKEY identifier in a compendium line without parsing the JSON. Compendium lines are written by
@@ -119,12 +187,12 @@ def parent_key_hash(parent_key):
     return hash(parent_key)
 
 
-def find_shared_parent_key_hashes(compendium_filenames):
+def find_shared_parent_key_hashes(compendium_filenames, salt_parents):
     """Pass 1: return (hashes of parent keys that two or more cliques share, number of InChIKey cliques).
 
-    The chemical compendia hold about 116 million InChIKey cliques (2025dec11) and only ~2.7 million of them group,
-    so holding every clique's key and leader in a dict would take tens of GB. Instead this keeps one 8-byte hash
-    per clique in an array and finds the repeated ones with a sort. A hash collision only makes a clique a
+    The chemical compendia hold about 116 million InChIKey cliques (2025dec11) and only a few million of them
+    group, so holding every clique's key and leader in a dict would take tens of GB. Instead this keeps one 8-byte
+    hash per clique in an array and finds the repeated ones with a sort. A hash collision only makes a clique a
     candidate; group_cliques_by_parent_key() compares the actual keys.
     """
     hashes = array("q")
@@ -137,7 +205,7 @@ def find_shared_parent_key_hashes(compendium_filenames):
                 if not inchikeys:
                     continue
                 clique_count += 1
-                for parent in {split_inchikey(curie)[0] for curie in inchikeys}:
+                for parent in {grouping_key(curie, salt_parents)[0] for curie in inchikeys}:
                     hashes.append(parent_key_hash(parent))
     ordered = np.sort(np.frombuffer(hashes, dtype=np.int64))
     repeated = np.unique(ordered[1:][ordered[1:] == ordered[:-1]])
@@ -145,17 +213,19 @@ def find_shared_parent_key_hashes(compendium_filenames):
     return set(repeated.tolist()), clique_count
 
 
-def read_candidate_cliques(compendium_filenames, shared_hashes):
+def read_candidate_cliques(compendium_filenames, shared_hashes, salt_parents):
     """Pass 2: yield (leader, INCHIKEY CURIEs, information content, clique size) for each clique that may group.
 
-    A clique is a candidate when any of its InChIKeys has a parent key whose hash is in ``shared_hashes``.
+    A clique is a candidate when any of its InChIKeys has a grouping key whose hash is in ``shared_hashes``.
     """
     for filename in compendium_filenames:
         logger.info(f"Pass 2: reading candidate cliques from {filename}")
         with open(filename) as compendiumf:
             for line in compendiumf:
                 inchikeys = INCHIKEY_IDENTIFIER_PATTERN.findall(line)
-                if not any(parent_key_hash(split_inchikey(curie)[0]) in shared_hashes for curie in inchikeys):
+                if not any(
+                    parent_key_hash(grouping_key(curie, salt_parents)[0]) in shared_hashes for curie in inchikeys
+                ):
                     continue
                 clique = json.loads(line)
                 identifiers = clique["identifiers"]
@@ -169,40 +239,47 @@ def read_candidate_cliques(compendium_filenames, shared_hashes):
 
 
 def order_group(members, clique_info, prefix_sort_order):
-    """Order one group's (leader, flags) members: the neutral form first, then as in DrugChemical.
+    """Order one group's (leader, flags, via salt) members; the first leads the conflation.
 
-    ``clique_info`` maps a leader to (information content, clique size). See
-    ``drugchemical.conflation_member_sort_key()`` for the order after neutral-first; when no member is neutral it
-    alone picks the conflation leader.
+    Members reached directly come before those reached through a salt, so fluoxetine leads fluoxetine
+    hydrochloride even though both InChIKeys end ``-N``. Then the neutral form leads the charged ones, and the rest
+    follow ``drugchemical.conflation_member_sort_key()``. ``clique_info`` maps a leader to (information content,
+    clique size).
     """
 
     def sort_key(member):
-        leader, flags = member
+        leader, flags, via_salt = member
         ic, size = clique_info[leader]
-        return (NEUTRAL_PROTONATION_FLAG not in flags,) + conflation_member_sort_key(
+        return (via_salt, NEUTRAL_PROTONATION_FLAG not in flags) + conflation_member_sort_key(
             leader, prefix_sort_order, ic, size
         )
 
-    return [leader for leader, _ in sorted(members, key=sort_key)]
+    return [leader for leader, _, _ in sorted(members, key=sort_key)]
 
 
-def build_conflation(chemical_compendia, prefix_sort_order, outfilename, metadata_yaml):
-    """Write the ChemicalParent conflation file: one JSON list of clique leaders per charge-state group.
+def build_conflation(chemical_compendia, salt_parents_filename, prefix_sort_order, outfilename, metadata_yaml):
+    """Write the ChemicalParent conflation file: one JSON list of clique leaders per group.
 
     Reads the chemical compendia twice (see find_shared_parent_key_hashes() for why). Groups are written in
     parent-key order so the file is reproducible.
     """
-    shared_hashes, inchikey_clique_count = find_shared_parent_key_hashes(chemical_compendia)
+    salt_parents, conflicting_salt_parents = load_salt_parents(salt_parents_filename)
+    shared_hashes, inchikey_clique_count = find_shared_parent_key_hashes(chemical_compendia, salt_parents)
 
     clique_info = {}
 
     def candidates():
-        for leader, inchikeys, ic, size in read_candidate_cliques(chemical_compendia, shared_hashes):
+        for leader, inchikeys, ic, size in read_candidate_cliques(chemical_compendia, shared_hashes, salt_parents):
             clique_info[leader] = (ic, size)
             yield leader, inchikeys
 
-    groups, counts = group_cliques_by_parent_key(candidates())
-    counts = {"cliques_with_inchikey": inchikey_clique_count, **counts}
+    groups, counts = group_cliques_by_parent_key(candidates(), salt_parents)
+    counts = {
+        "cliques_with_inchikey": inchikey_clique_count,
+        "salt_parent_keys": len(salt_parents),
+        "salt_parent_keys_conflicting": len(conflicting_salt_parents),
+        **counts,
+    }
     logger.info(f"ChemicalParent counts: {counts}")
 
     ensure_parent_dir(outfilename)
@@ -214,8 +291,11 @@ def build_conflation(chemical_compendia, prefix_sort_order, outfilename, metadat
         metadata_yaml,
         typ="conflation",
         name="chemicalparent.build_conflation()",
-        description="Build the ChemicalParent conflation: chemical cliques whose InChIKeys differ only in "
-        "protonation (charge state).",
-        sources=[{"type": "Babel", "name": "Chemical compendia", "filenames": list(chemical_compendia)}],
+        description="Build the ChemicalParent conflation: chemical cliques whose InChIKeys share a parent key, "
+        "differing only in protonation (charge state) or reaching it through a salt or hydrate.",
+        sources=[
+            {"type": "Babel", "name": "Chemical compendia", "filenames": list(chemical_compendia)},
+            {"type": "Babel", "name": "Salt and hydrate parent keys", "filenames": [salt_parents_filename]},
+        ],
         counts=counts,
     )
