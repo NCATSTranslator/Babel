@@ -89,6 +89,11 @@ PUBMED2DB_DATA_MODEL_MAJOR = 1
 # Re-run that when pubmed2db_version moves, to pick up the new export's malformed DOIs; a stale table is
 # harmless (rows for DOIs PubMed has since corrected simply never match).
 #
+# This table is meant to be temporary: the malformed DOIs come from pubmed2db's export, which should repair
+# them for every consumer (https://github.com/TranslatorSRI/pubmed2db/issues/84). Once a pinned export does,
+# delete the table and everything that builds or applies it, as listed in
+# https://github.com/NCATSTranslator/Babel/issues/1195.
+#
 # Two consumers resolve this file: the build, where the PubMed rules declare it as an input (so regenerating
 # it re-runs them) and pass the path in, and the scripts under docs/sources/PubMed/, which take this default.
 # Absolute, because those scripts can be run from any directory.
