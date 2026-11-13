@@ -1,4 +1,7 @@
-"""Audit chemical cliques for InChIKeys that do not belong to the records attached to them.
+"""Audit what is attached to each chemical structure: find records that do not belong with the InChIKey they joined.
+
+A keyed clique's InChIKey is its identity -- a real structure, carried by every record that has that structure. What
+can be wrong is what else the xrefs attached to it.
 
 ``glom()`` runs the chemical pipeline with ``unique_prefixes=[INCHIKEY]``, so an xref joining two records that both
 carry an InChIKey is refused. A record with no structure has no key to protect it: a single bad xref attaches a

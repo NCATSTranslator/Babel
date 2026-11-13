@@ -1,4 +1,4 @@
-"""``babel-inchikey-audit`` -- audit a finished build's chemical cliques for InChIKeys that are not theirs.
+"""``babel-inchikey-audit`` -- audit what a finished build attached to each chemical structure.
 
 Argument parsing and file writing only: :func:`src.model.glom_edges.classify_chemical_glom_edges` reconstructs what
 glom() did with every chemical concord edge, and :func:`src.model.inchikey_audit.audit_chemical_inchikeys` finds,

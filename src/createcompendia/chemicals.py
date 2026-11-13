@@ -60,8 +60,8 @@ from src.util import (
 logger = get_logger(__name__)
 
 # Individually wrong chemical concord pairs, dropped (in either direction) before glom() in build_untyped_compendia().
-# Each attaches a structure-less record -- a biologic, polymer, mixture or conjugate -- to a keyed clique whose InChIKey
-# is not its structure; glom()'s INCHIKEY guard cannot stop that because the record has no key. Found with
+# Each attaches a record with no structure of its own -- a biologic, polymer, mixture or conjugate -- to the clique of
+# a structure it is not; glom()'s INCHIKEY guard cannot stop that because the record has no key. Found with
 # babel-inchikey-audit and reviewed by hand (docs/tools/InchikeyAudit.md); each entry states its reason. The
 # untyped_chemical_compendia rule declares the file as an input through this constant, so an edit re-runs the rule.
 CHEMICAL_BAD_XREFS = str(get_repo_root() / "input_data/chemical_badxrefs.txt")

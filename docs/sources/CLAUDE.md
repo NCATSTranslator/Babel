@@ -152,7 +152,7 @@ needed no new plumbing.
 Chemicals copies that shape: `input_data/chemical_badxrefs.txt` (`chemicals.CHEMICAL_BAD_XREFS`),
 applied to every untyped-stage concord in `build_untyped_compendia()`, either direction. Its pairs
 come from `babel-inchikey-audit` (`docs/tools/InchikeyAudit.md`): each attaches a structure-less
-record to a keyed clique whose InChIKey is not its structure. Adding a pair changes what the audit
+record to the clique of a structure it is not. Adding a pair changes what the audit
 must be told: run it with `--badxrefs` on any build that applied the file.
 
 ## Where an identifier ends up is a claim about it — check that claim

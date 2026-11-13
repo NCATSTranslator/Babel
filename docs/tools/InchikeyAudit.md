@@ -5,8 +5,12 @@ uv run babel-inchikey-audit --build <local build dir> [--lookup-build <dir or UR
     [--structure-file babel_downloads/UNICHEM/structure.tsv.gz] [--mesh-ownership <file>] --out <dir>
 ```
 
-Answers: **which chemical cliques carry an InChIKey that does not belong to the records attached to
-it, and which concord edge put them there?**
+Answers: **which records were attached by xref to a chemical structure they are not, and which
+concord edge attached them?**
+
+The InChIKey is the solid part of a chemical clique: the records that carry that structure define
+what the clique is. The audit takes that core as given and asks whether everything else the xrefs
+joined to it belongs there.
 
 ## Why it is needed
 

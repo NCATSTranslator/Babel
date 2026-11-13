@@ -3,7 +3,7 @@
 # Format: "SUBJECT OBJECT", space separated, one pair per line, "#" comments (src/babel_utils.py:read_badxrefs).
 #
 # Every pair here attaches a substance with no structure of its own (a biologic, polymer, mixture or conjugate) to
-# a keyed clique whose InChIKey is not that substance's structure. glom() runs with unique_prefixes=[INCHIKEY], so a
+# the clique of a structure that substance is not. glom() runs with unique_prefixes=[INCHIKEY], so a
 # structure-less record has no key to protect it and one bad xref is enough. The pairs were found with
 # babel-inchikey-audit (docs/tools/InchikeyAudit.md) on Babel 2026jul22 and reviewed by hand: tier A components
 # triaged "likely wrong" or "review" and judged wrong. Each block lists every concord edge that attached the
