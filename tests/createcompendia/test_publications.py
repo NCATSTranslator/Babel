@@ -509,6 +509,16 @@ def test_metadata_disagreeing_with_the_validation_report_raises(tmp_path, edit):
         publications.read_export_metadata(str(export))
 
 
+@pytest.mark.parametrize("records", ["15", None, True, 15.0])
+def test_metadata_with_a_record_total_that_is_not_an_integer_raises(tmp_path, records):
+    """A metadata.json whose records isn't an integer should raise the same clear error as a missing one,
+    rather than failing while formatting the comparison with the validation report."""
+    export = copy_fixture(tmp_path)
+    edit_metadata(export, lambda metadata: metadata.update(records=records))
+    with pytest.raises(RuntimeError, match="no usable files"):
+        publications.read_export_metadata(str(export))
+
+
 def test_metadata_without_file_hashes_raises(tmp_path):
     """A metadata.json whose files lack a sha256 (a format change) should raise a clear error rather than a
     KeyError."""

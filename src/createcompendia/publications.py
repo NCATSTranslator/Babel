@@ -247,6 +247,9 @@ def read_export_metadata(download_dir, check_against_report=True):
     try:
         shard_hashes = {entry["name"]: entry["sha256"] for entry in metadata["files"]}
         records = metadata["records"]
+        # bool is an int, and anything else would turn the comparison below into a confusing error.
+        if not isinstance(records, int) or isinstance(records, bool):
+            raise TypeError(f"records is {records!r}, not an integer")
     except (KeyError, TypeError) as e:
         raise RuntimeError(
             f"{metadata_file} has no usable files[].name, files[].sha256 and records ({type(e).__name__}: {e}); "
