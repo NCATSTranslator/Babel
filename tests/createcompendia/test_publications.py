@@ -65,6 +65,8 @@ EXPORT_URL = "https://stars.renci.org/var/babel_outputs/pubmed2db/2026nov08/"
 SHARED_DOI = "doi:10.1093/ajcn/61.6.1324S"
 SHARED_CASE_DOI = "doi:10.1039/C4BM00222A"  # PMID:26146547's spelling; PMID:26214188 has it lower-cased.
 RECORD_COUNT = 15
+# The data model the fixture's metadata.json says it follows, as config.yaml pins the real export's.
+FIXTURE_DATA_MODEL_VERSION = "1.0.0"
 
 
 def copy_fixture(tmp_path):
@@ -99,12 +101,14 @@ def parsed(tmp_path):
         "shared_ids_file": str(tmp_path / "concords" / "shared_identifiers.tsv"),
         "metadata_yaml": str(tmp_path / "concords" / "metadata.yaml"),
     }
-    publications.parse_pubmed2db_into_tsvs(FIXTURE_DIR, **out, url=EXPORT_URL, workers=2)
+    publications.parse_pubmed2db_into_tsvs(
+        FIXTURE_DIR, **out, url=EXPORT_URL, workers=2, data_model_version=FIXTURE_DATA_MODEL_VERSION
+    )
     return out
 
 
-def parse_into(tmp_path, export):
-    """Run parse_pubmed2db_into_tsvs() over ``export`` with throwaway outputs."""
+def parse_into(tmp_path, export, data_model_version=FIXTURE_DATA_MODEL_VERSION):
+    """Run parse_pubmed2db_into_tsvs() over ``export`` with throwaway outputs, pinned to ``data_model_version``."""
     publications.parse_pubmed2db_into_tsvs(
         str(export),
         str(tmp_path / "titles.tsv"),
@@ -114,6 +118,7 @@ def parse_into(tmp_path, export):
         str(tmp_path / "metadata.yaml"),
         EXPORT_URL,
         workers=1,
+        data_model_version=data_model_version,
     )
 
 
@@ -247,6 +252,7 @@ def test_without_a_repairs_table_every_malformed_doi_is_skipped(tmp_path):
         EXPORT_URL,
         workers=1,
         doi_repairs_file=str(empty),
+        data_model_version=FIXTURE_DATA_MODEL_VERSION,
     )
     concords = assert_concordance_file_valid(str(tmp_path / "PMID_DOI"))
     assert not {"PMID:17124311", "PMID:16041191", "PMID:23752222"} & {pmid for pmid, _, _ in concords}
@@ -457,12 +463,23 @@ def test_read_export_metadata_accepts_the_fixture():
     assert metadata["records"] == RECORD_COUNT
 
 
-def test_newer_minor_data_model_is_accepted(tmp_path):
-    """A newer minor version of data model 1 only adds fields, so it should be read without complaint."""
+def test_newer_minor_data_model_is_accepted_once_pinned(tmp_path):
+    """A newer minor version of data model 1 only adds fields, so the code reads it without complaint -- but
+    only once config.yaml pins it: an export in any data model other than the pinned one is refused, so that
+    moving the pin to it is noticed."""
     export = copy_fixture(tmp_path)
     edit_metadata(export, lambda metadata: metadata.update(data_model_version="1.7.0"))
     assert publications.read_export_metadata(str(export))["data_model_version"] == "1.7.0"
-    parse_into(tmp_path, export)
+    parse_into(tmp_path, export, data_model_version="1.7.0")
+    with pytest.raises(RuntimeError, match="follows pubmed2db data model 1.7.0, but config.yaml pins 1.0.0"):
+        parse_into(tmp_path, export, data_model_version="1.0.0")
+
+
+def test_pinned_data_model_is_one_the_code_reads():
+    """config.yaml's pubmed2db_data_model_version should have the major version the code reads, so the pin
+    can't be moved to another major version without the code changes that come with it."""
+    pinned = src.util.get_config()["pubmed2db_data_model_version"]
+    assert pinned.split(".")[0] == str(publications.PUBMED2DB_DATA_MODEL_MAJOR)
 
 
 @pytest.mark.parametrize("version", ["2.0.0", "0.9.0", "10.0.0", "", None])
@@ -597,7 +614,9 @@ def test_download_fetches_the_report_then_exactly_the_shards_it_lists(fake_expor
     download_dir = tmp_path / "PubMed2DB" / "2026nov08"
     done_file = download_dir / "downloaded"
 
-    publications.download_pubmed2db(EXPORT_URL, report_path, str(download_dir), str(done_file))
+    publications.download_pubmed2db(
+        EXPORT_URL, report_path, str(download_dir), str(done_file), data_model_version=FIXTURE_DATA_MODEL_VERSION
+    )
 
     shards = list(publications.expected_shard_counts(FIXTURE_DIR))
     assert calls == [("metadata.json", False), (report_path, False)] + [(shard, True) for shard in shards]
@@ -612,7 +631,13 @@ def test_download_can_be_rerun_over_an_existing_download(fake_export, tmp_path):
     download_dir = tmp_path / "PubMed2DB" / "2026nov08"
     done_file = download_dir / "downloaded"
     for _ in range(2):
-        publications.download_pubmed2db(EXPORT_URL, "manifests/report.json.gz", str(download_dir), str(done_file))
+        publications.download_pubmed2db(
+            EXPORT_URL,
+            "manifests/report.json.gz",
+            str(download_dir),
+            str(done_file),
+            data_model_version=FIXTURE_DATA_MODEL_VERSION,
+        )
     assert publications.expected_shard_counts(str(download_dir)) == publications.expected_shard_counts(FIXTURE_DIR)
 
 
@@ -623,7 +648,11 @@ def test_download_of_a_failed_export_stops_before_the_shards(fake_export, tmp_pa
     download_dir = tmp_path / "PubMed2DB" / "2026nov08"
     with pytest.raises(RuntimeError, match="status 'fail'"):
         publications.download_pubmed2db(
-            EXPORT_URL, "manifests/report.json", str(download_dir), str(download_dir / "downloaded")
+            EXPORT_URL,
+            "manifests/report.json",
+            str(download_dir),
+            str(download_dir / "downloaded"),
+            data_model_version=FIXTURE_DATA_MODEL_VERSION,
         )
     assert calls == [("metadata.json", False), ("manifests/report.json", False)]
     assert not (download_dir / "downloaded").exists()
@@ -637,7 +666,29 @@ def test_download_of_another_data_model_stops_at_the_metadata(fake_export, tmp_p
     download_dir = tmp_path / "PubMed2DB" / "2026nov08"
     with pytest.raises(RuntimeError, match="reads major version 1"):
         publications.download_pubmed2db(
-            EXPORT_URL, "manifests/report.json", str(download_dir), str(download_dir / "downloaded")
+            EXPORT_URL,
+            "manifests/report.json",
+            str(download_dir),
+            str(download_dir / "downloaded"),
+            data_model_version=FIXTURE_DATA_MODEL_VERSION,
+        )
+    assert calls == [("metadata.json", False)]
+    assert not (download_dir / "downloaded").exists()
+
+
+def test_download_of_an_unpinned_data_model_stops_at_the_metadata(fake_export, tmp_path):
+    """An export in a data model Babel reads, but not the one config.yaml pins, should also be refused from
+    its metadata.json alone."""
+    remote, calls = fake_export
+    edit_metadata(remote, lambda metadata: metadata.update(data_model_version="1.1.0"))
+    download_dir = tmp_path / "PubMed2DB" / "2026nov08"
+    with pytest.raises(RuntimeError, match="config.yaml pins 1.0.0"):
+        publications.download_pubmed2db(
+            EXPORT_URL,
+            "manifests/report.json",
+            str(download_dir),
+            str(download_dir / "downloaded"),
+            data_model_version=FIXTURE_DATA_MODEL_VERSION,
         )
     assert calls == [("metadata.json", False)]
     assert not (download_dir / "downloaded").exists()
@@ -653,7 +704,13 @@ def test_download_over_another_exports_shard_is_refused(fake_export, tmp_path):
     # real wget would have left alone.
     _recompress(remote / "pubmed_metadata_0.ndjson.gz")
     with pytest.raises(RuntimeError, match=r"pubmed_metadata_0\.ndjson\.gz has SHA-256"):
-        publications.download_pubmed2db(EXPORT_URL, "manifests/report.json", str(download_dir), str(done_file))
+        publications.download_pubmed2db(
+            EXPORT_URL,
+            "manifests/report.json",
+            str(download_dir),
+            str(done_file),
+            data_model_version=FIXTURE_DATA_MODEL_VERSION,
+        )
     assert not done_file.exists()
 
 

@@ -23,7 +23,7 @@ from src.createcompendia import publications
 from src.util import get_config
 
 CONFIG = get_config()
-BASE_URL = CONFIG["pubmed2db_base_url"]
+BASE_URL = CONFIG["publications"]["pubmed2db_base_url"]
 VERSION = CONFIG["pubmed2db_version"]
 EXPORT_URL = BASE_URL + VERSION + "/"
 
@@ -54,14 +54,17 @@ def test_pinned_export_report_lists_shards_that_exist(pinned_report_dir):
 
 @pytest.mark.network
 def test_pinned_export_metadata_is_in_a_data_model_babel_reads(pinned_report_dir):
-    """The pinned export's metadata.json should be in the data model major version Babel reads, and should
-    list the same shards and record total as its validation report -- i.e. read_export_metadata() accepts the
-    pair that config.yaml's pubmed2db_version and pubmed2db_validation_report name."""
+    """The pinned export's metadata.json should be in exactly the data model config.yaml pins (and so in the
+    major version Babel reads), and should list the same shards and record total as its validation report --
+    i.e. read_export_metadata() accepts the export that config.yaml's pubmed2db_version,
+    pubmed2db_validation_report and pubmed2db_data_model_version name."""
     response = requests.get(EXPORT_URL + publications.EXPORT_METADATA, timeout=60)
     response.raise_for_status()
     with open(os.path.join(pinned_report_dir, publications.EXPORT_METADATA), "wb") as f:
         f.write(response.content)
-    metadata = publications.read_export_metadata(pinned_report_dir)
+    metadata = publications.read_export_metadata(
+        pinned_report_dir, data_model_version=CONFIG["pubmed2db_data_model_version"]
+    )
     assert metadata["corpus"]["build_name"] == VERSION
     assert all(len(entry["sha256"]) == 64 for entry in metadata["files"])
 

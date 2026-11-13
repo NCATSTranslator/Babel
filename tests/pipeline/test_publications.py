@@ -36,7 +36,7 @@ from src.util import curie_format_problem, get_config, get_repo_root
 
 CONFIG = get_config()
 VERSION = CONFIG["pubmed2db_version"]
-EXPORT_URL = CONFIG["pubmed2db_base_url"] + VERSION + "/"
+EXPORT_URL = CONFIG["publications"]["pubmed2db_base_url"] + VERSION + "/"
 
 
 def _carriers(args):
@@ -68,7 +68,13 @@ def test_full_export_downloads_and_parses(tmp_path):
     download_dir = os.path.join(CONFIG["download_directory"], "PubMed2DB", VERSION)
     done_file = os.path.join(download_dir, "downloaded")
     if not os.path.exists(done_file):
-        publications.download_pubmed2db(EXPORT_URL, CONFIG["pubmed2db_validation_report"], download_dir, done_file)
+        publications.download_pubmed2db(
+            EXPORT_URL,
+            CONFIG["pubmed2db_validation_report"],
+            download_dir,
+            done_file,
+            data_model_version=CONFIG["pubmed2db_data_model_version"],
+        )
 
     titles_file = tmp_path / "titles.tsv"
     publications.parse_pubmed2db_into_tsvs(
@@ -80,6 +86,7 @@ def test_full_export_downloads_and_parses(tmp_path):
         str(tmp_path / "metadata.yaml"),
         EXPORT_URL,
         workers=os.cpu_count(),
+        data_model_version=CONFIG["pubmed2db_data_model_version"],
     )
 
     with open(titles_file) as f:

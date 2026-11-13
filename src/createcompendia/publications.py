@@ -14,7 +14,8 @@ PubMed Central CURIEs) and ``article_title``.
 export** and move the pubmed2db settings at the top of ``config.yaml`` to it. pubmed2db versions its outputs
 with a "data model" version, and this module reads major version ``PUBMED2DB_DATA_MODEL_MAJOR``: an export
 from another major version is refused, because only a major bump may rename, remove or change the meaning
-of a field. The layout around the shards is not covered by that promise and has changed before (where the
+of a field. ``config.yaml: pubmed2db_data_model_version`` pins the exact version of the pinned export, so
+moving the pin to an export in another data model is noticed even when this module could read it. The layout around the shards is not covered by that promise and has changed before (where the
 validation report lives), so read a new export against docs/sources/PubMed/README.md, which describes the
 contract this module relies on.
 
@@ -54,7 +55,9 @@ EXPORT_METADATA = "metadata.json"
 # The major version of pubmed2db's data model that this module reads. pubmed2db promises
 # (https://github.com/TranslatorSRI/pubmed2db/blob/main/docs/data-model/README.md#versioning-and-stability)
 # that a minor version only adds fields, while a major one may rename, remove or change the meaning of the
-# three this module reads, so read_export_metadata() accepts any 1.x and refuses everything else. Before
+# three this module reads, so read_export_metadata() accepts any 1.x and refuses everything else. This is
+# what the code can read; config.yaml's pubmed2db_data_model_version is the exact version of the export it
+# pins, and tests/createcompendia/test_publications.py fails if that isn't a version this accepts. Before
 # raising this, read pubmed2db's changelog entry for the new major version
 # (https://github.com/TranslatorSRI/pubmed2db/blob/main/docs/data-model/Changelog.md), which says what an
 # NDJSON consumer has to do, and make that change here.
@@ -110,7 +113,7 @@ def shared_identifier_key(curie):
     return curie
 
 
-def download_pubmed2db(export_url, report_path, download_dir, done_file):
+def download_pubmed2db(export_url, report_path, download_dir, done_file, *, data_model_version):
     """
     Download a pubmed2db export: its ``metadata.json`` and validation report, then exactly the shards they
     list, and check every shard against its SHA-256.
@@ -131,6 +134,8 @@ def download_pubmed2db(export_url, report_path, download_dir, done_file):
         (``config.yaml: pubmed2db_validation_report``); gzipped if it ends in ``.gz``.
     :param download_dir: The local directory to download into.
     :param done_file: Marker file to touch once every shard is downloaded.
+    :param data_model_version: The data model version the export must say it follows
+        (``config.yaml: pubmed2db_data_model_version``); see ``read_export_metadata()``.
     """
     report_file = os.path.join(download_dir, VALIDATION_REPORT)
     metadata_file = os.path.join(download_dir, EXPORT_METADATA)
@@ -143,7 +148,7 @@ def download_pubmed2db(export_url, report_path, download_dir, done_file):
     pull_via_wget(export_url, EXPORT_METADATA, decompress=False, outpath=metadata_file, continue_incomplete=False)
     # Refuse another data model before fetching anything else. The report isn't here yet, so the comparison
     # of the two shard lists waits for the call below.
-    read_export_metadata(download_dir, check_against_report=False)
+    read_export_metadata(download_dir, check_against_report=False, data_model_version=data_model_version)
     pull_via_wget(
         export_url,
         report_path,
@@ -153,7 +158,7 @@ def download_pubmed2db(export_url, report_path, download_dir, done_file):
     )
 
     shard_counts = expected_shard_counts(download_dir)
-    metadata = read_export_metadata(download_dir, shard_counts)
+    metadata = read_export_metadata(download_dir, shard_counts, data_model_version=data_model_version)
     for shard in shard_counts:
         pull_via_wget(
             export_url, shard, decompress=False, outpath=os.path.join(download_dir, shard), continue_incomplete=True
@@ -211,14 +216,15 @@ def expected_shard_counts(download_dir):
     return dict(sorted(records_by_shard.items()))
 
 
-def read_export_metadata(download_dir, shard_counts=None, check_against_report=True):
+def read_export_metadata(download_dir, shard_counts=None, check_against_report=True, data_model_version=None):
     """
     The ``metadata.json`` of the export downloaded into ``download_dir``, once it is known to describe an
     export this module can read.
 
     Raises unless its ``data_model_version`` has major version ``PUBMED2DB_DATA_MODEL_MAJOR`` (see that
-    constant for why any minor version is accepted), and unless every entry of ``files`` has a ``name`` and
-    a ``sha256``. With ``check_against_report``, also raises unless it lists exactly the shards the
+    constant for why any minor version is accepted) and, when ``data_model_version`` is given (the build
+    passes ``config.yaml: pubmed2db_data_model_version``), is exactly that; and unless every entry of
+    ``files`` has a ``name`` and a ``sha256``. With ``check_against_report``, also raises unless it lists exactly the shards the
     validation report does and gives the same total record count: the two are written by different pubmed2db
     steps (``export`` and ``validate``), so a disagreement means they describe different exports. A caller
     that has already read the report passes its ``expected_shard_counts()`` as ``shard_counts``, so it isn't
@@ -246,6 +252,12 @@ def read_export_metadata(download_dir, shard_counts=None, check_against_report=T
             f"reads major version {PUBMED2DB_DATA_MODEL_MAJOR}. A major version may rename, remove or change "
             f"the meaning of the fields Babel reads: see PUBMED2DB_DATA_MODEL_MAJOR in "
             f"src/createcompendia/publications.py and pubmed2db's data model changelog before changing it."
+        )
+    if data_model_version is not None and version != data_model_version:
+        raise RuntimeError(
+            f"{metadata_file} says this export follows pubmed2db data model {version}, but config.yaml pins "
+            f"{data_model_version}. Read pubmed2db's data model changelog for what changed, then set "
+            f"pubmed2db_data_model_version to {version} (or pin the export that config.yaml meant)."
         )
     try:
         shard_hashes = {entry["name"]: entry["sha256"] for entry in metadata["files"]}
@@ -476,6 +488,8 @@ def parse_pubmed2db_into_tsvs(
     url,
     workers,
     doi_repairs_file=PUBMED_DOI_REPAIRS,
+    *,
+    data_model_version,
 ):
     """
     Write the ids, titles and concords TSVs from a pubmed2db export, and resolve shared identifiers.
@@ -506,19 +520,22 @@ def parse_pubmed2db_into_tsvs(
     ``write_compendium()`` would reject is skipped (see ``_read_shard_records()``) and counted as
     ``skipped_malformed_article_ids``; all of them are logged.
 
-    Raises if the export follows a data model this module doesn't read (``read_export_metadata()``), or if
-    any shard holds a different number of records than pubmed2db's validation report says.
+    Raises if the export follows a data model this module doesn't read, or another than config.yaml pins
+    (``read_export_metadata()``), or if any shard holds a different number of records than pubmed2db's
+    validation report says.
 
     :param url: The export URL, recorded in the metadata YAML as the source of this build's PubMed data.
     :param workers: How many shards to parse at once.
     :param doi_repairs_file: The DOI repairs table; ``generate_compendium()`` must be given the same one.
+    :param data_model_version: The data model version the export must say it follows
+        (``config.yaml: pubmed2db_data_model_version``); see ``read_export_metadata()``.
     """
     for path in (titles_file, pmid_id_file, concord_file, shared_ids_file):
         ensure_parent_dir(path)
 
     shard_counts = expected_shard_counts(download_dir)
     # Checked here as well as on download, because a preloaded download_dir skips the download rule.
-    export_metadata = read_export_metadata(download_dir, shard_counts)
+    export_metadata = read_export_metadata(download_dir, shard_counts, data_model_version=data_model_version)
     shards = list(shard_counts)
     shard_files = [os.path.join(download_dir, shard) for shard in shards]
 

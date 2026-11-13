@@ -14,14 +14,19 @@ de-duplicated revised articles nor honoured `DeleteCitation`.
 `tests/createcompendia/test_publications_export.py::test_pinned_export_is_the_newest` fails when
 there is one.
 
-Three settings at the top of `config.yaml` pin the export a build reads:
+Three settings at the top of `config.yaml`, with the other values rechecked every release, pin the
+export a build reads:
 
-- `pubmed2db_base_url` — where pubmed2db publishes its exports.
-- `pubmed2db_version` — the export directory under it, e.g. `2026nov08`.
+- `pubmed2db_version` — the export directory, e.g. `2026nov08`.
 - `pubmed2db_validation_report` — the export's validation report, relative to that directory. It
   can't be derived from the version (2026nov08's is `manifests/validation_report-20261109.json`,
   dated the day it was validated) and has moved before, so look it up each time you move
   `pubmed2db_version`.
+- `pubmed2db_data_model_version` — the data model the export follows, exactly as its
+  `metadata.json` gives it (see below).
+
+The settings that don't change between exports are under `publications:`, further down:
+`pubmed2db_base_url`, where pubmed2db publishes its exports, and the compendium's `outputs`.
 
 `rule download_pubmed2db` downloads the export's `metadata.json` and the report, then exactly the
 shards they list, into `babel_downloads/PubMed2DB/<version>/`, and checks every shard's SHA-256;
@@ -50,6 +55,12 @@ shards and again before parsing them:
   prefix of PubMed Central ids (see "`PMC:` versus `PMCID:`" below).
 - A fix that changes values but not how to read them doesn't change the version at all. pubmed2db's
   release notes list those, and `metadata.json`'s `generated_by` names the code an export came from.
+
+`config.yaml` also pins the exact version the pinned export follows, as
+`pubmed2db_data_model_version`, and the download and the parse refuse an export that says otherwise.
+So when moving `pubmed2db_version` brings a new minor version, read its changelog entry for fields
+worth using, then move the pin with it. A unit test fails if the pin names a major version the code
+doesn't read, so the pin can't get ahead of the code.
 
 Since 1.0, exports are named for their corpus cutoff, the UTC date NCBI posted the last file
 pubmed2db loaded (`metadata.json`'s `corpus.build_name`), rather than the day the export finished.

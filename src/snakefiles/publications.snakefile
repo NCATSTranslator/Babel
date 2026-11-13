@@ -14,8 +14,9 @@ localrules:
 
 # Each export version downloads into its own directory, so moving config.yaml: pubmed2db_version to a newer
 # export changes every path below and Snakemake re-runs all three rules; nothing from the old export can be
-# reused by mistake. The URL is also a param, so editing pubmed2db_base_url re-runs them too.
-PUBMED2DB_URL = config["pubmed2db_base_url"] + config["pubmed2db_version"] + "/"
+# reused by mistake. The URL and pubmed2db_data_model_version (which the export's metadata.json must match) are
+# params too, so editing publications.pubmed2db_base_url or the pin re-runs the rules that read them.
+PUBMED2DB_URL = config["publications"]["pubmed2db_base_url"] + config["pubmed2db_version"] + "/"
 PUBMED2DB_DIR = config["download_directory"] + "/PubMed2DB/" + config["pubmed2db_version"]
 
 
@@ -38,8 +39,15 @@ rule download_pubmed2db:
         url=PUBMED2DB_URL,
         report_path=config["pubmed2db_validation_report"],
         download_dir=PUBMED2DB_DIR,
+        data_model_version=config["pubmed2db_data_model_version"],
     run:
-        publications.download_pubmed2db(params.url, params.report_path, params.download_dir, output.done_file)
+        publications.download_pubmed2db(
+            params.url,
+            params.report_path,
+            params.download_dir,
+            output.done_file,
+            data_model_version=params.data_model_version,
+        )
 
 
 rule generate_pubmed_concords:
@@ -73,6 +81,7 @@ rule generate_pubmed_concords:
         url=PUBMED2DB_URL,
         # Not an input: see the comment on download_pubmed2db for why this directory is untracked.
         download_dir=PUBMED2DB_DIR,
+        data_model_version=config["pubmed2db_data_model_version"],
     run:
         publications.parse_pubmed2db_into_tsvs(
             params.download_dir,
@@ -84,6 +93,7 @@ rule generate_pubmed_concords:
             params.url,
             threads,
             input.doi_repairs_file,
+            data_model_version=params.data_model_version,
         )
 
 
@@ -130,7 +140,9 @@ rule generate_pubmed_compendia:
 
 rule check_publications_completeness:
     input:
-        input_compendia=expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["publication_outputs"]),
+        input_compendia=expand(
+            "{od}/compendia/{ap}", od=config["output_directory"], ap=config["publications"]["outputs"]
+        ),
     output:
         report_file=config["output_directory"] + "/reports/publication_completeness.txt",
     benchmark:
@@ -155,8 +167,8 @@ rule check_publications:
 rule publications:
     input:
         config["output_directory"] + "/reports/publication_completeness.txt",
-        synonyms=expand("{od}/synonyms/{ap}.gz", od=config["output_directory"], ap=config["publication_outputs"]),
-        reports=expand("{od}/reports/{ap}", od=config["output_directory"], ap=config["publication_outputs"]),
+        synonyms=expand("{od}/synonyms/{ap}.gz", od=config["output_directory"], ap=config["publications"]["outputs"]),
+        reports=expand("{od}/reports/{ap}", od=config["output_directory"], ap=config["publications"]["outputs"]),
     output:
         x=config["output_directory"] + "/reports/publications_done",
     shell:
