@@ -9,7 +9,11 @@ count in its validation report; the test then asserts over the real output that:
   DOI in the export was either repaired from ``input_data/pubmed_doi_repairs.tsv`` or skipped;
 - the numbers repaired and skipped are the ones docs/sources/PubMed/dois/counts.json records, so the repairs
   table and the committed characterization describe the export that is pinned. When this fails after moving
-  ``pubmed2db_version``, re-run docs/sources/PubMed/dois/characterize_dois.py.
+  ``pubmed2db_version``, re-run docs/sources/PubMed/dois/characterize_dois.py;
+- no repair takes a DOI away from a PMID that carries it well-formed: every PMID carrying a repaired DOI
+  well-formed also carries the malformed DOI it repairs. The build applies a row of the repairs table to
+  every PMID with that malformed DOI and keeps a shared DOI on the lowest PMID, so a repair that broke this
+  could move the DOI to another clique (``PUBMED_DOI_REPAIRS``).
 
 The cheap checks of the same export are ``tests/createcompendia/test_publications_export.py``.
 
@@ -20,16 +24,35 @@ Run with:
 import json
 import os
 import shutil
+from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
 
 import pytest
 import yaml
 
 from src.createcompendia import publications
+from src.prefixes import DOI
 from src.util import curie_format_problem, get_config, get_repo_root
 
 CONFIG = get_config()
 VERSION = CONFIG["pubmed2db_version"]
 EXPORT_URL = CONFIG["pubmed2db_base_url"] + VERSION + "/"
+
+
+def _carriers(args):
+    """For one shard read with no repairs: ``(PMIDs carrying each malformed DOI in ``malformed_dois``,
+    PMIDs carrying each lower-cased DOI in ``wanted`` well-formed)``. Module-level so it can be pickled."""
+    shard_path, malformed_dois, wanted = args
+    malformed_carriers = defaultdict(set)
+    well_formed_carriers = defaultdict(set)
+    for pmid, _, others, malformed in publications._read_shard(shard_path):
+        for curie in malformed:
+            if curie in malformed_dois:
+                malformed_carriers[curie].add(pmid)
+        for other in others:
+            if other.startswith(DOI + ":") and other.lower() in wanted:
+                well_formed_carriers[other.lower()].add(pmid)
+    return malformed_carriers, well_formed_carriers
 
 
 @pytest.mark.pipeline
@@ -76,3 +99,26 @@ def test_full_export_downloads_and_parses(tmp_path):
     assert counts["skipped_malformed_article_ids"] == characterized["skipped"] + len(
         characterized["malformed_identifiers_that_are_not_dois"]
     )
+
+    # No repair takes a DOI away from a PMID that has it well-formed (see the module docstring).
+    repairs = publications.load_doi_repairs(publications.PUBMED_DOI_REPAIRS)
+    wanted = frozenset(repaired.lower() for values in repairs.values() for repaired in values)
+    shards = [os.path.join(download_dir, shard) for shard in publications.expected_shard_counts(download_dir)]
+    malformed_carriers = defaultdict(set)
+    well_formed_carriers = defaultdict(set)
+    with ProcessPoolExecutor() as pool:
+        for shard_malformed, shard_well_formed in pool.map(
+            _carriers, [(shard, frozenset(repairs), wanted) for shard in shards]
+        ):
+            for curie, pmids in shard_malformed.items():
+                malformed_carriers[curie] |= pmids
+            for doi, pmids in shard_well_formed.items():
+                well_formed_carriers[doi] |= pmids
+    takes_away = {
+        (malformed, repaired): sorted(well_formed_carriers[repaired.lower()] - malformed_carriers[malformed])
+        for malformed, values in repairs.items()
+        for repaired in values
+        # A row for a DOI this export doesn't carry is never applied, so it takes nothing away.
+        if malformed_carriers[malformed]
+    }
+    assert {pair: pmids for pair, pmids in takes_away.items() if pmids} == {}

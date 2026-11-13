@@ -320,9 +320,15 @@ The table therefore holds a repair only when doi.org confirms it **and no other 
 already carries that DOI**. A shared DOI stays on the lowest PMID (see above), so repairing
 `PMID:22710516`'s `…519a 10.1001/archoto.2012.519b` in full would take `…519b` away from
 `PMID:23753705`, which has it cleanly. 16 values have a registered candidate that the guard holds
-back, and 14 of them have no other and stay skipped. For a value holding two
-DOIs, each is kept if it passes on its own, which is why `PMID:23752222` gets `…151a` and not the
-unregistered `…151b`.
+back, and 14 of them have no other and stay skipped. For a value holding two DOIs, each is kept if
+it passes on its own, which is why `PMID:23752222` gets `…151a` and not the unregistered `…151b`.
+
+A row is keyed by the malformed DOI alone, so the build repairs it on every PMID that carries it,
+and the guard is applied once per malformed DOI: "other" means other than all of those PMIDs. Two
+malformed DOIs are on two PMIDs each (`10.3760/cma. j. issn.2095-4352. 2014. 12.018` on
+`PMID:25476091` and `PMID:25591444`), and their repairs become DOIs those PMIDs share, kept on the
+lower like any other shared DOI. `tests/pipeline/test_publications.py` checks the guard against the
+pinned export.
 
 ### Keeping the table current
 

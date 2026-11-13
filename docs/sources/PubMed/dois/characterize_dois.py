@@ -30,9 +30,13 @@ candidate that ``DOI_RE`` accepts. So that the hit rates have something to be co
 looks up a sample of well-formed DOIs from the same export (``baseline``).
 
 **The repairs table.** ``REPAIR_STRATEGY`` names the one strategy trusted for each shape, and a malformed
-DOI is repaired to that strategy's candidates when doi.org says a candidate is registered and no other PMID
-in the export already carries it well-formed (repairing would then take the DOI away from that PMID's
-clique, since a shared DOI stays on the lowest PMID). ``first_token`` is trusted for no shape, although its
+DOI is repaired to that strategy's candidates when doi.org says a candidate is registered and no PMID
+in the export already carries it well-formed except ones that carry the malformed DOI too (repairing would
+then take the DOI away from that PMID's clique, since a shared DOI stays on the lowest PMID). The table is
+keyed by the malformed DOI alone, so the build repairs it on every PMID that carries it, and the check is
+made once per malformed DOI, against all of them; when several PMIDs carry one, the repair is a DOI they
+share, which the build keeps on the lowest of them like any other (two such in 2026nov08, e.g.
+PMID:25476091 and PMID:25591444). ``first_token`` is trusted for no shape, although its
 candidates are often registered: a DOI cut off at a space is frequently a *different* registered DOI
 (``10.1126/science. 1134405`` gives ``10.1126/science``, the journal's own DOI).
 
@@ -43,8 +47,8 @@ Outputs:
 - ``counts.json`` (beside this script) -- per shape: how many, how many are repaired, and per strategy how
   many candidates it proposes and how many of those doi.org knows; and the baseline.
 - ``malformed_dois.csv`` (beside this script) -- one row per malformed DOI and candidate: the strategy,
-  whether doi.org knows the candidate, whether the same record already carries it, which other PMIDs carry
-  it, and whether it went into the repairs table.
+  whether doi.org knows the candidate, whether the same record already carries it, which PMIDs carry it
+  without carrying the malformed DOI, and whether it went into the repairs table.
 
 Regenerate with (``--export-dir`` defaults to the download of the export pinned in config.yaml):
 
@@ -164,6 +168,44 @@ def candidates(value):
     return {strategy: [c for c in found if is_doi(c)] for strategy, found in proposals.items()}
 
 
+def choose_repairs(malformed, proposals, registered, carriers):
+    """
+    The repairs table, ``{malformed doi CURIE: [repaired doi CURIEs]}``, by the rule in the module docstring.
+
+    :param malformed: ``[(pmid, malformed doi CURIE, ...)]``, every malformed DOI on every record.
+    :param proposals: ``{malformed doi CURIE: candidates()}``.
+    :param registered: ``{candidate DOI: "yes" | "no" | ""}``, from doi.org.
+    :param carriers: ``{lower-cased doi CURIE: {PMIDs carrying it well-formed}}``.
+    """
+    pmids_with = malformed_carriers(malformed)
+    repairs = {}
+    for curie in sorted(pmids_with):
+        strategy = REPAIR_STRATEGY.get(shape_of(curie.split(":", 1)[1]))
+        verified = [
+            f"{DOI}:{candidate}"
+            for candidate in proposals[curie].get(strategy, [])
+            if registered[candidate] == "yes" and not others_carrying(candidate, pmids_with[curie], carriers)
+        ]
+        if verified:
+            repairs[curie] = list(dict.fromkeys(verified))
+    return repairs
+
+
+def malformed_carriers(malformed):
+    """``{malformed doi CURIE: {PMIDs carrying it}}``."""
+    pmids_with = defaultdict(set)
+    for pmid, curie, *_ in malformed:
+        pmids_with[curie].add(pmid)
+    return pmids_with
+
+
+def others_carrying(candidate, pmids_with_malformed, carriers):
+    """The PMIDs carrying ``candidate`` well-formed, other than the ones carrying the malformed DOI it repairs:
+    a repair would take the DOI away from them, since the build applies it to every carrier of the malformed
+    DOI and keeps a shared DOI only on the lowest PMID."""
+    return sorted(carriers.get(f"{DOI}:{candidate}".lower(), set()) - pmids_with_malformed)
+
+
 def find_malformed(shard_path):
     """Pass 1 over one shard: ``(record count, [(pmid, malformed doi CURIE, the record's other identifiers)])``."""
     count = 0
@@ -242,7 +284,7 @@ def main():
     non_dois = [(pmid, curie) for pmid, curie, _ in malformed if not curie.startswith(DOI + ":")]
     malformed = [row for row in malformed if row[1].startswith(DOI + ":")]
 
-    proposals = {(pmid, curie): candidates(curie.split(":", 1)[1]) for pmid, curie, _ in malformed}
+    proposals = {curie: candidates(curie.split(":", 1)[1]) for _, curie, _ in malformed}
     wanted = frozenset(
         f"{DOI}:{candidate}".lower() for found in proposals.values() for cs in found.values() for candidate in cs
     )
@@ -264,21 +306,8 @@ def main():
     baseline_answers = Counter(doi_org.registered(doi) or "unknown" for doi in baseline)
     doi_org.save()
 
-    def others_carrying(candidate, pmid):
-        return sorted(carriers.get(f"{DOI}:{candidate}".lower(), set()) - {pmid})
-
-    # {malformed doi CURIE: [repaired doi CURIEs]}, per the rule in the module docstring.
-    repairs = {}
-    for pmid, curie, _ in malformed:
-        strategy = REPAIR_STRATEGY.get(shape_of(curie.split(":", 1)[1]))
-        verified = [
-            f"{DOI}:{candidate}"
-            for candidate in proposals[(pmid, curie)].get(strategy, [])
-            if registered[candidate] == "yes" and not others_carrying(candidate, pmid)
-        ]
-        if verified:
-            repairs.setdefault(curie, [])
-            repairs[curie].extend(v for v in verified if v not in repairs[curie])
+    repairs = choose_repairs(malformed, proposals, registered, carriers)
+    pmids_with = malformed_carriers(malformed)
 
     unanswered = sorted(candidate for candidate, answer in registered.items() if not answer)
     if unanswered:
@@ -316,7 +345,7 @@ def main():
         info["repaired"] += bool(repaired)
         info["registrants"][value.split("/")[0] if value.startswith("10.") else "(none)"] += 1
         info["rows"].append({"pmid": pmid, "identifier": curie, "repaired_to": repaired})
-        proposed = [(strategy, c) for strategy, cs in proposals[(pmid, curie)].items() for c in cs]
+        proposed = [(strategy, c) for strategy, cs in proposals[curie].items() for c in cs]
         for strategy, candidate in proposed or [("", "")]:
             candidate_curie = f"{DOI}:{candidate}"
             if strategy:
@@ -335,7 +364,9 @@ def main():
                     "already_on_this_record": (
                         "yes" if candidate and candidate_curie.lower() in {o.lower() for o in others} else ""
                     ),
-                    "other_pmids_with_candidate": " ".join(others_carrying(candidate, pmid) if candidate else []),
+                    "other_pmids_with_candidate": " ".join(
+                        others_carrying(candidate, pmids_with[curie], carriers) if candidate else []
+                    ),
                     "in_repairs_table": (
                         "yes" if candidate_curie in repaired and strategy == REPAIR_STRATEGY.get(shape) else ""
                     ),
