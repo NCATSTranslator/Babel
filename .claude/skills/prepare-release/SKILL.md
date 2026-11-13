@@ -104,7 +104,7 @@ Follow `docs/sources/PubMed/README.md`, "Pinning an export", in this order:
    `docs/RunningBabel.md`, "Preloading PubMed downloads").
 6. **Regenerate the DOI repairs table**, "Keeping the table current":
    `uv run python docs/sources/PubMed/dois/characterize_dois.py`. Commit
-   `input_data/pubmed_doi_repairs.tsv`, `counts.json` and `malformed_dois.csv` together. Compare the
+   `input_data/pubmed_doi_repairs.yaml`, `counts.json` and `malformed_dois.csv` together. Compare the
    new counts with the old ones: a shape whose count jumps, or whose repair rate falls, is worth a
    look before the build trusts the table. If doi.org or Crossref didn't answer for every lookup,
    the script refuses to write the table; re-run it. Read any "Crossref veto" line it prints: the
