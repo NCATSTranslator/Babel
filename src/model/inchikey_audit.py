@@ -425,7 +425,11 @@ def audit_chemical_inchikeys(
 
     con.sql("""
         CREATE OR REPLACE TABLE audit_component AS
-        SELECT l.clique_leader, ll.label AS clique_leader_label, t.inchikey, t.tier, t.verdict,
+        -- component_id names a component by its smallest member CURIE: deterministic across runs, and unique
+        -- because a CURIE sits in one component. A clique can hold several flagged components, so the clique
+        -- leader alone cannot tie a boundary edge to its component.
+        SELECT (SELECT min(m.curie) FROM comp_member m WHERE m.set_id = f.set_id AND m.comp = f.comp) AS component_id,
+               l.clique_leader, ll.label AS clique_leader_label, t.inchikey, t.tier, t.verdict,
                f.n_structure_sources, f.n_members, t.core_heavy_atoms, t.name_score,
                (SELECT string_agg(DISTINCT b.source, ',') FROM comp_boundary b
                  WHERE b.set_id = f.set_id AND b.comp = f.comp) AS boundary_sources,
@@ -440,11 +444,11 @@ def audit_chemical_inchikeys(
     """)
     con.sql("""
         CREATE OR REPLACE TABLE audit_boundary AS
-        SELECT c.clique_leader, c.inchikey, c.tier, c.verdict, b.source, b.subj, ls.label AS subj_label,
+        SELECT c.component_id, c.clique_leader, c.inchikey, c.tier, c.verdict, b.source, b.subj, ls.label AS subj_label,
                b.obj, lo.label AS obj_label
         FROM audit_component c JOIN comp_boundary b USING (set_id, comp)
         LEFT JOIN label ls ON ls.curie = b.subj LEFT JOIN label lo ON lo.curie = b.obj
-        ORDER BY c.tier, c.verdict, b.source, b.subj
+        ORDER BY c.tier, c.verdict, c.component_id, b.source, b.subj
     """)
 
 

@@ -260,3 +260,25 @@ def test_a_core_record_named_after_the_biologic_does_not_clear_it(tmp_path):
     assert con.sql("SELECT tier, verdict, core_heavy_atoms FROM audit_component").fetchall() == [
         ("A", LIKELY_MISATTACHED, 16)
     ]
+
+
+@pytest.mark.unit
+def test_boundary_edges_carry_their_own_component_id(tmp_path):
+    """Two flagged components in one clique should each get their own component_id, and each boundary edge should
+    carry the id of the component it attaches -- the clique leader alone cannot tell them apart."""
+    # A second DrugCentral record attached to a different core member (one naming CID 8254 too would make that CID
+    # an overused target and drop both rows).
+    concords = OFATUMUMAB_CONCORDS + [(concord("DrugCentral"), "DrugCentral:9999", "CHEBI:28887")]
+    members = sorted({c for _, s, o in concords for c in (s, o)} | {"RXCUI:712566"})
+    cliques = {"CHEBI:28887": ("SmallMolecule", members)}
+    structures = [("1", DIMETHYL_ETHER_INCHI, DIMETHYL_ETHER_KEY.split(":", 1)[1])]
+    con = run_audit(tmp_path, concords, cliques, OFATUMUMAB_LABELS, structures)
+
+    assert sorted(con.sql("SELECT component_id, tier FROM audit_component").fetchall()) == [
+        ("CHEMBL.COMPOUND:CHEMBL1201836", "A"),
+        ("DrugCentral:9999", "B"),
+    ]
+    assert sorted(con.sql("SELECT component_id, subj FROM audit_boundary").fetchall()) == [
+        ("CHEMBL.COMPOUND:CHEMBL1201836", "DrugCentral:4951"),
+        ("DrugCentral:9999", "DrugCentral:9999"),
+    ]

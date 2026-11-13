@@ -137,13 +137,7 @@ DrugCentral:4105 PUBCHEM.COMPOUND:3517
 
 # INSULIN BEEF -- different but related substance: bovine insulin attached to human insulin zinc; the species differ by three residues. Clique CHEBI:228608 (INCHIKEY:LEMUFSYUPGXXCM-JNEQYSBXSA-N).
 #   DrugCentral: DrugCentral:5192 "insulin beef" -> PUBCHEM.COMPOUND:24839622 "Insulin human zinc [USP]"
-#   PUBCHEM_CAS: PUBCHEM.COMPOUND:24839622 "Insulin human zinc [USP]" -> CAS:8049-62-5 """"
-#   PUBCHEM_CAS: PUBCHEM.COMPOUND:24839622 "Insulin human zinc [USP]" -> CAS:53027-39-7 """"
-#   PUBCHEM_MESH: PUBCHEM.COMPOUND:24839622 "Insulin human zinc [USP]" -> MESH:D007336 "Insulin, Isophane"
 DrugCentral:5192 PUBCHEM.COMPOUND:24839622
-PUBCHEM.COMPOUND:24839622 CAS:8049-62-5
-PUBCHEM.COMPOUND:24839622 CAS:53027-39-7
-PUBCHEM.COMPOUND:24839622 MESH:D007336
 
 # IRON DEXTRAN -- misattached: iron-dextran complex attached to iron sulfate. Clique CHEBI:78291 (INCHIKEY:MVZXTUSAYBWAAM-UHFFFAOYSA-N).
 #   DrugCentral: DrugCentral:5562 "iron dextran" -> PUBCHEM.COMPOUND:105075 "Sulfuric acid, iron salt (1:?)"
@@ -196,10 +190,10 @@ DrugCentral:5082 PUBCHEM.COMPOUND:436058
 DrugCentral:4986 PUBCHEM.COMPOUND:70683024
 
 # POLIHEXANIDE -- polymer -> monomer: polymer attached to a single hexyl biguanide unit. Clique CHEBI:149520 (INCHIKEY:VAZJLPXFVQHDFB-UHFFFAOYSA-N).
-#   DrugCentral: DrugCentral:4692 "polihexanide" -> CHEMBL.COMPOUND:CHEMBL2106939 "POLIHEXANIDE"
 #   DrugCentral: DrugCentral:4692 "polihexanide" -> PUBCHEM.COMPOUND:20977 "N-Hexylimidodicarbonimidic diamide"
-DrugCentral:4692 CHEMBL.COMPOUND:CHEMBL2106939
+#   DrugCentral: DrugCentral:4692 "polihexanide" -> CHEMBL.COMPOUND:CHEMBL2106939 "POLIHEXANIDE"
 DrugCentral:4692 PUBCHEM.COMPOUND:20977
+DrugCentral:4692 CHEMBL.COMPOUND:CHEMBL2106939
 
 # POLYESTRADIOL PHOSPHATE -- polymer -> monomer: polymer attached to estradiol phosphate. Clique UNII:P14877CDX2 (INCHIKEY:DGPHKOYFSODERC-CMZLOHJFSA-N).
 #   DrugCentral: DrugCentral:3482 "polyestradiol phosphate" -> PUBCHEM.COMPOUND:68579 "Phosphoric acid--estra-1(10),2,4-triene-3,17-diol (1/1)"
@@ -207,39 +201,19 @@ DrugCentral:3482 PUBCHEM.COMPOUND:68579
 
 # POLYETHYLENE GLYCOL -- polymer -> monomer: polymer attached to ethylene glycol; ChEBI's PEG record itself sits in the core. Clique CHEBI:30742 (INCHIKEY:LYCAIKOWRPUZTN-UHFFFAOYSA-N).
 #   DrugCentral: DrugCentral:4253 "macrogol" -> CHEBI:46793 "poly(ethylene glycol)"
-#   DrugCentral: DrugCentral:4253 "macrogol" -> PUBCHEM.COMPOUND:174 "Ethylene Glycol"
 #   DrugCentral: DrugCentral:4253 "macrogol" -> CHEMBL.COMPOUND:CHEMBL457299 "ETHYLENE GLYCOL"
+#   DrugCentral: DrugCentral:4253 "macrogol" -> PUBCHEM.COMPOUND:174 "Ethylene Glycol"
 #   wikipedia_mesh_chebi: MESH:D011092 "Polyethylene Glycols" -> CHEBI:46793 "poly(ethylene glycol)"
 DrugCentral:4253 CHEBI:46793
-DrugCentral:4253 PUBCHEM.COMPOUND:174
 DrugCentral:4253 CHEMBL.COMPOUND:CHEMBL457299
+DrugCentral:4253 PUBCHEM.COMPOUND:174
 MESH:D011092 CHEBI:46793
 
 # POLYVINYL ALCOHOL -- polymer -> monomer: polymer attached to ethanol. Clique CHEBI:16236 (INCHIKEY:LFQSCWFLJHTTHZ-UHFFFAOYSA-N).
 #   DrugCentral: DrugCentral:4279 "polyvinyl alcohol" -> CHEBI:17246 "poly(vinyl alcohol) macromolecule"
 #   wikipedia_mesh_chebi: MESH:D011142 "Polyvinyl Alcohol" -> CHEBI:17246 "poly(vinyl alcohol) macromolecule"
-#   DrugCentral: DrugCentral:1076 "ethanol" -> CHEMBL.COMPOUND:CHEMBL545 "ALCOHOL"
-#   DrugCentral: DrugCentral:1076 "ethanol" -> CHEBI:16236 "ethanol"
-#   DrugCentral: DrugCentral:1076 "ethanol" -> UNII:3K9958V90M "ALCOHOL"
-#   DrugCentral: DrugCentral:1076 "ethanol" -> DRUGBANK:DB00898 "Ethanol"
-#   DrugCentral: DrugCentral:1076 "ethanol" -> PUBCHEM.COMPOUND:702 "Ethanol"
-#   DrugCentral: DrugCentral:1076 "ethanol" -> GTOPDB:2299 "ethanol"
-#   RXNORM: RXCUI:448 """" -> DRUGBANK:DB00898 "Ethanol"
-#   UMLS: UMLS:C0001962 "ethanol" -> DRUGBANK:DB00898 "Ethanol"
-#   mesh_unii: MESH:D000431 "Ethanol" -> UNII:3K9958V90M "ALCOHOL"
-#   wikipedia_mesh_chebi: MESH:D000431 "Ethanol" -> CHEBI:16236 "ethanol"
 DrugCentral:4279 CHEBI:17246
 MESH:D011142 CHEBI:17246
-DrugCentral:1076 CHEMBL.COMPOUND:CHEMBL545
-DrugCentral:1076 CHEBI:16236
-DrugCentral:1076 UNII:3K9958V90M
-DrugCentral:1076 DRUGBANK:DB00898
-DrugCentral:1076 PUBCHEM.COMPOUND:702
-DrugCentral:1076 GTOPDB:2299
-RXCUI:448 DRUGBANK:DB00898
-UMLS:C0001962 DRUGBANK:DB00898
-MESH:D000431 UNII:3K9958V90M
-MESH:D000431 CHEBI:16236
 
 # ROMIPLOSTIM -- misattached: peptibody attached to semaxanib. Clique CHEBI:91083 (INCHIKEY:WUWDLXZGHZSWQZ-WQLSENKSSA-N).
 #   DrugCentral: DrugCentral:4996 "romiplostim" -> PUBCHEM.COMPOUND:5329098 "Semaxanib"

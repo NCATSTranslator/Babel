@@ -119,7 +119,7 @@ it separates cleanly, and state the category and reason in a comment. Before add
 check the component's guard-refused edges (`refused_edges.tsv`): once the component has no key,
 those xrefs are accepted, and they decide which clique it joins next.
 
-The first 55 components were reviewed from 2026jul22's tier A, as 75 pairs. 56 more were kept,
+The first 55 components were reviewed from 2026jul22's tier A, as 62 pairs. 56 more were kept,
 mostly polymers and mixtures whose core is PubChem's own representation of that substance
 (heparin, sevelamer, polysorbate 80). Some errors start upstream and cannot be blocked from here:
 `CHEBI:193860` and `HMDB:HMDB0029845` carry Tiron's structure under the name "Chymopapain", and
