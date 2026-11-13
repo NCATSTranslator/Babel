@@ -307,6 +307,9 @@ def test_repairs_table_holds_characters_a_tsv_could_not(tmp_path):
         pytest.param("- doi:10.1/a b\n", "is not a mapping", id="not-a-mapping"),
         pytest.param('"doi:10.1/a b": doi:10.1/ab\n', "non-empty list", id="repair-not-a-list"),
         pytest.param('"doi:10.1/a b": []\n', "non-empty list", id="no-repairs"),
+        pytest.param(
+            '"doi:10.1/a b": [doi:10.1/ab]\n"doi:10.1/a b": [doi:10.1/a]\n', "duplicate key", id="repeated-key"
+        ),
         pytest.param("doi:10.1/ab: [doi:10.1/ab]\n", "is not malformed", id="key-is-well-formed"),
         pytest.param('"PMC:PMC 1": [doi:10.1/a]\n', "is not a doi: CURIE", id="key-is-not-a-doi"),
         pytest.param('"doi:10.1/a b": ["doi:10.1/a b"]\n', "not a well-formed doi", id="repair-still-malformed"),
@@ -318,7 +321,8 @@ def test_hand_edited_repairs_table_is_refused(tmp_path, text, message):
     repair that would itself fail the build -- should raise naming the file, not be skipped."""
     table = tmp_path / "repairs.yaml"
     table.write_text(text)
-    with pytest.raises(ValueError, match=rf"repairs\.yaml.*{message}"):
+    # (?s): a YAML error from the loader spans several lines.
+    with pytest.raises(ValueError, match=rf"(?s)repairs\.yaml.*{message}"):
         publications.load_doi_repairs(str(table))
 
 

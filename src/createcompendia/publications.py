@@ -41,7 +41,14 @@ from src.babel_utils import TypedClique, pull_via_wget, write_compendium
 from src.categories import JOURNAL_ARTICLE, PUBLICATION
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import DOI
-from src.util import Text, curie_format_problem, ensure_parent_dir, get_logger, get_repo_root
+from src.util import (
+    Text,
+    curie_format_problem,
+    ensure_parent_dir,
+    get_logger,
+    get_repo_root,
+    safe_load_yaml_unique_keys,
+)
 
 logger = get_logger(__name__)
 
@@ -330,14 +337,18 @@ def load_doi_repairs(doi_repairs_file):
     The DOI repairs table (see ``PUBMED_DOI_REPAIRS``) as ``{malformed doi CURIE: (repaired doi CURIE, ...)}``.
 
     Cached per path, so each of ``parse_pubmed2db_into_tsvs()``'s worker processes reads it once. Raises on a
-    table that isn't a mapping of strings to non-empty lists, a repair that is itself malformed, or a
-    "malformed" DOI that isn't malformed or isn't a DOI (a PMCID turned into a DOI would be a different
-    identifier, not a repair): any of those means the table was edited by hand, and a repair that silently
-    does nothing (or writes a CURIE that fails the build an hour later) is worse than stopping here.
+    table that isn't a mapping of strings to non-empty lists (or that repeats a key), a repair that is itself
+    malformed, or a "malformed" DOI that isn't malformed or isn't a DOI (a PMCID turned into a DOI would be a
+    different identifier, not a repair): any of those means the table was edited by hand, and a repair that
+    silently does nothing (or writes a CURIE that fails the build an hour later) is worse than stopping here.
     """
     with open(doi_repairs_file, encoding="utf-8") as f:
-        # An empty table (comments only) loads as None.
-        table = yaml.safe_load(f) or {}
+        try:
+            # An empty table (comments only) loads as None. A repeated key would otherwise silently keep only
+            # its last list of repairs.
+            table = safe_load_yaml_unique_keys(f) or {}
+        except yaml.YAMLError as e:
+            raise ValueError(f"{doi_repairs_file} is not a valid repairs table: {e}") from e
     if not isinstance(table, dict):
         raise ValueError(f"{doi_repairs_file} is not a mapping of malformed DOIs to their repairs.")
     repairs = {}
