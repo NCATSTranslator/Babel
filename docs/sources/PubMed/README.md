@@ -292,14 +292,16 @@ numbers are in `intermediate/publications/concords/metadata.yaml` as
 
 ### Why a table and not a rule
 
-Repairs come from [`input_data/pubmed_doi_repairs.tsv`](../../../input_data/pubmed_doi_repairs.tsv)
-(`malformed doi CURIE<TAB>repaired doi CURIE`), not from a rule such as "delete the spaces",
-because no rule is reliable. [`dois/characterize_dois.py`](dois/characterize_dois.py) streams the
-whole export, gives every malformed DOI a shape, generates what each repair strategy would make of
-it, asks doi.org's handle API whether the result is a registered DOI, and asks Crossref whether
-each repair names the same article ([`dois/counts.json`](dois/counts.json) has the counts and
-examples, [`dois/malformed_dois.csv`](dois/malformed_dois.csv) every candidate). On 2026-11-12 and
-2026-11-13:
+Repairs come from
+[`input_data/pubmed_doi_repairs.yaml`](../../../input_data/pubmed_doi_repairs.yaml) (each malformed
+doi CURIE mapped to the doi CURIEs it is repaired to; YAML because a malformed value can hold a tab
+or a control character, which YAML writes as a visible escape such as `\x7F`), not from a rule such
+as "delete the spaces", because no rule is reliable.
+[`dois/characterize_dois.py`](dois/characterize_dois.py) streams the whole export, gives every
+malformed DOI a shape, generates what each repair strategy would make of it, asks doi.org's handle
+API whether the result is a registered DOI, and asks Crossref whether each repair names the same
+article ([`dois/counts.json`](dois/counts.json) has the counts and examples,
+[`dois/malformed_dois.csv`](dois/malformed_dois.csv) every candidate). On 2026-11-12 and 2026-11-13:
 
 | Shape | Example | DOIs | Deleting the whitespace gives a registered DOI | Repaired |
 | --- | --- | ---: | ---: | ---: |
@@ -366,7 +368,7 @@ pinned export.
 ### Keeping the table current
 
 The table is generated: don't edit it by hand, and `load_doi_repairs()` refuses a row that couldn't
-do what it appears to (wrong separator, a key that isn't malformed, a repair that is). Regenerate
+do what it appears to (the wrong shape, a key that isn't malformed, a repair that is). Regenerate
 it, with `counts.json` and the CSV, whenever `pubmed2db_version` moves:
 
 ```shell

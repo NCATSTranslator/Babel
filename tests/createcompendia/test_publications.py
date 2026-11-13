@@ -25,7 +25,7 @@ Fixture shard 1:
   (cp1252's ellipsis, mis-decoded).
 - ``PMID:5202677`` [5] — no DOI or PubMed Central id.
 - ``PMID:17124311`` [5] — a malformed DOI, ``doi:10.1126/science. 1134405``, which write_compendium() would
-  reject and the repairs table (``input_data/pubmed_doi_repairs.tsv``) turns into
+  reject and the repairs table (``input_data/pubmed_doi_repairs.yaml``) turns into
   ``doi:10.1126/science.1134405``.
 - ``PMID:26146547`` [5] — the lower PMID of the DOI spelled in two cases.
 
@@ -240,7 +240,7 @@ def test_without_a_repairs_table_every_malformed_doi_is_skipped(tmp_path):
     none repaired -- the repairs come from the table and nowhere else."""
     import yaml
 
-    empty = tmp_path / "no_repairs.tsv"
+    empty = tmp_path / "no_repairs.yaml"
     empty.write_text("# no repairs\n")
     publications.parse_pubmed2db_into_tsvs(
         FIXTURE_DIR,
@@ -266,8 +266,8 @@ def test_without_a_repairs_table_every_malformed_doi_is_skipped(tmp_path):
 
 
 def test_committed_repairs_table_loads_and_only_repairs_malformed_dois_to_well_formed_ones():
-    """input_data/pubmed_doi_repairs.tsv should load -- load_doi_repairs() raises on a row that isn't a
-    malformed CURIE and a well-formed doi: one -- and no repair should be a no-op or leave whitespace behind."""
+    """input_data/pubmed_doi_repairs.yaml should load -- load_doi_repairs() raises on an entry that isn't a
+    malformed CURIE and well-formed doi: ones -- and no repair should be a no-op or leave whitespace behind."""
     repairs = publications.load_doi_repairs(publications.PUBMED_DOI_REPAIRS)
     assert len(repairs) > 200
     for malformed, repaired in repairs.items():
@@ -277,30 +277,48 @@ def test_committed_repairs_table_loads_and_only_repairs_malformed_dois_to_well_f
 
 
 def test_repairs_table_collects_every_repair_of_a_value(tmp_path):
-    """A malformed value with two rows should load as both repairs, in file order, skipping comments and
-    blank lines."""
-    table = tmp_path / "repairs.tsv"
-    table.write_text("# comment\n\ndoi:10.1/a 10.1/b\tdoi:10.1/a\ndoi:10.1/a 10.1/b\tdoi:10.1/b\n")
+    """A malformed value with two repairs should load as both, in file order, skipping comments and blank
+    lines."""
+    table = tmp_path / "repairs.yaml"
+    table.write_text('# comment\n\n"doi:10.1/a 10.1/b":\n- doi:10.1/a\n- doi:10.1/b\n')
     assert publications.load_doi_repairs(str(table)) == {"doi:10.1/a 10.1/b": ("doi:10.1/a", "doi:10.1/b")}
 
 
+def test_repairs_table_holds_characters_a_tsv_could_not(tmp_path):
+    """A malformed DOI holding a DEL (PMID:28260475's `doi:10.6002/ect.mesot2016.p112` + DEL, in 2026nov08), a
+    tab or a newline should be written by YAML as a visible escape and load back as the exact characters."""
+    import yaml
+
+    repairs = {
+        "doi:10.6002/ect.mesot2016.p112\x7f": ["doi:10.6002/ect.mesot2016.p112"],
+        "doi:10.1/a\tb": ["doi:10.1/ab"],
+        "doi:10.1/a\nb": ["doi:10.1/ab"],
+    }
+    table = tmp_path / "repairs.yaml"
+    table.write_text(yaml.safe_dump(repairs, allow_unicode=True, width=float("inf")))
+    text = table.read_text()
+    assert "\\x7F" in text and "\x7f" not in text and "\t" not in text
+    assert publications.load_doi_repairs(str(table)) == {key: tuple(value) for key, value in repairs.items()}
+
+
 @pytest.mark.parametrize(
-    ("row", "message"),
+    ("text", "message"),
     [
-        pytest.param("doi:10.1/a b doi:10.1/ab", "tab-separated fields", id="space-instead-of-tab"),
-        pytest.param("doi:10.1/a b\tdoi:10.1/ab\textra", "tab-separated fields", id="three-fields"),
-        pytest.param("doi:10.1/ab\tdoi:10.1/ab", "is not malformed", id="key-is-well-formed"),
-        pytest.param("PMC:PMC 1\tdoi:10.1/a", "is not a doi: CURIE", id="key-is-not-a-doi"),
-        pytest.param("doi:10.1/a b\tdoi:10.1/a b", "not a well-formed doi", id="repair-still-malformed"),
-        pytest.param("doi:10.1/a b\tPMC:PMC1", "not a well-formed doi", id="repair-is-not-a-doi"),
+        pytest.param("- doi:10.1/a b\n", "is not a mapping", id="not-a-mapping"),
+        pytest.param('"doi:10.1/a b": doi:10.1/ab\n', "non-empty list", id="repair-not-a-list"),
+        pytest.param('"doi:10.1/a b": []\n', "non-empty list", id="no-repairs"),
+        pytest.param("doi:10.1/ab: [doi:10.1/ab]\n", "is not malformed", id="key-is-well-formed"),
+        pytest.param('"PMC:PMC 1": [doi:10.1/a]\n', "is not a doi: CURIE", id="key-is-not-a-doi"),
+        pytest.param('"doi:10.1/a b": ["doi:10.1/a b"]\n', "not a well-formed doi", id="repair-still-malformed"),
+        pytest.param('"doi:10.1/a b": [PMC:PMC1]\n', "not a well-formed doi", id="repair-is-not-a-doi"),
     ],
 )
-def test_hand_edited_repairs_table_is_refused(tmp_path, row, message):
-    """A row that could not do what it appears to -- wrong separator, a key that is never looked up, a repair
-    that would itself fail the build -- should raise naming the file and line, not be skipped."""
-    table = tmp_path / "repairs.tsv"
-    table.write_text(row + "\n")
-    with pytest.raises(ValueError, match=rf"repairs\.tsv:1.*{message}"):
+def test_hand_edited_repairs_table_is_refused(tmp_path, text, message):
+    """An entry that could not do what it appears to -- the wrong shape, a key that is never looked up, a
+    repair that would itself fail the build -- should raise naming the file, not be skipped."""
+    table = tmp_path / "repairs.yaml"
+    table.write_text(text)
+    with pytest.raises(ValueError, match=rf"repairs\.yaml.*{message}"):
         publications.load_doi_repairs(str(table))
 
 
@@ -308,8 +326,8 @@ def test_malformed_doi_carried_twice_is_repaired_or_skipped_once(tmp_path):
     """A record carrying the same malformed DOI twice -- exactly, or in two cases -- should have it repaired
     (or skipped) once, in the spelling that comes first, so neither count is inflated. No record of 2026nov08
     does this, so the record is made up: it pins what the reader does, not a shape seen in the export."""
-    table = tmp_path / "repairs.tsv"
-    table.write_text("doi:10.1/A B\tdoi:10.1/AB\n")
+    table = tmp_path / "repairs.yaml"
+    table.write_text('"doi:10.1/A B": [doi:10.1/AB]\n')
     shard = tmp_path / "pubmed_metadata_0.ndjson.gz"
     record = {
         "id": "PMID:1",

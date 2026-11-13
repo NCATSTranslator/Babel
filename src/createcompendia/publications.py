@@ -35,6 +35,8 @@ import zlib
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
+import yaml
+
 from src.babel_utils import TypedClique, pull_via_wget, write_compendium
 from src.categories import JOURNAL_ARTICLE, PUBLICATION
 from src.metadata.provenance import write_concord_metadata
@@ -72,8 +74,11 @@ EXPORT_METADATA = "metadata.json"
 # unregistered for biolink:Publication.
 PUBMED2DB_DATA_MODEL_MAJOR = 1
 
-# The malformed DOIs Babel repairs, and what each is repaired to: `malformed doi CURIE<TAB>repaired doi CURIE`,
-# one row per repaired DOI (a value holding two DOIs has two rows), with `#` comments.
+# The malformed DOIs Babel repairs, and what each is repaired to: a YAML mapping of each malformed doi CURIE to
+# the list of doi CURIEs it is repaired to (two for a value holding two DOIs), with `#` comments. YAML, not
+# TSV, because a malformed DOI can hold any character: a tab, a newline or a DEL (2026nov08 has
+# `doi:10.6002/ect.mesot2016.p112` + DEL, PMID:28260475) is written as a visible escape such as "\x7F",
+# where a TSV would hold it invisibly or couldn't hold it at all.
 #
 # PubMed publishes ArticleId[@IdType='doi'] as the publisher supplied it, so several hundred DOIs in an export
 # contain a space or stray text (`doi:10.1126/science. 1134405`), and write_compendium() fails the build on
@@ -97,7 +102,7 @@ PUBMED2DB_DATA_MODEL_MAJOR = 1
 # Two consumers resolve this file: the build, where the PubMed rules declare it as an input (so regenerating
 # it re-runs them) and pass the path in, and the scripts under docs/sources/PubMed/, which take this default.
 # Absolute, because those scripts can be run from any directory.
-PUBMED_DOI_REPAIRS = str(get_repo_root() / "input_data/pubmed_doi_repairs.tsv")
+PUBMED_DOI_REPAIRS = str(get_repo_root() / "input_data/pubmed_doi_repairs.yaml")
 
 # How much of a shard to hash at a time (shards are ~2 GB, so they are never read whole).
 HASH_CHUNK_BYTES = 8 * 1024 * 1024
@@ -325,32 +330,30 @@ def load_doi_repairs(doi_repairs_file):
     The DOI repairs table (see ``PUBMED_DOI_REPAIRS``) as ``{malformed doi CURIE: (repaired doi CURIE, ...)}``.
 
     Cached per path, so each of ``parse_pubmed2db_into_tsvs()``'s worker processes reads it once. Raises on a
-    row that isn't two tab-separated fields, a repair that is itself malformed, or a "malformed" DOI that
-    isn't well-formed or isn't a DOI (a PMCID turned into a DOI would be a different identifier, not a
-    repair): any of those means the table was edited by hand, and a repair that silently does nothing (or
-    writes a CURIE that fails the build an hour later) is worse than stopping here.
+    table that isn't a mapping of strings to non-empty lists, a repair that is itself malformed, or a
+    "malformed" DOI that isn't malformed or isn't a DOI (a PMCID turned into a DOI would be a different
+    identifier, not a repair): any of those means the table was edited by hand, and a repair that silently
+    does nothing (or writes a CURIE that fails the build an hour later) is worse than stopping here.
     """
+    with open(doi_repairs_file, encoding="utf-8") as f:
+        # An empty table (comments only) loads as None.
+        table = yaml.safe_load(f) or {}
+    if not isinstance(table, dict):
+        raise ValueError(f"{doi_repairs_file} is not a mapping of malformed DOIs to their repairs.")
     repairs = {}
-    with open(doi_repairs_file) as f:
-        for line_number, line in enumerate(f, start=1):
-            line = line.rstrip("\n")
-            if not line or line.startswith("#"):
-                continue
-            fields = line.split("\t")
-            where = f"{doi_repairs_file}:{line_number}"
-            if len(fields) != 2:
-                raise ValueError(f"{where} has {len(fields)} tab-separated fields, not 2: {line!r}")
-            malformed, repaired = fields
-            if not curie_format_problem(malformed):
-                raise ValueError(f"{where}: {malformed!r} is not malformed, so it would never be looked up.")
-            if Text.get_prefix_or_none(malformed) != DOI.upper():
-                raise ValueError(f"{where}: {malformed!r} is not a {DOI}: CURIE, and only DOIs are repaired.")
-            if curie_format_problem(repaired) or Text.get_prefix_or_none(repaired) != DOI.upper():
-                raise ValueError(f"{where}: the repair {repaired!r} is not a well-formed {DOI}: CURIE.")
-            repairs.setdefault(malformed, [])
-            if repaired not in repairs[malformed]:
-                repairs[malformed].append(repaired)
-    return {malformed: tuple(repaired) for malformed, repaired in repairs.items()}
+    for malformed, repaired in table.items():
+        where = f"{doi_repairs_file}: {malformed!r}"
+        if not isinstance(malformed, str) or not isinstance(repaired, list) or not repaired:
+            raise ValueError(f"{where} is not mapped to a non-empty list of repairs: {repaired!r}")
+        if not curie_format_problem(malformed):
+            raise ValueError(f"{where} is not malformed, so it would never be looked up.")
+        if Text.get_prefix_or_none(malformed) != DOI.upper():
+            raise ValueError(f"{where} is not a {DOI}: CURIE, and only DOIs are repaired.")
+        for doi in repaired:
+            if not isinstance(doi, str) or curie_format_problem(doi) or Text.get_prefix_or_none(doi) != DOI.upper():
+                raise ValueError(f"{where}: the repair {doi!r} is not a well-formed {DOI}: CURIE.")
+        repairs[malformed] = tuple(dict.fromkeys(repaired))
+    return repairs
 
 
 def _read_shard(shard_path, doi_repairs=None, repairs_made=None):

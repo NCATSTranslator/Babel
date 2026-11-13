@@ -6,7 +6,7 @@ count in its validation report; the test then asserts over the real output that:
 
 - every row of titles.tsv has exactly two fields, which is what ``escape_tsv_field()`` is for;
 - no identifier in the concords is one ``write_compendium()`` would fail the build on, i.e. every malformed
-  DOI in the export was either repaired from ``input_data/pubmed_doi_repairs.tsv`` or skipped;
+  DOI in the export was either repaired from ``input_data/pubmed_doi_repairs.yaml`` or skipped;
 - the numbers repaired and skipped are the ones docs/sources/PubMed/dois/counts.json records, so the repairs
   table and the committed characterization describe the export that is pinned. When this fails after moving
   ``pubmed2db_version``, re-run docs/sources/PubMed/dois/characterize_dois.py;

@@ -51,7 +51,7 @@ the hip``, PMID:10755418, comes back as two other JBJS articles).
 
 Outputs:
 
-- ``input_data/pubmed_doi_repairs.tsv`` -- the table the build reads (``PUBMED_DOI_REPAIRS`` in
+- ``input_data/pubmed_doi_repairs.yaml`` -- the table the build reads (``PUBMED_DOI_REPAIRS`` in
   ``src/createcompendia/publications.py``). Only written when doi.org answered for every candidate and
   Crossref for every repair.
 - ``counts.json`` (beside this script) -- per shape: how many, how many are repaired or vetoed by Crossref,
@@ -89,6 +89,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 import requests
+import yaml
 
 from src.createcompendia.publications import (
     PUBMED_DOI_REPAIRS,
@@ -471,18 +472,24 @@ def main():
         print(f"Crossref gave no answer for {len(crossref_unanswered)} repairs, e.g. {crossref_unanswered[:5]}.")
         print(f"NOT writing {PUBMED_DOI_REPAIRS}: it would be missing their repairs.")
     else:
-        with open(PUBMED_DOI_REPAIRS, "w") as f:
+        with open(PUBMED_DOI_REPAIRS, "w", encoding="utf-8") as f:
             f.write(
-                "# Malformed PubMed DOIs and the registered DOI each is repaired to. GENERATED: do not edit.\n"
+                "# Malformed PubMed DOIs and the registered DOIs each is repaired to. GENERATED: do not edit.\n"
                 "# Regenerate with docs/sources/PubMed/dois/characterize_dois.py; see PUBMED_DOI_REPAIRS in\n"
                 "# src/createcompendia/publications.py for what belongs here and why it is a table.\n"
                 f"# From pubmed2db export {config['pubmed2db_version']}; checked against doi.org and Crossref on "
                 f"{date.today().isoformat()}.\n"
-                "# malformed doi CURIE<TAB>repaired doi CURIE\n"
+                "# malformed doi CURIE: [repaired doi CURIEs]. A character that can't be printed is a YAML escape.\n"
             )
-            for curie in sorted(repairs):
-                for repaired in repairs[curie]:
-                    f.write(f"{curie}\t{repaired}\n")
+            # Sorted, one entry per line however long (PyYAML folds at 80 columns by default), so it diffs well.
+            yaml.safe_dump(
+                {curie: repairs[curie] for curie in sorted(repairs)},
+                f,
+                allow_unicode=True,
+                default_flow_style=False,
+                sort_keys=True,
+                width=float("inf"),
+            )
         # The build must do exactly what this script decided, so read the table back the way the build does.
         load_doi_repairs.cache_clear()
         written = load_doi_repairs(PUBMED_DOI_REPAIRS)
