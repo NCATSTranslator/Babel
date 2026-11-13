@@ -106,8 +106,9 @@ Follow `docs/sources/PubMed/README.md`, "Pinning an export", in this order:
    `uv run python docs/sources/PubMed/dois/characterize_dois.py`. Commit
    `input_data/pubmed_doi_repairs.tsv`, `counts.json` and `malformed_dois.csv` together. Compare the
    new counts with the old ones: a shape whose count jumps, or whose repair rate falls, is worth a
-   look before the build trusts the table. If doi.org didn't answer for every candidate, the script
-   refuses to write the table; re-run it.
+   look before the build trusts the table. If doi.org or Crossref didn't answer for every lookup,
+   the script refuses to write the table; re-run it. Read any "Crossref veto" line it prints: the
+   title test that vetoes a repair has been tuned on one export only.
 7. `uv run pytest tests/pipeline/test_publications.py --pipeline --network --no-cov` parses the
    whole export (a few minutes), and fails if the repaired and skipped counts differ from
    `counts.json` or if a repair would take a DOI from another PMID.
