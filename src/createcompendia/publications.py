@@ -302,7 +302,8 @@ def load_doi_repairs(doi_repairs_file):
 
     Cached per path, so each of ``parse_pubmed2db_into_tsvs()``'s worker processes reads it once. Raises on a
     row that isn't two tab-separated fields, a repair that is itself malformed, or a "malformed" DOI that
-    isn't: any of those means the table was edited by hand, and a repair that silently does nothing (or
+    isn't well-formed or isn't a DOI (a PMCID turned into a DOI would be a different identifier, not a
+    repair): any of those means the table was edited by hand, and a repair that silently does nothing (or
     writes a CURIE that fails the build an hour later) is worse than stopping here.
     """
     repairs = {}
@@ -318,6 +319,8 @@ def load_doi_repairs(doi_repairs_file):
             malformed, repaired = fields
             if not curie_format_problem(malformed):
                 raise ValueError(f"{where}: {malformed!r} is not malformed, so it would never be looked up.")
+            if Text.get_prefix_or_none(malformed) != DOI.upper():
+                raise ValueError(f"{where}: {malformed!r} is not a {DOI}: CURIE, and only DOIs are repaired.")
             if curie_format_problem(repaired) or Text.get_prefix_or_none(repaired) != DOI.upper():
                 raise ValueError(f"{where}: the repair {repaired!r} is not a well-formed {DOI}: CURIE.")
             repairs.setdefault(malformed, [])

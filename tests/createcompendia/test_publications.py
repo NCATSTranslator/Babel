@@ -284,6 +284,7 @@ def test_repairs_table_collects_every_repair_of_a_value(tmp_path):
         pytest.param("doi:10.1/a b doi:10.1/ab", "tab-separated fields", id="space-instead-of-tab"),
         pytest.param("doi:10.1/a b\tdoi:10.1/ab\textra", "tab-separated fields", id="three-fields"),
         pytest.param("doi:10.1/ab\tdoi:10.1/ab", "is not malformed", id="key-is-well-formed"),
+        pytest.param("PMC:PMC 1\tdoi:10.1/a", "is not a doi: CURIE", id="key-is-not-a-doi"),
         pytest.param("doi:10.1/a b\tdoi:10.1/a b", "not a well-formed doi", id="repair-still-malformed"),
         pytest.param("doi:10.1/a b\tPMC:PMC1", "not a well-formed doi", id="repair-is-not-a-doi"),
     ],
