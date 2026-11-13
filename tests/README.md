@@ -156,6 +156,10 @@ pipeline tests run in a single worker while unit/slow/network tests still parall
   `bmt.Toolkit`, which fetches `biolink-model.yaml` and `predicate_mapping.yaml`
   from GitHub on first use.
 
+- **`test_config.py`** (`unit`) — Checks on `config.yaml` as a whole: every top-level key is
+  looked up somewhere in the code, so dead settings get deleted rather than left to look
+  changeable.
+
 ### Data Handlers
 
 All datahandler unit tests share helpers from `tests/datahandlers/conftest.py`:

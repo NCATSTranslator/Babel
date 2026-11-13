@@ -63,9 +63,6 @@ output_directory: babel_outputs
 # environment variable; see slurm/README.md ("Temporary Scratch Space") for the trade-offs.
 tmp_directory: babel_downloads/tmp
 
-# HTTP settings.
-http: {}
-
 # SPARQL query settings.
 sparql:
   # Total number of attempts (initial try + retries) before giving up; must be >= 1.
@@ -148,9 +145,6 @@ ncbi_files:
   - mim2gene_medgen
 
 generate_dirs_for_labels_and_synonyms_prefixes: [GO, CL, NCIT, UBERON, EMAPA, CHEBI, HP, MP, MONDO, PR]
-
-# TODO: This doesn't appear to be used anywhere -- but it might be neat to use this list to make sure we got all of them.
-ubergraph_ontologies: [UBERON, CL, EMAPA, GO, NCIT, ECO, ECTO, ENVO, HP, MP, UPHENO, BFO, BSPO, CARO, CHEBI, CP, GOREL, IAO, MAXO, MONDO, PATO, PR, RO, UBPROP]
 
 mods: [WormBase, FB, MGI, ZFIN, RGD, SGD]
 
