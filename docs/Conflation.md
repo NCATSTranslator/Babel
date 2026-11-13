@@ -41,10 +41,14 @@ standard InChI is `C17H18F3NO.ClH`), so its InChIKey shares nothing with its par
 key is instead the parent key of the single component left after dropping counterions and solvents.
 This is rule 3 of #1173.
 
-- `rule chemicalparent_inchi_components` splits every multi-component InChI in PubChem's
-  `CID-InChI-Key.gz` into components with RDKit. RDKit's InChI parser never returns on a few
-  structures, so each chunk of work runs under a timeout that kills its worker. InChIs that time
-  out, or that RDKit can't split, are counted in the rule's metadata and keep their own keys.
+- `rule chemicalparent_inchi_components` splits every multi-component InChI into components with
+  RDKit. The InChIs come from UniChem's `structure.tsv.gz` and GtoPdb's `ligands.tsv`, the two files
+  clique InChIKeys come from, so every clique key's InChI is present and from the same release.
+  (PubChem's `CID-InChI-Key.gz` lacked 1.6% of 2025dec11's clique keys.) SMILES aren't used: the
+  InChI is the exact string a clique's key hashes, while a source's SMILES may describe a different
+  tautomer or charge. RDKit's InChI parser never returns on a few structures, so each chunk of work
+  runs under a timeout that kills its worker. InChIs that time out, or that RDKit can't split, are
+  counted in the rule's metadata and keep their own keys.
 - [`input_data/chemical_parent_components.tsv`](../input_data/chemical_parent_components.tsv) is the
   reviewed list of components, each marked `drop` (a counterion or solvent) or `keep`. Anything not
   on the list is kept. Metal centres are `keep`: standard InChI disconnects metals, so cobalamin's

@@ -26,12 +26,13 @@ every multi-component InChI and the result is reused.
 
 import csv
 import gzip
-from itertools import groupby
+from itertools import chain, groupby
 
 from more_itertools import chunked
 from pebble import ProcessPool
 
 from src.createcompendia.chemicalparent import INCHIKEY_PATTERN
+from src.datahandlers.unichem import UNICHEM_STRUCT_TSV_HEADER
 from src.util import ensure_parent_dir, get_logger
 
 logger = get_logger(__name__)
@@ -123,25 +124,59 @@ def _split_lines(lines):
     return rows, failures
 
 
-def _multi_component_chunks(pubchem_inchi_gz):
-    """Yield lists of (InChIKey, InChI) for the multi-component InChIs in PubChem's CID-InChI-Key.gz.
+def read_unichem_inchis(structure_gz):
+    """Yield (InChIKey, InChI) for every row of UniChem's ``structure.tsv.gz``.
 
-    An InChIKey PubChem gives to several CIDs appears once per CID; readers of the components file deduplicate,
-    which is cheaper than holding a set of every key here.
+    This is the file write_unichem_concords() takes nearly every clique's ``INCHIKEY:`` from, so each such key's
+    InChI is here, from the same release. The header is checked as read_inchikeys() checks it.
     """
-    chunk = []
-    with gzip.open(pubchem_inchi_gz, "rt") as inf:
+    with gzip.open(structure_gz, "rt") as inf:
+        header = inf.readline()
+        if header != UNICHEM_STRUCT_TSV_HEADER:
+            raise ValueError(f"{structure_gz}: unexpected header {header!r}, expected {UNICHEM_STRUCT_TSV_HEADER!r}")
         for line in inf:
             fields = line.rstrip("\n").split("\t")
             if len(fields) != 3:
-                raise ValueError(f"{pubchem_inchi_gz}: expected CID, InChI, InChIKey; got {line!r}")
+                raise ValueError(f"{structure_gz}: expected UCI, InChI, InChIKey; got {line!r}")
             _, inchi, inchikey = fields
-            if not is_multi_component(inchi):
-                continue
-            chunk.append((inchikey, inchi))
-            if len(chunk) >= CHUNK_LINES:
-                yield chunk
-                chunk = []
+            yield inchikey, inchi
+
+
+def read_gtopdb_inchis(ligands_tsv):
+    """Yield (InChIKey, InChI) for every ligand in GtoPdb's ``ligands.tsv`` that has both.
+
+    make_gtopdb_relations() adds GtoPdb's InChIKeys to cliques directly (some aren't in UniChem), so their InChIs
+    come from the same file. Values are double-quoted; an optional ``# GtoPdb Version`` line precedes the header.
+    """
+    with open(ligands_tsv) as inf:
+        header = inf.readline()
+        if header.startswith('"# GtoPdb Version'):
+            header = inf.readline()
+        columns = header.rstrip("\n").split("\t")
+        key_index = columns.index('"InChIKey"')
+        inchi_index = columns.index('"InChI"')
+        for line in inf:
+            fields = line.rstrip("\n").split("\t")
+            inchikey = fields[key_index].strip('"')
+            inchi = fields[inchi_index].strip('"')
+            if inchikey and inchi:
+                yield inchikey, inchi
+
+
+def _multi_component_chunks(inchi_pairs):
+    """Batch the multi-component (InChIKey, InChI) pairs into lists of CHUNK_LINES.
+
+    A key both sources give appears twice; readers of the components file deduplicate, which is cheaper than holding
+    a set of every key here.
+    """
+    chunk = []
+    for inchikey, inchi in inchi_pairs:
+        if not is_multi_component(inchi):
+            continue
+        chunk.append((inchikey, inchi))
+        if len(chunk) >= CHUNK_LINES:
+            yield chunk
+            chunk = []
     if chunk:
         yield chunk
 
@@ -168,13 +203,20 @@ def _split_one_at_a_time(pool, lines, item_timeout):
 
 
 def write_inchi_components(
-    pubchem_inchi_gz,
+    unichem_structure_gz,
+    gtopdb_ligands_tsv,
     outfile,
     processes,
     chunk_timeout=CHUNK_TIMEOUT_SECONDS,
     item_timeout=ITEM_TIMEOUT_SECONDS,
 ):
-    """Write the components of every multi-component InChI in PubChem's ``CID-InChI-Key.gz`` to a TSV.
+    """Write the components of every multi-component InChI in UniChem's ``structure.tsv.gz`` and GtoPdb's
+    ``ligands.tsv`` to a TSV.
+
+    Those are the two files clique InChIKeys come from (write_unichem_concords(), make_gtopdb_relations()), so
+    every clique key has its InChI here, from the same release. PubChem's ``CID-InChI-Key.gz`` was tried first and
+    lacked 1.6% of 2025dec11's clique keys, including 71,288 ChEMBL cliques. SMILES aren't used: the InChI is the
+    exact string a clique's key hashes, while a source's SMILES may describe a different tautomer or charge.
 
     Columns are COMPONENTS_TSV_HEADER. An InChI RDKit can't split, or that takes longer than ``item_timeout`` seconds,
     is counted and left out, and a sample is logged; its record keeps its own key. Returns counts for the rule's
@@ -197,7 +239,8 @@ def write_inchi_components(
     with open(outfile, "w", newline="") as outf, ProcessPool(max_workers=processes) as pool:
         writer = csv.writer(outf, delimiter="\t", lineterminator="\n")
         writer.writerow(COMPONENTS_TSV_HEADER)
-        for batch in chunked(_multi_component_chunks(pubchem_inchi_gz), processes * CHUNKS_IN_FLIGHT_PER_PROCESS):
+        inchis = chain(read_unichem_inchis(unichem_structure_gz), read_gtopdb_inchis(gtopdb_ligands_tsv))
+        for batch in chunked(_multi_component_chunks(inchis), processes * CHUNKS_IN_FLIGHT_PER_PROCESS):
             futures = [(lines, pool.schedule(_split_lines, args=[lines], timeout=chunk_timeout)) for lines in batch]
             for lines, future in futures:
                 try:
@@ -266,11 +309,11 @@ def write_salt_parents(components_tsv, decisions_tsv, outfile):
     """Write ``salt parent key -> parent key`` for every multi-component record the reviewed list resolves.
 
     The salt is keyed by its own parent key (its InChIKey without the protonation block), so every charge state of
-    the salt follows the mapping even when PubChem has a multi-component InChI for only one of them; a component's
+    the salt follows the mapping even when only one of them has a multi-component InChI in the sources; a component's
     parent key doesn't depend on which component carries the protons, so all of them resolve alike.
 
     Streams the components file one record at a time (write_inchi_components() writes a record's components on
-    consecutive rows), so memory stays flat. Records are counted, and written, once per PubChem record (charge
+    consecutive rows), so memory stays flat. Records are counted, and written, once per source record (charge
     state and CID); chemicalparent.load_salt_parents() checks repeats agree. Returns counts for the rule's metadata.
     """
     from src.createcompendia.chemicalparent import SALT_PARENTS_TSV_HEADER

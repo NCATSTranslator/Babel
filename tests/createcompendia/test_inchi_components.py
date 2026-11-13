@@ -6,9 +6,15 @@ Every InChI below is copied verbatim from PubChem's CID-InChI-Key.gz (downloaded
 expected component keys were checked against PubChem's own records for the parents: guanidine (CID 3520,
 ZRALSGWEFCBTJO-UHFFFAOYSA-N), pethidine (CID 4058, XADCESSVHJOZHK-UHFFFAOYSA-N) and hydrogen chloride (CID 313,
 VEXZGXHMUGYJMC-UHFFFAOYSA-N).
+
+write_inchi_components() reads UniChem's structure.tsv.gz and GtoPdb's ligands.tsv. The readers are tested on rows
+copied verbatim from those files (tests/data/chemicalparent/unichem-structure-excerpt.tsv: UCIs 33232698 and
+148957031; gtopdb-ligands-excerpt.tsv: ligands 1729 and 8461, GtoPdb 2026.3.1). Tests of what happens after
+reading put the PubChem InChIs above into UniChem's three-column layout with write_unichem().
 """
 
 import gzip
+from pathlib import Path
 
 import pytest
 
@@ -17,6 +23,8 @@ from src.createcompendia.inchi_components import (
     is_multi_component,
     parent_key,
     read_component_decisions,
+    read_gtopdb_inchis,
+    read_unichem_inchis,
     resolve_parent,
     split_inchi,
     write_inchi_components,
@@ -44,6 +52,35 @@ HCL_PARENT = "VEXZGXHMUGYJMC-UHFFFAOYSA"
 WATER_PARENT = "XLYOFNOQVPJJNP-UHFFFAOYSA"
 SODIUM_ION_PARENT = "FKNQFGJONOIPTF-UHFFFAOYSA"
 LITHIUM_ION_PARENT = "HBBGRARXTFLTSG-UHFFFAOYSA"
+
+
+DATA = Path(__file__).parent.parent / "data" / "chemicalparent"
+UNICHEM_EXCERPT = DATA / "unichem-structure-excerpt.tsv"
+GTOPDB_EXCERPT = DATA / "gtopdb-ligands-excerpt.tsv"
+
+
+def write_unichem(tmp_path, rows):
+    """Write a gzipped UniChem structure file holding the given (UCI, InChI, InChIKey) rows; return its path."""
+    path = tmp_path / "structure.tsv.gz"
+    with gzip.open(path, "wt") as f:
+        f.write("UCI\tSTANDARDINCHI\tSTANDARDINCHIKEY\n")
+        f.writelines(f"{uci}\t{inchi}\t{key}\n" for uci, inchi, key in rows)
+    return str(path)
+
+
+def gzip_unichem_excerpt(tmp_path):
+    """Gzip the verbatim UniChem excerpt, as UniChem ships it; return the path."""
+    path = tmp_path / "structure.tsv.gz"
+    with gzip.open(path, "wt") as f:
+        f.write(UNICHEM_EXCERPT.read_text())
+    return str(path)
+
+
+def write_empty_gtopdb(tmp_path):
+    """Write a GtoPdb ligands file with the excerpt's version and header lines and no ligands; return its path."""
+    path = tmp_path / "ligands.tsv"
+    path.write_text("".join(GTOPDB_EXCERPT.read_text().splitlines(keepends=True)[:2]))
+    return str(path)
 
 
 def write_decisions(path, rows):
@@ -100,31 +137,51 @@ def test_parent_key_drops_protonation_block():
 
 
 @pytest.mark.unit
-def test_write_inchi_components_from_pubchem_lines(tmp_path):
-    """Only multi-component InChIs should be written, one row per component, from PubChem's three-column file."""
-    pubchem = tmp_path / "CID-InChI-Key.gz"
-    with gzip.open(pubchem, "wt") as f:
-        f.write(f"4058\t{PETHIDINE}\tXADCESSVHJOZHK-UHFFFAOYSA-N\n")
-        f.write(f"5750\t{PETHIDINE_HCL}\tWCNLCIJMFAJCPX-UHFFFAOYSA-N\n")
+def test_read_unichem_and_gtopdb_inchis(tmp_path):
+    """Both readers should yield (InChIKey, InChI) for every row of the verbatim excerpts, unquoting GtoPdb's."""
+    unichem = list(read_unichem_inchis(gzip_unichem_excerpt(tmp_path)))
+    assert [key for key, _ in unichem] == ["DZHPOMAJVHEXQE-UHFFFAOYSA-N", "YIGYGHCZJVBIHC-UHFFFAOYSA-N"]
+    gtopdb = list(read_gtopdb_inchis(str(GTOPDB_EXCERPT)))
+    assert [key for key, _ in gtopdb] == ["MMPTYEXNPWSTOR-UHFFFAOYSA-N", "WWHGFIXWBLHHQB-UHFFFAOYSA-N"]
+    assert all(inchi.startswith("InChI=1S/") for _, inchi in unichem + gtopdb)
+
+
+@pytest.mark.unit
+def test_read_unichem_inchis_rejects_unexpected_header(tmp_path):
+    """A changed UniChem header should fail loudly, as read_inchikeys() does."""
+    path = tmp_path / "structure.tsv.gz"
+    with gzip.open(path, "wt") as f:
+        f.write("UCI\tINCHI\tINCHIKEY\n")
+    with pytest.raises(ValueError, match="unexpected header"):
+        list(read_unichem_inchis(str(path)))
+
+
+@pytest.mark.unit
+def test_write_inchi_components_from_unichem_and_gtopdb(tmp_path):
+    """Only multi-component InChIs from either source should be written, one row per distinct component."""
     out = tmp_path / "components.tsv"
-    counts = write_inchi_components(str(pubchem), str(out), processes=1)
-    rows = [line.split("\t")[:2] for line in out.read_text().splitlines()[1:]]
-    assert rows == [
-        ["WCNLCIJMFAJCPX-UHFFFAOYSA-N", "XADCESSVHJOZHK-UHFFFAOYSA-N"],
-        ["WCNLCIJMFAJCPX-UHFFFAOYSA-N", "VEXZGXHMUGYJMC-UHFFFAOYSA-N"],
+    counts = write_inchi_components(gzip_unichem_excerpt(tmp_path), str(GTOPDB_EXCERPT), str(out), processes=1)
+    keys = [line.split("\t")[0] for line in out.read_text().splitlines()[1:]]
+    # UCI 33232698 is a single component and is skipped; the three salts give two components each.
+    assert sorted(set(keys)) == [
+        "MMPTYEXNPWSTOR-UHFFFAOYSA-N",
+        "WWHGFIXWBLHHQB-UHFFFAOYSA-N",
+        "YIGYGHCZJVBIHC-UHFFFAOYSA-N",
     ]
-    assert counts == {"multi_component_inchis": 1, "component_rows": 2, "unparseable_inchis": 0, "timed_out_inchis": 0}
+    assert counts == {"multi_component_inchis": 3, "component_rows": 6, "unparseable_inchis": 0, "timed_out_inchis": 0}
 
 
 @pytest.mark.unit
 def test_hanging_inchi_times_out_without_losing_its_chunk(tmp_path):
     """The pentafoil knot hangs RDKit's parser: it should be counted as timed out, and its chunk-mates still split."""
-    pubchem = tmp_path / "CID-InChI-Key.gz"
-    with gzip.open(pubchem, "wt") as f:
-        f.write(f"53389302\t{PENTAFOIL_KNOT}\tSAXWRJNZTZOAOQ-UHFFFAOYSA-N\n")
-        f.write(f"5750\t{PETHIDINE_HCL}\tWCNLCIJMFAJCPX-UHFFFAOYSA-N\n")
+    unichem = write_unichem(
+        tmp_path,
+        [("1", PENTAFOIL_KNOT, "SAXWRJNZTZOAOQ-UHFFFAOYSA-N"), ("2", PETHIDINE_HCL, "WCNLCIJMFAJCPX-UHFFFAOYSA-N")],
+    )
     out = tmp_path / "components.tsv"
-    counts = write_inchi_components(str(pubchem), str(out), processes=1, chunk_timeout=1, item_timeout=2)
+    counts = write_inchi_components(
+        unichem, write_empty_gtopdb(tmp_path), str(out), processes=1, chunk_timeout=1, item_timeout=2
+    )
     assert {line.split("\t")[0] for line in out.read_text().splitlines()[1:]} == {"WCNLCIJMFAJCPX-UHFFFAOYSA-N"}
     assert counts["timed_out_inchis"] == 1
     assert counts["multi_component_inchis"] == 2
@@ -193,13 +250,16 @@ def test_read_component_decisions_rejects_bad_edits(tmp_path, rows):
 @pytest.mark.unit
 def test_write_salt_parents_resolves_blocks_and_counts(tmp_path):
     """Pethidine HCl should resolve, naproxen sodium stay blocked (Na+ unlisted), and LiOH have every part dropped."""
-    pubchem = tmp_path / "CID-InChI-Key.gz"
-    with gzip.open(pubchem, "wt") as f:
-        f.write(f"5750\t{PETHIDINE_HCL}\tWCNLCIJMFAJCPX-UHFFFAOYSA-N\n")
-        f.write(f"1301\t{NAPROXEN_NA}\tCDBRNDSHEYLDJV-UHFFFAOYSA-M\n")
-        f.write(f"3939\t{LITHIUM_HYDROXIDE}\tWMFOQBRAJBCJND-UHFFFAOYSA-M\n")
+    unichem = write_unichem(
+        tmp_path,
+        [
+            ("1", PETHIDINE_HCL, "WCNLCIJMFAJCPX-UHFFFAOYSA-N"),
+            ("2", NAPROXEN_NA, "CDBRNDSHEYLDJV-UHFFFAOYSA-M"),
+            ("3", LITHIUM_HYDROXIDE, "WMFOQBRAJBCJND-UHFFFAOYSA-M"),
+        ],
+    )
     components = tmp_path / "components.tsv"
-    write_inchi_components(str(pubchem), str(components), processes=1)
+    write_inchi_components(unichem, write_empty_gtopdb(tmp_path), str(components), processes=1)
     decisions = write_decisions(
         tmp_path / "list.tsv", [(HCL_PARENT, "drop"), (WATER_PARENT, "drop"), (LITHIUM_ION_PARENT, "drop")]
     )

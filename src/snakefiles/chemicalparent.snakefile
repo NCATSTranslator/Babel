@@ -12,18 +12,19 @@ localrules:
     chemicalparent,
 
 
-# Split every multi-component InChI in PubChem into its components with RDKit. Doesn't depend on any compendium,
-# so it runs alongside the compendium builds.
+# Split every multi-component InChI in UniChem and GtoPdb -- the two files clique InChIKeys come from -- into its
+# components with RDKit. Doesn't depend on any compendium, so it runs alongside the compendium builds.
 rule chemicalparent_inchi_components:
     input:
-        pubchem_inchi=config["download_directory"] + "/PUBCHEM.COMPOUND/CID-InChI-Key.gz",
+        unichem_structure=config["download_directory"] + "/UNICHEM/structure.tsv.gz",
+        gtopdb_ligands=config["download_directory"] + "/GTOPDB/ligands.tsv",
     output:
         components=config["intermediate_directory"] + "/chemicalparent/inchi_components.tsv",
         metadata_yaml=config["intermediate_directory"] + "/chemicalparent/metadata-inchi_components.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/chemicalparent_inchi_components.tsv"
-    # 11.8M multi-component InChIs at ~0.5 ms each is ~1.6 CPU-hours (2026-11-10); 16 processes keep it near ten
-    # minutes. threads and cpus_per_task must match or SLURM gives the rule one CPU (see AGENTS.md).
+    # PubChem's 11.8M multi-component InChIs took ~1.6 CPU-hours at ~0.5 ms each (2026-11-10); UniChem holds a
+    # similar number. 16 processes keep it near ten minutes. threads and cpus_per_task must match or SLURM gives the rule one CPU (see AGENTS.md).
     threads: 16
     resources:
         cpus_per_task=16,
@@ -32,14 +33,19 @@ rule chemicalparent_inchi_components:
         mem="32G",
         runtime="4h",
     run:
-        counts = inchi_components.write_inchi_components(input.pubchem_inchi, output.components, threads)
+        counts = inchi_components.write_inchi_components(
+            input.unichem_structure, input.gtopdb_ligands, output.components, threads
+        )
         write_metadata(
             output.metadata_yaml,
             typ="transform",
             name="inchi_components.write_inchi_components()",
-            description="Split each multi-component InChI in PubChem's CID-InChI-Key.gz into its components "
-            "with RDKit.",
-            sources=[{"type": "download", "name": "PubChem CID-InChI-Key", "filenames": [input.pubchem_inchi]}],
+            description="Split each multi-component InChI in UniChem's structure.tsv.gz and GtoPdb's "
+            "ligands.tsv into its components with RDKit.",
+            sources=[
+                {"type": "download", "name": "UniChem structure", "filenames": [input.unichem_structure]},
+                {"type": "download", "name": "GtoPdb ligands", "filenames": [input.gtopdb_ligands]},
+            ],
             counts=counts,
         )
 

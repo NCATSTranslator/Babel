@@ -20,8 +20,8 @@ this one.
   [`input_data/chemical_parent_components.tsv`](../../../input_data/chemical_parent_components.tsv)
   resolves the multi-component records in curated cliques. It ranks the unreviewed components that
   still block records, and writes a review sheet in the list's own columns. Its docstring has the
-  commands. The first run splits PubChem's InChIs with RDKit and caches the result; later runs take
-  a minute or two.
+  commands. The first run splits UniChem's and GtoPdb's InChIs with RDKit and caches the result;
+  later runs take a minute or two.
 - [`salt-review-2025dec11.md`](salt-review-2025dec11.md) is the report after the last review round:
   94.4% of curated multi-component records resolve, and no unreviewed component blocks more than 4.
 
