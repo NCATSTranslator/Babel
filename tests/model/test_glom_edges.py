@@ -25,7 +25,7 @@ KEY_B = "INCHIKEY:BBBBBBBBBBBBBB-UHFFFAOYSA-N"
 KEY_C = "INCHIKEY:CCCCCCCCCCCCCC-UHFFFAOYSA-N"
 
 
-def classify(root, owned_elsewhere=()):
+def classify(root, owned_elsewhere=(), bad_pairs=()):
     """Run classify_chemical_glom_edges over a fixture build; return {(base, subj, obj): verdict}."""
     con = duckdb.connect()
     types = [o.removesuffix(".txt") for o in get_config()["chemical_outputs"]]
@@ -36,6 +36,7 @@ def classify(root, owned_elsewhere=()):
         get_config()["chemical_concords"],
         UNICHEM_OVERUSED_XREF_PREFIXES,
         owned_elsewhere,
+        bad_pairs,
     )
     return {(b, s, o): v for b, s, o, v in con.sql("SELECT base, subj, obj, verdict FROM glom_edge").fetchall()}
 
@@ -152,3 +153,30 @@ def test_a_split_off_clique_with_two_parents_raises(tmp_path):
     }
     with pytest.raises(RuntimeError, match="pre-split set is ambiguous"):
         classify(write_build(tmp_path, concords, cliques))
+
+
+# BAD XREFS
+
+
+@pytest.mark.unit
+def test_a_blocked_pair_is_filtered_and_omitting_it_fails_loudly(tmp_path):
+    """A build that skipped a chemical_badxrefs pair leaves its endpoints in different cliques. Given the pair, the
+    classification should report it as filtered; without it, the crossing is unexplained and should raise."""
+    from src.model.glom_edges import FILTERED_BADXREF
+
+    concords = [
+        (unichem("PUBCHEM.COMPOUND"), "PUBCHEM.COMPOUND:1", KEY_A),
+        (concord("DrugCentral"), "DrugCentral:1", "PUBCHEM.COMPOUND:1"),
+        (concord("DrugCentral"), "DrugCentral:1", "DRUGBANK:DB1"),
+    ]
+    cliques = {
+        "PUBCHEM.COMPOUND:1": ("SmallMolecule", ["PUBCHEM.COMPOUND:1", KEY_A]),
+        "DrugCentral:1": ("ChemicalEntity", ["DrugCentral:1", "DRUGBANK:DB1"]),
+    }
+    root = write_build(tmp_path, concords, cliques)
+
+    verdicts = classify(root, bad_pairs={("PUBCHEM.COMPOUND:1", "DrugCentral:1")})
+    assert verdicts[("DrugCentral", "DrugCentral:1", "PUBCHEM.COMPOUND:1")] == FILTERED_BADXREF
+    assert verdicts[("DrugCentral", "DrugCentral:1", "DRUGBANK:DB1")] == APPLIED
+    with pytest.raises(RuntimeError, match="no filter or InChIKey refusal"):
+        classify(root)

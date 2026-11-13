@@ -12,8 +12,8 @@ Two steps outside ``glom()`` have to be modelled for that to hold:
 
 * the pre-glom filters of ``chemicals.build_untyped_compendia()`` and ``chemicals.combine_unichem()``:
   ``remove_overused_xrefs`` (every untyped-stage concord, and the UniChem files of
-  ``chemicals.UNICHEM_OVERUSED_XREF_PREFIXES``) and, from the CUI-follows-MeSH rule onward, skipping pairs that name
-  a UMLS CUI another pipeline owns;
+  ``chemicals.UNICHEM_OVERUSED_XREF_PREFIXES``), from the CUI-follows-MeSH rule onward skipping pairs that name
+  a UMLS CUI another pipeline owns, and from ``input_data/chemical_badxrefs.txt`` onward skipping its pairs;
 * the post-glom split in ``chemicals.create_typed_sets()`` (Babel #83), which moves the ``MolecularMixture``-typed
   members of a clique whose PubChem CIDs disagree on type into a clique of their own. The split-off clique holds no
   InChIKey, while its CIDs' own UniChem keys stay with the parent, so each one is rejoined to the single keyed
@@ -40,6 +40,7 @@ logger = get_logger(__name__)
 APPLIED = "applied"
 FILTERED_OVERUSED = "filtered: overused xref"
 FILTERED_OWNED_ELSEWHERE = "filtered: CUI owned by another pipeline"
+FILTERED_BADXREF = "filtered: chemical_badxrefs"
 REFUSED_INCHIKEY = "refused: InChIKey guard"
 ENDPOINT_ABSENT = "endpoint absent from chemical outputs"
 ENDPOINT_AMBIGUOUS = "endpoint in more than one chemical clique"
@@ -61,6 +62,7 @@ def classify_chemical_glom_edges(
     chemical_concords: list[str],
     unichem_overused_prefixes: Iterable[str],
     owned_elsewhere: Iterable[str] = (),
+    bad_pairs: Iterable[tuple[str, str]] = (),
 ) -> None:
     """Create table ``glom_edge`` in ``con``: one row per chemical concord edge with its verdict and pre-split sets.
 
@@ -72,6 +74,9 @@ def classify_chemical_glom_edges(
     :param unichem_overused_prefixes: ``chemicals.UNICHEM_OVERUSED_XREF_PREFIXES``.
     :param owned_elsewhere: UMLS CUIs the chemical compendium skips because another pipeline owns them
         (``umls.read_cuis_owned_elsewhere(mesh_ownership, "chemicals")``); empty for builds before that rule.
+    :param bad_pairs: The build's ``read_badxrefs(chemicals.CHEMICAL_BAD_XREFS)`` pairs, matched in either direction;
+        empty for builds made before the file existed. Passing them for a build that did not apply them relabels
+        edges it applied, so only pass what the build used.
 
     Columns of ``glom_edge``: ``base`` (concord file name), ``is_unichem``, ``subj``, ``obj``, ``s_set``/``o_set``
     (hashed pre-split set of each endpoint, NULL if absent), ``verdict``.
@@ -91,6 +96,10 @@ def classify_chemical_glom_edges(
     owned = sorted(set(owned_elsewhere))
     if owned:
         con.executemany("INSERT INTO owned_elsewhere VALUES (?)", [(c,) for c in owned])
+    con.sql("CREATE OR REPLACE TEMP TABLE bad_pair (a VARCHAR, b VARCHAR)")
+    bad = sorted({p for s, o in bad_pairs for p in ((s, o), (o, s))})
+    if bad:
+        con.executemany("INSERT INTO bad_pair VALUES (?, ?)", bad)
 
     untyped = _sql_list(chemical_concords)
     overused_unichem = _sql_list(f"UNICHEM_{p}" for p in unichem_overused_prefixes)
@@ -103,16 +112,18 @@ def classify_chemical_glom_edges(
             WHERE filename LIKE '%/chemicals/concords/%'
         ), fed AS (
             SELECT *, (subj IN (SELECT curie FROM owned_elsewhere) OR obj IN (SELECT curie FROM owned_elsewhere))
-                      AS owned_elsewhere
+                      AS owned_elsewhere,
+                   NOT is_unichem AND (subj, obj) IN (SELECT (a, b) FROM bad_pair) AS badxref
             FROM raw
             WHERE is_unichem OR list_contains({untyped}, base)
         )
-        SELECT base, is_unichem, subj, obj, owned_elsewhere,
+        SELECT base, is_unichem, subj, obj, owned_elsewhere, badxref,
                -- remove_overused_xrefs(): drop every row whose object appears in 2+ rows of the same file. The
-               -- build counts after skipping owned-elsewhere pairs, so they are left out of the count here too.
-               NOT owned_elsewhere
+               -- build counts after skipping owned-elsewhere and bad-xref pairs, so they are left out here too.
+               NOT owned_elsewhere AND NOT badxref
                  AND (NOT is_unichem OR list_contains({overused_unichem}, base))
-                 AND count(*) FILTER (WHERE NOT owned_elsewhere) OVER (PARTITION BY base, obj) >= 2 AS overused
+                 AND count(*) FILTER (WHERE NOT owned_elsewhere AND NOT badxref) OVER (PARTITION BY base, obj) >= 2
+                 AS overused
         FROM fed
     """)
     unknown_files = con.sql(f"""
@@ -169,6 +180,7 @@ def classify_chemical_glom_edges(
           CASE
             WHEN ambiguous THEN '{ENDPOINT_AMBIGUOUS}'
             WHEN owned_elsewhere THEN '{FILTERED_OWNED_ELSEWHERE}'
+            WHEN badxref THEN '{FILTERED_BADXREF}'
             WHEN s_set IS NULL OR o_set IS NULL THEN '{ENDPOINT_ABSENT}'
             WHEN overused THEN '{FILTERED_OVERUSED}'
             WHEN s_set = o_set THEN '{APPLIED}'

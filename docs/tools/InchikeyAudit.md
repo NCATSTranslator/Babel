@@ -77,6 +77,10 @@ DrugCentral record→key links, so those records only look structure-less.
   and is logged.
 - **`--mesh-ownership`:** `intermediate/umls/mesh_ownership.tsv`, for builds after the
   CUI-follows-MeSH rule. Leave it out for 2026jul22 and earlier.
+- **`--badxrefs`:** `input_data/chemical_badxrefs.txt` as the build applied it, for builds made
+  after that file existed. Leave it out for 2026jul22 and earlier. Like `--mesh-ownership` it has
+  no default: a filter the build did not apply would relabel edges it did apply and hide them,
+  while a missing filter the build did apply fails loudly as unexplained edges.
 
 ## Output
 
@@ -101,3 +105,17 @@ All files are under `--out`, tab-separated.
   not a component.
 - **Thresholds.** `TIER_A_MIN_SOURCES`, `NAME_AGREEMENT_MIN` and the heavy-atom cut-offs were set by
   reading every tier A component of 2026jul22. They are documented at their definitions.
+
+## Acting on the results
+
+Components reviewed as wrong go to `input_data/chemical_badxrefs.txt`, which
+`build_untyped_compendia()` drops before `glom()`. List every boundary edge of the component, so
+it separates cleanly, and state the category and reason in a comment. Before adding an entry,
+check the component's guard-refused edges (`refused_edges.tsv`): once the component has no key,
+those xrefs are accepted, and they decide which clique it joins next.
+
+The first 55 components were reviewed from 2026jul22's tier A, as 75 pairs. 56 more were kept,
+mostly polymers and mixtures whose core is PubChem's own representation of that substance
+(heparin, sevelamer, polysorbate 80). Some errors start upstream and cannot be blocked from here:
+`CHEBI:193860` and `HMDB:HMDB0029845` carry Tiron's structure under the name "Chymopapain", and
+ChEBI's own PEG record sits with ethylene glycol.

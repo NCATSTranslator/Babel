@@ -14,7 +14,10 @@ Invocation::
 ``duckdb/parquet/filename=<Type>/Edge.parquet``, which are scanned in full, so keep them local.
 ``--lookup-build`` (default: ``--build``) supplies ``Node.parquet`` labels and ``Identifier.parquet`` types, which
 are only filtered, so a remote build URL works. Pass ``--mesh-ownership`` (``intermediate/umls/mesh_ownership.tsv``)
-for builds made after the CUI-follows-MeSH rule; leave it out for 2026jul22 and earlier.
+for builds made after the CUI-follows-MeSH rule, and ``--badxrefs`` (``input_data/chemical_badxrefs.txt`` as the
+build used it) for builds made after that file existed; leave both out for 2026jul22 and earlier. Neither has a
+default: passing a filter the build did not apply would relabel edges it did apply and hide them from the audit,
+while leaving out one it did apply fails loudly as unexplained edges.
 
 Writes, under ``--out``:
 
@@ -31,6 +34,7 @@ import sys
 
 import duckdb
 
+from src.babel_utils import read_badxrefs
 from src.createcompendia.chemicals import UNICHEM_OVERUSED_XREF_PREFIXES
 from src.datahandlers.umls import read_cuis_owned_elsewhere
 from src.model.glom_edges import classify_chemical_glom_edges
@@ -50,6 +54,7 @@ def main(argv=None):
         help="UniChem structure.tsv.gz, for the core structures' InChIs (default: the pipeline's download).",
     )
     parser.add_argument("--mesh-ownership", help="intermediate/umls/mesh_ownership.tsv, for builds that applied it.")
+    parser.add_argument("--badxrefs", help="input_data/chemical_badxrefs.txt as applied by the build, if it was.")
     parser.add_argument("--out", required=True, help="Output directory.")
     parser.add_argument("--work-dir", help="Scratch directory for DuckDB and intermediates (default: <out>/work).")
     parser.add_argument("--memory-limit", default="18GB", help="DuckDB memory limit (default: 18GB).")
@@ -83,6 +88,7 @@ def main(argv=None):
         config["chemical_concords"],
         UNICHEM_OVERUSED_XREF_PREFIXES,
         owned,
+        read_badxrefs(args.badxrefs) if args.badxrefs else (),
     )
     audit_chemical_inchikeys(
         con, str(work), edge_parquets, node_parquets, f"{lookup}/duckdb/Identifier.parquet", args.structure_file
