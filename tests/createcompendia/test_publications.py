@@ -297,6 +297,30 @@ def test_hand_edited_repairs_table_is_refused(tmp_path, row, message):
         publications.load_doi_repairs(str(table))
 
 
+def test_malformed_doi_carried_twice_is_repaired_or_skipped_once(tmp_path):
+    """A record carrying the same malformed DOI twice -- exactly, or in two cases -- should have it repaired
+    (or skipped) once, in the spelling that comes first, so neither count is inflated. No record of 2026nov08
+    does this, so the record is made up: it pins what the reader does, not a shape seen in the export."""
+    table = tmp_path / "repairs.tsv"
+    table.write_text("doi:10.1/A B\tdoi:10.1/AB\n")
+    shard = tmp_path / "pubmed_metadata_0.ndjson.gz"
+    record = {
+        "id": "PMID:1",
+        "identifiers": ["PMID:1", "doi:10.1/A B", "doi:10.1/X Y", "doi:10.1/a b", "doi:10.1/x y", "doi:10.1/x y"],
+        "article_title": "",
+    }
+    with gzip.open(shard, "wt") as f:
+        f.write(json.dumps(record) + "\n")
+
+    repairs_made = []
+    [(_, _, others, malformed)] = publications._read_shard(
+        str(shard), publications.load_doi_repairs(str(table)), repairs_made
+    )
+    assert others == ["doi:10.1/AB"]
+    assert malformed == ["doi:10.1/X Y"]
+    assert repairs_made == [("PMID:1", "doi:10.1/A B", ("doi:10.1/AB",))]
+
+
 def test_record_without_identifiers_raises_naming_the_shard(tmp_path):
     """A record whose `identifiers` list is empty should raise a ValueError naming its shard and PMID, not a
     bare IndexError."""

@@ -350,7 +350,8 @@ def _read_shard_records(shard_path, doi_repairs=None, repairs_made=None):
     This is the only place in the build that knows the export's record format. ``identifiers`` always starts
     with the record's own PMID, so ``identifiers[1:]`` is its DOI and PubMed Central CURIEs (``doi:`` and
     ``PMC:PMC123``; sorted and de-duplicated by pubmed2db). They are de-duplicated again by
-    ``shared_identifier_key()``, since pubmed2db compares DOIs exactly. ``title`` is ``article_title`` exactly
+    ``shared_identifier_key()``, since pubmed2db compares DOIs exactly -- before anything else, so a malformed
+    DOI carried twice is counted, and repaired or skipped, once, in the spelling that comes first. ``title`` is ``article_title`` exactly
     as exported, and is ``""`` when the record has none.
 
     PubMed publishes DOIs as supplied, including some with embedded spaces or appended text
@@ -381,17 +382,22 @@ def _read_shard_records(shard_path, doi_repairs=None, repairs_made=None):
                 malformed = []
                 keys = set()
                 for exported in identifiers[1:]:
-                    usable = [exported]
-                    if curie_format_problem(exported):
-                        usable = doi_repairs.get(exported) if doi_repairs else None
-                        if not usable:
-                            malformed.append(exported)
-                            continue
-                        if repairs_made is not None:
-                            repairs_made.append((pmid, exported, usable))
-                    for other in usable:
-                        # A DOI in two cases is one identifier, and a repair can produce a DOI the record
-                        # already carries; keep the first.
+                    # A DOI in two cases is one identifier; keep the first spelling.
+                    key = shared_identifier_key(exported)
+                    if key in keys:
+                        continue
+                    keys.add(key)
+                    if not curie_format_problem(exported):
+                        others.append(exported)
+                        continue
+                    repaired = doi_repairs.get(exported) if doi_repairs else None
+                    if not repaired:
+                        malformed.append(exported)
+                        continue
+                    if repairs_made is not None:
+                        repairs_made.append((pmid, exported, repaired))
+                    for other in repaired:
+                        # A repair can produce a DOI the record already carries; keep the first.
                         key = shared_identifier_key(other)
                         if key not in keys:
                             keys.add(key)
