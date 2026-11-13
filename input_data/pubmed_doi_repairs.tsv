@@ -1,16 +1,15 @@
 # Malformed PubMed DOIs and the registered DOI each is repaired to. GENERATED: do not edit.
 # Regenerate with docs/sources/PubMed/dois/characterize_dois.py; see PUBMED_DOI_REPAIRS in
 # src/createcompendia/publications.py for what belongs here and why it is a table.
-# From pubmed2db export 2026nov08; checked against doi.org on 2026-11-12.
+# From pubmed2db export 2026nov08; checked against doi.org and Crossref on 2026-11-13.
 # malformed doi CURIE<TAB>repaired doi CURIE
 doi:10.1001/archdermatol.2012.151a 10.1001/archdermatol.2012.151b	doi:10.1001/archdermatol.2012.151a
 doi:10.1001/archdermatol.2012.675a 10.1001/archdermatol.2012.675b	doi:10.1001/archdermatol.2012.675a
 doi:10.1001/archoto.2012.519a 10.1001/archoto.2012.519b	doi:10.1001/archoto.2012.519a
 doi:10.1001/archpediatrics.2012.189a 10.1001/archpediatrics.2012.189b	doi:10.1001/archpediatrics.2012.189a
-doi:10.1023/B: CYTO.0000039933.04391.29	doi:10.1023/B:CYTO.0000039933.04391.29
-doi:10.1023/B: CYTO.0000039935.16204.96	doi:10.1023/B:CYTO.0000039935.16204.96
 doi:10.1046/j.0960-7439 .2001.00306.x	doi:10.1046/j.0960-7439.2001.00306.x
 doi:10.1046/j.1473-2130 .2001.00006.x	doi:10.1046/j.1473-2130.2001.00006.x
+doi:10.1097/01 chi.0000205706.78818.ef	doi:10.1097/01.chi.0000205706.78818.ef
 doi:10.1097/01. coc.0000214931.01062.01	doi:10.1097/01.coc.0000214931.01062.01
 doi:10.1097/CHI.0b0 13e318179a057	doi:10.1097/CHI.0b013e318179a057
 doi:10.1101/ lm.37401	doi:10.1101/lm.37401
@@ -19,6 +18,7 @@ doi:10.1109/TUFFC .2010.1547	doi:10.1109/TUFFC.2010.1547
 doi:10.1109/TUFFC .2010.1548	doi:10.1109/TUFFC.2010.1548
 doi:10.1109/TUFFC .2010.1562	doi:10.1109/TUFFC.2010.1562
 doi:10.1109/TUFFC .2010.1563	doi:10.1109/TUFFC.2010.1563
+doi:10.1109/TUFFC 2010.1566	doi:10.1109/TUFFC.2010.1566
 doi:10.11124/JBISRIR-2016- 003277	doi:10.11124/JBISRIR-2016-003277
 doi:10.11152/mu.2013.2066.181. ffz	doi:10.11152/mu.2013.2066.181.ffz
 doi:10.1126/science. 1109070	doi:10.1126/science.1109070
@@ -98,9 +98,155 @@ doi:10.24425/ fmc.2026.158993	doi:10.24425/fmc.2026.158993
 doi:10.24425/ fmc.2026.158994	doi:10.24425/fmc.2026.158994
 doi:10.24425/ fmc.2026.158995	doi:10.24425/fmc.2026.158995
 doi:10.26442/ 00403660.2019.02.000073	doi:10.26442/00403660.2019.02.000073
+doi:10.29063/ajrh2024/v28i8s 4	doi:10.29063/ajrh2024/v28i8s.4
 doi:10.31128/ AJGP-02-22-6340	doi:10.31128/AJGP-02-22-6340
 doi:10.31128/ AJGP-03-18-4539	doi:10.31128/AJGP-03-18-4539
 doi:10.31128/ AJGP-COVID-52	doi:10.31128/AJGP-COVID-52
+doi:10.3129/can j ophthalmol.06-085	doi:10.3129/can.j.ophthalmol.06-085
+doi:10.3129/can j ophthalmol.06-086	doi:10.3129/can.j.ophthalmol.06-086
+doi:10.3129/can j ophthalmol.06-087	doi:10.3129/can.j.ophthalmol.06-087
+doi:10.3129/can j ophthalmol.06-088	doi:10.3129/can.j.ophthalmol.06-088
+doi:10.3129/can j ophthalmol.06-089	doi:10.3129/can.j.ophthalmol.06-089
+doi:10.3129/can j ophthalmol.06-090	doi:10.3129/can.j.ophthalmol.06-090
+doi:10.3129/can j ophthalmol.06-091	doi:10.3129/can.j.ophthalmol.06-091
+doi:10.3129/can j ophthalmol.06-092	doi:10.3129/can.j.ophthalmol.06-092
+doi:10.3129/can j ophthalmol.06-093	doi:10.3129/can.j.ophthalmol.06-093
+doi:10.3129/can j ophthalmol.06-094	doi:10.3129/can.j.ophthalmol.06-094
+doi:10.3129/can j ophthalmol.06-095	doi:10.3129/can.j.ophthalmol.06-095
+doi:10.3129/can j ophthalmol.06-096	doi:10.3129/can.j.ophthalmol.06-096
+doi:10.3129/can j ophthalmol.06-097	doi:10.3129/can.j.ophthalmol.06-097
+doi:10.3129/can j ophthalmol.06-098	doi:10.3129/can.j.ophthalmol.06-098
+doi:10.3129/can j ophthalmol.06-099	doi:10.3129/can.j.ophthalmol.06-099
+doi:10.3129/can j ophthalmol.06-100	doi:10.3129/can.j.ophthalmol.06-100
+doi:10.3129/can j ophthalmol.06-102	doi:10.3129/can.j.ophthalmol.06-102
+doi:10.3129/can j ophthalmol.06-103	doi:10.3129/can.j.ophthalmol.06-103
+doi:10.3129/can j ophthalmol.06-105	doi:10.3129/can.j.ophthalmol.06-105
+doi:10.3129/can j ophthalmol.06-106	doi:10.3129/can.j.ophthalmol.06-106
+doi:10.3129/can j ophthalmol.06-107	doi:10.3129/can.j.ophthalmol.06-107
+doi:10.3129/can j ophthalmol.06-108	doi:10.3129/can.j.ophthalmol.06-108
+doi:10.3129/can j ophthalmol.06-109	doi:10.3129/can.j.ophthalmol.06-109
+doi:10.3129/can j ophthalmol.06-110	doi:10.3129/can.j.ophthalmol.06-110
+doi:10.3129/can j ophthalmol.06-111	doi:10.3129/can.j.ophthalmol.06-111
+doi:10.3129/can j ophthalmol.06-112	doi:10.3129/can.j.ophthalmol.06-112
+doi:10.3129/can j ophthalmol.06-113	doi:10.3129/can.j.ophthalmol.06-113
+doi:10.3129/can j ophthalmol.06-115	doi:10.3129/can.j.ophthalmol.06-115
+doi:10.3129/can j ophthalmol.06-116	doi:10.3129/can.j.ophthalmol.06-116
+doi:10.3129/can j ophthalmol.06-117	doi:10.3129/can.j.ophthalmol.06-117
+doi:10.3129/can j ophthalmol.06-118	doi:10.3129/can.j.ophthalmol.06-118
+doi:10.3129/can j ophthalmol.06-119	doi:10.3129/can.j.ophthalmol.06-119
+doi:10.3129/can j ophthalmol.06-120	doi:10.3129/can.j.ophthalmol.06-120
+doi:10.3129/can j ophthalmol.06-121	doi:10.3129/can.j.ophthalmol.06-121
+doi:10.3129/can j ophthalmol.06-122	doi:10.3129/can.j.ophthalmol.06-122
+doi:10.3129/can j ophthalmol.06-123	doi:10.3129/can.j.ophthalmol.06-123
+doi:10.3129/can j ophthalmol.06-124	doi:10.3129/can.j.ophthalmol.06-124
+doi:10.3129/can j ophthalmol.06-127	doi:10.3129/can.j.ophthalmol.06-127
+doi:10.3129/can j ophthalmol.i07-001	doi:10.3129/can.j.ophthalmol.i07-001
+doi:10.3129/can j ophthalmol.i07-002	doi:10.3129/can.j.ophthalmol.i07-002
+doi:10.3129/can j ophthalmol.i07-003	doi:10.3129/can.j.ophthalmol.i07-003
+doi:10.3129/can j ophthalmol.i07-004	doi:10.3129/can.j.ophthalmol.i07-004
+doi:10.3129/can j ophthalmol.i07-005	doi:10.3129/can.j.ophthalmol.i07-005
+doi:10.3129/can j ophthalmol.i07-006	doi:10.3129/can.j.ophthalmol.i07-006
+doi:10.3129/can j ophthalmol.i07-007	doi:10.3129/can.j.ophthalmol.i07-007
+doi:10.3129/can j ophthalmol.i07-008	doi:10.3129/can.j.ophthalmol.i07-008
+doi:10.3129/can j ophthalmol.i07-009	doi:10.3129/can.j.ophthalmol.i07-009
+doi:10.3129/can j ophthalmol.i07-010	doi:10.3129/can.j.ophthalmol.i07-010
+doi:10.3129/can j ophthalmol.i07-011	doi:10.3129/can.j.ophthalmol.i07-011
+doi:10.3129/can j ophthalmol.i07-012	doi:10.3129/can.j.ophthalmol.i07-012
+doi:10.3129/can j ophthalmol.i07-013	doi:10.3129/can.j.ophthalmol.i07-013
+doi:10.3129/can j ophthalmol.i07-014	doi:10.3129/can.j.ophthalmol.i07-014
+doi:10.3129/can j ophthalmol.i07-015	doi:10.3129/can.j.ophthalmol.i07-015
+doi:10.3129/can j ophthalmol.i07-016	doi:10.3129/can.j.ophthalmol.i07-016
+doi:10.3129/can j ophthalmol.i07-017	doi:10.3129/can.j.ophthalmol.i07-017
+doi:10.3129/can j ophthalmol.i07-018	doi:10.3129/can.j.ophthalmol.i07-018
+doi:10.3129/can j ophthalmol.i07-019	doi:10.3129/can.j.ophthalmol.i07-019
+doi:10.3129/can j ophthalmol.i07-020	doi:10.3129/can.j.ophthalmol.i07-020
+doi:10.3129/can j ophthalmol.i07-021	doi:10.3129/can.j.ophthalmol.i07-021
+doi:10.3129/can j ophthalmol.i07-022	doi:10.3129/can.j.ophthalmol.i07-022
+doi:10.3129/can j ophthalmol.i07-023	doi:10.3129/can.j.ophthalmol.i07-023
+doi:10.3129/can j ophthalmol.i07-024	doi:10.3129/can.j.ophthalmol.i07-024
+doi:10.3129/can j ophthalmol.i07-025	doi:10.3129/can.j.ophthalmol.i07-025
+doi:10.3129/can j ophthalmol.i07-026	doi:10.3129/can.j.ophthalmol.i07-026
+doi:10.3129/can j ophthalmol.i07-027	doi:10.3129/can.j.ophthalmol.i07-027
+doi:10.3129/can j ophthalmol.i07-028	doi:10.3129/can.j.ophthalmol.i07-028
+doi:10.3129/can j ophthalmol.i07-029	doi:10.3129/can.j.ophthalmol.i07-029
+doi:10.3129/can j ophthalmol.i07-030	doi:10.3129/can.j.ophthalmol.i07-030
+doi:10.3129/can j ophthalmol.i07-031	doi:10.3129/can.j.ophthalmol.i07-031
+doi:10.3129/can j ophthalmol.i07-032	doi:10.3129/can.j.ophthalmol.i07-032
+doi:10.3129/can j ophthalmol.i07-034	doi:10.3129/can.j.ophthalmol.i07-034
+doi:10.3129/can j ophthalmol.i07-035	doi:10.3129/can.j.ophthalmol.i07-035
+doi:10.3129/can j ophthalmol.i07-036	doi:10.3129/can.j.ophthalmol.i07-036
+doi:10.3129/can j ophthalmol.i07-039	doi:10.3129/can.j.ophthalmol.i07-039
+doi:10.3129/can j ophthalmol.i07-040	doi:10.3129/can.j.ophthalmol.i07-040
+doi:10.3129/can j ophthalmol.i07-041	doi:10.3129/can.j.ophthalmol.i07-041
+doi:10.3129/can j ophthalmol.i07-042	doi:10.3129/can.j.ophthalmol.i07-042
+doi:10.3129/can j ophthalmol.i07-043	doi:10.3129/can.j.ophthalmol.i07-043
+doi:10.3129/can j ophthalmol.i07-044	doi:10.3129/can.j.ophthalmol.i07-044
+doi:10.3129/can j ophthalmol.i07-045	doi:10.3129/can.j.ophthalmol.i07-045
+doi:10.3129/can j ophthalmol.i07-046	doi:10.3129/can.j.ophthalmol.i07-046
+doi:10.3129/can j ophthalmol.i07-047	doi:10.3129/can.j.ophthalmol.i07-047
+doi:10.3129/can j ophthalmol.i07-048	doi:10.3129/can.j.ophthalmol.i07-048
+doi:10.3129/can j ophthalmol.i07-049	doi:10.3129/can.j.ophthalmol.i07-049
+doi:10.3129/can j ophthalmol.i07-050	doi:10.3129/can.j.ophthalmol.i07-050
+doi:10.3129/can j ophthalmol.i07-051	doi:10.3129/can.j.ophthalmol.i07-051
+doi:10.3129/can j ophthalmol.i07-052	doi:10.3129/can.j.ophthalmol.i07-052
+doi:10.3129/can j ophthalmol.i07-054	doi:10.3129/can.j.ophthalmol.i07-054
+doi:10.3129/can j ophthalmol.i07-057	doi:10.3129/can.j.ophthalmol.i07-057
+doi:10.3129/can j ophthalmol.i07-058	doi:10.3129/can.j.ophthalmol.i07-058
+doi:10.3129/can j ophthalmol.i07-059	doi:10.3129/can.j.ophthalmol.i07-059
+doi:10.3129/can j ophthalmol.i07-060	doi:10.3129/can.j.ophthalmol.i07-060
+doi:10.3129/can j ophthalmol.i07-064	doi:10.3129/can.j.ophthalmol.i07-064
+doi:10.3129/can j ophthalmol.i07-065	doi:10.3129/can.j.ophthalmol.i07-065
+doi:10.3129/can j ophthalmol.i07-066	doi:10.3129/can.j.ophthalmol.i07-066
+doi:10.3129/can j ophthalmol.i07-067	doi:10.3129/can.j.ophthalmol.i07-067
+doi:10.3129/can j ophthalmol.i07-068	doi:10.3129/can.j.ophthalmol.i07-068
+doi:10.3129/can j ophthalmol.i07-071	doi:10.3129/can.j.ophthalmol.i07-071
+doi:10.3129/can j ophthalmol.i07-072	doi:10.3129/can.j.ophthalmol.i07-072
+doi:10.3129/can j ophthalmol.i07-074	doi:10.3129/can.j.ophthalmol.i07-074
+doi:10.3129/can j ophthalmol.i07-075	doi:10.3129/can.j.ophthalmol.i07-075
+doi:10.3129/can j ophthalmol.i07-077	doi:10.3129/can.j.ophthalmol.i07-077
+doi:10.3129/can j ophthalmol.i07-078	doi:10.3129/can.j.ophthalmol.i07-078
+doi:10.3129/can j ophthalmol.i07-079	doi:10.3129/can.j.ophthalmol.i07-079
+doi:10.3129/can j ophthalmol.i07-080	doi:10.3129/can.j.ophthalmol.i07-080
+doi:10.3129/can j ophthalmol.i07-081	doi:10.3129/can.j.ophthalmol.i07-081
+doi:10.3129/can j ophthalmol.i07-082	doi:10.3129/can.j.ophthalmol.i07-082
+doi:10.3129/can j ophthalmol.i07-083	doi:10.3129/can.j.ophthalmol.i07-083
+doi:10.3129/can j ophthalmol.i07-084	doi:10.3129/can.j.ophthalmol.i07-084
+doi:10.3129/can j ophthalmol.i07-085	doi:10.3129/can.j.ophthalmol.i07-085
+doi:10.3129/can j ophthalmol.i07-086	doi:10.3129/can.j.ophthalmol.i07-086
+doi:10.3129/can j ophthalmol.i07-087	doi:10.3129/can.j.ophthalmol.i07-087
+doi:10.3129/can j ophthalmol.i07-088	doi:10.3129/can.j.ophthalmol.i07-088
+doi:10.3129/can j ophthalmol.i07-089	doi:10.3129/can.j.ophthalmol.i07-089
+doi:10.3129/can j ophthalmol.i07-090	doi:10.3129/can.j.ophthalmol.i07-090
+doi:10.3129/can j ophthalmol.i07-092	doi:10.3129/can.j.ophthalmol.i07-092
+doi:10.3129/can j ophthalmol.i07-093	doi:10.3129/can.j.ophthalmol.i07-093
+doi:10.3129/can j ophthalmol.i07-094	doi:10.3129/can.j.ophthalmol.i07-094
+doi:10.3129/can j ophthalmol.i07-095	doi:10.3129/can.j.ophthalmol.i07-095
+doi:10.3129/can j ophthalmol.i07-096	doi:10.3129/can.j.ophthalmol.i07-096
+doi:10.3129/can j ophthalmol.i07-097	doi:10.3129/can.j.ophthalmol.i07-097
+doi:10.3129/can j ophthalmol.i07-099	doi:10.3129/can.j.ophthalmol.i07-099
+doi:10.3129/can j ophthalmol.i07-100	doi:10.3129/can.j.ophthalmol.i07-100
+doi:10.3129/can j ophthalmol.i07-101	doi:10.3129/can.j.ophthalmol.i07-101
+doi:10.3129/can j ophthalmol.i07-104	doi:10.3129/can.j.ophthalmol.i07-104
+doi:10.3129/can j ophthalmol.i07-105	doi:10.3129/can.j.ophthalmol.i07-105
+doi:10.3129/can j ophthalmol.i07-106	doi:10.3129/can.j.ophthalmol.i07-106
+doi:10.3171/jns.2004.101.supplement 3.0325	doi:10.3171/jns.2004.101.supplement_3.0325
+doi:10.3171/jns.2004.101.supplement 3.0326	doi:10.3171/jns.2004.101.supplement_3.0326
+doi:10.3171/jns.2004.101.supplement 3.0334	doi:10.3171/jns.2004.101.supplement_3.0334
+doi:10.3171/jns.2004.101.supplement 3.0341	doi:10.3171/jns.2004.101.supplement_3.0341
+doi:10.3171/jns.2004.101.supplement 3.0346	doi:10.3171/jns.2004.101.supplement_3.0346
+doi:10.3171/jns.2004.101.supplement 3.0351	doi:10.3171/jns.2004.101.supplement_3.0351
+doi:10.3171/jns.2004.101.supplement 3.0356	doi:10.3171/jns.2004.101.supplement_3.0356
+doi:10.3171/jns.2004.101.supplement 3.0362	doi:10.3171/jns.2004.101.supplement_3.0362
+doi:10.3171/jns.2004.101.supplement 3.0373	doi:10.3171/jns.2004.101.supplement_3.0373
+doi:10.3171/jns.2004.101.supplement 3.0381	doi:10.3171/jns.2004.101.supplement_3.0381
+doi:10.3171/jns.2004.101.supplement 3.0390	doi:10.3171/jns.2004.101.supplement_3.0390
+doi:10.3171/jns.2004.101.supplement 3.0396	doi:10.3171/jns.2004.101.supplement_3.0396
+doi:10.3171/jns.2004.101.supplement 3.0402	doi:10.3171/jns.2004.101.supplement_3.0402
+doi:10.3171/jns.2004.101.supplement 3.0406	doi:10.3171/jns.2004.101.supplement_3.0406
+doi:10.3171/jns.2004.101.supplement 3.0413	doi:10.3171/jns.2004.101.supplement_3.0413
+doi:10.3171/jns.2004.101.supplement 3.0419	doi:10.3171/jns.2004.101.supplement_3.0419
+doi:10.3171/jns.2004.101.supplement 3.0425	doi:10.3171/jns.2004.101.supplement_3.0425
+doi:10.3171/jns.2004.101.supplement 3.0435	doi:10.3171/jns.2004.101.supplement_3.0435
 doi:10.3238/arztebl. 2019.0159	doi:10.3238/arztebl.2019.0159
 doi:10.3238/arztebl. 2019.0335a	doi:10.3238/arztebl.2019.0335a
 doi:10.33549/physiolres. 931260	doi:10.33549/physiolres.931260

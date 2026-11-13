@@ -81,9 +81,9 @@ PUBMED2DB_DATA_MODEL_MAJOR = 1
 # reliable: deleting the whitespace gives a DOI registered at doi.org for only about three quarters of even
 # the most regular shape, against 163 of 163 well-formed DOIs sampled from the same export (see "Malformed
 # DOIs" in docs/sources/PubMed/README.md for the numbers and the rules that were tried). So the table holds
-# only repairs that doi.org confirms and that no PMID already carries unless it carries the malformed DOI too
-# (a row applies to every PMID with that malformed DOI); a malformed DOI not in it is skipped, as all of them
-# were before, and counted in the concord metadata.
+# only repairs that doi.org confirms, that Crossref doesn't say name another article, and that no PMID
+# already carries unless it carries the malformed DOI too (a row applies to every PMID with that malformed
+# DOI); a malformed DOI not in it is skipped, as all of them were before, and counted in the concord metadata.
 #
 # Never edit it by hand: docs/sources/PubMed/dois/characterize_dois.py regenerates it from a whole export.
 # Re-run that when pubmed2db_version moves, to pick up the new export's malformed DOIs; a stale table is

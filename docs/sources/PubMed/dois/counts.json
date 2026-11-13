@@ -11,11 +11,20 @@
     "pubmed_metadata_7.ndjson.gz"
   ],
   "records": 41371020,
-  "doi_org_checked": "2026-11-12",
+  "doi_org_checked": "2026-11-12 to 2026-11-13",
   "doi_org_unanswered": 0,
+  "crossref_checked": "2026-11-13",
+  "crossref_unanswered": 0,
+  "crossref_vetoed": 0,
+  "title_match_min_ratio": 0.8,
+  "crossref_verdicts": {
+    "match": 304,
+    "not_in_crossref": 129,
+    "no_title": 1
+  },
   "malformed_dois": 655,
-  "repaired": 290,
-  "skipped": 365,
+  "repaired": 436,
+  "skipped": 219,
   "malformed_identifiers_that_are_not_dois": [],
   "baseline_well_formed_dois": {
     "sampled": 163,
@@ -25,6 +34,7 @@
     "punctuation_gap": {
       "count": 362,
       "repaired": 247,
+      "crossref_vetoed": 0,
       "repair_strategy": "join",
       "strategies": {
         "first_token": {
@@ -107,8 +117,9 @@
     },
     "word_gap": {
       "count": 253,
-      "repaired": 32,
-      "repair_strategy": "join",
+      "repaired": 178,
+      "crossref_vetoed": 0,
+      "repair_strategy": "separators",
       "strategies": {
         "first_token": {
           "candidates": 253,
@@ -119,6 +130,11 @@
           "candidates": 253,
           "registered": 34,
           "not_registered": 219
+        },
+        "separators": {
+          "candidates": 1004,
+          "registered": 180,
+          "not_registered": 824
         }
       },
       "top_registrants": {
@@ -132,27 +148,37 @@
         {
           "pmid": "PMID:15537185",
           "identifier": "doi:10.3171/jns.2004.101.supplement 3.0326",
-          "repaired_to": []
+          "repaired_to": [
+            "doi:10.3171/jns.2004.101.supplement_3.0326"
+          ]
         },
         {
           "pmid": "PMID:17361248",
           "identifier": "doi:10.3129/can j ophthalmol.06-089",
-          "repaired_to": []
+          "repaired_to": [
+            "doi:10.3129/can.j.ophthalmol.06-089"
+          ]
         },
         {
           "pmid": "PMID:17392847",
           "identifier": "doi:10.3129/can j ophthalmol.i07-030",
-          "repaired_to": []
+          "repaired_to": [
+            "doi:10.3129/can.j.ophthalmol.i07-030"
+          ]
         },
         {
           "pmid": "PMID:17392878",
           "identifier": "doi:10.3129/can j ophthalmol.i07-041",
-          "repaired_to": []
+          "repaired_to": [
+            "doi:10.3129/can.j.ophthalmol.i07-041"
+          ]
         },
         {
           "pmid": "PMID:17641696",
           "identifier": "doi:10.3129/can j ophthalmol.i07-090",
-          "repaired_to": []
+          "repaired_to": [
+            "doi:10.3129/can.j.ophthalmol.i07-090"
+          ]
         },
         {
           "pmid": "PMID:24506355",
@@ -176,6 +202,7 @@
     "leading_text": {
       "count": 14,
       "repaired": 3,
+      "crossref_vetoed": 0,
       "repair_strategy": "last_token",
       "strategies": {
         "last_token": {
@@ -239,6 +266,7 @@
     "trailing_text": {
       "count": 11,
       "repaired": 2,
+      "crossref_vetoed": 0,
       "repair_strategy": "join",
       "strategies": {
         "first_token": {
@@ -309,6 +337,7 @@
     "several_dois": {
       "count": 8,
       "repaired": 5,
+      "crossref_vetoed": 0,
       "repair_strategy": "each_token",
       "strategies": {
         "each_token": {
@@ -391,6 +420,7 @@
     "soft_line_break": {
       "count": 4,
       "repaired": 0,
+      "crossref_vetoed": 0,
       "repair_strategy": "join",
       "strategies": {
         "first_token": {
@@ -438,6 +468,7 @@
     "other": {
       "count": 2,
       "repaired": 0,
+      "crossref_vetoed": 0,
       "repair_strategy": "",
       "strategies": {},
       "top_registrants": {
@@ -459,6 +490,7 @@
     "no_whitespace": {
       "count": 1,
       "repaired": 1,
+      "crossref_vetoed": 0,
       "repair_strategy": "join",
       "strategies": {
         "first_token": {

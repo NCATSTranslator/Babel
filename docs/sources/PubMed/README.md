@@ -286,7 +286,7 @@ doubled. `tests/pipeline/test_publications.py` asserts the two-field shape over 
 2026nov08 has 655 DOIs, of about 37 million, that `curie_format_problem()` rejects: 654 for a space
 and one for a trailing `DEL` character. No PubMed Central id is malformed in that sense. Until
 [Babel#1112](https://github.com/NCATSTranslator/Babel/issues/1112) all of them were skipped, so
-those PMIDs' cliques had no DOI. Now **290 are repaired and 365 are still skipped**, and both
+those PMIDs' cliques had no DOI. Now **436 are repaired and 219 are still skipped**, and both
 numbers are in `intermediate/publications/concords/metadata.yaml` as
 `repaired_malformed_article_ids` and `skipped_malformed_article_ids`.
 
@@ -296,21 +296,22 @@ Repairs come from [`input_data/pubmed_doi_repairs.tsv`](../../../input_data/pubm
 (`malformed doi CURIE<TAB>repaired doi CURIE`), not from a rule such as "delete the spaces",
 because no rule is reliable. [`dois/characterize_dois.py`](dois/characterize_dois.py) streams the
 whole export, gives every malformed DOI a shape, generates what each repair strategy would make of
-it, and asks doi.org's handle API whether the result is a registered DOI
-([`dois/counts.json`](dois/counts.json) has the counts and examples,
-[`dois/malformed_dois.csv`](dois/malformed_dois.csv) every candidate). On 2026-11-12:
+it, asks doi.org's handle API whether the result is a registered DOI, and asks Crossref whether
+each repair names the same article ([`dois/counts.json`](dois/counts.json) has the counts and
+examples, [`dois/malformed_dois.csv`](dois/malformed_dois.csv) every candidate). On 2026-11-12 and
+2026-11-13:
 
 | Shape | Example | DOIs | Deleting the whitespace gives a registered DOI | Repaired |
 | --- | --- | ---: | ---: | ---: |
 | space beside `.`, `/`, `-` or `_` | `10.1126/science. 1134405` (`PMID:17124311`) | 362 | 256 | 247 |
-| space between letters or digits | `10.3305/nutr hosp.v28in06.7011` | 253 | 34 | 32 |
+| space between letters or digits | `10.3305/nutr hosp.v28in06.7011` | 253 | 34 | 178 |
 | text, then a DOI | `EDN: XVYYSN 10.7868/S3034555326010025` | 14 | n/a | 3 |
 | a DOI, then text | `10.1101/gr.214102. Article published online…` | 11 | 2 | 2 |
 | two DOIs | `10.1001/archdermatol.2012.151a 10.1001/…151b` | 8 | 0 | 5 |
 | `=` and a space (a quoted-printable line break) | `10.1097/01.mjt.00001= 32251.03275.3c` | 4 | 0 | 0 |
 | not a DOI at all | `http://10 1097/AOG.0b013e318270444f` | 2 | n/a | 0 |
 | a control character | `10.6002/ect.mesot2016.p112` + `DEL` | 1 | 1 | 1 |
-| **all** | | **655** | **293** | **290** |
+| **all** | | **655** | **293** | **436** |
 
 For comparison, doi.org knew 163 of 163 well-formed DOIs sampled from the same export. So:
 
@@ -318,21 +319,42 @@ For comparison, doi.org knew 163 of 163 well-formed DOIs sampled from the same e
   next.** The misses are whole journal issues: 54 from *Acta Biomedica*
   (`10.23750/abm.v88i1 -S.6278`) and 28 from one issue of the *Journal of Bone and Joint Surgery*
   (`10.1302/0301-620x.82b2 .10847`), then 127 from the *Canadian Journal of Ophthalmology*
-  (`10.3129/can j ophthalmol.06-108`) and 60 from *Nutrición Hospitalaria*. Their real DOIs are
-  something else, and a rule would write 325 DOIs that exist nowhere.
+  (`10.3129/can j ophthalmol.06-108`) and 60 from *Nutrición Hospitalaria*. A rule would write 325
+  DOIs that exist nowhere.
+- **A space between two letters or digits often stood for a separator, not for nothing.** The
+  *Canadian Journal of Ophthalmology*'s `10.3129/can j ophthalmol.i07-089` is
+  `10.3129/can.j.ophthalmol.i07-089`, and the *Journal of Neurosurgery*'s
+  `10.3171/jns.2004.101.supplement 3.0334` is `…supplement_3.0334`. So for that shape the script
+  tries turning every such space into nothing, `.`, `_` or `-`, and repairs the value only when
+  exactly one of the four is registered (two would be two different DOIs; none had two). That
+  recovers 178 of the 253, all 127 *Canadian Journal of Ophthalmology* DOIs among them, against 32
+  by deletion alone.
 - **Cutting the value at the first space is worse, and looks better than it is.** It gives a
   registered DOI 54 times, most of them the *wrong* one: `10.1126/science. 1134405` becomes
   `10.1126/science`, which is the journal's own DOI. So no repair is ever made by truncating.
 - **A DOI that survives the check is the right one.** A candidate made by deleting characters from
   the whole value is long and specific; it is only registered if the value really was that DOI with
-  stray characters in it.
+  stray characters in it. Crossref confirms it: of the 436 repairs, Crossref holds 305, and all but
+  one (which has no title) carry a title that agrees with the PubMed record's (one contains the
+  other, or they are at least 80% alike; `crossref_title_match()`). Containment matters: PubMed
+  prefixes a Science article with its section ("Neuroscience. The brain's dark energy.") and appends
+  a quiz's diagnosis; five titles like these would fail a plain similarity test. Crossref doesn't
+  hold the other 129 (107 of them `10.3760/cma.…`, the Chinese Medical Association's), which are
+  registered elsewhere, so it can't check them.
+- **What is left can't be repaired from the value alone.** *Nutrición Hospitalaria*'s registered
+  DOIs follow another scheme (`10.3305/nh.2013.28.6.6816` exists, while
+  `10.3305/nutr hosp.v28in06.6816` is registered in no spelling), and *Acta Biomedica*'s and that
+  JBJS issue's give no registered DOI however their spaces are read. A Crossref title search can't
+  stand in for them: it returns same-titled articles from other issues (`PMID:10755418` comes back
+  as two other JBJS articles).
 
-The table therefore holds a repair only when doi.org confirms it **and no other PMID in the export
-already carries that DOI**. A shared DOI stays on the lowest PMID (see above), so repairing
-`PMID:22710516`'s `…519a 10.1001/archoto.2012.519b` in full would take `…519b` away from
-`PMID:23753705`, which has it cleanly. 16 values have a registered candidate that the guard holds
-back, and 14 of them have no other and stay skipped. For a value holding two DOIs, each is kept if
-it passes on its own, which is why `PMID:23752222` gets `…151a` and not the unregistered `…151b`.
+The table therefore holds a repair only when doi.org confirms it, Crossref doesn't name another
+article for it, **and no other PMID in the export already carries that DOI**. A shared DOI stays on
+the lowest PMID (see above), so repairing `PMID:22710516`'s `…519a 10.1001/archoto.2012.519b` in
+full would take `…519b` away from `PMID:23753705`, which has it cleanly. 16 values have a registered
+candidate that the guard holds back, and 14 of them have no other and stay skipped. For a value
+holding two DOIs, each is kept if it passes on its own, which is why `PMID:23752222` gets `…151a`
+and not the unregistered `…151b`.
 
 A row is keyed by the malformed DOI alone, so the build repairs it on every PMID that carries it,
 and the guard is applied once per malformed DOI: "other" means other than all of those PMIDs. Two
@@ -351,14 +373,15 @@ it, with `counts.json` and the CSV, whenever `pubmed2db_version` moves:
 uv run python docs/sources/PubMed/dois/characterize_dois.py
 ```
 
-That takes about a minute for the two passes over the export, plus a second per candidate doi.org
-hasn't been asked about (answers are cached in `data/pubmed-dois/`; the first run made about a
-thousand requests). `tests/pipeline/test_publications.py` fails when the pinned export's repaired
-and skipped counts differ from `counts.json`, which is the reminder.
+That takes about a minute for the two passes over the export, plus a second per lookup not yet
+cached in `data/pubmed-dois/` (about 1,500 to doi.org and 450 to Crossref from cold). Read any
+Crossref veto it prints: the title test has been tuned on one export only.
+`tests/pipeline/test_publications.py` fails when the pinned export's repaired and skipped counts
+differ from `counts.json`, which is the reminder.
 
 A stale table is harmless rather than wrong. A row for a DOI PubMed has since corrected never
 matches, and a new export's new malformed DOIs are skipped, as all of them used to be, until the
-table is regenerated. Some of the 365 will move on their own: the ten `EDN: … 10.7868/…` DOIs are
+table is regenerated. Some of the 219 will move on their own: the ten `EDN: … 10.7868/…` DOIs are
 from 2026 and were not registered yet on the day they were checked.
 
 DOIs that are well-formed CURIEs but not DOIs (`doi:20026430`), and the PubMed Central ids that are

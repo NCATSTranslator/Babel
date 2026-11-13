@@ -7,7 +7,8 @@ DOIs in an export contain a space or other text. ``write_compendium()`` fails th
 (https://github.com/NCATSTranslator/Babel/issues/1112). This script is the evidence for which: it streams
 *every* record of the export through the production ``_read_shard_records()`` with no repairs applied, gives
 each rejected ``doi:`` a shape, generates the candidate DOIs each plausible repair strategy would produce,
-and asks doi.org whether each candidate is a registered DOI.
+asks doi.org whether each candidate is a registered DOI, and asks Crossref whether each repair it would make
+names the same article as the PubMed record.
 
 Shapes (the first that fits; ``SHAPES`` has the exact tests):
 
@@ -25,12 +26,17 @@ Shapes (the first that fits; ``SHAPES`` has the exact tests):
 
 Strategies: ``join`` (delete the characters ``curie_format_problem()`` objects to), ``first_token``,
 ``last_token`` and ``each_token`` (keep whitespace-separated tokens that are complete DOIs, minus trailing
-``,;.``), and ``soft_line_break`` (delete ``=`` plus the whitespace after it). A strategy only proposes a
+``,;.``), ``soft_line_break`` (delete ``=`` plus the whitespace after it), and, for a ``word_gap``,
+``separators`` (turn each whitespace run between two letters or digits into one of ``GAP_SEPARATORS``:
+``10.3129/can j ophthalmol.i07-089`` is ``10.3129/can.j.ophthalmol.i07-089``). A strategy only proposes a
 candidate that ``DOI_RE`` accepts. So that the hit rates have something to be compared with, the script also
 looks up a sample of well-formed DOIs from the same export (``baseline``).
 
 **The repairs table.** ``REPAIR_STRATEGY`` names the one strategy trusted for each shape, and a malformed
-DOI is repaired to that strategy's candidates when doi.org says a candidate is registered and no PMID
+DOI is repaired to that strategy's candidates when doi.org says a candidate is registered (for a strategy in
+``ONE_OF_STRATEGIES``, exactly one of its candidates), Crossref doesn't say it belongs to another article
+(``crossref_title_match()``; a DOI Crossref doesn't hold is registered with another agency, and passes), and
+no PMID
 in the export already carries it well-formed except ones that carry the malformed DOI too (repairing would
 then take the DOI away from that PMID's clique, since a shared DOI stays on the lowest PMID). The table is
 keyed by the malformed DOI alone, so the build repairs it on every PMID that carries it, and the check is
@@ -38,31 +44,40 @@ made once per malformed DOI, against all of them; when several PMIDs carry one, 
 share, which the build keeps on the lowest of them like any other (two such in 2026nov08, e.g.
 PMID:25476091 and PMID:25591444). ``first_token`` is trusted for no shape, although its
 candidates are often registered: a DOI cut off at a space is frequently a *different* registered DOI
-(``10.1126/science. 1134405`` gives ``10.1126/science``, the journal's own DOI).
+(``10.1126/science. 1134405`` gives ``10.1126/science``, the journal's own DOI). Crossref is only ever
+asked about a DOI the malformed value spells, never searched by title for one: a title search finds
+same-titled articles in other issues (``At the crossroads--neonatal detection of developmental dysplasia of
+the hip``, PMID:10755418, comes back as two other JBJS articles).
 
 Outputs:
 
 - ``input_data/pubmed_doi_repairs.tsv`` -- the table the build reads (``PUBMED_DOI_REPAIRS`` in
-  ``src/createcompendia/publications.py``). Only written when doi.org answered for every candidate.
-- ``counts.json`` (beside this script) -- per shape: how many, how many are repaired, and per strategy how
-  many candidates it proposes and how many of those doi.org knows; and the baseline.
+  ``src/createcompendia/publications.py``). Only written when doi.org answered for every candidate and
+  Crossref for every repair.
+- ``counts.json`` (beside this script) -- per shape: how many, how many are repaired or vetoed by Crossref,
+  and per strategy how many candidates it proposes and how many of those doi.org knows; Crossref's verdicts;
+  and the baseline.
 - ``malformed_dois.csv`` (beside this script) -- one row per malformed DOI and candidate: the strategy,
   whether doi.org knows the candidate, whether the same record already carries it, which PMIDs carry it
-  without carrying the malformed DOI, and whether it went into the repairs table.
+  without carrying the malformed DOI, for each repair Crossref's title and verdict, and whether it went into
+  the repairs table.
 
 Regenerate with (``--export-dir`` defaults to the download of the export pinned in config.yaml):
 
     uv run python docs/sources/PubMed/dois/characterize_dois.py [--export-dir DIR] [--workers N] [--offline]
 
-It makes two parallel passes over the export (about a minute on 8 cores) and about a thousand requests to
-doi.org's handle API, a second apart. Lookups are cached in ``data/pubmed-dois/doi_org_cache.json``, so a
-re-run only asks about candidates it has no answer for; delete the cache to re-ask. ``--offline`` uses only
-the cache, so it writes the repairs table only if the cache already answers for every candidate. See "Malformed DOIs" in docs/sources/PubMed/README.md for what
-the counts mean for Babel.
+It makes two parallel passes over the export (about a minute on 8 cores), then about 1,500 requests to
+doi.org's handle API and 450 to Crossref's REST API, a second apart (about 40 minutes from cold). Answers are
+cached in ``data/pubmed-dois/doi_org_cache.json`` and ``crossref_cache.json``, so a re-run only asks about
+what it has no answer for; delete a cache to re-ask. ``--offline`` uses only the caches, so it writes the
+repairs table only if they already answer for everything. See "Malformed DOIs" in
+docs/sources/PubMed/README.md for what the counts mean for Babel.
 """
 
 import argparse
 import csv
+import difflib
+import html
 import json
 import os
 import re
@@ -86,8 +101,11 @@ from src.util import MALFORMED_CURIE_CHARS_RE, curie_format_problem, get_config,
 
 OUTPUT_DIR = Path(__file__).parent
 CACHE_FILE = get_repo_root() / "data/pubmed-dois/doi_org_cache.json"
+CROSSREF_CACHE_FILE = get_repo_root() / "data/pubmed-dois/crossref_cache.json"
 # https://www.doi.org/the-identifier/resources/factsheets/doi-resolution-documentation#5-proxy-server-rest-api
 DOI_ORG_HANDLE_API = "https://doi.org/api/handles/"
+# https://api.crossref.org/swagger-ui/index.html#/Works/get_works__doi_ -- 404 for a DOI Crossref doesn't hold.
+CROSSREF_WORKS_API = "https://api.crossref.org/works/"
 SECONDS_BETWEEN_LOOKUPS = 1.0
 # One well-formed DOI is sampled from each record whose PMID is a multiple of this (~200 records).
 BASELINE_PMID_MODULUS = 200003
@@ -106,12 +124,33 @@ TRAILING_PUNCTUATION = ",;."
 REPAIR_STRATEGY = {
     "no_whitespace": "join",
     "punctuation_gap": "join",
-    "word_gap": "join",
+    "word_gap": "separators",
     "trailing_text": "join",
     "soft_line_break": "join",
     "several_dois": "each_token",
     "leading_text": "last_token",
 }
+# Strategies whose candidates are alternative spellings of one DOI rather than several DOIs: a repair is made
+# only when exactly one of them is registered (case-insensitively), since two registered spellings are two
+# different DOIs and nothing here says which one the publisher meant.
+ONE_OF_STRATEGIES = {"separators"}
+# What a whitespace run between two letters or digits may have stood for. Canadian Journal of Ophthalmology
+# DOIs lost dots (``10.3129/can j ophthalmol.i07-089`` is ``can.j.ophthalmol.i07-089``), Journal of
+# Neurosurgery's underscores (``supplement 3.0334`` is ``supplement_3.0334``).
+GAP_SEPARATORS = ("", ".", "_", "-")
+# A whitespace run with a letter or digit on both sides.
+WORD_GAP_RE = re.compile(r"(?<=[^\W_])\s+(?=[^\W_])")
+# When Crossref's title for a repaired DOI agrees with the PubMed record's, after both are casefolded and
+# stripped to letters and digits: when one contains the other, or their difflib ratio (0-1) is at least this.
+# Containment is the common case: PubMed prefixes a Science article with its section ("Neuroscience. The
+# brain's dark energy.", PMID:17124311), appends a quiz's diagnosis ("Radiology quiz case 2. Acute calcific
+# tendinitis...", PMID:22710516) and drops subtitles ("Panic Disorder in Primary Care.", PMID:30995952). Over
+# 2026nov08 those were the only five repairs a ratio alone would have vetoed, and all five are the right
+# article. A disagreeing title vetoes the repair; see crossref_title_match().
+TITLE_MATCH_MIN_RATIO = 0.8
+# The shortest normalized title that counts as contained in another: shorter ones ("Editorial", "Reply")
+# could be contained in almost anything.
+MIN_CONTAINED_TITLE_CHARS = 15
 
 
 def is_doi(token):
@@ -164,6 +203,12 @@ def candidates(value):
         "last_token": tokens[-1:] if len(tokens) > 1 else [],
         "each_token": [t for t in tokens if is_doi(t)] if sum(map(is_doi, tokens)) >= 2 else [],
         "soft_line_break": [re.sub(r"=\s+", "", value)] if re.search(r"=\s", value) else [],
+        # Only for word gaps: elsewhere a gap touches punctuation, and deleting it is all there is to try.
+        "separators": (
+            list(dict.fromkeys(MALFORMED_CURIE_CHARS_RE.sub("", WORD_GAP_RE.sub(sep, value)) for sep in GAP_SEPARATORS))
+            if shape_of(value) == "word_gap" and WORD_GAP_RE.search(value)
+            else []
+        ),
     }
     return {strategy: [c for c in found if is_doi(c)] for strategy, found in proposals.items()}
 
@@ -181,14 +226,67 @@ def choose_repairs(malformed, proposals, registered, carriers):
     repairs = {}
     for curie in sorted(pmids_with):
         strategy = REPAIR_STRATEGY.get(shape_of(curie.split(":", 1)[1]))
+        found = [candidate for candidate in proposals[curie].get(strategy, []) if registered[candidate] == "yes"]
+        if strategy in ONE_OF_STRATEGIES and len({candidate.lower() for candidate in found}) != 1:
+            continue
         verified = [
-            f"{DOI}:{candidate}"
-            for candidate in proposals[curie].get(strategy, [])
-            if registered[candidate] == "yes" and not others_carrying(candidate, pmids_with[curie], carriers)
+            f"{DOI}:{candidate}" for candidate in found if not others_carrying(candidate, pmids_with[curie], carriers)
         ]
         if verified:
             repairs[curie] = list(dict.fromkeys(verified))
     return repairs
+
+
+def normalized_title(title):
+    """A title casefolded and stripped to letters and digits, with Crossref's HTML markup and entities removed."""
+    return re.sub(r"[\W_]+", "", html.unescape(re.sub(r"<[^>]+>", "", title)).casefold())
+
+
+def crossref_title_match(pubmed_titles, crossref_record):
+    """
+    Whether Crossref's record for a repaired DOI describes the article the PubMed records name (one title
+    contains the other, or they are at least ``TITLE_MATCH_MIN_RATIO`` alike):
+    ``(verdict, best ratio)``, where the verdict is ``match``, ``mismatch``, ``translated`` (no PubMed
+    title matches, but one is ``[bracketed]``: PubMed's English translation of a title Crossref may hold in
+    the original language, so no evidence either way), ``no_title`` or ``not_in_crossref``.
+    """
+    if not crossref_record["found"]:
+        return "not_in_crossref", None
+    crossref_titles = [normalized_title(t) for t in crossref_record["titles"] if normalized_title(t)]
+    if not crossref_titles:
+        return "no_title", None
+    pairs = [(normalized_title(p), c) for p in pubmed_titles for c in crossref_titles]
+    ratio = max(difflib.SequenceMatcher(None, p, c).ratio() for p, c in pairs)
+    contained = any(
+        min(len(p), len(c)) >= MIN_CONTAINED_TITLE_CHARS and (p in c or c in p) for p, c in pairs if p and c
+    )
+    if contained or ratio >= TITLE_MATCH_MIN_RATIO:
+        return "match", ratio
+    if any(p.strip().startswith("[") for p in pubmed_titles):
+        return "translated", ratio
+    return "mismatch", ratio
+
+
+def apply_crossref_veto(repairs, pmids_with, titles, crossref):
+    """
+    ``repairs`` without the repaired DOIs Crossref says belong to another article, and
+    ``{(malformed, repaired): (verdict, ratio)}`` for every repaired DOI checked.
+
+    :param pmids_with: ``malformed_carriers()``.
+    :param titles: ``{pmid: article_title}`` for every PMID carrying a malformed DOI.
+    :param crossref: ``{repaired doi (no prefix): Crossref.lookup()}``.
+    """
+    kept = {}
+    verdicts = {}
+    for curie, repaired in repairs.items():
+        carrier_titles = [titles[pmid] for pmid in sorted(pmids_with[curie]) if titles[pmid]]
+        for doi in repaired:
+            record = crossref[doi.split(":", 1)[1]]
+            verdicts[(curie, doi)] = crossref_title_match(carrier_titles, record) if carrier_titles else ("", None)
+        survivors = [doi for doi in repaired if verdicts[(curie, doi)][0] != "mismatch"]
+        if survivors:
+            kept[curie] = survivors
+    return kept, verdicts
 
 
 def malformed_carriers(malformed):
@@ -207,13 +305,14 @@ def others_carrying(candidate, pmids_with_malformed, carriers):
 
 
 def find_malformed(shard_path):
-    """Pass 1 over one shard: ``(record count, [(pmid, malformed doi CURIE, the record's other identifiers)])``."""
+    """Pass 1 over one shard: ``(record count, [(pmid, malformed doi CURIE, the record's other identifiers,
+    its title)])``."""
     count = 0
     rows = []
-    for _, pmid, _, others, malformed in _read_shard_records(shard_path):
+    for _, pmid, title, others, malformed in _read_shard_records(shard_path):
         count += 1
         for curie in malformed:
-            rows.append((pmid, curie, others))
+            rows.append((pmid, curie, others, title))
     return count, rows
 
 
@@ -266,6 +365,43 @@ class DoiOrg:
         CACHE_FILE.write_text(json.dumps(self.cache, indent=1, sort_keys=True))
 
 
+class Crossref:
+    """Asks Crossref's REST API for the titles of a DOI's work, politely and with an on-disk cache."""
+
+    def __init__(self, offline):
+        self.offline = offline
+        self.cache = json.loads(CROSSREF_CACHE_FILE.read_text()) if CROSSREF_CACHE_FILE.exists() else {}
+        self.session = requests.Session()
+        self.session.headers["User-Agent"] = "babel-doi-characterization"
+
+    def lookup(self, doi):
+        """``{"found": bool, "titles": [...]}``, or None when offline or Crossref gave neither answer. Not found
+        means Crossref doesn't hold the DOI: it may be registered with another agency (DataCite, mEDRA, ...)."""
+        if doi not in self.cache:
+            if self.offline:
+                return None
+            time.sleep(SECONDS_BETWEEN_LOOKUPS)
+            try:
+                response = self.session.get(CROSSREF_WORKS_API + quote(doi, safe="/"), timeout=60)
+                if response.status_code == 404:
+                    self.cache[doi] = {"found": False, "titles": []}
+                elif response.status_code == 200:
+                    message = response.json()["message"]
+                    titles = list(message.get("title") or []) + list(message.get("original-title") or [])
+                    self.cache[doi] = {"found": True, "titles": titles}
+                else:
+                    return None
+            except (requests.RequestException, ValueError, KeyError):
+                return None
+            if len(self.cache) % 50 == 0:
+                self.save()
+        return self.cache[doi]
+
+    def save(self):
+        CROSSREF_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        CROSSREF_CACHE_FILE.write_text(json.dumps(self.cache, indent=1, sort_keys=True))
+
+
 def main():
     config = get_config()
     default_export_dir = os.path.join(config["download_directory"], "PubMed2DB", config["pubmed2db_version"])
@@ -281,10 +417,10 @@ def main():
         found = list(pool.map(find_malformed, shard_paths))
     records = sum(count for count, _ in found)
     malformed = sorted((row for _, rows in found for row in rows), key=lambda row: (int(row[0].split(":")[1]), row[1]))
-    non_dois = [(pmid, curie) for pmid, curie, _ in malformed if not curie.startswith(DOI + ":")]
+    non_dois = [(pmid, curie) for pmid, curie, *_ in malformed if not curie.startswith(DOI + ":")]
     malformed = [row for row in malformed if row[1].startswith(DOI + ":")]
 
-    proposals = {curie: candidates(curie.split(":", 1)[1]) for _, curie, _ in malformed}
+    proposals = {curie: candidates(curie.split(":", 1)[1]) for _, curie, *_ in malformed}
     wanted = frozenset(
         f"{DOI}:{candidate}".lower() for found in proposals.values() for cs in found.values() for candidate in cs
     )
@@ -306,12 +442,29 @@ def main():
     baseline_answers = Counter(doi_org.registered(doi) or "unknown" for doi in baseline)
     doi_org.save()
 
-    repairs = choose_repairs(malformed, proposals, registered, carriers)
     pmids_with = malformed_carriers(malformed)
+    titles = {pmid: title for pmid, _, _, title in malformed}
+    unvetoed = choose_repairs(malformed, proposals, registered, carriers)
+    crossref_client = Crossref(args.offline)
+    crossref = {
+        doi.split(":", 1)[1]: crossref_client.lookup(doi.split(":", 1)[1])
+        for repaired in unvetoed.values()
+        for doi in repaired
+    }
+    crossref_client.save()
+    crossref_unanswered = sorted(doi for doi, record in crossref.items() if record is None)
+    if crossref_unanswered:
+        repairs, verdicts = {}, {}
+    else:
+        repairs, verdicts = apply_crossref_veto(unvetoed, pmids_with, titles, crossref)
+    vetoed = {key: verdict for key, verdict in verdicts.items() if verdict[0] == "mismatch"}
+    for (curie, doi), (_, ratio) in sorted(vetoed.items()):
+        print(f"Crossref veto: {curie} -> {doi} (title ratio {ratio:.2f}): {crossref[doi.split(':', 1)[1]]['titles']}")
 
     unanswered = sorted(candidate for candidate, answer in registered.items() if not answer)
-    if unanswered:
+    if unanswered or crossref_unanswered:
         print(f"doi.org gave no answer for {len(unanswered)} candidates, e.g. {unanswered[:5]}; re-run to ask again.")
+        print(f"Crossref gave no answer for {len(crossref_unanswered)} repairs, e.g. {crossref_unanswered[:5]}.")
         print(f"NOT writing {PUBMED_DOI_REPAIRS}: it would be missing their repairs.")
     else:
         with open(PUBMED_DOI_REPAIRS, "w") as f:
@@ -319,7 +472,7 @@ def main():
                 "# Malformed PubMed DOIs and the registered DOI each is repaired to. GENERATED: do not edit.\n"
                 "# Regenerate with docs/sources/PubMed/dois/characterize_dois.py; see PUBMED_DOI_REPAIRS in\n"
                 "# src/createcompendia/publications.py for what belongs here and why it is a table.\n"
-                f"# From pubmed2db export {config['pubmed2db_version']}; checked against doi.org on "
+                f"# From pubmed2db export {config['pubmed2db_version']}; checked against doi.org and Crossref on "
                 f"{date.today().isoformat()}.\n"
                 "# malformed doi CURIE<TAB>repaired doi CURIE\n"
             )
@@ -333,21 +486,31 @@ def main():
             raise RuntimeError(f"{PUBMED_DOI_REPAIRS} does not read back as the repairs just written to it.")
 
     shapes = defaultdict(
-        lambda: {"count": 0, "repaired": 0, "strategies": defaultdict(Counter), "registrants": Counter(), "rows": []}
+        lambda: {
+            "count": 0,
+            "repaired": 0,
+            "crossref_vetoed": 0,
+            "strategies": defaultdict(Counter),
+            "registrants": Counter(),
+            "rows": [],
+        }
     )
     csv_rows = []
-    for pmid, curie, others in malformed:
+    for pmid, curie, others, _ in malformed:
         value = curie.split(":", 1)[1]
         shape = shape_of(value)
         repaired = repairs.get(curie, [])
         info = shapes[shape]
         info["count"] += 1
         info["repaired"] += bool(repaired)
+        info["crossref_vetoed"] += any(key[0] == curie for key in vetoed)
         info["registrants"][value.split("/")[0] if value.startswith("10.") else "(none)"] += 1
         info["rows"].append({"pmid": pmid, "identifier": curie, "repaired_to": repaired})
         proposed = [(strategy, c) for strategy, cs in proposals[curie].items() for c in cs]
         for strategy, candidate in proposed or [("", "")]:
             candidate_curie = f"{DOI}:{candidate}"
+            checked = strategy == REPAIR_STRATEGY.get(shape) and (curie, candidate_curie) in verdicts
+            verdict, ratio = verdicts[(curie, candidate_curie)] if checked else ("", None)
             if strategy:
                 info["strategies"][strategy]["candidates"] += 1
                 info["strategies"][strategy]["registered"] += registered[candidate] == "yes"
@@ -367,6 +530,9 @@ def main():
                     "other_pmids_with_candidate": " ".join(
                         others_carrying(candidate, pmids_with[curie], carriers) if candidate else []
                     ),
+                    "crossref_title": " | ".join(crossref[candidate]["titles"]) if checked else "",
+                    "crossref_title_match": verdict,
+                    "crossref_title_ratio": f"{ratio:.2f}" if ratio is not None else "",
                     "in_repairs_table": (
                         "yes" if candidate_curie in repaired and strategy == REPAIR_STRATEGY.get(shape) else ""
                     ),
@@ -385,6 +551,11 @@ def main():
         "records": records,
         "doi_org_checked": "" if args.offline else date.today().isoformat(),
         "doi_org_unanswered": len(unanswered),
+        "crossref_checked": "" if args.offline else date.today().isoformat(),
+        "crossref_unanswered": len(crossref_unanswered),
+        "crossref_vetoed": len(vetoed),
+        "title_match_min_ratio": TITLE_MATCH_MIN_RATIO,
+        "crossref_verdicts": dict(Counter(verdict for verdict, _ in verdicts.values())),
         "malformed_dois": len(malformed),
         "repaired": sum(info["repaired"] for info in shapes.values()),
         "skipped": sum(info["count"] - info["repaired"] for info in shapes.values()),
@@ -394,6 +565,7 @@ def main():
             shape: {
                 "count": info["count"],
                 "repaired": info["repaired"],
+                "crossref_vetoed": info["crossref_vetoed"],
                 "repair_strategy": REPAIR_STRATEGY.get(shape, ""),
                 "strategies": {strategy: dict(counts) for strategy, counts in sorted(info["strategies"].items())},
                 "top_registrants": dict(info["registrants"].most_common(5)),
