@@ -2,7 +2,8 @@
 
 Two cliques must never share an identifier, so ``parse_pubmed2db_into_tsvs()`` keeps each shared identifier on
 the *lowest* PMID that carries it. This script measures what that rule is choosing between. It streams every
-record of the export through the production ``_read_shard_records()``, compares identifiers with the
+record of the export through the production ``_read_shard_records()`` with the build's DOI repairs table
+(``PUBMED_DOI_REPAIRS``), so a repaired DOI is shared exactly when it is in the build, compares identifiers with the
 production ``shared_identifier_key()`` (so a DOI is compared case-insensitively), and classifies each shared
 identifier by the records carrying it:
 
@@ -39,9 +40,11 @@ from collections import Counter
 from pathlib import Path
 
 from src.createcompendia.publications import (
+    PUBMED_DOI_REPAIRS,
     _lower_pmid,
     _read_shard_records,
     expected_shard_counts,
+    load_doi_repairs,
     shared_identifier_key,
 )
 from src.util import get_config
@@ -55,9 +58,10 @@ OUTPUT_DIR = Path(__file__).parent
 
 
 def records(export_dir, shards):
-    """Every record of the export, through the production reader."""
+    """Every record of the export, through the production reader, with the repairs the build makes."""
+    doi_repairs = load_doi_repairs(PUBMED_DOI_REPAIRS)
     for shard in shards:
-        yield from _read_shard_records(os.path.join(export_dir, shard))
+        yield from _read_shard_records(os.path.join(export_dir, shard), doi_repairs)
 
 
 def pmid_number(pmid):
