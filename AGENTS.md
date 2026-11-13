@@ -263,7 +263,9 @@ A Babel release is a build *plus* the NodeNorm and NameRes versions deployed aga
 combined note lives in `releases/<build>/README.md`. `releases/releases.yaml` records which versions
 shipped with which build — that mapping is not derivable from anywhere else, and each entry is the
 next release's comparison baseline. [`releases/README.md`](releases/README.md) is the process, and
-`releases/scripts/draft_release_notes.py` drafts the mechanical parts.
+`releases/scripts/draft_release_notes.py` drafts the mechanical parts. Two skills bracket a build:
+`.claude/skills/prepare-release/` rechecks every per-release pin at the top of `config.yaml` before
+it starts, and `.claude/skills/release-notes/` writes the note once it has finished.
 
 That directory also holds ~420 KB of the build's summary reports, mirroring the build directory's
 own paths so a release directory *is* a (tiny) build directory — `--build-dir releases/2026jul22`
