@@ -22,7 +22,7 @@ while leaving out one it did apply fails loudly as unexplained edges.
 Writes, under ``--out``:
 
 * ``components.tsv`` -- one row per flagged structure-less component: tier, triage verdict, key, sizes, labels;
-* ``boundary_edges.tsv`` -- the concord edges attaching each flagged component to its key; the ``likely wrong``
+* ``boundary_edges.tsv`` -- the concord edges attaching each flagged component to its key; the ``likely misattached``
   rows are the candidate pairs to block;
 * ``refused_edges.tsv`` -- xrefs the InChIKey guard refused (harmless in the build; worth reporting upstream);
 * ``summary.tsv`` -- counts of glom edge verdicts and of components by tier and verdict.

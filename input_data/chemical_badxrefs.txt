@@ -6,7 +6,7 @@
 # the clique of a structure that substance is not. glom() runs with unique_prefixes=[INCHIKEY], so a
 # structure-less record has no key to protect it and one bad xref is enough. The pairs were found with
 # babel-inchikey-audit (docs/tools/InchikeyAudit.md) on Babel 2026jul22 and reviewed by hand: tier A components
-# triaged "likely wrong" or "review" and judged wrong. Each block lists every concord edge that attached the
+# triaged "likely misattached" or "review" and judged wrong. Each block lists every concord edge that attached the
 # component, so dropping them separates it cleanly. Categories:
 #
 #   misattached         the key is an unrelated substance

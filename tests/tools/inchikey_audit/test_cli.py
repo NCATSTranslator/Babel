@@ -38,7 +38,9 @@ def test_cli_writes_components_boundary_refused_and_summary(tmp_path):
     assert main(["--build", str(build), "--structure-file", str(structures), "--out", str(out), "--threads", "1"]) == 0
 
     components = read(out / "components.tsv")
-    assert [(c["clique_leader"], c["tier"], c["verdict"]) for c in components] == [("CHEBI:28887", "A", "likely wrong")]
+    assert [(c["clique_leader"], c["tier"], c["verdict"]) for c in components] == [
+        ("CHEBI:28887", "A", "likely misattached")
+    ]
     boundary = read(out / "boundary_edges.tsv")
     assert [(b["subj"], b["subj_label"], b["obj"], b["obj_label"]) for b in boundary] == [
         ("DrugCentral:4951", "ofatumumab", "PUBCHEM.COMPOUND:8254", "Dimethyl Ether")
@@ -46,4 +48,4 @@ def test_cli_writes_components_boundary_refused_and_summary(tmp_path):
     assert read(out / "refused_edges.tsv") == []
     summary = {(r["kind"], r["category"]): int(r["n"]) for r in read(out / "summary.tsv")}
     assert summary[("glom edge", "applied")] == len(OFATUMUMAB_CONCORDS)
-    assert summary[("component tier A", "likely wrong")] == 1
+    assert summary[("component tier A", "likely misattached")] == 1

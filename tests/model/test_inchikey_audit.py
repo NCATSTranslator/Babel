@@ -8,8 +8,8 @@ import pytest
 from src.createcompendia.chemicals import UNICHEM_OVERUSED_XREF_PREFIXES
 from src.model.glom_edges import classify_chemical_glom_edges
 from src.model.inchikey_audit import (
-    LIKELY_WRONG,
-    MATCHING_KEY,
+    BELONGS,
+    LIKELY_MISATTACHED,
     REVIEW,
     audit_chemical_inchikeys,
     core_naming_records,
@@ -98,8 +98,8 @@ def test_name_agreement():
 @pytest.mark.parametrize(
     "score,heavy,expected",
     [
-        (1.0, 291, MATCHING_KEY),  # semaglutide: names agree, peptide-sized core
-        (0.08, 3, LIKELY_WRONG),  # ofatumumab -> dimethyl ether
+        (1.0, 291, BELONGS),  # semaglutide: names agree, peptide-sized core
+        (0.08, 3, LIKELY_MISATTACHED),  # ofatumumab -> dimethyl ether
         (0.93, 4, REVIEW),  # macrogol -> ethylene glycol: names agree on a monomer-sized core
         (0.01, 119, REVIEW),  # givosiran -> its GalNAc conjugate: large core, names disagree
         (1.0, None, REVIEW),  # the key is not in UniChem's structure file
@@ -178,9 +178,9 @@ def run_audit(tmp_path, concords, cliques, labels, structures):
 
 
 @pytest.mark.unit
-def test_ofatumumab_is_flagged_tier_a_likely_wrong_with_its_one_bad_edge(tmp_path):
+def test_ofatumumab_is_flagged_tier_a_likely_misattached_with_its_one_bad_edge(tmp_path):
     """The antibody's records should form one tier A component (five structure sources, no structure), triaged
-    likely wrong against a 3-heavy-atom core, attached by exactly the DrugCentral -> CID 8254 edge."""
+    likely misattached against a 3-heavy-atom core, attached by exactly the DrugCentral -> CID 8254 edge."""
     members = sorted({c for _, s, o in OFATUMUMAB_CONCORDS for c in (s, o)} | {"RXCUI:712566"})
     cliques = {"CHEBI:28887": ("SmallMolecule", members)}
     structures = [("1", DIMETHYL_ETHER_INCHI, DIMETHYL_ETHER_KEY.split(":", 1)[1])]
@@ -193,7 +193,7 @@ def test_ofatumumab_is_flagged_tier_a_likely_wrong_with_its_one_bad_edge(tmp_pat
             "CHEBI:28887",
             DIMETHYL_ETHER_KEY,
             "A",
-            LIKELY_WRONG,
+            LIKELY_MISATTACHED,
             5,
             3,
             "CHEMBL.COMPOUND:CHEMBL1201836 DRUGBANK:DB06650 DrugCentral:4951 GTOPDB:6778 RXCUI:712566 "
@@ -250,7 +250,7 @@ def test_core_naming_records_prefers_pubchem():
 
 @pytest.mark.unit
 def test_a_core_record_named_after_the_biologic_does_not_clear_it(tmp_path):
-    """Chymopapain attached to Tiron should triage likely wrong even though two Tiron-structured core records are
+    """Chymopapain attached to Tiron should triage likely misattached even though two Tiron-structured core records are
     labelled "Chymopapain": the core is named by its PubChem CID, 4,5-dihydroxy-1,3-benzenedisulfonic acid."""
     members = sorted({c for _, s, o in CHYMOPAPAIN_CONCORDS for c in (s, o)})
     cliques = {"CHEBI:193860": ("SmallMolecule", members)}
@@ -258,5 +258,5 @@ def test_a_core_record_named_after_the_biologic_does_not_clear_it(tmp_path):
     con = run_audit(tmp_path, CHYMOPAPAIN_CONCORDS, cliques, CHYMOPAPAIN_LABELS, structures)
 
     assert con.sql("SELECT tier, verdict, core_heavy_atoms FROM audit_component").fetchall() == [
-        ("A", LIKELY_WRONG, 16)
+        ("A", LIKELY_MISATTACHED, 16)
     ]

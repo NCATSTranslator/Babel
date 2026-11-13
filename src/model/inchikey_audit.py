@@ -27,10 +27,11 @@ The audit works on a finished build (see :mod:`src.model.glom_edges` for why no 
    atom count (from the UniChem standard InChI) and agreement between the names on either side of the boundary,
    with the core named by its PubChem CIDs (:func:`core_naming_records`).
 
-The verdicts are triage, not judgement. ``likely wrong`` covers both a **misattached** key (an unrelated substance)
-and a **component** key (a real part of the substance -- an ADC payload, a polymer's monomer); ``matching key``
-means the key looks like the structure of the substance itself (a peptide PubChem draws in full). Names are used
-because the structure-less side has nothing else.
+The verdicts are triage, not judgement, and they are about the attached substance, never the core's InChIKey.
+``likely misattached`` covers a substance attached to an unrelated structure and one attached to the structure of
+one of its parts (an ADC's payload, a polymer's monomer); ``belongs`` means the core's structure looks like the
+substance itself (a peptide PubChem draws in full). Names are used because the structure-less side has nothing
+else.
 """
 
 from __future__ import annotations
@@ -73,8 +74,8 @@ NAME_AGREEMENT_MIN = 0.6
 LARGE_CORE_HEAVY_ATOMS = 100
 SMALL_CORE_HEAVY_ATOMS = 20
 
-MATCHING_KEY = "matching key"
-LIKELY_WRONG = "likely wrong"
+BELONGS = "belongs"
+LIKELY_MISATTACHED = "likely misattached"
 REVIEW = "review"
 NOT_TRIAGED = "not triaged"
 
@@ -205,7 +206,7 @@ def core_naming_records(core_curies: Iterable[str]) -> list[str]:
     both with Tiron's structure, are labelled "Chymopapain"; taking the best name match over every core label
     cleared it, and likewise thyrotropin alfa -> TRH, defibrotide and lipegfilgrastim. PubChem titles a CID from its
     structure's depositors, so it is the one label that follows the structure. The cost is that a CID titled by its
-    IUPAC name or "CID nnn" fails to match, which sends genuine matches to review or likely wrong -- the safe
+    IUPAC name or "CID nnn" fails to match, which sends genuine matches to review or likely misattached -- the safe
     direction for a list of edges to block.
     """
     core_curies = list(core_curies)
@@ -216,8 +217,8 @@ def core_naming_records(core_curies: Iterable[str]) -> list[str]:
 def triage(name_score: float, core_heavy_atoms: int | None) -> str:
     """Triage a tier A component from name agreement and the size of the core's structure.
 
-    * names agree and the core is not tiny -> ``matching key``;
-    * names disagree and the core is small-molecule sized -> ``likely wrong``;
+    * names agree and the core is not tiny -> ``belongs``;
+    * names disagree and the core is small-molecule sized -> ``likely misattached``;
     * otherwise (names agree on a tiny core, names disagree on a large core, or no structure for the key) ->
       ``review``.
     """
@@ -225,9 +226,9 @@ def triage(name_score: float, core_heavy_atoms: int | None) -> str:
         return REVIEW
     names_agree = name_score >= NAME_AGREEMENT_MIN
     if names_agree and core_heavy_atoms >= SMALL_CORE_HEAVY_ATOMS:
-        return MATCHING_KEY
+        return BELONGS
     if not names_agree and core_heavy_atoms < LARGE_CORE_HEAVY_ATOMS:
-        return LIKELY_WRONG
+        return LIKELY_MISATTACHED
     return REVIEW
 
 

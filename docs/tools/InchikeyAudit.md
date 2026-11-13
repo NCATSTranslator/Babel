@@ -54,14 +54,15 @@ Two steps outside `glom()` are modelled:
    side of the boundary. The core is named by its PubChem CIDs' labels, because a core record can
    carry the biologic's name too: in 2026jul22, `CHEBI:193860` and `HMDB:HMDB0029845` have Tiron's
    structure but are labelled "Chymopapain".
-   - **`matching key`:** names agree on a non-trivial core.
-   - **`likely wrong`:** names disagree on a small-molecule core.
+   - **`belongs`:** names agree on a non-trivial core.
+   - **`likely misattached`:** names disagree on a small-molecule core.
    - **`review`:** everything else.
 
-`likely wrong` covers two cases:
+The verdicts are about the attached substance, not the core's InChIKey. `likely misattached`
+covers two cases:
 
-- **Misattached key:** an unrelated substance, e.g. ofatumumab → dimethyl ether.
-- **Component key:** a real part of the substance, e.g. an ADC → its payload, or PEG → ethylene
+- **Attached to an unrelated structure,** e.g. ofatumumab → dimethyl ether.
+- **Attached to the structure of one of its parts,** e.g. an ADC → its payload, or PEG → ethylene
   glycol.
 
 Both are fixed by blocking the boundary edge, but they go to different upstream reports.
@@ -94,7 +95,7 @@ All files are under `--out`, tab-separated.
   structure-source count, core heavy atoms, name score, boundary sources, members, and the labels
   on both sides.
 - **`boundary_edges.tsv`:** the concord edges attaching each flagged component to its key, labelled.
-  The `likely wrong` rows are the candidate pairs to block.
+  The `likely misattached` rows are the candidate pairs to block.
 - **`refused_edges.tsv`:** xrefs the InChIKey guard refused. They are harmless in the build but are
   source errors worth reporting.
 - **`summary.tsv`:** counts of edge verdicts, and of components by tier and verdict.
