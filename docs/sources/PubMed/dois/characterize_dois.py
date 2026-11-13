@@ -183,6 +183,10 @@ SHAPES = [
 ]
 
 
+# Every shape shape_of() can return, in the order it tests them; "other" is what's left.
+SHAPE_ORDER = [shape for shape, _ in SHAPES] + ["other"]
+
+
 def shape_of(value):
     """The shape (see the module docstring) of one malformed DOI, given without its ``doi:`` prefix."""
     tokens = value.split()
@@ -572,7 +576,9 @@ def main():
                 # Spread across the PMID-sorted list rather than the first few, which are one journal issue.
                 "examples": info["rows"][:: max(1, len(info["rows"]) // EXAMPLES_PER_SHAPE)][:EXAMPLES_PER_SHAPE],
             }
-            for shape, info in sorted(shapes.items(), key=lambda item: -item[1]["count"])
+            # In SHAPES order, not by count, so that a shape overtaking another between exports doesn't move
+            # its whole block in the diff of this committed file.
+            for shape, info in sorted(shapes.items(), key=lambda item: SHAPE_ORDER.index(item[0]))
         },
     }
     with open(OUTPUT_DIR / "counts.json", "w") as f:
