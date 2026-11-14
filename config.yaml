@@ -116,6 +116,21 @@ duckdb_config:
   write_buffer_row_group_count: 1
   enable_external_file_cache: false
 
+# Shared-synonym audit (rule check_for_shared_synonyms, issue #638). A name lookup returns every clique that
+# carries the string it matches, so a synonym attached to more than one clique makes wrong edges for whoever
+# resolves it. Each group lists the synonym files one lookup can return together, and the audit reports every
+# lowercased string carried by more than one clique in the group. Values are the names of config.yaml output
+# lists, not file names, so a new chemical output type joins the pre-conflation audit without editing this:
+#   disease               -- Disease and PhenotypicFeature, since a string in both is as ambiguous as one in either.
+#   chemical              -- the pre-conflation chemical files, so a Drug and a SmallMolecule clique sharing a
+#                            string are caught before DrugChemical conflation merges (or fails to merge) them.
+#   drugchemicalconflated -- the conflated chemical synonyms NameRes indexes: what a lookup actually sees.
+# Report only; nothing fails the build on it yet.
+shared_synonym_audit_groups:
+  disease: [disease_outputs]
+  chemical: [chemical_outputs]
+  drugchemicalconflated: [drugchemicalconflated_synonym_outputs]
+
 #
 # UMLS
 #

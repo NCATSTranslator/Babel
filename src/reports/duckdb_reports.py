@@ -75,6 +75,243 @@ def check_for_identically_labeled_cliques(
         db.close()
 
 
+# Categories of a synonym shared by more than one clique, by how many of those cliques use it as their
+# preferred name. A string that is one clique's preferred name is usually correctly attached to that
+# clique, so its other cliques are the likeliest place for a wrong synonym; a string no clique uses as
+# its preferred name gives no hint which clique (if any) it belongs to; and a string several cliques
+# use as their preferred name is the identically-labelled-clique case (#338).
+SHARED_SYNONYM_PREFERRED_BY_ONE = "preferred_by_one"
+SHARED_SYNONYM_PREFERRED_BY_NONE = "preferred_by_none"
+SHARED_SYNONYM_PREFERRED_BY_SEVERAL = "preferred_by_several"
+SHARED_SYNONYM_CATEGORIES = [
+    SHARED_SYNONYM_PREFERRED_BY_ONE,
+    SHARED_SYNONYM_PREFERRED_BY_NONE,
+    SHARED_SYNONYM_PREFERRED_BY_SEVERAL,
+]
+
+
+def check_for_shared_synonyms(
+    synonyms_parquet_files,
+    duckdb_filename,
+    shared_synonyms_tsv_gz,
+    summary_json,
+    audit_group,
+    duckdb_config=None,
+    top_n=50,
+    example_cliques=10,
+):
+    """
+    Report every synonym that more than one clique in an audit group carries.
+
+    A name lookup that matches a synonym returns every clique carrying it, so a string attached to
+    the wrong clique turns into wrong edges for whoever resolves it (#638). This audits one group of
+    synonym files that a single lookup can return together -- e.g. all the pre-conflation chemical
+    files, so a Drug clique and a SmallMolecule clique sharing a string are caught.
+
+    A clique's strings are its `names` plus its preferred name: the preferred name is not always in
+    `names` (#1073), and a lookup matches it either way. Strings are compared lowercased (the
+    Synonyms.parquet `label_lc` / `preferred_name_lc` columns) and the empty string and `""` are
+    ignored. A clique with an empty `names` list has no Synonyms.parquet row, so it is not seen.
+
+    Each shared string is put in one of SHARED_SYNONYM_CATEGORIES by how many of its cliques use it as
+    their preferred name.
+
+    Outputs:
+      * `shared_synonyms_tsv_gz` -- one row per (shared string, clique). Unsorted: a global sort of
+        this many rows overshot the cgroup in the sibling identically-labelled report, so every row
+        carries the per-string counts instead, and a consumer can group or sort it cheaply.
+      * `summary_json` -- counts per category, counts per set of Biolink types sharing a string, and
+        the `top_n` most widely shared strings per category with up to `example_cliques` of their
+        cliques (preferred-name cliques first).
+
+    Like check_for_identically_labeled_cliques(), strings and cliques are grouped by 64-bit hash, so
+    the large aggregates hold fixed-size keys instead of long strings; a hash collision would merge
+    two strings' counts, which at this scale is astronomically unlikely and only perturbs a report.
+
+    :param synonyms_parquet_files: The `filename=<X>/Synonyms.parquet` files in this audit group.
+        The hive partition supplies each row's `filename`.
+    :param duckdb_filename: A temporary DuckDB file to use.
+    :param shared_synonyms_tsv_gz: The per-(string, clique) output file (gzipped TSV).
+    :param summary_json: The summary output file.
+    :param audit_group: The audit group's name, recorded in the summary.
+    :param duckdb_config: DuckDB settings for this run.
+    :param top_n: How many of the most widely shared strings to list per category in the summary.
+    :param example_cliques: How many cliques to list for each of those strings.
+    """
+    if not synonyms_parquet_files:
+        raise ValueError(f"Shared-synonym audit group {audit_group!r} has no synonym files.")
+
+    db = setup_duckdb(duckdb_filename, duckdb_config)
+    synonyms = db.read_parquet(list(synonyms_parquet_files), hive_partitioning=True)  # noqa: F841 (used in SQL)
+
+    # Every (string, clique) occurrence: one row per name, plus one per name row for the preferred
+    # name. The second branch repeats a clique's preferred name once per name it has; the GROUP BYs
+    # below collapse that.
+    occurrences_sql = """
+        SELECT label_lc AS synonym, clique_leader, filename, biolink_type, preferred_name,
+            COALESCE(label_lc = preferred_name_lc, FALSE) AS is_preferred_name
+        FROM synonyms WHERE label_lc NOT IN ('', '""')
+        UNION ALL
+        SELECT preferred_name_lc AS synonym, clique_leader, filename, biolink_type, preferred_name,
+            TRUE AS is_preferred_name
+        FROM synonyms WHERE preferred_name_lc NOT IN ('', '""')
+    """
+
+    # Pass 1: find the strings carried by more than one clique, on fixed-size hashes only. Both
+    # aggregates are spillable GROUP BYs; nothing here holds a string.
+    with log_duckdb_settings_on_error(db, f"check_for_shared_synonyms({audit_group}) pass 1 (hash aggregates)"):
+        db.execute(f"""
+            CREATE OR REPLACE TEMP TABLE shared AS
+            WITH string_clique AS (
+                SELECT hash(synonym) AS synonym_hash, hash(clique_leader) AS clique_hash,
+                    bool_or(is_preferred_name) AS is_preferred_name
+                FROM ({occurrences_sql})
+                GROUP BY synonym_hash, clique_hash
+            )
+            SELECT synonym_hash, clique_count, preferred_count,
+                CASE
+                    WHEN preferred_count = 0 THEN '{SHARED_SYNONYM_PREFERRED_BY_NONE}'
+                    WHEN preferred_count = 1 THEN '{SHARED_SYNONYM_PREFERRED_BY_ONE}'
+                    ELSE '{SHARED_SYNONYM_PREFERRED_BY_SEVERAL}'
+                END AS category
+            FROM (
+                SELECT synonym_hash,
+                    COUNT(*) AS clique_count,
+                    COUNT(*) FILTER (WHERE is_preferred_name) AS preferred_count
+                FROM string_clique
+                GROUP BY synonym_hash HAVING COUNT(*) > 1
+            )
+        """)
+
+    # Pass 2: recover the strings and clique details for the shared hashes only. `shared` is the
+    # small build side of the join; the aggregate runs over matching occurrences alone.
+    with log_duckdb_settings_on_error(db, f"check_for_shared_synonyms({audit_group}) pass 2 (shared pairs)"):
+        db.execute(f"""
+            CREATE OR REPLACE TEMP TABLE shared_pairs AS
+            SELECT s.synonym_hash,
+                any_value(o.synonym) AS synonym,
+                s.category,
+                s.clique_count,
+                s.preferred_count,
+                o.clique_leader,
+                bool_or(o.is_preferred_name) AS is_preferred_name,
+                any_value(o.preferred_name) AS preferred_name,
+                any_value(o.biolink_type) AS biolink_type,
+                any_value(o.filename) AS filename
+            FROM ({occurrences_sql}) o
+            JOIN shared s ON hash(o.synonym) = s.synonym_hash
+            GROUP BY s.synonym_hash, s.category, s.clique_count, s.preferred_count, o.clique_leader
+        """)
+
+    with log_duckdb_settings_on_error(db, f"check_for_shared_synonyms({audit_group}) write TSV"):
+        db.execute(f"""
+            COPY (
+                SELECT synonym, category, clique_count, preferred_count, clique_leader, is_preferred_name,
+                    preferred_name, biolink_type, filename
+                FROM shared_pairs
+            ) TO '{_sql_string(shared_synonyms_tsv_gz)}' (FORMAT CSV, DELIMITER '\t', HEADER, COMPRESSION GZIP)
+        """)
+
+    with log_duckdb_settings_on_error(db, f"check_for_shared_synonyms({audit_group}) summary"):
+        summary = _summarize_shared_synonyms(db, audit_group, synonyms_parquet_files, top_n, example_cliques)
+    with open(summary_json, "w") as f:
+        json.dump(summary, f, indent=2)
+        f.write("\n")
+
+    log_memory_snapshot(db, f"check_for_shared_synonyms({audit_group}) complete")
+    with log_duckdb_settings_on_error(db, f"check_for_shared_synonyms({audit_group}) teardown"):
+        db.close()
+
+
+def _sql_string(value):
+    """Quote `value` for use inside a single-quoted SQL string literal."""
+    return str(value).replace("'", "''")
+
+
+def _summarize_shared_synonyms(db, audit_group, synonyms_parquet_files, top_n, example_cliques):
+    """Build the check_for_shared_synonyms() summary from its `shared_pairs` temp table."""
+    by_category = {
+        category: {"synonyms": 0, "clique_pairs": 0, "non_preferred_clique_pairs": 0}
+        for category in SHARED_SYNONYM_CATEGORIES
+    }
+    for category, synonyms, clique_pairs, non_preferred in db.execute("""
+        SELECT category, COUNT(*), SUM(clique_count)::BIGINT, SUM(clique_count - preferred_count)::BIGINT
+        FROM shared GROUP BY category
+    """).fetchall():
+        by_category[category] = {
+            "synonyms": synonyms,
+            "clique_pairs": clique_pairs,
+            "non_preferred_clique_pairs": non_preferred,
+        }
+
+    # Which Biolink types share each string, as a bitmask per string so the aggregate stays
+    # fixed-size; the handful of distinct masks are decoded here.
+    biolink_types = [
+        row[0] for row in db.execute("SELECT DISTINCT biolink_type FROM shared_pairs ORDER BY 1").fetchall()
+    ]
+    if len(biolink_types) > 63:
+        raise ValueError(
+            f"Shared-synonym audit group {audit_group!r} has {len(biolink_types)} Biolink types; "
+            "the per-string type bitmask holds at most 63."
+        )
+    db.execute("CREATE OR REPLACE TEMP TABLE biolink_type_bits(biolink_type VARCHAR, bit UBIGINT)")
+    for index, biolink_type in enumerate(biolink_types):
+        db.execute("INSERT INTO biolink_type_bits VALUES (?, ?)", [biolink_type, 1 << index])
+    by_biolink_types = {category: Counter() for category in SHARED_SYNONYM_CATEGORIES}
+    for category, mask, count in db.execute("""
+        SELECT category, mask, COUNT(*) FROM (
+            SELECT p.synonym_hash, p.category, bit_or(b.bit) AS mask
+            FROM shared_pairs p JOIN biolink_type_bits b USING (biolink_type)
+            GROUP BY p.synonym_hash, p.category
+        ) GROUP BY category, mask
+    """).fetchall():
+        names = [biolink_type for index, biolink_type in enumerate(biolink_types) if mask & (1 << index)]
+        by_biolink_types[category]["||".join(names)] += count
+
+    largest = {}
+    for category in SHARED_SYNONYM_CATEGORIES:
+        rows = db.execute(
+            """
+            WITH top AS (
+                SELECT synonym_hash, clique_count FROM shared
+                WHERE category = ?
+                ORDER BY clique_count DESC, synonym_hash
+                LIMIT ?
+            )
+            SELECT any_value(p.synonym), t.clique_count, any_value(p.preferred_count),
+                list({
+                    'clique_leader': p.clique_leader,
+                    'is_preferred_name': p.is_preferred_name,
+                    'preferred_name': p.preferred_name,
+                    'biolink_type': p.biolink_type
+                } ORDER BY p.is_preferred_name DESC, p.clique_leader)[1:?]
+            FROM shared_pairs p JOIN top t USING (synonym_hash)
+            GROUP BY p.synonym_hash, t.clique_count
+            ORDER BY t.clique_count DESC, any_value(p.synonym)
+            """,
+            [category, top_n, example_cliques],
+        ).fetchall()
+        largest[category] = [
+            {"synonym": synonym, "clique_count": clique_count, "preferred_count": preferred_count, "cliques": cliques}
+            for synonym, clique_count, preferred_count, cliques in rows
+        ]
+
+    return {
+        "audit_group": audit_group,
+        "synonym_files": sorted(
+            os.path.basename(os.path.dirname(f)).removeprefix("filename=") for f in synonyms_parquet_files
+        ),
+        "shared_synonyms": sum(c["synonyms"] for c in by_category.values()),
+        "shared_synonym_clique_pairs": sum(c["clique_pairs"] for c in by_category.values()),
+        "by_category": by_category,
+        "by_biolink_types": {
+            category: dict(sorted(counts.items(), key=lambda item: (-item[1], item[0])))
+            for category, counts in by_biolink_types.items()
+        },
+        "largest": largest,
+    }
+
+
 def check_for_duplicate_curies(parquet_root, duckdb_filename, duplicate_curies_tsv, duckdb_config=None):
     """
     Generate a list of duplicate CURIEs.
