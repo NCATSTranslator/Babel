@@ -1,0 +1,26 @@
+{
+ "data_model_version": "1.0.0",
+ "format": "ndjson",
+ "records": 15,
+ "generated_by": "v1.1.0-153-ga53d2f5",
+ "corpus": {
+  "build_name": "2026nov08"
+ },
+ "files": [
+  {
+   "name": "pubmed_metadata_0.ndjson.gz",
+   "bytes": 3753,
+   "sha256": "5450512a1666ad343b7dafb036ee0c70b428f21e7d001ec948562f1352f752e7"
+  },
+  {
+   "name": "pubmed_metadata_1.ndjson.gz",
+   "bytes": 1502,
+   "sha256": "5768583c1d83f9f838688592f17ef2e4402a2d50171d679958c2dcaba4532b8e"
+  },
+  {
+   "name": "pubmed_metadata_2.ndjson.gz",
+   "bytes": 985,
+   "sha256": "ca174f123b72b574702ec571313d402b01d03dc6a75791abf9d6ff09b931d453"
+  }
+ ]
+}
