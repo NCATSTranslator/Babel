@@ -28,6 +28,8 @@ def _make_efo_store() -> pyoxigraph.Store:
                    + hasDbXref "MESH:D001234" (valid CURIE string xref)
                    + hasDbXref "MP:0001625" (dropped only when MP prefix excluded)
                    + hasDbXref "not-a-curie" (invalid, should be skipped)
+    EFO:0011048  — hasDbXref " MedDRA:10059516", copied verbatim (leading space included) from
+                   EFO_0011048 "dermatological toxicity" in EFO 3.95.0's efo.owl
 
     EFO:0001234  — subClassOf EFO:0000001
     EFO:NOTANEFO — non-EFO_ IRI; should be skipped by label/id methods
@@ -55,6 +57,8 @@ def _make_efo_store() -> pyoxigraph.Store:
     store.add(quad(root, nn(f"{_OBO_NS}hasDbXref"), lit("MESH:D001234")))
     store.add(quad(root, nn(f"{_OBO_NS}hasDbXref"), lit("MP:0001625")))
     store.add(quad(root, nn(f"{_OBO_NS}hasDbXref"), lit("not-a-curie")))
+
+    store.add(quad(nn(f"{_EFO_NS}0011048"), nn(f"{_OBO_NS}hasDbXref"), lit(" MedDRA:10059516")))
 
     return store
 
@@ -174,6 +178,17 @@ def test_get_xrefs_writes_valid_curie(efograph):
     out = io.StringIO()
     efograph.get_xrefs("EFO:0000001", out)
     assert "EFO:0000001\toboInOwl:hasDbXref\tMESH:D001234" in out.getvalue()
+
+
+@pytest.mark.unit
+def test_get_xrefs_strips_whitespace_from_xref(efograph):
+    """Should write a whitespace-padded xref literal as a clean CURIE, since the shared concord
+    parser rejects a padded column (and every concord reader now uses it). Once unpadded, the
+    prefix is normalized like any other MedDRA xref; with the space, opt_to_curie() left it alone
+    and the 2025dec11 concord carried " MedDRA:10059516"."""
+    out = io.StringIO()
+    efograph.get_xrefs("EFO:0011048", out)
+    assert out.getvalue() == "EFO:0011048\toboInOwl:hasDbXref\tMEDDRA:10059516\n"
 
 
 @pytest.mark.unit

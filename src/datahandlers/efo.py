@@ -153,7 +153,11 @@ class EFOgraph:
         excluded_upper = self._upper_prefixes(excluded_target_prefixes)
         for row in list(qres):
             other = str(row["match"])
-            other_without_brackets = other[1:-1]
+            # EFO's xref literals are hand-entered and some carry stray whitespace, e.g. EFO 3.95.0's
+            # EFO_0011048 has `<oboInOwl:hasDbXref> MedDRA:10059516</oboInOwl:hasDbXref>`. Strip it
+            # here: a padded CURIE is rejected by the shared concord parser
+            # (src/model/intermediates.py), and it also slipped past _is_excluded_target().
+            other_without_brackets = other[1:-1].strip()
             try:
                 other_id = Text.opt_to_curie(other_without_brackets)
             except ValueError as verr:
