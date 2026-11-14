@@ -330,7 +330,9 @@ the source file, so you can tell which semantic type and which source a row came
 
 `Concord.parquet` — one row per cross-reference edge, from every non-empty concord file (including
 the extension-less DrugChemical conflation concords at
-`intermediate/drugchemical/concords/{RXNORM,UMLS,PUBCHEM_RXNORM}`):
+`intermediate/drugchemical/concords/{RXNORM,UMLS,PUBCHEM_RXNORM}`). A concord line with the wrong
+number of columns fails the export rather than being skipped; builds up to and including 2026jul22
+skipped such lines, so their `Concord.parquet` may be missing rows that were in the files:
 
 | Column   | Type   | Meaning                                                          |
 |----------|--------|------------------------------------------------------------------|
