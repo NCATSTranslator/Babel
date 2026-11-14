@@ -12,6 +12,7 @@ from pathlib import Path
 from src.babel_utils import WgetRecursionOptions, glom, pull_via_wget, read_identifier_file, write_compendium
 from src.categories import JOURNAL_ARTICLE, PUBLICATION
 from src.metadata.provenance import write_concord_metadata
+from src.model.intermediates import read_concords
 from src.prefixes import DOI, PMC, PMID
 from src.util import ensure_parent_dir, get_logger
 
@@ -323,10 +324,8 @@ def generate_compendium(concordances, metadata_yamls, identifiers, titles, publi
         print(infile)
         print("loading", infile)
         pairs = []
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                pairs.append({x[0], x[2]})
+        for x in read_concords(infile):
+            pairs.append({x[0], x[2]})
         glom(dicts, pairs, unique_prefixes=uniques)
 
     # Publications have titles, not labels. We load them here.

@@ -18,6 +18,7 @@ from src.babel_utils import (
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.datahandlers.gard import normalize_gard_curie
 from src.metadata.provenance import write_concord_metadata
+from src.model.intermediates import read_concords
 from src.prefixes import (
     DOID,
     GARD,
@@ -794,14 +795,10 @@ def compute_cliques_for_impact_report(
         else:
             logger.info("No bad xrefs configured for %s", pref)
             bad_pairs = set()
-        with open(infile) as inf:
-            for line in inf:
-                stuff = line.strip().split("\t")
-                if len(stuff) != 3:
-                    raise RuntimeError('Line "', line.strip(), '" is not a valid concord: ', stuff)
-                x = tuple([stuff[0].strip(), stuff[2].strip()])
-                if x not in bad_pairs:
-                    pairs.append(x)
+        for subject, _predicate, obj in read_concords(infile):
+            x = (subject, obj)
+            if x not in bad_pairs:
+                pairs.append(x)
         if pref in OVERUSE_FILTERED_CONCORDS:
             newpairs = remove_overused_xrefs(pairs, target_prefixes=OVERUSE_FILTERED_CONCORDS[pref])
         else:

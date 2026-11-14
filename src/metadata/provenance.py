@@ -5,6 +5,7 @@ from datetime import datetime
 
 import yaml
 
+from src.model.intermediates import read_concords
 from src.util import ensure_parent_dir
 
 
@@ -20,10 +21,10 @@ def write_download_metadata(filename, *, name, url="", description="", sources=N
 def write_concord_metadata(filename, *, name, concord_filename, url="", description="", sources=None, counts=None):
     """Write metadata for a concord file, including counts computed by reading every row of it.
 
-    Raises ValueError on a row that isn't exactly three tab-separated columns. This runs in the rule
-    that wrote the concord, minutes into a build, whereas a bad row used to be skipped here with a
-    warning and then either skipped again or crash the compendium build hours later (the protein
-    loader indexes ``x[2]`` unguarded).
+    Raises :class:`~src.model.intermediates.MalformedConcordRowError` (a ValueError) on the first row the
+    shared concord parser rejects. This runs in the rule that wrote the concord, so a bad row fails
+    minutes into a build rather than hours later in the compendium rule that reads it with the same
+    parser; see :mod:`src.model.intermediates`.
     """
     # Concord files should all be in the format:
     #   <curie>\t<predicate>\t<curie>
@@ -36,25 +37,15 @@ def write_concord_metadata(filename, *, name, concord_filename, url="", descript
     distinct_curies = set()
     predicate_counts = defaultdict(int)
     curie_prefix_counts = defaultdict(int)
-    with open(concord_filename) as concordf:
-        for line_number, line in enumerate(concordf, start=1):
-            row = line.strip().split("\t")
-            if len(row) != 3:
-                raise ValueError(
-                    f"{concord_filename}:{line_number} has {len(row)} tab-separated columns, not 3: {line!r}"
-                )
-            curie1 = row[0]
-            predicate = row[1]
-            curie2 = row[2]
+    for curie1, predicate, curie2 in read_concords(concord_filename):
+        count_concords += 1
+        predicate_counts[predicate] += 1
+        distinct_curies.add(curie1)
+        distinct_curies.add(curie2)
 
-            count_concords += 1
-            predicate_counts[predicate] += 1
-            distinct_curies.add(curie1)
-            distinct_curies.add(curie2)
-
-            prefixes = [curie1.split(":")[0], curie2.split(":")[0]]
-            sorted_prefixes = sorted(prefixes)
-            curie_prefix_counts[f"{predicate}({sorted_prefixes[0]}, {sorted_prefixes[1]})"] += 1
+        prefixes = [curie1.split(":")[0], curie2.split(":")[0]]
+        sorted_prefixes = sorted(prefixes)
+        curie_prefix_counts[f"{predicate}({sorted_prefixes[0]}, {sorted_prefixes[1]})"] += 1
 
     if counts is None:
         counts = {}

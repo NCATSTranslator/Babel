@@ -11,6 +11,7 @@ Sections:
 import pytest
 
 from src.model.concords import OverusedTarget, find_overused_xref_targets, load_mrconso_labels
+from src.model.intermediates import MalformedConcordRowError
 
 # --- find_overused_xref_targets ---
 
@@ -103,7 +104,7 @@ def test_malformed_row_raises(tmp_path):
     concord = tmp_path / "DOID"
     concord.write_text("DOID:1\tICD10:A\n")
 
-    with pytest.raises(RuntimeError, match="not a valid concord row"):
+    with pytest.raises(MalformedConcordRowError, match="not a valid concord row"):
         find_overused_xref_targets(str(concord))
 
 

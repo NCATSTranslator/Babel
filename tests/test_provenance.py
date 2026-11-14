@@ -27,12 +27,18 @@ def test_concord_metadata_counts_rows(tmp_path):
     [
         "NCIT:C150023\teq\n",  # two columns
         "NCIT:C150023\teq\tUniProtKB:Q9C0C9\textra\n",  # four columns
+        "NCIT:C150023\teq\tUniProtKB:Q9C0C9\t\n",  # trailing tab: four columns, the last empty
+        "NCIT:C150023\teq\t\n",  # empty object
         "\n",  # blank line
     ],
 )
-def test_concord_metadata_raises_on_a_row_without_three_columns(tmp_path, bad_row):
-    """Should raise, naming the file and line, rather than skip a row that isn't three columns."""
+def test_concord_metadata_raises_on_a_malformed_row(tmp_path, bad_row):
+    """Should raise, naming the file and line, rather than skip a row the concord parser rejects.
+
+    The full set of rejected shapes is pinned in tests/model/test_intermediates.py; these check that
+    write_concord_metadata() goes through that parser rather than a copy of it.
+    """
     concord = tmp_path / "concord"
     concord.write_text("NCIT:C179160\teq\tUniProtKB:Q15119\n" + bad_row)
-    with pytest.raises(ValueError, match=r"concord:2 has \d tab-separated columns, not 3"):
+    with pytest.raises(ValueError, match=r"concord:2 is not a valid concord row"):
         write_concord_metadata(tmp_path / "metadata.yaml", name="test", concord_filename=concord)

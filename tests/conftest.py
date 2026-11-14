@@ -3,6 +3,7 @@ import os
 
 import pytest
 
+from src.model.intermediates import read_concords
 from src.node import NodeFactory
 from src.util import get_config
 
@@ -76,11 +77,14 @@ def assert_ids_file_valid(path: str) -> list[list[str]]:
 
 
 def assert_concordance_file_valid(path: str) -> list[list[str]]:
-    """Assert the file is non-empty and every line is CURIE\\trelation\\tCURIE; return the rows."""
-    rows = read_tsv(path)
+    """Assert the file is non-empty and every line is CURIE\\trelation\\tCURIE; return the rows.
+
+    Rows are read with src.model.intermediates.read_concords, the parser every build step uses, so a
+    row this accepts is one the build accepts (it raises MalformedConcordRowError otherwise).
+    """
+    rows = [list(row) for row in read_concords(path)]
     assert rows, f"Concordance file is empty: {path}"
     for cols in rows:
-        assert len(cols) == 3, f"Expected 3 columns, got {len(cols)}: {cols}"
         assert ":" in cols[0], f"First column is not a CURIE: {cols[0]}"
         assert ":" in cols[2], f"Third column is not a CURIE: {cols[2]}"
     return rows
