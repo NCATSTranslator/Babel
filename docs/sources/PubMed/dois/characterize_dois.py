@@ -111,6 +111,22 @@ SECONDS_BETWEEN_LOOKUPS = 1.0
 # One well-formed DOI is sampled from each record whose PMID is a multiple of this (~200 records).
 BASELINE_PMID_MODULUS = 200003
 EXAMPLES_PER_SHAPE = 8
+# The columns of malformed_dois.csv, one row per candidate repair (or one per malformed DOI with none).
+MALFORMED_DOIS_CSV_COLUMNS = [
+    "pmid",
+    "identifier",
+    "problem",
+    "shape",
+    "strategy",
+    "candidate",
+    "registered_at_doi_org",
+    "already_on_this_record",
+    "other_pmids_with_candidate",
+    "crossref_title",
+    "crossref_title_match",
+    "crossref_title_ratio",
+    "in_repairs_table",
+]
 
 # A complete DOI: the directory indicator 10, a 4-9 digit registrant code, and a non-empty suffix with no
 # whitespace. Crossref's recommended pattern for modern DOIs, minus its restriction on suffix characters.
@@ -551,7 +567,9 @@ def main():
             )
 
     with open(OUTPUT_DIR / "malformed_dois.csv", "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=list(csv_rows[0]))
+        # Not list(csv_rows[0]): an export with no malformed DOIs has no rows, and should still get a header.
+        # DictWriter raises if a row's keys stop matching this list.
+        writer = csv.DictWriter(f, fieldnames=MALFORMED_DOIS_CSV_COLUMNS)
         writer.writeheader()
         writer.writerows(csv_rows)
 
