@@ -7,6 +7,14 @@ them into DuckDB, and exports one record per PMID. That replaced Babel's own XML
 the single longest rule in the build (20 hours single-threaded in 2026jul22) and which neither
 de-duplicated revised articles nor honoured `DeleteCitation`.
 
+Babel still cleans up some of what the export contains: it repairs or skips malformed DOIs (see
+"Malformed DOIs") and gives each DOI or PMCID shared by several PMIDs to one of them (see
+"Identifiers shared by more than one PMID"). That cleanup belongs in pubmed2db, so that every
+consumer of the export gets it and Babel can ingest the export as it is.
+[pubmed2db#84](https://github.com/TranslatorSRI/pubmed2db/issues/84) moves it there, starting with
+the DOI repairs; treat the cleanup code here as temporary, and prefer fixing a new problem in
+pubmed2db to adding another workaround in Babel.
+
 ## Pinning an export
 
 **Whenever you touch the PubMed code, and before every release, check
@@ -385,6 +393,11 @@ A stale table is harmless rather than wrong. A row for a DOI PubMed has since co
 matches, and a new export's new malformed DOIs are skipped, as all of them used to be, until the
 table is regenerated. Some of the 219 will move on their own: the ten `EDN: … 10.7868/…` DOIs are
 from 2026 and were not registered yet on the day they were checked.
+
+The table is meant to go away:
+[pubmed2db#84](https://github.com/TranslatorSRI/pubmed2db/issues/84) asks pubmed2db to make these
+repairs at export, and [Babel#1195](https://github.com/NCATSTranslator/Babel/issues/1195) lists
+what to delete here once a pinned export does.
 
 DOIs that are well-formed CURIEs but not DOIs (`doi:20026430`), and the PubMed Central ids that are
 publisher article numbers, are a different problem:
