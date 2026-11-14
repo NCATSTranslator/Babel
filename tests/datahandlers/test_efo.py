@@ -30,6 +30,9 @@ def _make_efo_store() -> pyoxigraph.Store:
                    + hasDbXref "not-a-curie" (invalid, should be skipped)
     EFO:0011048  — hasDbXref " MedDRA:10059516", copied verbatim (leading space included) from
                    EFO_0011048 "dermatological toxicity" in EFO 3.95.0's efo.owl
+    EFO:0803478  — hasDbXref "KEGG COMPOUND:C20409", and
+    EFO:0004358  — hasDbXref "PERSON: Dani Welter", both copied verbatim from EFO 3.95.0's efo.owl:
+                   free text that merely contains a colon (#1117), so skipped as malformed
 
     EFO:0001234  — subClassOf EFO:0000001
     EFO:NOTANEFO — non-EFO_ IRI; should be skipped by label/id methods
@@ -59,6 +62,8 @@ def _make_efo_store() -> pyoxigraph.Store:
     store.add(quad(root, nn(f"{_OBO_NS}hasDbXref"), lit("not-a-curie")))
 
     store.add(quad(nn(f"{_EFO_NS}0011048"), nn(f"{_OBO_NS}hasDbXref"), lit(" MedDRA:10059516")))
+    store.add(quad(nn(f"{_EFO_NS}0803478"), nn(f"{_OBO_NS}hasDbXref"), lit("KEGG COMPOUND:C20409")))
+    store.add(quad(nn(f"{_EFO_NS}0004358"), nn(f"{_OBO_NS}hasDbXref"), lit("PERSON: Dani Welter")))
 
     return store
 
@@ -189,6 +194,27 @@ def test_get_xrefs_strips_whitespace_from_xref(efograph):
     out = io.StringIO()
     efograph.get_xrefs("EFO:0011048", out)
     assert out.getvalue() == "EFO:0011048\toboInOwl:hasDbXref\tMEDDRA:10059516\n"
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("efo_id", ["EFO:0803478", "EFO:0004358"])
+def test_get_xrefs_skips_and_counts_malformed_curies(efograph, efo_id):
+    """Should skip a free-text xref that only looks like a CURIE ("KEGG COMPOUND:C20409",
+    "PERSON: Dani Welter"), since write_compendium() rejects it as malformed, and return the count
+    so make_concords() can record it in the concord metadata (#1117)."""
+    out = io.StringIO()
+    assert efograph.get_xrefs(efo_id, out) == 1
+    assert out.getvalue() == ""
+
+
+@pytest.mark.unit
+def test_get_xrefs_counts_nothing_for_well_formed_xrefs(efograph):
+    """Should return 0 when every xref is written or skipped for another reason (an excluded
+    prefix, or not a CURIE at all), so the metadata count means "malformed" and nothing else."""
+    out = io.StringIO()
+    # "not-a-curie" is rejected earlier, by opt_to_curie(), and MP:0001625 by the exclusion.
+    assert efograph.get_xrefs("EFO:0000001", out, excluded_target_prefixes=[MP]) == 0
+    assert "MESH:D001234" in out.getvalue()
 
 
 @pytest.mark.unit
