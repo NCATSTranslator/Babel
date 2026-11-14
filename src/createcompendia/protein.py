@@ -7,6 +7,7 @@ import src.datahandlers.umls as umls
 from src.babel_utils import Text, glom, read_identifier_file, write_compendium
 from src.categories import PROTEIN
 from src.metadata.provenance import write_concord_metadata
+from src.model.intermediates import read_concords
 from src.prefixes import DRUGBANK, ENSEMBL, MESH, NCBITAXON, NCIT, PR, UNIPROTKB
 from src.ubergraph import UberGraph
 from src.util import get_logger, get_memory_usage_summary
@@ -314,14 +315,12 @@ def build_protein_compendia(concordances, metadata_yamls, identifiers, icrdf_fil
     for infile in concordances:
         logger.info(f"Loading concordance file {infile}")
         pairs = []
-        with open(infile) as inf:
-            for line_index, line in enumerate(inf):
-                if line_index % 1000000 == 0:
-                    logger.info(f"Loading concordance file {infile}: line {line_index:,}")
-                x = line.strip().split("\t")
-                if x[0] in owned_elsewhere or x[2] in owned_elsewhere:
-                    continue
-                pairs.append(set([x[0], x[2]]))
+        for line_index, x in enumerate(read_concords(infile)):
+            if line_index % 1000000 == 0:
+                logger.info(f"Loading concordance file {infile}: line {line_index:,}")
+            if x[0] in owned_elsewhere or x[2] in owned_elsewhere:
+                continue
+            pairs.append(set([x[0], x[2]]))
         # print("glomming", infile) # This takes a while, but doesn't add much to the memory
         glom(dicts, pairs, unique_prefixes=uniques)
         logger.info(f"Loaded concordance file {infile}: {get_memory_usage_summary()}")

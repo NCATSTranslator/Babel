@@ -5,6 +5,7 @@ from datetime import datetime
 
 import yaml
 
+from src.model.intermediates import read_concords
 from src.util import ensure_parent_dir
 
 
@@ -18,6 +19,13 @@ def write_download_metadata(filename, *, name, url="", description="", sources=N
 
 
 def write_concord_metadata(filename, *, name, concord_filename, url="", description="", sources=None, counts=None):
+    """Write metadata for a concord file, including counts computed by reading every row of it.
+
+    Raises :class:`~src.model.intermediates.MalformedConcordRowError` (a ValueError) on the first row the
+    shared concord parser rejects. This runs in the rule that wrote the concord, so a bad row fails
+    minutes into a build rather than hours later in the compendium rule that reads it with the same
+    parser; see :mod:`src.model.intermediates`.
+    """
     # Concord files should all be in the format:
     #   <curie>\t<predicate>\t<curie>
     # From this, we extract three counts:
@@ -29,27 +37,15 @@ def write_concord_metadata(filename, *, name, concord_filename, url="", descript
     distinct_curies = set()
     predicate_counts = defaultdict(int)
     curie_prefix_counts = defaultdict(int)
-    with open(concord_filename) as concordf:
-        for line in concordf:
-            row = line.strip().split("\t")
-            if len(row) != 3:
-                logging.warning(
-                    f"Concord file {concord_filename} has a line with {len(row)} columns, not 3 -- skipping: '{line}'"
-                )
-                # raise ValueError(f"Concord file {concord_filename} has a line with {len(row)} columns, not 3: {line}")
-                continue
-            curie1 = row[0]
-            predicate = row[1]
-            curie2 = row[2]
+    for curie1, predicate, curie2 in read_concords(concord_filename):
+        count_concords += 1
+        predicate_counts[predicate] += 1
+        distinct_curies.add(curie1)
+        distinct_curies.add(curie2)
 
-            count_concords += 1
-            predicate_counts[predicate] += 1
-            distinct_curies.add(curie1)
-            distinct_curies.add(curie2)
-
-            prefixes = [curie1.split(":")[0], curie2.split(":")[0]]
-            sorted_prefixes = sorted(prefixes)
-            curie_prefix_counts[f"{predicate}({sorted_prefixes[0]}, {sorted_prefixes[1]})"] += 1
+        prefixes = [curie1.split(":")[0], curie2.split(":")[0]]
+        sorted_prefixes = sorted(prefixes)
+        curie_prefix_counts[f"{predicate}({sorted_prefixes[0]}, {sorted_prefixes[1]})"] += 1
 
     if counts is None:
         counts = {}

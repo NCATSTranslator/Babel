@@ -532,44 +532,30 @@ def export_intermediates_to_parquet(
         # intermediate directory in relative to the run directory.
         intermediate_path = Path(intermediate_directory).resolve()
 
-        # Load concord files. A concord line that is not exactly three tab-separated columns is
-        # skipped rather than aborting the whole export: this matches write_concord_metadata() in
-        # src/metadata/provenance.py, which warns-and-skips such lines instead of failing, so the
-        # export must not be stricter than the format the rest of the pipeline enforces.
-        # ignore_errors drops the bad line; store_rejects routes it to DuckDB's reject_errors
-        # table so we can log each one (with file, line, and reason) after the load.
-        loaded_any_concord = False
+        # Load concord files. A line that isn't three tab-separated columns fails the export, just as
+        # it fails every other concord reader (src/model/intermediates.py:parse_concord_line). This load
+        # used to skip such lines (ignore_errors + store_rejects, logged as warnings) on the grounds
+        # that write_concord_metadata() also skipped them; it no longer does, and an export that
+        # quietly drops rows the build would have rejected publishes a Concord table that disagrees
+        # with the compendia. read_csv's strict mode is a backstop, not a second copy of the parser:
+        # it checks the column count but accepts a trailing tab, and doesn't look for the empty or
+        # padded columns parse_concord_line() rejects (tests/test_duckdb_exporters.py pins this).
+        # Every concord a compendium reads has already been through that parser by the time this
+        # export runs, so re-scanning ~15 GB of concords in Python here would buy nothing.
         for concord_path, subject_filename in _iter_loadable_files(intermediate_path, "concords"):
             if subject_filename is not None:
                 _insert_metadata(db, concord_path, subject_filename)
                 continue
             logger.info(f"Loading concords from {concord_path}")
-            loaded_any_concord = True
-            db.execute(
-                "INSERT INTO Concord SELECT $1 AS filename, subj, pred, obj "
-                "FROM read_csv($1, delim='\\t', header=false, quote='', "
-                "ignore_errors=true, store_rejects=true, "
-                "columns={'subj': 'VARCHAR', 'pred': 'VARCHAR', 'obj': 'VARCHAR'})",
-                [str(concord_path)],
-            )
-
-        # DuckDB only creates the reject_errors/reject_scans tables once a store_rejects read has
-        # run, so guard the lookup on having loaded at least one concord file. Each rejected line
-        # is a concord line that wasn't three columns; warn once per line and once with the total.
-        if loaded_any_concord:
-            rejected_concord_lines = db.execute(
-                "SELECT s.file_path, e.line, e.csv_line, e.error_message "
-                "FROM reject_errors e JOIN reject_scans s USING (scan_id, file_id) "
-                "ORDER BY s.file_path, e.line"
-            ).fetchall()
-            for file_path, line_number, csv_line, error_message in rejected_concord_lines:
-                logger.warning(
-                    f"Skipping malformed concord line {file_path}:{line_number} ({error_message}): {csv_line!r}"
+            try:
+                db.execute(
+                    "INSERT INTO Concord SELECT $1 AS filename, subj, pred, obj "
+                    "FROM read_csv($1, delim='\\t', header=false, quote='', "
+                    "columns={'subj': 'VARCHAR', 'pred': 'VARCHAR', 'obj': 'VARCHAR'})",
+                    [str(concord_path)],
                 )
-            if rejected_concord_lines:
-                logger.warning(
-                    f"Skipped {len(rejected_concord_lines)} malformed concord line(s) during intermediate export."
-                )
+            except duckdb.InvalidInputException as err:
+                raise RuntimeError(f"Malformed concord file {concord_path}: {err}") from err
 
         # Load identifier files.
         for ids_path, subject_filename in _iter_loadable_files(intermediate_path, "ids"):

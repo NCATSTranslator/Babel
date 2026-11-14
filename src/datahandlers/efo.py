@@ -5,7 +5,7 @@ import pyoxigraph
 from src.babel_utils import parse_rdf_literal, pull_via_urllib
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import EFO, ORPHANET
-from src.util import LoggingUtil, Text
+from src.util import LoggingUtil, Text, curie_format_problem
 
 logger = LoggingUtil.init_logging(__name__, level=logging.WARNING)
 
@@ -140,6 +140,10 @@ class EFOgraph:
         return nwrite
 
     def get_xrefs(self, iri, outfile, excluded_target_prefixes=()):
+        """Write ``iri``'s oboInOwl:hasDbXref targets to ``outfile`` as concord rows.
+
+        Returns how many xrefs were skipped as malformed CURIEs (see the comment at the check).
+        """
         query = f"""
          prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
          prefix EFO: <http://www.ebi.ac.uk/efo/EFO_>
@@ -151,9 +155,14 @@ class EFOgraph:
          """
         qres = self.m.query(query)
         excluded_upper = self._upper_prefixes(excluded_target_prefixes)
+        skipped_malformed = 0
         for row in list(qres):
             other = str(row["match"])
-            other_without_brackets = other[1:-1]
+            # EFO's xref literals are hand-entered and some carry stray whitespace, e.g. EFO 3.95.0's
+            # EFO_0011048 has `<oboInOwl:hasDbXref> MedDRA:10059516</oboInOwl:hasDbXref>`. Strip it
+            # here: a padded CURIE is rejected by the shared concord parser
+            # (src/model/intermediates.py), and it also slipped past _is_excluded_target().
+            other_without_brackets = other[1:-1].strip()
             try:
                 other_id = Text.opt_to_curie(other_without_brackets)
             except ValueError as verr:
@@ -165,13 +174,19 @@ class EFOgraph:
             if self._is_excluded_target(other_id, excluded_upper):
                 logger.warning(f"Skipping excluded xref '{other_id}' in EFOgraph.get_xrefs({iri})")
                 continue
-            # EFO occasionally has xrefs that are just strings, not IRIs or CURIEs
-            if ":" in other_id and not other_id.startswith(":"):
-                outfile.write(f"{iri}\toboInOwl:hasDbXref\t{other_id}\n")
-            else:
-                logger.warning(
-                    f"Skipping xref '{other_without_brackets}' in EFOgraph.get_xrefs({iri}): " + "not a valid CURIE"
-                )
+            # EFO's xrefs include free text that merely contains a colon: "KEGG COMPOUND:C20409"
+            # (EFO_0803478), "PERSON: Dani Welter", "UKBiobank Data Field: 23551". No prefix
+            # registered for a disease or phenotype class looks like that, so write_compendium()
+            # would drop them anyway, but as concord rows they bloat the metadata's prefix_counts and
+            # the source-impact report (#1117). curie_format_problem() is the check write_compendium()
+            # applies, so a row skipped here is one that could never reach a compendium. The count
+            # goes into the concord metadata (make_concords()) rather than a warning per row.
+            if problem := curie_format_problem(other_id):
+                logger.debug("Skipping malformed xref %r in EFOgraph.get_xrefs(%s): %s", other_id, iri, problem)
+                skipped_malformed += 1
+                continue
+            outfile.write(f"{iri}\toboInOwl:hasDbXref\t{other_id}\n")
+        return skipped_malformed
 
 
 def make_labels(owlfile, labelfile, synfile):
@@ -193,12 +208,15 @@ def make_concords(owlfile, idfilename, outfilename, provenance_metadata=None, ex
         diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES and docs/sources/MP/disjointness.md.
     """
     m = EFOgraph(owlfile)
+    skipped_malformed_xrefs = 0
     with open(idfilename) as inf, open(outfilename, "w") as concfile:
         for line in inf:
             efo_id = line.split("\t")[0]
             nexacts = m.get_exacts(efo_id, concfile, excluded_target_prefixes=excluded_target_prefixes)
             if nexacts == 0:
-                m.get_xrefs(efo_id, concfile, excluded_target_prefixes=excluded_target_prefixes)
+                skipped_malformed_xrefs += m.get_xrefs(
+                    efo_id, concfile, excluded_target_prefixes=excluded_target_prefixes
+                )
 
     if provenance_metadata is not None:
         excluded_note = (
@@ -216,5 +234,6 @@ def make_concords(owlfile, idfilename, outfilename, provenance_metadata=None, ex
                     "url": "http://www.ebi.ac.uk/efo/efo.owl",
                 }
             ],
+            counts={"skipped_malformed_xrefs": skipped_malformed_xrefs},
             concord_filename=outfilename,
         )

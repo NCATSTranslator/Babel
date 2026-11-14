@@ -374,78 +374,63 @@ def test_export_intermediates_to_parquet_inconsistent_columns(tmp_path):
 
 
 @pytest.mark.unit
-def test_export_intermediates_to_parquet_skips_malformed_concord_line(tmp_path, caplog):
-    """A concord line that is not exactly three columns is skipped (not fatal), matching
-    write_concord_metadata()'s warn-and-skip behavior; the well-formed lines still load and a
-    warning naming the skipped line is emitted."""
+@pytest.mark.parametrize(
+    "bad_line",
+    [
+        "C:2\tD:2\n",  # two columns
+        "C:2\teq\tD:2\tEXTRA\n",  # four columns
+    ],
+)
+def test_export_intermediates_to_parquet_raises_on_malformed_concord_line(tmp_path, bad_line):
+    """A concord line that isn't three columns should fail the export, naming the file it is in,
+    rather than be skipped -- every other concord reader rejects it (src/model/intermediates.py), so a
+    Concord table that silently dropped it would disagree with the compendia. Clean.txt sits
+    beside the bad file to check that the error names the right one."""
     intermediate_dir = tmp_path / "intermediate"
     concords_dir = intermediate_dir / "datacollect" / "concords"
     concords_dir.mkdir(parents=True)
-    # Line 2 has two columns and line 4 has four; both must be skipped, lines 1 and 3 kept.
-    (concords_dir / "Anatomy.txt").write_text(
-        "UBERON:0000001\teq\tMESH:D000001\n"
-        "UBERON:0000002\tMESH:D000002\n"
-        "UBERON:0000003\teq\tMESH:D000003\n"
-        "UBERON:0000004\teq\tMESH:D000004\tEXTRA\n"
-    )
-    concords_parquet = str(tmp_path / "Concord.parquet")
+    (concords_dir / "Clean.txt").write_text("A:1\teq\tB:1\nA:2\teq\tB:2\n")
+    (concords_dir / "Bad.txt").write_text("C:1\teq\tD:1\n" + bad_line)
 
-    with caplog.at_level("WARNING"):
+    with pytest.raises(RuntimeError, match=r"Malformed concord file .*Bad\.txt"):
         export_intermediates_to_parquet(
             str(intermediate_dir),
             str(tmp_path / "concords.duckdb"),
             str(tmp_path / "Identifier.parquet"),
-            concords_parquet,
+            str(tmp_path / "Concord.parquet"),
             str(tmp_path / "Metadata.parquet"),
         )
-
-    concords = duckdb.execute(
-        f"SELECT subj, pred, obj FROM read_parquet('{concords_parquet}') ORDER BY subj"
-    ).fetchall()
-    assert concords == [
-        ("UBERON:0000001", "eq", "MESH:D000001"),
-        ("UBERON:0000003", "eq", "MESH:D000003"),
-    ]
-    # Both malformed lines are reported, along with the aggregate count.
-    assert "Skipping malformed concord line" in caplog.text
-    assert "Skipped 2 malformed concord line(s)" in caplog.text
 
 
 @pytest.mark.unit
-def test_export_intermediates_to_parquet_malformed_concord_attributed_to_right_file(tmp_path, caplog):
-    """With several concord files, the reject_errors/reject_scans join must attribute a skipped
-    line to the file it came from: a clean file loads fully and the warning names only the
-    offending file, even though DuckDB accumulates rejects across the whole loop."""
+def test_export_intermediates_to_parquet_accepts_trailing_tab(tmp_path):
+    """A concord line with a trailing tab should load as its first three columns.
+
+    This pins current, known-imperfect behavior: DuckDB's read_csv treats a trailing delimiter as
+    harmless, so the export's strict mode does not catch it, while parse_concord_line() in
+    src/model/intermediates.py rejects the same line as four columns. It is harmless because every
+    concord a compendium reads has already been through that parser before this export runs. If
+    the export ever validates rows itself, invert this assertion to expect a RuntimeError rather
+    than deleting it.
+    """
     intermediate_dir = tmp_path / "intermediate"
     concords_dir = intermediate_dir / "datacollect" / "concords"
     concords_dir.mkdir(parents=True)
-    # Clean.txt is well-formed; Bad.txt has one two-column line that must be skipped.
-    (concords_dir / "Clean.txt").write_text("A:1\teq\tB:1\nA:2\teq\tB:2\n")
-    (concords_dir / "Bad.txt").write_text("C:1\teq\tD:1\nC:2\tD:2\n")
+    (concords_dir / "Trailing.txt").write_text("C:1\teq\tD:1\nC:2\teq\tD:2\t\n")
     concords_parquet = str(tmp_path / "Concord.parquet")
 
-    with caplog.at_level("WARNING"):
-        export_intermediates_to_parquet(
-            str(intermediate_dir),
-            str(tmp_path / "concords.duckdb"),
-            str(tmp_path / "Identifier.parquet"),
-            concords_parquet,
-            str(tmp_path / "Metadata.parquet"),
-        )
+    export_intermediates_to_parquet(
+        str(intermediate_dir),
+        str(tmp_path / "concords.duckdb"),
+        str(tmp_path / "Identifier.parquet"),
+        concords_parquet,
+        str(tmp_path / "Metadata.parquet"),
+    )
 
-    # All three well-formed rows load; only C:2's malformed line is dropped.
     concords = duckdb.execute(
         f"SELECT subj, pred, obj FROM read_parquet('{concords_parquet}') ORDER BY subj"
     ).fetchall()
-    assert concords == [
-        ("A:1", "eq", "B:1"),
-        ("A:2", "eq", "B:2"),
-        ("C:1", "eq", "D:1"),
-    ]
-    # The warning names Bad.txt (the source of the skipped line) and not Clean.txt.
-    assert "Skipped 1 malformed concord line(s)" in caplog.text
-    assert str(concords_dir / "Bad.txt") in caplog.text
-    assert str(concords_dir / "Clean.txt") not in caplog.text
+    assert concords == [("C:1", "eq", "D:1"), ("C:2", "eq", "D:2")]
 
 
 @pytest.mark.unit

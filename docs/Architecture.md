@@ -75,6 +75,17 @@ Each triple expresses that `CURIE1` and `CURIE2` are related by `Relation` (typi
 semantic type and feeds them into the `glom()` function in `src/babel_utils.py` to merge them into
 equivalence cliques.
 
+Read a concord with `read_concords()` from `src/model/intermediates.py`, never with a hand-rolled
+`line.strip().split("\t")`. It is the one definition of a valid row (exactly three tab-separated
+columns, none empty, none padded with whitespace) and it raises on any other, naming the file and
+line. Every compendium builder, `glom_from_files()` and `write_concord_metadata()` use it, so a bad
+row fails the rule that *wrote* the concord, minutes into a build, rather than being silently
+skipped by one pipeline and crashing another hours later. A handler whose source data carries stray
+whitespace must clean it before writing the row (see `EFOgraph.get_xrefs()`). To check a build's
+concords against the rule without running it, use [`babel-check-concords`](tools/CheckConcords.md).
+That module is the start of the shared intermediate-file reader proposed in
+[#736](https://github.com/NCATSTranslator/Babel/issues/736).
+
 ### Compendium JSONL
 
 Each line of a compendium file is a JSON object representing one clique. A clique includes:

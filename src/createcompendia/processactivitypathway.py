@@ -8,6 +8,7 @@ import src.datahandlers.umls as umls
 from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
 from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
 from src.metadata.provenance import write_concord_metadata
+from src.model.intermediates import read_concords
 from src.prefixes import GO, REACT, TCDB, WIKIPATHWAYS
 from src.ubergraph import build_sets
 
@@ -105,21 +106,19 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
         # them added. So we want to limit concordances to terms that are already in the dicts. But that's ONLY for the
         # UMLS concord.  We trust the others to retrieve decent identifiers.
         pairs = []
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                if infile.endswith("UMLS"):
-                    use = True
-                    for xi in (x[0], x[2]):
-                        if xi not in dicts:
-                            print(f"Skipping pair {x} from {infile} because {xi} is not in dicts")
-                            use = False
-                    if not use:
-                        continue
-                pair = [x[0], x[2]]
-                fspair = frozenset(pair)
-                if fspair not in bad_concords:
-                    pairs.append(pair)
+        for x in read_concords(infile):
+            if infile.endswith("UMLS"):
+                use = True
+                for xi in (x[0], x[2]):
+                    if xi not in dicts:
+                        print(f"Skipping pair {x} from {infile} because {xi} is not in dicts")
+                        use = False
+                if not use:
+                    continue
+            pair = [x[0], x[2]]
+            fspair = frozenset(pair)
+            if fspair not in bad_concords:
+                pairs.append(pair)
         # one kind of error is that GO->Reactome xrefs are freqently more like subclass relations. So
         # GO:0004674 (protein serine/threonine kinase) has over 400 Reactome xrefs
         # remove_overused_xrefs assumes that we want to remove pairs where the second pair is overused

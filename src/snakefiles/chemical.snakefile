@@ -280,6 +280,9 @@ rule get_chemical_unichem_relationships:
         # i.e. 93% of 24 GB -- raised a bucket so a growing UniChem doesn't OOM it.
         mem="32G",
     run:
+        # The only concord rule that writes no metadata, so its rows aren't checked by
+        # write_concord_metadata()'s read_concords() pass here: a malformed row surfaces later, when
+        # chemical_unichem_concordia reads it. Adding metadata per UNICHEM_* file would fix both (#648).
         chemicals.write_unichem_concords(
             input.structfile, input.reffile, config["intermediate_directory"] + "/chemicals/concords/UNICHEM"
         )
