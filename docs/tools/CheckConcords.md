@@ -65,11 +65,12 @@ DOI containing whitespace before it reaches the concord (`docs/sources/PubMed/RE
 "Malformed DOIs").
 
 2026jul22 published no `intermediate/` tree, so it was cross-checked through its
-`duckdb/Concord.parquet`, which keeps column values verbatim:
+`duckdb/Concord.parquet`, which keeps column values verbatim, queried in place as in
+[`docs/DataFormats.md`](../DataFormats.md) ("Querying a published build without downloading it"):
 
 ```sql
 SELECT regexp_replace(filename, '.*/intermediate/', '') AS concord, count(*) AS padded
-FROM read_parquet('https://stars.renci.org/var/babel_outputs/2026jul22/duckdb/Concord.parquet')
+FROM read_parquet('https://stars.renci.org/var/babel/<build>/duckdb/Concord.parquet')
 WHERE regexp_matches(subj, '^\s|\s$') OR regexp_matches(pred, '^\s|\s$') OR regexp_matches(obj, '^\s|\s$')
    OR subj IS NULL OR pred IS NULL OR obj IS NULL
 GROUP BY ALL;
