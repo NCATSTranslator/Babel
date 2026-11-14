@@ -20,7 +20,9 @@ pubmed2db to adding another workaround in Babel.
 **Whenever you touch the PubMed code, and before every release, check
 <https://stars.renci.org/var/babel_outputs/pubmed2db/> for a newer export.** The network test
 `tests/createcompendia/test_publications_export.py::test_pinned_export_is_the_newest` fails when
-there is one.
+there is one. Before a build, the
+[`prepare-release` skill](../../../.claude/skills/prepare-release/SKILL.md) walks through moving the
+pin, including regenerating the DOI repairs table.
 
 Three settings at the top of `config.yaml`, with the other values rechecked every release, pin the
 export a build reads:

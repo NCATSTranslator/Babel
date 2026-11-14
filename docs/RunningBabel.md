@@ -12,7 +12,9 @@ or change the download and output directories. One download has no version numbe
 link that goes stale instead: `gard_download_url` pins one uploaded version of the GARD list, so
 run `uv run pytest tests/datahandlers/test_gard.py::test_gard_download_url_is_current --network`,
 which fails if the link has gone from <https://rarediseases.info.nih.gov/about> and warns if a newer
-one is there (see [`sources/GARD/README.md`](sources/GARD/README.md), "Download").
+one is there (see [`sources/GARD/README.md`](sources/GARD/README.md), "Download"). Before a release
+build, the [`prepare-release` skill](../.claude/skills/prepare-release/SKILL.md) (`/prepare-release`
+in Claude Code) goes through every value at the top of `config.yaml` that needs rechecking.
 
 A UMLS API key is required in order to download UMLS and RxNorm databases. You will need
 to set the `UMLS_API_KEY` environmental variable to a UMLS API key, which you can obtain

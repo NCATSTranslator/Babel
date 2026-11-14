@@ -136,7 +136,8 @@ answer from the finished build's reports, the DuckDB `Edge` table, or Node Norma
    previous build, and it is what labels the *next* release's comparison report. If it fires, work
    out which release the value names before correcting it — do not just overwrite it.
 2. Leave `config.yaml`'s two pins alone until the **next** build is planned, then move both in one
-   commit: `previous_release` to this release, `release_name` to the new build. They must never be
+   commit (`/prepare-release` does this when it names the next build): `previous_release` to this
+   release, `release_name` to the new build. They must never be
    equal — a run whose `release_name` matches its `previous_release` diffs its own baseline and
    reports that nothing changed, so `generate_prefix_comparison()` raises rather than write it. A
    unit test enforces the pairing.
