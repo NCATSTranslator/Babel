@@ -259,15 +259,19 @@ def parse_pubmed_into_tsvs(
 
                                     titlesf.write(f"{PMID}:{pmid.text}\t{title_text}\n")
 
-                                # Write out the DOIs to the concords file.
+                                # Write out the DOIs and PMCIDs to the concords file. PubMed's ArticleId
+                                # text is not always trimmed: the 2025dec11 build's PMID_DOI concord had 457
+                                # DOIs ending in a space and 18 ending in a tab (PMID:9127676 ->
+                                # "10.1076/apab.104.7.814.13110\t"), which the shared concord parser in
+                                # src/model/intermediates.py rejects -- a trailing tab is a fourth column.
+                                # Readers used to line.strip() it away; strip it here, where it comes in.
                                 for doi in dois:
                                     count_dois += 1
-                                    concordf.write(f"{PMID}:{pmid.text}\teq\t{DOI}:{doi.text}\n")
+                                    concordf.write(f"{PMID}:{pmid.text}\teq\t{DOI}:{doi.text.strip()}\n")
 
-                                # Write out the PMCIDs to the concords file.
                                 for pmc in pmcs:
                                     count_pmcs += 1
-                                    concordf.write(f"{PMID}:{pmid.text}\teq\t{PMC}:{pmc.text}\n")
+                                    concordf.write(f"{PMID}:{pmid.text}\teq\t{PMC}:{pmc.text.strip()}\n")
 
                 time_taken_in_seconds = float(time.time_ns() - start_time) / 1_000_000_000
                 logger.info(

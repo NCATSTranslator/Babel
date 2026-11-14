@@ -1,15 +1,18 @@
-"""Unit tests for the PubMed download verification in src/createcompendia/publications.py.
+"""Unit tests for the PubMed download verification and parsing in src/createcompendia/publications.py.
 
 verify_pubmed_downloads() is the backstop that makes it safe to carry PubMed files forward from a
 previous run (see docs/RunningBabel.md, "Preloading PubMed downloads"): it MD5s every downloaded
 `.gz` against the `.md5` file PubMed publishes alongside it, and re-downloads the ones that fail.
 """
 
+import gzip
 import hashlib
+import pathlib
 
 import pytest
 
 import src.createcompendia.publications as publications
+from src.model.intermediates import read_concords
 
 
 def write_pubmed_file(directory, name, content=b"pubmed article data"):
@@ -146,3 +149,43 @@ def test_verifying_a_corrupt_download_redownloads_it_and_its_md5(baseline_dir, t
     # The file that was fine was never touched.
     assert good.read_bytes() == b"pubmed article data"
     assert done_file.exists()
+
+
+# PARSING PUBMED INTO CONCORDS
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("padding", ["\t", " "])
+def test_parse_pubmed_strips_padding_from_doi(tmp_path, padding):
+    """A DOI with trailing whitespace in PubMed's XML should be written as a clean concord row.
+
+    tests/data/pubmed_9127676.xml is PMID 9127676 as NCBI efetch returned it on 2026-11-14 (verbatim).
+    Today its DOI is clean, but the PubMed baseline behind the 2025dec11 build had
+    "10.1076/apab.104.7.814.13110\\t" -- line 5245692 of that build's intermediate/publications/
+    concords/PMID_DOI -- and 457 DOIs there ended in a space. The padding is re-inserted here.
+    Unstripped, the tab is a fourth column and write_concord_metadata() rejects the whole concord.
+    """
+    xml = (pathlib.Path(__file__).parent.parent / "data" / "pubmed_9127676.xml").read_text()
+    clean_doi = '<ArticleId IdType="doi">10.1076/apab.104.7.814.13110</ArticleId>'
+    assert clean_doi in xml
+    xml = xml.replace(clean_doi, f'<ArticleId IdType="doi">10.1076/apab.104.7.814.13110{padding}</ArticleId>')
+
+    baseline = tmp_path / "baseline"
+    updatefiles = tmp_path / "updatefiles"
+    baseline.mkdir()
+    updatefiles.mkdir()
+    with gzip.open(baseline / "pubmed25n0001.xml.gz", "wt") as f:
+        f.write(xml)
+
+    concord = tmp_path / "PMID_DOI"
+    publications.parse_pubmed_into_tsvs(
+        str(baseline),
+        str(updatefiles),
+        str(tmp_path / "titles"),
+        str(tmp_path / "statuses.jsonl.gz"),
+        str(tmp_path / "ids"),
+        str(concord),
+        str(tmp_path / "metadata.yaml"),
+    )
+
+    assert list(read_concords(concord)) == [("PMID:9127676", "eq", "doi:10.1076/apab.104.7.814.13110")]
