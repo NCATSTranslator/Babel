@@ -301,10 +301,22 @@ def test_repairs_table_holds_characters_a_tsv_could_not(tmp_path):
     assert publications.load_doi_repairs(str(table)) == {key: tuple(value) for key, value in repairs.items()}
 
 
+def test_comments_only_repairs_table_repairs_nothing(tmp_path):
+    """A table with only its header comments -- what's left of input_data/pubmed_doi_repairs.yaml once every
+    entry is deleted -- loads as None, and should be read as no repairs rather than refused as not a mapping."""
+    table = tmp_path / "repairs.yaml"
+    table.write_text("# From pubmed2db export 2026nov08.\n")
+    assert publications.load_doi_repairs(str(table)) == {}
+
+
 @pytest.mark.parametrize(
     ("text", "message"),
     [
         pytest.param("- doi:10.1/a b\n", "is not a mapping", id="not-a-mapping"),
+        # Falsy, but not the None an empty (comments-only) table loads as, so not an empty table either.
+        pytest.param("[]\n", "is not a mapping", id="empty-list"),
+        pytest.param("false\n", "is not a mapping", id="false"),
+        pytest.param("0\n", "is not a mapping", id="zero"),
         pytest.param('"doi:10.1/a b": doi:10.1/ab\n', "non-empty list", id="repair-not-a-list"),
         pytest.param('"doi:10.1/a b": []\n', "non-empty list", id="no-repairs"),
         pytest.param(

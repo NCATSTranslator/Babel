@@ -344,11 +344,14 @@ def load_doi_repairs(doi_repairs_file):
     """
     with open(doi_repairs_file, encoding="utf-8") as f:
         try:
-            # An empty table (comments only) loads as None. A repeated key would otherwise silently keep only
-            # its last list of repairs.
-            table = safe_load_yaml_unique_keys(f) or {}
+            # A repeated key would otherwise silently keep only its last list of repairs.
+            table = safe_load_yaml_unique_keys(f)
         except yaml.YAMLError as e:
             raise ValueError(f"{doi_repairs_file} is not a valid repairs table: {e}") from e
+    # An empty table (comments only) loads as None. Only None: `or {}` would also accept [], false or 0 as an
+    # empty table and silently disable every repair.
+    if table is None:
+        table = {}
     if not isinstance(table, dict):
         raise ValueError(f"{doi_repairs_file} is not a mapping of malformed DOIs to their repairs.")
     repairs = {}
