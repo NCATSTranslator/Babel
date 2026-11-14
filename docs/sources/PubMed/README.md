@@ -392,7 +392,8 @@ differ from `counts.json`, which is the reminder.
 A stale table is harmless rather than wrong. A row for a DOI PubMed has since corrected never
 matches, and a new export's new malformed DOIs are skipped, as all of them used to be, until the
 table is regenerated. Some of the 219 will move on their own: the ten `EDN: … 10.7868/…` DOIs are
-from 2026 and were not registered yet on the day they were checked.
+from 2026 and were not registered yet on the day they were checked. Recovering the rest, and leads
+for doing so, is [Babel#1197](https://github.com/NCATSTranslator/Babel/issues/1197).
 
 The table is meant to go away:
 [pubmed2db#84](https://github.com/TranslatorSRI/pubmed2db/issues/84) asks pubmed2db to make these
