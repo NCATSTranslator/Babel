@@ -1,8 +1,9 @@
 """Tests for src/util.py helpers."""
 
 import pytest
+import yaml
 
-from src.util import Text, _biolink_ref, ensure_parent_dir
+from src.util import Text, _biolink_ref, curie_format_problem, ensure_parent_dir, safe_load_yaml_unique_keys
 
 
 @pytest.mark.unit
@@ -111,3 +112,73 @@ class TestOmimCurie:
         """omim.org URLs reach the same helper, so the two call sites cannot drift."""
         assert Text.opt_to_curie("https://omim.org/PS303350") == "OMIM.PS:303350"
         assert Text.opt_to_curie("https://omim.org/115210") == "OMIM:115210"
+
+
+# CURIE FORMAT
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "curie",
+    [
+        # Malformed CURIEs shipped in babel-1.18 (2026jul22).
+        "UniProtKB:P0DP24|P0DP23|P0DP25",  # #1109
+        "doi:10.3760/cma. j. issn.2095-4352. 2014. 07.015",  # PMID:25027433, #1112
+        "doi:10.31857/S0026898424050076, EDN: HUNTKB",  # PMID:39970118, #1112
+        "PMID:25167691 ",  # trailing space, from the EFO xrefs
+        "PMID:1\t2",
+        "NCIT:C123 ",  # non-breaking space
+        "MONDO:0000001\x00",
+        "MONDO0000001",
+        ":0000001",
+        "MONDO:",
+    ],
+)
+def test_curie_format_problem_rejects_malformed_curies(curie):
+    """Should report a problem for whitespace, "|", control characters, or a missing prefix/local ID."""
+    assert curie_format_problem(curie) is not None
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "curie",
+    [
+        # Real shipped CURIEs whose local IDs use punctuation that an "alphanumeric only" rule would reject.
+        "INCHIKEY:RGXATDXOZOLMMY-UHFFFAOYSA-N",
+        "PANTHER.FAMILY:PTHR24377:SF1013",
+        "UniProtKB:P0DP24-1",
+        "EC:7.6.2.4",
+        "ENSEMBL:F53B6.2c.1",
+        "REACT:R-HSA-937045",
+        "icd11:2A81.Z",
+        "doi:10.1097/01.brs.0000182083.43553.fa",
+    ],
+)
+def test_curie_format_problem_accepts_valid_punctuation(curie):
+    """Should accept real CURIEs whose local IDs contain punctuation, including further colons."""
+    assert curie_format_problem(curie) is None
+
+
+# YAML LOADING
+
+
+@pytest.mark.unit
+def test_safe_load_yaml_unique_keys_reads_what_safe_load_reads():
+    """A document without repeated keys, nested mappings included, should load exactly as yaml.safe_load()."""
+    text = "a: [1, 2]\nb:\n  c: x\n  d: y\n"
+    assert safe_load_yaml_unique_keys(text) == yaml.safe_load(text)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "text",
+    [
+        pytest.param("a: 1\nb: 2\na: 3\n", id="top-level"),
+        pytest.param("outer:\n  a: 1\n  a: 2\n", id="nested"),
+    ],
+)
+def test_safe_load_yaml_unique_keys_refuses_a_repeated_key(text):
+    """A mapping that repeats a key should raise, naming the key, where yaml.safe_load() would silently keep the
+    last value."""
+    with pytest.raises(yaml.constructor.ConstructorError, match="duplicate key 'a'"):
+        safe_load_yaml_unique_keys(text)

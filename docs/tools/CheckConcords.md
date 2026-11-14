@@ -57,11 +57,12 @@ build's 52 concord files: 224,328,587 rows, 478 rejected, all coming from two wr
 
 Both come from the source data. EFO 3.95.0's `efo.owl` has
 `<oboInOwl:hasDbXref> MedDRA:10059516</oboInOwl:hasDbXref>`, and 60 hasDbXref literals in that file
-are padded. The DOIs come from the PubMed baseline those builds downloaded. Both writers now strip
-the value before writing the row (`EFOgraph.get_xrefs()` in `src/datahandlers/efo.py`,
-`parse_pubmed_into_tsvs()` in `src/createcompendia/publications.py`). The resulting cliques are
-unchanged except in one case: with the space gone, `opt_to_curie()` normalizes the EFO xref's prefix
-to `MEDDRA:`, the same as EFO's other MedDRA xrefs.
+are padded; `EFOgraph.get_xrefs()` in `src/datahandlers/efo.py` now strips them before writing the
+row. With the space gone, `opt_to_curie()` normalizes that xref's prefix to `MEDDRA:`, the same as
+EFO's other 607 MedDRA xrefs. The DOIs come from the PubMed XML baseline those builds parsed. PubMed
+is now read from a pubmed2db export instead, and `parse_pubmed2db_into_tsvs()` repairs or skips any
+DOI containing whitespace before it reaches the concord (`docs/sources/PubMed/README.md`,
+"Malformed DOIs").
 
 2026jul22 published no `intermediate/` tree, so it was cross-checked through its
 `duckdb/Concord.parquet`, which keeps column values verbatim:

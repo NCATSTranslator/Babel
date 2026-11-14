@@ -22,6 +22,8 @@ from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass
 from functools import cached_property
 
+from src.model.intermediates import read_concords
+
 
 def _prefix_of(curie: str) -> str:
     return curie.split(":", 1)[0]
@@ -51,14 +53,9 @@ def scan_concords_for_curies(
         if not path.is_file() or path.name.startswith("metadata-") or path.name.endswith(".yaml"):
             continue
         asserted_by = str(path.relative_to(concords_dir))
-        with path.open() as f:
-            for line in f:
-                parts = line.rstrip("\n").split("\t")
-                if len(parts) < 3:
-                    continue
-                subject, predicate, obj = parts[0], parts[1], parts[2]
-                if subject in source_set or obj in source_set:
-                    rows.append((subject, predicate, obj, asserted_by))
+        for subject, predicate, obj in read_concords(path):
+            if subject in source_set or obj in source_set:
+                rows.append((subject, predicate, obj, asserted_by))
     return rows
 
 
@@ -217,12 +214,7 @@ class PipelineContribution:
         for concords_path in self.concords_paths:
             if not concords_path.exists():
                 continue
-            with concords_path.open() as f:
-                for line in f:
-                    parts = line.rstrip("\n").split("\t")
-                    if len(parts) < 3:
-                        continue
-                    triples.append((parts[0], parts[1], parts[2]))
+            triples.extend(read_concords(concords_path))
         return triples
 
     @cached_property

@@ -60,7 +60,7 @@ def get_all_compendia(config):
         + config["cell_line_outputs"]
         + config["umls_outputs"]
         + config["macromolecularcomplex_outputs"]
-        + config["publication_outputs"]
+        + config["publications"]["outputs"]
     )
 
 
@@ -88,7 +88,7 @@ def get_all_synonyms(config):
         + config["macromolecularcomplex_outputs"]
         +
         # Publication.txt is empty, but it's still created, so it needs to be here.
-        config["publication_outputs"]
+        config["publications"]["outputs"]
     )
 
 

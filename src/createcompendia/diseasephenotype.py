@@ -314,14 +314,13 @@ def write_mesh_ids(outfile):
     mesh.write_ids(meshmap, outfile, order=[DISEASE, PHENOTYPIC_FEATURE])
 
 
-def write_umls_ids(mrsty, outfile, badumlsfile):
-    badumls = set()
-    with open(badumlsfile) as inf:
-        for line in inf:
-            if line.startswith("#"):
-                continue
-            umlscui = line.split()[0]
-            badumls.add(umlscui)
+def write_umls_ids(mrsty, outfile, badumlsfile, *, mesh_ownership=None):
+    """Select the UMLS CUIs the disease/phenotype pipeline claims by semantic type, minus ``badumls``.
+
+    ``mesh_ownership`` (the umls_mesh_ownership rule's output) makes a CUI follow its MeSH descriptor
+    (umls.apply_mesh_ownership): a CUI another pipeline owns is dropped here and a CUI this pipeline owns is added.
+    """
+    badumls = umls.read_cui_blocklist(badumlsfile)
     # Disease
     # B2.2.1.2.1 Disease or Syndrome
     # A1.2.2.1 Congenital Abnormality
@@ -360,7 +359,14 @@ def write_umls_ids(mrsty, outfile, badumlsfile):
     # A2.3 Organism Attribute
     # Includes things like "Age" which will merge with EFOs
     umlsmap["A2.3"] = PHENOTYPIC_FEATURE
-    umls.write_umls_ids(mrsty, umlsmap, outfile, blocklist_umls_ids=badumls)
+    umls.write_umls_ids(
+        mrsty,
+        umlsmap,
+        outfile,
+        blocklist_umls_ids=badumls,
+        mesh_ownership=mesh_ownership,
+        pipeline="disease",
+    )
 
 
 def build_disease_obo_relationships(outdir, metadata_yamls):
@@ -606,11 +612,10 @@ def build_gard_label_concord(
     # escape this.
     claimed = set()
     for concord in other_concords:
-        with open(concord) as inf:
-            for line in inf:
-                for curie in line.rstrip("\n").split("\t"):
-                    if Text.get_prefix_or_none(curie) == GARD:
-                        claimed.add(curie)
+        for row in read_concords(concord):
+            for curie in row:
+                if Text.get_prefix_or_none(curie) == GARD:
+                    claimed.add(curie)
 
     # normalized label -> CURIEs, one dict per pool vocabulary, in priority order.
     labels_by_vocabulary = []
@@ -680,6 +685,7 @@ def compute_cliques_for_impact_report(
     *,
     mondoclose=None,
     badxrefs=None,
+    mesh_ownership=None,
 ):
     """Load disease/phenotype identifier and concord files and return the union-find
     clique state without writing compendia.
@@ -706,6 +712,8 @@ def compute_cliques_for_impact_report(
     :param excluded_sources: set of source basenames (e.g. ``{"MP"}``) to skip
     :param mondoclose: explicit MONDO_close path; otherwise discovered by basename
     :param badxrefs: explicit basename->path dict; otherwise DEFAULT_BAD_XREFS
+    :param mesh_ownership: the umls_mesh_ownership rule's file; concord pairs naming a CUI another
+        pipeline owns are skipped (umls.read_cuis_owned_elsewhere). None skips nothing.
     :returns: ``(dicts, types)`` — glom dict-of-sets and the CURIE->biolink-type map
     """
     excluded = set(excluded_sources)
@@ -750,6 +758,7 @@ def compute_cliques_for_impact_report(
     elif MONDO in excluded:
         mondoclose = None
 
+    owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "disease")
     dicts = {}
     types = {}
     for ifile in identifiers:
@@ -797,7 +806,7 @@ def compute_cliques_for_impact_report(
             bad_pairs = set()
         for subject, _predicate, obj in read_concords(infile):
             x = (subject, obj)
-            if x not in bad_pairs:
+            if x not in bad_pairs and x[0] not in owned_elsewhere and x[1] not in owned_elsewhere:
                 pairs.append(x)
         if pref in OVERUSE_FILTERED_CONCORDS:
             newpairs = remove_overused_xrefs(pairs, target_prefixes=OVERUSE_FILTERED_CONCORDS[pref])
@@ -880,14 +889,18 @@ def split_mutually_exclusive_cliques(dicts, exclusive_prefix_groups=None):
     return dicts
 
 
-def build_compendium(concordances, metadata_yamls, identifiers, mondoclose, badxrefs, icrdf_filename):
+def build_compendium(
+    concordances, metadata_yamls, identifiers, mondoclose, badxrefs, icrdf_filename, mesh_ownership=None
+):
     """:concordances: a list of files from which to read relationships
-    :identifiers: a list of files from which to read identifiers and optional categories"""
+    :identifiers: a list of files from which to read identifiers and optional categories
+    :mesh_ownership: the umls_mesh_ownership rule's file (see compute_cliques_for_impact_report)"""
     dicts, types = compute_cliques_for_impact_report(
         concordances,
         identifiers,
         mondoclose=mondoclose,
         badxrefs=badxrefs,
+        mesh_ownership=mesh_ownership,
     )
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
     # Prefixes Biolink does not register for a clique's class but that we ship anyway; without this

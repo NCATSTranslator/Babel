@@ -64,9 +64,10 @@ def parse_concord_line(line: str, filename, line_number: int) -> tuple[str, str,
     would also make the build disagree with the DuckDB export, which reads columns verbatim.
     ``babel-check-concords`` over the 2025dec11 build's 224 million concord rows found 478 that this
     rejects, from two writers: EFO xrefs with a padded literal, and PubMed DOIs ending in a space or
-    tab. Both writers now strip the value (``EFOgraph.get_xrefs()``, ``parse_pubmed_into_tsvs()``);
-    the readers had been hiding them with ``line.strip()``. See ``docs/tools/CheckConcords.md`` for
-    the full scan and the 2026jul22 cross-check before loosening this.
+    tab. ``EFOgraph.get_xrefs()`` now strips its literals; PubMed is now read from a pubmed2db
+    export whose reader repairs or skips any DOI containing whitespace. The readers had been hiding
+    both with ``line.strip()``. See ``docs/tools/CheckConcords.md`` for the full scan and the
+    2026jul22 cross-check before loosening this.
 
     ``filename`` and ``line_number`` are only used in the error message.
     """

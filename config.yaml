@@ -11,11 +11,31 @@ build:
   - DrugBank downloads are currently disabled https://github.com/cthoyt/drugbank-downloader/issues/23 -- I used the previously downloaded 5-1-13.
   - HMDB is now behind a Cloudflare bot challenge, so the pipeline can't download it (see docs/sources/DownloadPatterns.md). Unlike DrugBank, this is not a reused old download -- I downloaded it fresh in a browser on my laptop and copied it to the HPC.
 
-# Versions that need to be updated on every release.
+# Versions that need to be updated on every release. Only values that are rechecked every build belong here,
+# flat; a pipeline's settings that don't change between releases go in its own mapping further down
+# (https://github.com/NCATSTranslator/Babel/issues/1192).
 biolink_version: "4.4.3"
 umls_version: "2026AA"
 rxnorm_version: "07062026"
 drugbank_version: "5-1-13" # The latest is 5-1-21, but since downloads are currently not allowed, we need to reuse our most recent download.
+# The pubmed2db NDJSON export (https://github.com/TranslatorSRI/pubmed2db) this build reads PubMed from:
+# one record per PMID, latest version only, deletions applied. Before every release, and whenever you touch
+# the PubMed code, check https://stars.renci.org/var/babel_outputs/pubmed2db/ for a newer export and move
+# pubmed2db_version to it. The export lives at <publications.pubmed2db_base_url><pubmed2db_version>/, and
+# Babel downloads its validation report (pubmed2db_validation_report, relative to that directory) and then
+# every shard the report lists. The report's path is not derivable from the version (an export is named for
+# its corpus cutoff, its report for the day it was validated: 2026nov08's is dated 20261109) and has moved
+# before (2026aug5 kept a gzipped one at the top level), so check it too. See docs/sources/PubMed/README.md.
+# Checked 2026-11-12: newest of 2026jun30, 2026aug5, 2026aug21, 2026sep26, 2026nov08.
+pubmed2db_version: "2026nov08"
+pubmed2db_validation_report: "manifests/validation_report-20261109.json"
+# The pubmed2db data model version (https://github.com/TranslatorSRI/pubmed2db/blob/main/docs/data-model/README.md)
+# the pinned export follows, exactly as its metadata.json gives it; the download and the parse both refuse an
+# export that says otherwise. When moving pubmed2db_version changes it, read pubmed2db's data model changelog
+# for what changed before updating it here. Babel's code reads only major version PUBMED2DB_DATA_MODEL_MAJOR
+# (src/createcompendia/publications.py), and a unit test fails if this names another, so a major version
+# needs a code change too.
+pubmed2db_data_model_version: "1.0.0"
 # GARD has no version number to bump, only a link that goes stale: this is the "GARD Rare Disease
 # List <Mon><Year>.csv" link on https://rarediseases.info.nih.gov/about (under "Which rare diseases
 # are included in GARD?"); NCATS publishes no stable data URL. The Salesforce `ids=068...` value is
@@ -103,6 +123,21 @@ umls:
   subset: "full"
   # Replace with "level-0" to get only the level 0 subset (https://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html).
   # subset: "level-0"
+
+# "A UMLS CUI follows its MeSH descriptor." Each pipeline listed here writes an ids/MESH file (by MeSH tree
+# number) and an ids/UMLS file (by UMLS semantic type), and its UMLS concord links each CUI it claims to that
+# CUI's MeSH descriptor. When the two disagree -- a CUI typed T116 "Amino Acid, Peptide, or Protein" whose
+# descriptor sits in a chemical D-tree, or a T002 "Plant" CUI whose descriptor is anatomy's "Plant Roots" --
+# the concord dragged the other pipeline's descriptor and DrugBank partners into this pipeline's clique, so
+# the same identifiers ended up in two compendia and led cliques in both (#276, #308, #1123). So rule
+# umls_mesh_ownership reads these pipelines' ids/MESH and gives each CUI whose descriptors exactly one of them
+# claims to that pipeline (umls.compute_mesh_owners() has the rules). Each listed pipeline's *_umls_ids rule
+# adds the CUIs it owns and drops the ones another pipeline owns, and its compendium rule skips concord pairs
+# naming a CUI another pipeline owns. Gene and process write an ids/UMLS but no ids/MESH and never concord UMLS
+# to MeSH, so they are not listed: the CUIs they select get no owner and stay with them. Names are the
+# pipelines' directories under intermediate_directory, and each pipeline's write_umls_ids() passes its own name
+# (tests/datahandlers/test_umls.py checks they match).
+umls_mesh_owning_pipelines: [anatomy, chemicals, disease, protein, taxon]
 
 #
 # PROTEINS
@@ -456,7 +491,12 @@ ubergraph_iri_stem_to_prefix_map:
   "http://purl.obolibrary.org/obo/PCO_": PCO
   "http://rgd.mcw.edu/rgdweb/report/gene/main.html?id=": RGD
 
-publication_outputs: [Publication.txt]
+# The publications pipeline (src/snakefiles/publications.snakefile). The pubmed2db export it reads is pinned
+# at the top of this file, with the other values rechecked every release; these don't change between exports.
+publications:
+  # Where pubmed2db publishes its exports, one directory per export (see pubmed2db_version).
+  pubmed2db_base_url: "https://stars.renci.org/var/babel_outputs/pubmed2db/"
+  outputs: [Publication.txt]
 
 geneprotein_outputs: [GeneProtein.txt]
 

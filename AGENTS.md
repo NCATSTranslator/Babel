@@ -32,9 +32,27 @@ Resolver services.
 
 ## Scratch space: use `data/`
 
-`data/` is a gitignored scratch directory — put ad hoc files there (downloads, build comparisons,
-extracted intermediates), and prefer it over `/tmp` for anything worth keeping across a session.
-Never write scratch files into the repository root, `input_data/`, or `docs/`.
+`data/` is a gitignored scratch directory — put ad hoc files there (one-off downloads, build
+comparisons, extracted intermediates, reports). Prefer it over `/tmp`: it survives across sessions,
+so a later investigation can reuse an earlier one's outputs. Never write scratch files into the
+repository root, `input_data/`, or `docs/`.
+
+- **Work in a descriptively named subdirectory** (`data/clique-diff/`, `data/branch-mp/`), not
+  loose files at the top level — the name is often the only record of what's inside.
+- **When outputs are worth keeping**, put a short untracked `README.md` *inside that
+  subdirectory*: what produced them, from which build or inputs, and what they're good for. Nothing
+  else needs cataloguing. Don't add a top-level `data/README.md`; the only tracked file is the
+  force-added `data/.gitkeep`, which keeps the directory in every checkout.
+- **Everything here is disposable.** Delete a subdirectory once it's clearly no longer needed, and
+  expect the maintainer to clear `data/` whenever disk runs low. Anything that must last — an
+  analysis a parsing decision rests on, a report — belongs in a committed script or doc (see
+  Debugging), not only in `data/`.
+
+`babel_downloads/` and `babel_outputs/` (also gitignored) are cleared less often and are the place
+for pipeline downloads and partial builds. Local runs reuse existing downloads so testing a change
+doesn't re-fetch every source; full runs on the HPC start from scratch to pick up the latest
+upstream files. So don't copy pipeline downloads into `data/` — use `babel_downloads/` — and don't
+assume a local download is current.
 
 ## Key Commands
 
@@ -146,11 +164,37 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
   a handler whose source data carries stray whitespace must strip it *before writing* the row.
   `uv run babel-check-concords <build>/intermediate/` checks a whole build against the rule
   ([`docs/tools/CheckConcords.md`](docs/tools/CheckConcords.md)).
+- **Malformed CURIEs fail the build** — `write_compendium()` collects every CURIE it writes that
+  `curie_format_problem()` (`src/util.py`) rejects (whitespace, `|`, control characters, missing
+  prefix or local ID), then raises once, listing them all. Fix the source that produced them; never
+  catch the error. The check runs on the output because a concord alone can put a CURIE into a
+  compendium (#1109).
 - **`SynonymFilter`** (`src/synonyms/filter.py`) checks every label/synonym against
   `input_data/obsolete_synonyms.yaml` before it enters a compendium — see its docstring for the
   `action` field and the `should_suppress()` contract.
+- **A UMLS CUI follows its MeSH descriptor** — `rule umls_mesh_ownership` reads the `ids/MESH` of
+  the five pipelines that write both `ids/MESH` and `ids/UMLS`
+  (`config.yaml: umls_mesh_owning_pipelines`) and gives each CUI whose descriptors exactly one of
+  them claims to that pipeline (`umls.compute_mesh_owners()`); each of those pipelines'
+  `*_umls_ids` rule then adds the CUIs it owns and drops the ones another pipeline owns, and its
+  compendium rule skips concord pairs naming a CUI another pipeline owns. Gene's and process's CUIs
+  have no owner (neither concords UMLS to MeSH). Decide ownership in that one place: a pipeline
+  deciding for itself drops CUIs no other pipeline adds. Changing a MeSH tree assignment therefore
+  moves CUIs. `docs/sources/UMLS/CuiFollowsMesh.md`; measure a change with
+  `docs/sources/UMLS/cui-follows-mesh/scripts/replay_mesh_ownership.py` before a build.
+- **Duplicate clique leaders fail the build** — `rule assert_no_unexpected_duplicate_clique_leaders`
+  raises for any row of `reports/duckdb/duplicate_clique_leaders.tsv` not in
+  `input_data/known_duplicate_clique_leaders.tsv` (each row names its issue). Never add a row
+  without an issue; fix the source instead (`docs/Architecture.md`, "Build controls").
 - **Logging** — always use `get_logger(__name__)` from `src.util`, never `logging.getLogger`
-  directly (see its docstring for why and the deferred-import exception).
+  directly (see its docstring for why and the deferred-import exception). **`get_logger()` defaults
+  to `INFO`, so `logger.debug(...)` output is suppressed — but an f-string argument is still
+  evaluated in full before the call.** In a per-record loop that makes a suppressed debug line a
+  real cost, and `logger.debug(f"...{json.dumps(big_structure)}...")` is unbounded: it serialises
+  the whole structure and throws it away. Pass lazy `%s` arguments
+  (`logger.debug("dropped %s", curie)`), and for anything expensive to build, guard with
+  `logger.isEnabledFor(logging.DEBUG)` or delete it. Worth grepping for when a per-record loop is
+  slower than it looks.
 - **Leftover UMLS** — `src/createcompendia/leftover_umls.py` (rule `leftover_umls`) runs last and
   writes every unclaimed valid MRCONSO concept as a single-identifier clique into
   `compendia/umls.txt` so its label survives downstream. Manual Biolink-type override tables and
@@ -165,6 +209,9 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
   for chemical compendium types; adding a subtype needs an entry there *and* a matching hardcoded
   `check_*` report rule in `chemical.snakefile` or `rule chemical`'s DAG breaks. Full note in
   [`docs/Architecture.md`](docs/Architecture.md#chemical-compendium-output-types).
+- **`threads:` alone gets one CPU on SLURM** — `slurm/config.yaml` defaults `cpus_per_task` to 1,
+  and the SLURM executor allocates `cpus_per_task` over `threads`, so a multi-process rule must set
+  both, equal (see `generate_pubmed_concords`). A local run never shows the difference.
 - **Snakemake `resources.mem` in a `run:` block** — read `resources.mem_mb`, never `resources.mem`.
   Snakemake normalizes every sized resource to `mem_mb` internally and re-exposes `mem` as a
   *humanfriendly string*, so a rule's `mem="512G"` reaches Python as `"512 GB"` — and `mem_mb` is
@@ -204,7 +251,16 @@ with `uv run snakemake --unlock`.
 
 Most semantic-type targets are much cheaper than the full pipeline (anatomy builds end-to-end on a
 laptop in ~25 minutes; the README's 500 GB figure is for the heaviest targets only). See
-`docs/RunningBabel.md` for a per-target sizing breakdown and common build issues.
+`docs/RunningBabel.md` for a per-target sizing breakdown, and read its "Common build issues" before
+running Snakemake by hand. Two of them catch agents out most:
+
+- **Put targets before `--forcerun`** or any other list-valued option (`--until`, `--omit-from`).
+  After one, a target path is taken as another value of that option, which leaves no target, so
+  Snakemake builds the whole pipeline. `--forcerun=rule` or a `--` before the targets is safe in
+  any order.
+- **On Apple Silicon without Rosetta, add `--scheduler greedy`** (or see the durable fixes in
+  `docs/RunningBabel.md`). Otherwise every run that schedules jobs fails at once with
+  `OSError: [Errno 86] Bad CPU type in executable` from `pulp`'s bundled x86-64 `cbc`.
 
 ## Releasing a build
 
@@ -405,3 +461,18 @@ never only in the description. Commit messages are effectively invisible after m
 compress a rationale into "see commit abc1234": if the reasoning matters, and especially if it
 records an alternative that was considered and rejected, put it in a comment or docstring beside the
 code that would have to change to undo it, and let the description point there.
+
+**Add or update BabelTests whenever you file or edit a Babel issue about output data** — a CURIE's
+clique, type, label, or whether it normalizes at all. The
+[babel-validation](https://github.com/TranslatorSRI/babel-validation) harness scans this repo's
+issues for `babel_tests:` YAML blocks (or one-line `BabelTest` markers) and runs them against live
+NodeNorm and NameRes; its README documents the assertion types. Assert the state the fix should
+produce (`DoesNotResolve`, `ResolvesWith`, `HasLabel`, …), plus `Resolves` guards for what the fix
+must not break. An open issue is one strict expected failure, so pytest reports it as FAILED
+`[XPASS(strict)]` once *every* assertion passes. That red result means the issue can be closed, not
+that the block is broken, so don't weaken its assertions to make it go away. A closed issue's
+assertions become regression tests. Check a new block with
+`uv run pytest tests/github_issues --target dev --issue 'NCATSTranslator/Babel#N'` from
+babel-validation, which needs `GITHUB_TOKEN` (`gh auth token` works). Never put a complete marker
+in prose that only explains the syntax: the harness runs it wherever it appears. #1109 and #1111
+are worked examples.

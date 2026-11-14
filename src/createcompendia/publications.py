@@ -1,359 +1,716 @@
+"""
+Build the Publication compendium from a pubmed2db NDJSON export.
+
+Babel used to download and parse the PubMed XML baseline and update files itself (~1,500 files, 20 hours
+single-threaded in 2026jul22). That work now happens in pubmed2db (https://github.com/TranslatorSRI/pubmed2db),
+which loads PubMed into DuckDB and exports one NDJSON record per PMID -- latest version only, deleted PMIDs
+removed -- as gzipped ``pubmed_metadata_*.ndjson.gz`` shards, with a ``metadata.json`` that gives the
+export's data model version and every shard's SHA-256, and a validation report that lists every shard and
+how many records it holds. Babel downloads the export pinned by ``config.yaml: pubmed2db_version`` and reads
+just three fields from each record: ``id`` (``PMID:...``), ``identifiers`` (the PMID plus its ``doi:`` and
+PubMed Central CURIEs) and ``article_title``.
+
+**Whenever you change this module, check https://stars.renci.org/var/babel_outputs/pubmed2db/ for a newer
+export** and move the pubmed2db settings at the top of ``config.yaml`` to it. pubmed2db versions its outputs
+with a "data model" version, and this module reads major version ``PUBMED2DB_DATA_MODEL_MAJOR``: an export
+from another major version is refused, because only a major bump may rename, remove or change the meaning
+of a field. ``config.yaml: pubmed2db_data_model_version`` pins the exact version of the pinned export, so
+moving the pin to an export in another data model is noticed even when this module could read it. The layout around the shards is not covered by that promise and has changed before (where the
+validation report lives), so read a new export against docs/sources/PubMed/README.md, which describes the
+contract this module relies on.
+
+Because every record already carries its complete identifier set, the compendium is written straight from
+the shards without glom(): a record *is* a clique. The one thing that needs a corpus-wide view is a DOI or
+PMCID that appears in more than one record -- see ``parse_pubmed2db_into_tsvs()`` for how that is resolved.
+"""
+
+import functools
 import gzip
 import hashlib
 import json
 import os
-import time
-import xml.etree.ElementTree as ET
-from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from mmap import ACCESS_READ, mmap
+import shutil
+import tempfile
+import zlib
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
-from src.babel_utils import WgetRecursionOptions, glom, pull_via_wget, read_identifier_file, write_compendium
+import yaml
+
+from src.babel_utils import TypedClique, pull_via_wget, write_compendium
 from src.categories import JOURNAL_ARTICLE, PUBLICATION
 from src.metadata.provenance import write_concord_metadata
 from src.model.intermediates import read_concords
-from src.prefixes import DOI, PMC, PMID
-from src.util import ensure_parent_dir, get_logger
+from src.prefixes import DOI
+from src.util import (
+    Text,
+    curie_format_problem,
+    ensure_parent_dir,
+    get_logger,
+    get_repo_root,
+    safe_load_yaml_unique_keys,
+)
 
 logger = get_logger(__name__)
 
-# The same PubMed corpus, reachable two ways. We need both: NCBI's robots.txt
-# (https://ftp.ncbi.nlm.nih.gov/robots.txt) blocks a recursive HTTPS download, so the bulk fetch has
-# to go over FTP — but FTP is the less reliable of the two, so the single-file re-downloads that
-# repair a failed checksum use HTTPS.
-PUBMED_FTP_BASE = "ftp://ftp.ncbi.nlm.nih.gov/pubmed/"
-PUBMED_HTTPS_BASE = "https://ftp.ncbi.nlm.nih.gov/pubmed/"
+# The local name of the export's validation report, wherever the export keeps it (config.yaml:
+# pubmed2db_validation_report) and whether or not it is gzipped there.
+VALIDATION_REPORT = "validation_report.json"
+
+# The export's own description of itself, at the top level of every export from data model 1.0 on: its data
+# model version, record count, corpus cutoff, and each shard's size and SHA-256. Unlike the validation
+# report, its path never changes.
+EXPORT_METADATA = "metadata.json"
+
+# The major version of pubmed2db's data model that this module reads. pubmed2db promises
+# (https://github.com/TranslatorSRI/pubmed2db/blob/main/docs/data-model/README.md#versioning-and-stability)
+# that a minor version only adds fields, while a major one may rename, remove or change the meaning of the
+# three this module reads, so read_export_metadata() accepts any 1.x and refuses everything else. This is
+# what the code can read; config.yaml's pubmed2db_data_model_version is the exact version of the export it
+# pins, and tests/createcompendia/test_publications.py fails if that isn't a version this accepts. Before
+# raising this, read pubmed2db's changelog entry for the new major version
+# (https://github.com/TranslatorSRI/pubmed2db/blob/main/docs/data-model/Changelog.md), which says what an
+# NDJSON consumer has to do, and make that change here.
+#
+# The change most likely to arrive that way is the prefix of PubMed Central ids. Data model 1 spells them
+# PMC:PMC123, the spelling every Babel release has shipped and the one Biolink registers on
+# biolink:Publication (PMCID only on biolink:JournalArticle). Which prefix Translator should use is still
+# open (https://github.com/NCATSTranslator/Babel/issues/1044, and
+# https://github.com/TranslatorSRI/pubmed2db/issues/33 for the export, which follows Babel in the meantime).
+# If that settles on PMCID, the export changes with a major bump, and generate_compendium() must then pass
+# extra_prefixes=["PMCID"] to write_compendium(), or create_node() will silently drop every one of them as
+# unregistered for biolink:Publication.
+PUBMED2DB_DATA_MODEL_MAJOR = 1
+
+# The malformed DOIs Babel repairs, and what each is repaired to: a YAML mapping of each malformed doi CURIE to
+# the list of doi CURIEs it is repaired to (two for a value holding two DOIs), with `#` comments. YAML, not
+# TSV, because a malformed DOI can hold any character: a tab, a newline or a DEL (2026nov08 has
+# `doi:10.6002/ect.mesot2016.p112` + DEL, PMID:28260475) is written as a visible escape such as "\x7F",
+# where a TSV would hold it invisibly or couldn't hold it at all.
+#
+# PubMed publishes ArticleId[@IdType='doi'] as the publisher supplied it, so several hundred DOIs in an export
+# contain a space or stray text (`doi:10.1126/science. 1134405`), and write_compendium() fails the build on
+# any CURIE with whitespace. They are repaired from this table rather than by a rule because no rule is
+# reliable: deleting the whitespace gives a DOI registered at doi.org for only about three quarters of even
+# the most regular shape, against 163 of 163 well-formed DOIs sampled from the same export (see "Malformed
+# DOIs" in docs/sources/PubMed/README.md for the numbers and the rules that were tried). So the table holds
+# only repairs that doi.org confirms, that Crossref doesn't say name another article, and that no PMID
+# already carries unless it carries the malformed DOI too (a row applies to every PMID with that malformed
+# DOI); a malformed DOI not in it is skipped, as all of them were before, and counted in the concord metadata.
+#
+# Never edit it by hand: docs/sources/PubMed/dois/characterize_dois.py regenerates it from a whole export.
+# Re-run that when pubmed2db_version moves, to pick up the new export's malformed DOIs; a stale table is
+# harmless (rows for DOIs PubMed has since corrected simply never match).
+#
+# This table is meant to be temporary: the malformed DOIs come from pubmed2db's export, which should repair
+# them for every consumer (https://github.com/TranslatorSRI/pubmed2db/issues/84). Once a pinned export does,
+# delete the table and everything that builds or applies it, as listed in
+# https://github.com/NCATSTranslator/Babel/issues/1195.
+#
+# Two consumers resolve this file: the build, where the PubMed rules declare it as an input (so regenerating
+# it re-runs them) and pass the path in, and the scripts under docs/sources/PubMed/, which take this default.
+# Absolute, because those scripts can be run from any directory.
+PUBMED_DOI_REPAIRS = str(get_repo_root() / "input_data/pubmed_doi_repairs.yaml")
+
+# How much of a shard to hash at a time (shards are ~2 GB, so they are never read whole).
+HASH_CHUNK_BYTES = 8 * 1024 * 1024
 
 
-def download_pubmed(download_file, pubmed_base=PUBMED_FTP_BASE, pmc_base="https://ftp.ncbi.nlm.nih.gov/pub/pmc/"):
+def shared_identifier_key(curie):
     """
-    Download PubMed. We download both the PubMed annual baseline and the daily update files,
-    which are in the same format, but the baseline is set up at the start of the year and then
-    updates are included in the daily update files.
+    The form in which two records' DOIs and PMCIDs are compared to decide whether they are the same identifier.
 
-    We would love to use HTTPS to do the downloads, but unfortunately the robots.txt
-    (https://ftp.ncbi.nlm.nih.gov/robots.txt) prevents this from working recursively.
-
-    :param download_file: A `done` file that should be created to indicate that we are done.
-    :param pubmed_base: The PubMed base URL to download files from.
-    :param pmc_base: The PubMed Central base URL to download files from.
+    DOIs are case-insensitive, and PubMed publishes them as supplied, so the same DOI can arrive in different
+    cases on different PMIDs (``doi:10.1039/C4BM00222A`` on PMID:26146547, ``doi:10.1039/c4bm00222a`` on
+    PMID:26214188 in 2026sep26). Compared exactly, both would be kept, in two cliques -- and Node
+    Normalization, which looks CURIEs up case-insensitively, would resolve both spellings to only one of them.
+    So a DOI is compared lower-cased. A PubMed Central id is ``PMC`` plus digits and is compared as-is.
     """
+    if Text.get_prefix_or_none(curie) == DOI.upper():
+        return curie.lower()
+    return curie
 
-    # Create directories if they don't exist.
-    ensure_parent_dir(download_file)
 
-    # Download baseline and updatefiles in parallel — each directory contains ~750 files,
-    # so running them concurrently roughly halves wall time on the HPC.
-    subdirs = ["baseline", "updatefiles"]
+def download_pubmed2db(export_url, report_path, download_dir, done_file, *, data_model_version):
+    """
+    Download a pubmed2db export: its ``metadata.json`` and validation report, then exactly the shards they
+    list, and check every shard against its SHA-256.
 
-    def _download_subdir(subdir):
+    The report doubles as the export's manifest, so we never crawl the export directory -- since 2026sep26
+    it also holds pubmed2db's own ~76 GB DuckDB database and a ``manifests/`` subdirectory, which a recursive
+    wget would fetch. ``metadata.json`` is read first, so an export in a data model this module wasn't
+    written for is refused before 17 GB of it is downloaded.
+
+    ``download_dir`` belongs to a single export version, and a published export is never modified, so a
+    shard left half-downloaded by an interrupted run is safely resumed (``wget --continue``) and a complete
+    one is left alone. That is also what makes carrying ``download_dir`` forward into a new run safe -- and
+    the checksums are what catch a carried-forward directory holding another export's shards, which would
+    otherwise be left alone as "complete". The marker is only written once every shard matches.
+
+    :param export_url: The export directory URL, ending in ``/``.
+    :param report_path: The validation report's path relative to ``export_url``
+        (``config.yaml: pubmed2db_validation_report``); gzipped if it ends in ``.gz``.
+    :param download_dir: The local directory to download into.
+    :param done_file: Marker file to touch once every shard is downloaded.
+    :param data_model_version: The data model version the export must say it follows
+        (``config.yaml: pubmed2db_data_model_version``); see ``read_export_metadata()``.
+    """
+    report_file = os.path.join(download_dir, VALIDATION_REPORT)
+    metadata_file = os.path.join(download_dir, EXPORT_METADATA)
+    report_gzipped = report_path.endswith(".gz")
+    # Both are small and always re-fetched; clear any old copy so that a stale one is never read, and so
+    # gunzip doesn't refuse to overwrite the report.
+    for stale in (metadata_file, report_file, report_file + ".gz"):
+        if os.path.exists(stale):
+            os.remove(stale)
+    pull_via_wget(export_url, EXPORT_METADATA, decompress=False, outpath=metadata_file, continue_incomplete=False)
+    # Refuse another data model before fetching anything else. The report isn't here yet, so the comparison
+    # of the two shard lists waits for the call below.
+    read_export_metadata(download_dir, check_against_report=False, data_model_version=data_model_version)
+    pull_via_wget(
+        export_url,
+        report_path,
+        decompress=report_gzipped,
+        outpath=report_file + (".gz" if report_gzipped else ""),
+        continue_incomplete=False,
+    )
+
+    shard_counts = expected_shard_counts(download_dir)
+    metadata = read_export_metadata(download_dir, shard_counts, data_model_version=data_model_version)
+    for shard in shard_counts:
         pull_via_wget(
-            pubmed_base,
-            subdir,
-            decompress=False,
-            subpath="PubMed",
-            recurse=WgetRecursionOptions.RECURSE_SUBFOLDERS,
-            # A recursive download must be timestamped and must not resume: see pull_via_wget().
-            timestamping=True,
-            continue_incomplete=False,
+            export_url, shard, decompress=False, outpath=os.path.join(download_dir, shard), continue_incomplete=True
+        )
+    verify_shard_checksums(download_dir, metadata)
+    logger.info(
+        f"Downloaded {len(shard_counts)} pubmed2db shards ({sum(shard_counts.values()):,} records, data model "
+        f"{metadata['data_model_version']}) from {export_url} into {download_dir}; every SHA-256 matches."
+    )
+    ensure_parent_dir(done_file)
+    Path(done_file).touch()
+
+
+def expected_shard_counts(download_dir):
+    """
+    The shards of the export downloaded into ``download_dir``, mapped to the record count pubmed2db's validator
+    saw in each, in a fixed (sorted) order.
+
+    The validation report is pubmed2db's statement of what the export contains: it is our manifest of which
+    shards to download and read, and the per-shard counts catch an intact shard from a different export (a
+    truncated or corrupted one already fails decompression in ``_read_shard()``). ``verify_shard_checksums()``
+    catches that too, even when the counts happen to match, but only runs when the shards are downloaded;
+    the counts are checked on every parse. Reads ``checks.structure.records_by_shard`` and
+    ``records_total`` rather than the human-readable ``checks_run[].observed`` strings. Raises if the report's
+    overall status is ``fail`` or those fields are missing or inconsistent.
+    """
+    report_file = os.path.join(download_dir, VALIDATION_REPORT)
+    with open(report_file) as f:
+        report = json.load(f)
+    if report.get("status") == "fail":
+        raise RuntimeError(
+            f"pubmed2db validation report {report_file} has status 'fail': {report.get('errors')}. "
+            "Refusing to build a compendium from an export its own validator rejected."
+        )
+    try:
+        structure = report["checks"]["structure"]
+        records_by_shard = structure["records_by_shard"]
+        records_total = structure["records_total"]
+    except KeyError as e:
+        raise RuntimeError(
+            f"pubmed2db validation report {report_file} has no checks.structure.records_by_shard and "
+            f"records_total (missing {e}): the report format has changed; see docs/sources/PubMed/README.md."
+        ) from e
+    if not records_by_shard:
+        raise RuntimeError(f"pubmed2db validation report {report_file} lists no shards.")
+    for shard in records_by_shard:
+        # Shard names become both a download URL and a local path, so they must be bare filenames.
+        if os.path.basename(shard) != shard or not shard.endswith(".ndjson.gz"):
+            raise RuntimeError(f"pubmed2db validation report {report_file} lists an unexpected shard name {shard!r}.")
+    if sum(records_by_shard.values()) != records_total:
+        raise RuntimeError(
+            f"pubmed2db validation report {report_file}: records_by_shard sums to "
+            f"{sum(records_by_shard.values()):,} but records_total is {records_total:,}."
+        )
+    return dict(sorted(records_by_shard.items()))
+
+
+def read_export_metadata(download_dir, shard_counts=None, check_against_report=True, data_model_version=None):
+    """
+    The ``metadata.json`` of the export downloaded into ``download_dir``, once it is known to describe an
+    export this module can read.
+
+    Raises unless its ``data_model_version`` has major version ``PUBMED2DB_DATA_MODEL_MAJOR`` (see that
+    constant for why any minor version is accepted) and, when ``data_model_version`` is given (the build
+    passes ``config.yaml: pubmed2db_data_model_version``), is exactly that; and unless every entry of
+    ``files`` has a ``name`` and a ``sha256``. With ``check_against_report``, also raises unless it lists exactly the shards the
+    validation report does and gives the same total record count: the two are written by different pubmed2db
+    steps (``export`` and ``validate``), so a disagreement means they describe different exports. A caller
+    that has already read the report passes its ``expected_shard_counts()`` as ``shard_counts``, so it isn't
+    read twice.
+
+    A missing file raises too, with what to do about it: exports before data model 1.0 (2026sep26 and
+    earlier) have none, and neither does a directory preloaded from a build that predates this check.
+    """
+    metadata_file = os.path.join(download_dir, EXPORT_METADATA)
+    try:
+        with open(metadata_file) as f:
+            metadata = json.load(f)
+    except FileNotFoundError as e:
+        raise RuntimeError(
+            f"{metadata_file} is missing. Every pubmed2db export from data model 1.0 on has one, so either this "
+            f"export predates it (2026sep26 and earlier, which this code no longer reads) or the directory was "
+            f"preloaded without it: delete {os.path.join(download_dir, 'downloaded')} and re-run "
+            f"download_pubmed2db, which fetches it and leaves complete shards alone."
+        ) from e
+
+    version = str(metadata.get("data_model_version", ""))
+    if version.split(".")[0] != str(PUBMED2DB_DATA_MODEL_MAJOR):
+        raise RuntimeError(
+            f"{metadata_file} says this export follows pubmed2db data model {version or '(none)'}, but Babel "
+            f"reads major version {PUBMED2DB_DATA_MODEL_MAJOR}. A major version may rename, remove or change "
+            f"the meaning of the fields Babel reads: see PUBMED2DB_DATA_MODEL_MAJOR in "
+            f"src/createcompendia/publications.py and pubmed2db's data model changelog before changing it."
+        )
+    if data_model_version is not None and version != data_model_version:
+        raise RuntimeError(
+            f"{metadata_file} says this export follows pubmed2db data model {version}, but config.yaml pins "
+            f"{data_model_version}. Read pubmed2db's data model changelog for what changed, then set "
+            f"pubmed2db_data_model_version to {version} (or pin the export that config.yaml meant)."
+        )
+    try:
+        shard_hashes = {entry["name"]: entry["sha256"] for entry in metadata["files"]}
+        records = metadata["records"]
+        # bool is an int, and anything else would turn the comparison below into a confusing error.
+        if not isinstance(records, int) or isinstance(records, bool):
+            raise TypeError(f"records is {records!r}, not an integer")
+    except (KeyError, TypeError) as e:
+        raise RuntimeError(
+            f"{metadata_file} has no usable files[].name, files[].sha256 and records ({type(e).__name__}: {e}); "
+            f"see docs/sources/PubMed/README.md."
+        ) from e
+
+    if check_against_report:
+        if shard_counts is None:
+            shard_counts = expected_shard_counts(download_dir)
+        if set(shard_hashes) != set(shard_counts) or records != sum(shard_counts.values()):
+            raise RuntimeError(
+                f"{metadata_file} and the validation report beside it describe different exports: metadata.json "
+                f"lists {sorted(shard_hashes)} with {records:,} records, the report lists {sorted(shard_counts)} "
+                f"with {sum(shard_counts.values()):,}. Check config.yaml: pubmed2db_validation_report names the "
+                f"report of the export that pubmed2db_version names."
+            )
+    return metadata
+
+
+def verify_shard_checksums(download_dir, metadata):
+    """
+    Raise unless every shard ``metadata`` (from ``read_export_metadata()``) lists is in ``download_dir`` with
+    the SHA-256 it gives, naming all the ones that aren't.
+
+    This is step 2 of pubmed2db's recipe for checking a download (``sha256sum -c SHA256SUMS``; the hashes in
+    ``metadata.json`` are the same ones). It is the only check that catches an intact shard from a different
+    export whose record count happens to match -- most likely one already in a carried-forward
+    ``download_dir``, which ``wget --continue`` leaves alone as complete. Hashing the ~17 GB took 6 s
+    on an Apple M-series laptop.
+    """
+    problems = []
+    for entry in metadata["files"]:
+        shard_path = os.path.join(download_dir, entry["name"])
+        if not os.path.exists(shard_path):
+            problems.append(f"{entry['name']} is missing")
+            continue
+        digest = hashlib.sha256()
+        with open(shard_path, "rb") as f:
+            while chunk := f.read(HASH_CHUNK_BYTES):
+                digest.update(chunk)
+        if digest.hexdigest() != entry["sha256"]:
+            problems.append(f"{entry['name']} has SHA-256 {digest.hexdigest()}, expected {entry['sha256']}")
+    if problems:
+        raise RuntimeError(
+            f"Shards in {download_dir} don't match the export's {EXPORT_METADATA}, so they are damaged or come "
+            f"from a different export: {'; '.join(problems)}. Delete those shards and re-run download_pubmed2db."
         )
 
-    with ThreadPoolExecutor(max_workers=len(subdirs)) as pool:
-        futures = {pool.submit(_download_subdir, sd): sd for sd in subdirs}
-        for future in as_completed(futures):
-            subdir = futures[future]
-            exc = future.exception()
-            if exc:
-                raise RuntimeError(f"Failed to download PubMed/{subdir}: {exc}") from exc
-            logger.info(f"Finished downloading PubMed/{subdir}.")
 
-    # Step 3. Download the PMC/PMID mapping file from PMC.
-    # We don't actually use this file -- we currently only use the PMC IDs already included in the PubMed XML files.
-    # pull_via_wget(pmc_base, 'PMC-ids.csv.gz', decompress=True, subpath='PubMed')
-
-    # We're all done!
-    Path.touch(download_file)
-
-
-def verify_pubmed_download_against_md5(pubmed_filename, md5_filename):
+@functools.cache
+def load_doi_repairs(doi_repairs_file):
     """
-    Verify a single PubMed download file against its MD5 checksum in the `.md5` file.
+    The DOI repairs table (see ``PUBMED_DOI_REPAIRS``) as ``{malformed doi CURIE: (repaired doi CURIE, ...)}``.
 
-    :param pubmed_filename: The PubMed download file to verify.
-    :param md5_filename: The MD5 checksum file to verify against.
-    :return: True if the file is verified, but False if it is not verified.
+    Cached per path, so each of ``parse_pubmed2db_into_tsvs()``'s worker processes reads it once. Raises on a
+    table that isn't a mapping of strings to non-empty lists (or that repeats a key), a repair that is itself
+    malformed, or a "malformed" DOI that isn't malformed or isn't a DOI (a PMCID turned into a DOI would be a
+    different identifier, not a repair): any of those means the table was edited by hand, and a repair that
+    silently does nothing (or writes a CURIE that fails the build an hour later) is worse than stopping here.
     """
+    with open(doi_repairs_file, encoding="utf-8") as f:
+        try:
+            # A repeated key would otherwise silently keep only its last list of repairs.
+            table = safe_load_yaml_unique_keys(f)
+        except yaml.YAMLError as e:
+            raise ValueError(f"{doi_repairs_file} is not a valid repairs table: {e}") from e
+    # An empty table (comments only) loads as None. Only None: `or {}` would also accept [], false or 0 as an
+    # empty table and silently disable every repair.
+    if table is None:
+        table = {}
+    if not isinstance(table, dict):
+        raise ValueError(f"{doi_repairs_file} is not a mapping of malformed DOIs to their repairs.")
+    repairs = {}
+    for malformed, repaired in table.items():
+        where = f"{doi_repairs_file}: {malformed!r}"
+        if not isinstance(malformed, str) or not isinstance(repaired, list) or not repaired:
+            raise ValueError(f"{where} is not mapped to a non-empty list of repairs: {repaired!r}")
+        if not curie_format_problem(malformed):
+            raise ValueError(f"{where} is not malformed, so it would never be looked up.")
+        if Text.get_prefix_or_none(malformed) != DOI.upper():
+            raise ValueError(f"{where} is not a {DOI}: CURIE, and only DOIs are repaired.")
+        for doi in repaired:
+            if not isinstance(doi, str) or curie_format_problem(doi) or Text.get_prefix_or_none(doi) != DOI.upper():
+                raise ValueError(f"{where}: the repair {doi!r} is not a well-formed {DOI}: CURIE.")
+        repairs[malformed] = tuple(dict.fromkeys(repaired))
+    return repairs
 
-    # Is the PubMed file readable? Non-zero size?
-    if not os.path.exists(pubmed_filename) or os.path.getsize(pubmed_filename) == 0:
-        logger.warning(f"Could not verify {pubmed_filename}: no such file or zero size.")
-        return False
 
-    # Calculate the MD5 sum of the PubMed file.
-    with open(pubmed_filename, "rb") as pubmedf, mmap(pubmedf.fileno(), 0, access=ACCESS_READ) as file:
-        md5hash = hashlib.md5(file.read()).hexdigest()
+def _read_shard(shard_path, doi_repairs=None, repairs_made=None):
+    """
+    Yield ``(pmid, title, other_identifiers, malformed_identifiers)`` for every record in one shard; see
+    ``_read_shard_records()``, which also yields the raw record and explains the other two arguments.
+    """
+    for _, pmid, title, others, malformed in _read_shard_records(shard_path, doi_repairs, repairs_made):
+        yield pmid, title, others, malformed
 
-    # Read the expected MD5 checksum.
-    if not os.path.exists(md5_filename):
-        logger.warning(f"Could not verify {pubmed_filename}: no MD5 file found at {md5_filename}.")
-        return False
 
-    with open(md5_filename) as md5f:
-        md5_line = md5f.readline().strip()
-        expected_md5 = md5_line.split("= ")[1]
-        if len(expected_md5) != 32:
-            raise RuntimeError(
-                f"Could not verify {pubmed_filename}: could not read MD5 hash from MD5 file {md5_filename}: '{md5_line}'"
-            )
+def _read_shard_records(shard_path, doi_repairs=None, repairs_made=None):
+    """
+    Yield ``(record, pmid, title, other_identifiers, malformed_identifiers)`` for every record in one shard.
 
-    if md5hash == expected_md5:
-        return True
-    logger.warning(
-        f"Could not verify {pubmed_filename}: calculated MD5 hash {md5hash} is not equal to expected MD5 hash {expected_md5} in {md5_filename}."
+    :param doi_repairs: ``load_doi_repairs()``'s table. The build always passes it; the default of no
+        repairs is for the analysis scripts, which want to see the export as it is.
+    :param repairs_made: If given, a list to which each repair made is appended, as
+        ``(pmid, malformed CURIE, repaired CURIEs)``.
+
+    ``record`` is the parsed JSON line, for analysis scripts that read fields the build doesn't
+    (docs/sources/PubMed/shared_identifiers/); the build itself uses ``_read_shard()``.
+
+    This is the only place in the build that knows the export's record format. ``identifiers`` always starts
+    with the record's own PMID, so ``identifiers[1:]`` is its DOI and PubMed Central CURIEs (``doi:`` and
+    ``PMC:PMC123``; sorted and de-duplicated by pubmed2db). They are de-duplicated again by
+    ``shared_identifier_key()``, since pubmed2db compares DOIs exactly -- before anything else, so a malformed
+    DOI carried twice is counted, and repaired or skipped, once, in the spelling that comes first. ``title`` is ``article_title`` exactly
+    as exported, and is ``""`` when the record has none.
+
+    PubMed publishes DOIs as supplied, including some with embedded spaces or appended text
+    (``doi:10.1126/science. 1134405``, PMID:17124311; 655 in 2026nov08), which ``curie_format_problem()``
+    rejects and ``write_compendium()`` would fail the build on. One that ``doi_repairs`` lists is replaced by
+    its repair, in ``other_identifiers``; any other goes in ``malformed_identifiers`` instead and is skipped.
+    Both passes over the shards read through here with the same table, so they repair and skip the same ones.
+
+    A damaged shard raises a RuntimeError naming it, with no checksum needed. pubmed2db writes each shard as a
+    single gzip stream, which ends with a CRC32 and the length: a corrupted download fails the CRC if it hasn't
+    already produced unparseable JSON, and a truncated one raises EOFError, even when it is cut off only in
+    that trailer. The record counts in the validation report (see ``parse_pubmed2db_into_tsvs()``) are for an
+    intact shard from a different export.
+    """
+    count_records = 0
+    try:
+        with gzip.open(shard_path, "rt") as f:
+            for line in f:
+                record = json.loads(line)
+                pmid = record["id"]
+                identifiers = record["identifiers"]
+                title = record["article_title"]
+                if not identifiers or identifiers[0] != pmid:
+                    raise ValueError(
+                        f"{shard_path}: record {pmid} has identifiers {identifiers} not starting with its PMID."
+                    )
+                others = []
+                malformed = []
+                keys = set()
+                for exported in identifiers[1:]:
+                    # A DOI in two cases is one identifier; keep the first spelling.
+                    key = shared_identifier_key(exported)
+                    if key in keys:
+                        continue
+                    keys.add(key)
+                    if not curie_format_problem(exported):
+                        others.append(exported)
+                        continue
+                    repaired = doi_repairs.get(exported) if doi_repairs else None
+                    if not repaired:
+                        malformed.append(exported)
+                        continue
+                    if repairs_made is not None:
+                        repairs_made.append((pmid, exported, repaired))
+                    for other in repaired:
+                        # A repair can produce a DOI the record already carries; keep the first.
+                        key = shared_identifier_key(other)
+                        if key not in keys:
+                            keys.add(key)
+                            others.append(other)
+                count_records += 1
+                yield record, pmid, title, others, malformed
+    # OSError covers gzip.BadGzipFile (a failed CRC), EOFError a truncated gzip stream, and the rest a record
+    # mangled into something that still decompresses.
+    except (OSError, EOFError, zlib.error, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as e:
+        raise RuntimeError(
+            f"{shard_path} is corrupt or truncated: reading it failed after {count_records:,} records "
+            f"({type(e).__name__}: {e}). Delete it and re-run download_pubmed2db."
+        ) from e
+
+
+def escape_tsv_field(value):
+    """
+    Escape a value for one field of a TSV row, losslessly: backslash, tab, newline and carriage return become
+    ``\\\\``, ``\\t``, ``\\n`` and ``\\r``, so the row always has the expected number of fields and the
+    original can be recovered.
+    """
+    return value.replace("\\", "\\\\").replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")
+
+
+def _write_shard_tsvs(shard_path, part_prefix, doi_repairs_file):
+    """
+    Write one shard's ids, titles and concords rows to ``<part_prefix>.{ids,titles,concords}``.
+
+    Run in a worker process, so it returns only ``(records, concords, malformed identifiers skipped, repairs
+    made)`` -- the last two short lists -- and holds one record at a time; ``parse_pubmed2db_into_tsvs()``
+    concatenates the parts in shard order. Module-level so ProcessPoolExecutor can pickle it.
+    """
+    count_records = 0
+    count_concords = 0
+    skipped = []
+    repaired = []
+    doi_repairs = load_doi_repairs(doi_repairs_file)
+    with (
+        open(part_prefix + ".ids", "w") as pmidf,
+        open(part_prefix + ".titles", "w") as titlesf,
+        open(part_prefix + ".concords", "w") as concordf,
+    ):
+        for pmid, title, others, malformed in _read_shard(shard_path, doi_repairs, repaired):
+            count_records += 1
+            skipped.extend(malformed)
+            pmidf.write(f"{pmid}\t{JOURNAL_ARTICLE}\n")
+            if title:
+                titlesf.write(f"{pmid}\t{escape_tsv_field(title)}\n")
+            for other in others:
+                count_concords += 1
+                concordf.write(f"{pmid}\teq\t{other}\n")
+    logger.info(
+        f"Parsed {count_records:,} records and {count_concords:,} concords from {shard_path}, repairing "
+        f"{len(repaired):,} malformed DOIs and skipping {len(skipped):,} malformed DOIs/PMCIDs."
     )
-    return False
+    return count_records, count_concords, skipped, repaired
 
 
-def verify_pubmed_downloads(pubmed_directories, done_filename, pubmed_base=PUBMED_HTTPS_BASE):
-    """
-    download_pubmed() does a good job of downloading all the PubMed files, but every once in a while the download
-    is corrupted (https://github.com/NCATSTranslator/Babel/issues/352). Luckily, PubMed also gives up `.md5` files
-    for all the downloaded files, so we can use those to verify each file. If a file is incorrect, we can re-download
-    it using the more reliable HTTPS URL.
-
-    :param pubmed_directories: A list of PubMed directories to verify.
-    :param done_filename: A 'done' file to write once we're done.
-    :param pubmed_base: The PubMed base URL to download files from.
-    :return:
-    """
-
-    for pubmed_directory in pubmed_directories:
-        # These directories aren't Snakemake outputs (see the comment on rule download_pubmed), so
-        # Snakemake won't rebuild them if they go missing: say what to do instead of dying in
-        # os.listdir() with a bare FileNotFoundError.
-        if not os.path.isdir(pubmed_directory):
-            raise RuntimeError(
-                f"PubMed download directory {pubmed_directory} does not exist: delete the "
-                f"'downloaded' marker file beside it to re-run download_pubmed."
-            )
-
-        for filename in os.listdir(pubmed_directory):
-            file_path = os.path.join(pubmed_directory, filename)
-            subdir = os.path.basename(pubmed_directory)
-
-            if file_path.endswith(".gz"):
-                md5_filename = filename + ".md5"
-                md5_file_path = file_path + ".md5"
-
-                while not verify_pubmed_download_against_md5(file_path, file_path + ".md5"):
-                    pubmed_url_base = pubmed_base + subdir + "/"
-                    logger.warning(f"Re-downloading {file_path} from HTTPS URL {pubmed_url_base}{filename}.")
-
-                    # We should delete the files before redownloading them, but if we did that and the download
-                    # failed, we would not retry the download again. So instead, we truncate both files -- this
-                    # should cause MD5 verification to fail until they are in sync again.
-                    if os.path.exists(file_path):
-                        os.truncate(file_path, 0)
-                    if os.path.exists(md5_file_path):
-                        os.truncate(md5_file_path, 0)
-
-                    # Redownload the file.
-                    pull_via_wget(pubmed_url_base, filename, decompress=False, subpath="PubMed/" + subdir)
-                    pull_via_wget(pubmed_url_base, md5_filename, decompress=False, subpath="PubMed/" + subdir)
-
-    # We're all done!
-    Path.touch(done_filename)
-
-
-def parse_pubmed_into_tsvs(
-    baseline_dir, updatefiles_dir, titles_file, status_file, pmid_id_file, pmid_doi_concord_file, metadata_yaml
+def parse_pubmed2db_into_tsvs(
+    download_dir,
+    titles_file,
+    pmid_id_file,
+    concord_file,
+    shared_ids_file,
+    metadata_yaml,
+    url,
+    workers,
+    doi_repairs_file=PUBMED_DOI_REPAIRS,
+    *,
+    data_model_version,
 ):
     """
-    Read through the PubMed files in the baseline_dir and updatefiles_dir, and writes out label and status information.
+    Write the ids, titles and concords TSVs from a pubmed2db export, and resolve shared identifiers.
 
-    :param baseline_dir: The PubMed baseline directory to parse.
-    :param updatefiles_dir: The PubMed updatefiles directory to parse.
-    :param titles_file: An output TSV file in the format `<PMID>\t<TITLE>`.
-    :param status_file: A JSON file containing publication status information.
-    :param pmid_doi_concord_file: A concord file in the format `<PMID>\teq\t<DOI>` and other identifiers.
-    :param metadata_yaml: The metadata YAML file to write.
+    - ``pmid_id_file``: ``PMID:x\\tbiolink:JournalArticle``
+    - ``titles_file``: ``PMID:x\\t<title>``, escaped with ``escape_tsv_field()``; empty titles skipped. Nothing
+      in the build reads it -- the compendium takes titles from the shards -- but it is the easiest place to
+      diff titles between builds.
+    - ``concord_file``: ``PMID:x\\teq\\t<doi: or PMC: CURIE>``
+
+    Shards are parsed in parallel, each worker writing its own part files, so no worker or the parent ever
+    holds more than one record of a shard; the parts are then concatenated in shard order.
+
+    A DOI or PMCID can appear in more than one record (PubMed publishes them as-is). Two cliques must never
+    share an identifier, so ``shared_ids_file`` records each such identifier -- as its
+    ``shared_identifier_key()``, so a DOI is lower-cased -- with the *lowest* PMID that carries it, and
+    ``generate_compendium()`` keeps it only there, in that PMID's own spelling. Lowest rather than highest:
+    the PMIDs sharing a DOI are separate citations, not versions of one (pubmed2db already keeps only each
+    PMID's latest version), and the lowest is almost always the first published, while the highest is often
+    the author's reply in a block of letters published under one DOI -- see "Identifiers shared by more than
+    one PMID" in docs/sources/PubMed/README.md for the measurements. It also matches what the old
+    ``glom(unique_prefixes=[PMID])`` did (the first-seen PMID kept the identifier, and the XML was read in
+    roughly PMID order), made independent of shard order. The file doubles as a data-quality report of
+    ambiguous identifiers.
+
+    A malformed DOI listed in ``doi_repairs_file`` is replaced by its repair (see ``PUBMED_DOI_REPAIRS``) and
+    counted in the metadata YAML as ``repaired_malformed_article_ids``. Any other DOI or PMCID that
+    ``write_compendium()`` would reject is skipped (see ``_read_shard_records()``) and counted as
+    ``skipped_malformed_article_ids``; all of them are logged.
+
+    Raises if the export follows a data model this module doesn't read, or another than config.yaml pins
+    (``read_export_metadata()``), or if any shard holds a different number of records than pubmed2db's
+    validation report says.
+
+    :param url: The export URL, recorded in the metadata YAML as the source of this build's PubMed data.
+    :param workers: How many shards to parse at once.
+    :param doi_repairs_file: The DOI repairs table; ``generate_compendium()`` must be given the same one.
+    :param data_model_version: The data model version the export must say it follows
+        (``config.yaml: pubmed2db_data_model_version``); see ``read_export_metadata()``.
     """
+    for path in (titles_file, pmid_id_file, concord_file, shared_ids_file):
+        ensure_parent_dir(path)
 
-    # We can write labels and concords as we go.
-    with (
-        open(titles_file, "w") as titlesf,
-        open(pmid_id_file, "w") as pmidf,
-        open(pmid_doi_concord_file, "w") as concordf,
-    ):
-        # Track PubMed article statuses. In theory the final PubMed entry should have all the dates, which should
-        # tell us the final status of a publication, but really we just want to know if the article has ever been
-        # marked as retracted, so instead we track every status that has ever been attached to any article. We
-        # don't have a way of tracking properties yet (https://github.com/NCATSTranslator/Babel/issues/155), so for now
-        # we write this out in JSON to the status_file.
-        pmid_status = defaultdict(set)
+    shard_counts = expected_shard_counts(download_dir)
+    # Checked here as well as on download, because a preloaded download_dir skips the download rule.
+    export_metadata = read_export_metadata(download_dir, shard_counts, data_model_version=data_model_version)
+    shards = list(shard_counts)
+    shard_files = [os.path.join(download_dir, shard) for shard in shards]
 
-        # Read every file in the baseline and updatefiles directories (they have the same format).
-        baseline_filenames = list(map(lambda fn: os.path.join(baseline_dir, fn), sorted(os.listdir(baseline_dir))))
-        updatefiles_filenames = list(
-            map(lambda fn: os.path.join(updatefiles_dir, fn), sorted(os.listdir(updatefiles_dir)))
-        )
+    with tempfile.TemporaryDirectory(dir=os.path.dirname(concord_file), prefix="pubmed2db-parts-") as parts_dir:
+        part_prefixes = [os.path.join(parts_dir, f"{i:05d}") for i in range(len(shards))]
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            results = list(pool.map(_write_shard_tsvs, shard_files, part_prefixes, [doi_repairs_file] * len(shards)))
 
-        for pubmed_filename in baseline_filenames + updatefiles_filenames:
-            if not pubmed_filename.endswith(".xml.gz"):
-                logger.warning(f"Skipping non-gzipped-XML file {pubmed_filename} in PubMed files.")
-                continue
+        mismatches = [
+            f"{shard}: parsed {records:,}, report says {shard_counts[shard]:,}"
+            for shard, (records, _, _, _) in zip(shards, results)
+            if records != shard_counts[shard]
+        ]
+        if mismatches:
+            raise RuntimeError(
+                f"Shards in {download_dir} disagree with their validation report, so they probably come from a "
+                f"different export: "
+                f"{'; '.join(mismatches)}. Delete those shards and re-run download_pubmed2db."
+            )
 
-            with gzip.open(pubmed_filename, "rt") as pubmedf:
-                logger.info(f"Parsing PubMed Baseline {pubmed_filename}")
+        for final_file, suffix in ((pmid_id_file, ".ids"), (titles_file, ".titles"), (concord_file, ".concords")):
+            with open(final_file, "wb") as outf:
+                for part_prefix in part_prefixes:
+                    with open(part_prefix + suffix, "rb") as inf:
+                        shutil.copyfileobj(inf, outf)
 
-                start_time = time.time_ns()
-                count_articles = 0
-                count_pmids = 0
-                count_dois = 0
-                count_pmcs = 0
-                count_titles = 0
-                file_pubstatuses = set()
+    count_records = sum(records for records, _, _, _ in results)
+    count_concords = sum(concords for _, concords, _, _ in results)
+    skipped = [curie for _, _, shard_skipped, _ in results for curie in shard_skipped]
+    repaired = [repair for _, _, _, shard_repaired in results for repair in shard_repaired]
+    logger.info(f"Repaired {len(repaired):,} malformed DOIs from {doi_repairs_file}, e.g. {repaired[:5]}")
+    # All of them, not a sample: there are a few hundred, and this list is the input to regenerating the
+    # repairs table (docs/sources/PubMed/dois/characterize_dois.py finds them itself, but a reader of the
+    # log shouldn't have to run it to see what was dropped).
+    logger.info(f"Skipped {len(skipped):,} malformed DOIs/PMCIDs with no repair: {skipped}")
 
-                # Read every XML entry from every PubMed file.
-                parser = ET.XMLPullParser(["end"])
-                for line in pubmedf:
-                    parser.feed(line)
-                    for event, elem in parser.read_events():
-                        if event == "end" and elem.tag == "PubmedArticle":
-                            count_articles += 1
+    # Find the identifiers carried by more than one record, compared by shared_identifier_key()...
+    seen = set()
+    duplicated = set()
+    for _pmid, _predicate, other in read_concords(concord_file):
+        key = shared_identifier_key(other)
+        if key in seen:
+            duplicated.add(key)
+        else:
+            seen.add(key)
+    del seen
 
-                            # Look for the pieces of information we want.
-                            pmids = elem.findall("./PubmedData/ArticleIdList/ArticleId[@IdType='pubmed']")
-                            dois = elem.findall("./PubmedData/ArticleIdList/ArticleId[@IdType='doi']")
-                            pmcs = elem.findall("./PubmedData/ArticleIdList/ArticleId[@IdType='pmc']")
-                            titles = elem.findall(".//ArticleTitle")
+    # ...and resolve each to its lowest PMID with a second pass, rather than holding a PMID for all ~46M
+    # identifiers in the first. identifier -> (lowest PMID carrying it, number of records carrying it).
+    shared = {}
+    if duplicated:
+        for pmid, _predicate, other in read_concords(concord_file):
+            key = shared_identifier_key(other)
+            if key in duplicated:
+                winner, n = shared.get(key, (None, 0))
+                shared[key] = (_lower_pmid(winner, pmid), n + 1)
 
-                            # Retrieve the PubDates containing PubStatuses.
-                            pubdates_with_pubstatus = elem.findall("./PubmedData/History/PubMedPubDate[@PubStatus]")
-                            pubstatuses = set()
-                            for pubdate in pubdates_with_pubstatus:
-                                # We ignore the dates, and instead record all the PubStatuses that a PMID has ever had.
-                                if pubdate.get("PubStatus"):
-                                    pubstatuses.add(pubdate.get("PubStatus"))
-
-                            # Write information for each PMID.
-                            for pmid in pmids:
-                                count_pmids += 1
-
-                                # Write out PMID type.
-                                pmidf.write(f"{PMID}:{pmid.text}\t{JOURNAL_ARTICLE}\n")
-
-                                # Update PMID status.
-                                pmid_status[f"{PMID}:" + pmid.text].update(pubstatuses)
-                                file_pubstatuses.update(pubstatuses)
-
-                                # Write out the titles.
-                                for title in titles:
-                                    count_titles += 1
-                                    # Convert newlines into '\n'.
-                                    title_text = title.text
-                                    if not title_text:
-                                        continue
-                                    title_text = title_text.replace("\n", "\\n")
-
-                                    titlesf.write(f"{PMID}:{pmid.text}\t{title_text}\n")
-
-                                # Write out the DOIs and PMCIDs to the concords file. PubMed's ArticleId
-                                # text is not always trimmed: the 2025dec11 build's PMID_DOI concord had 457
-                                # DOIs ending in a space and 18 ending in a tab (PMID:9127676 ->
-                                # "10.1076/apab.104.7.814.13110\t"), which the shared concord parser in
-                                # src/model/intermediates.py rejects -- a trailing tab is a fourth column.
-                                # Readers used to line.strip() it away; strip it here, where it comes in.
-                                for doi in dois:
-                                    count_dois += 1
-                                    concordf.write(f"{PMID}:{pmid.text}\teq\t{DOI}:{doi.text.strip()}\n")
-
-                                for pmc in pmcs:
-                                    count_pmcs += 1
-                                    concordf.write(f"{PMID}:{pmid.text}\teq\t{PMC}:{pmc.text.strip()}\n")
-
-                time_taken_in_seconds = float(time.time_ns() - start_time) / 1_000_000_000
-                logger.info(
-                    f"Parsed {count_articles} articles from PubMed {pubmed_filename} in "
-                    + f"{time_taken_in_seconds:.4f} seconds: {count_pmids} PMIDs, {count_dois} DOIs, "
-                    + f"{count_pmcs} PMCs, "
-                    + f"{count_titles} titles with the following PubStatuses: {sorted(file_pubstatuses)}."
-                )
-
-    # Write the statuses into a gzipped JSONL file.
-    with gzip.open(status_file, "wt") as statusf:
-        # This will be more readable as a JSONL file, so let's write it out that way.
-        for pmid, statuses in pmid_status.items():
-            statusf.write(json.dumps({"id": pmid, "statuses": sorted(statuses)}, sort_keys=True) + "\n")
+    with open(shared_ids_file, "w") as sharedf:
+        for other in sorted(shared):
+            winner, n = shared[other]
+            sharedf.write(f"{other}\t{winner}\t{n}\n")
+    logger.info(
+        f"Parsed {count_records:,} records and {count_concords:,} concords; {len(shared):,} identifiers are "
+        f"shared by more than one PMID (see {shared_ids_file})."
+    )
 
     write_concord_metadata(
         metadata_yaml,
-        name="parse_pubmed_into_tsvs()",
-        description="Parse PubMed files into TSVs and JSONL status files.",
-        sources=[
-            {"type": "download", "name": "PubMed Baseline", "url": f"{PUBMED_FTP_BASE}baseline/"},
-            {"type": "download", "name": "PubMed Updates", "url": f"{PUBMED_FTP_BASE}updatefiles/"},
-        ],
+        name="parse_pubmed2db_into_tsvs()",
+        description=(
+            f"Parse a pubmed2db NDJSON export into id, title and concord TSVs. Export "
+            f"{export_metadata.get('corpus', {}).get('build_name', '(unnamed)')}, pubmed2db data model "
+            f"{export_metadata['data_model_version']}, generated by pubmed2db "
+            f"{export_metadata.get('generated_by', '(unknown)')}."
+        ),
+        url=url,
+        sources=[{"type": "download", "name": "pubmed2db NDJSON export", "url": url}],
         counts={
-            "pmid_count": len(pmid_status.keys()),
+            "pmid_count": count_records,
+            "shard_count": len(shards),
+            "shared_identifier_count": len(shared),
+            "repaired_malformed_article_ids": len(repaired),
+            "skipped_malformed_article_ids": len(skipped),
         },
-        concord_filename=pmid_doi_concord_file,
+        concord_filename=concord_file,
     )
 
 
-def generate_compendium(concordances, metadata_yamls, identifiers, titles, publication_compendium, icrdf_filename):
+def _lower_pmid(a, b):
+    """The numerically lower of two ``PMID:n`` CURIEs (``None`` loses)."""
+    if a is None:
+        return b
+    return a if int(a.split(":")[1]) <= int(b.split(":")[1]) else b
+
+
+class _PublicationCliques:
     """
-    Generate a Publication compendium using the ID and Concord files provided.
+    A sized iterable of TypedCliques streamed from the export, so write_compendium() can log progress.
 
-    :param concordances: A list of concordances to use.
-    :param identifiers: A list of identifiers to use.
-    :param publication_compendium: The publication concord file to produce.
-    :param icrdf_filename: The ICRDF file.
+    Shards are read one record at a time in this process. write_compendium() is the bottleneck here, so
+    parsing ahead in worker processes would buy little time and cost a parsed shard's worth of memory per
+    worker.
     """
 
-    dicts = {}
-    types = {}
-    uniques = [PMID]
+    def __init__(self, download_dir, winners, doi_repairs):
+        self.download_dir = download_dir
+        self.winners = winners
+        self.doi_repairs = doi_repairs
+        self.shard_counts = expected_shard_counts(download_dir)
 
-    # Load PMID identifiers.
-    for ifile in identifiers:
-        print("loading", ifile)
-        new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=uniques)
-        types.update(new_types)
+    def __len__(self):
+        return sum(self.shard_counts.values())
 
-    # Load concordances.
-    for infile in concordances:
-        print(infile)
-        print("loading", infile)
-        pairs = []
-        for x in read_concords(infile):
-            pairs.append({x[0], x[2]})
-        glom(dicts, pairs, unique_prefixes=uniques)
+    def __iter__(self):
+        for shard in self.shard_counts:
+            for pmid, title, others, _ in _read_shard(os.path.join(self.download_dir, shard), self.doi_repairs):
+                identifiers = [pmid] + [o for o in others if self.winners.get(shared_identifier_key(o), pmid) == pmid]
+                yield TypedClique(PUBLICATION, identifiers, {pmid: title} if title else None)
 
-    # Publications have titles, not labels. We load them here.
-    labels = dict()
-    for title_filename in titles:
-        print("loading titles from", title_filename)
-        with open(title_filename) as titlef:
-            for line in titlef:
-                id, title = line.strip().split("\t")
-                if id in labels:
-                    # Don't emit a warning unless the title has actually changed.
-                    if labels[id] != title:
-                        logger.warning(
-                            f"Duplicate title for {id}: ignoring previous title '{labels[id]}', using new title '{title}'."
-                        )
-                labels[id] = title
 
-    # Write out the compendium.
-    publication_sets = set([frozenset(x) for x in dicts.values()])
+def generate_compendium(
+    download_dir,
+    shared_ids_file,
+    metadata_yamls,
+    publication_compendium,
+    icrdf_filename,
+    doi_repairs_file=PUBMED_DOI_REPAIRS,
+):
+    """
+    Write the Publication compendium straight from the pubmed2db shards: one record, one clique.
+
+    Each PMID's label is its ``article_title`` exactly as exported, so a title with an embedded newline or
+    surrounding whitespace keeps it (see docs/sources/PubMed/README.md, "Titles").
+
+    :param shared_ids_file: Output of parse_pubmed2db_into_tsvs(); a shared identifier stays only in the
+        PMID named there.
+    :param doi_repairs_file: The DOI repairs table parse_pubmed2db_into_tsvs() was given. It has to be the
+        same one: shared_ids_file was computed from the repaired identifiers.
+    """
+    winners = {}
+    with open(shared_ids_file) as sharedf:
+        for line in sharedf:
+            other, winner, _ = line.rstrip("\n").split("\t")
+            winners[other] = winner
+    logger.info(f"Loaded {len(winners):,} shared identifiers from {shared_ids_file}.")
+
     write_compendium(
         metadata_yamls,
-        publication_sets,
+        _PublicationCliques(download_dir, winners, load_doi_repairs(doi_repairs_file)),
         os.path.basename(publication_compendium),
-        PUBLICATION,
-        labels,
+        None,
+        # No extra_prefixes: the export spells PubMed Central ids PMC:, which Biolink registers on
+        # biolink:Publication. A PMCID: would need extra_prefixes (see PUBMED2DB_DATA_MODEL_MAJOR).
         icrdf_filename=icrdf_filename,
     )
