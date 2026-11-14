@@ -65,11 +65,12 @@ def read_ids(path):
     return dict(line.rstrip("\n").split("\t") for line in open(path) if line.strip())
 
 
-def ownership(rrf, mesh_ids_by_pipeline, blocklists=None, non_mesh_cuis=()):
+def ownership(rrf, mesh_ids_by_pipeline, blocklists=None, non_mesh_cuis=(), drugbank_ids_by_pipeline=None):
     """Write the umls_mesh_ownership file for these pipelines' MeSH claims and return its path.
 
     ``blocklists`` maps a pipeline to the bare CUIs of its blocklist file (badumls-style); ``non_mesh_cuis`` are
-    the CUIs of a gene/process-style ids/UMLS file."""
+    the CUIs of a gene/process-style ids/UMLS file; ``drugbank_ids_by_pipeline`` maps a pipeline to the rows of
+    its ids/DRUGBANK file."""
     path = rrf / "mesh_ownership.tsv"
     files = {pipeline: mesh_ids(rrf, pipeline, rows) for pipeline, rows in mesh_ids_by_pipeline.items()}
     blocklist_files = {}
@@ -77,12 +78,17 @@ def ownership(rrf, mesh_ids_by_pipeline, blocklists=None, non_mesh_cuis=()):
         blocklist_files[pipeline] = str(rrf / f"blocklist_{pipeline}")
         (rrf / f"blocklist_{pipeline}").write_text("#a comment line\n" + "".join(f"{cui} label\n" for cui in cuis))
     (rrf / "non_mesh_UMLS").write_text("".join(f"{cui}\tbiolink:Gene\n" for cui in non_mesh_cuis))
+    drugbank_files = {}
+    for pipeline, rows in (drugbank_ids_by_pipeline or {}).items():
+        drugbank_files[pipeline] = str(rrf / f"DRUGBANK_{pipeline}")
+        (rrf / f"DRUGBANK_{pipeline}").write_text("".join(f"{curie}\t{biolink_type}\n" for curie, biolink_type in rows))
     umls.write_mesh_ownership(
         str(rrf / "MRCONSO.RRF"),
         files,
         str(path),
         blocklist_files_by_pipeline=blocklist_files,
         non_mesh_umls_ids_files=[str(rrf / "non_mesh_UMLS")],
+        drugbank_ids_files_by_pipeline=drugbank_files,
     )
     return str(path)
 
@@ -437,3 +443,122 @@ def test_clique_build_skips_concord_pairs_naming_a_cui_owned_elsewhere(tmp_path,
     assert dicts["MONDO:0000001"] == {"MONDO:0000001", "UMLS:C0242726"}
     dicts, _ = compute(concords, ids, None)
     assert "UMLS:C0000608" in dicts["MONDO:0000001"]
+
+
+# A CUI FOLLOWS ITS DRUGBANK INGREDIENT
+
+# C4279623 "elamipretide": T116 (protein) + T121, DrugBank ingredient DB11981, and a MeSH supplementary record
+#   it reaches only through a PCE atom, which build_sets() never concords -- so MeSH ownership says nothing.
+# C0000378 "Droxidopa": its DRUGBANK SY (synonym) atoms, which build_sets() does not concord either.
+DRUGBANK_MRSTY = (
+    "C4279623|T116|A1.4.1.2.1.7|Amino Acid, Peptide, or Protein|AT219111556|4096|\n"
+    "C4279623|T121|A1.4.1.1.1|Pharmacologic Substance|AT317353548|4096|\n"
+)
+DRUGBANK_MRCONSO = (
+    "C4279623|ENG|P|L13510054|PF|S16507688|N|A27196760||M000618580|C506540|MSH|PCE|C506540|elamipretide|0|N||\n"
+    "C4279623|ENG|P|L13510054|VC|S17348577|Y|A28557161||DB11981||DRUGBANK|IN|DB11981|Elamipretide|0|N||\n"
+    "C0000378|ENG|S|L0013046|PF|S0035216|Y|A27065677||DB06262||DRUGBANK|SY|DB06262|DOPS|0|N||\n"
+    "C0000378|ENG|S|L13413269|PF|S16393109|Y|A27067413||DB06262||DRUGBANK|SY|DB06262|L-Dihydroxyphenylserine|0|N||\n"
+)
+ELAMIPRETIDE = "UMLS:C4279623"
+ELAMIPRETIDE_DRUGBANK = ("DRUGBANK:DB11981", CHEMICAL_ENTITY)
+
+
+@pytest.fixture
+def drugbank_rrf(tmp_path):
+    (tmp_path / "MRSTY.RRF").write_text(DRUGBANK_MRSTY)
+    (tmp_path / "MRCONSO.RRF").write_text(DRUGBANK_MRCONSO)
+    return tmp_path
+
+
+@pytest.mark.unit
+def test_read_cui_to_drugbank_ingredients_uses_ingredient_atoms_only(drugbank_rrf):
+    """Only DRUGBANK IN atoms should map a CUI to a DrugBank ID, so C0000378 (SY only) is absent."""
+    assert umls.read_cui_to_drugbank_ingredients(str(drugbank_rrf / "MRCONSO.RRF")) == {
+        ELAMIPRETIDE: {"DRUGBANK:DB11981"}
+    }
+
+
+@pytest.mark.unit
+def test_build_sets_concords_exactly_the_drugbank_ids_ownership_reads(drugbank_rrf):
+    """build_sets() should concord each CUI to exactly the DrugBank IDs read_cui_to_drugbank_ingredients()
+    returns for it; otherwise DrugBank ownership would move a CUI for a DrugBank ID it is never concorded to."""
+    mrconso = str(drugbank_rrf / "MRCONSO.RRF")
+    (drugbank_rrf / "ids").write_text("UMLS:C4279623\nUMLS:C0000378\n")
+    umls.build_sets(mrconso, str(drugbank_rrf / "ids"), str(drugbank_rrf / "concord"), {"DRUGBANK": "DRUGBANK"})
+    concorded = {tuple(line.rstrip("\n").split("\teq\t")) for line in open(drugbank_rrf / "concord")}
+    assert concorded == {(cui, d) for cui, ids in umls.read_cui_to_drugbank_ingredients(mrconso).items() for d in ids}
+
+
+@pytest.mark.unit
+def test_drugbank_owner_is_the_pipeline_whose_ids_claim_the_ingredient():
+    owners = umls.compute_drugbank_owners(
+        {"UMLS:C1": {"DRUGBANK:DB2", "DRUGBANK:DB1"}},
+        {"chemicals": {"DRUGBANK:DB1": CHEMICAL_ENTITY, "DRUGBANK:DB2": CHEMICAL_ENTITY}},
+        {},
+        {"protein": {}},
+    )
+    assert owners == {"UMLS:C1": ("chemicals", "DRUGBANK:DB1", CHEMICAL_ENTITY)}
+
+
+@pytest.mark.unit
+def test_cui_has_no_drugbank_owner_when_no_ids_file_lists_its_ingredient():
+    """A structureless biologic's DrugBank ID is in no ids/DRUGBANK, so its CUI stays where it is."""
+    assert umls.compute_drugbank_owners({"UMLS:C1": {"DRUGBANK:DB9"}}, {"chemicals": {}}, {}, {}) == {}
+
+
+@pytest.mark.unit
+def test_cui_has_no_drugbank_owner_when_a_pipeline_claims_one_of_its_descriptors():
+    """MeSH placement wins wherever it has anything to say, even when it is undecided between two pipelines."""
+    drugbank_types = {"chemicals": {"DRUGBANK:DB1": CHEMICAL_ENTITY}}
+    cui_to_mesh = {"UMLS:C1": {"MESH:D1"}}
+    for mesh_types in (
+        {"protein": {"MESH:D1": PROTEIN}},
+        {"protein": {"MESH:D1": PROTEIN}, "chemicals": {"MESH:D1": CHEMICAL_ENTITY}},
+    ):
+        assert (
+            umls.compute_drugbank_owners({"UMLS:C1": {"DRUGBANK:DB1"}}, drugbank_types, cui_to_mesh, mesh_types) == {}
+        )
+    # A descriptor nobody claims does not stand in the way.
+    assert umls.compute_drugbank_owners(
+        {"UMLS:C1": {"DRUGBANK:DB1"}}, drugbank_types, cui_to_mesh, {"protein": {}}
+    ) == {"UMLS:C1": ("chemicals", "DRUGBANK:DB1", CHEMICAL_ENTITY)}
+
+
+@pytest.mark.unit
+def test_cui_has_no_drugbank_owner_when_refused_or_unownable():
+    cui_to_drugbank = {"UMLS:C1": {"DRUGBANK:DB1"}}
+    drugbank_types = {"chemicals": {"DRUGBANK:DB1": CHEMICAL_ENTITY}}
+    assert umls.compute_drugbank_owners(cui_to_drugbank, drugbank_types, {}, {}, {"chemicals": {"UMLS:C1"}}) == {}
+    assert umls.compute_drugbank_owners(cui_to_drugbank, drugbank_types, {}, {}, unownable={"UMLS:C1"}) == {}
+
+
+@pytest.mark.unit
+def test_t116_cui_with_chemical_drugbank_ingredient_moves_from_protein_to_chemicals(drugbank_rrf):
+    """C4279623 is T116 so protein selects it and chemicals' blocklist removes it; because chemicals' ids/DRUGBANK
+    claims DB11981 and no pipeline claims a descriptor of it, protein should drop it and chemicals should admit
+    it typed as that DrugBank ID."""
+    path = ownership(
+        drugbank_rrf, {"protein": [], "chemicals": []}, drugbank_ids_by_pipeline={"chemicals": [ELAMIPRETIDE_DRUGBANK]}
+    )
+    assert umls.read_mesh_ownership(path) == {ELAMIPRETIDE: ("chemicals", *ELAMIPRETIDE_DRUGBANK)}
+    assert run(drugbank_rrf, PROTEIN_MAP, path, "protein") == {}
+    assert run(drugbank_rrf, CHEMICAL_MAP, path, "chemicals", blocklist_umls_semantic_type_tree=PROTEIN_STY_TREES) == {
+        ELAMIPRETIDE: CHEMICAL_ENTITY
+    }
+
+
+@pytest.mark.unit
+def test_without_a_drugbank_ids_file_the_cui_stays_in_protein(drugbank_rrf):
+    path = ownership(drugbank_rrf, {"protein": [], "chemicals": []})
+    assert umls.read_mesh_ownership(path) == {}
+    assert run(drugbank_rrf, PROTEIN_MAP, path, "protein") == {ELAMIPRETIDE: PROTEIN}
+
+
+@pytest.mark.unit
+def test_drugbank_owning_pipeline_must_be_mesh_owning(drugbank_rrf):
+    """Only MeSH-owning pipelines read the ownership file, so a DrugBank owner outside them would be handed CUIs
+    it never adds."""
+    with pytest.raises(ValueError, match="not MeSH-owning"):
+        ownership(drugbank_rrf, {"protein": []}, drugbank_ids_by_pipeline={"chemicals": [ELAMIPRETIDE_DRUGBANK]})
+    assert set(get_config()["umls_drugbank_owning_pipelines"]) <= set(get_config()["umls_mesh_owning_pipelines"])

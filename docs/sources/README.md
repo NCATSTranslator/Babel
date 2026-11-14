@@ -78,6 +78,8 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   [UMLS/CuiFollowsMesh.md](./UMLS/CuiFollowsMesh.md) — how a CUI is assigned to the pipeline that
   claims its MeSH descriptor when its semantic type says otherwise, the replay that measures the
   rule against a published build, and the duplicate-clique-leader control behind it.
+  [UMLS/UmlsUnii.md](./UMLS/UmlsUnii.md) — the CUI-to-UNII concord from SPL substance codes and
+  NCIt, its one-to-one guard, and the replay that measures the merges it causes.
 - **NCBIGene** ([NCBIGene/quoting/README.md](./NCBIGene/quoting/README.md)) — an investigation into
   how the two free-text synonym columns (`Synonyms`/`otheraliases`, `Other_designations`/
   `otherdesignations`) in `gene_info.gz` are quoted, prompted by issue #744's `''…''` fragments and

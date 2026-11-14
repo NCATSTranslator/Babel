@@ -396,6 +396,14 @@ def umls_pipeline_outputs(umls_rrf_files, mesh_pipeline_outputs, regenerate):
     mesh_ids_by_dir = {_snakemake_dir(name): path for name, path in mesh_pipeline_outputs.items()}
     mesh_ids_by_pipeline = {pipeline: mesh_ids_by_dir[pipeline] for pipeline in cfg["umls_mesh_owning_pipelines"]}
     non_mesh_umls_ids = [p("gene"), p("processactivitypathway")]
+    # DrugBank ownership needs chemicals' ids/DRUGBANK, which is cut from the UniChem reference download. Like
+    # the UNICHEM concords above it is used when a prior pipeline run left it and not generated here, so without
+    # it these tests see MeSH ownership alone.
+    drugbank_ids_by_pipeline = {
+        pipeline: path
+        for pipeline in cfg["umls_drugbank_owning_pipelines"]
+        if os.path.exists(path := os.path.join(cfg["intermediate_directory"], pipeline, "ids", "DRUGBANK"))
+    }
     _maybe_run(
         ownership,
         lambda: umls.write_mesh_ownership(
@@ -404,9 +412,16 @@ def umls_pipeline_outputs(umls_rrf_files, mesh_pipeline_outputs, regenerate):
             ownership,
             blocklist_files_by_pipeline={"disease": badumlsfile},
             non_mesh_umls_ids_files=non_mesh_umls_ids,
+            drugbank_ids_files_by_pipeline=drugbank_ids_by_pipeline,
         ),
         regenerate,
-        inputs=[mrconso, badumlsfile, *mesh_ids_by_pipeline.values(), *non_mesh_umls_ids],
+        inputs=[
+            mrconso,
+            badumlsfile,
+            *mesh_ids_by_pipeline.values(),
+            *non_mesh_umls_ids,
+            *drugbank_ids_by_pipeline.values(),
+        ],
     )
 
     writers = {

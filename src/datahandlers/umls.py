@@ -11,7 +11,7 @@ from src.babel_utils import make_local_name
 from src.categories import CHEMICAL_ENTITY, DRUG, MOLECULAR_MIXTURE
 from src.metadata.provenance import write_concord_metadata, write_download_metadata
 from src.predicates import HAS_EXACT_SYNONYM
-from src.prefixes import MESH, RXCUI, UMLS
+from src.prefixes import DRUGBANK, MESH, RXCUI, UMLS
 from src.util import get_logger
 
 logger = get_logger(__name__)
@@ -56,6 +56,35 @@ def check_mrconso_line(line):
 MESH_CONCORD_TTYS = frozenset({"MH", "NM", "HT", "QAB"})
 
 
+# The DrugBank term types build_sets() concords a CUI to: DrugBank IDs are active ingredients, so only an
+# ingredient atom identifies *the* DrugBank entry a CUI stands for; a synonym atom (SY, FSY) maps one DrugBank ID
+# to several CUIs loosely. read_cui_to_drugbank_ingredients() uses the same set so that DrugBank ownership (below)
+# moves a CUI exactly when build_sets() would drag its DrugBank ID.
+DRUGBANK_CONCORD_TTYS = frozenset({"IN", "PIN", "MIN"})
+
+
+def read_cui_to_source_ids(mrconso, sources, prefix=UMLS):
+    """Map every CUI to the identifiers build_sets() would concord it to, for several sources in one MRCONSO pass.
+
+    :param mrconso: The file path of MRCONSO.RRF.
+    :param sources: MRCONSO ``SAB`` -> ``(CURIE prefix, term types)``; only English, unsuppressed atoms of that
+        source with one of those term types count.
+    :param prefix: The prefix for the CUIs (defaults to UMLS).
+    :return: A dict of ``SAB`` -> {``UMLS:C...`` -> set of CURIEs}.
+    """
+    found = {sab: defaultdict(set) for sab in sources}
+    with open(mrconso) as inf:
+        for line in inf:
+            x = line.split("|")
+            # The SAB/TTY test first: only a few percent of MRCONSO is one of these sources, so
+            # check_mrconso_line()'s second split runs on those lines alone.
+            source = sources.get(x[11])
+            if source is None or x[12] not in source[1] or not check_mrconso_line(line):
+                continue
+            found[x[11]][f"{prefix}:{x[0]}"].add(f"{source[0]}:{x[13]}")
+    return {sab: dict(cui_to_ids) for sab, cui_to_ids in found.items()}
+
+
 def read_cui_to_mesh_descriptors(mrconso, prefix=UMLS):
     """Map every CUI to the MeSH descriptors it stands for, using the same MRCONSO atoms as build_sets().
 
@@ -65,16 +94,18 @@ def read_cui_to_mesh_descriptors(mrconso, prefix=UMLS):
         ``SAB=MSH`` atoms with a term type in MESH_CONCORD_TTYS count; a CUI with only entry-term atoms (e.g.
         ``C0000005`` -> ``D012711`` via PEP/ET) is absent, just as build_sets() never concords it.
     """
-    cui_to_mesh = defaultdict(set)
-    with open(mrconso) as inf:
-        for line in inf:
-            x = line.split("|")
-            # The SAB/TTY test first: only a few percent of MRCONSO is SAB=MSH, so check_mrconso_line()'s second
-            # split runs on those lines alone.
-            if x[11] != "MSH" or x[12] not in MESH_CONCORD_TTYS or not check_mrconso_line(line):
-                continue
-            cui_to_mesh[f"{prefix}:{x[0]}"].add(f"{MESH}:{x[13]}")
-    return dict(cui_to_mesh)
+    return read_cui_to_source_ids(mrconso, {"MSH": (MESH, MESH_CONCORD_TTYS)}, prefix)["MSH"]
+
+
+def read_cui_to_drugbank_ingredients(mrconso, prefix=UMLS):
+    """Map every CUI to the DrugBank IDs it stands for, using the same MRCONSO atoms as build_sets().
+
+    :param mrconso: The file path of MRCONSO.RRF.
+    :param prefix: The prefix for the CUIs (defaults to UMLS).
+    :return: A dict of ``UMLS:C...`` -> set of ``DRUGBANK:DB...`` CURIEs. Only English, unsuppressed
+        ``SAB=DRUGBANK`` atoms with a term type in DRUGBANK_CONCORD_TTYS count.
+    """
+    return read_cui_to_source_ids(mrconso, {"DRUGBANK": (DRUGBANK, DRUGBANK_CONCORD_TTYS)}, prefix)["DRUGBANK"]
 
 
 def read_mesh_ids_types(mesh_ids_files):
@@ -176,10 +207,75 @@ def compute_mesh_owners(cui_to_mesh, mesh_types_by_pipeline, never_add=None, uno
     return owners
 
 
-def write_mesh_ownership(
-    mrconso, mesh_ids_files_by_pipeline, outfile, *, blocklist_files_by_pipeline=None, non_mesh_umls_ids_files=()
+def compute_drugbank_owners(
+    cui_to_drugbank,
+    drugbank_types_by_pipeline,
+    cui_to_mesh,
+    mesh_types_by_pipeline,
+    never_add=None,
+    unownable=frozenset(),
 ):
-    """Write the CUI -> owning pipeline map (compute_mesh_owners) that every MeSH-owning pipeline reads.
+    """Decide which pipeline owns each CUI that MeSH placement says nothing about -- "a CUI follows its DrugBank
+    ingredient".
+
+    The same disagreement compute_mesh_owners() settles for MeSH exists for DrugBank: the chemical pipeline
+    claims a DrugBank ID in its ``ids/DRUGBANK``, but selects CUIs by semantic type, and it blocks T116 "Amino
+    Acid, Peptide, or Protein" and does not map T121 "Pharmacologic Substance" on its own. So a CUI such as
+    ``UMLS:C4279623`` "elamipretide" (T116 + T121, no MeSH descriptor, DrugBank ingredient ``DB11981``) was
+    claimed by protein, whose UMLS concord dragged the DrugBank ID into ``Protein.txt`` as well, while the
+    chemical clique holding that DrugBank ID never got the CUI. A CUI typed only T121 fell to the leftover
+    compendium instead, cut off from the same clique.
+
+    A CUI is owned here when no pipeline's ``ids/MESH`` claims any of its descriptors (MeSH placement wins
+    wherever it has anything to say, including when it is undecided between two pipelines), exactly one
+    pipeline's ``ids/DRUGBANK`` claims any of its DrugBank ingredients, that pipeline does not refuse the CUI,
+    and the CUI is not ``unownable``. Only a DrugBank ID an ids file claims counts: protein keeps the DrugBank
+    IDs of structureless biologics (antibodies) that chemicals' ``ids/DRUGBANK`` never lists, and those CUIs
+    stay where their semantic types put them.
+
+    :param cui_to_drugbank: The output of read_cui_to_drugbank_ingredients().
+    :param drugbank_types_by_pipeline: pipeline -> {DrugBank CURIE -> Biolink type}, one entry per pipeline in
+        config.yaml's ``umls_drugbank_owning_pipelines`` (each the output of read_mesh_ids_types()).
+    :param cui_to_mesh: The output of read_cui_to_mesh_descriptors().
+    :param mesh_types_by_pipeline: As for compute_mesh_owners().
+    :param never_add: As for compute_mesh_owners().
+    :param unownable: As for compute_mesh_owners().
+    :return: A dict of CUI -> ``(pipeline, drugbank_id, biolink_type)``, the shape compute_mesh_owners()
+        returns; the DrugBank ID is the first the owner claims, in sorted order.
+    """
+    never_add = never_add or {}
+    owners = {}
+    for cui, ingredients in cui_to_drugbank.items():
+        if cui in unownable:
+            continue
+        descriptors = cui_to_mesh.get(cui, ())
+        if any(d in mesh_types for mesh_types in mesh_types_by_pipeline.values() for d in descriptors):
+            continue
+        claims = {}
+        for pipeline, drugbank_types in drugbank_types_by_pipeline.items():
+            claimed = sorted(d for d in ingredients if d in drugbank_types)
+            if claimed:
+                claims[pipeline] = claimed
+        if len(claims) != 1:
+            continue
+        ((pipeline, claimed),) = claims.items()
+        if cui in never_add.get(pipeline, ()):
+            continue
+        owners[cui] = (pipeline, claimed[0], drugbank_types_by_pipeline[pipeline][claimed[0]])
+    return owners
+
+
+def write_mesh_ownership(
+    mrconso,
+    mesh_ids_files_by_pipeline,
+    outfile,
+    *,
+    blocklist_files_by_pipeline=None,
+    non_mesh_umls_ids_files=(),
+    drugbank_ids_files_by_pipeline=None,
+):
+    """Write the CUI -> owning pipeline map that every MeSH-owning pipeline reads: compute_mesh_owners(), then
+    compute_drugbank_owners() for the CUIs MeSH placement says nothing about.
 
     MRCONSO is parsed once here rather than once per pipeline, and every pipeline reads the same decision, so
     no CUI can be dropped by one pipeline and not added by another.
@@ -187,13 +283,22 @@ def write_mesh_ownership(
     :param mrconso: The file path of MRCONSO.RRF.
     :param mesh_ids_files_by_pipeline: pipeline -> that pipeline's ``ids/MESH`` file, for every pipeline in
         config.yaml's ``umls_mesh_owning_pipelines``.
-    :param outfile: The TSV to write: ``CUI<tab>pipeline<tab>descriptor<tab>biolink_type``, sorted by CUI.
+    :param outfile: The TSV to write: ``CUI<tab>pipeline<tab>anchor<tab>biolink_type``, sorted by CUI. The
+        anchor is the MeSH descriptor or DrugBank ID that decided the owner, and whose type the CUI takes.
     :param blocklist_files_by_pipeline: pipeline -> a CUI blocklist file (read_cui_blocklist()) that pipeline's
         ``write_umls_ids`` applies, i.e. ``{"disease": "input_data/badumls"}``; compute_mesh_owners()'s
         ``never_add``.
     :param non_mesh_umls_ids_files: The ``ids/UMLS`` files of the pipelines that write no ``ids/MESH`` (gene,
         process); their CUIs are compute_mesh_owners()'s ``unownable``.
+    :param drugbank_ids_files_by_pipeline: pipeline -> that pipeline's ``ids/DRUGBANK`` file, for every pipeline
+        in config.yaml's ``umls_drugbank_owning_pipelines``. None or empty: MeSH ownership alone.
+    :raises ValueError: if a DrugBank-owning pipeline is not also MeSH-owning. Only the MeSH-owning pipelines
+        read this file, so such a pipeline would be given CUIs it never adds while the others drop them.
     """
+    drugbank_ids_files_by_pipeline = drugbank_ids_files_by_pipeline or {}
+    not_mesh_owning = sorted(set(drugbank_ids_files_by_pipeline) - set(mesh_ids_files_by_pipeline))
+    if not_mesh_owning:
+        raise ValueError(f"DrugBank-owning pipelines {not_mesh_owning} are not MeSH-owning pipelines")
     never_add = {
         pipeline: {f"{UMLS}:{cui}" for cui in read_cui_blocklist(path)}
         for pipeline, path in (blocklist_files_by_pipeline or {}).items()
@@ -201,19 +306,31 @@ def write_mesh_ownership(
     unownable = set()
     for path in non_mesh_umls_ids_files:
         unownable |= read_umls_ids(path)
-    owners = compute_mesh_owners(
-        read_cui_to_mesh_descriptors(mrconso),
-        {pipeline: read_mesh_ids_types([path]) for pipeline, path in mesh_ids_files_by_pipeline.items()},
+    atoms = read_cui_to_source_ids(
+        mrconso, {"MSH": (MESH, MESH_CONCORD_TTYS), "DRUGBANK": (DRUGBANK, DRUGBANK_CONCORD_TTYS)}
+    )
+    mesh_types = {pipeline: read_mesh_ids_types([path]) for pipeline, path in mesh_ids_files_by_pipeline.items()}
+    owners = compute_mesh_owners(atoms["MSH"], mesh_types, never_add, unownable)
+    drugbank_owners = compute_drugbank_owners(
+        atoms["DRUGBANK"],
+        {pipeline: read_mesh_ids_types([path]) for pipeline, path in drugbank_ids_files_by_pipeline.items()},
+        atoms["MSH"],
+        mesh_types,
         never_add,
         unownable,
     )
+    # compute_drugbank_owners() skips every CUI with a claimed descriptor, so the two maps cannot overlap.
+    owners.update(drugbank_owners)
     with open(outfile, "w") as outf:
         for cui in sorted(owners):
             outf.write("\t".join((cui,) + owners[cui]) + "\n")
     counts = defaultdict(int)
     for pipeline, _, _ in owners.values():
         counts[pipeline] += 1
-    logger.info(f"MeSH ownership: {len(owners)} CUIs have an owning pipeline ({dict(sorted(counts.items()))}).")
+    logger.info(
+        f"UMLS ownership: {len(owners)} CUIs have an owning pipeline ({dict(sorted(counts.items()))}), "
+        f"{len(drugbank_owners)} of them through a DrugBank ingredient."
+    )
 
 
 def read_mesh_ownership(path):
@@ -503,7 +620,7 @@ def build_sets(
             umls_ids.add(u)
     lookfor = set(other_prefixes.keys())
     acceptable_mesh_tty = MESH_CONCORD_TTYS
-    acceptable_drugbank_tty = set(["IN", "PIN", "MIN"])
+    acceptable_drugbank_tty = DRUGBANK_CONCORD_TTYS
     pairs = set()
     # test_cui = 'C0026827'
     with open(mrconso) as inf, open(umls_output, "w") as concordfile:

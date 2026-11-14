@@ -139,6 +139,16 @@ umls:
 # (tests/datahandlers/test_umls.py checks they match).
 umls_mesh_owning_pipelines: [anatomy, chemicals, disease, protein, taxon]
 
+# "A UMLS CUI follows its DrugBank ingredient", the same rule one step down: where no listed pipeline's ids/MESH
+# claims any of a CUI's descriptors, rule umls_mesh_ownership gives the CUI to the one pipeline here whose
+# ids/DRUGBANK claims its DrugBank ingredient (umls.compute_drugbank_owners()). Chemicals selects CUIs by
+# semantic type, blocks T116 "Amino Acid, Peptide, or Protein" and does not map T121 "Pharmacologic Substance"
+# alone, so without this a peptide drug's CUI went to protein (which dragged the DrugBank ID into Protein.txt
+# too) or to the leftover compendium, apart from the chemical clique holding its DrugBank ID. Only chemicals
+# writes an ids/DRUGBANK. Every pipeline here must also be in umls_mesh_owning_pipelines, because only those
+# read the ownership file. An empty list turns the rule off.
+umls_drugbank_owning_pipelines: [chemicals]
+
 #
 # PROTEINS
 #
@@ -358,7 +368,10 @@ unichem_datasources: [CHEMBL.COMPOUND, DRUGBANK, GTOPDB, CHEBI, UNII, HMDB, PUBC
 
 chemical_labels:    [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, UMLS, DRUGBANK]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
 chemical_synonyms:  [GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, UMLS, DRUGBANK]
-chemical_concords:  [wikipedia_mesh_chebi, PUBCHEM_MESH, mesh_cas, mesh_unii, PUBCHEM_CAS, GTOPDB, CHEBI, UMLS, DrugCentral, RXNORM]
+# UMLS_UNII (CUI <-> UNII from SPL substance codes and NCIt, docs/sources/UMLS/UmlsUnii.md) is last on purpose:
+# glom() applies concords in this order, so every older link is made first and a UMLS_UNII pair can only join
+# what they left apart.
+chemical_concords:  [wikipedia_mesh_chebi, PUBCHEM_MESH, mesh_cas, mesh_unii, PUBCHEM_CAS, GTOPDB, CHEBI, UMLS, DrugCentral, RXNORM, UMLS_UNII]
 chemical_ids:       [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, DRUGBANK, MESH, UMLS, RXNORM]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
 
 # Food.txt holds DRUGBANK food entries retyped from ChemicalEntity to Food (issue #828); it must stay in
