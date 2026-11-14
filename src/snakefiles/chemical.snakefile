@@ -380,6 +380,9 @@ rule untyped_chemical_compendia:
         ),
         idlists=expand("{dd}/chemicals/ids/{ap}", dd=config["intermediate_directory"], ap=config["chemical_ids"]),
         mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
+        # Declared as an input so editing the file re-triggers this rule. Auditing a build made with it needs
+        # babel-inchikey-audit --badxrefs pointing at the same file.
+        badxrefs=chemicals.CHEMICAL_BAD_XREFS,
     output:
         typesfile=config["intermediate_directory"] + "/chemicals/partials/types",
         untyped_file=config["intermediate_directory"] + "/chemicals/partials/untyped_compendium",
@@ -404,6 +407,7 @@ rule untyped_chemical_compendia:
             output.untyped_meta,
             input.metadata_yamls,
             mesh_ownership=input.mesh_ownership,
+            badxrefs=input.badxrefs,
         )
 
 

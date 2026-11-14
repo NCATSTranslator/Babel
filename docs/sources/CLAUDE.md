@@ -149,6 +149,12 @@ per-concord key to disambiguate — and with no key there is no two-place regist
 It is wired through the `concord_pair_filter` hook that `glom_from_files()` already exposes, so it
 needed no new plumbing.
 
+Chemicals copies that shape: `input_data/chemical_badxrefs.txt` (`chemicals.CHEMICAL_BAD_XREFS`),
+applied to every untyped-stage concord in `build_untyped_compendia()`, either direction. Its pairs
+come from `babel-inchikey-audit` (`docs/tools/InchikeyAudit.md`): each attaches a structure-less
+record to the clique of a structure it is not. Adding a pair changes what the audit
+must be told: run it with `--badxrefs` on any build that applied the file.
+
 ## Where an identifier ends up is a claim about it — check that claim
 
 Every compendium file is an assertion about the *kind* of thing each clique is. So the file an

@@ -12,6 +12,7 @@ from src.babel_utils import (
     get_prefixes,
     get_user_agent,
     glom,
+    read_badxrefs,
     read_identifier_file,
     remove_overused_xrefs,
     write_compendium,
@@ -52,10 +53,18 @@ from src.util import (
     get_config,
     get_logger,
     get_memory_usage_summary,
+    get_repo_root,
     open_maybe_gzipped,
 )
 
 logger = get_logger(__name__)
+
+# Individually wrong chemical concord pairs, dropped (in either direction) before glom() in build_untyped_compendia().
+# Each attaches a record with no structure of its own -- a biologic, polymer, mixture or conjugate -- to the clique of
+# a structure it is not; glom()'s INCHIKEY guard cannot stop that because the record has no key. Found with
+# babel-inchikey-audit and reviewed by hand (docs/tools/InchikeyAudit.md); each entry states its reason. The
+# untyped_chemical_compendia rule declares the file as an input through this constant, so an edit re-runs the rule.
+CHEMICAL_BAD_XREFS = str(get_repo_root() / "input_data/chemical_badxrefs.txt")
 
 # The ChEBI SDF data-item tags make_chebi_relations() asks read_sdf() for, normalized the way
 # normalize_sdf_tag() normalizes them: lowercased, spaces stripped, underscores kept.
@@ -589,9 +598,13 @@ def read_inchikeys(struct_file):
     return inchikeys
 
 
-def combine_unichem(concordances, output):
-    PREFIXES_TO_REMOVE_OVERUSED_XREFS = [UNII, KEGGCOMPOUND, DRUGCENTRAL]
+# UniChem sources whose record->InChIKey concords combine_unichem() passes through remove_overused_xrefs(): a key
+# claimed by two or more records of one of these sources loses all of those links. Module-level so that
+# src/model/glom_edges.py can reproduce the build's filtering exactly rather than keeping its own copy.
+UNICHEM_OVERUSED_XREF_PREFIXES = (UNII, KEGGCOMPOUND, DRUGCENTRAL)
 
+
+def combine_unichem(concordances, output):
     dicts = {}
     for infile in concordances:
         print(infile)
@@ -623,7 +636,7 @@ def combine_unichem(concordances, output):
 
         # Only remove overused xrefs for specific prefixes
         newpairs = pairs
-        if prefix_to_check in PREFIXES_TO_REMOVE_OVERUSED_XREFS:
+        if prefix_to_check in UNICHEM_OVERUSED_XREF_PREFIXES:
             newpairs = remove_overused_xrefs(pairs)
         setpairs = [set(x) for x in newpairs]
         glom(dicts, setpairs, unique_prefixes=[INCHIKEY])
@@ -1088,13 +1101,22 @@ def build_untyped_compendia(
     metadata_yaml,
     input_metadata_yamls,
     mesh_ownership=None,
+    badxrefs=None,
 ):
     """:concordances: a list of files from which to read relationships
     :identifiers: a list of files from which to read identifiers and optional categories
     :mesh_ownership: the umls_mesh_ownership rule's file; concord pairs naming a CUI another pipeline owns are
         skipped (umls.read_cuis_owned_elsewhere). None skips nothing.
-        The UniChem partial carries no UMLS CUIs, so it needs no such filter."""
+        The UniChem partial carries no UMLS CUIs, so it needs no such filter.
+    :badxrefs: a read_badxrefs() file of concord pairs to skip, matched in either direction; defaults to
+        ``CHEMICAL_BAD_XREFS``. Like owned-elsewhere pairs, they are skipped before remove_overused_xrefs() counts
+        overuse, so src/model/glom_edges.py models them the same way."""
     owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "chemicals")
+    if badxrefs is None:
+        badxrefs = CHEMICAL_BAD_XREFS
+    bad_pairs = {frozenset(pair) for pair in read_badxrefs(badxrefs)}
+    logger.info("Loaded %d bad xref pair(s) from %s", len(bad_pairs), badxrefs)
+    bad_pairs_seen = set()
     dicts = read_partial_unichem(unichem_partial)
     types = {}
     for ifile in identifiers:
@@ -1111,27 +1133,20 @@ def build_untyped_compendia(
                 x = line.strip().split("\t")
                 if x[0] in owned_elsewhere or x[2] in owned_elsewhere:
                     continue
+                pair = frozenset((x[0], x[2]))
+                if pair in bad_pairs:
+                    bad_pairs_seen.add(pair)
+                    continue
                 pairs.append([x[0], x[2]])
-        p = False
-        if DRUGCENTRAL in [n.split(":")[0] for n in pairs[0]]:
-            p = True
-            i = "DrugCentral:4970"
-        if p:
-            print("before filtering:")
-            for pair in pairs:
-                if i in pair:
-                    print(pair)
         newpairs = remove_overused_xrefs(pairs)
         setpairs = [set(x) for x in newpairs]
-        if p:
-            print("after filtering:")
-            for pair in newpairs:
-                if i in pair:
-                    print(pair)
         glom(dicts, setpairs, unique_prefixes=[INCHIKEY])
-        if p:
-            print("after glomming:")
-            print(dicts[i])
+    # An entry no concord names any more is harmless (the source dropped the bad xref), so it is reported, not raised.
+    unseen = bad_pairs - bad_pairs_seen
+    if unseen:
+        logger.info(
+            "%d bad xref pair(s) in %s matched no concord row: %s", len(unseen), badxrefs, sorted(map(sorted, unseen))
+        )
     with open(type_file, "w") as outf:
         for x, y in types.items():
             outf.write(f"{x}\t{y}\n")
