@@ -67,6 +67,18 @@ is now read from a pubmed2db export instead, and `parse_pubmed2db_into_tsvs()` r
 DOI containing whitespace before it reaches the concord (`docs/sources/PubMed/README.md`,
 "Malformed DOIs").
 
+Stripping EFO's padding turns the three rejected EFO rows into ordinary edges, so it could change
+cliques. Checked against 2025dec11's concords and `Edge` tables, it changes at most one:
+
+- `EFO:0010695` → `PMID:25167691` and `EFO:0007836` → `PMID:27149984` (each had a trailing space)
+  change nothing. PMID is not a disease or phenotype prefix, the EFO concord already carries 6,204
+  PMID xrefs, and no other disease concord row names either PMID, so neither can join two cliques.
+- `EFO:0011048` "dermatological toxicity" → `MEDDRA:10059516` is the only EFO row naming that
+  MedDRA term, so the overuse filter keeps it. 2025dec11 already had the two in one clique. In
+  2026jul22, `MEDDRA:10059516` sits with `UMLS:C1167791` "Skin toxicity" through the UMLS concord,
+  and no EFO row names `EFO:0011048`. So a build whose EFO still carries the xref adds
+  `EFO:0011048` to that clique.
+
 2026jul22 published no `intermediate/` tree, so it was cross-checked through its
 `duckdb/Concord.parquet`, which keeps column values verbatim, queried in place as in
 [`docs/DataFormats.md`](../DataFormats.md) ("Querying a published build without downloading it"):
