@@ -34,7 +34,10 @@ see [`README.md`](README.md) — this file only covers how to write one once you
   statement true for any string. The duplication had been carrying a realism check nobody had named.
   After any such extraction, **break each new constant in turn and confirm a test fails**; if none
   does, the constant needs tying to something independent (there, a fixture copied verbatim from the
-  live page). The probe is three lines of shell and takes seconds.
+  live page). The probe is three lines of shell and takes seconds. Restore with a fresh `touch`
+  afterwards: Python trusts a cached `.pyc` whose source has the same mtime-second and byte size, so
+  a same-length break-and-restore inside one second leaves the *broken* constant running in every
+  later import (a report regenerated that way silently dropped `PMCID` in the #1202 work).
 
 - **Pin known-imperfect behavior, don't leave it unasserted** — when shipping a partial fix, assert
   the wrong-but-harmless behavior that remains, with a comment saying it pins current behavior, a
