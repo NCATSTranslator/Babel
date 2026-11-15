@@ -51,7 +51,8 @@ namespaces have the same shape: measurement terms xref the analyte they measure 
 rows, plus `HMDB`, `KEGG COMPOUND`, `PubChem`, `CAS`), and a few xref people and resources
 (`ORCID`, `RRID`). None of these reached a 2025dec11 disease or phenotype clique either, but none is
 an equivalence, so each is a candidate for the same exclusion. They are left for a separate change,
-since excluding a namespace a disease source could legitimately share deserves its own measurement.
+[#1200](https://github.com/NCATSTranslator/Babel/issues/1200), since excluding a namespace a disease
+source could legitimately share deserves its own measurement.
 
 ## Re-running
 
