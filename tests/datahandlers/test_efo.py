@@ -197,6 +197,20 @@ def test_get_xrefs_strips_whitespace_from_xref(efograph):
 
 
 @pytest.mark.unit
+def test_get_xrefs_unquotes_language_tagged_xref():
+    """Should write a language-tagged xref literal as its bare value, as parse_rdf_literal() does.
+
+    Hypothetical: EFO 3.95.0 has no language-tagged hasDbXref, so this row is not copied from it.
+    Slicing off the first and last characters, as get_xrefs() used to, gave `MESH:D001234"@e`.
+    """
+    store = pyoxigraph.Store()
+    store.add(quad(nn(f"{_EFO_NS}0000002"), nn(f"{_OBO_NS}hasDbXref"), lit("MESH:D001234", language="en")))
+    out = io.StringIO()
+    make_graph_from_store(EFOgraph, store).get_xrefs("EFO:0000002", out)
+    assert out.getvalue() == "EFO:0000002\toboInOwl:hasDbXref\tMESH:D001234\n"
+
+
+@pytest.mark.unit
 @pytest.mark.parametrize("efo_id", ["EFO:0803478", "EFO:0004358"])
 def test_get_xrefs_skips_and_counts_malformed_curies(efograph, efo_id):
     """Should skip a free-text xref that only looks like a CURIE ("KEGG COMPOUND:C20409",

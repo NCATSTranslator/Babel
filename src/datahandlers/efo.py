@@ -162,7 +162,8 @@ class EFOgraph:
             # EFO_0011048 has `<oboInOwl:hasDbXref> MedDRA:10059516</oboInOwl:hasDbXref>`. Strip it
             # here: a padded CURIE is rejected by the shared concord parser
             # (src/model/intermediates.py), and it also slipped past _is_excluded_target().
-            other_without_brackets = other[1:-1].strip()
+            # parse_rdf_literal() handles a language-tagged literal too, which other[1:-1] did not.
+            other_without_brackets = parse_rdf_literal(other).strip()
             try:
                 other_id = Text.opt_to_curie(other_without_brackets)
             except ValueError as verr:
