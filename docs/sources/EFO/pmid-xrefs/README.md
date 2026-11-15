@@ -48,11 +48,13 @@ neither of its two is one EFO cites.
 
 The replay's first section tabulates everything else EFO's hasDbXref points at, and several
 namespaces have the same shape: measurement terms xref the analyte they measure (2,581 `uniprot`
-rows, plus `HMDB`, `KEGG COMPOUND`, `PubChem`, `CAS`), and a few xref people and resources
-(`ORCID`, `RRID`). None of these reached a 2025dec11 disease or phenotype clique either, but none is
-an equivalence, so each is a candidate for the same exclusion. They are left for a separate change,
-[#1200](https://github.com/NCATSTranslator/Babel/issues/1200), since excluding a namespace a disease
-source could legitimately share deserves its own measurement.
+rows, plus `HMDB`, `KEGG COMPOUND`, `PubChem`, `CAS`), and a few xref their curator (`ORCID`).
+None of these reached a 2025dec11 disease or phenotype clique either, but none is an equivalence, so
+each is a candidate for the same exclusion. They are left for a separate change,
+[#1200](https://github.com/NCATSTranslator/Babel/issues/1200), because some of EFO's other unusual
+namespaces look like genuine equivalences and need checking before anything is dropped: `RRID`
+(`EFO:0022578` "G-292" → `RRID:CVCL_2909`, the Cellosaurus record for the same cell line) and `CMO`
+(a measurement to a measurement).
 
 ## Re-running
 
