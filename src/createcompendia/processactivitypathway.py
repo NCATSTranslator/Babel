@@ -8,7 +8,7 @@ import src.datahandlers.umls as umls
 from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
 from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
 from src.metadata.provenance import write_concord_metadata
-from src.prefixes import GO, REACT, TCDB, WIKIPATHWAYS
+from src.prefixes import DOI, GO, PMC, PMID, REACT, TCDB, WIKIPATHWAYS
 from src.ubergraph import build_sets
 
 
@@ -55,20 +55,36 @@ def build_process_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
     umls.build_sets(mrconso, idfile, outfile, {"GO": GO}, provenance_metadata_yaml=metadata_yaml)
 
 
+# Target prefixes dropped from GO's UberGraph xrefs (build_sets()'s ignore_list, which matches upper-cased
+# prefixes). Nothing is equivalent to a publication except another publication, but GO puts a few citations
+# on classes as plain hasDbXref, which UberGraph serves as xrefs: GO:0180012 "co-transcriptional RNA 3'-end
+# processing, cleavage and polyadenylation pathway" -> PMID:31499460 "Mechanistic insights into mRNA 3'-end
+# processing". Two such rows in 2026jul22 (three in 2025dec11), each naming a different paper no other
+# process concord names, so they merged nothing; but the build now fails on any concord row pairing a
+# publication with anything else (src.reports.duckdb_reports.assert_no_unexpected_publication_xrefs).
+GO_XREF_IGNORE_PREFIXES = [PMID.upper(), PMC.upper(), DOI.upper()]
+
+
 def build_process_obo_relationships(outdir, metadata_yaml):
     # Create the equivalence pairs
     # op={'MSH':MESH,'SNOMEDCT_US':SNOMEDCT,'SNOMED_CT': SNOMEDCT, 'ORPHANET':ORPHANET, 'ICD-9':ICD9, 'ICD-10':ICD10, 'ICD-0':ICD0, 'ICD-O':ICD0 }
     op = {"WIKIPEDIA": WIKIPATHWAYS, "REACTOME": REACT, "TC": TCDB}
     with open(f"{outdir}/{GO}", "w") as outfile:
-        build_sets(f"{GO}:0007165", {GO: outfile}, set_type="xref", other_prefixes=op)
-        build_sets(f"{GO}:0008150", {GO: outfile}, set_type="xref", other_prefixes=op)
-        build_sets(f"{GO}:0003674", {GO: outfile}, set_type="xref", other_prefixes=op)
+        build_sets(
+            f"{GO}:0007165", {GO: outfile}, set_type="xref", other_prefixes=op, ignore_list=GO_XREF_IGNORE_PREFIXES
+        )
+        build_sets(
+            f"{GO}:0008150", {GO: outfile}, set_type="xref", other_prefixes=op, ignore_list=GO_XREF_IGNORE_PREFIXES
+        )
+        build_sets(
+            f"{GO}:0003674", {GO: outfile}, set_type="xref", other_prefixes=op, ignore_list=GO_XREF_IGNORE_PREFIXES
+        )
 
     write_concord_metadata(
         metadata_yaml,
         name="build_process_obo_relationships()",
         description=f"Extract GO-GO relationships from UberGraph with get_subclasses_and_xrefs() from {GO}:0007165, {GO}:0008150 and {GO}:0003674,"
-        f"with other_prefixes {op.values()}",
+        f"with other_prefixes {op.values()}, ignoring target prefixes {GO_XREF_IGNORE_PREFIXES}",
         sources=[
             {
                 "type": "UberGraph",
