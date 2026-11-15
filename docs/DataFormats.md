@@ -353,9 +353,18 @@ the source file, so you can tell which semantic type and which source a row came
 
 `Concord.parquet` — one row per cross-reference edge, from every non-empty concord file (including
 the extension-less DrugChemical conflation concords at
-`intermediate/drugchemical/concords/{RXNORM,UMLS,PUBCHEM_RXNORM}`). A concord line with the wrong
-number of columns fails the export rather than being skipped; builds up to and including 2026jul22
-skipped such lines, so their `Concord.parquet` may be missing rows that were in the files:
+`intermediate/drugchemical/concords/{RXNORM,UMLS,PUBCHEM_RXNORM}`). A concord line with too few or
+too many columns fails the export rather than being skipped; builds up to and including 2026jul22
+skipped such lines, so their `Concord.parquet` may be missing rows that were in the files.
+
+The export's check is looser than the build's concord parser (`parse_concord_line()` in
+`src/model/intermediates.py`), so `Concord.parquet` can hold rows the build would reject. DuckDB's
+`read_csv` accepts a line ending in a tab, loading its first three columns, and it doesn't reject an
+empty column or one with whitespace around it. Every concord a compendium reads has already passed
+the parser, but not every file the export loads is one a compendium reads. To check a build's
+concords against the parser itself, run [`babel-check-concords`](tools/CheckConcords.md).
+
+Its columns:
 
 | Column   | Type   | Meaning                                                          |
 |----------|--------|------------------------------------------------------------------|
