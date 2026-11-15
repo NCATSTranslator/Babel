@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Measure what dropping EFO's PMID xrefs does to the disease/phenotype cliques.
+"""Measure what dropping EFO's publication xrefs (PMID, PMC, doi) does to the disease/phenotype cliques.
 
 EFO cites the paper a term was curated from as a class-level ``oboInOwl:hasDbXref``, e.g. EFO 3.95.0
 has ``EFO_0007836`` "coenzyme Q10 measurement" ``hasDbXref "PMID:27149984 "``. ``efo.make_concords()``
@@ -7,16 +7,16 @@ wrote every hasDbXref target into ``concords/EFO``, and every concord row is fed
 equivalence, so each of those rows asserted that a disease or phenotype *is* a publication.
 
 This replays the production ``compute_cliques_for_impact_report()`` over a completed build's disease
-intermediate files twice -- once as built, once with the PMID rows removed from ``concords/EFO``, as
-``EFO_EXCLUDED_XREF_PREFIXES`` now does -- and reports:
+intermediate files twice -- once as built, once with the publication rows removed from
+``concords/EFO``, as ``EFO_EXCLUDED_XREF_PREFIXES`` now does -- and reports:
 
   1. the EFO concord's xref targets by prefix (what else EFO writes that is not an equivalence);
-  2. how many PMIDs one EFO row names, and how many 2+ rows name, which the unscoped
+  2. how many publications one EFO row names, and how many 2+ rows name, which the unscoped
      ``OVERUSE_FILTERED_CONCORDS["EFO"]`` filter already drops;
-  3. how many cliques the PMID rows changed, ignoring PMID members themselves (which
-     ``write_compendium()`` drops, since no disease or phenotype class registers the prefix). It
+  3. how many cliques the publication rows changed, ignoring publication members themselves (which
+     ``write_compendium()`` drops, since no disease or phenotype class registers the prefixes). It
      asserts this is zero for the build it was run on;
-  4. which PMIDs EFO cites that another disease concord also names -- the rows that *would* merge
+  4. which publications EFO cites that another disease concord also names -- the rows that *would* merge
      two otherwise-unrelated cliques. Zero today, which is why the defect was latent.
 
 Usage, against a directory holding a build's ``disease/concords/`` and ``disease/ids/``::
@@ -35,7 +35,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[5]))
 
 from src.createcompendia.diseasephenotype import DEFAULT_BAD_XREFS, compute_cliques_for_impact_report  # noqa: E402
-from src.prefixes import PMID  # noqa: E402
+from src.prefixes import DOI, PMC, PMID  # noqa: E402
 from src.util import Text  # noqa: E402
 
 
@@ -44,13 +44,18 @@ def read_rows(path):
         return [line.rstrip("\r\n").split("\t") for line in inf if line.strip()]
 
 
+# The publication prefixes EFO_EXCLUDED_XREF_PREFIXES drops, upper-cased as get_prefix_or_none() returns them.
+PUBLICATION_PREFIXES = {PMID.upper(), PMC.upper(), DOI.upper()}
+
+
 def is_pmid(curie):
+    """True for any publication CURIE (PMID, PMC, doi); the name predates the doi and PMC rows."""
     # str.strip(): 2025dec11's EFO concord carries a few PMIDs with a trailing space.
-    return (Text.get_prefix_or_none(curie.strip()) or "") == PMID
+    return (Text.get_prefix_or_none(curie.strip()) or "") in PUBLICATION_PREFIXES
 
 
 def cliques_without_pmids(dicts):
-    """Each distinct clique as a frozenset of its non-PMID members; PMID-only cliques vanish."""
+    """Each distinct clique as a frozenset of its non-publication members; publication-only cliques vanish."""
     seen = {id(members): members for members in dicts.values()}
     return {
         frozenset(c for c in members if not is_pmid(c))
@@ -84,14 +89,16 @@ def main(argv=None):
         print(f"{pred}\t{prefix}\t{n}")
 
     pmid_cites = Counter(obj.strip() for _subj, _pred, obj in efo_rows if is_pmid(obj))
-    print("\n# 2. EFO PMID xrefs")
+    print("\n# 2. EFO publication xrefs (PMID, PMC, doi)")
     print(f"rows\t{sum(pmid_cites.values())}")
-    print(f"distinct PMIDs\t{len(pmid_cites)}")
+    print(f"distinct publications\t{len(pmid_cites)}")
     single = sum(1 for n in pmid_cites.values() if n == 1)
-    print(f"PMIDs named by one EFO row (survive the overuse filter)\t{single}")
-    print(f"PMIDs named by 2+ EFO rows (dropped by the overuse filter, which counts rows)\t{len(pmid_cites) - single}")
+    print(f"publications named by one EFO row (survive the overuse filter)\t{single}")
+    print(
+        f"publications named by 2+ EFO rows (dropped by the overuse filter, which counts rows)\t{len(pmid_cites) - single}"
+    )
 
-    print("\n# 4. EFO PMIDs that another disease concord also names")
+    print("\n# 4. EFO publications that another disease concord also names")
     shared = Counter()
     for other in sorted(p for p in concords_dir.iterdir() if p.is_file() and p.name != "EFO"):
         if other.name.startswith("metadata"):
@@ -104,7 +111,7 @@ def main(argv=None):
     for (name, curie), n in sorted(shared.items()):
         print(f"{name}\t{curie}\t{n}")
 
-    print("\n# 3. Cliques changed by dropping EFO's PMID rows (PMID members ignored)")
+    print("\n# 3. Cliques changed by dropping EFO's publication rows (publication members ignored)")
     before, pmids_before = replay(concords_dir, ids_dir)
     with tempfile.TemporaryDirectory() as tmp:
         tmp_concords = Path(tmp) / "concords"
@@ -115,9 +122,9 @@ def main(argv=None):
                     outf.write("\t".join(row) + "\n")
         after, pmids_after = replay(tmp_concords, ids_dir)
     only_before, only_after = before - after, after - before
-    # Shows the replay is sensitive: the PMIDs really did reach glom() as clique members.
-    print(f"PMID members of cliques before\t{pmids_before}")
-    print(f"PMID members of cliques after\t{pmids_after}")
+    # Shows the replay is sensitive: the publications really did reach glom() as clique members.
+    print(f"publication members of cliques before\t{pmids_before}")
+    print(f"publication members of cliques after\t{pmids_after}")
     print(f"cliques before\t{len(before)}")
     print(f"cliques after\t{len(after)}")
     print(f"only before\t{len(only_before)}")
@@ -127,7 +134,7 @@ def main(argv=None):
     for members in sorted(sorted(c) for c in only_after)[:20]:
         print("after:\t" + " ".join(members))
     if only_before or only_after:
-        raise SystemExit("Dropping EFO's PMID xrefs changed cliques; see the rows above.")
+        raise SystemExit("Dropping EFO's publication xrefs changed cliques; see the rows above.")
 
 
 if __name__ == "__main__":

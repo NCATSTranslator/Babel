@@ -72,18 +72,18 @@ oboInOwl:hasDbXref	SCDO	1
 oboInOwl:hasDbXref	doi	1
 oboInOwl:hasDbXref	modelled on http	1
 
-# 2. EFO PMID xrefs
-rows	6204
-distinct PMIDs	460
-PMIDs named by one EFO row (survive the overuse filter)	324
-PMIDs named by 2+ EFO rows (dropped by the overuse filter, which counts rows)	136
+# 2. EFO publication xrefs (PMID, PMC, doi)
+rows	6205
+distinct publications	461
+publications named by one EFO row (survive the overuse filter)	325
+publications named by 2+ EFO rows (dropped by the overuse filter, which counts rows)	136
 
-# 4. EFO PMIDs that another disease concord also names
+# 4. EFO publications that another disease concord also names
 shared	0
 
-# 3. Cliques changed by dropping EFO's PMID rows (PMID members ignored)
-PMID members of cliques before	326
-PMID members of cliques after	2
+# 3. Cliques changed by dropping EFO's publication rows (publication members ignored)
+publication members of cliques before	327
+publication members of cliques after	2
 cliques before	241179
 cliques after	241179
 only before	0
