@@ -35,7 +35,7 @@ import pytest
 from src.babel_utils import glom, norm, remove_overused_xrefs
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
-from src.prefixes import DOID, GARD, ICD10CM, MONDO
+from src.prefixes import DOID, GARD, HP, ICD10CM, MONDO
 from src.ubergraph import build_sets
 from src.util import Text, get_config
 from tests.conftest import assert_taxa_file_valid, glom_dict_from_cliques
@@ -727,6 +727,50 @@ def test_mondo_gard_concord_keeps_only_unpadded_gard_targets(tmp_path):
 
     rows = (outdir / f"{MONDO}_{GARD}").read_text().splitlines()
     assert rows == [f"{MONDO}:0018660\txref\t{GARD}:10418"]
+
+
+# --- HP publication xrefs ---
+
+
+@pytest.mark.unit
+def test_hp_concord_drops_publication_xrefs(tmp_path):
+    """build_disease_obo_relationships must keep HP's citations out of concords/HP.
+
+    hp.owl 2026-09-01 puts a few PMIDs on HP classes themselves rather than on their definition
+    axioms, and UberGraph serves those as xrefs. The two below are the ones 2025dec11's concord
+    carried, copied from it verbatim, beside a real NCIT mapping that must survive. A doi and a PMC
+    citation (synthetic; HP has none today) check the other two publication prefixes. Exercises
+    the real call site, because the ignore_list it passes is the whole fix.
+    See docs/sources/HP/pmid-xrefs/README.md.
+    """
+    xrefs = {
+        "HP:0032417": {"PMID:32866505"},  # "Periglomerular fibrosis" -> its definition's source paper
+        "HP:0034421": {"PMID:21250045"},  # "Ejection click" -> ditto
+        "HP:0000030": {"NCIT:C3754", "doi:10.1000/example", "PMC:PMC0000001"},  # "Testicular gonadoblastoma"
+    }
+    fake_uber = MagicMock()
+    fake_uber.get_subclasses_and_xrefs.return_value = xrefs
+    fake_uber.get_subclasses_and_exacts.return_value = {}
+    fake_uber.get_subclasses_and_close.return_value = {}
+
+    outdir = tmp_path / "concords"
+    outdir.mkdir()
+    metadata_yamls = {
+        name: str(tmp_path / f"metadata-{name}.yaml") for name in ("HP", "MONDO", "MONDO_close", "MONDO_GARD", "MP")
+    }
+    with patch("src.ubergraph.UberGraph", return_value=fake_uber):
+        diseasephenotype.build_disease_obo_relationships(str(outdir), metadata_yamls)
+
+    assert (outdir / HP).read_text().splitlines() == [f"{HP}:0000030\txref\tNCIT:C3754"]
+
+
+@pytest.mark.unit
+def test_hp_xref_ignore_prefixes_cover_every_publication_prefix():
+    """HP_XREF_IGNORE_PREFIXES must name PMID, PMC and doi, upper-cased as build_sets() requires."""
+    from src.prefixes import DOI, PMC, PMID
+
+    assert {PMID.upper(), PMC.upper(), DOI.upper()} <= set(diseasephenotype.HP_XREF_IGNORE_PREFIXES)
+    assert diseasephenotype.HP_XREF_IGNORE_PREFIXES == [p.upper() for p in diseasephenotype.HP_XREF_IGNORE_PREFIXES]
 
 
 # --- MP xref allowlist ---

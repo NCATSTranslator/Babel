@@ -19,6 +19,7 @@ from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.datahandlers.gard import normalize_gard_curie
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import (
+    DOI,
     DOID,
     GARD,
     HP,
@@ -34,6 +35,8 @@ from src.prefixes import (
     NCIT,
     OMIM,
     ORPHANET,
+    PMC,
+    PMID,
     SNOMEDCT,
     UMLS,
 )
@@ -108,6 +111,16 @@ MUTUALLY_EXCLUSIVE_PREFIX_GROUPS = [[HP, MP]]
 # [HP, MP] post-glom split above (HP->MP is handled there); it is applied via
 # efo.make_concords(..., excluded_target_prefixes=...). See docs/sources/MP/disjointness.md.
 EFO_EXCLUDED_XREF_PREFIXES = [MP]
+
+# Target prefixes dropped from HP's UberGraph xrefs (build_sets()'s ignore_list, which matches
+# upper-cased prefixes). The publication prefixes are there because nothing is equivalent to a
+# publication except another publication: HP cites the papers a term was curated from as hasDbXref
+# on its definition axioms, which UberGraph never reads, but hp.owl 2026-09-01 also puts 32 PMIDs on
+# 21 classes themselves (HP_0032417 "Periglomerular fibrosis" hasDbXref PMID:32866505), and those
+# reach concords/HP as equivalences. They merged no clique (docs/sources/HP/pmid-xrefs/README.md),
+# but one paper HP and another disease source both cited would. "ICD" is a long-standing entry that
+# matches nothing, since HP writes ICD10:/ICD9:/ICD0: (docs/sources/CLAUDE.md); left as it was.
+HP_XREF_IGNORE_PREFIXES = ["ICD", PMID.upper(), PMC.upper(), DOI.upper()]
 
 # Target prefixes we accept from MP's UberGraph xrefs; every other target is dropped. MP uses
 # oboInOwl:hasDbXref to mean "this phenotype is *about* that thing", not "is equivalent to it",
@@ -372,13 +385,20 @@ def build_disease_obo_relationships(outdir, metadata_yamls):
     # Create the equivalence pairs
     with open(f"{outdir}/{HP}", "w") as outfile:
         other_prefixes = get_xref_prefix_map(HP)
-        build_sets(f"{HP}:0000118", {HP: outfile}, ignore_list=["ICD"], other_prefixes=other_prefixes, set_type="xref")
+        build_sets(
+            f"{HP}:0000118",
+            {HP: outfile},
+            ignore_list=HP_XREF_IGNORE_PREFIXES,
+            other_prefixes=other_prefixes,
+            set_type="xref",
+        )
 
     write_concord_metadata(
         metadata_yamls["HP"],
         name="build_disease_obo_relationships()",
         sources=[{"type": "UberGraph", "name": "HP"}],
-        description=f"ubergraph.build_sets() of {HP}:0000118 with other_prefixes {other_prefixes}",
+        description=f"ubergraph.build_sets() of {HP}:0000118 with other_prefixes {other_prefixes}, "
+        f"ignoring target prefixes {HP_XREF_IGNORE_PREFIXES}",
         concord_filename=f"{outdir}/{HP}",
     )
 

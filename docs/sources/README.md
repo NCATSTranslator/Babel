@@ -57,7 +57,10 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
 - **HP** ([HP/README.md](./HP/README.md)) — the Human Phenotype Ontology as a disease/phenotype
   source: extracting identifiers from the [`HP:0000118`](http://purl.obolibrary.org/obo/HP_0000118)
   "Phenotypic abnormality" subtree, and tagging every ingested term with the taxon
-  [`NCBITaxon:9606`](http://purl.obolibrary.org/obo/NCBITaxon_9606) "Homo sapiens".
+  [`NCBITaxon:9606`](http://purl.obolibrary.org/obo/NCBITaxon_9606) "Homo sapiens". Also
+  ([HP/pmid-xrefs/README.md](./HP/pmid-xrefs/README.md)) why HP's class-level citations (32 PMIDs on
+  21 terms in hp.owl 2026-09-01) are dropped where its concord is built, with the replay showing
+  they merged no clique.
 - **MESH** ([MESH/Ingestion.md](./MESH/Ingestion.md)) — how MeSH is partitioned across compendia
   by tree letter, how Supplementary Concept Records (SCRs) are typed and routed, the
   chemical/protein D-tree split, and which MeSH branches/SCR classes we deliberately skip.

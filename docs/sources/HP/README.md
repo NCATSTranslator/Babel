@@ -21,6 +21,12 @@ carries only the human taxon and never mixes in the mammalian one. See
 [`../MP/disjointness.md`](../MP/disjointness.md) for how that separation is enforced and its
 clique impact.
 
+## Publication xrefs
+
+HP cites the paper behind a definition on the definition axiom, which UberGraph doesn't read, but a
+few terms carry the citation on the class itself, where UberGraph reads it as a mapping. Those are
+dropped where `concords/HP` is built; see [`pmid-xrefs/README.md`](pmid-xrefs/README.md).
+
 Related implementation files:
 
 - `src/createcompendia/diseasephenotype.py`

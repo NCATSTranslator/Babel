@@ -1,0 +1,43 @@
+# hp.owl version: <http://purl.obolibrary.org/obo/hp/releases/2026-09-01/hp.owl>
+
+# Publication xrefs on axioms of HP classes (by annotated property); UberGraph does not read these
+IAO_0000115	7115
+oboInOwl#hasExactSynonym	95
+rdf-schema#subClassOf	62
+rdf-schema#comment	54
+oboInOwl#id	1
+
+# Publication xrefs on HP classes themselves; UberGraph reads these as mappings
+count	32
+HP:0011839	Abnormal total T cell number	PMID:14610491
+HP:0011839	Abnormal total T cell number	PMID:16816558
+HP:0011839	Abnormal total T cell number	PMID:1967190
+HP:0011839	Abnormal total T cell number	PMID:36456361
+HP:0032417	Periglomerular fibrosis	PMID:32866505
+HP:0034421	Ejection click	PMID:21250045
+HP:5210005	Chronic absent circulating IgA	PMID:34364731
+HP:5210005	Chronic absent circulating IgA	PMID:37641141
+HP:5210031	Chronic decreased circulating IgM concentration	PMID:28984901
+HP:5210031	Chronic decreased circulating IgM concentration	PMID:37685399
+HP:5210032	Chronic absent circulating IgM	PMID:28984901
+HP:5210032	Chronic absent circulating IgM	PMID:37685399
+HP:5210033	Transient decreased circulating IgM concentration	PMID:28984901
+HP:5210033	Transient decreased circulating IgM concentration	PMID:37685399
+HP:5210034	Complete or near-complete absence of specific antibody response to unconjugated Salmonella typhi vaccine	PMID:31001267
+HP:5210034	Complete or near-complete absence of specific antibody response to unconjugated Salmonella typhi vaccine	PMID:39245584
+HP:5210035	Partial absence of specific antibody response to unconjugated Salmonella typhi vaccine	PMID:31001267
+HP:5210035	Partial absence of specific antibody response to unconjugated Salmonella typhi vaccine	PMID:39245584
+HP:5210036	Decreased circulating specific Haemophilus influenzae type b antibody concentration	PMID:28379361
+HP:5210036	Decreased circulating specific Haemophilus influenzae type b antibody concentration	PMID:3259962
+HP:5210036	Decreased circulating specific Haemophilus influenzae type b antibody concentration	PMID:9356808
+HP:5210377	Increased CD4+ TEMRA T cell proportion	PMID:34860194
+HP:5210409	Abnormal effector memory CD4+ T cell proportion	PMID:22343568
+HP:5210410	Abnormal central memory CD4+ T cell proportion	PMID:22343568
+HP:5210419	Autoimmune cytopenia	PMID:39643993
+HP:5210420	Severe eczema	PMID:39071193
+HP:5210421	Autoimmune hepatitis	PMID:31558881
+HP:5210422	Non-infectious encephalitis	PMID:32670291
+HP:5210423	Autoimmune encephalitis	PMID:32670291
+HP:5210428	HSV pneumonia	PMID:6293356
+HP:5210429	Recurrent Haemophilus influenzae conjunctivitis	PMID:2310724
+HP:5210430	Hindfoot deformity	PMID:20591885

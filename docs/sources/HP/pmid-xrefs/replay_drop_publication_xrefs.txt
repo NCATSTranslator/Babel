@@ -1,0 +1,49 @@
+# 1. HP publication rows
+rows	32 of 17992
+subjects	21
+distinct publications	24
+publications named by one row (survive the overuse filter)	18
+publications named by 2+ rows (dropped by the overuse filter, which counts rows)	6
+HP:0011839	xref	PMID:14610491
+HP:0011839	xref	PMID:16816558
+HP:0011839	xref	PMID:1967190
+HP:0011839	xref	PMID:36456361
+HP:0032417	xref	PMID:32866505
+HP:0034421	xref	PMID:21250045
+HP:5210005	xref	PMID:34364731
+HP:5210005	xref	PMID:37641141
+HP:5210031	xref	PMID:28984901
+HP:5210031	xref	PMID:37685399
+HP:5210032	xref	PMID:28984901
+HP:5210032	xref	PMID:37685399
+HP:5210033	xref	PMID:28984901
+HP:5210033	xref	PMID:37685399
+HP:5210034	xref	PMID:31001267
+HP:5210034	xref	PMID:39245584
+HP:5210035	xref	PMID:31001267
+HP:5210035	xref	PMID:39245584
+HP:5210036	xref	PMID:28379361
+HP:5210036	xref	PMID:3259962
+HP:5210036	xref	PMID:9356808
+HP:5210377	xref	PMID:34860194
+HP:5210409	xref	PMID:22343568
+HP:5210410	xref	PMID:22343568
+HP:5210419	xref	PMID:39643993
+HP:5210420	xref	PMID:39071193
+HP:5210421	xref	PMID:31558881
+HP:5210422	xref	PMID:32670291
+HP:5210423	xref	PMID:32670291
+HP:5210428	xref	PMID:6293356
+HP:5210429	xref	PMID:2310724
+HP:5210430	xref	PMID:20591885
+
+# 2. HP publications that another disease concord also names
+shared	0
+
+# 3. Cliques changed by dropping HP's publication rows (publication members ignored)
+publication members of cliques before	343
+publication members of cliques after	325
+cliques before	241197
+cliques after	241197
+only before	0
+only after	0
