@@ -120,7 +120,7 @@ ambiguous: it may denote a human-specific phenotype (which, like HP, must stay d
 or a genuinely mammalian one. It is *not impossible* for EFO to carry an MP-specific identifier,
 but there is no reliable signal to distinguish those cases. Since no individual EFO→MP xref can
 be trusted, Babel drops them all **at the EFO source**: `efo.make_concords()` is called with
-`excluded_target_prefixes=[MP]` (the constant `diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES`), so
+`excluded_target_prefixes` set to `diseasephenotype.EFO_EXCLUDED_XREF_PREFIXES`, which lists MP, so
 `concords/EFO` never emits an EFO↔MP link (neither `skos:exactMatch` nor `oboInOwl:hasDbXref`).
 
 ### Why source-filtering rather than another post-glom split

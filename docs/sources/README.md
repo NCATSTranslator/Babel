@@ -39,6 +39,11 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   — retyping DrugBank food-and-extract products (foods, pollens, danders) out of
   `biolink:ChemicalEntity`: foods become `biolink:Food` via their UNII's NCIt class, non-food
   allergens become `biolink:ComplexMolecularMixture`.
+- **EFO** ([EFO/pmid-xrefs/README.md](./EFO/pmid-xrefs/README.md)) — why EFO's xrefs to PMID are
+  dropped where the concord is built: EFO cites the paper a term was curated from as a plain
+  `hasDbXref`, so 6,204 rows asserted that a measurement *is* a publication. Includes the replay
+  showing no 2025dec11 clique changed, the record of every dropped row, and EFO's other
+  non-equivalence xref namespaces (UniProt, HMDB, ORCID, …) still left in.
 - **EMAPA** ([EMAPA/README.md](./EMAPA/README.md)) — the Mouse Developmental Anatomy Ontology as
   an anatomy source: extracting identifiers from UberGraph via a `part_of` traversal, exporting
   xref concords, and how its terms are typed and routed into the anatomy compendia. The worked
