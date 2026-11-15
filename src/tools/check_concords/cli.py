@@ -95,14 +95,19 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     files = []
+    empty_targets = []
     for target in args.targets:
         if target.startswith(("http://", "https://")):
-            files.extend(find_remote_concords(target))
+            found = find_remote_concords(target)
         else:
-            files.extend(str(p) for p in find_local_concords(pathlib.Path(target)))
-    if not files:
-        # Checking nothing must not look like a clean result.
-        raise RuntimeError(f"No concord files found under {args.targets}")
+            found = [str(p) for p in find_local_concords(pathlib.Path(target))]
+        if not found:
+            empty_targets.append(target)
+        files.extend(found)
+    if empty_targets:
+        # Checking nothing must not look like a clean result -- including for one target of several,
+        # such as a mistyped or not-yet-built directory next to a valid concord.
+        raise RuntimeError(f"No concord files found under {empty_targets}")
 
     print("file\trows\trejected\treasons")
     total_rows = total_rejected = 0

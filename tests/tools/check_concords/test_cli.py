@@ -58,6 +58,21 @@ def test_no_concords_found_raises(tmp_path):
 
 
 @pytest.mark.unit
+@pytest.mark.parametrize("exists", [False, True], ids=["missing-path", "directory-without-concords"])
+def test_any_target_without_concords_raises(tmp_path, exists):
+    """Should raise naming a target that holds no concords, even next to one that does, rather than
+    report a clean result that silently left a requested target unchecked."""
+    intermediate = _intermediate_tree(tmp_path / "build")
+    empty = tmp_path / "empty"
+    if exists:
+        empty.mkdir()
+    with pytest.raises(RuntimeError, match="No concord files found") as excinfo:
+        cli.main([str(intermediate), str(empty)])
+    assert str(empty) in str(excinfo.value)
+    assert str(intermediate) not in str(excinfo.value)
+
+
+@pytest.mark.unit
 def test_remote_listing_is_crawled_for_concords(monkeypatch):
     """Should follow subdirectories in an autoindex listing and keep only files under concords/."""
     base = "https://example.org/build/intermediate/"

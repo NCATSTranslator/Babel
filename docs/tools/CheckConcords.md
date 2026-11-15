@@ -34,8 +34,9 @@ uv run babel-check-concords babel_outputs/intermediate
 uv run babel-check-concords https://stars.renci.org/var/babel/2025dec11/intermediate/
 ```
 
-Output is one tab-separated line per file, plus the first rejected line of each kind. The tool
-exits 1 if any row was rejected, and raises if it found no concord files at all:
+Output is one tab-separated line per file, plus the first rejected line of each kind. The tool exits
+1 if any row was rejected, and raises if any target holds no concord files, so a mistyped path can't
+pass as clean:
 
 ```text
 file    rows    rejected        reasons
