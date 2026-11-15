@@ -54,7 +54,7 @@ build's 52 concord files: 224,328,587 rows, 478 rejected, all coming from two wr
 
 | Concord | Rejected | What | Example |
 |---------|----------|------|---------|
-| `disease/concords/EFO` | 3 | xref literal with a leading space | `EFO:0011048` → `" MedDRA:10059516"` |
+| `disease/concords/EFO` | 3 | xref literal with a leading or trailing space | `EFO:0011048` → `" MedDRA:10059516"` |
 | `publications/concords/PMID_DOI` | 457 | DOI ending in a space | `PMID:2353318` → `"doi:10.1002/tera.1420410608 "` |
 | `publications/concords/PMID_DOI` | 18 | DOI ending in a tab (a fourth column) | `PMID:9127676` → `"doi:10.1076/apab.104.7.814.13110\t"` |
 
