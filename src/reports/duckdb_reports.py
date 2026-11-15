@@ -6,6 +6,7 @@ from collections import Counter, defaultdict
 from src import util
 from src.exporters.duckdb_exporters import log_duckdb_settings_on_error, setup_duckdb
 from src.memory import log_memory_snapshot
+from src.prefixes import DOI, PMC, PMID
 
 logger = util.get_logger(__name__)
 
@@ -252,6 +253,117 @@ def assert_no_unexpected_duplicate_clique_leaders(duplicate_clique_leaders_tsv, 
         )
         summary.append(
             "Fix the source (docs/sources/UMLS/CuiFollowsMesh.md lists the known mechanisms) or, for a duplicate an issue accepts, add it to the allowlist with that issue."
+        )
+        raise RuntimeError("\n".join(summary))
+    logger.info(summary[0])
+    with open(checked_file, "w") as outf:
+        outf.write(summary[0] + "\n")
+
+
+# Prefixes that name a publication, upper-cased as the publication-xref check compares them. Nothing is
+# equivalent to a publication except another publication, so a concord row with one of these on exactly one
+# side asserts that a disease, process or anything else *is* a paper. These are the prefixes Babel's own
+# Publication compendium uses (PMID, PMC, doi), plus PMCID, PMC's other common spelling, so a source that
+# writes it is caught too. See assert_no_unexpected_publication_xrefs().
+PUBLICATION_PREFIXES = (PMID.upper(), PMC.upper(), "PMCID", DOI.upper())
+
+
+def check_for_publication_xrefs(concord_parquet, duckdb_filename, publication_xrefs_tsv, duckdb_config=None):
+    """Write every concord row that pairs a publication CURIE with a non-publication one.
+
+    Reads the build's `Concord.parquet` (one row per concord row, columns verbatim), so it sees every concord
+    under `intermediate/`, including ones no compendium reads. A row whose subject and object are both
+    publications (PMID_DOI's PMID<->doi and PMID<->PMC rows) is fine and not reported. The output is a TSV
+    with a header -- `concord` (the path under `intermediate/`), `subject`, `predicate`, `object` -- sorted
+    so a rerun diffs cleanly, and empty but for the header when there is nothing to report.
+
+    :param concord_parquet: The build's `duckdb/Concord.parquet`.
+    :param duckdb_filename: A temporary DuckDB file to use.
+    :param publication_xrefs_tsv: The report to write.
+    """
+    db = setup_duckdb(duckdb_filename, duckdb_config)
+    prefixes = ", ".join(f"'{prefix}'" for prefix in PUBLICATION_PREFIXES)
+    with log_duckdb_settings_on_error(db, "check_for_publication_xrefs"):
+        db.sql(f"""
+            SELECT regexp_replace(filename, '^.*/intermediate/', '') AS concord,
+                   subj AS subject, pred AS predicate, obj AS object
+            FROM read_parquet('{concord_parquet}')
+            WHERE (upper(split_part(subj, ':', 1)) IN ({prefixes})) != (upper(split_part(obj, ':', 1)) IN ({prefixes}))
+            ORDER BY concord, subject, object, predicate
+        """).write_csv(publication_xrefs_tsv, sep="\t", header=True)
+    db.close()
+
+
+def read_known_publication_xrefs(allowlist_tsv):
+    """Read input_data/known_publication_xrefs.tsv: a TSV with a header (concord, subject, object, issue, note),
+    `#` comment lines allowed, keyed by (concord, subject, object) like the publication-xref report.
+
+    :raises ValueError: for a row with no issue -- an accepted exception that names no issue is how a
+        known-bad row becomes permanent without anyone deciding it should.
+    """
+    allowed = {}
+    with open(allowlist_tsv) as inf:
+        rows = (line for line in inf if line.strip() and not line.startswith("#"))
+        for row in csv.DictReader(rows, delimiter="\t"):
+            if not (row.get("issue") or "").strip():
+                raise ValueError(f"{allowlist_tsv}: row {row} names no issue; every accepted publication xref must.")
+            allowed[(row["concord"], row["subject"], row["object"])] = row
+    return allowed
+
+
+def assert_no_unexpected_publication_xrefs(publication_xrefs_tsv, allowlist_tsv, checked_file):
+    """Fail the build when a concord row pairs a publication with anything but a publication.
+
+    Every concord row reaches glom() as an equivalence, so `HP:0032417 xref PMID:32866505` asserts that a
+    phenotype *is* the paper that defines it. Ontologies write citations as `oboInOwl:hasDbXref` in the same
+    shape as mappings: in 2026jul22 EFO had 6,106 such rows, GO 2 and HP 2. None had yet merged two cliques --
+    an overuse filter or write_compendium()'s prefix check caught each -- but the first paper two sources both
+    cite would merge their cliques through it, with nothing to say so. So this reads the report
+    check_for_publication_xrefs() wrote and raises for every row not in `input_data/known_publication_xrefs.tsv`,
+    which lists the rows a named issue accepts for now. Like the duplicate-clique-leader check, it runs after
+    the report is written, so the TSV is there to read when the build goes red, and the failure stops
+    `reports/duckdb/done` and therefore `rule all` while every other output completes.
+
+    The fix belongs where the concord is written: drop the publication prefixes there, as
+    `EFO_EXCLUDED_XREF_PREFIXES`, `HP_XREF_IGNORE_PREFIXES` and `GO_XREF_IGNORE_PREFIXES` do.
+
+    :param publication_xrefs_tsv: The report written by check_for_publication_xrefs().
+    :param allowlist_tsv: The committed allowlist (see read_known_publication_xrefs()).
+    :param checked_file: Written (with a summary) only when every reported row is allowlisted.
+    :raises RuntimeError: listing the unexpected rows, grouped by concord and prefix pair.
+    """
+    allowed = read_known_publication_xrefs(allowlist_tsv)
+    with open(publication_xrefs_tsv) as inf:
+        found = [row for row in csv.DictReader(inf, delimiter="\t")]
+    found_keys = {(row["concord"], row["subject"], row["object"]) for row in found}
+    unexpected = [row for row in found if (row["concord"], row["subject"], row["object"]) not in allowed]
+    stale = sorted(key for key in allowed if key not in found_keys)
+
+    summary = [
+        f"{len(found)} publication xrefs in {publication_xrefs_tsv}; {len(found) - len(unexpected)} allowlisted "
+        f"in {allowlist_tsv}, {len(unexpected)} unexpected, {len(stale)} allowlist entries no longer present "
+        f"(prune them): {', '.join(' '.join(key) for key in stale[:20])}"
+    ]
+    if unexpected:
+
+        def _prefix(curie):
+            return curie.split(":", 1)[0]
+
+        by_group = Counter((row["concord"], _prefix(row["subject"]), _prefix(row["object"])) for row in unexpected)
+        summary.append(
+            "Unexpected publication xrefs by concord: "
+            + "; ".join(f"{concord} {subj}->{obj}: {n}" for (concord, subj, obj), n in by_group.most_common())
+        )
+        summary.append(
+            "First unexpected rows: "
+            + "; ".join(
+                f"{row['concord']}: {row['subject']} {row['predicate']} {row['object']}" for row in unexpected[:20]
+            )
+        )
+        summary.append(
+            "Nothing is equivalent to a publication except another publication. Drop these where the concord is "
+            "written (see docs/sources/CLAUDE.md), or, for a row an issue accepts for now, add it to the allowlist "
+            "with that issue."
         )
         raise RuntimeError("\n".join(summary))
     logger.info(summary[0])

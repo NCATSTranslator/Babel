@@ -1,0 +1,6 @@
+# Concord rows that may pair a publication (PMID, PMC, PMCID, doi) with a non-publication, each accepted for now
+# by the issue named. Read by src.reports.duckdb_reports.assert_no_unexpected_publication_xrefs(): any row of the
+# build's reports/duckdb/publication_xrefs.tsv fails the build unless a row here names its concord (the path under
+# intermediate/), subject and object. A row with no issue is refused. Prefer dropping the publication prefixes
+# where the concord is written; remove a row here once its issue is fixed (the check logs rows no longer present).
+concord	subject	object	issue	note
