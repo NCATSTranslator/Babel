@@ -25,6 +25,14 @@ The DuckDB export (``src/exporters/duckdb_exporters.py``) bulk-loads concords wi
 rather than this parser, for speed; its strict mode is a backstop that checks only the column
 count. ``babel-check-concords`` runs this parser over a build's concords, including a published
 build's over HTTP.
+
+Metadata sidecars
+-----------------
+
+A ``concords/`` or ``ids/`` directory also holds YAML metadata describing its files.
+:func:`metadata_subject_filename` / :func:`is_metadata_sidecar` are the one definition of which file
+is a sidecar rather than data; the DuckDB export, ``babel-check-concords`` and the source-impact
+report's concord scan all use them, so they agree on which files are concords.
 """
 
 from __future__ import annotations
@@ -33,6 +41,33 @@ import pathlib
 from collections import Counter
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
+
+# Intermediate metadata sidecar files are named ``metadata-<subject>.yaml`` (describing a sibling
+# file) or a bare ``metadata.yaml`` (describing the directory it lives in). Matched
+# case-insensitively, as the DuckDB export always has.
+METADATA_FILENAME_PREFIX = "metadata-"
+METADATA_FILENAME_SUFFIX = ".yaml"
+METADATA_DIRECTORY_FILENAME = "metadata.yaml"
+
+
+def metadata_subject_filename(filename: str) -> str | None:
+    """Return the name of the file a metadata sidecar describes, or None if ``filename`` is not one.
+
+    ``metadata-<subject>.yaml`` describes the sibling file ``<subject>``; a bare ``metadata.yaml``
+    describes the directory it lives in, so its own name is returned unchanged. Any other file in a
+    ``concords/`` or ``ids/`` directory -- including some other ``*.yaml`` -- is data.
+    """
+    lower_filename = filename.lower()
+    if lower_filename.startswith(METADATA_FILENAME_PREFIX) and lower_filename.endswith(METADATA_FILENAME_SUFFIX):
+        return filename[len(METADATA_FILENAME_PREFIX) : -len(METADATA_FILENAME_SUFFIX)]
+    if lower_filename == METADATA_DIRECTORY_FILENAME:
+        return filename
+    return None
+
+
+def is_metadata_sidecar(filename: str) -> bool:
+    """True if ``filename`` (a bare name, not a path) is a metadata sidecar rather than a data file."""
+    return metadata_subject_filename(filename) is not None
 
 
 class MalformedConcordRowError(ValueError):

@@ -6,7 +6,7 @@ tightening that parser, or before trusting a set of concords from somewhere else
 which rows would fail -- without waiting hours for a compendium rule to find the first one.
 
 Each target is a concord file, a local directory (every file under a ``concords/`` directory beneath
-it, skipping ``metadata*.yaml``), or an ``http(s)://`` URL of a file or a directory listing, which is
+it, skipping the metadata sidecars the DuckDB export also skips), or an ``http(s)://`` URL of a file or a directory listing, which is
 crawled the same way and streamed rather than downloaded::
 
     uv run babel-check-concords babel_outputs/intermediate
@@ -24,7 +24,7 @@ import sys
 import urllib.parse
 import urllib.request
 
-from src.model.intermediates import scan_concord_lines
+from src.model.intermediates import is_metadata_sidecar, scan_concord_lines
 from src.util import get_logger
 
 logger = get_logger(__name__)
@@ -38,9 +38,9 @@ _HREF = re.compile(r'href="(?!\.\./|\?|/|https?:)([^"]+)"')
 
 
 def _is_concord_name(relative_path: str) -> bool:
-    """True for a file inside a ``concords/`` directory that isn't a metadata YAML."""
+    """True for a file inside a ``concords/`` directory that isn't a metadata sidecar."""
     parts = relative_path.split("/")
-    return "concords" in parts[:-1] and not parts[-1].startswith("metadata")
+    return "concords" in parts[:-1] and not is_metadata_sidecar(parts[-1])
 
 
 def find_local_concords(target: pathlib.Path) -> list[pathlib.Path]:

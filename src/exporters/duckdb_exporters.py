@@ -9,6 +9,7 @@ from pathlib import Path
 import duckdb
 
 from src.memory import _bytes_to_gib, cgroup_memory_hard_limit_bytes, log_memory_snapshot
+from src.model.intermediates import METADATA_DIRECTORY_FILENAME, metadata_subject_filename
 from src.util import ensure_parent_dir, get_config, get_logger
 
 logger = get_logger(__name__)
@@ -421,28 +422,6 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
         synonyms_jsonl.close()
 
 
-# Intermediate metadata sidecar files are named `metadata-<subject>.yaml` (describing a sibling
-# file) or a bare `metadata.yaml` (describing the directory it lives in).
-METADATA_FILENAME_PREFIX = "metadata-"
-METADATA_FILENAME_SUFFIX = ".yaml"
-METADATA_DIRECTORY_FILENAME = "metadata.yaml"
-
-
-def _metadata_subject_filename(filename):
-    """Return the name of the file a metadata sidecar describes, or None if `filename` is not a
-    metadata file.
-
-    `metadata-<subject>.yaml` describes the sibling file `<subject>`; a bare `metadata.yaml`
-    describes the directory it lives in, so its own name is returned unchanged.
-    """
-    lower_filename = filename.lower()
-    if lower_filename.startswith(METADATA_FILENAME_PREFIX) and lower_filename.endswith(METADATA_FILENAME_SUFFIX):
-        return filename[len(METADATA_FILENAME_PREFIX) : -len(METADATA_FILENAME_SUFFIX)]
-    if lower_filename == METADATA_DIRECTORY_FILENAME:
-        return filename
-    return None
-
-
 def _insert_metadata(db, path, subject_filename):
     """Insert one metadata sidecar file into the Metadata table, recording the subject it
     describes and the full path to that subject.
@@ -466,7 +445,7 @@ def _iter_loadable_files(root, kind):
     ('concords' or 'ids') under `root`.
 
     Directories and empty files are skipped. `subject_filename` is the metadata subject for a
-    metadata sidecar file (see `_metadata_subject_filename`) and `None` for a data file the caller
+    metadata sidecar file (see `metadata_subject_filename()` in `src/model/intermediates.py`) and `None` for a data file the caller
     should bulk-load; the caller routes on it. The generator has no side effects so partial
     consumption can't silently drop metadata.
     """
@@ -480,7 +459,7 @@ def _iter_loadable_files(root, kind):
             logger.warning(f"Skipping empty {kind} file {path}")
             continue
 
-        yield path, _metadata_subject_filename(path.name)
+        yield path, metadata_subject_filename(path.name)
 
 
 def export_intermediates_to_parquet(

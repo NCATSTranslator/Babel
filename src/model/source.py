@@ -22,7 +22,7 @@ from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass
 from functools import cached_property
 
-from src.model.intermediates import read_concords
+from src.model.intermediates import is_metadata_sidecar, read_concords
 
 
 def _prefix_of(curie: str) -> str:
@@ -41,8 +41,8 @@ def scan_concords_for_curies(
     concord file (e.g. EMAPA's own concord is empty, but UBERON's concord carries
     ``UBERON:… xref EMAPA:…`` rows), so this scans every file in the directory tree rather
     than only the source's own concord. Subdirectories are included (e.g.
-    ``chemicals/concords/UNICHEM/UNICHEM_*`` files). Metadata sidecars
-    (``metadata-*`` / ``*.yaml``) are skipped.
+    ``chemicals/concords/UNICHEM/UNICHEM_*`` files). Metadata sidecars are skipped, by the same
+    rule the DuckDB export uses (:func:`src.model.intermediates.is_metadata_sidecar`).
     """
     concords_dir = pathlib.Path(concords_dir)
     source_set = frozenset(source_curies)
@@ -50,7 +50,7 @@ def scan_concords_for_curies(
     if not concords_dir.exists():
         return rows
     for path in sorted(concords_dir.rglob("*")):
-        if not path.is_file() or path.name.startswith("metadata-") or path.name.endswith(".yaml"):
+        if not path.is_file() or is_metadata_sidecar(path.name):
             continue
         asserted_by = str(path.relative_to(concords_dir))
         for subject, predicate, obj in read_concords(path):

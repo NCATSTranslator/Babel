@@ -5,11 +5,20 @@ Sections:
 - ``# --- parse_concord_line / read_concords ---`` pins exactly which rows the shared concord
   parser accepts, including the whitespace edge cases ``line.strip()`` used to decide.
 - ``# --- scan_concord_lines ---`` checks the tally behind ``babel-check-concords``.
+- ``# --- metadata sidecars ---`` pins which files in a ``concords/`` or ``ids/`` directory are
+  metadata rather than data, the rule the DuckDB export, the checker and the source-impact report share.
 """
 
 import pytest
 
-from src.model.intermediates import MalformedConcordRowError, parse_concord_line, read_concords, scan_concord_lines
+from src.model.intermediates import (
+    MalformedConcordRowError,
+    is_metadata_sidecar,
+    metadata_subject_filename,
+    parse_concord_line,
+    read_concords,
+    scan_concord_lines,
+)
 
 # --- parse_concord_line / read_concords ---
 
@@ -84,3 +93,29 @@ def test_scan_tallies_rejects_by_reason():
     assert scan.rejected == 3
     assert dict(scan.rejects) == {"2 columns": 2, "empty column": 1}
     assert scan.examples["2 columns"] == (2, "A:2\teq\n")
+
+
+# --- metadata sidecars ---
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "filename,expected",
+    [
+        ("metadata-Anatomy.txt.yaml", "Anatomy.txt"),
+        ("Metadata-CHEBI.YAML", "CHEBI"),  # matched case-insensitively; the subject keeps its case
+        ("metadata.yaml", "metadata.yaml"),  # describes its directory
+        ("Anatomy.txt", None),
+        ("CHEBI", None),
+        # Neither of these is a sidecar by name, so both are data: a concord reader must not skip a
+        # file the DuckDB export loads into Concord.parquet.
+        ("metadata", None),
+        ("UNICHEM.yaml", None),
+    ],
+)
+def test_metadata_subject_filename(filename, expected):
+    """A `metadata-<subject>.yaml` sidecar resolves to its subject filename, a bare
+    `metadata.yaml` returns its own name (it describes its directory), and any other filename
+    returns None so the caller treats it as data."""
+    assert metadata_subject_filename(filename) == expected
+    assert is_metadata_sidecar(filename) == (expected is not None)

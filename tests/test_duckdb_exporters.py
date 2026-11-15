@@ -5,7 +5,6 @@ import duckdb
 import pytest
 
 from src.exporters.duckdb_exporters import (
-    _metadata_subject_filename,
     export_compendia_to_parquet,
     export_conflation_to_parquet,
     export_intermediates_to_parquet,
@@ -449,20 +448,3 @@ def test_export_intermediates_to_parquet_creates_missing_output_dirs(tmp_path):
 
     for parquet_file in (ids_parquet, concords_parquet, metadata_parquet):
         assert os.path.exists(parquet_file)
-
-
-@pytest.mark.unit
-@pytest.mark.parametrize(
-    "filename,expected",
-    [
-        ("metadata-Anatomy.txt.yaml", "Anatomy.txt"),
-        ("metadata.yaml", "metadata.yaml"),
-        ("Anatomy.txt", None),
-        ("CHEBI", None),
-    ],
-)
-def test_metadata_subject_filename(filename, expected):
-    """A `metadata-<subject>.yaml` sidecar resolves to its subject filename, a bare
-    `metadata.yaml` returns its own name (it describes its directory), and a non-metadata
-    filename returns None so the caller loads it as a data file."""
-    assert _metadata_subject_filename(filename) == expected
