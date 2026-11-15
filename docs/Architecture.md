@@ -197,6 +197,15 @@ a build unusable downstream fail it instead:
   [`docs/sources/UMLS/CuiFollowsMesh.md`](sources/UMLS/CuiFollowsMesh.md)) or, for a duplicate an
   issue accepts for now, add the row with that issue. Member-level duplicates
   (`duplicate_curies.tsv`) stay report-only.
+- **Publication xrefs.** Nothing is equivalent to a publication except another publication, but
+  ontologies cite the paper a term was curated from as an `oboInOwl:hasDbXref`, and a concord row
+  reaches `glom()` as an equivalence whatever it meant. `rule check_for_publication_xrefs` writes
+  every `Concord.parquet` row with a PMID, PMC, PMCID or doi on exactly one side to
+  `reports/duckdb/publication_xrefs.tsv`, and `rule assert_no_unexpected_publication_xrefs` raises
+  for any row not in `input_data/known_publication_xrefs.tsv`, in the same way as the duplicate
+  clique leader check. Drop the prefixes where the concord is written (`EFO_EXCLUDED_XREF_PREFIXES`,
+  `HP_XREF_IGNORE_PREFIXES`, `GO_XREF_IGNORE_PREFIXES`) rather than allowlisting. See
+  [`docs/publication-xrefs/README.md`](publication-xrefs/README.md).
 
 ## Output directories
 

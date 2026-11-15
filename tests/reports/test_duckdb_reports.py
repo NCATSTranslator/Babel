@@ -319,3 +319,101 @@ def test_report_tables_consume_prefix_report(parquet_root, tmp_path, monkeypatch
     # Foo (a SmallMolecule compendium in the fixture) lists CHEBI as a clique-leader prefix.
     foo_rows = [dict(zip(header, r)) for r in clique_rows[1:] if r[header.index("Biolink Types")] == "Foo"]
     assert foo_rows and "CHEBI" in foo_rows[0]["Clique leader prefixes"]
+
+
+# --- publication xrefs ---
+
+_INTERMEDIATE = "/runs/babel/babel_outputs/intermediate"
+# Rows from the 2026jul22 Concord.parquet unless marked synthetic.
+_CONCORD_ROWS = [
+    (f"{_INTERMEDIATE}/publications/concords/PMID_DOI", "PMID:1081497", "eq", "doi:10.1002/ijc.2910160615"),
+    (f"{_INTERMEDIATE}/publications/concords/PMID_DOI", "PMID:1081492", "eq", "PMC:PMC1446036"),
+    (f"{_INTERMEDIATE}/disease/concords/HP", "HP:0032417", "xref", "PMID:32866505"),
+    (f"{_INTERMEDIATE}/disease/concords/HP", "HP:0000030", "xref", "NCIT:C3754"),
+    (f"{_INTERMEDIATE}/disease/concords/EFO", "EFO:0011031", "oboInOwl:hasDbXref", "doi:10.1111/nmo.12871"),
+    (f"{_INTERMEDIATE}/process/concords/GO", "GO:0052165", "xref", "PMID:28805743"),
+    # Synthetic: the other spellings, and a publication on the subject side.
+    (f"{_INTERMEDIATE}/process/concords/GO", "GO:0000001", "xref", "pmid:1"),
+    (f"{_INTERMEDIATE}/process/concords/GO", "GO:0000002", "xref", "PMCID:PMC2"),
+    (f"{_INTERMEDIATE}/anatomy/concords/UBERON", "PMID:3", "xref", "UBERON:0000001"),
+]
+
+
+@pytest.fixture
+def publication_xrefs_tsv(tmp_path):
+    """Run check_for_publication_xrefs() over a Concord.parquet built from _CONCORD_ROWS."""
+    concord_parquet = tmp_path / "Concord.parquet"
+    with duckdb.connect() as con:
+        _write_parquet(con, concord_parquet, ["filename", "subj", "pred", "obj"], _CONCORD_ROWS)
+    report = tmp_path / "publication_xrefs.tsv"
+    duckdb_reports.check_for_publication_xrefs(str(concord_parquet), str(tmp_path / "pub.duckdb"), str(report))
+    return report
+
+
+@pytest.mark.unit
+def test_publication_xrefs_reports_only_publication_to_non_publication_rows(publication_xrefs_tsv):
+    """Should report every row with a publication on exactly one side, in any spelling, keyed by the concord's
+    path under intermediate/, and leave publication<->publication and ordinary rows alone."""
+    with open(publication_xrefs_tsv) as inf:
+        rows = [(r["concord"], r["subject"], r["predicate"], r["object"]) for r in csv.DictReader(inf, delimiter="\t")]
+    assert rows == [
+        ("anatomy/concords/UBERON", "PMID:3", "xref", "UBERON:0000001"),
+        ("disease/concords/EFO", "EFO:0011031", "oboInOwl:hasDbXref", "doi:10.1111/nmo.12871"),
+        ("disease/concords/HP", "HP:0032417", "xref", "PMID:32866505"),
+        ("process/concords/GO", "GO:0000001", "xref", "pmid:1"),
+        ("process/concords/GO", "GO:0000002", "xref", "PMCID:PMC2"),
+        ("process/concords/GO", "GO:0052165", "xref", "PMID:28805743"),
+    ]
+
+
+@pytest.mark.unit
+def test_publication_xrefs_report_has_a_header_when_empty(tmp_path):
+    """Should write the header even when nothing is reported, so the assert reads an empty report, not an error."""
+    concord_parquet = tmp_path / "Concord.parquet"
+    with duckdb.connect() as con:
+        _write_parquet(con, concord_parquet, ["filename", "subj", "pred", "obj"], _CONCORD_ROWS[:2])
+    report = tmp_path / "publication_xrefs.tsv"
+    duckdb_reports.check_for_publication_xrefs(str(concord_parquet), str(tmp_path / "pub.duckdb"), str(report))
+    assert report.read_text().splitlines() == ["concord\tsubject\tpredicate\tobject"]
+    allowlist = _write_publication_allowlist(tmp_path, [])
+    duckdb_reports.assert_no_unexpected_publication_xrefs(str(report), allowlist, str(tmp_path / "checked"))
+    assert (tmp_path / "checked").exists()
+
+
+def _write_publication_allowlist(tmp_path, rows):
+    path = tmp_path / "known_publication_xrefs.tsv"
+    lines = ["# a comment", "concord\tsubject\tobject\tissue\tnote"] + ["\t".join(row) for row in rows]
+    path.write_text("\n".join(lines) + "\n")
+    return str(path)
+
+
+@pytest.mark.unit
+def test_unexpected_publication_xref_fails(publication_xrefs_tsv, tmp_path):
+    """Should raise naming the concord and prefix pair, and write no checked file."""
+    allowlist = _write_publication_allowlist(tmp_path, [])
+    checked = tmp_path / "checked"
+    with pytest.raises(RuntimeError, match=r"6 unexpected[\s\S]*disease/concords/HP HP->PMID: 1"):
+        duckdb_reports.assert_no_unexpected_publication_xrefs(str(publication_xrefs_tsv), allowlist, str(checked))
+    assert not checked.exists()
+
+
+@pytest.mark.unit
+def test_allowlisted_publication_xrefs_pass(publication_xrefs_tsv, tmp_path):
+    """Should pass when every reported row is allowlisted, and still pass with a stale allowlist row."""
+    with open(publication_xrefs_tsv) as inf:
+        rows = [(r["concord"], r["subject"], r["object"], "#1", "") for r in csv.DictReader(inf, delimiter="\t")]
+    rows.append(("disease/concords/HP", "HP:0034421", "PMID:21250045", "#1", "fixed since"))
+    allowlist = _write_publication_allowlist(tmp_path, rows)
+    checked = tmp_path / "checked"
+    duckdb_reports.assert_no_unexpected_publication_xrefs(str(publication_xrefs_tsv), allowlist, str(checked))
+    assert "1 allowlist entries no longer present" in checked.read_text()
+
+
+@pytest.mark.unit
+def test_publication_allowlist_row_without_issue_is_refused(publication_xrefs_tsv, tmp_path):
+    """Should refuse an allowlist row that names no issue, rather than accept the row forever."""
+    allowlist = _write_publication_allowlist(tmp_path, [("disease/concords/HP", "HP:0032417", "PMID:32866505", "", "")])
+    with pytest.raises(ValueError, match="names no issue"):
+        duckdb_reports.assert_no_unexpected_publication_xrefs(
+            str(publication_xrefs_tsv), allowlist, str(tmp_path / "checked")
+        )

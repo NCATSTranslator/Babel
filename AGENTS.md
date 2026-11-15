@@ -181,6 +181,11 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
   raises for any row of `reports/duckdb/duplicate_clique_leaders.tsv` not in
   `input_data/known_duplicate_clique_leaders.tsv` (each row names its issue). Never add a row
   without an issue; fix the source instead (`docs/Architecture.md`, "Build controls").
+- **Publication xrefs fail the build** — nothing is equivalent to a publication except another
+  publication, so `rule assert_no_unexpected_publication_xrefs` raises for any concord row pairing a
+  PMID, PMC, PMCID or doi with anything else, unless `input_data/known_publication_xrefs.tsv` names
+  an issue for it. A new source's citations go in its concord writer's exclusion list, as EFO's,
+  HP's and GO's do (`docs/publication-xrefs/README.md`).
 - **Logging** — always use `get_logger(__name__)` from `src.util`, never `logging.getLogger`
   directly (see its docstring for why and the deferred-import exception). **`get_logger()` defaults
   to `INFO`, so `logger.debug(...)` output is suppressed — but an f-string argument is still

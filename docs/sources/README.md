@@ -54,6 +54,8 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   [clique diff](./GARD/clique-diff.md) is the worked example of an ingest that *joins* existing
   cliques instead of duplicating them — 16,214 identifiers for +258 cliques — and of a bug neither
   the impact report nor a main-vs-branch diff can see.
+- **GO** ([GO/publication-xrefs.md](./GO/publication-xrefs.md)) — why GO's few class-level
+  citations (`hasDbXref PMID:…`) are dropped where `process/concords/GO` is built.
 - **HP** ([HP/README.md](./HP/README.md)) — the Human Phenotype Ontology as a disease/phenotype
   source: extracting identifiers from the [`HP:0000118`](http://purl.obolibrary.org/obo/HP_0000118)
   "Phenotypic abnormality" subtree, and tagging every ingested term with the taxon

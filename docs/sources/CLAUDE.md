@@ -41,6 +41,11 @@ one the report names.
 
 ## An OBO `hasDbXref` is not an equivalence
 
+**Nothing is equivalent to a publication except another publication.** A row with a PMID, PMC,
+PMCID or doi on one side and anything else on the other is always a citation, so drop those
+prefixes where the source's concord is written; the build fails on any that reach a concord (see
+[`../publication-xrefs/README.md`](../publication-xrefs/README.md)).
+
 Concords are fed to `glom()` as equivalence assertions, but many ontologies use
 `oboInOwl:hasDbXref` to mean "this term is *about* that thing". MP is the worst offender: it xrefs
 the anatomy an abnormality occurs in (`MP:0009873` "abnormal aorta tunica media morphology" →

@@ -314,6 +314,46 @@ rule assert_no_unexpected_duplicate_clique_leaders:
         )
 
 
+rule check_for_publication_xrefs:
+    # Every concord row that pairs a publication (PMID, PMC, PMCID, doi) with anything else; see
+    # src.reports.duckdb_reports.check_for_publication_xrefs. A filter over one Parquet file, so it needs
+    # little memory however large Concord.parquet is.
+    input:
+        concord_parquet=config["output_directory"] + "/duckdb/Concord.parquet",
+    output:
+        duckdb_filename=temp(config["output_directory"] + "/duckdb/duckdbs/publication_xrefs.duckdb"),
+        publication_xrefs_tsv=config["output_directory"] + "/reports/duckdb/publication_xrefs.tsv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/check_for_publication_xrefs.tsv"
+    resources:
+        # Provisional; right-size from the benchmark once a real run has one.
+        mem="32G",
+    run:
+        src.reports.duckdb_reports.check_for_publication_xrefs(
+            input.concord_parquet,
+            output.duckdb_filename,
+            output.publication_xrefs_tsv,
+            {"memory_limit": f"{duckdb_memory_limit_mb(resources.mem_mb)}MB", "threads": 4},
+        )
+
+
+rule assert_no_unexpected_publication_xrefs:
+    # The control behind the report above: nothing is equivalent to a publication except another publication,
+    # so a concord row pairing one with anything else fails the build unless the allowlist names an issue for it
+    # (see src.reports.duckdb_reports.assert_no_unexpected_publication_xrefs). The report is written first so it
+    # can be read when this rule goes red.
+    input:
+        publication_xrefs_tsv=config["output_directory"] + "/reports/duckdb/publication_xrefs.tsv",
+        allowlist=config["input_directory"] + "/known_publication_xrefs.tsv",
+    output:
+        checked=config["output_directory"] + "/reports/duckdb/publication_xrefs.checked",
+    localrule: True
+    run:
+        src.reports.duckdb_reports.assert_no_unexpected_publication_xrefs(
+            input.publication_xrefs_tsv, input.allowlist, output.checked
+        )
+
+
 rule generate_prefix_report:
     input:
         config["output_directory"] + "/duckdb/done",
@@ -354,6 +394,7 @@ rule all_duckdb_reports:
         + "/reports/duckdb/identically_labeled_cliques.tsv.gz",
         duplicate_curies=config["output_directory"] + "/reports/duckdb/duplicate_curies.tsv",
         duplicate_clique_leaders_checked=config["output_directory"] + "/reports/duckdb/duplicate_clique_leaders.checked",
+        publication_xrefs_checked=config["output_directory"] + "/reports/duckdb/publication_xrefs.checked",
         prefix_report_json=config["output_directory"] + "/reports/duckdb/prefix_report.json",
     output:
         x=config["output_directory"] + "/reports/duckdb/done",
