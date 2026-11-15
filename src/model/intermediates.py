@@ -42,6 +42,11 @@ from collections import Counter
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 
+# Concords are written and read as UTF-8. Every reader names the encoding rather than taking the
+# locale's default, so the build, ``babel-check-concords`` and the DuckDB export (which reads UTF-8)
+# decode the same bytes the same way on any host.
+CONCORD_ENCODING = "utf-8"
+
 # Intermediate metadata sidecar files are named ``metadata-<subject>.yaml`` (describing a sibling
 # file) or a bare ``metadata.yaml`` (describing the directory it lives in). Matched
 # case-insensitively, as the DuckDB export always has.
@@ -123,7 +128,7 @@ def read_concords(concord_path: pathlib.Path | str) -> Iterator[tuple[str, str, 
     Raises :class:`MalformedConcordRowError` on the first invalid row (see
     :func:`parse_concord_line`); blank lines are invalid too, since no concord writer emits one.
     """
-    with open(concord_path) as inf:
+    with open(concord_path, encoding=CONCORD_ENCODING) as inf:
         for line_number, line in enumerate(inf, start=1):
             yield parse_concord_line(line, concord_path, line_number)
 

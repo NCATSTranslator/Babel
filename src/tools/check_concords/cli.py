@@ -5,9 +5,10 @@ raises on a row that isn't three non-empty, unpadded, tab-separated columns. Run
 tightening that parser, or before trusting a set of concords from somewhere else, to find out
 which rows would fail -- without waiting hours for a compendium rule to find the first one.
 
-Each target is a concord file, a local directory (every file under a ``concords/`` directory beneath
-it, skipping the metadata sidecars the DuckDB export also skips), or an ``http(s)://`` URL of a file or a directory listing, which is
-crawled the same way and streamed rather than downloaded::
+Each target is a concord file, a local directory (every file under a ``concords/`` directory in or
+beneath it, skipping the metadata sidecars the DuckDB export also skips), or an ``http(s)://`` URL
+of a file or a directory listing, which is crawled the same way and streamed rather than
+downloaded::
 
     uv run babel-check-concords babel_outputs/intermediate
     uv run babel-check-concords https://stars.renci.org/var/babel/2025dec11/intermediate/
@@ -24,7 +25,7 @@ import sys
 import urllib.parse
 import urllib.request
 
-from src.model.intermediates import is_metadata_sidecar, scan_concord_lines
+from src.model.intermediates import CONCORD_ENCODING, is_metadata_sidecar, scan_concord_lines
 from src.util import get_logger
 
 logger = get_logger(__name__)
@@ -33,13 +34,19 @@ logger = get_logger(__name__)
 # several GB and a directory listing on stars.renci.org can be slow to start.
 HTTP_TIMEOUT_SECONDS = 300
 
-# An href in an nginx/Apache autoindex page: relative, not a parent link or a sort query.
-_HREF = re.compile(r'href="(?!\.\./|\?|/|https?:)([^"]+)"')
+# An href in an nginx/Apache autoindex page: relative, not a self or parent link or a sort query.
+# find_remote_concords() also refuses to revisit a listing or leave the one it started from, so a
+# link this misses can't make the crawl loop.
+_HREF = re.compile(r'href="(?!\.\.?/|\?|/|https?:)([^"]+)"')
 
 
-def _is_concord_name(relative_path: str) -> bool:
-    """True for a file inside a ``concords/`` directory that isn't a metadata sidecar."""
-    parts = relative_path.split("/")
+def _is_concord_name(path: str) -> bool:
+    """True for a file inside a ``concords/`` directory that isn't a metadata sidecar.
+
+    ``path`` must be the whole path (an absolute local path or a URL's path), not one relative to
+    the target: a target such as ``.../concords/UNICHEM`` has no ``concords`` component below it.
+    """
+    parts = path.split("/")
     return "concords" in parts[:-1] and not is_metadata_sidecar(parts[-1])
 
 
@@ -47,9 +54,7 @@ def find_local_concords(target: pathlib.Path) -> list[pathlib.Path]:
     """A file is checked as given; a directory is searched for files under ``concords/``."""
     if target.is_file():
         return [target]
-    return sorted(
-        p for p in target.rglob("*") if p.is_file() and _is_concord_name(p.relative_to(target.parent).as_posix())
-    )
+    return sorted(p for p in target.rglob("*") if p.is_file() and _is_concord_name(p.absolute().as_posix()))
 
 
 def find_remote_concords(url: str) -> list[str]:
@@ -58,6 +63,7 @@ def find_remote_concords(url: str) -> list[str]:
         return [url]
     found = []
     pending = [url]
+    seen = {url}
     while pending:
         listing_url = pending.pop()
         with urllib.request.urlopen(listing_url, timeout=HTTP_TIMEOUT_SECONDS) as resp:
@@ -65,7 +71,10 @@ def find_remote_concords(url: str) -> list[str]:
         for href in _HREF.findall(listing):
             child = urllib.parse.urljoin(listing_url, href)
             if href.endswith("/"):
-                pending.append(child)
+                # Only descend: a link back to this listing, or anywhere outside it, would loop.
+                if child.startswith(listing_url) and child not in seen:
+                    seen.add(child)
+                    pending.append(child)
             elif _is_concord_name(urllib.parse.urlparse(child).path):
                 found.append(child)
     return sorted(found)
@@ -75,8 +84,8 @@ def scan_target(name: str):
     """Scan one local path or URL, streaming it line by line."""
     if name.startswith(("http://", "https://")):
         with urllib.request.urlopen(name, timeout=HTTP_TIMEOUT_SECONDS) as resp:
-            return scan_concord_lines(io.TextIOWrapper(resp, encoding="utf-8"), name)
-    with open(name, encoding="utf-8") as inf:
+            return scan_concord_lines(io.TextIOWrapper(resp, encoding=CONCORD_ENCODING), name)
+    with open(name, encoding=CONCORD_ENCODING) as inf:
         return scan_concord_lines(inf, name)
 
 

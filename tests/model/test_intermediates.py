@@ -82,6 +82,14 @@ def test_read_concords_raises_at_the_bad_line(tmp_path):
         next(rows)
 
 
+@pytest.mark.unit
+def test_read_concords_decodes_utf8(tmp_path):
+    """Should decode a concord as UTF-8 whatever the locale, as babel-check-concords and the DuckDB export do."""
+    concord = tmp_path / "MONDO"
+    concord.write_bytes("MONDO:1\teq\tUMLS:C1\u00e9\n".encode("utf-8"))
+    assert list(read_concords(concord)) == [("MONDO:1", "eq", "UMLS:C1\u00e9")]
+
+
 # --- scan_concord_lines ---
 
 

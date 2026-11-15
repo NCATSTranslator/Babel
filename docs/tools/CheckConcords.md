@@ -22,9 +22,12 @@ That strictness only holds up if the concords a real build writes already pass. 
 ## Usage
 
 Each argument is a concord file, a directory, or an `http(s)://` URL. A directory is searched for
-files under any `concords/` directory, skipping `metadata*.yaml`. A URL ending in `/` is treated as
-a web server's directory listing and crawled the same way. Files are streamed, not downloaded,
-so a whole published build can be checked from a laptop:
+files under any `concords/` directory, including a directory that is itself inside one (such as
+`chemicals/concords/UNICHEM`). It skips the metadata sidecars (`metadata-<file>.yaml` and
+`metadata.yaml`), using `is_metadata_sidecar()`, the same rule the DuckDB export uses. A URL ending
+in `/` is treated as a web server's directory listing and crawled the same way, descending only
+into subdirectories of the listing it started from. Files are streamed, not downloaded, so a whole
+published build can be checked from a laptop:
 
 ```bash
 uv run babel-check-concords babel_outputs/intermediate

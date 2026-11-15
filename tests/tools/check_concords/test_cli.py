@@ -41,6 +41,16 @@ def test_a_rejected_row_exits_one_and_is_shown(tmp_path, capsys):
 
 
 @pytest.mark.unit
+def test_a_directory_below_concords_is_searched(tmp_path, capsys):
+    """Should find the files in a subdirectory of concords/ (e.g. chemicals/concords/UNICHEM) given on its own."""
+    unichem = tmp_path / "intermediate" / "chemicals" / "concords" / "UNICHEM"
+    unichem.mkdir(parents=True)
+    (unichem / "UNICHEM_CHEBI").write_text("CHEBI:15377\toio:exactMatch\tDRUGBANK:DB09145\n")
+    assert cli.main([str(unichem)]) == 0
+    assert "UNICHEM_CHEBI\t1\t0\t" in capsys.readouterr().out
+
+
+@pytest.mark.unit
 def test_no_concords_found_raises(tmp_path):
     """Should raise rather than report a clean result when there was nothing to check."""
     with pytest.raises(RuntimeError, match="No concord files found"):
@@ -53,9 +63,13 @@ def test_remote_listing_is_crawled_for_concords(monkeypatch):
     base = "https://example.org/build/intermediate/"
     listings = {
         base: '<a href="../">../</a><a href="?C=M">sort</a><a href="protein/">protein/</a>',
-        base + "protein/": '<a href="concords/">concords/</a><a href="ids/">ids/</a>',
+        # A self link ("./"), or an absolute one back up the tree, must not make the crawl loop.
+        base + "protein/": '<a href="./">.</a><a href="concords/">concords/</a><a href="ids/">ids/</a>',
         base + "protein/ids/": '<a href="PR">PR</a>',
-        base + "protein/concords/": '<a href="UniProtKB">UniProtKB</a><a href="metadata-UniProtKB.yaml">m</a>',
+        # "../concords/" gets past _HREF but resolves to this same listing, so only the crawl's own
+        # guard (descend only, never revisit) stops it looping.
+        base + "protein/concords/": '<a href="UniProtKB">UniProtKB</a><a href="metadata-UniProtKB.yaml">m</a>'
+        '<a href="x/../">self</a><a href="x/../../">up</a>',
     }
 
     class _Response:
