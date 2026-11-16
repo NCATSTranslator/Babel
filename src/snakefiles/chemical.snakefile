@@ -313,7 +313,10 @@ rule get_chemical_pubchem_cas_concord:
         chemicals.make_pubchem_cas_concord(input.pubchemsynonyms, output.outfile, output.metadata_yaml)
 
 
-# There are some gtopdb inchikey relations that for some reason are not in unichem
+# GtoPdb's own InChIKeys, from ligands.tsv. This is the only source of GtoPdb structures: UniChem's
+# GtoPdb assignments lost their stereochemistry in 2026 and are no longer read (#1206). The concord is
+# listed in config.yaml's chemical_structure_concords, so chemical_unichem_concordia gloms it with the
+# UniChem structures.
 rule get_gtopdb_inchikey_concord:
     input:
         infile=config["download_directory"] + "/GTOPDB/ligands.tsv",
@@ -357,6 +360,12 @@ rule chemical_unichem_concordia:
             dd=config["intermediate_directory"],
             ucc=config["unichem_datasources"],
         ),
+        # Sources whose own InChIKeys we trust over UniChem's (GtoPdb, #1206).
+        structure_concords=expand(
+            "{dd}/chemicals/concords/{cc}",
+            dd=config["intermediate_directory"],
+            cc=config["chemical_structure_concords"],
+        ),
     output:
         unichemgroup=config["intermediate_directory"] + "/chemicals/partials/UNICHEM",
     benchmark:
@@ -365,7 +374,7 @@ rule chemical_unichem_concordia:
         # 2026jul22 peaked at 111.6 GiB = 119.8 GB, 94% of 128G; UniChem grows every release.
         mem="192G",
     run:
-        chemicals.combine_unichem(input.concords, output.unichemgroup)
+        chemicals.combine_unichem(input.concords + input.structure_concords, output.unichemgroup)
 
 
 rule untyped_chemical_compendia:

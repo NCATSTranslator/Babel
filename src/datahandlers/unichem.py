@@ -1,13 +1,18 @@
 import gzip
 
 from src.babel_utils import pull_via_wget
-from src.prefixes import CHEBI, CHEMBLCOMPOUND, DRUGBANK, DRUGCENTRAL, GTOPDB, HMDB, PUBCHEMCOMPOUND, UNII
+from src.prefixes import CHEBI, CHEMBLCOMPOUND, DRUGBANK, DRUGCENTRAL, HMDB, PUBCHEMCOMPOUND, UNII
 
 # global for this file
 data_sources: dict = {
     "1": CHEMBLCOMPOUND,
     "2": DRUGBANK,
-    "4": GTOPDB,
+    # "4": GTOPDB is deliberately absent. Between the 2025dec11 and 2026jul22 builds UniChem began
+    # assigning GtoPdb ligands stereo-less structures (98.5% of its GtoPdb InChIKeys in 2026jul22,
+    # against 47.2% of GtoPdb's own), which put 5,728 GTOPDB IDs in the clique of the stereo-unspecified
+    # record instead of the drug's. GtoPdb structures come from GtoPdb's ligands.tsv instead: see
+    # rule chemical_unichem_concordia and docs/sources/GTOPDB/README.md (#1206). Don't re-add it
+    # without rerunning docs/sources/GTOPDB/unichem-stereo/compare_gtopdb_inchikeys.py.
     # "6": KEGGCOMPOUND,  # Removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
     "7": CHEBI,
     "14": UNII,
