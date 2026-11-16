@@ -1,13 +1,15 @@
 """Fetch the inputs the MeSH/UMLS ownership replays need from a published Babel build.
 
-``replay_mesh_ownership.py`` (beside this script) and
+``replay_mesh_ownership.py`` (beside this script), ``../../cui-follows-drugbank/scripts/replay_drugbank_ownership.py`` and
 ``docs/sources/MESH/cross-listed/scripts/list_cross_listed_descriptors.py`` read a build's ``ids/MESH`` and
 ``ids/UMLS`` files and its duplicate reports. A published build has no ``intermediate/`` tree, but its
 ``duckdb/Identifier.parquet`` holds every ids file row with the file's path, so this exports the seven
-pipelines' MESH and UMLS ids files from it (one filtered read over https, under a minute) and downloads
+pipelines' MESH and UMLS ids files (and the DrugBank-owning pipelines' DRUGBANK ids file) from it (one filtered read over https, under a minute) and downloads
 ``reports/duckdb/duplicate_clique_leaders.tsv`` and ``duplicate_curies.tsv``. It writes:
 
     <output-dir>/ids/<pipeline>/MESH, <output-dir>/ids/<pipeline>/UMLS   (CURIE<tab>biolink type)
+    <output-dir>/ids/chemicals/DRUGBANK                                   (config: umls_drugbank_owning_pipelines)
+    <output-dir>/ids/chemicals/UNII                                       (for the UMLS-UNII concord replay)
     <output-dir>/duplicate_clique_leaders.tsv, <output-dir>/duplicate_curies.tsv
 
 The replays also need UMLS and MeSH downloaded locally (``babel_downloads/UMLS/MRCONSO.RRF`` and ``MRSTY.RRF``,
@@ -43,7 +45,8 @@ def main():
     pipelines = get_config()["umls_mesh_owning_pipelines"] + DROP_ONLY_PIPELINES
     con = duckdb.connect()
     con.execute("INSTALL httpfs; LOAD httpfs;")
-    pattern = "/intermediate/(" + "|".join(pipelines) + ")/ids/(MESH|UMLS)$"
+    drugbank_pipelines = get_config()["umls_drugbank_owning_pipelines"]
+    pattern = "/intermediate/(" + "|".join(pipelines) + ")/ids/(MESH|UMLS|DRUGBANK|UNII)$"
     rows = con.execute(
         f"""SELECT regexp_extract(filename, '{pattern}', 1) AS pipeline,
                    regexp_extract(filename, '{pattern}', 2) AS vocab, curie, biolink_type
@@ -66,7 +69,13 @@ def main():
     finally:
         for handle in handles.values():
             handle.close()
-    missing = [f"{p}/{v}" for p in pipelines for v in ("MESH", "UMLS") if (p, v) not in written]
+    expected = (
+        [(p, v) for p in pipelines for v in ("MESH", "UMLS")]
+        + [(p, "DRUGBANK") for p in drugbank_pipelines]
+        # For ../../umls-unii/scripts/replay_umls_unii.py.
+        + [("chemicals", "UNII")]
+    )
+    missing = [f"{p}/{v}" for p, v in expected if (p, v) not in written]
     # Gene and process write no ids/MESH; anything else missing means the build or the pattern changed.
     unexpected = [m for m in missing if m not in {f"{p}/MESH" for p in DROP_ONLY_PIPELINES}]
     if unexpected:

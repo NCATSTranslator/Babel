@@ -25,6 +25,7 @@ from src.categories import (
 )
 from src.createcompendia.chemicals import (
     CHEBI_DBX_SOURCE_NAMES,
+    build_umls_unii_relationships,
     create_typed_sets,
     make_chebi_relations,
     read_chebi_lookup_ids,
@@ -574,3 +575,74 @@ def test_make_chebi_relations_raises_when_the_dbx_contributes_nothing(tmp_path):
     """
     with pytest.raises(ValueError, match="database_accession.tsv"):
         _run_make_chebi_relations(tmp_path, dbx_contents=DBX_HEADER)
+
+
+# UMLS-UNII CONCORD
+
+# Rows copied verbatim from UMLS 2026AA MRCONSO.RRF and the FDA Latest_UNII_Records.txt.
+# C0011777 "Dexamethasone": an SPL substance atom (UNII 7S5I7G3JQL) and the NCIt preferred term C422, which
+#   that UNII's record also names -- both routes agree on one UNII.
+# C0740057 "Decadron": a brand name UMLS keeps as its own CUI, carrying NCIt C422 as a BN atom.
+# C0972333 "vardenafil hydrochloride": SPL gives the trihydrate's UNII 5M8S2CU0TS, NCIt C170390 the anhydrous
+#   UNII IF61NL91H3.
+# C1960918 "vardenafil hydrochloride trihydrate": SPL and NCIt C76318 both give 5M8S2CU0TS, which C0972333
+#   also reaches.
+# C0000983 "acetic acid": an SPL substance atom with no code.
+UMLS_UNII_MRCONSO = (
+    "C0011777|ENG|P|L0011777|PF|S0417682|N|A11567235||||MTHSPL|SU|7S5I7G3JQL|dexamethasone|0|N|4096|\n"
+    "C0011777|ENG|P|L0011777|VC|S0032168|N|A7570009||C422||NCI|PT|C422|Dexamethasone|0|N||\n"
+    "C0740057|ENG|P|L0011083|PF|S0030298|N|A7569948||C422||NCI|BN|C422|Decadron|0|N||\n"
+    "C0972333|ENG|P|L1876343|VC|S10902668|Y|A17046972||||MTHSPL|SU|5M8S2CU0TS|VARDENAFIL HYDROCHLORIDE|0|N|4096|\n"
+    "C0972333|ENG|P|L1876343|VC|S6397943|N|A32379515||C170390||NCI|PT|C170390|Vardenafil Hydrochloride|0|N||\n"
+    "C1960918|ENG|P|L6738298|VC|S13438550|Y|A20833717||||MTHSPL|SU|5M8S2CU0TS|VARDENAFIL HYDROCHLORIDE TRIHYDRATE|0|N|4096|\n"
+    "C1960918|ENG|P|L6738298|VC|S13899690|N|A21416896||C76318||NCI|PT|C76318|Vardenafil Hydrochloride Trihydrate|0|N||\n"
+    "C0000983|ENG|P|L0000983|VO|S12887503|Y|A20062454||||MTHSPL|SU|NOCODE|acetic acid,|0|N||\n"
+)
+UNII_RECORDS = (
+    "UNII\tDISPLAY_NAME\tRN\tEC\tNCIT\tRXCUI\tPUBCHEM\tSMSID\tEPA_CompTox\tCATALOGUE_OF_LIFE\tITIS\tNCBI\tPLANTS\tPOWO\tGRIN\tMPNS\tINN_ID\tUSAN_ID\tDAILYMED\tMF\tINCHIKEY\tSMILES\tINGREDIENT_TYPE\tUTF8_DISPLAY_NAME\tSUBSTANCE_TYPE\n"
+    "5M8S2CU0TS\tVARDENAFIL HYDROCHLORIDE\t330808-88-3\t\tC76318\t307306\t135413545\t100000088014\tDTXSID30954704\t\t\t\t\t\t\t\t\t\t5M8S2CU0TS\tC23H32N6O4S.ClH.3H2O\tFBCDRHDULQYRTB-UHFFFAOYSA-N\tCl.n1c(-c2cc(ccc2OCC)S(N3CCN(CC3)CC)(=O)=O)[nH]n4c(c1=O)c(C)nc4CCC.O.O.O\tINGREDIENT SUBSTANCE\tVARDENAFIL HYDROCHLORIDE\tchemical\n"
+    "7S5I7G3JQL\tDEXAMETHASONE\t50-02-2\t\tC422\t3264\t5743\t100000092605\tDTXSID3020384\t\t\t\t\t\t\t\t816\t\t7S5I7G3JQL\tC22H29FO5\tUREBDLICKHMUKA-CXSFZGCWSA-N\tC[C@@H]1C[C@@]2([H])[C@]3([H])CCC4=CC(=O)C=C[C@]4(C)[C@]3([C@H](C[C@]2(C)[C@]1(C(=O)CO)O)O)F\tINGREDIENT SUBSTANCE\tDexamethasone\tchemical\n"
+    "IF61NL91H3\tVARDENAFIL HYDROCHLORIDE ANHYDROUS\t224785-91-5\t\tC170390\t\t135404357\t100000089577\tDTXSID30945152\t\t\t\t\t\t\t\t\t\t\tC23H32N6O4S.ClH\tXCMULUAPJXCOHI-UHFFFAOYSA-N\tCl.n1c(-c2cc(ccc2OCC)S(N3CCN(CC3)CC)(=O)=O)[nH]n4c(c1=O)c(C)nc4CCC\tINGREDIENT SUBSTANCE\tVARDENAFIL HYDROCHLORIDE ANHYDROUS\tchemical\n"
+)
+UMLS_UNII_CUIS = ["UMLS:C0011777", "UMLS:C0740057", "UMLS:C0972333", "UMLS:C1960918", "UMLS:C0000983"]
+UMLS_UNII_UNIIS = ["UNII:7S5I7G3JQL", "UNII:5M8S2CU0TS", "UNII:IF61NL91H3"]
+
+
+def run_umls_unii(tmp_path, cuis=UMLS_UNII_CUIS, uniis=UMLS_UNII_UNIIS):
+    (tmp_path / "MRCONSO.RRF").write_text(UMLS_UNII_MRCONSO)
+    (tmp_path / "unii_records").write_text(UNII_RECORDS, encoding="windows-1252")
+    (tmp_path / "ids_UMLS").write_text("".join(f"{cui}\t{CHEMICAL_ENTITY}\n" for cui in cuis))
+    (tmp_path / "ids_UNII").write_text("".join(f"{unii}\t{CHEMICAL_ENTITY}\n" for unii in uniis))
+    build_umls_unii_relationships(
+        str(tmp_path / "MRCONSO.RRF"),
+        str(tmp_path / "unii_records"),
+        str(tmp_path / "ids_UMLS"),
+        str(tmp_path / "ids_UNII"),
+        str(tmp_path / "concord"),
+        str(tmp_path / "metadata.yaml"),
+    )
+    return (tmp_path / "concord").read_text()
+
+
+@pytest.mark.unit
+def test_umls_unii_concord_keeps_only_one_to_one_pairs(tmp_path):
+    """Dexamethasone's CUI and UNII are linked by both routes and by nothing else, so they are written once.
+    The Decadron brand CUI must not reach the UNII through its NCIt BN atom, C0972333 reaches two UNIIs,
+    5M8S2CU0TS is reached by two CUIs, and the NOCODE atom names no UNII."""
+    assert run_umls_unii(tmp_path) == "UMLS:C0011777\teq\tUNII:7S5I7G3JQL\n"
+
+
+@pytest.mark.unit
+def test_umls_unii_concord_counts_ambiguity_before_the_ids_filters(tmp_path):
+    """C0972333 is outside ids/UMLS here, but 5M8S2CU0TS is still a UNII two CUIs reach, so C1960918 must not
+    be given it."""
+    cuis = [cui for cui in UMLS_UNII_CUIS if cui != "UMLS:C0972333"]
+    assert run_umls_unii(tmp_path, cuis=cuis) == "UMLS:C0011777\teq\tUNII:7S5I7G3JQL\n"
+
+
+@pytest.mark.unit
+def test_umls_unii_concord_is_limited_to_the_pipelines_ids(tmp_path):
+    """A UNII that write_unii_ids() left out (a whole organism) must not enter through the concord, nor a CUI
+    another pipeline claims."""
+    assert run_umls_unii(tmp_path, uniis=["UNII:5M8S2CU0TS"]) == ""
+    assert run_umls_unii(tmp_path, cuis=["UMLS:C0972333"]) == ""

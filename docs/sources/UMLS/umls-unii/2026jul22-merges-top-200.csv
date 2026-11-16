@@ -1,0 +1,201 @@
+group,cliques_joined,cliques_with_structure,identifiers,names_match,cui,umls_name,unii,fda_name,fda_substance_type,cui_clique,cui_clique_type,unii_clique,unii_clique_type
+1,3,2,23,False,UMLS:C0008184,Chlordan,UNII:A9RLM212CY,CHLORDANE,mixture,CHEBI:34623,biolink:SmallMolecule,UNII:A9RLM212CY,biolink:ChemicalEntity
+1,3,2,23,True,UMLS:C0675992,ginsenoside compound K,UNII:G8D4792Q7K,GINSENOSIDE COMPOUND K,chemical,UNII:A9RLM212CY,biolink:ChemicalEntity,CHEBI:77146,biolink:SmallMolecule
+2,3,1,131,False,UMLS:C0302933,natural graphite,UNII:4QQN74LH4O,GRAPHITE,polymer,CHEBI:27594,biolink:SmallMolecule,UNII:4QQN74LH4O,biolink:ChemicalEntity
+4,3,1,22,False,UMLS:C0770578,"sodium phosphate, monobasic",UNII:3980JIH2SW,"SODIUM PHOSPHATE, MONOBASIC, UNSPECIFIED FORM",mixture,CHEBI:37585,biolink:MolecularMixture,UNII:3980JIH2SW,biolink:ChemicalEntity
+5,3,1,22,False,UMLS:C4083210,"defibrotide, bovine lung",UNII:438HCF2X0M,DEFIBROTIDE (BOVINE),polymer,UMLS:C4083210,biolink:ChemicalEntity,UNII:438HCF2X0M,biolink:SmallMolecule
+8,3,1,18,False,UMLS:C5908078,"Dexamethasone Acetate, Unspecified",UNII:E2287TKU04,"DEXAMETHASONE ACETATE, UNSPECIFIED FORM",mixture,UMLS:C5908078,biolink:ChemicalEntity,CHEBI:4463,biolink:SmallMolecule
+9,3,1,17,False,UMLS:C0205679,montmorrillonite,UNII:A585MN1H2L,MONTMORILLONITE,chemical,CHEBI:133354,biolink:MolecularMixture,UNII:A585MN1H2L,biolink:ChemicalEntity
+10,3,1,16,False,UMLS:C0078794,zinc sulfate,UNII:89DS0H96TB,"ZINC SULFATE, UNSPECIFIED FORM",mixture,CHEBI:35176,biolink:MolecularMixture,UNII:89DS0H96TB,biolink:ChemicalEntity
+11,3,1,16,False,UMLS:C0052796,azithromycin,UNII:F94OW58Y8V,"AZITHROMYCIN, UNSPECIFIED FORM",mixture,CHEBI:2955,biolink:SmallMolecule,UNII:F94OW58Y8V,biolink:ChemicalEntity
+12,3,1,15,False,UMLS:C0014448,eosine yellowish,UNII:1678RKX8RT,D&C RED NO. 22,mixture,CHEBI:52053,biolink:MolecularMixture,UNII:1678RKX8RT,biolink:ChemicalEntity
+12,3,1,15,False,UMLS:C6054543,CI 45380,UNII:TDQ283MPCW,ACID RED 87,chemical,UMLS:C6054543,biolink:ChemicalEntity,CHEBI:52053,biolink:MolecularMixture
+14,3,1,13,False,UMLS:C0526354,"2,2,4,4,6,8,8-heptamethylnonane",UNII:918X1OUF1E,ISOHEXADECANE,mixture,CHEBI:131383,biolink:SmallMolecule,UNII:918X1OUF1E,biolink:ChemicalEntity
+15,3,1,13,False,UMLS:C0253029,glyceryl behenate,UNII:R8WTH25YS2,GLYCERYL DIBEHENATE,mixture,UNII:8OC9U7TQZ0,biolink:SmallMolecule,UNII:R8WTH25YS2,biolink:ChemicalEntity
+2,3,1,131,True,UMLS:C0057717,diamond,UNII:6GRV67N0U2,DIAMOND,polymer,CHEBI:27594,biolink:SmallMolecule,UNII:6GRV67N0U2,biolink:ChemicalEntity
+3,3,1,25,True,UMLS:C2948222,dimethicone 410,UNII:TYU5GP6XGE,DIMETHICONE 410,polymer,CHEBI:31498,biolink:SmallMolecule,UNII:TYU5GP6XGE,biolink:ChemicalEntity
+3,3,1,25,True,UMLS:C3256455,trisiloxane,UNII:9G1ZW13R0G,TRISILOXANE,chemical,UMLS:C3256455,biolink:ChemicalEntity,CHEBI:31498,biolink:SmallMolecule
+4,3,1,22,True,UMLS:C1165377,"sodium phosphate, monobasic, anhydrous",UNII:KH7I04HPUU,"SODIUM PHOSPHATE, MONOBASIC, ANHYDROUS",chemical,UMLS:C1165377,biolink:ChemicalEntity,CHEBI:37585,biolink:MolecularMixture
+5,3,1,22,True,UMLS:C4224791,defibrotide sodium,UNII:L7CHH2B2J0,DEFIBROTIDE SODIUM,polymer,UMLS:C4224791,biolink:ChemicalEntity,UNII:438HCF2X0M,biolink:SmallMolecule
+6,3,1,20,True,UMLS:C0031860,phytol,UNII:5BC2RZ81NG,PHYTOL,mixture,CHEBI:17327,biolink:SmallMolecule,UNII:5BC2RZ81NG,biolink:ChemicalEntity
+6,3,1,20,True,UMLS:C6071517,"PHYTOL, (E)-",UNII:MZQ4XE15TP,"PHYTOL, (E)-",chemical,UMLS:C6071517,biolink:ChemicalEntity,CHEBI:17327,biolink:SmallMolecule
+7,3,1,19,True,UMLS:C0024480,magnesium sulfate,UNII:DE08037SAB,MAGNESIUM SULFATE,mixture,CHEBI:32599,biolink:MolecularMixture,UNII:DE08037SAB,biolink:ChemicalEntity
+7,3,1,19,True,UMLS:C1572489,magnesium sulfate anhydrous,UNII:ML30MJ2U7I,MAGNESIUM SULFATE ANHYDROUS,chemical,UMLS:C1572489,biolink:ChemicalEntity,CHEBI:32599,biolink:MolecularMixture
+8,3,1,18,True,UMLS:C1658209,dexamethasone acetate anhydrous,UNII:K7V8P532WP,DEXAMETHASONE ACETATE ANHYDROUS,chemical,UMLS:C1658209,biolink:ChemicalEntity,CHEBI:4463,biolink:SmallMolecule
+9,3,1,17,True,UMLS:C0005018,bentonite,UNII:A3N5ZCN45C,BENTONITE,chemical,CHEBI:133354,biolink:MolecularMixture,UNII:A3N5ZCN45C,biolink:ChemicalEntity
+10,3,1,16,True,UMLS:C2700331,zinc sulfate anhydrous,UNII:0J6Z13X3WO,ZINC SULFATE ANHYDROUS,chemical,UMLS:C2700331,biolink:ChemicalEntity,CHEBI:35176,biolink:MolecularMixture
+11,3,1,16,True,UMLS:C2698292,azithromycin anhydrous,UNII:J2KLZ20U1M,AZITHROMYCIN ANHYDROUS,chemical,UMLS:C2698292,biolink:ChemicalEntity,CHEBI:2955,biolink:SmallMolecule
+13,3,1,14,True,UMLS:C2935868,alpha-hexylcinnamaldehyde,UNII:7X6O37OK2I,.ALPHA.-HEXYLCINNAMALDEHYDE,mixture,CHEBI:55365,biolink:SmallMolecule,UNII:7X6O37OK2I,biolink:ChemicalEntity
+13,3,1,14,True,UMLS:C4224787,".alpha.-hexylcinnamaldehyde, (2E)-",UNII:E9947QRR9O,".ALPHA.-HEXYLCINNAMALDEHYDE, (2E)-",chemical,UMLS:C4224787,biolink:ChemicalEntity,CHEBI:55365,biolink:SmallMolecule
+14,3,1,13,True,UMLS:C4522178,isocetane,UNII:8LP0677305,ISOCETANE,chemical,UMLS:C4522178,biolink:ChemicalEntity,CHEBI:131383,biolink:SmallMolecule
+15,3,1,13,True,UMLS:C2700070,tribehenin,UNII:8OC9U7TQZ0,TRIBEHENIN,chemical,UMLS:C2700070,biolink:ChemicalEntity,UNII:8OC9U7TQZ0,biolink:SmallMolecule
+7824,3,0,9,True,UMLS:C0206232,nadroparin,UNII:1K5KDI46KZ,NADROPARIN,polymer,UNII:LIA7Z4002P,biolink:ChemicalEntity,UNII:1K5KDI46KZ,biolink:ChemicalEntity
+7824,3,0,9,True,UMLS:C5848169,Nadroparin Calcium,UNII:LIA7Z4002P,NADROPARIN CALCIUM,polymer,UMLS:C5848169,biolink:ChemicalEntity,UNII:LIA7Z4002P,biolink:ChemicalEntity
+16,2,1,48,False,UMLS:C0007648,cellulose,UNII:I355QGZ19A,.ALPHA.-CELLULOSE,polymer,CHEBI:15903,biolink:SmallMolecule,UNII:I355QGZ19A,biolink:ChemicalEntity
+18,2,1,37,False,UMLS:C0032623,polyvinyl alcohol,UNII:532B59J990,"POLYVINYL ALCOHOL, UNSPECIFIED",mixture,CHEBI:16236,biolink:SmallMolecule,UNII:532B59J990,biolink:ChemicalEntity
+20,2,1,28,False,UMLS:C0728803,crospovidone,UNII:2S7830E561,"CROSPOVIDONE, UNSPECIFIED",mixture,CHEBI:53248,biolink:SmallMolecule,UNII:2S7830E561,biolink:ChemicalEntity
+28,2,1,23,False,UMLS:C2608095,DL-lactic acid,UNII:3B8D35Y7S4,"LACTIC ACID, DL-",chemical,UMLS:C2608095,biolink:ChemicalEntity,CHEBI:78320,biolink:SmallMolecule
+29,2,1,22,False,UMLS:C0031721,Phosphoserine,UNII:VI4F0K069V,DEXFOSFOSERINE,chemical,UMLS:C0031721,(not in the build's chemical compendia),CHEBI:15811,biolink:SmallMolecule
+41,2,1,20,False,UMLS:C0036082,Saline Solution,UNII:VR5Y7PDT5W,ISOTONIC SODIUM CHLORIDE SOLUTION,specifiedSubstanceG1,CHEBI:26710,biolink:MolecularMixture,UNII:VR5Y7PDT5W,biolink:ChemicalEntity
+43,2,1,19,False,UMLS:C0935963,INS316,UNII:UT0S826Z60,URIDINE 5'-TRIPHOSPHATE,chemical,UMLS:C0935963,biolink:ChemicalEntity,CHEBI:15713,biolink:SmallMolecule
+44,2,1,19,False,UMLS:C0036001,S-Adenosylhomocysteine,UNII:8K31Q2S66S,S-ADENOSYL-L-HOMOCYSTEINE,chemical,UMLS:C0036001,(not in the build's chemical compendia),CHEBI:16680,biolink:SmallMolecule
+49,2,1,19,False,UMLS:C1532190,Technetium Tc99m^ arcitumomab (substance),UNII:029JF1SCU8,TECHNETIUM TC-99M ARCITUMOMAB,protein,UMLS:C1532190,biolink:ChemicalEntity,CHEBI:33371,biolink:SmallMolecule
+54,2,1,19,False,UMLS:C0031618,phosphatidylethanolamines,UNII:7CMB6B4449,CEPHALIN,chemical,CHEBI:16038,biolink:ChemicalEntity,UNII:7CMB6B4449,biolink:SmallMolecule
+57,2,1,18,False,UMLS:C0047226,3-aminoisobutyric acid,UNII:T68ALE2O9F,BAIBA,chemical,UMLS:C0047226,(not in the build's chemical compendia),CHEBI:142590,biolink:SmallMolecule
+75,2,1,18,False,UMLS:C0982388,trisodium citrate anhydrous,UNII:RS7A450LGA,ANHYDROUS TRISODIUM CITRATE,chemical,UMLS:C0982388,biolink:ChemicalEntity,CHEBI:53258,biolink:MolecularMixture
+79,2,1,17,False,UMLS:C0069477,omega-N-Methylarginine,UNII:27JT06E6GR,TILARGININE,chemical,UMLS:C0069477,(not in the build's chemical compendia),CHEBI:124959,biolink:SmallMolecule
+85,2,1,17,False,UMLS:C0034289,Pyrimidines,UNII:K8CXK5Q32L,PYRIMIDINE,chemical,CHEBI:39447,biolink:ChemicalEntity,CHEBI:16898,biolink:SmallMolecule
+88,2,1,17,False,UMLS:C5239047,Anhydrous Enol-oxaloacetate,UNII:2F399MM81J,OXALOACETIC ACID,chemical,UMLS:C5239047,biolink:ChemicalEntity,CHEBI:30744,biolink:SmallMolecule
+101,2,1,17,False,UMLS:C2698930,R-(-)-Gossypol acetic acid,UNII:U9GNI6VT5N,"GOSSYPOL ACETIC ACID, (R)-",chemical,UNII:S7RL72610R,biolink:MolecularMixture,UNII:U9GNI6VT5N,biolink:ChemicalEntity
+107,2,1,16,False,UMLS:C0017984,glycylglycine,UNII:10525P22U0,DIGLYCINE,chemical,UMLS:C0017984,(not in the build's chemical compendia),CHEBI:17201,biolink:SmallMolecule
+114,2,1,16,False,UMLS:C3834081,4-hydroxy acetophenone,UNII:G1L3HT4CMH,HYDROXYACETOPHENONE,chemical,UMLS:C3834081,biolink:ChemicalEntity,CHEBI:28032,biolink:SmallMolecule
+123,2,1,16,False,UMLS:C5399205,2-(phosphonooxy)- 2-propenoic acid,UNII:545YL308OW,PHOSPHOENOLPYRUVIC ACID,chemical,UMLS:C5399205,biolink:ChemicalEntity,CHEBI:44897,biolink:SmallMolecule
+129,2,1,16,False,UMLS:C2605120,4-methyl-1-(1-methylethyl)-3-cyclohexen-1-ol,UNII:L65MV77ZG6,"4-TERPINEOL, (+/-)-",chemical,MESH:C534301,biolink:ChemicalEntity,CHEBI:78884,biolink:SmallMolecule
+134,2,1,16,False,UMLS:C0024658,maltose,UNII:XJ6S9RV06F,"MALTOSE, UNSPECIFIED FORM",mixture,CHEBI:140774,biolink:SmallMolecule,UNII:XJ6S9RV06F,biolink:ChemicalEntity
+142,2,1,15,False,UMLS:C0007258,carnitine,UNII:S7UI8SM58A,DL-CARNITINE,chemical,UMLS:C0007258,(not in the build's chemical compendia),CHEBI:17126,biolink:SmallMolecule
+164,2,1,15,False,UMLS:C4521072,"(all-Z)-7, 10, 13, 16, 19-docosapentaenoic acid",UNII:NS3OZT14QT,CLUPANODONIC ACID,chemical,UMLS:C4521072,biolink:ChemicalEntity,CHEBI:53488,biolink:SmallMolecule
+165,2,1,15,False,UMLS:C0771204,anhydrous tacrolimus,UNII:Y5L2157C4J,TACROLIMUS ANHYDROUS,chemical,UMLS:C0771204,biolink:ChemicalEntity,CHEBI:61049,biolink:SmallMolecule
+166,2,1,15,False,UMLS:C0770983,anhydrous zinc acetate,UNII:H2ZEY72PME,ZINC ACETATE ANHYDROUS,chemical,UMLS:C0770983,biolink:ChemicalEntity,CHEBI:62984,biolink:MolecularMixture
+168,2,1,15,False,UMLS:C0243248,pararosaniline monohydrochloride,UNII:444C2M8JKN,PARAROSANILINE HYDROCHLORIDE,chemical,UMLS:C0243248,biolink:ChemicalEntity,CHEBI:82303,biolink:MolecularMixture
+178,2,1,14,False,UMLS:C2714964,YC -1 compound,UNII:515CC1WPTE,LIFICIGUAT,chemical,UMLS:C2714964,biolink:ChemicalEntity,CHEBI:142430,biolink:SmallMolecule
+186,2,1,14,False,UMLS:C4048291,5-hydroxylysine,UNII:2GQB349IUB,HYDROXYLYSINE,chemical,UMLS:C4048291,(not in the build's chemical compendia),CHEBI:18040,biolink:SmallMolecule
+189,2,1,14,False,UMLS:C0949561,Racemetirosine,UNII:X88TTO174Z,RACEMETYROSINE,chemical,UMLS:C0949561,(not in the build's chemical compendia),CHEBI:232408,biolink:SmallMolecule
+190,2,1,14,False,UMLS:C4520848,copper sulfate anhydrous,UNII:KUW2Q3U1VV,CUPRIC SULFATE ANHYDROUS,chemical,UMLS:C4520848,biolink:ChemicalEntity,CHEBI:23414,biolink:MolecularMixture
+209,2,1,14,False,UMLS:C0047729,3-tyrosine,UNII:D5YF57V4QW,L-META-TYROSINE,chemical,UMLS:C0047729,(not in the build's chemical compendia),CHEBI:44303,biolink:SmallMolecule
+219,2,1,14,False,UMLS:C3256481,1-glyceryl monooleate,UNII:D3AEF6S35P,GLYCERYL 1-OLEATE,chemical,UMLS:C3256481,biolink:ChemicalEntity,CHEBI:75342,biolink:SmallMolecule
+224,2,1,14,False,UMLS:C2698012,manganese sulfate anhydrous,UNII:IGA15S9H40,MANGANOUS SULFATE ANHYDROUS,chemical,UMLS:C2698012,biolink:ChemicalEntity,CHEBI:86360,biolink:MolecularMixture
+228,2,1,14,False,UMLS:C4764397,Colchicine-Site Binding Agent ABT-751,UNII:WDT5V5OB9F,ABT-751,chemical,UMLS:C4764397,biolink:ChemicalEntity,CHEBI:95043,biolink:SmallMolecule
+231,2,1,14,False,UMLS:C4489915,"1,2-dipalmitoylphosphatidylcholine, DL-",UNII:2W15RT5V7V,"DIPALMITOYLPHOSPHATIDYLCHOLINE, DL-",chemical,UMLS:C4489915,biolink:ChemicalEntity,UNII:2W15RT5V7V,biolink:SmallMolecule
+232,2,1,14,False,UMLS:C0600334,silybin,UNII:4RKY41TBTF,SILIBININ,mixture,CHEBI:9144,biolink:SmallMolecule,UNII:4RKY41TBTF,biolink:ChemicalEntity
+234,2,1,14,False,UMLS:C5443276,"borneol, (+)-",UNII:8D24LWT4FK,DEXBORNEOL,chemical,CHEBI:15393,biolink:SmallMolecule,UNII:8D24LWT4FK,biolink:ChemicalEntity
+236,2,1,14,False,UMLS:C0025368,menthol,UNII:L7T10EIP3A,"MENTHOL, UNSPECIFIED FORM",mixture,CHEBI:25187,biolink:SmallMolecule,UNII:L7T10EIP3A,biolink:ChemicalEntity
+247,2,1,13,False,UMLS:C4321332,cyanide,UNII:OXN4E7L11K,CYANIDE ANION,chemical,UMLS:C4321332,biolink:ChemicalEntity,CHEBI:17514,biolink:SmallMolecule
+252,2,1,13,False,UMLS:C0000967,Acetals,UNII:5G14F9E2HB,ACETAL,chemical,CHEBI:59769,biolink:ChemicalEntity,CHEBI:179533,biolink:SmallMolecule
+257,2,1,13,False,UMLS:C0757805,2-amino-4-methylenecyclopentane-1-carboxylic acid,UNII:I20202Q8M8,ICOFUNGIPEN,chemical,UMLS:C0757805,(not in the build's chemical compendia),CHEBI:230412,biolink:SmallMolecule
+258,2,1,13,False,UMLS:C0047645,3-nitrotyrosine,UNII:7COY1HA6HK,3-NITRO-L-TYROSINE,chemical,UMLS:C0047645,(not in the build's chemical compendia),CHEBI:232064,biolink:SmallMolecule
+263,2,1,13,False,UMLS:C0602350,"trans,trans-muconic acid",UNII:3KD92ZL2KH,MUCONIC ACID,chemical,UMLS:C0602350,biolink:ChemicalEntity,CHEBI:27036,biolink:SmallMolecule
+268,2,1,13,False,UMLS:C3488947,ammonium ion,UNII:54S68520I4,AMMONIUM CATION,chemical,UMLS:C3488947,biolink:ChemicalEntity,CHEBI:28938,biolink:SmallMolecule
+273,2,1,13,False,UMLS:C3887648,"norepinephrine, DL-",UNII:K294OAI79V,"NORADRENALINE, (+/-)-",chemical,UMLS:C3887648,biolink:ChemicalEntity,CHEBI:33569,biolink:SmallMolecule
+278,2,1,13,False,UMLS:C0031724,Phosphothreonine,UNII:3L4WX7B1EI,THREONINE PHOSPHATE,chemical,UMLS:C0031724,(not in the build's chemical compendia),CHEBI:37525,biolink:SmallMolecule
+287,2,1,13,False,UMLS:C4255553,Copper chloride anhydrous,UNII:P484053J2Y,CUPRIC CHLORIDE ANHYDROUS,chemical,UMLS:C4255553,biolink:ChemicalEntity,CHEBI:49553,biolink:SmallMolecule
+301,2,1,13,False,UMLS:C0771987,nimustine HCl,UNII:DFR965WKBU,NIMUSTINE HYDROCHLORIDE,chemical,UMLS:C0771987,biolink:ChemicalEntity,CHEBI:7576,biolink:MolecularMixture
+302,2,1,13,False,UMLS:C3464705,"4-hydroxy-2,5-dimethylfuran-2(3H)-one",UNII:20PI8YZP7A,DIMETHYLHYDROXY FURANONE,chemical,UMLS:C3464705,biolink:ChemicalEntity,CHEBI:76247,biolink:SmallMolecule
+303,2,1,13,False,UMLS:C0163042,dipotassium glycyrrhizinate,UNII:CA2Y0FE3FX,GLYCYRRHIZINATE DIPOTASSIUM,chemical,UMLS:C0163042,biolink:ChemicalEntity,CHEBI:79402,biolink:MolecularMixture
+304,2,1,13,False,UMLS:C2697513,"glycyrrhizin, ammoniated",UNII:3VRD35U26C,AMMONIUM GLYCYRRHIZATE,chemical,UMLS:C2697513,biolink:ChemicalEntity,CHEBI:81864,biolink:MolecularMixture
+310,2,1,13,False,UMLS:C2826079,"alum, potassium anhydrous",UNII:09OXB01F3O,POTASSIUM ALUM ANHYDROUS,chemical,UMLS:C2826079,biolink:ChemicalEntity,CHEBI:86463,biolink:MolecularMixture
+312,2,1,13,False,UMLS:C0245118,"3-(4-(2-chlorophenyl)-9-methyl-6H-thieno(3,2-f)(1,2,4)triazolo(4,3-a)(1,4)diazepine-2-yl)-1-(4-morpholinyl)-1-propanone",UNII:J613NI05SV,APAFANT,chemical,UMLS:C0245118,biolink:ChemicalEntity,CHEBI:92490,biolink:SmallMolecule
+321,2,1,13,False,UMLS:C0040521,Toxaphene,UNII:9924JQ4D5J,CAMPHECHLOR,mixture,CHEBI:77850,biolink:SmallMolecule,UNII:9924JQ4D5J,biolink:ChemicalEntity
+328,2,1,12,False,UMLS:C2698111,anazolene acid,UNII:9JUJ56C686,ANAZOLENE,chemical,UMLS:C2698111,biolink:ChemicalEntity,CHEBI:135858,biolink:SmallMolecule
+329,2,1,12,False,UMLS:C1515358,Theaflavins,UNII:1IA46M0D13,THEAFLAVIN,chemical,UMLS:C1515358,biolink:ChemicalEntity,CHEBI:136609,biolink:SmallMolecule
+336,2,1,12,False,UMLS:C4083516,"allantoin, (+)-",UNII:XDK458E1J9,"ALLANTOIN, (S)-",chemical,UMLS:C4083516,biolink:ChemicalEntity,CHEBI:15678,biolink:SmallMolecule
+342,2,1,12,False,UMLS:C0070826,phosphocreatinine,UNII:RG2371KXDE,FOSFOCREATININE,chemical,UMLS:C0070826,(not in the build's chemical compendia),CHEBI:177796,biolink:SmallMolecule
+344,2,1,12,False,UMLS:C0294295,antineoplaston AS 2-1,UNII:92358I79RG,PHENYLACETYLGLUTAMINE,chemical,UMLS:C0294295,(not in the build's chemical compendia),CHEBI:17884,biolink:SmallMolecule
+347,2,1,12,False,UMLS:C0771782,tribasic potassium phosphate,UNII:16D59922JU,"POTASSIUM PHOSPHATE, TRIBASIC",chemical,UMLS:C0771782,biolink:ChemicalEntity,CHEBI:190301,biolink:MolecularMixture
+350,2,1,12,False,UMLS:C4760869,6R-MTHF,UNII:Z8R4A37V9Q,ARFOLITIXORIN,chemical,UMLS:C4760869,biolink:ChemicalEntity,CHEBI:1989,biolink:SmallMolecule
+352,2,1,12,False,UMLS:C1881444,Anhydrous loracarbef,UNII:W72I5ZT78Z,LORACARBEF ANHYDROUS,chemical,UMLS:C1881444,biolink:ChemicalEntity,CHEBI:214480,biolink:SmallMolecule
+354,2,1,12,False,UMLS:C3889731,Procaspase Activating Compound-1 VO-100,UNII:9LIS8N0B2C,PAC-1,chemical,UMLS:C3889731,biolink:ChemicalEntity,CHEBI:231696,biolink:SmallMolecule
+365,2,1,12,False,UMLS:C3531670,octadecene,UNII:H5ZUQ6V4AK,1-OCTADECENE,chemical,UMLS:C3531670,biolink:ChemicalEntity,CHEBI:30824,biolink:SmallMolecule
+372,2,1,12,False,UMLS:C0024349,ethopropazine hydrochloride,UNII:O00T1I1VRN,PROFENAMINE HYDROCHLORIDE,chemical,UMLS:C0024349,biolink:ChemicalEntity,CHEBI:31568,biolink:MolecularMixture
+377,2,1,12,False,UMLS:C0951398,pipamperone dihydrochloride,UNII:IT085U64JB,PIPAMPERONE HYDROCHLORIDE,chemical,UMLS:C0951398,biolink:ChemicalEntity,CHEBI:32004,biolink:MolecularMixture
+383,2,1,12,False,UMLS:C0000325,20-Methylcholanthrene,UNII:214U33M1RL,3-METHYLCHOLANTHRENE,chemical,UMLS:C0000325,biolink:ChemicalEntity,CHEBI:34342,biolink:SmallMolecule
+397,2,1,12,False,UMLS:C0080321,virginiamycin factor S1,UNII:J91D5GN5AT,VIRGINIAMYCIN S1,chemical,UMLS:C0080321,(not in the build's chemical compendia),CHEBI:46416,biolink:SmallMolecule
+414,2,1,12,False,UMLS:C0142851,"formic acid, sodium salt",UNII:387AD98770,SODIUM FORMATE,chemical,UMLS:C0142851,biolink:ChemicalEntity,CHEBI:62965,biolink:MolecularMixture
+435,2,1,12,False,UMLS:C2348355,E-ajoene,UNII:W36UK64JYA,"AJOENE, (E)-",chemical,UMLS:C2348355,biolink:ChemicalEntity,CHEBI:80708,biolink:SmallMolecule
+467,2,1,12,False,UMLS:C0301008,"triphosphoric acid, sodium salt",UNII:5HK03SA80J,"SODIUM TRIPOLYPHOSPHATE, UNSPECIFIED FORM",mixture,UNII:9SW4PFD2FZ,biolink:MolecularMixture,UNII:5HK03SA80J,biolink:ChemicalEntity
+469,2,1,12,False,UMLS:C1541384,TLR7 Agonist 852A,UNII:6PJC3KPK6S,CPG-52852,chemical,UMLS:C1541384,biolink:ChemicalEntity,UNII:6PJC3KPK6S,biolink:SmallMolecule
+478,2,1,12,False,UMLS:C0888195,disodium pyrophosphate,UNII:H5WVD9LZUD,SODIUM ACID PYROPHOSPHATE,chemical,UMLS:C0888195,biolink:ChemicalEntity,UNII:H5WVD9LZUD,biolink:MolecularMixture
+487,2,1,11,False,UMLS:C2933331,3-(4-chlorophenyl)-adamantane-1-carboxylic acid (pyridin-4-ylmethyl)amide,UNII:DRG21OQ517,OPAGANIB,chemical,UMLS:C2933331,(not in the build's chemical compendia),CHEBI:124965,biolink:SmallMolecule
+488,2,1,11,False,UMLS:C1518781,EGFR Inhibitor PD-168393,UNII:3R996Y9T0I,PD-168393,chemical,UMLS:C1518781,biolink:ChemicalEntity,CHEBI:131504,biolink:SmallMolecule
+498,2,1,11,False,UMLS:C2828220,Glucosulfone Free Acid,UNII:JX8G4WPC8D,GLUCOSULFONE,chemical,UMLS:C2828220,biolink:ChemicalEntity,CHEBI:135878,biolink:SmallMolecule
+502,2,1,11,False,UMLS:C0012020,Diazooxonorleucine,UNII:03J0H273KZ,6-DIAZO-5-OXO-L-NORLEUCINE,chemical,UMLS:C0012020,(not in the build's chemical compendia),CHEBI:138889,biolink:SmallMolecule
+507,2,1,11,False,UMLS:C3256396,(phthalocyaninato(2-)) copper,UNII:3VEX9T7UT5,PHTHALOCYANINE BLUE,chemical,UMLS:C3256396,biolink:ChemicalEntity,CHEBI:155903,biolink:MolecularMixture
+529,2,1,11,False,UMLS:C0246172,3-(3-(trifluoromethyl)phenoxy)-1-azetidinecarboxamide,UNII:C85G40F6YS,DEZINAMIDE,chemical,UMLS:C0246172,biolink:ChemicalEntity,CHEBI:188787,biolink:SmallMolecule
+532,2,1,11,False,UMLS:C1721119,"1,2-dinitroglycerin",UNII:8542I4GE54,"GLYCERYL 1,2-DINITRATE",chemical,UMLS:C1721119,biolink:ChemicalEntity,CHEBI:18898,biolink:SmallMolecule
+540,2,1,11,False,UMLS:C0037511,sodium glutamate,UNII:W81N5U6R6U,MONOSODIUM GLUTAMATE HYDRATE,chemical,UMLS:C0037511,(not in the build's chemical compendia),CHEBI:232425,biolink:MolecularMixture
+551,2,1,11,False,UMLS:C3535645,"THIOCTIC ACID, (+)-",UNII:VLL71EBS9Z,ARLIPOIC ACID,chemical,UMLS:C3535645,biolink:ChemicalEntity,CHEBI:30314,biolink:SmallMolecule
+575,2,1,11,False,UMLS:C0771570,eprazinone HCl,UNII:394X1L8I9Y,EPRAZINONE HYDROCHLORIDE,chemical,UMLS:C0771570,biolink:ChemicalEntity,CHEBI:31551,biolink:MolecularMixture
+577,2,1,11,False,UMLS:C5238126,Ferric (59Fe) Citrate Injection,UNII:5171JCI1D5,FERRIC CITRATE FE-59,chemical,UMLS:C5238126,biolink:ChemicalEntity,CHEBI:31605,biolink:MolecularMixture
+586,2,1,11,False,UMLS:C0770949,thymoxamine hydrochloride,UNII:WK2KZM9V6X,MOXISYLYTE HYDROCHLORIDE,chemical,UMLS:C0770949,biolink:ChemicalEntity,CHEBI:31868,biolink:MolecularMixture
+633,2,1,11,False,UMLS:C0019873,Ethidium Bromide,UNII:059NUO2Z1L,HOMIDIUM BROMIDE,chemical,UMLS:C0019873,biolink:ChemicalEntity,CHEBI:4883,biolink:MolecularMixture
+645,2,1,11,False,UMLS:C0700449,debrisoquine sulfate,UNII:Q94064N9NW,DEBRISOQUIN SULFATE,chemical,UMLS:C0700449,biolink:ChemicalEntity,CHEBI:50973,biolink:MolecularMixture
+664,2,1,11,False,UMLS:C0357217,trisodium edetate,UNII:420IP921MB,EDETATE TRISODIUM,chemical,UMLS:C0357217,biolink:ChemicalEntity,CHEBI:63125,biolink:MolecularMixture
+682,2,1,11,False,UMLS:C0954094,trypaflavine hydrochloride,UNII:0596YAL51J,"3,6-DIAMINO-10-METHYLACRIDINIUM CHLORIDE HYDROCHLORIDE",chemical,UMLS:C0954094,biolink:ChemicalEntity,CHEBI:74727,biolink:MolecularMixture
+704,2,1,11,False,UMLS:C3537003,Nitrogen Mustard Antineoplastic Compounds,UNII:4K9ULD24RM,"N,N-BIS(2-CHLOROETHYL)PHOSPHORODIAMIDIC ACID",chemical,UMLS:C3537003,biolink:ChemicalEntity,CHEBI:8163,biolink:SmallMolecule
+705,2,1,11,False,UMLS:C2002352,octadecyl trimethyl ammonium chloride,UNII:CZ70647U92,TRIMETHYL OCTADECYL AMMONIUM CHLORIDE,chemical,UMLS:C2002352,biolink:ChemicalEntity,CHEBI:81710,biolink:MolecularMixture
+711,2,1,11,False,UMLS:C1513809,N-nitroso-N-methylurethane,UNII:741GDM4803,N-METHYL-N-NITROSOURETHANE,chemical,UMLS:C1513809,biolink:ChemicalEntity,CHEBI:82373,biolink:SmallMolecule
+715,2,1,11,False,UMLS:C0304783,sodium estrone sulfate,UNII:6K6FDA543A,ESTRONE SODIUM SULFATE,chemical,UMLS:C0304783,biolink:ChemicalEntity,CHEBI:8389,biolink:MolecularMixture
+724,2,1,11,False,UMLS:C2742210,RO 4929097,UNII:KK8645V7LE,RG-4733,chemical,UMLS:C2742210,biolink:ChemicalEntity,CHEBI:86474,biolink:SmallMolecule
+733,2,1,11,False,UMLS:C3864852,dodecene,UNII:WYE669F3GR,1-DODECENE,chemical,UMLS:C3864852,biolink:ChemicalEntity,CHEBI:89713,biolink:SmallMolecule
+738,2,1,11,False,UMLS:C0769767,PD 184352,UNII:R3K9Y00J04,CI-1040,chemical,UMLS:C0769767,biolink:ChemicalEntity,CHEBI:91353,biolink:SmallMolecule
+760,2,1,11,False,UMLS:C4764293,Diarylsulfonylurea Compound ILX-295501,UNII:240Y4YO0TN,LY-295501,chemical,UMLS:C4764293,biolink:ChemicalEntity,UNII:240Y4YO0TN,biolink:SmallMolecule
+772,2,1,11,False,UMLS:C3495447,strontium carbonate preparation,UNII:41YPU4MMCA,STRONTIUM CARBONATE,chemical,UMLS:C3495447,biolink:ChemicalEntity,UNII:41YPU4MMCA,biolink:MolecularMixture
+793,2,1,11,False,UMLS:C4546736,xenon-129,UNII:9C7571UDT5,XENON XE-129,chemical,CHEBI:52453,biolink:SmallMolecule,UNII:9C7571UDT5,biolink:ChemicalEntity
+801,2,1,11,False,UMLS:C4734818,"alum, ammonium anhydrous",UNII:DPU64XYB1D,AMMONIUM ALUM ANHYDROUS,chemical,UMLS:C4734818,biolink:ChemicalEntity,UNII:DPU64XYB1D,biolink:MolecularMixture
+802,2,1,11,False,UMLS:C0008411,choline citrate,UNII:DQ8HHP07GL,CHOLINE DIHYDROGEN CITRATE,chemical,UMLS:C0008411,biolink:ChemicalEntity,UNII:DQ8HHP07GL,biolink:MolecularMixture
+811,2,1,11,False,UMLS:C1831919,NOV 002,UNII:GY131TX61G,OXIGLUTATIONE DISODIUM,chemical,UMLS:C1831919,(not in the build's chemical compendia),UNII:GY131TX61G,biolink:MolecularMixture
+814,2,1,11,False,UMLS:C0890813,N(1)-methylnicotinamide chloride,UNII:L54XNJ1D5G,TRIGONELLAMIDE CHLORIDE,chemical,UMLS:C0890813,biolink:ChemicalEntity,UNII:L54XNJ1D5G,biolink:MolecularMixture
+817,2,1,11,False,UMLS:C0772108,demelverin,UNII:MX0B07OP8M,DEMELVERINE,chemical,UMLS:C0772108,biolink:ChemicalEntity,UNII:MX0B07OP8M,biolink:SmallMolecule
+826,2,1,11,False,UMLS:C5667148,Src/tubulin Inhibitor KX2-361,UNII:RVW387BA9U,KX2-361,chemical,UMLS:C5667148,biolink:ChemicalEntity,UNII:RVW387BA9U,biolink:SmallMolecule
+830,2,1,11,False,UMLS:C3274810,"methylephedrine, DL-",UNII:SHS9PGQ2LS,"METHYLEPHEDRINE, (+/-)-",chemical,CHEBI:113556,biolink:SmallMolecule,UNII:SHS9PGQ2LS,biolink:ChemicalEntity
+835,2,1,11,False,UMLS:C1832011,CDK Inhibitor R547,UNII:T61871RKRI,R-547,chemical,UMLS:C1832011,biolink:ChemicalEntity,UNII:T61871RKRI,biolink:SmallMolecule
+851,2,1,10,False,UMLS:C0888983,triethanolamine hydrochloride,UNII:R297UJ9QDY,TROLAMINE HYDROCHLORIDE,chemical,UMLS:C0888983,biolink:ChemicalEntity,CHEBI:132753,biolink:MolecularMixture
+867,2,1,10,False,UMLS:C3848534,thiosulfate,UNII:LLT6XV39PY,THIOSULFATE ION,chemical,UMLS:C3848534,biolink:ChemicalEntity,CHEBI:16094,biolink:SmallMolecule
+887,2,1,10,False,UMLS:C4759692,combretastatin A4,UNII:16U6OP69RQ,COMBRESTATIN A4,chemical,UMLS:C4759692,biolink:ChemicalEntity,CHEBI:181391,biolink:SmallMolecule
+891,2,1,10,False,UMLS:C3535867,lauroyl sarcosinate,UNII:LIJ19P3L6F,LAUROYL SARCOSINE,chemical,UMLS:C3535867,biolink:ChemicalEntity,CHEBI:183705,biolink:SmallMolecule
+892,2,1,10,False,UMLS:C0220836,gluconate,UNII:W552L9Y4VZ,GLUCONATE ION,chemical,UMLS:C0220836,biolink:ChemicalEntity,CHEBI:18391,biolink:SmallMolecule
+894,2,1,10,False,UMLS:C5666846,HDAC Inhibitor REC-2282,UNII:E0GG29V0AQ,REC-2282,chemical,UMLS:C5666846,biolink:ChemicalEntity,CHEBI:188197,biolink:SmallMolecule
+903,2,1,10,False,UMLS:C0048858,"5,10-methylenetetrahydrofolate",UNII:0SXY5ET48B,FOLITIXORIN,chemical,UMLS:C0048858,biolink:ChemicalEntity,CHEBI:20502,biolink:SmallMolecule
+907,2,1,10,False,UMLS:C2697619,Oral Hsp90 Inhibitor IPI-493,UNII:SLQ1AJG3VB,IPI-493,chemical,UMLS:C2697619,biolink:ChemicalEntity,CHEBI:230873,biolink:SmallMolecule
+908,2,1,10,False,UMLS:C0533115,1-(3-C-ethynylribopentofuranosyl)cytosine,UNII:Y3O05I09ZK,TAS-106,chemical,MESH:C103084,biolink:ChemicalEntity,CHEBI:231178,biolink:SmallMolecule
+910,2,1,10,False,UMLS:C5787183,MEK Inhibitor REC-4881,UNII:5J61HSP0QJ,TAK-733,chemical,UMLS:C5787183,biolink:ChemicalEntity,CHEBI:231366,biolink:SmallMolecule
+925,2,1,10,False,UMLS:C0104238,arsenate,UNII:G1DBI405OK,ARSENATE ION,chemical,UMLS:C0104238,biolink:ChemicalEntity,CHEBI:29125,biolink:SmallMolecule
+927,2,1,10,False,UMLS:C0246215,pro-diazepam,UNII:65NK71K78P,AVIZAFONE,chemical,UMLS:C0246215,(not in the build's chemical compendia),CHEBI:2940,biolink:SmallMolecule
+930,2,1,10,False,UMLS:C0220918,succinate,UNII:AJ326AG789,SUCCINATE DIANION,chemical,UMLS:C0220918,biolink:ChemicalEntity,CHEBI:30031,biolink:SmallMolecule
+934,2,1,10,False,UMLS:C0102927,amfenac monosodium salt,UNII:PPF9V8J28Y,AMFENAC SODIUM,chemical,UMLS:C0102927,biolink:ChemicalEntity,CHEBI:31202,biolink:MolecularMixture
+939,2,1,10,False,UMLS:C0770851,betazole HCl,UNII:66ABP6C83F,BETAZOLE HYDROCHLORIDE,chemical,UMLS:C0770851,biolink:ChemicalEntity,CHEBI:31280,biolink:MolecularMixture
+949,2,1,10,False,UMLS:C0772142,clemizole HCl,UNII:85W6I13D8M,CLEMIZOLE HYDROCHLORIDE,chemical,UMLS:C0772142,biolink:ChemicalEntity,CHEBI:31409,biolink:MolecularMixture
+957,2,1,10,False,UMLS:C0086159,dihydroergocristine monomesylate,UNII:DS7CL18UAM,DIHYDROERGOCRISTINE MESYLATE,chemical,UMLS:C0086159,biolink:ChemicalEntity,CHEBI:31490,biolink:MolecularMixture
+969,2,1,10,False,UMLS:C0304375,methotrimeprazine hydrochloride,UNII:42BB1Y2586,LEVOMEPROMAZINE HYDROCHLORIDE,chemical,UMLS:C0304375,biolink:ChemicalEntity,CHEBI:31773,biolink:MolecularMixture
+978,2,1,10,False,UMLS:C0520529,potassium phenethicillin,UNII:70978WUK7C,PHENETHICILLIN POTASSIUM,chemical,UMLS:C0520529,biolink:ChemicalEntity,CHEBI:31987,biolink:MolecularMixture
+980,2,1,10,False,UMLS:C0770491,pirbuterol HCl,UNII:J6793T658K,PIRBUTEROL HYDROCHLORIDE,chemical,UMLS:C0770491,biolink:ChemicalEntity,CHEBI:32012,biolink:MolecularMixture
+1031,2,1,10,False,UMLS:C0770897,pizotyline malate,UNII:2S5E7G70SZ,PIZOTYLINE MALEATE,chemical,UMLS:C0770897,biolink:ChemicalEntity,CHEBI:50214,biolink:MolecularMixture
+1075,2,1,10,False,UMLS:C3900021,Antroquinonol Capsule,UNII:AX9P92T7JZ,ANTROQUINONOL,chemical,UMLS:C3900021,biolink:ChemicalEntity,CHEBI:65415,biolink:SmallMolecule
+1079,2,1,10,False,UMLS:C2698290,azilsartan kamedoxomil,UNII:WEC6I2K1FC,AZILSARTAN MEDOXOMIL MONOPOTASSIUM,chemical,UMLS:C2698290,biolink:ChemicalEntity,CHEBI:68847,biolink:MolecularMixture
+1089,2,1,10,False,UMLS:C0526304,alpha-glutamyltryptophan,UNII:4RHY598T5U,OGLUFANIDE,chemical,UMLS:C0526304,(not in the build's chemical compendia),CHEBI:73512,biolink:SmallMolecule
+1101,2,1,10,False,UMLS:C0126150,lonazolac calcium salt,UNII:0H73O2AC36,LONAZOLAC CALCIUM,chemical,UMLS:C0126150,biolink:ChemicalEntity,CHEBI:76167,biolink:MolecularMixture
+1106,2,1,10,False,UMLS:C0771772,mitoguazone di-HCl,UNII:NNI098FX5Q,MITOGUAZONE DIHYDROCHLORIDE,chemical,UMLS:C0771772,biolink:ChemicalEntity,CHEBI:78028,biolink:MolecularMixture
+1122,2,1,10,False,UMLS:C3695320,4-chloro-2-toluidine,UNII:95NB978426,4-CHLORO-2-METHYLANILINE,chemical,UMLS:C3695320,biolink:ChemicalEntity,CHEBI:82276,biolink:SmallMolecule
+1135,2,1,10,False,UMLS:C3535665,cobalt acetate,UNII:3XC4P44U7E,COBALTOUS ACETATE,chemical,UMLS:C3535665,biolink:ChemicalEntity,CHEBI:85138,biolink:MolecularMixture
+1157,2,1,10,False,UMLS:C0037500,"deoxycholic acid, monosodium salt",UNII:436LS6U35Y,SODIUM DESOXYCHOLATE,chemical,UMLS:C0037500,biolink:ChemicalEntity,CHEBI:9177,biolink:MolecularMixture
+1160,2,1,10,False,UMLS:C0633017,N-valyltryptophan,UNII:3G64B4AFQN,VALYLTRYPTOPHAN,chemical,UMLS:C0633017,(not in the build's chemical compendia),CHEBI:92809,biolink:SmallMolecule
+1163,2,1,10,False,UMLS:C0054252,Buthionine Sulfoximine,UNII:EEY8DZS103,"BUTHIONINE SULFOXIMINE, L-",chemical,UMLS:C0054252,(not in the build's chemical compendia),CHEBI:94288,biolink:SmallMolecule
+1175,2,1,10,False,UMLS:C0771394,aluminum sodium silicate,UNII:058TS43PSM,SODIUM ALUMINOSILICATE,chemical,DRUGBANK:DB15910,biolink:ChemicalEntity,UNII:058TS43PSM,biolink:MolecularMixture
+1182,2,1,10,False,UMLS:C0612303,octenyl succinate,UNII:12UZE4X73L,OCTENYLSUCCINIC ACID,mixture,CHEBI:230726,biolink:SmallMolecule,UNII:12UZE4X73L,biolink:ChemicalEntity
+1193,2,1,10,False,UMLS:C0031875,Picibanil,UNII:2F42BH7X2L,OK-432,structurallyDiverse,CHEBI:51354,biolink:SmallMolecule,UNII:2F42BH7X2L,biolink:ChemicalEntity
+1194,2,1,10,False,UMLS:C0886765,tocainide monohydrochloride,UNII:2K7I38CKN5,TOCAINIDE HYDROCHLORIDE,chemical,UMLS:C0886765,biolink:ChemicalEntity,UNII:2K7I38CKN5,biolink:MolecularMixture
+1200,2,1,10,False,UMLS:C0603502,levometiomeprazin,UNII:3DEP0MVZ0Z,LEVOMETIOMEPRAZINE,chemical,PUBCHEM.COMPOUND:26430,biolink:SmallMolecule,UNII:3DEP0MVZ0Z,biolink:ChemicalEntity
+1201,2,1,10,False,UMLS:C0772212,mafenide HCl,UNII:3J751V0284,MAFENIDE HYDROCHLORIDE,chemical,UMLS:C0772212,biolink:ChemicalEntity,UNII:3J751V0284,biolink:MolecularMixture
+1203,2,1,10,False,UMLS:C0961890,DB-67,UNII:3YEA04NV6H,AR-67,chemical,UMLS:C0961890,biolink:ChemicalEntity,UNII:3YEA04NV6H,biolink:SmallMolecule
+1213,2,1,10,False,UMLS:C0104798,pentamine dibromide,UNII:4K6NEI0MSR,AZAMETHONIUM BROMIDE,chemical,UMLS:C0104798,biolink:ChemicalEntity,UNII:4K6NEI0MSR,biolink:MolecularMixture
+1215,2,1,10,False,UMLS:C1875873,dimercaptosuccinic acid,UNII:4S9JU7XF01,"2,3-DIMERCAPTOSUCCINIC ACID",mixture,PUBCHEM.COMPOUND:9354,biolink:SmallMolecule,UNII:4S9JU7XF01,biolink:ChemicalEntity
+1220,2,1,10,False,UMLS:C0813197,disodium latamoxef,UNII:5APW73W3QZ,MOXALACTAM DISODIUM,chemical,UMLS:C0813197,biolink:ChemicalEntity,UNII:5APW73W3QZ,biolink:MolecularMixture
+1251,2,1,10,False,UMLS:C0043501,zinc-DTPA,UNII:828I5G7VJ6,PENTETATE ZINC,chemical,UMLS:C0043501,biolink:ChemicalEntity,UNII:828I5G7VJ6,biolink:MolecularMixture
+1255,2,1,10,False,UMLS:C0001771,agar,UNII:89T13OHQ2B,"AGAR, UNSPECIFIED",mixture,CHEBI:2509,biolink:SmallMolecule,UNII:89T13OHQ2B,biolink:ChemicalEntity
+1257,2,1,10,False,UMLS:C0386286,1-ethyl-2-((3-ethyl-5-(3-methylbenzothiazolin-2-yliden))-4-oxothiazolidin-2-ylidenemethyl)pyridium chloride,UNII:8PF5ZXI0JE,MKT-077,chemical,UMLS:C0386286,biolink:ChemicalEntity,UNII:8PF5ZXI0JE,biolink:MolecularMixture
+1272,2,1,10,False,UMLS:C2826111,Aurora Kinase Inhibitor AMG 900,UNII:9R2G075611,AMG-900,chemical,UMLS:C2826111,biolink:ChemicalEntity,UNII:9R2G075611,biolink:SmallMolecule
+1275,2,1,10,False,UMLS:C5667108,MRTX-1719,UNII:AY4A8WD6JS,"MRTX-1719, (S)-",chemical,PUBCHEM.COMPOUND:156151242,biolink:SmallMolecule,UNII:AY4A8WD6JS,biolink:ChemicalEntity
+1279,2,1,10,False,UMLS:C2365098,ceramide 2,UNII:C04977SRJ5,CERAMIDE NG,chemical,CHEBI:67033,biolink:SmallMolecule,UNII:C04977SRJ5,biolink:ChemicalEntity
+1284,2,1,10,False,UMLS:C2698965,Camptothecin Analogue TLC388,UNII:D47234N30N,TLC-388,chemical,UMLS:C2698965,biolink:ChemicalEntity,UNII:D47234N30N,biolink:SmallMolecule
+1295,2,1,10,False,UMLS:C0089342,"1-ethyl-7-(3-((ethylamino)methyl)-1-pyrrolidinyl)-6,8-difluoro-1,4-dihydro-4-oxo-3-quinolinecarboxylic acid",UNII:G6U51T1K77,MERAFLOXACIN,chemical,UMLS:C0089342,biolink:ChemicalEntity,UNII:G6U51T1K77,biolink:SmallMolecule
+1303,2,1,10,False,UMLS:C4520809,Polyamine Analogue PG11047,UNII:HU43305R7O,CGC-11047,chemical,UMLS:C4520809,biolink:ChemicalEntity,UNII:HU43305R7O,biolink:MolecularMixture
+1314,2,1,10,False,UMLS:C2983960,Tanexaban,UNII:KF322K101S,DAREXABAN,chemical,UMLS:C2983960,biolink:ChemicalEntity,UNII:KF322K101S,biolink:SmallMolecule
+1326,2,1,10,False,UMLS:C5874318,"phenylephrine hydrochloride, DL-",UNII:O2VT86KV7E,"PHENYLEPHRINE HYDROCHLORIDE, (+/-)-",chemical,UMLS:C5874318,biolink:ChemicalEntity,UNII:O2VT86KV7E,biolink:MolecularMixture
+1335,2,1,10,False,UMLS:C4019976,C.I. acid blue 324,UNII:QCA734O5N6,ACID BLUE 324,chemical,UMLS:C4019976,biolink:ChemicalEntity,UNII:QCA734O5N6,biolink:MolecularMixture
+1342,2,1,10,False,UMLS:C2698424,"N,N,4-Trimethylbenzenamine",UNII:S8XC5939VU,DIMETHYLTOLYLAMINE,chemical,UMLS:C2698424,biolink:ChemicalEntity,UNII:S8XC5939VU,biolink:SmallMolecule
+1349,2,1,10,False,UMLS:C3273883,Cefcapene Pivoxil Hydrochloride Hydrate,UNII:V16A6AYI9H,CEFCAPENE PIVOXIL HYDROCHLORIDE MONOHYDRATE,chemical,UMLS:C3273883,biolink:ChemicalEntity,UNII:V16A6AYI9H,biolink:MolecularMixture
+1365,2,1,10,False,UMLS:C2987633,Multikinase Inhibitor AT9283,UNII:XAV9KYN9WL,AT-9283,chemical,UMLS:C2987633,biolink:ChemicalEntity,UNII:XAV9KYN9WL,biolink:SmallMolecule
+1395,2,1,9,False,UMLS:C1451018,H-Tyr-Ser-Leu-OH,UNII:L9TIM50J8N,TYROSERLEUTIDE,chemical,UMLS:C1451018,(not in the build's chemical compendia),CHEBI:165965,biolink:SmallMolecule
+1430,2,1,9,False,UMLS:C3486283,7-oxo-prasterone,UNII:2334LJD2E9,7-KETO-DEHYDROEPIANDROSTERONE,chemical,UMLS:C3486283,biolink:ChemicalEntity,CHEBI:183808,biolink:SmallMolecule
+1438,2,1,9,False,UMLS:C2826164,CDC7 Kinase Inhibitor BMS-863233,UNII:8QK62S7492,BMS-863233,chemical,UMLS:C2826164,biolink:ChemicalEntity,CHEBI:189662,biolink:SmallMolecule
+1462,2,1,9,False,UMLS:C2985180,Debio 0932,UNII:0V278OKN9G,CUDC-305,chemical,UMLS:C2985180,biolink:ChemicalEntity,CHEBI:232048,biolink:SmallMolecule
+1467,2,1,9,False,UMLS:C0935907,benzoylphenylurea,UNII:M10I9SO6RR,N-(AMINOCARBONYL)-N-PHENYLBENZAMIDE,chemical,UMLS:C0935907,biolink:ChemicalEntity,CHEBI:233279,biolink:SmallMolecule

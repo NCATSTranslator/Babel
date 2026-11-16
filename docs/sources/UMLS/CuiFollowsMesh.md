@@ -154,6 +154,50 @@ local UMLS download. The replay itself takes about a minute. Read `VERSION.txt` 
   their T005 CUIs into chemicals, because that is where MeSH's own record class puts them. If that
   reads as wrong in the clique diff, the fix is in `taxon.write_mesh_ids()`, not here.
 
+## A CUI follows its DrugBank ingredient
+
+The same disagreement exists one step down, for CUIs MeSH placement says nothing about. Chemicals
+claims a DrugBank ID in `chemicals/ids/DRUGBANK`, but selects CUIs by semantic type: it blocks T116
+"Amino Acid, Peptide, or Protein" and does not map T121 "Pharmacologic Substance" on its own.
+[`UMLS:C4279623`](https://uts.nlm.nih.gov/uts/umls/concept/C4279623) "elamipretide" is T116 + T121,
+reaches MeSH only through a `PCE` atom, and is the ingredient of
+[`DRUGBANK:DB11981`](https://go.drugbank.com/drugs/DB11981). Protein claimed the CUI, its UMLS
+concord dragged the DrugBank ID into `Protein.txt`, and the chemical clique that holds the DrugBank
+ID through UniChem never got the CUI. A CUI typed only T121 fell to the leftover compendium instead.
+
+`umls.compute_drugbank_owners()` runs in the same rule, after `compute_mesh_owners()`, and writes
+into the same file, so rules 2 and 4 above apply to its CUIs unchanged. A CUI is owned by a pipeline
+in `config.yaml`'s `umls_drugbank_owning_pipelines` (chemicals) when:
+
+- no MeSH-owning pipeline's `ids/MESH` claims any of its descriptors. MeSH placement wins wherever
+  it has anything to say, including when it is undecided between two pipelines;
+- that pipeline's `ids/DRUGBANK` is the only one that lists one of its DrugBank ingredients (the
+  `IN` atoms `build_sets()` concords, `umls.DRUGBANK_CONCORD_TTYS`);
+- the pipeline does not refuse the CUI, and neither gene nor process selects it.
+
+The CUI takes its DrugBank ID's type, `biolink:ChemicalEntity`.
+
+Measured against 2026jul22 on top of MeSH ownership
+([`cui-follows-drugbank/2026jul22.md`](cui-follows-drugbank/2026jul22.md), from
+`cui-follows-drugbank/scripts/replay_drugbank_ownership.py`): 2,113 CUIs get an owner, of which
+1,957 were already in chemicals by semantic type. The rule moves 156: 97 from protein and 59 from
+the leftover compendium. Of the 1,145 DrugBank IDs in two compendia, it resolves 98 that MeSH
+ownership leaves dragged.
+
+Only a DrugBank ID an ids file lists counts, which is the deliberate limit of the rule.
+`chemicals/ids/DRUGBANK` is cut from UniChem, so it holds only DrugBank IDs with a structure. The
+3,155 CUIs whose DrugBank ingredient has none stay where their semantic types put them: 1,595 in
+chemicals, 1,245 in protein (antibodies and other biologics, which `build_protein_compendia()` keeps
+through `extra_prefixes=[DRUGBANK]`), 178 in anatomy (cell therapies), 110 in the leftover
+compendium and 27 in taxon. Those DrugBank IDs are claimed by no pipeline, so both chemicals' and
+protein's UMLS concords can reach them; 745 DrugBank IDs remain in two compendia. Giving every CUI
+with a DrugBank ingredient to chemicals would resolve them, at the cost of retyping about 1,450
+protein, cell and organism concepts as `biolink:ChemicalEntity`. That is the question of where a
+biologic belongs ([#849]), not one this rule should settle by side effect.
+
+The rule makes `rule umls_mesh_ownership` depend on `chemicals/ids/DRUGBANK`, and so on the UniChem
+reference download and `filter_unichem`, for every MeSH-owning target.
+
 ## The control
 
 `assert_no_unexpected_duplicate_clique_leaders()` (`src/reports/duckdb_reports.py`) fails the

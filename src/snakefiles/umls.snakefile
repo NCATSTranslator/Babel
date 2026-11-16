@@ -20,6 +20,12 @@ rule umls_mesh_ownership:
             config["intermediate_directory"] + "/gene/ids/UMLS",
             config["intermediate_directory"] + "/process/ids/UMLS",
         ],
+        # "A CUI follows its DrugBank ingredient" where MeSH placement says nothing (config.yaml:
+        # umls_drugbank_owning_pipelines).
+        drugbank_ids=expand(
+            config["intermediate_directory"] + "/{pipeline}/ids/DRUGBANK",
+            pipeline=config["umls_drugbank_owning_pipelines"],
+        ),
     output:
         outfile=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     benchmark:
@@ -31,4 +37,5 @@ rule umls_mesh_ownership:
             output.outfile,
             blocklist_files_by_pipeline={"disease": input.badumls},
             non_mesh_umls_ids_files=input.non_mesh_umls_ids,
+            drugbank_ids_files_by_pipeline=dict(zip(config["umls_drugbank_owning_pipelines"], input.drugbank_ids)),
         )
