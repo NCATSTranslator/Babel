@@ -64,3 +64,44 @@ def test_bigger_sets():
         assert False
     except ValueError:
         assert True
+
+
+# PAIR SHAPES
+#
+# Compendium builders hand glom() concord pairs as 2-tuples, sometimes from a generator, to save
+# memory (see src.model.intermediates.read_concord_pairs); they used to hand it 2-sets in a list.
+# These pin that the shape changes nothing, including the two places it could: a self-pair, which
+# is one element as a set but two as a tuple, and a unique_prefixes conflict, which keeps whichever
+# pair glom() sees first.
+
+GLOM_SHAPE_PAIRS = [
+    ("A:1", "B:1"),
+    ("B:1", "A:2"),  # Refused: would put A:1 and A:2 in one clique, and A is unique.
+    ("C:1", "C:1"),  # A self-pair.
+    ("C:1", "B:2"),
+    ("B:2", "D:1"),
+]
+GLOM_SHAPE_EXPECTED = {
+    "A:1": {"A:1", "B:1"},
+    "B:1": {"A:1", "B:1"},
+    "C:1": {"C:1", "B:2", "D:1"},
+    "B:2": {"C:1", "B:2", "D:1"},
+    "D:1": {"C:1", "B:2", "D:1"},
+}
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "shape",
+    [
+        pytest.param(lambda pairs: [set(p) for p in pairs], id="list-of-sets"),
+        pytest.param(lambda pairs: [list(p) for p in pairs], id="list-of-lists"),
+        pytest.param(lambda pairs: list(pairs), id="list-of-tuples"),
+        pytest.param(lambda pairs: (p for p in pairs), id="generator-of-tuples"),
+    ],
+)
+def test_pair_shape_does_not_change_cliques(shape):
+    """Should build the same cliques, and refuse the same unique_prefixes merge, whatever the pairs' container."""
+    d = {}
+    glom(d, shape(GLOM_SHAPE_PAIRS), unique_prefixes=["A"])
+    assert d == GLOM_SHAPE_EXPECTED
