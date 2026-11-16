@@ -2,14 +2,17 @@
 Unit tests for src/createcompendia/drugchemical.py.
 
 These exercise _validate_and_apply_manual_concords, which validates manual
-concord pairs against the chemical compendia and normalises their CURIEs.
+concord pairs against the chemical compendia and normalises their CURIEs, and
+check the checked-in manual concord file itself.
 """
 
+import csv
 import logging
 
 import pytest
 
 from src.createcompendia.drugchemical import _validate_and_apply_manual_concords
+from src.util import curie_format_problem
 
 CONCORD_FILE = "input_data/manual_concords/drugchemical.tsv"
 
@@ -101,3 +104,29 @@ def test_aliases_normalizing_to_same_curie_are_skipped(caplog):
     assert pairs == []
     assert applied_curies == set()
     assert "CHEMBL:123" in caplog.text
+
+
+# THE CHECKED-IN MANUAL CONCORD FILE
+
+
+@pytest.mark.unit
+def test_every_manual_concord_row_is_well_formed_and_cites_an_issue():
+    """Every row of the checked-in file should have exactly the five header columns, two well-formed
+    CURIEs, and at least one GitHub issue URL.
+
+    The issue is what says why the row exists and when it can be removed, and build_conflation()
+    reads only subject and object, so it would accept a row without one. A short or over-long row
+    (a stray tab in the notes) is what csv.DictReader reports as a None value or a None key.
+    """
+    with open(CONCORD_FILE) as f:
+        rows = list(csv.DictReader(f, dialect=csv.excel_tab))
+    assert rows, f"{CONCORD_FILE} has no rows"
+    for line_number, row in enumerate(rows, start=2):
+        where = f"{CONCORD_FILE} line {line_number}: {row}"
+        assert list(row) == ["subject", "predicate", "object", "notes", "url"], where
+        assert None not in row.values(), where
+        for curie in (row["subject"], row["object"]):
+            assert curie_format_problem(curie) is None, where
+        assert row["predicate"].startswith("skos:"), where
+        urls = row["url"].split("||")
+        assert all(url.startswith("https://github.com/") and "/issues/" in url for url in urls), where
