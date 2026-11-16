@@ -5,16 +5,10 @@ import src.datahandlers.obo as obo
 import src.datahandlers.reactome as reactome
 import src.datahandlers.rhea as rhea
 import src.datahandlers.umls as umls
-from src.babel_utils import (
-    get_prefixes,
-    glom,
-    read_concord_file,
-    read_identifier_file,
-    remove_overused_xrefs,
-    write_compendium,
-)
+from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
 from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
 from src.metadata.provenance import write_concord_metadata
+from src.model.intermediates import read_concords
 from src.prefixes import GO, REACT, TCDB, WIKIPATHWAYS
 from src.ubergraph import build_sets
 
@@ -42,6 +36,11 @@ def write_ec_ids(infile, outfile):
 
 
 def write_umls_ids(mrsty, outfile):
+    """Select the UMLS CUIs the process pipeline claims by semantic type.
+
+    The umls_mesh_ownership rule reads this file: no MeSH-owning pipeline may take a CUI selected here
+    (umls.compute_mesh_owners()'s ``unownable``).
+    """
     umlsmap = {
         "B2.2.1.1.4": MOLECULAR_ACTIVITY,  # Molecular Function
         "B2.2.1.1": BIOLOGICAL_PROCESS,  # Physiologic Function
@@ -106,15 +105,19 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
         # We have a concordance problem with UMLS - it is including GO terms that are obsolete and we don't want
         # them added. So we want to limit concordances to terms that are already in the dicts. But that's ONLY for the
         # UMLS concord.  We trust the others to retrieve decent identifiers.
-        # Filtering after the whole file is read is equivalent to filtering per line: `dicts` is
-        # only mutated by the glom() below, outside this loop, so it is frozen for one file's read.
-        gate_on_dicts = infile.endswith("UMLS")
         pairs = []
-        for pair in read_concord_file(infile):
-            if gate_on_dicts and any(xi not in dicts for xi in pair):
-                print(f"Skipping pair {pair} from {infile} because it is not in dicts")
-                continue
-            if frozenset(pair) not in bad_concords:
+        for x in read_concords(infile):
+            if infile.endswith("UMLS"):
+                use = True
+                for xi in (x[0], x[2]):
+                    if xi not in dicts:
+                        print(f"Skipping pair {x} from {infile} because {xi} is not in dicts")
+                        use = False
+                if not use:
+                    continue
+            pair = [x[0], x[2]]
+            fspair = frozenset(pair)
+            if fspair not in bad_concords:
                 pairs.append(pair)
         # one kind of error is that GO->Reactome xrefs are freqently more like subclass relations. So
         # GO:0004674 (protein serine/threonine kinase) has over 400 Reactome xrefs

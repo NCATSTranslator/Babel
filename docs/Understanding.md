@@ -69,13 +69,17 @@ conflated.
 
 ## Where do the clique descriptions come from?
 
-Currently, all descriptions for NodeNorm concepts come from
+Currently, all descriptions come from
 [UberGraph](https://github.com/INCATools/ubergraph/). You will note that
 descriptions are collected for every identifier within a clique, and then the
 description associated with the most preferred identifier is provided for the
-preferred identifier. Descriptions are not included in NameRes, but the
-`description` flag can be used to include any descriptions when returning
-cliques from NodeNorm.
+preferred identifier.
+
+Descriptions are written to the [compendium files](./DataFormats.md#compendia-files)
+only: the [synonym files](./DataFormats.md#synonym-files) have no description field.
+Whether a frontend exposes them therefore depends on which files it is built from —
+NodeNorm reads the compendia and can return them via its `description` flag, while
+anything built from the synonym files has nothing to return.
 
 ## What are "information content" values?
 

@@ -5,9 +5,10 @@ import os
 import re
 
 import src.datahandlers.umls as umls
-from src.babel_utils import glom, read_concord_file, read_identifier_file, write_compendium
+from src.babel_utils import glom, read_identifier_file, write_compendium
 from src.categories import GENE
 from src.metadata.provenance import write_concord_metadata
+from src.model.intermediates import read_concords
 from src.prefixes import DICTYBASE, ENSEMBL, FLYBASE, HGNC, MGI, NCBIGENE, OMIM, RGD, SGD, UMLS, WORMBASE, ZFIN
 from src.util import LoggingUtil
 
@@ -123,7 +124,10 @@ def write_umls_ids(mrconso, mrsty, outfile):
     as the MRSTY. In particular, if the term maps to an OMIM that has a period in it, then it's a variant. Good job
     UMLS, it's not like genes are central to biology or anything.
     Also, remove anything that in the label identifies itself as an Allele or Mutation
-    It's possible in the future that we'd like to try to assign better classes to some of these things."""
+    It's possible in the future that we'd like to try to assign better classes to some of these things.
+
+    The umls_mesh_ownership rule reads this file: no MeSH-owning pipeline may take a CUI selected here
+    (umls.compute_mesh_owners()'s ``unownable``)."""
 
     # Do I want this?  There are a bunch of things under here that we probably don't want.
     blacklist = set(
@@ -342,7 +346,9 @@ def build_gene_compendia(concordances, metadata_yamls, identifiers, icrdf_filena
     for infile in concordances:
         print(infile)
         print("loading", infile)
-        pairs = read_concord_file(infile)
+        pairs = []
+        for x in read_concords(infile):
+            pairs.append(set([x[0], x[2]]))
         glom(dicts, pairs, unique_prefixes=uniques)
     gene_sets = set([frozenset(x) for x in dicts.values()])
     baretype = GENE.split(":")[-1]

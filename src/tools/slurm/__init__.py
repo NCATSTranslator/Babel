@@ -11,8 +11,8 @@ Why two requested-side sources? On the RENCI Hatteras cluster the built-in SLURM
 efficiency report's ``MaxRSS`` and ``TotalCPU`` columns come back empty (the
 ``jobacct_gather``/cgroup accounting isn't capturing them), so its memory/CPU
 *usage* numbers are unusable. The Snakemake ``benchmark:`` TSVs are therefore the
-authoritative source for actual usage; the efficiency report is used only for the
-*requested* mem/cpus and elapsed wall time. See ``docs/tools/Resources.md``.
+authoritative source for actual usage — wall time included — and the efficiency
+report is used only for the *requested* mem/cpus. See ``docs/tools/Resources.md``.
 
 Run with::
 

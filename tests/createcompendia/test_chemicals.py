@@ -609,8 +609,8 @@ def test_combine_unichem_gloms_a_single_prefix_file_into_cliques(tmp_path):
 def test_combine_unichem_raises_on_an_empty_concord(tmp_path):
     """An empty UniChem concord means the upstream extract produced nothing, and must fail loudly.
 
-    This is the guard that depends on how `prefixes_in_file` is derived: read_concord_file() returns
-    an empty list for an empty file, so the "no prefixes" branch is what catches it.
+    This is the guard that depends on how `prefixes_in_file` is derived: read_concords() yields no rows
+    for an empty file, so the "no prefixes" branch is what catches it.
     """
     concord = _write_unichem_concord(tmp_path / f"UNICHEM_{CHEBI}", [])
 

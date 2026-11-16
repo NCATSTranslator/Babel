@@ -12,7 +12,6 @@ from src.babel_utils import (
     get_prefixes,
     get_user_agent,
     glom,
-    read_concord_file,
     read_identifier_file,
     remove_overused_xrefs,
     write_compendium,
@@ -30,6 +29,7 @@ from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUC
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.datahandlers.unii import UNII_ORGANISM_COLUMNS, read_unii_records
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
+from src.model.intermediates import read_concords
 from src.prefixes import (
     CHEBI,
     CHEMBLCOMPOUND,
@@ -134,7 +134,15 @@ def get_type_from_smiles(smiles):
         return SMALL_MOLECULE
 
 
-def write_umls_ids(mrsty, outfile):
+def write_umls_ids(mrsty, outfile, *, mesh_ownership=None):
+    """Select the UMLS CUIs the chemical pipeline claims by semantic type.
+
+    ``mesh_ownership`` (the umls_mesh_ownership rule's output) makes a CUI follow its MeSH descriptor
+    (umls.apply_mesh_ownership): a CUI another pipeline owns is dropped here and a CUI this pipeline owns is added.
+    The protein semantic-type blocklist below still applies to typing by semantic type; a T116 CUI whose MeSH
+    descriptor is in a chemical D-tree re-enters through MeSH ownership, which runs after the blocklist
+    (https://github.com/NCATSTranslator/Babel/issues/308).
+    """
     groups = [
         "A1.4.1.1.1.1",  # antibiotic
         "A1.4.1.1.3.2",  # Hormone
@@ -156,7 +164,14 @@ def write_umls_ids(mrsty, outfile):
     }
     umlsmap = {a: CHEMICAL_ENTITY for a in groups}
     umlsmap["A1.3.3"] = DRUG
-    umls.write_umls_ids(mrsty, umlsmap, outfile, blocklist_umls_semantic_type_tree=exclude_umls_sty_trees)
+    umls.write_umls_ids(
+        mrsty,
+        umlsmap,
+        outfile,
+        blocklist_umls_semantic_type_tree=exclude_umls_sty_trees,
+        mesh_ownership=mesh_ownership,
+        pipeline="chemicals",
+    )
 
 
 def write_rxnorm_ids(infile, outfile):
@@ -582,12 +597,17 @@ def combine_unichem(concordances, output):
     for infile in concordances:
         print(infile)
         print("loading", infile)
-        pairs = read_concord_file(infile)
+        pairs = []
 
         # We will want to only remove overused xrefs for specific prefixes.
         # UniChem files should only have a single prefix in the first column,
         # but out of paranoia we'll double-check that.
-        prefixes_in_file = {Text.get_prefix(subject) for subject, _ in pairs}
+        prefixes_in_file = set()
+
+        for x in read_concords(infile):
+            pairs.append([x[0], x[2]])
+            # Get the prefix from the first row to determine if we need to remove overused xrefs
+            prefixes_in_file.add(Text.get_prefix(x[0]))
 
         # Was there exactly one prefix in the first column?
         if len(prefixes_in_file) == 0:
@@ -1059,10 +1079,21 @@ def get_wikipedia_relationships(outfile, config, metadata_yaml):
 
 
 def build_untyped_compendia(
-    concordances, identifiers, unichem_partial, untyped_concord, type_file, metadata_yaml, input_metadata_yamls
+    concordances,
+    identifiers,
+    unichem_partial,
+    untyped_concord,
+    type_file,
+    metadata_yaml,
+    input_metadata_yamls,
+    mesh_ownership=None,
 ):
     """:concordances: a list of files from which to read relationships
-    :identifiers: a list of files from which to read identifiers and optional categories"""
+    :identifiers: a list of files from which to read identifiers and optional categories
+    :mesh_ownership: the umls_mesh_ownership rule's file; concord pairs naming a CUI another pipeline owns are
+        skipped (umls.read_cuis_owned_elsewhere). None skips nothing.
+        The UniChem partial carries no UMLS CUIs, so it needs no such filter."""
+    owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "chemicals")
     dicts = read_partial_unichem(unichem_partial)
     types = {}
     for ifile in identifiers:
@@ -1073,10 +1104,31 @@ def build_untyped_compendia(
     for infile in concordances:
         print(infile)
         print("loading", infile)
-        pairs = read_concord_file(infile)
+        pairs = []
+        for x in read_concords(infile):
+            if x[0] in owned_elsewhere or x[2] in owned_elsewhere:
+                continue
+            pairs.append([x[0], x[2]])
+        p = False
+        if DRUGCENTRAL in [n.split(":")[0] for n in pairs[0]]:
+            p = True
+            i = "DrugCentral:4970"
+        if p:
+            print("before filtering:")
+            for pair in pairs:
+                if i in pair:
+                    print(pair)
         newpairs = remove_overused_xrefs(pairs)
         setpairs = [set(x) for x in newpairs]
+        if p:
+            print("after filtering:")
+            for pair in newpairs:
+                if i in pair:
+                    print(pair)
         glom(dicts, setpairs, unique_prefixes=[INCHIKEY])
+        if p:
+            print("after glomming:")
+            print(dicts[i])
     with open(type_file, "w") as outf:
         for x, y in types.items():
             outf.write(f"{x}\t{y}\n")

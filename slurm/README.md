@@ -31,7 +31,7 @@ uv run snakemake --profile slurm chemical
 | `executor` | `slurm` | Uses Snakemake's built-in SLURM executor |
 | `jobs` | 50 | Max parallel SLURM jobs |
 | `default-resources.mem` | 16G | Per-job default RAM (90% of rules peak below 8G) |
-| `default-resources.cpus_per_task` | 1 | Per-job default CPUs (only DuckDB rules use more) |
+| `default-resources.cpus_per_task` | 1 | Per-job default CPUs (the DuckDB exports, `protein` and `generate_pubmed_concords` set more) |
 | `default-resources.runtime` | 120 min | Per-job default wall time |
 | `python.executable` | `/usr/bin/time -v python` | Captures memory/time to job stderr |
 | `slurm-efficiency-report` | True | Writes per-job efficiency CSV |
@@ -39,6 +39,11 @@ uv run snakemake --profile slurm chemical
 Download-only rules (e.g. `get_EFO`, `get_mesh`, `get_rhea`, `get_pubchem`, `download_umls`)
 override the defaults with `mem="8G", cpus_per_task=1` since they are I/O-bound. Large downloads
 (UniProtKB idmapping/trembl, UMLS) also set `runtime="6h"`.
+
+A rule that runs more than one process or thread must set `cpus_per_task` as well as `threads:`.
+The SLURM executor allocates `cpus_per_task` when it is set, and the default above always sets it,
+so `threads: 8` alone gets a one-CPU job whose eight workers share a single core. Keep the two
+equal (`generate_pubmed_concords` is an example).
 
 ## Benchmark Data
 
@@ -105,31 +110,63 @@ These rules have hard-coded `resources:` overrides and should not be reduced wit
 | Rule | File | `mem` | `runtime` | Notes |
 |------|------|-------|-----------|-------|
 | `protein_compendia` | `protein.snakefile` | 512G | 12h | Largest protein join |
-| `chemical_compendia` | `chemical.snakefile` | 512G | 6h | Full chemical graph |
-| `untyped_chemical_compendia` | `chemical.snakefile` | 512G | — | Pre-typing step |
+| `chemical_compendia` | `chemical.snakefile` | 512G | 7h | Full chemical graph; raised from 6h when Food.txt pushed it to 5.5h |
+| `untyped_chemical_compendia` | `chemical.snakefile` | 256G | — | Pre-typing step; 132 GiB = 141.8 GB peak on both babel-1.17 and 2026jul22. Cut from 512G to the peak plus the standard 1.5x safety factor; revisit after the next full run |
 | `gene_compendia` | `gene.snakefile` | 256G | 6h | Gene graph |
-| `export_compendia_to_duckdb` | `duckdb.snakefile` | 512G | 6h | Per-compendium DuckDB export; `cpus_per_task=4` (DuckDB auto-threads) |
-| `export_synonyms_to_duckdb` | `duckdb.snakefile` | 512G / 128G | 3h | Per-synonyms DuckDB export (512G for Protein/GeneProteinConflated); `cpus_per_task=4` |
+| `export_compendia_to_duckdb` | `duckdb.snakefile` | 512G | 4h | Per-compendium DuckDB export; `cpus_per_task=4` (DuckDB auto-threads) |
+| `export_synonyms_to_duckdb` | `duckdb.snakefile` | 512G / 128G | 1h | Per-synonyms DuckDB export (512G for Protein/GeneProteinConflated); `cpus_per_task=4` |
 | `check_for_identically_labeled_cliques` | `duckdb.snakefile` | 512G | — | Two-pass: GROUP BY hash(LOWER(preferred_name)) + streaming-join pair output; memory_limit **16G**, 1 thread — capped low to bound the buffer-pool mapping count under vm.max_map_count (see Known Issues) |
 | `check_for_duplicate_curies` | `duckdb.snakefile` | 1500G | — | GROUP BY curie over all edges; memory_limit 1000G, 1 thread |
 | `check_for_duplicate_clique_leaders` | `duckdb.snakefile` | 512G | — | Two-pass over the smaller Clique table; memory_limit 400G, 4 threads |
-| `generate_curie_report` | `duckdb.snakefile` | 1500G | — | approx_count_distinct() over all edges, biolink_type read from the denormalized Edge column (no join); memory_limit 1000G, 1 thread |
-| `generate_clique_leader_report` | `duckdb.snakefile` | 1500G | — | approx_count_distinct() over all edges; memory_limit 1000G, 1 thread |
+| `generate_prefix_report` | `duckdb.snakefile` | 1500G | — | approx_count_distinct() over all edges, biolink_type read from the denormalized Edge column (no join); memory_limit 1000G, 1 thread. Replaced the former `generate_curie_report` + `generate_clique_leader_report`, scanning the Edge set once instead of twice |
 | `chembl_labels_and_smiles` | `datacollect.snakefile` | 128G | — | RDF parse |
-| `chemical_unichem_concordia` | `chemical.snakefile` | 128G | — | UniChem merge |
-| `generate_pubmed_concords` | `publications.snakefile` | 128G | 24h | Full PubMed parse |
-| `generate_pubmed_compendia` | `publications.snakefile` | 128G | — | PubMed compendium build |
+| `chemical_unichem_concordia` | `chemical.snakefile` | 192G | — | UniChem merge (119.8 GB peak, was 94% of 128G) |
+| `generate_pubmed_concords` | `publications.snakefile` | 16G | 1h | Parallel parse of the pubmed2db NDJSON export (8 threads, `cpus_per_task=8`); ~10 GB and minutes, extrapolated from shard 0 of 2026sep26 measured locally (31s, 1.27 GB). Replaced the 128G/24h XML parse (20.0h, 32 GB peak on 2026jul22); confirm from the first cluster benchmark |
+| `generate_pubmed_compendia` | `publications.snakefile` | 8G | 1h | PubMed compendium streamed from the shards without glom, single-threaded; ~3 GB and ~15 min, extrapolated from shard 0 of 2026sep26 measured locally (102s, 0.10 GB without the common UberGraph files). The glom version peaked at 132.5 GB; confirm from the first cluster benchmark |
 | `geneprotein_conflated_synonyms` | `geneprotein.snakefile` | 512G | 6h | Conflated synonym merge |
-| `drugchemical_conflation` | `drugchemical.snakefile` | 64G | — | Drug/chemical conflation (~57G peak) |
+| `drugchemical_conflation` | `drugchemical.snakefile` | 96G | — | Drug/chemical conflation (61.2 GB peak, was 96% of 64G) |
 | `geneprotein_conflation` | `geneprotein.snakefile` | 64G | — | Gene/protein conflation (~48G peak) |
+| `generate_sapbert_training_data` | `exports.snakefile` | 64G | 3h | Slowest wildcard instance 1.9h; estimate for the pair deduplication set, recheck against the benchmarks |
 | `get_uniprotkb_labels` | `datacollect.snakefile` | 48G | — | UniProtKB label parse (~40G peak) |
 | `hmdb_labels_and_synonyms` | `datacollect.snakefile` | 48G | — | HMDB XML parse (~30G peak) |
 | `check_protein_completeness` | `protein.snakefile` | 24G | — | Loads full Protein compendium (~21G peak) |
-| `get_chemical_unichem_relationships` | `chemical.snakefile` | 24G | — | UniChem structure parse (~21G peak) |
+| `get_chemical_unichem_relationships` | `chemical.snakefile` | 32G | — | UniChem structure parse (22.4 GB peak, was 93% of 24G) |
+| `check_chemical_completeness` | `chemical.snakefile` | 24G | — | 14.7 GB peak, was 92% of the 16G default |
+| `taxon_compendia` | `taxon.snakefile` | 24G | — | 15.1 GB peak, was 95% of the 16G default |
+| `chemical` | `chemical.snakefile` | — | 4h | Gzips every chemical synonyms file; 1.9h on both runs, 93% of the 2h default |
+| `generate_kgx` | `exports.snakefile` | — | 4h | Slowest wildcard instance 2.7h |
+| `protein` | `protein.snakefile` | — | 4h | Gzips protein synonyms; `cpus_per_task=6` |
+| `drugchemical_conflated_synonyms` | `drugchemical.snakefile` | — | 4h | 2.7h on 2026jul22 |
 
 The block below the divider was added when the default dropped from 64G to 16G: these rules ran on
-the old default with no explicit block and peak above 16G, so they need one now. `taxon_compendia`
-(~14G peak) is the tightest rule still on the default — watch it first for an OOM.
+the old default with no explicit block and peak above 16G, so they need one now.
+
+The `mem` column and the peaks quoted beside it are **decimal GB**, the unit `mem="NG"` actually
+means to SLURM. A Snakemake benchmark reports mebibytes under an "MB" label, so a rule "peaking at
+132G" in a benchmark needs 141.8 GB of `mem`. Convert a whole-GiB figure with **×1.073741824**, not
+×1.048576: the latter is the MiB→MB factor and converts the benchmark's raw `max_rss` column, so
+applying it to a figure already displayed in GiB leaves you ~2.4% low. The error is always in the
+direction of looking safer than it is — as a *fraction of the limit* it is ~4.9%, which is what made
+`untyped_chemical_compendia` read as 84% of a 160G limit when it was 89%.
+`babel-slurm-resources` converts on the way in and reports decimal throughout.
+
+Sizes were last reviewed against the **2026jul22** run (`babel-slurm-resources`, which since that
+review also reports runtime fit). Two cautions from it:
+
+- `protein_compendia` will be reported as over-provisioned until UniProtKB recovers: it shrank
+  ~41% upstream in 2026jul22, so the rule ran 5.5h/246G there against 7.6h/337G on babel-1.17.
+  Its 12h/512G is right for a full-size UniProt. Do not trim it from one small run.
+- `get_ensembl` swung from 3 minutes (babel-1.17) to 1.9h (2026jul22). Network-bound rules vary
+  by an order of magnitude between runs, so their runtimes are deliberately generous.
+
+After the 2026jul22 sizing pass one rule was still within 80% of its runtime limit, deliberately:
+`generate_pubmed_concords` sat at 83% of 24h, and the fix chosen was to make the rule cheaper rather
+than reserve more wall time. It has since been rewritten to read the pubmed2db export
+(`docs/sources/PubMed/README.md`); its limits now come from a local single-shard measurement,
+pending a cluster benchmark.
+
+The slowest rule still on the *default* runtime is `untyped_chemical_compendia` at 58 minutes, so
+the 120-minute default has roughly 2x headroom and was left alone.
 
 ## Temporary Scratch Space
 

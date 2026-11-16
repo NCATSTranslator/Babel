@@ -1,0 +1,28 @@
+Pipeline,Description,Biolink Types,Number of CURIEs,Number of approx distinct CURIEs,Clique leader prefixes,CURIE prefixes
+Anatomy,"Anatomical entities at all scales, from brains to endothelium to pancreatic beta cells",AnatomicalEntity,"252,287","294,167","EMAPA, MESH, NCIT, UBERON, UMLS","UMLS, FMA, NCIT, UBERON, EMAPA, MESH, ZFA, FBbt, WBbt"
+Anatomy,"Anatomical entities at all scales, from brains to endothelium to pancreatic beta cells",Cell,"13,952","17,289","CL, MESH, NCIT, UMLS","UMLS, CL, NCIT, SNOMEDCT, MESH, UBERON"
+Anatomy,"Anatomical entities at all scales, from brains to endothelium to pancreatic beta cells",CellularComponent,"14,818","14,241","GO, MESH, NCIT, UMLS","UMLS, GO, NCIT, SNOMEDCT, MESH, UBERON, CL"
+Anatomy,"Anatomical entities at all scales, from brains to endothelium to pancreatic beta cells",GrossAnatomicalStructure,"25,867","30,726","EMAPA, UBERON","UBERON, EMAPA, MA, UMLS, NCIT, ZFA, MESH, XAO, FBbt, WBbt"
+CellLine,Cell lines from different species,CellLine,"38,896","38,162",CLO,CLO
+Chemicals,"All kinds of chemicals, including drugs, small molecules, molecular mixtures, and so on",MolecularMixture,"23,892,388","19,988,155","CHEBI, CHEMBL.COMPOUND, GTOPDB, HMDB, PUBCHEM.COMPOUND, RXCUI, UMLS, UNII","PUBCHEM.COMPOUND, INCHIKEY, CAS, CHEMBL.COMPOUND, UNII, MESH, UMLS, RXCUI, CHEBI, KEGG.COMPOUND, DRUGBANK, HMDB, DrugCentral, GTOPDB"
+Chemicals,"All kinds of chemicals, including drugs, small molecules, molecular mixtures, and so on",SmallMolecule,"231,673,258","179,848,069","CHEBI, CHEMBL.COMPOUND, DRUGBANK, DrugCentral, GTOPDB, HMDB, PUBCHEM.COMPOUND, UNII","PUBCHEM.COMPOUND, INCHIKEY, CAS, CHEMBL.COMPOUND, HMDB, CHEBI, UNII, MESH, UMLS, DRUGBANK, GTOPDB, KEGG.COMPOUND, RXCUI, DrugCentral"
+Chemicals,"All kinds of chemicals, including drugs, small molecules, molecular mixtures, and so on",Polypeptide,5,5,UMLS,UMLS
+Chemicals,"All kinds of chemicals, including drugs, small molecules, molecular mixtures, and so on",ComplexMolecularMixture,"1,470","1,649","DRUGBANK, MESH, PUBCHEM.COMPOUND, UNII","UMLS, DRUGBANK, RXCUI, MESH, UNII, CAS, DrugCentral, INCHIKEY, PUBCHEM.COMPOUND"
+Chemicals,"All kinds of chemicals, including drugs, small molecules, molecular mixtures, and so on",ChemicalEntity,"518,554","473,147","CHEBI, CHEMBL.COMPOUND, DRUGBANK, DrugCentral, MESH, PUBCHEM.COMPOUND, RXCUI, UMLS, UNII","UMLS, MESH, INCHIKEY, CHEMBL.COMPOUND, CHEBI, UNII, RXCUI, PUBCHEM.COMPOUND, CAS, DRUGBANK, KEGG.COMPOUND, DrugCentral, GTOPDB, HMDB"
+Chemicals,"All kinds of chemicals, including drugs, small molecules, molecular mixtures, and so on",ChemicalMixture,609,589,CHEBI,"CHEBI, KEGG.COMPOUND, INCHIKEY, MESH, UNII"
+Chemicals,"All kinds of chemicals, including drugs, small molecules, molecular mixtures, and so on",Drug,"358,459","344,456","RXCUI, UMLS","UMLS, RXCUI, MESH, DRUGBANK"
+DiseasePhenotype,Diseases and phenotypes,Disease,"639,398","583,898","DOID, EFO, MESH, MONDO, NCIT, OMIM, UMLS, orphanet","UMLS, SNOMEDCT, MEDDRA, MONDO, NCIT, medgen, DOID, MESH, orphanet, OMIM, ICD10, EFO, HP, ICD9, OMIM.PS, KEGG.DISEASE, icd11"
+DiseasePhenotype,Diseases and phenotypes,PhenotypicFeature,"103,707","79,003","EFO, HP, MESH, MP, NCIT, UMLS","UMLS, NCIT, HP, MP, EFO, MEDDRA, SNOMEDCT, MESH"
+DrugChemical,Conflation of drugs with their active ingredients as chemicals,N/A,,,,
+Gene,Genes from all species,Gene,"88,740,328","86,699,824","ENSEMBL, FB, HGNC, MGI, NCBIGene, OMIM, RGD, SGD, UMLS, WormBase, ZFIN","NCBIGene, ENSEMBL, MGI, RGD, WormBase, UMLS, HGNC, ZFIN, FB, OMIM, dictyBase, SGD"
+GeneFamily,Families of genes,GeneFamily,"28,463","28,577","HGNC.FAMILY, PANTHER.FAMILY","PANTHER.FAMILY, HGNC.FAMILY"
+GeneProtein,Conflation of genes with the proteins they code for.,N/A,,,,
+Leftover UMLS,A special pipeline that adds every UMLS concept not already added elsewhere in Babel,umls,"1,274,014","1,418,573",UMLS,UMLS
+Macromolecular Complex,,MacromolecularComplex,"20,579","18,725",ComplexPortal,ComplexPortal
+ProcessActivityPathway,"Biological processes, activities and pathways",Pathway,"53,772","50,152","GO, PANTHER.PATHWAY, REACT, SMPDB","SMPDB, REACT, GO, PANTHER.PATHWAY"
+ProcessActivityPathway,"Biological processes, activities and pathways",BiologicalProcess,"65,256","71,446","GO, REACT, UMLS","UMLS, GO, REACT"
+ProcessActivityPathway,"Biological processes, activities and pathways",MolecularActivity,"213,714","286,363","EC, GO, REACT, RHEA, UMLS","REACT, RHEA, UMLS, GO, EC, TCDB, KEGG.REACTION"
+Protein,Proteins from all species,Protein,"170,218,499","179,154,911","ENSEMBL, MESH, PR, UMLS, UniProtKB","UniProtKB, ENSEMBL, PR, UMLS, MESH, NCIT, DRUGBANK"
+Publications,All publications from PubMed,Publication,"83,969,833","88,538,735",PMID,"PMID, doi, PMC"
+Taxon,"Taxonomic entities, including species, genera, families, and so on from the NCBI Taxonomy",OrganismTaxon,"3,745,133","3,371,234","MESH, NCBITaxon, UMLS","NCBITaxon, UMLS, MESH"
+**NONE**,,Food,932,798,"CHEBI, DRUGBANK, UNII","DRUGBANK, RXCUI, UMLS, MESH, UNII, CAS, DrugCentral, CHEBI, CHEMBL.COMPOUND, KEGG.COMPOUND"

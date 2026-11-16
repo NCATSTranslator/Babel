@@ -1,7 +1,7 @@
 """Unit tests for the source-impact detail files (CSV/JSON/TSV).
 
 Drives the real ``src.tools.source_impact_report.cli.main`` over a synthetic intermediate root
-(offline, so ``unit``-marked) and asserts the four detail files written into the report's
+(offline, so ``unit``-marked) and asserts the six detail files written into the report's
 ``<output-stem>/`` subdirectory are correct, complete, and deterministic.
 
 The synthetic source ``NEWSOURCE`` is arranged against an ``EXISTING`` Babel set to yield:
@@ -20,6 +20,12 @@ import json
 
 import pytest
 
+from src.reports.source_impact_details import (
+    NEW_CLIQUES_CSV,
+    NEW_CLIQUES_FULL_CSV,
+    NEW_XREFS_FULL_CSV,
+    NEW_XREFS_SUMMARY_CSV,
+)
 from src.tools.source_impact_report.cli import main
 
 
@@ -89,9 +95,10 @@ def _read_csv(path):
 def test_detail_files_written_with_expected_content(synthetic_intermediate, tmp_path):
     """All four detail files are created and contain the rows expected from the synthetic fixture.
 
-    Checks new-cliques.csv (two pure-new singletons), modified-cliques.csv (one expanded, one
-    merged row), modified-cliques.json (full structure including before_clique_leaders), and
-    new-xrefs.tsv (three rows from NEWSOURCE's own concord, all status=added).
+    Checks new-cliques-top-N.csv (two pure-new singletons), modified-cliques.csv (one expanded, one
+    merged row), modified-cliques.json (full structure including before_clique_leaders),
+    new-xrefs.csv (one row per concord row) and new-xrefs-summary.csv (the two join pathways
+    those rows group into).
     """
     output = tmp_path / "impact-report.md"
     assert _run(synthetic_intermediate, output) == 0
@@ -99,8 +106,8 @@ def test_detail_files_written_with_expected_content(synthetic_intermediate, tmp_
     details = tmp_path / "impact-report"
     assert details.is_dir()
 
-    # new-cliques.csv — the two pure-new singletons (NEWSRC:1, NEWSRC:4).
-    new_cliques = _read_csv(details / "new-cliques.csv")
+    # new-cliques-top-N.csv — the two pure-new singletons (NEWSRC:1, NEWSRC:4), both under the cap.
+    new_cliques = _read_csv(details / NEW_CLIQUES_CSV)
     ids = {r["preferred_id"] for r in new_cliques}
     assert ids == {"NEWSRC:1", "NEWSRC:4"}
     assert all(r["member_count"] == "1" for r in new_cliques)
@@ -121,12 +128,24 @@ def test_detail_files_written_with_expected_content(synthetic_intermediate, tmp_
     assert sorted(merged_entry["before_clique_leaders"]) == ["GO:0000003", "UBERON:0002"]
     assert "NEWSRC:3" in merged_entry["added_source_curies"]
 
-    # new-xrefs.tsv — the three rows from NEWSOURCE's own concord, all "added".
-    with (details / "new-xrefs.tsv").open() as f:
-        xrefs = list(csv.DictReader(f, delimiter="\t"))
-    assert len(xrefs) == 3
-    assert all(r["asserted_by"] == "NEWSOURCE" for r in xrefs)
-    assert all(r["status"] == "added" for r in xrefs)
+    # new-xrefs.csv — the three rows from NEWSOURCE's own concord, all "added".
+    full_xrefs = _read_csv(details / NEW_XREFS_FULL_CSV)
+    assert len(full_xrefs) == 3
+    assert all(r["asserted_by"] == "NEWSOURCE" for r in full_xrefs)
+    assert all(r["status"] == "added" for r in full_xrefs)
+
+    # new-xrefs-summary.csv — those rows grouped into join pathways: NEWSRC->UBERON (NEWSRC:2 and
+    # NEWSRC:3) and NEWSRC->GO (NEWSRC:3). Both groups are under the example budget, so all three
+    # rows survive as examples, biggest pathway first.
+    summary = _read_csv(details / NEW_XREFS_SUMMARY_CSV)
+    pathways = {(r["prefix_1"], r["prefix_2"]): int(r["xref_count"]) for r in summary}
+    assert pathways == {("NEWSRC", "UBERON"): 2, ("GO", "NEWSRC"): 1}
+    assert len(summary) == 3
+    assert all(r["predicate"] == "xref" and r["status"] == "added" for r in summary)
+    assert int(summary[0]["xref_count"]) == 2
+
+    # The full new-cliques table is written alongside the capped one; both are tiny here.
+    assert len(_read_csv(details / NEW_CLIQUES_FULL_CSV)) == 2
 
 
 @pytest.mark.unit
@@ -136,7 +155,14 @@ def test_detail_files_are_deterministic(synthetic_intermediate, tmp_path):
     out_b = tmp_path / "b" / "impact-report.md"
     assert _run(synthetic_intermediate, out_a) == 0
     assert _run(synthetic_intermediate, out_b) == 0
-    for fname in ("new-cliques.csv", "modified-cliques.csv", "modified-cliques.json", "new-xrefs.tsv"):
+    for fname in (
+        NEW_CLIQUES_CSV,
+        NEW_CLIQUES_FULL_CSV,
+        "modified-cliques.csv",
+        "modified-cliques.json",
+        NEW_XREFS_SUMMARY_CSV,
+        NEW_XREFS_FULL_CSV,
+    ):
         a = (tmp_path / "a" / "impact-report" / fname).read_bytes()
         b = (tmp_path / "b" / "impact-report" / fname).read_bytes()
         assert a == b, f"{fname} differs between runs — output is not deterministic"
@@ -149,3 +175,55 @@ def test_no_detail_files_flag_skips_subdirectory(synthetic_intermediate, tmp_pat
     assert _run(synthetic_intermediate, output, extra=("--no-detail-files",)) == 0
     assert output.exists()
     assert not (tmp_path / "impact-report").exists()
+
+
+# --- which detail files the report links -----------------------------------------
+#
+# The report writes six detail files and .gitignore commits only two of them, so a *link* to one of
+# the other four resolves on the machine that generated the report and nowhere else.
+
+
+@pytest.mark.unit
+def test_report_links_only_the_detail_files_the_repo_commits():
+    """A link is emitted for a committed detail file and withheld for a gitignored one.
+
+    tests/test_docs_links.py catches the symptom -- a committed report linking a file no checkout
+    has -- but only once such a report is committed, and only on a machine that has not just
+    generated it locally. This pins the renderer itself, and pins COMMITTED_DETAIL_FILES against
+    .gitignore so the two cannot drift apart silently.
+    """
+    from src.reports.source_impact import COMMITTED_DETAIL_FILES, _detail_link
+    from src.reports.source_impact_details import (
+        MODIFIED_CLIQUES_CSV,
+        NEW_CLIQUES_CSV,
+        NEW_CLIQUES_FULL_CSV,
+        NEW_XREFS_FULL_CSV,
+        NEW_XREFS_SUMMARY_CSV,
+    )
+    from src.util import get_repo_root
+
+    committed = _detail_link("impact-report", NEW_CLIQUES_CSV, "Sample of new cliques")
+    assert f"[`impact-report/{NEW_CLIQUES_CSV}`](impact-report/{NEW_CLIQUES_CSV})" in committed
+
+    for filename in (MODIFIED_CLIQUES_CSV, NEW_CLIQUES_FULL_CSV, NEW_XREFS_FULL_CSV):
+        line = _detail_link("impact-report", filename, "Full list")
+        assert f"`impact-report/{filename}`" in line, f"{filename} should still be named"
+        assert f"]({filename})" not in line and f"](impact-report/{filename})" not in line, (
+            f"{filename} is gitignored; naming it is fine but linking it resolves nowhere"
+        )
+        assert "not committed" in line and "source-impact-report" in line, (
+            "an uncommitted file's bullet must say so and how to regenerate it"
+        )
+
+    assert _detail_link(None, NEW_CLIQUES_CSV, "Sample") is None, "no bullet when no details dir"
+
+    # The set the renderer links must be exactly the set .gitignore does not exclude.
+    gitignored = {
+        line.strip().rsplit("/", 1)[-1]
+        for line in (get_repo_root() / ".gitignore").read_text().splitlines()
+        if line.strip().startswith("docs/sources/*/impact-report/")
+    }
+    assert COMMITTED_DETAIL_FILES == {NEW_CLIQUES_CSV, NEW_XREFS_SUMMARY_CSV}
+    assert not (COMMITTED_DETAIL_FILES & gitignored), (
+        f"COMMITTED_DETAIL_FILES names a file .gitignore excludes: {sorted(COMMITTED_DETAIL_FILES & gitignored)}"
+    )

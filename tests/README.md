@@ -249,6 +249,13 @@ and how to add new checks or vocabularies.
   NCBI FTP server. Covers pulling plain text and gzipped files to memory or disk
   with optional decompression. Requires `--network` to run.
 
+- **`test_docs_links.py`** (`unit`) — Checks the links in every tracked Markdown file and in the
+  source that reports URLs to users (snakefiles, `CITATION.cff`, notebooks): relative links and
+  heading anchors must resolve on disk, and no link may point at a `master` branch or at the
+  pre-rename `TranslatorSRI` org. Entirely offline — nothing fetches a URL, because a test that
+  fails when GitHub is slow is a test people learn to ignore. Ported from NameResolution's test of
+  the same name; keep the three repos' copies in sync.
+
 - **`test_uber.py`** (`network`) — Tests the `UberGraph` class for querying ontology
   subclasses and cross-references via SPARQL. Covers direct and indirect subclass retrieval,
   filtering by cross-reference presence, and exact-match label queries. Tests may xfail at

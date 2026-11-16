@@ -1,0 +1,87 @@
+{
+  "compendium_path": "babel_outputs/compendia/ChemicalEntity.txt",
+  "count_by_biolink_type": {
+    "biolink:ChemicalEntity": 361744
+  },
+  "count_by_prefix": {
+    "CAS": 4403,
+    "CHEBI": 29095,
+    "CHEMBL.COMPOUND": 55422,
+    "DRUGBANK": 2420,
+    "DrugCentral": 392,
+    "GTOPDB": 162,
+    "HMDB": 92,
+    "INCHIKEY": 55437,
+    "KEGG.COMPOUND": 1563,
+    "MESH": 86458,
+    "PUBCHEM.COMPOUND": 14116,
+    "RXCUI": 16967,
+    "UMLS": 227690,
+    "UNII": 24337
+  },
+  "count_lines": 361744,
+  "counters": {
+    "clique_count": 361744,
+    "cliques_by_description_count": {
+      "0": 348295,
+      "1": 13423,
+      "2": 25,
+      "3": 1
+    },
+    "cliques_by_id_count": {
+      "1": 215737,
+      "2": 139834,
+      "3": 4464,
+      "4": 621,
+      "5": 363,
+      "6": 231,
+      "7": 238,
+      "8": 110,
+      "9": 53,
+      "10": 48,
+      "11": 18,
+      "12": 8,
+      "13": 8,
+      "14": 3,
+      "15": 5,
+      "16": 1,
+      "17": 1,
+      "21": 1
+    },
+    "cliques_by_label_count": {
+      "0": 66849,
+      "1": 221401,
+      "2": 71761,
+      "3": 1015,
+      "4": 243,
+      "5": 156,
+      "6": 182,
+      "7": 95,
+      "8": 31,
+      "9": 9,
+      "11": 1,
+      "18": 1
+    },
+    "cliques_by_unique_description_count": {
+      "0": 348295,
+      "1": 13423,
+      "2": 25,
+      "3": 1
+    },
+    "cliques_by_unique_label_count": {
+      "0": 66849,
+      "1": 292149,
+      "2": 2029,
+      "3": 567,
+      "4": 90,
+      "5": 40,
+      "6": 10,
+      "7": 5,
+      "8": 3,
+      "11": 1,
+      "12": 1
+    }
+  },
+  "name": "ChemicalEntity",
+  "report_path": "babel_outputs/reports/content/compendia/ChemicalEntity.json"
+}

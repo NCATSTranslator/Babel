@@ -46,6 +46,19 @@ The constraints that shape this strategy:
 The big gap is pipeline tests: they only run when someone remembers to run them, and they cost
 nothing to run on a machine that already has the downloads.
 
+### "It passes locally but fails on the PR"
+
+Usually this means the branch is behind `main`, not that a test is flaky. The `pull_request` event
+runs against your branch **merged with `main`**, so it includes tests and files that only exist on
+`main`; a branch-push run and your local checkout do not. The same commit can therefore produce one
+passing run and one failing run, differing only in `event`, and `pytest` will collect a different
+number of tests in each.
+
+Check with `gh run view <id> --json event,headSha`. The fix is to merge `main` into the branch, at
+which point local runs collect what CI does — worth doing as soon as the two disagree rather than
+diagnosing each failure in turn. A branch that is behind sees none of `main`'s new guards, which is
+how `tests/test_docs_links.py` first ran against PR #983's new files only on the merge.
+
 ## Recommended cadence by environment
 
 ### Per PR — GitHub Actions (unchanged from today)

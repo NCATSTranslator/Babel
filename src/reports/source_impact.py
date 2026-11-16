@@ -26,7 +26,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 
 from src.model.glom_diff import ExpandedClique, SourceImpactDiff
-from src.model.source import SourceContribution
+from src.model.source import SourceContribution, XrefGroup
 from src.util import get_logger
 
 logger = get_logger(__name__)
@@ -278,11 +278,55 @@ def _render_remote_section(remote_summary: dict[str, dict[str, int]]) -> list[st
     return lines
 
 
+def _render_join_pathways(name: str, xref_groups: list[XrefGroup] | None) -> list[str]:
+    """Render the join-pathway table: every asserted xref, not only the ones this source declares.
+
+    The counts above this table come from the source's *own* concord file, which understates —
+    sometimes to zero — a source whose cross-references live elsewhere. EMAPA is the worked case: its
+    own concord is empty, so the totals above read 0, while UBERON's concord carries 4,336
+    ``UBERON:… xref EMAPA:…`` rows that are the entire reason EMAPA joins any existing clique. This
+    table is grouped over every concord file in the tree, so those rows appear.
+    """
+    lines = ["### Join pathways (every asserted cross-reference, not only this source's own)", ""]
+    if not xref_groups:
+        lines.extend(["- (no cross-reference rows touch a source identifier)", ""])
+        return lines
+    lines.append(
+        f"`status` is `added` when one of {name}'s own concord files asserts the pathway and "
+        "`from_other_source` when another source's does — the latter may predate this addition. "
+        "The prefix pair is sorted, so `asserted_by` is what tells you which side declared it."
+    )
+    lines.append("")
+    lines.append("| pipeline | predicate | prefix pair | asserted by | status | xrefs |")
+    lines.append("|---|---|---|---|---|---|")
+    for g in xref_groups:
+        pair = f"{g.prefix_1} ↔ {g.prefix_2}"
+        lines.append(f"| {g.pipeline} | `{g.predicate}` | {pair} | `{g.asserted_by}` | {g.status} | {_fmt(g.count)} |")
+    lines.append("")
+    return lines
+
+
+# The detail files the repository commits. Everything else the report writes beside them is
+# excluded by `.gitignore` (`docs/sources/*/impact-report/`) as megabytes nobody reads, so a
+# *link* to one of those resolves on the machine that generated the report and nowhere else --
+# which tests/test_docs_links.py fails on, correctly. Name those files instead of linking them.
+COMMITTED_DETAIL_FILES = frozenset({"new-cliques-top-100.csv", "new-xrefs-summary.csv"})
+
+
 def _detail_link(details_dirname: str | None, filename: str, text: str) -> str | None:
-    """Render a bullet linking to one of the full detail files, or None if not emitted."""
+    """Render a bullet for one of the detail files, or None if not emitted.
+
+    A committed file gets a relative link; an uncommitted one is named in a code span and says how
+    to produce it, because a link to a file no checkout has is worse than no link.
+    """
     if not details_dirname:
         return None
-    return f"- {text}: [`{details_dirname}/{filename}`]({details_dirname}/{filename})"
+    if filename in COMMITTED_DETAIL_FILES:
+        return f"- {text}: [`{details_dirname}/{filename}`]({details_dirname}/{filename})"
+    return (
+        f"- {text}: `{details_dirname}/{filename}` -- not committed (see `.gitignore`); "
+        f"regenerate it with `uv run source-impact-report`"
+    )
 
 
 def _reg_marker(curie: str, biolink_type: str | None, prefix_priority_by_type: dict[str, list[str]]) -> str:
@@ -373,7 +417,14 @@ def _render_clique_impact(
         )
         lines.append("")
 
-        link = _detail_link(details_dirname, "new-cliques.csv", "Full list of new cliques")
+        # Literal filename, not source_impact_details.NEW_CLIQUES_CSV: that module imports from
+        # this one, so importing it back would be circular. tests/pipeline/test_source_impact_report.py
+        # asserts this link resolves to the file actually written, which is what catches drift.
+        link = _detail_link(
+            details_dirname,
+            "new-cliques-top-100.csv",
+            "Sample of new cliques (top 100, unsurvivable and largest first)",
+        )
         if link:
             lines.append(link)
         link = _detail_link(
@@ -383,7 +434,11 @@ def _render_clique_impact(
         )
         if link:
             lines.append(link)
-        link = _detail_link(details_dirname, "new-xrefs.tsv", "Full list of new / activated cross-references")
+        link = _detail_link(
+            details_dirname,
+            "new-xrefs-summary.csv",
+            "Cross-reference summary (join pathways with counts and example rows)",
+        )
         if link:
             lines.append(link)
         if details_dirname:
@@ -521,6 +576,7 @@ def render_markdown(
     remote_summary: dict[str, dict[str, int]] | None = None,
     lookup: LookupContext | None = None,
     details_dirname: str | None = None,
+    xref_groups: list[XrefGroup] | None = None,
     sample_limit: int = SAMPLE_LIMIT,
     pure_new_sample_limit: int = PURE_NEW_SAMPLE_LIMIT,
     expanded_sample_limit: int = EXPANDED_SAMPLE_LIMIT,
@@ -535,6 +591,10 @@ def render_markdown(
     lines.append(f"- Babel commit: {babel_commit}")
     lines.append(f"- Source pipelines: {', '.join(sorted(contribution.pipelines)) or '(none discovered)'}")
     lines.append(f"- Source prefixes: {', '.join(sorted(contribution.prefixes)) or '(none discovered)'}")
+    # Which concord files were counted as this source's own. Recorded because it is a CLI choice
+    # (`--concord`), not something the report can derive: a regeneration that forgets the flag would
+    # otherwise silently report zero cross-references. See discover_source().
+    lines.append(f"- Source concords: {', '.join(sorted(contribution.concord_names)) or '(none discovered)'}")
     mode_label = mode if not remote_url else f"{mode} (vs {remote_url})"
     lines.append(f"- Comparison mode: {mode_label}")
     lines.append("")
@@ -613,7 +673,7 @@ def render_markdown(
     lines.append("## 3. Cross-references added")
     lines.append("")
     total_concords = contribution.total_concord_row_count
-    n_concord_files = sum(1 for stc in contribution.by_pipeline.values() if stc.concords_path is not None)
+    n_concord_files = sum(len(stc.concords_paths) for stc in contribution.by_pipeline.values())
     lines.append(f"Totals: {_fmt(total_concords)} cross-reference rows across {n_concord_files} concord file(s).")
     lines.append("")
     lines.append("### By pipeline")
@@ -638,6 +698,7 @@ def render_markdown(
     else:
         lines.append("- (no pipelines discovered)")
     lines.append("")
+    lines.extend(_render_join_pathways(name, xref_groups))
 
     lines.extend(
         _render_clique_impact(
@@ -674,7 +735,7 @@ def render_json(
     for st, stc in contribution.by_pipeline.items():
         by_pipeline[st] = {
             "ids_path": str(stc.ids_path) if stc.ids_path else None,
-            "concords_path": str(stc.concords_path) if stc.concords_path else None,
+            "concords_paths": [str(path) for path in stc.concords_paths],
             "curies_by_prefix": {p: len(cs) for p, cs in stc.curies_by_prefix.items()},
             "declared_type_counts": stc.declared_type_counts,
             "concord_row_count": len(stc.concord_pairs),

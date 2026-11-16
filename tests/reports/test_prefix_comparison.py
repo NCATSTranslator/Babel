@@ -14,15 +14,22 @@ omit the ``by_curie_prefix``/``by_filename`` sections the comparison never touch
 
 import csv
 import json
-from pathlib import Path
+import pathlib
 
 import pytest
 
 from src.reports import prefix_comparison
-from src.util import get_config
+from src.util import get_config, get_repo_root
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-BASELINES_DIR = REPO_ROOT / "releases" / "prefix_reports"
+RELEASES_DIR = get_repo_root() / "releases"
+
+
+def _write_baseline(releases_dir, name, obj=None):
+    """Put a committed-style prefix report in place for release ``name``, mirroring the archive."""
+    path = releases_dir / name / "reports" / "duckdb" / "prefix_report.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _write_json(path, obj if obj is not None else {})
+    return path
 
 
 def _make_report(name, by_clique, count_curies, count_cliques):
@@ -72,17 +79,26 @@ def test_parse_release_date_rejects_bad_names():
 
 @pytest.mark.unit
 def test_list_release_names_sorted_oldest_to_newest(tmp_path):
-    """list_release_names returns parseable stems, oldest first, skipping non-release files."""
-    for name in ("2025sep1.json", "2025jan23.json", "2025mar31.json", "README.json", "notes.txt"):
-        (tmp_path / name).write_text("{}")
+    """Release directories holding a prefix report, oldest first; everything else skipped.
+
+    `releases/` holds more than baselines -- note files, `scripts/`, and releases archived before the
+    prefix report existed (the four Translator-named ones have a CURIE summary and nothing else).
+    Only a directory carrying `reports/duckdb/prefix_report.json` can anchor a comparison.
+    """
+    for name in ("2025sep1", "2025jan23", "2025mar31"):
+        _write_baseline(tmp_path, name)
+    (tmp_path / "scripts").mkdir()  # not release-shaped
+    (tmp_path / "2024jul13" / "reports" / "content").mkdir(parents=True)  # summary only, no baseline
+    (tmp_path / "2025sep1.md").write_text("a note, not a directory")
+
     assert prefix_comparison.list_release_names(str(tmp_path)) == ["2025jan23", "2025mar31", "2025sep1"]
 
 
 @pytest.mark.unit
 def test_list_release_names_raises_on_release_shaped_invalid_date(tmp_path):
-    """A stem that looks like a release but is an impossible date must raise, not be silently skipped
+    """A name that looks like a release but is an impossible date must raise, not be silently skipped
     -- otherwise a mis-dated committed baseline could hide the newest one from the pin guard."""
-    (tmp_path / "2025feb31.json").write_text("{}")  # Feb 31 does not exist
+    _write_baseline(tmp_path, "2025feb31")  # Feb 31 does not exist
     with pytest.raises(ValueError):
         prefix_comparison.list_release_names(str(tmp_path))
 
@@ -93,24 +109,36 @@ def test_list_release_names_raises_on_release_shaped_invalid_date(tmp_path):
 
 
 @pytest.mark.unit
-def test_previous_release_pin_is_newest_committed_baseline():
-    """config.yaml's previous_release must point at the newest baseline in releases/prefix_reports/.
+def test_previous_release_pin_is_the_baseline_immediately_before_release_name():
+    """config.yaml's previous_release must be the newest committed baseline older than release_name.
 
-    This catches the failure mode where a newer prefix report was committed but the pin was not bumped
-    (the two silently out of sync). Running weekly, it flags the drift before the next build starts.
+    Two failure modes, one guard. A newer prefix report committed without bumping the pin leaves the
+    build comparing against a stale baseline; bumping the pin without moving release_name on leaves
+    the build comparing against *itself*, which yields a well-formed all-zeros report that reads as
+    "nothing changed this release". The two settings only ever move together, in the archive commit.
     """
     config = get_config()
     pinned = config["previous_release"]
+    current = config["release_name"]
 
-    names = prefix_comparison.list_release_names(str(BASELINES_DIR))
-    assert names, f"No committed baselines found in {BASELINES_DIR}"
-    newest = names[-1]
-
-    assert pinned == newest, (
-        f"config.yaml previous_release={pinned!r} is not the newest committed baseline ({newest!r}); "
-        f"bump previous_release when you archive a newer prefix report."
+    assert pinned != current, (
+        f"config.yaml release_name and previous_release are both {current!r}; the build would diff "
+        f"its own baseline. previous_release names the release BEFORE release_name."
     )
-    assert (BASELINES_DIR / f"{pinned}.json").exists()
+
+    names = prefix_comparison.list_release_names(str(RELEASES_DIR))
+    assert names, f"No committed baselines found in {RELEASES_DIR}"
+    # The newest archived baseline that is older than the build being made. Once this build is
+    # archived its own report joins the directory, so "newest overall" is not the right anchor.
+    current_date = prefix_comparison.parse_release_date(current)
+    older = [name for name in names if prefix_comparison.parse_release_date(name) < current_date]
+    assert older, f"No committed baseline older than release_name={current!r} in {RELEASES_DIR}"
+
+    assert pinned == older[-1], (
+        f"config.yaml previous_release={pinned!r} is not the newest committed baseline before "
+        f"release_name={current!r} ({older[-1]!r}); bump both together when you archive a report."
+    )
+    assert pathlib.Path(prefix_comparison.baseline_path(pinned, str(RELEASES_DIR))).exists()
 
 
 # ----
@@ -156,7 +184,7 @@ def compared(tmp_path):
     by_clique_csv = tmp_path / "by_clique.csv"
     md = tmp_path / "prefix_comparison.md"
     prefix_comparison.generate_prefix_comparison(
-        str(current_json), str(baseline_json), str(overall_csv), str(by_clique_csv), str(md), 100_000, 25
+        str(current_json), str(baseline_json), "2025sep1", str(overall_csv), str(by_clique_csv), str(md), 100_000, 25
     )
     return {
         "overall": _read_csv(overall_csv),
@@ -233,9 +261,44 @@ def test_missing_baseline_is_graceful(tmp_path):
     by_clique_csv = tmp_path / "by_clique.csv"
     md = tmp_path / "prefix_comparison.md"
     prefix_comparison.generate_prefix_comparison(
-        str(current_json), str(tmp_path / "does_not_exist.json"), str(overall_csv), str(by_clique_csv), str(md), 1, 1
+        str(current_json),
+        str(tmp_path / "does_not_exist.json"),
+        "2025sep1",
+        str(overall_csv),
+        str(by_clique_csv),
+        str(md),
+        1,
+        1,
     )
 
     assert _read_csv(overall_csv) == [["Metric", "Previous", "Current", "Absolute change", "Percent change"]]
     assert len(_read_csv(by_clique_csv)) == 1  # header only
     assert "No prior baseline" in md.read_text()
+
+
+@pytest.mark.unit
+def test_comparing_a_release_against_itself_raises(tmp_path):
+    """release_name == previous_release must fail loudly, not emit an all-zeros comparison.
+
+    Archiving a report and bumping `previous_release` without moving `release_name` on to the next
+    build leaves the two equal. The resulting report is perfectly well-formed and entirely wrong: it
+    says nothing changed this release.
+    """
+    current_json = tmp_path / "prefix_report.json"
+    _write_json(current_json, _make_report("2026jul22", {}, 0, 0))
+    # Named for the release it belongs to, not by its filename: every archived baseline is literally
+    # `prefix_report.json`, so the guard has to be told which release that is rather than reading it
+    # off the path -- deriving it from the stem is what silently stopped this firing once.
+    baseline_json = _write_baseline(tmp_path, "2026jul22", _make_report("2026jul22", {}, 0, 0))
+
+    with pytest.raises(ValueError, match="would use its own report as the baseline"):
+        prefix_comparison.generate_prefix_comparison(
+            str(current_json),
+            str(baseline_json),
+            "2026jul22",
+            str(tmp_path / "overall.csv"),
+            str(tmp_path / "by_clique.csv"),
+            str(tmp_path / "prefix_comparison.md"),
+            1,
+            1,
+        )

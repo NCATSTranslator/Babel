@@ -26,6 +26,9 @@ on, NodeNorm will:
    identifier is the first identifier in the clique, and which consists of all the identifiers from
    all the cliques included in that conflation.
 
+For how to turn each conflation on when querying, see the
+[NodeNorm API documentation](https://github.com/NCATSTranslator/NodeNormalization/blob/main/documentation/API.md).
+
 ## How are types handled for conflated cliques?
 
 Babel does not assign a type to any conflations. When NodeNorm is called with a particular
