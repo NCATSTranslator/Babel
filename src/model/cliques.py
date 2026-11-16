@@ -97,9 +97,9 @@ def glom_from_files(
         for parts in read_concords(infile):
             if concord_pair_filter is not None and not concord_pair_filter(parts, infile, dicts):
                 continue
-            pairs.append([parts[0], parts[2]])
+            # A 2-tuple, handed to glom() as is: see read_concord_pairs() for why not a set or list.
+            pairs.append((parts[0], parts[2]))
         if overused_xref_remover is not None:
             pairs = overused_xref_remover(pairs, infile)
-        setpairs = [set(x) for x in pairs]
-        glom(dicts, setpairs, unique_prefixes=unique_prefixes, **glom_kwargs)
+        glom(dicts, pairs, unique_prefixes=unique_prefixes, **glom_kwargs)
     return dicts, types

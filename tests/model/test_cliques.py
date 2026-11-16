@@ -111,7 +111,7 @@ def test_overused_xref_remover_is_invoked(tmp_path):
 
     dicts, _ = cliques.glom_from_files([concord], [ids], unique_prefixes=[], overused_xref_remover=drop_everything)
 
-    assert seen and seen[0][1] == [["FOO:1", "BAR:1"]]
+    assert seen and seen[0][1] == [("FOO:1", "BAR:1")]
     # The remover dropped the only pair, so nothing merged with FOO:1.
     assert _clique_of(dicts, "FOO:1") == frozenset({"FOO:1"})
 

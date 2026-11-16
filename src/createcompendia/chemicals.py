@@ -29,7 +29,7 @@ from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUC
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.datahandlers.unii import UNII_ORGANISM_COLUMNS, read_unii_records
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
-from src.model.intermediates import read_concords
+from src.model.intermediates import read_concord_pairs
 from src.prefixes import (
     CHEBI,
     CHEMBLCOMPOUND,
@@ -604,10 +604,12 @@ def combine_unichem(concordances, output):
         # but out of paranoia we'll double-check that.
         prefixes_in_file = set()
 
-        for x in read_concords(infile):
-            pairs.append([x[0], x[2]])
+        # 2-tuples, handed to glom() as they are: see read_concord_pairs() for why not sets or lists.
+        # UNICHEM_PUBCHEM.COMPOUND has over 100 million rows.
+        for subject, obj in read_concord_pairs(infile):
+            pairs.append((subject, obj))
             # Get the prefix from the first row to determine if we need to remove overused xrefs
-            prefixes_in_file.add(Text.get_prefix(x[0]))
+            prefixes_in_file.add(Text.get_prefix(subject))
 
         # Was there exactly one prefix in the first column?
         if len(prefixes_in_file) == 0:
@@ -621,11 +623,10 @@ def combine_unichem(concordances, output):
         prefix_to_check = prefixes_in_file.pop()
 
         # Only remove overused xrefs for specific prefixes
-        newpairs = pairs
+        # Reassigned rather than copied, so the unfiltered list can be freed before glom() runs.
         if prefix_to_check in PREFIXES_TO_REMOVE_OVERUSED_XREFS:
-            newpairs = remove_overused_xrefs(pairs)
-        setpairs = [set(x) for x in newpairs]
-        glom(dicts, setpairs, unique_prefixes=[INCHIKEY])
+            pairs = remove_overused_xrefs(pairs)
+        glom(dicts, pairs, unique_prefixes=[INCHIKEY])
     chem_sets = set([frozenset(x) for x in dicts.values()])
     with jsonlines.open(output, mode="w") as writer:
         for chemset in chem_sets:
@@ -1105,10 +1106,11 @@ def build_untyped_compendia(
         print(infile)
         print("loading", infile)
         pairs = []
-        for x in read_concords(infile):
-            if x[0] in owned_elsewhere or x[2] in owned_elsewhere:
+        # 2-tuples, handed to glom() as they are: see read_concord_pairs() for why not sets or lists.
+        for subject, obj in read_concord_pairs(infile):
+            if subject in owned_elsewhere or obj in owned_elsewhere:
                 continue
-            pairs.append([x[0], x[2]])
+            pairs.append((subject, obj))
         p = False
         if DRUGCENTRAL in [n.split(":")[0] for n in pairs[0]]:
             p = True
@@ -1119,13 +1121,13 @@ def build_untyped_compendia(
                 if i in pair:
                     print(pair)
         newpairs = remove_overused_xrefs(pairs)
-        setpairs = [set(x) for x in newpairs]
+        del pairs  # Free the unfiltered list before glom() runs; the debug prints below use newpairs.
         if p:
             print("after filtering:")
             for pair in newpairs:
                 if i in pair:
                     print(pair)
-        glom(dicts, setpairs, unique_prefixes=[INCHIKEY])
+        glom(dicts, newpairs, unique_prefixes=[INCHIKEY])
         if p:
             print("after glomming:")
             print(dicts[i])
