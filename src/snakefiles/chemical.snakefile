@@ -313,6 +313,22 @@ rule get_chemical_pubchem_cas_concord:
         chemicals.make_pubchem_cas_concord(input.pubchemsynonyms, output.outfile, output.metadata_yaml)
 
 
+# PubChem's own InChIKeys. This is the only source of PubChem structures: UniChem's keys for 2.47 million
+# CIDs stopped matching PubChem's in 2026 and are no longer read (#1207). Listed in config.yaml's
+# chemical_structure_concords, so chemical_unichem_concordia gloms it with the UniChem structures. It
+# writes no metadata, as the UNICHEM_* concords do not (#648): write_concord_metadata() counts distinct
+# CURIEs in memory, which 250 million of them would not survive.
+rule get_pubchem_inchikey_concord:
+    input:
+        infile=config["download_directory"] + "/PUBCHEM.COMPOUND/CID-InChI-Key.gz",
+    output:
+        outfile=config["intermediate_directory"] + "/chemicals/concords/PUBCHEM_INCHIKEY",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_pubchem_inchikey_concord.tsv"
+    run:
+        chemicals.make_pubchem_inchikey_concord(input.infile, output.outfile)
+
+
 # GtoPdb's own InChIKeys, from ligands.tsv. This is the only source of GtoPdb structures: UniChem's
 # GtoPdb assignments lost their stereochemistry in 2026 and are no longer read (#1206). The concord is
 # listed in config.yaml's chemical_structure_concords, so chemical_unichem_concordia gloms it with the
@@ -360,7 +376,7 @@ rule chemical_unichem_concordia:
             dd=config["intermediate_directory"],
             ucc=config["unichem_datasources"],
         ),
-        # Sources whose own InChIKeys we trust over UniChem's (GtoPdb, #1206).
+        # Sources whose own InChIKeys we trust over UniChem's (PubChem #1207, GtoPdb #1206).
         structure_concords=expand(
             "{dd}/chemicals/concords/{cc}",
             dd=config["intermediate_directory"],

@@ -82,6 +82,10 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   [UMLS/CuiFollowsMesh.md](./UMLS/CuiFollowsMesh.md) — how a CUI is assigned to the pipeline that
   claims its MeSH descriptor when its semantic type says otherwise, the replay that measures the
   rule against a published build, and the duplicate-clique-leader control behind it.
+- **UniChem** ([UNICHEM/README.md](./UNICHEM/README.md)) — which sources' structures are read from
+  UniChem and why PubChem's and GtoPdb's are not: a 2026 UniChem change left its key different from
+  PubChem's own for 2.47 million CIDs (about 800 before), which split sirolimus from its PubChem
+  CID. With the comparison script and its output for three builds.
 - **NCBIGene** ([NCBIGene/quoting/README.md](./NCBIGene/quoting/README.md)) — an investigation into
   how the two free-text synonym columns (`Synonyms`/`otheraliases`, `Other_designations`/
   `otherdesignations`) in `gene_info.gz` are quoted, prompted by issue #744's `''…''` fragments and

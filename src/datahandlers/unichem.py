@@ -1,7 +1,7 @@
 import gzip
 
 from src.babel_utils import pull_via_wget
-from src.prefixes import CHEBI, CHEMBLCOMPOUND, DRUGBANK, DRUGCENTRAL, HMDB, PUBCHEMCOMPOUND, UNII
+from src.prefixes import CHEBI, CHEMBLCOMPOUND, DRUGBANK, DRUGCENTRAL, HMDB, UNII
 
 # global for this file
 data_sources: dict = {
@@ -17,7 +17,12 @@ data_sources: dict = {
     "7": CHEBI,
     "14": UNII,
     "18": HMDB,
-    "22": PUBCHEMCOMPOUND,
+    # "22": PUBCHEM.COMPOUND is deliberately absent, for the same reason as GtoPdb above and from the
+    # same UniChem change. In 2025sep1 and 2025dec11 UniChem's key differed from PubChem's own for
+    # about 800 of 116 million CIDs; in 2026jul22 it differed for 2.47 million of 124 million, almost
+    # all in the stereo layer, which split sirolimus and temsirolimus from their PubChem CIDs (#1165,
+    # #1207). PubChem's keys come from PubChem's CID-InChI-Key.gz instead: see
+    # make_pubchem_inchikey_concord() and docs/sources/UNICHEM/README.md.
     "34": DRUGCENTRAL,
 }
 

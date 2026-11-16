@@ -356,15 +356,20 @@ process_outputs:  [Pathway.txt, BiologicalProcess.txt, MolecularActivity.txt]
 
 # The UniChem sources whose structures (InChIKeys) seed the chemical cliques: rule chemical_unichem_concordia
 # gloms them into partials/UNICHEM before any xref concord is read. Must match data_sources in
-# src/datahandlers/unichem.py. KEGG.COMPOUND was removed from UniChem (#834). GTOPDB is left out on purpose:
-# UniChem began stripping stereochemistry from GtoPdb ligands in 2026, so its structures come from GtoPdb's
-# own ligands.tsv through chemical_structure_concords instead (#1206, docs/sources/GTOPDB/README.md).
-unichem_datasources: [CHEMBL.COMPOUND, DRUGBANK, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral]
-# Concords, named as in chemical_concords, that give a source's own InChIKeys and are glommed with the
-# UniChem structures rather than after them. Order matters because INCHIKEY is a unique prefix: an
-# identifier keeps the first key it is given. Each must also stay in chemical_concords, which is where
-# its metadata is collected; its pairs are already applied by then, so reading it again changes nothing.
-chemical_structure_concords: [GTOPDB]
+# src/datahandlers/unichem.py. KEGG.COMPOUND was removed from UniChem (#834). GTOPDB and PUBCHEM.COMPOUND are
+# left out on purpose: a UniChem change in 2026 stripped the stereochemistry from GtoPdb ligands and altered
+# the stereo layer of 2.47 million PubChem CIDs, so both sources' structures come from their own files
+# through chemical_structure_concords instead (#1206, #1207, docs/sources/GTOPDB/README.md,
+# docs/sources/UNICHEM/README.md).
+unichem_datasources: [CHEMBL.COMPOUND, DRUGBANK, CHEBI, UNII, HMDB, DrugCentral]
+# Concords under intermediate/chemicals/concords/ that give a source's own InChIKeys and are glommed with
+# the UniChem structures rather than after them. Order matters because INCHIKEY is a unique prefix: an
+# identifier keeps the first key it is given.
+#   PUBCHEM_INCHIKEY - from PubChem's CID-InChI-Key.gz. Like the UNICHEM_* concords it is far too large
+#       (125 million rows) to read a second time or to count for metadata, so it is NOT in chemical_concords.
+#   GTOPDB - from GtoPdb's ligands.tsv. Small, so it stays in chemical_concords too, which is where its
+#       metadata is collected; its pairs are already applied by then, so that second read changes nothing.
+chemical_structure_concords: [PUBCHEM_INCHIKEY, GTOPDB]
 
 chemical_labels:    [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, UMLS, DRUGBANK]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
 chemical_synonyms:  [GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, UMLS, DRUGBANK]
