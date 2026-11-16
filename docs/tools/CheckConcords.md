@@ -74,6 +74,10 @@ cliques. Checked against 2025dec11's concords and `Edge` tables, it changes at m
 - `EFO:0010695` → `PMID:25167691` and `EFO:0007836` → `PMID:27149984` (each had a trailing space)
   change nothing. PMID is not a disease or phenotype prefix, the EFO concord already carries 6,204
   PMID xrefs, and no other disease concord row names either PMID, so neither can join two cliques.
+  [#1199](https://github.com/NCATSTranslator/Babel/pull/1199), to merge after this change, stops
+  writing them at all: it adds `PMID`, `PMC` and `doi` to `EFO_EXCLUDED_XREF_PREFIXES` in
+  `src/createcompendia/diseasephenotype.py`, since a citation is never an equivalence. Once it
+  merges, rewrite this bullet to say these two rows are no longer written.
 - `EFO:0011048` "dermatological toxicity" → `MEDDRA:10059516` is the only EFO row naming that
   MedDRA term, so the overuse filter keeps it. 2025dec11 already had the two in one clique. In
   2026jul22, `MEDDRA:10059516` sits with `UMLS:C1167791` "Skin toxicity" through the UMLS concord,
