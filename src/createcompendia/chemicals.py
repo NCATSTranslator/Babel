@@ -594,8 +594,8 @@ def combine_unichem(concordances, output):
     """Glom the structure concords (identifier -> INCHIKEY) into the partial every chemical clique grows from.
 
     :param concordances: the UNICHEM_* concords, plus the concords in config.yaml's
-        chemical_structure_concords: sources whose own InChIKeys are used instead of UniChem's (GtoPdb,
-        #1206). Each file must have a single prefix in its first column.
+        chemical_structure_concords: sources whose own InChIKeys are used instead of UniChem's (PubChem
+        #1207, GtoPdb #1206). Each file must have a single prefix in its first column.
     :param output: the JSONL partial, one list of CURIEs per line.
 
     INCHIKEY is a unique prefix, so one clique holds one structure, and two identifiers given the same
@@ -755,6 +755,27 @@ def build_drugcentral_relations(infile, outfile, metadata_yaml):
         description=f"Build xrefs from DrugCentral ({infile}) to {DRUGCENTRAL} using the prefix map {prefixmap}.",
         concord_filename=outfile,
     )
+
+
+def make_pubchem_inchikey_concord(infile, outfile):
+    """Write PubChem's own CID -> InChIKey table as a structure concord.
+
+    :param infile: PubChem's CID-InChI-Key.gz: one line per CID, tab-separated CID, InChI, InChIKey.
+    :param outfile: the concord, one `PUBCHEM.COMPOUND:<cid> oio:equivalent INCHIKEY:<key>` row per CID.
+
+    Babel read these keys from UniChem until UniChem's stopped matching PubChem's (#1207). The file
+    is streamed, since it holds some 125 million rows. A line that is not three columns, or whose key
+    is not the 27 characters of an InChIKey, raises: a reshaped file must not become a concord that
+    quietly gives every CID the wrong structure, or none.
+    """
+    with gzip.open(infile, "rt") as inf, open(outfile, "w") as outf:
+        for line_number, line in enumerate(inf, start=1):
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) != 3 or not parts[0].isdigit() or len(parts[2]) != 27:
+                raise ValueError(
+                    f"{infile} line {line_number}: expected a CID, an InChI and a 27-character InChIKey, got {line!r}"
+                )
+            outf.write(f"{PUBCHEMCOMPOUND}:{parts[0]}\toio:equivalent\t{INCHIKEY}:{parts[2]}\n")
 
 
 def make_gtopdb_relations(infile, outfile, metadata_yaml):

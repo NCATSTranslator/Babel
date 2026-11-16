@@ -29,6 +29,7 @@ from src.createcompendia.chemicals import (
     create_typed_sets,
     make_chebi_relations,
     make_gtopdb_relations,
+    make_pubchem_inchikey_concord,
     read_chebi_lookup_ids,
     split_chebi_sdf_values,
     write_unichem_concords,
@@ -616,7 +617,8 @@ def test_unichem_is_not_a_source_of_gtopdb_structures():
     assert GTOPDB not in unichem_data_sources.values()
     assert GTOPDB not in config["unichem_datasources"]
     assert GTOPDB in config["chemical_structure_concords"]
-    assert set(config["chemical_structure_concords"]) <= set(config["chemical_concords"])
+    # Its metadata is collected through chemical_concords, so it has to stay there as well.
+    assert GTOPDB in config["chemical_concords"]
 
 
 @pytest.mark.unit
@@ -655,3 +657,89 @@ def test_combine_unichem_keeps_gtopdb_ligands_that_share_one_structure(tmp_path)
     combine_unichem([str(gtopdb)], str(partial))
 
     assert _read_partial(partial) == [{"GTOPDB:1204", "GTOPDB:1247", "INCHIKEY:NTYJJOPFIAHURM-UHFFFAOYSA-N"}]
+
+
+# PUBCHEM STRUCTURES COME FROM PUBCHEM, NOT UNICHEM (issues #1165, #1207)
+
+# Two rows of PubChem's CID-InChI-Key.gz (downloaded 2026-11-16), verbatim: CID 1, its first row,
+# and CID 5284616, sirolimus, whose key is the one ChEBI gives CHEBI:9168.
+PUBCHEM_CID_1_ROW = (
+    "1\tInChI=1S/C9H17NO4/c1-7(11)14-8(5-9(12)13)6-10(2,3)4/h8H,5-6H2,1-4H3\tRDHQFKQIGNGIED-UHFFFAOYSA-N\n"
+)
+PUBCHEM_SIROLIMUS_ROW = "5284616\tInChI=1S/C51H79NO13/c1-30-16-12-11-13-17-31(2)42(61-8)28-38-21-19-36(7)51(60,65-38)48(57)49(58)52-23-15-14-18-39(52)50(59)64-43(33(4)26-37-20-22-40(53)44(27-37)62-9)29-41(54)32(3)25-35(6)46(56)47(63-10)45(55)34(5)24-30/h11-13,16-17,25,30,32-34,36-40,42-44,46-47,53,56,60H,14-15,18-24,26-29H2,1-10H3/b13-11+,16-12+,31-17+,35-25+/t30-,32-,33-,34-,36-,37+,38+,39+,40-,42+,43+,44-,46-,47+,51-/m1/s1\tQFJCIRLUMZQUOT-HPLJOQBZSA-N\n"
+
+
+def _write_pubchem_inchikeys(tmp_path, *rows):
+    """Write a gzipped CID-InChI-Key file holding the given rows; return its path."""
+    path = tmp_path / "CID-InChI-Key.gz"
+    with gzip.open(path, "wt") as out:
+        out.write("".join(rows))
+    return path
+
+
+@pytest.mark.unit
+def test_unichem_is_not_a_source_of_pubchem_structures():
+    """PUBCHEM.COMPOUND should stay out of both UniChem source lists, and PubChem's own concord should be a
+    structure concord that build_untyped_compendia() does not read again.
+
+    UniChem's keys for 2.47 million CIDs stopped matching PubChem's in 2026 (#1207). The concord is
+    125 million rows and has no metadata file, so listing it in chemical_concords would break the
+    untyped_chemical_compendia rule's inputs as well as read it twice.
+    """
+    config = get_config()
+    assert PUBCHEMCOMPOUND not in unichem_data_sources.values()
+    assert PUBCHEMCOMPOUND not in config["unichem_datasources"]
+    assert "PUBCHEM_INCHIKEY" in config["chemical_structure_concords"]
+    assert "PUBCHEM_INCHIKEY" not in config["chemical_concords"]
+
+
+@pytest.mark.unit
+def test_make_pubchem_inchikey_concord_writes_one_structure_row_per_cid(tmp_path):
+    """Each CID-InChI-Key row should become one PUBCHEM.COMPOUND -> INCHIKEY row, dropping the InChI."""
+    infile = _write_pubchem_inchikeys(tmp_path, PUBCHEM_CID_1_ROW, PUBCHEM_SIROLIMUS_ROW)
+    concord = tmp_path / "PUBCHEM_INCHIKEY"
+
+    make_pubchem_inchikey_concord(str(infile), str(concord))
+
+    assert concord.read_text().splitlines() == [
+        "PUBCHEM.COMPOUND:1\toio:equivalent\tINCHIKEY:RDHQFKQIGNGIED-UHFFFAOYSA-N",
+        "PUBCHEM.COMPOUND:5284616\toio:equivalent\tINCHIKEY:QFJCIRLUMZQUOT-HPLJOQBZSA-N",
+    ]
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "bad_row",
+    [
+        pytest.param("1\tRDHQFKQIGNGIED-UHFFFAOYSA-N\n", id="a-column-dropped"),
+        pytest.param("1\tInChI=1S/H2O/h1H2\tXLYOFNOQVPJJNP\n", id="a-truncated-key"),
+        pytest.param("CID\tInChI\tInChIKey\n", id="a-header-line"),
+    ],
+)
+def test_make_pubchem_inchikey_concord_raises_on_a_reshaped_file(tmp_path, bad_row):
+    """A line that is not a CID, an InChI and a 27-character InChIKey should raise, not be written or skipped."""
+    infile = _write_pubchem_inchikeys(tmp_path, PUBCHEM_CID_1_ROW, bad_row)
+
+    with pytest.raises(ValueError, match="line 2"):
+        make_pubchem_inchikey_concord(str(infile), str(tmp_path / "PUBCHEM_INCHIKEY"))
+
+
+@pytest.mark.unit
+def test_combine_unichem_puts_sirolimus_pubchem_cid_with_its_chebi(tmp_path):
+    """PUBCHEM.COMPOUND:5284616 should share a clique with CHEBI:9168 once its key comes from PubChem.
+
+    The UniChem row is CHEBI:9168's as 2026jul22 had it. In that build UniChem gave the CID
+    QFJCIRLUMZQUOT-KADBNGAOSA-N instead, the key of a different double-bond isomer, and the two split (#1165).
+    """
+    unichem_chebi = tmp_path / "UNICHEM_CHEBI"
+    unichem_chebi.write_text("CHEBI:9168\toio:equivalent\tINCHIKEY:QFJCIRLUMZQUOT-HPLJOQBZSA-N\n")
+    infile = _write_pubchem_inchikeys(tmp_path, PUBCHEM_SIROLIMUS_ROW)
+    pubchem = tmp_path / "PUBCHEM_INCHIKEY"
+    make_pubchem_inchikey_concord(str(infile), str(pubchem))
+    partial = tmp_path / "partial"
+
+    combine_unichem([str(unichem_chebi), str(pubchem)], str(partial))
+
+    assert _read_partial(partial) == [
+        {"CHEBI:9168", "PUBCHEM.COMPOUND:5284616", "INCHIKEY:QFJCIRLUMZQUOT-HPLJOQBZSA-N"}
+    ]
