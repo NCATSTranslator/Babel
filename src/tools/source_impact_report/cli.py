@@ -39,6 +39,7 @@ from src.model.glom_diff import (
     cliques_from_compendia,
     diff_cliques,
 )
+from src.model.intermediates import is_metadata_sidecar
 from src.model.source import SourceContribution, discover_source, scan_concords_for_curies, summarize_xref_groups
 from src.reports.source_impact import (
     EXPANDED_SAMPLE_LIMIT,
@@ -109,14 +110,10 @@ PIPELINE_CONFIG: dict[str, dict] = {
 
 
 def _list_source_files(directory: pathlib.Path) -> list[pathlib.Path]:
-    """Return non-metadata files in a `concords/` or `ids/` directory."""
+    """Return the non-metadata files in a `concords/` or `ids/` directory (see `is_metadata_sidecar()`)."""
     if not directory.exists():
         return []
-    return sorted(
-        p
-        for p in directory.iterdir()
-        if p.is_file() and not p.name.startswith("metadata-") and not p.name.endswith(".yaml")
-    )
+    return sorted(p for p in directory.iterdir() if p.is_file() and not is_metadata_sidecar(p.name))
 
 
 def _compute_synthetic_diff(

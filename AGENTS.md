@@ -159,6 +159,11 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
   `build_sets()` sorts its output so this is reproducible; never reintroduce unordered iteration
   there. Before restricting a prefix, count what it makes compete — see step 3 of
   `docs/AddingNewSources.md`.
+- **Reading a concord** — use `read_concords()` from `src/model/intermediates.py`, never
+  `line.strip().split("\t")`: it raises on any row that isn't three non-empty, unpadded columns, so
+  a handler whose source data carries stray whitespace must strip it *before writing* the row.
+  `uv run babel-check-concords <build>/intermediate/` checks a whole build against the rule
+  ([`docs/tools/CheckConcords.md`](docs/tools/CheckConcords.md)).
 - **Malformed CURIEs fail the build** — `write_compendium()` collects every CURIE it writes that
   `curie_format_problem()` (`src/util.py`) rejects (whitespace, `|`, control characters, missing
   prefix or local ID), then raises once, listing them all. Fix the source that produced them; never

@@ -5,6 +5,7 @@ import src.datahandlers.umls as umls
 from src.babel_utils import glom, read_identifier_file, write_compendium
 from src.categories import ORGANISM_TAXON
 from src.metadata.provenance import write_concord_metadata
+from src.model.intermediates import read_concords
 from src.prefixes import MESH, NCBITAXON, UMLS
 from src.util import LoggingUtil
 
@@ -134,12 +135,10 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, m
         print(infile)
         print("loading", infile)
         pairs = []
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                if x[0] in owned_elsewhere or x[2] in owned_elsewhere:
-                    continue
-                pairs.append(set([x[0], x[2]]))
+        for x in read_concords(infile):
+            if x[0] in owned_elsewhere or x[2] in owned_elsewhere:
+                continue
+            pairs.append(set([x[0], x[2]]))
         glom(dicts, pairs, unique_prefixes=uniques)
     gene_sets = set([frozenset(x) for x in dicts.values()])
     baretype = ORGANISM_TAXON.split(":")[-1]

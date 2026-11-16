@@ -9,7 +9,7 @@ Sections:
   the downstream ``umls.write_umls_ids`` call rather than running a real MRSTY
   parse -- keeping these tests fast and offline.
 - ``# --- MONDO_close parsing in compute_cliques_for_impact_report ---`` guards
-  the 3-column ``MONDO_close`` concord reader against a column-count regression, and
+  that ``MONDO_close`` is read by the shared strict concord parser, and
   checks that excluding MONDO also skips its own MONDO_close close-match data.
 - ``# --- classify_disease_clique ---`` checks the per-clique biolink typing used
   by both the real build and the source-impact report.
@@ -35,6 +35,7 @@ import pytest
 from src.babel_utils import glom, norm, remove_overused_xrefs
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
+from src.model.intermediates import MalformedConcordRowError
 from src.prefixes import DOID, GARD, ICD10CM, MONDO
 from src.ubergraph import build_sets
 from src.util import Text, get_config
@@ -121,7 +122,6 @@ def test_mondo_close_accepts_three_column_concord(tmp_path):
         tmp_path / "MONDO_close",
         [
             "MONDO:0000739\toio:closeMatch\tMEDDRA:10051962",
-            "",  # blank line must be skipped, not crash
             "MONDO:0000740\toio:closeMatch\tMEDDRA:10001229",
         ],
     )
@@ -139,14 +139,14 @@ def test_mondo_close_accepts_three_column_concord(tmp_path):
 
 @pytest.mark.unit
 def test_mondo_close_rejects_malformed_row(tmp_path):
-    """A MONDO_close row that is not exactly three tab-separated columns is malformed
-    and must raise a clear RuntimeError rather than silently mis-parsing or hitting an
-    IndexError deep inside glom.
+    """A MONDO_close row the shared concord parser rejects -- here a padded last column, which the
+    old ``line.strip()`` reader hid -- must raise, naming the file and line, rather than be
+    accepted here while every other concord reader rejects it.
     """
     ids = _write_lines(tmp_path / "MONDO", [f"MONDO:0000001\t{DISEASE}"])
-    mondoclose = _write_lines(tmp_path / "MONDO_close", ["MONDO:0000739\tMEDDRA:10051962"])
+    mondoclose = _write_lines(tmp_path / "MONDO_close", ["MONDO:0000739\toio:closeMatch\tMEDDRA:10051962 "])
 
-    with pytest.raises(RuntimeError, match="not a valid MONDO_close entry"):
+    with pytest.raises(MalformedConcordRowError, match=r"MONDO_close:1 is not a valid concord row"):
         diseasephenotype.compute_cliques_for_impact_report(
             concordances=[],
             identifiers=[ids],
@@ -170,7 +170,7 @@ def test_excluding_mondo_skips_basename_discovered_mondo_close(tmp_path):
     ids = _write_lines(tmp_path / "HP", [f"HP:0000001\t{PHENOTYPIC_FEATURE}"])
     bad_mondo_close = _write_lines(tmp_path / "MONDO_close", ["MONDO:0000739\tMEDDRA:10051962"])
 
-    with pytest.raises(RuntimeError, match="not a valid MONDO_close entry"):
+    with pytest.raises(MalformedConcordRowError, match=r"MONDO_close:1 is not a valid concord row"):
         diseasephenotype.compute_cliques_for_impact_report(
             concordances=[bad_mondo_close],
             identifiers=[ids],

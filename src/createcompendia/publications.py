@@ -40,6 +40,7 @@ import yaml
 from src.babel_utils import TypedClique, pull_via_wget, write_compendium
 from src.categories import JOURNAL_ARTICLE, PUBLICATION
 from src.metadata.provenance import write_concord_metadata
+from src.model.intermediates import read_concords
 from src.prefixes import DOI
 from src.util import (
     Text,
@@ -597,26 +598,23 @@ def parse_pubmed2db_into_tsvs(
     # Find the identifiers carried by more than one record, compared by shared_identifier_key()...
     seen = set()
     duplicated = set()
-    with open(concord_file) as concordf:
-        for line in concordf:
-            key = shared_identifier_key(line.rstrip("\n").split("\t")[2])
-            if key in seen:
-                duplicated.add(key)
-            else:
-                seen.add(key)
+    for _pmid, _predicate, other in read_concords(concord_file):
+        key = shared_identifier_key(other)
+        if key in seen:
+            duplicated.add(key)
+        else:
+            seen.add(key)
     del seen
 
     # ...and resolve each to its lowest PMID with a second pass, rather than holding a PMID for all ~46M
     # identifiers in the first. identifier -> (lowest PMID carrying it, number of records carrying it).
     shared = {}
     if duplicated:
-        with open(concord_file) as concordf:
-            for line in concordf:
-                pmid, _, other = line.rstrip("\n").split("\t")
-                key = shared_identifier_key(other)
-                if key in duplicated:
-                    winner, n = shared.get(key, (None, 0))
-                    shared[key] = (_lower_pmid(winner, pmid), n + 1)
+        for pmid, _predicate, other in read_concords(concord_file):
+            key = shared_identifier_key(other)
+            if key in duplicated:
+                winner, n = shared.get(key, (None, 0))
+                shared[key] = (_lower_pmid(winner, pmid), n + 1)
 
     with open(shared_ids_file, "w") as sharedf:
         for other in sorted(shared):
