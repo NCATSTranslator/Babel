@@ -23,8 +23,8 @@ rule chemicalparent_inchi_components:
         metadata_yaml=config["intermediate_directory"] + "/chemicalparent/metadata-inchi_components.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/chemicalparent_inchi_components.tsv"
-    # PubChem's 11.8M multi-component InChIs took ~1.6 CPU-hours at ~0.5 ms each (2026-11-10); UniChem holds a
-    # similar number. 16 processes keep it near ten minutes. threads and cpus_per_task must match or SLURM gives the rule one CPU (see AGENTS.md).
+    # UniChem's 14.4M multi-component InChIs take ~2 CPU-hours at ~0.5 ms each (2026-11-14); 16 processes keep it
+    # near ten minutes. threads and cpus_per_task must match or SLURM gives the rule one CPU (see AGENTS.md).
     threads: 16
     resources:
         cpus_per_task=16,
@@ -87,7 +87,7 @@ rule chemicalparent_conflation:
         config["output_directory"] + "/benchmarks/chemicalparent_conflation.tsv"
     resources:
         # Pass 1 holds one 8-byte hash per InChIKey clique (116M on 2025dec11: ~1 GB, twice that while sorting);
-        # the salt-parents map holds 4.8M keys (~1 GB); pass 2 holds only the cliques that group. Not yet
+        # the salt-parents map holds 4.75M keys (~1 GB); pass 2 holds only the cliques that group. Not yet
         # benchmarked on the cluster.
         mem="16G",
     run:

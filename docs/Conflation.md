@@ -60,9 +60,9 @@ This is rule 3 of #1173.
   state of the salt follows it. A salt whose charge states resolve to different parents is left out
   and counted.
 
-The list was built by review against 2025dec11. Of the 131,314 multi-component records in cliques
-with a curated (non-PubChem, non-CAS) identifier, 94.4% resolve to one parent, 93.9% onto an
-existing clique; no unreviewed component blocks more than 4 of them. See
+The list was built by review against 2025dec11. Of the 135,810 multi-component records in cliques
+with a curated (non-PubChem, non-CAS) identifier, 94.0% resolve to one parent, 93.3% onto an
+existing clique; no unreviewed component blocks more than 5 of them. See
 [`docs/conflation/chemical-parent/`](conflation/chemical-parent/) for the review script and its
 report. Re-run the review when a build adds sources.
 

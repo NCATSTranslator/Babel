@@ -37,6 +37,9 @@ from src.util import ensure_parent_dir, get_logger
 
 logger = get_logger(__name__)
 
+# The prefix of a standard InChI; anything else (InChI beta "InChI=1B/", non-standard "InChI=1/") is skipped.
+STANDARD_INCHI_PREFIX = "InChI=1S/"
+
 # Header of the intermediate components file: one row per distinct component of each multi-component InChI.
 COMPONENTS_TSV_HEADER = ["inchikey", "component_inchikey", "component_heavy_atoms", "component_inchi"]
 
@@ -163,6 +166,19 @@ def read_gtopdb_inchis(ligands_tsv):
                 yield inchikey, inchi
 
 
+def _standard_only(inchi_pairs, counts):
+    """Pass on only standard InChIs (``InChI=1S/``), counting the rest in ``counts["non_standard_inchis_skipped"]``.
+
+    Parent keys are only comparable between standard keys. UniChem's STANDARDINCHI column holds one InChI beta record
+    (UCI 201259320, ``InChI=1B/612Li.Na.613H``); its key isn't one chemicalparent.split_inchikey() groups.
+    """
+    for inchikey, inchi in inchi_pairs:
+        if not inchi.startswith(STANDARD_INCHI_PREFIX):
+            counts["non_standard_inchis_skipped"] += 1
+            continue
+        yield inchikey, inchi
+
+
 def _multi_component_chunks(inchi_pairs):
     """Batch the multi-component (InChIKey, InChI) pairs into lists of CHUNK_LINES.
 
@@ -233,13 +249,20 @@ def write_inchi_components(
       ``item_timeout`` each, so only the hanging InChI is lost.
     """
     ensure_parent_dir(outfile)
-    counts = {"multi_component_inchis": 0, "component_rows": 0, "unparseable_inchis": 0, "timed_out_inchis": 0}
+    counts = {
+        "multi_component_inchis": 0,
+        "component_rows": 0,
+        "unparseable_inchis": 0,
+        "timed_out_inchis": 0,
+        "non_standard_inchis_skipped": 0,
+    }
     failure_examples = []
     timeout_examples = []
     with open(outfile, "w", newline="") as outf, ProcessPool(max_workers=processes) as pool:
         writer = csv.writer(outf, delimiter="\t", lineterminator="\n")
         writer.writerow(COMPONENTS_TSV_HEADER)
         inchis = chain(read_unichem_inchis(unichem_structure_gz), read_gtopdb_inchis(gtopdb_ligands_tsv))
+        inchis = _standard_only(inchis, counts)
         for batch in chunked(_multi_component_chunks(inchis), processes * CHUNKS_IN_FLIGHT_PER_PROCESS):
             futures = [(lines, pool.schedule(_split_lines, args=[lines], timeout=chunk_timeout)) for lines in batch]
             for lines, future in futures:

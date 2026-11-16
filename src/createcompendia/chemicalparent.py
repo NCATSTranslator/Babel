@@ -47,6 +47,11 @@ logger = get_logger(__name__)
 # "-P", so the second block (stereo and isotope layers) stays in it -- see the module docstring for why.
 INCHIKEY_PATTERN = re.compile(r"^([A-Z]{14}-[A-Z]{8}[SN][A-Z])-([A-Z])$")
 
+# Any InChIKey-shaped string. A key of this shape that INCHIKEY_PATTERN rejects is well formed but not from InChI v1's
+# standard or non-standard algorithm: UniChem's one InChI beta record (UCI 201259320, "InChI=1B/612Li.Na.613H")
+# has key MNCFTHPAOBNIAB-UHFFFAOYBA-N. Its parent key isn't comparable with v1 keys, so it is skipped, not grouped.
+INCHIKEY_SHAPE = re.compile(r"^[A-Z]{14}-[A-Z]{10}-[A-Z]$")
+
 # The protonation character of a neutral structure. Within a group the neutral form leads the conflation, since it
 # is the parent the other forms are charged versions of; "N" is the InChIKey spec's value for zero protons added.
 NEUTRAL_PROTONATION_FLAG = "N"
@@ -56,27 +61,34 @@ SALT_PARENTS_TSV_HEADER = ["salt_parent_key", "parent_key"]
 
 
 def split_inchikey(curie):
-    """Split an ``INCHIKEY:`` CURIE into (parent key, protonation character).
+    """Split an ``INCHIKEY:`` CURIE into (parent key, protonation character), or None for a non-v1 key.
 
-    The parent key is the InChIKey without its final ``-P`` block. Raises ValueError for anything that is not a
-    well-formed InChIKey CURIE: a malformed key in a compendium is a source bug to fix, not a clique to skip.
+    The parent key is the InChIKey without its final ``-P`` block. A well-formed key that isn't from InChI v1
+    (see INCHIKEY_SHAPE) returns None, and its clique is grouped by its other keys or not at all. Raises ValueError
+    for anything that is not a well-formed InChIKey CURIE: a malformed key in a compendium is a source bug to fix,
+    not a clique to skip.
     """
     prefix, _, local_id = curie.partition(":")
     if prefix != INCHIKEY:
         raise ValueError(f"Not an {INCHIKEY} CURIE: {curie!r}")
     match = INCHIKEY_PATTERN.match(local_id)
     if match is None:
+        if INCHIKEY_SHAPE.match(local_id):
+            return None
         raise ValueError(f"Malformed InChIKey CURIE: {curie!r}")
     return match.group(1), match.group(2)
 
 
 def grouping_key(curie, salt_parents):
-    """Return (parent key, protonation character, reached through a salt) for one ``INCHIKEY:`` CURIE.
+    """Return (parent key, protonation character, reached through a salt) for one ``INCHIKEY:`` CURIE, or None.
 
     A key whose parent key is in ``salt_parents`` (salt parent key -> parent key) groups under the mapped parent
-    key; any other under its own. The protonation character is the key's own either way.
+    key; any other under its own. The protonation character is the key's own either way. None for a non-v1 key.
     """
-    parent, flag = split_inchikey(curie)
+    split = split_inchikey(curie)
+    if split is None:
+        return None
+    parent, flag = split
     salt_parent = salt_parents.get(parent)
     if salt_parent is not None:
         return salt_parent, flag, True
@@ -86,7 +98,7 @@ def grouping_key(curie, salt_parents):
 def parent_key_for_clique(inchikey_curies, salt_parents=None):
     """Return (parent key, protonation flags, via salt) for one clique's INCHIKEY members, or None.
 
-    A clique with no InChIKey has no structure to group on. A clique whose InChIKeys have more than one parent key
+    A clique with no v1 InChIKey has no structure to group on. A clique whose InChIKeys have more than one parent key
     contains several structures, and we don't pick one. ``via salt`` is True when every key reached the parent key
     through ``salt_parents``: a clique holding the parent compound's own key is a direct member even if it also
     holds a salt's.
@@ -98,13 +110,22 @@ def parent_key_for_clique(inchikey_curies, salt_parents=None):
     flags = set()
     via_salt = True
     for curie in inchikey_curies:
-        parent, flag, through_salt = grouping_key(curie, salt_parents)
+        key = grouping_key(curie, salt_parents)
+        if key is None:
+            continue
+        parent, flag, through_salt = key
         parents.add(parent)
         flags.add(flag)
         via_salt = via_salt and through_salt
     if len(parents) != 1:
         return None
     return parents.pop(), frozenset(flags), via_salt
+
+
+def grouping_parents(inchikey_curies, salt_parents):
+    """The set of grouping parent keys of a clique's v1 InChIKeys (non-v1 keys are skipped)."""
+    keys = (grouping_key(curie, salt_parents) for curie in inchikey_curies)
+    return {key[0] for key in keys if key is not None}
 
 
 def group_cliques_by_parent_key(clique_inchikeys, salt_parents=None):
@@ -121,6 +142,9 @@ def group_cliques_by_parent_key(clique_inchikeys, salt_parents=None):
     counts = defaultdict(int)
     for leader, inchikey_curies in clique_inchikeys:
         counts["candidate_cliques"] += 1
+        if all(split_inchikey(curie) is None for curie in inchikey_curies):
+            counts["cliques_without_v1_inchikey"] += 1
+            continue
         result = parent_key_for_clique(inchikey_curies, salt_parents)
         if result is None:
             counts["cliques_skipped_multiple_parent_keys"] += 1
@@ -148,10 +172,10 @@ def group_cliques_by_parent_key(clique_inchikeys, salt_parents=None):
 def load_salt_parents(filename):
     """Read the salt-parents file into ({salt parent key: parent key}, set of conflicting salt parent keys).
 
-    A salt parent key appears once per PubChem record (each charge state, each CID) that resolved, and normally
-    every one gives the same parent. Rarely they disagree: PubChem's sodium silicate ``-O`` record has the extra
-    proton on the silicate, which RDKit keeps as a real hydrogen, so it resolves to hydrogensilicate while the
-    ``-N`` record resolves to silicate (64 of 4.6M salt parent keys, 2026-11-10). The parent is then ambiguous, so
+    A salt parent key appears once per source record (each charge state) that resolved, and normally every one
+    gives the same parent. Rarely they disagree: sodium silicate's ``-O`` record has the extra proton on the
+    silicate, which RDKit keeps as a real hydrogen, so it resolves to hydrogensilicate while the ``-N`` record
+    resolves to silicate (66 of 4.75M salt parent keys from UniChem, 2026-11-14). The parent is then ambiguous, so
     such a salt is left out -- it keeps its own key -- and returned in the conflict set for the metadata. A
     conflict can only remove a mapping, never produce a wrong one.
     """
@@ -169,7 +193,7 @@ def load_salt_parents(filename):
         del salt_parents[salt_parent_key]
     if conflicting:
         logger.warning(
-            f"{len(conflicting):,} salt parent keys resolve to different parents in different PubChem records and "
+            f"{len(conflicting):,} salt parent keys resolve to different parents in different source records and "
             f"were left out. Examples: {sorted(conflicting)[:10]}"
         )
     logger.info(f"Loaded {len(salt_parents):,} salt and hydrate parent keys from {filename}")
@@ -205,7 +229,7 @@ def find_shared_parent_key_hashes(compendium_filenames, salt_parents):
                 if not inchikeys:
                     continue
                 clique_count += 1
-                for parent in {grouping_key(curie, salt_parents)[0] for curie in inchikeys}:
+                for parent in grouping_parents(inchikeys, salt_parents):
                     hashes.append(parent_key_hash(parent))
     ordered = np.sort(np.frombuffer(hashes, dtype=np.int64))
     repeated = np.unique(ordered[1:][ordered[1:] == ordered[:-1]])
@@ -224,7 +248,7 @@ def read_candidate_cliques(compendium_filenames, shared_hashes, salt_parents):
             for line in compendiumf:
                 inchikeys = INCHIKEY_IDENTIFIER_PATTERN.findall(line)
                 if not any(
-                    parent_key_hash(grouping_key(curie, salt_parents)[0]) in shared_hashes for curie in inchikeys
+                    parent_key_hash(parent) in shared_hashes for parent in grouping_parents(inchikeys, salt_parents)
                 ):
                     continue
                 clique = json.loads(line)

@@ -85,6 +85,22 @@ def test_split_inchikey_rejects_malformed(curie):
 
 
 @pytest.mark.unit
+def test_non_v1_inchikey_is_skipped_not_rejected():
+    """UniChem's InChI beta key (UCI 201259320) is well formed but not v1: it should be skipped, not fail the build."""
+    assert split_inchikey("INCHIKEY:MNCFTHPAOBNIAB-UHFFFAOYBA-N") is None
+
+
+@pytest.mark.unit
+def test_clique_with_only_a_non_v1_inchikey_is_counted_not_grouped():
+    """A clique whose only key is non-v1 has nothing to group on, and should be counted rather than raise."""
+    groups, counts = group_cliques_by_parent_key(
+        [("PUBCHEM.COMPOUND:1", ["INCHIKEY:MNCFTHPAOBNIAB-UHFFFAOYBA-N"]), (VALPROATE[0], [VALPROATE[1]])]
+    )
+    assert groups == {}
+    assert counts["cliques_without_v1_inchikey"] == 1
+
+
+@pytest.mark.unit
 def test_parent_key_for_clique_without_inchikey_is_none():
     """A clique with no InChIKey has nothing to group on."""
     assert parent_key_for_clique([]) is None

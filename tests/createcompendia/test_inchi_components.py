@@ -8,8 +8,8 @@ ZRALSGWEFCBTJO-UHFFFAOYSA-N), pethidine (CID 4058, XADCESSVHJOZHK-UHFFFAOYSA-N) 
 VEXZGXHMUGYJMC-UHFFFAOYSA-N).
 
 write_inchi_components() reads UniChem's structure.tsv.gz and GtoPdb's ligands.tsv. The readers are tested on rows
-copied verbatim from those files (tests/data/chemicalparent/unichem-structure-excerpt.tsv: UCIs 33232698 and
-148957031; gtopdb-ligands-excerpt.tsv: ligands 1729 and 8461, GtoPdb 2026.3.1). Tests of what happens after
+copied verbatim from those files (tests/data/chemicalparent/unichem-structure-excerpt.tsv: UCIs 33232698,
+148957031 and the InChI beta record 201259320; gtopdb-ligands-excerpt.tsv: ligands 1729 and 8461, GtoPdb 2026.3.1). Tests of what happens after
 reading put the PubChem InChIs above into UniChem's three-column layout with write_unichem().
 """
 
@@ -140,10 +140,14 @@ def test_parent_key_drops_protonation_block():
 def test_read_unichem_and_gtopdb_inchis(tmp_path):
     """Both readers should yield (InChIKey, InChI) for every row of the verbatim excerpts, unquoting GtoPdb's."""
     unichem = list(read_unichem_inchis(gzip_unichem_excerpt(tmp_path)))
-    assert [key for key, _ in unichem] == ["DZHPOMAJVHEXQE-UHFFFAOYSA-N", "YIGYGHCZJVBIHC-UHFFFAOYSA-N"]
+    assert [key for key, _ in unichem] == [
+        "DZHPOMAJVHEXQE-UHFFFAOYSA-N",
+        "YIGYGHCZJVBIHC-UHFFFAOYSA-N",
+        "MNCFTHPAOBNIAB-UHFFFAOYBA-N",
+    ]
     gtopdb = list(read_gtopdb_inchis(str(GTOPDB_EXCERPT)))
     assert [key for key, _ in gtopdb] == ["MMPTYEXNPWSTOR-UHFFFAOYSA-N", "WWHGFIXWBLHHQB-UHFFFAOYSA-N"]
-    assert all(inchi.startswith("InChI=1S/") for _, inchi in unichem + gtopdb)
+    assert all(inchi.startswith("InChI=1S/") for _, inchi in unichem[:2] + gtopdb)
 
 
 @pytest.mark.unit
@@ -162,13 +166,20 @@ def test_write_inchi_components_from_unichem_and_gtopdb(tmp_path):
     out = tmp_path / "components.tsv"
     counts = write_inchi_components(gzip_unichem_excerpt(tmp_path), str(GTOPDB_EXCERPT), str(out), processes=1)
     keys = [line.split("\t")[0] for line in out.read_text().splitlines()[1:]]
-    # UCI 33232698 is a single component and is skipped; the three salts give two components each.
+    # UCI 33232698 is a single component and the InChI beta record 201259320 isn't standard, so both are skipped;
+    # the three salts give two components each.
     assert sorted(set(keys)) == [
         "MMPTYEXNPWSTOR-UHFFFAOYSA-N",
         "WWHGFIXWBLHHQB-UHFFFAOYSA-N",
         "YIGYGHCZJVBIHC-UHFFFAOYSA-N",
     ]
-    assert counts == {"multi_component_inchis": 3, "component_rows": 6, "unparseable_inchis": 0, "timed_out_inchis": 0}
+    assert counts == {
+        "multi_component_inchis": 3,
+        "component_rows": 6,
+        "unparseable_inchis": 0,
+        "timed_out_inchis": 0,
+        "non_standard_inchis_skipped": 1,
+    }
 
 
 @pytest.mark.unit
