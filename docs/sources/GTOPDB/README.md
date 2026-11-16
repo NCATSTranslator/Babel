@@ -66,9 +66,12 @@ cures it.
 
 [`unichem-stereo/`](unichem-stereo/) holds the comparison and its output for both builds:
 
-- [`report-2025dec11.md`](unichem-stereo/report-2025dec11.md) and
+- [`report-2025sep1.md`](unichem-stereo/report-2025sep1.md),
+  [`report-2025dec11.md`](unichem-stereo/report-2025dec11.md) and
   [`report-2026jul22.md`](unichem-stereo/report-2026jul22.md): how the two sources' keys differ,
-  and for 2026jul22 where each affected ligand sat and which clique holds its own key.
+  and for 2026jul22 where each affected ligand sat and which clique holds its own key. UniChem's
+  GtoPdb rows are the same 8,635 in 2025sep1 and 2025dec11, so the change falls between
+  2025dec11 and 2026jul22.
 - [`differing-ligands-2026jul22.csv`](unichem-stereo/differing-ligands-2026jul22.csv): one row per
   ligand whose two keys differ.
 - [`scripts/compare_gtopdb_inchikeys.py`](unichem-stereo/scripts/compare_gtopdb_inchikeys.py)
