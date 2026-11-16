@@ -591,6 +591,19 @@ def read_inchikeys(struct_file):
 
 
 def combine_unichem(concordances, output):
+    """Glom the structure concords (identifier -> INCHIKEY) into the partial every chemical clique grows from.
+
+    :param concordances: the UNICHEM_* concords, plus the concords in config.yaml's
+        chemical_structure_concords: sources whose own InChIKeys are used instead of UniChem's (GtoPdb,
+        #1206). Each file must have a single prefix in its first column.
+    :param output: the JSONL partial, one list of CURIEs per line.
+
+    INCHIKEY is a unique prefix, so one clique holds one structure, and two identifiers given the same
+    key share a clique. remove_overused_xrefs() is applied only to the prefixes listed below; for every
+    other source a key shared by several identifiers merges them. GtoPdb relies on that: it gives a
+    radiolabelled ligand its unlabelled compound's key (GTOPDB:1247 and GTOPDB:1204, histamine), and
+    filtering shared keys would strip the structure from both.
+    """
     PREFIXES_TO_REMOVE_OVERUSED_XREFS = [UNII, KEGGCOMPOUND, DRUGCENTRAL]
 
     dicts = {}

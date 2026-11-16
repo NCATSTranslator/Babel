@@ -25,8 +25,10 @@ from src.categories import (
 )
 from src.createcompendia.chemicals import (
     CHEBI_DBX_SOURCE_NAMES,
+    combine_unichem,
     create_typed_sets,
     make_chebi_relations,
+    make_gtopdb_relations,
     read_chebi_lookup_ids,
     split_chebi_sdf_values,
     write_unichem_concords,
@@ -34,7 +36,7 @@ from src.createcompendia.chemicals import (
 from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.predicates import HAS_ALTERNATIVE_ID
-from src.prefixes import CHEBI, KEGGCOMPOUND, PUBCHEMCOMPOUND
+from src.prefixes import CHEBI, GTOPDB, KEGGCOMPOUND, PUBCHEMCOMPOUND
 from src.util import get_config
 
 # Derive CHEBI's UniChem source ID from the authoritative dict rather than hardcoding it.
@@ -574,3 +576,82 @@ def test_make_chebi_relations_raises_when_the_dbx_contributes_nothing(tmp_path):
     """
     with pytest.raises(ValueError, match="database_accession.tsv"):
         _run_make_chebi_relations(tmp_path, dbx_contents=DBX_HEADER)
+
+
+# GTOPDB STRUCTURES COME FROM GTOPDB, NOT UNICHEM (issue #1206)
+
+# The first two lines of GtoPdb's ligands.tsv (release 2026.3.1) and three of its rows, verbatim.
+GTOPDB_LIGANDS_VERSION_LINE = '"# GtoPdb Version: 2026.3.1 - published: 2026-10-12"\n'
+GTOPDB_LIGANDS_HEADER = '"Ligand ID"\t"Name"\t"Species"\t"Type"\t"Approved"\t"Withdrawn"\t"Labelled"\t"Radioactive"\t"PubChem SID"\t"PubChem CID"\t"UniProt ID"\t"Ensembl ID"\t"ChEMBL ID"\t"Ligand Subunit IDs"\t"Ligand Subunit Name"\t"Ligand Subunit UniProt IDs"\t"Ligand Subunit Ensembl IDs"\t"IUPAC name"\t"INN"\t"Synonyms"\t"SMILES"\t"InChIKey"\t"InChI"\t"GtoImmuPdb"\t"GtoMPdb"\t"Antibacterial"\n'
+# Ligand 5688, ruxolitinib: GtoPdb gives the stereo-specific key HFNKQEVNSGCOJV-OAHLLOKOSA-N.
+GTOPDB_RUXOLITINIB_ROW = '"5688"\t"ruxolitinib"\t""\t"Synthetic organic"\t"yes"\t""\t""\t""\t"178102315"\t"25126798"\t""\t""\t"CHEMBL1789941"\t""\t""\t""\t""\t"(3R)-3-cyclopentyl-3-(4-{7H-pyrrolo[2,3-d]pyrimidin-4-yl}-1H-pyrazol-1-yl)propanenitrile"\t"ruxolitinib"\t"<i>(R)</i>-ruxolitinib|INC424|INCB 18424|INCB018424|Jakafi&reg;|Jakavi&reg;"\t"N#CC[C@@H](n1ncc(c1)c1ncnc2c1cc[nH]2)C1CCCC1"\t"HFNKQEVNSGCOJV-OAHLLOKOSA-N"\t"InChI=1S/C17H18N6/c18-7-5-15(12-3-1-2-4-12)23-10-13(9-22-23)16-14-6-8-19-17(14)21-11-20-16/h6,8-12,15H,1-5H2,(H,19,20,21)/t15-/m1/s1"\t"yes"\t""\t""\n'
+# Ligands 1204 (histamine) and 1247 ([3H]histamine): GtoPdb gives both NTYJJOPFIAHURM-UHFFFAOYSA-N.
+GTOPDB_HISTAMINE_ROW = '"1204"\t"histamine"\t""\t"Metabolite"\t""\t""\t""\t""\t"135651493"\t"774"\t""\t""\t"CHEMBL90"\t""\t""\t""\t""\t"2-(3H-imidazol-4-yl)ethanamine"\t""\t""\t"NCCc1cnc[nH]1"\t"NTYJJOPFIAHURM-UHFFFAOYSA-N"\t"InChI=1S/C5H9N3/c6-2-1-5-3-7-4-8-5/h3-4H,1-2,6H2,(H,7,8)"\t"yes"\t""\t""\n'
+GTOPDB_LABELLED_HISTAMINE_ROW = '"1247"\t"[<sup>3</sup>H]histamine"\t""\t"Synthetic organic"\t""\t""\t"yes"\t"yes"\t"135651565"\t"774"\t""\t""\t"CHEMBL90"\t""\t""\t""\t""\t"2-(3H-imidazol-4-yl)ethanamine"\t""\t""\t"NCCc1cnc[nH]1"\t"NTYJJOPFIAHURM-UHFFFAOYSA-N"\t"InChI=1S/C5H9N3/c6-2-1-5-3-7-4-8-5/h3-4H,1-2,6H2,(H,7,8)"\t""\t""\t""\n'
+
+
+def _write_gtopdb_structure_concord(tmp_path, *rows):
+    """Run make_gtopdb_relations() over a ligands.tsv holding the given verbatim rows; return the concord."""
+    ligands = tmp_path / "ligands.tsv"
+    ligands.write_text(GTOPDB_LIGANDS_VERSION_LINE + GTOPDB_LIGANDS_HEADER + "".join(rows))
+    concord = tmp_path / "GTOPDB"
+    make_gtopdb_relations(str(ligands), str(concord), str(tmp_path / "metadata-GTOPDB.yaml"))
+    return concord
+
+
+def _read_partial(path):
+    """Read a combine_unichem() partial as a list of sets of CURIEs."""
+    return [set(json.loads(line)) for line in Path(path).read_text().splitlines()]
+
+
+@pytest.mark.unit
+def test_unichem_is_not_a_source_of_gtopdb_structures():
+    """GTOPDB should stay out of both UniChem source lists, and its own concord should be a structure concord.
+
+    UniChem's GtoPdb assignments lost their stereochemistry in 2026 (#1206). Re-adding the source
+    would put GtoPdb ligands back in the stereo-less cliques, because whichever InChIKey an
+    identifier is given first is the one it keeps.
+    """
+    config = get_config()
+    assert GTOPDB not in unichem_data_sources.values()
+    assert GTOPDB not in config["unichem_datasources"]
+    assert GTOPDB in config["chemical_structure_concords"]
+    assert set(config["chemical_structure_concords"]) <= set(config["chemical_concords"])
+
+
+@pytest.mark.unit
+def test_combine_unichem_puts_a_gtopdb_ligand_with_its_own_stereo_specific_structure(tmp_path):
+    """GTOPDB:5688 should join the clique holding GtoPdb's own key, not the stereo-less one.
+
+    The two UniChem rows are ruxolitinib's ChEBI records as 2026jul22 had them: CHEBI:66919 is the
+    drug and CHEBI:91405 the stereo-unspecified record, which is where UniChem put GTOPDB:5688.
+    """
+    unichem_chebi = tmp_path / "UNICHEM_CHEBI"
+    unichem_chebi.write_text(
+        "CHEBI:66919\toio:equivalent\tINCHIKEY:HFNKQEVNSGCOJV-OAHLLOKOSA-N\n"
+        "CHEBI:91405\toio:equivalent\tINCHIKEY:HFNKQEVNSGCOJV-UHFFFAOYSA-N\n"
+    )
+    gtopdb = _write_gtopdb_structure_concord(tmp_path, GTOPDB_RUXOLITINIB_ROW)
+    partial = tmp_path / "partial"
+
+    combine_unichem([str(unichem_chebi), str(gtopdb)], str(partial))
+
+    cliques = _read_partial(partial)
+    assert {"GTOPDB:5688", "CHEBI:66919", "INCHIKEY:HFNKQEVNSGCOJV-OAHLLOKOSA-N"} in cliques
+    assert {"CHEBI:91405", "INCHIKEY:HFNKQEVNSGCOJV-UHFFFAOYSA-N"} in cliques
+
+
+@pytest.mark.unit
+def test_combine_unichem_keeps_gtopdb_ligands_that_share_one_structure(tmp_path):
+    """Two GtoPdb ligands given the same InChIKey should both keep it and share a clique.
+
+    GtoPdb gives a radiolabelled ligand its unlabelled compound's key. UniChem's GtoPdb rows merged
+    such pairs before #1206, and build_untyped_compendia()'s remove_overused_xrefs() would instead
+    drop the key from both, so this pins that the structure concord is not filtered that way.
+    """
+    gtopdb = _write_gtopdb_structure_concord(tmp_path, GTOPDB_HISTAMINE_ROW, GTOPDB_LABELLED_HISTAMINE_ROW)
+    partial = tmp_path / "partial"
+
+    combine_unichem([str(gtopdb)], str(partial))
+
+    assert _read_partial(partial) == [{"GTOPDB:1204", "GTOPDB:1247", "INCHIKEY:NTYJJOPFIAHURM-UHFFFAOYSA-N"}]
