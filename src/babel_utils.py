@@ -1091,7 +1091,11 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
     the keys are all of the elements in the set.   For each element in a set, there is a key
     in the dictionary that points to the set.
     newgroups is an iterable that of new equivalence groups (expressed as sets,tuples,or lists)
-    with which we want to update conc_set."""
+    with which we want to update conc_set.
+
+    tests/test_glom.py pins this function's whole behavior, quirks included, and restates it as a
+    short reference implementation (``reference_glom``) checked against this one over randomized
+    inputs. Read it before changing glom(), and test any replacement against it."""
     n = 0
     bad = 0
     shit_prefixes = set(["KEGG", "PUBCHEM"])
