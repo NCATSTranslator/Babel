@@ -151,6 +151,13 @@ def read_concord_pairs(concord_path: pathlib.Path | str) -> Iterator[tuple[str, 
       filter that consults it (anatomy's and process's UMLS gate) must see the file read into a
       list first, as must ``remove_overused_xrefs()``, which counts the whole file.
 
+      Streaming gives up one thing: the file is no longer validated before any of it is merged. A
+      malformed row raises :class:`MalformedConcordRowError` partway through ``glom()``, after the
+      rows above it are already merged. That is harmless while the error aborts the build, but a
+      caller that catches it and keeps going (a replay or report tool reusing a builder) must
+      discard the clique dict, which is left half-merged with no sign of it -- or read the file into
+      a list first, which validates every row before ``glom()`` sees one.
+
     File order is kept either way, and it matters: ``glom()``'s ``unique_prefixes`` keeps whichever
     competing pair it sees first (#902).
     """
