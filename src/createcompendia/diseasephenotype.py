@@ -783,6 +783,15 @@ def compute_cliques_for_impact_report(
             # broadly (it drops ~1,219 MEDDRA identifiers from Disease.txt), so it is deferred
             # to a dedicated follow-up PR (#888, `fix-mondo-close-guard`) with its own
             # before/after impact analysis rather than riding along with the MP addition.
+            # glom() only consults the close map for members whose prefix is exactly MONDO, so a
+            # subject with any other prefix would be a guard that silently never fires. Every
+            # subject in 2025dec11's and 2026jul22's MONDO_close is a MONDO CURIE; raise if that
+            # ever changes rather than build without the guard.
+            if subject.split(":")[0] != MONDO:
+                raise ValueError(
+                    f"{mondoclose}: close-match subject {subject!r} is not a {MONDO} CURIE, so glom()'s "
+                    f"close={{{MONDO}: ...}} guard would never consult it."
+                )
             close_mondos[subject].add(predicate)
 
     for infile in iterated_concords:

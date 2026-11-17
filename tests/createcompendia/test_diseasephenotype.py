@@ -9,8 +9,8 @@ Sections:
   the downstream ``umls.write_umls_ids`` call rather than running a real MRSTY
   parse -- keeping these tests fast and offline.
 - ``# --- MONDO_close parsing in compute_cliques_for_impact_report ---`` guards
-  that ``MONDO_close`` is read by the shared strict concord parser, and
-  checks that excluding MONDO also skips its own MONDO_close close-match data.
+  that ``MONDO_close`` is read by the shared strict concord parser, that every subject in it is a
+  MONDO CURIE, and that excluding MONDO also skips its own MONDO_close close-match data.
 - ``# --- classify_disease_clique ---`` checks the per-clique biolink typing used
   by both the real build and the source-impact report.
 - ``# --- write_phenotype_taxa ---`` checks the per-prefix taxa file (HP->human,
@@ -147,6 +147,27 @@ def test_mondo_close_rejects_malformed_row(tmp_path):
     mondoclose = _write_lines(tmp_path / "MONDO_close", ["MONDO:0000739\toio:closeMatch\tMEDDRA:10051962 "])
 
     with pytest.raises(MalformedConcordRowError, match=r"MONDO_close:1 is not a valid concord row"):
+        diseasephenotype.compute_cliques_for_impact_report(
+            concordances=[],
+            identifiers=[ids],
+            mondoclose=mondoclose,
+            badxrefs={},
+        )
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("subject", ["MONDOX:0000739", "HP:0000739"])
+def test_mondo_close_rejects_a_subject_that_is_not_a_mondo_curie(tmp_path, subject):
+    """A MONDO_close subject without exactly the MONDO prefix must raise, naming the file and subject.
+
+    glom() consults close={MONDO: ...} only for members whose prefix is exactly MONDO, so such a key
+    would be a close guard that silently never fires. MONDOX is the case a startswith() match used
+    to consult.
+    """
+    ids = _write_lines(tmp_path / "MONDO", [f"MONDO:0000001\t{DISEASE}"])
+    mondoclose = _write_lines(tmp_path / "MONDO_close", [f"{subject}\toio:closeMatch\tMEDDRA:10051962"])
+
+    with pytest.raises(ValueError, match=rf"MONDO_close: close-match subject '{subject}' is not a MONDO CURIE"):
         diseasephenotype.compute_cliques_for_impact_report(
             concordances=[],
             identifiers=[ids],
