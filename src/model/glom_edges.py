@@ -14,16 +14,19 @@ Three steps outside ``glom()`` have to be modelled for that to hold:
   ``remove_overused_xrefs`` (every untyped-stage concord, and the UniChem files of
   ``chemicals.UNICHEM_OVERUSED_XREF_PREFIXES``), from the CUI-follows-MeSH rule onward skipping pairs that name
   a UMLS CUI another pipeline owns, and from ``input_data/chemical_badxrefs.txt`` onward skipping its pairs;
-* the post-glom split in ``chemicals.create_typed_sets()`` (Babel #83), which moves the ``MolecularMixture``-typed
-  members of a clique whose PubChem CIDs disagree on type into a clique of their own. The split-off clique holds no
-  InChIKey, while its CIDs' own UniChem keys stay with the parent, so each one is rejoined to the single keyed
-  clique its CIDs' keys sit in. These rejoined groups are the **pre-split sets**: the sets ``glom()`` actually built.
+* the post-glom split in ``chemicals.create_typed_sets()`` (Babel #83), which moves every ``MolecularMixture``-typed
+  member of a clique whose PubChem CIDs disagree on type into a clique of their own, leaving the key with the rest.
+  Each keyless split-off clique is rejoined to its parent: the single keyed clique its members' own keys sit in
+  (UniChem or GtoPdb record->key edges), or, when no member has a key edge, the single keyed SmallMolecule clique an
+  unfiltered xref joins it to (the split-off half is typed MolecularMixture). The key edges come first because an
+  xref from the split-off half to a *second* keyed clique was refused by the guard, and would otherwise make the
+  parent look ambiguous. These rejoined groups are the **pre-split sets**: the sets ``glom()`` actually built.
 * ``write_compendium()`` dropping the InChIKey from the output types whose Biolink class does not register the
   ``INCHIKEY`` prefix (``KEY_DROPPING_TYPES``: Drug and Food). Such a clique did hold its key when ``glom()`` ran, so
-  a UniChem record->key edge whose record sits in one of these cliques and whose key is in no output was applied:
-  it is reported as applied, with the key counted in the record's set. Outside these types a key missing from every
-  output means something else (``glom()`` refused the pair and the key never reached a typed clique), so the
-  inference is not made there.
+  an unfiltered record->key edge (UniChem or GtoPdb) whose record sits in one of these cliques and whose key is in no
+  output was applied: it is reported as applied, with the key counted in the record's set. Outside these types a key
+  missing from every output means something else (``glom()`` refused the pair, or the overused filter removed every
+  link to it, and the key never reached a typed clique), so the inference is not made there.
 
 A cross-clique edge that none of this explains means the model above no longer matches the pipeline, and
 :func:`classify_chemical_glom_edges` raises rather than returning verdicts nobody can trust. On 2026jul22 every one
@@ -40,7 +43,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
-from src.categories import DRUG, FOOD
+from src.categories import DRUG, FOOD, MOLECULAR_MIXTURE, SMALL_MOLECULE
 from src.util import get_logger, sql_list, sql_str
 
 logger = get_logger(__name__)
@@ -67,6 +70,10 @@ UNICHEM_CONCORD_DIR = "/chemicals/concords/UNICHEM/"
 # MolecularMixture and ChemicalEntity cliques: 13 of those cliques hold another key (glom() refused the second), and
 # the other 2 lost their key to the UNII overused filter -- why the inference is not made outside these types.
 KEY_DROPPING_TYPES = frozenset(t.removeprefix("biolink:") for t in (DRUG, FOOD))
+
+# Output types of the two halves of a #83 split (create_typed_sets()), as chemical_outputs names.
+MOLECULAR_MIXTURE_TYPE = MOLECULAR_MIXTURE.removeprefix("biolink:")
+SMALL_MOLECULE_TYPE = SMALL_MOLECULE.removeprefix("biolink:")
 
 
 def classify_chemical_glom_edges(
@@ -178,9 +185,10 @@ def classify_chemical_glom_edges(
         CREATE OR REPLACE TABLE glom_edge_mapped AS
         SELECT r.*, ns.c AS sc, no.c AS oc,
                coalesce(ns.ambiguous, false) OR coalesce(no.ambiguous, false) AS ambiguous,
-               -- A record->key edge into a Drug/Food clique whose key is in no output: write_compendium() dropped
-               -- the key, so glom() applied the edge (see KEY_DROPPING_TYPES).
-               r.is_unichem AND NOT r.overused AND no.h IS NULL AND r.obj LIKE 'INCHIKEY:%'
+               -- An unfiltered record->key edge (UniChem or GtoPdb; a key is always the object) into a Drug/Food
+               -- clique whose key is in no output: write_compendium() dropped the key, so glom() applied the edge
+               -- (see KEY_DROPPING_TYPES).
+               NOT r.overused AND NOT r.badxref AND NOT r.owned_elsewhere AND no.h IS NULL AND r.obj LIKE 'INCHIKEY:%'
                  AND coalesce(list_contains({key_dropping}, k.typ), false) AS key_dropped
         FROM glom_edge_raw r
         LEFT JOIN glom_node ns ON ns.h = hash(r.subj)
@@ -193,19 +201,35 @@ def classify_chemical_glom_edges(
         UNION
         SELECT DISTINCT sc FROM glom_edge_mapped WHERE key_dropped
     """)
-    # Pre-split sets (Babel #83): a keyless clique whose records' own UniChem keys sit in another, keyed clique.
-    con.sql("""
+    # Pre-split sets (Babel #83; see the module docstring): a keyless clique rejoined to the keyed clique its members'
+    # own keys sit in, or failing any key edge, the keyed SmallMolecule clique an unfiltered xref joins it to.
+    con.sql(f"""
         CREATE OR REPLACE TABLE presplit AS
-        SELECT sc AS mix, min(oc) AS parent, count(DISTINCT oc) AS n_parents
-        FROM glom_edge_mapped
-        WHERE is_unichem AND NOT overused AND sc IS NOT NULL AND oc IS NOT NULL AND sc <> oc
-          AND sc NOT IN (SELECT c FROM keyed_clique) AND oc IN (SELECT c FROM keyed_clique)
-        GROUP BY sc
+        WITH usable AS (
+            SELECT * FROM glom_edge_mapped
+            WHERE NOT overused AND NOT owned_elsewhere AND NOT badxref AND NOT ambiguous
+              AND sc IS NOT NULL AND oc IS NOT NULL AND sc <> oc
+        ), via_key AS (
+            SELECT sc AS mix, oc AS parent FROM usable
+            WHERE obj LIKE 'INCHIKEY:%'
+              AND sc NOT IN (SELECT c FROM keyed_clique) AND oc IN (SELECT c FROM keyed_clique)
+        ), via_xref AS (
+            SELECT x.mix, x.parent
+            FROM (SELECT sc AS mix, oc AS parent FROM usable WHERE obj NOT LIKE 'INCHIKEY:%'
+                  UNION ALL
+                  SELECT oc, sc FROM usable WHERE obj NOT LIKE 'INCHIKEY:%') x
+            JOIN glom_clique m ON m.c = x.mix AND m.typ = {sql_str(MOLECULAR_MIXTURE_TYPE)} AND NOT m.has_key
+            JOIN glom_clique p ON p.c = x.parent AND p.typ = {sql_str(SMALL_MOLECULE_TYPE)} AND p.has_key
+            WHERE x.mix NOT IN (SELECT mix FROM via_key)
+        )
+        SELECT mix, min(parent) AS parent, count(DISTINCT parent) AS n_parents
+        FROM (SELECT * FROM via_key UNION ALL SELECT * FROM via_xref)
+        GROUP BY mix
     """)
     ambiguous_splits = con.sql("SELECT count(*) FROM presplit WHERE n_parents > 1").fetchone()[0]
     if ambiguous_splits:
         raise RuntimeError(
-            f"{ambiguous_splits} keyless chemical cliques hold records whose UniChem keys sit in more than one keyed "
+            f"{ambiguous_splits} keyless chemical cliques have keys, or failing those xrefs, into more than one keyed "
             f"clique, so their pre-split set is ambiguous (see SELECT * FROM presplit WHERE n_parents > 1). The #83 "
             f"split model in src/model/glom_edges.py no longer describes this build."
         )

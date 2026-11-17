@@ -260,6 +260,27 @@ def test_a_drug_output_holding_an_inchikey_raises(tmp_path):
         classify(write_build(tmp_path, concords, cliques))
 
 
+@pytest.mark.unit
+def test_a_drug_cliques_dropped_gtopdb_key_edge_is_applied(tmp_path):
+    """GtoPdb's concord supplies record->key edges directly, outside UniChem. When that is the only key of a Drug
+    clique, write_compendium() drops it all the same: the edge was applied and the clique counts as keyed, so its
+    xref to another keyed clique was refused rather than left unexplained."""
+    concords = [
+        (concord("GTOPDB"), "GTOPDB:1", KEY_A),
+        (unichem("PUBCHEM.COMPOUND"), "PUBCHEM.COMPOUND:2", KEY_B),
+        (concord("DrugCentral"), "DrugCentral:1", "GTOPDB:1"),
+        (concord("DrugCentral"), "DrugCentral:1", "PUBCHEM.COMPOUND:2"),
+    ]
+    cliques = {
+        "GTOPDB:1": ("Drug", ["GTOPDB:1", "DrugCentral:1"]),
+        "PUBCHEM.COMPOUND:2": ("SmallMolecule", ["PUBCHEM.COMPOUND:2", KEY_B]),
+    }
+    rows = {(b, s, o): (v, kd) for b, s, o, v, kd in classify_rows(write_build(tmp_path, concords, cliques))}
+
+    assert rows[("GTOPDB", "GTOPDB:1", KEY_A)] == (APPLIED, True)
+    assert rows[("DrugCentral", "DrugCentral:1", "PUBCHEM.COMPOUND:2")] == (REFUSED_INCHIKEY, False)
+
+
 # OVERUSE BEFORE OUTPUT MEMBERSHIP
 
 
@@ -276,3 +297,48 @@ def test_a_key_lost_to_the_overused_filter_is_reported_as_overused(tmp_path):
 
     assert verdicts[("UNICHEM_UNII", "UNII:U1", KEY_A)] == FILTERED_OVERUSED
     assert verdicts[("UNICHEM_UNII", "UNII:U2", KEY_A)] == FILTERED_OVERUSED
+
+
+# #83 SPLITS WITHOUT A KEY EDGE
+
+
+@pytest.mark.unit
+def test_a_split_off_mixture_with_no_key_edge_is_rejoined_through_its_xref(tmp_path):
+    """create_typed_sets() moves every MolecularMixture-typed member, including a CID that joined only through a ChEBI
+    xref and has no UniChem row. With no key edge to find the parent by, the xref to the keyed SmallMolecule half
+    should rejoin it, so the edge is applied rather than an unexplained crossing."""
+    concords = [
+        (unichem("PUBCHEM.COMPOUND"), "PUBCHEM.COMPOUND:3", KEY_C),
+        (concord("CHEBI"), "CHEBI:3", "PUBCHEM.COMPOUND:3"),
+        (concord("CHEBI"), "CHEBI:3", "PUBCHEM.COMPOUND:30"),
+    ]
+    cliques = {
+        "PUBCHEM.COMPOUND:3": ("SmallMolecule", ["PUBCHEM.COMPOUND:3", KEY_C, "CHEBI:3"]),
+        "PUBCHEM.COMPOUND:30": ("MolecularMixture", ["PUBCHEM.COMPOUND:30"]),
+    }
+    verdicts = classify(write_build(tmp_path, concords, cliques))
+
+    assert verdicts[("CHEBI", "CHEBI:3", "PUBCHEM.COMPOUND:30")] == APPLIED
+
+
+@pytest.mark.unit
+def test_a_split_off_mixtures_key_edge_outranks_a_refused_xref(tmp_path):
+    """A split-off CID whose UniChem key names its parent may also carry an xref the guard refused into a second keyed
+    clique. The key edge should decide the parent, and the xref should stay a refusal rather than make the pre-split
+    set look ambiguous."""
+    concords = [
+        (unichem("PUBCHEM.COMPOUND"), "PUBCHEM.COMPOUND:3", KEY_C),
+        (unichem("PUBCHEM.COMPOUND"), "PUBCHEM.COMPOUND:30", KEY_C),
+        (unichem("PUBCHEM.COMPOUND"), "PUBCHEM.COMPOUND:4", KEY_B),
+        (concord("DrugCentral"), "DrugCentral:1", "PUBCHEM.COMPOUND:30"),
+        (concord("DrugCentral"), "DrugCentral:1", "PUBCHEM.COMPOUND:4"),
+    ]
+    cliques = {
+        "PUBCHEM.COMPOUND:3": ("SmallMolecule", ["PUBCHEM.COMPOUND:3", KEY_C]),
+        "PUBCHEM.COMPOUND:30": ("MolecularMixture", ["PUBCHEM.COMPOUND:30", "DrugCentral:1"]),
+        "PUBCHEM.COMPOUND:4": ("SmallMolecule", ["PUBCHEM.COMPOUND:4", KEY_B]),
+    }
+    verdicts = classify(write_build(tmp_path, concords, cliques))
+
+    assert verdicts[("DrugCentral", "DrugCentral:1", "PUBCHEM.COMPOUND:30")] == APPLIED
+    assert verdicts[("DrugCentral", "DrugCentral:1", "PUBCHEM.COMPOUND:4")] == REFUSED_INCHIKEY
