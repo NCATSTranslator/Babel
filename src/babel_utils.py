@@ -1361,17 +1361,21 @@ def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False, target_
     for k, v in pairlist:
         xref_counts_v[v] += 1
         xref_counts_k[k] += 1
+    # Append each surviving pair itself, not a rebuilt (k, v): the caller usually still holds the
+    # unfiltered list while this runs, so a copy would double the tuples alive at peak on exactly the
+    # large concords this filter exists for. It also keeps whatever container the caller used.
     improved_pairs = []
-    for k, v in pairlist:
+    for pair in pairlist:
+        k, v = pair
         if eligible is not None and (Text.get_prefix_or_none(v) or "") not in eligible:
-            improved_pairs.append((k, v))
+            improved_pairs.append(pair)
             continue
         if xref_counts_v[v] < 2:
             if bothways:
                 if xref_counts_k[k] < 2:
-                    improved_pairs.append((k, v))
+                    improved_pairs.append(pair)
             else:
-                improved_pairs.append((k, v))
+                improved_pairs.append(pair)
     return improved_pairs
 
 
