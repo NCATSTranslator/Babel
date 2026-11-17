@@ -799,7 +799,7 @@ def compute_cliques_for_impact_report(
             bad_pairs = set()
         for subject, _predicate, obj in read_concords(infile):
             x = (subject, obj)
-            if x not in bad_pairs and x[0] not in owned_elsewhere and x[1] not in owned_elsewhere:
+            if x not in bad_pairs and not umls.names_cui_owned_elsewhere(subject, obj, owned_elsewhere):
                 pairs.append(x)
         if pref in OVERUSE_FILTERED_CONCORDS:
             newpairs = remove_overused_xrefs(pairs, target_prefixes=OVERUSE_FILTERED_CONCORDS[pref])

@@ -135,9 +135,9 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, m
         print(infile)
         print("loading", infile)
         # Streamed straight into glom(), without holding the file's pairs: see read_concord_pairs().
-        # owned_elsewhere is fixed before any concord is read, so filtering while glom() runs is safe.
-        pairs = ((s, o) for s, o in read_concord_pairs(infile) if s not in owned_elsewhere and o not in owned_elsewhere)
-        glom(dicts, pairs, unique_prefixes=uniques)
+        glom(
+            dicts, umls.skip_pairs_owned_elsewhere(read_concord_pairs(infile), owned_elsewhere), unique_prefixes=uniques
+        )
     gene_sets = set([frozenset(x) for x in dicts.values()])
     baretype = ORGANISM_TAXON.split(":")[-1]
     # We need to use extra_prefixes since UMLS is not listed as an identifier prefix at

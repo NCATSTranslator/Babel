@@ -413,6 +413,34 @@ def test_read_cuis_owned_elsewhere(tmp_path):
 
 
 @pytest.mark.unit
+def test_skip_pairs_owned_elsewhere_drops_a_pair_naming_an_owned_cui_on_either_side():
+    """Should drop a pair whose subject or object is owned elsewhere, and yield the rest in order, as the same objects."""
+    owned = frozenset({"UMLS:C2"})
+    pairs = [("MESH:D1", "UMLS:C1"), ("UMLS:C2", "MESH:D2"), ("MESH:D3", "UMLS:C2"), ("MESH:D4", "UMLS:C4")]
+    kept = list(umls.skip_pairs_owned_elsewhere(pairs, owned))
+    assert kept == [pairs[0], pairs[3]]
+    assert kept[0] is pairs[0] and kept[1] is pairs[3]
+    assert umls.names_cui_owned_elsewhere("UMLS:C2", "MESH:D2", owned)
+    assert not umls.names_cui_owned_elsewhere("MESH:D1", "UMLS:C1", owned)
+
+
+@pytest.mark.unit
+def test_skip_pairs_owned_elsewhere_is_lazy():
+    """Should consume its input only as it is iterated, so a streamed concord is never held whole."""
+    consumed = []
+
+    def source():
+        for pair in [("A:1", "B:1"), ("A:2", "B:2")]:
+            consumed.append(pair)
+            yield pair
+
+    filtered = umls.skip_pairs_owned_elsewhere(source(), frozenset())
+    assert consumed == []
+    next(filtered)
+    assert consumed == [("A:1", "B:1")]
+
+
+@pytest.mark.unit
 @pytest.mark.parametrize(
     "pipeline,compute",
     [

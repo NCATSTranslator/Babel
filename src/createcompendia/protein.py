@@ -302,7 +302,7 @@ def _protein_concord_pairs(infile, owned_elsewhere):
     for line_index, (subject, obj) in enumerate(read_concord_pairs(infile)):
         if line_index % 1000000 == 0:
             logger.info(f"Loading concordance file {infile}: line {line_index:,}")
-        if subject in owned_elsewhere or obj in owned_elsewhere:
+        if umls.names_cui_owned_elsewhere(subject, obj, owned_elsewhere):
             continue
         yield subject, obj
 
@@ -329,7 +329,6 @@ def build_protein_compendia(concordances, metadata_yamls, identifiers, icrdf_fil
     for infile in concordances:
         logger.info(f"Loading concordance file {infile}")
         # Streamed straight into glom(), without holding the file's pairs: see read_concord_pairs().
-        # owned_elsewhere is fixed before any concord is read, so filtering while glom() runs is safe.
         glom(dicts, _protein_concord_pairs(infile, owned_elsewhere), unique_prefixes=uniques)
         logger.info(f"Loaded concordance file {infile}: {get_memory_usage_summary()}")
     logger.info(f"Finished loading concordances, memory usage: {get_memory_usage_summary()}")

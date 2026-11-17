@@ -1109,12 +1109,8 @@ def build_untyped_compendia(
     for infile in concordances:
         print(infile)
         print("loading", infile)
-        pairs = []
         # 2-tuples, handed to glom() as they are: see read_concord_pairs() for why not sets or lists.
-        for subject, obj in read_concord_pairs(infile):
-            if subject in owned_elsewhere or obj in owned_elsewhere:
-                continue
-            pairs.append((subject, obj))
+        pairs = list(umls.skip_pairs_owned_elsewhere(read_concord_pairs(infile), owned_elsewhere))
         p = False
         # pairs can be empty: an empty concord, or one whose every row names a CUI owned elsewhere.
         if pairs and DRUGCENTRAL in [n.split(":")[0] for n in pairs[0]]:
