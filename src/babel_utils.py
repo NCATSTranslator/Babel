@@ -24,7 +24,6 @@ from humanfriendly import format_timespan
 from src.LabeledID import LabeledID
 from src.metadata.provenance import write_combined_metadata
 from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory
-from src.prefixes import INCHIKEY
 from src.properties import HAS_ALTERNATIVE_ID, PropertyList
 from src.synonyms.filter import get_synonym_filter
 from src.util import Text, curie_format_problem, ensure_parent_dir, get_config, get_logger, get_memory_usage_summary
@@ -1162,7 +1161,7 @@ def unique_prefixes_from_config(config_key: str, *, allow_empty: bool = False) -
     return unique_prefixes
 
 
-def glom(conc_set, newgroups, unique_prefixes=(INCHIKEY,), pref="HP", close=None):
+def glom(conc_set, newgroups, *, unique_prefixes, pref="HP", close=None):
     """We want to construct sets containing equivalent identifiers.
     conc_set is a dictionary where the values are these equivalent identifier sets and
     the keys are all of the elements in the set.   For each element in a set, there is a key
@@ -1171,6 +1170,10 @@ def glom(conc_set, newgroups, unique_prefixes=(INCHIKEY,), pref="HP", close=None
     with which we want to update conc_set.
     unique_prefixes is any non-string collection of prefix strings (list, tuple, set, frozenset, or
     even a one-shot iterator); anything else raises ValueError -- see validate_unique_prefixes().
+    It is a required keyword with no default: it used to default to (INCHIKEY,), which two
+    conflation builders inherited without anyone choosing it (#882). A pipeline's restriction
+    belongs in config.yaml as ``<pipeline>_unique_prefixes``, read with unique_prefixes_from_config();
+    pass ``()`` in code only where it cannot matter, such as a builder that loads ids files alone.
     close, if given, maps a prefix to {identifier: identifiers it must not share a clique with}.
 
     tests/test_glom.py pins this function's whole behavior, quirks included, and restates it as a

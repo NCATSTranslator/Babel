@@ -33,7 +33,7 @@ def partition(cliques):
 def test_pairs_sharing_a_member_merge():
     """Should merge pairs that share a member, transitively, and leave unconnected pairs apart."""
     d = {}
-    glom(d, [("1", "2"), ("2", "3"), ("4", "5")])
+    glom(d, [("1", "2"), ("2", "3"), ("4", "5")], unique_prefixes=[])
     assert len(d) == 5
     assert d["1"] == d["2"] == d["3"] == {"1", "2", "3"}
     assert d["4"] == d["5"] == {"4", "5"}
@@ -43,8 +43,8 @@ def test_pairs_sharing_a_member_merge():
 def test_calls_accumulate_into_the_same_dict():
     """Should merge a later call's pairs into the cliques earlier calls built."""
     d = {}
-    glom(d, [("1", "2"), ("2", "3"), ("4", "5"), ("6", "7")])
-    glom(d, [("5", "7")])
+    glom(d, [("1", "2"), ("2", "3"), ("4", "5"), ("6", "7")], unique_prefixes=[])
+    glom(d, [("5", "7")], unique_prefixes=[])
     assert d["1"] == d["2"] == d["3"] == {"1", "2", "3"}
     assert d["4"] == d["5"] == d["6"] == d["7"] == {"4", "5", "6", "7"}
 
@@ -53,7 +53,7 @@ def test_calls_accumulate_into_the_same_dict():
 def test_a_one_element_group_adds_a_singleton():
     """Should add a 1-tuple as a clique of one: this is how ids files are loaded before concords."""
     d = {}
-    glom(d, [("A:1",)])
+    glom(d, [("A:1",)], unique_prefixes=[])
     assert d == {"A:1": {"A:1"}}
 
 
@@ -61,7 +61,7 @@ def test_a_one_element_group_adds_a_singleton():
 def test_an_empty_group_is_a_no_op():
     """Should do nothing for an empty group."""
     d = {"A:1": {"A:1"}}
-    glom(d, [()])
+    glom(d, [()], unique_prefixes=[])
     assert d == {"A:1": {"A:1"}}
 
 
@@ -69,9 +69,9 @@ def test_an_empty_group_is_a_no_op():
 def test_repeating_a_pair_changes_nothing():
     """Should leave the cliques as they were when a pair already inside one clique is glommed again."""
     d = {}
-    glom(d, [("A:1", "B:1"), ("B:1", "C:1")])
+    glom(d, [("A:1", "B:1"), ("B:1", "C:1")], unique_prefixes=[])
     before = partition(d)
-    glom(d, [("C:1", "A:1"), ("A:1", "B:1")])
+    glom(d, [("C:1", "A:1"), ("A:1", "B:1")], unique_prefixes=[])
     assert partition(d) == before
 
 
@@ -79,7 +79,7 @@ def test_repeating_a_pair_changes_nothing():
 def test_returns_none_and_mutates_in_place():
     """Should return None: the dict passed in is the result."""
     d = {}
-    assert glom(d, [("A:1", "B:1")]) is None
+    assert glom(d, [("A:1", "B:1")], unique_prefixes=[]) is None
     assert d
 
 
@@ -90,7 +90,7 @@ def test_returns_none_and_mutates_in_place():
 def test_every_member_maps_to_the_same_set_object():
     """Should map every member of a clique to one shared, mutable set, which callers rely on to dedupe cliques."""
     d = {}
-    glom(d, [("A:1", "B:1"), ("B:1", "C:1"), ("D:1", "E:1")])
+    glom(d, [("A:1", "B:1"), ("B:1", "C:1"), ("D:1", "E:1")], unique_prefixes=[])
     assert d["A:1"] is d["B:1"] is d["C:1"]
     assert d["D:1"] is d["E:1"]
     assert type(d["A:1"]) is set
@@ -104,7 +104,7 @@ def test_every_member_maps_to_the_same_set_object():
 def test_frozenset_groups_are_accepted():
     """Should accept a frozenset group and still store a plain, mutable set."""
     d = {}
-    glom(d, [frozenset(["A:1", "B:1"])])
+    glom(d, [frozenset(["A:1", "B:1"])], unique_prefixes=[])
     assert type(d["A:1"]) is set
     assert d["A:1"] is d["B:1"]
 
@@ -161,7 +161,7 @@ def test_the_debug_sentinel_works_in_every_container(shape):
     feeding it tuples.
     """
     d = {}
-    glom(d, [shape(["xUBERON:0002262", "A:1"]), shape(["A:1", "B:1"])])
+    glom(d, [shape(["xUBERON:0002262", "A:1"]), shape(["A:1", "B:1"])], unique_prefixes=[])
     assert d["B:1"] == {"xUBERON:0002262", "A:1", "B:1"}
 
 
@@ -172,7 +172,7 @@ def test_the_debug_sentinel_works_in_every_container(shape):
 def test_a_group_of_three_raises():
     """Should raise ValueError for a group of more than two: glom() only takes pairs."""
     with pytest.raises(ValueError):
-        glom({}, [{"1", "2", "3"}])
+        glom({}, [{"1", "2", "3"}], unique_prefixes=[])
 
 
 @pytest.mark.unit
@@ -180,7 +180,7 @@ def test_groups_before_a_bad_one_stay_applied():
     """Should keep every merge made before the oversized group: there is no rollback."""
     d = {}
     with pytest.raises(ValueError):
-        glom(d, [("A:1", "B:1"), ("A:1", "B:2", "B:3"), ("C:1", "D:1")])
+        glom(d, [("A:1", "B:1"), ("A:1", "B:2", "B:3"), ("C:1", "D:1")], unique_prefixes=[])
     assert partition(d) == {frozenset({"A:1", "B:1"})}
 
 
@@ -233,7 +233,7 @@ def test_a_clique_already_over_the_limit_refuses_every_later_merge():
     touching it then fails the check, even one adding a different prefix.
     """
     d = {}
-    glom(d, [("A:1", "A:2")])
+    glom(d, [("A:1", "A:2")], unique_prefixes=[])
     glom(d, [("A:2", "B:1")], unique_prefixes=["A"])
     assert "B:1" not in d
 
@@ -248,11 +248,23 @@ def test_unique_prefixes_match_the_whole_prefix_case_sensitively():
 
 
 @pytest.mark.unit
-def test_the_default_unique_prefix_is_inchikey():
-    """Should restrict INCHIKEY when unique_prefixes is not given."""
+def test_unique_prefixes_is_required():
+    """Should raise TypeError, before touching the dict, when unique_prefixes is not given.
+
+    It used to default to (INCHIKEY,), which drugchemical and geneprotein inherited without saying so
+    (#882); every caller now names its restriction, and every pipeline's is in config.yaml.
+    """
     d = {}
-    glom(d, [("INCHIKEY:A", "X:1"), ("INCHIKEY:B", "X:1")])
-    assert d["X:1"] == {"INCHIKEY:A", "X:1"}
+    with pytest.raises(TypeError, match="unique_prefixes"):
+        glom(d, [("INCHIKEY:A", "X:1"), ("INCHIKEY:B", "X:1")])
+    assert d == {}
+
+
+@pytest.mark.unit
+def test_unique_prefixes_is_keyword_only():
+    """Should raise TypeError when unique_prefixes is passed positionally, so a call always names it."""
+    with pytest.raises(TypeError):
+        glom({}, [("A:1", "B:1")], ["A"])
 
 
 @pytest.mark.unit
@@ -392,7 +404,7 @@ def test_quirk_a_plain_dict_close_map_raises_on_an_unlisted_identifier():
 def test_a_bare_kegg_or_pubchem_prefix_raises(curie):
     """Should raise on the ambiguous bare KEGG and PUBCHEM prefixes, which no source should still emit."""
     with pytest.raises(Exception, match="garbage"):
-        glom({}, [(curie, "X:1")])
+        glom({}, [(curie, "X:1")], unique_prefixes=[])
 
 
 @pytest.mark.unit
@@ -408,7 +420,7 @@ def test_the_forbidden_prefix_check_runs_before_the_unique_check():
 def test_dotted_kegg_and_pubchem_prefixes_are_fine():
     """Should accept KEGG.COMPOUND and PUBCHEM.COMPOUND: only the exact bare prefixes are forbidden."""
     d = {}
-    glom(d, [("KEGG.COMPOUND:C00001", "PUBCHEM.COMPOUND:962")])
+    glom(d, [("KEGG.COMPOUND:C00001", "PUBCHEM.COMPOUND:962")], unique_prefixes=[])
     assert d["KEGG.COMPOUND:C00001"] == {"KEGG.COMPOUND:C00001", "PUBCHEM.COMPOUND:962"}
 
 
