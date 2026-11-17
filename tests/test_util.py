@@ -1,9 +1,18 @@
 """Tests for src/util.py helpers."""
 
+import duckdb
 import pytest
 import yaml
 
-from src.util import Text, _biolink_ref, curie_format_problem, ensure_parent_dir, safe_load_yaml_unique_keys
+from src.util import (
+    Text,
+    _biolink_ref,
+    curie_format_problem,
+    ensure_parent_dir,
+    safe_load_yaml_unique_keys,
+    sql_list,
+    sql_str,
+)
 
 
 @pytest.mark.unit
@@ -182,3 +191,15 @@ def test_safe_load_yaml_unique_keys_refuses_a_repeated_key(text):
     last value."""
     with pytest.raises(yaml.constructor.ConstructorError, match="duplicate key 'a'"):
         safe_load_yaml_unique_keys(text)
+
+
+# SQL LITERALS
+
+
+@pytest.mark.unit
+def test_sql_str_and_sql_list_survive_an_embedded_quote():
+    """A value holding a single quote (a path like gaurav's-builds) should round-trip through DuckDB unchanged."""
+    value = "/home/me/gaurav's-builds/duckdb"
+    con = duckdb.connect()
+    assert con.sql(f"SELECT {sql_str(value)}").fetchone()[0] == value
+    assert con.sql(f"SELECT {sql_list([value, 'plain'])}").fetchone()[0] == [value, "plain"]
