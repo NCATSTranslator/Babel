@@ -9,6 +9,7 @@ import time
 import traceback
 import urllib
 from collections import ChainMap, Counter, defaultdict
+from collections.abc import Iterable, Mapping
 from datetime import datetime, timedelta
 from enum import Enum
 from ftplib import FTP
@@ -23,6 +24,7 @@ from humanfriendly import format_timespan
 from src.LabeledID import LabeledID
 from src.metadata.provenance import write_combined_metadata
 from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory
+from src.prefixes import INCHIKEY
 from src.properties import HAS_ALTERNATIVE_ID, PropertyList
 from src.synonyms.filter import get_synonym_filter
 from src.util import Text, curie_format_problem, ensure_parent_dir, get_config, get_logger, get_memory_usage_summary
@@ -1085,29 +1087,66 @@ def raise_on_malformed_curies(malformed_curies, ofname):
     )
 
 
-def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={}):
+def validate_unique_prefixes(unique_prefixes) -> frozenset[str]:
+    """Return ``unique_prefixes`` as a frozenset of prefixes, raising ValueError if it isn't a collection of them.
+
+    glom() restricts each prefix in unique_prefixes to one identifier per clique, and nothing checks
+    that a restricted prefix exists, so every malformed value it used to accept failed silently, by
+    restricting the wrong prefixes or none:
+
+    * a string is a collection of its characters, so ``"UBERON"`` restricted U, B, E, R, O and N
+      and not UBERON -- a config.yaml entry such as ``anatomy_unique_prefixes: UBERON`` written
+      without brackets would do this;
+    * ``bytes`` iterate as ints, which match no prefix;
+    * a mapping iterates as its keys, which is never what was meant;
+    * a one-shot iterator (a generator, ``map()``, ``filter()``) was used up by the first group,
+      leaving every later group in the call unrestricted;
+    * ``None`` (a config.yaml key with no value) only failed once there was a group to check, and
+      then with an unhelpful TypeError;
+    * an element that isn't a non-empty string without a colon, such as ``"UBERON:"``, matches no
+      identifier's prefix.
+
+    Each of these raises ValueError here instead. Returning a frozenset, rather than handing back
+    what was passed, is what makes the iterator case safe, and lets glom() test membership directly.
+    An empty collection is valid: cell_line and genefamily deliberately restrict nothing.
+    """
+    if isinstance(unique_prefixes, str):
+        raise ValueError(
+            f"unique_prefixes must be a collection of prefixes, not the string {unique_prefixes!r}; "
+            f"did you mean [{unique_prefixes!r}]?"
+        )
+    if isinstance(unique_prefixes, (bytes, bytearray, Mapping)) or not isinstance(unique_prefixes, Iterable):
+        raise ValueError(
+            f"unique_prefixes must be a collection of prefix strings, not {type(unique_prefixes).__name__} "
+            f"{unique_prefixes!r}"
+        )
+    prefixes = list(unique_prefixes)
+    bad = [p for p in prefixes if not isinstance(p, str) or not p or ":" in p]
+    if bad:
+        raise ValueError(
+            f"unique_prefixes must hold non-empty prefix strings without a colon; got {bad!r} in {prefixes!r}"
+        )
+    return frozenset(prefixes)
+
+
+def glom(conc_set, newgroups, unique_prefixes=(INCHIKEY,), pref="HP", close=None):
     """We want to construct sets containing equivalent identifiers.
     conc_set is a dictionary where the values are these equivalent identifier sets and
     the keys are all of the elements in the set.   For each element in a set, there is a key
     in the dictionary that points to the set.
     newgroups is an iterable that of new equivalence groups (expressed as sets,tuples,or lists)
     with which we want to update conc_set.
-    unique_prefixes is a collection of prefixes (a list, as every caller passes); a string raises
-    ValueError rather than being read as its characters.
+    unique_prefixes is any non-string collection of prefix strings (list, tuple, set, frozenset, or
+    even a one-shot iterator); anything else raises ValueError -- see validate_unique_prefixes().
+    close, if given, maps a prefix to {identifier: identifiers it must not share a clique with}.
 
     tests/test_glom.py pins this function's whole behavior, quirks included, and restates it as a
     short reference implementation (``reference_glom``) checked against this one over randomized
     inputs. Read it before changing glom(), and test any replacement against it."""
-    # A string is a collection of its characters, so unique_prefixes="UBERON" used to restrict the
-    # prefixes U, B, E, R, O and N, and not UBERON -- silently, as nothing checks that a restricted
-    # prefix exists. Raising rather than wrapping it in a list makes the caller fix the call, and
-    # catches a config.yaml entry such as `anatomy_unique_prefixes: UBERON` written without brackets.
-    # It runs before the first group, so a bad call fails even when it has nothing to merge.
-    if isinstance(unique_prefixes, str):
-        raise ValueError(
-            f"glom() takes unique_prefixes as a collection of prefixes, not the string {unique_prefixes!r}; "
-            f"did you mean [{unique_prefixes!r}]?"
-        )
+    # Validated before the first group, so a bad call fails even when it has nothing to merge.
+    unique_prefixes = validate_unique_prefixes(unique_prefixes)
+    if close is None:
+        close = {}
     n = 0
     bad = 0
     shit_prefixes = set(["KEGG", "PUBCHEM"])
