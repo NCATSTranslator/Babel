@@ -13,6 +13,7 @@ pipeline. Each tool lives in `src/tools/<tool>/` and is installed as a console s
 | [Overused xrefs](OverusedXrefs.md) | `uv run babel-overused-xrefs --concord <file> --out <csv>` | "Which xref targets in this concord will fuse unrelated cliques?" |
 | [InChIKey audit](InchikeyAudit.md) | `uv run babel-inchikey-audit --build <dir> --out <dir>` | "Which records were attached to a chemical structure they are not, and by which xref?" |
 | [Check concords](CheckConcords.md) | `uv run babel-check-concords <dir, file or URL> …` | "Would any row of these concords fail the build's concord parser?" |
+| [Compare resolution](CompareResolution.md) | `uv run babel-compare-resolution <CURIE> … [--name NAME] [--target dev]` | "How do these CURIEs normalize on each NodeNorm deployment, and why are they separate?" |
 | [SLURM errors](Errors.md) | `uv run babel-slurm-errors <version>` | "Which rules failed in this cluster run, and why?" |
 | [SLURM resources](Resources.md) | `uv run babel-slurm-resources <run-dir>` | "How much `mem`/`cpus` should each rule actually request?" |
 | [RDF load memory](Memory.md) | `uv run python src/tools/memory/estimate_rdf_load_memory.py FILE` | "How much RAM will bulk-loading this RDF dump need?" |
