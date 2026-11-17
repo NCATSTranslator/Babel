@@ -13,7 +13,7 @@ from contextlib import contextmanager
 
 import duckdb
 
-from src.memory import _bytes_to_gib, cgroup_memory_hard_limit_bytes, log_memory_snapshot
+from src.memory import bytes_to_gib, cgroup_memory_hard_limit_bytes, log_memory_snapshot
 from src.util import get_config, get_logger, sql_str
 
 logger = get_logger(__name__)
@@ -131,7 +131,7 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
     logger.info(
         "DuckDB memory headroom: memory_limit=%s, cgroup hard limit (SLURM mem)=%s",
         memory_limit,
-        _bytes_to_gib(cgroup_limit),
+        bytes_to_gib(cgroup_limit),
     )
 
     return db
