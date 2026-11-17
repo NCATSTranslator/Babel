@@ -10,6 +10,7 @@ Tests are organized along two independent axes:
 | Directory | What lives there |
 |-----------|-----------------|
 | `tests/` (root) | Core utility tests: `glom`, `LabeledID`, `NodeFactory`, `ThrottledRequester`, FTP utilities, UberGraph, and gene-protein conflation |
+| `tests/utils/` | One test file per module in `src/utils/` (`test_duckdb_setup.py`, `test_memory.py`) |
 | `tests/datahandlers/` | One test file per module in `src/datahandlers/` |
 | `tests/datahandlers/pyoxigraph/` | Smoke tests for the pyoxigraph API surface itself (bulk_load formats, SPARQL row access). Future subdirectories will follow the same pattern for UberGraph, ENSEMBL, etc. |
 | `tests/pipeline/` | Full pipeline integration tests that call `write_*_ids()` functions and check the resulting intermediate files; source data is auto-downloaded or skipped per vocabulary (see [Pipeline Tests](pipeline/README.md)) |

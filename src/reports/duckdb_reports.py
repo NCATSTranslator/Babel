@@ -4,8 +4,8 @@ import os
 from collections import Counter, defaultdict
 
 from src import util
-from src.exporters.duckdb_exporters import log_duckdb_settings_on_error, setup_duckdb
-from src.memory import log_memory_snapshot
+from src.utils.duckdb_setup import log_duckdb_settings_on_error, setup_duckdb
+from src.utils.memory import log_memory_snapshot
 
 logger = util.get_logger(__name__)
 
