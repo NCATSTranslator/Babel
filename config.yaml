@@ -187,6 +187,8 @@ anatomy_outputs:   [AnatomicalEntity.txt, Cell.txt, CellularComponent.txt, Gross
 # Restricting EMAPA would block all 122 merges and would silently delete any EMAPA CURIE that
 # lost the resulting contest without having its own ids-file row.  See
 # docs/sources/EMAPA/README.md, which flags this for SME review.
+# Read with unique_prefixes_from_config(), which fails the build if this isn't a non-empty list of
+# prefixes defined in src/prefixes.py (a bare `UBERON` or a misspelt prefix would restrict the wrong prefixes).
 anatomy_unique_prefixes: [UBERON, GO]
 
 gene_labels:   [HGNC, NCBIGene, UMLS, OMIM]

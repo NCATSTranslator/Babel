@@ -4,7 +4,8 @@
 ``compute_cliques_for_impact_report`` (and, ideally, its ``build_compendia``) routes
 through. The anatomy CLI test exercises it end-to-end; these tests cover the generic
 hooks directly: the concord-pair filter, the overused-xref remover, ``excluded_sources``,
-and that ``unique_prefixes`` / ``glom_kwargs`` are forwarded to :func:`glom`.
+that ``unique_prefixes`` / ``glom_kwargs`` are forwarded to :func:`glom`, and that a malformed
+``unique_prefixes`` raises even when no file reaches :func:`glom`.
 """
 
 import pytest
@@ -122,8 +123,9 @@ def test_overused_xref_remover_is_invoked(tmp_path):
 def test_unique_prefixes_and_glom_kwargs_forwarded(tmp_path, monkeypatch):
     """``unique_prefixes`` and all extra ``glom_kwargs`` should be forwarded verbatim to :func:`glom`.
 
-    A monkeypatched ``glom`` records every kwargs dict it receives. Each call must contain
-    ``unique_prefixes``, ``pref``, and ``close`` exactly as passed to ``glom_from_files``.
+    A monkeypatched ``glom`` records every kwargs dict it receives. Each call must contain ``pref``
+    and ``close`` exactly as passed to ``glom_from_files``, and ``unique_prefixes`` as the frozenset
+    ``validate_unique_prefixes()`` makes of it.
     """
     ids = write_lines(tmp_path / "SRC", ["FOO:1"])
     concord = write_lines(tmp_path / "SRC.concord", ["FOO:1\teq\tBAR:1"])
@@ -144,6 +146,32 @@ def test_unique_prefixes_and_glom_kwargs_forwarded(tmp_path, monkeypatch):
 
     assert calls, "glom should have been called"
     for kwargs in calls:
-        assert kwargs["unique_prefixes"] == ["FOO"]
+        assert kwargs["unique_prefixes"] == frozenset({"FOO"})
         assert kwargs["pref"] == "BAR"
         assert kwargs["close"] == {"FOO": {}}
+
+
+# --- Validating unique_prefixes ---
+
+
+@pytest.mark.parametrize(
+    "files",
+    [
+        pytest.param("none", id="no-input-files"),
+        pytest.param("all-excluded", id="every-source-excluded"),
+    ],
+)
+def test_malformed_unique_prefixes_raises_even_when_glom_is_never_called(tmp_path, files):
+    """A string ``unique_prefixes`` should raise ValueError even when no file reaches :func:`glom`.
+
+    With no inputs, or every source excluded (the impact report's "before" state), ``glom`` is never
+    called, so its own check never runs; ``glom_from_files`` checks first.
+    """
+    if files == "none":
+        concordances, identifiers, excluded = [], [], ()
+    else:
+        concordances = [write_lines(tmp_path / "SRC.concord", ["FOO:1\teq\tBAR:1"])]
+        identifiers = [write_lines(tmp_path / "SRC", ["FOO:1"])]
+        excluded = {"SRC", "SRC.concord"}
+    with pytest.raises(ValueError, match=r"did you mean \['UBERON'\]"):
+        cliques.glom_from_files(concordances, identifiers, unique_prefixes="UBERON", excluded_sources=excluded)
