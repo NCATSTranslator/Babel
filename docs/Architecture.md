@@ -54,7 +54,7 @@ All Python and Snakemake source code lives under `src/`:
 | `src/node.py`          | Core factory classes: `NodeFactory`, `SynonymFactory`, `DescriptionFactory`, `TaxonFactory`, `InformationContentFactory`, `TSVSQLiteLoader`.                                      |
 | `src/babel_utils.py`   | Core pipeline utilities: download/FTP helpers, `glom()` (clique merging), `write_compendium()` (compendium builder), and state management helpers.                                |
 | `src/util.py`          | Logging setup, config loading, [Biolink Model Toolkit](https://github.com/biolink/biolink-model-toolkit) access.                                                                  |
-| `src/utils/`           | Generic helpers: `duckdb_setup.py` opens every DuckDB connection (`setup_duckdb()`, `log_duckdb_settings_on_error()`); `memory.py` holds the memory diagnostics (#1223).          |
+| `src/utils/`           | Generic helpers: `duckdb_setup.py` opens every DuckDB connection (`connect_duckdb()`, `log_duckdb_settings_on_error()`); `memory.py` holds the memory diagnostics (#1223).        |
 | `src/exporters/`       | Output format handlers for KGX, Apache Parquet, and JSONL.                                                                                                                        |
 | `src/reports/`         | Report generation code.                                                                                                                                                           |
 | `src/synonyms/`        | Synonym file generation.                                                                                                                                                          |

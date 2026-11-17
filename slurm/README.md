@@ -173,10 +173,11 @@ the 120-minute default has roughly 2x headroom and was left alone.
 The DuckDB rules (`export_*_to_duckdb` and the cross-compendium report rules in
 `duckdb.snakefile`) spill larger-than-memory intermediates to a temp directory. By default that
 is `tmp_directory` from `config.yaml` (`babel_downloads/tmp`, on the parallel filesystem).
-`setup_duckdb()` gives each process its own `duckdb-$SLURM_JOB_ID-<pid>` subdirectory there, so
-concurrent jobs never share spill files — sharing one directory previously caused `stale file
-handle` and `could not read enough bytes` IO errors when several report jobs ran at once. The
-subdirectory is deleted when the process exits. A job killed outright — SIGKILL at its time limit
+`connect_duckdb()` gives each connection its own `duckdb-$SLURM_JOB_ID-<pid>-<random>`
+subdirectory there, so concurrent jobs never share spill files — sharing one directory previously
+caused `stale file handle` and `could not read enough bytes` IO errors when several report jobs ran
+at once. The subdirectory is deleted when the connection closes, including when a query raises. A
+job killed outright — SIGKILL at its time limit
 or a cgroup OOM-kill, or the SIGABRT of a DuckDB background-thread OOM — skips that clean-up and
 leaves its directory, spill files included; the job ID in its name says whether that job is still
 running, and once it isn't, the directory can be deleted.
@@ -250,7 +251,7 @@ The **definitive** fix is for the cluster to raise `vm.max_map_count` (it is the
 65530; 262144+ is typical for data-heavy mmap workloads — tracking issue #846). The `memory_limit`
 cap keeps the rule running until then. `mem` stays at 512G (the cgroup was never the constraint).
 
-The memory snapshot is built to tell these shapes apart. `setup_duckdb()` logs a connect-time
+The memory snapshot is built to tell these shapes apart. `connect_duckdb()` logs a connect-time
 `DuckDB memory headroom: memory_limit=…, cgroup hard limit=…` line (the only memory record that
 survives a SIGABRT), and `log_duckdb_settings_on_error()` plus the end of each report log two lines:
 a `Memory snapshot (…)` line (process peak RSS, cgroup current/peak/hard-limit, DuckDB tracked, and
