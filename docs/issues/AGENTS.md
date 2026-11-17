@@ -142,8 +142,8 @@ up:
 - **Assert what the fix should produce**, and add guards: `Resolves` for every CURIE, so that a
   failure can't hide a CURIE that stopped resolving altogether, and `DoesNotResolveWith` for each
   not-duplicate.
-- **Run a block before relying on it.** Until babel-validation can be installed here, run it from a
-  sibling checkout. It needs `GITHUB_TOKEN`:
+- **Run a block before relying on it.** Until babel-validation can be installed here (#1234), run it
+  from a sibling checkout. It needs `GITHUB_TOKEN`:
 
   ```bash
   cd ../babel-validation
