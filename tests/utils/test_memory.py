@@ -1,6 +1,6 @@
 import pytest
 
-from src.memory import (
+from src.utils.memory import (
     _parse_cgroup_memory_value,
     _parse_kv_kb_bytes,
     _parse_proc_cgroup,

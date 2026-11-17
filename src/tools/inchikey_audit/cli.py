@@ -43,10 +43,10 @@ import tempfile
 
 from src.createcompendia.chemicals import UNICHEM_OVERUSED_XREF_PREFIXES, read_applied_badxrefs
 from src.datahandlers.umls import read_cuis_owned_elsewhere
-from src.duckdb_setup import setup_duckdb
 from src.model.glom_edges import classify_chemical_glom_edges
 from src.model.inchikey_audit import audit_chemical_inchikeys, refused_edges_query
 from src.util import ensure_parent_dir, get_config, get_logger, sql_str
+from src.utils.duckdb_setup import setup_duckdb
 
 logger = get_logger(__name__)
 

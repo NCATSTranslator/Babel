@@ -15,8 +15,8 @@ from contextlib import contextmanager
 
 import duckdb
 
-from src.memory import bytes_to_gib, cgroup_memory_hard_limit_bytes, log_memory_snapshot
 from src.util import get_config, get_logger, sql_str
+from src.utils.memory import bytes_to_gib, cgroup_memory_hard_limit_bytes, log_memory_snapshot
 
 logger = get_logger(__name__)
 

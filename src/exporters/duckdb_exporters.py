@@ -7,9 +7,9 @@ from pathlib import Path
 
 import duckdb
 
-from src.duckdb_setup import log_duckdb_settings_on_error, setup_duckdb
 from src.model.intermediates import METADATA_DIRECTORY_FILENAME, metadata_subject_filename
 from src.util import ensure_parent_dir, get_logger
+from src.utils.duckdb_setup import log_duckdb_settings_on_error, setup_duckdb
 
 logger = get_logger(__name__)
 

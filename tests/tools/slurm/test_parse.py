@@ -140,7 +140,7 @@ def test_extract_error_content_shows_full_log_and_real_exception(tmp_path):
     """The whole log is shown, so a RuleException far from the tail (not a Python Traceback,
     not in the last N lines) is never hidden -- this is the 1870.log failure shape."""
     log = (
-        "INFO src.duckdb_setup: DuckDB memory headroom: "
+        "INFO src.utils.duckdb_setup: DuckDB memory headroom: "
         "memory_limit=400G, cgroup hard limit (SLURM mem)=512.0 GiB\n"
         + "\n".join(f"filler {i}" for i in range(40))
         + "\nRuleException:\n"

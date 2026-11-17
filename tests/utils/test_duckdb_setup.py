@@ -1,11 +1,11 @@
-"""Unit tests for src/duckdb_setup.py: how Babel opens a DuckDB connection and reports its settings on failure."""
+"""Unit tests for src/utils/duckdb_setup.py: how Babel opens a DuckDB connection and reports its settings on failure."""
 
 import os
 
 import duckdb
 import pytest
 
-from src.duckdb_setup import _remove_spill_directories, log_duckdb_settings_on_error, setup_duckdb
+from src.utils.duckdb_setup import _remove_spill_directories, log_duckdb_settings_on_error, setup_duckdb
 
 # SETUP_DUCKDB
 
@@ -18,7 +18,7 @@ def babel_config(monkeypatch, tmp_path):
         "duckdb_config": {"threads": 3, "preserve_insertion_order": False},
         "tmp_directory": str(tmp_path / "tmp"),
     }
-    monkeypatch.setattr("src.duckdb_setup.get_config", lambda: config)
+    monkeypatch.setattr("src.utils.duckdb_setup.get_config", lambda: config)
     monkeypatch.delenv("BABEL_DUCKDB_TEMP_DIR", raising=False)
     monkeypatch.delenv("SLURM_JOB_ID", raising=False)
     return config
