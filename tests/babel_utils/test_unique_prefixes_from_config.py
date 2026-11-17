@@ -64,3 +64,27 @@ def test_a_missing_key_raises(monkeypatch):
     use_config(monkeypatch, None)
     with pytest.raises(ValueError, match="config.yaml: no_such_unique_prefixes"):
         unique_prefixes_from_config("no_such_unique_prefixes")
+
+
+# ALLOW_EMPTY
+
+
+def test_allow_empty_accepts_an_empty_list(monkeypatch):
+    """Should return an empty frozenset for ``[]`` when allow_empty is set, as geneprotein's entry is."""
+    use_config(monkeypatch, [])
+    assert unique_prefixes_from_config("test_unique_prefixes", allow_empty=True) == frozenset()
+
+
+@pytest.mark.parametrize(
+    "value, message",
+    [
+        pytest.param("UBERON", r"did you mean \['UBERON'\]", id="string-without-brackets"),
+        pytest.param(None, "not NoneType", id="key-with-no-value"),
+        pytest.param(["UBRON"], r"not defined in src/prefixes.py: \['UBRON'\]", id="misspelt-prefix"),
+    ],
+)
+def test_allow_empty_still_rejects_every_other_bad_entry(monkeypatch, value, message):
+    """Should still raise for a bare string, a key with no value, or an unknown prefix when allow_empty is set."""
+    use_config(monkeypatch, value)
+    with pytest.raises(ValueError, match=message):
+        unique_prefixes_from_config("test_unique_prefixes", allow_empty=True)

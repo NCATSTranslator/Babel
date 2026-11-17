@@ -1108,9 +1108,9 @@ def validate_unique_prefixes(unique_prefixes) -> frozenset[str]:
 
     Each of these raises ValueError here instead. Returning a frozenset, rather than handing back
     what was passed, is what makes the iterator case safe, and lets glom() test membership directly.
-    An empty collection is valid: cell_line and genefamily deliberately restrict nothing. For a
-    value read from config.yaml, where an empty list is more likely a lost entry than a decision,
-    use unique_prefixes_from_config().
+    An empty collection is valid: cell_line, genefamily and macromolecular_complex load only ids
+    files, where nothing merges, so they pass ``()``. For a value read from config.yaml, where an
+    empty list is more likely a lost entry than a decision, use unique_prefixes_from_config().
     """
     if isinstance(unique_prefixes, str):
         raise ValueError(
@@ -1131,14 +1131,20 @@ def validate_unique_prefixes(unique_prefixes) -> frozenset[str]:
     return frozenset(prefixes)
 
 
-def unique_prefixes_from_config(config_key: str) -> frozenset[str]:
+def unique_prefixes_from_config(config_key: str, *, allow_empty: bool = False) -> frozenset[str]:
     """Read a pipeline's unique prefixes from config.yaml, checking each is a prefix Babel knows.
 
-    On top of validate_unique_prefixes(), this rejects an empty list and any prefix that isn't one of
-    the constants in src/prefixes.py. In code, an empty list is a deliberate choice (cell_line,
-    genefamily); in config.yaml it is more likely an entry emptied by a bad merge, which would turn
-    off every restriction for the pipeline without a word. A misspelt prefix (``UBRON``) would do the
-    same for that one prefix. A pipeline that really should restrict nothing can pass ``[]`` in code.
+    Every pipeline whose glom() can merge anything keeps its restriction in config.yaml as
+    ``<pipeline>_unique_prefixes`` (#882), so that one file shows where merges are refused and why.
+    Call this where the glom() runs, not at import time, so a module can be imported without a
+    complete config.
+
+    On top of validate_unique_prefixes(), this rejects any prefix that isn't one of the constants in
+    src/prefixes.py, since a misspelt prefix (``UBRON``) restricts nothing without a word. It also
+    rejects an empty list unless ``allow_empty`` is set: for most pipelines an empty entry is more
+    likely one emptied by a bad merge, which would turn off every restriction without a word. Pass
+    ``allow_empty=True`` only for a pipeline whose recorded decision is to restrict nothing
+    (geneprotein conflation); a missing key or a bare ``key:`` (None) is still an error.
     """
     from src import prefixes as prefix_constants
 
@@ -1147,7 +1153,7 @@ def unique_prefixes_from_config(config_key: str) -> frozenset[str]:
         unique_prefixes = validate_unique_prefixes(value)
     except ValueError as err:
         raise ValueError(f"config.yaml: {config_key}: {err}") from err
-    if not unique_prefixes:
+    if not unique_prefixes and not allow_empty:
         raise ValueError(f"config.yaml: {config_key} is empty; list at least one prefix to keep unique per clique")
     known = {v for k, v in vars(prefix_constants).items() if k.isupper() and isinstance(v, str)}
     unknown = sorted(unique_prefixes - known)
