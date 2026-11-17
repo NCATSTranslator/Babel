@@ -2,8 +2,10 @@
 
 Covers write_unichem_concords()'s handling of UniChem compound IDs that already embed their source
 prefix (e.g. the CHEBI source stores "CHEBI:12345" rather than a bare "12345"), which previously
-produced invalid "CHEBI:CHEBI:12345" CURIEs across the chemical compendia; and make_chebi_relations()'s
-reading of the ChEBI SDF, whose tags ChEBI renames between releases.
+produced invalid "CHEBI:CHEBI:12345" CURIEs across the chemical compendia; make_chebi_relations()'s
+reading of the ChEBI SDF, whose tags ChEBI renames between releases; and combine_unichem()'s
+one-prefix-per-file guards, which decide whether remove_overused_xrefs() runs for a given source;
+and build_untyped_compendia()'s handling of a concord that leaves no pairs to glom.
 """
 
 import gzip
@@ -25,6 +27,8 @@ from src.categories import (
 )
 from src.createcompendia.chemicals import (
     CHEBI_DBX_SOURCE_NAMES,
+    build_untyped_compendia,
+    combine_unichem,
     create_typed_sets,
     make_chebi_relations,
     read_chebi_lookup_ids,
@@ -34,7 +38,7 @@ from src.createcompendia.chemicals import (
 from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.predicates import HAS_ALTERNATIVE_ID
-from src.prefixes import CHEBI, KEGGCOMPOUND, PUBCHEMCOMPOUND
+from src.prefixes import CHEBI, DRUGBANK, INCHIKEY, KEGGCOMPOUND, PUBCHEMCOMPOUND
 from src.util import get_config
 
 # Derive CHEBI's UniChem source ID from the authoritative dict rather than hardcoding it.
@@ -702,3 +706,100 @@ def test_a_bad_pair_naming_a_cui_owned_elsewhere_still_counts_as_matched(tmp_pat
     counts = yaml.safe_load((tmp_path / "metadata.yaml").read_text())["counts"]
 
     assert counts["bad_xref_pairs_unmatched"] == []
+
+
+# COMBINING UNICHEM CONCORDS
+
+
+def _write_unichem_concord(path, pairs):
+    """Write a UniChem concord file: tab-separated `subject \t eq \t object` rows."""
+    path.write_text("".join(f"{subject}\teq\t{obj}\n" for subject, obj in pairs))
+    return path
+
+
+@pytest.mark.unit
+def test_combine_unichem_gloms_a_single_prefix_file_into_cliques(tmp_path):
+    """Pairs sharing an INCHIKEY should be glommed into one clique and written as a JSON array."""
+    concord = _write_unichem_concord(
+        tmp_path / f"UNICHEM_{CHEBI}",
+        [(f"{CHEBI}:15377", f"{INCHIKEY}:XLYOFNOQVPJJNP-UHFFFAOYSA-N"), (f"{CHEBI}:16234", f"{INCHIKEY}:OTHERKEY-N")],
+    )
+    output = tmp_path / "UNICHEM"
+
+    combine_unichem([str(concord)], str(output))
+
+    cliques = {frozenset(json.loads(line)) for line in output.read_text().splitlines()}
+    assert cliques == {
+        frozenset({f"{CHEBI}:15377", f"{INCHIKEY}:XLYOFNOQVPJJNP-UHFFFAOYSA-N"}),
+        frozenset({f"{CHEBI}:16234", f"{INCHIKEY}:OTHERKEY-N"}),
+    }
+
+
+@pytest.mark.unit
+def test_combine_unichem_raises_on_an_empty_concord(tmp_path):
+    """An empty UniChem concord means the upstream extract produced nothing, and must fail loudly.
+
+    This guard depends on how combine_unichem() finds the file's prefix: it parses it from the first
+    row read_concord_pairs() yields, and that yields no rows for an empty file, so the "no prefixes"
+    branch is what catches it. If read_concord_pairs() ever skips blank or malformed lines instead of
+    raising, a file of only such lines would land here too.
+    """
+    concord = _write_unichem_concord(tmp_path / f"UNICHEM_{CHEBI}", [])
+
+    with pytest.raises(RuntimeError, match="No prefixes found"):
+        combine_unichem([str(concord)], str(tmp_path / "UNICHEM"))
+
+
+@pytest.mark.unit
+def test_combine_unichem_raises_when_a_file_mixes_prefixes_in_column_1(tmp_path):
+    """Each UniChem concord covers exactly one source, so two prefixes in column 1 is a format change.
+
+    The subject prefix decides whether remove_overused_xrefs() runs for the file, so a mixed file
+    would silently apply one source's policy to another's rows.
+    """
+    concord = _write_unichem_concord(
+        tmp_path / f"UNICHEM_{CHEBI}",
+        [(f"{CHEBI}:15377", f"{INCHIKEY}:AAA-N"), (f"{DRUGBANK}:DB00898", f"{INCHIKEY}:BBB-N")],
+    )
+
+    with pytest.raises(RuntimeError, match="Multiple prefixes found"):
+        combine_unichem([str(concord)], str(tmp_path / "UNICHEM"))
+
+
+# BUILD_UNTYPED_COMPENDIA
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "rows",
+    [
+        pytest.param([], id="empty-concord"),
+        pytest.param([("UMLS:C0000001", f"{CHEBI}:15377")], id="every-row-owned-elsewhere"),
+    ],
+)
+def test_build_untyped_compendia_survives_a_concord_with_no_pairs_left(tmp_path, rows):
+    """Should build the untyped compendium, not raise IndexError, when a concord leaves no pairs to glom.
+
+    A debug probe used to read ``pairs[0]`` unguarded, so an empty concord, or one whose every row
+    names a CUI another pipeline owns, crashed the untyped_compendium rule.
+    """
+    concord = _write_unichem_concord(tmp_path / "UMLS", rows)
+    unichem_partial = tmp_path / "unichem_partial.jsonl"
+    unichem_partial.write_text(json.dumps([f"{CHEBI}:15377", f"{INCHIKEY}:XLYOFNOQVPJJNP-UHFFFAOYSA-N"]) + "\n")
+    # The umls_mesh_ownership rule's format: CUI, owning pipeline, descriptor, Biolink type.
+    mesh_ownership = tmp_path / "mesh_ownership.tsv"
+    mesh_ownership.write_text("UMLS:C0000001\tdisease\tMESH:D000001\tbiolink:Disease\n")
+    untyped_concord = tmp_path / "untyped_compendium"
+
+    build_untyped_compendia(
+        [str(concord)],
+        [],
+        str(unichem_partial),
+        str(untyped_concord),
+        str(tmp_path / "types"),
+        str(tmp_path / "metadata.yaml"),
+        [],
+        mesh_ownership=str(mesh_ownership),
+    )
+
+    assert untyped_concord.read_text().count("\n") == 1

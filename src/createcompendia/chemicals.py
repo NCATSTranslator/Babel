@@ -31,7 +31,7 @@ from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUC
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.datahandlers.unii import UNII_ORGANISM_COLUMNS, read_unii_records
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
-from src.model.intermediates import read_concords
+from src.model.intermediates import read_concord_pairs
 from src.prefixes import (
     CHEBI,
     CHEMBLCOMPOUND,
@@ -653,31 +653,36 @@ def combine_unichem(concordances, output):
 
         # We will want to only remove overused xrefs for specific prefixes.
         # UniChem files should only have a single prefix in the first column,
-        # but out of paranoia we'll double-check that.
-        prefixes_in_file = set()
+        # but out of paranoia we'll double-check that. The prefix is parsed from the first row only,
+        # and every later row is checked with a startswith() against it: UNICHEM_PUBCHEM.COMPOUND has
+        # over 100 million rows, and splitting and hashing every subject just to confirm one fact
+        # about the whole file was a measurable share of reading it.
+        prefix_to_check = None
+        expected_subject_start = None
 
-        for x in read_concords(infile):
-            pairs.append([x[0], x[2]])
-            # Get the prefix from the first row to determine if we need to remove overused xrefs
-            prefixes_in_file.add(Text.get_prefix(x[0]))
+        # 2-tuples, handed to glom() as they are: see read_concord_pairs() for why not sets or lists.
+        for subject, obj in read_concord_pairs(infile):
+            if prefix_to_check is None:
+                prefix_to_check = Text.get_prefix(subject)
+                expected_subject_start = prefix_to_check + ":"
+            elif not subject.startswith(expected_subject_start):
+                raise RuntimeError(
+                    f"Multiple prefixes found in {infile}: {prefix_to_check} and {subject.split(':', 1)[0]} "
+                    f"(at {subject}). All UNICHEM files should have exactly one prefix."
+                )
+            pairs.append((subject, obj))
 
-        # Was there exactly one prefix in the first column?
-        if len(prefixes_in_file) == 0:
+        # Was there a prefix at all in the first column?
+        if prefix_to_check is None:
             raise RuntimeError(
                 f"No prefixes found in {infile} (file may be empty or have no valid CURIE in column 1). All UNICHEM files should have exactly one prefix."
             )
-        if len(prefixes_in_file) > 1:
-            raise RuntimeError(
-                f"Multiple prefixes found in {infile}: {prefixes_in_file}. All UNICHEM files should have exactly one prefix."
-            )
-        prefix_to_check = prefixes_in_file.pop()
 
         # Only remove overused xrefs for specific prefixes
-        newpairs = pairs
+        # Reassigned rather than copied, so the unfiltered list can be freed before glom() runs.
         if prefix_to_check in UNICHEM_OVERUSED_XREF_PREFIXES:
-            newpairs = remove_overused_xrefs(pairs)
-        setpairs = [set(x) for x in newpairs]
-        glom(dicts, setpairs, unique_prefixes=[INCHIKEY])
+            pairs = remove_overused_xrefs(pairs)
+        glom(dicts, pairs, unique_prefixes=[INCHIKEY])
     chem_sets = set([frozenset(x) for x in dicts.values()])
     with jsonlines.open(output, mode="w") as writer:
         for chemset in chem_sets:
@@ -1166,6 +1171,16 @@ def build_untyped_compendia(
     if applied_badxrefs is not None:
         write_applied_badxrefs(applied_badxrefs, listed_pairs, badxrefs)
     bad_pairs_seen = set()
+
+    def skip_bad_pairs(pairs):
+        """Yield the pairs not in ``bad_pairs`` (either direction), recording each listed pair that is seen."""
+        for pair in pairs:
+            unordered = frozenset(pair)
+            if unordered in bad_pairs:
+                bad_pairs_seen.add(unordered)
+            else:
+                yield pair
+
     dicts = read_partial_unichem(unichem_partial)
     types = {}
     for ifile in identifiers:
@@ -1176,20 +1191,13 @@ def build_untyped_compendia(
     for infile in concordances:
         print(infile)
         print("loading", infile)
-        pairs = []
-        for x in read_concords(infile):
-            # Match bad pairs first, so a listed pair is recorded as seen even when it also names a CUI another
-            # pipeline owns; otherwise it would be reported as matching no concord row while it still does.
-            pair = frozenset((x[0], x[2]))
-            if pair in bad_pairs:
-                bad_pairs_seen.add(pair)
-                continue
-            if x[0] in owned_elsewhere or x[2] in owned_elsewhere:
-                continue
-            pairs.append([x[0], x[2]])
+        # 2-tuples, handed to glom() as they are: see read_concord_pairs() for why not sets or lists. Bad pairs are
+        # matched before the owned-elsewhere skip, so a listed pair is recorded as seen even when it also names a
+        # CUI another pipeline owns; otherwise it would be reported as matching no concord row while it still does.
+        pairs = list(umls.skip_pairs_owned_elsewhere(skip_bad_pairs(read_concord_pairs(infile)), owned_elsewhere))
         newpairs = remove_overused_xrefs(pairs)
-        setpairs = [set(x) for x in newpairs]
-        glom(dicts, setpairs, unique_prefixes=[INCHIKEY])
+        del pairs  # Free the unfiltered list before glom() runs.
+        glom(dicts, newpairs, unique_prefixes=[INCHIKEY])
     # Not raised: a pair goes unmatched every time a source fixes the error upstream, and failing the build for that
     # would make every upstream fix a build break. It is recorded in the metadata YAML (below), which is nested in
     # every chemical compendium's metadata and so reaches the release's metadata/ for review.

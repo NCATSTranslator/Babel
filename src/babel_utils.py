@@ -1091,7 +1091,11 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
     the keys are all of the elements in the set.   For each element in a set, there is a key
     in the dictionary that points to the set.
     newgroups is an iterable that of new equivalence groups (expressed as sets,tuples,or lists)
-    with which we want to update conc_set."""
+    with which we want to update conc_set.
+
+    tests/test_glom.py pins this function's whole behavior, quirks included, and restates it as a
+    short reference implementation (``reference_glom``) checked against this one over randomized
+    inputs. Read it before changing glom(), and test any replacement against it."""
     n = 0
     bad = 0
     shit_prefixes = set(["KEGG", "PUBCHEM"])
@@ -1129,7 +1133,7 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
             print("input_set", group)
             print("esets")
             for eset in existing_sets:
-                print(" ", eset, group.intersection(eset))
+                print(" ", eset, eset.intersection(group))
         for check_element in newset:
             prefix = check_element.split(":")[0]
             if prefix in shit_prefixes:
@@ -1357,17 +1361,21 @@ def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False, target_
     for k, v in pairlist:
         xref_counts_v[v] += 1
         xref_counts_k[k] += 1
+    # Append each surviving pair itself, not a rebuilt (k, v): the caller usually still holds the
+    # unfiltered list while this runs, so a copy would double the tuples alive at peak on exactly the
+    # large concords this filter exists for. It also keeps whatever container the caller used.
     improved_pairs = []
-    for k, v in pairlist:
+    for pair in pairlist:
+        k, v = pair
         if eligible is not None and (Text.get_prefix_or_none(v) or "") not in eligible:
-            improved_pairs.append((k, v))
+            improved_pairs.append(pair)
             continue
         if xref_counts_v[v] < 2:
             if bothways:
                 if xref_counts_k[k] < 2:
-                    improved_pairs.append((k, v))
+                    improved_pairs.append(pair)
             else:
-                improved_pairs.append((k, v))
+                improved_pairs.append(pair)
     return improved_pairs
 
 

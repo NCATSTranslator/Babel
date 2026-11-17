@@ -379,7 +379,7 @@ def _make_anatomy_concord_pair_filter(bad_pairs, owned_elsewhere=frozenset()):
     """
 
     def _filter(parts, infile, dicts):
-        if parts[0] in owned_elsewhere or parts[2] in owned_elsewhere:
+        if umls.names_cui_owned_elsewhere(parts[0], parts[2], owned_elsewhere):
             return False
         if frozenset((parts[0], parts[2])) in bad_pairs:
             logger.debug("Skipping bad xref pair %s from %s (see %s)", parts, infile, ANATOMY_BAD_XREFS)
