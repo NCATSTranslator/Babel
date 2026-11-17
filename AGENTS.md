@@ -56,12 +56,6 @@ assume a local download is current.
 
 ## Key Commands
 
-### Setup
-
-```bash
-uv sync
-```
-
 ### Running the Pipeline
 
 ```bash
@@ -73,13 +67,10 @@ uv run snakemake --cores 1 chemical
 ### Testing
 
 ```bash
-uv run pytest                           # All tests
-uv run pytest --cov=src                 # With coverage report
-uv run pytest tests/test_node_factory.py  # Single test file
 uv run pytest -m unit -q               # Unit tests only (CI default)
 uv run pytest --network                # Include network tests
 uv run pytest --all                    # Run every test
-uv run pytest -n auto                  # Parallel (all CPUs)
+uv run pytest -n auto --no-cov         # Parallel; coverage off under xdist (tests/README.md)
 ```
 
 Tests use four marks (`unit`/`network`/`slow`/`pipeline`); network and pipeline tests are skipped
@@ -98,21 +89,15 @@ the next sizing pass to replace, while a guard stays at the estimate itself.
 
 ### Linting (all four checked in CI on PRs)
 
-```bash
-uv run ruff check                        # Python lint
-uv run ruff check --fix                  # Python auto-fix
-uv run ruff format --check               # Python format check
-uv run ruff format                       # Python auto-format
-uv run snakefmt --check --compact-diff . # Snakemake format check
-uv run snakefmt .                        # Snakemake auto-fix
-uv run rumdl check .                     # Markdown lint
-uv run rumdl fmt .                       # Markdown auto-fix
-```
+Ruff (`check` and `format`), `snakefmt`, and `rumdl`. The local check and auto-fix command for
+each is in [`CONTRIBUTING.md`](CONTRIBUTING.md) ("Contributing source code"); `uv run rumdl fmt .`
+rewraps Markdown to fit.
 
 ### Configuration
 
 - Line length is 120 for both Python (ruff) and Snakemake (snakefmt). Markdown (`rumdl`,
-  rule `MD013`) wraps at 100 instead, though tables are exempt.
+  rule `MD013`) wraps at 100 instead, though tables are exempt. All three are set in
+  `pyproject.toml`.
 - Main config: `config.yaml` (directory paths, version strings, prefix lists per semantic type).
 - `UMLS_API_KEY` environment variable required for UMLS/RxNorm downloads.
 - `compendium_directories` in `config.yaml` maps Python compendium names to the Snakemake
@@ -143,12 +128,7 @@ comment in `src/node.py`) and `get_ancestors()` return the mapped form. `src/pre
 canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model drives which CURIE
 `NodeFactory` picks as preferred. To resolve a CURIE to a URL use
 `src/util.py:get_biolink_prefix_map()` (`converter.expand("EMAPA:0")`), not a hand-rolled map.
-
-**Node output schema** — see `NodeFactory.create_node()`'s docstring in `src/node.py`:
-
-```python
-{"identifiers": [{"identifier": CURIE, "label": str}, ...], "type": "biolink:Foo", "id": {"identifier": CURIE, "label": str}}
-```
+The node output schema is in `NodeFactory.create_node()`'s docstring in `src/node.py`.
 
 ### Subsystem gotchas
 
