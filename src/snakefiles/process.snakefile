@@ -143,6 +143,9 @@ rule process_compendia:
         expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["process_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/process_compendia.tsv"
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["process_unique_prefixes"],
     run:
         pap.build_compendia(input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename)
 

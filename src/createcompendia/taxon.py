@@ -2,11 +2,11 @@ import logging
 
 import src.datahandlers.mesh as mesh
 import src.datahandlers.umls as umls
-from src.babel_utils import glom, read_identifier_file, write_compendium
+from src.babel_utils import glom, read_identifier_file, unique_prefixes_from_config, write_compendium
 from src.categories import ORGANISM_TAXON
 from src.metadata.provenance import write_concord_metadata
 from src.model.intermediates import read_concord_pairs
-from src.prefixes import MESH, NCBITAXON, UMLS
+from src.prefixes import MESH, NCBITAXON
 from src.util import LoggingUtil
 
 logger = LoggingUtil.init_logging(__name__, level=logging.ERROR)
@@ -125,18 +125,20 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, m
     owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "taxon")
     dicts = {}
     types = {}
-    uniques = [NCBITAXON, MESH, UMLS]
+    unique_prefixes = unique_prefixes_from_config("taxon_unique_prefixes")
     for ifile in identifiers:
         print("loading", ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=uniques)
+        glom(dicts, new_identifiers, unique_prefixes=unique_prefixes)
         types.update(new_types)
     for infile in concordances:
         print(infile)
         print("loading", infile)
         # Streamed straight into glom(), without holding the file's pairs: see read_concord_pairs().
         glom(
-            dicts, umls.skip_pairs_owned_elsewhere(read_concord_pairs(infile), owned_elsewhere), unique_prefixes=uniques
+            dicts,
+            umls.skip_pairs_owned_elsewhere(read_concord_pairs(infile), owned_elsewhere),
+            unique_prefixes=unique_prefixes,
         )
     gene_sets = set([frozenset(x) for x in dicts.values()])
     baretype = ORGANISM_TAXON.split(":")[-1]

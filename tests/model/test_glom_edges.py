@@ -8,6 +8,7 @@ and Food) or one way the model can fail to describe a build.
 import duckdb
 import pytest
 
+from src.babel_utils import unique_prefixes_from_config
 from src.createcompendia.chemicals import UNICHEM_OVERUSED_XREF_PREFIXES
 from src.model.glom_edges import (
     APPLIED,
@@ -18,6 +19,7 @@ from src.model.glom_edges import (
     REFUSED_INCHIKEY,
     classify_chemical_glom_edges,
 )
+from src.prefixes import INCHIKEY
 from src.util import get_config
 from tests.model.chemical_build_fixture import concord, unichem, write_build
 
@@ -124,6 +126,16 @@ def test_pairs_naming_a_cui_owned_elsewhere_are_reported_as_filtered(tmp_path):
 
 
 # MODEL DRIFT
+
+
+def test_the_model_assumes_the_chemical_glom_restricts_inchikey_alone():
+    """config.yaml: chemical_unique_prefixes should be exactly [INCHIKEY], the restriction this model assumes.
+
+    A cross-clique edge between two keyed cliques is read as REFUSED_INCHIKEY because INCHIKEY is the only prefix
+    the chemical glom() restricts. Adding a prefix there gives glom() a second reason to refuse a pair, which
+    classify_chemical_glom_edges() would misreport as the InChIKey guard. Change the model first, then this test.
+    """
+    assert unique_prefixes_from_config("chemical_unique_prefixes") == frozenset({INCHIKEY})
 
 
 @pytest.mark.unit

@@ -76,9 +76,9 @@ The third column is what ships. Against the categorical exclusion it **keeps 4,8
 identifiers** — very nearly the 4,841 1:1 rows — while fixing the same mega-cliques: every probe
 collapses to the same size either way, and the largest clique in the build falls from 307 to 99.
 
-The probes are anchored on **DOID**, not MONDO. `glom()`'s `DISEASE_UNIQUE_PREFIXES` refuses a merge
-that would put two MONDO ids in one clique, so in the `ICD kept` column an inflated family
-*fragments* and a MONDO probe lands in an arbitrary small piece of it — reading as though the
+The probes are anchored on **DOID**, not MONDO. `glom()`'s `disease_unique_prefixes` (`config.yaml`)
+refuses a merge that would put two MONDO ids in one clique, so in the `ICD kept` column an inflated
+family *fragments* and a MONDO probe lands in an arbitrary small piece of it — reading as though the
 problem were absent. DOID is unrestricted, so a DOID probe measures the merge itself.
 
 It does leave more large cliques than the exclusion (23 vs 16 at `>=50`, 747 vs 609 at `>=20`).

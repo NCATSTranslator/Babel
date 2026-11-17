@@ -86,6 +86,9 @@ rule taxon_compendia:
         # watch for an OOM as NCBITaxon grows; 2026jul22 peaked at 14.1 GiB = 15.1 GB, 95% of the
         # default, so it gets a block.
         mem="24G",
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["taxon_unique_prefixes"],
     run:
         taxon.build_compendia(
             input.concords,

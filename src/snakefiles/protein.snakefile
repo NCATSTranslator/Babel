@@ -163,6 +163,9 @@ rule protein_compendia:
         # over-provisioned until UniProtKB recovers; ignore that unless a second full-size run agrees.
         runtime="12h",
         mem="512G",
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["protein_unique_prefixes"],
     run:
         protein.build_protein_compendia(
             input.concords,

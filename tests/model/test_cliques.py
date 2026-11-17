@@ -34,7 +34,7 @@ def test_merges_ids_and_concords(tmp_path):
     ids = write_lines(tmp_path / "SRC", ["FOO:1\tbiolink:Thing", "BAR:1"])
     concord = write_lines(tmp_path / "SRC.concord", ["FOO:1\teq\tBAR:1"])
 
-    dicts, types = cliques.glom_from_files([concord], [ids], unique_prefixes=[])
+    dicts, types = cliques.glom_from_files([concord], [ids], unique_prefixes=())
 
     assert _clique_of(dicts, "FOO:1") == frozenset({"FOO:1", "BAR:1"})
     assert types["FOO:1"] == "biolink:Thing"
@@ -57,7 +57,7 @@ def test_excluded_sources_skips_ids_and_concords(tmp_path):
     dicts, _ = cliques.glom_from_files(
         [concord],
         [keep_ids, drop_ids],
-        unique_prefixes=[],
+        unique_prefixes=(),
         excluded_sources={"DROP", "DROP.concord"},
     )
 
@@ -83,11 +83,11 @@ def test_concord_pair_filter_can_gate_on_clique_state(tmp_path):
     def both_present(parts, infile, dicts):
         return parts[0] in dicts and parts[2] in dicts
 
-    dicts, _ = cliques.glom_from_files([concord], [ids], unique_prefixes=[], concord_pair_filter=both_present)
+    dicts, _ = cliques.glom_from_files([concord], [ids], unique_prefixes=(), concord_pair_filter=both_present)
     assert _clique_of(dicts, "FOO:1") == frozenset({"FOO:1"})
 
     # Without the filter, the pair merges NEW:1 in.
-    dicts2, _ = cliques.glom_from_files([concord], [ids], unique_prefixes=[])
+    dicts2, _ = cliques.glom_from_files([concord], [ids], unique_prefixes=())
     assert _clique_of(dicts2, "FOO:1") == frozenset({"FOO:1", "NEW:1"})
 
 
@@ -110,7 +110,7 @@ def test_overused_xref_remover_is_invoked(tmp_path):
         seen.append((infile, pairs))
         return []
 
-    dicts, _ = cliques.glom_from_files([concord], [ids], unique_prefixes=[], overused_xref_remover=drop_everything)
+    dicts, _ = cliques.glom_from_files([concord], [ids], unique_prefixes=(), overused_xref_remover=drop_everything)
 
     assert seen and seen[0][1] == [("FOO:1", "BAR:1")]
     # The remover dropped the only pair, so nothing merged with FOO:1.
