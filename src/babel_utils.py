@@ -1211,7 +1211,9 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
         setok = True
         for cpref, closedict in close.items():
             idents = set([e if isinstance(e, str) else e.identifier for e in newset])
-            prefidents = [e for e in idents if e.startswith(cpref)]
+            # The whole prefix, as the unique_prefixes check compares it: startswith() also matched
+            # any longer prefix beginning with cpref, so close={"MONDO": ...} consulted MONDOX:1 too.
+            prefidents = [e for e in idents if e.split(":")[0] == cpref]
             for pident in prefidents:
                 for cd in closedict[pident]:
                     if cd in newset:

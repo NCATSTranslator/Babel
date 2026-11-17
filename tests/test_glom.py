@@ -290,12 +290,18 @@ def test_close_applies_to_identifiers_without_the_prefix():
 
 
 @pytest.mark.unit
-def test_quirk_close_matches_prefixes_with_startswith():
-    """Quirk: should apply a close map keyed "MONDO" to any identifier starting with "MONDO", such as "MONDOX:1"."""
+def test_close_matches_the_whole_prefix():
+    """Should apply a close map keyed "MONDO" only to MONDO identifiers: not to "MONDOX:1", which it never looks up.
+
+    This inverts a pinned quirk: the guard matched prefixes with startswith(), so a close map keyed
+    "MONDO" refused the MONDOX:1 merge below, and gained an empty entry for MONDOX:2. The
+    unique_prefixes check already compared the whole prefix.
+    """
     close = {"MONDO": defaultdict(set, {"MONDOX:1": {"X:1"}})}
     d = {}
-    glom(d, [("MONDOX:1", "X:1")], unique_prefixes=[], close=close)
-    assert d == {}
+    glom(d, [("MONDOX:1", "X:1"), ("MONDOX:2", "Y:1")], unique_prefixes=[], close=close)
+    assert d["X:1"] == {"MONDOX:1", "X:1"}
+    assert "MONDOX:2" not in close["MONDO"]
 
 
 @pytest.mark.unit
@@ -372,7 +378,8 @@ def reference_glom(cliques, groups, unique_prefixes, close):
     same prefix from unique_prefixes, or an identifier and one of its close partners. Otherwise make
     the union the clique of every member.
 
-    Close partners are looked up by index for every member of the union with a close prefix, even
+    Close partners are looked up by index for every member of the union whose prefix is exactly a
+    close prefix, even
     once one has refused the group, because glom() does: so a plain-dict close map raises KeyError
     on a member it doesn't list, and a defaultdict one gains an empty entry for each member looked up.
     """
@@ -389,7 +396,7 @@ def reference_glom(cliques, groups, unique_prefixes, close):
         refused = False
         for close_prefix, partners in close.items():
             for member in merged:
-                if member.startswith(close_prefix) and partners[member] & merged:
+                if member.split(":")[0] == close_prefix and partners[member] & merged:
                     refused = True
         if refused:
             continue
@@ -409,7 +416,9 @@ def random_groups(rng, forbidden=False):
     from GROUP_CONTAINERS. With ``forbidden``, about one group in forty names a bare KEGG or PUBCHEM
     identifier, so the sequence usually raises partway through.
     """
-    identifiers = [f"{prefix}:{n}" for prefix in ("A", "B", "C", "MONDO") for n in range(6)]
+    # MONDOX shares MONDO's first five characters, so a close guard that matched prefixes with
+    # startswith() rather than whole would look its members up in the MONDO close map.
+    identifiers = [f"{prefix}:{n}" for prefix in ("A", "B", "C", "MONDO", "MONDOX") for n in range(6)]
     groups = []
     for _ in range(rng.randrange(1, 40)):
         roll = rng.random()
