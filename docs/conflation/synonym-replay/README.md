@@ -20,6 +20,12 @@ GeneProtein's full merge needed 512G on the cluster. `--sample 100` replays the 
 whose primary ID hashes into a fixed 1%. Each run caches its downloads and an `edges.duckdb` copy of
 the `Edge` tables (about 5 GB each) in `--workdir`, so put that under `data/`.
 
+The replay only covers what `conflate_synonyms()` itself does. It feeds the old and new function
+the same published synonym files, so it can't see a change to how those files are written. Since
+PR #1179, `conflate_synonyms()` doesn't filter types at all. The filter that leaves out
+`OntologyClass` is in `write_compendium()`, and
+[`../../synonyms/ontology-class/`](../../synonyms/ontology-class/README.md) measures it instead.
+
 ## PR #1176 against 2026jul22
 
 PR #1176 rewrote how `conflate_synonyms()` claims and merges a conflated group's records. Replayed

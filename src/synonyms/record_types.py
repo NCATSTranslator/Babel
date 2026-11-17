@@ -15,7 +15,8 @@ BIOLINK_PREFIX = "biolink:"
 # Biolink classes that a synonym record leaves out of its `types` when they are only an *ancestor* of the clique's
 # type. OntologyClass is a mixin that most Biolink classes inherit (Protein is an exception), so it says nothing about
 # what an entity is: a femur is a NamedThing, but only philosophically an OntologyClass. A Name Resolver search
-# filtered on OntologyClass therefore matches only cliques typed OntologyClass themselves.
+# filtered on OntologyClass therefore matches only cliques typed OntologyClass themselves, of which 2026jul22 had none;
+# docs/synonyms/ontology-class/README.md counts the records this changes.
 #
 # NamedThing and Entity stay until #1178 decides them, along with other top-level mixins such as PhysicalEssence. To
 # leave out another class, add it here rather than filtering in a consumer, so that every synonym file agrees.

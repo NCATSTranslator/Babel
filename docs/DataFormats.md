@@ -146,7 +146,9 @@ A synonym record's `types` is decided in one place, `synonym_record_types()` in
 clique's own type and then its ancestors, leaving out `OntologyClass`: a mixin that most Biolink
 classes inherit, so it says nothing about what a concept is. A clique typed `OntologyClass`
 itself keeps it, so the list is never empty and its first entry is always the clique's own type. A
-conflated record lists the union of its cliques' types, in conflation order. `NamedThing` and
+conflated record lists the union of its cliques' types, in conflation order.
+[`synonyms/ontology-class/`](synonyms/ontology-class/README.md) counts the records this changed
+(195.5 million of 2026jul22's 331.5 million). `NamedThing` and
 `Entity` are still listed; what every Babel output should do with them is
 [#1178](https://github.com/NCATSTranslator/Babel/issues/1178). NodeNorm's responses are unaffected,
 because it computes a clique's ancestors itself, so they still include `biolink:OntologyClass`.
