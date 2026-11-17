@@ -1090,6 +1090,9 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
     conc_set is a dictionary where the values are these equivalent identifier sets and
     the keys are all of the elements in the set.   For each element in a set, there is a key
     in the dictionary that points to the set.
+    close maps a prefix to a mapping of {identifier: identifiers it must not share a clique with}.
+    Any mapping works (dict, defaultdict, a read-only view); a member it doesn't list has no such
+    partners, and glom() never modifies it.
     newgroups is an iterable that of new equivalence groups (expressed as sets,tuples,or lists)
     with which we want to update conc_set.
 
@@ -1213,7 +1216,10 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
             idents = set([e if isinstance(e, str) else e.identifier for e in newset])
             prefidents = [e for e in idents if e.startswith(cpref)]
             for pident in prefidents:
-                for cd in closedict[pident]:
+                # .get(), not closedict[pident]: indexing inserted an empty entry into a defaultdict
+                # for every member looked up (mutating the caller's map) and raised KeyError on a
+                # plain dict that didn't list the member. A member with no entry has no partners.
+                for cd in closedict.get(pident, ()):
                     if cd in newset:
                         setok = False
             if len(prefidents) == 0:
