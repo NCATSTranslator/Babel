@@ -448,9 +448,9 @@ def reference_glom(cliques, groups, unique_prefixes, close):
     is read once, so a one-shot iterator restricts every group.
 
     Close partners are looked up by index for every member of the union whose prefix is exactly a
-    close prefix, even
-    once one has refused the group, because glom() does: so a plain-dict close map raises KeyError
-    on a member it doesn't list, and a defaultdict one gains an empty entry for each member looked up.
+    close prefix, even once one has refused the group, because glom() does: so a plain-dict close
+    map raises KeyError on a member it doesn't list, and a defaultdict one gains an empty entry for
+    each member looked up.
     """
     if isinstance(unique_prefixes, (str, bytes, bytearray, dict)) or not hasattr(unique_prefixes, "__iter__"):
         raise ValueError(unique_prefixes)
@@ -561,6 +561,11 @@ def test_glom_matches_the_reference_model(seed):
     close_map = defaultdict(set) if rng.random() < 0.9 else {}
     for n in rng.sample(range(6), rng.randrange(0, 4)):
         close_map[f"MONDO:{n}"] = {f"{rng.choice('ABC')}:{rng.randrange(6)}", f"MONDO:{rng.randrange(6)}"}
+    # MONDOX entries the "MONDO" close map must never consult. A guard that consulted MONDOX members
+    # without indexing (a .get(), an `in` check) would add no entries and raise nothing, but would
+    # still refuse these partners' merges, so the cliques would differ.
+    for n in rng.sample(range(6), rng.randrange(0, 3)):
+        close_map[f"MONDOX:{n}"] = {f"{rng.choice('ABC')}:{rng.randrange(6)}"}
     # Each side gets its own copy up front, so neither sees the entries the other inserts.
     close = {"MONDO": copy.deepcopy(close_map)}
     expected_close = {"MONDO": copy.deepcopy(close_map)}
