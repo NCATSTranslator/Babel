@@ -19,7 +19,7 @@ import json
 
 import pytest
 
-from src.synonyms.synonymconflation import conflate_synonyms
+from src.synonyms.synonymconflation import conflate_synonyms, merge_conflated_group
 
 # UMLS:C0733999 "Scapular line" -- the conflation primary. Clique also holds FMA:14613.
 SCAPULAR_LINE_SYNONYM = {
@@ -135,8 +135,9 @@ def test_synonyms_of_conflated_cliques_are_merged_into_the_lead_record(tmp_path)
     assert conflated["shortest_name_length"] == 13
     assert conflated["clique_identifier_count"] == 4
     assert conflated["taxon_specific"] is False
-    # Types are the union in order of first appearance. OntologyClass is kept: the filter meant to drop it is a
-    # set of single letters, set("OntologyClass"), so it matches nothing.
+    # Types are the union in order of first appearance. PINS CURRENT BEHAVIOR: OntologyClass is kept, because the
+    # filter meant to drop it is a set of single letters, set("OntologyClass"), so it matches nothing. #1179 fixes
+    # the filter; when it lands, invert this to assert OntologyClass is absent rather than deleting it.
     assert conflated["types"] == SCAPULAR_LINE_SYNONYM["types"]
 
 
@@ -193,10 +194,10 @@ def test_two_conflation_ids_in_one_clique_merge_its_record_once(tmp_path):
 
 
 @pytest.mark.unit
-def test_a_record_the_conflation_order_does_not_reach_is_merged_not_dropped(tmp_path):
-    """Two conflation lines with the same primary ID map both secondaries to it, but only the last line is
-    kept as the merge order. The earlier line's record should still be merged (after the order's own
-    members), not silently dropped."""
+def test_two_conflation_lines_with_one_primary_are_both_merged_in_file_order(tmp_path):
+    """Two conflation lines with the same primary ID map both secondaries to it. Both lines' records
+    should be merged, in file order; `conflations` used to keep only the last line, so the earlier
+    line's record was dropped."""
     records = run_conflation(
         tmp_path,
         [SCAPULAR_LINE_SYNONYM, THYROCERVICAL_SYNONYM, UNCONFLATED_SYNONYM],
@@ -208,9 +209,9 @@ def test_a_record_the_conflation_order_does_not_reach_is_merged_not_dropped(tmp_
     assert records[0]["names"] == [
         "Scapular line",
         "Linea scapularis",
+        "Right thyrocervical artery",
         "LI15",
         "LI15 (body structure)",
-        "Right thyrocervical artery",
     ]
     assert records[0]["clique_identifier_count"] == 5
 
@@ -267,19 +268,72 @@ def test_a_clique_sharing_a_curie_with_a_conflated_clique_is_not_pulled_in(tmp_p
 
 
 @pytest.mark.unit
-def test_two_records_for_one_clique_are_warned_about(tmp_path, caplog):
-    """A synonym file should hold one record per clique. Records keyed on both a clique's leader and one
-    of its members are both merged, so the clique's identifiers are counted twice; this should never
-    happen, so it is logged as a warning to make it detectable."""
+def test_two_records_for_one_clique_count_its_identifiers_once(tmp_path):
+    """A synonym file should hold one record per clique. If a clique has records under both its leader
+    and one of its members, both records' names should be merged, but the clique's identifiers should
+    be counted once, not once per record."""
     fma_keyed = dict(THYROCERVICAL_SYNONYM, curie="FMA:70347", names=["Thyrocervical trunk"])
-    with caplog.at_level("WARNING"):
-        records = run_conflation(
-            tmp_path,
-            [SCAPULAR_LINE_SYNONYM, THYROCERVICAL_SYNONYM, fma_keyed],
-            [SCAPULAR_LINE_CLIQUE, THYROCERVICAL_CLIQUE],
-            [["UMLS:C0733999", "UMLS:C1182464"]],
-        )
+    records = run_conflation(
+        tmp_path,
+        [SCAPULAR_LINE_SYNONYM, THYROCERVICAL_SYNONYM, fma_keyed],
+        [SCAPULAR_LINE_CLIQUE, THYROCERVICAL_CLIQUE],
+        [["UMLS:C0733999", "UMLS:C1182464"]],
+    )
 
-    assert "Clique UMLS:C1182464 has synonym records under 2 of its identifiers" in caplog.text
-    # Pins the double count the warning is about: 2 (scapular line) + 2 + 2 (thyrocervical, twice).
-    assert records[0]["clique_identifier_count"] == 6
+    assert len(records) == 1
+    assert records[0]["names"] == [
+        "Scapular line",
+        "Linea scapularis",
+        "Right thyrocervical artery",
+        "Thyrocervical trunk",
+    ]
+    # 2 (scapular line) + 2 (thyrocervical), not + 2 again for its second record.
+    assert records[0]["clique_identifier_count"] == 4
+
+
+@pytest.mark.unit
+def test_a_curie_in_two_synonym_files_counts_its_identifiers_once(tmp_path):
+    """The same synonym record read twice (a CURIE in two synonym files) should be merged once in
+    effect: its identifiers counted once."""
+    records = run_conflation(
+        tmp_path,
+        [SCAPULAR_LINE_SYNONYM, THYROCERVICAL_SYNONYM, THYROCERVICAL_SYNONYM],
+        [SCAPULAR_LINE_CLIQUE, THYROCERVICAL_CLIQUE],
+        [["UMLS:C0733999", "UMLS:C1182464"]],
+    )
+
+    assert len(records) == 1
+    assert records[0]["clique_identifier_count"] == 4
+
+
+@pytest.mark.unit
+def test_a_group_whose_records_have_no_taxa_is_written(tmp_path):
+    """A conflated group none of whose records carries `taxa` should be written with empty taxa, not
+    crash the rule with a KeyError."""
+    no_taxa = [
+        {k: v for k, v in synonym.items() if k != "taxa"} for synonym in (SCAPULAR_LINE_SYNONYM, THYROCERVICAL_SYNONYM)
+    ]
+    records = run_conflation(
+        tmp_path,
+        no_taxa,
+        [SCAPULAR_LINE_CLIQUE, THYROCERVICAL_CLIQUE],
+        [["UMLS:C0733999", "UMLS:C1182464"]],
+    )
+
+    assert len(records) == 1
+    assert records[0]["taxa"] == []
+    assert records[0]["taxon_specific"] is False
+
+
+@pytest.mark.unit
+def test_a_record_the_conflation_order_does_not_reach_fails(tmp_path):
+    """Step 1.1 gives a group only the members of cliques its listed IDs belong to, so expanding those
+    IDs reaches every record step 2 gives the group. If the two ever disagree, merging should fail
+    rather than drop the record or merge it out of order."""
+    with pytest.raises(RuntimeError, match=r"does not reach its synonym records under \['UMLS:C0450491'\]"):
+        merge_conflated_group(
+            "UMLS:C0733999",
+            ["UMLS:C0733999"],
+            {"UMLS:C0733999": [SCAPULAR_LINE_SYNONYM], "UMLS:C0450491": [UNCONFLATED_SYNONYM]},
+            {},
+        )
