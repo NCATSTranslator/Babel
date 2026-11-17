@@ -1,8 +1,8 @@
 """Unit tests for src/model/glom_edges.py: reconstructing what glom() did with each chemical concord edge.
 
 The builds here are synthetic: each is the smallest set of cliques and concord rows that exercises one path through
-the classification (applied, InChIKey refusal, overused filter, the #83 split, CUI ownership) or one way the model
-can fail to describe a build.
+the classification (applied, InChIKey refusal, overused filter, the #83 split, CUI ownership, keys dropped from Drug
+and Food) or one way the model can fail to describe a build.
 """
 
 import duckdb
@@ -12,6 +12,7 @@ from src.createcompendia.chemicals import UNICHEM_OVERUSED_XREF_PREFIXES
 from src.model.glom_edges import (
     APPLIED,
     ENDPOINT_ABSENT,
+    FILTERED_BADXREF,
     FILTERED_OVERUSED,
     FILTERED_OWNED_ELSEWHERE,
     REFUSED_INCHIKEY,
@@ -27,18 +28,23 @@ KEY_C = "INCHIKEY:CCCCCCCCCCCCCC-UHFFFAOYSA-N"
 
 def classify(root, owned_elsewhere=(), bad_pairs=()):
     """Run classify_chemical_glom_edges over a fixture build; return {(base, subj, obj): verdict}."""
+    return {(b, s, o): v for b, s, o, v, _ in classify_rows(root, owned_elsewhere, bad_pairs)}
+
+
+def classify_rows(root, owned_elsewhere=(), bad_pairs=()):
+    """Run classify_chemical_glom_edges over a fixture build; return (base, subj, obj, verdict, key_dropped) rows."""
     con = duckdb.connect()
     types = [o.removesuffix(".txt") for o in get_config()["chemical_outputs"]]
     classify_chemical_glom_edges(
         con,
         f"{root}/duckdb/Concord.parquet",
-        [f"{root}/duckdb/parquet/filename={t}/Edge.parquet" for t in types],
+        {t: f"{root}/duckdb/parquet/filename={t}/Edge.parquet" for t in types},
         get_config()["chemical_concords"],
         UNICHEM_OVERUSED_XREF_PREFIXES,
         owned_elsewhere,
         bad_pairs,
     )
-    return {(b, s, o): v for b, s, o, v in con.sql("SELECT base, subj, obj, verdict FROM glom_edge").fetchall()}
+    return con.sql("SELECT base, subj, obj, verdict, key_dropped FROM glom_edge").fetchall()
 
 
 # VERDICTS
@@ -162,8 +168,6 @@ def test_a_split_off_clique_with_two_parents_raises(tmp_path):
 def test_a_blocked_pair_is_filtered_and_omitting_it_fails_loudly(tmp_path):
     """A build that skipped a chemical_badxrefs pair leaves its endpoints in different cliques. Given the pair, the
     classification should report it as filtered; without it, the crossing is unexplained and should raise."""
-    from src.model.glom_edges import FILTERED_BADXREF
-
     concords = [
         (unichem("PUBCHEM.COMPOUND"), "PUBCHEM.COMPOUND:1", KEY_A),
         (concord("DrugCentral"), "DrugCentral:1", "PUBCHEM.COMPOUND:1"),
@@ -180,3 +184,77 @@ def test_a_blocked_pair_is_filtered_and_omitting_it_fails_loudly(tmp_path):
     assert verdicts[("DrugCentral", "DrugCentral:1", "DRUGBANK:DB1")] == APPLIED
     with pytest.raises(RuntimeError, match="no filter or InChIKey refusal"):
         classify(root)
+
+
+@pytest.mark.unit
+def test_a_blocked_pair_naming_a_cui_owned_elsewhere_is_reported_as_a_bad_xref(tmp_path):
+    """build_untyped_compendia() matches bad pairs before the owned-elsewhere skip, so a pair that is both should be
+    reported as a bad xref, the way the build counts it."""
+    concords = [
+        (unichem("PUBCHEM.COMPOUND"), "PUBCHEM.COMPOUND:1", KEY_A),
+        (concord("DrugCentral"), "DrugCentral:1", "UMLS:C9"),
+    ]
+    cliques = {"PUBCHEM.COMPOUND:1": ("SmallMolecule", ["PUBCHEM.COMPOUND:1", KEY_A])}
+    verdicts = classify(
+        write_build(tmp_path, concords, cliques),
+        owned_elsewhere={"UMLS:C9"},
+        bad_pairs={("DrugCentral:1", "UMLS:C9")},
+    )
+
+    assert verdicts[("DrugCentral", "DrugCentral:1", "UMLS:C9")] == FILTERED_BADXREF
+
+
+# KEYS DROPPED FROM DRUG AND FOOD
+
+
+@pytest.mark.unit
+def test_a_drug_cliques_dropped_key_edges_are_applied(tmp_path):
+    """Drug does not register INCHIKEY, so write_compendium() drops the key from a Drug clique. Its records' UniChem
+    edges to that key were applied all the same, and the clique counts as keyed: an xref from it to another keyed
+    clique was refused by the InChIKey guard, not left unexplained."""
+    concords = [
+        (unichem("CHEMBL.COMPOUND"), "CHEMBL.COMPOUND:CHEMBL1", KEY_A),
+        (unichem("UNII"), "UNII:U1", KEY_A),
+        (unichem("PUBCHEM.COMPOUND"), "PUBCHEM.COMPOUND:2", KEY_B),
+        (concord("DrugCentral"), "DrugCentral:1", "CHEMBL.COMPOUND:CHEMBL1"),
+        (concord("DrugCentral"), "DrugCentral:1", "PUBCHEM.COMPOUND:2"),
+    ]
+    cliques = {
+        "CHEMBL.COMPOUND:CHEMBL1": ("Drug", ["CHEMBL.COMPOUND:CHEMBL1", "UNII:U1", "DrugCentral:1"]),
+        "PUBCHEM.COMPOUND:2": ("SmallMolecule", ["PUBCHEM.COMPOUND:2", KEY_B]),
+    }
+    rows = {(b, s, o): (v, kd) for b, s, o, v, kd in classify_rows(write_build(tmp_path, concords, cliques))}
+
+    assert rows[("UNICHEM_CHEMBL.COMPOUND", "CHEMBL.COMPOUND:CHEMBL1", KEY_A)] == (APPLIED, True)
+    assert rows[("UNICHEM_UNII", "UNII:U1", KEY_A)] == (APPLIED, True)
+    assert rows[("UNICHEM_PUBCHEM.COMPOUND", "PUBCHEM.COMPOUND:2", KEY_B)] == (APPLIED, False)
+    assert rows[("DrugCentral", "DrugCentral:1", "PUBCHEM.COMPOUND:2")] == (REFUSED_INCHIKEY, False)
+
+
+@pytest.mark.unit
+def test_a_key_missing_from_a_small_molecule_clique_is_not_inferred(tmp_path):
+    """SmallMolecule registers INCHIKEY, so a record there whose UniChem key is in no output did not keep it (glom()
+    refused the pair). The clique is not keyed, so an xref from it to a keyed clique has no explanation and raises,
+    rather than being passed off as an InChIKey refusal."""
+    concords = [
+        (unichem("PUBCHEM.COMPOUND"), "PUBCHEM.COMPOUND:5", KEY_C),
+        (unichem("PUBCHEM.COMPOUND"), "PUBCHEM.COMPOUND:6", KEY_B),
+        (concord("DrugCentral"), "DrugCentral:1", "PUBCHEM.COMPOUND:5"),
+        (concord("DrugCentral"), "DrugCentral:1", "PUBCHEM.COMPOUND:6"),
+    ]
+    cliques = {
+        "PUBCHEM.COMPOUND:5": ("SmallMolecule", ["PUBCHEM.COMPOUND:5", "DrugCentral:1"]),
+        "PUBCHEM.COMPOUND:6": ("SmallMolecule", ["PUBCHEM.COMPOUND:6", KEY_B]),
+    }
+    with pytest.raises(RuntimeError, match="no filter or InChIKey refusal"):
+        classify(write_build(tmp_path, concords, cliques))
+
+
+@pytest.mark.unit
+def test_a_drug_output_holding_an_inchikey_raises(tmp_path):
+    """If a Drug clique holds an InChIKey, Drug registers INCHIKEY after all and KEY_DROPPING_TYPES is out of date, so
+    classification should raise rather than infer keys that were never dropped."""
+    concords = [(unichem("CHEMBL.COMPOUND"), "CHEMBL.COMPOUND:CHEMBL1", KEY_A)]
+    cliques = {"CHEMBL.COMPOUND:CHEMBL1": ("Drug", ["CHEMBL.COMPOUND:CHEMBL1", KEY_A])}
+    with pytest.raises(RuntimeError, match="KEY_DROPPING_TYPES"):
+        classify(write_build(tmp_path, concords, cliques))

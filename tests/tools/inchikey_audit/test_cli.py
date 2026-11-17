@@ -49,3 +49,13 @@ def test_cli_writes_components_boundary_refused_and_summary(tmp_path):
     summary = {(r["kind"], r["category"]): int(r["n"]) for r in read(out / "summary.tsv")}
     assert summary[("glom edge", "applied")] == len(OFATUMUMAB_CONCORDS)
     assert summary[("component tier A", "likely misattached")] == 1
+
+
+@pytest.mark.unit
+def test_cli_refuses_the_repos_badxrefs_file(tmp_path):
+    """--badxrefs takes the pairs a build applied; the repo's input_data file may list pairs added since, which would
+    hide edges the build applied, so the CLI should refuse it before reading the build."""
+    from src.createcompendia.chemicals import CHEMICAL_BAD_XREFS
+
+    with pytest.raises(ValueError, match="applied_badxrefs.txt"):
+        main(["--build", str(tmp_path), "--badxrefs", CHEMICAL_BAD_XREFS, "--out", str(tmp_path / "out")])

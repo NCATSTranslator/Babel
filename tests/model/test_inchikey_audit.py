@@ -165,7 +165,7 @@ def run_audit(tmp_path, concords, cliques, labels, structures):
     root = write_build(tmp_path / "build", concords, cliques, labels)
     structure_file = write_structure_file(tmp_path / "structure.tsv.gz", structures)
     types = [o.removesuffix(".txt") for o in get_config()["chemical_outputs"]]
-    edges = [f"{root}/duckdb/parquet/filename={t}/Edge.parquet" for t in types]
+    edges = {t: f"{root}/duckdb/parquet/filename={t}/Edge.parquet" for t in types}
     nodes = [f"{root}/duckdb/parquet/filename={t}/Node.parquet" for t in types]
     con = duckdb.connect()
     classify_chemical_glom_edges(
@@ -173,7 +173,7 @@ def run_audit(tmp_path, concords, cliques, labels, structures):
     )
     work = tmp_path / "work"
     work.mkdir()
-    audit_chemical_inchikeys(con, str(work), edges, nodes, f"{root}/duckdb/Identifier.parquet", str(structure_file))
+    audit_chemical_inchikeys(con, str(work), nodes, f"{root}/duckdb/Identifier.parquet", str(structure_file))
     return con
 
 
@@ -282,3 +282,41 @@ def test_boundary_edges_carry_their_own_component_id(tmp_path):
         ("CHEMBL.COMPOUND:CHEMBL1201836", "DrugCentral:4951"),
         ("DrugCentral:9999", "DrugCentral:9999"),
     ]
+
+
+# DRUG AND FOOD CLIQUES (no INCHIKEY in the output)
+
+
+@pytest.mark.unit
+def test_a_drug_typed_set_finds_its_core_through_the_dropped_key(tmp_path):
+    """The same ofatumumab set typed Drug has no INCHIKEY in its output (Drug does not register the prefix). Its
+    records' edges to the dropped key still make them the core, so the antibody is found exactly as in a
+    SmallMolecule clique: one tier A component, likely misattached against the 3-heavy-atom key, one boundary edge.
+    The clique type is hypothetical; it isolates write_compendium() dropping the key."""
+    members = sorted({c for _, s, o in OFATUMUMAB_CONCORDS for c in (s, o)} | {"RXCUI:712566"})
+    members.remove(DIMETHYL_ETHER_KEY)
+    cliques = {"CHEBI:28887": ("Drug", members)}
+    structures = [("1", DIMETHYL_ETHER_INCHI, DIMETHYL_ETHER_KEY.split(":", 1)[1])]
+    con = run_audit(tmp_path, OFATUMUMAB_CONCORDS, cliques, OFATUMUMAB_LABELS, structures)
+
+    comps = con.sql("SELECT clique_leader, inchikey, tier, verdict, core_heavy_atoms, n_boundary FROM audit_component")
+    assert comps.fetchall() == [("CHEBI:28887", DIMETHYL_ETHER_KEY, "A", LIKELY_MISATTACHED, 3, 1)]
+
+
+@pytest.mark.unit
+def test_a_drug_typed_set_with_nothing_attached_flags_nothing(tmp_path):
+    """A Drug clique whose ChEMBL, DrugBank and UNII records all carry the (dropped) key, plus MeSH and RxNorm records
+    (sources that never carry a structure), has nothing to flag, so it should not be reported -- not as a tier A
+    component with no boundary edges."""
+    concords = [
+        (unichem("CHEMBL.COMPOUND"), "CHEMBL.COMPOUND:CHEMBL119178", DIMETHYL_ETHER_KEY),
+        (unichem("DRUGBANK"), "DRUGBANK:DB1", DIMETHYL_ETHER_KEY),
+        (unichem("UNII"), "UNII:AM13FS69BX", DIMETHYL_ETHER_KEY),
+        (concord("mesh_unii"), "MESH:C1", "UNII:AM13FS69BX"),
+        (concord("RXNORM"), "RXCUI:1", "DRUGBANK:DB1"),
+    ]
+    members = ["CHEMBL.COMPOUND:CHEMBL119178", "DRUGBANK:DB1", "UNII:AM13FS69BX", "MESH:C1", "RXCUI:1"]
+    structures = [("1", DIMETHYL_ETHER_INCHI, DIMETHYL_ETHER_KEY.split(":", 1)[1])]
+    con = run_audit(tmp_path, concords, {"CHEMBL.COMPOUND:CHEMBL119178": ("Drug", members)}, {}, structures)
+
+    assert con.sql("SELECT * FROM audit_component").fetchall() == []

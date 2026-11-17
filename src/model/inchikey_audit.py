@@ -48,7 +48,7 @@ from src.datahandlers.unichem import UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.model.glom_edges import APPLIED, REFUSED_INCHIKEY
 from src.prefixes import PUBCHEMCOMPOUND
-from src.util import get_logger
+from src.util import get_logger, sql_list, sql_str
 
 logger = get_logger(__name__)
 
@@ -274,14 +274,17 @@ def _fetch_batches(result, size: int = 100_000) -> Iterator[tuple]:
 def audit_chemical_inchikeys(
     con,
     work_dir: str,
-    edge_parquets: list[str],
     node_parquets: list[str],
     identifier_parquet: str,
     structure_file: str,
 ) -> None:
-    """Run steps 1-4 over the ``glom_edge`` table that :func:`src.model.glom_edges.classify_chemical_glom_edges`
-    built in ``con``, and create the result tables ``audit_component`` (one row per flagged component) and
-    ``audit_boundary`` (one row per boundary edge of a flagged component). ``work_dir`` holds intermediate TSVs.
+    """Run steps 1-4 over the ``glom_edge``, ``keyed_clique`` and ``glom_clique`` tables that
+    :func:`src.model.glom_edges.classify_chemical_glom_edges` built in ``con``, and create the result tables
+    ``audit_component`` (one row per flagged component) and ``audit_boundary`` (one row per boundary edge of a flagged
+    component). ``work_dir`` holds intermediate TSVs.
+
+    A record's edge to its own InChIKey counts towards the core whether the key is in the output or was dropped from
+    it (Drug and Food cliques: ``glom_edge.key_dropped``), because both are ``applied``.
     """
     con.sql(f"""
         CREATE OR REPLACE TABLE xedge0 AS
@@ -306,13 +309,17 @@ def audit_chemical_inchikeys(
         ORDER BY set_id
     """)
     member_tsv, boundary_tsv = f"{work_dir}/component_member.tsv", f"{work_dir}/component_boundary.tsv"
+    component_tsv = f"{work_dir}/component.tsv"
     n_components = 0
-    with open(member_tsv, "w") as mf, open(boundary_tsv, "w") as bf:
+    with open(member_tsv, "w") as mf, open(boundary_tsv, "w") as bf, open(component_tsv, "w") as cf:
         mf.write("set_id\tcomp\tcurie\n")
         bf.write("set_id\tcomp\tsource\tsubj\tobj\n")
+        cf.write("set_id\tcomp\tn_members\tn_structure_sources\n")
         for set_id, edges in _iter_sets(_fetch_batches(rows)):
             for i, comp in enumerate(find_structureless_components(set_id, edges)):
                 n_components += 1
+                # structure_source_count() is the one definition of the tier A input; nothing recomputes it in SQL.
+                cf.write(f"{set_id}\t{i}\t{len(comp.members)}\t{structure_source_count(comp.members)}\n")
                 for m in sorted(comp.members):
                     mf.write(f"{set_id}\t{i}\t{m}\n")
                 for source, subj, obj in comp.boundary:
@@ -320,33 +327,35 @@ def audit_chemical_inchikeys(
     logger.info("found %d structure-less components", n_components)
     tsv = "delim='\\t', header=true, quote='', escape='', all_varchar=true"
     con.sql(f"""CREATE OR REPLACE TABLE comp_member AS
-        SELECT CAST(set_id AS UBIGINT) set_id, CAST(comp AS INT) comp, curie FROM read_csv('{member_tsv}', {tsv})""")
+        SELECT CAST(set_id AS UBIGINT) set_id, CAST(comp AS INT) comp, curie
+        FROM read_csv({sql_str(member_tsv)}, {tsv})""")
     con.sql(f"""CREATE OR REPLACE TABLE comp_boundary AS
         SELECT CAST(set_id AS UBIGINT) set_id, CAST(comp AS INT) comp, source, subj, obj
-        FROM read_csv('{boundary_tsv}', {tsv})""")
+        FROM read_csv({sql_str(boundary_tsv)}, {tsv})""")
+    con.sql(f"""CREATE OR REPLACE TABLE comp_size AS
+        SELECT CAST(set_id AS UBIGINT) set_id, CAST(comp AS INT) comp, CAST(n_members AS INT) n_members,
+               CAST(n_structure_sources AS INT) n_structure_sources
+        FROM read_csv({sql_str(component_tsv)}, {tsv})""")
 
     # Declared types of component members, from the chemical ids files.
-    types = "[" + ",".join(f"'{t}'" for t in NON_SMALL_MOLECULE_TYPES) + "]"
     con.sql(f"""
         CREATE OR REPLACE TABLE member_type AS
-        SELECT DISTINCT curie, biolink_type FROM read_parquet('{identifier_parquet}')
+        SELECT DISTINCT curie, biolink_type FROM read_parquet({sql_str(identifier_parquet)})
         WHERE filename LIKE '%/chemicals/ids/%' AND curie IN (SELECT curie FROM comp_member)
     """)
-    structure_prefixes = "[" + ",".join(f"'{p}'" for p in sorted(STRUCTURE_SOURCE_PREFIXES)) + "]"
     con.sql(f"""
         CREATE OR REPLACE TABLE comp_flag AS
-        SELECT m.set_id, m.comp, count(*) AS n_members,
-               count(DISTINCT split_part(m.curie, ':', 1))
-                 FILTER (WHERE list_contains({structure_prefixes}, split_part(m.curie, ':', 1))) AS n_structure_sources,
-               bool_or(list_contains({types}, t.biolink_type)) AS has_non_small_type,
+        SELECT z.set_id, z.comp, z.n_members, z.n_structure_sources,
+               coalesce(bool_or(list_contains({sql_list(NON_SMALL_MOLECULE_TYPES)}, t.biolink_type)), false)
+                 AS has_non_small_type,
                list(DISTINCT t.biolink_type) FILTER (WHERE t.biolink_type IS NOT NULL) AS declared_types
-        FROM comp_member m LEFT JOIN member_type t USING (curie)
-        GROUP BY m.set_id, m.comp
+        FROM comp_size z JOIN comp_member m USING (set_id, comp) LEFT JOIN member_type t USING (curie)
+        GROUP BY z.set_id, z.comp, z.n_members, z.n_structure_sources
     """)
     # Exactly the components tier_of() flags; the tier itself is assigned below, in Python, by tier_of().
     con.sql("""
         CREATE OR REPLACE TABLE flagged AS
-        SELECT * FROM comp_flag WHERE n_structure_sources > 0 OR coalesce(has_non_small_type, false)
+        SELECT * FROM comp_flag WHERE n_structure_sources > 0 OR has_non_small_type
     """)
 
     # The core of each flagged set: records with an applied edge to the set's InChIKey, and the key itself.
@@ -363,14 +372,13 @@ def audit_chemical_inchikeys(
     )
     if multi_key.fetchone()[0]:
         raise RuntimeError("a pre-split chemical glom set holds more than one InChIKey; glom()'s guard forbids that")
-    con.sql(f"""
+    con.sql("""
         CREATE OR REPLACE TABLE set_leader AS
-        SELECT DISTINCT hash(clique_leader) AS set_id, clique_leader FROM read_parquet({_list(edge_parquets)})
-        WHERE hash(clique_leader) IN (SELECT DISTINCT set_id FROM flagged)
+        SELECT c AS set_id, leader AS clique_leader FROM glom_clique WHERE c IN (SELECT DISTINCT set_id FROM flagged)
     """)
     con.sql(f"""
         CREATE OR REPLACE TABLE label AS
-        SELECT curie, any_value(label) AS label FROM read_parquet({_list(node_parquets)})
+        SELECT curie, any_value(label) AS label FROM read_parquet({sql_list(node_parquets)})
         WHERE curie IN (SELECT curie FROM comp_member JOIN flagged USING (set_id, comp)
                         UNION SELECT curie FROM set_core UNION SELECT clique_leader FROM set_leader)
         GROUP BY curie
@@ -403,7 +411,7 @@ def audit_chemical_inchikeys(
         f.write(
             "set_id\tcomp\ttier\tinchikey\tcore_heavy_atoms\tname_score\tverdict\tstructureless_labels\tcore_labels\n"
         )
-        flagged = con.sql("SELECT set_id, comp, n_structure_sources, coalesce(has_non_small_type, false) FROM flagged")
+        flagged = con.sql("SELECT set_id, comp, n_structure_sources, has_non_small_type FROM flagged")
         for set_id, comp, n_sources, non_small in flagged.fetchall():
             tier = tier_of(n_sources, non_small)
             key, core_curies = core.get(set_id, (None, []))
@@ -421,7 +429,7 @@ def audit_chemical_inchikeys(
         SELECT CAST(set_id AS UBIGINT) set_id, CAST(comp AS INT) comp, tier, inchikey,
                TRY_CAST(core_heavy_atoms AS INT) core_heavy_atoms, CAST(name_score AS DOUBLE) name_score, verdict,
                structureless_labels, core_labels
-        FROM read_csv('{out_tsv}', {tsv})""")
+        FROM read_csv({sql_str(out_tsv)}, {tsv})""")
 
     con.sql("""
         CREATE OR REPLACE TABLE audit_component AS
@@ -458,7 +466,3 @@ def refused_edges_query() -> str:
         SELECT base AS source, subj, obj FROM glom_edge
         WHERE verdict = '{REFUSED_INCHIKEY}' AND NOT is_unichem ORDER BY source, subj, obj
     """
-
-
-def _list(paths: Iterable[str]) -> str:
-    return "[" + ",".join(f"'{p}'" for p in paths) + "]"
