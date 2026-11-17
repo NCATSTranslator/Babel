@@ -12,7 +12,6 @@ open its connection here rather than calling ``duckdb.connect()`` itself.
 import os
 import secrets
 import shutil
-import sys
 from contextlib import contextmanager
 
 import duckdb
@@ -239,11 +238,4 @@ def _remove_spill_directory(spill_directory):
             exc,
         )
 
-    # Python 3.12 renamed shutil.rmtree()'s error callback from `onerror` (passed exc_info) to `onexc` (passed the
-    # exception); requires-python still admits 3.11.
-    if sys.version_info >= (3, 12):
-        shutil.rmtree(spill_directory, onexc=log_failure)
-    else:
-        shutil.rmtree(
-            spill_directory, onerror=lambda function, path, exc_info: log_failure(function, path, exc_info[1])
-        )
+    shutil.rmtree(spill_directory, onexc=log_failure)
