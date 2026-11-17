@@ -46,7 +46,7 @@ from src.datahandlers.umls import read_cuis_owned_elsewhere
 from src.model.glom_edges import classify_chemical_glom_edges
 from src.model.inchikey_audit import audit_chemical_inchikeys, refused_edges_query
 from src.util import ensure_parent_dir, get_config, get_logger, sql_str
-from src.utils.duckdb_setup import setup_duckdb
+from src.utils.duckdb_setup import connect_duckdb
 
 logger = get_logger(__name__)
 
@@ -95,7 +95,7 @@ def main(argv=None):
         # The pipeline's DuckDB setup: config.yaml's duckdb_config defaults, a spill directory inside the scratch
         # directory (so it goes even when the database is kept), and the connect-time settings and memory-headroom
         # log lines.
-        con = setup_duckdb(
+        with connect_duckdb(
             args.keep_duckdb or str(pathlib.Path(scratch) / "audit.duckdb"),
             {
                 "memory_limit": args.memory_limit,
@@ -103,8 +103,7 @@ def main(argv=None):
                 "preserve_insertion_order": False,
                 "temp_directory": str(pathlib.Path(scratch) / "spill"),
             },
-        )
-        try:
+        ) as con:
             if lookup.startswith("http"):
                 con.sql("INSTALL httpfs; LOAD httpfs")
             owned = read_cuis_owned_elsewhere(args.mesh_ownership, "chemicals") if args.mesh_ownership else frozenset()
@@ -122,8 +121,6 @@ def main(argv=None):
                 con, scratch, node_parquets, f"{lookup}/duckdb/Identifier.parquet", args.structure_file
             )
             write_outputs(con, out)
-        finally:
-            con.close()
     return 0
 
 
