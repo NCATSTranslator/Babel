@@ -348,7 +348,7 @@ def audit_chemical_inchikeys(
         SELECT z.set_id, z.comp, z.n_members, z.n_structure_sources,
                coalesce(bool_or(list_contains({sql_list(NON_SMALL_MOLECULE_TYPES)}, t.biolink_type)), false)
                  AS has_non_small_type,
-               list(DISTINCT t.biolink_type) FILTER (WHERE t.biolink_type IS NOT NULL) AS declared_types
+               list(DISTINCT t.biolink_type ORDER BY t.biolink_type) FILTER (WHERE t.biolink_type IS NOT NULL) AS declared_types
         FROM comp_size z JOIN comp_member m USING (set_id, comp) LEFT JOIN member_type t USING (curie)
         GROUP BY z.set_id, z.comp, z.n_members, z.n_structure_sources
     """)
@@ -439,7 +439,7 @@ def audit_chemical_inchikeys(
         SELECT (SELECT min(m.curie) FROM comp_member m WHERE m.set_id = f.set_id AND m.comp = f.comp) AS component_id,
                l.clique_leader, ll.label AS clique_leader_label, t.inchikey, t.tier, t.verdict,
                f.n_structure_sources, f.n_members, t.core_heavy_atoms, t.name_score,
-               (SELECT string_agg(DISTINCT b.source, ',') FROM comp_boundary b
+               (SELECT string_agg(DISTINCT b.source, ',' ORDER BY b.source) FROM comp_boundary b
                  WHERE b.set_id = f.set_id AND b.comp = f.comp) AS boundary_sources,
                (SELECT count(*) FROM comp_boundary b WHERE b.set_id = f.set_id AND b.comp = f.comp) AS n_boundary,
                array_to_string(f.declared_types, ',') AS declared_types,
