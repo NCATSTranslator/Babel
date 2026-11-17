@@ -13,8 +13,8 @@ from src.duckdb_setup import log_duckdb_settings_on_error, setup_duckdb
 @pytest.mark.unit
 def test_setup_duckdb_applies_caller_settings_and_spills_per_job(tmp_path):
     """Caller settings should reach the connection, and spills should go to a per-job subdirectory of the requested
-    temp_directory."""
-    temp = tmp_path / "spill"
+    temp_directory, even when its path holds a single quote."""
+    temp = tmp_path / "gaurav's-builds"
     db = setup_duckdb(str(tmp_path / "x.duckdb"), {"threads": 2, "temp_directory": str(temp)})
     settings = dict(db.execute("SELECT name, value FROM duckdb_settings()").fetchall())
 

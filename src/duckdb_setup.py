@@ -14,7 +14,7 @@ from contextlib import contextmanager
 import duckdb
 
 from src.memory import _bytes_to_gib, cgroup_memory_hard_limit_bytes, log_memory_snapshot
-from src.util import get_config, get_logger
+from src.util import get_config, get_logger, sql_str
 
 logger = get_logger(__name__)
 
@@ -104,8 +104,8 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
         job_id = os.environ.get("SLURM_JOB_ID") or str(os.getpid())
         temp_directory = os.path.join(temp_directory, f"duckdb-{job_id}")
         os.makedirs(temp_directory, exist_ok=True)
-        db.execute(f"SET temp_directory = '{temp_directory}'")
-        db.execute(f"SET max_temp_directory_size = '{max_temp_directory_size or '500GB'}'")
+        db.execute(f"SET temp_directory = {sql_str(temp_directory)}")
+        db.execute(f"SET max_temp_directory_size = {sql_str(max_temp_directory_size or '500GB')}")
 
     # We need to set local settings after the connection has been opened.
     db.execute("SET enable_progress_bar=true")
