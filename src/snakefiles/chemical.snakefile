@@ -262,6 +262,26 @@ rule get_chemical_mesh_relationships:
         )
 
 
+rule get_chemical_unii_records_relationships:
+    input:
+        infile=config["download_directory"] + "/UNII/Latest_UNII_Records.txt",
+    output:
+        pubchemout=config["intermediate_directory"] + "/chemicals/concords/UNII_PUBCHEM",
+        casout=config["intermediate_directory"] + "/chemicals/concords/UNII_CAS",
+        pubchemout_metadata_yaml=config["intermediate_directory"] + "/chemicals/concords/metadata-UNII_PUBCHEM.yaml",
+        casout_metadata_yaml=config["intermediate_directory"] + "/chemicals/concords/metadata-UNII_CAS.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_chemical_unii_records_relationships.tsv"
+    run:
+        chemicals.write_unii_records_concords(
+            input.infile,
+            output.pubchemout,
+            output.casout,
+            output.pubchemout_metadata_yaml,
+            output.casout_metadata_yaml,
+        )
+
+
 # This is about a 2 hour step and requires something more than 256G of RAM.  512G works.
 rule get_chemical_unichem_relationships:
     input:

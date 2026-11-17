@@ -34,6 +34,7 @@ from src.datahandlers.unii import UNII_ORGANISM_COLUMNS, read_unii_records
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.model.intermediates import read_concord_pairs
 from src.prefixes import (
+    CAS,
     CHEBI,
     CHEMBLCOMPOUND,
     DRUGBANK,
@@ -438,6 +439,72 @@ def write_unii_ids(infile, outfile):
             # definition, also used by the DrugBank food-and-extract retype (issue #828).
             if not any(row.get(col) for col in UNII_ORGANISM_COLUMNS):
                 outf.write(f"{UNII}:{row['UNII']}\t{CHEMICAL_ENTITY}\n")
+
+
+# UNII SUBSTANCE_TYPE values whose PubChem CID or CAS number write_unii_records_concords() does not write. PubChem
+# represents a polymer by its monomers or repeat unit (UNII:58QVG85GW3 "POLYVINYL ACETATE PHTHALATE" names
+# PUBCHEM.COMPOUND:161821, "Ethenyl acetate;phthalic acid"), so the link would merge the polymer with its monomers -- the
+# pattern babel-inchikey-audit flags as "polymer -> monomer" and input_data/chemical_badxrefs.txt blocks one pair at a time.
+# On 2026jul22, 133 of the UNII_PUBCHEM pairs that would have joined two cliques were polymers
+# (docs/sources/UNII/records-xrefs/).
+UNII_SUBSTANCE_TYPES_WITHOUT_XREFS = {"polymer"}
+
+
+def write_unii_records_concords(infile, pubchem_out, cas_out, pubchem_metadata, cas_metadata):
+    """Write the PubChem CID (``PUBCHEM`` column) and CAS number (``RN`` column) that FDA's UNII records give each UNII,
+    as two concords: ``UNII:x xref PUBCHEM.COMPOUND:y`` (UNII_PUBCHEM) and ``UNII:x xref CAS:y`` (UNII_CAS).
+
+    These are what join a UNII that UniChem cannot link by InChIKey -- a protein, a mixture, an oligonucleotide -- to
+    the PubChem record for the same substance: before them, rabbit insulin's UNII and its CID were separate cliques
+    (#1171, #1225). ``remove_overused_xrefs()`` in ``build_untyped_compendia()`` drops a CID that more than one UNII
+    claims.
+
+    Only UNII_PUBCHEM is in ``config.yaml: chemical_concords``. UNII_CAS is written so it can be measured, and added
+    there if that is ever wanted, but on 2026jul22 it was the wrong link too often: where a UNII record states its own
+    InChIKey, 593 of the 1,045 cliques a CAS number would have joined it to hold a different stereoisomer or
+    protonation state (CAS numbers are often stereo-unspecified), against 66 of 3,855 for the CID. It also gains
+    nothing for #1171: the beef insulin pair it would add is refused on InChIKey. See
+    docs/sources/UNII/records-xrefs/README.md.
+
+    Skipped rows: organisms, as ``write_unii_ids()`` skips them, so no edge names a UNII the ids file drops; and
+    ``UNII_SUBSTANCE_TYPES_WITHOUT_XREFS``. A value that isn't a well-formed CID (digits) or CAS number is skipped and
+    logged rather than repaired. The 4 Aug 2026 file has two: UNII:7C236S3MKV's PUBCHEM holds a CAS number, and
+    UNII:8MJD3NPN7Z's RN repeats its CID.
+    """
+    skipped = Counter()
+    with open(pubchem_out, "w") as pubchemf, open(cas_out, "w") as casf:
+        for row in read_unii_records(infile):
+            if any(row.get(col) for col in UNII_ORGANISM_COLUMNS):
+                continue
+            if row.get("SUBSTANCE_TYPE", "").strip() in UNII_SUBSTANCE_TYPES_WITHOUT_XREFS:
+                continue
+            unii = row["UNII"].strip()
+            cid = (row.get("PUBCHEM") or "").strip()
+            if cid:
+                if cid.isdigit():
+                    pubchemf.write(f"{UNII}:{unii}\txref\t{PUBCHEMCOMPOUND}:{cid}\n")
+                else:
+                    skipped["PUBCHEM"] += 1
+                    logger.warning("UNII:%s has a PUBCHEM value that is not a CID, skipping: %r", unii, cid)
+            cas = (row.get("RN") or "").strip()
+            if cas:
+                if is_cas(cas):
+                    casf.write(f"{UNII}:{unii}\txref\t{CAS}:{cas}\n")
+                else:
+                    skipped["RN"] += 1
+                    logger.warning("UNII:%s has an RN value that is not a CAS number, skipping: %r", unii, cas)
+    logger.info("write_unii_records_concords() skipped malformed values: %s", dict(skipped))
+
+    for column, concord, metadata in [("PUBCHEM", pubchem_out, pubchem_metadata), ("RN", cas_out, cas_metadata)]:
+        write_concord_metadata(
+            metadata,
+            name="write_unii_records_concords()",
+            sources=[{"type": "UNII", "name": "FDA UNII records (Latest_UNII_Records.txt)"}],
+            url="https://precision.fda.gov/uniisearch/archive",
+            description=f"write_unii_records_concords() writes the {column} column of {infile} for every UNII that "
+            f"is not an organism or a polymer to {concord}.",
+            concord_filename=concord,
+        )
 
 
 def write_drugbank_ids(infile, outfile):
