@@ -60,7 +60,12 @@ UNICHEM_CONCORD_DIR = "/chemicals/concords/UNICHEM/"
 
 # Chemical output types (``chemical_outputs`` names) whose Biolink class does not register the INCHIKEY prefix, so
 # write_compendium() drops a clique's key on the way out. The model infers those dropped keys (see the module
-# docstring), and checks this list against the build: a type here that still holds an InChIKey raises.
+# docstring), and checks this list against the build: a type here that still holds an InChIKey raises. On 2026jul22
+# no keyed glom set was typed Drug or Food, so the inference applies to no edge there; it is what keeps such a set
+# from being audited as all structure-less (one tier A "review" component with no boundary edges) in a build that
+# has one. The 15 UniChem record->key edges of 2026jul22 whose key is in no output sit in SmallMolecule,
+# MolecularMixture and ChemicalEntity cliques: 13 of those cliques hold another key (glom() refused the second), and
+# the other 2 lost their key to the UNII overused filter -- why the inference is not made outside these types.
 KEY_DROPPING_TYPES = frozenset(t.removeprefix("biolink:") for t in (DRUG, FOOD))
 
 
