@@ -27,7 +27,7 @@ Three steps outside ``glom()`` have to be modelled for that to hold:
 
 A cross-clique edge that none of this explains means the model above no longer matches the pipeline, and
 :func:`classify_chemical_glom_edges` raises rather than returning verdicts nobody can trust. On 2026jul22 every one
-of the 132.5M chemical concord edges is explained.
+of the 132.6M (132,556,396) chemical concord edges is explained.
 
 Everything runs in DuckDB. CURIEs and clique leaders are joined as 64-bit hashes so a 256M-member compendium fits
 in memory; a collision would merge two members' fates, and on 2026jul22 the 256,445,670 distinct CURIEs have
