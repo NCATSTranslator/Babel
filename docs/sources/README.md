@@ -78,6 +78,10 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
   [UMLS/CuiFollowsMesh.md](./UMLS/CuiFollowsMesh.md) — how a CUI is assigned to the pipeline that
   claims its MeSH descriptor when its semantic type says otherwise, the replay that measures the
   rule against a published build, and the duplicate-clique-leader control behind it.
+- **UNII** ([UNII/README.md](./UNII/README.md)) — the FDA's substance identifiers: which of the
+  two downloaded files feed identifiers, labels and typing, and
+  ([UNII/records-xrefs/README.md](./UNII/records-xrefs/README.md)) the measurement behind reading
+  the records file's PubChem column as a concord but not its CAS column, or polymers' CIDs.
 - **NCBIGene** ([NCBIGene/quoting/README.md](./NCBIGene/quoting/README.md)) — an investigation into
   how the two free-text synonym columns (`Synonyms`/`otheraliases`, `Other_designations`/
   `otherdesignations`) in `gene_info.gz` are quoted, prompted by issue #744's `''…''` fragments and
