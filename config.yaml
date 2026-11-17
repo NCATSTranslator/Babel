@@ -545,11 +545,6 @@ publications:
   outputs: [Publication.txt]
 
 geneprotein_outputs: [GeneProtein.txt]
-# Prefixes the GeneProtein conflation's glom() keeps to one identifier per conflation group. Empty,
-# deliberately: the conflation merges gene and protein cliques by their preferred ids and restricts
-# nothing. It used to inherit glom()'s old (INCHIKEY,) default, which no gene or protein id can match,
-# so this is the same behaviour made explicit (#882). The only entry read with allow_empty=True.
-geneprotein_unique_prefixes: []
 
 drugchemical_outputs: [DrugChemical.txt]
 # Prefixes the DrugChemical conflation's glom() keeps to one identifier per conflation group. The

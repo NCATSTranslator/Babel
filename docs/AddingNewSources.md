@@ -86,11 +86,11 @@ In `src/createcompendia/<pipeline>.py`:
   its restriction there (#882) and reads it with `unique_prefixes_from_config()`, which rejects
   anything but a list of prefixes defined in `src/prefixes.py`: `UBERON` rather than `[UBERON]`
   used to restrict the letters U, B, E, R, O and N instead, without a word
-  (`validate_unique_prefixes()` in `src/babel_utils.py`). It also rejects an empty list, unless the
-  caller passes `allow_empty=True` because restricting nothing is the recorded decision
-  (`geneprotein_unique_prefixes`). `glom()` has no default for `unique_prefixes`, so a new
-  pipeline must name its restriction; pass `()` in code only where it cannot matter, such as a
-  builder that loads ids files alone (`cell_line`, `genefamily`, `macromolecular_complex`).
+  (`validate_unique_prefixes()` in `src/babel_utils.py`). It also rejects an empty list.
+  `glom()` has no default for `unique_prefixes`, so a new pipeline must name its restriction; pass
+  `()` in code only where it cannot matter, such as a builder that loads ids files alone
+  (`cell_line`, `genefamily`, `macromolecular_complex`), or where restricting nothing is the
+  design (the GeneProtein conflation).
 
   **This can silently delete identifiers, so check what it makes compete.** `glom()` keeps
   whichever CURIE of a restricted prefix it encounters **first** and refuses the rest. A refused

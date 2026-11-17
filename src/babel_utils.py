@@ -1108,8 +1108,9 @@ def validate_unique_prefixes(unique_prefixes) -> frozenset[str]:
     Each of these raises ValueError here instead. Returning a frozenset, rather than handing back
     what was passed, is what makes the iterator case safe, and lets glom() test membership directly.
     An empty collection is valid: cell_line, genefamily and macromolecular_complex load only ids
-    files, where nothing merges, so they pass ``()``. For a value read from config.yaml, where an
-    empty list is more likely a lost entry than a decision, use unique_prefixes_from_config().
+    files, where nothing merges, and the geneprotein conflation restricts nothing by design, so they
+    pass ``()``. For a value read from config.yaml, where an empty list is more likely a lost entry
+    than a decision, use unique_prefixes_from_config().
     """
     if isinstance(unique_prefixes, str):
         raise ValueError(
@@ -1130,7 +1131,7 @@ def validate_unique_prefixes(unique_prefixes) -> frozenset[str]:
     return frozenset(prefixes)
 
 
-def unique_prefixes_from_config(config_key: str, *, allow_empty: bool = False) -> frozenset[str]:
+def unique_prefixes_from_config(config_key: str) -> frozenset[str]:
     """Read a pipeline's unique prefixes from config.yaml, checking each is a prefix Babel knows.
 
     Every pipeline whose glom() can merge anything keeps its restriction in config.yaml as
@@ -1140,10 +1141,9 @@ def unique_prefixes_from_config(config_key: str, *, allow_empty: bool = False) -
 
     On top of validate_unique_prefixes(), this rejects any prefix that isn't one of the constants in
     src/prefixes.py, since a misspelt prefix (``UBRON``) restricts nothing without a word. It also
-    rejects an empty list unless ``allow_empty`` is set: for most pipelines an empty entry is more
-    likely one emptied by a bad merge, which would turn off every restriction without a word. Pass
-    ``allow_empty=True`` only for a pipeline whose recorded decision is to restrict nothing
-    (geneprotein conflation); a missing key or a bare ``key:`` (None) is still an error.
+    rejects an empty list, which is more likely an entry emptied by a bad merge than a decision, and
+    would turn off every restriction without a word. A pipeline that restricts nothing by design
+    (the geneprotein conflation) passes ``unique_prefixes=()`` in code and has no entry.
     """
     from src import prefixes as prefix_constants
 
@@ -1152,7 +1152,7 @@ def unique_prefixes_from_config(config_key: str, *, allow_empty: bool = False) -
         unique_prefixes = validate_unique_prefixes(value)
     except ValueError as err:
         raise ValueError(f"config.yaml: {config_key}: {err}") from err
-    if not unique_prefixes and not allow_empty:
+    if not unique_prefixes:
         raise ValueError(f"config.yaml: {config_key} is empty; list at least one prefix to keep unique per clique")
     known = {v for k, v in vars(prefix_constants).items() if k.isupper() and isinstance(v, str)}
     unknown = sorted(unique_prefixes - known)
@@ -1173,7 +1173,8 @@ def glom(conc_set, newgroups, *, unique_prefixes, pref="HP", close=None):
     It is a required keyword with no default: it used to default to (INCHIKEY,), which two
     conflation builders inherited without anyone choosing it (#882). A pipeline's restriction
     belongs in config.yaml as ``<pipeline>_unique_prefixes``, read with unique_prefixes_from_config();
-    pass ``()`` in code only where it cannot matter, such as a builder that loads ids files alone.
+    pass ``()`` in code only where it cannot matter (a builder that loads ids files alone) or where
+    restricting nothing is the design (the geneprotein conflation).
     close, if given, maps a prefix to {identifier: identifiers it must not share a clique with}.
 
     tests/test_glom.py pins this function's whole behavior, quirks included, and restates it as a

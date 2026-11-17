@@ -21,21 +21,19 @@ def use_config(monkeypatch, value):
 # THE REAL CONFIG
 
 
-# Every pipeline whose glom() can merge anything (#882). cell_line, genefamily and
-# macromolecular_complex load ids files alone, so they pass () in code and have no entry.
+# Every pipeline whose glom() can merge anything (#882), except the GeneProtein conflation, which
+# restricts nothing by design. It and cell_line, genefamily and macromolecular_complex (which load
+# ids files alone) pass () in code and have no entry.
 PIPELINE_KEYS = {
     "anatomy_unique_prefixes",
     "chemical_unique_prefixes",
     "disease_unique_prefixes",
     "drugchemical_unique_prefixes",
     "gene_unique_prefixes",
-    "geneprotein_unique_prefixes",
     "process_unique_prefixes",
     "protein_unique_prefixes",
     "taxon_unique_prefixes",
 }
-# The only entries whose recorded decision is to restrict nothing, read with allow_empty=True.
-EMPTY_KEYS = {"geneprotein_unique_prefixes"}
 
 
 def test_config_yaml_has_an_entry_for_every_pipeline_that_merges():
@@ -46,11 +44,8 @@ def test_config_yaml_has_an_entry_for_every_pipeline_that_merges():
 
 @pytest.mark.parametrize("key", sorted(PIPELINE_KEYS))
 def test_every_unique_prefixes_entry_in_config_yaml_is_valid(key):
-    """Should read every real entry: non-empty except the EMPTY_KEYS, which must be empty."""
-    if key in EMPTY_KEYS:
-        assert unique_prefixes_from_config(key, allow_empty=True) == frozenset()
-    else:
-        assert unique_prefixes_from_config(key)
+    """Should read every real entry as a non-empty set of known prefixes."""
+    assert unique_prefixes_from_config(key)
 
 
 # ACCEPTED
@@ -88,27 +83,3 @@ def test_a_missing_key_raises(monkeypatch):
     use_config(monkeypatch, None)
     with pytest.raises(ValueError, match="config.yaml: no_such_unique_prefixes"):
         unique_prefixes_from_config("no_such_unique_prefixes")
-
-
-# ALLOW_EMPTY
-
-
-def test_allow_empty_accepts_an_empty_list(monkeypatch):
-    """Should return an empty frozenset for ``[]`` when allow_empty is set, as geneprotein's entry is."""
-    use_config(monkeypatch, [])
-    assert unique_prefixes_from_config("test_unique_prefixes", allow_empty=True) == frozenset()
-
-
-@pytest.mark.parametrize(
-    "value, message",
-    [
-        pytest.param("UBERON", r"did you mean \['UBERON'\]", id="string-without-brackets"),
-        pytest.param(None, "not NoneType", id="key-with-no-value"),
-        pytest.param(["UBRON"], r"not defined in src/prefixes.py: \['UBRON'\]", id="misspelt-prefix"),
-    ],
-)
-def test_allow_empty_still_rejects_every_other_bad_entry(monkeypatch, value, message):
-    """Should still raise for a bare string, a key with no value, or an unknown prefix when allow_empty is set."""
-    use_config(monkeypatch, value)
-    with pytest.raises(ValueError, match=message):
-        unique_prefixes_from_config("test_unique_prefixes", allow_empty=True)
