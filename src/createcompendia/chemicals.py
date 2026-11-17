@@ -1112,7 +1112,8 @@ def build_untyped_compendia(
                 continue
             pairs.append((subject, obj))
         p = False
-        if DRUGCENTRAL in [n.split(":")[0] for n in pairs[0]]:
+        # pairs can be empty: an empty concord, or one whose every row names a CUI owned elsewhere.
+        if pairs and DRUGCENTRAL in [n.split(":")[0] for n in pairs[0]]:
             p = True
             i = "DrugCentral:4970"
         if p:

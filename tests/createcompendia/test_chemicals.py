@@ -4,7 +4,8 @@ Covers write_unichem_concords()'s handling of UniChem compound IDs that already 
 prefix (e.g. the CHEBI source stores "CHEBI:12345" rather than a bare "12345"), which previously
 produced invalid "CHEBI:CHEBI:12345" CURIEs across the chemical compendia; make_chebi_relations()'s
 reading of the ChEBI SDF, whose tags ChEBI renames between releases; and combine_unichem()'s
-one-prefix-per-file guards, which decide whether remove_overused_xrefs() runs for a given source.
+one-prefix-per-file guards, which decide whether remove_overused_xrefs() runs for a given source;
+and build_untyped_compendia()'s handling of a concord that leaves no pairs to glom.
 """
 
 import gzip
@@ -26,6 +27,7 @@ from src.categories import (
 )
 from src.createcompendia.chemicals import (
     CHEBI_DBX_SOURCE_NAMES,
+    build_untyped_compendia,
     combine_unichem,
     create_typed_sets,
     make_chebi_relations,
@@ -632,3 +634,42 @@ def test_combine_unichem_raises_when_a_file_mixes_prefixes_in_column_1(tmp_path)
 
     with pytest.raises(RuntimeError, match="Multiple prefixes found"):
         combine_unichem([str(concord)], str(tmp_path / "UNICHEM"))
+
+
+# BUILD_UNTYPED_COMPENDIA
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "rows",
+    [
+        pytest.param([], id="empty-concord"),
+        pytest.param([("UMLS:C0000001", f"{CHEBI}:15377")], id="every-row-owned-elsewhere"),
+    ],
+)
+def test_build_untyped_compendia_survives_a_concord_with_no_pairs_left(tmp_path, rows):
+    """Should build the untyped compendium, not raise IndexError, when a concord leaves no pairs to glom.
+
+    A debug probe used to read ``pairs[0]`` unguarded, so an empty concord, or one whose every row
+    names a CUI another pipeline owns, crashed the untyped_compendium rule.
+    """
+    concord = _write_unichem_concord(tmp_path / "UMLS", rows)
+    unichem_partial = tmp_path / "unichem_partial.jsonl"
+    unichem_partial.write_text(json.dumps([f"{CHEBI}:15377", f"{INCHIKEY}:XLYOFNOQVPJJNP-UHFFFAOYSA-N"]) + "\n")
+    # The umls_mesh_ownership rule's format: CUI, owning pipeline, descriptor, Biolink type.
+    mesh_ownership = tmp_path / "mesh_ownership.tsv"
+    mesh_ownership.write_text("UMLS:C0000001\tdisease\tMESH:D000001\tbiolink:Disease\n")
+    untyped_concord = tmp_path / "untyped_compendium"
+
+    build_untyped_compendia(
+        [str(concord)],
+        [],
+        str(unichem_partial),
+        str(untyped_concord),
+        str(tmp_path / "types"),
+        str(tmp_path / "metadata.yaml"),
+        [],
+        mesh_ownership=str(mesh_ownership),
+    )
+
+    assert untyped_concord.read_text().count("\n") == 1
