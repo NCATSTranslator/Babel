@@ -43,8 +43,15 @@ When a new issue arrives, work through the following steps:
 ### Adding automated tests to issues
 
 The [babel-validation] project can run automated checks against live NodeNorm and NameRes
-instances that are triggered by issues. You can embed tests directly in issue descriptions or
-comments using two syntaxes.
+instances that are triggered by issues. You can embed tests in an issue's description using two
+syntaxes. Only the description is read: a test in a comment is never run. The harness scans this
+repository, NodeNormalization, NameResolution, babel-validation and babel-explorer, so a test in an
+issue elsewhere (such as the Feedback repository) belongs in the Babel issue it points to.
+
+Tests run without conflation, so a fix that only works as a conflation can't be tested yet
+([babel-validation#169](https://github.com/TranslatorSRI/babel-validation/issues/169)). For the
+full workflow of answering a normalization report, including writing and checking these tests, see
+[docs/issues/AGENTS.md](./issues/AGENTS.md).
 
 #### Wiki syntax (single assertion)
 
@@ -79,9 +86,7 @@ Having text after the fenced code block (or multiple code blocks) is fine too.
 #### Available assertion types
 
 You can see an up-to-date list of supported assertions
-[in the Babel Validation repository](https://github.com/TranslatorSRI/babel-validation/blob/3eeeccfb0d15451e45ecade7603404e096b30fb0/src/babel_validation/assertions/README.md).
-
-<!-- TODO: replace with the actual URL once https://github.com/TranslatorSRI/babel-validation/pull/67 has been merged. -->
+[in the Babel Validation repository](https://github.com/TranslatorSRI/babel-validation/blob/main/src/babel_validation/assertions/README.md).
 
 **NodeNorm assertions:**
 

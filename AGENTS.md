@@ -16,6 +16,7 @@ loads the nearest one automatically when you edit files there; **other agents sh
   `src/tools/source_impact_report/`) — the "thin CLI frontend" convention and per-tool notes.
 - `docs/sources/` — cross-cutting xref / source-data conventions.
 - `docs/sources/DRUGBANK/` — DrugBank ingest gotchas (CC-0 vocabulary only, the UNII typing bridge).
+- `docs/issues/` — answering a normalization report (also read it before starting one; see below).
 
 (Agents that merge nested `AGENTS.md` up the tree won't see these `CLAUDE.md` files — only this
 root file. If per-directory cross-agent context ever matters, pair each with an `AGENTS.md` holding
@@ -262,6 +263,15 @@ repo-wide lint or scan must exclude `reports/` and `metadata/` — but not the n
 
 A release is also the natural cadence for re-checking SLURM sizing against the run's benchmarks
 (`docs/tools/Resources.md`), and for the archive/pin steps in `docs/RunningBabel.md`.
+
+## Responding to a normalization report
+
+**Read [`docs/issues/AGENTS.md`](docs/issues/AGENTS.md) before answering a report that a CURIE
+splits, merges, or has the wrong label or type** — from the Feedback repository, a reasoner's
+tracker, or here. It covers finding which build a deployment serves,
+`uv run babel-compare-resolution`, the causes seen so far, filing one issue per cause, manual
+DrugChemical stopgaps, the BabelTests that can and can't be written, and drafting the reply for
+review before it is posted.
 
 ## Adding a new data source
 
