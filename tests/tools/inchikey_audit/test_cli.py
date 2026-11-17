@@ -59,3 +59,20 @@ def test_cli_refuses_the_repos_badxrefs_file(tmp_path):
 
     with pytest.raises(ValueError, match="applied_badxrefs.txt"):
         main(["--build", str(tmp_path), "--badxrefs", CHEMICAL_BAD_XREFS, "--out", str(tmp_path / "out")])
+
+
+@pytest.mark.unit
+def test_cli_creates_the_output_directory_when_the_work_dir_is_elsewhere(tmp_path):
+    """With --work-dir outside --out, the CLI should still create a fresh --out rather than fail at the first COPY."""
+    members = sorted({c for _, s, o in OFATUMUMAB_CONCORDS for c in (s, o)} | {"RXCUI:712566"})
+    build = write_build(
+        tmp_path / "build", OFATUMUMAB_CONCORDS, {"CHEBI:28887": ("SmallMolecule", members)}, OFATUMUMAB_LABELS
+    )
+    structures = write_structure_file(
+        tmp_path / "structure.tsv.gz", [("1", DIMETHYL_ETHER_INCHI, DIMETHYL_ETHER_KEY.split(":", 1)[1])]
+    )
+    out = tmp_path / "fresh" / "out"
+    args = ["--build", str(build), "--structure-file", str(structures), "--out", str(out)]
+
+    assert main(args + ["--work-dir", str(tmp_path / "scratch"), "--threads", "1"]) == 0
+    assert (out / "components.tsv").exists()

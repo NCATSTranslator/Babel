@@ -71,6 +71,7 @@ def main(argv=None):
     out = pathlib.Path(args.out)
     work = pathlib.Path(args.work_dir) if args.work_dir else out / "work"
     work.mkdir(parents=True, exist_ok=True)
+    out.mkdir(parents=True, exist_ok=True)  # --work-dir may sit outside --out
 
     con = duckdb.connect(str(work / "audit.duckdb"))
     con.sql(f"SET memory_limit={sql_str(args.memory_limit)}")
