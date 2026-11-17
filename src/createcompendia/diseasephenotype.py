@@ -753,7 +753,7 @@ def compute_cliques_for_impact_report(
 
     owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "disease")
     # MONDO, HP and MP: see disease_unique_prefixes in config.yaml.
-    uniques = unique_prefixes_from_config("disease_unique_prefixes")
+    unique_prefixes = unique_prefixes_from_config("disease_unique_prefixes")
     dicts = {}
     types = {}
     for ifile in identifiers:
@@ -761,7 +761,7 @@ def compute_cliques_for_impact_report(
             continue
         logger.info("Reading identifiers from %s", ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=uniques)
+        glom(dicts, new_identifiers, unique_prefixes=unique_prefixes)
         types.update(new_types)
 
     close_mondos = defaultdict(set)
@@ -800,7 +800,7 @@ def compute_cliques_for_impact_report(
             newpairs = remove_overused_xrefs(pairs, target_prefixes=OVERUSE_FILTERED_CONCORDS[pref])
         else:
             newpairs = pairs
-        glom(dicts, newpairs, unique_prefixes=uniques, close={MONDO: close_mondos})
+        glom(dicts, newpairs, unique_prefixes=unique_prefixes, close={MONDO: close_mondos})
 
     # Enforce HP/MP (and any other configured) disjointness as the final step, so BOTH the
     # real build (build_compendium) and the source-impact report (which diffs these dicts)

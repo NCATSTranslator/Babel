@@ -315,21 +315,21 @@ def build_protein_compendia(concordances, metadata_yamls, identifiers, icrdf_fil
     owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "protein")
     dicts = {}
     types = {}
-    uniques = unique_prefixes_from_config("protein_unique_prefixes")
+    unique_prefixes = unique_prefixes_from_config("protein_unique_prefixes")
     logger.info(
-        f"Started building protein compendia ({concordances}, {metadata_yamls}, {identifiers}, {icrdf_filename}) with uniques {uniques}"
+        f"Started building protein compendia ({concordances}, {metadata_yamls}, {identifiers}, {icrdf_filename}) with unique prefixes {unique_prefixes}"
     )
     for ifile in identifiers:
         logger.info(f"Loading identifier file {ifile}")
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=uniques)
+        glom(dicts, new_identifiers, unique_prefixes=unique_prefixes)
         types.update(new_types)
         logger.info(f"Loaded identifier file {ifile}: {get_memory_usage_summary()}")
     logger.info(f"Finished loading identifiers, memory usage: {get_memory_usage_summary()}")
     for infile in concordances:
         logger.info(f"Loading concordance file {infile}")
         # Streamed straight into glom(), without holding the file's pairs: see read_concord_pairs().
-        glom(dicts, _protein_concord_pairs(infile, owned_elsewhere), unique_prefixes=uniques)
+        glom(dicts, _protein_concord_pairs(infile, owned_elsewhere), unique_prefixes=unique_prefixes)
         logger.info(f"Loaded concordance file {infile}: {get_memory_usage_summary()}")
     logger.info(f"Finished loading concordances, memory usage: {get_memory_usage_summary()}")
     logger.info("Building gene sets")

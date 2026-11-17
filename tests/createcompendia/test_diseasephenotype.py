@@ -444,13 +444,13 @@ def test_mp_included_in_unique_prefixes_blocks_same_prefix_merge():
     Regression guard: MP was added to disease_ids/disease_concords without being added to the
     disease unique prefixes, silently losing this data-quality guard.
     """
-    uniques = unique_prefixes_from_config("disease_unique_prefixes")
+    unique_prefixes = unique_prefixes_from_config("disease_unique_prefixes")
     dicts = {}
-    glom(dicts, [("MP:0000001",), ("MP:0000002",)], unique_prefixes=uniques)
-    glom(dicts, [("MP:0000001", "MESH:D000001")], unique_prefixes=uniques)
+    glom(dicts, [("MP:0000001",), ("MP:0000002",)], unique_prefixes=unique_prefixes)
+    glom(dicts, [("MP:0000001", "MESH:D000001")], unique_prefixes=unique_prefixes)
     # MP:0000002 bridging to the same MESH id would merge it with MP:0000001's clique; with MP
     # in unique_prefixes that merge must be rejected, leaving MP:0000002 in its own clique.
-    glom(dicts, [("MP:0000002", "MESH:D000001")], unique_prefixes=uniques)
+    glom(dicts, [("MP:0000002", "MESH:D000001")], unique_prefixes=unique_prefixes)
 
     assert dicts["MP:0000002"] == {"MP:0000002"}
     assert dicts["MP:0000001"] == {"MP:0000001", "MESH:D000001"}
