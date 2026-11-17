@@ -366,30 +366,75 @@ def reference_glom(cliques, groups, unique_prefixes, close):
             cliques[member] = merged
 
 
-def random_groups(rng):
-    """Random singleton and pair groups over a few small namespaces, dense enough to collide often."""
+# Every container a builder has handed glom() a group in. A self-pair is one element as a set but
+# two as a tuple or list, so the container is drawn independently of the members.
+GROUP_CONTAINERS = (tuple, tuple, tuple, list, set, frozenset)
+
+
+def random_groups(rng, forbidden=False):
+    """Random groups over a few small namespaces, dense enough to collide often.
+
+    Mostly pairs, with singletons, self-pairs and the odd empty group, each in a random container
+    from GROUP_CONTAINERS. With ``forbidden``, about one group in forty names a bare KEGG or PUBCHEM
+    identifier, so the sequence usually raises partway through.
+    """
     identifiers = [f"{prefix}:{n}" for prefix in ("A", "B", "C", "MONDO") for n in range(6)]
-    return [tuple(rng.sample(identifiers, rng.choice((1, 2, 2, 2)))) for _ in range(rng.randrange(1, 40))]
+    groups = []
+    for _ in range(rng.randrange(1, 40)):
+        roll = rng.random()
+        if roll < 0.03:
+            members = []
+        elif roll < 0.08:
+            members = [rng.choice(identifiers)] * 2
+        else:
+            members = rng.sample(identifiers, rng.choice((1, 2, 2, 2)))
+        if forbidden and members and rng.random() < 0.025:
+            members[-1] = f"{rng.choice(sorted(FORBIDDEN_PREFIXES))}:{rng.randrange(6)}"
+        groups.append(rng.choice(GROUP_CONTAINERS)(members))
+    return groups
+
+
+def run_and_catch(fn, *args, **kwargs):
+    """Call fn, returning the exception type it raised (or None), so two implementations' failures compare."""
+    try:
+        fn(*args, **kwargs)
+    except Exception as err:
+        return type(err)
+    return None
 
 
 @pytest.mark.unit
 @pytest.mark.parametrize("seed", range(300))
 def test_glom_matches_the_reference_model(seed):
-    """Should build exactly the cliques the reference model does, over random groups, unique prefixes and close maps."""
+    """Should build exactly the cliques the reference model does, over random groups, unique prefixes and close maps.
+
+    The groups come in every container builders use, and some sequences hit a forbidden prefix
+    partway through: then both must raise, with the same cliques left behind.
+    """
     rng = random.Random(seed)
-    groups = random_groups(rng)
-    unique_prefixes = rng.sample(["A", "B", "MONDO"], rng.randrange(0, 4))
+    groups = random_groups(rng, forbidden=True)
+    # Usually one unique_prefixes for both calls, as most builders do; otherwise a second draw, so
+    # the second call meets cliques the first left over its limit, which only a looser earlier call
+    # can produce (test_a_clique_already_over_the_limit_refuses_every_later_merge).
+    first_uniques = rng.sample(["A", "B", "MONDO"], rng.randrange(0, 4))
+    second_uniques = first_uniques if rng.random() < 0.5 else rng.sample(["A", "B", "MONDO"], rng.randrange(0, 4))
     close = {"MONDO": defaultdict(set)}
     for n in rng.sample(range(6), rng.randrange(0, 4)):
         close["MONDO"][f"MONDO:{n}"] = {f"{rng.choice('ABC')}:{rng.randrange(6)}", f"MONDO:{rng.randrange(6)}"}
 
     # Split into two calls, as builders do (ids files, then concords), so state carried between
-    # calls is covered too.
+    # calls is covered too. A forbidden identifier raises; both must raise the same way at the same
+    # group, leaving the same partial state behind (glom() has no rollback), and stop there.
     cut = rng.randrange(len(groups) + 1)
     actual, expected = {}, {}
-    for part in (groups[:cut], groups[cut:]):
-        glom(actual, part, unique_prefixes=unique_prefixes, close=close)
-        reference_glom(expected, part, unique_prefixes, {"MONDO": dict(close["MONDO"])})
+    for part, unique_prefixes in ((groups[:cut], first_uniques), (groups[cut:], second_uniques)):
+        raised = run_and_catch(glom, actual, part, unique_prefixes=unique_prefixes, close=close)
+        expected_raised = run_and_catch(
+            reference_glom, expected, part, unique_prefixes, {"MONDO": dict(close["MONDO"])}
+        )
+        assert raised == expected_raised
+        if raised is not None:
+            break
 
     assert actual == expected
     for key, members in actual.items():
