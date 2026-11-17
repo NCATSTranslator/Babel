@@ -256,12 +256,27 @@ def test_the_default_unique_prefix_is_inchikey():
 
 
 @pytest.mark.unit
-def test_quirk_a_bare_string_restricts_each_of_its_characters():
-    """Quirk: should treat a string unique_prefixes as its characters, so "UBERON" restricts U, B, E, R, O and N."""
+@pytest.mark.parametrize("groups", [[("UBERON:1", "UBERON:2"), ("U:1", "U:2")], []], ids=["with-groups", "no-groups"])
+def test_a_string_unique_prefixes_raises(groups):
+    """Should raise ValueError for a string unique_prefixes, before merging anything, even with nothing to merge.
+
+    This inverts a pinned quirk: a string used to be read as its characters, so "UBERON" restricted
+    U, B, E, R, O and N and left UBERON itself unrestricted, with nothing to say so.
+    """
     d = {}
-    glom(d, [("UBERON:1", "UBERON:2"), ("U:1", "U:2")], unique_prefixes="UBERON")
-    assert d["UBERON:1"] == {"UBERON:1", "UBERON:2"}
-    assert "U:1" not in d
+    with pytest.raises(ValueError, match=r"did you mean \['UBERON'\]"):
+        glom(d, groups, unique_prefixes="UBERON")
+    assert d == {}
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("unique_prefixes", [["UBERON"], ("UBERON",), {"UBERON"}, frozenset({"UBERON"})])
+def test_any_non_string_collection_of_prefixes_is_accepted(unique_prefixes):
+    """Should accept unique_prefixes as a list, tuple, set or frozenset, and restrict each prefix whole."""
+    d = {}
+    glom(d, [("UBERON:1", "X:1"), ("UBERON:2", "X:1"), ("U:1", "U:2")], unique_prefixes=unique_prefixes)
+    assert d["X:1"] == {"UBERON:1", "X:1"}
+    assert d["U:1"] == {"U:1", "U:2"}
 
 
 # THE CLOSE GUARD
@@ -370,12 +385,14 @@ def reference_glom(cliques, groups, unique_prefixes, close):
     clique already holding one of its members. Raise if any identifier in it has a bare KEGG or
     PUBCHEM prefix. Skip the group -- adding nothing -- if the union holds two identifiers with the
     same prefix from unique_prefixes, or an identifier and one of its close partners. Otherwise make
-    the union the clique of every member.
+    the union the clique of every member. A string unique_prefixes raises before any group.
 
     Close partners are looked up by index for every member of the union with a close prefix, even
     once one has refused the group, because glom() does: so a plain-dict close map raises KeyError
     on a member it doesn't list, and a defaultdict one gains an empty entry for each member looked up.
     """
+    if isinstance(unique_prefixes, str):
+        raise ValueError(unique_prefixes)
     for group in groups:
         if len(group) > 2:
             raise ValueError(group)

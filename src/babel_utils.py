@@ -1092,10 +1092,22 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
     in the dictionary that points to the set.
     newgroups is an iterable that of new equivalence groups (expressed as sets,tuples,or lists)
     with which we want to update conc_set.
+    unique_prefixes is a collection of prefixes (a list, as every caller passes); a string raises
+    ValueError rather than being read as its characters.
 
     tests/test_glom.py pins this function's whole behavior, quirks included, and restates it as a
     short reference implementation (``reference_glom``) checked against this one over randomized
     inputs. Read it before changing glom(), and test any replacement against it."""
+    # A string is a collection of its characters, so unique_prefixes="UBERON" used to restrict the
+    # prefixes U, B, E, R, O and N, and not UBERON -- silently, as nothing checks that a restricted
+    # prefix exists. Raising rather than wrapping it in a list makes the caller fix the call, and
+    # catches a config.yaml entry such as `anatomy_unique_prefixes: UBERON` written without brackets.
+    # It runs before the first group, so a bad call fails even when it has nothing to merge.
+    if isinstance(unique_prefixes, str):
+        raise ValueError(
+            f"glom() takes unique_prefixes as a collection of prefixes, not the string {unique_prefixes!r}; "
+            f"did you mean [{unique_prefixes!r}]?"
+        )
     n = 0
     bad = 0
     shit_prefixes = set(["KEGG", "PUBCHEM"])
