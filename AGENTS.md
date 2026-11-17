@@ -361,10 +361,12 @@ ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandl
   to `src/util.py` and route the existing call sites through it rather than adding an
   n+1th copy. (`ensure_parent_dir()` came from ten hand-rolled copies of
   `os.makedirs(os.path.dirname(f), exist_ok=True)`, nine of which shared the same latent bug.)
-  Likewise, open a DuckDB connection with `setup_duckdb()` from `src/duckdb_setup.py`, not
-  `duckdb.connect()`: it applies `config.yaml`'s `duckdb_config`, gives each job its own spill
-  directory, and logs the settings and memory headroom that a DuckDB out-of-memory failure
-  otherwise leaves no record of.
+  Likewise, a pipeline rule or developer tool opens its DuckDB connection with `setup_duckdb()`
+  from `src/duckdb_setup.py`, not `duckdb.connect()`: it applies `config.yaml`'s `duckdb_config`,
+  gives each process its own spill directory, and logs the settings and memory headroom that a
+  DuckDB out-of-memory failure otherwise leaves no record of. Plain `duckdb.connect()` is right
+  for an in-memory test fixture, a read-only look at a finished database, or a small analysis
+  script under `docs/` — none of which needs build settings or a spill directory.
 
 - **Error handling** — raise exceptions (`RuntimeError`, `ValueError`) rather than
   `print(...) + exit(1)`, which bypasses Python's exception machinery and breaks unit testing.
