@@ -74,53 +74,66 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
     logger.info(f"Loaded all conflation files, found {len(conflation_index):,} identifiers in total.")
 
     # Step 1.1. What if we have synonyms connected with identifiers that are not primary identifiers? To solve that
-    # problem, we further enrich these identifiers with information from the compendia files.
-    # Every member of a conflated clique -> the identifier lists of the cliques it belongs to. Only the identifiers are
-    # kept, not the parsed clique: step 3 reads nothing else, and labels and descriptions would just hold memory.
+    # problem, we further enrich these identifiers with information from the compendia files: every member of a
+    # clique the conflation file names joins that clique's group. That way, if someone refers to
+    # PUBCHEM.COMPOUND:962 when the preferred ID is CHEBI:15377, we will pull in synonyms from CHEBI:15377 as well.
+    #
+    # A clique joins a group only through an ID the conflation file lists. The members it adds go into
+    # `member_index`, not `conflation_index`, until every compendium has been read: otherwise a clique that merely
+    # shares a CURIE with a conflated clique would be pulled into its group too, but only if it came later in the
+    # compendia, and step 3 (which expands only listed IDs) would never reach its records.
+    #
+    # Listed ID -> the identifier lists of the cliques it belongs to. Only the identifiers are kept, not the parsed
+    # clique: step 3 reads nothing else, and labels and descriptions would just hold memory.
     cliques_with_conflations = defaultdict(list)
-    count_clique_ids_added = 0
+    member_index = dict()
+    # Leader of each clique that two groups claim -> those groups' primary IDs.
+    split_cliques = dict()
+    count_conflated_cliques = 0
 
     for compendium_filename in compendia_files:
         logger.info(f"Reading compendium file {compendium_filename}")
         with open(compendium_filename) as compendiumf:
             for line in compendiumf:
                 clique = json.loads(line)
-                identifiers = clique.get("identifiers", [])
-                # A list, not a map(): the inner loop below re-iterates it from the start, and a one-shot
-                # iterator would hand it only the IDs after the match, dropping the matching ID itself (#989).
-                ids = [i["i"] for i in identifiers]
+                # A list, not a map(): it is iterated more than once below, and a one-shot iterator would leave the
+                # later passes only what the first one hadn't consumed, dropping the ID the conflation names (#989).
+                ids = [i["i"] for i in clique.get("identifiers", [])]
 
                 # Is this clique being conflated? If not, we can just ignore it.
+                listed_ids = [i for i in ids if i in conflation_index]
+                if not listed_ids:
+                    continue
+
+                # The group(s) claiming this clique: through the IDs the conflation file lists, and through members
+                # an earlier clique already gave to a group (a CURIE in two cliques).
+                groups = {conflation_index[i] for i in listed_ids}
+                groups.update(member_index[i] for i in ids if i in member_index)
+                if len(groups) > 1:
+                    split_cliques[ids[0]] = sorted(groups)
+                    continue
+                (group,) = groups
+
+                count_conflated_cliques += 1
+                for listed_id in listed_ids:
+                    cliques_with_conflations[listed_id].append(ids)
                 for id in ids:
-                    if id in conflation_index:
-                        # Yes, this clique is mentioned in the conflation index! Associate all of its
-                        # IDs with this clique so that we can load it later.
-                        for id_inner in ids:
-                            # We add all the other identifiers in this clique to the conflation index. That way,
-                            # if someone refers to PUBCHEM.COMPOUND:962 when the preferred ID is CHEBI:15377, we will
-                            # pull in synonyms from CHEBI:15377 as well.
-                            cliques_with_conflations[id_inner].append(ids)
-                            if id_inner not in conflation_index:
-                                conflation_index[id_inner] = conflation_index[id]
-                                count_clique_ids_added += 1
-                            elif conflation_index[id_inner] != conflation_index[id]:
-                                # Should never happen: the conflation file puts one clique in two groups, so
-                                # this clique's records are split between them rather than merged into one.
-                                logger.warning(
-                                    "Clique %s spans two conflations: %s is in %s's, but %s is in %s's.",
-                                    ids[0],
-                                    id,
-                                    conflation_index[id],
-                                    id_inner,
-                                    conflation_index[id_inner],
-                                )
+                    if id not in conflation_index:
+                        member_index[id] = group
 
-                        # Once we've done this for one of the identifiers, we don't need to do it for any others.
-                        break
+    # The synonym records of a clique two groups claim would be split between the two conflated records, so neither
+    # record would describe the whole clique. That is a fault in the conflation file (or a CURIE in two cliques), so
+    # stop here -- minutes into the rule, not hours -- and name every such clique.
+    if split_cliques:
+        examples = "; ".join(f"{leader} in {groups}" for leader, groups in list(split_cliques.items())[:20])
+        raise RuntimeError(
+            f"{len(split_cliques):,} cliques are claimed by more than one conflation group, so their synonym records "
+            f"would be split between conflated records. First {min(len(split_cliques), 20)}: {examples}"
+        )
 
-    logger.info(
-        f"Added {count_clique_ids_added} IDs from {len(cliques_with_conflations)} cliques involved in conflation."
-    )
+    conflation_index.update(member_index)
+    logger.info(f"Added {len(member_index):,} IDs from {count_conflated_cliques:,} cliques involved in conflation.")
+    del member_index
 
     logger.info(f"Writing output to {output_gz}.")
     with gzip.open(output_gz, "wt", encoding="utf8") as outputf:

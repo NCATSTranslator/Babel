@@ -42,6 +42,9 @@ SCAPULAR_LINE_CLIQUE = {
     "preferred_name": "Scapular line",
     "taxa": [],
 }
+# SCAPULAR_LINE_CLIQUE's second member, for tests that put it in a second clique too. Such a clique is authored,
+# like the conflation file: a CURIE in two cliques is a build fault, so no build has one to copy.
+FMA_14613 = SCAPULAR_LINE_CLIQUE["identifiers"][1]
 
 # UMLS:C1182464 "Right thyrocervical artery" -- the conflation secondary. Clique also holds FMA:70347.
 THYROCERVICAL_SYNONYM = {
@@ -213,10 +216,11 @@ def test_a_record_the_conflation_order_does_not_reach_is_merged_not_dropped(tmp_
 
 
 @pytest.mark.unit
-def test_a_clique_in_two_conflations_is_warned_about(tmp_path, caplog):
+def test_a_clique_in_two_conflations_fails_the_rule(tmp_path):
     """A clique whose members are named by two different conflation lines can't be merged into one
-    record; this should never happen, so it is logged as a warning to make it detectable."""
-    with caplog.at_level("WARNING"):
+    record: its synonym records would be split between two conflated records. That is a fault in the
+    conflation file, so the rule fails and names the clique, rather than writing the split."""
+    with pytest.raises(RuntimeError, match=r"UMLS:C0733999 in \['UMLS:C0450491', 'UMLS:C0733999'\]"):
         run_conflation(
             tmp_path,
             [SCAPULAR_LINE_SYNONYM, THYROCERVICAL_SYNONYM, UNCONFLATED_SYNONYM],
@@ -225,7 +229,41 @@ def test_a_clique_in_two_conflations_is_warned_about(tmp_path, caplog):
             [["UMLS:C0733999", "UMLS:C1182464"], ["UMLS:C0450491", "FMA:14613"]],
         )
 
-    assert "Clique UMLS:C0733999 spans two conflations" in caplog.text
+
+@pytest.mark.unit
+def test_a_curie_in_two_conflated_cliques_of_different_groups_fails_the_rule(tmp_path):
+    """Two conflated cliques of different groups that share a CURIE (a CURIE in two compendia) would
+    both claim that CURIE's records, so this fails the rule too."""
+    lone_with_fma = dict(UNCONFLATED_CLIQUE, identifiers=UNCONFLATED_CLIQUE["identifiers"] + [FMA_14613])
+    with pytest.raises(RuntimeError, match="UMLS:C0450491 in"):
+        run_conflation(
+            tmp_path,
+            [SCAPULAR_LINE_SYNONYM, THYROCERVICAL_SYNONYM, UNCONFLATED_SYNONYM],
+            [SCAPULAR_LINE_CLIQUE, THYROCERVICAL_CLIQUE, lone_with_fma],
+            [["UMLS:C0733999", "UMLS:C1182464"], ["UMLS:C0450491"]],
+        )
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("sharer_first", [True, False], ids=["sharer-read-first", "sharer-read-last"])
+def test_a_clique_sharing_a_curie_with_a_conflated_clique_is_not_pulled_in(tmp_path, sharer_first):
+    """A clique the conflation file never names stays out of the group even if it shares a CURIE with
+    a conflated clique, whichever of the two the compendia list first. Step 1.1 used to add a conflated
+    clique's members to the index it was still matching against, so a clique read *after* it was pulled
+    into the group through the shared CURIE, and one read before it was not."""
+    lone_with_fma = dict(UNCONFLATED_CLIQUE, identifiers=UNCONFLATED_CLIQUE["identifiers"] + [FMA_14613])
+    cliques = [SCAPULAR_LINE_CLIQUE, THYROCERVICAL_CLIQUE]
+    cliques = [lone_with_fma, *cliques] if sharer_first else [*cliques, lone_with_fma]
+    records = run_conflation(
+        tmp_path,
+        [SCAPULAR_LINE_SYNONYM, THYROCERVICAL_SYNONYM, UNCONFLATED_SYNONYM],
+        cliques,
+        [["UMLS:C0733999", "UMLS:C1182464"]],
+    )
+
+    assert [record["curie"] for record in records] == ["UMLS:C0450491", "UMLS:C0733999"]
+    assert records[0] == UNCONFLATED_SYNONYM
+    assert records[1]["clique_identifier_count"] == 4
 
 
 @pytest.mark.unit
