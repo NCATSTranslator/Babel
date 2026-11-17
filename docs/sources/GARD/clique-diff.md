@@ -125,8 +125,8 @@ Normalization answered differently depending on which identifier you held.
 A clique that had absorbed a second disease sheds it. Worth being precise about how, because GARD
 does not repair the bad cross-reference that caused the merge — it makes it **inert**. The
 over-merge survives on `main` only because one side of it has no MONDO identifier to collide with;
-once MONDO's GARD mappings give both sides one, `DISEASE_UNIQUE_PREFIXES` refuses the union and the
-two diseases fall apart. The largest:
+once MONDO's GARD mappings give both sides one, `disease_unique_prefixes` (`config.yaml`) refuses
+the union and the two diseases fall apart. The largest:
 
 | before leader | members move to | count |
 | --- | --- | ---: |
