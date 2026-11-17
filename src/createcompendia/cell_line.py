@@ -8,9 +8,7 @@ def build_compendia(ifile, metadata_yamls, icrdf_filename):
     types = {}
     print("loading", ifile)
     new_identifiers, new_types = read_identifier_file(ifile)
-    # unique_prefixes=() because this pipeline loads ids files alone: every group is one identifier, so
-    # glom() never merges anything and a restriction could not change the output. Not a config.yaml
-    # setting for that reason (#882).
+    # Ids files only, so nothing merges: see validate_unique_prefixes().
     glom(dicts, new_identifiers, unique_prefixes=())
     types.update(new_types)
     idsets = set([frozenset(x) for x in dicts.values()])
