@@ -70,6 +70,7 @@ uv run snakemake --cores 1 chemical
 uv run pytest -m unit -q               # Unit tests only (CI default)
 uv run pytest --network                # Include network tests
 uv run pytest --all                    # Run every test
+uv run pytest -n auto --no-cov         # Parallel; coverage off under xdist (tests/README.md)
 ```
 
 Tests use four marks (`unit`/`network`/`slow`/`pipeline`); network and pipeline tests are skipped
@@ -86,12 +87,15 @@ Memory-hungry tests also carry a parametrized `min_memory_gb(n)` guard (register
 
 ### Linting (all four checked in CI on PRs)
 
-Ruff (`check` and `format`), `snakefmt`, and `rumdl`, each run through `uv run`; the exact
-invocations CI uses are in `.github/workflows/check-formatting.yml`, and their line lengths are set
-in `pyproject.toml`.
+Ruff (`check` and `format`), `snakefmt`, and `rumdl`. The local check and auto-fix command for
+each is in [`CONTRIBUTING.md`](CONTRIBUTING.md) ("Contributing source code"); `uv run rumdl fmt .`
+rewraps Markdown to fit.
 
 ### Configuration
 
+- Line length is 120 for both Python (ruff) and Snakemake (snakefmt). Markdown (`rumdl`,
+  rule `MD013`) wraps at 100 instead, though tables are exempt. All three are set in
+  `pyproject.toml`.
 - Main config: `config.yaml` (directory paths, version strings, prefix lists per semantic type).
 - `UMLS_API_KEY` environment variable required for UMLS/RxNorm downloads.
 - `compendium_directories` in `config.yaml` maps Python compendium names to the Snakemake
@@ -122,8 +126,7 @@ comment in `src/node.py`) and `get_ancestors()` return the mapped form. `src/pre
 canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model drives which CURIE
 `NodeFactory` picks as preferred. To resolve a CURIE to a URL use
 `src/util.py:get_biolink_prefix_map()` (`converter.expand("EMAPA:0")`), not a hand-rolled map.
-
-**Node output schema** — see `NodeFactory.create_node()`'s docstring in `src/node.py`.
+The node output schema is in `NodeFactory.create_node()`'s docstring in `src/node.py`.
 
 ### Subsystem gotchas
 
