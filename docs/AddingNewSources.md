@@ -82,7 +82,12 @@ In `src/createcompendia/<pipeline>.py`:
   several accessions in one field. Parse a multi-valued field, and skip what you can't parse, where
   the source is read.
 - Include the source's prefix in the `unique_prefixes` argument to `glom()` if its
-  identifiers must remain pairwise-unique within a clique.
+  identifiers must remain pairwise-unique within a clique. `glom()` raises `ValueError` on
+  anything but a collection of prefix strings — `"UBERON"` rather than `["UBERON"]` used to
+  restrict the letters U, B, E, R, O and N instead, without a word (`validate_unique_prefixes()`
+  in `src/babel_utils.py`). A pipeline that keeps the list in `config.yaml` should read it with
+  `unique_prefixes_from_config()`, which also rejects an empty list and any prefix not defined in
+  `src/prefixes.py`, as anatomy does.
 
   **This can silently delete identifiers, so check what it makes compete.** `glom()` keeps
   whichever CURIE of a restricted prefix it encounters **first** and refuses the rest. A refused
