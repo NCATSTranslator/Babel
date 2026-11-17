@@ -26,6 +26,7 @@ from src.metadata.provenance import write_combined_metadata
 from src.node import DescriptionFactory, InformationContentFactory, NodeFactory, SynonymFactory, TaxonFactory
 from src.properties import HAS_ALTERNATIVE_ID, PropertyList
 from src.synonyms.filter import get_synonym_filter
+from src.synonyms.record_types import synonym_record_types
 from src.util import Text, curie_format_problem, ensure_parent_dir, get_config, get_logger, get_memory_usage_summary
 
 # Configuration items
@@ -980,8 +981,8 @@ def write_compendium(
                     document = {
                         "curie": curie,
                         "names": synonyms_list,
-                        "types": [t[8:] for t in types],
-                    }  # remove biolink:
+                        "types": synonym_record_types(node["type"], types),
+                    }
 
                     count_synonyms += len(synonyms_list)
 
