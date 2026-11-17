@@ -7,6 +7,9 @@ old and the new function over a finished build's own inputs and diffs them. The 
 conflation file, each compendium rebuilt from the DuckDB `Edge` Parquet exports, and each type's
 synonym file, all read in place.
 
+The script is a one-off. Turning it into a reusable `babel-replay-conflated-synonyms` tool, with
+its logic in `src/`, is [#1229](https://github.com/NCATSTranslator/Babel/issues/1229).
+
 The old function is read from a git ref (`--old-ref`, default `2026jul22`). The script first checks
 its replay against the conflated file the build published. Only if every record matches are the
 reconstructed inputs faithful, so read the second diff only after the first comes back clean.
