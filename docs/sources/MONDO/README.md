@@ -2,7 +2,8 @@
 
 MONDO is the backbone of Babel's `disease` pipeline: it supplies identifiers, labels and synonyms,
 it is first in the type-precedence order used by `create_typed_sets`, and it is one of the three
-prefixes in `DISEASE_UNIQUE_PREFIXES`, so a clique may hold at most one MONDO identifier.
+prefixes in `disease_unique_prefixes` (`config.yaml`), so a clique may hold at most one MONDO
+identifier.
 
 This page is about the part that is easy to get wrong: **which of MONDO's mappings Babel reads.**
 

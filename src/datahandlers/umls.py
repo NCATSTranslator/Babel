@@ -243,6 +243,26 @@ def read_cuis_owned_elsewhere(mesh_ownership, pipeline):
     return frozenset(cui for cui, (owner, _, _) in read_mesh_ownership(mesh_ownership).items() if owner != pipeline)
 
 
+def names_cui_owned_elsewhere(subject, obj, owned_elsewhere):
+    """True if a concord pair names a CUI in ``owned_elsewhere`` (read_cuis_owned_elsewhere()), so must be skipped.
+
+    Every MeSH-owning pipeline's compendium build decides this through here or skip_pairs_owned_elsewhere(), so
+    a change to the rule -- counting or logging what it drops, say -- is made once and every pipeline agrees.
+    """
+    return subject in owned_elsewhere or obj in owned_elsewhere
+
+
+def skip_pairs_owned_elsewhere(pairs, owned_elsewhere):
+    """Yield the ``(subject, object)`` pairs that name no CUI in ``owned_elsewhere``, in order, as they are.
+
+    Lazy, so it can sit between read_concord_pairs() and glom() without holding the file: ``owned_elsewhere``
+    is fixed before any concord is read, so filtering while glom() runs is safe.
+    """
+    for pair in pairs:
+        if not names_cui_owned_elsewhere(pair[0], pair[1], owned_elsewhere):
+            yield pair
+
+
 def apply_mesh_ownership(output_lines, mesh_owners, pipeline, blocklist=frozenset()):
     """Make one MeSH-owning pipeline's UMLS ids follow the owners compute_mesh_owners() chose.
 

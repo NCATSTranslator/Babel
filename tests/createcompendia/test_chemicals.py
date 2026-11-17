@@ -2,8 +2,10 @@
 
 Covers write_unichem_concords()'s handling of UniChem compound IDs that already embed their source
 prefix (e.g. the CHEBI source stores "CHEBI:12345" rather than a bare "12345"), which previously
-produced invalid "CHEBI:CHEBI:12345" CURIEs across the chemical compendia; and make_chebi_relations()'s
-reading of the ChEBI SDF, whose tags ChEBI renames between releases.
+produced invalid "CHEBI:CHEBI:12345" CURIEs across the chemical compendia; make_chebi_relations()'s
+reading of the ChEBI SDF, whose tags ChEBI renames between releases; and combine_unichem()'s
+one-prefix-per-file guards, which decide whether remove_overused_xrefs() runs for a given source;
+and build_untyped_compendia()'s handling of a concord that leaves no pairs to glom.
 """
 
 import gzip
@@ -25,6 +27,8 @@ from src.categories import (
 )
 from src.createcompendia.chemicals import (
     CHEBI_DBX_SOURCE_NAMES,
+    build_untyped_compendia,
+    combine_unichem,
     create_typed_sets,
     make_chebi_relations,
     read_chebi_lookup_ids,
@@ -34,7 +38,7 @@ from src.createcompendia.chemicals import (
 from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.predicates import HAS_ALTERNATIVE_ID
-from src.prefixes import CHEBI, KEGGCOMPOUND, PUBCHEMCOMPOUND
+from src.prefixes import CHEBI, DRUGBANK, INCHIKEY, KEGGCOMPOUND, PUBCHEMCOMPOUND
 from src.util import get_config
 
 # Derive CHEBI's UniChem source ID from the authoritative dict rather than hardcoding it.
@@ -574,3 +578,228 @@ def test_make_chebi_relations_raises_when_the_dbx_contributes_nothing(tmp_path):
     """
     with pytest.raises(ValueError, match="database_accession.tsv"):
         _run_make_chebi_relations(tmp_path, dbx_contents=DBX_HEADER)
+
+
+# ----
+# CHEMICAL BAD XREFS (input_data/chemical_badxrefs.txt)
+# ----
+
+# DrugCentral's identifier table gives DrugCentral:4951 (ofatumumab) PubChem CID 8254 (dimethyl ether); these rows
+# are copied from Babel 2026jul22's intermediate/chemicals/concords/DrugCentral (via its duckdb/Concord.parquet),
+# with the predicate the DrugCentral concord writes.
+_OFATUMUMAB_DRUGCENTRAL_ROWS = (
+    "DrugCentral:4951\toio:equivalent\tPUBCHEM.COMPOUND:8254\nDrugCentral:4951\toio:equivalent\tDRUGBANK:DB06650\n"
+)
+_DIMETHYL_ETHER_UNICHEM_SET = ["PUBCHEM.COMPOUND:8254", "INCHIKEY:LCGLNKUTAGEVQW-UHFFFAOYSA-N"]
+
+
+def _untyped_sets(tmp_path, badxrefs_text, **kwargs):
+    """Run build_untyped_compendia() over the ofatumumab rows with the given bad-xrefs file; return its sets.
+
+    ``kwargs`` go to build_untyped_compendia(); the metadata YAML is written to ``tmp_path / "metadata.yaml"``."""
+    from src.createcompendia.chemicals import build_untyped_compendia
+
+    partial = tmp_path / "UNICHEM"
+    partial.write_text(json.dumps(_DIMETHYL_ETHER_UNICHEM_SET) + "\n")
+    concord = tmp_path / "DrugCentral"
+    concord.write_text(_OFATUMUMAB_DRUGCENTRAL_ROWS)
+    badxrefs = tmp_path / "chemical_badxrefs.txt"
+    badxrefs.write_text(badxrefs_text)
+    untyped = tmp_path / "untyped_compendium"
+    build_untyped_compendia(
+        [str(concord)],
+        [],
+        str(partial),
+        str(untyped),
+        str(tmp_path / "types"),
+        str(tmp_path / "metadata.yaml"),
+        [],
+        badxrefs=str(badxrefs),
+        **kwargs,
+    )
+    import ast
+
+    return [ast.literal_eval(line) for line in untyped.read_text().splitlines()]
+
+
+@pytest.mark.unit
+def test_build_untyped_compendia_drops_a_listed_bad_xref_in_either_direction(tmp_path):
+    """A pair in the bad-xrefs file should not reach glom(), whichever way round it is listed, so ofatumumab's
+    records stay out of the dimethyl-ether set; the antibody's other xrefs are unaffected."""
+    sets = _untyped_sets(tmp_path, "# reason\nPUBCHEM.COMPOUND:8254 DrugCentral:4951\n")
+
+    assert {"PUBCHEM.COMPOUND:8254", "INCHIKEY:LCGLNKUTAGEVQW-UHFFFAOYSA-N"} in sets
+    assert {"DrugCentral:4951", "DRUGBANK:DB06650"} in sets
+
+
+@pytest.mark.unit
+def test_build_untyped_compendia_without_the_entry_merges_them(tmp_path):
+    """The control: with an empty bad-xrefs file the DrugCentral row puts ofatumumab into the dimethyl-ether set."""
+    sets = _untyped_sets(tmp_path, "# nothing listed\n")
+
+    assert {
+        "PUBCHEM.COMPOUND:8254",
+        "INCHIKEY:LCGLNKUTAGEVQW-UHFFFAOYSA-N",
+        "DrugCentral:4951",
+        "DRUGBANK:DB06650",
+    } in sets
+
+
+@pytest.mark.unit
+def test_the_checked_in_chemical_badxrefs_file_parses_and_lists_each_pair_once():
+    """input_data/chemical_badxrefs.txt should parse, be non-empty, and not list a pair twice in either order."""
+    from src.babel_utils import read_badxrefs
+    from src.createcompendia.chemicals import CHEMICAL_BAD_XREFS
+
+    pairs = read_badxrefs(CHEMICAL_BAD_XREFS)
+    unordered = [frozenset(p) for p in pairs]
+    assert pairs
+    assert len(unordered) == len(set(unordered))
+
+
+@pytest.mark.unit
+def test_build_untyped_compendia_writes_the_pairs_it_applied_for_the_audit(tmp_path):
+    """The build should write the pairs it applied, under a header read_applied_badxrefs() requires, so the audit can
+    model that build rather than whatever input_data/chemical_badxrefs.txt says by the time it runs."""
+    from src.createcompendia.chemicals import APPLIED_BADXREFS_HEADER, read_applied_badxrefs
+
+    applied = tmp_path / "partials" / "applied_badxrefs.txt"
+    _untyped_sets(tmp_path, "# reason\nPUBCHEM.COMPOUND:8254 DrugCentral:4951\n", applied_badxrefs=str(applied))
+
+    assert applied.read_text().splitlines()[0] == APPLIED_BADXREFS_HEADER
+    assert read_applied_badxrefs(str(applied)) == {("PUBCHEM.COMPOUND:8254", "DrugCentral:4951")}
+
+
+@pytest.mark.unit
+def test_read_applied_badxrefs_refuses_the_input_data_file():
+    """Handing the audit the repo's chemical_badxrefs.txt, which may list pairs a build never applied, should fail."""
+    from src.createcompendia.chemicals import CHEMICAL_BAD_XREFS, read_applied_badxrefs
+
+    with pytest.raises(ValueError, match="applied_badxrefs.txt"):
+        read_applied_badxrefs(CHEMICAL_BAD_XREFS)
+
+
+@pytest.mark.unit
+def test_build_untyped_compendia_records_unmatched_bad_pairs_in_its_metadata(tmp_path):
+    """A listed pair no concord row names should be counted and listed in the metadata YAML, which is nested into
+    every chemical compendium's metadata, rather than only logged."""
+    import yaml
+
+    _untyped_sets(tmp_path, "PUBCHEM.COMPOUND:8254 DrugCentral:4951\nDrugCentral:1 PUBCHEM.COMPOUND:2\n")
+    counts = yaml.safe_load((tmp_path / "metadata.yaml").read_text())["counts"]
+
+    assert counts == {"bad_xref_pairs": 2, "bad_xref_pairs_unmatched": ["DrugCentral:1 PUBCHEM.COMPOUND:2"]}
+
+
+@pytest.mark.unit
+def test_a_bad_pair_naming_a_cui_owned_elsewhere_still_counts_as_matched(tmp_path, monkeypatch):
+    """A listed pair that also names a CUI another pipeline owns is skipped either way, but it still matches a concord
+    row, so it should not be reported as unmatched (and so as safe to delete)."""
+    import yaml
+
+    from src.createcompendia import chemicals
+
+    # The build skips any pair naming a member of this set, whatever its prefix; the ofatumumab rows name no CUI, so
+    # CID 8254 stands in for one.
+    monkeypatch.setattr(chemicals.umls, "read_cuis_owned_elsewhere", lambda *_: frozenset({"PUBCHEM.COMPOUND:8254"}))
+    _untyped_sets(tmp_path, "PUBCHEM.COMPOUND:8254 DrugCentral:4951\n")
+    counts = yaml.safe_load((tmp_path / "metadata.yaml").read_text())["counts"]
+
+    assert counts["bad_xref_pairs_unmatched"] == []
+
+
+# COMBINING UNICHEM CONCORDS
+
+
+def _write_unichem_concord(path, pairs):
+    """Write a UniChem concord file: tab-separated `subject \t eq \t object` rows."""
+    path.write_text("".join(f"{subject}\teq\t{obj}\n" for subject, obj in pairs))
+    return path
+
+
+@pytest.mark.unit
+def test_combine_unichem_gloms_a_single_prefix_file_into_cliques(tmp_path):
+    """Pairs sharing an INCHIKEY should be glommed into one clique and written as a JSON array."""
+    concord = _write_unichem_concord(
+        tmp_path / f"UNICHEM_{CHEBI}",
+        [(f"{CHEBI}:15377", f"{INCHIKEY}:XLYOFNOQVPJJNP-UHFFFAOYSA-N"), (f"{CHEBI}:16234", f"{INCHIKEY}:OTHERKEY-N")],
+    )
+    output = tmp_path / "UNICHEM"
+
+    combine_unichem([str(concord)], str(output))
+
+    cliques = {frozenset(json.loads(line)) for line in output.read_text().splitlines()}
+    assert cliques == {
+        frozenset({f"{CHEBI}:15377", f"{INCHIKEY}:XLYOFNOQVPJJNP-UHFFFAOYSA-N"}),
+        frozenset({f"{CHEBI}:16234", f"{INCHIKEY}:OTHERKEY-N"}),
+    }
+
+
+@pytest.mark.unit
+def test_combine_unichem_raises_on_an_empty_concord(tmp_path):
+    """An empty UniChem concord means the upstream extract produced nothing, and must fail loudly.
+
+    This guard depends on how combine_unichem() finds the file's prefix: it parses it from the first
+    row read_concord_pairs() yields, and that yields no rows for an empty file, so the "no prefixes"
+    branch is what catches it. If read_concord_pairs() ever skips blank or malformed lines instead of
+    raising, a file of only such lines would land here too.
+    """
+    concord = _write_unichem_concord(tmp_path / f"UNICHEM_{CHEBI}", [])
+
+    with pytest.raises(RuntimeError, match="No prefixes found"):
+        combine_unichem([str(concord)], str(tmp_path / "UNICHEM"))
+
+
+@pytest.mark.unit
+def test_combine_unichem_raises_when_a_file_mixes_prefixes_in_column_1(tmp_path):
+    """Each UniChem concord covers exactly one source, so two prefixes in column 1 is a format change.
+
+    The subject prefix decides whether remove_overused_xrefs() runs for the file, so a mixed file
+    would silently apply one source's policy to another's rows.
+    """
+    concord = _write_unichem_concord(
+        tmp_path / f"UNICHEM_{CHEBI}",
+        [(f"{CHEBI}:15377", f"{INCHIKEY}:AAA-N"), (f"{DRUGBANK}:DB00898", f"{INCHIKEY}:BBB-N")],
+    )
+
+    with pytest.raises(RuntimeError, match="Multiple prefixes found"):
+        combine_unichem([str(concord)], str(tmp_path / "UNICHEM"))
+
+
+# BUILD_UNTYPED_COMPENDIA
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "rows",
+    [
+        pytest.param([], id="empty-concord"),
+        pytest.param([("UMLS:C0000001", f"{CHEBI}:15377")], id="every-row-owned-elsewhere"),
+    ],
+)
+def test_build_untyped_compendia_survives_a_concord_with_no_pairs_left(tmp_path, rows):
+    """Should build the untyped compendium, not raise IndexError, when a concord leaves no pairs to glom.
+
+    A debug probe used to read ``pairs[0]`` unguarded, so an empty concord, or one whose every row
+    names a CUI another pipeline owns, crashed the untyped_compendium rule.
+    """
+    concord = _write_unichem_concord(tmp_path / "UMLS", rows)
+    unichem_partial = tmp_path / "unichem_partial.jsonl"
+    unichem_partial.write_text(json.dumps([f"{CHEBI}:15377", f"{INCHIKEY}:XLYOFNOQVPJJNP-UHFFFAOYSA-N"]) + "\n")
+    # The umls_mesh_ownership rule's format: CUI, owning pipeline, descriptor, Biolink type.
+    mesh_ownership = tmp_path / "mesh_ownership.tsv"
+    mesh_ownership.write_text("UMLS:C0000001\tdisease\tMESH:D000001\tbiolink:Disease\n")
+    untyped_concord = tmp_path / "untyped_compendium"
+
+    build_untyped_compendia(
+        [str(concord)],
+        [],
+        str(unichem_partial),
+        str(untyped_concord),
+        str(tmp_path / "types"),
+        str(tmp_path / "metadata.yaml"),
+        [],
+        mesh_ownership=str(mesh_ownership),
+    )
+
+    assert untyped_concord.read_text().count("\n") == 1

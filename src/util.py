@@ -91,6 +91,22 @@ def open_maybe_gzipped(filename, mode="rt"):
     return gzip.open(filename, mode) if filename.endswith(".gz") else open(filename, mode)
 
 
+def sql_str(value) -> str:
+    """Render ``value`` as a single-quoted SQL string literal (DuckDB, SQLite), doubling any embedded quote.
+
+    For values a query has to inline because they cannot be bound as parameters -- file paths in ``read_parquet()``,
+    ``read_csv()`` and ``COPY ... TO``, or settings such as ``temp_directory``. Without the doubling, a build path
+    like ``/home/me/gaurav's-builds`` ends the literal early and the query fails to parse.
+    """
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def sql_list(values) -> str:
+    """Render values as a SQL list literal of :func:`sql_str` strings, e.g. ``['a','b']``, for ``read_parquet()``
+    over several files or ``list_contains()``."""
+    return "[" + ",".join(sql_str(v) for v in values) + "]"
+
+
 # loggers = {}
 class LoggingUtil:
     """Logging utility controlling format and setting initial logging level"""
@@ -413,6 +429,34 @@ class DataStructure:
 
 # Cache the config.yaml so we don't need to load it every time get_config() is called.
 config_yaml = None
+
+
+class _UniqueKeySafeLoader(yaml.SafeLoader):
+    """A SafeLoader that refuses a mapping with a repeated key. PyYAML otherwise keeps the last value and drops
+    the others without a word, which in a hand-edited or badly merged input file loses an entry silently."""
+
+    def construct_mapping(self, node, deep=False):
+        seen = set()
+        for key_node, _ in node.value:
+            key = self.construct_object(key_node, deep=deep)
+            try:
+                repeated = key in seen
+            except TypeError:
+                continue  # Unhashable; SafeLoader's own construct_mapping raises a clearer error for it.
+            if repeated:
+                raise yaml.constructor.ConstructorError(
+                    "while constructing a mapping", node.start_mark, f"found duplicate key {key!r}", key_node.start_mark
+                )
+            seen.add(key)
+        return super().construct_mapping(node, deep=deep)
+
+
+def safe_load_yaml_unique_keys(stream):
+    """
+    ``yaml.safe_load()``, but raising ``yaml.constructor.ConstructorError`` on a mapping that repeats a key,
+    rather than keeping the last value. Use it for input files people edit or merge by hand.
+    """
+    return yaml.load(stream, Loader=_UniqueKeySafeLoader)
 
 
 def get_config():

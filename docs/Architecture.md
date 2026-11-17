@@ -54,6 +54,7 @@ All Python and Snakemake source code lives under `src/`:
 | `src/node.py`          | Core factory classes: `NodeFactory`, `SynonymFactory`, `DescriptionFactory`, `TaxonFactory`, `InformationContentFactory`, `TSVSQLiteLoader`.                                      |
 | `src/babel_utils.py`   | Core pipeline utilities: download/FTP helpers, `glom()` (clique merging), `write_compendium()` (compendium builder), and state management helpers.                                |
 | `src/util.py`          | Logging setup, config loading, [Biolink Model Toolkit](https://github.com/biolink/biolink-model-toolkit) access.                                                                  |
+| `src/utils/`           | Generic helpers: `duckdb_setup.py` opens every DuckDB connection (`connect_duckdb()`, `log_duckdb_settings_on_error()`); `memory.py` holds the memory diagnostics (#1223).        |
 | `src/exporters/`       | Output format handlers for KGX, Apache Parquet, and JSONL.                                                                                                                        |
 | `src/reports/`         | Report generation code.                                                                                                                                                           |
 | `src/synonyms/`        | Synonym file generation.                                                                                                                                                          |
@@ -74,6 +75,27 @@ Each triple expresses that `CURIE1` and `CURIE2` are related by `Relation` (typi
 `skos:exactMatch` or an equivalent). The compendium building phase reads all concord files for a
 semantic type and feeds them into the `glom()` function in `src/babel_utils.py` to merge them into
 equivalence cliques.
+
+Read a concord with `read_concords()` from `src/model/intermediates.py`, never with a hand-rolled
+`line.strip().split("\t")`. It is the one definition of a valid row (exactly three tab-separated
+columns, none empty, none padded with whitespace) and it raises on any other, naming the file and
+line. Every compendium builder, `glom_from_files()` and `write_concord_metadata()` use it, so a bad
+row fails the rule that *wrote* the concord, minutes into a build, rather than being silently
+skipped by one pipeline and crashing another hours later. A handler whose source data carries stray
+whitespace must clean it before writing the row (see `EFOgraph.get_xrefs()`). To check a build's
+concords against the rule without running it, use [`babel-check-concords`](tools/CheckConcords.md).
+That module is the start of the shared intermediate-file reader proposed in
+[#736](https://github.com/NCATSTranslator/Babel/issues/736).
+
+To hand a concord to `glom()`, read it with `read_concord_pairs()` from the same module, which
+yields each row as a `(subject, object)` 2-tuple in file order. Two memory rules hold for every
+builder, and the function's docstring explains both: keep a pair as a 2-tuple, never a 2-set or a
+2-list (a list of 2-sets costs three to five times as much, and `UNICHEM_PUBCHEM.COMPOUND` alone has
+116 million rows); and when nothing between the read and the merge depends on the clique state, pass
+the generator straight to `glom()` rather than building a list. A filter that only checks a set
+fixed beforehand can stay in the stream, as `umls.skip_pairs_owned_elsewhere()` does. A filter that
+consults the cliques built so far, or `remove_overused_xrefs()`, which counts the whole file, needs
+the file read into a list first.
 
 ### Compendium JSONL
 
@@ -107,12 +129,17 @@ entire large TSV files in RAM, which would be infeasible given Babel's data volu
 
 ### Clique merging via `glom()`
 
-`glom()` in [`src/babel_utils.py`](../src/babel_utils.py) merges concord triples into equivalence
+`glom()` in [`src/babel_utils.py`](../src/babel_utils.py) merges concord pairs into equivalence
 cliques. It maintains a dictionary (`conc_set`) where every CURIE key points to its equivalence
-set. For each new `(CURIE1, relation, CURIE2)` triple, it unions all existing sets that contain
-either CURIE, then adds both CURIEs to the resulting set. At the end, each value in `conc_set` is
-one clique. `write_compendium()` in the same file drives the overall compendium-building process,
-calling `glom()` and then sorting, enriching, and writing the output.
+set. For each new `(CURIE1, CURIE2)` pair (the relation is dropped when a concord is read), it
+unions all existing sets that contain either CURIE, then adds both CURIEs to the resulting set,
+unless the result would break a `unique_prefixes` or `close` restriction. Each pipeline's
+`unique_prefixes` is `config.yaml: <pipeline>_unique_prefixes`, read with
+`unique_prefixes_from_config()`; `glom()` itself has no default. At the end, each value in
+`conc_set` is one clique. [`tests/test_glom.py`](../tests/test_glom.py) pins its whole behavior,
+quirks included, and checks it against a short reference model. `write_compendium()` in the same
+file drives the overall compendium-building process, calling `glom()` and then sorting, enriching,
+and writing the output.
 
 ### Biolink Model integration
 

@@ -2,8 +2,9 @@
 
 A concord is a tab-separated ``subject<TAB>predicate<TAB>object`` file under
 ``<intermediate_root>/<pipeline>/concords/<SOURCE>``, and every row is fed to :func:`glom` as an
-equivalence assertion. That makes an *overused* xref target — one object claimed by many distinct
-subjects — a merge hazard: `glom()` fuses every subject that names it into a single clique.
+equivalence assertion. Rows are read with :func:`src.model.intermediates.read_concords`, the parser
+every concord reader shares. That makes an *overused* xref target — one object claimed by many
+distinct subjects — a merge hazard: `glom()` fuses every subject that names it into a single clique.
 
 Overuse is what :func:`src.babel_utils.remove_overused_xrefs` drops (any target claimed by 2+
 subjects), and what ``diseasephenotype.OVERUSE_FILTERED_CONCORDS`` opts a source into. This module
@@ -24,9 +25,11 @@ from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
+from src.model.intermediates import read_concords
 from src.util import Text, get_logger
 
 logger = get_logger(__name__)
+
 
 # MRCONSO.RRF is pipe-separated and positional; these are the columns this module reads. These names
 # exist only here -- five other modules index the same columns with bare integers -- so when the
@@ -104,16 +107,8 @@ def find_overused_xref_targets(
     """
     wanted_prefixes = {p.upper() for p in target_prefixes} if target_prefixes is not None else None
     subjects_by_target: dict[str, set[str]] = defaultdict(set)
-    with open(concord_path) as inf:
-        for line_no, line in enumerate(inf, start=1):
-            line = line.rstrip("\n")
-            if not line:
-                continue
-            parts = line.split("\t")
-            if len(parts) != 3:
-                raise RuntimeError(f"{concord_path}:{line_no} is not a valid concord row (got {len(parts)} columns)")
-            subject, _predicate, target = (p.strip() for p in parts)
-            subjects_by_target[target].add(subject)
+    for subject, _predicate, target in read_concords(concord_path):
+        subjects_by_target[target].add(subject)
     overused = [
         OverusedTarget(target=target, subjects=subjects)
         for target, subjects in subjects_by_target.items()

@@ -10,6 +10,7 @@ Tests are organized along two independent axes:
 | Directory | What lives there |
 |-----------|-----------------|
 | `tests/` (root) | Core utility tests: `glom`, `LabeledID`, `NodeFactory`, `ThrottledRequester`, FTP utilities, UberGraph, and gene-protein conflation |
+| `tests/utils/` | One test file per module in `src/utils/` (`test_duckdb_setup.py`, `test_memory.py`) |
 | `tests/datahandlers/` | One test file per module in `src/datahandlers/` |
 | `tests/datahandlers/pyoxigraph/` | Smoke tests for the pyoxigraph API surface itself (bulk_load formats, SPARQL row access). Future subdirectories will follow the same pattern for UberGraph, ENSEMBL, etc. |
 | `tests/pipeline/` | Full pipeline integration tests that call `write_*_ids()` functions and check the resulting intermediate files; source data is auto-downloaded or skipped per vocabulary (see [Pipeline Tests](pipeline/README.md)) |
@@ -135,10 +136,11 @@ pipeline tests run in a single worker while unit/slow/network tests still parall
 
 ### Core
 
-- **`test_glom.py`** (`unit`) — Tests the `glom` utility, which merges pairwise identifier
-  sets into equivalence cliques (union-find). Covers basic merging, iterative
-  multi-call usage, tuple vs. set inputs, and the expected `ValueError` when sets
-  contain more than two members.
+- **`test_glom.py`** (`unit`) — The contract for `glom()`, which merges pairwise equivalences
+  into cliques: basic merging, the shape of the dict it builds, input shapes, the
+  `unique_prefixes` and `close` refusals, forbidden prefixes, and the quirks a replacement must
+  reproduce. A short reference implementation is checked against `glom()` over randomized inputs,
+  and is the specification to test any replacement (such as a Rust port) against.
 
 - **`test_LabeledID.py`** (`unit`) — Tests that `LabeledID` objects (a CURIE paired with a
   human-readable label) compare correctly against bare strings and behave properly
