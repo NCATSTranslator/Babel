@@ -1,7 +1,5 @@
 """Tests for how write_compendium() fails a build on malformed CURIEs (see raise_on_malformed_curies())."""
 
-from types import SimpleNamespace
-
 import pytest
 
 import src.babel_utils as babel_utils
@@ -36,57 +34,6 @@ def test_raises_naming_every_malformed_curie(caplog):
 
 
 # WIRING INTO write_compendium()
-
-
-class _FakeNodeFactory:
-    """Stands in for NodeFactory: keeps every identifier and applies no labels, so the test needs no Biolink Model."""
-
-    def __init__(self, *args):
-        pass
-
-    def create_node(self, input_identifiers, node_type, labels, extra_prefixes):
-        if not input_identifiers:
-            return None
-        return {"identifiers": [{"identifier": curie} for curie in input_identifiers], "type": node_type}
-
-    def get_ancestors(self, node_type):
-        return [node_type]
-
-    def apply_labels(self, input_identifiers, labels, node_types):
-        return list(input_identifiers)
-
-
-class _FakePropertyList:
-    """Stands in for PropertyList, giving NCIT:C16375 one malformed HAS_ALTERNATIVE_ID CURIE."""
-
-    def get_all(self, curie, predicate=None):
-        if curie == "NCIT:C16375":
-            return [SimpleNamespace(value="NCIT:C16375 extra", source="test")]
-        return []
-
-
-@pytest.fixture
-def fake_write_compendium_env(tmp_path, monkeypatch):
-    """Replace write_compendium()'s config, factories and property list with in-memory fakes."""
-    config = {
-        "output_directory": str(tmp_path),
-        "download_directory": str(tmp_path / "downloads"),
-        "biolink_version": "test",
-        "preferred_name_boost_prefixes": {},
-    }
-    monkeypatch.setattr(babel_utils, "get_config", lambda: config)
-    monkeypatch.setattr(babel_utils, "NodeFactory", _FakeNodeFactory)
-    monkeypatch.setattr(babel_utils, "PropertyList", _FakePropertyList)
-    empty = SimpleNamespace(
-        get_synonyms=lambda *args, **kwargs: [],
-        get_ic=lambda node: None,
-        get_descriptions=lambda ids: {},
-        get_taxa=lambda ids: {},
-        close=lambda: None,
-    )
-    for factory in ["SynonymFactory", "InformationContentFactory", "DescriptionFactory", "TaxonFactory"]:
-        monkeypatch.setattr(babel_utils, factory, lambda *args: empty)
-    return tmp_path
 
 
 def _write(cliques):
