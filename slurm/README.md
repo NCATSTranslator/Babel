@@ -173,9 +173,13 @@ the 120-minute default has roughly 2x headroom and was left alone.
 The DuckDB rules (`export_*_to_duckdb` and the cross-compendium report rules in
 `duckdb.snakefile`) spill larger-than-memory intermediates to a temp directory. By default that
 is `tmp_directory` from `config.yaml` (`babel_downloads/tmp`, on the parallel filesystem).
-`setup_duckdb()` gives each job its own `duckdb-$SLURM_JOB_ID` subdirectory there, so concurrent
-jobs never share spill files — sharing one directory previously caused `stale file handle` and
-`could not read enough bytes` IO errors when several report jobs ran at once.
+`setup_duckdb()` gives each process its own `duckdb-$SLURM_JOB_ID-<pid>` subdirectory there, so
+concurrent jobs never share spill files — sharing one directory previously caused `stale file
+handle` and `could not read enough bytes` IO errors when several report jobs ran at once. The
+subdirectory is deleted when the process exits. A job killed outright — SIGKILL at its time limit
+or a cgroup OOM-kill, or the SIGABRT of a DuckDB background-thread OOM — skips that clean-up and
+leaves its directory, spill files included; the job ID in its name says whether that job is still
+running, and once it isn't, the directory can be deleted.
 
 Hatteras has no large node-local disk suitable for spilling:
 
