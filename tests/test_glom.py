@@ -15,6 +15,7 @@ say why; if you replace glom(), the model is the specification to test the repla
 import copy
 import random
 from collections import defaultdict
+from types import MappingProxyType
 
 import pytest
 
@@ -299,22 +300,37 @@ def test_quirk_close_matches_prefixes_with_startswith():
 
 
 @pytest.mark.unit
-def test_quirk_a_defaultdict_close_map_gains_an_entry_for_every_member_looked_up():
-    """Quirk: should insert an empty entry into the caller's defaultdict for each prefixed member it checks.
+def test_a_defaultdict_close_map_is_left_unchanged():
+    """Should not add an entry to the caller's defaultdict for a member it looks up and finds no partners for.
 
-    glom() looks partners up by index, so the close map passed in grows as a side effect -- even for a
-    group the unique_prefixes check had not refused but the close guard then does.
+    This inverts a pinned quirk: glom() looked partners up by index, so a defaultdict close map
+    gained an empty entry for every prefixed member it checked.
     """
     close = {"MONDO": defaultdict(set, {"MONDO:1": {"X:1"}})}
     glom({}, [("MONDO:1", "X:1"), ("MONDO:2", "Y:1")], unique_prefixes=[], close=close)
-    assert dict(close["MONDO"]) == {"MONDO:1": {"X:1"}, "MONDO:2": set()}
+    assert dict(close["MONDO"]) == {"MONDO:1": {"X:1"}}
 
 
 @pytest.mark.unit
-def test_quirk_a_plain_dict_close_map_raises_on_an_unlisted_identifier():
-    """Quirk: should raise KeyError when a member has the prefix but no entry, so callers pass a defaultdict."""
-    with pytest.raises(KeyError):
-        glom({}, [("MONDO:1", "X:1")], unique_prefixes=[], close={"MONDO": {}})
+def test_a_plain_dict_close_map_treats_an_unlisted_identifier_as_having_no_partners():
+    """Should merge a member a plain-dict close map doesn't list, rather than raise KeyError.
+
+    This inverts a pinned quirk: indexing a plain dict raised KeyError on the first unlisted member,
+    which is why callers had to pass a defaultdict.
+    """
+    d = {}
+    glom(d, [("MONDO:1", "X:1")], unique_prefixes=[], close={"MONDO": {}})
+    assert d["X:1"] == {"MONDO:1", "X:1"}
+
+
+@pytest.mark.unit
+def test_a_read_only_close_map_is_accepted():
+    """Should accept a read-only mapping, which any attempt to modify would make raise TypeError."""
+    close = {"MONDO": MappingProxyType({"MONDO:1": frozenset({"MONDO:2"})})}
+    d = {}
+    glom(d, [("MONDO:1", "X:1"), ("X:1", "MONDO:2"), ("MONDO:3", "Y:1")], unique_prefixes=[], close=close)
+    assert d["X:1"] == {"MONDO:1", "X:1"}
+    assert d["Y:1"] == {"MONDO:3", "Y:1"}
 
 
 # FORBIDDEN PREFIXES
@@ -372,9 +388,7 @@ def reference_glom(cliques, groups, unique_prefixes, close):
     same prefix from unique_prefixes, or an identifier and one of its close partners. Otherwise make
     the union the clique of every member.
 
-    Close partners are looked up by index for every member of the union with a close prefix, even
-    once one has refused the group, because glom() does: so a plain-dict close map raises KeyError
-    on a member it doesn't list, and a defaultdict one gains an empty entry for each member looked up.
+    A member the close map doesn't list has no close partners, and the close map is never modified.
     """
     for group in groups:
         if len(group) > 2:
@@ -389,7 +403,7 @@ def reference_glom(cliques, groups, unique_prefixes, close):
         refused = False
         for close_prefix, partners in close.items():
             for member in merged:
-                if member.startswith(close_prefix) and partners[member] & merged:
+                if member.startswith(close_prefix) and set(partners.get(member, ())) & merged:
                     refused = True
         if refused:
             continue
@@ -440,8 +454,8 @@ def test_glom_matches_the_reference_model(seed):
     """Should build exactly the cliques the reference model does, over random groups, unique prefixes and close maps.
 
     The groups come in every container builders use, and some sequences hit a forbidden prefix
-    partway through, or an unlisted MONDO member of a plain-dict close map: then both must raise,
-    with the same cliques left behind. Both must also leave the close map in the same state.
+    partway through: then both must raise, with the same cliques left behind. Neither may modify
+    the close map, whether it is a defaultdict or a plain dict.
     """
     rng = random.Random(seed)
     groups = random_groups(rng, forbidden=True)
@@ -450,13 +464,12 @@ def test_glom_matches_the_reference_model(seed):
     # can produce (test_a_clique_already_over_the_limit_refuses_every_later_merge).
     first_uniques = rng.sample(["A", "B", "MONDO"], rng.randrange(0, 4))
     second_uniques = first_uniques if rng.random() < 0.5 else rng.sample(["A", "B", "MONDO"], rng.randrange(0, 4))
-    # Builders pass a defaultdict (diseasephenotype.build_compendium); one case in ten passes a plain
-    # dict instead, which raises KeyError on the first MONDO member it doesn't list
-    # (test_quirk_a_plain_dict_close_map_raises_on_an_unlisted_identifier).
+    # Disease passes a defaultdict (diseasephenotype.build_compendium); one case in ten passes a plain
+    # dict instead, which must behave the same.
     close_map = defaultdict(set) if rng.random() < 0.9 else {}
     for n in rng.sample(range(6), rng.randrange(0, 4)):
         close_map[f"MONDO:{n}"] = {f"{rng.choice('ABC')}:{rng.randrange(6)}", f"MONDO:{rng.randrange(6)}"}
-    # Each side gets its own copy up front, so neither sees the entries the other inserts.
+    # Each side gets its own copy, and both are compared with an untouched one afterwards.
     close = {"MONDO": copy.deepcopy(close_map)}
     expected_close = {"MONDO": copy.deepcopy(close_map)}
 
@@ -473,7 +486,7 @@ def test_glom_matches_the_reference_model(seed):
             break
 
     assert actual == expected
-    assert close == expected_close  # Including the empty entries a defaultdict gains.
+    assert close == expected_close == {"MONDO": close_map}
     for key, members in actual.items():
         assert all(actual[member] is members for member in members), key
 
