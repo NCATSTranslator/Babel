@@ -63,7 +63,8 @@ def test_cli_refuses_the_repos_badxrefs_file(tmp_path):
 
 @pytest.mark.unit
 def test_cli_creates_the_output_directory_when_the_work_dir_is_elsewhere(tmp_path):
-    """With --work-dir outside --out, the CLI should still create a fresh --out rather than fail at the first COPY."""
+    """With --work-dir outside --out, the CLI should still create a fresh --out rather than fail at the first COPY, and
+    DuckDB should spill under --work-dir."""
     members = sorted({c for _, s, o in OFATUMUMAB_CONCORDS for c in (s, o)} | {"RXCUI:712566"})
     build = write_build(
         tmp_path / "build", OFATUMUMAB_CONCORDS, {"CHEBI:28887": ("SmallMolecule", members)}, OFATUMUMAB_LABELS
@@ -76,3 +77,5 @@ def test_cli_creates_the_output_directory_when_the_work_dir_is_elsewhere(tmp_pat
 
     assert main(args + ["--work-dir", str(tmp_path / "scratch"), "--threads", "1"]) == 0
     assert (out / "components.tsv").exists()
+    # setup_duckdb() gives each run its own spill subdirectory of the temp_directory the CLI passes it.
+    assert [p.name.startswith("duckdb-") for p in (tmp_path / "scratch" / "spill").iterdir()] == [True]

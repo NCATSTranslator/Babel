@@ -32,10 +32,9 @@ import argparse
 import pathlib
 import sys
 
-import duckdb
-
 from src.createcompendia.chemicals import UNICHEM_OVERUSED_XREF_PREFIXES, read_applied_badxrefs
 from src.datahandlers.umls import read_cuis_owned_elsewhere
+from src.exporters.duckdb_exporters import setup_duckdb
 from src.model.glom_edges import classify_chemical_glom_edges
 from src.model.inchikey_audit import audit_chemical_inchikeys, refused_edges_query
 from src.util import get_config, get_logger, sql_str
@@ -73,12 +72,17 @@ def main(argv=None):
     work.mkdir(parents=True, exist_ok=True)
     out.mkdir(parents=True, exist_ok=True)  # --work-dir may sit outside --out
 
-    con = duckdb.connect(str(work / "audit.duckdb"))
-    con.sql(f"SET memory_limit={sql_str(args.memory_limit)}")
-    con.sql(f"SET threads={args.threads}")
-    con.sql("SET preserve_insertion_order=false")
-    con.sql(f"SET temp_directory={sql_str(work / 'spill')}")
-    con.sql("SET enable_progress_bar=false")
+    # The pipeline's DuckDB setup: config.yaml's duckdb_config defaults, a per-run spill directory under --work-dir,
+    # and the connect-time settings and memory-headroom log lines.
+    con = setup_duckdb(
+        str(work / "audit.duckdb"),
+        {
+            "memory_limit": args.memory_limit,
+            "threads": args.threads,
+            "preserve_insertion_order": False,
+            "temp_directory": str(work / "spill"),
+        },
+    )
     if lookup.startswith("http"):
         con.sql("INSTALL httpfs; LOAD httpfs")
 
