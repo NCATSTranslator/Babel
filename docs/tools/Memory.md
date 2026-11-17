@@ -5,18 +5,6 @@ Diagnostic tools for sizing Babel's memory requirements. Output here informs the
 `@pytest.mark.min_memory_gb(n)` guards on memory-hungry pipeline tests (see
 `tests/README.md`).
 
-## How accurate an estimate needs to be
-
-Not very. An estimate only has to get a rule through its first HPC run: after that, the rule's
-`benchmarks/` record its real peak, and the sizing pass in [`Resources.md`](Resources.md) replaces
-the estimate with a measured number. So don't spend long refining one. Round it up to the next
-comfortable bucket, and say in the rule's `resources:` comment that the figure is an estimate, so
-the next sizing pass knows to bring it down.
-
-This is the opposite of the advice for *measured* limits, which `Resources.md` biases down. An OOM
-there costs one re-run of a rule whose peak is known; a rule sized on a guess can fail hours into a
-run, and its retry is only another guess.
-
 ## estimate_rdf_load_memory.py
 
 Estimates the peak RAM needed to bulk-load one or more RDF files into an
@@ -89,3 +77,40 @@ shard, the first N records) and scaling up. Two things make that go wrong:
 Remember to add whatever a sample leaves out. A rule that calls `write_compendium()` also loads the
 common UberGraph files, which add ~3 GB however small its own input is (`genefamily_compendia`
 peaks at 2.9 GB).
+
+## Turning an estimate into a rule's `mem=`
+
+An estimate doesn't need to be precise. It only has to get a rule through its first HPC run. If
+that run succeeds, the rule's `benchmarks/` record its real peak, and the sizing pass in
+[`Resources.md`](Resources.md#workflow) replaces the estimate with a measured number. If it runs out
+of memory, it leaves nothing behind: a failed job writes no benchmark (see
+[What a retry, or a second run, does to each number](Resources.md#what-a-retry-or-a-second-run-does-to-each-number)),
+so the retry is sized on another guess. That is why an estimate should be rounded up, and why it
+isn't worth refining for long:
+
+1. **Convert to decimal GB first.** `estimate_rdf_load_memory.py` reports GiB (as does a
+   `psutil`-based sample measured by dividing by `1024**3`), but `mem=` is decimal (`mem="32G"` is
+   32,000 MB), so multiply by 1.073741824 (see [Units](Resources.md#units)). A 30 GiB estimate is
+   32.2 GB, so writing it straight in as `mem="32G"` leaves the rule short of its own estimate.
+2. **Round up to the next bucket comfortably above it**, on the same ladder `babel-slurm-resources`
+   recommends from (`MEM_BUCKETS_MB` in `src/tools/slurm/resources.py`): 8/16/24/32/48/64 GB, then
+   96/128/192/256/384/512 GB and up. A 37 GB estimate becomes `mem="48G"`.
+   `estimate_rdf_load_memory.py`'s projection is a floor (see "Interpreting the output" above), so
+   one that lands just under a bucket should take the next one.
+3. **Mark it as an estimate** with a `# mem estimate:` comment in the rule's `resources:` block,
+   saying where the number came from, for example
+   `# mem estimate: 37 GB from estimate_rdf_load_memory.py, 2026-11`. Step 3 of the sizing
+   workflow in `Resources.md` looks for that marker and replaces it with a measured limit.
+
+This is the opposite of the advice for *measured* limits, which `Resources.md` biases down. Both
+kinds of limit can fail late in a run when source data grows; the difference is what's left after
+the failure. A measured rule's re-run is sized from a known peak, while a rule that has never
+succeeded has no peak to size it from.
+
+### A test's `min_memory_gb` guard stays tight
+
+Don't round up a `@pytest.mark.min_memory_gb(n)` guard. The guard skips its test on every machine
+with less than `n` GiB of RAM, so padding it silently stops the test running on machines that could
+have run it, and no benchmark ever corrects it, because tests write no `benchmarks/`. Set it to the
+estimate itself, rounded to a whole GiB. It is already in GiB (`tests/conftest.py` compares it
+against total RAM in GiB), so it needs no conversion.
