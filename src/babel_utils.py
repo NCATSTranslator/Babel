@@ -1090,16 +1090,15 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
     conc_set is a dictionary where the values are these equivalent identifier sets and
     the keys are all of the elements in the set.   For each element in a set, there is a key
     in the dictionary that points to the set.
+    close maps a prefix to a mapping of {identifier: identifiers it must not share a clique with}.
+    Any mapping works (dict, defaultdict, a read-only view); a member it doesn't list has no such
+    partners, and glom() never modifies it.
     newgroups is an iterable that of new equivalence groups (expressed as sets,tuples,or lists)
     with which we want to update conc_set.
 
     tests/test_glom.py pins this function's whole behavior, quirks included, and restates it as a
     short reference implementation (``reference_glom``) checked against this one over randomized
-    inputs. Read it before changing glom(), and test any replacement against it.
-
-    The close argument maps a prefix to a mapping of {identifier: identifiers it must not share a
-    clique with}. Any mapping works (dict, defaultdict, a read-only view); a member it doesn't list
-    has no such partners, and glom() never modifies it."""
+    inputs. Read it before changing glom(), and test any replacement against it."""
     n = 0
     bad = 0
     shit_prefixes = set(["KEGG", "PUBCHEM"])
