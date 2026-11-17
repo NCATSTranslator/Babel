@@ -363,13 +363,13 @@ ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandl
   hand-rolled copies of `os.makedirs(os.path.dirname(f), exist_ok=True)`, nine of which shared the
   same latent bug.) New helpers go in `src/utils/`, not `src/util.py` or `src/babel_utils.py`:
   those are to move into `src/utils/` and `src/model/` (#1223). Likewise, a pipeline rule or
-  developer tool opens its DuckDB connection with `setup_duckdb()` from
+  developer tool opens its DuckDB connection with `with connect_duckdb(...) as db:` from
   `src/utils/duckdb_setup.py`, not `duckdb.connect()`: it applies `config.yaml`'s
-  `duckdb_config`, gives each process its own spill directory, and logs the settings and memory
-  headroom that a DuckDB out-of-memory failure otherwise leaves no record of. Plain
-  `duckdb.connect()` is right for an in-memory test fixture, a read-only look at a finished
-  database, or a small analysis script under `docs/` — none of which needs build settings or a
-  spill directory.
+  `duckdb_config`, gives the connection its own spill directory and deletes it on close, and logs
+  the settings and memory headroom that a DuckDB out-of-memory failure otherwise leaves no record
+  of. Plain `duckdb.connect()` is right for an in-memory test fixture, a read-only look at a
+  finished database, or a small analysis script under `docs/` — none of which needs build
+  settings or a spill directory.
 
 - **Error handling** — raise exceptions (`RuntimeError`, `ValueError`) rather than
   `print(...) + exit(1)`, which bypasses Python's exception machinery and breaks unit testing.

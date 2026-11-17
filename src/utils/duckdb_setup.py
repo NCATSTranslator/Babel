@@ -1,16 +1,18 @@
 """Open DuckDB connections the way every Babel DuckDB step does, and report their settings when a query fails.
 
-:func:`setup_duckdb` is the one place a DuckDB connection is configured: ``config.yaml``'s ``duckdb_config``
-defaults merged with the caller's settings, a per-job spill directory, and connect-time log lines recording every
-setting and the memory headroom under the SLURM cgroup. :func:`log_duckdb_settings_on_error` wraps a query so a
+:func:`connect_duckdb` is the one place a DuckDB connection is configured: ``config.yaml``'s ``duckdb_config``
+defaults merged with the caller's settings, a spill directory of its own, and connect-time log lines recording every
+setting and the memory headroom under the SLURM cgroup. It is a context manager, so the connection is closed and its
+spill directory removed when the ``with`` block exits. :func:`log_duckdb_settings_on_error` wraps a query so a
 failure names the step and the limits in force. The pipeline's exporters (``src/exporters/duckdb_exporters.py``) and
 reports (``src/reports/duckdb_reports.py``) use both, and so does ``babel-inchikey-audit``; new DuckDB code should
 open its connection here rather than calling ``duckdb.connect()`` itself.
 """
 
-import atexit
 import os
+import secrets
 import shutil
+import sys
 from contextlib import contextmanager
 
 import duckdb
@@ -22,7 +24,7 @@ logger = get_logger(__name__)
 
 
 # The DuckDB settings most relevant to diagnosing an out-of-memory or spill failure. Kept short
-# so the on-error log line stays readable; the full set is dumped by setup_duckdb() at connect.
+# so the on-error log line stays readable; the full set is dumped by connect_duckdb() at connect.
 _DUCKDB_DIAGNOSTIC_SETTINGS = (
     "memory_limit",
     "max_memory",
@@ -71,61 +73,59 @@ def log_duckdb_settings_on_error(db, operation):
         raise
 
 
-# Spill directories this process created; _remove_spill_directories() deletes them at exit.
-_spill_directories = set()
-
-
-def _spill_directory(temp_base):
-    """Create and return this process's DuckDB spill directory under ``temp_base``.
+def _make_spill_directory(temp_base):
+    """Create and return a new DuckDB spill directory under ``temp_base``, unique to one connection.
 
     Multiple report jobs once shared a single NFS temp directory, which produced "stale file handle" / "could not read
-    enough bytes" IO errors when one job's temp files raced against another's. So each process gets its own
-    subdirectory, ``duckdb-<SLURM_JOB_ID>-<pid>`` on SLURM and ``duckdb-<pid>`` elsewhere: the job ID makes a
-    leftover directory traceable to its job log, and the pid keeps two processes in one allocation apart, since the
-    directory is deleted at process exit. Every connection a process opens shares the one directory.
+    enough bytes" IO errors when one job's temp files raced against another's. So every connection gets its own
+    subdirectory, ``duckdb-<SLURM_JOB_ID>-<pid>-<random>`` on SLURM and ``duckdb-<pid>-<random>`` elsewhere: the job
+    ID makes a leftover directory traceable to its job log, and the random suffix keeps two connections apart even in
+    one process, since :func:`connect_duckdb` deletes the directory when its connection closes.
+
+    The directory is made with ``os.mkdir()``, so its permissions follow the umask, rather than with
+    ``tempfile.mkdtemp()``, which makes it ``0700``: on the shared project filesystem, the maintainer clearing a
+    leftover directory is not always the user whose job made it.
     """
-    pid = str(os.getpid())
+    os.makedirs(temp_base, exist_ok=True)
     job_id = os.environ.get("SLURM_JOB_ID")
-    spill_directory = os.path.join(temp_base, f"duckdb-{job_id}-{pid}" if job_id else f"duckdb-{pid}")
-    os.makedirs(spill_directory, exist_ok=True)
-    _spill_directories.add(spill_directory)
-    return spill_directory
+    prefix = f"duckdb-{job_id}-{os.getpid()}-" if job_id else f"duckdb-{os.getpid()}-"
+    while True:
+        path = os.path.join(temp_base, prefix + secrets.token_hex(4))
+        try:
+            os.mkdir(path)
+        except FileExistsError:  # vanishingly rare with a pid in the name, but don't fail the job over it
+            continue
+        return path
 
 
-@atexit.register
-def _remove_spill_directories():
-    """Delete the spill directories this process created.
-
-    DuckDB deletes its own spill files when a connection closes, but not a ``temp_directory`` it did not create, so
-    without this every job leaves a directory behind -- and a job that raised mid-query can leave its spill files in
-    it too. A process killed outright (SIGKILL at the SLURM time limit, a SIGABRT from a DuckDB background-thread
-    out-of-memory) skips atexit handlers, so its directory remains and must be cleared by hand.
-    """
-    for spill_directory in list(_spill_directories):
-        shutil.rmtree(spill_directory, ignore_errors=True)
-        _spill_directories.discard(spill_directory)
-
-
-def setup_duckdb(duckdb_filename, duckdb_config=None):
-    """Open a DuckDB connection configured the way every Babel DuckDB step expects, and log its settings.
+@contextmanager
+def connect_duckdb(duckdb_filename, duckdb_config=None):
+    """Open a DuckDB connection configured the way every Babel DuckDB step expects, log its settings, and close it
+    when the block exits. Use it as ``with connect_duckdb(...) as db:``.
 
     Settings are ``config.yaml``'s ``duckdb_config`` defaults overlaid with ``duckdb_config`` (the caller wins on a
     clash). Two keys in either are Babel's own rather than ``duckdb.connect()`` settings, and are applied with ``SET``
     after connecting:
 
     - ``temp_directory``: the base directory DuckDB spills into. Precedence is this key, then the
-      ``BABEL_DUCKDB_TEMP_DIR`` environment variable, then ``config.yaml``'s ``tmp_directory``. Spills go to a
-      subdirectory of that base unique to this process (see :func:`_spill_directory`), which is removed when the
-      process exits.
+      ``BABEL_DUCKDB_TEMP_DIR`` environment variable, then ``config.yaml``'s ``tmp_directory``. Spills go to a new
+      subdirectory of that base for this connection alone (see :func:`_make_spill_directory`).
     - ``max_temp_directory_size``: the spill cap. Applied whenever it is given, even if no spill directory resolves;
       when a spill directory resolves and it is not given, it defaults to ``500GB``.
 
-    If anything after ``duckdb.connect()`` fails, the connection is closed before the exception propagates, so the
-    database file is not left locked.
+    When the block exits -- normally, on an exception, or because setting up the connection failed -- the connection
+    is closed and its spill directory deleted, spill files included. Closing writes a checkpoint and can itself fail;
+    after a clean block that failure is raised, but after a failed block it is only logged, so the error that ended
+    the block is the one the caller sees (:func:`_close_and_remove_spill_directory`). DuckDB deletes its own spill
+    files on close but never a ``temp_directory`` it did not create, which is why this is a context manager rather
+    than a function returning a connection: a bare connection can close itself, but nothing would remove its
+    directory. A process killed outright (SIGKILL at the SLURM time limit, the SIGABRT of a DuckDB background-thread
+    out-of-memory) runs no clean-up, so its directory remains; ``slurm/README.md`` ("Temporary Scratch Space") says
+    how to clear it.
 
     :param duckdb_filename: The database file to open (or ``":memory:"``).
     :param duckdb_config: Per-call settings overriding ``config.yaml``'s ``duckdb_config``; ``None`` for none.
-    :return: The open DuckDB connection; usable as a context manager.
+    :return: A context manager yielding the open DuckDB connection.
     """
     config = get_config()
     complete_duckdb_config = {**config.get("duckdb_config", {}), **(duckdb_config or {})}
@@ -137,6 +137,8 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
     max_temp_directory_size = complete_duckdb_config.pop("max_temp_directory_size", None)
 
     db = duckdb.connect(duckdb_filename, config=complete_duckdb_config)
+    spill_directory = None
+    block_error = None
     try:
         # Decide where DuckDB spills larger-than-memory intermediates. Precedence:
         #   1. an explicit per-call `temp_directory` (a rule that wants a specific scratch area),
@@ -147,8 +149,8 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
         # default stays on the parallel filesystem; see slurm/README.md ("Temporary scratch space").
         temp_base = temp_directory_override or os.environ.get("BABEL_DUCKDB_TEMP_DIR") or config.get("tmp_directory")
         if temp_base:
-            temp_directory = _spill_directory(temp_base)
-            db.execute(f"SET temp_directory = {sql_str(temp_directory)}")
+            spill_directory = _make_spill_directory(temp_base)
+            db.execute(f"SET temp_directory = {sql_str(spill_directory)}")
             max_temp_directory_size = max_temp_directory_size or "500GB"
         if max_temp_directory_size:
             db.execute(f"SET max_temp_directory_size = {sql_str(max_temp_directory_size)}")
@@ -178,9 +180,70 @@ def setup_duckdb(duckdb_filename, duckdb_config=None):
             memory_limit,
             bytes_to_gib(cgroup_memory_hard_limit_bytes()),
         )
-    except BaseException:
-        # Don't leave the database file locked by a connection the caller never received.
-        db.close()
-        raise
 
-    return db
+        yield db
+    except BaseException as exc:
+        # Setup or the caller's block failed: remember the error so clean-up never replaces it.
+        block_error = exc
+        raise
+    finally:
+        _close_and_remove_spill_directory(db, duckdb_filename, spill_directory, block_error)
+
+
+def _close_and_remove_spill_directory(db, duckdb_filename, spill_directory, block_error):
+    """Close ``db`` and delete ``spill_directory``, without letting a clean-up failure hide the error that ended the
+    block.
+
+    If the block raised, that error is the one the caller sees: a failed close is logged and suppressed rather than
+    raised in its place. Otherwise closing -- which writes a checkpoint and can itself run out of memory -- runs under
+    :func:`log_duckdb_settings_on_error`, and its error is raised. The spill directory is deleted either way; a close
+    that failed may leave DuckDB holding spill files open, which on NFS turns them into undeletable ``.nfsXXXX`` files
+    until the process exits, so every file or directory that can't be removed is logged by path rather than ignored.
+    """
+    close_error = None
+    try:
+        if block_error is None:
+            with log_duckdb_settings_on_error(db, f"closing {duckdb_filename}"):
+                db.close()
+        else:
+            db.close()
+    except Exception as exc:
+        close_error = exc
+
+    if spill_directory:
+        _remove_spill_directory(spill_directory)
+
+    if close_error is not None:
+        if block_error is None:
+            raise close_error
+        logger.error(
+            "Closing DuckDB database %s also failed (%s: %s) after the block raised; re-raising the block's error",
+            duckdb_filename,
+            type(close_error).__name__,
+            close_error,
+        )
+
+
+def _remove_spill_directory(spill_directory):
+    """Delete ``spill_directory`` and everything in it, logging a WARNING for each path that can't be removed.
+
+    Deletion carries on past a failure, so as much is freed as possible; the warnings say what is left, since a spill
+    directory can hold hundreds of gigabytes and ``slurm/README.md`` tells maintainers to clear leftovers by hand.
+    """
+
+    def log_failure(_function, path, exc):
+        logger.warning(
+            "Could not delete DuckDB spill path %s (%s: %s); delete it by hand once this job has exited",
+            path,
+            type(exc).__name__,
+            exc,
+        )
+
+    # Python 3.12 renamed shutil.rmtree()'s error callback from `onerror` (passed exc_info) to `onexc` (passed the
+    # exception); requires-python still admits 3.11.
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(spill_directory, onexc=log_failure)
+    else:
+        shutil.rmtree(
+            spill_directory, onerror=lambda function, path, exc_info: log_failure(function, path, exc_info[1])
+        )

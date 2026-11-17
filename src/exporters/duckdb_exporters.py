@@ -9,7 +9,7 @@ import duckdb
 
 from src.model.intermediates import METADATA_DIRECTORY_FILENAME, metadata_subject_filename
 from src.util import ensure_parent_dir, get_logger
-from src.utils.duckdb_setup import log_duckdb_settings_on_error, setup_duckdb
+from src.utils.duckdb_setup import connect_duckdb, log_duckdb_settings_on_error
 
 logger = get_logger(__name__)
 
@@ -53,7 +53,7 @@ def export_compendia_to_parquet(compendium_filename, clique_parquet_filename, ed
     node_parquet_filename = os.path.join(parquet_dir, "Node.parquet")
 
     compendium_basename = os.path.basename(compendium_filename)
-    with setup_duckdb(duckdb_filename) as db:
+    with connect_duckdb(duckdb_filename) as db:
         # Step 1. Create a Nodes table with all the nodes from compendium_filename.
         db.sql(
             """CREATE TABLE Node (curie STRING, curie_prefix STRING, label STRING, label_lc STRING, description STRING[], taxa STRING[])"""
@@ -221,7 +221,7 @@ def export_conflation_to_parquet(conflation_filename, conflation_type, duckdb_fi
     _prepare_duckdb_output(duckdb_filename)
     ensure_parent_dir(parquet_filename)
 
-    with setup_duckdb(duckdb_filename) as db:
+    with connect_duckdb(duckdb_filename) as db:
         db.sql(
             "CREATE TABLE Conflation (conflation_type STRING, conflation_leader STRING, curie STRING, curie_prefix STRING)"
         )
@@ -271,7 +271,7 @@ def export_synonyms_to_parquet(synonyms_filename_gz, duckdb_filename, synonyms_p
     if memory_limit_mb is not None:
         duckdb_config["memory_limit"] = f"{memory_limit_mb}MB"
 
-    with setup_duckdb(duckdb_filename, duckdb_config=duckdb_config) as db:
+    with connect_duckdb(duckdb_filename, duckdb_config=duckdb_config) as db:
         synonyms_jsonl = db.read_json(synonyms_filename_gz, format="newline_delimited")
 
         # We can't execute the following query unless we have at least one row in the input data.
@@ -378,7 +378,7 @@ def export_intermediates_to_parquet(
     if memory_limit_mb is not None:
         duckdb_config["memory_limit"] = f"{memory_limit_mb}MB"
 
-    with setup_duckdb(duckdb_filename, duckdb_config=duckdb_config) as db:
+    with connect_duckdb(duckdb_filename, duckdb_config=duckdb_config) as db:
         # We don't include labels here: the Node-writing code currently emits only nulls for them,
         # so there is nothing useful to join against.
         db.sql("""CREATE TABLE Concord (filename STRING, subj STRING, pred STRING, obj STRING)""")
