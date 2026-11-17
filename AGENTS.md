@@ -89,7 +89,9 @@ Memory-hungry tests also carry a parametrized `min_memory_gb(n)` guard (register
 `pyproject.toml`, enforced in `tests/conftest.py`) that auto-skips them on machines with less than
 `n` GiB of RAM — an in-memory RDF store can need 8-10x a dump's on-disk size. Size a new rule's
 `mem=` or a test's `min_memory_gb` empirically with `src/tools/memory/estimate_rdf_load_memory.py`
-(see `docs/tools/Memory.md`).
+(see `docs/tools/Memory.md`). The two are rounded in opposite directions: a rule's estimate is
+converted from GiB to decimal GB and rounded *up* to a bucket, with a `# mem estimate:` comment for
+the next sizing pass to replace, while a guard stays at the estimate itself.
 
 - `docs/Testing.md` — testing strategy: cadence per environment (per-PR, nightly, weekly,
   pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other strategies.
