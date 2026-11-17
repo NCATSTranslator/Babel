@@ -589,8 +589,10 @@ _OFATUMUMAB_DRUGCENTRAL_ROWS = (
 _DIMETHYL_ETHER_UNICHEM_SET = ["PUBCHEM.COMPOUND:8254", "INCHIKEY:LCGLNKUTAGEVQW-UHFFFAOYSA-N"]
 
 
-def _untyped_sets(tmp_path, badxrefs_text):
-    """Run build_untyped_compendia() over the ofatumumab rows with the given bad-xrefs file; return its sets."""
+def _untyped_sets(tmp_path, badxrefs_text, **kwargs):
+    """Run build_untyped_compendia() over the ofatumumab rows with the given bad-xrefs file; return its sets.
+
+    ``kwargs`` go to build_untyped_compendia(); the metadata YAML is written to ``tmp_path / "metadata.yaml"``."""
     from src.createcompendia.chemicals import build_untyped_compendia
 
     partial = tmp_path / "UNICHEM"
@@ -609,6 +611,7 @@ def _untyped_sets(tmp_path, badxrefs_text):
         str(tmp_path / "metadata.yaml"),
         [],
         badxrefs=str(badxrefs),
+        **kwargs,
     )
     import ast
 
@@ -648,3 +651,54 @@ def test_the_checked_in_chemical_badxrefs_file_parses_and_lists_each_pair_once()
     unordered = [frozenset(p) for p in pairs]
     assert pairs
     assert len(unordered) == len(set(unordered))
+
+
+@pytest.mark.unit
+def test_build_untyped_compendia_writes_the_pairs_it_applied_for_the_audit(tmp_path):
+    """The build should write the pairs it applied, under a header read_applied_badxrefs() requires, so the audit can
+    model that build rather than whatever input_data/chemical_badxrefs.txt says by the time it runs."""
+    from src.createcompendia.chemicals import APPLIED_BADXREFS_HEADER, read_applied_badxrefs
+
+    applied = tmp_path / "partials" / "applied_badxrefs.txt"
+    _untyped_sets(tmp_path, "# reason\nPUBCHEM.COMPOUND:8254 DrugCentral:4951\n", applied_badxrefs=str(applied))
+
+    assert applied.read_text().splitlines()[0] == APPLIED_BADXREFS_HEADER
+    assert read_applied_badxrefs(str(applied)) == {("PUBCHEM.COMPOUND:8254", "DrugCentral:4951")}
+
+
+@pytest.mark.unit
+def test_read_applied_badxrefs_refuses_the_input_data_file():
+    """Handing the audit the repo's chemical_badxrefs.txt, which may list pairs a build never applied, should fail."""
+    from src.createcompendia.chemicals import CHEMICAL_BAD_XREFS, read_applied_badxrefs
+
+    with pytest.raises(ValueError, match="applied_badxrefs.txt"):
+        read_applied_badxrefs(CHEMICAL_BAD_XREFS)
+
+
+@pytest.mark.unit
+def test_build_untyped_compendia_records_unmatched_bad_pairs_in_its_metadata(tmp_path):
+    """A listed pair no concord row names should be counted and listed in the metadata YAML, which is nested into
+    every chemical compendium's metadata, rather than only logged."""
+    import yaml
+
+    _untyped_sets(tmp_path, "PUBCHEM.COMPOUND:8254 DrugCentral:4951\nDrugCentral:1 PUBCHEM.COMPOUND:2\n")
+    counts = yaml.safe_load((tmp_path / "metadata.yaml").read_text())["counts"]
+
+    assert counts == {"bad_xref_pairs": 2, "bad_xref_pairs_unmatched": ["DrugCentral:1 PUBCHEM.COMPOUND:2"]}
+
+
+@pytest.mark.unit
+def test_a_bad_pair_naming_a_cui_owned_elsewhere_still_counts_as_matched(tmp_path, monkeypatch):
+    """A listed pair that also names a CUI another pipeline owns is skipped either way, but it still matches a concord
+    row, so it should not be reported as unmatched (and so as safe to delete)."""
+    import yaml
+
+    from src.createcompendia import chemicals
+
+    # The build skips any pair naming a member of this set, whatever its prefix; the ofatumumab rows name no CUI, so
+    # CID 8254 stands in for one.
+    monkeypatch.setattr(chemicals.umls, "read_cuis_owned_elsewhere", lambda *_: frozenset({"PUBCHEM.COMPOUND:8254"}))
+    _untyped_sets(tmp_path, "PUBCHEM.COMPOUND:8254 DrugCentral:4951\n")
+    counts = yaml.safe_load((tmp_path / "metadata.yaml").read_text())["counts"]
+
+    assert counts["bad_xref_pairs_unmatched"] == []
