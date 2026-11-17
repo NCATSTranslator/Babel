@@ -8,7 +8,13 @@ of every chemical concord edge without replaying ``glom()``:
 * endpoints in different cliques: the edge was removed by a pre-glom filter, or **refused** by the InChIKey guard
   (both cliques carry a key; one key per clique means the keys differ).
 
-Three steps outside ``glom()`` have to be modelled for that to hold:
+That rests on three properties of ``glom()`` that ``tests/test_glom.py`` pins as its contract: a pair is refused only
+for a ``unique_prefixes`` conflict (the chemical calls pass ``[INCHIKEY]`` and no ``close`` map;
+``test_the_check_covers_the_whole_merged_clique``), a refused pair adds nothing, not even a singleton
+(``test_a_refused_pair_adds_nothing``), and a merge is never undone (``test_groups_before_a_bad_one_stay_applied``).
+If any of them changes -- or the chemical calls start passing ``close`` -- this module's verdicts change meaning.
+
+Three steps outside ``glom()`` also have to be modelled for the fates above to hold:
 
 * the pre-glom filters of ``chemicals.build_untyped_compendia()`` and ``chemicals.combine_unichem()``:
   ``remove_overused_xrefs`` (every untyped-stage concord, and the UniChem files of
