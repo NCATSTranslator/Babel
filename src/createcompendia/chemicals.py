@@ -1,5 +1,6 @@
 import ast
 import gzip
+import hashlib
 import logging
 from collections import Counter, defaultdict
 
@@ -12,6 +13,7 @@ from src.babel_utils import (
     get_prefixes,
     get_user_agent,
     glom,
+    read_badxrefs,
     read_identifier_file,
     remove_overused_xrefs,
     write_compendium,
@@ -53,10 +55,56 @@ from src.util import (
     get_config,
     get_logger,
     get_memory_usage_summary,
+    get_repo_root,
     open_maybe_gzipped,
 )
 
 logger = get_logger(__name__)
+
+# Individually wrong chemical concord pairs, dropped (in either direction) before glom() in build_untyped_compendia().
+# Each attaches a record with no structure of its own -- a biologic, polymer, mixture or conjugate -- to the clique of
+# a structure it is not; glom()'s INCHIKEY guard cannot stop that because the record has no key. Found with
+# babel-inchikey-audit and reviewed by hand (docs/tools/InchikeyAudit.md); each entry states its reason. The
+# untyped_chemical_compendia rule declares the file as an input through this constant, so an edit re-runs the rule.
+CHEMICAL_BAD_XREFS = str(get_repo_root() / "input_data/chemical_badxrefs.txt")
+
+# First line of the copy of the bad xref pairs that build_untyped_compendia() writes to
+# intermediate/chemicals/partials/applied_badxrefs.txt. babel-inchikey-audit needs exactly the pairs a build applied:
+# given input_data/chemical_badxrefs.txt as it stands today, which may list pairs added after the build, it would
+# label edges that build applied as filtered and drop their components from the audit without an error. So
+# read_applied_badxrefs() refuses any file that does not start with this line.
+APPLIED_BADXREFS_HEADER = "# Bad xref pairs applied by chemicals.build_untyped_compendia()"
+
+
+def write_applied_badxrefs(path, pairs, source):
+    """Write the bad xref ``pairs`` a build applied to ``path``, headed by ``APPLIED_BADXREFS_HEADER`` and the
+    ``source`` file's path and SHA-256, in the format :func:`src.babel_utils.read_badxrefs` reads."""
+    ensure_parent_dir(path)
+    with open(source, "rb") as f:
+        sha256 = hashlib.sha256(f.read()).hexdigest()
+    with open(path, "w") as outf:
+        outf.write(f"{APPLIED_BADXREFS_HEADER}\n")
+        outf.write(f"# Copied from {source} (sha256 {sha256}). Pass this file to babel-inchikey-audit --badxrefs.\n")
+        for subj, obj in sorted(pairs):
+            outf.write(f"{subj} {obj}\n")
+
+
+def read_applied_badxrefs(path):
+    """Read a :func:`write_applied_badxrefs` file into ``(subject, object)`` pairs.
+
+    :raises ValueError: if ``path`` does not start with ``APPLIED_BADXREFS_HEADER`` -- above all when it is the repo's
+        ``input_data/chemical_badxrefs.txt`` rather than the copy a build wrote.
+    """
+    with open(path) as f:
+        first = f.readline().rstrip("\n")
+    if first != APPLIED_BADXREFS_HEADER:
+        raise ValueError(
+            f"{path} is not a list of applied bad xref pairs written by build_untyped_compendia() (its first line "
+            f"is {first!r}, not {APPLIED_BADXREFS_HEADER!r}). Pass the build's "
+            f"intermediate/chemicals/partials/applied_badxrefs.txt, not input_data/chemical_badxrefs.txt."
+        )
+    return read_badxrefs(path)
+
 
 # The ChEBI SDF data-item tags make_chebi_relations() asks read_sdf() for, normalized the way
 # normalize_sdf_tag() normalizes them: lowercased, spaces stripped, underscores kept.
@@ -590,9 +638,13 @@ def read_inchikeys(struct_file):
     return inchikeys
 
 
-def combine_unichem(concordances, output):
-    PREFIXES_TO_REMOVE_OVERUSED_XREFS = [UNII, KEGGCOMPOUND, DRUGCENTRAL]
+# UniChem sources whose record->InChIKey concords combine_unichem() passes through remove_overused_xrefs(): a key
+# claimed by two or more records of one of these sources loses all of those links. Module-level so that
+# src/model/glom_edges.py can reproduce the build's filtering exactly rather than keeping its own copy.
+UNICHEM_OVERUSED_XREF_PREFIXES = (UNII, KEGGCOMPOUND, DRUGCENTRAL)
 
+
+def combine_unichem(concordances, output):
     dicts = {}
     for infile in concordances:
         print(infile)
@@ -628,7 +680,7 @@ def combine_unichem(concordances, output):
 
         # Only remove overused xrefs for specific prefixes
         # Reassigned rather than copied, so the unfiltered list can be freed before glom() runs.
-        if prefix_to_check in PREFIXES_TO_REMOVE_OVERUSED_XREFS:
+        if prefix_to_check in UNICHEM_OVERUSED_XREF_PREFIXES:
             pairs = remove_overused_xrefs(pairs)
         glom(dicts, pairs, unique_prefixes=[INCHIKEY])
     chem_sets = set([frozenset(x) for x in dicts.values()])
@@ -1092,13 +1144,43 @@ def build_untyped_compendia(
     metadata_yaml,
     input_metadata_yamls,
     mesh_ownership=None,
+    badxrefs=None,
+    applied_badxrefs=None,
 ):
     """:concordances: a list of files from which to read relationships
     :identifiers: a list of files from which to read identifiers and optional categories
     :mesh_ownership: the umls_mesh_ownership rule's file; concord pairs naming a CUI another pipeline owns are
         skipped (umls.read_cuis_owned_elsewhere). None skips nothing.
-        The UniChem partial carries no UMLS CUIs, so it needs no such filter."""
+        The UniChem partial carries no UMLS CUIs, so it needs no such filter.
+    :badxrefs: a read_badxrefs() file of concord pairs to skip, matched in either direction; defaults to
+        ``CHEMICAL_BAD_XREFS``. Like owned-elsewhere pairs, they are skipped before remove_overused_xrefs() counts
+        overuse, so src/model/glom_edges.py models them the same way.
+    :applied_badxrefs: where to write the pairs read from ``badxrefs`` (:func:`write_applied_badxrefs`), so that
+        babel-inchikey-audit can model this build with the pairs it applied rather than the repo's current file.
+        None writes nothing.
+
+    The metadata YAML counts the bad xref pairs loaded and lists those that matched no concord row. Such a pair is
+    usually harmless -- the source dropped the bad xref -- but if a source renamed an identifier, the xref is back
+    under the new one; the next babel-inchikey-audit run shows it as a component again."""
     owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "chemicals")
+    if badxrefs is None:
+        badxrefs = CHEMICAL_BAD_XREFS
+    listed_pairs = read_badxrefs(badxrefs)
+    bad_pairs = {frozenset(pair) for pair in listed_pairs}
+    logger.info("Loaded %d bad xref pair(s) from %s", len(bad_pairs), badxrefs)
+    if applied_badxrefs is not None:
+        write_applied_badxrefs(applied_badxrefs, listed_pairs, badxrefs)
+    bad_pairs_seen = set()
+
+    def skip_bad_pairs(pairs):
+        """Yield the pairs not in ``bad_pairs`` (either direction), recording each listed pair that is seen."""
+        for pair in pairs:
+            unordered = frozenset(pair)
+            if unordered in bad_pairs:
+                bad_pairs_seen.add(unordered)
+            else:
+                yield pair
+
     dicts = read_partial_unichem(unichem_partial)
     types = {}
     for ifile in identifiers:
@@ -1109,29 +1191,19 @@ def build_untyped_compendia(
     for infile in concordances:
         print(infile)
         print("loading", infile)
-        # 2-tuples, handed to glom() as they are: see read_concord_pairs() for why not sets or lists.
-        pairs = list(umls.skip_pairs_owned_elsewhere(read_concord_pairs(infile), owned_elsewhere))
-        p = False
-        # pairs can be empty: an empty concord, or one whose every row names a CUI owned elsewhere.
-        if pairs and DRUGCENTRAL in [n.split(":")[0] for n in pairs[0]]:
-            p = True
-            i = "DrugCentral:4970"
-        if p:
-            print("before filtering:")
-            for pair in pairs:
-                if i in pair:
-                    print(pair)
+        # 2-tuples, handed to glom() as they are: see read_concord_pairs() for why not sets or lists. Bad pairs are
+        # matched before the owned-elsewhere skip, so a listed pair is recorded as seen even when it also names a
+        # CUI another pipeline owns; otherwise it would be reported as matching no concord row while it still does.
+        pairs = list(umls.skip_pairs_owned_elsewhere(skip_bad_pairs(read_concord_pairs(infile)), owned_elsewhere))
         newpairs = remove_overused_xrefs(pairs)
-        del pairs  # Free the unfiltered list before glom() runs; the debug prints below use newpairs.
-        if p:
-            print("after filtering:")
-            for pair in newpairs:
-                if i in pair:
-                    print(pair)
+        del pairs  # Free the unfiltered list before glom() runs.
         glom(dicts, newpairs, unique_prefixes=[INCHIKEY])
-        if p:
-            print("after glomming:")
-            print(dicts[i])
+    # Not raised: a pair goes unmatched every time a source fixes the error upstream, and failing the build for that
+    # would make every upstream fix a build break. It is recorded in the metadata YAML (below), which is nested in
+    # every chemical compendium's metadata and so reaches the release's metadata/ for review.
+    unseen = sorted(map(sorted, bad_pairs - bad_pairs_seen))
+    if unseen:
+        logger.warning("%d bad xref pair(s) in %s matched no concord row: %s", len(unseen), badxrefs, unseen)
     with open(type_file, "w") as outf:
         for x, y in types.items():
             outf.write(f"{x}\t{y}\n")
@@ -1147,7 +1219,10 @@ def build_untyped_compendia(
         name="chemicals.build_untyped_compendia()",
         description=f'Generate an untyped compendium from concordances {concordances}, identifiers {identifiers}, " +'
         f"unichem_partial {unichem_partial}, untyped_concord {untyped_concord}, and type file {type_file}.",
-        # sources=None, url='', counts=None,
+        counts={
+            "bad_xref_pairs": len(bad_pairs),
+            "bad_xref_pairs_unmatched": [" ".join(pair) for pair in unseen],
+        },
         combined_from_filenames=input_metadata_yamls,
     )
 

@@ -91,6 +91,22 @@ def open_maybe_gzipped(filename, mode="rt"):
     return gzip.open(filename, mode) if filename.endswith(".gz") else open(filename, mode)
 
 
+def sql_str(value) -> str:
+    """Render ``value`` as a single-quoted SQL string literal (DuckDB, SQLite), doubling any embedded quote.
+
+    For values a query has to inline because they cannot be bound as parameters -- file paths in ``read_parquet()``,
+    ``read_csv()`` and ``COPY ... TO``, or settings such as ``temp_directory``. Without the doubling, a build path
+    like ``/home/me/gaurav's-builds`` ends the literal early and the query fails to parse.
+    """
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def sql_list(values) -> str:
+    """Render values as a SQL list literal of :func:`sql_str` strings, e.g. ``['a','b']``, for ``read_parquet()``
+    over several files or ``list_contains()``."""
+    return "[" + ",".join(sql_str(v) for v in values) + "]"
+
+
 # loggers = {}
 class LoggingUtil:
     """Logging utility controlling format and setting initial logging level"""

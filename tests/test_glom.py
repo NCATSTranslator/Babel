@@ -10,6 +10,11 @@ changes it should invert that test rather than delete it.
 The ``# REFERENCE MODEL`` section restates the whole contract as a short, plain implementation and
 checks glom() against it over randomized inputs. If you change glom(), change the model to match and
 say why; if you replace glom(), the model is the specification to test the replacement against.
+
+``src/model/glom_edges.py`` (babel-inchikey-audit) infers what glom() did with each chemical concord
+edge from a finished build, without replaying it, and so depends on this contract: refusal only for a
+unique-prefix conflict, a refused pair adding nothing, and no rollback (see its module docstring). A
+change to any of those must be made there too.
 """
 
 import copy

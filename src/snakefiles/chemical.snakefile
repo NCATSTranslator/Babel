@@ -383,10 +383,14 @@ rule untyped_chemical_compendia:
         ),
         idlists=expand("{dd}/chemicals/ids/{ap}", dd=config["intermediate_directory"], ap=config["chemical_ids"]),
         mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
+        # Declared as an input so editing the file re-triggers this rule.
+        badxrefs=chemicals.CHEMICAL_BAD_XREFS,
     output:
         typesfile=config["intermediate_directory"] + "/chemicals/partials/types",
         untyped_file=config["intermediate_directory"] + "/chemicals/partials/untyped_compendium",
         untyped_meta=config["intermediate_directory"] + "/chemicals/partials/metadata-untyped_compendium.yaml",
+        # The bad xref pairs this build applied, for babel-inchikey-audit --badxrefs: the repo's file may have moved on.
+        applied_badxrefs=config["intermediate_directory"] + "/chemicals/partials/applied_badxrefs.txt",
     benchmark:
         config["output_directory"] + "/benchmarks/untyped_chemical_compendia.tsv"
     resources:
@@ -407,6 +411,8 @@ rule untyped_chemical_compendia:
             output.untyped_meta,
             input.metadata_yamls,
             mesh_ownership=input.mesh_ownership,
+            badxrefs=input.badxrefs,
+            applied_badxrefs=output.applied_badxrefs,
         )
 
 
