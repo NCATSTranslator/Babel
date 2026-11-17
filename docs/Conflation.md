@@ -42,6 +42,6 @@ conflation turned on, it determines the types of a conflated clique by:
 
 The conflated synonym files (`GeneProteinConflated.txt.gz`, `DrugChemicalConflated.txt.gz`, built by
 `src/synonyms/synonymconflation.py`) merge types the same way: the types of each clique in
-conflation order, without duplication. They leave out `OntologyClass`, which unconflated synonym
-records still carry. Issue #1178 is to settle what every output does with `OntologyClass`,
-`NamedThing` and `Entity`.
+conflation order, without duplication. Conflation doesn't filter them: each record's types were
+chosen when its synonym file was written, which leaves `OntologyClass` out of every synonym file
+alike (see [Types in synonym files](DataFormats.md#types-in-synonym-files)).

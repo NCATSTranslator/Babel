@@ -115,7 +115,6 @@ synonyms.
     "GenomicEntity",
     "ChemicalEntityOrGeneOrGeneProduct",
     "PhysicalEssence",
-    "OntologyClass",
     "BiologicalEntity",
     "ThingWithTaxon",
     "NamedThing",
@@ -138,7 +137,19 @@ This entry consists of the following fields:
 | shortest_name_length    | 4                                  | The length of the shortest synonym in the `names` list, in order to sort results for the shortest name.                                                                                                                                     |
 | taxa                    | ["NCBITaxon:9606"]                 | The list of taxa that this concept is found in. This should be identical to the entry in the corresponding Compendia file.                                                                                                                  |
 | taxon_specific          | true or false                      | True if this concept is associated with one or more specific taxa; false if it is not taxon-specific.                                                                                                                                       |
-| types                   | ["Gene", "GeneOrGeneProduct", ...] | A list of Biolink types (without the `biolink:` prefix) for this concept. This is arranged in the same order provided by the Biolink Model Toolkit, starting with the narrowest concept, expanding to the broadest, followed by mixins.     |
+| types                   | ["Gene", "GeneOrGeneProduct", ...] | A list of Biolink types (without the `biolink:` prefix) for this concept: its own type first, then its ancestors in the order provided by the Biolink Model Toolkit. `OntologyClass` is left out unless it is the concept's own type (see [below](#types-in-synonym-files)). |
+
+### Types in synonym files
+
+A synonym record's `types` is decided in one place, `synonym_record_types()` in
+`src/synonyms/record_types.py`, which `write_compendium()` calls for every record. It lists the
+clique's own type and then its ancestors, leaving out `OntologyClass`: a mixin that most Biolink
+classes inherit, so it says nothing about what a concept is. A clique typed `OntologyClass`
+itself keeps it, so the list is never empty and its first entry is always the clique's own type. A
+conflated record lists the union of its cliques' types, in conflation order. `NamedThing` and
+`Entity` are still listed; what every Babel output should do with them is
+[#1178](https://github.com/NCATSTranslator/Babel/issues/1178). NodeNorm's responses are unaffected,
+because it computes a clique's ancestors itself, so they still include `biolink:OntologyClass`.
 
 Note that the per-type synonym files are generated with DrugChemical conflation turned on, but
 GeneProtein conflation turned off. A separate `synonyms/GeneProteinConflated.txt.gz` is also
