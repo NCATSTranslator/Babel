@@ -12,6 +12,7 @@ checks glom() against it over randomized inputs. If you change glom(), change th
 say why; if you replace glom(), the model is the specification to test the replacement against.
 """
 
+import copy
 import random
 from collections import defaultdict
 
@@ -298,6 +299,18 @@ def test_quirk_close_matches_prefixes_with_startswith():
 
 
 @pytest.mark.unit
+def test_quirk_a_defaultdict_close_map_gains_an_entry_for_every_member_looked_up():
+    """Quirk: should insert an empty entry into the caller's defaultdict for each prefixed member it checks.
+
+    glom() looks partners up by index, so the close map passed in grows as a side effect -- even for a
+    group the unique_prefixes check had not refused but the close guard then does.
+    """
+    close = {"MONDO": defaultdict(set, {"MONDO:1": {"X:1"}})}
+    glom({}, [("MONDO:1", "X:1"), ("MONDO:2", "Y:1")], unique_prefixes=[], close=close)
+    assert dict(close["MONDO"]) == {"MONDO:1": {"X:1"}, "MONDO:2": set()}
+
+
+@pytest.mark.unit
 def test_quirk_a_plain_dict_close_map_raises_on_an_unlisted_identifier():
     """Quirk: should raise KeyError when a member has the prefix but no entry, so callers pass a defaultdict."""
     with pytest.raises(KeyError):
@@ -358,6 +371,10 @@ def reference_glom(cliques, groups, unique_prefixes, close):
     PUBCHEM prefix. Skip the group -- adding nothing -- if the union holds two identifiers with the
     same prefix from unique_prefixes, or an identifier and one of its close partners. Otherwise make
     the union the clique of every member.
+
+    Close partners are looked up by index for every member of the union with a close prefix, even
+    once one has refused the group, because glom() does: so a plain-dict close map raises KeyError
+    on a member it doesn't list, and a defaultdict one gains an empty entry for each member looked up.
     """
     for group in groups:
         if len(group) > 2:
@@ -369,13 +386,12 @@ def reference_glom(cliques, groups, unique_prefixes, close):
             raise Exception("garbage")
         if any(len({m for m in merged if m.split(":")[0] == prefix}) > 1 for prefix in unique_prefixes):
             continue
-        if any(
-            partner in merged
-            for close_prefix, partners in close.items()
-            for member in merged
-            if member.startswith(close_prefix)
-            for partner in partners.get(member, ())
-        ):
+        refused = False
+        for close_prefix, partners in close.items():
+            for member in merged:
+                if member.startswith(close_prefix) and partners[member] & merged:
+                    refused = True
+        if refused:
             continue
         for member in merged:
             cliques[member] = merged
@@ -424,7 +440,8 @@ def test_glom_matches_the_reference_model(seed):
     """Should build exactly the cliques the reference model does, over random groups, unique prefixes and close maps.
 
     The groups come in every container builders use, and some sequences hit a forbidden prefix
-    partway through: then both must raise, with the same cliques left behind.
+    partway through, or an unlisted MONDO member of a plain-dict close map: then both must raise,
+    with the same cliques left behind. Both must also leave the close map in the same state.
     """
     rng = random.Random(seed)
     groups = random_groups(rng, forbidden=True)
@@ -433,9 +450,15 @@ def test_glom_matches_the_reference_model(seed):
     # can produce (test_a_clique_already_over_the_limit_refuses_every_later_merge).
     first_uniques = rng.sample(["A", "B", "MONDO"], rng.randrange(0, 4))
     second_uniques = first_uniques if rng.random() < 0.5 else rng.sample(["A", "B", "MONDO"], rng.randrange(0, 4))
-    close = {"MONDO": defaultdict(set)}
+    # Builders pass a defaultdict (diseasephenotype.build_compendium); one case in ten passes a plain
+    # dict instead, which raises KeyError on the first MONDO member it doesn't list
+    # (test_quirk_a_plain_dict_close_map_raises_on_an_unlisted_identifier).
+    close_map = defaultdict(set) if rng.random() < 0.9 else {}
     for n in rng.sample(range(6), rng.randrange(0, 4)):
-        close["MONDO"][f"MONDO:{n}"] = {f"{rng.choice('ABC')}:{rng.randrange(6)}", f"MONDO:{rng.randrange(6)}"}
+        close_map[f"MONDO:{n}"] = {f"{rng.choice('ABC')}:{rng.randrange(6)}", f"MONDO:{rng.randrange(6)}"}
+    # Each side gets its own copy up front, so neither sees the entries the other inserts.
+    close = {"MONDO": copy.deepcopy(close_map)}
+    expected_close = {"MONDO": copy.deepcopy(close_map)}
 
     # Split into two calls, as builders do (ids files, then concords), so state carried between
     # calls is covered too. A forbidden identifier raises; both must raise the same way at the same
@@ -444,14 +467,13 @@ def test_glom_matches_the_reference_model(seed):
     actual, expected = {}, {}
     for part, unique_prefixes in ((groups[:cut], first_uniques), (groups[cut:], second_uniques)):
         raised = run_and_catch(glom, actual, part, unique_prefixes=unique_prefixes, close=close)
-        expected_raised = run_and_catch(
-            reference_glom, expected, part, unique_prefixes, {"MONDO": dict(close["MONDO"])}
-        )
+        expected_raised = run_and_catch(reference_glom, expected, part, unique_prefixes, expected_close)
         assert raised == expected_raised
         if raised is not None:
             break
 
     assert actual == expected
+    assert close == expected_close  # Including the empty entries a defaultdict gains.
     for key, members in actual.items():
         assert all(actual[member] is members for member in members), key
 
