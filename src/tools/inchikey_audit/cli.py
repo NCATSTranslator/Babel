@@ -7,7 +7,8 @@ tiers and triages the structure-less components attached to keyed cliques.
 Invocation::
 
     uv run babel-inchikey-audit --build data/inchikey-clique-audit/<build> --lookup-build <build URL> \\
-        --structure-file babel_downloads/UNICHEM/structure.tsv.gz --out data/inchikey-clique-audit/out
+        --structure-file babel_downloads/UNICHEM/structure.tsv.gz --out data/inchikey-clique-audit/out \\
+        [--keep-duckdb data/inchikey_audit/<build>.duckdb]
 
 ``--build`` must hold ``duckdb/Concord.parquet`` and the chemical compendia's
 ``duckdb/parquet/filename=<Type>/Edge.parquet``, which are scanned in full, so keep them local.
@@ -26,18 +27,26 @@ Writes, under ``--out``:
   rows are the candidate pairs to block;
 * ``refused_edges.tsv`` -- xrefs the InChIKey guard refused (harmless in the build; worth reporting upstream);
 * ``summary.tsv`` -- counts of glom edge verdicts and of components by tier and verdict.
+
+Nothing else is written there. The DuckDB database (~22 GB on 2026jul22), its spill files and the intermediate TSVs
+go in a temporary directory under ``$TMPDIR`` that is deleted when the run ends, even if it fails; point ``TMPDIR`` at
+a larger disk if the default one is short of space. To query the per-edge verdicts (``glom_edge``), cliques
+(``glom_clique``) or audit tables after the run -- to answer a question about one class of edge, say -- pass
+``--keep-duckdb`` a path in a scratch directory you control, such as ``data/inchikey_audit/<build>.duckdb``, rather
+than rerunning the audit; delete it when you are done.
 """
 
 import argparse
 import pathlib
 import sys
+import tempfile
 
 from src.createcompendia.chemicals import UNICHEM_OVERUSED_XREF_PREFIXES, read_applied_badxrefs
 from src.datahandlers.umls import read_cuis_owned_elsewhere
 from src.duckdb_setup import setup_duckdb
 from src.model.glom_edges import classify_chemical_glom_edges
 from src.model.inchikey_audit import audit_chemical_inchikeys, refused_edges_query
-from src.util import get_config, get_logger, sql_str
+from src.util import ensure_parent_dir, get_config, get_logger, sql_str
 
 logger = get_logger(__name__)
 
@@ -56,7 +65,13 @@ def main(argv=None):
         "--badxrefs", help="The build's intermediate/chemicals/partials/applied_badxrefs.txt, for builds that have one."
     )
     parser.add_argument("--out", required=True, help="Output directory.")
-    parser.add_argument("--work-dir", help="Scratch directory for DuckDB and intermediates (default: <out>/work).")
+    parser.add_argument(
+        "--keep-duckdb",
+        metavar="PATH",
+        help="Write the audit's DuckDB database (~22 GB on 2026jul22) to PATH and keep it, to query glom_edge, "
+        "glom_clique or the audit tables afterwards; use a scratch directory you control, such as "
+        "data/inchikey_audit/<build>.duckdb. Default: a temporary file deleted when the run ends.",
+    )
     parser.add_argument("--memory-limit", default="18GB", help="DuckDB memory limit (default: 18GB).")
     parser.add_argument("--threads", type=int, default=6, help="DuckDB threads (default: 6).")
     args = parser.parse_args(argv)
@@ -68,37 +83,52 @@ def main(argv=None):
     edge_parquets = {t: f"{build}/duckdb/parquet/filename={t}/Edge.parquet" for t in types}
     node_parquets = [f"{lookup}/duckdb/parquet/filename={t}/Node.parquet" for t in types]
     out = pathlib.Path(args.out)
-    work = pathlib.Path(args.work_dir) if args.work_dir else out / "work"
-    work.mkdir(parents=True, exist_ok=True)
-    out.mkdir(parents=True, exist_ok=True)  # --work-dir may sit outside --out
+    out.mkdir(parents=True, exist_ok=True)
+    if args.keep_duckdb:
+        # Refuse rather than reuse: an existing file may be a kept audit of another build, and is costly to rebuild.
+        if pathlib.Path(args.keep_duckdb).exists():
+            raise ValueError(f"--keep-duckdb {args.keep_duckdb} already exists; delete it or choose another path.")
+        ensure_parent_dir(args.keep_duckdb)
 
-    # The pipeline's DuckDB setup: config.yaml's duckdb_config defaults, a per-run spill directory under --work-dir,
-    # and the connect-time settings and memory-headroom log lines.
-    con = setup_duckdb(
-        str(work / "audit.duckdb"),
-        {
-            "memory_limit": args.memory_limit,
-            "threads": args.threads,
-            "preserve_insertion_order": False,
-            "temp_directory": str(work / "spill"),
-        },
-    )
-    if lookup.startswith("http"):
-        con.sql("INSTALL httpfs; LOAD httpfs")
+    # Everything but --out is scratch: deleted when the block exits, including on an exception.
+    with tempfile.TemporaryDirectory(prefix="inchikey-audit-") as scratch:
+        # The pipeline's DuckDB setup: config.yaml's duckdb_config defaults, a spill directory inside the scratch
+        # directory (so it goes even when the database is kept), and the connect-time settings and memory-headroom
+        # log lines.
+        con = setup_duckdb(
+            args.keep_duckdb or str(pathlib.Path(scratch) / "audit.duckdb"),
+            {
+                "memory_limit": args.memory_limit,
+                "threads": args.threads,
+                "preserve_insertion_order": False,
+                "temp_directory": str(pathlib.Path(scratch) / "spill"),
+            },
+        )
+        try:
+            if lookup.startswith("http"):
+                con.sql("INSTALL httpfs; LOAD httpfs")
+            owned = read_cuis_owned_elsewhere(args.mesh_ownership, "chemicals") if args.mesh_ownership else frozenset()
+            bad_pairs = read_applied_badxrefs(args.badxrefs) if args.badxrefs else ()
+            classify_chemical_glom_edges(
+                con,
+                f"{build}/duckdb/Concord.parquet",
+                edge_parquets,
+                config["chemical_concords"],
+                UNICHEM_OVERUSED_XREF_PREFIXES,
+                owned,
+                bad_pairs,
+            )
+            audit_chemical_inchikeys(
+                con, scratch, node_parquets, f"{lookup}/duckdb/Identifier.parquet", args.structure_file
+            )
+            write_outputs(con, out)
+        finally:
+            con.close()
+    return 0
 
-    owned = read_cuis_owned_elsewhere(args.mesh_ownership, "chemicals") if args.mesh_ownership else frozenset()
-    bad_pairs = read_applied_badxrefs(args.badxrefs) if args.badxrefs else ()
-    classify_chemical_glom_edges(
-        con,
-        f"{build}/duckdb/Concord.parquet",
-        edge_parquets,
-        config["chemical_concords"],
-        UNICHEM_OVERUSED_XREF_PREFIXES,
-        owned,
-        bad_pairs,
-    )
-    audit_chemical_inchikeys(con, str(work), node_parquets, f"{lookup}/duckdb/Identifier.parquet", args.structure_file)
 
+def write_outputs(con, out: pathlib.Path) -> None:
+    """Write the four TSVs under ``out`` from the audit tables in ``con``, and log the summary."""
     tsv = "(HEADER, DELIMITER '\\t')"
     con.sql(f"COPY (SELECT * EXCLUDE (set_id, comp) FROM audit_component) TO {sql_str(out / 'components.tsv')} {tsv}")
     con.sql(f"COPY audit_boundary TO {sql_str(out / 'boundary_edges.tsv')} {tsv}")
@@ -111,7 +141,6 @@ def main(argv=None):
     ) TO {sql_str(out / "summary.tsv")} {tsv}""")
     for row in con.sql(f"SELECT * FROM read_csv({sql_str(out / 'summary.tsv')}, delim='\\t')").fetchall():
         logger.info("%s", row)
-    return 0
 
 
 if __name__ == "__main__":

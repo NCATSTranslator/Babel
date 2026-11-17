@@ -281,7 +281,7 @@ def audit_chemical_inchikeys(
     """Run steps 1-4 over the ``glom_edge``, ``keyed_clique`` and ``glom_clique`` tables that
     :func:`src.model.glom_edges.classify_chemical_glom_edges` built in ``con``, and create the result tables
     ``audit_component`` (one row per flagged component) and ``audit_boundary`` (one row per boundary edge of a flagged
-    component). ``work_dir`` holds intermediate TSVs.
+    component). ``work_dir`` is a scratch directory for the intermediate TSVs, which the caller may delete afterwards.
 
     A record's edge to its own InChIKey counts towards the core whether the key is in the output or was dropped from
     it (Drug and Food cliques: ``glom_edge.key_dropped``), because both are ``applied``.

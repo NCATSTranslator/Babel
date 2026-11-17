@@ -3,7 +3,8 @@
 ```bash
 uv run babel-inchikey-audit --build <local build dir> [--lookup-build <dir or URL>] \
     [--structure-file babel_downloads/UNICHEM/structure.tsv.gz] [--mesh-ownership <file>] \
-    [--badxrefs <build>/intermediate/chemicals/partials/applied_badxrefs.txt] --out <dir>
+    [--badxrefs <build>/intermediate/chemicals/partials/applied_badxrefs.txt] \
+    [--keep-duckdb data/inchikey_audit/<build>.duckdb] --out <dir>
 ```
 
 Answers: **which records were attached by xref to a chemical structure they are not, and which
@@ -113,6 +114,21 @@ All files are under `--out`, tab-separated.
 - **`refused_edges.tsv`:** xrefs the InChIKey guard refused. They are harmless in the build but are
   source errors worth reporting.
 - **`summary.tsv`:** counts of edge verdicts, and of components by tier and verdict.
+
+Nothing else is written there. The DuckDB database, its spill files and the intermediate TSVs go
+in a temporary directory under `$TMPDIR`, which is deleted when the run ends, including when it
+fails. On 2026jul22 that needs about 40 GB free: a ~22 GB database plus spill. Point `TMPDIR` at a
+larger disk if the default is short.
+
+### Keeping the database for follow-up queries
+
+The database holds the per-edge verdicts (`glom_edge`, one row per chemical concord edge), the
+cliques (`glom_clique`) and the audit tables. It answers questions the TSVs don't, such as how many
+edges of one source fall under a verdict, without rerunning the audit. To keep it, pass
+`--keep-duckdb` a path in a scratch directory you control, such as
+`data/inchikey_audit/<build>.duckdb` (coding agents: see "Scratch space" in `AGENTS.md`). It
+refuses a path that already exists. The file is ~22 GB for 2026jul22, so delete it when you are
+done.
 
 ## Limits
 
