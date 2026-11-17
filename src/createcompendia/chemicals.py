@@ -601,26 +601,30 @@ def combine_unichem(concordances, output):
 
         # We will want to only remove overused xrefs for specific prefixes.
         # UniChem files should only have a single prefix in the first column,
-        # but out of paranoia we'll double-check that.
-        prefixes_in_file = set()
+        # but out of paranoia we'll double-check that. The prefix is parsed from the first row only,
+        # and every later row is checked with a startswith() against it: UNICHEM_PUBCHEM.COMPOUND has
+        # over 100 million rows, and splitting and hashing every subject just to confirm one fact
+        # about the whole file was a measurable share of reading it.
+        prefix_to_check = None
+        expected_subject_start = None
 
         # 2-tuples, handed to glom() as they are: see read_concord_pairs() for why not sets or lists.
-        # UNICHEM_PUBCHEM.COMPOUND has over 100 million rows.
         for subject, obj in read_concord_pairs(infile):
+            if prefix_to_check is None:
+                prefix_to_check = Text.get_prefix(subject)
+                expected_subject_start = prefix_to_check + ":"
+            elif not subject.startswith(expected_subject_start):
+                raise RuntimeError(
+                    f"Multiple prefixes found in {infile}: {prefix_to_check} and {subject.split(':', 1)[0]} "
+                    f"(at {subject}). All UNICHEM files should have exactly one prefix."
+                )
             pairs.append((subject, obj))
-            # Get the prefix from the first row to determine if we need to remove overused xrefs
-            prefixes_in_file.add(Text.get_prefix(subject))
 
-        # Was there exactly one prefix in the first column?
-        if len(prefixes_in_file) == 0:
+        # Was there a prefix at all in the first column?
+        if prefix_to_check is None:
             raise RuntimeError(
                 f"No prefixes found in {infile} (file may be empty or have no valid CURIE in column 1). All UNICHEM files should have exactly one prefix."
             )
-        if len(prefixes_in_file) > 1:
-            raise RuntimeError(
-                f"Multiple prefixes found in {infile}: {prefixes_in_file}. All UNICHEM files should have exactly one prefix."
-            )
-        prefix_to_check = prefixes_in_file.pop()
 
         # Only remove overused xrefs for specific prefixes
         # Reassigned rather than copied, so the unfiltered list can be freed before glom() runs.
