@@ -211,7 +211,9 @@ def classify_chemical_glom_edges(
         )
 
     # The filters are listed in the order build_untyped_compendia() applies them: a bad-xref pair is matched before
-    # the owned-elsewhere skip, so a pair that is both counts as a bad xref there and here.
+    # the owned-elsewhere skip, so a pair that is both counts as a bad xref there and here. All three pre-glom filters
+    # come before the endpoint check, since a filter can be why an endpoint is in no output (two UNII records claiming
+    # one key lose both links to the overused filter, and the key is then written nowhere).
     con.sql(f"""
         CREATE OR REPLACE TABLE glom_edge AS
         WITH s AS (
@@ -227,8 +229,8 @@ def classify_chemical_glom_edges(
             WHEN ambiguous THEN '{ENDPOINT_AMBIGUOUS}'
             WHEN badxref THEN '{FILTERED_BADXREF}'
             WHEN owned_elsewhere THEN '{FILTERED_OWNED_ELSEWHERE}'
-            WHEN s_set IS NULL OR o_set IS NULL THEN '{ENDPOINT_ABSENT}'
             WHEN overused THEN '{FILTERED_OVERUSED}'
+            WHEN s_set IS NULL OR o_set IS NULL THEN '{ENDPOINT_ABSENT}'
             WHEN s_set = o_set THEN '{APPLIED}'
             WHEN s_set IN (SELECT c FROM keyed_clique) AND o_set IN (SELECT c FROM keyed_clique)
               THEN '{REFUSED_INCHIKEY}'

@@ -258,3 +258,21 @@ def test_a_drug_output_holding_an_inchikey_raises(tmp_path):
     cliques = {"CHEMBL.COMPOUND:CHEMBL1": ("Drug", ["CHEMBL.COMPOUND:CHEMBL1", KEY_A])}
     with pytest.raises(RuntimeError, match="KEY_DROPPING_TYPES"):
         classify(write_build(tmp_path, concords, cliques))
+
+
+# OVERUSE BEFORE OUTPUT MEMBERSHIP
+
+
+@pytest.mark.unit
+def test_a_key_lost_to_the_overused_filter_is_reported_as_overused(tmp_path):
+    """Two UNII records claiming one key lose both links to remove_overused_xrefs(), and the key is then written to
+    no output. The filter is why the endpoint is absent, so both rows should be reported as overused."""
+    concords = [
+        (unichem("UNII"), "UNII:U1", KEY_A),
+        (unichem("UNII"), "UNII:U2", KEY_A),
+    ]
+    cliques = {"UNII:U1": ("ChemicalEntity", ["UNII:U1"]), "UNII:U2": ("ChemicalEntity", ["UNII:U2"])}
+    verdicts = classify(write_build(tmp_path, concords, cliques))
+
+    assert verdicts[("UNICHEM_UNII", "UNII:U1", KEY_A)] == FILTERED_OVERUSED
+    assert verdicts[("UNICHEM_UNII", "UNII:U2", KEY_A)] == FILTERED_OVERUSED
