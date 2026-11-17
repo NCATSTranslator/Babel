@@ -149,6 +149,21 @@ def test_pair_shape_does_not_change_cliques(shape):
     assert d == GLOM_SHAPE_EXPECTED
 
 
+@pytest.mark.unit
+@pytest.mark.parametrize("shape", [tuple, list, set, frozenset])
+def test_the_debug_sentinel_works_in_every_container(shape):
+    """Should merge a group naming glom()'s debug id (``test_id``) whatever its container.
+
+    The debug branch it switches on called ``group.intersection()``, which a tuple or list lacks, so
+    a 2-tuple naming it raised AttributeError. No source emits the id -- its leading "x" is what
+    keeps the branch off -- but whoever re-points it at a real CURIE to debug a build will be
+    feeding it tuples.
+    """
+    d = {}
+    glom(d, [shape(["xUBERON:0002262", "A:1"]), shape(["A:1", "B:1"])])
+    assert d["B:1"] == {"xUBERON:0002262", "A:1", "B:1"}
+
+
 # GROUP SIZE
 
 

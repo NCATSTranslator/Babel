@@ -1133,7 +1133,7 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
             print("input_set", group)
             print("esets")
             for eset in existing_sets:
-                print(" ", eset, group.intersection(eset))
+                print(" ", eset, eset.intersection(group))
         for check_element in newset:
             prefix = check_element.split(":")[0]
             if prefix in shit_prefixes:
