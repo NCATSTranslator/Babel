@@ -31,9 +31,16 @@ def read_unii_records(records_file):
 
     QUOTE_NONE because the file is a plain tab-separated dump: a bare double quote in a substance
     name is data, not a quoted field.
+
+    Every value is stripped of surrounding whitespace here, once, so that each caller builds the
+    same CURIE from the same record: ``write_unii_ids()`` and ``write_unii_records_concords()``
+    must agree on a UNII exactly, or the concord names a CURIE no ids row vouches for. The
+    4 Aug 2026 file has no padded value in any column, so this changes nothing today. A column
+    a short row leaves out stays ``None`` (``csv.DictReader``'s ``restval``).
     """
     with open(records_file, encoding=UNII_RECORDS_ENCODING) as inf:
-        yield from csv.DictReader(inf, delimiter="\t", quoting=csv.QUOTE_NONE)
+        for row in csv.DictReader(inf, delimiter="\t", quoting=csv.QUOTE_NONE):
+            yield {k: v.strip() if isinstance(v, str) else v for k, v in row.items()}
 
 
 def read_unii_flags(records_file):

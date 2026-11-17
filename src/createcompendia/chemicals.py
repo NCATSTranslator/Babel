@@ -2,6 +2,7 @@ import ast
 import gzip
 import hashlib
 import logging
+import re
 from collections import Counter, defaultdict
 
 import jsonlines
@@ -447,10 +448,29 @@ def write_unii_ids(infile, outfile):
 # pattern babel-inchikey-audit flags as "polymer -> monomer" and input_data/chemical_badxrefs.txt blocks one pair at a time.
 # On 2026jul22, 133 of the UNII_PUBCHEM pairs that would have joined two cliques were polymers
 # (docs/sources/UNII/records-xrefs/).
-UNII_SUBSTANCE_TYPES_WITHOUT_XREFS = {"polymer"}
+UNII_SUBSTANCE_TYPES_WITHOUT_XREFS = frozenset({"polymer"})
+
+# A PubChem CID as write_unii_records_concords() accepts it: ASCII digits with no leading zero. str.isdigit() would
+# also pass superscript digits (the records file is windows-1252, where bytes 0xB2, 0xB3 and 0xB9 decode to them), and
+# a zero-padded CID would name a CURIE ("PUBCHEM.COMPOUND:0123") that never matches the PubChem ids file's.
+PUBCHEM_CID_RE = re.compile(r"[1-9][0-9]*")
+
+# How many malformed values one column of the UNII records may hold before write_unii_records_concords() fails rather
+# than skipping them. The 4 Aug 2026 file has one in each of PUBCHEM and RN; a column shifted by a format change would
+# put tens of thousands of wrong-shaped values there, and dropping that many joins with a log line nobody reads would
+# be a silent regression. 100 leaves room for a few more FDA typos without failing a build over them.
+UNII_RECORDS_MAX_MALFORMED_VALUES = 100
 
 
-def write_unii_records_concords(infile, pubchem_out, cas_out, pubchem_metadata, cas_metadata):
+def write_unii_records_concords(
+    infile,
+    pubchem_out,
+    cas_out,
+    pubchem_metadata,
+    cas_metadata,
+    *,
+    skip_substance_types=UNII_SUBSTANCE_TYPES_WITHOUT_XREFS,
+):
     """Write the PubChem CID (``PUBCHEM`` column) and CAS number (``RN`` column) that FDA's UNII records give each UNII,
     as two concords: ``UNII:x xref PUBCHEM.COMPOUND:y`` (UNII_PUBCHEM) and ``UNII:x xref CAS:y`` (UNII_CAS).
 
@@ -466,35 +486,47 @@ def write_unii_records_concords(infile, pubchem_out, cas_out, pubchem_metadata, 
     nothing for #1171: the beef insulin pair it would add is refused on InChIKey. See
     docs/sources/UNII/records-xrefs/README.md.
 
-    Skipped rows: organisms, as ``write_unii_ids()`` skips them, so no edge names a UNII the ids file drops; and
-    ``UNII_SUBSTANCE_TYPES_WITHOUT_XREFS``. A value that isn't a well-formed CID (digits) or CAS number is skipped and
-    logged rather than repaired. The 4 Aug 2026 file has two: UNII:7C236S3MKV's PUBCHEM holds a CAS number, and
-    UNII:8MJD3NPN7Z's RN repeats its CID.
+    Skipped rows: organisms, as ``write_unii_ids()`` skips them, so no edge names a UNII the ids file drops; and the
+    ``skip_substance_types`` (``UNII_SUBSTANCE_TYPES_WITHOUT_XREFS`` unless a caller such as the measurement script
+    passes another set). A value that isn't a well-formed CID (``PUBCHEM_CID_RE``) or CAS number (``is_cas()``) is
+    skipped rather than repaired, and counted in each concord's metadata YAML under ``malformed values skipped``. The
+    4 Aug 2026 file has two: UNII:7C236S3MKV's PUBCHEM holds a CAS number, and UNII:8MJD3NPN7Z's RN repeats its CID.
+    More than ``UNII_RECORDS_MAX_MALFORMED_VALUES`` in one column raises ValueError, since that means the file's format
+    has changed rather than that FDA made a typo.
     """
-    skipped = Counter()
+    skip_substance_types = frozenset(skip_substance_types)
+    malformed = {"PUBCHEM": [], "RN": []}
     with open(pubchem_out, "w") as pubchemf, open(cas_out, "w") as casf:
         for row in read_unii_records(infile):
             if any(row.get(col) for col in UNII_ORGANISM_COLUMNS):
                 continue
-            if row.get("SUBSTANCE_TYPE", "").strip() in UNII_SUBSTANCE_TYPES_WITHOUT_XREFS:
+            if (row.get("SUBSTANCE_TYPE") or "") in skip_substance_types:
                 continue
-            unii = row["UNII"].strip()
-            cid = (row.get("PUBCHEM") or "").strip()
+            unii = row["UNII"]
+            cid = row.get("PUBCHEM") or ""
             if cid:
-                if cid.isdigit():
+                if PUBCHEM_CID_RE.fullmatch(cid):
                     pubchemf.write(f"{UNII}:{unii}\txref\t{PUBCHEMCOMPOUND}:{cid}\n")
                 else:
-                    skipped["PUBCHEM"] += 1
-                    logger.warning("UNII:%s has a PUBCHEM value that is not a CID, skipping: %r", unii, cid)
-            cas = (row.get("RN") or "").strip()
+                    malformed["PUBCHEM"].append(f"{UNII}:{unii} {cid!r}")
+            cas = row.get("RN") or ""
             if cas:
                 if is_cas(cas):
                     casf.write(f"{UNII}:{unii}\txref\t{CAS}:{cas}\n")
                 else:
-                    skipped["RN"] += 1
-                    logger.warning("UNII:%s has an RN value that is not a CAS number, skipping: %r", unii, cas)
-    logger.info("write_unii_records_concords() skipped malformed values: %s", dict(skipped))
+                    malformed["RN"].append(f"{UNII}:{unii} {cas!r}")
 
+    for column, values in malformed.items():
+        if values:
+            logger.warning("Skipped %d malformed %s values in %s: %s", len(values), column, infile, values[:20])
+        if len(values) > UNII_RECORDS_MAX_MALFORMED_VALUES:
+            raise ValueError(
+                f"{infile} has {len(values)} malformed {column} values, more than "
+                f"UNII_RECORDS_MAX_MALFORMED_VALUES ({UNII_RECORDS_MAX_MALFORMED_VALUES}); has the file's format "
+                f"changed? First few: {values[:20]}"
+            )
+
+    skipped_types = " or ".join(["an organism", *(f"a {t}" for t in sorted(skip_substance_types))])
     for column, concord, metadata in [("PUBCHEM", pubchem_out, pubchem_metadata), ("RN", cas_out, cas_metadata)]:
         write_concord_metadata(
             metadata,
@@ -502,8 +534,9 @@ def write_unii_records_concords(infile, pubchem_out, cas_out, pubchem_metadata, 
             sources=[{"type": "UNII", "name": "FDA UNII records (Latest_UNII_Records.txt)"}],
             url="https://precision.fda.gov/uniisearch/archive",
             description=f"write_unii_records_concords() writes the {column} column of {infile} for every UNII that "
-            f"is not an organism or a polymer to {concord}.",
+            f"is not {skipped_types} to {concord}.",
             concord_filename=concord,
+            counts={"malformed values skipped": len(malformed[column])},
         )
 
 
@@ -770,17 +803,15 @@ def read_partial_unichem(unichem_partial):
     return chem_sets
 
 
+# A CAS Registry Number as is_cas() accepts it: three runs of ASCII digits joined by hyphens, the last a single digit.
+# ASCII only, because str.isnumeric() (which this replaced) also accepts superscripts and other Unicode numerals that
+# can't be in a CAS number. The last digit is a checksum, which is not checked.
+CAS_NUMBER_RE = re.compile(r"[0-9]+-[0-9]+-[0-9]")
+
+
 def is_cas(thing):
-    # The last digit in a CAS is a checksum. We could use, but are not atm.
-    x = thing.split("-")
-    if len(x) != 3:
-        return False
-    if len(x[-1]) != 1:
-        return False
-    for xi in x:
-        if not xi.isnumeric():
-            return False
-    return True
+    """Return True if ``thing`` has the shape of a CAS Registry Number (see ``CAS_NUMBER_RE``)."""
+    return CAS_NUMBER_RE.fullmatch(thing) is not None
 
 
 def make_pubchem_cas_concord(pubchemsynonyms, outfile, metadata_yaml):

@@ -6,8 +6,10 @@ release), CRLF line endings included; each is named by its UNII in a comment.
 """
 
 import pytest
+import yaml
 
-from src.createcompendia.chemicals import write_unii_records_concords
+import src.createcompendia.chemicals as chemicals
+from src.createcompendia.chemicals import is_cas, write_unii_ids, write_unii_records_concords
 from src.model.intermediates import read_concords
 
 HEADER = "UNII\tDISPLAY_NAME\tRN\tEC\tNCIT\tRXCUI\tPUBCHEM\tSMSID\tEPA_CompTox\tCATALOGUE_OF_LIFE\tITIS\tNCBI\tPLANTS\tPOWO\tGRIN\tMPNS\tINN_ID\tUSAN_ID\tDAILYMED\tMF\tINCHIKEY\tSMILES\tINGREDIENT_TYPE\tUTF8_DISPLAY_NAME\tSUBSTANCE_TYPE"
@@ -27,11 +29,11 @@ CAS_IN_PUBCHEM = "7C236S3MKV\t4-((2S,4R)-4-ETHOXY-1-((5-METHOXY-7-METHYL-1H-INDO
 CID_IN_RN = "8MJD3NPN7Z\t6-CHLORO-.ALPHA.-(2,4-DIFLUOROPHENYL)-5-FLUORO-.BETA.-METHYL-.ALPHA.-(1H-1,2,4-TRIAZOL-1-YLMETHYL)-4-PYRIMIDINEETHANOL, (.ALPHA.S,.BETA.S)-\t29414406\t\t\t\t29414406\t\t\t\t\t\t\t\t\t\t\t\t\tC16H13ClF3N5O\tBQDLXFABVRRDFU-FVMDXXJSSA-N\t[C@]([C@@H](C)c1c(F)c(Cl)ncn1)(Cn2cncn2)(O)c3c(F)cc(F)cc3\tINGREDIENT SUBSTANCE\t6-Chloro-?-(2,4-difluorophenyl)-5-fluoro-?-methyl-?-(1H-1,2,4-triazol-1-ylmethyl)-4-pyrimidineethanol, (?S,?S)-\tchemical"
 
 
-def _write(tmp_path, *records):
+def _write(tmp_path, *records, **kwargs):
     records_file = tmp_path / "Latest_UNII_Records.txt"
     records_file.write_bytes("\r\n".join([HEADER, *records, ""]).encode("windows-1252"))
     paths = [tmp_path / name for name in ["UNII_PUBCHEM", "UNII_CAS", "pubchem.yaml", "cas.yaml"]]
-    write_unii_records_concords(records_file, *paths)
+    write_unii_records_concords(records_file, *paths, **kwargs)
     return list(read_concords(paths[0])), list(read_concords(paths[1]))
 
 
@@ -81,3 +83,72 @@ def test_a_cid_in_the_rn_column_is_skipped_but_the_cid_is_kept(tmp_path):
     pubchem, cas = _write(tmp_path, CID_IN_RN)
     assert pubchem == [("UNII:8MJD3NPN7Z", "xref", "PUBCHEM.COMPOUND:29414406")]
     assert cas == []
+
+
+# VALUES THAT ARE NOT CIDS
+#
+# Neither row below is in the records file: each is RABBIT with one value altered, to pin what PUBCHEM_CID_RE rejects.
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "bad_cid",
+    [
+        pytest.param("0118984376", id="leading-zero"),
+        # windows-1252 byte 0xB2, which the reader decodes to a superscript two that str.isdigit() accepts.
+        pytest.param("118984376²", id="superscript-digit"),
+    ],
+)
+def test_a_pubchem_value_that_is_not_a_canonical_cid_is_skipped(tmp_path, bad_cid):
+    """A zero-padded CID or one with a non-ASCII digit should be skipped, not written as a PUBCHEM.COMPOUND CURIE."""
+    pubchem, cas = _write(tmp_path, RABBIT.replace("\t118984376\t", f"\t{bad_cid}\t"))
+    assert pubchem == []
+    assert cas == [("UNII:LWB6BD8SN9", "xref", "CAS:11061-69-1")]
+
+
+@pytest.mark.unit
+def test_a_superscript_digit_is_not_a_cas_number():
+    """is_cas() should accept only ASCII digits, as str.isnumeric() did not."""
+    assert is_cas("11061-69-1")
+    assert not is_cas("11061-69-¹")
+
+
+# MALFORMED-VALUE ACCOUNTING
+
+
+@pytest.mark.unit
+def test_malformed_values_are_counted_in_the_concord_metadata(tmp_path):
+    """Each concord's metadata should record how many of its column's values were skipped as malformed."""
+    _write(tmp_path, CAS_IN_PUBCHEM, CID_IN_RN)
+    for name in ["pubchem.yaml", "cas.yaml"]:
+        counts = yaml.safe_load((tmp_path / name).read_text())["counts"]
+        assert counts["malformed values skipped"] == 1
+
+
+@pytest.mark.unit
+def test_too_many_malformed_values_fail_the_rule(tmp_path, monkeypatch):
+    """More malformed values in a column than UNII_RECORDS_MAX_MALFORMED_VALUES should raise, not just log."""
+    monkeypatch.setattr(chemicals, "UNII_RECORDS_MAX_MALFORMED_VALUES", 0)
+    with pytest.raises(ValueError, match="malformed PUBCHEM values"):
+        _write(tmp_path, CAS_IN_PUBCHEM)
+
+
+# OPTIONS AND NORMALISATION
+
+
+@pytest.mark.unit
+def test_skip_substance_types_can_be_overridden(tmp_path):
+    """With no SUBSTANCE_TYPE skipped, the polymer's CID and CAS number should both be written."""
+    pubchem, cas = _write(tmp_path, POLYMER, skip_substance_types=frozenset())
+    assert pubchem == [("UNII:58QVG85GW3", "xref", "PUBCHEM.COMPOUND:161821")]
+    assert cas == [("UNII:58QVG85GW3", "xref", "CAS:34481-48-6")]
+
+
+@pytest.mark.unit
+def test_the_ids_file_and_the_concord_name_a_padded_unii_the_same_way(tmp_path):
+    """A UNII with whitespace around it (not in the 4 Aug 2026 file; RABBIT padded by hand) should give the same
+    CURIE in the ids file and the concord, because read_unii_records() strips every value."""
+    pubchem, _ = _write(tmp_path, RABBIT.replace("LWB6BD8SN9\t", " LWB6BD8SN9 \t", 1))
+    write_unii_ids(tmp_path / "Latest_UNII_Records.txt", tmp_path / "ids")
+    assert pubchem == [("UNII:LWB6BD8SN9", "xref", "PUBCHEM.COMPOUND:118984376")]
+    assert (tmp_path / "ids").read_text() == "UNII:LWB6BD8SN9\tbiolink:ChemicalEntity\n"

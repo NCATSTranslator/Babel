@@ -20,7 +20,9 @@ The FDA's Unique Ingredient Identifiers, from the Global Substance Registration 
 - **PubChem links** — `chemicals.write_unii_records_concords()` writes the records file's `PUBCHEM`
   column as the `UNII_PUBCHEM` concord. This is what joins a UNII that UniChem can't link by
   structure, such as a protein, a mixture or an oligonucleotide, to the PubChem record for the same
-  substance. Polymers are skipped, because PubChem represents a polymer by its monomers. The same
+  substance. Polymers are skipped, because PubChem represents a polymer by its monomers. A value
+  that isn't a canonical CID or a CAS number is skipped and counted in the concord's metadata YAML,
+  and more than `UNII_RECORDS_MAX_MALFORMED_VALUES` of them in one column fails the rule. The same
   function writes the `RN` column as `UNII_CAS`, which the build does not use. Both decisions were
   measured against 2026jul22, and [records-xrefs/](./records-xrefs/README.md) holds the
   measurement.
