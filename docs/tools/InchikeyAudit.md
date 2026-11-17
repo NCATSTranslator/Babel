@@ -2,7 +2,8 @@
 
 ```bash
 uv run babel-inchikey-audit --build <local build dir> [--lookup-build <dir or URL>] \
-    [--structure-file babel_downloads/UNICHEM/structure.tsv.gz] [--mesh-ownership <file>] --out <dir>
+    [--structure-file babel_downloads/UNICHEM/structure.tsv.gz] [--mesh-ownership <file>] \
+    [--badxrefs <build>/intermediate/chemicals/partials/applied_badxrefs.txt] --out <dir>
 ```
 
 Answers: **which records were attached by xref to a chemical structure they are not, and which
@@ -20,9 +21,10 @@ a mixture) has no key to protect it. One bad xref attaches it to an unrelated ke
 because drug databases name the structure-less side well, the clique often takes its name from it.
 
 The worked example is ofatumumab. DrugCentral's `identifier` table gives `DrugCentral:4951`
-(ofatumumab) PubChem CID 8254, which is dimethyl ether. That single edge puts the antibody's
-ChEMBL, DrugBank, GtoPdb, UNII and UMLS records into the dimethyl-ether clique, and in 2026jul22
-that clique, `CHEBI:28887`, displays as "Ofatumumab".
+(ofatumumab) PubChem CID 8254, which is dimethyl ether. That single edge puts the antibody's ChEMBL,
+DrugBank, GtoPdb, UNII and UMLS records into the dimethyl-ether clique, and in 2026jul22 that
+clique, [`CHEBI:28887`](http://purl.obolibrary.org/obo/CHEBI_28887) "dimethyl ether", displays as
+"Ofatumumab".
 
 ## How it works
 
@@ -30,13 +32,19 @@ It needs no rebuild and no `glom()` replay. `src/model/glom_edges.py` reconstruc
 every chemical concord edge (applied, refused by the InChIKey guard, or removed by a pre-glom
 filter) from a finished build's `Concord.parquet` and chemical `Edge.parquet` files. It raises if
 any edge crossing cliques is left unexplained, which means the model has drifted from the pipeline.
-Two steps outside `glom()` are modelled:
+Three steps outside `glom()` are modelled:
 
-- **Pre-glom filters:** `remove_overused_xrefs`, and the CUI-ownership skip, for builds that have
-  it.
+- **Pre-glom filters:** `remove_overused_xrefs`, plus the CUI-ownership skip and the
+  `chemical_badxrefs` pairs, for builds that have them.
 - **The post-glom #83 split:** `create_typed_sets()` moves `MolecularMixture`-typed members into
   their own keyless clique. Each one is rejoined to the parent holding its CIDs' keys, rebuilding
   the **pre-split set**.
+- **Keys dropped on output:** Drug and Food do not register the `INCHIKEY` prefix, so
+  `write_compendium()` drops the key from those cliques (`KEY_DROPPING_TYPES` in
+  `src/model/glom_edges.py`). A record's UniChem edge to a key that is in no output, from a Drug or
+  Food clique, was applied by `glom()`, and is reported as applied. Outside those two types a
+  missing key means `glom()` refused it, so nothing is inferred there. The classifier raises if a
+  Drug or Food output ever holds an InChIKey, which would mean the list is out of date.
 
 `src/model/inchikey_audit.py` then does the following for each keyed pre-split set:
 
@@ -50,10 +58,11 @@ Two steps outside `glom()` are modelled:
    - **T:** none, but a member is declared `Polypeptide`, `ComplexMolecularMixture` or
      `ChemicalMixture`.
 4. **Triage (tier A only):** does the core's structure match that substance? This uses the core's
-   heavy-atom count, from the UniChem standard InChI, and agreement between the names on either
-   side of the boundary. The core is named by its PubChem CIDs' labels, because a core record can
-   carry the biologic's name too: in 2026jul22, `CHEBI:193860` and `HMDB:HMDB0029845` have Tiron's
-   structure but are labelled "Chymopapain".
+   heavy-atom count, from the UniChem standard InChI, and agreement between the names on either side
+   of the boundary. The core is named by its PubChem CIDs' labels, because a core record can carry
+   the biologic's name too: in 2026jul22,
+   [`CHEBI:193860`](http://purl.obolibrary.org/obo/CHEBI_193860) "Chymopapain" and
+   `HMDB:HMDB0029845` have Tiron's structure but are labelled "Chymopapain".
    - **`belongs`:** names agree on a non-trivial core.
    - **`likely misattached`:** names disagree on a small-molecule core.
    - **`review`:** everything else.
@@ -82,10 +91,12 @@ DrugCentral record→key links, so those records only look structure-less.
   and is logged.
 - **`--mesh-ownership`:** `intermediate/umls/mesh_ownership.tsv`, for builds after the
   CUI-follows-MeSH rule. Leave it out for 2026jul22 and earlier.
-- **`--badxrefs`:** `input_data/chemical_badxrefs.txt` as the build applied it, for builds made
-  after that file existed. Leave it out for 2026jul22 and earlier. Like `--mesh-ownership` it has
-  no default: a filter the build did not apply would relabel edges it did apply and hide them,
-  while a missing filter the build did apply fails loudly as unexplained edges.
+- **`--badxrefs`:** the build's `intermediate/chemicals/partials/applied_badxrefs.txt`, which
+  `build_untyped_compendia()` writes with the pairs it applied, for builds made after
+  `input_data/chemical_badxrefs.txt` existed. Leave it out for 2026jul22 and earlier. It refuses the
+  repo's `input_data` file: pairs added after the build would relabel edges the build applied and
+  hide their components. Leaving out a filter the build did apply fails loudly, as unexplained
+  edges.
 
 ## Output
 
@@ -119,8 +130,14 @@ it separates cleanly, and state the category and reason in a comment. Before add
 check the component's guard-refused edges (`refused_edges.tsv`): once the component has no key,
 those xrefs are accepted, and they decide which clique it joins next.
 
+Each build records `bad_xref_pairs` and `bad_xref_pairs_unmatched` in the untyped compendium's
+metadata, which is nested into every chemical compendium's `metadata/*.yaml`. An unmatched pair is
+usually one a source has fixed upstream and can be removed. If a source renamed an identifier
+instead, the bad xref is back under the new one, and the next audit shows its component again.
+
 The first 55 components were reviewed from 2026jul22's tier A, as 62 pairs. 56 more were kept,
-mostly polymers and mixtures whose core is PubChem's own representation of that substance
-(heparin, sevelamer, polysorbate 80). Some errors start upstream and cannot be blocked from here:
-`CHEBI:193860` and `HMDB:HMDB0029845` carry Tiron's structure under the name "Chymopapain", and
-ChEBI's own PEG record sits with ethylene glycol.
+mostly polymers and mixtures whose core is PubChem's own representation of that substance (heparin,
+sevelamer, polysorbate 80). Some errors start upstream and cannot be blocked from here:
+[`CHEBI:193860`](http://purl.obolibrary.org/obo/CHEBI_193860) "Chymopapain" and `HMDB:HMDB0029845`
+carry Tiron's structure under the name "Chymopapain", and ChEBI's own PEG record sits with ethylene
+glycol.
