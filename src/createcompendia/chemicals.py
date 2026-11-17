@@ -468,23 +468,22 @@ def parse_smifile(infile, outfile, smicol, idcol, pref, stripquotes=False):
                 try:
                     idcol_index = header.index(idcol)
                 except ValueError:
-                    logger.error(f"Could not find ID column '{idcol}' in header {header} for {infile}")
-                    exit(1)
+                    raise ValueError(f"Could not find ID column '{idcol}' in header {header} for {infile}") from None
                 try:
                     smicol_index = header.index(smicol)
                 except ValueError:
-                    logger.error(f"Could not find SMILES column '{smicol}' in header {header} for {infile}")
-                    exit(1)
+                    raise ValueError(
+                        f"Could not find SMILES column '{smicol}' in header {header} for {infile}"
+                    ) from None
                 continue
             x = line.split("\t")
             if stripquotes:
                 x = [xi[1:-1] for xi in x]
+            # A data row before any header row leaves the column indices unset.
             if idcol_index is None:
-                logger.error(f"Could not find ID column '{idcol}' in {infile}")
-                exit(1)
+                raise ValueError(f"Could not find ID column '{idcol}' in {infile}")
             if smicol_index is None:
-                logger.error(f"Could not find SMILES column '{smicol}' in {infile}")
-                exit(1)
+                raise ValueError(f"Could not find SMILES column '{smicol}' in {infile}")
             smi = x[smicol_index]
             dcid = f"{pref}:{x[idcol_index]}"
             ctype = get_type_from_smiles(smi)
