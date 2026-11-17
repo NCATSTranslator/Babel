@@ -1108,7 +1108,9 @@ def validate_unique_prefixes(unique_prefixes) -> frozenset[str]:
 
     Each of these raises ValueError here instead. Returning a frozenset, rather than handing back
     what was passed, is what makes the iterator case safe, and lets glom() test membership directly.
-    An empty collection is valid: cell_line and genefamily deliberately restrict nothing.
+    An empty collection is valid: cell_line and genefamily deliberately restrict nothing. For a
+    value read from config.yaml, where an empty list is more likely a lost entry than a decision,
+    use unique_prefixes_from_config().
     """
     if isinstance(unique_prefixes, str):
         raise ValueError(
@@ -1127,6 +1129,31 @@ def validate_unique_prefixes(unique_prefixes) -> frozenset[str]:
             f"unique_prefixes must hold non-empty prefix strings without a colon; got {bad!r} in {prefixes!r}"
         )
     return frozenset(prefixes)
+
+
+def unique_prefixes_from_config(config_key: str) -> frozenset[str]:
+    """Read a pipeline's unique prefixes from config.yaml, checking each is a prefix Babel knows.
+
+    On top of validate_unique_prefixes(), this rejects an empty list and any prefix that isn't one of
+    the constants in src/prefixes.py. In code, an empty list is a deliberate choice (cell_line,
+    genefamily); in config.yaml it is more likely an entry emptied by a bad merge, which would turn
+    off every restriction for the pipeline without a word. A misspelt prefix (``UBRON``) would do the
+    same for that one prefix. A pipeline that really should restrict nothing can pass ``[]`` in code.
+    """
+    from src import prefixes as prefix_constants
+
+    value = get_config().get(config_key)
+    try:
+        unique_prefixes = validate_unique_prefixes(value)
+    except ValueError as err:
+        raise ValueError(f"config.yaml: {config_key}: {err}") from err
+    if not unique_prefixes:
+        raise ValueError(f"config.yaml: {config_key} is empty; list at least one prefix to keep unique per clique")
+    known = {v for k, v in vars(prefix_constants).items() if k.isupper() and isinstance(v, str)}
+    unknown = sorted(unique_prefixes - known)
+    if unknown:
+        raise ValueError(f"config.yaml: {config_key} names prefixes not defined in src/prefixes.py: {unknown}")
+    return unique_prefixes
 
 
 def glom(conc_set, newgroups, unique_prefixes=(INCHIKEY,), pref="HP", close=None):
