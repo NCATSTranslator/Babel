@@ -115,17 +115,16 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
                         use = False
                 if not use:
                     continue
-            pair = [x[0], x[2]]
-            fspair = frozenset(pair)
-            if fspair not in bad_concords:
+            # A 2-tuple, handed to glom() as is: see read_concord_pairs() for why not a set or list.
+            pair = (x[0], x[2])
+            if frozenset(pair) not in bad_concords:
                 pairs.append(pair)
         # one kind of error is that GO->Reactome xrefs are freqently more like subclass relations. So
         # GO:0004674 (protein serine/threonine kinase) has over 400 Reactome xrefs
         # remove_overused_xrefs assumes that we want to remove pairs where the second pair is overused
         # but this case it's the first, so we use the bothways optoin
         newpairs = remove_overused_xrefs(pairs, bothways=True)
-        setpairs = [set(x) for x in newpairs]
-        glom(dicts, setpairs, unique_prefixes=[GO])
+        glom(dicts, newpairs, unique_prefixes=[GO])
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]

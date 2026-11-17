@@ -38,10 +38,11 @@ logger = get_logger(__name__)
 # only trusts UMLS<->GO pairs when both terms are already present).
 ConcordPairFilter = Callable[[list[str], str, dict], bool]
 
-# An overused-xref remover receives the list of ``[curie1, curie2]`` pairs read from one
+# An overused-xref remover receives the list of ``(curie1, curie2)`` 2-tuples read from one
 # concord file (plus the file path, so it can vary behaviour per source) and returns the
-# filtered list.
-OverusedXrefRemover = Callable[[list[list[str]], str], list[list[str]]]
+# filtered list. The pairs are tuples (see read_concord_pairs() for why), so a remover must
+# build new ones rather than modify a pair in place.
+OverusedXrefRemover = Callable[[list[tuple[str, str]], str], list[tuple[str, str]]]
 
 
 def glom_from_files(
@@ -97,9 +98,9 @@ def glom_from_files(
         for parts in read_concords(infile):
             if concord_pair_filter is not None and not concord_pair_filter(parts, infile, dicts):
                 continue
-            pairs.append([parts[0], parts[2]])
+            # A 2-tuple, handed to glom() as is: see read_concord_pairs() for why not a set or list.
+            pairs.append((parts[0], parts[2]))
         if overused_xref_remover is not None:
             pairs = overused_xref_remover(pairs, infile)
-        setpairs = [set(x) for x in pairs]
-        glom(dicts, setpairs, unique_prefixes=unique_prefixes, **glom_kwargs)
+        glom(dicts, pairs, unique_prefixes=unique_prefixes, **glom_kwargs)
     return dicts, types

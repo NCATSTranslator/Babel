@@ -4,6 +4,8 @@ Sections:
 
 - ``# --- parse_concord_line / read_concords ---`` pins exactly which rows the shared concord
   parser accepts, including the whitespace edge cases ``line.strip()`` used to decide.
+- ``# --- read_concord_pairs ---`` checks the ``(subject, object)`` view that compendium builders
+  hand to ``glom()``.
 - ``# --- scan_concord_lines ---`` checks the tally behind ``babel-check-concords``.
 - ``# --- metadata sidecars ---`` pins which files in a ``concords/`` or ``ids/`` directory are
   metadata rather than data, the rule the DuckDB export, the checker and the source-impact report share.
@@ -16,6 +18,7 @@ from src.model.intermediates import (
     is_metadata_sidecar,
     metadata_subject_filename,
     parse_concord_line,
+    read_concord_pairs,
     read_concords,
     scan_concord_lines,
 )
@@ -88,6 +91,28 @@ def test_read_concords_decodes_utf8(tmp_path):
     concord = tmp_path / "MONDO"
     concord.write_bytes("MONDO:1\teq\tUMLS:C1\u00e9\n".encode("utf-8"))
     assert list(read_concords(concord)) == [("MONDO:1", "eq", "UMLS:C1\u00e9")]
+
+
+# --- read_concord_pairs ---
+
+
+@pytest.mark.unit
+def test_read_concord_pairs_yields_tuples_in_file_order(tmp_path):
+    """Should drop the predicate and yield 2-tuples in file order, which glom()'s tie-break depends on."""
+    concord = tmp_path / "UniProtKB"
+    concord.write_text("UniProtKB:P2\teq\tPR:2\nUniProtKB:P1\teq\tPR:1\n")
+    pairs = list(read_concord_pairs(concord))
+    assert pairs == [("UniProtKB:P2", "PR:2"), ("UniProtKB:P1", "PR:1")]
+    assert all(type(pair) is tuple for pair in pairs)
+
+
+@pytest.mark.unit
+def test_read_concord_pairs_raises_on_a_malformed_row(tmp_path):
+    """Should raise like read_concords() does, not skip the row, since it reads through it."""
+    concord = tmp_path / "UMLS"
+    concord.write_text("UMLS:C1\teq\tMESH:D1\nUMLS:C2\teq\tMESH:D2\t\n")
+    with pytest.raises(MalformedConcordRowError, match=r"UMLS:2 is not a valid concord row \(4 columns\)"):
+        list(read_concord_pairs(concord))
 
 
 # --- scan_concord_lines ---

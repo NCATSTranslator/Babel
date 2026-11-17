@@ -34,7 +34,10 @@ see [`README.md`](README.md) — this file only covers how to write one once you
   statement true for any string. The duplication had been carrying a realism check nobody had named.
   After any such extraction, **break each new constant in turn and confirm a test fails**; if none
   does, the constant needs tying to something independent (there, a fixture copied verbatim from the
-  live page). The probe is three lines of shell and takes seconds.
+  live page). The probe is three lines of shell and takes seconds. **Give each probe a fresh
+  bytecode cache** (`PYTHONPYCACHEPREFIX=$(mktemp -d) uv run pytest ...`): an edit that keeps the
+  file's size, such as swapping two names, made within the same second as the last import leaves
+  Python's `.pyc` looking current, so the test runs the unbroken code and the probe "passes".
 
 - **Pin known-imperfect behavior, don't leave it unasserted** — when shipping a partial fix, assert
   the wrong-but-harmless behavior that remains, with a comment saying it pins current behavior, a

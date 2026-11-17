@@ -29,7 +29,7 @@ from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUC
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.datahandlers.unii import UNII_ORGANISM_COLUMNS, read_unii_records
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
-from src.model.intermediates import read_concords
+from src.model.intermediates import read_concord_pairs
 from src.prefixes import (
     CHEBI,
     CHEMBLCOMPOUND,
@@ -601,31 +601,36 @@ def combine_unichem(concordances, output):
 
         # We will want to only remove overused xrefs for specific prefixes.
         # UniChem files should only have a single prefix in the first column,
-        # but out of paranoia we'll double-check that.
-        prefixes_in_file = set()
+        # but out of paranoia we'll double-check that. The prefix is parsed from the first row only,
+        # and every later row is checked with a startswith() against it: UNICHEM_PUBCHEM.COMPOUND has
+        # over 100 million rows, and splitting and hashing every subject just to confirm one fact
+        # about the whole file was a measurable share of reading it.
+        prefix_to_check = None
+        expected_subject_start = None
 
-        for x in read_concords(infile):
-            pairs.append([x[0], x[2]])
-            # Get the prefix from the first row to determine if we need to remove overused xrefs
-            prefixes_in_file.add(Text.get_prefix(x[0]))
+        # 2-tuples, handed to glom() as they are: see read_concord_pairs() for why not sets or lists.
+        for subject, obj in read_concord_pairs(infile):
+            if prefix_to_check is None:
+                prefix_to_check = Text.get_prefix(subject)
+                expected_subject_start = prefix_to_check + ":"
+            elif not subject.startswith(expected_subject_start):
+                raise RuntimeError(
+                    f"Multiple prefixes found in {infile}: {prefix_to_check} and {subject.split(':', 1)[0]} "
+                    f"(at {subject}). All UNICHEM files should have exactly one prefix."
+                )
+            pairs.append((subject, obj))
 
-        # Was there exactly one prefix in the first column?
-        if len(prefixes_in_file) == 0:
+        # Was there a prefix at all in the first column?
+        if prefix_to_check is None:
             raise RuntimeError(
                 f"No prefixes found in {infile} (file may be empty or have no valid CURIE in column 1). All UNICHEM files should have exactly one prefix."
             )
-        if len(prefixes_in_file) > 1:
-            raise RuntimeError(
-                f"Multiple prefixes found in {infile}: {prefixes_in_file}. All UNICHEM files should have exactly one prefix."
-            )
-        prefix_to_check = prefixes_in_file.pop()
 
         # Only remove overused xrefs for specific prefixes
-        newpairs = pairs
+        # Reassigned rather than copied, so the unfiltered list can be freed before glom() runs.
         if prefix_to_check in PREFIXES_TO_REMOVE_OVERUSED_XREFS:
-            newpairs = remove_overused_xrefs(pairs)
-        setpairs = [set(x) for x in newpairs]
-        glom(dicts, setpairs, unique_prefixes=[INCHIKEY])
+            pairs = remove_overused_xrefs(pairs)
+        glom(dicts, pairs, unique_prefixes=[INCHIKEY])
     chem_sets = set([frozenset(x) for x in dicts.values()])
     with jsonlines.open(output, mode="w") as writer:
         for chemset in chem_sets:
@@ -1104,13 +1109,11 @@ def build_untyped_compendia(
     for infile in concordances:
         print(infile)
         print("loading", infile)
-        pairs = []
-        for x in read_concords(infile):
-            if x[0] in owned_elsewhere or x[2] in owned_elsewhere:
-                continue
-            pairs.append([x[0], x[2]])
+        # 2-tuples, handed to glom() as they are: see read_concord_pairs() for why not sets or lists.
+        pairs = list(umls.skip_pairs_owned_elsewhere(read_concord_pairs(infile), owned_elsewhere))
         p = False
-        if DRUGCENTRAL in [n.split(":")[0] for n in pairs[0]]:
+        # pairs can be empty: an empty concord, or one whose every row names a CUI owned elsewhere.
+        if pairs and DRUGCENTRAL in [n.split(":")[0] for n in pairs[0]]:
             p = True
             i = "DrugCentral:4970"
         if p:
@@ -1119,13 +1122,13 @@ def build_untyped_compendia(
                 if i in pair:
                     print(pair)
         newpairs = remove_overused_xrefs(pairs)
-        setpairs = [set(x) for x in newpairs]
+        del pairs  # Free the unfiltered list before glom() runs; the debug prints below use newpairs.
         if p:
             print("after filtering:")
             for pair in newpairs:
                 if i in pair:
                     print(pair)
-        glom(dicts, setpairs, unique_prefixes=[INCHIKEY])
+        glom(dicts, newpairs, unique_prefixes=[INCHIKEY])
         if p:
             print("after glomming:")
             print(dicts[i])
