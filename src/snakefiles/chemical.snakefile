@@ -364,6 +364,9 @@ rule chemical_unichem_concordia:
     resources:
         # 2026jul22 peaked at 111.6 GiB = 119.8 GB, 94% of 128G; UniChem grows every release.
         mem="192G",
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["chemical_unique_prefixes"],
     run:
         chemicals.combine_unichem(input.concords, output.unichemgroup)
 
@@ -401,6 +404,9 @@ rule untyped_chemical_compendia:
         # entirely, but only at 77% used with no room for one release's growth; revisit after the
         # next full run, when there are three peaks to size from rather than two.
         mem="256G",
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["chemical_unique_prefixes"],
     run:
         chemicals.build_untyped_compendia(
             input.concords,

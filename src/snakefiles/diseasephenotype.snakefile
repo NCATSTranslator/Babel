@@ -342,6 +342,9 @@ rule disease_compendia:
         expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["disease_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/disease_compendia.tsv"
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["disease_unique_prefixes"],
     run:
         # A new prefix's bad-xref file must be registered HERE (as a rule input above and a key
         # in this dict) and in diseasephenotype.DEFAULT_BAD_XREFS. A key that matches no concord

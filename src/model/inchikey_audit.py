@@ -3,12 +3,12 @@
 A keyed clique's InChIKey is its identity -- a real structure, carried by every record that has that structure. What
 can be wrong is what else the xrefs attached to it.
 
-``glom()`` runs the chemical pipeline with ``unique_prefixes=[INCHIKEY]``, so an xref joining two records that both
-carry an InChIKey is refused. A record with no structure has no key to protect it: a single bad xref attaches a
-biologic, polymer or mixture to an unrelated keyed clique, and because drug databases name the structure-less side
-well, the clique often takes its name from it. Ofatumumab is the worked example: one DrugCentral ``identifier`` row,
-``DrugCentral:4951 -> PUBCHEM.COMPOUND:8254``, puts the antibody's ChEMBL, DrugBank, GtoPdb, UNII and UMLS records
-into the dimethyl-ether clique, which then displays as "Ofatumumab".
+``glom()`` runs the chemical pipeline with ``unique_prefixes`` from ``config.yaml: chemical_unique_prefixes``,
+``[INCHIKEY]``, so an xref joining two records that both carry an InChIKey is refused. A record with no structure has no
+key to protect it: a single bad xref attaches a biologic, polymer or mixture to an unrelated keyed clique, and because
+drug databases name the structure-less side well, the clique often takes its name from it. Ofatumumab is the worked
+example: one DrugCentral ``identifier`` row, ``DrugCentral:4951 -> PUBCHEM.COMPOUND:8254``, puts the antibody's ChEMBL,
+DrugBank, GtoPdb, UNII and UMLS records into the dimethyl-ether clique, which then displays as "Ofatumumab".
 
 The audit works on a finished build (see :mod:`src.model.glom_edges` for why no replay is needed):
 

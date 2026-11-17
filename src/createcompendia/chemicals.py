@@ -16,6 +16,7 @@ from src.babel_utils import (
     read_badxrefs,
     read_identifier_file,
     remove_overused_xrefs,
+    unique_prefixes_from_config,
     write_compendium,
 )
 from src.categories import (
@@ -645,6 +646,9 @@ UNICHEM_OVERUSED_XREF_PREFIXES = (UNII, KEGGCOMPOUND, DRUGCENTRAL)
 
 
 def combine_unichem(concordances, output):
+    # The same key as build_untyped_compendia(), and both rules declare it as a param so an edit reruns
+    # both: the UniChem grouping and the build can't disagree.
+    unique_prefixes = unique_prefixes_from_config("chemical_unique_prefixes")
     dicts = {}
     for infile in concordances:
         print(infile)
@@ -682,7 +686,7 @@ def combine_unichem(concordances, output):
         # Reassigned rather than copied, so the unfiltered list can be freed before glom() runs.
         if prefix_to_check in UNICHEM_OVERUSED_XREF_PREFIXES:
             pairs = remove_overused_xrefs(pairs)
-        glom(dicts, pairs, unique_prefixes=[INCHIKEY])
+        glom(dicts, pairs, unique_prefixes=unique_prefixes)
     chem_sets = set([frozenset(x) for x in dicts.values()])
     with jsonlines.open(output, mode="w") as writer:
         for chemset in chem_sets:
@@ -1163,6 +1167,7 @@ def build_untyped_compendia(
     usually harmless -- the source dropped the bad xref -- but if a source renamed an identifier, the xref is back
     under the new one; the next babel-inchikey-audit run shows it as a component again."""
     owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "chemicals")
+    unique_prefixes = unique_prefixes_from_config("chemical_unique_prefixes")
     if badxrefs is None:
         badxrefs = CHEMICAL_BAD_XREFS
     listed_pairs = read_badxrefs(badxrefs)
@@ -1186,7 +1191,7 @@ def build_untyped_compendia(
     for ifile in identifiers:
         print(ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=[INCHIKEY])
+        glom(dicts, new_identifiers, unique_prefixes=unique_prefixes)
         types.update(new_types)
     for infile in concordances:
         print(infile)
@@ -1197,7 +1202,7 @@ def build_untyped_compendia(
         pairs = list(umls.skip_pairs_owned_elsewhere(skip_bad_pairs(read_concord_pairs(infile)), owned_elsewhere))
         newpairs = remove_overused_xrefs(pairs)
         del pairs  # Free the unfiltered list before glom() runs.
-        glom(dicts, newpairs, unique_prefixes=[INCHIKEY])
+        glom(dicts, newpairs, unique_prefixes=unique_prefixes)
     # Not raised: a pair goes unmatched every time a source fixes the error upstream, and failing the build for that
     # would make every upstream fix a build break. It is recorded in the metadata YAML (below), which is nested in
     # every chemical compendium's metadata and so reaches the release's metadata/ for review.

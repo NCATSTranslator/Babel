@@ -81,13 +81,19 @@ In `src/createcompendia/<pipeline>.py`:
   through a concord alone: #1109 shipped `UniProtKB:P0DP24|P0DP23|P0DP25` because NCIt lists
   several accessions in one field. Parse a multi-valued field, and skip what you can't parse, where
   the source is read.
-- Include the source's prefix in the `unique_prefixes` argument to `glom()` if its
-  identifiers must remain pairwise-unique within a clique. `glom()` raises `ValueError` on
-  anything but a collection of prefix strings — `"UBERON"` rather than `["UBERON"]` used to
-  restrict the letters U, B, E, R, O and N instead, without a word (`validate_unique_prefixes()`
-  in `src/babel_utils.py`). A pipeline that keeps the list in `config.yaml` should read it with
-  `unique_prefixes_from_config()`, which also rejects an empty list and any prefix not defined in
-  `src/prefixes.py`, as anatomy does.
+- Add the source's prefix to `config.yaml: <pipeline>_unique_prefixes` if its identifiers must
+  remain pairwise-unique within a clique. Every pipeline whose `glom()` can merge anything keeps
+  its restriction there (#882) and reads it with `unique_prefixes_from_config()`, which rejects
+  anything but a list of prefixes defined in `src/prefixes.py`: `UBERON` rather than `[UBERON]`
+  used to restrict the letters U, B, E, R, O and N instead, without a word
+  (`validate_unique_prefixes()` in `src/babel_utils.py`). It also rejects an empty list. The rule
+  that runs the builder declares the entry as a `params:` value (`unique_prefixes=config[...]`), so
+  that editing it reruns the rule; a new reader needs one too, and
+  `tests/babel_utils/test_unique_prefixes_from_config.py` fails without it.
+  `glom()` has no default for `unique_prefixes`, so a new pipeline must name its restriction; pass
+  `()` in code only where it cannot matter, such as a builder that loads ids files alone
+  (`cell_line`, `genefamily`, `macromolecular_complex`), or where restricting nothing is the
+  design (the GeneProtein conflation).
 
   **This can silently delete identifiers, so check what it makes compete.** `glom()` keeps
   whichever CURIE of a restricted prefix it encounters **first** and refuses the rest. A refused
@@ -186,6 +192,7 @@ Add the source name to the per-pipeline config lists:
 - `<pipeline>_prefixes`
 - `<pipeline>_ids`
 - `<pipeline>_concords`
+- `<pipeline>_unique_prefixes` if the source's identifiers must stay one per clique (step 3)
 - `generate_dirs_for_labels_and_synonyms_prefixes` if the source produces its own labels
   and synonyms (UberGraph-backed sources typically do not).
 

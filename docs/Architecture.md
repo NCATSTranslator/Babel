@@ -133,7 +133,9 @@ entire large TSV files in RAM, which would be infeasible given Babel's data volu
 cliques. It maintains a dictionary (`conc_set`) where every CURIE key points to its equivalence
 set. For each new `(CURIE1, CURIE2)` pair (the relation is dropped when a concord is read), it
 unions all existing sets that contain either CURIE, then adds both CURIEs to the resulting set,
-unless the result would break a `unique_prefixes` or `close` restriction. At the end, each value in
+unless the result would break a `unique_prefixes` or `close` restriction. Each pipeline's
+`unique_prefixes` is `config.yaml: <pipeline>_unique_prefixes`, read with
+`unique_prefixes_from_config()`; `glom()` itself has no default. At the end, each value in
 `conc_set` is one clique. [`tests/test_glom.py`](../tests/test_glom.py) pins its whole behavior,
 quirks included, and checks it against a short reference model. `write_compendium()` in the same
 file drives the overall compendium-building process, calling `glom()` and then sorting, enriching,
