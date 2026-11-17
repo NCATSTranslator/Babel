@@ -106,16 +106,108 @@ def test_connect_duckdb_closes_and_cleans_up_when_the_block_raises(babel_config,
     """An exception in the block should still close the connection, so the database file can be reopened, and
     delete the spill directory, and then propagate unchanged."""
     path = str(tmp_path / "x.duckdb")
-    with pytest.raises(RuntimeError, match="query failed") as excinfo:
+    error = RuntimeError("query failed")
+    with pytest.raises(RuntimeError) as excinfo:
         with connect_duckdb(path) as db:
             spill_directory = _settings(db)["temp_directory"]
-            raise RuntimeError("query failed")
+            raise error
 
     # Holding `excinfo` keeps the traceback, and so the generator's frame, alive, as a caller handling the error
     # would; with the connection still open, a connection with a different configuration would be refused.
     duckdb.connect(path, read_only=True).close()
     assert not os.path.exists(spill_directory)
-    assert excinfo.value is not None
+    # Unchanged: the very object raised, not one raised during clean-up with it chained as context.
+    assert excinfo.value is error
+    assert excinfo.value.__context__ is None
+
+
+class _ConnectionWhoseCloseFails:
+    """Wraps a real DuckDB connection, whose C-extension type can't be monkeypatched, so close() closes it and then
+    raises as a failed checkpoint would."""
+
+    def __init__(self, db):
+        self._db = db
+
+    def __getattr__(self, name):
+        return getattr(self._db, name)
+
+    def close(self):
+        self._db.close()
+        raise duckdb.IOException("checkpoint failed")
+
+
+@pytest.fixture
+def close_fails(monkeypatch):
+    """Make every connection connect_duckdb() opens fail on close()."""
+    real_connect = duckdb.connect
+    monkeypatch.setattr(
+        duckdb, "connect", lambda *args, **kwargs: _ConnectionWhoseCloseFails(real_connect(*args, **kwargs))
+    )
+
+
+@pytest.mark.unit
+def test_connect_duckdb_keeps_the_block_error_when_close_also_fails(babel_config, close_fails, tmp_path, caplog):
+    """When the block raises and closing then fails too, the block's error must be the one that propagates, with the
+    close failure logged instead, and the spill directory must still be deleted."""
+    error = RuntimeError("query ran out of memory")
+    with caplog.at_level("INFO"), pytest.raises(RuntimeError) as excinfo:
+        with connect_duckdb(str(tmp_path / "x.duckdb")) as db:
+            spill_directory = _settings(db)["temp_directory"]
+            raise error
+
+    assert excinfo.value is error
+    assert excinfo.value.__context__ is None
+    assert "also failed (IOException: checkpoint failed)" in caplog.text
+    # The close is not reported as the failing operation: that would point a reader at the wrong step.
+    assert "failed during closing" not in caplog.text
+    assert not os.path.exists(spill_directory)
+
+
+@pytest.mark.unit
+def test_connect_duckdb_raises_a_close_failure_after_a_clean_block(babel_config, close_fails, tmp_path, caplog):
+    """When the block succeeds, a failed close is the error, raised and logged with the settings in force."""
+    with caplog.at_level("INFO"), pytest.raises(duckdb.IOException, match="checkpoint failed"):
+        with connect_duckdb(str(tmp_path / "x.duckdb")) as db:
+            spill_directory = _settings(db)["temp_directory"]
+
+    assert "DuckDB operation failed during closing" in caplog.text
+    assert not os.path.exists(spill_directory)
+
+
+@pytest.mark.unit
+def test_connect_duckdb_logs_spill_paths_it_cannot_delete(babel_config, monkeypatch, tmp_path, caplog):
+    """A spill file that can't be deleted (an NFS .nfsXXXX file held open, say) must be logged by path rather than
+    silently left behind."""
+    real_unlink = os.unlink
+
+    def unlink(path, *args, **kwargs):
+        if os.path.basename(path) == "held-open.tmp":
+            raise PermissionError(13, "Permission denied", path)
+        return real_unlink(path, *args, **kwargs)
+
+    with caplog.at_level("INFO"):
+        with connect_duckdb(str(tmp_path / "x.duckdb")) as db:
+            spill_directory = _settings(db)["temp_directory"]
+            with open(os.path.join(spill_directory, "held-open.tmp"), "w") as f:
+                f.write("spilled")
+            monkeypatch.setattr(os, "unlink", unlink)
+
+    assert f"Could not delete DuckDB spill path {os.path.join(spill_directory, 'held-open.tmp')}" in caplog.text
+    assert f"Could not delete DuckDB spill path {spill_directory}" in caplog.text
+
+
+@pytest.mark.unit
+def test_connect_duckdb_spill_directory_permissions_follow_the_umask(babel_config, tmp_path):
+    """The spill directory should get the umask's permissions, not tempfile.mkdtemp()'s 0700, so another maintainer
+    on a shared filesystem can clear a leftover one."""
+    old_umask = os.umask(0o022)
+    try:
+        with connect_duckdb(str(tmp_path / "x.duckdb")) as db:
+            mode = os.stat(_settings(db)["temp_directory"]).st_mode & 0o777
+    finally:
+        os.umask(old_umask)
+
+    assert mode == 0o755
 
 
 @pytest.mark.unit

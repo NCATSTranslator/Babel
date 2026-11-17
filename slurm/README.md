@@ -176,11 +176,13 @@ is `tmp_directory` from `config.yaml` (`babel_downloads/tmp`, on the parallel fi
 `connect_duckdb()` gives each connection its own `duckdb-$SLURM_JOB_ID-<pid>-<random>`
 subdirectory there, so concurrent jobs never share spill files — sharing one directory previously
 caused `stale file handle` and `could not read enough bytes` IO errors when several report jobs ran
-at once. The subdirectory is deleted when the connection closes, including when a query raises. A
-job killed outright — SIGKILL at its time limit
-or a cgroup OOM-kill, or the SIGABRT of a DuckDB background-thread OOM — skips that clean-up and
-leaves its directory, spill files included; the job ID in its name says whether that job is still
-running, and once it isn't, the directory can be deleted.
+at once. The subdirectory is deleted when the connection closes, including when a query raises;
+any file it can't delete (an NFS `.nfsXXXX` file DuckDB still holds open, say) is logged by path
+as a `Could not delete DuckDB spill path` warning. A job killed outright — SIGKILL at its time
+limit or a cgroup OOM-kill, or the SIGABRT of a DuckDB background-thread OOM — skips that clean-up
+and leaves its directory, spill files included; the job ID in its name says whether that job is
+still running, and once it isn't, the directory can be deleted. Its permissions follow the job's
+umask, so anyone the umask lets in can clear it, not only the user who ran the job.
 
 Hatteras has no large node-local disk suitable for spilling:
 
