@@ -18,6 +18,7 @@ from src.babel_utils import (
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.datahandlers.gard import normalize_gard_curie
 from src.metadata.provenance import write_concord_metadata
+from src.model.intermediates import read_concords
 from src.prefixes import (
     DOID,
     GARD,
@@ -611,11 +612,10 @@ def build_gard_label_concord(
     # escape this.
     claimed = set()
     for concord in other_concords:
-        with open(concord) as inf:
-            for line in inf:
-                for curie in line.rstrip("\n").split("\t"):
-                    if Text.get_prefix_or_none(curie) == GARD:
-                        claimed.add(curie)
+        for row in read_concords(concord):
+            for curie in row:
+                if Text.get_prefix_or_none(curie) == GARD:
+                    claimed.add(curie)
 
     # normalized label -> CURIEs, one dict per pool vocabulary, in priority order.
     labels_by_vocabulary = []
@@ -771,26 +771,19 @@ def compute_cliques_for_impact_report(
 
     close_mondos = defaultdict(set)
     if mondoclose is not None:
-        with open(mondoclose) as inf:
-            for line in inf:
-                stripped = line.strip()
-                if not stripped:
-                    continue
-                # MONDO_close is a 3-column concord (subject, predicate, object), written by
-                # ubergraph.build_sets() exactly like the regular concords below.
-                #
-                # NOTE: this intentionally preserves the long-standing behaviour from `main` of
-                # keying on x[1] (the predicate, e.g. "oio:closeMatch") rather than x[2] (the
-                # close-match object). Because no clique ever contains the literal predicate
-                # string, glom()'s `close=` guard never matches and has effectively been a no-op.
-                # Fixing it to x[2] activates the guard and changes disease clique merging
-                # broadly (it drops ~1,219 MEDDRA identifiers from Disease.txt), so it is deferred
-                # to a dedicated follow-up PR (#888, `fix-mondo-close-guard`) with its own
-                # before/after impact analysis rather than riding along with the MP addition.
-                x = tuple(stripped.split("\t"))
-                if len(x) != 3:
-                    raise RuntimeError(f'Line "{stripped}" is not a valid MONDO_close entry: {x}')
-                close_mondos[x[0]].add(x[1])
+        # MONDO_close is a 3-column concord (subject, predicate, object), written by
+        # ubergraph.build_sets() exactly like the regular concords below, and read by the same
+        # strict parser.
+        for subject, predicate, _obj in read_concords(mondoclose):
+            # NOTE: this intentionally preserves the long-standing behaviour from `main` of
+            # keying on the predicate (e.g. "oio:closeMatch") rather than the object (the
+            # close-match CURIE). Because no clique ever contains the literal predicate
+            # string, glom()'s `close=` guard never matches and has effectively been a no-op.
+            # Fixing it to the object activates the guard and changes disease clique merging
+            # broadly (it drops ~1,219 MEDDRA identifiers from Disease.txt), so it is deferred
+            # to a dedicated follow-up PR (#888, `fix-mondo-close-guard`) with its own
+            # before/after impact analysis rather than riding along with the MP addition.
+            close_mondos[subject].add(predicate)
 
     for infile in iterated_concords:
         if is_excluded(infile):
@@ -804,14 +797,10 @@ def compute_cliques_for_impact_report(
         else:
             logger.info("No bad xrefs configured for %s", pref)
             bad_pairs = set()
-        with open(infile) as inf:
-            for line in inf:
-                stuff = line.strip().split("\t")
-                if len(stuff) != 3:
-                    raise RuntimeError('Line "', line.strip(), '" is not a valid concord: ', stuff)
-                x = tuple([stuff[0].strip(), stuff[2].strip()])
-                if x not in bad_pairs and x[0] not in owned_elsewhere and x[1] not in owned_elsewhere:
-                    pairs.append(x)
+        for subject, _predicate, obj in read_concords(infile):
+            x = (subject, obj)
+            if x not in bad_pairs and x[0] not in owned_elsewhere and x[1] not in owned_elsewhere:
+                pairs.append(x)
         if pref in OVERUSE_FILTERED_CONCORDS:
             newpairs = remove_overused_xrefs(pairs, target_prefixes=OVERUSE_FILTERED_CONCORDS[pref])
         else:

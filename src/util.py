@@ -415,6 +415,34 @@ class DataStructure:
 config_yaml = None
 
 
+class _UniqueKeySafeLoader(yaml.SafeLoader):
+    """A SafeLoader that refuses a mapping with a repeated key. PyYAML otherwise keeps the last value and drops
+    the others without a word, which in a hand-edited or badly merged input file loses an entry silently."""
+
+    def construct_mapping(self, node, deep=False):
+        seen = set()
+        for key_node, _ in node.value:
+            key = self.construct_object(key_node, deep=deep)
+            try:
+                repeated = key in seen
+            except TypeError:
+                continue  # Unhashable; SafeLoader's own construct_mapping raises a clearer error for it.
+            if repeated:
+                raise yaml.constructor.ConstructorError(
+                    "while constructing a mapping", node.start_mark, f"found duplicate key {key!r}", key_node.start_mark
+                )
+            seen.add(key)
+        return super().construct_mapping(node, deep=deep)
+
+
+def safe_load_yaml_unique_keys(stream):
+    """
+    ``yaml.safe_load()``, but raising ``yaml.constructor.ConstructorError`` on a mapping that repeats a key,
+    rather than keeping the last value. Use it for input files people edit or merge by hand.
+    """
+    return yaml.load(stream, Loader=_UniqueKeySafeLoader)
+
+
 def get_config():
     """
     Retrieve the configuration data from the 'config.yaml' file.

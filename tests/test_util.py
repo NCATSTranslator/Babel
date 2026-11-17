@@ -1,8 +1,9 @@
 """Tests for src/util.py helpers."""
 
 import pytest
+import yaml
 
-from src.util import Text, _biolink_ref, curie_format_problem, ensure_parent_dir
+from src.util import Text, _biolink_ref, curie_format_problem, ensure_parent_dir, safe_load_yaml_unique_keys
 
 
 @pytest.mark.unit
@@ -156,3 +157,28 @@ def test_curie_format_problem_rejects_malformed_curies(curie):
 def test_curie_format_problem_accepts_valid_punctuation(curie):
     """Should accept real CURIEs whose local IDs contain punctuation, including further colons."""
     assert curie_format_problem(curie) is None
+
+
+# YAML LOADING
+
+
+@pytest.mark.unit
+def test_safe_load_yaml_unique_keys_reads_what_safe_load_reads():
+    """A document without repeated keys, nested mappings included, should load exactly as yaml.safe_load()."""
+    text = "a: [1, 2]\nb:\n  c: x\n  d: y\n"
+    assert safe_load_yaml_unique_keys(text) == yaml.safe_load(text)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "text",
+    [
+        pytest.param("a: 1\nb: 2\na: 3\n", id="top-level"),
+        pytest.param("outer:\n  a: 1\n  a: 2\n", id="nested"),
+    ],
+)
+def test_safe_load_yaml_unique_keys_refuses_a_repeated_key(text):
+    """A mapping that repeats a key should raise, naming the key, where yaml.safe_load() would silently keep the
+    last value."""
+    with pytest.raises(yaml.constructor.ConstructorError, match="duplicate key 'a'"):
+        safe_load_yaml_unique_keys(text)

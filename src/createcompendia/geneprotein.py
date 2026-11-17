@@ -6,6 +6,7 @@ import jsonlines
 from src.babel_utils import glom
 from src.categories import GENE
 from src.metadata.provenance import write_concord_metadata
+from src.model.intermediates import read_concords
 from src.prefixes import NCBIGENE, UNIPROTKB
 from src.util import LoggingUtil
 
@@ -88,11 +89,9 @@ def build_conflation(geneprotein_concord, gene_compendium, protein_compendium, o
     collect_valid_ids(protein_compendium, all_ids)
     conf = {}
     pairs = []
-    with open(geneprotein_concord) as inf:
-        for line in inf:
-            x = line.strip().split("\t")
-            if (x[0] in all_ids) and (x[2] in all_ids):
-                pairs.append((x[0], x[2]))
+    for x in read_concords(geneprotein_concord):
+        if (x[0] in all_ids) and (x[2] in all_ids):
+            pairs.append((x[0], x[2]))
     glom(conf, pairs)
     conf_sets = set([frozenset(x) for x in conf.values()])
     with jsonlines.open(outfile, "w") as outf:
@@ -116,11 +115,9 @@ def build_compendium(gene_compendium, protein_compendium, geneprotein_concord, o
     """
     uniprot2ncbi = {}
     ncbi2uniprot = defaultdict(list)
-    with open(geneprotein_concord) as inf:
-        for line in inf:
-            x = line.strip().split("\t")
-            uniprot2ncbi[x[0]] = x[2]
-            ncbi2uniprot[x[2]].append(x[0])
+    for x in read_concords(geneprotein_concord):
+        uniprot2ncbi[x[0]] = x[2]
+        ncbi2uniprot[x[2]].append(x[0])
     mappable_gene_ids = set(uniprot2ncbi.values())
     mappable_genes = defaultdict(list)
     with jsonlines.open(outfile, "w") as outf:

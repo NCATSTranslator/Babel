@@ -30,6 +30,7 @@ from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUC
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.datahandlers.unii import UNII_ORGANISM_COLUMNS, read_unii_records
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
+from src.model.intermediates import read_concords
 from src.prefixes import (
     CHEBI,
     CHEMBLCOMPOUND,
@@ -616,12 +617,10 @@ def combine_unichem(concordances, output):
         # but out of paranoia we'll double-check that.
         prefixes_in_file = set()
 
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                pairs.append([x[0], x[2]])
-                # Get the prefix from the first row to determine if we need to remove overused xrefs
-                prefixes_in_file.add(Text.get_prefix(x[0]))
+        for x in read_concords(infile):
+            pairs.append([x[0], x[2]])
+            # Get the prefix from the first row to determine if we need to remove overused xrefs
+            prefixes_in_file.add(Text.get_prefix(x[0]))
 
         # Was there exactly one prefix in the first column?
         if len(prefixes_in_file) == 0:
@@ -1128,16 +1127,14 @@ def build_untyped_compendia(
         print(infile)
         print("loading", infile)
         pairs = []
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                if x[0] in owned_elsewhere or x[2] in owned_elsewhere:
-                    continue
-                pair = frozenset((x[0], x[2]))
-                if pair in bad_pairs:
-                    bad_pairs_seen.add(pair)
-                    continue
-                pairs.append([x[0], x[2]])
+        for x in read_concords(infile):
+            if x[0] in owned_elsewhere or x[2] in owned_elsewhere:
+                continue
+            pair = frozenset((x[0], x[2]))
+            if pair in bad_pairs:
+                bad_pairs_seen.add(pair)
+                continue
+            pairs.append([x[0], x[2]])
         newpairs = remove_overused_xrefs(pairs)
         setpairs = [set(x) for x in newpairs]
         glom(dicts, setpairs, unique_prefixes=[INCHIKEY])

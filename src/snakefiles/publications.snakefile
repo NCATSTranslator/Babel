@@ -14,8 +14,9 @@ localrules:
 
 # Each export version downloads into its own directory, so moving config.yaml: pubmed2db_version to a newer
 # export changes every path below and Snakemake re-runs all three rules; nothing from the old export can be
-# reused by mistake. The URL is also a param, so editing pubmed2db_base_url re-runs them too.
-PUBMED2DB_URL = config["pubmed2db_base_url"] + config["pubmed2db_version"] + "/"
+# reused by mistake. The URL and pubmed2db_data_model_version (which the export's metadata.json must match) are
+# params too, so editing publications.pubmed2db_base_url or the pin re-runs the rules that read them.
+PUBMED2DB_URL = config["publications"]["pubmed2db_base_url"] + config["pubmed2db_version"] + "/"
 PUBMED2DB_DIR = config["download_directory"] + "/PubMed2DB/" + config["pubmed2db_version"]
 
 
@@ -31,19 +32,29 @@ rule download_pubmed2db:
     resources:
         mem="2G",
         cpus_per_task=1,
-        # ~17 GB over 8 files from stars.renci.org; 2h is generous for an in-datacenter copy.
+        # ~17 GB over 8 files from stars.renci.org, then a SHA-256 of each (seconds, streamed in 8 MB
+        # chunks); 2h is generous for an in-datacenter copy.
         runtime="2h",
     params:
         url=PUBMED2DB_URL,
         report_path=config["pubmed2db_validation_report"],
         download_dir=PUBMED2DB_DIR,
+        data_model_version=config["pubmed2db_data_model_version"],
     run:
-        publications.download_pubmed2db(params.url, params.report_path, params.download_dir, output.done_file)
+        publications.download_pubmed2db(
+            params.url,
+            params.report_path,
+            params.download_dir,
+            output.done_file,
+            data_model_version=params.data_model_version,
+        )
 
 
 rule generate_pubmed_concords:
     input:
         PUBMED2DB_DIR + "/downloaded",
+        # An input so that regenerating the table re-runs both rules that apply it.
+        doi_repairs_file=publications.PUBMED_DOI_REPAIRS,
     output:
         titles_file=config["download_directory"] + "/PubMed2DB/titles.tsv",
         pmid_id_file=config["intermediate_directory"] + "/publications/ids/PMID",
@@ -52,7 +63,7 @@ rule generate_pubmed_concords:
         metadata_yaml=config["intermediate_directory"] + "/publications/concords/metadata.yaml",
     benchmark:
         config["output_directory"] + "/benchmarks/generate_pubmed_concords.tsv"
-    # One worker per shard; 2026sep26 has 8. More threads than shards buy nothing.
+    # One worker per shard; 2026sep26 and 2026nov08 have 8. More threads than shards buy nothing.
     threads: 8
     resources:
         # The SLURM executor allocates cpus_per_task, not threads, and slurm/config.yaml defaults it to 1:
@@ -70,6 +81,7 @@ rule generate_pubmed_concords:
         url=PUBMED2DB_URL,
         # Not an input: see the comment on download_pubmed2db for why this directory is untracked.
         download_dir=PUBMED2DB_DIR,
+        data_model_version=config["pubmed2db_data_model_version"],
     run:
         publications.parse_pubmed2db_into_tsvs(
             params.download_dir,
@@ -80,12 +92,16 @@ rule generate_pubmed_concords:
             output.metadata_yaml,
             params.url,
             threads,
+            input.doi_repairs_file,
+            data_model_version=params.data_model_version,
         )
 
 
 rule generate_pubmed_compendia:
     input:
         PUBMED2DB_DIR + "/downloaded",
+        # Must be the table generate_pubmed_concords used: shared_ids_file was computed from its repairs.
+        doi_repairs_file=publications.PUBMED_DOI_REPAIRS,
         shared_ids_file=config["intermediate_directory"] + "/publications/concords/shared_identifiers.tsv",
         metadata_yaml=config["intermediate_directory"] + "/publications/concords/metadata.yaml",
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
@@ -113,6 +129,7 @@ rule generate_pubmed_compendia:
             [input.metadata_yaml],
             output.publication_compendium,
             input.icrdf_filename,
+            input.doi_repairs_file,
         )
         # generate_compendium() will generate an (empty) Publication.txt file, but we need
         # to compress it.
@@ -123,7 +140,9 @@ rule generate_pubmed_compendia:
 
 rule check_publications_completeness:
     input:
-        input_compendia=expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["publication_outputs"]),
+        input_compendia=expand(
+            "{od}/compendia/{ap}", od=config["output_directory"], ap=config["publications"]["outputs"]
+        ),
     output:
         report_file=config["output_directory"] + "/reports/publication_completeness.txt",
     benchmark:
@@ -148,8 +167,8 @@ rule check_publications:
 rule publications:
     input:
         config["output_directory"] + "/reports/publication_completeness.txt",
-        synonyms=expand("{od}/synonyms/{ap}.gz", od=config["output_directory"], ap=config["publication_outputs"]),
-        reports=expand("{od}/reports/{ap}", od=config["output_directory"], ap=config["publication_outputs"]),
+        synonyms=expand("{od}/synonyms/{ap}.gz", od=config["output_directory"], ap=config["publications"]["outputs"]),
+        reports=expand("{od}/reports/{ap}", od=config["output_directory"], ap=config["publications"]["outputs"]),
     output:
         x=config["output_directory"] + "/reports/publications_done",
     shell:
