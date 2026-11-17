@@ -261,12 +261,79 @@ def test_the_default_unique_prefix_is_inchikey():
 
 
 @pytest.mark.unit
-def test_quirk_a_bare_string_restricts_each_of_its_characters():
-    """Quirk: should treat a string unique_prefixes as its characters, so "UBERON" restricts U, B, E, R, O and N."""
+@pytest.mark.parametrize("groups", [[("UBERON:1", "UBERON:2"), ("U:1", "U:2")], []], ids=["with-groups", "no-groups"])
+def test_a_string_unique_prefixes_raises(groups):
+    """Should raise ValueError for a string unique_prefixes, before merging anything, even with nothing to merge.
+
+    This inverts a pinned quirk: a string used to be read as its characters, so "UBERON" restricted
+    U, B, E, R, O and N and left UBERON itself unrestricted, with nothing to say so.
+    """
     d = {}
-    glom(d, [("UBERON:1", "UBERON:2"), ("U:1", "U:2")], unique_prefixes="UBERON")
-    assert d["UBERON:1"] == {"UBERON:1", "UBERON:2"}
-    assert "U:1" not in d
+    with pytest.raises(ValueError, match=r"did you mean \['UBERON'\]"):
+        glom(d, groups, unique_prefixes="UBERON")
+    assert d == {}
+
+
+# Values glom() used to accept and then restrict the wrong prefixes, or none, without a word; see
+# validate_unique_prefixes() for how each failed.
+MALFORMED_UNIQUE_PREFIXES = [
+    pytest.param(b"UBERON", id="bytes"),
+    pytest.param(None, id="none"),
+    pytest.param(7, id="not-iterable"),
+    pytest.param({"UBERON": True}, id="mapping"),
+    pytest.param([b"UBERON"], id="bytes-element"),
+    pytest.param([None], id="none-element"),
+    pytest.param([["UBERON"]], id="list-element"),
+    pytest.param([""], id="empty-prefix"),
+    pytest.param(["UBERON:"], id="prefix-with-colon"),
+]
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("groups", [[("UBERON:1", "X:1"), ("UBERON:2", "X:1")], []], ids=["with-groups", "no-groups"])
+@pytest.mark.parametrize("unique_prefixes", MALFORMED_UNIQUE_PREFIXES)
+def test_a_malformed_unique_prefixes_raises(unique_prefixes, groups):
+    """Should raise ValueError for anything but a collection of non-empty, colon-free prefix strings, before merging."""
+    d = {}
+    with pytest.raises(ValueError, match="unique_prefixes"):
+        glom(d, groups, unique_prefixes=unique_prefixes)
+    assert d == {}
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "unique_prefixes",
+    [
+        pytest.param(["UBERON"], id="list"),
+        pytest.param(("UBERON",), id="tuple"),
+        pytest.param({"UBERON"}, id="set"),
+        pytest.param(frozenset({"UBERON"}), id="frozenset"),
+        pytest.param(dict.fromkeys(["UBERON"]).keys(), id="dict-keys"),
+        # A one-shot iterator used to be used up by the first group, leaving every later group in
+        # the call unrestricted, so X:1 took UBERON:2 as well.
+        pytest.param(iter(["UBERON"]), id="iterator"),
+        pytest.param((p for p in ["UBERON"]), id="generator"),
+    ],
+)
+def test_any_non_string_collection_of_prefixes_is_accepted(unique_prefixes):
+    """Should accept any non-string collection of prefixes, even a one-shot iterator, and restrict each prefix whole for every group."""
+    d = {}
+    glom(d, [("UBERON:1", "X:1"), ("UBERON:2", "X:1"), ("U:1", "U:2")], unique_prefixes=unique_prefixes)
+    assert d["X:1"] == {"UBERON:1", "X:1"}
+    assert d["U:1"] == {"U:1", "U:2"}
+
+
+@pytest.mark.unit
+def test_the_unique_check_counts_distinct_identifiers_across_several_prefixes():
+    """Should refuse a merge for whichever restricted prefix it would duplicate, whatever the others hold."""
+    d = {}
+    glom(
+        d,
+        [("A:1", "B:1"), ("B:1", "C:1"), ("C:1", "B:2"), ("C:1", "A:2"), ("C:1", "D:1")],
+        unique_prefixes=["A", "B", "C"],
+    )
+    assert d["C:1"] == {"A:1", "B:1", "C:1", "D:1"}
+    assert "B:2" not in d and "A:2" not in d
 
 
 # THE CLOSE GUARD
@@ -375,12 +442,21 @@ def reference_glom(cliques, groups, unique_prefixes, close):
     clique already holding one of its members. Raise if any identifier in it has a bare KEGG or
     PUBCHEM prefix. Skip the group -- adding nothing -- if the union holds two identifiers with the
     same prefix from unique_prefixes, or an identifier and one of its close partners. Otherwise make
-    the union the clique of every member.
+    the union the clique of every member. Before any group, raise ValueError unless unique_prefixes
+    is a non-string, non-bytes, non-mapping iterable of non-empty prefix strings without a colon; it
+    is read once, so a one-shot iterator restricts every group.
 
     Close partners are looked up by index for every member of the union with a close prefix, even
     once one has refused the group, because glom() does: so a plain-dict close map raises KeyError
     on a member it doesn't list, and a defaultdict one gains an empty entry for each member looked up.
     """
+    if isinstance(unique_prefixes, (str, bytes, bytearray, dict)) or not hasattr(unique_prefixes, "__iter__"):
+        raise ValueError(unique_prefixes)
+    unique_prefixes = list(unique_prefixes)
+    if not all(isinstance(prefix, str) and prefix and ":" not in prefix for prefix in unique_prefixes):
+        raise ValueError(unique_prefixes)
+    if close is None:
+        close = {}
     for group in groups:
         if len(group) > 2:
             raise ValueError(group)
@@ -430,6 +506,24 @@ def random_groups(rng, forbidden=False):
     return groups
 
 
+# Every form unique_prefixes is drawn in: the containers callers pass, and a one-shot iterator, which
+# the first group used to use up. Each builds a fresh value, so glom() and the model never share one.
+UNIQUE_PREFIX_CONTAINERS = (list, list, list, tuple, set, frozenset, iter, lambda prefixes: (p for p in prefixes))
+# Malformed forms, each of which must make both implementations raise ValueError before any group.
+MALFORMED_UNIQUE_PREFIX_BUILDERS = (
+    lambda prefixes: "".join(prefixes) or "A",
+    lambda prefixes: None,
+    lambda prefixes: [f"{p}:" for p in prefixes] or [":"],
+)
+
+
+def random_unique_prefixes_builder(rng):
+    """A function turning a prefix list into a unique_prefixes value: one in twenty-five is malformed."""
+    if rng.random() < 0.04:
+        return rng.choice(MALFORMED_UNIQUE_PREFIX_BUILDERS)
+    return rng.choice(UNIQUE_PREFIX_CONTAINERS)
+
+
 def run_and_catch(fn, *args, **kwargs):
     """Call fn, returning the exception type it raised (or None), so two implementations' failures compare."""
     try:
@@ -447,6 +541,8 @@ def test_glom_matches_the_reference_model(seed):
     The groups come in every container builders use, and some sequences hit a forbidden prefix
     partway through, or an unlisted MONDO member of a plain-dict close map: then both must raise,
     with the same cliques left behind. Both must also leave the close map in the same state.
+    unique_prefixes comes in every accepted form, a one-shot iterator included, and is occasionally
+    malformed, when both must raise before merging anything.
     """
     rng = random.Random(seed)
     groups = random_groups(rng, forbidden=True)
@@ -470,9 +566,10 @@ def test_glom_matches_the_reference_model(seed):
     # group, leaving the same partial state behind (glom() has no rollback), and stop there.
     cut = rng.randrange(len(groups) + 1)
     actual, expected = {}, {}
-    for part, unique_prefixes in ((groups[:cut], first_uniques), (groups[cut:], second_uniques)):
-        raised = run_and_catch(glom, actual, part, unique_prefixes=unique_prefixes, close=close)
-        expected_raised = run_and_catch(reference_glom, expected, part, unique_prefixes, expected_close)
+    for part, uniques in ((groups[:cut], first_uniques), (groups[cut:], second_uniques)):
+        build = random_unique_prefixes_builder(rng)
+        raised = run_and_catch(glom, actual, part, unique_prefixes=build(uniques), close=close)
+        expected_raised = run_and_catch(reference_glom, expected, part, build(uniques), expected_close)
         assert raised == expected_raised
         if raised is not None:
             break
