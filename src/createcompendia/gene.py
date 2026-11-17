@@ -5,7 +5,7 @@ import os
 import re
 
 import src.datahandlers.umls as umls
-from src.babel_utils import glom, read_identifier_file, write_compendium
+from src.babel_utils import glom, read_identifier_file, unique_prefixes_from_config, write_compendium
 from src.categories import GENE
 from src.metadata.provenance import write_concord_metadata
 from src.model.intermediates import read_concord_pairs
@@ -337,7 +337,7 @@ def build_gene_compendia(concordances, metadata_yamls, identifiers, icrdf_filena
     :identifiers: a list of files from which to read identifiers and optional categories"""
     dicts = {}
     types = {}
-    uniques = [NCBIGENE, HGNC, ENSEMBL, OMIM]
+    uniques = unique_prefixes_from_config("gene_unique_prefixes")
     for ifile in identifiers:
         print("loading", ifile)
         new_identifiers, new_types = read_identifier_file(ifile)

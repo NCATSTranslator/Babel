@@ -18,7 +18,7 @@ Sections:
 - ``# --- split_mutually_exclusive_cliques (HP/MP disjointness) ---`` checks that a
   glommed clique holding both HP and MP is split (MP peeled out, HP side kept).
 - ``# --- MP data-quality guards ---`` checks that MP gets the same same-prefix
-  overmerge guard (``DISEASE_UNIQUE_PREFIXES``) and overused-xref filtering
+  overmerge guard (``disease_unique_prefixes`` in config.yaml) and overused-xref filtering
   (``OVERUSE_FILTERED_CONCORDS``) that MONDO/HP already have.
 - ``# --- DOID ICD xref overuse filtering ---`` checks that a DOID ICD xref is dropped exactly
   when its code is claimed by 2+ DOID terms -- an ICD code names a disease *family* -- while
@@ -32,7 +32,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.babel_utils import glom, norm, remove_overused_xrefs
+from src.babel_utils import glom, norm, remove_overused_xrefs, unique_prefixes_from_config
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
 from src.model.intermediates import MalformedConcordRowError
@@ -438,18 +438,19 @@ def test_split_then_create_typed_sets_routes_mp_to_phenotypic_feature():
 
 @pytest.mark.unit
 def test_mp_included_in_unique_prefixes_blocks_same_prefix_merge():
-    """DISEASE_UNIQUE_PREFIXES must include MP so two distinct MP ids never merge into one
-    clique via a shared bridge -- the same protection MONDO and HP already get.
+    """config.yaml's disease_unique_prefixes must include MP so two distinct MP ids never merge into
+    one clique via a shared bridge -- the same protection MONDO and HP already get.
 
-    Regression guard: MP was added to disease_ids/disease_concords without being added to
-    DISEASE_UNIQUE_PREFIXES, silently losing this data-quality guard.
+    Regression guard: MP was added to disease_ids/disease_concords without being added to the
+    disease unique prefixes, silently losing this data-quality guard.
     """
+    uniques = unique_prefixes_from_config("disease_unique_prefixes")
     dicts = {}
-    glom(dicts, [("MP:0000001",), ("MP:0000002",)], unique_prefixes=diseasephenotype.DISEASE_UNIQUE_PREFIXES)
-    glom(dicts, [("MP:0000001", "MESH:D000001")], unique_prefixes=diseasephenotype.DISEASE_UNIQUE_PREFIXES)
+    glom(dicts, [("MP:0000001",), ("MP:0000002",)], unique_prefixes=uniques)
+    glom(dicts, [("MP:0000001", "MESH:D000001")], unique_prefixes=uniques)
     # MP:0000002 bridging to the same MESH id would merge it with MP:0000001's clique; with MP
     # in unique_prefixes that merge must be rejected, leaving MP:0000002 in its own clique.
-    glom(dicts, [("MP:0000002", "MESH:D000001")], unique_prefixes=diseasephenotype.DISEASE_UNIQUE_PREFIXES)
+    glom(dicts, [("MP:0000002", "MESH:D000001")], unique_prefixes=uniques)
 
     assert dicts["MP:0000002"] == {"MP:0000002"}
     assert dicts["MP:0000001"] == {"MP:0000001", "MESH:D000001"}

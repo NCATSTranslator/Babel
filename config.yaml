@@ -195,12 +195,24 @@ gene_labels:   [HGNC, NCBIGene, UMLS, OMIM]
 gene_ids:      [ENSEMBL, HGNC, NCBIGene, UMLS, OMIM, ZFIN, WormBase, FB, MGI, RGD, SGD]
 gene_concords: [NCBIGene, NCBIGeneENSEMBL, medgen, UMLS, UMLS_NCBIGene]
 gene_outputs:  [Gene.txt]
+# Prefixes glom() keeps to one identifier per gene clique: a merge that would put two NCBIGene, HGNC,
+# ENSEMBL or OMIM ids in one clique is refused. Each is meant to name a single gene. Moved here from
+# build_gene_compendia() (#882); no reason was recorded beside the original list.
+# Read with unique_prefixes_from_config(), like anatomy_unique_prefixes above; see that entry for what
+# a unique prefix does and docs/AddingNewSources.md for checking what a new one makes compete.
+gene_unique_prefixes: [NCBIGene, HGNC, ENSEMBL, OMIM]
 
 protein_labels:   [UniProtKB, PR, UMLS]
 protein_synonyms: [PR, UMLS]
 protein_ids:      [ENSEMBL, MESH, UniProtKB, PR, UMLS]
 protein_concords: [UniProtKB, PR, NCIT_UniProtKB, NCIT_UMLS, UMLS, UMLS_UniProtKB]
 protein_outputs:  [Protein.txt]
+# Prefixes glom() keeps to one identifier per protein clique: a merge that would put two UniProtKB
+# accessions or two PR terms in one clique is refused. Moved here from build_protein_compendia()
+# (#882); no reason was recorded beside the original list.
+# Read with unique_prefixes_from_config(), like anatomy_unique_prefixes above; see that entry for what
+# a unique prefix does and docs/AddingNewSources.md for checking what a new one makes compete.
+protein_unique_prefixes: [UniProtKB, PR]
 
 disease_labelsandsynonyms: [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UMLS, SNOMEDCT, EFO]
 disease_ids:               [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UMLS, OMIM, EFO]
@@ -221,6 +233,17 @@ disease_ids:               [MONDO, DOID, Orphanet, GARD, HP, MP, MESH, NCIT, UML
 # this list. A unit test pins its position.
 disease_concords:          [HP, MP, MONDO, MONDO_GARD, UMLS, DOID, EFO, Manual, GARD_label]
 disease_outputs:           [Disease.txt, PhenotypicFeature.txt]
+# Prefixes glom() rejects a *same-prefix* merge for: if a clique would end up holding two distinct
+# identifiers of one of these prefixes (e.g. two different MONDO ids, or two different HP/MP ids),
+# the merge is refused rather than silently accepted. MONDO, HP, and MP are each meant to be the
+# single authoritative identifier of their kind within a clique, so an accidental same-prefix
+# collision (e.g. via a bad transitive MESH/SNOMED bridge) is a data-quality signal worth catching
+# rather than merging through. Because MONDO is listed, disease_concords order decides which
+# concord's MONDO mapping wins (see MONDO_GARD above). Moved here from DISEASE_UNIQUE_PREFIXES in
+# src/createcompendia/diseasephenotype.py (#882).
+# Read with unique_prefixes_from_config(), like anatomy_unique_prefixes above; see that entry for what
+# a unique prefix does and docs/AddingNewSources.md for checking what a new one makes compete.
+disease_unique_prefixes: [MONDO, HP, MP]
 
 # The vocabularies build_gard_label_concord() may match a GARD label against, in PRIORITY ORDER:
 # the first entry holding an identifier with the GARD term's label wins, and the term is skipped if
@@ -355,6 +378,12 @@ process_labels:   [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
 process_ids:      [GO, REACT, RHEA, EC, SMPDB, PANTHER.PATHWAY, UMLS]
 process_concords: [GO, RHEA, UMLS]
 process_outputs:  [Pathway.txt, BiologicalProcess.txt, MolecularActivity.txt]
+# Prefixes glom() keeps to one identifier per process clique: a merge that would put two GO terms in
+# one clique is refused, since GO is the backbone of this pipeline and two GO terms are two
+# processes or activities. Moved here from build_compendia() in processactivitypathway.py (#882).
+# Read with unique_prefixes_from_config(), like anatomy_unique_prefixes above; see that entry for what
+# a unique prefix does and docs/AddingNewSources.md for checking what a new one makes compete.
+process_unique_prefixes: [GO]
 
 unichem_datasources: [CHEMBL.COMPOUND, DRUGBANK, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
 
@@ -367,6 +396,15 @@ chemical_ids:       [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUN
 # this list so those cliques flow into DrugChemical conflation and the exports like any other chemical
 # output. (The processed extracts among them go to the already-present ComplexMolecularMixture.)
 chemical_outputs:   [MolecularMixture.txt, SmallMolecule.txt, Polypeptide.txt, ComplexMolecularMixture.txt, ChemicalEntity.txt, ChemicalMixture.txt, Drug.txt, Food.txt]
+
+# Prefixes glom() keeps to one identifier per chemical clique: a merge that would put two InChIKeys
+# (two different structures) in one clique is refused. Used by both chemical glom() steps,
+# combine_unichem() (grouping UniChem's per-source xrefs around each InChIKey) and
+# build_untyped_compendia(), so the UniChem grouping and the compendium build can't disagree. Moved
+# here from three [INCHIKEY] literals in src/createcompendia/chemicals.py (#882).
+# Read with unique_prefixes_from_config(), like anatomy_unique_prefixes above; see that entry for what
+# a unique prefix does and docs/AddingNewSources.md for checking what a new one makes compete.
+chemical_unique_prefixes: [INCHIKEY]
 
 # Chemical clique type precedence, most preferred first. create_typed_sets() (src/createcompendia/
 # chemicals.py) uses it in two places: as the tie-break when a clique's members vote for several types
@@ -449,6 +487,12 @@ taxon_synonyms: [NCBITaxon, UMLS]
 taxon_ids:      [NCBITaxon, MESH, UMLS]
 taxon_concords: [NCBI_MESH, UMLS]
 taxon_outputs:  [OrganismTaxon.txt]
+# Prefixes glom() keeps to one identifier per taxon clique: a merge that would put two NCBITaxon,
+# MESH or UMLS ids in one clique is refused. Moved here from build_compendia() in taxon.py (#882);
+# no reason was recorded beside the original list.
+# Read with unique_prefixes_from_config(), like anatomy_unique_prefixes above; see that entry for what
+# a unique prefix does and docs/AddingNewSources.md for checking what a new one makes compete.
+taxon_unique_prefixes: [NCBITaxon, MESH, UMLS]
 
 cell_line_outputs: [CellLine.txt]
 
@@ -501,8 +545,20 @@ publications:
   outputs: [Publication.txt]
 
 geneprotein_outputs: [GeneProtein.txt]
+# Prefixes the GeneProtein conflation's glom() keeps to one identifier per conflation group. Empty,
+# deliberately: the conflation merges gene and protein cliques by their preferred ids and restricts
+# nothing. It used to inherit glom()'s old (INCHIKEY,) default, which no gene or protein id can match,
+# so this is the same behaviour made explicit (#882). The only entry read with allow_empty=True.
+geneprotein_unique_prefixes: []
 
 drugchemical_outputs: [DrugChemical.txt]
+# Prefixes the DrugChemical conflation's glom() keeps to one identifier per conflation group. The
+# conflation merges chemical cliques by their preferred ids, so this only refuses a merge that would
+# put two cliques whose preferred id is an InChIKey into one group. INCHIKEY was inherited from
+# glom()'s old default rather than chosen; it is kept so moving it here (#882) changes no output.
+# Read with unique_prefixes_from_config(), like anatomy_unique_prefixes above; see that entry for what
+# a unique prefix does and docs/AddingNewSources.md for checking what a new one makes compete.
+drugchemical_unique_prefixes: [INCHIKEY]
 
 preferred_name_boost_prefixes:
   biolink:ChemicalEntity: [DRUGBANK, DrugCentral, CHEBI, MESH, GTOPDB]

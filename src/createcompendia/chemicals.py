@@ -14,6 +14,7 @@ from src.babel_utils import (
     glom,
     read_identifier_file,
     remove_overused_xrefs,
+    unique_prefixes_from_config,
     write_compendium,
 )
 from src.categories import (
@@ -593,6 +594,8 @@ def read_inchikeys(struct_file):
 def combine_unichem(concordances, output):
     PREFIXES_TO_REMOVE_OVERUSED_XREFS = [UNII, KEGGCOMPOUND, DRUGCENTRAL]
 
+    # The same key as build_untyped_compendia(), so the UniChem grouping and the build can't disagree.
+    uniques = unique_prefixes_from_config("chemical_unique_prefixes")
     dicts = {}
     for infile in concordances:
         print(infile)
@@ -630,7 +633,7 @@ def combine_unichem(concordances, output):
         # Reassigned rather than copied, so the unfiltered list can be freed before glom() runs.
         if prefix_to_check in PREFIXES_TO_REMOVE_OVERUSED_XREFS:
             pairs = remove_overused_xrefs(pairs)
-        glom(dicts, pairs, unique_prefixes=[INCHIKEY])
+        glom(dicts, pairs, unique_prefixes=uniques)
     chem_sets = set([frozenset(x) for x in dicts.values()])
     with jsonlines.open(output, mode="w") as writer:
         for chemset in chem_sets:
@@ -1099,12 +1102,13 @@ def build_untyped_compendia(
         skipped (umls.read_cuis_owned_elsewhere). None skips nothing.
         The UniChem partial carries no UMLS CUIs, so it needs no such filter."""
     owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "chemicals")
+    uniques = unique_prefixes_from_config("chemical_unique_prefixes")
     dicts = read_partial_unichem(unichem_partial)
     types = {}
     for ifile in identifiers:
         print(ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=[INCHIKEY])
+        glom(dicts, new_identifiers, unique_prefixes=uniques)
         types.update(new_types)
     for infile in concordances:
         print(infile)
@@ -1128,7 +1132,7 @@ def build_untyped_compendia(
             for pair in newpairs:
                 if i in pair:
                     print(pair)
-        glom(dicts, newpairs, unique_prefixes=[INCHIKEY])
+        glom(dicts, newpairs, unique_prefixes=uniques)
         if p:
             print("after glomming:")
             print(dicts[i])

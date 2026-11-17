@@ -13,6 +13,7 @@ from src.babel_utils import (
     read_badxrefs,
     read_identifier_file,
     remove_overused_xrefs,
+    unique_prefixes_from_config,
     write_compendium,
 )
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
@@ -80,14 +81,6 @@ def get_xref_prefix_map(source):
         )
     return {key: LOCAL_ID_DEPENDENT_RENAMES.get(value, value) for key, value in mapping.items()}
 
-
-# Prefixes glom() rejects a *same-prefix* merge for: if a clique would end up holding two
-# distinct identifiers of one of these prefixes (e.g. two different MONDO ids, or two
-# different HP/MP ids), the merge is refused rather than silently accepted. MONDO, HP, and MP
-# are each meant to be the single authoritative identifier of their kind within a clique, so
-# an accidental same-prefix collision (e.g. via a bad transitive MESH/SNOMED bridge) is a
-# data-quality signal worth catching rather than merging through.
-DISEASE_UNIQUE_PREFIXES = [MONDO, HP, MP]
 
 # Prefix groups that must never co-occur in a single clique. After glom, any clique that
 # holds identifiers from two or more prefixes within a group is split: the first-listed
@@ -759,6 +752,8 @@ def compute_cliques_for_impact_report(
         mondoclose = None
 
     owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "disease")
+    # MONDO, HP and MP: see disease_unique_prefixes in config.yaml.
+    uniques = unique_prefixes_from_config("disease_unique_prefixes")
     dicts = {}
     types = {}
     for ifile in identifiers:
@@ -766,7 +761,7 @@ def compute_cliques_for_impact_report(
             continue
         logger.info("Reading identifiers from %s", ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=DISEASE_UNIQUE_PREFIXES)
+        glom(dicts, new_identifiers, unique_prefixes=uniques)
         types.update(new_types)
 
     close_mondos = defaultdict(set)
@@ -805,7 +800,7 @@ def compute_cliques_for_impact_report(
             newpairs = remove_overused_xrefs(pairs, target_prefixes=OVERUSE_FILTERED_CONCORDS[pref])
         else:
             newpairs = pairs
-        glom(dicts, newpairs, unique_prefixes=DISEASE_UNIQUE_PREFIXES, close={MONDO: close_mondos})
+        glom(dicts, newpairs, unique_prefixes=uniques, close={MONDO: close_mondos})
 
     # Enforce HP/MP (and any other configured) disjointness as the final step, so BOTH the
     # real build (build_compendium) and the source-impact report (which diffs these dicts)

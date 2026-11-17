@@ -6,10 +6,12 @@ def build_compendia(ifile, metadata_yamls, icrdf_filename):
     """:identifiers: a list of files from which to read identifiers and optional categories"""
     dicts = {}
     types = {}
-    uniques = []
     print("loading", ifile)
     new_identifiers, new_types = read_identifier_file(ifile)
-    glom(dicts, new_identifiers, unique_prefixes=uniques)
+    # unique_prefixes=() because this pipeline loads ids files alone: every group is one identifier, so
+    # glom() never merges anything and a restriction could not change the output. Not a config.yaml
+    # setting for that reason (#882).
+    glom(dicts, new_identifiers, unique_prefixes=())
     types.update(new_types)
     idsets = set([frozenset(x) for x in dicts.values()])
     baretype = CELL_LINE.split(":")[-1]

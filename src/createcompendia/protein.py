@@ -4,7 +4,7 @@ import re
 import src.datahandlers.mesh as mesh
 import src.datahandlers.obo as obo
 import src.datahandlers.umls as umls
-from src.babel_utils import Text, glom, read_identifier_file, write_compendium
+from src.babel_utils import Text, glom, read_identifier_file, unique_prefixes_from_config, write_compendium
 from src.categories import PROTEIN
 from src.metadata.provenance import write_concord_metadata
 from src.model.intermediates import read_concord_pairs
@@ -315,7 +315,7 @@ def build_protein_compendia(concordances, metadata_yamls, identifiers, icrdf_fil
     owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "protein")
     dicts = {}
     types = {}
-    uniques = [UNIPROTKB, PR]
+    uniques = unique_prefixes_from_config("protein_unique_prefixes")
     logger.info(
         f"Started building protein compendia ({concordances}, {metadata_yamls}, {identifiers}, {icrdf_filename}) with uniques {uniques}"
     )

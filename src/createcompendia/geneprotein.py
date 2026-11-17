@@ -3,7 +3,7 @@ from collections import defaultdict
 
 import jsonlines
 
-from src.babel_utils import glom
+from src.babel_utils import glom, unique_prefixes_from_config
 from src.categories import GENE
 from src.metadata.provenance import write_concord_metadata
 from src.model.intermediates import read_concord_pairs, read_concords
@@ -88,9 +88,15 @@ def build_conflation(geneprotein_concord, gene_compendium, protein_compendium, o
     collect_valid_ids(gene_compendium, all_ids)
     collect_valid_ids(protein_compendium, all_ids)
     conf = {}
+    # Empty by design: see geneprotein_unique_prefixes in config.yaml.
+    uniques = unique_prefixes_from_config("geneprotein_unique_prefixes", allow_empty=True)
     # Streamed straight into glom(), without holding the file's pairs: see read_concord_pairs().
     # all_ids is fixed before the concord is read, so filtering while glom() runs is safe.
-    glom(conf, ((s, o) for s, o in read_concord_pairs(geneprotein_concord) if s in all_ids and o in all_ids))
+    glom(
+        conf,
+        ((s, o) for s, o in read_concord_pairs(geneprotein_concord) if s in all_ids and o in all_ids),
+        unique_prefixes=uniques,
+    )
     conf_sets = set([frozenset(x) for x in conf.values()])
     with jsonlines.open(outfile, "w") as outf:
         for cs in conf_sets:

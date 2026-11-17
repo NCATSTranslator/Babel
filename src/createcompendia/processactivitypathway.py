@@ -5,7 +5,14 @@ import src.datahandlers.obo as obo
 import src.datahandlers.reactome as reactome
 import src.datahandlers.rhea as rhea
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.babel_utils import (
+    get_prefixes,
+    glom,
+    read_identifier_file,
+    remove_overused_xrefs,
+    unique_prefixes_from_config,
+    write_compendium,
+)
 from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
 from src.metadata.provenance import write_concord_metadata
 from src.model.intermediates import read_concords
@@ -92,12 +99,13 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
     # GO:0034227/EC:2.8.1.4 is because that go term is a biological process, but EC is not a valid prefix for that,
     #  leading to a loss of the EC term (and a unified RHEA) on output.
     bad_concords = set(frozenset(["GO:0034227", "EC:2.8.1.4"]))
+    uniques = unique_prefixes_from_config("process_unique_prefixes")
     dicts = {}
     types = {}
     for ifile in identifiers:
         print(ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=[GO])
+        glom(dicts, new_identifiers, unique_prefixes=uniques)
         types.update(new_types)
     for infile in concordances:
         print(infile)
@@ -124,7 +132,7 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
         # remove_overused_xrefs assumes that we want to remove pairs where the second pair is overused
         # but this case it's the first, so we use the bothways optoin
         newpairs = remove_overused_xrefs(pairs, bothways=True)
-        glom(dicts, newpairs, unique_prefixes=[GO])
+        glom(dicts, newpairs, unique_prefixes=uniques)
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]

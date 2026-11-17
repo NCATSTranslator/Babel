@@ -21,11 +21,35 @@ def use_config(monkeypatch, value):
 # THE REAL CONFIG
 
 
-def test_every_unique_prefixes_entry_in_config_yaml_is_valid():
-    """Should accept every ``*_unique_prefixes`` entry in the real config.yaml (today, anatomy's [UBERON, GO])."""
-    keys = [key for key in get_config() if key.endswith("_unique_prefixes")]
-    assert "anatomy_unique_prefixes" in keys
-    for key in keys:
+# Every pipeline whose glom() can merge anything (#882). cell_line, genefamily and
+# macromolecular_complex load ids files alone, so they pass () in code and have no entry.
+PIPELINE_KEYS = {
+    "anatomy_unique_prefixes",
+    "chemical_unique_prefixes",
+    "disease_unique_prefixes",
+    "drugchemical_unique_prefixes",
+    "gene_unique_prefixes",
+    "geneprotein_unique_prefixes",
+    "process_unique_prefixes",
+    "protein_unique_prefixes",
+    "taxon_unique_prefixes",
+}
+# The only entries whose recorded decision is to restrict nothing, read with allow_empty=True.
+EMPTY_KEYS = {"geneprotein_unique_prefixes"}
+
+
+def test_config_yaml_has_an_entry_for_every_pipeline_that_merges():
+    """Should find exactly one ``*_unique_prefixes`` entry per glomming pipeline in the real config.yaml."""
+    keys = {key for key in get_config() if key.endswith("_unique_prefixes")}
+    assert keys == PIPELINE_KEYS
+
+
+@pytest.mark.parametrize("key", sorted(PIPELINE_KEYS))
+def test_every_unique_prefixes_entry_in_config_yaml_is_valid(key):
+    """Should read every real entry: non-empty except the EMPTY_KEYS, which must be empty."""
+    if key in EMPTY_KEYS:
+        assert unique_prefixes_from_config(key, allow_empty=True) == frozenset()
+    else:
         assert unique_prefixes_from_config(key)
 
 
