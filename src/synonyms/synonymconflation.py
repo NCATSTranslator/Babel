@@ -129,7 +129,8 @@ def conflate_synonyms(synonym_files_gz, compendia_files, conflation_file, output
 
     # The synonym records of a clique two groups claim would be split between the two conflated records, so neither
     # record would describe the whole clique. That is a fault in the conflation file (or a CURIE in two cliques), so
-    # stop here -- minutes into the rule, not hours -- and name every such clique.
+    # stop here -- minutes into the rule, not hours -- and name every such clique. No such clique occurs in the 2026jul22
+    # build: docs/conflation/split-cliques/README.md.
     if split_cliques:
         examples = "; ".join(f"{leader} in {groups}" for leader, groups in list(split_cliques.items())[:20])
         raise RuntimeError(
