@@ -92,9 +92,10 @@ def main(argv=None):
 
     # Everything but --out is scratch: deleted when the block exits, including on an exception.
     with tempfile.TemporaryDirectory(prefix="inchikey-audit-") as scratch:
-        # The pipeline's DuckDB setup: config.yaml's duckdb_config defaults, a spill directory inside the scratch
-        # directory (so it goes even when the database is kept), and the connect-time settings and memory-headroom
-        # log lines.
+        # The pipeline's DuckDB setup: config.yaml's duckdb_config defaults and the connect-time settings and
+        # memory-headroom log lines. Spills go inside the scratch directory rather than config.yaml's tmp_directory,
+        # which is relative to the working directory: an audit run from anywhere shouldn't create a babel_downloads/
+        # there, or share a spill area with a build running from this checkout.
         with connect_duckdb(
             args.keep_duckdb or str(pathlib.Path(scratch) / "audit.duckdb"),
             {

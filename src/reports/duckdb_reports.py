@@ -417,37 +417,3 @@ def generate_prefix_report(parquet_root, duckdb_filename, prefix_report_json, na
         log_memory_snapshot(db, "generate_prefix_report complete")
         with log_duckdb_settings_on_error(db, "generate_prefix_report teardown"):
             edges.close()
-
-
-def get_label_distribution(duckdb_filename, output_filename):
-    with connect_duckdb(duckdb_filename) as db:
-        # Thanks, ChatGPT.
-        db.sql("""
-           WITH Lengths AS (
-                SELECT
-                    curie,
-                    label,
-                    LENGTH(label) AS label_length
-                FROM
-                    Cliques
-            ), Examples AS (
-                SELECT
-                    curie,
-                    label,
-                    label_length,
-                    ROW_NUMBER() OVER (PARTITION BY label_length ORDER BY label) AS rn
-                FROM
-                    Lengths
-            )
-            SELECT
-                label_length,
-                COUNT(*) AS frequency,
-                MAX(CASE WHEN rn = 1 THEN curie ELSE NULL END) AS example_curie,
-                MAX(CASE WHEN rn = 1 THEN label ELSE NULL END) AS example_label
-            FROM
-                Examples
-            GROUP BY
-                label_length
-            ORDER BY
-                label_length ASC;
-        """).write_csv(output_filename)

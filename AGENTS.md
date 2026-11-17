@@ -367,10 +367,9 @@ ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandl
   `src/utils/duckdb_setup.py`, not `duckdb.connect()`: it applies `config.yaml`'s
   `duckdb_config`, gives the connection its own spill directory and deletes it on close, and logs
   the settings and memory headroom that a DuckDB out-of-memory failure otherwise leaves no record
-  of. Plain
-  `duckdb.connect()` is right for an in-memory test fixture, a read-only look at a finished
-  database, or a small analysis script under `docs/` — none of which needs build settings or a
-  spill directory.
+  of. Plain `duckdb.connect()` is right for an in-memory test fixture, a read-only look at a
+  finished database, or a small analysis script under `docs/` — none of which needs build
+  settings or a spill directory.
 
 - **Error handling** — raise exceptions (`RuntimeError`, `ValueError`) rather than
   `print(...) + exit(1)`, which bypasses Python's exception machinery and breaks unit testing.
