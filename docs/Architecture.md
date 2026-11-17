@@ -86,6 +86,16 @@ concords against the rule without running it, use [`babel-check-concords`](tools
 That module is the start of the shared intermediate-file reader proposed in
 [#736](https://github.com/NCATSTranslator/Babel/issues/736).
 
+To hand a concord to `glom()`, read it with `read_concord_pairs()` from the same module, which
+yields each row as a `(subject, object)` 2-tuple in file order. Two memory rules hold for every
+builder, and the function's docstring explains both: keep a pair as a 2-tuple, never a 2-set or a
+2-list (a list of 2-sets costs three to five times as much, and `UNICHEM_PUBCHEM.COMPOUND` alone has
+116 million rows); and when nothing between the read and the merge depends on the clique state, pass
+the generator straight to `glom()` rather than building a list. A filter that only checks a set
+fixed beforehand can stay in the stream, as `umls.skip_pairs_owned_elsewhere()` does. A filter that
+consults the cliques built so far, or `remove_overused_xrefs()`, which counts the whole file, needs
+the file read into a list first.
+
 ### Compendium JSONL
 
 Each line of a compendium file is a JSON object representing one clique. A clique includes:
@@ -118,12 +128,15 @@ entire large TSV files in RAM, which would be infeasible given Babel's data volu
 
 ### Clique merging via `glom()`
 
-`glom()` in [`src/babel_utils.py`](../src/babel_utils.py) merges concord triples into equivalence
+`glom()` in [`src/babel_utils.py`](../src/babel_utils.py) merges concord pairs into equivalence
 cliques. It maintains a dictionary (`conc_set`) where every CURIE key points to its equivalence
-set. For each new `(CURIE1, relation, CURIE2)` triple, it unions all existing sets that contain
-either CURIE, then adds both CURIEs to the resulting set. At the end, each value in `conc_set` is
-one clique. `write_compendium()` in the same file drives the overall compendium-building process,
-calling `glom()` and then sorting, enriching, and writing the output.
+set. For each new `(CURIE1, CURIE2)` pair (the relation is dropped when a concord is read), it
+unions all existing sets that contain either CURIE, then adds both CURIEs to the resulting set,
+unless the result would break a `unique_prefixes` or `close` restriction. At the end, each value in
+`conc_set` is one clique. [`tests/test_glom.py`](../tests/test_glom.py) pins its whole behavior,
+quirks included, and checks it against a short reference model. `write_compendium()` in the same
+file drives the overall compendium-building process, calling `glom()` and then sorting, enriching,
+and writing the output.
 
 ### Biolink Model integration
 
