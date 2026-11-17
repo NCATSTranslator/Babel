@@ -4,6 +4,10 @@ glom()'s own checks on unique_prefixes are in tests/test_glom.py; these cover on
 reader adds: an empty list and prefixes src/prefixes.py doesn't define are rejected.
 """
 
+import re
+from collections import Counter
+from pathlib import Path
+
 import pytest
 
 import src.babel_utils as babel_utils
@@ -11,6 +15,8 @@ from src.babel_utils import unique_prefixes_from_config
 from src.util import get_config
 
 pytestmark = pytest.mark.unit
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def use_config(monkeypatch, value):
@@ -46,6 +52,29 @@ def test_config_yaml_has_an_entry_for_every_pipeline_that_merges():
 def test_every_unique_prefixes_entry_in_config_yaml_is_valid(key):
     """Should read every real entry as a non-empty set of known prefixes."""
     assert unique_prefixes_from_config(key)
+
+
+def test_every_rule_that_reads_an_entry_declares_it_as_a_param():
+    """Should declare each entry as a ``params:`` value once for every builder that reads it.
+
+    The builders read their entry from config.yaml themselves, so Snakemake only sees a change to it
+    through the rule's ``unique_prefixes=config["<key>"]`` param (its params rerun trigger). Counted
+    per key, since chemical_unique_prefixes is read by two builders run by two rules
+    (combine_unichem and build_untyped_compendia). A new unique_prefixes_from_config() call needs a
+    matching param on the rule that runs it, or editing the entry won't rebuild its output.
+    """
+    reads = Counter(
+        match
+        for path in (REPO_ROOT / "src" / "createcompendia").glob("*.py")
+        for match in re.findall(r'unique_prefixes_from_config\("(\w+)"\)', path.read_text())
+    )
+    params = Counter(
+        match
+        for path in (REPO_ROOT / "src" / "snakefiles").glob("*.snakefile")
+        for match in re.findall(r'unique_prefixes=config\["(\w+)"\]', path.read_text())
+    )
+    assert set(reads) == PIPELINE_KEYS
+    assert params == reads
 
 
 # ACCEPTED

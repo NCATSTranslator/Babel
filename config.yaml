@@ -189,6 +189,8 @@ anatomy_outputs:   [AnatomicalEntity.txt, Cell.txt, CellularComponent.txt, Gross
 # docs/sources/EMAPA/README.md, which flags this for SME review.
 # Read with unique_prefixes_from_config(), which fails the build if this isn't a non-empty list of
 # prefixes defined in src/prefixes.py (a bare `UBERON` or a misspelt prefix would restrict the wrong prefixes).
+# The builder reads its entry itself, so each rule that runs one also declares the entry as a
+# `params:` value: that is how Snakemake sees an edit here and reruns the rule.
 anatomy_unique_prefixes: [UBERON, GO]
 
 gene_labels:   [HGNC, NCBIGene, UMLS, OMIM]

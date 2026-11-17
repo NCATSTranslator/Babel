@@ -86,7 +86,10 @@ In `src/createcompendia/<pipeline>.py`:
   its restriction there (#882) and reads it with `unique_prefixes_from_config()`, which rejects
   anything but a list of prefixes defined in `src/prefixes.py`: `UBERON` rather than `[UBERON]`
   used to restrict the letters U, B, E, R, O and N instead, without a word
-  (`validate_unique_prefixes()` in `src/babel_utils.py`). It also rejects an empty list.
+  (`validate_unique_prefixes()` in `src/babel_utils.py`). It also rejects an empty list. The rule
+  that runs the builder declares the entry as a `params:` value (`unique_prefixes=config[...]`), so
+  that editing it reruns the rule; a new reader needs one too, and
+  `tests/babel_utils/test_unique_prefixes_from_config.py` fails without it.
   `glom()` has no default for `unique_prefixes`, so a new pipeline must name its restriction; pass
   `()` in code only where it cannot matter, such as a builder that loads ids files alone
   (`cell_line`, `genefamily`, `macromolecular_complex`), or where restricting nothing is the

@@ -594,7 +594,8 @@ def read_inchikeys(struct_file):
 def combine_unichem(concordances, output):
     PREFIXES_TO_REMOVE_OVERUSED_XREFS = [UNII, KEGGCOMPOUND, DRUGCENTRAL]
 
-    # The same key as build_untyped_compendia(), so the UniChem grouping and the build can't disagree.
+    # The same key as build_untyped_compendia(), and both rules declare it as a param so an edit reruns
+    # both: the UniChem grouping and the build can't disagree.
     unique_prefixes = unique_prefixes_from_config("chemical_unique_prefixes")
     dicts = {}
     for infile in concordances:
