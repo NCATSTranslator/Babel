@@ -39,10 +39,14 @@ def log_duckdb_settings_on_error(db, operation):
     them, which makes the bare Snakemake traceback hard to act on. Wrapping a query in this
     context manager emits one ERROR line naming the `operation` and the relevant settings before
     re-raising the original exception unchanged.
+
+    It also catches Python's ``MemoryError``: an out-of-memory failure can surface there instead of as a
+    ``duckdb.Error``, for instance while ``fetchall()`` pulls a large result into Python, and that is exactly the
+    failure this record exists for.
     """
     try:
         yield
-    except duckdb.Error as exc:
+    except (duckdb.Error, MemoryError) as exc:
         try:
             placeholders = ", ".join("?" for _ in _DUCKDB_DIAGNOSTIC_SETTINGS)
             rows = db.execute(

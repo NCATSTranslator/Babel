@@ -64,3 +64,14 @@ def test_log_duckdb_settings_on_error_passes_through_on_success():
     with log_duckdb_settings_on_error(con, "ok-operation"):
         result = con.execute("SELECT 42").fetchone()
     assert result == (42,)
+
+@pytest.mark.unit
+def test_log_duckdb_settings_on_error_logs_a_python_memory_error(caplog):
+    """An out-of-memory failure raised as Python's MemoryError should be logged like a DuckDB error."""
+    con = duckdb.connect()
+    with caplog.at_level("INFO"):
+        with pytest.raises(MemoryError):
+            with log_duckdb_settings_on_error(con, "big-fetch"):
+                raise MemoryError()
+
+    assert "DuckDB operation failed during big-fetch (MemoryError" in caplog.text
