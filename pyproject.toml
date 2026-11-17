@@ -53,6 +53,7 @@ source-impact-report = "src.tools.source_impact_report.cli:main"
 babel-overused-xrefs = "src.tools.overused_xrefs.cli:main"
 babel-inchikey-audit = "src.tools.inchikey_audit.cli:main"
 babel-check-concords = "src.tools.check_concords.cli:main"
+babel-compare-resolution = "src.tools.compare_resolution.cli:main"
 
 [tool.uv]
 package = true
