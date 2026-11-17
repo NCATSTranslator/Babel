@@ -8,7 +8,6 @@ from src.exporters.duckdb_exporters import (
     export_compendia_to_parquet,
     export_conflation_to_parquet,
     export_intermediates_to_parquet,
-    log_duckdb_settings_on_error,
 )
 from tests.conftest import CONFLATION_FIXTURE_ROWS
 
@@ -76,34 +75,6 @@ def test_export_compendia_to_parquet_edge_columns(compendium_file, tmp_path):
 
     columns = {col[0] for col in duckdb.execute(f"DESCRIBE SELECT * FROM read_parquet('{edge_parquet}')").fetchall()}
     assert columns == {"clique_leader", "curie", "conflation", "clique_leader_prefix", "curie_prefix", "biolink_type"}
-
-
-@pytest.mark.unit
-def test_log_duckdb_settings_on_error_reraises_and_logs(caplog):
-    """On failure the helper should log the operation name and effective settings, then re-raise."""
-    con = duckdb.connect()
-    con.execute("SET threads=3")
-    with caplog.at_level("INFO"):
-        with pytest.raises(duckdb.Error):
-            with log_duckdb_settings_on_error(con, "my-test-operation"):
-                con.execute("SELECT * FROM a_table_that_does_not_exist")
-
-    assert "my-test-operation" in caplog.text
-    assert "effective settings" in caplog.text
-    # A couple of the diagnostic settings should be reported back.
-    assert "memory_limit=" in caplog.text
-    assert "threads=3" in caplog.text
-    # The on-error path also emits a memory snapshot for the failed operation.
-    assert "Memory snapshot (at failure of my-test-operation)" in caplog.text
-
-
-@pytest.mark.unit
-def test_log_duckdb_settings_on_error_passes_through_on_success():
-    """When the wrapped block succeeds the helper must not interfere with the result."""
-    con = duckdb.connect()
-    with log_duckdb_settings_on_error(con, "ok-operation"):
-        result = con.execute("SELECT 42").fetchone()
-    assert result == (42,)
 
 
 @pytest.mark.unit

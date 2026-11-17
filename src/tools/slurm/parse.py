@@ -295,7 +295,7 @@ _RULE_RE = re.compile(r"Error in rule (\w+):")
 _LOG_RE = re.compile(r"log: (\S+\.log)")
 
 # Substrings identifying the DuckDB memory-diagnostic log lines emitted by
-# src/exporters/duckdb_exporters.py. These pinpoint cgroup vs memory_limit headroom and the
+# src/duckdb_setup.py and src/memory.py. These pinpoint cgroup vs memory_limit headroom and the
 # tracked/untracked split at a `bad allocation` OOM. The connect-time headroom line sits near the
 # top of the log and the threads>1 SIGABRT path leaves no traceback, so the default
 # "last N lines" / traceback extraction misses them; we scan the whole log and surface them
