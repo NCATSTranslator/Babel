@@ -35,16 +35,19 @@ any edge crossing cliques is left unexplained, which means the model has drifted
 Three steps outside `glom()` are modelled:
 
 - **Pre-glom filters:** `remove_overused_xrefs`, plus the CUI-ownership skip and the
-  `chemical_badxrefs` pairs, for builds that have them.
+  `chemical_badxrefs` pairs, for builds that have them. A filtered edge is reported as filtered
+  even when the filter left an endpoint in no output.
 - **The post-glom #83 split:** `create_typed_sets()` moves `MolecularMixture`-typed members into
-  their own keyless clique. Each one is rejoined to the parent holding its CIDs' keys, rebuilding
-  the **pre-split set**.
+  their own keyless clique. Each one is rejoined to the parent holding its members' keys (UniChem
+  or GtoPdb edges), or, when none has a key edge, to the one keyed SmallMolecule clique an xref
+  joins it to. This rebuilds the **pre-split set**.
 - **Keys dropped on output:** Drug and Food do not register the `INCHIKEY` prefix, so
   `write_compendium()` drops the key from those cliques (`KEY_DROPPING_TYPES` in
-  `src/model/glom_edges.py`). A record's UniChem edge to a key that is in no output, from a Drug or
-  Food clique, was applied by `glom()`, and is reported as applied. Outside those two types a
-  missing key means `glom()` refused it, so nothing is inferred there. The classifier raises if a
-  Drug or Food output ever holds an InChIKey, which would mean the list is out of date.
+  `src/model/glom_edges.py`). A record's UniChem or GtoPdb edge to a key that is in no output, from
+  a Drug or Food clique, was applied by `glom()`, and is reported as applied. Outside those two
+  types a missing key means `glom()` refused it or a filter removed it, so nothing is inferred
+  there. The classifier raises if a Drug or Food output ever holds an InChIKey, which would mean the
+  list is out of date.
 
 `src/model/inchikey_audit.py` then does the following for each keyed pre-split set:
 
