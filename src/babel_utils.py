@@ -1197,24 +1197,19 @@ def glom(conc_set, newgroups, unique_prefixes=(INCHIKEY,), pref="HP", close=None
         setok = True
         if test_id in group:
             print("setok?", setok)
-        for up in unique_prefixes:
-            if test_id in group:
-                print("up?", up)
-            idents = [e if isinstance(e, str) else e.identifier for e in newset]
-            if len(set([e for e in idents if (e.split(":")[0] == up)])) > 1:
-                bad += 1
-                setok = False
-                wrote = set()
-                for s in existing_sets:
-                    fs = frozenset(s)
-                    wrote.add(fs)
-                for gel in group:
-                    if Text.get_prefix_or_none(gel) == pref:
-                        # killer = gel
-                        pass
-                # for preset in wrote:
-                #    print(f'{killer}\t{set(group).intersection(preset)}\t{preset}\n')
-                # print('------------')
+        # One pass over the merged set: remember the first identifier seen for each restricted
+        # prefix, and stop at the first different identifier with the same prefix. (This used to
+        # rebuild the identifier list and re-split every CURIE once per restricted prefix, and keep
+        # checking after the group had already failed.)
+        if unique_prefixes:
+            first_with_prefix = {}
+            for element in newset:
+                ident = element if isinstance(element, str) else element.identifier
+                prefix = ident.split(":")[0]
+                if prefix in unique_prefixes and first_with_prefix.setdefault(prefix, ident) != ident:
+                    bad += 1
+                    setok = False
+                    break
         NPC = sum(1 for s in newset if s.startswith("PUBCHEM.COMPOUND:"))
         if ("PUBCHEM.COMPOUND:3100" in newset) and (NPC > 3):
             if debugit:
