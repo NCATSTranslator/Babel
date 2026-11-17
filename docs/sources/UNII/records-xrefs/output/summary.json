@@ -1,6 +1,6 @@
 {
   "build": "2026jul22",
-  "records_file": "UNII_Records_4Aug2026.txt",
+  "records_file": "Latest_UNII_Records.txt",
   "concords": {
     "UNII_PUBCHEM": {
       "in chemical_concords": true,
@@ -34,9 +34,9 @@
       "rows written": 129367,
       "rows after remove_overused_xrefs": 128981,
       "outcomes": {
-        "added a CURIE in no clique": 6142,
-        "joined two cliques": 2065,
-        "new clique": 1011,
+        "added a CURIE in no clique": 6802,
+        "joined two cliques": 2067,
+        "new clique": 349,
         "noop": 114565,
         "refused": 5198
       },
@@ -44,11 +44,11 @@
         "UNII record states no InChIKey": 1016,
         "different skeleton": 23,
         "joined cliques have no InChIKey": 4,
-        "same InChIKey": 429,
+        "same InChIKey": 431,
         "same skeleton, different stereo or protonation": 593
       },
       "pairs joining two cliques, by UNII SUBSTANCE_TYPE": {
-        "chemical": 1051,
+        "chemical": 1053,
         "mixture": 845,
         "protein": 146,
         "nucleicAcid": 10,
@@ -74,6 +74,12 @@
     "rabbit": "same clique",
     "beef": "separate cliques",
     "pork": "same clique"
+  },
+  "UNII_PUBCHEM CURIEs in no clique of the build": {
+    "PUBCHEM.COMPOUND / not in the build's ids file / titled": 24,
+    "PUBCHEM.COMPOUND / not in the build's ids file / untitled in PubChem": 413,
+    "UNII / in the build's ids file": 4,
+    "UNII / not in the build's ids file": 3241
   },
   "UNII_PUBCHEM pairs joining two cliques that the SUBSTANCE_TYPE skip removes": {
     "polymer": 133

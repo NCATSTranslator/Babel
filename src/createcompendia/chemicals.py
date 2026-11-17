@@ -481,7 +481,7 @@ def write_unii_records_concords(
 
     Only UNII_PUBCHEM is in ``config.yaml: chemical_concords``. UNII_CAS is written so it can be measured, and added
     there if that is ever wanted, but on 2026jul22 it was the wrong link too often: where a UNII record states its own
-    InChIKey, 593 of the 1,045 cliques a CAS number would have joined it to hold a different stereoisomer or
+    InChIKey, 593 of the 1,047 cliques a CAS number would have joined it to hold a different stereoisomer or
     protonation state (CAS numbers are often stereo-unspecified), against 66 of 3,855 for the CID. It also gains
     nothing for #1171: the beef insulin pair it would add is refused on InChIKey. See
     docs/sources/UNII/records-xrefs/README.md.
