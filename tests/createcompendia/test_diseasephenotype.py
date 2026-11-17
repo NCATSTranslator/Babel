@@ -28,6 +28,7 @@ Sections:
   unknown one raises, and that DOID's map covers every prefix DOID actually emits.
 """
 
+import re
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -147,6 +148,29 @@ def test_mondo_close_rejects_malformed_row(tmp_path):
     mondoclose = _write_lines(tmp_path / "MONDO_close", ["MONDO:0000739\toio:closeMatch\tMEDDRA:10051962 "])
 
     with pytest.raises(MalformedConcordRowError, match=r"MONDO_close:1 is not a valid concord row"):
+        diseasephenotype.compute_cliques_for_impact_report(
+            concordances=[],
+            identifiers=[ids],
+            mondoclose=mondoclose,
+            badxrefs={},
+        )
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("subject", ["MONDOX:0000739", "HP:0000739", "mondo:0000739"])
+def test_mondo_close_rejects_a_subject_that_is_not_a_mondo_curie(tmp_path, subject):
+    """A MONDO_close subject without exactly the MONDO prefix must raise, naming the file and subject.
+
+    glom() consults close={MONDO: ...} only for members whose prefix is exactly MONDO, so such a key
+    would be a close guard that silently never fires. MONDOX is the case a startswith() match used
+    to consult; a lower-case "mondo:" subject is one ubergraph.build_sets() would write (it
+    upper-cases the prefix it filters on) but glom() would never consult.
+    """
+    ids = _write_lines(tmp_path / "MONDO", [f"MONDO:0000001\t{DISEASE}"])
+    mondoclose = _write_lines(tmp_path / "MONDO_close", [f"{subject}\toio:closeMatch\tMEDDRA:10051962"])
+
+    message = f"MONDO_close: close-match subject {subject!r} is not a MONDO CURIE"
+    with pytest.raises(ValueError, match=re.escape(message)):
         diseasephenotype.compute_cliques_for_impact_report(
             concordances=[],
             identifiers=[ids],

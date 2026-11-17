@@ -775,6 +775,22 @@ def compute_cliques_for_impact_report(
         # ubergraph.build_sets() exactly like the regular concords below, and read by the same
         # strict parser.
         for subject, predicate, _obj in read_concords(mondoclose):
+            # glom() consults close={MONDO: ...} only for members whose prefix is exactly MONDO,
+            # compared case-sensitively, so a key with any other prefix would be a guard that
+            # silently never fires. ubergraph.build_sets() writes only MONDO subjects, but it
+            # upper-cases a prefix before comparing it, so it would pass a "mondo:" subject that
+            # glom() would then never consult; this check is deliberately the stricter of the two.
+            # Every subject in 2025dec11's and 2026jul22's MONDO_close is a MONDO CURIE.
+            #
+            # While the map below is keyed on the predicate (see the NOTE), the guard is inert and
+            # this check protects nothing yet. It is here for once #888 keys the map on the object
+            # and activates the guard: from then on a non-MONDO subject is a close-match pair the
+            # build would silently stop guarding, which is worth failing the build for.
+            if subject.partition(":")[0] != MONDO:
+                raise ValueError(
+                    f"{mondoclose}: close-match subject {subject!r} is not a {MONDO} CURIE, so glom()'s "
+                    f"close={{{MONDO}: ...}} guard would never consult it."
+                )
             # NOTE: this intentionally preserves the long-standing behaviour from `main` of
             # keying on the predicate (e.g. "oio:closeMatch") rather than the object (the
             # close-match CURIE). Because no clique ever contains the literal predicate
