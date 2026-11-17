@@ -401,6 +401,9 @@ chemical_outputs:   [MolecularMixture.txt, SmallMolecule.txt, Polypeptide.txt, C
 # combine_unichem() (grouping UniChem's per-source xrefs around each InChIKey) and
 # build_untyped_compendia(), so the UniChem grouping and the compendium build can't disagree. Moved
 # here from three [INCHIKEY] literals in src/createcompendia/chemicals.py (#882).
+# babel-inchikey-audit (src/model/glom_edges.py) reads every refused pair between two keyed cliques
+# as the InChIKey guard, so it assumes INCHIKEY is the only entry; a test pins that. Adding a prefix
+# means changing that model first.
 chemical_unique_prefixes: [INCHIKEY]
 
 # Chemical clique type precedence, most preferred first. create_typed_sets() (src/createcompendia/

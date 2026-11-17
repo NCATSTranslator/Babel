@@ -9,7 +9,8 @@ of every chemical concord edge without replaying ``glom()``:
   (both cliques carry a key; one key per clique means the keys differ).
 
 That rests on three properties of ``glom()`` that ``tests/test_glom.py`` pins as its contract: a pair is refused only
-for a ``unique_prefixes`` conflict (the chemical calls pass ``[INCHIKEY]`` and no ``close`` map;
+for a ``unique_prefixes`` conflict (the chemical calls pass ``config.yaml: chemical_unique_prefixes``, which
+``tests/model/test_glom_edges.py`` pins to ``[INCHIKEY]``, and no ``close`` map;
 ``test_the_check_covers_the_whole_merged_clique``), a refused pair adds nothing, not even a singleton
 (``test_a_refused_pair_adds_nothing``), and a merge is never undone (``test_groups_before_a_bad_one_stay_applied``).
 If any of them changes -- or the chemical calls start passing ``close`` -- this module's verdicts change meaning.
