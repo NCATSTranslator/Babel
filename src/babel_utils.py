@@ -1282,17 +1282,22 @@ def glom(conc_set, newgroups, unique_prefixes=(INCHIKEY,), pref="HP", close=None
             # continue
         # Now check the 'close' dictionary to see if we've accidentally gotten to a close match becoming an exact match
         setok = True
-        for cpref, closedict in close.items():
-            idents = set([e if isinstance(e, str) else e.identifier for e in newset])
-            # The whole prefix, as the unique_prefixes check compares it: startswith() also matched
-            # any longer prefix beginning with cpref, so close={"MONDO": ...} consulted MONDOX:1 too.
-            prefidents = [e for e in idents if e.split(":")[0] == cpref]
-            for pident in prefidents:
-                for cd in closedict[pident]:
-                    if cd in newset:
-                        setok = False
-            if len(prefidents) == 0:
-                continue
+        if close:
+            idents = {e if isinstance(e, str) else e.identifier for e in newset}
+            for cpref, closedict in close.items():
+                for pident in idents:
+                    # The whole prefix, as the unique_prefixes check compares it: startswith() also
+                    # matched any longer prefix beginning with cpref, so close={"MONDO": ...}
+                    # consulted MONDOX:1 too. partition() rather than split(), which would build a
+                    # list for every member of every merge.
+                    if pident.partition(":")[0] != cpref:
+                        continue
+                    # No break once setok is False: every member is looked up by index, so a
+                    # defaultdict close map gains the same entries whether or not the merge is
+                    # refused, and the contract tests in tests/test_glom.py pin that.
+                    for cd in closedict[pident]:
+                        if cd in newset:
+                            setok = False
         if not setok:
             continue
         # Now make all the elements point to this new set:
