@@ -5,6 +5,18 @@ Diagnostic tools for sizing Babel's memory requirements. Output here informs the
 `@pytest.mark.min_memory_gb(n)` guards on memory-hungry pipeline tests (see
 `tests/README.md`).
 
+## How accurate an estimate needs to be
+
+Not very. An estimate only has to get a rule through its first HPC run: after that, the rule's
+`benchmarks/` record its real peak, and the sizing pass in [`Resources.md`](Resources.md) replaces
+the estimate with a measured number. So don't spend long refining one. Round it up to the next
+comfortable bucket, and say in the rule's `resources:` comment that the figure is an estimate, so
+the next sizing pass knows to bring it down.
+
+This is the opposite of the advice for *measured* limits, which `Resources.md` biases down. An OOM
+there costs one re-run of a rule whose peak is known; a rule sized on a guess can fail hours into a
+run, and its retry is only another guess.
+
 ## estimate_rdf_load_memory.py
 
 Estimates the peak RAM needed to bulk-load one or more RDF files into an
