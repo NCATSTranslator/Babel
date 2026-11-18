@@ -3,7 +3,11 @@
 import pytest
 
 from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
-from src.createcompendia.processactivitypathway import _process_concord_pair_filter, classify_process_clique
+from src.createcompendia.processactivitypathway import (
+    _process_concord_pair_drop_reason,
+    classify_process_clique,
+    compute_cliques_for_impact_report,
+)
 
 # CONCORD PAIR FILTER
 
@@ -12,24 +16,49 @@ from src.createcompendia.processactivitypathway import _process_concord_pair_fil
 @pytest.mark.parametrize("pair", [("GO:0034227", "EC:2.8.1.4"), ("EC:2.8.1.4", "GO:0034227")])
 def test_concord_pair_filter_drops_bad_concords(pair):
     """A BAD_CONCORDS pair should be dropped whichever way round the concord writes it."""
-    assert not _process_concord_pair_filter([pair[0], "xref", pair[1]], "concords/GO", {})
+    assert _process_concord_pair_drop_reason([pair[0], "xref", pair[1]], "concords/GO", {}) == "listed in BAD_CONCORDS"
 
 
 @pytest.mark.unit
 def test_concord_pair_filter_keeps_other_pairs():
     """Any other non-UMLS pair should be kept, even when neither CURIE is in the clique state yet."""
-    assert _process_concord_pair_filter(["GO:0140741", "xref", "EC:2.8.1.4"], "concords/GO", {})
+    assert _process_concord_pair_drop_reason(["GO:0140741", "xref", "EC:2.8.1.4"], "concords/GO", {}) is None
 
 
 @pytest.mark.unit
 def test_concord_pair_filter_requires_known_umls_pair():
     """A UMLS concord pair should be kept only when both CURIEs are already in the clique state."""
     parts = ["UMLS:C1158785", "eq", "GO:0045943"]
-    assert not _process_concord_pair_filter(parts, "concords/UMLS", {"UMLS:C1158785": set()})
-    assert _process_concord_pair_filter(parts, "concords/UMLS", {"UMLS:C1158785": set(), "GO:0045943": set()})
+    assert _process_concord_pair_drop_reason(parts, "concords/UMLS", {"UMLS:C1158785": set()}) is not None
+    assert (
+        _process_concord_pair_drop_reason(parts, "concords/UMLS", {"UMLS:C1158785": set(), "GO:0045943": set()}) is None
+    )
 
 
-# CLIQUE TYPING
+# CLIQUES
+
+
+@pytest.mark.unit
+def test_compute_cliques_logs_dropped_pairs_and_skips_them(tmp_path, caplog):
+    """The UMLS gate and BAD_CONCORDS should drop their pairs, with one log line per file and reason."""
+    ids = tmp_path / "ids" / "GO"
+    ids.parent.mkdir()
+    ids.write_text("GO:0034227\tbiolink:BiologicalProcess\nGO:0045943\tbiolink:BiologicalProcess\nUMLS:C1158785\n")
+    concords = tmp_path / "concords"
+    concords.mkdir()
+    (concords / "RHEA").write_text("GO:0034227\txref\tEC:2.8.1.4\n")
+    (concords / "UMLS").write_text("UMLS:C1158785\teq\tGO:0045943\nUMLS:C2249862\teq\tGO:0045943\n")
+
+    with caplog.at_level("INFO", logger="src.createcompendia.processactivitypathway"):
+        dicts, _ = compute_cliques_for_impact_report(
+            [str(concords / "RHEA"), str(concords / "UMLS")], [str(ids)], mesh_ownership="ignored"
+        )
+
+    assert dicts["UMLS:C1158785"] == {"UMLS:C1158785", "GO:0045943"}
+    assert "UMLS:C2249862" not in dicts
+    assert "EC:2.8.1.4" not in dicts
+    assert f"dropped 1 concord pairs from {concords / 'RHEA'}: listed in BAD_CONCORDS" in caplog.text
+    assert f"dropped 1 concord pairs from {concords / 'UMLS'}: UMLS pair" in caplog.text
 
 
 @pytest.mark.unit

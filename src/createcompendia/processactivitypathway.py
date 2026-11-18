@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 import src.datahandlers.ec as ec
 import src.datahandlers.obo as obo
@@ -11,6 +11,9 @@ from src.metadata.provenance import write_concord_metadata
 from src.model.cliques import glom_from_files
 from src.prefixes import GO, REACT, TCDB, WIKIPATHWAYS
 from src.ubergraph import build_sets
+from src.util import get_logger
+
+logger = get_logger(__name__)
 
 
 def write_obo_ids(irisandtypes, outfile, exclude=[]):
@@ -98,15 +101,18 @@ def build_process_rhea_relationships(outfile, metadata_yaml):
 BAD_CONCORDS = {frozenset(["GO:0034227", "EC:2.8.1.4"])}
 
 
-def _process_concord_pair_filter(parts, infile, dicts):
-    """Drop BAD_CONCORDS pairs, and UMLS concord pairs unless both CURIEs are already in the clique state.
+def _process_concord_pair_drop_reason(parts, infile, dicts):
+    """Return why a concord pair should be dropped before glom, or None to keep it.
 
-    UMLS includes GO terms that are obsolete, so the UMLS concord may only join identifiers that the ids files (or
-    earlier concords) already contain. We trust the other concords to retrieve decent identifiers.
+    Drops BAD_CONCORDS pairs, and UMLS concord pairs unless both CURIEs are already in the clique state: UMLS includes
+    GO terms that are obsolete, so the UMLS concord may only join identifiers that the ids files (or earlier concords)
+    already contain. We trust the other concords to retrieve decent identifiers.
     """
     if frozenset([parts[0], parts[2]]) in BAD_CONCORDS:
-        return False
-    return not infile.endswith("UMLS") or (parts[0] in dicts and parts[2] in dicts)
+        return "listed in BAD_CONCORDS"
+    if infile.endswith("UMLS") and not (parts[0] in dicts and parts[2] in dicts):
+        return "UMLS pair naming a CURIE not already in a clique"
+    return None
 
 
 def compute_cliques_for_impact_report(concordances, identifiers, excluded_sources=(), *, mesh_ownership=None):
@@ -122,17 +128,30 @@ def compute_cliques_for_impact_report(concordances, identifiers, excluded_source
         skips no concord pair for naming a CUI another pipeline owns.
     :returns: (dicts, types) where dicts is the glom dict-of-sets and types maps CURIE to its declared biolink type
     """
-    return glom_from_files(
+    # One count per (file, reason), logged once the cliques are built: a change to GO_PREFERRED_TTYS or to an ids file
+    # that makes the UMLS gate drop many more pairs should show up in the rule's log without a line per pair.
+    dropped = Counter()
+
+    def concord_pair_filter(parts, infile, dicts):
+        reason = _process_concord_pair_drop_reason(parts, infile, dicts)
+        if reason is not None:
+            dropped[(infile, reason)] += 1
+        return reason is None
+
+    result = glom_from_files(
         concordances,
         identifiers,
         unique_prefixes=unique_prefixes_from_config("process_unique_prefixes"),
-        concord_pair_filter=_process_concord_pair_filter,
+        concord_pair_filter=concord_pair_filter,
         # One kind of error is that GO->Reactome xrefs are frequently more like subclass relations: GO:0004674
         # (protein serine/threonine kinase) has over 400 Reactome xrefs. remove_overused_xrefs() drops pairs whose
         # second element is overused, but here it's the first, so we use bothways.
         overused_xref_remover=lambda pairs, infile: remove_overused_xrefs(pairs, bothways=True),
         excluded_sources=excluded_sources,
     )
+    for (infile, reason), count in sorted(dropped.items()):
+        logger.info("dropped %d concord pairs from %s: %s", count, infile, reason)
+    return result
 
 
 def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
