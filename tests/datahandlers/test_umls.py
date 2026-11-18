@@ -576,3 +576,15 @@ def test_pull_umls_skips_go_atoms_of_other_go_terms(tmp_path):
         ("UMLS:C1152464", "cardiolipin synthetase activity"),
         ("UMLS:C2249862", "activation of transcription from RNA polymerase I promoter"),
     }
+
+
+@pytest.mark.unit
+def test_default_acceptable_ttys_cannot_be_changed_in_place():
+    """build_sets() uses DEFAULT_ACCEPTABLE_TTYS as its default, so neither the mapping nor its sets may be mutable:
+    a change made by one caller would otherwise leak into every later build_sets() call."""
+    with pytest.raises(TypeError):
+        DEFAULT_ACCEPTABLE_TTYS["GO"] = GO_PREFERRED_TTYS
+    with pytest.raises(AttributeError):
+        DEFAULT_ACCEPTABLE_TTYS["MSH"].add("ET")
+    with pytest.raises(AttributeError):
+        GO_PREFERRED_TTYS.add("SY")

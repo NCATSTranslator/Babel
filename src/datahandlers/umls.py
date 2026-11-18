@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 from collections import defaultdict
+from types import MappingProxyType
 from zipfile import ZipFile
 
 import requests
@@ -494,14 +495,18 @@ def write_rxnorm_ids(
 
 # MRCONSO term types (TTY, column 12) that build_sets() takes from a source, for sources whose other atoms link a CUI
 # too loosely to count as equivalence. A source not listed here contributes every (non-suppressed, English) atom.
-# - MSH: every MeSH entry has one (and only one) of MH, NM, HT or QAB, its "main" name or heading. Taking every MeSH
-#   atom led to clear mistakes and logical impossibilities such as cyclical subclasses.
+# - MSH: MESH_CONCORD_TTYS, the one "main" name or heading every MeSH entry has. Taking every MeSH atom led to clear
+#   mistakes and logical impossibilities such as cyclical subclasses.
 # - DRUGBANK: DrugBank IDs are for active ingredients, so only take the ingredient term types. Otherwise the same
 #   DrugBank ID maps loosely to several CUIs.
-DEFAULT_ACCEPTABLE_TTYS = {
-    "MSH": {"MH", "NM", "HT", "QAB"},
-    "DRUGBANK": {"IN", "PIN", "MIN"},
-}
+# Read-only (a mappingproxy of frozensets) because build_sets() uses it as its default: a caller that changed it in
+# place would change every later build_sets() call in the process. Build a variant with {**DEFAULT_ACCEPTABLE_TTYS, ...}.
+DEFAULT_ACCEPTABLE_TTYS = MappingProxyType(
+    {
+        "MSH": MESH_CONCORD_TTYS,
+        "DRUGBANK": frozenset({"IN", "PIN", "MIN"}),
+    }
+)
 
 # GO's preferred term (PT), plus MTH_PT where NLM has altered the preferred name. UMLS keeps GO synonym atoms (SY,
 # ET, ...) with the GO code of the term they came from, but often places them in different CUIs (e.g. "activation
@@ -517,7 +522,7 @@ DEFAULT_ACCEPTABLE_TTYS = {
 # in-scope CUI. Against the 2026jul22 build that restores only 65 process joins, mostly narrow entry terms
 # ("inhibition of X" for "negative regulation of X") and some plainly wrong ones ("cellular process" for
 # GO:0042995 "cell projection"). See docs/sources/UMLS/GO.md for the numbers and how to regenerate them.
-GO_PREFERRED_TTYS = {"PT", "MTH_PT"}
+GO_PREFERRED_TTYS = frozenset({"PT", "MTH_PT"})
 
 
 # I've made this more complicated than it ought to be for 2 reasons:
