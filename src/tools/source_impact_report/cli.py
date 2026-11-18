@@ -84,6 +84,10 @@ ComputeCliquesFn = Callable[..., tuple[dict, dict]]
 #   the preferred CURIE for a sample.
 # - ``biolink_types``: biolink types whose ``id_prefixes`` we look up to determine the
 #   preferred CURIE per clique.
+# - ``config_key``: the ``<config_key>_ids`` / ``<config_key>_concords`` lists in config.yaml,
+#   whose order is the order the pipeline's compendium rule passes those files in. The
+#   replay must use the same order, since glom() keeps the first CURIE of a unique prefix it
+#   sees and a later ids file's type overrides an earlier one's.
 # The biolink types anatomy cliques can carry, in the named-constant form mandated by the
 # repo conventions (never hard-code "biolink:..." strings). The compendium file names are
 # derived from these (``<BareType>.txt``) so the two lists can never drift apart. They must
@@ -105,6 +109,7 @@ PIPELINE_CONFIG: dict[str, dict] = {
         "compendium_prefixes": get_config()["anatomy_prefixes"],
         "clique_classifier": anatomy.classify_anatomy_clique,
         "biolink_types": _ANATOMY_BIOLINK_TYPES,
+        "config_key": "anatomy",
     },
     "disease": {
         "compute_fn": diseasephenotype.compute_cliques_for_impact_report,
@@ -112,6 +117,7 @@ PIPELINE_CONFIG: dict[str, dict] = {
         "compendium_prefixes": get_config()["disease_labelsandsynonyms"],
         "clique_classifier": diseasephenotype.classify_disease_clique,
         "biolink_types": _DISEASE_BIOLINK_TYPES,
+        "config_key": "disease",
     },
     "process": {
         "compute_fn": processactivitypathway.compute_cliques_for_impact_report,
@@ -119,15 +125,23 @@ PIPELINE_CONFIG: dict[str, dict] = {
         "compendium_prefixes": get_config()["process_labels"],
         "clique_classifier": processactivitypathway.classify_process_clique,
         "biolink_types": _PROCESS_BIOLINK_TYPES,
+        "config_key": "process",
     },
 }
 
 
-def _list_source_files(directory: pathlib.Path) -> list[pathlib.Path]:
-    """Return the non-metadata files in a `concords/` or `ids/` directory (see `is_metadata_sidecar()`)."""
+def _list_source_files(directory: pathlib.Path, config_order: list[str]) -> list[pathlib.Path]:
+    """Return the non-metadata files in a `concords/` or `ids/` directory (see `is_metadata_sidecar()`).
+
+    Files named in ``config_order`` (a config.yaml ``*_ids`` or ``*_concords`` list) come first, in that order, which
+    is the order the compendium rule passes them in; any others follow alphabetically. Those others are files the
+    pipeline's compute function handles by name (disease's ``MONDO_close``) or files from an older build.
+    """
     if not directory.exists():
         return []
-    return sorted(p for p in directory.iterdir() if p.is_file() and not is_metadata_sidecar(p.name))
+    rank = {name: i for i, name in enumerate(config_order)}
+    files = [p for p in directory.iterdir() if p.is_file() and not is_metadata_sidecar(p.name)]
+    return sorted(files, key=lambda p: (rank.get(p.name, len(rank)), p.name))
 
 
 def _compute_synthetic_diff(
@@ -146,8 +160,9 @@ def _compute_synthetic_diff(
 
     ids_dir = intermediate_root / pipeline / "ids"
     concords_dir = intermediate_root / pipeline / "concords"
-    identifiers = [str(p) for p in _list_source_files(ids_dir)]
-    concordances = [str(p) for p in _list_source_files(concords_dir)]
+    config = get_config()
+    identifiers = [str(p) for p in _list_source_files(ids_dir, config[f"{cfg['config_key']}_ids"])]
+    concordances = [str(p) for p in _list_source_files(concords_dir, config[f"{cfg['config_key']}_concords"])]
 
     logger.info("synthetic diff for %s: %d ids files, %d concord files", pipeline, len(identifiers), len(concordances))
 
