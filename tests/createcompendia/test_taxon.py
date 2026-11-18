@@ -6,6 +6,7 @@ import tarfile
 import pytest
 import yaml
 
+from src.categories import ORGANISM_TAXON
 from src.createcompendia.taxon import build_taxon_umls_relationships, update_obsolete_ncbitaxon_ids
 from src.datahandlers.ncbitaxon import read_obsolete_taxa
 from tests.conftest import assert_concordance_file_valid
@@ -139,7 +140,7 @@ def run_build_taxon_umls_relationships(tmp_path, taxdump, cuis):
     mrconso = tmp_path / "MRCONSO.RRF"
     mrconso.write_text("".join(row + "\n" for row in MRCONSO_ROWS))
     idfile = tmp_path / "ids"
-    idfile.write_text("".join(f"UMLS:{cui}\tbiolink:OrganismTaxon\n" for cui in cuis))
+    idfile.write_text("".join(f"UMLS:{cui}\t{ORGANISM_TAXON}\n" for cui in cuis))
     outfile = tmp_path / "concord"
     metadata = tmp_path / "metadata.yaml"
     build_taxon_umls_relationships(str(mrconso), str(idfile), taxdump, str(outfile), str(metadata))
