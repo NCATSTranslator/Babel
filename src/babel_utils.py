@@ -4,7 +4,6 @@ import re
 import shutil
 import sqlite3
 import subprocess
-import tempfile
 import time
 import traceback
 import urllib
@@ -27,6 +26,7 @@ from src.node import DescriptionFactory, InformationContentFactory, NodeFactory,
 from src.properties import HAS_ALTERNATIVE_ID, PropertyList
 from src.synonyms.filter import get_synonym_filter
 from src.util import Text, curie_format_problem, ensure_parent_dir, get_config, get_logger, get_memory_usage_summary
+from src.utils.ftp import retrieve_ftp_file
 
 # Configuration items
 WRITE_COMPENDIUM_LOG_EVERY_X_CLIQUES = 1_000_000
@@ -170,7 +170,9 @@ def pull_via_ftp(ftpsite, ftpdir, ftpfile, decompress_data=False, outfilename=No
     """Retrieve data via ftp.
     Setting decompress=True will ungzip the data
     If outfilename is None (default) then the data will be returned.
-    Otherwise it will be written to the downloads directory."""
+    Otherwise it will be written to the downloads directory, through src.utils.ftp.retrieve_ftp_file(), so the
+    file only ever appears complete: an interrupted transfer or decompression leaves nothing under its name for
+    a later run to mistake for a finished download."""
     ftp = FTP(ftpsite)
     ftp.login()
     ftp.cwd(ftpdir)
@@ -192,24 +194,24 @@ def pull_via_ftp(ftpsite, ftpdir, ftpfile, decompress_data=False, outfilename=No
     print(f"  writing data to {ofilename}")
     print(f"{ftpsite}/{ftpdir}/{ftpfile}")
     if not decompress_data:
-        with open(ofilename, "wb") as ofile:
-            ftp.retrbinary(f"RETR {ftpfile}", ofile.write)
-            ftp.quit()
+        retrieve_ftp_file(ftp, ftpfile, ofilename)
+        ftp.quit()
     else:
         # Stream the compressed file to a temp file rather than buffering it all in
         # memory with BytesIO+gzip.decompress — the old approach needed ~2× the
         # uncompressed size in RAM (e.g. ~35+ GB for ChEMBL's 17 GB TTL).
-        tmp_path = None  # set before try so finally can always check it
+        tmp_path = f"{ofilename}.download.gz"
+        part_path = f"{ofilename}.part"
         try:
-            with tempfile.NamedTemporaryFile(delete=False, dir=odir, suffix=".gz") as tmp:
-                tmp_path = tmp.name
-                ftp.retrbinary(f"RETR {ftpfile}", tmp.write)
-                ftp.quit()
-            with gzip.open(tmp_path, "rt") as gz_in, open(ofilename, "w") as ofile:
+            retrieve_ftp_file(ftp, ftpfile, tmp_path)
+            ftp.quit()
+            with gzip.open(tmp_path, "rt") as gz_in, open(part_path, "w") as ofile:
                 shutil.copyfileobj(gz_in, ofile)
+            os.replace(part_path, ofilename)
         finally:
-            if tmp_path is not None and os.path.exists(tmp_path):
-                os.unlink(tmp_path)
+            for path in (tmp_path, part_path):
+                if os.path.exists(path):
+                    os.unlink(path)
     return ofilename
 
 

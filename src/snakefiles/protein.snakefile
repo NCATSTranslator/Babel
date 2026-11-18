@@ -10,10 +10,12 @@ import src.snakefiles.util as util
 rule protein_mesh_ids:
     input:
         infile=config["download_directory"] + "/MESH/mesh.nt",
+        # Records with an NCBI Taxon registry number are left to taxon (#1240).
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
     output:
         outfile=config["intermediate_directory"] + "/protein/ids/MESH",
     run:
-        protein.write_mesh_ids(output.outfile)
+        protein.write_mesh_ids(output.outfile, input.mesh_registry)
 
 
 rule protein_pr_ids:

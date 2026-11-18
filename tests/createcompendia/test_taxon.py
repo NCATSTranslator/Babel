@@ -1,5 +1,7 @@
 """Unit tests for src/createcompendia/taxon.py: how the taxon and chemical pipelines split the MeSH records that
-carry an NCBI Taxon registry number (#1240), and the check in build_relationships() that keeps them split."""
+carry an NCBI Taxon registry number (#1240), and the NCBI_MESH concord build_relationships() writes for them.
+
+tests/datahandlers/test_umls.py covers the ownership rows that keep other pipelines' concords from reaching them."""
 
 import json
 from unittest.mock import MagicMock, patch
@@ -57,7 +59,7 @@ def test_virus_scr_with_ncbitaxon_goes_to_taxon_not_chemicals(mock_cls, tmp_path
 # NCBI_MESH CONCORD
 
 
-def _build_relationships(tmp_path, other_pipelines_mesh_ids):
+def _build_relationships(tmp_path):
     registry = tmp_path / "registry.tsv"
     registry.write_text(REGISTRY)
     rdf_source = tmp_path / "rdf_source.json"
@@ -69,32 +71,18 @@ def _build_relationships(tmp_path, other_pipelines_mesh_ids):
     outfile = tmp_path / "NCBI_MESH"
     taxon.build_relationships(
         outfile,
-        tmp_path / "unused_taxon_ids",
         tmp_path / "metadata-NCBI_MESH.yaml",
         mesh_registry=registry,
         mesh_rdf_source=rdf_source,
         mesh_xml_sources=xml_sources,
-        other_pipelines_mesh_ids=other_pipelines_mesh_ids,
     )
     return outfile.read_text().splitlines()
 
 
 @pytest.mark.unit
 def test_build_relationships_writes_every_txid(tmp_path):
-    """With no other pipeline claiming a txid record, every one should get its MeSH-NCBITaxon xref."""
-    chemical_ids = tmp_path / "chemicals_ids"
-    chemical_ids.write_text(f"{IMATINIB}\t{CHEMICAL_ENTITY}\n")
-    assert _build_relationships(tmp_path, {"chemicals": chemical_ids}) == [
+    """Every record with an NCBI Taxon registry number should get its MeSH-NCBITaxon xref, and nothing else."""
+    assert _build_relationships(tmp_path) == [
         f"{VIRUS_SCR_ORGANISM}\txref\tNCBITaxon:354090",
         f"{VIRUS_SCR_CHEMICAL}\txref\tNCBITaxon:12138",
     ]
-
-
-@pytest.mark.unit
-def test_build_relationships_raises_when_another_pipeline_claims_a_txid_record(tmp_path):
-    """A txid record in another pipeline's ids/MESH would end up in two compendia, so building the concord
-    should fail, naming the pipeline and the record."""
-    chemical_ids = tmp_path / "chemicals_ids"
-    chemical_ids.write_text(f"{IMATINIB}\t{CHEMICAL_ENTITY}\n{VIRUS_SCR_CHEMICAL}\t{CHEMICAL_ENTITY}\n")
-    with pytest.raises(ValueError, match=f"chemicals \\(1\\): {VIRUS_SCR_CHEMICAL}"):
-        _build_relationships(tmp_path, {"chemicals": chemical_ids})

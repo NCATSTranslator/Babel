@@ -96,12 +96,13 @@ moved carries the previous build's name, and that value labels the baseline in t
 
 ### `reports/umls_mesh_skew.json`
 
-How far the build's MeSH dump (`mesh_year`) lagged its UMLS release (`umls_version`): the MeSH codes
-in UMLS's `MRCONSO.RRF` with no record in the MeSH dump, by record type, with a sample. Written by
+How far the build's MeSH dump lagged its UMLS release (`umls_version`): the MeSH codes in UMLS's
+`MRCONSO.RRF` with no record in the MeSH dump, by record type, with a sample. Written by
 `generate_umls_mesh_skew_report` → `src/reports/umls_mesh_skew.py`. The build fails when the count
-excluding the `U` category headings exceeds `umls_mesh_skew_max_missing_codes`, so an archived
-build is always within that limit; `draft_release_notes.py` prints the count under the version
-bumps. Archived from 2026jul22's successor on; earlier releases don't have it. See
+excluding the `U` category headings exceeds `umls_mesh_skew_max_missing_codes`, so an archived build
+is always within that limit; `draft_release_notes.py` prints the count under the version bumps. Its
+`mesh_year` is the year of the dump the build downloaded (`rdf_source.json`), not necessarily
+`config.yaml`'s. Archived from 2026jul22's successor on; earlier releases don't have it. See
 [`docs/sources/MeSH/Ingestion.md`](../docs/sources/MeSH/Ingestion.md#source-data).
 
 ## These files are build output, not repository content

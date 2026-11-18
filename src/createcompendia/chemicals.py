@@ -359,7 +359,7 @@ def write_mesh_ids(outfile, mesh_registry):
     with an NCBI Taxon registry number in mesh_registry (rule get_mesh_registry's TSV).
 
     Those are virus SCRs that NLM classes as SCR_Chemical but links to an NCBI Taxon ID, e.g. MESH:C000626778
-    "maize chlorotic mottle virus"; taxon.write_mesh_ids() claims them instead (#1240).
+    "maize chlorotic mottle virus"; mesh.write_ids() leaves them to taxon (#1240).
     """
     # MeSH D tree — chemical-related subtrees.
     # Included as CHEMICAL_ENTITY (via the D01–D26 base range):
@@ -442,7 +442,8 @@ def write_mesh_ids(outfile, mesh_registry):
         order=["EXCLUDE", POLYPEPTIDE, COMPLEX_MOLECULAR_MIXTURE, CHEMICAL_ENTITY],
         extra_vocab={"SCR_Chemical": CHEMICAL_ENTITY},
         scr_exclude_trees=excluded_trees,
-        exclude_terms=mesh.read_mesh_ids_with_ncbitaxon(mesh_registry),
+        pipeline="chemicals",
+        mesh_registry=mesh_registry,
     )
 
 

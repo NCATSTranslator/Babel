@@ -1,5 +1,5 @@
-"""Generic helpers that the rest of Babel builds on: DuckDB connections, memory diagnostics, and (in time) logging,
-config and download helpers.
+"""Generic helpers that the rest of Babel builds on: DuckDB connections, memory diagnostics, FTP downloads, and (in
+time) logging, config and other download helpers.
 
 ``src/util.py`` and the generic parts of ``src/babel_utils.py`` are to move here, the rest of ``babel_utils`` into
 ``src/model/``; see https://github.com/NCATSTranslator/Babel/issues/1223. Put a new generic helper here rather than in

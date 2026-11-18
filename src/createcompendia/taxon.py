@@ -18,8 +18,8 @@ def write_mesh_ids(outfile, mesh_registry):
 
     NLM gives a handful of virus SCRs the record class SCR_Chemical but also an NCBI Taxon registry number,
     e.g. MESH:C000626778 "maize chlorotic mottle virus" (txid12138). The registry number is the more specific
-    statement, so taxon claims them and chemicals.write_mesh_ids() leaves them out; with their MeSH ID here,
-    rule umls_mesh_ownership gives their UMLS CUIs to taxon as well (#1240).
+    statement, so mesh.write_ids() adds them here and leaves them out of every other pipeline's ids/MESH; with
+    their MeSH ID here, rule umls_mesh_ownership gives their UMLS CUIs to taxon as well (#1240).
     """
     # Get the B tree,
     # B01	Eukaryota
@@ -28,13 +28,13 @@ def write_mesh_ids(outfile, mesh_registry):
     # B04	Viruses
     # B05	Organism Forms
     meshmap = {f"B{str(i).zfill(2)}": ORGANISM_TAXON for i in range(1, 6)}
-    with_ncbitaxon = mesh.read_mesh_ids_with_ncbitaxon(mesh_registry)
     mesh.write_ids(
         meshmap,
         outfile,
         order=[ORGANISM_TAXON],
         extra_vocab={"SCR_Organism": ORGANISM_TAXON},
-        extra_terms=dict.fromkeys(with_ncbitaxon, ORGANISM_TAXON),
+        pipeline="taxon",
+        mesh_registry=mesh_registry,
     )
 
 
@@ -100,41 +100,17 @@ def build_taxon_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
     )
 
 
-def build_relationships(
-    outfile,
-    mesh_ids,
-    metadata_yaml,
-    *,
-    mesh_registry,
-    mesh_rdf_source,
-    mesh_xml_sources,
-    other_pipelines_mesh_ids,
-):
+def build_relationships(outfile, metadata_yaml, *, mesh_registry, mesh_rdf_source, mesh_xml_sources):
     """Write MeSH-NCBITaxon xrefs from the MeSH registry numbers that are NCBI Taxon IDs ("txid...").
 
     mesh_registry is rule get_mesh_registry's TSV; mesh_rdf_source and mesh_xml_sources are the download records
     that mesh_registry_sources() reads for the metadata.
 
-    The registry is not filtered by mesh_ids (the taxon ids/MESH): taxon.write_mesh_ids() claims every record
-    with a txid, so the two agree. What must not happen is another pipeline claiming one of these records too:
-    its MeSH ID would then be in that pipeline's compendium and, through this concord, in an NCBITaxon-led taxon
-    clique, where the duplicate-leader check cannot see it (#1240). So this raises if any file in
-    other_pipelines_mesh_ids ({pipeline: its ids/MESH}) names a MeSH ID with a txid; the fix is to exclude it
-    in that pipeline's write_mesh_ids(), as chemicals.write_mesh_ids() does.
+    The registry is not filtered by the taxon ids/MESH: mesh.write_ids() puts every record with a txid there and
+    in no other pipeline's ids/MESH, so the two agree. Rule umls_mesh_ownership checks that they still do
+    (umls.mesh_records_owned_by_taxon()) before any compendium is built, and records these MeSH IDs as taxon's,
+    so another pipeline's compendium build skips a concord pair that names one (#1240).
     """
-    with_ncbitaxon = mesh.read_mesh_ids_with_ncbitaxon(mesh_registry)
-    claimed_elsewhere = {}
-    for pipeline, ids_file in sorted(other_pipelines_mesh_ids.items()):
-        with open(ids_file) as inf:
-            claimed = sorted({line.split("\t", 1)[0] for line in inf} & with_ncbitaxon)
-        if claimed:
-            claimed_elsewhere[pipeline] = claimed
-    if claimed_elsewhere:
-        raise ValueError(
-            "MeSH records with an NCBI Taxon registry number belong to taxon, but other pipelines claim some: "
-            + "; ".join(f"{p} ({len(c)}): {', '.join(c[:10])}" for p, c in claimed_elsewhere.items())
-            + ". Exclude them in that pipeline's write_mesh_ids() (see #1240)."
-        )
     regis = mesh.read_mesh_registry(mesh_registry)
     with open(outfile, "w") as outf:
         for meshid, reg in regis:

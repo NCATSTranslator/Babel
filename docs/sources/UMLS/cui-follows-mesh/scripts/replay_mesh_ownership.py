@@ -176,7 +176,7 @@ def main():
     added_all = {}
     with tempfile.TemporaryDirectory() as tmpdir:
         non_mesh = {p: run_writer(p, args.umls_dir, tmpdir, None) for p in ["gene", "process"]}
-        # The same call rule umls_mesh_ownership makes.
+        # The same call rule umls_mesh_ownership makes, less mesh_registry: its MeSH-record rows change no ids/UMLS.
         ownership = os.path.join(tmpdir, "mesh_ownership.tsv")
         umls.write_mesh_ownership(
             os.path.join(args.umls_dir, "MRCONSO.RRF"),

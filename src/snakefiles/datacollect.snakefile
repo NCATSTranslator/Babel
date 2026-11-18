@@ -283,12 +283,22 @@ rule get_mesh_registry:
         desc_xml=config["download_directory"] + "/MESH/desc.xml.gz",
         supp_xml=config["download_directory"] + "/MESH/supp.xml.gz",
         labels=config["download_directory"] + "/MESH/labels",
+        # Checked to be for the same MeSH year before the XML is filtered against the dump's labels.
+        rdf_source=config["download_directory"] + "/MESH/rdf_source.json",
+        xml_sources=config["download_directory"] + "/MESH/xml_sources.json",
     output:
         config["download_directory"] + "/MESH/registry.tsv",
     benchmark:
         config["output_directory"] + "/benchmarks/get_mesh_registry.tsv"
     run:
-        mesh.write_mesh_registry(input.desc_xml, input.supp_xml, input.labels, output[0])
+        mesh.write_mesh_registry(
+            input.desc_xml,
+            input.supp_xml,
+            input.labels,
+            output[0],
+            rdf_source_file=input.rdf_source,
+            xml_sources_file=input.xml_sources,
+        )
 
 
 rule get_mesh_synonyms:

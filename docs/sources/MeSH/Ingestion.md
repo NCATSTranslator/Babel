@@ -19,10 +19,12 @@ built on until then: against MeSH 2026, UMLS 2026AB misses 404 codes
 against the configured releases, so a version bump finds this out before a build does. Each build
 writes `babel_outputs/reports/umls_mesh_skew.json`, which counts the MSH codes in UMLS's
 `MRCONSO.RRF` (column 14 of the `SAB=MSH` rows that `check_mrconso_line()` keeps, as the rest of the
-build does) that have no `rdfs:label` in `mesh.nt`. With UMLS 2026AA and MeSH 2026 the only missing
-codes are the 22 `U` "(MeSH Category)" headings that UMLS adds itself; MeSH 2025 misses 829 more and
-MeSH 2024 1,856 ([`umls-mesh-skew/`](umls-mesh-skew/README.md) has the table and the script that
-measures it).
+build does) that have no `rdfs:label` in `mesh.nt`, read from `babel_downloads/MESH/labels`. The
+MeSH year it reports comes from `rdf_source.json`, the record of the dump actually downloaded, not
+from `config.yaml`, so a `mesh.nt` kept from another year is reported as that year. With UMLS 2026AA
+and MeSH 2026 the only missing codes are the 22 `U` "(MeSH Category)" headings that UMLS adds
+itself; MeSH 2025 misses 829 more and MeSH 2024 1,856 ([`umls-mesh-skew/`](umls-mesh-skew/README.md)
+has the table and the script that measures it).
 
 That count, leaving out the `U` headings, **fails the build** when it exceeds
 `umls_mesh_skew_max_missing_codes` in `config.yaml` (100). `rule check_umls_mesh_skew` does it,
@@ -106,25 +108,39 @@ already in the dump can still change from one day's XML to the next, so two down
 SHA-1s in each build's `xml_sources.json` (also in the concords' `metadata-*.yaml`) to tell.
 
 Rule `get_mesh_registry` parses the XML once and writes `babel_downloads/MESH/registry.tsv`
-(`MESH:ID<tab>registry number`), which the chemical and taxon `ids/MESH` and concord rules read.
+(`MESH:ID<tab>registry number`), which every MeSH-owning pipeline's `ids/MESH` rule, rule
+`umls_mesh_ownership` and the chemical and taxon concord rules read. It first checks that
+`rdf_source.json` and `xml_sources.json` are for the same MeSH year and fails if they are not
+(`read_mesh_downloads()`), since the XML is filtered against the dump's labels; a `mesh.nt` kept
+from another year, or `--rerun-triggers mtime`, would otherwise give `ids/MESH` files built from a
+mixed-year registry that Snakemake then takes for up to date.
 
 ### A record with an NCBI Taxon registry number is taxon's
 
 NLM gives a record a `txid...` registry number only when it names an organism, and a handful of
 virus SCRs carry one while being classed `SCR_Chemical`: 8 in MeSH 2026, e.g.
 [`MESH:C000626778`](https://meshb.nlm.nih.gov/record/ui?ui=C000626778) "maize chlorotic mottle
-virus" (`NCBITaxon:12138`). The registry number is the more specific statement, so
-`taxon.write_mesh_ids()` claims every record that has one, whatever its record class, and
-`chemicals.write_mesh_ids()` leaves them out. Rule `umls_mesh_ownership` then gives their CUIs to
-taxon too, so each virus is one OrganismTaxon clique of its MeSH ID, CUI and NCBITaxon
-([#1240](https://github.com/NCATSTranslator/Babel/issues/1240)).
+virus" (`NCBITaxon:12138`). The registry number is the more specific statement, so taxon owns
+every record that has one, whatever its record class or tree, and each virus is one OrganismTaxon
+clique of its MeSH ID, CUI and NCBITaxon
+([#1240](https://github.com/NCATSTranslator/Babel/issues/1240)). That is decided in two places,
+both through `mesh.read_mesh_ids_with_ncbitaxon()`:
 
-The taxon `NCBI_MESH` concord is therefore not filtered by `taxon/ids/MESH`: the two agree. If
-another MeSH-owning pipeline ever claims a `txid` record, its MeSH ID would land in that
-pipeline's compendium and, through this concord, in an NCBITaxon-led taxon clique, where the
-duplicate-leader check cannot see it. So `taxon.build_relationships()` fails the build naming the
-pipeline and records; exclude them in that pipeline's `write_mesh_ids()`.
-`tests/pipeline/test_mesh.py` asserts the same over a real MeSH download.
+- `mesh.write_ids()`, which all five MeSH-owning pipelines' `write_mesh_ids()` go through, adds
+  these records to taxon's `ids/MESH` and leaves them out of the other four, whichever tree or
+  record class selected them. A MeSH release that gives a `txid` to a record in, say, a protein
+  tree moves it to taxon without anyone editing that pipeline.
+- Rule `umls_mesh_ownership` gives their CUIs to taxon (they follow their MeSH record as any CUI
+  does), and also writes a row for each MeSH record itself, owned by taxon
+  (`umls.mesh_records_owned_by_taxon()`). Leaving a record out of an `ids/MESH` does not keep it out
+  of that pipeline's compendium, because a concord alone can put a CURIE there: chemicals'
+  `PUBCHEM_MESH` matches MeSH labels without reading `chemicals/ids/MESH`. With the row, every
+  other pipeline's compendium build skips a concord pair that names the record, as it does for a
+  CUI another pipeline owns. The rule also fails if any `ids/MESH` disagrees, before any compendium
+  is built.
+
+The taxon `NCBI_MESH` concord is therefore not filtered by `taxon/ids/MESH`: the two agree.
+`tests/pipeline/test_mesh.py` asserts the `ids/MESH` split over a real MeSH download.
 
 Compared with the 2024 dump, `mesh2026.nt` also lacks `meshv:active`, `dateEstablished`,
 `dateRevised`, `lastActiveYear` and `sortVersion`, and adds `dateIntroduced` and `lastUpdated`
@@ -245,11 +261,14 @@ Code:
 
 - `src/datahandlers/mesh.py` — handler: `pull_mesh()` / `fetch_mesh_nt()`, `normalize_mesh_nt()`,
   `pull_mesh_xml()` / `fetch_mesh_xml_dir()`, `pull_mesh_registry()` / `write_mesh_registry()` /
-  `read_mesh_registry()`, `mesh_registry_sources()`,
-  `Mesh` class, `write_ids()`, `get_scr_terms_mapped_to_trees()`,
+  `read_mesh_registry()`, `read_mesh_downloads()` / `mesh_registry_sources()`, `Mesh` class,
+  `write_ids()` (and `read_mesh_ids_with_ncbitaxon()`), `get_scr_terms_mapped_to_trees()`,
   `get_mesh_id_from_iri()`, `_mesh_id()`.
 - `src/reports/umls_mesh_skew.py` — the UMLS/MeSH version skew report and the check that fails the
   build on it.
+- `src/utils/ftp.py` — the FTP helpers the downloads use: `list_ftp_dir()` decides whether a
+  directory exists from its parents' listings, never from the server's error wording, and
+  `retrieve_ftp_file()` downloads under a `.part` name and records the SHA-1.
 - `src/createcompendia/{anatomy,taxon,diseasephenotype,chemicals,protein}.py` — `write_mesh_ids()`.
 
 Issues:

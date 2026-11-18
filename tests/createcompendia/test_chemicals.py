@@ -807,6 +807,38 @@ def test_build_untyped_compendia_survives_a_concord_with_no_pairs_left(tmp_path,
     assert untyped_concord.read_text().count("\n") == 1
 
 
+@pytest.mark.unit
+def test_build_untyped_compendia_skips_a_pair_naming_a_taxon_owned_mesh_record(tmp_path):
+    """A PUBCHEM_MESH pair naming a MeSH record with an NCBI Taxon registry number should be skipped, so the
+    record stays in the taxon compendium alone (#1240). make_pubchem_mesh_concord() matches MeSH labels without
+    reading chemicals/ids/MESH, so leaving the record out of that file is not enough; the ownership file's row
+    for it is what keeps it out. Without an ownership file the pair is glommed, which is the failure."""
+    maize_virus = "MESH:C000626778"  # "maize chlorotic mottle virus": SCR_Chemical with txid12138 in supp2026.gz
+    concord = tmp_path / "PUBCHEM_MESH"
+    concord.write_text(f"{PUBCHEMCOMPOUND}:1\txref\t{maize_virus}\n")
+    unichem_partial = tmp_path / "unichem_partial.jsonl"
+    unichem_partial.write_text(json.dumps([f"{PUBCHEMCOMPOUND}:1", f"{INCHIKEY}:XLYOFNOQVPJJNP-UHFFFAOYSA-N"]) + "\n")
+    mesh_ownership = tmp_path / "mesh_ownership.tsv"
+    mesh_ownership.write_text(f"{maize_virus}\ttaxon\t{maize_virus}\tbiolink:OrganismTaxon\n")
+
+    def members(ownership):
+        untyped = tmp_path / "untyped_compendium"
+        build_untyped_compendia(
+            [str(concord)],
+            [],
+            str(unichem_partial),
+            str(untyped),
+            str(tmp_path / "types"),
+            str(tmp_path / "metadata.yaml"),
+            [],
+            mesh_ownership=ownership,
+        )
+        return set().union(*read_untyped_compendium(untyped))
+
+    assert maize_virus not in members(str(mesh_ownership))
+    assert maize_virus in members(None)
+
+
 # THE UNTYPED-COMPENDIUM HANDOFF
 
 

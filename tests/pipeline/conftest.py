@@ -273,12 +273,15 @@ def chemicals_concords_dir(pipeline_output):
 
 @pytest.fixture(scope="session")
 def mesh_nt():
-    """Download babel_downloads/MESH/mesh.nt, or skip if unavailable."""
+    """Download babel_downloads/MESH/mesh.nt and its rdf_source.json, as rule get_mesh does, if either is missing;
+    fail if the download does. write_mesh_registry() needs rdf_source.json to check the XML is the same year."""
     from src.util import get_config  # deferred: same rationale as _snakemake_dir
 
+    rdf_source = make_local_name("rdf_source.json", subpath="MESH")
+    _download_or_fail("MESH mesh.nt", lambda: pull_mesh(get_config()["mesh_year"], rdf_source), rdf_source)
     return _download_or_fail(
         "MESH mesh.nt",
-        lambda: pull_mesh(get_config()["mesh_year"], make_local_name("rdf_source.json", subpath="MESH")),
+        lambda: pull_mesh(get_config()["mesh_year"], rdf_source),
         make_local_name("mesh.nt", subpath="MESH"),
     )
 
@@ -286,16 +289,22 @@ def mesh_nt():
 @pytest.fixture(scope="session")
 def mesh_registry(mesh_nt, regenerate):
     """Build babel_downloads/MESH/registry.tsv as rule get_mesh_registry does, downloading the MeSH XML and
-    writing MESH/labels first if they are missing. The chemical and taxon ids/MESH both read it (#1240)."""
+    writing MESH/labels first if they are missing. Every ids/MESH and the ownership file read it (#1240)."""
     from src.util import get_config  # deferred: same rationale as _snakemake_dir
 
     desc, supp = (make_local_name(f"{prefix}.xml.gz", subpath="MESH") for prefix in ("desc", "supp"))
     xml_sources = make_local_name("xml_sources.json", subpath="MESH")
     _download_or_fail("MeSH XML", lambda: pull_mesh_xml(get_config()["mesh_year"], xml_sources), xml_sources)
     labels = _maybe_run(make_local_name("labels", subpath="MESH"), pull_mesh_labels, regenerate, inputs=[mesh_nt])
+    rdf_source = make_local_name("rdf_source.json", subpath="MESH")
     registry = make_local_name("registry.tsv", subpath="MESH")
     return _maybe_run(
-        registry, lambda: write_mesh_registry(desc, supp, labels, registry), regenerate, inputs=[desc, supp, labels]
+        registry,
+        lambda: write_mesh_registry(
+            desc, supp, labels, registry, rdf_source_file=rdf_source, xml_sources_file=xml_sources
+        ),
+        regenerate,
+        inputs=[desc, supp, labels, rdf_source, xml_sources],
     )
 
 
@@ -310,11 +319,17 @@ def mesh_pipeline_outputs(mesh_nt, mesh_registry, regenerate):
     def p(compendium):
         return _intermediate_id_path(compendium, "MESH")
 
-    _maybe_run(p("chemicals"), lambda: chemicals.write_mesh_ids(p("chemicals"), mesh_registry), regenerate)
-    _maybe_run(p("protein"), lambda: protein.write_mesh_ids(p("protein")), regenerate)
-    _maybe_run(p("anatomy"), lambda: anatomy.write_mesh_ids(p("anatomy")), regenerate)
-    _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_mesh_ids(p("diseasephenotype")), regenerate)
-    _maybe_run(p("taxon"), lambda: taxon.write_mesh_ids(p("taxon"), mesh_registry), regenerate)
+    writers = {
+        "chemicals": chemicals.write_mesh_ids,
+        "protein": protein.write_mesh_ids,
+        "anatomy": anatomy.write_mesh_ids,
+        "diseasephenotype": diseasephenotype.write_mesh_ids,
+        "taxon": taxon.write_mesh_ids,
+    }
+    for name, write in writers.items():
+        _maybe_run(
+            p(name), lambda write=write, name=name: write(p(name), mesh_registry), regenerate, inputs=[mesh_registry]
+        )
 
     return {
         "chemicals": p("chemicals"),
@@ -394,7 +409,7 @@ def umls_rrf_files():
 
 
 @pytest.fixture(scope="session")
-def umls_pipeline_outputs(umls_rrf_files, mesh_pipeline_outputs, regenerate):
+def umls_pipeline_outputs(umls_rrf_files, mesh_pipeline_outputs, mesh_registry, regenerate):
     """Run write_umls_ids for all seven compendia; returns dict of output paths.
 
     The five MeSH-owning pipelines (config.yaml: umls_mesh_owning_pipelines) apply MeSH ownership, so this
@@ -439,9 +454,10 @@ def umls_pipeline_outputs(umls_rrf_files, mesh_pipeline_outputs, regenerate):
             ownership,
             blocklist_files_by_pipeline={"disease": badumlsfile},
             non_mesh_umls_ids_files=non_mesh_umls_ids,
+            mesh_registry=mesh_registry,
         ),
         regenerate,
-        inputs=[mrconso, badumlsfile, *mesh_ids_by_pipeline.values(), *non_mesh_umls_ids],
+        inputs=[mrconso, badumlsfile, mesh_registry, *mesh_ids_by_pipeline.values(), *non_mesh_umls_ids],
     )
 
     writers = {

@@ -81,13 +81,15 @@ rule disease_ncit_ids:
 
 rule disease_mesh_ids:
     input:
-        config["download_directory"] + "/MESH/mesh.nt",
+        infile=config["download_directory"] + "/MESH/mesh.nt",
+        # Records with an NCBI Taxon registry number are left to taxon (#1240).
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
     output:
         outfile=config["intermediate_directory"] + "/disease/ids/MESH",
     benchmark:
         config["output_directory"] + "/benchmarks/disease_mesh_ids.tsv"
     run:
-        diseasephenotype.write_mesh_ids(output.outfile)
+        diseasephenotype.write_mesh_ids(output.outfile, input.mesh_registry)
 
 
 rule disease_umls_ids:
