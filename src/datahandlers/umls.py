@@ -519,9 +519,10 @@ DEFAULT_ACCEPTABLE_TTYS = MappingProxyType(
 # join existing cliques that have not been reviewed yet; see docs/sources/UMLS/GO.md.
 #
 # Considered and rejected: falling back to a GO term's SY/ET atoms when none of its PT/MTH_PT atoms is in an
-# in-scope CUI. Against the 2026jul22 build that restores only 65 process joins, mostly narrow entry terms
-# ("inhibition of X" for "negative regulation of X") and some plainly wrong ones ("cellular process" for
-# GO:0042995 "cell projection"). See docs/sources/UMLS/GO.md for the numbers and how to regenerate them.
+# in-scope CUI. Against the 2026jul22 build that restores only 61 process joins: about a dozen close synonyms, but
+# mostly narrow entry terms ("inhibition of X" for "negative regulation of X") and some plainly wrong ones ("growth
+# cone collapse" for GO:0070571 "negative regulation of neuron projection regeneration"), which a rule by term type
+# can't tell apart. docs/sources/UMLS/GO.md has the numbers, GO/fallback_joins.tsv the full list.
 GO_PREFERRED_TTYS = frozenset({"PT", "MTH_PT"})
 
 
