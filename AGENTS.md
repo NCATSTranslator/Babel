@@ -190,7 +190,7 @@ The node output schema is in `NodeFactory.create_node()`'s docstring in `src/nod
 - **Leftover UMLS** — `src/createcompendia/leftover_umls.py` (rule `leftover_umls`) runs last and
   writes every unclaimed valid MRCONSO concept as a single-identifier clique into
   `compendia/umls.txt` so its label survives downstream. Manual Biolink-type override tables and
-  their drift test: [`docs/sources/CLAUDE.md`](docs/sources/CLAUDE.md) and
+  their drift test: [`docs/sources/AGENTS.md`](docs/sources/AGENTS.md) and
   `docs/sources/UMLS/Leftover.md`.
 - **DuckDB export** — `src/snakefiles/duckdb.snakefile` builds a queryable DuckDB database
   (`Node`/`Clique`/`Edge`/`Conflation`) alongside the JSONL compendia (schema in
@@ -225,10 +225,10 @@ The node output schema is in `NodeFactory.create_node()`'s docstring in `src/nod
 
 Source-specific notes live under `docs/sources/<PREFIX>/` — see
 [`docs/sources/README.md`](docs/sources/README.md) for the index and
-[`docs/sources/CLAUDE.md`](docs/sources/CLAUDE.md) for cross-cutting xref/data-quality conventions
+[`docs/sources/AGENTS.md`](docs/sources/AGENTS.md) for cross-cutting xref/data-quality conventions
 (read it before adding or filtering a source's cross-references). Developer tools each live in
-`src/tools/<tool>/` with their own `CLAUDE.md`, documented in `docs/tools/`; see
-`src/tools/CLAUDE.md` for the "thin CLI frontend" convention.
+`src/tools/<tool>/` with their own `AGENTS.md`, documented in `docs/tools/`; see
+`src/tools/AGENTS.md` for the "thin CLI frontend" convention.
 
 ## Running Babel
 
@@ -289,11 +289,11 @@ its class (`write_compendium()` silently drops such CURIEs — check, don't assu
 clique to a class that doesn't register their prefix — see `docs/AddingNewSources.md`).
 **Generate and commit the report** (`uv run source-impact-report --source <SOURCE>`) and, for
 changes that *restructure* existing cliques, follow up with `babel-clique-diff` — see
-`src/tools/source_impact_report/CLAUDE.md` and `src/tools/clique_diff/CLAUDE.md` for the tool
+`src/tools/source_impact_report/AGENTS.md` and `src/tools/clique_diff/AGENTS.md` for the tool
 internals.
 
 Use `retries: 3` (not `retries: 10`) on network-backed Snakemake rules (UberGraph, FTP, HTTP) — see
-`docs/AddingNewSources.md` step 4 for why. `src/tools/slurm/CLAUDE.md` covers analyzing a
+`docs/AddingNewSources.md` step 4 for why. `src/tools/slurm/AGENTS.md` covers analyzing a
 (possibly partial) run on the cluster.
 
 ## Conventions
@@ -301,8 +301,8 @@ Use `retries: 3` (not `retries: 10`) on network-backed Snakemake rules (UberGrap
 Point-of-use conventions live where they apply: process-level guidance for adding/enhancing an
 ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandler code rules
 (attribute files, IRI parsing, pyoxigraph, file-path args) are in
-[`src/datahandlers/CLAUDE.md`](src/datahandlers/CLAUDE.md); test conventions are in
-[`tests/CLAUDE.md`](tests/CLAUDE.md). The rules below apply repo-wide.
+[`src/datahandlers/AGENTS.md`](src/datahandlers/AGENTS.md); test conventions are in
+[`tests/AGENTS.md`](tests/AGENTS.md). The rules below apply repo-wide.
 
 - **Configuration over constants** — `config.yaml` records the *big decisions that shape a build*:
   which ontologies a pipeline includes, which version of a download is used, which prefixes are
@@ -414,7 +414,7 @@ the build: `DRUGBANK:DB09341` "Dextrose, unspecified form" reaches the D-glucose
 Normalization — never from the concords that fed it.
 
 To measure a change to a compendium-building function, replaying it over a finished build's
-`intermediate/` is seconds where a rebuild is hours — see `docs/sources/CLAUDE.md` ("Replaying a
+`intermediate/` is seconds where a rebuild is hours — see `docs/sources/AGENTS.md` ("Replaying a
 pipeline function beats rebuilding to measure a change") for how, and for what it cannot show.
 
 When a bug fix is easy to cover with a test, suggest adding one as part of the fix.

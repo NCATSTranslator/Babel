@@ -121,7 +121,7 @@ def _render_curie_entry(
 ) -> str:
     """Render one CURIE as a bullet line with OBO PURL + preferred label, if available.
 
-    Mirrors the documentation convention from CLAUDE.md:
+    Mirrors the documentation convention from AGENTS.md:
     ``[`PREFIX:NNN`](http://purl.obolibrary.org/obo/PREFIX_NNN) "preferred label"``.
     Falls back gracefully when the expander or label is missing so the renderer doesn't
     break for prefixes that aren't in the Biolink prefix map or for terms that have no

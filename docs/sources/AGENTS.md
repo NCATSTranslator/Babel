@@ -1,9 +1,9 @@
 # AGENTS.md — docs/sources/
 
-Cross-cutting conventions for working with source/cross-reference data, for Claude Code. Per-source
-narrative docs (what a source is, how it's ingested) live in `docs/sources/<PREFIX>/` — see
-[`README.md`](README.md) for the index; add there, not here, when you learn something non-obvious
-about one specific source.
+Cross-cutting conventions for working with source/cross-reference data, for coding agents.
+Per-source narrative docs (what a source is, how it's ingested) live in `docs/sources/<PREFIX>/` —
+see [`README.md`](README.md) for the index; add there, not here, when you learn something
+non-obvious about one specific source.
 
 ## Investigating a source: commit the check, not the conclusion
 
@@ -229,7 +229,7 @@ Biolink prefix filter would drop, then the largest cliques, then CURIE order for
 blind `rows[:N]` over a CURIE-sorted file keeps an arbitrary identifier-range prefix and can hide
 exactly the problems the artifact exists to surface. `write_new_cliques_csv` in
 `src/reports/source_impact_details.py` is the worked example; see
-[`src/tools/source_impact_report/CLAUDE.md`](../../src/tools/source_impact_report/CLAUDE.md).
+[`src/tools/source_impact_report/AGENTS.md`](../../src/tools/source_impact_report/AGENTS.md).
 
 ### Aggregate when rows are not the unit of interest
 

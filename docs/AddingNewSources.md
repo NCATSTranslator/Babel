@@ -150,7 +150,7 @@ took GARD from 14,319 stranded single-identifier cliques to 277, and the disease
 258 cliques instead of 14,319. See [`docs/sources/MONDO/README.md`](sources/MONDO/README.md).
 
 This does **not** license trusting every `hasDbXref` — most are not equivalences, and the reasons
-are in [`docs/sources/CLAUDE.md`](sources/CLAUDE.md). It means the question deserves asking per
+are in [`docs/sources/AGENTS.md`](sources/AGENTS.md). It means the question deserves asking per
 namespace rather than being settled once per source. Two signals worth weighing:
 
 - **A 1:1 mapping is strong evidence of curation.** When N terms on one side map to exactly N on the
@@ -209,7 +209,7 @@ Optional expansion files: `download.md`, `filtering.md`, `mappings.md`.
 The PR itself is read by a subject-matter expert rather than a code reviewer, so lead its
 description with what the addition does to existing cliques and how the source will be
 represented, and put each judgement call to them as a checkbox. See "Writing the PR for a new
-source" in [`docs/sources/CLAUDE.md`](sources/CLAUDE.md) for the section order that works, and
+source" in [`docs/sources/AGENTS.md`](sources/AGENTS.md) for the section order that works, and
 [#781](https://github.com/NCATSTranslator/Babel/pull/781) for the worked example.
 
 Wherever a doc file mentions a specific ontology term by CURIE, link it to its OBO PURL

@@ -15,6 +15,6 @@ default), and the only efficiency-report columns it *consumes* are `RequestedMem
 `efficiency_report_<uuid>.csv` shard per Snakemake restart (each covering only that invocation's
 jobs); `parse.py` merges them all, so copy the whole directory when archiving a run.
 
-This tool is a documented exception to the "thin CLI frontend" rule in `src/tools/CLAUDE.md`:
+This tool is a documented exception to the "thin CLI frontend" rule in `src/tools/AGENTS.md`:
 `parse.py` models Snakemake `benchmark:` TSVs and SLURM `.err` logs, not Babel data, so it has
 nothing to hoist into `src/` and no pipeline rule will ever import it.

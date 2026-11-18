@@ -1,6 +1,6 @@
 # AGENTS.md — tests/
 
-Point-of-use conventions for writing Babel tests, for Claude Code. For the test taxonomy (the four
+Point-of-use conventions for writing Babel tests, for coding agents. For the test taxonomy (the four
 `unit`/`network`/`slow`/`pipeline` marks, the `min_memory_gb` guard) and *where* a new test belongs,
 see [`README.md`](README.md) — this file only covers how to write one once you know where it goes.
 

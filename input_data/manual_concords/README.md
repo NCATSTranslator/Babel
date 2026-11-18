@@ -95,4 +95,4 @@ then reads it like every other disease concord.
 - **HP and MP never share a clique.** `split_mutually_exclusive_cliques()` runs once all concords
   are applied and peels MP out of any clique that also holds HP.
 - To see what a row does before a build, replay `build_compendium()` over a finished build's
-  `intermediate/` (`docs/sources/CLAUDE.md`, "Replaying a pipeline function beats rebuilding").
+  `intermediate/` (`docs/sources/AGENTS.md`, "Replaying a pipeline function beats rebuilding").
