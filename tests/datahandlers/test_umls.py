@@ -554,9 +554,11 @@ def test_build_sets_go_term_type_restriction(tmp_path):
 
 
 @pytest.mark.unit
-def test_pull_umls_skips_go_atoms_of_other_go_terms(tmp_path):
+def test_pull_umls_skips_go_atoms_of_other_go_terms(tmp_path, monkeypatch):
     """A CUI's GO atoms should become synonyms only when they carry one of the CUI's own GO preferred-term codes;
-    a CUI with no GO preferred term (C2249862) should keep all of its GO atoms."""
+    a CUI with no GO preferred term (C2249862) should keep all of its GO atoms. Each CUI's synonyms should be written
+    in sorted order, and pull_umls() should find input_data/umls_precedence.txt from any working directory."""
+    monkeypatch.chdir(tmp_path)
     mrconso = write_mrconso(tmp_path, C1152464_ROWS + GO_0045943_ROWS[2:3])
 
     labels_file, synonyms_file = str(tmp_path / "UMLS_labels"), str(tmp_path / "UMLS_synonyms")
@@ -569,13 +571,13 @@ def test_pull_umls_skips_go_atoms_of_other_go_terms(tmp_path):
         ("UMLS:C1152464", "cardiolipin synthase activity"),
         ("UMLS:C2249862", "activation of transcription from RNA polymerase I promoter"),
     }
-    synonyms = {(curie, synonym) for curie, _, synonym in assert_synonyms_file_valid(synonyms_file)}
-    assert synonyms == {
+    synonyms = [(curie, synonym) for curie, _, synonym in assert_synonyms_file_valid(synonyms_file)]
+    assert synonyms == [
         ("UMLS:C1152464", "cardiolipin synthase activity"),
-        ("UMLS:C1152464", "diphosphatidylglycerol synthase activity"),
         ("UMLS:C1152464", "cardiolipin synthetase activity"),
+        ("UMLS:C1152464", "diphosphatidylglycerol synthase activity"),
         ("UMLS:C2249862", "activation of transcription from RNA polymerase I promoter"),
-    }
+    ]
 
 
 @pytest.mark.unit

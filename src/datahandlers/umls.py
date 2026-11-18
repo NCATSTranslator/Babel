@@ -12,7 +12,7 @@ from src.categories import CHEMICAL_ENTITY, DRUG, MOLECULAR_MIXTURE
 from src.metadata.provenance import write_concord_metadata, write_download_metadata
 from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import MESH, RXCUI, UMLS
-from src.util import get_logger
+from src.util import get_logger, get_repo_root
 
 logger = get_logger(__name__)
 
@@ -614,7 +614,8 @@ def build_sets(
 
 
 def read_umls_priority():
-    mrp = os.path.join("input_data", "umls_precedence.txt")
+    # Resolved from the repo root, not the working directory, so pull_umls() works (and is testable) from anywhere.
+    mrp = get_repo_root() / "input_data" / "umls_precedence.txt"
     pris = []
     with open(mrp) as inf:
         _header = inf.readline()
@@ -818,9 +819,10 @@ def pull_umls(mrconso, umls_labels, umls_synonyms, snomed_labels, snomed_synonym
             labels.write(f"{UMLS}:{cui}\t{crows[0][1]}\n")
             own_go_codes = go_preferred_codes.get(cui)
             syns = set(term for _, term, go_code in crows if not is_other_go_term_atom(go_code, own_go_codes))
-            for s in syns:
+            # Sorted so that the synonyms file is the same from one run to the next (set order varies with hashing).
+            for s in sorted(syns):
                 # Skip any synonyms that are purely numerical, since those are unlikely to be useful.
                 if re_numerical.fullmatch(s):
-                    logging.debug(f"Found numerical synonym '{s}' in UMLS, skipping")
+                    logger.debug("Found numerical synonym %r in UMLS, skipping", s)
                     continue
                 synonyms.write(f"{UMLS}:{cui}\t{HAS_EXACT_SYNONYM}\t{s}\n")
