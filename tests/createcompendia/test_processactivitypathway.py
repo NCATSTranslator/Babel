@@ -69,3 +69,25 @@ def test_classify_process_clique():
     assert classify_process_clique({"REACT:1", "REACT:2", "UMLS:1"}, types) == PATHWAY
     assert classify_process_clique({"REACT:1", "UMLS:1"}, types) == PATHWAY
     assert classify_process_clique({"UMLS:2"}, types) is None
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "clique,types,message",
+    [
+        pytest.param(
+            {"GO:1", "REACT:1"}, {"REACT:1": PATHWAY}, "GO term GO:1 .* has no declared type", id="untyped-go"
+        ),
+        pytest.param(
+            {"REACT:1", "UMLS:1"},
+            {"REACT:1": PATHWAY, "UMLS:1": "biolink:Disease"},
+            r"declared \['biolink:Disease'\]",
+            id="vote-with-unexpected-type",
+        ),
+    ],
+)
+def test_classify_process_clique_raises_on_untypable_input(clique, types, message):
+    """A clique the pipeline cannot type should raise a ValueError naming the problem, not a bare KeyError or the
+    ValueError of a failed list.index()."""
+    with pytest.raises(ValueError, match=message):
+        classify_process_clique(clique, types)

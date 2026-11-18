@@ -170,13 +170,23 @@ def classify_process_clique(equivalent_ids, types):
 
     Returns the biolink type string, or ``None`` if no member of the clique has a declared type. Used both by
     ``create_typed_sets`` (the real build) and by the source-impact report, via the ``clique_classifier`` hook in
-    ``PIPELINE_CONFIG``, so the report labels each clique with the type the build would assign. A clique whose GO term
-    is missing from ``types`` raises KeyError, as create_typed_sets() always has.
+    ``PIPELINE_CONFIG``, so the report labels each clique with the type the build would assign.
+
+    :raises ValueError: for a clique whose GO term has no declared type (it reached the clique through a concord but
+        is in no ids file, e.g. an obsolete GO term), or for a GO-less clique that would be decided by a vote and whose
+        members declare a type outside Pathway, BiologicalProcess and MolecularActivity. Either means an ids or concord
+        file holds something this pipeline was not built to type, so guessing would be worse than stopping.
     """
     order = [PATHWAY, BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY]
     prefixes = get_prefixes(equivalent_ids)
     if GO in prefixes:
-        return types[prefixes[GO][0]]
+        go_term = prefixes[GO][0]
+        if go_term not in types:
+            raise ValueError(
+                f"GO term {go_term} in process clique {sorted(equivalent_ids)} has no declared type: it is in no "
+                "process ids file"
+            )
+        return types[go_term]
     typecounts = defaultdict(int)
     for eid in equivalent_ids:
         if eid in types:
@@ -185,6 +195,11 @@ def classify_process_clique(equivalent_ids, types):
         return None
     if len(typecounts) == 1:
         return next(iter(typecounts))
+    unexpected = sorted(set(typecounts) - set(order))
+    if unexpected:
+        raise ValueError(
+            f"Process clique {sorted(equivalent_ids)} has members declared {unexpected}, which is not one of {order}"
+        )
     # First attempt is majority vote, and after that by most specific
     otypes = [(-c, order.index(t), t) for t, c in typecounts.items()]
     otypes.sort()
