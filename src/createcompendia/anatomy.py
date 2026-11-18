@@ -186,11 +186,14 @@ def write_go_ids(outfile):
     write_obo_ids(_obo_id_roots(GO), outfile)
 
 
-def write_mesh_ids(outfile):
+def write_mesh_ids(outfile, mesh_registry):
+    """Write the anatomy ids/MESH. Records with an NCBI Taxon registry number in mesh_registry (rule
+    get_mesh_registry's TSV) are left to taxon, whatever tree they are in; mesh.write_ids() decides that (#1240).
+    """
     meshmap = {f"A{str(i).zfill(2)}": ANATOMICAL_ENTITY for i in range(1, 21)}
     meshmap["A11"] = CELL
     meshmap["A11.284"] = CELLULAR_COMPONENT
-    mesh.write_ids(meshmap, outfile)
+    mesh.write_ids(meshmap, outfile, pipeline="anatomy", mesh_registry=mesh_registry)
 
 
 def write_umls_ids(mrsty, outfile, *, mesh_ownership=None):

@@ -12,7 +12,15 @@ from src.util import LoggingUtil
 logger = LoggingUtil.init_logging(__name__, level=logging.ERROR)
 
 
-def write_mesh_ids(outfile):
+def write_mesh_ids(outfile, mesh_registry):
+    """Write the taxon ids/MESH: MeSH trees B01-B05, the SCR_Organism records, and every record with an NCBI
+    Taxon registry number in mesh_registry (rule get_mesh_registry's TSV).
+
+    NLM gives a handful of virus SCRs the record class SCR_Chemical but also an NCBI Taxon registry number,
+    e.g. MESH:C000626778 "maize chlorotic mottle virus" (txid12138). The registry number is the more specific
+    statement, so mesh.write_ids() adds them here and leaves them out of every other pipeline's ids/MESH; with
+    their MeSH ID here, rule umls_mesh_ownership gives their UMLS CUIs to taxon as well (#1240).
+    """
     # Get the B tree,
     # B01	Eukaryota
     # B02	Archaea
@@ -20,8 +28,14 @@ def write_mesh_ids(outfile):
     # B04	Viruses
     # B05	Organism Forms
     meshmap = {f"B{str(i).zfill(2)}": ORGANISM_TAXON for i in range(1, 6)}
-    # Also add anything from SCR_Chemical, if it doesn't have a tree map
-    mesh.write_ids(meshmap, outfile, order=[ORGANISM_TAXON], extra_vocab={"SCR_Organism": ORGANISM_TAXON})
+    mesh.write_ids(
+        meshmap,
+        outfile,
+        order=[ORGANISM_TAXON],
+        extra_vocab={"SCR_Organism": ORGANISM_TAXON},
+        pipeline="taxon",
+        mesh_registry=mesh_registry,
+    )
 
 
 def write_umls_ids(mrsty, outfile, *, mesh_ownership=None):
@@ -86,11 +100,18 @@ def build_taxon_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
     )
 
 
-def build_relationships(outfile, mesh_ids, metadata_yaml):
-    regis = mesh.pull_mesh_registry()
-    # with open(mesh_ids) as inf:
-    # lines = inf.read().strip().split("\n")
-    # all_mesh_taxa = set([x.split("\t")[0] for x in lines])
+def build_relationships(outfile, metadata_yaml, *, mesh_registry, mesh_rdf_source, mesh_xml_sources):
+    """Write MeSH-NCBITaxon xrefs from the MeSH registry numbers that are NCBI Taxon IDs ("txid...").
+
+    mesh_registry is rule get_mesh_registry's TSV; mesh_rdf_source and mesh_xml_sources are the download records
+    that mesh_registry_sources() reads for the metadata.
+
+    The registry is not filtered by the taxon ids/MESH: mesh.write_ids() puts every record with a txid there and
+    in no other pipeline's ids/MESH, so the two agree. Rule umls_mesh_ownership checks that they still do
+    (umls.mesh_records_owned_by_taxon()) before any compendium is built, and records these MeSH IDs as taxon's,
+    so another pipeline's compendium build skips a concord pair that names one (#1240).
+    """
+    regis = mesh.read_mesh_registry(mesh_registry)
     with open(outfile, "w") as outf:
         for meshid, reg in regis:
             # The mesh->ncbi are in mesh as registration numbers that start with a "tx"
@@ -106,13 +127,7 @@ def build_relationships(outfile, mesh_ids, metadata_yaml):
         metadata_yaml,
         name="build_relationships()",
         description="Builds relationships between MeSH and NCBI Taxon from the MeSH registry.",
-        sources=[
-            {
-                "type": "MeSH",
-                "name": "MeSH Registry",
-                "url": "ftp://ftp.nlm.nih.gov/online/mesh/rdf/mesh.nt.gz",
-            }
-        ],
+        sources=mesh.mesh_registry_sources(mesh_rdf_source, mesh_xml_sources),
         concord_filename=outfile,
     )
 

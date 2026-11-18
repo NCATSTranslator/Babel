@@ -58,7 +58,10 @@ def write_umls_ids(mrsty, outfile, *, mesh_ownership=None):
     )
 
 
-def write_mesh_ids(outfile):
+def write_mesh_ids(outfile, mesh_registry):
+    """Write the protein ids/MESH. Records with an NCBI Taxon registry number in mesh_registry (rule
+    get_mesh_registry's TSV) are left to taxon, whatever tree they are in; mesh.write_ids() decides that (#1240).
+    """
     # MeSH protein trees — these are terms excluded from the chemical compendium
     # (see chemicals.write_mesh_ids) that belong in the protein compendium instead.
     #
@@ -104,6 +107,8 @@ def write_mesh_ids(outfile):
         order=[PROTEIN],
         extra_vocab={"SCR_Chemical": PROTEIN},
         scr_include_trees=list(meshmap.keys()),
+        pipeline="protein",
+        mesh_registry=mesh_registry,
     )
 
 

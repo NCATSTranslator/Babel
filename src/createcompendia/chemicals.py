@@ -354,7 +354,13 @@ def write_pubchem_ids(labelfile, smilesfile, outfile):
                 outf.write(f"{x}\t{CHEMICAL_ENTITY}\n")
 
 
-def write_mesh_ids(outfile):
+def write_mesh_ids(outfile, mesh_registry):
+    """Write the chemical ids/MESH from MeSH trees D01-D26 and the SCR_Chemical records, leaving out every record
+    with an NCBI Taxon registry number in mesh_registry (rule get_mesh_registry's TSV).
+
+    Those are virus SCRs that NLM classes as SCR_Chemical but links to an NCBI Taxon ID, e.g. MESH:C000626778
+    "maize chlorotic mottle virus"; mesh.write_ids() leaves them to taxon (#1240).
+    """
     # MeSH D tree — chemical-related subtrees.
     # Included as CHEMICAL_ENTITY (via the D01–D26 base range):
     #   D01  Inorganic Chemicals
@@ -436,6 +442,8 @@ def write_mesh_ids(outfile):
         order=["EXCLUDE", POLYPEPTIDE, COMPLEX_MOLECULAR_MIXTURE, CHEMICAL_ENTITY],
         extra_vocab={"SCR_Chemical": CHEMICAL_ENTITY},
         scr_exclude_trees=excluded_trees,
+        pipeline="chemicals",
+        mesh_registry=mesh_registry,
     )
 
 
@@ -1102,13 +1110,28 @@ def make_chebi_relations(sdf, dbx, dbx_source, dbx_status, outfile, propfile_gz,
     )
 
 
-def get_mesh_relationships(mesh_id_file, cas_out, unii_out, cas_metadata, unii_metadata):
+def get_mesh_relationships(
+    mesh_id_file,
+    cas_out,
+    unii_out,
+    cas_metadata,
+    unii_metadata,
+    *,
+    mesh_registry,
+    mesh_rdf_source,
+    mesh_xml_sources,
+):
+    """Write MeSH-CAS and MeSH-UNII xrefs from the registry numbers of the chemical MeSH IDs in mesh_id_file.
+
+    mesh_registry is rule get_mesh_registry's TSV; the other mesh_* arguments are the download records that
+    mesh_registry_sources() reads for the metadata.
+    """
     meshes = set()
     with open(mesh_id_file) as inf:
         for line in inf:
             x = line.split("\t")
             meshes.add(x[0])
-    regis = mesh.pull_mesh_registry()
+    regis = mesh.read_mesh_registry(mesh_registry)
     with open(cas_out, "w") as casout, open(unii_out, "w") as uniiout:
         for meshid, reg in regis:
             if meshid not in meshes:
@@ -1124,15 +1147,11 @@ def get_mesh_relationships(mesh_id_file, cas_out, unii_out, cas_metadata, unii_m
                 # is a unii?
                 uniiout.write(f"{meshid}\txref\tUNII:{reg}\n")
 
+    sources = mesh.mesh_registry_sources(mesh_rdf_source, mesh_xml_sources)
     write_concord_metadata(
         cas_metadata,
         name="get_mesh_relationships()",
-        sources=[
-            {
-                "type": "MeSH Registry",
-                "name": "MeSH Registry",
-            }
-        ],
+        sources=sources,
         description=f"get_mesh_relationships() iterates through the MeSH registry, filters it to the MeSH IDs "
         f"in {mesh_id_file}, then writes out CAS mappings to {cas_out}",
         concord_filename=cas_out,
@@ -1141,12 +1160,7 @@ def get_mesh_relationships(mesh_id_file, cas_out, unii_out, cas_metadata, unii_m
     write_concord_metadata(
         unii_metadata,
         name="get_mesh_relationships()",
-        sources=[
-            {
-                "type": "MeSH Registry",
-                "name": "MeSH Registry",
-            }
-        ],
+        sources=sources,
         description=f"get_mesh_relationships() iterates through the MeSH registry, filters it to the MeSH IDs "
         f"in {mesh_id_file}, then writes out non-CAS mappings (i.e. UNII mappings) to {unii_out}",
         concord_filename=unii_out,
