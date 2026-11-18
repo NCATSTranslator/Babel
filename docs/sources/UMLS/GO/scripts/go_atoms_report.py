@@ -24,7 +24,6 @@ Usage (from the repository root):
 
 import argparse
 import contextlib
-import glob
 import io
 import json
 import os
@@ -41,6 +40,7 @@ from src.datahandlers.umls import (
     is_other_go_term_atom,
     read_umls_priority,
 )
+from src.util import get_config
 
 
 def read_go_atoms(mrconso):
@@ -71,13 +71,29 @@ def read_go_atoms(mrconso):
     )
 
 
+def pipeline_inputs(intermediate, pipeline, config_key):
+    """Return a pipeline's (concord files, ids files) in config.yaml's order, which is the order its compendium rule
+    passes them in. The order matters: glom() keeps the first CURIE of a unique prefix that it sees."""
+    config = get_config()
+    concords = [f"{intermediate}/{pipeline}/concords/{source}" for source in config[f"{config_key}_concords"]]
+    ids = [f"{intermediate}/{pipeline}/ids/{source}" for source in config[f"{config_key}_ids"]]
+    return concords, ids
+
+
+def mesh_ownership_file(intermediate):
+    """The build's umls_mesh_ownership output, or None for an intermediate directory from before that rule."""
+    path = f"{intermediate}/umls/mesh_ownership.tsv"
+    return path if os.path.exists(path) else None
+
+
 def process_cliques(intermediate, umls_concord):
-    """Replay the process/activity clique build with the given UMLS concord file, which must be named "UMLS" (the
-    pipeline recognizes its UMLS concord by name)."""
-    concords = [f"{intermediate}/process/concords/{source}" for source in ("GO", "RHEA")] + [umls_concord]
-    dicts, _ = processactivitypathway.compute_cliques_for_impact_report(
-        concords, sorted(glob.glob(f"{intermediate}/process/ids/*"))
-    )
+    """Replay the process/activity clique build with the given UMLS concord file in place of the build's own. The
+    file must be named "UMLS" (the pipeline recognizes its UMLS concord by name)."""
+    concords, ids = pipeline_inputs(intermediate, "process", "process")
+    concords = [umls_concord if os.path.basename(c) == "UMLS" else c for c in concords]
+    if umls_concord not in concords:
+        raise ValueError(f"config.yaml's process_concords has no UMLS concord to replace with {umls_concord}")
+    dicts, _ = processactivitypathway.compute_cliques_for_impact_report(concords, ids)
     return dicts
 
 
@@ -110,11 +126,14 @@ def main():
     report = {"CUIs with GO atoms": len(go_atoms)}
     with contextlib.redirect_stdout(io.StringIO()):
         anat, _ = anatomy.compute_cliques_for_impact_report(
-            sorted(glob.glob(f"{inter}/anatomy/concords/[A-Z]*")), sorted(glob.glob(f"{inter}/anatomy/ids/*"))
+            *pipeline_inputs(inter, "anatomy", "anatomy"), mesh_ownership=mesh_ownership_file(inter)
         )
     anatomy_go = go_by_cui(anat)
 
     joined = {}
+    # The fallback variant's process cliques alone, without anatomy's: whether a restored pair made a join is a
+    # question about the process build, and anatomy's GO cliques would credit it with joins it did not make.
+    fallback_process_go = None
     with tempfile.TemporaryDirectory() as tmp:
         variants = {"all": DEFAULT_ACCEPTABLE_TTYS, "preferred": {**DEFAULT_ACCEPTABLE_TTYS, "GO": GO_PREFERRED_TTYS}}
         concords = {}
@@ -144,14 +163,19 @@ def main():
                 report[f"{name}: process UMLS-GO concord pairs"] = sum(1 for _ in f)
             with contextlib.redirect_stdout(io.StringIO()):
                 cui_go = go_by_cui(process_cliques(inter, path))
+            if name == "fallback":
+                fallback_process_go = {cui: set(gos) for cui, gos in cui_go.items()}
             for cui, gos in anatomy_go.items():
                 cui_go[cui] |= gos
             joined[name] = cui_go
             report[f"{name}: CUIs with GO atoms that end up in a clique with GO"] = len(cui_go.keys() & go_atoms.keys())
 
-    restored_joined = [(cui, code) for cui, _, code in restored if cui[len("UMLS:") :] in joined["fallback"]]
+    # A restored pair joined if its CUI ends up in a process clique with that pair's own GO term.
+    restored_joined = [
+        (cui, code) for cui, _, code in restored if code in fallback_process_go.get(cui[len("UMLS:") :], ())
+    ]
     report["fallback: pairs added to preferred"] = len(restored)
-    report["fallback: added pairs whose CUI ends up in a clique with GO"] = len(restored_joined)
+    report["fallback: added pairs whose CUI ends up in a process clique with that GO term"] = len(restored_joined)
     report["fallback: examples of added joins"] = [
         f"{cui} {code} " + "; ".join(f"{t} {s!r}" for t, c, s in go_atoms[cui[len("UMLS:") :]] if c == code)
         # Ten examples spread across the list, rather than the lowest CUIs.
