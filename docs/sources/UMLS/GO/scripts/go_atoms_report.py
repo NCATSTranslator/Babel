@@ -166,8 +166,7 @@ def main():
         for name, path in concords.items():
             with open(path) as f:
                 report[f"{name}: process UMLS-GO concord pairs"] = sum(1 for _ in f)
-            with contextlib.redirect_stdout(io.StringIO()):
-                cui_go = go_by_cui(process_cliques(inter, path))
+            cui_go = go_by_cui(process_cliques(inter, path))
             if name == "fallback":
                 fallback_process_go = {cui: set(gos) for cui, gos in cui_go.items()}
             for cui, gos in anatomy_go.items():
