@@ -426,6 +426,53 @@ def _anatomy_concord_pair_filter(parts, infile, dicts):
     return True
 
 
+def find_uberon_snomed_xrefs_to_review(uberon_concord, umls_concord, bad_pairs):
+    """Return {(UBERON CURIE, SNOMEDCT CURIE): {reason, ...}} for UBERON SNOMED xrefs whose join needs review.
+
+    UBERON's SNOMED xrefs (renamed from SCTID by config.yaml: anatomy_xref_prefixes) join an UBERON term to
+    whichever UMLS concept holds that SNOMED code. That is right when the concept is the same thing, and wrong
+    in two shapes, which this flags:
+
+    - "UMLS concept holds other SNOMED codes": UMLS has lumped this SNOMED code with others, so the xref also
+      joins whatever those mean (UMLS files "Structure of dentition" under its "Tooth" concept).
+    - "UBERON term reaches several UMLS concepts": the term's SNOMED xrefs land in more than one concept and
+      merge them all, which is wrong when one is narrower (left and right margin of tongue).
+
+    Both shapes include many correct joins (synonyms, SNOMED's structure/entire pairs), so a flagged xref is a
+    question for a person, not a drop. The answers are input_data/anatomy_badxrefs.txt (drop) and
+    docs/sources/UBERON/umls-joins/snomed-xref-review.csv (reviewed and kept); a pipeline test fails on a
+    flagged xref in neither. `bad_pairs` (frozensets, as in the anatomy concord filter) are removed first, so
+    a pair dropped there neither is flagged nor makes another one look lumped.
+    """
+
+    def rows(path):
+        with open(path) as inf:
+            for line in inf:
+                subject, _, target = line.rstrip("\n").split("\t")
+                if frozenset((subject, target)) not in bad_pairs:
+                    yield subject, target
+
+    cui_snomeds, snomed_cuis = defaultdict(set), defaultdict(set)
+    for cui, target in rows(umls_concord):
+        if target.startswith(f"{SNOMEDCT}:"):
+            cui_snomeds[cui].add(target)
+            snomed_cuis[target].add(cui)
+    uberon_snomeds = defaultdict(set)
+    for uberon, target in rows(uberon_concord):
+        if uberon.startswith(f"{UBERON}:") and target.startswith(f"{SNOMEDCT}:"):
+            uberon_snomeds[uberon].add(target)
+
+    flagged = defaultdict(set)
+    for uberon, snomeds in uberon_snomeds.items():
+        reached = {cui for snomed in snomeds for cui in snomed_cuis[snomed]}
+        for snomed in snomeds:
+            if any(len(cui_snomeds[cui]) > 1 for cui in snomed_cuis[snomed]):
+                flagged[(uberon, snomed)].add("UMLS concept holds other SNOMED codes")
+            if len(reached) > 1 and snomed_cuis[snomed]:
+                flagged[(uberon, snomed)].add("UBERON term reaches several UMLS concepts")
+    return dict(flagged)
+
+
 def compute_cliques_for_impact_report(concordances, identifiers, excluded_sources=(), badxrefs=None):
     """Load anatomy identifier and concord files and return the union-find clique state
     without writing compendia.
