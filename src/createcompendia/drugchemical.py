@@ -361,6 +361,7 @@ def build_conflation(
     logger.info("Loading information content values...")
     ic_factory = InformationContentFactory(icrdf_filename)
 
+    # How to write a row of this file, and what one really joins: input_data/manual_concords/README.md.
     logger.info("Loading manual concords ...")
     manual_concords = []
     manual_concords_curies = set()

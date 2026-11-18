@@ -121,6 +121,11 @@ The first identifier in `identifiers` is the preferred identifier for the clique
 Rather than loading entire datasets into memory up front, they load data on demand and cache
 results. This is important because many source files are gigabytes in size.
 
+`InformationContentFactory` is the exception: it reads all of `icRDF.tsv` (~3.9 million rows)
+when it is built. A pipeline that writes one compendium per Biolink type should write them
+with `write_typed_compendia()` (`src/model/compendia.py`). That function builds one factory
+and passes it to every `write_compendium()` call, so the file is not reloaded for each output.
+
 ### TSVSQLiteLoader
 
 `TSVSQLiteLoader` (in [`src/node.py`](../src/node.py)) loads tab-separated files into in-memory
@@ -224,6 +229,13 @@ a build unusable downstream fail it instead:
   [`docs/sources/UMLS/CuiFollowsMesh.md`](sources/UMLS/CuiFollowsMesh.md)) or, for a duplicate an
   issue accepts for now, add the row with that issue. Member-level duplicates
   (`duplicate_curies.tsv`) stay report-only.
+- **A MeSH dump behind UMLS.** When `mesh_year` lags `umls_version`, UMLS's MSH codes point at
+  MeSH records the dump doesn't have, so their CUIs reach the compendia without a MeSH label, type
+  or tree position. `rule check_umls_mesh_skew` (`src/snakefiles/reports.snakefile`) reads
+  `reports/umls_mesh_skew.json` and raises when more codes are missing than
+  `umls_mesh_skew_max_missing_codes`. Unlike the check above, it runs early: `rule
+  umls_mesh_ownership` waits for it, so the five MeSH-owning pipelines stop before building their
+  compendia. See [`docs/sources/MeSH/Ingestion.md`](sources/MeSH/Ingestion.md#source-data).
 
 ## Output directories
 

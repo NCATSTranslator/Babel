@@ -232,14 +232,37 @@ rule get_uniprotkb_labels:
 rule get_mesh:
     output:
         config["download_directory"] + "/MESH/mesh.nt",
+        # The dump's URL, SHA-1 and MeSH year, for the registry concords' metadata.
+        rdf_source=config["download_directory"] + "/MESH/rdf_source.json",
     benchmark:
         config["output_directory"] + "/benchmarks/get_mesh.tsv"
     retries: 3  # MeSH FTP download occasionally fails transiently.
     resources:
         mem="8G",
         cpus_per_task=1,
+    params:
+        # A param, so that changing mesh_year reruns the download.
+        mesh_year=config["mesh_year"],
     run:
-        mesh.pull_mesh()
+        mesh.pull_mesh(params.mesh_year, output.rdf_source)
+
+
+# The MeSH XML is only used for registry numbers (CAS, UNII, NCBITaxon), which the RDF dump no longer carries.
+rule get_mesh_xml:
+    output:
+        config["download_directory"] + "/MESH/desc.xml.gz",
+        config["download_directory"] + "/MESH/supp.xml.gz",
+        # Each file's URL (current or archived directory), SHA-1 and NLM timestamp, for the registry concords'
+        # metadata. NLM publishes no checksums for the XML, and the current year's can change between downloads.
+        xml_sources=config["download_directory"] + "/MESH/xml_sources.json",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_mesh_xml.tsv"
+    retries: 3  # MeSH FTP download occasionally fails transiently.
+    params:
+        # A param, so that changing mesh_year reruns the download.
+        mesh_year=config["mesh_year"],
+    run:
+        mesh.pull_mesh_xml(params.mesh_year, output.xml_sources)
 
 
 rule get_mesh_labels:
@@ -251,6 +274,31 @@ rule get_mesh_labels:
         config["output_directory"] + "/benchmarks/get_mesh_labels.tsv"
     run:
         mesh.pull_mesh_labels()
+
+
+# Registry numbers (CAS, UNII, EC, NCBI Taxon) of the MeSH records in the RDF dump, parsed once from the XML for
+# rules get_chemical_mesh_relationships and get_taxon_relationships.
+rule get_mesh_registry:
+    input:
+        desc_xml=config["download_directory"] + "/MESH/desc.xml.gz",
+        supp_xml=config["download_directory"] + "/MESH/supp.xml.gz",
+        labels=config["download_directory"] + "/MESH/labels",
+        # Checked to be for the same MeSH year before the XML is filtered against the dump's labels.
+        rdf_source=config["download_directory"] + "/MESH/rdf_source.json",
+        xml_sources=config["download_directory"] + "/MESH/xml_sources.json",
+    output:
+        config["download_directory"] + "/MESH/registry.tsv",
+    benchmark:
+        config["output_directory"] + "/benchmarks/get_mesh_registry.tsv"
+    run:
+        mesh.write_mesh_registry(
+            input.desc_xml,
+            input.supp_xml,
+            input.labels,
+            output[0],
+            rdf_source_file=input.rdf_source,
+            xml_sources_file=input.xml_sources,
+        )
 
 
 rule get_mesh_synonyms:
@@ -715,7 +763,7 @@ rule get_rhea_labels:
     benchmark:
         config["output_directory"] + "/benchmarks/get_rhea_labels.tsv"
     run:
-        rhea.make_labels(output.labelfile)
+        rhea.make_labels(input.infile, output.labelfile)
 
 
 ### EC

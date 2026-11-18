@@ -49,6 +49,14 @@ REQUIRED_FILES = [
     "reports/duckdb/prefix_report.json",
 ]
 
+# Fixed-name files that only builds from some point on have. Archived when present, skipped when not.
+# A file belongs here, not in REQUIRED_FILES, while some build that may still be (re-)archived predates it.
+OPTIONAL_FILES = [
+    # Added by #1144: 2026jul22 and earlier lack it, and 2026jul22 is still re-archivable. Every later build
+    # has it, because rule umls_mesh_ownership waits for rule check_umls_mesh_skew, which reads it.
+    "reports/umls_mesh_skew.json",
+]
+
 # Per-compendium files, globbed rather than listed: the set follows config.yaml's compendium list,
 # and enumerating that here would mean importing from src/.
 GLOB_PATTERNS = ["metadata/*.yaml", "reports/content/compendia/*.json"]
@@ -86,6 +94,8 @@ def build_name_for(release: str, manifest_path: Path) -> str:
 def resolve_manifest(build_dir: Path) -> list[str]:
     """The build-relative paths to archive, sorted.
 
+    Includes each of :data:`OPTIONAL_FILES` the build has.
+
     :raises FileNotFoundError: if any of :data:`REQUIRED_FILES` is absent, naming all of them -- one
         report at a time would mean re-running the whole thing per missing file.
     :raises ValueError: if either glob matches nothing, which means the build shape has changed and
@@ -95,7 +105,7 @@ def resolve_manifest(build_dir: Path) -> list[str]:
     if missing:
         raise FileNotFoundError(f"{build_dir} is missing {len(missing)} required file(s): " + ", ".join(missing))
 
-    paths = list(REQUIRED_FILES)
+    paths = list(REQUIRED_FILES) + [name for name in OPTIONAL_FILES if (build_dir / name).is_file()]
     for pattern in GLOB_PATTERNS:
         matched = sorted(str(p.relative_to(build_dir)) for p in build_dir.glob(pattern))
         if not matched:

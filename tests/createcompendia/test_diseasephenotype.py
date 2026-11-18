@@ -35,6 +35,7 @@ import pytest
 from src.babel_utils import glom, norm, remove_overused_xrefs, unique_prefixes_from_config
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
+from src.model import compendia
 from src.model.intermediates import MalformedConcordRowError
 from src.prefixes import DOID, GARD, ICD10CM, MONDO
 from src.ubergraph import build_sets
@@ -918,7 +919,8 @@ def test_build_compendium_passes_the_extra_prefixes_through():
     with (
         patch.object(diseasephenotype, "compute_cliques_for_impact_report", return_value=({}, {})),
         patch.object(diseasephenotype, "create_typed_sets", return_value={DISEASE: [["MONDO:1"]]}),
-        patch.object(diseasephenotype, "write_compendium") as mock_write,
+        patch.object(compendia, "InformationContentFactory"),
+        patch.object(compendia, "write_compendium") as mock_write,
     ):
         diseasephenotype.build_compendium([], {}, [], None, {}, "icRDF.tsv")
 
@@ -942,7 +944,8 @@ def test_extra_prefixes_are_looked_up_per_biolink_class():
     with (
         patch.object(diseasephenotype, "compute_cliques_for_impact_report", return_value=({}, {})),
         patch.object(diseasephenotype, "create_typed_sets", return_value=typed),
-        patch.object(diseasephenotype, "write_compendium") as mock_write,
+        patch.object(compendia, "InformationContentFactory"),
+        patch.object(compendia, "write_compendium") as mock_write,
     ):
         diseasephenotype.build_compendium([], {}, [], None, {}, "icRDF.tsv")
 
@@ -1037,7 +1040,7 @@ def test_badxrefs_files_are_registered_for_the_concords_they_name():
     """Every DEFAULT_BAD_XREFS key must name a concord the disease build actually produces.
 
     A bad-xrefs file has to be registered in two places (this dict and the disease_compendia rule),
-    and a key matching no concord silently filters nothing -- the footgun docs/sources/CLAUDE.md
+    and a key matching no concord silently filters nothing -- the footgun docs/sources/AGENTS.md
     warns about. compute_cliques_for_impact_report() raises on an unknown key, but only once it has
     a concord list to check against; this pins the dict itself against config.yaml."""
     known_concords = set(get_config()["disease_concords"])

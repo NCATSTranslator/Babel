@@ -25,7 +25,7 @@ single member the prefix renames moved.
 
 MONDO is not at fault. Its concord's most-shared target is claimed by just two subjects — i.e.
 essentially 1:1 curated exact matches — and the `MONDO:0019064 -> DOID:2476` edge is correct. Every
-many-to-one edge here is DOID's. This is the failure mode [`docs/sources/CLAUDE.md`](../CLAUDE.md)
+many-to-one edge here is DOID's. This is the failure mode [`docs/sources/AGENTS.md`](../AGENTS.md)
 documents under "An OBO `hasDbXref` is not an equivalence".
 
 ## Why the filter is scoped to ICD, and why it is a filter rather than an exclusion
@@ -206,7 +206,7 @@ DOID is in `OVERUSE_FILTERED_CONCORDS` **scoped to ICD**, so overuse outside ICD
   boundary — see `input_data/umls_badxrefs.txt` and `input_data/badHPx.txt`. The upstream error is
   that `UMLS:C0015306` "Hereditary Multiple Exostoses" and `NCIT:C3339` "Familial Adenomatous
   Polyposis", both diseases, sit inside HP phenotype cliques; those pairs work around it rather
-  than fixing it. This is the check [`docs/sources/CLAUDE.md`](../CLAUDE.md) describes under "Where
+  than fixing it. This is the check [`docs/sources/AGENTS.md`](../AGENTS.md) describes under "Where
   an identifier ends up is a claim about it".
 
 - [ ] **EFO and HP emit ICD xrefs too** (62 and 46 rows), and MONDO emits 2,030 under the other

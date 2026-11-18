@@ -10,11 +10,11 @@ from src.babel_utils import (
     read_badxrefs,
     remove_overused_xrefs,
     unique_prefixes_from_config,
-    write_compendium,
 )
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
 from src.metadata.provenance import write_concord_metadata
 from src.model.cliques import glom_from_files
+from src.model.compendia import write_typed_compendia
 from src.prefixes import CL, EMAPA, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import HIERARCHY_PART_OF, UberGraph, build_sets
 from src.util import Text, get_logger, get_repo_root
@@ -26,7 +26,7 @@ logger = get_logger(__name__)
 # diseasephenotype's DEFAULT_BAD_XREFS this is a single file applied to every anatomy concord
 # rather than a per-concord mapping: a pair names both of its CURIEs, so there is nothing for a
 # per-concord key to disambiguate, and one file avoids the two-place-registration footgun described
-# in docs/sources/CLAUDE.md. See the file itself for why each pair is listed.
+# in docs/sources/AGENTS.md. See the file itself for why each pair is listed.
 #
 # Two consumers resolve this file: the real build, where the anatomy_compendia rule declares it as
 # an input (so an edit re-triggers the rule) and passes the path in, and the source-impact report,
@@ -186,11 +186,14 @@ def write_go_ids(outfile):
     write_obo_ids(_obo_id_roots(GO), outfile)
 
 
-def write_mesh_ids(outfile):
+def write_mesh_ids(outfile, mesh_registry):
+    """Write the anatomy ids/MESH. Records with an NCBI Taxon registry number in mesh_registry (rule
+    get_mesh_registry's TSV) are left to taxon, whatever tree they are in; mesh.write_ids() decides that (#1240).
+    """
     meshmap = {f"A{str(i).zfill(2)}": ANATOMICAL_ENTITY for i in range(1, 21)}
     meshmap["A11"] = CELL
     meshmap["A11.284"] = CELLULAR_COMPONENT
-    mesh.write_ids(meshmap, outfile)
+    mesh.write_ids(meshmap, outfile, pipeline="anatomy", mesh_registry=mesh_registry)
 
 
 def write_umls_ids(mrsty, outfile, *, mesh_ownership=None):
@@ -468,9 +471,7 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, b
         concordances, identifiers, badxrefs=badxrefs, mesh_ownership=mesh_ownership
     )
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
-    for biotype, sets in typed_sets.items():
-        baretype = biotype.split(":")[-1]
-        write_compendium(metadata_yamls, sets, f"{baretype}.txt", biotype, {}, icrdf_filename=icrdf_filename)
+    write_typed_compendia(metadata_yamls, typed_sets, icrdf_filename)
 
 
 def classify_anatomy_clique(equivalent_ids, types):

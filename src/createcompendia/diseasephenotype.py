@@ -14,11 +14,11 @@ from src.babel_utils import (
     read_identifier_file,
     remove_overused_xrefs,
     unique_prefixes_from_config,
-    write_compendium,
 )
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.datahandlers.gard import normalize_gard_curie
 from src.metadata.provenance import write_concord_metadata
+from src.model.compendia import write_typed_compendia
 from src.model.intermediates import read_concords
 from src.prefixes import (
     DOID,
@@ -271,7 +271,10 @@ def write_omim_ids(infile, outfile):
                 outf.write(f"{OMIM}:{chunks[0]}\t{DISEASE}\n")
 
 
-def write_mesh_ids(outfile):
+def write_mesh_ids(outfile, mesh_registry):
+    """Write the disease ids/MESH. Records with an NCBI Taxon registry number in mesh_registry (rule
+    get_mesh_registry's TSV) are left to taxon, whatever tree they are in; mesh.write_ids() decides that (#1240).
+    """
     # NOTE: C02 (Virus Diseases) and C03 (Parasitic Diseases) are intentionally absent
     # below.  Before adding them, verify that MESH terms in those trees have adequate
     # cross-references to MONDO (our primary disease source) and/or HPO (our primary
@@ -304,7 +307,9 @@ def write_mesh_ids(outfile):
     ]
     meshmap = {i: DISEASE for i in dcodes}
     meshmap["C23"] = PHENOTYPIC_FEATURE
-    mesh.write_ids(meshmap, outfile, order=[DISEASE, PHENOTYPIC_FEATURE])
+    mesh.write_ids(
+        meshmap, outfile, order=[DISEASE, PHENOTYPIC_FEATURE], pipeline="disease", mesh_registry=mesh_registry
+    )
 
 
 def write_umls_ids(mrsty, outfile, badumlsfile, *, mesh_ownership=None):
@@ -899,17 +904,12 @@ def build_compendium(
     # looked up per class rather than passed whole: an exemption argued for one class must not be
     # granted to the rest. A class with no entry gets nothing.
     extra_prefixes_by_class = get_config()["disease_extra_prefixes_by_biolink_class"]
-    for biotype, sets in typed_sets.items():
-        baretype = biotype.split(":")[-1]
-        write_compendium(
-            metadata_yamls,
-            sets,
-            f"{baretype}.txt",
-            biotype,
-            {},
-            extra_prefixes=extra_prefixes_by_class.get(biotype, []),
-            icrdf_filename=icrdf_filename,
-        )
+    write_typed_compendia(
+        metadata_yamls,
+        typed_sets,
+        icrdf_filename,
+        extra_prefixes_for=lambda biotype: extra_prefixes_by_class.get(biotype, []),
+    )
 
 
 def classify_disease_clique(equivalent_ids, types):

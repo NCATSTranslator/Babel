@@ -5,10 +5,11 @@ import src.datahandlers.obo as obo
 import src.datahandlers.reactome as reactome
 import src.datahandlers.rhea as rhea
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, remove_overused_xrefs, unique_prefixes_from_config, write_compendium
+from src.babel_utils import get_prefixes, remove_overused_xrefs, unique_prefixes_from_config
 from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
 from src.metadata.provenance import write_concord_metadata
 from src.model.cliques import glom_from_files
+from src.model.compendia import write_typed_compendia
 from src.prefixes import GO, REACT, TCDB, WIKIPATHWAYS
 from src.ubergraph import build_sets
 from src.util import get_logger
@@ -90,8 +91,8 @@ def build_process_obo_relationships(outdir, metadata_yaml):
     )
 
 
-def build_process_rhea_relationships(outfile, metadata_yaml):
-    rhea.make_concord(outfile, metadata_yaml)
+def build_process_rhea_relationships(infile, outfile, metadata_yaml):
+    rhea.make_concord(infile, outfile, metadata_yaml)
 
 
 # Concord pairs that cause problems and are dropped before glom.
@@ -159,9 +160,7 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
     :identifiers: a list of files from which to read identifiers and optional categories"""
     dicts, types = compute_cliques_for_impact_report(concordances, identifiers)
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
-    for biotype, sets in typed_sets.items():
-        baretype = biotype.split(":")[-1]
-        write_compendium(metadata_yamls, sets, f"{baretype}.txt", biotype, {}, icrdf_filename=icrdf_filename)
+    write_typed_compendia(metadata_yamls, typed_sets, icrdf_filename)
 
 
 def classify_process_clique(equivalent_ids, types):

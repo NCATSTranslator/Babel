@@ -31,12 +31,14 @@ rule chemical_rxnorm_ids:
 rule chemical_mesh_ids:
     input:
         infile=config["download_directory"] + "/MESH/mesh.nt",
+        # Records with an NCBI Taxon registry number are left to taxon (#1240).
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
     output:
         outfile=config["intermediate_directory"] + "/chemicals/ids/MESH",
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_mesh_ids.tsv"
     run:
-        chemicals.write_mesh_ids(output.outfile)
+        chemicals.write_mesh_ids(output.outfile, input.mesh_registry)
 
 
 rule chemical_pubchem_ids:
@@ -249,6 +251,9 @@ rule get_chemical_wikipedia_relationships:
 rule get_chemical_mesh_relationships:
     input:
         infile=config["intermediate_directory"] + "/chemicals/ids/MESH",
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
+        mesh_rdf_source=config["download_directory"] + "/MESH/rdf_source.json",
+        mesh_xml_sources=config["download_directory"] + "/MESH/xml_sources.json",
     output:
         casout=config["intermediate_directory"] + "/chemicals/concords/mesh_cas",
         uniout=config["intermediate_directory"] + "/chemicals/concords/mesh_unii",
@@ -258,7 +263,14 @@ rule get_chemical_mesh_relationships:
         config["output_directory"] + "/benchmarks/get_chemical_mesh_relationships.tsv"
     run:
         chemicals.get_mesh_relationships(
-            input.infile, output.casout, output.uniout, output.casout_metadata_yaml, output.uniout_metadata_yaml
+            input.infile,
+            output.casout,
+            output.uniout,
+            output.casout_metadata_yaml,
+            output.uniout_metadata_yaml,
+            mesh_registry=input.mesh_registry,
+            mesh_rdf_source=input.mesh_rdf_source,
+            mesh_xml_sources=input.mesh_xml_sources,
         )
 
 

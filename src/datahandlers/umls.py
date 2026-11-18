@@ -8,7 +8,8 @@ from zipfile import ZipFile
 
 import requests
 
-from src.categories import CHEMICAL_ENTITY, DRUG, MOLECULAR_MIXTURE
+from src.categories import CHEMICAL_ENTITY, DRUG, MOLECULAR_MIXTURE, ORGANISM_TAXON
+from src.datahandlers import mesh
 from src.metadata.provenance import write_concord_metadata, write_download_metadata
 from src.predicates import HAS_EXACT_SYNONYM
 from src.prefixes import MESH, RXCUI, UMLS
@@ -176,13 +177,57 @@ def compute_mesh_owners(cui_to_mesh, mesh_types_by_pipeline, never_add=None, uno
     return owners
 
 
-def write_mesh_ownership(
-    mrconso, mesh_ids_files_by_pipeline, outfile, *, blocklist_files_by_pipeline=None, non_mesh_umls_ids_files=()
-):
-    """Write the CUI -> owning pipeline map (compute_mesh_owners) that every MeSH-owning pipeline reads.
+def mesh_records_owned_by_taxon(mesh_registry, mesh_ids_files_by_pipeline):
+    """Return the ownership rows for the MeSH records that mesh.write_ids() gives to mesh.MESH_NCBITAXON_OWNER.
 
-    MRCONSO is parsed once here rather than once per pipeline, and every pipeline reads the same decision, so
-    no CUI can be dropped by one pipeline and not added by another.
+    Those are the records with an NCBI Taxon registry number (#1240). Leaving them out of every other pipeline's
+    ``ids/MESH`` is not enough on its own: a concord can still name one -- chemicals' PUBCHEM_MESH matches MeSH
+    labels without consulting ``chemicals/ids/MESH`` -- and glom() would then put it in that pipeline's
+    compendium as well as taxon's, where the duplicate-leader check cannot see it. As rows of the ownership file,
+    they reach read_cuis_owned_elsewhere(), so every other pipeline's compendium build skips a concord pair that
+    names one, exactly as it does for a CUI another pipeline owns.
+
+    Each row is keyed by the MeSH ID itself: ``MESH:C000626778 -> (taxon, MESH:C000626778, OrganismTaxon)``.
+
+    :param mesh_registry: rule get_mesh_registry's TSV.
+    :param mesh_ids_files_by_pipeline: pipeline -> its ``ids/MESH``, as for write_mesh_ownership().
+    :raises ValueError: if another pipeline's ``ids/MESH`` claims one of these records, or the owner's lacks
+        one. mesh.write_ids() makes both impossible, so either means an ids file was not written by it (or by an
+        older version); building on it would put a MeSH ID in two compendia.
+    """
+    owner = mesh.MESH_NCBITAXON_OWNER
+    with_ncbitaxon = mesh.read_mesh_ids_with_ncbitaxon(mesh_registry)
+    problems = []
+    for pipeline, path in sorted(mesh_ids_files_by_pipeline.items()):
+        claimed = with_ncbitaxon & read_mesh_ids_types([path]).keys()
+        if pipeline == owner and claimed != with_ncbitaxon:
+            missing = sorted(with_ncbitaxon - claimed)
+            problems.append(f"{pipeline}'s {path} lacks {len(missing)} (e.g. {', '.join(missing[:10])})")
+        elif pipeline != owner and claimed:
+            problems.append(f"{pipeline}'s {path} claims {len(claimed)} (e.g. {', '.join(sorted(claimed)[:10])})")
+    if problems:
+        raise ValueError(
+            f"MeSH records with an NCBI Taxon registry number in {mesh_registry} belong to {owner} alone, but "
+            + "; ".join(problems)
+            + ". mesh.write_ids() decides this; rerun the *_mesh_ids rules (#1240)."
+        )
+    return {meshid: (owner, meshid, ORGANISM_TAXON) for meshid in with_ncbitaxon}
+
+
+def write_mesh_ownership(
+    mrconso,
+    mesh_ids_files_by_pipeline,
+    outfile,
+    *,
+    blocklist_files_by_pipeline=None,
+    non_mesh_umls_ids_files=(),
+    mesh_registry=None,
+):
+    """Write the identifier -> owning pipeline map that every MeSH-owning pipeline reads.
+
+    Its rows are the CUIs compute_mesh_owners() gives an owner and, given ``mesh_registry``, the MeSH records
+    mesh_records_owned_by_taxon() returns. MRCONSO is parsed once here rather than once per pipeline, and every
+    pipeline reads the same decision, so no CUI can be dropped by one pipeline and not added by another.
 
     :param mrconso: The file path of MRCONSO.RRF.
     :param mesh_ids_files_by_pipeline: pipeline -> that pipeline's ``ids/MESH`` file, for every pipeline in
@@ -193,6 +238,8 @@ def write_mesh_ownership(
         ``never_add``.
     :param non_mesh_umls_ids_files: The ``ids/UMLS`` files of the pipelines that write no ``ids/MESH`` (gene,
         process); their CUIs are compute_mesh_owners()'s ``unownable``.
+    :param mesh_registry: rule get_mesh_registry's TSV, for mesh_records_owned_by_taxon(). Rule
+        umls_mesh_ownership always passes it; None writes CUI rows only.
     """
     never_add = {
         pipeline: {f"{UMLS}:{cui}" for cui in read_cui_blocklist(path)}
@@ -207,17 +254,27 @@ def write_mesh_ownership(
         never_add,
         unownable,
     )
+    mesh_rows = {}
+    if mesh_registry is not None:
+        mesh_rows = mesh_records_owned_by_taxon(mesh_registry, mesh_ids_files_by_pipeline)
+    rows = owners | mesh_rows
     with open(outfile, "w") as outf:
-        for cui in sorted(owners):
-            outf.write("\t".join((cui,) + owners[cui]) + "\n")
+        for curie in sorted(rows):
+            outf.write("\t".join((curie,) + rows[curie]) + "\n")
     counts = defaultdict(int)
     for pipeline, _, _ in owners.values():
         counts[pipeline] += 1
-    logger.info(f"MeSH ownership: {len(owners)} CUIs have an owning pipeline ({dict(sorted(counts.items()))}).")
+    logger.info(
+        f"MeSH ownership: {len(owners)} CUIs have an owning pipeline ({dict(sorted(counts.items()))}), and "
+        f"{len(mesh_rows)} MeSH records with an NCBI Taxon registry number are owned by taxon."
+    )
 
 
 def read_mesh_ownership(path):
-    """Read a write_mesh_ownership() file back into compute_mesh_owners()'s dict."""
+    """Read a write_mesh_ownership() file back into compute_mesh_owners()'s dict.
+
+    The keys are CUIs and, from mesh_records_owned_by_taxon(), MeSH IDs; apply_mesh_ownership() ignores the
+    MeSH rows, and read_cuis_owned_elsewhere() returns both."""
     owners = {}
     with open(path) as inf:
         for line in inf:
@@ -227,7 +284,8 @@ def read_mesh_ownership(path):
 
 
 def read_cuis_owned_elsewhere(mesh_ownership, pipeline):
-    """The CUIs a write_mesh_ownership() file gives to a pipeline other than ``pipeline``.
+    """The identifiers a write_mesh_ownership() file gives to a pipeline other than ``pipeline``: CUIs and, for
+    every pipeline but taxon, the MeSH records with an NCBI Taxon registry number (mesh_records_owned_by_taxon()).
 
     A MeSH-owning pipeline's compendium build skips every concord pair that names one of these.
     apply_mesh_ownership() takes such a CUI out of the pipeline's ``ids/UMLS``, and so out of every concord
@@ -290,6 +348,10 @@ def apply_mesh_ownership(output_lines, mesh_owners, pipeline, blocklist=frozense
     dropped = {}
     added = {}
     for cui, (owner, descriptor, biolink_type) in mesh_owners.items():
+        if cui.startswith(f"{MESH}:"):
+            # A MeSH record's own row (mesh_records_owned_by_taxon()): it is in its owner's ids/MESH already, and
+            # never in an ids/UMLS.
+            continue
         if owner == pipeline:
             if cui not in output_lines:
                 output_lines[cui] = [biolink_type]
