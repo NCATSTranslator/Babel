@@ -19,7 +19,7 @@ CHEBI:5931	skos:exactMatch	UNII:2ZM8CX04RZ	"Insulin and ""Insulin glargine"""	ht
 CHEBI:5931	skos:narrowMatch	RXCUI:1736859	Insulin and “insulin glargine 100 UNT/ML [Basaglar]”	https://github.com/TranslatorSRI/Babel/issues/356
 CHEBI:5931	skos:exactMatch	DRUGBANK:DB18001	"Insulin and ""Neutral Protamine Hagedorn (NPH) insulin"""	https://github.com/TranslatorSRI/Babel/issues/327
 CHEBI:5931	skos:exactMatch	UNII:D933668QVX	"Insulin and ""Insulin aspart"""	https://github.com/TranslatorSRI/Babel/issues/327
-CHEBI:5931	skos:exactMatch	UNII:AVT680JB39	"Insulin and ""Insulin pork"""	https://github.com/TranslatorSRI/Babel/issues/327
+CHEBI:5931	skos:closeMatch	UNII:AVT680JB39	"Insulin and ""Insulin pork"""	https://github.com/TranslatorSRI/Babel/issues/327
 CHEBI:5931	skos:exactMatch	UNII:54Q18076QB	"Insulin and ""Insulin degludec"""	https://github.com/TranslatorSRI/Babel/issues/327
 CHEBI:5931	skos:exactMatch	UNII:4FT78T86XV	"Insulin and ""Insulin detemir"""	https://github.com/TranslatorSRI/Babel/issues/327
 CHEBI:5931	skos:exactMatch	UNII:7XIY785AZD	"Insulin and ""Insulin glulisine"""	https://github.com/TranslatorSRI/Babel/issues/327
@@ -33,7 +33,7 @@ UNII:2S9ZZM9Q9V	skos:exactMatch	UMLS:C0796392	"UNII:2S9ZZM9Q9V includes UMLS:C07
 CHEBI:3395	skos:closeMatch	CHEBI:39585	CHEBI:3395 is carbidopa hydrate, CHEBI:39585 is the non-hydrate form	https://github.com/NCATSTranslator/Babel/issues/754
 PUBCHEM.COMPOUND:43805	skos:closeMatch	CHEBI:31941		https://github.com/NCATSTranslator/Babel/issues/715
 CHEBI:31941	skos:closeMatch	UMLS:C1314429	Formulation of this chemical?	https://github.com/NCATSTranslator/Babel/issues/715
-CHEBI:5931	skos:exactMatch	PUBCHEM.COMPOUND:16131099	"Insulin and ""Insulin Beef"" (PubChem). Nothing Babel ingests links this CID to UNII:576O9IZ534 ""INSULIN BEEF""; delete once #1225 joins them."	https://github.com/NCATSTranslator/Babel/issues/1171
-CHEBI:5931	skos:exactMatch	UNII:LWB6BD8SN9	"Insulin and ""INSULIN RABBIT"" (UNII), a clique of one in 2026jul22."	https://github.com/NCATSTranslator/Babel/issues/1171
-CHEBI:5931	skos:exactMatch	PUBCHEM.COMPOUND:118984376	"Insulin and ""Insulin rabbit"" (PubChem). FDA's UNII record for UNII:LWB6BD8SN9 names this CID, but Babel doesn't read that column; delete once #1225 joins them."	https://github.com/NCATSTranslator/Babel/issues/1171
-CHEBI:5931	skos:exactMatch	PUBCHEM.COMPOUND:16131098	"Insulin and ""Insulin Pork"" (PubChem). It has joined UNII:AVT680JB39 only since 2026jul22, through MESH:D061389; this row keeps it conflated if that link goes."	https://github.com/NCATSTranslator/Babel/issues/1171
+CHEBI:5931	skos:closeMatch	PUBCHEM.COMPOUND:16131099	"Insulin and ""Insulin Beef"" (PubChem). Nothing Babel ingests links this CID to UNII:576O9IZ534 ""INSULIN BEEF""; delete once #1225 joins them."	https://github.com/NCATSTranslator/Babel/issues/1171
+CHEBI:5931	skos:closeMatch	UNII:LWB6BD8SN9	"Insulin and ""INSULIN RABBIT"" (UNII), a clique of one in 2026jul22."	https://github.com/NCATSTranslator/Babel/issues/1171
+CHEBI:5931	skos:closeMatch	PUBCHEM.COMPOUND:118984376	"Insulin and ""Insulin rabbit"" (PubChem). FDA's UNII record for UNII:LWB6BD8SN9 names this CID, but Babel doesn't read that column; delete once #1225 joins them."	https://github.com/NCATSTranslator/Babel/issues/1171
+CHEBI:5931	skos:closeMatch	PUBCHEM.COMPOUND:16131098	"Insulin and ""Insulin Pork"" (PubChem). It has joined UNII:AVT680JB39 only since 2026jul22, through MESH:D061389; this row keeps it conflated if that link goes."	https://github.com/NCATSTranslator/Babel/issues/1171
