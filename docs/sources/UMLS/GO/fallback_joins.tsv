@@ -4,7 +4,6 @@ UMLS:C0033462	GO:0098689	latency-replication decision	ET prophage induction
 UMLS:C1149576	GO:0050829	defense response to Gram-negative bacterium	ET Gram-negative antibacterial peptide activity
 UMLS:C1149577	GO:0050830	defense response to Gram-positive bacterium	ET Gram-positive antibacterial peptide activity
 UMLS:C1149578	GO:0050831	male-specific defense response to bacterium	ET male-specific antibacterial peptide activity
-UMLS:C1158281	GO:0019331	anaerobic respiration, using ammonium as electron donor	ET anaerobic ammonium oxidation
 UMLS:C1327633	GO:0019068	virion assembly	ET phage assembly; ET bacteriophage assembly
 UMLS:C1622397	GO:0002019	regulation of renal output by angiotensin	ET angiotensin mediated control of renal output
 UMLS:C1656954	GO:0051661	maintenance of centrosome location	ET maintenance of centrosome localization

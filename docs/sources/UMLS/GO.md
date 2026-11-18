@@ -8,9 +8,16 @@ decide which GO atoms count, and this page records what each choice does to a re
 [`GO/scripts/go_atoms_report.py`](GO/scripts/go_atoms_report.py) regenerates every number below from
 MRCONSO and a finished build's `intermediate/` directory. It writes
 [`GO/go_atoms_report.json`](GO/go_atoms_report.json) and
-[`GO/fallback_joins.tsv`](GO/fallback_joins.tsv) from the 2026AA MRCONSO, the 2026jul22
-intermediates, and GO labels and UberGraph synonyms downloaded on 2026-11-18. The synonym counts
-depend on those GO names; the clique counts don't. The full command is in the script's docstring.
+[`GO/fallback_joins.tsv`](GO/fallback_joins.tsv), here from the UMLS 2026AB MRCONSO and GO labels
+and UberGraph synonyms downloaded on 2026-11-18. The synonym counts depend on those GO names; the
+clique counts don't. The full command is in the script's docstring.
+
+No build has used 2026AB yet (#1241 waits for MeSH 2027), so the `intermediate/` directory was
+2026jul22's with its UMLS files rebuilt from 2026AB: process's and anatomy's `ids/UMLS` and
+`umls/mesh_ownership.tsv` as `tests/pipeline/` writes them on the #1241 branch (with MeSH 2026, so
+anatomy's ownership is slightly skewed), and anatomy's `concords/UMLS` from
+`anatomy.build_anatomy_umls_relationships()`. Every other file, including the GO ids and concords,
+is 2026jul22's.
 
 ## Which GO atoms map a CUI to a GO term
 
@@ -24,15 +31,15 @@ drops every pair for that GO term.
 
 So the process/activity concord (`build_process_umls_relationships()`) passes
 `acceptable_ttys={**DEFAULT_ACCEPTABLE_TTYS, "GO": GO_PREFERRED_TTYS}` to `umls.build_sets()`, which
-keeps only the GO `PT` and `MTH_PT` atoms. Replayed over 2026jul22, this raises the number of CUIs
-with GO atoms that end up in a clique with a GO term from 26,407 to 35,846.
+keeps only the GO `PT` and `MTH_PT` atoms. Replayed as above, this raises the number of CUIs
+with GO atoms that end up in a clique with a GO term from 26,592 to 36,087.
 
 ### Considered and rejected: falling back to synonym atoms
 
 Restricting to preferred terms loses the GO terms whose `PT` is in a CUI outside the process
 semantic types, but which also have a `SY` or `ET` atom in a process CUI. Falling back to those
-atoms would add 172 pairs, and 61 of them would put the CUI in a process clique with that GO term;
-[`GO/fallback_joins.tsv`](GO/fallback_joins.tsv) lists all 61. About a dozen are close synonyms
+atoms would add 160 pairs, and 60 of them would put the CUI in a process clique with that GO term;
+[`GO/fallback_joins.tsv`](GO/fallback_joins.tsv) lists all 60. About a dozen are close synonyms
 ("maintenance of nucleus localization" for
 [`GO:0051658`](http://purl.obolibrary.org/obo/GO_0051658) "maintenance of nucleus location"). Most
 are narrower entry terms, and some are wrong:
@@ -82,18 +89,18 @@ activity" and [`GO:0090483`](http://purl.obolibrary.org/obo/GO_0090483)
 "phosphatidylglycerol-phosphatidylethanolamine phosphatidyltransferase activity". A CUI with no GO
 preferred term, like `C2249862`, keeps all its GO atoms, since those are its own names.
 
-Against 2026jul22, this drops 163 strings that are names of a different GO term from CUIs that join
-a GO clique (of 206 such strings), and 18 strings from CUIs that don't. The rule is
+Against 2026AB, this drops 176 strings that are names of a different GO term from CUIs that join
+a GO clique (of 195 such strings), and 15 strings from CUIs that don't. The rule is
 `umls.is_other_go_term_atom()`, which the report script imports.
 
-It keeps the other 43, because MRCONSO alone can't identify them:
+It keeps the other 19, because MRCONSO alone can't identify them:
 
-- 21 are on CUIs with more than one GO preferred term. All of those terms count as the CUI's own,
+- 10 are on CUIs with more than one GO preferred term. All of those terms count as the CUI's own,
   but it can join only one of them. For example, `C0021721` "Intercellular Junctions" joins
   [`GO:0030054`](http://purl.obolibrary.org/obo/GO_0030054) "cell junction" and keeps "cell-cell
   junction". Most of these CUIs are in anatomy, where
   [#1137](https://github.com/NCATSTranslator/Babel/issues/1137) covers them.
-- 22 are filed under the CUI's own GO code, but current GO gives that name only to another term.
+- 9 are filed under the CUI's own GO code, but current GO gives that name only to another term.
   Catching them would need GO's current names in `pull_umls()`, which reads only MRCONSO.
 
 Labels need no such check. `input_data/umls_precedence.txt` ranks GO's `PT` above every other GO
@@ -104,8 +111,8 @@ report confirms this: 0 such CUIs.
 
 GO's own synonyms reach a clique from UberGraph (`common/ubergraph/synonyms.jsonl`), so dropping
 every GO atom from UMLS synonyms looks harmless. It only is for CUIs that end up in a GO clique, and
-`pull_umls()` runs long before anyone knows which those are. Against 2026jul22, dropping every GO
-atom removes 40,399 strings from CUIs that never join a GO clique: leftover CUIs, CUIs whose GO term
+`pull_umls()` runs long before anyone knows which those are. Against 2026AB, dropping every GO atom
+removes 32,497 strings from CUIs that never join a GO clique: leftover CUIs, CUIs whose GO term
 is obsolete, CUIs whose pair the overuse filter dropped. For many of those CUIs, those strings are
-their only names. On CUIs that do join, it removes only 206 wrong-term strings and 2,860 strings
-that are no longer GO names; the other 102,642 were already names of that GO term.
+their only names. On CUIs that do join, it removes only 195 wrong-term strings and 2,695 strings
+that are no longer GO names; the other 103,393 were already names of that GO term.
