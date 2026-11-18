@@ -217,7 +217,9 @@ and how to add new checks or vocabularies.
 - **`pipeline/test_mesh.py`** (`pipeline`) — MeSH-specific targeted assertions
   ([issue #675](https://github.com/NCATSTranslator/Babel/issues/675)): chemicals must exclude
   D05 protein subtrees (D05.500, D05.875), D08 protein subtrees (D08.811, D08.622, D08.244),
-  and D12.776 — but must include D08.211 Coenzymes.
+  and D12.776 — but must include D08.211 Coenzymes. Also checks that `Mesh.get_registry()` still
+  yields txid, CAS and UNII registry numbers from the downloaded `mesh.nt`, since the taxon and
+  chemical MeSH concords are built from it and come out empty, without an error, if it yields none.
 
 - **`pipeline/test_umls.py`** (`pipeline`) — UMLS-specific targeted assertions:
   chemicals must not contain UMLS IDs claimed by the protein compendium.
