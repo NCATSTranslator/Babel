@@ -12,6 +12,7 @@ include: "src/snakefiles/diseasephenotype.snakefile"
 include: "src/snakefiles/process.snakefile"
 include: "src/snakefiles/chemical.snakefile"
 include: "src/snakefiles/drugchemical.snakefile"
+include: "src/snakefiles/chemicalparent.snakefile"
 include: "src/snakefiles/taxon.snakefile"
 include: "src/snakefiles/genefamily.snakefile"
 include: "src/snakefiles/leftover_umls.snakefile"
@@ -79,6 +80,7 @@ rule all_outputs:
         config["output_directory"] + "/reports/umls_done",
         config["output_directory"] + "/reports/macromolecular_complex_done",
         config["output_directory"] + "/reports/drugchemical_done",
+        config["output_directory"] + "/reports/chemicalparent_done",
         config["output_directory"] + "/reports/publications_done",
     output:
         x=config["output_directory"] + "/reports/outputs_done",

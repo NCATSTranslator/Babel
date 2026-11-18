@@ -147,9 +147,9 @@ loaded with that conflation turned on.
 
 ## Conflation files
 
-There are only two conflation files: `GeneProtein.txt` and `DrugChemical.txt`, corresponding to the
-two currently supported conflation methods. Both files have the same format: a JSONL file where each
-entry is a list of clique leaders (i.e. the first identifier for a clique in the
+There are three conflation files: `GeneProtein.txt`, `DrugChemical.txt` and `ChemicalParent.txt`,
+corresponding to the three currently supported conflation methods. All have the same format: a JSONL
+file where each entry is a list of clique leaders (i.e. the first identifier for a clique in the
 [Compendia files](#compendia-files)) that should be combined under that conflation. For example, the
 following entry indicates that if either `NCBIGene:2538` or `UniProtKB:P35575` is queried with
 GeneProtein conflation turned on, then a combined clique of both identifiers should be returned.
@@ -331,7 +331,8 @@ UniProt synonyms per entry).
 
 ### Conflation table (`filename={ConflationName}/Conflation.parquet`)
 
-Derived from the conflation JSONL files (`GeneProtein.txt`, `DrugChemical.txt`). One row per
+Derived from the conflation JSONL files (`GeneProtein.txt`, `DrugChemical.txt`,
+`ChemicalParent.txt`). One row per
 (conflation group, member CURIE):
 
 | Column             | Type   | Meaning                                              |

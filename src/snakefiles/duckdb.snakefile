@@ -102,7 +102,12 @@ rule export_all_conflations_to_duckdb:
         conflation_parquet_files=expand(
             "{od}/duckdb/parquet/filename={cn}/Conflation.parquet",
             od=config["output_directory"],
-            cn=[os.path.splitext(fn)[0] for fn in config["geneprotein_outputs"] + config["drugchemical_outputs"]],
+            cn=[
+                os.path.splitext(fn)[0]
+                for fn in config["geneprotein_outputs"]
+                + config["drugchemical_outputs"]
+                + config["chemicalparent_outputs"]
+            ],
         ),
     output:
         x=config["output_directory"] + "/duckdb/conflations_done",
