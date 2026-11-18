@@ -1,4 +1,4 @@
-# CLAUDE.md — docs/sources/
+# AGENTS.md — docs/sources/
 
 Cross-cutting conventions for working with source/cross-reference data, for Claude Code. Per-source
 narrative docs (what a source is, how it's ingested) live in `docs/sources/<PREFIX>/` — see

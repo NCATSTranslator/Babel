@@ -1,4 +1,4 @@
-# CLAUDE.md — src/tools/slurm/
+# AGENTS.md — src/tools/slurm/
 
 `babel-slurm-errors` and `babel-slurm-resources` analyze a (possibly partial) Snakemake-on-SLURM
 run. Full reference: [`docs/tools/Errors.md`](../../../docs/tools/Errors.md) and

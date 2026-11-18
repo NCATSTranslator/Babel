@@ -1,4 +1,4 @@
-# CLAUDE.md — src/datahandlers/
+# AGENTS.md — src/datahandlers/
 
 Code-level conventions for the ~35 data-source handlers, for Claude Code. Each module downloads,
 parses, and normalizes one external source into the per-source attribute files the factories in

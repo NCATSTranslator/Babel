@@ -1,4 +1,4 @@
-# CLAUDE.md — src/tools/
+# AGENTS.md — src/tools/
 
 Guidance for Claude Code when working under `src/tools/`. See `docs/tools/README.md` for the
 full convention, the tool index, and how to add a new tool — read it before adding one.

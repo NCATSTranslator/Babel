@@ -1,4 +1,4 @@
-# CLAUDE.md — tests/
+# AGENTS.md — tests/
 
 Point-of-use conventions for writing Babel tests, for Claude Code. For the test taxonomy (the four
 `unit`/`network`/`slow`/`pipeline` marks, the `min_memory_gb` guard) and *where* a new test belongs,
