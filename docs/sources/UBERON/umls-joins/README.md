@@ -35,7 +35,7 @@ UBERON's FMA xref.
 Biolink registers FMA for `biolink:AnatomicalEntity` but not `biolink:GrossAnatomicalStructure`, so
 `write_compendium()` drops an FMA CURIE from any clique typed gross anatomy. Joining UBERON to UMLS
 moves thousands of UMLS+FMA cliques into UBERON gross anatomy cliques:
-`GrossAnatomicalStructure.txt` now holds 5,079 FMA CURIEs, 3,023 of which main ships today, and all
+`GrossAnatomicalStructure.txt` now holds 5,080 FMA CURIEs, 3,023 of which main ships today, and all
 of them would be dropped without `config.yaml: anatomy_extra_prefixes_by_biolink_class`, which ships
 FMA as a temporary extra prefix. Biolink Model v4.4.6 registers FMA for gross anatomy
 ([biolink/biolink-model#1827](https://github.com/biolink/biolink-model/issues/1827)), so the entry
@@ -44,18 +44,21 @@ is removed once `config.yaml: biolink_version` reaches it
 
 ### Wrong xrefs dropped
 
-`input_data/anatomy_badxrefs.txt` drops 26 pairs that the new joins exposed, each with its reason:
+`input_data/anatomy_badxrefs.txt` drops 27 pairs that the new joins exposed, each with its reason:
 
-- four single wrong UBERON xrefs found in the clique diff:
+- five single wrong UBERON xrefs found in the clique diff:
   [`UBERON:0012456`](http://purl.obolibrary.org/obo/UBERON_0012456) "Merkel nerve ending" →
   `MESH:D018862` "Merkel Cells" (already merged the nerve ending with
   [`CL:0000242`](http://purl.obolibrary.org/obo/CL_0000242) "Merkel cell" on main),
   [`UBERON:0008883`](http://purl.obolibrary.org/obo/UBERON_0008883) "osteoid" → `FMA:66830`
   "Bone matrix",
   [`UBERON:0003691`](http://purl.obolibrary.org/obo/UBERON_0003691) "epidural space" →
-  `FMA:71228` "Cranial epidural space", and
+  `FMA:71228` "Cranial epidural space",
   [`UBERON:0002464`](http://purl.obolibrary.org/obo/UBERON_0002464) "nerve trunk" →
-  `SNOMEDCT:281248001` "Structure of nervous system of trunk";
+  `SNOMEDCT:281248001` "Structure of nervous system of trunk", and
+  [`UBERON:0018143`](http://purl.obolibrary.org/obo/UBERON_0018143) "transverse process of cervical
+  vertebra" → `FMA:9913` "Cervical rib", which is
+  [`UBERON:0018144`](http://purl.obolibrary.org/obo/UBERON_0018144) "cervical rib";
 - 21 found by reviewing the SNOMED joins (next section);
 - [`UBERON:0010168`](http://purl.obolibrary.org/obo/UBERON_0010168) "collection of eyelashes" →
   `MESH:D002923` "Cilia", the cell organelle (*cilia* is Latin for eyelashes). This predates the
@@ -118,29 +121,29 @@ the concords; it only makes the anatomy build run.
 
 ## What it does to the compendia
 
-A local anatomy build from the same downloads (UMLS 2026AA, UberGraph of 2026-11-18), compared with
-`babel-clique-diff` against main plus only the UberGraph query filter. The summaries are in
-[`clique-diff/`](./clique-diff/): `main-vs-branch` is the whole change, `main-vs-sctid` isolates
-the SNOMED rename, and `sctid-vs-branch` isolates UBERON's FMA xrefs. The SNOMED-only build was
-replayed from the full build's intermediates with UBERON's FMA xrefs removed; the other figures are
-from `scripts/compare_builds.py`.
+A local anatomy build from the same downloads (UMLS 2026AA, MeSH 2026, UberGraph of 2026-11-18),
+compared with `babel-clique-diff` against main at bdea0e5c plus only the UberGraph query filter. The
+summaries are in [`clique-diff/`](./clique-diff/): `main-vs-branch` is the whole change,
+`main-vs-sctid` isolates the SNOMED rename, and `sctid-vs-branch` isolates UBERON's FMA xrefs. The
+SNOMED-only build was replayed from the full build's intermediates with UBERON's FMA xrefs removed;
+the other figures are from `scripts/compare_builds.py`.
 
 | | main | this change |
 |---|---|---|
-| UMLS CUIs in UBERON cliques | 3,534 | 10,204 |
-| `AnatomicalEntity.txt` cliques | 147,548 | 140,893 |
+| UMLS CUIs in UBERON cliques | 3,551 | 10,221 |
+| `AnatomicalEntity.txt` cliques | 147,532 | 140,877 |
 | `GrossAnatomicalStructure.txt` cliques | 12,693 | 12,693 |
-| `Cell.txt` cliques | 9,207 | 9,204 |
-| `CellularComponent.txt` cliques | 9,470 | 9,458 |
+| `Cell.txt` cliques | 9,192 | 9,189 |
+| `CellularComponent.txt` cliques | 9,464 | 9,452 |
 | CURIEs dropped from every anatomy compendium | | 6 |
 
-- **Merges are small.** 4,201 cliques merge two main cliques, 1,249 merge three, and 11 merge four
+- **Merges are small.** 4,202 cliques merge two main cliques, 1,249 merge three, and 11 merge four
   or five. Almost all of the larger ones are an UBERON term with several UMLS synonyms, e.g.
   [`UBERON:0005351`](http://purl.obolibrary.org/obo/UBERON_0005351) "paraflocculus" or
   [`UBERON:0016925`](http://purl.obolibrary.org/obo/UBERON_0016925) "juxtaductal region of aortic
   arch".
 - **Retyping is expected.** 5,065 main cliques that hold a UMLS CUI but no UBERON term move from
-  `AnatomicalEntity.txt` to `GrossAnatomicalStructure.txt` because they now carry UBERON's type. 16
+  `AnatomicalEntity.txt` to `GrossAnatomicalStructure.txt` because they now carry UBERON's type. 17
   more move between anatomy and `Cell.txt`/`CellularComponent.txt`, mostly UMLS concepts that UMLS
   types as "Cell Component" (brain nuclei, nerve endings) joining their UBERON term.
 - **Six CURIEs are dropped**, all because a correct change moved them into a clique whose type
@@ -152,10 +155,10 @@ from `scripts/compare_builds.py`.
 - **13 UMLS CUIs move from one UBERON term to another**, often to a more specific one, e.g. "Medulla
   segment of fasciculus gracilis" to
   [`UBERON:0002653`](http://purl.obolibrary.org/obo/UBERON_0002653) "gracile fasciculus of medulla".
-- **No identifier lands in two compendia.** Of the CURIEs this change newly ships in anatomy (2,166
-  FMA, 1 SNOMEDCT), none is in a non-anatomy compendium of the 2026jul22 release. 174 anatomy CURIEs
-  are (157 MeSH, 10 UMLS, 6 NCIt and 1 SNOMEDCT, in Disease), the same 174 on main and on this
-  branch, so they predate it.
+- **No identifier lands in two compendia.** Of the CURIEs this change newly ships in anatomy (2,135
+  FMA, 1 SNOMEDCT), none is in a non-anatomy compendium of the 2026jul22 release. 183 anatomy CURIEs
+  are (128 MeSH, 46 UMLS, 8 NCIt and 1 SNOMEDCT, mostly in `OrganismTaxon` and `Disease`), the same
+  183 on main and on this branch, so they predate it.
 
 ### How many missed joins this fixes
 
@@ -163,15 +166,15 @@ from `scripts/compare_builds.py`.
 but no UBERON term, whose UMLS strings match exactly one UBERON label or exact synonym in a
 different clique. It is a heuristic for measuring recall, not a mapping, and it misses many. A
 candidate's bridge is counted only if the build can use it: codes are read with the build's own
-source map and obsolete-atom filter. On main it finds 8,903 candidates:
+source map and obsolete-atom filter. On main it finds 8,905 candidates:
 
 | Bridge between the pair | Candidates | Joined by the SNOMED rename | Joined by this change |
 |---|---|---|---|
 | UBERON's SNOMED xref is the CUI's SNOMED code | 2,731 | 2,729 | 2,729 |
 | UBERON's FMA xref is the CUI's FMA code | 2,959 | 0 | 2,943 |
 | both | 251 | 251 | 251 |
-| neither | 2,962 | 0 | 0 |
-| **total** | **8,903** | **2,980** | **5,923** |
+| neither | 2,964 | 0 | 0 |
+| **total** | **8,905** | **2,980** | **5,923** |
 
 [`missed-umls-links-sample.csv`](./missed-umls-links-sample.csv) is a sample spread across these
 groups. The full per-candidate list is regenerated to `data/uberon-umls/missed-umls-links.csv`.
@@ -181,7 +184,7 @@ by two UMLS concepts or two UBERON terms, so `remove_overused_xrefs()` drops it;
 concept joins a different UBERON term and anatomy keeps one UBERON term per clique; and one is the
 dropped epidural-space xref.
 
-Of the 2,962 with neither bridge, 2,136 are SNOMED CUIs where UBERON has no SNOMED xref, points at
+Of the 2,964 with neither bridge, 2,138 are SNOMED CUIs where UBERON has no SNOMED xref, points at
 the other half of SNOMED's structure/entire pair (below), or matches only an obsolete atom; 223 are
 FMA concepts UBERON does not xref; 2 have only a UWDA atom; 185 come only from sources such as
 LOINC, ICF or the veterinary SNOMED edition; and 416 are other UMLS-only concepts.

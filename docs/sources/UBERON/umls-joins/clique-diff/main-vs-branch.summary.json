@@ -1,7 +1,7 @@
 {
   "about": {
-    "after": "UBERON/UMLS joins: SCTID rename, UBERON FMA xrefs, FMA extra prefix, 26 new anatomy bad xrefs",
-    "before": "main",
+    "after": "UBERON/UMLS joins: SCTID rename, UBERON FMA xrefs, FMA extra prefix, 27 new anatomy bad xrefs",
+    "before": "main (bdea0e5c) plus the UberGraph query filter",
     "files": [
       "AnatomicalEntity.txt",
       "GrossAnatomicalStructure.txt",
@@ -12,10 +12,10 @@
   },
   "compendia": {
     "AnatomicalEntity.txt": {
-      "changed_before_cliques": 8109,
+      "changed_before_cliques": 8080,
       "clique_count": {
-        "after": 140893,
-        "before": 147548,
+        "after": 140877,
+        "before": 147532,
         "diff": -6655,
         "diff_percent": -4.51
       },
@@ -23,13 +23,13 @@
       "dropped_member_count": 2,
       "leader_changed_count": 0,
       "moved_member_count": 8263,
-      "regrouped_member_count": 2643
+      "regrouped_member_count": 2644
     },
     "Cell.txt": {
       "changed_before_cliques": 5,
       "clique_count": {
-        "after": 9204,
-        "before": 9207,
+        "after": 9189,
+        "before": 9192,
         "diff": -3,
         "diff_percent": -0.03
       },
@@ -42,8 +42,8 @@
     "CellularComponent.txt": {
       "changed_before_cliques": 14,
       "clique_count": {
-        "after": 9458,
-        "before": 9470,
+        "after": 9452,
+        "before": 9464,
         "diff": -12,
         "diff_percent": -0.13
       },
@@ -54,7 +54,7 @@
       "regrouped_member_count": 0
     },
     "GrossAnatomicalStructure.txt": {
-      "changed_before_cliques": 4622,
+      "changed_before_cliques": 4623,
       "clique_count": {
         "after": 12693,
         "before": 12693,

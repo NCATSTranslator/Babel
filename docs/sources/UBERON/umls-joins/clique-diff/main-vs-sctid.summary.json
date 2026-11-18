@@ -1,7 +1,7 @@
 {
   "about": {
-    "after": "SCTID rename, FMA extra prefix, 26 new anatomy bad xrefs",
-    "before": "main",
+    "after": "SCTID rename, FMA extra prefix, 27 new anatomy bad xrefs",
+    "before": "main (bdea0e5c) plus the UberGraph query filter",
     "files": [
       "AnatomicalEntity.txt",
       "GrossAnatomicalStructure.txt",
@@ -14,8 +14,8 @@
     "AnatomicalEntity.txt": {
       "changed_before_cliques": 4178,
       "clique_count": {
-        "after": 144145,
-        "before": 147548,
+        "after": 144129,
+        "before": 147532,
         "diff": -3403,
         "diff_percent": -2.31
       },
@@ -28,8 +28,8 @@
     "Cell.txt": {
       "changed_before_cliques": 4,
       "clique_count": {
-        "after": 9204,
-        "before": 9207,
+        "after": 9189,
+        "before": 9192,
         "diff": -3,
         "diff_percent": -0.03
       },
@@ -42,8 +42,8 @@
     "CellularComponent.txt": {
       "changed_before_cliques": 1,
       "clique_count": {
-        "after": 9470,
-        "before": 9470,
+        "after": 9464,
+        "before": 9464,
         "diff": 0,
         "diff_percent": 0.0
       },
@@ -54,7 +54,7 @@
       "regrouped_member_count": 0
     },
     "GrossAnatomicalStructure.txt": {
-      "changed_before_cliques": 3104,
+      "changed_before_cliques": 3106,
       "clique_count": {
         "after": 12693,
         "before": 12693,

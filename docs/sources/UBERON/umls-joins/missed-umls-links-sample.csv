@@ -65,19 +65,19 @@ UBERON:0010307,conjunctival fornix,UMLS:C0456207,Conjunctival fornix,SCTID+FMA,T
 UBERON:0011317,nerve to stylopharyngeus from glossopharyngeal nerve,UMLS:C0459309,Branch of glossopharyngeal nerve to stylopharyngeus,SCTID+FMA,True
 UBERON:0012401,small intestine smooth muscle circular layer,UMLS:C0227271,Circular layer of small intestine muscularis propria,SCTID+FMA,True
 UBERON:0014473,precentral fissure of cerebellum,UMLS:C0228476,Centrolingual cerebellar fissure,SCTID+FMA,True
-UBERON:0000446,septum of telencephalon,UMLS:C0598032,"Area, Septal",none,False
-UBERON:0001391,popliteus muscle,UMLS:C0442037,Popliteal,none,False
-UBERON:0001449,phalanx of pes,UMLS:C1959681,Structure of phalanx of toe,none,False
-UBERON:0001976,epithelium of esophagus,UMLS:C5923082,Entire esophageal epithelium,none,False
-UBERON:0002066,umbilical vein,UMLS:C4318473,Entire umbilical vein,none,False
-UBERON:0002199,integument,UMLS:C0870032,Skin & Subcutaneous Tissue,none,False
-UBERON:0003097,dorsal fin,UMLS:C1563144,Dorsal fin,none,False
-UBERON:0005486,venous dural sinus,UMLS:C4512343,Entire dural sinus,none,False
-UBERON:0006462,S3 segment of sacral spinal cord,UMLS:C4514060,Entire third sacral spinal cord segment,none,False
-UBERON:0007521,smooth muscle sphincter,UMLS:C1267212,Smooth muscle sphincter,none,False
-UBERON:0035480,surface of prostate,UMLS:C4514292,Entire surface of prostate,none,False
-UBERON:0035925,central sulcus of insula,UMLS:C4514147,Entire central sulcus of insula,none,False
-UBERON:2005270,depressor muscle,UMLS:C0448302,Depressor muscle,none,False
-UBERON:4300180,isthmus,UMLS:C3496406,isthmus,none,False
-UBERON:8480020,perivesical space,UMLS:C2951535,Perivesical space,none,False
-UBERON:8480045,subiliac lymph node,UMLS:C4512645,Entire subiliac lymph node,none,False
+UBERON:0000094,membrane organ,UMLS:C1959648,Membrane organ structure,none,False
+UBERON:0001580,levator labii superioris,UMLS:C0448295,Entire levator labii superioris,none,False
+UBERON:0002389,manual digit,UMLS:C0851278,Finger,none,False
+UBERON:0002761,inferior frontal sulcus,UMLS:C4514146,Entire inferior frontal sulcus,none,False
+UBERON:0002887,basal amygdaloid nucleus,UMLS:C3496405,basal nucleus of the amygdala (Amaral),none,False
+UBERON:0004319,distal phalanx of pedal digit 5,UMLS:C4318472,Entire distal phalanx of little toe,none,False
+UBERON:0006461,S2 segment of sacral spinal cord,UMLS:C4514059,Entire second sacral spinal cord segment,none,False
+UBERON:0007177,lamina propria of mucosa of colon,UMLS:C4512641,Entire colonic lamina propria,none,False
+UBERON:0011532,female pubococcygeus muscle,UMLS:C1267097,Entire Pubovaginalis muscle,none,False
+UBERON:0012401,small intestine smooth muscle circular layer,UMLS:C4512340,Entire circular layer of small intestine muscularis propria,none,False
+UBERON:0013278,canal of Nuck,UMLS:C0392914,Canal of Nuck,none,False
+UBERON:0013477,blowhole,UMLS:C1562974,Blow hole,none,False
+UBERON:0027371,striosome,UMLS:C0597968,striosome,none,False
+UBERON:0034688,spermatic fascia,UMLS:C4514271,Entire spermatic fascia,none,False
+UBERON:0035805,muscle layer of sigmoid colon,UMLS:C5922808,Entire muscularis propria of sigmoid colon,none,False
+UBERON:8480018,posterior pararenal space,UMLS:C2951227,Posterior pararenal space,none,False
