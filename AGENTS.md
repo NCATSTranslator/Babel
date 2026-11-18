@@ -3,11 +3,19 @@
 This file provides guidance to coding agents — Claude Code, Codex, Cursor, and others — when
 working with code in this repository. It is the canonical, agent-agnostic instruction file.
 
-**This repository has no `CLAUDE.md` files, and `tests/test_agent_files.py` keeps it that way.**
-Claude Code reads a directory's `AGENTS.md` only when that directory has no `CLAUDE.md` (checked
-with Claude Code 2.1.327, #1238), and Codex, Cursor and Copilot read `AGENTS.md` natively, so one
-file name serves every agent. If `/init` or anything else creates a `CLAUDE.md`, merge what it
-says into the `AGENTS.md` beside it and delete it.
+**This repository has no `CLAUDE.md` (or `CLAUDE.local.md`) files, and
+`tests/test_agent_files.py` keeps it that way.** Claude Code reads a directory's `AGENTS.md` only
+when that directory has no `CLAUDE.md` (checked with Claude Code 2.1.327, #1238), and Codex, Cursor
+and Copilot read `AGENTS.md` natively, so one file name serves every agent. If `/init` or anything
+else creates a `CLAUDE.md`, merge what it says into the `AGENTS.md` beside it and delete it.
+
+**Claude Code needs version 2.1.290 or later to read these files**, and it doesn't warn you when it
+can't. Claude Code's changelog dates `AGENTS.md` support to 2.1.277, extends it to Amazon Bedrock,
+Google Vertex AI, Microsoft Foundry, LLM gateways and telemetry-disabled sessions in 2.1.281, and
+fixes a subdirectory's `AGENTS.md` not being attached for an @-mentioned file in 2.1.290. A version
+before 2.1.277, or a session whose "Project instructions" setting in `/config` no longer reads
+`AGENTS.md`, loads none of this guidance. Upgrade Claude Code, or fix that setting, rather than
+adding a `CLAUDE.md`, which the test above rejects.
 
 ## Directory-scoped instructions
 
