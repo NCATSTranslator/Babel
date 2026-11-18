@@ -169,6 +169,9 @@ grep -E "mesh/C038967>" babel_downloads/MESH/mesh.nt \
 
 ## How MeSH is split across compendia
 
+MeSH is one of several vocabularies more than one pipeline claims; the patterns they share are in
+[`CrossPipelineVocabularies.md`](../CrossPipelineVocabularies.md).
+
 MeSH is partitioned by its top-level tree letter. Each consuming compendium declares its own
 `meshmap` (tree-prefix → Biolink type) and calls `mesh.write_ids()`, which expands each tree
 prefix to all descriptors under it. The current routing:
@@ -229,19 +232,28 @@ assigned.
 
 ### SCR class coverage (as of 2026 dump)
 
-The approximate record counts and current handling:
+The approximate record counts and current handling. "Not in `ids/MESH`" does not always mean a
+record is missing from Babel: a concord can still bring it into a compendium, as it does for
+almost all `SCR_Disease` records (measured in
+[#1249](https://github.com/NCATSTranslator/Babel/issues/1249)).
 
 - **`SCR_Chemical`** (~250,000) — consumed by chemical and protein (split via
   `scr_include_trees` / `scr_exclude_trees` on the protein D subtrees).
 - **`SCR_Organism`** (~66,000) — consumed by taxon.
-- **`SCR_Disease`** (~6,800) — **not consumed.** Specific/rare diseases (OMIM-style), preferred-
-  mapped to C-tree descriptors. High-value gap for the disease compendium.
+- **`SCR_Disease`** (~6,500) — **not in `ids/MESH`.** Specific/rare diseases (OMIM-style),
+  preferred-mapped to C-tree descriptors. Nearly all reach the disease compendium through UMLS and
+  other concords anyway; claiming them would type them from MeSH and give their CUIs an owner
+  ([#1249](https://github.com/NCATSTranslator/Babel/issues/1249)).
 - **`SCR_Population`** (~1,800) — **not consumed.** Ethnic/national/tribal groups; tied to the
-  Population and Community Ontology (PCO) work, not chemicals/diseases.
+  Population and Community Ontology (PCO) work, not chemicals/diseases
+  ([#189](https://github.com/NCATSTranslator/Babel/issues/189)).
 - **`SCR_Protocol`** (~1,200) — **not consumed.** ~98% chemotherapy drug-combination regimens
   (preferred-mapped to `D000971` Antineoplastic Combined Chemotherapy Protocols); the rest are
-  questionnaires/diagnostic/vaccination protocols.
-- **`SCR_Anatomy`** (~24) — **not consumed.** Tiny anatomy tail.
+  questionnaires/diagnostic/vaccination protocols
+  ([#520](https://github.com/NCATSTranslator/Babel/issues/520)).
+- **`SCR_Anatomy`** (~23) — **not in `ids/MESH`.** Tiny anatomy tail, most of it reaching the
+  anatomy compendium through concords
+  ([#1249](https://github.com/NCATSTranslator/Babel/issues/1249)).
 
 ## Coverage audit
 
