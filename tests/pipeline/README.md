@@ -182,7 +182,11 @@ vocabularies straightforward. Each vocabulary needs:
    check (like `ubergraph_connection` for NCIT/GO).
 
 2. A **processing fixture** in `conftest.py` that calls all `write_X_ids()` functions for
-   that vocabulary and returns a `{compendium_name: output_path}` dict.
+   that vocabulary and returns a `{compendium_name: output_path}` dict. Call the functions the
+   Snakemake rules call, through `_maybe_run(..., inputs=[<download>])`, rather than repeating
+   their logic: the EC fixture once built `ECgraph` itself and broke silently when its constructor
+   changed. `run_ec_entry_points()` is the pattern, with a unit test in
+   `tests/datahandlers/test_ec.py` that checks its calls against the real signatures.
 
 3. **One line** in `VOCABULARY_REGISTRY`: `"MYVOCAB": "my_vocab_pipeline_outputs"`.
 
