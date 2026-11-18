@@ -17,7 +17,6 @@ from src.babel_utils import (
     read_identifier_file,
     remove_overused_xrefs,
     unique_prefixes_from_config,
-    write_compendium,
 )
 from src.categories import (
     CHEMICAL_ENTITY,
@@ -32,8 +31,8 @@ from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUC
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.datahandlers.unii import UNII_ORGANISM_COLUMNS, read_unii_records
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
+from src.model.compendia import write_typed_compendia
 from src.model.intermediates import read_concord_pairs
-from src.node import InformationContentFactory
 from src.prefixes import (
     CHEBI,
     CHEMBLCOMPOUND,
@@ -1323,36 +1322,14 @@ def build_compendia(
         f"Created {len(typed_sets)} typed sets from {len(untyped_sets)} untyped sets: {get_memory_usage_summary()}"
     )
 
-    # One factory for every output: this rule writes one compendium per config.yaml: chemical_outputs
-    # entry, and each write_compendium call would otherwise re-read icRDF.tsv.
-    ic_factory = InformationContentFactory(icrdf_filename)
-
-    for biotype, sets in typed_sets.items():
-        baretype = biotype.split(":")[-1]
-        if biotype == DRUG:
-            write_compendium(
-                metadata_yamls,
-                sets,
-                f"{baretype}.txt",
-                biotype,
-                {},
-                extra_prefixes=[MESH, UNII],
-                icrdf_filename=icrdf_filename,
-                properties_jsonl_gz_files=properties_jsonl_gz_files,
-                ic_factory=ic_factory,
-            )
-        else:
-            write_compendium(
-                metadata_yamls,
-                sets,
-                f"{baretype}.txt",
-                biotype,
-                {},
-                extra_prefixes=[RXCUI],
-                icrdf_filename=icrdf_filename,
-                properties_jsonl_gz_files=properties_jsonl_gz_files,
-                ic_factory=ic_factory,
-            )
+    # One compendium per config.yaml: chemical_outputs entry, all sharing one icRDF.tsv load.
+    write_typed_compendia(
+        metadata_yamls,
+        typed_sets,
+        icrdf_filename,
+        extra_prefixes_for=lambda biotype: [MESH, UNII] if biotype == DRUG else [RXCUI],
+        properties_jsonl_gz_files=properties_jsonl_gz_files,
+    )
 
 
 def create_typed_sets(eqsets, types, food_types):

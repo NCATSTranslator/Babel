@@ -35,6 +35,7 @@ import pytest
 from src.babel_utils import glom, norm, remove_overused_xrefs, unique_prefixes_from_config
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.createcompendia import diseasephenotype
+from src.model import compendia
 from src.model.intermediates import MalformedConcordRowError
 from src.prefixes import DOID, GARD, ICD10CM, MONDO
 from src.ubergraph import build_sets
@@ -918,8 +919,8 @@ def test_build_compendium_passes_the_extra_prefixes_through():
     with (
         patch.object(diseasephenotype, "compute_cliques_for_impact_report", return_value=({}, {})),
         patch.object(diseasephenotype, "create_typed_sets", return_value={DISEASE: [["MONDO:1"]]}),
-        patch.object(diseasephenotype, "InformationContentFactory"),
-        patch.object(diseasephenotype, "write_compendium") as mock_write,
+        patch.object(compendia, "InformationContentFactory"),
+        patch.object(compendia, "write_compendium") as mock_write,
     ):
         diseasephenotype.build_compendium([], {}, [], None, {}, "icRDF.tsv")
 
@@ -943,8 +944,8 @@ def test_extra_prefixes_are_looked_up_per_biolink_class():
     with (
         patch.object(diseasephenotype, "compute_cliques_for_impact_report", return_value=({}, {})),
         patch.object(diseasephenotype, "create_typed_sets", return_value=typed),
-        patch.object(diseasephenotype, "InformationContentFactory"),
-        patch.object(diseasephenotype, "write_compendium") as mock_write,
+        patch.object(compendia, "InformationContentFactory"),
+        patch.object(compendia, "write_compendium") as mock_write,
     ):
         diseasephenotype.build_compendium([], {}, [], None, {}, "icRDF.tsv")
 

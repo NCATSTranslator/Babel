@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 
 import src.createcompendia.chemicals as chemicals
+import src.model.compendia as compendia
 from src import categories
 from src.categories import (
     CHEMICAL_ENTITY,
@@ -869,8 +870,9 @@ def test_build_compendia_loads_icrdf_once_for_every_output(tmp_path, monkeypatch
     """Every chemical output is written from one InformationContentFactory, not one per write.
 
     The rule writes one compendium per config.yaml: chemical_outputs entry, and icRDF.tsv is ~3.9
-    million rows. The factory is held by build_compendia rather than cached in src/node.py, so it is
-    freed when the rule's work is done; this checks the sharing still happens.
+    million rows. build_compendia writes through write_typed_compendia(), which holds the factory for
+    the call rather than caching it in src/node.py, so it is freed when the rule's work is done; this
+    runs the real typing step and checks the sharing still happens.
     """
     type_file = tmp_path / "types"
     type_file.write_text(f"CHEBI:15377\t{SMALL_MOLECULE}\nCHEBI:16234\t{MOLECULAR_MIXTURE}\n")
@@ -887,11 +889,12 @@ def test_build_compendia_loads_icrdf_once_for_every_output(tmp_path, monkeypatch
             self.ic_file = ic_file
             factories.append(self)
 
-    monkeypatch.setattr(chemicals, "InformationContentFactory", RecordingFactory)
-    monkeypatch.setattr(chemicals, "write_compendium", lambda *args, **kwargs: writes.append(kwargs))
+    monkeypatch.setattr(compendia, "InformationContentFactory", RecordingFactory)
+    monkeypatch.setattr(compendia, "write_compendium", lambda *args, **kwargs: writes.append(kwargs))
 
     chemicals.build_compendia(str(type_file), str(untyped), [], [], icrdf, [str(food_types)])
 
     assert len(factories) == 1
     assert len(writes) == 2
+    assert factories[0].ic_file == icrdf
     assert all(w["ic_factory"] is factories[0] and w["icrdf_filename"] == icrdf for w in writes)

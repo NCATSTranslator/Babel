@@ -121,6 +121,11 @@ The first identifier in `identifiers` is the preferred identifier for the clique
 Rather than loading entire datasets into memory up front, they load data on demand and cache
 results. This is important because many source files are gigabytes in size.
 
+`InformationContentFactory` is the exception: it reads all of `icRDF.tsv` (~3.9 million rows)
+when it is built. A pipeline that writes one compendium per Biolink type should write them
+with `write_typed_compendia()` (`src/model/compendia.py`). That function builds one factory
+and passes it to every `write_compendium()` call, so the file is not reloaded for each output.
+
 ### TSVSQLiteLoader
 
 `TSVSQLiteLoader` (in [`src/node.py`](../src/node.py)) loads tab-separated files into in-memory
