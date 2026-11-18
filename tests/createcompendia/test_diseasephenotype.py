@@ -918,6 +918,7 @@ def test_build_compendium_passes_the_extra_prefixes_through():
     with (
         patch.object(diseasephenotype, "compute_cliques_for_impact_report", return_value=({}, {})),
         patch.object(diseasephenotype, "create_typed_sets", return_value={DISEASE: [["MONDO:1"]]}),
+        patch.object(diseasephenotype, "InformationContentFactory"),
         patch.object(diseasephenotype, "write_compendium") as mock_write,
     ):
         diseasephenotype.build_compendium([], {}, [], None, {}, "icRDF.tsv")
@@ -942,6 +943,7 @@ def test_extra_prefixes_are_looked_up_per_biolink_class():
     with (
         patch.object(diseasephenotype, "compute_cliques_for_impact_report", return_value=({}, {})),
         patch.object(diseasephenotype, "create_typed_sets", return_value=typed),
+        patch.object(diseasephenotype, "InformationContentFactory"),
         patch.object(diseasephenotype, "write_compendium") as mock_write,
     ):
         diseasephenotype.build_compendium([], {}, [], None, {}, "icRDF.tsv")

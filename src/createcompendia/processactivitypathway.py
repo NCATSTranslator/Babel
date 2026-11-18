@@ -16,6 +16,7 @@ from src.babel_utils import (
 from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
 from src.metadata.provenance import write_concord_metadata
 from src.model.intermediates import read_concords
+from src.node import InformationContentFactory
 from src.prefixes import GO, REACT, TCDB, WIKIPATHWAYS
 from src.ubergraph import build_sets
 
@@ -134,9 +135,13 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
         newpairs = remove_overused_xrefs(pairs, bothways=True)
         glom(dicts, newpairs, unique_prefixes=unique_prefixes)
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
+    # One icRDF load for every output this loop writes; see write_compendium's ic_factory.
+    ic_factory = InformationContentFactory(icrdf_filename)
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]
-        write_compendium(metadata_yamls, sets, f"{baretype}.txt", biotype, {}, icrdf_filename=icrdf_filename)
+        write_compendium(
+            metadata_yamls, sets, f"{baretype}.txt", biotype, {}, icrdf_filename=icrdf_filename, ic_factory=ic_factory
+        )
 
 
 def create_typed_sets(eqsets, types):

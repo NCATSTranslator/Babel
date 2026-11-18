@@ -20,6 +20,7 @@ from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.datahandlers.gard import normalize_gard_curie
 from src.metadata.provenance import write_concord_metadata
 from src.model.intermediates import read_concords
+from src.node import InformationContentFactory
 from src.prefixes import (
     DOID,
     GARD,
@@ -899,6 +900,8 @@ def build_compendium(
     # looked up per class rather than passed whole: an exemption argued for one class must not be
     # granted to the rest. A class with no entry gets nothing.
     extra_prefixes_by_class = get_config()["disease_extra_prefixes_by_biolink_class"]
+    # One icRDF load for every output this loop writes; see write_compendium's ic_factory.
+    ic_factory = InformationContentFactory(icrdf_filename)
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]
         write_compendium(
@@ -909,6 +912,7 @@ def build_compendium(
             {},
             extra_prefixes=extra_prefixes_by_class.get(biotype, []),
             icrdf_filename=icrdf_filename,
+            ic_factory=ic_factory,
         )
 
 
