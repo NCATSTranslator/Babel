@@ -16,13 +16,33 @@ second `## Notes` in a file will look broken.
 """
 
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
 
-from tests.conftest import REPO_ROOT, tracked_files
-
 pytestmark = pytest.mark.unit
+
+REPO_ROOT = Path(__file__).parent.parent
+
+
+def _tracked_files():
+    """Every file Git tracks, as absolute paths.
+
+    Asking Git rather than walking the tree is what keeps this off `babel_downloads/`,
+    `babel_outputs/`, `.venv/` and `data/`: an `rglob("*")` from the repo root descends into all of
+    them before anything can filter them out, which on a machine with a finished build is a
+    multi-million-file walk — at import time, so even a run that deselects these tests pays for it.
+    Untracked files can't carry a link anyone will follow, so Git's index is also the right scope.
+    """
+    listing = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "ls-files", "-z"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    # An index entry can outlive the file (deleted in the working tree, deletion not yet staged).
+    return sorted(p for p in (REPO_ROOT / name for name in listing.split("\0") if name) if p.is_file())
 
 
 def _is_archived_build_report(path: Path) -> bool:
@@ -38,9 +58,7 @@ def _is_archived_build_report(path: Path) -> bool:
     return len(parts) > 2 and parts[0] == "releases" and parts[2] in {"reports", "metadata"}
 
 
-# Listed once at import time: a run that deselects these tests still pays for this, so it must stay a
-# Git index lookup rather than a tree walk (see tracked_files()).
-TRACKED_FILES = [p for p in tracked_files() if not _is_archived_build_report(p)]
+TRACKED_FILES = [p for p in _tracked_files() if not _is_archived_build_report(p)]
 
 MARKDOWN_FILES = [p for p in TRACKED_FILES if p.suffix == ".md"]
 

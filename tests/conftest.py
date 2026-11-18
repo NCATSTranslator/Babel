@@ -29,6 +29,10 @@ def tracked_files(*pathspecs: str) -> list[Path]:
     An index entry can outlive its file (deleted in the working tree, deletion not yet staged), so
     entries with no file on disk are dropped: a check should judge the tree as it now stands, not
     fail until someone remembers `git rm`.
+
+    `tests/test_docs_links.py` keeps a private copy of this (`_tracked_files()`, with no pathspecs)
+    rather than importing it, because that file is kept in sync with NameResolution's
+    `tests/test_docs_links.py`, which has no such conftest. Change the two together.
     """
     listing = subprocess.run(
         ["git", "-C", str(REPO_ROOT), "ls-files", "-z", "--", *pathspecs],
