@@ -188,7 +188,8 @@ def write_untyped_compendium(path, cliques):
     the ``repr(set)`` round trip took 11.80 s (1.30 s to write, 10.50 s to read) against JSONL's
     5.00 s (2.07 s + 2.93 s): 2.4x. Scaled to babel-1.18's 256 million chemical identifiers, that is
     ~985 s against ~418 s, about 9.5 minutes saved per build. The harness that measured this,
-    ``docs/rust-decision/boundary_cost.py``, is on the unmerged ``rust-sapbert-export`` branch.
+    ``docs/rust-decision/boundary_cost.py``, comes from NCATSTranslator/Babel#988 and is carried
+    into NCATSTranslator/Babel#1091; neither has merged yet.
 
     Members are sorted within each line, so a given clique always serialises to the same text and
     two builds' files can be compared with `sort | diff` rather than being re-parsed. Line *order*
