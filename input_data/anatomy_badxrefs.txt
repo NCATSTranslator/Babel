@@ -57,6 +57,12 @@ UBERON:0003691 FMA:71228
 # SNOMED xrefs join, this merged UMLS:C0460042 into the nerve trunk clique.
 UBERON:0002464 SNOMEDCT:281248001
 
+# UBERON:0018143 "transverse process of cervical vertebra" hasDbXref FMA:9913, which is "Cervical rib"
+# (Costa cervicalis), a supernumerary rib -- UBERON:0018144 "cervical rib". The term's own FMA xref is
+# FMA:23894 "Transverse process of cervical vertebra". Once UBERON's FMA xrefs are used, this moved
+# UMLS:C0158779 "Cervical rib" out of the cervical rib clique and into the transverse process one.
+UBERON:0018143 FMA:9913
+
 # UMLS concepts that lump a second anatomical entity's SNOMED CT or FMA code under their own. UBERON's
 # xref to that code is right, but it joins the UBERON term to the lumping concept, so the pair dropped is
 # the UMLS one: the code then reaches only the UBERON term it names. Found by

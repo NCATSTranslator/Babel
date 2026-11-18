@@ -218,6 +218,7 @@ def test_shipped_anatomy_badxrefs_file_parses_and_lists_the_known_pairs():
     assert frozenset(("UBERON:0008883", "FMA:66830")) in pairs
     assert frozenset(("UBERON:0003691", "FMA:71228")) in pairs
     assert frozenset(("UBERON:0002464", "SNOMEDCT:281248001")) in pairs
+    assert frozenset(("UBERON:0018143", "FMA:9913")) in pairs
     # One of each kind the UBERON SNOMED xref review added: a UMLS concept lumping another entity's code,
     # an UBERON term xref'ing a narrower concept besides its own, and a pre-existing wrong MeSH xref.
     assert frozenset(("UMLS:C0040426", "SNOMEDCT:245543004")) in pairs
