@@ -15,7 +15,9 @@ import ftplib
 import gzip
 import hashlib
 import json
+import posixpath
 import shutil
+from collections import defaultdict
 from unittest.mock import MagicMock, patch
 
 import pyoxigraph
@@ -480,11 +482,20 @@ def test_mesh_registry_sources_rejects_mismatched_years(tmp_path):
 
 
 class _FakeMeshFTP:
-    """Stands in for ftplib.FTP, serving ``files`` (name -> bytes) from /online/mesh/rdf/2026."""
+    """Stands in for ftplib.FTP: ``dirs`` maps each leaf directory to the file names in it, and ``files`` (name ->
+    bytes) are what RETR serves. Every ancestor of a leaf directory lists its children, from "/" down, as
+    src.utils.ftp.ftp_path_exists() walks them."""
 
-    def __init__(self, files, dirs=None):
+    def __init__(self, files, dirs):
         self.files = files
-        self.dirs = dirs or {}  # directory -> file names, for nlst()
+        self.listing = defaultdict(set)  # directory -> names in it
+        for leaf, names in dirs.items():
+            self.listing[leaf] |= set(names)
+            child = leaf
+            while child != "/":
+                parent = posixpath.dirname(child)
+                self.listing[parent].add(posixpath.basename(child))
+                child = parent
 
     def __call__(self, site):
         return self
@@ -493,7 +504,8 @@ class _FakeMeshFTP:
         pass
 
     def cwd(self, ftpdir):
-        if ftpdir != "/online/mesh/rdf/2026" and ftpdir not in self.dirs:
+        if ftpdir not in self.listing:
+            # What NLM really sends to CWD into a missing directory.
             raise ftplib.error_perm(f"550 {ftpdir}: No such file or directory")
 
     def sendcmd(self, cmd):
@@ -509,10 +521,10 @@ class _FakeMeshFTP:
             callback(data[i : i + 7])
 
     def nlst(self, ftpdir):
-        if ftpdir not in self.dirs:
-            # What NLM really sends for a missing directory; ftplib raises a 450 as a temporary error.
+        if ftpdir not in self.listing:
+            # What NLM really sends to NLST a missing directory; ftplib raises a 450 as a temporary error.
             raise ftplib.error_temp(f"450 {ftpdir}: No such file or directory")
-        return [f"{ftpdir}/{name}" for name in self.dirs[ftpdir]]
+        return [posixpath.join(ftpdir, name) for name in sorted(self.listing[ftpdir])]
 
     def quit(self):
         pass
@@ -528,7 +540,7 @@ def _fake_mesh_ftp(sha1=None, with_sha1_file=True):
     files = {"mesh2026.nt.gz": gz}
     if with_sha1_file:
         files["mesh2026.nt.gz.sha1"] = f"{sha1 or hashlib.sha1(gz).hexdigest()}  mesh2026.nt.gz\n".encode()
-    return _FakeMeshFTP(files)
+    return _FakeMeshFTP(files, {"/online/mesh/rdf/2026": list(files)})
 
 
 @pytest.mark.unit

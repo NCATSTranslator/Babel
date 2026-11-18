@@ -1,6 +1,5 @@
 import ftplib
 import gzip
-import hashlib
 import json
 import os
 import warnings
@@ -14,6 +13,7 @@ from src.babel_utils import make_local_name
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT
 from src.prefixes import MESH
 from src.util import ensure_parent_dir, get_logger
+from src.utils.ftp import ftp_modified_time, list_ftp_dir, retrieve_ftp_file
 
 logger = get_logger(__name__)
 
@@ -64,21 +64,6 @@ MESH_XML_FILES = [
 ]
 
 
-def _list_ftp_dir(ftp, ftpdir) -> set[str]:
-    """Return the file names in ftpdir, or an empty set if NLM has no such directory.
-
-    NLM answers a missing directory with "450 <dir>: No such file or directory", which ftplib raises as a
-    *temporary* error. Only that reply means "absent"; any other error is re-raised, so a transient failure
-    listing the archive cannot quietly send a build to the current directory instead.
-    """
-    try:
-        return {os.path.basename(f) for f in ftp.nlst(ftpdir)}
-    except (ftplib.error_perm, ftplib.error_temp) as e:
-        if "No such file or directory" in str(e):
-            return set()
-        raise
-
-
 def fetch_mesh_xml_dir(mesh_year) -> str:
     """Return the FTP directory holding desc{year}.gz and supp{year}.gz for ``mesh_year``.
 
@@ -89,6 +74,9 @@ def fetch_mesh_xml_dir(mesh_year) -> str:
 
     Raises RuntimeError if neither directory has both files. Besides a mesh_year NLM has not published, that
     happens at NLM's year rollover if MESH_FILES has moved on to the next year before the old one is archived.
+    Whether the archive exists is decided by list_ftp_dir() from its parents' listings, never from NLM's error
+    wording, and a failed listing is raised, so a transient error cannot quietly send a build to the current
+    directory instead.
     """
     names = {f"{prefix}{mesh_year}.gz" for prefix, _, _ in MESH_XML_FILES}
     archive_dir = MESH_XML_ARCHIVE_DIR.format(mesh_year=mesh_year)
@@ -96,7 +84,7 @@ def fetch_mesh_xml_dir(mesh_year) -> str:
     try:
         ftp.login()
         for xml_dir in (archive_dir, MESH_XML_CURRENT_DIR):
-            if names <= _list_ftp_dir(ftp, xml_dir):
+            if names <= list_ftp_dir(ftp, xml_dir):
                 ftp.quit()
                 return xml_dir
         ftp.quit()
@@ -108,29 +96,6 @@ def fetch_mesh_xml_dir(mesh_year) -> str:
         f"through its year rollover, with {MESH_XML_CURRENT_DIR} moved on to the next year before this one is "
         "archived; retry once the archive appears."
     )
-
-
-def _retrieve_ftp_file(ftp, ftpfile, out_path) -> str:
-    """Download ftpfile (relative to ftp's working directory) to out_path, returning its SHA-1 hex digest.
-
-    Writes to out_path.part and renames it to out_path only once the transfer completes, so an interrupted
-    download never leaves a partial file under the name a later run checks for.
-    """
-    part_path = f"{out_path}.part"
-    sha1 = hashlib.sha1()
-    try:
-        with open(part_path, "wb") as outf:
-
-            def write_chunk(chunk):
-                sha1.update(chunk)
-                outf.write(chunk)
-
-            ftp.retrbinary(f"RETR {ftpfile}", write_chunk)
-        os.replace(part_path, out_path)
-    finally:
-        if os.path.exists(part_path):
-            os.remove(part_path)
-    return sha1.hexdigest()
 
 
 def parse_sha1_file(content: bytes, url) -> str:
@@ -191,6 +156,11 @@ def fetch_mesh_nt(mesh_year, out_path) -> dict:
 
     Returns a record of what was downloaded ({"mesh_year", "url", "sha1"}), which pull_mesh() saves for
     mesh_registry_sources().
+
+    Raises RuntimeError, naming config.yaml's mesh_year, if NLM's listing has no dump for that year. That is
+    decided from directory listings (list_ftp_dir()) before anything is downloaded, not from the error a
+    download raises: NLM answers a missing directory with a 450 or a 550 depending on the command, and any
+    error that does reach the download is a real failure, raised as it is for Snakemake to retry.
     """
     ftpdir, ftpfile = mesh_rdf_location(mesh_year)
     url = f"ftp://{MESH_FTP_SITE}{ftpdir}/{ftpfile}"
@@ -201,21 +171,18 @@ def fetch_mesh_nt(mesh_year, out_path) -> dict:
         ftp = ftplib.FTP(MESH_FTP_SITE)
         try:
             ftp.login()
-            try:
-                ftp.cwd(ftpdir)
-                sha1 = _retrieve_ftp_file(ftp, ftpfile, gz_path)
-            except ftplib.error_perm as e:
+            published = list_ftp_dir(ftp, ftpdir)
+            if ftpfile not in published:
                 raise RuntimeError(
-                    f"Could not download MeSH {mesh_year} from {url} ({e}). "
+                    f"NLM has no MeSH {mesh_year} RDF dump at {url}. "
                     "Check that mesh_year in config.yaml names a year NLM has published."
-                ) from e
-            try:
-                ftp.retrbinary(f"RETR {ftpfile}.sha1", sha1_file.write)
-            except ftplib.error_perm as e:
-                # The dump itself downloaded, so the year is published: NLM has moved or renamed its checksum file.
-                raise RuntimeError(
-                    f"Downloaded {url}, but could not download its checksum file {url}.sha1 ({e})."
-                ) from e
+                )
+            if f"{ftpfile}.sha1" not in published:
+                # The dump is there, so the year is published: NLM has moved or renamed its checksum file.
+                raise RuntimeError(f"NLM publishes {url}, but not its checksum file {url}.sha1.")
+            ftp.cwd(ftpdir)
+            sha1 = retrieve_ftp_file(ftp, ftpfile, gz_path)
+            ftp.retrbinary(f"RETR {ftpfile}.sha1", sha1_file.write)
             ftp.quit()
         finally:
             ftp.close()
@@ -243,18 +210,6 @@ def pull_mesh(mesh_year, rdf_source_file):
         outf.write("\n")
 
 
-def _ftp_modified_time(ftp, ftpfile):
-    """Return ftpfile's modification time on the FTP server as an ISO 8601 UTC string, or None if not reported."""
-    try:
-        response = ftp.sendcmd(f"MDTM {ftpfile}")  # "213 YYYYMMDDHHMMSS", in UTC (RFC 3659)
-    except ftplib.all_errors:
-        return None
-    stamp = response.split()[-1]
-    if not (response.startswith("213") and len(stamp) >= 14 and stamp[:14].isdigit()):
-        return None
-    return f"{stamp[0:4]}-{stamp[4:6]}-{stamp[6:8]}T{stamp[8:10]}:{stamp[10:12]}:{stamp[12:14]}Z"
-
-
 def pull_mesh_xml(mesh_year, xml_sources_file):
     """Download the MeSH XML descriptor and SCR files for ``mesh_year`` to babel_downloads/MESH.
 
@@ -275,7 +230,7 @@ def pull_mesh_xml(mesh_year, xml_sources_file):
             out_path = make_local_name(f"{prefix}.xml.gz", subpath="MESH")
             ensure_parent_dir(out_path)
             try:
-                sha1 = _retrieve_ftp_file(ftp, ftpfile, out_path)
+                sha1 = retrieve_ftp_file(ftp, ftpfile, out_path)
             except ftplib.error_perm as e:
                 # fetch_mesh_xml_dir() just listed the file, so this is not a mesh_year problem.
                 raise RuntimeError(f"Could not download MeSH {mesh_year} XML from {url} ({e}).") from e
@@ -285,7 +240,7 @@ def pull_mesh_xml(mesh_year, xml_sources_file):
                     "url": url,
                     "sha1": sha1,
                     "size": os.path.getsize(out_path),
-                    "modified": _ftp_modified_time(ftp, ftpfile),
+                    "modified": ftp_modified_time(ftp, ftpfile),
                 }
             )
         ftp.quit()
