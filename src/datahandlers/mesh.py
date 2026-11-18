@@ -528,9 +528,8 @@ def pull_mesh_registry(desc_xml, supp_xml, mesh_labels):
     (babel_downloads/MESH/labels, read from the dump), so that a registry number never brings in a MeSH ID
     that has no label or type anywhere else in the build: a concord alone can put a CURIE into a compendium.
 
-    The chemical CAS/UNII concords would not need this filter, since they keep only the MeSH IDs in the
-    chemical ids/MESH, which come from the dump too. It is here for the MeSH-NCBITaxon concord, which
-    deliberately does not filter by the taxon ids/MESH (see taxon.build_relationships()).
+    That matters most for taxon: taxon.write_mesh_ids() adds every record with an NCBI Taxon registry number to
+    its ids/MESH (#1240), so a record missing from the dump would otherwise become a taxon identifier.
 
     Raises ValueError if none are found, since every caller (the chemical CAS/UNII concords and the
     MeSH-NCBITaxon concord) would otherwise silently come out empty.
@@ -584,6 +583,18 @@ def read_mesh_registry(registry_file) -> list[tuple[str, str]]:
     return registry
 
 
+def read_mesh_ids_with_ncbitaxon(registry_file) -> set[str]:
+    """Return the MeSH IDs that write_mesh_registry() gave an NCBI Taxon registry number ("txid...").
+
+    NLM gives a record an NCBI Taxon registry number only when it names an organism, so these records belong to
+    the taxon pipeline whatever their MeSH record class: taxon.write_mesh_ids() claims them, and every other
+    MeSH-owning pipeline must leave them alone (chemicals.write_mesh_ids() excludes them, and
+    taxon.build_relationships() fails if any other pipeline claims one). See
+    https://github.com/NCATSTranslator/Babel/issues/1240.
+    """
+    return {meshid for meshid, regnum in read_mesh_registry(registry_file) if regnum.startswith("txid")}
+
+
 def mesh_registry_sources(rdf_source_file, xml_sources_file) -> list[dict]:
     """Return write_concord_metadata() sources for a concord built from the MeSH registry.
 
@@ -630,6 +641,8 @@ def write_ids(
     extra_vocab={},
     scr_exclude_trees=None,
     scr_include_trees=None,
+    extra_terms=None,
+    exclude_terms=None,
 ):
     """Write the mesh identifiers from a particular set of hierarchies to an output directory.
     This might be a mixed list of types (for instance anatomy and cell).  Also, the same term
@@ -639,7 +652,11 @@ def write_ids(
     mapped to descriptors under these trees will be marked as EXCLUDE.
     scr_include_trees: optional list of tree numbers. If set, only SCR terms (from extra_vocab)
     that are mapped to descriptors under these trees will be kept; all other SCR terms will be
-    removed. Cannot be used together with scr_exclude_trees."""
+    removed. Cannot be used together with scr_exclude_trees.
+    extra_terms: optional dict of MeSH CURIE -> type, added whatever their tree or record class. Each type must be
+    in ``order``.
+    exclude_terms: optional collection of MeSH CURIEs never written, whatever selected them (extra_terms
+    included). Used to leave a record to the pipeline that owns it."""
     if scr_exclude_trees is not None and scr_include_trees is not None:
         raise ValueError("scr_exclude_trees and scr_include_trees cannot both be set")
     m = Mesh()
@@ -667,6 +684,10 @@ def write_ids(
             excluded_scr_terms = m.get_scr_terms_mapped_to_trees(scr_exclude_trees)
             for mt in excluded_scr_terms:
                 terms2type[mt].add("EXCLUDE")
+    for term, category in (extra_terms or {}).items():
+        terms2type[term].add(category)
+    for term in exclude_terms or ():
+        terms2type.pop(term, None)
     with open(outfile, "w") as idfile:
         for term, typeset in terms2type.items():
             list_typeset = list(typeset)

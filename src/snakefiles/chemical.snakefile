@@ -31,12 +31,14 @@ rule chemical_rxnorm_ids:
 rule chemical_mesh_ids:
     input:
         infile=config["download_directory"] + "/MESH/mesh.nt",
+        # Records with an NCBI Taxon registry number are left to taxon (#1240).
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
     output:
         outfile=config["intermediate_directory"] + "/chemicals/ids/MESH",
     benchmark:
         config["output_directory"] + "/benchmarks/chemical_mesh_ids.tsv"
     run:
-        chemicals.write_mesh_ids(output.outfile)
+        chemicals.write_mesh_ids(output.outfile, input.mesh_registry)
 
 
 rule chemical_pubchem_ids:

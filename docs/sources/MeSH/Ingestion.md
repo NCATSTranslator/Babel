@@ -93,16 +93,33 @@ pairs that only the 2024 RDF has, all but 11 are on records NLM has since delete
 The current year's XML can be updated after the RDF dump is published, so it can carry records the
 dump does not: on 2026-10-21, 100 new SCRs (`C000731751` onward) had registry numbers but no record
 in `mesh2026.nt`. `pull_mesh_registry()` keeps registry numbers only for records with a label in
-`babel_downloads/MESH/labels`, and logs how many it skipped. Otherwise the `NCBI_MESH` concord,
-which is not filtered by `taxon/ids/MESH`, could put a MeSH ID with no label or type into a taxon
-clique. (It is unfiltered, which puts 8 virus SCRs from the chemical `ids/MESH` into taxon cliques
-too; see [#1240](https://github.com/NCATSTranslator/Babel/issues/1240).) Registry numbers of records
+`babel_downloads/MESH/labels`, and logs how many it skipped. Otherwise a MeSH ID with no label
+anywhere in the build could become a taxon identifier, since taxon claims every record with an NCBI
+Taxon registry number (below). Registry numbers of records
 already in the dump can still change from one day's XML to the next, so two downloads of the same
 `mesh_year` are not guaranteed to give identical concords until the year is archived. Compare the
 SHA-1s in each build's `xml_sources.json` (also in the concords' `metadata-*.yaml`) to tell.
 
 Rule `get_mesh_registry` parses the XML once and writes `babel_downloads/MESH/registry.tsv`
-(`MESH:ID<tab>registry number`), which both the chemical and the taxon concord rules read.
+(`MESH:ID<tab>registry number`), which the chemical and taxon `ids/MESH` and concord rules read.
+
+### A record with an NCBI Taxon registry number is taxon's
+
+NLM gives a record a `txid...` registry number only when it names an organism, and a handful of
+virus SCRs carry one while being classed `SCR_Chemical`: 8 in MeSH 2026, e.g.
+[`MESH:C000626778`](https://meshb.nlm.nih.gov/record/ui?ui=C000626778) "maize chlorotic mottle
+virus" (`NCBITaxon:12138`). The registry number is the more specific statement, so
+`taxon.write_mesh_ids()` claims every record that has one, whatever its record class, and
+`chemicals.write_mesh_ids()` leaves them out. Rule `umls_mesh_ownership` then gives their CUIs to
+taxon too, so each virus is one OrganismTaxon clique of its MeSH ID, CUI and NCBITaxon
+([#1240](https://github.com/NCATSTranslator/Babel/issues/1240)).
+
+The taxon `NCBI_MESH` concord is therefore not filtered by `taxon/ids/MESH`: the two agree. If
+another MeSH-owning pipeline ever claims a `txid` record, its MeSH ID would land in that
+pipeline's compendium and, through this concord, in an NCBITaxon-led taxon clique, where the
+duplicate-leader check cannot see it. So `taxon.build_relationships()` fails the build naming the
+pipeline and records; exclude them in that pipeline's `write_mesh_ids()`.
+`tests/pipeline/test_mesh.py` asserts the same over a real MeSH download.
 
 Compared with the 2024 dump, `mesh2026.nt` also lacks `meshv:active`, `dateEstablished`,
 `dateRevised`, `lastActiveYear` and `sortVersion`, and adds `dateIntroduced` and `lastUpdated`
@@ -139,7 +156,8 @@ prefix to all descriptors under it. The current routing:
 
 - **A01–A20 Anatomy** → anatomy (`ANATOMICAL_ENTITY`; `A11` Cells → `CELL`,
   `A11.284` → `CELLULAR_COMPONENT`). See `anatomy.write_mesh_ids()`.
-- **B01–B05 Organisms** → taxon (`ORGANISM_TAXON`). See `taxon.write_mesh_ids()`.
+- **B01–B05 Organisms** → taxon (`ORGANISM_TAXON`), plus every record with an NCBI Taxon registry
+  number (see above). See `taxon.write_mesh_ids()`.
 - **C Diseases** (C01, C04–C22, C24–C26) → disease (`DISEASE`); **C23** → `PHENOTYPIC_FEATURE`.
   See `diseasephenotype.write_mesh_ids()`. Note C02 (Virus Diseases) and C03 (Parasitic Diseases)
   are intentionally absent pending verification of MONDO/HPO cross-references.

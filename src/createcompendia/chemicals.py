@@ -354,7 +354,13 @@ def write_pubchem_ids(labelfile, smilesfile, outfile):
                 outf.write(f"{x}\t{CHEMICAL_ENTITY}\n")
 
 
-def write_mesh_ids(outfile):
+def write_mesh_ids(outfile, mesh_registry):
+    """Write the chemical ids/MESH from MeSH trees D01-D26 and the SCR_Chemical records, leaving out every record
+    with an NCBI Taxon registry number in mesh_registry (rule get_mesh_registry's TSV).
+
+    Those are virus SCRs that NLM classes as SCR_Chemical but links to an NCBI Taxon ID, e.g. MESH:C000626778
+    "maize chlorotic mottle virus"; taxon.write_mesh_ids() claims them instead (#1240).
+    """
     # MeSH D tree — chemical-related subtrees.
     # Included as CHEMICAL_ENTITY (via the D01–D26 base range):
     #   D01  Inorganic Chemicals
@@ -436,6 +442,7 @@ def write_mesh_ids(outfile):
         order=["EXCLUDE", POLYPEPTIDE, COMPLEX_MOLECULAR_MIXTURE, CHEMICAL_ENTITY],
         extra_vocab={"SCR_Chemical": CHEMICAL_ENTITY},
         scr_exclude_trees=excluded_trees,
+        exclude_terms=mesh.read_mesh_ids_with_ncbitaxon(mesh_registry),
     )
 
 

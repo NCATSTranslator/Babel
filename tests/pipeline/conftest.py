@@ -33,7 +33,7 @@ import pytest
 
 from src.babel_utils import make_local_name
 from src.createcompendia import anatomy, chemicals, diseasephenotype, protein, taxon
-from src.datahandlers.mesh import Mesh, pull_mesh
+from src.datahandlers.mesh import Mesh, pull_mesh, pull_mesh_labels, pull_mesh_xml, write_mesh_registry
 from src.prefixes import EMAPA, MP
 from src.ubergraph import build_sets
 
@@ -284,7 +284,23 @@ def mesh_nt():
 
 
 @pytest.fixture(scope="session")
-def mesh_pipeline_outputs(mesh_nt, regenerate):
+def mesh_registry(mesh_nt, regenerate):
+    """Build babel_downloads/MESH/registry.tsv as rule get_mesh_registry does, downloading the MeSH XML and
+    writing MESH/labels first if they are missing. The chemical and taxon ids/MESH both read it (#1240)."""
+    from src.util import get_config  # deferred: same rationale as _snakemake_dir
+
+    desc, supp = (make_local_name(f"{prefix}.xml.gz", subpath="MESH") for prefix in ("desc", "supp"))
+    xml_sources = make_local_name("xml_sources.json", subpath="MESH")
+    _download_or_fail("MeSH XML", lambda: pull_mesh_xml(get_config()["mesh_year"], xml_sources), xml_sources)
+    labels = _maybe_run(make_local_name("labels", subpath="MESH"), pull_mesh_labels, regenerate, inputs=[mesh_nt])
+    registry = make_local_name("registry.tsv", subpath="MESH")
+    return _maybe_run(
+        registry, lambda: write_mesh_registry(desc, supp, labels, registry), regenerate, inputs=[desc, supp, labels]
+    )
+
+
+@pytest.fixture(scope="session")
+def mesh_pipeline_outputs(mesh_nt, mesh_registry, regenerate):
     """Run write_mesh_ids for all five compendia; skip if mesh_nt unavailable.
 
     Output files are written to babel_outputs/intermediate/{type}/ids/MESH and
@@ -294,11 +310,11 @@ def mesh_pipeline_outputs(mesh_nt, regenerate):
     def p(compendium):
         return _intermediate_id_path(compendium, "MESH")
 
-    _maybe_run(p("chemicals"), lambda: chemicals.write_mesh_ids(p("chemicals")), regenerate)
+    _maybe_run(p("chemicals"), lambda: chemicals.write_mesh_ids(p("chemicals"), mesh_registry), regenerate)
     _maybe_run(p("protein"), lambda: protein.write_mesh_ids(p("protein")), regenerate)
     _maybe_run(p("anatomy"), lambda: anatomy.write_mesh_ids(p("anatomy")), regenerate)
     _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_mesh_ids(p("diseasephenotype")), regenerate)
-    _maybe_run(p("taxon"), lambda: taxon.write_mesh_ids(p("taxon")), regenerate)
+    _maybe_run(p("taxon"), lambda: taxon.write_mesh_ids(p("taxon"), mesh_registry), regenerate)
 
     return {
         "chemicals": p("chemicals"),

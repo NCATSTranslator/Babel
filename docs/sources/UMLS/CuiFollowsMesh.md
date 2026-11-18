@@ -161,9 +161,10 @@ local UMLS download. The replay itself takes about a minute. Read `VERSION.txt` 
   into Anatomy and Protein, OMIM through Gene and Disease) are the member-level residue in
   `reports/duckdb/duplicate_curies.tsv`.
 - The 18 MeSH `SCR_Chemical` virus records (e.g.
-  [`MESH:C000719044`](https://meshb.nlm.nih.gov/record/ui?ui=C000719044) "H3N1 virus") now take
-  their T005 CUIs into chemicals, because that is where MeSH's own record class puts them. If that
-  reads as wrong in the clique diff, the fix is in `taxon.write_mesh_ids()`, not here.
+  [`MESH:C000719044`](https://meshb.nlm.nih.gov/record/ui?ui=C000719044) "H3N1 virus") follow
+  MeSH's record class into chemicals, except the 8 that NLM gives an NCBI Taxon registry number:
+  `taxon.write_mesh_ids()` claims those, so ownership gives their T005 CUIs to taxon
+  ([#1240](https://github.com/NCATSTranslator/Babel/issues/1240)). H3N1 virus is one of the 8.
 
 ## The control
 

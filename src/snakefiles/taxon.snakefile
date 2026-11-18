@@ -18,12 +18,14 @@ rule taxon_ncbi_ids:
 rule taxon_mesh_ids:
     input:
         infile=config["download_directory"] + "/MESH/mesh.nt",
+        # Every record with an NCBI Taxon registry number is claimed here, whatever its MeSH record class (#1240).
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
     output:
         outfile=config["intermediate_directory"] + "/taxon/ids/MESH",
     benchmark:
         config["output_directory"] + "/benchmarks/taxon_mesh_ids.tsv"
     run:
-        taxon.write_mesh_ids(output.outfile)
+        taxon.write_mesh_ids(output.outfile, input.mesh_registry)
 
 
 rule taxon_umls_ids:
@@ -57,6 +59,11 @@ rule get_taxon_relationships:
         mesh_rdf_source=config["download_directory"] + "/MESH/rdf_source.json",
         mesh_xml_sources=config["download_directory"] + "/MESH/xml_sources.json",
         meshids=config["intermediate_directory"] + "/taxon/ids/MESH",
+        # Checked so that no other pipeline claims a MeSH record this concord puts into taxon (#1240).
+        other_pipelines_mesh_ids=expand(
+            config["intermediate_directory"] + "/{pipeline}/ids/MESH",
+            pipeline=[p for p in config["umls_mesh_owning_pipelines"] if p != "taxon"],
+        ),
     output:
         outfile=config["intermediate_directory"] + "/taxon/concords/NCBI_MESH",
         metadata_yaml=config["intermediate_directory"] + "/taxon/concords/metadata-NCBI_MESH.yaml",
@@ -70,6 +77,12 @@ rule get_taxon_relationships:
             mesh_registry=input.mesh_registry,
             mesh_rdf_source=input.mesh_rdf_source,
             mesh_xml_sources=input.mesh_xml_sources,
+            other_pipelines_mesh_ids=dict(
+                zip(
+                    [p for p in config["umls_mesh_owning_pipelines"] if p != "taxon"],
+                    input.other_pipelines_mesh_ids,
+                )
+            ),
         )
 
 
