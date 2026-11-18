@@ -19,11 +19,15 @@ Usage (from the repository root):
     uv run python docs/sources/UMLS/GO/scripts/go_atoms_report.py \\
         --mrconso babel_downloads/UMLS/MRCONSO.RRF --intermediate data/2026jul22/intermediate \\
         --go-labels babel_downloads/GO/labels --ubergraph-synonyms babel_downloads/common/ubergraph/synonyms.jsonl \\
-        > docs/sources/UMLS/GO/go_atoms_report.json
+        --fallback-joins docs/sources/UMLS/GO/fallback_joins.tsv > docs/sources/UMLS/GO/go_atoms_report.json
+
+--fallback-joins writes every join the rejected fallback would make (the report shows ten), one row per
+(CUI, GO term): the GO term's label and the CUI's atoms for it, so each can be judged.
 """
 
 import argparse
 import contextlib
+import csv
 import io
 import json
 import os
@@ -115,6 +119,7 @@ def main():
     parser.add_argument("--intermediate", required=True, help="A finished build's intermediate/ directory")
     parser.add_argument("--go-labels", required=True)
     parser.add_argument("--ubergraph-synonyms", required=True)
+    parser.add_argument("--fallback-joins", help="Write every join the fallback would make to this TSV")
     args = parser.parse_args()
     inter = args.intermediate
 
@@ -181,6 +186,18 @@ def main():
         # Ten examples spread across the list, rather than the lowest CUIs.
         for cui, code in restored_joined[:: max(1, len(restored_joined) // 10)][:10]
     ]
+    if args.fallback_joins:
+        go_label = {}
+        with open(args.go_labels) as f:
+            for line in f:
+                curie, _, label = line.rstrip("\n").partition("\t")
+                go_label.setdefault(curie, label)
+        with open(args.fallback_joins, "w", newline="") as f:
+            writer = csv.writer(f, delimiter="\t", lineterminator="\n")
+            writer.writerow(["umls_cui", "go_term", "go_label", "umls_go_atoms"])
+            for cui, code in restored_joined:
+                atoms = "; ".join(f"{t} {s}" for t, c, s in go_atoms[cui[len("UMLS:") :]] if c == code)
+                writer.writerow([cui, code, go_label.get(code, ""), atoms])
 
     # GO's own names, lower-cased: labels and UberGraph synonyms.
     go_names = defaultdict(set)
