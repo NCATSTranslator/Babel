@@ -33,7 +33,7 @@ import pytest
 
 from src.babel_utils import make_local_name
 from src.createcompendia import anatomy, chemicals, diseasephenotype, protein, taxon
-from src.datahandlers.mesh import Mesh, pull_mesh
+from src.datahandlers.mesh import Mesh, pull_mesh, pull_mesh_labels, pull_mesh_xml, write_mesh_registry
 from src.prefixes import EMAPA, MP
 from src.ubergraph import build_sets
 
@@ -136,8 +136,8 @@ def _intermediate_id_path(compendium: str, vocab: str) -> str:
     return os.path.join(get_config()["intermediate_directory"], _snakemake_dir(compendium), "ids", vocab)
 
 
-def _maybe_run(outfile: str | list[str], fn, regenerate: bool) -> str:
-    """Run fn() to (re)generate outfile unless it exists and regenerate is False.
+def _maybe_run(outfile: str | list[str], fn, regenerate: bool, inputs: list[str] = ()) -> str:
+    """Run fn() to (re)generate outfile unless it exists, is newer than its inputs, and regenerate is False.
 
     fn is a zero-argument callable (typically a lambda) that writes to outfile.
     Creates parent directories as needed.  Always returns outfile (the first, if given several).
@@ -145,9 +145,18 @@ def _maybe_run(outfile: str | list[str], fn, regenerate: bool) -> str:
     Pass a list when one call produces several outputs together (NCBIGene's single pass over
     gene_info.gz writes labels, synonyms, taxa and descriptions at once): fn() then runs unless
     *every* output is already present, so a half-finished run is not mistaken for a cached one.
+
+    Pass ``inputs`` (the files fn() reads) to rerun when any of them is newer than an output, as
+    Snakemake would. This only catches changed *files*: a change to the code fn() runs still
+    needs --regenerate.
     """
     outfiles = [outfile] if isinstance(outfile, str) else outfile
-    if regenerate or not all(os.path.exists(f) for f in outfiles):
+    stale = all(os.path.exists(f) for f in outfiles) and any(
+        os.path.getmtime(i) > min(os.path.getmtime(f) for f in outfiles) for i in inputs
+    )
+    if stale:
+        print(f"[pipeline] {', '.join(outfiles)} is older than its inputs; regenerating")  # noqa: T201
+    if regenerate or stale or not all(os.path.exists(f) for f in outfiles):
         for f in outfiles:
             os.makedirs(os.path.dirname(f), exist_ok=True)
         fn()
@@ -264,16 +273,43 @@ def chemicals_concords_dir(pipeline_output):
 
 @pytest.fixture(scope="session")
 def mesh_nt():
-    """Download babel_downloads/MESH/mesh.nt, or skip if unavailable."""
+    """Download babel_downloads/MESH/mesh.nt and its rdf_source.json, as rule get_mesh does, if either is missing;
+    fail if the download does. write_mesh_registry() needs rdf_source.json to check the XML is the same year."""
+    from src.util import get_config  # deferred: same rationale as _snakemake_dir
+
+    rdf_source = make_local_name("rdf_source.json", subpath="MESH")
+    _download_or_fail("MESH mesh.nt", lambda: pull_mesh(get_config()["mesh_year"], rdf_source), rdf_source)
     return _download_or_fail(
         "MESH mesh.nt",
-        pull_mesh,
+        lambda: pull_mesh(get_config()["mesh_year"], rdf_source),
         make_local_name("mesh.nt", subpath="MESH"),
     )
 
 
 @pytest.fixture(scope="session")
-def mesh_pipeline_outputs(mesh_nt, regenerate):
+def mesh_registry(mesh_nt, regenerate):
+    """Build babel_downloads/MESH/registry.tsv as rule get_mesh_registry does, downloading the MeSH XML and
+    writing MESH/labels first if they are missing. Every ids/MESH and the ownership file read it (#1240)."""
+    from src.util import get_config  # deferred: same rationale as _snakemake_dir
+
+    desc, supp = (make_local_name(f"{prefix}.xml.gz", subpath="MESH") for prefix in ("desc", "supp"))
+    xml_sources = make_local_name("xml_sources.json", subpath="MESH")
+    _download_or_fail("MeSH XML", lambda: pull_mesh_xml(get_config()["mesh_year"], xml_sources), xml_sources)
+    labels = _maybe_run(make_local_name("labels", subpath="MESH"), pull_mesh_labels, regenerate, inputs=[mesh_nt])
+    rdf_source = make_local_name("rdf_source.json", subpath="MESH")
+    registry = make_local_name("registry.tsv", subpath="MESH")
+    return _maybe_run(
+        registry,
+        lambda: write_mesh_registry(
+            desc, supp, labels, registry, rdf_source_file=rdf_source, xml_sources_file=xml_sources
+        ),
+        regenerate,
+        inputs=[desc, supp, labels, rdf_source, xml_sources],
+    )
+
+
+@pytest.fixture(scope="session")
+def mesh_pipeline_outputs(mesh_nt, mesh_registry, regenerate):
     """Run write_mesh_ids for all five compendia; skip if mesh_nt unavailable.
 
     Output files are written to babel_outputs/intermediate/{type}/ids/MESH and
@@ -283,11 +319,17 @@ def mesh_pipeline_outputs(mesh_nt, regenerate):
     def p(compendium):
         return _intermediate_id_path(compendium, "MESH")
 
-    _maybe_run(p("chemicals"), lambda: chemicals.write_mesh_ids(p("chemicals")), regenerate)
-    _maybe_run(p("protein"), lambda: protein.write_mesh_ids(p("protein")), regenerate)
-    _maybe_run(p("anatomy"), lambda: anatomy.write_mesh_ids(p("anatomy")), regenerate)
-    _maybe_run(p("diseasephenotype"), lambda: diseasephenotype.write_mesh_ids(p("diseasephenotype")), regenerate)
-    _maybe_run(p("taxon"), lambda: taxon.write_mesh_ids(p("taxon")), regenerate)
+    writers = {
+        "chemicals": chemicals.write_mesh_ids,
+        "protein": protein.write_mesh_ids,
+        "anatomy": anatomy.write_mesh_ids,
+        "diseasephenotype": diseasephenotype.write_mesh_ids,
+        "taxon": taxon.write_mesh_ids,
+    }
+    for name, write in writers.items():
+        _maybe_run(
+            p(name), lambda write=write, name=name: write(p(name), mesh_registry), regenerate, inputs=[mesh_registry]
+        )
 
     return {
         "chemicals": p("chemicals"),
@@ -350,46 +392,70 @@ def umls_rrf_files():
 
 
 @pytest.fixture(scope="session")
-def umls_pipeline_outputs(umls_rrf_files, regenerate):
+def umls_pipeline_outputs(umls_rrf_files, mesh_pipeline_outputs, mesh_registry, regenerate):
     """Run write_umls_ids for all seven compendia; returns dict of output paths.
 
-    Output files are written to babel_outputs/intermediate/{type}/ids/UMLS and
-    reused on subsequent runs unless --regenerate is passed.
+    The five MeSH-owning pipelines (config.yaml: umls_mesh_owning_pipelines) apply MeSH ownership, so this
+    writes gene's and process's ids/UMLS first, then the umls_mesh_ownership rule's file from those and the
+    five MeSH ids files (mesh_pipeline_outputs, i.e. mesh.nt), then the other five. Output files are written to
+    the Snakemake paths and reused on subsequent runs unless --regenerate is passed or an input is newer: in
+    particular an ids/UMLS written before the ownership file existed is regenerated.
     """
     from src.createcompendia import (  # deferred: gene and processactivitypathway are not in the module-level imports to avoid loading every compendium at collection time; they are only needed for UMLS
         gene,
         processactivitypathway,
     )
+    from src.datahandlers import umls  # deferred: same rationale as gene/processactivitypathway above
     from src.util import get_config  # deferred: same rationale as _snakemake_dir
 
     mrconso = umls_rrf_files["mrconso"]
     mrsty = umls_rrf_files["mrsty"]
     cfg = get_config()
     badumlsfile = os.path.join(cfg["input_directory"], "badumls")
+    ownership = os.path.join(cfg["intermediate_directory"], "umls", "mesh_ownership.tsv")
 
     def p(compendium):
         return _intermediate_id_path(compendium, "UMLS")
 
-    _maybe_run(p("chemicals"), lambda: chemicals.write_umls_ids(mrsty, p("chemicals")), regenerate)
-    _maybe_run(p("protein"), lambda: protein.write_umls_ids(mrsty, p("protein")), regenerate)
-    _maybe_run(p("anatomy"), lambda: anatomy.write_umls_ids(mrsty, p("anatomy")), regenerate)
-    _maybe_run(
-        p("diseasephenotype"),
-        lambda: diseasephenotype.write_umls_ids(mrsty, p("diseasephenotype"), badumlsfile),
-        regenerate,
-    )
+    _maybe_run(p("gene"), lambda: gene.write_umls_ids(mrconso, mrsty, p("gene")), regenerate, inputs=[mrconso, mrsty])
     _maybe_run(
         p("processactivitypathway"),
         lambda: processactivitypathway.write_umls_ids(mrsty, p("processactivitypathway")),
         regenerate,
+        inputs=[mrsty],
     )
-    _maybe_run(p("taxon"), lambda: taxon.write_umls_ids(mrsty, p("taxon")), regenerate)
-    _maybe_run(p("gene"), lambda: gene.write_umls_ids(mrconso, mrsty, p("gene")), regenerate)
 
-    return {
-        name: p(name)
-        for name in ["chemicals", "protein", "anatomy", "diseasephenotype", "processactivitypathway", "taxon", "gene"]
+    # The same arguments rule umls_mesh_ownership passes, keyed by the config's pipeline (directory) names.
+    mesh_ids_by_dir = {_snakemake_dir(name): path for name, path in mesh_pipeline_outputs.items()}
+    mesh_ids_by_pipeline = {pipeline: mesh_ids_by_dir[pipeline] for pipeline in cfg["umls_mesh_owning_pipelines"]}
+    non_mesh_umls_ids = [p("gene"), p("processactivitypathway")]
+    _maybe_run(
+        ownership,
+        lambda: umls.write_mesh_ownership(
+            mrconso,
+            mesh_ids_by_pipeline,
+            ownership,
+            blocklist_files_by_pipeline={"disease": badumlsfile},
+            non_mesh_umls_ids_files=non_mesh_umls_ids,
+            mesh_registry=mesh_registry,
+        ),
+        regenerate,
+        inputs=[mrconso, badumlsfile, mesh_registry, *mesh_ids_by_pipeline.values(), *non_mesh_umls_ids],
+    )
+
+    writers = {
+        "chemicals": lambda: chemicals.write_umls_ids(mrsty, p("chemicals"), mesh_ownership=ownership),
+        "protein": lambda: protein.write_umls_ids(mrsty, p("protein"), mesh_ownership=ownership),
+        "anatomy": lambda: anatomy.write_umls_ids(mrsty, p("anatomy"), mesh_ownership=ownership),
+        "diseasephenotype": lambda: diseasephenotype.write_umls_ids(
+            mrsty, p("diseasephenotype"), badumlsfile, mesh_ownership=ownership
+        ),
+        "taxon": lambda: taxon.write_umls_ids(mrsty, p("taxon"), mesh_ownership=ownership),
     }
+    for name, write in writers.items():
+        _maybe_run(p(name), write, regenerate, inputs=[mrsty, ownership])
+
+    return {name: p(name) for name in [*writers, "gene", "processactivitypathway"]}
 
 
 # ---------------------------------------------------------------------------

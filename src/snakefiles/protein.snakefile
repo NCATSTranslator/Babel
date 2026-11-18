@@ -10,10 +10,12 @@ import src.snakefiles.util as util
 rule protein_mesh_ids:
     input:
         infile=config["download_directory"] + "/MESH/mesh.nt",
+        # Records with an NCBI Taxon registry number are left to taxon (#1240).
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
     output:
         outfile=config["intermediate_directory"] + "/protein/ids/MESH",
     run:
-        protein.write_mesh_ids(output.outfile)
+        protein.write_mesh_ids(output.outfile, input.mesh_registry)
 
 
 rule protein_pr_ids:
@@ -51,12 +53,13 @@ rule extract_taxon_ids_from_uniprotkb:
 rule protein_umls_ids:
     input:
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
         outfile=config["intermediate_directory"] + "/protein/ids/UMLS",
     benchmark:
         config["output_directory"] + "/benchmarks/protein_umls_ids.tsv"
     run:
-        protein.write_umls_ids(input.mrsty, output.outfile)
+        protein.write_umls_ids(input.mrsty, output.outfile, mesh_ownership=input.mesh_ownership)
 
 
 rule protein_ensembl_ids:
@@ -148,6 +151,7 @@ rule protein_compendia:
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
         # Include the taxon information from UniProtKB
         uniprotkb_taxa_file=config["download_directory"] + "/UniProtKB/taxa",
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["protein_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["protein_outputs"])),
@@ -161,8 +165,17 @@ rule protein_compendia:
         # over-provisioned until UniProtKB recovers; ignore that unless a second full-size run agrees.
         runtime="12h",
         mem="512G",
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["protein_unique_prefixes"],
     run:
-        protein.build_protein_compendia(input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename)
+        protein.build_protein_compendia(
+            input.concords,
+            input.metadata_yamls,
+            input.idlists,
+            input.icrdf_filename,
+            mesh_ownership=input.mesh_ownership,
+        )
 
 
 rule check_protein_completeness:

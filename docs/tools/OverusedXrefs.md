@@ -11,7 +11,7 @@ Every concord row is handed to `glom()` as an equivalence assertion, so one targ
 subjects merges all of them into a single clique. Many ontologies use `oboInOwl:hasDbXref` to mean
 "this term is *about* that thing" rather than "is the same as", and classification vocabularies
 make it worse: an ICD-10 billing code names a whole disease *family*, so every subtype that cites
-it collapses together. See [`docs/sources/CLAUDE.md`](../sources/CLAUDE.md) ("An OBO `hasDbXref` is
+it collapses together. See [`docs/sources/AGENTS.md`](../sources/AGENTS.md) ("An OBO `hasDbXref` is
 not an equivalence").
 
 Babel has two defences, and this tool is how you choose between them. `remove_overused_xrefs()`

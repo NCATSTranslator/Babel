@@ -5,10 +5,16 @@ import requests
 import src.datahandlers.mesh as mesh
 import src.datahandlers.obo as obo
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, read_badxrefs, remove_overused_xrefs, write_compendium
+from src.babel_utils import (
+    get_prefixes,
+    read_badxrefs,
+    remove_overused_xrefs,
+    unique_prefixes_from_config,
+)
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
 from src.metadata.provenance import write_concord_metadata
 from src.model.cliques import glom_from_files
+from src.model.compendia import write_typed_compendia
 from src.prefixes import CL, EMAPA, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import HIERARCHY_PART_OF, UberGraph, build_sets
 from src.util import Text, get_config, get_extra_prefixes, get_logger, get_repo_root, validate_xref_prefix_map
@@ -20,7 +26,7 @@ logger = get_logger(__name__)
 # diseasephenotype's DEFAULT_BAD_XREFS this is a single file applied to every anatomy concord
 # rather than a per-concord mapping: a pair names both of its CURIEs, so there is nothing for a
 # per-concord key to disambiguate, and one file avoids the two-place-registration footgun described
-# in docs/sources/CLAUDE.md. See the file itself for why each pair is listed.
+# in docs/sources/AGENTS.md. See the file itself for why each pair is listed.
 #
 # Two consumers resolve this file: the real build, where the anatomy_compendia rule declares it as
 # an input (so an edit re-triggers the rule) and passes the path in, and the source-impact report,
@@ -180,14 +186,22 @@ def write_go_ids(outfile):
     write_obo_ids(_obo_id_roots(GO), outfile)
 
 
-def write_mesh_ids(outfile):
+def write_mesh_ids(outfile, mesh_registry):
+    """Write the anatomy ids/MESH. Records with an NCBI Taxon registry number in mesh_registry (rule
+    get_mesh_registry's TSV) are left to taxon, whatever tree they are in; mesh.write_ids() decides that (#1240).
+    """
     meshmap = {f"A{str(i).zfill(2)}": ANATOMICAL_ENTITY for i in range(1, 21)}
     meshmap["A11"] = CELL
     meshmap["A11.284"] = CELLULAR_COMPONENT
-    mesh.write_ids(meshmap, outfile)
+    mesh.write_ids(meshmap, outfile, pipeline="anatomy", mesh_registry=mesh_registry)
 
 
-def write_umls_ids(mrsty, outfile):
+def write_umls_ids(mrsty, outfile, *, mesh_ownership=None):
+    """Select the UMLS CUIs the anatomy pipeline claims by semantic type.
+
+    ``mesh_ownership`` (the umls_mesh_ownership rule's output) makes a CUI follow its MeSH descriptor
+    (umls.apply_mesh_ownership): a CUI another pipeline owns is dropped here and a CUI this pipeline owns is added.
+    """
     # UMLS categories:
     # A1.2 Anatomical Structure
     # A1.2.1 Embryonic Structure
@@ -204,7 +218,13 @@ def write_umls_ids(mrsty, outfile):
     }
     umlsmap["A1.2.3.3"] = CELL
     umlsmap["A1.2.3.4"] = CELLULAR_COMPONENT
-    umls.write_umls_ids(mrsty, umlsmap, outfile)
+    umls.write_umls_ids(
+        mrsty,
+        umlsmap,
+        outfile,
+        mesh_ownership=mesh_ownership,
+        pipeline="anatomy",
+    )
 
 
 # Ignore list notes:
@@ -386,15 +406,18 @@ def build_anatomy_umls_relationships(mrconso, idfile, outfile, umls_metadata):
     )
 
 
-def _make_anatomy_concord_pair_filter(bad_pairs):
+def _make_anatomy_concord_pair_filter(bad_pairs, owned_elsewhere=frozenset()):
     """Build the ``(parts, infile, dicts) -> bool`` hook glom_from_files applies to every pair.
 
     ``bad_pairs`` is a set of frozensets, so a listed pair is dropped whichever way round the
     concord happens to write it. It is captured in a closure because the hook runs once per
-    concord row and the file must not be re-read that many times.
+    concord row and the file must not be re-read that many times. ``owned_elsewhere`` is
+    umls.read_cuis_owned_elsewhere(): a pair naming one of those CUIs is dropped too.
     """
 
     def _filter(parts, infile, dicts):
+        if umls.names_cui_owned_elsewhere(parts[0], parts[2], owned_elsewhere):
+            return False
         if frozenset((parts[0], parts[2])) in bad_pairs:
             logger.debug("Skipping bad xref pair %s from %s (see %s)", parts, infile, ANATOMY_BAD_XREFS)
             return False
@@ -473,7 +496,9 @@ def find_uberon_snomed_xrefs_to_review(uberon_concord, umls_concord, bad_pairs):
     return dict(flagged)
 
 
-def compute_cliques_for_impact_report(concordances, identifiers, excluded_sources=(), badxrefs=None):
+def compute_cliques_for_impact_report(
+    concordances, identifiers, excluded_sources=(), badxrefs=None, *, mesh_ownership=None
+):
     """Load anatomy identifier and concord files and return the union-find clique state
     without writing compendia.
 
@@ -491,6 +516,8 @@ def compute_cliques_for_impact_report(concordances, identifiers, excluded_source
         the "before-new-source" state for the impact report
     :param badxrefs: path to a bad-xrefs file; defaults to ``ANATOMY_BAD_XREFS``. Pass an
         empty string to disable the filter (used by tests).
+    :param mesh_ownership: the umls_mesh_ownership rule's file; concord pairs naming a CUI another
+        pipeline owns are skipped (umls.read_cuis_owned_elsewhere). None skips nothing.
     :returns: (dicts, types) where dicts is the glom dict-of-sets and types maps CURIE
         to its declared biolink type
     """
@@ -501,31 +528,31 @@ def compute_cliques_for_impact_report(concordances, identifiers, excluded_source
     return glom_from_files(
         concordances,
         identifiers,
-        unique_prefixes=get_config()["anatomy_unique_prefixes"],
-        concord_pair_filter=_make_anatomy_concord_pair_filter(bad_pairs),
+        unique_prefixes=unique_prefixes_from_config("anatomy_unique_prefixes"),
+        concord_pair_filter=_make_anatomy_concord_pair_filter(
+            bad_pairs, umls.read_cuis_owned_elsewhere(mesh_ownership, "anatomy")
+        ),
         overused_xref_remover=lambda pairs, infile: remove_overused_xrefs(pairs),
         excluded_sources=excluded_sources,
     )
 
 
-def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, badxrefs=None):
+def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, badxrefs=None, mesh_ownership=None):
     """:concordances: a list of files from which to read relationships
     :identifiers: a list of files from which to read identifiers and optional categories
-    :badxrefs: path to a bad-xrefs file; defaults to ``ANATOMY_BAD_XREFS``"""
-    dicts, types = compute_cliques_for_impact_report(concordances, identifiers, badxrefs=badxrefs)
+    :badxrefs: path to a bad-xrefs file; defaults to ``ANATOMY_BAD_XREFS``
+    :mesh_ownership: the umls_mesh_ownership rule's file (see compute_cliques_for_impact_report)"""
+    dicts, types = compute_cliques_for_impact_report(
+        concordances, identifiers, badxrefs=badxrefs, mesh_ownership=mesh_ownership
+    )
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
-    for biotype, sets in typed_sets.items():
-        baretype = biotype.split(":")[-1]
-        write_compendium(
-            metadata_yamls,
-            sets,
-            f"{baretype}.txt",
-            biotype,
-            {},
-            # FMA for GrossAnatomicalStructure until biolink_version reaches 4.4.6 (#1134); see get_extra_prefixes().
-            extra_prefixes=get_extra_prefixes("anatomy_extra_prefixes_by_biolink_class", biotype),
-            icrdf_filename=icrdf_filename,
-        )
+    write_typed_compendia(
+        metadata_yamls,
+        typed_sets,
+        icrdf_filename,
+        # FMA for GrossAnatomicalStructure until biolink_version reaches 4.4.6 (#1134); see get_extra_prefixes().
+        extra_prefixes_for=lambda biotype: get_extra_prefixes("anatomy_extra_prefixes_by_biolink_class", biotype),
+    )
 
 
 def classify_anatomy_clique(equivalent_ids, types):

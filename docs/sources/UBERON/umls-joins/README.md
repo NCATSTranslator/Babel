@@ -14,7 +14,7 @@ how the joins were reviewed, what that does to the compendia, and what was consi
 UBERON writes SNOMED CT xrefs as `SCTID:` (about 4,100 of them) while the UMLS concord writes
 `SNOMEDCT:`, so none of UBERON's SNOMED xrefs could join a UMLS concept.
 `config.yaml: anatomy_xref_prefixes` renames them, the same mechanism the disease pipeline uses
-(see [`../../CLAUDE.md`](../../CLAUDE.md), "A missing prefix rename is the same bug, spelled
+(see [`../../AGENTS.md`](../../AGENTS.md), "A missing prefix rename is the same bug, spelled
 differently").
 
 ### FMA: use UBERON's FMA xrefs
