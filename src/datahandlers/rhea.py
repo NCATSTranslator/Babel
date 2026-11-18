@@ -1,6 +1,6 @@
 import pyoxigraph
 
-from src.babel_utils import make_local_name, pull_via_urllib
+from src.babel_utils import pull_via_urllib
 from src.metadata.provenance import write_concord_metadata
 from src.prefixes import EC, RHEA
 
@@ -10,10 +10,10 @@ def pull_rhea():
 
 
 class Rhea:
-    """Load the mesh rdf file for querying"""
+    """Load the Rhea RDF file (rhea.rdf) for querying."""
 
-    def __init__(self):
-        ifname = make_local_name("rhea.rdf", subpath="RHEA")
+    def __init__(self, ifname):
+        """:param ifname: The path to the downloaded rhea.rdf file."""
         self.filename = ifname
         from datetime import datetime as dt
 
@@ -84,11 +84,11 @@ class Rhea:
 
 
 # Ids are handled by just getting everything from the labels
-def make_labels(labelfile):
-    m = Rhea()
+def make_labels(infile, labelfile):
+    m = Rhea(infile)
     m.pull_rhea_labels(labelfile)
 
 
-def make_concord(concfile, metadata_yaml):
-    m = Rhea()
+def make_concord(infile, concfile, metadata_yaml):
+    m = Rhea(infile)
     m.pull_rhea_ec_concs(concfile, metadata_yaml)

@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pyoxigraph
 import pytest
 
-from src.datahandlers.rhea import Rhea
+from src.datahandlers.rhea import Rhea, make_concord, make_labels
 from src.prefixes import EC, RHEA
 from tests.datahandlers.conftest import RDFS_NS, lit, make_graph_from_store, nn, quad
 
@@ -51,3 +51,32 @@ def test_pull_rhea_ec_concs_writes_concordance(mock_meta, rhea, tmp_path):
     rhea.pull_rhea_ec_concs(out, meta)
     assert f"{RHEA}:67890\toio:equivalent\t{EC}:1.2.3.4" in Path(out).read_text().splitlines()
     mock_meta.assert_called_once()
+
+
+# ENTRY POINTS -- the caller-supplied rhea.rdf path must actually be the file we load.
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda infile, tmp: make_labels(infile, str(tmp / "labels.tsv")), id="make_labels"),
+        pytest.param(
+            lambda infile, tmp: make_concord(infile, str(tmp / "concs.tsv"), str(tmp / "meta.yaml")),
+            id="make_concord",
+        ),
+    ],
+)
+def test_entry_points_load_the_infile_they_are_given(call, tmp_path):
+    """Both entry points should open the path passed to them, not one re-derived from the download
+    directory. Rhea used to call make_local_name("rhea.rdf", subpath="RHEA") itself, so the
+    Snakemake rules' declared input was ignored and the filename lived in two places -- the same gap
+    ECgraph had. Pointing them at a missing path proves which one is opened: the error must name our
+    path.
+    """
+    missing = tmp_path / "not-the-download-dir" / "rhea.rdf"
+
+    with pytest.raises(FileNotFoundError) as excinfo:
+        call(str(missing), tmp_path)
+
+    assert str(missing) in str(excinfo.value)

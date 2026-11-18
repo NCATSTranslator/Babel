@@ -87,8 +87,8 @@ def build_process_obo_relationships(outdir, metadata_yaml):
     )
 
 
-def build_process_rhea_relationships(outfile, metadata_yaml):
-    rhea.make_concord(outfile, metadata_yaml)
+def build_process_rhea_relationships(infile, outfile, metadata_yaml):
+    rhea.make_concord(infile, outfile, metadata_yaml)
 
 
 def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):

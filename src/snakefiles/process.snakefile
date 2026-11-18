@@ -107,7 +107,7 @@ rule get_process_rhea_relationships:
     benchmark:
         config["output_directory"] + "/benchmarks/get_process_rhea_relationships.tsv"
     run:
-        pap.build_process_rhea_relationships(output.outfile, output.metadata_yaml)
+        pap.build_process_rhea_relationships(input.infile, output.outfile, output.metadata_yaml)
 
 
 rule get_process_umls_relationships:

@@ -709,7 +709,7 @@ rule get_rhea_labels:
     benchmark:
         config["output_directory"] + "/benchmarks/get_rhea_labels.tsv"
     run:
-        rhea.make_labels(output.labelfile)
+        rhea.make_labels(input.infile, output.labelfile)
 
 
 ### EC
