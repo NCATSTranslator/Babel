@@ -14,26 +14,47 @@ different code and do different things, so check which one you are editing:
   Normalization with conflation off — never in the concords (root `AGENTS.md`, "Debugging"). A row
   acts on whole cliques, so what else those cliques hold is what you are really adding.
 - **Record why the row exists, where it was reported, and what would make it redundant.** A manual
-  row stands in for a link a source should supply, so say what would supply it.
-- **Name issues and PRs as `owner/repo#N`**, or by full URL. Rows here come from both the
-  `TranslatorSRI` and `NCATSTranslator` organizations, so a bare `#N` is ambiguous.
+  row stands in for a link a source should supply, so say what would supply it. Each file has its
+  own place for this; see its section below.
+- **Name issues and PRs unambiguously.** Rows here come from both the `TranslatorSRI` and
+  `NCATSTranslator` organizations, so a bare `#N` is ambiguous: in a `disease.txt` comment or a
+  `drugchemical.tsv` note write `owner/repo#N` or the full URL, and in `drugchemical.tsv`'s `url`
+  column always the full URL.
 
 ## `drugchemical.tsv`
 
-`build_conflation()` reads it with `csv.DictReader` (tab-separated, with a header row) and groups by
-`subject` and `object` alone.
+`build_conflation()` reads it with `csv.DictReader` (`csv.excel_tab`: tab-separated, with a header
+row) and groups by `subject` and `object` alone. The columns are `subject`, `predicate`, `object`,
+`notes` and `url`.
 
 - **Each row joins two whole cliques, not two CURIEs.** Both CURIEs are normalized to their clique
-  leaders first, so every other member of either clique joins the conflation too. A CURIE in no
-  chemical compendium is skipped with a warning.
-- **Pin each identifier you need with its own row.** One that reaches the conflation only through
-  a clique it happens to share today drops out when that clique is fixed. A row that repeats an
-  existing pair after normalization changes no grouping, so pinning costs nothing.
+  leaders first, so every other member of either clique joins the conflation too.
+- **A row can be skipped, and only the warning says so.** It is counted in the conflation
+  metadata's `count_concords_skipped` and logged on every build when:
+  - either CURIE is in no chemical compendium (it may have been retyped, say as a protein): the
+    whole row is skipped, not just that CURIE;
+  - both CURIEs are already in the same clique, so the row normalizes to a self-pair.
+- **A row can also lose to another concord without any warning.** `build_conflation()` hands
+  `glom()` the RxNorm and UMLS pairs first, then the manual rows, then the PubChem–RxNorm pairs,
+  restricted by `drugchemical_unique_prefixes` in `config.yaml` (`INCHIKEY`). A pair whose merge
+  would put two different `INCHIKEY` clique leaders in one conflation is dropped, so a manual row
+  loses to an RxNorm or UMLS pair that got there first, and wins over a PubChem one.
+- **Pin each identifier you need with its own row**, paired with a CURIE from the *other* clique.
+  One that reaches the conflation only through a clique it happens to share today drops out when
+  that clique is fixed. A row that repeats an existing cross-clique pair after normalization
+  changes no grouping, so that kind of pin costs nothing; a row pairing two members of the same
+  clique is a self-pair, skipped with a warning until the clique splits.
 - **The predicate doesn't affect grouping**, but it is counted into the conflation metadata. Use
   `skos:exactMatch` only for the same substance, and `skos:closeMatch` or `skos:relatedMatch` for
-  similar ones (a hydrate and its parent, an animal insulin and human insulin).
-- **The `notes` column is the only place for the row's reason.** Quote a note containing `"` with
-  straight quotes doubled (`"Insulin and ""Insulin aspart"""`); a curly quote is not a CSV quote.
+  similar ones (a hydrate and its parent, an animal insulin and human insulin). Use
+  `skos:narrowMatch` when the object is a more specific form of the subject (human insulin and one
+  branded insulin glargine product), and `skos:broadMatch` the other way round.
+- **`notes` says why the row exists; `url` links where it was reported.** Separate several links
+  with `||`, as existing rows do.
+- **Keep tabs and line breaks out of a note**: either one splits the row unless the note is
+  quoted, and a split row loses its `url` without any error. Quote a note containing `"` with
+  straight quotes doubled (`"Insulin and ""Insulin aspart"""`); a curly quote is not a CSV quote
+  and needs no escaping.
 - **Keep the file's CRLF line endings**, so an edit doesn't rewrite every line.
 
 ## `disease.txt`
