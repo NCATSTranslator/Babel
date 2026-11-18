@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+import src.createcompendia.chemicals as chemicals
 from src import categories
 from src.categories import (
     CHEMICAL_ENTITY,
@@ -32,8 +33,10 @@ from src.createcompendia.chemicals import (
     create_typed_sets,
     make_chebi_relations,
     read_chebi_lookup_ids,
+    read_untyped_compendium,
     split_chebi_sdf_values,
     write_unichem_concords,
+    write_untyped_compendium,
 )
 from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUCT_TSV_HEADER
 from src.datahandlers.unichem import data_sources as unichem_data_sources
@@ -617,9 +620,7 @@ def _untyped_sets(tmp_path, badxrefs_text, **kwargs):
         badxrefs=str(badxrefs),
         **kwargs,
     )
-    import ast
-
-    return [ast.literal_eval(line) for line in untyped.read_text().splitlines()]
+    return list(read_untyped_compendium(untyped))
 
 
 @pytest.mark.unit
@@ -803,3 +804,94 @@ def test_build_untyped_compendia_survives_a_concord_with_no_pairs_left(tmp_path,
     )
 
     assert untyped_concord.read_text().count("\n") == 1
+
+
+# THE UNTYPED-COMPENDIUM HANDOFF
+
+
+@pytest.mark.unit
+def test_untyped_compendium_round_trips(tmp_path):
+    """What build_untyped_compendia writes must be exactly what build_compendia reads back."""
+    path = tmp_path / "untyped_compendium"
+    cliques = {
+        frozenset({"CHEBI:15377", "PUBCHEM.COMPOUND:962", "INCHIKEY:XLYOFNOQVPJJNP-UHFFFAOYSA-N"}),
+        frozenset({"CHEBI:16234"}),
+    }
+
+    write_untyped_compendium(path, cliques)
+
+    assert read_untyped_compendium(path) == cliques
+
+
+@pytest.mark.unit
+def test_a_cliques_line_does_not_depend_on_member_insertion_order(tmp_path):
+    """A given clique must always serialise to the same text, so two builds' files can be compared
+    with `sort | diff` rather than re-parsed.
+
+    Only within-line order is stable. Line order still follows set iteration and is not reproducible
+    between runs -- sorting ~100M lines to fix that would cost more than the diffability is worth.
+    """
+    members = ["CHEBI:15377", "PUBCHEM.COMPOUND:962", "MESH:D005947"]
+    forwards, backwards = tmp_path / "a", tmp_path / "b"
+
+    write_untyped_compendium(forwards, [frozenset(members)])
+    write_untyped_compendium(backwards, [frozenset(reversed(members))])
+
+    assert forwards.read_text() == backwards.read_text()
+
+
+@pytest.mark.unit
+def test_reading_a_pre_jsonl_partial_says_to_delete_it(tmp_path):
+    """A partial left over from before the format switch must fail with an actionable message.
+
+    Snakemake will not rebuild a partial that is newer than its inputs, so a tree carried over from
+    an older checkout reaches build_compendia still holding repr(set) lines. Failing inside
+    json.loads would name neither the cause nor the fix.
+    """
+    path = tmp_path / "untyped_compendium"
+    path.write_text("{'CHEBI:15377', 'PUBCHEM.COMPOUND:962'}\n")
+
+    with pytest.raises(RuntimeError, match=r"pre-JSONL `repr\(set\)` format"):
+        read_untyped_compendium(path)
+
+
+@pytest.mark.unit
+def test_blank_lines_are_skipped(tmp_path):
+    """A trailing newline is not a clique."""
+    path = tmp_path / "untyped_compendium"
+    path.write_text('["CHEBI:15377"]\n\n')
+
+    assert read_untyped_compendium(path) == {frozenset({"CHEBI:15377"})}
+
+
+@pytest.mark.unit
+def test_build_compendia_loads_icrdf_once_for_every_output(tmp_path, monkeypatch):
+    """Every chemical output is written from one InformationContentFactory, not one per write.
+
+    The rule writes one compendium per config.yaml: chemical_outputs entry, and icRDF.tsv is ~3.9
+    million rows. The factory is held by build_compendia rather than cached in src/node.py, so it is
+    freed when the rule's work is done; this checks the sharing still happens.
+    """
+    type_file = tmp_path / "types"
+    type_file.write_text(f"CHEBI:15377\t{SMALL_MOLECULE}\nCHEBI:16234\t{MOLECULAR_MIXTURE}\n")
+    untyped = tmp_path / "untyped_compendium"
+    write_untyped_compendium(untyped, [frozenset({"CHEBI:15377"}), frozenset({"CHEBI:16234"})])
+    food_types = tmp_path / "food_types"
+    food_types.write_text("")
+    icrdf = str(tmp_path / "icRDF.tsv")
+
+    factories, writes = [], []
+
+    class RecordingFactory:
+        def __init__(self, ic_file):
+            self.ic_file = ic_file
+            factories.append(self)
+
+    monkeypatch.setattr(chemicals, "InformationContentFactory", RecordingFactory)
+    monkeypatch.setattr(chemicals, "write_compendium", lambda *args, **kwargs: writes.append(kwargs))
+
+    chemicals.build_compendia(str(type_file), str(untyped), [], [], icrdf, [str(food_types)])
+
+    assert len(factories) == 1
+    assert len(writes) == 2
+    assert all(w["ic_factory"] is factories[0] and w["icrdf_filename"] == icrdf for w in writes)

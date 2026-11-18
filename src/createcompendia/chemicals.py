@@ -1,6 +1,6 @@
-import ast
 import gzip
 import hashlib
+import json
 import logging
 from collections import Counter, defaultdict
 
@@ -33,6 +33,7 @@ from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.datahandlers.unii import UNII_ORGANISM_COLUMNS, read_unii_records
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.model.intermediates import read_concord_pairs
+from src.node import InformationContentFactory
 from src.prefixes import (
     CHEBI,
     CHEMBLCOMPOUND,
@@ -174,6 +175,53 @@ CHEBI_DBX_ACCESSION_TYPE = "MANUAL_X_REF"
 # Whether SUBMITTED is in fact reviewed by some other route is issue #957; if it turns out to be
 # trustworthy, adding it here is the whole change.
 CHEBI_DBX_ACCEPTED_STATUSES = frozenset({"CHECKED", "OK"})
+
+
+def write_untyped_compendium(path, cliques):
+    """Write `cliques` to `path` as JSONL: one sorted array of CURIEs per line.
+
+    This is the handoff between the `untyped_chemical_compendia` and `chemical_compendia` rules --
+    the largest clique state in Babel, ~20 GB at production scale. It previously held
+    ``repr(set(...))`` read back with ``ast.literal_eval``: Python source used as a wire format
+    between two rules, which is both the slowest deserializer in the standard library and
+    unreadable by anything that is not Python. Measured over a 53 MB replicated anatomy clique state,
+    the ``repr(set)`` round trip took 11.80 s (1.30 s to write, 10.50 s to read) against JSONL's
+    5.00 s (2.07 s + 2.93 s): 2.4x. Scaled to babel-1.18's 256 million chemical identifiers, that is
+    ~985 s against ~418 s, about 9.5 minutes saved per build. The harness that measured this,
+    ``docs/rust-decision/boundary_cost.py``, comes from NCATSTranslator/Babel#988 and is carried
+    into NCATSTranslator/Babel#1091; neither has merged yet.
+
+    Members are sorted within each line, so a given clique always serialises to the same text and
+    two builds' files can be compared with `sort | diff` rather than being re-parsed. Line *order*
+    is still whatever the set iterates in and is not stable between runs; sorting ~100M lines to
+    fix that would cost more than the diffability is worth.
+    """
+    with open(path, "w") as outf:
+        for clique in cliques:
+            outf.write(json.dumps(sorted(clique)) + "\n")
+
+
+def read_untyped_compendium(path):
+    """Read the file written by :func:`write_untyped_compendium` into a set of frozensets.
+
+    :raises RuntimeError: if the file is in the pre-JSONL ``repr(set)`` format. Snakemake will not
+        rebuild a partial that is newer than its inputs, so a tree carried over from an older
+        checkout arrives here in the old format; saying so beats failing inside the JSON parser.
+    """
+    cliques = set()
+    with open(path) as inf:
+        for line_number, line in enumerate(inf, start=1):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if stripped.startswith("{"):
+                raise RuntimeError(
+                    f"{path} line {line_number} is in the pre-JSONL `repr(set)` format written by "
+                    f"an older Babel. Delete it and Snakemake will rerun untyped_chemical_compendia, "
+                    f"which rewrites it along with that rule's other outputs: rm {path}"
+                )
+            cliques.add(frozenset(json.loads(stripped)))
+    return cliques
 
 
 def get_type_from_smiles(smiles):
@@ -1213,9 +1261,7 @@ def build_untyped_compendia(
         for x, y in types.items():
             outf.write(f"{x}\t{y}\n")
     untyped_sets = set([frozenset(x) for x in dicts.values()])
-    with open(untyped_concord, "w") as outf:
-        for s in untyped_sets:
-            outf.write(f"{set(s)}\n")
+    write_untyped_compendium(untyped_concord, untyped_sets)
 
     # Build the metadata file by combining the input metadata_yamls.
     write_combined_metadata(
@@ -1269,17 +1315,17 @@ def build_compendia(
             f"chemical_type_order, so they cannot be ranked against a clique's voted type: {sorted(unrankable)}"
         )
 
-    untyped_sets = set()
-    with open(untyped_compendia_file) as inf:
-        for line in inf:
-            s = ast.literal_eval(line.strip())
-            untyped_sets.add(frozenset(s))
+    untyped_sets = read_untyped_compendium(untyped_compendia_file)
     logger.info(f"Loaded {len(untyped_sets)} untyped sets from {untyped_compendia_file}: {get_memory_usage_summary()}")
 
     typed_sets = create_typed_sets(untyped_sets, types, food_types)
     logger.info(
         f"Created {len(typed_sets)} typed sets from {len(untyped_sets)} untyped sets: {get_memory_usage_summary()}"
     )
+
+    # One factory for every output: this rule writes one compendium per config.yaml: chemical_outputs
+    # entry, and each write_compendium call would otherwise re-read icRDF.tsv.
+    ic_factory = InformationContentFactory(icrdf_filename)
 
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]
@@ -1293,6 +1339,7 @@ def build_compendia(
                 extra_prefixes=[MESH, UNII],
                 icrdf_filename=icrdf_filename,
                 properties_jsonl_gz_files=properties_jsonl_gz_files,
+                ic_factory=ic_factory,
             )
         else:
             write_compendium(
@@ -1304,6 +1351,7 @@ def build_compendia(
                 extra_prefixes=[RXCUI],
                 icrdf_filename=icrdf_filename,
                 properties_jsonl_gz_files=properties_jsonl_gz_files,
+                ic_factory=ic_factory,
             )
 
 
