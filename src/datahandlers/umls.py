@@ -664,14 +664,25 @@ def build_sets(
                 concordfile.write(f"{tup[0]}\teq\t{tup[1]}\n")
                 pairs.add(tup)
 
-    # Write provenance for this build_sets() call.
+    # Write provenance for this build_sets() call. Only term-type restrictions that differ from DEFAULT_ACCEPTABLE_TTYS
+    # are named, so a pipeline using the defaults keeps the same description from build to build.
     if provenance_metadata_yaml is not None:
+        description = (
+            f"umls.build_sets() using UMLS MRCONSO with prefixes: {other_prefixes} with cui_prefix set to {cui_prefix}"
+        )
+        tty_overrides = {
+            k: sorted(v) for k, v in acceptable_ttys.items() if DEFAULT_ACCEPTABLE_TTYS.get(k) != frozenset(v)
+        }
+        dropped_defaults = sorted(DEFAULT_ACCEPTABLE_TTYS.keys() - acceptable_ttys.keys())
+        if tty_overrides:
+            description += f", taking only these term types from these sources: {tty_overrides}"
+        if dropped_defaults:
+            description += f", taking every term type from these sources: {dropped_defaults}"
         write_concord_metadata(
             provenance_metadata_yaml,
             name="umls.build_sets()",
             sources=[{"type": "UMLS", "name": "MRCONSO"}],
-            description=f"umls.build_sets() using UMLS MRCONSO with prefixes: {other_prefixes} with cui_prefix set to {cui_prefix}"
-            + f", taking only these term types from these sources: { {k: sorted(v) for k, v in acceptable_ttys.items()} }",
+            description=description,
             concord_filename=umls_output,
         )
 

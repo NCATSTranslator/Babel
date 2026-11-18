@@ -6,6 +6,7 @@ The MRSTY and MRCONSO rows are copied verbatim from UMLS 2026AA; each block name
 """
 
 import pytest
+import yaml
 
 from src.categories import ANATOMICAL_ENTITY, CHEMICAL_ENTITY, ORGANISM_TAXON, PROTEIN
 from src.createcompendia import anatomy, chemicals, diseasephenotype, gene, processactivitypathway, protein, taxon
@@ -655,3 +656,30 @@ def test_mesh_rows_never_reach_an_ids_umls_file(rrf):
     as a UMLS identifier, and no other pipeline loses anything for it."""
     path = ownership_with_registry(rrf, {"taxon": [(MAIZE_VIRUS, ORGANISM_TAXON)]})
     assert MAIZE_VIRUS not in run(rrf, TAXON_MAP, path, "taxon")
+
+
+@pytest.mark.unit
+def test_build_sets_metadata_names_only_non_default_term_types(tmp_path):
+    """The concord metadata should name a term-type restriction only when it differs from DEFAULT_ACCEPTABLE_TTYS, so
+    pipelines on the defaults keep the description they had before acceptable_ttys existed."""
+    mrconso = write_mrconso(tmp_path, GO_0045943_ROWS)
+    idfile = tmp_path / "ids"
+    idfile.write_text("UMLS:C1158785\tbiolink:BiologicalProcess\n")
+
+    def description(**kwargs):
+        metadata = tmp_path / "metadata.yaml"
+        build_sets(
+            mrconso,
+            str(idfile),
+            str(tmp_path / "concord"),
+            {"GO": "GO"},
+            provenance_metadata_yaml=str(metadata),
+            **kwargs,
+        )
+        return yaml.safe_load(metadata.read_text())["description"]
+
+    assert "term types" not in description()
+    assert "term types" not in description(acceptable_ttys=dict(DEFAULT_ACCEPTABLE_TTYS))
+    restricted = description(acceptable_ttys={**DEFAULT_ACCEPTABLE_TTYS, "GO": GO_PREFERRED_TTYS})
+    assert f"taking only these term types from these sources: {{'GO': {sorted(GO_PREFERRED_TTYS)}}}" in restricted
+    assert "MSH" not in restricted
