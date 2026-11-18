@@ -12,6 +12,7 @@ UMLS:C0330209,Magnoliopsida,NCBITaxon:3398,Magnoliopsida (flowering plants),NCBI
 UMLS:C0330254,Anemone,NCBITaxon:22868,Anemonastrum,NCBITaxon:3137121,Anemone,NCBITaxon:22868; MESH:D031883; UMLS:C6025504
 UMLS:C0331277,Aloysia,NCBITaxon:925377,Aloysia citrodora (lemon verbena),NCBITaxon:105887,Aloysia,NCBITaxon:925377; MESH:C000655467; UMLS:C3097146
 UMLS:C0993566,Daboia,NCBITaxon:8707,Daboia russelii (Russell's viper),NCBITaxon:42188,Daboia,NCBITaxon:8707; MESH:D017840; UMLS:C0206318
+UMLS:C0993630,Garlic,NCBITaxon:4682,Allium sativum (garlic),,,NCBITaxon:4682; MESH:D005737; UMLS:C0017102
 UMLS:C0997376,Williopsis,NCBITaxon:4962,Williopsis,NCBITaxon:3713381,Petasospora,NCBITaxon:4962; MESH:D055320
 UMLS:C0999736,Ctenophora <Eumetazoa>,NCBITaxon:10197,Ctenophora (comb jellies),NCBITaxon:1003038,Ctenophora,NCBITaxon:10197; MESH:D037302
 UMLS:C1008031,Monarda,NCBITaxon:39171,Monarda (wild bergamots),NCBITaxon:523210,Monarda,NCBITaxon:39171; MESH:D031338
@@ -24,13 +25,17 @@ UMLS:C1060600,Russula cremoricolor,NCBITaxon:125791,Russula cremicolor,NCBITaxon
 UMLS:C1086110,Hymenogaster sublilacinus,NCBITaxon:80651,Phlegmacium lilacinoides,NCBITaxon:3362127,Phlegmacium sublilacinum,NCBITaxon:80651; MESH:C000677014; UMLS:C5980045
 UMLS:C1094241,Polygonum cuspidatum,NCBITaxon:488216,Reynoutria japonica (Japanese knotweed),NCBITaxon:83819,Polygonum cuspidatum,NCBITaxon:488216; MESH:D045468; UMLS:C2314887
 UMLS:C1449811,Lens Plant,NCBITaxon:3863,Lens,,,NCBITaxon:3863; MESH:D027806; UMLS:C0996842
+UMLS:C1509685,pomegranate fruit extract,NCBITaxon:22663,Punica granatum (pomegranate),,,NCBITaxon:22663; MESH:D000079702; UMLS:C1001173
 UMLS:C1510458,Goat,NCBITaxon:9925,Capra hircus (goat),,,NCBITaxon:9925; MESH:D006041; UMLS:C0018019
 UMLS:C1955847,Cyclopia Plant,NCBITaxon:70072,Cyclopia,,,NCBITaxon:70072; MESH:D053998; UMLS:C1085086
+UMLS:C2349012,Ulva lactuca extract,NCBITaxon:63410,Ulva lactuca,,,NCBITaxon:63410; MESH:C000728529; UMLS:C1024150
 UMLS:C2587210,Rhodotorula,NCBITaxon:5533,Rhodotorula,,,NCBITaxon:5533; MESH:D012248; UMLS:C1095859
+UMLS:C2723760,Stemphylium solani allergenic extract,NCBITaxon:110364,Stemphylium solani,,,NCBITaxon:110364; MESH:C000679281; UMLS:C1051915
 UMLS:C2780136,Paecilomyces formosus,NCBITaxon:644133,Paecilomyces maximus,NCBITaxon:3232301,Paecilomyces formosus,NCBITaxon:644133; MESH:C000697940; UMLS:C5958589
 UMLS:C3053958,Xanthoparmelia hottentota,NCBITaxon:859859,Xanthoparmelia hottentotta,,,NCBITaxon:859859; MESH:C000704777; UMLS:C1467519
 UMLS:C3203009,Planctomycetales - Phylum,NCBITaxon:112,Planctomycetales,,,NCBITaxon:112; MESH:D061328; UMLS:C0995257
 UMLS:C4424855,Haplosporangium gracile,NCBITaxon:1897643,Linnemannia camargensis,NCBITaxon:2779863,Haplosporangium gracile,NCBITaxon:1897643; MESH:C000692967; UMLS:C3334077
+UMLS:C4724786,Betula alba extract,NCBITaxon:38787,Betula pubescens (downy birch),,,NCBITaxon:38787; MESH:C000712387; UMLS:C1007764
 UMLS:C4760234,Sapajus apella,NCBITaxon:9515,Sapajus apella (tufted capuchin),,,NCBITaxon:9515; MESH:D000080522; UMLS:C0999514
 UMLS:C5227205,Staphylococcus saprophyticus subsp. bovis,NCBITaxon:29385,Staphylococcus saprophyticus,,,NCBITaxon:29385; MESH:C000638665; UMLS:C0318112
 UMLS:C5250459,Micarea aeruginoprasina,NCBITaxon:2528845,Micarea minuta,NCBITaxon:3394524,Micarea aeruginoprasina,NCBITaxon:2528845; MESH:C000696307

@@ -1,5 +1,4 @@
 cui,cui_label,direct_ncbitaxon,mesh,ncbitaxon_via_mesh
-UMLS:C0001180,Acremonium,NCBITaxon:81097 Cephalosporium,MESH:D000164 Acremonium,NCBITaxon:159075 Acremonium
 UMLS:C0006024,Borna disease virus,NCBITaxon:1714619 Orthobornavirus bornaense,MESH:D001891 Borna disease virus,NCBITaxon:12455 Borna disease virus
 UMLS:C0009169,Coca,NCBITaxon:289672 Erythroxylum coca (coca),MESH:D003041 Coca,NCBITaxon:13511 Erythroxylum
 UMLS:C0013268,Ducks,NCBITaxon:8835 Anas (ducks),MESH:D004372 Ducks,NCBITaxon:2068716 Anatinae

@@ -75,32 +75,36 @@ broader and 2 competing ones.
 
 ## Effect on the compendium
 
-Measured by building `taxon` on main (`f6fbc10b`) and on this change from the same downloads (UMLS
-2026AA, NCBI taxdump and MeSH of 2026-10-09). Artifacts are in
-[`umls-and-obsolete-ids/`](./umls-and-obsolete-ids/). This build predates the broader-taxon,
-cross-concord and competing-ID rules above. Those change about 2,000 concord rows, out of more than
-900,000, but have not been measured as a compendium diff.
+Measured by building `taxon` locally on main (`bb882867`) and on this change merged with it
+(`37e01618`), from the same downloads (UMLS 2026AA; MeSH `mesh.nt` and the NCBI taxdump downloaded
+2026-11-17) and the same upstream ids files, so the comparison isolates this change. Artifacts are
+in
+[`umls-and-obsolete-ids/`](./umls-and-obsolete-ids/).
 
-- **Cliques:** 3,768,902 → 3,055,807 (`clique-diff.summary.json`). Almost all of the difference is
-  UMLS-only cliques joining NCBITaxon cliques. UMLS-only cliques went from 745,560 to 33,191.
+- **Cliques:** 3,785,393 → 3,072,393 (`clique-diff.summary.json`). Almost all of the difference is
+  UMLS-only cliques joining NCBITaxon cliques. UMLS-only cliques went from 745,560 to 33,189
+  ([`clique-shapes.md`](./umls-and-obsolete-ids/clique-shapes.md)).
 - **No clique holds two identifiers with the same prefix.** The largest clique is still three
   identifiers.
-- **Dropped identifiers:** 1,911. These are the 1,910 merged or deleted NCBITaxon IDs, plus one MeSH
-  ID no longer in MeSH that only reached the build through UMLS.
-- **Partner changes** ([`partner-changes.md`](./umls-and-obsolete-ids/partner-changes.md)): 712,491
-  UMLS identifiers gained an NCBITaxon partner, and 1,384 MeSH/UMLS identifiers had an obsolete
-  partner replaced by the current one. 81 UMLS identifiers lost or swapped a current partner. Almost
-  all of these are a second CUI for the same species, created from MeSH with MeSH's spelling, giving
-  way to the CUI that carries NCBI's own atom (e.g. `UMLS:C5434345` "Colletotrichum caudasporum" vs
-  `UMLS:C3747940` "Colletotrichum caudisporum").
-- **Labels:** of the 780,600 cliques holding both an NCBITaxon and a UMLS identifier, 722,101 have
-  the same label on both. Of the other 58,499, 48,988 have the UMLS label among NCBITaxon's own
-  synonyms (usually an older name). A sample of the rest is mostly UMLS formatting ("Genus Moschus",
-  "Stevia <Eupatorieae>").
+- **Dropped identifiers:** 1,947. These are the 1,910 merged and 36 deleted NCBITaxon IDs, plus
+  `MESH:C000731772`, which is no longer in MeSH and only reached the build through UMLS: its CUI now
+  joins [`NCBITaxon:1193015`](http://purl.obolibrary.org/obo/NCBITaxon_1193015) "Westerdykella
+  aurantiaca" together with the current MeSH record for that species.
+- **Partner changes** ([`partner-changes.md`](./umls-and-obsolete-ids/partner-changes.md)): 712,486
+  UMLS identifiers gained an NCBITaxon partner, and 1,204 MeSH/UMLS identifiers had an obsolete
+  partner replaced by the current one. 86 UMLS identifiers lost or swapped a current partner. Almost
+  all of these are a second CUI for the same organism, reaching NCBITaxon only through its MeSH
+  heading, giving way to the CUI that carries NCBI's own atom: a MeSH-spelled species name
+  (`UMLS:C5434345` "Colletotrichum caudasporum" vs `UMLS:C3747940` "Colletotrichum caudisporum"),
+  or an extract or food ("Garlic", "Betula alba extract") versus the organism itself.
+- **Labels** ([`clique-shapes.md`](./umls-and-obsolete-ids/clique-shapes.md)): of the 780,474
+  cliques holding both an NCBITaxon and a UMLS identifier, 721,650 have the same label on both. Of
+  the other 58,824, 48,981 have the UMLS label among NCBITaxon's own synonyms (usually an older
+  name). A sample of the rest is mostly UMLS formatting ("Genus Moschus", "Stevia <Eupatorieae>").
 
 ## Known remaining disagreements
 
-48 UMLS CUIs reach one NCBITaxon directly and a different one through their MeSH heading
+47 UMLS CUIs reach one NCBITaxon directly and a different one through their MeSH heading
 ([`path-disagreements.md`](./umls-and-obsolete-ids/path-disagreements.md)). Only one link can win.
 In the sample the direct link is more often right (`UMLS:C0993566` "Daboia" directly reaches the
 genus, while MeSH's registry number points at the species *Daboia russelii*), but not always: MeSH
@@ -115,7 +119,8 @@ UMLS to Viridiplantae, not to [`NCBITaxon:3193`](http://purl.obolibrary.org/obo/
 
 ## Regenerating
 
-Build both sides of the comparison, then run `partner_changes.py` and `path_disagreements.py` in
+Build both sides of the comparison, then run `partner_changes.py`, `path_disagreements.py` and
+`clique_shapes.py` in
 [`umls-and-obsolete-ids/scripts/`](./umls-and-obsolete-ids/scripts/) (usage is in each docstring)
 and `babel-clique-diff` (see [`docs/tools/CliqueDiff.md`](../../tools/CliqueDiff.md)).
 `obsolete_id_decisions.py` needs only the inputs of rule `taxon_update_obsolete_ncbitaxon_ids`.
