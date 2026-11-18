@@ -1,10 +1,10 @@
-# CLAUDE.md — src/datahandlers/
+# AGENTS.md — src/datahandlers/
 
-Code-level conventions for the ~35 data-source handlers, for Claude Code. Each module downloads,
+Code-level conventions for the ~35 data-source handlers, for coding agents. Each module downloads,
 parses, and normalizes one external source into the per-source attribute files the factories in
 `src/node.py` pick up by prefix. The process-level narrative — how to wire a source end to end — is
 `docs/Development.md` ("Enhancing a data source ingest") and `docs/AddingNewSources.md`;
-cross-cutting xref/data-quality conventions are in `docs/sources/CLAUDE.md`. This file is just the
+cross-cutting xref/data-quality conventions are in `docs/sources/AGENTS.md`. This file is just the
 in-module code rules.
 
 ## Attribute files a handler emits

@@ -68,7 +68,7 @@ term's EMAPA mappings together and makes this PR purely additive (see
 restricting EMAPA — does not produce a *better* clique; it produces an arbitrary winner among the
 three plus two singletons, and can silently delete identifiers. If these mappings should not be
 treated as equivalences at all, the right fix is to filter the offending UBERON xrefs (see
-`docs/sources/CLAUDE.md`, "An OBO `hasDbXref` is not an equivalence"), not to restrict the prefix.
+`docs/sources/AGENTS.md`, "An OBO `hasDbXref` is not an equivalence"), not to restrict the prefix.
 
 ### EMAPA terms are not tagged with a taxon (SME check)
 

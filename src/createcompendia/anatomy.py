@@ -26,7 +26,7 @@ logger = get_logger(__name__)
 # diseasephenotype's DEFAULT_BAD_XREFS this is a single file applied to every anatomy concord
 # rather than a per-concord mapping: a pair names both of its CURIEs, so there is nothing for a
 # per-concord key to disambiguate, and one file avoids the two-place-registration footgun described
-# in docs/sources/CLAUDE.md. See the file itself for why each pair is listed.
+# in docs/sources/AGENTS.md. See the file itself for why each pair is listed.
 #
 # Two consumers resolve this file: the real build, where the anatomy_compendia rule declares it as
 # an input (so an edit re-triggers the rule) and passes the path in, and the source-impact report,

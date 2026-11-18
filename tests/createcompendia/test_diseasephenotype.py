@@ -1040,7 +1040,7 @@ def test_badxrefs_files_are_registered_for_the_concords_they_name():
     """Every DEFAULT_BAD_XREFS key must name a concord the disease build actually produces.
 
     A bad-xrefs file has to be registered in two places (this dict and the disease_compendia rule),
-    and a key matching no concord silently filters nothing -- the footgun docs/sources/CLAUDE.md
+    and a key matching no concord silently filters nothing -- the footgun docs/sources/AGENTS.md
     warns about. compute_cliques_for_impact_report() raises on an unknown key, but only once it has
     a concord list to check against; this pins the dict itself against config.yaml."""
     known_concords = set(get_config()["disease_concords"])
