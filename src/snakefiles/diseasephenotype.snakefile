@@ -238,7 +238,7 @@ rule get_disease_doid_relationships:
 
 
 rule disease_manual_concord:
-    # How to write a row of this file, and what one really merges: input_data/manual_concords/CLAUDE.md.
+    # How to write a row of this file, and what one really merges: input_data/manual_concords/README.md.
     input:
         infile="input_data/manual_concords/disease.txt",
     output:

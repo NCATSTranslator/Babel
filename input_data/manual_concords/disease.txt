@@ -1,6 +1,6 @@
 # All lines starting with '#' will be removed from this file before being used as a
 # concord. Columns are separated by tabs. How to write a row, and what it really merges:
-# input_data/manual_concords/CLAUDE.md.
+# input_data/manual_concords/README.md.
 #
 # OPIOID USE DISORDER
 #

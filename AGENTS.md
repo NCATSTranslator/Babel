@@ -17,7 +17,8 @@ loads the nearest one automatically when you edit files there; **other agents sh
 - `docs/sources/` — cross-cutting xref / source-data conventions.
 - `docs/sources/DRUGBANK/` — DrugBank ingest gotchas (CC-0 vocabulary only, the UNII typing bridge).
 - `input_data/manual_concords/` — how each manual concord file is read, and what a row really
-  merges.
+  merges. This one is an `AGENTS.md` pointing at the directory's `README.md`, since curators read
+  the guide too; Claude Code loads a subdirectory's `AGENTS.md` only when it has no `CLAUDE.md`.
 
 (Agents that merge nested `AGENTS.md` up the tree won't see these `CLAUDE.md` files — only this
 root file. If per-directory cross-agent context ever matters, pair each with an `AGENTS.md` holding
