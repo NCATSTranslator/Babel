@@ -1,32 +1,29 @@
 # AGENTS.md
 
 This file provides guidance to coding agents — Claude Code, Codex, Cursor, and others — when
-working with code in this repository. It is the canonical, agent-agnostic instruction file; the
-root `CLAUDE.md` is a one-line `@AGENTS.md` import so Claude Code picks it up automatically.
+working with code in this repository. It is the canonical, agent-agnostic instruction file.
+
+**This repository has no `CLAUDE.md` files, and `tests/test_agent_files.py` keeps it that way.**
+Claude Code reads a directory's `AGENTS.md` only when that directory has no `CLAUDE.md` (checked
+with Claude Code 2.1.327, #1238), and Codex, Cursor and Copilot read `AGENTS.md` natively, so one
+file name serves every agent. If `/init` or anything else creates a `CLAUDE.md`, merge what it
+says into the `AGENTS.md` beside it and delete it.
 
 ## Directory-scoped instructions
 
-Some directories carry their own `CLAUDE.md` (or, in one case, `AGENTS.md`) with conventions
-specific to that area. Claude Code loads the nearest one automatically when you edit files there;
-**other agents should read the `CLAUDE.md` or `AGENTS.md` nearest the files they are editing.**
-They live in:
+Some directories carry their own `AGENTS.md` with conventions specific to that area. Claude Code
+loads the nearest one automatically when it reads files there; **other agents should read the
+`AGENTS.md` nearest the files they are editing.** They live in the directories below, and
+`tests/test_agent_files.py` fails if this list and the files disagree:
 
 - `tests/` — how to write a test once you know where it goes.
 - `src/datahandlers/` — code-level conventions for the data-source handlers.
-- `src/tools/` (plus `src/tools/clique_diff/`, `src/tools/slurm/`,
+- `src/tools/` (plus `src/tools/clique_diff/`, `src/tools/overused_xrefs/`, `src/tools/slurm/`,
   `src/tools/source_impact_report/`) — the "thin CLI frontend" convention and per-tool notes.
 - `docs/sources/` — cross-cutting xref / source-data conventions.
 - `docs/sources/DRUGBANK/` — DrugBank ingest gotchas (CC-0 vocabulary only, the UNII typing bridge).
 - `input_data/manual_concords/` — how each manual concord file is read, and what a row really
-  merges. This one is an `AGENTS.md` pointing at the directory's `README.md`, since curators read
-  the guide too; Claude Code loads a subdirectory's `AGENTS.md` only when it has no `CLAUDE.md`
-  (#1238 checks this, and adds a test that no `CLAUDE.md` shadows an `AGENTS.md`).
-
-(Agents that merge nested `AGENTS.md` up the tree won't see the `CLAUDE.md` files above — only this
-root file and `input_data/manual_concords/AGENTS.md`. If per-directory cross-agent context ever
-matters for one of them, move its content into an `AGENTS.md` beside it: with no `CLAUDE.md` there,
-Claude Code reads that too. A `CLAUDE.md` beside an `AGENTS.md` must be only the one-line
-`@AGENTS.md` import, as at the root, or Claude Code reads it instead.)
+  merges. This one is a pointer to the directory's `README.md`, since curators read the guide too.
 
 ## Project Overview
 
