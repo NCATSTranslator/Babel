@@ -10,7 +10,7 @@ from xml.etree import ElementTree
 import pyoxigraph
 
 from src.babel_utils import make_local_name
-from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT
+from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, ORGANISM_TAXON
 from src.prefixes import MESH
 from src.util import ensure_parent_dir, get_logger
 from src.utils.ftp import ftp_modified_time, list_ftp_dir, retrieve_ftp_file
@@ -544,14 +544,19 @@ def read_mesh_registry(registry_file) -> list[tuple[str, str]]:
     return registry
 
 
+# The MeSH-owning pipeline (config.yaml's umls_mesh_owning_pipelines) that owns every MeSH record with an NCBI
+# Taxon registry number, whatever its record class or tree; see read_mesh_ids_with_ncbitaxon().
+MESH_NCBITAXON_OWNER = "taxon"
+
+
 def read_mesh_ids_with_ncbitaxon(registry_file) -> set[str]:
     """Return the MeSH IDs that write_mesh_registry() gave an NCBI Taxon registry number ("txid...").
 
     NLM gives a record an NCBI Taxon registry number only when it names an organism, so these records belong to
-    the taxon pipeline whatever their MeSH record class: taxon.write_mesh_ids() claims them, and every other
-    MeSH-owning pipeline must leave them alone (chemicals.write_mesh_ids() excludes them, and
-    taxon.build_relationships() fails if any other pipeline claims one). See
-    https://github.com/NCATSTranslator/Babel/issues/1240.
+    MESH_NCBITAXON_OWNER whatever their MeSH record class. Two places act on that, both through this function:
+    write_ids() adds them to the owner's ids/MESH and leaves them out of every other pipeline's, and
+    umls.write_mesh_ownership() records the owner, so that every other pipeline's compendium build skips a
+    concord pair naming one. See https://github.com/NCATSTranslator/Babel/issues/1240.
     """
     return {meshid for meshid, regnum in read_mesh_registry(registry_file) if regnum.startswith("txid")}
 
@@ -618,8 +623,9 @@ def write_ids(
     extra_vocab={},
     scr_exclude_trees=None,
     scr_include_trees=None,
-    extra_terms=None,
-    exclude_terms=None,
+    *,
+    pipeline,
+    mesh_registry,
 ):
     """Write the mesh identifiers from a particular set of hierarchies to an output directory.
     This might be a mixed list of types (for instance anatomy and cell).  Also, the same term
@@ -630,10 +636,12 @@ def write_ids(
     scr_include_trees: optional list of tree numbers. If set, only SCR terms (from extra_vocab)
     that are mapped to descriptors under these trees will be kept; all other SCR terms will be
     removed. Cannot be used together with scr_exclude_trees.
-    extra_terms: optional dict of MeSH CURIE -> type, added whatever their tree or record class. Each type must be
-    in ``order``.
-    exclude_terms: optional collection of MeSH CURIEs never written, whatever selected them (extra_terms
-    included). Used to leave a record to the pipeline that owns it."""
+    pipeline: the calling pipeline's entry in config.yaml's umls_mesh_owning_pipelines.
+    mesh_registry: rule get_mesh_registry's TSV. Every record in it with an NCBI Taxon registry number
+    (read_mesh_ids_with_ncbitaxon()) is written as ORGANISM_TAXON when ``pipeline`` is MESH_NCBITAXON_OWNER,
+    whatever its tree or record class, and left out of every other pipeline's ids/MESH, whatever selected it
+    (#1240). Deciding that here, for all five pipelines, means a MeSH release that gives a txid to a record in
+    another pipeline's trees moves it to taxon rather than putting it in two compendia."""
     if scr_exclude_trees is not None and scr_include_trees is not None:
         raise ValueError("scr_exclude_trees and scr_include_trees cannot both be set")
     m = Mesh()
@@ -661,10 +669,13 @@ def write_ids(
             excluded_scr_terms = m.get_scr_terms_mapped_to_trees(scr_exclude_trees)
             for mt in excluded_scr_terms:
                 terms2type[mt].add("EXCLUDE")
-    for term, category in (extra_terms or {}).items():
-        terms2type[term].add(category)
-    for term in exclude_terms or ():
-        terms2type.pop(term, None)
+    with_ncbitaxon = read_mesh_ids_with_ncbitaxon(mesh_registry)
+    if pipeline == MESH_NCBITAXON_OWNER:
+        for term in with_ncbitaxon:
+            terms2type[term].add(ORGANISM_TAXON)
+    else:
+        for term in with_ncbitaxon:
+            terms2type.pop(term, None)
     with open(outfile, "w") as idfile:
         for term, typeset in terms2type.items():
             list_typeset = list(typeset)

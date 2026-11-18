@@ -32,9 +32,12 @@ MeSH placement is the tie-breaker. `rule umls_mesh_ownership` (`src/snakefiles/u
 reads the `ids/MESH` of every pipeline in `config.yaml`'s `umls_mesh_owning_pipelines` (anatomy,
 chemicals, disease, protein, taxon), and gene's and process's `ids/UMLS`, and writes
 `intermediate/umls/mesh_ownership.tsv`: each CUI that has an *owner*, with the owner and the
-descriptor that decided it (`umls.compute_mesh_owners()`). The five MeSH-owning pipelines read that
-one file twice. `umls.apply_mesh_ownership()` runs inside `write_umls_ids()` after the
-semantic-type blocklist, and the compendium build filters its concords:
+descriptor that decided it (`umls.compute_mesh_owners()`). It also has a row for each MeSH record
+with an NCBI Taxon registry number, owned by taxon and keyed by the MeSH ID itself, so that the
+concord filter below keeps those records out of every other compendium
+([`MeSH/Ingestion.md`](../MeSH/Ingestion.md#a-record-with-an-ncbi-taxon-registry-number-is-taxons)).
+The five MeSH-owning pipelines read that one file twice. `umls.apply_mesh_ownership()` runs inside
+`write_umls_ids()` after the semantic-type blocklist, and the compendium build filters its concords:
 
 1. A CUI is **owned** by a pipeline when that pipeline's `ids/MESH` is the only one that claims any
    of the CUI's descriptors, the pipeline does not refuse the CUI (disease's `badumls`), and

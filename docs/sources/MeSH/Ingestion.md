@@ -113,18 +113,27 @@ mixed-year registry that Snakemake then takes for up to date.
 NLM gives a record a `txid...` registry number only when it names an organism, and a handful of
 virus SCRs carry one while being classed `SCR_Chemical`: 8 in MeSH 2026, e.g.
 [`MESH:C000626778`](https://meshb.nlm.nih.gov/record/ui?ui=C000626778) "maize chlorotic mottle
-virus" (`NCBITaxon:12138`). The registry number is the more specific statement, so
-`taxon.write_mesh_ids()` claims every record that has one, whatever its record class, and
-`chemicals.write_mesh_ids()` leaves them out. Rule `umls_mesh_ownership` then gives their CUIs to
-taxon too, so each virus is one OrganismTaxon clique of its MeSH ID, CUI and NCBITaxon
-([#1240](https://github.com/NCATSTranslator/Babel/issues/1240)).
+virus" (`NCBITaxon:12138`). The registry number is the more specific statement, so taxon owns
+every record that has one, whatever its record class or tree, and each virus is one OrganismTaxon
+clique of its MeSH ID, CUI and NCBITaxon
+([#1240](https://github.com/NCATSTranslator/Babel/issues/1240)). That is decided in two places,
+both through `mesh.read_mesh_ids_with_ncbitaxon()`:
 
-The taxon `NCBI_MESH` concord is therefore not filtered by `taxon/ids/MESH`: the two agree. If
-another MeSH-owning pipeline ever claims a `txid` record, its MeSH ID would land in that
-pipeline's compendium and, through this concord, in an NCBITaxon-led taxon clique, where the
-duplicate-leader check cannot see it. So `taxon.build_relationships()` fails the build naming the
-pipeline and records; exclude them in that pipeline's `write_mesh_ids()`.
-`tests/pipeline/test_mesh.py` asserts the same over a real MeSH download.
+- `mesh.write_ids()`, which all five MeSH-owning pipelines' `write_mesh_ids()` go through, adds
+  these records to taxon's `ids/MESH` and leaves them out of the other four, whichever tree or
+  record class selected them. A MeSH release that gives a `txid` to a record in, say, a protein
+  tree moves it to taxon without anyone editing that pipeline.
+- Rule `umls_mesh_ownership` gives their CUIs to taxon (they follow their MeSH record as any CUI
+  does), and also writes a row for each MeSH record itself, owned by taxon
+  (`umls.mesh_records_owned_by_taxon()`). Leaving a record out of an `ids/MESH` does not keep it out
+  of that pipeline's compendium, because a concord alone can put a CURIE there: chemicals'
+  `PUBCHEM_MESH` matches MeSH labels without reading `chemicals/ids/MESH`. With the row, every
+  other pipeline's compendium build skips a concord pair that names the record, as it does for a
+  CUI another pipeline owns. The rule also fails if any `ids/MESH` disagrees, before any compendium
+  is built.
+
+The taxon `NCBI_MESH` concord is therefore not filtered by `taxon/ids/MESH`: the two agree.
+`tests/pipeline/test_mesh.py` asserts the `ids/MESH` split over a real MeSH download.
 
 Compared with the 2024 dump, `mesh2026.nt` also lacks `meshv:active`, `dateEstablished`,
 `dateRevised`, `lastActiveYear` and `sortVersion`, and adds `dateIntroduced` and `lastUpdated`

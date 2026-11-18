@@ -271,7 +271,10 @@ def write_omim_ids(infile, outfile):
                 outf.write(f"{OMIM}:{chunks[0]}\t{DISEASE}\n")
 
 
-def write_mesh_ids(outfile):
+def write_mesh_ids(outfile, mesh_registry):
+    """Write the disease ids/MESH. Records with an NCBI Taxon registry number in mesh_registry (rule
+    get_mesh_registry's TSV) are left to taxon, whatever tree they are in; mesh.write_ids() decides that (#1240).
+    """
     # NOTE: C02 (Virus Diseases) and C03 (Parasitic Diseases) are intentionally absent
     # below.  Before adding them, verify that MESH terms in those trees have adequate
     # cross-references to MONDO (our primary disease source) and/or HPO (our primary
@@ -304,7 +307,9 @@ def write_mesh_ids(outfile):
     ]
     meshmap = {i: DISEASE for i in dcodes}
     meshmap["C23"] = PHENOTYPIC_FEATURE
-    mesh.write_ids(meshmap, outfile, order=[DISEASE, PHENOTYPIC_FEATURE])
+    mesh.write_ids(
+        meshmap, outfile, order=[DISEASE, PHENOTYPIC_FEATURE], pipeline="disease", mesh_registry=mesh_registry
+    )
 
 
 def write_umls_ids(mrsty, outfile, badumlsfile, *, mesh_ownership=None):

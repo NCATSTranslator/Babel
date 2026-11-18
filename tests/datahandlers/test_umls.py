@@ -465,3 +465,68 @@ def test_clique_build_skips_concord_pairs_naming_a_cui_owned_elsewhere(tmp_path,
     assert dicts["MONDO:0000001"] == {"MONDO:0000001", "UMLS:C0242726"}
     dicts, _ = compute(concords, ids, None)
     assert "UMLS:C0000608" in dicts["MONDO:0000001"]
+
+
+# MESH RECORDS WITH AN NCBI TAXON REGISTRY NUMBER (#1240)
+
+# C000626778 "maize chlorotic mottle virus" is an SCR_Chemical record with RegistryNumber txid12138 in supp2026.gz;
+# D000068877 "Imatinib Mesylate" has UNII 8A1O1M485B (both also in tests/data/mesh/).
+MAIZE_VIRUS = "MESH:C000626778"
+IMATINIB = "MESH:D000068877"
+
+
+def ownership_with_registry(rrf, mesh_ids_by_pipeline):
+    """Like ownership(), but passing a registry in which MAIZE_VIRUS has an NCBI Taxon registry number."""
+    registry = rrf / "registry.tsv"
+    registry.write_text(f"{MAIZE_VIRUS}\ttxid12138\n{IMATINIB}\t8A1O1M485B\n")
+    path = rrf / "mesh_ownership.tsv"
+    umls.write_mesh_ownership(
+        str(rrf / "MRCONSO.RRF"),
+        {pipeline: mesh_ids(rrf, pipeline, rows) for pipeline, rows in mesh_ids_by_pipeline.items()},
+        str(path),
+        mesh_registry=str(registry),
+    )
+    return str(path)
+
+
+@pytest.mark.unit
+def test_ownership_gives_taxon_its_ncbitaxon_mesh_records(rrf):
+    """A MeSH record with an NCBI Taxon registry number should be owned by taxon in the ownership file, so every
+    other pipeline's compendium build skips a concord pair naming it (e.g. chemicals' PUBCHEM_MESH, which matches
+    MeSH labels without reading chemicals/ids/MESH) and taxon's keeps it."""
+    path = ownership_with_registry(
+        rrf, {"chemicals": [(IMATINIB, CHEMICAL_ENTITY)], "taxon": [(MAIZE_VIRUS, ORGANISM_TAXON)]}
+    )
+    assert umls.read_mesh_ownership(path)[MAIZE_VIRUS] == ("taxon", MAIZE_VIRUS, ORGANISM_TAXON)
+    assert MAIZE_VIRUS in umls.read_cuis_owned_elsewhere(path, "chemicals")
+    assert MAIZE_VIRUS not in umls.read_cuis_owned_elsewhere(path, "taxon")
+    assert IMATINIB not in umls.read_cuis_owned_elsewhere(path, "taxon")
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "mesh_ids_by_pipeline,message",
+    [
+        pytest.param(
+            {"chemicals": [(MAIZE_VIRUS, CHEMICAL_ENTITY)], "taxon": [(MAIZE_VIRUS, ORGANISM_TAXON)]},
+            f"chemicals's .* claims 1 \\(e.g. {MAIZE_VIRUS}\\)",
+            id="another-pipeline-claims-one",
+        ),
+        pytest.param(
+            {"chemicals": [], "taxon": []}, f"taxon's .* lacks 1 \\(e.g. {MAIZE_VIRUS}\\)", id="taxon-lacks-one"
+        ),
+    ],
+)
+def test_ownership_raises_when_ids_files_disagree_about_ncbitaxon_records(rrf, mesh_ids_by_pipeline, message):
+    """mesh.write_ids() puts every NCBI Taxon record in taxon's ids/MESH and no other; ids files that disagree
+    would put a MeSH ID in two compendia, so the ownership rule should fail before any compendium is built."""
+    with pytest.raises(ValueError, match=message):
+        ownership_with_registry(rrf, mesh_ids_by_pipeline)
+
+
+@pytest.mark.unit
+def test_mesh_rows_never_reach_an_ids_umls_file(rrf):
+    """apply_mesh_ownership() should ignore a MeSH record's own ownership row: taxon must not gain MESH:C000626778
+    as a UMLS identifier, and no other pipeline loses anything for it."""
+    path = ownership_with_registry(rrf, {"taxon": [(MAIZE_VIRUS, ORGANISM_TAXON)]})
+    assert MAIZE_VIRUS not in run(rrf, TAXON_MAP, path, "taxon")

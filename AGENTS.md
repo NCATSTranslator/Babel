@@ -158,12 +158,14 @@ The node output schema is in `NodeFactory.create_node()`'s docstring in `src/nod
 - **A UMLS CUI follows its MeSH descriptor** — `rule umls_mesh_ownership` reads the `ids/MESH` of
   the five pipelines that write both `ids/MESH` and `ids/UMLS`
   (`config.yaml: umls_mesh_owning_pipelines`) and gives each CUI whose descriptors exactly one of
-  them claims to that pipeline (`umls.compute_mesh_owners()`); each of those pipelines'
-  `*_umls_ids` rule then adds the CUIs it owns and drops the ones another pipeline owns, and its
-  compendium rule skips concord pairs naming a CUI another pipeline owns. Gene's and process's CUIs
-  have no owner (neither concords UMLS to MeSH). Decide ownership in that one place: a pipeline
-  deciding for itself drops CUIs no other pipeline adds. Changing a MeSH tree assignment therefore
-  moves CUIs. `docs/sources/UMLS/CuiFollowsMesh.md`; measure a change with
+  them claims to that pipeline (`umls.compute_mesh_owners()`); each of those pipelines' `*_umls_ids`
+  rule then adds the CUIs it owns and drops the ones another pipeline owns, and its compendium rule
+  skips concord pairs naming a CUI another pipeline owns. Gene's and process's CUIs have no owner
+  (neither concords UMLS to MeSH). The same file gives taxon every MeSH record with an NCBI Taxon
+  registry number, so other compendia skip concord pairs naming one too; `mesh.write_ids()` leaves
+  those records out of every other `ids/MESH` (#1240). Decide ownership in that one place: a
+  pipeline deciding for itself drops CUIs no other pipeline adds. Changing a MeSH tree assignment
+  therefore moves CUIs. `docs/sources/UMLS/CuiFollowsMesh.md`; measure a change with
   `docs/sources/UMLS/cui-follows-mesh/scripts/replay_mesh_ownership.py` before a build. That rule
   also waits for `rule check_umls_mesh_skew`, which fails the build when `mesh_year` lags
   `umls_version` (`docs/sources/MeSH/Ingestion.md`, "Source data").

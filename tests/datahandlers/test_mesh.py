@@ -2,7 +2,7 @@
 
 Tests cover:
   - write_ids() parameter validation
-  - write_ids() SCR filtering logic (mock-based)
+  - write_ids() SCR filtering logic, and its NCBI Taxon registry number rule (#1240) (mock-based)
   - Mesh.get_scr_terms_mapped_to_trees() (inline pyoxigraph store)
   - normalize_mesh_nt() on per-year MeSH RDF (fixture copied from mesh2026.nt)
   - read_mesh_xml_registry() and pull_mesh_registry() on MeSH XML (fixtures copied from desc2026.gz / supp2026.gz)
@@ -23,7 +23,7 @@ from unittest.mock import MagicMock, patch
 import pyoxigraph
 import pytest
 
-from src.categories import CHEMICAL_ENTITY, PROTEIN
+from src.categories import CHEMICAL_ENTITY, ORGANISM_TAXON, PROTEIN
 from src.datahandlers.mesh import (
     MESH_FTP_SITE,
     MESH_XML_FILES,
@@ -102,6 +102,13 @@ def _make_test_store() -> pyoxigraph.Store:
 # ---------------------------------------------------------------------------
 
 
+def _registry_file(tmp_path, rows=("MESH:D000068877\t8A1O1M485B",)):
+    """Write a rule get_mesh_registry-style TSV of ``rows`` and return its path. The default has no txid rows."""
+    path = tmp_path / "registry.tsv"
+    path.write_text("".join(f"{row}\n" for row in rows))
+    return path
+
+
 @pytest.mark.unit
 def test_write_ids_raises_when_both_scr_params_set(tmp_path):
     outfile = str(tmp_path / "out.txt")
@@ -111,6 +118,8 @@ def test_write_ids_raises_when_both_scr_params_set(tmp_path):
             outfile,
             scr_exclude_trees=["D05"],
             scr_include_trees=["D12.776"],
+            pipeline="chemicals",
+            mesh_registry=_registry_file(tmp_path),
         )
 
 
@@ -161,6 +170,8 @@ def test_write_ids_scr_exclude_trees_removes_protein_scrs(mock_cls, tmp_path):
         order=["EXCLUDE", CHEMICAL_ENTITY],
         extra_vocab={"SCR_Chemical": CHEMICAL_ENTITY},
         scr_exclude_trees=["D05"],
+        pipeline="chemicals",
+        mesh_registry=_registry_file(tmp_path),
     )
 
     content = open(outfile).read()
@@ -187,6 +198,8 @@ def test_write_ids_scr_include_trees_keeps_only_protein_scrs(mock_cls, tmp_path)
         order=[PROTEIN],
         extra_vocab={"SCR_Chemical": PROTEIN},
         scr_include_trees=include_trees,
+        pipeline="protein",
+        mesh_registry=_registry_file(tmp_path),
     )
 
     content = open(outfile).read()
@@ -210,6 +223,8 @@ def test_write_ids_default_includes_all_scr_terms(mock_cls, tmp_path):
         outfile,
         order=[CHEMICAL_ENTITY],
         extra_vocab={"SCR_Chemical": CHEMICAL_ENTITY},
+        pipeline="chemicals",
+        mesh_registry=_registry_file(tmp_path),
     )
 
     content = open(outfile).read()
@@ -236,6 +251,8 @@ def test_write_ids_exclude_flag_suppresses_term_from_output(mock_cls, tmp_path):
         order=["EXCLUDE", CHEMICAL_ENTITY],
         extra_vocab={"SCR_Chemical": CHEMICAL_ENTITY},
         scr_exclude_trees=["D05"],
+        pipeline="chemicals",
+        mesh_registry=_registry_file(tmp_path),
     )
 
     content = open(outfile).read()
@@ -243,6 +260,34 @@ def test_write_ids_exclude_flag_suppresses_term_from_output(mock_cls, tmp_path):
     assert "MESH:C000002" in content
     assert "MESH:D000005" not in content  # in D05 tree → EXCLUDE
     assert "MESH:C000001" not in content  # mapped to D05 → EXCLUDE
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("pipeline", ["anatomy", "chemicals", "disease", "protein"])
+@patch("src.datahandlers.mesh.Mesh")
+def test_write_ids_leaves_ncbitaxon_records_to_taxon(mock_cls, tmp_path, pipeline):
+    """A record with an NCBI Taxon registry number should be left out of every pipeline's ids/MESH but taxon's,
+    even when it sits in that pipeline's own tree (#1240): write_ids() decides this for all five."""
+    mock_cls.return_value = _make_mock_mesh(tree_map={"A01": ["MESH:D000001", "MESH:D000002"]}, scr_chemical_terms=[])
+    outfile = tmp_path / "out.txt"
+    registry = _registry_file(tmp_path, ["MESH:D000002\ttxid9606", "MESH:D000001\t8A1O1M485B"])
+    write_ids({"A01": CHEMICAL_ENTITY}, outfile, order=[CHEMICAL_ENTITY], pipeline=pipeline, mesh_registry=registry)
+    assert outfile.read_text() == f"MESH:D000001\t{CHEMICAL_ENTITY}\n"
+
+
+@pytest.mark.unit
+@patch("src.datahandlers.mesh.Mesh")
+def test_write_ids_adds_ncbitaxon_records_to_taxon(mock_cls, tmp_path):
+    """Taxon's ids/MESH should gain every record with an NCBI Taxon registry number, whatever its tree or record
+    class, typed OrganismTaxon (#1240)."""
+    mock_cls.return_value = _make_mock_mesh(tree_map={"B04": ["MESH:D000003"]}, scr_chemical_terms=[])
+    outfile = tmp_path / "out.txt"
+    registry = _registry_file(tmp_path, ["MESH:C000626778\ttxid12138", "MESH:D000001\t8A1O1M485B"])
+    write_ids({"B04": ORGANISM_TAXON}, outfile, order=[ORGANISM_TAXON], pipeline="taxon", mesh_registry=registry)
+    assert sorted(outfile.read_text().splitlines()) == [
+        f"MESH:C000626778\t{ORGANISM_TAXON}",
+        f"MESH:D000003\t{ORGANISM_TAXON}",
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -418,6 +463,21 @@ def test_mesh_registry_round_trips_through_tsv(tmp_path):
 
 
 @pytest.mark.unit
+def test_write_mesh_registry_rejects_mismatched_years(tmp_path):
+    """XML from one MeSH year filtered against another year's RDF labels should raise before registry.tsv is
+    written, since the taxon and chemical ids/MESH are built from it."""
+    labels_file = tmp_path / "labels"
+    labels_file.write_text(IMATINIB_MESYLATE_LABEL + UR2_SARCOMA_VIRUS_LABEL)
+    desc = _gzip_fixture(MESH_TEST_DATA / "desc2026_sample.xml", tmp_path)
+    supp = _gzip_fixture(MESH_TEST_DATA / "supp2026_sample.xml", tmp_path)
+    registry = tmp_path / "registry.tsv"
+    rdf_source, xml_sources = _source_files(tmp_path, rdf_year="2025", xml_year="2026")
+    with pytest.raises(ValueError, match="same mesh_year"):
+        write_mesh_registry(desc, supp, labels_file, registry, rdf_source_file=rdf_source, xml_sources_file=xml_sources)
+    assert not registry.exists()
+
+
+@pytest.mark.unit
 @pytest.mark.parametrize("content", ["", "MESH:D000068877\n", "MESH:D000068877\t\n"])
 def test_read_mesh_registry_rejects_bad_files(tmp_path, content):
     """An empty registry or a row that is not two non-empty fields should raise rather than yield nothing."""
@@ -455,21 +515,6 @@ def _source_files(tmp_path, rdf_year="2026", xml_year="2026"):
         )
     )
     return rdf, xml
-
-
-@pytest.mark.unit
-def test_write_mesh_registry_rejects_mismatched_years(tmp_path):
-    """XML from one MeSH year filtered against another year's RDF labels should raise before registry.tsv is
-    written, since the taxon and chemical ids/MESH are built from it."""
-    labels_file = tmp_path / "labels"
-    labels_file.write_text(IMATINIB_MESYLATE_LABEL + UR2_SARCOMA_VIRUS_LABEL)
-    desc = _gzip_fixture(MESH_TEST_DATA / "desc2026_sample.xml", tmp_path)
-    supp = _gzip_fixture(MESH_TEST_DATA / "supp2026_sample.xml", tmp_path)
-    registry = tmp_path / "registry.tsv"
-    rdf_source, xml_sources = _source_files(tmp_path, rdf_year="2025", xml_year="2026")
-    with pytest.raises(ValueError, match="same mesh_year"):
-        write_mesh_registry(desc, supp, labels_file, registry, rdf_source_file=rdf_source, xml_sources_file=xml_sources)
-    assert not registry.exists()
 
 
 @pytest.mark.unit
