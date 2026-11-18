@@ -252,14 +252,14 @@ def pull_mesh_xml(mesh_year, xml_sources_file):
 
 
 class Mesh:
-    """Load the mesh rdf file for querying"""
+    """Load a MeSH N-Triples dump (babel_downloads/MESH/mesh.nt unless nt_path is given) for querying."""
 
     # Tracks how many Mesh instances currently hold mesh.nt in memory.
     # mesh.nt occupies ~2 GB in pyoxigraph's in-memory store; running two at the
     # same time on a 16 GB machine causes severe swapping or OOM failures.
     _active_instances: int = 0
 
-    def __init__(self):
+    def __init__(self, nt_path=None):
         if Mesh._active_instances > 0:
             warnings.warn(
                 f"{Mesh._active_instances} Mesh instance(s) are already loaded in this "
@@ -269,7 +269,7 @@ class Mesh:
                 ResourceWarning,
                 stacklevel=2,
             )
-        ifname = make_local_name("mesh.nt", subpath="MESH")
+        ifname = nt_path or make_local_name("mesh.nt", subpath="MESH")
         from datetime import datetime as dt
 
         print("loading mesh.nt")
@@ -427,7 +427,9 @@ class Mesh:
             for row in qres:
                 outf.write(f"{get_mesh_id_from_iri(row['treenum'])}\t{row['label'].value}\n")
 
-    def pull_mesh_labels(self):
+    def pull_mesh_labels(self, ofname=None):
+        """Write "MESH:ID<tab>label" for every labelled MeSH record (babel_downloads/MESH/labels unless ofname is
+        given). Also the set of records the dump has: pull_mesh_registry() and the UMLS/MeSH skew report read it."""
         s = """   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                 PREFIX meshv: <http://id.nlm.nih.gov/mesh/vocab#>
                 PREFIX mesh: <http://id.nlm.nih.gov/mesh/>
@@ -436,7 +438,7 @@ class Mesh:
                 WHERE { ?term rdfs:label ?label }
                 ORDER BY ?term
         """
-        ofname = make_local_name("labels", subpath="MESH")
+        ofname = ofname or make_local_name("labels", subpath="MESH")
         qres = self.m.query(s)
         with open(ofname, "w", encoding="utf8") as outf:
             for row in qres:

@@ -14,7 +14,9 @@ step: UMLS 20XXAA carries MeSH 20XX codes, so an older MeSH dump leaves UMLS MSH
 Supplementary Concept Records) with no MeSH record. Each build writes
 `babel_outputs/reports/umls_mesh_skew.json`, which counts the MSH codes in UMLS's `MRCONSO.RRF`
 (column 14 of the `SAB=MSH` rows that `check_mrconso_line()` keeps, as the rest of the build does)
-that have no `rdfs:label` in `mesh.nt`. With UMLS 2026AA and
+that have no `rdfs:label` in `mesh.nt`, read from `babel_downloads/MESH/labels`. The MeSH year it
+reports comes from `rdf_source.json`, the record of the dump actually downloaded, not from
+`config.yaml`, so a `mesh.nt` kept from another year is reported as that year. With UMLS 2026AA and
 MeSH 2026 the only missing codes are the 22 `U` "(MeSH Category)" headings that UMLS adds itself;
 MeSH 2025 misses 829 more and MeSH 2024 1,856 ([`umls-mesh-skew/`](umls-mesh-skew/README.md) has
 the table and the script that measures it).
@@ -254,11 +256,14 @@ Code:
 
 - `src/datahandlers/mesh.py` — handler: `pull_mesh()` / `fetch_mesh_nt()`, `normalize_mesh_nt()`,
   `pull_mesh_xml()` / `fetch_mesh_xml_dir()`, `pull_mesh_registry()` / `write_mesh_registry()` /
-  `read_mesh_registry()`, `mesh_registry_sources()`,
-  `Mesh` class, `write_ids()`, `get_scr_terms_mapped_to_trees()`,
+  `read_mesh_registry()`, `read_mesh_downloads()` / `mesh_registry_sources()`, `Mesh` class,
+  `write_ids()` (and `read_mesh_ids_with_ncbitaxon()`), `get_scr_terms_mapped_to_trees()`,
   `get_mesh_id_from_iri()`, `_mesh_id()`.
 - `src/reports/umls_mesh_skew.py` — the UMLS/MeSH version skew report and the check that fails the
   build on it.
+- `src/utils/ftp.py` — the FTP helpers the downloads use: `list_ftp_dir()` decides whether a
+  directory exists from its parents' listings, never from the server's error wording, and
+  `retrieve_ftp_file()` downloads under a `.part` name and records the SHA-1.
 - `src/createcompendia/{anatomy,taxon,diseasephenotype,chemicals,protein}.py` — `write_mesh_ids()`.
 
 Issues:

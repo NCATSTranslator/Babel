@@ -6,7 +6,10 @@ is the evidence behind config.yaml's umls_mesh_skew_max_missing_codes: matched v
 it and a dump a year behind far above it.
 
 Each dump is downloaded into --work-dir by the build's own fetch_mesh_nt() (from NLM's FTP site, checked against
-its SHA-1 and normalized, about 120 MB compressed and 2 GB decompressed), and reused if already there. Example (a few minutes, mostly downloads and the MRCONSO pass per year):
+its SHA-1 and normalized, about 120 MB compressed and 2 GB decompressed), and its labels written beside it by the
+build's own Mesh.pull_mesh_labels(), which the report reads as rule generate_umls_mesh_skew_report does. Both are
+reused if already there. Example (several minutes: downloads, a ~2 GB pyoxigraph load and an MRCONSO pass per
+year):
 
     uv run python docs/sources/MeSH/umls-mesh-skew/scripts/measure_skew.py \\
         --mrconso babel_downloads/UMLS/MRCONSO.RRF --umls-version 2026AA --mesh-years 2024 2025 2026 \\
@@ -19,16 +22,20 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")))
 
-from src.datahandlers.mesh import fetch_mesh_nt  # noqa: E402
+from src.datahandlers.mesh import Mesh, fetch_mesh_nt  # noqa: E402
 from src.reports.umls_mesh_skew import generate_umls_mesh_skew_report  # noqa: E402
 
 
-def fetch_mesh_nt_into(year, work_dir) -> str:
-    """Download mesh{year}.nt into work_dir the way rule get_mesh does, reusing an earlier download."""
+def fetch_mesh_labels_into(year, work_dir) -> str:
+    """Download mesh{year}.nt into work_dir the way rule get_mesh does and write its labels the way rule
+    get_mesh_labels does, reusing either if already there. Returns the labels file."""
     nt_path = os.path.join(work_dir, f"mesh{year}.nt")
+    labels_path = os.path.join(work_dir, f"mesh{year}-labels")
     if not os.path.exists(nt_path):
         fetch_mesh_nt(year, nt_path)
-    return nt_path
+    if not os.path.exists(labels_path):
+        Mesh(nt_path).pull_mesh_labels(labels_path)
+    return labels_path
 
 
 def main():
@@ -43,9 +50,9 @@ def main():
 
     rows = []
     for year in args.mesh_years:
-        nt_path = fetch_mesh_nt_into(year, args.work_dir)
+        labels_path = fetch_mesh_labels_into(year, args.work_dir)
         report_path = os.path.join(args.work_dir, f"umls_mesh_skew-{args.umls_version}-mesh{year}.json")
-        report = generate_umls_mesh_skew_report(args.mrconso, nt_path, args.umls_version, year, report_path)
+        report = generate_umls_mesh_skew_report(args.mrconso, labels_path, args.umls_version, year, report_path)
         by_type = report["missing_by_record_type"]
         rows.append(
             f"| {year} | {report['umls_msh_codes_missing_from_mesh']:,} "

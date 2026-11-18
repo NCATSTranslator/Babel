@@ -36,6 +36,7 @@ from src.datahandlers.mesh import (
     parse_sha1_file,
     pull_mesh_registry,
     pull_mesh_xml,
+    read_mesh_rdf_year,
     read_mesh_registry,
     read_mesh_xml_registry,
     write_ids,
@@ -528,6 +529,13 @@ def test_mesh_registry_sources_names_xml_and_rdf(tmp_path):
         ("ftp://ftp.nlm.nih.gov/online/mesh/rdf/2026/mesh2026.nt.gz", "a" * 40),
     ]
     assert sources[-1]["name"] == "MeSH 2026 RDF (records kept)"
+
+
+@pytest.mark.unit
+def test_read_mesh_rdf_year_reads_the_download_record(tmp_path):
+    """The skew report's MeSH year should be the downloaded dump's, from rdf_source.json, not config.yaml's."""
+    rdf_source, _ = _source_files(tmp_path, rdf_year="2025", xml_year="2025")
+    assert read_mesh_rdf_year(rdf_source) == "2025"
 
 
 @pytest.mark.unit
