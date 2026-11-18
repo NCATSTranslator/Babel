@@ -3,34 +3,12 @@
 This file provides guidance to coding agents — Claude Code, Codex, Cursor, and others — when
 working with code in this repository. It is the canonical, agent-agnostic instruction file.
 
-**This repository has no `CLAUDE.md` (or `CLAUDE.local.md`) files, and
-`tests/test_agent_files.py` keeps it that way.** Claude Code reads a directory's `AGENTS.md` only
-when that directory has no `CLAUDE.md` (checked with Claude Code 2.1.327, #1238), and Codex, Cursor
-and Copilot read `AGENTS.md` natively, so one file name serves every agent. If `/init` or anything
-else creates a `CLAUDE.md`, merge what it says into the `AGENTS.md` beside it and delete it.
-
-**Claude Code needs version 2.1.290 or later to read these files**, and it doesn't warn you when it
-can't. Claude Code's changelog dates `AGENTS.md` support to 2.1.277, extends it to Amazon Bedrock,
-Google Vertex AI, Microsoft Foundry, LLM gateways and telemetry-disabled sessions in 2.1.281, and
-fixes a subdirectory's `AGENTS.md` not being attached for an @-mentioned file in 2.1.290. A version
-before 2.1.277, a session whose "Project instructions" setting in `/config` no longer reads
-`AGENTS.md`, or one with a `Read` deny rule that covers `AGENTS.md` (say
-`--disallowedTools 'Read(**/AGENTS.md)'`), loads none of this guidance. Upgrade Claude Code, or fix
-that setting, rather than adding a `CLAUDE.md`, which the test above rejects.
-
-To check what a Claude Code version loads, run `claude -p` asking it to read one file in each of a
-few directories, then look in its session transcript (`~/.claude/projects/<dir>/<session>.jsonl`):
-root `AGENTS.md` is in the startup `instructions` attachment, and each nested one arrives as a
-`hook_additional_context` attachment right after the first Read in its directory or below it.
-Don't deny Read on `AGENTS.md` to stop the model opening the files itself, since that also stops
-them loading; the transcript's own Read calls show whether it did.
-
 ## Directory-scoped instructions
 
-Some directories carry their own `AGENTS.md` with conventions specific to that area. Claude Code
-loads the nearest one automatically when it reads files there; **other agents should read the
-`AGENTS.md` nearest the files they are editing.** They live in the directories below, and
-`tests/test_agent_files.py` fails if this list and the files disagree:
+Some directories have their own `AGENTS.md` for that area: read the one nearest the files you are
+working on, which most coding agents do by default. They live in the directories below;
+[`docs/AgentInstructions.md`](docs/AgentInstructions.md) covers adding one, and why there are no
+`CLAUDE.md` files.
 
 - `tests/` — how to write a test once you know where it goes.
 - `src/datahandlers/` — code-level conventions for the data-source handlers.

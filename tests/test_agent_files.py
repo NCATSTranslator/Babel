@@ -1,7 +1,7 @@
 """Checks on the coding-agent instruction files (`AGENTS.md`).
 
 Every agent instruction file in this repository is an `AGENTS.md`, and there are no `CLAUDE.md` files
-(root `AGENTS.md`, top of the file). Claude Code reads a directory's `AGENTS.md` only when that
+(`docs/AgentInstructions.md`). Claude Code reads a directory's `AGENTS.md` only when that
 directory has no `CLAUDE.md`, so a `CLAUDE.md` added anywhere, by hand or by `/init`, silently hides
 the `AGENTS.md` beside it from Claude Code. The root `AGENTS.md` also lists every directory that has
 its own `AGENTS.md`, and that list is the only way an agent that doesn't load nested files learns
