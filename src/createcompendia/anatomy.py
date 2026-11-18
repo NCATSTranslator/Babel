@@ -10,11 +10,11 @@ from src.babel_utils import (
     read_badxrefs,
     remove_overused_xrefs,
     unique_prefixes_from_config,
-    write_compendium,
 )
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
 from src.metadata.provenance import write_concord_metadata
 from src.model.cliques import glom_from_files
+from src.model.compendia import write_typed_compendia
 from src.prefixes import CL, EMAPA, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import HIERARCHY_PART_OF, UberGraph, build_sets
 from src.util import Text, get_logger, get_repo_root
@@ -468,9 +468,7 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, b
         concordances, identifiers, badxrefs=badxrefs, mesh_ownership=mesh_ownership
     )
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
-    for biotype, sets in typed_sets.items():
-        baretype = biotype.split(":")[-1]
-        write_compendium(metadata_yamls, sets, f"{baretype}.txt", biotype, {}, icrdf_filename=icrdf_filename)
+    write_typed_compendia(metadata_yamls, typed_sets, icrdf_filename)
 
 
 def classify_anatomy_clique(equivalent_ids, types):
