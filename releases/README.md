@@ -59,4 +59,5 @@ back under the new one, which a `babel-inchikey-audit` run on the build shows
 The remaining steps -- bumping `release_name` and `previous_release` in `config.yaml`, adding the
 index line above, and setting the previous note's `Next release:` link -- are listed in
 [`docs/RunningBabel.md`](../docs/RunningBabel.md#archiving-a-builds-reports).
-Claude Code users can run `/release-notes`, which walks the whole process.
+Claude Code users can run `/release-notes`, which walks the whole process. Before the build, run
+`/prepare-release`, which rechecks every per-release pin in `config.yaml` and names the build.

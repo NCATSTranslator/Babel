@@ -13,7 +13,9 @@ build:
 
 # Versions that need to be updated on every release. Only values that are rechecked every build belong here,
 # flat; a pipeline's settings that don't change between releases go in its own mapping further down
-# (https://github.com/NCATSTranslator/Babel/issues/1192).
+# (https://github.com/NCATSTranslator/Babel/issues/1192). The prepare-release skill
+# (.claude/skills/prepare-release/SKILL.md, /prepare-release in Claude Code) says how to recheck each one:
+# when you add a value here, add its check there.
 biolink_version: "4.4.3"
 umls_version: "2026AA"
 rxnorm_version: "07062026"
