@@ -6,9 +6,10 @@ root `CLAUDE.md` is a one-line `@AGENTS.md` import so Claude Code picks it up au
 
 ## Directory-scoped instructions
 
-Some directories carry their own `CLAUDE.md` with conventions specific to that area. Claude Code
-loads the nearest one automatically when you edit files there; **other agents should read the
-`CLAUDE.md` nearest the files they are editing.** They live in:
+Some directories carry their own `CLAUDE.md` (or, in one case, `AGENTS.md`) with conventions
+specific to that area. Claude Code loads the nearest one automatically when you edit files there;
+**other agents should read the `CLAUDE.md` or `AGENTS.md` nearest the files they are editing.**
+They live in:
 
 - `tests/` — how to write a test once you know where it goes.
 - `src/datahandlers/` — code-level conventions for the data-source handlers.
@@ -18,11 +19,14 @@ loads the nearest one automatically when you edit files there; **other agents sh
 - `docs/sources/DRUGBANK/` — DrugBank ingest gotchas (CC-0 vocabulary only, the UNII typing bridge).
 - `input_data/manual_concords/` — how each manual concord file is read, and what a row really
   merges. This one is an `AGENTS.md` pointing at the directory's `README.md`, since curators read
-  the guide too; Claude Code loads a subdirectory's `AGENTS.md` only when it has no `CLAUDE.md`.
+  the guide too; Claude Code loads a subdirectory's `AGENTS.md` only when it has no `CLAUDE.md`
+  (#1238 checks this, and adds a test that no `CLAUDE.md` shadows an `AGENTS.md`).
 
-(Agents that merge nested `AGENTS.md` up the tree won't see these `CLAUDE.md` files — only this
-root file. If per-directory cross-agent context ever matters, pair each with an `AGENTS.md` holding
-the content and a one-line `@AGENTS.md` `CLAUDE.md` shim; not worth it today.)
+(Agents that merge nested `AGENTS.md` up the tree won't see the `CLAUDE.md` files above — only this
+root file and `input_data/manual_concords/AGENTS.md`. If per-directory cross-agent context ever
+matters for one of them, move its content into an `AGENTS.md` beside it: with no `CLAUDE.md` there,
+Claude Code reads that too. A `CLAUDE.md` beside an `AGENTS.md` must be only the one-line
+`@AGENTS.md` import, as at the root, or Claude Code reads it instead.)
 
 ## Project Overview
 

@@ -5,4 +5,5 @@ file here. It says which code reads each file and what a row really merges, and 
 alike but behave differently.
 
 Keep the guide in `README.md`, which curators read too, and this file a pointer to it. Don't add a
-`CLAUDE.md` here: Claude Code skips a directory's `AGENTS.md` when that directory has a `CLAUDE.md`.
+`CLAUDE.md` here, except a one-line `@AGENTS.md` import: Claude Code skips a directory's
+`AGENTS.md` when that directory has a `CLAUDE.md` (#1238).
