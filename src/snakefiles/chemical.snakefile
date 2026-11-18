@@ -249,10 +249,9 @@ rule get_chemical_wikipedia_relationships:
 rule get_chemical_mesh_relationships:
     input:
         infile=config["intermediate_directory"] + "/chemicals/ids/MESH",
-        mesh_desc_xml=config["download_directory"] + "/MESH/desc.xml.gz",
-        mesh_supp_xml=config["download_directory"] + "/MESH/supp.xml.gz",
-        mesh_labels=config["download_directory"] + "/MESH/labels",
-        mesh_xml_sources=config["download_directory"] + "/MESH/xml_sources.txt",
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
+        mesh_rdf_source=config["download_directory"] + "/MESH/rdf_source.json",
+        mesh_xml_sources=config["download_directory"] + "/MESH/xml_sources.json",
     output:
         casout=config["intermediate_directory"] + "/chemicals/concords/mesh_cas",
         uniout=config["intermediate_directory"] + "/chemicals/concords/mesh_unii",
@@ -267,9 +266,8 @@ rule get_chemical_mesh_relationships:
             output.uniout,
             output.casout_metadata_yaml,
             output.uniout_metadata_yaml,
-            mesh_desc_xml=input.mesh_desc_xml,
-            mesh_supp_xml=input.mesh_supp_xml,
-            mesh_labels=input.mesh_labels,
+            mesh_registry=input.mesh_registry,
+            mesh_rdf_source=input.mesh_rdf_source,
             mesh_xml_sources=input.mesh_xml_sources,
         )
 

@@ -278,7 +278,7 @@ def mesh_nt():
 
     return _download_or_fail(
         "MESH mesh.nt",
-        lambda: pull_mesh(get_config()["mesh_year"]),
+        lambda: pull_mesh(get_config()["mesh_year"], make_local_name("rdf_source.json", subpath="MESH")),
         make_local_name("mesh.nt", subpath="MESH"),
     )
 

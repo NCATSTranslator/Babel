@@ -53,10 +53,9 @@ rule get_taxon_umls_relationships:
 
 rule get_taxon_relationships:
     input:
-        mesh_desc_xml=config["download_directory"] + "/MESH/desc.xml.gz",
-        mesh_supp_xml=config["download_directory"] + "/MESH/supp.xml.gz",
-        mesh_labels=config["download_directory"] + "/MESH/labels",
-        mesh_xml_sources=config["download_directory"] + "/MESH/xml_sources.txt",
+        mesh_registry=config["download_directory"] + "/MESH/registry.tsv",
+        mesh_rdf_source=config["download_directory"] + "/MESH/rdf_source.json",
+        mesh_xml_sources=config["download_directory"] + "/MESH/xml_sources.json",
         meshids=config["intermediate_directory"] + "/taxon/ids/MESH",
     output:
         outfile=config["intermediate_directory"] + "/taxon/concords/NCBI_MESH",
@@ -68,9 +67,8 @@ rule get_taxon_relationships:
             output.outfile,
             input.meshids,
             output.metadata_yaml,
-            mesh_desc_xml=input.mesh_desc_xml,
-            mesh_supp_xml=input.mesh_supp_xml,
-            mesh_labels=input.mesh_labels,
+            mesh_registry=input.mesh_registry,
+            mesh_rdf_source=input.mesh_rdf_source,
             mesh_xml_sources=input.mesh_xml_sources,
         )
 
