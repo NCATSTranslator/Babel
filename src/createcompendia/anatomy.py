@@ -209,7 +209,8 @@ def write_umls_ids(mrsty, outfile):
 
 # Ignore list notes:
 # The BTO and BAMs and HTTP (braininfo) identifiers promote over-glommed nodes
-# FMA is a specific problem where in CL they use FMA xref to mean 'part of' (but see UBERON_OBO_IGNORE_LIST)
+# FMA is a specific problem where in CL they use FMA xref to mean 'part of' (UBERON keeps its FMA xrefs:
+#   see UBERON_OBO_IGNORE_LIST)
 # CALOHA is a specific problem where in CL they use FMA xref to mean 'part of'
 # GOC is a specific problem where in CL they use FMA xref to mean 'part of'
 # wikipedia.en is a specific problem where in CL they use FMA xref to mean 'part of'
@@ -217,11 +218,12 @@ def write_umls_ids(mrsty, outfile):
 # CL only shows up as an xref once in uberon, and it's a mistake.  It doesn't show up in anything else.
 # GO only shows up as an xref once in uberon, and it's a mistake.  It doesn't show up in anything else.
 # PMID is just wrong
-# Target prefixes never written to an anatomy OBO concord: citations (PMID), ontologies Babel
-# does not ingest for anatomy (BTO, BAMS, FMA, CALOHA, OPENCYC, NIF_SUBCELLULAR), bare URLs
-# (HTTP, WIKIPEDIA.EN), provenance annotations (GOC), and CL/GO, whose cliques are built from
-# their own roots rather than from a cross-reference. Matched against Text.get_prefix_or_none(),
-# which upper-cases, so every entry must be upper-case.
+# Target prefixes never written to the GO or EMAPA anatomy OBO concords: citations (PMID),
+# ontologies Babel does not ingest for anatomy (BTO, BAMS, CALOHA, OPENCYC, NIF_SUBCELLULAR), FMA
+# (whose xrefs from these sources have not been reviewed; UBERON's are kept, see
+# UBERON_OBO_IGNORE_LIST), bare URLs (HTTP, WIKIPEDIA.EN), provenance annotations (GOC), and CL/GO,
+# whose cliques are built from their own roots rather than from a cross-reference. Matched against
+# Text.get_prefix_or_none(), which upper-cases, so every entry must be upper-case.
 ANATOMY_OBO_IGNORE_LIST = [
     "PMID",
     "BTO",
@@ -309,7 +311,9 @@ def build_anatomy_obo_relationships(outdir, metadata_yamls):
                 "get_subclasses_and_xrefs() of "
                 f"{ANATOMY_OBO_SOURCES[UBERON]['root']}, "
                 f"{ANATOMY_OBO_SOURCES[GO]['root']}, and "
-                f"{ANATOMY_OBO_SOURCES[EMAPA]['root']}, with renames from config.yaml: anatomy_xref_prefixes"
+                f"{ANATOMY_OBO_SOURCES[EMAPA]['root']}, with renames from config.yaml: anatomy_xref_prefixes; "
+                "UBERON's xrefs filtered by UBERON_OBO_IGNORE_LIST (which keeps FMA), GO's and EMAPA's by "
+                "ANATOMY_OBO_IGNORE_LIST"
             ),
             concord_filename=f"{outdir}/{metadata_name}",
         )
@@ -467,7 +471,6 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, b
             extra_prefixes=get_extra_prefixes("anatomy_extra_prefixes_by_biolink_class", biotype),
             icrdf_filename=icrdf_filename,
         )
-
 
 
 def classify_anatomy_clique(equivalent_ids, types):
