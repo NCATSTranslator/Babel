@@ -95,12 +95,11 @@ dump does not: on 2026-10-21, 100 new SCRs (`C000731751` onward) had registry nu
 in `mesh2026.nt`. `pull_mesh_registry()` keeps registry numbers only for records with a label in
 `babel_downloads/MESH/labels`, and logs how many it skipped. Otherwise the `NCBI_MESH` concord,
 which is not filtered by `taxon/ids/MESH`, could put a MeSH ID with no label or type into a taxon
-clique. (It is deliberately unfiltered: a few virus SCRs with a `txid` registry number are in the
-chemical `ids/MESH` rather than the taxon one, and filtering would cut their NCBITaxon link. See
-`taxon.build_relationships()`.) Registry numbers of records already in the dump can still change
-from one day's XML to the next, so two downloads of the same `mesh_year` are not guaranteed to give
-identical concords until the year is archived. Compare the SHA-1s in each build's `xml_sources.json`
-(also in the concords' `metadata-*.yaml`) to tell.
+clique. (It is unfiltered, which puts 8 virus SCRs from the chemical `ids/MESH` into taxon cliques
+too; see [#1240](https://github.com/NCATSTranslator/Babel/issues/1240).) Registry numbers of records
+already in the dump can still change from one day's XML to the next, so two downloads of the same
+`mesh_year` are not guaranteed to give identical concords until the year is archived. Compare the
+SHA-1s in each build's `xml_sources.json` (also in the concords' `metadata-*.yaml`) to tell.
 
 Rule `get_mesh_registry` parses the XML once and writes `babel_downloads/MESH/registry.tsv`
 (`MESH:ID<tab>registry number`), which both the chemical and the taxon concord rules read.

@@ -92,11 +92,11 @@ def build_relationships(outfile, mesh_ids, metadata_yaml, *, mesh_registry, mesh
     mesh_registry is rule get_mesh_registry's TSV; the other mesh_* arguments are the download records that
     mesh_registry_sources() reads for the metadata.
 
-    mesh_ids (the taxon ids/MESH) is deliberately not used to filter the registry, unlike the chemical CAS/UNII
-    concords. A handful of virus SCRs with a txid registry number are in the chemical ids/MESH rather than the
-    taxon one: 8 when checked against the MeSH 2026 XML in November 2026, e.g. MESH:C000626778 "maize chlorotic
-    mottle virus", which the released NodeNorm then typed biolink:OrganismTaxon. Filtering by mesh_ids would drop
-    their NCBITaxon link. pull_mesh_registry() still keeps out MeSH IDs that are not in the RDF dump.
+    mesh_ids (the taxon ids/MESH) is not used to filter the registry, unlike the chemical CAS/UNII concords, and
+    that is a known problem: 8 virus SCRs with a txid registry number in the MeSH 2026 XML (e.g. MESH:C000626778
+    "maize chlorotic mottle virus" -> NCBITaxon:12138) are in the chemical ids/MESH, not the taxon one, so this
+    concord also puts them into a taxon clique. Filtering would cut a link NLM states rather than fix the typing;
+    which of the two to do is #1240. pull_mesh_registry() keeps out MeSH IDs that are not in the RDF dump.
     """
     regis = mesh.read_mesh_registry(mesh_registry)
     with open(outfile, "w") as outf:
