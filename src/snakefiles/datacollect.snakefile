@@ -354,14 +354,10 @@ rule get_obo_descriptions:
 
 
 rule get_icrdf:
-    input:
-        # Ideally, we would correctly mark all the dependencies for Ubergraph labels, synonyms and descriptions
-        # throughout the system, but that would require a bunch of rewriting. Luckily, we already have the icRDF file
-        # marked as required for all compendia, so we just need to make sure that OBO/Ubergraph has been downloaded
-        # before the icRDF file is downloaded.
-        config["download_directory"] + "/common/ubergraph/labels",
-        config["download_directory"] + "/common/ubergraph/synonyms.jsonl",
-        config["download_directory"] + "/common/ubergraph/descriptions.jsonl",
+    # No inputs: pull_uber_icRDF() queries UberGraph directly. The common/ubergraph files used to be listed
+    # here so that every compendium rule, by declaring icRDF.tsv, pulled them in too; that broke whenever
+    # icRDF.tsv existed without them. Rules that read them now declare them with
+    # util.common_download_files(config).
     output:
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     benchmark:

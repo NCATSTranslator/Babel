@@ -146,6 +146,7 @@ rule protein_compendia:
             ap=config["protein_concords"],
         ),
         idlists=expand("{dd}/protein/ids/{ap}", dd=config["intermediate_directory"], ap=config["protein_ids"]),
+        common_files=util.common_download_files(config),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
         # Include the taxon information from UniProtKB
         uniprotkb_taxa_file=config["download_directory"] + "/UniProtKB/taxa",

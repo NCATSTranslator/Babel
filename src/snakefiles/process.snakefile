@@ -136,6 +136,7 @@ rule process_compendia:
             ap=config["process_concords"],
         ),
         idlists=expand("{dd}/process/ids/{ap}", dd=config["intermediate_directory"], ap=config["process_ids"]),
+        common_files=util.common_download_files(config),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["process_outputs"]),

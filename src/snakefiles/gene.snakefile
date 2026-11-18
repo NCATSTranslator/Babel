@@ -193,6 +193,7 @@ rule gene_compendia:
             "{dd}/gene/concords/metadata-{ap}.yaml", dd=config["intermediate_directory"], ap=config["gene_concords"]
         ),
         idlists=expand("{dd}/gene/ids/{ap}", dd=config["intermediate_directory"], ap=config["gene_ids"]),
+        common_files=util.common_download_files(config),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["gene_outputs"]),

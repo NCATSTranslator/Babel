@@ -11,6 +11,7 @@ rule macromolecular_complex_compendia:
         descfile=config["download_directory"] + "/ComplexPortal/descriptions",
         idlists=config["intermediate_directory"] + "/macromolecular_complex/ids/ComplexPortal",
         metadata_yaml=config["download_directory"] + "/ComplexPortal/metadata.yaml",
+        common_files=util.common_download_files(config),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
         config["output_directory"] + "/compendia/MacromolecularComplex.txt",

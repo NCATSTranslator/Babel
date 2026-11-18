@@ -486,6 +486,8 @@ geneproteinconflated_synonym_outputs:  [GeneProteinConflated.txt]
 taxon_labels:   [NCBITaxon, MESH, UMLS]
 taxon_synonyms: [NCBITaxon, UMLS]
 taxon_ids:      [NCBITaxon, MESH, UMLS]
+# Both taxon concords are finished together by rule taxon_update_obsolete_ncbitaxon_ids (taxon.snakefile),
+# which names them explicitly: a new concord here needs its own rule, or adding to that one.
 taxon_concords: [NCBI_MESH, UMLS]
 taxon_outputs:  [OrganismTaxon.txt]
 # Prefixes glom() keeps to one identifier per taxon clique: a merge that would put two NCBITaxon,

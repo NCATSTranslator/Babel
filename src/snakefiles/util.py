@@ -1,10 +1,33 @@
 # Shared code used by Snakemake files
 import gzip
+import os
 import shutil
 
 import src.util
 
 logger = src.util.LoggingUtil.init_logging(__name__, level="INFO")
+
+
+def common_download_files(config):
+    """
+    Return every shared label, synonym and description file under ``{download_directory}/common/``.
+
+    ``write_compendium()`` reads all of them, through ``NodeFactory``, ``SynonymFactory`` and
+    ``DescriptionFactory``, and ``leftover_umls``'s ``NodeFactory`` reads the labels, so every rule that
+    reaches either must list these as inputs. They used to arrive only as ``get_icrdf``'s inputs, relying on
+    every compendium rule declaring ``icRDF.tsv``. That stops working once ``icRDF.tsv`` exists without them
+    (copied from a published build, say): Snakemake then has no reason to fetch them, and the compendium
+    rule fails with ``FileNotFoundError``. ``tests/test_snakefile_util.py`` checks that every rule
+    declaring ``icRDF.tsv`` declares these too.
+
+    :param config: The Snakemake config, whose ``common`` section lists the files by kind.
+    :return: A list of paths, labels first, then synonyms, then descriptions.
+    """
+    return [
+        os.path.join(config["download_directory"], "common", filename)
+        for kind in ("labels", "synonyms", "descriptions")
+        for filename in config["common"][kind]
+    ]
 
 
 def duckdb_memory_limit_mb(mem_mb, fraction=0.75):

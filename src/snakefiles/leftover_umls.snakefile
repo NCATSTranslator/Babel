@@ -36,6 +36,7 @@ rule leftover_umls:
         mrconso=config["download_directory"] + "/UMLS/MRCONSO.RRF",
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
         umls_metadata_yaml=config["download_directory"] + "/UMLS/UMLS.metadata.yaml",
+        common_files=util.common_download_files(config),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
         umls_compendium=config["output_directory"] + "/compendia/umls.txt",

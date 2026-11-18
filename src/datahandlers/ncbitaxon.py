@@ -1,6 +1,7 @@
 import gzip
 import logging
 import tarfile
+from collections import defaultdict
 
 from src.babel_utils import pull_via_ftp
 from src.prefixes import NCBITAXON
@@ -14,6 +15,65 @@ def pull_ncbitaxon():
         decompress_data=True,
         outfilename=f"{NCBITAXON}/taxdump.tar",
     )
+
+
+def read_obsolete_taxa(infile):
+    """
+    Read the merged and deleted NCBI Taxonomy IDs from taxdump.tar.
+
+    Other sources (MeSH, UMLS) often cross-reference NCBI Taxonomy IDs that have since been merged into
+    another taxon or deleted. These IDs aren't in our NCBITaxon labels or IDs, so they need to be updated
+    or dropped before they are used in a concord.
+
+    :param infile: taxdump.tar, the file containing the individual data dumps for NCBI Taxonomy.
+    :return: A tuple of (merged, deleted): `merged` is a dict mapping each merged NCBITaxon CURIE to the
+        NCBITaxon CURIE it was merged into, and `deleted` is a set of deleted NCBITaxon CURIEs.
+    """
+    with tarfile.open(infile, "r") as taxtar:
+        merged = {}
+        # Each line of merged.dmp is "old_tax_id\t|\tnew_tax_id\t|".
+        for line in taxtar.extractfile("merged.dmp"):
+            parts = [x.strip() for x in line.decode("utf-8").split("|")]
+            merged[f"{NCBITAXON}:{parts[0]}"] = f"{NCBITAXON}:{parts[1]}"
+        # Each line of delnodes.dmp is "tax_id\t|".
+        deleted = {
+            f"{NCBITAXON}:{line.decode('utf-8').split('|')[0].strip()}" for line in taxtar.extractfile("delnodes.dmp")
+        }
+
+    # NCBI flattens merge chains, so a merge target should never itself be merged or deleted. Check this,
+    # since following a single step would otherwise silently leave us with an obsolete ID.
+    stale_targets = {target for target in merged.values() if target in merged or target in deleted}
+    if stale_targets:
+        raise ValueError(
+            f"{len(stale_targets)} NCBITaxon merge targets are themselves obsolete, e.g. {sorted(stale_targets)[:5]}"
+        )
+
+    return merged, deleted
+
+
+def read_taxon_names(infile, taxa):
+    """
+    Read every name that NCBI Taxonomy gives the requested taxa, together with each name's class.
+
+    The name class says how a name relates to the taxon: "scientific name" and "synonym" name the taxon
+    itself, while "includes" names a group the taxon contains and "in-part" one that overlaps it. See
+    make_labels_and_synonyms() for the full list.
+
+    :param infile: taxdump.tar, the file containing the individual data dumps for NCBI Taxonomy.
+    :param taxa: The NCBITaxon CURIEs to read names for. Names of other taxa are skipped, which keeps this
+        small when only a few thousand taxa are needed.
+    :return: A dict mapping each NCBITaxon CURIE to a dict of {name: set of name classes}. A taxon with no
+        names in names.dmp is left out.
+    """
+    names = defaultdict(lambda: defaultdict(set))
+    with tarfile.open(infile, "r") as taxtar:
+        # Each line of names.dmp is "tax_id\t|\tname_txt\t|\tunique name\t|\tname class\t|".
+        for line in taxtar.extractfile("names.dmp"):
+            parts = [x.strip() for x in line.decode("utf-8").split("|")]
+            curie = f"{NCBITAXON}:{parts[0]}"
+            if curie in taxa:
+                names[curie][parts[1]].add(parts[3])
+    return {curie: dict(taxon_names) for curie, taxon_names in names.items()}
 
 
 def make_labels_and_synonyms(infile, labelfile, synfile, propfilegz):

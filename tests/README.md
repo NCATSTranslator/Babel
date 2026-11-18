@@ -219,10 +219,18 @@ and how to add new checks or vocabularies.
 - **`pipeline/test_mesh.py`** (`pipeline`) — MeSH-specific targeted assertions
   ([issue #675](https://github.com/NCATSTranslator/Babel/issues/675)): chemicals must exclude
   D05 protein subtrees (D05.500, D05.875), D08 protein subtrees (D08.811, D08.622, D08.244),
-  and D12.776 — but must include D08.211 Coenzymes.
+  and D12.776 — but must include D08.211 Coenzymes. Also checks that `Mesh.get_registry()` still
+  yields txid, CAS and UNII registry numbers from the downloaded `mesh.nt`, since the taxon and
+  chemical MeSH concords are built from it and come out empty, without an error, if it yields none.
 
 - **`pipeline/test_umls.py`** (`pipeline`) — UMLS-specific targeted assertions:
   chemicals must not contain UMLS IDs claimed by the protein compendium.
+
+- **`pipeline/test_taxon.py`** (`pipeline`) — Checks over the built taxon concords: the UMLS concord
+  must link CUIs to NCBITaxon (not just MeSH), every NCBITaxon CURIE in the MeSH and UMLS
+  concords must be a current NCBI Taxonomy ID, and "Crustacea" must not follow NCBI's merge into
+  Pancrustacea. See
+  [`docs/sources/NCBITaxon/README.md`](../docs/sources/NCBITaxon/README.md).
 
 - **`pipeline/test_ec.py`**, **`pipeline/test_rhea.py`**, **`pipeline/test_chembl.py`**,
   **`pipeline/test_clo.py`**, **`pipeline/test_efo.py`** (`pipeline`) — Output format and
@@ -257,6 +265,11 @@ and how to add new checks or vocabularies.
   pre-rename `TranslatorSRI` org. Entirely offline — nothing fetches a URL, because a test that
   fails when GitHub is slow is a test people learn to ignore. Ported from NameResolution's test of
   the same name; keep the three repos' copies in sync.
+
+- **`test_snakefile_util.py`** (`unit`) — Tests the helpers in `src/snakefiles/util.py`, and checks
+  that every Snakemake rule declaring `icRDF.tsv` also declares the common UberGraph files
+  (`common_download_files()`) that `write_compendium()` reads, rather than relying on `get_icrdf` to
+  pull them in.
 
 - **`test_uber.py`** (`network`) — Tests the `UberGraph` class for querying ontology
   subclasses and cross-references via SPARQL. Covers direct and indirect subclass retrieval,

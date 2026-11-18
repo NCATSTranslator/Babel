@@ -34,6 +34,7 @@ rule genefamily_compendia:
         metadata_yamls=expand(
             "{dd}/{ap}/metadata.yaml", dd=config["download_directory"], ap=config["genefamily_labels"]
         ),
+        common_files=util.common_download_files(config),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["genefamily_outputs"]),

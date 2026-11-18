@@ -334,6 +334,7 @@ rule disease_compendia:
         # Per-prefix taxa files (read by TaxonFactory in write_compendium to set each
         # identifier's `t` field); declared here so they exist before the compendium is built.
         taxa=expand("{dd}/{ap}/taxa", dd=config["download_directory"], ap=config["disease_phenotype_taxa"]),
+        common_files=util.common_download_files(config),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
         mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
