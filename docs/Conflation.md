@@ -54,14 +54,17 @@ This is rule 3 of #1173.
   on the list is kept. Metal centres are `keep`: standard InChI disconnects metals, so cobalamin's
   cobalt and cisplatin's platinum would otherwise be stripped.
 - `rule chemicalparent_salt_parents` maps a salt to its parent only when exactly one distinct
-  component remains. If none remains (a bare counterion, or a salt whose every part is on the drop
-  list, such as lysine hydrochloride), or several remain (a combination product or a metal complex),
-  the salt keeps its own key. The mapping is keyed by the salt's own parent key, so every charge
-  state of the salt follows it. A salt whose charge states resolve to different parents is left out
-  and counted.
+  component remains *and* it contains carbon. If none remains (a bare counterion, or a salt whose
+  every part is on the drop list, such as lysine hydrochloride), several remain (a combination
+  product or a metal complex), or the one left is an inorganic ion, the salt keeps its own key. The
+  carbon rule keeps distinct inorganic drugs apart: dropping the anion from magnesium sulfate,
+  magnesium hydroxide and magnesium citrate would otherwise leave each as the magnesium cation, and
+  merge them. Its cost is that an inorganic hydrate doesn't map to its anhydrous salt. The mapping
+  is keyed by the salt's own parent key, so every charge state of the salt follows it. A salt whose
+  charge states resolve to different parents is left out and counted.
 
 The list was built by review against 2025dec11. Of the 135,810 multi-component records in cliques
-with a curated (non-PubChem, non-CAS) identifier, 94.0% resolve to one parent, 93.3% onto an
+with a curated (non-PubChem, non-CAS) identifier, 92.8% resolve to one parent, 92.2% onto an
 existing clique; no unreviewed component blocks more than 5 of them. See
 [`docs/conflation/chemical-parent/`](conflation/chemical-parent/) for the review script and its
 report. Re-run the review when a build adds sources.

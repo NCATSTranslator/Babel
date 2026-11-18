@@ -26,6 +26,7 @@ every multi-component InChI and the result is reused.
 
 import csv
 import gzip
+import re
 from itertools import chain, groupby
 
 from more_itertools import chunked
@@ -315,17 +316,50 @@ def read_component_decisions(filename):
     return decisions
 
 
-def resolve_parent(component_keys, decisions):
-    """Return the parent key a multi-component record maps to, or None if it keeps its own key.
+# Outcomes of resolve_parent() for one multi-component record.
+RESOLVED = "resolved"  # exactly one distinct organic component is left: the record maps to it
+EVERY_COMPONENT_DROPPED = "every_component_dropped"  # nothing is left, e.g. sodium chloride
+INORGANIC_PARENT = "inorganic_parent"  # the one component left has no carbon, e.g. Mg2+ in magnesium sulfate
+BLOCKED = "blocked"  # two or more components are left: a combination, co-crystal or metal complex
 
-    :param component_keys: the record's component InChIKeys (bare, with protonation blocks).
+# A chemical element in a Hill formula: a capital, an optional lower-case letter, an optional count.
+FORMULA_ELEMENT = re.compile(r"([A-Z][a-z]?)(\d*)")
+
+
+def has_carbon(inchi):
+    """Whether a standard InChI's formula layer contains carbon (``C``, not ``Cl``, ``Ca``, ``Co``, ...)."""
+    parts = inchi.split("/", 2)
+    return len(parts) > 1 and any(element == "C" for element, _ in FORMULA_ELEMENT.findall(parts[1]))
+
+
+def resolve_parent(components, decisions):
+    """Return (outcome, parent key) for one multi-component record; the parent key is None unless RESOLVED.
+
+    Components on the list as ``drop`` are removed. The record maps only when exactly one distinct component is
+    left *and* it contains carbon. A bare inorganic ion left over is part of what the record is: magnesium sulfate,
+    magnesium hydroxide and magnesium citrate are different drugs, and mapping each to the magnesium cation would
+    merge them (PR #1214 review, 2026-11-18). Before this rule 87,149 of 4.75M salt parent keys mapped to a
+    carbon-free parent -- metal cations, hydride, fluoride, phosphine. Such a record keeps its own key, as it does
+    when nothing or several components are left. A carbon test needs no list of inorganic ions and only ever stops
+    a mapping. Its cost: an inorganic hydrate (magnesium sulfate heptahydrate) no longer maps to its anhydrous salt,
+    which is multi-component anyway and so was never this rule's target.
+
+    :param components: the record's (component InChIKey, component InChI) pairs.
     :param decisions: from read_component_decisions().
     """
-    remaining = {parent_key(key) for key in component_keys}
-    remaining = {key for key in remaining if decisions.get(key) != DROP}
-    if len(remaining) != 1:
-        return None
-    return remaining.pop()
+    remaining = {}
+    for key, inchi in components:
+        key = parent_key(key)
+        if decisions.get(key) != DROP:
+            remaining[key] = inchi
+    if not remaining:
+        return EVERY_COMPONENT_DROPPED, None
+    if len(remaining) > 1:
+        return BLOCKED, None
+    ((key, inchi),) = remaining.items()
+    if not has_carbon(inchi):
+        return INORGANIC_PARENT, None
+    return RESOLVED, key
 
 
 def write_salt_parents(components_tsv, decisions_tsv, outfile):
@@ -342,8 +376,7 @@ def write_salt_parents(components_tsv, decisions_tsv, outfile):
     from src.createcompendia.chemicalparent import SALT_PARENTS_TSV_HEADER
 
     decisions = read_component_decisions(decisions_tsv)
-    counts = {"records": 0, "resolved": 0, "every_component_dropped": 0, "blocked": 0}
-    drops = {key for key, decision in decisions.items() if decision == DROP}
+    counts = {"records": 0, RESOLVED: 0, EVERY_COMPONENT_DROPPED: 0, INORGANIC_PARENT: 0, BLOCKED: 0}
     ensure_parent_dir(outfile)
     with open(components_tsv, newline="") as inf, open(outfile, "w", newline="") as outf:
         reader = csv.reader(inf, delimiter="\t")
@@ -353,15 +386,10 @@ def write_salt_parents(components_tsv, decisions_tsv, outfile):
         writer = csv.writer(outf, delimiter="\t", lineterminator="\n")
         writer.writerow(SALT_PARENTS_TSV_HEADER)
         for inchikey, rows in groupby(reader, key=lambda row: row[0]):
-            component_keys = [row[1] for row in rows]
             counts["records"] += 1
-            parent = resolve_parent(component_keys, decisions)
-            if parent is not None:
+            outcome, parent = resolve_parent([(row[1], row[3]) for row in rows], decisions)
+            counts[outcome] += 1
+            if outcome == RESOLVED:
                 writer.writerow([parent_key(inchikey), parent])
-                counts["resolved"] += 1
-            elif {parent_key(key) for key in component_keys} <= drops:
-                counts["every_component_dropped"] += 1
-            else:
-                counts["blocked"] += 1
     logger.info(f"Salt parents: {counts}")
     return counts

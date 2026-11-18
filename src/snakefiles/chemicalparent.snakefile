@@ -87,7 +87,7 @@ rule chemicalparent_conflation:
         config["output_directory"] + "/benchmarks/chemicalparent_conflation.tsv"
     resources:
         # Pass 1 holds one 8-byte hash per InChIKey clique (116M on 2025dec11: ~1 GB, twice that while sorting);
-        # the salt-parents map holds 4.75M keys (~1 GB); pass 2 holds only the cliques that group. Not yet
+        # the salt-parents map holds 4.66M keys (~1 GB); pass 2 holds only the cliques that group. Not yet
         # benchmarked on the cluster.
         mem="16G",
     run:

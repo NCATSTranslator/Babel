@@ -173,9 +173,9 @@ def load_salt_parents(filename):
     """Read the salt-parents file into ({salt parent key: parent key}, set of conflicting salt parent keys).
 
     A salt parent key appears once per source record (each charge state) that resolved, and normally every one
-    gives the same parent. Rarely they disagree: sodium silicate's ``-O`` record has the extra proton on the
-    silicate, which RDKit keeps as a real hydrogen, so it resolves to hydrogensilicate while the ``-N`` record
-    resolves to silicate (66 of 4.75M salt parent keys from UniChem, 2026-11-14). The parent is then ambiguous, so
+    gives the same parent. Rarely they disagree: for nitrobenzene with ammonia, UniChem's ``-N`` record (UCI
+    50179722) resolves to nitrobenzene, but in the ``-O`` record (UCI 60606567) RDKit puts the extra proton on the
+    nitrobenzene, a cation with a different parent key (25 of 4.66M salt parent keys from UniChem, 2026-11-18). The parent is then ambiguous, so
     such a salt is left out -- it keeps its own key -- and returned in the conflict set for the metadata. A
     conflict can only remove a mapping, never produce a wrong one.
     """

@@ -333,11 +333,11 @@ def test_without_salt_parents_the_salt_stays_apart(tmp_path):
 @pytest.mark.unit
 def test_conflicting_salt_parents_are_left_out(tmp_path):
     """A salt whose records resolve to different parents is ambiguous: it should be left out and reported."""
-    # Rows as write_salt_parents() writes them for PubChem's sodium silicate: the -N record (CID 186013) resolves to
-    # silicate, the -O record (CID 21713430) to hydrogensilicate.
-    silicate = ("PVRGLAMGMYQDTQ-UHFFFAOYSA", "WTOAJNCLCKBIMK-UHFFFAOYSA")
-    hydrogensilicate = ("PVRGLAMGMYQDTQ-UHFFFAOYSA", "CZCCPIFBHQBNFG-UHFFFAOYSA")
-    path = write_salt_parents(tmp_path, [silicate, SODIUM_NIFURSTYRENATE_PARENT, hydrogensilicate])
+    # Rows as write_salt_parents() writes them from UniChem for nitrobenzene with ammonia: the -N record (UCI
+    # 50179722) resolves to nitrobenzene, the -O record (UCI 60606567) to protonated nitrobenzene.
+    nitrobenzene = ("ADMVIFRMWYPPSZ-UHFFFAOYSA", "LQNUZADURLCDLV-UHFFFAOYSA")
+    protonated = ("ADMVIFRMWYPPSZ-UHFFFAOYSA", "WKJCOXIVDNKDAA-UHFFFAOYSA")
+    path = write_salt_parents(tmp_path, [nitrobenzene, SODIUM_NIFURSTYRENATE_PARENT, protonated])
     salt_parents, conflicting = load_salt_parents(str(path))
     assert salt_parents == dict([SODIUM_NIFURSTYRENATE_PARENT])
-    assert conflicting == {"PVRGLAMGMYQDTQ-UHFFFAOYSA"}
+    assert conflicting == {"ADMVIFRMWYPPSZ-UHFFFAOYSA"}

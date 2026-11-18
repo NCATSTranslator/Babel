@@ -5,7 +5,8 @@ marked ``drop`` in ``input_data/chemical_parent_components.tsv`` (see ``src/crea
 That list is curated by hand, round by round. Each run of this script:
 
 1. takes every multi-component InChI whose InChIKey is in a curated chemical clique (see UNCURATED_PREFIXES);
-2. classifies each with the production ``resolve_parent()`` and the current list: *resolved* (one component left),
+2. classifies each with the production ``resolve_parent()`` and the current list: *resolved* (one organic component
+   left), *inorganic parent* (one component left, but no carbon: it keeps its own key),
    *all dropped* (nothing left -- e.g. a bare counterion), or *blocked* (two or more left);
 3. ranks the components blocking records that nobody has reviewed yet. A blocker is any remaining component except
    the record's largest (by heavy atoms), which is presumed to be the active part; a component that is the only
@@ -38,15 +39,20 @@ import glob
 import os
 import sys
 import textwrap
+from collections import Counter
 
 import duckdb
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")))
 
 from src.createcompendia.inchi_components import (  # noqa: E402
+    BLOCKED,
     DECISIONS_TSV_HEADER,
     DROP,
+    EVERY_COMPONENT_DROPPED,
+    INORGANIC_PARENT,
     KEEP,
+    RESOLVED,
     read_component_decisions,
     resolve_parent,
     write_inchi_components,
@@ -164,12 +170,15 @@ def main():
 
     # Classify every record with the production rule.
     records = {}
-    for inchikey, keys in con.execute(
-        "SELECT inchikey, list(component_inchikey ORDER BY component_inchikey) FROM comp GROUP BY 1"
+    for inchikey, keys, inchis in con.execute(
+        "SELECT inchikey, list(component_inchikey ORDER BY component_inchikey), "
+        "list(component_inchi ORDER BY component_inchikey) FROM comp GROUP BY 1"
     ).fetchall():
-        records[inchikey] = resolve_parent(keys, decisions)
-    con.execute("CREATE TEMP TABLE resolved (inchikey VARCHAR, parent VARCHAR)")
-    con.executemany("INSERT INTO resolved VALUES (?, ?)", list(records.items()))
+        records[inchikey] = resolve_parent(list(zip(keys, inchis)), decisions)
+    con.execute("CREATE TEMP TABLE resolved (inchikey VARCHAR, outcome VARCHAR, parent VARCHAR)")
+    con.executemany(
+        "INSERT INTO resolved VALUES (?, ?, ?)", [(key, outcome, parent) for key, (outcome, parent) in records.items()]
+    )
 
     drops = sorted(k for k, d in decisions.items() if d == DROP)
     keeps = sorted(k for k, d in decisions.items() if d == KEEP)
@@ -185,7 +194,7 @@ def main():
         "FROM (SELECT inchikey, component_parent, max(heavy) AS heavy, any_value(component_inchikey) AS "
         "component_inchikey, any_value(component_inchi) AS component_inchi FROM comp "
         "WHERE component_parent NOT IN (SELECT component_parent FROM drops) GROUP BY 1, 2) comp "
-        "JOIN resolved USING (inchikey) WHERE resolved.parent IS NULL"
+        f"JOIN resolved USING (inchikey) WHERE resolved.outcome = '{BLOCKED}'"
     )
     con.execute(
         "CREATE TEMP TABLE blockers AS SELECT r.*, "
@@ -194,11 +203,11 @@ def main():
     )
 
     total = len(records)
-    n_resolved = sum(1 for p in records.values() if p is not None)
-    n_all_dropped = con.execute(
-        "SELECT count(*) FROM resolved WHERE parent IS NULL AND inchikey NOT IN (SELECT inchikey FROM remaining)"
-    ).fetchone()[0]
-    n_blocked = total - n_resolved - n_all_dropped
+    outcomes = Counter(outcome for outcome, _ in records.values())
+    n_resolved = outcomes[RESOLVED]
+    n_all_dropped = outcomes[EVERY_COMPONENT_DROPPED]
+    n_inorganic = outcomes[INORGANIC_PARENT]
+    n_blocked = outcomes[BLOCKED]
     n_blocked_unreviewed = con.execute("SELECT count(DISTINCT inchikey) FROM blockers").fetchone()[0]
     n_parent_exists = con.execute(
         "SELECT count(*) FROM resolved JOIN clique_parents ON resolved.parent = clique_parents.parent"
@@ -254,6 +263,11 @@ def main():
                     f"{n_parent_exists / total:.1%}",
                 ],
                 ["Every component dropped", f"{n_all_dropped:,}", f"{n_all_dropped / total:.1%}"],
+                [
+                    "One component left, but inorganic (no carbon)",
+                    f"{n_inorganic:,}",
+                    f"{n_inorganic / total:.1%}",
+                ],
                 ["Blocked (two or more components left)", f"{n_blocked:,}", f"{n_blocked / total:.1%}"],
                 [
                     "... with an unreviewed blocker",

@@ -23,7 +23,7 @@ this one.
   commands. The first run splits UniChem's and GtoPdb's InChIs with RDKit and caches the result;
   later runs take a minute or two.
 - [`salt-review-2025dec11.md`](salt-review-2025dec11.md) is the report after the last review round:
-  94.0% of curated multi-component records resolve, and no unreviewed component blocks more than 5.
+  92.8% of curated multi-component records resolve, and no unreviewed component blocks more than 5.
 
 To extend the list, run the script, mark the top rows of the sheet `drop` (counterion or solvent) or
 `keep` (anything else, including co-actives and metal centres), append them to the list, and re-run.

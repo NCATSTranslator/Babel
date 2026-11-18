@@ -19,7 +19,12 @@ from pathlib import Path
 import pytest
 
 from src.createcompendia.inchi_components import (
+    BLOCKED,
     DECISIONS_TSV_HEADER,
+    EVERY_COMPONENT_DROPPED,
+    INORGANIC_PARENT,
+    RESOLVED,
+    has_carbon,
     is_multi_component,
     parent_key,
     read_component_decisions,
@@ -45,6 +50,8 @@ UNKEKULIZABLE = "InChI=1S/C78H42N4O4.4ClH/c1-81(5-9-85-13-11-83-7-3-79)15-75-67-
 # CID 53389302, "Pentafoil knot": a five-iron molecular knot on which RDKit's InChI parser never returns. It stalled
 # the first full run.
 PENTAFOIL_KNOT = "InChI=1S/C160H170N30O10.5Fe/c1-11-131-31-51-151(181-101-131)152-52-32-132(102-182-152)12-2-122-22-42-142(172-92-122)112-163-63-73-193-83-84-194-74-64-164-114-144-44-24-124(94-174-144)5-15-135-35-55-155(185-105-135)156-56-36-136(106-186-156)16-6-126-26-46-146(176-96-126)116-167-67-77-197-87-88-198-78-68-168-118-148-48-28-128(98-178-148)9-19-139-39-59-159(189-109-139)160-60-40-140(110-190-160)20-10-130-30-50-150(180-100-130)120-170-70-80-200-90-89-199-79-69-169-119-149-49-29-129(99-179-149)8-18-138-38-58-158(188-108-138)157-57-37-137(107-187-157)17-7-127-27-47-147(177-97-127)117-166-66-76-196-86-85-195-75-65-165-115-145-45-25-125(95-175-145)4-14-134-34-54-154(184-104-134)153-53-33-133(103-183-153)13-3-123-23-43-143(173-93-123)113-162-62-72-192-82-81-191-71-61-161-111-141-41-21-121(1)91-171-141;;;;;/h21-60,91-120H,1-20,61-90H2;;;;;/q;5*+2"
+# UniChem UCI 1065244, magnesium sulfate, from structure.tsv.gz (downloaded 2026-11-13).
+MAGNESIUM_SULFATE = "InChI=1S/Mg.H2O4S/c;1-5(2,3)4/h;(H2,1,2,3,4)/q+2;/p-2"
 # CID 4058, pethidine itself: a single component.
 PETHIDINE = "InChI=1S/C15H21NO2/c1-3-18-14(17)15(9-11-16(2)12-10-15)13-7-5-4-6-8-13/h4-8H,3,9-12H2,1-2H3"
 
@@ -52,6 +59,8 @@ HCL_PARENT = "VEXZGXHMUGYJMC-UHFFFAOYSA"
 WATER_PARENT = "XLYOFNOQVPJJNP-UHFFFAOYSA"
 SODIUM_ION_PARENT = "FKNQFGJONOIPTF-UHFFFAOYSA"
 LITHIUM_ION_PARENT = "HBBGRARXTFLTSG-UHFFFAOYSA"
+MAGNESIUM_ION_PARENT = "JLVVSXFLKOJNIY-UHFFFAOYSA"
+SULFURIC_ACID_PARENT = "QAOWNCQODCNURD-UHFFFAOYSA"
 
 
 DATA = Path(__file__).parent.parent / "data" / "chemicalparent"
@@ -201,33 +210,64 @@ def test_hanging_inchi_times_out_without_losing_its_chunk(tmp_path):
 # RESOLVING A PARENT
 
 
+def components(inchi):
+    """The (component InChIKey, component InChI) pairs resolve_parent() takes, split from a record's InChI."""
+    return [(key, component_inchi) for key, _, component_inchi in split_inchi(inchi)]
+
+
 @pytest.mark.unit
 def test_salt_resolves_to_parent_when_counterion_is_dropped():
     """With HCl marked drop, pethidine HCl should map to pethidine's parent key."""
-    keys = [key for key, _, _ in split_inchi(PETHIDINE_HCL)]
-    assert resolve_parent(keys, {HCL_PARENT: "drop"}) == "XADCESSVHJOZHK-UHFFFAOYSA"
+    assert resolve_parent(components(PETHIDINE_HCL), {HCL_PARENT: "drop"}) == (RESOLVED, "XADCESSVHJOZHK-UHFFFAOYSA")
 
 
 @pytest.mark.unit
 def test_unlisted_counterion_blocks_the_mapping():
     """An unreviewed component is kept, so a salt whose counterion isn't listed keeps its own key."""
-    keys = [key for key, _, _ in split_inchi(NAPROXEN_NA)]
-    assert resolve_parent(keys, {HCL_PARENT: "drop"}) is None
+    assert resolve_parent(components(NAPROXEN_NA), {HCL_PARENT: "drop"}) == (BLOCKED, None)
 
 
 @pytest.mark.unit
 def test_keep_decision_blocks_like_an_unlisted_component():
     """A component marked keep (e.g. a metal centre) must never be dropped."""
-    keys = [key for key, _, _ in split_inchi(NAPROXEN_NA)]
-    assert resolve_parent(keys, {SODIUM_ION_PARENT: "keep"}) is None
+    assert resolve_parent(components(NAPROXEN_NA), {SODIUM_ION_PARENT: "keep"}) == (BLOCKED, None)
 
 
 @pytest.mark.unit
 def test_all_components_dropped_keeps_own_key():
     """If every component is on the drop list (hydroxide as water, lithium), there is no parent to map to."""
-    keys = [key for key, _, _ in split_inchi(LITHIUM_HYDROXIDE)]
-    assert resolve_parent(keys, {WATER_PARENT: "drop", LITHIUM_ION_PARENT: "drop"}) is None
-    assert resolve_parent(keys, {WATER_PARENT: "drop"}) == LITHIUM_ION_PARENT
+    decisions = {WATER_PARENT: "drop", LITHIUM_ION_PARENT: "drop"}
+    assert resolve_parent(components(LITHIUM_HYDROXIDE), decisions) == (EVERY_COMPONENT_DROPPED, None)
+
+
+@pytest.mark.unit
+def test_inorganic_ion_left_over_keeps_own_key():
+    """With water dropped, lithium hydroxide leaves only Li+: an inorganic ion, so it must not map onto lithium."""
+    assert resolve_parent(components(LITHIUM_HYDROXIDE), {WATER_PARENT: "drop"}) == (INORGANIC_PARENT, None)
+
+
+@pytest.mark.unit
+def test_magnesium_sulfate_does_not_collapse_into_the_magnesium_cation():
+    """Mg2+ is kept and sulfate dropped, but magnesium sulfate is a drug of its own and must keep its own key."""
+    decisions = {MAGNESIUM_ION_PARENT: "keep", SULFURIC_ACID_PARENT: "drop"}
+    assert resolve_parent(components(MAGNESIUM_SULFATE), decisions) == (INORGANIC_PARENT, None)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "inchi, expected",
+    [
+        (PETHIDINE, True),
+        ("InChI=1S/CH4/h1H4", True),
+        ("InChI=1S/Mg/q+2", False),
+        ("InChI=1S/ClH/h1H", False),  # Cl, not C
+        ("InChI=1S/Ca/q+2", False),  # Ca, not C
+        ("InChI=1S/Co", False),  # Co, not C
+    ],
+)
+def test_has_carbon_reads_elements_not_letters(inchi, expected):
+    """Carbon is the element C in the formula layer; Cl, Ca and Co must not count."""
+    assert has_carbon(inchi) is expected
 
 
 # THE REVIEWED LIST
@@ -280,4 +320,4 @@ def test_write_salt_parents_resolves_blocks_and_counts(tmp_path):
         "salt_parent_key\tparent_key",
         "WCNLCIJMFAJCPX-UHFFFAOYSA\tXADCESSVHJOZHK-UHFFFAOYSA",
     ]
-    assert counts == {"records": 3, "resolved": 1, "every_component_dropped": 1, "blocked": 1}
+    assert counts == {"records": 3, "resolved": 1, "every_component_dropped": 1, "inorganic_parent": 0, "blocked": 1}
