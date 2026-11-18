@@ -389,7 +389,11 @@ unichem_datasources: [CHEMBL.COMPOUND, DRUGBANK, GTOPDB, CHEBI, UNII, HMDB, PUBC
 
 chemical_labels:    [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, UMLS, DRUGBANK]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
 chemical_synonyms:  [GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, UMLS, DRUGBANK]
-chemical_concords:  [wikipedia_mesh_chebi, PUBCHEM_MESH, mesh_cas, mesh_unii, PUBCHEM_CAS, GTOPDB, CHEBI, UMLS, DrugCentral, RXNORM]
+# UNII_PUBCHEM is the PUBCHEM column of FDA's UNII records (chemicals.write_unii_records_concords, #1225). It comes
+# last so that, where it would join two cliques with different InChIKeys, the structure-based cliques built before it
+# win and the pair is refused. Its sibling UNII_CAS (the RN column) is written but deliberately left out: on 2026jul22
+# it joined a different stereoisomer more often than the same one (docs/sources/UNII/records-xrefs/README.md).
+chemical_concords:  [wikipedia_mesh_chebi, PUBCHEM_MESH, mesh_cas, mesh_unii, PUBCHEM_CAS, GTOPDB, CHEBI, UMLS, DrugCentral, RXNORM, UNII_PUBCHEM]
 chemical_ids:       [CHEMBL.COMPOUND, GTOPDB, CHEBI, UNII, HMDB, PUBCHEM.COMPOUND, DrugCentral, DRUGBANK, MESH, UMLS, RXNORM]  # KEGG.COMPOUND removed from UniChem — https://github.com/NCATSTranslator/Babel/issues/834
 
 # Food.txt holds DRUGBANK food entries retyped from ChemicalEntity to Food (issue #828); it must stay in

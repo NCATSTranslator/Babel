@@ -1,0 +1,87 @@
+{
+  "build": "2026jul22",
+  "records_file": "Latest_UNII_Records.txt",
+  "concords": {
+    "UNII_PUBCHEM": {
+      "in chemical_concords": true,
+      "rows written": 126503,
+      "rows after remove_overused_xrefs": 126316,
+      "outcomes": {
+        "added a CURIE in no clique": 3624,
+        "joined two cliques": 4741,
+        "new clique": 29,
+        "noop": 115623,
+        "refused": 2299
+      },
+      "pairs joining two cliques, by UNII record's InChIKey vs the joined clique's": {
+        "UNII record states no InChIKey": 883,
+        "different skeleton": 27,
+        "joined cliques have no InChIKey": 3,
+        "same InChIKey": 3762,
+        "same skeleton, different stereo or protonation": 66
+      },
+      "pairs joining two cliques, by UNII SUBSTANCE_TYPE": {
+        "chemical": 3913,
+        "protein": 425,
+        "mixture": 364,
+        "nucleicAcid": 36,
+        "specifiedSubstanceG1": 2,
+        "structurallyDiverse": 1
+      }
+    },
+    "UNII_CAS": {
+      "in chemical_concords": false,
+      "rows written": 129367,
+      "rows after remove_overused_xrefs": 128981,
+      "outcomes": {
+        "added a CURIE in no clique": 6802,
+        "joined two cliques": 2067,
+        "new clique": 349,
+        "noop": 114565,
+        "refused": 5198
+      },
+      "pairs joining two cliques, by UNII record's InChIKey vs the joined clique's": {
+        "UNII record states no InChIKey": 1016,
+        "different skeleton": 23,
+        "joined cliques have no InChIKey": 4,
+        "same InChIKey": 431,
+        "same skeleton, different stereo or protonation": 593
+      },
+      "pairs joining two cliques, by UNII SUBSTANCE_TYPE": {
+        "chemical": 1053,
+        "mixture": 845,
+        "protein": 146,
+        "nucleicAcid": 10,
+        "structurallyDiverse": 7,
+        "specifiedSubstanceG1": 6
+      }
+    }
+  },
+  "UNII_PUBCHEM merged groups": {
+    "existing cliques merged away": 4741,
+    "groups by number of existing cliques": {
+      "2": 4737,
+      "3": 2
+    },
+    "groups by Biolink types joined": {
+      "biolink:ChemicalEntity + biolink:SmallMolecule": 3825,
+      "biolink:ChemicalEntity + biolink:MolecularMixture": 713,
+      "biolink:MolecularMixture + biolink:SmallMolecule": 200,
+      "biolink:MolecularMixture": 1
+    }
+  },
+  "insulin (#1171), UNII_PUBCHEM": {
+    "rabbit": "same clique",
+    "beef": "separate cliques",
+    "pork": "same clique"
+  },
+  "UNII_PUBCHEM CURIEs in no clique of the build": {
+    "PUBCHEM.COMPOUND / not in the build's ids file / titled": 24,
+    "PUBCHEM.COMPOUND / not in the build's ids file / untitled in PubChem": 413,
+    "UNII / in the build's ids file": 4,
+    "UNII / not in the build's ids file": 3241
+  },
+  "UNII_PUBCHEM pairs joining two cliques that the SUBSTANCE_TYPE skip removes": {
+    "polymer": 133
+  }
+}
