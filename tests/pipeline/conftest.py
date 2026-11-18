@@ -287,7 +287,14 @@ def mesh_nt():
 
 
 @pytest.fixture(scope="session")
-def mesh_registry(mesh_nt, regenerate):
+def mesh_labels(mesh_nt, regenerate):
+    """Write babel_downloads/MESH/labels from mesh.nt as rule get_mesh_labels does, if missing (or with
+    --regenerate). The registry and the UMLS/MeSH skew report read the dump's records from it."""
+    return _maybe_run(make_local_name("labels", subpath="MESH"), pull_mesh_labels, regenerate, inputs=[mesh_nt])
+
+
+@pytest.fixture(scope="session")
+def mesh_registry(mesh_nt, mesh_labels, regenerate):
     """Build babel_downloads/MESH/registry.tsv as rule get_mesh_registry does, downloading the MeSH XML and
     writing MESH/labels first if they are missing. Every ids/MESH and the ownership file read it (#1240)."""
     from src.util import get_config  # deferred: same rationale as _snakemake_dir
@@ -295,7 +302,7 @@ def mesh_registry(mesh_nt, regenerate):
     desc, supp = (make_local_name(f"{prefix}.xml.gz", subpath="MESH") for prefix in ("desc", "supp"))
     xml_sources = make_local_name("xml_sources.json", subpath="MESH")
     _download_or_fail("MeSH XML", lambda: pull_mesh_xml(get_config()["mesh_year"], xml_sources), xml_sources)
-    labels = _maybe_run(make_local_name("labels", subpath="MESH"), pull_mesh_labels, regenerate, inputs=[mesh_nt])
+    labels = mesh_labels
     rdf_source = make_local_name("rdf_source.json", subpath="MESH")
     registry = make_local_name("registry.tsv", subpath="MESH")
     return _maybe_run(
