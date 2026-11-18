@@ -25,12 +25,16 @@ from collections.abc import Callable, Iterator
 
 import src.createcompendia.anatomy as anatomy
 import src.createcompendia.diseasephenotype as diseasephenotype
+import src.createcompendia.processactivitypathway as processactivitypathway
 from src.categories import (
     ANATOMICAL_ENTITY,
+    BIOLOGICAL_PROCESS,
     CELL,
     CELLULAR_COMPONENT,
     DISEASE,
     GROSS_ANATOMICAL_STRUCTURE,
+    MOLECULAR_ACTIVITY,
+    PATHWAY,
     PHENOTYPIC_FEATURE,
 )
 from src.model.compendium_diff import load_compendium
@@ -90,6 +94,9 @@ _ANATOMY_BIOLINK_TYPES = [ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANA
 # names (``Disease.txt``, ``PhenotypicFeature.txt``) are derived from these so they can't drift,
 # and the same test pins them to config.yaml's ``disease_outputs``.
 _DISEASE_BIOLINK_TYPES = [DISEASE, PHENOTYPIC_FEATURE]
+# The biolink types process/activity/pathway cliques can carry, pinned to config.yaml's
+# ``process_outputs`` by the same test.
+_PROCESS_BIOLINK_TYPES = [PATHWAY, BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY]
 
 PIPELINE_CONFIG: dict[str, dict] = {
     "anatomy": {
@@ -105,6 +112,13 @@ PIPELINE_CONFIG: dict[str, dict] = {
         "compendium_prefixes": get_config()["disease_labelsandsynonyms"],
         "clique_classifier": diseasephenotype.classify_disease_clique,
         "biolink_types": _DISEASE_BIOLINK_TYPES,
+    },
+    "process": {
+        "compute_fn": processactivitypathway.compute_cliques_for_impact_report,
+        "compendium_files": [f"{bt.split(':')[-1]}.txt" for bt in _PROCESS_BIOLINK_TYPES],
+        "compendium_prefixes": get_config()["process_labels"],
+        "clique_classifier": processactivitypathway.classify_process_clique,
+        "biolink_types": _PROCESS_BIOLINK_TYPES,
     },
 }
 

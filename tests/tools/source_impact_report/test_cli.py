@@ -183,7 +183,7 @@ def test_cli_synthetic_report_json_diff_counts(synthetic_intermediate, tmp_path)
 @pytest.mark.unit
 @pytest.mark.parametrize(
     ("pipeline", "config_key"),
-    [("anatomy", "anatomy_outputs"), ("disease", "disease_outputs")],
+    [("anatomy", "anatomy_outputs"), ("disease", "disease_outputs"), ("process", "process_outputs")],
 )
 def test_compendium_files_match_config_outputs(pipeline, config_key):
     """A pipeline's PIPELINE_CONFIG biolink types should cover exactly the compendium files

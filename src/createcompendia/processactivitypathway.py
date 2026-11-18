@@ -109,13 +109,17 @@ def _process_concord_pair_filter(parts, infile, dicts):
     return not infile.endswith("UMLS") or (parts[0] in dicts and parts[2] in dicts)
 
 
-def compute_cliques_for_impact_report(concordances, identifiers, excluded_sources=()):
+def compute_cliques_for_impact_report(concordances, identifiers, excluded_sources=(), *, mesh_ownership=None):
     """Load process/activity/pathway identifier and concord files and return the clique state without writing
     compendia.
 
     Thin wrapper over :func:`src.model.cliques.glom_from_files`; ``build_compendia`` calls it too, so a replay over a
-    build's intermediate files uses the same code path as the real build.
+    build's intermediate files (the source-impact report's ``PIPELINE_CONFIG["process"]``) uses the same code path as
+    the real build.
 
+    :param mesh_ownership: accepted so the source-impact report can call every pipeline the same way, and ignored:
+        process is not in ``config.yaml: umls_mesh_owning_pipelines`` (its UMLS concord has no MeSH), so the build
+        skips no concord pair for naming a CUI another pipeline owns.
     :returns: (dicts, types) where dicts is the glom dict-of-sets and types maps CURIE to its declared biolink type
     """
     return glom_from_files(
@@ -141,40 +145,43 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
         write_compendium(metadata_yamls, sets, f"{baretype}.txt", biotype, {}, icrdf_filename=icrdf_filename)
 
 
-def create_typed_sets(eqsets, types):
-    """Given a set of sets of equivalent identifiers, we want to type each one into
-    being either a disease or a phenotypic feature.  Or something else, that we may want to
-    chuck out here.
-    Current rules: If it has GO trust the GO's type
-    After that, check the types dict to see if we know anything.
+def classify_process_clique(equivalent_ids, types):
+    """Pick a biolink type for one process/activity/pathway clique: trust the GO term's declared type, else take a
+    majority vote over the declared types of the clique's members, breaking ties by the order Pathway,
+    BiologicalProcess, MolecularActivity.
+
+    Returns the biolink type string, or ``None`` if no member of the clique has a declared type. Used both by
+    ``create_typed_sets`` (the real build) and by the source-impact report, via the ``clique_classifier`` hook in
+    ``PIPELINE_CONFIG``, so the report labels each clique with the type the build would assign. A clique whose GO term
+    is missing from ``types`` raises KeyError, as create_typed_sets() always has.
     """
     order = [PATHWAY, BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY]
+    prefixes = get_prefixes(equivalent_ids)
+    if GO in prefixes:
+        return types[prefixes[GO][0]]
+    typecounts = defaultdict(int)
+    for eid in equivalent_ids:
+        if eid in types:
+            typecounts[types[eid]] += 1
+    if not typecounts:
+        return None
+    if len(typecounts) == 1:
+        return next(iter(typecounts))
+    # First attempt is majority vote, and after that by most specific
+    otypes = [(-c, order.index(t), t) for t, c in typecounts.items()]
+    otypes.sort()
+    return otypes[0][2]
+
+
+def create_typed_sets(eqsets, types):
+    """Group cliques by the biolink type :func:`classify_process_clique` gives them.
+
+    Raises RuntimeError for a clique none of whose members has a declared type.
+    """
     typed_sets = defaultdict(set)
     for equivalent_ids in eqsets:
-        # prefixes = set([ Text.get_curie(x) for x in equivalent_ids])
-        prefixes = get_prefixes(equivalent_ids)
-        found = False
-        for prefix in [GO]:
-            if prefix in prefixes and not found:
-                mytype = types[prefixes[prefix][0]]
-                typed_sets[mytype].add(equivalent_ids)
-                found = True
-        if not found:
-            typecounts = defaultdict(int)
-            for eid in equivalent_ids:
-                if eid in types:
-                    typecounts[types[eid]] += 1
-            if len(typecounts) == 0:
-                print("how did we not get any types?")
-                print(equivalent_ids)
-                exit()
-            elif len(typecounts) == 1:
-                t = list(typecounts.keys())[0]
-                typed_sets[t].add(equivalent_ids)
-            else:
-                # First attempt is majority vote, and after that by most specific
-                otypes = [(-c, order.index(t), t) for t, c in typecounts.items()]
-                otypes.sort()
-                t = otypes[0][2]
-                typed_sets[t].add(equivalent_ids)
+        mytype = classify_process_clique(equivalent_ids, types)
+        if mytype is None:
+            raise RuntimeError(f"No member of process clique {sorted(equivalent_ids)} has a declared type")
+        typed_sets[mytype].add(equivalent_ids)
     return typed_sets
