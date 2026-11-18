@@ -203,6 +203,9 @@ rule gene_compendia:
     resources:
         runtime="6h",
         mem="256G",
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["gene_unique_prefixes"],
     run:
         gene.build_gene_compendia(input.concords, input.metadata_yamls, input.idlists, input.icrdf_filename)
 

@@ -1,6 +1,6 @@
-# CLAUDE.md — tests/
+# AGENTS.md — tests/
 
-Point-of-use conventions for writing Babel tests, for Claude Code. For the test taxonomy (the four
+Point-of-use conventions for writing Babel tests, for coding agents. For the test taxonomy (the four
 `unit`/`network`/`slow`/`pipeline` marks, the `min_memory_gb` guard) and *where* a new test belongs,
 see [`README.md`](README.md) — this file only covers how to write one once you know where it goes.
 
@@ -18,6 +18,13 @@ see [`README.md`](README.md) — this file only covers how to write one once you
   in tests: E741 (no single-letter ambiguous names like `l`/`O`/`I`) and F841 (no unread
   assignments).
 
+- **A `unit` test under `tests/pipeline/` never runs in CI** — `pytest_collection_modifyitems` in
+  `tests/conftest.py` skips any item with `"pipeline"` in its keywords, and pytest puts the package
+  name there, so everything in that directory needs `--pipeline` whatever its mark. A unit test
+  *about* the pipeline-test machinery belongs beside the code it guards instead: the checks that
+  `ec_pipeline_outputs` and `rhea_pipeline_outputs` still call the handlers' entry points correctly
+  are in `tests/datahandlers/test_ec.py` and `test_rhea.py`.
+
 - **Fixtures for a real-data bug must be copied verbatim** — when a test stands in for a specific
   record from a source file, paste that record's row exactly as it appears in the downloaded file
   and name the record's ID in a comment, so the next person can re-derive it. Never hand-compose a
@@ -34,7 +41,10 @@ see [`README.md`](README.md) — this file only covers how to write one once you
   statement true for any string. The duplication had been carrying a realism check nobody had named.
   After any such extraction, **break each new constant in turn and confirm a test fails**; if none
   does, the constant needs tying to something independent (there, a fixture copied verbatim from the
-  live page). The probe is three lines of shell and takes seconds.
+  live page). The probe is three lines of shell and takes seconds. **Give each probe a fresh
+  bytecode cache** (`PYTHONPYCACHEPREFIX=$(mktemp -d) uv run pytest ...`): an edit that keeps the
+  file's size, such as swapping two names, made within the same second as the last import leaves
+  Python's `.pyc` looking current, so the test runs the unbroken code and the probe "passes".
 
 - **Pin known-imperfect behavior, don't leave it unasserted** — when shipping a partial fix, assert
   the wrong-but-harmless behavior that remains, with a comment saying it pins current behavior, a

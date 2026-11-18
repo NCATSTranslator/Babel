@@ -1,5 +1,6 @@
-import ast
 import gzip
+import hashlib
+import json
 import logging
 from collections import Counter, defaultdict
 
@@ -12,9 +13,10 @@ from src.babel_utils import (
     get_prefixes,
     get_user_agent,
     glom,
+    read_badxrefs,
     read_identifier_file,
     remove_overused_xrefs,
-    write_compendium,
+    unique_prefixes_from_config,
 )
 from src.categories import (
     CHEMICAL_ENTITY,
@@ -29,6 +31,8 @@ from src.datahandlers.unichem import UNICHEM_REFERENCE_TSV_HEADER, UNICHEM_STRUC
 from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.datahandlers.unii import UNII_ORGANISM_COLUMNS, read_unii_records
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
+from src.model.compendia import write_typed_compendia
+from src.model.intermediates import read_concord_pairs
 from src.prefixes import (
     CHEBI,
     CHEMBLCOMPOUND,
@@ -52,10 +56,56 @@ from src.util import (
     get_config,
     get_logger,
     get_memory_usage_summary,
+    get_repo_root,
     open_maybe_gzipped,
 )
 
 logger = get_logger(__name__)
+
+# Individually wrong chemical concord pairs, dropped (in either direction) before glom() in build_untyped_compendia().
+# Each attaches a record with no structure of its own -- a biologic, polymer, mixture or conjugate -- to the clique of
+# a structure it is not; glom()'s INCHIKEY guard cannot stop that because the record has no key. Found with
+# babel-inchikey-audit and reviewed by hand (docs/tools/InchikeyAudit.md); each entry states its reason. The
+# untyped_chemical_compendia rule declares the file as an input through this constant, so an edit re-runs the rule.
+CHEMICAL_BAD_XREFS = str(get_repo_root() / "input_data/chemical_badxrefs.txt")
+
+# First line of the copy of the bad xref pairs that build_untyped_compendia() writes to
+# intermediate/chemicals/partials/applied_badxrefs.txt. babel-inchikey-audit needs exactly the pairs a build applied:
+# given input_data/chemical_badxrefs.txt as it stands today, which may list pairs added after the build, it would
+# label edges that build applied as filtered and drop their components from the audit without an error. So
+# read_applied_badxrefs() refuses any file that does not start with this line.
+APPLIED_BADXREFS_HEADER = "# Bad xref pairs applied by chemicals.build_untyped_compendia()"
+
+
+def write_applied_badxrefs(path, pairs, source):
+    """Write the bad xref ``pairs`` a build applied to ``path``, headed by ``APPLIED_BADXREFS_HEADER`` and the
+    ``source`` file's path and SHA-256, in the format :func:`src.babel_utils.read_badxrefs` reads."""
+    ensure_parent_dir(path)
+    with open(source, "rb") as f:
+        sha256 = hashlib.sha256(f.read()).hexdigest()
+    with open(path, "w") as outf:
+        outf.write(f"{APPLIED_BADXREFS_HEADER}\n")
+        outf.write(f"# Copied from {source} (sha256 {sha256}). Pass this file to babel-inchikey-audit --badxrefs.\n")
+        for subj, obj in sorted(pairs):
+            outf.write(f"{subj} {obj}\n")
+
+
+def read_applied_badxrefs(path):
+    """Read a :func:`write_applied_badxrefs` file into ``(subject, object)`` pairs.
+
+    :raises ValueError: if ``path`` does not start with ``APPLIED_BADXREFS_HEADER`` -- above all when it is the repo's
+        ``input_data/chemical_badxrefs.txt`` rather than the copy a build wrote.
+    """
+    with open(path) as f:
+        first = f.readline().rstrip("\n")
+    if first != APPLIED_BADXREFS_HEADER:
+        raise ValueError(
+            f"{path} is not a list of applied bad xref pairs written by build_untyped_compendia() (its first line "
+            f"is {first!r}, not {APPLIED_BADXREFS_HEADER!r}). Pass the build's "
+            f"intermediate/chemicals/partials/applied_badxrefs.txt, not input_data/chemical_badxrefs.txt."
+        )
+    return read_badxrefs(path)
+
 
 # The ChEBI SDF data-item tags make_chebi_relations() asks read_sdf() for, normalized the way
 # normalize_sdf_tag() normalizes them: lowercased, spaces stripped, underscores kept.
@@ -124,6 +174,53 @@ CHEBI_DBX_ACCESSION_TYPE = "MANUAL_X_REF"
 # Whether SUBMITTED is in fact reviewed by some other route is issue #957; if it turns out to be
 # trustworthy, adding it here is the whole change.
 CHEBI_DBX_ACCEPTED_STATUSES = frozenset({"CHECKED", "OK"})
+
+
+def write_untyped_compendium(path, cliques):
+    """Write `cliques` to `path` as JSONL: one sorted array of CURIEs per line.
+
+    This is the handoff between the `untyped_chemical_compendia` and `chemical_compendia` rules --
+    the largest clique state in Babel, ~20 GB at production scale. It previously held
+    ``repr(set(...))`` read back with ``ast.literal_eval``: Python source used as a wire format
+    between two rules, which is both the slowest deserializer in the standard library and
+    unreadable by anything that is not Python. Measured over a 53 MB replicated anatomy clique state,
+    the ``repr(set)`` round trip took 11.80 s (1.30 s to write, 10.50 s to read) against JSONL's
+    5.00 s (2.07 s + 2.93 s): 2.4x. Scaled to babel-1.18's 256 million chemical identifiers, that is
+    ~985 s against ~418 s, about 9.5 minutes saved per build. The harness that measured this,
+    ``docs/rust-decision/boundary_cost.py``, comes from NCATSTranslator/Babel#988 and is carried
+    into NCATSTranslator/Babel#1091; neither has merged yet.
+
+    Members are sorted within each line, so a given clique always serialises to the same text and
+    two builds' files can be compared with `sort | diff` rather than being re-parsed. Line *order*
+    is still whatever the set iterates in and is not stable between runs; sorting ~100M lines to
+    fix that would cost more than the diffability is worth.
+    """
+    with open(path, "w") as outf:
+        for clique in cliques:
+            outf.write(json.dumps(sorted(clique)) + "\n")
+
+
+def read_untyped_compendium(path):
+    """Read the file written by :func:`write_untyped_compendium` into a set of frozensets.
+
+    :raises RuntimeError: if the file is in the pre-JSONL ``repr(set)`` format. Snakemake will not
+        rebuild a partial that is newer than its inputs, so a tree carried over from an older
+        checkout arrives here in the old format; saying so beats failing inside the JSON parser.
+    """
+    cliques = set()
+    with open(path) as inf:
+        for line_number, line in enumerate(inf, start=1):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if stripped.startswith("{"):
+                raise RuntimeError(
+                    f"{path} line {line_number} is in the pre-JSONL `repr(set)` format written by "
+                    f"an older Babel. Delete it and Snakemake will rerun untyped_chemical_compendia, "
+                    f"which rewrites it along with that rule's other outputs: rm {path}"
+                )
+            cliques.add(frozenset(json.loads(stripped)))
+    return cliques
 
 
 def get_type_from_smiles(smiles):
@@ -257,7 +354,13 @@ def write_pubchem_ids(labelfile, smilesfile, outfile):
                 outf.write(f"{x}\t{CHEMICAL_ENTITY}\n")
 
 
-def write_mesh_ids(outfile):
+def write_mesh_ids(outfile, mesh_registry):
+    """Write the chemical ids/MESH from MeSH trees D01-D26 and the SCR_Chemical records, leaving out every record
+    with an NCBI Taxon registry number in mesh_registry (rule get_mesh_registry's TSV).
+
+    Those are virus SCRs that NLM classes as SCR_Chemical but links to an NCBI Taxon ID, e.g. MESH:C000626778
+    "maize chlorotic mottle virus"; mesh.write_ids() leaves them to taxon (#1240).
+    """
     # MeSH D tree — chemical-related subtrees.
     # Included as CHEMICAL_ENTITY (via the D01–D26 base range):
     #   D01  Inorganic Chemicals
@@ -339,6 +442,8 @@ def write_mesh_ids(outfile):
         order=["EXCLUDE", POLYPEPTIDE, COMPLEX_MOLECULAR_MIXTURE, CHEMICAL_ENTITY],
         extra_vocab={"SCR_Chemical": CHEMICAL_ENTITY},
         scr_exclude_trees=excluded_trees,
+        pipeline="chemicals",
+        mesh_registry=mesh_registry,
     )
 
 
@@ -589,9 +694,16 @@ def read_inchikeys(struct_file):
     return inchikeys
 
 
-def combine_unichem(concordances, output):
-    PREFIXES_TO_REMOVE_OVERUSED_XREFS = [UNII, KEGGCOMPOUND, DRUGCENTRAL]
+# UniChem sources whose record->InChIKey concords combine_unichem() passes through remove_overused_xrefs(): a key
+# claimed by two or more records of one of these sources loses all of those links. Module-level so that
+# src/model/glom_edges.py can reproduce the build's filtering exactly rather than keeping its own copy.
+UNICHEM_OVERUSED_XREF_PREFIXES = (UNII, KEGGCOMPOUND, DRUGCENTRAL)
 
+
+def combine_unichem(concordances, output):
+    # The same key as build_untyped_compendia(), and both rules declare it as a param so an edit reruns
+    # both: the UniChem grouping and the build can't disagree.
+    unique_prefixes = unique_prefixes_from_config("chemical_unique_prefixes")
     dicts = {}
     for infile in concordances:
         print(infile)
@@ -600,33 +712,36 @@ def combine_unichem(concordances, output):
 
         # We will want to only remove overused xrefs for specific prefixes.
         # UniChem files should only have a single prefix in the first column,
-        # but out of paranoia we'll double-check that.
-        prefixes_in_file = set()
+        # but out of paranoia we'll double-check that. The prefix is parsed from the first row only,
+        # and every later row is checked with a startswith() against it: UNICHEM_PUBCHEM.COMPOUND has
+        # over 100 million rows, and splitting and hashing every subject just to confirm one fact
+        # about the whole file was a measurable share of reading it.
+        prefix_to_check = None
+        expected_subject_start = None
 
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                pairs.append([x[0], x[2]])
-                # Get the prefix from the first row to determine if we need to remove overused xrefs
-                prefixes_in_file.add(Text.get_prefix(x[0]))
+        # 2-tuples, handed to glom() as they are: see read_concord_pairs() for why not sets or lists.
+        for subject, obj in read_concord_pairs(infile):
+            if prefix_to_check is None:
+                prefix_to_check = Text.get_prefix(subject)
+                expected_subject_start = prefix_to_check + ":"
+            elif not subject.startswith(expected_subject_start):
+                raise RuntimeError(
+                    f"Multiple prefixes found in {infile}: {prefix_to_check} and {subject.split(':', 1)[0]} "
+                    f"(at {subject}). All UNICHEM files should have exactly one prefix."
+                )
+            pairs.append((subject, obj))
 
-        # Was there exactly one prefix in the first column?
-        if len(prefixes_in_file) == 0:
+        # Was there a prefix at all in the first column?
+        if prefix_to_check is None:
             raise RuntimeError(
                 f"No prefixes found in {infile} (file may be empty or have no valid CURIE in column 1). All UNICHEM files should have exactly one prefix."
             )
-        if len(prefixes_in_file) > 1:
-            raise RuntimeError(
-                f"Multiple prefixes found in {infile}: {prefixes_in_file}. All UNICHEM files should have exactly one prefix."
-            )
-        prefix_to_check = prefixes_in_file.pop()
 
         # Only remove overused xrefs for specific prefixes
-        newpairs = pairs
-        if prefix_to_check in PREFIXES_TO_REMOVE_OVERUSED_XREFS:
-            newpairs = remove_overused_xrefs(pairs)
-        setpairs = [set(x) for x in newpairs]
-        glom(dicts, setpairs, unique_prefixes=[INCHIKEY])
+        # Reassigned rather than copied, so the unfiltered list can be freed before glom() runs.
+        if prefix_to_check in UNICHEM_OVERUSED_XREF_PREFIXES:
+            pairs = remove_overused_xrefs(pairs)
+        glom(dicts, pairs, unique_prefixes=unique_prefixes)
     chem_sets = set([frozenset(x) for x in dicts.values()])
     with jsonlines.open(output, mode="w") as writer:
         for chemset in chem_sets:
@@ -995,13 +1110,28 @@ def make_chebi_relations(sdf, dbx, dbx_source, dbx_status, outfile, propfile_gz,
     )
 
 
-def get_mesh_relationships(mesh_id_file, cas_out, unii_out, cas_metadata, unii_metadata):
+def get_mesh_relationships(
+    mesh_id_file,
+    cas_out,
+    unii_out,
+    cas_metadata,
+    unii_metadata,
+    *,
+    mesh_registry,
+    mesh_rdf_source,
+    mesh_xml_sources,
+):
+    """Write MeSH-CAS and MeSH-UNII xrefs from the registry numbers of the chemical MeSH IDs in mesh_id_file.
+
+    mesh_registry is rule get_mesh_registry's TSV; the other mesh_* arguments are the download records that
+    mesh_registry_sources() reads for the metadata.
+    """
     meshes = set()
     with open(mesh_id_file) as inf:
         for line in inf:
             x = line.split("\t")
             meshes.add(x[0])
-    regis = mesh.pull_mesh_registry()
+    regis = mesh.read_mesh_registry(mesh_registry)
     with open(cas_out, "w") as casout, open(unii_out, "w") as uniiout:
         for meshid, reg in regis:
             if meshid not in meshes:
@@ -1017,15 +1147,11 @@ def get_mesh_relationships(mesh_id_file, cas_out, unii_out, cas_metadata, unii_m
                 # is a unii?
                 uniiout.write(f"{meshid}\txref\tUNII:{reg}\n")
 
+    sources = mesh.mesh_registry_sources(mesh_rdf_source, mesh_xml_sources)
     write_concord_metadata(
         cas_metadata,
         name="get_mesh_relationships()",
-        sources=[
-            {
-                "type": "MeSH Registry",
-                "name": "MeSH Registry",
-            }
-        ],
+        sources=sources,
         description=f"get_mesh_relationships() iterates through the MeSH registry, filters it to the MeSH IDs "
         f"in {mesh_id_file}, then writes out CAS mappings to {cas_out}",
         concord_filename=cas_out,
@@ -1034,12 +1160,7 @@ def get_mesh_relationships(mesh_id_file, cas_out, unii_out, cas_metadata, unii_m
     write_concord_metadata(
         unii_metadata,
         name="get_mesh_relationships()",
-        sources=[
-            {
-                "type": "MeSH Registry",
-                "name": "MeSH Registry",
-            }
-        ],
+        sources=sources,
         description=f"get_mesh_relationships() iterates through the MeSH registry, filters it to the MeSH IDs "
         f"in {mesh_id_file}, then writes out non-CAS mappings (i.e. UNII mappings) to {unii_out}",
         concord_filename=unii_out,
@@ -1088,57 +1209,72 @@ def build_untyped_compendia(
     metadata_yaml,
     input_metadata_yamls,
     mesh_ownership=None,
+    badxrefs=None,
+    applied_badxrefs=None,
 ):
     """:concordances: a list of files from which to read relationships
     :identifiers: a list of files from which to read identifiers and optional categories
     :mesh_ownership: the umls_mesh_ownership rule's file; concord pairs naming a CUI another pipeline owns are
         skipped (umls.read_cuis_owned_elsewhere). None skips nothing.
-        The UniChem partial carries no UMLS CUIs, so it needs no such filter."""
+        The UniChem partial carries no UMLS CUIs, so it needs no such filter.
+    :badxrefs: a read_badxrefs() file of concord pairs to skip, matched in either direction; defaults to
+        ``CHEMICAL_BAD_XREFS``. Like owned-elsewhere pairs, they are skipped before remove_overused_xrefs() counts
+        overuse, so src/model/glom_edges.py models them the same way.
+    :applied_badxrefs: where to write the pairs read from ``badxrefs`` (:func:`write_applied_badxrefs`), so that
+        babel-inchikey-audit can model this build with the pairs it applied rather than the repo's current file.
+        None writes nothing.
+
+    The metadata YAML counts the bad xref pairs loaded and lists those that matched no concord row. Such a pair is
+    usually harmless -- the source dropped the bad xref -- but if a source renamed an identifier, the xref is back
+    under the new one; the next babel-inchikey-audit run shows it as a component again."""
     owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "chemicals")
+    unique_prefixes = unique_prefixes_from_config("chemical_unique_prefixes")
+    if badxrefs is None:
+        badxrefs = CHEMICAL_BAD_XREFS
+    listed_pairs = read_badxrefs(badxrefs)
+    bad_pairs = {frozenset(pair) for pair in listed_pairs}
+    logger.info("Loaded %d bad xref pair(s) from %s", len(bad_pairs), badxrefs)
+    if applied_badxrefs is not None:
+        write_applied_badxrefs(applied_badxrefs, listed_pairs, badxrefs)
+    bad_pairs_seen = set()
+
+    def skip_bad_pairs(pairs):
+        """Yield the pairs not in ``bad_pairs`` (either direction), recording each listed pair that is seen."""
+        for pair in pairs:
+            unordered = frozenset(pair)
+            if unordered in bad_pairs:
+                bad_pairs_seen.add(unordered)
+            else:
+                yield pair
+
     dicts = read_partial_unichem(unichem_partial)
     types = {}
     for ifile in identifiers:
         print(ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=[INCHIKEY])
+        glom(dicts, new_identifiers, unique_prefixes=unique_prefixes)
         types.update(new_types)
     for infile in concordances:
         print(infile)
         print("loading", infile)
-        pairs = []
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                if x[0] in owned_elsewhere or x[2] in owned_elsewhere:
-                    continue
-                pairs.append([x[0], x[2]])
-        p = False
-        if DRUGCENTRAL in [n.split(":")[0] for n in pairs[0]]:
-            p = True
-            i = "DrugCentral:4970"
-        if p:
-            print("before filtering:")
-            for pair in pairs:
-                if i in pair:
-                    print(pair)
+        # 2-tuples, handed to glom() as they are: see read_concord_pairs() for why not sets or lists. Bad pairs are
+        # matched before the owned-elsewhere skip, so a listed pair is recorded as seen even when it also names a
+        # CUI another pipeline owns; otherwise it would be reported as matching no concord row while it still does.
+        pairs = list(umls.skip_pairs_owned_elsewhere(skip_bad_pairs(read_concord_pairs(infile)), owned_elsewhere))
         newpairs = remove_overused_xrefs(pairs)
-        setpairs = [set(x) for x in newpairs]
-        if p:
-            print("after filtering:")
-            for pair in newpairs:
-                if i in pair:
-                    print(pair)
-        glom(dicts, setpairs, unique_prefixes=[INCHIKEY])
-        if p:
-            print("after glomming:")
-            print(dicts[i])
+        del pairs  # Free the unfiltered list before glom() runs.
+        glom(dicts, newpairs, unique_prefixes=unique_prefixes)
+    # Not raised: a pair goes unmatched every time a source fixes the error upstream, and failing the build for that
+    # would make every upstream fix a build break. It is recorded in the metadata YAML (below), which is nested in
+    # every chemical compendium's metadata and so reaches the release's metadata/ for review.
+    unseen = sorted(map(sorted, bad_pairs - bad_pairs_seen))
+    if unseen:
+        logger.warning("%d bad xref pair(s) in %s matched no concord row: %s", len(unseen), badxrefs, unseen)
     with open(type_file, "w") as outf:
         for x, y in types.items():
             outf.write(f"{x}\t{y}\n")
     untyped_sets = set([frozenset(x) for x in dicts.values()])
-    with open(untyped_concord, "w") as outf:
-        for s in untyped_sets:
-            outf.write(f"{set(s)}\n")
+    write_untyped_compendium(untyped_concord, untyped_sets)
 
     # Build the metadata file by combining the input metadata_yamls.
     write_combined_metadata(
@@ -1147,7 +1283,10 @@ def build_untyped_compendia(
         name="chemicals.build_untyped_compendia()",
         description=f'Generate an untyped compendium from concordances {concordances}, identifiers {identifiers}, " +'
         f"unichem_partial {unichem_partial}, untyped_concord {untyped_concord}, and type file {type_file}.",
-        # sources=None, url='', counts=None,
+        counts={
+            "bad_xref_pairs": len(bad_pairs),
+            "bad_xref_pairs_unmatched": [" ".join(pair) for pair in unseen],
+        },
         combined_from_filenames=input_metadata_yamls,
     )
 
@@ -1189,11 +1328,7 @@ def build_compendia(
             f"chemical_type_order, so they cannot be ranked against a clique's voted type: {sorted(unrankable)}"
         )
 
-    untyped_sets = set()
-    with open(untyped_compendia_file) as inf:
-        for line in inf:
-            s = ast.literal_eval(line.strip())
-            untyped_sets.add(frozenset(s))
+    untyped_sets = read_untyped_compendium(untyped_compendia_file)
     logger.info(f"Loaded {len(untyped_sets)} untyped sets from {untyped_compendia_file}: {get_memory_usage_summary()}")
 
     typed_sets = create_typed_sets(untyped_sets, types, food_types)
@@ -1201,30 +1336,14 @@ def build_compendia(
         f"Created {len(typed_sets)} typed sets from {len(untyped_sets)} untyped sets: {get_memory_usage_summary()}"
     )
 
-    for biotype, sets in typed_sets.items():
-        baretype = biotype.split(":")[-1]
-        if biotype == DRUG:
-            write_compendium(
-                metadata_yamls,
-                sets,
-                f"{baretype}.txt",
-                biotype,
-                {},
-                extra_prefixes=[MESH, UNII],
-                icrdf_filename=icrdf_filename,
-                properties_jsonl_gz_files=properties_jsonl_gz_files,
-            )
-        else:
-            write_compendium(
-                metadata_yamls,
-                sets,
-                f"{baretype}.txt",
-                biotype,
-                {},
-                extra_prefixes=[RXCUI],
-                icrdf_filename=icrdf_filename,
-                properties_jsonl_gz_files=properties_jsonl_gz_files,
-            )
+    # One compendium per config.yaml: chemical_outputs entry, all sharing one icRDF.tsv load.
+    write_typed_compendia(
+        metadata_yamls,
+        typed_sets,
+        icrdf_filename,
+        extra_prefixes_for=lambda biotype: [MESH, UNII] if biotype == DRUG else [RXCUI],
+        properties_jsonl_gz_files=properties_jsonl_gz_files,
+    )
 
 
 def create_typed_sets(eqsets, types, food_types):

@@ -1,8 +1,9 @@
 """Network checks that the pubmed2db export pinned in config.yaml still matches what Babel expects.
 
-They are cheap (a directory listing, the validation report, a HEAD per shard): the pinned export should be
-reachable, its report should be in the structure ``expected_shard_counts()`` reads, every shard it lists
-should exist -- the contract in docs/sources/PubMed/README.md -- and it should still be the newest export,
+They are cheap (a directory listing, metadata.json, the validation report, a HEAD per shard): the pinned
+export should be reachable, its report should be in the structure ``expected_shard_counts()`` reads, every
+shard it lists should exist, its metadata.json should be in a data model ``read_export_metadata()`` accepts
+-- the contract in docs/sources/PubMed/README.md -- and it should still be the newest export,
 which is the reminder to move config.yaml on when pubmed2db publishes another. The full download and parse
 is ``tests/pipeline/test_publications.py``.
 
@@ -11,6 +12,7 @@ Run with:
 """
 
 import gzip
+import os
 import re
 from datetime import datetime
 
@@ -21,7 +23,7 @@ from src.createcompendia import publications
 from src.util import get_config
 
 CONFIG = get_config()
-BASE_URL = CONFIG["pubmed2db_base_url"]
+BASE_URL = CONFIG["publications"]["pubmed2db_base_url"]
 VERSION = CONFIG["pubmed2db_version"]
 EXPORT_URL = BASE_URL + VERSION + "/"
 
@@ -51,13 +53,30 @@ def test_pinned_export_report_lists_shards_that_exist(pinned_report_dir):
 
 
 @pytest.mark.network
+def test_pinned_export_metadata_is_in_a_data_model_babel_reads(pinned_report_dir):
+    """The pinned export's metadata.json should be in exactly the data model config.yaml pins (and so in the
+    major version Babel reads), and should list the same shards and record total as its validation report --
+    i.e. read_export_metadata() accepts the export that config.yaml's pubmed2db_version,
+    pubmed2db_validation_report and pubmed2db_data_model_version name."""
+    response = requests.get(EXPORT_URL + publications.EXPORT_METADATA, timeout=60)
+    response.raise_for_status()
+    with open(os.path.join(pinned_report_dir, publications.EXPORT_METADATA), "wb") as f:
+        f.write(response.content)
+    metadata = publications.read_export_metadata(
+        pinned_report_dir, data_model_version=CONFIG["pubmed2db_data_model_version"]
+    )
+    assert metadata["corpus"]["build_name"] == VERSION
+    assert all(len(entry["sha256"]) == 64 for entry in metadata["files"])
+
+
+@pytest.mark.network
 def test_pinned_export_is_the_newest():
     """config.yaml should pin the newest pubmed2db export. When this fails, pubmed2db has published a newer
     one: move pubmed2db_version (and check pubmed2db_validation_report) to it, per docs/sources/PubMed/README.md.
     """
     response = requests.get(BASE_URL, timeout=60)
     response.raise_for_status()
-    # Export directories are named like 2026sep26; manifests/ and anything else don't match.
+    # Export directories are named like 2026nov08; manifests/ and anything else don't match.
     versions = set(re.findall(r'href="(\d{4}[a-z]{3}\d{1,2})/"', response.text))
     assert VERSION in versions, f"{VERSION} is not listed at {BASE_URL}: {sorted(versions)}"
     newest = max(versions, key=lambda version: datetime.strptime(version, "%Y%b%d"))

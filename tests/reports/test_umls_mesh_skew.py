@@ -1,7 +1,8 @@
 """Unit tests for the UMLS/MeSH version skew report (``src/reports/umls_mesh_skew.py``).
 
 Fixtures are copied from real files: ``tests/data/mesh/MRCONSO_sample.RRF`` from UMLS 2026AA MRCONSO.RRF
-and ``tests/data/mesh/mesh2026_sample.nt`` from mesh2026.nt (see the test docstrings for which records).
+and ``tests/data/mesh/mesh2026_sample.nt`` from mesh2026.nt (see the test docstrings for which records). The
+report reads MeSH labels, so the ``mesh_labels`` fixture writes them from the sample dump as the build does.
 """
 
 import gzip
@@ -10,7 +11,7 @@ import shutil
 
 import pytest
 
-from src.datahandlers.mesh import normalize_mesh_nt
+from src.datahandlers.mesh import Mesh, normalize_mesh_nt
 from src.reports.umls_mesh_skew import (
     check_umls_mesh_skew,
     generate_umls_mesh_skew_report,
@@ -23,23 +24,26 @@ MESH_TEST_DATA = get_repo_root() / "tests" / "data" / "mesh"
 
 
 @pytest.fixture
-def mesh_nt(tmp_path):
-    """mesh2026_sample.nt (C000730045 foliglurax and D002839 Chromans) normalized the way pull_mesh() does it."""
+def mesh_labels(tmp_path):
+    """The labels of mesh2026_sample.nt (C000730045 foliglurax and D002839 Chromans), written the way rules
+    get_mesh (pull_mesh() normalizes the dump) and get_mesh_labels (Mesh.pull_mesh_labels()) write them."""
     gz_path = tmp_path / "mesh2026.nt.gz"
     with open(MESH_TEST_DATA / "mesh2026_sample.nt", "rb") as inf, gzip.open(gz_path, "wb") as outf:
         shutil.copyfileobj(inf, outf)
-    out = tmp_path / "mesh.nt"
-    normalize_mesh_nt(gz_path, out, "2026")
-    return out
+    nt_path = tmp_path / "mesh.nt"
+    normalize_mesh_nt(gz_path, nt_path, "2026")
+    labels = tmp_path / "labels"
+    Mesh(nt_path).pull_mesh_labels(labels)
+    return labels
 
 
 # READERS
 
 
 @pytest.mark.unit
-def test_read_labeled_mesh_ids(mesh_nt):
+def test_read_labeled_mesh_ids(mesh_labels):
     """Only records with an rdfs:label should be read, as bare IDs."""
-    assert read_labeled_mesh_ids(mesh_nt) == {"C000730045", "D002839"}
+    assert read_labeled_mesh_ids(mesh_labels) == {"C000730045", "D002839"}
 
 
 @pytest.mark.unit
@@ -52,15 +56,32 @@ def test_read_umls_mesh_codes_only_reads_msh_rows():
     }
 
 
+@pytest.mark.unit
+def test_read_umls_mesh_codes_skips_suppressed_rows(tmp_path):
+    """MSH rows check_mrconso_line() rejects (SUPPRESS=O/E) should not be read, as they are not used anywhere
+    else in the build. UMLS 2026AA has no MSH row with SUPPRESS=O or E to copy, so this is foliglurax's NM row
+    from MRCONSO_sample.RRF (its CE row left out) with the SUPPRESS column (17th) changed from N to O; only
+    D002839's rows should remain."""
+    rows = (MESH_TEST_DATA / "MRCONSO_sample.RRF").read_text().splitlines(keepends=True)
+    foliglurax = rows[2].split("|")
+    assert foliglurax[13] == "C000730045" and foliglurax[16] == "N"
+    foliglurax[16] = "O"
+    mrconso = tmp_path / "MRCONSO.RRF"
+    mrconso.write_text(rows[0] + rows[1] + "|".join(foliglurax))
+    assert read_umls_mesh_codes(mrconso) == {"D002839": {"C0008542"}}
+
+
 # REPORT
 
 
 @pytest.mark.unit
-def test_report_counts_codes_missing_from_mesh(mesh_nt, tmp_path):
+def test_report_counts_codes_missing_from_mesh(mesh_labels, tmp_path):
     """U000002 ("Anatomy (MeSH Category)") is a UMLS-only heading with no MeSH record, so it should be the one
     missing code, on one CUI that has no other MSH code; the report should be written as JSON."""
     outfile = tmp_path / "umls_mesh_skew.json"
-    report = generate_umls_mesh_skew_report(MESH_TEST_DATA / "MRCONSO_sample.RRF", mesh_nt, "2026AA", "2026", outfile)
+    report = generate_umls_mesh_skew_report(
+        MESH_TEST_DATA / "MRCONSO_sample.RRF", mesh_labels, "2026AA", "2026", outfile
+    )
     assert report == {
         "umls_version": "2026AA",
         "mesh_year": "2026",
@@ -112,11 +133,11 @@ def test_check_fails_over_the_limit(tmp_path):
 
 
 @pytest.mark.unit
-def test_check_ignores_category_headings(mesh_nt, tmp_path):
+def test_check_ignores_category_headings(mesh_labels, tmp_path):
     """The U "(MeSH Category)" headings are missing from every MeSH dump, so a report whose only missing code is
     U000002 should pass even with a limit of zero."""
     report = tmp_path / "umls_mesh_skew.json"
-    generate_umls_mesh_skew_report(MESH_TEST_DATA / "MRCONSO_sample.RRF", mesh_nt, "2026AA", "2026", report)
+    generate_umls_mesh_skew_report(MESH_TEST_DATA / "MRCONSO_sample.RRF", mesh_labels, "2026AA", "2026", report)
     checked = tmp_path / "umls_mesh_skew.checked"
     check_umls_mesh_skew(report, 0, checked)
     assert checked.exists()

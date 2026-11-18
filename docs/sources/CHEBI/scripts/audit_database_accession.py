@@ -9,7 +9,7 @@ accessions), and whether every accepted accession has the shape its database use
 
 It imports read_chebi_lookup_ids(), CHEBI_DBX_SOURCE_NAMES, CHEBI_DBX_ACCESSION_TYPE and
 CHEBI_DBX_ACCEPTED_STATUSES from the pipeline rather than restating the matching rule, so the audit
-cannot drift from what the build does -- see docs/sources/CLAUDE.md.
+cannot drift from what the build does -- see docs/sources/AGENTS.md.
 
 Usage:
     uv run python docs/sources/CHEBI/scripts/audit_database_accession.py \

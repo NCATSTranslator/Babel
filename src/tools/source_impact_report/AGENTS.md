@@ -1,4 +1,4 @@
-# CLAUDE.md — src/tools/source_impact_report/
+# AGENTS.md — src/tools/source_impact_report/
 
 `source-impact-report` answers "what does adding this source do to the cliques?" Full reference:
 [`docs/tools/SourceImpactReport.md`](../../../docs/tools/SourceImpactReport.md), including the

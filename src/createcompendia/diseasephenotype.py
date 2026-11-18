@@ -13,11 +13,13 @@ from src.babel_utils import (
     read_badxrefs,
     read_identifier_file,
     remove_overused_xrefs,
-    write_compendium,
+    unique_prefixes_from_config,
 )
 from src.categories import DISEASE, PHENOTYPIC_FEATURE
 from src.datahandlers.gard import normalize_gard_curie
 from src.metadata.provenance import write_concord_metadata
+from src.model.compendia import write_typed_compendia
+from src.model.intermediates import read_concords
 from src.prefixes import (
     DOID,
     GARD,
@@ -79,14 +81,6 @@ def get_xref_prefix_map(source):
         )
     return {key: LOCAL_ID_DEPENDENT_RENAMES.get(value, value) for key, value in mapping.items()}
 
-
-# Prefixes glom() rejects a *same-prefix* merge for: if a clique would end up holding two
-# distinct identifiers of one of these prefixes (e.g. two different MONDO ids, or two
-# different HP/MP ids), the merge is refused rather than silently accepted. MONDO, HP, and MP
-# are each meant to be the single authoritative identifier of their kind within a clique, so
-# an accidental same-prefix collision (e.g. via a bad transitive MESH/SNOMED bridge) is a
-# data-quality signal worth catching rather than merging through.
-DISEASE_UNIQUE_PREFIXES = [MONDO, HP, MP]
 
 # Prefix groups that must never co-occur in a single clique. After glom, any clique that
 # holds identifiers from two or more prefixes within a group is split: the first-listed
@@ -277,7 +271,10 @@ def write_omim_ids(infile, outfile):
                 outf.write(f"{OMIM}:{chunks[0]}\t{DISEASE}\n")
 
 
-def write_mesh_ids(outfile):
+def write_mesh_ids(outfile, mesh_registry):
+    """Write the disease ids/MESH. Records with an NCBI Taxon registry number in mesh_registry (rule
+    get_mesh_registry's TSV) are left to taxon, whatever tree they are in; mesh.write_ids() decides that (#1240).
+    """
     # NOTE: C02 (Virus Diseases) and C03 (Parasitic Diseases) are intentionally absent
     # below.  Before adding them, verify that MESH terms in those trees have adequate
     # cross-references to MONDO (our primary disease source) and/or HPO (our primary
@@ -310,7 +307,9 @@ def write_mesh_ids(outfile):
     ]
     meshmap = {i: DISEASE for i in dcodes}
     meshmap["C23"] = PHENOTYPIC_FEATURE
-    mesh.write_ids(meshmap, outfile, order=[DISEASE, PHENOTYPIC_FEATURE])
+    mesh.write_ids(
+        meshmap, outfile, order=[DISEASE, PHENOTYPIC_FEATURE], pipeline="disease", mesh_registry=mesh_registry
+    )
 
 
 def write_umls_ids(mrsty, outfile, badumlsfile, *, mesh_ownership=None):
@@ -611,11 +610,10 @@ def build_gard_label_concord(
     # escape this.
     claimed = set()
     for concord in other_concords:
-        with open(concord) as inf:
-            for line in inf:
-                for curie in line.rstrip("\n").split("\t"):
-                    if Text.get_prefix_or_none(curie) == GARD:
-                        claimed.add(curie)
+        for row in read_concords(concord):
+            for curie in row:
+                if Text.get_prefix_or_none(curie) == GARD:
+                    claimed.add(curie)
 
     # normalized label -> CURIEs, one dict per pool vocabulary, in priority order.
     labels_by_vocabulary = []
@@ -759,6 +757,8 @@ def compute_cliques_for_impact_report(
         mondoclose = None
 
     owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "disease")
+    # MONDO, HP and MP: see disease_unique_prefixes in config.yaml.
+    unique_prefixes = unique_prefixes_from_config("disease_unique_prefixes")
     dicts = {}
     types = {}
     for ifile in identifiers:
@@ -766,31 +766,24 @@ def compute_cliques_for_impact_report(
             continue
         logger.info("Reading identifiers from %s", ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=DISEASE_UNIQUE_PREFIXES)
+        glom(dicts, new_identifiers, unique_prefixes=unique_prefixes)
         types.update(new_types)
 
     close_mondos = defaultdict(set)
     if mondoclose is not None:
-        with open(mondoclose) as inf:
-            for line in inf:
-                stripped = line.strip()
-                if not stripped:
-                    continue
-                # MONDO_close is a 3-column concord (subject, predicate, object), written by
-                # ubergraph.build_sets() exactly like the regular concords below.
-                #
-                # NOTE: this intentionally preserves the long-standing behaviour from `main` of
-                # keying on x[1] (the predicate, e.g. "oio:closeMatch") rather than x[2] (the
-                # close-match object). Because no clique ever contains the literal predicate
-                # string, glom()'s `close=` guard never matches and has effectively been a no-op.
-                # Fixing it to x[2] activates the guard and changes disease clique merging
-                # broadly (it drops ~1,219 MEDDRA identifiers from Disease.txt), so it is deferred
-                # to a dedicated follow-up PR (#888, `fix-mondo-close-guard`) with its own
-                # before/after impact analysis rather than riding along with the MP addition.
-                x = tuple(stripped.split("\t"))
-                if len(x) != 3:
-                    raise RuntimeError(f'Line "{stripped}" is not a valid MONDO_close entry: {x}')
-                close_mondos[x[0]].add(x[1])
+        # MONDO_close is a 3-column concord (subject, predicate, object), written by
+        # ubergraph.build_sets() exactly like the regular concords below, and read by the same
+        # strict parser.
+        for subject, predicate, _obj in read_concords(mondoclose):
+            # NOTE: this intentionally preserves the long-standing behaviour from `main` of
+            # keying on the predicate (e.g. "oio:closeMatch") rather than the object (the
+            # close-match CURIE). Because no clique ever contains the literal predicate
+            # string, glom()'s `close=` guard never matches and has effectively been a no-op.
+            # Fixing it to the object activates the guard and changes disease clique merging
+            # broadly (it drops ~1,219 MEDDRA identifiers from Disease.txt), so it is deferred
+            # to a dedicated follow-up PR (#888, `fix-mondo-close-guard`) with its own
+            # before/after impact analysis rather than riding along with the MP addition.
+            close_mondos[subject].add(predicate)
 
     for infile in iterated_concords:
         if is_excluded(infile):
@@ -804,19 +797,15 @@ def compute_cliques_for_impact_report(
         else:
             logger.info("No bad xrefs configured for %s", pref)
             bad_pairs = set()
-        with open(infile) as inf:
-            for line in inf:
-                stuff = line.strip().split("\t")
-                if len(stuff) != 3:
-                    raise RuntimeError('Line "', line.strip(), '" is not a valid concord: ', stuff)
-                x = tuple([stuff[0].strip(), stuff[2].strip()])
-                if x not in bad_pairs and x[0] not in owned_elsewhere and x[1] not in owned_elsewhere:
-                    pairs.append(x)
+        for subject, _predicate, obj in read_concords(infile):
+            x = (subject, obj)
+            if x not in bad_pairs and not umls.names_cui_owned_elsewhere(subject, obj, owned_elsewhere):
+                pairs.append(x)
         if pref in OVERUSE_FILTERED_CONCORDS:
             newpairs = remove_overused_xrefs(pairs, target_prefixes=OVERUSE_FILTERED_CONCORDS[pref])
         else:
             newpairs = pairs
-        glom(dicts, newpairs, unique_prefixes=DISEASE_UNIQUE_PREFIXES, close={MONDO: close_mondos})
+        glom(dicts, newpairs, unique_prefixes=unique_prefixes, close={MONDO: close_mondos})
 
     # Enforce HP/MP (and any other configured) disjointness as the final step, so BOTH the
     # real build (build_compendium) and the source-impact report (which diffs these dicts)
@@ -915,17 +904,12 @@ def build_compendium(
     # looked up per class rather than passed whole: an exemption argued for one class must not be
     # granted to the rest. A class with no entry gets nothing.
     extra_prefixes_by_class = get_config()["disease_extra_prefixes_by_biolink_class"]
-    for biotype, sets in typed_sets.items():
-        baretype = biotype.split(":")[-1]
-        write_compendium(
-            metadata_yamls,
-            sets,
-            f"{baretype}.txt",
-            biotype,
-            {},
-            extra_prefixes=extra_prefixes_by_class.get(biotype, []),
-            icrdf_filename=icrdf_filename,
-        )
+    write_typed_compendia(
+        metadata_yamls,
+        typed_sets,
+        icrdf_filename,
+        extra_prefixes_for=lambda biotype: extra_prefixes_by_class.get(biotype, []),
+    )
 
 
 def classify_disease_clique(equivalent_ids, types):

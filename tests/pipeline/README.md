@@ -53,12 +53,15 @@ exists it is reused — `write_umls_ids()` is not called again. This means:
   GO (2 compendia via UberGraph). Adding a new vocabulary requires only adding its fixtures
   to `conftest.py` and one entry in `VOCABULARY_REGISTRY` — this file never changes.
 
-- **`test_mesh.py`** (`pipeline`) — MeSH-specific targeted test
+- **`test_mesh.py`** (`pipeline`) — MeSH-specific targeted tests
   ([issue #675](https://github.com/NCATSTranslator/Babel/issues/675)). Downloads
-  `babel_downloads/MESH/mesh.nt` automatically if absent. One test: chemicals must exclude
-  D05 protein subtrees (D05.500/D05.875), D08 protein subtrees (D08.811/D08.622/D08.244),
-  and D12.776 — but must include D08.211 Coenzymes (NAD, Coenzyme A) and D05.374/D05.750/D05.937
-  (Micelles, Polymers, Smart Materials), which are all classified as CHEMICAL_ENTITY.
+  `babel_downloads/MESH/mesh.nt` and the MeSH XML automatically if absent, and builds `MESH/labels`
+  and `MESH/registry.tsv` (the `mesh_registry` fixture, as rule `get_mesh_registry` does). Two
+  tests: chemicals must exclude D05 protein subtrees (D05.500/D05.875), D08 protein subtrees
+  (D08.811/D08.622/D08.244), and D12.776 — but must include D08.211 Coenzymes (NAD, Coenzyme A) and
+  D05.374/D05.750/D05.937 (Micelles, Polymers, Smart Materials), which are all classified as
+  CHEMICAL_ENTITY; and every MeSH record with an NCBI Taxon registry number must be in the taxon
+  `ids/MESH` and no other ([issue #1240](https://github.com/NCATSTranslator/Babel/issues/1240)).
 
 - **`test_umls.py`** (`pipeline`) — UMLS-specific targeted tests. Requires `UMLS_API_KEY` for the
   initial download (or cached files), and `mesh.nt`, because the five MeSH-owning pipelines'
@@ -179,7 +182,11 @@ vocabularies straightforward. Each vocabulary needs:
    check (like `ubergraph_connection` for NCIT/GO).
 
 2. A **processing fixture** in `conftest.py` that calls all `write_X_ids()` functions for
-   that vocabulary and returns a `{compendium_name: output_path}` dict.
+   that vocabulary and returns a `{compendium_name: output_path}` dict. Call the functions the
+   Snakemake rules call, through `_maybe_run(..., inputs=[<download>])`, rather than repeating
+   their logic: the EC fixture once built `ECgraph` itself and broke silently when its constructor
+   changed. `run_ec_entry_points()` is the pattern, with a unit test in
+   `tests/datahandlers/test_ec.py` that checks its calls against the real signatures.
 
 3. **One line** in `VOCABULARY_REGISTRY`: `"MYVOCAB": "my_vocab_pipeline_outputs"`.
 

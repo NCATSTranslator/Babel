@@ -32,9 +32,12 @@ MeSH placement is the tie-breaker. `rule umls_mesh_ownership` (`src/snakefiles/u
 reads the `ids/MESH` of every pipeline in `config.yaml`'s `umls_mesh_owning_pipelines` (anatomy,
 chemicals, disease, protein, taxon), and gene's and process's `ids/UMLS`, and writes
 `intermediate/umls/mesh_ownership.tsv`: each CUI that has an *owner*, with the owner and the
-descriptor that decided it (`umls.compute_mesh_owners()`). The five MeSH-owning pipelines read that
-one file twice. `umls.apply_mesh_ownership()` runs inside `write_umls_ids()` after the
-semantic-type blocklist, and the compendium build filters its concords:
+descriptor that decided it (`umls.compute_mesh_owners()`). It also has a row for each MeSH record
+with an NCBI Taxon registry number, owned by taxon and keyed by the MeSH ID itself, so that the
+concord filter below keeps those records out of every other compendium
+([`MeSH/Ingestion.md`](../MeSH/Ingestion.md#a-record-with-an-ncbi-taxon-registry-number-is-taxons)).
+The five MeSH-owning pipelines read that one file twice. `umls.apply_mesh_ownership()` runs inside
+`write_umls_ids()` after the semantic-type blocklist, and the compendium build filters its concords:
 
 1. A CUI is **owned** by a pipeline when that pipeline's `ids/MESH` is the only one that claims any
    of the CUI's descriptors, the pipeline does not refuse the CUI (disease's `badumls`), and
@@ -161,9 +164,10 @@ local UMLS download. The replay itself takes about a minute. Read `VERSION.txt` 
   into Anatomy and Protein, OMIM through Gene and Disease) are the member-level residue in
   `reports/duckdb/duplicate_curies.tsv`.
 - The 18 MeSH `SCR_Chemical` virus records (e.g.
-  [`MESH:C000719044`](https://meshb.nlm.nih.gov/record/ui?ui=C000719044) "H3N1 virus") now take
-  their T005 CUIs into chemicals, because that is where MeSH's own record class puts them. If that
-  reads as wrong in the clique diff, the fix is in `taxon.write_mesh_ids()`, not here.
+  [`MESH:C000719044`](https://meshb.nlm.nih.gov/record/ui?ui=C000719044) "H3N1 virus") follow
+  MeSH's record class into chemicals, except the 8 that NLM gives an NCBI Taxon registry number:
+  `taxon.write_mesh_ids()` claims those, so ownership gives their T005 CUIs to taxon
+  ([#1240](https://github.com/NCATSTranslator/Babel/issues/1240)). H3N1 virus is one of the 8.
 
 ## The control
 

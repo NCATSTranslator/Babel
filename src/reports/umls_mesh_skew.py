@@ -10,53 +10,57 @@ version skew visible instead of leaving it to be discovered one missing chemical
 import json
 from collections import Counter, defaultdict
 
+from src.datahandlers.umls import check_mrconso_line
 from src.prefixes import MESH
-
-MESH_IRI_PREFIX = "<http://id.nlm.nih.gov/mesh/"
-RDFS_LABEL = "<http://www.w3.org/2000/01/rdf-schema#label>"
 
 # The first letter of the "(MeSH Category)" headings UMLS adds to its MSH source (U000002 "Anatomy (MeSH
 # Category)"). They are not MeSH records, so they are missing from every MeSH dump whatever its year.
 MESH_CATEGORY_RECORD_TYPE = "U"
 
 
-def read_labeled_mesh_ids(mesh_nt_path) -> set[str]:
-    """Return the bare MeSH IDs (e.g. D012711) that have an rdfs:label in a MeSH N-Triples dump.
+def read_labeled_mesh_ids(mesh_labels_path) -> set[str]:
+    """Return the bare MeSH IDs (e.g. D012711) in a MeSH labels file (babel_downloads/MESH/labels).
 
-    Every MeSH descriptor, SCR and qualifier has a label, so this is the set of records the dump knows
-    about. Parsed line by line rather than through pyoxigraph: we only need one predicate, and this
-    avoids holding the ~2 GB store in memory.
+    Every MeSH descriptor, SCR and qualifier has an rdfs:label, so this is the set of records the dump knows
+    about. Reading the labels file that rule get_mesh_labels already wrote (Mesh.pull_mesh_labels()), rather
+    than parsing the ~2 GB mesh.nt again, keeps one definition of "the records in the dump": the same file
+    pull_mesh_registry() filters registry numbers with.
     """
-    ids = set()
-    with open(mesh_nt_path, encoding="utf-8") as inf:
-        for line in inf:
-            # N-Triples allows tabs or spaces between terms; NLM has used both.
-            parts = line.split(maxsplit=2)
-            if len(parts) < 3 or parts[1] != RDFS_LABEL or not parts[0].startswith(MESH_IRI_PREFIX):
-                continue
-            ids.add(parts[0][len(MESH_IRI_PREFIX) : -1])
-    return ids
+    prefix = f"{MESH}:"
+    with open(mesh_labels_path, encoding="utf-8") as inf:
+        return {curie.removeprefix(prefix) for curie in (line.split("\t", 1)[0] for line in inf) if curie}
 
 
 def read_umls_mesh_codes(mrconso_path) -> dict[str, set[str]]:
-    """Return {MSH CODE: set of CUIs} for every MSH row in MRCONSO.RRF."""
+    """Return {MSH CODE: set of CUIs} for the MSH rows in MRCONSO.RRF that the build uses.
+
+    Rows that umls.check_mrconso_line() rejects (non-English or SUPPRESS=O/E) are skipped, as they are
+    everywhere else in Babel: an obsolete atom for a descriptor MeSH has deleted is missing from every MeSH
+    dump whatever the versions, so counting it would shift the skew check's limit by a constant.
+    UMLS 2026AA has no such MSH rows (its MSH rows are all SUPPRESS=N or Y), but nothing stops a later release.
+    """
     code_to_cuis = defaultdict(set)
     with open(mrconso_path, encoding="utf-8") as inf:
         for line in inf:
             x = line.split("|")
             # Column 12 (SAB) is the source, column 14 (CODE) is the source's own identifier.
-            if x[11] == "MSH":
+            if x[11] == "MSH" and check_mrconso_line(line):
                 code_to_cuis[x[13]].add(x[0])
     return code_to_cuis
 
 
-def generate_umls_mesh_skew_report(mrconso_path, mesh_nt_path, umls_version, mesh_year, outfile, sample_size=50):
-    """Write a JSON report of UMLS MSH codes that are absent from the MeSH dump.
+def generate_umls_mesh_skew_report(mrconso_path, mesh_labels_path, umls_version, mesh_year, outfile, sample_size=50):
+    """Write a JSON report of UMLS MSH codes that are absent from the MeSH dump whose labels are mesh_labels_path.
 
-    The report is informational: version skew is expected to some degree (UMLS and MeSH release on
-    different schedules), so a large count is a prompt to check mesh_year, not a build failure.
+    mesh_year should come from the dump's download record (mesh.read_mesh_rdf_year()), not config.yaml: the
+    report, the check's error and the release notes name it, and a mesh.nt kept from another year would
+    otherwise be reported as the configured one.
+
+    Writing the report never fails. check_umls_mesh_skew() reads it and fails the build if the count
+    is over config.yaml's umls_mesh_skew_max_missing_codes. The check is a separate rule so that the
+    report survives when the check fails.
     """
-    mesh_ids = read_labeled_mesh_ids(mesh_nt_path)
+    mesh_ids = read_labeled_mesh_ids(mesh_labels_path)
     code_to_cuis = read_umls_mesh_codes(mrconso_path)
 
     missing = sorted(code for code in code_to_cuis if code not in mesh_ids)

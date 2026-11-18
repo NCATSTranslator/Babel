@@ -1,0 +1,57 @@
+file	rows	rejected	reasons
+https://stars.renci.org/var/babel/2025dec11/intermediate/anatomy/concords/CL	0	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/anatomy/concords/GO	305	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/anatomy/concords/UBERON	38910	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/anatomy/concords/UMLS	119313	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/anatomy/concords/WIKIDATA	596	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/CHEBI	15638	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/DrugCentral	35361	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/GTOPDB	11177	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/PUBCHEM_CAS	4220873	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/PUBCHEM_MESH	77747	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/RXNORM	5212	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/UMLS	273432	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/UNICHEM/UNICHEM_CHEBI	179760	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/UNICHEM/UNICHEM_CHEMBL.COMPOUND	2473434	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/UNICHEM/UNICHEM_DRUGBANK	12315	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/UNICHEM/UNICHEM_DrugCentral	4092	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/UNICHEM/UNICHEM_GTOPDB	8635	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/UNICHEM/UNICHEM_HMDB	217733	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/UNICHEM/UNICHEM_KEGG.COMPOUND	14123	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/UNICHEM/UNICHEM_PUBCHEM.COMPOUND	116164164	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/UNICHEM/UNICHEM_UNII	87514	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/mesh_cas	48440	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/mesh_unii	18077	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/chemicals/concords/wikipedia_mesh_chebi	6208	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/disease/concords/DOID	38566	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/disease/concords/EFO	28559	3	whitespace around a column: 3
+#   first 'whitespace around a column' at line 4825: 'EFO:0011048\toboInOwl:hasDbXref\t MedDRA:10059516\n'
+https://stars.renci.org/var/babel/2025dec11/intermediate/disease/concords/HP	17962	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/disease/concords/MONDO	107021	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/disease/concords/MONDO_close	1480	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/disease/concords/Manual	88	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/disease/concords/UMLS	92443	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/drugchemical/concords/PUBCHEM_RXNORM	4246	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/drugchemical/concords/RXNORM	310002	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/drugchemical/concords/UMLS	56686	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/gene/concords/NCBIGene	517519	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/gene/concords/NCBIGeneENSEMBL	13467445	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/gene/concords/UMLS	44066	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/gene/concords/UMLS_NCBIGene	23036	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/gene/concords/medgen	17579	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/geneprotein/concords/UniProtNCBI	17768360	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/process/concords/GO	26512	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/process/concords/RHEA	7858	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/process/concords/UMLS	53274	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/protein/concords/NCIT_UMLS	15478	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/protein/concords/NCIT_UniProtKB	6277	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/protein/concords/PR	205386	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/protein/concords/UMLS	107917	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/protein/concords/UMLS_UniProtKB	23036	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/protein/concords/UniProtKB	19404574	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/publications/concords/PMID_DOI	47810805	475	whitespace around a column: 457, 4 columns: 18
+#   first 'whitespace around a column' at line 1352467: 'PMID:2353318\teq\tdoi:10.1002/tera.1420410608 \n'
+#   first '4 columns' at line 5245692: 'PMID:9127676\teq\tdoi:10.1076/apab.104.7.814.13110\t\n'
+https://stars.renci.org/var/babel/2025dec11/intermediate/taxon/concords/NCBI_MESH	70106	0	
+https://stars.renci.org/var/babel/2025dec11/intermediate/taxon/concords/UMLS	69247	0	
+# 52 files, 224328587 rows, 478 rejected

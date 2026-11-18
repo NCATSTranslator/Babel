@@ -10,7 +10,7 @@ def pull_ec():
 
 
 class ECgraph:
-    """Load the mesh rdf file for querying"""
+    """Load the EC (ExPASy ENZYME) RDF file, enzyme.rdf, for querying."""
 
     def __init__(self, ifname):
         """There is a problem with enzyme.rdf.  As pulled from expasy, it includes this:
