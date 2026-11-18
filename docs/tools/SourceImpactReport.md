@@ -95,6 +95,7 @@ An entry needs **more than just `compute_fn`**:
 | `compendium_prefixes` | The prefixes whose `labels` files are loaded to enrich clique samples. |
 | `clique_classifier` | A `classify_*_clique` callable returning a clique's Biolink type. |
 | `biolink_types` | The types whose `id_prefixes` order decides the preferred CURIE. |
+| `config_key` | The prefix of the pipeline's `config.yaml` `*_ids` / `*_concords` lists. The replay reads the files in those lists' order, as the compendium rule does, since `glom()` keeps the first CURIE of a unique prefix it sees. |
 
 Omit `clique_classifier` / `biolink_types` and every clique renders with a blank `biolink_type`,
 while `preferred_curie()` silently falls back to the lexicographically-smallest CURIE — a `DOID`
