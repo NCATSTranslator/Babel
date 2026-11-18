@@ -1,11 +1,9 @@
 # Leaving `OntologyClass` out of synonym records' types
 
 `synonym_record_types()` (`src/synonyms/record_types.py`) decides the Biolink types every synonym
-record lists. It leaves out `OntologyClass` when that is only an ancestor of the clique's type (PR
-
-## 1179; the wider question for every output is
-
-[#1178](https://github.com/NCATSTranslator/Babel/issues/1178)). Before that, every synonym record
+record lists. Since PR #1179, it leaves out `OntologyClass` when that is only an ancestor of the
+clique's type; the wider question for every output is
+[#1178](https://github.com/NCATSTranslator/Babel/issues/1178). Before #1179, every synonym record
 listed the clique type's full ancestor chain, which for most classes includes `OntologyClass`.
 
 [`scripts/count_synonym_type_changes.py`](scripts/count_synonym_type_changes.py) measures the change
@@ -14,7 +12,7 @@ without a rebuild. A published record's `types` is its clique's ancestor list, s
 a record depends on its types, and a conflated record's types are the union of its cliques', so the
 count covers the conflated files too. It streams each file and reads only the `types` field.
 
-### Against 2026jul22
+## Against 2026jul22
 
 Run over the 17 files in 2026jul22's `synonyms/` directory, which is what Name Resolver loads. The
 per-type files that the two conflated files replace (Gene, Protein, SmallMolecule and so on) aren't
