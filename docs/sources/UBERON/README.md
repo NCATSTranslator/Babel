@@ -17,5 +17,5 @@ to the `UBERON` anatomy concord:
 
 - [`umls-joins/README.md`](./umls-joins/README.md) — how UBERON terms are joined to UMLS concepts
   through their SNOMED CT and FMA xrefs, what that does to the anatomy compendia, why SNOMED's
-  structure and entire concepts are not treated as equivalent, and the UBERON terms with several
-  SNOMED xrefs that still need review.
+  structure and entire concepts are not treated as equivalent, and how SNOMED xrefs that join more
+  than one UMLS concept are reviewed.
