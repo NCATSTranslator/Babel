@@ -1,4 +1,4 @@
-# CLAUDE.md — docs/sources/DRUGBANK/
+# AGENTS.md — docs/sources/DRUGBANK/
 
 Agent notes for ingesting DrugBank. The data handler is `src/datahandlers/drugbank.py`; DrugBank
 CURIEs are typed in the chemical pipeline (`src/createcompendia/chemicals.py`). Task narratives live

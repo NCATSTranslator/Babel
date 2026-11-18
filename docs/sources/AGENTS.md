@@ -1,9 +1,9 @@
-# CLAUDE.md — docs/sources/
+# AGENTS.md — docs/sources/
 
-Cross-cutting conventions for working with source/cross-reference data, for Claude Code. Per-source
-narrative docs (what a source is, how it's ingested) live in `docs/sources/<PREFIX>/` — see
-[`README.md`](README.md) for the index; add there, not here, when you learn something non-obvious
-about one specific source.
+Cross-cutting conventions for working with source/cross-reference data, for coding agents.
+Per-source narrative docs (what a source is, how it's ingested) live in `docs/sources/<PREFIX>/` —
+see [`README.md`](README.md) for the index; add there, not here, when you learn something
+non-obvious about one specific source.
 
 ## Investigating a source: commit the check, not the conclusion
 
@@ -149,6 +149,12 @@ per-concord key to disambiguate — and with no key there is no two-place regist
 It is wired through the `concord_pair_filter` hook that `glom_from_files()` already exposes, so it
 needed no new plumbing.
 
+Chemicals copies that shape: `input_data/chemical_badxrefs.txt` (`chemicals.CHEMICAL_BAD_XREFS`),
+applied to every untyped-stage concord in `build_untyped_compendia()`, either direction. Its pairs
+come from `babel-inchikey-audit` (`docs/tools/InchikeyAudit.md`): each attaches a structure-less
+record to the clique of a structure it is not. To audit a build that applied the file, pass the
+build's own copy, `intermediate/chemicals/partials/applied_badxrefs.txt`, as `--badxrefs`.
+
 ## Where an identifier ends up is a claim about it — check that claim
 
 Every compendium file is an assertion about the *kind* of thing each clique is. So the file an
@@ -223,7 +229,7 @@ Biolink prefix filter would drop, then the largest cliques, then CURIE order for
 blind `rows[:N]` over a CURIE-sorted file keeps an arbitrary identifier-range prefix and can hide
 exactly the problems the artifact exists to surface. `write_new_cliques_csv` in
 `src/reports/source_impact_details.py` is the worked example; see
-[`src/tools/source_impact_report/CLAUDE.md`](../../src/tools/source_impact_report/CLAUDE.md).
+[`src/tools/source_impact_report/AGENTS.md`](../../src/tools/source_impact_report/AGENTS.md).
 
 ### Aggregate when rows are not the unit of interest
 

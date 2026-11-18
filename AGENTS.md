@@ -1,25 +1,23 @@
 # AGENTS.md
 
 This file provides guidance to coding agents — Claude Code, Codex, Cursor, and others — when
-working with code in this repository. It is the canonical, agent-agnostic instruction file; the
-root `CLAUDE.md` is a one-line `@AGENTS.md` import so Claude Code picks it up automatically.
+working with code in this repository. It is the canonical, agent-agnostic instruction file.
 
 ## Directory-scoped instructions
 
-Some directories carry their own `CLAUDE.md` with conventions specific to that area. Claude Code
-loads the nearest one automatically when you edit files there; **other agents should read the
-`CLAUDE.md` nearest the files they are editing.** They live in:
+Some directories have their own `AGENTS.md` for that area: read the one nearest the files you are
+working on, which most coding agents do by default. They live in the directories below;
+[`docs/AgentInstructions.md`](docs/AgentInstructions.md) covers adding one, and why there are no
+`CLAUDE.md` files.
 
 - `tests/` — how to write a test once you know where it goes.
 - `src/datahandlers/` — code-level conventions for the data-source handlers.
-- `src/tools/` (plus `src/tools/clique_diff/`, `src/tools/slurm/`,
+- `src/tools/` (plus `src/tools/clique_diff/`, `src/tools/overused_xrefs/`, `src/tools/slurm/`,
   `src/tools/source_impact_report/`) — the "thin CLI frontend" convention and per-tool notes.
 - `docs/sources/` — cross-cutting xref / source-data conventions.
 - `docs/sources/DRUGBANK/` — DrugBank ingest gotchas (CC-0 vocabulary only, the UNII typing bridge).
-
-(Agents that merge nested `AGENTS.md` up the tree won't see these `CLAUDE.md` files — only this
-root file. If per-directory cross-agent context ever matters, pair each with an `AGENTS.md` holding
-the content and a one-line `@AGENTS.md` `CLAUDE.md` shim; not worth it today.)
+- `input_data/manual_concords/` — how each manual concord file is read, and what a row really
+  merges. This one is a pointer to the directory's `README.md`, since curators read the guide too.
 
 ## Project Overview
 
@@ -56,12 +54,6 @@ assume a local download is current.
 
 ## Key Commands
 
-### Setup
-
-```bash
-uv sync
-```
-
 ### Running the Pipeline
 
 ```bash
@@ -73,13 +65,10 @@ uv run snakemake --cores 1 chemical
 ### Testing
 
 ```bash
-uv run pytest                           # All tests
-uv run pytest --cov=src                 # With coverage report
-uv run pytest tests/test_node_factory.py  # Single test file
 uv run pytest -m unit -q               # Unit tests only (CI default)
 uv run pytest --network                # Include network tests
 uv run pytest --all                    # Run every test
-uv run pytest -n auto                  # Parallel (all CPUs)
+uv run pytest -n auto --no-cov         # Parallel; coverage off under xdist (tests/README.md)
 ```
 
 Tests use four marks (`unit`/`network`/`slow`/`pipeline`); network and pipeline tests are skipped
@@ -89,28 +78,24 @@ Memory-hungry tests also carry a parametrized `min_memory_gb(n)` guard (register
 `pyproject.toml`, enforced in `tests/conftest.py`) that auto-skips them on machines with less than
 `n` GiB of RAM — an in-memory RDF store can need 8-10x a dump's on-disk size. Size a new rule's
 `mem=` or a test's `min_memory_gb` empirically with `src/tools/memory/estimate_rdf_load_memory.py`
-(see `docs/tools/Memory.md`).
+(see `docs/tools/Memory.md`). The two are rounded in opposite directions: a rule's estimate is
+converted from GiB to decimal GB and rounded *up* to a bucket, with a `# mem estimate:` comment for
+the next sizing pass to replace, while a guard stays at the estimate itself.
 
 - `docs/Testing.md` — testing strategy: cadence per environment (per-PR, nightly, weekly,
   pre-release), GitHub Actions vs HPC self-hosted runner trade-offs, and other strategies.
 
 ### Linting (all four checked in CI on PRs)
 
-```bash
-uv run ruff check                        # Python lint
-uv run ruff check --fix                  # Python auto-fix
-uv run ruff format --check               # Python format check
-uv run ruff format                       # Python auto-format
-uv run snakefmt --check --compact-diff . # Snakemake format check
-uv run snakefmt .                        # Snakemake auto-fix
-uv run rumdl check .                     # Markdown lint
-uv run rumdl fmt .                       # Markdown auto-fix
-```
+Ruff (`check` and `format`), `snakefmt`, and `rumdl`. The local check and auto-fix command for
+each is in [`CONTRIBUTING.md`](CONTRIBUTING.md) ("Contributing source code"); `uv run rumdl fmt .`
+rewraps Markdown to fit.
 
 ### Configuration
 
 - Line length is 120 for both Python (ruff) and Snakemake (snakefmt). Markdown (`rumdl`,
-  rule `MD013`) wraps at 100 instead, though tables are exempt.
+  rule `MD013`) wraps at 100 instead, though tables are exempt. All three are set in
+  `pyproject.toml`.
 - Main config: `config.yaml` (directory paths, version strings, prefix lists per semantic type).
 - `UMLS_API_KEY` environment variable required for UMLS/RxNorm downloads.
 - `compendium_directories` in `config.yaml` maps Python compendium names to the Snakemake
@@ -141,12 +126,7 @@ comment in `src/node.py`) and `get_ancestors()` return the mapped form. `src/pre
 canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model drives which CURIE
 `NodeFactory` picks as preferred. To resolve a CURIE to a URL use
 `src/util.py:get_biolink_prefix_map()` (`converter.expand("EMAPA:0")`), not a hand-rolled map.
-
-**Node output schema** — see `NodeFactory.create_node()`'s docstring in `src/node.py`:
-
-```python
-{"identifiers": [{"identifier": CURIE, "label": str}, ...], "type": "biolink:Foo", "id": {"identifier": CURIE, "label": str}}
-```
+The node output schema is in `NodeFactory.create_node()`'s docstring in `src/node.py`.
 
 ### Subsystem gotchas
 
@@ -159,6 +139,14 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
   `build_sets()` sorts its output so this is reproducible; never reintroduce unordered iteration
   there. Before restricting a prefix, count what it makes compete — see step 3 of
   `docs/AddingNewSources.md`.
+- **Reading a concord** — use `read_concords()` from `src/model/intermediates.py`, never
+  `line.strip().split("\t")`: it raises on any row that isn't three non-empty, unpadded columns, so
+  a handler whose source data carries stray whitespace must strip it *before writing* the row.
+  `uv run babel-check-concords <build>/intermediate/` checks a whole build against the rule
+  ([`docs/tools/CheckConcords.md`](docs/tools/CheckConcords.md)). To feed `glom()`, use
+  `read_concord_pairs()`, which yields `(subject, object)` 2-tuples. Never build a list of 2-sets or
+  2-lists, which costs 3–5× the memory, and stream the generator straight into `glom()` unless a
+  filter needs the clique state or the whole file (see its docstring).
 - **Malformed CURIEs fail the build** — `write_compendium()` collects every CURIE it writes that
   `curie_format_problem()` (`src/util.py`) rejects (whitespace, `|`, control characters, missing
   prefix or local ID), then raises once, listing them all. Fix the source that produced them; never
@@ -184,11 +172,18 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
   `input_data/known_duplicate_clique_leaders.tsv` (each row names its issue). Never add a row
   without an issue; fix the source instead (`docs/Architecture.md`, "Build controls").
 - **Logging** — always use `get_logger(__name__)` from `src.util`, never `logging.getLogger`
-  directly (see its docstring for why and the deferred-import exception).
+  directly (see its docstring for why and the deferred-import exception). **`get_logger()` defaults
+  to `INFO`, so `logger.debug(...)` output is suppressed — but an f-string argument is still
+  evaluated in full before the call.** In a per-record loop that makes a suppressed debug line a
+  real cost, and `logger.debug(f"...{json.dumps(big_structure)}...")` is unbounded: it serialises
+  the whole structure and throws it away. Pass lazy `%s` arguments
+  (`logger.debug("dropped %s", curie)`), and for anything expensive to build, guard with
+  `logger.isEnabledFor(logging.DEBUG)` or delete it. Worth grepping for when a per-record loop is
+  slower than it looks.
 - **Leftover UMLS** — `src/createcompendia/leftover_umls.py` (rule `leftover_umls`) runs last and
   writes every unclaimed valid MRCONSO concept as a single-identifier clique into
   `compendia/umls.txt` so its label survives downstream. Manual Biolink-type override tables and
-  their drift test: [`docs/sources/CLAUDE.md`](docs/sources/CLAUDE.md) and
+  their drift test: [`docs/sources/AGENTS.md`](docs/sources/AGENTS.md) and
   `docs/sources/UMLS/Leftover.md`.
 - **DuckDB export** — `src/snakefiles/duckdb.snakefile` builds a queryable DuckDB database
   (`Node`/`Clique`/`Edge`/`Conflation`) alongside the JSONL compendia (schema in
@@ -223,10 +218,10 @@ canonical prefix-constant registry; its `id_prefixes` order in the Biolink Model
 
 Source-specific notes live under `docs/sources/<PREFIX>/` — see
 [`docs/sources/README.md`](docs/sources/README.md) for the index and
-[`docs/sources/CLAUDE.md`](docs/sources/CLAUDE.md) for cross-cutting xref/data-quality conventions
+[`docs/sources/AGENTS.md`](docs/sources/AGENTS.md) for cross-cutting xref/data-quality conventions
 (read it before adding or filtering a source's cross-references). Developer tools each live in
-`src/tools/<tool>/` with their own `CLAUDE.md`, documented in `docs/tools/`; see
-`src/tools/CLAUDE.md` for the "thin CLI frontend" convention.
+`src/tools/<tool>/` with their own `AGENTS.md`, documented in `docs/tools/`; see
+`src/tools/AGENTS.md` for the "thin CLI frontend" convention.
 
 ## Running Babel
 
@@ -287,11 +282,11 @@ its class (`write_compendium()` silently drops such CURIEs — check, don't assu
 clique to a class that doesn't register their prefix — see `docs/AddingNewSources.md`).
 **Generate and commit the report** (`uv run source-impact-report --source <SOURCE>`) and, for
 changes that *restructure* existing cliques, follow up with `babel-clique-diff` — see
-`src/tools/source_impact_report/CLAUDE.md` and `src/tools/clique_diff/CLAUDE.md` for the tool
+`src/tools/source_impact_report/AGENTS.md` and `src/tools/clique_diff/AGENTS.md` for the tool
 internals.
 
 Use `retries: 3` (not `retries: 10`) on network-backed Snakemake rules (UberGraph, FTP, HTTP) — see
-`docs/AddingNewSources.md` step 4 for why. `src/tools/slurm/CLAUDE.md` covers analyzing a
+`docs/AddingNewSources.md` step 4 for why. `src/tools/slurm/AGENTS.md` covers analyzing a
 (possibly partial) run on the cluster.
 
 ## Conventions
@@ -299,8 +294,8 @@ Use `retries: 3` (not `retries: 10`) on network-backed Snakemake rules (UberGrap
 Point-of-use conventions live where they apply: process-level guidance for adding/enhancing an
 ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandler code rules
 (attribute files, IRI parsing, pyoxigraph, file-path args) are in
-[`src/datahandlers/CLAUDE.md`](src/datahandlers/CLAUDE.md); test conventions are in
-[`tests/CLAUDE.md`](tests/CLAUDE.md). The rules below apply repo-wide.
+[`src/datahandlers/AGENTS.md`](src/datahandlers/AGENTS.md); test conventions are in
+[`tests/AGENTS.md`](tests/AGENTS.md). The rules below apply repo-wide.
 
 - **Configuration over constants** — `config.yaml` records the *big decisions that shape a build*:
   which ontologies a pipeline includes, which version of a download is used, which prefixes are
@@ -340,14 +335,23 @@ ingest is in `docs/Development.md` ("Enhancing a data source ingest"); datahandl
   constant there first.
 
 - **Shared helpers before hand-rolled ones** — before writing a small utility (a path, string,
-  logging, or config helper), check [`src/util.py`](src/util.py) for one that already exists:
-  `get_logger()`, `get_config()`, `ensure_parent_dir()`, `get_biolink_prefix_map()`, the `Text`
-  CURIE helpers. `src/babel_utils.py` holds the pipeline-level ones (`glom()`,
-  `write_compendium()`, `pull_via_wget()`, `make_local_name()`). When you *do* hand-roll one,
-  grep for the pattern first: if the same few lines already appear in several modules, promote it
-  to `src/util.py` and route the existing call sites through it rather than adding an
-  n+1th copy. (`ensure_parent_dir()` came from ten hand-rolled copies of
-  `os.makedirs(os.path.dirname(f), exist_ok=True)`, nine of which shared the same latent bug.)
+  logging, or config helper), check [`src/utils/`](src/utils/) and [`src/util.py`](src/util.py)
+  for one that already exists: `get_logger()`, `get_config()`, `ensure_parent_dir()`,
+  `get_biolink_prefix_map()`, the `Text` CURIE helpers. `src/babel_utils.py` holds the
+  pipeline-level ones (`glom()`, `write_compendium()`, `pull_via_wget()`, `make_local_name()`).
+  When you *do* hand-roll one, grep for the pattern first: if the same few lines already appear in
+  several modules, promote it to a module in the `src/utils/` package and route the existing call
+  sites through it rather than adding an n+1th copy. (`ensure_parent_dir()` came from ten
+  hand-rolled copies of `os.makedirs(os.path.dirname(f), exist_ok=True)`, nine of which shared the
+  same latent bug.) New helpers go in `src/utils/`, not `src/util.py` or `src/babel_utils.py`:
+  those are to move into `src/utils/` and `src/model/` (#1223). Likewise, a pipeline rule or
+  developer tool opens its DuckDB connection with `with connect_duckdb(...) as db:` from
+  `src/utils/duckdb_setup.py`, not `duckdb.connect()`: it applies `config.yaml`'s
+  `duckdb_config`, gives the connection its own spill directory and deletes it on close, and logs
+  the settings and memory headroom that a DuckDB out-of-memory failure otherwise leaves no record
+  of. Plain `duckdb.connect()` is right for an in-memory test fixture, a read-only look at a
+  finished database, or a small analysis script under `docs/` — none of which needs build
+  settings or a spill directory.
 
 - **Error handling** — raise exceptions (`RuntimeError`, `ValueError`) rather than
   `print(...) + exit(1)`, which bypasses Python's exception machinery and breaks unit testing.
@@ -403,7 +407,7 @@ the build: `DRUGBANK:DB09341` "Dextrose, unspecified form" reaches the D-glucose
 Normalization — never from the concords that fed it.
 
 To measure a change to a compendium-building function, replaying it over a finished build's
-`intermediate/` is seconds where a rebuild is hours — see `docs/sources/CLAUDE.md` ("Replaying a
+`intermediate/` is seconds where a rebuild is hours — see `docs/sources/AGENTS.md` ("Replaying a
 pipeline function beats rebuilding to measure a change") for how, and for what it cannot show.
 
 When a bug fix is easy to cover with a test, suggest adding one as part of the fix.

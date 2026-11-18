@@ -7,7 +7,7 @@ whether the label match lands in the clique those curated xrefs already chose. I
 what the emitted rows join, and the NCIt label overlap of the GARD:27000-28999 block.
 
 It imports build_gard_label_concord() rather than re-implementing the match, so the measurement
-cannot drift from the production rule (docs/sources/CLAUDE.md, "commit the check, not the
+cannot drift from the production rule (docs/sources/AGENTS.md, "commit the check, not the
 conclusion"). The precision pass reuses the same helpers the concord does.
 
 Run from the repo root against a finished disease build:

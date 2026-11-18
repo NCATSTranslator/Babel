@@ -5,9 +5,10 @@ import os
 import re
 
 import src.datahandlers.umls as umls
-from src.babel_utils import glom, read_identifier_file, write_compendium
+from src.babel_utils import glom, read_identifier_file, unique_prefixes_from_config, write_compendium
 from src.categories import GENE
 from src.metadata.provenance import write_concord_metadata
+from src.model.intermediates import read_concord_pairs
 from src.prefixes import DICTYBASE, ENSEMBL, FLYBASE, HGNC, MGI, NCBIGENE, OMIM, RGD, SGD, UMLS, WORMBASE, ZFIN
 from src.util import LoggingUtil
 
@@ -336,21 +337,17 @@ def build_gene_compendia(concordances, metadata_yamls, identifiers, icrdf_filena
     :identifiers: a list of files from which to read identifiers and optional categories"""
     dicts = {}
     types = {}
-    uniques = [NCBIGENE, HGNC, ENSEMBL, OMIM]
+    unique_prefixes = unique_prefixes_from_config("gene_unique_prefixes")
     for ifile in identifiers:
         print("loading", ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=uniques)
+        glom(dicts, new_identifiers, unique_prefixes=unique_prefixes)
         types.update(new_types)
     for infile in concordances:
         print(infile)
         print("loading", infile)
-        pairs = []
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                pairs.append(set([x[0], x[2]]))
-        glom(dicts, pairs, unique_prefixes=uniques)
+        # Streamed straight into glom(), without holding the file's pairs: see read_concord_pairs().
+        glom(dicts, read_concord_pairs(infile), unique_prefixes=unique_prefixes)
     gene_sets = set([frozenset(x) for x in dicts.values()])
     baretype = GENE.split(":")[-1]
     write_compendium(metadata_yamls, gene_sets, f"{baretype}.txt", GENE, {}, icrdf_filename=icrdf_filename)

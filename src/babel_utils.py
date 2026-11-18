@@ -9,6 +9,7 @@ import time
 import traceback
 import urllib
 from collections import ChainMap, Counter, defaultdict
+from collections.abc import Iterable, Mapping
 from datetime import datetime, timedelta
 from enum import Enum
 from ftplib import FTP
@@ -696,6 +697,7 @@ def write_compendium(
     extra_prefixes=None,
     icrdf_filename=None,
     properties_jsonl_gz_files=None,
+    ic_factory=None,
 ):
     """
     :param metadata_yaml: The YAML files containing the metadata for this compendium.
@@ -724,8 +726,22 @@ def write_compendium(
         properly specified as a prerequisite in a Snakemake file, so that write_compendium() is not run until after
         icRDF.tsv has been generated.
     :param properties_files: (OPTIONAL) A list of SQLite3 files containing properties to be added to the output.
+    :param ic_factory: (OPTIONAL) An ``InformationContentFactory`` already loaded from `icrdf_filename`, for a
+        caller that writes several compendia in one rule: loading icRDF.tsv (~3.9 million rows) is otherwise
+        repeated on every call. `icrdf_filename` is still required, and must name the file the factory was
+        loaded from, so the file is still declared as the rule's input. The factory is passed explicitly
+        rather than cached in ``src/node.py`` because a module-level cache keeps the several-hundred-MB
+        dict for the life of the process, which in a local Snakemake run is every rule that follows.
     :return:
     """
+    # Check the arguments before loading anything: the factories below fetch the Biolink Model over the network.
+    if not icrdf_filename:
+        raise RuntimeError("No icrdf_filename parameter provided to write_compendium() -- this is required!")
+    if ic_factory is not None and os.path.realpath(ic_factory.ic_file) != os.path.realpath(icrdf_filename):
+        raise ValueError(
+            f"write_compendium() was given an ic_factory loaded from {ic_factory.ic_file}, "
+            f"but icrdf_filename is {icrdf_filename}."
+        )
     if extra_prefixes is None:
         extra_prefixes = []
     if labels is None:
@@ -749,11 +765,9 @@ def write_compendium(
     # Load the per-type label length demotion config. Types not listed here are never demoted.
     demote_labels_longer_than = config.get("demote_labels_longer_than", {})
 
-    # Create an InformationContentFactory based on the specified icRDF.tsv file. Default to the one in the download
-    # directory.
-    if not icrdf_filename:
-        raise RuntimeError("No icrdf_filename parameter provided to write_compendium() -- this is required!")
-    ic_factory = InformationContentFactory(icrdf_filename)
+    # Create an InformationContentFactory from icRDF.tsv, unless the caller passed one in (checked above).
+    if ic_factory is None:
+        ic_factory = InformationContentFactory(icrdf_filename)
     logger.info(f"InformationContentFactory ready: {ic_factory} with {get_memory_usage_summary()}")
 
     description_factory = DescriptionFactory(make_local_name(""))
@@ -1085,13 +1099,104 @@ def raise_on_malformed_curies(malformed_curies, ofname):
     )
 
 
-def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={}):
+def validate_unique_prefixes(unique_prefixes) -> frozenset[str]:
+    """Return ``unique_prefixes`` as a frozenset of prefixes, raising ValueError if it isn't a collection of them.
+
+    glom() restricts each prefix in unique_prefixes to one identifier per clique, and nothing checks
+    that a restricted prefix exists, so every malformed value it used to accept failed silently, by
+    restricting the wrong prefixes or none:
+
+    * a string is a collection of its characters, so ``"UBERON"`` restricted U, B, E, R, O and N
+      and not UBERON -- a config.yaml entry such as ``anatomy_unique_prefixes: UBERON`` written
+      without brackets would do this;
+    * ``bytes`` iterate as ints, which match no prefix;
+    * a mapping iterates as its keys, which is never what was meant;
+    * a one-shot iterator (a generator, ``map()``, ``filter()``) was used up by the first group,
+      leaving every later group in the call unrestricted;
+    * ``None`` (a config.yaml key with no value) only failed once there was a group to check, and
+      then with an unhelpful TypeError;
+    * an element that isn't a non-empty string without a colon, such as ``"UBERON:"``, matches no
+      identifier's prefix.
+
+    Each of these raises ValueError here instead. Returning a frozenset, rather than handing back
+    what was passed, is what makes the iterator case safe, and lets glom() test membership directly.
+    An empty collection is valid: cell_line, genefamily and macromolecular_complex load only ids
+    files, where nothing merges, and the geneprotein conflation restricts nothing by design, so they
+    pass ``()``. For a value read from config.yaml, where an empty list is more likely a lost entry
+    than a decision, use unique_prefixes_from_config().
+    """
+    if isinstance(unique_prefixes, str):
+        raise ValueError(
+            f"unique_prefixes must be a collection of prefixes, not the string {unique_prefixes!r}; "
+            f"did you mean [{unique_prefixes!r}]?"
+        )
+    if isinstance(unique_prefixes, (bytes, bytearray, Mapping)) or not isinstance(unique_prefixes, Iterable):
+        raise ValueError(
+            f"unique_prefixes must be a collection of prefix strings, not {type(unique_prefixes).__name__} "
+            f"{unique_prefixes!r}"
+        )
+    prefixes = list(unique_prefixes)
+    bad = [p for p in prefixes if not isinstance(p, str) or not p or ":" in p]
+    if bad:
+        raise ValueError(
+            f"unique_prefixes must hold non-empty prefix strings without a colon; got {bad!r} in {prefixes!r}"
+        )
+    return frozenset(prefixes)
+
+
+def unique_prefixes_from_config(config_key: str) -> frozenset[str]:
+    """Read a pipeline's unique prefixes from config.yaml, checking each is a prefix Babel knows.
+
+    Every pipeline whose glom() can merge anything keeps its restriction in config.yaml as
+    ``<pipeline>_unique_prefixes`` (#882), so that one file shows where merges are refused and why.
+    Call this where the glom() runs, not at import time, so a module can be imported without a
+    complete config.
+
+    On top of validate_unique_prefixes(), this rejects any prefix that isn't one of the constants in
+    src/prefixes.py, since a misspelt prefix (``UBRON``) restricts nothing without a word. It also
+    rejects an empty list, which is more likely an entry emptied by a bad merge than a decision, and
+    would turn off every restriction without a word. A pipeline that restricts nothing by design
+    (the geneprotein conflation) passes ``unique_prefixes=()`` in code and has no entry.
+    """
+    from src import prefixes as prefix_constants
+
+    value = get_config().get(config_key)
+    try:
+        unique_prefixes = validate_unique_prefixes(value)
+    except ValueError as err:
+        raise ValueError(f"config.yaml: {config_key}: {err}") from err
+    if not unique_prefixes:
+        raise ValueError(f"config.yaml: {config_key} is empty; list at least one prefix to keep unique per clique")
+    known = {v for k, v in vars(prefix_constants).items() if k.isupper() and isinstance(v, str)}
+    unknown = sorted(unique_prefixes - known)
+    if unknown:
+        raise ValueError(f"config.yaml: {config_key} names prefixes not defined in src/prefixes.py: {unknown}")
+    return unique_prefixes
+
+
+def glom(conc_set, newgroups, *, unique_prefixes, pref="HP", close=None):
     """We want to construct sets containing equivalent identifiers.
     conc_set is a dictionary where the values are these equivalent identifier sets and
     the keys are all of the elements in the set.   For each element in a set, there is a key
     in the dictionary that points to the set.
     newgroups is an iterable that of new equivalence groups (expressed as sets,tuples,or lists)
-    with which we want to update conc_set."""
+    with which we want to update conc_set.
+    unique_prefixes is any non-string collection of prefix strings (list, tuple, set, frozenset, or
+    even a one-shot iterator); anything else raises ValueError -- see validate_unique_prefixes().
+    It is a required keyword with no default: it used to default to (INCHIKEY,), which two
+    conflation builders inherited without anyone choosing it (#882). A pipeline's restriction
+    belongs in config.yaml as ``<pipeline>_unique_prefixes``, read with unique_prefixes_from_config();
+    pass ``()`` in code only where it cannot matter (a builder that loads ids files alone) or where
+    restricting nothing is the design (the geneprotein conflation).
+    close, if given, maps a prefix to {identifier: identifiers it must not share a clique with}.
+
+    tests/test_glom.py pins this function's whole behavior, quirks included, and restates it as a
+    short reference implementation (``reference_glom``) checked against this one over randomized
+    inputs. Read it before changing glom(), and test any replacement against it."""
+    # Validated before the first group, so a bad call fails even when it has nothing to merge.
+    unique_prefixes = validate_unique_prefixes(unique_prefixes)
+    if close is None:
+        close = {}
     n = 0
     bad = 0
     shit_prefixes = set(["KEGG", "PUBCHEM"])
@@ -1129,7 +1234,7 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
             print("input_set", group)
             print("esets")
             for eset in existing_sets:
-                print(" ", eset, group.intersection(eset))
+                print(" ", eset, eset.intersection(group))
         for check_element in newset:
             prefix = check_element.split(":")[0]
             if prefix in shit_prefixes:
@@ -1142,24 +1247,19 @@ def glom(conc_set, newgroups, unique_prefixes=["INCHIKEY"], pref="HP", close={})
         setok = True
         if test_id in group:
             print("setok?", setok)
-        for up in unique_prefixes:
-            if test_id in group:
-                print("up?", up)
-            idents = [e if isinstance(e, str) else e.identifier for e in newset]
-            if len(set([e for e in idents if (e.split(":")[0] == up)])) > 1:
-                bad += 1
-                setok = False
-                wrote = set()
-                for s in existing_sets:
-                    fs = frozenset(s)
-                    wrote.add(fs)
-                for gel in group:
-                    if Text.get_prefix_or_none(gel) == pref:
-                        # killer = gel
-                        pass
-                # for preset in wrote:
-                #    print(f'{killer}\t{set(group).intersection(preset)}\t{preset}\n')
-                # print('------------')
+        # One pass over the merged set: remember the first identifier seen for each restricted
+        # prefix, and stop at the first different identifier with the same prefix. (This used to
+        # rebuild the identifier list and re-split every CURIE once per restricted prefix, and keep
+        # checking after the group had already failed.)
+        if unique_prefixes:
+            first_with_prefix = {}
+            for element in newset:
+                ident = element if isinstance(element, str) else element.identifier
+                prefix = ident.split(":")[0]
+                if prefix in unique_prefixes and first_with_prefix.setdefault(prefix, ident) != ident:
+                    bad += 1
+                    setok = False
+                    break
         NPC = sum(1 for s in newset if s.startswith("PUBCHEM.COMPOUND:"))
         if ("PUBCHEM.COMPOUND:3100" in newset) and (NPC > 3):
             if debugit:
@@ -1357,17 +1457,21 @@ def remove_overused_xrefs(pairlist: list[tuple], bothways: bool = False, target_
     for k, v in pairlist:
         xref_counts_v[v] += 1
         xref_counts_k[k] += 1
+    # Append each surviving pair itself, not a rebuilt (k, v): the caller usually still holds the
+    # unfiltered list while this runs, so a copy would double the tuples alive at peak on exactly the
+    # large concords this filter exists for. It also keeps whatever container the caller used.
     improved_pairs = []
-    for k, v in pairlist:
+    for pair in pairlist:
+        k, v = pair
         if eligible is not None and (Text.get_prefix_or_none(v) or "") not in eligible:
-            improved_pairs.append((k, v))
+            improved_pairs.append(pair)
             continue
         if xref_counts_v[v] < 2:
             if bothways:
                 if xref_counts_k[k] < 2:
-                    improved_pairs.append((k, v))
+                    improved_pairs.append(pair)
             else:
-                improved_pairs.append((k, v))
+                improved_pairs.append(pair)
     return improved_pairs
 
 

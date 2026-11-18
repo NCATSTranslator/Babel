@@ -6,6 +6,7 @@ import os
 import re
 import sys
 from collections import namedtuple
+from functools import cache
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from time import gmtime
@@ -89,6 +90,22 @@ def open_maybe_gzipped(filename, mode="rt"):
     bytes as UTF-8 and fail somewhere far from the cause.
     """
     return gzip.open(filename, mode) if filename.endswith(".gz") else open(filename, mode)
+
+
+def sql_str(value) -> str:
+    """Render ``value`` as a single-quoted SQL string literal (DuckDB, SQLite), doubling any embedded quote.
+
+    For values a query has to inline because they cannot be bound as parameters -- file paths in ``read_parquet()``,
+    ``read_csv()`` and ``COPY ... TO``, or settings such as ``temp_directory``. Without the doubling, a build path
+    like ``/home/me/gaurav's-builds`` ends the literal early and the query fails to parse.
+    """
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def sql_list(values) -> str:
+    """Render values as a SQL list literal of :func:`sql_str` strings, e.g. ``['a','b']``, for ``read_parquet()``
+    over several files or ``list_contains()``."""
+    return "[" + ",".join(sql_str(v) for v in values) + "]"
 
 
 # loggers = {}
@@ -415,6 +432,34 @@ class DataStructure:
 config_yaml = None
 
 
+class _UniqueKeySafeLoader(yaml.SafeLoader):
+    """A SafeLoader that refuses a mapping with a repeated key. PyYAML otherwise keeps the last value and drops
+    the others without a word, which in a hand-edited or badly merged input file loses an entry silently."""
+
+    def construct_mapping(self, node, deep=False):
+        seen = set()
+        for key_node, _ in node.value:
+            key = self.construct_object(key_node, deep=deep)
+            try:
+                repeated = key in seen
+            except TypeError:
+                continue  # Unhashable; SafeLoader's own construct_mapping raises a clearer error for it.
+            if repeated:
+                raise yaml.constructor.ConstructorError(
+                    "while constructing a mapping", node.start_mark, f"found duplicate key {key!r}", key_node.start_mark
+                )
+            seen.add(key)
+        return super().construct_mapping(node, deep=deep)
+
+
+def safe_load_yaml_unique_keys(stream):
+    """
+    ``yaml.safe_load()``, but raising ``yaml.constructor.ConstructorError`` on a mapping that repeats a key,
+    rather than keeping the last value. Use it for input files people edit or merge by hand.
+    """
+    return yaml.load(stream, Loader=_UniqueKeySafeLoader)
+
+
 def get_config():
     """
     Retrieve the configuration data from the 'config.yaml' file.
@@ -446,9 +491,23 @@ def _biolink_ref(biolink_version: str) -> str:
     return f"v{biolink_version}"
 
 
+@cache
 def get_biolink_model_toolkit(biolink_version):
     """
     Return a BMT Toolkit object for the specified Biolink Model version.
+
+    Cached per version: constructing a Toolkit fetches ``biolink-model.yaml`` over the network and
+    parses it through linkml, and callers construct one far more often than the handful of distinct
+    versions in play would suggest. ``write_compendium`` builds a ``NodeFactory`` -- and therefore a
+    Toolkit -- on every call, and the chemical build calls it once per entry in
+    ``config.yaml: chemical_outputs``, so an uncached Toolkit meant eight fetches and eight full
+    model parses in a single rule. A build uses exactly one ``biolink_version``, so in practice this
+    cache holds one entry.
+
+    Every caller in the process gets the same Toolkit, so treat it as read-only: anything set on it is
+    seen by every later caller. BMT offers no read-only view to enforce that; nothing in Babel sets
+    state on it today. Unlike icRDF (see ``write_compendium``'s ``ic_factory``), keeping it for the
+    life of the process is cheap next to a network fetch per caller.
 
     The model YAML is fetched from GitHub on first use. Pass the version string from
     config.yaml (``biolink_version`` key, e.g. ``"4.3.6"`` or a Git commit SHA).

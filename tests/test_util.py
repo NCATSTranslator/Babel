@@ -1,8 +1,18 @@
 """Tests for src/util.py helpers."""
 
+import duckdb
 import pytest
+import yaml
 
-from src.util import Text, _biolink_ref, curie_format_problem, ensure_parent_dir
+from src.util import (
+    Text,
+    _biolink_ref,
+    curie_format_problem,
+    ensure_parent_dir,
+    safe_load_yaml_unique_keys,
+    sql_list,
+    sql_str,
+)
 
 
 @pytest.mark.unit
@@ -65,6 +75,19 @@ class TestGetBiolinkModelToolkitNetwork:
         assert toolkit is not None
         element = toolkit.get_element("chemical entity")
         assert element is not None
+
+    def test_toolkit_is_cached_per_version(self):
+        """Two calls for the same version must return the same Toolkit, and different versions must not share one.
+
+        Constructing a Toolkit fetches biolink-model.yaml over the network and parses it through
+        linkml. write_compendium() builds a NodeFactory -- and so a Toolkit -- on every call, and
+        the chemical build calls write_compendium once per entry in config.yaml: chemical_outputs,
+        so without the cache that is eight fetches and eight parses in one rule.
+        """
+        from src.util import get_biolink_model_toolkit
+
+        assert get_biolink_model_toolkit("4.4.2") is get_biolink_model_toolkit("4.4.2")
+        assert get_biolink_model_toolkit("4.4.2") is not get_biolink_model_toolkit("4.4.1")
 
 
 @pytest.mark.unit
@@ -156,3 +179,40 @@ def test_curie_format_problem_rejects_malformed_curies(curie):
 def test_curie_format_problem_accepts_valid_punctuation(curie):
     """Should accept real CURIEs whose local IDs contain punctuation, including further colons."""
     assert curie_format_problem(curie) is None
+
+
+# YAML LOADING
+
+
+@pytest.mark.unit
+def test_safe_load_yaml_unique_keys_reads_what_safe_load_reads():
+    """A document without repeated keys, nested mappings included, should load exactly as yaml.safe_load()."""
+    text = "a: [1, 2]\nb:\n  c: x\n  d: y\n"
+    assert safe_load_yaml_unique_keys(text) == yaml.safe_load(text)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "text",
+    [
+        pytest.param("a: 1\nb: 2\na: 3\n", id="top-level"),
+        pytest.param("outer:\n  a: 1\n  a: 2\n", id="nested"),
+    ],
+)
+def test_safe_load_yaml_unique_keys_refuses_a_repeated_key(text):
+    """A mapping that repeats a key should raise, naming the key, where yaml.safe_load() would silently keep the
+    last value."""
+    with pytest.raises(yaml.constructor.ConstructorError, match="duplicate key 'a'"):
+        safe_load_yaml_unique_keys(text)
+
+
+# SQL LITERALS
+
+
+@pytest.mark.unit
+def test_sql_str_and_sql_list_survive_an_embedded_quote():
+    """A value holding a single quote (a path like gaurav's-builds) should round-trip through DuckDB unchanged."""
+    value = "/home/me/gaurav's-builds/duckdb"
+    con = duckdb.connect()
+    assert con.sql(f"SELECT {sql_str(value)}").fetchone()[0] == value
+    assert con.sql(f"SELECT {sql_list([value, 'plain'])}").fetchone()[0] == [value, "plain"]

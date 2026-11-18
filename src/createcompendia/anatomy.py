@@ -5,13 +5,19 @@ import requests
 import src.datahandlers.mesh as mesh
 import src.datahandlers.obo as obo
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, read_badxrefs, remove_overused_xrefs, write_compendium
+from src.babel_utils import (
+    get_prefixes,
+    read_badxrefs,
+    remove_overused_xrefs,
+    unique_prefixes_from_config,
+)
 from src.categories import ANATOMICAL_ENTITY, CELL, CELLULAR_COMPONENT, GROSS_ANATOMICAL_STRUCTURE
 from src.metadata.provenance import write_concord_metadata
 from src.model.cliques import glom_from_files
+from src.model.compendia import write_typed_compendia
 from src.prefixes import CL, EMAPA, FMA, GO, MESH, NCIT, SNOMEDCT, UBERON, UMLS, WIKIDATA
 from src.ubergraph import HIERARCHY_PART_OF, UberGraph, build_sets
-from src.util import Text, get_config, get_logger, get_repo_root
+from src.util import Text, get_logger, get_repo_root
 
 logger = get_logger(__name__)
 
@@ -20,7 +26,7 @@ logger = get_logger(__name__)
 # diseasephenotype's DEFAULT_BAD_XREFS this is a single file applied to every anatomy concord
 # rather than a per-concord mapping: a pair names both of its CURIEs, so there is nothing for a
 # per-concord key to disambiguate, and one file avoids the two-place-registration footgun described
-# in docs/sources/CLAUDE.md. See the file itself for why each pair is listed.
+# in docs/sources/AGENTS.md. See the file itself for why each pair is listed.
 #
 # Two consumers resolve this file: the real build, where the anatomy_compendia rule declares it as
 # an input (so an edit re-triggers the rule) and passes the path in, and the source-impact report,
@@ -379,7 +385,7 @@ def _make_anatomy_concord_pair_filter(bad_pairs, owned_elsewhere=frozenset()):
     """
 
     def _filter(parts, infile, dicts):
-        if parts[0] in owned_elsewhere or parts[2] in owned_elsewhere:
+        if umls.names_cui_owned_elsewhere(parts[0], parts[2], owned_elsewhere):
             return False
         if frozenset((parts[0], parts[2])) in bad_pairs:
             logger.debug("Skipping bad xref pair %s from %s (see %s)", parts, infile, ANATOMY_BAD_XREFS)
@@ -444,7 +450,7 @@ def compute_cliques_for_impact_report(
     return glom_from_files(
         concordances,
         identifiers,
-        unique_prefixes=get_config()["anatomy_unique_prefixes"],
+        unique_prefixes=unique_prefixes_from_config("anatomy_unique_prefixes"),
         concord_pair_filter=_make_anatomy_concord_pair_filter(
             bad_pairs, umls.read_cuis_owned_elsewhere(mesh_ownership, "anatomy")
         ),
@@ -462,9 +468,7 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, b
         concordances, identifiers, badxrefs=badxrefs, mesh_ownership=mesh_ownership
     )
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
-    for biotype, sets in typed_sets.items():
-        baretype = biotype.split(":")[-1]
-        write_compendium(metadata_yamls, sets, f"{baretype}.txt", biotype, {}, icrdf_filename=icrdf_filename)
+    write_typed_compendia(metadata_yamls, typed_sets, icrdf_filename)
 
 
 def classify_anatomy_clique(equivalent_ids, types):

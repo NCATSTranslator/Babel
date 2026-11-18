@@ -1,30 +1,48 @@
 """Unit tests for building the Publication compendium from a pubmed2db NDJSON export.
 
 The fixture in ``pubmed2db/`` is a three-shard miniature of a real export, laid out the way Babel's
-download leaves one (shards plus ``validation_report.json``). Every record in shards 0 and 1 is copied
-verbatim from ``pubmed_metadata_0.ndjson.gz`` of the 2026sep26 export
-(https://stars.renci.org/var/babel_outputs/pubmed2db/2026sep26/):
+download leaves one (shards, ``metadata.json`` and ``validation_report.json``). Every record is copied
+verbatim from the 2026nov08 export (https://stars.renci.org/var/babel_outputs/pubmed2db/2026nov08/), the
+first in pubmed2db's data model 1.0; the shard each came from is in brackets, as the ``N`` of
+``pubmed_metadata_N.ndjson.gz``. To re-derive one, ``gzcat`` that shard and grep for ``^{"id":"PMID:<n>",``.
 
-- ``PMID:5202740`` — the first record of the export; a PubMed Central id, spelled ``PMCID:``, which
-  Babel respells ``PMC:``.
-- ``PMID:30803192`` — a DOI and a PMCID; a title containing a newline.
-- ``PMID:17072568`` — a DOI and an empty ``article_title``.
-- ``PMID:7754983`` (shard 0) and ``PMID:7754980`` (shard 1) — share ``doi:10.1093/ajcn/61.6.1324S``; the
+Fixture shard 0:
+
+- ``PMID:5202740`` [5] — a PubMed Central id, ``PMC:PMC1712714``, and no DOI.
+- ``PMID:7754983`` [1] — shares ``doi:10.1093/ajcn/61.6.1324S`` with ``PMID:7754980`` in fixture shard 1; the
   higher PMID is deliberately in the shard parsed first.
-- ``PMID:26225670`` — a title containing a backslash.
-- ``PMID:9245294`` — a title with trailing whitespace.
-- ``PMID:25303692`` — no DOI or PMCID; a title containing ``\x85``, a C1 control character (cp1252's
-  ellipsis, mis-decoded).
-- ``PMID:5202677`` — no DOI or PMCID.
-- ``PMID:17124311`` — a malformed DOI, ``doi:10.1126/science. 1134405``, which write_compendium() would reject.
-- ``PMID:26214188`` (shard 0) and ``PMID:26146547`` (shard 1) — the same DOI in different cases,
-  ``doi:10.1039/c4bm00222a`` and ``doi:10.1039/C4BM00222A``; again the higher PMID is in the shard parsed first.
+- ``PMID:17072568`` [4] — a DOI and an empty ``article_title``.
+- ``PMID:26225670`` [3] — a title containing a backslash.
+- ``PMID:30803192`` [0] — a DOI and a PubMed Central id; a title containing a newline.
+- ``PMID:9245294`` [7] — a title with trailing whitespace.
+- ``PMID:26214188`` [3] — ``doi:10.1039/c4bm00222a``, which ``PMID:26146547`` in fixture shard 1 spells
+  ``doi:10.1039/C4BM00222A``; again the higher PMID is in the shard parsed first.
 
-Shard 2 holds one **synthetic** record, ``PMID:999999113``: ``PMID:113`` copied verbatim from
-``pubmed_metadata_00000.ndjson.gz`` of the 2026aug5 export, which spelled its PubMed Central id
-``PMC:PMC1666769`` (https://github.com/NCATSTranslator/Babel/issues/1044), with only its PMID changed (in
-``id`` and ``identifiers[0]``). ``validation_report.json`` is cut down to the fields the code reads, in the
-2026sep26 report's structure.
+Fixture shard 1:
+
+- ``PMID:7754980`` [1] — the lower PMID of the shared DOI.
+- ``PMID:25303692`` [4] — no DOI or PubMed Central id; a title containing ``\x85``, a C1 control character
+  (cp1252's ellipsis, mis-decoded).
+- ``PMID:5202677`` [5] — no DOI or PubMed Central id.
+- ``PMID:17124311`` [5] — a malformed DOI, ``doi:10.1126/science. 1134405``, which write_compendium() would
+  reject and the repairs table (``input_data/pubmed_doi_repairs.yaml``) turns into
+  ``doi:10.1126/science.1134405``.
+- ``PMID:26146547`` [5] — the lower PMID of the DOI spelled in two cases.
+
+Fixture shard 2:
+
+- ``PMID:113`` [5] — a second record with only a PubMed Central id.
+- ``PMID:16041191`` [0] — a malformed DOI that is in no repairs table, because nothing made of it is a
+  registered DOI: ``doi:10.1097/01.mjt.00001= 32251.03275.3c``.
+- ``PMID:23752222`` [0] — two DOIs in one value, ``doi:10.1001/archdermatol.2012.151a
+  10.1001/archdermatol.2012.151b``, of which only the first is registered and so in the repairs table.
+
+The tests read the committed repairs table, so that they exercise the repairs a build makes; the three
+malformed DOIs above are real rows (or real absences) in it.
+
+``metadata.json`` and ``validation_report.json`` are cut down to the fields the code reads, in the structure
+of 2026nov08's; ``metadata.json``'s hashes are the real SHA-256s of the three fixture shards, so rebuilding
+a shard means updating them.
 """
 
 import gzip
@@ -43,10 +61,12 @@ from tests.conftest import assert_concordance_file_valid, assert_ids_file_valid
 pytestmark = pytest.mark.unit
 
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "pubmed2db")
-EXPORT_URL = "https://stars.renci.org/var/babel_outputs/pubmed2db/2026sep26/"
+EXPORT_URL = "https://stars.renci.org/var/babel_outputs/pubmed2db/2026nov08/"
 SHARED_DOI = "doi:10.1093/ajcn/61.6.1324S"
 SHARED_CASE_DOI = "doi:10.1039/C4BM00222A"  # PMID:26146547's spelling; PMID:26214188 has it lower-cased.
-RECORD_COUNT = 13
+RECORD_COUNT = 15
+# The data model the fixture's metadata.json says it follows, as config.yaml pins the real export's.
+FIXTURE_DATA_MODEL_VERSION = "1.0.0"
 
 
 def copy_fixture(tmp_path):
@@ -81,12 +101,14 @@ def parsed(tmp_path):
         "shared_ids_file": str(tmp_path / "concords" / "shared_identifiers.tsv"),
         "metadata_yaml": str(tmp_path / "concords" / "metadata.yaml"),
     }
-    publications.parse_pubmed2db_into_tsvs(FIXTURE_DIR, **out, url=EXPORT_URL, workers=2)
+    publications.parse_pubmed2db_into_tsvs(
+        FIXTURE_DIR, **out, url=EXPORT_URL, workers=2, data_model_version=FIXTURE_DATA_MODEL_VERSION
+    )
     return out
 
 
-def parse_into(tmp_path, export):
-    """Run parse_pubmed2db_into_tsvs() over ``export`` with throwaway outputs."""
+def parse_into(tmp_path, export, data_model_version=FIXTURE_DATA_MODEL_VERSION):
+    """Run parse_pubmed2db_into_tsvs() over ``export`` with throwaway outputs, pinned to ``data_model_version``."""
     publications.parse_pubmed2db_into_tsvs(
         str(export),
         str(tmp_path / "titles.tsv"),
@@ -96,6 +118,7 @@ def parse_into(tmp_path, export):
         str(tmp_path / "metadata.yaml"),
         EXPORT_URL,
         workers=1,
+        data_model_version=data_model_version,
     )
 
 
@@ -108,14 +131,14 @@ def test_ids_titles_and_concords(parsed):
     ids = assert_ids_file_valid(parsed["pmid_id_file"])
     assert [row[1] for row in ids] == [JOURNAL_ARTICLE] * RECORD_COUNT
     assert [row[0] for row in ids][:2] == ["PMID:5202740", "PMID:7754983"]
-    assert ids[-1][0] == "PMID:999999113"
+    assert ids[-1][0] == "PMID:23752222"
 
     concords = assert_concordance_file_valid(parsed["concord_file"])
     assert {relation for _, relation, _ in concords} == {"eq"}
-    # Both spellings of a PubMed Central id come out as PMC: (PUBMED2DB_PREFIX_RENAMES).
+    # PubMed Central ids are PMC:PMC123, as data model 1 exports them (see PUBMED2DB_DATA_MODEL_MAJOR).
     assert ["PMID:5202740", "eq", "PMC:PMC1712714"] in concords
     assert ["PMID:30803192", "eq", "doi:10.31557/APJCP.2019.20.2.345"] in concords
-    assert ["PMID:999999113", "eq", "PMC:PMC1666769"] in concords
+    assert ["PMID:113", "eq", "PMC:PMC1666769"] in concords
     assert not any(pmid == "PMID:5202677" for pmid, _, _ in concords)
 
     titles = read_titles(parsed["titles_file"])
@@ -177,19 +200,166 @@ def test_metadata_records_the_export_url_and_counts(parsed):
         metadata = yaml.safe_load(f)
     assert metadata["sources"][0]["url"] == EXPORT_URL
     assert metadata["counts"]["pmid_count"] == RECORD_COUNT
+    # Which export and data model the concords came from, read from the export's metadata.json.
+    assert "Export 2026nov08, pubmed2db data model 1.0.0" in metadata["description"]
     assert metadata["counts"]["shard_count"] == 3
     assert metadata["counts"]["shared_identifier_count"] == 2
+    assert metadata["counts"]["repaired_malformed_article_ids"] == 2
     assert metadata["counts"]["skipped_malformed_article_ids"] == 1
 
 
-def test_malformed_doi_is_skipped_but_its_pmid_kept(parsed):
-    """A DOI that write_compendium() would reject (here, with an embedded space) should be left out of the
-    concords, while its record still gets an id row and a title (#1112 tracks repairing such DOIs)."""
+def test_malformed_doi_in_the_repairs_table_is_repaired(parsed):
+    """A DOI that write_compendium() would reject (here, with an embedded space) should be written to the
+    concords as the registered DOI the repairs table gives for it (#1112), and never as exported."""
     concords = assert_concordance_file_valid(parsed["concord_file"])
-    assert not any(" " in other for _, _, other in concords)
-    assert not any(pmid == "PMID:17124311" for pmid, _, _ in concords)
-    assert "PMID:17124311" in [row[0] for row in assert_ids_file_valid(parsed["pmid_id_file"])]
+    assert not any(src.util.curie_format_problem(other) for _, _, other in concords)
+    # PMID:17124311 exports doi:10.1126/science. 1134405.
+    assert ["PMID:17124311", "eq", "doi:10.1126/science.1134405"] in concords
     assert read_titles(parsed["titles_file"])["PMID:17124311"] == "Neuroscience. The brain's dark energy."
+
+
+def test_value_holding_two_dois_keeps_only_the_registered_one(parsed):
+    """A value holding two DOIs should be repaired to the ones in the repairs table only: for PMID:23752222
+    doi.org knows 10.1001/archdermatol.2012.151a but not ...151b, so the second is not invented."""
+    concords = assert_concordance_file_valid(parsed["concord_file"])
+    assert [other for pmid, _, other in concords if pmid == "PMID:23752222"] == ["doi:10.1001/archdermatol.2012.151a"]
+
+
+def test_malformed_doi_with_no_repair_is_skipped_but_its_pmid_kept(parsed):
+    """A malformed DOI the repairs table doesn't list (PMID:16041191's, which has a quoted-printable line
+    break in it and no registered reading) should be left out of the concords, while its record still gets an
+    id row and a title."""
+    concords = assert_concordance_file_valid(parsed["concord_file"])
+    assert not any(pmid == "PMID:16041191" for pmid, _, _ in concords)
+    assert "PMID:16041191" in [row[0] for row in assert_ids_file_valid(parsed["pmid_id_file"])]
+    assert "PMID:16041191" in read_titles(parsed["titles_file"])
+
+
+def test_without_a_repairs_table_every_malformed_doi_is_skipped(tmp_path):
+    """With an empty repairs table, all three malformed DOIs in the fixture should be skipped and counted, and
+    none repaired -- the repairs come from the table and nowhere else."""
+    import yaml
+
+    empty = tmp_path / "no_repairs.yaml"
+    empty.write_text("# no repairs\n")
+    publications.parse_pubmed2db_into_tsvs(
+        FIXTURE_DIR,
+        str(tmp_path / "titles.tsv"),
+        str(tmp_path / "PMID"),
+        str(tmp_path / "PMID_DOI"),
+        str(tmp_path / "shared.tsv"),
+        str(tmp_path / "metadata.yaml"),
+        EXPORT_URL,
+        workers=1,
+        doi_repairs_file=str(empty),
+        data_model_version=FIXTURE_DATA_MODEL_VERSION,
+    )
+    concords = assert_concordance_file_valid(str(tmp_path / "PMID_DOI"))
+    assert not {"PMID:17124311", "PMID:16041191", "PMID:23752222"} & {pmid for pmid, _, _ in concords}
+    with open(tmp_path / "metadata.yaml") as f:
+        counts = yaml.safe_load(f)["counts"]
+    assert counts["repaired_malformed_article_ids"] == 0
+    assert counts["skipped_malformed_article_ids"] == 3
+
+
+# THE DOI REPAIRS TABLE
+
+
+def test_committed_repairs_table_loads_and_only_repairs_malformed_dois_to_well_formed_ones():
+    """input_data/pubmed_doi_repairs.yaml should load -- load_doi_repairs() raises on an entry that isn't a
+    malformed CURIE and well-formed doi: ones -- and no repair should be a no-op or leave whitespace behind."""
+    repairs = publications.load_doi_repairs(publications.PUBMED_DOI_REPAIRS)
+    assert len(repairs) > 200
+    for malformed, repaired in repairs.items():
+        assert src.util.curie_format_problem(malformed)
+        assert repaired and malformed not in repaired
+        assert all(r.startswith("doi:10.") and not src.util.curie_format_problem(r) for r in repaired)
+
+
+def test_repairs_table_collects_every_repair_of_a_value(tmp_path):
+    """A malformed value with two repairs should load as both, in file order, skipping comments and blank
+    lines."""
+    table = tmp_path / "repairs.yaml"
+    table.write_text('# comment\n\n"doi:10.1/a 10.1/b":\n- doi:10.1/a\n- doi:10.1/b\n')
+    assert publications.load_doi_repairs(str(table)) == {"doi:10.1/a 10.1/b": ("doi:10.1/a", "doi:10.1/b")}
+
+
+def test_repairs_table_holds_characters_a_tsv_could_not(tmp_path):
+    """A malformed DOI holding a DEL (PMID:28260475's `doi:10.6002/ect.mesot2016.p112` + DEL, in 2026nov08), a
+    tab or a newline should be written by YAML as a visible escape and load back as the exact characters."""
+    import yaml
+
+    repairs = {
+        "doi:10.6002/ect.mesot2016.p112\x7f": ["doi:10.6002/ect.mesot2016.p112"],
+        "doi:10.1/a\tb": ["doi:10.1/ab"],
+        "doi:10.1/a\nb": ["doi:10.1/ab"],
+    }
+    table = tmp_path / "repairs.yaml"
+    table.write_text(yaml.safe_dump(repairs, allow_unicode=True, width=float("inf")))
+    text = table.read_text()
+    assert "\\x7F" in text and "\x7f" not in text and "\t" not in text
+    assert publications.load_doi_repairs(str(table)) == {key: tuple(value) for key, value in repairs.items()}
+
+
+def test_comments_only_repairs_table_repairs_nothing(tmp_path):
+    """A table with only its header comments -- what's left of input_data/pubmed_doi_repairs.yaml once every
+    entry is deleted -- loads as None, and should be read as no repairs rather than refused as not a mapping."""
+    table = tmp_path / "repairs.yaml"
+    table.write_text("# From pubmed2db export 2026nov08.\n")
+    assert publications.load_doi_repairs(str(table)) == {}
+
+
+@pytest.mark.parametrize(
+    ("text", "message"),
+    [
+        pytest.param("- doi:10.1/a b\n", "is not a mapping", id="not-a-mapping"),
+        # Falsy, but not the None an empty (comments-only) table loads as, so not an empty table either.
+        pytest.param("[]\n", "is not a mapping", id="empty-list"),
+        pytest.param("false\n", "is not a mapping", id="false"),
+        pytest.param("0\n", "is not a mapping", id="zero"),
+        pytest.param('"doi:10.1/a b": doi:10.1/ab\n', "non-empty list", id="repair-not-a-list"),
+        pytest.param('"doi:10.1/a b": []\n', "non-empty list", id="no-repairs"),
+        pytest.param(
+            '"doi:10.1/a b": [doi:10.1/ab]\n"doi:10.1/a b": [doi:10.1/a]\n', "duplicate key", id="repeated-key"
+        ),
+        pytest.param("doi:10.1/ab: [doi:10.1/ab]\n", "is not malformed", id="key-is-well-formed"),
+        pytest.param('"PMC:PMC 1": [doi:10.1/a]\n', "is not a doi: CURIE", id="key-is-not-a-doi"),
+        pytest.param('"doi:10.1/a b": ["doi:10.1/a b"]\n', "not a well-formed doi", id="repair-still-malformed"),
+        pytest.param('"doi:10.1/a b": [PMC:PMC1]\n', "not a well-formed doi", id="repair-is-not-a-doi"),
+    ],
+)
+def test_hand_edited_repairs_table_is_refused(tmp_path, text, message):
+    """An entry that could not do what it appears to -- the wrong shape, a key that is never looked up, a
+    repair that would itself fail the build -- should raise naming the file, not be skipped."""
+    table = tmp_path / "repairs.yaml"
+    table.write_text(text)
+    # (?s): a YAML error from the loader spans several lines.
+    with pytest.raises(ValueError, match=rf"(?s)repairs\.yaml.*{message}"):
+        publications.load_doi_repairs(str(table))
+
+
+def test_malformed_doi_carried_twice_is_repaired_or_skipped_once(tmp_path):
+    """A record carrying the same malformed DOI twice -- exactly, or in two cases -- should have it repaired
+    (or skipped) once, in the spelling that comes first, so neither count is inflated. No record of 2026nov08
+    does this, so the record is made up: it pins what the reader does, not a shape seen in the export."""
+    table = tmp_path / "repairs.yaml"
+    table.write_text('"doi:10.1/A B": [doi:10.1/AB]\n')
+    shard = tmp_path / "pubmed_metadata_0.ndjson.gz"
+    record = {
+        "id": "PMID:1",
+        "identifiers": ["PMID:1", "doi:10.1/A B", "doi:10.1/X Y", "doi:10.1/a b", "doi:10.1/x y", "doi:10.1/x y"],
+        "article_title": "",
+    }
+    with gzip.open(shard, "wt") as f:
+        f.write(json.dumps(record) + "\n")
+
+    repairs_made = []
+    [(_, _, others, malformed)] = publications._read_shard(
+        str(shard), publications.load_doi_repairs(str(table)), repairs_made
+    )
+    assert others == ["doi:10.1/AB"]
+    assert malformed == ["doi:10.1/X Y"]
+    assert repairs_made == [("PMID:1", "doi:10.1/A B", ("doi:10.1/AB",))]
 
 
 def test_record_without_identifiers_raises_naming_the_shard(tmp_path):
@@ -202,7 +372,7 @@ def test_record_without_identifiers_raises_naming_the_shard(tmp_path):
     record["identifiers"] = []
     with gzip.open(shard, "wt") as f:
         f.write(json.dumps(record) + "\n")
-    with pytest.raises(ValueError, match=r"pubmed_metadata_2\.ndjson\.gz: record PMID:999999113"):
+    with pytest.raises(ValueError, match=r"pubmed_metadata_2\.ndjson\.gz: record PMID:113"):
         parse_into(tmp_path, export)
 
 
@@ -310,15 +480,142 @@ def test_report_listing_an_unexpected_shard_name_raises(tmp_path, name):
         publications.expected_shard_counts(str(export))
 
 
+# EXPORT METADATA
+
+
+def edit_metadata(export, edit):
+    """Apply ``edit`` to an export's parsed metadata.json and write it back."""
+    edit_report(export / publications.EXPORT_METADATA, edit)
+
+
+def test_read_export_metadata_accepts_the_fixture():
+    """read_export_metadata() should return the fixture's metadata.json, which is in data model 1.0.0 and
+    lists the same shards and record total as the validation report."""
+    metadata = publications.read_export_metadata(FIXTURE_DIR)
+    assert metadata["data_model_version"] == "1.0.0"
+    assert [entry["name"] for entry in metadata["files"]] == list(publications.expected_shard_counts(FIXTURE_DIR))
+    assert metadata["records"] == RECORD_COUNT
+
+
+def test_newer_minor_data_model_is_accepted_once_pinned(tmp_path):
+    """A newer minor version of data model 1 only adds fields, so the code reads it without complaint -- but
+    only once config.yaml pins it: an export in any data model other than the pinned one is refused, so that
+    moving the pin to it is noticed."""
+    export = copy_fixture(tmp_path)
+    edit_metadata(export, lambda metadata: metadata.update(data_model_version="1.7.0"))
+    assert publications.read_export_metadata(str(export))["data_model_version"] == "1.7.0"
+    parse_into(tmp_path, export, data_model_version="1.7.0")
+    with pytest.raises(RuntimeError, match="follows pubmed2db data model 1.7.0, but config.yaml pins 1.0.0"):
+        parse_into(tmp_path, export, data_model_version="1.0.0")
+
+
+def test_pinned_data_model_is_one_the_code_reads():
+    """config.yaml's pubmed2db_data_model_version should have the major version the code reads, so the pin
+    can't be moved to another major version without the code changes that come with it."""
+    pinned = src.util.get_config()["pubmed2db_data_model_version"]
+    assert pinned.split(".")[0] == str(publications.PUBMED2DB_DATA_MODEL_MAJOR)
+
+
+@pytest.mark.parametrize("version", ["2.0.0", "0.9.0", "10.0.0", "", None])
+def test_other_major_data_model_is_refused(tmp_path, version):
+    """An export in another major version of the data model (or naming none) may have renamed or redefined
+    the fields Babel reads, so both reading its metadata and parsing it should raise."""
+    export = copy_fixture(tmp_path)
+
+    def set_version(metadata):
+        if version is None:
+            del metadata["data_model_version"]
+        else:
+            metadata["data_model_version"] = version
+
+    edit_metadata(export, set_version)
+    with pytest.raises(RuntimeError, match="reads major version 1"):
+        publications.read_export_metadata(str(export))
+    with pytest.raises(RuntimeError, match="reads major version 1"):
+        parse_into(tmp_path, export)
+
+
+def test_missing_export_metadata_raises_saying_what_to_do(tmp_path):
+    """A download directory with no metadata.json (a pre-1.0 export, or one preloaded from an older Babel
+    build) should raise a RuntimeError that says to re-run the download, not a bare FileNotFoundError."""
+    export = copy_fixture(tmp_path)
+    (export / publications.EXPORT_METADATA).unlink()
+    with pytest.raises(RuntimeError, match=r"metadata\.json is missing.*re-run download_pubmed2db"):
+        parse_into(tmp_path, export)
+
+
+@pytest.mark.parametrize(
+    "edit",
+    [
+        pytest.param(lambda metadata: metadata["files"].pop(), id="fewer-shards"),
+        pytest.param(lambda metadata: metadata.update(records=RECORD_COUNT + 1), id="another-record-total"),
+    ],
+)
+def test_metadata_disagreeing_with_the_validation_report_raises(tmp_path, edit):
+    """metadata.json and the validation report come from different pubmed2db steps, so if they list different
+    shards or record totals they describe different exports, and the export should be refused."""
+    export = copy_fixture(tmp_path)
+    edit_metadata(export, edit)
+    with pytest.raises(RuntimeError, match="describe different exports"):
+        publications.read_export_metadata(str(export))
+
+
+@pytest.mark.parametrize("records", ["15", None, True, 15.0])
+def test_metadata_with_a_record_total_that_is_not_an_integer_raises(tmp_path, records):
+    """A metadata.json whose records isn't an integer should raise the same clear error as a missing one,
+    rather than failing while formatting the comparison with the validation report."""
+    export = copy_fixture(tmp_path)
+    edit_metadata(export, lambda metadata: metadata.update(records=records))
+    with pytest.raises(RuntimeError, match="no usable files"):
+        publications.read_export_metadata(str(export))
+
+
+def test_metadata_without_file_hashes_raises(tmp_path):
+    """A metadata.json whose files lack a sha256 (a format change) should raise a clear error rather than a
+    KeyError."""
+    export = copy_fixture(tmp_path)
+    edit_metadata(export, lambda metadata: [entry.pop("sha256") for entry in metadata["files"]])
+    with pytest.raises(RuntimeError, match="no usable files"):
+        publications.read_export_metadata(str(export))
+
+
+def _recompress(shard):
+    """Rewrite a gzip file with the same records but different bytes (another timestamp in its header): an
+    intact shard with the right record count that is nonetheless not the published one."""
+    with gzip.open(shard, "rb") as f:
+        records = f.read()
+    with open(shard, "wb") as raw, gzip.GzipFile(fileobj=raw, mode="wb", mtime=1) as f:
+        f.write(records)
+
+
+def test_verify_shard_checksums_passes_the_fixture_and_names_every_bad_shard(tmp_path):
+    """verify_shard_checksums() should accept shards matching metadata.json, and raise naming both a shard
+    whose bytes differ -- though it is intact and has the right record count, so nothing else would catch
+    it -- and one that is missing."""
+    export = copy_fixture(tmp_path)
+    metadata = publications.read_export_metadata(str(export))
+    publications.verify_shard_checksums(str(export), metadata)
+
+    _recompress(export / "pubmed_metadata_1.ndjson.gz")
+    (export / "pubmed_metadata_2.ndjson.gz").unlink()
+    with pytest.raises(RuntimeError) as excinfo:
+        publications.verify_shard_checksums(str(export), metadata)
+    assert "pubmed_metadata_1.ndjson.gz has SHA-256" in str(excinfo.value)
+    assert "pubmed_metadata_2.ndjson.gz is missing" in str(excinfo.value)
+    assert "pubmed_metadata_0" not in str(excinfo.value)
+
+
 # DOWNLOADING
 
 
 @pytest.fixture
 def fake_export(tmp_path, monkeypatch):
-    """Lay the fixture out like a published export (shards, the report under manifests/, and pubmed2db's own
-    database as a decoy), and swap pull_via_wget() for a copy from it. Yields (remote_dir, calls)."""
+    """Lay the fixture out like a published export (shards and metadata.json, the report under manifests/,
+    and pubmed2db's own database as a decoy), and swap pull_via_wget() for a copy from it. Yields
+    (remote_dir, calls)."""
     remote = tmp_path / "remote"
     (remote / "manifests").mkdir(parents=True)
+    shutil.copy(os.path.join(FIXTURE_DIR, publications.EXPORT_METADATA), remote / publications.EXPORT_METADATA)
     for shard in publications.expected_shard_counts(FIXTURE_DIR):
         shutil.copy(os.path.join(FIXTURE_DIR, shard), remote / shard)
     shutil.copy(os.path.join(FIXTURE_DIR, publications.VALIDATION_REPORT), remote / "manifests" / "report.json")
@@ -344,16 +641,19 @@ def fake_export(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("report_path", ["manifests/report.json", "manifests/report.json.gz"])
 def test_download_fetches_the_report_then_exactly_the_shards_it_lists(fake_export, tmp_path, report_path):
-    """download_pubmed2db() should fetch the validation report (fresh, gunzipping it if needed), then each
-    shard the report lists (resumably) -- and nothing else in the export directory -- then touch the marker."""
+    """download_pubmed2db() should fetch metadata.json and the validation report (fresh, gunzipping the report
+    if needed), then each shard they list (resumably) -- and nothing else in the export directory -- then
+    touch the marker."""
     _, calls = fake_export
-    download_dir = tmp_path / "PubMed2DB" / "2026sep26"
+    download_dir = tmp_path / "PubMed2DB" / "2026nov08"
     done_file = download_dir / "downloaded"
 
-    publications.download_pubmed2db(EXPORT_URL, report_path, str(download_dir), str(done_file))
+    publications.download_pubmed2db(
+        EXPORT_URL, report_path, str(download_dir), str(done_file), data_model_version=FIXTURE_DATA_MODEL_VERSION
+    )
 
     shards = list(publications.expected_shard_counts(FIXTURE_DIR))
-    assert calls == [(report_path, False)] + [(shard, True) for shard in shards]
+    assert calls == [("metadata.json", False), (report_path, False)] + [(shard, True) for shard in shards]
     assert done_file.exists()
     assert publications.expected_shard_counts(str(download_dir)) == publications.expected_shard_counts(FIXTURE_DIR)
     assert not (download_dir / "pubmed.duckdb").exists()
@@ -362,10 +662,16 @@ def test_download_fetches_the_report_then_exactly_the_shards_it_lists(fake_expor
 def test_download_can_be_rerun_over_an_existing_download(fake_export, tmp_path):
     """Re-running download_pubmed2db() over a finished download (a retry, or a preloaded directory) should
     replace the report rather than fail on the old copy."""
-    download_dir = tmp_path / "PubMed2DB" / "2026sep26"
+    download_dir = tmp_path / "PubMed2DB" / "2026nov08"
     done_file = download_dir / "downloaded"
     for _ in range(2):
-        publications.download_pubmed2db(EXPORT_URL, "manifests/report.json.gz", str(download_dir), str(done_file))
+        publications.download_pubmed2db(
+            EXPORT_URL,
+            "manifests/report.json.gz",
+            str(download_dir),
+            str(done_file),
+            data_model_version=FIXTURE_DATA_MODEL_VERSION,
+        )
     assert publications.expected_shard_counts(str(download_dir)) == publications.expected_shard_counts(FIXTURE_DIR)
 
 
@@ -373,13 +679,73 @@ def test_download_of_a_failed_export_stops_before_the_shards(fake_export, tmp_pa
     """An export whose validation report says `fail` should not be downloaded, nor marked done."""
     remote, calls = fake_export
     edit_report(remote / "manifests" / "report.json", lambda report: report.update(status="fail"))
-    download_dir = tmp_path / "PubMed2DB" / "2026sep26"
+    download_dir = tmp_path / "PubMed2DB" / "2026nov08"
     with pytest.raises(RuntimeError, match="status 'fail'"):
         publications.download_pubmed2db(
-            EXPORT_URL, "manifests/report.json", str(download_dir), str(download_dir / "downloaded")
+            EXPORT_URL,
+            "manifests/report.json",
+            str(download_dir),
+            str(download_dir / "downloaded"),
+            data_model_version=FIXTURE_DATA_MODEL_VERSION,
         )
-    assert calls == [("manifests/report.json", False)]
+    assert calls == [("metadata.json", False), ("manifests/report.json", False)]
     assert not (download_dir / "downloaded").exists()
+
+
+def test_download_of_another_data_model_stops_at_the_metadata(fake_export, tmp_path):
+    """An export in a data model Babel doesn't read should be refused from its metadata.json alone, before the
+    report or any shard is fetched."""
+    remote, calls = fake_export
+    edit_metadata(remote, lambda metadata: metadata.update(data_model_version="2.0.0"))
+    download_dir = tmp_path / "PubMed2DB" / "2026nov08"
+    with pytest.raises(RuntimeError, match="reads major version 1"):
+        publications.download_pubmed2db(
+            EXPORT_URL,
+            "manifests/report.json",
+            str(download_dir),
+            str(download_dir / "downloaded"),
+            data_model_version=FIXTURE_DATA_MODEL_VERSION,
+        )
+    assert calls == [("metadata.json", False)]
+    assert not (download_dir / "downloaded").exists()
+
+
+def test_download_of_an_unpinned_data_model_stops_at_the_metadata(fake_export, tmp_path):
+    """An export in a data model Babel reads, but not the one config.yaml pins, should also be refused from
+    its metadata.json alone."""
+    remote, calls = fake_export
+    edit_metadata(remote, lambda metadata: metadata.update(data_model_version="1.1.0"))
+    download_dir = tmp_path / "PubMed2DB" / "2026nov08"
+    with pytest.raises(RuntimeError, match="config.yaml pins 1.0.0"):
+        publications.download_pubmed2db(
+            EXPORT_URL,
+            "manifests/report.json",
+            str(download_dir),
+            str(download_dir / "downloaded"),
+            data_model_version=FIXTURE_DATA_MODEL_VERSION,
+        )
+    assert calls == [("metadata.json", False)]
+    assert not (download_dir / "downloaded").exists()
+
+
+def test_download_over_another_exports_shard_is_refused(fake_export, tmp_path):
+    """A download directory left holding a complete shard that is not the published one -- which
+    `wget --continue` leaves alone -- should fail the SHA-256 check, naming the shard, and not be marked done."""
+    remote, _ = fake_export
+    download_dir = tmp_path / "PubMed2DB" / "2026nov08"
+    done_file = download_dir / "downloaded"
+    # The fake wget always copies from `remote`, so changing the shard there puts in download_dir what a
+    # real wget would have left alone.
+    _recompress(remote / "pubmed_metadata_0.ndjson.gz")
+    with pytest.raises(RuntimeError, match=r"pubmed_metadata_0\.ndjson\.gz has SHA-256"):
+        publications.download_pubmed2db(
+            EXPORT_URL,
+            "manifests/report.json",
+            str(download_dir),
+            str(done_file),
+            data_model_version=FIXTURE_DATA_MODEL_VERSION,
+        )
+    assert not done_file.exists()
 
 
 # BUILDING THE COMPENDIUM
@@ -405,7 +771,7 @@ def babel_config(tmp_path):
 
 def test_compendium_streams_one_clique_per_record(parsed, babel_config, tmp_path):
     """generate_compendium() should write one Publication clique per record, with the title as the PMID's
-    label, both PMC spellings kept alive, and a shared DOI present only in its winning clique."""
+    label, PubMed Central ids kept, and a shared DOI present only in its winning clique."""
     icrdf = tmp_path / "icRDF.tsv"
     icrdf.write_text("")
     compendium = os.path.join(babel_config["output_directory"], "compendia", "Publication.txt")
@@ -430,8 +796,11 @@ def test_compendium_streams_one_clique_per_record(parsed, babel_config, tmp_path
     assert curies("PMID:5202740") == ["PMID:5202740", "PMC:PMC1712714"]
     assert label("PMID:5202740") == "Renal tubular acidosis: an immunopathological study on four patients."
     assert curies("PMID:5202677") == ["PMID:5202677"]
-    # The malformed DOI is skipped here too, or write_compendium() would fail the build on it.
-    assert curies("PMID:17124311") == ["PMID:17124311"]
+    # Malformed DOIs are repaired or skipped here exactly as in the concords, or write_compendium() would
+    # fail the build on them.
+    assert curies("PMID:17124311") == ["PMID:17124311", "doi:10.1126/science.1134405"]
+    assert curies("PMID:23752222") == ["PMID:23752222", "doi:10.1001/archdermatol.2012.151a"]
+    assert curies("PMID:16041191") == ["PMID:16041191"]
     assert curies("PMID:17072568") == ["PMID:17072568", "doi:10.1007/s00115-006-2195-7"]
     assert label("PMID:17072568") == ""
 
@@ -442,9 +811,9 @@ def test_compendium_streams_one_clique_per_record(parsed, babel_config, tmp_path
     assert label("PMID:9245294") == "Identity as adaptation to social, cultural, and historical context "
     assert label("PMID:25303692") == "New challenges\x85."
 
-    # The export's PMCID: is respelled PMC:, which biolink:Publication registers ahead of doi (see #1044).
+    # biolink:Publication registers PMC ahead of doi, so the PubMed Central id sorts first (see #1044).
     assert curies("PMID:30803192") == ["PMID:30803192", "PMC:PMC6897020", "doi:10.31557/APJCP.2019.20.2.345"]
-    assert curies("PMID:999999113") == ["PMID:999999113", "PMC:PMC1666769"]
+    assert curies("PMID:113") == ["PMID:113", "PMC:PMC1666769"]
 
     # The shared DOI lands on the lowest PMID only, so no identifier appears in two cliques.
     assert curies("PMID:7754980") == ["PMID:7754980", SHARED_DOI]

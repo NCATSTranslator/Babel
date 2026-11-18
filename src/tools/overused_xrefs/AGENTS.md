@@ -1,4 +1,4 @@
-# CLAUDE.md — src/tools/overused_xrefs/
+# AGENTS.md — src/tools/overused_xrefs/
 
 `babel-overused-xrefs` audits one concord file for xref targets claimed by many subjects — the
 merge hazard `remove_overused_xrefs` drops and `OVERUSE_FILTERED_CONCORDS` opts a source into.

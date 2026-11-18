@@ -5,9 +5,17 @@ import src.datahandlers.obo as obo
 import src.datahandlers.reactome as reactome
 import src.datahandlers.rhea as rhea
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, glom, read_identifier_file, remove_overused_xrefs, write_compendium
+from src.babel_utils import (
+    get_prefixes,
+    glom,
+    read_identifier_file,
+    remove_overused_xrefs,
+    unique_prefixes_from_config,
+)
 from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
 from src.metadata.provenance import write_concord_metadata
+from src.model.compendia import write_typed_compendia
+from src.model.intermediates import read_concords
 from src.prefixes import GO, REACT, TCDB, WIKIPATHWAYS
 from src.ubergraph import build_sets
 
@@ -91,12 +99,13 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
     # GO:0034227/EC:2.8.1.4 is because that go term is a biological process, but EC is not a valid prefix for that,
     #  leading to a loss of the EC term (and a unified RHEA) on output.
     bad_concords = set(frozenset(["GO:0034227", "EC:2.8.1.4"]))
+    unique_prefixes = unique_prefixes_from_config("process_unique_prefixes")
     dicts = {}
     types = {}
     for ifile in identifiers:
         print(ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=[GO])
+        glom(dicts, new_identifiers, unique_prefixes=unique_prefixes)
         types.update(new_types)
     for infile in concordances:
         print(infile)
@@ -105,32 +114,27 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
         # them added. So we want to limit concordances to terms that are already in the dicts. But that's ONLY for the
         # UMLS concord.  We trust the others to retrieve decent identifiers.
         pairs = []
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                if infile.endswith("UMLS"):
-                    use = True
-                    for xi in (x[0], x[2]):
-                        if xi not in dicts:
-                            print(f"Skipping pair {x} from {infile} because {xi} is not in dicts")
-                            use = False
-                    if not use:
-                        continue
-                pair = [x[0], x[2]]
-                fspair = frozenset(pair)
-                if fspair not in bad_concords:
-                    pairs.append(pair)
+        for x in read_concords(infile):
+            if infile.endswith("UMLS"):
+                use = True
+                for xi in (x[0], x[2]):
+                    if xi not in dicts:
+                        print(f"Skipping pair {x} from {infile} because {xi} is not in dicts")
+                        use = False
+                if not use:
+                    continue
+            # A 2-tuple, handed to glom() as is: see read_concord_pairs() for why not a set or list.
+            pair = (x[0], x[2])
+            if frozenset(pair) not in bad_concords:
+                pairs.append(pair)
         # one kind of error is that GO->Reactome xrefs are freqently more like subclass relations. So
         # GO:0004674 (protein serine/threonine kinase) has over 400 Reactome xrefs
         # remove_overused_xrefs assumes that we want to remove pairs where the second pair is overused
         # but this case it's the first, so we use the bothways optoin
         newpairs = remove_overused_xrefs(pairs, bothways=True)
-        setpairs = [set(x) for x in newpairs]
-        glom(dicts, setpairs, unique_prefixes=[GO])
+        glom(dicts, newpairs, unique_prefixes=unique_prefixes)
     typed_sets = create_typed_sets(set([frozenset(x) for x in dicts.values()]), types)
-    for biotype, sets in typed_sets.items():
-        baretype = biotype.split(":")[-1]
-        write_compendium(metadata_yamls, sets, f"{baretype}.txt", biotype, {}, icrdf_filename=icrdf_filename)
+    write_typed_compendia(metadata_yamls, typed_sets, icrdf_filename)
 
 
 def create_typed_sets(eqsets, types):
