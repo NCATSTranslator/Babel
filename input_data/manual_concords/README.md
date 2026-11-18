@@ -74,6 +74,21 @@ then reads it like every other disease concord.
   `disease_unique_prefixes` in `config.yaml` restricts `MONDO`, `HP` and `MP`, and `glom()` drops
   any pair whose merge would hold two of the same one. You can't merge two MONDO terms here; if two
   cliques that each hold one should be one, that is a MONDO issue.
+- **Concord order decides which pair wins.** `glom()` applies the concords in `disease_concords`
+  order, and `Manual` comes after `HP`, `MP`, `MONDO`, `MONDO_GARD`, `UMLS`, `DOID` and `EFO` but
+  before `GARD_label`. So a manual row loses to an earlier source that already put a different
+  MONDO, HP or MP term in either clique, and once applied it can block a later `GARD_label` pair
+  that would bring in a second one. Neither shows up as a warning.
+- **A CURIE whose prefix Biolink doesn't register for the clique's class is dropped from the
+  output**, but only by `write_compendium()`, after it has already merged cliques in `glom()`. So
+  the row's merge happens and the CURIE itself is missing from `Disease.txt` or
+  `PhenotypicFeature.txt`, unless its prefix is in `disease_extra_prefixes_by_biolink_class` in
+  `config.yaml`. Check with `get_biolink_model_toolkit(version).get_element(<class>).id_prefixes`
+  (root `AGENTS.md`, "Biolink Model Usage").
+- **A clique needs a typed member to be written at all.** `classify_disease_clique()` types a
+  clique from its MONDO, then HP, then MP term, and otherwise by a vote over the members that
+  appear in a disease ids file. A clique with none of those is dropped with a warning, so a row
+  pairing two CURIEs that no ids file lists, and that join no typed clique, does nothing.
 - **A pair naming a UMLS CUI that another pipeline owns is dropped** (root `AGENTS.md`, "A UMLS CUI
   follows its MeSH descriptor"). Check the build's `intermediate/umls/mesh_ownership.tsv` before
   pairing a CUI.
