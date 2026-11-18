@@ -624,13 +624,21 @@ def download_umls(umls_version, umls_subset, download_dir):
     if not req.ok:
         raise RuntimeError(f"Unable to download UMLS from {umls_full_url}: {req}")
 
-    # Write file to {download_dir}/umls-{umls_version}-metathesaurus-full.zip
+    # Write file to {download_dir}/umls-{umls_version}-metathesaurus-full.zip, through a .part file renamed only
+    # once the transfer completes: the full subset is ~5.5 GB, and an interrupted download must never be mistaken
+    # for a complete zip by a later run.
     logging.info(f"Downloading {filename} to {download_dir}")
     os.makedirs(download_dir, exist_ok=True)
     umls_download_zip = os.path.join(download_dir, filename)
-    with open(umls_download_zip, "wb") as fd:
-        for chunk in req.iter_content(chunk_size=128):
-            fd.write(chunk)
+    part_path = f"{umls_download_zip}.part"
+    try:
+        with open(part_path, "wb") as fd:
+            for chunk in req.iter_content(chunk_size=1 << 20):
+                fd.write(chunk)
+        os.replace(part_path, umls_download_zip)
+    finally:
+        if os.path.exists(part_path):
+            os.remove(part_path)
 
     # Unzip file.
     logging.info(f"Uncompressing {umls_download_zip}")

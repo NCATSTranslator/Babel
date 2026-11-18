@@ -348,32 +348,49 @@ def excluded_mesh_tree_terms(mesh_nt):
 # ---------------------------------------------------------------------------
 
 
+def cached_umls_release(download_dir) -> tuple[str, str] | None:
+    """Return the (version, subset) that download_umls() recorded in download_dir/UMLS.metadata.yaml, or None."""
+    import yaml  # deferred: only needed when UMLS is checked
+
+    metadata_yaml = os.path.join(download_dir, "UMLS.metadata.yaml")
+    if not os.path.exists(metadata_yaml):
+        return None
+    with open(metadata_yaml) as inf:
+        source = yaml.safe_load(inf)["sources"][0]
+    return str(source["version"]), str(source["subset"])
+
+
 @pytest.fixture(scope="session")
 def umls_rrf_files():
-    """Ensure MRCONSO.RRF and MRSTY.RRF are present; skip if files are absent and download fails."""
+    """Ensure MRCONSO.RRF and MRSTY.RRF are present and from config.yaml's umls_version and subset.
+
+    Downloads them (download_umls(), as rule download_umls does) when they are missing or UMLS.metadata.yaml
+    names another release, so changing umls_version re-downloads rather than testing the old release. Skips
+    only when that is needed and UMLS_API_KEY is not set; a download that fails with a key set fails the test.
+    """
+    from src.util import get_config  # deferred: same rationale as _snakemake_dir
+
+    cfg = get_config()
+    download_dir = cfg["download_directory"] + "/UMLS"
     mrconso = make_local_name("MRCONSO.RRF", subpath="UMLS")
     mrsty = make_local_name("MRSTY.RRF", subpath="UMLS")
+    wanted = (str(cfg["umls_version"]), str(cfg["umls"]["subset"]))
+    cached = cached_umls_release(download_dir)
 
-    if not os.path.exists(mrconso) or not os.path.exists(mrsty):
+    if not os.path.exists(mrconso) or not os.path.exists(mrsty) or cached != wanted:
         # UMLS_API_KEY is only required when the files are not yet cached.
         if not os.environ.get("UMLS_API_KEY"):
-            pytest.skip("UMLS_API_KEY not set and UMLS files not cached; cannot download UMLS files")
+            pytest.skip(f"UMLS_API_KEY not set and UMLS {wanted} not cached (cached: {cached}); cannot download it")
+        from src.datahandlers import (
+            umls as umls_handler,  # deferred: only import the UMLS handler when a download is actually needed; if files are already cached this module never loads
+        )
+
         try:
-            from src.datahandlers import (
-                umls as umls_handler,  # deferred: only import the UMLS handler when a download is actually needed; if files are already cached this module never loads
-            )
-            from src.util import get_config  # deferred: same rationale as _snakemake_dir
-
-            cfg = get_config()
-            umls_handler.download_umls(
-                cfg["umls_version"],
-                cfg["umls"]["subset"],
-                cfg["download_directory"] + "/UMLS",
-            )
+            umls_handler.download_umls(*wanted, download_dir)
         except Exception as e:
-            pytest.skip(f"Could not download UMLS: {e}")
+            pytest.fail(f"Could not download UMLS {wanted}: {e}")
 
-    return {"mrconso": mrconso, "mrsty": mrsty}
+    return {"mrconso": mrconso, "mrsty": mrsty, "version": wanted[0]}
 
 
 @pytest.fixture(scope="session")

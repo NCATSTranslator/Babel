@@ -315,8 +315,13 @@ rule download_umls:
         mem="8G",
         cpus_per_task=1,
         runtime="6h",
+    params:
+        # Params, so that changing umls_version (or the subset) reruns the download rather than reusing the old
+        # release's MRCONSO.RRF.
+        umls_version=config["umls_version"],
+        umls_subset=config["umls"]["subset"],
     run:
-        umls.download_umls(config["umls_version"], config["umls"]["subset"], config["download_directory"] + "/UMLS")
+        umls.download_umls(params.umls_version, params.umls_subset, config["download_directory"] + "/UMLS")
 
 
 rule get_umls_labels_and_synonyms:
