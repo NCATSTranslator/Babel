@@ -1,0 +1,78 @@
+decision,concord,identifier,label,obsolete,current,current_scientific_name
+dropped_merged_ambiguous,UMLS,UMLS:C1008062,Dalyellioida,NCBITaxon:39220,NCBITaxon:3092782,Dalytyphloplanida
+dropped_merged_ambiguous,UMLS,UMLS:C1016577,Typhloplanoida,NCBITaxon:52314,NCBITaxon:3092782,Dalytyphloplanida
+dropped_merged_ambiguous,UMLS,UMLS:C5949938,Stenopsocus brevicapitus,NCBITaxon:3074938,NCBITaxon:3457878,Neostenopsocus maculosus
+dropped_merged_ambiguous,UMLS,UMLS:C5949940,Stenopsocus dactylinus,NCBITaxon:3074940,NCBITaxon:3457878,Neostenopsocus maculosus
+dropped_merged_ambiguous,UMLS,UMLS:C5251354,Tanytarsus churamarinus,NCBITaxon:2562930,NCBITaxon:3569709,Yaetanytarsus iriomeneus
+dropped_merged_ambiguous,UMLS,UMLS:C5740547,Tanytarsus iriomeneus,NCBITaxon:2940456,NCBITaxon:3569709,Yaetanytarsus iriomeneus
+dropped_merged_ambiguous,UMLS,UMLS:C4776447,Yaetanytarsus iriomotensis,NCBITaxon:2050747,NCBITaxon:3569711,Yaetanytarsus magnihamatus
+dropped_merged_ambiguous,UMLS,UMLS:C5251356,Tanytarsus magnihamatus,NCBITaxon:2562932,NCBITaxon:3569711,Yaetanytarsus magnihamatus
+dropped_merged_ambiguous,UMLS,UMLS:C1076325,Ernoporus caucasicus,NCBITaxon:159918,NCBITaxon:3716124,Eidophelus caucasicus
+dropped_merged_ambiguous,UMLS,UMLS:C4571274,Ernoporicus caucasicus,NCBITaxon:1971807,NCBITaxon:3716124,Eidophelus caucasicus
+dropped_merged_ambiguous,UMLS,UMLS:C2993230,Austrolebias luzardoi,NCBITaxon:653298,NCBITaxon:3738836,Matilebias periodicus
+dropped_merged_ambiguous,UMLS,UMLS:C2993234,Austrolebias periodicus,NCBITaxon:653302,NCBITaxon:3738836,Matilebias periodicus
+dropped_merged_ambiguous,UMLS,UMLS:C1190016,Austrolebias cinereus,NCBITaxon:135332,NCBITaxon:3740832,Cypholebias cinereus
+dropped_merged_ambiguous,UMLS,UMLS:C1190018,Austrolebias vazferreirai,NCBITaxon:135387,NCBITaxon:3740832,Cypholebias cinereus
+dropped_merged_ambiguous,UMLS,UMLS:C1190018,Austrolebias vazferreirai,NCBITaxon:2496534,NCBITaxon:3740832,Cypholebias cinereus
+dropped_merged_ambiguous,UMLS,UMLS:C2627771,Thomomys fulvus,NCBITaxon:496468,NCBITaxon:3774382,Megascapheus fulvus
+dropped_merged_ambiguous,UMLS,UMLS:C5753211,Thomomys bottae fulvus,NCBITaxon:50921,NCBITaxon:3774382,Megascapheus fulvus
+dropped_merged_ambiguous,UMLS,UMLS:C2305387,Thomomys anitae,NCBITaxon:496431,NCBITaxon:3774384,Megascapheus nigricans
+dropped_merged_ambiguous,UMLS,UMLS:C3766676,Thomomys nigricans,NCBITaxon:1387314,NCBITaxon:3774384,Megascapheus nigricans
+dropped_merged_ambiguous,UMLS,UMLS:C2627770,Thomomys chihuahue,NCBITaxon:496466,NCBITaxon:3780037,Megascapheus sheldoni
+dropped_merged_ambiguous,UMLS,UMLS:C3736441,Thomomys sheldoni,NCBITaxon:1321242,NCBITaxon:3780037,Megascapheus sheldoni
+dropped_merged_ambiguous,UMLS,UMLS:C4429873,Neoplagioporus zacconis,NCBITaxon:1903917,NCBITaxon:3903437,Urorchis zacconis
+dropped_merged_ambiguous,UMLS,UMLS:C4809152,Neoplagioporus kajika,NCBITaxon:2175157,NCBITaxon:3903437,Urorchis zacconis
+dropped_merged_into_broader_taxon,NCBI_MESH,MESH:C000638712,Staphylococcus aureus subsp. aureus,NCBITaxon:46170,NCBITaxon:1280,Staphylococcus aureus
+dropped_merged_into_broader_taxon,UMLS,UMLS:C1079002,Mediofusata,NCBITaxon:166233,NCBITaxon:1312376,Fecampiida
+dropped_merged_into_broader_taxon,UMLS,UMLS:C0997940,Lecithoepitheliata,NCBITaxon:6169,NCBITaxon:147100,Rhabditophora
+dropped_merged_into_broader_taxon,UMLS,UMLS:C1078983,Seriata,NCBITaxon:166126,NCBITaxon:147100,Rhabditophora
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5752595,Bulinus nasutus productus,NCBITaxon:487507,NCBITaxon:157968,Bulinus nasutus
+dropped_merged_into_broader_taxon,NCBI_MESH,MESH:C000645405,Lactobacillus aviarius subsp. aviarius,NCBITaxon:147810,NCBITaxon:1606,Ligilactobacillus aviarius
+dropped_merged_into_broader_taxon,UMLS,UMLS:C4460777,Caesalpinia clade,NCBITaxon:1963084,NCBITaxon:163090,Caesalpinieae
+dropped_merged_into_broader_taxon,NCBI_MESH,MESH:C000642349,Mycobacterium fortuitum subsp. pseudoperegrinum,NCBITaxon:146498,NCBITaxon:1796,Mycolicibacterium senegalense
+dropped_merged_into_broader_taxon,NCBI_MESH,MESH:C000635734,Streptomyces cacaoi subsp. cacaoi,NCBITaxon:66857,NCBITaxon:1898,Streptomyces cacaoi
+dropped_merged_into_broader_taxon,NCBI_MESH,MESH:D003445,Crustacea,NCBITaxon:6657,NCBITaxon:197562,Pancrustacea
+dropped_merged_into_broader_taxon,UMLS,UMLS:C0010395,Subphylum Crustacea,NCBITaxon:6657,NCBITaxon:197562,Pancrustacea
+dropped_merged_into_broader_taxon,NCBI_MESH,MESH:C000675779,Torrendiella madsenii,NCBITaxon:296785,NCBITaxon:2259769,Hymenotorrendiella madsenii
+dropped_merged_into_broader_taxon,NCBI_MESH,MESH:D018109,Avulavirus,NCBITaxon:260963,NCBITaxon:2560069,Avulavirinae
+dropped_merged_into_broader_taxon,NCBI_MESH,MESH:D019213,Rubulavirus,NCBITaxon:39744,NCBITaxon:2560080,Rubulavirinae
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5810213,Miconia sect. Calycodomatia,NCBITaxon:3026374,NCBITaxon:263288,Miconia
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5810214,Miconia sect. Calycopteris,NCBITaxon:3026375,NCBITaxon:263288,Miconia
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5810215,Miconia sect. Chaenanthera,NCBITaxon:3026376,NCBITaxon:263288,Miconia
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5810216,Miconia sect. Chaenopleura,NCBITaxon:3026377,NCBITaxon:263288,Miconia
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5810217,Miconia sect. Echinata,NCBITaxon:3026378,NCBITaxon:263288,Miconia
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5810219,Miconia sect. Krugiophytum,NCBITaxon:3026379,NCBITaxon:263288,Miconia
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5810220,Miconia sect. Lima,NCBITaxon:3026380,NCBITaxon:263288,Miconia
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5810221,Miconia sect. Miconiastrum,NCBITaxon:3026381,NCBITaxon:263288,Miconia
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5810223,Miconia sect. Sagraea,NCBITaxon:3026382,NCBITaxon:263288,Miconia
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5810224,Miconia sect. Sagraeoides,NCBITaxon:3026383,NCBITaxon:263288,Miconia
+dropped_merged_into_broader_taxon,NCBI_MESH,MESH:D017899,Caudovirales,NCBITaxon:28883,NCBITaxon:2731619,Caudoviricetes
+dropped_merged_into_broader_taxon,NCBI_MESH,MESH:D017900,Myoviridae,NCBITaxon:10662,NCBITaxon:2731619,Caudoviricetes
+dropped_merged_into_broader_taxon,NCBI_MESH,MESH:D017906,Siphoviridae,NCBITaxon:10699,NCBITaxon:2731619,Caudoviricetes
+dropped_merged_into_broader_taxon,NCBI_MESH,MESH:D052679,Luteoviridae,NCBITaxon:119163,NCBITaxon:2732548,Tolivirales
+dropped_merged_into_broader_taxon,UMLS,UMLS:C1470508,Pleistophora mulleri,NCBITaxon:249366,NCBITaxon:279532,Dictyocoela muelleri
+dropped_merged_into_broader_taxon,UMLS,UMLS:C2772953,Colubraria reticulata,NCBITaxon:604273,NCBITaxon:3181444,Cumia intertexta
+dropped_merged_into_broader_taxon,UMLS,UMLS:C4444065,Stillabothrium cambelli,NCBITaxon:1930085,NCBITaxon:3323339,Stillabothrium campbelli
+dropped_merged_into_broader_taxon,UMLS,UMLS:C1066610,Rumex subgen. Emex,NCBITaxon:137676,NCBITaxon:3618,Rumex
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5267691,Rumex subgen. Acetosa,NCBITaxon:2732585,NCBITaxon:3618,Rumex
+dropped_merged_into_broader_taxon,UMLS,UMLS:C6026881,Hamaparvovirinae,NCBITaxon:2732887,NCBITaxon:3697952,Hamavirinae
+dropped_merged_into_broader_taxon,UMLS,UMLS:C4807902,Multicrustacea,NCBITaxon:2172821,NCBITaxon:3701028,Altocrustacea
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5125278,Hexanauplia,NCBITaxon:72037,NCBITaxon:3701028,Altocrustacea
+dropped_merged_into_broader_taxon,UMLS,UMLS:C0998215,Superorder Eucarida,NCBITaxon:6682,NCBITaxon:3701045,Stomatocarida
+dropped_merged_into_broader_taxon,UMLS,UMLS:C1029102,Syncarida,NCBITaxon:72042,NCBITaxon:3701045,Stomatocarida
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5752876,Thomomys chihuahue chihuahue,NCBITaxon:496467,NCBITaxon:3780037,Megascapheus sheldoni
+dropped_merged_into_broader_taxon,UMLS,UMLS:C2766903,Poa sect. Tovarochloa,NCBITaxon:568981,NCBITaxon:4544,Poa
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5065096,Poa subgen. Pseudopoa,NCBITaxon:2495925,NCBITaxon:4544,Poa
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5065491,Poa sect. Speluncarae,NCBITaxon:2496433,NCBITaxon:4544,Poa
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5263768,Poa subgen. Stenopoa,NCBITaxon:2703953,NCBITaxon:4544,Poa
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5759767,Poa subgen. Secundae,NCBITaxon:2974725,NCBITaxon:4544,Poa
+dropped_merged_into_broader_taxon,UMLS,UMLS:C2782413,Stomatia obscura,NCBITaxon:648585,NCBITaxon:479610,Stomatia phymotis
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5752240,Xanthomonas citri pv. desmodiilaxiflori,NCBITaxon:473420,NCBITaxon:487829,Xanthomonas axonopodis pv. desmodiilaxiflori
+dropped_merged_into_broader_taxon,NCBI_MESH,MESH:D056952,Hypermastigia,NCBITaxon:285691,NCBITaxon:5719,Parabasalia
+dropped_merged_into_broader_taxon,NCBI_MESH,MESH:D014419,Turbellaria,NCBITaxon:166384,NCBITaxon:6157,Platyhelminthes
+dropped_merged_into_broader_taxon,UMLS,UMLS:C1088975,Zephyranthes subgen. Habranthus,NCBITaxon:2807747,NCBITaxon:82256,Zephyranthes
+dropped_merged_into_broader_taxon,UMLS,UMLS:C2775651,Zephyranthes subgen. Eithea,NCBITaxon:2807746,NCBITaxon:82256,Zephyranthes
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5476833,Zephyranthes subgen. Myostemma,NCBITaxon:2807748,NCBITaxon:82256,Zephyranthes
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5476834,Zephyranthes subgen. Neorhodophiala,NCBITaxon:2807749,NCBITaxon:82256,Zephyranthes
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5529131,Zephyranthes subgen. Zephyranthes,NCBITaxon:2807750,NCBITaxon:82256,Zephyranthes
+dropped_merged_into_broader_taxon,UMLS,UMLS:C5750781,Sorex thompsoni thompsoni,NCBITaxon:395348,NCBITaxon:9384,Sorex hoyi

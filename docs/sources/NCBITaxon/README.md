@@ -28,31 +28,57 @@ recording these in `merged.dmp` and `delnodes.dmp`. MeSH and UMLS lag behind and
 IDs: 1,874 merged and 36 deleted IDs reached the compendium before this was handled, each as an
 unlabeled NCBITaxon identifier.
 
-`taxon.update_obsolete_ncbitaxon_ids()` rewrites both taxon concords after they are built:
+`get_taxon_umls_relationships` and `get_taxon_relationships` write the concords as their sources
+have them, into `taxon/raw_concords/`. Rule `taxon_update_obsolete_ncbitaxon_ids` then runs
+`taxon.update_obsolete_ncbitaxon_ids()` over both at once. They have to be finished together,
+because a MeSH record can reach a taxon through its UMLS CUI and the other way around. Each row
+citing an obsolete ID gets one of these outcomes, checked in this order:
 
-- **Merged IDs are replaced** with the ID they were merged into
-  (`ncbitaxon.read_obsolete_taxa()`, which fails if NCBI ever stops flattening merge chains).
 - **Rows with deleted IDs are dropped.** There is no current taxon to point at.
-- **A replaced row loses to a direct link.** When NCBI merges two names, MeSH and UMLS usually keep
-  a record for each, so after remapping both records point at the same taxon and only one can join
-  it. If another record of the same prefix already links to that taxon directly, the remapped row is
-  dropped. Example: MeSH registry `MESH:C000668355` "Collybia dryophila" → merged `NCBITaxon:71877`
-  → [`NCBITaxon:206318`](http://purl.obolibrary.org/obo/NCBITaxon_206318) "Gymnopus dryophilus",
-  which `MESH:C000672803` "Gymnopus dryophilus" links to directly. Without this rule the choice fell
-  to row order, and a full build lost 1,329 correct direct links.
+- **A merged ID the record already reaches directly is dropped.** It adds nothing. This is common
+  for MeSH: 608 MeSH rows cite a merged ID while the record's UMLS CUI cites the current one.
+- **A merge into a broader taxon is not followed.** NCBI's `names.dmp` gives every name a class, and
+  when it merges a taxon into a broader one it usually keeps the old name under the new taxon as
+  `includes` (or `in-part`). If any of the record's names (its MeSH label, or its UMLS label and
+  synonyms) has one of those classes under the merge target, the row is dropped. Example: UMLS and
+  MeSH "Crustacea" cite `NCBITaxon:6657`, which NCBI merged into
+  [`NCBITaxon:197562`](http://purl.obolibrary.org/obo/NCBITaxon_197562) "Pancrustacea". That taxon
+  also contains the insects, and it lists "Crustacea" as a name it includes. Most of the others are
+  subspecies merged into their species, or sections and subgenera merged into their genus. A record
+  is dropped even if another of its names is a synonym of the target. UMLS "Emex" is also called
+  "Rumex subgen. Emex", and NCBI lists "Emex" as a synonym of
+  [`NCBITaxon:3618`](http://purl.obolibrary.org/obo/NCBITaxon_3618) "Rumex" only because the genus
+  was sunk into it.
+- **A merged ID loses to a direct link.** When NCBI merges two names, MeSH and UMLS usually keep a
+  record for each, so after remapping both records point at the same taxon and only one can join it.
+  If another record of the same prefix already reaches that taxon directly, the remapped row is
+  dropped. "Reaches" includes going through its partner in the other concord. Example: MeSH registry
+  `MESH:C000668355` "Collybia dryophila" → merged `NCBITaxon:71877` →
+  [`NCBITaxon:206318`](http://purl.obolibrary.org/obo/NCBITaxon_206318) "Gymnopus dryophilus", which
+  `MESH:C000672803` "Gymnopus dryophilus" links to directly. Without this rule the choice fell to
+  row order, and a full build lost 1,329 correct direct links.
+- **Competing merged IDs are dropped unless one record is named after the taxon.** When several
+  records of one prefix still reach a taxon only through merged IDs, the record whose label or
+  synonym is the taxon's scientific name keeps its link. If no single record is, none of them do.
+  Most such taxa are several species or genera lumped into one (UMLS "Eucarida" and "Syncarida" into
+  "Stomatocarida"), where no record is the whole taxon.
+- **Otherwise, the merged ID is replaced** with the ID it was merged into
+  (`ncbitaxon.read_obsolete_taxa()`, which fails if NCBI ever stops flattening merge chains).
 
-Counts of each are recorded under `obsolete_ncbitaxon` in the concord metadata YAMLs.
-
-A merge target can be broader than the old taxon in name, because the merge reflects NCBI's current
-classification: UMLS "Crustacea" cites `NCBITaxon:6657`, which NCBI merged into
-[`NCBITaxon:197562`](http://purl.obolibrary.org/obo/NCBITaxon_197562) "Pancrustacea". We follow
-NCBI.
+None of these outcomes depend on concord row order. Counts of each are recorded under
+`obsolete_ncbitaxon` in the concord metadata YAMLs. They are tabulated, with every broader-taxon and
+competing-ID drop, in
+[`obsolete-id-decisions.md`](./umls-and-obsolete-ids/obsolete-id-decisions.md). The UMLS concord
+remaps 993 rows and drops 976 superseded, 40 broader and 23 competing ones; the MeSH concord remaps
+46 and drops 641 superseded, 608 already linked and 14 broader.
 
 ## Effect on the compendium
 
 Measured by building `taxon` on main (`f6fbc10b`) and on this change from the same downloads (UMLS
 2026AA, NCBI taxdump and MeSH of 2026-10-09). Artifacts are in
-[`umls-and-obsolete-ids/`](./umls-and-obsolete-ids/).
+[`umls-and-obsolete-ids/`](./umls-and-obsolete-ids/). This build predates the broader-taxon,
+cross-concord and competing-ID rules above. Those change about 2,000 concord rows, out of more than
+900,000, but have not been measured as a compendium diff.
 
 - **Cliques:** 3,768,902 → 3,055,807 (`clique-diff.summary.json`). Almost all of the difference is
   UMLS-only cliques joining NCBITaxon cliques. UMLS-only cliques went from 745,560 to 33,191.
@@ -88,8 +114,10 @@ UMLS to Viridiplantae, not to [`NCBITaxon:3193`](http://purl.obolibrary.org/obo/
 
 ## Regenerating
 
-Build both sides of the comparison, then run the two scripts in
+Build both sides of the comparison, then run `partner_changes.py` and `path_disagreements.py` in
 [`umls-and-obsolete-ids/scripts/`](./umls-and-obsolete-ids/scripts/) (usage is in each docstring)
 and `babel-clique-diff` (see [`docs/tools/CliqueDiff.md`](../../tools/CliqueDiff.md)).
-`tests/pipeline/test_taxon.py` checks the two invariants over a real build: the UMLS concord links
-to NCBITaxon, and every NCBITaxon ID in the taxon concords is current.
+`obsolete_id_decisions.py` needs only the inputs of rule `taxon_update_obsolete_ncbitaxon_ids`.
+`tests/pipeline/test_taxon.py` checks three invariants over a real build: the UMLS concord links to
+NCBITaxon, every NCBITaxon ID in the taxon concords is current, and neither "Crustacea" is linked
+to Pancrustacea.

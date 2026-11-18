@@ -223,8 +223,9 @@ and how to add new checks or vocabularies.
   chemicals must not contain UMLS IDs claimed by the protein compendium.
 
 - **`pipeline/test_taxon.py`** (`pipeline`) — Checks over the built taxon concords: the UMLS concord
-  must link CUIs to NCBITaxon (not just MeSH), and every NCBITaxon CURIE in the MeSH and UMLS
-  concords must be a current NCBI Taxonomy ID. See
+  must link CUIs to NCBITaxon (not just MeSH), every NCBITaxon CURIE in the MeSH and UMLS
+  concords must be a current NCBI Taxonomy ID, and "Crustacea" must not follow NCBI's merge into
+  Pancrustacea. See
   [`docs/sources/NCBITaxon/README.md`](../docs/sources/NCBITaxon/README.md).
 
 - **`pipeline/test_ec.py`**, **`pipeline/test_rhea.py`**, **`pipeline/test_chembl.py`**,
