@@ -725,7 +725,7 @@ def ec_pipeline_outputs(ec_rdf_file, regenerate):
     needs_labels = regenerate or not os.path.exists(labels) or not os.path.exists(synonyms)
     needs_ids = regenerate or not os.path.exists(ids)
     if needs_labels or needs_ids:
-        ecgraph = ECgraph()
+        ecgraph = ECgraph(ec_rdf_file)
         if needs_labels:
             os.makedirs(os.path.dirname(labels), exist_ok=True)
             ecgraph.pull_EC_labels_and_synonyms(labels, synonyms)
