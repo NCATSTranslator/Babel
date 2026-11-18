@@ -41,30 +41,54 @@ rule get_taxon_umls_relationships:
     input:
         mrconso=config["download_directory"] + "/UMLS/MRCONSO.RRF",
         infile=config["intermediate_directory"] + "/taxon/ids/UMLS",
-        taxdump=config["download_directory"] + "/NCBITaxon/taxdump.tar",
     output:
-        outfile=config["intermediate_directory"] + "/taxon/concords/UMLS",
-        metadata_yaml=config["intermediate_directory"] + "/taxon/concords/metadata-UMLS.yaml",
+        outfile=config["intermediate_directory"] + "/taxon/raw_concords/UMLS",
     benchmark:
         config["output_directory"] + "/benchmarks/get_taxon_umls_relationships.tsv"
     run:
-        taxon.build_taxon_umls_relationships(
-            input.mrconso, input.infile, input.taxdump, output.outfile, output.metadata_yaml
-        )
+        taxon.build_taxon_umls_relationships(input.mrconso, input.infile, output.outfile)
 
 
 rule get_taxon_relationships:
     input:
         meshfile=config["download_directory"] + "/MESH/mesh.nt",
         meshids=config["intermediate_directory"] + "/taxon/ids/MESH",
-        taxdump=config["download_directory"] + "/NCBITaxon/taxdump.tar",
     output:
-        outfile=config["intermediate_directory"] + "/taxon/concords/NCBI_MESH",
-        metadata_yaml=config["intermediate_directory"] + "/taxon/concords/metadata-NCBI_MESH.yaml",
+        outfile=config["intermediate_directory"] + "/taxon/raw_concords/NCBI_MESH",
     benchmark:
         config["output_directory"] + "/benchmarks/get_taxon_relationships.tsv"
     run:
-        taxon.build_relationships(output.outfile, input.meshids, input.taxdump, output.metadata_yaml)
+        taxon.build_relationships(output.outfile, input.meshids)
+
+
+# Both taxon concords are finished in one rule because deciding what to do with a merged NCBITaxon ID in
+# one of them can depend on the other: a MeSH record can link to a taxon through its UMLS CUI, and vice
+# versa. See taxon.update_obsolete_ncbitaxon_ids().
+rule taxon_update_obsolete_ncbitaxon_ids:
+    input:
+        umls=config["intermediate_directory"] + "/taxon/raw_concords/UMLS",
+        ncbi_mesh=config["intermediate_directory"] + "/taxon/raw_concords/NCBI_MESH",
+        taxdump=config["download_directory"] + "/NCBITaxon/taxdump.tar",
+        mesh_labels=config["download_directory"] + "/MESH/labels",
+        umls_labels=config["download_directory"] + "/UMLS/labels",
+        umls_synonyms=config["download_directory"] + "/UMLS/synonyms",
+    output:
+        umls=config["intermediate_directory"] + "/taxon/concords/UMLS",
+        umls_metadata=config["intermediate_directory"] + "/taxon/concords/metadata-UMLS.yaml",
+        ncbi_mesh=config["intermediate_directory"] + "/taxon/concords/NCBI_MESH",
+        ncbi_mesh_metadata=config["intermediate_directory"] + "/taxon/concords/metadata-NCBI_MESH.yaml",
+    benchmark:
+        config["output_directory"] + "/benchmarks/taxon_update_obsolete_ncbitaxon_ids.tsv"
+    run:
+        taxon.write_taxon_concords(
+            {
+                "UMLS": (input.umls, output.umls, output.umls_metadata),
+                "NCBI_MESH": (input.ncbi_mesh, output.ncbi_mesh, output.ncbi_mesh_metadata),
+            },
+            input.taxdump,
+            label_files=[input.mesh_labels, input.umls_labels],
+            synonym_files=[input.umls_synonyms],
+        )
 
 
 rule taxon_compendia:

@@ -1,6 +1,7 @@
 import gzip
 import logging
 import tarfile
+from collections import defaultdict
 
 from src.babel_utils import pull_via_ftp
 from src.prefixes import NCBITAXON
@@ -48,6 +49,31 @@ def read_obsolete_taxa(infile):
         )
 
     return merged, deleted
+
+
+def read_taxon_names(infile, taxa):
+    """
+    Read every name that NCBI Taxonomy gives the requested taxa, together with each name's class.
+
+    The name class says how a name relates to the taxon: "scientific name" and "synonym" name the taxon
+    itself, while "includes" names a group the taxon contains and "in-part" one that overlaps it. See
+    make_labels_and_synonyms() for the full list.
+
+    :param infile: taxdump.tar, the file containing the individual data dumps for NCBI Taxonomy.
+    :param taxa: The NCBITaxon CURIEs to read names for. Names of other taxa are skipped, which keeps this
+        small when only a few thousand taxa are needed.
+    :return: A dict mapping each NCBITaxon CURIE to a dict of {name: set of name classes}. A taxon with no
+        names in names.dmp is left out.
+    """
+    names = defaultdict(lambda: defaultdict(set))
+    with tarfile.open(infile, "r") as taxtar:
+        # Each line of names.dmp is "tax_id\t|\tname_txt\t|\tunique name\t|\tname class\t|".
+        for line in taxtar.extractfile("names.dmp"):
+            parts = [x.strip() for x in line.decode("utf-8").split("|")]
+            curie = f"{NCBITAXON}:{parts[0]}"
+            if curie in taxa:
+                names[curie][parts[1]].add(parts[3])
+    return {curie: dict(taxon_names) for curie, taxon_names in names.items()}
 
 
 def make_labels_and_synonyms(infile, labelfile, synfile, propfilegz):

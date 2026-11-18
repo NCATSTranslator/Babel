@@ -36,7 +36,7 @@ def test_umls_taxon_concord_maps_to_ncbitaxon():
     UMLS calls NCBI Taxonomy "NCBI" in MRCONSO; looking it up as "NCBITaxon" silently produced no rows at
     all, which left ~700,000 UMLS taxa as single-identifier cliques.
     """
-    concord = _built(_intermediate_concord_path("taxon", "UMLS"), "get_taxon_umls_relationships")
+    concord = _built(_intermediate_concord_path("taxon", "UMLS"), "taxon_update_obsolete_ncbitaxon_ids")
     count = len(_ncbitaxon_curies(concord))
     assert count > 500_000, f"only {count:,} UMLS -> NCBITaxon rows in {concord}"
 
@@ -50,10 +50,27 @@ def test_taxon_concords_only_use_current_ncbitaxon_ids(concord_name):
     or drops them. One that slipped through would become an unlabeled NCBITaxon identifier competing with
     the current ID for the same MeSH or UMLS identifier.
     """
-    concord = _built(_intermediate_concord_path("taxon", concord_name), "taxon")
+    concord = _built(_intermediate_concord_path("taxon", concord_name), "taxon_update_obsolete_ncbitaxon_ids")
     ids_file = _built(_intermediate_id_path("taxon", NCBITAXON), "taxon_ncbi_ids")
     with open(ids_file) as inf:
         current = {line.split("\t")[0] for line in inf}
 
     stale = sorted(set(_ncbitaxon_curies(concord)) - current)
     assert not stale, f"{len(stale):,} non-current NCBITaxon IDs in {concord}, e.g. {stale[:10]}"
+
+
+@pytest.mark.pipeline
+@pytest.mark.parametrize("concord_name", TAXON_CONCORDS_WITH_NCBITAXON)
+def test_taxon_concords_do_not_follow_merges_into_broader_taxa(concord_name):
+    """MeSH and UMLS "Crustacea" should not be linked to NCBITaxon:197562 "Pancrustacea".
+
+    Both cite NCBITaxon:6657, which NCBI merged into Pancrustacea (which also contains the insects) while
+    listing "Crustacea" as a name it "includes". update_obsolete_ncbitaxon_ids() should drop that merge
+    rather than follow it; see docs/sources/NCBITaxon/README.md.
+    """
+    concord = _built(_intermediate_concord_path("taxon", concord_name), "taxon_update_obsolete_ncbitaxon_ids")
+    crustacea = {"MESH:D003445", "UMLS:C0010395"}
+    with open(concord) as inf:
+        rows = [set(line.rstrip("\n").split("\t")) for line in inf]
+    bad = [row for row in rows if f"{NCBITAXON}:197562" in row and crustacea & row]
+    assert not bad, f"Crustacea linked to Pancrustacea in {concord}: {bad}"
