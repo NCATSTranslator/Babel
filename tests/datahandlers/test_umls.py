@@ -1,10 +1,15 @@
 """Unit tests for src/datahandlers/umls.py: the "a CUI follows its MeSH descriptor" rule that keeps a UMLS CUI,
-its MeSH descriptor and its DrugBank partners in one pipeline's ids (issues #276, #308, #1123).
+its MeSH descriptor and its DrugBank partners in one pipeline's ids (issues #276, #308, #1123), and
+download_umls() against a mocked UTS download API.
 
 The MRSTY and MRCONSO rows are copied verbatim from UMLS 2026AA; each block names its CUI.
 """
 
+import io
+import zipfile
+
 import pytest
+import yaml
 
 from src.categories import ANATOMICAL_ENTITY, CHEMICAL_ENTITY, ORGANISM_TAXON, PROTEIN
 from src.createcompendia import anatomy, chemicals, diseasephenotype, gene, processactivitypathway, protein, taxon
@@ -465,3 +470,64 @@ def test_clique_build_skips_concord_pairs_naming_a_cui_owned_elsewhere(tmp_path,
     assert dicts["MONDO:0000001"] == {"MONDO:0000001", "UMLS:C0242726"}
     dicts, _ = compute(concords, ids, None)
     assert "UMLS:C0000608" in dicts["MONDO:0000001"]
+
+
+# DOWNLOAD
+
+
+def _umls_zip(version):
+    """A tiny Metathesaurus zip laid out as NLM's is: {version}/META/*.RRF."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        for name in ("MRCONSO.RRF", "MRSTY.RRF", "MRREL.RRF"):
+            zf.writestr(f"{version}/META/{name}", f"{name} of {version}\n")
+    return buf.getvalue()
+
+
+class _FakeUTSResponse:
+    """Stands in for the streamed requests.get() response from the UTS download API; fails after the first
+    chunk when ``fail_midway`` is set, as a dropped connection would."""
+
+    ok = True
+
+    def __init__(self, data, fail_midway=False):
+        self.data = data
+        self.fail_midway = fail_midway
+
+    def iter_content(self, chunk_size):
+        yield self.data[:chunk_size]
+        if self.fail_midway:
+            raise ConnectionError("connection dropped")
+        yield self.data[chunk_size:]
+
+
+@pytest.mark.unit
+def test_download_umls_copies_the_rrf_files_and_records_the_release(tmp_path, monkeypatch):
+    """download_umls() should unzip the release, copy MRCONSO/MRSTY/MRREL beside it, record the version and subset
+    in UMLS.metadata.yaml (which the umls_rrf_files pipeline fixture compares with config.yaml), and leave no
+    .part file."""
+    monkeypatch.setenv("UMLS_API_KEY", "test-key")
+    response = _FakeUTSResponse(_umls_zip("2026AB"))
+    monkeypatch.setattr(umls.requests, "get", lambda *args, **kwargs: response)
+
+    umls.download_umls("2026AB", "full", str(tmp_path))
+
+    assert (tmp_path / "MRCONSO.RRF").read_text() == "MRCONSO.RRF of 2026AB\n"
+    assert (tmp_path / "MRREL.RRF").exists()
+    metadata = yaml.safe_load((tmp_path / "UMLS.metadata.yaml").read_text())
+    assert (metadata["sources"][0]["version"], metadata["sources"][0]["subset"]) == ("2026AB", "full")
+    assert not list(tmp_path.glob("*.part"))
+
+
+@pytest.mark.unit
+def test_download_umls_interrupted_leaves_no_zip(tmp_path, monkeypatch):
+    """A transfer that fails part-way should leave neither the zip nor its .part file, so a later run never
+    unzips a truncated download."""
+    monkeypatch.setenv("UMLS_API_KEY", "test-key")
+    response = _FakeUTSResponse(b"x" * (3 << 20), fail_midway=True)
+    monkeypatch.setattr(umls.requests, "get", lambda *args, **kwargs: response)
+
+    with pytest.raises(ConnectionError):
+        umls.download_umls("2026AB", "full", str(tmp_path))
+
+    assert list(tmp_path.iterdir()) == []
