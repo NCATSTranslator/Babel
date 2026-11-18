@@ -266,6 +266,11 @@ and how to add new checks or vocabularies.
   fails when GitHub is slow is a test people learn to ignore. Ported from NameResolution's test of
   the same name; keep the three repos' copies in sync.
 
+- **`test_snakefile_util.py`** (`unit`) — Tests the helpers in `src/snakefiles/util.py`, and checks
+  that every Snakemake rule declaring `icRDF.tsv` also declares the common UberGraph files
+  (`common_download_files()`) that `write_compendium()` reads, rather than relying on `get_icrdf` to
+  pull them in.
+
 - **`test_uber.py`** (`network`) — Tests the `UberGraph` class for querying ontology
   subclasses and cross-references via SPARQL. Covers direct and indirect subclass retrieval,
   filtering by cross-reference presence, and exact-match label queries. Tests may xfail at
