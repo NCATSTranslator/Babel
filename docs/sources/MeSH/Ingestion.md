@@ -11,13 +11,18 @@ compendium's `write_mesh_ids()` function (in `src/createcompendia/`).
 
 The MeSH release is pinned by `mesh_year` in `config.yaml`, next to `umls_version`. Keep the two in
 step: UMLS 20XXAA carries MeSH 20XX codes, so an older MeSH dump leaves UMLS MSH codes (mostly new
-Supplementary Concept Records) with no MeSH record. Each build writes
-`babel_outputs/reports/umls_mesh_skew.json`, which counts the MSH codes in UMLS's `MRCONSO.RRF`
-(column 14 of the `SAB=MSH` rows that `check_mrconso_line()` keeps, as the rest of the build does)
-that have no `rdfs:label` in `mesh.nt`. With UMLS 2026AA and
-MeSH 2026 the only missing codes are the 22 `U` "(MeSH Category)" headings that UMLS adds itself;
-MeSH 2025 misses 829 more and MeSH 2024 1,856 ([`umls-mesh-skew/`](umls-mesh-skew/README.md) has
-the table and the script that measures it).
+Supplementary Concept Records) with no MeSH record. A 20XXAB release carries the *next* year's MeSH:
+2026AB's `MRSAB.RRF` names `MSH2027_2026_09_18`, a September snapshot of MeSH 2027. NLM publishes a
+MeSH year's RDF only in January (MeSH 2026's appeared on 2026-01-09), so an AB release can't be
+built on until then: against MeSH 2026, UMLS 2026AB misses 404 codes
+([table](umls-mesh-skew/2026AB.md)). `tests/pipeline/test_umls_mesh_skew.py` runs the build's check
+against the configured releases, so a version bump finds this out before a build does. Each build
+writes `babel_outputs/reports/umls_mesh_skew.json`, which counts the MSH codes in UMLS's
+`MRCONSO.RRF` (column 14 of the `SAB=MSH` rows that `check_mrconso_line()` keeps, as the rest of the
+build does) that have no `rdfs:label` in `mesh.nt`. With UMLS 2026AA and MeSH 2026 the only missing
+codes are the 22 `U` "(MeSH Category)" headings that UMLS adds itself; MeSH 2025 misses 829 more and
+MeSH 2024 1,856 ([`umls-mesh-skew/`](umls-mesh-skew/README.md) has the table and the script that
+measures it).
 
 That count, leaving out the `U` headings, **fails the build** when it exceeds
 `umls_mesh_skew_max_missing_codes` in `config.yaml` (100). `rule check_umls_mesh_skew` does it,
