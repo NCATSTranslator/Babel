@@ -37,8 +37,9 @@ Biolink registers FMA for `biolink:AnatomicalEntity` but not `biolink:GrossAnato
 moves thousands of UMLS+FMA cliques into UBERON gross anatomy cliques:
 `GrossAnatomicalStructure.txt` now holds 5,079 FMA CURIEs, 3,023 of which main ships today, and all
 of them would be dropped without `config.yaml: anatomy_extra_prefixes_by_biolink_class`, which ships
-FMA as a temporary extra prefix. It is removed once
-[biolink/biolink-model#1827](https://github.com/biolink/biolink-model/issues/1827) is released
+FMA as a temporary extra prefix. Biolink Model v4.4.6 registers FMA for gross anatomy
+([biolink/biolink-model#1827](https://github.com/biolink/biolink-model/issues/1827)), so the entry
+is removed once `config.yaml: biolink_version` reaches it
 ([#1134](https://github.com/NCATSTranslator/Babel/issues/1134)).
 
 ### Wrong xrefs dropped

@@ -522,7 +522,7 @@ def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, b
             f"{baretype}.txt",
             biotype,
             {},
-            # FMA for GrossAnatomicalStructure, until Biolink registers it (#1134); see get_extra_prefixes().
+            # FMA for GrossAnatomicalStructure until biolink_version reaches 4.4.6 (#1134); see get_extra_prefixes().
             extra_prefixes=get_extra_prefixes("anatomy_extra_prefixes_by_biolink_class", biotype),
             icrdf_filename=icrdf_filename,
         )

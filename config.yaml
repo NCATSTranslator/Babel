@@ -173,9 +173,10 @@ anatomy_xref_prefixes:
 # and every entry is temporary and links to the issue that removes it.
 anatomy_extra_prefixes_by_biolink_class:
   biolink:GrossAnatomicalStructure:
-    # Biolink registers FMA for AnatomicalEntity but not GrossAnatomicalStructure, so an FMA CURIE in a
+    # biolink_version registers FMA for AnatomicalEntity but not GrossAnatomicalStructure, so an FMA CURIE in a
     # clique that joins an UBERON gross anatomy term was dropped (~3,000 of them once UBERON's SCTID and
-    # FMA xrefs join). Remove once biolink/biolink-model#1827 is in biolink_version:
+    # FMA xrefs join). Biolink Model v4.4.6 registers it (biolink/biolink-model#1827); remove this entry
+    # once biolink_version reaches that release:
     # https://github.com/NCATSTranslator/Babel/issues/1134
     - FMA
 
