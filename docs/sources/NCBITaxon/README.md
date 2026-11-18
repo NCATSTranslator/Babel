@@ -36,7 +36,7 @@ citing an obsolete ID gets one of these outcomes, checked in this order:
 
 - **Rows with deleted IDs are dropped.** There is no current taxon to point at.
 - **A merged ID the record already reaches directly is dropped.** It adds nothing. This is common
-  for MeSH: 608 MeSH rows cite a merged ID while the record's UMLS CUI cites the current one.
+  for MeSH: 609 MeSH rows cite a merged ID while the record's UMLS CUI cites the current one.
 - **A merge into a broader taxon is not followed.** NCBI's `names.dmp` gives every name a class, and
   when it merges a taxon into a broader one it usually keeps the old name under the new taxon as
   `includes` (or `in-part`). If any of the record's names (its MeSH label, or its UMLS label and
@@ -68,9 +68,10 @@ citing an obsolete ID gets one of these outcomes, checked in this order:
 None of these outcomes depend on concord row order. Counts of each are recorded under
 `obsolete_ncbitaxon` in the concord metadata YAMLs. They are tabulated, with every broader-taxon and
 competing-ID drop, in
-[`obsolete-id-decisions.md`](./umls-and-obsolete-ids/obsolete-id-decisions.md). The UMLS concord
-remaps 993 rows and drops 976 superseded, 40 broader and 23 competing ones; the MeSH concord remaps
-46 and drops 641 superseded, 608 already linked and 14 broader.
+[`obsolete-id-decisions.md`](./umls-and-obsolete-ids/obsolete-id-decisions.md). In the 2026-11-17
+local build, the UMLS concord replaces 992 merged IDs and drops 976 superseded, 40 broader and 24
+competing rows; the MeSH concord replaces 54 and drops 1,231 superseded, 609 already linked, 14
+broader and 2 competing ones.
 
 ## Effect on the compendium
 

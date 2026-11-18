@@ -100,7 +100,7 @@ def main(umls_raw, ncbi_mesh_raw, taxdump, mesh_labels, umls_labels, umls_synony
         "# What happens to obsolete NCBITaxon IDs in the taxon concords",
         "",
         # Wrapped to the 100 columns rumdl (MD013) allows.
-        textwrap.fill(f"Inputs: {inputs_description}.", width=100),
+        textwrap.fill(f"Inputs: {inputs_description}.", width=100, break_on_hyphens=False),
         "",
         "Counts of rows per decision; see `update_obsolete_ncbitaxon_ids()` and",
         "`resolve_obsolete_ncbitaxon_ids()` in `src/createcompendia/taxon.py` for what each one means.",
@@ -124,6 +124,7 @@ def main(umls_raw, ncbi_mesh_raw, taxdump, mesh_labels, umls_labels, umls_synony
                 f"{len(sample)} of {len(selected)}, spread evenly over them in order of current taxon "
                 "(all of them are in `obsolete-id-decisions.csv`):",
                 width=100,
+                break_on_hyphens=False,
             ),
             "",
             "| identifier | obsolete | current |",

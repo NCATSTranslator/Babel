@@ -1,25 +1,24 @@
 # What happens to obsolete NCBITaxon IDs in the taxon concords
 
-Inputs: UMLS 2026AA MRCONSO; MeSH 2026 (desc2026/supp2026 XML: preferred-concept txid registry
-numbers, standing in for the mesh.nt registry query); NCBI Taxonomy taxdump of 2026-11-17. The UMLS
-and MeSH label and synonym files were produced in the pipeline's format from the same releases.
+Inputs: the taxon build of 37e01618 (this branch merged with main bb882867): UMLS 2026AA, and MeSH
+mesh.nt and the NCBI Taxonomy taxdump both downloaded 2026-11-17.
 
 Counts of rows per decision; see `update_obsolete_ncbitaxon_ids()` and
 `resolve_obsolete_ncbitaxon_ids()` in `src/createcompendia/taxon.py` for what each one means.
 
 | decision | NCBI_MESH | UMLS |
 |---|---|---|
-| remapped_merged | 46 | 993 |
-| dropped_merged_already_linked | 608 | 0 |
+| remapped_merged | 54 | 992 |
+| dropped_merged_already_linked | 609 | 0 |
 | dropped_merged_into_broader_taxon | 14 | 40 |
-| dropped_merged_superseded_by_direct | 641 | 976 |
-| dropped_merged_ambiguous | 0 | 23 |
-| dropped_deleted | 3 | 115 |
+| dropped_merged_superseded_by_direct | 1,231 | 976 |
+| dropped_merged_ambiguous | 2 | 24 |
+| dropped_deleted | 36 | 115 |
 
 ## dropped_merged_into_broader_taxon
 
-8 of 54, spread evenly over them in order of current taxon (all of them are in `obsolete-id-
-decisions.csv`):
+8 of 54, spread evenly over them in order of current taxon (all of them are in
+`obsolete-id-decisions.csv`):
 
 | identifier | obsolete | current |
 |---|---|---|
@@ -34,16 +33,16 @@ decisions.csv`):
 
 ## dropped_merged_ambiguous
 
-8 of 23, spread evenly over them in order of current taxon (all of them are in `obsolete-id-
-decisions.csv`):
+8 of 26, spread evenly over them in order of current taxon (all of them are in
+`obsolete-id-decisions.csv`):
 
 | identifier | obsolete | current |
 |---|---|---|
 | UMLS:C1008062 Dalyellioida | NCBITaxon:39220 | NCBITaxon:3092782 Dalytyphloplanida |
-| UMLS:C5949938 Stenopsocus brevicapitus | NCBITaxon:3074938 | NCBITaxon:3457878 Neostenopsocus maculosus |
-| UMLS:C5251354 Tanytarsus churamarinus | NCBITaxon:2562930 | NCBITaxon:3569709 Yaetanytarsus iriomeneus |
+| UMLS:C5949940 Stenopsocus dactylinus | NCBITaxon:3074940 | NCBITaxon:3457878 Neostenopsocus maculosus |
 | UMLS:C4776447 Yaetanytarsus iriomotensis | NCBITaxon:2050747 | NCBITaxon:3569711 Yaetanytarsus magnihamatus |
-| UMLS:C1076325 Ernoporus caucasicus | NCBITaxon:159918 | NCBITaxon:3716124 Eidophelus caucasicus |
-| UMLS:C2993230 Austrolebias luzardoi | NCBITaxon:653298 | NCBITaxon:3738836 Matilebias periodicus |
+| UMLS:C4571274 Ernoporicus caucasicus | NCBITaxon:1971807 | NCBITaxon:3716124 Eidophelus caucasicus |
+| UMLS:C1076794 Exidiopsis grisea | NCBITaxon:160905 | NCBITaxon:3735854 Ulocolla grisea |
 | UMLS:C1190016 Austrolebias cinereus | NCBITaxon:135332 | NCBITaxon:3740832 Cypholebias cinereus |
-| UMLS:C1190018 Austrolebias vazferreirai | NCBITaxon:2496534 | NCBITaxon:3740832 Cypholebias cinereus |
+| UMLS:C2627771 Thomomys fulvus | NCBITaxon:496468 | NCBITaxon:3774382 Megascapheus fulvus |
+| UMLS:C3766676 Thomomys nigricans | NCBITaxon:1387314 | NCBITaxon:3774384 Megascapheus nigricans |
