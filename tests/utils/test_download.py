@@ -1,4 +1,4 @@
-"""Unit tests for src/utils/ftp.py, and for pull_via_ftp() in src/babel_utils.py, which downloads through it.
+"""Unit tests for src/utils/download.py, and for pull_via_ftp() in src/babel_utils.py, which downloads through it.
 
 Every test uses a fake FTP server; tests/test_ftp.py covers pull_via_ftp() against NCBI's real one (network).
 """
@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 
 from src.babel_utils import pull_via_ftp
-from src.utils.ftp import retrieve_ftp_file
+from src.utils.download import retrieve_ftp_file
 
 
 class _FakeFTP:
