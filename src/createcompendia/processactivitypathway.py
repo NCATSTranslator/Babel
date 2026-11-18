@@ -5,7 +5,7 @@ import src.datahandlers.obo as obo
 import src.datahandlers.reactome as reactome
 import src.datahandlers.rhea as rhea
 import src.datahandlers.umls as umls
-from src.babel_utils import get_prefixes, remove_overused_xrefs, write_compendium
+from src.babel_utils import get_prefixes, remove_overused_xrefs, unique_prefixes_from_config, write_compendium
 from src.categories import BIOLOGICAL_PROCESS, MOLECULAR_ACTIVITY, PATHWAY
 from src.metadata.provenance import write_concord_metadata
 from src.model.cliques import glom_from_files
@@ -36,6 +36,11 @@ def write_ec_ids(infile, outfile):
 
 
 def write_umls_ids(mrsty, outfile):
+    """Select the UMLS CUIs the process pipeline claims by semantic type.
+
+    The umls_mesh_ownership rule reads this file: no MeSH-owning pipeline may take a CUI selected here
+    (umls.compute_mesh_owners()'s ``unownable``).
+    """
     umlsmap = {
         "B2.2.1.1.4": MOLECULAR_ACTIVITY,  # Molecular Function
         "B2.2.1.1": BIOLOGICAL_PROCESS,  # Physiologic Function
@@ -116,7 +121,7 @@ def compute_cliques_for_impact_report(concordances, identifiers, excluded_source
     return glom_from_files(
         concordances,
         identifiers,
-        unique_prefixes=[GO],
+        unique_prefixes=unique_prefixes_from_config("process_unique_prefixes"),
         concord_pair_filter=_process_concord_pair_filter,
         # One kind of error is that GO->Reactome xrefs are frequently more like subclass relations: GO:0004674
         # (protein serine/threonine kinase) has over 400 Reactome xrefs. remove_overused_xrefs() drops pairs whose

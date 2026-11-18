@@ -2,10 +2,11 @@ import logging
 
 import src.datahandlers.mesh as mesh
 import src.datahandlers.umls as umls
-from src.babel_utils import glom, read_identifier_file, write_compendium
+from src.babel_utils import glom, read_identifier_file, unique_prefixes_from_config, write_compendium
 from src.categories import ORGANISM_TAXON
 from src.metadata.provenance import write_concord_metadata
-from src.prefixes import MESH, NCBITAXON, UMLS
+from src.model.intermediates import read_concord_pairs
+from src.prefixes import MESH, NCBITAXON
 from src.util import LoggingUtil
 
 logger = LoggingUtil.init_logging(__name__, level=logging.ERROR)
@@ -23,7 +24,14 @@ def write_mesh_ids(outfile):
     mesh.write_ids(meshmap, outfile, order=[ORGANISM_TAXON], extra_vocab={"SCR_Organism": ORGANISM_TAXON})
 
 
-def write_umls_ids(mrsty, outfile):
+def write_umls_ids(mrsty, outfile, *, mesh_ownership=None):
+    """Select the UMLS CUIs the taxon pipeline claims by semantic type.
+
+    ``mesh_ownership`` (the umls_mesh_ownership rule's output) makes a CUI follow its MeSH descriptor
+    (umls.apply_mesh_ownership): a CUI another pipeline owns is dropped here and a CUI this pipeline owns is added.
+    A plant or virus CUI whose descriptor is an anatomy A-tree or SCR_Chemical record leaves taxon this way
+    (https://github.com/NCATSTranslator/Babel/issues/1123).
+    """
     # UMLS categories that should be classified as taxa:
     # - A1.1.3: Eukaryote (https://uts.nlm.nih.gov/uts/umls/semantic-network/T204)
     # - A1.1.2: Bacterium (https://uts.nlm.nih.gov/uts/umls/semantic-network/T007)
@@ -63,7 +71,13 @@ def write_umls_ids(mrsty, outfile):
             "A1.1.3.1.1",
         ]
     }
-    umls.write_umls_ids(mrsty, umlsmap, outfile)
+    umls.write_umls_ids(
+        mrsty,
+        umlsmap,
+        outfile,
+        mesh_ownership=mesh_ownership,
+        pipeline="taxon",
+    )
 
 
 def build_taxon_umls_relationships(mrconso, idfile, outfile, metadata_yaml):
@@ -103,26 +117,29 @@ def build_relationships(outfile, mesh_ids, metadata_yaml):
     )
 
 
-def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename):
+def build_compendia(concordances, metadata_yamls, identifiers, icrdf_filename, mesh_ownership=None):
     """:concordances: a list of files from which to read relationships
-    :identifiers: a list of files from which to read identifiers and optional categories"""
+    :identifiers: a list of files from which to read identifiers and optional categories
+    :mesh_ownership: the umls_mesh_ownership rule's file; concord pairs naming a CUI another pipeline owns are
+        skipped (umls.read_cuis_owned_elsewhere). None skips nothing."""
+    owned_elsewhere = umls.read_cuis_owned_elsewhere(mesh_ownership, "taxon")
     dicts = {}
     types = {}
-    uniques = [NCBITAXON, MESH, UMLS]
+    unique_prefixes = unique_prefixes_from_config("taxon_unique_prefixes")
     for ifile in identifiers:
         print("loading", ifile)
         new_identifiers, new_types = read_identifier_file(ifile)
-        glom(dicts, new_identifiers, unique_prefixes=uniques)
+        glom(dicts, new_identifiers, unique_prefixes=unique_prefixes)
         types.update(new_types)
     for infile in concordances:
         print(infile)
         print("loading", infile)
-        pairs = []
-        with open(infile) as inf:
-            for line in inf:
-                x = line.strip().split("\t")
-                pairs.append(set([x[0], x[2]]))
-        glom(dicts, pairs, unique_prefixes=uniques)
+        # Streamed straight into glom(), without holding the file's pairs: see read_concord_pairs().
+        glom(
+            dicts,
+            umls.skip_pairs_owned_elsewhere(read_concord_pairs(infile), owned_elsewhere),
+            unique_prefixes=unique_prefixes,
+        )
     gene_sets = set([frozenset(x) for x in dicts.values()])
     baretype = ORGANISM_TAXON.split(":")[-1]
     # We need to use extra_prefixes since UMLS is not listed as an identifier prefix at

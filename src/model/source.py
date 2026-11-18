@@ -22,6 +22,8 @@ from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass
 from functools import cached_property
 
+from src.model.intermediates import is_metadata_sidecar, read_concords
+
 
 def _prefix_of(curie: str) -> str:
     return curie.split(":", 1)[0]
@@ -39,8 +41,8 @@ def scan_concords_for_curies(
     concord file (e.g. EMAPA's own concord is empty, but UBERON's concord carries
     ``UBERON:… xref EMAPA:…`` rows), so this scans every file in the directory tree rather
     than only the source's own concord. Subdirectories are included (e.g.
-    ``chemicals/concords/UNICHEM/UNICHEM_*`` files). Metadata sidecars
-    (``metadata-*`` / ``*.yaml``) are skipped.
+    ``chemicals/concords/UNICHEM/UNICHEM_*`` files). Metadata sidecars are skipped, by the same
+    rule the DuckDB export uses (:func:`src.model.intermediates.is_metadata_sidecar`).
     """
     concords_dir = pathlib.Path(concords_dir)
     source_set = frozenset(source_curies)
@@ -48,17 +50,12 @@ def scan_concords_for_curies(
     if not concords_dir.exists():
         return rows
     for path in sorted(concords_dir.rglob("*")):
-        if not path.is_file() or path.name.startswith("metadata-") or path.name.endswith(".yaml"):
+        if not path.is_file() or is_metadata_sidecar(path.name):
             continue
         asserted_by = str(path.relative_to(concords_dir))
-        with path.open() as f:
-            for line in f:
-                parts = line.rstrip("\n").split("\t")
-                if len(parts) < 3:
-                    continue
-                subject, predicate, obj = parts[0], parts[1], parts[2]
-                if subject in source_set or obj in source_set:
-                    rows.append((subject, predicate, obj, asserted_by))
+        for subject, predicate, obj in read_concords(path):
+            if subject in source_set or obj in source_set:
+                rows.append((subject, predicate, obj, asserted_by))
     return rows
 
 
@@ -217,12 +214,7 @@ class PipelineContribution:
         for concords_path in self.concords_paths:
             if not concords_path.exists():
                 continue
-            with concords_path.open() as f:
-                for line in f:
-                    parts = line.rstrip("\n").split("\t")
-                    if len(parts) < 3:
-                        continue
-                    triples.append((parts[0], parts[1], parts[2]))
+            triples.extend(read_concords(concords_path))
         return triples
 
     @cached_property

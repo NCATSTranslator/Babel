@@ -1,0 +1,521 @@
+{
+  "export": "2026nov08",
+  "shards": [
+    "pubmed_metadata_0.ndjson.gz",
+    "pubmed_metadata_1.ndjson.gz",
+    "pubmed_metadata_2.ndjson.gz",
+    "pubmed_metadata_3.ndjson.gz",
+    "pubmed_metadata_4.ndjson.gz",
+    "pubmed_metadata_5.ndjson.gz",
+    "pubmed_metadata_6.ndjson.gz",
+    "pubmed_metadata_7.ndjson.gz"
+  ],
+  "records": 41371020,
+  "doi_org_checked": "2026-11-12 to 2026-11-13",
+  "doi_org_unanswered": 0,
+  "crossref_checked": "2026-11-13",
+  "crossref_unanswered": 0,
+  "crossref_vetoed": 0,
+  "title_match_min_ratio": 0.8,
+  "crossref_verdicts": {
+    "match": 304,
+    "not_in_crossref": 129,
+    "no_title": 1
+  },
+  "malformed_dois": 655,
+  "repaired": 436,
+  "skipped": 219,
+  "malformed_identifiers_that_are_not_dois": [],
+  "baseline_well_formed_dois": {
+    "sampled": 163,
+    "yes": 163
+  },
+  "shapes": {
+    "no_whitespace": {
+      "count": 1,
+      "repaired": 1,
+      "crossref_vetoed": 0,
+      "repair_strategy": "join",
+      "strategies": {
+        "first_token": {
+          "candidates": 1,
+          "registered": 0,
+          "not_registered": 1
+        },
+        "join": {
+          "candidates": 1,
+          "registered": 1,
+          "not_registered": 0
+        }
+      },
+      "top_registrants": {
+        "10.6002": 1
+      },
+      "examples": [
+        {
+          "pmid": "PMID:28260475",
+          "identifier": "doi:10.6002/ect.mesot2016.p112",
+          "repaired_to": [
+            "doi:10.6002/ect.mesot2016.p112"
+          ]
+        }
+      ]
+    },
+    "several_dois": {
+      "count": 8,
+      "repaired": 5,
+      "crossref_vetoed": 0,
+      "repair_strategy": "each_token",
+      "strategies": {
+        "each_token": {
+          "candidates": 16,
+          "registered": 10,
+          "not_registered": 6
+        },
+        "first_token": {
+          "candidates": 8,
+          "registered": 8,
+          "not_registered": 0
+        },
+        "join": {
+          "candidates": 8,
+          "registered": 0,
+          "not_registered": 8
+        },
+        "last_token": {
+          "candidates": 8,
+          "registered": 2,
+          "not_registered": 6
+        }
+      },
+      "top_registrants": {
+        "10.1001": 8
+      },
+      "examples": [
+        {
+          "pmid": "PMID:22710458",
+          "identifier": "doi:10.1001/archdermatol.2012.675a 10.1001/archdermatol.2012.675b",
+          "repaired_to": [
+            "doi:10.1001/archdermatol.2012.675a"
+          ]
+        },
+        {
+          "pmid": "PMID:22710516",
+          "identifier": "doi:10.1001/archoto.2012.519a 10.1001/archoto.2012.519b",
+          "repaired_to": [
+            "doi:10.1001/archoto.2012.519a"
+          ]
+        },
+        {
+          "pmid": "PMID:22751881",
+          "identifier": "doi:10.1001/archpediatrics.2012.189a 10.1001/archpediatrics.2012.189b",
+          "repaired_to": [
+            "doi:10.1001/archpediatrics.2012.189a"
+          ]
+        },
+        {
+          "pmid": "PMID:22782154",
+          "identifier": "doi:10.1001/archdermatol.2012.151a 10.1001/archdermatol.2012.151b",
+          "repaired_to": [
+            "doi:10.1001/archdermatol.2012.151a"
+          ]
+        },
+        {
+          "pmid": "PMID:22801623",
+          "identifier": "doi:10.1001/archdermatol.2012.995a 10.1001/archdermatol.2012.995b",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:22987191",
+          "identifier": "doi:10.1001/archsurg.2011.1267a 10.1001/archsurg.2011.1267b",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:23247481",
+          "identifier": "doi:10.1001/archdermatol.2012.2964a 10.1001/archdermatol.2012.2964b",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:23752222",
+          "identifier": "doi:10.1001/archdermatol.2012.151a 10.1001/archdermatol.2012.151b",
+          "repaired_to": [
+            "doi:10.1001/archdermatol.2012.151a"
+          ]
+        }
+      ]
+    },
+    "leading_text": {
+      "count": 14,
+      "repaired": 3,
+      "crossref_vetoed": 0,
+      "repair_strategy": "last_token",
+      "strategies": {
+        "last_token": {
+          "candidates": 14,
+          "registered": 3,
+          "not_registered": 11
+        }
+      },
+      "top_registrants": {
+        "(none)": 14
+      },
+      "examples": [
+        {
+          "pmid": "PMID:41620881",
+          "identifier": "doi:: 10.36740/WLek/214410",
+          "repaired_to": [
+            "doi:10.36740/WLek/214410"
+          ]
+        },
+        {
+          "pmid": "PMID:41733316",
+          "identifier": "doi:doi 10.17992/lbl.2026.03.881",
+          "repaired_to": [
+            "doi:10.17992/lbl.2026.03.881"
+          ]
+        },
+        {
+          "pmid": "PMID:41891654",
+          "identifier": "doi:doi 10.17992/lbl.2026.04.885",
+          "repaired_to": [
+            "doi:10.17992/lbl.2026.04.885"
+          ]
+        },
+        {
+          "pmid": "PMID:42048070",
+          "identifier": "doi:doi 10.17992/lbl.2026.05.889",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:42184318",
+          "identifier": "doi:EDN: DNDPXR 10.7868/S3034555326010016",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:42184319",
+          "identifier": "doi:EDN: XVYYSN 10.7868/S3034555326010025",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:42184320",
+          "identifier": "doi:EDN: RYWQJQ 10.7868/S3034555326010038",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:42184321",
+          "identifier": "doi:EDN: PUNKAG 10.7868/S3034555326010041",
+          "repaired_to": []
+        }
+      ]
+    },
+    "soft_line_break": {
+      "count": 4,
+      "repaired": 0,
+      "crossref_vetoed": 0,
+      "repair_strategy": "join",
+      "strategies": {
+        "first_token": {
+          "candidates": 4,
+          "registered": 0,
+          "not_registered": 4
+        },
+        "join": {
+          "candidates": 4,
+          "registered": 0,
+          "not_registered": 4
+        },
+        "soft_line_break": {
+          "candidates": 4,
+          "registered": 0,
+          "not_registered": 4
+        }
+      },
+      "top_registrants": {
+        "10.1097": 4
+      },
+      "examples": [
+        {
+          "pmid": "PMID:16041190",
+          "identifier": "doi:10.1097/01.mjt.00001= 26406.29484.9b",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:16041191",
+          "identifier": "doi:10.1097/01.mjt.00001= 32251.03275.3c",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:16041200",
+          "identifier": "doi:10.1097/01.mjt.00001= 09849.55405.48",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:16041201",
+          "identifier": "doi:10.1097/01.mjt.00001= 36061.48590.88",
+          "repaired_to": []
+        }
+      ]
+    },
+    "punctuation_gap": {
+      "count": 362,
+      "repaired": 247,
+      "crossref_vetoed": 0,
+      "repair_strategy": "join",
+      "strategies": {
+        "first_token": {
+          "candidates": 328,
+          "registered": 35,
+          "not_registered": 293
+        },
+        "join": {
+          "candidates": 362,
+          "registered": 256,
+          "not_registered": 106
+        },
+        "last_token": {
+          "candidates": 1,
+          "registered": 1,
+          "not_registered": 0
+        }
+      },
+      "top_registrants": {
+        "10.3760": 108,
+        "10.23750": 54,
+        "10.5137": 43,
+        "10.1302": 28,
+        "10.19813": 19
+      },
+      "examples": [
+        {
+          "pmid": "PMID:10755417",
+          "identifier": "doi:10.1302/0301-620x.82b2 .10847",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:18052690",
+          "identifier": "doi:10.33549/physiolres. 931260",
+          "repaired_to": [
+            "doi:10.33549/physiolres.931260"
+          ]
+        },
+        {
+          "pmid": "PMID:22194131",
+          "identifier": "doi:10.5137/1019-5149.JTN .2979-10.0",
+          "repaired_to": [
+            "doi:10.5137/1019-5149.JTN.2979-10.0"
+          ]
+        },
+        {
+          "pmid": "PMID:24278935",
+          "identifier": "doi:10.11607/jomi .2833",
+          "repaired_to": [
+            "doi:10.11607/jomi.2833"
+          ]
+        },
+        {
+          "pmid": "PMID:25665619",
+          "identifier": "doi:10.3760/cma. j. issn.2095-4352.2015.02.017",
+          "repaired_to": [
+            "doi:10.3760/cma.j.issn.2095-4352.2015.02.017"
+          ]
+        },
+        {
+          "pmid": "PMID:28145857",
+          "identifier": "doi:10.14715/cmb/ 2016.62.14.9",
+          "repaired_to": [
+            "doi:10.14715/cmb/2016.62.14.9"
+          ]
+        },
+        {
+          "pmid": "PMID:28752835",
+          "identifier": "doi:10.23750/abm.v88i3 -S.6616",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:35950437",
+          "identifier": "doi:10.7146/torture. v32i1-2.131322",
+          "repaired_to": [
+            "doi:10.7146/torture.v32i1-2.131322"
+          ]
+        }
+      ]
+    },
+    "trailing_text": {
+      "count": 11,
+      "repaired": 2,
+      "crossref_vetoed": 0,
+      "repair_strategy": "join",
+      "strategies": {
+        "first_token": {
+          "candidates": 11,
+          "registered": 3,
+          "not_registered": 8
+        },
+        "join": {
+          "candidates": 11,
+          "registered": 2,
+          "not_registered": 9
+        }
+      },
+      "top_registrants": {
+        "10.12968": 3,
+        "10.11607": 2,
+        "10.1101": 1,
+        "10.11152": 1,
+        "10.17458": 1
+      },
+      "examples": [
+        {
+          "pmid": "PMID:11827943",
+          "identifier": "doi:10.1101/gr.214102. Article published online before print in January 2002",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:26962564",
+          "identifier": "doi:10.11152/mu.2013.2066.181. ffz",
+          "repaired_to": [
+            "doi:10.11152/mu.2013.2066.181.ffz"
+          ]
+        },
+        {
+          "pmid": "PMID:28508600",
+          "identifier": "doi:10.17458/per.vol14.2017.SR.endocrinedisorderscranio pharyngioma",
+          "repaired_to": [
+            "doi:10.17458/per.vol14.2017.SR.endocrinedisorderscraniopharyngioma"
+          ]
+        },
+        {
+          "pmid": "PMID:28886314",
+          "identifier": "doi:10.14715/KLF1; Fetal hemoglobin; Globin genes; Variations.",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:31465033",
+          "identifier": "doi:10.11607/ofph.INSERT 4 DIGIT DOI",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:31855523",
+          "identifier": "doi:10.12968/jowc.2020.29.LatAm sup 1.32",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:31855524",
+          "identifier": "doi:10.12968/jowc.2020.29.LatAm sup 1.1",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:31855525",
+          "identifier": "doi:10.12968/jowc.2020.29.LatAm sup 1.27",
+          "repaired_to": []
+        }
+      ]
+    },
+    "word_gap": {
+      "count": 253,
+      "repaired": 178,
+      "crossref_vetoed": 0,
+      "repair_strategy": "separators",
+      "strategies": {
+        "first_token": {
+          "candidates": 253,
+          "registered": 8,
+          "not_registered": 245
+        },
+        "join": {
+          "candidates": 253,
+          "registered": 34,
+          "not_registered": 219
+        },
+        "separators": {
+          "candidates": 1004,
+          "registered": 180,
+          "not_registered": 824
+        }
+      },
+      "top_registrants": {
+        "10.3129": 127,
+        "10.3305": 60,
+        "10.21614": 22,
+        "10.3171": 18,
+        "10.4038": 7
+      },
+      "examples": [
+        {
+          "pmid": "PMID:15537185",
+          "identifier": "doi:10.3171/jns.2004.101.supplement 3.0326",
+          "repaired_to": [
+            "doi:10.3171/jns.2004.101.supplement_3.0326"
+          ]
+        },
+        {
+          "pmid": "PMID:17361248",
+          "identifier": "doi:10.3129/can j ophthalmol.06-089",
+          "repaired_to": [
+            "doi:10.3129/can.j.ophthalmol.06-089"
+          ]
+        },
+        {
+          "pmid": "PMID:17392847",
+          "identifier": "doi:10.3129/can j ophthalmol.i07-030",
+          "repaired_to": [
+            "doi:10.3129/can.j.ophthalmol.i07-030"
+          ]
+        },
+        {
+          "pmid": "PMID:17392878",
+          "identifier": "doi:10.3129/can j ophthalmol.i07-041",
+          "repaired_to": [
+            "doi:10.3129/can.j.ophthalmol.i07-041"
+          ]
+        },
+        {
+          "pmid": "PMID:17641696",
+          "identifier": "doi:10.3129/can j ophthalmol.i07-090",
+          "repaired_to": [
+            "doi:10.3129/can.j.ophthalmol.i07-090"
+          ]
+        },
+        {
+          "pmid": "PMID:24506355",
+          "identifier": "doi:10.3305/nutr hosp.v28in06.6892",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:24506386",
+          "identifier": "doi:10.3305/nutr hosp.v28in06.6856",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:33963691",
+          "identifier": "doi:10.21614/chirurgia.116.2 Suppl.S24",
+          "repaired_to": [
+            "doi:10.21614/chirurgia.116.2Suppl.S24"
+          ]
+        }
+      ]
+    },
+    "other": {
+      "count": 2,
+      "repaired": 0,
+      "crossref_vetoed": 0,
+      "repair_strategy": "",
+      "strategies": {},
+      "top_registrants": {
+        "(none)": 2
+      },
+      "examples": [
+        {
+          "pmid": "PMID:23344409",
+          "identifier": "doi:http://10 1097/AOG.0b013e318270444f",
+          "repaired_to": []
+        },
+        {
+          "pmid": "PMID:42087756",
+          "identifier": "doi:Gedeelte van de doi n https://doi.org/.",
+          "repaired_to": []
+        }
+      ]
+    }
+  }
+}

@@ -2,6 +2,7 @@ import src.createcompendia.diseasephenotype as diseasephenotype
 import src.assess_compendia as assessments
 import src.snakefiles.util as util
 from src.metadata.provenance import write_concord_metadata
+from src.model.intermediates import parse_concord_line
 
 ### Disease / Phenotypic Feature
 
@@ -93,12 +94,15 @@ rule disease_umls_ids:
     input:
         badumls=config["input_directory"] + "/badumls",
         mrsty=config["download_directory"] + "/UMLS/MRSTY.RRF",
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
         outfile=config["intermediate_directory"] + "/disease/ids/UMLS",
     benchmark:
         config["output_directory"] + "/benchmarks/disease_umls_ids.tsv"
     run:
-        diseasephenotype.write_umls_ids(input.mrsty, output.outfile, input.badumls)
+        diseasephenotype.write_umls_ids(
+            input.mrsty, output.outfile, input.badumls, mesh_ownership=input.mesh_ownership
+        )
 
 
 rule disease_hp_ids:
@@ -244,18 +248,14 @@ rule disease_manual_concord:
     run:
         count_manual_concords = 0
         with open(input.infile, "r") as inp, open(output.outfile, "w") as outp:
-            for line in inp:
-                # Remove any lines starting with '#', which we treat as comments.
-                lstripped_line = line.lstrip()
-                if lstripped_line == "" or lstripped_line.startswith("#"):
+            for line_number, line in enumerate(inp, start=1):
+                # Skip blank lines and '#' comments, which only the hand-curated file has.
+                if line.strip() == "" or line.lstrip().startswith("#"):
                     continue
-                    # Make sure the line has three tab-delimited values, and fail otherwise.
-                elements = lstripped_line.split("\t")
-                if len(elements) != 3:
-                    raise RuntimeError(
-                        f"Found {len(elements)} elements on line {lstripped_line}, expected 3: {elements}"
-                    )
-                outp.writelines(["\t".join(elements)])
+                # Every other line must be a valid concord row by the same rule every concord reader
+                # applies, so a curation mistake is reported against input_data/, not the copy.
+                subject, predicate, obj = parse_concord_line(line, input.infile, line_number)
+                outp.write(f"{subject}\t{predicate}\t{obj}\n")
                 count_manual_concords += 1
         write_concord_metadata(
             output.metadata_yaml,
@@ -335,12 +335,16 @@ rule disease_compendia:
         # identifier's `t` field); declared here so they exist before the compendium is built.
         taxa=expand("{dd}/{ap}/taxa", dd=config["download_directory"], ap=config["disease_phenotype_taxa"]),
         icrdf_filename=config["download_directory"] + "/icRDF.tsv",
+        mesh_ownership=config["intermediate_directory"] + "/umls/mesh_ownership.tsv",
     output:
         expand("{od}/compendia/{ap}", od=config["output_directory"], ap=config["disease_outputs"]),
         temp(expand("{od}/synonyms/{ap}", od=config["output_directory"], ap=config["disease_outputs"])),
         expand("{od}/metadata/{ap}.yaml", od=config["output_directory"], ap=config["disease_outputs"]),
     benchmark:
         config["output_directory"] + "/benchmarks/disease_compendia.tsv"
+    params:
+        # Rerun trigger only: see anatomy_unique_prefixes in config.yaml.
+        unique_prefixes=config["disease_unique_prefixes"],
     run:
         # A new prefix's bad-xref file must be registered HERE (as a rule input above and a key
         # in this dict) and in diseasephenotype.DEFAULT_BAD_XREFS. A key that matches no concord
@@ -357,6 +361,7 @@ rule disease_compendia:
                 "UMLS": input.bad_umls_xrefs,
             },
             input.icrdf_filename,
+            mesh_ownership=input.mesh_ownership,
         )
 
 

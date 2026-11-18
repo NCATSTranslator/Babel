@@ -5,11 +5,9 @@ import duckdb
 import pytest
 
 from src.exporters.duckdb_exporters import (
-    _metadata_subject_filename,
     export_compendia_to_parquet,
     export_conflation_to_parquet,
     export_intermediates_to_parquet,
-    log_duckdb_settings_on_error,
 )
 from tests.conftest import CONFLATION_FIXTURE_ROWS
 
@@ -77,34 +75,6 @@ def test_export_compendia_to_parquet_edge_columns(compendium_file, tmp_path):
 
     columns = {col[0] for col in duckdb.execute(f"DESCRIBE SELECT * FROM read_parquet('{edge_parquet}')").fetchall()}
     assert columns == {"clique_leader", "curie", "conflation", "clique_leader_prefix", "curie_prefix", "biolink_type"}
-
-
-@pytest.mark.unit
-def test_log_duckdb_settings_on_error_reraises_and_logs(caplog):
-    """On failure the helper should log the operation name and effective settings, then re-raise."""
-    con = duckdb.connect()
-    con.execute("SET threads=3")
-    with caplog.at_level("INFO"):
-        with pytest.raises(duckdb.Error):
-            with log_duckdb_settings_on_error(con, "my-test-operation"):
-                con.execute("SELECT * FROM a_table_that_does_not_exist")
-
-    assert "my-test-operation" in caplog.text
-    assert "effective settings" in caplog.text
-    # A couple of the diagnostic settings should be reported back.
-    assert "memory_limit=" in caplog.text
-    assert "threads=3" in caplog.text
-    # The on-error path also emits a memory snapshot for the failed operation.
-    assert "Memory snapshot (at failure of my-test-operation)" in caplog.text
-
-
-@pytest.mark.unit
-def test_log_duckdb_settings_on_error_passes_through_on_success():
-    """When the wrapped block succeeds the helper must not interfere with the result."""
-    con = duckdb.connect()
-    with log_duckdb_settings_on_error(con, "ok-operation"):
-        result = con.execute("SELECT 42").fetchone()
-    assert result == (42,)
 
 
 @pytest.mark.unit
@@ -374,78 +344,63 @@ def test_export_intermediates_to_parquet_inconsistent_columns(tmp_path):
 
 
 @pytest.mark.unit
-def test_export_intermediates_to_parquet_skips_malformed_concord_line(tmp_path, caplog):
-    """A concord line that is not exactly three columns is skipped (not fatal), matching
-    write_concord_metadata()'s warn-and-skip behavior; the well-formed lines still load and a
-    warning naming the skipped line is emitted."""
+@pytest.mark.parametrize(
+    "bad_line",
+    [
+        "C:2\tD:2\n",  # two columns
+        "C:2\teq\tD:2\tEXTRA\n",  # four columns
+    ],
+)
+def test_export_intermediates_to_parquet_raises_on_malformed_concord_line(tmp_path, bad_line):
+    """A concord line that isn't three columns should fail the export, naming the file it is in,
+    rather than be skipped -- every other concord reader rejects it (src/model/intermediates.py), so a
+    Concord table that silently dropped it would disagree with the compendia. Clean.txt sits
+    beside the bad file to check that the error names the right one."""
     intermediate_dir = tmp_path / "intermediate"
     concords_dir = intermediate_dir / "datacollect" / "concords"
     concords_dir.mkdir(parents=True)
-    # Line 2 has two columns and line 4 has four; both must be skipped, lines 1 and 3 kept.
-    (concords_dir / "Anatomy.txt").write_text(
-        "UBERON:0000001\teq\tMESH:D000001\n"
-        "UBERON:0000002\tMESH:D000002\n"
-        "UBERON:0000003\teq\tMESH:D000003\n"
-        "UBERON:0000004\teq\tMESH:D000004\tEXTRA\n"
-    )
-    concords_parquet = str(tmp_path / "Concord.parquet")
+    (concords_dir / "Clean.txt").write_text("A:1\teq\tB:1\nA:2\teq\tB:2\n")
+    (concords_dir / "Bad.txt").write_text("C:1\teq\tD:1\n" + bad_line)
 
-    with caplog.at_level("WARNING"):
+    with pytest.raises(RuntimeError, match=r"Malformed concord file .*Bad\.txt"):
         export_intermediates_to_parquet(
             str(intermediate_dir),
             str(tmp_path / "concords.duckdb"),
             str(tmp_path / "Identifier.parquet"),
-            concords_parquet,
+            str(tmp_path / "Concord.parquet"),
             str(tmp_path / "Metadata.parquet"),
         )
-
-    concords = duckdb.execute(
-        f"SELECT subj, pred, obj FROM read_parquet('{concords_parquet}') ORDER BY subj"
-    ).fetchall()
-    assert concords == [
-        ("UBERON:0000001", "eq", "MESH:D000001"),
-        ("UBERON:0000003", "eq", "MESH:D000003"),
-    ]
-    # Both malformed lines are reported, along with the aggregate count.
-    assert "Skipping malformed concord line" in caplog.text
-    assert "Skipped 2 malformed concord line(s)" in caplog.text
 
 
 @pytest.mark.unit
-def test_export_intermediates_to_parquet_malformed_concord_attributed_to_right_file(tmp_path, caplog):
-    """With several concord files, the reject_errors/reject_scans join must attribute a skipped
-    line to the file it came from: a clean file loads fully and the warning names only the
-    offending file, even though DuckDB accumulates rejects across the whole loop."""
+def test_export_intermediates_to_parquet_accepts_trailing_tab(tmp_path):
+    """A concord line with a trailing tab should load as its first three columns.
+
+    This pins current, known-imperfect behavior: DuckDB's read_csv treats a trailing delimiter as
+    harmless, so the export's strict mode does not catch it, while parse_concord_line() in
+    src/model/intermediates.py rejects the same line as four columns. It is harmless because every
+    concord a compendium reads has already been through that parser before this export runs. If
+    the export ever validates rows itself, invert this assertion to expect a RuntimeError rather
+    than deleting it.
+    """
     intermediate_dir = tmp_path / "intermediate"
     concords_dir = intermediate_dir / "datacollect" / "concords"
     concords_dir.mkdir(parents=True)
-    # Clean.txt is well-formed; Bad.txt has one two-column line that must be skipped.
-    (concords_dir / "Clean.txt").write_text("A:1\teq\tB:1\nA:2\teq\tB:2\n")
-    (concords_dir / "Bad.txt").write_text("C:1\teq\tD:1\nC:2\tD:2\n")
+    (concords_dir / "Trailing.txt").write_text("C:1\teq\tD:1\nC:2\teq\tD:2\t\n")
     concords_parquet = str(tmp_path / "Concord.parquet")
 
-    with caplog.at_level("WARNING"):
-        export_intermediates_to_parquet(
-            str(intermediate_dir),
-            str(tmp_path / "concords.duckdb"),
-            str(tmp_path / "Identifier.parquet"),
-            concords_parquet,
-            str(tmp_path / "Metadata.parquet"),
-        )
+    export_intermediates_to_parquet(
+        str(intermediate_dir),
+        str(tmp_path / "concords.duckdb"),
+        str(tmp_path / "Identifier.parquet"),
+        concords_parquet,
+        str(tmp_path / "Metadata.parquet"),
+    )
 
-    # All three well-formed rows load; only C:2's malformed line is dropped.
     concords = duckdb.execute(
         f"SELECT subj, pred, obj FROM read_parquet('{concords_parquet}') ORDER BY subj"
     ).fetchall()
-    assert concords == [
-        ("A:1", "eq", "B:1"),
-        ("A:2", "eq", "B:2"),
-        ("C:1", "eq", "D:1"),
-    ]
-    # The warning names Bad.txt (the source of the skipped line) and not Clean.txt.
-    assert "Skipped 1 malformed concord line(s)" in caplog.text
-    assert str(concords_dir / "Bad.txt") in caplog.text
-    assert str(concords_dir / "Clean.txt") not in caplog.text
+    assert concords == [("C:1", "eq", "D:1"), ("C:2", "eq", "D:2")]
 
 
 @pytest.mark.unit
@@ -464,20 +419,3 @@ def test_export_intermediates_to_parquet_creates_missing_output_dirs(tmp_path):
 
     for parquet_file in (ids_parquet, concords_parquet, metadata_parquet):
         assert os.path.exists(parquet_file)
-
-
-@pytest.mark.unit
-@pytest.mark.parametrize(
-    "filename,expected",
-    [
-        ("metadata-Anatomy.txt.yaml", "Anatomy.txt"),
-        ("metadata.yaml", "metadata.yaml"),
-        ("Anatomy.txt", None),
-        ("CHEBI", None),
-    ],
-)
-def test_metadata_subject_filename(filename, expected):
-    """A `metadata-<subject>.yaml` sidecar resolves to its subject filename, a bare
-    `metadata.yaml` returns its own name (it describes its directory), and a non-metadata
-    filename returns None so the caller loads it as a data file."""
-    assert _metadata_subject_filename(filename) == expected

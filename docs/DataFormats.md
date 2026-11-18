@@ -250,6 +250,29 @@ transient DuckDB database (`.duckdb`) is written alongside each set of Parquet f
 export and can be used directly for interactive querying, but the Parquet files are the
 durable output.
 
+### Querying a published build without downloading it
+
+A published build's exports are served from `https://stars.renci.org/var/babel/<build>/duckdb/`,
+with `latest/` holding the most recent build, and DuckDB's `httpfs` extension reads them in place
+with HTTP range requests. It fetches only the columns and row groups a query needs:
+
+```sql
+INSTALL httpfs; LOAD httpfs;
+SELECT filename, subj, obj
+FROM 'https://stars.renci.org/var/babel/latest/duckdb/Concord.parquet'
+WHERE obj LIKE 'UniProtKB:%|%';
+-- A per-compendium DuckDB can be attached read-only, too:
+ATTACH 'https://stars.renci.org/var/babel/latest/duckdb/duckdbs/filename=Protein/compendium.duckdb'
+  AS p (READ_ONLY);
+```
+
+HTTP has no directory globbing, so list the files you want before passing them to
+`read_parquet([...])`: fetch the directory index with `curl`, and skip the conflation directories
+(`DrugChemical`, `GeneProtein`), which have no `Edge.parquet`. Timings on 2026jul22: a filtered scan
+of `Concord.parquet` or `Identifier.parquet` takes 10–30 seconds. A scan of every compendium's
+`Edge.parquet` takes about 4 minutes, as does a join against the attached 20 GB Protein
+`compendium.duckdb`. This is how the #1109 malformed-CURIE survey was measured.
+
 ### Compendium tables (`filename={Type}/Node.parquet`, `Clique.parquet`, `Edge.parquet`)
 
 These three tables are derived from the compendia JSONL for each semantic type.
@@ -330,7 +353,18 @@ the source file, so you can tell which semantic type and which source a row came
 
 `Concord.parquet` — one row per cross-reference edge, from every non-empty concord file (including
 the extension-less DrugChemical conflation concords at
-`intermediate/drugchemical/concords/{RXNORM,UMLS,PUBCHEM_RXNORM}`):
+`intermediate/drugchemical/concords/{RXNORM,UMLS,PUBCHEM_RXNORM}`). A concord line with too few or
+too many columns fails the export rather than being skipped; builds up to and including 2026jul22
+skipped such lines, so their `Concord.parquet` may be missing rows that were in the files.
+
+The export's check is looser than the build's concord parser (`parse_concord_line()` in
+`src/model/intermediates.py`), so `Concord.parquet` can hold rows the build would reject. DuckDB's
+`read_csv` accepts a line ending in a tab, loading its first three columns, and it doesn't reject an
+empty column or one with whitespace around it. Every concord a compendium reads has already passed
+the parser, but not every file the export loads is one a compendium reads. To check a build's
+concords against the parser itself, run [`babel-check-concords`](tools/CheckConcords.md).
+
+Its columns:
 
 | Column   | Type   | Meaning                                                          |
 |----------|--------|------------------------------------------------------------------|
