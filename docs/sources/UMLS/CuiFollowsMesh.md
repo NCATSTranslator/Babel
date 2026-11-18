@@ -26,6 +26,9 @@ Downstream, Redis NodeNorm served whichever compendium loaded last, and NodeNorm
 cliques into one document whose `type` listed both Biolink classes
 ([biothings/NodeNormalizationAPI#41](https://github.com/biothings/NodeNormalizationAPI/issues/41)).
 
+How the other vocabularies several pipelines claim are kept apart is in
+[`CrossPipelineVocabularies.md`](../CrossPipelineVocabularies.md).
+
 ## The rule
 
 MeSH placement is the tie-breaker. `rule umls_mesh_ownership` (`src/snakefiles/umls.snakefile`)

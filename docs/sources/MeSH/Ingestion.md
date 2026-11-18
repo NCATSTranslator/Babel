@@ -169,6 +169,9 @@ grep -E "mesh/C038967>" babel_downloads/MESH/mesh.nt \
 
 ## How MeSH is split across compendia
 
+MeSH is one of several vocabularies more than one pipeline claims; the patterns they share are in
+[`CrossPipelineVocabularies.md`](../CrossPipelineVocabularies.md).
+
 MeSH is partitioned by its top-level tree letter. Each consuming compendium declares its own
 `meshmap` (tree-prefix → Biolink type) and calls `mesh.write_ids()`, which expands each tree
 prefix to all descriptors under it. The current routing:

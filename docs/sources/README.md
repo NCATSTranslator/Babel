@@ -95,6 +95,11 @@ letting it accumulate in `AGENTS.md` — `AGENTS.md` should point here, not dupl
 
 - **Download patterns** ([DownloadPatterns.md](./DownloadPatterns.md)) — HTTP directory listing
   vs FTP for file discovery, and when to use each approach.
+- **Vocabularies that span pipelines**
+  ([CrossPipelineVocabularies.md](./CrossPipelineVocabularies.md)) — UMLS, MeSH, GO, NCIT, OMIM
+  and ENSEMBL, which several pipelines claim: how each is split so that every identifier lands in
+  one compendium, the mechanisms for keeping a shared vocabulary disjoint, and the checks that
+  catch a leak.
 
 See the data handlers in `src/datahandlers/` and the compendium builders in
 `src/createcompendia/` for the code behind each source.

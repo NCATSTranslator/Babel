@@ -422,7 +422,9 @@ whether two CURIEs already share a clique (the released-build analogue of the Du
 
 Two different compendia must never share an identifier, and no valid identifier should be dropped
 without good reason — when changing how one compendium filters identifiers, check the effect on
-every other compendium too.
+every other compendium too. Six prefixes (UMLS, MeSH, GO, NCIT, OMIM, ENSEMBL) have ids files in
+more than one pipeline; how each is split, and what to check when changing one, is in
+[`docs/sources/CrossPipelineVocabularies.md`](docs/sources/CrossPipelineVocabularies.md).
 
 ## Documentation
 
