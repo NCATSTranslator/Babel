@@ -68,10 +68,12 @@ def test_fma_extra_prefix_is_still_needed():
     A stale entry keeps FMA from competing for the preferred identifier in its registered position, and
     nothing else would notice. When this fails, remove the entry from config.yaml:
     anatomy_extra_prefixes_by_biolink_class and close https://github.com/NCATSTranslator/Babel/issues/1134
-    (biolink/biolink-model#1827)."""
+    (biolink/biolink-model#1827).
+
+    Only GrossAnatomicalStructure is checked: whether Biolink registers FMA for any other class is not
+    what this entry depends on, so a change there must not tell the maintainer to remove it."""
     toolkit = get_biolink_model_toolkit(get_config()["biolink_version"])
-    assert FMA in toolkit.get_element("anatomical entity").id_prefixes
-    assert FMA not in toolkit.get_element("gross anatomical structure").id_prefixes
+    assert FMA not in toolkit.get_element(GROSS_ANATOMICAL_STRUCTURE).id_prefixes
 
 
 # WIKIDATA CELL RELATIONSHIPS
