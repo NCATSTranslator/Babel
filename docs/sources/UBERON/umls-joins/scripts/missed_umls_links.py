@@ -13,6 +13,11 @@ anatomy concords of the comparison build:
 - SCTID: the UBERON term's SNOMED xref (renamed by config.yaml: anatomy_xref_prefixes) is a SNOMEDCT_US
   code of the CUI.
 - FMA: the UBERON term's FMA xref is an FMA code of the CUI.
+
+A CUI's codes are read the way the anatomy UMLS concord reads them -- the build's source map
+(anatomy.ANATOMY_UMLS_SOURCES) and MRCONSO line filter (umls.check_mrconso_line) -- so a bridge is counted
+only if the build can carry it: a CUI whose only FMA-numbered atom is from UWDA, or is obsolete, has no FMA
+code in the build and is bucketed "none".
 - none: neither.
 
 Usage (from the repository root):
@@ -33,6 +38,8 @@ import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from src.createcompendia.anatomy import ANATOMY_UMLS_SOURCES
+from src.datahandlers.umls import check_mrconso_line
 from src.prefixes import FMA, SNOMEDCT, UBERON, UMLS
 
 REPO = Path(__file__).resolve().parents[5]
@@ -108,8 +115,12 @@ def read_uberon_xrefs(concord):
 
 
 def read_mrconso(mrconso, cuis):
-    """Return ({CUI: {English strings}}, {CUI: {SNOMEDCT/FMA CURIEs}}, {CUI: {sources}}) for the given CUIs."""
-    sources = {"SNOMEDCT_US": SNOMEDCT, "FMA": FMA, "UWDA": FMA}
+    """Return ({CUI: {English strings}}, {CUI: {SNOMEDCT/FMA CURIEs}}, {CUI: {sources}}) for the given CUIs.
+
+    Codes come from the sources the build maps (ANATOMY_UMLS_SOURCES), restricted to the two bridges counted,
+    and only from atoms the build keeps (check_mrconso_line); strings come from every English atom.
+    """
+    sources = {sab: prefix for sab, prefix in ANATOMY_UMLS_SOURCES.items() if prefix in (SNOMEDCT, FMA)}
     strings, codes, sabs = defaultdict(set), defaultdict(set), defaultdict(set)
     with open(mrconso) as inf:
         for line in inf:
@@ -118,7 +129,7 @@ def read_mrconso(mrconso, cuis):
                 continue
             strings[x[0]].add(x[14])
             sabs[x[0]].add(x[11])
-            if x[11] in sources:
+            if x[11] in sources and check_mrconso_line(line):
                 codes[x[0]].add(f"{sources[x[11]]}:{x[13]}")
     return strings, codes, sabs
 
@@ -128,8 +139,10 @@ def describe_unbridged(sources):
     sources = sources - {"MTH", "CHV", "LCH", "SNMI", "RCD", "MDR"}
     if "SNOMEDCT_US" in sources:
         return "SNOMED CT concept"
-    if sources & {"FMA", "UWDA"}:
-        return "FMA/UWDA concept without SNOMED"
+    if "FMA" in sources:
+        return "FMA concept without SNOMED"
+    if "UWDA" in sources:
+        return "UWDA concept without FMA (the build does not map UWDA)"
     if sources & {"LNC", "ICF", "ICF-CY", "SNOMEDCT_VET"}:
         return "only LOINC, ICF or veterinary SNOMED"
     return "other"

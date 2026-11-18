@@ -242,7 +242,7 @@ ANATOMY_OBO_IGNORE_LIST = [
 # UBERON's own ignore list: ANATOMY_OBO_IGNORE_LIST minus FMA. FMA was excluded because CL uses FMA
 # xrefs to mean "part of", but CL subclasses are never written from the UBERON root (build_sets drops
 # other ontologies' terms) and CL now comes from Wikidata. UBERON's FMA xrefs are mostly exact, and are
-# the only bridge to the many UMLS concepts whose sole source is FMA/UWDA: the full-build comparison in
+# the only bridge to the many UMLS concepts whose only anatomy source is FMA: the full-build comparison in
 # docs/sources/UBERON/umls-joins/README.md found ~2,900 more UBERON/UMLS joins from FMA, and the wrong
 # merges it found traced to individual UBERON xrefs now listed in input_data/anatomy_badxrefs.txt.
 # GO and EMAPA keep the shared list; their FMA xrefs have not been reviewed.
@@ -368,12 +368,20 @@ def build_wikidata_cell_relationships(outdir, metadata_yaml):
     )
 
 
+# The MRCONSO sources (SAB) whose codes the anatomy UMLS concord maps each CUI to, with the Babel prefix
+# each is written as. UWDA is deliberately absent even though its codes are FMA numbers: a CUI whose only
+# FMA-numbered atom comes from UWDA is not joined to UBERON's FMA xrefs. The UBERON/UMLS census
+# (docs/sources/UBERON/umls-joins/scripts/missed_umls_links.py) imports this so it counts only bridges the
+# build can use.
+ANATOMY_UMLS_SOURCES = {"SNOMEDCT_US": SNOMEDCT, "MSH": MESH, "NCI": NCIT, "GO": GO, "FMA": FMA}
+
+
 def build_anatomy_umls_relationships(mrconso, idfile, outfile, umls_metadata):
     umls.build_sets(
         mrconso,
         idfile,
         outfile,
-        {"SNOMEDCT_US": SNOMEDCT, "MSH": MESH, "NCI": NCIT, "GO": GO, "FMA": FMA},
+        ANATOMY_UMLS_SOURCES,
         provenance_metadata_yaml=umls_metadata,
     )
 
