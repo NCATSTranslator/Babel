@@ -1,35 +1,27 @@
 """Unit tests for InformationContentFactory and the icRDF.tsv loader behind it.
 
-The loader is cached per path because `write_compendium` constructs an InformationContentFactory on
-every call, and the chemical build calls `write_compendium` once per entry in
-`config.yaml: chemical_outputs`. icRDF.tsv is 212 MB and ~3.9 million lines, each needing a
-`curies.Converter.compress()` call, so an uncached load did that work eight times in one rule for a
-byte-identical result.
-
 `_load_information_content` normally reaches the network twice (the Biolink prefix map and the
 UberGraph reverse prefix map), so these tests stub `get_biolink_prefix_map` with a tiny converter
-built from the same `curies` API the real one uses.
+built from the same `curies` API the real one uses. Under that stub, only CHEBI IRIs compress.
 """
 
 import curies
 import pytest
 
 import src.node as node
+from src.babel_utils import write_compendium
 from src.node import InformationContentFactory, _load_information_content
 
-# Two rows copied verbatim from babel_downloads/icRDF.tsv, which is `<URL>\t<information content>`.
-ICRDF_ROWS = [
-    ("http://purl.obolibrary.org/obo/CHEBI_15377", "78.6"),
-    ("http://purl.obolibrary.org/obo/CHEBI_17234", "83.2"),
-]
+# Real `<IRI>\t<normalizedInformationContent>` rows, exactly as UberGraph returned them on 2026-11-17
+# for the query src/ubergraph.py:write_normalized_information_content() runs, restricted to these IRIs.
+# Re-derive with `VALUES ?iri { ... } ?iri <http://reasoner.renci.org/vocab/normalizedInformationContent> ?nic`.
+CHEBI_15377_ROW = ("http://purl.obolibrary.org/obo/CHEBI_15377", "47.751447038644294")
+CHEBI_17234_ROW = ("http://purl.obolibrary.org/obo/CHEBI_17234", "52.491214926949837")
+# A real row whose IRI neither the Biolink prefix map nor config.yaml: ubergraph_iri_stem_to_prefix_map
+# compresses (checked against both on 2026-11-17) -- one of the ~250,000 the loader skips.
+UNMAPPED_COB_ROW = ("http://purl.obolibrary.org/obo/COB_0000022", "1.4819108121952984")
 
-
-@pytest.fixture(autouse=True)
-def clear_loader_cache():
-    """Each test gets a cold cache, so one test's load can't satisfy another's."""
-    _load_information_content.cache_clear()
-    yield
-    _load_information_content.cache_clear()
+ICRDF_ROWS = [CHEBI_15377_ROW, CHEBI_17234_ROW]
 
 
 @pytest.fixture
@@ -53,7 +45,7 @@ def write_icrdf(path, rows=ICRDF_ROWS):
 def test_urls_are_compressed_to_curies(tmp_path, stub_prefix_maps):
     """icRDF.tsv holds URLs, but the rest of the pipeline speaks CURIEs, so the loader compresses."""
     ic = _load_information_content(str(write_icrdf(tmp_path / "icRDF.tsv")))
-    assert ic == {"CHEBI:15377": 78.6, "CHEBI:17234": 83.2}
+    assert ic == {"CHEBI:15377": 47.751447038644294, "CHEBI:17234": 52.491214926949837}
 
 
 @pytest.mark.unit
@@ -61,7 +53,7 @@ def test_get_ic_returns_the_minimum_across_a_cliques_identifiers(tmp_path, stub_
     """A clique's information content is the lowest of any member that has one."""
     factory = InformationContentFactory(str(write_icrdf(tmp_path / "icRDF.tsv")))
     node_record = {"identifiers": [{"identifier": "CHEBI:17234"}, {"identifier": "CHEBI:15377"}]}
-    assert factory.get_ic(node_record) == 78.6
+    assert factory.get_ic(node_record) == 47.751447038644294
 
 
 @pytest.mark.unit
@@ -71,39 +63,51 @@ def test_get_ic_returns_none_when_no_identifier_has_a_value(tmp_path, stub_prefi
     assert factory.get_ic({"identifiers": [{"identifier": "CHEBI:99999"}]}) is None
 
 
-# CACHING
+@pytest.mark.unit
+def test_iris_with_no_curie_are_skipped_not_stored_under_none(tmp_path, stub_prefix_maps):
+    """An IRI neither prefix map can compress must not land in the dict at all.
+
+    It used to be stored as ``ic[None]``, every such row overwriting the last, behind an assertion
+    that compared ``None`` against ``(prefix, count)`` tuples and so could never fail.
+    """
+    ic = _load_information_content(str(write_icrdf(tmp_path / "icRDF.tsv", rows=[UNMAPPED_COB_ROW, CHEBI_15377_ROW])))
+    assert ic == {"CHEBI:15377": 47.751447038644294}
+
+
+# SHARING ONE FACTORY
 
 
 @pytest.mark.unit
-def test_the_file_is_read_once_per_path(tmp_path, stub_prefix_maps, monkeypatch):
-    """A second factory over the same path must reuse the parsed dict rather than re-reading.
+def test_the_ic_mapping_is_read_only(tmp_path, stub_prefix_maps):
+    """One factory is shared by every write_compendium call in a rule, so no caller may change its values."""
+    factory = InformationContentFactory(str(write_icrdf(tmp_path / "icRDF.tsv")))
+    with pytest.raises(TypeError):
+        factory.ic["CHEBI:15377"] = 0.0
 
-    Asserted by counting real `open` calls on the icRDF path, not just by object identity, because
-    identity alone would also pass if the loader returned a shared empty default.
+
+@pytest.mark.unit
+def test_each_factory_reads_the_file_itself(tmp_path, stub_prefix_maps):
+    """There is no process-wide cache: a re-downloaded file at the same path is read afresh.
+
+    Sharing one load across calls is the caller's job (write_compendium's ``ic_factory``), so the
+    dict is freed when the caller lets go of it rather than living as long as the process.
     """
     path = write_icrdf(tmp_path / "icRDF.tsv")
-    reads = []
-    real_open = open
-
-    def counting_open(file, *args, **kwargs):
-        if str(file) == str(path):
-            reads.append(str(file))
-        return real_open(file, *args, **kwargs)
-
-    monkeypatch.setattr("builtins.open", counting_open)
-
     first = InformationContentFactory(str(path))
+    write_icrdf(path, rows=[(CHEBI_15377_ROW[0], "1.0")])
     second = InformationContentFactory(str(path))
 
-    assert reads == [str(path)]
-    assert first.ic is second.ic
+    assert first.ic == {"CHEBI:15377": 47.751447038644294, "CHEBI:17234": 52.491214926949837}
+    assert second.ic == {"CHEBI:15377": 1.0}
 
 
 @pytest.mark.unit
-def test_a_different_path_gets_its_own_load(tmp_path, stub_prefix_maps):
-    """The cache is keyed on the path, so a tool pointed at another icRDF file is not served stale data."""
-    one = write_icrdf(tmp_path / "one.tsv")
-    two = write_icrdf(tmp_path / "two.tsv", rows=[("http://purl.obolibrary.org/obo/CHEBI_15377", "1.0")])
+def test_write_compendium_rejects_a_factory_loaded_from_another_file(tmp_path, stub_prefix_maps):
+    """`icrdf_filename` stays the declared input, so a factory from a different file is a caller bug.
 
-    assert _load_information_content(str(one)) == {"CHEBI:15377": 78.6, "CHEBI:17234": 83.2}
-    assert _load_information_content(str(two)) == {"CHEBI:15377": 1.0}
+    Checked before write_compendium loads anything else, so this needs no network.
+    """
+    factory = InformationContentFactory(str(write_icrdf(tmp_path / "one.tsv")))
+
+    with pytest.raises(ValueError, match="ic_factory loaded from"):
+        write_compendium([], [], "Test.txt", None, icrdf_filename=str(tmp_path / "two.tsv"), ic_factory=factory)

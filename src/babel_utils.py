@@ -697,6 +697,7 @@ def write_compendium(
     extra_prefixes=None,
     icrdf_filename=None,
     properties_jsonl_gz_files=None,
+    ic_factory=None,
 ):
     """
     :param metadata_yaml: The YAML files containing the metadata for this compendium.
@@ -725,8 +726,22 @@ def write_compendium(
         properly specified as a prerequisite in a Snakemake file, so that write_compendium() is not run until after
         icRDF.tsv has been generated.
     :param properties_files: (OPTIONAL) A list of SQLite3 files containing properties to be added to the output.
+    :param ic_factory: (OPTIONAL) An ``InformationContentFactory`` already loaded from `icrdf_filename`, for a
+        caller that writes several compendia in one rule: loading icRDF.tsv (~3.9 million rows) is otherwise
+        repeated on every call. `icrdf_filename` is still required, and must name the file the factory was
+        loaded from, so the file is still declared as the rule's input. The factory is passed explicitly
+        rather than cached in ``src/node.py`` because a module-level cache keeps the several-hundred-MB
+        dict for the life of the process, which in a local Snakemake run is every rule that follows.
     :return:
     """
+    # Check the arguments before loading anything: the factories below fetch the Biolink Model over the network.
+    if not icrdf_filename:
+        raise RuntimeError("No icrdf_filename parameter provided to write_compendium() -- this is required!")
+    if ic_factory is not None and os.path.realpath(ic_factory.ic_file) != os.path.realpath(icrdf_filename):
+        raise ValueError(
+            f"write_compendium() was given an ic_factory loaded from {ic_factory.ic_file}, "
+            f"but icrdf_filename is {icrdf_filename}."
+        )
     if extra_prefixes is None:
         extra_prefixes = []
     if labels is None:
@@ -750,11 +765,9 @@ def write_compendium(
     # Load the per-type label length demotion config. Types not listed here are never demoted.
     demote_labels_longer_than = config.get("demote_labels_longer_than", {})
 
-    # Create an InformationContentFactory based on the specified icRDF.tsv file. Default to the one in the download
-    # directory.
-    if not icrdf_filename:
-        raise RuntimeError("No icrdf_filename parameter provided to write_compendium() -- this is required!")
-    ic_factory = InformationContentFactory(icrdf_filename)
+    # Create an InformationContentFactory from icRDF.tsv, unless the caller passed one in (checked above).
+    if ic_factory is None:
+        ic_factory = InformationContentFactory(icrdf_filename)
     logger.info(f"InformationContentFactory ready: {ic_factory} with {get_memory_usage_summary()}")
 
     description_factory = DescriptionFactory(make_local_name(""))

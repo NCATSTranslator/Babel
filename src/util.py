@@ -504,6 +504,11 @@ def get_biolink_model_toolkit(biolink_version):
     model parses in a single rule. A build uses exactly one ``biolink_version``, so in practice this
     cache holds one entry.
 
+    Every caller in the process gets the same Toolkit, so treat it as read-only: anything set on it is
+    seen by every later caller. BMT offers no read-only view to enforce that; nothing in Babel sets
+    state on it today. Unlike icRDF (see ``write_compendium``'s ``ic_factory``), keeping it for the
+    life of the process is cheap next to a network fetch per caller.
+
     The model YAML is fetched from GitHub on first use. Pass the version string from
     config.yaml (``biolink_version`` key, e.g. ``"4.3.6"`` or a Git commit SHA).
     Do not include the leading ``v`` for version numbers; it is prepended automatically.

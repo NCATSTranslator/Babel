@@ -3,7 +3,7 @@ import json
 import os
 import sqlite3
 from collections import defaultdict
-from functools import cache
+from types import MappingProxyType
 from urllib.parse import urlparse
 
 import curies
@@ -348,7 +348,10 @@ class InformationContentFactory:
     A class for creating and using information content objects.
 
     Attributes:
-        ic (dict): A dictionary containing information content values for different nodes.
+        ic_file (str): The icRDF.tsv path this factory was loaded from.
+        ic (Mapping): A read-only ``{CURIE: information content}`` mapping. Read-only because one
+            factory may be shared by several ``write_compendium`` calls (see its ``ic_factory``
+            parameter), and a write by one would silently change every later compendium's values.
 
     Methods:
         __init__(ic_file)
@@ -370,7 +373,8 @@ class InformationContentFactory:
     """
 
     def __init__(self, ic_file):
-        self.ic = _load_information_content(ic_file)
+        self.ic_file = ic_file
+        self.ic = MappingProxyType(_load_information_content(ic_file))
 
     def get_ic(self, node):
         ICs = []
@@ -385,18 +389,21 @@ class InformationContentFactory:
         return min(ICs)
 
 
-@cache
 def _load_information_content(ic_file):
-    """Read `ic_file` into a ``{CURIE: information content}`` dict, cached per path.
+    """Read `ic_file` (icRDF.tsv, ``<IRI>\t<information content>``) into a ``{CURIE: IC}`` dict.
 
-    Cached because the caller cannot reasonably avoid re-requesting it: ``write_compendium``
-    constructs an ``InformationContentFactory`` on every call, and the chemical build calls
-    ``write_compendium`` once per entry in ``config.yaml: chemical_outputs``. icRDF.tsv is 212 MB
-    and ~3.9 million lines, each needing a ``curies.Converter.compress()`` call, so an uncached
-    load meant that work eight times over in a single rule for a byte-identical result.
+    Rows whose IRI neither the Biolink prefix map nor ``config.yaml: ubergraph_iri_stem_to_prefix_map``
+    can compress to a CURIE are skipped (and listed in the log by host). About 250,000 rows are like
+    this -- e.g. COB and VBO terms -- and no compendium identifier can ever be looked up against
+    them, since a compendium only holds CURIEs. They used to be stored under a ``None`` key, each
+    overwriting the last, behind an ``assert None not in ...`` that compared ``None`` against
+    ``(prefix, count)`` tuples and so could never fire.
 
-    The returned dict is shared between callers and must not be mutated -- ``get_ic`` only reads it.
-    Keyed on the path, so a test or tool that points at a different icRDF file still gets its own.
+    Deliberately not cached: icRDF.tsv is ~3.9 million rows and the dict several hundred MB, and a
+    module-level cache holds it for the life of the process -- in a local Snakemake run, which
+    executes ``run:`` blocks in the Snakemake process itself, that is every later rule too. A caller
+    writing several compendia builds one ``InformationContentFactory`` and passes it to each
+    ``write_compendium`` call instead, so the dict lives exactly as long as that caller needs it.
     """
     config = get_config()
     ic = {}
@@ -418,19 +425,12 @@ def _load_information_content(ic_file):
                 # Try the ubergraph_iri_stem_to_prefix_map
                 node_id = ubergraph_iri_stem_to_prefix_map.compress(x[0])
 
-            # If None, log this URL as unmapped.
             if node_id is None:
                 unmapped_urls.append(x[0])
+                continue
 
             ic[node_id] = float(x[1])
-
-            # Track IC values by prefix.
-            if isinstance(node_id, str):
-                prefix = node_id.split(":")[0]
-            else:
-                # Probably None, but we'll collect everything.
-                prefix = str(node_id)
-            count_by_prefix[prefix] += 1
+            count_by_prefix[node_id.split(":")[0]] += 1
 
     # Sort the dictionary items by value in descending order
     sorted_by_prefix = sorted(count_by_prefix.items(), key=lambda item: item[1], reverse=True)
@@ -440,8 +440,6 @@ def _load_information_content(ic_file):
     for key, value in sorted_by_prefix:
         logger.info(f"- {key}: {value}")
 
-    # We see a number of URLs being mapped to None (250,871 at present). Let's optionally raise an error if that
-    # happens.
     if len(unmapped_urls) > 0:
         # Group unmapped URLs by netloc
         unmapped_urls_by_netloc = defaultdict(list)
@@ -450,16 +448,12 @@ def _load_information_content(ic_file):
             unmapped_urls_by_netloc[netloc].append(url)
 
         # Print them in reverse count order.
-        logger.info(f"Found {len(unmapped_urls)} unmapped URLs:")
+        logger.info(f"Skipped {len(unmapped_urls)} URLs that could not be compressed to a CURIE:")
         netlocs_by_count = sorted(unmapped_urls_by_netloc.items(), key=lambda item: len(item[1]), reverse=True)
         for netloc, urls in netlocs_by_count:
             logger.info(f" - {netloc} [{len(urls)}]")
             for url in sorted(urls):
                 logger.info(f"   - {url}")
-
-        assert None not in sorted_by_prefix, (
-            "Found invalid CURIEs in information content values, probably because they couldn't be mapped from URLs to CURIEs."
-        )
 
     return ic
 

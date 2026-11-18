@@ -33,6 +33,7 @@ from src.datahandlers.unichem import data_sources as unichem_data_sources
 from src.datahandlers.unii import UNII_ORGANISM_COLUMNS, read_unii_records
 from src.metadata.provenance import write_combined_metadata, write_concord_metadata
 from src.model.intermediates import read_concord_pairs
+from src.node import InformationContentFactory
 from src.prefixes import (
     CHEBI,
     CHEMBLCOMPOUND,
@@ -1318,6 +1319,10 @@ def build_compendia(
         f"Created {len(typed_sets)} typed sets from {len(untyped_sets)} untyped sets: {get_memory_usage_summary()}"
     )
 
+    # One factory for every output: this rule writes one compendium per config.yaml: chemical_outputs
+    # entry, and each write_compendium call would otherwise re-read icRDF.tsv.
+    ic_factory = InformationContentFactory(icrdf_filename)
+
     for biotype, sets in typed_sets.items():
         baretype = biotype.split(":")[-1]
         if biotype == DRUG:
@@ -1330,6 +1335,7 @@ def build_compendia(
                 extra_prefixes=[MESH, UNII],
                 icrdf_filename=icrdf_filename,
                 properties_jsonl_gz_files=properties_jsonl_gz_files,
+                ic_factory=ic_factory,
             )
         else:
             write_compendium(
@@ -1341,6 +1347,7 @@ def build_compendia(
                 extra_prefixes=[RXCUI],
                 icrdf_filename=icrdf_filename,
                 properties_jsonl_gz_files=properties_jsonl_gz_files,
+                ic_factory=ic_factory,
             )
 
 
