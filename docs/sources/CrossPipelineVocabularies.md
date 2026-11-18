@@ -37,8 +37,9 @@ for prefix, pipelines in by.items():
 | `ENSEMBL` | gene, protein                                              | Gene vs protein stable ID                                                | below                                                                                    |
 
 `tests/pipeline/conftest.py`'s `VOCABULARY_REGISTRY` lists the vocabularies the partitioning test
-checks (see "Checks" below). ENSEMBL isn't in it, so nothing tests its split; it rests on
-`write_ensembl_protein_ids()` skipping any protein ID that is also a gene ID.
+checks (see "Checks" below). ENSEMBL isn't in it, so its split is tested only on fixture rows
+(`tests/createcompendia/test_protein.py`), not on real BioMart data
+([#1248](https://github.com/NCATSTranslator/Babel/issues/1248)).
 
 ### GO
 
@@ -64,7 +65,8 @@ disjoint by construction. The partitioning test is what shows they don't overlap
 
 Protein writes no `ids/NCIT` but concords NCIT twice (`NCIT_UMLS` and `NCIT_UniProtKB`), so an
 NCIT identifier can reach Protein through a concord alone. Nothing filters those pairs against
-anatomy's or disease's `ids/NCIT`.
+anatomy's or disease's `ids/NCIT`, and anatomy's UMLS concord isn't filtered either; the resulting
+duplicates are [#1126](https://github.com/NCATSTranslator/Babel/issues/1126).
 
 ### OMIM
 
